@@ -6,7 +6,7 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(46);
+select plan(47);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),

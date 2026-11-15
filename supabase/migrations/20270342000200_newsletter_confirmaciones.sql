@@ -29,8 +29,14 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('reclamar_confirmaciones_newsletter', 0));
 
   -- Sin consentimiento confirmado no hay nada que conservar: se purga lo pendiente de más de 7 días.
+  -- Una dirección que venía de una baja vuelve a `baja` (lista de supresión: no se pierde); el resto se elimina.
+  update dominio.newsletter_suscriptores s
+     set estado = 'baja', confirmacion_hash = null, confirmacion_vence = null, confirmacion_solicitada_en = null,
+         confirmacion_reclamada_hasta = null, confirmacion_intentos = 0
+   where s.estado = 'pendiente' and s.baja_en is not null
+     and s.confirmacion_solicitada_en < now() - interval '7 days';
   delete from dominio.newsletter_suscriptores s
-   where s.estado = 'pendiente' and s.creado_en < now() - interval '7 days'
+   where s.estado = 'pendiente' and s.baja_en is null and s.creado_en < now() - interval '7 days'
      and s.confirmacion_solicitada_en < now() - interval '7 days';
 
   if not private.bandera_activa('newsletter') then
@@ -38,7 +44,7 @@ begin
   end if;
 
   for v_fila in
-    select s.id as sid, s.empresa_id as eid, s.correo as scorreo, btrim(regexp_replace(e.nombre, '["<>[:cntrl:]]', '', 'g')) as tnombre, t.dominio as tdominio
+    select s.id as sid, s.empresa_id as eid, s.correo as scorreo, btrim(regexp_replace(e.nombre, '["<>\\[:cntrl:]]', '', 'g')) as tnombre, t.dominio as tdominio
       from dominio.newsletter_suscriptores s
       join dominio.empresas e on e.id = s.empresa_id and e.organizacion_id = s.organizacion_id and e.activa
       join dominio.newsletter_configuracion c on c.empresa_id = s.empresa_id and c.organizacion_id = s.organizacion_id and c.activo
@@ -88,12 +94,12 @@ begin
   if p_resultado = 'enviado' then
     update dominio.newsletter_suscriptores s
        set confirmacion_enviada_en = now(), confirmacion_reclamada_hasta = null, confirmacion_intentos = 0
-     where s.id = p_suscriptor and s.estado = 'pendiente'
+     where s.id = p_suscriptor and s.estado = 'pendiente' and s.confirmacion_hash is not null
        and (s.confirmacion_enviada_en is null or s.confirmacion_enviada_en < s.confirmacion_solicitada_en);
   else
     update dominio.newsletter_suscriptores s
        set confirmacion_reclamada_hasta = null, confirmacion_intentos = least(s.confirmacion_intentos + 1, 10)
-     where s.id = p_suscriptor and s.estado = 'pendiente'
+     where s.id = p_suscriptor and s.estado = 'pendiente' and s.confirmacion_hash is not null
        and (s.confirmacion_enviada_en is null or s.confirmacion_enviada_en < s.confirmacion_solicitada_en);
   end if;
 end;

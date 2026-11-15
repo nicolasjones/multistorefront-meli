@@ -292,8 +292,8 @@ reset role;
 select is((select j from res where clave = 'b_antes'), '{"resultado":"invalido"}'::jsonb, 'un enlace de confirmación no reactiva una baja');
 select is((select j from res where clave = 'b_resus'), (select j from res where clave = 's_nuevo'), 'CA-NL-3: re-suscribirse tras una baja responde igual que una alta');
 select ok(
-  (select estado = 'pendiente' and baja_en is null and confirmado_en is null and confirmacion_hash is null from dominio.newsletter_suscriptores where correo = 'l4@ejemplo.com'),
-  'la baja vuelve a pendiente con nuevo consentimiento y sin token viejo');
+  (select estado = 'pendiente' and baja_en is not null and confirmado_en is null and confirmacion_hash is null from dominio.newsletter_suscriptores where correo = 'l4@ejemplo.com'),
+  'la baja vuelve a pendiente con nuevo consentimiento, sin token viejo y CONSERVANDO baja_en (lista de supresión)');
 
 -- Poda (RF-NL-6): lo pendiente de más de 7 días se purga en el reclamo.
 update dominio.newsletter_suscriptores set creado_en = now() - interval '8 days', confirmacion_solicitada_en = now() - interval '8 days' where correo = 'tope@ejemplo.com';
@@ -306,12 +306,105 @@ select count(*) from private.reclamar_confirmaciones_newsletter(50, 900);
 select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'ana@ejemplo.com'), 0, 'se purga cuando también el último pedido tiene más de 7 días');
 
 -- El nombre de la tienda sale sin comillas, `<`, `>` ni saltos de línea (encabezado From del correo).
-update dominio.empresas set nombre = E'Mi "Tienda" <x>\r\nBcc: a@b.c' where id = 'e1000000-0000-0000-0000-000000000004';
+update dominio.empresas set nombre = E'Mi "Tienda" <x>\\y\r\nBcc: a@b.c' where id = 'e1000000-0000-0000-0000-000000000004';
 insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en)
 values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000004', 'saneo@ejemplo.com', 'newsletter-v1', now());
 select is(
   (select tienda from private.reclamar_confirmaciones_newsletter(50, 900) where correo = 'saneo@ejemplo.com'),
-  'Mi Tienda xBcc: a@b.c', 'el nombre de la tienda se limpia de comillas, < > y saltos de línea');
+  'Mi Tienda xyBcc: a@b.c', 'el nombre de la tienda se limpia de comillas, < >, backslash y saltos de línea');
+
+
+-- ============================================================================
+-- Revisión: lista blanca de caracteres del correo (un solo destinatario real por fila)
+-- ============================================================================
+select is(
+  (select array_agg(c order by c) from unnest(array['a<victima@dom.com>', 'b<victima@dom.com>', 'a"b@dom.com', 'a(b)@dom.com', 'a\b@dom.com', 'a:b@dom.com', 'a b@dom.com', 'a@b', 'a@@b.co', 'a@b..co'])  c
+     where private.validar_suscripcion_newsletter(c, true) = array['correo']),
+  (select array_agg(c order by c) from unnest(array['a<victima@dom.com>', 'b<victima@dom.com>', 'a"b@dom.com', 'a(b)@dom.com', 'a\b@dom.com', 'a:b@dom.com', 'a b@dom.com', 'a@b', 'a@@b.co', 'a@b..co']) c),
+  'el validador rechaza <, >, comillas, paréntesis, backslash, dos puntos y formas rotas');
+select is(
+  (select count(*)::int from unnest(array['ana@ejemplo.com', 'a.b+c@sub.dom-x.com', 'o''brien@ejemplo.com.ar']) c where private.validar_suscripcion_newsletter(c, true) = '{}'),
+  3, 'el validador acepta direcciones habituales (también con + y apóstrofo)');
+select throws_ok(
+  $$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a<victima@dom.com>', 'v1')$$,
+  '23514', null, 'el check de la tabla también rechaza a<victima@dom.com> (no se salta el tope por dirección)');
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.1"}', true);
+set local role anon;
+insert into res values ('cr_mayus', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'x<victima@dom.com>', true, '00000000-0000-0000-0000-0000000000aa', ''));
+reset role;
+select is((select j from res where clave = 'cr_mayus'), '{"resultado":"invalido","campos":["correo"]}'::jsonb, 'la suscripción pública rechaza x<victima@dom.com>');
+
+-- ============================================================================
+-- Revisión: carrera entre el cierre del flow y una re-suscripción
+-- ============================================================================
+insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en) values
+  ('51000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'carrera@ejemplo.com', 'newsletter-v1', now());
+create temp table lote_c as select * from private.reclamar_confirmaciones_newsletter(50, 900) where correo = 'carrera@ejemplo.com';
+select is((select count(*)::int from lote_c), 1, 'la carrera: el flow reclamó y generó el token A');
+-- Re-suscribir una dirección pendiente con enlace vigente NO emite otro ni invalida el legítimo.
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.2"}', true);
+set local role anon;
+insert into res values ('cr_vigente', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'carrera@ejemplo.com', true, '00000000-0000-0000-0000-0000000000ab', ''));
+reset role;
+select is((select j from res where clave = 'cr_vigente'), '{"resultado":"ok"}'::jsonb, 'm2: re-suscribir con un enlace vigente responde igual');
+select ok(
+  (select confirmacion_hash = encode(sha256(convert_to((select token from lote_c), 'utf8')), 'hex') and confirmaciones_24h = 0 from dominio.newsletter_suscriptores where correo = 'carrera@ejemplo.com'),
+  'm2: no se pisa el hash del pedido vigente ni se pide otra confirmación');
+-- Pasa a baja y se re-suscribe antes del cierre: el cierre tardío no puede dar por enviado el pedido nuevo.
+update dominio.newsletter_suscriptores set estado = 'baja', baja_en = now() where correo = 'carrera@ejemplo.com';
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.3"}', true);
+set local role anon;
+insert into res values ('cr_resus', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'carrera@ejemplo.com', true, '00000000-0000-0000-0000-0000000000ac', ''));
+reset role;
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000001', 'enviado', null);
+select ok(
+  (select confirmacion_enviada_en is null and confirmacion_hash is null and baja_en is not null from dominio.newsletter_suscriptores where correo = 'carrera@ejemplo.com'),
+  'el cierre tardío (hash anulado por la re-suscripción) no marca como enviado ni pisa baja_en');
+select is((select count(*)::int from private.reclamar_confirmaciones_newsletter(50, 900) where correo = 'carrera@ejemplo.com'), 1, 'el pedido nuevo sigue por enviar (no queda enlace muerto)');
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000001', 'fallido', null);
+select is((select confirmacion_intentos from dominio.newsletter_suscriptores where correo = 'carrera@ejemplo.com'), 1, 'el cierre fallido sobre un pedido con hash sí cuenta el intento');
+
+-- baja_en se conserva al confirmar de nuevo solo después de confirmar; y la poda devuelve a baja (no borra la supresión).
+update dominio.newsletter_suscriptores set creado_en = now() - interval '9 days', confirmacion_solicitada_en = now() - interval '8 days', confirmacion_reclamada_hasta = null where correo = 'carrera@ejemplo.com';
+select count(*) from private.reclamar_confirmaciones_newsletter(50, 900);
+select is((select estado from dominio.newsletter_suscriptores where correo = 'carrera@ejemplo.com'), 'baja', 'm2: la poda de un pendiente que venía de una baja lo devuelve a baja (no pierde la lista de supresión)');
+
+-- ============================================================================
+-- Revisión: ya confirmada, ventana de 24 h y token en mayúsculas
+-- ============================================================================
+insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, estado, version_consentimiento, confirmado_en, confirmacion_hash, confirmacion_vence) values
+  ('51000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'confirmada@ejemplo.com', 'confirmado', 'newsletter-v1', now(), repeat('e', 64), now() + interval '1 day'),
+  ('51000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ventana@ejemplo.com', 'pendiente', 'newsletter-v1', null, null, null);
+update dominio.newsletter_suscriptores set confirmaciones_24h = 3, confirmaciones_desde = now() - interval '25 hours', confirmacion_solicitada_en = now() - interval '25 hours', confirmacion_enviada_en = now() - interval '25 hours' where correo = 'ventana@ejemplo.com';
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.4"}', true);
+set local role anon;
+insert into res values
+  ('v_conf', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'confirmada@ejemplo.com', true, '00000000-0000-0000-0000-0000000000ad', '')),
+  ('v_vent', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'ventana@ejemplo.com', true, '00000000-0000-0000-0000-0000000000ae', '')),
+  ('v_mayus', publico.confirmar_newsletter('nl-a.ejemplo.com', upper(repeat('e', 64))));
+reset role;
+select ok(
+  (select confirmacion_solicitada_en is null and estado = 'confirmado' and confirmaciones_24h = 0 from dominio.newsletter_suscriptores where correo = 'confirmada@ejemplo.com'),
+  'una dirección ya confirmada no pide otra confirmación (no se manda otro correo)');
+select ok(
+  (select confirmaciones_24h = 1 and confirmaciones_desde > now() - interval '1 minute' and confirmacion_solicitada_en > now() - interval '1 minute' from dominio.newsletter_suscriptores where correo = 'ventana@ejemplo.com'),
+  'la ventana de 24 h se reinicia: pasadas 24 h el contador vuelve a 1 y se pide la confirmación');
+select is((select j from res where clave = 'v_mayus'), '{"resultado":"invalido"}'::jsonb, 'un token en mayúsculas es inválido');
+
+-- ============================================================================
+-- Revisión: el reclamo respeta el interruptor y la tienda activa aun con la bandera encendida
+-- ============================================================================
+insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'sininterruptor@ejemplo.com', 'newsletter-v1', now()),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000003', 'inactiva@ejemplo.com', 'newsletter-v1', now());
+select is(
+  (select count(*)::int from private.reclamar_confirmaciones_newsletter(50, 900) where correo in ('sininterruptor@ejemplo.com', 'inactiva@ejemplo.com')),
+  0, 'con la bandera encendida: sin interruptor de la tienda o con la empresa inactiva no se reclama nada');
+update dominio.newsletter_configuracion set activo = false where empresa_id = 'e1000000-0000-0000-0000-000000000004';
+insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000004', 'interruptor-off@ejemplo.com', 'newsletter-v1', now());
+select is((select count(*)::int from private.reclamar_confirmaciones_newsletter(50, 900) where correo = 'interruptor-off@ejemplo.com'), 0, 'un interruptor existente pero apagado tampoco entrega');
 
 select * from finish();
 rollback;

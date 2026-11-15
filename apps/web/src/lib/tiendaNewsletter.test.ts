@@ -26,6 +26,15 @@ describe('validarSuscripcion (espejo de la base)', () => {
     expect(validarSuscripcion({ correo: `${'a'.repeat(250)}@x.com`, consentimiento: true }).correo).toBeDefined()
   })
 
+  it('rechaza <, >, comillas, paréntesis, backslash y dos puntos (una dirección real por fila)', () => {
+    for (const correo of ['a<victima@dom.com>', 'b<victima@dom.com>', 'a"b@dom.com', 'a(b)@dom.com', 'a\\b@dom.com', 'a:b@dom.com', 'a b@dom.com', 'a@b', 'a@b..co']) {
+      expect(validarSuscripcion({ correo, consentimiento: true }).correo, correo).toBeDefined()
+    }
+    for (const correo of ['a.b+c@sub.dom-x.com', "o'brien@ejemplo.com.ar"]) {
+      expect(validarSuscripcion({ correo, consentimiento: true }), correo).toEqual({})
+    }
+  })
+
   it('recorta y no distingue mayúsculas', () => {
     expect(validarSuscripcion({ correo: '  Ana@Ejemplo.COM ', consentimiento: true })).toEqual({})
   })

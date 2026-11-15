@@ -46,7 +46,8 @@ create table if not exists dominio.newsletter_suscriptores (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
-  -- Recortado y en minúsculas; una sola dirección (sin `,` ni `;`), ≤ 254.
+  -- Recortado y en minúsculas; una sola dirección con lista blanca de caracteres (sin `<`, `>`, `"`, `(`, `)`, `\`, `:`, `,` ni `;`:
+  -- evita direcciones distintas que el SMTP interprete como la misma persona), ≤ 254.
   correo text not null,
   estado text not null default 'pendiente',
   origen text not null default 'formulario',
@@ -69,7 +70,7 @@ create table if not exists dominio.newsletter_suscriptores (
   baja_en timestamptz,
   creado_en timestamptz not null default now(),
   constraint newsletter_suscriptores_correo_ck check (
-    char_length(correo) <= 254 and correo = lower(btrim(correo)) and correo ~ '^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$'),
+    char_length(correo) <= 254 and correo = lower(btrim(correo)) and correo ~ '^[a-z0-9.!#$%&''*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$'),
   constraint newsletter_suscriptores_estado_ck check (estado in ('pendiente', 'confirmado', 'baja')),
   constraint newsletter_suscriptores_origen_ck check (origen in ('formulario')),
   constraint newsletter_suscriptores_version_ck check (btrim(version_consentimiento) <> '' and char_length(version_consentimiento) <= 50),

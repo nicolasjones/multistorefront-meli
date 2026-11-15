@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ confirmar: vi.fn() }))
@@ -32,6 +33,18 @@ describe('/newsletter/confirmar/:token', () => {
     expect(mocks.confirmar).toHaveBeenCalledTimes(1)
     expect(mocks.confirmar).toHaveBeenCalledWith('mundojc.localhost', TOKEN)
     expect(screen.queryByRole('link', { name: 'Volver al pie de la tienda' })).toBeNull()
+  })
+
+  it('con StrictMode (doble efecto en desarrollo) no queda cargando para siempre', async () => {
+    mocks.confirmar.mockResolvedValue('ok')
+    render(
+      <StrictMode>
+        <MemoryRouter initialEntries={[`/newsletter/confirmar/${TOKEN}`]}>
+          <Routes><Route path="/newsletter/confirmar/:token" element={<RutaConfirmarNewsletter />} /></Routes>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+    expect(await screen.findByRole('heading', { name: 'Listo, ya estás suscripto' })).toBeInTheDocument()
   })
 
   it('CA-NL-5: vencido muestra «El enlace venció» y ofrece volver al pie', async () => {

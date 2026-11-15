@@ -58,7 +58,7 @@ declare
   v_correo text := lower(btrim(coalesce(p_correo, '')));
   v_campos text[] := '{}';
 begin
-  if v_correo = '' or char_length(v_correo) > 254 or v_correo !~ '^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$' then
+  if v_correo = '' or char_length(v_correo) > 254 or v_correo !~ '^[a-z0-9.!#$%&''*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$' then
     v_campos := array_append(v_campos, 'correo');
   end if;
   if p_consentimiento is distinct from true then
@@ -155,16 +155,18 @@ begin
         now(), 1, now());
     elsif v_fila.estado = 'confirmado' then
       null; -- ya confirmada: no se envía otro correo y la respuesta es la misma.
+    elsif v_fila.estado = 'pendiente' and v_fila.confirmacion_hash is not null and v_fila.confirmacion_vence > now() then
+      null; -- ya hay un enlace vigente: no se emite otro ni se invalida el legítimo (nadie puede anular el enlace de un tercero).
     else
       v_ventana_vigente := v_fila.confirmaciones_desde is not null and v_fila.confirmaciones_desde > now() - interval '24 hours';
       if v_ventana_vigente and v_fila.confirmaciones_24h >= 3 then
         null; -- tope por dirección: el cuarto pedido responde `ok` sin enviar.
       else
+        -- Una dirección en `baja` conserva `baja_en` (lista de supresión) hasta que se confirme de nuevo.
         update dominio.newsletter_suscriptores s
            set estado = 'pendiente',
                version_consentimiento = private.version_consentimiento_newsletter(),
                consentimiento_en = now(),
-               baja_en = null,
                confirmado_en = null,
                confirmacion_hash = null,
                confirmacion_vence = null,
@@ -230,7 +232,7 @@ begin
   end if;
 
   update dominio.newsletter_suscriptores s
-     set estado = 'confirmado', confirmado_en = now()
+     set estado = 'confirmado', confirmado_en = now(), baja_en = null
    where s.id = v_fila.id;
   return jsonb_build_object('resultado', 'ok');
 end;

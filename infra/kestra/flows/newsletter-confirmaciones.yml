@@ -54,7 +54,7 @@ tasks:
                 transportStrategy: "{{ envs.kestra_smtp_transporte }}"
                 from: "\"{{ fromJson(parent.taskrun.value).tienda }}\" <{{ envs.kestra_smtp_from }}>"
                 to: "{{ fromJson(parent.taskrun.value).correo }}"
-                subject: "Confirmá tu suscripción a {{ fromJson(parent.taskrun.value).tienda }}"
+                subject: "Confirmá tu suscripción a {{ fromJson(parent.taskrun.value).tienda | escape }}"
                 htmlTextContent: |
                   <p>Hola, pediste recibir las novedades de {{ fromJson(parent.taskrun.value).tienda | escape }} por correo.</p>
                   <p><a href="https://{{ fromJson(parent.taskrun.value).dominio }}/newsletter/confirmar/{{ fromJson(parent.taskrun.value).token }}">Confirmar mi suscripción</a></p>

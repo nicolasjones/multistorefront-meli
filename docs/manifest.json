@@ -898,9 +898,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "7136c7c0e3b1baad720a89e9a51ae4ec56c0b23607ed397c19a0557c4e12536b",
-      "sourceHash": "200c4e1c5e38e1c9526b7551834fabd9e1df20fc5d4a9c95ba9182ae316bed4d",
-      "sourceAt": "34255829",
+      "pageHash": "cad92c324a29361a103b3eb69cf2051fc3a78e5e6d183990753278785b75da20",
+      "sourceHash": "673917372dca2acd312892ef552e6d9e72459ad0db24fc9359a16eb9a7674fe2",
+      "sourceAt": "d520663d",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -913,7 +913,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "34255829"
+      "commit": "d520663d"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1766,9 +1766,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "05fda3aaa1d65477ddf8b83c1d56de06caab081fd22230966127f10cfc38e2cf",
-      "sourceHash": "606bcd3ae06804bff32bd42cc7baa988f105a0aff0df09e6b24bc984e1ff7cea",
-      "sourceAt": "27c5917b",
+      "pageHash": "fa10a330454b5ac1530bd32e83e080594e69be434fa0a660c1cbb29fabe385c1",
+      "sourceHash": "50e97227ee21d1e00aa828a089c609413d58792bdbabf87a7873a87ab735f4b1",
+      "sourceAt": "9b4cb97a",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1777,7 +1777,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "27c5917b"
+      "commit": "9b4cb97a"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",

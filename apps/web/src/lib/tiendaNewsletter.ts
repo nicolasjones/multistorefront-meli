@@ -9,8 +9,9 @@ export type CampoNewsletter = 'correo' | 'consentimiento'
 export type DatosNewsletter = { correo: string; consentimiento: boolean }
 export type ErroresNewsletter = Partial<Record<CampoNewsletter, string>>
 
-// Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección (sin `,` ni `;`), recortada, ≤ 254 y con la casilla marcada.
-const CORREO = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/
+// Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección con lista blanca de caracteres (sin `<`, `>`, comillas,
+// paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
+const CORREO = /^[a-z0-9.!#$%&'*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/
 
 export function validarSuscripcion(datos: DatosNewsletter): ErroresNewsletter {
   const correo = datos.correo.trim().toLowerCase()

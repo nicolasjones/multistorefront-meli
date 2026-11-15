@@ -1,5 +1,5 @@
 import { Box, Button, Typography } from '@mui/material'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { confirmarNewsletter, type ResultadoConfirmacion } from '../../../lib/tiendaNewsletter'
@@ -21,12 +21,8 @@ export default function RutaConfirmarNewsletter() {
   const { token = '' } = useParams()
   const [resultado, setResultado] = useState<ResultadoConfirmacion | null>(null)
   const [intento, setIntento] = useState(0)
-  const enCurso = useRef<string | null>(null)
 
   useEffect(() => {
-    const clave = `${host}|${token}|${intento}`
-    if (enCurso.current === clave) return
-    enCurso.current = clave
     let cancelada = false
     setResultado(null)
     void confirmarNewsletter(host, token).then((valor) => { if (!cancelada) setResultado(valor) })

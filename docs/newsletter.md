@@ -61,6 +61,21 @@ el correo ni ningún envío de newsletter**: ninguna pieza de estas fases envía
 `publico.confirmar_newsletter` también responde `limite` (con `espera_segundos`) si el visitante superó el cupo por hora; la página lo muestra
 como «Probá de nuevo en unos minutos». Es el único agregado al contrato de la spec.
 
+## Límites y comportamientos a tener en cuenta
+
+- **Correo con lista blanca**: se acepta solo `[a-z0-9.!#$%&'*+/=?^_{|}~-]+@dominio` en minúsculas (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`).
+  Así cada fila es una dirección real y el tope de 3 confirmaciones por dirección y 24 h no se evade con formas como `a<victima@dom.com>`. El mismo criterio
+  rige en la tabla (check), en `private.validar_suscripcion_newsletter` y en `lib/tiendaNewsletter.ts`.
+- **Re-suscribir no invalida el enlace legítimo**: si la dirección ya está `pendiente` con un enlace vigente (48 h), un nuevo pedido responde `ok` pero no emite
+  otro correo ni pisa el hash; quien perdió el correo puede volver a pedirlo cuando venza. Si la dirección estaba en `baja`, vuelve a `pendiente` (con
+  correo de confirmación, hasta 3 en 24 h) y el enlace anterior deja de valer; `baja_en` se **conserva** hasta que se confirme y, si nunca se confirma, la
+  poda de 7 días la devuelve a `baja` en lugar de borrarla (lista de supresión). Limitación: cualquiera puede pedir una confirmación a una dirección en baja (hasta 3 en
+  24 h); no se envía ningún newsletter hasta que la persona confirme.
+- **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa si el pedido sigue teniendo el hash reclamado.
+- **El límite por visitante es compartido**: `confirmar_newsletter` también consume el cupo (5/h por visitante y tienda, el mismo de contacto, WhatsApp y suscripción).
+  Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).
+- El nombre de la tienda sale de la base sin `"`, `<`, `>`, `\` ni caracteres de control; el asunto y el cuerpo del correo lo escapan.
+
 ## Verificación técnica pendiente
 
 - T011(a): si el plugin `MailSend` de Kestra admite los encabezados `List-Unsubscribe` y `List-Unsubscribe-Post` (D3) no se verificó en estas
