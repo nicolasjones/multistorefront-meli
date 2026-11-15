@@ -368,7 +368,7 @@ select is(
 );
 
 select is(
-  (select count(*)::int from q4 where q.semana <> to_char(now(), 'IYYY-"W"IW')),
+  (select count(*)::int from q4 where q4.semana <> to_char(now(), 'IYYY-"W"IW')),
   0,
   'el reclamo sin semana usa la semana actual'
 );
