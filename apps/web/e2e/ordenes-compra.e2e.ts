@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { expect, test, type Page } from './fixture'
+import type { Page } from '@playwright/test'
+import { expect, test } from './fixture'
 
 // F-PRV-09 (MSF-454, SC-003): orden de compra a proveedor. El administrador entra a
 // Stock · Órdenes de compra, crea una orden para el proveedor de un producto que está en

@@ -203,4 +203,67 @@ describe('Órdenes de compra (F-PRV-09)', () => {
     expect(within(dialogo).queryByRole('button', { name: 'Marcar como recibida' })).not.toBeInTheDocument()
     expect(within(dialogo).queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument()
   })
+
+  const OTRA_EMPRESA = '99999999-9999-9999-9999-999999999999'
+  const cambiarEmpresaActiva = (id: string) => {
+    mocks.empresaActiva.mockReturnValue({
+      empresas: EMPRESAS, valor: id, cambiar: vi.fn(), cargando: false, hayError: false,
+    })
+  }
+
+  it('al cambiar la empresa activa se cierra la anulación en curso y se limpia la selección', async () => {
+    const vista = abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }))
+    const detalle = await screen.findByRole('dialog')
+    fireEvent.click(within(detalle).getByRole('button', { name: 'Anular' }))
+    expect(await screen.findByText('Anular orden de compra')).toBeInTheDocument()
+
+    cambiarEmpresaActiva(OTRA_EMPRESA)
+    vista.rerender(<MemoryRouter><OrdenesCompra /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.queryByText('Anular orden de compra')).not.toBeInTheDocument())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(await screen.findByText(/Cambiaste de empresa/)).toBeInTheDocument()
+  })
+
+  it('al cambiar la empresa activa se cierra el alta abierta con un aviso', async () => {
+    const vista = abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva orden de compra' }))
+    await screen.findByRole('dialog')
+
+    cambiarEmpresaActiva(OTRA_EMPRESA)
+    vista.rerender(<MemoryRouter><OrdenesCompra /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(await screen.findByText('Cambiaste de empresa: se cerró el alta de la orden.')).toBeInTheDocument()
+  })
+
+  it('si las empresas del alta cargan tarde no se interpreta como un cambio de empresa', async () => {
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: true, isError: false })
+    const vista = abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Nueva orden de compra' }))
+    await screen.findByRole('dialog')
+
+    mocks.useEmpresasAccesibles.mockReturnValue({ empresas: EMPRESAS, empresaActivaId: EMPRESA, isLoading: false, isError: false })
+    vista.rerender(<MemoryRouter><OrdenesCompra /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
+    expect(screen.queryByText(/Cambiaste de empresa/)).not.toBeInTheDocument()
+  })
+
+  it('el detalle no arrastra el error de una orden anterior al abrir otra', async () => {
+    const cambiar = vi.fn().mockResolvedValue({ ok: false, error: 'falló' })
+    mocks.useCambiarEstadoOrdenCompra.mockReturnValue({ cambiar, enviando: false })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ver' }))
+    let dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Marcar como recibida' }))
+    expect(await within(dialogo).findByRole('alert')).toBeInTheDocument()
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Ver' }))
+    dialogo = await screen.findByRole('dialog')
+    expect(within(dialogo).queryByRole('alert')).not.toBeInTheDocument()
+  })
 })

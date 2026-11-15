@@ -5,7 +5,7 @@
 --   public.cambiar_estado_orden_compra          (security definer)  recepción y anulación
 --   public.productos_en_reposicion_de_proveedor  (security definer)  productos en alerta del proveedor
 --   public.listar_ordenes_compra                 (security invoker)  listado paginado
---   public.detalle_orden_compra                  (security invoker)  cabecera y líneas
+--   public.detalle_orden_compra                  (security definer)  cabecera y líneas (nombre de producto con permiso solo de Stock)
 --
 -- Por qué unas van `security definer` y otras `security invoker`:
 --   - Las de ESCRITURA (`crear`, `cambiar_estado`) no tienen política de escritura en la tabla: la
@@ -13,7 +13,8 @@
 --   - `productos_en_reposicion_de_proveedor` es `security definer` porque `dominio.productos` exige la
 --     sección `productos` y esta pantalla es de `stock`: la función expone SOLO producto, nombre, SKU,
 --     disponible, mínimo, estado y cantidad sugerida (nada de costos ni de contacto).
---   - Las de LECTURA son `security invoker`: decide la RLS de las tablas (organización y `stock`).
+--   - `detalle_orden_compra` también es `security definer` (mismo motivo: el nombre del producto), con el mismo filtro de organización y `stock`.
+--   - El listado es `security invoker`: decide la RLS de las tablas (organización y `stock`).
 --     El nombre del proveedor sale de `public.proveedores_basico` (superficie mínima por nivel, sin CUIT).
 --
 -- Migración aditiva. Reversión (en una migración posterior):
@@ -337,7 +338,7 @@ create or replace function public.detalle_orden_compra(p_orden uuid)
 returns jsonb
 language sql
 stable
-security invoker
+security definer
 set search_path = ''
 as $$
   select jsonb_build_object(
@@ -368,11 +369,13 @@ as $$
   left join dominio.empresas e on e.id = o.empresa_id
   left join public.proveedores_basico pb on pb.id = o.proveedor_id
   where o.id = p_orden
+    and o.organizacion_id = (select private.organizacion_id())
+    and (select private.nivel_seccion('stock')) in ('lectura', 'edicion')
   group by o.id, e.nombre, pb.razon_social;
 $$;
 
 comment on function public.detalle_orden_compra(uuid) is
-  'F-PRV-09: detalle de una orden de compra con sus líneas. RLS del llamador; null si no existe o es de otra organización.';
+  'F-PRV-09: detalle de una orden de compra con sus líneas. Es security definer para que el nombre del producto salga con permiso solo de Stock (dominio.productos exige Productos): filtra por la organización de la sesión y exige lectura de Stock; null si no existe o es de otra organización.';
 
 revoke execute on function public.detalle_orden_compra(uuid) from public, anon;
 grant execute on function public.detalle_orden_compra(uuid) to authenticated;

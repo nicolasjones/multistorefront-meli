@@ -36,7 +36,7 @@ escritura directa** desde el rol: las escriben solo las RPC `security definer` d
 | `cambiar_estado_orden_compra(p_orden, p_estado, p_fecha_recepcion, p_motivo)` | `emitida` → `recibida` (con fecha) o → `anulada` (con motivo de 3 a 500 caracteres). Idempotente: repetir la transición deja la orden como está. Los estados terminales no cambian. |
 | `productos_en_reposicion_de_proveedor(p_proveedor)` | Productos del proveedor **en alerta** (`disponible <= mínimo`) con la cantidad sugerida `max(1, mínimo − disponible)`. Expone solo datos de reposición (sin costos ni contacto). |
 | `listar_ordenes_compra(p_estado, p_empresa, p_proveedor, p_pagina, p_tamano)` | Listado paginado (fecha, proveedor, empresa, estado, unidades, total). `security invoker`: decide la RLS. |
-| `detalle_orden_compra(p_orden)` | Cabecera y líneas de la orden. `security invoker`: null si no existe o es de otra organización. |
+| `detalle_orden_compra(p_orden)` | Cabecera y líneas de la orden. `security definer` (con permiso solo de Stock el nombre del producto igual se ve, porque `dominio.productos` exige Productos): filtra por la organización de la sesión y exige lectura de Stock; null si no existe o es de otra organización. |
 
 ## Estados
 

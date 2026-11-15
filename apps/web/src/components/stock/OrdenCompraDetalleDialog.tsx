@@ -28,6 +28,13 @@ export function OrdenCompraDetalleDialog({ abierto, ordenId, puedeEditar, onCerr
   const { detalle, hayError, cargando, recargar } = useDetalleOrdenCompra(abierto ? ordenId : null)
   const { cambiar, enviando } = useCambiarEstadoOrdenCompra()
   const [error, setError] = useState<string | null>(null)
+  // Otra orden (o reabrir): el error de la anterior no se arrastra. Se ajusta en el mismo render.
+  const [ordenVista, setOrdenVista] = useState<string | null>(abierto ? ordenId : null)
+  const ordenActual = abierto ? ordenId : null
+  if (ordenActual !== ordenVista) {
+    setOrdenVista(ordenActual)
+    setError(null)
+  }
 
   const marcarRecibida = async () => {
     if (!detalle || enviando) return

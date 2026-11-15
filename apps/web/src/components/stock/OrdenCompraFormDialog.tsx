@@ -47,6 +47,8 @@ function Contenido({ onCerrar, onCreada, onCambioEmpresa }: Omit<Props, 'abierto
   const empresaAlAbrir = useRef<string | null | undefined>(undefined)
 
   useEffect(() => {
+    // Con las empresas todavía cargando la activa llega como null: no es un cambio, es la carga.
+    if (cargandoEmpresas) return
     if (empresaAlAbrir.current === undefined) {
       empresaAlAbrir.current = empresaActivaId
       return
@@ -54,7 +56,7 @@ function Contenido({ onCerrar, onCreada, onCambioEmpresa }: Omit<Props, 'abierto
     if (empresaAlAbrir.current === empresaActivaId) return
     empresaAlAbrir.current = empresaActivaId
     onCambioEmpresa?.()
-  }, [empresaActivaId, onCambioEmpresa])
+  }, [empresaActivaId, cargandoEmpresas, onCambioEmpresa])
 
   const proveedoresActivos = useMemo(() => proveedores.filter((proveedor) => proveedor.activo), [proveedores])
   const { productos, cargando: cargandoProductos, hayError: errorProductos } = useProductosEnReposicion(formulario.proveedor_id)

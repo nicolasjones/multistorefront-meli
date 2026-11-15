@@ -33,12 +33,13 @@ insert into public.usuarios_empresas (user_id, empresa_id, organizacion_id, rol_
 insert into dominio.proveedores (id, organizacion_id, razon_social, cuit, activo) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Proveedor Uno', '20123456786', true),
   ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Proveedor Inactivo', '30701234568', false),
-  ('f2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Proveedor Dos', '33555555550', true);
+  ('f2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Proveedor Dos', '33555555550', true),
+  ('f1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Proveedor Tres', '30500010912', true);
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, proveedor_id) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Producto Alerta', 'P-1', 50, 'f1000000-0000-0000-0000-000000000001'),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Producto Stock Bajo', 'P-2', 40, 'f1000000-0000-0000-0000-000000000001'),
-  ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Producto Otro Proveedor', 'P-3', 30, 'f2000000-0000-0000-0000-000000000001'),
+  ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Producto Otro Proveedor', 'P-3', 30, 'f1000000-0000-0000-0000-000000000003'),
   ('a1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Producto Con Stock', 'P-4', 20, 'f1000000-0000-0000-0000-000000000001'),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Producto Org Dos', 'P-2O', 20, 'f2000000-0000-0000-0000-000000000001');
 
@@ -139,7 +140,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 1))
     )$$,
-  '22023', 'una fecha futura se rechaza'
+  '22023', null, 'una fecha futura se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -149,7 +150,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 1))
     )$$,
-  '22023', 'un proveedor inactivo se rechaza'
+  '22023', null, 'un proveedor inactivo se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -159,7 +160,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000003', 'cantidad', 1))
     )$$,
-  '22023', 'un producto de otro proveedor se rechaza'
+  '22023', null, 'un producto de otro proveedor se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -169,7 +170,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000004', 'cantidad', 1))
     )$$,
-  '22023', 'un producto que no está en alerta de reposición se rechaza'
+  '22023', null, 'un producto que no está en alerta de reposición se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -179,7 +180,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 0))
     )$$,
-  '22023', 'una cantidad cero se rechaza'
+  '22023', null, 'una cantidad cero se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -189,7 +190,7 @@ select throws_ok(
       null,
       '[]'::jsonb
     )$$,
-  '22023', 'una orden sin productos se rechaza'
+  '22023', null, 'una orden sin productos se rechaza'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -202,7 +203,7 @@ select throws_ok(
         jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 2)
       )
     )$$,
-  '22023', 'repetir un producto se rechaza'
+  '22023', null, 'repetir un producto se rechaza'
 );
 select is((select count(*)::int from dominio.ordenes_compra), 1, 'los rechazos no dejan órdenes a medias');
 
@@ -220,7 +221,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 1))
     )$$,
-  '42501', 'consulta (solo lectura) no puede crear órdenes'
+  '42501', null, 'consulta (solo lectura) no puede crear órdenes'
 );
 select is(
   (select count(*)::int from public.listar_ordenes_compra()),
@@ -251,7 +252,7 @@ select throws_ok(
       null,
       'Ya no hace falta'
     )$$,
-  '22023', 'una orden recibida no se anula'
+  '22023', null, 'una orden recibida no se anula'
 );
 
 select lives_ok(
@@ -271,7 +272,7 @@ select throws_ok(
       null,
       'ab'
     )$$,
-  '22023', 'anular sin motivo válido se rechaza'
+  '22023', null, 'anular sin motivo válido se rechaza'
 );
 select lives_ok(
   $$select public.cambiar_estado_orden_compra(
@@ -336,13 +337,11 @@ select is(
   null, 'otra organización no abre el detalle'
 );
 select throws_ok(
-  $$select public.cambiar_estado_orden_compra(
-      :'orden_recibida',
-      'anulada',
-      null,
-      'Motivo de prueba'
-    )$$,
-  '22023', 'otra organización no cambia el estado'
+  format(
+    $f$select public.cambiar_estado_orden_compra(%L, 'anulada', null, 'Motivo de prueba')$f$,
+    :'orden_recibida'
+  ),
+  '22023', null, 'otra organización no cambia el estado'
 );
 
 -- `anon` no tiene nada.
@@ -350,11 +349,11 @@ select pg_temp.como_anon();
 
 select throws_ok(
   $$select public.listar_ordenes_compra()$$,
-  '42501', 'anon no lista órdenes'
+  '42501', null, 'anon no lista órdenes'
 );
 select throws_ok(
-  $$select public.detalle_orden_compra(:'orden_recibida')$$,
-  '42501', 'anon no abre el detalle'
+  format($f$select public.detalle_orden_compra(%L)$f$, :'orden_recibida'),
+  '42501', null, 'anon no abre el detalle'
 );
 select throws_ok(
   $$select public.crear_orden_compra(
@@ -364,7 +363,7 @@ select throws_ok(
       null,
       jsonb_build_array(jsonb_build_object('producto_id', 'a1000000-0000-0000-0000-000000000001', 'cantidad', 1))
     )$$,
-  '42501', 'anon no crea órdenes'
+  '42501', null, 'anon no crea órdenes'
 );
 
 select * from finish();

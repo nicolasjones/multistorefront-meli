@@ -55,6 +55,7 @@ export function OrdenesCompra() {
       setDialogoAlta(false)
       setAviso({ texto: 'Cambiaste de empresa: se cerró el alta de la orden.', severidad: 'info' })
     }
+    if (ordenAAnular) setOrdenAAnular(null)
     if (ordenAbierta) {
       setOrdenAbierta(null)
       setAviso({ texto: 'Cambiaste de empresa: se cerró el detalle de la orden.', severidad: 'info' })

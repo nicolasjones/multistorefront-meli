@@ -17,8 +17,9 @@ nace del listado de reposición: los productos en alerta del proveedor elegido, 
   solo proveedor y sus productos son los de ese proveedor.
 - **Escritura por RPC**: las tablas no tienen política de escritura para `authenticated`; `crear_orden_compra`
   y `cambiar_estado_orden_compra` son `security definer` con `search_path = ''` y validan el permiso
-  (`private.nivel_seccion('stock')`) y la organización de la sesión. `listar_ordenes_compra` y
-  `detalle_orden_compra` son `security invoker`: decide la RLS.
+  (`private.nivel_seccion('stock')`) y la organización de la sesión. `detalle_orden_compra` también
+  es `security definer` (el nombre del producto sale con permiso solo de Stock) con el mismo filtro de organización y
+  `stock`. `listar_ordenes_compra` es `security invoker`: decide la RLS.
 - **`productos_en_reposicion_de_proveedor`** es `security definer` porque `dominio.productos` exige la
   sección `productos` y la orden es de `stock`: devuelve solo producto, nombre, SKU, disponible, mínimo y
   estado (nada de costos).

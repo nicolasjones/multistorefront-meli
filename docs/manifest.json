@@ -788,7 +788,7 @@
       "title": "Inicio y alertas",
       "pageHash": "b52e9be2974acf2287b238a5ac507fce97289df16a6689476f1c33ca0731e70a",
       "sourceHash": "a05bf21e42d5db9b1102110d2d9cb9d02c3eb191fcaac5fc6fc2418ecece53ab",
-      "sourceAt": null,
+      "sourceAt": "d78d8f12",
       "sources": [
         "specs/20261030-100000-inicio-y-alertas",
         "specs/20270305-100000-inicio-tablero-completo",
@@ -934,8 +934,8 @@
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",
-      "pageHash": "bba43140ba098bc9b763e5757a798a47ba574f3c85d4836d29f93d99c1056414",
-      "sourceHash": "155a55395429704154d38030d6e6f649deefff6e7bc6ae9fe6e63ae596471f90",
+      "pageHash": "1d8d0ca106fa1d9ed7c2f352bd7b6f3554debd5843f50510ec013eb58e974647",
+      "sourceHash": "0549f521558edcab96cba905d804e2ba9b66cd036a652f1c1e40b1d107835f71",
       "sourceAt": "00501c5c",
       "sources": [
         "specs/20261109-103000-ordenes-de-compra-a-proveedores",
@@ -1707,7 +1707,7 @@
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
       "pageHash": "c78f67952c4e023c292edbfe82dcf807a518e8d3a1f0c33780bca7c8b315a474",
       "sourceHash": "97a3093ff7f5d7a367badfb46d0c8eccc43fd09de4eca83b4ef92ec6708194b5",
-      "sourceAt": null,
+      "sourceAt": "f9fbe402",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
