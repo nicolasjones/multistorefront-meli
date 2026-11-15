@@ -7,7 +7,7 @@ import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { mensajeDeErrorComprobante, type Comprobante } from '../../lib/ventas'
-import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, marcaListaLinea, rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
 import { confirmarComprobante } from '../../lib/ventasConfirmacion'
@@ -273,7 +273,7 @@ export function VentaMostrador() {
                       <TableCell>
                         <Typography component="span" sx={{ fontWeight: 600 }}>{linea.descripcion}</Typography>
                         <Typography component="span" variant="caption" color="text.secondary" display="block">
-                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}
+                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}{marcaListaLinea(linea) ? ` · ${marcaListaLinea(linea)}` : ''}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">{linea.cantidad}</TableCell>

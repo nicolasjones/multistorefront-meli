@@ -269,8 +269,8 @@ select results_eq(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname in ('precio_para', 'precio_para_calculo', 'precio_linea_venta', 'precio_linea_venta_calculo')
-      and p.prosrc ilike '%lista_precio%'),
-  0, 'ninguna función del motor de precio lee lista_precio_id');
+      and p.prosrc ilike '%public.clientes%'),
+  0, 'ninguna función del motor de precio lee clientes.lista_precio_id: la lectura vive en private.lista_precios_cliente (Fase 3)');
 
 select * from finish();
 rollback;

@@ -231,8 +231,8 @@ reset role;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname in ('precio_para', 'precio_para_calculo', 'precio_linea_venta', 'precio_linea_venta_calculo')
-      and p.prosrc ilike '%lista%precio%'),
-  0, 'ninguna función del motor de precio menciona las listas');
+      and p.prosrc ilike '%dominio.listas_precios%'),
+  0, 'ninguna función del motor de precio lee la tabla de listas: la lectura vive en private.lista_precios_cliente (Fase 3)');
 
 select * from finish();
 rollback;
