@@ -58,6 +58,41 @@ test('falla si el job puede dispararse con pull_request_target', (t) => {
   fallaYCambio(t, { workflow: mutado }, 'pull_request_target');
 });
 
+test('falla con pull_request en cualquier forma YAML válida', (t) => {
+  const formas = [
+    'on:\n    pull_request:',
+    'on:\n  push:\n  pull_request_target:',
+    'on:\n  push:\n    - pull_request',
+    'on: [push, pull_request]',
+    'on: [push, pull_request_target]',
+    'on: {push: {}, pull_request: {}}',
+    'on: pull_request',
+  ];
+  for (const forma of formas) {
+    const mutado = workflow.replace(/^on:\s*$/m, forma);
+    assert.notEqual(mutado, workflow, `la mutación no se aplicó: ${forma}`);
+    fallaYCambio(t, { workflow: mutado }, forma);
+  }
+});
+
+test('no se confunde con un comentario que menciona pull_request', (t) => {
+  const mutado = workflow.replace(/^on:\s*$/m, '# pull_request no dispara el nocturno\non:');
+  assert.notEqual(mutado, workflow);
+  assert.deepEqual(verificarContrato(fixture(t, { workflow: mutado })), { ok: true, errores: [] });
+});
+
+test('falla si el job puede quedar verde con continue-on-error', (t) => {
+  const runsOn = '    runs-on: [self-hosted, platform-local]';
+  assert.ok(workflow.includes(runsOn));
+  const enJob = workflow.replace(runsOn, `    continue-on-error: true\n${runsOn}`);
+  fallaYCambio(t, { workflow: enJob }, 'continue-on-error del job');
+  const conVariable = workflow.replace(
+    runsOn,
+    `    continue-on-error: \${{ vars.E2E_NOCT_BLOQUEA != 'true' }}\n${runsOn}`,
+  );
+  fallaYCambio(t, { workflow: conVariable }, 'continue-on-error con expresión');
+});
+
 test('falla si el kill switch del job se invierte (el job no correría nunca)', (t) => {
   const mutado = workflow.replace("vars.CI_E2E_NOCTURNO != 'false'", "vars.CI_E2E_NOCTURNO == 'false'");
   assert.notEqual(mutado, workflow);

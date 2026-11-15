@@ -709,8 +709,8 @@ rama por defecto (`main`), como se explica abajo.
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
 | Cada PR (`validate.yml`, job `application`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
-| Cada PR que toca la web (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`) | Sí |
-| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`); el paso exige `changes.web` y `changes.e2e` en `true`, y `changes.e2e` es `false` en todo PR con base `epic/*` | Sí |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`; mismo requisito `changes.web` + `changes.e2e` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
 
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
@@ -719,15 +719,15 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
 - **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `application`, en cada PR) falla si el workflow deja de cumplir el
   contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
   solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
-  omisiones masivas del resumen, o la aparición de `pull_request`/`pull_request_target`. Cada marca tiene su test de mutación
-  (`pnpm test:e2e:nocturno`).
+  omisiones masivas del resumen, `continue-on-error` (dejaría el run verde con la suite omitida), o la aparición de
+  `pull_request`/`pull_request_target` en cualquier forma YAML válida (bloque con cualquier indentación, lista o flujo).
+  Cada marca tiene su test de mutación (`pnpm test:e2e:nocturno`).
 
 - **Dónde tiene que vivir el archivo:** GitHub dispara `schedule` y resuelve `workflow_dispatch`/la API de Actions
-  sólo en la rama por defecto (`main`). Mientras `e2e-nocturno.yml` viva únicamente en `dokploy`, el cron no arranca y
-  `gh workflow run e2e-nocturno.yml --ref dokploy` responde `404`; no es un bug del job. El aterrizaje en `main` va
-  como PR propio del workflow (carve-out de la integración `dokploy`→`main`, MSF-858) o con esa integración. Una vez
-  en `main`, cada corrida hace `checkout` de `dokploy` (o de la rama del disparo manual), así que ejecuta el código y
-  la suite de esa rama.
+  sólo en la rama por defecto (`main`). El workflow ya aterrizó en `main` con el PR #928 (commit `57ad76da`), así que
+  el cron y el disparo manual existen; mientras vivía únicamente en `dokploy`, el cron no arrancaba y
+  `gh workflow run e2e-nocturno.yml --ref dokploy` respondía `404` (no era un bug del job). Cada corrida hace
+  `checkout` de `dokploy` (o de la rama del disparo manual), así que ejecuta el código y la suite de esa rama.
 - **Cuándo corre:** todos los días a las 05:00 UTC (02:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
   por `workflow_dispatch`. El run siempre prueba `dokploy` cuando lo dispara el cron.
 - **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow», o `gh workflow run e2e-nocturno.yml`. Inputs opcionales:

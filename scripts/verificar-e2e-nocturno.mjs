@@ -4,6 +4,8 @@
 // desaparece o cambia de forma que la decisión deje de cumplirse en silencio (el problema que abrió MSF-852).
 //
 // No parsea YAML completo (el repo no depende de un parser): verifica las marcas estructurales que definen el job.
+// Las prohibiciones (disparos de PR, `continue-on-error`) se leen tolerando cualquier forma YAML válida: una guarda
+// que sólo reconoce una indentación da verde falso justo cuando la decisión se rompe.
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -27,6 +29,50 @@ const marcas = [
   { nombre: 'guarda contra omisiones masivas', patron: /omitidos\.length\s*\*\s*2\s*>\s*filas\.length/ },
 ];
 
+// `pull_request`/`pull_request_target` como disparo, en bloque (`  pull_request:`, con cualquier indentación),
+// en lista (`- pull_request`), en flujo (`on: [push, pull_request]`, `on: {pull_request: …}`) o escalar (`on: pull_request`).
+// Ignora los comentarios de línea completa para no fallar por una mención en prosa.
+function disparaEnPR(workflow) {
+  const lineas = workflow.split('\n').filter((linea) => !/^\s*#/.test(linea));
+  const eventoPR = /\bpull_request(?:_target)?\b/;
+  let enBloqueOn = false;
+  let indentOn = 0;
+  for (const linea of lineas) {
+    const cabecera = linea.match(/^(\s*)['"]?on['"]?\s*:\s*(.*)$/);
+    if (cabecera) {
+      const valor = cabecera[2].replace(/\s+#.*$/, '').trim();
+      if (valor) {
+        if (eventoPR.test(valor)) return true;
+        continue;
+      }
+      enBloqueOn = true;
+      indentOn = cabecera[1].length;
+      continue;
+    }
+    if (!enBloqueOn || !linea.trim()) continue;
+    const indent = linea.match(/^\s*/)[0].length;
+    if (indent <= indentOn) {
+      enBloqueOn = false;
+      continue;
+    }
+    const item = linea.trim().replace(/^-\s*/, '').replace(/^['"]|['"]$/g, '');
+    if (/^pull_request(?:_target)?\s*(?::|$)/.test(item)) return true;
+  }
+  return false;
+}
+
+// `continue-on-error` en el job o en un paso (salvo `false` literal) anula el `process.exitCode = 1` del
+// resumen: el run queda verde con toda la suite omitida, que es exactamente la pudredumbre de MSF-852.
+function usaContinueOnError(workflow) {
+  return workflow
+    .split('\n')
+    .filter((linea) => !/^\s*#/.test(linea))
+    .some((linea) => {
+      const marca = linea.match(/^\s*continue-on-error\s*:\s*(.*)$/);
+      return marca && marca[1].replace(/\s+#.*$/, '').trim() !== 'false';
+    });
+}
+
 export function verificarContrato(raiz = RAIZ) {
   const errores = [];
   let workflow;
@@ -42,8 +88,11 @@ export function verificarContrato(raiz = RAIZ) {
     return { ok: false, errores: [`falta ${DOC}`] };
   }
 
-  if (/^\s{2}pull_request(?:_target)?:/m.test(workflow)) {
+  if (disparaEnPR(workflow)) {
     errores.push('el job nocturno no debe dispararse en pull_request ni pull_request_target (no bloquea PRs)');
+  }
+  if (usaContinueOnError(workflow)) {
+    errores.push('el workflow no debe usar continue-on-error (deja verde el run con la suite omitida)');
   }
   for (const { nombre, patron } of marcas) {
     if (!patron.test(workflow)) errores.push(`el workflow no cumple «${nombre}»`);
