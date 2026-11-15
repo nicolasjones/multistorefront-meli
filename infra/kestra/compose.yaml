@@ -149,6 +149,11 @@ services:
       ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
       ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
       SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
+      # Resumen semanal por correo (MSF-265, flow resumen-semanal.yml): misma mecánica, contra la Edge Function
+      # `enviar-resumen-semanal`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_RESUMEN_SEMANAL_URL: ${RESUMEN_SEMANAL_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-semanal}
+      ENV_RESUMEN_SEMANAL_APIKEY: ${RESUMEN_SEMANAL_APIKEY:-change-me-local}
+      SECRET_RESUMEN_SEMANAL_TOKEN: ${SECRET_RESUMEN_SEMANAL_TOKEN:-}
       # Alertas de Inicio (MSF-361, flow alertas-inicio.yml): misma mecánica, contra la Edge Function
       # `recalcular-alertas-inicio`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_ALERTAS_INICIO_URL: ${ALERTAS_INICIO_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/recalcular-alertas-inicio}

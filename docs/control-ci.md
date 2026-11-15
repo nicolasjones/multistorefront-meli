@@ -304,3 +304,15 @@ ranuras a `$RUNNER_TEMP` y omiten el `puente` de puertos (solo existe para los r
 carriles (`CI_LANES`) conviene subir el valor al pasar a hosted, porque ya no protege la CPU de VPS2.
 
 Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, no sirve: esos jobs deben quedar en self-hosted.
+
+## Menos CI y menos rojos: cache y pre-push
+
+- **Cache de pnpm:** los jobs `application`, `e2e-visible-sesion`, `e2e-tienda` y `database` usan `cache: pnpm` en `setup-node`
+  (como `web`). En runners hosted cada job parte de una VM limpia y el cache evita reinstalar todo.
+- **Verificación local antes de pushear (`pnpm prepush`):** `scripts/pre-push-rapido.mjs` corre solo lo que el diff puede afectar
+  (`tsc -b`, `oxlint` y los tests afectados con `vitest --changed` si cambia web; `docs:check` si cambian docs/specs). Así el CI es la
+  verificación final y no el primer aviso. Es opt-in: se corre a mano o como hook (`.git/hooks/pre-push` que llame a
+  `pnpm prepush`); `SKIP_PREPUSH=1` lo saltea. No se activa por `core.hooksPath` global porque lo compartirían todos los worktrees.
+- **Cola de merge:** el workflow ya reacciona a `merge_group`, pero el ruleset `dokploy-integracion-protegida` hoy solo exige el
+  check `validacion` y no tiene regla de cola de merge. Activarla cambia el flujo de merge de todas las sesiones (cada PR corre el CI
+  completo al integrar), así que es una decisión aparte.

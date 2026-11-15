@@ -338,3 +338,10 @@ Procedimiento manual de verificación (tras `pnpm dev:superset`):
 4. Con un cliente cuyo nombre sea `=1+1`, el CSV debe traerlo como `'=1+1` (texto,
    no fórmula). Si no, Superset no escapa en esta versión y hay que neutralizar
    en la vista/dataset.
+
+## Tableros analíticos de la galería (F-REP-07, MSF-265)
+
+Directorio `infra/superset/dashboards/analitica-avanzada/`: dos tableros nuevos —«Analítica · Ventas por tienda y categoría» (sección `reportes`, vista `analitica.ventas_empresa_categoria`) y «Analítica · Margen real por tienda, categoría y producto» (sección `rentabilidad`, vista `analitica.margen_real_categoria`)—, los dos con `filtro_empresa: true` y los filtros nativos `NATIVE_FILTER-rango`/`NATIVE_FILTER-empresa` que preselecciona la pantalla `/reportes/tableros`. Se importan con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <entorno>` (el workflow de despliegue lo hace en staging y producción) y la migración `20270324100100` los asigna a todas las organizaciones (prefijo «Analítica · »). El administrador **elige** entre tableros ya armados: no entra a Superset ni los edita, así que no cambia nada de la regla de la spec 007. Ver [Analítica avanzada](analitica-avanzada.md).
+
+Pendiente de verificación manual tras el primer despliegue (los YAML se probaron contra un Superset simulado, no contra uno real): abrir cada tablero embebido y comprobar que los 6 gráficos rendericen y que los filtros de período y tienda respondan.

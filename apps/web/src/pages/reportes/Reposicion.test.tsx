@@ -120,7 +120,9 @@ describe('Reposicion (F-REP-02)', () => {
 
 describe('menú «Reportes» (F-REP-02, FR-005)', () => {
   it('«Reposición» está en el menú Reportes, apunta a /reportes/reposicion y exige la sección stock', () => {
-    const delMenu = DESTINOS_PANEL.filter((candidato) => candidato.ruta.startsWith('/reportes/'))
+    const delMenu = DESTINOS_PANEL.filter(
+      (candidato) => candidato.ruta.startsWith('/reportes/') && candidato.audiencia === 'organizacion',
+    )
     expect(delMenu.map((destino) => destino.etiqueta)).toEqual(['Productos y stock', 'Reposición'])
     const destino = DESTINOS_PANEL.find((candidato) => candidato.id === 'reportes-reposicion')
     expect(destino?.ruta).toBe('/reportes/reposicion')

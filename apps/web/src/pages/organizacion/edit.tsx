@@ -11,6 +11,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { SOLO_LECTORES } from '../../components/base/solo-lectores'
+import { ResumenSemanalOrganizacion } from './ResumenSemanal'
 
 const BUCKET_LOGOS = 'logos-organizacion'
 const TAMANO_MAXIMO_LOGO = 1024 * 1024
@@ -121,7 +122,7 @@ export function OrganizacionEdit() {
   const zonas = useMemo(() => zonasHorarias(guardada?.zona_horaria ?? ZONA_POR_DEFECTO), [guardada?.zona_horaria])
 
   const encabezado = (
-    <EncabezadoPagina titulo="Mi organización" descripcion="Nombre, logo y zona horaria de tu organización." contexto={<ContextoOrganizacionActiva />} />
+    <EncabezadoPagina titulo="Mi organización" descripcion="Nombre, logo, zona horaria y resumen semanal de tu organización." contexto={<ContextoOrganizacionActiva />} />
   )
   const envolver = (contenido: ReactNode) => (
     <Box>
@@ -304,6 +305,8 @@ export function OrganizacionEdit() {
           </List>
         )}
       </Box>
+
+      <ResumenSemanalOrganizacion />
     </Stack>,
   )
 }

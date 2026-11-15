@@ -12,8 +12,8 @@
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
       "pageHash": "61adc0f690706111da8ed37449d8d0d77f710c05fc3164d5bf10f92f8355eb1e",
-      "sourceHash": "80a40d9309b9f097daba3e9780cbce10946841d066ea62035324f8b7337a4795",
-      "sourceAt": "92a276f4",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
@@ -35,25 +35,25 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "a2e742bfd25170c4defc3c869cf0c61e66b1802dd44fc0b3d995678e7200d9da",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "008b3b09935d57a036ea510840db7485f6f9e0f75e56ecf818d20ba2cc2f61f0",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
-      "pageHash": "ab9e733935419421bf24eb004c6337e953919a8533f811a7d7f53a57769e9d7b",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "eef42b8775da898dc705bf91ed99d885acba0bf5ddc6ddf48b353f2d427b6581",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/adoptar-blindaje-imagenes-workers.md": {
       "title": "Adoptar el blindaje de imágenes de workers en un producto derivado",
@@ -187,6 +187,19 @@
       "owner": "tecnico",
       "commit": "8e340f95"
     },
+    "docs/analitica-avanzada.md": {
+      "title": "Analítica avanzada: galería de tableros (F-REP-07)",
+      "pageHash": "b8e462449c05bfec4ab0327c57c0e7a6a0d480a9ea5fc66a311eaea3a3d5c3ef",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
     "docs/api-publica.md": {
       "title": "API pública y avisos hacia otros sistemas (F-API-01)",
       "pageHash": "7a3857ebd17d214ad27fc9f802878f4ecb2427d5436d983fe1dd81fcbac4b477",
@@ -252,9 +265,9 @@
     },
     "docs/avisos-por-correo.md": {
       "title": "Avisos por correo configurables",
-      "pageHash": "d5ab7ddbe3f2d695d9ad21810cf8226ca4e00ac7a0c0b1fc582cff1bfb496122",
+      "pageHash": "6de976bc1e8d0d148800b7ca9361ce0b8a827322533213e5744ba88bd5480c94",
       "sourceHash": "9f78e8a8dbacd9d31446df538515989f149e4076ff07a7ad48ace388381312af",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "infra/kestra/flows/enviar-avisos.yml",
@@ -266,7 +279,7 @@
         "supabase/migrations/20261210120500_avisos_reclamar.sql"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "8451da59"
     },
     "docs/ayuda-en-panel.md": {
       "title": "Ayuda dentro del panel (MSF-385 · F-CFG-02)",
@@ -300,8 +313,8 @@
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
       "pageHash": "b5fd9f02bbe24d01038481d2d58e7bf4c60b76ec4c27c6cb89c7040a2bebf0c0",
-      "sourceHash": "26afb067cf3b7cd40ffa6ef73e675a678279ebf1af586bb7439513493566151c",
-      "sourceAt": "d345eeb1",
+      "sourceHash": "746b93cbfe7f745b36a0332708b8aa313cec2268cd55b7ddbf34bf01ec8c7844",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs"
       ],
@@ -371,8 +384,8 @@
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
       "pageHash": "77d4f1c27c79dce5c5ac727a10729ad69fbebe16e7ee4b1568419c871d2ec2aa",
-      "sourceHash": "70570acd4378a65496d088aee839c07beb99f9bb480e30c7a236359e5e124148",
-      "sourceAt": "c7860a7c",
+      "sourceHash": "333c7ec98a051cdf31e81cc2c787c4d80fff7730e513a42f11ab2f83ee950a63",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs",
         "apps/web/src"
@@ -464,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "08f3f4379c3517b16dac45043be877b373f1a6ee92f206e9117351377dd69860",
+      "pageHash": "47accf39d7ee66a84ead27585dd3bc2e65a9e53be8c9328a8aa2b17bc93ded5c",
       "sourceHash": "f70015038b3be42078895037d6692c087b886fba16f1d8456ad60463943da292",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "153b2e4c",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -474,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "153b2e4c"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -910,14 +923,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "2b54813176b0a743a3c9b7763ea561b605d755005ea0fe5c5e8000461847fae1",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "9a61fe8d5b07cf2137fd8e43373aaeb91b43b71c84e83402c8ac2c6d3f5c0569",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "df0c092f"
+      "commit": "8451da59"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",
@@ -1001,12 +1014,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "4be36313653ee2a2cf156d0f10f0f2a630011a422c8d3da5411e7f9a776bfacb",
+      "pageHash": "2882dfd55a9fb7831fd3d60b2b826657e575958a162ac0d02501ecdb06f46a51",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "9dc6f30d"
+      "commit": "8451da59"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1481,6 +1494,15 @@
       "owner": "producto",
       "commit": "53cb4c30"
     },
+    "docs/producto/tableros-analiticos.md": {
+      "title": "Tableros analíticos y resumen semanal",
+      "pageHash": "446507f49a99c2468f2fdf077903709eda03f63ab7168df672e4d49c3650bd7f",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "e2ad6a41"
+    },
     "docs/producto/tienda-contenido-y-analitica.md": {
       "title": "Páginas propias, medición de visitas y botón Compartir",
       "pageHash": "1e21b2e4f4d5a4519e1760d1f5660df8f178ff2decff564eed464a0fb4433a3b",
@@ -1682,8 +1704,8 @@
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
       "pageHash": "17151bd1f3025ac1bd44751717d9f73f136b10858fbd95fe00747f8094105ef9",
-      "sourceHash": "5e3829c33e9a2e1f69dd26a775fdc4311a30ae1c791e5a0946a3b9962b0aac5f",
-      "sourceAt": "1ce44c55",
+      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
+      "sourceAt": "00d5672c",
       "sources": [
         "specs"
       ],
@@ -1711,8 +1733,8 @@
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
       "pageHash": "1cc6aafcc284f6211f5074f4f9a0ff54a8779610dde56404afe48956b805d1a2",
-      "sourceHash": "37a95c1c399e3a7487ca3380bb8626a7e497673e2bfb44a3c4c929cc21749d90",
-      "sourceAt": "c7860a7c",
+      "sourceHash": "9e41e12b53c88c6b65f2d1b1fe9d56088c308bf5dc623a508fdb43b098fbe594",
+      "sourceAt": "e31f2eae",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1774,9 +1796,35 @@
       "owner": "datos",
       "commit": "ebf4bf4d"
     },
+    "docs/resumen-semanal-correo.md": {
+      "title": "Resumen semanal por correo (F-REP-08)",
+      "pageHash": "25417e8b22a7a7cf15a1717206ac731bb152264ce04e21a012b15d08f5b64d50",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
+    "docs/revision-seguridad-analitica-avanzada.md": {
+      "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
+      "pageHash": "3b8fb9862d430e46cd1fa4db0bf1b613e3df63f2ffdb59be73d7aa88574e172e",
+      "sourceHash": "2149a1d22571bc97b90101a264216783aba392574dc8f6334e5fa69b79d61fd0",
+      "sourceAt": "00d5672c",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": "e2ad6a41"
+    },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "63332a31da187dd686cdb10162cc0adc97d792b1c5456186b29a5be0d5c22f26",
+      "pageHash": "e7cb18a67b9a5441af8756a8dd365f5ea25fab7187d7bb293109ba094087562d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2392,8 +2440,8 @@
     "docs/tecnico/api.md": {
       "title": "API y RPC",
       "pageHash": "d8047dd29f39f4fa01ab760624f62486f0dbe41bda2362e940e9a3b2af6fbf02",
-      "sourceHash": "556fcd8539cbea9b06fc1e437a7aa9e852af1ac943bbbcaeb45a880f97503e05",
-      "sourceAt": "445078c2",
+      "sourceHash": "ae5108e190a53fa5c855d922f209161e58c8ea20ecde0355b50eb7d653a711f4",
+      "sourceAt": "e31f2eae",
       "sources": [
         "supabase/migrations"
       ],
@@ -2637,8 +2685,8 @@
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
       "pageHash": "8c80faa43e1c3739e9cc13cac83587c989987829e4256bdb32dcdde2fe1c960a",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "c7860a7c",
+      "sourceHash": "ae5108e190a53fa5c855d922f209161e58c8ea20ecde0355b50eb7d653a711f4",
+      "sourceAt": "e31f2eae",
       "sources": [
         "supabase/migrations"
       ],
@@ -2802,7 +2850,7 @@
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
       "pageHash": "14d007c79d5520a25272a7b0d7cf74f0fdabad4c9acdfa6b8151e01e195954e0",
-      "sourceHash": "78c69968fd6acff43cb9666c51cb3a5f87c77cbb9262d4e08f69a29e1461c25d",
+      "sourceHash": "c7b1fb78719d78925c1ed922ed360bb2fa3858110586250710e75f29c670ee80",
       "sourceAt": "a6f780be",
       "sources": [
         "package.json",
@@ -3237,8 +3285,8 @@
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
       "pageHash": "db4c82f4fe18ea7a1a87a4672aca2a7bd267a674dba108be3c408d271c2828b4",
-      "sourceHash": "788330f5e18026c9cd6ce70a29b265e2f8ad50af33238f0a5d454808f0de4575",
-      "sourceAt": "445078c2",
+      "sourceHash": "d0360886688f613717f6b8679785fd37fdb467e9ef313050a0e51f9c1a3eb68a",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3257,8 +3305,8 @@
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
       "pageHash": "9b96366d6c8e328233c002c42b402eeb02d4543eafadb1488c9fc18cf36f4f26",
-      "sourceHash": "9ef5ce569f9178841c1983c1b938ec6801fe6ba057dbd8a2d94a3232f5a0ed6c",
-      "sourceAt": "445078c2",
+      "sourceHash": "b76b128de59a2dd038d89995997334e6c2d70ea36e7ae399298e5c4d98a18a4c",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3301,8 +3349,8 @@
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
       "pageHash": "b39cf9399c8664dff82251472fa883f977ae158500d270e3979eb561b0dc5d1a",
-      "sourceHash": "6786338a3d99e237419a0cbffbe3be4dd4635859ad8621ebf9deb1a41832c06e",
-      "sourceAt": "4b780ed7",
+      "sourceHash": "bdbaf3feb379e62b8688a3168fe5608db871ea2c2648e19172afb62ef0630189",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3575,7 +3623,7 @@
       "title": "Tiendas online: dominio e identidad",
       "pageHash": "01b773ba0c74c8deb948c0636e8d8f93f0de7074a50aa2d443eda432563156ad",
       "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
