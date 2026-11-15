@@ -19,9 +19,11 @@
 --     Al pasarlos la llamada falla con 54000 y `hint` = 'tope_acumulado' (ventana) o 'tope_diario'; el 54000 de una sola
 --     exportación demasiado grande (lote) no lleva hint. No entrega filas y no cuenta (la transacción se revierte).
 --     Las entregas se llevan en `private.clientes_exportaciones_entregas` (una fila por llamada con filas).
---   * Reintento legítimo: cuando el primer lote (sin cursor) vuelve a empezar con la MISMA huella exacta de filtros, las
---     filas entregadas antes con esa huella dentro de la ventana de 10 minutos dejan de contar para el tope de ventana
---     (`perdonada`). Siguen contando para el tope DIARIO, que no se perdona: así reiniciar no abre cupo infinito.
+--   * Rechazo temprano: en el primer lote (sin cursor) el servidor ya conoce el total a exportar; si lo ya entregado en la
+--     ventana (o en el día) más ese total supera el tope, rechaza el primer lote sin entregar filas ni contar, para que
+--     nadie descargue una parte inútil. Un cursor sin primer lote sigue topando por lote.
+--   * Sin perdón por reintento: repetir el primer lote cuenta doble contra la ventana y contra el día (comportamiento
+--     esperado). Así repetir el primer lote no libera cupo ni permite volver a bajar por cursor con la ventana llena.
 --   * La huella de filtros queda solo para deduplicar los eventos de auditoría y calcular lo «declarado».
 --   * Privacidad (menor 2): el texto de búsqueda ya no se escribe en la actividad (podía ser un DNI, correo o teléfono):
 --     el detalle solo dice «con texto».
@@ -57,9 +59,7 @@ create table if not exists private.clientes_exportaciones_entregas (
   actor_id uuid not null,
   filtros_hash text not null,
   filas integer not null check (filas > 0),
-  creado_en timestamptz not null default now(),
-  -- Reintento del primer lote con la misma huella: deja de contar para el tope de ventana (no para el diario).
-  perdonada boolean not null default false
+  creado_en timestamptz not null default now()
 );
 comment on table private.clientes_exportaciones_entregas is
   'Filas de clientes entregadas por llamada a exportar_clientes, por organización y persona. Base de los topes de ventana (10 minutos) y diario (24 horas). Se purga a las 24 horas.';
@@ -126,6 +126,7 @@ declare
   v_incremento bigint;
   v_en_ventana bigint;
   v_en_dia bigint;
+  v_a_entregar bigint;
 begin
   -- El permiso, el tope por exportación y el cursor los valida el lote; buffer de filas: si algo falla más abajo,
   -- la función entera se revierte y no se entrega nada.
@@ -163,25 +164,21 @@ begin
   -- Un solo cupo por organización y persona: dos llamadas simultáneas no lo superan.
   perform pg_advisory_xact_lock(hashtextextended('exportar_clientes|' || v_org::text || '|' || v_actor::text, 0));
 
-  -- Reintento: el primer lote vuelve a empezar con la misma huella exacta, lo entregado antes con ella no cuenta para
-  -- la ventana (sí para el tope diario).
-  if p_despues_de is null then
-    update private.clientes_exportaciones_entregas e set perdonada = true
-     where e.organizacion_id = v_org and e.actor_id = v_actor and e.filtros_hash = v_hash
-       and e.creado_en > now() - interval '10 minutes' and not e.perdonada;
-  end if;
-
-  select coalesce(sum(e.filas) filter (where e.creado_en > now() - interval '10 minutes' and not e.perdonada), 0),
+  select coalesce(sum(e.filas) filter (where e.creado_en > now() - interval '10 minutes'), 0),
          coalesce(sum(e.filas) filter (where e.creado_en > now() - interval '1 day'), 0)
     into v_en_ventana, v_en_dia
     from private.clientes_exportaciones_entregas e
    where e.organizacion_id = v_org and e.actor_id = v_actor;
 
-  if v_en_ventana + v_n > private.tope_exportacion_clientes('ventana') then
+  -- Primer lote: el total de la exportación ya se conoce, se rechaza de entrada si no cabe (sin entregar ni contar).
+  -- Con cursor se topa por lote. El reintento del primer lote cuenta doble (no se perdona nada).
+  v_a_entregar := case when p_despues_de is null then greatest(v_total, v_n) else v_n end;
+
+  if v_en_ventana + v_a_entregar > private.tope_exportacion_clientes('ventana') then
     raise exception 'Exportaste muchos clientes en poco tiempo: esperá unos minutos antes de volver a exportar'
       using errcode = '54000', hint = 'tope_acumulado';
   end if;
-  if v_en_dia + v_n > private.tope_exportacion_clientes('dia') then
+  if v_en_dia + v_a_entregar > private.tope_exportacion_clientes('dia') then
     raise exception 'Llegaste al máximo diario de clientes exportados: volvé a intentar mañana'
       using errcode = '54000', hint = 'tope_diario';
   end if;

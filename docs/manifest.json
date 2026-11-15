@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "52126779654e821cf876e7301e969b40bb52c31c99deb26cade25388fe543173",
-      "sourceHash": "9b1c08e2130583be9054553681d47f5bcc9b5d1e84f2be169a48ef260698efce",
-      "sourceAt": "2cb47fde",
+      "pageHash": "56deb9b6faa8d7f57a5758517946352ee277877052c3002f0ad068b485735f28",
+      "sourceHash": "76b4107469b91dc9da198c73d35dff60a070dc5b3715c6557d326a8eeab1c337",
+      "sourceAt": "e7aef13c",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "2cb47fde"
+      "commit": "e7aef13c"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2590,16 +2590,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "455dc1cc07f04a359fae3731dba8ff3bd2a46c9f46b2b363ff99771f9404c29b",
-      "sourceHash": "a0cd4fa2d9e9dc5b49a8199468dc9e3a154b3bc6a0abd614c94b7f4848047f85",
-      "sourceAt": "2cb47fde",
+      "pageHash": "602c827bf57b5c90883c187bcdac5e573d9d21cb20be5d6832ffda2f7bba42eb",
+      "sourceHash": "0dbe5cad837a39350e09f93847b020b4e315ee697bf2d273bebafe33cc9877fa",
+      "sourceAt": "e7aef13c",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "2cb47fde"
+      "commit": "e7aef13c"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",

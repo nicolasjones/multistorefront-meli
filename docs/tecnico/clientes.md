@@ -94,7 +94,7 @@ Restricciones e índices sobre `public.clientes`:
 | `20261016140000_clientes_buscar.sql` | `public.buscar_clientes` (M4, parte 1). |
 | `20261016150000_clientes_exportar.sql` | `public.exportar_clientes` (M4, parte 2). |
 | `20270324110000_exportar_clientes_registra_actividad.sql` | MSF-508: la lógica pasa a `private.exportar_clientes_lote` y `public.exportar_clientes` queda como envoltorio `volatile` que registra `clientes.exportados`. |
-| `20270344000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas (ventana de 10 min, tope de 50000 acumulado), texto buscado fuera de la actividad. |
+| `20270344000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas; topes por organización y persona sin importar los filtros (50000 filas en 10 min y 200000 en 24 h, ajustables en `private.tope_exportacion_clientes`), rechazo temprano en el primer lote, el reintento cuenta doble; texto buscado fuera de la actividad. |
 | `20261016160000_clientes_habilitar_pg_trgm.sql` | Habilita `pg_trgm` en `extensions` y garantiza el índice GIN: **aborta con error si el índice no queda creado**, para que no haya un salto silencioso (en CI la extensión no estaba instalada y la migración de la ficha no creaba el índice). |
 
 La orden es deliberada: M3 reinicia los grants por columna, por eso M2 (`tipo`) va después.
@@ -241,10 +241,26 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   `private.clientes_exportaciones_entregas` (una fila por llamada con filas), por organización y persona **sin importar los
   filtros**: 50000 filas en 10 minutos deslizantes y 200000 por día, constantes de `private.tope_exportacion_clientes(text)`.
   Al pasarlos: `54000` con `hint` `tope_acumulado` o `tope_diario` (el 54000 de un solo archivo demasiado grande no lleva hint;
-  el cliente web los distingue), sin entregar filas ni contar. Un primer lote que reinicia con la misma huella exacta perdona
-  (`perdonada`) lo entregado antes con ella en la ventana (reintento legítimo), pero no en el tope diario. Purga acotada (500
-  filas por llamada, más de 1 día). Otra persona u otra organización no comparten contador. Pgtap: `clientes_exportar_actividad.test.sql`
+  el cliente web los distingue), sin entregar filas ni contar. **Rechazo temprano:** en el primer lote (sin cursor) el servidor
+  ya conoce el total a exportar; si lo entregado en la ventana (o en el día) más ese total supera el tope, rechaza ese primer
+  lote antes de entregar nada, y el cliente muestra el mensaje antes de descargar (un total que justo iguala el tope pasa).
+  Un cursor sin primer lote sigue topando por lote. **Sin perdón por reintento:** repetir el primer lote cuenta doble contra
+  la ventana y contra el día (comportamiento esperado); no libera cupo ni permite volver a bajar por cursor con la ventana
+  llena. Las constantes (50000 y 200000) están en `private.tope_exportacion_clientes(text)` y se ajustan sin tocar la función.
+  Un `pg_advisory_xact_lock` por organización y persona, tomado antes de calcular lo acumulado, serializa el cupo: dos
+  exportaciones simultáneas de la misma persona no lo superan (lo comprueba un pgTAP sobre el código de la función y la
+  verificación manual de más abajo). Purga acotada (500 filas por llamada, más de 1 día). Otra persona u otra organización no comparten contador. Pgtap: `clientes_exportar_actividad.test.sql`
   y `clientes_exportar_actividad_ventana.test.sql`. Reversión: ver el encabezado de la migración.
+- **Verificación manual de la concurrencia** (`supabase/tests/manual/exportar_clientes_concurrencia.sh`, bash + psql, no corre en CI;
+  `PSQL` es el comando que abre psql como superusuario):
+  `PSQL='docker exec -i supabase_db_<proyecto> psql -U postgres -q -At' supabase/tests/manual/exportar_clientes_concurrencia.sh`.
+  Modo por defecto (solo lectura, todo se revierte, apto para dev): la sesión A toma el cupo de una persona real y la sesión B,
+  de la misma persona, debe quedar esperando el advisory lock. Resultado esperado: `esperando el advisory lock a los 4 s: 1`,
+  duración de B de 6 s o más y `OK: la segunda sesión de la misma persona quedó serializada`. Con `--con-escritura` (solo un stack
+  desechable: confirma datos propios, baja los topes a 5 y al final los borra y los restaura) lanza dos exportaciones simultáneas
+  de la misma persona; resultado esperado: un rechazo `tope_acumulado`, a lo sumo 5 filas entregadas y `OK: los topes no se
+  superan con dos sesiones simultáneas`. Como control negativo, contra una función sin el lock (la de dev antes de aplicar la
+  migración) imprime `FALLÓ`.
 
 - **Quién:** solo quien tiene la acción `exportar` en Clientes
   (`private.puede_accion('clientes','exportar')`; por defecto Administrador, Administración y Operador).
