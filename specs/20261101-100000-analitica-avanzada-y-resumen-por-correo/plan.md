@@ -15,7 +15,7 @@
 | `public.tipos_aviso` (fila `resumen_semanal`) | `public` | F-REP-08 | Catálogo de plataforma de MSF-189: se registra el tipo, no se crea tabla | RLS vigente de `tipos_aviso` |
 | Vistas de lectura de los tableros | `analitica` (solo vistas) | F-REP-07 | Contrato de lectura para Superset; no almacenan datos; cada fila lleva `organizacion_id` | Sin acceso para `anon`/`authenticated`; `select` solo al rol de Superset |
 
-`dominio.resumen_semanal_envios` (creada en `20270324101000_resumen_semanal_tabla.sql`): `id uuid`
+`dominio.resumen_semanal_envios` (creada en `20270326100001_resumen_semanal_tabla.sql`): `id uuid`
 (primaria), `organizacion_id uuid` (→ `public.organizaciones`), `destinatario_id uuid` (→
 `auth.users`), `semana text` (AAAA-Wnn, clave de idempotencia), `destinatario_correo text`,
 `resumen jsonb not null` (el resumen tal como se encoló, con al menos una sección),
