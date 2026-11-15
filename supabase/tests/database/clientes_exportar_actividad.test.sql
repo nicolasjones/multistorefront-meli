@@ -15,7 +15,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
   ('d4000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
-insert into clientes (organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 11, 'Alfa', 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 12, 'Beta', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 13, 'Gamma', 'mayorista');

@@ -25,7 +25,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 
 -- 101 y 102: las dos fichas del mismo cliente (3 y 5 compras). 103 y 104: ambos con cuenta web activa.
 -- 105: sin cuentas. 201: otra organización.
-insert into clientes (id, organizacion_id, numero, nombre, documento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, documento) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', '20-11111111-1'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Alfa duplicado', '20-11111111-2'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Beta', null),
@@ -126,7 +126,7 @@ select is(
   (select count(*)::int from cuentas_cliente where cliente_id in ('c1000000-0000-0000-0000-000000000003', 'c1000000-0000-0000-0000-000000000004')),
   2, 'el rechazo no toca las cuentas');
 select is(
-  (select archivado_en is null from clientes where id = 'c1000000-0000-0000-0000-000000000004'),
+  (select archivado_en is null from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000004'),
   true, 'el rechazo no archiva al descartado');
 
 -- Resuelto: prevalece la cuenta del descartado; la del conservado se da de baja.
@@ -156,7 +156,7 @@ select is(
   (select count(*)::int from dominio.comprobantes_venta where cliente_id = 'c1000000-0000-0000-0000-000000000002'),
   0, 'el descartado queda sin compras');
 select results_eq(
-  $$select archivado_en is not null, nombre, documento from clientes where id = 'c1000000-0000-0000-0000-000000000002'$$,
+  $$select archivado_en is not null, nombre, documento from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000002'$$,
   $$values (true, 'Alfa duplicado', '20-11111111-2')$$,
   'el descartado queda archivado con sus datos de ficha intactos');
 select is(
@@ -179,7 +179,7 @@ select throws_ok(
 
 -- Atomicidad: si falla una validación tardía no queda nada a medias.
 select is(
-  (select count(*)::int from clientes where archivado_en is not null and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  (select count(*)::int from dominio.clientes where archivado_en is not null and organizacion_id = '11111111-1111-1111-1111-111111111111'),
   2, 'solo los dos descartados de las fusiones correctas están archivados');
 
 select * from finish();

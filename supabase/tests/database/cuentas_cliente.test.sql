@@ -37,7 +37,7 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'sanjavucho.ejemplo.com'),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000002', 'mundojc.ejemplo.com');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'norte@example.com', 'mayorista'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente sin correo', null, 'minorista'),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente sin tiendas', 'sin@example.com', 'minorista'),
@@ -330,7 +330,7 @@ select is(
 );
 
 select throws_ok(
-  $$insert into public.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'intruso')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'intruso')$$,
   '42501', null,
   'la cuenta web no escribe en clientes'
 );

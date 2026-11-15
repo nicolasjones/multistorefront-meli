@@ -24,7 +24,7 @@ envío de correo). Sin `superset` ni `workers`: el correo sale por el SMTP que y
 No hay tablas nuevas de plataforma: la épica **agrega dos columnas a `dominio.comprobantes_venta`**, **una columna
 a `dominio.comprobantes_venta_lineas`**, **crea `dominio.reparacion_avisos`** y **cinco RPC en `public`** (más
 funciones internas en `private`). `dominio.reparaciones`, `dominio.reparacion_items`, `dominio.estados_reparacion` y
-`public.clientes` solo se leen; la outbox (`public.capacidades_ejecucion`, `public.ejecuciones_worker`,
+`dominio.clientes` solo se leen; la outbox (`public.capacidades_ejecucion`, `public.ejecuciones_worker`,
 `public.despachos_ejecucion`) recibe filas solo por RPC.
 
 | Tabla | Estado | Cambio |
@@ -34,7 +34,7 @@ funciones internas en `private`). `dominio.reparaciones`, `dominio.reparacion_it
 | `dominio.reparacion_avisos` | **nueva** | Historial de avisos al cliente de una reparación: `estado_id`/`estado_nombre` (copia del estado avisado), `destinatario` (correo **al pedir** el aviso), `estado_envio` (`pendiente` \| `enviado` \| `fallido`), `intentos`, `error` (motivo corto, ≤ 500), `solicitado_por`, `solicitado_en`, `enviado_en`, `ejecucion_id`. FK compuestas por organización hacia la reparación, el estado y la tienda. Índice único parcial `reparacion_avisos_pendiente_uq` sobre `(reparacion_id, estado_id) where estado_envio = 'pendiente'`: **un solo aviso pendiente por reparación y estado**. |
 | `dominio.reparaciones`, `dominio.reparacion_items` | existentes | Solo se leen (ítems, cliente, tienda, total al cliente). |
 | `dominio.estados_reparacion` | existente | Solo se lee (nombre y descripción del estado avisado). |
-| `public.clientes` | existente | Solo se lee (`correo` del cliente). |
+| `dominio.clientes` | existente | Solo se lee (`correo` del cliente). |
 | `public.capacidades_ejecucion`, `public.ejecuciones_worker`, `public.despachos_ejecucion` | existentes | La outbox de plataforma: solo inserta filas la RPC `avisar_cliente_reparacion`. |
 
 ```mermaid
