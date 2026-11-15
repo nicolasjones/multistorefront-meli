@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "4912c9694894415a5c6d129da7c08e242b493d985ed12ffdf8856014c74cf9c6",
+      "pageHash": "b51c4742382def90f61becb0cceac53b98c97ceac22429fadb225f7a1ca1cf30",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "277b191e"
+      "commit": "c972b57b"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -659,8 +659,8 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "87d0e7f5e0bbeef52e3e2557bbb359551db83b6fa76979f5fc1baf7dc96ae528",
-      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "pageHash": "00ca360fdb51e4a6061b61e2a197a35ddf777c559bb13a52bfcd194d1255c4db",
+      "sourceHash": "5568c66bef19177f86c9af8e5c2f9febbdfcd1fe1b782ed7902f32e3f47850be",
       "sourceAt": "0035d19c",
       "sources": [
         "specs"
@@ -716,6 +716,19 @@
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
+    },
+    "docs/gastos.md": {
+      "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
+      "pageHash": "25aef9e6591f780f2c0f14df14bb72ea9c60428ce7f11afc866a1ecd9b819ee2",
+      "sourceHash": "0308c75a78b573dca67870e42494aca0bd9a7190bdb37b9bf89215d95cb3f598",
+      "sourceAt": "2ca0ce82",
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "apps/web/src/pages/gastos",
+        "supabase/tests/database"
+      ],
+      "owner": "datos",
+      "commit": "2ca0ce82"
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
@@ -1241,6 +1254,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "a8db4308"
+    },
+    "docs/producto/gastos.md": {
+      "title": "Gastos de cada tienda",
+      "pageHash": "359c47ee70aa542bda053584975d23e1d693122efb3d88c045265c89ab3e6bda",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "c972b57b"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",

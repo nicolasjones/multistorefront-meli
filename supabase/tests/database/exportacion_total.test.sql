@@ -6,7 +6,7 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(48);
+select plan(49);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -198,6 +198,11 @@ select ok(
            where esquema = 'dominio' and tabla = 'opiniones_producto'
              and 'comentario' = any(columnas) and 'estado' = any(columnas)),
   'las opiniones de productos (dato del negocio) entran en la exportación total'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total()
+           where esquema = 'dominio' and tabla = 'gastos' and 'importe_pesos' = any(columnas) and 'motivo_anulacion' = any(columnas)),
+  'los gastos de la empresa, anulados incluidos, entran a la exportación total (RF-GAS-17)'
 );
 select ok(
   not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'token_verificacion' = any(columnas))

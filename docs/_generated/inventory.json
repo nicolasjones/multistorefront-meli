@@ -66,6 +66,9 @@
     "/empresas/tienda/pestanas/publicacion/Versiones",
     "/empresas/tienda/pestanas/publicacion/VistaPrevia",
     "/features/administrar",
+    "/gastos",
+    "/gastos/DialogoAnularGasto",
+    "/gastos/DialogoGasto",
     "/historial/CotizacionesTab",
     "/historial/importar",
     "/historial/list",
@@ -326,6 +329,7 @@
     "dominio.favoritos_cliente",
     "dominio.formas_envio",
     "dominio.formas_pago",
+    "dominio.gastos",
     "dominio.historial_cobros",
     "dominio.historial_comprobantes",
     "dominio.historial_cotizaciones_dolar",
@@ -1208,5 +1212,5 @@
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 324
+  "paginas": 326
 }
