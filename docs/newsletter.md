@@ -72,5 +72,5 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 Inmediata, sin código: `update public.banderas_plataforma set activa = false where clave = 'newsletter';` (el pie deja de mostrar el formulario y el
 flow no envía). Migraciones posteriores (nunca en el mismo PR): `drop function` de las funciones de las migraciones `…0100` y `…0200`,
 `drop table dominio.newsletter_suscriptores, dominio.newsletter_configuracion` (exportar antes los suscriptores si hace falta), borrar la fila de la
-bandera, restaurar la definición de `private.conjuntos_exportacion_total()` de `20270334000002` y el check de `tienda_envios.origen` de
+bandera, restaurar la definición de `private.conjuntos_exportacion_total()` de `20270340000100` y el check de `tienda_envios.origen` de
 `20270321100000`.
