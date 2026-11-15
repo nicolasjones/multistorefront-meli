@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  grantsServiceRole, inalterablesDe, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarVariablesPsql, tablasCreadas,
+  grantsServiceRole, inalterablesDe, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, tablasCreadas,
 } from './verificar-trampas-conocidas.mjs';
 
 const mig = (version, sql) => ({ ruta: `supabase/migrations/${version}_prueba.sql`, sql });
@@ -68,4 +68,42 @@ test('revisar integra las reglas y el grant de una migración anterior cubre al 
   const e2e = [{ ruta: 'e.e2e.ts', sql: "await borrar(`cosas?id=eq.1`, 'dominio')" }];
   assert.deepEqual(revisar({ migracionesDiff: [], pruebas: [], e2e, todasMigraciones: todas }), []);
   assert.equal(revisar({ migracionesDiff: [], pruebas: [], e2e, todasMigraciones: [mig(NUEVA, 'create table dominio.cosas (id int);')] }).length, 1);
+});
+
+const lista = (...filas) => filas.map(([e, t]) => `('${e}', '${t}')`).join(', ');
+const defineExportacion = (version, filas, extra = '') => mig(version, `${extra}\ncreate or replace function private.conjuntos_exportacion_total() returns table (esquema text, tabla text) language sql as $$ select p.esquema, p.tabla from (values ${lista(...filas)}) as p(esquema, tabla) $$;`);
+const BASE = [['public', 'organizaciones'], ['dominio', 'gastos']];
+const VIGENTE = defineExportacion('20270334000002', BASE);
+const LISTAS = defineExportacion('20270340000100', [...BASE, ['dominio', 'listas_precios']]);
+
+test('una redefinición de la exportación total que parte de una versión vieja y pierde una fila falla', () => {
+  const nueva = defineExportacion('20270343000200', [...BASE, ['dominio', 'gastos_pagos']]);
+  const p = revisarSupersetExportacion({ migracionesDiff: [nueva], todasMigraciones: [VIGENTE, LISTAS, nueva] });
+  assert.equal(p.length, 1);
+  assert.match(p[0], /`dominio\.listas_precios`/);
+  assert.match(p[0], /20270340000100_prueba\.sql/);
+  assert.match(p[0], /-- exportacion-total: se quita <esquema>\.<tabla> \(motivo\)/);
+});
+
+test('una redefinición que es superconjunto de la versión vigente pasa', () => {
+  const nueva = defineExportacion('20270343000200', [...BASE, ['dominio', 'listas_precios'], ['dominio', 'gastos_pagos']]);
+  assert.deepEqual(revisarSupersetExportacion({ migracionesDiff: [nueva], todasMigraciones: [VIGENTE, LISTAS, nueva] }), []);
+});
+
+test('una pérdida intencional declarada con el comentario pasa, y sin declarar falla', () => {
+  const sinFila = defineExportacion('20270343000200', BASE, '-- exportacion-total: se quita dominio.listas_precios (pasa a exclusiones)');
+  assert.deepEqual(revisarSupersetExportacion({ migracionesDiff: [sinFila], todasMigraciones: [VIGENTE, LISTAS, sinFila] }), []);
+  const sinDeclarar = defineExportacion('20270343000200', BASE);
+  assert.equal(revisarSupersetExportacion({ migracionesDiff: [sinDeclarar], todasMigraciones: [VIGENTE, LISTAS, sinDeclarar] }).length, 1);
+});
+
+test('dos redefiniciones en el mismo diff en el orden correcto pasan; la segunda compara con la primera', () => {
+  const a = defineExportacion('20270343000200', [...BASE, ['dominio', 'listas_precios'], ['dominio', 'opiniones']]);
+  const b = defineExportacion('20270344000100', [...BASE, ['dominio', 'listas_precios'], ['dominio', 'opiniones'], ['dominio', 'newsletter']]);
+  assert.deepEqual(revisarSupersetExportacion({ migracionesDiff: [a, b], todasMigraciones: [VIGENTE, LISTAS, a, b] }), []);
+  const bMal = defineExportacion('20270344000100', [...BASE, ['dominio', 'listas_precios'], ['dominio', 'newsletter']]);
+  const p = revisarSupersetExportacion({ migracionesDiff: [a, bMal], todasMigraciones: [VIGENTE, LISTAS, a, bMal] });
+  assert.equal(p.length, 1);
+  assert.match(p[0], /`dominio\.opiniones`/);
+  assert.match(p[0], /20270343000200_prueba\.sql/);
 });

@@ -5,6 +5,7 @@
 //   T1  Tabla nueva de `dominio` sin `grant ... to service_role`        (service_role_privilegios.test.sql)
 //   T2  Variable de psql `:'x'` dentro de un bloque `$$ ... $$` de pgTAP (psql no interpola ahí)
 //   T4  Tabla nueva con `organizacion_id` que no está en la exportación total   (exportacion_total.test.sql)
+//   T6  Redefinición de `conjuntos_exportacion_total()` que pierde filas de la versión vigente (pisa lo que agregó otra rama)
 //   T5  E2E que escribe con la service-role key en una tabla de `dominio` sin grant para service_role
 //
 // No cubre (ya lo hacen otros guards): versiones de migración <= la máxima de la base (`verificar-migraciones.mjs
@@ -126,6 +127,50 @@ export function revisarExportacionTotal({ migracionesDiff }) {
   return problemas;
 }
 
+// T6: filas ('esquema', 'tabla') de la lista `values (...)` con que una migración redefine `conjuntos_exportacion_total()`.
+// Devuelve null si la migración no la define.
+export function filasConjuntosExportacion(sqlOriginal) {
+  const sql = sinComentarios(sqlOriginal);
+  const def = /create\s+(?:or\s+replace\s+)?function\s+private\.conjuntos_exportacion_total\s*\(/i.exec(sql);
+  if (!def) return null;
+  const resto = sql.slice(def.index);
+  const v = /\(\s*values\b/i.exec(resto);
+  if (!v) return new Set();
+  const cuerpo = cuerpoParentesis(resto, v.index);
+  return new Set([...cuerpo.matchAll(/\(\s*'([a-z0-9_]+)'\s*,\s*'([a-z0-9_]+)'\s*\)/gi)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
+}
+
+// Pérdidas declaradas con `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`.
+export function perdidasDeclaradas(sqlOriginal) {
+  return new Set([...sqlOriginal.matchAll(/--\s*exportacion-total:\s*se\s+quita\s+([a-z0-9_]+)\.([a-z0-9_]+)/gi)].map((m) => `${m[1].toLowerCase()}.${m[2].toLowerCase()}`));
+}
+
+// T6: una migración nueva que redefine la función debe partir de la versión vigente (la anterior de mayor versión que la
+// defina, en la base o en el propio diff) y conservar todas sus filas, salvo las quitadas a propósito y declaradas.
+export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }) {
+  const problemas = [];
+  const definen = todasMigraciones
+    .map((m) => ({ ...m, version: versionDe(m.ruta), filas: filasConjuntosExportacion(m.sql) }))
+    .filter((m) => m.filas)
+    .sort((a, b) => a.version.localeCompare(b.version));
+  const enDiff = new Set(migracionesDiff.map((m) => m.ruta));
+  for (const [i, m] of definen.entries()) {
+    if (!enDiff.has(m.ruta) || i === 0) continue;
+    const previa = definen[i - 1];
+    const declaradas = perdidasDeclaradas(m.sql);
+    const perdidas = [...previa.filas].filter((f) => !m.filas.has(f) && !declaradas.has(f)).sort();
+    if (!perdidas.length) continue;
+    const lista = perdidas.map((f) => `\`${f}\``).join(', ');
+    problemas.push(
+      `${m.ruta} redefine private.conjuntos_exportacion_total() y pierde ${perdidas.length} fila(s) de la versión vigente: ${lista}. `
+      + `Partió de una versión vieja y pisaría lo que agregó otra rama (exportacion_total.test.sql fallaría). Rebasá la migración sobre ${path.basename(previa.ruta)} `
+      + '(la última que la define: copiá su lista completa y sumá solo tus filas). '
+      + 'Si quitar la fila es intencional, declaralo en la migración con un comentario `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`.',
+    );
+  }
+  return problemas;
+}
+
 const RE_ESCRITURA_E2E = /\b(rest|borrar)\(\s*(['"`])([a-z_][a-z0-9_]*)[^'"`]*\2([^()]*?)\)/gi;
 
 // T5: escrituras E2E con la service-role key en `dominio` (rest/borrar con esquema 'dominio') sin grant para service_role.
@@ -165,6 +210,7 @@ export function revisar({ migracionesDiff, pruebas, e2e, todasMigraciones, sqlTe
     ...revisarGrants({ migracionesDiff, inalterables }),
     ...revisarVariablesPsql({ pruebas }),
     ...revisarExportacionTotal({ migracionesDiff }),
+    ...revisarSupersetExportacion({ migracionesDiff, todasMigraciones }),
     ...revisarE2E({ e2e, tablasConGrant, versionCreacion, inalterables }),
   ];
 }
