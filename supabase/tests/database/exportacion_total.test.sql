@@ -194,6 +194,12 @@ select ok(
   'las listas de precios y la lista de cada cliente entran a la exportación total (F-PRE-14, RF-CLI-21-8)'
 );
 select ok(
+  exists (select 1 from private.conjuntos_exportacion_total()
+           where esquema = 'dominio' and tabla = 'opiniones_producto'
+             and 'comentario' = any(columnas) and 'estado' = any(columnas)),
+  'las opiniones de productos (dato del negocio) entran en la exportación total'
+);
+select ok(
   not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'token_verificacion' = any(columnas))
   and exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'dominio' = any(columnas)),
   'tiendas se exporta sin su token de verificación'
