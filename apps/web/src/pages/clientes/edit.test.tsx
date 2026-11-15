@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   aplicarCuentaWeb: vi.fn(),
   esAdministrador: vi.fn(),
   asignarLista: vi.fn(),
+  leerLista: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -34,6 +35,7 @@ vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/listasPrecios', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/listasPrecios')>()),
   asignarListaPrecios: mocks.asignarLista,
+  leerListaDeCliente: mocks.leerLista,
 }))
 vi.mock('../../hooks/useBanderaListasPrecios', () => ({ useBanderaListasPrecios: () => ({ activa: true, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
@@ -83,6 +85,7 @@ describe('ClienteEdit', () => {
     mocks.aplicarCuentaWeb.mockResolvedValue({ creadas: 0, errores: 0 })
     mocks.esAdministrador.mockReturnValue(false)
     mocks.asignarLista.mockResolvedValue(undefined)
+    mocks.leerLista.mockResolvedValue('l-1')
     conCliente({})
   })
 
@@ -174,6 +177,37 @@ describe('ClienteEdit', () => {
     expect(await screen.findByText('No se guardó el cliente.')).toBeInTheDocument()
     expect(mocks.asignarLista).toHaveBeenNthCalledWith(1, {}, 'c-1', 'l-1')
     expect(mocks.asignarLista).toHaveBeenNthCalledWith(2, {}, 'c-1', 'l-0')
+  })
+
+  const guardarConListaNueva = async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    conCliente({ lista_precio_id: 'l-0' })
+    mocks.mutateAsync.mockRejectedValue(new Error('falló'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+  }
+
+  it('si la compensación también falla, lo dice y lo registra en vez de callarlo', async () => {
+    mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: 'XX000' })
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala')).toBeInTheDocument()
+    expect(console.error).toHaveBeenCalledWith('No se pudo devolver la lista de precios a la anterior.', expect.anything(), expect.anything())
+  })
+
+  it('si la lista anterior se archivó entretanto y no se puede reasignar, da el mismo aviso', async () => {
+    mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: '22023', message: 'La lista está archivada' })
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala')).toBeInTheDocument()
+  })
+
+  it('si otra persona cambió la lista mientras tanto, no la pisa y lo avisa', async () => {
+    mocks.leerLista.mockResolvedValue('l-7')
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.')).toBeInTheDocument()
+    expect(mocks.asignarLista).toHaveBeenCalledTimes(1)
   })
 
   it('quien no es Administrador ve la lista en solo lectura y nunca la asigna', async () => {

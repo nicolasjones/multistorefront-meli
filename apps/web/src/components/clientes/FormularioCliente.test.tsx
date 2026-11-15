@@ -228,7 +228,7 @@ describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => 
     { id: 'l-2', nombre: 'Gremio', descripcion: null, ajustePct: 5.5, archivadaEn: null, clientesAsignados: 0, actualizadoEn: 't' },
   ]
   const abrirConLista = (
-    cambios: { editable?: boolean; bandera?: boolean; hayError?: boolean; listaPrecioId?: string; descuento?: string } = {},
+    cambios: { editable?: boolean; bandera?: boolean; hayError?: boolean; cargando?: boolean; listaPrecioId?: string; descuento?: string } = {},
     onGuardar = vi.fn().mockResolvedValue(undefined),
   ) => {
     render(
@@ -239,7 +239,7 @@ describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => 
           onGuardar={onGuardar}
           rutaCancelar="/clientes"
           puedeEditarDescuento
-          listasPrecios={{ listas: LISTAS, cargando: false, hayError: cambios.hayError ?? false, editable: cambios.editable ?? true, bandera: cambios.bandera ?? true }}
+          listasPrecios={{ listas: cambios.cargando ? [] : LISTAS, cargando: cambios.cargando ?? false, hayError: cambios.hayError ?? false, editable: cambios.editable ?? true, bandera: cambios.bandera ?? true }}
         />
       </MemoryRouter>,
     )
@@ -257,6 +257,13 @@ describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => 
     expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveTextContent('Lista asignada')
     expect(consola.mock.calls.flat().join(' ')).not.toMatch(/out-of-range/)
     consola.mockRestore()
+  })
+
+  it('mientras cargan las listas muestra «Cargando…» y no el aviso de nombre ilegible', () => {
+    abrirConLista({ listaPrecioId: 'l-1', cargando: true })
+    const combo = screen.getByRole('combobox', { name: /Lista de precios/ })
+    expect(combo).toHaveTextContent('Cargando…')
+    expect(combo).not.toHaveTextContent('no se pudo leer')
   })
 
   it('sin la prop no muestra el campo (alta)', () => {

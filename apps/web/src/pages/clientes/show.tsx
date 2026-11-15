@@ -278,7 +278,7 @@ export function ClienteShow() {
                     {textoLista ?? (
                       <>
                         No pudimos cargarla{' '}
-                        <Button size="small" onClick={() => listaCliente.reintentar?.()}>Reintentar</Button>
+                        <Button size="small" onClick={() => listaCliente.reintentar()}>Reintentar</Button>
                       </>
                     )}
                   </Typography>
