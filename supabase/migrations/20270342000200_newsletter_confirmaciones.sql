@@ -98,7 +98,10 @@ begin
        and (s.confirmacion_enviada_en is null or s.confirmacion_enviada_en < s.confirmacion_solicitada_en);
   else
     update dominio.newsletter_suscriptores s
-       set confirmacion_reclamada_hasta = null, confirmacion_intentos = least(s.confirmacion_intentos + 1, 10)
+       set confirmacion_reclamada_hasta = null, confirmacion_intentos = least(s.confirmacion_intentos + 1, 10),
+           -- Agotados los 4 ciclos, el enlace que nunca salió no queda vigente 48 h: la persona puede pedir otro.
+           confirmacion_hash = case when s.confirmacion_intentos >= 3 then null else s.confirmacion_hash end,
+           confirmacion_vence = case when s.confirmacion_intentos >= 3 then null else s.confirmacion_vence end
      where s.id = p_suscriptor and s.estado = 'pendiente' and s.confirmacion_hash is not null
        and (s.confirmacion_enviada_en is null or s.confirmacion_enviada_en < s.confirmacion_solicitada_en);
   end if;

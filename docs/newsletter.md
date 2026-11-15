@@ -63,15 +63,22 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 
 ## Límites y comportamientos a tener en cuenta
 
-- **Correo con lista blanca**: se acepta solo `[a-z0-9.!#$%&'*+/=?^_{|}~-]+@dominio` en minúsculas (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`).
-  Así cada fila es una dirección real y el tope de 3 confirmaciones por dirección y 24 h no se evade con formas como `a<victima@dom.com>`. El mismo criterio
-  rige en la tabla (check), en `private.validar_suscripcion_newsletter` y en `lib/tiendaNewsletter.ts`.
+- **Forma estricta del correo**: parte local `atom(.atom)*` con `atom = [a-z0-9'+_=&*#$?^{}~-]+` (sin `%`, `!`, `|`, `/`, ni punto inicial, final o doble; local ≤ 64),
+  dominio con etiquetas `[a-z0-9]([a-z0-9-]*[a-z0-9])?` y TLD `[a-z]{2,}` (acepta punycode `xn--`; no acepta IP), total ≤ 254, en minúsculas. Sin `<`, `>`, comillas, paréntesis,
+  `\`, `:`, `,` ni `;`. Así cada fila es una dirección real, sin rutas fuente legadas (`%`, `!`), y el tope de 3 confirmaciones por dirección y 24 h no se evade con formas como
+  `a<victima@dom.com>`. El mismo criterio rige en la tabla (check), en `private.validar_suscripcion_newsletter` y en `lib/tiendaNewsletter.ts`.
+- **Tope global por tienda y riesgo residual**: máximo 200 confirmaciones nuevas por hora y tienda (`private.tope_confirmaciones_hora_newsletter()`); superado, la suscripción
+  no se guarda ni se envía y la respuesta sigue siendo `ok` (sin señal de tope). El tope por dirección no ve los alias de proveedor (`+tag`, puntos de Gmail, catch-all de un dominio):
+  un atacante sigue pudiendo mandar hasta ese tope por hora a un mismo buzón; el límite por visitante (5/h) y el tope global lo acotan, y si aparece abuso real se agrega CAPTCHA
+  (seguimiento). Un envío que agota sus 4 ciclos anula el enlace (hash y vencimiento), de modo que la persona puede pedir otro.
+- **Invariante para las fases 3 a 5**: un tercero puede dejar `pendiente` a una dirección que estaba en `baja` (conserva `baja_en`). El reclamo de lote del correo masivo (MSF-155), los KPI de activos y la
+  foto de destinatarios de `enviar_newsletter` filtran SIEMPRE `estado = 'confirmado'`, NUNCA `estado <> 'baja'`. Seguimiento: MSF-967.
 - **Re-suscribir no invalida el enlace legítimo**: si la dirección ya está `pendiente` con un enlace vigente (48 h), un nuevo pedido responde `ok` pero no emite
   otro correo ni pisa el hash; quien perdió el correo puede volver a pedirlo cuando venza. Si la dirección estaba en `baja`, vuelve a `pendiente` (con
   correo de confirmación, hasta 3 en 24 h) y el enlace anterior deja de valer; `baja_en` se **conserva** hasta que se confirme y, si nunca se confirma, la
   poda de 7 días la devuelve a `baja` en lugar de borrarla (lista de supresión). Limitación: cualquiera puede pedir una confirmación a una dirección en baja (hasta 3 en
   24 h); no se envía ningún newsletter hasta que la persona confirme.
-- **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa si el pedido sigue teniendo el hash reclamado.
+- **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa sobre una suscripción `pendiente` con `confirmacion_hash` no nulo y con la confirmación por enviar (`confirmacion_enviada_en` nulo o anterior a `confirmacion_solicitada_en`); una re-suscripción que anuló el hash antes del cierre deja el cierre tardío sin efecto.
 - **El límite por visitante es compartido**: `confirmar_newsletter` también consume el cupo (5/h por visitante y tienda, el mismo de contacto, WhatsApp y suscripción).
   Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).
 - El nombre de la tienda sale de la base sin `"`, `<`, `>`, `\` ni caracteres de control; el asunto y el cuerpo del correo lo escapan.

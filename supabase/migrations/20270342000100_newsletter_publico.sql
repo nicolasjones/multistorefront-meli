@@ -16,6 +16,17 @@
 --   drop function private.validar_suscripcion_newsletter(text, boolean);
 --   drop function private.empresa_newsletter_activa(text);
 
+-- Tope GLOBAL por tienda: máximo de confirmaciones nuevas por hora (cualquier dirección). Frena el abuso con alias de proveedor
+-- (`+tag`, puntos de Gmail, catch-all) que el tope por dirección no ve. El exceso queda sin enviar y sin distinguirse hacia afuera.
+create or replace function private.tope_confirmaciones_hora_newsletter()
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$ select 200; $$;
+
+revoke execute on function private.tope_confirmaciones_hora_newsletter() from public, anon, authenticated;
+
 -- Texto de consentimiento vigente (D2). Subir la versión cuando cambie el texto del formulario.
 create or replace function private.version_consentimiento_newsletter()
 returns text
@@ -58,7 +69,8 @@ declare
   v_correo text := lower(btrim(coalesce(p_correo, '')));
   v_campos text[] := '{}';
 begin
-  if v_correo = '' or char_length(v_correo) > 254 or v_correo !~ '^[a-z0-9.!#$%&''*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$' then
+  if v_correo = '' or char_length(v_correo) > 254 or v_correo !~ '^[a-z0-9''+_=&*#$?^{}~-]+(\.[a-z0-9''+_=&*#$?^{}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'
+     or char_length(split_part(v_correo, '@', 1)) > 64 then
     v_campos := array_append(v_campos, 'correo');
   end if;
   if p_consentimiento is distinct from true then
@@ -114,6 +126,7 @@ declare
   v_registro jsonb;
   v_fila dominio.newsletter_suscriptores%rowtype;
   v_ventana_vigente boolean;
+  v_cupo_global boolean;
 begin
   if v_empresa is null or p_clave is null then
     return jsonb_build_object('resultado', 'error');
@@ -146,13 +159,20 @@ begin
     select * into v_fila from dominio.newsletter_suscriptores s
      where s.empresa_id = v_empresa and lower(s.correo) = v_correo;
 
-    if not found then
-      insert into dominio.newsletter_suscriptores (
-        organizacion_id, empresa_id, correo, estado, origen, version_consentimiento, consentimiento_en,
-        confirmacion_solicitada_en, confirmaciones_24h, confirmaciones_desde)
-      values (
-        v_org, v_empresa, v_correo, 'pendiente', 'formulario', private.version_consentimiento_newsletter(), now(),
-        now(), 1, now());
+    select (select count(*) from dominio.newsletter_suscriptores x
+             where x.empresa_id = v_empresa and x.confirmacion_solicitada_en > now() - interval '1 hour')
+           < private.tope_confirmaciones_hora_newsletter()
+      into v_cupo_global;
+
+    if v_fila.id is null then
+      if v_cupo_global then
+        insert into dominio.newsletter_suscriptores (
+          organizacion_id, empresa_id, correo, estado, origen, version_consentimiento, consentimiento_en,
+          confirmacion_solicitada_en, confirmaciones_24h, confirmaciones_desde)
+        values (
+          v_org, v_empresa, v_correo, 'pendiente', 'formulario', private.version_consentimiento_newsletter(), now(),
+          now(), 1, now());
+      end if; -- tope global por tienda superado: no se guarda ni se envía, y la respuesta sigue siendo `ok`.
     elsif v_fila.estado = 'confirmado' then
       null; -- ya confirmada: no se envía otro correo y la respuesta es la misma.
     elsif v_fila.estado = 'pendiente' and v_fila.confirmacion_hash is not null and v_fila.confirmacion_vence > now() then
@@ -161,6 +181,8 @@ begin
       v_ventana_vigente := v_fila.confirmaciones_desde is not null and v_fila.confirmaciones_desde > now() - interval '24 hours';
       if v_ventana_vigente and v_fila.confirmaciones_24h >= 3 then
         null; -- tope por dirección: el cuarto pedido responde `ok` sin enviar.
+      elsif not v_cupo_global then
+        null; -- tope global por tienda superado: sin enviar y con la misma respuesta.
       else
         -- Una dirección en `baja` conserva `baja_en` (lista de supresión) hasta que se confirme de nuevo.
         update dominio.newsletter_suscriptores s

@@ -406,5 +406,73 @@ insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000004', 'interruptor-off@ejemplo.com', 'newsletter-v1', now());
 select is((select count(*)::int from private.reclamar_confirmaciones_newsletter(50, 900) where correo = 'interruptor-off@ejemplo.com'), 0, 'un interruptor existente pero apagado tampoco entrega');
 
+
+-- ============================================================================
+-- Revisión 2: forma estricta del correo (local atom(.atom)*, dominio con etiquetas y TLD de letras, local ≤ 64)
+-- ============================================================================
+select is(
+  (select coalesce(string_agg(c, ' | ' order by c), '') from unnest(array[
+      'a..b@x.com', '.a@x.com', 'a.@x.com', 'a@1.2.3.4', 'a@-.-', 'a%b@x.com', 'a!b@x.com', 'a|b@x.com', 'a/b@x.com',
+      'a@x.c', 'a@-x.com', 'a@x-.com', 'a@x..com', 'a@.com', 'a@x.com.', 'a@x_y.com', repeat('a', 65) || '@x.com', 'a@b@x.com']) c
+    where private.validar_suscripcion_newsletter(c, true) = '{}'),
+  '', 'el validador rechaza puntos dobles/iniciales/finales, IP, etiquetas rotas, %, !, |, / y locales de más de 64');
+select is(
+  (select count(*)::int from unnest(array['a.b+c@sub.dom-x.com', 'o''brien@x.com', 'x@xn--ejemplo-9ua.com', repeat('a', 64) || '@x.com', 'a_b=c@d1.ar']) c
+    where private.validar_suscripcion_newsletter(c, true) = '{}'),
+  5, 'el validador acepta direcciones habituales, punycode y un local de 64');
+select is(
+  (select count(*)::int from unnest(array['a..b@x.com', '.a@x.com', 'a.@x.com', 'a@1.2.3.4', 'a@-.-', 'a%b@x.com', 'a!b@x.com', 'a|b@x.com', 'a/b@x.com', repeat('a', 65) || '@x.com']) c
+    where not exists (select 1 where c ~ '^[a-z0-9''+_=&*#$?^{}~-]+(\.[a-z0-9''+_=&*#$?^{}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$' and char_length(split_part(c, '@', 1)) <= 64)),
+  10, 'la forma estricta rechaza todos los casos laxos (referencia independiente)');
+select throws_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a..b@x.com', 'v1')$$, '23514', null, 'el check de la tabla rechaza a..b@x.com');
+select throws_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a@1.2.3.4', 'v1')$$, '23514', null, 'el check de la tabla rechaza a@1.2.3.4');
+select throws_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a%b@x.com', 'v1')$$, '23514', null, 'el check de la tabla rechaza a%b@x.com (ruta fuente legada)');
+select throws_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', repeat('a', 65) || '@x.com', 'v1')$$, '23514', null, 'el check de la tabla rechaza un local de más de 64');
+select lives_ok($$insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento)
+    values ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'x@xn--ejemplo-9ua.com', 'v1')$$, 'el check de la tabla acepta punycode');
+
+-- ============================================================================
+-- Revisión 2: tras el 4.º fallo de envío se anula el enlace que nunca salió
+-- ============================================================================
+insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en, confirmacion_hash, confirmacion_vence, confirmacion_intentos) values
+  ('51000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'fallos3@ejemplo.com', 'newsletter-v1', now(), repeat('f', 64), now() + interval '48 hours', 3),
+  ('51000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'fallos1@ejemplo.com', 'newsletter-v1', now(), repeat('1', 64), now() + interval '48 hours', 1);
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000010', 'fallido', null);
+select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000011', 'fallido', null);
+select ok(
+  (select confirmacion_hash is null and confirmacion_vence is null and confirmacion_intentos = 4 from dominio.newsletter_suscriptores where correo = 'fallos3@ejemplo.com'),
+  'agotados los 4 ciclos el hash y su vencimiento se anulan (se puede pedir otro enlace)');
+select ok(
+  (select confirmacion_hash = repeat('1', 64) and confirmacion_vence is not null and confirmacion_intentos = 2 from dominio.newsletter_suscriptores where correo = 'fallos1@ejemplo.com'),
+  'un fallo temprano conserva el enlace');
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.5"}', true);
+set local role anon;
+insert into res values ('f_reintento', publico.suscribirse_newsletter('nl-a.ejemplo.com', 'fallos3@ejemplo.com', true, '00000000-0000-0000-0000-0000000000af', ''));
+reset role;
+select ok(
+  (select confirmacion_intentos = 0 and confirmacion_solicitada_en > now() - interval '1 minute' from dominio.newsletter_suscriptores where correo = 'fallos3@ejemplo.com'),
+  'la persona legítima puede volver a pedir el enlace tras agotar los reintentos');
+
+-- ============================================================================
+-- Revisión 2: tope global por tienda (alias de proveedor: +tag, puntos de Gmail, catch-all)
+-- ============================================================================
+select is(private.tope_confirmaciones_hora_newsletter(), 200, 'el tope global es de 200 confirmaciones nuevas por hora y tienda');
+insert into dominio.newsletter_suscriptores (organizacion_id, empresa_id, correo, version_consentimiento, confirmacion_solicitada_en)
+select '22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-000000000001', 'alias+' || g || '@ejemplo.com', 'newsletter-v1', now()
+  from generate_series(1, 199) g;
+select set_config('request.headers', '{"x-forwarded-for":"10.1.0.6"}', true);
+set local role anon;
+insert into res values
+  ('g_200', publico.suscribirse_newsletter('nl-dos.ejemplo.com', 'ultimo@ejemplo.com', true, '00000000-0000-0000-0000-0000000000b1', '')),
+  ('g_201', publico.suscribirse_newsletter('nl-dos.ejemplo.com', 'excedido@ejemplo.com', true, '00000000-0000-0000-0000-0000000000b2', ''));
+reset role;
+select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'ultimo@ejemplo.com'), 1, 'hasta el tope la suscripción se guarda');
+select is((select count(*)::int from dominio.newsletter_suscriptores where correo = 'excedido@ejemplo.com'), 0, 'superado el tope global de la tienda no se guarda ni se envía');
+select is((select j from res where clave = 'g_201'), (select j from res where clave = 'g_200'), 'la respuesta del exceso es idéntica (ok): sin enumeración ni señal de tope');
+
 select * from finish();
 rollback;

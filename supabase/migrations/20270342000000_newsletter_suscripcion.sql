@@ -46,7 +46,8 @@ create table if not exists dominio.newsletter_suscriptores (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
-  -- Recortado y en minúsculas; una sola dirección con lista blanca de caracteres (sin `<`, `>`, `"`, `(`, `)`, `\`, `:`, `,` ni `;`:
+  -- Recortado y en minúsculas; una sola dirección con forma estricta (local `atom(.atom)*` sin `%`, `!`, `|`, `/`, punto inicial, final ni doble; dominio con
+  -- etiquetas alfanuméricas y TLD de letras; local ≤ 64). Lista blanca de caracteres (sin `<`, `>`, `"`, `(`, `)`, `\`, `:`, `,` ni `;`:
   -- evita direcciones distintas que el SMTP interprete como la misma persona), ≤ 254.
   correo text not null,
   estado text not null default 'pendiente',
@@ -70,7 +71,8 @@ create table if not exists dominio.newsletter_suscriptores (
   baja_en timestamptz,
   creado_en timestamptz not null default now(),
   constraint newsletter_suscriptores_correo_ck check (
-    char_length(correo) <= 254 and correo = lower(btrim(correo)) and correo ~ '^[a-z0-9.!#$%&''*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$'),
+    char_length(correo) <= 254 and correo = lower(btrim(correo)) and correo ~ '^[a-z0-9''+_=&*#$?^{}~-]+(\.[a-z0-9''+_=&*#$?^{}~-]+)*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'
+    and char_length(split_part(correo, '@', 1)) <= 64),
   constraint newsletter_suscriptores_estado_ck check (estado in ('pendiente', 'confirmado', 'baja')),
   constraint newsletter_suscriptores_origen_ck check (origen in ('formulario')),
   constraint newsletter_suscriptores_version_ck check (btrim(version_consentimiento) <> '' and char_length(version_consentimiento) <= 50),
@@ -89,6 +91,8 @@ create unique index if not exists newsletter_suscriptores_hash_uq
   on dominio.newsletter_suscriptores (empresa_id, confirmacion_hash) where confirmacion_hash is not null;
 create index if not exists newsletter_suscriptores_organizacion_idx
   on dominio.newsletter_suscriptores (organizacion_id, empresa_id, estado);
+create index if not exists newsletter_suscriptores_solicitadas_idx
+  on dominio.newsletter_suscriptores (empresa_id, confirmacion_solicitada_en);
 create index if not exists newsletter_suscriptores_por_confirmar_idx
   on dominio.newsletter_suscriptores (confirmacion_solicitada_en) where estado = 'pendiente';
 

@@ -9,15 +9,17 @@ export type CampoNewsletter = 'correo' | 'consentimiento'
 export type DatosNewsletter = { correo: string; consentimiento: boolean }
 export type ErroresNewsletter = Partial<Record<CampoNewsletter, string>>
 
-// Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección con lista blanca de caracteres (sin `<`, `>`, comillas,
-// paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
-const CORREO = /^[a-z0-9.!#$%&'*+/=?^_{|}~-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/
+// Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección con forma estricta: local `atom(.atom)*` (sin `%`, `!`, `|`, `/`, punto inicial, final ni doble), dominio con
+// etiquetas alfanuméricas y TLD de letras (acepta punycode), local ≤ 64 (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
+const ATOMO = "[a-z0-9'+_=&*#$?^{}~-]+"
+const CORREO = new RegExp(`^${ATOMO}(\\.${ATOMO})*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$`)
+const MAX_LOCAL = 64
 
 export function validarSuscripcion(datos: DatosNewsletter): ErroresNewsletter {
   const correo = datos.correo.trim().toLowerCase()
   const errores: ErroresNewsletter = {}
   if (correo === '') errores.correo = 'Escribí tu correo.'
-  else if (correo.length > MAX_CORREO || !CORREO.test(correo)) errores.correo = 'Ingresá un correo válido.'
+  else if (correo.length > MAX_CORREO || correo.split('@')[0].length > MAX_LOCAL || !CORREO.test(correo)) errores.correo = 'Ingresá un correo válido.'
   if (!datos.consentimiento) errores.consentimiento = 'Marcá la casilla para suscribirte.'
   return errores
 }

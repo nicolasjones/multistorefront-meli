@@ -425,6 +425,8 @@ flowchart LR
 ## Riesgos y desvíos declarados
 
 - **Es una superficie anónima que envía correo a terceros.** Mitigaciones: double opt-in, límite HMAC por visitante, tope por dirección, honeypot, respuesta uniforme y bandera apagada por defecto. Un ataque distribuido (muchas IP, muchas direcciones) seguiría consumiendo correos de confirmación: si aparece abuso se agrega CAPTCHA (seguimiento, no se construye sin caso real).
+- **Invariante de destinatarios (MSF-967).** Una dirección en `baja` puede volver a `pendiente` por el pedido de un tercero (conserva `baja_en`). El envío (reclamo de MSF-155 para suscriptores), los KPI de activos y la foto de `enviar_newsletter` filtran SIEMPRE `estado = 'confirmado'`, NUNCA `estado <> 'baja'`.
+- **Alias de proveedor.** El tope por dirección no ve `+tag`, puntos de Gmail ni catch-all; se acota con el tope global por tienda (200 confirmaciones nuevas por hora) y el límite por visitante; residual documentado en `docs/newsletter.md`.
 - **Cupo compartido.** Un newsletter grande (p. ej. 1 248 suscriptores con cupo 500) tarda tres días y **retrasa** los correos a clientes de MSF-155 de la misma organización (orden de creación). Hay que decidir si se separa el cupo (variable aparte) o se sube; por ahora se comparte (D14).
 - **El plugin de correo de Kestra** puede no admitir encabezados (`List-Unsubscribe`): verificar en T011; sin él, la baja depende del enlace del cuerpo. Los clientes de correo grandes lo exigen para remitentes de volumen (entregabilidad).
 - **Entrega «al menos una vez»** (heredada de MSF-155): si Kestra se corta entre enviar y cerrar, un correo puede salir dos veces.
