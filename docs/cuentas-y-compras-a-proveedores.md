@@ -18,7 +18,7 @@ tiene requisitos de comportamiento del cliente; solo F-CLI-19 se construyó, com
 |---|---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Backlog para el cliente; construida como definición provisoria y marcada **Finalizada** (`specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks/F-CLI-19.md`; ver abajo) | Cómo Ventas maneja cobros y el estado Deuda. |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | **Entregada** (MSF-452, épica MSF-176; detrás de la bandera `tienda_pedidos`, apagada por defecto y encendida solo en dev) | «Mi cuenta» en la tienda: compras y presupuestos del cliente y favoritos, por tienda. F-TDA-27 y F-CON-07 quedan **absorbidas**. Ver `docs/tienda-compra-y-cuentas.md`. |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog | Relacionada con F-CLI-03 y F-CLI-07; F-PRE-14 (Precios) está **cancelada** (2026-11-12, MSF-373). |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | **En curso** (Fases 1 y 2 implementadas, sin efecto en el precio; ver [`precios.md`](./precios.md)) | Relacionada con F-CLI-03 y F-CLI-07; F-PRE-14 (Precios) se canceló el 2026-11-12 (MSF-373) y se **reabrió el 2026-11-15**. |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Backlog | Ingreso de mercadería por proveedor y listado de reposición de Stock. |
 
 Ninguna tiene requisitos del cliente (RF), escenarios (CA) ni horas. **F-CLI-19 sí tiene código y pantalla** (la
@@ -48,7 +48,7 @@ Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el
 
 ## Preguntas abiertas
 
-1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas de precio por producto, ya implementadas; Ventas aplica la escala según el tipo de cliente y la cantidad). La pantalla «Tipos de cliente» todavía no existe. Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de esas escalas; sigue en Backlog sin requisitos. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
+1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas de precio por producto, ya implementadas; Ventas aplica la escala según el tipo de cliente y la cantidad). La pantalla «Tipos de cliente» todavía no existe. Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de esas escalas; **quedó resuelta el 2026-11-15**: Nicolás decidió que una lista es un porcentaje de ajuste sobre el precio central, que convive con las escalas (spec `20270327-100000-listas-de-precios-por-cliente`); las Fases 1 y 2 están implementadas sin efecto en el precio. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** resuelta: F-CLI-20 se entregó en MSF-452 (épica MSF-176) y absorbe a F-CON-07 y F-TDA-27.
 3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** sigue a confirmar qué estados cuentan
    como deuda (en particular «Pendiente» y «Confirmada»). Sin saldo a favor (confirmado en las notas): un cobro o una nota de más deja la factura en $ 0. Confirmado por Nicolás el 2026-11-12: la factura cobrada no es deuda,

@@ -136,6 +136,12 @@ Límites de hoy:
 - El listado de productos no muestra la marca «Precio propio».
 - Los precios propios no se envían a Mercado Libre: eso llega cuando esa integración esté activa.
 
+## Listas de precios (todavía no cambian el precio)
+
+En **Catálogo → Listas de precios** un administrador crea listas: cada una es un **porcentaje de ajuste sobre el precio central** (por ejemplo «Revendedores -20 %»; de -90 a +100, con hasta 2 decimales). Después, en «Editar cliente», elige la **Lista de precios** del cliente (una sola por cliente; el Consumidor final no admite lista).
+
+**Por ahora la lista solo se guarda y se asigna: no cambia ningún precio ni lo que se cobra.** La aplicación de la lista a las ventas y a la tienda llega en una etapa posterior y se enciende por separado. Una lista no se borra: se archiva, y no se puede archivar si tiene clientes asignados (primero reasignalos o quitales la lista). Si las listas están desactivadas en tu entorno, la pantalla lo avisa y solo deja archivar o restaurar.
+
 ## Probar un cambio antes de guardar: «Así quedan los precios»
 
 En la pestaña **Precios y moneda** de cada empresa, la tabla **Así quedan los precios** muestra una muestra de productos y se recalcula mientras cambiás **Base**, **Ajuste** o **Precios que ve el cliente**, antes de guardar. Si salís sin guardar, no se escribe nada.

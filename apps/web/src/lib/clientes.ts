@@ -25,6 +25,8 @@ export type Cliente = {
   acepta_correo_masivo: boolean
   // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
   descuento?: number | null
+  // F-CLI-21: lista de precios del cliente (a lo sumo una); null = sin lista. Solo la escribe la RPC `asignar_lista_precios_cliente`.
+  lista_precio_id?: string | null
   created_at: string
 }
 
@@ -51,6 +53,9 @@ export type FormularioCliente = Record<CampoFicha, string> & {
   // F-VTA-32: porcentaje como texto; vacío = sin descuento. Solo lo envía un Administrador (`descuento`
   // no entra en `aValores`: la pantalla lo suma si corresponde).
   descuento: string
+  // F-CLI-21: id de la lista de precios del cliente; vacío = sin lista. No es una columna editable de `clientes`: la pantalla
+  // la asigna con `asignar_lista_precios_cliente` solo si el Administrador la cambió.
+  listaPrecioId: string
   // Campo «Cuenta web» del formulario (F-CLI-05, FR-015): crea o suspende la
   // cuenta en cada tienda tildada al guardar. No es una columna de `clientes`.
   cuentaWeb: EstadoCuentaWebFormulario
@@ -69,6 +74,7 @@ export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   tipo: 'minorista',
   empresas: [],
   descuento: '',
+  listaPrecioId: '',
   cuentaWeb: 'sin_cuenta',
   invitarCuentaWeb: true,
   // El alta nace con el interruptor encendido, como el prototipo (F-CLI-11, FR-002).
@@ -101,7 +107,7 @@ export function aFormulario(
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
   const descuento = cliente.descuento == null ? '' : String(cliente.descuento)
   return {
-    ...texto, tipo: cliente.tipo, empresas, descuento, cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
+    ...texto, tipo: cliente.tipo, empresas, descuento, listaPrecioId: cliente.lista_precio_id ?? '', cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
   } as FormularioCliente
 }
 
@@ -184,6 +190,9 @@ export type VistaPreviaCliente = {
   documentos: number
   cuentas_web_activas: number
   cuentas_web_total: number
+  // F-CLI-21: lista de precios de cada ficha (null = sin lista). El que se conserva mantiene la suya; la del absorbido se descarta.
+  lista_precio_id?: string | null
+  lista_nombre?: string | null
 }
 
 export type ResumenFusion = {
