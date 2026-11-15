@@ -2,7 +2,7 @@
 
 **Épica**: MSF-468 (Tiendas online · Newsletter) · **Spec**: `newsletter-de-la-tienda` · **Prioridad**: P2 (provisoria) · **Hito**: Etapa 2
 **Alcance de entrega**: `refine`, `supabase` y `kestra` (sin `superset` ni `workers`).
-**Estado**: spec redactada, **sin implementar**. No hay migraciones, funciones ni pantallas en este PR.
+**Estado**: spec redactada, **sin implementar**. No hay migraciones, funciones ni pantallas en este PR. Actualizada el 2026-11-15: navegación del ítem de menú (D19), requisitos con dueño único (RF-NL-23 se parte en RF-NL-23 y RF-NL-27) y cursores en vez de paginación.
 **Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-468 y su pantalla de prototipo (`design/pantallas/Newsletter.dc.html`), el correo masivo ya entregado (épica MSF-155: `docs/correo-masivo.md`, `supabase/functions/baja-correo-masivo`, `infra/kestra/flows/correo-masivo.yml`), el formulario de contacto de la tienda (MSF-212: `docs/tienda-contacto.md`), los avisos y bajas personales (MSF-189: `docs/avisos-por-correo.md`) y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
 
 ## Objetivo
@@ -35,9 +35,10 @@ Al terminar, **cada tienda pública tiene un formulario de suscripción en su pi
 | D13 | Contenido congelado | Al enviar (y al enviar la prueba) se guarda una **foto del contenido** (`bloques` jsonb: nombre, precio, precio promocional, imagen y enlace de cada producto) y el correo sale con esa foto, igual para todos. La vista previa usa la misma función y avisa «Precios al día {fecha}» | Un envío que dura días por el cupo no puede cambiar de precios entre destinatarios |
 | D14 | Reutilización de MSF-155 | **Mismas tablas y mismo flow** (`dominio.campanas_correo`, `campana_correo_destinatarios`, `correo_masivo_pruebas`, `correo-masivo.yml`, cupo diario por organización, reclamos con vencimiento, baja por hash). Se agrega `tipo` a la campaña, `suscriptor_id` al destinatario y `bloques`. **El cupo diario se comparte** con el correo masivo a clientes (en orden de creación) | Un solo proveedor, un solo cupo y un solo circuito de baja ya revisado; evita un segundo motor de envío |
 | D15 | Identidad remitente | El nombre visible del remitente es el de la **tienda** (`"{tienda}" <KESTRA_SMTP_FROM>`); la dirección técnica es la compartida. El pie fijo dice «Recibís este correo porque te suscribiste al newsletter de {tienda}» | No hay dominio de envío por tienda; «responder a» por tienda queda como seguimiento |
-| D16 | Ubicación de la pantalla | **Contactos → Newsletter**, ruta `/clientes/newsletter`, ícono de sobre con tilde, junto a «Correo masivo». No absorbe a Miembros (los suscriptores no son personas del equipo) ni a «Correo masivo» (otro público, otra tabla de consentimiento) | Misma audiencia (Clientes) y misma familia de acciones |
+| D16 | Ubicación de la pantalla | **Contactos → Newsletter**: la pantalla vive con la audiencia de Clientes (sección de permisos `clientes`, ruta `/clientes/newsletter`, ícono de sobre con tilde). No absorbe a Miembros (los suscriptores no son personas del equipo) ni a «Correo masivo» (otro público, otra tabla de consentimiento) | Misma audiencia (Clientes) y misma familia de acciones |
 | D17 | Datos al dar de baja o borrar | La baja **conserva el correo** con estado `baja` (lista de supresión: evita reenviar por error). **«Borrar datos»** (Administrador, para un pedido de supresión) elimina la fila y deja `[eliminado]` en el correo copiado de los envíos pasados | Equilibrio entre no reenviar y el derecho de supresión |
 | D18 | Prueba | «Enviar prueba» manda el correo real (con la foto del contenido) al autor, con prefijo «[Prueba]»; no crea envío ni cuenta contra el cupo; mismo tope que MSF-155 (5 por hora y persona) | Reutiliza `correo_masivo_pruebas` |
+| D19 | Entrada de menú (nota de navegación del 2026-10-13) | El ítem **«Newsletter (Etapa 2)» va en el grupo «Canales»** del menú lateral, tal como lo dibuja `AdminSider.dc.html` (junto a Consultas, Empresas, Mercado Libre y «Opiniones (Etapa 2)»): **audiencia administrador**, carga diferida (`lazy`), ícono de sobre, ruta `/clientes/newsletter`. Se **anota la contradicción** con D16: D16 fija la *audiencia y la ruta* (contactos de la tienda, permisos `clientes`) y el prototipo + la nota de navegación fijan el *grupo del menú* («Canales»); manda lo visual. Precedente: MSF-467 (Opiniones) deja su entrada en el mismo grupo | La nota de navegación de Nicolás y el prototipo son la fuente de lo que se ve; D16 es la fuente del comportamiento. El grupo «Canales» ya existe en el panel (Consultas, Contactos, Empresas): se **agrega el ítem sin duplicar el grupo** |
 
 ## Modelo y supuestos (verificados en el código de `dokploy`)
 
@@ -290,13 +291,13 @@ El administrador ve los KPI (activos, pendientes de confirmar, bajas, envíos), 
 ### Baja (reutiliza MSF-155)
 
 - **RF-NL-7**: Cada correo del newsletter lleva un enlace de baja **propio de cada destinatario** (token nuevo por reclamo; solo hash). La página pública de la tienda `/newsletter/baja/:token` pide **un clic de confirmación** y llama a la Edge Function `baja-correo-masivo` (sin cambiar su contrato `{ token }` ni su respuesta).
-- **RF-NL-8**: `public.dar_de_baja_correo_masivo(hash)` se extiende: si el destinatario es un suscriptor, lo pasa a `baja` (`baja_en`), omite sus pendientes en envíos en curso y registra `newsletter.baja` solo la primera vez (sin correo). Sigue ejecutándose solo con `service_role` y respondiendo siempre `ok`.
-- **RF-NL-9**: El pie del correo es fijo y no editable (D15); el encabezado `List-Unsubscribe` se agrega si el plugin lo admite (D3).
+- **RF-NL-8**: `public.dar_de_baja_correo_masivo(hash)` se extiende: si el destinatario es un suscriptor, lo pasa a `baja` (`baja_en`), **conserva el correo** (lista de supresión, D17) y registra `newsletter.baja` solo la primera vez (sin correo). Lo pendiente de un envío en curso lo deja `omitido` la **re-verificación del reclamo del lote** (RF-NL-20), que es la que decide antes de cada envío. Sigue ejecutándose solo con `service_role` y respondiendo siempre `ok`.
+- **RF-NL-9**: El pie del correo es fijo y no editable (D15); el encabezado `List-Unsubscribe` se agrega si el plugin lo admite (D3). La comprobación de si el plugin `MailSend` de Kestra admite ese encabezado es una tarea explícita (T011): si no lo admite, la baja depende del enlace del cuerpo y queda como seguimiento trazado.
 
 ### Gestión y composición (panel)
 
 - **RF-NL-10**: El administrador activa o desactiva el newsletter **por tienda** (`guardar_newsletter_configuracion`). Con la bandera apagada responde `55000`.
-- **RF-NL-11**: Pantalla Contactos → Newsletter (`/clientes/newsletter`): KPI, tabla de suscriptores y tabla de envíos con carga infinita, filtro de tienda con `FiltroEmpresa` y estados compartidos de carga, vacío y error.
+- **RF-NL-11**: Pantalla Contactos → Newsletter (`/clientes/newsletter`): KPI, tabla de suscriptores y tabla de envíos con **carga infinita por cursor** (sin paginación), filtro de tienda con `FiltroEmpresa` y estados compartidos de carga, vacío y error.
 - **RF-NL-12**: Suscriptores: filtro por estado y búsqueda literal por correo; acciones «Dar de baja» (si está `pendiente` o `confirmado`) y «Borrar datos» (con confirmación), solo Administrador (`42501` si no). Los correos se muestran completos solo a quien tiene lectura en `clientes`.
 - **RF-NL-13**: «Nueva campaña» abre el diálogo del prototipo: Nombre interno, Asunto del correo, Tienda remitente, Destinatarios («Suscriptores activos (N)», de solo lectura: un único grupo) y Mensaje, más las dos secciones con interruptor (D10). Valida los límites en cliente y servidor (espejo).
 - **RF-NL-14**: «Guardar borrador» crea o actualiza (`guardar_newsletter`) con bloqueo optimista (`40001` si cambió); un envío ya enviado no se edita (`55000`); un borrador se puede descartar.
@@ -314,21 +315,24 @@ El administrador ve los KPI (activos, pendientes de confirmar, bajas, envíos), 
 ### Seguridad y datos (transversal)
 
 - **RF-NL-22**: RLS por organización en las tres tablas nuevas; lectura con `private.nivel_seccion('clientes')`; `authenticated` solo con `select` (por columna: sin `confirmacion_hash` ni tokens); toda escritura por RPC `security definer` con `search_path = ''`; `anon` sin privilegios sobre tablas y solo `execute` sobre las tres funciones `publico`. Cada RPC nueva lleva `revoke … from public, anon` y `grant execute … to authenticated` explícitos (salvo las `publico`).
-- **RF-NL-23**: Las tres tablas **entran en la exportación total** (`private.exclusiones_exportacion_total()`); los hashes de confirmación quedan fuera del volcado.
+- **RF-NL-23**: `dominio.newsletter_configuracion` y `dominio.newsletter_suscriptores` **entran en la allow-list de la exportación total** (`private.conjuntos_exportacion_total()`, como `public.clientes` y `dominio.campanas_correo`): son dato de negocio de la organización. La exportación deriva todas las columnas de la tabla, así que la base **solo guarda el SHA-256 del token de confirmación** (nunca el token): con el volcado no se puede confirmar ninguna suscripción.
 - **RF-NL-24**: Eventos de Actividad `newsletter.configurar`, `.guardar`, `.enviar`, `.cancelar`, `.baja_manual`, `.baja`, `.datos_borrados`, **sin correos, textos ni cuerpo**. Etiquetas legibles en Actividad.
 - **RF-NL-25**: Bandera `newsletter` apagada por defecto con los efectos de D8 (formulario oculto, escritura `55000`, flow sin envíos); baja y borrado de datos funcionan siempre.
 - **RF-NL-26**: Reversión documentada (sección «Reversión» del plan) y migraciones aditivas e idempotentes en la ventana `20270342000000+`.
+- **RF-NL-27**: `dominio.newsletters` entra en la misma allow-list de la exportación total (`private.conjuntos_exportacion_total()`), con el mismo criterio que RF-NL-23: los borradores y el historial de envíos son dato de negocio de la organización.
+
+> RF-NL-23 y RF-NL-27 son el mismo requisito partido por historia (la tabla de envíos la crea la historia de envío), para que cada requisito tenga **una sola tarea dueña** (regla de cobertura).
 
 ### Criterios de aceptación
 
 - **CA-NL-1**: Con la casilla sin marcar o un correo inválido, el formulario no envía y marca el campo; con datos válidos muestra el mensaje de éxito de D1.
-- **CA-NL-2**: Un suscriptor `pendiente` no recibe ningún newsletter; uno `confirmado` sí; uno en `baja` no, aunque tuviera pendientes.
+- **CA-NL-2**: Un suscriptor `pendiente` no entra en el envío; uno `confirmado` sí; uno en `baja` no. Lo que ya había quedado pendiente en un envío en curso lo deja `omitido` la re-verificación del lote (RF-NL-20).
 - **CA-NL-3**: La respuesta de suscribirse es indistinguible entre dirección nueva, existente y en baja.
 - **CA-NL-4**: Más de 5 envíos por hora desde el mismo visitante y tienda responden `limite`; otro visitante no se ve afectado.
 - **CA-NL-5**: Un enlace de confirmación vencido muestra «El enlace venció» y ofrece volver al pie; uno ya usado responde `ok`.
 - **CA-NL-6**: La baja desde el enlace funciona una vez y es idempotente; el correo del newsletter incluye siempre el enlace de baja propio.
 - **CA-NL-7**: Un usuario sin rol Administrador ve la pantalla en solo lectura (si tiene lectura en `clientes`) y no puede guardar, enviar ni cancelar (`42501` en la base).
-- **CA-NL-8**: El administrador de otra organización no ve ni toca suscriptores ni envíos de esta; un usuario sin acceso a una tienda no puede componer ni enviar para ella.
+- **CA-NL-8**: El administrador de otra organización no ve ni toca suscriptores ni envíos de esta. Componer o enviar para una tienda sin acceso se bloquea dentro de la RPC (`42501`): RF-NL-17.
 - **CA-NL-9**: La vista previa muestra el mismo contenido y orden que el correo recibido (mismo `bloques`); el texto del dueño se ve literal.
 - **CA-NL-10**: «Enviar a N» con N igual al número de confirmados de esa tienda; tras enviar, el envío figura «Enviando» y pasa a «Enviada» cuando no quedan pendientes.
 - **CA-NL-11**: Con la bandera apagada, ninguna tienda muestra el formulario ni se envía un newsletter; los correos de clientes (MSF-155) siguen saliendo igual.
@@ -348,10 +352,10 @@ Las pruebas de base corren en el job `database` del CI (`pnpm test:db`), las de 
 | Requisito | Verificación (test / comando) |
 |---|---|
 | RF-NL-1, RF-NL-25 | pgTAP `newsletter_bandera.test.sql` (apagada: `activo = false`, `55000`, sin envíos; baja y borrado siguen) |
-| RF-NL-2 | Vitest `PieTienda.newsletter.test.tsx` (estados, casilla, trampa oculta, axe a 320/768/1440 px) |
+| RF-NL-2 | Vitest `FormularioSuscripcion.test.tsx` (estados, casilla, trampa oculta, axe a 320/768/1440 px) |
 | RF-NL-3, RF-NL-4 | pgTAP `newsletter_suscripcion.test.sql` (validación, límite 5/h, honeypot, tope por dirección, no-enumeración, reactivación desde baja, `anon` solo `publico`) y `pnpm test:kestra:newsletter-confirmaciones` |
-| RF-NL-5, RF-NL-6 | pgTAP `newsletter_suscripcion.test.sql` (confirmar, vencido, idempotente, otra tienda, poda de 7 días) y Vitest `confirmar-newsletter.test.tsx` |
-| RF-NL-7, RF-NL-8 | `pnpm test:edge:baja-correo-masivo` (sin cambio de contrato), pgTAP `newsletter_baja.test.sql` (baja de suscriptor, omite pendientes, evento una sola vez) y Vitest `baja-newsletter.test.tsx` |
+| RF-NL-5, RF-NL-6 | pgTAP `newsletter_confirmaciones.test.sql` (confirmar, vencido, idempotente, otra tienda, poda de 7 días) y Vitest `confirmar-newsletter.test.tsx` |
+| RF-NL-7, RF-NL-8 | `pnpm test:edge:baja-correo-masivo` (sin cambio de contrato), pgTAP `newsletter_baja.test.sql` (baja de suscriptor, conserva el correo, evento una sola vez) y Vitest `baja-newsletter.test.tsx` |
 | RF-NL-9 | `pnpm test:kestra:correo-masivo` extendido (encabezado si el plugin lo admite) |
 | RF-NL-10, RF-NL-12 | pgTAP `newsletter_gestion.test.sql` (Administrador vs otros, `42501`, `55000`, borrado de datos) |
 | RF-NL-11, RF-NL-13, RF-NL-19 | Vitest `pages/clientes/newsletter/*.test.tsx` (tablas, diálogo, carga infinita, estados, axe) |
@@ -360,11 +364,12 @@ Las pruebas de base corren en el job `database` del CI (`pnpm test:db`), las de 
 | RF-NL-17, RF-NL-18 | pgTAP `newsletter_envio.test.sql` (confirmados solo, `sin_destinatarios`, idempotencia, cancelar) |
 | RF-NL-20, RF-NL-21 | pgTAP `correo_masivo_lote.test.sql` extendido (suscriptor, re-verificación, cupo compartido, paridad con clientes) y `pnpm test:kestra:correo-masivo` |
 | RF-NL-22 | pgTAP `rls_en_toda_tabla`, `privilegios_anon_endurecidos` y `newsletter_gestion.test.sql` (grants exactos, sin `confirmacion_hash` en el `select`) |
-| RF-NL-23 | pgTAP `exportacion_total.test.sql` extendido |
+| RF-NL-23 | pgTAP `exportacion_total.test.sql` extendido (las dos tablas de suscripción en la allow-list; el volcado no alcanza para confirmar una suscripción) |
+| RF-NL-27 | pgTAP `exportacion_total.test.sql` extendido (la tabla de envíos también, con el mismo criterio) |
 | RF-NL-24 | Vitest de Actividad (etiquetas) y pgTAP (eventos sin datos personales) |
 | RF-NL-26 | `node scripts/verificar-migraciones.mjs --estricto` |
 | CA-NL-1…CA-NL-6 | Vitest del pie y de las páginas, pgTAP de suscripción y baja, E2E `apps/web/e2e/tienda-newsletter.e2e.ts` |
-| CA-NL-7, CA-NL-8 | pgTAP `newsletter_gestion.test.sql` y `newsletter_aislamiento.test.sql` |
+| CA-NL-7, CA-NL-8 | pgTAP `newsletter_gestion.test.sql` (Administrador vs. otros, `42501`) y `newsletter_aislamiento.test.sql` (otra organización y tienda sin acceso: ni componer ni enviar, RF-NL-17) |
 | CA-NL-9 … CA-NL-12 | Vitest de la vista previa, pgTAP de envío y E2E del recorrido (compone → prueba → envía a un suscriptor de prueba) |
 | SC-001…SC-004 | `newsletter_envio.test.sql`, `newsletter_suscripcion.test.sql`, `newsletter_aislamiento.test.sql`, `correo_masivo_lote.test.sql` |
 
@@ -387,9 +392,12 @@ Las pruebas de base corren en el job `database` del CI (`pnpm test:db`), las de 
 | Interruptores «Productos destacados» y «Promociones vigentes», «Vista previa», «Enviar prueba», «Cancelar envío», interruptor «Mostrar suscripción en el pie» | RF-NL-10, RF-NL-15, RF-NL-16, RF-NL-18 | **No están en el prototipo**: los pide la decisión de Nicolás (composición con vista previa); mandan los requisitos (regla 6). UI mínima con los componentes compartidos |
 | Pie de la tienda: formulario de suscripción | RF-NL-2, CA-NL-1 | Sin pantalla en el prototipo; mismo estilo del pie y del formulario de contacto |
 | Páginas públicas de confirmación y de baja | RF-NL-5, RF-NL-7, CA-NL-5, CA-NL-6 | Sin pantalla en el prototipo; reutiliza el componente de `/baja-correo/:token` |
+| **Entrada de menú «Newsletter (Etapa 2)»** (en `AdminSider.dc.html`, grupo «Canales», junto a Consultas, Empresas, Mercado Libre y «Opiniones (Etapa 2)») | RF-NL-11, CA-NL-7 | **D19**: grupo «Canales» (el del prototipo y la nota de navegación), audiencia **administrador**, carga diferida (`lazy`), ícono de sobre, ruta `/clientes/newsletter` (D16). El grupo «Canales» ya existe: se agrega el ítem sin duplicarlo. **Contradicción anotada** (D16 «Contactos» vs. nota de navegación «Canales»): manda lo visual; queda en la descripción del PR |
 | **Empresa activa** | RF-NL-11, RF-NL-13, CA-NL-8 | **Pantalla de empresa.** Con una empresa activa filtra suscriptores, envíos y KPI por esa tienda (y la preselecciona como «Tienda remitente»); con «Todas mis empresas» muestra todas con la columna «Tienda» y `FiltroEmpresa` (píldoras «Todas las tiendas» + una por tienda, como el prototipo). Al cambiar la empresa se invalidan y recargan **todas** las consultas (KPI, suscriptores, envíos, cantidad de destinatarios), se reinicia la carga infinita y se descartan filtros y selecciones inválidos. Un **diálogo abierto se cierra con aviso** («Cambiaste de empresa: se cerró la campaña sin guardar») y nunca guarda ni envía con la empresa anterior; un borrador guardado no se pierde. Test Vitest que cambia de empresa con el diálogo y la confirmación de envío abiertos. **Pie, confirmación y baja públicas: «Empresa activa: no aplica»** (las resuelve el dominio de la tienda, no la empresa del panel) |
 
 ## Flujos
+
+### 1. Suscripción, confirmación y baja (recorrido del visitante)
 
 ```mermaid
 flowchart TD
@@ -406,6 +414,20 @@ flowchart TD
     B --> BJ[Baja: no recibe más]
 ```
 
+### 2. Estados del suscriptor
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pendiente : formulario con consentimiento (RF-NL-3)
+    Pendiente --> Confirmado : abre el enlace dentro de las 48 h (RF-NL-5)
+    Pendiente --> [*] : poda a los 7 días sin confirmar (RF-NL-6)
+    Confirmado --> Confirmado : ya confirmado: no sale otro correo (CA-NL-3)
+    Confirmado --> Baja : enlace de baja del correo o baja manual (RF-NL-7, RF-NL-8, RF-NL-12)
+    Baja --> Pendiente : se suscribe de nuevo, con nueva confirmación (RF-NL-3)
+```
+
+### 3. Composición y envío (el dueño)
+
 ```mermaid
 flowchart LR
     Adm[Administrador] --> Pan[Contactos: Newsletter]
@@ -417,6 +439,30 @@ flowchart LR
     Camp --> Flow[Flow correo-masivo: cupo diario, lotes, reintentos]
     Flow --> Dest[Suscriptores confirmados]
 ```
+
+### 4. Estados del envío
+
+```mermaid
+stateDiagram-v2
+    [*] --> Borrador : «Guardar borrador» (RF-NL-14)
+    Borrador --> Borrador : se edita (version; 40001 si cambió) (RF-NL-14)
+    Borrador --> [*] : «Descartar» el borrador (RF-NL-14)
+    Borrador --> Enviando : «Enviar a N» con confirmación (RF-NL-17)
+    Enviando --> Enviada : no quedan destinatarios pendientes (CA-NL-10)
+    Enviando --> Cancelada : «Cancelar envío» (RF-NL-18)
+    Enviada --> [*] : lo ya enviado no se edita (CA-NL-12)
+    Cancelada --> [*] : lo pendiente queda «omitido»; lo enviado no se retira (CA-NL-12)
+```
+
+### 5. Qué cubre cada flujo (dueño de cada paso)
+
+| Flujo | Pasos y estados | Requisitos dueños | Fuera de alcance (motivo) |
+|---|---|---|---|
+| 1 · Suscripción | Mostrar el formulario, validar, límite, crear `pendiente`, confirmar, recibir, darse de baja | RF-NL-1, 2, 3, 4, 5, 6, 7, 8, 9 | Automatización de bienvenida (D9: sin automatizaciones); CAPTCHA (D4: solo si hay abuso real) |
+| 2 · Estados del suscriptor | `pendiente`, `confirmado`, `baja` y las transiciones | RF-NL-3, 5, 6, 7, 8, 12; CA-NL-2, CA-NL-3 | Importar clientes existentes (D5: otra lista, otro consentimiento); alta manual de suscriptores (D9) |
+| 3 · Composición | Componer, vista previa, prueba, enviar, lote | RF-NL-13, 14, 15, 16, 17, 20, 21; CA-NL-9 | Programar envíos (D11: manual); segmentación (D9); plantillas avanzadas (D9) |
+| 4 · Estados del envío | `Borrador`, `Enviando`, `Enviada`, `Cancelada` | RF-NL-14, 17, 18, 19; CA-NL-10, CA-NL-12 | Reenvío y automatizaciones (D9); métricas de apertura (D9) |
+| Envío por lotes (motor de MSF-155) | Reclamar, enviar, cerrar, reintentar, cupear | RF-NL-20, 21; SC-001, SC-004 | Envío «al menos una vez» duplicado (riesgo heredado de MSF-155, declarado en «Riesgos») |
 
 ## Contratos
 
@@ -434,6 +480,7 @@ flowchart LR
 - **Precios en el correo** (D13): se publican con el cálculo público de la tienda al momento del envío; un envío lento los deja desfasados respecto de la tienda. El correo lo dice («Precios al día»).
 - **Sin cancelación de lo ya enviado** (obvio) y sin deshacer una baja manual (la persona se vuelve a suscribir).
 - **Prototipo con elementos que no se implementan** («Aperturas») y elementos no dibujados que sí se piden (secciones, vista previa, pie de la tienda): anotado en la matriz y en el PR de implementación.
+- **Contradicción de navegación, anotada** (regla 6 de fuentes): D16 dice «Contactos → Newsletter» y la nota de navegación del 2026-10-13 dice que el ítem va en el grupo «Canales» de `AdminSider.dc.html`. Se resuelve con **D19**: **lo visual manda** → el ítem «Newsletter (Etapa 2)» va en «Canales» (como el ítem de MSF-467/Opiniones), con la ruta y la audiencia de D16 (`/clientes/newsletter`, permisos `clientes`, administrador). La contradicción queda anotada en la descripción del PR de implementación.
 - **No validado contra sistemas reales** hasta implementar: este PR es solo documentación.
 
 ## Fuera de alcance

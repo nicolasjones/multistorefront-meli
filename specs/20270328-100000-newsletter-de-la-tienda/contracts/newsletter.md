@@ -17,7 +17,7 @@ Reglas: correo recortado y en minúsculas, ≤ 254, una sola dirección; `p_cons
 | Función | Permiso | Devuelve |
 |---|---|---|
 | `resumen_newsletter(p_empresa uuid)` | lectura en `clientes` | `{ confirmados, pendientes, bajas, envios }` (`p_empresa` nulo = todas las accesibles) |
-| `listar_suscriptores_newsletter(p_empresa, p_estado, p_texto, p_pagina, p_tamano)` | lectura en `clientes` | `{ total, filas: [{ id, correo, empresa_id, tienda, origen, creado_en, estado }] }` (búsqueda literal; tamaño ≤ 100) |
+| `listar_suscriptores_newsletter(p_empresa uuid, p_estado text, p_texto text, p_desde_creado timestamptz, p_desde_id uuid, p_limite integer)` | lectura en `clientes` | `{ total, filas: [{ id, correo, empresa_id, tienda, origen, creado_en, estado }], siguiente }` — **cursor** `(creado_en, id)` que solo ordena; `p_limite` 1–100 (50 por defecto); búsqueda literal por correo; `p_empresa` nulo = todas las accesibles |
 | `guardar_newsletter_configuracion(p_empresa, p_activo)` | Administrador | `{ empresa_id, activo }`; `55000` con bandera apagada |
 | `dar_de_baja_suscriptor_newsletter(p_suscriptor uuid)` | Administrador | `{ ok }`; idempotente; omite pendientes; evento `newsletter.baja_manual` |
 | `borrar_datos_suscriptor_newsletter(p_suscriptor uuid)` | Administrador | `{ ok }`; elimina la fila y deja `[eliminado]` en los correos copiados; evento `newsletter.datos_borrados` (siempre disponible, aun con la bandera apagada) |
@@ -28,7 +28,7 @@ Reglas: correo recortado y en minúsculas, ≤ 254, una sola dirección; `p_cons
 | `solicitar_prueba_newsletter(p_empresa, p_asunto, p_mensaje, p_destacados, p_promociones)` | Administrador | `{ ok }`; deja la prueba al correo del autor; tope 5/h |
 | `enviar_newsletter(p_id, p_version, p_clave uuid)` | Administrador y acceso a la tienda | `{ campana_id, destinatarios }`; `22023` hint `sin_destinatarios`; idempotente por clave |
 | `cancelar_envio_newsletter(p_id)` | Administrador | `{ cancelados }` (pendientes pasados a `omitido`) |
-| `listar_newsletters(p_empresa, p_estado, p_pagina, p_tamano)` | lectura en `clientes` | `{ total, filas: [{ id, nombre_interno, empresa_id, tienda, asunto, fecha, destinatarios, enviados, fallidos, omitidos, pendientes, bajas, estado }] }` con `estado` en `borrador`, `enviando`, `enviada`, `cancelada` |
+| `listar_newsletters(p_empresa uuid, p_estado text, p_desde_creado timestamptz, p_desde_id uuid, p_limite integer)` | lectura en `clientes` | `{ total, filas: [{ id, nombre_interno, empresa_id, tienda, asunto, fecha, destinatarios, enviados, fallidos, omitidos, pendientes, bajas, estado }], siguiente }` con `estado` en `borrador`, `enviando`, `enviada`, `cancelada`; **cursor** `(creado_en, id)`, `p_limite` 1–100 (50 por defecto) |
 
 ## Forma de `bloques` (foto del contenido)
 
@@ -51,6 +51,12 @@ Hasta 6 elementos por sección; una sección apagada o sin elementos no aparece.
 | `private.cerrar_confirmacion_newsletter(p_suscriptor uuid, p_resultado text, p_error text)` | `kestra_orquestacion` | Idempotente; marca `confirmacion_enviada_en` o deja reintento |
 | `private.armar_bloques_newsletter(p_empresa uuid, p_destacados boolean, p_promociones boolean)` | funciones `security definer` | Arma `bloques` desde `productos_tienda`, `productos` y `promociones_precio` con el precio público de la tienda |
 | `private.reclamar_lote_correo_masivo(...)` (extendida) | `kestra_orquestacion` | Mismas firma y columnas, más `tipo`, `bloques`, `tienda`, `dominio` al final; re-verifica al suscriptor (`confirmado`) |
+
+BREAKING: `private.reclamar_lote_correo_masivo` **suma columnas a su conjunto de retorno** (`tipo`, `bloques`, `tienda`, `dominio`); la firma (los tres parámetros) no cambia, pero el `returns table` sí. Lo consume solo el flow `correo-masivo`, que se actualiza en el mismo PR; hay pgTAP de paridad para las campañas de clientes (las columnas nuevas vienen con `tipo = 'clientes'` en sus valores por defecto). No hay otros BREAKING: ni la Edge Function `baja-correo-masivo` ni las RPC públicas cambian de contrato.
+
+## Exportación total
+
+`dominio.newsletter_configuracion`, `dominio.newsletter_suscriptores` y `dominio.newsletters` entran en la allow-list `private.conjuntos_exportacion_total()` (dato de negocio de la organización, como `public.clientes` y `dominio.campanas_correo`). La exportación deriva todas las columnas de la tabla: por eso la base **solo guarda el SHA-256** del token de confirmación (nunca el token) y el volcado no alcanza para confirmar una suscripción.
 
 ## Eventos de Actividad
 
