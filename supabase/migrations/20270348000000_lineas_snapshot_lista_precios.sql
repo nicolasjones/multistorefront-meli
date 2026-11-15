@@ -4,7 +4,7 @@
 -- Esquema (Principio VII): son datos de la venta (qué lista y qué porcentaje se usaron para cobrar la línea) y viven junto a
 -- `descuento_pct`, `precio_referencia` y `promocion_id` en `dominio.comprobantes_venta_lineas`; no hay tabla nueva ni política nueva
 -- (RLS vigente por organización y sección `ventas`). Las escribe solo `public.guardar_lineas_comprobante`, `copiar_presupuesto`,
--- `crear_presupuesto_tienda` y el disparador que copia el snapshot a las notas de crédito (`20270345000200` y `20270345000300`).
+-- `crear_presupuesto_tienda` y el disparador que copia el snapshot a las notas de crédito (`20270348000200` y `20270348000300`).
 --
 -- Columnas (ambas nulas para todo lo emitido hasta hoy y para toda línea que no rige por una lista):
 --   · `lista_precio_id uuid`: la lista que fijó el precio normal de la línea (FK compuesta `(lista_precio_id, organizacion_id)` a

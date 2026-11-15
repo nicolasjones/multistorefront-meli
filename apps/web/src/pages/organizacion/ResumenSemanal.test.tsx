@@ -73,6 +73,21 @@ describe('Resumen semanal por correo en Mi organización (F-REP-08)', () => {
     expect(screen.getByRole('checkbox', { name: 'Resumen semanal activo' })).toBeChecked()
   })
 
+  it('si el cambio se guardó pero el refresco falla, no dice que no se guardó, muestra el nuevo valor y deja reintentar', async () => {
+    render(<ResumenSemanalOrganizacion />)
+    const interruptor = await screen.findByRole('checkbox', { name: 'Resumen semanal activo' })
+    rpc.mockImplementation(async (nombre: string) => (
+      nombre === 'estado_resumen_semanal' ? { data: null, error: { message: 'caída' } } : { data: false, error: null }
+    ))
+    fireEvent.click(interruptor)
+    expect(await screen.findByText('Se guardó, pero no pudimos actualizar el estado.')).toBeInTheDocument()
+    expect(screen.queryByText('No se guardó el cambio.')).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Resumen semanal pausado' })).not.toBeChecked()
+    rpc.mockImplementation(async () => ({ data: [estado({ activo: false })], error: null }))
+    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+    await waitFor(() => expect(screen.queryByText('Se guardó, pero no pudimos actualizar el estado.')).not.toBeInTheDocument())
+  })
+
   it('un error al cargar ofrece reintentar', async () => {
     rpc.mockResolvedValueOnce({ data: null, error: { message: 'x' } })
     render(<ResumenSemanalOrganizacion />)

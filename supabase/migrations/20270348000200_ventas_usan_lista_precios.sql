@@ -1,8 +1,8 @@
 -- F-CLI-21 (MSF-453, épica MSF-450, spec 20270327-100000-listas-de-precios-por-cliente, Fase 3, T016): las ventas usan la lista de
 -- precios del cliente y guardan el snapshot en la línea (D12). Con la bandera `listas_precios` APAGADA (estado de nacimiento) todo
--- resultado es idéntico al anterior: el motor (`20270345000100`) ignora las listas y las columnas nuevas quedan nulas.
+-- resultado es idéntico al anterior: el motor (`20270348000100`) ignora las listas y las columnas nuevas quedan nulas.
 --
--- Esquemas (Principio VII): sin tablas nuevas; escriben `dominio.comprobantes_venta_lineas` (columnas de `20270345000000`) y leen
+-- Esquemas (Principio VII): sin tablas nuevas; escriben `dominio.comprobantes_venta_lineas` (columnas de `20270348000000`) y leen
 -- `dominio.listas_precios`. Las RPC viven en `public` (superficie expuesta) y no guardan datos.
 --
 -- Funciones redefinidas (cada cuerpo parte de la última versión de `dokploy`, verificada igual a la definición VIVA de dev; mismas

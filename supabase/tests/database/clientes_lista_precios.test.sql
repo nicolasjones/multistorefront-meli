@@ -3,7 +3,7 @@
 -- (RF-PRE-14-3), la bandera (55000 salvo quitar), la fusión de clientes y que ningún precio cambia por tener una lista asignada.
 begin;
 
-select plan(59);
+select plan(60);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -116,7 +116,8 @@ select is((select clientes_asignados from public.listas_precios_resumen where no
 select throws_ok(
   format($$select public.archivar_lista_precios('a1000000-0000-0000-0000-000000000002', %L)$$,
          (select updated_at from public.listas_precios_resumen where nombre = 'Gremio')),
-  '23503', null, 'no se archiva una lista con clientes asignados');
+  '23503', 'No se puede archivar: 2 clientes usan esta lista. Reasignalos o quitales la lista primero.',
+  'no se archiva una lista con clientes asignados (plural)');
 select is(
   (select archivada_en from public.listas_precios_resumen where nombre = 'Gremio'), null, 'y sigue activa');
 
@@ -126,6 +127,11 @@ select lives_ok(
 select lives_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', null)$$,
   'quitar lo que no hay es idempotente');
+select throws_ok(
+  format($$select public.archivar_lista_precios('a1000000-0000-0000-0000-000000000002', %L)$$,
+         (select updated_at from public.listas_precios_resumen where nombre = 'Gremio')),
+  '23503', 'No se puede archivar: 1 cliente usa esta lista. Reasignalo o quitale la lista primero.',
+  'con un solo cliente el mensaje va en singular');
 select lives_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000002', null)$$,
   'se quita también al segundo');

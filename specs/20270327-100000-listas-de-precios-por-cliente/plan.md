@@ -23,17 +23,17 @@
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `20270326100000` (`node scripts/verificar-migraciones.mjs --estricto`); se usa la ventana `20270340000000+` como referencia y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
+Numeración **por encima de toda la cola de `dokploy`** (`node scripts/verificar-migraciones.mjs --estricto`): la ventana reservada de migraciones es ahora `>= 20270340000210` (las Fases 1 y 2 usaron hasta `20270346000000`; las Fases 3 y 4 siguen desde `20270340000300`) y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
 
 | Migración | Fase | Contenido |
 |---|---|---|
 | `20270340000000_listas_precios.sql` | 1 | Tabla `dominio.listas_precios` (checks, índice único por organización sin mayúsculas, RLS, grants exactos), bandera `listas_precios` apagada, vista `public.listas_precios_resumen`, RPC `guardar_lista_precios`, `archivar_lista_precios`, `restaurar_lista_precios` (con actividad y bloqueo optimista) |
 | `20270340000100_exportacion_total_listas_precios.sql` | 1 | Verifica/ajusta `private.exclusiones_exportacion_total()` para que la tabla **entre** a la exportación total (rebasar si otra migración posterior a `20270324100300` la redefine) |
 | `20270340000200_clientes_lista_precio.sql` | 2 | Columna `clientes.lista_precio_id` + FK compuesta + índice, RPC `asignar_lista_precios_cliente`, disparador que impide Consumidor final/archivada/ajena, `listas_precios_resumen` cuenta clientes |
-| `20270345000000_lineas_snapshot_lista_precios.sql` | 3 | Columnas `lista_precio_id` y `lista_ajuste_pct` en `dominio.comprobantes_venta_lineas` |
-| `20270345000100_motor_precio_lista_cliente.sql` | 3 | `private.lista_precios_cliente`, extensión de `precio_para_calculo` y `precio_linea_venta(_calculo)` (mismas firmas y columnas de retorno + columnas nuevas al final; sin lista = resultado idéntico) |
-| `20270345000200_ventas_usan_lista_precios.sql` | 3 | `guardar_lineas_comprobante`, `copiar_presupuesto` y la validación de `confirmar_comprobante` leen la lista del cliente y guardan el snapshot; notas de crédito reutilizan el snapshot |
-| `20270345000300_tienda_precios_lista_cliente.sql` | 4 | `publico.precios_cliente_por_dominio` y el motor del presupuesto de la tienda aplican la lista de la cuenta web |
+| `20270348000000_lineas_snapshot_lista_precios.sql` | 3 | Columnas `lista_precio_id` y `lista_ajuste_pct` en `dominio.comprobantes_venta_lineas` |
+| `20270348000100_motor_precio_lista_cliente.sql` | 3 | `private.lista_precios_cliente`, extensión de `precio_para_calculo` y `precio_linea_venta(_calculo)` (mismas firmas y columnas de retorno + columnas nuevas al final; sin lista = resultado idéntico) |
+| `20270348000200_ventas_usan_lista_precios.sql` | 3 | `guardar_lineas_comprobante`, `copiar_presupuesto` y la validación de `confirmar_comprobante` leen la lista del cliente y guardan el snapshot; notas de crédito reutilizan el snapshot |
+| `20270348000300_tienda_precios_lista_cliente.sql` | 4 | `publico.precios_cliente_por_dominio` y el motor del presupuesto de la tienda aplican la lista de la cuenta web |
 
 La última migración de cada fase deja la reversión **documentada** (no ejecutada en el mismo PR): `drop` de funciones nuevas y restauración de las redefinidas a su cuerpo anterior (`20270322100000`, `20270310100200`…`20270310100400`); las columnas se retiran solo cuando ninguna función las lee.
 
@@ -63,7 +63,7 @@ La última migración de cada fase deja la reversión **documentada** (no ejecut
 
 1. **Inmediata y sin migrar**: `update public.banderas_plataforma set activa = false where clave = 'listas_precios';` — el motor vuelve a ignorar las listas y los precios son los de hoy.
 2. **De la spec completa**: `git revert -m 1` del merge de cada fase (los PR se mergean con merge commit). Las columnas y la tabla quedan inertes (aditivas) hasta una migración posterior de retiro, que **no** va en el mismo PR que las crea.
-3. Funciones redefinidas: restaurar el cuerpo anterior desde su migración original (listadas en el encabezado de `20270345000100` y `20270345000200`).
+3. Funciones redefinidas: restaurar el cuerpo anterior desde su migración original (listadas en el encabezado de `20270348000100` y `20270348000200`).
 
 ## Riesgos y mitigaciones
 

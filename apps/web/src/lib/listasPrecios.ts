@@ -187,6 +187,14 @@ export async function asignarListaPrecios(cliente: SupabaseClient, clienteId: st
   if (error) throw error
 }
 
+// Lista de precios que el cliente tiene ahora en la base (null = sin lista). Se relee antes de compensar una asignación.
+export async function leerListaDeCliente(cliente: SupabaseClient, clienteId: string): Promise<string | null> {
+  const { data, error } = await cliente.from('clientes').select('lista_precio_id').eq('id', clienteId).maybeSingle<{ lista_precio_id: string | null }>()
+  if (error) throw error
+  if (!data) throw new Error('El cliente ya no existe.')
+  return data.lista_precio_id ?? null
+}
+
 // Traduce el código de la base (contrato en specs/…/contracts) a un texto para la persona.
 export function mensajeErrorLista(error: unknown, porDefecto: string): string {
   const e = (error ?? {}) as { code?: string; message?: string }
