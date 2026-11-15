@@ -338,7 +338,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
-| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; no hay migración de alertas | Bloque «Qué hacer hoy» |
+| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; MSF-930 sumó `cobros_pendientes` y `faltantes` (migración `20270325000000`) | Bloque «Qué hacer hoy» |
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Ventas del período |
 | D-3 | «Entradas» de **Stock hoy** = movimientos `entrada` sin traslados, devoluciones de cliente ni anulaciones; «Ajustes» = solo `ajuste` | Stock hoy |
 | D-4 | Costo, valor y margen solo con `rentabilidad` ≥ lectura (Administrador y Administración) | Resumen por tienda |
@@ -361,7 +361,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | ~~`AlertasInicio` mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura~~ | **Resuelto** (2026-11-14): solo la ve quien edita `cotizacion_dolar` (CA-INI-07-7) |
-| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** **Pendiente de decisión de producto** (2026-11-15): el ticket no define qué es «cobro pendiente» (¿ventas con saldo, cuenta corriente, pagos sin conciliar?) ni «faltante» (¿faltante de reposición, de recepción, de caja?), ni umbrales ni qué permiso/sección los gobierna. Sin esa definición no se migra `alertas_inicio`; se retoma al decidirse. |
+| ~~«Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1)~~ | **Resuelto** (MSF-930): tipos `cobros_pendientes` y `faltantes`, sin umbral; ver [Tipos y origen](#tipos-y-origen-fr-021) |
 | ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
@@ -379,6 +379,15 @@ que la base calcula cada 15 minutos; cada una enlaza a la pantalla donde se resu
 | `consultas_sin_atender` | consultas en estado `nueva` | por empresa | `consultas` | `/consultas` |
 | `dolar_sin_cargar` | no hay carga confirmada hoy (hora de Buenos Aires) | organización | `cotizacion_dolar` | `/cotizacion` |
 | `margen_negativo` | productos con margen negativo (`analitica.margen_producto_canal`, solo si la vista existe) | por empresa | `rentabilidad` | `/rentabilidad/productos` |
+| `cobros_pendientes` | facturas confirmadas con saldo neto mayor a cero (total menos cobros y notas de crédito, el mismo saldo de `private.saldo_comprobante`), de empresas activas (MSF-930) | por empresa | `ventas` | `/ventas/comprobantes` |
+| `faltantes` | líneas faltantes (factura confirmada «A pedido» con reserva activa) con aviso de reposición `pendiente` o `enviado` y todavía abiertas, de empresas activas (circuito de MSF-161; MSF-930) | por empresa | `stock` | `/stock/faltantes` |
+
+Los dos tipos de MSF-930 **no tienen umbral**: aparecen si hay al menos uno. La migración
+`20270325000000_alertas_inicio_cobros_y_faltantes.sql` amplía los `check` de `dominio.alertas_inicio` y suma los dos
+bloques a `recalcular_alertas_inicio`; la visibilidad sigue siendo la de la RLS existente (sección ≥ lectura y empresa
+accesible). Un faltante deja de contarse cuando se resuelve (la reserva se descuenta o se libera) o su aviso queda
+`agotado`; una factura deja de contarse al cobrarse por completo o cubrirse con notas de crédito. Reversión: ver la
+cabecera de la migración. Prueba: `supabase/tests/database/alertas_inicio_cobros_faltantes.test.sql`.
 
 Las alertas de **Mercado Libre / precios en revisión no existen** (FR-027): el `check` de `tipo` no las admite,
 el cálculo no las genera y la pantalla ignora cualquier tipo que no esté en su lista cerrada. Se agregan
