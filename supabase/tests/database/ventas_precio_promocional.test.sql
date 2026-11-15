@@ -288,9 +288,9 @@ select is(has_table_privilege('authenticated', 'dominio.comprobantes_venta_linea
        or has_table_privilege('authenticated', 'dominio.comprobantes_venta_lineas', 'update'), false,
   'authenticated no inserta ni actualiza líneas (solo las escribe la RPC)');
 select is(has_table_privilege('anon', 'dominio.comprobantes_venta_lineas', 'select'), false, 'anon sin acceso a las líneas');
-select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'anon no ejecuta precio_linea_venta');
-select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'authenticated no ejecuta precio_linea_venta');
 select is(has_function_privilege('anon', 'private.promocion_vigente_fila(uuid,uuid,timestamptz)', 'execute'), false,
   'anon no ejecuta promocion_vigente_fila');
@@ -298,19 +298,19 @@ select is(has_function_privilege('authenticated', 'private.promocion_vigente_fil
   'authenticated no ejecuta promocion_vigente_fila');
 select is(has_function_privilege('authenticated', 'private.copiar_costo_linea_nota()', 'execute'), false,
   'authenticated no ejecuta el disparador de notas');
-select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'service_role no ejecuta precio_linea_venta');
 select is(has_function_privilege('service_role', 'private.promocion_vigente_fila(uuid,uuid,timestamptz)', 'execute'), false,
   'service_role no ejecuta promocion_vigente_fila');
 select is(has_function_privilege('service_role', 'private.copiar_costo_linea_nota()', 'execute'), false,
   'service_role no ejecuta el disparador de notas');
-select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)'::regprocedure),
+select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)'::regprocedure),
   false, 'precio_linea_venta es security invoker (hereda la compuerta de precio_para)');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.promocion_vigente_fila(uuid,uuid,timestamptz)'::regprocedure),
   true, 'promocion_vigente_fila es security definer (acceso acotado, FR-013)');
 select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.promocion_vigente_fila(uuid,uuid,timestamptz)'::regprocedure),
   'promocion_vigente_fila con search_path vacío');
-select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)'::regprocedure),
+select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)'::regprocedure),
   'precio_linea_venta con search_path vacío');
 select is(has_function_privilege('authenticated', 'public.guardar_lineas_comprobante(uuid,jsonb,timestamptz)', 'execute'), true,
   'authenticated sigue ejecutando guardar_lineas_comprobante (firma intacta)');

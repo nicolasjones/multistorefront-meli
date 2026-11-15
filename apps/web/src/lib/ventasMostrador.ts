@@ -112,6 +112,7 @@ export async function repreciarVenta(venta: Comprobante): Promise<Comprobante> {
 }
 
 export { esPreciosCambiaron }
+export { esCambioDeLista } from './ventasConfirmacion'
 
 export function mensajeDeEscaneo(error: unknown): string {
   const e = error as { code?: string; hint?: string; message?: string } | null

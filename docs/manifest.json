@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "205d51ad120030c46d90c53fe29c42f7af3718b35572fcb4e0165e3cfbe13f9e",
-      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
-      "sourceAt": "202e8b34",
+      "pageHash": "0a2b79a17704dff8fe3a8e1c2646ac8c2f53cbb21d03ac1de6f88b116c29fdff",
+      "sourceHash": "41859b278faf4a0a9f6dd2b0f3f1287b76592b1f9d6a035559f6d5ea67741c9f",
+      "sourceAt": "f08925dd",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "202e8b34"
+      "commit": "f08925dd"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -999,14 +999,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "5aa116f69eee13edde7ad6eb4f2d226ab7226dfc02e5027727c07427d5f9846d",
-      "sourceHash": "353242a054365ab50ce948e380147035bc3d5f84c2cdeaf3deaabf25357d4dbb",
-      "sourceAt": "56b825d5",
+      "pageHash": "09399e9ed6176ed62cf4d58e2d907d21fb93cd69fb1438aa7e5621c60b309820",
+      "sourceHash": "41859b278faf4a0a9f6dd2b0f3f1287b76592b1f9d6a035559f6d5ea67741c9f",
+      "sourceAt": "7ca1b7c4",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "56b825d5"
+      "commit": "7ca1b7c4"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -1033,9 +1033,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "4d2632d02a714dc0ae04316758b4ed36210a245c070e5b6697be3cfd4308b06a",
+      "pageHash": "02cc944150a9d28d2dd3bce9e893f30a2190393fe910ac98c99cfdfe50057a0f",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "e2402afc",
+      "sourceAt": "d22539c5",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1044,7 +1044,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "e2402afc"
+      "commit": "d22539c5"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -2683,9 +2683,9 @@
     },
     "docs/tecnico/cotizacion-sugerida-y-mayoristas.md": {
       "title": "Cotización sugerida y mayoristas (MSF-373)",
-      "pageHash": "78aec350d67b807b80633a5a5ca9e8a99588e7af8638afc9e647001b8034003c",
-      "sourceHash": "80a0c54bfa7d0a3b24ddd999ee14a3736418df7a1fb81bc50f5369c99602cb1d",
-      "sourceAt": "56b825d5",
+      "pageHash": "26ec6e601ab0c1b0b6ad480c4c2f7299f3ca60ca8503fabdf4cf58e27d8966af",
+      "sourceHash": "923e14f22c41cdb2a9a979d6de5f3c5cc851914571a9d8255567f769742dc075",
+      "sourceAt": "7ca1b7c4",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -2695,7 +2695,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": "56b825d5"
+      "commit": "7ca1b7c4"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -3745,9 +3745,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "768840905c69643fd8b2a5d2be4e22fca987e31b56cfca546b3218823d250e23",
-      "sourceHash": "cc695d99b80627473ea672a2dfedb45b162357452683fdd25fb3de30fc574653",
-      "sourceAt": "f848bac9",
+      "pageHash": "ef5995d2d8b17d009333512cd190396705efed99f91139999094bfecf8026ef1",
+      "sourceHash": "b1715cf6e3786ac2ba8c655131deae352f3567af59eb2d72f3982229a33243f0",
+      "sourceAt": "f08925dd",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3759,7 +3759,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "f848bac9"
+      "commit": "f08925dd"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
