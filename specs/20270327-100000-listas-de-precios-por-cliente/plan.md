@@ -1,6 +1,6 @@
 # Plan: Listas de precios por cliente (MSF-442 / F-PRE-14 y MSF-453 / F-CLI-21)
 
-**Spec**: [`spec.md`](./spec.md) · **Estado**: spec redactada, sin implementar. Decisión de Nicolás (2026-11-15): la lista es un **porcentaje de ajuste sobre el precio central**; el resto son decisiones delegadas D1–D16 de la spec.
+**Spec**: [`spec.md`](./spec.md) · **Estado**: spec redactada; Fases 1 y 2 implementadas, 3 a 5 sin implementar. Decisión de Nicolás (2026-11-15): la lista es un **porcentaje de ajuste sobre el precio central**; el resto son decisiones delegadas D1–D16 de la spec.
 
 ## Enfoque
 

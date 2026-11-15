@@ -95,6 +95,7 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const PromocionesList = lazy(() => import('./pages/productos/promociones').then((modulo) => ({ default: modulo.PromocionesList })))
+const ListasPreciosList = lazy(() => import('./pages/productos/listas-de-precios').then((modulo) => ({ default: modulo.ListasPreciosList })))
 const PreciosMasivos = lazy(() => import('./pages/productos/precios-masivos').then((modulo) => ({ default: modulo.PreciosMasivos })))
 const ProductoCarga = lazy(() => import('./pages/productos/carga').then((modulo) => ({ default: modulo.ProductoCarga })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
@@ -426,6 +427,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><PromocionesList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/listas-de-precios"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ListasPreciosList /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

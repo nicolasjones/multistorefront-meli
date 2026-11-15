@@ -2,7 +2,7 @@
 
 **Épicas**: MSF-373 (Precios y dólar · Cotización sugerida y mayoristas) y MSF-450 (Clientes y proveedores · Cuentas y compras a proveedores) · **Spec**: `listas-de-precios-por-cliente` · **Historias**: F-PRE-14 «Listas de precios mayoristas» (MSF-442) y F-CLI-21 «Listas de precios por cliente» (MSF-453) · **Prioridad**: P3
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: spec redactada, **sin implementar**. Reabre y reemplaza la cancelación de F-PRE-14 (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
+**Estado**: spec redactada; **Fases 1 («Listas») y 2 («Asignación») implementadas** (sin efecto en ningún precio); Fases 3, 4 y 5 sin implementar. Reabre y reemplaza la cancelación de F-PRE-14 (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
 **Fuente**: decisión de Nicolás (2026-11-15) comentada en MSF-442 y MSF-453, los tickets, `docs/precios.md`, `docs/precios-escalas.md`, `docs/promociones-precio.md`, `docs/configuracion-dolar-y-precio-propio.md`, `docs/cuentas-y-compras-a-proveedores.md` y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
 
 ## Objetivo

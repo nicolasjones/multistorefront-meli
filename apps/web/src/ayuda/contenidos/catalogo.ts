@@ -24,6 +24,17 @@ export const ayudaCatalogo: AyudaPorDestino = {
       'Pulsá «Anular» si una promoción ya no corresponde; no hace falta esperar a que venza.',
     ],
   },
+  'listas-precios': {
+    titulo: 'Listas de precios',
+    resumen:
+      'Acá definís listas de precios: cada una es un porcentaje de ajuste sobre el precio central (negativo = descuento, positivo = recargo), por ejemplo «Revendedores -20 %». Se asigna a un cliente desde su ficha. Solo el Administrador las crea, edita y archiva. Por ahora solo se guardan y se asignan: no cambian ningún precio. Si están desactivadas en tu entorno, solo podés archivar o restaurar.',
+    pasos: [
+      'Pulsá «Nueva lista», escribí el nombre y el porcentaje, de -90 a +100.',
+      'El ejemplo del diálogo es ilustrativo: muestra cómo quedaría un producto de $ 10.000.',
+      'Pulsá «Editar» para cambiar el nombre, la descripción o el porcentaje.',
+      '«Archivar» retira una lista sin borrarla; si tiene clientes, antes quitales la lista. «Restaurar» la reactiva.',
+    ],
+  },
   categorias: {
     titulo: 'Categorías',
     resumen:
