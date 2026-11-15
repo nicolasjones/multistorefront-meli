@@ -114,3 +114,16 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 ## Higiene de nombres de test: sin códigos MSF
 
 `apps/web/src/higieneReferenciasInternas.test.ts` falla si el nombre de un `describe`, `it` o `test` cita un código del tracker (`MSF-123`). El código vive en el mensaje de commit y en el ticket, no en el nombre de la prueba. Al escribir un test para un ítem trazado, nombrá el comportamiento («avisa el formato del WhatsApp…»), no el ticket. Los nombres de seis tests que entraron con el aviso de WhatsApp, Documentos IA y la defensa de alta de clientes se corrigieron por este motivo.
+
+## Checks de trampas conocidas
+
+`scripts/verificar-trampas-conocidas.mjs` convierte en checks deterministas (sin red, sin secretos, segundos) errores que ya costaron vueltas de CI. Mira el diff contra `origin/dokploy` como `verificar-migraciones.mjs`; corre dentro de `pnpm docs:check` (job `application`) y en `pnpm prepush` cuando el diff toca migraciones, pgTAP o E2E. `--todo` revisa el árbol completo como si todo fuera nuevo (sirve para comprobar que no hay falsos positivos). Su prueba es `scripts/verificar-trampas-conocidas.test.mjs`, dentro de `pnpm test:docs:check`.
+
+| Trampa | Falla cuando | Arreglo |
+| --- | --- | --- |
+| Grants de `service_role` | una migración crea `dominio.<x>` y el diff no trae `grant ... to service_role` para ella (`service_role_privilegios.test.sql`) | `grant select, insert, update, delete on dominio.<x> to service_role;` o declararla inalterable |
+| Variables de psql en pgTAP | un `.test.sql` usa `:'nombre'` dentro de `$$ ... $$` (psql no interpola ahí) | `format('... %L ...', :'nombre')` |
+| Exportación total | una tabla nueva con `organizacion_id` no figura en `conjuntos_exportacion_total()` ni en `exclusiones_exportacion_total()` del diff | redefinir la función sumando la tabla, o excluirla con motivo |
+| E2E con service key | un E2E escribe (`rest`/`borrar` con esquema `'dominio'`) en una tabla sin grant a `service_role` en ninguna migración | sumar el grant a la migración de la tabla |
+
+No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
