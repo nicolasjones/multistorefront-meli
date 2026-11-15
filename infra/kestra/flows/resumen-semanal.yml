@@ -1,0 +1,108 @@
+# MSF-287 · F-REP-08 (épica MSF-265, spec 20261101-100000-analitica-avanzada-y-resumen-por-correo,
+# FR-010, FR-011, FR-013, FR-014): envío del resumen semanal del negocio por correo.
+#
+# Una vez por semana (lunes 09:00, hora del servidor de Kestra) reclama con
+# `private.reclamar_resumen_semanal` los destinatarios de la semana. El reclamo es idempotente por
+# destinatario y semana (una fila por destino), así que repetir la corrida NO duplica el correo
+# (FR-013, SC-002). Por cada destinatario envía UN correo con el SMTP de Kestra (`KESTRA_SMTP_*`, el
+# mismo de enviar-avisos: sin proveedor nuevo, FR-011) y el resumen con los datos de la organización
+# del destinatario. Los valores del resumen salen de datos de negocio: se escapan para el cuerpo
+# HTML (FR-014). Un fallo del SMTP se reintenta con espera creciente y, si persiste, el envío queda
+# `fallido` con un motivo fijo (nunca el mensaje del SMTP, que puede traer hosts o credenciales).
+# El cierre es idempotente: repetir la marca no pisa un envío ya confirmado.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), que solo recibe EXECUTE sobre
+# las tres funciones del resumen. Sin secretos en Git.
+id: resumen-semanal
+namespace: producto.reportes
+labels:
+  capa: producto
+  dominio: reportes
+  componente: resumen-semanal
+description: "Envía por correo el resumen semanal del negocio a los administradores de cada organización."
+
+tasks:
+  - id: reclamar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH
+    # El resumen viaja como texto: el flow lo parsea con fromJson al armar el cuerpo HTML.
+    sql: |
+      select envio_id, organizacion_id, destinatario, semana, resumen::text as resumen
+      from private.reclamar_resumen_semanal(CAST(:limite AS integer));
+    parameters:
+      limite: "{{ envs.resumen_semanal_limite ?? 50 }}"
+
+  - id: enviar
+    type: io.kestra.plugin.core.flow.ForEach
+    values: "{{ outputs.reclamar.rows }}"
+    concurrencyLimit: 2
+    # Un destinatario que falla no frena a los demás: su envío queda fallido con el motivo.
+    allowFailure: true
+    tasks:
+      - id: procesar
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: intentar_envio
+            type: io.kestra.plugin.core.flow.Sequential
+            tasks:
+              - id: enviar_correo
+                type: io.kestra.plugin.notifications.mail.MailSend
+                host: "{{ envs.kestra_smtp_host }}"
+                port: "{{ envs.kestra_smtp_port }}"
+                username: "{{ envs.kestra_smtp_username }}"
+                password: "{{ envs.kestra_smtp_password }}"
+                transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+                from: "{{ envs.kestra_smtp_from }}"
+                to: "{{ fromJson(parent.taskrun.value).destinatario }}"
+                subject: "Resumen semanal del negocio ({{ fromJson(parent.taskrun.value).semana }})"
+                # Los valores del resumen son datos de negocio: se escapan para el cuerpo HTML.
+                htmlTextContent: |
+                  {% set resumen = fromJson(fromJson(parent.taskrun.value).resumen) %}
+                  <p><strong>{{ resumen.organizacion | escape }}</strong>: resumen del {{ resumen.semana | escape }}.</p>
+                  {% for seccion in resumen.secciones %}
+                  <h3>{{ seccion.titulo | escape }}</h3>
+                  <ul>
+                  {% for dato in seccion.datos %}
+                  <li><strong>{{ dato.clave | escape }}:</strong> {{ dato.valor | escape }}</li>
+                  {% endfor %}
+                  </ul>
+                  {% endfor %}
+                  <p>Podés dejar de recibir este correo en «Avisos por correo», dentro del menú de tu cuenta.</p>
+                retry:
+                  type: exponential
+                  interval: PT30S
+                  maxInterval: PT5M
+                  maxAttempts: 4
+            errors:
+              # Agotados los reintentos del envío, la fila queda fallida con un motivo fijo (no el
+              # mensaje del SMTP, que puede traer hosts o credenciales).
+              - id: cerrar_fallido
+                type: io.kestra.plugin.jdbc.postgresql.Query
+                url: "{{ envs.kestra_orquestacion_db_url }}"
+                username: kestra_orquestacion
+                password: "{{ envs.kestra_orquestacion_db_password }}"
+                sql: select private.registrar_fallo_resumen_semanal(CAST(:envio_id AS uuid), 'No se pudo enviar el correo');
+                parameters:
+                  envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+          # Cierra el envío YA entregado. Si este cierre falla, la fila sigue `enviando` y no se
+          # reenvía: el envío es idempotente por destinatario y semana (FR-013).
+          - id: cerrar_enviado
+            type: io.kestra.plugin.jdbc.postgresql.Query
+            url: "{{ envs.kestra_orquestacion_db_url }}"
+            username: kestra_orquestacion
+            password: "{{ envs.kestra_orquestacion_db_password }}"
+            sql: select private.marcar_resumen_semanal_enviado(CAST(:envio_id AS uuid));
+            parameters:
+              envio_id: "{{ fromJson(parent.taskrun.value).envio_id }}"
+            retry:
+              type: constant
+              interval: PT5S
+              maxAttempts: 3
+
+triggers:
+  - id: semanal
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 9 * * 1"
