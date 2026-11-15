@@ -1,10 +1,12 @@
 -- F-GAS-01 (MSF-469, RF-GAS-17): `dominio.gastos` (20270343000000) tiene `organizacion_id`; el pgTAP de completitud de `exportacion_total.test.sql`
 -- exige que esté en la lista permitida o en las exclusiones. Es dato de negocio de la organización: SE EXPORTA.
--- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270334000002`) sumando solo la fila
--- `('dominio', 'gastos')`. La lista de exclusiones no cambia.
+-- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270340000100`, que ya incluye
+-- órdenes de compra y listas de precios) sumando solo la fila `('dominio', 'gastos')`. La lista de exclusiones no cambia.
+-- Si otra migración posterior a `20270340000100` la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana y las filas
+-- que no copie se pierden: es lo que hizo fallar `exportacion_total.test.sql` al partir de una versión anterior).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270334000002_exportacion_total_ordenes_compra.sql` (sin la fila de gastos).
+-- Reversión (migración posterior): volver a la definición de `20270340000100_exportacion_total_listas_precios.sql` (sin la fila de gastos).
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -54,14 +56,15 @@ as $$
     ('dominio', 'faltantes_venta'),
     ('dominio', 'formas_envio'),
     ('dominio', 'formas_pago'),
-    ('dominio', 'existencias_variante'),
     ('dominio', 'gastos'),
+    ('dominio', 'existencias_variante'),
     ('dominio', 'historial_cobros'),
     ('dominio', 'historial_comprobantes'),
     ('dominio', 'historial_cotizaciones_dolar'),
     ('dominio', 'ingresos_mercaderia'),
     ('dominio', 'ingresos_mercaderia_lineas'),
     ('dominio', 'intereses_whatsapp'),
+    ('dominio', 'listas_precios'),
     ('dominio', 'lotes_stock'),
     ('dominio', 'modelos_equipo'),
     ('dominio', 'motivos_movimiento'),
