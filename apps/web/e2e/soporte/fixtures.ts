@@ -1,5 +1,8 @@
 // Soporte común de los E2E con siembra por la API admin (la service-role key nunca llega al navegador). Solo contra un
 // Supabase local. Los archivos de `soporte/` no son specs (el `testMatch` es `**/*.e2e.ts`).
+import { createRequire } from 'node:module'
+import { resolve } from 'node:path'
+
 export const url = process.env.SUPABASE_URL
 export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
@@ -89,4 +92,29 @@ export async function crearConsulta(
 export async function limpiarOrganizacion(organizacionId: string) {
   await borrar(`ingresos_mercaderia?organizacion_id=eq.${organizacionId}`, 'dominio')
   await borrar(`organizaciones?id=eq.${organizacionId}`, 'public')
+}
+
+type ClientePg = { connect(): Promise<void>; query(sql: string, valores?: unknown[]): Promise<unknown>; end(): Promise<void> }
+
+/**
+ * Siembra por SQL directo (Postgres local) para las tablas de `public` a las que `service_role` NO tiene grant
+ * (`conexiones`, `features`, `avisos_pendientes`...): la API REST las rechaza con 42501 y dar el grant exigiría una migración.
+ * `pg` es dependencia del worker, no de la web: se carga desde el paquete del worker. Puerto: `E2E_PGPORT`, luego el puente
+ * de CI (`SUPABASE_DB_PORT`), luego el 54322 del stack local.
+ */
+export async function sql(consulta: string, valores: unknown[] = []): Promise<void> {
+  const Client = (createRequire(resolve(process.cwd(), '../../workers/comprobantes-pdf/package.json'))('pg') as { Client: new (config: Record<string, unknown>) => ClientePg }).Client
+  const cliente = new Client({
+    host: process.env.E2E_PGHOST ?? '127.0.0.1',
+    port: Number(process.env.E2E_PGPORT ?? process.env.SUPABASE_DB_PORT ?? '54322'),
+    database: process.env.E2E_PGDATABASE ?? 'postgres',
+    user: process.env.E2E_PGUSER ?? 'postgres',
+    password: process.env.E2E_PGPASSWORD ?? 'postgres',
+  })
+  await cliente.connect()
+  try {
+    await cliente.query(consulta, valores)
+  } finally {
+    await cliente.end()
+  }
 }

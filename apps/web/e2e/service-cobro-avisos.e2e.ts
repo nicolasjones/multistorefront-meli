@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // MSF-576 · T032 (SC-009, cierre de MSF-232): recorrido completo de Service cobro y avisos. Reparación de dos ítems →
 // comprobante de Ventas (F-SVC-13) → confirmado y cobrado → aviso al cliente por correo (F-SVC-14) → la reparación
@@ -69,10 +69,10 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda ${sufijo}` }, 'dominio')
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
+      await sql(`insert into public.features (id, nombre, descripcion) values ('service-tecnico', 'Service técnico', 'E2E') on conflict do nothing`)
       await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
       // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
-      await rest('conexiones', { organizacion_id: org.id, sistema_externo: 'comprobantes-pdf', credencial_vault_id: randomUUID() })
+      await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'comprobantes-pdf', $2)`, [org.id, randomUUID()])
       const [cliente] = await rest<{ id: string }>('clientes', {
         organizacion_id: org.id,
         nombre: `Cliente ${sufijo}`,

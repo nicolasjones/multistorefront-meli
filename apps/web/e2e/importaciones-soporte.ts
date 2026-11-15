@@ -3,7 +3,7 @@ import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
 import { clic, escribir } from './visible'
-import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // Soporte de los E2E del centro de importaciones (F-IMP-01 · MSF-354). Requiere el stack local
 // (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la service-role key
@@ -52,13 +52,10 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   await rest('usuarios_organizacion', [{ user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' }])
 
   // Conexión y capacidad del ciclo de ejecuciones, para que `iniciar_proceso_masivo` tenga dónde colgar.
-  await rest('sistemas_externos', { id: 'procesos-prueba', descripcion: 'Sistema de prueba de procesos masivos' }, 'public', 'resolution=ignore-duplicates,return=minimal').catch(() => undefined)
-  const [conexion] = await rest<{ id: string }>('conexiones', {
-    organizacion_id: org.id,
-    sistema_externo: 'procesos-prueba',
-    credencial_vault_id: randomUUID(),
-  })
-  await rest('capacidades_ejecucion', { organizacion_id: org.id, conexion_id: conexion.id, clave: 'importar-prueba', tiempo_max_seg: 3600 })
+  await sql(`insert into public.sistemas_externos (id, descripcion) values ('procesos-prueba', 'Sistema de prueba de procesos masivos') on conflict do nothing`)
+  const conexionId = randomUUID()
+  await sql(`insert into public.conexiones (id, organizacion_id, sistema_externo, credencial_vault_id) values ($1, $2, 'procesos-prueba', $3)`, [conexionId, org.id, randomUUID()])
+  await sql(`insert into public.capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg) values ($1, $2, 'importar-prueba', 3600)`, [org.id, conexionId])
 
   const nombres = {
     pendiente: `Carga pendiente ${sufijo}`,
