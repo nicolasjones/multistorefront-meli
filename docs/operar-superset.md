@@ -345,3 +345,7 @@ Directorio `infra/superset/dashboards/analitica-avanzada/`: dos tableros nuevos 
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <entorno>` (el workflow de despliegue lo hace en staging y producción) y la migración `20270324100100` los asigna a todas las organizaciones (prefijo «Analítica · »). El administrador **elige** entre tableros ya armados: no entra a Superset ni los edita, así que no cambia nada de la regla de la spec 007. Ver [Analítica avanzada](analitica-avanzada.md).
 
 Pendiente de verificación manual tras el primer despliegue (los YAML se probaron contra un Superset simulado, no contra uno real): abrir cada tablero embebido y comprobar que los 6 gráficos rendericen y que los filtros de período y tienda respondan.
+
+## Importador: la cookie de sesión también va al habilitar el embebido
+
+`resolverEmbebidos` (`infra/superset/importar-dashboards.mjs`) pedía el token CSRF pero no reenviaba la cookie de sesión que llega con él, así que Superset respondía 400 («The CSRF token is missing») al habilitar el embebido de un dashboard nuevo y los reportes quedaban sin su UUID de embebido; `importarPaquete` ya lo hacía bien. Ahora ambas llamadas reenvían la cookie. Si un reporte quedó con el slug en lugar del UUID (verificalo con `select nombre, superset_dashboard_uuid from public.reportes`), basta con volver a correr el importador.
