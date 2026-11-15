@@ -10,7 +10,7 @@ import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../est
 import { EncabezadoPagina } from '../pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../pagina/ContenedorSeccion'
 
-// Hoja de etiquetas de envío (F-CLI-17, FR-001/FR-005). Solo lee `public.clientes` (RLS por organización y
+// Hoja de etiquetas de envío (F-CLI-17, FR-001/FR-005). Solo lee `dominio.clientes` (RLS por organización y
 // sección); la impresión es del navegador: `@media print` oculta menú, barra y avisos (`.no-imprimir`).
 const ESTILOS_IMPRESION = {
   '@page': { size: 'A4', margin: '10mm' },
@@ -45,7 +45,7 @@ export function HojaEtiquetas() {
     setCarga({ estado: 'cargando' })
     setImpresa(false)
     try {
-      const { data, error } = await supabaseClient.from('clientes').select(COLUMNAS_ETIQUETA).in('id', ids)
+      const { data, error } = await supabaseClient.schema('dominio').from('clientes').select(COLUMNAS_ETIQUETA).in('id', ids)
       if (peticion !== ultimaPeticion.current) return
       if (error) throw error
       const porId = new Map((data as DatosEtiquetaCliente[] ?? []).map((c) => [c.id, c]))

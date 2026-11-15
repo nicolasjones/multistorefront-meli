@@ -324,7 +324,7 @@ se borran en el mismo PR que las crea.
 ## Precios especiales por cliente (F-VTA-32, MSF-340 · épica MSF-193)
 
 `guardar_lineas_comprobante` (misma firma y retorno, sin `BREAKING`) calcula el precio de cada línea como
-`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `public.clientes.descuento`
+`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `dominio.clientes.descuento`
 del cliente del comprobante, leído en el servidor: el payload no puede imponerlo (una clave `descuento` se ignora).
 Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
 aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego

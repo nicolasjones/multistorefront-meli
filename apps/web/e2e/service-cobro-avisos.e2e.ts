@@ -74,7 +74,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
       await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'comprobantes-pdf', $2)`, [org.id, randomUUID()])
       const [cliente] = await sql<{ id: string }>(
-        `insert into public.clientes (organizacion_id, nombre, tipo, correo) values ($1, $2, 'minorista', $3) returning id`,
+        `insert into dominio.clientes (organizacion_id, nombre, tipo, correo) values ($1, $2, 'minorista', $3) returning id`,
         [org.id, `Cliente ${sufijo}`, correoCliente],
       )
       const modelos = await leerDominio<{ id: string }>('modelos_equipo?organizacion_id=eq.' + org.id + '&select=id&limit=1')

@@ -26,7 +26,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
 -- Cada organización ya trae su Consumidor final (Nº 1, minorista).
-insert into clientes (organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 102, 'Beta', 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 103, 'Gamma', 'mayorista'),
@@ -55,7 +55,7 @@ select v.org::uuid, c.id, v.tipo, v.numero, v.fecha::date, v.estado, v.sin_iva, 
     ('11111111-1111-1111-1111-111111111111', 'Consumidor final', 'factura', '0001-00000011', '2026-10-14', 'cobrada', 6000, 7260),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'factura', '0001-00000001', '2026-10-10', 'emitida', 77777, 94110)
   ) as v(org, nombre, tipo, numero, fecha, estado, sin_iva, con_iva)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre;
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -164,7 +164,7 @@ select is((select count(*)::int from ranking_clientes('2026-10-01', '2026-10-31'
 
 -- Un cliente archivado conserva su facturación histórica en el ranking.
 reset role;
-update clientes set archivado_en = now() where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Gamma';
+update dominio.clientes set archivado_en = now() where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = 'Gamma';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from ranking_clientes('2026-10-01', '2026-10-31')), 4, 'un cliente archivado sigue contando en el ranking');
 

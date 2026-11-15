@@ -110,7 +110,7 @@ update superadmin_organizacion_activa set vence_en = now() - interval '1 minute'
 
 set local role authenticated;
 select is((select private.organizacion_id()), null::uuid, 'vencido, la organización deja de resolverse (FR-015)');
-select is((select count(*)::int from clientes), 0, 'vencido, el superadmin ve 0 filas (SC-006)');
+select is((select count(*)::int from dominio.clientes), 0, 'vencido, el superadmin ve 0 filas (SC-006)');
 select is((select private.puede_escribir()), false, 'vencido, no puede escribir');
 reset role;
 

@@ -340,7 +340,10 @@ $$;
 comment on function private.clientes_para_correo_masivo(text, text, uuid, boolean, uuid[]) is
   'Clientes activos que cumplen los filtros del correo masivo (F-CLI-11). Filtra por el mismo texto que el listado (private.texto_busqueda_cliente). Sin chequear aceptación ni correo. Security invoker: hereda la RLS.';
 
-revoke execute on function private.clientes_para_correo_masivo(text, text, uuid, boolean, uuid[]) from public, anon, authenticated;
+-- authenticated conserva EXECUTE (lo tenía desde 20270201200119): las RPC SECURITY INVOKER
+-- public.resumen_/listar_destinatarios_correo_masivo la llaman con el rol del usuario.
+revoke execute on function private.clientes_para_correo_masivo(text, text, uuid, boolean, uuid[]) from public, anon;
+grant execute on function private.clientes_para_correo_masivo(text, text, uuid, boolean, uuid[]) to authenticated;
 
 -- ============================================================================
 -- 5. El índice trigram, sobre la MISMA expresión que filtran las RPC

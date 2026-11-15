@@ -23,8 +23,9 @@
 --
 -- Lo que NO cambia: los datos, la firma ni el resultado de las RPC, los permisos, el comportamiento de la
 -- búsqueda y de la exportación (el filtro de texto unificado va en la migración siguiente) y el aislamiento.
--- El panel sigue hablando con la tabla por su nombre corto: la API resuelve los nombres sin calificar por el
--- `extra_search_path` (que ya incluye `dominio`), igual que hace hoy con `empresas` y `productos`.
+-- PostgREST NO resuelve nombres sin calificar por el `extra_search_path`: elige el esquema por el
+-- encabezado Accept-Profile / Content-Profile. Por eso el panel y los scripts pasan a pedir
+-- `.schema('dominio').from('clientes')` (igual que `productos`); sin eso la API responde 404.
 --
 -- Lock: `alter table ... set schema` toma ACCESS EXCLUSIVE sobre la tabla mientras dura la migración; no
 -- reescribe la tabla ni sus índices (los mueve). Las funciones se recrean en la misma transacción: o sale
@@ -147,11 +148,11 @@ as $$
     ('dominio', 'estados_reparacion'),
     ('dominio', 'existencias'),
     ('dominio', 'existencias_deposito'),
+    ('dominio', 'existencias_variante'),
     ('dominio', 'faltantes_venta'),
     ('dominio', 'formas_envio'),
     ('dominio', 'formas_pago'),
     ('dominio', 'gastos'),
-    ('dominio', 'existencias_variante'),
     ('dominio', 'historial_cobros'),
     ('dominio', 'historial_comprobantes'),
     ('dominio', 'historial_cotizaciones_dolar'),

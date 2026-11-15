@@ -27,16 +27,16 @@ Todo lo de abajo está verificado contra esas migraciones y contra el código de
 
 ## Modelo de datos
 
-**No hay tablas nuevas.** La épica extiende `public.clientes`, que ya existía como esqueleto del
+**No hay tablas nuevas.** La épica extiende `clientes`, que ya existía como esqueleto del
 template (`id`, `organizacion_id`, `nombre`, `created_at`; creada en
-`20260908172920_fundacion_multitenant.sql`). La tabla queda en **`public`** por **excepción
-documentada** al Principio VII: es preexistente y expuesta, y moverla a `dominio` no es aditivo ni
-rompe `clientes_identificadores_externos` ni el control positivo de las pruebas de aislamiento. El
-traslado a `dominio` quedó trazado como seguimiento: [MSF-505].
+`20260908172920_fundacion_multitenant.sql`). La tabla vive en **`dominio.clientes`**: la excepción
+al Principio VII que la dejaba en `public` se cerró con MSF-882 (`20270418000401_clientes_a_dominio.sql`,
+deuda [MSF-505]). `public.clientes_empresas` y `public.clientes_identificadores_externos` siguen en `public`.
+El panel y los scripts piden la tabla con el perfil de esquema `dominio` (PostgREST no usa el `extra_search_path`).
 
 | Tabla / objeto | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
+| `dominio.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
 | `public.organizaciones` | existente | Recibe el disparador `organizaciones_crear_consumidor_final`: cada organización nueva nace con su «Consumidor final». Sin cambios de esquema. |
 | `public.registro_actividad` | existente | Recibe `cliente.creado`, `cliente.editado`, `cliente.archivado` y `cliente.restaurado`. Sin cambios de esquema. |
 | `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`; sin cambios. El mapeo de identificadores sigue válido (la numeración se asigna sola). |
@@ -71,7 +71,7 @@ erDiagram
                         timestamptz creado_en }
 ```
 
-Restricciones e índices sobre `public.clientes`:
+Restricciones e índices sobre `dominio.clientes`:
 
 | Objeto | Qué garantiza |
 |---|---|
@@ -173,10 +173,10 @@ de merge a `main`; reversión en el encabezado de la migración y en
 
 | Objeto | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Gana `descuento numeric(5,2)`: porcentaje de 0 a 100 con dos decimales, `null` = sin descuento. `check (descuento is null or (descuento >= 0 and descuento <= 100))` (`clientes_descuento_ck`). |
+| `dominio.clientes` | **alterada** | Gana `descuento numeric(5,2)`: porcentaje de 0 a 100 con dos decimales, `null` = sin descuento. `check (descuento is null or (descuento >= 0 and descuento <= 100))` (`clientes_descuento_ck`). |
 | `public.permisos_rol_accion` | existente | Sin cambio: el descuento no es una acción de la matriz; lo gatea el rol efectivo de Administrador. |
 
-- **Permiso**: `grant update (descuento) on public.clientes to authenticated` — el permiso es **por
+- **Permiso**: `grant update (descuento) on dominio.clientes to authenticated` — el permiso es **por
   columna**. **No se concede en `INSERT`**: un cliente nace sin descuento.
 - **Solo el Administrador** lo cambia: el disparador `clientes_descuento_solo_admin`
   (`before update of descuento`) responde `42501` («Solo un administrador puede cambiar el descuento del
@@ -187,7 +187,7 @@ de merge a `main`; reversión en el encabezado de la migración y en
   registra el evento **`cliente.descuento_editado`** en la **misma transacción**. El detalle lleva «Nº
   <número> · <nombre>» y **no** incluye el valor del descuento.
 - **Cómo lo usa Ventas**: `public.guardar_lineas_comprobante` lo lee **en el servidor**
-  (`select cl.tipo, coalesce(cl.descuento, 0) … from public.clientes`) y lo resta **sobre el neto de
+  (`select cl.tipo, coalesce(cl.descuento, 0) … from dominio.clientes`) y lo resta **sobre el neto de
   escala, antes del IVA**. El `payload` de la RPC **no puede imponer** un descuento. Un `precio_manual`
   no se toca.
 - **Frontend**: el campo **«Descuento (%)»** del formulario solo se renderiza para el Administrador
@@ -286,7 +286,7 @@ suma dos capacidades sobre esta base:
 
 - **Etiqueta impresa del cliente (F-CLI-17, MSF-446):** sin RPC y sin escrituras. La hoja
   (`apps/web/src/lib/etiquetasCliente.ts` + `apps/web/src/components/clientes/HojaEtiquetas.tsx`, ruta
-  `/clientes/etiquetas`) lee `public.clientes` con las columnas `id, nombre, direccion, codigo_postal,
+  `/clientes/etiquetas`) lee `dominio.clientes` con las columnas `id, nombre, direccion, codigo_postal,
   localidad, provincia, telefono, expreso_preferido` y arma una etiqueta por cliente. **Solo la dirección
   bloquea** (CA-CLI-17-1); los demás datos vacíos se omiten. La impresión usa `@page` (A4) y `@media
   print` para ocultar menú y barra superior.
@@ -476,7 +476,7 @@ Reversión por migración:
 
 | Deuda | Seguimiento |
 |---|---|
-| Trasladar `public.clientes` al esquema `dominio` (Principio VII) | [MSF-505] |
+| Trasladar `public.clientes` al esquema `dominio` (Principio VII) — **cerrado con MSF-882** | [MSF-505] |
 | E2E de alta, búsqueda y exportación | [MSF-499] |
 | Test de concurrencia con dos conexiones (número correlativo y DNI/CUIT simultáneos): el pgTAP corre en una sola sesión, así que no la ejercita; la garantía es el advisory lock + el índice único | Desvío anotado en T007 de la spec; **sin Jira asociado todavía** |
 
@@ -490,7 +490,7 @@ Reversión por migración:
 - [Service técnico: cobro, avisos y ficha del cliente](service-cobro-y-avisos.md) — la RPC
   `reparaciones_de_cliente` y la pestaña «Reparaciones» de la ficha (MSF-232).
 - [Permisos por rol](../permisos-por-rol.md) — contrato `nivel_seccion` / `puede_accion`.
-- [Aislamiento por organización](../aislamiento-por-organizacion.md) — control positivo sobre `public.clientes`.
+- [Aislamiento por organización](../aislamiento-por-organizacion.md) — control positivo sobre `dominio.clientes`.
 - [Actividad e historial](../actividad.md) — eventos `cliente.*`.
 - [Datos y DER](datos.md#clientes-msf-180) — el modelo dentro del panorama.
 - [API y RPC](api.md#clientes-msf-180) — los contratos resumidos.
