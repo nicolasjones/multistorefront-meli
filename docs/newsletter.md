@@ -64,7 +64,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 ## Límites y comportamientos a tener en cuenta
 
 - **Forma estricta del correo**: parte local `atom(.atom)*` con `atom = [a-z0-9'+_=&*#$?^{}~-]+` (sin `%`, `!`, `|`, `/`, ni punto inicial, final o doble; local ≤ 64),
-  dominio con etiquetas `[a-z0-9]([a-z0-9-]*[a-z0-9])?` y TLD `[a-z]{2,}` (acepta punycode `xn--`; no acepta IP), total ≤ 254, en minúsculas. Sin `<`, `>`, comillas, paréntesis,
+  dominio con etiquetas alfanuméricas (guiones solo en el medio) y TLD de dos o más letras (acepta punycode `xn--`; no acepta IP), total ≤ 254, en minúsculas. Sin `<`, `>`, comillas, paréntesis,
   `\`, `:`, `,` ni `;`. Así cada fila es una dirección real, sin rutas fuente legadas (`%`, `!`), y el tope de 3 confirmaciones por dirección y 24 h no se evade con formas como
   `a<victima@dom.com>`. El mismo criterio rige en la tabla (check), en `private.validar_suscripcion_newsletter` y en `lib/tiendaNewsletter.ts`.
 - **Tope global por tienda y riesgo residual**: máximo 200 confirmaciones nuevas por hora y tienda (`private.tope_confirmaciones_hora_newsletter()`); superado, la suscripción

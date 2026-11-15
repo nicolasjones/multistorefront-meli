@@ -898,9 +898,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "8fb5d8414ce31b8b4780d0f8284c82ea458dfe1b7cd045138d29ba8ba36a813f",
+      "pageHash": "bd38f224130a987df00093e07d2d7fec5dcf1a2c267866adb9a3144015bceba0",
       "sourceHash": "11172d16d3eb9072258adee3205470f81842d3fd932bb2b064c66ff13ee109f3",
-      "sourceAt": "56d504c3",
+      "sourceAt": "d5568f40",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -913,7 +913,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "56d504c3"
+      "commit": "d5568f40"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
