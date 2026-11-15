@@ -861,8 +861,8 @@
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "e82ff0484a5e25875dc9bf837987ddf9a6a3b6ae4cdf58dc1e401cd0d472f61c",
-      "sourceHash": "68d6b0b1b8671f686e7630d93df892fdb6ba85ae91d1615498063850054b571a",
-      "sourceAt": null,
+      "sourceHash": "9d38f94a4f4cf56c3f8bb2ba98642e9893f2678852a85d8625a5ef58c1f69796",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
         "supabase/migrations",
@@ -1913,8 +1913,8 @@
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "1b928a997803b4199890f4235b330d240379e05137e453c8fde91434e9e0a36b",
-      "sourceHash": "3832d28e94fe9d2d9bef997858df18ff678d35253833eb73dbc7025e987b98a7",
-      "sourceAt": null,
+      "sourceHash": "2da85e67fa402ba4fc7c6309958e53dbca2b5934f87c249fdba4e4538d8fafe0",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
         "supabase/migrations",
