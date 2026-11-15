@@ -320,3 +320,5 @@ Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, n
 ## E2E con sesión (`e2e-visible-sesion`): arranque del stack
 
 El job manual `e2e-visible-sesion` (`workflow_dispatch` con `e2e_sesion`) levanta el Supabase del CI con `kong` y `postgrest`. PostgREST arranca antes de que las migraciones creen el esquema `dominio` y no queda sano hasta que `pnpm db:reset:ci` las aplica, así que `supabase start` falla su chequeo de salud en una ranura sin migraciones. Igual que `e2e-tienda`, el job baja antes el stack de la ranura, arranca con `--ignore-health-check` y reinicia el contenedor de PostgREST después de `db:reset:ci`. Sin esto la corrida moría en «Levantar el stack de Supabase del CI» y ningún E2E con sesión llegaba a ejecutarse (corrida del 2026-11-15).
+
+La API del stack se expone a los specs y al build por `host.docker.internal` (no `127.0.0.1`): el puente de arranque muere al terminar su paso y, dentro del contenedor del runner, `127.0.0.1` es el propio contenedor. Antes de eso el único test con sesión (`permisos-por-empresa.e2e.ts`) fallaba con `ECONNREFUSED 127.0.0.1:29300`.
