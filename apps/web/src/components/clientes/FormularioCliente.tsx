@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
-  Alert, Box, Button, Checkbox, FormControlLabel, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import {
   type CampoFicha,
@@ -18,6 +18,7 @@ import {
   parsearDescuento,
   validarCliente,
 } from '../../lib/clientes'
+import { MOTIVO_LISTAS_APAGADAS, formatearAjuste, type ListaPrecios } from '../../lib/listasPrecios'
 import { NOTA_CUENTA_WEB_FORMULARIO, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
 import type { Empresa } from '../../hooks/useEmpresas'
 import { EstadoError } from '../estados/EstadosPagina'
@@ -35,9 +36,17 @@ type Props = {
   errorEmpresas?: boolean
   // F-VTA-32: el campo «Descuento» lo ve y lo envía solo un Administrador (la base lo exige igual).
   puedeEditarDescuento?: boolean
+  // F-CLI-21: campo «Lista de precios». Sin esta prop (alta, pruebas) el campo no se muestra. `editable` = Administrador;
+  // los demás la ven en solo lectura. `bandera` apagada: solo se puede quitar la lista (la base responde 55000 al asignar).
+  listasPrecios?: { listas: ListaPrecios[]; cargando: boolean; hayError: boolean; editable: boolean; bandera: boolean }
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
   // `opciones` lleva el campo «Cuenta web» para crear/suspenderla en las tiendas tildadas.
-  onGuardar: (valores: ReturnType<typeof aValores> & { descuento?: number | null }, opciones: OpcionesCuentaWeb) => Promise<void>
+  // `listaPrecioId` solo viaja si el Administrador cambió la lista (`null` = quitarla); la pantalla la asigna por RPC.
+  onGuardar: (
+    valores: ReturnType<typeof aValores> & { descuento?: number | null },
+    opciones: OpcionesCuentaWeb,
+    cambios?: { listaPrecioId?: string | null },
+  ) => Promise<void>
   rutaCancelar: string
   // Dentro de un popup no se navega: al cancelar se avisa al que lo abrió.
   onCancelar?: () => void
@@ -61,7 +70,7 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
 // llegan como prop (catálogo de la organización). «Cuenta web» crea o suspende la cuenta en
 // cada tienda tildada al guardar (FR-015).
-export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, onGuardar, rutaCancelar, onCancelar }: Props) {
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, listasPrecios, onGuardar, rutaCancelar, onCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -76,6 +85,10 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
       setErrores((actual) => ({ ...actual, [campo]: undefined }))
     }
   }
+
+  const listaElegida = listasPrecios?.listas.find((lista) => lista.id === formulario.listaPrecioId) ?? null
+  const descuentoActual = parsearDescuento(formulario.descuento)
+  const tieneDescuentoPersonal = typeof descuentoActual === 'number' && descuentoActual > 0
 
   const enfocarPrimerError = (nuevos: ErroresCliente) => {
     const primero = CAMPOS.find(({ campo }) => nuevos[campo])
@@ -102,10 +115,13 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
     setGuardando(true)
     try {
       const descuento = parsearDescuento(formulario.descuento)
-      await onGuardar(
-        puedeEditarDescuento && descuento !== undefined ? { ...aValores(formulario), descuento } : aValores(formulario),
-        opcionesCuentaWeb(formulario),
-      )
+      const valores = puedeEditarDescuento && descuento !== undefined ? { ...aValores(formulario), descuento } : aValores(formulario)
+      // La lista solo viaja si el Administrador la cambió: sin cambio la firma de siempre (dos argumentos).
+      if (listasPrecios?.editable && formulario.listaPrecioId !== inicial.listaPrecioId) {
+        await onGuardar(valores, opcionesCuentaWeb(formulario), { listaPrecioId: formulario.listaPrecioId === '' ? null : formulario.listaPrecioId })
+      } else {
+        await onGuardar(valores, opcionesCuentaWeb(formulario))
+      }
     } catch (error) {
       if (esDocumentoRepetido(error)) {
         const repetido = { documento: MENSAJE_DOCUMENTO_REPETIDO }
@@ -243,6 +259,51 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
             inputRef={(el: HTMLInputElement | null) => { refs.current.descuento = el }}
             fullWidth
           />
+        ) : null}
+        {listasPrecios ? (
+          <Box>
+            <TextField
+              select
+              label="Lista de precios"
+              value={formulario.listaPrecioId}
+              onChange={(event) => setFormulario((actual) => ({ ...actual, listaPrecioId: event.target.value }))}
+              disabled={!listasPrecios.editable || listasPrecios.cargando}
+              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+              error={listasPrecios.hayError}
+              helperText={
+                listasPrecios.hayError
+                  ? 'No pudimos cargar las listas de precios.'
+                  : !listasPrecios.editable
+                    ? 'Solo un administrador puede asignar una lista.'
+                    : !listasPrecios.bandera
+                      ? `${MOTIVO_LISTAS_APAGADAS} Solo podés quitar la lista.`
+                      : 'Vacío = sin lista. La lista se asigna al guardar.'
+              }
+              fullWidth
+            >
+              <MenuItem value="">Sin lista</MenuItem>
+              {listasPrecios.listas.map((lista) => (
+                <MenuItem
+                  key={lista.id}
+                  value={lista.id}
+                  disabled={!listasPrecios.bandera && lista.id !== inicial.listaPrecioId}
+                >
+                  {lista.nombre} ({formatearAjuste(lista.ajustePct)}){lista.archivadaEn ? ' · archivada' : ''}
+                </MenuItem>
+              ))}
+            </TextField>
+            {listaElegida ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {`${listaElegida.nombre}: ${formatearAjuste(listaElegida.ajustePct)} sobre el precio central.`}
+              </Typography>
+            ) : null}
+            {listaElegida && tieneDescuentoPersonal ? (
+              <Alert severity="info" sx={{ mt: 1 }}>
+                Este cliente también tiene un descuento personal. Las listas no se acumulan con el descuento: cuando una venta use la lista,
+                en las líneas que fije la lista no se aplica el descuento personal.
+              </Alert>
+            ) : null}
+          </Box>
         ) : null}
         <FormControlLabel
           control={

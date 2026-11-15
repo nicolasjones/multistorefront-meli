@@ -13,7 +13,7 @@ sources:
 
 **Épica:** MSF-373 — Precios y dólar · Cotización sugerida y mayoristas · **Spec:**
 `specs/20261105-100000-cotizacion-sugerida-y-mayoristas/` (`spec.md`, `plan.md`, `tasks.md`), **F-PRE-13
-implementada y F-PRE-14 cancelada** (decisiones de Nicolás del 2026-11-12; la spec nació NEEDS_INFO) · **Rama de la épica:** `epic/MSF-373-precios-y-dolar-cotizacion-sugerida-y-ma` (PR #835, despliegue
+implementada y F-PRE-14 cancelada el 2026-11-12 y reabierta el 2026-11-15** (decisiones de Nicolás; la spec nació NEEDS_INFO) · **Rama de la épica:** `epic/MSF-373-precios-y-dolar-cotizacion-sugerida-y-ma` (PR #835, despliegue
 a DEV) · **Cierre:**
 PR #833 (merge `fa61db9f`, integrado en `dokploy`; en `main` llega con la próxima promoción — las citas de
 este documento salen de `dokploy`) · **Alcance de entrega:** `refine` + `supabase` para F-PRE-13; F-PRE-14
@@ -21,7 +21,7 @@ este documento salen de `dokploy`) · **Alcance de entrega:** `refine` + `supaba
 
 La épica tenía dos historias independientes. **Solo se construyó F-PRE-13 (cotización sugerida desde una
 fuente pública)**: la Edge Function `cotizacion-sugerida` y la sugerencia dentro del diálogo «Cargar dólar
-del día» de MSF-116. **F-PRE-14 (listas de precios mayoristas) está CANCELADA** (decisión de Nicolás, 2026-11-12): se
+del día» de MSF-116. **F-PRE-14 (listas de precios mayoristas) fue CANCELADA el 2026-11-12 y REABIERTA el 2026-11-15** (ver el apartado «Qué no se construyó» de esta épica y la spec `20270327-100000-listas-de-precios-por-cliente`): se
 superponía con las escalas por cantidad de F-PRE-15 (MSF-114), parcialmente construidas (ver abajo), y nunca tuvo requisitos.
 Manual: [Cargar la cotización del dólar](../producto/precios-dolar.md) y
 [Precios, escalas e IVA](../producto/precios-e-iva.md).
@@ -103,7 +103,9 @@ lectura efímera de una fuente pública y no se persiste. Por eso **no hay DER q
 - **Prueba de la función:** `pnpm test:edge:cotizacion-sugerida` (script agregado en `package.json`, que
   además entra en `pnpm test:web`).
 
-## Qué no se construyó: F-PRE-14 (listas mayoristas) — CANCELADA
+## Qué no se construyó en esta épica: F-PRE-14 (listas mayoristas) — cancelada y luego reabierta
+
+> **Reabierta el 2026-11-15** (decisión de Nicolás: una lista es un porcentaje de ajuste sobre el precio central; spec `20270327-100000-listas-de-precios-por-cliente`). Las Fases 1 y 2 (listas, administración y asignación al cliente) están implementadas **sin efecto en el precio**: ningún precio calculado ni lo que se cobra cambia hasta la Fase 3, detrás de la bandera `listas_precios`. Ver [Listas de precios](../precios.md#listas-de-precios-f-pre-14-y-f-cli-21-fases-1-y-2).
 
 **F-PRE-14 está cancelada** (MSF-442, decisión de Nicolás del 2026-11-12). **No hay código, requisitos,
 pantalla, migración ni RPC**, y no se va a implementar: `FR-003` quedó **cancelado** y su número reservado.
@@ -128,8 +130,8 @@ Lo que existe hoy para mayoristas:
 
 En resumen: el precio del revendedor **se arma con el tipo de cliente y las escalas por cantidad de cada
 producto**, no con una «lista de precios» separada. Si el negocio necesita listas propias por revendedor,
-no está planificado: F-PRE-14 se canceló. Si el negocio vuelve a pedirlo, hay que abrir una épica nueva con
-sus requisitos.
+no estaba planificado cuando F-PRE-14 se canceló (2026-11-12); el negocio volvió a pedirlo y se reabrió el 2026-11-15 con
+su propia spec (porcentaje sobre el precio central), que convive con las escalas con la precedencia D5 de esa spec.
 
 ## Desvíos de la implementación
 
@@ -236,7 +238,7 @@ la entrega completa.
 ## Pendientes y deudas (con dueño)
 
 - **Sin pendientes de decisión:** la fuente (DolarApi, oficial venta) quedó confirmada y F-PRE-14 cancelada
-  el 2026-11-12; solo queda abierta la Pregunta 4 (hito y horas), que no bloquea nada.
+  el 2026-11-12 (reabierta el 2026-11-15, spec propia); solo queda abierta la Pregunta 4 (hito y horas), que no bloquea nada.
 - **TODO (dueño: Documentador):** capturar el diálogo «Cargar dólar del día» con la sugerencia en
   `docs/producto/img/precios-dolar/`. La herramienta del manual (`pnpm docs:capturas`,
   `apps/web/e2e/capturas/`) **no existe en este repo**; lo más cercano es

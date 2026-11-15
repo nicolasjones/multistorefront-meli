@@ -2,7 +2,7 @@
 
 **Épica**: MSF-373 · **Spec**: `cotizacion-sugerida-y-mayoristas` · **Hito**: Backlog (a definir con el cliente) · **Prioridad**: P3 · **Horas aprox.**: a estimar al pasar a un hito (por tallas M + L ≈ 24 h)
 **Alcance de entrega**: provisional — `refine` y `supabase` para F-PRE-13; el uso de `workers`/`kestra` para leer la fuente externa **no está decidido** (Pregunta 1). F-PRE-14: sin alcance hasta resolver las Preguntas 2 y 3.
-**Estado**: **F-PRE-13 implementada (fuente DolarApi, dólar oficial venta: decisión confirmada por Nicolás el 2026-11-12); F-PRE-14 CANCELADA (decisión de Nicolás, 2026-11-12).** Texto original: SPEC PARCIAL — NEEDS_INFO. La propia épica dice «los requisitos se redactan cuando la épica pase a un hito»; Nicolás confirmó que siguen abiertos el conflicto F-PRE-14 vs. F-PRE-15, el modelo comercial mayorista, las horas y el hito. Esta spec **traduce lo que la épica sí dice** y no inventa el resto.
+**Estado**: **F-PRE-13 implementada (fuente DolarApi, dólar oficial venta: decisión confirmada por Nicolás el 2026-11-12); F-PRE-14 CANCELADA (decisión de Nicolás, 2026-11-12) y REABIERTA el 2026-11-15 con spec propia (`specs/20270327-100000-listas-de-precios-por-cliente/`; sus Fases 1 y 2 están implementadas sin efecto en el precio).** Texto original: SPEC PARCIAL — NEEDS_INFO. La propia épica dice «los requisitos se redactan cuando la épica pase a un hito»; Nicolás confirmó que siguen abiertos el conflicto F-PRE-14 vs. F-PRE-15, el modelo comercial mayorista, las horas y el hito. Esta spec **traduce lo que la épica sí dice** y no inventa el resto.
 
 ## Objetivo
 
@@ -33,7 +33,7 @@ El sistema sugiere el dólar del día tomándolo de una fuente pública; el admi
 1. **Given** MSF-116 en `main` y la fuente pública disponible, **When** el administrador abre el diálogo «Cargar dólar del día», **Then** ve el valor sugerido del día para cargarlo (FR-001).
 2. **Given** que la fuente no responde, **When** abre el diálogo, **Then** puede cargar el valor a mano como hoy; la carga manual no depende de la fuente (FR-002, consecuencia de que la sugerencia es una ayuda, no un reemplazo).
 
-### User Story 2 - Listas de precios mayoristas (F-PRE-14, P3, talla L) — CANCELADA (2026-11-12)
+### User Story 2 - Listas de precios mayoristas (F-PRE-14, P3, talla L) — CANCELADA (2026-11-12), reabierta el 2026-11-15 en otra spec
 
 La épica solo dice que «existe una lista de precios para revendedores». No hay pantalla dibujada, modelo comercial ni resolución del conflicto con F-PRE-15. **No se redactan escenarios** (Preguntas 2 y 3). Ver FR-003.
 
@@ -68,7 +68,7 @@ F-PRE-14 no describe flujo alguno: cancelada (2026-11-12).
 
 - **FR-001** *(F-PRE-13)*: el sistema obtiene el dólar del día de una fuente pública y lo ofrece como valor sugerido en el diálogo de carga de F-PRE-02. Fuente concreta, qué valor (oficial/blue/etc.) y frecuencia: **Pregunta 1**.
 - **FR-002** *(F-PRE-13)*: si la fuente no está disponible, la carga manual de MSF-116 sigue funcionando sin cambios.
-- **FR-003** *(F-PRE-14)*: **cancelado** (decisión de Nicolás, 2026-11-12, por el conflicto con F-PRE-15). No se implementa y el número queda reservado.
+- **FR-003** *(F-PRE-14)*: **cancelado** en esta spec (decisión de Nicolás, 2026-11-12, por el conflicto con F-PRE-15). No se implementa acá y el número queda reservado; F-PRE-14 se reabrió el 2026-11-15 y sus requisitos viven en `specs/20270327-100000-listas-de-precios-por-cliente/`.
 - **FR-004** *(F-PRE-13, comportamiento implementado)*: solo la persona con nivel `edicion` en `cotizacion_dolar` puede pedir la sugerencia (403 si no); método solo POST (405); si la fuente no responde en 5 s, responde con error o devuelve un valor fuera de `0 < venta < 1.000.000`, la función responde 502 con un mensaje que invita a cargar a mano.
 - **SC-001**: test del diálogo con sugerencia disponible y con fuente caída (FR-001, FR-002). La prueba de «cambio de empresa» se descartó: la sugerencia no depende de la empresa.
 

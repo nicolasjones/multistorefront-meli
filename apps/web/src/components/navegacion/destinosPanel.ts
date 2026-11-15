@@ -17,6 +17,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
 import LocalOfferIcon from '@mui/icons-material/LocalOffer'
+import SellIcon from '@mui/icons-material/Sell'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
@@ -89,6 +90,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
       // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
       { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-PRE-14 (MSF-442): listas de precios (porcentaje sobre el precio central); solo las administra el Administrador (carga diferida en App.tsx).
+      { id: 'listas-precios', etiqueta: 'Listas de precios', ruta: '/productos/listas-de-precios', icono: SellIcon, audiencia: 'administrador', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },

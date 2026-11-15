@@ -33,7 +33,7 @@
 |---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Depende de cómo Ventas maneje cobros y el estado Deuda. |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | Se apoya en la cuenta web (`cuenta-web-del-cliente`, MSF-237). |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Se relacionaba con F-PRE-14 de Precios, **cancelada** el 2026-11-12 (MSF-373). |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Se relacionaba con F-PRE-14 de Precios, cancelada el 2026-11-12 (MSF-373) y **reabierta el 2026-11-15**: ahora tiene spec propia (`20270327-100000-listas-de-precios-por-cliente`). |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Se apoya en el listado de reposición de Stock. |
 
 **Bloqueada por**: sin bloqueos declarados; se acuerdan con el cliente cuando una historia pase a un hito. **Bloquea a**: ninguna épica.

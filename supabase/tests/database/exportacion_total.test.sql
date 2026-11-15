@@ -189,6 +189,11 @@ select is(
   0, 'ninguna columna exportada parece un secreto o un token'
 );
 select ok(
+  exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'listas_precios')
+  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'public' and tabla = 'clientes' and 'lista_precio_id' = any(columnas)),
+  'las listas de precios y la lista de cada cliente entran a la exportación total (F-PRE-14, RF-CLI-21-8)'
+);
+select ok(
   not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'token_verificacion' = any(columnas))
   and exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'dominio' = any(columnas)),
   'tiendas se exporta sin su token de verificación'
