@@ -84,9 +84,23 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
             onCancelar={onCancelar}
             onGuardar={async (valores, opciones, cambios) => {
               const { empresas: seleccion, ...datos } = valores
-              // La lista se asigna primero: si la base la rechaza (p. ej. bandera apagada) no queda nada a medias.
-              if (cambios && 'listaPrecioId' in cambios) await asignarListaPrecios(supabaseClient, cliente.id, cambios.listaPrecioId ?? null)
-              await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
+              // La lista se asigna primero: si la base la rechaza (p. ej. bandera apagada) no se toca nada más. Si después falla el
+              // update de los datos, la lista se devuelve a la anterior (compensación) para que el formulario, que muestra el error,
+              // y la base queden de acuerdo. Si la compensación también falla, igual se propaga el error del update.
+              const cambiaLista = Boolean(cambios && 'listaPrecioId' in cambios)
+              if (cambiaLista) await asignarListaPrecios(supabaseClient, cliente.id, cambios?.listaPrecioId ?? null)
+              try {
+                await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
+              } catch (error) {
+                if (cambiaLista) {
+                  try {
+                    await asignarListaPrecios(supabaseClient, cliente.id, cliente.lista_precio_id ?? null)
+                  } catch {
+                    // Sin más remedio: queda el error original del guardado.
+                  }
+                }
+                throw error
+              }
               // Si fallan las tiendas, la edición del cliente ya quedó: se propaga el
               // error para reintentar (guardar de nuevo no duplica nada).
               await guardar(cliente.id, seleccion)

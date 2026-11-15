@@ -282,6 +282,10 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
               fullWidth
             >
               <MenuItem value="">Sin lista</MenuItem>
+              {/* La lista actual del cliente siempre es una opción: si las listas no se pudieron cargar el valor no queda fuera de rango. */}
+              {formulario.listaPrecioId && !listasPrecios.listas.some((lista) => lista.id === formulario.listaPrecioId) ? (
+                <MenuItem value={formulario.listaPrecioId}>Lista asignada (no se pudo leer su nombre)</MenuItem>
+              ) : null}
               {listasPrecios.listas.map((lista) => (
                 <MenuItem
                   key={lista.id}

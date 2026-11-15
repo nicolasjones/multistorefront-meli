@@ -162,6 +162,20 @@ describe('ClienteEdit', () => {
     expect(mocks.mutateAsync).not.toHaveBeenCalled()
   })
 
+  it('si falla el guardado de la ficha después de asignar la lista, la lista vuelve a la anterior', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    conCliente({ lista_precio_id: 'l-0' })
+    mocks.mutateAsync.mockRejectedValue(new Error('falló'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('No se guardó el cliente.')).toBeInTheDocument()
+    expect(mocks.asignarLista).toHaveBeenNthCalledWith(1, {}, 'c-1', 'l-1')
+    expect(mocks.asignarLista).toHaveBeenNthCalledWith(2, {}, 'c-1', 'l-0')
+  })
+
   it('quien no es Administrador ve la lista en solo lectura y nunca la asigna', async () => {
     conCliente({ lista_precio_id: 'l-1' })
     abrir()

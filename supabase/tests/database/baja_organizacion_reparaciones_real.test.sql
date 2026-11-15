@@ -36,7 +36,10 @@ select lives_ok(
   'empresa sin reparaciones: la baja se completa');
 
 select lives_ok(
-  $t$delete from public.organizaciones where id = '00000000-0000-0000-0000-0000000085a1'$t$,
+  $t$do $b$ begin
+      delete from public.organizaciones where id = '00000000-0000-0000-0000-0000000085a1';
+      perform private.confirmar_claves_diferidas();
+    end $b$$t$,
   'la baja de la organización con reparaciones se completa (la cascada las borra)');
 
 select is(

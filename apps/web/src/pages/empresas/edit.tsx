@@ -239,7 +239,7 @@ export function EmpresaEdit() {
             value={formulario.whatsapp}
             onChange={cambiar('whatsapp')}
             helperText={avisoFormatoWhatsapp(formulario.whatsapp) ?? 'Con código de área, por ejemplo +54 9 11 1234-5678.'}
-            FormHelperTextProps={{ role: avisoFormatoWhatsapp(formulario.whatsapp) ? 'status' : undefined }}
+            slotProps={{ formHelperText: { role: avisoFormatoWhatsapp(formulario.whatsapp) ? 'status' : undefined } }}
             disabled={soloLectura}
             fullWidth
           />

@@ -251,6 +251,14 @@ describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => 
     fireEvent.click(screen.getByRole('option', { name: nombre }))
   }
 
+  it('si la lista actual del cliente no está entre las cargadas, igual es una opción y no queda un valor fuera de rango', () => {
+    const consola = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    abrirConLista({ listaPrecioId: 'l-9', hayError: true })
+    expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveTextContent('Lista asignada')
+    expect(consola.mock.calls.flat().join(' ')).not.toMatch(/out-of-range/)
+    consola.mockRestore()
+  })
+
   it('sin la prop no muestra el campo (alta)', () => {
     abrir()
     expect(screen.queryByText('Lista de precios')).not.toBeInTheDocument()

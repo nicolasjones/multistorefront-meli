@@ -264,6 +264,16 @@ describe('ClienteShow', () => {
       expect(mocks.useLista).toHaveBeenCalledWith('l-1')
     })
 
+    it('si no se pudo cargar la lista lo dice y deja reintentar', () => {
+      const reintentar = vi.fn()
+      conCliente({ lista_precio_id: 'l-1' })
+      mocks.useLista.mockReturnValue({ lista: null, cargando: false, hayError: true, reintentar })
+      abrir()
+      expect(screen.getByText(/No pudimos cargarla/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(reintentar).toHaveBeenCalledTimes(1)
+    })
+
     it('avisa que no se acumula cuando el cliente también tiene descuento personal', () => {
       conCliente({ lista_precio_id: 'l-1', descuento: 5 })
       mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false })

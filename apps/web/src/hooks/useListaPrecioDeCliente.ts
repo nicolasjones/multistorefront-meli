@@ -7,6 +7,7 @@ export function useListaPrecioDeCliente(listaId: string | null | undefined) {
   const [lista, setLista] = useState<ListaPrecios | null>(null)
   const [cargando, setCargando] = useState(Boolean(listaId))
   const [hayError, setHayError] = useState(false)
+  const [intento, setIntento] = useState(0)
   const ultimaPeticion = useRef(0)
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function useListaPrecioDeCliente(listaId: string | null | undefined) {
       .finally(() => {
         if (peticion === ultimaPeticion.current) setCargando(false)
       })
-  }, [listaId])
+  }, [listaId, intento])
 
-  return { lista, cargando, hayError }
+  return { lista, cargando, hayError, reintentar: () => setIntento((n) => n + 1) }
 }
