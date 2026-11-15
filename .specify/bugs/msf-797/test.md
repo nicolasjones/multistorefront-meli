@@ -26,6 +26,8 @@ lo corre el CI contra una base limpia.
 | Lint / type-check | `pnpm lint` | pass | Exit 0; solo warnings preexistentes del repo (ninguno en lo tocado). |
 | Build | `pnpm build` | pass | Exit 0 (`✓ built in 5.67s`). |
 | Documentación | `pnpm docs:check` | pass | «Documentación de cambios: OK» y «Migraciones OK» (no hay migración nueva en este commit). |
+| Documentación (artefactos generados) | `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs` + `git diff --exit-code docs/_generated docs/manifest.json` | pass | El manifest y el inventario quedan al día con las páginas que cambió la rama (el job `build` del workflow `docs` los exige). |
+| CI simulado (ref de merge, profundidad 1) | clon de profundidad 1 + `docs-manifest.mjs` + `docs-drift.mjs` | pass | El manifest regenerado no difiere del versionado y el drift no reporta páginas desactualizadas (en local, con historia completa, el drift sí reporta ~143 páginas: es la línea base, la corrije MSF-950 en el Lote 2). |
 | Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack en ok; **gitleaks** no pudo correr (corre en Docker y no hay permiso sobre el socket). Lo corre el CI. |
 | Type-check de Deno | `deno check` de `tls.ts` / `index.ts` | not-run | No hay `deno` instalado en este entorno. `tls.ts` y `handler.ts` no importan Deno y se ejercitan con `node --test`; el cableado de `index.ts` lo valida el despliegue de la función. |
 
@@ -68,6 +70,10 @@ failed to inspect docker image: permission denied while trying to connect to the
   ambos casos (tolerar `BadResource`), pero el cableado de `index.ts` solo lo valida el despliegue.
 - **Por entorno:** el seed deja `203.0.113.24` (TEST-NET-3) como `ip_publica`; hay que cargar la IP real de cada
   entorno (la de dev, `212.90.120.53`, es pública) y validar el CHECK donde la fila haya quedado con una IP no pública.
+- **Línea base del repo (no de esta historia):** el manifest y el inventario de `docs/` estaban desactualizados en la
+  base de la épica; se regeneraron en este PR porque el CI los exige y esta rama también cambia páginas de `docs/`.
+  El drift de fuentes, en local, reporta ~143 páginas porque `docs-drift.mjs` y `docs-manifest.mjs` no calculan el
+  `sourceHash` con el mismo alcance (lo corrige MSF-950 en el Lote 2).
 
 ## Recommendation
 

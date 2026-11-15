@@ -27,6 +27,7 @@ una señal de cancelación a `Deno.connect`), así que no queda esperando a que 
 | `openapi/verificar-dominio-tienda.json` | modified | Documenta el 503 `plataforma_no_configurada` (commit `93fd00e3`). |
 | `apps/web/src/lib/tiendaDominio.ts`, `…/Dominio.tsx` | modified | El aviso del panel traduce `plataforma_no_configurada` a un mensaje propio (commit `f5d8f4a5`). |
 | `docs/tiendas-online.md`, `docs/tecnico/tienda-dominio-y-publicacion.md` | modified | Documentan el CHECK, el 503 y el cierre del socket; este commit agrega la cancelación de la conexión pendiente. |
+| `docs/manifest.json`, `docs/_generated/inventory.json`, `docs/_generated/inventory.md` | modified | Artefactos generados: el CI (`docs.yml`) exige que el manifest y el inventario estén al día respecto de las páginas que cambió la rama. |
 
 ## Diff Highlights
 
@@ -69,15 +70,19 @@ conectar: (ip, senal) => Deno.connect({ hostname: ip, port: 443, signal: senal }
 - Commands run: `pnpm calidad` → todo en ok salvo **gitleaks**, que corre en Docker y en este entorno no hay permiso sobre el socket (`permission denied … /var/run/docker.sock`); lo corre el CI.
 - Manual checks: se comprobó que el caso nuevo **falla** si se saca `cancelacion.abort()` (25/26, un fallo) y se restauró el código.
 - No se pudo correr localmente: `pnpm test:db` (pgTAP) necesita el socket de Docker (`permission denied`); lo corre el CI contra una base limpia.
+- Commands run: `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs` → el manifest y el inventario quedan al día con las páginas que cambió la rama (el job `build` del workflow `docs` los compara con `git diff --exit-code`).
+- Comprobación del CI simulado: en un clon de profundidad 1 (como el que arma `actions/checkout` para el ref de merge) el manifest regenerado no difiere del versionado y el drift de fuentes no reporta páginas desactualizadas.
 
 ## Deviations from Assessment
 
 - El assessment ya decía que el parche no debía duplicarse (los commits `93fd00e3`, `f5d8f4a5` y `06e806e3` ya lo traían): no se volvió a implementar la validación de la IP ni la lógica de cierre.
 - Lo que sí quedaba abierto —y es lo que se cambia acá— es que la conexión **pendiente** de conectar solo se cerraba cuando la promesa resolvía más tarde: si el `SYN` no recibía respuesta, el socket quedaba abierto hasta que el sistema lo soltara. Ahora se cancela al vencer los 5 s.
 - No se creó migración nueva: la del hallazgo (1) (`20270323100100`) ya está aplicada y versionada en la base del PR; la versión `20270323100301` queda libre por si otra historia la necesita.
+- El job `build` del workflow `docs` estaba rojo al abrir el PR: en la base de la épica el manifest y el inventario quedaron desactualizados (los commits `488800f2` y `f5d8f4a5` cambiaron páginas y specs sin regenerarlos). Como esta rama también cambia páginas de `docs/`, el CI exige esos artefactos al día: se regeneraron con los scripts del repo (`docs-inventario.mjs` y `docs-manifest.mjs`) y se versionaron. No cambia contenido de documentación: sólo los índices generados.
 
 ## Follow-ups
 
 - **Limitación D-5 (abierta, documentada):** `Deno.startTls` consume la conexión TCP; si el handshake TLS queda colgado, el socket TLS en curso no se puede cerrar desde JS (solo se intenta cerrar la TCP, que ya fue consumida). Impacto acotado: una conexión a la IP de la plataforma, a lo sumo una verificación cada 10 s por tienda. Cerrarlo exigiría una API de cancelación del handshake.
 - **Por entorno:** cargar la `ip_publica` real (el seed deja `203.0.113.24`, que es de documentación) y, si alguna fila quedó con una IP no pública, correr `alter table public.tienda_dns_plataforma validate constraint tienda_dns_plataforma_ip_publica` (la migración avisa con `raise warning`).
 - El type-check de `index.ts` con `deno check` sigue sin poder correrse en este entorno (no hay `deno` instalado y no resuelve `npm:@supabase/supabase-js`); lo valida el despliegue de la función.
+- **Fuera de esta historia (MSF-950, Lote 2):** `scripts/docs-drift.mjs` acota el hash de fuentes a los archivos que existían en `sourceAt` y `scripts/docs-manifest.mjs` no; en local el drift reporta unas 143 páginas desactualizadas y en el CI (clon de profundidad 1, donde `sourceAt` no se puede resolver) no reporta ninguna. Es la línea base del repo, no de esta historia.

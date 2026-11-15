@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "da15650ec4b0dbb8df32b76f4a6a5320bae0f25b5606f7af408cf592ad6dc900",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "488800f2"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2391,14 +2391,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "0bdf4de742573bf50cfb4286bf7f21924974a50237922bcc8d650af7b051e931",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "d8047dd29f39f4fa01ab760624f62486f0dbe41bda2362e940e9a3b2af6fbf02",
+      "sourceHash": "3f947cc947992ae32146fe59b8be8ca60478b10ced10a75c616642e97d505ff9",
+      "sourceAt": "908e02a8",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "488800f2"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -2636,14 +2636,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "16b9f0fdb3351283168344853c261e922badea34fd1218d0b5749a165b9839d1",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8c80faa43e1c3739e9cc13cac83587c989987829e4256bdb32dcdde2fe1c960a",
+      "sourceHash": "3f947cc947992ae32146fe59b8be8ca60478b10ced10a75c616642e97d505ff9",
+      "sourceAt": "908e02a8",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "488800f2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3236,9 +3236,9 @@
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "bcf5ac154af27cccbd45cacef14356a6d169feab2b19e968428fdae1ed6db708",
-      "sourceHash": "fd03599cfa9a475cc72310205fae967f5bad8f5f1d8b92f4417f19f862dd4702",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "db4c82f4fe18ea7a1a87a4672aca2a7bd267a674dba108be3c408d271c2828b4",
+      "sourceHash": "527dd1a7505587144fe16ec4809033507519ec30024ef39c8ae19616cedf34bc",
+      "sourceAt": "908e02a8",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3252,13 +3252,13 @@
         "apps/web/src/pages/tienda-publica"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "488800f2"
     },
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
-      "pageHash": "89647d46a9d52dbc4cc1f864e1a42e2438c82fb6730de57704d773bbb637bb06",
-      "sourceHash": "bf308a4def1e0a68ae1c82975e6def86aabc40f2cb1962b04bd5caa822104173",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "a0129db17f96ef4f2526482b816f9b8104a396a1090410c362f56ff71556225a",
+      "sourceHash": "de43945e5e4ce4f03b96df2606e9f0a6d751e564551163cce5496b77375357fe",
+      "sourceAt": "908e02a8",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3267,7 +3267,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "fa104235"
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
@@ -3300,16 +3300,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "268edc37abc6b792af9461ed976131260add7ecab21433a48ca645e9ae3366f8",
-      "sourceHash": "5527dbca607ac54264e28e2185aaf4fdfff9c8f071adcc1636dbbccc99175c27",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "b39cf9399c8664dff82251472fa883f977ae158500d270e3979eb561b0dc5d1a",
+      "sourceHash": "d19f70555680f821604da128712d979b28c3aa542471c190ac794ffe0a2b83b1",
+      "sourceAt": "908e02a8",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "4b780ed7"
+      "commit": "488800f2"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -3573,9 +3573,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "7e92bda47a8e0c7388e0789f227f89e7a133bab8e19f7a76a5d6187be096bc0d",
+      "pageHash": "89c64bd064bb8b8b5c6733440929cb1dbc293655999f737d663f57fb338ba779",
       "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "908e02a8",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3587,7 +3587,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "fa104235"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
