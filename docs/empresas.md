@@ -164,3 +164,7 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
   (y los datos que referencien, según el caso).
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).
+
+### Aviso de formato del número de WhatsApp (MSF-743)
+
+En la ficha de empresa y en el formulario público de contacto, el campo WhatsApp avisa, sin bloquear, cuando el número no se puede normalizar para `wa.me` (`avisoFormatoWhatsapp` en `apps/web/src/lib/whatsapp.ts`): no avisa con el campo vacío, con un correo ni con un número válido. El formulario público no impide el envío con un número raro; la validación del servidor (8 a 15 dígitos) no cambia. Además, en Documentos IA, si falla la actualización del nombre de una versión, esta se marca `fallida` antes de abortar y no se invoca la indexación (MSF-750), para que no quede en `procesando`.
