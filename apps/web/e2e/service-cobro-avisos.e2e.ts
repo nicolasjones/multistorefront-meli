@@ -123,7 +123,7 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       await expect
         .poll(async () => (await leerDominio<{ estado_envio: string }>(`reparacion_avisos?reparacion_id=eq.${reparacionId}&select=estado_envio`))[0]?.estado_envio, { timeout: 15_000 })
         .toMatch(/^(pendiente|enviado)$/)
-      const ordenes = await leerDominio<{ clave: string }>(`capacidades_ejecucion?organizacion_id=eq.${org.id}&clave=like.enviar-aviso-reparacion-*&select=clave`, 'public')
+      const ordenes = await sql<{ clave: string }>(`select clave from public.capacidades_ejecucion where organizacion_id = $1 and clave like 'enviar-aviso-reparacion-%'`, [org.id])
       expect(ordenes.length).toBeGreaterThan(0)
 
       if (conCorreoKestra) {
