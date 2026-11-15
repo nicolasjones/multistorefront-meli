@@ -145,3 +145,5 @@ grant usage on schema dominio to authenticated;
 revoke all on dominio.ordenes_compra, dominio.ordenes_compra_items
   from public, anon, authenticated;
 grant select on dominio.ordenes_compra, dominio.ordenes_compra_items to authenticated;
+-- service_role (API admin) opera las tablas como toda tabla operativa de dominio (pgTAP `service_role_privilegios`).
+grant select, insert, update, delete on dominio.ordenes_compra, dominio.ordenes_compra_items to service_role;
