@@ -456,3 +456,7 @@ web servida; se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (ver [`do
 ## Alerta de dólar: se recalcula al cambiar la configuración (MSF-352)
 
 `guardar_configuracion_cotizacion` y `cambiar_alcance_cotizacion` llaman a `recalcular_alertas_inicio` en la misma transacción: apagar o encender «Aviso en Inicio» o cambiar el alcance actualiza `dolar_sin_cargar` de inmediato (antes quedaba desfasada hasta el siguiente barrido). Prueba: `cotizacion_revision_msf352.test.sql`.
+
+### «Resumen por tienda» y «Salidas por depósito» con error y reintento independientes (MSF-850)
+
+`resumen_inicio_bloques` recibe un parámetro `p_seccion` (`por_tienda`, `salidas_por_deposito` o nulo para ambas): la sección que no se pide no se calcula y vuelve nula, y un valor desconocido responde 22023. En la pantalla cada bloque hace su propia lectura, con carga, error y «Reintentar» propios: si uno falla el otro sigue visible y reintentar uno no vuelve a pedir el otro. La firma anterior de 4 parámetros se elimina. Migración `20270324100200`.
