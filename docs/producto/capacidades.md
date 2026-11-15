@@ -57,6 +57,9 @@ Una libreta con las personas que consultan o compran, por tienda y sin duplicado
 ## Rentabilidad
 Ver cuánto margen deja cada producto en cada tienda y detectar los de margen bajo o negativo. Guía: [Rentabilidad](rentabilidad.md).
 
+## Tableros analíticos y resumen semanal
+Tableros ya armados para cruzar ventas, tiendas, categorías y margen, y un resumen de la semana por correo para los administradores. Guía: [Tableros analíticos y resumen semanal](tableros-analiticos.md).
+
 ## Actividad
 Un historial de quién hizo qué y cuándo. Guía: [Actividad](actividad.md).
 

@@ -13,25 +13,25 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "152f18278caef746a71518a2a1b500ba6e9d21f8205c847a2d42147d7cd02c9d",
+      "pageHash": "5252a41a4d2386db9ada9c2c83a6fd164ff612c3c6ebb9f824b5e4894d1909c2",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "9d91048c",
+      "sourceAt": "d1409e01",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "53cb4c30"
+      "commit": "dc8c0e42"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
-      "pageHash": "d1d6733c6b8999a6ea08aa6f0fd1fe606580b47dae0c2d60bdea11962ff7a458",
-      "sourceHash": "76831608f9e86a28dc7f87b50ed9d0a8ab6244ee852c1369018f32ca7bc9c333",
-      "sourceAt": "ceb9ec6",
+      "pageHash": "79956d6fc2c521fc88a587f3183d8b7d11c2ed40bfda4fa44c78e73273dc0a0c",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "d1409e01",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "cf17f4a"
+      "commit": "4d730bd9"
     },
     "docs/adoptar-blindaje-imagenes-workers.md": {
       "title": "Adoptar el blindaje de imágenes de workers en un producto derivado",
@@ -358,9 +358,9 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "3cd32708c35f53b8cd8f83857fe7cdaa429d8cd0f37858966df84d33e809469c",
+      "pageHash": "dbb496e439565d5309981652161ab1fb6dee60f3848a49d04ccfb05b20f9610c",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "4bc68324",
+      "sourceAt": "d1409e01",
       "sources": [
         "specs"
       ],
@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "7b70194d65a4ab1f8450112cdb4d1372de650fe1b29ed138d4089e8ca3a37b40",
+      "pageHash": "de5da107d878141c0d73106af4fb4aa01852a86b058d180a137b27a781f26aa4",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "9dc6f30d"
+      "commit": "4f6121b4"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -427,12 +427,12 @@
     },
     "docs/producto/avisos-y-listas.md": {
       "title": "Avisos por correo y listas configurables",
-      "pageHash": "6a2345e506a9dbf71e8dfda6a32cb2ef452c7f880c9a7255e897fecba9a0b562",
+      "pageHash": "624a2636b8bd21c5126e70928ff1287033fce97769434bb1f8900abe4a905f1a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "a8db4308"
+      "commit": "3a93b935"
     },
     "docs/producto/ayuda.md": {
       "title": "La ayuda dentro del panel",
@@ -445,12 +445,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "a034ceae02e0eebf557650a5973619220f4d423dd4d28bdd0c1334a60499b142",
+      "pageHash": "76421e2db945e82d06cd297ad8676ace70ca2c20012961d6ec864362734af0a0",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f3ef1b96"
+      "commit": "9dc6f30d"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -653,12 +653,12 @@
     },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
-      "pageHash": "91c71ecbc8e5748f26c7c65ea62ed24cde08180e21344500420f3cefe6766b96",
+      "pageHash": "640ef8c5ad5abb8a3af04f82007c09b4b61922ba62060b70b4f3b9c7e621dabd",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/perfil-propio.md": {
       "title": "Tu perfil: nombre, foto, contraseña y correo",
@@ -861,6 +861,15 @@
       ],
       "owner": "producto",
       "commit": "53cb4c30"
+    },
+    "docs/producto/tableros-analiticos.md": {
+      "title": "Tableros analíticos y resumen semanal",
+      "pageHash": "a5cab41ae7a56e2df8f01e699d10848c39273b890c95074cca6ae4d6eb35dfeb",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/tienda-compra-y-cuentas.md": {
       "title": "Pedidos y presupuesto desde la tienda",
@@ -1324,6 +1333,19 @@
       "owner": "tecnico",
       "commit": "02a011d"
     },
+    "docs/tecnico/analitica-avanzada.md": {
+      "title": "Analítica avanzada: galería de tableros (F-REP-07)",
+      "pageHash": "f2f23238f9362fe1730596caa7dfb4161c68775d348b532f759c37e71c27d8dd",
+      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
+      "sourceAt": "d1409e01",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/api-publica.md": {
       "title": "API pública: diseño y operación",
       "pageHash": "6037c08ca44a0ff6f9bb3f2501bbad717b0266e6ce99b07a8af24ca1629bed57",
@@ -1373,15 +1395,15 @@
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
-      "pageHash": "69fa42a45f6a5d51167528a2e174b7a94aa32e19efd7e22a968688d15177aea5",
+      "pageHash": "8f6aa8df6e74910a74e61ddbed2111a56c3053387c1816a3fbc4442b629aa40e",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "158ff948",
+      "sourceAt": "d1409e01",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c1c719f2"
+      "commit": "3a93b935"
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
@@ -1580,14 +1602,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "f16cb083bf030bfccd2c1301546499a09999a0d770cffceb728754dff6b61320",
+      "pageHash": "6136098cba33b03b6a130881092e4ac57d4e113219252603485271c6574bb9c9",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "57ad76da",
+      "sourceAt": "d1409e01",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "9dc6f30d"
+      "commit": "4f6121b4"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1902,6 +1924,32 @@
       ],
       "owner": "tecnico",
       "commit": "4bc68324"
+    },
+    "docs/tecnico/resumen-semanal-correo.md": {
+      "title": "Resumen semanal por correo (F-REP-08)",
+      "pageHash": "3d2cd65a9f344c5d6a040fbf8bafb1496cd5224347ee7454d665f4988c66de12",
+      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
+      "sourceAt": "d1409e01",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/revision-seguridad-analitica-avanzada.md": {
+      "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
+      "pageHash": "e8be602a0de0105f3e0ced750f916133ff3fdb8c801c6336e9b777ae3e516fdd",
+      "sourceHash": "9252cd5575f11cd30db6f957ef70cfb21007b73d737273315e76cf9971129257",
+      "sourceAt": "d1409e01",
+      "sources": [
+        "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

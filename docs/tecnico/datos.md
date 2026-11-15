@@ -4338,3 +4338,115 @@ erDiagram
 - **Reversión**: `drop function` de cada RPC, `drop view public.consulta_items_bandeja`, `drop table` de las
   tres tablas (exportando antes los datos personales) y `alter table dominio.consultas drop column cliente_id`;
   los presupuestos ya creados son comprobantes de Ventas y **se anulan** con el flujo normal, no se borran.
+
+## Analítica avanzada y resumen semanal (MSF-265)
+
+Épica **MSF-265** (spec `20261114-100000-analitica-avanzada-y-resumen-por-correo`), rama
+`epic/MSF-265-analitica-y-resumen-por-correo` (aún sin promover a `main`). Dos tablas nuevas en `public`
+(plataforma), una fila nueva en `public.tipos_aviso`, dos filas nuevas en `public.reportes` y **dos vistas** en
+`analitica` (las vistas no son tablas y no cambian la RLS del esquema). Migraciones aditivas `20270324100000`
+(vistas), `20270324100100` (catálogo de tableros), `20270324100200` (resumen semanal) y `20270324100300`
+(exclusión de las dos tablas nuevas de la exportación total); la reversión está en el encabezado de cada una.
+Detalle de contratos, RPC, flow y operación: [Analítica avanzada](analitica-avanzada.md) y
+[Resumen semanal por correo](resumen-semanal-correo.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `public.resumen_semanal_config` | **nueva** | Configuración por organización del resumen semanal: `organizacion_id` (PK, FK a `public.organizaciones`), `activo` (sin fila = activo), `actualizado_por` y `actualizado_en`. RLS activada **sin políticas** y **sin privilegios** para `anon`, `authenticated` ni `public`: solo la escriben las RPC `security definer` de administrador. |
+| `public.resumen_semanal_envios` | **nueva** | Un resumen por organización y semana (`unique (organizacion_id, semana_desde)`): `semana_desde`/`semana_hasta` (7 días), `estado` (`pendiente`, `enviado`, `fallido`, `sin_destinatario`, `pausado`, `vencido`), `intentos`, `ultimo_error` (≤ 500 caracteres, sin host, IP ni correo), `contenido` (agregados congelados en `jsonb`), `destinatarios_cantidad` y marcas de tiempo. RLS activada **sin políticas** y **sin privilegios** para `anon`, `authenticated` ni `public`: solo las RPC del barrido (exclusivas de `service_role`). |
+| `public.tipos_aviso` | **alterada** | Solo una **fila** nueva: `resumen_semanal` («Resumen semanal de la organización», sección `usuarios_permisos`). Sin cambio de estructura ni de RLS: es la baja personal desde `/cuenta/avisos`. |
+| `public.preferencias_aviso` | existente | Solo se lee (baja personal): sin fila = recibe el resumen. |
+| `public.organizaciones`, `public.usuarios_organizacion` | existentes | Dueña de la configuración y de los envíos; los administradores activos son los destinatarios. |
+| `public.registro_actividad` | existente | Recibe `resumen_semanal.pausado` y `resumen_semanal.reanudado`, solo ante un cambio real. |
+| `public.reportes` | **alterada** (dato) | Dos filas: «Analítica · Ventas por tienda y categoría» (sección `reportes`) y «Analítica · Margen real por tienda, categoría y producto» (sección `rentabilidad`). Sin columnas nuevas. |
+| `public.reportes_organizaciones`, `public.reportes_roles_default`, `public.reportes_organizaciones_roles` | existentes | Reciben las asignaciones y los roles por defecto (`administracion`) de los dos tableros nuevos; la RLS vigente de la spec 007 no cambia. |
+| `analitica.ventas_empresa_categoria` | **nueva** (vista) | Cruce venta × tienda × categoría: expone `organizacion_id`, `empresa_id`, `empresa_nombre`, categoría, facturado con IVA y unidades. Sin costo ni datos de clientes. `select` solo para `superset_analitica`. |
+| `analitica.margen_real_categoria` | **nueva** (vista) | Reutiliza `analitica.rentabilidad_ventas_real` (un único cálculo del margen) y le suma la categoría: expone vendido, costo y margen por tienda, categoría y producto. `select` solo para `superset_analitica`. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o| RESUMEN_SEMANAL_CONFIG : "se pausa por organización"
+  ORGANIZACIONES ||--o{ RESUMEN_SEMANAL_ENVIOS : "un resumen por semana"
+  ORGANIZACIONES ||--o{ USUARIOS_ORGANIZACION : "administradores activos"
+  ORGANIZACIONES ||--o{ REGISTRO_ACTIVIDAD : "pausa y reanudación"
+  ORGANIZACIONES ||--o{ REPORTES_ORGANIZACIONES : "tableros asignados"
+  USUARIOS_ORGANIZACION }o--o{ PREFERENCIAS_AVISO : "baja personal"
+  TIPOS_AVISO ||--o{ PREFERENCIAS_AVISO : "tipo resumen_semanal"
+  REPORTES ||--o{ REPORTES_ORGANIZACIONES : asigna
+  REPORTES ||--o{ REPORTES_ROLES_DEFAULT : "roles por defecto"
+  REPORTES_ORGANIZACIONES ||--o{ REPORTES_ORGANIZACIONES_ROLES : "roles efectivos"
+  ORGANIZACIONES ||--o{ EMPRESAS : tiene
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : vende
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : detalla
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende en"
+  CATEGORIAS ||--o{ PRODUCTOS : clasifica
+  PRODUCTOS ||--o{ EXISTENCIAS : "stock"
+  PRODUCTOS ||--o{ FALTANTES_VENTA : "falta"
+  COMPROBANTES_VENTA ||--o{ FALTANTES_VENTA : origen
+
+  RESUMEN_SEMANAL_CONFIG { uuid organizacion_id PK
+    boolean activo "sin fila = activo"
+    uuid actualizado_por
+    timestamptz actualizado_en }
+  RESUMEN_SEMANAL_ENVIOS { uuid id PK
+    uuid organizacion_id FK
+    date semana_desde "lunes; unique con la organización"
+    date semana_hasta "domingo"
+    text estado "pendiente|enviado|fallido|sin_destinatario|pausado|vencido"
+    integer intentos
+    text ultimo_error "sin host, IP ni correo"
+    jsonb contenido "agregados congelados"
+    integer destinatarios_cantidad
+    timestamptz generado_en
+    timestamptz enviado_en }
+  TIPOS_AVISO { text clave PK "nueva: resumen_semanal"
+    text nombre
+    text seccion }
+  PREFERENCIAS_AVISO { uuid user_id PK
+    text tipo_aviso PK
+    boolean activo }
+  USUARIOS_ORGANIZACION { uuid user_id PK
+    uuid organizacion_id
+    text rol_id
+    text estado }
+  REGISTRO_ACTIVIDAD { uuid id PK
+    text tipo "resumen_semanal.pausado|reanudado" }
+  REPORTES { uuid id PK
+    text nombre
+    text seccion }
+  REPORTES_ORGANIZACIONES { uuid reporte_id PK
+    uuid organizacion_id PK }
+  REPORTES_ROLES_DEFAULT { uuid reporte_id PK
+    text rol_id PK }
+  REPORTES_ORGANIZACIONES_ROLES { uuid reporte_id PK
+    uuid organizacion_id PK
+    text rol_id PK }
+  ORGANIZACIONES { uuid id PK }
+  EMPRESAS { uuid id PK
+    text nombre }
+  COMPROBANTES_VENTA { uuid id PK
+    date fecha }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    numeric costo_unitario }
+  PRODUCTOS { uuid id PK
+    uuid categoria_id FK }
+  CATEGORIAS { uuid id PK
+    text nombre }
+  EXISTENCIAS { uuid producto_id PK
+    integer cantidad }
+  FALTANTES_VENTA { uuid id PK
+    text estado }
+```
+
+- **`analitica` no tiene tablas**: `rls_en_toda_tabla` (que recorre `public` y `dominio`) sigue verde. Las dos vistas
+  se leen solo con el rol `superset_analitica`; el aislamiento por organización y por empresa lo fuerza la cláusula
+  `rls` del guest token que arma `emitir-acceso-reporte` en el servidor.
+- **Las dos tablas nuevas no son dato de negocio**: `private.exclusiones_exportacion_total()` las excluye (migración
+  `20270324100300`).
+- **El prefijo «Analítica · »** marca los tableros que la migración `20270324100100` asigna a **todas** las
+  organizaciones (existentes y nuevas) mediante tres disparadores; registrar un reporte solo puede el superadmin o el
+  importador del lado del servidor.
+- **Reversión**: `drop view` de las dos vistas de `analitica`, `drop trigger`/`drop function` de los disparadores de
+  `20270324100100` y `delete from public.reportes where nombre like 'Analítica · %'` (arrastra asignaciones y roles);
+  `drop table` de las dos tablas del resumen, borrado de la fila `resumen_semanal` de `tipos_aviso` y de las
+  preferencias, y redefinición de `private.exclusiones_exportacion_total()`.
