@@ -74,7 +74,7 @@ describe('ClienteShow', () => {
     mocks.invitar.mockResolvedValue(undefined)
     mocks.cambiarEstado.mockResolvedValue(undefined)
     mocks.habilitarTienda.mockResolvedValue(['e-1'])
-    mocks.useLista.mockReturnValue({ lista: null, cargando: false, hayError: false })
+    mocks.useLista.mockReturnValue({ lista: null, cargando: false, hayError: false, reintentar: vi.fn() })
     conCliente({})
   })
 
@@ -258,15 +258,25 @@ describe('ClienteShow', () => {
 
     it('con lista muestra su nombre y porcentaje, en solo lectura', () => {
       conCliente({ lista_precio_id: 'l-1' })
-      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false })
+      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false, reintentar: vi.fn() })
       abrir()
       expect(screen.getByText('Revendedores (-20 %)')).toBeInTheDocument()
       expect(mocks.useLista).toHaveBeenCalledWith('l-1')
     })
 
+    it('si no se pudo cargar la lista lo dice y deja reintentar', () => {
+      const reintentar = vi.fn()
+      conCliente({ lista_precio_id: 'l-1' })
+      mocks.useLista.mockReturnValue({ lista: null, cargando: false, hayError: true, reintentar })
+      abrir()
+      expect(screen.getByText(/No pudimos cargarla/)).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(reintentar).toHaveBeenCalledTimes(1)
+    })
+
     it('avisa que no se acumula cuando el cliente también tiene descuento personal', () => {
       conCliente({ lista_precio_id: 'l-1', descuento: 5 })
-      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false })
+      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false, reintentar: vi.fn() })
       abrir()
       expect(screen.getByText(/también un descuento personal\. No se acumulan/)).toBeInTheDocument()
     })
@@ -280,7 +290,7 @@ describe('ClienteShow', () => {
     it.each([320, 768, 1440])('sin violaciones de axe a %i px', async (ancho) => {
       Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
       conCliente({ lista_precio_id: 'l-1', descuento: 5 })
-      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false })
+      mocks.useLista.mockReturnValue({ lista: LISTA, cargando: false, hayError: false, reintentar: vi.fn() })
       const { container } = abrir()
       expect(await violacionesAxe(container)).toEqual([])
     })

@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "56deb9b6faa8d7f57a5758517946352ee277877052c3002f0ad068b485735f28",
-      "sourceHash": "90b494bdaebf547a2ec8b94d07465f25e5c8b8bf1368992cd5dd36ba3469f0dc",
-      "sourceAt": "1dd2929e",
+      "pageHash": "f8ae8d0f078033e8ebf518ad97e71e238f000e4d41c583c4de258c0fbaa202d8",
+      "sourceHash": "4e1d301b203113e8ad3d9bae91695b3269537bc190eb0769a046cc1dd7c0256e",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "1dd2929e"
+      "commit": "202e8b34"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "96ccc09f68d76a3d30f8ef3a21d899e5130f1f906897a41793016786654b6f4c",
-      "sourceHash": "e49c4822582534b2ef31612df12ee09d4c3fda90c155339732d39d287388670c",
-      "sourceAt": "2cb47fde",
+      "pageHash": "205d51ad120030c46d90c53fe29c42f7af3718b35572fcb4e0165e3cfbe13f9e",
+      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2cb47fde"
+      "commit": "202e8b34"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -659,14 +659,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f84b63bfd9898a6670c91ef929b12a0c72d013268967170ab8854488b54bc1ae",
-      "sourceHash": "3a2daf4d9368e2c20a483a1062a94b23b170d1b9138338fbfe83d816efd827f7",
-      "sourceAt": "393c67cb",
+      "pageHash": "87d0e7f5e0bbeef52e3e2557bbb359551db83b6fa76979f5fc1baf7dc96ae528",
+      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "sourceAt": "0035d19c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "393c67cb"
+      "commit": "0035d19c"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -681,14 +681,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "8cd520f755fb1f93770cf9a1ad38e069e192a2bd74db00ddc37359bbe8359ecc",
-      "sourceHash": "e49c4822582534b2ef31612df12ee09d4c3fda90c155339732d39d287388670c",
-      "sourceAt": "e7aef13c",
+      "pageHash": "b7ce5f099e89aabbf4e861d6a661d221b42de7386d8e319fee8348fb11e9b271",
+      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e7aef13c"
+      "commit": "202e8b34"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -953,9 +953,9 @@
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",
-      "pageHash": "4d0fc3fdb8540ade6e5dba8f5311ccf41f6a62c8961007d55661b18bb8379bd3",
+      "pageHash": "66682ca48d0827e415b118c7f4f0d26a0629f1d06863d0f5c76fa9cfb743b0c1",
       "sourceHash": "af75354b4205e1cd31b38aa1f348f4a7d5f0729cd77e8333c9891c6ac044d250",
-      "sourceAt": "e7aef13c",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs/20261109-103000-ordenes-de-compra-a-proveedores",
         "supabase/migrations/20270334000000_ordenes_compra_tablas.sql",
@@ -964,7 +964,7 @@
         "apps/web/src/lib/ordenesCompra.ts"
       ],
       "owner": "tecnico",
-      "commit": "e7aef13c"
+      "commit": "202e8b34"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",
@@ -1033,9 +1033,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "174271d571ea24e20ea80f0d8494b64f6cd919e4392153138cd387644270cc5a",
+      "pageHash": "4d2632d02a714dc0ae04316758b4ed36210a245c070e5b6697be3cfd4308b06a",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "56b825d5",
+      "sourceAt": "e2402afc",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1044,7 +1044,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "56b825d5"
+      "commit": "e2402afc"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -2618,16 +2618,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "7d792d54eee374b3223748f093124b2504feddc6119a47dd747bc29c7c33ced0",
-      "sourceHash": "172c5c01ee9c9d8bc70443785a9f9de2e48a273ccf063cbb143631696d666d47",
-      "sourceAt": "87c411de",
+      "pageHash": "3577e980434ea22282508a501a3eb9ef1a42f4a9747f83ce6a9cf57d695249a7",
+      "sourceHash": "d38234d199e8c70ca913c824558ea8d4d21587af042e5a04a888e0df8d32e976",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "87c411de"
+      "commit": "202e8b34"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",

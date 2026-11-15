@@ -160,7 +160,10 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
   La cascada completa también con **ingresos de mercadería** (cabecera, líneas, movimientos de stock, proveedores y
   productos): sus claves `restrict` son diferibles desde MSF-844/MSF-847 (ver más abajo) y lo cubre
-  `supabase/tests/database/baja_organizacion_ingresos.test.sql` (MSF-857). Siguen fuera de ese alcance las claves de
+  `supabase/tests/database/baja_organizacion_ingresos.test.sql` (MSF-857). Como esas claves son `deferrable initially deferred`,
+  la prueba llama a `private.confirmar_claves_diferidas()` justo después del `delete` (si no, una violación recién saltaría en el
+  COMMIT, que una prueba con rollback nunca ejecuta); se comprobó mutando (una referencia sin cascada que bloquea la baja hace
+  fallar la prueba) y la baja con ingresos de mercadería se completa de verdad. Siguen fuera de ese alcance las claves de
   ventas, motos, cotizaciones y el resto del stock: con esos datos `delete from public.organizaciones` puede fallar por
   clave foránea. No hay ningún flujo de producto que dé de baja una organización (ninguna pantalla la borra); el único
   camino de código es el rollback de la Edge `crear-organizacion` (organización recién creada, sin datos). Si algún día
