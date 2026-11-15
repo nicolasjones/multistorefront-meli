@@ -11,6 +11,7 @@ import { estiloEnlacePie, estiloTituloPie } from './estilosPie'
 import { useIdentidadTienda } from './IdentidadTiendaContexto'
 import { PieInformacion } from './PieInformacion'
 import { PieLegal } from './PieLegal'
+import { FormularioSuscripcion } from '../newsletter/FormularioSuscripcion'
 import { ANCHO_MAXIMO_TIENDA } from './medidas'
 
 // Aviso de cookies (F-TDA-22): carga diferida, no pesa en el primer pintado.
@@ -80,6 +81,8 @@ export function PieCategorias({ categorias: todas, host, empresaNombre }: { cate
               <li><Box component={EnlaceRuta} to="/contacto" sx={{ ...estiloEnlacePie, textDecoration: 'underline' }}>Escribinos</Box></li>
             </Box>
           </Box>
+          {/* Newsletter (MSF-468): el formulario solo aparece con la bandera, el interruptor de la tienda y la tienda activos. */}
+          {host ? <FormularioSuscripcion host={host} /> : null}
         </Box>
         <PieLegal host={host} />
       </Box>
