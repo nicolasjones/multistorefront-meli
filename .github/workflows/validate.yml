@@ -307,12 +307,21 @@ jobs:
       # (por eso `--ignore-health-check` arriba): se lo reinicia después de `db:reset:ci`, como en `e2e-tienda`.
       - name: Reiniciar PostgREST
         run: docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+      # Dentro del contenedor del runner `127.0.0.1` es el propio contenedor y el puente de arranque muere al
+      # terminar su paso: la API del stack (publicada en el Docker del host) se alcanza por `host.docker.internal`,
+      # tanto desde Node (specs) como desde Chromium (la web del build), igual que en `e2e-tienda`.
       - name: Exponer claves al build y a los specs
         run: |
           eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
-          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          URL="${API_URL/127.0.0.1/host.docker.internal}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          for intento in $(seq 60); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL/rest/v1/" || true)" = "200" ] && break
+            sleep 2
+          done
+          echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
