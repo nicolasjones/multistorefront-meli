@@ -178,11 +178,16 @@ describe('FormularioContacto', () => {
   })
 })
 
-it('avisa sin bloquear cuando el teléfono no se puede usar como WhatsApp', () => {
+it('avisa sin bloquear, al salir del campo y con texto para el visitante, cuando el teléfono no se puede usar como WhatsApp', () => {
   render(<FormularioContacto host="h" />)
   const campo = screen.getByLabelText('Correo o WhatsApp')
-  fireEvent.change(campo, { target: { value: '12345678' } })
-  expect(screen.getByText(/No reconocemos este número/)).toBeInTheDocument()
+  fireEvent.change(campo, { target: { value: '12345' } })
+  // Mientras escribe no se avisa.
+  expect(screen.queryByText(/Revisá el número/)).not.toBeInTheDocument()
+  fireEvent.blur(campo)
+  expect(screen.getByRole('status')).toHaveTextContent(/Revisá el número/)
+  expect(screen.queryByText(/No reconocemos/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/botón de WhatsApp/)).not.toBeInTheDocument()
   fireEvent.change(campo, { target: { value: 'a@b.com' } })
-  expect(screen.queryByText(/No reconocemos este número/)).not.toBeInTheDocument()
+  expect(screen.queryByText(/Revisá el número/)).not.toBeInTheDocument()
 })

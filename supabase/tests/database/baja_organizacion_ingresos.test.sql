@@ -22,7 +22,10 @@ select is((select count(*)::int from dominio.ingresos_mercaderia_lineas
             where ingreso_id = '00000000-0000-0000-0000-0000000085a6'), 1, 'el ingreso tiene su línea');
 
 select lives_ok(
-  $t$delete from public.organizaciones where id = '00000000-0000-0000-0000-0000000085a1'$t$,
+  $t$do $b$ begin
+      delete from public.organizaciones where id = '00000000-0000-0000-0000-0000000085a1';
+      perform private.confirmar_claves_diferidas();
+    end $b$$t$,
   'la baja de una organización con ingresos de mercadería se completa');
 
 select is((select count(*)::int from dominio.ingresos_mercaderia

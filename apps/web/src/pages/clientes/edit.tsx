@@ -9,8 +9,8 @@ import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useBanderaListasPrecios } from '../../hooks/useBanderaListasPrecios'
 import { useListasPreciosActivas } from '../../hooks/useListasPreciosActivas'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
-import { type Cliente, aFormulario } from '../../lib/clientes'
-import { asignarListaPrecios } from '../../lib/listasPrecios'
+import { type Cliente, ErrorGuardadoParcial, aFormulario } from '../../lib/clientes'
+import { asignarListaPrecios, leerListaDeCliente } from '../../lib/listasPrecios'
 import { supabaseClient } from '../../lib/supabase'
 import { aplicarCuentaWebEnTiendas, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
 import { FormularioCliente } from '../../components/clientes/FormularioCliente'
@@ -84,9 +84,34 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
             onCancelar={onCancelar}
             onGuardar={async (valores, opciones, cambios) => {
               const { empresas: seleccion, ...datos } = valores
-              // La lista se asigna primero: si la base la rechaza (p. ej. bandera apagada) no queda nada a medias.
-              if (cambios && 'listaPrecioId' in cambios) await asignarListaPrecios(supabaseClient, cliente.id, cambios.listaPrecioId ?? null)
-              await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
+              // La lista se asigna primero: si la base la rechaza (p. ej. bandera apagada) no se toca nada más. Si después falla el
+              // update de los datos, la lista se devuelve a la anterior (compensación) para que el formulario, que muestra el error,
+              // y la base queden de acuerdo. Solo se devuelve si la lista actual sigue siendo la que esta pantalla asignó (se relee):
+              // si otra persona la cambió entretanto no se pisa. Releer y escribir no es atómico: queda una ventana mínima.
+              // Si la compensación no se puede hacer, se dice explícitamente en vez de callarlo.
+              const cambiaLista = Boolean(cambios && 'listaPrecioId' in cambios)
+              const listaAsignada = cambios?.listaPrecioId ?? null
+              if (cambiaLista) await asignarListaPrecios(supabaseClient, cliente.id, listaAsignada)
+              try {
+                await mutateAsync({ resource: 'clientes', id: cliente.id, values: datos, successNotification: false })
+              } catch (error) {
+                if (cambiaLista) {
+                  try {
+                    const actual = await leerListaDeCliente(supabaseClient, cliente.id)
+                    if (actual !== listaAsignada) {
+                      console.error('La lista de precios cambió mientras se guardaba: no se restaura la anterior.', { esperada: listaAsignada, actual })
+                      throw new ErrorGuardadoParcial('No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.')
+                    }
+                    await asignarListaPrecios(supabaseClient, cliente.id, cliente.lista_precio_id ?? null)
+                  } catch (errorCompensacion) {
+                    if (errorCompensacion instanceof ErrorGuardadoParcial) throw errorCompensacion
+                    // La base puede conservar la lista nueva (o la anterior se archivó y no se puede reasignar).
+                    console.error('No se pudo devolver la lista de precios a la anterior.', errorCompensacion, error)
+                    throw new ErrorGuardadoParcial('No se guardó el cliente y la lista quedó cambiada: revisala.')
+                  }
+                }
+                throw error
+              }
               // Si fallan las tiendas, la edición del cliente ya quedó: se propaga el
               // error para reintentar (guardar de nuevo no duplica nada).
               await guardar(cliente.id, seleccion)

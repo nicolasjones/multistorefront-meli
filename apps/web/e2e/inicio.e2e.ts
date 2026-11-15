@@ -248,6 +248,8 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(alertas(consulta.page).getByText('1 consulta nueva sin atender')).toBeVisible()
         })
         await paso(consulta.page, 'No ve los accesos directos ni las acciones de edición', async () => {
+          // Primero espera una alerta que sí debe verse: así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(consulta.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(consulta.page.getByRole('link', { name: 'Nuevo comprobante' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Registrar movimiento' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Nuevo producto' })).toHaveCount(0)
@@ -271,6 +273,8 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(mostrador.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
         })
         await paso(mostrador.page, 'Tampoco ve la alerta de consultas ni la del dólar (solo lectura, CA-INI-07-7)', async () => {
+          // Primero espera una alerta que sí debe verse: así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(mostrador.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(alertas(mostrador.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
           await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toHaveCount(0)
         })
@@ -300,6 +304,8 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(sesion.page.getByRole('button', { name: new RegExp(`^Empresa activa: ${siembra.empresaA.nombre}`) })).toBeVisible()
         })
         await paso(sesion.page, 'Sin permiso en Consultas en esta tienda: no ve su tarjeta ni su alerta', async () => {
+          // Primero espera una alerta que sí debe verse (la de stock): así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(sesion.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(sesion.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
           await expect(alertas(sesion.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
         })
