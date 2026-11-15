@@ -2,7 +2,7 @@
 -- Casos borde de `private.validar_texto_opinion` y `private.nombre_publico_cliente`.
 begin;
 
-select plan(72);
+select plan(99);
 
 create function pg_temp.ok_(p_punt int, p_txt text) returns boolean language sql as
   $$ select (private.validar_texto_opinion(p_punt, p_txt)->>'ok')::boolean $$;
@@ -50,6 +50,33 @@ select is(pg_temp.ok_(5, 'Escribime a promo.link, gracias'), false, 'dominio rea
 select is(pg_temp.ok_(5, 'Todo en ejemplo.com/ofertas hoy'), false, 'dominio con ruta');
 select is(pg_temp.ok_(5, 'Mirá www . ejemplo y listo ya'), false, 'www con espacios sigue rechazado');
 select is(pg_temp.ok_(5, 'Mirá http ://ejemplo ahora mismo'), false, 'http con espacio antes de los dos puntos sigue rechazado');
+-- Punto pegado + palabra corta: frases legítimas que NO son enlaces
+select is(pg_temp.ok_(5, 'Anda bien.No se calienta nada'), true, 'sin falso positivo: «bien.No»');
+select is(pg_temp.ok_(5, 'Muy bueno.me gustó muchísimo'), true, 'sin falso positivo: «bueno.me gustó»');
+select is(pg_temp.ok_(5, 'Lo uso a diario.es genial para todo'), true, 'sin falso positivo: «diario.es genial»');
+select is(pg_temp.ok_(5, 'Me encantó, sí.No sé qué más decir'), true, 'sin falso positivo: «sí.No sé»');
+select is(pg_temp.ok_(5, 'Excelente producto.Llegó rápido y bien'), true, 'sin falso positivo: «producto.Llegó»');
+select is(pg_temp.ok_(5, 'Todo ok.Excelente atención de verdad'), true, 'sin falso positivo: «ok.Excelente»');
+select is(pg_temp.ok_(5, 'Quedó perfecto.todo funciona muy bien'), true, 'sin falso positivo: «perfecto.todo»');
+select is(pg_temp.ok_(5, 'Es muy útil.Se lo recomiendo a todos'), true, 'sin falso positivo: «útil.Se lo»');
+-- Enlaces reales con TLD de país o acortador
+select is(pg_temp.ok_(5, 'Escribime a t.me/x cuando quieras'), false, 't.me/x');
+select is(pg_temp.ok_(5, 'Escribime a wa.me/549 cuando quieras'), false, 'wa.me/549');
+select is(pg_temp.ok_(5, 'Mirá bit.ly/a que sale menos'), false, 'bit.ly/a');
+select is(pg_temp.ok_(5, 'Mirá youtu.be/z que está bueno'), false, 'youtu.be/z');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo.com.ar hoy mismo'), false, 'ejemplo.com.ar');
+select is(pg_temp.ok_(5, 'Comprá en mi-tienda.es, hoy mismo'), false, 'mi-tienda.es');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.es.'), false, 'mitienda.es al final de frase');
+select is(pg_temp.ok_(5, 'Comprá en x.mx hoy mismo'), false, 'x.mx');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo.cl/ofertas hoy'), false, 'ejemplo.cl/ofertas');
+select is(pg_temp.ok_(5, 'Comprá en mitienda3.me, no te lo pierdas'), false, 'dominio con dígito .me seguido de coma');
+-- Puntos de otras escrituras se normalizan
+select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(12290) || 'com hoy mismo'), false, 'punto ideográfico U+3002');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(65294) || 'com hoy mismo'), false, 'punto de ancho completo U+FF0E');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo' || chr(65377) || 'com hoy mismo'), false, 'punto de media anchura U+FF61');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo[.]com hoy mismo'), true, 'ejemplo[.]com NO se detecta (limitación conocida)');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo(.)com hoy mismo'), true, 'ejemplo(.)com NO se detecta (limitación conocida)');
+select is(pg_temp.ok_(5, 'Comprá en ejemplo.' || chr(1089) || 'om hoy mismo'), true, 'homógrafos cirílicos NO se detectan (limitación conocida)');
 select is(private.texto_opinion_no_permitido('Producto. Top calidad'), false, 'texto_opinion_no_permitido: frase legítima');
 select is(private.texto_opinion_no_permitido('visitá ejemplo.com ya'), true, 'texto_opinion_no_permitido: enlace');
 
@@ -86,6 +113,9 @@ select cmp_ok(pg_temp.ms(repeat('a-', 25000) || ' fin'), '<', 1000::numeric, '50
 select cmp_ok(pg_temp.ms(repeat('http ', 10000)), '<', 1000::numeric, '50.000 caracteres «http »: < 1 s');
 select cmp_ok(pg_temp.ms(repeat('ab.', 16000) || ' x'), '<', 1000::numeric, '48.000 caracteres «ab.ab.»: < 1 s');
 select cmp_ok(pg_temp.ms(repeat(' ', 50000) || '.com'), '<', 1000::numeric, '50.000 espacios y «.com»: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('Bien.No ', 25000)), '<', 1000::numeric, '200.000 caracteres «Bien.No »: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('mi-tienda.', 20000)), '<', 1000::numeric, '200.000 caracteres «mi-tienda.»: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('a', 200000)), '<', 1000::numeric, '200.000 letras: < 1 s');
 
 select is(private.nombre_publico_cliente('Valeria Sánchez'), 'Valeria', 'solo el nombre de pila');
 select is(private.nombre_publico_cliente('   '), 'Cliente', 'vacío -> Cliente');

@@ -10,17 +10,24 @@
 --   drop function if exists private.nombre_publico_cliente(text);
 
 -- Texto con contenido no permitido: caracteres de control (incluye saltos de línea), separadores de línea/párrafo, marcas de
--- dirección y de ancho cero, y enlaces. Reglas de enlace (HEURÍSTICA, ver «Limitaciones conocidas» de la spec):
+-- dirección y de ancho cero, y enlaces. Antes de evaluar, los puntos de otras escrituras (U+3002 «。», U+FF0E «．», U+FF61 «｡»,
+-- U+2024 «․», U+FE52 «﹒») se normalizan al punto ASCII. Reglas de enlace (HEURÍSTICA, ver «Limitaciones conocidas» de la spec):
 --   * `http:` / `https:` / `ftp:` (con espacios opcionales antes de los dos puntos) y `www.`. La palabra `http`/`https` SOLA,
 --     sin dos puntos, se ACEPTA a propósito: rechazarla daría falsos positivos («usan https para pagar»).
---   * dominio: alfanumérico o guion PEGADO al punto y TLD pegado al punto, con un TLD de lista (genéricos) o de dos letras
---     (cualquier ccTLD: .ar, .es, .mx, .cl, .uy, .br, .co, .me, .ly, .be…), seguido de un carácter no alfanumérico o el final.
---     Cubre t.me, wa.me, bit.ly, youtu.be, tinyurl.com, ejemplo.com.ar.
---   * `algo.palabra/…`: cualquier TLD seguido de barra.
---   «producto. Top calidad» o «el 10. Es ok.» NO son enlaces (hay un espacio tras el punto). Sin cuantificadores anidados: el
---   costo es lineal (medido con 50.000 caracteres hostiles: milisegundos). Sigue sin detectar ofuscación («ejemplo punto com»,
---   «ejemplo . com», «ejemplo[.]com»). Es `invoker` (no `security definer`) a propósito: es pura, no lee tablas ni usa privilegios
---   del dueño; `search_path` vacío y sin `execute` para la API. La reutilizan el comentario y el motivo de rechazo.
+--   * dominio con TLD de LISTA CERRADA, alfanumérico o guion pegado al punto y TLD pegado al punto, seguido de un no alfanumérico
+--     o el final: genéricos (com, net, org, shop, online, top…) y de país/acortadores que no son palabras comunes en castellano
+--     (ar, mx, cl, uy, br, co, pe, py, bo, ec, us, uk, fr, ly, tv, cc, ws, gl, gg, be, ee, fm, gd, gy, sh, vc, ph, pt, ru, cn,
+--     jp, au, nz, ca, nl, ch, pl, tr). Cubre bit.ly, youtu.be, ejemplo.com.ar, x.mx, ejemplo.cl/ofertas.
+--   * TLD que son palabras muy comunes (es, me, de, to, it, at, in, se, ve): solo si NO los sigue un espacio (puntuación o fin
+--     de texto) y la parte previa tiene forma de dominio (4 o más alfanuméricos/guiones seguidos, o termina en guion o dígito):
+--     «mi-tienda.es» y «mitienda.es.» se rechazan; «bueno.me gustó» y «diario.es genial» se aceptan.
+--   * `algo.palabra/…`: cualquier TLD seguido de barra (t.me/…, wa.me/…).
+--   Un punto con espacio detrás («producto. Top calidad», «el 10. Es ok.») nunca es enlace, y las palabras de dos letras que no
+--   están en la lista (no, si, mi, te, la, el, ya, lo, le, en, un, al, su) tampoco: «Anda bien.No se calienta» pasa. Sin
+--   cuantificadores anidados: costo lineal (medido con 50.000 a 200.000 caracteres hostiles: milisegundos). NO detecta
+--   ofuscación («ejemplo punto com», «ejemplo(.)com», «ejemplo[.]com»), homógrafos cirílicos ni enlaces con espacios dentro.
+--   Es `invoker` (no `security definer`) a propósito: es pura, no lee tablas ni usa privilegios del dueño; `search_path` vacío y
+--   sin `execute` para la API. La reutilizan el comentario y el motivo de rechazo.
 create or replace function private.texto_opinion_no_permitido(p_texto text)
 returns boolean
 language sql
@@ -28,15 +35,17 @@ immutable
 security invoker
 set search_path = ''
 as $$
-  select p_texto ~ '[[:cntrl:]]'
-      or p_texto ~ '[  ​-‏‪-‮⁠-⁩﻿]'
-      or p_texto ~* '(https?|ftp)[[:space:]]*:|www[[:space:]]*\.'
-      or p_texto ~* '[[:alnum:]-]\.(com|net|org|info|biz|edu|gov|mil|int|name|pro|app|dev|shop|store|site|online|link|xyz|top|club|ink|page|tech|live|cloud|blog|news|mobi|agency|website|space|fun|vip|icu|work|win|bid|click|stream|[[:alpha:]]{2})([^[:alnum:]]|$)'
-      or p_texto ~* '[[:alnum:]-]\.[[:alpha:]]{2,}/';
+  select t.x ~ '[[:cntrl:]]'
+      or t.x ~ '[  ​-‏‪-‮⁠-⁩﻿]'
+      or t.x ~* '(https?|ftp)[[:space:]]*:|www[[:space:]]*\.'
+      or t.x ~* '[[:alnum:]-]\.(com|net|org|info|biz|edu|gov|mil|int|name|pro|app|dev|shop|store|site|online|link|xyz|top|club|ink|page|tech|live|cloud|blog|news|mobi|agency|website|space|fun|vip|icu|work|win|bid|click|stream|ar|mx|cl|uy|br|co|pe|py|bo|ec|us|uk|fr|ly|tv|cc|ws|gl|gg|be|ee|fm|gd|gy|sh|vc|ph|pt|ru|cn|jp|au|nz|ca|nl|ch|pl|tr)([^[:alnum:]]|$)'
+      or t.x ~* '([[:alnum:]-]{4}|[-[:digit:]])\.(es|me|de|to|it|at|in|se|ve)([^[:alnum:][:space:]]|$)'
+      or t.x ~* '[[:alnum:]-]\.[[:alpha:]]{2,}/'
+  from (select translate(p_texto, '。．｡․﹒', '.....') as x) t;
 $$;
 
 comment on function private.texto_opinion_no_permitido(text) is
-  'MSF-467: true si el texto trae control, marcas de dirección/ancho cero o un enlace (heurística: dominio con TLD de lista o de dos letras, acortadores, http: y www.; no detecta ofuscación). Pura, invoker. Compartida por el comentario y el motivo de rechazo.';
+  'MSF-467: true si el texto trae control, marcas de dirección/ancho cero o un enlace (heurística: dominio con TLD de lista cerrada, acortadores, http: y www., puntos de otras escrituras normalizados; no detecta ofuscación). Pura, invoker. Compartida por el comentario y el motivo de rechazo.';
 
 -- Valida puntuación y comentario. Devuelve {ok, campos:[...], comentario: <recortado>}; `campos` lista lo erróneo
 -- ("puntuacion" y/o "comentario"). El comentario se recorta (btrim) y se mide en caracteres de Postgres (1 a 1.000 tras el
