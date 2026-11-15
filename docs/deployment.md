@@ -525,6 +525,32 @@ aplica las pendientes de la rama `dokploy` y las registra en
 
 ## Promoción simple
 
+### Verificación previa de promoción: secreto `visitante_hmac` (DEV → STG → PRD)
+
+`private.hmac_visitante` (usado por `visitante_hash` y `visitante_publico`) exige el secreto `visitante_hmac` de Vault. Lo
+crea la migración `20270323100200` (`private.inicializar_visitante_hmac()`); si falta en el entorno destino (Vault sin
+habilitar, migración corrida con un rol que no ve Vault, secreto borrado), **toda la búsqueda y los pedidos públicos de la
+tienda fallan**. Antes de promover a STG o PRD, y después de aplicar las migraciones, verificar con un `SELECT` que no
+expone el valor:
+
+```sql
+select count(*) = 1 as secreto_visitante_hmac_presente
+  from vault.secrets
+ where name = 'visitante_hmac';
+```
+
+Debe devolver `true`. Si devuelve `false`, no promover: ejecutar `select private.inicializar_visitante_hmac();` con el rol
+`postgres` (crea el secreto si falta y es idempotente) y repetir la verificación. Nunca seleccionar `decrypted_secret`
+ni copiar el valor entre entornos: cada entorno tiene el suyo. Sin cabecera `x-forwarded-for`, la búsqueda y los envíos
+comparten el marcador «sin-ip» (migración `20270347000300`).
+
+### Reglas vigentes que no son defectos
+
+- Fusionar clientes (`fusionar_clientes`) descarta la lista de precios del cliente absorbido: es una decisión de diseño
+  documentada en [clientes.md](clientes.md), no una pérdida a corregir.
+
+### Flujo
+
 ```text
 rama de feature → Preview → staging (si hace falta) → main/producción
 ```
