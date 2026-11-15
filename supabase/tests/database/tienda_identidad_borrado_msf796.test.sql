@@ -2,12 +2,14 @@
 -- referenciada por la identidad publicada, el borrador ni ninguna versión. Verifica: la función auxiliar
 -- (privilegios, search_path vacío, las tres columnas de ruta en las tres fuentes), el borrado real sobre
 -- `storage.objects` como persona editora (referenciado = no se borra; sin referencia = se borra), el aislamiento
--- entre organizaciones y que sin edición en Empresas no se borra nada.
+-- entre organizaciones y que sin edición en Empresas no se borra nada. Desde la revisión del PR #1003 también
+-- verifica que la respuesta de la función no cruce organizaciones (una ruta de otra organización es «no referenciada»
+-- para quien llega por la API).
 -- Storage rechaza el DELETE SQL directo salvo con `storage.allow_delete_query = 'true'`: se activa en cada borrado
 -- para que lo único que decida sea la política de filas.
 begin;
 
-select plan(29);
+select plan(34);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -67,6 +69,14 @@ insert into storage.objects (bucket_id, name, owner) values
   ('tienda-identidad', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000002/logo-b.png', 'd1000000-0000-0000-0000-000000000001');
 insert into storage.objects (bucket_id, name, owner) values
   ('tienda-identidad', '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/propio.png', 'd2000000-0000-0000-0000-000000000001');
+
+-- La identidad de la Tienda Dos (otra organización) referencia su propio logo: existiendo la referencia, la ruta está
+-- «usada» y no se puede borrar. La persona de la organización Uno no tiene por qué enterarse de eso.
+insert into dominio.tienda_identidad (empresa_id, organizacion_id, logo_ruta) values
+  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222',
+   '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/logo-ajeno.png');
+insert into storage.objects (bucket_id, name, owner) values
+  ('tienda-identidad', '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/logo-ajeno.png', 'd2000000-0000-0000-0000-000000000001');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -192,6 +202,25 @@ select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-
 delete from dominio.tienda_borrador where empresa_id = 'e1000000-0000-0000-0000-000000000001';
 select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/banner-borrador.png'), 1,
   'sin el borrador, el banner que solo él referenciaba queda libre y se borra');
+
+-- ============================================================================
+-- La respuesta no cruza organizaciones (revisión PR #1003)
+-- ============================================================================
+
+-- Sin JWT (tarea de mantenimiento): la función ve la referencia real.
+select set_config('request.jwt.claims', '', true);
+select is(private.ruta_identidad_referenciada('22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/logo-ajeno.png'), true,
+  'sin JWT, la función ve que la ruta de la otra organización está referenciada');
+
+-- Con la sesión de una persona de la organización Uno: la respuesta se acota a su organización.
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(private.ruta_identidad_referenciada('22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/logo-ajeno.png'), false,
+  'una persona de otra organización no se entera de que esa ruta está referenciada');
+select is(private.ruta_identidad_referenciada('11111111-1111-1111-1111-111111111111/e1000000-0000-0000-0000-000000000001/logo-vivo.png'), true,
+  'sí se entera de las referencias de su propia organización');
+select is(pg_temp.borrar('d1000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222/e2000000-0000-0000-0000-000000000001/logo-ajeno.png'), 0,
+  'y tampoco borra el archivo de la otra organización (sigue protegido por su referencia y por su carpeta)');
+reset role;
 
 select * from finish();
 rollback;

@@ -879,6 +879,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 | `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16) | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
 | `20261212121000_tienda_whatsapp.sql` (F-TDA-14) | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
 | `20270323100200_tienda_envios_visitante_hmac.sql` (MSF-945) | secreto `visitante_hmac` en Vault; `private.hmac_visitante`, `private.inicializar_visitante_hmac`; `private.visitante_hash` con HMAC; política `tienda_envios_select` por sección; hashes viejos a `legado` | ver el encabezado de la migración y «Lote 1 de deuda técnica» |
+| `20270323100400_tienda_identidad_referencia_y_visitante_hmac.sql` (MSF-560, revisión del PR #1003) | `private.ruta_identidad_referenciada` acotada a la organización de quien pregunta (fin del oráculo cross-tenant); `private.hmac_visitante` con el prefijo `hmac:` y las filas existentes pasadas al formato nuevo (el reemplazo a `legado` ya no alcanza a los HMAC vivos); sin tablas nuevas ni alteradas | ver el encabezado de la migración |
 
 **Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
 `private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
@@ -1350,3 +1351,25 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 - **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
   y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
 - Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
+
+### Ajustes de la revisión de seguridad del PR #1003 (MSF-560)
+
+Tres hallazgos de la revisión del PR #1003, resueltos sin tocar las migraciones ya aplicadas (una versión aplicada es
+inmutable): el arreglo va en la migración aditiva `20270323100400_tienda_identidad_referencia_y_visitante_hmac.sql`.
+
+- **La versión `20270323100100` quedó distinta de la aplicada** (el `grant` de `private.ip_publica_valida` no incluía a
+  `service_role`): el guard de migraciones la marcaba MODIFICADA y la migración no se volvía a aplicar, con repo y base
+  divergiendo en silencio. La rama trae el commit `06e806e3` de `dokploy`, así que el archivo vuelve a ser idéntico al
+  aplicado.
+- **Oráculo cross-tenant en `private.ruta_identidad_referenciada`**: la función es `security definer` y `authenticated`
+  podía ejecutarla con una ruta de otra organización y enterarse de si esa ruta la referenciaba la identidad, el borrador
+  o una versión. Ahora, para quien llega por la API, la respuesta se acota a la **organización de quien pregunta**: una
+  ruta de otra organización responde «no referenciada» (igual que una ruta libre), así que no se filtra nada. `service_role`
+  y las tareas de mantenimiento (sin JWT) siguen viendo la respuesta completa. El borrado no cambia: la política ya exigía
+  que la carpeta fuera de la organización de quien borra.
+- **El marcador `legado` también alcanzaba a los HMAC nuevos**: el reemplazo usaba `visitante ~ '^[0-9a-f]{64}$'`, un
+  patrón que matchea los HMAC; si el secreto de Vault se borraba y se re-creaba, el reemplazo volvía a correr y todos los
+  HMAC vivos caían a `legado` (el límite por visitante se reiniciaba). Ahora el HMAC se guarda con el prefijo `hmac:` (su
+  forma no la alcanza ese patrón) y las filas que ya existían se pasan al formato nuevo **conservando el valor**: el cupo de
+  cada visitante sigue igual.
+- Reversión: ver el encabezado de `20270323100400_tienda_identidad_referencia_y_visitante_hmac.sql`.
