@@ -272,6 +272,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
+    env:
+      SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
       - uses: actions/checkout@v4
         with:
@@ -293,6 +295,12 @@ jobs:
             curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
           fi
           supabase --version
+      # Reserva una ranura como `e2e-tienda` y `database`: sin ella el stack `ci-…` choca con el de otro job de la
+      # misma corrida (nombre de contenedor en uso).
+      - name: Reservar la ranura del stack de Supabase
+        env:
+          SUPABASE_CI_LOCK_MIN: 20
+        run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
         run: |
@@ -371,6 +379,13 @@ jobs:
             apps/web/test-results
           retention-days: 14
           if-no-files-found: ignore
+      - name: Bajar el stack y liberar la ranura
+        if: always()
+        run: |
+          if [ -n "$SUPABASE_CI_WORKDIR" ]; then
+            supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          fi
+          node scripts/supabase-ci.mjs liberar
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
   # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
