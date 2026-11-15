@@ -76,7 +76,7 @@ describe('EmpresaEdit', () => {
     expect(screen.getByLabelText('Moneda')).toHaveValue('ARS · Peso argentino')
   })
 
-  it('avisa el formato del WhatsApp cuando no se puede armar el enlace (MSF-743)', async () => {
+  it('avisa el formato del WhatsApp cuando no se puede armar el enlace', async () => {
     abrir()
     const campo = await screen.findByLabelText('WhatsApp')
     fireEvent.change(campo, { target: { value: '1234' } })
