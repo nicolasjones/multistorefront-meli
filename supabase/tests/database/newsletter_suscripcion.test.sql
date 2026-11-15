@@ -496,9 +496,21 @@ select private.cerrar_confirmacion_newsletter('51000000-0000-0000-0000-000000000
 select ok(
   (select confirmacion_hash = encode(sha256(convert_to((select token from lote_s), 'utf8')), 'hex') and confirmacion_enviada_en is not null from dominio.newsletter_suscriptores where correo = 'secuencia@ejemplo.com'),
   'reclamar → re-suscribir → cerrar: la re-suscripción no anuló el hash reclamado y el correo con ese enlace queda enviado');
-select is(
-  (select count(*)::int from pg_proc where pronamespace = 'publico'::regnamespace and proname = 'suscribirse_newsletter' and prosrc ~ 'for update' and prosrc ~ 'newsletter_tope'),
-  1, 'suscribirse toma la fila con for update y un lock por tienda antes del tope global');
+create temp table fuente_susc as
+  select regexp_replace(prosrc, '--[^\n]*', '', 'g') as c
+    from pg_proc where pronamespace = 'publico'::regnamespace and proname = 'suscribirse_newsletter';
+select ok(
+  (select c ~ 'lower\(s\.correo\)\s*=\s*v_correo\s+for update;' from fuente_susc),
+  'suscribirse lee la fila de la dirección con for update (en el SQL real, no en un comentario)');
+select ok(
+  (select strpos(c, 'registrar_envio_tienda') > 0
+      and strpos(c, 'registrar_envio_tienda') < strpos(c, 'pg_advisory_xact_lock(hashtextextended(v_empresa::text || ''|'' || v_correo')
+      and strpos(c, 'pg_advisory_xact_lock(hashtextextended(v_empresa::text || ''|'' || v_correo') < strpos(c, 'for update;')
+      and strpos(c, 'for update;') < strpos(c, 'pg_advisory_xact_lock(hashtextextended(''newsletter_tope|''')
+      and strpos(c, 'pg_advisory_xact_lock(hashtextextended(''newsletter_tope|''') < strpos(c, 'count(*)')
+      and strpos(c, 'count(*)') < strpos(c, 'insert into dominio.newsletter_suscriptores')
+   from fuente_susc),
+  'orden de los bloqueos: registrar cupo → lock por dirección → fila for update → lock por tienda → count del tope → alta');
 
 -- unicode directo y TLD punycode se rechazan; el dominio IDN con etiquetas xn-- pasa.
 select is(
