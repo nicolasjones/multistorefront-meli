@@ -46,6 +46,8 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'empresa.actualizada': 'Empresa actualizada',
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',
+  'opinion.aceptada': 'Opinión aceptada',
+  'opinion.rechazada': 'Opinión rechazada',
   'resumen_semanal.pausado': 'Resumen semanal pausado',
   'resumen_semanal.reanudado': 'Resumen semanal reanudado',
   'usuario.agregado': 'Usuario agregado',
