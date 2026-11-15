@@ -119,6 +119,13 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 `scripts/verificar-trampas-conocidas.mjs` convierte en checks deterministas (sin red, sin secretos, segundos) errores que ya costaron vueltas de CI. Mira el diff contra `origin/dokploy` como `verificar-migraciones.mjs`; corre dentro de `pnpm docs:check` (job `application`) y en `pnpm prepush` cuando el diff toca migraciones, pgTAP o E2E. `--todo` revisa el árbol completo como si todo fuera nuevo (sirve para comprobar que no hay falsos positivos). Su prueba es `scripts/verificar-trampas-conocidas.test.mjs`, dentro de `pnpm test:docs:check`.
 
+Requisitos y límites del check:
+
+- `todasMigraciones` sale de `git ls-files` del árbol local, no de la base. Por eso `pnpm prepush` exige la rama rebasada o integrada con `origin/dokploy` (`git fetch origin && git merge origin/dokploy`): con la rama atrasada, T6 compara contra una versión vigente vieja y no ve filas que otra rama ya agregó.
+- En CI el job `application` (el que corre `pnpm docs:check`) usa `actions/checkout@v4` con `fetch-depth: 0` y, al ser `pull_request`, el checkout por defecto es el merge ref (`refs/pull/N/merge`), es decir la rama ya integrada con la base; `origin/dokploy` existe por el historial completo. Verificado en `.github/workflows/validate.yml`.
+- Si falta la base de comparación (`origin/dokploy` ausente): en CI (`CI` o `GITHUB_ACTIONS`) el script falla con un mensaje claro; en local solo avisa y sale 0.
+- T6: si la función existe pero no se puede leer ninguna fila `('esquema', 'tabla')` (se aceptan casts `'x'::text`), falla en lugar de pasar. Con dos migraciones de la misma versión se ordena por versión y luego por nombre de archivo. La pérdida declarada exige un motivo no vacío: `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`.
+
 | Trampa | Falla cuando | Arreglo |
 | --- | --- | --- |
 | Grants de `service_role` | una migración crea `dominio.<x>` y el diff no trae `grant ... to service_role` para ella (`service_role_privilegios.test.sql`) | `grant select, insert, update, delete on dominio.<x> to service_role;` o declararla inalterable |
