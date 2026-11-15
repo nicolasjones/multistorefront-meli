@@ -776,7 +776,11 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     (`derivarStackCi`, como `verificarDestinoCi`), y base y usuario `postgres`. `validarUrlSupabase` aplica a `SUPABASE_URL`
     host local, puerto que no sea de desarrollo y, si el job declara `SUPABASE_CI_PROJECT_ID`, el puerto de la API derivada.
     Limitación: un stack local de `pnpm dev:supabase` (puertos de desarrollo) ya no sirve para `sql()`; hay que preparar el
-    stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. `pg` llega por
+    stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. Riesgo residual
+    conocido: cierra el error de escribir por descuido en el stack de desarrollo como superusuario, pero no impide escribir en
+    OTRO stack efímero (variables `SUPABASE_CI_RANURA` o `GITHUB_REPOSITORY` falsificadas) ni en un túnel que alguien abra a
+    propósito hacia un puerto derivado del CI (rango 2xxxx); eso exige intención activa. Endurecimiento posible, no aplicado:
+    exigir `CI=true` o repetir el `docker ps --filter publish` de `verificarDestinoCi`. `pg` llega por
     `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
   - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
     `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
