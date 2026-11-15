@@ -104,6 +104,14 @@ describe('ClienteEdit', () => {
     expect(screen.queryByLabelText('Tipo de cliente')).not.toBeInTheDocument()
   })
 
+  it('si falla la lectura de las cuentas web, no ofrece el formulario ni guarda nada (MSF-734)', () => {
+    mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: true, refetch: vi.fn() })
+    abrir()
+    expect(screen.getByText('No pudimos cargar la cuenta web del cliente.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+    expect(mocks.mutateAsync).not.toHaveBeenCalled()
+  })
+
   it('preselecciona las tiendas del cliente y guarda la selección elegida', async () => {
     mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
     mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
