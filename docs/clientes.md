@@ -190,8 +190,8 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
   dependencia, `fflate` MIT), cargado con `import()` diferido al exportar. Toda celda es texto y los valores que
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
-- **Límites conocidos:** (1) la exportación no se registra aún en la actividad (la RPC es `stable`; registrarla pide
-  pasarla a `volatile` o un registro desde el cliente): queda como deuda trazada: [MSF-508] «Registrar en la actividad la exportación de clientes» (requisito de auditoría, Principio III); no se resuelve en esta historia.
+- **Límites conocidos:** (1) la exportación se registra en la actividad una sola vez por exportación, en el primer lote con filas y con el total
+  de ese momento (evento `clientes.exportados`, migración `20270324110000`, MSF-508), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
   y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo

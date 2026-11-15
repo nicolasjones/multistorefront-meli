@@ -11,6 +11,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   'stock-movimientos': 'stock-movimientos',
   'stock-ingresos': 'ingreso-de-mercaderia',
   'stock-depositos': 'stock-depositos-y-reservas',
+  'stock-ordenes-compra': 'stock-unico-y-alertas',
   'ventas-mostrador': 'ventas-mostrador',
   'ventas-comprobantes': 'ventas-comprobantes',
   'ventas-presupuestos': 'ventas-comprobantes',
