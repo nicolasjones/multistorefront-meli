@@ -639,9 +639,15 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
 
-## Newsletter de la tienda: bandera y variable de Kestra (MSF-468, Fases 1 y 2)
+## Newsletter de la tienda: bandera, flows de Kestra y encendido (MSF-468)
 
 La bandera `newsletter` (`public.banderas_plataforma`) nace **apagada**; se enciende por SQL dev → stg → prd, nunca por migración, y cada
 tienda lo activa con su propio interruptor (`dominio.newsletter_configuracion.activo`, apagado por defecto). El flow `newsletter-confirmaciones`
 solo envía el correo de confirmación de las suscripciones (no envía newsletters) y usa `NEWSLETTER_CONFIRMACION_LOTE` (20) en `infra/kestra/.env`.
 Detalle y reversión en `docs/newsletter.md`.
+
+**Pasos manuales (Fases 3 a 5, antes de encender la bandera en un entorno)**: (1) publicar los dos flows en ese Kestra con `infra/kestra/desplegar-flow.mjs`
+(`newsletter-confirmaciones` y el `correo-masivo` actualizado: sin el segundo, un newsletter saldría con la plantilla de clientes); (2) comprobar que el
+SMTP de Kestra (`KESTRA_SMTP_*`) está configurado; (3) encender: `update public.banderas_plataforma set activa = true where clave = 'newsletter';` y activar
+el interruptor de una tienda de prueba desde `Contactos → Newsletter`; (4) probar una suscripción, la confirmación, una prueba y un envío a un suscriptor
+propio. El reclamo del lote no entrega nada del newsletter con la bandera apagada, y el correo masivo a clientes no cambia.

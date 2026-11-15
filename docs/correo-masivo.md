@@ -232,3 +232,13 @@ Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120
 «Nueva campaña» (destinatarios), «Historial» y el detalle de la campaña (destinatarios) cargan por tandas con
 `useListadoAcumulado` + `CargaInfinita` en vez de páginas numeradas. El resumen de elegibles y el envío usan los filtros
 y no lo que está cargado en pantalla, así que la selección masiva no depende de la tanda visible.
+
+## Newsletter de la tienda sobre este motor (MSF-468)
+
+El newsletter de cada tienda **reutiliza este motor** (`docs/newsletter.md`): sus envíos son campañas `tipo = 'newsletter'` cuyos destinatarios son
+**suscriptores** (`campana_correo_destinatarios.suscriptor_id`, con `cliente_id` nulable y `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)`),
+con la foto del contenido en `campanas_correo.bloques`. El cupo diario por organización se **comparte** (en orden de creación de la campaña). El reclamo
+(`private.reclamar_lote_correo_masivo`) devuelve además `tipo`, `tienda`, `remitente`, `dominio_tienda` y `cuerpo_html` (columnas al final) y re-verifica a cada
+suscriptor (`confirmado`, tienda activa e interruptor encendido); los historiales de esta guía solo muestran las campañas `tipo = 'clientes'`.
+`dar_de_baja_correo_masivo` también resuelve suscriptores. **Los correos a clientes salen igual que antes** (pgTAP `correo_masivo_lote`, `correo_masivo_campanas`,
+`correo_masivo_destinatarios` y `correo_masivo_historial` sin cambios y verdes).

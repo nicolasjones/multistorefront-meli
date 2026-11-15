@@ -146,6 +146,7 @@ nav:
           - Consultas de las tiendas: producto/consultas.md
           - Contactos: producto/contactos.md
           - Opiniones: producto/opiniones.md
+          - Newsletter: producto/newsletter.md
       - Configuración y datos:
           - Importaciones y exportaciones: producto/importaciones.md
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
@@ -193,6 +194,7 @@ nav:
           - "Consultas: bandeja y aviso (MSF-122)": consultas.md
           - "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)": contactos.md
           - "Opiniones de productos: base y moderación (MSF-467)": tienda-opiniones.md
+          - "Newsletter de la tienda (MSF-468)": newsletter.md
           - "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)": cuentas-y-compras-a-proveedores.md
           - "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)": dolar-y-recalculo.md
           - "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)": importaciones.md

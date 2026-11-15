@@ -117,3 +117,22 @@ export async function confirmarNewsletter(host: string, token: string): Promise<
     return 'falla'
   }
 }
+
+export type ResultadoBaja = 'hecha' | 'invalida' | 'falla'
+
+// Baja desde el enlace del correo (MSF-468, RF-NL-7, CA-NL-6). Reutiliza la Edge Function `baja-correo-masivo` sin cambiar su contrato
+// (`{ token }` -> `{ ok: true }`): responde igual exista o no el token. Un token que no tiene la forma de los del correo ni se envía.
+export async function darDeBajaNewsletter(token: string): Promise<ResultadoBaja> {
+  if (!FORMA_TOKEN_NEWSLETTER.test(token)) return 'invalida'
+  try {
+    const { error } = await supabaseClient.functions.invoke('baja-correo-masivo', { body: { token } })
+    if (error) {
+      console.error('No se pudo procesar la baja del newsletter', error.message)
+      return 'falla'
+    }
+    return 'hecha'
+  } catch (excepcion) {
+    console.error('No se pudo procesar la baja del newsletter', excepcion instanceof Error ? excepcion.message : excepcion)
+    return 'falla'
+  }
+}

@@ -24,7 +24,7 @@ Reglas: correo recortado y en minúsculas, ≤ 254, una sola dirección; `p_cons
 | `guardar_newsletter(p_id, p_version, p_empresa, p_nombre, p_asunto, p_mensaje, p_destacados, p_promociones)` | Administrador y acceso a la tienda | `{ id, version }`; `40001` si cambió; `55000` si ya se envió |
 | `descartar_newsletter(p_id)` | Administrador | `{ ok }`; solo borradores |
 | `detalle_newsletter(p_id)` | lectura en `clientes` | borrador o envío con la foto enviada y los totales |
-| `vista_previa_newsletter(p_empresa, p_destacados, p_promociones)` | Administrador | `{ bloques, confirmados, generado_en }` (misma función que arma el envío) |
+| `vista_previa_newsletter(p_empresa, p_mensaje, p_destacados, p_promociones)` | Administrador | `{ bloques, confirmados, generado_en, html }`: la misma foto y el mismo HTML que el envío (un solo renderizado, `private.cuerpo_html_newsletter`), con un enlace de baja de ejemplo |
 | `solicitar_prueba_newsletter(p_empresa, p_asunto, p_mensaje, p_destacados, p_promociones)` | Administrador | `{ ok }`; deja la prueba al correo del autor; tope 5/h |
 | `enviar_newsletter(p_id, p_version, p_clave uuid)` | Administrador y acceso a la tienda | `{ campana_id, destinatarios }`; `22023` hint `sin_destinatarios`; idempotente por clave |
 | `cancelar_envio_newsletter(p_id)` | Administrador | `{ cancelados }` (pendientes pasados a `omitido`) |
@@ -50,7 +50,8 @@ Hasta 6 elementos por sección; una sección apagada o sin elementos no aparece.
 | `private.reclamar_confirmaciones_newsletter(p_lote integer, p_vence_seg integer)` | `kestra_orquestacion` | Poda `pendiente` > 7 días; reclama confirmaciones por enviar; devuelve `{ suscriptor_id, correo, tienda, dominio, token }` (el token se genera acá y solo se guarda su hash) |
 | `private.cerrar_confirmacion_newsletter(p_suscriptor uuid, p_resultado text, p_error text)` | `kestra_orquestacion` | Idempotente; marca `confirmacion_enviada_en` o deja reintento |
 | `private.armar_bloques_newsletter(p_empresa uuid, p_destacados boolean, p_promociones boolean)` | funciones `security definer` | Arma `bloques` desde `productos_tienda`, `productos` y `promociones_precio` con el precio público de la tienda |
-| `private.reclamar_lote_correo_masivo(...)` (extendida) | `kestra_orquestacion` | Mismas firma y columnas, más `tipo`, `bloques`, `tienda`, `dominio` al final; re-verifica al suscriptor (`confirmado`) |
+| `private.reclamar_lote_correo_masivo(...)` (extendida) | `kestra_orquestacion` | Mismos parámetros y columnas, más `tipo`, `tienda`, `remitente`, `dominio_tienda`, `cuerpo_html` al final; re-verifica al suscriptor (`confirmado`, tienda e interruptor activos) |
+| `private.cuerpo_html_newsletter(mensaje, bloques, tienda, enlace_baja)` / `private.escapar_html` / `private.remitente_newsletter` | funciones `security definer` y el reclamo | HTML del correo (todo escapado, enlaces solo `https://`), y remitente saneado |
 
 ## Eventos de Actividad
 
@@ -59,7 +60,7 @@ Hasta 6 elementos por sección; una sección apagada o sin elementos no aparece.
 ## Kestra
 
 - **`newsletter-confirmaciones`** (nuevo, cada minuto, rol `kestra_orquestacion`): reclama → envía el correo de confirmación (enlace `https://{dominio}/newsletter/confirmar/{token}`, vence 48 h) → cierra. Reintentos 4 veces (30 s, 60 s, 2 min); motivo fijo en el fallo.
-- **`correo-masivo`** (existente): si la fila trae `tipo = 'newsletter'`, arma el HTML con `bloques`, remitente `"{tienda}" <KESTRA_SMTP_FROM>`, pie fijo y baja en `https://{dominio}/newsletter/baja/{token}`; si no, sale como hoy.
+- **`correo-masivo`** (existente): si la fila trae `tipo = 'newsletter'`, usa el `cuerpo_html` que arma la base (con `bloques`, pie fijo y baja en `https://{dominio}/newsletter/baja/{token}`) y el remitente `"{tienda}" <KESTRA_SMTP_FROM>`; si no, sale como hoy.
 
 ## Edge Function
 
