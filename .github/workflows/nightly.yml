@@ -181,7 +181,7 @@ jobs:
           echo $! > "$MEDIR_WORK/vite.pid"
           for i in $(seq 60); do
             curl -fsS -o /dev/null "http://127.0.0.1:$MEDIR_TIENDA_PUERTO/" && web=1 && break
-            kill -0 "$(cat "$MEDIR_WORK/vite.pid") 2>/dev/null" || { echo "::error::vite preview murió"; cat "$MEDIR_WORK/vite.log"; exit 1; }
+            kill -0 "$(cat "$MEDIR_WORK/vite.pid")" 2>/dev/null || { echo "::error::vite preview murió"; cat "$MEDIR_WORK/vite.log"; exit 1; }
             sleep 1
           done
           [ "${web:-0}" = 1 ] || { echo "::error::la web no respondió en $MEDIR_TIENDA_PUERTO"; cat "$MEDIR_WORK/vite.log"; exit 1; }
@@ -210,6 +210,7 @@ jobs:
         env:
           PRODUCTOS: ${{ inputs.productos || '500' }}
         run: |
+          set -o pipefail
           mkdir -p reports/medir-tienda
           docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v N="$PRODUCTOS" -f - < scripts/medir-tienda-catalogo.sql 2>&1 | tee reports/medir-tienda/rpc-catalogo.txt
 
@@ -219,9 +220,9 @@ jobs:
           {
             echo '## Rendimiento de la tienda (MSF-552)'
             echo
-            [ -f reports/lighthouse-tienda/resumen.md ] && cat reports/lighthouse-tienda/resumen.md
+            if [ -f reports/lighthouse-tienda/resumen.md ]; then cat reports/lighthouse-tienda/resumen.md; fi
             echo
-            [ -f reports/medir-tienda/rpc-catalogo.txt ] && cat reports/medir-tienda/rpc-catalogo.txt
+            if [ -f reports/medir-tienda/rpc-catalogo.txt ]; then cat reports/medir-tienda/rpc-catalogo.txt; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Subir el reporte de la medición
