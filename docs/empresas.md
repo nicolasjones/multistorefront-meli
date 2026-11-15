@@ -156,12 +156,15 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - El rol por empresa y la empresa activa son de MSF-121 ([Empresa activa](empresa-activa.md)); la RLS de
   `dominio.empresas` sigue siendo por organización, así que todos ven las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
-  Ojo: la cascada **solo completa si la organización no tiene ingresos de mercadería** (ni otros datos que las claves
-  foráneas `restrict` protegen, p. ej. `ingresos_mercaderia_lineas → productos` o `productos → proveedores`): en
-  esos casos `delete from public.organizaciones` falla por clave foránea. No hay ningún flujo de producto que dé de baja
-  una organización; el único camino de código es el rollback de la Edge `crear-organizacion` (organización recién
-  creada, sin datos). La limpieza de pruebas (E2E) debe borrar antes `dominio.ingresos_mercaderia?organizacion_id=eq.X`
-  (y los datos que referencien, según el caso).
+  La cascada completa también con **ingresos de mercadería** (cabecera, líneas, movimientos de stock, proveedores y
+  productos): sus claves `restrict` son diferibles desde MSF-844/MSF-847 (ver más abajo) y lo cubre
+  `supabase/tests/database/baja_organizacion_ingresos.test.sql` (MSF-857). Siguen fuera de ese alcance las claves de
+  ventas, motos, cotizaciones y el resto del stock: con esos datos `delete from public.organizaciones` puede fallar por
+  clave foránea. No hay ningún flujo de producto que dé de baja una organización (ninguna pantalla la borra); el único
+  camino de código es el rollback de la Edge `crear-organizacion` (organización recién creada, sin datos). Si algún día
+  se necesita una baja real, la decisión de fondo es de producto (¿borrar o conservar el historial?) y no está tomada;
+  la recomendación técnica es una función administrativa `baja_organizacion(uuid)` que borre en orden y con prueba
+  pgTAP, no diferir más claves.
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).
 
