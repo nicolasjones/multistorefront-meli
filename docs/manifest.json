@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "4912c9694894415a5c6d129da7c08e242b493d985ed12ffdf8856014c74cf9c6",
+      "pageHash": "b51c4742382def90f61becb0cceac53b98c97ceac22429fadb225f7a1ca1cf30",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "277b191e"
+      "commit": "c7860a7c"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -717,6 +717,19 @@
       "owner": "tecnico",
       "commit": "ebf4bf4d"
     },
+    "docs/gastos.md": {
+      "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
+      "pageHash": "9de95d25bf924536fad9bff6566e5ccd24f94190eb66056d1c711233f81e842e",
+      "sourceHash": "13906e072bb62a0c767a99068685bef7517b7e4676b41816c63edef832d9ba51",
+      "sourceAt": null,
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "apps/web/src/pages/gastos",
+        "supabase/tests/database"
+      ],
+      "owner": "datos",
+      "commit": null
+    },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
       "pageHash": "5581b283c969b9bfd8071b642963a4e754eb2f22ba14d18f423d4225eb64eb41",
@@ -1222,6 +1235,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "a8db4308"
+    },
+    "docs/producto/gastos.md": {
+      "title": "Gastos de cada tienda",
+      "pageHash": "359c47ee70aa542bda053584975d23e1d693122efb3d88c045265c89ab3e6bda",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",

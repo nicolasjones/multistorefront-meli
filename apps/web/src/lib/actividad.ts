@@ -73,6 +73,10 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'rma.nota_credito_vinculada': 'RMA nota crédito vinculada',
   'reparacion.editada': 'Reparación editada',
   'presupuesto.creado_desde_tienda': 'Presupuesto pedido desde la tienda',
+  'gasto.creado': 'Gasto cargado',
+  'gasto.editado': 'Gasto editado',
+  'gasto.anulado': 'Gasto anulado',
+  'gasto.exportado': 'Gastos exportados',
 }
 
 // Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.

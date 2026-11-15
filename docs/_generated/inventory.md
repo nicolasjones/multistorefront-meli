@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **258**
-- Tablas en migraciones: **199**
+- Rutas del panel: **261**
+- Tablas en migraciones: **200**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **321**
+- Páginas de documentación: **323**
 
 ## Rutas del panel
 
@@ -76,6 +76,9 @@
 - `/empresas/tienda/pestanas/publicacion/Versiones`
 - `/empresas/tienda/pestanas/publicacion/VistaPrevia`
 - `/features/administrar`
+- `/gastos`
+- `/gastos/DialogoAnularGasto`
+- `/gastos/DialogoGasto`
 - `/historial/CotizacionesTab`
 - `/historial/importar`
 - `/historial/list`
@@ -333,6 +336,7 @@
 - `dominio.favoritos_cliente`
 - `dominio.formas_envio`
 - `dominio.formas_pago`
+- `dominio.gastos`
 - `dominio.historial_cobros`
 - `dominio.historial_comprobantes`
 - `dominio.historial_cotizaciones_dolar`
