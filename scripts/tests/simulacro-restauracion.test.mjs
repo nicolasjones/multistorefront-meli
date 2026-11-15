@@ -20,6 +20,8 @@ import { test } from 'node:test'
 const leer = (ruta) => readFileSync(new URL(`../../${ruta}`, import.meta.url), 'utf8')
 
 const simulacro = leer('docs/simulacro-restauracion.md')
+// Los pasos se buscan sólo dentro de la sección «Protocolo» (hasta «Registro del simulacro»).
+const protocolo = simulacro.split('## Protocolo')[1]?.split('## Registro del simulacro')[0] ?? ''
 const copias = leer('docs/copias-y-restauracion.md')
 const runbook = leer('docs/tecnico/runbooks/db-restore.md')
 const indice = leer('docs/README.md')
@@ -35,7 +37,7 @@ test('el protocolo del simulacro tiene los pasos que miden los objetivos', () =>
     ['cierre con staging sano (copia fresca)', 'respaldo-postgres'],
   ]
   for (const [que, marca] of pasos) {
-    assert.ok(simulacro.includes(marca), `docs/simulacro-restauracion.md no tiene el paso de ${que} (falta "${marca}")`)
+    assert.ok(protocolo.includes(marca), `la sección Protocolo de docs/simulacro-restauracion.md no tiene el paso de ${que} (falta "${marca}")`)
   }
 })
 
@@ -75,7 +77,7 @@ test('el registro del simulacro tiene los campos para medir y para firmar', () =
 
 // El estado sale del propio documento: pendiente mientras la firma está en `_pendiente_`.
 const firma = simulacro.match(/\|\s*Firma del propietario\s*\|\s*([^|]+)\|/)?.[1]?.trim() ?? ''
-const estado = firma && firma !== '_pendiente_' ? 'firmado' : 'pendiente'
+const estado = firma && !/^_?pendiente/i.test(firma) ? 'firmado' : 'pendiente'
 
 test('el estado y la firma del propio documento no se contradicen', () => {
   const dicePendiente = /Pendiente de ejecución/i.test(simulacro)

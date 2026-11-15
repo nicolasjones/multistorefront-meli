@@ -64,10 +64,13 @@ begin
     'public.verificaciones_restauracion'
   ] loop
     if to_regclass(t) is not null then
-      execute format('revoke all on table %s from anon, authenticated', t);
+      execute format('revoke all on table %s from public, anon, authenticated', t);
       execute format('grant select on table %s to authenticated', t);
     end if;
   end loop;
+
+  -- Tras un `--no-privileges` esta misma función queda ejecutable por PUBLIC: se cierra a sí misma.
+  revoke execute on function private.reaplicar_privilegios_copias() from public, anon, authenticated;
 end;
 $$;
 

@@ -35,6 +35,8 @@ completo ni mide el tiempo de punta a punta.
 
 1. Anotar la hora de inicio y quién ejecuta. Usar **solo staging**, nunca producción. Sin autorización
    escrita del propietario el simulacro no se ejecuta (en producción además exige aprobación manual).
+   Antes de restaurar, confirmar el destino: `select current_database(), inet_server_addr();` con
+   `$DATABASE_URL` tiene que devolver la base y el host de staging; si no coinciden, parar.
 2. Elegir la última copia de base y de imágenes del historial (`public.respaldos`,
    `public.respaldos_imagenes`) y anotar sus fechas y ubicaciones.
 3. **Marcar la caída simulada** (antes de restaurar; después no queda la base viva para consultarla):
