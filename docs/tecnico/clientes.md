@@ -93,6 +93,7 @@ Restricciones e índices sobre `public.clientes`:
 | `20261016130300_clientes_tipo_y_consumidor_final.sql` | `tipo` y `es_consumidor_final`, índice único parcial, backfill del Consumidor final, disparador `organizaciones_crear_consumidor_final`, inmutabilidad (`clientes_proteger_consumidor_final`) y `public.escala_de_cliente`. |
 | `20261016140000_clientes_buscar.sql` | `public.buscar_clientes` (M4, parte 1). |
 | `20261016150000_clientes_exportar.sql` | `public.exportar_clientes` (M4, parte 2). |
+| `20270324110000_exportar_clientes_registra_actividad.sql` | MSF-508: la lógica pasa a `private.exportar_clientes_lote` y `public.exportar_clientes` queda como envoltorio `volatile` que registra `clientes.exportados`. |
 | `20261016160000_clientes_habilitar_pg_trgm.sql` | Habilita `pg_trgm` en `extensions` y garantiza el índice GIN: **aborta con error si el índice no queda creado**, para que no haya un salto silencioso (en CI la extensión no estaba instalada y la migración de la ficha no creaba el índice). |
 
 La orden es deliberada: M3 reinicia los grants por columna, por eso M2 (`tipo`) va después.
@@ -224,6 +225,14 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   `supabase/verificacion/clientes_explain.sql` (`EXPLAIN ANALYZE`, solo base local).
 
 ## Exportación a Excel (F-CLI-04)
+
+- **Auditoría (MSF-508, Principio III):** `public.exportar_clientes` (`security definer`, `volatile`) llama a
+  `private.exportar_clientes_lote` (la lógica de siempre: permiso, tope, filtros, keyset; `stable`, sin grants a
+  `authenticated`) y, en el **primer lote** (`p_despues_de` nulo) con al menos una fila, escribe
+  `clientes.exportados` con `private.registrar_actividad`: «Exportó N clientes a Excel (filtros: …)». El permiso y el
+  tope se validan antes, así que un rechazo (`42501`/`54000`) no deja evento. Los filtros salen con el nombre visible de
+  la tienda (nunca ids) y el texto acotado a 50 caracteres. Un reintento tras un fallo registra de nuevo. Pgtap:
+  `clientes_exportar_actividad.test.sql`.
 
 - **Quién:** solo quien tiene la acción `exportar` en Clientes
   (`private.puede_accion('clientes','exportar')`; por defecto Administrador, Administración y Operador).
@@ -440,7 +449,6 @@ Reversión por migración:
 | Deuda | Seguimiento |
 |---|---|
 | Trasladar `public.clientes` al esquema `dominio` (Principio VII) | [MSF-505] |
-| Registrar la exportación de clientes en la actividad (la RPC es `stable`; registrarlo exige `volatile` o un registro desde el cliente) | [MSF-508] |
 | E2E de alta, búsqueda y exportación | [MSF-499] |
 | Test de concurrencia con dos conexiones (número correlativo y DNI/CUIT simultáneos): el pgTAP corre en una sola sesión, así que no la ejercita; la garantía es el advisory lock + el índice único | Desvío anotado en T007 de la spec; **sin Jira asociado todavía** |
 

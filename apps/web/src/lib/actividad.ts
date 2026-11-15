@@ -48,6 +48,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'empresa.reactivada': 'Empresa reactivada',
   'usuario.agregado': 'Usuario agregado',
   'actividad.exportada': 'Actividad exportada',
+  'clientes.exportados': 'Clientes exportados',
   'importacion.iniciada': 'Importación iniciada',
   'importacion.finalizada': 'Importación finalizada',
   'importacion.cancelada': 'Importación cancelada',
