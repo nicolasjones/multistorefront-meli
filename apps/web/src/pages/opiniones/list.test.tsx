@@ -210,6 +210,8 @@ describe('pantalla Opiniones', () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: /Rechazar la opinión de Valeria/ }))
     const dialogo = await screen.findByRole('dialog', { name: 'Rechazar opinión' })
+    expect(within(dialogo).getByText(/La opinión queda rechazada y no se muestra en la tienda/)).toBeTruthy()
+    expect(within(dialogo).queryByText(/El cliente la ve/)).toBeNull()
     expect(within(dialogo).getByLabelText('Motivo (opcional)').tagName).toBe('INPUT')
     fireEvent.change(within(dialogo).getByLabelText('Motivo (opcional)'), { target: { value: '  Contenido   ajeno \t al    producto  ' } })
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Rechazar' }))

@@ -2,7 +2,7 @@
 -- Casos borde de `private.validar_texto_opinion` y `private.nombre_publico_cliente`.
 begin;
 
-select plan(48);
+select plan(72);
 
 create function pg_temp.ok_(p_punt int, p_txt text) returns boolean language sql as
   $$ select (private.validar_texto_opinion(p_punt, p_txt)->>'ok')::boolean $$;
@@ -52,6 +52,40 @@ select is(pg_temp.ok_(5, 'Mirá www . ejemplo y listo ya'), false, 'www con espa
 select is(pg_temp.ok_(5, 'Mirá http ://ejemplo ahora mismo'), false, 'http con espacio antes de los dos puntos sigue rechazado');
 select is(private.texto_opinion_no_permitido('Producto. Top calidad'), false, 'texto_opinion_no_permitido: frase legítima');
 select is(private.texto_opinion_no_permitido('visitá ejemplo.com ya'), true, 'texto_opinion_no_permitido: enlace');
+
+-- Acortadores y TLD de país: se rechazan
+select is(pg_temp.ok_(5, 'Escribime a t.me/vendedor ahora'), false, 't.me/');
+select is(pg_temp.ok_(5, 'Escribime a wa.me/5491112345678 ahora'), false, 'wa.me/');
+select is(pg_temp.ok_(5, 'Mirá bit.ly/abc123 que sale menos'), false, 'bit.ly/');
+select is(pg_temp.ok_(5, 'Mirá youtu.be/xyz123 que está bueno'), false, 'youtu.be/');
+select is(pg_temp.ok_(5, 'Mirá tinyurl.com/abc que sale menos'), false, 'tinyurl.com/');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.ar que sale menos'), false, 'TLD de país .ar');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.com.ar que sale menos'), false, '.com.ar');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.es o mitienda.mx hoy'), false, '.es y .mx');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.cl, mitienda.uy o mitienda.br'), false, '.cl .uy .br');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.co o mitienda.me hoy'), false, '.co y .me');
+select is(pg_temp.ok_(5, 'Comprá en mitienda.ar'), false, 'dominio al final del texto');
+select is(pg_temp.ok_(5, 'Visitá mitienda.xyzabc/oferta hoy mismo'), false, 'cualquier TLD seguido de barra');
+-- Frases normales: se aceptan
+select is(pg_temp.ok_(5, 'Pedí el 10. Es ok. Muy bueno todo'), true, 'sin falso positivo: número, punto y espacio');
+select is(pg_temp.ok_(5, 'Compré en Mar. Me llegó bien, gracias'), true, 'sin falso positivo: «Mar. Me»');
+select is(pg_temp.ok_(5, 'Llegó el 3.5 de calificación, genial'), true, 'decimales no son dominio');
+select is(pg_temp.ok_(5, 'Usan http y https para pagar, está bien'), true, '«http» sola, sin dos puntos, se acepta a propósito');
+select is(pg_temp.ok_(5, 'Compra segura, ejemplo punto com no es enlace'), true, 'la ofuscación «punto com» NO se detecta (limitación conocida)');
+select is(pg_temp.ok_(5, 'Calidad / precio excelente, recomiendo y/o comprar'), true, 'barras sueltas sin dominio');
+-- Rendimiento con entradas hostiles de 50.000 caracteres: tiempo lineal (la comprobación va sobre el texto completo)
+create function pg_temp.ms(p_txt text) returns numeric language plpgsql as $$
+declare t0 timestamptz := clock_timestamp();
+begin
+  perform private.texto_opinion_no_permitido(p_txt);
+  return extract(epoch from clock_timestamp() - t0) * 1000;
+end $$;
+select cmp_ok(pg_temp.ms(repeat('a', 50000)), '<', 1000::numeric, '50.000 letras: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('a.', 25000)), '<', 1000::numeric, '50.000 caracteres «a.a.a.»: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('a-', 25000) || ' fin'), '<', 1000::numeric, '50.000 caracteres «a-a-»: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('http ', 10000)), '<', 1000::numeric, '50.000 caracteres «http »: < 1 s');
+select cmp_ok(pg_temp.ms(repeat('ab.', 16000) || ' x'), '<', 1000::numeric, '48.000 caracteres «ab.ab.»: < 1 s');
+select cmp_ok(pg_temp.ms(repeat(' ', 50000) || '.com'), '<', 1000::numeric, '50.000 espacios y «.com»: < 1 s');
 
 select is(private.nombre_publico_cliente('Valeria Sánchez'), 'Valeria', 'solo el nombre de pila');
 select is(private.nombre_publico_cliente('   '), 'Cliente', 'vacío -> Cliente');

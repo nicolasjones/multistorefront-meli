@@ -15,7 +15,7 @@
 --   delete from public.tipos_evento_actividad where tipo in ('opinion.aceptada', 'opinion.rechazada');
 
 insert into public.tipos_evento_actividad (tipo, sensible, descripcion) values
-  ('opinion.aceptada', false, 'Opinión de un producto aceptada por un administrador (se publica en la tienda)'),
+  ('opinion.aceptada', false, 'Opinión de un producto aceptada por un administrador'),
   ('opinion.rechazada', false, 'Opinión de un producto rechazada o despublicada por un administrador')
 on conflict (tipo) do nothing;
 

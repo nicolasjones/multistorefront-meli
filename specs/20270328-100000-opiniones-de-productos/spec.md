@@ -342,4 +342,12 @@ Todas las migraciones son aditivas y se deshacen con una migración posterior, *
 
 ### Limitaciones conocidas del filtro de enlaces (revisión de las fases 1 y 2)
 
-`private.texto_opinion_no_permitido` (que usan `validar_texto_opinion` y el motivo de rechazo) es una **heurística acotada**, no una garantía: no detecta acortadores o enlaces sin esquema como `t.me/…` o `wa.me/…`, dominios con TLD fuera de su lista corta (por ejemplo nacionales como `.ar` solos) ni ofuscaciones. Se mantiene corta a propósito para no rechazar frases normales («Excelente producto. Top calidad»): el dominio exige un carácter alfanumérico pegado al punto y el TLD pegado después. La moderación previa (D5) es la defensa real. La fase 3 hereda esta función y su límite.
+`private.texto_opinion_no_permitido` (que usan `validar_texto_opinion` y el motivo de rechazo) es una **heurística**, no una garantía.
+
+- **Qué detecta:** `http:`/`https:`/`ftp:` y `www.`; un dominio con el alfanumérico o guion pegado al punto y un TLD de lista (genéricos) o **de dos letras** (cualquier TLD de país: `.ar`, `.com.ar`, `.es`, `.mx`, `.cl`, `.uy`, `.br`, `.co`, `.me`, `.ly`, `.be`…) seguido de un no alfanumérico o el final, lo que cubre `t.me/…`, `wa.me/…`, `bit.ly/…`, `youtu.be/…` y `tinyurl.com/…`; y `algo.palabra/` (cualquier TLD seguido de barra). Un punto seguido de espacio («Excelente producto. Top calidad», «Pedí el 10. Es ok.») no es enlace.
+- **Qué NO detecta:** ofuscación («ejemplo punto com», «ejemplo . com», «ejemplo[.]com»), TLD genéricos fuera de la lista de más de dos letras, ni enlaces con espacios dentro. Y a la inversa, dos frases pegadas sin espacio tras el punto («bueno.Me llegó») se tratan como dominio. La moderación previa (D5) es la defensa real.
+- **`http` suelta:** la palabra `http`/`https` sin los dos puntos se **acepta** a propósito (rechazarla daría falsos positivos: «usan https para pagar»); hay una aserción pgTAP explícita.
+- **Rendimiento:** sin cuantificadores anidados; con entradas hostiles de 50.000 caracteres cada comprobación tarda de 1 a 3 ms (aserciones pgTAP < 1 s).
+- **Funciones `invoker`:** las funciones `private` de validación son `security invoker` a propósito: son puras (no leen tablas), no necesitan los privilegios del dueño y `security definer` solo ampliaría la superficie. Llevan `search_path` vacío y sin `execute` para la API; las RPC `security definer` que las llaman sí lo tienen.
+
+La fase 3 hereda esta función y sus límites.

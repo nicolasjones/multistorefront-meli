@@ -240,7 +240,7 @@ export function OpinionesList() {
         <DialogTitle id="titulo-rechazar-opinion">Rechazar opinión</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ mb: 2 }}>
-            La opinión no se muestra en la tienda. El cliente la ve como rechazada en su cuenta, con el motivo si lo indicás.
+            La opinión queda rechazada y no se muestra en la tienda. Podés indicar un motivo, que queda guardado con la decisión.
           </DialogContentText>
           <TextField
             label="Motivo (opcional)"

@@ -48,7 +48,7 @@ Ambas llevan `revoke … from public, anon` y `grant execute … to authenticate
 
 ## Limitación del filtro de enlaces
 
-`private.texto_opinion_no_permitido` es una **heurística**: no detecta `t.me/…`, `wa.me/…`, TLD fuera de su lista corta (p. ej. `.ar` solo) ni ofuscaciones, y no se amplía a propósito para evitar falsos positivos con frases normales. La moderación previa es la defensa real. La fase 3 hereda este límite.
+`private.texto_opinion_no_permitido` es una **heurística** `invoker` (pura, sin acceso a tablas). Detecta `http:`/`www.`, dominios con TLD de lista o de **dos letras** (cualquier TLD de país: `.ar`, `.com.ar`, `.es`, `.mx`…) y acortadores como `t.me/`, `wa.me/`, `bit.ly/`, `youtu.be/`, `tinyurl.com/`. Un punto seguido de espacio no es enlace. **No detecta** ofuscación («ejemplo punto com», «ejemplo[.]com») ni TLD genéricos largos fuera de la lista, y trata «bueno.Me» (sin espacio) como dominio. La palabra `http` suelta, sin dos puntos, se acepta a propósito. Con 50.000 caracteres hostiles tarda milisegundos. La moderación previa es la defensa real; la fase 3 hereda este límite.
 
 ## Reversión
 
