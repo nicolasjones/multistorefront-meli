@@ -1163,6 +1163,10 @@
       "titulo": "Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)"
     },
     {
+      "slug": "20270323-100000-deuda-tecnica-lote-1-seguridad-tienda",
+      "titulo": "Feature Specification: Deuda técnica · Lote 1: seguridad e integridad de la tienda pública (MSF-515)"
+    },
+    {
       "slug": "20270323-100000-service-ideas-futuras-v2",
       "titulo": "Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)"
     }

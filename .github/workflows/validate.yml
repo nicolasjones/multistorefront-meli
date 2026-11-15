@@ -114,7 +114,7 @@ jobs:
   application:
     needs: changes
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -353,7 +353,7 @@ jobs:
   web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
     # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
     # ~10-15 min. 45 min es sólo la red de seguridad (si un shard se cuelga, no espera una hora).
@@ -420,7 +420,7 @@ jobs:
     # y el job se ve rojo sin frenar el merge. Se pasa a requerido poniendo la variable en `true` tras ~10 corridas
     # verdes (seguimiento en specs/20261113-120000-ci-e2e-tienda/tasks.md). Sin PRs de forks: ver el filtro de `application`.
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && vars.CI_E2E_TIENDA != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}
     # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
     # esperando ranura. El TTL de la ranura (`SUPABASE_CI_LOCK_TTL_MIN`, abajo y en `database`) va por encima del timeout
@@ -437,7 +437,21 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@v1
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -461,9 +475,11 @@ jobs:
       # stack de `database` (sin kong/postgrest): se lo baja antes para arrancar de cero.
       - name: Levantar el stack de Supabase del CI con API
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
           supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
       - run: pnpm db:reset:ci
@@ -598,7 +614,7 @@ jobs:
   database:
     needs: changes
     if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
     # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
     # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle al TTL. El TTL va a 75 min (igual
@@ -618,7 +634,21 @@ jobs:
         with:
           node-version: 24
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@v1
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -632,9 +662,11 @@ jobs:
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci

@@ -138,10 +138,11 @@ para no superar el tope de 7 a 15 dígitos de la bandeja (F-CON-01).
 
 ### Identidad del visitante (D6)
 
-El visitante es anónimo: se identifica por el hash `sha256` de la **IP** del cliente (tomada según
+El visitante es anónimo: se identifica por el **HMAC-SHA256** de la **IP** del cliente (tomada según
 `private.saltos_proxy_confiables()`, de MSF-191) **más la empresa**
-(`private.visitante_hash`, `20261212100000_tienda_contacto.sql`). **La IP nunca se guarda**: en la
-tabla queda solo el hash. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes
+(`private.visitante_hash`, `20261212100000_tienda_contacto.sql`; con secreto de Vault desde
+`20270323100200_tienda_envios_visitante_hmac.sql`, MSF-945: antes era un `sha256` sin clave, enumerable). **La IP nunca se
+guarda**: en la tabla queda solo el HMAC. `tienda_envios` solo la lee quien edita Empresas y accede a la empresa. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes
 caen en un único cupo «sin-ip»: **falla cerrada, no abierta**. El mismo patrón de saltos de proxy es
 el que usa la búsqueda (MSF-191); ver su documentación para el pendiente de confirmarlo en DEV.
 
@@ -224,7 +225,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 - **Texto literal:** lo que escribe el visitante se guarda y se muestra literal (nodos de React; en
   `apps/web/src/pages/tienda-publica/` no hay `dangerouslySetInnerHTML`). Un `<script>` escrito en el
   formulario no se interpreta.
-- **IP no persistida:** la tabla guarda el hash (`visitante`), nunca la IP.
+- **IP no persistida:** la tabla guarda el HMAC (`visitante`), nunca la IP ni un hash enumerable (MSF-945).
 - **Sin datos internos en las respuestas:** `ok | invalido | limite | error` en el formulario y
   `ok | limite | error` en WhatsApp, sin ids de organización, costos, existencias, IP ni hash. Las
   fallas internas se registran en el log del servidor solo con `sqlstate` (el `sqlerrm` puede traer
@@ -267,7 +268,7 @@ pnpm --filter @platform/web test:e2e tienda-whatsapp
 | **D3** · alcance del límite | Formulario y WhatsApp cuentan juntos (5 por hora por visitante y empresa). Superado el cupo, el formulario muestra la espera y el botón de WhatsApp **igual abre WhatsApp**: solo se omite el registro | `private.limite_envios_tienda()` y el comportamiento de la UI |
 | **D4** · interfaz de entrada de MSF-122 | `private.entregar_a_bandeja` es el único adaptador; firma real confirmada (`publico.crear_consulta_publica`) | Solo cambia el adaptador |
 | **D5** · antispam adicional | Sin captcha ni campo trampa: la defensa es el límite por visitante y empresa, la validación con topes de longitud y el texto siempre literal | Otra historia |
-| **D6** · identidad del visitante | Hash `sha256` de la IP del cliente más la empresa; sin IP disponible, un único cupo «sin-ip» | `private.visitante_hash` |
+| **D6** · identidad del visitante | HMAC-SHA256 (secreto de Vault) de la IP del cliente más la empresa; sin IP disponible, un único cupo «sin-ip» | `private.visitante_hash` |
 | **D7** · reglas de validación | Nombre ≤ 100, «Correo o WhatsApp» ≤ 120 con formato de correo o teléfono de 8 a 15 dígitos, mensaje ≤ 2000; recortados, con los mismos topes en cliente y servidor | `private.validar_contacto_tienda` + `contacto/validacion.ts` |
 | **D8** · horas | No cambia el alcance: el recorte de horas del roadmap queda pendiente de decisión | Planificación |
 

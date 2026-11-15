@@ -312,9 +312,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "7694153af028fd16c52cbd9430130359f67f78482e841b9c7cc7293f1b93cf92",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "b5fd9f02bbe24d01038481d2d58e7bf4c60b76ec4c27c6cb89c7040a2bebf0c0",
+      "sourceHash": "746b93cbfe7f745b36a0332708b8aa313cec2268cd55b7ddbf34bf01ec8c7844",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs"
       ],
@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "73cdccba84cfaf3b761cb87428a2beda7326ccd088fc49e82fe1f30f0b103cb8",
+      "pageHash": "08f3f4379c3517b16dac45043be877b373f1a6ee92f206e9117351377dd69860",
       "sourceHash": "f70015038b3be42078895037d6692c087b886fba16f1d8456ad60463943da292",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e31f2eae",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1732,9 +1732,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "859a31f1e1f7a18792ed7fa55a301c06759f0a4ef9ac0ec4b67cc3cc394c24fd",
-      "sourceHash": "7f77ea48800293db98fd3301e27b66d49526206d8306ce9d6ccf29000b9aec9e",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "1cc6aafcc284f6211f5074f4f9a0ff54a8779610dde56404afe48956b805d1a2",
+      "sourceHash": "9e41e12b53c88c6b65f2d1b1fe9d56088c308bf5dc623a508fdb43b098fbe594",
+      "sourceAt": "e31f2eae",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1743,7 +1743,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -1824,7 +1824,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "870c4163f210beccbcf56069d207cfdf9eac2d5258d94320ecc87657b70659b8",
+      "pageHash": "9fd31d864eae0c2b2d8de65d3a8415bddc423ee73d7770a12f50764574d327f6",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2439,9 +2439,9 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "0bdf4de742573bf50cfb4286bf7f21924974a50237922bcc8d650af7b051e931",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "d8047dd29f39f4fa01ab760624f62486f0dbe41bda2362e940e9a3b2af6fbf02",
+      "sourceHash": "ae5108e190a53fa5c855d922f209161e58c8ea20ecde0355b50eb7d653a711f4",
+      "sourceAt": "e31f2eae",
       "sources": [
         "supabase/migrations"
       ],
@@ -2684,14 +2684,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "16b9f0fdb3351283168344853c261e922badea34fd1218d0b5749a165b9839d1",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8c80faa43e1c3739e9cc13cac83587c989987829e4256bdb32dcdde2fe1c960a",
+      "sourceHash": "ae5108e190a53fa5c855d922f209161e58c8ea20ecde0355b50eb7d653a711f4",
+      "sourceAt": "e31f2eae",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3284,9 +3284,9 @@
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "bcf5ac154af27cccbd45cacef14356a6d169feab2b19e968428fdae1ed6db708",
-      "sourceHash": "fd03599cfa9a475cc72310205fae967f5bad8f5f1d8b92f4417f19f862dd4702",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "db4c82f4fe18ea7a1a87a4672aca2a7bd267a674dba108be3c408d271c2828b4",
+      "sourceHash": "d0360886688f613717f6b8679785fd37fdb467e9ef313050a0e51f9c1a3eb68a",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3304,9 +3304,9 @@
     },
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
-      "pageHash": "89647d46a9d52dbc4cc1f864e1a42e2438c82fb6730de57704d773bbb637bb06",
-      "sourceHash": "bf308a4def1e0a68ae1c82975e6def86aabc40f2cb1962b04bd5caa822104173",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "9b96366d6c8e328233c002c42b402eeb02d4543eafadb1488c9fc18cf36f4f26",
+      "sourceHash": "b76b128de59a2dd038d89995997334e6c2d70ea36e7ae399298e5c4d98a18a4c",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3348,9 +3348,9 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "268edc37abc6b792af9461ed976131260add7ecab21433a48ca645e9ae3366f8",
-      "sourceHash": "5527dbca607ac54264e28e2185aaf4fdfff9c8f071adcc1636dbbccc99175c27",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "b39cf9399c8664dff82251472fa883f977ae158500d270e3979eb561b0dc5d1a",
+      "sourceHash": "bdbaf3feb379e62b8688a3168fe5608db871ea2c2648e19172afb62ef0630189",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3621,9 +3621,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "7e92bda47a8e0c7388e0789f227f89e7a133bab8e19f7a76a5d6187be096bc0d",
+      "pageHash": "01b773ba0c74c8deb948c0636e8d8f93f0de7074a50aa2d443eda432563156ad",
       "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "e31f2eae",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3635,7 +3635,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

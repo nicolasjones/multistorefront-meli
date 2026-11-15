@@ -280,3 +280,27 @@ gh api repos/nicolasjones/multistorefront-meli/actions/runners \
 
 Un runner `offline` **con** `busy=true` es un job huérfano: ese PR está
 esperando un CI que no va a llegar.
+
+## Runners hosted para los jobs pesados (CI_RUNS_ON_PESADO)
+
+Los jobs pesados (`application`, `web`, `e2e-tienda`, `database`) esperaban en cola de 1 a 2 horas porque VPS2 (12 núcleos, carga
+cercana a 40) comparte la CPU con dev, los stacks de prueba y las sesiones de Claude. Como el repositorio es **público**, los
+runners estándar de GitHub (`ubuntu-latest`, 4 vCPU) no tienen costo ni tope de minutos (hasta 20 jobs simultáneos).
+
+La variable de repo `CI_RUNS_ON_PESADO` decide dónde corren esos cuatro jobs; los livianos (`changes`, `liberar`, `validacion`,
+`infrastructure`) siguen en `[self-hosted, platform-local]`:
+
+| Valor | Efecto |
+|---|---|
+| sin definir | todo en los runners self-hosted (comportamiento histórico) |
+| `["ubuntu-latest"]` | los jobs pesados corren en runners hosted gratis, sin cola |
+
+Medición de la prueba (rama `ci/runners-hosted-prueba`, sobre `dokploy`): `database` **5 min 30 s** y `e2e-tienda` **7 min** en
+hosted, contra ~22 y ~29 min de ejecución más 1 a 2 horas de cola en VPS2. Para volver atrás basta borrar la variable.
+
+En hosted el Docker es el de la VM, así que los jobs hacen lo siguiente (`if: runner.environment == 'github-hosted'`): instalan
+el CLI de Supabase (`supabase/setup-cli`) y `pg_prove`, mapean `host.docker.internal` a `127.0.0.1`, mueven los locks de
+ranuras a `$RUNNER_TEMP` y omiten el `puente` de puertos (solo existe para los runners dentro de Docker). Con la admisión por
+carriles (`CI_LANES`) conviene subir el valor al pasar a hosted, porque ya no protege la CPU de VPS2.
+
+Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, no sirve: esos jobs deben quedar en self-hosted.

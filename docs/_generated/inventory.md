@@ -5,7 +5,7 @@
 - Rutas del panel: **257**
 - Tablas en migraciones: **197**
 - Variables de entorno: **106**
-- Specs: **150**
+- Specs: **151**
 - Páginas de documentación: **320**
 
 ## Rutas del panel
@@ -728,4 +728,5 @@
 - `20270314-100000-tiendas-fidelidad-prototipo` — Feature Specification: Tiendas públicas · Fidelidad con el prototipo (MSF-847)
 - `20270315-100000-tiendas-identidad-heroe-mayusculas` — Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)
 - `20270316-100000-tiendas-hallazgos-reauditoria` — Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)
+- `20270323-100000-deuda-tecnica-lote-1-seguridad-tienda` — Feature Specification: Deuda técnica · Lote 1: seguridad e integridad de la tienda pública (MSF-515)
 - `20270323-100000-service-ideas-futuras-v2` — Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)

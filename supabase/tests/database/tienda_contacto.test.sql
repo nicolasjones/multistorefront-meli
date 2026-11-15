@@ -263,7 +263,7 @@ select ok(
   (select j = '{"estado":"ok"}'::jsonb from res where clave = 'e_sin_ip')
   and exists (select 1 from dominio.tienda_envios
                where clave_envio = '00000000-0000-0000-0000-0000000000f2'
-                 and visitante = encode(sha256(convert_to('sin-ip|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex')),
+                 and visitante = private.hmac_visitante('sin-ip|e1000000-0000-0000-0000-000000000001')),
   'sin cabecera de IP: cupo único «sin-ip»'
 );
 select is(
