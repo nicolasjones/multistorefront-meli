@@ -2,7 +2,7 @@
 -- filas rige sobre el acumulado de una ventana de 10 minutos por persona y filtros, y el texto buscado nunca llega a la actividad.
 begin;
 
-select plan(16);
+select plan(21);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
@@ -68,39 +68,81 @@ select is((select sum(substring(detalle from '^Exportó ([0-9]+) ')::int)::int f
   (select filas_acumuladas from private.clientes_exportaciones_ventana where filas_acumuladas = 6 limit 1),
   'cursor sin primer lote: filas declaradas en eventos = filas entregadas');
 
--- Tope acumulado: 49999 entregadas en la ventana + 3 filas supera 50000.
-update private.clientes_exportaciones_ventana set filas_acumuladas = 49999, filas_declaradas = 49999
- where actor_id = 'd1000000-0000-0000-0000-000000000001' and filtros_hash = (select filtros_hash from private.clientes_exportaciones_ventana
-   where filas_acumuladas = 6 limit 1);
+-- Reintento legítimo: repetir el primer lote con la misma huella exacta perdona lo entregado antes en la ventana.
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok(
-  $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
-  '54000', null, 'el tope de 50000 filas corta sobre el acumulado de la ventana');
+select count(*) from exportar_clientes('beta');
+select count(*) from exportar_clientes('beta');
 reset role;
-select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 4,
-  'la llamada rechazada no deja evento ni suma filas');
-select is((select max(filas_acumuladas) from private.clientes_exportaciones_ventana), 49999, 'la ventana conserva el acumulado previo');
+select is((select count(*)::int from private.clientes_exportaciones_entregas where perdonada), 1,
+  'reintento: lo entregado antes con la misma huella deja de contar para la ventana');
+select is((select sum(filas)::int from private.clientes_exportaciones_entregas where actor_id = 'd1000000-0000-0000-0000-000000000001'
+   and filtros_hash = (select filtros_hash from private.clientes_exportaciones_entregas where perdonada)), 2,
+  'reintento: sigue contando para el tope diario');
 
--- Otra persona de la misma organización no comparte ventana.
+-- Tope de ventana POR PERSONA: la ventana de la persona queda en 50000 con otra huella de filtros.
+insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas)
+select '11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000001', 'otra-huella',
+       50000 - coalesce(sum(e.filas) filter (where not e.perdonada), 0)
+  from private.clientes_exportaciones_entregas e where e.actor_id = 'd1000000-0000-0000-0000-000000000001';
+create function pg_temp.hint_de(p_sql text) returns text language plpgsql as $f$
+declare h text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics h = pg_exception_hint;
+  return coalesce(h, 'sin hint');
+end $f$;
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+  'tope_acumulado', 'el tope de 50000 en 10 minutos corta con el aviso de tope acumulado');
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', 'minorista', true, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+  'sin error', 'sin filas no hay nada que contar (control de la prueba siguiente)');
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes('a', null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+  'tope_acumulado', 'cambiar el texto de búsqueda NO reinicia el tope');
+reset role;
+select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'), 6,
+  'las llamadas rechazadas no dejan evento');
+
+-- Otra persona de la misma organización no comparte contador.
 select pg_temp.como('d1000000-0000-0000-0000-000000000005');
 select lives_ok(
   $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
-  'otra persona no comparte la ventana ni el tope');
+  'otra persona no comparte el contador ni el tope');
 
--- Pasados 10 minutos la ventana se reinicia.
+-- Pasados 10 minutos el tope de ventana se libera.
 reset role;
-update private.clientes_exportaciones_ventana set desde = desde - interval '11 minutes'
- where actor_id = 'd1000000-0000-0000-0000-000000000001' and filas_acumuladas = 49999;
+update private.clientes_exportaciones_entregas set creado_en = creado_en - interval '11 minutes' where filtros_hash = 'otra-huella';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select lives_ok(
   $q$select * from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$,
   'vencida la ventana, la exportación vuelve a permitirse');
+
+-- Tope DIARIO: 24 horas deslizantes, por persona.
 reset role;
-select is((select count(*)::int from private.clientes_exportaciones_ventana
-  where actor_id = 'd1000000-0000-0000-0000-000000000001' and filas_acumuladas = 3), 1, 'la ventana vencida empieza de cero');
+insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas, creado_en)
+select '11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000001', 'diario',
+       200000 - coalesce(sum(e.filas), 0), now() - interval '2 hours'
+  from private.clientes_exportaciones_entregas e
+ where e.actor_id = 'd1000000-0000-0000-0000-000000000001' and e.creado_en > now() - interval '1 day';
+select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select is(pg_temp.hint_de($q$select count(*) from exportar_clientes(null, 'mayorista', false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1))$q$),
+  'tope_diario', 'el tope diario corta aunque la ventana de 10 minutos esté libre');
+
+-- La purga está acotada: las filas de más de un día se borran y las tablas no crecen sin límite.
+reset role;
+insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas, creado_en)
+values ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000005', 'viejo', 5, now() - interval '2 days');
+insert into private.clientes_exportaciones_ventana (organizacion_id, actor_id, filtros_hash, desde, filas_acumuladas, filas_declaradas)
+values ('11111111-1111-1111-1111-111111111111', 'd1000000-0000-0000-0000-000000000005', 'viejo', now() - interval '2 days', 5, 5);
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
+select count(*) from exportar_clientes(null, null, false, (select c.id from clientes c order by lower(c.nombre), c.id limit 1));
+reset role;
+select is((select count(*)::int from private.clientes_exportaciones_entregas where filtros_hash = 'viejo'), 0, 'se purgan las entregas de más de un día');
+select is((select count(*)::int from private.clientes_exportaciones_ventana where filtros_hash = 'viejo'), 0, 'se purgan las ventanas de más de un día');
 
 -- Menor: el texto buscado (puede ser un DNI) no se escribe en la actividad.
-select pg_temp.como('d1000000-0000-0000-0000-000000000001');
+select pg_temp.como('d1000000-0000-0000-0000-000000000005');
 select count(*) from exportar_clientes('30111222');
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados' and detalle like '%30111222%'), 0,

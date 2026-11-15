@@ -11,8 +11,18 @@
 --     superen lo ya declarado (p. ej. quien descarga con cursor sin haber pedido el primer lote). Una exportación paginada
 --     normal sigue dejando un solo evento. `registro_actividad` es inalterable (trigger), por eso no se actualiza el
 --     detalle de un evento ya escrito: lo que excede se registra como un evento adicional «(continuación)».
---   * Tope: las filas acumuladas de la ventana (misma persona y filtros) no pueden pasar de 50000; si pasan, la llamada falla
---     con 54000 y no entrega filas (la transacción se revierte, tampoco se cuenta).
+--   * Topes (por organización y PERSONA, sin importar los filtros: variar texto, tipo o archivados no abre un cupo nuevo):
+--       - ventana deslizante de 10 minutos: 50000 filas entregadas;
+--       - tope DIARIO (24 horas deslizantes): 200000 filas entregadas.
+--     Los valores viven en `private.tope_exportacion_clientes(text)` para ajustarlos sin tocar la función (aún sin criterio
+--     de negocio definitivo: son una constante conservadora, 4 exportaciones completas por día).
+--     Al pasarlos la llamada falla con 54000 y `hint` = 'tope_acumulado' (ventana) o 'tope_diario'; el 54000 de una sola
+--     exportación demasiado grande (lote) no lleva hint. No entrega filas y no cuenta (la transacción se revierte).
+--     Las entregas se llevan en `private.clientes_exportaciones_entregas` (una fila por llamada con filas).
+--   * Reintento legítimo: cuando el primer lote (sin cursor) vuelve a empezar con la MISMA huella exacta de filtros, las
+--     filas entregadas antes con esa huella dentro de la ventana de 10 minutos dejan de contar para el tope de ventana
+--     (`perdonada`). Siguen contando para el tope DIARIO, que no se perdona: así reiniciar no abre cupo infinito.
+--   * La huella de filtros queda solo para deduplicar los eventos de auditoría y calcular lo «declarado».
 --   * Privacidad (menor 2): el texto de búsqueda ya no se escribe en la actividad (podía ser un DNI, correo o teléfono):
 --     el detalle solo dice «con texto».
 --
@@ -22,6 +32,7 @@
 --
 -- Reversión (migración posterior): volver a crear `public.exportar_clientes` con la definición de
 -- `20270324110000_exportar_clientes_registra_actividad.sql` y luego
+--   drop table private.clientes_exportaciones_entregas; drop function private.tope_exportacion_clientes(text);
 --   drop table private.clientes_exportaciones_ventana;
 
 create table if not exists private.clientes_exportaciones_ventana (
@@ -35,10 +46,40 @@ create table if not exists private.clientes_exportaciones_ventana (
   primary key (organizacion_id, actor_id, filtros_hash)
 );
 comment on table private.clientes_exportaciones_ventana is
-  'Ventana de 10 minutos por persona y filtros de la exportación de clientes: filas entregadas y filas ya declaradas en la actividad. Aplica el tope de 50000 filas sobre el acumulado y deduplica los eventos.';
+  'Ventana de 10 minutos por persona y filtros de la exportación de clientes: filas entregadas y filas ya declaradas en la actividad. Solo deduplica los eventos de auditoría (filas declaradas); los topes viven en clientes_exportaciones_entregas.';
 create index if not exists clientes_exportaciones_ventana_desde_idx on private.clientes_exportaciones_ventana (desde);
 alter table private.clientes_exportaciones_ventana enable row level security;
 revoke all on private.clientes_exportaciones_ventana from public, anon, authenticated;
+
+create table if not exists private.clientes_exportaciones_entregas (
+  id bigint generated always as identity primary key,
+  organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
+  actor_id uuid not null,
+  filtros_hash text not null,
+  filas integer not null check (filas > 0),
+  creado_en timestamptz not null default now(),
+  -- Reintento del primer lote con la misma huella: deja de contar para el tope de ventana (no para el diario).
+  perdonada boolean not null default false
+);
+comment on table private.clientes_exportaciones_entregas is
+  'Filas de clientes entregadas por llamada a exportar_clientes, por organización y persona. Base de los topes de ventana (10 minutos) y diario (24 horas). Se purga a las 24 horas.';
+create index if not exists clientes_exportaciones_entregas_actor_idx
+  on private.clientes_exportaciones_entregas (organizacion_id, actor_id, creado_en desc);
+create index if not exists clientes_exportaciones_entregas_creado_idx on private.clientes_exportaciones_entregas (creado_en);
+alter table private.clientes_exportaciones_entregas enable row level security;
+revoke all on private.clientes_exportaciones_entregas from public, anon, authenticated;
+
+-- Topes de la exportación de clientes por persona. Constantes en una función para poder ajustarlas sin redefinir
+-- exportar_clientes. 'ventana': filas en 10 minutos deslizantes; 'dia': filas en 24 horas deslizantes.
+create or replace function private.tope_exportacion_clientes(p_periodo text)
+returns integer
+language sql
+immutable
+set search_path = ''
+as $$
+  select case p_periodo when 'ventana' then 50000 when 'dia' then 200000 end;
+$$;
+revoke execute on function private.tope_exportacion_clientes(text) from public, anon, authenticated;
 
 create or replace function public.exportar_clientes(
   p_texto text default null,
@@ -83,7 +124,8 @@ declare
   v_acumuladas integer;
   v_declaradas integer;
   v_incremento bigint;
-  v_tope constant integer := 50000;
+  v_en_ventana bigint;
+  v_en_dia bigint;
 begin
   -- El permiso, el tope por exportación y el cursor los valida el lote; buffer de filas: si algo falla más abajo,
   -- la función entera se revierte y no se entrega nada.
@@ -112,8 +154,42 @@ begin
     coalesce(p_tipo, ''), coalesce(p_archivados, false)::text, coalesce(p_empresa_id::text, ''),
     coalesce(p_con_cuenta_web, false)::text, coalesce(lower(v_texto), '')), 'UTF8')), 'hex');
 
-  delete from private.clientes_exportaciones_ventana w where w.desde < now() - interval '1 day';
+  -- Purga acotada (500 filas por llamada): las tablas de control no crecen sin límite.
+  delete from private.clientes_exportaciones_ventana w
+   where w.ctid in (select v.ctid from private.clientes_exportaciones_ventana v where v.desde < now() - interval '1 day' limit 500);
+  delete from private.clientes_exportaciones_entregas e
+   where e.id in (select v.id from private.clientes_exportaciones_entregas v where v.creado_en < now() - interval '1 day' limit 500);
 
+  -- Un solo cupo por organización y persona: dos llamadas simultáneas no lo superan.
+  perform pg_advisory_xact_lock(hashtextextended('exportar_clientes|' || v_org::text || '|' || v_actor::text, 0));
+
+  -- Reintento: el primer lote vuelve a empezar con la misma huella exacta, lo entregado antes con ella no cuenta para
+  -- la ventana (sí para el tope diario).
+  if p_despues_de is null then
+    update private.clientes_exportaciones_entregas e set perdonada = true
+     where e.organizacion_id = v_org and e.actor_id = v_actor and e.filtros_hash = v_hash
+       and e.creado_en > now() - interval '10 minutes' and not e.perdonada;
+  end if;
+
+  select coalesce(sum(e.filas) filter (where e.creado_en > now() - interval '10 minutes' and not e.perdonada), 0),
+         coalesce(sum(e.filas) filter (where e.creado_en > now() - interval '1 day'), 0)
+    into v_en_ventana, v_en_dia
+    from private.clientes_exportaciones_entregas e
+   where e.organizacion_id = v_org and e.actor_id = v_actor;
+
+  if v_en_ventana + v_n > private.tope_exportacion_clientes('ventana') then
+    raise exception 'Exportaste muchos clientes en poco tiempo: esperá unos minutos antes de volver a exportar'
+      using errcode = '54000', hint = 'tope_acumulado';
+  end if;
+  if v_en_dia + v_n > private.tope_exportacion_clientes('dia') then
+    raise exception 'Llegaste al máximo diario de clientes exportados: volvé a intentar mañana'
+      using errcode = '54000', hint = 'tope_diario';
+  end if;
+
+  insert into private.clientes_exportaciones_entregas (organizacion_id, actor_id, filtros_hash, filas)
+  values (v_org, v_actor, v_hash, v_n);
+
+  -- Deduplicación de los eventos de auditoría (por huella de filtros; no es un tope).
   insert into private.clientes_exportaciones_ventana as w (organizacion_id, actor_id, filtros_hash, desde, filas_acumuladas, filas_declaradas)
   values (v_org, v_actor, v_hash, now(), v_n, 0)
   on conflict (organizacion_id, actor_id, filtros_hash) do update
@@ -121,10 +197,6 @@ begin
         filas_declaradas = case when w.desde <= now() - interval '10 minutes' then 0 else w.filas_declaradas end,
         desde = case when w.desde <= now() - interval '10 minutes' then now() else w.desde end
   returning w.filas_acumuladas, w.filas_declaradas into v_acumuladas, v_declaradas;
-
-  if v_acumuladas > v_tope then
-    raise exception 'La exportación supera las 50000 filas en 10 minutos: afiná la búsqueda o esperá unos minutos' using errcode = '54000';
-  end if;
 
   -- Primer lote: declara la exportación completa. Con cursor: solo lo que exceda lo ya declarado.
   if p_despues_de is null then
@@ -164,7 +236,7 @@ end;
 $$;
 
 comment on function public.exportar_clientes(text, text, boolean, uuid, integer, uuid, boolean) is
-  'Exportación de clientes por lotes (keyset lower(nombre), id). Envoltorio volatile de private.exportar_clientes_lote (permiso clientes/exportar, tope 50000 por exportación, filtros). Lleva una ventana de 10 minutos por persona y filtros: tope de 50000 filas sobre el acumulado y evento clientes.exportados por las filas no declaradas (el primer lote declara el total; el cursor suma). El texto buscado no se registra. F-CLI-04.';
+  'Exportación de clientes por lotes (keyset lower(nombre), id). Envoltorio volatile de private.exportar_clientes_lote (permiso clientes/exportar, tope 50000 por exportación, filtros). Topes por persona sin importar los filtros: 50000 filas en 10 minutos y 200000 por día (private.tope_exportacion_clientes); 54000 con hint tope_acumulado/tope_diario. Evento clientes.exportados por las filas no declaradas (el primer lote declara el total; el cursor suma). El texto buscado no se registra. F-CLI-04.';
 
 revoke execute on function public.exportar_clientes(text, text, boolean, uuid, integer, uuid, boolean) from public, anon;
 grant execute on function public.exportar_clientes(text, text, boolean, uuid, integer, uuid, boolean) to authenticated;

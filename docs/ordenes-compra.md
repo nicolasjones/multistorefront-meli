@@ -89,4 +89,6 @@ costo de la orden, varias empresas por orden y el vínculo con el ingreso de mer
 
 ## Exportación total
 
+La exportación total vuelca **todas** las órdenes de la organización, sin el alcance por empresa de la lectura normal: es una copia de respaldo de la organización, no una pantalla. `private.conjuntos_exportacion_total()` solo es ejecutable por el rol de servicio `workers_orquestacion` (`revoke … from public, anon, authenticated`) y se invoca desde el worker de la exportación total tras `private.autorizar_llamante_ciclo`; ninguna persona de la app la llama directamente. Esta corrección no redefine esa función.
+
 Las dos tablas (`dominio.ordenes_compra` y `dominio.ordenes_compra_items`) se exportan con la exportación total de la organización: son dato de negocio, igual que el ingreso de mercadería. Las suma `20270334000002_exportacion_total_ordenes_compra.sql` a `private.conjuntos_exportacion_total()`; el pgTAP `exportacion_total` exige que toda tabla con `organizacion_id` esté permitida o excluida.

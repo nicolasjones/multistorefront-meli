@@ -95,6 +95,10 @@ describe('exportarClientes', () => {
   it('un error del servidor se informa con mensaje útil y el de tope pide afinar la búsqueda', async () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x' } })
     await expect(exportarClientes(filtros)).rejects.toThrow(/Afiná la búsqueda/)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_acumulado' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow(/esperá unos minutos antes de volver a exportar/)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_diario' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow(/máximo diario/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } })
     await expect(exportarClientes(filtros)).rejects.toThrow(/permiso/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'se cayó' } })

@@ -10,6 +10,8 @@ create table public.hijo_inmediato_tmp (id integer primary key, padre integer,
 create table public.hijo_diferido_tmp (id integer primary key, padre integer,
   constraint hijo_diferido_tmp_fk foreign key (padre) references public.padre_modo_tmp (id) deferrable initially deferred);
 
+-- El llamador la había puesto inmediata: la función restaura el modo DECLARADO, no el de la sesión.
+set constraints public.hijo_diferido_tmp_fk immediate;
 select lives_ok($q$select private.confirmar_claves_diferidas()$q$, 'la confirmación corre sin pendientes');
 
 select throws_ok(
@@ -18,7 +20,7 @@ select throws_ok(
 
 select lives_ok(
   $q$insert into public.hijo_diferido_tmp values (1, 999)$q$,
-  'una clave initially deferred vuelve a quedar diferida');
+  'una clave initially deferred vuelve a diferirse aunque el llamador la hubiera puesto immediate (modo declarado, no el de la sesión)');
 
 select throws_ok(
   $q$select private.confirmar_claves_diferidas()$q$,

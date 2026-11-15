@@ -237,8 +237,13 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
   API) lleva una ventana de 10 minutos por organización, persona y huella de filtros con las filas entregadas y las ya
   declaradas. El primer lote declara el total de la exportación; un lote con cursor suma y solo escribe un evento
   nuevo «… (continuación)» por las filas que excedan lo declarado (el registro es inalterable: no se edita un evento ya
-  escrito). El tope de 50000 se aplica sobre las filas acumuladas de la ventana (`54000`, sin entregar filas ni contar).
-  Otra persona, otra organización u otros filtros no comparten ventana. Pgtap: `clientes_exportar_actividad.test.sql`
+  escrito). `private.clientes_exportaciones_ventana` (huella de filtros) solo deduplica eventos. Los **topes** viven en
+  `private.clientes_exportaciones_entregas` (una fila por llamada con filas), por organización y persona **sin importar los
+  filtros**: 50000 filas en 10 minutos deslizantes y 200000 por día, constantes de `private.tope_exportacion_clientes(text)`.
+  Al pasarlos: `54000` con `hint` `tope_acumulado` o `tope_diario` (el 54000 de un solo archivo demasiado grande no lleva hint;
+  el cliente web los distingue), sin entregar filas ni contar. Un primer lote que reinicia con la misma huella exacta perdona
+  (`perdonada`) lo entregado antes con ella en la ventana (reintento legítimo), pero no en el tope diario. Purga acotada (500
+  filas por llamada, más de 1 día). Otra persona u otra organización no comparten contador. Pgtap: `clientes_exportar_actividad.test.sql`
   y `clientes_exportar_actividad_ventana.test.sql`. Reversión: ver el encabezado de la migración.
 
 - **Quién:** solo quien tiene la acción `exportar` en Clientes

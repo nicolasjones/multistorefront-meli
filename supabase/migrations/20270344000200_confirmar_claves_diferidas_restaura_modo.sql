@@ -4,6 +4,11 @@
 -- restricciones `deferrable initially deferred` (`pg_constraint.condeferred`), con nombre calificado; las que nacen
 -- inmediatas quedan inmediatas. Mismo contrato para quien la llama (comprueba, traduce el 23503 a P0001).
 --
+-- LÍMITE EXPLÍCITO: restaura el modo DECLARADO de cada restricción, no el que tenía la sesión. Si quien llama había hecho
+-- `set constraints X immediate` sobre una restricción `initially deferred`, X vuelve a quedar diferida al terminar; y si había
+-- hecho `set constraints Y deferred` sobre una `initially immediate`, Y queda inmediata. Quien necesite otro modo debe
+-- volver a fijarlo después de llamarla.
+--
 -- Reversión (migración posterior): recrear la función con la definición de
 -- `20270324120300_baja_organizacion_reparaciones_y_error_diferido.sql`.
 
@@ -41,6 +46,6 @@ end
 $$;
 
 comment on function private.confirmar_claves_diferidas() is
-  'Fuerza la comprobación de las claves foráneas diferidas y traduce el 23503 a un error de negocio (P0001). Después restaura el modo de declaración: solo vuelven a diferirse las restricciones initially deferred; las deferrable initially immediate siguen inmediatas. Llamarla al final de una RPC que borre tablas con claves diferidas.';
+  'Fuerza la comprobación de las claves foráneas diferidas y traduce el 23503 a un error de negocio (P0001). Después restaura el modo de declaración: solo vuelven a diferirse las restricciones initially deferred; las deferrable initially immediate siguen inmediatas. Restaura el modo declarado, NO el de la sesión (un set constraints X immediate previo sobre una initially deferred se pierde). Llamarla al final de una RPC que borre tablas con claves diferidas.';
 
 revoke execute on function private.confirmar_claves_diferidas() from public, anon, authenticated;
