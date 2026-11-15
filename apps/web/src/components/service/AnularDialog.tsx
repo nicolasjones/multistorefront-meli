@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, Stack, TextField } from '@mui/material'
+import { Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, FormGroup, Stack, TextField, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
 import {
   LARGO_MAXIMO_MOTIVO,
@@ -17,18 +17,28 @@ type Props = {
   onAnulada: (reparacion: Reparacion) => void
 }
 
+export const AVISO_DEVOLUCION_ANULAR = 'Los repuestos descontados vuelven al stock, salvo los que marques como consumidos.'
+
 // Anulación con motivo obligatorio (FR-033). Es irreversible: el diálogo lo dice antes de confirmar.
 export function AnularDialog({ abierto, reparacion, onCerrar, onAnulada }: Props) {
   const [motivo, setMotivo] = useState('')
   const [errorMotivo, setErrorMotivo] = useState<string | null>(null)
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [consumidos, setConsumidos] = useState<Set<string>>(new Set())
+
+  // Una reparación entregada o en un estado que cierra no devuelve stock y la base rechaza `p_consumidos` (22023):
+  // no se ofrece la lista ni el aviso (F-SVC-11, FR-024).
+  const cerrada = Boolean(reparacion.entrega_real) || Boolean(reparacion.estado_cierra)
+  // Repuestos que salieron del stock y hoy pueden volver (F-SVC-11, FR-023).
+  const descontados = cerrada ? [] : (reparacion.items ?? []).filter((item) => item.tipo === 'repuesto' && item.stock_estado === 'descontado')
 
   useEffect(() => {
     if (!abierto) return
     setMotivo('')
     setErrorMotivo(null)
     setErrorGeneral(null)
+    setConsumidos(new Set())
   }, [abierto])
 
   const cerrar = () => {
@@ -48,7 +58,7 @@ export function AnularDialog({ abierto, reparacion, onCerrar, onAnulada }: Props
     }
     setGuardando(true)
     try {
-      onAnulada(await anularReparacion(reparacion.id, motivo))
+      onAnulada(await anularReparacion(reparacion.id, motivo, descontados.filter((item) => consumidos.has(item.id)).map((item) => item.id)))
     } catch (error) {
       const deCampo = errorDeCampoDe(error, ['motivo'] as const)
       if (deCampo) {
@@ -72,6 +82,32 @@ export function AnularDialog({ abierto, reparacion, onCerrar, onAnulada }: Props
               La reparación queda marcada como anulada y de solo lectura. Esta acción no se puede deshacer.
             </DialogContentText>
             {errorGeneral ? <Alert severity="error">{errorGeneral}</Alert> : null}
+            {descontados.length > 0 ? (
+              <Stack spacing={0.5} role="group" aria-labelledby="titulo-repuestos-anular">
+                <Typography id="titulo-repuestos-anular" variant="subtitle2">Repuestos descontados del stock</Typography>
+                <Typography variant="caption" color="text.secondary">{AVISO_DEVOLUCION_ANULAR}</Typography>
+                <FormGroup>
+                  {descontados.map((item) => (
+                    <FormControlLabel
+                      key={item.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={consumidos.has(item.id)}
+                          onChange={(evento) => {
+                            const siguiente = new Set(consumidos)
+                            if (evento.target.checked) siguiente.add(item.id)
+                            else siguiente.delete(item.id)
+                            setConsumidos(siguiente)
+                          }}
+                        />
+                      }
+                      label={`${item.cantidad} × ${item.descripcion}${item.deposito_nombre ? ` (${item.deposito_nombre})` : ''} · Consumido, no se devuelve`}
+                    />
+                  ))}
+                </FormGroup>
+              </Stack>
+            ) : null}
             <TextField
               label="Motivo de la anulación"
               required

@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get update && apt-get install -y --no-install-recommends \
       docker-ce-cli docker-compose-plugin docker-buildx-plugin nodejs \
       postgresql-client libtap-parser-sourcehandler-pgtap-perl \
-      openssh-client \
+      openssh-client procps \
     && npm install -g pnpm@11.19.0 \
     && rm -rf /var/lib/apt/lists/*
 # docker-buildx-plugin: worker-images.yml exige provenance y SBOM (docker
@@ -55,6 +55,9 @@ RUN curl -fsSL -o actions-runner.tar.gz \
     && ./bin/installdependencies.sh
 
 COPY entrypoint.mjs /entrypoint.mjs
-RUN chmod 0555 /entrypoint.mjs
+# El entrypoint importa la reparación del `bin` (ver `restaurar-bin.mjs`): van los dos
+# en `/` porque el entrypoint se ejecuta con ruta absoluta desde el WORKDIR del runner.
+COPY restaurar-bin.mjs /restaurar-bin.mjs
+RUN chmod 0555 /entrypoint.mjs /restaurar-bin.mjs
 
 ENTRYPOINT ["node", "/entrypoint.mjs"]

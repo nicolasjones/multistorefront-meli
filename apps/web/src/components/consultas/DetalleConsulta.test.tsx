@@ -9,7 +9,12 @@ const mocks = vi.hoisted(() => ({
   onRecargar: vi.fn(),
 }))
 
+vi.mock('../../hooks/useRespuestasRapidas', () => ({
+  useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }),
+}))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: mocks.useResponsablesConsultas }))
+// El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
+vi.mock('../../pages/consultas/ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 vi.mock('../../lib/consultas', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/consultas')>()),
   actualizarConsulta: mocks.actualizarConsulta,

@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Cómo usar las skills del proyecto
 
 Esta página explica qué skill cargar según la tarea y dónde se versiona. Las skills aportan instrucciones especializadas; [AGENTS.md](../AGENTS.md) y [CLAUDE.md](../CLAUDE.md) siguen siendo las reglas obligatorias del repositorio.

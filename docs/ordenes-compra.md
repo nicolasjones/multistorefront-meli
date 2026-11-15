@@ -1,3 +1,12 @@
+---
+owner: tecnico
+sources:
+  - specs/20261109-103000-ordenes-de-compra-a-proveedores
+  - supabase/migrations/20270334000000_ordenes_compra_tablas.sql
+  - supabase/migrations/20270334000001_ordenes_compra_rpc.sql
+  - apps/web/src/lib/ordenesCompra.ts
+---
+
 # Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)
 
 Spec: `specs/20261109-103000-ordenes-de-compra-a-proveedores/`. Épica MSF-450 (Clientes y proveedores ·
@@ -58,7 +67,7 @@ aparte: cambiaría el contrato de `registrar_ingreso_mercaderia`.
 
 ## Reversión
 
-Migraciones aditivas `20270220180001` (tablas) y `20270220180002` (RPC). Para deshacer, en una migración
+Migraciones aditivas `20270334000000` (tablas) y `20270334000001` (RPC). Para deshacer, en una migración
 posterior: `drop function public.crear_orden_compra(...)`, `drop function
 public.cambiar_estado_orden_compra(...)`, `drop function public.productos_en_reposicion_de_proveedor(...)`,
 `drop function public.listar_ordenes_compra(...)`, `drop function public.detalle_orden_compra(...)` y

@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-100000-ventas-impresion
+  - infra/kestra
+  - workers/comprobantes-pdf
+  - supabase/migrations/20261211130100_comprobante_impresiones.sql
+  - supabase/migrations/20261211130200_registrar_impresion.sql
+  - supabase/migrations/20261212100100_solicitar_documento_presupuesto.sql
+  - supabase/migrations/20261212100200_comprobante_envios_correo.sql
+  - supabase/migrations/20261212100300_enviar_presupuesto_correo.sql
+---
+
 # Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-impresion.md) · [guía de uso](producto/ventas-impresion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Desde el comprobante de una **factura confirmada** se imprime la factura interna
 o el remito. El PDF A4 lo genera un worker, no el navegador. Spec:
@@ -312,3 +327,10 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).
   Hoy es texto libre (tope de 60 caracteres, sin catálogo): cuando se agregue la edición en la ficha del
   cliente hay que cerrar los valores (lista cerrada o enum) para que no salgan variantes en la factura.
+
+## Pestaña abierta en el clic y marca «impreso» (MSF-722)
+
+«Imprimir» abre una pestaña en blanco en el propio clic (para que el navegador no la bloquee) y le asigna la URL
+firmada cuando el PDF está listo; si la generación falla, la pestaña se cierra. La impresión se registra solo con la
+pestaña lista para mostrar el PDF. Si el navegador la bloquea (o la persona la cerró), no se registra nada: queda el
+enlace «Abrir documento» y la impresión se registra al abrirlo.

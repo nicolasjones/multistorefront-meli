@@ -8,6 +8,9 @@ import { parsearImporte } from './serviceTecnico'
 
 export type TipoItemReparacion = 'mano_obra' | 'repuesto'
 
+// Estado del stock de un ítem (F-SVC-10): solo lo `descontado` vuelve al depósito al quitarlo o anular.
+export type StockEstadoItem = 'sin_movimiento' | 'descontado' | 'pendiente' | 'consumido' | 'devuelto'
+
 // Ítem de mano de obra o repuesto (F-SVC-06). `sku` solo en un repuesto vinculado al catálogo.
 export type ItemReparacion = {
   id: string
@@ -18,6 +21,10 @@ export type ItemReparacion = {
   cantidad: number
   precio_unitario: number
   subtotal: number
+  // Depósito del que se descontó (nulo si el ítem no mueve stock) y su estado de stock.
+  deposito_id: string | null
+  deposito_nombre: string | null
+  stock_estado: StockEstadoItem
 }
 
 export type Reparacion = {
@@ -382,8 +389,9 @@ export async function registrarEntregaReparacion(
   return aReparacion(data)
 }
 
-export async function anularReparacion(id: string, motivo: string): Promise<Reparacion> {
-  const { data, error } = await supabaseClient.rpc('anular_reparacion', { p_id: id, p_motivo: motivo.trim() })
+// `consumidos`: ids de repuestos descontados que NO vuelven al stock (F-SVC-11, FR-023); el resto se devuelve.
+export async function anularReparacion(id: string, motivo: string, consumidos: string[] = []): Promise<Reparacion> {
+  const { data, error } = await supabaseClient.rpc('anular_reparacion', { p_id: id, p_motivo: motivo.trim(), p_consumidos: consumidos })
   lanzarSiHayError(error)
   return aReparacion(data)
 }

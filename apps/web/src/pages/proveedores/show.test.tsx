@@ -23,6 +23,7 @@ vi.mock('../../hooks/useEmpresasDeProveedor', () => ({
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../components/proveedores/ProductosDelProveedor', () => ({ ProductosDelProveedor: () => <section aria-label="Productos del proveedor" /> }))
+vi.mock('../../components/proveedores/ListaContactos', () => ({ ListaContactos: () => <section aria-label="Contactos" /> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProveedorShow } from './show'

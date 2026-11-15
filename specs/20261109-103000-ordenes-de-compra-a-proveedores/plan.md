@@ -31,10 +31,10 @@ nace del listado de reposición: los productos en alerta del proveedor elegido, 
 
 | Versión | Archivo | Contenido |
 |---|---|---|
-| `20270220180001` | `supabase/migrations/20270220180001_ordenes_compra_tablas.sql` | `dominio.ordenes_compra`, `dominio.ordenes_compra_items`, RLS, grants, comentarios. |
-| `20270220180002` | `supabase/migrations/20270220180002_ordenes_compra_rpc.sql` | `crear_orden_compra`, `listar_ordenes_compra`, `detalle_orden_compra`, `cambiar_estado_orden_compra`, `productos_en_reposicion_de_proveedor`. |
+| `20270334000000` | `supabase/migrations/20270334000000_ordenes_compra_tablas.sql` | `dominio.ordenes_compra`, `dominio.ordenes_compra_items`, RLS, grants, comentarios. |
+| `20270334000001` | `supabase/migrations/20270334000001_ordenes_compra_rpc.sql` | `crear_orden_compra`, `listar_ordenes_compra`, `detalle_orden_compra`, `cambiar_estado_orden_compra`, `productos_en_reposicion_de_proveedor`. |
 
-La versión la fija el runner (`20270220180001` y `20270220180002`, por encima de la máxima de la base del PR `20270220180000`).
+La versión la fija el runner (`20270334000000` y `20270334000001`, por encima de toda la cola de `dokploy` (la última, `20270326100000`)).
 No se editan versiones ya publicadas. Cada migración lleva en el encabezado el camino de reversión.
 
 ## Verificación de la constitución

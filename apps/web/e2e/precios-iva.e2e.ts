@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-114 (T043, SC-009): producto en USD con costo → su precio en dos empresas con
 // reglas distintas → interruptor de IVA → precio final y margen. Requiere el stack local
@@ -11,38 +12,8 @@ import { expect, test, type Page } from '@playwright/test'
 //   central $ 29.300 · costo $ 17.580 · margen (29.300 − 17.580) / 29.300 = 40 %
 //   empresa A «Igual al central»  → neto $ 29.300 · final $ 35.453
 //   empresa B «Central +10 %»     → neto $ 32.230 · final $ 38.998 (32.230 × 1,21 = 38.998,3)
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de precios: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function modificar(ruta: string, cuerpo: unknown, esquema = 'public') {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
@@ -51,29 +22,6 @@ async function modificar(ruta: string, cuerpo: unknown, esquema = 'public') {
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'DELETE',
-    headers: cabeceras({ 'content-profile': esquema }),
-  })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -88,6 +36,7 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('producto en USD con costo: precio en dos empresas con reglas distintas, interruptor de IVA y margen', async ({ browser }) => {
+    test.setTimeout(90_000) // alta del producto en USD, precio en dos empresas con reglas distintas, interruptor de IVA y margen: ~29 s en reposo, pegado al tope de 30 s
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-precios-${sufijo}@example.com`
     const nombre = `Producto USD ${sufijo}`
@@ -119,11 +68,13 @@ test.describe('Precios e IVA (MSF-114, SC-009)', () => {
 
       // 1. Alta del producto en USD con costo, desde la pantalla.
       await page.goto('/productos/create')
-      await page.getByLabel('Nombre').fill(nombre)
+      // La pantalla vuelve a pintar el formulario cuando terminan de cargar los permisos: se espera a que aparezca el bloque de precios antes de escribir.
+      await expect(page.getByRole('region', { name: 'Precio y costo' })).toBeVisible()
+      await page.getByRole('textbox', { name: 'Nombre', exact: true }).fill(nombre)
       await page.getByLabel('Moneda').click()
       await page.getByRole('option', { name: /USD|Dólar/ }).click()
       await page.getByLabel('Precio de lista (sin IVA)').fill('20')
-      await page.getByLabel('Costo').fill('12')
+      await page.getByLabel('Costo', { exact: true }).fill('12')
       await expect(page.getByLabel('Precio en pesos')).toHaveValue('$ 29.300')
       await expect(page.getByText(/costo \$ 17\.580 · con dólar \$ 1\.465/)).toBeVisible()
       await expect(page.getByText('Margen estimado (escala x1):')).toContainText('40 %')

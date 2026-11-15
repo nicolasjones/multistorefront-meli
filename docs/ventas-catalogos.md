@@ -1,4 +1,13 @@
+---
+owner: tecnico
+sources:
+  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
+  - apps/web/src
+---
+
 # Ventas · Catálogos de cobro y envío (épica MSF-139)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-catalogos.md) · [guía de uso](producto/ventas-catalogos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica: formas de pago y de envío por empresa, cuentas de cobro y transportes de la organización.
 Spec: `specs/20261020-100000-ventas-catalogos-de-cobro-y-envio/` (FR-001…FR-020, SC-001…SC-010).
@@ -43,11 +52,11 @@ organización según el catálogo), `updated_at` para bloqueo optimista (`40001`
 |---|---|---|
 | `/ventas/configuracion` | Configuración de ventas: pestañas `Formas de pago` y `Formas de envío` | `VentasConfiguracion.dc.html` |
 | `/ventas/cuentas-cobro` | Cuentas de cobro | `CuentasCobro.dc.html` |
-| `/ventas/transportes` | Transportes y contrarreembolsos: sub-pestañas `Contrarreembolsos` y `Terminales de retiro` | `VentasTransportes.dc.html` |
+| `/ventas/transportes` | Transportes y contrarreembolsos: sub-pestañas `Contrarreembolsos`, `Motos` y `Terminales de retiro` | `VentasTransportes.dc.html` |
 
 Sin permiso se muestra «Acceso restringido» (`RequiereAccesoSeccion`). Fuera de alcance: pestañas RMA y Estados,
-pestaña `Motos` y sus tarjetas, «Envíos del mes», Exportar, transporte preferido del cliente (MSF-180) y la carga de datos
-reales (MSF-142); la pestaña `Contrarreembolsos` la entrega F-VTA-14 (`docs/contrarreembolsos-transporte.md`). Ver la matriz
+«Envíos del mes», Exportar, transporte preferido del cliente (MSF-180) y la carga de datos
+reales (MSF-142); la pestaña `Contrarreembolsos` la entrega F-VTA-14 (`docs/contrarreembolsos-transporte.md`) y la pestaña `Motos` con su tarjeta, MSF-145 (`docs/ventas-motos.md`). Ver la matriz
 pantalla↔criterios de la spec.
 
 ## Reversión

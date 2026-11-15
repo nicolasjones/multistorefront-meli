@@ -352,6 +352,8 @@ select lives_ok(format($$select private.marcar_estado_cobro_comprobante(%L, 'cob
 select private.insertar_actividad(
   '11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000002', 'comprobante.creado',
   'Creó la factura F-0001 en San Javucho', 'a1000000-0000-0000-0000-000000000001');
+-- El registro es inalterable (F-AUD-02): el fixture de fechas apaga el trigger solo mientras reordena.
+alter table public.registro_actividad disable trigger registro_actividad_inalterable_fila;
 update public.registro_actividad set creado_en = now() - interval '3 hours' where tipo = 'comprobante.creado';
 update public.registro_actividad set creado_en = now() - interval '150 minutes'
  where detalle = 'Estado: Pendiente → Aceptado en la factura F-0001';
@@ -361,6 +363,7 @@ update public.registro_actividad set creado_en = now() - interval '90 minutes'
  where detalle = 'Estado: Armando → Incompleto en la factura F-0001';
 update public.registro_actividad set creado_en = now() - interval '60 minutes'
  where detalle = 'Estado: Incompleto → Armando en la factura F-0001';
+alter table public.registro_actividad enable trigger registro_actividad_inalterable_fila;
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is(

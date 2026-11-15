@@ -1,0 +1,13 @@
+slice_name: Ventas por canal
+description: 'Comprobantes, unidades y facturado con IVA por canal (tienda) en el período (F-REP-05, FR-013).'
+certified_by: null
+certification_details: null
+viz_type: table
+# Orden: en modo aggregate el viz de tabla de Superset 6.1.0 ignora `order_by_cols`; ordena por la
+# métrica de `timeseries_limit_metric` + `order_desc` (facturado de mayor a menor).
+params: {"datasource": "1__table", "viz_type": "table", "query_mode": "aggregate", "groupby": ["empresa_nombre"], "metrics": ["facturado_total", "comprobantes_total", "unidades_total"], "percent_metrics": [], "timeseries_limit_metric": "facturado_total", "order_desc": true, "row_limit": 10000, "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 73c9e4e3-570e-4c29-b77c-20fce9f94420
+version: 1.0.0
+dataset_uuid: 29408bf9-e4f1-4b31-a917-954c356dc1f2

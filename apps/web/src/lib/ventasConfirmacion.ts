@@ -1,6 +1,6 @@
 import { supabaseClient } from './supabase'
 import { MENSAJE_CERRADO, mensajeDeErrorComprobante, type Comprobante } from './ventas'
-import { hayFaltante, type LineaComprobante } from './ventasLineas'
+import { MENSAJE_PRECIOS_CAMBIARON_COBRO, hayFaltante, type LineaComprobante } from './ventasLineas'
 
 // Confirmación de la factura (F-VTA-07, MSF-317). La autoridad es la base: `confirmar_comprobante` descuenta el
 // stock de cada línea en SU depósito, reserva las líneas «A pedido» y lo hace todo o nada (FR-030…FR-035). Acá
@@ -36,8 +36,17 @@ export const esFaltanteDeStock = (error: unknown): boolean => {
   return e?.code === 'P0001' && e?.hint === 'stock'
 }
 
+// F-3 (FR-009): la base rechaza el cobro con 40001 y hint 'precios_cambiaron' si una promoción venció, empezó o cambió
+// de precio desde el último guardado de las líneas. 40001 también es el conflicto de edición (bloqueo optimista): lo
+// que los distingue es el hint, así que se reconoce ANTES del mapeo genérico, que lo trataría como conflicto.
+export const esPreciosCambiaron = (error: unknown): boolean => {
+  const e = error as ErrorDeBase
+  return e?.code === '40001' && e?.hint === 'precios_cambiaron'
+}
+
 export function mensajeDeConfirmacion(error: unknown): string {
   const e = error as ErrorDeBase
+  if (esPreciosCambiaron(error)) return MENSAJE_PRECIOS_CAMBIARON_COBRO
   if (esFaltanteDeStock(error) && e?.message) {
     console.error('Confirmación rechazada por falta de stock.', error)
     return `${e.message}. No se descontó nada: elegí otro depósito o bajá la cantidad.`

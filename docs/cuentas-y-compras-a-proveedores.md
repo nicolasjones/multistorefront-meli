@@ -1,17 +1,50 @@
-# Cuentas y compras a proveedores (épica MSF-450)
+---
+owner: tecnico
+sources:
+  - specs/20261029-100000-cuentas-y-compras-a-proveedores
+---
 
-Ideas de la épica «Clientes y proveedores · Cuentas y compras a proveedores»
-(spec `specs/20261029-100000-cuentas-y-compras-a-proveedores/`). La épica las dejó **sin requisitos de
-comportamiento**: cada historia redacta los suyos en su propia spec cuando pasa a un hito. Este
-documento es el registro de cada historia a medida que se entrega; lo completa la tarea de cierre de la
-épica con las ideas que siguen pendientes.
+# Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)
 
-| Historia | Prioridad | Talla | Estado | Dependencia |
-|---|---|---|---|---|
-| F-PRV-09 · Órdenes de compra a proveedores | P3 | L | Backlog → **entregada** por MSF-454 | Listado de reposición de Stock |
-| F-CLI-19 · Cuenta corriente y saldo del cliente | P3 | L | Backlog · sin requisitos hasta que pase a un hito | Cobros y estado Deuda de Ventas |
-| F-CLI-20 · Historial y favoritos en la cuenta web | P3 | L | Backlog · sin requisitos hasta que pase a un hito | Cuenta web del cliente |
-| F-CLI-21 · Listas de precios por cliente | P3 | L | Backlog · sin requisitos hasta que pase a un hito | F-PRE-14 (Precios) |
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/cuentas-y-compras-a-proveedores.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
+Ideas condicionadas a validar demanda: cuenta corriente de clientes y compras a proveedores. La épica declara que
+**los requisitos se redactan cuando cada historia pase a un hito**; todas son P3 y quedan fuera de diciembre. Ninguna
+tiene requisitos de comportamiento del cliente; solo F-CLI-19 se construyó, como definición provisoria (abajo). Spec: `specs/20261029-100000-cuentas-y-compras-a-proveedores/` (FR-001…FR-005, SC-001…SC-003).
+
+## Las cuatro ideas
+
+| ID | Nombre | Prioridad | Talla | Estado | Dependencia citada por la épica |
+|---|---|---|---|---|---|
+| F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Backlog para el cliente; construida como definición provisoria y marcada **Finalizada** (`specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks/F-CLI-19.md`; ver abajo) | Cómo Ventas maneja cobros y el estado Deuda. |
+| F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | **Entregada** (MSF-452, épica MSF-176; detrás de la bandera `tienda_pedidos`, apagada por defecto y encendida solo en dev) | «Mi cuenta» en la tienda: compras y presupuestos del cliente y favoritos, por tienda. F-TDA-27 y F-CON-07 quedan **absorbidas**. Ver `docs/tienda-compra-y-cuentas.md`. |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog | Relacionada con F-CLI-03 y F-CLI-07; F-PRE-14 (Precios) está **cancelada** (2026-11-12, MSF-373). |
+| F-PRV-09 | Órdenes de compra a proveedores | P3 | L | **Entregada** (MSF-454; ver abajo) | Ingreso de mercadería por proveedor y listado de reposición de Stock. |
+
+Ninguna tiene requisitos del cliente (RF), escenarios (CA) ni horas. **F-CLI-19 sí tiene código y pantalla** (la
+construyó el SDLC: migración, RPC, hook, la tarjeta «Saldo deudor» y la tabla «Cuenta corriente» de la ficha del
+cliente). F-CLI-21 **no tiene código ni pantalla**: sigue en Backlog sin requisitos de comportamiento (F-CLI-20 se entregó en MSF-452 y F-PRV-09 en MSF-454).
+
+## F-CLI-19: definición provisoria ya construida
+
+El SDLC construyó F-CLI-19 (MSF-451) **sin requisitos del cliente**: la spec y las reglas las redactó el desarrollo.
+Está descrita en [Clientes](./clientes.md), sección «Cuenta corriente y saldo del cliente».
+Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el saldo respeta las tiendas accesibles y que la persona con `clientes` en lectura ve el saldo; la ausencia de saldo a favor figura como confirmada en las notas de la épica (sin fecha); lo demás (los estados que cuentan como deuda) queda a confirmar cuando la idea pase a un hito:
+
+- El saldo de un comprobante es `total con IVA − cobros − notas de crédito` (nunca negativo): todo sale de `private.saldo_comprobante`, que es el único cálculo (también lo usan el detalle del comprobante y el tope al cobrar).
+- Cuentan las facturas que no están en `borrador`, `anulada` ni `cobrado`; los presupuestos no son deuda.
+- Las notas de crédito emitidas **restan** de la factura de la que cuelgan (decisión del 2026-11-11), y no hay saldo a favor (cobros y notas de más dejan la factura en $ 0). Importes a 2 decimales.
+- La persona ve la deuda solo de las tiendas a las que accede, y no suma la de una tienda desactivada (ni para el administrador).
+- Cuentan los siete estados vivos de la factura que no son borrador, anulada ni cobrado: `confirmada`, `pendiente`,
+  `aceptado`, `en_proceso`, `deuda`, `armando` e `incompleto`. Que una factura «Pendiente» (o «Confirmada») ya sea deuda es
+  una decisión provisoria: un pgTAP la fija estado por estado para que un cambio sea deliberado.
+- Los importes se ven **con centavos** cuando los hay (`$ 1.210,50`, `$ 0,40`) y sin decimales cuando son enteros
+  (`$ 220.000`); el ranking de clientes sigue en pesos enteros.
+- Con `clientes` en lectura y sin acceso a Ventas, la ficha igual muestra total, cobrado y saldo de las facturas del
+  cliente: es el mismo dato de «Compras» (que ya exige solo `clientes`). Confirmado por Nicolás el 2026-11-12.
+- Costo: el saldo de cada factura sale de `private.saldo_comprobante` (tres lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada: el comprobante, sus cobros y sus notas de crédito) y la RPC
+  devuelve todas las abiertas sin paginar. Es proporcional a las facturas abiertas de **un** cliente, que son pocas; si
+  un cliente real acumulara cientos, habría que paginar con carga infinita (excepción a esa regla, justificada acá).
 
 ## F-PRV-09 · Órdenes de compra a proveedores
 
@@ -26,9 +59,39 @@ documento es el registro de cada historia a medida que se entrega; lo completa l
   «Compra para», envío por correo al proveedor, costo de la orden y el vínculo con el ingreso de
   mercadería (el stock sigue entrando por «Ingreso de mercadería», F-PRV-04).
 
-## Historias pendientes
+## Preguntas abiertas
 
-`F-CLI-19` (cuenta corriente del cliente), `F-CLI-20` (historial y favoritos en la cuenta web) y
-`F-CLI-21` (listas de precios por cliente) siguen en P3 · Backlog, sin requisitos hasta que pasen a un
-hito: cada una los redacta en su propia spec.
+1. **Pregunta abierta 1 · Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) fue **cancelada** el 2026-11-12 (decisión de Nicolás, MSF-373) porque chocaba con F-PRE-15 (escalas de precio por producto, ya implementadas; Ventas aplica la escala según el tipo de cliente y la cantidad). La pantalla «Tipos de cliente» todavía no existe. Para F-CLI-21 queda abierto solo si las listas de precios por cliente se necesitan además de esas escalas; sigue en Backlog sin requisitos. La escala por **cantidad** de la línea sigue siendo de Ventas (F-VTA-06, ver [`precios.md`](./precios.md)).
+2. **F-CLI-20 = F-CON-07 = F-TDA-27:** resuelta: F-CLI-20 se entregó en MSF-452 (épica MSF-176) y absorbe a F-CON-07 y F-TDA-27.
+3. **Cuenta corriente (F-CLI-19), decidida de forma provisoria por el desarrollo:** sigue a confirmar qué estados cuentan
+   como deuda (en particular «Pendiente» y «Confirmada»). Sin saldo a favor (confirmado en las notas): un cobro o una nota de más deja la factura en $ 0. Confirmado por Nicolás el 2026-11-12: la factura cobrada no es deuda,
+   el saldo se ve por tienda accesible y la persona
+   con `clientes` en lectura lo ve aunque no acceda a Ventas.
+4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; se cargaron igual por pedido.
 
+## Cómo sigue una idea
+
+Cuando el cliente valide la demanda y la asigne a un hito: se redactan sus requisitos y escenarios, se dibuja su
+pantalla y se escribe su spec propia (con su alcance de entrega y su matriz de pantalla).
+
+## Revisión de seguridad de la épica
+
+Lo que la épica entrega con código es F-CLI-19 (MSF-451): la RPC `public.cuenta_corriente_cliente`, las dos `saldo_comprobante` (`private` y `public`, recreadas en `20270227140000`), el predicado `private.comprobante_cuenta_como_facturado` con su `grant execute` a `authenticated` y el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`, que escribe el estado de facturas y el importe de contrarreembolsos). Quedó
+revisada por agentes independientes de QA y de Code Review + seguridad: dos rondas sobre la historia antes de mergear y una
+revisión final posterior sobre lo ya mergeado (su resultado y las correcciones están en el PR de seguimiento de MSF-450). Qué se comprobó:
+
+- **Sin tablas nuevas:** no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y
+  `private.saldo_comprobante`.
+- **`security definer` con `search_path = ''`:** todo está calificado (`public.`, `dominio.`, `private.`).
+- **Aislamiento:** la organización sale de `private.organizacion_id()`, nunca de un argumento; el alcance por tienda
+  sale de `private.empresas_accesibles()`. Un cliente ajeno o inexistente devuelve saldo 0 sin revelar si existe.
+- **Permisos:** exige la sección `clientes` en `lectura`/`edicion` (`42501` si no). `revoke … from public, anon` y
+  `grant execute … to authenticated`; `private.saldo_comprobante` no está expuesta.
+- **Sin SQL dinámico:** el único parámetro es un `uuid`.
+- **Secretos, compose y dependencias:** sin cambios.
+- **Cobertura de pruebas, dicha con precisión:**
+  - **pgTAP** (`cuenta_corriente_cliente.test.sql`, 46 aserciones): lo corre el job `database` del CI. Cubre centavos, cada estado vivo, tienda desactivada, persona sin tiendas y superadmin.
+  - **Vitest** (`ComprasCliente.test.tsx`, `useCuentaCorrienteCliente.test.tsx`, `formatoRanking.test.ts`): corre en el CI.
+  - **E2E** (`apps/web/e2e/cuenta-corriente-cliente.e2e.ts`): **el CI no lo corre**. El job `application` ejecuta solo
+    `acceso-publico.e2e.ts` y este archivo se omite sin `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Se corre a mano con
+    el stack local (`docs/e2e-app.md`). Antes leía `public.clientes` con la clave de servicio, que no tiene permiso: ahora usa la sesión de la persona de ejemplo.

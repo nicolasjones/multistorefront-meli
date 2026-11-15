@@ -83,7 +83,11 @@ select is(has_table_privilege('authenticated', 'dominio.productos_tienda', 'inse
 select is(has_table_privilege('authenticated', 'dominio.categorias_tienda', 'update'), false, 'authenticated no escribe categorias_tienda directo');
 select is(has_function_privilege('anon', 'public.listar_catalogo_tienda(uuid)', 'execute'), false, 'anon no ejecuta listar_catalogo_tienda');
 select is(has_function_privilege('anon', 'public.guardar_catalogo_tienda(uuid, jsonb, jsonb)', 'execute'), false, 'anon no ejecuta guardar_catalogo_tienda');
-select is(has_function_privilege('authenticated', 'public.guardar_catalogo_tienda(uuid, jsonb, jsonb)', 'execute'), true, 'authenticated ejecuta guardar_catalogo_tienda');
+select is(has_function_privilege('authenticated', 'public.guardar_catalogo_tienda(uuid, jsonb, jsonb)', 'execute'), false, 'authenticated ya no ejecuta guardar_catalogo_tienda: solo public.publicar_tienda (F-TDA-06, FR-052)');
+-- F-TDA-06 (FR-052): las RPC vivas ya no son ejecutables por authenticated (solo publicar_tienda). Para seguir
+-- probando su cuerpo se reconcede el permiso dentro de esta transacción (se revierte con el rollback del test).
+grant execute on function public.guardar_catalogo_tienda(uuid, jsonb, jsonb) to authenticated;
+
 select is(has_function_privilege('anon', 'publico.catalogo_visible_por_dominio(text)', 'execute'), true, 'anon ejecuta la función pública del catálogo');
 select is(has_function_privilege('anon', 'private.catalogo_tienda_efectivo(uuid)', 'execute'), false, 'anon no ejecuta el auxiliar privado');
 select is(

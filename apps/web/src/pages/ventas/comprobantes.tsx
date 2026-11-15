@@ -1,9 +1,10 @@
 import { Link as RouterLink, useLocation } from 'react-router'
-import { Alert, Box, Button, LinearProgress, Link, Stack, Tab, TablePagination, Tabs, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, LinearProgress, Link, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import { useComprobantes, useOpcionesFiltrosComprobantes } from '../../hooks/useComprobantes'
 import { useExportarComprobantes } from '../../hooks/useExportarComprobantes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
@@ -14,14 +15,15 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
 import { FiltroDesplegable } from '../../components/ventas/FiltroDesplegable'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
 
@@ -92,6 +94,9 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
   const puedeCrear = nivel === 'edicion'
   const puedeExportar = usePuedeAccion('ventas', 'exportar').puede === true
   const { texto, setTexto, filtros, elegir, limpiar, pagina, setPagina, datos, cargando, primeraCarga, hayError, recargar } = useComprobantes(empresaId)
+  // Carga infinita (Principio VI): se suman las tandas que entrega el hook; buscar, filtrar o cambiar de tienda reinicia.
+  const listado = useListadoAcumulado({ items: datos.comprobantes, pagina, setPagina, total: datos.total, cargando, reinicio: filtros })
+  const falloTanda = hayError && pagina > 1
   const opciones = useOpcionesFiltrosComprobantes(empresaId, tiendas)
   const { exportando, exportar, aviso, cerrarAviso } = useExportarComprobantes('comprobantes', filtros, datos.total)
 
@@ -170,15 +175,15 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
             {hayFiltros ? <Button size="small" variant="text" onClick={limpiar}>Limpiar filtros</Button> : null}
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {primeraCarga || hayError ? '' : `${datos.total} ${datos.total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
-          {cargando && !primeraCarga ? <LinearProgress aria-label="Actualizando comprobantes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+          {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando comprobantes" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={cargando}>
             {primeraCarga ? (
               <EstadoCargaPagina />
-            ) : hayError ? (
+            ) : hayError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los comprobantes." reintentar={() => void recargar()} />
             ) : datos.comprobantes.length === 0 && pagina === 1 ? (
               hayFiltros ? (
@@ -189,22 +194,13 @@ function ListadoComprobantes({ tiendas, empresaId, onEmpresa, cargandoTiendas, e
             ) : (
               <>
                 <ContenidoAdaptable
-                  items={datos.comprobantes}
+                  items={listado.filas}
                   columnas={columnas}
                   obtenerClave={(c) => c.id}
                   etiquetaTabla="Comprobantes"
                   varianteFila={(c) => (c.total < 0 ? 'negativa' : undefined)}
                 />
-                <TablePagination
-                  component="div"
-                  count={datos.total}
-                  page={pagina - 1}
-                  rowsPerPage={12}
-                  rowsPerPageOptions={[12]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Comprobantes por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void recargar() : listado.cargarMas} />
               </>
             )}
           </Box>

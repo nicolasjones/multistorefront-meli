@@ -10,6 +10,9 @@ vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAcc
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/clientes/ExportarClientes', () => ({ ExportarClientes: () => null }))
+vi.mock('../../components/clientes/ClientesInactivos', () => ({
+  ClientesInactivos: ({ empresaId }: { empresaId?: string | null }) => <p>Contenido de inactivos {empresaId ?? 'todas'}</p>,
+}))
 vi.mock('../../components/clientes/RankingClientes', () => ({ RankingClientes: () => <p>Contenido del ranking</p> }))
 vi.mock('@refinedev/mui', () => ({ CreateButton: () => <button type="button">Nuevo cliente</button> }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -40,6 +43,22 @@ describe('ClienteList · solapa de ranking', () => {
     expect(screen.queryByLabelText('Buscar clientes')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'Listado' }))
     expect(screen.getByLabelText('Buscar clientes')).toBeInTheDocument()
+  })
+
+  it('abre «Clientes inactivos» de forma diferida con la tienda elegida', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue({ empresas: [], valor: 'e-3', cambiar: vi.fn(), cargando: false, hayError: false })
+    abrir()
+    expect(screen.queryByText(/Contenido de inactivos/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Clientes inactivos' }))
+    expect(await screen.findByText('Contenido de inactivos e-3')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Clientes inactivos', selected: true })).toBeInTheDocument()
+  })
+
+  it('sin acceso a Clientes (ninguno) no ofrece la solapa de inactivos', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    abrir()
+    expect(screen.queryByRole('tab', { name: 'Clientes inactivos' })).not.toBeInTheDocument()
   })
 
   it('sin acceso a Clientes (ninguno) no ofrece la solapa de ranking', () => {

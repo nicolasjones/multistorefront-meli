@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { ErrorBorrador, guardarBorrador, obtenerBorrador } from './tiendaBorrador'
 
 // F-TDA-03 (MSF-294): contenido y textos comerciales de la tienda. La base es la fuente de verdad
 // de los límites (dominio.tienda_contenido, D5); acá se espejan solo para avisar por campo antes de
@@ -13,6 +14,7 @@ export type ClaveCampoContenido =
   | 'pie'
   | 'aviso_ficha'
   | 'texto_boton_contacto'
+  | 'eslogan'
 
 export type DestinoBoton = 'catalogo'
 
@@ -23,8 +25,9 @@ export const DESTINOS_BOTON: ReadonlyArray<{ valor: DestinoBoton; etiqueta: stri
   { valor: 'catalogo', etiqueta: 'Catálogo completo' },
 ]
 
-// El catálogo navegable es de MSF-167: hasta entonces el botón apunta al ancla de la sección de productos.
-export const ENLACE_DESTINO_BOTON: Record<DestinoBoton, string> = { catalogo: '#catalogo' }
+// El botón de la portada lleva a «Todos los productos» (`/catalogo`, F-TDA-12). Antes apuntaba a un ancla
+// `#catalogo` que ninguna sección define, así que el click no hacía nada.
+export const ENLACE_DESTINO_BOTON: Record<DestinoBoton, string> = { catalogo: '/catalogo' }
 
 export const CAMPOS_CONTENIDO: ReadonlyArray<{
   clave: ClaveCampoContenido
@@ -35,6 +38,7 @@ export const CAMPOS_CONTENIDO: ReadonlyArray<{
   { clave: 'titulo', etiqueta: 'Título', limite: 120 },
   { clave: 'subtitulo', etiqueta: 'Subtítulo', limite: 300, multilinea: true },
   { clave: 'texto_boton', etiqueta: 'Texto del botón', limite: 120 },
+  { clave: 'eslogan', etiqueta: 'Eslogan', limite: 80 },
   { clave: 'bienvenida', etiqueta: 'Mensaje de bienvenida (barra superior)', limite: 300 },
   { clave: 'pie', etiqueta: 'Texto del pie de página', limite: 300 },
   { clave: 'aviso_ficha', etiqueta: 'Aviso en la ficha de producto', limite: 300 },
@@ -50,6 +54,7 @@ export const CONTENIDO_VACIO: ContenidoTienda = {
   pie: '',
   aviso_ficha: '',
   texto_boton_contacto: '',
+  eslogan: '',
 }
 
 export type ErroresContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string>>
@@ -82,9 +87,9 @@ export function contenidoIgual(a: ContenidoTienda, b: ContenidoTienda): boolean 
   return a.boton_destino === b.boton_destino && CAMPOS_CONTENIDO.every((campo) => a[campo.clave].trim() === b[campo.clave].trim())
 }
 
-type FilaContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string | null>>
+export type FilaContenido = Partial<Record<ClaveCampoContenido | 'boton_destino', string | null>>
 
-function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
+export function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
   const destino = DESTINOS_BOTON.some((d) => d.valor === fila?.boton_destino) ? (fila?.boton_destino as DestinoBoton) : 'catalogo'
   return {
     titulo: fila?.titulo ?? '',
@@ -95,14 +100,19 @@ function aContenido(fila: FilaContenido | null | undefined): ContenidoTienda {
     pie: fila?.pie ?? '',
     aviso_ficha: fila?.aviso_ficha ?? '',
     texto_boton_contacto: fila?.texto_boton_contacto ?? '',
+    // Ausente en borradores y versiones anteriores a MSF-841.
+    eslogan: fila?.eslogan ?? '',
   }
 }
 
-const COLUMNAS = 'titulo, subtitulo, texto_boton, boton_destino, bienvenida, pie, aviso_ficha, texto_boton_contacto'
+const COLUMNAS = 'titulo, subtitulo, texto_boton, boton_destino, bienvenida, pie, aviso_ficha, texto_boton_contacto, eslogan'
 
-// Contenido guardado de la empresa para la gestión. RLS de dominio.tienda_contenido: solo la
-// organización de la sesión. Sin fila = todo vacío (la tienda no muestra textos opcionales).
+// Contenido de la empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no el
+// publicado. RLS de dominio.tienda_contenido: solo la organización de la sesión. Sin fila = todo vacío (la
+// tienda no muestra textos opcionales).
 export async function leerContenido(empresaId: string): Promise<ContenidoTienda> {
+  const borrador = await obtenerBorrador(empresaId)
+  if (borrador.contenido) return aContenido(borrador.contenido)
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('tienda_contenido')
@@ -126,23 +136,16 @@ export class ErrorGuardadoContenido extends Error {
   }
 }
 
-// «Guardar» aplica de inmediato a la tienda pública (FR-035). Idempotente en la base.
+// «Guardar» deja los textos en el borrador (FR-051): la tienda pública no cambia hasta publicar. La base
+// valida con las mismas reglas de siempre y el `hint` nombra el campo.
 export async function guardarContenido(empresaId: string, valores: ContenidoTienda): Promise<ContenidoTienda> {
-  const { data, error } = await supabaseClient.rpc('guardar_tienda_contenido', {
-    p_empresa_id: empresaId,
-    p_titulo: valores.titulo,
-    p_subtitulo: valores.subtitulo,
-    p_texto_boton: valores.texto_boton,
-    p_boton_destino: valores.boton_destino,
-    p_bienvenida: valores.bienvenida,
-    p_pie: valores.pie,
-    p_aviso_ficha: valores.aviso_ficha,
-    p_texto_boton_contacto: valores.texto_boton_contacto,
-  })
-  if (error) {
-    throw new ErrorGuardadoContenido(error.message, (error as { hint?: string | null }).hint)
+  try {
+    await guardarBorrador(empresaId, 'contenido', { ...valores })
+  } catch (error) {
+    if (error instanceof ErrorBorrador) throw new ErrorGuardadoContenido(error.message, error.campo)
+    throw error
   }
-  return aContenido(data as FilaContenido)
+  return aContenido(valores)
 }
 
 // publico.contenido_por_dominio es ejecutable por anon: no hace falta sesión. Cero filas

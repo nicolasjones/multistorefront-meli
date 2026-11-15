@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - infra/kestra/flows/enviar-avisos.yml
+  - supabase/migrations/20261210120000_avisos_catalogo.sql
+  - supabase/migrations/20261210120100_avisos_preferencias.sql
+  - supabase/migrations/20261210120200_avisos_listar_preferencias.sql
+  - supabase/migrations/20261210120300_avisos_cola.sql
+  - supabase/migrations/20261210120400_avisos_agrupacion.sql
+  - supabase/migrations/20261210120500_avisos_reclamar.sql
+---
+
 # Avisos por correo configurables
 
 Épica MSF-189 · historia F-NOT-01 (MSF-319). Spec: `specs/20261024-120000-avisos-y-listas-configurables/`.
@@ -64,4 +77,16 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 
 ## Aviso de consulta nueva (FR-012)
 
-MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella. La dirección de avisos por empresa (`dominio.consultas_configuracion`) solo afecta a los avisos que quedaron encolados por el camino anterior; el alta nueva no la usa.
+MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por empresa: el disparador de `dominio.consultas` ya no encola en `dominio.consultas_avisos`; emite `consulta_nueva` con la empresa de la consulta y solo llega a quienes acceden a ella.
+
+MSF-853 (gate) eliminó el camino directo que quedó sin uso: la Edge Function `enviar-aviso-consulta`, el flow de Kestra `avisos-consultas`, la tabla `dominio.consultas_avisos` y sus tres RPC (`avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consulta`). La revisión de los E2E confirmó que por esa vía no sale correo SMTP de «nueva consulta». Como consecuencia, la dirección de avisos por empresa (`dominio.consultas_configuracion`, que edita la ficha de la empresa) ya no alimenta ningún aviso: el aviso sale solo por la cola de plataforma, según las preferencias de cada persona.
+
+## Relación con el correo masivo a clientes
+
+Los avisos de esta guía son internos (hacia el equipo) y cada persona los enciende o apaga. El correo masivo a clientes
+(MSF-155) es otra cosa: lo redacta el equipo, sale en lotes con cupo diario por el flow `correo-masivo` y cada cliente
+puede darse de baja. No usa `avisos_pendientes` ni estas preferencias. Ver [`correo-masivo.md`](./correo-masivo.md).
+
+## Resumen semanal por correo (F-REP-08, MSF-265)
+
+El resumen semanal para los administradores **no usa la cola `avisos_pendientes` ni el flow `enviar-avisos`**: es un correo por organización (no por persona) con contenido propio, que sigue el patrón del resumen de reposición (Kestra → Edge Function `enviar-resumen-semanal` → RPC de `service_role` → SMTP). Sí reutiliza de MSF-189 el catálogo `tipos_aviso` (tipo `resumen_semanal`, sección `usuarios_permisos`) y `preferencias_aviso` para la **baja personal** desde `/cuenta/avisos`: sin fila de preferencia = recibe el resumen. La pausa de toda la organización se hace en «Mi organización». Detalle en [Resumen semanal por correo](resumen-semanal-correo.md).

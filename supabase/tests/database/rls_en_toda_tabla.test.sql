@@ -5,7 +5,7 @@
 -- [api] schemas en supabase/config.toml.
 begin;
 
-select plan(4);
+select plan(5);
 
 select is(
   (select count(*) from pg_namespace where nspname in ('public', 'dominio'))::int,
@@ -44,6 +44,17 @@ select is(
 select ok(
   exists (select 1 from tablas_expuestas where esquema = 'public' and tabla = 'clientes' and rls),
   'control positivo: public.clientes figura en el recorrido con RLS activo'
+);
+
+-- Control positivo de las tablas de la API (F-API-01): el recorrido es por
+-- catálogo, así que una tabla nueva sin RLS rompe la prueba; este caso deja
+-- constancia de que las cuatro tablas de la épica están cubiertas.
+select ok(
+  (select count(*) from tablas_expuestas
+    where esquema = 'public'
+      and tabla in ('api_claves', 'api_llamadas', 'api_suscripciones', 'api_entregas')
+      and rls) = 4,
+  'control positivo: las cuatro tablas de la API figuran en el recorrido con RLS activo'
 );
 
 select * from finish();

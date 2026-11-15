@@ -1,3 +1,13 @@
+---
+owner: plataforma
+sources:
+  - scripts/tests-afectados.mjs
+  - apps/web/src/components
+  - apps/web/src/pages
+  - apps/web/vite.config.ts
+  - design/pantallas
+---
+
 # Pruebas: qué corre según el cambio (determinista)
 
 No se elige “a ojo”: el plan de pruebas sale del **diff**. La misma lista de
@@ -44,7 +54,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 | `e2e` | `pnpm test:e2e -- acceso-publico.e2e.ts` |
 | `db` | `pnpm test:db` |
 | `db:aditivas` | `pnpm test:db:validar-aditivas` |
-| `edge` | `pnpm test:edge:invitar-miembro && …solicitar-acceso && …crear-organizacion` |
+| `edge` | `pnpm test:edge:invitar-miembro && …invitar-cliente && …solicitar-acceso && …crear-organizacion && …cotizacion-sugerida` |
 | `ia` | `pnpm test:ia` |
 | `tooling` | `node --test scripts/*.test.mjs` |
 | `infra:config` | `pnpm infra:config` |
@@ -66,19 +76,41 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   de 5 s queda justo y da **falsos rojos** en PRs ajenos. Se sube el timeout del
   archivo (`vi.setConfig({ testTimeout })`) y las lecturas que dependen de datos
   async usan `findBy*`.
+- **Falso rojo por `EnvironmentTeardownError`**: si todos los tests pasan pero vitest
+  sale con `Closing rpc while "onUserConsoleLog" was pending` (atribuido a
+  archivos como `RutaCatalogo.test.tsx` o `SiderPanel.test.tsx`), era una carrera
+  de cierre de workers: un `console.*` emitido justo al terminar el archivo dejaba
+  pendiente el RPC de logs. `apps/web/vite.config.ts` fija
+  `disableConsoleIntercept: true` para que la consola salga directo a la salida
+  estándar sin pasar por RPC (se pierde solo la atribución de cada línea al test).
+  Si reaparece, no relanzar sin mirar: revisar qué test escribe a consola después
+  de terminar.
+- **Falso rojo por `ReferenceError: window is not defined`**: si todos los tests pasan
+  pero vitest sale con ese error atribuido a otro archivo (p. ej.
+  `SiderPanel.test.tsx`), es un `setState` tardío de un hook cuya petición termina
+  DESPUÉS de desmontar y de cerrar jsdom. `useEmpresasAccesibles` ya invalida la
+  petición en vuelo al desmontar («última petición gana» incluye el desmontaje); un
+  hook nuevo con carga asíncrona debe hacer lo mismo y cubrirlo con un test que
+  rechace/resuelva después de `unmount()`. Un test que monta un componente con
+  lecturas reales a la red (como la insignia de consultas dentro de `SiderPanel`)
+  debe mockearlo o mockear `lib/supabase`: un `fetch` real que falla tarde produce
+  el mismo error.
 
 ## Calidad determinista (`pnpm calidad`)
 - `pnpm calidad` corre los checks **deterministas** del producto (gitleaks, semgrep, knip, jscpd,
   dependency-cruiser, syncpack, commitlint). `pnpm calidad:code` omite los que usan Docker.
-- En CI corre el workflow **`quality`**. Al inicio es **no bloqueante** (`continue-on-error`) para
-  observar el baseline; cuando el baseline esté limpio pasa a **check requerido** junto con `database`.
-- El reporte queda en `reports/calidad.md` (artifact `calidad-reporte`).
+- En CI corre el workflow **`quality`**: falla ante hallazgos pero **no bloquea el merge** (el ruleset 25358575, que aplica a `dokploy`,
+  exige solo `validacion`, verificado con `gh api repos/{owner}/{repo}/rulesets/25358575`; no hay `continue-on-error`). Ver `docs/calidad.md`.
+- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`).
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile` (no marca exports usados en el mismo archivo); `syncpack` ignora los paquetes locales `@platform/*` (`workspace:*`); `semgrep` usa reglas **vendorizadas** en `.semgrep/registry/` (packs `p/typescript`/`p/react`; los secretos los cubre `gitleaks`): corre **offline** (sin registry). Si igual sale != 0 sin salida, se considera error de herramienta (saltado).
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
   `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
 
-- `quality` es un **check REQUERIDO** (bloqueante) en los PRs a `dokploy` (baseline limpio).
 
 - **gitleaks** corre con el **binario nativo** (el `-v` de Docker en runners containerizados puede
   escanear 0 bytes y dar falso verde). Docker queda como fallback local.
+
+## Higiene de nombres de test: sin códigos MSF
+
+`apps/web/src/higieneReferenciasInternas.test.ts` falla si el nombre de un `describe`, `it` o `test` cita un código del tracker (`MSF-123`). El código vive en el mensaje de commit y en el ticket, no en el nombre de la prueba. Al escribir un test para un ítem trazado, nombrá el comportamiento («avisa el formato del WhatsApp…»), no el ticket. Los nombres de seis tests que entraron con el aviso de WhatsApp, Documentos IA y la defensa de alta de clientes se corrigieron por este motivo.

@@ -6,6 +6,12 @@ const configuredBase = process.env.GITHUB_BASE_REF
   : process.env.DOCUMENTATION_CHECK_BASE;
 let base = configuredBase || 'HEAD~1';
 const canResolve = (ref) => run(['rev-parse', '--verify', ref]).status === 0;
+// En dispatch manual no hay GITHUB_BASE_REF: el merge-base con main cubre la
+// rama completa (si el clone es shallow y no resuelve, se cae a HEAD~1).
+if (!configuredBase) {
+  const mb = run(['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' });
+  if (mb.status === 0 && mb.stdout.trim()) base = mb.stdout.trim();
+}
 if (!canResolve(base) && canResolve('HEAD~1')) base = 'HEAD~1';
 if (!canResolve(base)) {
   console.error(`No se pudo resolver la base de documentación: ${base}`);
@@ -21,11 +27,11 @@ if (diff.status !== 0) {
 const changed = diff.stdout.split(/\r?\n/).map((path) => path.trim()).filter(Boolean);
 const relevant = changed.filter((path) => /^(apps|workers|supabase|infra|scripts|packages|\.github)\//.test(path));
 const documented = changed.some((path) =>
-  /^(specs|docs)\//.test(path) || /^(AGENTS|CLAUDE)\.md$/.test(path) || path === '.specify/memory/constitution.md',
+  /^(specs|docs)\//.test(path) || /^\.specify\/(bugs|memory)\//.test(path) || /^(AGENTS|CLAUDE)\.md$/.test(path),
 );
 
 if (relevant.length > 0 && !documented) {
-  console.error('Fallo de documentación: el cambio toca plataforma/tooling pero no actualiza specs/, docs/, AGENTS.md, CLAUDE.md ni la constitución.');
+  console.error('Fallo de documentación: el cambio toca plataforma/tooling pero no actualiza specs/, docs/, .specify/bugs/, .specify/memory/, AGENTS.md, CLAUDE.md ni la constitución.');
   console.error(relevant.map((path) => ` - ${path}`).join('\n'));
   process.exit(1);
 }

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ enviar: vi.fn() }))
+const mocks = vi.hoisted(() => ({ enviar: vi.fn(), evento: vi.fn() }))
+
+vi.mock('../../../lib/analiticaTienda', () => ({ registrarEventoTienda: mocks.evento }))
 
 vi.mock('../../../lib/tiendaContacto', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/tiendaContacto')>()),
@@ -86,6 +88,34 @@ describe('FormularioContacto', () => {
     expect(claveDeLlamada(1)).not.toBe(claveDeLlamada(0))
   })
 
+  it('éxito: emite envio_contacto una sola vez y sin datos del visitante (F-TDA-24, FR-016)', async () => {
+    render(<FormularioContacto host="h" />)
+    llenar()
+    enviar()
+    await screen.findByText('¡Gracias! Recibimos tu consulta')
+    await waitFor(() => expect(mocks.evento).toHaveBeenCalledTimes(1))
+    expect(mocks.evento).toHaveBeenCalledWith('envio_contacto')
+  })
+
+  it('un envío inválido, con límite o fallido no emite ningún evento (F-TDA-24, FR-016)', async () => {
+    const primero = render(<FormularioContacto host="h" />)
+    enviar() // inválido: sin completar los campos
+    expect(mocks.evento).not.toHaveBeenCalled()
+    mocks.enviar.mockResolvedValueOnce({ estado: 'espera', esperaSegundos: 60 })
+    llenar()
+    enviar()
+    await screen.findByText(/Probá de nuevo en/)
+    expect(mocks.evento).not.toHaveBeenCalled()
+    primero.unmount()
+
+    render(<FormularioContacto host="h" />)
+    mocks.enviar.mockResolvedValueOnce({ estado: 'falla' })
+    llenar()
+    enviar()
+    await screen.findByRole('button', { name: 'Reintentar' })
+    expect(mocks.evento).not.toHaveBeenCalled()
+  })
+
   it('límite: mensaje de espera con los minutos y conserva lo escrito', async () => {
     mocks.enviar.mockResolvedValue({ estado: 'espera', esperaSegundos: 125 })
     render(<FormularioContacto host="h" />)
@@ -146,4 +176,13 @@ describe('FormularioContacto', () => {
     expect(mocks.enviar).toHaveBeenCalledWith('h', { nombre: '<b>Ana</b>', contacto: 'ana@ejemplo.com', mensaje: '<script>alert(1)</script>' }, expect.any(String))
     expect(document.querySelector('script')).toBeNull()
   })
+})
+
+it('avisa sin bloquear cuando el teléfono no se puede usar como WhatsApp', () => {
+  render(<FormularioContacto host="h" />)
+  const campo = screen.getByLabelText('Correo o WhatsApp')
+  fireEvent.change(campo, { target: { value: '12345678' } })
+  expect(screen.getByText(/No reconocemos este número/)).toBeInTheDocument()
+  fireEvent.change(campo, { target: { value: 'a@b.com' } })
+  expect(screen.queryByText(/No reconocemos este número/)).not.toBeInTheDocument()
 })

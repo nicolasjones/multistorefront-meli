@@ -214,32 +214,45 @@ describe('ClienteList', () => {
     expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('pagina en el servidor: muestra el total y pide la página siguiente', () => {
-    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1), cliente(2)], { total: 60 }))
+  it('carga infinita: «Cargar más» pide la tanda siguiente y la suma a lo ya mostrado', () => {
+    const tanda1 = [cliente(1), cliente(2)]
+    const tanda2 = [cliente(3)]
+    mocks.useBuscarClientes.mockImplementation((f: { pagina: number }) =>
+      respuesta(f.pagina === 2 ? tanda2 : tanda1, { total: 3 }))
     abrir()
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(screen.getByText('3 clientes')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 3')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 3')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cargar más' })).not.toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
   })
 
-  it('al cambiar un filtro estando en otra página vuelve a la primera', () => {
-    mocks.useBuscarClientes.mockReturnValue(respuesta([cliente(1)], { total: 60 }))
+  it('al cambiar un filtro estando en otra tanda vuelve a la primera y descarta lo acumulado', () => {
+    const tanda1 = [cliente(1)]
+    const tanda2 = [cliente(2)]
+    mocks.useBuscarClientes.mockImplementation((f: { pagina: number }) =>
+      respuesta(f.pagina === 2 ? tanda2 : tanda1, { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     fireEvent.click(screen.getByRole('button', { name: 'Minorista' }))
     expect(ultimosFiltros()).toMatchObject({ tipo: 'minorista', pagina: 1 })
+    expect(screen.queryByText('Cliente 2')).not.toBeInTheDocument()
   })
 
-  it('si estando en la página 2 el servidor devuelve 0 filas, vuelve a la página 1', () => {
+  it('si falla una tanda posterior conserva lo cargado y ofrece reintentar', () => {
+    const tanda1 = [cliente(1)]
     mocks.useBuscarClientes.mockImplementation((f: { pagina: number }) =>
-      f.pagina === 2 ? respuesta([], { total: 0 }) : respuesta([cliente(1)], { total: 60 }))
+      f.pagina === 2 ? respuesta([], { total: 0, isError: true }) : respuesta(tanda1, { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
-    const paginasPedidas = mocks.useBuscarClientes.mock.calls.map(([f]) => f.pagina)
-    expect(paginasPedidas).toContain(2)
-    expect(ultimosFiltros().pagina).toBe(1)
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
+    expect(mocks.refetch).toHaveBeenCalled()
   })
 
   it('sin clientes ni filtros muestra el estado vacío', () => {
@@ -283,5 +296,32 @@ describe('ClienteList', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()
     expect(screen.getAllByRole('button', { name: 'Nuevo cliente' })).toHaveLength(1)
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo muestra coincidencias y «Cargar más» conserva el texto', () => {
+    const todos1 = [cliente(1), cliente(2)]
+    const todos2 = [cliente(3)]
+    const coincide1 = [cliente(10, { nombre: 'Ana López' })]
+    const coincide2 = [cliente(11, { nombre: 'Ana Pérez' })]
+    mocks.useBuscarClientes.mockImplementation((f: { texto: string; pagina: number }) => (
+      f.texto === 'ana'
+        ? respuesta(f.pagina === 2 ? coincide2 : coincide1, { total: 2 })
+        : respuesta(f.pagina === 2 ? todos2 : todos1, { total: 60 })))
+    abrir()
+    // Estando en la tanda 2 del listado completo, se busca.
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Cliente 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar clientes' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(350) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    expect(screen.getByText('Ana López')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 3')).not.toBeInTheDocument()
+    expect(screen.getByText('2 clientes')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 2 })
+    expect(screen.getByText('Ana López')).toBeInTheDocument()
+    expect(screen.getByText('Ana Pérez')).toBeInTheDocument()
+    expect(screen.queryByText('Cliente 3')).not.toBeInTheDocument()
   })
 })

@@ -77,6 +77,21 @@ export async function leerCotizacionInicial(cliente: SupabaseClient): Promise<Co
   return data ? { valor: Number(data.valor), fecha: data.updated_at } : null
 }
 
+// Cotización VIGENTE del dólar (la última confirmada; MSF-116). Si la organización todavía no confirmó
+// ninguna, o el estado no se puede leer con este rol, vale la inicial. Los precios en pesos se calculan con esta.
+export async function leerCotizacionVigente(cliente: SupabaseClient): Promise<Cotizacion | null> {
+  try {
+    // Se lee la RPC acá y no con `leerEstadoCotizacion` para no crear un ciclo de importaciones con `cotizacion.ts`.
+    const { data, error } = await cliente.rpc('estado_cotizacion')
+    if (error) throw error
+    const vigente = (data as { vigente?: { valor: number | string; cargada_en: string } | null } | null)?.vigente
+    if (vigente) return { valor: Number(vigente.valor), fecha: vigente.cargada_en }
+  } catch (error) {
+    console.error('No pudimos leer la cotización vigente; se usa la inicial.', error)
+  }
+  return leerCotizacionInicial(cliente)
+}
+
 // Sin consumidor en la UI hasta MSF-116 (carga de cotización, botón «Cotización →»); lo pide T006.
 export async function fijarCotizacionInicial(cliente: SupabaseClient, valor: number): Promise<void> {
   const { error } = await cliente.rpc('fijar_cotizacion_inicial', { p_valor: valor })
@@ -173,6 +188,8 @@ export type FilaPrevia = {
   netoArs: number | null
   // Neto + IVA de la alícuota del producto; null sin precio o sin alícuota (F-PRE-12).
   finalArs: number | null
+  // El producto tiene precio propio en esta empresa: su valor es fijo y no se mueve con el ajuste (F-PRE-09, FR-024).
+  precioPropio: boolean
 }
 
 type FilaPreviaBase = {
@@ -183,6 +200,8 @@ type FilaPreviaBase = {
   central_ars: number | string | null
   neto_ars: number | string | null
   final_ars?: number | string | null
+  // Columna nueva de F-PRE-09; una base sin la migración no la devuelve ⇒ se toma como «sin precio propio».
+  precio_propio?: boolean
 }
 
 const aNumeroONulo = (valor: number | string | null) => (valor === null ? null : Number(valor))
@@ -207,6 +226,7 @@ export async function previsualizarPreciosEmpresa(
     centralArs: aNumeroONulo(fila.central_ars),
     netoArs: aNumeroONulo(fila.neto_ars),
     finalArs: aNumeroONulo(fila.final_ars ?? null),
+    precioPropio: fila.precio_propio === true,
   }))
 }
 

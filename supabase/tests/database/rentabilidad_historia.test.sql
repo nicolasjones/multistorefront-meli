@@ -113,11 +113,11 @@ select is(
   array[4000, 3000]::numeric[], 'FR-012: un producto en pesos sin cotizaciones cargadas conserva su historia (fecha del costo)'
 );
 
-insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en) values
-  ('11111111-1111-1111-1111-111111111111', 900, 'Test', '2025-12-15 12:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 1000, 'Test', '2026-01-10 12:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 1200, 'Test', '2026-02-10 06:00:00+00'),
-  ('11111111-1111-1111-1111-111111111111', 1300, 'Test', '2026-02-10 18:00:00+00');
+insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en, recalculo_aplicado) values
+  ('11111111-1111-1111-1111-111111111111', 900, 'Test', '2025-12-15 12:00:00+00', true),
+  ('11111111-1111-1111-1111-111111111111', 1000, 'Test', '2026-01-10 12:00:00+00', true),
+  ('11111111-1111-1111-1111-111111111111', 1200, 'Test', '2026-02-10 06:00:00+00', true),
+  ('11111111-1111-1111-1111-111111111111', 1300, 'Test', '2026-02-10 18:00:00+00', true);
 
 -- ============================================================================
 -- Funciones de apoyo (FR-010)
@@ -214,8 +214,8 @@ select is(
   2, 'organización solo en pesos y sin cotizaciones: una fila por cada cambio de costo'
 );
 
-insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en) values
-  ('33333333-3333-3333-3333-333333333333', 1000, 'Test', now());
+insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre, cargada_en, recalculo_aplicado) values
+  ('33333333-3333-3333-3333-333333333333', 1000, 'Test', now(), true);
 select is(
   (select count(*)::int from analitica.margen_historico_producto_canal where organizacion_id = '33333333-3333-3333-3333-333333333333'),
   0, 'neto ≤ 0 (el redondeo lo deja en 0): sin fila, no se divide por cero'

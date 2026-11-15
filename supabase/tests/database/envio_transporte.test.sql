@@ -310,11 +310,12 @@ select is(
   false, 'authenticated no lee la fecha de envío directamente');
 
 -- Ninguna columna de la factura quedó sin conceder (si se agrega una columna, hay que concederla).
+-- Excepción: `origen_tipo`/`origen_id` (F-SVC-13) salen solo por `obtener_comprobante`, que decide qué ve cada rol.
 select is(
   (select coalesce(string_agg(c.column_name, ', ' order by c.column_name), '')
      from information_schema.columns c
     where c.table_schema = 'dominio' and c.table_name = 'comprobantes_venta'
-      and c.column_name not in ('transporte_id', 'guia', 'fecha_envio')
+      and c.column_name not in ('transporte_id', 'guia', 'fecha_envio', 'origen_tipo', 'origen_id')
       and not has_column_privilege('authenticated', 'dominio.comprobantes_venta', c.column_name, 'SELECT')),
   '', 'toda columna de la factura que no es del envío se puede leer');
 
