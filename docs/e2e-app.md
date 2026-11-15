@@ -758,16 +758,39 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
 ## Fixture compartido y corridas pendientes (lote MSF-879 / MSF-515)
 
 - **Fixture compartido (MSF-856).** `apps/web/e2e/soporte/fixtures.ts` (`rest`, `leer`, `borrar`, `altaUsuario`,
-  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`) es la única fuente de la siembra por la API admin. Al revisar el
-  código quedaban 5 specs con su propia copia (no ~44): `service-cobro-avisos` y `tienda-publicacion` ya la adoptan
-  (se borraron sus copias de `rest`/`borrar`/`altaUsuario`/`borrarUsuario`); siguen con copia propia, a migrar cuando
-  se toquen, `cuenta-web-cliente` (firma distinta: método explícito), `exportacion-total` (helpers dentro del `describe`),
-  `importaciones-soporte` (`rest` con cabeceras extra) y `service-cobro-avisos` conserva un `leerDominio` local porque su
-  esquema por defecto es `dominio`. Verificación hecha: compilación con `tsc` y `playwright test --list`, más el guardián
-  `scripts/verificar-e2e-sin-escritura-directa.mjs`. **No se ejecutó la suite** (sin stack local de Supabase en el
-  entorno donde se hizo el cambio): falta una corrida de `service-cobro-avisos` y `tienda-publicacion` con evidencia
-  (CI `e2e-visible-sesion` por `workflow_dispatch` con `e2e_sesion`, o `pnpm dev:supabase` + `pnpm --filter @platform/web
-  test:e2e <spec>`).
+  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` la adopta
+  (`tienda-publicacion` ya estaba en `dokploy`; este PR solo cambia el orden de lectura de la clave anónima) y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
+  (`validate.yml`, `workflow_dispatch` con `e2e_sesion=true` y `e2e_archivos="service-cobro-avisos.e2e.ts tienda-publicacion.e2e.ts"`):
+  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido). Es una **corrida previa a la guarda de `sql()`**; la verificación con la guarda es el run `43746175251` (SHA `8295ee6`, job `132909861772`, **2 passed** en 53.8 s, ninguno omitido); un intento previo (`43743809263`) falló solo por pasar `e2e_archivos` separado por comas en vez de espacios.
+  - Hallazgos de la verificación: (1) el CI exporta la clave anónima como `VITE_SUPABASE_PUBLISHABLE_KEY` (se lee primero);
+    (2) `service_role` NO tiene grant sobre varias tablas de `public` (`features`, `organizaciones_features`, `conexiones`,
+    `clientes`, `capacidades_ejecucion`, `avisos_pendientes`, `procesos_masivos`...): la API REST responde 42501. Sin migración,
+    `service-cobro-avisos` siembra y lee esas tablas con `sql()` (Postgres directo, puerto EXPLÍCITO: `E2E_PGPORT` o el puente `SUPABASE_DB_PORT`, sin default;
+    `pg` se carga del paquete del worker, como `ventas-impresion`). Siguen con copia propia `cuenta-web-cliente`, `exportacion-total`
+    e `importaciones-soporte`, y `service-cobro-avisos` conserva un `leerDominio` local (su esquema por defecto es `dominio`).
+  - **Límites de `sql()`:** corre como superusuario `postgres`, así que salta grants y RLS. Sirve solo para SEMBRAR, nunca para
+    VERIFICAR (una lectura ahí no prueba lo que ve un rol real) y no sirve para tablas protegidas de solo lectura. La guarda
+    `validarDestinoSql` (probada en `e2e/soporte/fixtures.test.ts`) exige host local, puerto explícito dentro de rango, que
+    `E2E_PGPORT` y `SUPABASE_DB_PORT` coincidan si están ambos, que NO sea un puerto de `supabase/config.toml` (stacks de
+    desarrollo, también reenviados), que `SUPABASE_CI_PROJECT_ID` y el puerto sean los del stack del CI derivado
+    (`derivarStackCi`, como `verificarDestinoCi`), y base y usuario `postgres`. `validarUrlSupabase` aplica a `SUPABASE_URL`
+    host local, puerto que no sea de desarrollo y, si el job declara `SUPABASE_CI_PROJECT_ID`, el puerto de la API derivada.
+    Limitación: un stack local de `pnpm dev:supabase` (puertos de desarrollo) ya no sirve para `sql()`; hay que preparar el
+    stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. Riesgo residual
+    conocido: cierra el error de escribir por descuido en el stack de desarrollo como superusuario, pero no impide escribir en
+    OTRO stack efímero (variables `SUPABASE_CI_RANURA` o `GITHUB_REPOSITORY` falsificadas) ni en un túnel que alguien abra a
+    propósito hacia un puerto derivado del CI (base 20000 más 6000 por ranura); eso exige intención activa. Endurecimiento posible, no aplicado:
+    exigir `CI=true` o repetir el `docker ps --filter publish` de `verificarDestinoCi`. `pg` llega por
+    `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
+  - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
+    `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
+    tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
+    job `132881521943`), causa sin diagnosticar; no están verdes, así que se revirtió la migración. `productos-create-permisos` y
+    `notificaciones` fallan en CI por el mismo grant ausente (`conexiones`, `avisos_pendientes`; run `43735017948`), ya antes de este cambio.
+    Seguimiento: MSF-964 (`cuenta-web-cliente`), MSF-965 (`exportacion-total`/`importaciones`/`importaciones-a11y`), MSF-966
+    (grants de `service_role`: migración vs `sql()`, decisión de Nicolás).
+  - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
+    con otro run concurrente), no por los specs.
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
   cobertura: usuarios, matriz de permisos, Empresas, editar la organización y Catálogo SC-001/SC-006. Los de Inicio
   (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en
