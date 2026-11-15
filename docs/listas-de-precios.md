@@ -29,7 +29,7 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 
 - **Apagada**: «Guardar lista» y «Asignar» responden `55000`; archivar, restaurar y quitar la lista siguen permitidos; el motor ignora las listas y el precio es idéntico, bit a bit, al de antes (pgTAP de paridad `precio_lista_cliente.test.sql`).
 - **Procedimiento de encendido**, por entorno y en el orden dev → stg → prd, cada uno verificado antes del siguiente:
-  1. Comprobar que la migración `20270348000300` y el bundle del panel y de la tienda están desplegados en ese entorno (no alcanza con que el merge esté en `dokploy`).
+  1. Comprobar que las migraciones `20270348000100` (motor de la bandera) y `20270348000300` (tienda) y el bundle del panel y de la tienda están desplegados en ese entorno (no alcanza con que el merge esté en `dokploy`).
   2. **Chequeo previo y entorno**: confirmar a qué entorno se está conectado y el estado actual con `select clave, activa from public.banderas_plataforma where clave = 'listas_precios';`. La bandera es **GLOBAL**: al encenderla rige para **todas** las organizaciones del entorno, no solo una.
   3. Avisar al equipo de ventas o encender fuera del horario de mostrador.
   4. `update public.banderas_plataforma set activa = true where clave = 'listas_precios';` (por SQL, el equipo técnico; rige al instante, sin redesplegar).
