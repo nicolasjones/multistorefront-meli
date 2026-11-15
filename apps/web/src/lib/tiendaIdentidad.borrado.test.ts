@@ -17,7 +17,7 @@ import { borrarImagenes } from './tiendaIdentidad'
 const EMPRESA = 'e1000000-0000-0000-0000-000000000001'
 const RUTA = (archivo: string) => `11111111-1111-1111-1111-111111111111/${EMPRESA}/${archivo}`
 
-describe('borrarImagenes (MSF-796)', () => {
+describe('borrarImagenes (borrado de imágenes de la identidad)', () => {
   beforeEach(() => {
     mocks.rpc.mockReset()
     mocks.remove.mockReset()

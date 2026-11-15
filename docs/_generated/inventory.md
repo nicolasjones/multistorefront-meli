@@ -5,7 +5,7 @@
 - Rutas del panel: **257**
 - Tablas en migraciones: **197**
 - Variables de entorno: **106**
-- Specs: **151**
+- Specs: **152**
 - Páginas de documentación: **320**
 
 ## Rutas del panel
@@ -730,3 +730,4 @@
 - `20270316-100000-tiendas-hallazgos-reauditoria` — Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)
 - `20270323-100000-deuda-tecnica-lote-1-seguridad-tienda` — Feature Specification: Deuda técnica · Lote 1: seguridad e integridad de la tienda pública (MSF-515)
 - `20270323-100000-service-ideas-futuras-v2` — Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)
+- `20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs` — Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)

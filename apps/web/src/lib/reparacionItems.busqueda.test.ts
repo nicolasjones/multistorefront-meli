@@ -12,7 +12,7 @@ import { buscarProductos, buscarProductosConAviso } from './reparacionItems'
 
 const filas = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `p-${i}`, nombre: `Cámara ${i}`, sku: null, disponibilidad_manual: null }))
 
-describe('buscarProductosConAviso (MSF-722)', () => {
+describe('buscarProductosConAviso', () => {
   beforeEach(() => limit.mockReset())
 
   it('pide uno más que el tope y avisa que hay más, devolviendo solo 20', async () => {

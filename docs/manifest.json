@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "08f3f4379c3517b16dac45043be877b373f1a6ee92f206e9117351377dd69860",
+      "pageHash": "47accf39d7ee66a84ead27585dd3bc2e65a9e53be8c9328a8aa2b17bc93ded5c",
       "sourceHash": "f70015038b3be42078895037d6692c087b886fba16f1d8456ad60463943da292",
-      "sourceAt": "e31f2eae",
+      "sourceAt": "153b2e4c",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "153b2e4c"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1824,12 +1824,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "9fd31d864eae0c2b2d8de65d3a8415bddc423ee73d7770a12f50764574d327f6",
+      "pageHash": "e7cb18a67b9a5441af8756a8dd365f5ea25fab7187d7bb293109ba094087562d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "0cf3ca6e"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2849,15 +2849,15 @@
     },
     "docs/tecnico/onboarding.md": {
       "title": "Onboarding técnico",
-      "pageHash": "0e9ade858dac31dbb34cd73597a1ed5c620256753d03f6dc0f3f497e0afd1471",
-      "sourceHash": "8c2b4752da14ecfae3a3566be18dab9e414c64a085ab1d2e8061d7d4afb9a240",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "14d007c79d5520a25272a7b0d7cf74f0fdabad4c9acdfa6b8151e01e195954e0",
+      "sourceHash": "c7b1fb78719d78925c1ed922ed360bb2fa3858110586250710e75f29c670ee80",
+      "sourceAt": "a6f780be",
       "sources": [
         "package.json",
         "apps/web/package.json"
       ],
       "owner": "tecnico",
-      "commit": "12bf0514"
+      "commit": "a6f780be"
     },
     "docs/tecnico/operacion-copias-y-documentacion.md": {
       "title": "Operación, copias y documentación (MSF-457) · técnico",

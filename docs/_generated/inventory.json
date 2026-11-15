@@ -1169,6 +1169,10 @@
     {
       "slug": "20270323-100000-service-ideas-futuras-v2",
       "titulo": "Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)"
+    },
+    {
+      "slug": "20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs",
+      "titulo": "Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)"
     }
   ],
   "paginas": 320

@@ -9,7 +9,7 @@ const ITEMS: ItemConsulta[] = [
   { orden: 2, producto_id: null, descripcion: 'Cable USB', sku: null, cantidad: 1, precio_referencia: null },
 ]
 
-describe('texto inicial de «Responder» (F-CON-04) y de un pedido (MSF-176, B1, P-6)', () => {
+describe('texto inicial de «Responder» (F-CON-04) y de un pedido (B1, P-6)', () => {
   it('una consulta común conserva el texto de siempre', () => {
     expect(armarTextoInicial({ nombre: 'Ana', empresa_nombre: 'San Javucho', producto_nombre: 'Funda' }).cuerpo)
       .toBe('Hola Ana, te escribimos de San Javucho por tu consulta por Funda. ')

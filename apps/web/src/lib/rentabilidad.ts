@@ -15,7 +15,7 @@ export const RUTA_COSTOS_ADICIONALES = '/rentabilidad/costos'
 // F-REN-03 lee este filtro al abrir «Por producto» desde el aviso del resumen (FR-015, FR-019).
 export const RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO = `${RUTA_POR_PRODUCTO}?estado=bajo_o_negativo`
 
-// Pestañas de la pantalla, sin «Por publicación de ML» (FR-010): es de la épica de Mercado Libre (Etapa 2).
+// Pestañas de la pantalla, sin «Por publicación de ML» (FR-010): es de la integración con Mercado Libre, que todavía no está disponible.
 export const PESTANAS_RENTABILIDAD = [
   { etiqueta: 'Resumen', to: RUTA_RENTABILIDAD },
   { etiqueta: 'Por producto', to: RUTA_POR_PRODUCTO },
