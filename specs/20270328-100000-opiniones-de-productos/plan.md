@@ -23,26 +23,26 @@ Una tabla nueva (`dominio.opiniones_producto`), funciones nuevas de `private`, `
 
 ## Migraciones (aditivas, ventana `20270341000000`+)
 
-| Migración | Contenido | Reversión (posterior) |
-|---|---|---|
-| `20270341000000_opiniones_producto.sql` | tabla, checks, FK compuestas, índices, RLS sin políticas, grants cero, bandera `tienda_opiniones` apagada | borrar bandera; `drop table` (exportar antes) |
-| `20270341000100_opiniones_validacion.sql` | `private.validar_texto_opinion`, `private.nombre_publico_cliente` | `drop function` |
-| `20270341000200_opiniones_moderacion_rpc.sql` | `public.listar_opiniones`, `public.moderar_opinion` (+ evento de Actividad) | `drop function` |
-| `20270341000300_opiniones_cliente_rpc.sql` | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
-| `20270341000400_opiniones_lectura_publica.sql` | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
-| `20270341000500_exportacion_total_opiniones.sql` | la tabla entra en `conjuntos_exportacion_total` | restaurar la versión previa |
+| Migración | Historia | Contenido | Reversión (posterior) |
+|---|---|---|---|
+| `20270341000000_opiniones_producto.sql` | F-OPI-01 | tabla, checks, FK compuestas, índices, RLS sin políticas, grants cero, bandera `tienda_opiniones` apagada | borrar bandera; `drop table` (exportar antes) |
+| `20270341000100_opiniones_validacion.sql` | F-OPI-01 | `private.validar_texto_opinion`, `private.nombre_publico_cliente` | `drop function` |
+| `20270341000200_opiniones_moderacion_rpc.sql` | F-OPI-01 | `public.listar_opiniones`, `public.moderar_opinion` (+ evento de Actividad) | `drop function` |
+| `20270341000300_exportacion_total_opiniones.sql` | F-OPI-01 | la tabla entra en `conjuntos_exportacion_total` | restaurar la versión previa |
+| `20270341000400_opiniones_cliente_rpc.sql` | F-OPI-02 | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
+| `20270341000500_opiniones_lectura_publica.sql` | F-OPI-03 | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
 
 `node scripts/verificar-migraciones.mjs --estricto` en cada fase; rebasar con `origin/dokploy` y renumerar si otra rama ocupó la ventana. Antes de redefinir `conjuntos_exportacion_total` se lee su **última** versión en `dokploy`.
 
 ## Fases
 
-1. **Base de datos y bandera** (sin efecto visible): tabla, validación, bandera, exportación.
-2. **Moderación** (panel, US1): RPC del panel y pantalla; con datos sembrados se puede probar sin la tienda.
-3. **Opinar** (tienda, US2): RPC del cliente, formulario, «Mis opiniones».
-4. **Leer** (tienda, US3): RPC de lectura y capacidades, bloque en la ficha.
+1. **F-OPI-01 · Base de datos y bandera** (sin efecto visible): tabla, validación, bandera, exportación.
+2. **F-OPI-01 · Moderación** (panel, US1): RPC del panel y pantalla; con datos sembradas se puede probar sin la tienda.
+3. **F-OPI-02 · Opinar** (tienda, US2): RPC del cliente, formulario, «Mis opiniones».
+4. **F-OPI-03 · Leer** (tienda, US3): RPC de lectura y capacidades, bloque en la ficha.
 5. **Cierre**: E2E de punta a punta, docs, roadmap, encendido en dev y guards finales.
 
-Las fases se invocan una por una (regla de `/speckit-implement`), con `/clear` entre cada una.
+Las fases se invocan una por una (regla de `/speckit-implement`), con `/clear` entre cada una. El **plan de ejecución por historia** (tabla `Historia | Depende de | Grupo` y su Mermaid) está al final de `tasks.md`: es la autoridad que consume el orquestador. Los flujos que manda el prototipo (máquina de estados, secuencia de moderación, alta desde la tienda y lectura en la ficha) están dibujados en la sección `## Flujos` de `spec.md`.
 
 ## Front (`apps/web`)
 
