@@ -19,11 +19,11 @@ tiene requisitos de comportamiento del cliente; solo F-CLI-19 se construyó, com
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | Backlog para el cliente; construida como definición provisoria y marcada **Finalizada** (`specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks/F-CLI-19.md`; ver abajo) | Cómo Ventas maneja cobros y el estado Deuda. |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | **Entregada** (MSF-452, épica MSF-176; detrás de la bandera `tienda_pedidos`, apagada por defecto y encendida solo en dev) | «Mi cuenta» en la tienda: compras y presupuestos del cliente y favoritos, por tienda. F-TDA-27 y F-CON-07 quedan **absorbidas**. Ver `docs/tienda-compra-y-cuentas.md`. |
 | F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog | Relacionada con F-CLI-03 y F-CLI-07; F-PRE-14 (Precios) está **cancelada** (2026-11-12, MSF-373). |
-| F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Backlog | Ingreso de mercadería por proveedor y listado de reposición de Stock. |
+| F-PRV-09 | Órdenes de compra a proveedores | P3 | L | **Entregada** (MSF-454; ver abajo) | Ingreso de mercadería por proveedor y listado de reposición de Stock. |
 
 Ninguna tiene requisitos del cliente (RF), escenarios (CA) ni horas. **F-CLI-19 sí tiene código y pantalla** (la
 construyó el SDLC: migración, RPC, hook, la tarjeta «Saldo deudor» y la tabla «Cuenta corriente» de la ficha del
-cliente). F-CLI-21 y F-PRV-09 **no tienen código ni pantalla**: siguen en Backlog sin requisitos de comportamiento (F-CLI-20 se entregó en MSF-452).
+cliente). F-CLI-21 **no tiene código ni pantalla**: sigue en Backlog sin requisitos de comportamiento (F-CLI-20 se entregó en MSF-452 y F-PRV-09 en MSF-454).
 
 ## F-CLI-19: definición provisoria ya construida
 
@@ -45,6 +45,19 @@ Quedó así. Nicolás confirmó el 2026-11-12 que la cobrada no es deuda, que el
 - Costo: el saldo de cada factura sale de `private.saldo_comprobante` (tres lecturas por cada factura que no sea borrador, anulada ni cobrado, aunque ya esté saldada: el comprobante, sus cobros y sus notas de crédito) y la RPC
   devuelve todas las abiertas sin paginar. Es proporcional a las facturas abiertas de **un** cliente, que son pocas; si
   un cliente real acumulara cientos, habría que paginar con carga infinita (excepción a esa regla, justificada acá).
+
+## F-PRV-09 · Órdenes de compra a proveedores
+
+- **Dependencia**: el listado de reposición de Stock (`docs/stock.md`, «Ver solo alertas») y el proveedor
+  del producto (`dominio.productos.proveedor_id`, F-PRV-03).
+- **Spec y guía**: `specs/20261109-103000-ordenes-de-compra-a-proveedores/` y
+  [`docs/ordenes-compra.md`](./ordenes-compra.md).
+- **Qué entrega**: la orden de compra nace del listado de reposición (los productos en alerta del
+  proveedor), se sigue hasta que la mercadería llega (`recibida`) o se cancela (`anulada`, con motivo), y
+  el listado respeta la empresa activa de la barra superior.
+- **Fuera de alcance (declarado en la spec de la historia)**: número correlativo, condiciones de compra,
+  «Compra para», envío por correo al proveedor, costo de la orden y el vínculo con el ingreso de
+  mercadería (el stock sigue entrando por «Ingreso de mercadería», F-PRV-04).
 
 ## Preguntas abiertas
 

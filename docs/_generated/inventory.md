@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **257**
-- Tablas en migraciones: **197**
+- Rutas del panel: **258**
+- Tablas en migraciones: **199**
 - Variables de entorno: **106**
-- Specs: **152**
-- Páginas de documentación: **320**
+- Specs: **153**
+- Páginas de documentación: **321**
 
 ## Rutas del panel
 
@@ -165,6 +165,7 @@
 - `/stock/mas-vendidos`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/stock/ordenes-compra`
 - `/stock/toma-inventario`
 - `/tienda-publica`
 - `/tienda-publica/EnrutadorTienda`
@@ -344,6 +345,8 @@
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.ordenes_compra`
+- `dominio.ordenes_compra_items`
 - `dominio.precios_empresa`
 - `dominio.precios_propios_empresa`
 - `dominio.precios_propios_historial`
@@ -702,6 +705,7 @@
 - `20261104-103000-precios-masivos-y-promociones` — Feature Specification: Precios y dólar · Precios masivos y promociones
 - `20261105-100000-cotizacion-sugerida-y-mayoristas` — Feature Specification: Precios y dólar · Cotización sugerida y mayoristas
 - `20261109-100000-cuenta-corriente-y-saldo-cliente` — Feature Specification: Clientes y proveedores · Cuenta corriente y saldo del cliente
+- `20261109-103000-ordenes-de-compra-a-proveedores` — Feature Specification: Clientes y proveedores · Cuentas y compras a proveedores — F-PRV-09 · Órdenes de compra a proveedores
 - `20261110-100000-ventas-avisos-de-faltantes` — Feature Specification: Ventas y despacho · Ventas avisos de faltantes
 - `20261112-200000-tiendas-diseno-del-prototipo` — Feature Specification: Tiendas online · Diseño del prototipo
 - `20261113-120000-ci-e2e-tienda` — Feature Specification: CI · E2E de la tienda pública (`e2e-tienda`)
