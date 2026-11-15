@@ -12,6 +12,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { normalizarCuit } from '../../lib/cuit'
+import { avisoFormatoWhatsapp } from '../../lib/whatsapp'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
 
@@ -233,7 +234,15 @@ export function EmpresaEdit() {
           <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
           <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
           <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
-          <TextField label="WhatsApp" value={formulario.whatsapp} onChange={cambiar('whatsapp')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="WhatsApp"
+            value={formulario.whatsapp}
+            onChange={cambiar('whatsapp')}
+            helperText={avisoFormatoWhatsapp(formulario.whatsapp) ?? 'Con código de área, por ejemplo +54 9 11 1234-5678.'}
+            FormHelperTextProps={{ role: avisoFormatoWhatsapp(formulario.whatsapp) ? 'status' : undefined }}
+            disabled={soloLectura}
+            fullWidth
+          />
           <TextField
             label="Correo"
             type="email"

@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   versiones: [] as unknown[],
   insertDocumento: vi.fn(),
   updateDocumento: vi.fn(),
+  updateVersion: vi.fn(),
+  errorUpdateDocumento: null as { message: string } | null,
   deleteDocumento: vi.fn(),
   insertVersion: vi.fn(),
   errorDocumentos: null as { message: string } | null,
@@ -49,7 +51,7 @@ function crearCadena(tabla: string) {
       }
       if (operacion.tipo === 'update') {
         mocks.updateDocumento(operacion.datos)
-        return { error: null }
+        return { error: mocks.errorUpdateDocumento }
       }
       if (operacion.tipo === 'delete') {
         mocks.deleteDocumento()
@@ -61,6 +63,10 @@ function crearCadena(tabla: string) {
       if (operacion.tipo === 'insert') {
         mocks.insertVersion(operacion.datos)
         return { error: mocks.errorInsertVersion }
+      }
+      if (operacion.tipo === 'update') {
+        mocks.updateVersion(operacion.datos)
+        return { error: null }
       }
       return { data: mocks.versiones, error: null }
     }
@@ -102,6 +108,7 @@ describe('IaDocumentos', () => {
     mocks.errorUpload = null
     mocks.errorFeature = null
     mocks.errorInvoke = null
+    mocks.errorUpdateDocumento = null
     mocks.useContextoPanel.mockReturnValue({
       contexto: { organizacion_id: 'org-1', es_superadmin: false, organizacion_nombre: 'Org', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
       isLoading: false,
@@ -246,5 +253,20 @@ describe('IaDocumentos', () => {
     await waitFor(() => expect(mocks.insertVersion).toHaveBeenCalled())
     expect(mocks.insertDocumento).toHaveBeenCalledWith({ nombre: 'otro.txt' })
     expect(mocks.insertVersion).toHaveBeenCalledWith(expect.objectContaining({ documento_id: 'doc-nuevo' }))
+  })
+
+  it('si falla el update del nombre, marca la versión como fallida y no indexa (MSF-750)', async () => {
+    mocks.documentos = [documento]
+    mocks.errorUpdateDocumento = { message: 'RLS' }
+    const { container } = render(<IaDocumentos />)
+    await screen.findByText('contrato.txt')
+    const input = container.querySelector('input[type="file"]')
+    if (!input) throw new Error('No se encontró el selector de archivos.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar (sube una nueva versión)' }))
+    fireEvent.change(input, { target: { files: [archivo('contrato.pdf', 'pdf', 'application/pdf')] } })
+
+    await waitFor(() => expect(mocks.updateVersion).toHaveBeenCalledWith({ estado: 'fallida' }))
+    expect(mocks.invoke).not.toHaveBeenCalled()
   })
 })

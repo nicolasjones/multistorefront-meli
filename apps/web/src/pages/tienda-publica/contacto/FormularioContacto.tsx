@@ -6,6 +6,7 @@ import { ErrorConReintento } from '../ErrorConReintento'
 import { IconoTilde } from '../layout/iconos'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { useCelular } from '../useAnchoCelular'
+import { avisoFormatoWhatsapp } from '../../../lib/whatsapp'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
 import { COLOR_FOCO, LINEA_SUAVE } from '../layout/medidas'
 
@@ -25,7 +26,9 @@ const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: LINEA_
 // Campo del prototipo (`.fin`): el rótulo (14 px/600) ARRIBA del campo —no flotante—, campo de 44 px (el mensaje, de 110 px como
 // mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en el gris secundario (contraste AA) y el foco visible (borde y contorno primarios). El rótulo es un <label> asociado; el error va debajo con
 // `aria-describedby`.
-function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef, rotuloVisible = true }: {
+function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef, rotuloVisible = true, aviso }: {
+  // Aviso no bloqueante (MSF-743): se muestra si no hay error.
+  aviso?: string | null
   id: string
   etiqueta: string
   ejemplo: string
@@ -61,7 +64,7 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
           '& input::placeholder, & textarea::placeholder': { color: 'text.secondary', opacity: 1 },
         }}
       />
-      {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : null}
+      {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : aviso ? <FormHelperText role="status">{aviso}</FormHelperText> : null}
     </Box>
   )
 }
@@ -200,6 +203,7 @@ export function FormularioContacto({ host }: { host: string }) {
               valor={datos.contacto}
               alCambiar={cambiar('contacto')}
               error={errores.contacto}
+              aviso={avisoFormatoWhatsapp(datos.contacto)}
               inputRef={(el) => { campos.current.contacto = el }}
             />
           </Box>
