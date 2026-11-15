@@ -1890,8 +1890,8 @@
     "docs/revision-seguridad-gastos.md": {
       "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
       "pageHash": "cf7d3262c75e0b58de7daa6d43f009e0a54b95b3d04001868f6aee3a14656a85",
-      "sourceHash": "008310f9edefee5d572ab2b4045219bccc5470191a75a1aaad658f5f2a120c35",
-      "sourceAt": null,
+      "sourceHash": "dad2a51d8db9cae36873237efc7782040eb5801a61334477149abbe86b44d96e",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "supabase/migrations",
