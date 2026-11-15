@@ -71,3 +71,16 @@ MSF-562 conectó el aviso de consulta nueva a `emitir_aviso` con alcance por emp
 Los avisos de esta guía son internos (hacia el equipo) y cada persona los enciende o apaga. El correo masivo a clientes
 (MSF-155) es otra cosa: lo redacta el equipo, sale en lotes con cupo diario por el flow `correo-masivo` y cada cliente
 puede darse de baja. No usa `avisos_pendientes` ni estas preferencias. Ver [`correo-masivo.md`](./correo-masivo.md).
+
+## Resumen semanal por correo (F-REP-08, MSF-265)
+
+El resumen semanal del negocio **no usa la cola `avisos_pendientes` ni el flow `enviar-avisos`**: es un correo por
+persona con contenido propio (rentabilidad, ventas de la semana y stock en alerta), que sigue su propio camino —
+flow `resumen-semanal` de Kestra → funciones `private` → cola `dominio.resumen_semanal_envios` → SMTP. Lo que sí
+reutiliza de MSF-189 es el **catálogo `tipos_aviso`** y `preferencias_aviso`, y por eso la baja personal es la de
+siempre: la fila `resumen_semanal` queda registrada en `public.tipos_aviso` con la sección `rentabilidad`, así que
+aparece sola en `/cuenta/avisos` para quien tenga acceso a esa sección, y apagarla ahí es lo que deja de llegar el
+correo (sin fila de preferencia = encendido). Los destinatarios son los miembros **activos** con acceso a
+`rentabilidad` y con la preferencia encendida.
+
+Detalle del contenido, de la cadencia y de la operación: [Resumen semanal por correo](resumen-semanal-correo.md).

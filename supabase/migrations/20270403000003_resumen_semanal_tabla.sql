@@ -22,7 +22,7 @@
 --     `public.avisos_pendientes`).
 --   * Una fila nunca mezcla organizaciones: el resumen se arma y se envía por organización.
 --
--- Migración aditiva. Reversión (migración posterior; antes revertir 20270324101100):
+-- Migración aditiva. Reversión (migración posterior; antes revertir 20270403000004):
 --   delete from public.tipos_aviso where clave = 'resumen_semanal';
 --   drop table dominio.resumen_semanal_envios;
 

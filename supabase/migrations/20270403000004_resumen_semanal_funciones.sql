@@ -1,7 +1,7 @@
 -- MSF-287 · F-REP-08 (épica MSF-265, spec 20261101-100000-analitica-avanzada-y-resumen-por-correo,
 -- FR-010…FR-014): funciones del resumen semanal por correo.
 --
--- Esquema (Principio VII): sin tablas nuevas; usa `dominio.resumen_semanal_envios` (20270324101000)
+-- Esquema (Principio VII): sin tablas nuevas; usa `dominio.resumen_semanal_envios` (20270403000003)
 -- y el catálogo `public.tipos_aviso`. Las funciones van en `private` (las llama el rol de servicio
 -- de Kestra `kestra_orquestacion`, como las de MSF-189).
 --

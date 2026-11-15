@@ -105,6 +105,8 @@ jobs:
           node-version: 24
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      - name: test:migraciones (versiones válidas y citas que existen)
+        run: node --test scripts/migraciones-resumen-semanal.test.mjs
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos

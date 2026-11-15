@@ -15,7 +15,7 @@
 | `public.tipos_aviso` (fila `resumen_semanal`) | `public` | F-REP-08 | Catálogo de plataforma de MSF-189: se registra el tipo, no se crea tabla | RLS vigente de `tipos_aviso` |
 | Vistas de lectura de los tableros | `analitica` (solo vistas) | F-REP-07 | Contrato de lectura para Superset; no almacenan datos; cada fila lleva `organizacion_id` | Sin acceso para `anon`/`authenticated`; `select` solo al rol de Superset |
 
-`dominio.resumen_semanal_envios` (creada en `20270326100001_resumen_semanal_tabla.sql`): `id uuid`
+`dominio.resumen_semanal_envios` (creada en `20270403000003_resumen_semanal_tabla.sql`): `id uuid`
 (primaria), `organizacion_id uuid` (→ `public.organizaciones`), `destinatario_id uuid` (→
 `auth.users`), `semana text` (AAAA-Wnn, clave de idempotencia), `destinatario_correo text`,
 `resumen jsonb not null` (el resumen tal como se encoló, con al menos una sección),
@@ -36,7 +36,28 @@ Nada existente cambia de firma. F-REP-07 sigue sin contrato cerrado hasta respon
 
 ## Documentación
 
-`docs/analitica-avanzada.md` y `docs/resumen-semanal-correo.md`; actualizar `docs/operar-superset.md`, `docs/avisos-por-correo.md` y la fila correspondiente de `docs/roadmap-template.md` (#34) al cerrar.
+**Dueño canónico: la línea base** (spec `20261114-100000-analitica-avanzada-y-resumen-por-correo`, ya
+integrada en `dokploy`). Ahí están escritos de forma canónica `docs/analitica-avanzada.md`,
+`docs/resumen-semanal-correo.md`, `docs/revision-seguridad-analitica-avanzada.md`, la sección «Resumen
+semanal» de `docs/avisos-por-correo.md`, la sección «Tableros analíticos» de `docs/operar-superset.md` y
+las filas de MSF-265 y #34 de `docs/roadmap-template.md`.
+
+Esta línea **no duplica** esos textos: las dos specs difieren en el diseño del envío (migraciones
+`20270324100000`–`20270324100300` y RPC `public` en la base; `dominio.resumen_semanal_envios` y
+funciones `private` acá) y escribirlo dos veces deja dos verdades contradictorias. T014 y T015 se
+cierran contra el dueño canónico: se verifica que esos textos estén en la línea base y no se repiten
+en esta rama.
+
+Lo que sí queda en esta línea es lo que describe **su propia** implementación:
+
+- `docs/resumen-semanal-correo.md`: el camino del envío de esta línea (tabla `dominio`, funciones
+  `private`, flow de Kestra).
+- `docs/avisos-por-correo.md`: la fila `resumen_semanal` que esta línea inserta en `public.tipos_aviso`
+  (sección `rentabilidad`) y su baja en `/cuenta/avisos`.
+
+La revisión de seguridad de la excepción a 007 FR-013 (T015) es la del dueño canónico
+(`docs/revision-seguridad-analitica-avanzada.md`): la regla de la spec 007 se mantiene, el
+administrador no entra a Superset ni edita y no se creó ninguna excepción.
 
 ## Riesgos
 

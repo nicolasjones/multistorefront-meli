@@ -158,6 +158,25 @@ flowchart TD
 ```
 Pasos: S, R → FR-010, FR-013; G → FR-012, FR-014; M/OK/RT/FA → FR-011, FR-013, SC-002, SC-003. Frecuencia, destinatarios y contenido exactos → decisiones de P3.
 
+## Documentación y dueño canónico
+
+La documentación de MSF-265 tiene **un dueño canónico: la línea base** (spec
+`20261114-100000-analitica-avanzada-y-resumen-por-correo`, ya integrada en `dokploy`), donde están
+escritos `docs/analitica-avanzada.md`, `docs/resumen-semanal-correo.md`,
+`docs/revision-seguridad-analitica-avanzada.md`, la sección «Resumen semanal» de
+`docs/avisos-por-correo.md`, la sección «Tableros analíticos» de `docs/operar-superset.md` y las filas
+de MSF-265 y #34 de `docs/roadmap-template.md`.
+
+Esta spec (línea de la épica) **no duplica** esa documentación: las dos specs implementan el mismo
+envío con diseños distintos —la base usa `public.resumen_semanal_config` /
+`public.resumen_semanal_envios` con RPC `public`; esta línea usa `dominio.resumen_semanal_envios` con
+funciones `private`— y dos copias del mismo texto quedan contradictorias. Lo que queda escrito acá es
+lo que describe la implementación de esta línea: `docs/resumen-semanal-correo.md` y la fila
+`resumen_semanal` en `public.tipos_aviso` documentada en `docs/avisos-por-correo.md`.
+
+Consecuencia para el cierre (T014, T015): las tareas se cierran contra el dueño canónico, no
+escribiendo por segunda vez los mismos textos en esta rama.
+
 ## Fuera de alcance
 
 BI avanzado más allá de tableros con filtros y cruces; reportes exportables adicionales; cualquier pantalla del prototipo no pedida; Mercado Libre. Son notas, no tareas.

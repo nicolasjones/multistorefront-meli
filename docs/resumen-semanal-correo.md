@@ -8,8 +8,8 @@ Los administradores de cada organización reciben una vez por semana, por correo
 
 | Pieza | Dónde | Esquema |
 |---|---|---|
-| Registro de los envíos por destinatario y semana (`resumen_semanal_envios`) + tipo `resumen_semanal` en `tipos_aviso` | `20270326100001_resumen_semanal_tabla.sql` | `dominio` / `public` |
-| Armado del resumen, encolado/reclamo idempotente y cierre del envío | `20270326100002_resumen_semanal_funciones.sql` | `private` |
+| Registro de los envíos por destinatario y semana (`resumen_semanal_envios`) + tipo `resumen_semanal` en `tipos_aviso` | `20270403000003_resumen_semanal_tabla.sql` | `dominio` / `public` |
+| Armado del resumen, encolado/reclamo idempotente y cierre del envío | `20270403000004_resumen_semanal_funciones.sql` | `private` |
 | Flow de envío semanal | `infra/kestra/flows/resumen-semanal.yml` | Kestra |
 | Interruptor para dejar de recibirlo | `/cuenta/avisos` (menú de la cuenta) | `apps/web` |
 
