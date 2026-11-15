@@ -108,7 +108,7 @@ export type ResultadoVerificacion = {
   certificado: EstadoCertificado
 }
 
-export type MotivoFalloVerificacion = 'demasiado_pronto' | 'dns_no_disponible' | 'sin_permiso' | 'otro'
+export type MotivoFalloVerificacion = 'demasiado_pronto' | 'dns_no_disponible' | 'sin_permiso' | 'plataforma_no_configurada' | 'otro'
 
 export class ErrorVerificarDominio extends Error {
   motivo: MotivoFalloVerificacion
@@ -133,7 +133,7 @@ export async function verificarDominio(empresaId: string): Promise<ResultadoVeri
       codigo = ((await respuesta.json().catch(() => null)) as { error?: string } | null)?.error ?? null
     }
     const motivo: MotivoFalloVerificacion =
-      codigo === 'demasiado_pronto' || codigo === 'dns_no_disponible' || codigo === 'sin_permiso' ? codigo : 'otro'
+      codigo === 'demasiado_pronto' || codigo === 'dns_no_disponible' || codigo === 'sin_permiso' || codigo === 'plataforma_no_configurada' ? codigo : 'otro'
     throw new ErrorVerificarDominio(motivo)
   }
   return { dominioVerificado: Boolean(data?.dominio_verificado), certificado: data?.certificado ?? 'pendiente' }
