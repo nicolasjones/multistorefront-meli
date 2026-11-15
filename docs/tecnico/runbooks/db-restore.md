@@ -19,7 +19,7 @@ sources:
    carpeta copiada con rclone, no un `.gz`: no hay nada que descomprimir.
 3. Restaurar en una base **temporal** primero; validar conteos y tablas críticas.
 4. Recién entonces restaurar la base real (o promover la temporal). El restore documentado en
-   [copias-y-restauracion.md](../../copias-y-restauracion.md#procedimiento-guiado-de-restauración)
+   [copias-y-restauracion.md](../../copias-y-restauracion.md#procedimiento-guiado-de-restauracion)
    usa `pg_restore --no-privileges`: el paso 5 de esa sección A (reaplicar privilegios) es obligatorio.
 5. **Reaplicar los privilegios**: `select private.reaplicar_privilegios_copias();` con la misma
    conexión `postgres` del restore. Sin ese paso las funciones `security definer` del historial de
