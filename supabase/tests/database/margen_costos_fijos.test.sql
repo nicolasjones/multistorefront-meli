@@ -16,7 +16,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('e2000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'Empresa Dos');
 
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'minorista'),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente Dos', 'minorista');
 
