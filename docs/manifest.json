@@ -2599,16 +2599,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "1807d30a76c95d8b7ee1af07b44facdad186bd8791e01b49df9bb0357dd76119",
-      "sourceHash": "39327a74330bd72470259e5f8689a539cc8a8539672c9f2a07c48761708c1fb8",
-      "sourceAt": "1dd2929e",
+      "pageHash": "e2f05db7ae79d8b1d83fb41745ff4a0724ce4c3ed4ba8b4ec1f8bb7b5bbc2608",
+      "sourceHash": "48a328004d30a978b9b00018467fc97fdabb8ccc5c6e64bb011dbc03969961f2",
+      "sourceAt": "87c411de",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "1dd2929e"
+      "commit": "87c411de"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",

@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **259**
-- Tablas en migraciones: **202**
+- Rutas del panel: **260**
+- Tablas en migraciones: **203**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **321**
+- Páginas de documentación: **323**
 
 ## Rutas del panel
 
@@ -115,6 +115,7 @@
 - `/migracion/importar`
 - `/migracion/informes`
 - `/no-encontrada/PaginaNoEncontrada`
+- `/opiniones/list`
 - `/organizacion/ResumenSemanal`
 - `/organizacion/edit`
 - `/organizaciones/create`
@@ -347,6 +348,7 @@
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.opiniones_producto`
 - `dominio.ordenes_compra`
 - `dominio.ordenes_compra_items`
 - `dominio.precios_empresa`

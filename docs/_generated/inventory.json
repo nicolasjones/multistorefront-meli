@@ -105,6 +105,7 @@
     "/migracion/importar",
     "/migracion/informes",
     "/no-encontrada/PaginaNoEncontrada",
+    "/opiniones/list",
     "/organizacion/ResumenSemanal",
     "/organizacion/edit",
     "/organizaciones/create",
@@ -336,6 +337,7 @@
     "dominio.modelos_equipo",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
+    "dominio.opiniones_producto",
     "dominio.ordenes_compra",
     "dominio.ordenes_compra_items",
     "dominio.precios_empresa",
@@ -1202,5 +1204,5 @@
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 321
+  "paginas": 323
 }
