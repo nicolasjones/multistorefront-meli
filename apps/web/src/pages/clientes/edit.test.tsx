@@ -193,14 +193,14 @@ describe('ClienteEdit', () => {
   it('si la compensación también falla, lo dice y lo registra en vez de callarlo', async () => {
     mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: 'XX000' })
     await guardarConListaNueva()
-    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala')).toBeInTheDocument()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala.')).toBeInTheDocument()
     expect(console.error).toHaveBeenCalledWith('No se pudo devolver la lista de precios a la anterior.', expect.anything(), expect.anything())
   })
 
   it('si la lista anterior se archivó entretanto y no se puede reasignar, da el mismo aviso', async () => {
     mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: '22023', message: 'La lista está archivada' })
     await guardarConListaNueva()
-    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala')).toBeInTheDocument()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala.')).toBeInTheDocument()
   })
 
   it('si otra persona cambió la lista mientras tanto, no la pisa y lo avisa', async () => {
@@ -208,6 +208,10 @@ describe('ClienteEdit', () => {
     await guardarConListaNueva()
     expect(await screen.findByText('No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.')).toBeInTheDocument()
     expect(mocks.asignarLista).toHaveBeenCalledTimes(1)
+    expect(console.error).toHaveBeenCalledWith(
+      'La lista de precios cambió mientras se guardaba: no se restaura la anterior.',
+      { esperada: 'l-1', actual: 'l-7' },
+    )
   })
 
   it('quien no es Administrador ve la lista en solo lectura y nunca la asigna', async () => {

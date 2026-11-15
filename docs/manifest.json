@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "47d1d0dcf6dc534983a724ef208e538340e9d490325297b11a5b9ee1f355e1fc",
-      "sourceHash": "569cc41def61115e122a3ffca8b2beca5cf6d86af2ee5d87425909abdcc4ca08",
-      "sourceAt": "56b825d5",
+      "pageHash": "09f29d1101d765e7d320b29202112df2636b4afd6811aa1346fcca8617956441",
+      "sourceHash": "e248f5dc126d967a3f7c3e533cc5c45dc1829fc71bdb962dc00d823364a2f81b",
+      "sourceAt": "342eab26",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "56b825d5"
+      "commit": "342eab26"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -659,14 +659,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "e50370e9d61d501ae2b9b19f797fa9a531022a5064b689843efbe23b31dcb726",
-      "sourceHash": "2a21fda02837403cdac86a6721aaba89eb483089b7027281a53d11b71667fa52",
-      "sourceAt": "393c67cb",
+      "pageHash": "87d0e7f5e0bbeef52e3e2557bbb359551db83b6fa76979f5fc1baf7dc96ae528",
+      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "sourceAt": "0035d19c",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "393c67cb"
+      "commit": "0035d19c"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -681,14 +681,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "66edf184b22d32832d2536ef99efb1f97640630ff38229558fe0982e0da11036",
-      "sourceHash": "4ce2e3d92bb869fec5267c786969f6de9c4e8fe97189492c78f2979c7666c4d6",
-      "sourceAt": "28ee550c",
+      "pageHash": "dbadb66513b6d6c09abc27482901f3d369c8634806774d3bdc9869f90c2a44eb",
+      "sourceHash": "68013842da9803be3113ede687b36e5bcca911ca66e710f6dfbf3eeade03b6f9",
+      "sourceAt": "09cff0cb",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "28ee550c"
+      "commit": "09cff0cb"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1033,9 +1033,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "174271d571ea24e20ea80f0d8494b64f6cd919e4392153138cd387644270cc5a",
+      "pageHash": "4d2632d02a714dc0ae04316758b4ed36210a245c070e5b6697be3cfd4308b06a",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "56b825d5",
+      "sourceAt": "e2402afc",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1044,7 +1044,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "56b825d5"
+      "commit": "e2402afc"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",

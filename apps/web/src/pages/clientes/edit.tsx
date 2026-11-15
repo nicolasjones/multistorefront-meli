@@ -107,7 +107,7 @@ export function EdicionCliente({ id, onCancelar, alGuardar }: EdicionClienteProp
                     if (errorCompensacion instanceof ErrorGuardadoParcial) throw errorCompensacion
                     // La base puede conservar la lista nueva (o la anterior se archivó y no se puede reasignar).
                     console.error('No se pudo devolver la lista de precios a la anterior.', errorCompensacion, error)
-                    throw new ErrorGuardadoParcial('No se guardó el cliente y la lista quedó cambiada: revisala')
+                    throw new ErrorGuardadoParcial('No se guardó el cliente y la lista quedó cambiada: revisala.')
                   }
                 }
                 throw error
