@@ -12,6 +12,7 @@ export const RUTA_COMPARATIVO = '/rentabilidad/comparativo'
 export const RUTA_HISTORIA = '/rentabilidad/historia'
 export const RUTA_VENTAS_REALES = '/rentabilidad/ventas-reales'
 export const RUTA_COSTOS_ADICIONALES = '/rentabilidad/costos'
+export const RUTA_DESPUES_DE_COSTOS_FIJOS = '/rentabilidad/costos-fijos'
 // F-REN-03 lee este filtro al abrir «Por producto» desde el aviso del resumen (FR-015, FR-019).
 export const RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO = `${RUTA_POR_PRODUCTO}?estado=bajo_o_negativo`
 
@@ -33,6 +34,9 @@ export const NOMBRE_REPORTE_POR_PRODUCTO = 'Rentabilidad · Por producto'
 export const NOMBRE_REPORTE_COMPARATIVO = 'Rentabilidad · Comparativo'
 // Ídem para el tablero «Historia» (F-REN-07).
 export const NOMBRE_REPORTE_HISTORIA = 'Rentabilidad · Historia'
+// Pestaña «Después de costos fijos» (F-GAS-03): solo con la bandera `margen_costos_fijos` encendida; no es parte de PESTANAS_RENTABILIDAD.
+export const PESTANA_DESPUES_DE_COSTOS_FIJOS = { etiqueta: 'Después de costos fijos', to: RUTA_DESPUES_DE_COSTOS_FIJOS }
+export const NOMBRE_REPORTE_DESPUES_DE_COSTOS_FIJOS = 'Rentabilidad · Después de costos fijos'
 // Ídem para el tablero «Ventas reales» (F-REN-09).
 export const NOMBRE_REPORTE_VENTAS_REALES = 'Rentabilidad · Ventas reales'
 

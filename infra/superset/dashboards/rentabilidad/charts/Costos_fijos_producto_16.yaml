@@ -1,0 +1,11 @@
+slice_name: Después de fijos por producto
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku"], "metrics": ["vendido_total", "margen_total", "cargo_total", "margen_despues_total", "margen_despues_pct_total"], "percent_metrics": [], "timeseries_limit_metric": "margen_despues_total", "order_desc": true, "row_limit": 10000, "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 3d3eecd4-2566-51a8-81cb-d714af32d69c
+version: 1.0.0
+dataset_uuid: fc25f0d5-efb9-5ad8-be7a-08c6b7e2d8b5

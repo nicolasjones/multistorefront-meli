@@ -35,8 +35,8 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "a6ffdce6ec32080d495a65e9b9bf0de3753660e8286397058af82f8afed9ef74",
-      "sourceHash": "5ef67ed7a15cf20adfdbe804c57254e2b560179f5e8c27aa945f8a0f45c8b584",
+      "pageHash": "dd8f846f590ec5f05d0655a05806d0c43e9d8f8aad802f57e2778fc5dfa28f6b",
+      "sourceHash": "9e949bc901c2fa1954701b8a2c8e6e8ecd82c6beba4590f5d2637d4dd8597d23",
       "sourceAt": "e477d3de",
       "sources": [
         "specs"
@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "0a2b79a17704dff8fe3a8e1c2646ac8c2f53cbb21d03ac1de6f88b116c29fdff",
-      "sourceHash": "41859b278faf4a0a9f6dd2b0f3f1287b76592b1f9d6a035559f6d5ea67741c9f",
-      "sourceAt": "f08925dd",
+      "pageHash": "0b11516dc2891ad9879cc51de256a7c6bfcfb01c4efa5d232c7d6020a1ad6958",
+      "sourceHash": "9e949bc901c2fa1954701b8a2c8e6e8ecd82c6beba4590f5d2637d4dd8597d23",
+      "sourceAt": "202e8b34",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "f08925dd"
+      "commit": "202e8b34"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -718,17 +718,17 @@
       "commit": "ebf4bf4d"
     },
     "docs/gastos.md": {
-      "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
-      "pageHash": "25aef9e6591f780f2c0f14df14bb72ea9c60428ce7f11afc866a1ecd9b819ee2",
-      "sourceHash": "0308c75a78b573dca67870e42494aca0bd9a7190bdb37b9bf89215d95cb3f598",
-      "sourceAt": "2ca0ce82",
+      "title": "Gastos de la empresa y margen después de costos fijos",
+      "pageHash": "bffc07b935fb557cc6a9427d675c5f5f12db8f03219d2a27e52cf347b105c0c9",
+      "sourceHash": "30c4386b5c9779ecb6fcefe97a14cfdab1de66d8d92731e082e07777a57c121b",
+      "sourceAt": "71c0b1d5",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "apps/web/src/pages/gastos",
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "2ca0ce82"
+      "commit": "71c0b1d5"
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
@@ -1257,7 +1257,7 @@
     },
     "docs/producto/gastos.md": {
       "title": "Gastos de cada tienda",
-      "pageHash": "359c47ee70aa542bda053584975d23e1d693122efb3d88c045265c89ab3e6bda",
+      "pageHash": "183f6fdcc53c757b817414335712ceb4c46acc60a340f053e558e96f2779c34e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1834,9 +1834,9 @@
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "a3ca5cb0c76e7f7091b8a351047865a1396fccd5cbd13e7f3448a0f83956fe11",
-      "sourceHash": "37cf019ea46d1851731df555d90d7d04cc2b3e486b05d46e25cfee567ae38d16",
-      "sourceAt": "c7860a7c",
+      "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
+      "sourceHash": "abbb3832cd0bd9defe472a6f8340590e2e0488441682ec7f2405f54e490e3f93",
+      "sourceAt": "a54b6f65",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1846,7 +1846,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "c7860a7c"
+      "commit": "a54b6f65"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -1887,9 +1887,22 @@
       "owner": "tecnico",
       "commit": "e2ad6a41"
     },
+    "docs/revision-seguridad-gastos.md": {
+      "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
+      "pageHash": "cf7d3262c75e0b58de7daa6d43f009e0a54b95b3d04001868f6aee3a14656a85",
+      "sourceHash": "008310f9edefee5d572ab2b4045219bccc5470191a75a1aaad658f5f2a120c35",
+      "sourceAt": null,
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "supabase/migrations",
+        "apps/web/src/pages/rentabilidad"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "e7cb18a67b9a5441af8756a8dd365f5ea25fab7187d7bb293109ba094087562d",
+      "pageHash": "4d6987bdbc8cc7a8c5604352ad787a2deaeafef2baecc99dbe58f791ee27338b",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -3062,9 +3075,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "cd1cc01802f1352fd8ced715d34c6727f53d27f9e1a7e60b004e44f28bc2f879",
-      "sourceHash": "319612edf35871a0c439cd047e6c4232c3dd46523f30fd142eefea645f6e897a",
-      "sourceAt": "c7860a7c",
+      "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
+      "sourceHash": "6a8c672e409dd726e250974ced0bbc0510a092659924bfe8c585e643518cfb4a",
+      "sourceAt": "a54b6f65",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3072,7 +3085,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "a54b6f65"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

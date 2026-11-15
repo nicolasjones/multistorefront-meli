@@ -202,7 +202,7 @@ nav:
           - "Migración inicial de datos · ensayo, conciliación y plan de corte": migracion-inicial-de-datos.md
           - "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)": precios-masivos.md
           - "Rentabilidad (margen por producto y canal)": rentabilidad.md
-          - "Gastos de la empresa (registro y consulta)": gastos.md
+          - "Gastos de la empresa y margen después de costos fijos": gastos.md
           - "Stock · Lotes e inventario (épica MSF-131)": stock-lotes-e-inventario.md
           - "Tiendas online: dominio e identidad": tiendas-online.md
           - "Ventas · Catálogos de cobro y envío (épica MSF-139)": ventas-catalogos.md
