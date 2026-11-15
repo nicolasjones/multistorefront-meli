@@ -10,6 +10,29 @@ sources:
 Corre dentro de `pnpm docs:check`. Controla versiones únicas, inmutables y nuevas, y la
 idempotencia del DDL de las migraciones **nuevas** respecto de `origin/dokploy`.
 
+## Qué revisa (y qué no): el alcance es la rama, no el árbol entero
+
+El guard juzga **las migraciones propias de la rama**: las que agregó, renombró o modificó
+desde el punto de divergencia con la base (`git merge-base <base> HEAD`). Lo que la rama
+heredó sin tocar queda **fuera** del alcance, aunque la base lo haya renumerado después.
+
+Por qué (MSF-749): `dokploy` renumera migraciones casi todos los días. Con el alcance
+anterior (el árbol entero contra la punta de la base), **toda** rama abierta antes del
+renumerado quedaba `BEHIND` con el job `application` en rojo por «versión … REUSADA» o
+«versión … MODIFICADA» de migraciones que ese PR no había tocado: 13 PRs abiertos, ninguno
+mergeable, y la base seguía avanzando.
+
+Lo que **no** se pierde:
+
+- La comparación de colisiones sigue siendo contra la **punta** de la base: si la rama
+  agrega una migración con una versión que la base ya aplicó, o pisa una versión que la
+  base reservó después de la divergencia, el guard sigue fallando.
+- Si la base renumeró algo que la rama heredó, el guard **avisa** (no falla) con una
+  instrucción accionable: «la base `origin/dokploy` renumeró o quitó N migración(es) que tu
+  rama heredó: actualizá tu rama (merge de `origin/dokploy`) antes de mergear».
+- Sin punto de divergencia resoluble (clone superficial sin ancestro común) el guard cae a
+  `HEAD~1`; si tampoco puede, revisa el árbol entero (comportamiento previo).
+
 ## Nombre del archivo
 
 Todo archivo de `supabase/migrations/` tiene que llamarse `<versión>_<nombre>.sql`. El CLI de Supabase y el cron que aplica
