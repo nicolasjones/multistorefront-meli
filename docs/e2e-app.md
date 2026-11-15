@@ -770,7 +770,8 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   test:e2e <spec>`).
 - **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: `inicio.e2e.ts` (tres
   roles y cambio de empresa, MSF-747), y los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
-  permisos, Empresas, editar la organización, Clientes alta/búsqueda/exportación SC-001, Catálogo SC-001/SC-006). No se
+  permisos, Empresas, editar la organización, Catálogo SC-001/SC-006). El de Clientes (alta, búsqueda y exportación,
+  SC-001) ya tiene su spec con corrida en verde. No se
   escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
   firmada.
 
