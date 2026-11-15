@@ -138,7 +138,7 @@ export function OpinionesList() {
 
           <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap aria-label="Resumen de opiniones" role="group">
             {([['Pendientes', contadores.pendientes], ['Aceptadas', contadores.aceptadas], ['Rechazadas', contadores.rechazadas]] as const).map(([etiqueta, valor]) => (
-              <Box key={etiqueta} sx={{ border: 1, borderColor: 'divider', borderRadius: 2, px: 2, py: 1.5, minWidth: 140, bgcolor: 'background.paper' }}>
+              <Box key={etiqueta} sx={{ border: 1, borderColor: 'divider', borderRadius: (tema) => `${tema.shape.borderRadius}px`, px: 2, py: 1.5, minWidth: 140, bgcolor: 'background.paper' }}>
                 <Typography variant="body2" color="text.secondary">{etiqueta}</Typography>
                 <Typography component="p" variant="t2">{listado.cargando && listado.filas.length === 0 ? '—' : valor}</Typography>
               </Box>
@@ -172,7 +172,7 @@ export function OpinionesList() {
                 : <EstadoVacio titulo="No hay opiniones pendientes." descripcion="Cuando un cliente deje una, la vas a ver acá." />
             ) : (
               <>
-                <Box component="ul" aria-label="Opiniones" sx={{ listStyle: 'none', m: 0, p: 0, border: 1, borderColor: 'divider', borderRadius: 2, bgcolor: 'background.paper' }}>
+                <Box component="ul" aria-label="Opiniones" sx={{ listStyle: 'none', m: 0, p: 0, border: 1, borderColor: 'divider', borderRadius: (tema) => `${tema.shape.borderRadius}px`, bgcolor: 'background.paper' }}>
                   {listado.filas.map((opinion) => (
                     <Box component="li" key={opinion.id} sx={{ p: 2, borderTop: 1, borderColor: 'divider', '&:first-of-type': { borderTop: 0 }, display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <Box sx={{ flex: 1, minWidth: 240 }}>
