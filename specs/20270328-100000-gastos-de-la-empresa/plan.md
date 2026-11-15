@@ -78,3 +78,16 @@ La reversión de la última migración de cada fase queda **documentada** (no ej
 ## Documentación
 
 `docs/gastos.md` (técnico), `docs/producto/gastos.md` (manual), actualización de `docs/rentabilidad.md` y `docs/tecnico/rentabilidad.md` (pestaña nueva y regla «lo existente no cambia»), `docs/actividad.md`, `docs/deployment.md` (bandera) y `docs/roadmap-template.md` al cerrar.
+
+## Plan de ejecución (historias) — respaldo
+
+La tabla que consume el orquestador está al final de [`tasks.md`](./tasks.md); esta es el respaldo por si se lee el plan.
+
+| Historia | Depende de | Grupo |
+|----------|------------|-------|
+| F-GAS-01 | — | 1 |
+| F-GAS-02 | F-GAS-01 | 2 |
+| F-GAS-03 | F-GAS-01 | 2 |
+| [Cierre] | F-GAS-01, F-GAS-02, F-GAS-03 | 3 |
+
+F-GAS-02 y F-GAS-03 son independientes entre sí (archivos, tablas, migraciones y rutas distintas) y van en paralelo; el cierre espera a las tres.

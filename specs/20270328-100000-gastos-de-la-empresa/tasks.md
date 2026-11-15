@@ -19,7 +19,7 @@ Cada RF/SC tiene una tarea dueña y su verificación nombrada (tabla «Verificac
 - [ ] T003 [P] [F-GAS-01][US1] Aislamiento y seguridad: entre organizaciones, entre empresas de una organización, `anon` sin privilegios, `search_path`, `rls_en_toda_tabla` y `privilegios_anon_endurecidos` verdes con la tabla nueva (dueña de RF-GAS-15, SC-003). Evidencia: `gastos.test.sql` y los dos tests existentes.
 - [ ] T004 [F-GAS-01][US1] Migración `20270343000200_gastos_exportacion_total.sql`: la tabla entra a la exportación total (dueña de RF-GAS-17). Evidencia: pgTAP `exportacion_total.test.sql` extendido.
 - [ ] T005 [F-GAS-01][US1] Pantalla Administración → Gastos (`pages/gastos/`, `lib/gastos.ts`, hooks): ruta lazy, destino de menú solo administrador, tabla con los campos del prototipo, estados compartidos y acceso restringido sin `lectura` (dueña de RF-GAS-8, parte registro). Evidencia: Vitest `pages/gastos/index.test.tsx`.
-- [ ] T006 [F-GAS-01][US1] Diálogo «Nuevo gasto»/«Editar gasto» con las adiciones declaradas (moneda, tipo de costo precargado, recurrente, tienda con `SelectorEmpresas` de una sola empresa, importe con decimales), validación del servidor y mensaje «Cargá la cotización del dólar» (dueña de CA-GAS-1…6). Evidencia: Vitest del diálogo con axe a 320/768/1440 px.
+- [ ] T006 [F-GAS-01][US1] Diálogo «Nuevo gasto»/«Editar gasto» con las adiciones declaradas (moneda, tipo de costo precargado, recurrente, tienda con `SelectorEmpresas` de una sola empresa, importe con decimales), los textos de ejemplo del prototipo («Ej.: Expensas de octubre», «0») y sus avisos («Gasto registrado · ‹concepto›», «Ingresá el importe del gasto»), validación del servidor y mensaje «Cargá la cotización del dólar» (dueña de CA-GAS-1…6). Evidencia: Vitest del diálogo con axe a 320/768/1440 px.
 - [ ] T007 [F-GAS-01][US1] Acción «Anular» con motivo obligatorio y «Mostrar anulados» (dueña de CA-GAS-6). Evidencia: Vitest y pgTAP `gastos_rpc.test.sql`.
 - [ ] T008 [P] [F-GAS-01][US1] Fila «Empresa activa»: test de Vitest que cambia de empresa con la pantalla y el diálogo abiertos (se cierra con aviso, nada se guarda en la empresa anterior) (dueña de CA-GAS-14, parte registro). Evidencia: `pages/gastos/index.test.tsx`.
 - [ ] T009 [P] [F-GAS-01][US1] Etiquetas de los eventos `gasto.*` en Actividad y ayuda de la pantalla (cobertura de ayuda). Evidencia: Vitest de Actividad y `ayuda-cobertura.test.ts`.
@@ -30,7 +30,7 @@ Cada RF/SC tiene una tarea dueña y su verificación nombrada (tabla «Verificac
 ## Phase 2: F-GAS-02 · Consultar gastos por período y categoría (US2) — sin efecto en ninguna cifra existente
 
 - [ ] T011 [F-GAS-02][US2] Migración `20270343000300_gastos_consulta.sql`: `listar_gastos` (cursor por `fecha desc, id`, filtros de empresa, categoría, tipo, anulados) y `resumen_gastos` (total, conteo, desglose por categoría y tipo) (dueña de RF-GAS-6, RF-GAS-7). Evidencia: pgTAP `gastos_listado.test.sql`.
-- [ ] T012 [F-GAS-02][US2] Pantalla: períodos Hoy / Semana / Mes / Mes anterior (hora de Buenos Aires), `FiltroEmpresa`, filtros por categoría y tipo, total y desglose por concepto con la etiqueta fijo/variable, carga infinita con «Cargar más» por teclado (dueña de RF-GAS-8, CA-GAS-9…11, CA-GAS-13). Evidencia: Vitest `pages/gastos/index.test.tsx`.
+- [ ] T012 [F-GAS-02][US2] Pantalla: períodos Hoy / Semana / Mes / Mes anterior (hora de Buenos Aires), `FiltroEmpresa` con el texto auxiliar «Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda», filtros por categoría y tipo, total del período («N gastos · ‹período›») y panel «Por concepto» con la etiqueta fijo/variable, carga infinita con «Cargar más» por teclado (dueña de RF-GAS-8, CA-GAS-9…11, CA-GAS-13). Evidencia: Vitest `pages/gastos/index.test.tsx`.
 - [ ] T013 [F-GAS-02][US2] «Exportar» del listado filtrado con evento en Actividad (dueña de RF-GAS-9, CA-GAS-12). Evidencia: Vitest y pgTAP `gastos_actividad.test.sql`.
 - [ ] T014 [P] [F-GAS-02][US2] Fila «Empresa activa» de la consulta: al cambiar la empresa se recargan listado, total y desglose y se reencuadra la carga por tandas (dueña de CA-GAS-14). Evidencia: Vitest.
 - [ ] T015 [F-GAS-02][US2] E2E del recorrido: cargar un gasto, verlo en el total del mes y anularlo (dueña de RF-GAS-8). Evidencia: `apps/web/e2e/gastos.e2e.ts`.
@@ -60,21 +60,29 @@ Cada RF/SC tiene una tarea dueña y su verificación nombrada (tabla «Verificac
 - [ ] T029 [CIERRE] Seguimientos trazados de lo que quedó fuera si Nicolás lo quiere: impactos I5–I10 (correo semanal, Inicio, comparativos, alertas, precio sugerido), importación de gastos, recurrentes automáticos, gastos compartidos, otros métodos de prorrateo, cierre de períodos (Tarea `seguimiento` por cada una).
 - [ ] T030 [CIERRE] Guards finales: `verificar-migraciones --estricto`, `docs:check`, `matriz:check`, `der:check`, `prototipo:check`, `ui:empresas:check`, commitlint, `tsc -b`, lint y `vite build`. Evidencia: resultados en el informe de cierre.
 
-## Plan de ejecución (fases)
+## Plan de ejecución (historias)
 
-| Fase | Depende de | Qué entrega | Riesgo en cifras existentes |
-|---|---|---|---|
-| 1 · Registro | — | Tabla, RPC, pantalla | Ninguno |
-| 2 · Consulta | 1 | Listado, totales, exportar | Ninguno |
-| 3 · Margen después de fijos | 1 | Vistas nuevas, bandera, pestaña | **Ninguno por diseño** (medida nueva, detrás de la bandera, con paridad) |
-| 4 · Cierre | 1–3 | Docs, seguridad, encendido en dev | — |
+El **orden de toma** lo declara esta tabla: el orquestador la **consume**. Una historia arranca cuando sus dependencias están **Finalizadas (mergeadas)**; las del **mismo** `Grupo` van **en paralelo**.
+
+| Historia | Depende de | Grupo |
+|----------|------------|-------|
+| F-GAS-01 | — | 1 |
+| F-GAS-02 | F-GAS-01 | 2 |
+| F-GAS-03 | F-GAS-01 | 2 |
+| [Cierre] | F-GAS-01, F-GAS-02, F-GAS-03 | 3 |
+
+**Por qué ese agrupamiento**: F-GAS-02 (consulta) y F-GAS-03 (margen después de costos fijos) dependen de F-GAS-01 porque ambas necesitan la tabla `dominio.gastos`, pero **son independientes entre sí** — no comparten archivos, tablas, migraciones ni rutas (F-GAS-02 toca `apps/web/src/pages/gastos/`, `apps/web/src/lib/gastos.ts` y la migración `20270343000300_gastos_consulta.sql`; F-GAS-03 toca `apps/web/src/pages/rentabilidad/costos-fijos.tsx`, `infra/superset/dashboards/rentabilidad/` y las migraciones `20270343000400`/`20270343000500`) — así que van **en paralelo** en el grupo 2. El **cierre** va al final (grupo 3), cuando las tres historias estén Finalizadas.
 
 ```mermaid
 flowchart LR
-    F1[Fase 1 Registro] --> F2[Fase 2 Consulta]
-    F1 --> F3[Fase 3 Margen despues de fijos]
-    F2 --> F4[Fase 4 Cierre]
-    F3 --> F4
+    GAS01["F-GAS-01 · Registrar gastos"]
+    GAS02["F-GAS-02 · Consultar gastos por período y categoría"]
+    GAS03["F-GAS-03 · Margen después de costos fijos"]
+    Cierre["Cierre · docs, seguridad, roadmap"]
+    GAS01 --> GAS02
+    GAS01 --> GAS03
+    GAS02 --> Cierre
+    GAS03 --> Cierre
 ```
 
-Las fases 2 y 3 dependen solo de la 1 y se pueden mergear en cualquier orden; la 3 es la que Nicolás debe aprobar con las decisiones D4, D6, D7 y D15 a la vista.
+Las **fases** de este `tasks.md` siguen el mismo orden: fase 1 = F-GAS-01, fase 2 = F-GAS-02, fase 3 = F-GAS-03 (se puede trabajar en paralelo con la 2), fase 4 = Cierre. La fase 3 es la que Nicolás debe aprobar con las decisiones D4, D6, D7 y D15 a la vista.

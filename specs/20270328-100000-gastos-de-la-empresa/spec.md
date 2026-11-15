@@ -238,7 +238,7 @@ Como **administrador** quiero registrar los gastos generales de cada tienda para
 Como **administrador** quiero consultar los gastos por período, tienda y categoría para entender en qué se va el dinero y cuánto pesan los costos fijos.
 
 - **CA-GAS-9** — **Dado** el período «Mes», **cuando** abro la pantalla, **entonces** veo la lista del mes de la empresa activa (o de todas), el **total del período** y su **desglose por categoría**, cada categoría con su tipo (fijo/variable); «Hoy», «Semana» (últimos 7 días) y «Mes anterior» funcionan igual.
-- **CA-GAS-10** — **Dado** un listado largo, **entonces** carga por tandas con «Cargar más» accesible por teclado, el total y el contador siguen visibles y buscar o cambiar de período reinicia la lista (carga infinita, sin paginación).
+- **CA-GAS-10** — **Dado** un listado largo, **entonces** carga por tandas con «Cargar más» accesible por teclado, el total y el contador siguen visibles y cambiar de período, de tienda o de filtro reinicia la lista desde el principio (carga infinita, sin paginación).
 - **CA-GAS-11** — **Dado** que filtro por categoría o por tipo de costo, **entonces** el listado, el total y el desglose se ajustan; sin gastos, la pantalla dice «Sin gastos en el período».
 - **CA-GAS-12** — **Dado** un listado filtrado, **cuando** pulso «Exportar», **entonces** descargo un archivo con las mismas filas y filtros (incluye moneda, importe original e importe en pesos) y el evento queda en Actividad.
 - **CA-GAS-13** — **Dado** un gasto en USD, **entonces** el listado muestra el importe original con su moneda y, aparte, el importe en pesos con el que cuenta en los totales.
@@ -335,18 +335,22 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`)
 
 ## Matriz pantalla↔criterios
 
-`pnpm prototipo:inventario` se corrió: el prototipo **sí tiene** la pantalla `VentasGastos.dc.html` («Ventas · Gastos»; tabla Fecha, Concepto, Detalle, Tienda, Importe; campos Concepto, Detalle, Importe, Fecha y los buscadores de ejemplo; botones Exportar, Nuevo gasto, Cancelar, Guardar gasto; diálogo «Nuevo gasto»; sin pestañas). **No** tiene pantalla de la medida de margen: la pestaña de Rentabilidad es una **decisión de UI mínima** (D17) que reutiliza el patrón de las pestañas Comparativo e Historia.
+`pnpm prototipo:inventario` se corrió: el prototipo **sí tiene** la pantalla `VentasGastos.dc.html` («Ventas · Gastos»; tabla Fecha, Concepto, Detalle, Tienda, Importe; campos Concepto, Detalle, Importe, Fecha —los dos «(buscar: …)» del inventario son los textos de ejemplo de «Detalle» e «Importe», no un buscador—; botones Exportar, Nuevo gasto, Cancelar, Guardar gasto; diálogo «Nuevo gasto»; sin pestañas). **No** tiene pantalla de la medida de margen: la pestaña de Rentabilidad es una **decisión de UI mínima** (D17) que reutiliza el patrón de las pestañas Comparativo e Historia.
 
 | Ítem | Dueño | Nota |
 |---|---|---|
 | Tabla Fecha / Concepto / Detalle / Tienda / Importe | RF-GAS-8, CA-GAS-9, CA-GAS-10, CA-GAS-13 | «Concepto» es la categoría; «Importe» muestra el importe original y, si es USD, el equivalente en pesos (adición declarada, CA-GAS-13). Carga infinita en lugar de una tabla completa (CLAUDE.md) |
 | Selector de período Hoy / Semana / Mes / Mes anterior | RF-GAS-8, CA-GAS-9 | Como el prototipo (Semana = últimos 7 días, zona horaria de Buenos Aires) |
 | Filtro de tienda (Todas las tiendas / una por empresa) | RF-GAS-8, CA-GAS-14 | `FiltroEmpresa` compartido, no `Chip` ni `Select` propios |
-| «Total del período» y desglose por concepto | RF-GAS-7, CA-GAS-9 | Se agrega la etiqueta fijo/variable de cada concepto (adición declarada, D3) |
+| Texto auxiliar del filtro de tienda: «Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.» | RF-GAS-8, CA-GAS-14 | Texto del prototipo, literal: la fila de filtro manda el valor por defecto (todas) y la barra superior acota |
+| Filtro por categoría y por tipo de costo | RF-GAS-8, CA-GAS-11 | **Adición declarada**: el prototipo agrupa por concepto pero no filtra; la épica pide consultar «por período y categoría» (D2, D3) |
+| «Total del período» (total, «N gastos · ‹período›») y panel «Por concepto» (píldoras «‹concepto› · $ ‹importe›») | RF-GAS-7, CA-GAS-9 | Se agrega la etiqueta fijo/variable de cada concepto (adición declarada, D3) |
+| Aviso emergente («snack») «Gasto registrado · ‹concepto›», «Exportación a Excel preparada» e «Ingresá el importe del gasto» | RF-GAS-8, CA-GAS-1, CA-GAS-12 | Patrón compartido de éxito y error (Principio VI) con los textos del prototipo |
 | Estado vacío «Sin gastos en el período» | CA-GAS-11 | Texto del prototipo |
 | Botón «Exportar» | RF-GAS-9, CA-GAS-12 | Descarga el listado filtrado; en el prototipo solo muestra un aviso |
-| Botón «Nuevo gasto» y diálogo «Nuevo gasto» (Concepto, Detalle, Importe, Fecha, «Guardar gasto», «Cancelar») | RF-GAS-2, CA-GAS-1…4 | **Adiciones declaradas** (el requisito las exige y el prototipo no las dibuja): **Moneda** (ARS/USD), **Tipo de costo** (fijo/variable, precargado), **Recurrente** y **Tienda** (precargada con la empresa activa; con «Todas» se elige una; usa `SelectorEmpresas` en modo una sola empresa, extendiéndolo y probándolo si hace falta). El **importe admite decimales** (el prototipo solo dígitos enteros) |
+| Botón «Nuevo gasto» y diálogo «Nuevo gasto» (Concepto, Detalle, Importe, Fecha, «Guardar gasto», «Cancelar») | RF-GAS-2, CA-GAS-1…4 | **Adiciones declaradas** (el requisito las exige y el prototipo no las dibuja): **Moneda** (ARS/USD), **Tipo de costo** (fijo/variable, precargado), **Recurrente** y **Tienda** (precargada con la empresa activa; con «Todas» se elige una; usa `SelectorEmpresas` en modo una sola empresa, extendiéndolo y probándolo si hace falta). El **importe admite decimales** (el prototipo solo dígitos enteros). Textos de ejemplo del prototipo: «Ej.: Expensas de octubre» en «Detalle» y «0» en «Importe» (los dos «(buscar: …)» del inventario son esos textos de ejemplo, no un buscador) |
 | Acciones de fila «Editar» y «Anular» (con motivo) y «Mostrar anulados» | RF-GAS-2, CA-GAS-5…7 | **Adición declarada**: el prototipo no dibuja edición ni anulación; la decisión D11 las exige |
+| Buscador por texto en el listado | **FUERA DE ALCANCE** | El prototipo no dibuja ningún buscador en la lista y la épica no lo pide (consulta por período y categoría). Si más adelante se pide, es una historia aparte |
 | Pestaña nueva «Después de costos fijos» en Rentabilidad: tarjetas, cortes por producto/categoría/tienda | RF-GAS-14, CA-GAS-15…24 | **Sin pantalla dibujada** (fuera de alcance por inexistencia, no por omisión); se resuelve con el sistema de diseño y el patrón de Comparativo e Historia; se revisa lado a lado al implementar |
 | Menú Administración → «Gastos» (solo administrador) | RF-GAS-8, CA-GAS-7 | Ya figura en `AdminSider.dc.html` (`who: admin`) |
 | **Empresa activa** | RF-GAS-8, CA-GAS-1, CA-GAS-14, RF-GAS-14 | **Los gastos son de una empresa.** La pantalla filtra por la empresa activa de la barra superior y, con «Todas mis empresas», muestra la columna «Tienda» y los totales combinados (en pesos). Al cambiar la empresa se invalidan y recargan **todas** las consultas (listado, total, desglose), se reencuadra la carga por tandas y se descartan filtros y selección que ya no existen. Un diálogo abierto se **cierra con aviso** sin guardar; nunca guarda datos de la empresa anterior bajo la nueva (el alta lleva la tienda elegida). La pestaña «Después de costos fijos» sigue la misma regla y su token de Superset lleva `empresa_id`. Test de Vitest que cambia de empresa con la pantalla y el diálogo abiertos |
@@ -354,6 +358,8 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`)
 La pantalla de gastos se ubica en **Administración** (lo dibuja el prototipo) y no en Rentabilidad, porque lo que se carga es el registro de gastos; solo la medida derivada vive en Rentabilidad. No se absorbe en otra pantalla existente: ninguna administra costos generales (Costos adicionales es por unidad vendida, Cuentas de cobro es dinero cobrado).
 
 ## Flujos
+
+**Flujo 1 — cómo viaja un gasto hasta la medida de margen** (proceso):
 
 ```mermaid
 flowchart LR
@@ -370,6 +376,10 @@ flowchart LR
     X --> D[Tablero Despues de costos fijos]
 ```
 
+Mapeo: `guardar_gasto`/`anular_gasto` → RF-GAS-2; escritura en `dominio.gastos` → RF-GAS-1 y RF-GAS-5 (sin `DELETE`); `costos_fijos_empresa_mes` y `ventas_netas_empresa_mes` → RF-GAS-11; `margen_despues_costos_fijos` → RF-GAS-12; `margen_real_categoria` **no se toca** → RF-GAS-13; bandera → RF-GAS-10; tablero → RF-GAS-14.
+
+**Flujo 2 — cómo un gasto se convierte en cargo de costo fijo** (proceso):
+
 ```mermaid
 flowchart TD
     A[Gasto cargado] --> B{Tipo de costo}
@@ -379,6 +389,46 @@ flowchart TD
     E --> F[cargo = vendido de cada fila x tasa]
     F --> G[margen despues de fijos = margen vigente - cargo]
 ```
+
+Mapeo: la decisión fijo/variable → RF-GAS-1 y D3; el gasto variable que no se prorratea → RF-GAS-12 y D4; el mes de imputación → D5; la tasa → RF-GAS-12 y D6; el cargo por línea → RF-GAS-12; el resultado → RF-GAS-12 (la medida nueva; el margen vigente no cambia, RF-GAS-13).
+
+**Flujo 3 — estados de un gasto** (máquina de estados):
+
+```mermaid
+stateDiagram-v2
+    [*] --> Vigente : alta (guardar_gasto)
+    Vigente --> Vigente : edicion con bloqueo optimista
+    Vigente --> Anulado : anulacion con motivo obligatorio
+    Anulado --> Anulado : anulacion repetida (idempotente)
+    Anulado --> [*] : sin borrado fisico ni restauracion
+```
+
+Mapeo: alta → RF-GAS-2 y RF-GAS-3; edición con bloqueo optimista (`40001`) → RF-GAS-2 y D11; anulación con motivo obligatorio → RF-GAS-2 y D11; idempotencia de la anulación → RF-GAS-2; **no** hay borrado físico ni restauración → RF-GAS-5 y D11. «Recurrente» **no** es un estado: es una marca informativa mensual (D12, RF-GAS-1).
+
+**Flujo 4 — alta de un gasto (secuencia)**:
+
+```mermaid
+sequenceDiagram
+    actor Adm as Administrador
+    participant UI as Pantalla Gastos
+    participant RPC as public.guardar_gasto
+    participant Cot as Cotizacion del dolar
+    participant BD as dominio.gastos
+    participant Act as Actividad
+    Adm->>UI: Abre «Nuevo gasto» y completa concepto, detalle, importe, moneda, fecha y tienda
+    UI->>RPC: guardar_gasto(...) con la empresa activa
+    RPC->>RPC: Exige edicion en rentabilidad sobre la empresa (42501 si no)
+    alt moneda = USD
+        RPC->>Cot: Cotizacion de la empresa mas cercana a la fecha
+        Cot-->>RPC: cotizacion_usada
+    end
+    RPC->>BD: Inserta o actualiza con cotizacion e importe en pesos congelados
+    RPC->>Act: Evento gasto.creado o gasto.editado (anterior y nuevo)
+    BD-->>UI: Gasto guardado
+    UI-->>Adm: Aviso «Gasto registrado · concepto» y listado recargado
+```
+
+Mapeo: permisos y organización desde la sesión → RF-GAS-2; cotización congelada (o rechazo con «Cargá la cotización del dólar») → RF-GAS-3 y D8; alta o edición → RF-GAS-1; evento de Actividad → RF-GAS-4; aviso de éxito → RF-GAS-8 y CA-GAS-1.
 
 ## Contratos
 
@@ -402,6 +452,7 @@ flowchart TD
 - **Contabilidad** (asientos, plan de cuentas, libro diario), **impuestos** (liquidación, IVA, retenciones, declaraciones), **flujo de caja** (cobros, proyecciones) y **conciliación bancaria**.
 - Facturas de proveedores, cuentas a pagar, comprobantes adjuntos y la relación con la épica de proveedores (los gastos no cuelgan de un proveedor).
 - **Carga masiva o importación** de gastos desde planilla; gastos que se generan solos (recurrentes automáticos) y la acción «Repetir en este mes».
+- **Buscador por texto** en el listado de gastos: el prototipo no lo dibuja y la épica pide consultar por período y categoría, no por texto libre.
 - **Gastos compartidos** entre varias empresas y su criterio de reparto; categorías propias de la organización; cierre de períodos.
 - Otros **métodos de prorrateo** (por unidades vendidas, por días, por rotación) y prorrateo a nivel de línea de venta o de comprobante.
 - **Impactos I5 a I10**: resumen semanal por correo (MSF-265), tablero de Inicio, Comparativo e Historia por producto, alertas de margen negativo, precio sugerido o punto de equilibrio y rentabilidad de Mercado Libre.
