@@ -860,8 +860,8 @@
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "e82ff0484a5e25875dc9bf837987ddf9a6a3b6ae4cdf58dc1e401cd0d472f61c",
-      "sourceHash": "9d38f94a4f4cf56c3f8bb2ba98642e9893f2678852a85d8625a5ef58c1f69796",
+      "pageHash": "bd469a584c41d1f64ed6c2709c20842c69b87153deb2014c0c3e5763459fbc87",
+      "sourceHash": "a6e80d5233cd6e08c7019a457454b6ede87a17f6502b1b5986cf51d21a346521",
       "sourceAt": "7065a017",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -870,7 +870,7 @@
         "apps/web/e2e/listas-de-precios-recorrido.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7065a017"
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
@@ -1912,8 +1912,8 @@
     },
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "1b928a997803b4199890f4235b330d240379e05137e453c8fde91434e9e0a36b",
-      "sourceHash": "2da85e67fa402ba4fc7c6309958e53dbca2b5934f87c249fdba4e4538d8fafe0",
+      "pageHash": "2b64adad86ae5c7ce64f981c74895744a2d8adfce2f9526d5db144dbd39d7882",
+      "sourceHash": "0df9cf8d95ca0dfe1b0ad1c0f479e8713e59f224ffe81cbda62a9ed19a0e71d5",
       "sourceAt": "7065a017",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -1921,7 +1921,7 @@
         "supabase/tests/database"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7065a017"
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",

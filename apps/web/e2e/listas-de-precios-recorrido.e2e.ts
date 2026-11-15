@@ -171,6 +171,8 @@ test.describe('Listas de precios · recorrido completo', () => {
     sinLista = await sembrarCliente('sin-lista')
   })
 
+  // Nota: las banderas son GLOBALES del stack (no por organización): este recorrido las cambia y las restaura al final,
+  // así que no debe correr en paralelo con otro E2E que las lea. La restauración ignora errores en silencio (`.catch`).
   test.afterAll(async () => {
     for (const clave of [CLAVE_LISTAS, CLAVE_TIENDA]) {
       if (previas[clave] !== undefined && previas[clave] !== null) await fijarBandera(clave, previas[clave] as boolean).catch(() => undefined)

@@ -54,7 +54,7 @@ La respuesta pública de la tienda **no agrega ninguna clave**: `precios_cliente
 1. **MSF-969 (producto, no de seguridad):** la lista de pedido de la tienda («Enviar consulta») muestra el precio público y no cobra; no revela datos de la lista.
 2. **`service_role` conserva privilegios de tabla** sobre `listas_precios` y las columnas de snapshot: es lo que exige el repo para tablas de `dominio` y nunca llega al navegador; el E2E del recorrido solo lo usa para sembrar.
 3. **Al encender la bandera**, los borradores guardados antes reciben un `40001` en su primera confirmación si el cliente tiene lista: es un rechazo seguro (no cobra), documentado en `docs/deployment.md`.
-4. La bandera la cambia solo el equipo técnico por SQL; no hay RPC de API que la modifique.
+4. La bandera la cambia solo el equipo técnico por SQL: ninguna RPC la modifica y `authenticated` no puede escribirla; solo `service_role`, que nunca llega al navegador. Es global (afecta a todas las organizaciones del entorno).
 
 ## 6. Reversión
 
