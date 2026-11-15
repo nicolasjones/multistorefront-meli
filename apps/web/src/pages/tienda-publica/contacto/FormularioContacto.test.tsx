@@ -178,7 +178,7 @@ describe('FormularioContacto', () => {
   })
 })
 
-it('avisa sin bloquear cuando el teléfono no se puede usar como WhatsApp (MSF-743)', () => {
+it('avisa sin bloquear cuando el teléfono no se puede usar como WhatsApp', () => {
   render(<FormularioContacto host="h" />)
   const campo = screen.getByLabelText('Correo o WhatsApp')
   fireEvent.change(campo, { target: { value: '12345678' } })

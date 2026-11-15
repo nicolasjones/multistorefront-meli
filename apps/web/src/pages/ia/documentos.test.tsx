@@ -255,7 +255,7 @@ describe('IaDocumentos', () => {
     expect(mocks.insertVersion).toHaveBeenCalledWith(expect.objectContaining({ documento_id: 'doc-nuevo' }))
   })
 
-  it('si falla el update del nombre, marca la versión como fallida y no indexa (MSF-750)', async () => {
+  it('si falla el update del nombre, marca la versión como fallida y no indexa', async () => {
     mocks.documentos = [documento]
     mocks.errorUpdateDocumento = { message: 'RLS' }
     const { container } = render(<IaDocumentos />)

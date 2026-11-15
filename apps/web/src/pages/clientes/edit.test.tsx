@@ -104,7 +104,7 @@ describe('ClienteEdit', () => {
     expect(screen.queryByLabelText('Tipo de cliente')).not.toBeInTheDocument()
   })
 
-  it('si falla la lectura de las cuentas web, no ofrece el formulario ni guarda nada (MSF-734)', () => {
+  it('si falla la lectura de las cuentas web, no ofrece el formulario ni guarda nada', () => {
     mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: true, refetch: vi.fn() })
     abrir()
     expect(screen.getByText('No pudimos cargar la cuenta web del cliente.')).toBeInTheDocument()

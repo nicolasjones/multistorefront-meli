@@ -65,7 +65,7 @@ describe('alta de cliente cuando falla la lectura de cuentas web', () => {
   })
 })
 
-describe('alta de cliente cuando aplicarCuentaWebEnTiendas rechaza (MSF-734)', () => {
+describe('alta de cliente cuando aplicarCuentaWebEnTiendas rechaza', () => {
   it('no muestra el error del formulario ni reintenta: crea una sola vez y va a la ficha con el aviso', async () => {
     mocks.mutateCreate.mockResolvedValue({ data: { id: 'c-nuevo' } })
     mocks.guardar.mockResolvedValue(undefined)

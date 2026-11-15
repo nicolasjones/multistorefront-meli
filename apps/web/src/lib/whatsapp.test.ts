@@ -109,7 +109,7 @@ describe('urlWhatsapp', () => {
   })
 })
 
-describe('avisoFormatoWhatsapp (MSF-743)', () => {
+describe('avisoFormatoWhatsapp', () => {
   it('no avisa con vacío, correo o número normalizable', () => {
     expect(avisoFormatoWhatsapp('')).toBeNull()
     expect(avisoFormatoWhatsapp(null)).toBeNull()
