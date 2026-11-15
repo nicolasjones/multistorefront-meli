@@ -1,54 +1,62 @@
 # Bug Verification: Verificación de salida del correo de «Solicitar acceso» sin verde falso (MSF-532)
 
 - **Slug**: msf-532
-- **Tested**: 2026-11-14
+- **Tested**: 2026-11-14 · 2026-11-15 (segunda ronda, tras la devolución del Revisor)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: partial
 
 ## Summary
 
-El **defecto de instrumental** (el guion podía terminar con código `0` sin comprobar nada y sin haber
-enviado ningún correo) queda reproducido y corregido: hay tests que fallan con el guion viejo y pasan con
-el nuevo. La **verificación externa** en sí (que el correo salga del servidor self-hosted y llegue a una
-casilla externa real) **no se ejecutó** y no puede ejecutarse desde esta sesión: falta el relay SMTP real
-en el VPS, que es infraestructura de Nicolás. El estado queda registrado como pendiente, con dueño y
-seguimiento, en vez de cerrado como si hubiera pasado.
+El **defecto de instrumental** (el guion podía terminar con código `0` sin que la corrida hubiera enviado
+nada, y además afirmaba que «el SMTP lo aceptó» cuando el aviso lo había enviado otra invocación) queda
+reproducido y corregido: hay tests que fallan con el guion viejo y pasan con el nuevo. La **verificación
+externa** en sí (que el correo salga del servidor self-hosted y llegue a una casilla externa real) **no se
+ejecutó** y no puede ejecutarse desde esta sesión: falta el relay SMTP real en el VPS, que es
+infraestructura de Nicolás. El estado queda registrado como pendiente, con dueño y seguimiento, en vez de
+cerrado como si hubiera pasado.
 
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproduction (post-fix) | `node --test scripts/verificar-salida-correo.test.mjs` | pass | 10/10; el guion sale con `1`/`2`/`3` en los casos que antes salía con `0`. |
-| New / updated tests | `node --test scripts/verificar-salida-correo.test.mjs` | pass | Corre el guion real contra un servidor local (Auth + Edge Function + Mailpit simulados); ningún correo sale a internet. |
-| Test que vigila la regla (mutación) | `process.exit(3)` → `process.exit(0)` | pass (detecta) | Falla el test «en el servidor la entrega queda pendiente de confirmación manual: nunca verde». |
-| Test que vigila la regla (mutación) | `cuerpo.nuevo === true` → `true` | pass (detecta) | Falla el test «el pedido del día ya notificado no se toma como verificación (idempotencia)». |
-| Regression suite (docs) | `node scripts/docs-check.mjs` | pass | Los 25 errores son los preexistentes (enlaces a `specs/` fuera de `docs/`); la página nueva no suma ninguno. |
-| Regression suite (docs) | `node --test scripts/verificar-documentacion-cambios.test.mjs` | pass | El cambio toca `scripts/` y actualiza `docs/` y `.specify/bugs/`. |
-| Regression suite (docs) | `node --test scripts/tests/documentacion-importaciones.test.mjs scripts/tests/documentacion-pasos-manuales-vps2.test.mjs` | pass | 3/3 y 15/15. |
-| Lint / type-check | `pnpm lint` | pass | `oxlint` del área web: sin cambios en `apps/web`, igual que en la base. |
+| Reproduction (post-fix) | `node --test scripts/verificar-salida-correo.test.mjs` | pass | 14/14; el guion sale con `1`/`2`/`3` en los casos que antes salían con `0`. |
+| New / updated tests | `node --test supabase/functions/solicitar-acceso/handler.test.ts` | pass | 11/11; el contrato `{resultado, nuevo, enviado}` queda fijado en los cuatro caminos. |
+| Test que vigila la regla (mutación) | el guion ignora `enviado` | pass (detecta) | Fallan 3 tests: idempotencia, invocación concurrente y «un aviso en Mailpit que no salió de esta corrida no da verde». |
+| Test que vigila la regla (mutación) | el guion acepta un contrato viejo (sin `enviado`) | pass (detecta) | Falla el test «una función vieja que no informa `enviado` no se toma como verificación». |
+| Test que vigila la regla (mutación) | la invocación concurrente afirma `enviado: true` | pass (detecta) | Falla el test del handler «doble clic concurrente: quien pierde el reclamo no envía y lo dice». |
+| Test que vigila la regla (mutación) | el camino de éxito afirma `enviado: false` | pass (detecta) | Fallan el test del handler y el test del contrato del guion. |
+| Regression suite (docs) | `pnpm docs:check` | pass | «Documentación de cambios: OK» y «Migraciones OK» (sin migraciones en este cambio). |
+| Regression suite (docs) | `pnpm test:docs:check` · `pnpm test:docs:importaciones` · `pnpm test:docs:pasos-manuales` | pass | 4/4, 3/3 y 15/15. |
+| Regression suite (contratos) | `pnpm test:openapi` · `pnpm test:ia:sincronizar-edge-functions` | pass | `solicitar-acceso` no tiene contrato OpenAPI (no hay nada que actualizar). |
+| Lint / type-check | `pnpm lint` | pass | `oxlint` del área web: sin cambios en `apps/web`, igual que en la base (sólo warnings preexistentes). |
 | Build | `pnpm build` | pass | Vite build de `@platform/web` en verde. |
-| Verificación externa (servidor self-hosted) | `pnpm correo:verificar-salida` contra stg/prd | not-run | Requiere el relay SMTP real en el VPS (no existe todavía) y una casilla externa real. Es la parte de FR-012(b) que sigue **sin verificar**. |
+| Verificación externa (servidor self-hosted) | `pnpm correo:verificar-salida` contra stg/prd | not-run | Requiere el relay SMTP real en el VPS (no existe todavía), la Edge Function desplegada con `enviado` y una casilla externa real. Es la parte de FR-012(b) que sigue **sin verificar**. |
 
 ## Output Excerpts
 
 ```
-✔ la Edge Function sigue respondiendo el contrato {resultado, nuevo} que usa el guion
+✔ la Edge Function sigue respondiendo el contrato {resultado, nuevo, enviado} que usa el guion
+✔ una función vieja que no informa `enviado` no se toma como verificación
 ✔ el pedido del día ya notificado no se toma como verificación (idempotencia)
-✔ en el servidor la entrega queda pendiente de confirmación manual: nunca verde
+✔ otra invocación que ganó el reclamo del envío no se toma como verificación
+✔ el reintento de un envío fallido sí sale: no se informa un falso «no se envió»
 ✔ en local, con el aviso en Mailpit, la salida queda verificada
-✔ en local, sin aviso nuevo en Mailpit, no hay verde
-ℹ tests 10
-ℹ pass 10
+✔ en local, un aviso en Mailpit que no salió de esta corrida no da verde
+✔ en local, sin aviso en Mailpit, no hay verde
+ℹ tests 14
+ℹ pass 14
 ℹ fail 0
 ```
 
-Con la mutación `process.exit(3)` → `process.exit(0)` (el verde falso):
+Con la mutación «el guion ignora `enviado`» (el verde falso):
 
 ```
-✖ en el servidor la entrega queda pendiente de confirmación manual: nunca verde
-ℹ pass 8
-ℹ fail 1
+✖ el pedido del día ya notificado no se toma como verificación (idempotencia)
+✖ otra invocación que ganó el reclamo del envío no se toma como verificación
+✖ en local, un aviso en Mailpit que no salió de esta corrida no da verde
+ℹ pass 11
+ℹ fail 3
 ```
 
 ## Residual Risks
@@ -56,18 +64,22 @@ Con la mutación `process.exit(3)` → `process.exit(0)` (el verde falso):
 - **FR-012(b) y SC-004 siguen sin verificar**: nobody corrió el flujo contra el SMTP real del servidor ni
   confirmó la recepción en una casilla externa. El registro `docs/verificacion-salida-correo.md` queda en
   «pendiente» y el seguimiento es la Tarea `seguimiento` de MSF-532 (dueño: infraestructura/Nicolás).
+- **La corrida real necesita la Edge Function desplegada con `enviado`**: contra un despliegue viejo el
+  guion sale con `1` y lo dice (no adivina). Es intencional: sin ese campo no hay forma de distinguir una
+  corrida que envió de una que no.
 - **El `0` del guion significa «verificado por Mailpit»**: desde el servidor nunca hay `0`, así que la
-  corrida real hay que cerrarla con la confirmación manual (código `3` + captura). Si alguien Busca un
+  corrida real hay que cerrarla con la confirmación manual (código `3` + captura). Si alguien busca un
   «verde» en el servidor, no lo va a encontrar: es a propósito.
-- **La idempotencia por día limita la corrida**: para que el pedido sea nuevo hace falta otra persona u
-  otra sección; el guion lo avisa en el mensaje, pero el operador tiene que elegir esos datos.
+- **La idempotencia por día sigue vigente**: si el pedido del día ya estaba notificado, la corrida no vuelve
+  a avisar (`enviado: false`) y el guion sale con `1` diciéndolo. El reintento de un envío que había fallado
+  sí es una corrida válida (`enviado: true`).
 - El resto de funciones que comparten el SMTP (avisos de faltantes, resúmenes, correo a proveedor) siguen
   dependiendo del mismo relay: que no esté configurado no es un problema sólo de «Solicitar acceso».
 
 ## Recommendation
 
-**Cerrar el bug como `partial`**: el defecto de instrumental está corregido y guardado con tests, y la
-verificación externa quedó **traced** con dueño y estado real (no como «hecho»). La historia se da por
-resuelta en el repo cuando la Tarea `seguimiento` de MSF-532 corra el guion contra el relay del VPS y
-complete el registro con la salida y la captura; hasta entonces, FR-012(b) sigue abierta por
-infraestructura.
+**Cerrar el bug como `partial`**: el defecto de instrumental está corregido y guardado con tests (y la
+guarda ahora corre en el CI del PR), y la verificación externa quedó **trazada** con dueño y estado real (no
+como «hecho»). La historia se da por resuelta en el repo cuando la Tarea `seguimiento` de MSF-532 despliegue
+la Edge Function, corra el guion contra el relay del VPS y complete el registro con la salida y la captura;
+hasta entonces, FR-012(b) sigue abierta por infraestructura.

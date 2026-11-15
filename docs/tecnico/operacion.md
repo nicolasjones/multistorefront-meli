@@ -107,11 +107,13 @@ sources:
 - Si no hay administrador activo en la organización, el pedido se conserva y la pantalla avisa que no hay a
   quién notificar; el reclamo de envío se libera para un reintento posterior.
 - **Verificación de salida:** `pnpm correo:verificar-salida` (`scripts/verificar-salida-correo.mjs`) es
-  manual y opt-in; no corre en `pnpm test` ni en el CI. En local comprueba la API de Mailpit con
+  manual y opt-in; no corre en `pnpm test` ni en el CI (la **suite** que lo prueba sí corre en el CI:
+  `pnpm test:correo:verificar-salida`). En local comprueba la API de Mailpit con
   `MAILPIT_URL`; contra el servidor self-hosted se confirma a mano que el mensaje llega a `CORREO_PRUEBA`,
-  que es obligatoria en ese modo. Códigos de salida: `0` verificado (el mensaje llegó a Mailpit), `1` la
-  corrida no produjo un aviso nuevo, `2` falta una variable, `3` el aviso salió pero la entrega queda
-  pendiente de confirmación manual. Un `0` nunca significa «verificado a mano»: el detalle y el registro
+  que es obligatoria en ese modo. Códigos de salida: `0` verificado (esta corrida envió el aviso y el
+  mensaje llegó a Mailpit), `1` esta corrida no envió nada, `2` falta una variable, `3` esta corrida envió
+  el aviso y el SMTP lo aceptó pero la entrega queda pendiente de confirmación manual. Un `0` nunca
+  significa «verificado a mano»: el detalle y el registro
   están en [Verificación de salida del correo](../verificacion-salida-correo.md).
 - **Pendiente:** relay SMTP real y entregabilidad (SPF/DKIM) en el VPS. Dueño: infraestructura/Nicolás.
   La corrida contra el SMTP real **no se ejecutó** y no hay evidencia: está trazada como **MSF-532**

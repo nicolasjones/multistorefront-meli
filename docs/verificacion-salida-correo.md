@@ -35,21 +35,33 @@ Nicolás). El guion quedó endurecido para que esa corrida no pueda dar un **ver
   dispara el flujo real y **la entrega se confirma a mano** (captura del correo recibido), porque desde el
   servidor no hay buzón que se pueda consultar por API.
 
-El guion es manual y opt-in: **no** corre en `pnpm test` ni en el CI (FR-012). Lo que sí corre en el CI es
-la suite que prueba el guion contra un servidor local (`scripts/verificar-salida-correo.test.mjs`,
-`pnpm test:correo:verificar-salida`): ningún correo sale a internet.
+El guion —la corrida real— es manual y opt-in: **no** corre en `pnpm test` ni en el CI (FR-012). Lo que sí
+corre en el CI es la suite que prueba el guion contra un servidor local
+(`scripts/verificar-salida-correo.test.mjs`, `pnpm test:correo:verificar-salida`, paso del job
+`application`): ningún correo sale a internet. Esa suite detecta que el contrato `{resultado, nuevo, enviado}`
+de la Edge Function y el guion sigan de acuerdo.
 
 ## Qué garantiza el guion
 
 | Código | Significado |
 |---|---|
-| `0` | **Verificado**: el mensaje llegó a Mailpit (sólo local). |
-| `1` | La corrida **no** produjo un aviso nuevo: falló el flujo, no hay administrador activo, o el pedido del día ya estaba notificado (el flujo es idempotente por día). |
+| `0` | **Verificado**: ESTA corrida envió el aviso y el mensaje llegó a Mailpit (sólo local). |
+| `1` | Esta corrida **no** envió ningún aviso: falló el flujo, no hay administrador activo, el pedido del día ya estaba notificado (idempotencia) u otra invocación ganó el reclamo del envío. |
 | `2` | Uso incorrecto: falta una variable de entorno. |
-| `3` | El aviso **salió** del flujo (el SMTP lo aceptó), pero la entrega **no** se puede verificar desde el servidor: queda pendiente la confirmación manual. |
+| `3` | ESTA corrida **envió** el aviso y el SMTP lo aceptó, pero la entrega **no** se puede verificar desde el servidor: queda pendiente la confirmación manual. |
 
 Un `0` significa siempre «verificado por la máquina». En el servidor la corrida nunca devuelve `0`: por eso
 el guion no puede usarse como prueba si nadie miró la casilla.
+
+La función `solicitar-acceso` responde `{resultado, nuevo, enviado}`:
+
+- `nuevo` — el pedido del día se creó en esa corrida.
+- `enviado` — **esa** corrida envió el aviso y el SMTP lo aceptó.
+
+El guion sólo acepta `0` (local) o `3` (servidor) si `enviado` es `true`. Con `enviado: false` la corrida no
+mandó nada —el aviso ya salió hoy o lo está mandando otra invocación— así que no es evidencia, **aunque
+haya un «Solicitud de acceso» en Mailpit**. Si la función no informa `enviado` (despliegue viejo), el guion
+sale con `1` y pide actualizar la Edge Function: no adivina.
 
 ## Protocolo
 
@@ -67,17 +79,18 @@ Variables (los valores reales nunca se commitean):
 
 | Variable | Para qué |
 |---|---|
-| `AUTH_URL` | Base de Supabase Auth, p. ej. `https://<proyecto>.supabase.co/auth/v1` |
-| `FUNCTIONS_URL` | Base de Edge Functions, p. ej. `https://<proyecto>.supabase.co/functions/v1` |
+| `AUTH_URL` | Base de Supabase Auth del servidor self-hosted, p. ej. `https://supabase-<entorno>.<host-del-vps>/auth/v1` (nunca un host `*.supabase.co`: Supabase es self-hosted) |
+| `FUNCTIONS_URL` | Base de Edge Functions del servidor self-hosted, p. ej. `https://supabase-<entorno>.<host-del-vps>/functions/v1` (nunca `*.supabase.co`) |
 | `SUPABASE_ANON_KEY` | Clave anónima del proyecto |
 | `ACCESO_EMAIL`, `ACCESO_PASSWORD` | Credenciales de una persona **sin** acceso a la sección |
 | `SECCION` | Sección sin acceso para esa persona (por omisión `rentabilidad`) |
 | `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`) |
 | `MAILPIT_URL` | Sólo local, p. ej. `http://127.0.0.1:4302` |
 
-Para que la corrida sea concluyente el pedido tiene que ser **nuevo** (una persona o sección que no tenga
-pedido hoy): el flujo es idempotente por día y, si el pedido ya está notificado, no vuelve a avisar (el
-guion sale con `1` y lo dice).
+Para que la corrida sea concluyente el aviso tiene que salir **de esa corrida**: el flujo es idempotente por
+día, así que si el pedido del día ya estaba notificado la corrida no vuelve a avisar (`enviado: false`) y el
+guion sale con `1` diciéndolo. Si el envío de hoy falló (por ejemplo, el servidor todavía no tenía relay),
+el reintento sí manda el aviso y el guion sale con `3`: es una corrida válida.
 
 ## Registro de la verificación
 

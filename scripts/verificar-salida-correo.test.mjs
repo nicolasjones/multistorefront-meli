@@ -14,7 +14,12 @@ const RAIZ = path.dirname(fileURLToPath(import.meta.url))
 const SCRIPT = path.join(RAIZ, 'verificar-salida-correo.mjs')
 const CORREO_PRUEBA = 'nicolas.m.jones@gmail.com'
 
-/** Servidor local que imita Auth, la Edge Function y la API de Mailpit. */
+/**
+ * Servidor local que imita Auth, la Edge Function y la API de Mailpit.
+ * `mensajes` puede ser una función: el mensaje se crea en el momento de la consulta (como en Mailpit
+ * real), no antes de arrancar el guion (si no, la ventana de 5 s del guion lo descarta y el test falla
+ * de forma intermitente cuando el runner tarda).
+ */
 const levantar = async ({ estadoToken = 200, respuestaFuncion = { cuerpo: {} }, mensajes = [] }) => {
   const servidor = http.createServer((req, res) => {
     const responder = (codigo, cuerpo) => {
@@ -28,7 +33,7 @@ const levantar = async ({ estadoToken = 200, respuestaFuncion = { cuerpo: {} }, 
     if (url.startsWith('/functions/v1/solicitar-acceso')) {
       return responder(respuestaFuncion.codigo ?? 200, respuestaFuncion.cuerpo)
     }
-    if (url.startsWith('/api/v1/messages')) return responder(200, { messages: mensajes })
+    if (url.startsWith('/api/v1/messages')) return responder(200, { messages: typeof mensajes === 'function' ? mensajes() : mensajes })
     return responder(404, { error: 'ruta desconocida' })
   })
   await new Promise((resolver) => servidor.listen(0, '127.0.0.1', resolver))
@@ -61,32 +66,39 @@ const entorno = (base, extra = {}) => ({
   ...extra,
 })
 
-test('la Edge Function sigue respondiendo el contrato {resultado, nuevo} que usa el guion', async () => {
-  // El guion decide si la corrida avisó con el campo `nuevo` de la respuesta: se comprueba contra el
-  // handler real (no contra su texto) que un pedido ya notificado responde `nuevo: false`.
-  const deps = {
-    verificarJwt: async () => ({ id: 'u-1', email: 'ana@ejemplo.com' }),
-    caller: () => ({
-      rpc: async () => ({
-        data: { id: 'sol-1', organizacion_id: 'org-1', nuevo: false, correo_enviado: true },
-        error: null,
-      }),
-    }),
-    datos: {
-      reclamarEnvio: async () => { throw new Error('no debe reclamar el envío de un pedido ya notificado') },
-      liberarEnvio: async () => {},
-      administradoresActivos: async () => [],
-      nombreVisible: async () => null,
-    },
-    enviar: async () => { throw new Error('no debe volver a enviar el aviso del día') },
-  }
-  const res = await manejar(new Request('http://localhost/solicitar-acceso', {
+/** Mensaje de Mailpit creado en el momento de la consulta (como el Mailpit real). */
+const avisoEnMailpit = () => [{
+  Subject: 'Solicitud de acceso a Rentabilidad',
+  Created: new Date().toISOString(),
+  To: [{ Address: CORREO_PRUEBA }],
+}]
+
+test('la Edge Function sigue respondiendo el contrato {resultado, nuevo, enviado} que usa el guion', async () => {
+  // El guion decide si la corrida envió con el campo `enviado` de la respuesta: se comprueba contra el
+  // handler real (no contra su texto) que cada camino dice la verdad.
+  const pedir = (registro) => manejar(new Request('http://localhost/solicitar-acceso', {
     method: 'POST',
     headers: { Authorization: 'Bearer valido', 'Content-Type': 'application/json' },
     body: JSON.stringify({ seccion: 'rentabilidad' }),
-  }), deps)
+  }), {
+    verificarJwt: async () => ({ id: 'u-1', email: 'ana@ejemplo.com' }),
+    caller: () => ({ rpc: async () => ({ data: registro, error: null }) }),
+    datos: {
+      reclamarEnvio: async () => true,
+      liberarEnvio: async () => {},
+      administradoresActivos: async () => ['admin@ejemplo.com'],
+      nombreVisible: async () => 'Ana',
+    },
+    enviar: async () => {},
+  })
 
-  assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: false })
+  // El aviso ya salió hoy: esta corrida no manda nada.
+  const yaNotificado = await pedir({ id: 'sol-1', organizacion_id: 'org-1', nuevo: false, correo_enviado: true })
+  assert.deepEqual(await yaNotificado.json(), { resultado: 'solicitud_enviada', nuevo: false, enviado: false })
+
+  // El aviso sale ahora: esta corrida manda y el SMTP lo acepta.
+  const enviado = await pedir({ id: 'sol-2', organizacion_id: 'org-1', nuevo: true, correo_enviado: false })
+  assert.deepEqual(await enviado.json(), { resultado: 'solicitud_enviada', nuevo: true, enviado: true })
 })
 
 test('sin CASILLA ni MAILPIT_URL el guion no corre: falta la variable', async () => {
@@ -123,7 +135,7 @@ test('si no se puede iniciar sesión el guion falla sin dar verde', async () => 
 })
 
 test('sin administrador activo el guion falla sin dar verde', async () => {
-  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'sin_administradores', nuevo: true } } })
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'sin_administradores', nuevo: true, enviado: false } } })
   try {
     const r = await correr(entorno(base, { CORREO_PRUEBA }))
     assert.equal(r.codigo, 1)
@@ -144,8 +156,20 @@ test('una respuesta inesperada de la función no se toma como envío', async () 
   }
 })
 
+test('una función vieja que no informa `enviado` no se toma como verificación', async () => {
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true } } })
+  try {
+    const r = await correr(entorno(base, { CORREO_PRUEBA }))
+    assert.notEqual(r.codigo, 0)
+    assert.equal(r.codigo, 1)
+    assert.match(r.error, /no dice si esta corrida envió el aviso/)
+  } finally {
+    await base.cerrar()
+  }
+})
+
 test('el pedido del día ya notificado no se toma como verificación (idempotencia)', async () => {
-  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: false } } })
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: false, enviado: false } } })
   try {
     const r = await correr(entorno(base, { CORREO_PRUEBA }))
     assert.equal(r.codigo, 1)
@@ -156,8 +180,22 @@ test('el pedido del día ya notificado no se toma como verificación (idempotenc
   }
 })
 
+test('otra invocación que ganó el reclamo del envío no se toma como verificación', async () => {
+  // `nuevo: true` pero `enviado: false`: el pedido se creó en esta corrida, pero otra la está avisando.
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: false } } })
+  try {
+    const r = await correr(entorno(base, { CORREO_PRUEBA }))
+    assert.equal(r.codigo, 1)
+    assert.notEqual(r.codigo, 0)
+    assert.match(r.error, /otra invocación/)
+    assert.doesNotMatch(r.salida, /SMTP del servidor lo aceptó/)
+  } finally {
+    await base.cerrar()
+  }
+})
+
 test('en el servidor la entrega queda pendiente de confirmación manual: nunca verde', async () => {
-  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true } } })
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } } })
   try {
     const r = await correr(entorno(base, { CORREO_PRUEBA }))
     assert.equal(r.codigo, 3)
@@ -169,10 +207,25 @@ test('en el servidor la entrega queda pendiente de confirmación manual: nunca v
   }
 })
 
+test('el reintento de un envío fallido sí sale: no se informa un falso «no se envió»', async () => {
+  // El pedido del día ya existía y el envío anterior falló (sin relay): el reintento SÍ manda el aviso.
+  // La respuesta trae `nuevo: false` pero `enviado: true`: el guion no puede decir que no se envió nada.
+  const base = await levantar({ respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: false, enviado: true } } })
+  try {
+    const r = await correr(entorno(base, { CORREO_PRUEBA }))
+    assert.equal(r.codigo, 3)
+    assert.match(r.salida, /SMTP del servidor lo aceptó/)
+    assert.doesNotMatch(r.error, /NO envió el aviso/)
+    assert.doesNotMatch(`${r.salida}${r.error}`, /Repetí con otra SECCION/)
+  } finally {
+    await base.cerrar()
+  }
+})
+
 test('en local, con el aviso en Mailpit, la salida queda verificada', async () => {
   const base = await levantar({
-    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true } },
-    mensajes: [{ Subject: 'Solicitud de acceso a Rentabilidad', Created: new Date().toISOString(), To: [{ Address: CORREO_PRUEBA }] }],
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+    mensajes: avisoEnMailpit,
   })
   try {
     const r = await correr(entorno(base, { MAILPIT_URL: base.url }))
@@ -183,10 +236,27 @@ test('en local, con el aviso en Mailpit, la salida queda verificada', async () =
   }
 })
 
-test('en local, sin aviso nuevo en Mailpit, no hay verde', async () => {
+test('en local, un aviso en Mailpit que no salió de esta corrida no da verde', async () => {
+  // Reproduce el verde falso: la función no envió nada (`enviado: false`) pero hay un «Solicitud de acceso»
+  // en Mailpit. El `0` tiene que ser prueba de ESTA corrida.
   const base = await levantar({
-    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true } },
-    mensajes: [{ Subject: 'Solicitud de acceso a Rentabilidad', Created: new Date(Date.now() - 600000).toISOString(), To: [{ Address: CORREO_PRUEBA }] }],
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: false, enviado: false } },
+    mensajes: avisoEnMailpit,
+  })
+  try {
+    const r = await correr(entorno(base, { MAILPIT_URL: base.url }))
+    assert.notEqual(r.codigo, 0)
+    assert.equal(r.codigo, 1)
+    assert.doesNotMatch(r.salida, /OK: el correo/)
+  } finally {
+    await base.cerrar()
+  }
+})
+
+test('en local, sin aviso en Mailpit, no hay verde', async () => {
+  const base = await levantar({
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+    mensajes: [],
   })
   try {
     const r = await correr(entorno(base, { MAILPIT_URL: base.url }))

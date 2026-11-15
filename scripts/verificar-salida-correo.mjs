@@ -7,11 +7,11 @@
 // confirma a mano que el mensaje llegó a esa casilla (evidencia en el PR).
 //
 // Códigos de salida (un 0 SÍ significa «verificado por la máquina»):
-//   0 = verificado: el mensaje llegó a Mailpit.
-//   1 = la corrida no produjo un aviso nuevo (falló el flujo, no hay administrador, o el pedido del día
-//       ya estaba notificado y el flujo es idempotente).
+//   0 = verificado: ESTA corrida envió el aviso y el mensaje llegó a Mailpit.
+//   1 = esta corrida NO envió ningún aviso (falló el flujo, no hay administrador, el pedido del día ya
+//       estaba notificado, u otra invocación ganó el reclamo del envío).
 //   2 = uso incorrecto: falta una variable de entorno.
-//   3 = el aviso salió del flujo (el SMTP lo aceptó), pero la ENTREGA no se puede verificar desde el
+//   3 = ESTA corrida envió el aviso y el SMTP lo aceptó, pero la ENTREGA no se puede verificar desde el
 //       servidor: queda pendiente la confirmación manual (captura) y el registro en
 //       `docs/verificacion-salida-correo.md`.
 //
@@ -73,11 +73,27 @@ if (cuerpo?.resultado !== 'solicitud_enviada') {
   process.exit(1)
 }
 
-// Contrato de la respuesta: `{resultado, nuevo}` (pinnado en
-// `supabase/functions/solicitar-acceso/handler.test.ts`). «nuevo» true significa que el pedido del día se
-// creó en esta corrida, así que el aviso salió ahora. Con «nuevo» false el pedido ya existía (el flujo es
-// idempotente por día) y no se puede asegurar que esta corrida enviara un aviso nuevo.
-const avisoNuevo = cuerpo.nuevo === true
+// Contrato de la respuesta: `{resultado, nuevo, enviado}` (pinnado en
+// `supabase/functions/solicitar-acceso/handler.test.ts`).
+//   `nuevo`   → el pedido del día se creó en esta corrida.
+//   `enviado` → ESTA corrida envió el aviso y el SMTP lo aceptó.
+// Con `enviado: false` esta corrida NO mandó nada: el aviso ya había salido hoy o lo está mandando otra
+// invocación. Por eso `enviado` es el que decide: un «Solicitud de acceso» en Mailpit o un `nuevo: true`
+// NO prueban que esta corrida haya enviado nada.
+if (typeof cuerpo.enviado !== 'boolean') {
+  console.error('La respuesta de `solicitar-acceso` no dice si esta corrida envió el aviso (`enviado`): actualizá la Edge Function en el servidor y volvé a correr.')
+  process.exit(1)
+}
+if (!cuerpo.enviado) {
+  if (cuerpo.nuevo) {
+    console.error('Esta corrida NO envió el aviso: otra invocación ganó el reclamo del envío y está avisando.')
+    console.error('Esperá a que termine y volvé a correr.')
+  } else {
+    console.error('Esta corrida NO envió el aviso: el pedido del día ya estaba notificado (idempotencia).')
+    console.error('Repetí con otra SECCION o con otra persona sin acceso para que el pedido sea nuevo.')
+  }
+  process.exit(1)
+}
 
 if (mailpit) {
   // Mailpit puede tardar un instante en indexar el mensaje.
@@ -90,17 +106,12 @@ if (mailpit) {
     }
     await new Promise((resolve) => setTimeout(resolve, 500))
   }
-  console.error('El correo no apareció en Mailpit: esta corrida no produjo un aviso nuevo.')
-  if (!avisoNuevo) {
-    console.error('El pedido del día ya estaba registrado (idempotencia): repetí con otra SECCION o con otra persona sin acceso para que el pedido sea nuevo.')
-  }
+  console.error('El correo no apareció en Mailpit: esta corrida no produjo un aviso en Mailpit.')
   process.exit(1)
 }
 
-if (!avisoNuevo) {
-  console.error('La corrida no confirmó un aviso nuevo: el pedido del día ya estaba registrado (idempotencia), así que la respuesta no deja saber si esta corrida volvió a avisar.')
-  console.error('Repetí con otra SECCION o con otra persona sin acceso para que el pedido sea nuevo.')
-  process.exit(1)
+if (!cuerpo.nuevo) {
+  console.log('El pedido del día ya estaba registrado, pero esta corrida sí envió el aviso (reintento de un envío que había fallado).')
 }
 console.log('El aviso salió del flujo: el SMTP del servidor lo aceptó.')
 console.log(`Destinatario real: los administradores activos de la organización (la casilla de prueba es ${correoPrueba}).`)

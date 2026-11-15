@@ -133,7 +133,10 @@ dependencias inyectadas). La invoca el panel por
    avisar al administrador. Intentá de nuevo.»; la pantalla muestra el error compartido con «Reintentar» y
    el reintento reutiliza el registro del día.
 
-La respuesta `{ resultado: 'solicitud_enviada', nuevo }` es la que consume el panel. La confirmación en
+La respuesta `{ resultado: 'solicitud_enviada', nuevo, enviado }` es la que consume el panel. `nuevo` dice si
+el pedido del día se creó en esa corrida y `enviado` si **esa** corrida envió el aviso y el SMTP lo aceptó
+(`false` si el aviso ya salió hoy o si otra invocación ganó el reclamo del envío: es lo que le permite al
+guion de verificación no afirmar un envío que no ocurrió). La confirmación en
 pantalla es «Solicitud enviada al administrador». La función usa la service-role sólo en el servidor; el
 navegador nunca la recibe.
 
@@ -154,17 +157,21 @@ la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT` (defa
 se limpian de saltos de línea antes de ir a las cabeceras.
 
 **Verificación de salida (FR-012):** `scripts/verificar-salida-correo.mjs`, ejecutable como
-`pnpm correo:verificar-salida`. Es manual y opt-in: **no** corre en `pnpm test` ni en el CI.
+`pnpm correo:verificar-salida`. Es manual y opt-in: **no** corre en `pnpm test` ni en el CI (la **suite**
+que lo prueba sí corre en el CI: `pnpm test:correo:verificar-salida`).
 
 - **Local:** inicia sesión como una persona sin acceso, invoca la función real y consulta la API de Mailpit
   (`MAILPIT_URL`) hasta encontrar el mensaje.
 - **Servidor:** sin `MAILPIT_URL`; el administrador de la organización de prueba debe tener como correo
   `CORREO_PRUEBA` (obligatoria en ese modo) y se confirma a mano que el mensaje llegó a esa casilla.
   Requiere `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD` y, opcionalmente, `SECCION`.
-- **Códigos de salida:** `0` verificado (el mensaje llegó a Mailpit), `1` la corrida no produjo un aviso
-  nuevo (flujo idempotente por día: el pedido ya estaba notificado), `2` falta una variable de entorno y
-  `3` el aviso salió del flujo pero la entrega queda pendiente de confirmación manual. En el servidor el
-  guion **nunca** devuelve `0`: no puede dar un verde falso por una entrega que nadie comprobó.
+- **Códigos de salida:** `0` verificado (esta corrida envió el aviso y el mensaje llegó a Mailpit), `1` esta
+  corrida no envió nada (flujo idempotente por día: el pedido ya estaba notificado; u otra invocación ganó
+  el reclamo del envío), `2` falta una variable de entorno y `3` esta corrida envió el aviso y el SMTP lo
+  aceptó, pero la entrega queda pendiente de confirmación manual. En el servidor el guion **nunca** devuelve
+  `0`: no puede dar un verde falso por una entrega que nadie comprobó.
+- **Qué decide:** el campo `enviado` de la respuesta de `solicitar-acceso` (`{resultado, nuevo, enviado}`):
+  sólo vale como evidencia si la corrida **envió** el aviso. Un `0` exige además el mensaje en Mailpit.
 - La entregabilidad (SPF/DKIM del remitente) es infraestructura; si el relay del servidor no está
   configurado, se documenta el hallazgo y se traza como seguimiento. Hoy esa corrida **no se ejecutó**:
   está registrada (en «pendiente») en [Verificación de salida del correo](../verificacion-salida-correo.md)
