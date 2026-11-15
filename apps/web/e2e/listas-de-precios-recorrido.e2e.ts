@@ -139,8 +139,9 @@ test.describe('Listas de precios · recorrido completo', () => {
 
   test.beforeAll(async () => {
     previas[CLAVE_LISTAS] = await fijarBandera(CLAVE_LISTAS, true)
-    previas[CLAVE_TIENDA] = await fijarBandera(CLAVE_TIENDA, true)
+    // Sin la bandera de listas no hay nada que probar: se corta antes de tocar la de la tienda.
     test.skip(previas[CLAVE_LISTAS] === null, 'La base no tiene la bandera `listas_precios`.')
+    previas[CLAVE_TIENDA] = await fijarBandera(CLAVE_TIENDA, true)
 
     sufijo = randomUUID().slice(0, 8)
     const [organizacion] = await rest<{ id: string }>('organizaciones', { nombre: `E2E listas ${sufijo}` })
@@ -172,10 +173,10 @@ test.describe('Listas de precios · recorrido completo', () => {
   })
 
   // Nota: las banderas son GLOBALES del stack (no por organización): este recorrido las cambia y las restaura al final,
-  // así que no debe correr en paralelo con otro E2E que las lea. La restauración ignora errores en silencio (`.catch`).
+  // así que no debe correr en paralelo con otro E2E que las lea. Si la restauración falla avisa por consola (`console.warn`).
   test.afterAll(async () => {
     for (const clave of [CLAVE_LISTAS, CLAVE_TIENDA]) {
-      if (previas[clave] !== undefined && previas[clave] !== null) await fijarBandera(clave, previas[clave] as boolean).catch(() => undefined)
+      if (previas[clave] !== undefined && previas[clave] !== null) await fijarBandera(clave, previas[clave] as boolean).catch((e) => console.warn(`No se pudo restaurar la bandera ${clave}: revisar el stack (queda con el valor del E2E).`, e))
     }
     for (const p of personas) await borrarUsuario(p.authId)
     if (admin) await borrarUsuario(admin.id)

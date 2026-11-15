@@ -29,14 +29,14 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 
 - **Apagada**: «Guardar lista» y «Asignar» responden `55000`; archivar, restaurar y quitar la lista siguen permitidos; el motor ignora las listas y el precio es idéntico, bit a bit, al de antes (pgTAP de paridad `precio_lista_cliente.test.sql`).
 - **Procedimiento de encendido**, por entorno y en el orden dev → stg → prd, cada uno verificado antes del siguiente:
-  1. Comprobar que la migración `20270348000300` y el bundle del panel y de la tienda están desplegados en ese entorno (no alcanza con que el merge esté en `dokploy`).
+  1. Comprobar que las migraciones `20270348000100` (motor de la bandera) y `20270348000300` (tienda) y el bundle del panel y de la tienda están desplegados en ese entorno (no alcanza con que el merge esté en `dokploy`).
   2. **Chequeo previo y entorno**: confirmar a qué entorno se está conectado y el estado actual con `select clave, activa from public.banderas_plataforma where clave = 'listas_precios';`. La bandera es **GLOBAL**: al encenderla rige para **todas** las organizaciones del entorno, no solo una.
   3. Avisar al equipo de ventas o encender fuera del horario de mostrador.
   4. `update public.banderas_plataforma set activa = true where clave = 'listas_precios';` (por SQL, el equipo técnico; rige al instante, sin redesplegar).
   5. Verificar el recorrido: crear una lista, asignarla a un cliente, venderle en el mostrador (la línea sale al precio de la lista y muestra «Lista: …»), confirmar, emitir una nota de crédito (devuelve al precio cobrado) y presupuestar desde la tienda con la cuenta web de ese cliente.
 - **Nota de activación**: los borradores guardados antes de encender reciben un `40001` (hint `precios_cambiaron`, `detail = 'lista_precios'`) en su primera confirmación **solo si el cliente tiene una lista asignada**; volver a guardar las líneas lo resuelve. Lo mismo al apagarla con borradores que ya tenían lista.
 - **Reversión inmediata, sin migrar**: la misma sentencia con `activa = false`. Lo ya vendido conserva su snapshot.
-- **Ojo con el E2E**: el recorrido `listas-de-precios-recorrido.e2e.ts` cambia la bandera global del stack efímero y la restaura al final (la limpieza ignora errores en silencio); no correrlo en paralelo con otro E2E que lea `listas_precios` ni contra un entorno compartido.
+- **Ojo con el E2E**: el recorrido `listas-de-precios-recorrido.e2e.ts` cambia la bandera global del stack efímero y la restaura al final (si la restauración falla avisa por consola); no correrlo en paralelo con otro E2E que lea `listas_precios` ni contra un entorno compartido.
 - Antes de encender en prd conviene decidir el seguimiento MSF-969 (lista de pedido de la tienda).
 
 ## Contratos que quedaron

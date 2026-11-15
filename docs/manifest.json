@@ -860,9 +860,9 @@
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "bd469a584c41d1f64ed6c2709c20842c69b87153deb2014c0c3e5763459fbc87",
-      "sourceHash": "4de37e25c64ed989524bd7a8f8f860ddd8f4cf2da706230af939a0035d9f93c8",
-      "sourceAt": "bce5eef7",
+      "pageHash": "67dbaee46fc3d4af08636a48054c75b28b7d174e8c64501f6611f7e01c3bfb8b",
+      "sourceHash": "4d69b42fcb51ed6ebaa1560cb2455c395f4fe74268a4d033baef2108b13c43bd",
+      "sourceAt": "82a7096b",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
         "supabase/migrations",
@@ -870,7 +870,7 @@
         "apps/web/e2e/listas-de-precios-recorrido.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "bce5eef7"
+      "commit": "82a7096b"
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
