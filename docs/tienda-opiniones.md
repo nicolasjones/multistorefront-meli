@@ -18,7 +18,7 @@ Guía de referencia de las **fases 1 («Base») y 2 («Moderación»)** de la sp
 | Objeto | Esquema | Detalle |
 |---|---|---|
 | `dominio.opiniones_producto` | `dominio` | Opinión de una cuenta web sobre un producto de su tienda: puntuación 1–5, comentario, estado `pendiente`/`aceptada`/`rechazada`, motivo (≤ 200), quién y cuándo moderó, `actualizada_en` para el bloqueo optimista |
-| `private.validar_texto_opinion`, `private.nombre_publico_cliente` | `private` | Validación del texto (largo, control, marcas de dirección, enlaces) y nombre de pila; sin `execute` para la API |
+| `private.validar_texto_opinion`, `private.texto_opinion_no_permitido`, `private.nombre_publico_cliente` | `private` | Validación del texto (largo, control, marcas de dirección, enlaces) y nombre de pila; sin `execute` para la API |
 | `public.listar_opiniones`, `public.moderar_opinion` | `public` | RPC del panel, solo Administrador (`42501` para otro rol) |
 | Bandera `tienda_opiniones` | `public.banderas_plataforma` | Apagada por defecto en todo entorno; ninguna migración la enciende |
 | Tipos `opinion.aceptada` / `opinion.rechazada` | `public.tipos_evento_actividad` | **No sensibles** (no llevan valor anterior/nuevo: son decisiones de moderación); el detalle lleva producto y puntuación, nunca el texto ni el motivo |
@@ -33,13 +33,22 @@ Guía de referencia de las **fases 1 («Base») y 2 («Moderación»)** de la sp
 ## RPC del panel
 
 - `public.listar_opiniones(p_estado, p_empresa_id, p_desde_creada, p_desde_id, p_limite)`: filas por tandas (cursor `(creada_en, id)`, 1–50) y **contadores** Pendientes/Aceptadas/Rechazadas del ámbito de la tienda (no del filtro de estado). Muestra el nombre completo del cliente.
-- `public.moderar_opinion(p_id, p_decision, p_motivo, p_actualizada_en_esperada)`: `aceptar` o `rechazar`; idempotente (repetir la decisión vigente responde `ok` sin duplicar el evento); bloqueo optimista (`40001`, mensaje `conflicto`); con la bandera apagada, `aceptar` responde `55000` y `rechazar` sigue permitido.
+- `public.moderar_opinion(p_id, p_decision, p_motivo, p_actualizada_en_esperada)`: `aceptar` o `rechazar` (una decisión nula o desconocida responde `22023`); idempotente (repetir la decisión vigente responde `ok` sin duplicar el evento); bloqueo optimista (`40001`, mensaje `conflicto`); con la bandera apagada, `aceptar` responde `55000` y `rechazar` sigue permitido.
+  - **Repetir «rechazar» con otro motivo** responde `ok` pero **no actualiza** `motivo_rechazo`: es idempotente a propósito (se conserva el primero).
+  - **Con la bandera apagada, aceptar una opinión que ya está aceptada también da `55000`** (no un `ok` idempotente): se mantiene lo definido en la spec (D11); la comprobación de la bandera va antes de la de idempotencia.
+  - El **motivo** (hasta 200 caracteres tras recortar) se valida con las mismas reglas que el comentario: sin caracteres de control (saltos de línea), marcas de dirección o de ancho cero, ni enlaces (`22023` con mensaje «caracteres no permitidos», distinto del de largo). El panel normaliza saltos y espacios múltiples a un espacio antes de enviar.
+
+`listar_opiniones` pide `límite + 1` filas ya ordenadas (sin ventana sobre toda la organización); el índice `opiniones_producto_orden_idx (organizacion_id, creada_en desc, id desc)` sirve el orden global.
 
 Ambas llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
 ## Pantalla
 
 `/opiniones` (carga diferida), entrada **Canales → Opiniones** solo para el Administrador. Filtro de tienda con `FiltroEmpresa`, contadores, filtros de estado, carga infinita y diálogo de motivo. Al cambiar la empresa activa se recargan lista y contadores y el diálogo de rechazo abierto se cierra con aviso.
+
+## Limitación del filtro de enlaces
+
+`private.texto_opinion_no_permitido` es una **heurística**: no detecta `t.me/…`, `wa.me/…`, TLD fuera de su lista corta (p. ej. `.ar` solo) ni ofuscaciones, y no se amplía a propósito para evitar falsos positivos con frases normales. La moderación previa es la defensa real. La fase 3 hereda este límite.
 
 ## Reversión
 

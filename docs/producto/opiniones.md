@@ -29,13 +29,13 @@ En el menú de la izquierda: **Canales → Opiniones**.
 - Los filtros **Pendientes** (por defecto), **Aceptadas**, **Rechazadas** y **Todas**.
 - La lista, con la tienda (cuando mirás todas), el nombre completo del cliente, la fecha, el estado, «N sobre 5», el texto y «Sobre: producto». Carga por tandas con «Cargar más».
 - **Aceptar**: la opinión pasa a «Aceptada». El botón no aparece en las opiniones que ya están aceptadas.
-- **Rechazar**: abre un diálogo con un **motivo opcional** (hasta 200 caracteres). Sirve también para despublicar una opinión ya aceptada.
+- **Rechazar**: abre un diálogo con un **motivo opcional** (hasta 200 caracteres, en una sola línea y sin enlaces). Sirve también para despublicar una opinión ya aceptada. Si rechazás de nuevo una opinión ya rechazada, se conserva el primer motivo.
 
 Si otra persona decidió la misma opinión (o el cliente la editó) mientras la mirabas, ves un aviso, la lista se recarga y tu decisión no pisa la anterior.
 
 ## Si las opiniones están desactivadas
 
-Con la bandera apagada la pantalla avisa que las opiniones están desactivadas y **solo permite rechazar**. Aceptar queda deshabilitado hasta que el equipo técnico active la función.
+Con la bandera apagada la pantalla avisa que las opiniones están desactivadas y **solo permite rechazar**. Aceptar queda deshabilitado hasta que el equipo técnico active la función (tampoco se puede volver a aceptar una opinión ya aceptada).
 
 ## Actividad
 

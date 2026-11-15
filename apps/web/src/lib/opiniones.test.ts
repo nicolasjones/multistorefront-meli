@@ -10,7 +10,7 @@ vi.mock('./supabase', () => {
 
 import {
   CONTADORES_VACIOS, esConflictoOpinion, esSinPermisoOpiniones, leerBanderaOpiniones, listarOpiniones, mensajeDeErrorOpiniones,
-  moderarOpinion, MENSAJE_CONFLICTO_OPINION, textoPuntuacion,
+  largoMotivo, moderarOpinion, MENSAJE_CONFLICTO_OPINION, normalizarMotivo, textoPuntuacion,
 } from './opiniones'
 
 describe('cliente de datos de opiniones', () => {
@@ -62,6 +62,19 @@ describe('cliente de datos de opiniones', () => {
     expect(await leerBanderaOpiniones()).toBe(false)
     mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
     expect(await leerBanderaOpiniones()).toBe(false)
+    // Un rechazo real de la consulta (red caída) tampoco rompe: cuenta como apagada.
+    mocks.maybeSingle.mockRejectedValueOnce(new Error('red caída'))
+    expect(await leerBanderaOpiniones()).toBe(false)
+  })
+
+  it('normaliza el motivo: saltos de línea y rachas de espacios pasan a un espacio y se recorta', () => {
+    expect(normalizarMotivo('  Primera línea\n\nsegunda\t línea  ')).toBe('Primera línea segunda línea')
+    expect(normalizarMotivo('\n \n')).toBe('')
+  })
+
+  it('cuenta el motivo en caracteres (puntos de código), como el servidor, y no en UTF-16', () => {
+    expect(largoMotivo('😀'.repeat(150))).toBe(150)
+    expect(largoMotivo('  hola\nmundo  ')).toBe(10)
   })
 
   it('traduce los errores de la base a mensajes claros', () => {
@@ -69,7 +82,11 @@ describe('cliente de datos de opiniones', () => {
     expect(esSinPermisoOpiniones({ code: '42501' })).toBe(true)
     expect(mensajeDeErrorOpiniones({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO_OPINION)
     expect(mensajeDeErrorOpiniones({ code: '55000' }, 'x')).toMatch(/desactivadas/)
-    expect(mensajeDeErrorOpiniones({ code: '22023' }, 'x')).toMatch(/200/)
+    expect(mensajeDeErrorOpiniones({ code: '22023', message: 'El motivo admite hasta 200 caracteres' }, 'x')).toMatch(/hasta 200 caracteres/)
+    // Un motivo con caracteres no permitidos no se presenta como un problema de largo.
+    const noPermitidos = mensajeDeErrorOpiniones({ code: '22023', message: 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)' }, 'x')
+    expect(noPermitidos).toMatch(/caracteres no permitidos/)
+    expect(noPermitidos).not.toMatch(/200/)
     expect(mensajeDeErrorOpiniones({}, 'por defecto')).toBe('por defecto')
     expect(textoPuntuacion(4)).toBe('4 sobre 5')
   })

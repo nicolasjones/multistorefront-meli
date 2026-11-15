@@ -9,6 +9,16 @@ export type FiltroEstadoOpinion = EstadoOpinion | 'todas'
 export const MAX_MOTIVO_RECHAZO = 200
 export const TAMANO_TANDA_OPINIONES = 20
 
+// El servidor rechaza saltos de línea y mide el motivo ya recortado en caracteres de Postgres (puntos de código, no UTF-16).
+// El cliente lo deja listo antes de enviar: cualquier racha de espacios o saltos pasa a un solo espacio y se recorta.
+export function normalizarMotivo(texto: string): string {
+  return texto.replace(/\s+/g, ' ').trim()
+}
+
+export function largoMotivo(texto: string): number {
+  return [...normalizarMotivo(texto)].length
+}
+
 export type OpinionPanel = {
   id: string
   empresa_id: string
@@ -82,13 +92,17 @@ export async function moderarOpinion(params: {
 // Bandera `tienda_opiniones` (`public.banderas_plataforma`, lectura para usuarios autenticados). Falla cerrada: si no se
 // puede leer, se trata como apagada y la pantalla solo permite rechazar.
 export async function leerBanderaOpiniones(): Promise<boolean> {
-  const { data, error } = await supabaseClient
-    .from('banderas_plataforma')
-    .select('activa')
-    .eq('clave', 'tienda_opiniones')
-    .maybeSingle()
-  if (error) return false
-  return (data as { activa?: boolean } | null)?.activa === true
+  try {
+    const { data, error } = await supabaseClient
+      .from('banderas_plataforma')
+      .select('activa')
+      .eq('clave', 'tienda_opiniones')
+      .maybeSingle()
+    if (error) return false
+    return (data as { activa?: boolean } | null)?.activa === true
+  } catch {
+    return false
+  }
 }
 
 export const MENSAJE_CONFLICTO_OPINION = 'La opinión cambió mientras la mirabas. Recargamos la lista: revisala y volvé a decidir.'
@@ -108,7 +122,12 @@ export function mensajeDeErrorOpiniones(error: unknown, porDefecto: string): str
   if (code === '40001') return MENSAJE_CONFLICTO_OPINION
   if (code === '42501') return MENSAJE_SIN_PERMISO_OPINIONES
   if (code === '55000') return 'Las opiniones están desactivadas en este entorno: por ahora solo se pueden rechazar.'
-  if (code === '22023') return 'El motivo no es válido: admite hasta 200 caracteres.'
+  if (code === '22023') {
+    const mensaje = (error as { message?: string })?.message ?? ''
+    return /no permitidos/i.test(mensaje)
+      ? 'El motivo tiene caracteres no permitidos: sin enlaces, saltos de línea ni marcas ocultas.'
+      : `El motivo no es válido: admite hasta ${MAX_MOTIVO_RECHAZO} caracteres.`
+  }
   return porDefecto
 }
 

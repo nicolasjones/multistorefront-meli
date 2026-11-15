@@ -60,7 +60,7 @@ describe('pantalla Opiniones', () => {
 
   it('muestra el aviso, los contadores y la lista pendiente por defecto', async () => {
     abrir()
-    expect(await screen.findByText('Llegó rapidísimo y quedó perfecta.'.replace('perfecta', 'perfecto'))).toBeTruthy()
+    expect(await screen.findByText('Llegó rapidísimo y quedó perfecto.')).toBeTruthy()
     expect(screen.getByText(/Las opiniones nuevas quedan pendientes hasta que las aceptes o rechazes/)).toBeTruthy()
     const resumen = screen.getByRole('group', { name: 'Resumen de opiniones' })
     expect(within(resumen).getByText('3')).toBeTruthy()
@@ -95,7 +95,7 @@ describe('pantalla Opiniones', () => {
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ }))
     await waitFor(() => expect(mocks.moderarOpinion).toHaveBeenCalledWith({ id: 'o-1', decision: 'aceptar', motivo: undefined, actualizadaEn: OP1.actualizada_en }))
-    expect(await screen.findByText('Opinión aceptada: ya se muestra en la tienda')).toBeTruthy()
+    expect(await screen.findByText('Opinión aceptada')).toBeTruthy()
     await waitFor(() => expect(mocks.listarOpiniones).toHaveBeenCalledTimes(2))
   })
 
@@ -135,13 +135,6 @@ describe('pantalla Opiniones', () => {
     const aceptar = await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ })
     expect((aceptar as HTMLButtonElement).disabled).toBe(true)
     expect((screen.getByRole('button', { name: /Rechazar la opinión de Valeria/ }) as HTMLButtonElement).disabled).toBe(false)
-  })
-
-  it('si no se puede leer la bandera, falla cerrado (no deja aceptar)', async () => {
-    mocks.leerBanderaOpiniones.mockResolvedValue(false)
-    abrir()
-    const aceptar = await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ })
-    expect((aceptar as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('carga infinita: «Cargar más» pide la tanda siguiente con el cursor y no repite filas', async () => {
@@ -184,10 +177,15 @@ describe('pantalla Opiniones', () => {
   })
 
   it('cambiar la empresa activa con el diálogo abierto recarga lista y contadores, reinicia la tanda y cierra el diálogo con aviso', async () => {
-    mocks.listarOpiniones.mockResolvedValue(tanda([OP1], { creada: '2027-03-10T10:00:00Z', id: 'o-1' }))
+    const CONT_A = { pendientes: 7, aceptadas: 2, rechazadas: 1 }
+    const CONT_B = { pendientes: 4, aceptadas: 9, rechazadas: 6 }
+    mocks.listarOpiniones.mockImplementation(async ({ empresaId }: { empresaId: string | null }) =>
+      empresaId === 'e-2' ? tanda([OP2], null, CONT_B) : tanda([OP1], { creada: '2027-03-10T10:00:00Z', id: 'o-1' }, CONT_A))
     const vista = abrir()
     fireEvent.click(await screen.findByRole('button', { name: /Rechazar la opinión de Valeria/ }))
     await screen.findByRole('dialog', { name: 'Rechazar opinión' })
+    const resumenAntes = screen.getByRole('group', { name: 'Resumen de opiniones', hidden: true })
+    expect(within(resumenAntes).getByText('7')).toBeTruthy()
     const llamadas = mocks.listarOpiniones.mock.calls.length
     mocks.useFiltroPorEmpresaActiva.mockReturnValue({ ...FILTROS, valor: 'e-2', empresaActivaId: 'e-2' })
     await act(async () => { vista.rerender(<MemoryRouter><OpinionesList /></MemoryRouter>) })
@@ -195,9 +193,89 @@ describe('pantalla Opiniones', () => {
     const ultima = mocks.listarOpiniones.mock.calls.at(-1)![0]
     expect(ultima).toMatchObject({ empresaId: 'e-2' })
     expect(ultima.desde).toBeUndefined()
+    // Los contadores y la lista mostrados son los de la tienda nueva, no los de la anterior.
+    const resumen = await screen.findByRole('group', { name: 'Resumen de opiniones', hidden: true })
+    await waitFor(() => expect(within(resumen).getByText('9')).toBeTruthy())
+    expect(within(resumen).getByText('4')).toBeTruthy()
+    expect(within(resumen).getByText('6')).toBeTruthy()
+    expect(within(resumen).queryByText('7')).toBeNull()
+    expect(await screen.findByText('Bruno Díaz')).toBeTruthy()
+    expect(screen.queryByText('Valeria Sánchez')).toBeNull()
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Rechazar opinión' })).toBeNull())
     expect(await screen.findByText(/Cambiaste de tienda: cerramos el diálogo sin rechazar la opinión/)).toBeTruthy()
     expect(mocks.moderarOpinion).not.toHaveBeenCalled()
+  })
+
+  it('el motivo se normaliza antes de enviar: saltos y espacios múltiples pasan a un espacio', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Rechazar la opinión de Valeria/ }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Rechazar opinión' })
+    expect(within(dialogo).getByLabelText('Motivo (opcional)').tagName).toBe('INPUT')
+    fireEvent.change(within(dialogo).getByLabelText('Motivo (opcional)'), { target: { value: '  Contenido   ajeno \t al    producto  ' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Rechazar' }))
+    await waitFor(() => expect(mocks.moderarOpinion).toHaveBeenCalledWith(expect.objectContaining({ decision: 'rechazar', motivo: 'Contenido ajeno al producto' })))
+  })
+
+  it('el contador del motivo cuenta caracteres como el servidor (un emoji es uno) y el recorte', async () => {
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Rechazar la opinión de Valeria/ }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Rechazar opinión' })
+    fireEvent.change(within(dialogo).getByLabelText('Motivo (opcional)'), { target: { value: `  ${'😀'.repeat(150)}  ` } })
+    expect(within(dialogo).getByText('150/200')).toBeTruthy()
+    expect((within(dialogo).getByRole('button', { name: 'Rechazar' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('al aceptar una opinión que ya no existe avisa y recarga', async () => {
+    mocks.moderarOpinion.mockResolvedValue({ estado: 'no_encontrada' })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ }))
+    expect(await screen.findByText('La opinión ya no existe. Recargamos la lista.')).toBeTruthy()
+    expect(screen.queryByText('Opinión aceptada')).toBeNull()
+    await waitFor(() => expect(mocks.listarOpiniones).toHaveBeenCalledTimes(2))
+  })
+
+  it('si el servidor responde 55000 al aceptar, avisa que las opiniones están desactivadas', async () => {
+    mocks.moderarOpinion.mockRejectedValue({ code: '55000' })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ }))
+    expect(await screen.findByText('Las opiniones están desactivadas en este entorno: por ahora solo se pueden rechazar.')).toBeTruthy()
+    expect(screen.queryByText('Opinión aceptada')).toBeNull()
+  })
+
+  it('un motivo con caracteres no permitidos (22023) no se presenta como un problema de largo', async () => {
+    mocks.moderarOpinion.mockRejectedValue({ code: '22023', message: 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)' })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Rechazar la opinión de Valeria/ }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Rechazar opinión' })
+    fireEvent.change(within(dialogo).getByLabelText('Motivo (opcional)'), { target: { value: 'Mirá http://spam.example' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Rechazar' }))
+    expect(await screen.findByText(/caracteres no permitidos/)).toBeTruthy()
+    expect(screen.queryByText(/hasta 200/)).toBeNull()
+  })
+
+  it('si falla «Cargar más» muestra el error sin perder lo ya cargado y deja reintentar', async () => {
+    mocks.listarOpiniones
+      .mockResolvedValueOnce(tanda([OP1], { creada: '2027-03-10T10:00:00Z', id: 'o-1' }))
+      .mockRejectedValueOnce({ code: 'XX000' })
+      .mockResolvedValueOnce(tanda([OP3]))
+    abrir()
+    await screen.findByText('Valeria Sánchez')
+    fireEvent.click(await screen.findByRole('button', { name: /Cargar más/ }))
+    const reintentar = await screen.findByRole('button', { name: 'Reintentar' })
+    expect(screen.getByText('Valeria Sánchez')).toBeTruthy()
+    fireEvent.click(reintentar)
+    expect(await screen.findByText('Pablo Fernández')).toBeTruthy()
+    expect(mocks.listarOpiniones.mock.calls[2][0].desde).toEqual({ creada: '2027-03-10T10:00:00Z', id: 'o-1' })
+  })
+
+  it('cambiar de tienda limpia los avisos de la tienda anterior', async () => {
+    mocks.moderarOpinion.mockResolvedValueOnce({ estado: 'ok' })
+    const vista = abrir()
+    fireEvent.click(await screen.findByRole('button', { name: /Aceptar la opinión de Valeria/ }))
+    expect(await screen.findByText('Opinión aceptada')).toBeTruthy()
+    mocks.useFiltroPorEmpresaActiva.mockReturnValue({ ...FILTROS, valor: 'e-2', empresaActivaId: 'e-2' })
+    await act(async () => { vista.rerender(<MemoryRouter><OpinionesList /></MemoryRouter>) })
+    await waitFor(() => expect(screen.queryByText('Opinión aceptada')).toBeNull())
   })
 
   it('no tiene violaciones de accesibilidad', async () => {

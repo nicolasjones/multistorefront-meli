@@ -11,9 +11,11 @@ import {
   MAX_MOTIVO_RECHAZO,
   type OpinionPanel,
   esConflictoOpinion,
+  largoMotivo,
   leerBanderaOpiniones,
   mensajeDeErrorOpiniones,
   moderarOpinion,
+  normalizarMotivo,
   textoPuntuacion,
 } from '../../lib/opiniones'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -70,10 +72,12 @@ export function OpinionesList() {
   useEffect(() => {
     if (empresaAnterior.current === empresaId) return
     empresaAnterior.current = empresaId
+    // Los avisos de la tienda anterior no se arrastran a la nueva.
+    setAviso(null)
+    setAvisoError(null)
     if (rechazando !== null) {
       setRechazando(null)
       setMotivo('')
-      setAvisoError(null)
       setAviso(AVISO_CAMBIO_EMPRESA)
     }
   }, [empresaId, rechazando])
@@ -90,7 +94,7 @@ export function OpinionesList() {
       if (resultado.estado === 'no_encontrada') {
         setAvisoError('La opinión ya no existe. Recargamos la lista.')
       } else {
-        setAviso(decision === 'aceptar' ? 'Opinión aceptada: ya se muestra en la tienda' : 'Opinión rechazada')
+        setAviso(decision === 'aceptar' ? 'Opinión aceptada' : 'Opinión rechazada')
       }
       setRechazando(null)
       setMotivo('')
@@ -109,7 +113,8 @@ export function OpinionesList() {
 
   const hayFiltros = estado !== 'pendiente' || empresaId !== null
   const { contadores } = listado
-  const motivoLargo = motivo.length > MAX_MOTIVO_RECHAZO
+  const largoActual = largoMotivo(motivo)
+  const motivoLargo = largoActual > MAX_MOTIVO_RECHAZO
 
   return (
     <Box>
@@ -242,10 +247,8 @@ export function OpinionesList() {
             value={motivo}
             onChange={(evento) => setMotivo(evento.target.value)}
             fullWidth
-            multiline
-            minRows={2}
             error={motivoLargo}
-            helperText={motivoLargo ? `Admite hasta ${MAX_MOTIVO_RECHAZO} caracteres.` : `${motivo.length}/${MAX_MOTIVO_RECHAZO}`}
+            helperText={motivoLargo ? `Admite hasta ${MAX_MOTIVO_RECHAZO} caracteres.` : `${largoActual}/${MAX_MOTIVO_RECHAZO}`}
           />
         </DialogContent>
         <DialogActions>
@@ -254,7 +257,7 @@ export function OpinionesList() {
             variant="contained"
             color="error"
             disabled={ocupada !== null || motivoLargo}
-            onClick={() => { if (rechazando) void decidir(rechazando, 'rechazar', motivo.trim() === '' ? null : motivo.trim()) }}
+            onClick={() => { if (rechazando) void decidir(rechazando, 'rechazar', normalizarMotivo(motivo) === '' ? null : normalizarMotivo(motivo)) }}
           >
             Rechazar
           </Button>

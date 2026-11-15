@@ -297,7 +297,7 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 
 | Ítem | Dueño | Nota |
 |---|---|---|
-| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada: ya se muestra en la tienda» |
+| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada». **Desvío del prototipo** (decidido en la revisión): el prototipo dice «…: ya se muestra en la tienda», pero en las fases 1 y 2 nada se muestra en la tienda pública; el sufijo vuelve cuando exista la fase 4 |
 | Botón **Rechazar** (visible salvo si ya está rechazada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión rechazada». **Decisión D5**: abre un diálogo corto con «Motivo (opcional)», «Rechazar» y «Cancelar»; el prototipo no lo dibuja (UI mínima declarada) |
 | Aviso «Las opiniones nuevas quedan pendientes…» | RF-OPI-15 | Texto literal del prototipo |
 | Contadores Pendientes / Aceptadas / Rechazadas | RF-OPI-13, RF-OPI-15, CA-OPI-11 | Calculados en servidor para el mismo ámbito del filtro de tienda |
@@ -339,3 +339,7 @@ Todas las migraciones son aditivas y se deshacen con una migración posterior, *
 - Moderación **automática** por IA o listas de palabras (más allá del rechazo de enlaces).
 - Importar opiniones de Mercado Libre.
 - Opiniones en **Mercado Libre** u otros canales: solo la tienda propia.
+
+### Limitaciones conocidas del filtro de enlaces (revisión de las fases 1 y 2)
+
+`private.texto_opinion_no_permitido` (que usan `validar_texto_opinion` y el motivo de rechazo) es una **heurística acotada**, no una garantía: no detecta acortadores o enlaces sin esquema como `t.me/…` o `wa.me/…`, dominios con TLD fuera de su lista corta (por ejemplo nacionales como `.ar` solos) ni ofuscaciones. Se mantiene corta a propósito para no rechazar frases normales («Excelente producto. Top calidad»): el dominio exige un carácter alfanumérico pegado al punto y el TLD pegado después. La moderación previa (D5) es la defensa real. La fase 3 hereda esta función y su límite.
