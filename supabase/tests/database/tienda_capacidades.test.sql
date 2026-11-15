@@ -104,6 +104,7 @@ select is(
     'publico.catalogo_pagina_por_dominio(text,uuid,boolean,numeric,text,integer)',
     'publico.catalogo_visible_por_dominio(text)',
     'publico.categorias_por_dominio(text)',
+    'publico.confirmar_newsletter(text,text)',
     'publico.contacto_por_dominio(text)',
     'publico.contenido_por_dominio(text)',
     'publico.destacados_por_dominio(text)',
@@ -114,6 +115,7 @@ select is(
     'publico.imagen_publica(text)',
     'publico.legal_por_dominio(text)',
     'publico.lista_pedido_por_dominio(text,jsonb)',
+    'publico.newsletter_por_dominio(text)',
     'publico.pagina_por_dominio(text,text)',
     'publico.paginas_por_dominio(text)',
     'publico.producto_por_dominio(text,uuid)',
@@ -124,6 +126,7 @@ select is(
     'publico.seo_tienda_por_dominio(text)',
     'publico.sitemap_por_dominio(text)',
     'publico.sugerencias_busqueda_por_dominio(text,text)',
+    'publico.suscribirse_newsletter(text,text,boolean,uuid,text)',
     'publico.tienda_por_dominio(text)'
   ]) f),
   'la lista de funciones de publico ejecutables por anon es exactamente la esperada');
