@@ -1,4 +1,4 @@
--- F-GAS-01 (MSF-469, RF-GAS-17): `dominio.gastos` (20270343000000) tiene `organizacion_id`; el pgTAP de completitud de `exportacion_total.test.sql`
+-- F-GAS-01 (MSF-469, RF-GAS-17): `dominio.gastos` (20270347000000) tiene `organizacion_id`; el pgTAP de completitud de `exportacion_total.test.sql`
 -- exige que esté en la lista permitida o en las exclusiones. Es dato de negocio de la organización: SE EXPORTA.
 -- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270342000300`, que ya incluye
 -- órdenes de compra, listas de precios, opiniones y newsletter con su filtro de `confirmacion_hash`) copiándola COMPLETA y sumando solo la fila

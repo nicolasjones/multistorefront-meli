@@ -178,7 +178,17 @@ export function esDocumentoRepetido(error: unknown): boolean {
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
+  // Un guardado a medias lleva su propio texto (ya en castellano y sin detalles de la base).
+  if (error instanceof ErrorGuardadoParcial) return error.message
   return porDefecto
+}
+
+// El guardado falló y la lista de precios del cliente no quedó como estaba: la persona tiene que revisarla.
+export class ErrorGuardadoParcial extends Error {
+  constructor(mensaje: string) {
+    super(mensaje)
+    this.name = 'ErrorGuardadoParcial'
+  }
 }
 
 // Fusión de clientes duplicados (F-CLI-18). Las RPC son solo del Administrador (la base lo impone) y operan

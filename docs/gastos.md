@@ -14,10 +14,10 @@ Referencia técnica de F-GAS-01 «Registrar gastos» y F-GAS-02 «Consultar gast
 
 ## Modelo
 
-- Tabla `dominio.gastos` (migración `20270343000000_gastos.sql`): una fila por gasto de **una** empresa, con fecha (define el mes de imputación), concepto (catálogo cerrado de 7: Alquiler, Servicios, Sueldos, Fletes, Insumos, Impuestos, Otros), tipo de costo (`fijo` o `variable`), detalle (hasta 200), importe en la moneda original, moneda (`ARS` o `USD`), cotización usada e importe en pesos **congelados al guardar**, marca «recurrente» (informativa), anulación (`anulado_en`, `anulado_por`, `motivo_anulacion`) y `updated_at` como bloqueo optimista.
+- Tabla `dominio.gastos` (migración `20270347000000_gastos.sql`): una fila por gasto de **una** empresa, con fecha (define el mes de imputación), concepto (catálogo cerrado de 7: Alquiler, Servicios, Sueldos, Fletes, Insumos, Impuestos, Otros), tipo de costo (`fijo` o `variable`), detalle (hasta 200), importe en la moneda original, moneda (`ARS` o `USD`), cotización usada e importe en pesos **congelados al guardar**, marca «recurrente» (informativa), anulación (`anulado_en`, `anulado_por`, `motivo_anulacion`) y `updated_at` como bloqueo optimista.
 - Un `check` liga moneda, cotización e importe en pesos; otro exige el motivo si y solo si el gasto está anulado.
 - Seguridad: RLS por organización, empresa accesible (`private.empresas_accesibles()`) y sección `rentabilidad` (lectura o edición). `authenticated` solo tiene `select`; no hay política ni privilegio de `insert`, `update` ni `delete` para los roles de la aplicación: **no existe borrado físico**, lo cargado por error se anula con motivo. `anon` no tiene privilegios. `service_role` opera la tabla como el resto de `dominio`.
-- La tabla entra a la exportación total de la organización (`20270343000200_gastos_exportacion_total.sql`).
+- La tabla entra a la exportación total de la organización (`20270347000200_gastos_exportacion_total.sql`).
 
 ## RPC (`public`, `security definer`, `search_path = ''`)
 

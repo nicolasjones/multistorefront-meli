@@ -14,6 +14,8 @@ export function ResumenSemanalOrganizacion() {
   const [carga, setCarga] = useState<Carga>({ tipo: 'cargando' })
   const [guardando, setGuardando] = useState(false)
   const [errorCambio, setErrorCambio] = useState(false)
+  // El cambio se guardó pero el refresco posterior falló: no es «no se guardó».
+  const [errorRefresco, setErrorRefresco] = useState(false)
 
   // `silencioso`: refresco tras un cambio. No pasa por «cargando» (eso desmontaría el interruptor y le sacaría el foco al
   // teclado): se actualiza el estado en el lugar y, si el refresco falla, se conserva lo que ya se veía.
@@ -24,13 +26,14 @@ export function ResumenSemanalOrganizacion() {
       const fila = Array.isArray(data) ? (data[0] as EstadoResumen | undefined) : undefined
       if (error || !fila) {
         if (!silencioso) setCarga({ tipo: 'error' })
-        else setErrorCambio(true)
+        else setErrorRefresco(true)
         return
       }
+      setErrorRefresco(false)
       setCarga({ tipo: 'listo', estado: fila })
     } catch {
       if (!silencioso) setCarga({ tipo: 'error' })
-      else setErrorCambio(true)
+      else setErrorRefresco(true)
     }
   }, [])
 
@@ -42,12 +45,15 @@ export function ResumenSemanalOrganizacion() {
     if (guardando) return
     setGuardando(true)
     setErrorCambio(false)
+    setErrorRefresco(false)
     try {
       const { error } = await supabaseClient.rpc('configurar_resumen_semanal', { p_activo: activo })
       if (error) {
         setErrorCambio(true)
         return
       }
+      // Optimista: el interruptor refleja ya lo guardado; el refresco trae el próximo envío y los destinatarios.
+      setCarga((actual) => (actual.tipo === 'listo' ? { tipo: 'listo', estado: { ...actual.estado, activo } } : actual))
       await cargar(true)
     } catch {
       setErrorCambio(true)
@@ -86,6 +92,7 @@ export function ResumenSemanalOrganizacion() {
               : 'No se envía ningún resumen hasta que lo reactives.'}
           </Typography>
           <Typography variant="body2" color="text.secondary">{textoUltimoResumen(carga.estado)}</Typography>
+          {errorRefresco ? <EstadoError titulo="Se guardó, pero no pudimos actualizar el estado." descripcion="El cambio ya está aplicado; los datos de abajo pueden estar desactualizados." reintentar={() => void cargar(true)} /> : null}
           {errorCambio ? <EstadoError titulo="No se guardó el cambio." descripcion="Probá de nuevo." /> : null}
         </Stack>
       )}

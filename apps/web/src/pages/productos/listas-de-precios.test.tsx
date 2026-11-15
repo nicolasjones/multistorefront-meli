@@ -160,10 +160,10 @@ describe('ListasPreciosList (F-PRE-14, RF-PRE-14-5)', () => {
   })
 
   it('no se archiva una lista con clientes: muestra el mensaje de la base', async () => {
-    mocks.archivarLista.mockRejectedValue({ code: '23503', message: 'No se puede archivar: 3 cliente(s) usan esta lista.' })
+    mocks.archivarLista.mockRejectedValue({ code: '23503', message: 'No se puede archivar: 3 clientes usan esta lista.' })
     abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Archivar la lista Lista 2' }))
-    expect(await screen.findByText('No se puede archivar: 3 cliente(s) usan esta lista.')).toBeInTheDocument()
+    expect(await screen.findByText('No se puede archivar: 3 clientes usan esta lista.')).toBeInTheDocument()
   })
 
   it('solo el administrador ve «Nueva lista», «Editar» y «Archivar»', () => {
