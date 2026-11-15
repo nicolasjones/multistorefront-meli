@@ -1,7 +1,7 @@
 # Implementation Plan: Opiniones de productos (MSF-467)
 
 **Spec**: [`spec.md`](./spec.md) · **Contratos**: [`contracts/opiniones.md`](./contracts/opiniones.md) · **Tareas**: [`tasks.md`](./tasks.md)
-**Alcance de entrega**: `refine` y `supabase`. Sin `kestra`, `superset` ni `workers` (D13: sin avisos). **Estado**: plan, sin implementar.
+**Alcance de entrega**: `refine` y `supabase`. Sin `kestra`, `superset` ni `workers` (D13: sin avisos). **Estado**: plan; **F-OPI-01 ya está implementada** en `feat/opiniones-fases-1-y-2` (PR #1044), F-OPI-02 y F-OPI-03 pendientes.
 
 ## Resumen técnico
 
@@ -28,11 +28,11 @@ Una tabla nueva (`dominio.opiniones_producto`), funciones nuevas de `private`, `
 | `20270341000000_opiniones_producto.sql` | F-OPI-01 | tabla, checks, FK compuestas, índices, RLS sin políticas, grants cero, bandera `tienda_opiniones` apagada | borrar bandera; `drop table` (exportar antes) |
 | `20270341000100_opiniones_validacion.sql` | F-OPI-01 | `private.validar_texto_opinion`, `private.nombre_publico_cliente` | `drop function` |
 | `20270341000200_opiniones_moderacion_rpc.sql` | F-OPI-01 | `public.listar_opiniones`, `public.moderar_opinion` (+ evento de Actividad) | `drop function` |
-| `20270341000300_exportacion_total_opiniones.sql` | F-OPI-01 | la tabla entra en `conjuntos_exportacion_total` | restaurar la versión previa |
-| `20270341000400_opiniones_cliente_rpc.sql` | F-OPI-02 | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
-| `20270341000500_opiniones_lectura_publica.sql` | F-OPI-03 | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
+| `20270341000500_exportacion_total_opiniones.sql` | F-OPI-01 | la tabla entra en `conjuntos_exportacion_total` | restaurar la versión previa |
+| `20270341000300_opiniones_cliente_rpc.sql` | F-OPI-02 | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
+| `20270341000400_opiniones_lectura_publica.sql` | F-OPI-03 | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
 
-`node scripts/verificar-migraciones.mjs --estricto` en cada fase; rebasar con `origin/dokploy` y renumerar si otra rama ocupó la ventana. Antes de redefinir `conjuntos_exportacion_total` se lee su **última** versión en `dokploy`.
+`node scripts/verificar-migraciones.mjs --estricto` en cada fase; rebasar con `origin/dokploy` y renumerar si otra rama ocupó la ventana (la de F-OPI-01 ya ocupa `20270341000000`–`20270341000500`, así que F-OPI-02 y F-OPI-03 numeran por encima). Antes de redefinir `conjuntos_exportacion_total` se lee su **última** versión en `dokploy`.
 
 ## Fases
 
