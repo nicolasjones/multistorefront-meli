@@ -16,9 +16,13 @@
 --   * SIN insert, update ni delete desde la app: escriben únicamente las funciones `private` de la
 --     migración siguiente (las llama el rol de servicio de Kestra `kestra_orquestacion`).
 --     `anon` sin privilegios.
+--   * SIN lectura desde la app: no hay pantalla que consuma la cola (la consulta operativa es
+--     «como superusuario»), así que `authenticated` no tiene privilegio de tabla —los correos de
+--     los destinatarios y el último error no salen de la base— (mismo criterio que
+--     `public.avisos_pendientes`).
 --   * Una fila nunca mezcla organizaciones: el resumen se arma y se envía por organización.
 --
--- Migración aditiva. Reversión (migración posterior; antes revertir 20270121121302):
+-- Migración aditiva. Reversión (migración posterior; antes revertir 20270324101100):
 --   delete from public.tipos_aviso where clave = 'resumen_semanal';
 --   drop table dominio.resumen_semanal_envios;
 
@@ -33,6 +37,11 @@ create table if not exists dominio.resumen_semanal_envios (
   estado text not null default 'pendiente'
     check (estado in ('pendiente', 'enviando', 'enviado', 'fallido')),
   intentos integer not null default 0 check (intentos >= 0),
+  -- El resumen que se envía, tal como se armó al encolar: el correo es el mismo que quedó
+  -- encolado (y no hay que volver a calcularlo en cada tanda). Siempre trae al menos una
+  -- sección: sin datos no se encola a nadie.
+  resumen jsonb not null
+    check (coalesce(jsonb_array_length(resumen -> 'secciones'), 0) >= 1),
   -- Origen de la corrida (auditoría, Principio III).
   origen text not null default 'kestra:resumen-semanal',
   creado_en timestamptz not null default now(),
@@ -63,8 +72,9 @@ create policy resumen_semanal_envios_select on dominio.resumen_semanal_envios
     and (select private.nivel_seccion('rentabilidad')) in ('lectura', 'edicion')
   );
 
+-- La cola es de la base: la app no la lee (no hay pantalla que la consuma) y solo la escriben
+-- las funciones `private` que llama el rol de Kestra.
 revoke all on dominio.resumen_semanal_envios from public, anon, authenticated;
-grant select on dominio.resumen_semanal_envios to authenticated;
 
 -- Tipo de aviso del resumen semanal: reusa el catálogo de MSF-189 (la persona lo apaga en
 -- «Avisos por correo»). La sección `rentabilidad` es la que habilita al destinatario.

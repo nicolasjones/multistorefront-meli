@@ -7,7 +7,7 @@
 -- `authenticated` con el JWT de quien corresponde, igual que PostgREST.
 begin;
 
-select plan(32);
+select plan(36);
 
 -- ============================================================================
 -- Fixture
@@ -47,7 +47,12 @@ on conflict (producto_id) do update
 create temp table semanas on commit drop as
 select to_char(now() - interval '3 weeks', 'IYYY-"W"IW') as w1,
        to_char(now() - interval '2 weeks', 'IYYY-"W"IW') as w2,
-       to_char(now() - interval '1 week', 'IYYY-"W"IW') as w3;
+       to_char(now() - interval '1 week', 'IYYY-"W"IW') as w3,
+       to_char(now() - interval '4 weeks', 'IYYY-"W"IW') as w4;
+
+-- Los conteos se acotan a las dos organizaciones del fixture: la base del CI trae la
+-- organización de ejemplo del seed, cuyo administrador también es destinatario (y es
+-- correcto que lo sea).
 
 -- ============================================================================
 -- Tipo de aviso (FR-010)
@@ -73,7 +78,7 @@ create temp table q1 on commit drop as
   select * from private.reclamar_resumen_semanal(50, (select w1 from semanas));
 
 select is(
-  (select count(*)::int from q1),
+  (select count(*)::int from q1 where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2,
   'reclama un envío por destinatario con acceso (el miembro sin acceso a rentabilidad no entra)'
 );
@@ -114,15 +119,19 @@ select is(
 );
 
 -- ============================================================================
--- Aislamiento por organización (FR-014)
+-- La cola es de la base (FR-014)
 -- ============================================================================
 
 select is(
-  (select count(*)::int from dominio.resumen_semanal_envios),
+  (select count(*)::int from dominio.resumen_semanal_envios
+    where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2,
   'hay un envío por organización'
 );
 
+-- No hay pantalla que consuma la cola de envíos: `authenticated` no tiene privilegio de
+-- lectura, así que los correos de los destinatarios y el último error no salen de la base. El
+-- aislamiento por organización lo garantiza el resumen que se arma (abajo), no un privilegio.
 select set_config(
   'request.jwt.claims',
   json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text,
@@ -130,25 +139,10 @@ select set_config(
 );
 set local role authenticated;
 
-select is(
-  (select count(*)::int from dominio.resumen_semanal_envios),
-  1,
-  'el administrador ve solo los envíos de su organización'
-);
-
-reset role;
-
-select set_config(
-  'request.jwt.claims',
-  json_build_object('sub', 'a2000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text,
-  true
-);
-set local role authenticated;
-
-select is(
-  (select count(*)::int from dominio.resumen_semanal_envios),
-  1,
-  'la otra organización tampoco ve los envíos ajenos'
+select throws_ok(
+  $$select count(*)::int from dominio.resumen_semanal_envios$$,
+  '42501', null,
+  'la app no lee la cola de envíos (la consulta operativa es «como superusuario»)'
 );
 
 reset role;
@@ -225,7 +219,7 @@ create temp table q2 on commit drop as
   select * from private.reclamar_resumen_semanal(50, (select w2 from semanas));
 
 select is(
-  (select count(*)::int from q2),
+  (select count(*)::int from q2 where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2,
   'la semana siguiente vuelve a reclamar los mismos destinatarios'
 );
@@ -270,15 +264,60 @@ create temp table q3 on commit drop as
   select * from private.reclamar_resumen_semanal(50, (select w3 from semanas));
 
 select is(
-  (select count(*)::int from q3 where q.destinatario = 'admin-dos@example.com'),
+  (select count(*)::int from q3 where q3.destinatario = 'admin-dos@example.com'),
   0,
   'quien apaga el tipo en «Avisos por correo» no recibe el resumen'
 );
 
 select is(
-  (select count(*)::int from q3 where q.destinatario = 'admin-uno@example.com'),
+  (select count(*)::int from q3 where q3.destinatario = 'admin-uno@example.com'),
   1,
   'los demás destinatarios siguen recibiendo el resumen'
+);
+
+-- Vuelve a encender la preferencia: el tope se prueba con los DOS destinatarios elegibles
+-- (con uno solo, un tope de 1 no probaría que el tope deja a alguien afuera).
+update public.preferencias_aviso set activo = true
+ where user_id = 'a2000000-0000-0000-0000-000000000001' and tipo_aviso = 'resumen_semanal';
+
+-- ============================================================================
+-- El tope es el tamaño de la tanda, no un recorte (FR-010, FR-013)
+-- ============================================================================
+
+create temp table q5 on commit drop as
+  select * from private.reclamar_resumen_semanal(1, (select w4 from semanas));
+
+select is(
+  (select count(*)::int from q5 where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
+  2,
+  'con un tope de 1 la corrida entrega a los dos destinatarios de prueba: el tope no deja a nadie afuera'
+);
+
+select is(
+  (select count(*)::int from dominio.resumen_semanal_envios
+    where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')
+      and semana = (select w4 from semanas)
+      and estado = 'pendiente'),
+  0,
+  'la cola de la semana queda vacía: nadie queda encolado sin enviar'
+);
+
+-- El motivo del fallo se sanea en la base (no solo en el flow): nunca queda el mensaje del SMTP,
+-- que puede traer hosts o credenciales.
+select is(
+  private.registrar_fallo_resumen_semanal(
+    (select q.envio_id from q5 q where q.destinatario = 'admin-uno@example.com'),
+    'SMTP 535: password=secreto'),
+  'fallido',
+  'un envío con motivo se deja fallido'
+);
+
+select is(
+  (select e.ultimo_error from dominio.resumen_semanal_envios e
+    where e.destinatario_id = 'a1000000-0000-0000-0000-000000000001'
+      and e.semana = (select w4 from semanas)),
+  'No se pudo enviar el correo',
+  'un motivo con una credencial se sustituye por el motivo fijo'
 );
 
 -- ============================================================================
@@ -299,6 +338,22 @@ select ok(
   'sin acceso directo a la tabla ni a las funciones desde la app'
 );
 
+-- El guardia de llamada: si un revoke/grant futuro dejara entrar a otro rol, las funciones
+-- se niegan en vez de devolver los correos del negocio. El guardia compara `session_user` con
+-- `current_user`, así que ejercitarlo exige cambiar el `session_user` (`set session
+-- authorization`) y el rol de conexión del CI no es superusuario: se verifica que las tres
+-- funciones lo llaman (mismo criterio que el resto de flows de Kestra).
+select ok(
+  (select bool_and(p.prosrc like '%perform private.exigir_llamante_kestra();%')
+     from pg_proc p
+    where p.oid in (
+      'private.reclamar_resumen_semanal(integer, text)'::regprocedure,
+      'private.marcar_resumen_semanal_enviado(uuid)'::regprocedure,
+      'private.registrar_fallo_resumen_semanal(uuid, text)'::regprocedure
+    )),
+  'las tres funciones del resumen exigen que las llame el rol de Kestra'
+);
+
 -- ============================================================================
 -- Semana por omisión y semana inválida
 -- ============================================================================
@@ -307,7 +362,7 @@ create temp table q4 on commit drop as
   select * from private.reclamar_resumen_semanal(50);
 
 select is(
-  (select count(*)::int from q4),
+  (select count(*)::int from q4 where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2,
   'el reclamo sin semana reclama a los mismos destinatarios'
 );

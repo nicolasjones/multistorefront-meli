@@ -6,7 +6,7 @@
 -- SC-003: sin ventas ni stock en alerta, el resumen sale sin esas secciones.
 begin;
 
-select plan(9);
+select plan(10);
 
 -- ============================================================================
 -- Fixture
@@ -19,12 +19,22 @@ insert into organizaciones (id, nombre) values
 insert into auth.users (id, email) values
   ('c1000000-0000-0000-0000-000000000001', 'admin-uno@example.com'),
   ('c1000000-0000-0000-0000-000000000002', 'administracion-uno@example.com'),
+  ('c1000000-0000-0000-0000-000000000003', 'tecnico-uno@example.com'),
   ('c2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'administracion', 'activo'),
+  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'tecnico', 'activo'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
+
+-- El rol `administracion` de la organización uno NO tiene acceso a `ventas` (la matriz inicial
+-- se la da; acá se la saca): es el caso negativo de FR-014 con TODO lo demás igual. El rol
+-- `administrador` de la misma organización sí lo tiene: el control que muestra que la sección
+-- existe y que el permiso es lo que la saca.
+insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel)
+values ('11111111-1111-1111-1111-111111111111', 'administracion', 'ventas', 'ninguno')
+on conflict (organizacion_id, rol_id, seccion) do update set nivel = 'ninguno';
 
 insert into public.clientes (id, organizacion_id, nombre, tipo) values
   ('cc100000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Distribuidora Ñandú', 'mayorista'),
@@ -119,9 +129,36 @@ select is(
 );
 
 select is(
-  (select count(*)::int from private.reclamar_resumen_semanal(50, (select w1 from semanas))),
+  (select count(*)::int from private.reclamar_resumen_semanal(50, (select w1 from semanas))
+    where organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   3,
   'la corrida reclama a los tres destinatarios que tienen resumen'
+);
+
+-- ============================================================================
+-- Cada sección solo si el destinatario tiene acceso a ella (FR-014)
+-- ============================================================================
+
+-- Con la vista de ventas presente: la sección existe y el permiso es lo que la saca. Si la
+-- condición de acceso se perdiera, este resumen traería `ventas` y la aserción fallaría.
+select is(
+  (select string_agg(s.seccion ->> 'clave', ',' order by s.seccion ->> 'clave')
+     from jsonb_array_elements(
+       private.armar_resumen_semanal('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000002', (select w1 from semanas))
+       -> 'secciones') s(seccion)),
+  'rentabilidad,stock',
+  'el resumen no trae la sección de ventas a quien no tiene acceso a ventas'
+);
+
+-- El rol `tecnico` es el único de la matriz sin `ventas` (y sin `rentabilidad`): su resumen
+-- lleva solo la sección que puede ver. Si la condición de acceso se perdiera, traería `ventas`.
+select is(
+  (select string_agg(s.seccion ->> 'clave', ',' order by s.seccion ->> 'clave')
+     from jsonb_array_elements(
+       private.armar_resumen_semanal('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000003', (select w1 from semanas))
+       -> 'secciones') s(seccion)),
+  'stock',
+  'el resumen no trae ventas ni rentabilidad a quien la matriz no le da (tecnico)'
 );
 
 -- ============================================================================
@@ -143,19 +180,6 @@ select is(
        -> 'secciones') s(seccion)),
   'rentabilidad,stock',
   'sin la vista de ventas la sección se omite sin error'
-);
-
--- ============================================================================
--- Cada sección solo si el destinatario tiene acceso a ella (FR-014)
--- ============================================================================
-
-select is(
-  (select string_agg(s.seccion ->> 'clave', ',' order by s.seccion ->> 'clave')
-     from jsonb_array_elements(
-       private.armar_resumen_semanal('11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000002', (select w1 from semanas))
-       -> 'secciones') s(seccion)),
-  'rentabilidad,stock',
-  'el resumen no trae la sección de ventas a quien no tiene acceso a ventas'
 );
 
 select is(

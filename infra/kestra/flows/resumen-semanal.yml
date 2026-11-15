@@ -2,7 +2,10 @@
 # FR-010, FR-011, FR-013, FR-014): envío del resumen semanal del negocio por correo.
 #
 # Una vez por semana (lunes 09:00, hora del servidor de Kestra) reclama con
-# `private.reclamar_resumen_semanal` los destinatarios de la semana. El reclamo es idempotente por
+# `private.reclamar_resumen_semanal` los destinatarios de la semana. La función encola a todos los
+# que tienen datos y reclama la cola en tandas de `RESUMEN_SEMANAL_LIMITE` hasta vaciarla: el tope
+# es el tamaño de la tanda, no un recorte (con más destinatarios que el tope, los que no entran en
+# la primera tanda salen en la siguiente de la misma corrida). El reclamo es idempotente por
 # destinatario y semana (una fila por destino), así que repetir la corrida NO duplica el correo
 # (FR-013, SC-002). Por cada destinatario envía UN correo con el SMTP de Kestra (`KESTRA_SMTP_*`, el
 # mismo de enviar-avisos: sin proveedor nuevo, FR-011) y el resumen con los datos de la organización

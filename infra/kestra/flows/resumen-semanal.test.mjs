@@ -92,6 +92,15 @@ test('la corrida repetida no duplica: el envío se cierra con la marca idempoten
   assert.match(content, /private\.marcar_resumen_semanal_enviado\(/, 'el cierre es la marca idempotente');
 });
 
+test('el tope es el tamaño de la tanda, no un recorte: el flow manda todos los destinatarios', async () => {
+  const content = await leer();
+  const reclamo = tarea(content, 'reclamar');
+  // La cola la vacía la función (reclama en tandas hasta que no queda pendiente): el flow no
+  // recorta la lista, así que ningún destinatario queda afuera por el tope.
+  assert.match(reclamo, /private\.reclamar_resumen_semanal\(CAST\(:limite AS integer\)\)/);
+  assert.doesNotMatch(content, /outputs\.reclamar\.rows\s*\|/i, 'el flow no recorta los destinatarios reclamado');
+});
+
 test('las variables del flow se declaran en el Compose y en .env.example', async () => {
   const [compose, ejemplo] = await Promise.all([
     readFile('infra/kestra/compose.yaml', 'utf8'),
