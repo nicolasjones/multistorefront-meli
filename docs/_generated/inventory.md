@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **261**
-- Tablas en migraciones: **200**
+- Rutas del panel: **265**
+- Tablas en migraciones: **204**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **323**
+- Páginas de documentación: **326**
 
 ## Rutas del panel
 
@@ -118,6 +118,7 @@
 - `/migracion/importar`
 - `/migracion/informes`
 - `/no-encontrada/PaginaNoEncontrada`
+- `/opiniones/list`
 - `/organizacion/ResumenSemanal`
 - `/organizacion/edit`
 - `/organizaciones/create`
@@ -126,6 +127,7 @@
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/productos/listas-de-precios`
 - `/productos/precios-masivos`
 - `/productos/promociones`
 - `/proveedores/list`
@@ -223,6 +225,7 @@
 - `/tienda-publica/lista/IndicadorLista`
 - `/tienda-publica/lista/LineaLista`
 - `/tienda-publica/lista/PantallaLista`
+- `/tienda-publica/newsletter/FormularioSuscripcion`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
@@ -231,6 +234,7 @@
 - `/tienda-publica/rutas/inicio`
 - `/tienda-publica/rutas/lista`
 - `/tienda-publica/rutas/mi-cuenta`
+- `/tienda-publica/rutas/newsletter.confirmar`
 - `/tienda-publica/rutas/pagina`
 - `/tienda-publica/rutas/producto`
 - `/tienda-publica/rutas/recuperar-contrasena`
@@ -345,10 +349,14 @@
 - `dominio.ingresos_mercaderia`
 - `dominio.ingresos_mercaderia_lineas`
 - `dominio.intereses_whatsapp`
+- `dominio.listas_precios`
 - `dominio.lotes_stock`
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.newsletter_configuracion`
+- `dominio.newsletter_suscriptores`
+- `dominio.opiniones_producto`
 - `dominio.ordenes_compra`
 - `dominio.ordenes_compra_items`
 - `dominio.precios_empresa`

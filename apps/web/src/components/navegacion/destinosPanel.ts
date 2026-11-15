@@ -42,6 +42,7 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import PaymentsIcon from '@mui/icons-material/Payments'
+import StarOutlineIcon from '@mui/icons-material/StarOutline'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -206,6 +207,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CON-05: libreta de contactos por empresa, debajo de Consultas (misma sección de permisos).
       { id: 'contactos', etiqueta: 'Contactos', ruta: '/contactos', icono: ContactsIcon, audiencia: 'organizacion', seccionPermiso: 'consultas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+      // MSF-467: moderación previa de las opiniones de productos; solo Administrador (sin sección propia en la matriz).
+      { id: 'opiniones', etiqueta: 'Opiniones', ruta: '/opiniones', icono: StarOutlineIcon, audiencia: 'administrador' },
     ],
   },
   {

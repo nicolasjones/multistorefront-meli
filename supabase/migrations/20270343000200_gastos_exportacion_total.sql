@@ -1,12 +1,13 @@
 -- F-GAS-01 (MSF-469, RF-GAS-17): `dominio.gastos` (20270343000000) tiene `organizacion_id`; el pgTAP de completitud de `exportacion_total.test.sql`
 -- exige que esté en la lista permitida o en las exclusiones. Es dato de negocio de la organización: SE EXPORTA.
--- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270340000100`, que ya incluye
--- órdenes de compra y listas de precios) sumando solo la fila `('dominio', 'gastos')`. La lista de exclusiones no cambia.
--- Si otra migración posterior a `20270340000100` la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana y las filas
+-- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270342000300`, que ya incluye
+-- órdenes de compra, listas de precios, opiniones y newsletter con su filtro de `confirmacion_hash`) copiándola COMPLETA y sumando solo la fila
+-- `('dominio', 'gastos')`. La lista de exclusiones no cambia.
+-- Si otra migración posterior a `20270342000300` la redefine, esta debe rebasarse sobre ella (la última en aplicarse gana y las filas
 -- que no copie se pierden: es lo que hizo fallar `exportacion_total.test.sql` al partir de una versión anterior).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270340000100_exportacion_total_listas_precios.sql` (sin la fila de gastos).
+-- Reversión (migración posterior): volver a la definición de `20270342000300_exportacion_total_newsletter.sql` (sin la fila de gastos).
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -69,6 +70,9 @@ as $$
     ('dominio', 'modelos_equipo'),
     ('dominio', 'motivos_movimiento'),
     ('dominio', 'movimientos_stock'),
+    ('dominio', 'newsletter_configuracion'),
+    ('dominio', 'newsletter_suscriptores'),
+    ('dominio', 'opiniones_producto'),
     ('dominio', 'ordenes_compra'),
     ('dominio', 'ordenes_compra_items'),
     ('dominio', 'precios_empresa'),
@@ -123,6 +127,8 @@ as $$
   join pg_catalog.pg_class c on c.relnamespace = n.oid and c.relname = p.tabla and c.relkind in ('r', 'p')
   join pg_catalog.pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
   where a.attname !~* '(secret|token|password|passwd|api_?key|vault|credencial|private_key)'
+    -- MSF-468 (RF-NL-23): el SHA-256 del token de confirmación no sale en el volcado.
+    and not (p.tabla = 'newsletter_suscriptores' and a.attname = 'confirmacion_hash')
   group by p.esquema, p.tabla
   order by p.esquema, p.tabla;
 $$;
