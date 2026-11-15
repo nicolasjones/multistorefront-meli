@@ -149,6 +149,7 @@ flowchart LR
   F1 --> F3
   F2 --> F3
   F4 --> F3
+  F1 --> C
   F2 --> C
   F3 --> C
   F4 --> C
