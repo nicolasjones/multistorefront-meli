@@ -297,7 +297,7 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 
 | Ítem | Dueño | Nota |
 |---|---|---|
-| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada: ya se muestra en la tienda» |
+| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada». **Desvío del prototipo** (decidido en la revisión): el prototipo dice «…: ya se muestra en la tienda», pero en las fases 1 y 2 nada se muestra en la tienda pública; el sufijo vuelve cuando exista la fase 4 |
 | Botón **Rechazar** (visible salvo si ya está rechazada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión rechazada». **Decisión D5**: abre un diálogo corto con «Motivo (opcional)», «Rechazar» y «Cancelar»; el prototipo no lo dibuja (UI mínima declarada) |
 | Aviso «Las opiniones nuevas quedan pendientes…» | RF-OPI-15 | Texto literal del prototipo |
 | Contadores Pendientes / Aceptadas / Rechazadas | RF-OPI-13, RF-OPI-15, CA-OPI-11 | Calculados en servidor para el mismo ámbito del filtro de tienda |
@@ -339,3 +339,17 @@ Todas las migraciones son aditivas y se deshacen con una migración posterior, *
 - Moderación **automática** por IA o listas de palabras (más allá del rechazo de enlaces).
 - Importar opiniones de Mercado Libre.
 - Opiniones en **Mercado Libre** u otros canales: solo la tienda propia.
+
+### Limitaciones conocidas del filtro de enlaces (revisión de las fases 1 y 2)
+
+`private.texto_opinion_no_permitido` (que usan `validar_texto_opinion` y el motivo de rechazo) es una **heurística**, no una garantía.
+
+- **Qué detecta:** `http:`/`https:`/`ftp:` y `www.`; un dominio con el alfanumérico o guion pegado al punto y un TLD de una **lista cerrada** (genéricos y de país/acortadores que no son palabras comunes: `.ar`, `.com.ar`, `.mx`, `.cl`, `.uy`, `.br`, `.co`, `.pe`, `.py`, `.bo`, `.ec`, `.us`, `.uk`, `.fr`, `.ly`, `.tv`, `.cc`, `.ws`, `.gl`, `.gg`, `.be`, `.ee`, `.fm`, `.gd`, `.gy`, `.sh`, `.vc`, `.ph`, `.pt`, `.ru`, `.cn`, `.jp`, `.au`, `.nz`, `.ca`, `.nl`, `.ch`, `.pl`, `.tr`) seguido de un no alfanumérico o el final, lo que cubre `bit.ly/…`, `youtu.be/…`, `tinyurl.com/…`; y `algo.palabra/` (cualquier TLD seguido de barra: `t.me/…`, `wa.me/…`). Los puntos de otras escrituras (U+3002 «。», U+FF0E «．», U+FF61 «｡», U+2024, U+FE52) se normalizan al punto ASCII antes de evaluar.
+- **Criterio para los TLD que son palabras comunes** (`es`, `me`, `de`, `to`, `it`, `at`, `in`, `se`, `ve`): `algo.es` se rechaza solo si el TLD NO va seguido de un espacio (va seguido de puntuación o del final) **y** lo anterior tiene forma de dominio (4 o más alfanuméricos o guiones seguidos, o termina en guion o dígito). Por eso «mi-tienda.es,» y «mitienda.es.» se rechazan, y «Muy bueno.me gustó», «Lo uso a diario.es genial», «Anda bien.No se calienta» y «Sí.No sé» se aceptan. Un punto seguido de espacio («Excelente producto. Top calidad», «Pedí el 10. Es ok.») no es enlace, y las palabras de dos letras fuera de la lista (`no`, `si`, `mi`, `te`, `la`, `el`, `ya`, `lo`, `le`, `en`, `un`, `al`, `su`) tampoco.
+- **Falso positivo residual aceptado:** «Lo uso en casa.Es» o «Es buenísimo.Se» (palabra de 4 o más caracteres + punto pegado + TLD ambiguo capitalizado, al final del texto o antes de puntuación) se rechaza: la regla de los TLD ambiguos no distingue mayúsculas y ese texto es indistinguible de `mitienda.es`. Se acepta porque el costo es que el cliente reescriba una frase mal puntuada, mientras que relajarlo dejaría pasar `mitienda.Es`.
+- **Qué NO detecta:** ofuscación («ejemplo punto com», «ejemplo . com», «ejemplo(.)com», «ejemplo[.]com»), homógrafos (letras cirílicas parecidas a las latinas), TLD genéricos fuera de la lista, enlaces con espacios dentro, ni `mi-tienda.es hoy` (TLD ambiguo seguido de espacio y palabra: es el precio de no rechazar frases como «diario.es genial»). Y a la inversa, «Excelente.Co» o «bueno.Ca» (TLD de la lista pegados) se tratan como dominio. La moderación previa (D5) es la defensa real.
+- **`http` suelta:** la palabra `http`/`https` sin los dos puntos se **acepta** a propósito (rechazarla daría falsos positivos: «usan https para pagar»); hay una aserción pgTAP explícita.
+- **Rendimiento:** sin cuantificadores anidados; con entradas hostiles de 50.000 caracteres cada comprobación tarda unos 14 ms y con 200.000 caracteres de 60 a 130 ms según la entrada (crecimiento lineal; aserciones pgTAP < 1 s).
+- **Funciones `invoker`:** las funciones `private` de validación son `security invoker` a propósito: son puras (no leen tablas), no necesitan los privilegios del dueño y `security definer` solo ampliaría la superficie. Llevan `search_path` vacío y sin `execute` para la API; las RPC `security definer` que las llaman sí lo tienen.
+
+La fase 3 hereda esta función y sus límites.

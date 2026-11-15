@@ -34,6 +34,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   consultas: 'consultas',
   contactos: 'contactos',
   empresas: 'organizacion-y-empresas',
+  opiniones: 'opiniones',
   rentabilidad: 'rentabilidad',
   'reportes-reposicion': 'stock-unico-y-alertas',
   'reportes-tableros': 'tableros-analiticos',
