@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
@@ -282,6 +282,46 @@ describe('pantalla de gastos', () => {
     expect(screen.getByText(/Cambiaste de empresa: cerramos el diálogo sin guardar nada/)).toBeInTheDocument()
     expect(mocks.guardar).not.toHaveBeenCalled()
     expect(mocks.useGastos.mock.calls.at(-1)![0].empresaId).toBe('e2')
+  })
+})
+
+describe('aviso de cierre por cambio de empresa', () => {
+  const abrirYCambiar = async () => {
+    const { rerender } = montar()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nuevo gasto' })[0])
+    await screen.findByRole('dialog', { name: 'Nuevo gasto' })
+    configurar({ empresaActivaId: 'e2' })
+    rerender(vista())
+    expect(screen.getByText(/Cambiaste de empresa/)).toBeInTheDocument()
+    return rerender
+  }
+
+  it('se descarta con la X', async () => {
+    await abrirYCambiar()
+    fireEvent.click(within(screen.getByText(/Cambiaste de empresa/).closest('[role="alert"]') as HTMLElement).getByRole('button'))
+    expect(screen.queryByText(/Cambiaste de empresa/)).not.toBeInTheDocument()
+  })
+
+  it('se descarta solo tras unos segundos', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      await abrirYCambiar()
+      await act(async () => { vi.advanceTimersByTime(8100) })
+      expect(screen.queryByText(/Cambiaste de empresa/)).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('se descarta al abrir otro diálogo y al volver a cambiar de empresa sin diálogo abierto', async () => {
+    const rerender = await abrirYCambiar()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nuevo gasto' })[0])
+    await screen.findByRole('dialog', { name: 'Nuevo gasto' })
+    expect(screen.queryByText(/Cambiaste de empresa/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    configurar({ empresaActivaId: 'e1' })
+    rerender(vista())
+    expect(screen.queryByText(/Cambiaste de empresa/)).not.toBeInTheDocument()
   })
 })
 

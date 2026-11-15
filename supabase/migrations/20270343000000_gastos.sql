@@ -13,7 +13,7 @@
 -- Migración aditiva. Reversión (migración posterior; exportar antes los datos):
 --   drop table dominio.gastos;
 
-create table dominio.gastos (
+create table if not exists dominio.gastos (
   id uuid primary key default gen_random_uuid(),
   organizacion_id uuid not null references public.organizaciones (id) on delete cascade,
   empresa_id uuid not null,
@@ -65,6 +65,7 @@ create index if not exists gastos_org_fecha_idx on dominio.gastos (organizacion_
 
 alter table dominio.gastos enable row level security;
 
+drop policy if exists gastos_select on dominio.gastos;
 create policy gastos_select on dominio.gastos
   for select to authenticated
   using (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import {
   Alert, Box, Button, Card, CardContent, Chip, FormControlLabel, MenuItem, Snackbar, Stack, Switch, TextField, ToggleButton,
   ToggleButtonGroup, Typography,
@@ -39,6 +39,7 @@ const DialogoAnularGasto = lazy(() => import('./DialogoAnularGasto').then((m) =>
 type Abierto = { tipo: 'editar'; gasto: Gasto | null; base: string | null } | { tipo: 'anular'; gasto: Gasto; base: string | null }
 
 const TODAS = 'todas'
+const DURACION_AVISO_CAMBIO_MS = 8000
 const formatoPesos = (valor: number) => formatearImporteGasto(valor, 'ARS')
 
 // «Gastos» (Administración · F-GAS-01/02; prototipo VentasGastos.dc.html). Registra, edita y anula los gastos generales de cada tienda
@@ -72,6 +73,12 @@ export function Gastos() {
     setAbierto(null)
     setCerradoPorCambio(abierto !== null)
   }
+  // El aviso se va solo a los pocos segundos (también al cerrarlo con la X, al abrir un diálogo o al volver a cambiar de empresa).
+  useEffect(() => {
+    if (!cerradoPorCambio) return undefined
+    const temporizador = setTimeout(() => setCerradoPorCambio(false), DURACION_AVISO_CAMBIO_MS)
+    return () => clearTimeout(temporizador)
+  }, [cerradoPorCambio])
   const vigente = abierto && abierto.base === empresaActivaId ? abierto : null
   const abrirEditar = (gasto: Gasto | null) => { setAviso(null); setCerradoPorCambio(false); setAbierto({ tipo: 'editar', gasto, base: empresaActivaId }) }
   const abrirAnular = (gasto: Gasto) => { setAviso(null); setCerradoPorCambio(false); setAbierto({ tipo: 'anular', gasto, base: empresaActivaId }) }

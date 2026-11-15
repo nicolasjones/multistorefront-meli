@@ -387,6 +387,8 @@ flowchart TD
 
 ## Riesgos y desvíos declarados
 
+- **Actividad y D19**: Actividad muestra la categoría del gasto, el nombre de la empresa y los nombres de los campos modificados, nunca cifras; quien tiene `actividad` sin `rentabilidad` puede inferir que existe un gasto de esa categoría (p. ej. «Sueldos») y que se cambió su importe. Es la consecuencia aceptada de D19; si más adelante se decide ocultar también la categoría, bastaría cambiar el `detalle` y el jsonb de las RPC `guardar_gasto` y `anular_gasto`. Además, `registro_actividad_select` filtra por organización y sección `actividad` pero no por empresa accesible (preexistente y común a todos los eventos, no se cambia en este PR): quien tiene `actividad` ve esos datos aun de empresas que no puede acceder. Seguimiento: MSF-968 «Actividad: filtrar registro_actividad por empresas accesibles».
+
 - **No cambia lo existente, pero sí muestra una cifra sensible nueva.** Por eso la medida nace detrás de la bandera `margen_costos_fijos` (D15), con pgTAP de **paridad** de todo lo existente, y no sale a otras superficies (RF-GAS-18).
 - **Método de prorrateo (D6) es la decisión a revisar.** Proporcional a ventas hace que todos los productos de una tienda y mes pierdan los mismos puntos porcentuales; si Nicolás espera que un producto «pese» más por rotación o por unidades, es otro método (ver «Fuera de alcance»). Cambiarlo toca solo la vista nueva (`tasa_fija` y `cargo`), no los gastos ni la pantalla.
 - **Mes en curso**: la tasa es alta al inicio del mes porque el costo del mes completo se reparte sobre ventas parciales (rotulado en el tablero).

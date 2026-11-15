@@ -38,6 +38,8 @@ Lectura directa: `authenticated` con la sección `rentabilidad` en lectura/edici
 
 `gasto.creado`, `gasto.editado` (concepto, empresa y `campos_modificados`), `gasto.anulado` y `gasto.exportado`. **Sin cifras** (ni importe, ni moneda, ni pesos, ni el motivo de anulación) y sin datos personales: Actividad se lee sin la sección `rentabilidad` (D19, Decisión (delegada)).
 
+**Nota (D19)**: Actividad muestra la categoría del gasto, el nombre de la empresa y los nombres de los campos modificados, nunca cifras; quien tiene `actividad` sin `rentabilidad` puede inferir que existe un gasto de esa categoría (p. ej. «Sueldos») y que se cambió su importe. Es la consecuencia aceptada de D19; si más adelante se decide ocultar también la categoría, bastaría cambiar el `detalle` y el jsonb de las RPC `guardar_gasto` y `anular_gasto`. Además, `registro_actividad_select` filtra por organización y sección `actividad` pero no por empresa accesible (preexistente y común a todos los eventos, no se cambia en este PR): quien tiene `actividad` ve esos datos aun de empresas que no puede acceder. Seguimiento: MSF-968 «Actividad: filtrar registro_actividad por empresas accesibles».
+
 ## Bandera
 
 `public.banderas_plataforma`: `margen_costos_fijos`, `activa = false` por omisión. `analitica.bandera_activa(clave text) returns boolean`, `execute` solo para `superset_analitica`.
