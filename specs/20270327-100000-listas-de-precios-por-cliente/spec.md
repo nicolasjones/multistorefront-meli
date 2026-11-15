@@ -2,7 +2,7 @@
 
 **Épicas**: MSF-373 (Precios y dólar · Cotización sugerida y mayoristas) y MSF-450 (Clientes y proveedores · Cuentas y compras a proveedores) · **Spec**: `listas-de-precios-por-cliente` · **Historias**: F-PRE-14 «Listas de precios mayoristas» (MSF-442) y F-CLI-21 «Listas de precios por cliente» (MSF-453) · **Prioridad**: P3
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: spec redactada; **Fases 1 («Listas») y 2 («Asignación») implementadas** (sin efecto en ningún precio); Fases 3, 4 y 5 sin implementar. Reabre y reemplaza la cancelación de F-PRE-14 (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
+**Estado**: spec redactada; **Fases 1 a 5 implementadas** (Fases 1 y 2 sin efecto en ningún precio; Fases 3 y 4 detrás de la bandera `listas_precios`, apagada hasta que Nicolás decida; Fase 5 = cierre). Retoma F-PRE-14, descartada (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
 **Fuente**: decisión de Nicolás (2026-11-15) comentada en MSF-442 y MSF-453, los tickets, `docs/precios.md`, `docs/precios-escalas.md`, `docs/promociones-precio.md`, `docs/configuracion-dolar-y-precio-propio.md`, `docs/cuentas-y-compras-a-proveedores.md` y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
 
 ## Objetivo
@@ -40,7 +40,7 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 - **Clientes**: `public.clientes` (esquema `public` por decisión histórica de MSF-180) ya tiene `tipo` (`minorista`/`mayorista`), `descuento` (solo Administrador, con disparador y actividad), `es_consumidor_final`. La cuenta web (`public.cuentas_cliente`) cuelga de `cliente_id`.
 - **No existe** `tipos_cliente` ni su pantalla (F-PRE-15 solo implementó las escalas por producto); `TiposCliente.dc.html` es un prototipo sin entregar. **No hay pantalla dibujada** de listas de precios (ver «Matriz pantalla↔criterios»).
 - **Bloqueo anterior**: las dos historias figuraban como «sin requisitos» y bloqueadas por el modelo comercial. La decisión de Nicolás lo cierra. MSF-116 ya está entregada (F-PRE-13 implementada), así que ya no bloquea.
-- **Cancelación previa**: F-PRE-14 se canceló el 2026-11-12 por chocar con F-PRE-15. Esta spec la reabre con una resolución explícita del choque (D5 y D8). Los textos que dicen «cancelada» en `docs/precios.md`, `docs/cuentas-y-compras-a-proveedores.md` y las specs `20261105-100000-cotizacion-sugerida-y-mayoristas` y `20261029-100000-cuentas-y-compras-a-proveedores` se actualizan en la Fase 5 (no se editan en esta spec).
+- **Cancelación previa**: F-PRE-14 se canceló el 2026-11-12 por chocar con F-PRE-15. Esta spec la retoma con una resolución explícita del choque (D5 y D8). Los textos que dicen «cancelada» en `docs/precios.md`, `docs/cuentas-y-compras-a-proveedores.md` y las specs `20261105-100000-cotizacion-sugerida-y-mayoristas` y `20261029-100000-cuentas-y-compras-a-proveedores` se actualizan en la Fase 5 (no se editan en esta spec).
 
 ### Esquema de datos (Constitución, Principio VII), verificado objeto por objeto
 

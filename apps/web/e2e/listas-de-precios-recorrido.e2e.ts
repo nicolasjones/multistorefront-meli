@@ -61,7 +61,7 @@ async function ingresar(page: Page, correo: string) {
 }
 
 type Comprobante = { id: string; numero: string; updated_at: string }
-type Linea = { id: string; precio_unitario: number; lista_precio_id: string | null; lista_ajuste_pct: number | null; orden: number }
+type Linea = { id: string; precio_unitario: number; lista_nombre: string | null; lista_ajuste_pct: number | null }
 type Presupuesto = { estado: string; numero?: string; total_con_iva?: number }
 type Persona = { correo: string; authId: string; clienteId: string; token: string }
 
@@ -121,9 +121,16 @@ test.describe('Listas de precios · recorrido completo', () => {
       p_actualizado_en: comprobante.updated_at,
     })
     if (confirmar) await rpc(admin.token, 'confirmar_comprobante', { p_id: comprobante.id })
-    const lineas = await comoPersona<Linea>(admin.token, `comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=id,precio_unitario,lista_precio_id,lista_ajuste_pct,orden`, 'dominio')
+    const lineas = await leerLineas(comprobante.id)
     expect(lineas).toHaveLength(1)
     return { comprobante, linea: lineas[0] }
+  }
+
+  // Las líneas se leen por la RPC `obtener_comprobante` (la misma que usa la pantalla): `authenticated` no tiene `select` de las
+  // columnas del snapshot. Trae el porcentaje congelado y el nombre de la lista; null si la línea no rigió por una lista.
+  async function leerLineas(comprobanteId: string): Promise<Linea[]> {
+    const c = await rpc<{ lineas: Linea[] }>(admin.token, 'obtener_comprobante', { p_id: comprobanteId })
+    return c.lineas
   }
 
   async function presupuestar(persona: Persona, clave: string): Promise<Presupuesto> {
@@ -183,10 +190,10 @@ test.describe('Listas de precios · recorrido completo', () => {
     // Sin lista: el precio de siempre (1.000). Con lista: central × 0,80 = 800, con su snapshot.
     const base = await facturar(sinLista, false)
     expect(Number(base.linea.precio_unitario)).toBe(1000)
-    expect(base.linea.lista_precio_id).toBeNull()
+    expect(base.linea.lista_nombre).toBeNull()
     const borrador = await facturar(conLista, false)
     expect(Number(borrador.linea.precio_unitario)).toBe(800)
-    expect(borrador.linea.lista_precio_id).toBe(listaId)
+    expect(borrador.linea.lista_nombre).toBe(nombreLista())
     expect(Number(borrador.linea.lista_ajuste_pct)).toBe(-20)
 
     // El comprobante en edición muestra la marca de la lista.
@@ -206,17 +213,17 @@ test.describe('Listas de precios · recorrido completo', () => {
     const nota = await rpc<{ id: string }>(admin.token, 'emitir_nota_credito', {
       p_factura_id: comprobante.id, p_tipo: 'devolucion_productos', p_lineas: [{ linea_id: linea.id, cantidad: 1 }], p_concepto: null,
     })
-    const lineasNota = await comoPersona<Linea>(admin.token, `comprobantes_venta_lineas?comprobante_id=eq.${nota.id}&select=id,precio_unitario,lista_precio_id,lista_ajuste_pct,orden`, 'dominio')
+    const lineasNota = await leerLineas(nota.id)
     expect(lineasNota).toHaveLength(1)
     expect(Number(lineasNota[0].precio_unitario)).toBe(800)
-    expect(lineasNota[0].lista_precio_id).toBe(listaId)
+    expect(lineasNota[0].lista_nombre).toBe(nombreLista())
     expect(Number(lineasNota[0].lista_ajuste_pct)).toBe(-20)
 
     // Cambiar el porcentaje después (−45 %) no mueve lo ya vendido ni la nota.
     const [resumen] = await comoPersona<{ updated_at: string }>(admin.token, `listas_precios_resumen?id=eq.${listaId}&select=updated_at`, 'public')
     await rpc(admin.token, 'guardar_lista_precios', { p_id: listaId, p_nombre: nombreLista(), p_descripcion: null, p_ajuste_pct: -45, p_actualizado: resumen.updated_at })
     for (const id of [comprobante.id, nota.id]) {
-      const [l] = await comoPersona<Linea>(admin.token, `comprobantes_venta_lineas?comprobante_id=eq.${id}&select=id,precio_unitario,lista_precio_id,lista_ajuste_pct,orden`, 'dominio')
+      const [l] = await leerLineas(id)
       expect(Number(l.precio_unitario)).toBe(800)
       expect(Number(l.lista_ajuste_pct)).toBe(-20)
     }
@@ -239,7 +246,7 @@ test.describe('Listas de precios · recorrido completo', () => {
     await fijarBandera(CLAVE_LISTAS, false)
     const { linea } = await facturar(conLista, false)
     expect(Number(linea.precio_unitario)).toBe(1000)
-    expect(linea.lista_precio_id).toBeNull()
+    expect(linea.lista_nombre).toBeNull()
     const apagada = await presupuestar(conLista, `lp-apagada-${sufijo}`)
     const publico = await presupuestar(sinLista, `lp-sin2-${sufijo}`)
     expect(Number(apagada.total_con_iva)).toBe(Number(publico.total_con_iva))

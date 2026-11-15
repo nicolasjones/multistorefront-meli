@@ -1,6 +1,6 @@
 # Plan de implementación: Precios y dólar · Cotización sugerida y mayoristas
 
-**Spec**: [spec.md](spec.md) · **Estado**: provisional (NEEDS_INFO). Solo planifica F-PRE-13; F-PRE-14 se canceló el 2026-11-12 y se **reabrió el 2026-11-15** con su propia spec (`20270327-100000-listas-de-precios-por-cliente`); esta spec no la planifica.
+**Spec**: [spec.md](spec.md) · **Estado**: provisional (NEEDS_INFO). Solo planifica F-PRE-13; F-PRE-14 se descartó el 2026-11-12 y se **retomó el 2026-11-15** con su propia spec (`20270327-100000-listas-de-precios-por-cliente`); esta spec no la planifica.
 
 ## Enfoque (F-PRE-13)
 
