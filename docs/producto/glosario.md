@@ -116,8 +116,12 @@ Ordenado por tema. Si buscás una palabra puntual, usá la búsqueda del navegad
 | **Vista previa** | Cómo queda la tienda con los cambios sin publicar. Solo la ves con tu sesión iniciada. |
 | **Cuenta web del cliente** | Acceso de un cliente a la tienda con su correo y contraseña, creado por invitación. No es un usuario del sistema. |
 | **Consulta** | Mensaje que un visitante envía desde una tienda (formulario de contacto o WhatsApp). |
+| **Pedido (de la tienda)** | Lista de productos y cantidades que un visitante manda desde la tienda **sin pagar**: llega a la bandeja de Consultas con los ítems. |
 | **Bandeja de consultas** | Pantalla donde el equipo ve las consultas y les cambia el estado: **Nueva**, **En curso** o **Resuelta**. |
 | **Contacto (libreta)** | Persona que consultó o compró en una tienda, con su consentimiento y su historial. Es distinto de un cliente de facturación. Ver [Contactos](contactos.md). |
+| **Mi lista** | La lista de productos que armó un visitante en la tienda. Vive en su navegador: no se guarda en el sistema ni se comparte entre dispositivos. |
+| **Mi cuenta** | Pantalla de la tienda donde el cliente que tiene cuenta ve sus compras, sus presupuestos y sus favoritos **de esa tienda**. |
+| **Favoritos** | Productos que el cliente guardó desde la ficha. Son privados: el equipo no los ve. |
 | **Anonimizar** | Reemplazar los datos personales de un contacto y de sus consultas por un texto neutro, sin borrar las consultas ni las ventas. No se puede deshacer. |
 | **Respuesta rápida** | Texto frecuente guardado por tienda para armar el mensaje inicial al responder una consulta. No envía nada. Ver [Respuestas rápidas](contactos.md#respuestas-rapidas). |
 | **Aviso por correo** | Mail que te llega cuando pasa algo en una sección a la que tenés acceso. Elegís cuáles recibir en tu menú, en «Avisos por correo». |

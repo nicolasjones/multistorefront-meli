@@ -172,6 +172,22 @@ En cada fila tenés estos botones (según tu rol y el estado):
 
 Por ahora no hay un botón que convierta un presupuesto en factura. Para cobrar, cargá una factura nueva con los mismos productos (podés usar **Copiar** para tener los datos a mano).
 
+### Presupuestos pedidos desde la tienda
+
+Hay una función nueva, todavía **apagada** en tu ambiente, por la que un cliente con cuenta en la tienda pide
+un presupuesto desde la propia tienda (ver [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md)).
+Cuando llegue uno:
+
+- aparece en **Ventas → Presupuestos** con estado **Pendiente** y con la columna **Operador** que dice
+  **«Tienda online (cliente)»**;
+- en la ficha del comprobante, al lado del estado, aparece el rótulo **«Creado desde la tienda por el cliente»**,
+  el Operador dice **«Tienda online (cliente)»** y aparece la **Nota del cliente** que escribió;
+- lo modificás, lo aceptás o lo copiás con los mismos botones de siempre. Un presupuesto **no se anula** (el
+  anulamiento solo existe para facturas confirmadas): queda pendiente hasta que lo aceptes o lo conviertas;
+- **no mueve stock ni registra cobros**: el presupuesto es solo una propuesta de precio.
+
+En **Actividad** figura con **Quién: Tienda online** y el detalle del presupuesto con su número y el cliente.
+
 ## Cambiar de tienda con un comprobante abierto
 
 Si con un comprobante abierto cambiás la tienda activa en la barra superior, el comprobante se cierra con el aviso «Cambiaste de tienda: cerramos el comprobante para no mezclar datos de dos tiendas.» No se pierde nada de lo ya guardado.

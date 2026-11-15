@@ -16,6 +16,10 @@ Hay dos formas de que llegue una:
 - **Formulario**: la persona completó el formulario de contacto de la tienda con su nombre, un dato de contacto y un mensaje.
 - **WhatsApp**: la persona tocó el botón de WhatsApp de un producto en la tienda. Queda registrado el producto que le interesaba, aunque no haya dejado mensaje.
 
+Y una tercera, que **todavía no está habilitada** en tu ambiente (ver [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md)):
+
+- **Pedido**: la persona armó una lista con varios productos y cantidades en la tienda y la mandó **sin pagar**. Queda registrada con los ítems del pedido, no con un solo producto.
+
 Las respuestas **se dan por fuera del sistema**, por correo o por WhatsApp. En Consultas solo registrás si ya fue atendida.
 
 ## Quién puede hacerlo
@@ -45,8 +49,8 @@ Cada fila es una consulta, de la más nueva a la más vieja. La lista carga de a
 | **Cuándo** | Día y hora en que llegó. |
 | **Empresa** | La tienda a la que le escribieron. |
 | **Contacto** | El nombre (hacé clic para abrir la consulta) y su correo o teléfono. |
-| **Producto** | El producto de interés, o «Sin producto». |
-| **Origen** | Formulario o WhatsApp. |
+| **Producto** | El producto de interés, o «Sin producto». En un pedido, «Pedido de N productos». |
+| **Origen** | Formulario, WhatsApp o Pedido. |
 
 ## Filtrar y buscar
 
@@ -103,6 +107,41 @@ Las respuestas rápidas no envían nada: solo arman el mensaje que abrís en tu 
 ### Sumar la consulta a la libreta de contactos
 
 En el detalle de la consulta podés guardar a la persona en la libreta de **Contactos**. Si todavía no está, aparece **Crear contacto**; si ya está vinculada, aparece **Contacto en la libreta** con un enlace a su ficha. El formulario trae el nombre y el contacto de la consulta, y al guardar la consulta queda vinculada. Ver [Contactos](contactos.md#crear-un-contacto).
+
+### Atender un pedido de la tienda
+
+Un pedido se atiende igual que cualquier otra consulta (mismos estados, mismo responsable, misma nota
+interna). Lo que cambia es el detalle:
+
+- En lugar del bloque «Producto de interés», aparece el bloque **Pedido**, con una tabla de **Producto · SKU ·
+  Cantidad · Precio de referencia · Subtotal** y el **Total de referencia**. En el celular, cada línea es una
+  tarjeta.
+- Debajo dice: «Precios de referencia calculados al enviar, tal como los vio la persona en la tienda.
+  Confirmalos al responder.»
+- El mensaje que escribió la persona se llama **Nota de la persona** (si no escribió nada, dice «Sin nota»).
+- Si la persona tenía cuenta en la tienda, aparece la fila **Cliente** con su número y su nombre.
+
+El botón **Responder por correo/WhatsApp** abre tu aplicación con un mensaje inicial que ya lista los ítems
+del pedido, para que no tengas que escribirlos de nuevo.
+
+**Los datos del pedido no se borran solos.** Todavía no está definido un plazo de conservación, así que ni las
+consultas, ni los ítems de un pedido se limpian automáticamente.
+
+### Quitar los datos personales de un pedido
+
+En el panel **no hay ninguna acción para borrar una consulta** y los pedidos tampoco se limpian solos. Para que
+no queden datos personales de una persona:
+
+1. Si la consulta está **vinculada a un contacto** de la libreta, abrí la ficha del contacto y hacé clic en
+   **Anonimizar**: se reemplazan el nombre, el contacto y el mensaje, y el contacto queda en solo lectura. Los
+   ítems del pedido se conservan (son productos, no datos de la persona). Ver
+   [Anonimizar un contacto](contactos.md#anonimizar-un-contacto).
+2. Si la consulta **no** está vinculada a ningún contacto, hoy no hay ninguna acción en el panel: hay que
+   pedir el borrado al equipo técnico, que lo hace sobre la base de datos (al borrarla se van también sus
+   ítems).
+
+Lo mismo corre para los presupuestos que se crean desde la tienda: no se purgan solos y su nota se borra con
+el comprobante.
 
 ## Avisos de consultas nuevas
 

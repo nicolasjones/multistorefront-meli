@@ -9,7 +9,7 @@ sources: []
 
 Cada empresa del negocio (por ejemplo, San Javucho y Mundo JC) tiene su propia tienda online, con su dirección web, su aspecto y sus precios. Esta guía te cuenta qué ve la gente cuando entra a una tienda y qué podés manejar vos desde el sistema: qué productos y categorías se publican, cuáles se destacan y cómo pausar la tienda.
 
-En las tiendas **no se puede comprar ni pagar**: el visitante mira el catálogo, consulta por WhatsApp o escribe un mensaje, y esas consultas te llegan a [Consultas](consultas.md).
+En las tiendas **no se puede comprar ni pagar**: el visitante mira el catálogo, consulta por WhatsApp o escribe un mensaje, y esas consultas te llegan a [Consultas](consultas.md). Hay una función nueva, todavía **apagada** en tu ambiente, para que el visitante arme una lista de pedido o pida un presupuesto sin pagar: ver [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md).
 
 ## Quién puede hacerlo
 
@@ -137,6 +137,7 @@ La disponibilidad que ve el visitante es solo «Disponible» o «Sin stock», se
 *El menú desplegado en el celular.*
 
 - Los clientes con cuenta pueden **Ingresar** y ver los precios que les corresponden. Ver [Cuenta web del cliente](cuenta-web-cliente.md).
+- Con la función de pedidos habilitada, el encabezado suma **Mi lista** y **Mi cuenta** (sus compras, presupuestos y favoritos de esa tienda). Ver [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md).
 - Si la tienda está pausada o todavía no tiene dirección web, se ve la página «Volvemos pronto».
 - Una dirección que no existe muestra «No encontramos esta página».
 - Cada tienda puede tener sus propias páginas de texto, medir visitas con Google Analytics y Meta Pixel, y ofrecer el botón **Compartir** en las fichas. Ver [Páginas propias, medición de visitas y botón Compartir](tienda-contenido-y-analitica.md).
@@ -222,4 +223,7 @@ En **Canales → Empresas → Editar** completá **WhatsApp**, **Correo**, **Ins
 | **¿Cambiar de empresa?** | Aparece si cambiás de tienda con cambios sin guardar: **Seguir acá** los conserva y **Cambiar igual** los descarta. |
 | **No se cambió el estado.** | No se pudo pausar o reactivar. Probá de nuevo con el botón **Reintentar**. |
 
-Por ahora las tiendas no tienen formas de envío ni carrito: no hay nada para configurar en ese sentido.
+Por ahora las tiendas no tienen formas de envío ni carrito: no hay nada para configurar en ese sentido. Hay una
+lista de pedido nueva que vive **en el navegador del visitante** (no se configura y no se guarda en el
+sistema), pero sigue sin haber forma de cobrar: ver
+[Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md).

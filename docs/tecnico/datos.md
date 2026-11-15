@@ -4196,3 +4196,145 @@ erDiagram
   (sin datos que conservar).
 
 
+## Tienda compra y cuentas (MSF-176)
+
+Tres tablas nuevas en `dominio` y dos alteradas, detrás de la bandera `tienda_pedidos`. Migraciones aditivas
+`20270320100000`–`20270320100500` (A), `20270321100000`–`20270321100500` (B1) y `20270322100000`–
+`20270322100700` (B2); la reversión está en el encabezado de cada una. Detalle de contratos, RPC y
+operación: [Tienda online: lista de pedido, presupuesto y «Mi cuenta»](tienda-compra-y-cuentas.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.favoritos_cliente` | **nueva** | Favoritos de una cuenta web por tienda: `id`, `organizacion_id`, `empresa_id`, `cuenta_cliente_id`, `producto_id`, `creado_en`; única `(cuenta_cliente_id, producto_id)`. RLS activada **sin políticas** y **sin privilegios** para `anon`, `authenticated` ni `public`: solo las RPC `publico.*` la tocan. |
+| `dominio.consulta_items` | **nueva** | Líneas de una consulta de pedido: `descripcion` y `sku` copiados del producto, `cantidad` (1 a 9.999) y `precio_referencia` calculado por el servidor. RLS por organización, empresa accesible y `consultas` ≥ lectura; `select` solo para `authenticated`. |
+| `dominio.presupuestos_tienda` | **nueva** | Vínculo entre un presupuesto y la cuenta que lo pidió desde la tienda: `id`, `organizacion_id`, `empresa_id`, `cuenta_cliente_id`, `cliente_id`, `comprobante_id`, `clave_envio`, `nota`, `creado_en`; únicas `(cuenta_cliente_id, clave_envio)` y `(comprobante_id)`. RLS por organización, empresa accesible y `ventas` ≥ lectura; `select` solo para `authenticated`. |
+| `dominio.consultas` | **alterada** | `origen` suma `pedido`; `cliente_id` nullable (FK compuesta a `public.clientes`) que fija solo el servidor con una cuenta activa; `consultas_mensaje_requerido` exime a `pedido`. |
+| `dominio.tienda_envios` | **alterada** | `origen` suma `pedido` y `presupuesto`: el cupo por visitante es el mismo del formulario y de WhatsApp. |
+| `public.cuentas_cliente` | existente | Identidad de la cuenta web (una por cliente y tienda). |
+| `public.clientes` | existente | Cliente (tipo, descuento, archivado). |
+| `public.clientes_empresas` | existente | Tiendas donde el cliente está habilitado. |
+| `dominio.empresas` / `dominio.tiendas` | existentes | Empresa de la tienda y su dominio (de ahí sale la empresa). |
+| `dominio.productos` | existente | Catálogo. |
+| `dominio.comprobantes_venta` | existente | Cabecera del presupuesto (canal `tienda_online`, `operador_id` nulo). |
+| `dominio.comprobantes_venta_lineas` | existente | Líneas del presupuesto (con `precio_referencia` y `promocion_id` de MSF-816). |
+| `dominio.comprobantes_venta_numeracion` | existente | Contador correlativo por empresa y tipo. |
+| `dominio.depositos` | existente | Depósito por defecto que vende la tienda. |
+| `dominio.promociones_precio` | existente | Promoción vigente que lee el cálculo de precio. |
+| `public.registro_actividad` | existente | Auditoría (evento `presupuesto.creado_desde_tienda`, actor nulo). |
+| `public.banderas_plataforma` | existente | Bandera `tienda_pedidos` (fila nueva, apagada por defecto). |
+
+```mermaid
+erDiagram
+  EMPRESAS ||--|| TIENDAS : "dominio de la tienda"
+  EMPRESAS ||--o{ CUENTAS_CLIENTE : "una por cliente y tienda"
+  CLIENTES ||--o{ CUENTAS_CLIENTE : "tiene"
+  CLIENTES ||--o{ CLIENTES_EMPRESAS : "habilitado en"
+  EMPRESAS ||--o{ CLIENTES_EMPRESAS : "habilita"
+  CUENTAS_CLIENTE ||--o{ FAVORITOS_CLIENTE : "guarda"
+  PRODUCTOS ||--o{ FAVORITOS_CLIENTE : "es favorito de"
+  EMPRESAS ||--o{ CONSULTAS : "recibe"
+  CLIENTES |o--o{ CONSULTAS : "pidio (si hay cuenta activa)"
+  CONSULTAS ||--o{ CONSULTA_ITEMS : "tiene lineas"
+  PRODUCTOS |o--o{ CONSULTA_ITEMS : "copia del producto"
+  EMPRESAS ||--o{ TIENDA_ENVIOS : "limite por visitante"
+  EMPRESAS ||--o{ COMPROBANTES_VENTA : "emite"
+  CLIENTES ||--o{ COMPROBANTES_VENTA : "a nombre de"
+  COMPROBANTES_VENTA ||--o{ COMPROBANTES_VENTA_LINEAS : "tiene"
+  PRODUCTOS ||--o{ COMPROBANTES_VENTA_LINEAS : "se vende"
+  DEPOSITOS ||--o{ COMPROBANTES_VENTA_LINEAS : "sale de"
+  CUENTAS_CLIENTE ||--o{ PRESUPUESTOS_TIENDA : "pidio desde la tienda"
+  COMPROBANTES_VENTA ||--|| PRESUPUESTOS_TIENDA : "vinculo 1 a 1"
+
+  FAVORITOS_CLIENTE { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cuenta_cliente_id FK
+    uuid producto_id FK
+    timestamptz creado_en }
+  CONSULTA_ITEMS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid consulta_id FK
+    int orden
+    uuid producto_id FK "on delete set null"
+    text descripcion "copia del nombre"
+    text sku
+    int cantidad "1 a 9999"
+    numeric precio_referencia "lo calcula el servidor" }
+  PRESUPUESTOS_TIENDA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cuenta_cliente_id FK
+    uuid cliente_id FK
+    uuid comprobante_id FK "unico"
+    uuid clave_envio "unico con la cuenta"
+    text nota
+    timestamptz creado_en }
+  CONSULTAS { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text origen "formulario|whatsapp|pedido"
+    uuid cliente_id FK "nullable; lo fija el servidor"
+    text nombre
+    text contacto
+    text mensaje "opcional en pedido"
+    uuid producto_id FK }
+  TIENDA_ENVIOS { uuid id PK
+    uuid empresa_id FK
+    text visitante "hash de la IP"
+    uuid clave_envio
+    text origen "formulario|whatsapp|pedido|presupuesto" }
+  CUENTAS_CLIENTE { uuid id PK
+    uuid cliente_id FK
+    uuid empresa_id FK
+    uuid auth_user_id
+    text estado "activa|suspendida" }
+  CLIENTES { uuid id PK
+    uuid organizacion_id FK
+    text tipo
+    numeric descuento
+    timestamptz archivado_en }
+  CLIENTES_EMPRESAS { uuid cliente_id PK
+    uuid empresa_id PK
+    uuid organizacion_id FK }
+  EMPRESAS { uuid id PK
+    uuid organizacion_id FK
+    boolean activa }
+  TIENDAS { uuid id PK
+    uuid empresa_id FK
+    text dominio }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    boolean activo }
+  COMPROBANTES_VENTA { uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    uuid cliente_id FK
+    text tipo "presupuesto"
+    text estado "pendiente"
+    text canal "tienda_online"
+    uuid operador_id "nullable: nulo en los de la tienda"
+    date valido_hasta "nullable"
+    numeric total_con_iva }
+  COMPROBANTES_VENTA_LINEAS { uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    numeric precio_unitario
+    numeric precio_referencia
+    uuid promocion_id FK
+    uuid deposito_id FK }
+  DEPOSITOS { uuid id PK
+    boolean por_defecto
+    boolean activo }
+```
+
+- **Sin filas nuevas en `publico`**: el esquema `publico` sigue siendo **solo de funciones**. Las diez RPC
+  nuevas viven ahí y en `private`; la única vista nueva es `public.consulta_items_bandeja`
+  (`security_invoker`).
+- **La bandera** `tienda_pedidos` es una fila de `public.banderas_plataforma`, **apagada por defecto**; solo
+  se enciende en dev con `scripts/tienda-pedidos-dev.mjs`.
+- **Reversión**: `drop function` de cada RPC, `drop view public.consulta_items_bandeja`, `drop table` de las
+  tres tablas (exportando antes los datos personales) y `alter table dominio.consultas drop column cliente_id`;
+  los presupuestos ya creados son comprobantes de Ventas y **se anulan** con el flujo normal, no se borran.

@@ -379,9 +379,13 @@ pnpm --filter @platform/web test:e2e cuenta-web-cliente
   organización ni acceso. Su limpieza no está automatizada.
 - **Sin caché ni lote en el catálogo.** La ficha pide una vez por carga; las tarjetas no piden precios por
   producto. Un cambio de tipo o una suspensión se ven en la próxima carga, no en vivo.
-- **Fuera de alcance:** auto-registro, historial/favoritos (F-CLI-20/MSF-450), compra/carrito (MSF-176),
-  tipo «Distribuidor», selección automática de escala en ventas (F-VTA-06), cambio de correo/contraseña
-  desde la tienda más allá de definir/recuperar, y resolución del conflicto de roadmap.
+- **Fuera de alcance:** auto-registro, compra/carrito (checkout y pagos, MSF-176), tipo «Distribuidor»,
+  selección automática de escala en ventas (F-VTA-06), cambio de correo/contraseña desde la tienda más allá
+  de definir/recuperar, y resolución del conflicto de roadmap.
+- **Historial y favoritos ya no están fuera de alcance:** los entrega la historia A de **MSF-176**
+  («Mi cuenta» en la tienda, con las compras y presupuestos del cliente y sus productos guardados). Ver
+  [Tienda online: lista de pedido, presupuesto y «Mi cuenta»](tienda-compra-y-cuentas.md). Siguen siendo
+  privados del cliente: el operador del panel no los ve.
 - **E2E:** `cuenta-web-cliente.e2e.ts` necesita el stack local y datos sembrados; no forma parte de
   `pnpm test` ni del CI público (misma regla que el resto de los recorridos con sesión, ver
   [Suite E2E](../e2e-app.md)).

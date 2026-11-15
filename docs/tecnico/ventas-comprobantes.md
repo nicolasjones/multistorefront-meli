@@ -92,6 +92,31 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
 - Fuera de alcance (matriz de la spec): Exportar, Enviar por correo, Imprimir, Facturar, las demás pestañas
   de Ventas y el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
 
+### Presupuestos creados desde la tienda (MSF-176)
+
+La historia B2 de la épica **MSF-176** crea presupuestos **desde la tienda pública**, con la sesión de un
+cliente con cuenta y **sin** sesión de panel. El detalle de la épica está en
+[Tienda online: lista de pedido, presupuesto y «Mi cuenta»](tienda-compra-y-cuentas.md).
+
+- **Cómo se distinguen**: el origen se deriva del **vínculo real** en `dominio.presupuestos_tienda` (tabla
+  nueva, `dominio`, RLS por organización, empresa accesible y `ventas` ≥ lectura; `select` solo para
+  `authenticated`), no del canal ni de un operador nulo. Un presupuesto de panel con canal `tienda_online` y
+  operador borrado **no** se rotula como de la tienda.
+- **Lo que ve el operador**: en **Ventas › Presupuestos** la columna Operador dice «Tienda online (cliente)»
+  (antes «Usuario sin nombre») y el estado es «Pendiente»; en la ficha del comprobante aparece el rótulo
+  «Creado desde la tienda por el cliente», el Operador «Tienda online (cliente)» y la **Nota del cliente**
+  (texto literal, guardada en `dominio.presupuestos_tienda.nota` porque los comprobantes no tienen dónde
+  guardarla). En **Actividad**, el evento `presupuesto.creado_desde_tienda` se rotula «Tienda online» en
+  «Quién» (los demás eventos sin actor siguen diciendo «Sistema»).
+- **Nace sin validez** (`valido_hasta` nulo) y **no se anula**: el flujo vigente solo anula facturas
+  confirmadas, así que queda `pendiente` hasta que el operador lo acepta, lo modifica o lo copia; hoy no hay
+  botón para convertirlo en factura.
+- **No mueve stock ni registra cobros**: la función de creación solo inserta comprobante, líneas, vínculo y
+  actividad; lo comprueba el pgTAP de la épica contando filas antes y después.
+- **Numeración**: `private.siguiente_numero_comprobante_org` (organización explícita, el mismo
+  `insert … on conflict` atómico que el panel); si la creación falla, el contador no queda consumido.
+- **Revisión de seguridad**: `docs/seguridad-tienda-compra-y-cuentas.md`, en la rama de la épica.
+
 ## Modelo de datos
 
 Esquema (Principio VII):

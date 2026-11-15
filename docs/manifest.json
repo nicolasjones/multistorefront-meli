@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "4be36313653ee2a2cf156d0f10f0f2a630011a422c8d3da5411e7f9a776bfacb",
+      "pageHash": "7b70194d65a4ab1f8450112cdb4d1372de650fe1b29ed138d4089e8ca3a37b40",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "120002d7"
+      "commit": "9dc6f30d"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -536,7 +536,7 @@
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
-      "pageHash": "fbea896641c08005ebd7edc47d42fa949165bd8ef7a769f194bf603b71e0b3df",
+      "pageHash": "e56b2b287e4fe9334f8380cbd36fd45abe2567bc52d2ef55a4e2a3bce5e3166a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -567,21 +567,21 @@
     },
     "docs/producto/cuenta-web-cliente.md": {
       "title": "La cuenta web de un cliente",
-      "pageHash": "dd8ca82df13f55bc1b3f9356ba4aae7e4f5ea87d1171522b37a09ada4705d879",
+      "pageHash": "949bccad741796bff89479cc7c83abe052bd67fbf0f5bed38411f9fca0b4a3d8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "a8db4308"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
-      "pageHash": "c2171ec81fa32b1c0c964b056524ca5072298aeb2d4e63c6daba5707ef3fec21",
+      "pageHash": "76e960ff658e2ed23254387b922526225b3828ecef2927c16210a9d89722067a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "75ae10b7"
+      "commit": "f3ef1b96"
     },
     "docs/producto/importaciones.md": {
       "title": "Importaciones y exportaciones: seguir las cargas y descargas masivas",
@@ -862,6 +862,15 @@
       "owner": "producto",
       "commit": "53cb4c30"
     },
+    "docs/producto/tienda-compra-y-cuentas.md": {
+      "title": "Pedidos y presupuesto desde la tienda",
+      "pageHash": "b9030a91634cae8f7d9dd6a73ffa002566f838e4ec9b881e5cabe3666e4c6769",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/tienda-contenido-y-analitica.md": {
       "title": "Páginas propias, medición de visitas y botón Compartir",
       "pageHash": "1e21b2e4f4d5a4519e1760d1f5660df8f178ff2decff564eed464a0fb4433a3b",
@@ -900,12 +909,12 @@
     },
     "docs/producto/tiendas-online.md": {
       "title": "Las tiendas online de tu negocio",
-      "pageHash": "9d7f5852fa0a637e91ffe714d91fdbadf3c49bf5d9a09b44f19a66ced9b6a157",
+      "pageHash": "7907ef71cafcf1a56594018d7977c8f3d276c4b9274383d38e50f5c8b935f571",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4b780ed7"
+      "commit": "535285ea"
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
@@ -958,7 +967,7 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
-      "pageHash": "b3509074b64b1810f65090b13f0eb14e3f0dd5586b46ee96d14a11f979744989",
+      "pageHash": "70c0b0d90ba3345be4bb3d4bdbadb09393b1b853099bf400763004e49ab86e84",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1488,9 +1497,9 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "b7c63121a87aefed7fff692c74f691fc6038747e1dc74357b414cb1ea3d600fa",
+      "pageHash": "07d96fc73cd0279ae3b34079e420113aa308a74e17bf0627dc45bb3f3a397296",
       "sourceHash": "07d627d6858a12a7a80d0eb53cd50ba73a0536687f18e7ea3ee54c738378873a",
-      "sourceAt": "9d91048c",
+      "sourceAt": "57ad76da",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
@@ -1543,9 +1552,9 @@
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "eeb88ce8602bb16a5cd45d06ad8f7507602dfcef09705363347f5382b9fe8af7",
-      "sourceHash": "41e8d948024b0af7f23386cd253ce2efeac07e03b5e22572da6c3011e7843306",
-      "sourceAt": "12eadc3",
+      "pageHash": "920fcbf5f3d2a9fb71b2cbcfcb072e446074829919aa9561bb1627dea99b8e2a",
+      "sourceHash": "06d6eef9de5444d55b29f9d04fc8ebfa456856d615a16f21eb36e31b99d5f387",
+      "sourceAt": "57ad76da",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -1554,7 +1563,7 @@
         "supabase/config.toml"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "e9be622d"
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
@@ -1571,14 +1580,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "bc385de86761fdd13efe5561def1d200003b600ce239739e0e2548ae9bd43e88",
+      "pageHash": "f16cb083bf030bfccd2c1301546499a09999a0d770cffceb728754dff6b61320",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "55f4b030",
+      "sourceAt": "57ad76da",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "120002d7"
+      "commit": "9dc6f30d"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1817,16 +1826,16 @@
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
-      "pageHash": "c3712c7b6263838d53b1e8c12779f6e82b98143c75ecd0d1e93fc4d9a8b2f78c",
+      "pageHash": "2fbb05795cd4776bc67e91bb110f2596e8d56c73333fbfa91da5620bcfbf8b8b",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "394208c5",
+      "sourceAt": "57ad76da",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "514dd9e7"
+      "commit": "f3ef1b96"
     },
     "docs/tecnico/precios-masivos-y-promociones.md": {
       "title": "Precios masivos y promociones",
@@ -2127,6 +2136,19 @@
       "owner": "tecnico",
       "commit": "4b780ed7"
     },
+    "docs/tecnico/tienda-compra-y-cuentas.md": {
+      "title": "Tienda online: lista de pedido, presupuesto y «Mi cuenta» (MSF-176)",
+      "pageHash": "e799a3ea5f580d9f2ac4ba02439b35240112fa7a83e6c74aad7c3745436773f9",
+      "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
+      "sourceAt": "57ad76da",
+      "sources": [
+        "specs",
+        "supabase/migrations",
+        "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
       "pageHash": "47e91500f094b54237a66ab62ace60a66eced0239451eee9c6d2a2b1c71b8053",
@@ -2317,9 +2339,9 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "6299e6b1b83dab467f66b6472e8a17aec13de52610c53e57163df8820462a238",
+      "pageHash": "61d12b0ea25c2e41b8fbb484c6ab69dfe48120672cb1019c487b43937b7650d0",
       "sourceHash": "ee94970c3742710dad97e17fd90ac14e518ad3ebaf8baf9d4309f57a547df80f",
-      "sourceAt": "9d91048c",
+      "sourceAt": "57ad76da",
       "sources": [
         "specs",
         "supabase/migrations",

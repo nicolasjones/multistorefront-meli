@@ -106,6 +106,10 @@ En la ficha también ves el **Correo de acceso** y el **Último ingreso** del cl
 
 Quien no tiene cuenta, o la tiene suspendida, sigue viendo los precios públicos de la tienda. La tienda no cobra ni tiene carrito: la cuenta sirve para ver los precios que le corresponden.
 
+Cuando la función de pedidos esté habilitada (hoy está **apagada**), el cliente que tiene cuenta activa además
+ve **Mi cuenta** en el encabezado de la tienda: ahí están sus compras y presupuestos de esa tienda y sus
+productos guardados como favoritos. Ver [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md).
+
 ## Casos comunes
 
 - **Un cliente dice que no puede ingresar.** Revisá en su ficha que esté **Habilitado en la tienda**, que la cuenta esté **Activa** (no **Suspendida**) y que el correo de acceso sea el que usa. Si dudás, usá **Restablecer clave**.
@@ -123,4 +127,6 @@ Quien no tiene cuenta, o la tiene suspendida, sigue viendo los precios públicos
 | **No pudimos completar la operación.** | Probá de nuevo. Si el correo ya está en uso por un usuario del sistema, la invitación no se puede enviar: usá otro correo. |
 | **Cliente creado · no se pudo crear la cuenta web en N tiendas** | El cliente quedó guardado pero falló la cuenta. Abrí su ficha y usá **Crear cuenta web** en esa tienda. |
 
-Por ahora, el cliente no puede ver su historial de compras ni cambiar su correo desde la tienda.
+Por ahora, el cliente no puede cambiar su correo desde la tienda. Con la función de pedidos habilitada puede
+ver su historial de compras y presupuestos de esa tienda y guardar favoritos, pero **no** puede comprar ni
+pagar: el pedido y el presupuesto se coordinan con vos por fuera del sistema.
