@@ -13,9 +13,11 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import HistoryIcon from '@mui/icons-material/History'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
 import LocalOfferIcon from '@mui/icons-material/LocalOffer'
+import SellIcon from '@mui/icons-material/Sell'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
@@ -88,6 +90,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
       // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
       { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-PRE-14 (MSF-442): listas de precios (porcentaje sobre el precio central); solo las administra el Administrador (carga diferida en App.tsx).
+      { id: 'listas-precios', etiqueta: 'Listas de precios', ruta: '/productos/listas-de-precios', icono: SellIcon, audiencia: 'administrador', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },
@@ -99,6 +103,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-ingresos', etiqueta: 'Ingreso de mercadería', ruta: '/stock/ingresos', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-depositos', etiqueta: 'Depósitos de mercadería', ruta: '/stock/depositos', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      // F-PRV-09: pedidos de mercadería a proveedor (salen del listado de reposición de Stock).
+      { id: 'stock-ordenes-compra', etiqueta: 'Órdenes de compra', ruta: '/stock/ordenes-compra', icono: ShoppingCartIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {

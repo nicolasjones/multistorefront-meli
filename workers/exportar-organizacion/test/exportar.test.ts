@@ -33,6 +33,7 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
   const errores: unknown[][] = [];
   const pedidos: unknown[][] = [];
   const limpiezas: string[][] = [];
+  const borrados: string[] = [];
   const puertos: Puertos = {
     enCurso: async () => true,
     datos: async () => ({ organizacion_id: ORG, proceso_id: PROCESO, conjuntos: conjuntos.length }),
@@ -47,12 +48,13 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
     cerrarProceso: async (...args) => { cierresProceso.push(args); },
     abrirZip: () => crearEscritorZip({ directorio }),
     subir: async (archivo, destino) => { subidas.push({ destino, zip: new Uint8Array(readFileSync(archivo.ruta)) }); },
+    borrar: async (destino) => { borrados.push(destino); },
     limpiarAnteriores: async (carpeta, conservar) => { limpiezas.push([carpeta, conservar]); },
     cerrarEjecucion: async (...args) => { cierresEjecucion.push(args); },
     evento: () => {},
     ...sobre,
   };
-  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas };
+  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas, borrados };
 }
 
 // strFromU8 descarta el BOM: se decodifica conservándolo para verificarlo.
@@ -159,6 +161,40 @@ describe('cancelación (FR-034, SC-005)', () => {
     expect(t.subidas).toHaveLength(0);
     expect(t.cierresProceso[0].slice(1, 2)).toEqual(['cancelado']);
     expect(readdirSync(directorio)).toEqual([]);
+  });
+});
+
+describe('cancelación posterior a la subida', () => {
+  it('borra el ZIP subido, cierra cancelado y no hace la retención', async () => {
+    // 2 conjuntos: 2 consultas durante la lectura (antes de cada conjunto); la 3.ª es la posterior a la subida.
+    let consultas = 0;
+    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+      cancelado: async () => { consultas += 1; return consultas >= 3; },
+    });
+    const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
+    expect(s.codigo).toBe(0);
+    expect(t.subidas).toHaveLength(1);
+    expect(t.borrados).toEqual([DESTINO]);
+    expect(t.limpiezas).toHaveLength(0);
+    expect(t.cierresProceso).toEqual([[PROCESO, 'cancelado', 'CANCELADA']]);
+    expect(t.cierresEjecucion[0].slice(0, 2)).toEqual([EJEC, 'exitosa']);
+  });
+
+  it('si no se puede borrar el ZIP propaga el error para que el flow reintente', async () => {
+    let consultas = 0;
+    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+      cancelado: async () => { consultas += 1; return consultas >= 3; },
+      borrar: async () => { throw new Error('BORRADO_FALLIDO:500'); },
+    });
+    await expect(exportarOrganizacion(EJEC, ORG, t.puertos)).rejects.toThrow('BORRADO_CANCELADA_FALLIDO');
+    expect(t.cierresProceso).toHaveLength(0);
+  });
+
+  it('el LEEME documenta el apóstrofo de la neutralización de fórmulas', async () => {
+    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    await exportarOrganizacion(EJEC, ORG, t.puertos);
+    const leeme = strFromU8(unzipSync(t.subidas[0].zip)['LEEME.txt']);
+    expect(leeme).toContain('apóstrofo');
   });
 });
 

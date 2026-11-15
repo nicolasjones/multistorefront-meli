@@ -95,6 +95,7 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const PromocionesList = lazy(() => import('./pages/productos/promociones').then((modulo) => ({ default: modulo.PromocionesList })))
+const ListasPreciosList = lazy(() => import('./pages/productos/listas-de-precios').then((modulo) => ({ default: modulo.ListasPreciosList })))
 const PreciosMasivos = lazy(() => import('./pages/productos/precios-masivos').then((modulo) => ({ default: modulo.PreciosMasivos })))
 const ProductoCarga = lazy(() => import('./pages/productos/carga').then((modulo) => ({ default: modulo.ProductoCarga })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
@@ -113,6 +114,7 @@ const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modu
 const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
 const ContactoFicha = lazy(() => import('./pages/contactos/ficha').then((modulo) => ({ default: modulo.ContactoFicha })))
@@ -429,6 +431,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/productos/listas-de-precios"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ListasPreciosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/productos/precios-masivos"
                   element={
                     <RequiereOrganizacionActiva>
@@ -481,6 +491,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><IngresosMercaderia /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/ordenes-compra"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><OrdenesCompra /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

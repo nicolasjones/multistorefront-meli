@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   useEmpresasAccesibles: vi.fn(),
   guardar: vi.fn(),
   aplicarCuentaWeb: vi.fn(),
+  esAdministrador: vi.fn(),
+  asignarLista: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -19,8 +21,21 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
-vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdministrador(), isLoading: false }) }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useListasPreciosActivas', () => ({
+  useListasPreciosActivas: () => ({
+    listas: [{ id: 'l-1', nombre: 'Revendedores', descripcion: null, ajustePct: -20, archivadaEn: null, clientesAsignados: 0, actualizadoEn: 't' }],
+    cargando: false,
+    hayError: false,
+  }),
+}))
+vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/listasPrecios', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/listasPrecios')>()),
+  asignarListaPrecios: mocks.asignarLista,
+}))
+vi.mock('../../hooks/useBanderaListasPrecios', () => ({ useBanderaListasPrecios: () => ({ activa: true, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
   useEmpresasDeCliente: mocks.useEmpresasDeCliente,
   useGuardarEmpresasDeCliente: () => ({ guardar: mocks.guardar }),
@@ -66,6 +81,8 @@ describe('ClienteEdit', () => {
     mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
     mocks.aplicarCuentaWeb.mockResolvedValue({ creadas: 0, errores: 0 })
+    mocks.esAdministrador.mockReturnValue(false)
+    mocks.asignarLista.mockResolvedValue(undefined)
     conCliente({})
   })
 
@@ -119,5 +136,38 @@ describe('ClienteEdit', () => {
     expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1']))
+  })
+
+  it('el Administrador asigna la lista de precios por RPC (no por la tabla) antes de guardar la ficha', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.asignarLista).toHaveBeenCalledWith({}, 'c-1', 'l-1'))
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled())
+    expect(mocks.mutateAsync.mock.calls[0][0].values).not.toHaveProperty('lista_precio_id')
+    expect(mocks.asignarLista.mock.invocationCallOrder[0]).toBeLessThan(mocks.mutateAsync.mock.invocationCallOrder[0])
+  })
+
+  it('si la base rechaza la asignación no guarda la ficha y muestra el error', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    mocks.asignarLista.mockRejectedValue({ code: '55000', message: 'desactivadas' })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('No se guardó el cliente.')).toBeInTheDocument()
+    expect(mocks.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('quien no es Administrador ve la lista en solo lectura y nunca la asigna', async () => {
+    conCliente({ lista_precio_id: 'l-1' })
+    abrir()
+    expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled())
+    expect(mocks.asignarLista).not.toHaveBeenCalled()
   })
 })

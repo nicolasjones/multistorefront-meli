@@ -57,6 +57,24 @@ implementación sin documentación equivalente debe fallar.
   el archivo exista en el repo. `scripts/docs-check.mjs` rechaza ambos casos;
   las páginas de `exclude_docs` no se revisan porque se leen en GitHub.
 
+## Trampas conocidas del repo
+
+Cada una fue un fallo real de CI (2026-11-15). Detalle de los checks en `docs/pruebas.md` («Checks de trampas conocidas»).
+
+- Tabla nueva `dominio.<x>` sin `grant ... to service_role` en su migración: check `verificar-trampas-conocidas.mjs` (T1).
+- `:'variable'` de psql dentro de `$$ ... $$` en un pgTAP (no se interpola; usar `format('%L', ...)`): check `verificar-trampas-conocidas.mjs` (T2).
+- Nombre de `describe`/`it`/`test` con código `MSF-<n>`: cubierto por el guardián `apps/web/src/higieneReferenciasInternas.test.ts`.
+- Tabla nueva con `organizacion_id` fuera de `conjuntos_exportacion_total()`/`exclusiones_exportacion_total()`: check `verificar-trampas-conocidas.mjs` (T4).
+- E2E que escribe con la service key en una tabla sin grant a `service_role`: check `verificar-trampas-conocidas.mjs` (T5).
+- Migración con versión menor o igual a la máxima de `origin/dokploy`: check `verificar-migraciones.mjs --estricto`.
+- Un tipo nuevo de evento de Actividad debe declararse en el seed de `registro_inalterable.test.sql` (y marcarse no sensible si corresponde): sin check, criterio humano.
+- Pantalla nueva sin entrada de ayuda (`ayuda/contenidos/…`, `ayuda-cobertura`, `manual.test`) ni mapeo en `manualPorDestino.ts`: cubierto por tests de Vitest.
+- `ALTER TABLE` en un test tras escrituras con claves diferibles falla con «pending trigger events»: usar `set constraints all immediate`; sin check, criterio humano.
+- Los jobs E2E con sesión comparten el stack `ci-multistorefront-meli`: dos corridas manuales simultáneas se pisan; sin check, criterio humano.
+- Título de commit de más de 100 caracteres: lo rechaza commitlint en CI; sin check local.
+- Cada merge a `dokploy` deja conflictos en `docs/roadmap-template.md`, `package.json` y `docs/manifest.json` de los demás PR: resolver conservando ambos lados y regenerar con `pnpm docs:wiki:inventario` y `node scripts/docs-manifest.mjs`; sin check, criterio humano.
+- Docker publica puertos saltándose ufw (infra, no repo): sin check, criterio humano.
+
 ## Uso selectivo de skills
 
 - Carga una skill solo si la tarea coincide con su descripción; el catálogo no es un checklist ni se carga completo. Las skills orientan el trabajo, pero no reemplazan estas instrucciones ni autorizan cambios fuera del pedido.

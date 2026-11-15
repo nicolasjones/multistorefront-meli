@@ -201,13 +201,13 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
 | Permisos por empresa: asignar desde Usuarios, cambiar de empresa activa y nivel de edición resuelto | MSF-121 T022 | Escrito: `e2e/permisos-por-empresa.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). No hay pantalla de una sección por empresa (Ventas/Consultas) todavía: el nivel se comprueba sobre la respuesta de `permisos_actuales` que decide los botones de edición |
-| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker). Guía: `docs/inicio-y-alertas.md` |
+| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Ejecutado y en verde en el job `e2e-visible-sesion` del CI (corrida 43730923693, 2 tests, MSF-747): `service_role` no escribe `usuarios_empresas`, así que el Administrador sembrado asigna tiendas y roles con la RPC `asignar_empresas_usuario` con su propia sesión. Guía: `docs/inicio-y-alertas.md` |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
 | Actividad: detalle de un cambio de rol (Antes/Después) y de una baja con «—» del lado nuevo | MSF-170 (F-AUD-02) | Escrito: `e2e/actividad-detalle.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; el job `application` solo corre `acceso-publico`, así que no está verificado en el CI). Desvío: no se ejecutó (sin stack local). El E2E del acceso de soporte no se escribió: `service_role` no puede sembrar un superadmin |
 | Clientes: la ficha muestra el «Saldo deudor» y la tabla «Cuenta corriente» con los comprobantes con saldo (F-CLI-19) | MSF-451 T005 | Escrito: `e2e/cuenta-corriente-cliente.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; aborta si `SUPABASE_URL` no es local; el job `application` solo corre `acceso-publico`, así que **no está verificado en el CI**). Usa el cliente 9100 del seed. Cobertura en el CI: pgTAP `cuenta_corriente_cliente` y Vitest de `ComprasCliente` |
-| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Pendiente: fixtures por rol (seguimiento MSF-499); cubierto mientras tanto por Vitest (`pages/clientes`, `lib/exportarClientes`) y pgTAP |
+| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Escrito: `e2e/clientes-recorrido.e2e.ts` (Administrador: alta desde la UI, búsqueda por texto, exportación `.xlsx` cuyo contenido trae al cliente y evento `clientes.exportados` visible en Actividad; solo siembra organización, persona y rol, sin escritura directa en `clientes`). Evidencia: corrida verde del job `e2e-visible-sesion` (run 43731567956, job 132864939315). El job reserva ahora la ranura del stack (antes chocaba con `e2e-tienda` por nombre de contenedor en uso: corridas 43728936547 y 43730878020) |
 | Ingreso de mercadería: dos productos con costo → stock sube → historial → anular → stock vuelve a 0 y el ingreso queda anulado (SC-001…003) | MSF-219 T019 | Escrito: `e2e/ingresos-mercaderia.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Aborta si `SUPABASE_URL` no es local. |
 | Catálogo del ingreso de mercadería: con 501 productos el selector avisa «Hay más de 500 productos» y, al escribir, deja elegir el que queda fuera del tope (MSF-693) | MSF-693 BUG | Escrito: `e2e/ingresos-mercaderia-catalogo.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra 501 productos con la API admin y limpia al final. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local ni daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e ingresos-mercaderia-catalogo`. Guía: `docs/ingreso-de-mercaderia.md` |
 | Stock: entrada 10 → salida 4 → ajuste a 3 → stock 3 y tres filas en el historial; salida de 5 rechazada con «No hay stock suficiente» (SC-001) | MSF-136 T021 | Escrito: `e2e/stock-movimientos.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se pudo correr en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre a mano con `pnpm dev:supabase` antes del merge (T024) y aborta si `SUPABASE_URL` no es local. Seguimiento: MSF-499 |
@@ -758,29 +758,36 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
 ## Fixture compartido y corridas pendientes (lote MSF-879 / MSF-515)
 
 - **Fixture compartido (MSF-856).** `apps/web/e2e/soporte/fixtures.ts` (`rest`, `leer`, `borrar`, `altaUsuario`,
-  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` y
-  `tienda-publicacion` la adoptan y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
+  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` la adopta
+  (`tienda-publicacion` ya estaba en `dokploy`; este PR solo cambia el orden de lectura de la clave anónima) y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
   (`validate.yml`, `workflow_dispatch` con `e2e_sesion=true` y `e2e_archivos="service-cobro-avisos.e2e.ts tienda-publicacion.e2e.ts"`):
   run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido).
   - Hallazgos de la verificación: (1) el CI exporta la clave anónima como `VITE_SUPABASE_PUBLISHABLE_KEY` (se lee primero);
     (2) `service_role` NO tiene grant sobre varias tablas de `public` (`features`, `organizaciones_features`, `conexiones`,
     `clientes`, `capacidades_ejecucion`, `avisos_pendientes`, `procesos_masivos`...): la API REST responde 42501. Sin migración,
-    `service-cobro-avisos` siembra y lee esas tablas con `sql()` (Postgres directo, `E2E_PGPORT` o el puente `SUPABASE_DB_PORT`;
-    `pg` se carga del paquete del worker, como `ventas-impresion`).
+    `service-cobro-avisos` siembra y lee esas tablas con `sql()` (Postgres directo, puerto EXPLÍCITO: `E2E_PGPORT` o el puente `SUPABASE_DB_PORT`, sin default;
+    `pg` se carga del paquete del worker, como `ventas-impresion`). Siguen con copia propia `cuenta-web-cliente`, `exportacion-total`
+    e `importaciones-soporte`, y `service-cobro-avisos` conserva un `leerDominio` local (su esquema por defecto es `dominio`).
+  - **Límites de `sql()`:** corre como superusuario `postgres`, así que salta grants y RLS. Sirve solo para SEMBRAR, nunca para
+    VERIFICAR (una lectura ahí no prueba lo que ve un rol real) y no sirve para tablas protegidas de solo lectura. La guarda
+    `validarDestinoSql` (probada en `e2e/soporte/fixtures.test.ts`) exige host local, puerto explícito, base y usuario `postgres`.
   - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
     `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
     tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
     job `132881521943`), causa sin diagnosticar; no están verdes, así que se revirtió la migración. `productos-create-permisos` y
     `notificaciones` fallan en CI por el mismo grant ausente (`conexiones`, `avisos_pendientes`; run `43735017948`), ya antes de este cambio.
+    Seguimiento: MSF-964 (`cuenta-web-cliente`), MSF-965 (`exportacion-total`/`importaciones`/`importaciones-a11y`), MSF-966
+    (grants de `service_role`: migración vs `sql()`, decisión de Nicolás).
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
-- **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: `inicio.e2e.ts` (tres
-  roles y cambio de empresa, MSF-747), y los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
-  permisos, Empresas, editar la organización, Clientes alta/búsqueda/exportación SC-001, Catálogo SC-001/SC-006). No se
-  escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
-  firmada.
+- **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
+  cobertura: usuarios, matriz de permisos, Empresas, editar la organización y Catálogo SC-001/SC-006. Los de Inicio
+  (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en
+  verde. Los pendientes requieren specs nuevos y la corrida firmada por `e2e_sesion`.
 
 
 ## Perfiles de prueba: los crea la propia persona, no `service_role`
 
 `service_role` tiene permisos mínimos por tabla y ninguna migración le concede `insert` sobre `public.perfiles_usuario`. Un spec que necesite un perfil (por ejemplo `permisos-por-empresa.e2e.ts`, que lo usa para que el listado de Usuarios muestre el nombre) inicia sesión como esa persona y lo inserta con su token, que es lo que permite la política `perfiles_usuario_insert_titular`. No se amplían permisos de `service_role` para los E2E. La clave anónima sale de `VITE_SUPABASE_PUBLISHABLE_KEY` (la que exporta el CI), con `SUPABASE_ANON_KEY` y `VITE_SUPABASE_ANON_KEY` como alternativas locales.
+
+Nota de CI: el filtro `e2e_archivos=inicio.e2e.ts` también coincide con `tienda-inicio.e2e.ts`; para correr solo el de Inicio se pasa `e2e/inicio.e2e.ts`. El stack de CI es único por ranura: dos corridas simultáneas se pisan el reset de la base (síntomas: `relation ... does not exist` o `permission denied for schema dominio`); se reintenta con una sola corrida activa.

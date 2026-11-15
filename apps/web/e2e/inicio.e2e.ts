@@ -22,6 +22,31 @@ async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   return (await r.json()) as T
 }
 
+const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+
+// `service_role` no tiene permisos sobre `usuarios_empresas` (su único camino de escritura es la RPC del Administrador):
+// el Administrador sembrado asigna las tiendas y los roles por tienda con su propia sesión.
+async function asignarEmpresasComoAdministrador(
+  correoAdmin: string,
+  usuarioId: string,
+  asignaciones: { empresa_id: string; rol_id: string }[],
+) {
+  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: correoAdmin, password }),
+  })
+  if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
+  const { access_token: token } = (await sesion.json()) as { access_token: string }
+  const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
+  })
+  if (!r.ok) throw new Error(`RPC asignar_empresas_usuario: ${r.status} ${await r.text()}`)
+}
+
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await escribir(page, page.getByLabel('Correo'), correo)
@@ -88,20 +113,16 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     { user_id: ids.mostrador, organizacion_id: org.id, rol_id: 'mostrador' },
     { user_id: ids.empresa, organizacion_id: org.id, rol_id: 'consulta' },
   ])
-  await rest('usuarios_empresas', [
-    { user_id: ids.consulta, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'consulta' },
-    { user_id: ids.mostrador, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'mostrador' },
-    // La misma persona con roles distintos en cada tienda: al cambiar de empresa activa cambia lo que ve.
-    { user_id: ids.empresa, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'mostrador' },
-    { user_id: ids.empresa, empresa_id: empresaB.id, organizacion_id: org.id, rol_id: 'operador' },
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.consulta, [{ empresa_id: empresaA.id, rol_id: 'consulta' }])
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.mostrador, [{ empresa_id: empresaA.id, rol_id: 'mostrador' }])
+  // La misma persona con roles distintos en cada tienda: al cambiar de empresa activa cambia lo que ve.
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.empresa, [
+    { empresa_id: empresaA.id, rol_id: 'mostrador' },
+    { empresa_id: empresaB.id, rol_id: 'operador' },
   ])
-  // Empresa activa de cada persona: la A, para que el estado inicial sea determinista.
-  await rest('usuario_empresa_activa', [
-    { user_id: ids.administrador, empresa_id: empresaA.id },
-    { user_id: ids.consulta, empresa_id: empresaA.id },
-    { user_id: ids.mostrador, empresa_id: empresaA.id },
-    { user_id: ids.empresa, empresa_id: empresaA.id },
-  ])
+  // Empresa activa del Administrador (sin filas por empresa): la A, para que el estado inicial sea determinista. Las demás
+  // personas quedan con la primera tienda por orden alfabético (la A), que fija la propia asignación.
+  await rest('usuario_empresa_activa', [{ user_id: ids.administrador, empresa_id: empresaA.id }])
 
   // Productos: uno sin stock y otro con stock bajo (alimentan la tarjeta «Stock hoy» y sus alertas).
   const [sinStock, stockBajo] = await rest<{ id: string }>(
@@ -146,7 +167,6 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 
 async function limpiar(datos: Sembrado) {
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
-  await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
   await borrar(`tiendas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
