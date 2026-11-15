@@ -35,6 +35,8 @@ export interface Puertos {
   abrirZip(): EscritorZip;
   /** Sube el ZIP al bucket privado (idempotente: misma ruta con upsert). */
   subir(archivo: ArchivoZip, destino: string): Promise<void>;
+  /** Borra el ZIP recién subido (cancelación posterior a la subida). */
+  borrar(destino: string): Promise<void>;
   /** Borra los ZIP anteriores de la organización (misma carpeta), conservando `conservar`. */
   limpiarAnteriores(carpeta: string, conservar: string): Promise<void>;
   cerrarEjecucion(ejecucionId: string, estado: 'exitosa' | 'fallida', motivo: string, detalle: Record<string, unknown>): Promise<void>;
@@ -58,6 +60,8 @@ function leeme(conjuntos: { nombre: string; filas: number; error: boolean }[], g
     '',
     'Cada archivo .csv trae un conjunto de datos (carpeta = esquema). Separador «;», codificación UTF-8.',
     'No incluye credenciales, tokens ni datos de autenticación.',
+    'Los textos que empiezan con = + - @ llevan un apóstrofo delante (protección contra fórmulas en hojas de cálculo):',
+    'al reimportar, quitelo (por ejemplo en un teléfono «\'+54911…»). Los números se escriben tal como los entrega la base.',
     '',
     'Conjuntos y cantidad de filas:',
     ...conjuntos.map((c) => `- ${c.nombre}: ${c.filas}${c.error ? ' (INCOMPLETO: no se pudo leer completo)' : ''}`),
@@ -176,6 +180,20 @@ export async function exportarOrganizacion(ejecucionId: string, organizacionId: 
   } finally {
     // El archivo temporal sale siempre del disco, suba bien o mal.
     zip.descartar();
+  }
+
+  // Si la persona canceló mientras se subía, el ZIP con datos personales no debe quedar publicado.
+  if (await puertos.cancelado(procesoId)) {
+    try {
+      await puertos.borrar(destino);
+    } catch {
+      puertos.evento('subida', 'fallida', 'No se pudo borrar el ZIP de una exportación cancelada');
+      throw new Error('BORRADO_CANCELADA_FALLIDO');
+    }
+    puertos.evento('subida', 'fallida', 'Cancelada por la persona que la pidió');
+    await puertos.cerrarProceso(procesoId, 'cancelado', 'CANCELADA');
+    await puertos.cerrarEjecucion(ejecucionId, 'exitosa', 'CANCELADA', { conjuntos: total, errores });
+    return { codigo: SALIDA_OK };
   }
 
   // Retención (FR-037): solo queda el último ZIP de la organización. Mejor esfuerzo: si la limpieza falla, la
