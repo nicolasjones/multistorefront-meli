@@ -75,6 +75,8 @@ revoke execute on function private.texto_busqueda_cliente(text, text, text, text
 -- Las RPC que filtran por el ayudante son `security invoker` (heredan la RLS de `clientes`): el ejecutor
 -- necesita el privilegio. El ayudante no lee datos: solo junta los valores que le pasa quien llama.
 grant execute on function private.texto_busqueda_cliente(text, text, text, text, text, text, text, integer) to authenticated;
+-- El índice de búsqueda la evalúa con el rol que escribe (service_role en E2E, siembra y workers).
+grant execute on function private.texto_busqueda_cliente(text, text, text, text, text, text, text, integer) to service_role;
 
 -- ============================================================================
 -- 2. La búsqueda: mismo texto que la exportación

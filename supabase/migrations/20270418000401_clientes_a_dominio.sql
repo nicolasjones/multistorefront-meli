@@ -46,6 +46,11 @@
 
 alter table public.clientes set schema dominio;
 
+-- Convención de `dominio` (test service_role_privilegios): una tabla operativa le da a service_role
+-- lectura/escritura completa y NADA más (en `public` tenía otros privilegios que viajaron con la tabla).
+revoke all on table dominio.clientes from service_role;
+grant select, insert, update, delete on table dominio.clientes to service_role;
+
 -- ============================================================================
 -- 2. Barrido de las funciones que nombraban la tabla en `public`
 -- ============================================================================
