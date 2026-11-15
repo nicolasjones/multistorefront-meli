@@ -98,7 +98,7 @@ export function FormularioSuscripcion({ host }: { host: string }) {
         <Box component="form" noValidate onSubmit={(evento) => void enviar(evento)} sx={{ mt: 1 }}>
           <Typography sx={{ fontSize: 14, mb: 1 /* estilos-sueltos: ok */ }}>Recibí las novedades de {tienda} por correo.</Typography>
           {/* Campo trampa (honeypot): fuera de pantalla y del orden de tabulación; una persona no lo completa. */}
-          <Box aria-hidden sx={{ position: 'absolute', left: '-10000px', width: 1, height: 1, overflow: 'hidden' /* estilos-sueltos: ok */ }}>
+          <Box aria-hidden sx={SOLO_LECTORES}>
             <label>
               No completar este campo
               <input name="sitio" tabIndex={-1} autoComplete="off" value={trampa} onChange={(evento) => setTrampa(evento.target.value)} />
