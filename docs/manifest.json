@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "f8ae8d0f078033e8ebf518ad97e71e238f000e4d41c583c4de258c0fbaa202d8",
-      "sourceHash": "4e1d301b203113e8ad3d9bae91695b3269537bc190eb0769a046cc1dd7c0256e",
-      "sourceAt": "202e8b34",
+      "pageHash": "d9cc74ca56461aec5968682912152893c056a0387abf723260d241b2d660b6c2",
+      "sourceHash": "92e949ca98f13960c6c6d2fb16155a29e1f9be1e1c4bfcad5ac8734da8683cd4",
+      "sourceAt": "32385127",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "202e8b34"
+      "commit": "32385127"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -3767,9 +3767,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "ef5995d2d8b17d009333512cd190396705efed99f91139999094bfecf8026ef1",
+      "pageHash": "dab2759c9b4ace868690794e5943397090e41e51754a62dea5f2a2ba9da644dc",
       "sourceHash": "b1715cf6e3786ac2ba8c655131deae352f3567af59eb2d72f3982229a33243f0",
-      "sourceAt": "f08925dd",
+      "sourceAt": "32385127",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3781,13 +3781,13 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "f08925dd"
+      "commit": "32385127"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
-      "pageHash": "8556a753c6b336701c796724f729fff7299e4af4a5ab86be09afb1c4353e3e48",
-      "sourceHash": "4bfd85dee4d752fc2576959cefd6692bc898808370de0e88ab4f66d79a48f33a",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "efabcfa48c7d76ed6be735c454232c390b2bcfd6c51ae1789301bea599cd9094",
+      "sourceHash": "e195b476ddd8867f93e6ab0cdc833cf65c8c6ca6e74274410e3177a3ba56e88a",
+      "sourceAt": "32385127",
       "sources": [
         "specs/20261024-130000-ventas-despacho-y-faltantes",
         "apps/web/src/components/ventas/EnvioTransporte.tsx",
@@ -3799,7 +3799,7 @@
         "supabase/migrations/20270112100600_despacho_responsables_acceso_ventas.sql"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "32385127"
     },
     "docs/ventas-estados-comprobante.md": {
       "title": "Ventas · Estados del comprobante y de cobro (F-VTA-10)",
@@ -3933,16 +3933,16 @@
     },
     "docs/ventas-rma-devoluciones.md": {
       "title": "Ventas · Devoluciones (RMA)",
-      "pageHash": "1737c6af0b5f3fb759eaeb01464fb452c85f74bac1aac4d8b3c5b5c167ac4cbf",
+      "pageHash": "54d2867ac126041c43e864cc6f21b3399edcb0499da818c0acf66c63c75b20e3",
       "sourceHash": "1d0af0edb53df0732133498501ec78356186ab42326745868fd842d671496fad",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "32385127",
       "sources": [
         "specs/20261027-100000-ventas-rma-devoluciones",
         "apps/web/src/lib/formasRma.ts",
         "design/pantallas/VentasDevoluciones.dc.html"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "32385127"
     },
     "docs/ventas-transportes.md": {
       "title": "Ventas · Transportes y terminales de retiro (F-VTA-04)",
