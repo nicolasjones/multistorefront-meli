@@ -108,6 +108,7 @@ nav:
           - Actualizar precios en bloque: producto/precios-masivos.md
           - Promociones de precio: producto/promociones.md
           - Rentabilidad: producto/rentabilidad.md
+          - Tableros analíticos y resumen semanal: producto/tableros-analiticos.md
       - Stock y compras:
           - "Stock: ver, mover y controlar": producto/stock-movimientos.md
           - Depósitos, traslados y reservas: producto/stock-depositos-y-reservas.md
@@ -264,6 +265,9 @@ nav:
           - Consultas: tecnico/consultas.md
           - Contactos y respuestas rápidas: tecnico/contactos.md
           - Rentabilidad: tecnico/rentabilidad.md
+          - "Analítica avanzada: galería de tableros (MSF-265)": tecnico/analitica-avanzada.md
+          - "Resumen semanal por correo (MSF-265)": tecnico/resumen-semanal-correo.md
+          - "Revisión de seguridad de la analítica avanzada (MSF-265)": tecnico/revision-seguridad-analitica-avanzada.md
           - Ranking de clientes: tecnico/ranking-de-clientes.md
           - Ranking avanzado de clientes: tecnico/ranking-avanzado-de-clientes.md
           - Correo masivo a clientes: tecnico/correo-masivo-a-clientes.md

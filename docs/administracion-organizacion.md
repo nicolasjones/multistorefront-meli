@@ -46,6 +46,15 @@ para `private.puede_escribir()`. Refine muestra el logo con URL firmada de 5 min
 la service-role en el navegador. Al guardar, la pantalla sube primero el archivo; si la RPC
 rechaza, borra el archivo huérfano, y si reemplaza o quita el logo borra el anterior.
 
+## Resumen semanal por correo (MSF-265)
+
+Épica **MSF-265** (spec `analitica-avanzada-y-resumen-por-correo`, rama `epic/MSF-265-analitica-y-resumen-por-correo`, pendiente de merge a `main`): «Mi organización» suma la sección **Resumen semanal por correo** (`apps/web/src/pages/organizacion/ResumenSemanal.tsx`): un interruptor que activa o pausa el correo que reciben los administradores cada lunes a las 08:00 (hora de Buenos Aires), el próximo envío y el estado del último resumen.
+
+- Lee con `estado_resumen_semanal()` y escribe con `configurar_resumen_semanal(p_activo)`; las dos exigen ser administrador de la organización de la sesión (`private.puede_escribir()`).
+- Un cambio real deja el evento `resumen_semanal.pausado` o `resumen_semanal.reanudado` en Actividad.
+- **Empresa activa: no aplica** (el resumen es de toda la organización).
+- Detalle del modelo, del flujo de envío y de la reversión: [Resumen semanal por correo](tecnico/resumen-semanal-correo.md).
+
 ## Reversión
 
 Migración aditiva. Revertir = `drop function public.actualizar_organizacion(text, text, text)`,

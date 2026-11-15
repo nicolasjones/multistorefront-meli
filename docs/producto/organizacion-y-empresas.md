@@ -30,6 +30,19 @@ Entrá a **Administración → Mi organización**.
 
 Hacé clic en **Guardar cambios**; vas a ver «Cambios guardados». Más abajo aparece la lista **Empresas de la organización**, con el estado de cada una (Activa o Pausada) y un enlace **Editar**.
 
+## Resumen semanal por correo
+
+Dentro de **Mi organización**, la sección **Resumen semanal por correo** controla el correo que reciben los administradores cada lunes a las 08:00 (hora de Buenos Aires) con las ventas, el margen, el stock en alerta y los faltantes de la semana anterior.
+
+- El interruptor **activa o pausa** el resumen para **toda la organización**. Pausado, no lo recibe ningún administrador.
+- Muestra el **próximo envío** (día y hora, y a cuántos administradores) y cómo terminó el **último resumen**: si se envió, si no se pudo enviar, si quedó a medio enviar, si no había administradores con correo, si estaba pausado o si no llegó a enviarse a tiempo. Si todavía no se envió ninguno, dice «Todavía no se envió ningún resumen».
+- Cada cambio queda registrado en [Actividad](actividad.md).
+- La baja personal, para dejar de recibirlo sin afectar a los demás, está en [Avisos por correo y listas configurables](avisos-y-listas.md).
+
+Solo el Administrador ve esta sección. No cambia los datos de las empresas ni la empresa activa. Cómo se ve el correo y qué tableros lo acompañan: [Tableros analíticos y resumen semanal](tableros-analiticos.md).
+
+<!-- TODO (dueño: documentación de producto): capturas de la sección «Resumen semanal por correo» de Mi organización (con el interruptor activo y pausado) en `docs/producto/img/organizacion-y-empresas/`. No se pudieron generar porque la herramienta de capturas del manual (`pnpm docs:capturas` y `pnpm demo:dataset`) no existe en este repo y el código de la épica todavía no está en `main`; ver la página técnica. -->
+
 ## Las empresas
 
 Entrá a **Canales → Empresas**. El listado muestra, por empresa: **Empresa** (con su estado Activa o Pausada), **Tienda web**, **Mercado Libre**, **Precio**, **Moneda** y **Productos visibles**. Lo que todavía no se configuró dice «Sin configurar».

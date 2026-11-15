@@ -13,13 +13,16 @@ Esta página tiene dos partes. La primera explica cómo cada persona elige qué 
 
 ### Qué avisos hay
 
-En **Avisos por correo** ves un interruptor por cada tipo de aviso que corresponde a las secciones a las que tenés acceso. Hoy el aviso disponible es:
+En **Avisos por correo** ves un interruptor por cada tipo de aviso que corresponde a las secciones a las que tenés acceso. Hoy los avisos disponibles son:
 
 | Aviso | Cuándo llega |
 |---|---|
 | **Consulta nueva** | Cuando una persona escribe desde una tienda online. Lo ven quienes tienen acceso a Consultas. Si entran varias seguidas, se juntan en un solo correo. |
+| **Resumen semanal de la organización** | Cada lunes a las 08:00, con las ventas, el margen, el stock en alerta y los faltantes de la semana anterior. Solo para administradores. |
 
 Mirá cómo se atienden en [Consultas](consultas.md).
+
+El **Resumen semanal** es un solo correo para toda la organización: si lo apagás acá, dejás de recibirlo vos y los demás administradores lo siguen recibiendo. Para pausarlo para todos, usá el interruptor de **Mi organización** ([Tableros analíticos y resumen semanal](tableros-analiticos.md)).
 
 Los mismos avisos que te llegan por correo los ves también en la **campanita** de la barra superior, sin esperar al
 correo: [La campanita de notificaciones](notificaciones.md). El interruptor de acá manda para los dos.

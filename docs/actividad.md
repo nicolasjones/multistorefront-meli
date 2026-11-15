@@ -170,6 +170,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
   (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
   [Service técnico: cobro, avisos y ficha del cliente (técnico)](tecnico/service-cobro-y-avisos.md).
+- `resumen_semanal.pausado` y `resumen_semanal.reanudado` (épica MSF-265, F-REP-08; etiquetas «Resumen semanal pausado»
+  y «Resumen semanal reanudado»): los registra `configurar_resumen_semanal` en la misma transacción, con el actor de
+  la sesión, **solo ante un cambio real** (repetir el mismo valor no suma otro evento). El detalle es «Pausó|Reanudó el
+  resumen semanal por correo»; no lleva datos del resumen. Lo cubre el pgTAP `resumen_semanal.test.sql`. Ver
+  [Resumen semanal por correo (técnico)](tecnico/resumen-semanal-correo.md).
 - No se reconstruye el historial anterior a la migración.
 
 ## Lectura

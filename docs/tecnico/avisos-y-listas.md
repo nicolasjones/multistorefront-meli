@@ -205,6 +205,20 @@ avisos por empresa (`dominio.consultas_configuracion`) no se usa en el camino nu
 - **Empresa activa:** no aplica. Las preferencias son de la persona y las listas de la organización; cambiar
   de empresa no recarga ni altera ninguna de las dos pantallas. Los tests lo verifican.
 
+## El tipo `resumen_semanal` (MSF-265)
+
+Épica **MSF-265** (spec `analitica-avanzada-y-resumen-por-correo`, rama
+`epic/MSF-265-analitica-y-resumen-por-correo`, pendiente de merge a `main`): el catálogo de tipos suma la fila
+`resumen_semanal` («Resumen semanal de la organización», sección `usuarios_permisos`) y el correo se apaga desde
+`/cuenta/avisos` como cualquier otro tipo.
+
+- El resumen semanal **no usa la cola `avisos_pendientes` ni el flow `enviar-avisos`**: es un correo por
+  organización (no por persona) con contenido propio, que sigue el patrón del resumen de reposición (Kestra → Edge
+  Function `enviar-resumen-semanal` → RPC de `service_role` → SMTP). Lo que sí reutiliza de MSF-189 es el catálogo
+  `tipos_aviso` y `preferencias_aviso` para la **baja personal**: sin fila de preferencia = recibe el resumen.
+- La pausa de toda la organización se hace en «Mi organización», no en esta pantalla.
+- Detalle: [Resumen semanal por correo](resumen-semanal-correo.md).
+
 ## Operación
 
 Variables del envío, solo en `.env` (nunca en Git):
@@ -234,8 +248,8 @@ Variables del envío, solo en `.env` (nunca en Git):
 - **Proveedor y remitente:** sin definir; sin SPF/DKIM los correos pueden caer en spam.
   `TODO (dueño: Operaciones)`.
 - **Ventana de 15 minutos:** pendiente de confirmar con el cliente. `TODO (dueño: Producto)`.
-- **Un solo tipo registrado:** `consulta_nueva`. Los demás componentes deben registrar los suyos en sus
-  migraciones (`insert into public.tipos_aviso …`).
+- **Dos tipos registrados:** `consulta_nueva` (MSF-189) y `resumen_semanal` (MSF-265). Los demás componentes deben
+  registrar los suyos en sus migraciones (`insert into public.tipos_aviso …`).
 - **Sin historial para el usuario ni reenvío desde la UI:** la cola se opera desde la base.
 - **Sin reordenamiento ni borrado de ítems:** se desactivan.
 - **Campanita:** la entrega en el panel (MSF-224, F-NOT-02) ya está: lee estas mismas filas y suma la columna

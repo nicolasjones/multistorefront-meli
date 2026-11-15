@@ -296,3 +296,26 @@ pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/vent
 - **Límites conocidos:** verificado contra los YAML y el test del importador, no contra un Superset real; las
   capturas de las dos pestañas quedan pendientes (`pnpm docs:capturas` no existe en esta rama).
 - Modelo, RPC y reversión: [Ventas · reportes (técnico)](tecnico/ventas-reportes.md#productos-mas-consultados-y-ventas-por-periodo-y-canal-msf-192).
+
+## Tableros de analítica avanzada (MSF-265)
+
+Épica **MSF-265**, spec `analitica-avanzada-y-resumen-por-correo` (rama
+`epic/MSF-265-analitica-y-resumen-por-correo`, pendiente de merge a `main`). Directorio
+`infra/superset/dashboards/analitica-avanzada/`: dos tableros nuevos —«Analítica · Ventas por tienda y categoría»
+(sección `reportes`, vista `analitica.ventas_empresa_categoria`) y «Analítica · Margen real por tienda, categoría y
+producto» (sección `rentabilidad`, vista `analitica.margen_real_categoria`)—, los dos con `filtro_empresa: true` y los
+filtros nativos `NATIVE_FILTER-rango`/`NATIVE_FILTER-empresa` que preselecciona la pantalla `/reportes/tableros`. Se
+importan con:
+
+```bash
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno staging
+pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno production
+```
+
+- El despliegue hace esos dos pasos por el workflow `.github/workflows/deploy-infraestructura-vps.yml`.
+- La migración `20270324100100` asigna los tableros a todas las organizaciones por el prefijo «Analítica · ».
+- El administrador **elige** entre tableros ya armados: no entra a Superset ni los edita, así que no cambia nada de la
+  regla de la spec 007.
+- **Límite conocido:** verificado contra los YAML y un Superset simulado, no contra un Superset real (seguimiento
+  **MSF-949**).
+- Modelo, token, aislamiento y reversión: [Analítica avanzada (técnico)](tecnico/analitica-avanzada.md).
