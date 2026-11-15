@@ -42,7 +42,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select count(*) from exportar_clientes('alf', 'minorista', false);
 reset role;
 select is((select count(*)::int from registro_actividad where tipo = 'clientes.exportados'
-  and detalle = 'Exportó 1 cliente a Excel (filtros: tipo minorista, texto «alf»)'), 1, 'el detalle lista los filtros');
+  and detalle = 'Exportó 1 cliente a Excel (filtros: tipo minorista, con texto)'), 1, 'el detalle lista los filtros sin el texto buscado');
 
 select pg_temp.como('d4000000-0000-0000-0000-000000000001');
 select throws_ok($$select * from exportar_clientes()$$, '42501', null, 'sin permiso: rechazado');

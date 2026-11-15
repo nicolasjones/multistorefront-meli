@@ -32,9 +32,9 @@ select isnt(private.visitante_publico('tienda.example.com'), private.visitante_p
 select set_config('request.headers', '{}', true);
 select is(
   private.visitante_publico('tienda.example.com'),
-  encode(extensions.hmac('desconocido|' || private.normalizar_host('tienda.example.com'),
+  encode(extensions.hmac('sin-ip|' || private.normalizar_host('tienda.example.com'),
                          (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
-  'sin x-forwarded-for todos caen en un único cupo «desconocido» (falla cerrada)');
+  'sin x-forwarded-for todos caen en un único cupo «sin-ip» (falla cerrada)');
 select is(
   has_function_privilege('anon', 'private.visitante_publico(text)', 'execute')
   or has_function_privilege('authenticated', 'private.visitante_publico(text)', 'execute'),

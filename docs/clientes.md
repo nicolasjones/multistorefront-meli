@@ -33,7 +33,7 @@ Ventas los use.
   cargar un cliente cada vez.
 - El cliente **se archiva, no se borra**: deja de verse en el listado pero conserva sus datos y sus
   comprobantes, y se puede restaurar.
-- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**. Cada exportación queda **registrada en la actividad** (evento `clientes.exportados`): quién, cuándo, cuántos clientes y con qué filtros (texto, tipo, archivados, tienda, «con cuenta web»). Se registra una vez por exportación, no por lote, y no se registra si no hay filas o si no tenías permiso.
+- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**. Cada exportación queda **registrada en la actividad** (evento `clientes.exportados`): quién, cuándo, cuántos clientes y con qué filtros (texto, tipo, archivados, tienda, «con cuenta web»). Una exportación paginada normal deja un solo evento (el primer lote declara el total). Toda llamada que devuelve filas cuenta, también las que continúan con cursor: si descargás filas que no estaban declaradas, queda un evento adicional «(continuación)». Dentro de una ventana de 10 minutos, por persona y filtros, el tope de 50000 filas se aplica sobre el acumulado. El texto buscado no se escribe en la actividad (solo «con texto»), porque puede ser un DNI, un correo o un teléfono. No se registra si no hay filas o si no tenías permiso.
 
 ## Para quién
 
@@ -191,9 +191,9 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
 - **Límites conocidos:** (1) la exportación se registra en la actividad una sola vez por exportación, en el primer lote con filas y con el total
-  de ese momento (evento `clientes.exportados`, migración `20270324110000`, MSF-508), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
+  de ese momento (evento `clientes.exportados`, migraciones `20270324110000` y `20270341000000`: desde esta última toda llamada con filas cuenta, ver más abajo), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
-  y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
+  de la exportación solo se cuenta en el primer lote (el tope de 50000 filas también rige, acumulado, sobre la ventana de 10 minutos), y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo
   borran, falla con `40001` y se reintenta.
 - **UX:** confirmación con el total, progreso, cancelación y error con «Reintentar».
@@ -560,7 +560,7 @@ Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y
 - **Cuenta web** (un usuario de Auth por cliente, D1): si los dos tienen cuenta web, queda una sola. Con las dos **activas** hay que indicar `p_cuenta_web_de` (de lo contrario se rechaza); si solo un lado tiene cuentas activas, prevalece ese. La no elegida se **elimina** (el usuario de Auth queda sin uso) y la tienda de la que se mantiene queda habilitada en el conservado.
 - **Campañas:** no existe tabla de campañas (MSF-155 sin entregar), así que `campanas_reasignadas` es siempre 0.
 - **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
-- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta.
+- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta: es una **regla vigente por decisión de diseño** (la lista del cliente descartado se pierde al fusionar), no un defecto pendiente; el diálogo avisa si las listas difieren.
 - **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
 - **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
 - Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.

@@ -2,8 +2,8 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **258**
-- Tablas en migraciones: **199**
+- Rutas del panel: **259**
+- Tablas en migraciones: **201**
 - Variables de entorno: **106**
 - Specs: **157**
 - Páginas de documentación: **321**
@@ -123,6 +123,7 @@
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/productos/listas-de-precios`
 - `/productos/precios-masivos`
 - `/productos/promociones`
 - `/proveedores/list`
@@ -341,6 +342,7 @@
 - `dominio.ingresos_mercaderia`
 - `dominio.ingresos_mercaderia_lineas`
 - `dominio.intereses_whatsapp`
+- `dominio.listas_precios`
 - `dominio.lotes_stock`
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
@@ -406,6 +408,7 @@
 - `mensajes_chat_ia`
 - `organizaciones`
 - `organizaciones_features`
+- `private.clientes_exportaciones_ventana`
 - `private.exportaciones_actividad`
 - `programacion_ejecucion`
 - `public.alertas_monitoreo`
