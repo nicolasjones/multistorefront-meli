@@ -920,6 +920,7 @@ reset role;
 select is((select v from res where k = 's3_precio'), '{"estado":"ok"}'::jsonb, 'S3: un precio fuera de rango no aborta el envío');
 select is((select precio_referencia from dominio.consulta_items i join dominio.consultas c on c.id = i.consulta_id where c.nombre = 'Pía'), null,
   'S3: el precio fuera de rango se guarda como null («precio a confirmar»)');
+set constraints all immediate;
 alter table dominio.productos drop constraint productos_nombre_check;
 alter table dominio.productos disable trigger user;
 update dominio.productos set nombre = '   ' where id = 'a1000000-0000-0000-0000-000000000010';

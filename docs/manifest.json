@@ -156,9 +156,9 @@
     },
     "docs/aislamiento-por-organizacion.md": {
       "title": "Aislamiento por organización",
-      "pageHash": "d00426fa0a80a3be7a61cf992e7148fcfcac3a09e046c588039bb3d6ca7de73a",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "c20bd6f68578206e38c09be4cdeccf03338e4eeea4a64d338d59dcdfff366737",
+      "sourceHash": "9b5537314e3dddab925dc088ca9fd2a27f1712de8f6d8e9dbf740e77002f4380",
+      "sourceAt": "f47ad9b7",
       "sources": [
         "specs"
       ],
@@ -383,9 +383,9 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "77d4f1c27c79dce5c5ac727a10729ad69fbebe16e7ee4b1568419c871d2ec2aa",
-      "sourceHash": "333c7ec98a051cdf31e81cc2c787c4d80fff7730e513a42f11ab2f83ee950a63",
-      "sourceAt": "00d5672c",
+      "pageHash": "19f163ddf22470e0d3ccef7db5a1ea2a380f7911c04b61124604e00c5e4c9bc8",
+      "sourceHash": "e62bc87b346526f19576d77efb8de7f7d2ebb063efc6da74990459861248dc2b",
+      "sourceAt": "c7860a7c",
       "sources": [
         "specs",
         "apps/web/src"
@@ -681,14 +681,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "c7127a6504ec587523afe9d5fa1b8dea5de9514b97f1d14831baf020f531764f",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "1fe04cf22bc7801161241d7dea53227221eac39c561f278a8ec3b964192f2c98",
+      "sourceHash": "45f259673c45534b074dce9a60f1aa454f6f9590297dc26a8313414d08c5caa2",
+      "sourceAt": "a778f20c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "a778f20c"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -786,9 +786,9 @@
     },
     "docs/inicio-y-alertas.md": {
       "title": "Inicio y alertas",
-      "pageHash": "1ed39499a9dd41b4b92b5acef3d9bccad2c58491c377204c5997647ab88ddfd2",
-      "sourceHash": "cbc81e34ccbaeace3e48c6f1344586dc0ca1ea4db3428bebb87667a8f03e9f49",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8dfdbaadf7891cb83cd3082f7b764dfaf5427e1bfed484be801ca47727d8d801",
+      "sourceHash": "308d08b130141058d66ad736d23a2bde143da5c96d7a7386443d1145be1374f0",
+      "sourceAt": "c7860a7c",
       "sources": [
         "specs/20261030-100000-inicio-y-alertas",
         "specs/20270305-100000-inicio-tablero-completo",
@@ -798,7 +798,7 @@
         "supabase/functions"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/invitar-usuarios.md": {
       "title": "Invitar usuarios (F-USR-01, MSF-211)",
@@ -923,14 +923,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "9a61fe8d5b07cf2137fd8e43373aaeb91b43b71c84e83402c8ac2c6d3f5c0569",
-      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
-      "sourceAt": "00d5672c",
+      "pageHash": "9ce47a1cd5a26ac2f1d3f5b3d4350d53926135f640f63170207652b5f53e2e75",
+      "sourceHash": "fb74a3f516208ab649380d2d8983e0a2c7668a9fcdd243591aff03bbc8cc6dc7",
+      "sourceAt": "df0c092f",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "8451da59"
+      "commit": "df0c092f"
     },
     "docs/pagos-conciliacion.md": {
       "title": "Ventas · Pagos (conciliación) (F-VTA-13)",
@@ -1769,9 +1769,9 @@
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "540cd57f2eb79408de74347fb9671cee71b116d84cdb0e6b4308e647b9191f04",
-      "sourceHash": "8cd35c99ca04682971feeddfbeaf63db0e3a3bd065e09d1c5430c666fb6ad414",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "a3ca5cb0c76e7f7091b8a351047865a1396fccd5cbd13e7f3448a0f83956fe11",
+      "sourceHash": "37cf019ea46d1851731df555d90d7d04cc2b3e486b05d46e25cfee567ae38d16",
+      "sourceAt": "c7860a7c",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1781,7 +1781,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -2575,16 +2575,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "cb4682c83e65f2dabf6235314f05d36522352dfc41c674df22b5d7512314c93f",
-      "sourceHash": "5527dbca607ac54264e28e2185aaf4fdfff9c8f071adcc1636dbbccc99175c27",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "74265fd0bb7f8b344551ded1d506cebd194990324a1e3cbdbba99431438a442a",
+      "sourceHash": "4ed97cf145eaa010e24f305e2006fc0b3e09bb706e17f6a788ffa581c3d7d806",
+      "sourceAt": "c7860a7c",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -2997,9 +2997,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "50fcc9eea95b14b29b17168c623dc26b28c01ad156154507617d73f9a7fdfe28",
-      "sourceHash": "7816dd6871899098914685eae063a7ba86aeeb9144ac904eb721d57f3235775c",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "cd1cc01802f1352fd8ced715d34c6727f53d27f9e1a7e60b004e44f28bc2f879",
+      "sourceHash": "319612edf35871a0c439cd047e6c4232c3dd46523f30fd142eefea645f6e897a",
+      "sourceAt": "c7860a7c",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3007,7 +3007,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
@@ -3621,9 +3621,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "01b773ba0c74c8deb948c0636e8d8f93f0de7074a50aa2d443eda432563156ad",
+      "pageHash": "9204617ba366f62ff3bf6ee9650381e8d1620d4f09a14724b36aa6464e33d07e",
       "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "e31f2eae",
+      "sourceAt": "f5d8f4a5",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3635,7 +3635,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "f5d8f4a5"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
