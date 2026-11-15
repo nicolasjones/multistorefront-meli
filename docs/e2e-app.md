@@ -761,7 +761,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` la adopta
   (`tienda-publicacion` ya estaba en `dokploy`; este PR solo cambia el orden de lectura de la clave anónima) y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
   (`validate.yml`, `workflow_dispatch` con `e2e_sesion=true` y `e2e_archivos="service-cobro-avisos.e2e.ts tienda-publicacion.e2e.ts"`):
-  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido). Es una **corrida previa a la guarda de `sql()`**; la verificación con la guarda está en el punto siguiente (CORRIDA_NUEVA).
+  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido). Es una **corrida previa a la guarda de `sql()`**; la verificación con la guarda es el run `43746175251` (SHA `8295ee6`, job `132909861772`, **2 passed** en 53.8 s, ninguno omitido); un intento previo (`43743809263`) falló solo por pasar `e2e_archivos` separado por comas en vez de espacios.
   - Hallazgos de la verificación: (1) el CI exporta la clave anónima como `VITE_SUPABASE_PUBLISHABLE_KEY` (se lee primero);
     (2) `service_role` NO tiene grant sobre varias tablas de `public` (`features`, `organizaciones_features`, `conexiones`,
     `clientes`, `capacidades_ejecucion`, `avisos_pendientes`, `procesos_masivos`...): la API REST responde 42501. Sin migración,
