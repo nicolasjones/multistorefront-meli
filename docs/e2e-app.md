@@ -754,3 +754,23 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   viva. Por eso el job dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La
   suite entra holgada (setup ~6 min + ~21 min). Con #923 mergeado el TTL pasa a 75 min y el timeout se puede subir. La hora 05:00 UTC
   evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`, TTL 90 min), que también limpia ranuras vencidas.
+
+## Fixture compartido y corridas pendientes (lote MSF-879 / MSF-515)
+
+- **Fixture compartido (MSF-856).** `apps/web/e2e/soporte/fixtures.ts` (`rest`, `leer`, `borrar`, `altaUsuario`,
+  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`) es la única fuente de la siembra por la API admin. Al revisar el
+  código quedaban 5 specs con su propia copia (no ~44): `service-cobro-avisos` y `tienda-publicacion` ya la adoptan
+  (se borraron sus copias de `rest`/`borrar`/`altaUsuario`/`borrarUsuario`); siguen con copia propia, a migrar cuando
+  se toquen, `cuenta-web-cliente` (firma distinta: método explícito), `exportacion-total` (helpers dentro del `describe`),
+  `importaciones-soporte` (`rest` con cabeceras extra) y `service-cobro-avisos` conserva un `leerDominio` local porque su
+  esquema por defecto es `dominio`. Verificación hecha: compilación con `tsc` y `playwright test --list`, más el guardián
+  `scripts/verificar-e2e-sin-escritura-directa.mjs`. **No se ejecutó la suite** (sin stack local de Supabase en el
+  entorno donde se hizo el cambio): falta una corrida de `service-cobro-avisos` y `tienda-publicacion` con evidencia
+  (CI `e2e-visible-sesion` por `workflow_dispatch` con `e2e_sesion`, o `pnpm dev:supabase` + `pnpm --filter @platform/web
+  test:e2e <spec>`).
+- **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: `inicio.e2e.ts` (tres
+  roles y cambio de empresa, MSF-747), y los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
+  permisos, Empresas, editar la organización, Clientes alta/búsqueda/exportación SC-001, Catálogo SC-001/SC-006). No se
+  escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
+  firmada.
+
