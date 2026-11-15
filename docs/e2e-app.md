@@ -761,7 +761,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` la adopta
   (`tienda-publicacion` ya estaba en `dokploy`; este PR solo cambia el orden de lectura de la clave anónima) y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
   (`validate.yml`, `workflow_dispatch` con `e2e_sesion=true` y `e2e_archivos="service-cobro-avisos.e2e.ts tienda-publicacion.e2e.ts"`):
-  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido).
+  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido). Es una **corrida previa a la guarda de `sql()`**; la verificación con la guarda está en el punto siguiente (CORRIDA_NUEVA).
   - Hallazgos de la verificación: (1) el CI exporta la clave anónima como `VITE_SUPABASE_PUBLISHABLE_KEY` (se lee primero);
     (2) `service_role` NO tiene grant sobre varias tablas de `public` (`features`, `organizaciones_features`, `conexiones`,
     `clientes`, `capacidades_ejecucion`, `avisos_pendientes`, `procesos_masivos`...): la API REST responde 42501. Sin migración,
@@ -770,7 +770,14 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     e `importaciones-soporte`, y `service-cobro-avisos` conserva un `leerDominio` local (su esquema por defecto es `dominio`).
   - **Límites de `sql()`:** corre como superusuario `postgres`, así que salta grants y RLS. Sirve solo para SEMBRAR, nunca para
     VERIFICAR (una lectura ahí no prueba lo que ve un rol real) y no sirve para tablas protegidas de solo lectura. La guarda
-    `validarDestinoSql` (probada en `e2e/soporte/fixtures.test.ts`) exige host local, puerto explícito, base y usuario `postgres`.
+    `validarDestinoSql` (probada en `e2e/soporte/fixtures.test.ts`) exige host local, puerto explícito dentro de rango, que
+    `E2E_PGPORT` y `SUPABASE_DB_PORT` coincidan si están ambos, que NO sea un puerto de `supabase/config.toml` (stacks de
+    desarrollo, también reenviados), que `SUPABASE_CI_PROJECT_ID` y el puerto sean los del stack del CI derivado
+    (`derivarStackCi`, como `verificarDestinoCi`), y base y usuario `postgres`. `validarUrlSupabase` aplica a `SUPABASE_URL`
+    host local, puerto que no sea de desarrollo y, si el job declara `SUPABASE_CI_PROJECT_ID`, el puerto de la API derivada.
+    Limitación: un stack local de `pnpm dev:supabase` (puertos de desarrollo) ya no sirve para `sql()`; hay que preparar el
+    stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. `pg` llega por
+    `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
   - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
     `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
     tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
