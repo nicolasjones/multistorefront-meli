@@ -217,6 +217,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'reportes-inventario', etiqueta: 'Productos y stock', ruta: '/reportes/inventario', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'reportes-reposicion', etiqueta: 'Reposición', ruta: '/reportes/reposicion', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      // F-REP-07 (MSF-265): galería de tableros analíticos ya armados; solo administradores (sin sección propia en la matriz).
+      { id: 'reportes-tableros', etiqueta: 'Tableros analíticos', ruta: '/reportes/tableros', icono: InsightsIcon, audiencia: 'administrador' },
     ],
   },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):

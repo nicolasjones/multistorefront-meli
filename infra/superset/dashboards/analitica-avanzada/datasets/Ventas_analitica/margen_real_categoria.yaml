@@ -1,0 +1,276 @@
+# Dataset sobre la vista `analitica.margen_real_categoria` (F-REP-07, spec
+# 20261114-100000-analitica-avanzada-y-resumen-por-correo, contrato contracts/tableros-analiticos.md).
+#
+# Grano de la vista: una fila por empresa × producto × fecha (la de `analitica.rentabilidad_ventas_real`) más la categoría
+# del producto. El margen es el REAL de lo vendido: costo y cotización guardados en cada línea al confirmar, las notas de
+# crédito restan y los costos adicionales son los vigentes al consultar. El TABLERO suma por tienda, categoría, producto y
+# período; el porcentaje se recalcula sobre los totales (nunca se promedian porcentajes de filas).
+#
+# Expone costo y margen: el reporte se registra con la sección `rentabilidad`. `organizacion_id` y `empresa_id` son las
+# columnas sobre las que el guest token fuerza la cláusula `rls`.
+table_name: margen_real_categoria
+main_dttm_col: fecha
+description: 'Margen real por tienda, categoría y producto (F-REP-07): vendido, costo, costos adicionales y margen por empresa, producto y fecha.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 61f3dc0c-68a4-5479-afe8-16c1fd49aa51
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: unidades_total
+  verbose_name: Unidades
+  metric_type: null
+  expression: SUM(unidades)
+  description: 'Unidades vendidas en el período: la nota de crédito resta.'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: vendido_total
+  verbose_name: Vendido
+  metric_type: null
+  expression: SUM(vendido)
+  description: 'Vendido neto sin IVA en el período.'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: costo_total
+  verbose_name: Costo
+  metric_type: null
+  expression: SUM(costo + costos_adicionales)
+  description: 'Costo guardado de las líneas más los costos adicionales de la tienda.'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: margen_total
+  verbose_name: Margen
+  metric_type: null
+  expression: SUM(margen)
+  description: 'Margen real del período: vendido menos costo y costos adicionales.'
+  d3format: ',.2f'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: margen_pct_total
+  verbose_name: Margen %
+  metric_type: null
+  expression: ROUND(100.0 * SUM(margen) / NULLIF(SUM(vendido), 0), 1)
+  description: 'Margen sobre el vendido del período, calculado sobre los totales.'
+  d3format: ',.1f'
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Empresa de la venta; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre de la tienda; es la columna del filtro nativo de empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: categoria
+  verbose_name: Categoría
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Categoría del producto («Sin categoría» si no tiene); es la columna del filtro nativo de categoría.'
+  python_date_format: null
+  extra: {}
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre del producto; el tablero agrupa por nombre + SKU.'
+  python_date_format: null
+  extra: {}
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'SKU del producto, único por organización.'
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Fecha del comprobante; es la columna del filtro nativo de rango de fechas.'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+- column_name: unidades
+  verbose_name: Unidades (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: vendido
+  verbose_name: Vendido (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Vendido neto sin IVA de la fila.'
+  python_date_format: null
+  extra: {}
+- column_name: costo
+  verbose_name: Costo (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Costo guardado en las líneas de la fila.'
+  python_date_format: null
+  extra: {}
+- column_name: costos_adicionales
+  verbose_name: Costos adicionales (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Costos adicionales de la tienda aplicados a la fila.'
+  python_date_format: null
+  extra: {}
+- column_name: margen
+  verbose_name: Margen (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Vendido menos costo y costos adicionales de la fila.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct
+  verbose_name: Margen % (por fila)
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Margen sobre vendido de la fila; el tablero lo recalcula sobre los totales.'
+  python_date_format: null
+  extra: {}
+- column_name: estado
+  verbose_name: Estado del margen
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'ok, bajo o negativo según el umbral de la organización.'
+  python_date_format: null
+  extra: {}
+- column_name: umbral_margen_bajo
+  verbose_name: Umbral de margen bajo
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 638bb2f5-2df0-48f8-bef2-533f8ec3c569
