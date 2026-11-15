@@ -62,15 +62,9 @@ begin
        and p.prosrc like '%public.clientes%'
      order by 1
   loop
-    -- `public.clientes_empresas` y `public.clientes_identificadores_externos` NO se mueven: se ocultan con
-    -- un marcador para que el reemplazo de `public.clientes` no los alcance.
-    v_def := replace(replace(r.definicion,
-      'public.clientes_identificadores_externos', '__msf882_identificadores__'),
-      'public.clientes_empresas', '__msf882_empresas__');
-    v_nueva := replace(v_def, 'public.clientes', 'dominio.clientes');
-    v_nueva := replace(replace(v_nueva,
-      '__msf882_identificadores__', 'public.clientes_identificadores_externos'),
-      '__msf882_empresas__', 'public.clientes_empresas');
+    -- Sólo se reemplaza la palabra EXACTA `public.clientes` (`\M` = fin de palabra): `public.clientes_empresas`,
+    -- `public.clientes_identificadores_externos` y la función `public.clientes_inactivos` NO se mueven.
+    v_nueva := regexp_replace(r.definicion, '\mpublic\.clientes\M', 'dominio.clientes', 'g');
     begin
       execute v_nueva;
       v_total := v_total + 1;
@@ -90,8 +84,7 @@ begin
       from pg_proc p
       join pg_namespace n on n.oid = p.pronamespace
      where n.nspname not in ('pg_catalog', 'information_schema')
-       and replace(replace(p.prosrc, 'public.clientes_identificadores_externos', ''), 'public.clientes_empresas', '')
-           like '%public.clientes%'
+       and p.prosrc ~ '\mpublic\.clientes\M'
   ) then
     raise exception 'Quedaron funciones nombrando public.clientes: el traslado dejaría funciones rotas';
   end if;
