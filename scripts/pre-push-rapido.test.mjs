@@ -18,3 +18,7 @@ test('una migración, un pgTAP o un E2E corren solo las trampas conocidas', () =
   assert.deepEqual(comandos(['supabase/migrations/1_x.sql']), esperado);
   assert.deepEqual(comandos(['supabase/tests/database/x.test.sql']), esperado);
 });
+test('un cambio en pantallas de apps/web/src/pages corre además el guard de estilos sueltos', () => {
+  assert.deepEqual(comandos(['apps/web/src/pages/x/Pantalla.tsx']).at(-1), ['pnpm', ['estilos:check']]);
+  assert.ok(!comandos(['apps/web/src/lib/a.ts']).some(([, a]) => a.includes('estilos:check')));
+});
