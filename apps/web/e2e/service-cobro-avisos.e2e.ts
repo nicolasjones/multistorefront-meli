@@ -73,12 +73,10 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       await sql(`insert into public.organizaciones_features (feature_id, organizacion_id, habilitado_por) values ('service-tecnico', $1, $2)`, [org.id, userId])
       // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
       await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'comprobantes-pdf', $2)`, [org.id, randomUUID()])
-      const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id,
-        nombre: `Cliente ${sufijo}`,
-        tipo: 'minorista',
-        correo: correoCliente,
-      })
+      const [cliente] = await sql<{ id: string }>(
+        `insert into public.clientes (organizacion_id, nombre, tipo, correo) values ($1, $2, 'minorista', $3) returning id`,
+        [org.id, `Cliente ${sufijo}`, correoCliente],
+      )
       const modelos = await leerDominio<{ id: string }>('modelos_equipo?organizacion_id=eq.' + org.id + '&select=id&limit=1')
       if (!modelos[0]) throw new Error('La organización no tiene modelos de equipo sembrados.')
 

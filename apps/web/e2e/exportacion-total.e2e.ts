@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, limpiar, serviceKey, sembrar, url, violacionesAxe, type Sembrado } from './importaciones-soporte'
-import { altaUsuario, sql } from './soporte/fixtures'
 import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // Cierre de F-OPS-06 (MSF-396 · T028 · SC-006): el administrador pide la exportación total, ve el avance en el
@@ -23,11 +22,26 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
     return (await r.json()) as Record<string, unknown>[]
   }
 
+  async function altaUsuario(correo: string): Promise<string> {
+    const r = await fetch(`${url}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: cabeceras({ 'content-type': 'application/json' }),
+      body: JSON.stringify({ email: correo, password: 'Correcta-12345!', email_confirm: true }),
+    })
+    if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
+    return ((await r.json()) as { id: string }).id
+  }
+
   // Organización con conexión de exportaciones (`historial-ventas`), como la deja un administrador de la plataforma.
   async function conexionExportaciones(orgId: string) {
     // La referencia `historial-ventas` no viene en el esquema (la crea el alta del sistema): se siembra sin pisar la existente.
-    await sql(`insert into public.sistemas_externos (id, descripcion) values ('historial-ventas', 'Historial de ventas (exportaciones de la organización)') on conflict do nothing`)
-    await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'historial-ventas', $2)`, [orgId, randomUUID()])
+    const ref = await fetch(`${url}/rest/v1/sistemas_externos?on_conflict=id`, {
+      method: 'POST',
+      headers: cabeceras({ 'content-type': 'application/json', prefer: 'resolution=ignore-duplicates' }),
+      body: JSON.stringify({ id: 'historial-ventas', descripcion: 'Historial de ventas (exportaciones de la organización)' }),
+    })
+    if (!ref.ok) throw new Error(`REST sistemas_externos: ${ref.status} ${await ref.text()}`)
+    await rest('conexiones', 'POST', { organizacion_id: orgId, sistema_externo: 'historial-ventas', credencial_vault_id: randomUUID() })
   }
 
   test('[MSF-396:T028] pedir, ver el avance, descargar el ZIP y respetar los permisos, sin violaciones de accesibilidad', async ({ browser }, testInfo) => {
