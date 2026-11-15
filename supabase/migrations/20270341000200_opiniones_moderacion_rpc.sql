@@ -66,8 +66,9 @@ begin
   where o.organizacion_id = v_org
     and (p_empresa_id is null or o.empresa_id = p_empresa_id);
 
-  with pagina as (
-    select o.*, row_number() over (order by o.creada_en desc, o.id desc) as rn
+  -- Se piden solo `limite + 1` filas ya ordenadas (sin ventana sobre toda la organización); la fila extra solo indica que hay más.
+  with tanda as (
+    select o.*
     from dominio.opiniones_producto o
     where o.organizacion_id = v_org
       and (p_empresa_id is null or o.empresa_id = p_empresa_id)
@@ -78,6 +79,8 @@ begin
       )
     order by o.creada_en desc, o.id desc
     limit v_limite + 1
+  ), pagina as (
+    select t.*, row_number() over (order by t.creada_en desc, t.id desc) as rn from tanda t
   )
   select
     coalesce(jsonb_agg(
@@ -148,14 +151,18 @@ begin
   if v_org is null or not (select private.es_administrador_de(v_org)) then
     raise exception 'Solo un administrador puede moderar opiniones' using errcode = '42501';
   end if;
-  if p_decision not in ('aceptar', 'rechazar') then
+  if p_decision is null or p_decision not in ('aceptar', 'rechazar') then
     raise exception 'Decisión de moderación inválida' using errcode = '22023';
   end if;
   if p_decision = 'aceptar' and v_motivo is not null then
     raise exception 'El motivo solo se indica al rechazar' using errcode = '22023';
   end if;
-  if v_motivo is not null and (char_length(v_motivo) > 200 or v_motivo ~ '[[:cntrl:]]') then
-    raise exception 'El motivo admite hasta 200 caracteres sin caracteres de control' using errcode = '22023';
+  if v_motivo is not null and char_length(v_motivo) > 200 then
+    raise exception 'El motivo admite hasta 200 caracteres' using errcode = '22023';
+  end if;
+  -- Mismas reglas que el comentario (control, marcas de dirección/ancho cero, enlaces): el cliente verá el motivo (fase 3).
+  if v_motivo is not null and private.texto_opinion_no_permitido(v_motivo) then
+    raise exception 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)' using errcode = '22023';
   end if;
   if p_actualizada_en_esperada is null then
     raise exception 'Falta la fecha de la opinión que viste' using errcode = '22023';
@@ -175,7 +182,8 @@ begin
     raise exception 'Las opiniones están desactivadas: no se pueden aceptar' using errcode = '55000';
   end if;
 
-  -- Idempotente: repetir la decisión ya vigente responde ok sin duplicar el evento.
+  -- Idempotente: repetir la decisión ya vigente responde ok sin duplicar el evento. A propósito NO actualiza `motivo_rechazo`:
+  -- rechazar de nuevo con otro motivo no cambia el que ya está guardado.
   if v_op.estado = v_estado_nuevo then
     return jsonb_build_object('estado', 'ok', 'opinion', jsonb_build_object('id', v_op.id, 'estado', v_op.estado));
   end if;
@@ -209,7 +217,7 @@ end;
 $$;
 
 comment on function public.moderar_opinion(uuid, text, text, timestamptz) is
-  'MSF-467 (RF-OPI-14): acepta o rechaza una opinión (motivo opcional de hasta 200 al rechazar). Solo Administrador (42501); idempotente; bloqueo optimista (40001 conflicto); apagada la bandera solo rechaza (55000). Registra el evento en Actividad sin el texto.';
+  'MSF-467 (RF-OPI-14): acepta o rechaza una opinión (motivo opcional de hasta 200, sin control ni enlaces, al rechazar). Decisión nula o desconocida: 22023. Solo Administrador (42501); idempotente (repetir la decisión vigente no cambia el motivo guardado); bloqueo optimista (40001 conflicto); apagada la bandera solo rechaza (55000). Registra el evento en Actividad sin el texto.';
 
 revoke execute on function public.moderar_opinion(uuid, text, text, timestamptz) from public, anon;
 grant execute on function public.moderar_opinion(uuid, text, text, timestamptz) to authenticated;

@@ -5,12 +5,32 @@
 --
 -- Migración aditiva. Reversión (migración posterior):
 --   drop function if exists private.validar_texto_opinion(integer, text);
+--   drop function if exists private.texto_opinion_no_permitido(text);
 --   drop function if exists private.nombre_publico_cliente(text);
+
+-- Texto con contenido no permitido: caracteres de control (incluye saltos de línea), separadores de línea/párrafo, marcas de
+-- dirección y de ancho cero, y enlaces: http(s)://, ftp://, www. y dominios sueltos con TLD de una lista corta. HEURÍSTICA:
+-- no detecta t.me/…, wa.me/…, TLD nacionales (.ar) ni ofuscaciones; la lista de TLD y el patrón se mantienen acotados a propósito
+-- (evitar falsos positivos con frases normales). El dominio exige `[[:alnum:]-]` pegado al punto y el TLD pegado después, y
+-- termina en un carácter no alfanumérico: «producto. Top calidad» NO es un enlace. La reutilizan el comentario y el motivo.
+create or replace function private.texto_opinion_no_permitido(p_texto text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select p_texto ~ '[[:cntrl:]]'
+      or p_texto ~ '[  ​-‏‪-‮⁠-⁩﻿]'
+      or p_texto ~* '(https?|ftp)[[:space:]]*:|www[[:space:]]*\.'
+      or p_texto ~* '[[:alnum:]-]\.(com|net|org|info|biz|edu|gov|io|ly|tv|app|dev|shop|store|site|online|link|xyz|top|club|ink|page|cc|ws|gl|gg)([^[:alnum:]]|$)';
+$$;
+
+comment on function private.texto_opinion_no_permitido(text) is
+  'MSF-467: true si el texto trae control, marcas de dirección/ancho cero o un enlace (heurística acotada). Compartida por el comentario y el motivo de rechazo.';
 
 -- Valida puntuación y comentario. Devuelve {ok, campos:[...], comentario: <recortado>}; `campos` lista lo erróneo
 -- ("puntuacion" y/o "comentario"). El comentario se recorta (btrim) y se mide en caracteres de Postgres (1 a 1.000 tras el
--- recorte: mínimo 10). Rechaza caracteres de control (incluye saltos de línea), separadores de línea/párrafo, marcas de
--- dirección y de ancho cero, y enlaces: http(s)://, ftp://, www. y dominios sueltos (algo.com, algo.com.ar, etc.).
+-- recorte: mínimo 10) y no admite lo que rechaza `private.texto_opinion_no_permitido`.
 create or replace function private.validar_texto_opinion(p_puntuacion integer, p_comentario text)
 returns jsonb
 language plpgsql
@@ -26,10 +46,7 @@ begin
   end if;
   if char_length(v_texto) < 10
      or char_length(v_texto) > 1000
-     or v_texto ~ '[[:cntrl:]]'
-     or v_texto ~ '[  ​-‏‪-‮⁠-⁩﻿]'
-     or v_texto ~* '(https?|ftp)[[:space:]]*:|www[[:space:]]*\.'
-     or v_texto ~* '[[:alnum:]-]+[[:space:]]*\.[[:space:]]*(com|net|org|info|biz|edu|gov|io|ly|tv|app|dev|shop|store|site|online|link|xyz|top|club|ink|page|cc|ws|gl|gg)([^[:alnum:]]|$)'
+     or private.texto_opinion_no_permitido(v_texto)
   then
     v_campos := array_append(v_campos, 'comentario'::text);
   end if;
@@ -56,5 +73,6 @@ $$;
 comment on function private.nombre_publico_cliente(text) is
   'MSF-467 (D9): solo el nombre de pila (primera palabra, hasta 30 caracteres) es público; «Cliente» si queda vacío.';
 
+revoke execute on function private.texto_opinion_no_permitido(text) from public, anon, authenticated;
 revoke execute on function private.validar_texto_opinion(integer, text) from public, anon, authenticated;
 revoke execute on function private.nombre_publico_cliente(text) from public, anon, authenticated;

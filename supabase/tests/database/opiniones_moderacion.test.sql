@@ -2,10 +2,11 @@
 --   * Solo el Administrador lista y modera (otro rol, otra organización y anon: 42501 / sin execute).
 --   * Contadores del ámbito de la tienda, filtros de estado, cursor (creada_en, id) con desempate, nombre completo del cliente.
 --   * Moderar: aceptar / rechazar con motivo, idempotencia sin evento duplicado, bloqueo optimista (40001), evento de Actividad sin texto.
---   * Con la bandera apagada solo se permite rechazar (aceptar -> 55000).
+--   * Con la bandera apagada solo se permite rechazar (aceptar -> 55000, también sobre una opinión ya aceptada: D11).
+--   * Decisión nula inválida; motivo sin saltos de línea, enlaces ni marcas ocultas; repetir «rechazar» no cambia el motivo.
 begin;
 
-select plan(46);
+select plan(57);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -103,6 +104,12 @@ insert into res select 'p3', public.listar_opiniones('todas', 'e1000000-0000-000
 select is((select v from res where k = 'p3')->'filas'->0->>'id', '01000000-0000-0000-0000-000000000003', 'tercera tanda: la vieja');
 select is((select v from res where k = 'p3')->'siguiente', 'null'::jsonb, 'fin de lista: sin siguiente');
 
+-- Sin filtro de tienda y con 'todas': tandas de limite + 1 filas; los contadores no dependen del tamaño de la tanda
+select is(jsonb_array_length(public.listar_opiniones('todas', null, null, null, 2)->'filas'), 2, 'global: la tanda trae solo el límite');
+select isnt(public.listar_opiniones('todas', null, null, null, 2)->'siguiente', 'null'::jsonb, 'global: hay siguiente si sobran filas');
+select is(public.listar_opiniones('todas', null, null, null, 2)->'contadores', '{"pendientes":3,"aceptadas":1,"rechazadas":1}'::jsonb, 'global: los contadores no cambian con la tanda');
+select is(public.listar_opiniones('todas', null, null, null, 5)->'siguiente', 'null'::jsonb, 'global: justo el total, sin siguiente');
+
 -- Moderar
 select is(public.moderar_opinion('01000000-0000-0000-0000-000000000001', 'aceptar', null, '2027-03-10 10:00+00')->'opinion'->>'estado', 'aceptada', 'aceptar');
 reset role;
@@ -121,6 +128,11 @@ select pg_temp.como('f4000000-0000-0000-0000-000000000003');
 select is(public.moderar_opinion('01000000-0000-0000-0000-000000000002', 'rechazar', '  Contenido ajeno al producto  ', '2027-03-10 10:00+00')->'opinion'->>'estado', 'rechazada', 'rechazar con motivo');
 reset role;
 select is((select motivo_rechazo from dominio.opiniones_producto where id = '01000000-0000-0000-0000-000000000002'), 'Contenido ajeno al producto', 'motivo recortado');
+select pg_temp.como('f4000000-0000-0000-0000-000000000003');
+-- Repetir «rechazar» con otro motivo es idempotente a propósito: responde ok y conserva el motivo guardado
+select is(public.moderar_opinion('01000000-0000-0000-0000-000000000002', 'rechazar', 'Otro motivo distinto', '2027-03-10 10:00+00')->>'estado', 'ok', 'rechazar de nuevo con otro motivo: ok');
+reset role;
+select is((select motivo_rechazo from dominio.opiniones_producto where id = '01000000-0000-0000-0000-000000000002'), 'Contenido ajeno al producto', 'repetir rechazar no cambia el motivo guardado');
 select pg_temp.como('f4000000-0000-0000-0000-000000000003');
 -- Evento sin texto
 reset role;
@@ -143,7 +155,11 @@ select is((select estado from dominio.opiniones_producto where id = '01000000-00
 select pg_temp.como('f4000000-0000-0000-0000-000000000003');
 select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'aceptar', null, null)$$, '22023', null, 'sin fecha esperada: inválido');
 select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'borrar', null, '2027-03-11 10:00+00')$$, '22023', null, 'decisión desconocida');
-select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', repeat('x', 201), '2027-03-11 10:00+00')$$, '22023', null, 'motivo de más de 200');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', null, null, '2027-03-11 10:00+00')$$, '22023', 'Decisión de moderación inválida', 'decisión nula: inválida, no un rechazo silencioso');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', repeat('x', 201), '2027-03-11 10:00+00')$$, '22023', 'El motivo admite hasta 200 caracteres', 'motivo de más de 200: mensaje de largo');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', E'Primera línea\nsegunda línea', '2027-03-11 10:00+00')$$, '22023', 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)', 'motivo con salto de línea: mensaje de caracteres no permitidos, no de largo');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', 'Mirá http://spam.example ahora', '2027-03-11 10:00+00')$$, '22023', 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)', 'motivo con enlace');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', 'Motivo ' || chr(8238) || 'invertido', '2027-03-11 10:00+00')$$, '22023', 'El motivo tiene caracteres no permitidos (saltos de línea, enlaces o marcas ocultas)', 'motivo con marca de dirección');
 select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'aceptar', 'motivo', '2027-03-11 10:00+00')$$, '22023', null, 'motivo solo al rechazar');
 select is(public.moderar_opinion(gen_random_uuid(), 'rechazar', null, now())->>'estado', 'no_encontrada', 'inexistente: no_encontrada');
 
@@ -152,6 +168,7 @@ reset role;
 update public.banderas_plataforma set activa = false where clave = 'tienda_opiniones';
 select pg_temp.como('f4000000-0000-0000-0000-000000000003');
 select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'aceptar', null, '2027-03-11 10:00+00')$$, '55000', null, 'apagada: aceptar se rechaza');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000001', 'aceptar', null, '2027-03-10 10:00+00')$$, '55000', null, 'apagada: aceptar una ya aceptada tampoco es ok idempotente (D11)');
 select is(public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'rechazar', null, '2027-03-11 10:00+00')->'opinion'->>'estado', 'rechazada', 'apagada: rechazar se permite');
 select is(jsonb_array_length(public.listar_opiniones('todas')->'filas'), 5, 'apagada: el panel sigue listando');
 

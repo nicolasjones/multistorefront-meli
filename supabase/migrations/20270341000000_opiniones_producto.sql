@@ -63,6 +63,9 @@ create index if not exists opiniones_producto_ficha_idx
 -- Panel de moderación: por organización, tienda y estado, nuevas primero (cursor por (creada_en, id)).
 create index if not exists opiniones_producto_panel_idx
   on dominio.opiniones_producto (organizacion_id, empresa_id, estado, creada_en desc, id desc);
+-- Panel sin filtro de tienda: orden global de la organización (cursor por (creada_en, id)) sin ordenar todas las filas.
+create index if not exists opiniones_producto_orden_idx
+  on dominio.opiniones_producto (organizacion_id, creada_en desc, id desc);
 -- Apoyo de las FK compuestas (borrado en cascada de producto y de empresa).
 create index if not exists opiniones_producto_producto_idx
   on dominio.opiniones_producto (producto_id, organizacion_id);

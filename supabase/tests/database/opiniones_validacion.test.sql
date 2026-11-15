@@ -2,7 +2,7 @@
 -- Casos borde de `private.validar_texto_opinion` y `private.nombre_publico_cliente`.
 begin;
 
-select plan(33);
+select plan(48);
 
 create function pg_temp.ok_(p_punt int, p_txt text) returns boolean language sql as
   $$ select (private.validar_texto_opinion(p_punt, p_txt)->>'ok')::boolean $$;
@@ -36,6 +36,22 @@ select is(pg_temp.ok_(5, 'Texto con separador' || chr(8232) || ' de línea'), fa
 select is(pg_temp.ok_(5, 'Texto con ancho' || chr(8203) || 'cero oculto'), false, 'ancho cero U+200B');
 select is(pg_temp.ok_(5, 'Me encantó 😀😀 llegó perfecto'), true, 'emojis permitidos');
 select is(pg_temp.ok_(5, '<script>alert(1)</script> ok'), true, 'HTML se guarda literal (se muestra como texto)');
+
+select is(pg_temp.ok_(5, 'Excelente producto. Top calidad total'), true, 'sin falso positivo: «. Top» tras cierre de frase');
+select is(pg_temp.ok_(5, 'Llegó rápido. Online todo bien, gracias'), true, 'sin falso positivo: «. Online» tras cierre de frase');
+select is(pg_temp.ok_(5, 'Buen vendedor. Store ordenada y rápida'), true, 'sin falso positivo: «. Store»');
+select is(pg_temp.ok_(5, 'Muy buena atención. Link de pago funcionó. Info clara'), true, 'sin falso positivo: «. Link» e «. Info»');
+select is(pg_temp.ok_(5, 'Llegó bien. Club de fans feliz. Dev rápido. App fácil. Net ok'), true, 'sin falso positivo: Club, Dev, App, Net');
+select is(pg_temp.ok_(5, 'Compré en 3 cuotas . com tarjeta y salió bien'), true, 'espacios alrededor del punto no forman un dominio');
+select is(pg_temp.ok_(5, 'Mirá ejemplo.top que sale menos'), false, 'dominio real .top');
+select is(pg_temp.ok_(5, 'Entrá a mitienda.online ya mismo'), false, 'dominio real .online');
+select is(pg_temp.ok_(5, 'Visitá mi-sitio.store para ofertas'), false, 'dominio real .store con guion');
+select is(pg_temp.ok_(5, 'Escribime a promo.link, gracias'), false, 'dominio real .link seguido de coma');
+select is(pg_temp.ok_(5, 'Todo en ejemplo.com/ofertas hoy'), false, 'dominio con ruta');
+select is(pg_temp.ok_(5, 'Mirá www . ejemplo y listo ya'), false, 'www con espacios sigue rechazado');
+select is(pg_temp.ok_(5, 'Mirá http ://ejemplo ahora mismo'), false, 'http con espacio antes de los dos puntos sigue rechazado');
+select is(private.texto_opinion_no_permitido('Producto. Top calidad'), false, 'texto_opinion_no_permitido: frase legítima');
+select is(private.texto_opinion_no_permitido('visitá ejemplo.com ya'), true, 'texto_opinion_no_permitido: enlace');
 
 select is(private.nombre_publico_cliente('Valeria Sánchez'), 'Valeria', 'solo el nombre de pila');
 select is(private.nombre_publico_cliente('   '), 'Cliente', 'vacío -> Cliente');

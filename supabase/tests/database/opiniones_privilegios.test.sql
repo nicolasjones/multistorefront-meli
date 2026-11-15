@@ -2,7 +2,7 @@
 -- Privilegios exactos por rol de las funciones nuevas y su `search_path` fijo; las internas no se ejecutan desde la API.
 begin;
 
-select plan(14);
+select plan(15);
 
 select is(has_function_privilege('anon', 'public.listar_opiniones(text, uuid, timestamptz, uuid, integer)', 'execute'), false, 'listar_opiniones: anon no');
 select is(has_function_privilege('authenticated', 'public.listar_opiniones(text, uuid, timestamptz, uuid, integer)', 'execute'), true, 'listar_opiniones: authenticated sí');
@@ -17,6 +17,10 @@ select is(
   or has_function_privilege('authenticated', 'private.validar_texto_opinion(integer, text)', 'execute'),
   false, 'validar_texto_opinion no es ejecutable por la API');
 select is(
+  has_function_privilege('anon', 'private.texto_opinion_no_permitido(text)', 'execute')
+  or has_function_privilege('authenticated', 'private.texto_opinion_no_permitido(text)', 'execute'),
+  false, 'texto_opinion_no_permitido no es ejecutable por la API');
+select is(
   has_function_privilege('anon', 'private.nombre_publico_cliente(text)', 'execute')
   or has_function_privilege('authenticated', 'private.nombre_publico_cliente(text)', 'execute'),
   false, 'nombre_publico_cliente no es ejecutable por la API');
@@ -26,7 +30,7 @@ select is(
 select is(
   (select bool_and(coalesce(p.proconfig, '{}') @> array['search_path=""']) from pg_proc p
     where p.oid in ('public.listar_opiniones(text, uuid, timestamptz, uuid, integer)'::regprocedure, 'public.moderar_opinion(uuid, text, text, timestamptz)'::regprocedure,
-                    'private.validar_texto_opinion(integer, text)'::regprocedure, 'private.nombre_publico_cliente(text)'::regprocedure)),
+                    'private.validar_texto_opinion(integer, text)'::regprocedure, 'private.nombre_publico_cliente(text)'::regprocedure, 'private.texto_opinion_no_permitido(text)'::regprocedure)),
   true, 'todas las funciones nuevas fijan search_path vacío');
 select is((select relrowsecurity from pg_class where oid = 'dominio.opiniones_producto'::regclass), true, 'rls_en_toda_tabla: la tabla nueva tiene RLS');
 select is(
