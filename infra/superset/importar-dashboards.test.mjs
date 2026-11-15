@@ -282,11 +282,18 @@ function superset(embebidos) {
   const fetchFalso = async (url, opciones = {}) => {
     llamadas.push(`${opciones.method ?? 'GET'} ${url}`);
     if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
-    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
     const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
     if (coincidencia) {
       const slug = decodeURIComponent(coincidencia[1]);
       if (opciones.method === 'POST') {
+        // Superset rechaza el POST si no llegan juntos el token CSRF y la cookie de sesión que lo emitió.
+        if (opciones.headers?.cookie !== 'session=abc123') return respuestaJson({ message: 'The CSRF token is missing.' }, 400);
         embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
         return respuestaJson({ result: { uuid: UUID_B } });
       }

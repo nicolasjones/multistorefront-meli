@@ -155,6 +155,7 @@
     "/stock/mas-vendidos",
     "/stock/motivos",
     "/stock/movimientos",
+    "/stock/ordenes-compra",
     "/stock/toma-inventario",
     "/tienda-publica",
     "/tienda-publica/EnrutadorTienda",
@@ -333,6 +334,8 @@
     "dominio.modelos_equipo",
     "dominio.motivos_movimiento",
     "dominio.movimientos_stock",
+    "dominio.ordenes_compra",
+    "dominio.ordenes_compra_items",
     "dominio.precios_empresa",
     "dominio.precios_propios_empresa",
     "dominio.precios_propios_historial",
@@ -1059,6 +1062,10 @@
       "titulo": "Feature Specification: Clientes y proveedores · Cuenta corriente y saldo del cliente"
     },
     {
+      "slug": "20261109-103000-ordenes-de-compra-a-proveedores",
+      "titulo": "Feature Specification: Clientes y proveedores · Cuentas y compras a proveedores — F-PRV-09 · Órdenes de compra a proveedores"
+    },
+    {
       "slug": "20261110-100000-ventas-avisos-de-faltantes",
       "titulo": "Feature Specification: Ventas y despacho · Ventas avisos de faltantes"
     },
@@ -1173,7 +1180,23 @@
     {
       "slug": "20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs",
       "titulo": "Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)"
+    },
+    {
+      "slug": "20270327-100000-listas-de-precios-por-cliente",
+      "titulo": "Feature Specification: Listas de precios por cliente (F-PRE-14 + F-CLI-21)"
+    },
+    {
+      "slug": "20270328-100000-gastos-de-la-empresa",
+      "titulo": "Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)"
+    },
+    {
+      "slug": "20270328-100000-newsletter-de-la-tienda",
+      "titulo": "Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)"
+    },
+    {
+      "slug": "20270328-100000-opiniones-de-productos",
+      "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 320
+  "paginas": 321
 }

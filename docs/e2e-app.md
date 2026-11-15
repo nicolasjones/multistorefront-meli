@@ -207,7 +207,7 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
 | Actividad: detalle de un cambio de rol (Antes/Después) y de una baja con «—» del lado nuevo | MSF-170 (F-AUD-02) | Escrito: `e2e/actividad-detalle.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; el job `application` solo corre `acceso-publico`, así que no está verificado en el CI). Desvío: no se ejecutó (sin stack local). El E2E del acceso de soporte no se escribió: `service_role` no puede sembrar un superadmin |
 | Clientes: la ficha muestra el «Saldo deudor» y la tabla «Cuenta corriente» con los comprobantes con saldo (F-CLI-19) | MSF-451 T005 | Escrito: `e2e/cuenta-corriente-cliente.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; aborta si `SUPABASE_URL` no es local; el job `application` solo corre `acceso-publico`, así que **no está verificado en el CI**). Usa el cliente 9100 del seed. Cobertura en el CI: pgTAP `cuenta_corriente_cliente` y Vitest de `ComprasCliente` |
-| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Pendiente: fixtures por rol (seguimiento MSF-499); cubierto mientras tanto por Vitest (`pages/clientes`, `lib/exportarClientes`) y pgTAP |
+| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Escrito: `e2e/clientes-recorrido.e2e.ts` (Administrador: alta desde la UI, búsqueda por texto, exportación `.xlsx` cuyo contenido trae al cliente y evento `clientes.exportados` visible en Actividad; solo siembra organización, persona y rol, sin escritura directa en `clientes`). Evidencia: corrida verde del job `e2e-visible-sesion` (run 43731567956, job 132864939315). El job reserva ahora la ranura del stack (antes chocaba con `e2e-tienda` por nombre de contenedor en uso: corridas 43728936547 y 43730878020) |
 | Ingreso de mercadería: dos productos con costo → stock sube → historial → anular → stock vuelve a 0 y el ingreso queda anulado (SC-001…003) | MSF-219 T019 | Escrito: `e2e/ingresos-mercaderia.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Aborta si `SUPABASE_URL` no es local. |
 | Catálogo del ingreso de mercadería: con 501 productos el selector avisa «Hay más de 500 productos» y, al escribir, deja elegir el que queda fuera del tope (MSF-693) | MSF-693 BUG | Escrito: `e2e/ingresos-mercaderia-catalogo.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra 501 productos con la API admin y limpia al final. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local ni daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e ingresos-mercaderia-catalogo`. Guía: `docs/ingreso-de-mercaderia.md` |
 | Stock: entrada 10 → salida 4 → ajuste a 3 → stock 3 y tres filas en el historial; salida de 5 rechazada con «No hay stock suficiente» (SC-001) | MSF-136 T021 | Escrito: `e2e/stock-movimientos.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se pudo correr en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre a mano con `pnpm dev:supabase` antes del merge (T024) y aborta si `SUPABASE_URL` no es local. Seguimiento: MSF-499 |
@@ -768,10 +768,10 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   entorno donde se hizo el cambio): falta una corrida de `service-cobro-avisos` y `tienda-publicacion` con evidencia
   (CI `e2e-visible-sesion` por `workflow_dispatch` con `e2e_sesion`, o `pnpm dev:supabase` + `pnpm --filter @platform/web
   test:e2e <spec>`).
-- **Pendientes sin ejecutar (MSF-506, MSF-665, MSF-747).** Siguen sin corrida con evidencia: los recorridos «Pendiente» de la tabla de cobertura (usuarios, matriz de
-  permisos, Empresas, editar la organización, Clientes alta/búsqueda/exportación SC-001, Catálogo SC-001/SC-006). No se
-  escribieron specs nuevos ni se marcó nada como pasado: requieren un stack local con usuarios por rol y la corrida
-  firmada.
+- **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
+  cobertura: usuarios, matriz de permisos, Empresas, editar la organización y Catálogo SC-001/SC-006. Los de Inicio
+  (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en
+  verde. Los pendientes requieren specs nuevos y la corrida firmada por `e2e_sesion`.
 
 
 ## Perfiles de prueba: los crea la propia persona, no `service_role`
