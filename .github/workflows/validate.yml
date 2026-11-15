@@ -23,6 +23,10 @@ on:
         description: "Filtrar por título (p. ej. MSF-121); vacío = toda la suite con sesión"
         type: string
         default: ""
+      e2e_archivos:
+        description: "Specs del E2E con sesión, separados por espacio (nombre de archivo en apps/web/e2e)"
+        type: string
+        default: "permisos-por-empresa.e2e.ts"
 
 permissions:
   contents: read
@@ -343,13 +347,16 @@ jobs:
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
           E2E_GREP: ${{ inputs.e2e_grep }}
+          E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json
         run: |
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          # Los nombres de archivo se pasan por entorno, nunca interpolados en el script.
+          ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
           if [ -n "$E2E_GREP" ]; then
-            pnpm test:e2e permisos-por-empresa.e2e.ts --grep "$E2E_GREP"
+            pnpm test:e2e $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm test:e2e permisos-por-empresa.e2e.ts
+            pnpm test:e2e $ARCHIVOS
           fi
       - name: cobertura:e2e (sesión)
         if: always()
