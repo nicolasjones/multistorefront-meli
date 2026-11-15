@@ -97,6 +97,17 @@ begin
   insert into comps (clave, id) values (p_clave, v_c.id);
 end $$;
 create function pg_temp.id_de(p_clave text) returns uuid language sql as $$ select id from comps where clave = p_clave $$;
+-- Detalle del error de una sentencia («sin error» si no falla): para comprobar errcode, hint y detail del 40001 de la guarda.
+create function pg_temp.fallo(p_sql text) returns text language plpgsql as $$
+declare v_s text; v_h text; v_d text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics v_h = pg_exception_hint, v_d = pg_exception_detail;
+  v_s := sqlstate;
+  return v_s || '|' || coalesce(v_h, '') || '|' || coalesce(v_d, '');
+end $$;
 create function pg_temp.upd(p_clave text) returns timestamptz language sql security definer as $$
   select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave) $$;
 create function pg_temp.guardar(p_clave text, p_lineas jsonb) returns void language plpgsql as $$
@@ -318,9 +329,11 @@ select pg_temp.crear('g_pct', 'factura', 'c5000000-0000-0000-0000-000000000002')
 select pg_temp.guardar('g_pct', jsonb_build_array(pg_temp.l(1, 1)));
 reset role;
 update dominio.listas_precios set ajuste_pct = -25 where id = 'd1000000-0000-0000-0000-000000000001';
-select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_pct'), now()), 1, 'cambiar el % de la lista después de guardar desactualiza la línea');
+select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_pct'))), '40001|precios_cambiaron|lista_precios',
+  'cambiar el % de la lista después de guardar desactualiza la línea: 40001, hint precios_cambiaron y detalle lista_precios');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_pct')), '40001', null, 'confirmar avisa que los precios cambiaron (lista con otro porcentaje)');
+select is(pg_temp.fallo(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_pct'))), '40001|precios_cambiaron|lista_precios',
+  'confirmar avisa que los precios cambiaron por la lista (40001, hint precios_cambiaron, detalle lista_precios)');
 select pg_temp.guardar('g_pct', jsonb_build_array(pg_temp.l(1, 1)));
 select is(pg_temp.lin('g_pct', 1), '750.00|0.00|true|-25.00', 'guardar de nuevo recalcula con el porcentaje nuevo');
 select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_pct')), 'y entonces se confirma');
@@ -332,7 +345,8 @@ select pg_temp.crear('g_quita', 'factura', 'c5000000-0000-0000-0000-000000000002
 select pg_temp.guardar('g_quita', jsonb_build_array(pg_temp.l(1, 1)));
 reset role;
 update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
-select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_quita'), now()), 1, 'quitar la lista al cliente después de guardar desactualiza la línea');
+select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_quita'))), '40001|precios_cambiaron|lista_precios',
+  'quitar la lista al cliente después de guardar desactualiza la línea');
 update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
 select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_quita'), now()), 0, 'volver a asignarla la deja como estaba');
 
@@ -341,18 +355,23 @@ select pg_temp.crear('g_nueva', 'factura', 'c5000000-0000-0000-0000-000000000001
 select pg_temp.guardar('g_nueva', jsonb_build_array(pg_temp.l(1, 1), pg_temp.l(2, 1)));
 reset role;
 update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000001';
-select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_nueva'), now()), 1,
+select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_nueva'))), '40001|precios_cambiaron|lista_precios',
   'asignarle una lista después de guardar desactualiza solo la línea que la lista fijaría (la de precio propio no cuenta)');
 update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('g_bandera', 'factura', 'c5000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('g_bandera', jsonb_build_array(pg_temp.l(1, 1)));
+-- Las DOS banderas apagadas: así se ejercita la rama de la primera sentencia de la guarda que mira el snapshot de lista (con promociones
+-- encendidas esa rama no se alcanza y la prueba no distinguía la mutación «devolver 0 con las dos apagadas»).
 select pg_temp.bandera('listas_precios', false);
-select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_bandera'), now()), 1, 'apagar la bandera después de guardar desactualiza la línea (el motor ya no aplica la lista)');
+select pg_temp.bandera('promociones_precio', false);
+select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_bandera'))), '40001|precios_cambiaron|lista_precios',
+  'apagar las dos banderas después de guardar desactualiza la línea (el motor ya no aplica la lista)');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_bandera')), '40001', null, 'confirmar avisa también con la bandera apagada después de guardar');
+select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_bandera')), '40001', null, 'confirmar avisa también con las dos banderas apagadas después de guardar');
 select pg_temp.bandera('listas_precios', true);
+select pg_temp.bandera('promociones_precio', true);
 
 -- ============================================================================
 -- Una lista de -90 % sobre un producto muy barato no cobra $0
@@ -361,7 +380,8 @@ select pg_temp.bandera('listas_precios', true);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('barato', 'factura', 'c5000000-0000-0000-0000-000000000006');
 select throws_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('barato'),
-    jsonb_build_array(pg_temp.l(5, 1))::text, pg_temp.upd('barato')), '22023', null,
+    jsonb_build_array(pg_temp.l(5, 1))::text, pg_temp.upd('barato')), '22023',
+  'El producto «Producto 5» (línea 1) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)',
   'guardar rechaza una línea que la lista lleva a $0 (la tienda la marca sin precio)');
 select lives_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('barato'),
     jsonb_build_array(pg_temp.l(5, 1, 3))::text, pg_temp.upd('barato')), 'con precio manual sí se puede cobrar un precio chico');
@@ -373,7 +393,9 @@ select pg_temp.guardar('pres_barato', jsonb_build_array(pg_temp.l(5, 1)));
 reset role;
 update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000009' where id = 'c5000000-0000-0000-0000-000000000001';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('pres_barato')), '22023', null, 'copiar presupuesto también rechaza la línea que la lista lleva a $0');
+select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('pres_barato')), '22023',
+  'El producto «Producto 5» queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)',
+  'copiar presupuesto también rechaza la línea que la lista lleva a $0 y nombra el producto');
 reset role;
 update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
 

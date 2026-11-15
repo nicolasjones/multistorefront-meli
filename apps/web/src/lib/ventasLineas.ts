@@ -65,6 +65,9 @@ export const MENSAJE_PRECIOS_CAMBIARON = 'Los precios cambiaron: revisá el tota
 export const MENSAJE_PRECIOS_CAMBIARON_COBRO = 'Los precios cambiaron: revisá el total y cobrá de nuevo.'
 // En el diálogo «Confirmar factura» no se cobra: se vuelve a confirmar (el cobro es un paso posterior).
 export const MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR = 'Los precios cambiaron: revisá el total y confirmá de nuevo.'
+// F-CLI-21: el rechazo `precios_cambiaron` llega con `details = 'lista_precios'` cuando lo que cambió es la lista de precios del cliente.
+export const MENSAJE_LISTA_CAMBIO_CONFIRMAR = 'El precio de la lista cambió: revisá el total y confirmá de nuevo.'
+export const MENSAJE_LISTA_CAMBIO_COBRO = 'El precio de la lista cambió: revisá el total y cobrá de nuevo.'
 export const MENSAJE_ERROR_ACTUALIZAR_PRECIOS = 'No pudimos actualizar los precios. Probá de nuevo.'
 
 // La línea cobra una promoción de la tienda (F-2, FR-016): el servidor guardó el precio normal como referencia.

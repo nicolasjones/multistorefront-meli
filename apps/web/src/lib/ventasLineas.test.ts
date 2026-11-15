@@ -1,3 +1,4 @@
+import { mensajeDeErrorComprobante } from './ventas'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -237,5 +238,14 @@ describe('ventasLineas · marca de la lista de precios', () => {
     const [convertida] = aLineas([linea()])
     expect(convertida.lista_ajuste_pct).toBeNull()
     expect(convertida.lista_nombre).toBeNull()
+  })
+})
+
+describe('ventasLineas · línea que la lista lleva a cero', () => {
+  it('el comprobante muestra el mensaje de la base con el nombre del producto', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const mensaje = 'El producto «Tornillo» (línea 2) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)'
+    expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje, hint: 'producto_id' }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
+    spy.mockRestore()
   })
 })

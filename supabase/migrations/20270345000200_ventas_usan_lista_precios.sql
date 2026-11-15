@@ -1,8 +1,8 @@
 -- F-CLI-21 (MSF-453, épica MSF-450, spec 20270327-100000-listas-de-precios-por-cliente, Fase 3, T016): las ventas usan la lista de
 -- precios del cliente y guardan el snapshot en la línea (D12). Con la bandera `listas_precios` APAGADA (estado de nacimiento) todo
--- resultado es idéntico al anterior: el motor (`20270340000400`) ignora las listas y las columnas nuevas quedan nulas.
+-- resultado es idéntico al anterior: el motor (`20270345000100`) ignora las listas y las columnas nuevas quedan nulas.
 --
--- Esquemas (Principio VII): sin tablas nuevas; escriben `dominio.comprobantes_venta_lineas` (columnas de `20270340000300`) y leen
+-- Esquemas (Principio VII): sin tablas nuevas; escriben `dominio.comprobantes_venta_lineas` (columnas de `20270345000000`) y leen
 -- `dominio.listas_precios`. Las RPC viven en `public` (superficie expuesta) y no guardan datos.
 --
 -- Funciones redefinidas (cada cuerpo parte de la última versión de `dokploy`, verificada igual a la definición VIVA de dev; mismas
@@ -204,7 +204,7 @@ begin
     -- F-CLI-21: una lista con descuento fuerte sobre un producto muy barato puede redondear a cero; la tienda lo marca `sin_precio`
     -- (neto <= 0) y el panel no cobra $0 por esa vía. Solo aplica cuando fijó el precio la lista (no cambia nada sin lista).
     if v_manual is null and v_precio.lista_precio_id is not null and v_unitario <= 0 then
-      raise exception 'El producto de la línea % queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)', v_orden
+      raise exception 'El producto «%» (línea %) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)', v_producto.nombre, v_orden
         using errcode = '22023', hint = 'producto_id';
     end if;
     v_porcentaje := case when v_precio.alicuota_exenta then 0 else coalesce(v_precio.alicuota_porcentaje, 0) end;
@@ -609,6 +609,7 @@ declare
   v_lista_id uuid;
   v_lista_pct numeric;
   v_n integer;
+  v_n_lista integer;
 begin
   -- Con las dos banderas apagadas no hay nada que vigilar (idéntico al comportamiento anterior).
   if not v_promos and not private.bandera_activa('listas_precios') and not exists (
@@ -658,16 +659,23 @@ begin
                 and (v_lista_id is null or l.lista_precio_id <> v_lista_id or l.lista_ajuste_pct <> v_lista_pct))
             or (l.lista_precio_id is null and v_lista_id is not null))
   )
-  select count(*)::int into v_n
+  select count(*) filter (where v_promos and (p.promocion_id is distinct from c.promocion_id
+                                              or (p.promocion_id is not null and abs(p.neto_unitario - c.precio_unitario) > 0.005)))::int,
+         count(*) filter (where p.lista_precio_id is distinct from c.lista_precio_id
+                            or p.lista_ajuste_pct is distinct from c.lista_ajuste_pct)::int
+    into v_n, v_n_lista
     from candidatas c
    cross join lateral private.precio_linea_venta(
            c.producto_id, v_c.empresa_id, v_tipo_cliente, c.cantidad, v_descuento, p_ahora, true, v_c.cliente_id) p
-   where p.neto_unitario is not null
-     and ((v_promos and (p.promocion_id is distinct from c.promocion_id
-                         or (p.promocion_id is not null and abs(p.neto_unitario - c.precio_unitario) > 0.005)))
-          or p.lista_precio_id is distinct from c.lista_precio_id
-          or p.lista_ajuste_pct is distinct from c.lista_ajuste_pct);
-  return v_n;
+   where p.neto_unitario is not null;
+
+  -- Mismo contrato público que `confirmar_comprobante` (40001, hint `precios_cambiaron`); `detail = 'lista_precios'` dice que lo que cambió
+  -- es la lista (la pantalla muestra «El precio de la lista cambió»). La promoción sigue devolviendo la cantidad (la RPC rechaza sin detail).
+  if v_n_lista > 0 then
+    raise exception 'Los precios cambiaron: la lista de precios del cliente ya no es la que se usó al guardar las líneas'
+      using errcode = '40001', hint = 'precios_cambiaron', detail = 'lista_precios';
+  end if;
+  return coalesce(v_n, 0);
 end;
 $$;
 

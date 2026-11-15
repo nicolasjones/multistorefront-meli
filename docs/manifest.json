@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "008b3b09935d57a036ea510840db7485f6f9e0f75e56ecf818d20ba2cc2f61f0",
-      "sourceHash": "69c23df40fd0a57c49ecdff13717bae5a78970d4324b5f9baea7bc711b673a23",
-      "sourceAt": "00d5672c",
+      "pageHash": "a6ffdce6ec32080d495a65e9b9bf0de3753660e8286397058af82f8afed9ef74",
+      "sourceHash": "b9d912ff9cbfc02242f42a82a788c8c28f55738f7dad037aa2ee69afb833f74a",
+      "sourceAt": "e477d3de",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "e477d3de"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "c8aad8c98cfeca25c37e8a15a30df67f978b935147ce84457f018556fafb43c4",
-      "sourceHash": "41ded500c8f84892722ecc9b78b4f1efa8ce84e39ba93240dc8a66ba32d34151",
-      "sourceAt": "29d16690",
+      "pageHash": "47d1d0dcf6dc534983a724ef208e538340e9d490325297b11a5b9ee1f355e1fc",
+      "sourceHash": "c86e927849f704077c9e1e9694651e2825dc4f101faeb84decea1aeab9962977",
+      "sourceAt": "56b825d5",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "29d16690"
+      "commit": "56b825d5"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -591,25 +591,25 @@
     },
     "docs/cuentas-y-compras-a-proveedores.md": {
       "title": "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)",
-      "pageHash": "d45bef9752bfb7dd760d05d4ab366185f0e441073b80f956c861ce2dae733904",
-      "sourceHash": "26c8022c9e87054ccb53e78d770bcacc12fc8a071c05c91961b0e21a47d9859b",
-      "sourceAt": "277b191e",
+      "pageHash": "0529a28cb4457a6e6e5217609ba48a9b5ccbd84e996cdc0691e94266deb60d23",
+      "sourceHash": "41586214cb53dfc78343c1dc7e3cf93f8886022ffd67fcd1f923ff77336aad70",
+      "sourceAt": "56b825d5",
       "sources": [
         "specs/20261029-100000-cuentas-y-compras-a-proveedores"
       ],
       "owner": "tecnico",
-      "commit": "277b191e"
+      "commit": "56b825d5"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "8b146ab47e8f717f1119e823be801d7c29316bba890b2ef5478fa120cd6f3d0d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "c4831663a25e9b1635aa4b6cbf492c36b135ae011387fcbf5bebe81fc2d334de",
+      "sourceHash": "b9d912ff9cbfc02242f42a82a788c8c28f55738f7dad037aa2ee69afb833f74a",
+      "sourceAt": "7ca1b7c4",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2b8f7624"
+      "commit": "7ca1b7c4"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -980,14 +980,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "873e918cca9091fde10810e089fd8bb08647577529d858a87a6485675b564f7d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "09399e9ed6176ed62cf4d58e2d907d21fb93cd69fb1438aa7e5621c60b309820",
+      "sourceHash": "b9d912ff9cbfc02242f42a82a788c8c28f55738f7dad037aa2ee69afb833f74a",
+      "sourceAt": "7ca1b7c4",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "36d3a997"
+      "commit": "7ca1b7c4"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -1014,9 +1014,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "41c0ada7f9d18cd230c21b3f851bd495a4c89ab6625a03a61e8ac3a37a557c6c",
-      "sourceHash": "42ec811b282bca1a5d26c8aa62035e34ffff58713ddf1a039033d8cbc12be403",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "33b1ef912dce43d6916488f24b6facacee8ed340dbcc9ff9fc033e361b007285",
+      "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
+      "sourceAt": "1983192f",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1025,16 +1025,16 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "1983192f"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "2882dfd55a9fb7831fd3d60b2b826657e575958a162ac0d02501ecdb06f46a51",
+      "pageHash": "6e3a45867d317c977e05e4dd2e5ea706e877501bcf4498a5981f06836311f3ad",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "bfeaa8b6"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1298,6 +1298,15 @@
       "owner": "producto",
       "commit": "9b7ffeec"
     },
+    "docs/producto/opiniones.md": {
+      "title": "Opiniones: moderar lo que dicen los clientes",
+      "pageHash": "a498b379fc1be7fc47724407272e60a8ef661ed82b8e213c346fa2a190ec9294",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "36967908"
+    },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
       "pageHash": "91c71ecbc8e5748f26c7c65ea62ed24cde08180e21344500420f3cefe6766b96",
@@ -1327,12 +1336,12 @@
     },
     "docs/producto/precios-e-iva.md": {
       "title": "Cómo se calcula el precio final",
-      "pageHash": "0804c12e1c822850213a19404d1578423f60035feb56c5e42a2531e1e19534f2",
+      "pageHash": "68a0aa098d6cab3479ecbe19940e48959a1eb10a9d26595fab1fba17282609af",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0682630f"
+      "commit": "56b825d5"
     },
     "docs/producto/precios-masivos.md": {
       "title": "Actualizar precios en bloque",
@@ -1747,9 +1756,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "05fda3aaa1d65477ddf8b83c1d56de06caab081fd22230966127f10cfc38e2cf",
-      "sourceHash": "606bcd3ae06804bff32bd42cc7baa988f105a0aff0df09e6b24bc984e1ff7cea",
-      "sourceAt": "27c5917b",
+      "pageHash": "42001804865626935216709fc434ab34651ad186770990a0eb8049c462d9bd06",
+      "sourceHash": "31af57d28b20ca43afb217906b151f781a84e9880b1980eea38210e4d584ea0a",
+      "sourceAt": "6f926d7e",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1758,7 +1767,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "27c5917b"
+      "commit": "6f926d7e"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -2655,9 +2664,9 @@
     },
     "docs/tecnico/cotizacion-sugerida-y-mayoristas.md": {
       "title": "Cotización sugerida y mayoristas (MSF-373)",
-      "pageHash": "eda16ff99b69bf5f5cec0835dfccb870cb9b8216ee0927d76f02c6fbec6c1d09",
-      "sourceHash": "85e42c48f290361ff02f146602a85555a6b0d326779efebd60fb9f94f86ff54c",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "26ec6e601ab0c1b0b6ad480c4c2f7299f3ca60ca8503fabdf4cf58e27d8966af",
+      "sourceHash": "7770fb1be9ff428cd6347c6afb63a1570b2b0ac5ed3194d312f3e11f968c909f",
+      "sourceAt": "7ca1b7c4",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -2667,7 +2676,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": "f3ef1b96"
+      "commit": "7ca1b7c4"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -2686,16 +2695,16 @@
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
-      "pageHash": "4b3daa9b81931b1faf54c7c863b0af0f9c8a0a8ab5156b5847577848e57a6205",
-      "sourceHash": "5527dbca607ac54264e28e2185aaf4fdfff9c8f071adcc1636dbbccc99175c27",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "316fff1d46878637df700c6c45ed0748c188e1e41a41fae40ddda085dc2d9a7d",
+      "sourceHash": "87ecb87387398cf537df5ab2ffd2dd0a4943e20e5609f5f54ce81d53922bf2fc",
+      "sourceAt": "56b825d5",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "56b825d5"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
@@ -3634,6 +3643,22 @@
       "owner": "tecnico",
       "commit": "ebf4bf4d"
     },
+    "docs/tienda-opiniones.md": {
+      "title": "Opiniones de productos: base y moderación (MSF-467)",
+      "pageHash": "78c6b261742936c6093c8ae2370d7ed3b10e7d92db921b95319366a538a65e94",
+      "sourceHash": "f6f52325a39052cfa41c642f852831b7c5897274a4b66c2bdab4ad87734d9466",
+      "sourceAt": "33d1644e",
+      "sources": [
+        "specs/20270328-100000-opiniones-de-productos",
+        "supabase/migrations/20270341000000_opiniones_producto.sql",
+        "supabase/migrations/20270341000100_opiniones_validacion.sql",
+        "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
+        "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
+        "apps/web/src/pages/opiniones"
+      ],
+      "owner": "tecnico",
+      "commit": "33d1644e"
+    },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
       "pageHash": "9204617ba366f62ff3bf6ee9650381e8d1620d4f09a14724b36aa6464e33d07e",
@@ -3701,9 +3726,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "768840905c69643fd8b2a5d2be4e22fca987e31b56cfca546b3218823d250e23",
-      "sourceHash": "cc695d99b80627473ea672a2dfedb45b162357452683fdd25fb3de30fc574653",
-      "sourceAt": "f848bac9",
+      "pageHash": "04c26f2abfcddf889992fafe4c9f23ef195180a939ce1ac5654680f781539428",
+      "sourceHash": "b1715cf6e3786ac2ba8c655131deae352f3567af59eb2d72f3982229a33243f0",
+      "sourceAt": "1983192f",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3715,7 +3740,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "f848bac9"
+      "commit": "1983192f"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
