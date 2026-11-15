@@ -20,6 +20,7 @@ import {
   TEXTO_AYUDA_LINEAS,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   type EntradaLinea,
   type LineaComprobante,
@@ -300,6 +301,11 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         <Typography variant="caption" color="text.secondary">
           {rotuloEscalaLinea(linea)}
         </Typography>
+        {marcaListaLinea(linea) ? (
+          <Typography variant="caption" color="text.secondary" component="p">
+            {marcaListaLinea(linea)}
+          </Typography>
+        ) : null}
       </Box>
       <Stack role="cell" direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
         <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>

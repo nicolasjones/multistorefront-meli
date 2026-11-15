@@ -7,14 +7,14 @@ import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { mensajeDeErrorComprobante, type Comprobante } from '../../lib/ventas'
-import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_LISTA_CAMBIO_COBRO, MENSAJE_PRECIOS_CAMBIARON_COBRO, marcaListaLinea, rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
 import { confirmarComprobante } from '../../lib/ventasConfirmacion'
 import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import {
   MENSAJE_PRODUCTO_NO_ENCONTRADO, MENSAJE_SIN_CONSUMIDOR_FINAL, agregarProductoAVenta, buscarProductoPorCodigoBarras,
-  esEan13, esPreciosCambiaron, huboCambioDePrecios, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo,
+  esCambioDeLista, esEan13, esPreciosCambiaron, huboCambioDePrecios, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo,
   mensajeDescarteVenta, obtenerConsumidorFinal, repreciarVenta,
   MENSAJE_CODIGO_INVALIDO,
 } from '../../lib/ventasMostrador'
@@ -191,7 +191,7 @@ export function VentaMostrador() {
         // La base rechazó sin efectos: se re-guardan las mismas líneas, se muestra el total nuevo y NO se reintenta el cobro.
         try {
           setVenta(await repreciarVenta(ventaVigente))
-          setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON_COBRO)
+          setAvisoPrecios(esCambioDeLista(error) ? MENSAJE_LISTA_CAMBIO_COBRO : MENSAJE_PRECIOS_CAMBIARON_COBRO)
         } catch (falla) {
           setErrorVenta(mensajeDeErrorComprobante(falla, MENSAJE_ERROR_ACTUALIZAR_PRECIOS))
         }
@@ -273,7 +273,7 @@ export function VentaMostrador() {
                       <TableCell>
                         <Typography component="span" sx={{ fontWeight: 600 }}>{linea.descripcion}</Typography>
                         <Typography component="span" variant="caption" color="text.secondary" display="block">
-                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}
+                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}{marcaListaLinea(linea) ? ` · ${marcaListaLinea(linea)}` : ''}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">{linea.cantidad}</TableCell>

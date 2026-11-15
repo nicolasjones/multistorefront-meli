@@ -407,6 +407,8 @@
     "mensajes_chat_ia",
     "organizaciones",
     "organizaciones_features",
+    "private.clientes_exportaciones_entregas",
+    "private.clientes_exportaciones_ventana",
     "private.exportaciones_actividad",
     "programacion_ejecucion",
     "public.alertas_monitoreo",

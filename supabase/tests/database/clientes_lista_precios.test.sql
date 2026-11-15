@@ -3,7 +3,7 @@
 -- (RF-PRE-14-3), la bandera (55000 salvo quitar), la fusión de clientes y que ningún precio cambia por tener una lista asignada.
 begin;
 
-select plan(57);
+select plan(60);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -275,8 +275,22 @@ select results_eq(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname in ('precio_para', 'precio_para_calculo', 'precio_linea_venta', 'precio_linea_venta_calculo')
-      and p.prosrc ilike '%lista_precio%'),
-  0, 'ninguna función del motor de precio lee lista_precio_id');
+      and p.prosrc ilike '%public.clientes%'),
+  0, 'ninguna función del motor de precio lee clientes.lista_precio_id: la lectura vive en private.lista_precios_cliente (Fase 3)');
+
+-- El motor llega a la lista del cliente solo por private.lista_precios_cliente: ninguna otra función de precio ni de la tienda lee la columna
+-- del cliente con el alias del motor, y el cálculo la invoca.
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'private', 'publico') and p.proname ~ '^(precio|motor)_' and p.prosrc ilike '%public.clientes%' and p.prosrc ilike '%lista_precio_id%' and p.proname <> 'motor_presupuesto_tienda'),
+  0, 'ninguna función de precio ni de la tienda lee clientes.lista_precio_id por su cuenta: solo private.lista_precios_cliente');
+select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'private' and p.proname = 'lista_precios_cliente' and p.prosrc ilike '%c.lista_precio_id%'), 1,
+  'private.lista_precios_cliente es quien lee clientes.lista_precio_id');
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'private' and p.proname in ('precio_para_calculo') and p.prosrc ilike '%lista_precios_cliente(%'),
+  1, 'precio_para_calculo obtiene la lista llamando a private.lista_precios_cliente');
 
 select * from finish();
 rollback;

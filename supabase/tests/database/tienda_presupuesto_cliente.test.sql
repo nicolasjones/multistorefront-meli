@@ -13,6 +13,8 @@
 --   (h) idempotencia (misma clave = mismo número, un solo comprobante, un solo cupo gastado); (i) un error provocado a mitad deja el contador de numeración sin cambio;
 --   (j) `anon` sin `execute`; (k) `anon` y `authenticated` sin escritura sobre las tablas; (l) ninguna respuesta con texto de Postgres; (m) bandera apagada = `sin_acceso`
 --   sin tocar datos; (n) el evento de actividad (actor nulo, número y cliente, sin correo ni teléfono).
+-- Cobertura de la LISTA DE PRECIOS del cliente en el presupuesto de la tienda (F-CLI-21, Fase 4): vive en `precio_lista_tienda_paridad.test.sql`
+-- (cotizar y crear con un cliente con lista, snapshot en las líneas, paridad con el panel y bandera apagada). Acá el motor sigue sin lista.
 begin;
 
 select plan(182);
@@ -896,9 +898,11 @@ select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and v
 -- M-3: el cupo de llamadas SOBREVIVE a una excepción (no se revierte con el bloque que falla)
 -- ============================================================================
 -- Se reemplaza el motor por uno que falla (dentro de esta transacción, que se deshace al final) y se cuenta el contador de la cuenta antes y después.
-create or replace function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
+drop function private.motor_presupuesto_tienda(uuid, jsonb);
+create function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
 returns table (orden integer, producto_id uuid, estado text, descripcion text, codigo text, cantidad integer, precio_unitario numeric, escala text, alicuota_id uuid,
-  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean)
+  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean,
+  lista_precio_id uuid, lista_ajuste_pct numeric)
 language plpgsql security definer set search_path = '' as $$
 begin
   raise exception 'falla provocada del motor';

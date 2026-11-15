@@ -3,7 +3,7 @@
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
 - Rutas del panel: **265**
-- Tablas en migraciones: **204**
+- Tablas en migraciones: **206**
 - Variables de entorno: **106**
 - Specs: **157**
 - Páginas de documentación: **326**
@@ -418,6 +418,8 @@
 - `mensajes_chat_ia`
 - `organizaciones`
 - `organizaciones_features`
+- `private.clientes_exportaciones_entregas`
+- `private.clientes_exportaciones_ventana`
 - `private.exportaciones_actividad`
 - `programacion_ejecucion`
 - `public.alertas_monitoreo`

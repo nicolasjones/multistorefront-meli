@@ -105,7 +105,7 @@ lectura efímera de una fuente pública y no se persiste. Por eso **no hay DER q
 
 ## Qué no se construyó en esta épica: F-PRE-14 (listas mayoristas) — cancelada y luego reabierta
 
-> **Reabierta el 2026-11-15** (decisión de Nicolás: una lista es un porcentaje de ajuste sobre el precio central; spec `20270327-100000-listas-de-precios-por-cliente`). Las Fases 1 y 2 (listas, administración y asignación al cliente) están implementadas **sin efecto en el precio**: ningún precio calculado ni lo que se cobra cambia hasta la Fase 3, detrás de la bandera `listas_precios`. Ver [Listas de precios](../precios.md#listas-de-precios-f-pre-14-y-f-cli-21-fases-1-y-2).
+> **Reabierta el 2026-11-15** (decisión de Nicolás: una lista es un porcentaje de ajuste sobre el precio central; spec `20270327-100000-listas-de-precios-por-cliente`). Las Fases 1 y 2 (listas, administración y asignación al cliente) y las Fases 3 y 4 (motor de precio, ventas y tienda) están implementadas; el motor aplica la lista **solo con la bandera `listas_precios` encendida** (apagada, el precio es idéntico al de antes). Ver [Listas de precios](../precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
 
 **F-PRE-14 está cancelada** (MSF-442, decisión de Nicolás del 2026-11-12). **No hay código, requisitos,
 pantalla, migración ni RPC**, y no se va a implementar: `FR-003` quedó **cancelado** y su número reservado.
