@@ -1046,8 +1046,8 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "b83c8ee525ee2b1f057027d33de7935ee780b350fc659a76ebafa3f32672ba0e",
-      "sourceHash": "ea95150b880b5c01a01a5fb17af83205824d8494e91cab11a5bc4f14f043b720",
+      "pageHash": "f17236f3b0921bfc634db286ed03f5a76e915f7cecabd92fd23696cd78921770",
+      "sourceHash": "62947a370b8135369cde0c0e00a0549ca1cad139c856f42428717f9370c81b04",
       "sourceAt": "7065a017",
       "sources": [
         "specs"
@@ -1906,8 +1906,8 @@
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
-      "pageHash": "936ec9906476d39bfe86408b08d8b0a969430791f59d5f6c99886750162318bb",
-      "sourceHash": "d6e51365b70a48d0843782853687c627807035f2e0a3c06a1741f97a4a1a1600",
+      "pageHash": "3d08ca48e1db901d0e20993fbd4bbc04adcf56a677403ad91e49487f98703774",
+      "sourceHash": "f1fdf9662f84658f4c49f25f67ee0759b14264fa8ac16d1a2ea57e47491744c2",
       "sourceAt": "56d60776",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
