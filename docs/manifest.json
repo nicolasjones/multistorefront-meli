@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "9ae2040f311f32aa88c14392f71135bab13077c6fbd9800b204a1a63dc88af20",
-      "sourceHash": "0f4f78c2c920e7a76b1de549bbd1bef21cd62fdca3d0416eaf3e26f645bc05f6",
-      "sourceAt": "8583cf7f",
+      "pageHash": "826c70bd80626d903b80a8d130ec211c766a9e0e3457fb147e9e9f7153e14d11",
+      "sourceHash": "9730959c5ab223e794adb88674e48c1f28404d12a86d19a45a9f386ed0b0130d",
+      "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8583cf7f"
+      "commit": "6b76bcf5"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
