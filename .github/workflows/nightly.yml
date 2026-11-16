@@ -229,11 +229,10 @@ jobs:
 
       # Lighthouse móvil (celular 390×844, CPU ×4, «4G lento») sobre `/catalogo` y `/producto/:id` de las dos
       # tiendas del seed. El script deja el resumen en `reports/lighthouse-tienda/`.
-      - name: Medir Lighthouse en perfil móvil
-        run: pnpm medir:tienda
-
       # La RPC del catálogo con un catálogo grande: N productos sintéticos en una transacción que se revierte
-      # (no deja datos). Los NOTICE con los milisegundos salen por stderr.
+      # (no deja datos). Los NOTICE con los milisegundos salen por stderr. Va ANTES de Lighthouse: si el
+      # veredicto de LCP no cumple, el paso de Lighthouse sale con código 1 y las cifras de la RPC tienen que
+      # haber salido igual.
       - name: Medir `publico.catalogo_pagina_por_dominio` con catálogo grande
         env:
           PRODUCTOS: ${{ inputs.productos || '500' }}
@@ -241,6 +240,9 @@ jobs:
           set -o pipefail
           mkdir -p reports/medir-tienda
           docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v N="$PRODUCTOS" -f - < scripts/medir-tienda-catalogo.sql 2>&1 | tee reports/medir-tienda/rpc-catalogo.txt
+
+      - name: Medir Lighthouse en perfil móvil
+        run: pnpm medir:tienda
 
       - name: Resumen en $GITHUB_STEP_SUMMARY
         if: always()
