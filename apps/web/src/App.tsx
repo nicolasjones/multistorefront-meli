@@ -41,6 +41,7 @@ import { ClienteShow } from './pages/clientes/show'
 import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
 import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
 import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
+const NewsletterPage = lazy(() => import('./pages/clientes/newsletter').then((modulo) => ({ default: modulo.NewsletterPage })))
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -373,6 +374,14 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoDetalle /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/newsletter"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><Suspense fallback={<EstadoCargaPagina />}><NewsletterPage /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

@@ -1430,6 +1430,8 @@ erDiagram
     text estado_nombre "nueva: copia del estado avisado"
     text destinatario "nueva: correo usado al pedirlo"
     text estado_envio "nueva: pendiente|enviado|fallido"
+    text canal "alterada: nueva, correo|whatsapp (MSF-952)"
+    uuid clave_envio "alterada: nueva, idempotencia del envío (MSF-952)"
     int intentos
     text error "nueva: motivo corto, <= 500"
     uuid solicitado_por FK
@@ -1480,6 +1482,12 @@ erDiagram
 - **`origen_id` no es FK**: el origen vive en otra tabla de `dominio` y el tipo puede crecer; la RPC valida el vínculo.
 - **Idempotencia**: `for update` sobre la reparación + el índice único parcial del origen (comprobante) y
   `reparacion_avisos_pendiente_uq` (aviso): el doble clic y dos personas a la vez no crean duplicados.
+- **MSF-952 (WhatsApp desde el servidor)**: `dominio.reparacion_avisos` suma `canal` (`correo`|`whatsapp`) y
+  `clave_envio`; el único parcial `reparacion_avisos_pendiente_uq` pasa a incluir `canal` (el WhatsApp pendiente no
+  bloquea el correo) y se agrega `reparacion_avisos_whatsapp_clave_uq`. `dominio.clientes` suma `acepta_whatsapp` y
+  `acepta_whatsapp_en` (consentimiento). RPC `public.avisar_cliente_whatsapp` y flow
+  `reparaciones-aviso-whatsapp`. Migración `20270418000403_reparacion_avisos_whatsapp_envio.sql` (aditiva). Detalle:
+  [Service técnico: avisos al cliente](service-avisos.md#whatsapp-el-aviso-que-manda-el-servidor-msf-952--s-1-de-msf-118).
 - Detalle de RPC, flow, pantallas y reversión: [Service técnico: cobro, avisos y ficha del cliente
   (técnico)](service-cobro-y-avisos.md).
 

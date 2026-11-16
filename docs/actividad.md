@@ -224,6 +224,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
   (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
   `docs/service-avisos.md`.
+- `reparacion.aviso_whatsapp_solicitado` (MSF-952, Service técnico): lo registra `private.registrar_actividad` en la
+  misma transacción que la RPC `avisar_cliente_whatsapp` (solo cuando se crea el aviso; una repetición idempotente no
+  vuelve a registrar). El detalle nombra el código visible (`R-000N`) y el estado avisado, **nunca el número de
+  teléfono** del cliente. El cierre del aviso por el flow de WhatsApp reutiliza `reparacion.aviso_enviado` y
+  `reparacion.aviso_fallido` (el detalle dice «por WhatsApp»). Lo cubre el pgTAP `service_aviso_whatsapp`. Ver
+  `docs/service-avisos.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
   tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada

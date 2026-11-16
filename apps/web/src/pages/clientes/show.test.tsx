@@ -48,7 +48,7 @@ import { ClienteShow } from './show'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: 'norte@example.com',
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: 'Rosario', provincia: null, expreso_preferido: null,
-  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, acepta_correo_masivo: false, descuento: null, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'mayorista', es_consumidor_final: false, acepta_correo_masivo: false, acepta_whatsapp: false, descuento: null, created_at: '2026-10-16T10:00:00Z',
 }
 
 const abrir = () =>
@@ -132,6 +132,17 @@ describe('ClienteShow', () => {
     const interruptor = screen.getByRole('checkbox', { name: 'Incluir en el correo masivo' })
     expect(interruptor).toBeChecked()
     expect(interruptor).toBeDisabled()
+  })
+
+  it('el interruptor «Acepta avisos por WhatsApp» guarda el consentimiento del cliente', async () => {
+    abrir()
+    const interruptor = screen.getByRole('checkbox', { name: 'Acepta avisos por WhatsApp' })
+    expect(interruptor).not.toBeChecked()
+    fireEvent.click(interruptor)
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ resource: 'clientes', id: 'c-1', values: { acepta_whatsapp: true } }),
+    ))
+    expect(await screen.findByText('El cliente acepta avisos por WhatsApp')).toBeInTheDocument()
   })
 
   it.each(['lectura', 'ninguno'] as const)('con nivel %s no ofrece Editar ni Archivar', (nivel) => {

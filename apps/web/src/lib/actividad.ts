@@ -84,6 +84,14 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'lista_precios.archivada': 'Lista de precios archivada',
   'lista_precios.restaurada': 'Lista de precios restaurada',
   'cliente.lista_precio_asignada': 'Lista de precios del cliente',
+  'newsletter.configurar': 'Newsletter de la tienda activado o desactivado',
+  'newsletter.guardar': 'Borrador de newsletter guardado',
+  'newsletter.prueba': 'Prueba de newsletter pedida',
+  'newsletter.enviar': 'Newsletter enviado',
+  'newsletter.cancelar': 'Envío de newsletter cancelado',
+  'newsletter.baja': 'Baja del newsletter desde el enlace',
+  'newsletter.baja_manual': 'Suscriptor del newsletter dado de baja',
+  'newsletter.datos_borrados': 'Datos de un suscriptor del newsletter borrados',
 }
 
 // Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
