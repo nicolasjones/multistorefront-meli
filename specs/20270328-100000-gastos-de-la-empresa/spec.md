@@ -437,6 +437,7 @@ Mapeo: permisos y organización desde la sesión → RF-GAS-2; cotización conge
 
 ## Riesgos y desvíos declarados
 
+- **`gasto.exportado` sin empresa**: al exportar con «todas las tiendas» el evento se registra sin empresa y lo ve toda la organización con la sección `actividad` (filtros y cantidad de filas, nunca importes ni tiendas). Decisión de diseño: es un hecho de toda la organización.
 - **Actividad y D19**: Actividad muestra la categoría del gasto, el nombre de la empresa y los nombres de los campos modificados, nunca cifras; quien tiene `actividad` sin `rentabilidad` puede inferir que existe un gasto de esa categoría (p. ej. «Sueldos») y que se cambió su importe. Es la consecuencia aceptada de D19; si más adelante se decide ocultar también la categoría, bastaría cambiar el `detalle` y el jsonb de las RPC `guardar_gasto` y `anular_gasto`. Además, `registro_actividad_select` filtra por organización y sección `actividad` pero no por empresa accesible (preexistente y común a todos los eventos, no se cambia en este PR): quien tiene `actividad` ve esos datos aun de empresas que no puede acceder. Seguimiento: MSF-968 «Actividad: filtrar registro_actividad por empresas accesibles».
 
 - **No cambia lo existente, pero sí muestra una cifra sensible nueva.** Por eso la medida nace detrás de la bandera `margen_costos_fijos` (D15), con pgTAP de **paridad** de todo lo existente, y no sale a otras superficies (RF-GAS-18).
