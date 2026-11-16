@@ -59,6 +59,8 @@
     "openapi:verificar": "node scripts/verificar-openapi.mjs",
     "openapi:escribir": "node scripts/verificar-openapi.mjs --escribir",
     "test:e2e": "pnpm --filter @platform/web test:e2e",
+    "docs:capturas": "pnpm --filter @platform/web docs:capturas",
+    "demo:dataset": "bash scripts/demo-dataset/demo.sh",
     "test:e2e:evidencia": "pnpm --filter @platform/web test:e2e:evidencia",
     "test:auth:hook-bloqueo": "node --test scripts/verificar-hook-bloqueo.test.mjs",
     "test:auth:hook-bloqueo:e2e": "node --test scripts/verificar-hook-bloqueo.e2e.mjs",

@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "41155dd0241ec006fb42254a453010f0728f5a5ef0e81ae6f199cd7ea4e06ba7",
+      "pageHash": "4989f6722c3483ce8b3277cbae4b889ad41930a1f875e98d5e4be30aee44b77c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c972b57b"
+      "commit": "ddc151fe"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -599,6 +599,17 @@
       ],
       "owner": "tecnico",
       "commit": "775b35f0"
+    },
+    "docs/dataset-demo.md": {
+      "title": "Dataset de demostración (San Javucho y Mundo JC)",
+      "pageHash": "445fe4143c645c68cc9187a2fa40b78f768759508c1095af6d04965103511af8",
+      "sourceHash": "de6b00b7f5825ad59fe2be1c55437ff7687901f7d411ce9a4d01e7df536a005d",
+      "sourceAt": "78a94d97",
+      "sources": [
+        "scripts/demo-dataset"
+      ],
+      "owner": "producto",
+      "commit": "78a94d97"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
