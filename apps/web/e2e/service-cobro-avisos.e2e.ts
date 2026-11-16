@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // MSF-576 · T032 (SC-009, cierre de MSF-232): recorrido completo de Service cobro y avisos. Reparación de dos ítems →
 // comprobante de Ventas (F-SVC-13) → confirmado y cobrado → aviso al cliente por correo (F-SVC-14) → la reparación
@@ -8,61 +9,13 @@ import { expect, test, type Page } from '@playwright/test'
 // key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite. Con
 // `E2E_CORREO_KESTRA=1` (Kestra + SMTP de prueba/Mailpit levantados) además espera el correo recibido; sin eso verifica
 // el aviso `pendiente`/`enviado` en la base y la orden en la outbox. Ver docs/service-cobro.md y docs/service-avisos.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
-const password = 'Correcta-12345!'
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const password = CONTRASENA_E2E
 const conCorreoKestra = process.env.E2E_CORREO_KESTRA === '1'
 const mailpit = process.env.MAILPIT_URL ?? `http://127.0.0.1:${process.env.SUPABASE_MAILPIT_PORT ?? '4302'}`
 
-// La service-role key escribe datos y crea usuarios con contraseña conocida: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de service cobro y avisos: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer, 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return prefer.includes('return=representation') ? ((await r.json()) as T[]) : []
-}
-
-async function leer<T>(ruta: string, esquema = 'dominio'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
+// Lecturas de este spec: por defecto del esquema `dominio` (el `leer` compartido usa `public`).
+const leerDominio = <T,>(ruta: string, esquema = 'dominio') => leer<T>(ruta, esquema)
 
 // Sesión de la persona (no la service-role) para llamar a las RPC como lo haría la app.
 async function rpcComo(correo: string, nombre: string, cuerpo: Record<string, unknown>): Promise<unknown> {
@@ -116,17 +69,15 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: `Tienda ${sufijo}` }, 'dominio')
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
-      await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
+      await sql(`insert into public.features (id, nombre, descripcion) values ('service-tecnico', 'Service técnico', 'E2E') on conflict do nothing`)
+      await sql(`insert into public.organizaciones_features (feature_id, organizacion_id, habilitado_por) values ('service-tecnico', $1, $2)`, [org.id, userId])
       // `avisar_cliente_reparacion` encola por la conexión activa del generador de comprobantes (la misma de Ventas): sin ella responde «sin_conexion».
-      await rest('conexiones', { organizacion_id: org.id, sistema_externo: 'comprobantes-pdf', credencial_vault_id: randomUUID() })
-      const [cliente] = await rest<{ id: string }>('clientes', {
-        organizacion_id: org.id,
-        nombre: `Cliente ${sufijo}`,
-        tipo: 'minorista',
-        correo: correoCliente,
-      })
-      const modelos = await leer<{ id: string }>('modelos_equipo?organizacion_id=eq.' + org.id + '&select=id&limit=1')
+      await sql(`insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, 'comprobantes-pdf', $2)`, [org.id, randomUUID()])
+      const [cliente] = await sql<{ id: string }>(
+        `insert into dominio.clientes (organizacion_id, nombre, tipo, correo) values ($1, $2, 'minorista', $3) returning id`,
+        [org.id, `Cliente ${sufijo}`, correoCliente],
+      )
+      const modelos = await leerDominio<{ id: string }>('modelos_equipo?organizacion_id=eq.' + org.id + '&select=id&limit=1')
       if (!modelos[0]) throw new Error('La organización no tiene modelos de equipo sembrados.')
 
       const { id: reparacionId } = (await rpcComo(correo, 'crear_reparacion', {
@@ -152,8 +103,8 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       await page.getByRole('button', { name: 'Generar comprobante' }).click()
       const tarjeta = page.getByRole('region', { name: 'Comprobante asociado' })
       await expect(tarjeta.getByText('Borrador')).toBeVisible()
-      const [comprobante] = await leer<{ id: string }>(`comprobantes_venta?origen_tipo=eq.reparacion&origen_id=eq.${reparacionId}&select=id`)
-      const lineas = await leer<{ sin_stock: boolean }>(`comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=sin_stock`)
+      const [comprobante] = await leerDominio<{ id: string }>(`comprobantes_venta?origen_tipo=eq.reparacion&origen_id=eq.${reparacionId}&select=id`)
+      const lineas = await leerDominio<{ sin_stock: boolean }>(`comprobantes_venta_lineas?comprobante_id=eq.${comprobante.id}&select=sin_stock`)
       expect(lineas).toHaveLength(2)
       expect(lineas.every((l) => l.sin_stock)).toBe(true)
 
@@ -170,9 +121,9 @@ test.describe('Service técnico · cobro y avisos, recorrido completo (MSF-232)'
       const avisos = page.getByRole('region', { name: 'Avisos al cliente' })
       await expect(avisos.getByText(correoCliente)).toBeVisible()
       await expect
-        .poll(async () => (await leer<{ estado_envio: string }>(`reparacion_avisos?reparacion_id=eq.${reparacionId}&select=estado_envio`))[0]?.estado_envio, { timeout: 15_000 })
+        .poll(async () => (await leerDominio<{ estado_envio: string }>(`reparacion_avisos?reparacion_id=eq.${reparacionId}&select=estado_envio`))[0]?.estado_envio, { timeout: 15_000 })
         .toMatch(/^(pendiente|enviado)$/)
-      const ordenes = await leer<{ clave: string }>(`capacidades_ejecucion?organizacion_id=eq.${org.id}&clave=like.enviar-aviso-reparacion-*&select=clave`, 'public')
+      const ordenes = await sql<{ clave: string }>(`select clave from public.capacidades_ejecucion where organizacion_id = $1 and clave like 'enviar-aviso-reparacion-%'`, [org.id])
       expect(ordenes.length).toBeGreaterThan(0)
 
       if (conCorreoKestra) {

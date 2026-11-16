@@ -421,3 +421,9 @@ permisos y contexto demorados).
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
+
+## Listas de precios (F-PRE-14 y F-CLI-21)
+
+Las listas de precios **no tienen sección propia** en la matriz: solo las escribe el rol **Administrador** (la RPC lo comprueba con `private.es_administrador_de`, como el descuento por cliente) y las leen quienes tienen `clientes` o `ventas` en `lectura` o `edicion` (política `listas_precios_select`). Detalle en [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
+
+Resumen del cierre: crear, editar, archivar, restaurar y asignar listas es **solo del rol Administrador**; leen las listas y la lista de cada cliente quienes tienen `clientes` o `ventas`; la tienda nunca expone el nombre ni el porcentaje de la lista. Revisión completa en [Revisión de seguridad de las listas de precios](revision-seguridad-listas-de-precios.md).

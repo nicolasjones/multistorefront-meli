@@ -17,7 +17,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 
 -- Un producto en USD (precio USD 2) con costo USD 10 y stock suficiente.

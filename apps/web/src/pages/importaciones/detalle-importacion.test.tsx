@@ -14,7 +14,7 @@ import { ImportacionesList } from './list'
 
 const abrir = () => render(<MemoryRouter><ImportacionesList /></MemoryRouter>)
 
-describe('[MSF-354:T010] Diálogo «Detalle de la importación» (FR-013)', () => {
+describe('Diálogo «Detalle de la importación» (FR-013)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)

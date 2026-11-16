@@ -161,7 +161,7 @@ describe('DocumentosComprobante (F-VTA-19)', () => {
     expect(ventana.location.href).toBe('https://storage/doc.pdf')
   })
 
-  it('si el navegador bloquea la pestaña no registra la impresión hasta que se abre el enlace (MSF-722)', async () => {
+  it('si el navegador bloquea la pestaña no registra la impresión hasta que se abre el enlace', async () => {
     vi.mocked(window.open).mockReturnValue(null)
     mocks.solicitarDocumento.mockResolvedValue(generado)
     render(<Pantalla c={comprobante()} empresa="e-1" />)
@@ -177,7 +177,7 @@ describe('DocumentosComprobante (F-VTA-19)', () => {
     expect(await screen.findByText('Enviado a imprimir')).toBeInTheDocument()
   })
 
-  it('si falla el documento cierra la pestaña en blanco y no registra la impresión (MSF-722)', async () => {
+  it('si falla el documento cierra la pestaña en blanco y no registra la impresión', async () => {
     mocks.solicitarDocumento.mockRejectedValue(new Error('sin red'))
     render(<Pantalla c={comprobante()} empresa="e-1" />)
     fireEvent.click(screen.getByRole('button', { name: 'Imprimir remito' }))

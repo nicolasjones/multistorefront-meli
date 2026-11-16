@@ -24,6 +24,8 @@ const ACCION: Record<TipoAlerta, string> = {
   consultas_sin_atender: 'Abrir',
   dolar_sin_cargar: 'Abrir',
   margen_negativo: 'Ver',
+  cobros_pendientes: 'Ver',
+  faltantes: 'Ver',
 }
 
 type Lectura = { alertas: AlertaInicio[]; ultimoCalculo: string | null }

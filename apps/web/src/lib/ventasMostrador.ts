@@ -36,7 +36,7 @@ export async function buscarProductoPorCodigoBarras(codigo: string): Promise<Pro
 // El cliente «Consumidor final» de la organización (RLS de `clientes`); `null` si no hay (FR-003).
 export async function obtenerConsumidorFinal(): Promise<string | null> {
   const { data, error } = await supabaseClient
-    .from('clientes')
+    .schema('dominio').from('clientes')
     .select('id')
     .eq('es_consumidor_final', true)
     .is('archivado_en', null)
@@ -112,6 +112,7 @@ export async function repreciarVenta(venta: Comprobante): Promise<Comprobante> {
 }
 
 export { esPreciosCambiaron }
+export { esCambioDeLista } from './ventasConfirmacion'
 
 export function mensajeDeEscaneo(error: unknown): string {
   const e = error as { code?: string; hint?: string; message?: string } | null

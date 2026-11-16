@@ -111,7 +111,7 @@ describe('RolesPermisos', () => {
     expect(celda('Stock', 'Administrador')).toBeDisabled()
   })
 
-  it('muestra la columna Técnico como parte de la matriz fija, sin edición (MSF-182, FR-042)', async () => {
+  it('muestra la columna Técnico como parte de la matriz fija, sin edición (FR-042)', async () => {
     render(<RolesPermisos />)
     await screen.findByText('Descripción de tecnico')
     const grilla = screen.getByRole('table', { name: 'Matriz de permisos por sección' })

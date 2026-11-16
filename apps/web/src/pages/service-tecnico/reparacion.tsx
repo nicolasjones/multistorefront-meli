@@ -236,6 +236,8 @@ export function ServicioReparacion() {
   const avisosCliente = useAvisosReparacion(reparacion?.id, reparacion?.cliente_id, empresaActivaId, reparacion !== null)
   const clienteSinCorreo = avisosCliente.clienteConCorreo === false
   const puedeAvisar = reparacion !== null && puedeEditar && !cerrada && !clienteSinCorreo
+  // El aviso por WhatsApp (MSF-952) no depende del correo: la base exige el consentimiento del cliente y un teléfono.
+  const puedeAvisarWhatsapp = reparacion !== null && puedeEditar && !cerrada
   const avisoEnviado = avisosCliente.aviso
   useEffect(() => {
     if (avisoEnviado) setExito(avisoEnviado)
@@ -394,6 +396,15 @@ export function ServicioReparacion() {
                 disabled={avisosCliente.avisando || guardando}
               >
                 Avisar al cliente
+              </Button>
+            ) : null}
+            {puedeAvisarWhatsapp ? (
+              <Button
+                variant="outlined"
+                onClick={() => void avisosCliente.avisarWhatsapp()}
+                disabled={avisosCliente.avisando || guardando}
+              >
+                Avisar por WhatsApp
               </Button>
             ) : null}
             {reparacion ? (
@@ -752,8 +763,11 @@ export function ServicioReparacion() {
               error={avisosCliente.errorCarga}
               onReintentar={avisosCliente.recargar}
               puedeReenviar={puedeEditar && !clienteSinCorreo}
+              puedeReenviarWhatsapp={puedeEditar}
               avisando={avisosCliente.avisando}
-              onReenviar={(estadoId) => void avisosCliente.avisar(estadoId)}
+              onReenviar={(aviso) => void (aviso.canal === 'whatsapp'
+                ? avisosCliente.avisarWhatsapp(aviso.estado_id)
+                : avisosCliente.avisar(aviso.estado_id))}
               sinCorreo={clienteSinCorreo || avisosCliente.errorAvisar === MENSAJE_CLIENTE_SIN_CORREO}
             />
           ) : null}

@@ -111,7 +111,7 @@ describe('avisarFaltantes (FR-307: la RPC encola los avisos)', () => {
   })
 })
 
-describe('mensajeResultadoAviso · tope diario (MSF-161 m-5)', () => {
+describe('mensajeResultadoAviso · tope diario (m-5)', () => {
   it('dice por qué no se envió cuando la base omitió por el tope diario', () => {
     const base = { encolados: 0, lineas_avisadas: 0, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0 }
     expect(mensajeResultadoAviso({ ...base, omitidos_tope_diario: 3 })).toBe(

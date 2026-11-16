@@ -66,6 +66,11 @@ const rpcError = (error: DbError) => {
   if (error.code === '42501' || error.message === 'sin_permiso') return response({ error: 'sin_permiso' }, 403)
   if (error.message === 'demasiado_pronto') return response({ error: 'demasiado_pronto' }, 429)
   if (error.message === 'sin_dominio') return response({ error: 'sin_dominio' }, 400)
+  // MSF-797: la IP de `tienda_dns_plataforma` no es una IPv4 pública; no se abre ninguna conexión. Lo arregla el equipo técnico.
+  if (error.message === 'plataforma_no_configurada') {
+    console.error('verificar-dominio-tienda: la IP de tienda_dns_plataforma no es una IPv4 pública')
+    return response({ error: 'plataforma_no_configurada' }, 503)
+  }
   if (error.code === 'P0002') return response({ error: 'sin_permiso' }, 403)
   return response({ error: 'solicitud_invalida' }, 400)
 }

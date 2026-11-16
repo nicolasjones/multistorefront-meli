@@ -290,8 +290,11 @@ export async function subirImagen(ruta: string, archivo: File): Promise<void> {
 }
 
 // Limpieza de archivos que ya no se usan. No interrumpe: un huérfano no rompe nada, solo ocupa lugar.
-// Con `empresaId` solo borra los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
+// Con `empresaId` solo pide borrar los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
 // los archivos reemplazados pueden seguir en uso por la tienda en línea o por una versión anterior.
+// Esa consulta es solo para no pedir borrados inútiles: la garantía está en la base (MSF-796). La política de
+// borrado del bucket rechaza todo archivo referenciado, aunque se llame a la Storage API directo; un borrado
+// denegado por la política no da error, la API simplemente no lo devuelve como borrado.
 export async function borrarImagenes(rutas: string[], empresaId?: string): Promise<void> {
   if (rutas.length === 0) return
   let aBorrar = rutas

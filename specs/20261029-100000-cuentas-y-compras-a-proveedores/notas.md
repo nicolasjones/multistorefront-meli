@@ -43,7 +43,7 @@ Decisiones que el desarrollo tomó de forma provisoria y que él tiene que confi
 
 Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
 
-- `docs/cuentas-y-compras-a-proveedores.md`: «Preguntas abiertas» 1 y 3 seguían tratando F-PRE-14 como choque abierto y el saldo a favor como pregunta; F-PRE-14 está cancelada (2026-11-12) y no hay saldo a favor. Reescritas; la fila de F-CLI-21 ya no depende de F-PRE-14. Siguen provisorios los estados que cuentan como deuda.
-- `spec.md`, `plan.md` y `tasks.md` (T003): anotada la cancelación de F-PRE-14 donde decían «no existe en el repo» o pedían coordinarla.
+- `docs/cuentas-y-compras-a-proveedores.md`: «Preguntas abiertas» 1 y 3 seguían tratando F-PRE-14 como choque abierto y el saldo a favor como pregunta; F-PRE-14 estaba descartada (2026-11-12; después se retomó) y no hay saldo a favor. Reescritas; la fila de F-CLI-21 ya no depende de F-PRE-14. Siguen provisorios los estados que cuentan como deuda.
+- `spec.md`, `plan.md` y `tasks.md` (T003): anotado el descarte de F-PRE-14 donde decían «no existe en el repo» o pedían coordinarla.
 - `docs/roadmap-template.md`: la fila de MSF-450 ya no dice que el saldo a favor sea provisorio y fija la fórmula del saldo neto.
 - `docs/tecnico/cuentas-y-compras-a-proveedores.md` de `main` conserva la pregunta de F-PRE-14 abierta (línea ~169): requiere PR a `main`.

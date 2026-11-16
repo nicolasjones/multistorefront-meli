@@ -28,7 +28,7 @@ El plan de corte, los responsables y los criterios de aceptación de negocio est
 |---|---|---|---|---|
 | `migracion_cargas` | `public` | nueva | Cabecera de cada ejecución: entidad, archivo, filas del origen, estado, contadores, actor. | `20261201100000_migracion_cargas.sql` |
 | `migracion_filas` | `public` | nueva | Resultado por fila; base de la idempotencia y de los errores. | `20261201100000_migracion_cargas.sql` |
-| `clientes` / `clientes_identificadores_externos` | `public` | existentes (MSF-180) | Destino de la carga de clientes; el vínculo usa `sistema = 'panel_actual'`. | `20261201100000_migracion_cargas.sql` (sin DDL) |
+| `clientes` / `clientes_identificadores_externos` | `dominio` / `public` | existentes (MSF-180) | Destino de la carga de clientes; el vínculo usa `sistema = 'panel_actual'`. | `20261201100000_migracion_cargas.sql` (sin DDL) |
 | `clientes_empresas` | `public` | existente (F-CLI-05) | Un cliente nuevo queda habilitado en todas las tiendas de la organización. | `20261201100000_migracion_cargas.sql` (sin DDL) |
 | `proveedores` | `dominio` | alterada | Gana `id_externo` (nullable, único por organización cuando tiene valor). | `20261201110000_proveedores_id_externo.sql` |
 | `productos` | `dominio` | existente | La carga de vínculos fija `proveedor_id` y `codigo_proveedor`; sin cambios de esquema. | `20261201110000_proveedores_id_externo.sql` (sin DDL) |
