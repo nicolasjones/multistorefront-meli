@@ -25,6 +25,19 @@ sources:
 - Sin migración ni RPC: `restablecerContrasena` en `apps/web/src/pages/usuarios/list.tsx` llama a `supabaseClient.auth.resetPasswordForEmail` con redirect `definir-contrasena?tipo=recuperacion` (flujo de F-ACC-02, MSF-119).
 - Suspendido (FR-006) y no-administrador / fila propia (FR-007) son guardas de UX en el cliente; el bloqueo real de un suspendido vive en la membresía/RLS (`docs/acceso-ingreso.md`).
 
+## Baja de organización: requisitos de la primera RPC y límites conocidos
+
+Hoy no hay ninguna RPC que dé de baja una organización (ver [Empresas](../empresas.md)). Cuando se escriba la primera (`baja_organizacion*`), **debe** cumplir, y lo comprueba `supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql` (falla si aparece una función con ese nombre sin estas condiciones):
+
+- Exigir **superadmin** (`private.is_superadmin()`), no «administrador de la organización»: borrar una organización entera no es una decisión de quien la usa.
+- **Registrar la actividad** con `private.registrar_actividad` (quién, cuándo y qué organización), antes de borrar.
+- Terminar llamando a `private.confirmar_claves_diferidas()` para traducir el 23503 de las claves diferidas a un error de negocio (P0001).
+
+Límites conocidos de las claves diferidas (MSF-844/847/848, #1008):
+
+- `private.confirmar_claves_diferidas()` restaura el modo **declarado** de cada restricción (`pg_constraint.condeferred`), no el que tenía la sesión. Hacerlo exacto **no es viable**: PostgreSQL no expone el estado de `SET CONSTRAINTS` de la sesión en ningún catálogo ni función, así que no hay de dónde leerlo para guardarlo y restaurarlo. Quien necesite otro modo lo fija de nuevo después de llamarla.
+- Un `DELETE` directo de `dominio.empresas` con reparaciones asociadas (fuera de una RPC que llame a la función de arriba) **falla en el `COMMIT`** con 23503 **sin traducir** (mensaje crudo de PostgreSQL, no P0001), porque la clave `reparaciones.empresa_id` es `deferrable initially deferred`. Es el comportamiento esperado: ninguna pantalla ni RPC borra empresas hoy; quien borre por SQL debe llamar a la función antes del `COMMIT` si quiere el error de negocio.
+
 ## Datos (DER)
 
 ```mermaid

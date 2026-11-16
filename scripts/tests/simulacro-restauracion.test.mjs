@@ -30,6 +30,7 @@ const operar = leer('docs/operar-sistema.md')
 
 test('el protocolo del simulacro tiene los pasos que miden los objetivos', () => {
   const pasos = [
+    ['confirmación del host de destino (solo staging)', 'inet_server_addr()'],
     ['caída simulada (mide la pérdida)', 'caida_simulada'],
     ['reaplicación de privilegios tras el restore', 'private.reaplicar_privilegios_copias()'],
     ['verificación de roles/grants', 'has_function_privilege'],
