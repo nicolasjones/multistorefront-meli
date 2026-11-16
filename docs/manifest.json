@@ -2124,9 +2124,9 @@
     },
     "docs/service-reportes.md": {
       "title": "Service técnico · Reportes y exportación (F-SVC-23, MSF-168)",
-      "pageHash": "4bf0af3438798dbadb0629c52ed76faf4f480d4448dd470a8cea37e96206401f",
+      "pageHash": "72fa41a5058f42835e482210283d47d84d44964760b4b58b11cd14af4ab65003",
       "sourceHash": "77e8b99854c9db5ce6810d776b433fd81997fa74a39ac4cc25abf5e07430eb83",
-      "sourceAt": "8583cf7f",
+      "sourceAt": "e0b096d9",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes",
         "infra/superset/dashboards/service",
@@ -2137,7 +2137,7 @@
         "supabase/migrations/20270219130300_reportes_service.sql"
       ],
       "owner": "datos",
-      "commit": "8583cf7f"
+      "commit": "e0b096d9"
     },
     "docs/service-repuestos-devolucion.md": {
       "title": "Devolución de repuestos al quitar o anular (F-SVC-11)",
@@ -2177,14 +2177,14 @@
     },
     "docs/service-seguimiento.md": {
       "title": "Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)",
-      "pageHash": "3734018b7728ea97488de5ef243f69382d1fe909a147798fcc8ba41c268326fd",
+      "pageHash": "dbe511f8ac8a8068026ed2cdf7b695789f318231dba5f7eeb3d9be19c8569a9d",
       "sourceHash": "d84541bdd3bceeecaf12ebc3a32fa4f1b97f8895b272894683a53aac847f274a",
-      "sourceAt": "8583cf7f",
+      "sourceAt": "e0b096d9",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes"
       ],
       "owner": "tecnico",
-      "commit": "8583cf7f"
+      "commit": "e0b096d9"
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
