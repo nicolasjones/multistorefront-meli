@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
 import { normalizarBusqueda } from './busquedaTexto'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -27,6 +28,8 @@ export type FilaProductoListado = {
   disponibilidad: Disponibilidad
   // Código de barras EAN-13 (F-CAT-14, FR-012): se busca por coincidencia exacta.
   codigo_barras: string | null
+  // «Compatible con» (F-CAT-09, FR-004): se muestra como etiquetas; null/vacío = nada.
+  compatible_con: string[] | null
 }
 
 export type ConsultaProductos = {
@@ -41,6 +44,9 @@ export type ConsultaProductos = {
   categoriaId: string | null
   // Filtro de disponibilidad (F-CAT-17, FR-009): null = todas.
   disponibilidad: Disponibilidad | null
+  // Filtro «Compatible con» (F-CAT-09, FR-003): en el estado de la pantalla son las claves elegidas
+  // (en minúsculas); en la consulta al servidor, todas las variantes de mayúsculas de esos valores.
+  compatibles: string[]
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -52,9 +58,10 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   empresaId: null,
   categoriaId: null,
   disponibilidad: null,
+  compatibles: [],
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras, compatible_con'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
 // mayúsculas ni tildes: el nombre se compara con la columna calculada `nombre_norm`). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
@@ -78,7 +85,42 @@ export function codigoBarrasBuscado(texto: string): string | null {
 }
 
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null || consulta.compatibles.length > 0
+}
+
+// F-CAT-09 (FR-003): los valores de «Compatible con» se comparan sin distinguir mayúsculas. La base guarda
+// cada valor como se tipeó, así que el selector agrupa por clave (minúsculas) y el filtro envía todas las
+// variantes guardadas de las claves elegidas (`compatible_con && {…}`, que usa el índice GIN).
+export type GrupoCompatible = { clave: string; etiqueta: string; variantes: string[] }
+
+export function agruparCompatibles(valores: readonly string[]): GrupoCompatible[] {
+  const grupos = new Map<string, GrupoCompatible>()
+  for (const valor of valores) {
+    if (valor.trim() === '') continue
+    const clave = valor.toLowerCase()
+    const grupo = grupos.get(clave)
+    if (grupo) grupo.variantes.push(valor)
+    else grupos.set(clave, { clave, etiqueta: valor, variantes: [valor] })
+  }
+  return [...grupos.values()]
+}
+
+// Variantes a enviar al servidor para las claves elegidas; descarta las claves que ya no existen.
+export function expandirCompatibles(claves: readonly string[], grupos: readonly GrupoCompatible[]): string[] {
+  const elegidas = new Set(claves)
+  return grupos.filter((g) => elegidas.has(g.clave)).flatMap((g) => g.variantes)
+}
+
+// Literal de array de Postgres para `ov` de PostgREST: cada valor entre comillas con `\` y `"` escapados,
+// para que comas, llaves o comillas tipeadas en un valor no alteren el filtro.
+export function literalArrayPostgres(valores: readonly string[]): string {
+  return `{${valores.map((v) => `"${v.replace(/[\\"]/g, '\\$&')}"`).join(',')}}`
+}
+
+export async function listarCompatibles(cliente: Pick<SupabaseClient, 'rpc'>): Promise<string[]> {
+  const { data, error } = await cliente.rpc('listar_compatibles')
+  if (error) throw error
+  return Array.isArray(data) ? (data as string[]) : []
 }
 
 export type ResultadoProductos = { filas: FilaProductoListado[]; total: number }
@@ -101,6 +143,8 @@ export async function consultarProductos(
   if (consulta.categoriaId) peticion = peticion.contains('categoria_ids', [consulta.categoriaId])
   // Se resuelve en el servidor sobre la columna `disponibilidad` de la vista.
   if (consulta.disponibilidad) peticion = peticion.eq('disponibilidad', consulta.disponibilidad)
+  // Alguno de los valores elegidos (OR), en el servidor.
+  if (consulta.compatibles.length > 0) peticion = peticion.overlaps('compatible_con', literalArrayPostgres(consulta.compatibles))
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS
   const { data, error, count } = await peticion
     // Nulos explícitos (los mismos que Postgres usa por defecto, compatibles con los índices de orden):
@@ -113,21 +157,27 @@ export async function consultarProductos(
   return { filas: data ?? [], total: count ?? 0 }
 }
 
-// F-CAT-16 (FR-002): costo de los productos de la página, desde `dominio.producto_costos` (la vista no lo expone).
+// F-CAT-16 (FR-002): costo de los productos indicados, desde `dominio.producto_costos` (la vista no lo expone).
 // Solo se llama con acceso a Rentabilidad; la autoridad es RLS, que devuelve 0 filas a quien no corresponde.
+// Los ids viajan en el `in.(…)` de la URL GET: se reparten en lotes (`lib/repartoIds.ts`) como el stock
+// de la toma (MSF-716), así que un llamador con muchos ids no excede el límite del proxy.
 export async function consultarCostos(
   cliente: Pick<SupabaseClient, 'schema'>,
   productoIds: readonly string[],
 ): Promise<Map<string, number | string>> {
   if (productoIds.length === 0) return new Map()
-  const { data, error } = await cliente
-    .schema('dominio')
-    .from('producto_costos')
-    .select('producto_id, costo')
-    .in('producto_id', [...productoIds])
-    .returns<Array<{ producto_id: string; costo: number | string }>>()
-  if (error) throw error
-  return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+  const lotes = enLotes([...new Set(productoIds)], MAXIMO_IDS_POR_PETICION)
+  const filas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error } = await cliente
+      .schema('dominio')
+      .from('producto_costos')
+      .select('producto_id, costo')
+      .in('producto_id', lote)
+      .returns<Array<{ producto_id: string; costo: number | string }>>()
+    if (error) throw error
+    return data ?? []
+  })
+  return new Map(filas.map((fila) => [fila.producto_id, fila.costo]))
 }
 
 export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }

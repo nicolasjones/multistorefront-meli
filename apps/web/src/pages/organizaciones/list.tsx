@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { useTable } from '@refinedev/core'
 import { CreateButton } from '@refinedev/mui'
 import { Alert, Box, Button } from '@mui/material'
@@ -9,6 +9,7 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
+import { DialogoMotivoSoporte } from '../../components/DialogoMotivoSoporte'
 import { supabaseClient } from '../../lib/supabase'
 
 type Organizacion = {
@@ -25,8 +26,11 @@ export function OrganizacionList() {
   const { invalidar } = useContextoPanel()
   const { isSuperadmin, isLoading: checkingSuperadmin } = useIsSuperadmin()
   const { tableQuery } = useTable<Organizacion>({ resource: 'organizaciones', syncWithLocation: false })
+  const [searchParams] = useSearchParams()
   const [entrandoA, setEntrandoA] = useState<string | null>(null)
+  const [elegida, setElegida] = useState<Organizacion | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const accesoVencido = searchParams.get('acceso') === 'vencido'
 
   if (checkingSuperadmin) {
     return <EstadoCargaPagina />
@@ -42,12 +46,14 @@ export function OrganizacionList() {
 
   const organizaciones = tableQuery.data?.data ?? []
 
-  const handleIngresar = async (organizacionId: string) => {
+  // «Ingresar» pide primero el motivo (F-OPS-04, FR-014/FR-018): sin motivo no se entra.
+  const handleIngresar = async (organizacionId: string, motivo: string) => {
     setEntrandoA(organizacionId)
     setError(null)
 
     const { error: rpcError } = await supabaseClient.rpc('entrar_a_organizacion', {
       org_id: organizacionId,
+      p_motivo: motivo,
     })
 
     if (rpcError) {
@@ -55,6 +61,8 @@ export function OrganizacionList() {
       setEntrandoA(null)
       return
     }
+
+    setElegida(null)
 
     // Navegación SPA, no recarga completa. El Sider ya no depende de
     // accessControlProvider.can vía react-query sino del contexto propio —
@@ -97,7 +105,12 @@ export function OrganizacionList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
-        {error && (
+        {accesoVencido && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            El acceso de soporte venció. Si necesitás seguir, volvé a ingresar indicando el motivo.
+          </Alert>
+        )}
+        {error && !elegida && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
@@ -115,7 +128,7 @@ export function OrganizacionList() {
                 size="small"
                 variant="outlined"
                 disabled={entrandoA === organizacion.id}
-                onClick={() => handleIngresar(organizacion.id)}
+                onClick={() => { setError(null); setElegida(organizacion) }}
               >
                 {entrandoA === organizacion.id ? 'Ingresando…' : 'Ingresar'}
               </Button>
@@ -123,6 +136,15 @@ export function OrganizacionList() {
           />
         )}
       </ContenedorSeccion>
+      {elegida && (
+        <DialogoMotivoSoporte
+          organizacionNombre={elegida.nombre}
+          enviando={entrandoA === elegida.id}
+          error={error}
+          onCancelar={() => { setElegida(null); setError(null) }}
+          onConfirmar={(motivo) => handleIngresar(elegida.id, motivo)}
+        />
+      )}
     </Box>
   )
 }

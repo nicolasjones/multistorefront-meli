@@ -8,7 +8,10 @@ try {
   const salida = await ejecutarDesdeEntorno(process.env, () => crearPuertos(process.env));
   if (salida.stderr) console.error(salida.stderr);
   process.exitCode = salida.codigo;
-} catch {
+} catch (error) {
+  // Registro central de errores (F-OPS-03): módulo opcional que copia el Dockerfile; sin ERRORES_DSN no hace nada.
+  const errores = await import(new URL('./errores.mjs', import.meta.url).href).catch(() => null);
+  await errores?.capturarError(error, { worker: 'historial-importador' });
   // Sin el mensaje original: puede traer rutas o datos de conexión. El flow reintenta.
   console.error('FALLA_TECNICA:historial-importador');
   process.exitCode = 1;

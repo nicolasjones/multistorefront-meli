@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { destinoInternoSeguro } from './destinoIngreso'
 
-describe('destinoInternoSeguro (MSF-700)', () => {
+describe('destinoInternoSeguro', () => {
   it('acepta rutas internas con query', () => {
     expect(destinoInternoSeguro('/clientes?consulta=abc')).toBe('/clientes?consulta=abc')
   })

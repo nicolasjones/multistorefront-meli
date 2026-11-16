@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Dialog, DialogActions, DialogContent, Snackbar, Stack, Typography } from '@mui/material'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { TituloDialogo } from '../../components/base/TituloDialogo'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { formatearUltimoInteres, listarInteresWhatsapp, mensajeDeErrorInteres, type InteresPorProducto } from '../../lib/interesWhatsapp'
 
@@ -68,14 +70,19 @@ export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: 
     void cargar(empresaActivaId)
   }, [abierto, listaParaCargar, cargandoEmpresas, empresaActivaId, cargar, onEmpresaCambiada])
 
+  const imagenes = useImagenesProductos(carga.estado === 'listo' ? carga.filas.map((fila) => fila.producto_id) : [])
+
   const columnas: ColumnaAdaptable<InteresPorProducto>[] = [
     {
       clave: 'producto',
       encabezado: 'Producto',
       render: (fila) => (
-        <Stack component="span" alignItems={{ xs: 'flex-end', sm: 'flex-start' }}>
-          <Typography component="span" variant="body2" fontWeight={600}>{fila.producto_nombre}</Typography>
-          {fila.sku ? <Typography component="span" variant="caption" color="text.secondary">{fila.sku}</Typography> : null}
+        <Stack component="span" direction="row" spacing={1} alignItems="center" justifyContent={{ xs: 'flex-end', sm: 'flex-start' }}>
+          <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+          <Stack component="span" alignItems={{ xs: 'flex-end', sm: 'flex-start' }}>
+            <Typography component="span" variant="body2" fontWeight={600}>{fila.producto_nombre}</Typography>
+            {fila.sku ? <Typography component="span" variant="caption" color="text.secondary">{fila.sku}</Typography> : null}
+          </Stack>
         </Stack>
       ),
     },

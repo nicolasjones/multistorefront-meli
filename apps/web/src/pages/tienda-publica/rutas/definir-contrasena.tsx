@@ -6,8 +6,9 @@ import { passwordPolicyDescription, passwordRules, validatePassword } from '../.
 import { supabaseClient } from '../../../lib/supabase'
 import { consultarAcceso, MENSAJE_INGRESO_FALLA, MENSAJE_INGRESO_GENERICO, salirCliente } from '../../../lib/tiendaCuenta'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 
-const ocultoVisualmente = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: utilidad de accesibilidad (ocultar visualmente manteniendo lectura)
 
 type Enlace = 'verificando' | 'listo' | 'invalido'
 
@@ -15,7 +16,7 @@ type Enlace = 'verificando' | 'listo' | 'invalido'
 // (Auth deja la sesión del enlace al abrirlo), aplica `passwordPolicy` y, al terminar, deja al cliente ingresado.
 // Un enlace vencido o usado no deja sesión: se muestra un mensaje claro con salida a recuperar. Una sesión abierta
 // sin haber llegado por un enlace (navegador compartido) tampoco alcanza: no se cambia la contraseña sin conocerla.
-export default function RutaDefinirContrasena() {
+function RutaDefinirContrasenaContenido() {
   const { host } = useContextoTienda()
   const navigate = useNavigate()
   const [enlace, setEnlace] = useState<Enlace>('verificando')
@@ -122,7 +123,7 @@ export default function RutaDefinirContrasena() {
             )
           })}
         </List>
-        <Typography role="status" aria-live="polite" sx={ocultoVisualmente}>
+        <Typography role="status" aria-live="polite" sx={SOLO_LECTORES}>
           {faltan.length === 0 ? 'La contraseña cumple todas las reglas.' : `Faltan ${faltan.length} de ${passwordRules.length} reglas.`}
         </Typography>
         <TextField
@@ -139,5 +140,15 @@ export default function RutaDefinirContrasena() {
         </Button>
       </Stack>
     </Box>
+  )
+}
+
+// No se indexa (FR-024): es una pantalla de cuenta del cliente.
+export default function RutaDefinirContrasena() {
+  return (
+    <>
+      <CabeceraSeo noindex pagina="Definir contraseña" />
+      <RutaDefinirContrasenaContenido />
+    </>
   )
 }

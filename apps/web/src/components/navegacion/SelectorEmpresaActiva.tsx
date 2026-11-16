@@ -11,6 +11,7 @@ import { useEmpresaActiva } from '../../hooks/useEmpresaActiva'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { ETIQUETA_ROL } from '../../lib/permisos'
 import { tokens } from '../../tema/tokens'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // Selector de la empresa activa persistida (F-ROL-06). Distinto del
 // SelectorEmpresa de F-EMP-05, que navega entre pantallas de empresa por ruta
@@ -120,7 +121,7 @@ export function SelectorEmpresaActiva() {
           </MenuItem>
         ))}
       </Menu>
-      <span role="status" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
+      <span role="status" style={SOLO_LECTORES}>{cambiando ? 'Cambiando de empresa…' : ''}</span>
       {errorCambio && <Alert severity="error" role="alert" onClose={limpiarError} sx={{ py: 0 }}>{errorCambio}</Alert>}
       <Dialog open={pendiente !== null} onClose={() => setPendiente(null)} aria-labelledby="cambiar-empresa-titulo" slotProps={{ transition: { onExited: () => botonRef.current?.focus() } }}>
         <TituloDialogo id="cambiar-empresa-titulo" onCerrar={() => setPendiente(null)}>¿Cambiar de empresa?</TituloDialogo>

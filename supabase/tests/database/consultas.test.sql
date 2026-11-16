@@ -7,7 +7,7 @@
 -- o «anon», igual que PostgREST.
 begin;
 
-select plan(58);
+select plan(62);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -365,6 +365,32 @@ select throws_ok(
 );
 select is(private.nombre_producto_consulta((select id from dominio.productos limit 1)), null,
   'sin permiso en Consultas no se resuelven nombres de producto');
+
+-- ============================================================================
+-- MSF-176 (B1): origen `pedido` y líneas de la consulta (`dominio.consulta_items`): misma RLS que la consulta
+-- ============================================================================
+reset role;
+select lives_ok(
+  $$insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto)
+    values ('c1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'pedido', 'Pedido de prueba', 'pp@example.com')$$,
+  'una consulta de origen pedido no exige mensaje (la nota es opcional)'
+);
+insert into dominio.consulta_items (organizacion_id, empresa_id, consulta_id, orden, descripcion, cantidad)
+values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-0000000000e1', 1, 'Línea de prueba', 2);
+select pg_temp.como('f1000000-0000-0000-0000-000000000003');
+select is(
+  (select (select count(*)::int from dominio.consulta_items) + (select count(*)::int from public.consulta_items_bandeja)),
+  0, 'sección Consultas en «ninguno»: sin líneas de pedido, ni directo ni por la vista'
+);
+select pg_temp.como('f1000000-0000-0000-0000-000000000001');
+select is(
+  (select count(*)::int from public.consulta_items_bandeja where consulta_id = 'c1000000-0000-0000-0000-0000000000e1'),
+  1, 'quien ve la consulta ve sus líneas de pedido'
+);
+select is(
+  (select items_cantidad from public.consultas_bandeja where id = 'c1000000-0000-0000-0000-0000000000e1'),
+  1, 'la bandeja cuenta las líneas del pedido'
+);
 
 select * from finish();
 rollback;

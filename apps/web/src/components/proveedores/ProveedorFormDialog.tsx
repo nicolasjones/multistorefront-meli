@@ -30,7 +30,11 @@ type Props = {
   onGuardado: (proveedor: Proveedor) => void
   // Ante un conflicto de edición: recargar la ficha con los datos de la otra persona.
   onRecargar?: () => void
+  // Con contacto principal, persona de contacto, correo y teléfono se toman de él (F-PRV-08, FR-026).
+  contactoPrincipal?: boolean
 }
+
+const CAMPOS_DEL_PRINCIPAL: ReadonlyArray<CampoProveedor> = ['persona_contacto', 'correo', 'telefono']
 
 const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: string; multilinea?: boolean; requerido?: boolean }> = [
   { campo: 'razon_social', etiqueta: 'Razón social', requerido: true },
@@ -46,18 +50,18 @@ const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: st
 // Proveedores · Listado / Ficha, más «Compra para» (MSF-524, informativo); las
 // condiciones de compra quedan fuera de alcance (spec, Decisiones abiertas 3). La autoridad es la base (CUIT, unicidad, bloqueo
 // optimista): acá se valida antes de viajar y se traducen sus errores.
-export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar }: Props) {
+export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar, contactoPrincipal = false }: Props) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-proveedor-form">
       {/* El formulario se monta al abrir: cada apertura parte de los datos vigentes. */}
-      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} />
+      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} contactoPrincipal={contactoPrincipal} />
     </Dialog>
   )
 }
 
 type PropsFormulario = Omit<Props, 'open'>
 
-function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormulario) {
+function Formulario({ proveedor, onCerrar, onGuardado, onRecargar, contactoPrincipal }: PropsFormulario) {
   const edicion = Boolean(proveedor)
   const inicial: FormularioProveedor = proveedor
     ? { ...aFormulario(proveedor), cuit: formatearCuit(proveedor.cuit) }
@@ -176,7 +180,9 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               etiquetaReintentar={errorServidor.conflicto ? 'Recargar' : 'Reintentar'}
             />
           ) : null}
-          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => (
+          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => {
+            const delPrincipal = edicion && contactoPrincipal && CAMPOS_DEL_PRINCIPAL.includes(campo)
+            return (
             <TextField
               key={campo}
               label={etiqueta}
@@ -185,7 +191,8 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               onChange={cambiar(campo)}
               onBlur={campo === 'cuit' ? formatearAlSalir : undefined}
               error={Boolean(errores[campo])}
-              helperText={errores[campo]}
+              helperText={delPrincipal ? 'Se toma del contacto principal' : errores[campo]}
+              slotProps={delPrincipal ? { input: { readOnly: true } } : undefined}
               required={requerido}
               multiline={multilinea}
               minRows={multilinea ? 3 : undefined}
@@ -194,7 +201,8 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               inputRef={(el: HTMLInputElement | HTMLTextAreaElement | null) => { refs.current[campo] = el }}
               fullWidth
             />
-          ))}
+            )
+          })}
           <SelectorEmpresas
             empresas={tiendas}
             seleccion={compraPara}

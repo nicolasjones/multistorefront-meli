@@ -6,6 +6,8 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import RemoveIcon from '@mui/icons-material/Remove'
+import { renderOpcionProducto } from '../base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { avisoCatalogoTruncado, useBuscadorCatalogo } from '../../hooks/useBuscadorCatalogo'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -39,6 +41,7 @@ function SelectorProducto({ indice, producto, proveedorId, error, onElegir }: Se
     tabla: 'productos', columnas: 'id, nombre, sku, proveedor_id', columnasBusqueda: 'nombre,sku',
     orden: 'nombre', soloActivos: true, habilitado: abierto,
   })
+  const imagenes = useImagenesProductos(productos.opciones.map((opcion) => opcion.id))
   const ayudas = [
     producto && producto.proveedor_id === proveedorId ? 'Proveedor del producto: coincide' : null,
     productos.truncado ? avisoCatalogoTruncado('productos') : null,
@@ -56,6 +59,7 @@ function SelectorProducto({ indice, producto, proveedorId, error, onElegir }: Se
       onClose={() => productos.buscar('')}
       onInputChange={(_, texto, motivo) => { if (motivo === 'input') productos.buscar(texto); else if (motivo === 'clear') productos.buscar('') }}
       getOptionLabel={etiquetaProducto}
+      renderOption={renderOpcionProducto<ProductoOpcion>(imagenes)}
       isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
       onChange={(_, nueva) => {
         onElegir(nueva)

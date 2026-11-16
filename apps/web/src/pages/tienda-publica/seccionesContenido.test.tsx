@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../test/axe'
 import { CONTENIDO_VACIO } from '../../lib/tiendaContenido'
@@ -26,11 +27,13 @@ const completo = {
 
 function Home() {
   return (
-    <main>
-      <BarraBienvenida tienda={tienda} host="mundojc.localhost" />
-      <BannerHome tienda={tienda} host="mundojc.localhost" />
-      <PieTienda tienda={tienda} host="mundojc.localhost" />
-    </main>
+    <MemoryRouter>
+      <main>
+        <BarraBienvenida tienda={tienda} host="mundojc.localhost" />
+        <BannerHome tienda={tienda} host="mundojc.localhost" />
+        <PieTienda tienda={tienda} host="mundojc.localhost" />
+      </main>
+    </MemoryRouter>
   )
 }
 
@@ -43,7 +46,7 @@ describe('secciones de contenido de la tienda pública (FR-034, FR-036, SC-013)'
 
     expect(await screen.findByRole('heading', { level: 2, name: 'Todo para tu consola' })).toBeInTheDocument()
     expect(screen.getByText('Cargadores y joysticks')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver catálogo' })).toHaveAttribute('href', '#catalogo')
+    expect(screen.getByRole('link', { name: 'Ver catálogo' })).toHaveAttribute('href', '/catalogo')
     expect(screen.getByTestId('barra-bienvenida')).toHaveTextContent('Accesorios y repuestos')
     expect(screen.getByTestId('pie-tienda')).toHaveTextContent('MundoJC · Accesorios')
     expect(mocks.leer).toHaveBeenCalledWith('mundojc.localhost')

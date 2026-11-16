@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate, useParams } from 'react-router'
-import { Box, Button, Chip, LinearProgress, Paper, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, Button, Chip, LinearProgress, Paper, Stack, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
 import { useDetalleCampanaCorreo } from '../../../hooks/useHistorialCorreoMasivo'
 import {
   ETIQUETA_ESTADO_CAMPANA, ETIQUETA_ESTADO_DESTINATARIO, RUTA_HISTORIAL_CORREO_MASIVO, textoFechaCampana, textoProgreso,
-  type DestinatarioCampana, type EstadoDestinatario,
+  type DestinatarioCampana, type DetalleCampana, type EstadoDestinatario,
 } from '../../../lib/correoMasivoHistorial'
+import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError } from '../../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
@@ -15,12 +17,14 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/p
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { PestanasCorreoMasivo } from './pestanas'
 
-const TAMANO_PAGINA = 50
+const TAMANO_TANDA = 50
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
 const COLOR_ESTADO: Record<EstadoDestinatario, 'default' | 'success' | 'error' | 'warning'> = {
   pendiente: 'warning', enviado: 'success', fallido: 'error', omitido: 'default',
 }
+
+const SIN_FILAS: DestinatarioCampana[] = []
 
 const columnas: ColumnaAdaptable<DestinatarioCampana>[] = [
   { clave: 'cliente', encabezado: 'Cliente', render: (d) => d.nombre },
@@ -60,10 +64,20 @@ function DetalleCampana({ id }: { id: string }) {
     else if (empresaAlAbrir.current !== empresaActivaId) navegar(RUTA_HISTORIAL_CORREO_MASIVO, { replace: true })
   }, [empresaActivaId, cargandoEmpresas, navegar])
 
-  const { datos, noExiste, isLoading, isFetching, isError, refetch } = useDetalleCampanaCorreo({ campanaId: id, pagina, tamano: TAMANO_PAGINA })
+  const { datos, noExiste, isLoading, isFetching, isError, refetch } = useDetalleCampanaCorreo({ campanaId: id, pagina, tamano: TAMANO_TANDA })
+
+  // Carga infinita (Principio VI): los destinatarios se suman por tandas (la campaña es otra por `key={id}`).
+  const destinatarios = datos?.destinatarios
+  const listado = useListadoAcumulado({
+    items: destinatarios ?? SIN_FILAS, pagina, setPagina, total: datos?.total ?? 0, cargando: isFetching, reinicio: id,
+  })
+  // Si una tanda posterior falla se conservan la campaña y los destinatarios ya cargados.
+  const ultimaCampana = useRef<DetalleCampana | null>(null)
+  if (datos?.campana) ultimaCampana.current = datos.campana
+  const falloTanda = isError && pagina > 1 && listado.filas.length > 0
 
   const puedeVer = nivel === 'lectura' || nivel === 'edicion'
-  const campana = datos?.campana ?? null
+  const campana = datos?.campana ?? (falloTanda ? ultimaCampana.current : null)
   // Una campaña armada con otra tienda no se muestra bajo la empresa activa (Principio VIII).
   const deOtraTienda = campana !== null && empresaActivaId !== null && campana.empresa_id !== empresaActivaId
 
@@ -89,7 +103,7 @@ function DetalleCampana({ id }: { id: string }) {
                 <EstadoCargaPagina />
               ) : noExiste || deOtraTienda ? (
                 <EstadoError titulo="No encontramos esa campaña." descripcion="Puede ser de otra tienda o no existir." />
-              ) : isError || campana === null ? (
+              ) : (isError && !falloTanda) || campana === null ? (
                 <EstadoError descripcion="No pudimos cargar la campaña." reintentar={() => void refetch()} />
               ) : (
                 <Stack spacing={2}>
@@ -107,20 +121,16 @@ function DetalleCampana({ id }: { id: string }) {
                     </Stack>
                   </Paper>
                   <ContenidoAdaptable
-                    items={datos?.destinatarios ?? []}
+                    items={listado.filas}
                     columnas={columnas}
                     obtenerClave={(d) => d.cliente_id}
                     etiquetaTabla="Destinatarios de la campaña"
                   />
-                  <TablePagination
-                    component="div"
-                    count={datos?.total ?? 0}
-                    page={pagina - 1}
-                    rowsPerPage={TAMANO_PAGINA}
-                    rowsPerPageOptions={[TAMANO_PAGINA]}
-                    onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                    labelRowsPerPage="Destinatarios por página"
-                    labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+                  <CargaInfinita
+                    hayMas={listado.hayMas}
+                    cargando={listado.cargandoMas}
+                    hayError={falloTanda}
+                    onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
                   />
                 </Stack>
               )}

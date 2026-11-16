@@ -54,7 +54,7 @@ describe('IngresoMercaderiaForm', () => {
     mocks.productos.mockResolvedValue({ data: [{ id: '33333333-3333-3333-3333-333333333333', nombre: 'Producto Uno', sku: 'SKU-1', proveedor_id: '22222222-2222-2222-2222-222222222222' }], error: null })
   })
 
-  it('[MSF-601] la nota del depósito no usa jerga interna', async () => {
+  it('la nota del depósito no usa jerga interna', async () => {
     abrir()
     expect(await screen.findByText('El stock ingresado suma al depósito principal.')).toBeInTheDocument()
     expect(screen.queryByText(/épica/i)).not.toBeInTheDocument()
@@ -69,7 +69,24 @@ describe('IngresoMercaderiaForm', () => {
 
     expect(await screen.findByText('Elegí el proveedor.')).toBeInTheDocument()
     expect(screen.getByText('Elegí un producto.')).toBeInTheDocument()
-    expect(screen.getByText('Costo en USD con hasta dos decimales.')).toBeInTheDocument()
+    // F-PRV-07: el costo es opcional; vacío no es un error.
+    expect(screen.queryByText('Costo en USD con hasta dos decimales.')).not.toBeInTheDocument()
+  })
+
+  it('acepta el costo unitario vacío y solo rechaza un costo mal escrito', async () => {
+    abrir()
+    await screen.findByText('Nuevo ingreso')
+    const costo = screen.getByLabelText('Costo unit. USD')
+    expect(costo).not.toBeRequired()
+    const boton = screen.getByRole('button', { name: 'Registrar ingreso' })
+    await waitFor(() => expect(boton).not.toBeDisabled())
+    fireEvent.click(boton)
+    await screen.findByText('Elegí el proveedor.')
+    expect(screen.queryByText('Costo en USD con hasta dos decimales.')).not.toBeInTheDocument()
+
+    fireEvent.change(costo, { target: { value: '1.555' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
+    expect(await screen.findByText('Costo en USD con hasta dos decimales.')).toBeInTheDocument()
   })
 
   it('agrega y quita líneas de producto', async () => {

@@ -61,12 +61,25 @@ describe('ArchivoIngresos', () => {
     expect(screen.queryByRole('button', { name: /editar|borrar|eliminar|anular/i })).toBeNull()
   })
 
-  it('pagina en servidor pidiendo el rango de la página', async () => {
+  it('carga infinita: «Cargar más» pide el rango de la tanda siguiente', async () => {
     abrir()
     await screen.findByText('Producto Sintético Uno')
     expect(mocks.range).toHaveBeenLastCalledWith(0, 24)
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.range).toHaveBeenLastCalledWith(25, 49))
+  })
+
+  it('«Cargar más» suma la tanda siguiente sin perder la anterior', async () => {
+    mocks.returns.mockResolvedValueOnce({ data: FILAS, error: null, count: 3 })
+    mocks.returns.mockResolvedValueOnce({
+      data: [{ id: 'a-3', fecha: '2025-03-16', producto: 'Producto Sintético Tres', cantidad: 1, proveedor: null, operador: null }],
+      error: null, count: 3,
+    })
+    abrir()
+    await screen.findByText('Producto Sintético Uno')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Producto Sintético Tres')).toBeInTheDocument()
+    expect(screen.getByText('Producto Sintético Uno')).toBeInTheDocument()
   })
 
   it('muestra el estado vacío', async () => {
@@ -95,13 +108,14 @@ describe('ArchivoIngresos', () => {
     expect(screen.getByText('Producto Sintético Uno')).toBeInTheDocument()
   })
 
-  it('trata una página fuera de rango (416) como vacía y vuelve a la página 1', async () => {
+  it('trata una tanda fuera de rango (416) como vacía: conserva lo cargado y marca el fin', async () => {
     abrir()
     await screen.findByText('Producto Sintético Uno')
     mocks.returns.mockResolvedValueOnce({ data: null, error: { code: 'PGRST103' }, count: null })
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
-    await waitFor(() => expect(mocks.range).toHaveBeenLastCalledWith(0, 24))
-    expect(await screen.findByText('Producto Sintético Uno')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await waitFor(() => expect(mocks.range).toHaveBeenLastCalledWith(25, 49))
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+    expect(screen.getByText('Producto Sintético Uno')).toBeInTheDocument()
     expect(screen.queryByText(/No pudimos cargar/)).toBeNull()
   })
 

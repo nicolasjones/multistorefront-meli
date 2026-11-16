@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   proveedores: vi.fn(),
   empresas: vi.fn(),
   productos: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
 
 vi.mock('../../hooks/useIngresos', () => ({
@@ -15,6 +16,7 @@ vi.mock('../../hooks/useIngresos', () => ({
   useIngresos: mocks.useIngresos,
 }))
 
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: 'edicion', isLoading: false }) }))
 
 vi.mock('../../lib/supabase', () => ({
@@ -57,6 +59,7 @@ const abrir = () => render(<HistorialIngresos revision={0} />)
 describe('HistorialIngresos', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes = new Map()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.proveedores.mockResolvedValue({ data: [{ id: 'proveedor-1', razon_social: 'Proveedor Uno' }], error: null })
     mocks.empresas.mockResolvedValue({ data: [{ id: 'empresa-1', nombre: 'Tienda Uno' }], error: null })
@@ -104,15 +107,37 @@ describe('HistorialIngresos', () => {
     })
   })
 
-  it('pagina en el servidor', async () => {
+  it('carga infinita: «Cargar más» pide la tanda siguiente', async () => {
     mocks.useIngresos.mockReturnValue({ filas: FILAS, total: 30, hayError: false, cargando: false, recargar: vi.fn() })
     abrir()
     await screen.findByText('Producto Uno')
-    fireEvent.click(screen.getByRole('button', { name: /next page|página siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => {
       const ultima = mocks.useIngresos.mock.calls.at(-1)?.[0]
       expect(ultima).toMatchObject({ pagina: 2 })
     })
+  })
+
+  it('«Cargar más» suma la tanda siguiente y cambiar un filtro vuelve a la tanda 1', async () => {
+    const tanda2 = [{ ...FILAS[0], ingreso_id: 'ingreso-9', producto_id: 'producto-9', producto_nombre: 'Producto Nueve' }]
+    mocks.useIngresos.mockImplementation(({ pagina }: { pagina: number }) => ({
+      filas: pagina === 1 ? FILAS : tanda2, total: 3, hayError: false, cargando: false, recargar: vi.fn(),
+    }))
+    abrir()
+    await screen.findByText('Producto Uno')
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(await screen.findByText('Producto Nueve')).toBeInTheDocument()
+    expect(screen.getByText('Producto Uno')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-10-01' } })
+    await waitFor(() => expect(screen.queryByText('Producto Nueve')).not.toBeInTheDocument())
+    expect(mocks.useIngresos.mock.calls.at(-1)?.[0]).toMatchObject({ desde: '2026-10-01', pagina: 1 })
+  })
+
+  it('muestra la imagen principal del producto como miniatura', async () => {
+    mocks.imagenes = new Map([['producto-1', 'https://img.test/uno.jpg']])
+    abrir()
+    await screen.findByText('Producto Uno')
+    expect(document.querySelector('img[src="https://img.test/uno.jpg"]')).not.toBeNull()
   })
 
   it('muestra el vacío con filtros aplicados', async () => {

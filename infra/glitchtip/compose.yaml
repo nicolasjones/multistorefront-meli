@@ -1,0 +1,66 @@
+name: multistorefront-meli-glitchtip-dev
+
+# Registro central de errores (MSF-369, F-OPS-03, D-1): GlitchTip self-hosted (MIT, compatible con los SDK
+# de Sentry). Producto propio y bajo demanda (Principio V): `pnpm dev:glitchtip` / `pnpm dev:down:glitchtip`.
+# La contraseña de la base y la SECRET_KEY son OBLIGATORIAS (sin valor por defecto): se fijan en
+# infra/glitchtip/.env (copiá infra/glitchtip/.env.example), fuera de Git. El puerto se publica solo en 127.0.0.1. Ver docs/monitoreo.md.
+x-glitchtip: &glitchtip
+  image: glitchtip/glitchtip:v5.1
+  depends_on:
+    glitchtip-db:
+      condition: service_healthy
+    glitchtip-redis:
+      condition: service_started
+  environment: &glitchtip-env
+    DATABASE_URL: postgresql://glitchtip:${GLITCHTIP_DB_PASSWORD:?Definí GLITCHTIP_DB_PASSWORD en infra/glitchtip/.env}@glitchtip-db:5432/glitchtip
+    SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?Definí GLITCHTIP_SECRET_KEY en infra/glitchtip/.env}
+    REDIS_URL: redis://glitchtip-redis:6379/0
+    PORT: "8000"
+    GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN:-http://localhost:${GLITCHTIP_PORT:-8100}}
+    DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-errores@example.com}
+    EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+    ENABLE_USER_REGISTRATION: ${GLITCHTIP_ENABLE_USER_REGISTRATION:-false}
+    CELERY_WORKER_AUTOSCALE: "1,3"
+  restart: unless-stopped
+
+services:
+  glitchtip-db:
+    image: postgres:16.0-alpine
+    environment:
+      POSTGRES_DB: glitchtip
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${GLITCHTIP_DB_PASSWORD:?Definí GLITCHTIP_DB_PASSWORD en infra/glitchtip/.env}
+    volumes:
+      - glitchtip-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U glitchtip -d glitchtip"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  glitchtip-redis:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+
+  glitchtip-migrate:
+    <<: *glitchtip
+    command: ./bin/run-migrate.sh
+    restart: "no"
+
+  glitchtip-web:
+    <<: *glitchtip
+    ports:
+      - "127.0.0.1:${GLITCHTIP_PORT:-8100}:8000"
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+  glitchtip-worker:
+    <<: *glitchtip
+    command: ./bin/run-celery-with-beat.sh
+    volumes:
+      - glitchtip-uploads:/code/uploads
+
+volumes:
+  glitchtip-db-data:
+  glitchtip-uploads:

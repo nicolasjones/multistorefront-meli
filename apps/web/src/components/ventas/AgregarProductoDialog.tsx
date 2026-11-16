@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Alert, Autocomplete, Button, Dialog, DialogActions, DialogContent, TextField, Typography } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { renderOpcionProducto } from '../base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { buscarProductosConAviso, type ProductoRepuesto } from '../../lib/reparacionItems'
 import type { DepositoOpcion } from '../../lib/depositos'
 import { disponibleParaVenta } from '../../lib/ventasLineas'
@@ -28,6 +30,7 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
   const [errorBusqueda, setErrorBusqueda] = useState(false)
   const [hayMas, setHayMas] = useState(false)
   const [disponible, setDisponible] = useState<number | null | 'cargando' | 'error'>(null)
+  const imagenes = useImagenesProductos(opciones.map((opcion) => opcion.id))
 
   const cerrar = () => {
     setAbierto(false)
@@ -111,6 +114,7 @@ export function AgregarProductoDialog({ disabled = false, depositoPorDefecto, on
             options={opciones}
             filterOptions={(todas) => todas}
             getOptionLabel={etiquetaProducto}
+            renderOption={renderOpcionProducto<ProductoRepuesto>(imagenes, etiquetaProducto)}
             isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
             value={elegido}
             inputValue={entrada}

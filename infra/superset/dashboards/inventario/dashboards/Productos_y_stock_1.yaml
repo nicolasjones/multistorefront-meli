@@ -1,6 +1,4 @@
 version: 1.0.0
-type: Dashboard
-timestamp: '2027-02-01T00:00:00.000000+00:00'
 dashboard_title: Inventario · Productos y stock
 description: Tabla de productos con stock, costo y valor, y valor total del inventario, con filtros de producto/SKU, categoría y estado (F-REP-01, FR-003). Se embebe en /reportes/inventario.
 css: ''

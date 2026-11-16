@@ -39,7 +39,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administracion'),
   ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 
 -- Facturas armadas directo (la confirmación es de F-VTA-07): F1 y F2 confirmadas, F3 borrador, F4 anulada,
@@ -352,6 +352,8 @@ select lives_ok(format($$select private.marcar_estado_cobro_comprobante(%L, 'cob
 select private.insertar_actividad(
   '11111111-1111-1111-1111-111111111111', 'f1000000-0000-0000-0000-000000000002', 'comprobante.creado',
   'Creó la factura F-0001 en San Javucho', 'a1000000-0000-0000-0000-000000000001');
+-- El registro es inalterable (F-AUD-02): el fixture de fechas apaga el trigger solo mientras reordena.
+alter table public.registro_actividad disable trigger registro_actividad_inalterable_fila;
 update public.registro_actividad set creado_en = now() - interval '3 hours' where tipo = 'comprobante.creado';
 update public.registro_actividad set creado_en = now() - interval '150 minutes'
  where detalle = 'Estado: Pendiente → Aceptado en la factura F-0001';
@@ -361,6 +363,7 @@ update public.registro_actividad set creado_en = now() - interval '90 minutes'
  where detalle = 'Estado: Armando → Incompleto en la factura F-0001';
 update public.registro_actividad set creado_en = now() - interval '60 minutes'
  where detalle = 'Estado: Incompleto → Armando en la factura F-0001';
+alter table public.registro_actividad enable trigger registro_actividad_inalterable_fila;
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select is(

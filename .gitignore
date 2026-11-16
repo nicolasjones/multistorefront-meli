@@ -34,10 +34,25 @@ Thumbs.db
 # Salidas de Playwright (suite E2E de apps/web)
 apps/web/playwright-report/
 apps/web/test-results/
+apps/web/resultado-e2e.json
 
 # Capturas para comparar contra el prototipo (herramienta, no se versiona)
 apps/web/pantallas-capturas/
 
-# Bytecode de Python
+# storageState de Playwright para grabar recorridos (tokens: NUNCA versionar)
+apps/web/auth.json
+
+# Sitio MkDocs generado
+site/
+site-api-publica/
+docs-api-publica/
+
 __pycache__/
 *.pyc
+
+# videos de evidencia E2E (se generan, no se versionan)
+videos/
+cobertura-e2e.json
+
+# Reportes de Playwright de corridas locales (el CI los regenera)
+apps/web/e2e-report.json

@@ -178,7 +178,7 @@ describe('regla de precio por empresa (F-PRE-07)', () => {
   })
 })
 
-describe('leerCotizacionVigente (MSF-622)', () => {
+describe('leerCotizacionVigente', () => {
   const inicial = { schema: () => ({ from: () => ({ select: () => ({ maybeSingle: async () => ({ data: { valor: '1180', updated_at: '2026-07-24T12:00:00Z' }, error: null }) }) }) }) }
 
   it('usa la vigente cuando la organización ya confirmó una', async () => {

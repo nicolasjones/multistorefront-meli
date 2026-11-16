@@ -327,3 +327,6 @@ columns:
   description: null
   python_date_format: null
   extra: {}
+
+version: 1.0.0
+database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31
