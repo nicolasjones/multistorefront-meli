@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "32cf989ce957d97a1dce1d219441e5c0d38b11d73ad4a5cb0c4b9adc82c99cae",
-      "sourceHash": "1392f7a997b51be83beb01f15d65ca56d5bee1026829bb2e8920b99ff8adc93b",
-      "sourceAt": "0a249dc3",
+      "pageHash": "b7cae2267a8b52cd744d48968e12215afaa7c57fa40a0790ae032c3e3895b372",
+      "sourceHash": "f011748857a48adb05bd876e7cda70da5f1f9f2396039e7b1e2c69f16f235016",
+      "sourceAt": "4a93f421",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "0a249dc3"
+      "commit": "4a93f421"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2008,7 +2008,7 @@
       "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
       "pageHash": "7cc86261a592112db5a6b2e917291172ecebd78ad2a1b2f24e5fbb48736f87c2",
       "sourceHash": "9bd5be0e6af5460f852729cde6863c8e2a0a77557a57708e45226960834d0fdb",
-      "sourceAt": null,
+      "sourceAt": "12b4527a",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
@@ -3900,9 +3900,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "d965fae39aac180a69c08890c436701f0bce9ecb0b4b3c247a9e456511b9ebc0",
+      "pageHash": "99888e5ff26d762ce2ad9526a3eb4c03c26e2fadaa9d321c2f4aadbe4a057552",
       "sourceHash": "6448466cad3295ac8481b88d1df7334acbbb7858f13fef89a953927deaa9d773",
-      "sourceAt": "1354b540",
+      "sourceAt": "452d7af1",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3914,11 +3914,11 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "1354b540"
+      "commit": "452d7af1"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
-      "pageHash": "8556a753c6b336701c796724f729fff7299e4af4a5ab86be09afb1c4353e3e48",
+      "pageHash": "efabcfa48c7d76ed6be735c454232c390b2bcfd6c51ae1789301bea599cd9094",
       "sourceHash": "e195b476ddd8867f93e6ab0cdc833cf65c8c6ca6e74274410e3177a3ba56e88a",
       "sourceAt": "c7860a7c",
       "sources": [
@@ -4066,7 +4066,7 @@
     },
     "docs/ventas-rma-devoluciones.md": {
       "title": "Ventas · Devoluciones (RMA)",
-      "pageHash": "1737c6af0b5f3fb759eaeb01464fb452c85f74bac1aac4d8b3c5b5c167ac4cbf",
+      "pageHash": "54d2867ac126041c43e864cc6f21b3399edcb0499da818c0acf66c63c75b20e3",
       "sourceHash": "1d0af0edb53df0732133498501ec78356186ab42326745868fd842d671496fad",
       "sourceAt": "c7860a7c",
       "sources": [
