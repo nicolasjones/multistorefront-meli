@@ -22,21 +22,21 @@
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
-      "pageHash": "c2c64f5fa255b3a7af2fb87cf372708922ab7ba4563e22e2bf27d8dd080622e7",
-      "sourceHash": "a6066eb1b2f9cfaa3b3e946ace4b296fd536bdec8bc425d7a3aea1b26355d7d4",
-      "sourceAt": "c7860a7c",
+      "pageHash": "a771fdb47a0aa6db00cf34062a2a008b6fa6e57b8adeaf3c112edcb7556f5196",
+      "sourceHash": "d862d1988a374de61b5c1c1137871ccb1c115363e94524f66df6fd2e28d4e69c",
+      "sourceAt": "56d60776",
       "sources": [
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
         "infra/kestra/flows/cierre-accesos-soporte.yml",
         "supabase/migrations/20270207100003_acceso_soporte_auditado.sql"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "56d60776"
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "826c70bd80626d903b80a8d130ec211c766a9e0e3457fb147e9e9f7153e14d11",
-      "sourceHash": "9730959c5ab223e794adb88674e48c1f28404d12a86d19a45a9f386ed0b0130d",
+      "pageHash": "40f29594afbbcd89b49652e6f37c65cf6cac88001714e19f5c96daa07454161a",
+      "sourceHash": "62947a370b8135369cde0c0e00a0549ca1cad139c856f42428717f9370c81b04",
       "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
@@ -989,8 +989,8 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "59af0cf08c787f6ee70063987467a59cd8c76efbc8afd8b9a22e9f374181dae1",
-      "sourceHash": "f4f0beb6ff07ba302e53880772677563dc9fcc2dc2590f8fa9f9349443dea28c",
+      "pageHash": "015377b13c4dfd03922870a3ef152734e9e3f2621ff9e9ff953d72a82926202d",
+      "sourceHash": "77e8558235bc2cd99d77b4ce82ef19b92c566a08bddd7990a8932edaaf6b79b2",
       "sourceAt": "5ebd123f",
       "sources": [
         "specs"
@@ -1046,14 +1046,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "7065a017",
+      "pageHash": "f17236f3b0921bfc634db286ed03f5a76e915f7cecabd92fd23696cd78921770",
+      "sourceHash": "62947a370b8135369cde0c0e00a0549ca1cad139c856f42428717f9370c81b04",
+      "sourceAt": "e5362ce3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "e5362ce3"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -1113,7 +1113,7 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "5b521084dd020ead5965c8d9feee3de2191532cea524695278eea1a063b4141a",
+      "pageHash": "c88dc7b08b087de943b250af3c65485f9d6b4e8b30f6602476e3805cf02716cc",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1906,16 +1906,16 @@
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
-      "pageHash": "4ef0306de94870ddb923578ad4368c90ce3ebbb0798515b8938de6757bb5e90a",
-      "sourceHash": "3fc93c67268c69aa2a02931f668dc159df9452c92fcf251c6388317604bf2f90",
-      "sourceAt": "c7860a7c",
+      "pageHash": "3d08ca48e1db901d0e20993fbd4bbc04adcf56a677403ad91e49487f98703774",
+      "sourceHash": "f1fdf9662f84658f4c49f25f67ee0759b14264fa8ac16d1a2ea57e47491744c2",
+      "sourceAt": "e5362ce3",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
         "infra/superset/dashboards/inventario",
         "infra/superset/superset_config.py"
       ],
       "owner": "datos",
-      "commit": "c7860a7c"
+      "commit": "e5362ce3"
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
@@ -2627,9 +2627,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "3e0999f2608c4177dca411c4ac36c37bdc2f18600e43dff3f31d585e49146269",
-      "sourceHash": "de34cc44bbac5786a946b64dfd62f6cd3a1ceb4d86f6041284c4c971ef60ba44",
-      "sourceAt": "5e929d44",
+      "pageHash": "7ff3dd2a28fd5a55f29723cbcacb8719f3001c06525cd311bbf49da85719a231",
+      "sourceHash": "7d8c5667695fc90bcbecf13fe165a5ea6b9c46e9c2f0fbc6b5d4631de1666ea9",
+      "sourceAt": "56d60776",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2638,7 +2638,7 @@
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "5e929d44"
+      "commit": "56d60776"
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",

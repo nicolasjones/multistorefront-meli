@@ -268,7 +268,7 @@ Prototipo: `design/pantallas/Actividad.dc.html` (inventario `Actividad.inventory
 ## Decisiones abiertas (no bloquean)
 
 1. **Lista de eventos sensibles**: el seed propuesto (FR-001) es usuarios y permisos; falta confirmar si suman `empresa.*` u otros.
-2. **Retención de 24 meses**: supuesto a confirmar con el cliente (puede haber un requisito legal o contable distinto); es un parámetro, no una constante dispersa.
+2. **Retención de 24 meses**: **CONFIRMADA por Nicolás (2026-11-14)**; ya no es un supuesto. Sigue siendo un parámetro, no una constante dispersa, y no cambia el código.
 3. **Operador y eventos de usuarios/permisos**: se mantiene lo vigente (la matriz decide; hoy el Operador los ve). A confirmar.
 4. **Plazo del acceso de soporte**: se propone 4 horas; la épica pide «acotado» sin plazo.
 5. **«Acotado»** se interpreta como motivo obligatorio + vencimiento + una organización a la vez; no se restringe a solo lectura porque la épica no lo pide.
