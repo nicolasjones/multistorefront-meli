@@ -283,3 +283,19 @@ test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)
   assert.equal(recorrerSql("select e'a\\'; b'; select 1;").sentencias[0].texto.length, "select e'a\\'; b'".length);
   assert.equal(ne("select e'a\\'; b'; select 1;"), 2);
 });
+
+// Entradas adversariales: el análisis de T7 debe ser lineal (cada una en menos de 1 s) y no lanzar.
+const rapido = (nombre, sql, comprobar = () => {}) => test(`T7 rendimiento: ${nombre}`, () => {
+  const t = Date.now();
+  const r = t7(sql);
+  assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
+  comprobar(r);
+});
+rapido('500 updates y 666 «ingreso_en = 1» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1 '.repeat(666)}`, (r) => assert.deepEqual(r, []));
+rapido('«ingreso_en =» repetido sin comas ni cierres', `update reparaciones set ${'ingreso_en = 1 '.repeat(20000)}`);
+rapido('2500 altas con paréntesis sin cerrar', 'insert into reparaciones (a,ingreso_en values ('.repeat(2500), (r) => assert.equal(r.length, 1));
+rapido('10000 throws_ok( sin cerrar con un alta', `${'throws_ok('.repeat(10000)} insert into reparaciones (ingreso_en) values (current_date)`);
+rapido('altas anidadas en paréntesis', `${'insert into reparaciones ('.repeat(1500)}ingreso_en${')'.repeat(1500)}`);
+rapido('sentencia gigante que toca reparaciones', `insert into reparaciones (ingreso_en) values (now()); ${'select 1, '.repeat(30000)}select 1 -- reparaciones`.replace(/;/, ' '), (r) => assert.ok(r.length >= 1));
+rapido('muchos usos de current_date en una sentencia', `insert into reparaciones (ingreso_en) values ${'(current_date),'.repeat(3000)}(current_date)`, (r) => assert.ok(r.length <= 21));
+rapido('un solo update con current_date sigue marcándose', 'update reparaciones set a = 1; update reparaciones set ingreso_en = current_date', (r) => assert.equal(r.length, 1));
