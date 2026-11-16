@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useSearchParams } from 'react-router'
 import { Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
@@ -105,13 +105,21 @@ export function StockList() {
   const [total, setTotal] = useState(0)
   const [pagina, setPagina] = useState(1)
   const [busqueda, setBusqueda] = useState('')
-  const [filtro, setFiltro] = useState<FiltroEstado>('todos')
+  // Inicio (F-INI-04, FR-005) enlaza acá ya filtrado: `?filtro=sin_stock|stock_bajo&deposito=<id>`.
+  const [parametrosUrl] = useSearchParams()
+  const [filtro, setFiltro] = useState<FiltroEstado>(() => {
+    const pedido = parametrosUrl.get('filtro')
+    return pedido === 'sin_stock' || pedido === 'stock_bajo' ? pedido : 'todos'
+  })
   const [resumen, setResumen] = useState<{ sinStock: number; stockBajo: number } | null>(null)
   const [hayError, setHayError] = useState(false)
   const [cargando, setCargando] = useState(false)
   // Control de depósito (D-4): «todos» muestra los totales únicos; un depósito, sus cifras.
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
-  const [depositoId, setDepositoId] = useState<'todos' | string>('todos')
+  const [depositoId, setDepositoId] = useState<'todos' | string>(() => {
+    const pedido = parametrosUrl.get('deposito')
+    return pedido !== null && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pedido) ? pedido : 'todos'
+  })
   const [stockPorDeposito, setStockPorDeposito] = useState<Record<string, StockPorDeposito>>({})
   const [dialogo, setDialogo] = useState<{ abierto: boolean; productoId: string }>({ abierto: false, productoId: '' })
   const [edicionMinimo, setEdicionMinimo] = useState<FilaStock | null>(null)
@@ -189,7 +197,12 @@ export function StockList() {
   useEffect(() => {
     let vigente = true
     listarDepositosActivos()
-      .then((opciones) => { if (vigente) setDepositos(opciones) })
+      .then((opciones) => {
+        if (!vigente) return
+        setDepositos(opciones)
+        // Un depósito pedido por la URL que no existe (o ya no está activo) vuelve a «todos».
+        setDepositoId((actual) => (actual === 'todos' || opciones.some((opcion) => opcion.id === actual) ? actual : 'todos'))
+      })
       .catch((error) => console.error('No pudimos cargar los depósitos del control.', error))
     return () => { vigente = false }
   }, [])

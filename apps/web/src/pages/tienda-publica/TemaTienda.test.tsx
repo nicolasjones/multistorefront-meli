@@ -29,6 +29,8 @@ const MUNDO_JC: IdentidadTienda = {
   logoRuta: 'org-1/e-1/logo.png',
   bannerRuta: 'org-1/e-1/banner.webp',
   bannerMovilRuta: 'org-1/e-1/banner-movil.webp',
+  estiloHeroe: 'oscuro',
+  titulosMayusculas: true,
 }
 const SAN_JAVUCHO: IdentidadTienda = { ...IDENTIDAD_BASE, colorPrimario: '#2E6B3F', colorFondo: '#FAF7F0', tipografiaTitulos: 'Playfair Display', tipografiaTexto: 'Lato' }
 

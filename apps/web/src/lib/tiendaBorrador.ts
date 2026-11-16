@@ -29,7 +29,7 @@ export type VersionVigente = { numero: number; publicadaAt: string; publicadaPor
 export type BorradorTienda = {
   hayBorrador: boolean
   // Valor completo de cada área tal como lo guarda la base (columnas en snake_case); null = sin cambios.
-  identidad: Record<string, string | null> | null
+  identidad: Record<string, string | boolean | null> | null
   contenido: Record<string, string> | null
   catalogo: DatosCatalogoBorrador | null
   cambios: CambiosBorrador
@@ -40,7 +40,7 @@ export type BorradorTienda = {
 
 type FilaBorrador = {
   hay_borrador: boolean
-  identidad: Record<string, string | null> | null
+  identidad: Record<string, string | boolean | null> | null
   contenido: Record<string, string> | null
   catalogo: DatosCatalogoBorrador | null
   cambios: CambiosBorrador
@@ -105,7 +105,7 @@ export async function rutasSinReferencia(empresaId: string, rutas: string[]): Pr
 export type VistaPreviaTienda = {
   empresaNombre: string
   enLinea: boolean
-  identidad: Record<string, string | null>
+  identidad: Record<string, string | boolean | null>
   contenido: Record<string, string>
   hayProductos: boolean
   categorias: Array<{ id: string; nombre: string; padreId: string | null; productos: number; imagen: string | null }>
@@ -115,10 +115,10 @@ export type VistaPreviaTienda = {
 type FilaVistaPrevia = {
   empresa_nombre: string
   en_linea: boolean
-  identidad: Record<string, string | null>
+  identidad: Record<string, string | boolean | null>
   contenido: Record<string, string>
   hay_productos: boolean
-  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number }>
+  categorias: Array<{ id: string; nombre: string; padre_id: string | null; productos: number; imagen?: string | null }>
   destacados: Array<{ id: string; nombre: string; precio: number | string | null; disponible: boolean; imagen: string | null; categoria_id: string | null }>
 }
 
@@ -132,8 +132,8 @@ export async function leerVistaPrevia(empresaId: string): Promise<VistaPreviaTie
     identidad: fila.identidad,
     contenido: fila.contenido,
     hayProductos: fila.hay_productos,
-    // La vista previa no calcula la foto de categoría (null).
-    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos, imagen: null })),
+    // MSF-846: la foto de categoría (ruta del bucket) llega de la RPC; null si ninguna tiene imagen.
+    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos, imagen: c.imagen ?? null })),
     destacados: fila.destacados.map((p) => ({
       id: p.id,
       nombre: p.nombre,

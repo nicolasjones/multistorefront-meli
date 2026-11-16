@@ -1,0 +1,259 @@
+-- MSF-468 (spec 20270328-100000-newsletter-de-la-tienda), Fase 4 · T020/T024b: foto del contenido, vista previa y prueba.
+-- RF-NL-15, RF-NL-16, RF-NL-24; D10, D13, D18. NO envía a suscriptores: la prueba va solo al correo del autor.
+--
+-- Esquemas (Principio VII): solo funciones. `private.armar_bloques_newsletter` (interna: lee `dominio.productos_tienda` por
+-- `private.catalogo_tienda_efectivo`, `dominio.promociones_precio` y los precios públicos de la tienda); RPC del panel en `public`;
+-- escribe `dominio.correo_masivo_pruebas` (dominio, columnas de 20270420000000).
+--
+-- La foto (`bloques`) usa el MISMO precio público que la tienda (`private.precio_vigente_empresa`) y respeta la bandera `promociones_precio`.
+-- Sin imágenes: el bucket de productos es privado y un correo no puede llevar una URL firmada de larga vida; `imagen_url` queda nulo
+-- (pendiente de decisión de Nicolás: bucket público o URL firmada larga). Todo texto se escapa al renderizar (panel y flow).
+-- Invariante MSF-967: la cantidad de destinatarios cuenta SOLO `estado = 'confirmado'`.
+--
+-- UN solo renderizado (desvío declarado de RF-NL-15/RF-NL-21 y T023): el cuerpo HTML del correo lo arma `private.cuerpo_html_newsletter`;
+-- la vista previa del panel muestra ese mismo HTML (en un iframe sin scripts) y el reclamo del lote lo entrega ya armado al flow. No existen
+-- dos plantillas que puedan divergir. Todo texto del dueño y de los productos se escapa; el HTML solo lo escribe esta función.
+--
+-- Aditiva e idempotente. Reversión (migración posterior):
+--   drop function public.solicitar_prueba_newsletter(uuid, text, text, boolean, boolean),
+--     public.vista_previa_newsletter(uuid, text, boolean, boolean), private.cuerpo_html_newsletter(text, jsonb, text, text),
+--     private.escapar_html(text), private.armar_bloques_newsletter(uuid, boolean, boolean);
+--   delete from public.tipos_evento_actividad where tipo = 'newsletter.prueba'  -- solo si no quedan eventos
+
+create or replace function private.armar_bloques_newsletter(p_empresa uuid, p_destacados boolean, p_promociones boolean)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  c_tope constant integer := 6;
+  v_nombre text;
+  v_dominio text;
+  v_destacados jsonb := '[]'::jsonb;
+  v_promociones jsonb := '[]'::jsonb;
+begin
+  select e.nombre, t.dominio into v_nombre, v_dominio
+    from dominio.empresas e
+    left join dominio.tiendas t on t.empresa_id = e.id and t.organizacion_id = e.organizacion_id
+   where e.id = p_empresa;
+  if v_nombre is null then
+    raise exception 'La tienda no existe' using errcode = 'P0002';
+  end if;
+
+  if p_destacados then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'producto_id', x.producto_id, 'nombre', x.nombre, 'precio', x.precio, 'imagen_url', null,
+             'url', case when v_dominio is null then null else 'https://' || v_dominio || '/producto/' || x.producto_id end)
+           order by lower(x.nombre), x.producto_id), '[]'::jsonb)
+      into v_destacados
+      from (
+        select g.producto_id, g.nombre, pv.precio
+          from private.catalogo_tienda_efectivo(p_empresa) g
+          cross join lateral private.precio_vigente_empresa(g.producto_id, p_empresa, now()) pv
+         where g.efectivo and g.destacado and pv.precio is not null
+         order by lower(g.nombre), g.producto_id
+         limit c_tope
+      ) x;
+  end if;
+
+  -- Promociones: solo con la bandera encendida (`promocion_vigente` también la respeta); `precio_anterior` no nulo = hay promoción vigente.
+  if p_promociones and private.bandera_activa('promociones_precio') then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'producto_id', x.producto_id, 'nombre', x.nombre, 'precio', x.precio_anterior, 'precio_promocional', x.precio,
+             'imagen_url', null, 'hasta', x.hasta,
+             'url', case when v_dominio is null then null else 'https://' || v_dominio || '/producto/' || x.producto_id end)
+           order by x.hasta, lower(x.nombre), x.producto_id), '[]'::jsonb)
+      into v_promociones
+      from (
+        select g.producto_id, g.nombre, pv.precio, pv.precio_anterior, p.hasta
+          from private.catalogo_tienda_efectivo(p_empresa) g
+          cross join lateral (
+            select min(q.hasta) as hasta
+              from dominio.promociones_precio q
+             where q.empresa_id = p_empresa and q.producto_id = g.producto_id and q.anulada_at is null
+               and q.desde <= now() and now() < q.hasta
+          ) p
+          cross join lateral private.precio_vigente_empresa(g.producto_id, p_empresa, now()) pv
+         where g.efectivo and p.hasta is not null and pv.precio is not null and pv.precio_anterior is not null
+         order by p.hasta, lower(g.nombre), g.producto_id
+         limit c_tope
+      ) x;
+  end if;
+
+  return jsonb_build_object(
+    'generado_en', now(),
+    'tienda', jsonb_build_object('nombre', v_nombre, 'dominio', v_dominio),
+    'destacados', v_destacados,
+    'promociones', v_promociones);
+end;
+$$;
+
+revoke execute on function private.armar_bloques_newsletter(uuid, boolean, boolean) from public, anon, authenticated;
+
+create or replace function private.escapar_html(p_texto text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  -- Además de `& < > " '`, las llaves van como entidad: un texto como `{{ ... }}` o `{% ... %}` nunca llega al motor de plantillas de Kestra
+  -- (defensa en profundidad por si el renderizado recursivo estuviera activo); en el correo se ve igual.
+  select replace(replace(replace(replace(replace(replace(replace(coalesce(p_texto, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '"', '&quot;'), '''', '&#39;'), '{', '&#123;'), '}', '&#125;');
+$$;
+
+revoke execute on function private.escapar_html(text) from public, anon, authenticated;
+
+-- Cuerpo HTML del correo (D13, D15). `p_bloques` es la foto (`armar_bloques_newsletter`); `p_enlace_baja` es la URL completa de la baja
+-- (solo https). El pie es fijo y no editable.
+create or replace function private.cuerpo_html_newsletter(p_mensaje text, p_bloques jsonb, p_tienda text, p_enlace_baja text)
+returns text
+language plpgsql
+immutable
+set search_path = ''
+as $$
+declare
+  v_html text;
+  v_item jsonb;
+  v_hay boolean := false;
+  v_enlace text;
+begin
+  v_html := '<div style="white-space: pre-wrap;">' || private.escapar_html(p_mensaje) || '</div>';
+
+  if jsonb_array_length(coalesce(p_bloques -> 'destacados', '[]'::jsonb)) > 0 then
+    v_hay := true;
+    v_html := v_html || '<h2 style="font-size: 16px;">Productos destacados</h2><ul>';
+    for v_item in select x from jsonb_array_elements(p_bloques -> 'destacados') x loop
+      v_html := v_html || '<li>'
+        || case when v_item ->> 'url' ~ '^https://' then '<a href="' || private.escapar_html(v_item ->> 'url') || '">' || private.escapar_html(v_item ->> 'nombre') || '</a>'
+                else private.escapar_html(v_item ->> 'nombre') end
+        || ' - $ ' || replace(to_char((v_item ->> 'precio')::numeric, 'FM999999999990.00'), '.', ',') || '</li>';
+    end loop;
+    v_html := v_html || '</ul>';
+  end if;
+
+  if jsonb_array_length(coalesce(p_bloques -> 'promociones', '[]'::jsonb)) > 0 then
+    v_hay := true;
+    v_html := v_html || '<h2 style="font-size: 16px;">Promociones vigentes</h2><ul>';
+    for v_item in select x from jsonb_array_elements(p_bloques -> 'promociones') x loop
+      v_html := v_html || '<li>'
+        || case when v_item ->> 'url' ~ '^https://' then '<a href="' || private.escapar_html(v_item ->> 'url') || '">' || private.escapar_html(v_item ->> 'nombre') || '</a>'
+                else private.escapar_html(v_item ->> 'nombre') end
+        || ' - <s>$ ' || replace(to_char((v_item ->> 'precio')::numeric, 'FM999999999990.00'), '.', ',') || '</s> $ '
+        || replace(to_char((v_item ->> 'precio_promocional')::numeric, 'FM999999999990.00'), '.', ',')
+        || ' (hasta el ' || to_char((v_item ->> 'hasta')::timestamptz at time zone 'America/Argentina/Buenos_Aires', 'DD/MM/YYYY') || ')</li>';
+    end loop;
+    v_html := v_html || '</ul>';
+  end if;
+
+  if v_hay then
+    v_html := v_html || '<p style="font-size: 12px; color: #666666;">Precios al '
+      || to_char((p_bloques ->> 'generado_en')::timestamptz at time zone 'America/Argentina/Buenos_Aires', 'DD/MM/YYYY') || '.</p>';
+  end if;
+
+  v_enlace := case when p_enlace_baja ~ '^https://' then private.escapar_html(p_enlace_baja) else null end;
+  v_html := v_html || '<hr><p style="font-size: 12px; color: #666666;">Recibís este correo porque te suscribiste al newsletter de '
+    || private.escapar_html(p_tienda) || '. Si no querés recibirlo más, '
+    || case when v_enlace is null then 'date de baja desde el enlace de tu último correo' else '<a href="' || v_enlace || '">date de baja acá</a>' end || '.</p>';
+  return v_html;
+end;
+$$;
+
+revoke execute on function private.cuerpo_html_newsletter(text, jsonb, text, text) from public, anon, authenticated;
+
+insert into public.tipos_evento_actividad (tipo, sensible, descripcion) values
+  ('newsletter.prueba', false, 'Prueba de newsletter enviada al propio correo del autor (sin correo ni texto)')
+on conflict (tipo) do nothing;
+
+-- RF-NL-15 · vista previa: la misma foto y el mismo HTML que el envío, y la cantidad real de destinatarios (solo `confirmado`, MSF-967).
+create or replace function public.vista_previa_newsletter(p_empresa uuid, p_mensaje text, p_destacados boolean, p_promociones boolean)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid := private.exigir_admin_newsletter(p_empresa);
+  v_bloques jsonb;
+begin
+  if p_empresa is null then
+    raise exception 'La tienda no existe' using errcode = 'P0002';
+  end if;
+  if char_length(coalesce(p_mensaje, '')) > 10000 then
+    raise exception 'El mensaje admite hasta 10000 caracteres' using errcode = '22023', hint = 'mensaje';
+  end if;
+  if p_destacados is null or p_promociones is null then
+    raise exception 'Falta indicar las secciones del newsletter' using errcode = '22023';
+  end if;
+  v_bloques := private.armar_bloques_newsletter(p_empresa, p_destacados, p_promociones);
+  return jsonb_build_object(
+    'bloques', v_bloques,
+    'confirmados', (select count(*)::int from dominio.newsletter_suscriptores s
+                     where s.organizacion_id = v_org and s.empresa_id = p_empresa and s.estado = 'confirmado'),
+    'generado_en', v_bloques -> 'generado_en',
+    -- El mismo HTML que recibirán los suscriptores, con un enlace de baja de ejemplo (D15). Se muestra en un iframe sin scripts.
+    'html', private.cuerpo_html_newsletter(
+      p_mensaje, v_bloques, v_bloques -> 'tienda' ->> 'nombre',
+      'https://' || coalesce(v_bloques -> 'tienda' ->> 'dominio', 'tienda.ejemplo') || '/newsletter/baja/ejemplo'));
+end;
+$$;
+
+-- RF-NL-16, D18 · prueba al correo del autor, con el contenido real y el tope de 5 por hora y persona (compartido con MSF-155).
+create or replace function public.solicitar_prueba_newsletter(
+  p_empresa uuid,
+  p_asunto text,
+  p_mensaje text,
+  p_destacados boolean,
+  p_promociones boolean
+)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid := private.exigir_admin_newsletter(p_empresa);
+  v_actor uuid := (select auth.uid());
+  v_correo text;
+begin
+  if p_empresa is null then
+    raise exception 'La tienda no existe' using errcode = 'P0002';
+  end if;
+  if not private.bandera_activa('newsletter') then
+    raise exception 'El newsletter no está habilitado en este entorno' using errcode = '55000';
+  end if;
+  perform private.validar_redaccion_correo_masivo(p_asunto, p_mensaje);
+  if p_destacados is null or p_promociones is null then
+    raise exception 'Falta indicar las secciones del newsletter' using errcode = '22023';
+  end if;
+
+  select nullif(btrim(u.email::text), '') into v_correo from auth.users u where u.id = v_actor;
+  if v_correo is null or v_correo ~ '[{}]' then
+    raise exception 'Tu usuario no tiene un correo para recibir la prueba' using errcode = '22023', hint = 'sin_correo';
+  end if;
+
+  -- Mismo cerrojo y tope que `solicitar_prueba_correo_masivo`: la prueba no sirve para inundar el buzón.
+  perform pg_advisory_xact_lock(hashtextextended('prueba_correo_masivo:' || v_actor::text, 0));
+  if (select count(*) from dominio.correo_masivo_pruebas p
+       where p.organizacion_id = v_org and p.solicitado_por = v_actor and p.creada_en > now() - interval '1 hour') >= 5 then
+    raise exception 'Ya pediste varias pruebas en la última hora. Probá de nuevo en un rato.' using errcode = '22023', hint = 'limite';
+  end if;
+
+  insert into dominio.correo_masivo_pruebas (organizacion_id, solicitado_por, correo, asunto, mensaje, bloques, empresa_id)
+  values (v_org, v_actor, v_correo, btrim(p_asunto), p_mensaje, private.armar_bloques_newsletter(p_empresa, p_destacados, p_promociones), p_empresa);
+  perform private.insertar_actividad(v_org, v_actor, 'newsletter.prueba', 'Pidió una prueba de newsletter', p_empresa);
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+comment on function private.armar_bloques_newsletter(uuid, boolean, boolean) is 'MSF-468 (RF-NL-15, D13): foto del contenido (destacados y promociones vigentes, hasta 6 cada una) con el precio público de la tienda.';
+comment on function public.vista_previa_newsletter(uuid, text, boolean, boolean) is 'MSF-468 (RF-NL-15): foto del contenido y cantidad de suscriptores confirmados de la tienda; Administrador.';
+comment on function public.solicitar_prueba_newsletter(uuid, text, text, boolean, boolean) is 'MSF-468 (RF-NL-16, D18): deja una prueba al correo del autor; Administrador; tope 5 por hora; 55000 con la bandera apagada.';
+
+revoke execute on function public.vista_previa_newsletter(uuid, text, boolean, boolean) from public, anon;
+revoke execute on function public.solicitar_prueba_newsletter(uuid, text, text, boolean, boolean) from public, anon;
+grant execute on function public.vista_previa_newsletter(uuid, text, boolean, boolean) to authenticated;
+grant execute on function public.solicitar_prueba_newsletter(uuid, text, text, boolean, boolean) to authenticated;

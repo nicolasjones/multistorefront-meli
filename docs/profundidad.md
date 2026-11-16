@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # F5 — Profundidad (no bloqueante)
 
 Checks que no frenan PRs, pero **fallan el nightly** (rojo) si encuentran algo (MSF-687). Corren en `.github/workflows/nightly.yml` (06:00 UTC o a mano).

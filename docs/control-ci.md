@@ -1,3 +1,12 @@
+---
+owner: plataforma
+sources:
+  - infra/runner
+  - scripts/ci-lane.mjs
+  - scripts/estado-ci.mjs
+  - scripts/limpiar-ci.mjs
+---
+
 # Control de concurrencia del CI
 
 Cómo evitar que, con muchos PRs en paralelo, el CI (y la máquina) se vaya al
@@ -271,3 +280,47 @@ gh api repos/nicolasjones/multistorefront-meli/actions/runners \
 
 Un runner `offline` **con** `busy=true` es un job huérfano: ese PR está
 esperando un CI que no va a llegar.
+
+## Runners hosted para los jobs pesados (CI_RUNS_ON_PESADO)
+
+Los jobs pesados (`application`, `web`, `e2e-tienda`, `database`) esperaban en cola de 1 a 2 horas porque VPS2 (12 núcleos, carga
+cercana a 40) comparte la CPU con dev, los stacks de prueba y las sesiones de Claude. Como el repositorio es **público**, los
+runners estándar de GitHub (`ubuntu-latest`, 4 vCPU) no tienen costo ni tope de minutos (hasta 20 jobs simultáneos).
+
+La variable de repo `CI_RUNS_ON_PESADO` decide dónde corren esos cuatro jobs; los livianos (`changes`, `liberar`, `validacion`,
+`infrastructure`) siguen en `[self-hosted, platform-local]`:
+
+| Valor | Efecto |
+|---|---|
+| sin definir | todo en los runners self-hosted (comportamiento histórico) |
+| `["ubuntu-latest"]` | los jobs pesados corren en runners hosted gratis, sin cola |
+
+Medición de la prueba (rama `ci/runners-hosted-prueba`, sobre `dokploy`): `database` **5 min 30 s** y `e2e-tienda` **7 min** en
+hosted, contra ~22 y ~29 min de ejecución más 1 a 2 horas de cola en VPS2. Para volver atrás basta borrar la variable.
+
+En hosted el Docker es el de la VM, así que los jobs hacen lo siguiente (`if: runner.environment == 'github-hosted'`): instalan
+el CLI de Supabase (`supabase/setup-cli`) y `pg_prove`, mapean `host.docker.internal` a `127.0.0.1`, mueven los locks de
+ranuras a `$RUNNER_TEMP` y omiten el `puente` de puertos (solo existe para los runners dentro de Docker). Con la admisión por
+carriles (`CI_LANES`) conviene subir el valor al pasar a hosted, porque ya no protege la CPU de VPS2.
+
+Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, no sirve: esos jobs deben quedar en self-hosted.
+
+## Menos CI y menos rojos: cache y pre-push
+
+- **Cache de pnpm:** los jobs `application`, `e2e-visible-sesion`, `e2e-tienda` y `database` usan `cache: pnpm` en `setup-node`
+  (como `web`). En runners hosted cada job parte de una VM limpia y el cache evita reinstalar todo.
+- **Verificación local antes de pushear (`pnpm prepush`):** `scripts/pre-push-rapido.mjs` corre solo lo que el diff puede afectar
+  (`tsc -b`, `oxlint` y los tests afectados con `vitest --changed` si cambia web; `docs:check` si cambian docs/specs). Así el CI es la
+  verificación final y no el primer aviso. Es opt-in: se corre a mano o como hook (`.git/hooks/pre-push` que llame a
+  `pnpm prepush`); `SKIP_PREPUSH=1` lo saltea. No se activa por `core.hooksPath` global porque lo compartirían todos los worktrees.
+- **Cola de merge:** el workflow ya reacciona a `merge_group`, pero el ruleset `dokploy-integracion-protegida` hoy solo exige el
+  check `validacion` y no tiene regla de cola de merge. Activarla cambia el flujo de merge de todas las sesiones (cada PR corre el CI
+  completo al integrar), así que es una decisión aparte.
+
+## E2E con sesión (`e2e-visible-sesion`): arranque del stack
+
+El job manual `e2e-visible-sesion` (`workflow_dispatch` con `e2e_sesion`) levanta el Supabase del CI con `kong` y `postgrest`. PostgREST arranca antes de que las migraciones creen el esquema `dominio` y no queda sano hasta que `pnpm db:reset:ci` las aplica, así que `supabase start` falla su chequeo de salud en una ranura sin migraciones. Igual que `e2e-tienda`, el job baja antes el stack de la ranura, arranca con `--ignore-health-check` y reinicia el contenedor de PostgREST después de `db:reset:ci`. Sin esto la corrida moría en «Levantar el stack de Supabase del CI» y ningún E2E con sesión llegaba a ejecutarse (corrida del 2026-11-15).
+
+La API del stack se expone a los specs y al build por `host.docker.internal` (no `127.0.0.1`): el puente de arranque muere al terminar su paso y, dentro del contenedor del runner, `127.0.0.1` es el propio contenedor. Antes de eso el único test con sesión (`permisos-por-empresa.e2e.ts`) fallaba con `ECONNREFUSED 127.0.0.1:29300`.
+
+Para elegir qué specs corre el job manual `e2e-visible-sesion`, el workflow tiene el input `e2e_archivos` (nombres de archivo de `apps/web/e2e` separados por espacio; por defecto `permisos-por-empresa.e2e.ts`): `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f "e2e_archivos=inicio.e2e.ts clientes-recorrido.e2e.ts"`. Antes el archivo estaba fijo en el workflow y el input `e2e_grep` («vacío = toda la suite») solo filtraba dentro de ese único spec.

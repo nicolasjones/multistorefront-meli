@@ -119,7 +119,7 @@ describe('validación de archivos (FR-021, FR-025, FR-026)', () => {
   })
 })
 
-describe('color de la barra superior y pie (MSF-841)', () => {
+describe('color de la barra superior y pie', () => {
   it('el chequeo AA nombra el color evaluado y usa el mismo criterio', () => {
     expect(evaluarContraste('#222222', 'la barra superior y pie')?.texto).toMatch(/^Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\.$/)
     expect(evaluarContraste('#FFEB3B', 'la barra superior y pie')?.cumpleAA).toBe(false)
@@ -132,6 +132,26 @@ describe('color de la barra superior y pie (MSF-841)', () => {
     }
     expect(identidadDesdeFila(fila).colorBarra).toBe(IDENTIDAD_BASE.colorBarra)
     expect(identidadDesdeFila({ ...fila, color_barra: '#0A0A0A' }).colorBarra).toBe('#0A0A0A')
+  })
+})
+
+describe('estilo del encabezado y mayúsculas de los títulos', () => {
+  const fila = {
+    color_primario: '#A3111D', color_primario_oscuro: '#7A0A12', color_acento: '#A3111D', color_fondo: '#FFFFFF',
+    tipografia_titulos: 'Sora' as const, tipografia_texto: 'Sora' as const, logo_ruta: null, banner_ruta: null, banner_movil_ruta: null,
+  }
+  it('los valores por defecto son el diseño actual: encabezado oscuro y mayúsculas', () => {
+    expect(IDENTIDAD_BASE.estiloHeroe).toBe('oscuro')
+    expect(IDENTIDAD_BASE.titulosMayusculas).toBe(true)
+  })
+  it('un borrador o versión anterior sin las claves toma los valores por defecto', () => {
+    expect(identidadDesdeFila(fila)).toMatchObject({ estiloHeroe: 'oscuro', titulosMayusculas: true })
+  })
+  it('lee los valores guardados, incluido «sin mayúsculas»', () => {
+    expect(identidadDesdeFila({ ...fila, estilo_heroe: 'claro', titulos_mayusculas: false })).toMatchObject({ estiloHeroe: 'claro', titulosMayusculas: false })
+  })
+  it('un estilo desconocido (dato corrupto) vale el estilo por defecto', () => {
+    expect(identidadDesdeFila({ ...fila, estilo_heroe: 'verde' as never }).estiloHeroe).toBe('oscuro')
   })
 })
 

@@ -229,7 +229,7 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     expect(screen.getByText('Solo de B')).toBeInTheDocument()
   })
 
-  it('con la bandera apagada (por defecto) lista en modo solo-anular y explica el motivo (MSF-363, decisión 15)', async () => {
+  it('con la bandera apagada (por defecto) lista en modo solo-anular y explica el motivo (decisión 15)', async () => {
     capacidades(false)
     abrir()
     expect(await screen.findByText('Alfa de A')).toBeInTheDocument()

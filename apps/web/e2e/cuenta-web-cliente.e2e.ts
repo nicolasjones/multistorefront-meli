@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
+import { serviceKey, url } from './soporte/fixtures'
 
 // F-CLI-06 (MSF-428, SC-005 y SC-006) con las dos tiendas del seed (mundojc.localhost y sanjavucho.localhost):
 //  - invitación → definir contraseña → ingresar → «Salir» (SC-005);
@@ -9,14 +10,6 @@ import { expect, test, type Page } from '@playwright/test'
 // admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md. El enlace de definir contraseña se pide con
 // `generate_link` (admin) en lugar de leer el correo: el envío del correo lo cubre el test de la Edge Function.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de cuenta web: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001' } as const
@@ -36,10 +29,10 @@ const cabeceras = (perfil = 'public') => ({
   'accept-profile': perfil,
 })
 
-async function rest<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+async function rest<T>(metodo: string, ruta: string, cuerpo?: unknown, perfil = 'public'): Promise<T> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: metodo,
-    headers: { ...cabeceras(), prefer: 'return=representation' },
+    headers: { ...cabeceras(perfil), prefer: 'return=representation' },
     body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
@@ -62,7 +55,7 @@ async function sembrar(opciones: { habilitado: Tienda[]; cuenta?: { tienda: Tien
   const organizacion = (opciones.cuenta?.tienda ?? opciones.habilitado[0]).organizacion
   const [cliente] = await rest<{ id: string }[]>('POST', 'clientes', {
     organizacion_id: organizacion, numero: 900000 + Math.floor(Math.random() * 90000), nombre: `E2E ${sufijo}`, correo, tipo: 'minorista',
-  })
+  }, 'dominio')
   for (const t of opciones.habilitado) {
     await rest('POST', 'clientes_empresas', { cliente_id: cliente.id, empresa_id: t.empresa, organizacion_id: t.organizacion })
   }
@@ -91,7 +84,7 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   test.afterAll(async () => {
     for (const s of creados) {
       await fetch(`${url}/auth/v1/admin/users/${s.authId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
-      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
+      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras('dominio') }).catch(() => undefined)
     }
   })
 
@@ -126,7 +119,8 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
 
   test('suspendida, sin cuenta en la tienda y no habilitada no entran, con el mismo mensaje que una clave errónea', async ({ page }) => {
     const suspendida = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'suspendida' } })
-    const sinCuenta = await sembrar({ habilitado: [MUNDO, SAN], cuenta: { tienda: SAN, estado: 'activa' } })
+    // Un cliente pertenece a una sola organización (las empresas habilitadas deben ser de ella): habilitado en Mundo JC, sin cuenta web.
+    const sinCuenta = await sembrar({ habilitado: [MUNDO] })
     const noHabilitada = await sembrar({ habilitado: [SAN], cuenta: { tienda: SAN, estado: 'activa' } })
     const activa = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'activa' } })
 

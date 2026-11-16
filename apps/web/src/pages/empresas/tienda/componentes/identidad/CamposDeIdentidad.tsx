@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { Alert, Box, MenuItem, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, FormControlLabel, FormHelperText, MenuItem, Stack, Switch, TextField, Typography } from '@mui/material'
 import {
-  TIPOGRAFIAS, esColorValido, evaluarContraste, familiasACargar, urlFuentes, type Tipografia,
+  ESTILOS_HEROE, TIPOGRAFIAS, esColorValido, evaluarContraste, familiasACargar, urlFuentes, type EstiloHeroe, type Tipografia,
 } from '../../../../../lib/tiendaIdentidad'
 import { tokens } from '../../../../../tema/tokens'
 
@@ -106,6 +106,44 @@ export function MuestraTipografia({ titulos, texto }: { titulos: Tipografia; tex
       <Typography component="p" sx={{ fontFamily: pila(texto), fontSize: tokens.tipografia.escala.b.tamano, mt: 0.75 }}>
         Cargadores, joysticks, cases y protectores para Nintendo Switch.
       </Typography>
+    </Box>
+  )
+}
+
+// MSF-848: estilo del encabezado de la portada (lista cerrada) y mayúsculas del menú y los botones. La ayuda dice qué cambia, en castellano.
+const NOMBRE_ESTILO_HEROE: Readonly<Record<EstiloHeroe, string>> = {
+  oscuro: 'Oscuro (franja oscura, título en mayúsculas blancas y franjas inclinadas)',
+  claro: 'Claro (franja clara, círculo de acento y título en el color primario)',
+}
+
+export function SelectorEstiloHeroe({ valor, onChange }: { valor: EstiloHeroe; onChange: (valor: EstiloHeroe) => void }) {
+  return (
+    <TextField
+      select
+      label="Estilo del encabezado de la portada"
+      value={valor}
+      onChange={(evento) => onChange(evento.target.value as EstiloHeroe)}
+      size="small"
+      fullWidth
+      helperText="Cómo se ve la franja del banner principal en la portada de la tienda."
+    >
+      {ESTILOS_HEROE.map((estilo) => (
+        <MenuItem key={estilo} value={estilo}>{NOMBRE_ESTILO_HEROE[estilo]}</MenuItem>
+      ))}
+    </TextField>
+  )
+}
+
+export function InterruptorMayusculas({ valor, onChange }: { valor: boolean; onChange: (valor: boolean) => void }) {
+  return (
+    <Box>
+      <FormControlLabel
+        control={<Switch checked={valor} onChange={(evento) => onChange(evento.target.checked)} slotProps={{ input: { 'aria-describedby': 'ayuda-titulos-mayusculas' } }} />}
+        label="Títulos del menú y botones en mayúsculas"
+      />
+      <FormHelperText id="ayuda-titulos-mayusculas" sx={{ mt: 0, ml: 0 }}>
+        Aplica a la barra de categorías, al título del banner y a su botón.
+      </FormHelperText>
     </Box>
   )
 }

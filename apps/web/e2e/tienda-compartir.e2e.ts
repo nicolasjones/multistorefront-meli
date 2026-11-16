@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-25 (MSF-325, SC-008 de la épica MSF-164): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) la ficha muestra «Compartir»: con el selector del sistema simulado se llama con el
@@ -8,44 +9,12 @@ import { expect, test } from './fixture'
 // local (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin
 // desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 // el archivo se omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de compartir: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
   { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
   { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
 ] as const
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  'content-profile': 'dominio',
-  'accept-profile': 'dominio',
-  ...extra,
-})
-
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
-}
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
@@ -60,10 +29,10 @@ test.describe('Tienda online · compartir producto (SC-008)', () => {
     try {
       for (const [i, t] of TIENDAS.entries()) {
         const nombre = `Compartible ${t.nombre} ${sufijo}`
-        const [p] = await insertar<{ id: string }>('productos', [
+        const [p] = await rest<{ id: string }>('productos', [
           { organizacion_id: t.organizacion, nombre, sku: `E2E-C-${i}-${sufijo}`, precio_lista: 1000, moneda: 'ARS' },
-        ])
-        await insertar('producto_empresa', [{ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion }])
+        ], 'dominio')
+        await rest('producto_empresa', [{ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion }], 'dominio')
         productos.push({ id: p.id, nombre, organizacion: t.organizacion })
       }
 
@@ -131,8 +100,8 @@ test.describe('Tienda online · compartir producto (SC-008)', () => {
       }
     } finally {
       for (const p of productos) {
-        await borrar('producto_empresa', `producto_id=eq.${p.id}`)
-        await borrar('productos', `id=eq.${p.id}`)
+        await borrar(`producto_empresa?producto_id=eq.${p.id}`, 'dominio')
+        await borrar(`productos?id=eq.${p.id}`, 'dominio')
       }
     }
   })

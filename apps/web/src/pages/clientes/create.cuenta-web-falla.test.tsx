@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   guardar: vi.fn(),
   rpc: vi.fn(),
   invoke: vi.fn(),
+  aplicar: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({ useCreate: () => ({ mutateAsync: mocks.mutateCreate }) }))
@@ -23,6 +24,11 @@ vi.mock('../../hooks/useEmpresasAccesibles', () => ({
 }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
+vi.mock('../../lib/cuentasCliente', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../lib/cuentasCliente')>()
+  return { ...real, aplicarCuentaWebEnTiendas: (...args: unknown[]) => mocks.aplicar(...args) }
+})
+
 import { ClienteCreate } from './create'
 
 function Ficha() {
@@ -30,12 +36,13 @@ function Ficha() {
   return <p>Ficha: {(state as { mensaje?: string } | null)?.mensaje}</p>
 }
 
-describe('alta de cliente cuando falla la lectura de cuentas web (MSF-694)', () => {
+describe('alta de cliente cuando falla la lectura de cuentas web', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.mutateCreate.mockResolvedValue({ data: { id: 'c-nuevo' } })
     mocks.guardar.mockResolvedValue(undefined)
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom', code: '42501' } })
+    mocks.aplicar.mockImplementation(async () => ({ creadas: 0, errores: 1 }))
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
@@ -54,6 +61,30 @@ describe('alta de cliente cuando falla la lectura de cuentas web (MSF-694)', () 
 
     expect(await screen.findByText('Ficha: Cliente creado · no se pudo crear la cuenta web en 1 tienda')).toBeInTheDocument()
     await waitFor(() => expect(mocks.mutateCreate).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText(/No pudimos guardar el cliente/)).not.toBeInTheDocument()
+  })
+})
+
+describe('alta de cliente cuando aplicarCuentaWebEnTiendas rechaza', () => {
+  it('no muestra el error del formulario ni reintenta: crea una sola vez y va a la ficha con el aviso', async () => {
+    mocks.mutateCreate.mockResolvedValue({ data: { id: 'c-nuevo' } })
+    mocks.guardar.mockResolvedValue(undefined)
+    mocks.aplicar.mockRejectedValue(new Error('inesperado'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(
+      <MemoryRouter initialEntries={['/clientes/create']}>
+        <Routes>
+          <Route path="/clientes/create" element={<ClienteCreate />} />
+          <Route path="/clientes/show/:id" element={<Ficha />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Cliente Nuevo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Activa' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+
+    expect(await screen.findByText('Ficha: Cliente creado · no se pudo crear la cuenta web en 1 tienda')).toBeInTheDocument()
+    expect(mocks.mutateCreate).toHaveBeenCalledTimes(1)
     expect(screen.queryByText(/No pudimos guardar el cliente/)).not.toBeInTheDocument()
   })
 })

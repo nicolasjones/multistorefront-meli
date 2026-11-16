@@ -23,8 +23,9 @@ export type FiltrosFaltantes = {
 // siguiente página se conservan las filas anteriores (`isFetching`); `isLoading` es solo la primera carga
 // o el cambio de ámbito, para no parpadear.
 //
-// La SELECCIÓN (F-VTA-26) también va atada al ámbito, no al filtro de aviso: al cambiar de empresa se
-// descarta sola y nunca se avisa a clientes de otra tienda (FR-009). Guarda por faltante el cliente (el
+// La SELECCIÓN (F-VTA-26) va atada al ámbito Y al filtro de aviso (MSF-161 m-7/QA M4): al cambiar de empresa o
+// de filtro se descarta sola, así el contador «Avisar (n)» y el envío solo cuentan lo que se ve y nunca se avisa
+// a clientes de otra tienda (FR-009) ni a filas fuera de pantalla. Guarda por faltante el cliente (el
 // diálogo cuenta clientes) y si ya estaba avisado (el diálogo pide confirmar el reaviso).
 type Lectura = { clave: string; faltantes: FaltanteVenta[]; total: number } | { clave: string; error: true }
 export type ElegidoFaltante = { cliente: string; avisado: boolean }
@@ -45,10 +46,10 @@ export function useListarFaltantes({ empresaId, pagina, tamano, aviso = null }: 
   // Al cambiar de ámbito la selección se DESCARTA y no vuelve a armarse sola (FR-009): si reapareciera al
   // volver a la empresa anterior, el botón «Avisar» se activaría con filas que la persona ya no eligió. Se
   // ajusta en el render (no en un efecto) para que no se dibuje ni un cuadro con la selección anterior.
-  const [ambitoSeleccion, setAmbitoSeleccion] = useState(ambito)
-  if (ambito !== ambitoSeleccion) {
-    setAmbitoSeleccion(ambito)
-    setSeleccion({ ambito, items: {} })
+  const [claveSeleccion, setClaveSeleccion] = useState(clave)
+  if (clave !== claveSeleccion) {
+    setClaveSeleccion(clave)
+    setSeleccion({ ambito: clave, items: {} })
   }
 
   const cargar = useCallback(async () => {
@@ -83,48 +84,48 @@ export function useListarFaltantes({ empresaId, pagina, tamano, aviso = null }: 
   const vigente = lectura !== null && lectura.clave === clave
 
   // Solo valen las filas elegidas en ESTE ámbito.
-  const elegidos = useMemo(() => (seleccion.ambito === ambito ? seleccion.items : {}), [seleccion, ambito])
+  const elegidos = useMemo(() => (seleccion.ambito === clave ? seleccion.items : {}), [seleccion, clave])
 
   const alternar = useCallback(
     (fila: FaltanteVenta) => {
       setSeleccion((actual) => {
-        const items = { ...(actual.ambito === ambito ? actual.items : {}) }
+        const items = { ...(actual.ambito === clave ? actual.items : {}) }
         if (items[fila.id]) delete items[fila.id]
         else items[fila.id] = { cliente: fila.cliente, avisado: fila.aviso === 'avisado' }
-        return { ambito, items }
+        return { ambito: clave, items }
       })
     },
-    [ambito],
+    [clave],
   )
 
   // `filas`: las que están a la vista (con carga infinita son las de todas las tandas cargadas).
   const alternarTodos = useCallback(
     (filas: readonly FaltanteVenta[]) => {
       setSeleccion((actual) => {
-        const items = { ...(actual.ambito === ambito ? actual.items : {}) }
+        const items = { ...(actual.ambito === clave ? actual.items : {}) }
         const todos = filas.length > 0 && filas.every((fila) => items[fila.id])
         for (const fila of filas) {
           if (todos) delete items[fila.id]
           else items[fila.id] = { cliente: fila.cliente, avisado: fila.aviso === 'avisado' }
         }
-        return { ambito, items }
+        return { ambito: clave, items }
       })
     },
-    [ambito],
+    [clave],
   )
 
-  const limpiar = useCallback(() => setSeleccion({ ambito, items: {} }), [ambito])
+  const limpiar = useCallback(() => setSeleccion({ ambito: clave, items: {} }), [clave])
 
   // Avisa los faltantes elegidos, descarta la selección y recarga para verlos «Avisado». Si la RPC falla,
   // no limpia ni recarga (la persona puede reintentar con lo mismo).
   const avisar = useCallback(
     async (mensaje: string, reavisar: boolean): Promise<ResultadoAvisoVenta> => {
       const resultado = await avisarFaltantesVenta(Object.keys(elegidos), mensaje, reavisar)
-      setSeleccion({ ambito, items: {} })
+      setSeleccion({ ambito: clave, items: {} })
       await cargarVigente.current()
       return resultado
     },
-    [ambito, elegidos],
+    [clave, elegidos],
   )
 
   return {

@@ -14,15 +14,35 @@ export type IdentidadTienda = {
   colorAcento?: string
   // Barra superior y pie (MSF-841).
   colorBarra?: string
+  // MSF-848: estilo del encabezado de la portada ('oscuro' por defecto) y mayúsculas del menú, del título y del botón del héroe (true por defecto).
+  estiloHeroe?: EstiloHeroe
+  titulosMayusculas?: boolean
 }
+
+// MSF-848: lista cerrada de estilos del encabezado de la portada (la misma que valida la base).
+export const ESTILOS_HEROE = ['oscuro', 'claro'] as const
+export type EstiloHeroe = (typeof ESTILOS_HEROE)[number]
+export const ESTILO_HEROE_POR_DEFECTO: EstiloHeroe = 'oscuro'
 
 // Colores derivados que usa el front público (MSF-841): se leen con `theme.tienda` (el tema del panel no lo trae).
 export type ColoresTienda = {
   primarioOscuro: string
   acento: string
   barra: string
-  // Texto sobre la barra y el pie.
+  // Texto sobre la barra y el pie (blanco o tinta, el de mayor contraste sobre `barra`).
   textoBarra: string
+  // Fondo y texto de los botones destacados sobre la franja del héroe (MSF-847): el acento de la identidad con el texto de mayor
+  // contraste; si el acento casi no se distingue de la franja (contraste < 1,5:1, `UMBRAL_BOTON`) el botón toma el color del texto de la franja
+  // (MSF-848: la franja es `heroe.fondo`, la oscura de la barra o la clara de superficie según el estilo). Se eligió 1,5:1
+  // y no 3:1 porque con 3:1 el botón primario de Mundo JC (`#A3111D` sobre la franja `#2A2A2A`, 1,81:1) cambiaría de identidad; el texto del botón
+  // llega siempre a AA y el borde del botón no es lo único que lo identifica (WCAG 1.4.11 no se exige para un botón con texto AA).
+  botonDestacado: { fondo: string; texto: string }
+  // MSF-848: estilo del encabezado de la portada y colores de su franja. 'oscuro' (MundoJC): franja con el color de la barra y el texto de la
+  // barra; 'claro' (San Javucho): franja con la superficie, título en el color primario (o, si no llega a AA sobre la superficie, el texto de la
+  // tienda o negro) y círculo del color de acento (`circulo`; null en el estilo oscuro).
+  heroe: { estilo: EstiloHeroe; fondo: string; texto: string; circulo: string | null }
+  // MSF-848: mayúsculas del menú de categorías, del título del héroe y de su botón (MundoJC sí, San Javucho no).
+  titulosMayusculas: boolean
   // Fondo de tarjetas y bloques (prototipo: `--sf`), derivado del fondo de la tienda.
   superficie: string
   // Tipografía de títulos (prototipo: `.fh`) para precios y nombres que no son un encabezado.
@@ -33,6 +53,9 @@ declare module '@mui/material/styles' {
   interface Theme { tienda?: ColoresTienda }
   interface ThemeOptions { tienda?: ColoresTienda }
 }
+
+// Contraste mínimo entre el acento y la franja para que el botón del héroe use el acento (ver `ColoresTienda.botonDestacado`).
+export const UMBRAL_BOTON = 1.5
 
 export const COLOR_BARRA_POR_DEFECTO = '#222222'
 
@@ -71,7 +94,7 @@ export const IDENTIDADES_EJEMPLO = {
 const COLOR_HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
 const NOMBRE_TIPOGRAFIA = /^[\p{L}\p{N} _-]{1,60}$/u
 
-function valido<K extends keyof IdentidadTienda>(clave: K, valor: unknown): IdentidadTienda[K] {
+function valido<K extends 'tipografiaTitulos' | 'tipografiaTexto' | 'colorPrimario' | 'colorTexto' | 'colorFondo'>(clave: K, valor: unknown): IdentidadTienda[K] {
   const defecto = IDENTIDAD_TIENDA_POR_DEFECTO[clave]
   if (typeof valor !== 'string') return defecto
   const v = valor.trim()
@@ -96,6 +119,12 @@ function luminancia(hex: string): number {
     return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
   })
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+// El mejor de `candidatos` (el primero que llega a 4,5:1, o el de mayor contraste) para escribir sobre `fondo`.
+export function textoSobre(fondo: string, candidatos: string[]): string {
+  const ok = candidatos.find((c) => contraste(c, fondo) >= 4.5)
+  return ok ?? candidatos.reduce((mejor, c) => (contraste(c, fondo) > contraste(mejor, fondo) ? c : mejor))
 }
 
 export function contraste(a: string, b: string): number {
@@ -129,19 +158,40 @@ export function crearTemaTienda(identidad?: Partial<IdentidadTienda> | null): Th
   const acento = COLOR_HEX.test(identidad?.colorAcento?.trim() ?? '') ? identidad!.colorAcento!.trim() : i.colorPrimario
   const barra = COLOR_HEX.test(identidad?.colorBarra?.trim() ?? '') ? identidad!.colorBarra!.trim() : COLOR_BARRA_POR_DEFECTO
   const superficie = mezclar(i.colorFondo, '#000000', 0.043)
-  const titulos = { fontFamily: pila(i.tipografiaTitulos) }
+  const textoBarra = textoSobre(barra, ['#FFFFFF', i.colorTexto, '#000000'])
+  // MSF-848: una lista cerrada; cualquier otro valor (o ausente) vale el estilo por defecto.
+  const estilo: EstiloHeroe = identidad?.estiloHeroe === 'claro' ? 'claro' : ESTILO_HEROE_POR_DEFECTO
+  const titulosMayusculas = identidad?.titulosMayusculas !== false
+  const heroe = estilo === 'claro'
+    ? { estilo, fondo: superficie, texto: textoSobre(superficie, [i.colorPrimario, i.colorTexto, '#000000', '#FFFFFF']), circulo: acento }
+    : { estilo, fondo: barra, texto: textoBarra, circulo: null }
+  const fondoBoton = contraste(acento, heroe.fondo) >= UMBRAL_BOTON ? acento : heroe.texto
+  const botonDestacado = { fondo: fondoBoton, texto: textoSobre(fondoBoton, ['#FFFFFF', i.colorTexto, '#000000']) }
+  // Prototipo (`.sf h1,h2,h3,.fh`): los títulos van en la tipografía de títulos, en negrita y sin el interlineado ni el
+  // espaciado entre letras que trae MUI (el prototipo usa `normal` en todo salvo donde fija un interlineado propio).
+  const titulos = { fontFamily: pila(i.tipografiaTitulos), fontWeight: 700, letterSpacing: 'normal', lineHeight: 'normal' }
+  const texto = { lineHeight: 'normal' }
   return createTheme({
     palette: {
       mode: 'light',
       primary: { main: i.colorPrimario, dark: primarioOscuro },
       secondary: { main: acento },
       text: { primary: i.colorTexto, secondary: textoSecundario(i.colorTexto, i.colorFondo, superficie) },
-      background: { default: i.colorFondo, paper: i.colorFondo },
+      // El «papel» (encabezado, campos, menús, diálogos) es blanco como en el prototipo; el fondo de la página es el de la identidad.
+      background: { default: i.colorFondo, paper: '#FFFFFF' },
     },
     typography: {
       fontFamily: pila(i.tipografiaTexto),
       h1: titulos, h2: titulos, h3: titulos, h4: titulos, h5: titulos, h6: titulos,
+      subtitle1: texto, subtitle2: texto, body1: texto, body2: texto, caption: texto, button: texto,
     },
-    tienda: { primarioOscuro, acento, barra, textoBarra: '#FFFFFF', superficie, fuenteTitulos: titulos.fontFamily },
+    // Botones del prototipo: texto sin mayúsculas forzadas, negrita, radio de 8 px y sin sombra.
+    components: {
+      MuiButton: {
+        defaultProps: { disableElevation: true },
+        styleOverrides: { root: { textTransform: 'none', fontWeight: 700, borderRadius: 8 } },
+      },
+    },
+    tienda: { primarioOscuro, acento, barra, textoBarra, botonDestacado, heroe, titulosMayusculas, superficie, fuenteTitulos: titulos.fontFamily },
   })
 }

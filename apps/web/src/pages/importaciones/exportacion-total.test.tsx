@@ -16,7 +16,7 @@ const abrir = () => render(<MemoryRouter><ImportacionesList /></MemoryRouter>)
 const bloque = async () => within(await screen.findByRole('region', { name: 'Exportar todos los datos' }))
 
 // F-OPS-06 (MSF-396): bloque «Exportar todos los datos» de /importaciones.
-describe('[MSF-396:T026] Exportar todos los datos (FR-039, FR-040)', () => {
+describe('Exportar todos los datos (FR-039, FR-040)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)

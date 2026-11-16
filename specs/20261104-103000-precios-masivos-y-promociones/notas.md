@@ -13,13 +13,14 @@ Cada una debería ser un script determinista en el CI (no una regla para recorda
 
 ## Decisiones tomadas (2026-11-12)
 
+- **Decisión 13 (2026-11-14, por delegación de Nicolás): aprobación retroactiva ratificada.** Las decisiones 14 (precios masivos por tienda) y 15 (banderas `promociones_precio` y `precios_masivos`, apagadas por defecto; cómo encenderlas en `docs/deployment.md`, «Banderas de plataforma») ya estaban implementadas en `dokploy` (migraciones `20270228300000`…`20270228300300`); no hubo código nuevo. La decisión 12 (precio promocional en POS) la trabaja el PR #954 (MSF-834): no se toca acá y no hay solape (#954 no modifica specs ni migraciones de esta épica).
 - **Aprobación retroactiva** de las Decisiones 2, 5, 7 y 8 de la spec y de los cambios de #842: permiso por tienda, tienda desactivada sin lectura, vista previa con carga infinita. Aprobada por Nicolás el 2026-11-12 («avanza con todo»)
 
 ## Pendientes de Nicolás
 
 Decisiones y verificaciones que no están hechas. Las marcadas «aprobada el 2026-11-12, en implementación» las implementan otros PRs; hasta entonces siguen abiertas.
 
-1. **Decisión 6 · cobrar el precio promocional en POS, carrito y comprobantes** *(aprobada el 2026-11-12, en implementación: Nicolás aprobó abrir el gate)*. Hoy la tienda muestra $X con el precio anterior tachado y el local factura el precio normal (riesgo de cobrar distinto de lo mostrado). Decisión: adoptar el cálculo único `private.precio_vigente_empresa` en ventas.
+1. **Decisión 6 · cobrar el precio promocional en POS, carrito y comprobantes** *(aprobada el 2026-11-12; **implementada** el 2026-11-14 por la épica MSF-816, ver su spec; seguimiento de la tienda con sesión de cliente: S1 = MSF-932)*. Hoy la tienda muestra $X con el precio anterior tachado y el local factura el precio normal (riesgo de cobrar distinto de lo mostrado). Decisión: adoptar el cálculo único `private.precio_vigente_empresa` en ventas.
 3. ~~**Actualizar y aplicar precios masivos exigen `productos`=`edicion` global**~~ **Decidido el 2026-11-12 (decisión 14)**: ver «Decisiones tomadas (2026-11-12)».
 4. ~~**Bandera de apagado**~~ **Decidido el 2026-11-12 (decisión 15)**: ver «Decisiones tomadas (2026-11-12)».
 5. **E2E que nunca corrieron** (SC-003 `apps/web/e2e/precios-masivos.e2e.ts`, SC-006 `apps/web/e2e/tienda-promocion.e2e.ts`): escritos, sin Supabase local, no corren en el CI público. Las tareas T009 y T020 están marcadas hechas sin evidencia de ejecución.

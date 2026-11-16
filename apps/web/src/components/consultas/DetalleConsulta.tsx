@@ -1,6 +1,7 @@
 import { type FormEvent, useRef, useState } from 'react'
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material'
+import { Box, Button, Chip, Dialog, DialogActions, DialogContent, MenuItem, Stack, TextField, Tooltip, Typography, useMediaQuery } from '@mui/material'
 import { useResponsablesConsultas } from '../../hooks/useConsultas'
+import { useItemsConsulta, type ItemsConsulta } from '../../hooks/useItemsConsulta'
 import { useRespuestasRapidas } from '../../hooks/useRespuestasRapidas'
 import {
   ESTADOS_CONSULTA,
@@ -19,6 +20,8 @@ import {
 import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '../../lib/responderConsulta'
 import { ContactoConsulta } from '../../pages/consultas/ContactoConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { BloquePedido } from './BloquePedido'
+import { ClientePedido } from './ClientePedido'
 import { EstadoError } from '../estados/EstadosPagina'
 
 type Props = {
@@ -35,16 +38,28 @@ type Props = {
 // fecha, Contacto, Producto de interés y Mensaje, más —por la épica— Estado, Responsable y Nota
 // interna. «Responder por…» (F-CON-04) abre el cliente externo (correo o WhatsApp) con un texto inicial y deja la
 // consulta En curso con responsable: el panel no envía nada.
+// Un pedido de la tienda (MSF-176, B1, P-6) lleva su tabla de ítems: el diálogo es más ancho (`md`) y, en celular, de pantalla completa.
 export function DetalleConsulta(props: Props) {
+  const esPedido = props.consulta.origen === 'pedido'
+  const celular = useMediaQuery('(max-width:599.95px)')
   return (
-    <Dialog open onClose={props.onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-consulta">
+    <Dialog open onClose={props.onCerrar} fullWidth maxWidth={esPedido ? 'md' : 'sm'} fullScreen={esPedido && celular} aria-labelledby="titulo-consulta">
       {/* El formulario se monta con el sello vigente: tras «Recargar» parte de los datos nuevos. */}
-      <Formulario key={`${props.consulta.id}|${props.consulta.updated_at}`} {...props} />
+      {esPedido
+        ? <FormularioDePedido key={`${props.consulta.id}|${props.consulta.updated_at}`} {...props} />
+        : <Formulario key={`${props.consulta.id}|${props.consulta.updated_at}`} {...props} items={null} />}
     </Dialog>
   )
 }
 
-function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }: Props) {
+// Un pedido lee sus ítems (`public.consulta_items_bandeja`) y los pasa al formulario: el bloque «Pedido» y el texto inicial de «Responder» los usan. El resto de las
+// consultas no llama a nada de esto.
+function FormularioDePedido(props: Props) {
+  const items = useItemsConsulta(props.consulta.id)
+  return <Formulario {...props} items={items} />
+}
+
+function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, items }: Props & { items: ItemsConsulta | null }) {
   const [estado, setEstado] = useState<EstadoConsulta>(consulta.estado)
   const [responsableId, setResponsableId] = useState(consulta.responsable_id ?? '')
   const [nota, setNota] = useState(consulta.nota_interna ?? '')
@@ -60,7 +75,10 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
   const [respuestaRapidaId, setRespuestaRapidaId] = useState('')
   const { respuestas: respuestasRapidas } = useRespuestasRapidas(puedeEditar ? consulta.empresa_id : null)
   const respuestaRapida = respuestasRapidas.find((r) => r.id === respuestaRapidaId) ?? null
-  const respuesta = enlaceRespuesta(consulta, respuestaRapida)
+  // Un pedido (B1): los ítems alimentan el bloque «Pedido» y el texto inicial de «Responder».
+  const respuesta = enlaceRespuesta(consulta, respuestaRapida, items?.fase === 'lista' ? items.items : null)
+  // H-2: en un pedido, «Responder» espera a que carguen los ítems (el texto inicial los lista); con la carga fallida se reintenta antes de responder.
+  const itemsPendientes = items !== null && items.fase !== 'lista'
   // La persona asignada puede haber dejado de ser elegible: se la sigue mostrando para no perderla de vista.
   const opcionesResponsable = responsables.some((r) => r.user_id === consulta.responsable_id) || !consulta.responsable_id
     ? responsables
@@ -127,7 +145,7 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
   // El enlace se abre en el mismo gesto del clic (para que no lo bloquee el navegador) y recién después
   // se registra. El panel no envía nada: la persona manda el mensaje desde WhatsApp o su correo.
   const responder = () => {
-    if (!respuesta || !puedeEditar || enVuelo.current) return
+    if (!respuesta || !puedeEditar || itemsPendientes || enVuelo.current) return
     window.open(respuesta.href, '_blank', 'noopener,noreferrer')
     void registrar()
   }
@@ -162,17 +180,26 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
             <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{consulta.contacto}</Typography>
           </Box>
           <ContactoConsulta consulta={consulta} puedeEditar={puedeEditar} onVinculada={onRecargar} />
+          {items ? (
+            <>
+              {consulta.cliente_id ? (
+                <ClientePedido clienteId={consulta.cliente_id} numero={consulta.cliente_numero} nombre={consulta.cliente_nombre} />
+              ) : null}
+              <BloquePedido items={items} />
+            </>
+          ) : (
+            <Box>
+              <Typography variant="xs">Producto de interés</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{nombreProducto(consulta)}</Typography>
+            </Box>
+          )}
           <Box>
-            <Typography variant="xs">Producto de interés</Typography>
-            <Typography sx={{ fontWeight: 600 }}>{nombreProducto(consulta)}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="xs">Mensaje</Typography>
+            <Typography variant="xs">{items ? 'Nota de la persona' : 'Mensaje'}</Typography>
             {/* Texto del visitante: se muestra como texto plano (React lo escapa) y respeta los saltos de línea. */}
             <Typography variant="bl" sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', bgcolor: 'action.hover', borderRadius: 1, p: 1.5 }}>
               {consulta.mensaje ?? (consulta.origen === 'whatsapp'
                 ? 'Interés desde la ficha del producto: abrió el chat de WhatsApp. No dejó mensaje.'
-                : 'No dejó mensaje.')}
+                : items ? 'Sin nota' : 'No dejó mensaje.')}
             </Typography>
           </Box>
 
@@ -243,9 +270,9 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar }:
       <DialogActions>
         <Button onClick={onCerrar} disabled={guardando}>Cerrar</Button>
         {respuesta ? (
-          <Tooltip title={puedeEditar ? '' : 'Necesitás permiso de edición'}>
+          <Tooltip title={!puedeEditar ? 'Necesitás permiso de edición' : itemsPendientes ? 'Esperá a que carguen los productos del pedido' : ''}>
             <span>
-              <Button type="button" variant="outlined" onClick={responder} disabled={!puedeEditar || guardando}>
+              <Button type="button" variant="outlined" onClick={responder} disabled={!puedeEditar || guardando || itemsPendientes}>
                 Responder por {respuesta.via}
               </Button>
             </span>

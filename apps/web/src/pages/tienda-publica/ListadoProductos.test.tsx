@@ -165,10 +165,10 @@ describe('ListadoProductos · categorías', () => {
     await screen.findAllByTestId('tarjeta-producto')
     const panel = screen.getByRole('navigation', { name: 'Filtrar por categoría' })
     expect(within(panel).getByText('Joysticks')).toBeInTheDocument()
-    expect(within(panel).getByLabelText('3 productos')).toBeInTheDocument()
+    expect(within(panel).getAllByLabelText('3 productos').length).toBeGreaterThan(0)
     fireEvent.click(within(panel).getByRole('button', { name: /Cargadores/ }))
     expect(ubicacion()).toBe(`/catalogo?categoria=${CAT_B}&stock=1`)
-    fireEvent.click(within(panel).getByRole('button', { name: 'Todos los productos' }))
+    fireEvent.click(within(panel).getByRole('button', { name: /^Todos los productos/ }))
     expect(ubicacion()).toBe('/catalogo?stock=1')
   })
 
@@ -180,7 +180,7 @@ describe('ListadoProductos · categorías', () => {
     expect(within(panel).getByRole('button', { name: /Joysticks/ })).toHaveAttribute('aria-current', 'true')
     fireEvent.click(within(panel).getByRole('button', { name: /Cargadores/ }))
     expect(ubicacion()).toBe(`/categoria/${CAT_B}?orden=precio_asc`)
-    fireEvent.click(within(panel).getByRole('button', { name: 'Todos los productos' }))
+    fireEvent.click(within(panel).getByRole('button', { name: /^Todos los productos/ }))
     expect(ubicacion()).toBe('/catalogo?orden=precio_asc')
   })
 })
@@ -198,7 +198,7 @@ describe('ListadoProductos · resultados', () => {
     expect(tarjetas[0].querySelector('img')).toHaveAttribute('loading', 'lazy')
     // Sin imagen, sin precio calculable y sin stock.
     expect(within(tarjetas[1]).getByText('Sin imagen')).toBeInTheDocument()
-    expect(within(tarjetas[1]).getByText('Sin stock')).toBeInTheDocument()
+    expect(within(tarjetas[1]).getByTestId('tarjeta-sin-stock')).toHaveTextContent('Sin stock')
     expect(within(tarjetas[1]).queryByText(/\$/)).not.toBeInTheDocument()
     expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('2 productos')
   })
@@ -218,10 +218,10 @@ describe('ListadoProductos · resultados', () => {
     expect(tarjetas[0].querySelector('img')).toBeNull()
   })
 
-  it('sin resultados muestra «No encontramos productos» y «Limpiar filtros» los quita', async () => {
+  it('sin resultados muestra «No hay productos con esos filtros» y «Limpiar filtros» los quita', async () => {
     mocks.leer.mockResolvedValue(pagina({ total: 0, productos: [] }))
     montar('/catalogo?stock=1&max=10')
-    expect(await screen.findByText('No encontramos productos')).toBeInTheDocument()
+    expect(await screen.findByText('No hay productos con esos filtros')).toBeInTheDocument()
     expect(screen.getByText('Probá con otra categoría o quitá el filtro de stock.')).toBeInTheDocument()
     expect(screen.getByTestId('catalogo-contador')).toHaveTextContent('0 productos')
     fireEvent.click(within(screen.getByTestId('catalogo-vacio')).getByRole('button', { name: 'Limpiar filtros' }))
@@ -487,6 +487,29 @@ describe('ListadoProductos · carga infinita', () => {
       expect(screen.getByRole('button', { name: 'Cargar más' })).toBeInTheDocument()
     })
 
+    it('A→B→A rápido: al volver a A no se ve ni un render con la lista vieja acumulada', async () => {
+      let resolverA2: (v: unknown) => void = () => undefined
+      let llamadasA = 0
+      mocks.leer.mockImplementation((host: string, _f: unknown, n: number) => {
+        if (host !== HOST) return new Promise(() => undefined)
+        if (n === 1) {
+          llamadasA += 1
+          return llamadasA === 1 ? Promise.resolve(tanda(1, 24, 48, 1)) : new Promise((r) => { resolverA2 = r })
+        }
+        return Promise.resolve(tanda(25, 24, 48, 2))
+      })
+      const { rerenderHost } = montar('/catalogo')
+      await screen.findAllByTestId('tarjeta-producto')
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
+      rerenderHost('otra.localhost')
+      rerenderHost(HOST)
+      // La primera A (48 productos acumulados) ya no vale: mientras la nueva A carga no hay tarjetas.
+      expect(tarjetas()).toHaveLength(0)
+      await act(async () => { resolverA2(tanda(1, 24, 48, 1)) })
+      await vi.waitFor(() => expect(tarjetas()).toHaveLength(24))
+    })
+
     it('tanda 2 de búsqueda con límite: aviso específico, sin firmar imágenes y «Reintentar» espera', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => undefined)
       mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) =>
@@ -577,7 +600,7 @@ describe('ListadoProductos · estados', () => {
   it('el estado vacío no tiene violaciones de axe', async () => {
     mocks.leer.mockResolvedValue(pagina({ total: 0, productos: [] }))
     const { container } = montar('/catalogo')
-    await screen.findByText('No encontramos productos')
+    await screen.findByText('No hay productos con esos filtros')
     expect(await violacionesAxe(container)).toEqual([])
   })
 })
@@ -634,10 +657,10 @@ describe('ListadoProductos · búsqueda (q)', () => {
     expect(ubicacion()).toBe(`/catalogo?q=cargador&categoria=${CAT_B}`)
   })
 
-  it('sin coincidencias: «No encontramos productos» y «Limpiar filtros» deja solo la búsqueda', async () => {
+  it('sin coincidencias: «No hay productos con esos filtros» y «Limpiar filtros» deja solo la búsqueda', async () => {
     mocks.buscar.mockResolvedValue(pagina({ total: 0, productos: [] }))
     montar('/catalogo?q=zzzz&stock=1')
-    await screen.findByText('No encontramos productos')
+    await screen.findByText('No hay productos con esos filtros')
     fireEvent.click(within(screen.getByTestId('catalogo-vacio')).getByRole('button', { name: 'Limpiar filtros' }))
     expect(ubicacion()).toBe('/catalogo?q=zzzz')
   })

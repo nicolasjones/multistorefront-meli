@@ -2,24 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, serviceKey, url, violacionesAxe } from './importaciones-soporte'
 import { paso, prepararPaginaVisible } from './visible'
+import { cabeceras, rest } from './soporte/fixtures'
 
 // Las pantallas de listado del panel no tienen scroll horizontal en la PÁGINA a 320, 375 y 1280 px. Cada pantalla se
 // mide con `scrollWidth <= clientWidth` del documento (la tabla puede desplazarse dentro de su contenedor, la página no).
 // Evita que vuelva el `width: 1` (= 100 % en sx de MUI) de los textos solo para lectores y los tabs/botones que no
 // envuelven. Siembra una persona administradora con la API admin (la service-role key nunca llega al navegador).
 const password = 'Correcta-12345!'
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'POST', headers: cabeceras({ prefer: 'return=representation' }), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function borrar(destino: string) {
   const r = await fetch(destino, { method: 'DELETE', headers: cabeceras() })

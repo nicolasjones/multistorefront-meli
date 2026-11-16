@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar capacidades del template
 
 El archivo `template-capabilities.json` es el catálogo de contratos genéricos

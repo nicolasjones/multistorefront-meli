@@ -6,6 +6,7 @@ import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { AgregarProductoDialog } from './AgregarProductoDialog'
 import { DepositoSelect } from './DepositoSelect'
+import { PrecioLineaPromocion } from './PrecioLineaPromocion'
 import { EtiquetaAPedido, FaltanteAviso, StockLinea } from './FaltanteAviso'
 import type { DepositoOpcion } from '../../lib/depositos'
 import type { ProductoRepuesto } from '../../lib/reparacionItems'
@@ -19,6 +20,7 @@ import {
   TEXTO_AYUDA_LINEAS,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   type EntradaLinea,
   type LineaComprobante,
@@ -259,44 +261,51 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         ) : null}
       </Box>
       <Box role="cell" sx={{ textAlign: 'right' }}>
-        {puedeEditarPrecio && editable ? (
-          <>
-            <TextField
-              size="small"
-              value={precio}
-              disabled={bloqueado}
-              error={Boolean(errorPrecio)}
-              onChange={(evento) => setPrecio(evento.target.value)}
-              onBlur={(evento) => confirmarPrecio(evento.target.value)}
-              onKeyDown={(evento) => {
-                if (evento.key === 'Enter') {
-                  evento.preventDefault()
-                  confirmarPrecio(precio)
-                }
-              }}
-              slotProps={{
-                htmlInput: {
-                  'aria-label': `Precio sin IVA de ${nombre}`,
-                  'aria-describedby': errorPrecio ? `error-precio-${linea.id}` : undefined,
-                  inputMode: 'decimal',
-                  style: { textAlign: 'right', padding: '4px 6px' },
-                },
-              }}
-            />
-            {errorPrecio ? (
-              <Typography id={`error-precio-${linea.id}`} variant="caption" color="error" component="p" role="alert">
-                {errorPrecio}
-              </Typography>
-            ) : null}
-          </>
-        ) : (
-          <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-            {formatearPesosPrecio(linea.precio_unitario)}
-          </Typography>
-        )}
+        <PrecioLineaPromocion linea={linea} formatear={formatearPesosPrecio}>
+          {puedeEditarPrecio && editable ? (
+            <>
+              <TextField
+                size="small"
+                value={precio}
+                disabled={bloqueado}
+                error={Boolean(errorPrecio)}
+                onChange={(evento) => setPrecio(evento.target.value)}
+                onBlur={(evento) => confirmarPrecio(evento.target.value)}
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Enter') {
+                    evento.preventDefault()
+                    confirmarPrecio(precio)
+                  }
+                }}
+                slotProps={{
+                  htmlInput: {
+                    'aria-label': `Precio sin IVA de ${nombre}`,
+                    'aria-describedby': errorPrecio ? `error-precio-${linea.id}` : undefined,
+                    inputMode: 'decimal',
+                    style: { textAlign: 'right', padding: '4px 6px' },
+                  },
+                }}
+              />
+              {errorPrecio ? (
+                <Typography id={`error-precio-${linea.id}`} variant="caption" color="error" component="p" role="alert">
+                  {errorPrecio}
+                </Typography>
+              ) : null}
+            </>
+          ) : (
+            <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {formatearPesosPrecio(linea.precio_unitario)}
+            </Typography>
+          )}
+        </PrecioLineaPromocion>
         <Typography variant="caption" color="text.secondary">
           {rotuloEscalaLinea(linea)}
         </Typography>
+        {marcaListaLinea(linea) ? (
+          <Typography variant="caption" color="text.secondary" component="p">
+            {marcaListaLinea(linea)}
+          </Typography>
+        ) : null}
       </Box>
       <Stack role="cell" direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
         <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>

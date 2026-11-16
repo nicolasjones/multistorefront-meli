@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-100000-ventas-impresion
+  - infra/kestra
+  - workers/comprobantes-pdf
+  - supabase/migrations/20261211130100_comprobante_impresiones.sql
+  - supabase/migrations/20261211130200_registrar_impresion.sql
+  - supabase/migrations/20261212100100_solicitar_documento_presupuesto.sql
+  - supabase/migrations/20261212100200_comprobante_envios_correo.sql
+  - supabase/migrations/20261212100300_enviar_presupuesto_correo.sql
+---
+
 # Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-impresion.md) · [guía de uso](producto/ventas-impresion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Desde el comprobante de una **factura confirmada** se imprime la factura interna
 o el remito. El PDF A4 lo genera un worker, no el navegador. Spec:
@@ -306,7 +321,7 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   (`private.puede_leer_documento_empresa(uuid)` para la tabla y
   `private.puede_leer_documento_ruta(text)` para la carpeta del bucket, sobre `nivel_ventas_en_empresa`),
   igual que las RPC: tener `ventas` en una tienda no abre los PDF de otra.
-- La «condición frente al IVA» del cliente vive en `public.clientes.condicion_iva` (migración aditiva
+- La «condición frente al IVA» del cliente vive en `dominio.clientes.condicion_iva` (migración aditiva
   `20261211120050`; reversión: `drop constraint clientes_condicion_iva_largo_ck` y `drop column condicion_iva`).
   `private.datos_documento_comprobante` la emite en `datos.cliente.condicion_iva` y la factura imprime
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).

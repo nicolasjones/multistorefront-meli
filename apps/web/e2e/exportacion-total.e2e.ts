@@ -34,6 +34,13 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
 
   // Organización con conexión de exportaciones (`historial-ventas`), como la deja un administrador de la plataforma.
   async function conexionExportaciones(orgId: string) {
+    // La referencia `historial-ventas` no viene en el esquema (la crea el alta del sistema): se siembra sin pisar la existente.
+    const ref = await fetch(`${url}/rest/v1/sistemas_externos?on_conflict=id`, {
+      method: 'POST',
+      headers: cabeceras({ 'content-type': 'application/json', prefer: 'resolution=ignore-duplicates' }),
+      body: JSON.stringify({ id: 'historial-ventas', descripcion: 'Historial de ventas (exportaciones de la organización)' }),
+    })
+    if (!ref.ok) throw new Error(`REST sistemas_externos: ${ref.status} ${await ref.text()}`)
     await rest('conexiones', 'POST', { organizacion_id: orgId, sistema_externo: 'historial-ventas', credencial_vault_id: randomUUID() })
   }
 
@@ -101,7 +108,11 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
 
       await paso(page, 'Un administrador de otra organización no ve esa exportación ni su archivo', async () => {
         await sesion.contexto.clearCookies()
-        await page.evaluate(() => window.localStorage.clear())
+        await page.evaluate(() => {
+          // La sesión vive en sessionStorage salvo que se marque «Mantener la sesión iniciada»: se limpian las dos.
+          window.localStorage.clear()
+          window.sessionStorage.clear()
+        })
         await ingresar(page, otra!.correo)
         await page.goto('/importaciones')
         const bloque = page.getByRole('region', { name: 'Exportar todos los datos' })
@@ -111,10 +122,15 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
 
       await paso(page, 'Quien no administra no ve el bloque', async () => {
         await sesion.contexto.clearCookies()
-        await page.evaluate(() => window.localStorage.clear())
+        await page.evaluate(() => {
+          // La sesión vive en sessionStorage salvo que se marque «Mantener la sesión iniciada»: se limpian las dos.
+          window.localStorage.clear()
+          window.sessionStorage.clear()
+        })
         await ingresar(page, correoSinPermiso)
         await page.goto('/importaciones')
-        await expect(page.getByRole('heading', { name: 'Importaciones', level: 1 })).toBeVisible()
+        // Quien no administra ve el aviso de acceso restringido en lugar de la pantalla.
+        await expect(page.getByRole('alert')).toContainText('Solo un administrador de la organización puede ver las importaciones y exportaciones.')
         await expect(page.getByRole('region', { name: 'Exportar todos los datos' })).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Exportar todos los datos' })).toHaveCount(0)
       })

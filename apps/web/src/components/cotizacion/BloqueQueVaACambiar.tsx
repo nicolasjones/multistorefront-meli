@@ -12,7 +12,7 @@ const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, ma
 // Bloque «Qué va a cambiar» (F-PRE-03, FR-014; Cotizacion.dc.html): un mosaico por empresa con la
 // cantidad de precios en USD visibles y la tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo».
 // Se muestra solo si la variación alcanza el umbral (lo decide el diálogo con `previa.recalcula`).
-// Mercado Libre queda fuera (Etapa 2). Solo muestra: el cálculo es de la base.
+// Mercado Libre queda fuera: todavía no es un canal elegible. Solo muestra: el cálculo es de la base.
 export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD visibles' }: Props) {
   return (
     <Stack component="section" spacing={1.5} aria-labelledby="titulo-que-va-a-cambiar">
@@ -21,11 +21,12 @@ export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD
         {previa.empresas.map((empresa) => (
           <Box key={empresa.empresaId} sx={{ flex: '1 1 140px', bgcolor: 'action.hover', borderRadius: 2, px: 1.75, py: 1.5 }}>
             <Typography variant="xs">{empresa.nombre}</Typography>
-            <Typography variant="t3" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>{textoPrecios(empresa.precios)}</Typography>
+            <Typography variant="t3" component="p" sx={{ fontVariantNumeric: 'tabular-nums' }}>{empresa.precios === 0 ? 'Sin cambios' : textoPrecios(empresa.precios)}</Typography>
             <Typography variant="xs">{leyendaPrecios}</Typography>
           </Box>
         ))}
       </Stack>
+      {previa.muestra.length === 0 ? <Typography variant="s">No hay precios en dólares para mostrar.</Typography> : null}
       {previa.muestra.length > 0 ? (
         <TableContainer tabIndex={0} role="region" aria-label="Productos de muestra con su precio de hoy y el nuevo (se desplaza)" sx={{ border: 1, borderColor: 'divider', borderRadius: 2 }}>
           <Table size="small" aria-label="Productos de muestra con su precio de hoy y el nuevo">

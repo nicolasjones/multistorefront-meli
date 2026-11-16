@@ -30,6 +30,17 @@ describe('CategoriasInicio', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  // MSF-849 (revisión): el hover de la tarjeta conserva su contorno de 1 px, pero el foco de teclado usa el contorno unificado de FocoVisible.
+  it('la tarjeta solo define el contorno de 1 px para el hover: el foco de teclado no lo sobrescribe', async () => {
+    responder({ categorias_por_dominio: { data: categorias }, destacados_por_dominio: { data: destacados } })
+    montar()
+    await screen.findByRole('region', { name: 'Categorías' })
+    const css = Array.from(document.querySelectorAll('style')).map((st) => st.textContent).join('')
+    expect(css).toMatch(/:hover\{[^}]*outline:1px solid/)
+    expect(css).not.toMatch(/:focus-visible\{[^}]*outline:1px solid/)
+    expect(css).not.toMatch(/:hover,[^{]*:focus-visible\{[^}]*outline:1px solid/)
+  })
+
   it('se oculta cuando la tienda no tiene productos visibles', async () => {
     responder({ categorias_por_dominio: { data: categorias }, destacados_por_dominio: { data: { hay_productos: false, productos: [] } } })
     const { container } = montar()

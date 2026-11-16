@@ -31,6 +31,7 @@ const MENSAJE_FALLO: Record<ErrorVerificarDominio['motivo'], string> = {
   demasiado_pronto: 'Esperá unos segundos antes de verificar de nuevo.',
   dns_no_disponible: 'No se pudo verificar ahora, probá de nuevo.',
   sin_permiso: 'No tenés permiso para verificar el dominio de esta tienda.',
+  plataforma_no_configurada: 'La plataforma todavía no tiene configurada su IP pública para verificar dominios. Avisá a soporte.',
   otro: 'No pudimos verificar el dominio. Intentá de nuevo.',
 }
 

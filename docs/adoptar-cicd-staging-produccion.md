@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar CI/CD de staging a producción en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec

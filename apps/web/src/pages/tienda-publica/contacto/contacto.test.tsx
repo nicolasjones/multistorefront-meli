@@ -56,7 +56,7 @@ describe('RutaContacto', () => {
     expect(mocks.leer).toHaveBeenCalledWith('mundojc.localhost')
   })
 
-  it('muestra «Retiro y envíos» y el aviso de respuesta del prototipo, según los datos de la tienda (MSF-831)', async () => {
+  it('muestra «Retiro y envíos» y el aviso de respuesta del prototipo, según los datos de la tienda', async () => {
     montar()
     await screen.findByRole('heading', { level: 1, name: 'Contacto' })
     expect(within(screen.getByTestId('bloque-correo')).getByText('Respondemos dentro de las 24 h')).toBeInTheDocument()
@@ -65,7 +65,7 @@ describe('RutaContacto', () => {
     expect(within(retiro).getByText('No hay compra online en esta versión: consultás y coordinamos.')).toBeInTheDocument()
   })
 
-  it('una tienda sin WhatsApp coordina por correo y sin ningún dato no muestra el bloque (MSF-831)', async () => {
+  it('una tienda sin WhatsApp coordina por correo y sin ningún dato no muestra el bloque', async () => {
     mocks.leer.mockResolvedValue({ nombre: 'Solo correo', whatsapp: null, correo: 'hola@tienda.com', horarios: null })
     const { unmount } = montar()
     await screen.findByRole('heading', { level: 1, name: 'Contacto' })

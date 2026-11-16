@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react'
 import { urlsImagenesProducto } from './imagenProducto'
+import { supabaseClient } from './supabase'
 import { aContenido, type ContenidoTienda } from './tiendaContenido'
 import { identidadDesdeFila, type FilaIdentidad, type IdentidadTienda } from './tiendaIdentidad'
 import type { VistaPreviaTienda } from './tiendaBorrador'
@@ -38,7 +39,7 @@ export async function fuenteDesdeVistaPrevia(vista: VistaPreviaTienda): Promise<
     categoriaId: p.categoriaId,
     destacado: true,
   }))
-  const imagenes = await urlsImagenesProducto(destacados.flatMap((p) => (p.imagen ? [p.imagen] : [])))
+  const imagenes = await urlsImagenesProducto(destacados.flatMap((p) => (p.imagen ? [p.imagen] : [])), supabaseClient)
   return {
     identidad: identidadDesdeFila(vista.identidad as unknown as FilaIdentidad),
     contenido: aContenido(vista.contenido),

@@ -170,12 +170,12 @@ describe('FaltantesStock (F-STK-17)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (2)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
     await waitFor(() => expect(mocks.avisar).toHaveBeenCalledWith(['l-1', 'l-2']))
-    expect(await screen.findByText('Avisos enviados. Se omitieron: 1 sin stock.')).toBeInTheDocument()
+    expect(await screen.findByText('Avisos en cola. Se omitieron: 1 sin stock.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Avisar a los seleccionados (0)' })).toBeDisabled()
     expect(mocks.listar).toHaveBeenCalledTimes(2) // recarga para ver el «Avisado»
   })
 
-  it('sin omitidos el aviso emergente es solo «Avisos enviados»', async () => {
+  it('sin omitidos el aviso emergente es solo «Avisos en cola»', async () => {
     mocks.avisar.mockResolvedValue({
       encolados: 1, lineas_avisadas: 1, omitidos_ya_avisados: 0, omitidos_sin_stock: 0, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
     })
@@ -184,10 +184,10 @@ describe('FaltantesStock (F-STK-17)', () => {
     fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     fireEvent.click(screen.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Enviar avisos' }))
-    expect(await screen.findByText('Avisos enviados')).toBeInTheDocument()
+    expect(await screen.findByText('Avisos en cola')).toBeInTheDocument()
   })
 
-  it('si no se encoló ningún correo no dice «Avisos enviados» (texto y color)', async () => {
+  it('si no se encoló ningún correo no dice «Avisos en cola» (texto y color)', async () => {
     // Todo lo elegido se omitió: no salió ningún correo, así que el aviso no puede cantar éxito.
     mocks.avisar.mockResolvedValue({
       encolados: 0, lineas_avisadas: 0, omitidos_ya_avisados: 0, omitidos_sin_stock: 2, omitidos_sin_correo: 0, omitidos_sin_permiso: 0,
@@ -200,7 +200,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(await screen.findByText('No se enviaron avisos. Se omitieron: 2 sin stock.')).toBeInTheDocument()
     // Con el diálogo cerrado (el Modal esconde el resto de la app del lector de pantalla).
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(screen.queryByText(/^Avisos enviados/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Avisos en cola/)).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveClass('MuiAlert-standardWarning')
   })
 

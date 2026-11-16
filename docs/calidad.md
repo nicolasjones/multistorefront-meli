@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Calidad determinista (F1)
 
 Checks que **no dependen del criterio** de una persona/agente. El objetivo es doble:
@@ -33,10 +39,20 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 
 ## Estado
 
-- **No bloqueante** por ahora (`continue-on-error: true` en `.github/workflows/quality.yml`). Cuando el
-  baseline esté limpio, se quita y `quality` pasa a **check requerido** junto con `database`.
+- El job `quality` **falla** (rojo) ante hallazgos, pero **no bloquea el merge**: el ruleset de GitHub
+  (25358575) exige solo `validacion`. No existe `continue-on-error` en el workflow. Para volverlo
+  bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
+- `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
+  `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
+  `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
+- Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
+  exports ni tipos exportados sin uso en `apps/web/src` (antes: ~35 y 6; lotes anteriores los limpiaron), así
+  que no hubo nada que quitar. `oxlint` 1.79.0 sobre `apps/web/src` pasó de 287 a 286 warnings: se quitó el
+  único `no-unused-vars` (parámetro de `catch` sin uso). Quedan sin tocar 205 `set-state-in-effect`, 39 `refs`
+  y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
+  quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
 
 ## Tests web: timeouts
 
@@ -59,3 +75,9 @@ F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 er
 F4 release/preview/flags · F5 mutation/a11y/perf.
 
 > MSF-687: `knip`, `jscpd`, `dependency-cruiser` y `@commitlint/cli` corren con `pnpm dlx` a versión fija en `scripts/calidad.mjs`; al subirlas, cambiar ahí la versión.
+
+> `knip.json` declara a propósito lo que knip no puede inferir de los scripts de evidencia de E2E y del sitio de docs que
+> vinieron de `main` en la integración (PR #929): `docs/javascripts/zoom-imagenes.js` lo carga MkDocs por `extra_javascript`
+> (no por un `import`); `@playwright/test` lo importa `scripts/armar-video-evidencia.mjs` desde el workspace web; y
+> `ffmpeg`, `tailscale`, `hostname` y `pkill` son herramientas del sistema que usan `scripts/armar-video-evidencia.mjs` y
+> `scripts/publicar-videos-e2e.mjs`. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.

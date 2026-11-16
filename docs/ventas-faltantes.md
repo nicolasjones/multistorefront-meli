@@ -1,3 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-ventas-despacho-y-faltantes
+  - apps/web/src/lib/ventasFaltantes.ts
+  - design/pantallas/VentasComprobante.dc.html
+  - design/pantallas/VentasFaltantes.dc.html
+  - supabase/migrations/20270112130100_faltantes_tabla.sql
+  - supabase/migrations/20270112130200_faltantes_registrar.sql
+---
+
 # Ventas · Faltantes: registro de lo que no se pudo despachar (F-VTA-18)
 
 Historia F-VTA-18 de la épica MSF-135 (MSF-201). Spec:
@@ -67,7 +78,7 @@ por eso ese texto **no** se muestra en la pantalla. El aviso al cliente y la mar
 
 ## Listado (FR-043)
 
-`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano)` devuelve los faltantes **abiertos** de las empresas donde
+`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (el cuarto parámetro es de MSF-161) devuelve los faltantes **abiertos** de las empresas donde
 la persona tiene **Ventas al menos en lectura** (el mismo predicado que la RLS de la tabla, así que el listado no
 puede mostrar más que la tabla), con cliente, producto y SKU, cantidad faltante, línea, comprobante, fecha del pedido,
 «desde» (`creado_en`) y el **stock de hoy** (estado y disponible) con la lectura de Stock que ya existe

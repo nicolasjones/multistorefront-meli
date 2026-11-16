@@ -6,7 +6,7 @@
 
 **Created**: 2026-11-10
 
-**Status**: Ready for implementation — traducción fiel de la épica y de las historias MSF-257 y MSF-270; no agrega requisitos de negocio. Las decisiones de diseño que la épica deja abiertas están en *Relación con F-STK-17 y F-VTA-18* y en *Decisiones tomadas al traducir*; las que necesitan el OK de Nicolás van marcadas **(OK pendiente)**.
+**Status**: Implementada y mergeada en `dokploy` (#834 y las rondas de revisión #911, #922, #927, #931, #936, #939), con E2E real en dev sobre #922 y #931 (2026-11-13; #936 y #939 solo con revisión independiente y script Deno local). Documento contrastado con lo entregado por el Especificador retroactivo (ver *Historial de cambios* y `notas.md`). Origen: traducción fiel de la épica y de las historias MSF-257 y MSF-270; no agrega requisitos de negocio. Las decisiones de diseño que la épica deja abiertas están en *Relación con F-STK-17 y F-VTA-18* y en *Decisiones tomadas al traducir*; las que necesitaban el OK de Nicolás quedaron aprobadas («avanza con todo») y se marcan **(OK de Nicolás)**.
 
 **Delivery scope**: `refine` (`apps/web`) y `supabase` (migraciones, RPC, pgTAP y un ajuste a la Edge Function `enviar-aviso-faltante`). Sin `kestra` nuevo (el flow `avisos-faltantes` ya existe y no cambia), sin `superset` ni `workers`.
 
@@ -68,15 +68,15 @@ La épica MSF-161 habla de «la tabla `faltantes` (F-VTA-18) y la pantalla Falta
 ### Por qué así (decisiones donde la épica deja dudas)
 
 1. **«Avisado con fecha» no es un valor de `estado`.** La épica supone `faltantes.estado ∈ {abierto, avisado, resuelto}` + `avisado_at`; el código real tiene `estado ∈ {abierto, resuelto}` con un `check ((estado = 'abierto') = (resuelto_en is null))`, un índice único parcial `where estado = 'abierto'` (un faltante abierto por línea), un disparador que resuelve «los abiertos» y el listado que filtra `abierto`. Agregar `avisado` a `estado` obligaría a reescribir las cuatro piezas y a romper el índice (un faltante avisado dejaría de ser «abierto» y se podría registrar un duplicado). Se representa con **dos marcas ortogonales al ciclo de vida**, derivadas en una sola expresión que usan el listado y la RPC:
-   - `avisado` ⇔ existe fila en `dominio.faltantes_avisos` de esa línea con estado `pendiente` o `enviado`; su fecha (`aviso_en`) es `coalesce(enviado_en, created_at)`.
+   - `en_cola` ⇔ fila de esa línea en `pendiente` (fecha = `created_at`); `avisado` ⇔ fila en `enviado` (fecha = `enviado_en`). Para la regla de reaviso y de «A pedido» de Stock, ambas cuentan como «ya avisado» (decisión original: `pendiente` o `enviado`).
    - `para_avisar` ⇔ `faltantes_venta.para_avisar_en is not null` y no está avisado.
    - `sin_avisar` ⇔ ninguna de las dos.
-   Esto reutiliza la cola, hereda su reintento y su regla «agotado → vuelve a Sin avisar», y no duplica el dato (una sola fuente de verdad del aviso). **(OK pendiente de Nicolás: la épica decía «estado avisado + avisado_at».)**
+   Esto reutiliza la cola, hereda su reintento y su regla «agotado → vuelve a Sin avisar», y no duplica el dato (una sola fuente de verdad del aviso). **(OK de Nicolás: la épica decía «estado avisado + avisado_at».)** Revisión MSF-161: `En cola` (pendiente) se distingue de `Avisado` (enviado), y un aviso `agotado` se expone como «Aviso fallido» con un código genérico (`aviso_error`).
 2. **Reavisar con confirmación (RF-VTA-26-2).** El servidor no reavisa una línea ya avisada salvo `p_reavisar = true` (resultado `ya_avisado`). La pantalla pide la confirmación explícita dentro del diálogo («Volver a avisar a los N ya avisados»). Al reavisar la fila de la cola se reinicia (`pendiente`, `intentos = 0`, `created_at = now()`); el rastro de cada aviso queda en `registro_actividad` (`ventas.faltantes_avisados`). Una línea con un envío en curso (`pendiente`) no se reavisa nunca (resultado `en_cola`). El prototipo dice que los avisados «no se vuelven a avisar»: manda el requisito (la historia lo aclara).
 3. **Texto editable (RF-VTA-26-1).** El diálogo precarga un texto por defecto y la persona lo edita; viaja a la RPC como `p_mensaje` y se guarda en `faltantes_avisos.mensaje` (≤ 1.000). El correo es **texto plano**: `Hola <cliente>,` + el texto editable + la lista de productos (producto, SKU, unidades faltantes, comprobante). Se sanea en el servidor (caracteres de control fuera, sin HTML). Si `mensaje` es nulo se usa el texto de F-STK-17 sin cambios.
-4. **«Ingreso de mercadería confirmado» en el código real.** No existe un paso de «confirmación» separado: `dominio.ingresos_mercaderia.estado ∈ {registrado, anulado}` y `public.registrar_ingreso_mercaderia` (F-PRV-04/07, la única RPC de «Ingreso de mercadería») crea la cabecera `registrado`, mueve el stock por cada línea con `registrar_movimiento_stock` y crea una fila en `dominio.ingresos_mercaderia_lineas` (con `producto_id`, `cantidad`) **en la misma transacción**. Por eso **«confirmar el ingreso» = registrarlo**, y el punto de enganche es un disparador `AFTER INSERT` sobre `ingresos_mercaderia_lineas`: no se redefine la RPC grande de Stock (que además tiene su propia historia de firmas), y atomiza la marca con el ingreso. Las demás entradas de stock (carga en lote, toma de inventario, traslados, devoluciones de nota de crédito, RMA) **no** marcan: la historia dice «ingreso de mercadería». **(OK pendiente: confirmar que esas entradas quedan fuera.)**
-5. **Cobertura por antigüedad «hasta agotar la cantidad» (RF-VTA-27-2, CA-VTA-27-2).** Para cada línea del ingreso (producto + `cantidad`), entre los faltantes **abiertos** de ese producto en toda la organización (el stock es único: no se distingue tienda ni depósito) que aún no están ni «Para avisar» ni «Avisados», se recorren del **más antiguo** al más nuevo (`creado_en`, `id`) con un saldo inicial igual a la cantidad ingresada; se marca cada faltante **completo** mientras su `cantidad_faltante` entre en el saldo (`saldo -= cantidad_faltante`) y el que **no entra se salta** y se sigue con el siguiente más antiguo (un faltante grande no bloquea a los demás del producto; QA 2026-11-10). Es decir, se marcan **primero los más antiguos hasta agotar la cantidad**. Ejemplo: ingreso 10, faltantes 4 (hace 3 días), 4 (2 días), 4 (1 día) → se marcan los dos primeros; el tercero espera el próximo ingreso. Un ingreso que cubre todo (CA-VTA-27-1: 10 unidades, 3 faltantes abiertos de 1 a 3 unidades) marca los 3. Solo cuenta la cantidad **del ingreso**, no el stock que ya hubiera. **(OK pendiente: cobertura de faltantes completos vs. parcial; se resolvió con «saltar el que no entra» tras la revisión QA.)**
-6. **Anular el ingreso no desmarca.** «Para avisar» es una sugerencia para el operador (no envía nada); la pantalla muestra el «Stock hoy» real al lado. Anular un ingreso no deshace marcas (la historia no lo pide). **(OK pendiente.)**
+4. **«Ingreso de mercadería confirmado» en el código real.** No existe un paso de «confirmación» separado: `dominio.ingresos_mercaderia.estado ∈ {registrado, anulado}` y `public.registrar_ingreso_mercaderia` (F-PRV-04/07, la única RPC de «Ingreso de mercadería») crea la cabecera `registrado`, mueve el stock por cada línea con `registrar_movimiento_stock` y crea una fila en `dominio.ingresos_mercaderia_lineas` (con `producto_id`, `cantidad`) **en la misma transacción**. Por eso **«confirmar el ingreso» = registrarlo**, y el punto de enganche es un disparador `AFTER INSERT` sobre `ingresos_mercaderia_lineas`: no se redefine la RPC grande de Stock (que además tiene su propia historia de firmas), y atomiza la marca con el ingreso. Las demás entradas de stock (carga en lote, toma de inventario, traslados, devoluciones de nota de crédito, RMA) **no** marcan: la historia dice «ingreso de mercadería». **(OK de Nicolás: esas entradas quedan fuera.)**
+5. **Cobertura por antigüedad «hasta agotar la cantidad» (RF-VTA-27-2, CA-VTA-27-2).** Para cada línea del ingreso (producto + `cantidad`), entre los faltantes **abiertos** de ese producto en toda la organización (el stock es único: no se distingue tienda ni depósito) que aún no están ni «Para avisar» ni «Avisados», se recorren del **más antiguo** al más nuevo (`creado_en`, `id`) con un saldo inicial igual a la cantidad ingresada; se marca cada faltante **completo** mientras su `cantidad_faltante` entre en el saldo (`saldo -= cantidad_faltante`) y el que **no entra se salta** y se sigue con el siguiente más antiguo (un faltante grande no bloquea a los demás del producto; QA 2026-11-10). Es decir, se marcan **primero los más antiguos hasta agotar la cantidad**. Ejemplo: ingreso 10, faltantes 4 (hace 3 días), 4 (2 días), 4 (1 día) → se marcan los dos primeros; el tercero espera el próximo ingreso. Un ingreso que cubre todo (CA-VTA-27-1: 10 unidades, 3 faltantes abiertos de 1 a 3 unidades) marca los 3. Solo cuenta la cantidad **del ingreso**, no el stock que ya hubiera. **(OK de Nicolás: faltantes completos con «saltar el que no entra».)** Los faltantes ya marcados no consumen saldo de un ingreso posterior (decisión de diseño: «Para avisar» es una sugerencia y el «Stock hoy» real se ve al lado; QA M3).
+6. **Anular el ingreso no desmarca.** «Para avisar» es una sugerencia para el operador (no envía nada); la pantalla muestra el «Stock hoy» real al lado. Anular un ingreso no deshace marcas (la historia no lo pide). **(OK de Nicolás.)**
 7. **No se exige stock disponible para avisar a mano (F-VTA-26).** A diferencia de F-STK-17 (`omitidos_sin_stock`), la historia no lo pide y el operador puede estar avisando algo ya recibido; se avisa lo que el operador elige. El texto del prototipo («productos que volvieron a tener stock») queda como texto por defecto del mensaje editable.
 8. **Línea compartida con F-STK-17.** Si una misma línea fuera a la vez «A pedido» con reserva (F-STK-17) y faltante de despacho (F-VTA-18), comparte **una sola fila de cola**: avisar desde cualquiera de las dos pantallas la deja «Avisada» en ambas (no se manda dos veces). Es el comportamiento deseable y no requiere código extra.
 9. **El envío ya no depende de MSF-189.** El «A revisar» de la épica dudaba de quién construye el correo saliente: el SMTP de F-CON-03 y la Edge Function de F-STK-17 ya están en `dokploy`. MSF-189 deja de ser bloqueante de F-VTA-26. MSF-135 (F-VTA-18) y MSF-136 (ingresos) están en la base.
@@ -110,13 +110,19 @@ stateDiagram-v2
     ParaAvisar --> Avisado: operador envía el aviso (F-VTA-26)
     SinAvisar --> Avisado: operador envía el aviso (F-VTA-26)
     Avisado --> Avisado: reavisar con confirmación (RF-VTA-26-2)
-    Avisado --> SinAvisar: se agotan los intentos de envío
+    SinAvisar --> EnCola: operador encola el aviso
+    ParaAvisar --> EnCola: operador encola el aviso
+    EnCola --> Avisado: sale el correo
+    EnCola --> AvisoFallido: se agotan los intentos o smtp_timeout
+    AvisoFallido --> SinAvisar: sin mercadería ingresada
+    AvisoFallido --> ParaAvisar: con mercadería ingresada
+    AvisoFallido --> EnCola: Reintentar
     SinAvisar --> [*]: faltante resuelto
     ParaAvisar --> [*]: faltante resuelto
     Avisado --> [*]: faltante resuelto
 ```
 
-«Avisado» y «Para avisar» son marcas del faltante abierto; resolverlo (reanudar el armado) lo saca de la lista en cualquier estado. Nada de F-VTA-27 envía correos.
+«En cola», «Avisado» y «Para avisar» son marcas del faltante abierto («Aviso fallido» es un motivo que se suma a «Sin avisar» o «Para avisar»); resolverlo (reanudar el armado) lo saca de la lista en cualquier estado. Nada de F-VTA-27 envía correos.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -127,12 +133,12 @@ Como operador quiero seleccionar faltantes y avisar a sus clientes para recupera
 **Independent Test**: pgTAP de `avisar_faltantes_venta` y la cola; Vitest de la pantalla y el diálogo; E2E de CA-VTA-26-1 y CA-VTA-26-2.
 
 **Acceptance Scenarios**:
-1. **Given** dos faltantes abiertos con cliente con correo válido (`CA-VTA-26-1`), **When** los selecciono y envío, **Then** ambos pasan a «Avisado» con fecha y el cliente recibe el correo con el producto y el texto que edité.
+1. **Given** dos faltantes abiertos con cliente con correo válido (`CA-VTA-26-1`), **When** los selecciono y envío, **Then** ambos pasan a «En cola» y, cuando el barrido (cada minuto) envía el correo, a «Avisado» con la fecha de envío; el cliente recibe un solo correo con el producto y el texto que edité.
 2. **Given** un cliente sin correo (`CA-VTA-26-2`), **When** intento avisarlo, **Then** se informa «El cliente no tiene correo» y el faltante **no** se marca.
 3. **Given** un usuario con rol Consulta (`CA-VTA-26-3`), **When** intenta avisar (llamando a la RPC), **Then** el servidor rechaza (`42501`).
 4. **Given** un faltante ya avisado (`RF-VTA-26-2`), **When** lo incluyo en la selección, **Then** no se vuelve a avisar salvo que confirme «Volver a avisar»; sin la confirmación el servidor lo omite.
 5. **Given** que el faltante se resolvió (reanudó el armado) antes de que salga el correo, **When** corre el barrido, **Then** no se manda nada y la línea vuelve a «Sin avisar» con el motivo.
-6. **Given** que falla el envío, **When** se reintenta hasta el tope, **Then** el faltante vuelve a «Sin avisar» con el error registrado (sin datos personales).
+6. **Given** que falla el envío, **When** se reintenta hasta el tope, **Then** el aviso queda `agotado` y la pantalla muestra «Aviso fallido» con un motivo genérico y «Reintentar» (el faltante vuelve a «Sin avisar», o a «Para avisar» si llegó mercadería); el código del error se guarda sin datos personales. Un `smtp_timeout` es un intento incierto: queda `agotado` en el acto y no se reenvía solo.
 
 ### User Story 2 — «Para avisar» al ingresar mercadería (F-VTA-27, MSF-270, P1, M)
 
@@ -150,14 +156,14 @@ Como operador quiero que el sistema me diga qué faltantes se pueden cubrir cuan
 
 ### Functional Requirements — F-VTA-26
 
-- **FR-001** (`RF-VTA-26-1`): `public.avisar_faltantes_venta(p_ids, p_mensaje, p_reavisar)` **DEBE** permitir avisar faltantes **abiertos** de `dominio.faltantes_venta` (1 a 200): por cada uno con cliente con correo válido encola en `dominio.faltantes_avisos` (clave `linea_id`, idempotente) un aviso con el texto `p_mensaje`, de modo que el cliente reciba **un correo con el producto y el texto**, y el faltante pasa a «Avisado» con fecha. Devuelve conteos y un detalle por faltante (`encolado`, `ya_avisado`, `en_cola`, `sin_correo`, `sin_permiso`, `no_abierto`).
-- **FR-002** (`RF-VTA-26-1`, UI): la pantalla `/ventas/faltantes` **DEBE** permitir seleccionar faltantes abiertos (casilla por fila y «seleccionar todo» de lo visible), mostrar «N seleccionados de M faltantes» y el botón «Avisar a los seleccionados (N)» (deshabilitado con 0), y abrir el diálogo «Avisar a los clientes» con un **texto editable** precargado, «Cancelar» y «Enviar avisos»; al terminar, aviso emergente «Avisos enviados» con lo omitido y por qué, y la columna **Aviso** (Sin avisar / Para avisar / Avisado con fecha). Solo con `ventas` en `edicion`; con `lectura` no hay casillas ni botón.
-- **FR-003** (`RF-VTA-26-2`): el servidor **NO DEBE** avisar dos veces el mismo faltante sin confirmación: una línea ya avisada se omite (`ya_avisado`) salvo `p_reavisar = true`; una línea con un envío en curso nunca se reenvía (`en_cola`). La pantalla pide la confirmación explícita («Volver a avisar a los N ya avisados») y por defecto los excluye.
+- **FR-001** (`RF-VTA-26-1`): `public.avisar_faltantes_venta(p_ids, p_mensaje, p_reavisar)` **DEBE** permitir avisar faltantes **abiertos** de `dominio.faltantes_venta` (1 a 200): por cada uno con cliente con correo válido encola en `dominio.faltantes_avisos` (clave `linea_id`, idempotente) un aviso con el texto `p_mensaje`, de modo que el cliente reciba **un correo con el producto y el texto**, y el faltante pasa a «En cola» y luego a «Avisado» con la fecha de envío (revisión QA M5). Devuelve conteos y un detalle por faltante (`encolado`, `ya_avisado`, `en_cola`, `reaviso_reciente`, `tope_diario`, `sin_correo`, `sin_permiso`, `no_abierto`).
+- **FR-002** (`RF-VTA-26-1`, UI): la pantalla `/ventas/faltantes` **DEBE** permitir seleccionar faltantes abiertos (casilla por fila y «seleccionar todo» de lo visible), mostrar «N seleccionados de M faltantes» y el botón «Avisar a los seleccionados (N)» (deshabilitado con 0), y abrir el diálogo «Avisar a los clientes» con un **texto editable** precargado, «Cancelar» y «Enviar avisos»; al terminar, aviso emergente «Avisos en cola» (o «No se enviaron avisos») con lo omitido y por qué, y la columna **Aviso** (Sin avisar / Para avisar / En cola / Avisado con fecha / Aviso fallido con «Reintentar»). Solo con `ventas` en `edicion`; con `lectura` no hay casillas ni botón.
+- **FR-003** (`RF-VTA-26-2`): el servidor **NO DEBE** avisar dos veces el mismo faltante sin confirmación: una línea ya avisada se omite (`ya_avisado`) salvo `p_reavisar = true`; una línea con un envío en curso nunca se reenvía (`en_cola`). Tampoco se reavisa un faltante enviado hace menos de 24 horas (ni con `p_reavisar`, `reaviso_reciente`) y una organización encola como máximo 1.000 líneas por día móvil (`tope_diario`). La pantalla pide la confirmación explícita («Volver a avisar a los N ya avisados») y por defecto los excluye.
 - **FR-004** (`CA-VTA-26-3`): la RPC **DEBE** rechazar con `42501` a quien no tenga `ventas` en `edicion` (rol Consulta incluido), y por faltante omitir (`sin_permiso`) los de tiendas donde no tenga `edicion`. La organización y el actor salen de la sesión (nunca de un argumento); `anon` sin ejecución; `search_path = ''`.
 - **FR-005** (`CA-VTA-26-2`): si el cliente no tiene correo (vacío) la RPC **DEBE** omitir el faltante (`sin_correo`) **sin marcarlo**, y la pantalla **DEBE** informar «El cliente no tiene correo» (en plural, «N clientes no tienen correo», con sus nombres). Un correo con formato inválido lo rechaza la Edge Function y la línea vuelve a «Sin avisar» con el error.
-- **FR-006**: el envío **DEBE** reutilizar la Edge Function `enviar-aviso-faltante` y el flow `avisos-faltantes`: un correo por cliente, texto plano, `mensaje` saneado (sin caracteres de control ni HTML, ≤ 1.000), reintento acotado (tope 5) y nunca tocar la venta ni el stock. Sin `mensaje` el correo es el de F-STK-17 sin cambios.
+- **FR-006**: el envío **DEBE** reutilizar la Edge Function `enviar-aviso-faltante` y el flow `avisos-faltantes`: un correo por cliente, texto plano, `mensaje` saneado (sin caracteres de control ni HTML, ≤ 1.000), reintento acotado (tope 5, reserva de 2 minutos, token de tanda en el cierre), timeouts de conexión (10 s) y envío (30 s), configuración SMTP validada antes de tomar nada (`SMTP_TLS` obligatoria true/false; texto plano solo con `SMTP_PERMITIR_INSEGURO=true` y sin credenciales; puerto por defecto 465), cuerpo en base64 y asunto RFC 2047, y nunca tocar la venta ni el stock. Sin `mensaje` el correo es el de F-STK-17 sin cambios.
 - **FR-007**: un faltante cerrado antes de salir el correo (resuelto por reanudar el armado) **NO DEBE** avisarse: `private.faltante_abierta` reconoce el faltante abierto de `faltantes_venta` y la línea vuelve a «Sin avisar» con «El faltante se cerró antes de enviar el aviso».
-- **FR-008**: `public.listar_faltantes` **DEBE** devolver por faltante `aviso` (`sin_avisar` | `avisado`; `para_avisar` por FR-103) y `aviso_en` (fecha del aviso), y aceptar `p_aviso` para filtrar; la columna Aviso de la pantalla los muestra.
+- **FR-008**: `public.listar_faltantes` **DEBE** devolver por faltante `aviso` (`sin_avisar` | `para_avisar` | `en_cola` | `avisado`), `aviso_en` (fecha del aviso) y `aviso_error` (código genérico del último fallo de un aviso `agotado`), y aceptar `p_aviso` para filtrar (`en_cola` solo desde la RPC); la columna Aviso de la pantalla los muestra.
 - **FR-009** (Principio VIII): la selección, el diálogo, los conteos y el listado **DEBEN** reencuadrarse al cambiar la empresa activa (barra superior o filtro): la selección se descarta, el diálogo abierto se cierra con aviso y no se dibuja ni una fila de la empresa anterior; nunca se avisa un faltante de otra tienda.
 
 ### Functional Requirements — F-VTA-27
@@ -170,7 +176,7 @@ Como operador quiero que el sistema me diga qué faltantes se pueden cubrir cuan
 
 ### Success Criteria
 
-- **SC-001** (`CA-VTA-26-1`): dos faltantes con correo válido, seleccionados y enviados, quedan «Avisado» con fecha (E2E; pgTAP verifica la cola).
+- **SC-001** (`CA-VTA-26-1`): dos faltantes con correo válido, seleccionados y enviados, quedan «En cola» y luego «Avisado» con fecha de envío (verificado en dev con un buzón de pruebas: 2 correos, uno por cliente, sobre #931) (E2E; pgTAP verifica la cola).
 - **SC-002** (`CA-VTA-26-2`): un cliente sin correo no se marca y se informa «El cliente no tiene correo» (E2E; pgTAP verifica que no hay fila de cola).
 - **SC-003** (`CA-VTA-26-3`): el rol Consulta es rechazado por el servidor (pgTAP).
 - **SC-101** (`CA-VTA-27-1`): un ingreso de 10 unidades con 3 faltantes abiertos los deja a los 3 en «Para avisar» (E2E; pgTAP verifica la marca).
@@ -189,7 +195,9 @@ Inventario: `design/pantallas/VentasFaltantes.inventory.json` (correr `pnpm prot
 | Pie «N seleccionados de M faltantes» | texto | FR-002 |
 | Botón «Avisar a los seleccionados (·)» | botón | FR-002 |
 | Diálogo «Avisar a los clientes» (texto de ayuda, «Cancelar», «Enviar avisos») + **texto editable** | diálogo | FR-002, FR-001 (el texto editable y la confirmación para reavisar no están dibujados: se construyen con los componentes del template) |
-| Aviso emergente «Avisos enviados» | snackbar | FR-002 |
+| Aviso emergente «Avisos en cola.» (antes «Avisos enviados»: el correo sale en el próximo barrido) | snackbar | FR-002 |
+| Chip «En cola» en la columna Aviso | chip | FR-002, FR-008, FR-104 (estados del aviso; «Avisado · fecha» solo cuando el correo salió) |
+| Chip «Aviso fallido» con su motivo y botón «Reintentar» | chip y botón | Reintento de avisos agotados (revisión M-1; mismo flujo del diálogo «Avisar a los clientes», FR-002/FR-003) |
 | Mensaje «El cliente no tiene correo» | texto | FR-005 (no dibujado) |
 | Confirmación «Volver a avisar a los N ya avisados» | casilla | FR-003 (no dibujada) |
 | Estado «Para avisar» y filtro «Para avisar» / orden por antigüedad | chip y filtro | FR-103, FR-104 (no dibujados) |
@@ -208,12 +216,12 @@ Inventario: `design/pantallas/VentasFaltantes.inventory.json` (correr `pnpm prot
 
 ## Decisiones tomadas al traducir («A revisar»)
 
-1. **Hito**: el roadmap manda (diciembre, P1); etiqueta `revisar-roadmap` hasta que el cliente confirme. Cambia el hito, no el alcance. **(OK pendiente.)**
+1. **Hito**: el roadmap manda (diciembre, P1); etiqueta `revisar-roadmap` hasta que el cliente confirme. Cambia el hito, no el alcance. **(OK de Nicolás.)**
 2. **Pantalla Faltantes «a dibujar»** en el documento del componente: sí existe `VentasFaltantes.dc.html`; la spec se apoya en él.
 3. **Correo / MSF-189**: resuelto reutilizando F-STK-17 (decisión 9 de *Relación…*).
 4. **Todo el dominio es nuevo** (épica): ya no lo es; se extiende F-VTA-18/F-STK-17. Horas sin cambio (12 h).
 5. **El bloqueo F-VTA-26 → F-VTA-27 se quitó** (épica): marcar «Para avisar» no usa el envío. Aun así F-VTA-26 fija la firma final de `listar_faltantes` y F-VTA-27 solo reemplaza su cuerpo (orden de fases en `tasks.md`).
-6. **Decisiones 1, 4, 5 y 6 de *Relación…* (OK pendiente de Nicolás)**: «Avisado» derivado de la cola (no `estado`), qué es «ingreso confirmado», cobertura de faltantes completos con corte en el primero que no entra, y que anular un ingreso no desmarca.
+6. **Decisiones 1, 4, 5 y 6 de *Relación…* (OK de Nicolás: «avanza con todo»)**: «Avisado» derivado de la cola (no `estado`), qué es «ingreso confirmado», cobertura de faltantes completos con corte en el primero que no entra, y que anular un ingreso no desmarca.
 
 ## Verificación por requisito
 
@@ -253,7 +261,34 @@ Rutas: pgTAP en `supabase/tests/database/`, Vitest junto a la pantalla en `apps/
 ## Riesgos y preguntas para Nicolás
 
 - **Concepto doble de faltante** (F-STK-17 vs F-VTA-18): hay dos pantallas con datos distintos; no se unifican (fuera de alcance). La línea compartida usa una sola cola.
-- **Fecha del aviso**: «Avisado» es la fecha de envío (`enviado_en`) o, mientras el correo está en cola, la de encolado; puede pasar hasta ~1 minuto entre ambas.
+- **Fecha del aviso**: «Avisado» es siempre la fecha de envío (`enviado_en`); mientras el correo espera (hasta ~1 minuto) el estado es «En cola» con la fecha de encolado.
 - **Reavisar sobrescribe** la fila de la cola (el historial está en `registro_actividad`, no en la tabla).
 - **El disparador de ingresos** corre sobre una tabla de Stock: un fallo se aísla con un bloque de excepción (el ingreso nunca se rompe), pero un error silenciado necesita monitoreo en el log del servidor.
 - **Cobertura**: un faltante grande que no entra en el saldo del ingreso se salta y los más nuevos y chicos que sí entran se marcan; el grande espera un ingreso que lo cubra.
+
+## Decisiones de la revisión de Código, Seguridad y QA (MSF-161)
+
+- **`para_avisar_en` no se limpia al quedar el aviso `agotado`** (revisión m-1, QA M1). Con el aviso agotado, `listar_faltantes` vuelve a mostrar «Para avisar»: llegó mercadería y el aviso falló, así que sigue pendiente de avisar. El diagrama de estados queda así: Avisado → (agota los intentos) → Para avisar / Sin avisar **con «Aviso fallido» y el motivo**; «Reintentar» lo reencola. No se cambia `para_avisar_en`.
+- **Estados visibles**: `sin_avisar | para_avisar | en_cola | avisado`; «Avisado · fecha» solo cuando el correo salió (QA M5); el aviso emergente dice «Avisos en cola».
+- **Topes (M-3)**: no se reavisa un faltante enviado hace menos de 24 horas (sin override) y una organización encola como máximo 1.000 líneas por día móvil; el servidor los valida y la pantalla lo informa.
+- **Envío (M-2, m-3, m-4, m-4b, m-5)**: timeout de 30 s, token de tanda en el cierre, destinatario de una sola dirección, `ultimo_error` como código genérico, `mensaje` saneado en la base y sin líneas que empiecen con «.».
+- **Una sola regla de encolado (m-6)**: `avisar_faltantes_venta` y `avisar_faltantes` usan `private.encolar_aviso_faltante`.
+- **Selección (m-7, QA M4)**: se descarta al cambiar de filtro de aviso, así «Avisar (n)» y el envío solo cuentan lo que se ve.
+- **Trigger (m-2)**: reintenta ante deadlock/lock_not_available y deja una actividad segura si no puede; nunca bloquea el ingreso.
+- **Prototipo**: `design/pantallas/VentasFaltantes.dc.html` dibuja desde 2026-11-14 los chips «En cola» y «Aviso fallido» (con motivo) y «Reintentar», y el aviso «Avisos en cola.»; el filtro «En cola» sigue solo en la RPC.
+- **Revisión del PR #915** (migración `20270306130000`): tope diario con bloqueo por organización e índice; `smtp_timeout` = intento incierto (queda `agotado`, sin reenvío automático); orden de bloqueo común a las dos RPC; la pantalla de Stock informa el tope diario; el barrido de la Edge Function corta por reloj.
+- **Revisión del PR #918**: `service_role` ejecuta `private.sanear_mensaje_aviso` (la evalúa el CHECK); sonda de esquema antes de tomar y 502 si un barrido falla entero; timeout de conexión ≠ timeout de envío; reencolar un `agotado` ya contado no se frena por el tope; `tomar` bloquea en orden de línea; `ultimo_error` vacío heredado pasa a NULL; recorte por caracteres; textos «pasa a la siguiente ventana de 24 horas».
+- **Revisión del PR #920**: el cierre bloquea en orden de línea; el envío separa conexión (reintentable) de envío (incierto); errores por código numérico del servidor; el filtro `en_cola` queda solo en la RPC (el prototipo no lo ofrece); reencolar un `smtp_timeout` es sin límite de 24 h (decisión consciente); el contador de la UI cuenta caracteres.
+
+## Decisiones de las rondas posteriores (#922 a #939, 2026-11-13)
+
+- **#922 (v4)**: `private.sanear_mensaje_aviso` se concede a `service_role` porque el CHECK de `faltantes_avisos.mensaje` la evalúa al insertar (el guard `service_role ejecuta toda función evaluada por defaults, CHECK…` falló en CI en dos corridas anteriores); sonda de esquema antes de tomar (503 `base_no_migrada` / 502 `base_no_disponible`), 502 si un barrido falla entero, timeout de conexión distinto del de envío, `tomar` bloquea en orden de línea.
+- **#931**: el texto plano del SMTP exige opt-in. `SMTP_TLS` es obligatoria (`true`|`false`); `SMTP_TLS=false` solo con `SMTP_PERMITIR_INSEGURO=true` y sin `SMTP_USER`/`SMTP_PASS`; `SMTP_PERMITIR_INSEGURO` es solo local/dev, nunca stg/prd. Sondeo TCP previo desactivable con `SMTP_SONDEO=false`. En stg/prd: `SMTP_TLS=true` con credenciales.
+- **#936**: configuración SMTP validada antes de tomar la tanda (503 `configuracion_smtp`, sin gastar intentos). 587/STARTTLS **no funciona** con denomailer 1.6.0 («Bad resource ID», verificado con Deno 1.46/2.1/2.9): usar 465 con TLS implícito.
+- **#939**: el cuerpo viaja en base64 (el quoted-printable de denomailer corrompía «·» y tildes; hallazgo H2 del E2E en dev) y el asunto no ASCII en palabras `=?UTF-8?B?…?=`; `SMTP_PORT` vacío = 465 y un valor inválido falla cerrado. Lo comparten `enviar-correo-proveedor`, `enviar-resumen-reposicion` y `solicitar-acceso`.
+- **Verificación manual obligatoria al tocar `_shared/{correo,smtp}.ts`**: `deno run … supabase/functions/_shared/verificacion/smtp-real.deno.ts` (18 casos; no corre en CI).
+- **Fuera de esta épica**: #927 (MSF-853) retira el camino directo del aviso de consulta; no cambia nada de faltantes.
+
+## Historial de cambios
+
+- 2026-11-13 · Especificador retroactivo: se alinean escenarios, FR-001/002/003/006/008, diagrama de estados y SC-001 con lo entregado (estados `en_cola`/`avisado`/«Aviso fallido», topes, SMTP, base64) y se agrega la sección de rondas #922–#939. No se agregan requisitos de negocio. Decisiones que siguen pendientes de Nicolás: ver `notas.md`.

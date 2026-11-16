@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Permisos por rol: contrato `nivel_seccion` / `puede_accion`
 
 Spec: `specs/20261013-120000-usuarios-y-roles/` (F-ROL-01, MSF-258, épica MSF-125).
@@ -13,7 +19,7 @@ contrato en sus políticas RLS en vez de `private.puede_escribir()`.
 |---|---|---|
 | `roles_organizacion` | `public` | Catálogo de roles: `administrador`, `operador`, `consulta`, `mostrador`, `deposito`, `administracion`, `tecnico` (MSF-182) y `miembro` (template). |
 | `permisos_rol` | `public` | Organización × rol × sección → `edicion` / `lectura` / `ninguno`. |
-| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`) → permitido. |
+| `permisos_rol_accion` | `public` | Organización × rol × sección × acción (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`, `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) → permitido. |
 
 Son mecanismos de acceso transversales (Principio VII), por eso viven en `public`. Cada
 organización tiene su propia matriz, sembrada al crearla (trigger sobre `organizaciones`) con los
@@ -67,18 +73,36 @@ Envolver la llamada en `(select …)` para que Postgres la evalúe una sola vez 
   niegan todo con `ninguno`, permiten `list`/`show` con `lectura` y el resto con `edicion`.
   **Cada épica agrega su recurso a `SECCION_POR_RECURSO` y su destino con `seccionPermiso`.**
 
+## Ventas: catálogos de cobro y envío (MSF-139)
+
+Las seis tablas de la épica (formas de pago, formas de envío, cuentas de cobro y transportes, con sus
+relaciones por empresa) usan este contrato:
+
+- **Lectura:** `private.nivel_seccion('ventas')` en `lectura` o `edicion`. Las formas de pago y de
+  envío, además, exigen que `empresa_id` esté en `private.empresas_accesibles()`; cuentas y
+  transportes son de la organización y se leen completos (con sus empresas habilitadas).
+- **Escritura:** solo `private.es_administrador_de(organizacion_id)`, en la política RLS y con rechazo
+  `42501` en cada RPC. Un rol con `edicion` en Ventas que no es Administrador lee pero no escribe.
+- **Sin DELETE:** los catálogos se desactivan (`activo`/`activa`). `transportes_empresas` admite DELETE
+  del Administrador porque su RPC reemplaza el conjunto de empresas.
+- Las cuentas de cobro registran `cuenta_cobro.*` en `registro_actividad` sin CBU ni CUIT. Detalle:
+  [Ventas · catálogos (técnico)](tecnico/ventas-catalogos.md) y
+  [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
 ## Compatibilidad y límites
 
-- `private.puede_escribir()` no cambia: las tablas existentes (`clientes`, …) conservan su
-  comportamiento hasta que cada una migre a este contrato (pgTAP de regresión incluido).
+- `private.puede_escribir()` no cambia: las tablas que todavía no migraron a este contrato conservan su
+  comportamiento (pgTAP de regresión incluido). `clientes` ya migró (ver abajo).
 - **`clientes` migró a este contrato (F-CLI-01, MSF-262):** sus políticas usan
   `nivel_seccion('clientes')` (`select` con `lectura`/`edicion`; `insert`/`update` con `edicion`; sin
   DELETE) y `RECURSOS_ESCRITURA_SOLO_ADMINISTRADOR` (`lib/permisos.ts`) quedó vacío. Operador, Mostrador y
   Administración editan; Consulta lee; Depósito (`ninguno` en la matriz vigente) ni lee filas por la API.
   Queda cerrado el riesgo aceptado de lectura REST con `ninguno`. Migraciones
   `20261016130000_clientes_ficha_y_numeracion` y `20261016130200_clientes_rls_por_seccion_y_actividad`;
-  `numero`, `organizacion_id` y `archivado_en` fuera de lo que el llamador fija (grants por columna).
-  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver `docs/clientes.md`.
+  `numero`, `es_consumidor_final` y `organizacion_id` fuera de lo que el llamador fija (grants por
+  columna); `archivado_en` sí se puede escribir (es el archivar/restaurar).
+  Búsqueda, exportación (acción `exportar`) y `escala_de_cliente` (F-CLI-02/03/04): ver
+  [Clientes (producto)](clientes.md) y [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
   Matriz de Depósito (SC-006): `ninguno` en Clientes, sin cambios; la base y la UI le niegan listado, ficha y exportación.
   Ranking de clientes y compras en la ficha (F-CLI-08/09/10): lo ve quien tiene Clientes en `lectura` o `edicion`
   (`ranking_clientes` y `compras_de_cliente` lo exigen en la base, `42501` si no); exportarlo a Excel exige además la
@@ -183,7 +207,8 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
-- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`) son una
+- Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
+  `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
@@ -211,8 +236,8 @@ Pruebas: `supabase/tests/database/editar_matriz_permisos.test.sql` y `apps/web/s
 - **No dibujado en `Roles.dc.html`** (marcado en el PR): la edición de acciones (FR-006) y el diálogo
   de «Restablecer valores iniciales» (FR-015) son propuestas de diseño, a confirmar con el cliente.
 - Tope: un guardado acepta hasta 200 niveles y 400 acciones (la matriz tiene 6×16 y 6×16×3); más se rechaza con `22023`.
-- Auditoría (F-AUD-01, entregada): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). El valor previo y nuevo de cada celda no se guarda. Ver `docs/actividad.md`.
-- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría de F-AUD-01 deja quién y cuándo guardó, no el valor previo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
+- Auditoría (F-AUD-01 y F-AUD-02, entregadas): `guardar_matriz_permisos` y `restablecer_matriz_permisos` registran `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `public.registro_actividad` (quién y cuándo; visible en `/actividad` para Administración y Operador). Ahora guardan también el valor previo y el nuevo de cada celda modificada (hasta 8 KB; si hay más cambios, el resto se resume en «… otros cambios»), consultables en el detalle del evento. Ver [Auditoría avanzada y soporte](tecnico/auditoria-y-soporte.md).
+- Edición concurrente: si dos Administradores guardan a la vez gana el último en guardar (la RPC serializa pero no detecta conflictos); la auditoría deja quién y cuándo guardó y, para los cambios de matriz, el valor previo y nuevo. La pantalla avisa al cerrar la pestaña con cambios sin guardar.
 - El contador de usuarios por rol filtra por la organización activa (la policy también deja ver las propias membresías en otras organizaciones).
 - Reversión: `drop function public.restablecer_matriz_permisos(); drop function public.guardar_matriz_permisos(jsonb, jsonb);`.
 
@@ -250,7 +275,7 @@ funciones). La migración es aditiva: no modifica ni elimina objetos existentes.
 
 ## Rol por empresa (MSF-185 · F-ROL-04, épica MSF-121)
 
-Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión).
+Spec: `specs/20261016-140000-permisos-por-empresa/`. Migración: `20261016140100_roles_por_empresa.sql` (renombrada desde `20261016140000` al integrar la épica de clientes, que ocupa esa versión). Construcción interna: [Permisos por empresa](tecnico/permisos-por-empresa.md).
 Pruebas: `supabase/tests/database/roles_por_empresa.test.sql`.
 
 - Esquemas (Principio VII): `usuarios_empresas(user_id, empresa_id, organizacion_id, rol_id)` y `usuario_empresa_activa(user_id, empresa_id)` viven en `public` (acceso transversal); `dominio.empresas` solo se referencia. Ambas con RLS, sin privilegios para `anon` y sin escritura directa: la escritura llega por las RPC de F-ROL-06 (empresa activa) y F-ROL-07 (asignaciones).
@@ -346,16 +371,47 @@ a otros roles en `/stock/motivos` e `/historial/importar`, pero el código las l
 ## Permisos que se vuelven a pedir con un formulario abierto (decisión: falla cerrada)
 
 `useNivelSeccion` devuelve `nivel: null` cuando cambia la clave `usuario:organización` del `PermisosPanelProvider`
-(p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. En ese caso
-`RequiereAccesoSeccion` y las pantallas con formulario muestran la carga o «No pudimos verificar tus permisos» y
-desmontan el formulario: lo tipeado se pierde. Se descartó conservar el último nivel conocido: dejaba la pantalla **abierta con el nivel de la organización anterior o con un permiso ya perdido**
-(fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece editar; el servidor
-(RLS / `private.nivel_seccion`) es la autoridad igualmente. **Seguimiento (no implementado):** reintentar sin perder el borrador: si el repedido falla con un formulario largo abierto
-se pierde lo tipeado; habría que mostrar un aviso no bloqueante con «Reintentar», guardado deshabilitado y el borrador
-conservado. Cubierto por `e2e/productos-create-permisos.e2e.ts` y por
-`RequiereAccesoSeccion.test.tsx`. El reporte original («escribir enseguida en Nombre deja el campo vacío») no se
-reprodujo con un administrador normal: `RequiereAccesoSeccion` espera a la organización y a los permisos antes de
-montar el formulario, que se monta una sola vez (medido con carga lenta y con permisos y contexto demorados).
+(p. ej. un superadmin entra a otra organización) o cuando el repedido de permisos falla. Se descartó conservar el
+último nivel conocido como nivel vigente: dejaba la pantalla **abierta con el nivel de la organización anterior o con un
+permiso ya perdido** (fail-open de la UI). Mientras el nivel no se pueda confirmar para la clave vigente no se ofrece
+editar ni guardar; el servidor (RLS / `private.nivel_seccion`) es la autoridad igualmente.
+
+**Qué pasa ahora (MSF-855)**: `RequiereAccesoSeccion` distingue dos casos según la clave `usuario:organización`.
+
+| Situación | Qué ve la persona | Borrador |
+| --- | --- | --- |
+| **Misma clave** con la que se abrió la sección y **falla el repedido** (red caída, error transitorio) | Los hijos siguen **montados pero inertes** (`fieldset disabled` + `inert`, y los eventos de edición y envío se cortan en captura, también los de diálogos que MUI saca a un portal). Arriba, un aviso **no bloqueante** en una región viva (`aria-live`) que ya existía: «No pudimos verificar tus permisos» con «Reintentar» (alcanzable con el teclado, sin robar el foco). El guardado y las teclas/Enter del formulario no tienen efecto. | Se **conserva** (se ve, solo lectura). |
+| **La clave cambió** (otro usuario u otra organización, p. ej. un superadmin que entra a otra organización), o la sección nunca llegó a abrirse | Como antes: carga y, si el pedido falla, «No pudimos verificar tus permisos» sin formulario. | Se **descarta**: los hijos se desmontan (y el árbol lleva `key` por clave, así que ni sin pasar por la carga se arrastra). Nunca se ve ni se guarda el borrador de la organización anterior. |
+
+Nota: cambiar la empresa activa vuelve a pedir los permisos y remonta la pantalla a propósito (no arrastra datos de la empresa anterior); el aviso con borrador aplica a lo que la persona escribe después, mientras el repedido está en vuelo y falla.
+
+Mientras la zona está inerte también se cortan, en captura, el ratón (`mouseup`, clic auxiliar), el puntero, el
+arrastre (`dragstart/enter/over/drop`), el táctil y las teclas de impresión; no hay atajos globales de teclado en las
+pantallas. **Salida para quien ya tenía un diálogo abierto**: un diálogo o menú de MUI que estaba abierto en un portal
+cuando falló el repedido atrapa el foco y tapa el aviso; `Escape` dentro del portal sí pasa (cierra, no guarda), y
+`Tab` nunca se cancela. Una `RequiereAccesoSeccion` anidada solo se mantiene abierta si su propio último nivel
+confirmado cumple el mínimo. Al confirmar el acceso, si el foco estaba en «Reintentar» pasa a la región viva, que anuncia
+«Acceso confirmado» (el foco no se pierde en `<body>`). Riesgo residual del último nivel confirmado: un `edicion` viejo
+solo se entrega a los hijos de la sección, que están inertes; aun si alguien lo forzara, el servidor lo rechaza porque
+la autorización real es RLS (`private.nivel_seccion`) y no depende de lo que la UI crea.
+
+«Reintentar» vuelve a pedir `permisos_actuales` (un pedido por clic; mientras verifica el botón queda `aria-disabled`).
+**No hay reintentos automáticos ni polling**: un error persistente deja la zona inerte hasta que la persona reintente.
+Si el reintento confirma `edicion` se habilita el formulario con lo tipeado intacto (mismo nodo); si confirma `lectura`
+o `ninguno`, el nivel real manda como siempre (el formulario ve el nivel nuevo y no envía; sin acceso a la sección se
+muestra «Sección no disponible para tu rol»).
+
+**Por qué sigue siendo falla cerrada**: el último nivel confirmado se entrega solo a los hijos de esa misma sección,
+con `sinConfirmar: true`, únicamente cuando la clave coincide con la de apertura y el repedido falló
+(`BorradorConservadoContext`), para que el formulario no se desmonte; cualquier consumidor fuera de esa zona (menú,
+tarjetas, otras pantallas) sigue recibiendo `nivel: null`. La zona está inerte, así que ese nivel no ofrece ninguna
+acción hasta que se confirme. El superadmin no cambia: opera como administrador y su pantalla no se bloquea.
+
+Cubierto por `RequiereAccesoSeccion.borrador.test.tsx` (provider y hook reales), `RequiereAccesoSeccion.test.tsx`,
+`e2e/productos-create-permisos.e2e.ts` y `e2e/permisos-borrador.e2e.ts`. El reporte original («escribir enseguida en
+Nombre deja el campo vacío») no se reprodujo con un administrador normal: `RequiereAccesoSeccion` espera a la
+organización y a los permisos antes de montar el formulario, que se monta una sola vez (medido con carga lenta y con
+permisos y contexto demorados).
 
 ## Accesibilidad (hallazgos de la revisión E2E)
 
@@ -365,3 +421,9 @@ montar el formulario, que se monta una sola vez (medido con carga lenta y con pe
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
+
+## Listas de precios (F-PRE-14 y F-CLI-21)
+
+Las listas de precios **no tienen sección propia** en la matriz: solo las escribe el rol **Administrador** (la RPC lo comprueba con `private.es_administrador_de`, como el descuento por cliente) y las leen quienes tienen `clientes` o `ventas` en `lectura` o `edicion` (política `listas_precios_select`). Detalle en [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
+
+Resumen del cierre: crear, editar, archivar, restaurar y asignar listas es **solo del rol Administrador**; leen las listas y la lista de cada cliente quienes tienen `clientes` o `ventas`; la tienda nunca expone el nombre ni el porcentaje de la lista. Revisión completa en [Revisión de seguridad de las listas de precios](revision-seguridad-listas-de-precios.md).

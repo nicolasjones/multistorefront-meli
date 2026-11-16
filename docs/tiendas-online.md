@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-084830-tienda-dominio-e-identidad
+  - specs/20261023-120000-tienda-catalogo-y-ficha
+  - specs/20261024-051500-cuenta-web-del-cliente
+  - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - infra/glitchtip
+  - scripts/probar-nginx-tienda-seo.sh
+  - apps/web/Dockerfile
+  - apps/web/e2e
+---
+
 # Tiendas online: dominio e identidad
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/tiendas-online.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
 Historias: F-TDA-01 (`MSF-241`), F-TDA-02 (identidad visual, `MSF-266`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible).
@@ -71,7 +86,9 @@ dominio por su cuenta. El alta por SQL de MSF-147 sigue siendo válida (primera 
 
 **DNS de la plataforma por entorno (D2)** — `public.tienda_dns_plataforma` (fila única, solo lectura para
 `authenticated`, sin secretos). La migración siembra **valores de documentación** (`203.0.113.24`,
-`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL:
+`tiendas.plataforma.example.com`, `gc-verify`); el equipo técnico carga los reales de cada entorno por SQL.
+Desde MSF-797 la IP debe ser una **IPv4 pública** (CHECK `tienda_dns_plataforma_ip_publica`, ver «Lote 1 de deuda técnica»):
+se rechazan loopback, redes privadas, CGNAT, link-local, multicast y reservadas, y los octetos fuera de 0–255:
 
 ```sql
 update public.tienda_dns_plataforma
@@ -188,12 +205,35 @@ Pestaña **Identidad visual** de `/empresas/:id/tienda/identidad` (solo con edic
   como «colores» en el resumen «N cambios sin publicar». `public.guardar_tienda_identidad` cambió de firma
   (parámetro final `p_color_barra`, con default; se eliminó la de 10 argumentos) y `publicar_tienda`, su único
   llamador, se recreó; sigue sin ser ejecutable por `authenticated` (F-TDA-06).
+- **MSF-848 (estilo del encabezado y mayúsculas, por configuración)**: dos campos más de la identidad
+  (migración `20270311100000_tienda_estilo_heroe_mayusculas.sql`, mismo patrón que `color_barra`; spec en
+  `specs/20270315-100000-tiendas-identidad-heroe-mayusculas/`). Regla de producto: las diferencias entre tiendas
+  no se programan por tienda, se configuran.
+  - **`estilo_heroe`** «Estilo del encabezado de la portada», lista cerrada `oscuro | claro` (por defecto `oscuro`).
+    *Oscuro* (MundoJC): franja del color de la barra, título de 72 px en mayúsculas blancas, dos franjas inclinadas
+    (primario oscuro y primario) y héroe de 440 px. *Claro* (San Javucho, `SJ_Home`/`SJ_M_Home`): franja con el color
+    de superficie, título de 60 px (36 px en celular) en el color primario y círculo de 360 px del color de acento
+    (desde 1200 px). El botón del héroe usa el acento con el texto de mayor contraste y, si el acento casi no se
+    distingue de la franja (< 1,5:1), el color del texto de la franja: es visible con cualquier identidad.
+  - **`titulos_mayusculas`** «Títulos del menú y botones en mayúsculas», booleano (por defecto `true`): controla
+    `text-transform: uppercase` (y el `letter-spacing: .04em`) de la barra de categorías y el `text-transform` del
+    título y del botón del héroe (MundoJC sí, San Javucho no). El `.03em` del botón es del prototipo en las dos tiendas.
+  - Los dos viajan en el borrador, en las versiones (clave ausente = `oscuro` / `true`, sin «cambio» fantasma), en
+    `publico.identidad_por_dominio` y en la pestaña «Identidad visual» (tarjeta «Portada y menú» y vista previa). El
+    resumen de cambios los nombra «estilo del encabezado» y «mayúsculas de los títulos». `public.guardar_tienda_identidad`
+    cambió de firma (parámetros finales `p_estilo_heroe` y `p_titulos_mayusculas`, con default; se eliminó la de 11
+    argumentos) y `publicar_tienda` se recreó; sigue sin ser ejecutable por `authenticated`. Se leen en el front por el
+    tema (`theme.tienda.heroe`, `theme.tienda.titulosMayusculas`), sin variables CSS.
+  - El color de la franja inclinada no tiene campo: es el primario oscuro de la identidad (decisión declarada).
+  - Reversión: recrear las funciones de 20270303200000 / 20270303300000 sin los campos y, recién entonces,
+    `alter table dominio.tienda_identidad drop column titulos_mayusculas, drop column estilo_heroe`.
 - **Escritura**: solo `public.guardar_tienda_identidad(...)` (`security definer`, exige edición en
   Empresas, estado completo, **idempotente**: si no cambia nada no escribe ni registra evento; emite
   `tienda.identidad_actualizada`). `revoke … from public, anon`, `grant execute … to authenticated`.
   La tabla no concede `INSERT`/`UPDATE`/`DELETE`, así el evento no se puede omitir.
 - **Archivos**: bucket `tienda-identidad` (lectura pública; escritura `authenticated` con edición en
-  Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB). Límites (D5): logo
+  Empresas bajo `<organización>/<empresa>/<archivo>`; PNG/SVG/JPG/WebP, tope 3 MB; **no se puede borrar un archivo que la
+  identidad publicada, el borrador o alguna versión referencian**, MSF-796: lo impide la política de borrado en la base). Límites (D5): logo
   ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP); el tope de 1 MB del logo lo valida la app antes de
   subir. Un **SVG con etiquetas activas (`<script>`, `<foreignObject>`…), manejadores `on*` (separados por espacio o `/`), `javascript:`/`data:` (aunque lleven tab o salto de línea en el esquema), entidades, referencias externas o CSS que carga recursos externos (`@import`, `url(http…)`) se rechaza** en el navegador.
   **Límites conocidos (aceptados):** ese filtro es solo del cliente; quien suba directo por la API de Storage lo esquiva (Storage no inspecciona contenido), y el tope de 1 MB del logo tampoco se aplica en servidor (el bucket admite 3 MB). Si se exige defensa en servidor, el siguiente paso es sacar `image/svg+xml` del bucket (PNG solo). Google Fonts se carga de un tercero (se filtra la IP del visitante; sin SRI/CSP) — decisión aceptada, alternativa: autoalojar. Si el guardado falla tras subir, la app relee la identidad y borra solo las subidas que la base no referencia (si no puede releer, las conserva: la respuesta de la RPC pudo perderse tras guardar); pueden quedar huérfanos (tolerado; `borrarImagenes` limpia en el mejor esfuerzo). El
@@ -376,7 +416,7 @@ Spec: `specs/20261023-120000-tienda-catalogo-y-ficha/` (FR-001…FR-008, FR-060)
   (CTE materializados `efectivos` → `img_producto` → `imagen` con `distinct on`, sobre el árbol recursivo ya
   calculado), sin subconsultas por fila ni funciones por producto, porque la función corre bajo `anon` con
   `statement_timeout` de 3 s (ver el bug de MSF-825 abajo). La ruta cuelga de `<organización>/<producto>/`,
-  igual que la `imagen` de los destacados; la vista previa de la gestión no la calcula (`imagen: null`).
+  igual que la `imagen` de los destacados. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa de la gestión (`public.vista_previa_tienda`) también la devuelve, con la misma regla sobre los productos efectivos del borrador, y el panel muestra la foto de categoría.
 - **Front** (`apps/web/src/pages/tienda-publica/`): `EnrutadorTienda` registra por archivo las rutas de
   `rutas/*.tsx` (excluye `*.test.tsx`; carga diferida; contrato en `rutas/LEEME.md`: `inicio.tsx` → `/`, `<nombre>.tsx` →
   `/<nombre>` y `/<nombre>/:<nombre>Id`) más `*` → `PaginaNoEncontrada`. `layout/LayoutTienda` pone la marca
@@ -474,6 +514,94 @@ Regla del repo («Listados: carga infinita con lazy loading, sin paginación») 
 - **SEO**: sin cambios. Canónica (`/catalogo`, `/categoria/<id>`) y `noindex` de búsqueda y errores como estaban; las URLs de listado nunca llevaron `pagina` en la canónica.
 - **Elementos nuevos visibles**: solo los de la regla del repo («Cargar más», estados de carga/error/fin); ni el prototipo ni sus inventarios (`MJC_Catalogo`, `SJ_*`) dibujan paginación ni carga infinita. Detalle en `specs/20270304-100000-tiendas-carga-infinita/spec.md`.
 - **No verificado en navegador**: los E2E `tienda-catalogo.e2e.ts` se actualizaron pero no se corrieron al implementar (requieren el stack local).
+
+## Seguimiento del front: menú y carga infinita (MSF-846, parte B)
+
+- **Menú de categorías**: la barra del encabezado (`layout/MenuCategorias.tsx`) mide el ancho real de cada entrada (copia invisible, con el texto en un pseudo-elemento) y la lista visible con `ResizeObserver`, y muestra solo las categorías principales que entran (`cuantasEntran` en `lib/tiendaCategorias.ts`), reservando el lugar de «Más categorías» (`/catalogo`) para el resto. Así, con una tipografía ancha (San Javucho a 1440 px, Bricolage Grotesque) no desborda ni corta la última entrada; vuelve a medir al cambiar el ancho o cargar la fuente. Mismo estilo del prototipo (mayúsculas, subrayado de la activa). La copia de medida va en un contenedor recortado (`overflow:hidden`) para no agregar scroll horizontal a la página. Sin `ResizeObserver` se muestran todas y la barra desplaza en horizontal.
+- **Carga infinita** (`components/pagina/CargaInfinita`, compartida con el panel): el foco pasa de «Reintentar» a «Cargar más» (y de vuelta si falla otra vez, o al aviso si «Reintentar» espera) en vez de caer al body (solo si el foco se perdió: no se le roba a quien pasó a otro campo); el aviso de espera por límite de búsquedas se anuncia una sola vez (`role=alert`, con la región viva vacía en error); «Cargar más» se ve apagado (`aria-disabled`) mientras carga; y `useCatalogoPublico` descarta lo acumulado en el mismo render en que cambia la clave, así A→B→A no muestra la lista vieja.
+- **E2E**: `tienda-*.e2e.ts` ajustados al DOM actual (navegación «Categorías» exacta frente a «Categorías del pie»; headings de la home dentro de `<main>`; bloque de consultas; no desborde de la barra). No se corrieron (requieren el stack local). Spec: `specs/20270305-100000-tiendas-seguimiento-front/`.
+
+## Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)
+
+- **Encabezados del listado (axe `heading-order`)**: las tarjetas de producto usan `h3`; el listado del catálogo, la categoría y los resultados de búsqueda (`secciones-catalogo/ListadoProductos.tsx`) antepone un `h2` solo para lectores de pantalla («Productos», o «Resultados» con `?q=`), así en celular (donde el panel de filtros está cerrado) ya no se salta de `h1` a `h3`. No cambia lo visible.
+- **Barra superior (axe `region`)**: `layout/BarraSuperior` va ahora dentro del `<header>` (landmark banner) de `LayoutTienda`, con lo que el eslogan y el contacto dejan de quedar fuera de todo landmark. Mismo aspecto.
+- **`useEmpresa` sin id**: mientras la empresa activa no resolvió (`id` indefinido) el hook no consulta (antes pedía `empresas?id=eq.` y daba 400 en cada pestaña de `/empresas/:id/tienda/*`), queda `cargando` (sin parpadeo de «no encontrada») y `actualizar`/`cambiarEstado` rechazan sin llamar a la base.
+- **Vista previa fiel a la tienda**: la migración `20270306100000_tienda_vista_previa_categorias_paridad.sql` hace que `public.vista_previa_tienda` cuente las categorías como `publico.categorias_por_dominio` (total del árbol, con descendientes, sobre los productos efectivos del borrador) y omita las que quedan sin productos. El front de la vista previa ya usaba la regla de «categorías principales» de `lib/tiendaCategorias.ts` (por cantidad de productos), que ahora recibe los mismos datos que la tienda. Mismos grants y guardia (solo `authenticated`, `search_path` vacío); sin tablas nuevas (Principio VII). Reversión: una migración posterior que restituya el cuerpo de `20270305100100_tienda_vista_previa_categorias_imagen.sql`. Prueba pgTAP: `supabase/tests/database/tienda_vista_previa_categorias_paridad.test.sql` (paridad con la pública y borrador). Spec: `specs/20270313-100000-tiendas-hallazgos-qa/`.
+
+## Fidelidad con el prototipo (MSF-847)
+
+La tienda pública se llevó a las medidas del prototipo (`design/pantallas/MJC_*`, `SJ_*`; spec `specs/20270314-100000-tiendas-fidelidad-prototipo`). Se midió con Playwright y `getComputedStyle`
+a 1440 px y 390 px, en MundoJC y San Javucho, contra el prototipo local y contra dev; los cambios se verificaron sobre una build local servida desde la URL de dev. Resumen (escritorio, MundoJC):
+
+| Elemento | Prototipo | Antes (dev) | Después |
+|---|---|---|---|
+| Contenido | 1200 px | 1168 px | 1200 px (`layout/medidas.ts`, máximo 1232) |
+| Tarjeta: borde / radio / relleno | 1 px `.08` / 8 / 14 | 1 px `.12` / 4 / 12 | igual al prototipo |
+| Tarjeta: imagen | cuadrada, `contain` al 86 % sobre superficie | cuadrada, `cover` (recorta) | `contain` al 86 %, sin recorte; «Sin stock» como insignia de 10 px |
+| Tarjeta: nombre | 16 px/500, interlínea 1,3, alto 42 px (2 líneas) | 16 px/600, interlínea 28 px, hasta 4 líneas | 16 px/500, 20,8 px, alto 42 px con recorte a 2 líneas |
+| Tarjeta: precio | 22 px/700, títulos, primario | 20 px/500, color de texto | 22 px/700, títulos, primario |
+| Tarjeta: disponibilidad | 13 px/500 con punto de 8 px | 14 px/600 sin punto | 13 px/500 con punto de 8 px (#2E7D32 / #6B6B6B) |
+| Tarjeta: alto total | 410 px | 369–412 px | 410 px |
+| Grilla | 4 × 282 px (24 px) portada y relacionados; 304 px en catálogo; 2 × 173 px (12 px) en celular | 5 × 168–181 px (16 px) | 4 / 3 / 2 columnas fluidas (`GrillaProductos`) |
+| Barra de categorías | Barlow 15 px/600 mayúsculas | Barlow Condensed | Barlow |
+| Migas / título del catálogo | 14 px, 18 px de aire / 44 px/700 | 16 px / 34 px/400, espaciado −1,87 px | igual al prototipo |
+| Panel de filtros | 260 px; títulos 18 px títulos; filas 15 px; casilla; campo de 40 px | 240 px; 16 px; MUI `List`, botón con mayúsculas, campo flotante | igual al prototipo |
+| Portada: héroe | 440 px a todo el ancho, título 72 px/700 mayúsculas (estilo oscuro; el claro, 60 px sin mayúsculas, MSF-848), botón 16 px/700 de 47 px | texto de 34 px/400 y botón de 14 px | igual (sin las tarjetas del héroe: no hay datos) |
+| Portada: categorías | 186 px (16 px de separación) | 181 px con borde | 186 px; en celular, píldoras |
+| Ficha | galería 600 px, miniaturas 84 px, título y precio 44 px, botones 16 px/700 radio 8 | 568 px, 72 px, 34 px / 24 px, botones 14 px/700 mayúsculas radio 4 | igual al prototipo |
+| Contacto | columna 460 px con círculos de 44 px; tarjeta con rótulos arriba; campos de 44 px | 560 px sin íconos; campos con rótulo flotante | igual al prototipo |
+| Celular | encabezado 60 px (menú, logo centrado), menú de 300 px, h1 30 px, tarjetas de 173 px | logo a la izquierda y menú a la derecha, menú de 320 px, h1 34 px | igual (tarjetas de 175 px fluidas) |
+
+- **Tema** (`tema/temaTienda.ts`): títulos en negrita, `lineHeight`/`letterSpacing` `normal`, botones sin mayúsculas, 700 y radio 8. El color de texto y el fondo de la tienda se aplican al layout (antes los elementos sin
+  `Typography` salían con el color del panel).
+- **Grillas** (`catalogo/GrillaProductos.tsx`): `columnas={4}` en la portada y los relacionados, `columnas={3}` en el catálogo y la categoría; 2 columnas y 12 px de separación en celular, 24 px desde `md`.
+- **Diferencias conocidas** (no son del layout): colores de texto del tenant (#1A1A1A en la demo, no #1F1F1F) y gris secundario derivado con contraste AA (#6A6A6A, no #5F5F5F); «Ingresar» (F-CLI-06) y «Compartir» (F-TDA-25) no están en el prototipo; la barra de «Información» y el bloque legal del pie;
+  las tarjetas del héroe y las categorías sin productos; en celular, las migas, el bloque de consultas, los puntos de la galería (la tienda mantiene miniaturas) y el orden de «Filtrar» respecto del título; «Últimas unidades» no existe (FR-023);
+  el diálogo de WhatsApp se llevó al prototipo en la auditoría (ver abajo).
+- **Desvíos accesibles respecto del prototipo**: «Sin imagen» y los placeholders usan el gris secundario del tema (≥ 4,5:1; el prototipo usa negro al 35 %/45 %, ≈ 2,4:1); los campos de contacto y filtros y la casilla «Solo con stock» dibujan un foco visible (borde y contorno primarios de 2 px).
+- **Sin scroll horizontal**: la franja del héroe es una capa de 100vw con las franjas inclinadas recortadas y el layout lleva `overflow-x: clip`; se midió `scrollWidth == clientWidth` a 320, 390, 768, 900, 1024, 1100, 1200, 1280, 1366 y 1440 px en las dos tiendas y el E2E `tienda-inicio.e2e.ts` lo vigila en la portada a 900/1024/1280.
+- **Auditoría independiente de fidelidad (52 diferencias de implementación, corregidas)**. Medido en Chromium sobre la build local servida desde dev:
+
+  | Fila | Prototipo | Antes | Después |
+  |---|---|---|---|
+  | H-07 San Javucho: botón del héroe | acento `#E9A23B`, texto tinta | primario sobre franja primaria (1:1, invisible) | `#E9A23B` con texto de la tinta (`tema.tienda.botonDestacado`) |
+  | C-12/C-13/P-12 San Javucho: encabezado, campos, menús, diálogo | blanco | crema `#FBF8F2` | blanco (`background.paper`); el fondo de la página sigue siendo el de la identidad |
+  | H-03/MH-04: título del héroe | `h1` | `h2` (portada sin `h1`) | `h1` (la marca lo cede si hay título); un solo `h1` por página |
+  | K-02/K-03: filas del panel / «Todos los productos» | 32 px / con total | 40 px / sin total | 32 px / «2204» |
+  | K-07/K-08: menú de orden | 200×116, sin fondo | 200×132, fondo teñido | 200×116, sin fondo |
+  | K-09/K-11: sugerencias | sin «Disponible»; vacío en gris 14 px, relleno 14/12 | línea «Disponible» a la vista; vacío en tinta | «Disponible» solo para lectores; vacío en gris `#6A6A6A`, relleno 14/12 |
+  | C-06: pie | enlaces sin subrayado (solo «Escribinos») | todos subrayados | sin subrayado salvo «Escribinos» |
+  | C-04: barra de categorías | y = 122,5 | y = 121 | centrada en 52 px |
+  | H-11: «Ver todas las categorías →» | ausente | presente | quitado |
+  | H-12: área de imagen de la tarjeta | 282 px de alto | 280 px | 282 px (tarjeta de 410 px) |
+  | T-05/T-06: contacto enviado | título «Escribinos», tarjeta de 376 px, «Enviar otra» 16 px | sin título, 329 px, 14 px | conservado, 376 px, 16 px |
+  | P-03/MP-04: disponibilidad en la ficha | y = 437,4; 15 px en celular | y = 438,9; 16 px | y = 437; 15 px en celular |
+  | P-07…P-10: diálogo de WhatsApp | 460 px, radio 14, círculo `#25D366`, recuadro gris, botones de 44 px | 444 px, radio 4, sin círculo, campo MUI | 460 px, radio 14, círculo, línea de contacto, recuadro de solo lectura, botones de 44 px de 16 px |
+  | MM-02/MM-04: menú lateral | entradas 47/43 px, recuadro de contacto | 55/51 px, sin recuadro | 47/43 px, recuadro de 116 px con nombre, teléfono y correo |
+  | MF-01…MF-08: hoja «Filtros» | asa, píldoras, subtítulos de 14 px, botones de 16 px | lista de filas, `Select`, títulos de 18 px, botones de 14 px | igual al prototipo (conserva «Precio máximo» y el cierre de 36 px) |
+  | MH-05: píldoras de la portada | «Todo» activa; filtran en el lugar | enlaces, ninguna activa | botones con `aria-pressed`; filtran los destacados |
+  | MH-07: grilla de celular | tarjetas de 173 px | 175 px | hasta 173 px |
+  | MK-01/MK-03/MK-04: contacto en celular | círculos de 40 px, sin «Retiro y envíos», sin rótulos arriba | 44 px, con las tres filas y rótulos | 40 px, dos filas, rótulos solo para lectores |
+  | MP-06: «Ver más productos» en celular | ausente | presente | solo escritorio |
+
+- **Decisiones de MSF-847 resueltas en MSF-848**: el héroe de dos variantes (la franja clara de San Javucho) y las mayúsculas de la barra de categorías y del botón del héroe se configuran en la identidad visual (`estilo_heroe`, `titulos_mayusculas`; ver «MSF-848» en la sección de identidad). El color de la franja inclinada sigue siendo el primario oscuro de la identidad (declarado, sin campo).
+- **Desvíos accesibles declarados**: áreas táctiles de 36–44 px en el encabezado y «← Todos los productos»; botón de cierre de la hoja de filtros; «Abrir WhatsApp» con texto en tinta; foco visible; «Cargar más» (regla del repo).
+- **Pruebas**: Vitest de la tarjeta, las grillas (la parte por ancho se lee en el texto de la hoja: jsdom no evalúa `@media`) y las piezas compartidas, más axe real de Chromium sobre una build local; los E2E de `apps/web/e2e/tienda-*.e2e.ts` siguen válidos por sus locators y no se corrieron localmente (los valida el CI).
+
+## Hallazgos de la re-auditoría de fidelidad (MSF-849)
+
+Spec `specs/20270316-100000-tiendas-hallazgos-reauditoria`. Medido en Chromium sobre una build local servida desde dev (escritorio 1440 y celular 390):
+
+| Fila | Prototipo | Antes | Después |
+|---|---|---|---|
+| N-01 logo del pie (MundoJC) | marca sobre recuadro blanco redondeado | `filter: brightness(0) invert(1)`: bloque blanco sólido de 103×44 sin marca | recuadro blanco de 100×44 (radio 8) con la imagen de 84×36 a color, sin filtro |
+| N-02 mensaje del diálogo de WhatsApp | producto en negrita | texto plano | producto en `<b>` en la vista (`aria-hidden`) y el `textarea` de solo lectura con el texto completo; lo que se envía no cambia |
+| MM-03 «Inicio» actual del menú móvil | 600 | 700 | 600 (`aria-current` lo anuncia) |
+| MH-10 enlaces del pie móvil | 12 px | 14 px | 14 px: desvío accesible declarado |
+| Foco de «Ingresar», «Limpiar filtros», «Ordenar por» | sin definir | onda tenue de MUI (el selector de orden, sin nada) | contorno de 2 px primario a 2 px (`layout/FocoVisible.tsx`), `solid 2px rgb(163,17,29)` en los tres con Tab real; sin contorno al tocar con el mouse |
+
+El foco unificado cubre enlaces, botones y selectores de la tienda, también los estados de carga, error y «Volvemos pronto» (`FocoVisible` se monta en el layout y en la raíz de la tienda). El color sale de `colorFoco`: el primario si llega a 3:1 contra el fondo de la página y el blanco del encabezado; si no, el color del texto, negro, blanco o un gris medio. La lupa del buscador lleva el contorno hacia adentro (el campo recorta lo que sobresale) y sobre la barra superior y el pie (`data-foco="oscuro"`) toma el color del texto. Los campos de texto usan el borde primario de MUI al enfocarse. El diálogo de WhatsApp suma «Copiar mensaje» para dar acceso por teclado al texto.
+El logo de la pestaña Identidad ya no pide fondo transparente: debe tener colores visibles sobre fondo blanco (un logo blanco o muy claro no se vería en el recuadro del pie).
 
 ## Ficha de producto (F-TDA-13, MSF-372, épica MSF-167)
 
@@ -676,8 +804,8 @@ Las funciones internas (`private.visitante_hash`, `private.limite_envios_tienda`
 | `dominio.tienda_envios` (tabla nueva) | **`dominio`** | Dato del producto Tiendas online atado a una empresa: registro mínimo de envíos de visitantes (límite e idempotencia). No es plataforma genérica. | Sí, por organización: `select` para `authenticated` con `organizacion_id = private.organizacion_id()`. `revoke all … from public, anon, authenticated` + `grant select … to authenticated`: **`anon` no tiene ningún privilegio** y escribe solo `private.registrar_envio_tienda` (`security definer`). |
 | `dominio.empresas.horarios` (columna nullable, ≤ 200) | **`dominio`** | La tabla ya es de dominio y tiene RLS; se suma la columna con `grant update (horarios)` a `authenticated`. Aditiva. | Hereda la de `dominio.empresas`. |
 
-Columnas: `id`, `organizacion_id`, `empresa_id`, `visitante` (hash, nunca la IP), `clave_envio`, `origen`
-(`formulario|whatsapp`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`.
+Columnas: `id`, `organizacion_id`, `empresa_id`, `visitante` (HMAC con secreto del servidor, nunca la IP; MSF-945), `clave_envio`, `origen`
+(`formulario|whatsapp|pedido|presupuesto`), `creado_en`; `unique (empresa_id, clave_envio)` e índice `(empresa_id, visitante, creado_en)`.
 Nada nuevo en `public`: `publico` sigue siendo un esquema de **solo funciones**.
 
 ### Límite e idempotencia
@@ -693,9 +821,10 @@ Nada nuevo en `public`: `publico` sigue siendo un esquema de **solo funciones**.
 
 ### Identidad del visitante (D6)
 
-El visitante es anónimo: se identifica por el hash `sha256` de la **IP** del cliente (tomada según
-`private.saltos_proxy_confiables()`, de F-TDA-15) **más la empresa**. **La IP nunca se guarda**: en la tabla queda solo el
-hash. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes caen en un único cupo «sin-ip»: falla
+El visitante es anónimo: se identifica por el **HMAC-SHA256** de la **IP** del cliente (tomada según
+`private.saltos_proxy_confiables()`, de F-TDA-15) **más la empresa**, con un secreto del servidor guardado en Supabase Vault
+(`visitante_hmac`, MSF-945; antes era un `sha256` sin clave, que se enumera en minutos sobre IPv4). **La IP nunca se guarda**:
+en la tabla queda solo el HMAC, que no se puede invertir sin el secreto. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes caen en un único cupo «sin-ip»: falla
 cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (si no, el límite es global).
 
 ### Decisiones de la épica y el supuesto con el que se implementaron
@@ -713,8 +842,9 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 
 ### Seguridad (revisión del diff de la épica)
 
-- **RLS de `dominio.tienda_envios`**: habilitada, con la única política de `select` para `authenticated` por organización
-  (`private.organizacion_id()`). `anon` no llega a la tabla: escribe solo `private.registrar_envio_tienda`
+- **RLS de `dominio.tienda_envios`**: habilitada, con la única política de `select` para `authenticated`: organización
+  propia, empresa accesible (`private.empresas_accesibles()`) **y edición en Empresas** (MSF-945; antes bastaba pertenecer a
+  la organización). `anon` no llega a la tabla: escribe solo `private.registrar_envio_tienda`
   (`security definer`, sin `grant` para roles de API).
 - **`grant`s de `anon`**: las tres funciones de `publico` hacen `revoke execute … from public, anon` y después
   `grant execute … to anon, authenticated`. El `revoke` a `PUBLIC` importa: por defecto Postgres da `EXECUTE` a `PUBLIC` en
@@ -724,7 +854,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 - **Texto literal**: lo que escribe el visitante se guarda y se muestra literal (nodos de React; en
   `apps/web/src/pages/tienda-publica/` no hay `dangerouslySetInnerHTML`). Un `<script>` escrito en el formulario no se
   interpreta.
-- **IP no persistida**: la tabla guarda el hash (`visitante`), nunca la IP.
+- **IP no persistida**: la tabla guarda el HMAC (`visitante`), nunca la IP ni un hash enumerable (MSF-945).
 - **Sin datos internos en las respuestas**: `ok | invalido | limite | error` en el formulario y `ok | limite | error` en
   WhatsApp, sin ids de organización, costos, existencias, IP ni hash. Las fallas internas se registran en el log del
   servidor solo con `sqlstate`; al anónimo le llega el error genérico.
@@ -748,6 +878,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 | `20261212120700_tienda_contacto.sql` (F-TDA-16) | columna `dominio.empresas.horarios` (+ check ≤ 200 y `grant update`); tabla `dominio.tienda_envios` + RLS + índices + `unique`; `private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`, `private.validar_contacto_tienda`, `private.entregar_a_bandeja`; `publico.contacto_por_dominio` y `publico.enviar_consulta_contacto` con sus `grant`s | `drop function` de las funciones públicas y privadas, `drop table dominio.tienda_envios` y `alter table dominio.empresas drop column horarios` — nada se destruye en el mismo PR que lo crea. |
 | `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16) | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
 | `20261212121000_tienda_whatsapp.sql` (F-TDA-14) | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
+| `20270323100200_tienda_envios_visitante_hmac.sql` (MSF-945) | secreto `visitante_hmac` en Vault; `private.hmac_visitante`, `private.inicializar_visitante_hmac`; `private.visitante_hash` con HMAC; política `tienda_envios_select` por sección; hashes viejos a `legado` | ver el encabezado de la migración y «Lote 1 de deuda técnica» |
 
 **Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
 `private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
@@ -780,6 +911,14 @@ detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el 
 Épica MSF-149 (spec `20270125-100000-tienda-seo-legal-y-estados`). Debajo de los datos de la ficha
 (`/producto/:productoId`) aparece «Productos relacionados»: hasta **4** productos efectivamente visibles de la
 **misma categoría**, sin el actual, destacados primero y luego por nombre (D2 de la spec).
+
+**Relacionados manuales (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`)**: si el producto tiene
+«Productos relacionados» cargados en el panel (`dominio.producto_relacionados`, F-CAT-18), la ficha muestra
+**esos primero, en su orden (con empate de `orden`, por id)**, hasta 4 y solo los efectivamente visibles en esa tienda
+(`private.catalogo_tienda_efectivo`: ocultos, inactivos o no asignados a la empresa se omiten); si faltan para
+llegar a 4 se completa con la regla por categoría de arriba, sin repetirlos. Un producto sin categoría con
+manuales visibles los devuelve. Mismo contrato de salida y mismos grants; los vínculos se filtran por la
+organización de la tienda. Reversión: restaurar el cuerpo de `20270212100003_tienda_relacionados.sql`.
 
 | Capa | Dónde |
 |---|---|
@@ -868,9 +1007,9 @@ Deuda real trazada como seguimiento:
 
 | Sev. | Hallazgo | Tratamiento |
 |---|---|---|
-| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | Seguimiento MSF-796: exigir en la política que la ruta no esté referenciada, o mover la limpieza al servidor. |
-| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | Seguimiento MSF-797: `check` contra rangos no públicos. |
-| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | Seguimiento MSF-797: cerrar el `Deno.Conn` al vencer. |
+| P2 | La política de borrado del bucket `tienda-identidad` deja a un editor borrar objetos que una versión restaurable aún referencia; `rutas_tienda_sin_referencia` es solo consejo del cliente. | **Resuelto (MSF-796, Lote 1 de MSF-515)**: la política de borrado exige que la ruta no esté referenciada (ver «Lote 1 de deuda técnica»). |
+| P3 | `tienda_dns_plataforma.ip_publica` solo valida el formato (admite loopback/privadas/octetos > 255). La carga el equipo técnico por SQL. | **Resuelto (MSF-797)**: CHECK contra rangos no públicos. |
+| P3 | El timeout de 5 s de la comprobación TLS no cierra el socket colgado (acotado por 1 verificación cada 10 s). | **Resuelto (MSF-797)**: la conexión se cierra siempre (`tls.ts`). |
 | P3 | El bucket es público: logos y banners de un borrador o versión vieja son legibles por quien conozca la ruta (lleva UUID, no adivinable). | Aceptado y documentado: no son confidenciales a nivel de almacenamiento. |
 
 ### Operación y reversión
@@ -939,7 +1078,7 @@ Visión de conjunto de la épica; el detalle de cada historia está en las secci
 | Historia | Pieza | Esquema | Quién la ejecuta |
 |---|---|---|---|
 | F-TDA-19 (MSF-247) | `publico.estado_tienda_por_dominio(host)`: marca de la tienda **desactivada** | `publico` (función) | `anon`, `authenticated` |
-| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4 de la misma categoría | `publico` (función) | `anon`, `authenticated` |
+| F-TDA-20 (MSF-263) | `publico.relacionados_por_dominio(host, producto)`: hasta 4; primero los relacionados manuales del panel (MSF-846) y luego la regla por categoría | `publico` (función) | `anon`, `authenticated` |
 | F-TDA-21 (MSF-279) | `publico.seo_tienda_por_dominio(host)` y `publico.sitemap_por_dominio(host)` | `publico` (funciones) | `anon`, `authenticated` |
 | F-TDA-22 (MSF-289) | `publico.legal_por_dominio(host)` y la tabla `dominio.tienda_legal_enlaces` | tabla en **`dominio`** (dato del producto atado a una empresa, Principio VII), función en `publico` | tabla: solo `select` a `authenticated` con RLS por organización, sin privilegios para `anon`; función: `anon` |
 
@@ -982,7 +1121,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 | # | Supuesto adoptado | Cómo cambiarlo |
 |---|---|---|
 | D1 | La marca de una tienda desactivada es pública; el dominio desconocido sigue sin revelar nada. | Dejar de llamar a la función desde `SinTienda` y vuelve la pantalla genérica. |
-| D2 | Relacionados: hasta 4 visibles de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
+| D2 | Relacionados: hasta 4 visibles; primero los manuales del panel (MSF-846, en su orden) y luego, para completar, los de la misma categoría, sin el actual, destacados primero y luego por nombre. | Cambiar solo `publico.relacionados_por_dominio`. |
 | D3 | SEO básico: título, descripción, canónica, Open Graph, JSON-LD (organización y producto), `robots.txt`, `sitemap.xml` y `noindex` en páginas de estado, cuenta y búsqueda. | Fuera de alcance: campos SEO por producto, hreflang, analítica. |
 | D4 | La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender. | Otra historia (prerender o HTML desde la Edge Function). |
 | D5 | Los enlaces legales los carga el equipo técnico por SQL. | Otra historia, dentro de Empresas. |
@@ -994,7 +1133,7 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 
 1. «Volvemos pronto» figura P0 en F-TDA-01 y P1 en F-TDA-19: la versión mínima ya estaba; esta épica agrega la identidad.
 2. El interruptor «Store activa» ya existe en el panel (F-EMP-04); acá solo se verifica su efecto en la tienda, sin rediseñar esa pantalla.
-3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano; se aplica la regla D2 y se mantienen «Sin imagen» / «Sin stock».
+3. El prototipo de «Productos relacionados» muestra tarjetas elegidas a mano: desde MSF-846 van primero los relacionados manuales del panel y luego se completa con la regla D2 (misma categoría); se mantienen «Sin imagen» / «Sin stock».
 4. Aviso de cookies, SEO y bloque legal no tienen pantalla en el prototipo: se construyen con los componentes del template y los tokens de la tienda.
 
 ### Migraciones y reversión
@@ -1139,18 +1278,80 @@ contacto de la empresa del host.
   del panel (sin layout) se dibuja como antes.
 - **Encabezado y categorías**: fila de marca (logo a la izquierda; sin logo, el nombre en texto), buscador (flexible: hasta 560 px desde `md`, se encoge si falta
   lugar para que «Inicio» / «Contacto» no pasen a otra fila; campo de 44 px con botón de lupa en el color primario) y «Inicio» / «Contacto» (`nav` «Principal»); debajo, la barra de categorías
-  (`layout/MenuCategorias`) en mayúsculas, 15 px, 600, subrayado de 3 px en la activa (primario). Conserva el tope de 6 principales +
+  (`layout/MenuCategorias`) 15 px, 600, subrayado de 3 px en la activa (primario); en mayúsculas con `.04em` salvo que la identidad apague «Títulos del menú y botones en mayúsculas» (MSF-848). Conserva el tope de 6 principales +
   «Más categorías» de MSF-825. Sin categorías no hay barra. El menú de celular (`MenuMovil`) no cambió.
-- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo en blanco (`filter: brightness(0) invert(1)`; **subí el logo en PNG/SVG con fondo transparente**: con fondo sólido se ve un recuadro blanco; la pestaña Identidad lo avisa) o el nombre, eslogan,
+- **Pie oscuro** (`layout/PieCategorias`): fondo `colorBarra`, logo con sus colores sobre un recuadro blanco redondeado de 44 px de alto (MSF-849; sirve con fondo transparente u opaco; antes se invertía a blanco y un PNG de fondo opaco quedaba como un bloque sólido sin marca) o el nombre, eslogan,
   el texto del pie configurado (`contenido.pie`, ahora en todas las páginas y no solo en la portada; `secciones/PieTienda` queda solo para la
   vista previa), columnas Categorías, Información (páginas de contenido), Contacto (WhatsApp, correo, «Escribinos»), el bloque legal y la
   línea «© año {empresa}. Todos los derechos reservados.» (el nombre sale de la tienda). El texto del pie no se atenúa con opacidad (contraste
   AA sobre `colorBarra`); el texto secundario del tema se calcula para llegar a 4,5:1 sobre el fondo y sobre la superficie de las tarjetas.
 - **Tarjetas de categoría con foto** (`secciones/CategoriasInicio`): la ruta `imagen` de `categorias_por_dominio` se firma con
   `urlsImagenesProducto` (una sola llamada por bloque; el bucket es privado) y se muestra en un recuadro de 120 px; sin foto o si no se
-  pudo firmar, el recuadro neutro. La vista previa del panel no trae `imagen` (`vista_previa_tienda` no la calcula): muestra el recuadro
+  pudo firmar, el recuadro neutro. Desde MSF-846 (`20270305100100_tienda_vista_previa_categorias_imagen.sql`) la vista previa del panel
+  (`vista_previa_tienda`) también trae `imagen`, calculada sobre los productos efectivos del borrador, y el panel muestra la foto; sin foto, el recuadro
   neutro.
 - **Bloque «Consultas por WhatsApp / Escribinos»** (`secciones/ConsultasInicio`, final de la portada): ícono + WhatsApp de la tienda y
   «Escribinos» (a `/contacto`, con el correo si lo hay); sin WhatsApp, solo «Escribinos»; un WhatsApp que no se puede llevar a dígitos se muestra como texto, sin enlace. No se muestra en la vista previa (no lee `publico.*`).
 - **Diferencias conocidas con el prototipo**: la franja oscura del héroe de la portada no es del layout sino de los banners configurados
   (`BannerHome`); la tarjeta de producto y la ficha no se tocaron en este tramo; el menú de celular no tiene el logo ni el buscador como ícono; las categorías sin productos no se muestran (el prototipo trae «Skins y calcos, 0 productos»); en celular el encabezado pone la marca a la izquierda y el menú a la derecha (el prototipo: menú a la izquierda, logo al centro, lupa a la derecha).
+- **«Mi cuenta» (F-CLI-20, MSF-452)**: con la bandera `tienda_pedidos` encendida, el encabezado suma «Mi cuenta» para la cuenta web activa, la ficha suma «Guardar en favoritos» y la ruta `/mi-cuenta` lista compras, presupuestos y favoritos. `rutas/ingresar` acepta `?volver=` solo con rutas internas. Ver `docs/tienda-compra-y-cuentas.md`.
+- **Lista de pedido sin cobro (B1, MSF-176)**: con la bandera `tienda_pedidos` encendida, la ficha suma «Agregar a la lista» (y «Ya tenés n en tu lista · Ver lista»), el encabezado «Mi lista (n)», el menú móvil «Mi lista» (con cuenta activa) y «Mi cuenta › Favoritos» «Agregar a la lista»; la ruta `/lista` revalida la lista con el servidor (precio de referencia = el que se ve en la tienda; con cuenta, la escala por cantidad), pide nombre y contacto (con cuenta, no) y la envía **sin pagar**: llega a Consultas como «Pedido» con sus ítems. La lista vive en el navegador (solo `producto_id` y cantidad). Con la bandera apagada no se ve nada y `/lista` es la 404. Ver `docs/tienda-compra-y-cuentas.md`.
+- **Presupuesto desde la tienda (B2, MSF-176)**: con una cuenta activa, la lista suma «Pedir presupuesto»: un diálogo con la **cotización del servidor** (tu escala, tu descuento y las promociones vigentes, con IVA) y, al confirmar, un presupuesto **pendiente** en Ventas (canal tienda online) que el equipo acepta o modifica; **no reserva stock ni cobra nada**. Tope de 5 por día y 10 abiertos por cuenta; reintentar no duplica. Detalle y seguridad en `docs/tienda-compra-y-cuentas.md`.
+- **Opiniones de productos (MSF-467)**: con la bandera `tienda_opiniones` encendida (apagada por defecto, solo dev), la ficha suma el bloque «Opiniones» (promedio, cantidad y las opiniones aceptadas por tandas), un cliente con sesión deja, edita y borra la suya (siempre pasa por moderación previa) desde la ficha y desde la pestaña «Mis opiniones» de «Mi cuenta»; con la bandera apagada la ficha y «Mi cuenta» no cambian. Guía: [`docs/tienda-opiniones.md`](./tienda-opiniones.md).
+
+## Lote 1 de deuda técnica: seguridad e integridad de la tienda pública (MSF-515)
+
+Spec: `specs/20270323-100000-deuda-tecnica-lote-1-seguridad-tienda/`. Cierra tres seguimientos de la revisión de seguridad
+de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nuevas.
+
+### Archivos de identidad: no se borra lo que una versión referencia (MSF-796)
+
+- La política `tienda_identidad_objetos_delete` de `storage.objects` exige, además de organización propia y edición en
+  Empresas, que `private.ruta_identidad_referenciada(name)` sea falsa: la ruta no puede ser el logo, el banner o el banner móvil de
+  la **identidad publicada**, del **borrador** ni de **ninguna versión** (todas las versiones guardadas: ninguna regla poda `tienda_versiones`; el listado del panel muestra solo las últimas 100, pero las más viejas siguen existiendo y siguen protegiendo sus archivos). La
+  regla vive en la base: vale también para quien llame a la Storage API directo.
+- El panel no cambia: sigue usando `storage.remove` y `public.rutas_tienda_sin_referencia` (ahora solo para no pedir borrados
+  inútiles; desde `20270323100300` usa la misma función `private.ruta_identidad_referenciada`, así que la consejera y la política no pueden divergir). Un borrado que la política niega **no da error**: la Storage API simplemente no devuelve ese archivo como borrado.
+- Un archivo queda libre cuando lo deja de referenciar todo: se descarta el borrador, la identidad publicada ya no lo usa y **ninguna
+  versión lo guarda**. Como las versiones no se podan, un archivo que alguna vez se publicó queda protegido mientras exista esa versión
+  (el listado del panel muestra solo las últimas 100, pero las anteriores siguen protegiendo sus archivos).
+- Reversión: restaurar la política de `20261023100100`, reponer el cuerpo de `rutas_tienda_sin_referencia` de `20270205110100` y `drop function private.ruta_identidad_referenciada(text)`.
+
+### IP pública de la plataforma y cierre del socket TLS (MSF-797)
+
+- **CHECK** `tienda_dns_plataforma_ip_publica` (`private.ip_publica_valida`): cuatro octetos 0–255 sin ceros a la izquierda y fuera de
+  `0.0.0.0/8`, `10/8`, `100.64/10`, `127/8`, `169.254/16`, `172.16/12`, `192.0.0/24`, `192.0.2/24`, `192.168/16`, `198.18/15`, `224/4` y `240/4`.
+  **Se admiten a propósito `198.51.100.0/24` y `203.0.113.0/24`** (TEST-NET-2 y -3): la migración de la tienda siembra `203.0.113.24`
+  como valor de documentación en cada entorno nuevo y los tests lo usan; no son enrutables, así que no llegan a ninguna red interna. Hay
+  que reemplazarlos por la IP real de cada entorno (la de dev, `212.90.120.53`, es pública y cumple). El CHECK se crea `NOT VALID` y se intenta validar:
+  si una fila de algún entorno ya tuviera una IP no pública, la migración avisa (`raise warning`) y no frena la cola; se corrige la fila y se corre
+  `alter table public.tienda_dns_plataforma validate constraint tienda_dns_plataforma_ip_publica`.
+- **RPC**: `preparar_verificacion_tienda` con una IP no pública responde `plataforma_no_configurada` (22023) sin gastar el límite de 10 s
+  y la Edge Function devuelve **503** `plataforma_no_configurada` sin consultar DNS ni abrir conexiones (el panel muestra «La plataforma todavía no tiene configurada su IP pública para verificar dominios. Avisá a soporte.»); `obtener_dominio_tienda` no muestra el
+  registro A.
+- **Socket colgado**: la comprobación TLS (`supabase/functions/verificar-dominio-tienda/tls.ts`) cierra siempre la conexión TCP/TLS: al terminar,
+  al vencer los 5 s y también si la conexión llega después del vencimiento. Test: `tls.test.ts` (`pnpm test:edge:verificar-dominio-tienda`).
+- Reversión: `drop constraint tienda_dns_plataforma_ip_publica`, reponer las dos RPC de `20270205110000` y `drop function private.ip_publica_valida(text)`.
+
+### Visitante de los envíos con HMAC y lectura por sección (MSF-945, hallazgo H-1 de T070)
+
+- **Antes de encender `tienda_pedidos` fuera de dev** (la bandera de pedidos y presupuestos que usa el mismo cupo): aplicar esta migración.
+- `private.visitante_hash` pasó de `sha256(ip|empresa)` a **HMAC-SHA256** con el secreto `visitante_hmac` de **Supabase Vault**, el mismo
+  mecanismo que `acceso_hmac` (MSF-470). La migración lo **genera por entorno** con `gen_random_bytes(32)`; nunca está en Git. Se migra con el rol
+  `postgres` (que ve `vault.secrets`). Si el secreto faltara, el envío se rechaza (falla cerrada; no vuelve al hash sin clave).
+- **Hashes existentes**: no se pueden recalcular (la IP no se guarda) y un sha256 sin clave es enumerable, así que se **reemplazan por `legado`** al
+  crear el secreto (solo esa vez). Costo conocido: quien ya había usado cupo en la última hora vuelve a tener 5 envíos; las claves de idempotencia
+  (`clave_envio`) se conservan.
+- **Lectura**: `tienda_envios_select` exige organización propia, empresa accesible (`private.empresas_accesibles()`) y **edición en Empresas** (antes, cualquier rol
+  de la organización). Ningún lugar del panel ni de los workers lee la tabla.
+- **IP ↔ cuenta de cliente**: `dominio.presupuestos_tienda` guarda `(cuenta_cliente_id, clave_envio)` y `tienda_envios` guarda `(empresa_id, clave_envio, visitante)`. Tras
+  el cambio el visitante es un HMAC no invertible: **no hay camino a la IP**, ni con una copia de la base. Queda un vínculo **opaco** (la misma persona/IP compartió el mismo
+  token de visitante), visible mientras la fila exista (se poda a las 24 h por empresa al registrar un envío nuevo de esa empresa; una empresa sin tráfico las conserva) y solo para quien tenga edición en Empresas **y** lectura de Ventas. No se desacopló la clave porque el
+  reintento de `enviar_lista_pedido` consulta `tienda_envios` por la clave cruda.
+- **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
+  y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
+- Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
+
+### Lote 3 de deuda técnica: visitante público con HMAC y poda global de envíos (MSF-946, MSF-947)
+
+`private.visitante_publico` (límite de búsquedas y de pedidos públicos de la tienda) deja de usar `sha256(ip|host)` sin clave, que se enumera probando las IPv4, y pasa a HMAC-SHA256 con el secreto `visitante_hmac` de Vault, el mismo de MSF-945. Misma firma y misma entrada; los cupos en curso se reinician una vez porque cambia la clave. Además `private.registrar_envio_tienda` poda en cada registro, hasta 500 filas por vez, lo vencido (más de 24 h) de cualquier empresa y no solo de la que envía, con el índice `tienda_envios_creado_idx`. Migración `20270324120000`; prueba pgTAP `tienda_visitante_publico_hmac_msf946.test.sql`.

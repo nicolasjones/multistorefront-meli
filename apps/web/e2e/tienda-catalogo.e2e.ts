@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-12 (MSF-355, SC-006 de la épica MSF-167): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost) el menú lleva a la categoría; los filtros, el orden y la carga infinita cambian el
@@ -7,14 +8,6 @@ import { expect, test } from '@playwright/test'
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin desde
 // Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de tienda: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
@@ -31,24 +24,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar<T>(tabla: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -60,6 +38,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('menú → categoría, filtros, orden, carga infinita y URL compartible', async ({ browser }) => {
+    test.setTimeout(90_000) // siembra de productos masivos y filtros, orden y carga infinita en dos tiendas
     const sufijo = randomUUID().slice(0, 8)
     const tiendas = TIENDAS.map((t, i) => ({
       ...t,
@@ -75,10 +54,10 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
 
     try {
       for (const t of tiendas) {
-        const [categoria, masiva] = await insertar<{ id: string }>('categorias', [
+        const [categoria, masiva] = await rest<{ id: string }>('categorias', [
           { organizacion_id: t.organizacion, nombre: t.categoria },
           { organizacion_id: t.organizacion, nombre: t.masiva },
-        ])
+        ], 'dominio')
         t.categoriaId = categoria.id
         t.masivaId = masiva.id
 
@@ -96,8 +75,8 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
           organizacion_id: t.organizacion, nombre: `${t.masiva} ${String(n + 1).padStart(2, '0')}`,
           sku: `E2E-M-${t.indice}-${n}-${sufijo}`, precio_lista: 100 + n, moneda: 'ARS', categoria_id: masiva.id,
         }))
-        const productos = await insertar<{ id: string; nombre: string }>('productos', [...base, ...masivos])
-        await insertar('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })))
+        const productos = await rest<{ id: string; nombre: string }>('productos', [...base, ...masivos], 'dominio')
+        await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
         // La fila de existencias nace con el producto (trigger) en 0.
         await actualizar('existencias', `producto_id=eq.${productos.find((p) => p.nombre === t.barato)!.id}`, { cantidad: 5 })
         await actualizar('existencias', `producto_id=eq.${productos.find((p) => p.nombre === t.caro)!.id}`, { cantidad: 2 })
@@ -113,7 +92,7 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
 
         // Menú → categoría: solo sus 3 productos, con precio y disponibilidad.
         await page.goto(`${base}/`)
-        await page.getByRole('navigation', { name: 'Categorías' }).getByRole('link', { name: t.categoria }).click()
+        await page.getByRole('navigation', { name: 'Categorías', exact: true }).getByRole('link', { name: t.categoria }).click()
         await expect(page.getByRole('heading', { level: 1, name: t.categoria })).toBeVisible()
         await expect(contador).toHaveText('3 productos')
         await expect(tarjetas).toHaveCount(3)
@@ -137,7 +116,13 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
         await campo.fill('2500')
         await campo.press('Enter')
         await expect(contador).toHaveText('2 productos')
-        await page.getByRole('combobox', { name: 'Ordenar por' }).click()
+        // MSF-849: foco de teclado visible (Tab real) en «Ordenar por»: contorno sólido de 2 px (el selector de MUI solo mostraba una onda).
+        await page.getByRole('button', { name: 'Limpiar filtros' }).focus()
+        await page.keyboard.press('Tab')
+        const orden = page.getByRole('combobox', { name: 'Ordenar por' })
+        await expect(orden).toBeFocused()
+        await expect.poll(() => orden.evaluate((el) => { const s = getComputedStyle(el); return `${s.outlineStyle} ${s.outlineWidth}` })).toBe('solid 2px')
+        await orden.click()
         await page.getByRole('option', { name: 'Mayor precio' }).click()
         await expect(tarjetas.first()).toContainText(t.medio)
         await expect(tarjetas.last()).toContainText(t.barato)
@@ -207,8 +192,8 @@ test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
     } finally {
       // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
       for (const t of tiendas) {
-        await borrar('productos', `organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`)
-        await borrar('categorias', `organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`)
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
       }
     }
   })

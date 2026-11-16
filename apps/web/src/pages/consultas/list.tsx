@@ -16,7 +16,7 @@ import {
   ETIQUETA_ORIGEN_CONSULTA,
   TAMANO_PAGINA_CONSULTAS,
   formatearCuando,
-  nombreProducto,
+  textoProductoConsulta,
   revisionConsultas,
   suscribirCambioConsultas,
   type Consulta,
@@ -169,7 +169,7 @@ export function ConsultaList() {
       render: (consulta) => (
         <Stack direction="row" spacing={1} alignItems="center">
           {consulta.producto_id ? <MiniaturaProducto alt="" src={imagenes.get(consulta.producto_id)} /> : null}
-          <span>{nombreProducto(consulta)}</span>
+          <span>{textoProductoConsulta(consulta)}</span>
         </Stack>
       ),
     },

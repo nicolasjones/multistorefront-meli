@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-seguimiento-y-reportes
+  - apps/web/src/lib/reparacionAdjuntos.ts
+---
+
 # Service técnico · Fotos y adjuntos del equipo (F-SVC-20)
 
 Historia **MSF-134**, épica **MSF-124** · spec en `specs/20261028-100000-service-seguimiento-y-reportes/`

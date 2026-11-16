@@ -55,7 +55,14 @@ export function pluralizar(cantidad: number, singular: string, plural: string): 
 // Alertas accionables (F-INI-02, MSF-361). Se leen de `public.alertas_inicio_visibles` (security_invoker: la
 // base deja pasar solo las secciones con ≥ lectura y las empresas accesibles). El enlace de cada alerta sale
 // de una lista cerrada por tipo en el cliente (FR-025): lo que venga en la columna `enlace` nunca se usa como ruta.
-export type TipoAlerta = 'sin_stock' | 'stock_bajo' | 'consultas_sin_atender' | 'dolar_sin_cargar' | 'margen_negativo'
+export type TipoAlerta =
+  | 'sin_stock'
+  | 'stock_bajo'
+  | 'consultas_sin_atender'
+  | 'dolar_sin_cargar'
+  | 'margen_negativo'
+  | 'cobros_pendientes'
+  | 'faltantes'
 
 export type AlertaInicio = {
   id: string
@@ -71,6 +78,8 @@ export const ENLACE_ALERTA: Record<TipoAlerta, string> = {
   consultas_sin_atender: '/consultas',
   dolar_sin_cargar: '/cotizacion',
   margen_negativo: '/rentabilidad/productos',
+  cobros_pendientes: '/ventas/comprobantes',
+  faltantes: '/stock/faltantes',
 }
 
 const ORDEN_ALERTA = Object.keys(ENLACE_ALERTA) as TipoAlerta[]
@@ -122,5 +131,7 @@ export function textoAlerta(tipo: TipoAlerta, cantidad: number): string {
     case 'consultas_sin_atender': return pluralizar(cantidad, 'consulta nueva sin atender', 'consultas nuevas sin atender')
     case 'dolar_sin_cargar': return 'Todavía no se cargó el dólar de hoy'
     case 'margen_negativo': return pluralizar(cantidad, 'producto con margen negativo', 'productos con margen negativo')
+    case 'cobros_pendientes': return pluralizar(cantidad, 'cobro pendiente', 'cobros pendientes')
+    case 'faltantes': return pluralizar(cantidad, 'faltante avisado sin resolver', 'faltantes avisados sin resolver')
   }
 }

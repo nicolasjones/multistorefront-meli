@@ -2,24 +2,13 @@ import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, serviceKey, url, violacionesAxe } from './importaciones-soporte'
 import { clic, paso, prepararPaginaVisible } from './visible'
+import { cabeceras, rest } from './soporte/fixtures'
 
 // F-CFG-02 (MSF-385 · T015 · SC-003): el botón «Ayuda» abre un texto distinto y breve en tres pantallas distintas, se
 // cierra con el teclado y devuelve el foco. La ayuda es contenido estático: este test solo necesita una persona
 // administradora con sesión. Siembra con la API admin desde Node (la service-role key nunca llega al navegador); el guard de
 // «solo contra un Supabase local» lo aplica `importaciones-soporte.ts` al importarse.
 const password = 'Correcta-12345!'
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'POST', headers: cabeceras({ prefer: 'return=representation' }), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function borrar(destino: string) {
   const r = await fetch(destino, { method: 'DELETE', headers: cabeceras() })

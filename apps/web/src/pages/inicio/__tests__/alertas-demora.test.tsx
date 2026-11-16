@@ -33,7 +33,7 @@ describe('Aviso de demora de las alertas (FR-024)', () => {
   it('con un cálculo reciente no avisa demora', async () => {
     mocks.calculo.mockResolvedValue(hace(5 * 60_000))
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
-    await screen.findByText('Sin alertas')
+    await screen.findByText('Todo al día')
     expect(screen.queryByText(/pueden estar desactualizadas/)).not.toBeInTheDocument()
   })
 
@@ -46,10 +46,10 @@ describe('Aviso de demora de las alertas (FR-024)', () => {
     expect(aviso.textContent).toMatch(/\d{2}:\d{2}/)
   })
 
-  it('si nunca se calcularon avisa que todavía no hay cálculo y no afirma «Sin alertas»', async () => {
+  it('si nunca se calcularon avisa que todavía no hay cálculo y no afirma «Todo al día»', async () => {
     mocks.calculo.mockResolvedValue(null)
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
     expect(await screen.findByText('Todavía no se calcularon las alertas.')).toBeInTheDocument()
-    expect(screen.queryByText('Sin alertas')).not.toBeInTheDocument()
+    expect(screen.queryByText('Todo al día')).not.toBeInTheDocument()
   })
 })

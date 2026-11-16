@@ -76,7 +76,7 @@ export function useOpcionesDimension({ busquedaProducto, habilitado = true }: { 
     const cargar = async () => {
       let resultado: { data: Array<{ provincia: string | null }> | null; error: unknown }
       try {
-        resultado = await supabaseClient.from('clientes').select('provincia').not('provincia', 'is', null).limit(MAX_CLIENTES_PROVINCIA)
+        resultado = await supabaseClient.schema('dominio').from('clientes').select('provincia').not('provincia', 'is', null).limit(MAX_CLIENTES_PROVINCIA)
           .returns<Array<{ provincia: string | null }>>()
       } catch (excepcion) {
         resultado = { data: null, error: excepcion }

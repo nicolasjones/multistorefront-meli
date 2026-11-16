@@ -57,4 +57,15 @@ describe('SelectorEmpresas', () => {
     expect(screen.getByText('La organización todavía no tiene empresas cargadas.')).toBeInTheDocument()
     expect(screen.getByText('Sin empresas no hay nada que elegir.')).toBeInTheDocument()
   })
+
+  it('en modo una sola empresa, marcar otra reemplaza la selección y desmarcar la vacía', () => {
+    const onCambiar = vi.fn()
+    const { rerender } = render(<SelectorEmpresas {...base} unica seleccion={['e-1']} onCambiar={onCambiar} />)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mundo JC' }))
+    expect(onCambiar).toHaveBeenLastCalledWith(['e-2'])
+
+    rerender(<SelectorEmpresas {...base} unica seleccion={['e-1']} onCambiar={onCambiar} />)
+    fireEvent.click(screen.getByRole('checkbox', { name: 'San Javucho' }))
+    expect(onCambiar).toHaveBeenLastCalledWith([])
+  })
 })

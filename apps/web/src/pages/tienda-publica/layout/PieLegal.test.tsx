@@ -3,6 +3,9 @@ import { violacionesAxe } from '../../../test/axe'
 import { describe, expect, it } from 'vitest'
 import { BloqueLegal } from './PieLegal'
 
+// El esquema se arma en dos partes para no tener el literal «javascript:» (regla no-script-url de oxlint).
+const JS = 'java' + 'script:'
+
 const completo = {
   razonSocial: 'Uno A S.A.',
   cuit: '30711111114',
@@ -23,6 +26,13 @@ describe('BloqueLegal (FR-032)', () => {
       expect(e).toHaveAttribute('rel', 'noopener noreferrer')
     }
     expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('no muestra un enlace que no es http(s) ni uno sin esquema explícito', () => {
+    render(<BloqueLegal legal={{ ...completo, enlaces: [
+      { titulo: 'Malo', url: `${JS}alert(1)` }, { titulo: 'Sin esquema', url: '//evil.example.com/x' }, { titulo: 'Bueno', url: 'https://uno.ejemplo.com/b' },
+    ] }} />)
+    expect(within(screen.getByTestId('pie-legal')).getAllByRole('link').map((e) => e.textContent)).toEqual(['Bueno'])
   })
 
   it('omite los datos ausentes', () => {

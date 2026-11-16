@@ -46,6 +46,17 @@ module.exports = {
       /^(Especificar la épica MSF-363: precios masivos y promociones \(F-PRE-10 y F-PRE-11\)|Completar la verificación nombrada de cada requisito de la spec MSF-363|Nombrar la verificación de cada tarea dueña de requisito en tasks.md de MSF-363)(\r?\n|$)/.test(
         message || "",
       ),
+    // Integración main -> dokploy: 7 commits que solo existían en `main` y no cumplen la regla (4 sin `type:`, 1 con
+    // `type: design`, 3 con título de más de 100 caracteres, uno de ellos también sin `type:`). Ya están publicados en
+    // `main`; reescribirlos exigiría forzar el push. Se exceptúa cada título EXACTO (no un patrón) para no abrir la regla.
+    (message) =>
+      /^(Verificación nombrada por cada requisito de la spec de mejoras de clientes y proveedores \(MSF-445\)|Spec de mejoras de clientes y proveedores \(MSF-445\): etiqueta, fusión, costos y contactos|merge main en docs\/msf-117 \(manifest regenerado\))(\r?\n|$)/.test(
+        message || "",
+      ),
+    (message) =>
+      /^(design: AdminHeader con modo oscuro \(v25\)|fix\(calidad\): gitleaks robusto \(config relativa \+ guard\), quitar \$schema de jscpd, job no bloqueante a nivel step|chore\(calidad\): checks deterministas \(F1\) — secretos, SAST, dead code, duplicación, arquitectura, versiones|docs\(specs\): el prototipo es la referencia visual — 'lo más fiel posible' \(no 'no hace falta que quede idéntico'\))(\r?\n|$)/.test(
+        message || "",
+      ),
   ],
   rules: {
     "type-enum": [

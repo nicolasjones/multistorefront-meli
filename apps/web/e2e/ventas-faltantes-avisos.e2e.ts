@@ -3,14 +3,14 @@ import { ANCHOS, desborde, ingresar, limpiar, sembrar, serviceKey, UUID, url, vi
 import { clic, escribir, paso, prepararPaginaVisible } from './visible'
 
 // F-VTA-26 (MSF-257 · épica MSF-161): avisar a los clientes con faltantes desde /ventas/faltantes.
-// CA-VTA-26-1: dos faltantes con correo, se edita el texto, se envía y ambos quedan «Avisado» con fecha.
+// CA-VTA-26-1: dos faltantes con correo, se edita el texto, se envía y ambos quedan «En cola» (el correo sale en el próximo barrido; pasan a «Avisado» con fecha cuando sale).
 // CA-VTA-26-2: un cliente sin correo → «El cliente no tiene correo» y sin marca.
 // SC-001 y SC-002: axe sin violaciones y sin desborde horizontal a 320, 768 y 1440 px, operable con teclado y
 // sin identificadores técnicos visibles. Requiere el stack local (ver `ventas-faltantes-soporte.ts`).
 test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('[MSF-257:CA-VTA-26-1] elige dos faltantes con correo, edita el texto y los deja «Avisado» con fecha', async ({ browser }, testInfo) => {
+  test('[MSF-257:CA-VTA-26-1] elige dos faltantes con correo, edita el texto y los deja «En cola»', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     let datos: Sembrado | undefined
     const sesion = await abrirContextoGrabado(browser, testInfo)
@@ -38,12 +38,12 @@ test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
         const dialogo = page.getByRole('dialog', { name: 'Avisar a los clientes' })
         await escribir(page, dialogo.getByRole('textbox', { name: 'Texto del aviso' }), 'Ya llegó lo que pediste: pasá cuando quieras.')
         await clic(page, dialogo.getByRole('button', { name: 'Enviar avisos' }))
-        await expect(page.getByText('Avisos enviados.')).toBeVisible()
+        await expect(page.getByText('Avisos en cola.')).toBeVisible()
         await expect(page.getByRole('dialog')).toHaveCount(0)
       })
 
-      await paso(page, 'Ambos faltantes quedan «Avisado» con fecha', async () => {
-        await expect(page.getByText(/Avisado · \d{2}\/\d{2}\/\d{4}/)).toHaveCount(2)
+      await paso(page, 'Ambos faltantes quedan «En cola»', async () => {
+        await expect(page.getByText('En cola', { exact: true })).toHaveCount(2)
         await expect(page.getByText('Sin avisar')).toHaveCount(0)
       })
     } finally {
@@ -66,7 +66,8 @@ test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
       await clic(page, page.getByRole('checkbox', { name: /Seleccionar Funda Sincorreo/ }))
       await clic(page, page.getByRole('button', { name: 'Avisar a los seleccionados (1)' }))
       await clic(page, page.getByRole('dialog', { name: 'Avisar a los clientes' }).getByRole('button', { name: 'Enviar avisos' }))
-      await expect(page.getByText('No se enviaron avisos. El cliente no tiene correo.')).toBeVisible()
+      // El aviso nombra al cliente sin correo (FR-005).
+      await expect(page.getByText('No se enviaron avisos. El cliente no tiene correo: Carla Sincorreo.')).toBeVisible()
       await expect(page.getByText('Sin avisar')).toBeVisible()
       await expect(page.getByText(/Avisado/)).toHaveCount(0)
     } finally {
@@ -92,7 +93,7 @@ test.describe('Ventas · avisos de faltantes (MSF-257, F-VTA-26)', () => {
           await page.setViewportSize({ width: ancho, height: 900 })
           await page.goto('/ventas/faltantes')
           await expect(page.getByText('Teclado A11y')).toBeVisible()
-          expect(await desborde(page)).toBeLessThanOrEqual(1)
+          expect(await desborde(page), `desborde horizontal a ${ancho} px`).toBeLessThanOrEqual(1)
           expect(await violacionesAxe(page)).toEqual([])
         })
       }

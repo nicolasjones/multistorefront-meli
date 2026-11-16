@@ -39,7 +39,7 @@ describe('marcarIdentificadoresRepetidos', () => {
   })
 })
 
-describe('filas con más columnas que el encabezado (MSF-699)', () => {
+describe('filas con más columnas que el encabezado', () => {
   const resultados: ResultadoFila[] = [
     { fila: 2, estado: 'nueva', motivo: null },
     { fila: 3, estado: 'nueva', motivo: null },

@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   montajes: vi.fn(),
   propsReporte: { current: null as null | { reporteId: string; alFallar?: (motivo: 'prohibido' | 'no_disponible') => void } },
 }))
+vi.mock('../../hooks/useBanderaMargenCostosFijos', () => ({ useBanderaMargenCostosFijos: () => ({ activa: false, cargando: false }) }))
 vi.mock('../../hooks/useReportesAsignados', () => ({ useReportesAsignados: mocks.useReportesAsignados }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))

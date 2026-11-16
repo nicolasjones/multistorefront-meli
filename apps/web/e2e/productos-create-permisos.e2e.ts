@@ -8,8 +8,9 @@ import { paso, prepararPaginaVisible } from './visible'
 //    se conserva (el nodo marcado sigue siendo el mismo). Guardia de regresión: el simple «escribir enseguida» NO
 //    reprodujo la pérdida en el stack local (ver el PR); no es una prueba que falle sin arreglo.
 // 2) Seguridad: si el repedido de permisos falla con el formulario abierto, la UI NO sigue ofreciendo guardar: falla
-//    cerrada («No pudimos verificar tus permisos»). La prueba protege contra conservar el nivel anterior, que dejaría
-//    abierto el formulario con el permiso ya perdido.
+//    cerrada («No pudimos verificar tus permisos»). Desde MSF-855 el formulario sigue montado pero INERTE (con aviso y
+//    «Reintentar»); la prueba protege contra conservar el nivel anterior como vigente, que dejaría abierto el
+//    formulario con el permiso ya perdido. El flujo completo (borrador, reintento) está en `permisos-borrador.e2e.ts`.
 // Mismo stack y siembra que `importaciones.e2e.ts`; se omite sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.
 test.describe('Alta de producto: permisos que llegan tarde o fallan', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
@@ -78,10 +79,10 @@ test.describe('Alta de producto: permisos que llegan tarde o fallan', () => {
         await caido
       })
 
-      await paso(page, 'La pantalla falla cerrada: avisa y ya no ofrece guardar ni editar', async () => {
-        await expect(page.getByText('No pudimos verificar tus permisos.').first()).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Crear producto' })).toHaveCount(0)
-        await expect(page.getByLabel(/^Nombre/)).toHaveCount(0)
+      await paso(page, 'La pantalla falla cerrada: avisa y ya no ofrece guardar ni editar (formulario inerte)', async () => {
+        await expect(page.getByRole('note').filter({ hasText: 'No pudimos verificar tus permisos.' })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Crear producto' })).toBeDisabled()
+        await expect(page.getByLabel(/^Nombre/)).toBeDisabled()
       })
     } finally {
       await cerrarContextoGrabado(sesion.contexto, sesion.page, testInfo)

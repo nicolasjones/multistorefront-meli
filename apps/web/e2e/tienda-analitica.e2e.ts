@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { BrowserContext, Page } from '@playwright/test'
 import { expect, test } from './fixture'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // F-TDA-24 (MSF-315, SC-006 de la épica MSF-164): con los dos dominios del seed (mundojc.localhost y
 // sanjavucho.localhost), cada uno con SUS identificadores de medición: sin consentimiento (o con cookies
@@ -12,15 +13,8 @@ import { expect, test } from './fixture'
 // (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node
 // (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se
 // omite: ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const password = 'Correcta-12345!'
 
-// La service-role key escribe datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de analítica: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
+const password = 'Correcta-12345!'
 
 // Ids fijos de supabase/seed.sql (MSF-241) y los identificadores de medición de cada tienda.
 const TIENDAS = [
@@ -42,23 +36,9 @@ const cabeceras = (extra: Record<string, string> = {}) => ({
   ...extra,
 })
 
-async function insertar(tabla: string, cuerpo: unknown) {
-  const r = await fetch(`${url}/rest/v1/${tabla}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'resolution=merge-duplicates,return=minimal' }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-}
-
 async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
   const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
   if (!r.ok) throw new Error(`REST ${tabla}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(tabla: string, filtro: string) {
-  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${tabla} → ${r.status}`)
 }
 
 // Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
@@ -163,13 +143,13 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
           headers: cabeceras({ prefer: 'return=representation' }),
           body: JSON.stringify([{ organizacion_id: t.organizacion, nombre, sku: `E2E-A-${i}-${sufijo}`, precio_lista: 1000, moneda: 'ARS' }]),
         })).json()) as { id: string }[]
-        await insertar('producto_empresa', [{ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion }])
+        await rest('producto_empresa', [{ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion }], 'dominio', 'resolution=merge-duplicates,return=minimal')
         productos.set(t.host, { id: p.id, nombre })
       }
       for (const t of TIENDAS) {
-        await insertar('tienda_analitica', [{ empresa_id: t.empresa, organizacion_id: t.organizacion, ga4_id: t.ga4, meta_pixel_id: t.pixel }])
+        await rest('tienda_analitica', [{ empresa_id: t.empresa, organizacion_id: t.organizacion, ga4_id: t.ga4, meta_pixel_id: t.pixel }], 'dominio', 'resolution=merge-duplicates,return=minimal')
         // El cupo de consultas es por visitante y empresa; se parte de cero (como tienda-contacto.e2e.ts).
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
+        await borrar(`tienda_envios?empresa_id=eq.${t.empresa}`, 'dominio')
         await actualizar('empresas', `id=eq.${t.empresa}`, { whatsapp: '+54 9 11 5550-0000', correo: `analitica-${sufijo}@ejemplo.com`, horarios: `Horario ${sufijo}` })
       }
 
@@ -349,12 +329,12 @@ test.describe('Tienda online · analítica de visitas (SC-006)', () => {
         await bajaUsuario(usuarioPanel)
       }
       for (const p of productos.values()) {
-        await borrar('producto_empresa', `producto_id=eq.${p.id}`)
-        await borrar('productos', `id=eq.${p.id}`)
+        await borrar(`producto_empresa?producto_id=eq.${p.id}`, 'dominio')
+        await borrar(`productos?id=eq.${p.id}`, 'dominio')
       }
       for (const t of TIENDAS) {
-        await borrar('tienda_analitica', `empresa_id=eq.${t.empresa}`)
-        await borrar('tienda_envios', `empresa_id=eq.${t.empresa}`)
+        await borrar(`tienda_analitica?empresa_id=eq.${t.empresa}`, 'dominio')
+        await borrar(`tienda_envios?empresa_id=eq.${t.empresa}`, 'dominio')
       }
       // Sin huérfanos: ningún producto sembrado por esta corrida (nombre con su sufijo) debe quedar en la base.
       const restantes = await fetch(`${url}/rest/v1/productos?select=id&nombre=like.*${sufijo}*`, { headers: cabeceras() })

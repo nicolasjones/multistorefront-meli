@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material'
 import { lazy, Suspense, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCatalogoPublico } from '../../../hooks/useCatalogoPublico'
@@ -14,6 +15,7 @@ import {
   type FiltrosCatalogo,
 } from '../../../lib/tiendaListado'
 import { EstadoVacioCatalogo } from '../catalogo/EstadoVacio'
+import { GrillaProductos } from '../catalogo/GrillaProductos'
 import { Ordenar } from '../catalogo/Ordenar'
 import { PanelFiltros } from '../catalogo/PanelFiltros'
 import { TarjetaProducto } from '../catalogo/TarjetaProducto'
@@ -102,7 +104,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
   const categorias = ultimasCategorias.current
 
   return (
-    <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' }, alignItems: 'start' }}>
+    // Prototipo: panel lateral de 260 px, 40 px de separación y 56 px de aire antes del pie (celular: 24 px).
+    <Box sx={{ display: 'grid', gap: { xs: 2, md: '40px' }, gridTemplateColumns: { xs: '1fr', md: '260px minmax(0, 1fr)' }, alignItems: 'start', pb: { xs: '24px', md: '56px' } /* estilos-sueltos: ok */ }}>
       {movil ? null : (
         <PanelFiltros
           categorias={categorias}
@@ -149,8 +152,8 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
         ) : null}
         {catalogo.fase === 'lista' && espera === null ? (
           <>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-              <Typography data-testid="catalogo-contador" role="status" aria-live="polite">
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: { xs: '16px', md: '20px' } /* estilos-sueltos: ok */ }}>
+              <Typography data-testid="catalogo-contador" role="status" aria-live="polite" color="text.secondary" sx={{ fontSize: { xs: 14, md: 15 } /* estilos-sueltos: ok */ }}>
                 {catalogo.pagina.total === 1 ? '1 producto' : `${catalogo.pagina.total} productos`}
               </Typography>
               {movil ? null : <Ordenar orden={filtros.orden} alCambiar={(nuevoOrden) => aplicar(conCambio(filtros, { orden: nuevoOrden }))} />}
@@ -158,16 +161,18 @@ export default function ListadoProductos({ host, categoriaId }: PropsSeccionCata
             {catalogo.pagina.productos.length === 0 ? (
               <EstadoVacioCatalogo alLimpiar={limpiar} />
             ) : (
-              <Box
-                component="ul"
-                sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 2, gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(auto-fill, minmax(160px, 1fr))' } }}
-              >
+              <>
+              {/* Encabezado solo para lectores de pantalla: las tarjetas usan h3 y sin un h2 previo (en celular el panel de
+                  filtros está cerrado) el orden de encabezados saltaba de h1 a h3 (axe «heading-order»). */}
+              <Typography component="h2" sx={SOLO_LECTORES}>{q ? 'Resultados' : 'Productos'}</Typography>
+              <GrillaProductos columnas={3}>
                 {catalogo.pagina.productos.map((p) => (
                   <li key={p.id}>
                     <TarjetaProducto producto={p} urlImagen={p.imagen ? catalogo.imagenes[p.imagen] : undefined} />
                   </li>
                 ))}
-              </Box>
+              </GrillaProductos>
+              </>
             )}
             {catalogo.pagina.productos.length > 0 ? (
               <CargaInfinita

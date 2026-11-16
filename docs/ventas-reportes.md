@@ -1,10 +1,21 @@
+---
+owner: datos
+sources:
+  - specs/20270104-100000-ventas-reportes-basicos
+  - infra/superset/dashboards/consultas-reportes
+  - infra/superset/dashboards/ventas-periodo-canal
+  - infra/superset/dashboards/ventas-reportes
+---
+
 # Ventas · Reportes (épica MSF-338)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-reportes.md) · [guía de uso](producto/ventas-reportes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la pantalla **Reportes de ventas** (`/ventas/reportes`, sección `reportes`): «Más vendidos»
 (F-VTA-22, MSF-347) y «Ranking de clientes» con exportación a Excel (F-VTA-23, MSF-358). Spec:
-[`specs/20270104-100000-ventas-reportes-basicos/`](../specs/20270104-100000-ventas-reportes-basicos/spec.md) ·
+`specs/20270104-100000-ventas-reportes-basicos/spec.md` ·
 contrato de las vistas:
-[`contracts/analitica-ventas-reportes.md`](../specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md) ·
+`contracts/analitica-ventas-reportes.md` (`specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`) ·
 operación de los tableros: [`operar-superset.md`](./operar-superset.md).
 
 ## Qué cuenta como venta (cálculo y predicado)
@@ -32,7 +43,7 @@ Una sola fuente para las dos pestañas y para el Excel; el criterio **no se reim
 
 **Esquemas (Principio VII)**: la épica **no crea tablas**. Las vistas viven en `analitica` (superficie de
 lectura de Superset, cerrada para `anon` y `authenticated`) y las dos RPC en `public` (superficie de
-ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `public.clientes`,
+ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `dominio.clientes`,
 con su RLS por organización.
 
 ## Filtro por empresa y permisos
@@ -117,7 +128,7 @@ Verificada con `supabase/tests/database/ventas_reportes_superficie.test.sql` (pg
 |---|---|
 | `anon` | Sin `USAGE` sobre `analitica`, sin `SELECT` en las vistas y sin `EXECUTE` en las dos RPC |
 | `authenticated` | Sin `USAGE` ni `SELECT` sobre `analitica`; lee solo por las RPC (autorizan adentro) |
-| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `public.clientes` |
+| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `dominio.clientes` |
 | RPC `security definer` | `search_path` fijo (`''`), `revoke … from public, anon`, `grant execute … to authenticated`; autorización explícita adentro |
 | Token por empresa | `organizacion_id` + `empresa_id IN (…)` forzados en el servidor (`emitir-acceso-reporte`) |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` sigue verde |
@@ -140,3 +151,7 @@ facturación negativa para clientes con solo notas de crédito, «último compra
 épica (12 h contra la suma nominal de 16 h) y prioridad en el roadmap de diciembre. Además hay que
 **verificar en un Superset real** que los filtros nativos lleguen preseleccionados y que la barra de
 participación se pinte (no hay Superset en desarrollo).
+
+## Enlace desde Inicio (MSF-820)
+
+Reportes de ventas lee `?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` al abrir y, si el rango no es válido, usa el atajo inicial. Inicio enlaza con ese período **solo a quien tiene la sección `reportes`**; Reportes sigue a la empresa activa y no admite tienda ni depósito por URL. Ver [`inicio-y-alertas.md`](./inicio-y-alertas.md).

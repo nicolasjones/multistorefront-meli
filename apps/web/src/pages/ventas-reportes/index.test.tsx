@@ -96,6 +96,7 @@ const montar = ({
   conteo = 5,
   cargandoConteo = false,
   conSeccion = true,
+  ruta = '/',
 }: {
   nivel?: string
   reportes?: unknown[]
@@ -103,6 +104,7 @@ const montar = ({
   conteo?: number | null
   cargandoConteo?: boolean
   conSeccion?: boolean
+  ruta?: string
 } = {}) => {
   mocks.useReportesAsignados.mockReturnValue({ reportes, isLoading: cargandoReportes })
   // Se resuelve en cada llamada: así el cambio de empresa activa se ve en la respuesta.
@@ -117,7 +119,7 @@ const montar = ({
   mocks.useIsSuperadmin.mockReturnValue({ isSuperadmin: false, isLoading: false })
   mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: 'org-1', isLoading: false })
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       {conSeccion ? (
         <RequiereAccesoSeccion seccion="reportes"><ReportesVentas /></RequiereAccesoSeccion>
       ) : (
@@ -166,7 +168,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
   describe('pestaña «Productos más consultados» (F-REP-04, FR-011)', () => {
     const CONSULTADOS = { id: 'rep-mas-consultados', nombre: 'Reportes · Productos más consultados' }
 
-    it('[MSF-236:T029] monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
+    it('monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -179,7 +181,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       )
     })
 
-    it('[MSF-236:T029] un período sin consultas muestra el estado vacío propio', async () => {
+    it('un período sin consultas muestra el estado vacío propio', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS], conteo: 0 })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -187,7 +189,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-236:T029] un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -201,7 +203,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-236:T029] cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -222,7 +224,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
   describe('pestaña «Ventas por período y canal» (F-REP-05, FR-013)', () => {
     const PERIODO_CANAL = { id: 'rep-ventas-periodo-canal', nombre: 'Reportes · Ventas por período y canal' }
 
-    it('[MSF-248:T037] monta su propio tablero con el período y la empresa activa, y cuenta ventas', async () => {
+    it('monta su propio tablero con el período y la empresa activa, y cuenta ventas', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -233,7 +235,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-sj' }))
     })
 
-    it('[MSF-248:T037] un período sin ventas muestra el estado vacío y no ofrece el canal Mercado Libre', async () => {
+    it('un período sin ventas muestra el estado vacío y no ofrece el canal Mercado Libre', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL], conteo: 0 })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -242,7 +244,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByText(/Mercado Libre/i)).not.toBeInTheDocument()
     })
 
-    it('[MSF-248:T037] un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -255,7 +257,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-248:T037] cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -315,6 +317,19 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(rison).toContain('NATIVE_FILTER-empresa')
     expect(rison).toContain('col:empresa_nombre,op:IN')
     expect(rison).toContain("'San Javucho'")
+  })
+
+  it('abre con el período que Inicio le pasa por la URL (F-INI-04, FR-005)', async () => {
+    montar({ ruta: '/?desde=2026-09-01&hasta=2026-09-30' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').toContain('2026-09-01 : 2026-09-30')
+    expect(screen.getByLabelText('Desde')).toHaveValue('2026-09-01')
+  })
+
+  it('un período inválido en la URL vuelve al mes en curso', async () => {
+    montar({ ruta: '/?desde=2026-09-30&hasta=2026-09-01' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').not.toContain('2026-09-30 : 2026-09-01')
   })
 
   it('sin la sección `reportes` ve acceso restringido y no monta el tablero', async () => {

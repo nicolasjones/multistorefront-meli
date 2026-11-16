@@ -44,7 +44,7 @@ export function BotonCompartir({ productoId, nombre }: { productoId: string; nom
         variant="outlined"
         onClick={() => void compartir()}
         startIcon={<ShareOutlinedIcon />}
-        sx={{ minHeight: (tema) => tema.spacing(5.5), fontWeight: 700, width: { xs: '100%', sm: 'auto' } }}
+        sx={{ fontSize: 16, px: '24px', py: '12px', border: '2px solid', borderColor: 'primary.main', width: { xs: '100%', sm: 'auto' }, '&:hover': { border: '2px solid', borderColor: 'primary.main' } /* estilos-sueltos: ok */ }}
       >
         Compartir
       </Button>

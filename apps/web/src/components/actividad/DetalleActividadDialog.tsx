@@ -1,6 +1,6 @@
 import { Alert, Box, Button, Dialog, DialogActions, DialogContent, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import { useDetalleActividad } from '../../hooks/useDetalleActividad'
-import { camposDelCambio, etiquetaTipoActividad, formatearCuando } from '../../lib/actividad'
+import { camposDelCambio, etiquetaTipoActividad, formatearDetalleActividad, formatearCuando, quienDelEvento } from '../../lib/actividad'
 import { EstadoCargaPagina, EstadoError } from '../estados/EstadosPagina'
 import { TituloDialogo } from '../base/TituloDialogo'
 
@@ -42,9 +42,9 @@ export function DetalleActividadDialog({ eventoId, onCerrar }: Props) {
               <Dato etiqueta="Cuándo" valor={formatearCuando(detalle.creadoEn)} />
               <Dato etiqueta="Tipo" valor={etiquetaTipoActividad(detalle.tipo)} />
               <Dato etiqueta="Tienda" valor={detalle.empresaNombre ?? (detalle.empresaId ? 'Empresa no disponible' : 'Compartido')} />
-              <Dato etiqueta="Quién" valor={detalle.actorNombre ?? 'Sistema'} />
+              <Dato etiqueta="Quién" valor={quienDelEvento(detalle.tipo, detalle.actorNombre)} />
             </Stack>
-            <Dato etiqueta="Detalle" valor={detalle.detalle} />
+            <Dato etiqueta="Detalle" valor={formatearDetalleActividad(detalle.detalle)} />
             {campos.length === 0 ? (
               <Typography color="text.secondary">Este evento no tiene valores registrados.</Typography>
             ) : (

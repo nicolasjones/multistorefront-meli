@@ -1,7 +1,6 @@
 import {
   type PoliticaActiva,
   type ContratoConsumidor,
-  type InteraccionEnCurso,
   prepararInvocacion,
   iniciarInteraccion,
   iniciarInvocacion,
@@ -29,13 +28,6 @@ function noRecuperable(interaccionId: string, motivo: MotivoNoRecuperable): Resu
   return { estado: 'no_recuperable', checkpoint: null, interaccionId, motivo }
 }
 
-// iniciarInvocacion avanza un solo estado por llamada (iniciada -> preparando
-// -> invocando); se invoca dos veces para dejar la interacción directamente
-// en 'invocando', con perfilEfectivoId = perfil principal e intentos = 1.
-function abrirInvocacion(interaccion: InteraccionEnCurso, politica: PoliticaActiva): InteraccionEnCurso {
-  return iniciarInvocacion(iniciarInvocacion(interaccion, politica), politica)
-}
-
 export async function intentarRecuperarPaso(
   paso: PasoRecuperable,
   politica: PoliticaActiva,
@@ -52,7 +44,7 @@ export async function intentarRecuperarPaso(
 
   // Fase 'preparando': se valida ANTES de consumir el primer intento, con
   // el contador todavía en 0 — igual que packages/ia/src/ejecutar.test.ts.
-  // Validar después de abrirInvocacion (como se hacía antes) usa el
+  // Validar después de abrir la invocación (como se hacía antes) usa el
   // contador ya incrementado y rompe el fallback técnico: con
   // limiteIntentos=2, tras el primer fallo registrarFallo deja intentos=2,
   // y una segunda validación con (2,2) lanza antes de probar el perfil de

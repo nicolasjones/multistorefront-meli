@@ -1,3 +1,9 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Catálogo de productos
 
 Spec: `specs/20261017-120000-catalogo-alta-y-edicion/` (épica MSF-456). Cubre alta (F-CAT-02), SKU único (F-CAT-03),
@@ -299,7 +305,7 @@ Una variante (color, talle, modelo) es una fila de `dominio.producto_variantes` 
 - **Las pantallas que leen el stock del producto no suman variantes**: `public.stock_estados` (pantalla Stock y alertas de Inicio), `analitica.inventario_productos_stock` (reportes de inventario) y `listar_catalogo_tienda` leen `dominio.existencias`. Un producto con variantes aparece «Con stock» en el catálogo y la ficha (suma de variantes) pero «Sin stock» en Stock, en las alertas y en los reportes. Solo `disponibilidad_producto`, `productos_con_stock` y `disponible_publico` (catálogo y tienda) suman variantes (FR-006).
 - **Las variantes no se borran**: un producto con variantes queda en «modo variantes» (la variante es obligatoria en cada movimiento) aunque todas estén inactivas. `registrar_movimiento_stock` acepta movimientos sobre una variante inactiva (FR-010: se conserva su stock), que entran al libro pero no suman a la disponibilidad.
 - **Guardar la ficha no pisa el stock que otra persona movió**: la ficha manda `stock` solo de las variantes cuyo stock editaste, con el valor que viste (`stock_leido`); si en la base ya es otro, la RPC responde 40001 y hay que recargar. La RPC toma los bloqueos en el mismo orden que `registrar_movimiento_stock` (primero `existencias`, después `productos`) y sin edición en Stock rechaza cualquier valor de stock (42501), aunque coincida con el actual.
-- **Detalles aceptados**: intercambiar los códigos de dos variantes en un solo guardado se rechaza con un 23505 «ya lo usa otra variante» (se hace en dos pasos); no hay tope de cantidad de variantes ni de relacionados; «Duplicar» no copia variantes ni relacionados; el buscador de relacionados incluye productos inactivos; **la lista curada de relacionados todavía no tiene consumidor** (la ficha pública arma «relacionados» por categoría con `publico.relacionados_por_dominio`; mostrar los curados queda fuera de alcance, decisión 1) — es escritura sin lectura pública y hay que decidir si se consume o se retira.
+- **Detalles aceptados**: intercambiar los códigos de dos variantes en un solo guardado se rechaza con un 23505 «ya lo usa otra variante» (se hace en dos pasos); no hay tope de cantidad de variantes ni de relacionados; «Duplicar» no copia variantes ni relacionados; el buscador de relacionados incluye productos inactivos; **la ficha pública consume la lista curada** (MSF-846, `20270305100200_tienda_relacionados_manuales.sql`): `publico.relacionados_por_dominio` muestra primero los relacionados manuales (en su orden, hasta 4, solo los visibles en esa tienda; el empate de `orden` se desempata por id) y, si faltan, completa con la regla por categoría.
 - **Escritura directa de relacionados**: además de `guardar_relacionados`, quien edita Productos puede insertar, borrar y reordenar filas de `producto_relacionados` por PostgREST (RLS por organización y claves foráneas compuestas: no cruza organizaciones); esa vía no registra el evento de actividad y no garantiza un `orden` sin huecos. Es una decisión del diseño original (las pruebas pgTAP la ejercitan); si se quiere solo por RPC, quitar esos permisos en una migración posterior.
 - **Mercado Libre** (vínculos MSF-163, envío de stock MSF-123 y de precios MSF-137) e **importación/planillas** (MSF-202) siguen operando por producto.
 - **Seguridad (T028, FR-020):** las tres tablas nuevas (`producto_variantes`, `existencias_variante`, `producto_relacionados`) tienen RLS por organización y `anon` sin privilegios; las vistas `v_producto_variantes` y `v_producto_relacionados` son `security_invoker`; el buscador de relacionados consulta `v_productos_listado` (RLS por organización). Lo cubren los pgTAP de cada historia y `rls_en_toda_tabla`.
@@ -351,6 +357,9 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
 - **Columna «Costo» del listado (FR-002).** Solo existe con `lectura`/`edicion` en `rentabilidad`
   (`useNivelSeccion('rentabilidad')`). Tras cargar la página de `v_productos_listado`, `consultarCostos`
   (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
+  Los ids viajan en el `in.(…)` de la URL del GET, así que se reparten en lotes de `MAXIMO_IDS_POR_PETICION`
+  (100) con el helper de `lib/repartoIds.ts`: una página de 25 ids sigue siendo una sola petición, pero un
+  llamador con muchos ids no excede el límite del proxy (MSF-716).
   Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
   `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
   de costos falla, el listado se muestra igual con «—» y un aviso «No pudimos cargar los costos». El costo se muestra con dos decimales, sin símbolo de

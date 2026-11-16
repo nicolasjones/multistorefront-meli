@@ -1,3 +1,15 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - infra/kestra
+  - scripts/verificar-migraciones.mjs
+  - design/pantallas/VentasFaltantes.dc.html
+  - supabase/migrations/20261213100200_faltantes_avisos.sql
+  - supabase/migrations/20261213100300_faltantes_listado.sql
+  - supabase/migrations/20261213100400_avisar_faltantes.sql
+---
+
 # Stock · Faltantes con aviso de reposición (F-STK-17)
 
 Pestaña **Faltantes** de Stock (`/stock/faltantes`): las líneas «A pedido» de facturas confirmadas que
@@ -131,6 +143,11 @@ viajaba, lo que se recarga es lo que está a la vista, nunca la página anterior
 
 Generar el token de Kestra: `printf '%s' '<token>' | base64 -w0`. Sin `AVISOS_FALTANTES_TOKEN` la función
 responde 503 y rechaza todo.
+
+En el stack local y de dev el runtime solo recibe los secretos que `supabase/config.toml` declara en
+`[edge_runtime.secrets]`: `SMTP_*`, `PANEL_URL` y los tokens `AVISOS_*` / `ALERTAS_INICIO_TOKEN` están declarados
+ahí y sus valores salen de `supabase/.env`. Si falta el valor, la variable queda vacía y la función falla cerrada.
+Tras agregar o cambiar valores hay que recrear el stack para que el runtime los tome.
 
 ## Reversión
 

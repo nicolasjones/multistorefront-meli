@@ -8,7 +8,9 @@ import {
   ETIQUETA_PERIODO,
   etiquetaTipoActividad,
   FILTROS_ACTIVIDAD_INICIALES,
+  formatearDetalleActividad,
   formatearCuando,
+  quienDelEvento,
   tiendaDelEvento,
   type EventoActividadListado,
   type FiltrosActividad,
@@ -30,8 +32,8 @@ const columnas: ColumnaAdaptable<EventoActividadListado>[] = [
   { clave: 'cuando', encabezado: 'Cuándo', render: (evento) => formatearCuando(evento.creadoEn) },
   { clave: 'tipo', encabezado: 'Tipo', render: (evento) => etiquetaTipoActividad(evento.tipo) },
   { clave: 'tienda', encabezado: 'Tienda', render: (evento) => tiendaDelEvento(evento.empresaNombre, evento.empresaId) },
-  { clave: 'detalle', encabezado: 'Detalle', render: (evento) => evento.detalle },
-  { clave: 'quien', encabezado: 'Quién', render: (evento) => evento.actorNombre ?? 'Sistema' },
+  { clave: 'detalle', encabezado: 'Detalle', render: (evento) => formatearDetalleActividad(evento.detalle) },
+  { clave: 'quien', encabezado: 'Quién', render: (evento) => quienDelEvento(evento.tipo, evento.actorNombre) },
 ]
 
 // Historial de actividad (F-AUD-01, FR-003…FR-006): filtros, búsqueda y
@@ -189,7 +191,7 @@ export function ActividadList() {
               acciones={(evento) => (
                 <Button
                   size="small"
-                  aria-label={`Ver detalle: ${evento.detalle}`}
+                  aria-label={`Ver detalle: ${formatearDetalleActividad(evento.detalle)}`}
                   onClick={() => {
                     setAvisoEmpresa(false)
                     setDetalleAbierto({ eventoId: evento.id, empresaActivaId })

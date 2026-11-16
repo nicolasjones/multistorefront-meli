@@ -1,5 +1,8 @@
 import { supabaseClient } from './supabase'
 import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBorrador'
+import { ESTILOS_HEROE, ESTILO_HEROE_POR_DEFECTO, type EstiloHeroe } from '../tema/temaTienda'
+
+export { ESTILOS_HEROE, type EstiloHeroe }
 
 // F-TDA-02 (MSF-266): identidad visual de la tienda online (colores, tipografías, logo y banners).
 // La base repite estas reglas (checks de color/tipografía, bucket `tienda-identidad`, RPC): acá se
@@ -23,6 +26,10 @@ export type IdentidadTienda = {
   logoRuta: string | null
   bannerRuta: string | null
   bannerMovilRuta: string | null
+  // Estilo del encabezado de la portada (MSF-848): 'oscuro' (franja oscura, título en mayúsculas) o 'claro' (franja clara con círculo de acento).
+  estiloHeroe: EstiloHeroe
+  // Mayúsculas del menú de categorías, del título y del botón del héroe (MSF-848).
+  titulosMayusculas: boolean
 }
 
 // Tema base de la tienda sin configurar (mismos valores que los defaults de la tabla).
@@ -37,6 +44,8 @@ export const IDENTIDAD_BASE: IdentidadTienda = {
   logoRuta: null,
   bannerRuta: null,
   bannerMovilRuta: null,
+  estiloHeroe: ESTILO_HEROE_POR_DEFECTO,
+  titulosMayusculas: true,
 }
 
 export type ClaveImagen = 'logo' | 'banner' | 'bannerMovil'
@@ -203,6 +212,9 @@ export type FilaIdentidad = {
   logo_ruta: string | null
   banner_ruta: string | null
   banner_movil_ruta: string | null
+  // Ausentes en borradores y versiones anteriores a MSF-848: valen los valores por defecto.
+  estilo_heroe?: EstiloHeroe
+  titulos_mayusculas?: boolean
 }
 
 export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
@@ -216,9 +228,11 @@ export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
   logoRuta: fila.logo_ruta,
   bannerRuta: fila.banner_ruta,
   bannerMovilRuta: fila.banner_movil_ruta,
+  estiloHeroe: fila.estilo_heroe === 'claro' ? 'claro' : IDENTIDAD_BASE.estiloHeroe,
+  titulosMayusculas: fila.titulos_mayusculas ?? IDENTIDAD_BASE.titulosMayusculas,
 })
 
-const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, color_barra, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta'
+const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, color_barra, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta, estilo_heroe, titulos_mayusculas'
 
 export type IdentidadDeEmpresa = { organizacionId: string; identidad: IdentidadTienda }
 
@@ -264,6 +278,8 @@ export async function guardarIdentidad(empresaId: string, identidad: IdentidadTi
     logo_ruta: identidad.logoRuta,
     banner_ruta: identidad.bannerRuta,
     banner_movil_ruta: identidad.bannerMovilRuta,
+    estilo_heroe: identidad.estiloHeroe,
+    titulos_mayusculas: identidad.titulosMayusculas,
   })
   return identidad
 }
@@ -274,8 +290,11 @@ export async function subirImagen(ruta: string, archivo: File): Promise<void> {
 }
 
 // Limpieza de archivos que ya no se usan. No interrumpe: un huérfano no rompe nada, solo ocupa lugar.
-// Con `empresaId` solo borra los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
+// Con `empresaId` solo pide borrar los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
 // los archivos reemplazados pueden seguir en uso por la tienda en línea o por una versión anterior.
+// Esa consulta es solo para no pedir borrados inútiles: la garantía está en la base (MSF-796). La política de
+// borrado del bucket rechaza todo archivo referenciado, aunque se llame a la Storage API directo; un borrado
+// denegado por la política no da error, la API simplemente no lo devuelve como borrado.
 export async function borrarImagenes(rutas: string[], empresaId?: string): Promise<void> {
   if (rutas.length === 0) return
   let aBorrar = rutas

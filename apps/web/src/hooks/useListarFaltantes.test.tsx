@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), organizacionId: 'org-1' as string | null }))
@@ -29,6 +29,7 @@ const fila = (id: string, empresa: string, total = 1) => ({
   stock_disponible: 5,
   aviso: 'sin_avisar',
   aviso_en: null,
+  aviso_error: null,
   filas: total,
 })
 
@@ -66,5 +67,20 @@ describe('useListarFaltantes', () => {
     resolver({ data: [fila('2', 'Centro', 1)], error: null })
     await waitFor(() => expect(result.current.faltantes).toHaveLength(1))
     expect(result.current.faltantes[0].empresa).toBe('Centro')
+  })
+
+  it('la selección se descarta al cambiar de filtro de aviso (m-7, QA M4)', async () => {
+    mocks.rpc.mockResolvedValue({ data: [fila('1', 'San Javucho', 1)], error: null })
+    const { result, rerender } = renderHook((filtros: FiltrosFaltantes) => useListarFaltantes(filtros), {
+      initialProps: { ...base } as FiltrosFaltantes,
+    })
+    await waitFor(() => expect(result.current.faltantes).toHaveLength(1))
+    act(() => result.current.alternar(result.current.faltantes[0]))
+    expect(Object.keys(result.current.elegidos)).toEqual(['1'])
+
+    rerender({ ...base, aviso: 'para_avisar' })
+    expect(result.current.elegidos).toEqual({})
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+    expect(result.current.elegidos).toEqual({})
   })
 })

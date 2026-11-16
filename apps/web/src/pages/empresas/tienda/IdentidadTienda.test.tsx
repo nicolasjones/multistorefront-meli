@@ -35,6 +35,8 @@ const MUNDO_JC: IdentidadTienda = {
   logoRuta: 'org-1/e-1/logo-viejo.png',
   bannerRuta: 'org-1/e-1/banner-viejo.png',
   bannerMovilRuta: null,
+  estiloHeroe: 'oscuro',
+  titulosMayusculas: true,
 }
 const SAN_JAVUCHO: IdentidadTienda = { ...IDENTIDAD_BASE, colorPrimario: '#2E6B3F', tipografiaTitulos: 'Playfair Display', tipografiaTexto: 'Lato' }
 
@@ -106,7 +108,7 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   })
 
-  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar (MSF-841)', async () => {
+  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar', async () => {
     await abrir()
     expect(screen.getByText(/Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\./)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#FFEB3B' } })
@@ -115,7 +117,7 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   })
 
-  it('un color de barra inválido bloquea Guardar con el mismo error de formato (MSF-841)', async () => {
+  it('un color de barra inválido bloquea Guardar con el mismo error de formato', async () => {
     await abrir()
     fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: 'negro' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -304,5 +306,50 @@ describe('Identidad visual · empresa activa (Principio VIII)', () => {
     expect(screen.getByLabelText('Acento')).toHaveValue('#222222')
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
     expect(screen.queryByText('Logo actual de Mundo JC.')).not.toBeInTheDocument()
+  })
+})
+
+describe('Identidad visual · estilo del encabezado y mayúsculas', () => {
+  it('trae el estilo y las mayúsculas guardados y explica qué hace cada uno', async () => {
+    await abrir()
+    const selector = screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' })
+    expect(selector).toHaveTextContent(/^Oscuro/)
+    expect(screen.getByText('Cómo se ve la franja del banner principal en la portada de la tienda.')).toBeInTheDocument()
+    const interruptor = screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toHaveAccessibleDescription('Aplica a la barra de categorías, al título del banner y a su botón.')
+  })
+
+  it('elegir «Claro» y apagar las mayúsculas cambia la vista previa y marca cambios', async () => {
+    await abrir()
+    expect(screen.getByTestId('vista-previa-banner')).toHaveStyle({ backgroundColor: 'rgb(122, 10, 18)' })
+    expect(screen.getByText('Todo para tu consola', { selector: 'div' })).toHaveStyle({ textTransform: 'uppercase' })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    expect(screen.getByText('Hay cambios sin guardar.')).toBeInTheDocument()
+    // Variante clara: la franja pasa a la superficie del fondo (#FFFFFF -> #F4F4F4) y el título deja las mayúsculas.
+    expect(screen.getByTestId('vista-previa-banner')).toHaveStyle({ backgroundColor: 'rgb(244, 244, 244)' })
+    expect(screen.getByText('Todo para tu consola', { selector: 'div' })).toHaveStyle({ textTransform: 'none' })
+    expect(screen.getByTestId('vista-previa-boton')).toHaveStyle({ textTransform: 'none' })
+  })
+
+  it('Guardar manda los dos campos y Descartar vuelve a lo guardado', async () => {
+    mocks.guardar.mockImplementation(async (_empresa: string, identidad: IdentidadTienda) => identidad)
+    await abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    expect(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' })).toBeChecked()
+    expect(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' })).toHaveTextContent(/^Oscuro/)
+    expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).toBeInTheDocument()
+    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ estiloHeroe: 'claro', titulosMayusculas: false }))
   })
 })

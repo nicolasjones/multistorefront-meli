@@ -4,23 +4,25 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-mostrador': {
     titulo: 'Venta de mostrador',
     resumen:
-      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Hace falta permiso de edición en Ventas y una tienda elegida.',
+      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Si el producto está en promoción ves el precio anterior tachado y la leyenda «Promoción»; un precio manual manda y no lleva promoción. Hace falta permiso de edición en Ventas y una tienda elegida.',
     pasos: [
       'Elegí una tienda en la barra superior si tenés activas todas.',
       'Escaneá el código de barras de cada producto; si se repite, suma una unidad.',
       'Revisá el subtotal, el IVA y el total de la venta.',
       'Elegí la forma de pago (y la cuenta de cobro si te la pide) y tocá Cobrar.',
+      '«Promoción»: se cobra el promocional. Si dice «Los precios cambiaron» (venció o el normal bajó), revisá el total y cobrá de nuevo.',
     ],
   },
   'ventas-comprobantes': {
     titulo: 'Comprobantes',
     resumen:
-      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo.',
+      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo. En una línea con promoción ves el precio anterior tachado; si al confirmar aparece «Los precios cambiaron» (la promoción venció o cambió, o el precio normal bajó por debajo de la promoción: nunca se cobra una promoción más cara que el precio normal) o «El precio de la lista cambió», revisá el total y confirmá de nuevo.',
     pasos: [
       'Escribí el cliente o el número en el buscador.',
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',
       'Tocá el número de un comprobante para abrir su detalle.',
       'Tocá Nuevo comprobante para cargar una venta.',
+      'Si una línea dice «Lista: nombre ±n %», su precio sale de la lista del cliente; uno manual, propio o por escala manda sobre ella.',
     ],
   },
   'ventas-presupuestos': {
@@ -110,10 +112,12 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-faltantes': {
     titulo: 'Faltantes',
     resumen:
-      'Lista, de solo lectura, los productos de ventas que no se pudieron despachar por falta de stock y siguen abiertos. Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.',
+      'Lista los productos de ventas que no se pudieron despachar por falta de stock y siguen abiertos, con el estado del aviso al cliente: Sin avisar, Para avisar (ingresó mercadería), En cola (el correo todavía no salió) y Avisado (con la fecha de envío). Si un aviso falló aparece «Aviso fallido» con el motivo. Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.',
     pasos: [
       'Elegí una empresa en la barra superior para ver solo su tienda.',
-      'Revisá qué productos faltan y a qué venta corresponden.',
+      'Revisá qué productos faltan; el filtro «Para avisar» muestra los que ya recibieron mercadería.',
+      'Con permiso de edición, marcá faltantes y usá «Avisar a los seleccionados»: sale un correo por cliente y queda «En cola».',
+      'Si un aviso falló, usá «Reintentar». No se reavisa lo avisado hace menos de 24 horas y hay un tope diario.',
     ],
   },
   historial: {

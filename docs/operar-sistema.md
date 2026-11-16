@@ -1,3 +1,10 @@
+---
+owner: operacion
+sources:
+  - infra/kestra/flows
+  - workers/CONTRATO.md
+---
+
 # Operar el sistema
 
 Para el equipo técnico que mantiene los ambientes en marcha. Entregar el sistema a un
@@ -14,6 +21,11 @@ Cada producto tiene su Compose (`infra/<producto>/compose.yaml`; nunca un Compos
 levanta con `pnpm dev:<producto>` / se baja con `pnpm dev:down:<producto>`:
 `refine` (o `dev:refine:host` fuera de Docker), `supabase`, `kestra`, `superset`, `nango`,
 `playwright`, `runner`, `mcp-server`. Validar la configuración: `pnpm infra:config`.
+
+Los pasos de infraestructura que solo puede hacer Nicolás en el VPS2 (publicar el sitio de
+docs, el orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev, revocar la
+clave de API de prueba) están en [pasos-manuales-vps2.md](pasos-manuales-vps2.md), con su
+verificación y su reversión.
 
 ## Supabase (self-hosted)
 
