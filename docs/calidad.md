@@ -53,6 +53,13 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
   único `no-unused-vars` (parámetro de `catch` sin uso). Quedan sin tocar 205 `set-state-in-effect`, 39 `refs`
   y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
   quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
+- Lote L17 de la épica MSF-515 (MSF-878, 2026-11-16): se borró el último código muerto confirmado que
+  quedaba en `apps/web/src` — el helper `src/test/renderPanel.tsx`, que `knip` reportaba como archivo sin
+  uso y la configuración de `knip.json` ocultaba en vez de dejar ver. `knip` queda en 0 hallazgos sin
+  máscaras. Los cuatro hallazgos del lote (584, 745, 631 y 753) quedan vigilados por
+  `scripts/higiene-codigo.test.mjs`, que corre en el CI dentro de `pnpm test:tooling`: esa suite (Node puro,
+  sin base, ~4 s) incluye el test del conteo de migraciones de la épica de comprobantes, que hasta ahora
+  sólo se verificaba en local.
 
 ## Tests web: timeouts
 

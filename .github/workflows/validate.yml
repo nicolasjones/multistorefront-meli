@@ -149,6 +149,11 @@ jobs:
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
+      # Suite de tooling (Node puro, sin base): el test del conteo de migraciones de la
+      # épica de comprobantes (MSF-631, piso y no conteo exacto) y el guardián de los
+      # hallazgos de higiene del lote MSF-878. Antes corrían sólo en local.
+      - name: test:tooling
+        run: pnpm test:tooling
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
