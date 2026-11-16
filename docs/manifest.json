@@ -1982,14 +1982,14 @@
     },
     "docs/seguridad-tienda-compra-y-cuentas.md": {
       "title": "Revisión de seguridad · Tienda: compra y cuentas (MSF-176)",
-      "pageHash": "5954fef7dd54892f1b824fcf1f7a23d8ed48e41603ec1f23d9d5a802e3535422",
-      "sourceHash": "73fd2445b10d080c3626d43caba154e5268172e02f3ba51124d12c156ef83893",
-      "sourceAt": "c7860a7c",
+      "pageHash": "e98eef9126bcc26531a3414c20a1da2ecfe780c7b572f98eac202d051abaa1ad",
+      "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
+      "sourceAt": "12525f33",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "12525f33"
     },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
@@ -3717,14 +3717,14 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "af45798dd44d542de0dba0fd63342062e0319e24983ebb3a038aa174d525eb16",
-      "sourceHash": "73fd2445b10d080c3626d43caba154e5268172e02f3ba51124d12c156ef83893",
-      "sourceAt": "775b35f0",
+      "pageHash": "d02cd7c86fe4f835ec633e4f537f3055c09f08ae51934498a355b90eed5b1724",
+      "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
+      "sourceAt": "2a653744",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "producto",
-      "commit": "775b35f0"
+      "commit": "2a653744"
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
