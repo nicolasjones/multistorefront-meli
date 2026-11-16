@@ -36,7 +36,7 @@ describe('leerPreciosCliente', () => {
     expect(precios?.escalas.map((e) => e.final)).toEqual([1210, 1089, 968, null])
   })
 
-  it('mapea precio_anterior (MSF-932) a precioAnterior; sin la clave queda null', async () => {
+  it('mapea precio_anterior a precioAnterior; sin la clave queda null', async () => {
     mocks.rpc.mockResolvedValue({
       data: {
         tipo: 'mayorista',

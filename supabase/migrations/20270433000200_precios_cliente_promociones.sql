@@ -16,10 +16,12 @@
 -- suma `precio_anterior`, y solo en las escalas donde gana la promoción. `private.promocion_vigente` no se toca (si S5 =
 -- MSF-936 está en la base, ya ignora una promoción >= precio normal x1; la comparación por escala de acá es propia y vale con o
 -- sin S5).
+-- Cuerpo de partida: el vigente de 20270348000300 (lista de precios del cliente, F-CLI-21: la escala sale de
+-- `precio_final_publico_escala(..., cliente)`; la promoción compite contra ese valor, gana el más bajo).
 -- Mismos grants, `security definer`, `search_path = ''`, mismo tope de 50 productos y mismas respuestas null.
 --
 -- Esquema (Principio VII): sin tablas nuevas (`publico` sigue sin tablas). Migración aditiva e idempotente (`create or replace`).
--- Reversión (migración posterior): restaurar `publico.precios_cliente_por_dominio` de 20261211110100.
+-- Reversión (migración posterior): restaurar `publico.precios_cliente_por_dominio` de 20270348000300.
 
 create or replace function publico.precios_cliente_por_dominio(host text, productos uuid[])
 returns jsonb
@@ -34,6 +36,7 @@ declare
   v_acceso jsonb;
   v_tipo text;
   v_empresa uuid;
+  v_cliente uuid;
   v_resultado jsonb;
   v_ahora timestamptz := now();
 begin
@@ -58,6 +61,9 @@ begin
     return null;
   end if;
 
+  -- F-CLI-21 (D14): el cliente de la cuenta activa (la misma identidad que usa el presupuesto de la tienda); la lista rige solo con la bandera encendida.
+  select ca.cliente_id into v_cliente from private.cuenta_de_tienda(host) ca;
+
   select jsonb_build_object(
            'tipo', v_tipo,
            'precios', coalesce(jsonb_agg(
@@ -73,14 +79,14 @@ begin
                    from (values ('x1', 1, 4), ('x5', 5, 9), ('x10', 10, 49), ('x50', 50, null::int))
                         as t (escala, desde, hasta)
                   -- Gana el más bajo, sin acumular (igual que el local y que `private.precio_referencia_pedido`): la
-                  -- promoción reemplaza al precio de la escala SOLO si, visto como lo ve el cliente (alícuota e
-                  -- interruptor de IVA), es estrictamente menor.
+                  -- promoción reemplaza al precio de la escala (o de la lista del cliente) SOLO si, visto como lo ve el
+                  -- cliente (alícuota e interruptor de IVA), es estrictamente menor.
                   cross join lateral (
                     select n.v as normal,
                            case when pr.precio is null then null
                                 else private.precio_con_iva_visible(x.producto_id, v_empresa, pr.precio) end as promocion,
                            coalesce(private.precio_con_iva_visible(x.producto_id, v_empresa, pr.precio) < n.v, false) as gana
-                      from (select private.precio_final_publico_escala(x.producto_id, v_empresa, t.escala) as v) n
+                      from (select private.precio_final_publico_escala(x.producto_id, v_empresa, t.escala, v_cliente) as v) n
                   ) p
                   where t.escala = 'x1' or v_tipo = 'mayorista'
                )
@@ -100,4 +106,4 @@ revoke execute on function publico.precios_cliente_por_dominio(text, uuid[]) fro
 grant execute on function publico.precios_cliente_por_dominio(text, uuid[]) to authenticated;
 
 comment on function publico.precios_cliente_por_dominio(text, uuid[]) is
-  'F-CLI-07: precio final por escala de los productos visibles pedidos, según el tipo del cliente con cuenta activa y habilitada en la tienda del host (minorista: x1; mayorista: x1/x5/x10/x50 con rango). Lista blanca; null idéntico si no hay cuenta activa habilitada, host desconocido o empresa desactivada. Máx. 50 productos por llamada (22023). MSF-932: con una promoción vigente de la tienda menor al precio de la escala (gana el más bajo, sin acumular), la escala trae el precio promocional en final y el de la escala en precio_anterior.';
+  'F-CLI-07: precio final por escala de los productos visibles pedidos, según el tipo del cliente con cuenta activa y habilitada en la tienda del host (minorista: x1; mayorista: x1/x5/x10/x50 con rango). Lista blanca; null idéntico si no hay cuenta activa habilitada, host desconocido o empresa desactivada. Máx. 50 productos por llamada (22023). F-CLI-21: con la bandera listas_precios encendida y una lista asignada al cliente, el precio es el de su lista (D5: no pisa escala cargada ni precio propio). MSF-932: con una promoción vigente de la tienda menor al precio de la escala (gana el más bajo, sin acumular), la escala trae el precio promocional en final y el de la escala en precio_anterior.';

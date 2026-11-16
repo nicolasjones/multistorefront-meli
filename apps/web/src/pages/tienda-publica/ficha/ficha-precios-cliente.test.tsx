@@ -94,7 +94,7 @@ describe('Ficha · precios según el tipo de cliente', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
-  it('mayorista con una promoción vigente (MSF-932): la escala que baja muestra el precio promocional y el de la escala tachado', async () => {
+  it('mayorista con una promoción vigente: la escala que baja muestra el precio promocional y el de la escala tachado', async () => {
     mocks.precios.mockResolvedValue({
       tipo: 'mayorista',
       escalas: [
