@@ -41,6 +41,17 @@ test('el protocolo del simulacro tiene los pasos que miden los objetivos', () =>
   }
 })
 
+// Fija el CONTRATO DOCUMENTAL de la guía (que el texto lo pida y en el orden correcto), no el comportamiento: nada en el
+// repositorio ejecuta el simulacro ni puede comprobar que quien lo corre haga la consulta.
+test('contrato de la guía: el paso 1 manda confirmar el host de staging ANTES de restaurar', () => {
+  const host = protocolo.indexOf('inet_server_addr()')
+  const restaurar = protocolo.indexOf('Restaurar la base')
+  assert.ok(host >= 0, 'el protocolo no pide confirmar el host de destino (falta "inet_server_addr()")')
+  assert.ok(restaurar >= 0, 'el protocolo no tiene el paso «Restaurar la base»')
+  assert.ok(host < restaurar, 'la confirmación del host tiene que ir antes del paso de restaurar')
+  assert.ok(protocolo.indexOf('1. ') < host && host < protocolo.indexOf('2. '), 'la confirmación del host tiene que estar dentro del paso 1')
+})
+
 test('el protocolo declara los dos objetivos del criterio (pérdida ≤ 24 h y tiempo ≤ 4 h)', () => {
   assert.match(simulacro, /≤\s*24\s*h/, 'no declara el objetivo de pérdida máxima de datos')
   assert.match(simulacro, /≤\s*4\s*h/, 'no declara el objetivo de tiempo de recuperación')

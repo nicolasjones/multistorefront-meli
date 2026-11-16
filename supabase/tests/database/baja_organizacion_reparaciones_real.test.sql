@@ -18,7 +18,7 @@ insert into dominio.estados_reparacion (id, organizacion_id, nombre, orden)
 insert into dominio.reparaciones (id, organizacion_id, empresa_id, numero, cliente_id, modelo_id, estado_id, ingreso_en)
   values ('00000000-0000-0000-0000-0000000085a7', '00000000-0000-0000-0000-0000000085a1',
           '00000000-0000-0000-0000-0000000085a2', 1, '00000000-0000-0000-0000-0000000085a4',
-          '00000000-0000-0000-0000-0000000085a5', '00000000-0000-0000-0000-0000000085a6', current_date);
+          '00000000-0000-0000-0000-0000000085a5', '00000000-0000-0000-0000-0000000085a6', (now() at time zone 'America/Argentina/Buenos_Aires')::date);
 
 select throws_ok(
   $t$do $b$ begin
