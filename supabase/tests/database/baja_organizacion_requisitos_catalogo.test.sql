@@ -4,9 +4,10 @@
 -- Antes de buscar se descartan, en este orden y con regexp_replace separados: comentarios de bloque, comentarios de línea,
 -- bloques $tag$…$tag$ y literales de texto '…' (con '' escapado). Así nombrarlas en un comentario o dentro de un texto no alcanza.
 -- Límite exacto: el análisis es textual y no ejecuta la función. Un comentario (`--` o `/*`) dentro de un literal produce un FALSO
--- FALLO (recorta o borra de más; nunca un falso pase). Una función de más de 20000 caracteres cuenta como incumplimiento (no se
+-- FALLO (recorta o borra de más; nunca un falso pase). Una función de más de 10000 caracteres (el borde es estricto: exactamente 10000 se audita) cuenta como incumplimiento (no se
 -- audita: la limpieza de $tag$ es cuadrática). Una llamada real que nunca se ejecuta (rama muerta) sí pasa: eso lo cubre la
 -- revisión de código. Hoy no existe ninguna función así (ver docs/tecnico/administracion-organizacion.md).
+-- Límite de etiquetas: una etiqueta $tag$ de más de 30 caracteres no se descarta, así que una llamada nombrada dentro de ella contaría como real (caso teórico; lo cubre la revisión de código).
 begin;
 
 select plan(4);
@@ -29,7 +30,7 @@ create function pg_temp.sin_baja_que_no_llame(p_llamada text) returns integer la
      and n.nspname not in ('pg_catalog', 'information_schema')
      and case
            -- Tope de tamaño: la limpieza de $tag$ es cuadrática con muchos `$`; más allá del tope no se audita y cuenta como falta.
-           when length(p.prosrc) > 20000 then true
+           when length(p.prosrc) > 10000 then true
            else pg_temp.limpiar_codigo(p.prosrc) !~ p_llamada
          end
 $f$;
