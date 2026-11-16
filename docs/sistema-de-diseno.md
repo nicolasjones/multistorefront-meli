@@ -6,6 +6,8 @@ sources:
 
 # Sistema de diseño — catálogo de componentes base (MSF-117)
 
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/sistema-de-diseno.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
 Épica **MSF-117** (historias DS-01..DS-04 = MSF-420, MSF-426, MSF-431, MSF-435). Versión de producto: [Sistema de diseño](producto/sistema-de-diseno.md).
 
 Spec: `specs/20261012-130000-sistema-de-diseno/` (DS-02, FR-004/005/008) y

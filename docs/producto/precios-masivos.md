@@ -5,6 +5,8 @@ sources: []
 
 # Actualizar precios en bloque
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../precios-masivos.md).
+
 ## Para qué sirve
 
 Cuando el costo o el precio de lista cambian para muchos productos al mismo tiempo (una lista de precios nueva del proveedor, una variación del dólar, un ajuste de margen), cargarlos uno por uno lleva tiempo y se presta a errores. Esta pantalla te deja **subir o bajar muchos costos y precios de una sola vez**, con una **vista previa** que te muestra cómo queda cada producto **antes** de tocar nada. Recién cuando confirmás se aplica el cambio, y se aplica **de todo o nada**: si algo falla, no cambia ni un solo producto.

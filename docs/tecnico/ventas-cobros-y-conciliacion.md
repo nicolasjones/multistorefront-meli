@@ -8,6 +8,8 @@ sources:
 
 # Ventas · cobros y conciliación (técnico, MSF-195)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-cobros-y-conciliacion.md).
+
 Implementación de la épica **MSF-195** (spec `20261024-150000-ventas-cobros-y-conciliacion`):
 **F-VTA-12** cobros por comprobante (MSF-389), **F-VTA-13** conciliación de pagos por cuenta de cobro
 (MSF-401) y **F-VTA-14** contrarreembolsos por transporte (MSF-410). La vista de producto está en

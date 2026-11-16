@@ -1,9 +1,21 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/lib/ventas/contrarreembolsos.ts
+  - design/pantallas/VentasTransportes.dc.html
+  - supabase/migrations/20270114120000_contrarreembolsos.sql
+  - supabase/migrations/20270114120100_marcar_contrarreembolso_cobrado.sql
+  - supabase/migrations/20270114120200_listar_contrarreembolsos.sql
+---
+
 # Ventas · Contrarreembolsos por transporte (F-VTA-14)
 
 Historia MSF-410 de la épica MSF-195 (spec `specs/20261024-150000-ventas-cobros-y-conciliacion/`,
 US3 · FR-040…FR-045 · SC-005). Esta nota documenta **la base de datos** de la historia: la tabla
 del contrarreembolso, la función interna que lo abre, la RPC que lo marca cobrado y las de lectura.
-La pantalla vive en `/ventas/transportes` (ver [Pantalla](#pantalla-fr-046)); el cierre de la épica
+La pantalla vive en `/ventas/transportes` (ver [Pantalla](#permiso-por-empresa-y-lectura-para-la-pantalla)); el cierre de la épica
 (`docs/ventas-cobros-y-conciliacion.md`) junta el modelo completo.
 
 Contexto: [Ventas · Cobros por comprobante](./cobros-por-comprobante.md) (F-VTA-12, el libro de

@@ -5,6 +5,8 @@ sources: []
 
 # Reportes de ventas
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-reportes.md).
+
 ## Para qué sirve
 
 La pantalla **Reportes de ventas** reúne los informes para entender qué vendés, a quién y qué te consultan:

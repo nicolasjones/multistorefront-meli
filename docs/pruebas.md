@@ -1,3 +1,13 @@
+---
+owner: plataforma
+sources:
+  - scripts/tests-afectados.mjs
+  - apps/web/src/components
+  - apps/web/src/pages
+  - apps/web/vite.config.ts
+  - design/pantallas
+---
+
 # Pruebas: qué corre según el cambio (determinista)
 
 No se elige “a ojo”: el plan de pruebas sale del **diff**. La misma lista de

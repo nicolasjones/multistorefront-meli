@@ -94,7 +94,7 @@ sources:
 - Reintentar la misma carga no duplica (idempotencia por `(carga, fila)` e identificador externo). La
   vuelta atrás completa es restaurar la copia previa.
 - Detalle: [Migración inicial de datos](migracion-inicial-de-datos.md) y
-  [plan de corte](../producto/migracion-inicial-de-datos.md#el-dia-del-corte).
+  [plan de corte](../producto/migracion-inicial-de-datos.md).
 ## Solicitud de acceso (MSF-148)
 
 - El aviso por correo de «Solicitar acceso» sale por el **mismo SMTP que Supabase Auth**, no por un

@@ -8,6 +8,8 @@ sources:
 
 # Ventas · catálogos de cobro y envío (MSF-139)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-catalogos.md).
+
 Esta página explica **qué resuelve** la épica MSF-139 (spec
 `ventas-catalogos-de-cobro-y-envio`) para quien opera el negocio. El detalle de datos, RPC, permisos y
 pruebas está en [Ventas · catálogos de cobro y envío (técnico)](../tecnico/ventas-catalogos.md).

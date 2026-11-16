@@ -1,8 +1,18 @@
+---
+owner: tecnico
+sources:
+  - specs/20261029-120000-contactos-y-respuestas-rapidas
+  - apps/web/src/lib/consentimientoContacto.ts
+  - apps/web/src/lib/respuestasRapidas.ts
+---
+
 # Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/contactos.md) · [guía de uso](producto/contactos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 La libreta guarda a quienes consultan o compran, sin duplicados, con el consentimiento registrado, su historial de
 consultas y compras, y permite anonimizarlos a pedido. Spec:
-[`specs/20261029-120000-contactos-y-respuestas-rapidas`](../specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md)
+`specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md`
 (contrato en `contracts/contactos.md`). Las respuestas rápidas (F-CON-06) se describen al final.
 
 ## Modelo (Principio VII)
