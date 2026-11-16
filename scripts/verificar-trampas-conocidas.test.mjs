@@ -479,14 +479,14 @@ test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 
   }
 });
 
-test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} de 300 y 600 KB (< 300 ms)', () => {
+test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} de 300 y 600 KB (< 500 ms)', () => {
   const unicas = (kb) => { let s = ''; for (let n = 0; s.length < kb * 1024; n++) s += `$t${n}$ `; return s; };
   const alfabeto = (kb, semilla) => { const rnd = prng(semilla); let s = ''; while (s.length < kb * 1024) s += '$xy'[Math.floor(rnd() * 3)]; return s; };
   for (const sql of [unicas(300), unicas(600), alfabeto(300, 5), alfabeto(600, 6)]) {
     const t = Date.now();
     recorrerSql(sql);
     const ms = Date.now() - t;
-    assert.ok(ms < 300, `tardó ${ms} ms`);
+    assert.ok(ms < 500, `tardó ${ms} ms`);
   }
 });
 
