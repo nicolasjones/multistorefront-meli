@@ -49,7 +49,7 @@ describe('pestaña Contenido (FR-031…FR-037, SC-013)', () => {
     expect(mocks.leer).toHaveBeenCalledWith('e-1')
   })
 
-  it('el eslogan tiene contador de 80 y se guarda con el resto (MSF-841)', async () => {
+  it('el eslogan tiene contador de 80 y se guarda con el resto', async () => {
     mocks.guardar.mockImplementation(async (_empresaId: string, valores: typeof guardado) => valores)
     abrir()
     fireEvent.change(await screen.findByLabelText('Eslogan'), { target: { value: 'Todo para jugar' } })

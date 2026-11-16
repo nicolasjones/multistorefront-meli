@@ -297,7 +297,7 @@ select n, e.id as empresa, esc as escala,
        ('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid as producto,
        (select to_jsonb(o) from pg_temp.precio_para_original(('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, e.id, esc) o) as original,
        (select to_jsonb(w) from private.precio_para(('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, e.id, esc) w) as envoltorio,
-       (select to_jsonb(c) from private.precio_para_calculo(('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, e.id, esc) c) as calculo
+       (select to_jsonb(c) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_para_calculo(('b1000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, e.id, esc) c) as calculo
   from generate_series(1, 12) n
  cross join (select id from dominio.empresas where organizacion_id = '11111111-1111-1111-1111-111111111111') e
  cross join (values ('x1'), ('x5'), ('x10'), ('x50')) t(esc);
@@ -346,9 +346,9 @@ alter table casos add column original jsonb, add column envoltorio jsonb, add co
 update casos c set
   original = (select to_jsonb(o) from pg_temp.precio_linea_venta_original(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) o),
-  envoltorio = (select to_jsonb(w) from private.precio_linea_venta(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
+  envoltorio = (select to_jsonb(w) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) w),
-  calculo = (select to_jsonb(k) from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
+  calculo = (select to_jsonb(k) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) k)
  where c.bandera;
 
@@ -357,9 +357,9 @@ update public.banderas_plataforma set activa = false where clave = 'promociones_
 update casos c set
   original = (select to_jsonb(o) from pg_temp.precio_linea_venta_original(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) o),
-  envoltorio = (select to_jsonb(w) from private.precio_linea_venta(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
+  envoltorio = (select to_jsonb(w) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) w),
-  calculo = (select to_jsonb(k) from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
+  calculo = (select to_jsonb(k) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) k)
  where not c.bandera;
 
@@ -404,7 +404,7 @@ select ok((select to_jsonb(o) from pg_temp.precio_para_original('b2000000-0000-0
 select is((select to_jsonb(w) from private.precio_para('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'x1') w),
   (select to_jsonb(o) from pg_temp.precio_para_original('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'x1') o),
   'sin precio: el envoltorio es idéntico a la original (neto, alícuota y final nulo)');
-select is((select to_jsonb(k) from private.precio_linea_venta_calculo('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'mayorista', 10, 5) k),
+select is((select to_jsonb(k) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta_calculo('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'mayorista', 10, 5) k),
   (select to_jsonb(o) from pg_temp.precio_linea_venta_original('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'mayorista', 10, 5) o),
   'sin precio: la línea sin precio es idéntica en el cálculo y en la original (neto_unitario nulo, sin promoción)');
 select is((select neto_unitario from private.precio_linea_venta_calculo('b2000000-0000-0000-0000-000000000002', 'e2000000-0000-0000-0000-000000000001', 'minorista', 1)),
@@ -434,7 +434,7 @@ select is((select private.organizacion_id()), null::uuid, 'cliente web: no tiene
 select is((select private.nivel_seccion('ventas')), 'ninguno', 'cliente web: sin permiso de ventas');
 select is((select private.nivel_seccion('empresas')), 'ninguno', 'cliente web: sin permiso de empresas');
 
-update casos c set web = (select to_jsonb(k) from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
+update casos c set web = (select to_jsonb(k) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_linea_venta_calculo(('b1000000-0000-0000-0000-' || lpad(c.n::text, 12, '0'))::uuid,
                 c.empresa, c.tipo, c.cantidad, c.descuento, c.ahora, c.aplicar) k)
  where c.bandera;
 
@@ -449,7 +449,7 @@ select is((select web->>'neto_unitario' from casos where bandera and n = 7 and e
             and tipo = 'minorista' and cantidad = 1 and descuento = 0 and ahora < now() + interval '1 day' limit 1), '950.00',
   'cliente web: el precio propio de la tienda (950) se respeta');
 alter table grilla_para add column web jsonb;
-update grilla_para g set web = (select to_jsonb(c) from private.precio_para_calculo(g.producto, g.empresa, g.escala) c);
+update grilla_para g set web = (select to_jsonb(c) - 'lista_precio_id' - 'lista_ajuste_pct' from private.precio_para_calculo(g.producto, g.empresa, g.escala) c);
 select is((select count(*)::int from grilla_para where web is distinct from original), 0,
   'cliente web: precio_para_calculo da el MISMO resultado que la sesión de panel en toda la grilla de escalas');
 
@@ -638,12 +638,12 @@ select is((select count(*)::int from pg_proc p, aclexplode(p.proacl) a
               and p.proname in ('precio_para_calculo', 'precio_linea_venta_calculo', 'precio_sesion_alcanza')
               and a.privilege_type = 'EXECUTE' and a.grantee <> p.proowner), 0,
   'las funciones nuevas solo las ejecuta su dueño');
-select is(has_function_privilege('anon', 'private.precio_para_calculo(uuid, uuid, text)', 'EXECUTE'), false, 'anon no ejecuta precio_para_calculo');
-select is(has_function_privilege('authenticated', 'private.precio_para_calculo(uuid, uuid, text)', 'EXECUTE'), false, 'authenticated no ejecuta precio_para_calculo');
-select is(has_function_privilege('service_role', 'private.precio_para_calculo(uuid, uuid, text)', 'EXECUTE'), false, 'service_role no ejecuta precio_para_calculo');
-select is(has_function_privilege('anon', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'anon no ejecuta precio_linea_venta_calculo');
-select is(has_function_privilege('authenticated', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'authenticated no ejecuta precio_linea_venta_calculo');
-select is(has_function_privilege('service_role', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'service_role no ejecuta precio_linea_venta_calculo');
+select is(has_function_privilege('anon', 'private.precio_para_calculo(uuid, uuid, text, uuid)', 'EXECUTE'), false, 'anon no ejecuta precio_para_calculo');
+select is(has_function_privilege('authenticated', 'private.precio_para_calculo(uuid, uuid, text, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta precio_para_calculo');
+select is(has_function_privilege('service_role', 'private.precio_para_calculo(uuid, uuid, text, uuid)', 'EXECUTE'), false, 'service_role no ejecuta precio_para_calculo');
+select is(has_function_privilege('anon', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'anon no ejecuta precio_linea_venta_calculo');
+select is(has_function_privilege('authenticated', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta precio_linea_venta_calculo');
+select is(has_function_privilege('service_role', 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'service_role no ejecuta precio_linea_venta_calculo');
 select is(has_function_privilege('anon', 'private.precio_sesion_alcanza(uuid, uuid)', 'EXECUTE'), false, 'anon no ejecuta precio_sesion_alcanza');
 select is(has_function_privilege('authenticated', 'private.precio_sesion_alcanza(uuid, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta precio_sesion_alcanza');
 select is(has_function_privilege('service_role', 'private.precio_sesion_alcanza(uuid, uuid)', 'EXECUTE'), false, 'service_role no ejecuta precio_sesion_alcanza');
@@ -651,15 +651,15 @@ select is(has_function_privilege('service_role', 'private.precio_sesion_alcanza(
 -- Los envoltorios conservan sus grants EXACTOS.
 select is(has_function_privilege('anon', 'private.precio_para(uuid, uuid, text)', 'EXECUTE'), false, 'anon no ejecuta precio_para (sin cambios)');
 select is(has_function_privilege('authenticated', 'private.precio_para(uuid, uuid, text)', 'EXECUTE'), true, 'authenticated ejecuta precio_para (grant vigente, sin cambios)');
-select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'anon no ejecuta precio_linea_venta (sin cambios)');
-select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'authenticated no ejecuta precio_linea_venta (sin cambios)');
-select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)', 'EXECUTE'), false, 'service_role no ejecuta precio_linea_venta (sin cambios)');
+select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'anon no ejecuta precio_linea_venta (sin cambios)');
+select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'authenticated no ejecuta precio_linea_venta (sin cambios)');
+select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)', 'EXECUTE'), false, 'service_role no ejecuta precio_linea_venta (sin cambios)');
 select is((select count(*)::int from pg_proc p, aclexplode(p.proacl) a
             where p.oid = 'private.precio_para(uuid, uuid, text)'::regprocedure
               and a.privilege_type = 'EXECUTE' and a.grantee not in (p.proowner, (select oid from pg_roles where rolname = 'authenticated'))), 0,
   'precio_para: ningún grantee fuera de su dueño y authenticated');
 select is((select count(*)::int from pg_proc p, aclexplode(p.proacl) a
-            where p.oid = 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure
+            where p.oid = 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure
               and a.privilege_type = 'EXECUTE' and a.grantee <> p.proowner), 0,
   'precio_linea_venta: solo la ejecuta su dueño');
 
@@ -684,11 +684,11 @@ select is((select count(*)::int from pg_proc p
             where p.pronamespace = 'private'::regnamespace
               and p.proname in ('precio_para', 'precio_linea_venta', 'precio_para_calculo', 'precio_linea_venta_calculo', 'precio_sesion_alcanza')
               and array_to_string(p.proconfig, ',') = 'search_path=""'), 5, 'las cinco funciones tienen search_path vacío');
-select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_para_calculo(uuid, uuid, text)'::regprocedure), true, 'precio_para_calculo es security definer');
-select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure), true, 'precio_linea_venta_calculo es security definer');
+select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_para_calculo(uuid, uuid, text, uuid)'::regprocedure), true, 'precio_para_calculo es security definer');
+select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure), true, 'precio_linea_venta_calculo es security definer');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_sesion_alcanza(uuid, uuid)'::regprocedure), true, 'precio_sesion_alcanza es security definer');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_para(uuid, uuid, text)'::regprocedure), true, 'precio_para (envoltorio) es security definer');
-select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure), false,
+select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure), false,
   'precio_linea_venta (envoltorio) sigue security invoker');
 select is((select count(*)::int from pg_proc p
             where p.pronamespace = 'private'::regnamespace
@@ -699,17 +699,20 @@ select is((select count(*)::int from pg_proc p
               and p.proname in ('precio_para_calculo', 'precio_linea_venta_calculo', 'precio_sesion_alcanza')
               and p.prosrc ~* '\mexecute\M'), 0, 'las funciones nuevas no usan SQL dinámico');
 
--- Estructura: las dos funciones de cálculo devuelven las mismas columnas y tipos que sus envoltorios.
-select is((select pg_get_function_result('private.precio_para_calculo(uuid, uuid, text)'::regprocedure)),
-  (select pg_get_function_result('private.precio_para(uuid, uuid, text)'::regprocedure)), 'precio_para_calculo devuelve las mismas columnas que precio_para');
-select is((select pg_get_function_result('private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure)),
-  (select pg_get_function_result('private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure)),
+-- Estructura: las dos funciones de cálculo devuelven las columnas de sus envoltorios; F-CLI-21 suma, AL FINAL y con la misma firma más
+-- `p_cliente uuid default null`, las columnas `lista_precio_id` y `lista_ajuste_pct` (nulas sin lista o con la bandera apagada).
+select is((select pg_get_function_result('private.precio_para_calculo(uuid, uuid, text, uuid)'::regprocedure)),
+  (select replace(pg_get_function_result('private.precio_para(uuid, uuid, text)'::regprocedure), 'final numeric)', 'final numeric, lista_precio_id uuid, lista_ajuste_pct numeric)')),
+  'precio_para_calculo devuelve las columnas de precio_para y, al final, las dos de la lista');
+select is((select pg_get_function_result('private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure)),
+  (select pg_get_function_result('private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure)),
   'precio_linea_venta_calculo devuelve las mismas columnas que precio_linea_venta');
-select is((select pg_get_function_arguments('private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure)),
-  (select pg_get_function_arguments('private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean)'::regprocedure)),
+select is((select pg_get_function_arguments('private.precio_linea_venta_calculo(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure)),
+  (select pg_get_function_arguments('private.precio_linea_venta(uuid, uuid, text, integer, numeric, timestamptz, boolean, uuid)'::regprocedure)),
   'precio_linea_venta_calculo tiene la misma firma (y defaults) que precio_linea_venta');
-select is((select pg_get_function_arguments('private.precio_para_calculo(uuid, uuid, text)'::regprocedure)),
-  (select pg_get_function_arguments('private.precio_para(uuid, uuid, text)'::regprocedure)), 'precio_para_calculo tiene la misma firma (y defaults) que precio_para');
+select is((select pg_get_function_arguments('private.precio_para_calculo(uuid, uuid, text, uuid)'::regprocedure)),
+  (select pg_get_function_arguments('private.precio_para(uuid, uuid, text)'::regprocedure)) || ', p_cliente uuid DEFAULT NULL::uuid',
+  'precio_para_calculo tiene la firma de precio_para más p_cliente (default null)');
 
 select * from finish();
 rollback;

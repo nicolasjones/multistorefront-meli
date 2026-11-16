@@ -44,7 +44,7 @@ function conActivaCambiante() {
   return (id: string | null) => act(() => cambiarActiva(id))
 }
 
-describe('[MSF-354:T012] Empresa activa en el centro de importaciones (FR-015, SC-007)', () => {
+describe('Empresa activa en el centro de importaciones (FR-015, SC-007)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)

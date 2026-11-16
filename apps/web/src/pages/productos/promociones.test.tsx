@@ -143,7 +143,7 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     expect(mocks.leerPromociones.mock.calls.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('«Nueva promoción» con un precio no menor al normal: guarda y muestra el aviso en vez del éxito simple (MSF-936)', async () => {
+  it('«Nueva promoción» con un precio no menor al normal: guarda y muestra el aviso en vez del éxito simple', async () => {
     mocks.guardarPromocion.mockResolvedValue({ aviso: 'AVISO-NO-MENOR' })
     abrir()
     await screen.findByText('Alfa de A')
@@ -249,7 +249,7 @@ describe('PromocionesList (F-PRE-11, FR-016 · SC-005)', () => {
     expect(screen.getByText('Solo de B')).toBeInTheDocument()
   })
 
-  it('con la bandera apagada (por defecto) lista en modo solo-anular y explica el motivo (MSF-363, decisión 15)', async () => {
+  it('con la bandera apagada (por defecto) lista en modo solo-anular y explica el motivo (decisión 15)', async () => {
     capacidades(false)
     abrir()
     expect(await screen.findByText('Alfa de A')).toBeInTheDocument()

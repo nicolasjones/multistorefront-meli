@@ -38,7 +38,7 @@ Todo lo de abajo está verificado contra esas migraciones y contra el código de
 |---|---|---|
 | `dominio.proveedores_contactos` | **nueva** | Contactos del proveedor: `nombre` (obligatorio), `rol`, `correo`, `telefono`, `principal`. FK compuesta `(proveedor_id, organizacion_id)` contra `dominio.proveedores`. |
 | `dominio.ingresos_mercaderia_lineas` | **alterada** | `costo_unitario_usd` deja de ser `not null`: una línea sin costo se guarda con `null` (que no es cero). |
-| `public.clientes` | existente | Sin columnas nuevas: la fusión solo escribe `archivado_en` del cliente descartado. |
+| `dominio.clientes` | existente | Sin columnas nuevas: la fusión solo escribe `archivado_en` del cliente descartado. |
 | `public.cuentas_cliente` | existente | La fusión reasigna `cliente_id` y **elimina** la fila de la cuenta no elegida (no hay estado «dada de baja»). Sin cambios de esquema. |
 | `dominio.comprobantes_venta` | existente | La fusión reasigna `cliente_id`. Sin cambios de esquema. |
 | `public.clientes_empresas` | existente | La fusión habilita en el conservado las tiendas de la cuenta web reasignada. Sin cambios de esquema. |
@@ -137,7 +137,7 @@ Todas son **aditivas** y traen la reversión escrita en el encabezado (ver [Reve
 
 ## F-CLI-17 · Etiqueta impresa del cliente
 
-**Sin cambios de esquema y sin RPC**: es una función de lectura del navegador sobre `public.clientes`.
+**Sin cambios de esquema y sin RPC**: es una función de lectura del navegador sobre `dominio.clientes`.
 
 - `apps/web/src/lib/etiquetasCliente.ts` son **funciones puras** (no leen ni escriben datos):
   `faltantes(cliente)` (devuelve `['dirección']` si falta la dirección y nada más),
@@ -195,7 +195,7 @@ Orden dentro de la transacción de `fusionar_clientes`:
 6. **Campañas**: no hay nada que reasignar — **no existe la tabla de campañas** (MSF-155 no se entregó);
    `campanas_reasignadas` devuelve `0`. Cuando MSF-155 cree su tabla, tiene que sumar la reasignación a
    esta RPC.
-7. **Archivo**: `update public.clientes set archivado_en = now()` sobre el descartado (no se borra y
+7. **Archivo**: `update dominio.clientes set archivado_en = now()` sobre el descartado (no se borra y
    conserva sus datos de ficha).
 8. **Actividad**: `cliente.fusionado` en la **misma transacción**.
 

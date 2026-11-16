@@ -57,7 +57,7 @@ Encender `promociones_precio` enciende **a la vez** la tienda y el cobro en el l
 
 `private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
 
-## Promoción no menor al precio normal (S5 = MSF-936, migración `20270326100000`)
+## Promoción no menor al precio normal (S5 = MSF-936, migración `20270433000000`)
 
 Una promoción es útil solo si baja el precio. La regla es **la misma en la tienda y en el local** (gana el más bajo, sin acumular): una promoción cuyo precio **no es estrictamente menor** al precio normal de la tienda se **ignora**.
 
@@ -92,3 +92,7 @@ pgTAP `supabase/tests/database/promociones_precio.test.sql`; Vitest `promociones
 ## Reversión
 
 Para apagar sin migrar: la bandera (ver arriba). Migraciones aditivas (`20270228300000`…`20270228300300` también: se revierten con el `drop` de su encabezado). Para volver atrás: migración posterior que restaure las dos funciones públicas de la tienda (`20261023150200`, `20261023150300`), elimine las RPC y la vista, y (solo si se decide perder los datos) la tabla; o `git revert -m 1` del merge de la spec. La clave `precio_anterior` extra no rompe a los clientes.
+
+## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
+
+La promoción se compara con el precio normal **que ya incluye la lista del cliente** y gana solo si es **estrictamente menor** (no se acumulan); cuando gana, la línea conserva como `precio_referencia` el precio de la lista y el comprobante marca «Lista: … (rige la promoción)». El `40001` de «Los precios cambiaron» también cubre un cambio de la lista entre guardar y confirmar. Detalle en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y [Listas de precios](listas-de-precios.md).

@@ -44,4 +44,15 @@ export const ayudaStock: AyudaPorDestino = {
       'Para dejar de usar un depósito, apagá «Activo»; antes trasladá su stock. El depósito por defecto no se puede apagar.',
     ],
   },
+  'stock-ordenes-compra': {
+    titulo: 'Órdenes de compra',
+    resumen:
+      'Son los pedidos de mercadería que le hacés a un proveedor. Se arman con los productos de ese proveedor que están en alerta de reposición y pasan por tres estados: emitida, recibida o anulada. Recibir una orden no mueve el stock: la mercadería entra por «Ingreso de mercadería». Con solo lectura ves las órdenes; con permiso de edición en Stock las creás, las marcás como recibidas o las anulás.',
+    pasos: [
+      'Pulsá «Nueva orden de compra», elegí la empresa, el proveedor y la fecha.',
+      'Tildá los productos en alerta que querés pedir y ajustá la cantidad sugerida.',
+      'Desde «Ver» podés marcar la orden como recibida o anularla indicando el motivo.',
+      'Filtrá por estado o por empresa para encontrar una orden.',
+    ],
+  },
 }

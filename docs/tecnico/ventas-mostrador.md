@@ -59,7 +59,7 @@ líneas y el libro de cobros.
 | `dominio.comprobantes_venta` | `dominio` | existente | Sin cambio: la venta en curso es una factura `borrador` de canal Mostrador (MSF-159). |
 | `dominio.comprobantes_venta_lineas` | `dominio` | existente | Sin cambio: las líneas se guardan con `guardar_lineas_comprobante` (MSF-159). |
 | `dominio.cobros_comprobante` | `dominio` | existente | Sin cambio: el cobro del mostrador lo registra `registrar_cobro` (MSF-195). |
-| `public.clientes` | `public` | existente | Sin cambio: se lee el cliente «Consumidor final» (`es_consumidor_final = true`, no archivado). |
+| `dominio.clientes` | `public` | existente | Sin cambio: se lee el cliente «Consumidor final» (`es_consumidor_final = true`, no archivado). |
 | `public.buscar_producto_por_codigo_barras(text)` | `public` (RPC) | **nueva** | Función de plataforma que resuelve el producto por EAN-13. No es una tabla. |
 
 El DER completo está en [Datos y DER](datos.md#ventas-mejoras-msf-193).

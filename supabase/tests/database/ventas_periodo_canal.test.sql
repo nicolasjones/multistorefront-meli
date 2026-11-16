@@ -22,7 +22,7 @@ insert into auth.users (id, email) values
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo');
 
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Distribuidora Ñandú', 'mayorista'),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente de la Dos', 'minorista');
 

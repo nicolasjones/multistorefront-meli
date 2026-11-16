@@ -37,7 +37,7 @@ describe('CorreoAvisosConsultas (F-CON-03, FR-010)', () => {
     expect(mocks.lectura).toHaveBeenCalledTimes(1)
   })
 
-  it('advierte que la dirección ya no se usa (MSF-562, MSF-853)', async () => {
+  it('advierte que la dirección ya no se usa', async () => {
     abrir()
     expect(
       await screen.findByText(/Esta dirección ya no se usa/),

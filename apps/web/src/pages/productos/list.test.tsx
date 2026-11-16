@@ -463,7 +463,7 @@ describe('ProductoList', () => {
     expect(screen.getByRole('link', { name: 'Actualizar precios' })).toHaveAttribute('href', '/productos/precios-masivos')
   })
 
-  it('con la bandera de precios masivos apagada (por defecto) oculta «Actualizar precios» (MSF-363, decisión 15)', async () => {
+  it('con la bandera de precios masivos apagada (por defecto) oculta «Actualizar precios» (decisión 15)', async () => {
     mocks.useCapacidadesPrecios.mockReturnValue({ capacidades: { promociones: false, preciosMasivos: false, edicionEnTodasLasTiendas: true, nivelesProductos: {} }, cargando: false, hayError: false })
     abrir()
     await screen.findByText('Joystick')

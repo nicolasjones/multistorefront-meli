@@ -153,7 +153,7 @@ describe('promociones · acceso a la base', () => {
     expect(args[1].p_desde).toBe(new Date('2026-11-10T09:00').toISOString())
   })
 
-  it('guardar devuelve el aviso de la base cuando el precio no es menor al normal (MSF-936) y null en los demás casos', async () => {
+  it('guardar devuelve el aviso de la base cuando el precio no es menor al normal y null en los demás casos', async () => {
     const datos = { id: null, empresaId: 'e1', productoId: 'a1', precioTexto: '1200', desdeTexto: '2026-11-10T09:00', hastaTexto: '2026-11-12T09:00', actualizadoEn: null }
     const conAviso = vi.fn().mockResolvedValue({ data: { id: 'p1', aviso_codigo: 'promocion_no_menor_al_normal', aviso: 'texto del servidor' }, error: null })
     await expect(guardarPromocion({ rpc: conAviso } as never, datos)).resolves.toEqual({ aviso: AVISO_PROMOCION_NO_MENOR })

@@ -44,7 +44,7 @@ const columnas: ColumnaAdaptable<CargaCotizacion>[] = [
 
 // «Historial de cargas» (F-PRE-04, FR-018; Cotizacion.dc.html): quién cargó cada valor y qué se recalculó,
 // de la más nueva a la más vieja, con el pie de trazabilidad. Solo muestra: el historial es inmutable en
-// la base. Mercado Libre queda fuera (Etapa 2). Estados de carga, error y vacío compartidos.
+// la base. Mercado Libre queda fuera: todavía no es un canal elegible. Estados de carga, error y vacío compartidos.
 export function TablaHistorial({ filas, numeroPagina, haySiguiente, hayAnterior, cargando, hayError, onSiguiente, onAnterior, onReintentar }: Props) {
   let contenido
   if (hayError) contenido = <EstadoError descripcion="No pudimos leer el historial de cargas." reintentar={onReintentar} />

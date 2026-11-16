@@ -233,7 +233,7 @@ describe('DetalleCompra (FR-005, FR-006, P-3)', () => {
     expect(within(dialogo).getByText('01/12/2026')).toBeInTheDocument()
     expect(within(dialogo).getByText('Es un presupuesto: no reserva stock ni es una compra.')).toBeInTheDocument()
     const tabla = within(dialogo).getByRole('table', { name: 'Líneas del comprobante' })
-    expect(within(tabla).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Descripción', 'Código', 'Cantidad', 'Precio unitario', 'Subtotal'])
+    expect(within(tabla).getAllByRole('columnheader').map((c) => c.textContent)).toEqual(['Descripción', 'Código', 'Cantidad', 'Precio unitario (sin IVA)', 'Subtotal (sin IVA)'])
     expect(within(tabla).getAllByRole('cell').map((c) => c.textContent)).toEqual(['Cable USB tipo C', 'CAB-1', '2', '$ 50,00', '$ 100,00'])
     expect(within(dialogo).getByText('Subtotal sin IVA').nextSibling).toHaveTextContent('$ 100,00')
     expect(within(dialogo).getByText('IVA').nextSibling).toHaveTextContent('$ 21,00')
@@ -265,7 +265,7 @@ describe('DetalleCompra (FR-005, FR-006, P-3)', () => {
     const lista = await screen.findByRole('list', { name: 'Líneas del comprobante' })
     expect(within(lista).getByText('Cable USB tipo C')).toBeInTheDocument()
     expect(within(lista).getByText('Cód. CAB-1')).toBeInTheDocument()
-    expect(within(lista).getByText('2 × $ 50,00')).toBeInTheDocument()
+    expect(within(lista).getByText('2 × $ 50,00 sin IVA')).toBeInTheDocument()
     expect(within(lista).getByText('$ 100,00')).toBeInTheDocument()
   })
 

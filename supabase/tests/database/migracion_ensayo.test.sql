@@ -142,7 +142,7 @@ select diag('EVIDENCIA corrida 1: ' || jsonb_pretty((select v from t_res where k
 -- ============================================================================
 
 select is(
-  (select count(*) from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and not es_consumidor_final),
+  (select count(*) from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and not es_consumidor_final),
   2::bigint, 'quedan 2 clientes (sin contar el Consumidor final que crea la organización)'
 );
 select is(
@@ -189,7 +189,7 @@ select diag('EVIDENCIA corrida 2: ' || jsonb_pretty((select v from t_res where k
 
 select is(
   (select jsonb_build_array(
-      (select count(*) from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and not es_consumidor_final),
+      (select count(*) from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and not es_consumidor_final),
       (select count(*) from dominio.proveedores where organizacion_id = '11111111-1111-1111-1111-111111111111'),
       (select count(*) from dominio.archivo_ingresos_mercaderia where organizacion_id = '11111111-1111-1111-1111-111111111111'))),
   '[2, 2, 2]'::jsonb,
@@ -197,7 +197,7 @@ select is(
 );
 select is(
   (select count(*) from public.clientes_identificadores_externos v
-     join public.clientes c on c.id = v.cliente_id
+     join dominio.clientes c on c.id = v.cliente_id
     where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and v.sistema = 'panel_actual'),
   2::bigint,
   'tras dos corridas cada cliente tiene un solo vínculo con el panel actual'
@@ -225,7 +225,7 @@ select is(
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select is(
   (select jsonb_build_array(
-      (select count(*) from public.clientes where not es_consumidor_final),
+      (select count(*) from dominio.clientes where not es_consumidor_final),
       (select count(*) from dominio.proveedores),
       (select count(*) from dominio.archivo_ingresos_mercaderia),
       (select count(*) from public.migracion_cargas))),

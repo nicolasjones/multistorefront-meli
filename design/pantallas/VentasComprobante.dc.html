@@ -105,7 +105,7 @@ h1,h2,h3,p{margin:0;}
 <div><sc-if value="{{l.hasStock}}" hint-placeholder-val="{{true}}"><span class="num xs" style="color:#15181D;line-height:1.5;">Disp. <b>{{l.disp}}</b><br>Res. <b>{{l.res}}</b></span></sc-if><sc-if value="{{l.noStock}}" hint-placeholder-val="{{false}}"><span class="num xs" style="color:#15181D;">Res. <b>{{l.qty}}</b></span></sc-if></div>
 <div><sc-if value="{{l.hasStock}}" hint-placeholder-val="{{true}}"><div class="seg"><button class="{{l.onL}}" onClick="{{l.setL}}" style="height:28px;padding:0 6px;font-size:11.5px;">Local</button><button class="{{l.onD}}" onClick="{{l.setD}}" style="height:28px;padding:0 6px;font-size:11.5px;">Principal</button></div></sc-if></div>
 <div class="row" style="align-items:center;gap:4px;"><button class="ib o" aria-label="Menos" onClick="{{l.dec}}" style="width:28px;height:28px;">&minus;</button><b class="num" style="min-width:28px;text-align:center;">{{l.qty}}</b><button class="ib o" aria-label="Más" onClick="{{l.inc}}" style="width:28px;height:28px;">+</button></div>
-<div style="text-align:right;"><sc-if value="{{l.enPromo}}" hint-placeholder-val="{{false}}"><span class="xs" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Precio anterior</span><p class="num xs" style="text-decoration:line-through;white-space:nowrap;">{{l.ref}}</p><span class="xs" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Precio promocional</span></sc-if><p class="num b" style="font-weight:600;white-space:nowrap;">{{l.price}}</p><sc-if value="{{l.enPromo}}" hint-placeholder-val="{{false}}"><span class="chip i" style="height:20px;font-size:11.5px;">Promoción</span></sc-if><span class="xs">{{l.scale}}</span></div>
+<div style="text-align:right;"><sc-if value="{{l.enPromo}}" hint-placeholder-val="{{false}}"><span class="xs" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Precio anterior</span><p class="num xs" style="text-decoration:line-through;white-space:nowrap;">{{l.ref}}</p><span class="xs" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Precio promocional</span></sc-if><p class="num b" style="font-weight:600;white-space:nowrap;">{{l.price}}</p><sc-if value="{{l.enPromo}}" hint-placeholder-val="{{false}}"><span class="chip i" style="height:20px;font-size:11.5px;">Promoción</span></sc-if><span class="xs">{{l.scale}}</span><sc-if value="{{l.lista}}" hint-placeholder-val="{{false}}"><span class="xs" style="display:block;">{{l.listaMarca}}</span></sc-if></div>
 <div style="text-align:right;"><b class="num" style="white-space:nowrap;color:{{l.subColor}};">{{l.sub}}</b></div>
 <sc-if value="{{l.err}}" hint-placeholder-val="{{false}}"><div style="grid-column:1 / -1;"><div class="al e" role="alert" style="padding:8px 12px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex-shrink:0;"><path d="M12 5.99 19.53 19H4.47zM12 2 1 21h22zm1 14h-2v2h2zm0-6h-2v4h2z"></path></svg><div style="flex:1;font-size:13px;">{{l.errText}}</div></div></div></sc-if>
 </div></sc-for>
@@ -147,19 +147,20 @@ class Component extends DCLogic {
     let sub = 0; let anyErr = false;
     const lines = s.lines.map((l, k) => {
       const P = PRODS[l.code];
-      let price, scale, ref = null, desc = l.desc, local = 0, dep = 0;
+      let price, scale, ref = null, desc = l.desc, local = 0, dep = 0, listaMarca = null;
       if (P) {
         desc = P.desc; local = P.local; dep = P.dep;
         const key = (!may || l.qty < 5) ? "x1" : l.qty >= 50 ? "x50" : l.qty >= 10 ? "x10" : "x5";
         price = P.sc[key]; scale = "escala " + key;
-        if (P.promo && P.promo < price) { ref = price; price = P.promo; scale = "promoción"; }
+        if (may && key === "x1") { price = Math.round(price * 0.8); listaMarca = "Lista: Revendedores \u221220 %"; }
+        if (P.promo && P.promo < price) { ref = price; price = P.promo; scale = "promoción"; if (listaMarca) listaMarca += " (rige la promoción)"; }
       } else { price = l.price; scale = "manual"; }
       const hasStock = l.kind === "stock";
       const resv = P ? P.res : 0; const avail = Math.max(0, (l.from === "Local" ? local : dep) - resv);
       const err = hasStock && l.qty > avail;
       if (err) anyErr = true;
       const st = l.qty * price; sub += st;
-      return { code: l.code, res: resv, disp: avail, desc, pedido: l.kind === "pedido", hasStock, noStock: !hasStock, local, dep, onL: l.from === "Local" ? "on" : "", onD: l.from === "Principal" ? "on" : "",
+      return { listaMarca, lista: !!listaMarca, code: l.code, res: resv, disp: avail, desc, pedido: l.kind === "pedido", hasStock, noStock: !hasStock, local, dep, onL: l.from === "Local" ? "on" : "", onD: l.from === "Principal" ? "on" : "",
         setL: () => upd(k, { from: "Local" }), setD: () => upd(k, { from: "Principal" }), qty: l.qty,
         dec: () => { upd(k, { qty: l.qty - 1 }); set({ avisoPrecios: lines.some(x => x.enPromo) ? "escaneo" : null }); }, inc: () => { upd(k, { qty: l.qty + 1 }); set({ avisoPrecios: lines.some(x => x.enPromo) ? "escaneo" : null }); }, price: money(price), scale, enPromo: ref !== null, ref: ref === null ? "" : money(ref), sub: money(st), subColor: st < 0 ? "#C62828" : "#15181D",
         flagColor: l.flag ? "#E9A23B" : "#C9CBC6", toggleFlag: () => upd(k, { flag: !l.flag }),

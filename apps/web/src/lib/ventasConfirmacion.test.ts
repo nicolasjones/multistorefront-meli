@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: vi.fn() } }))
 
-import { esFaltanteDeStock, esPreciosCambiaron, mensajeDeConfirmacion, MENSAJE_ERROR_CONFIRMAR } from './ventasConfirmacion'
-import { MENSAJE_PRECIOS_CAMBIARON_COBRO } from './ventasLineas'
+import { esCambioDeLista, esFaltanteDeStock, esPreciosCambiaron, mensajeDeConfirmacion, MENSAJE_ERROR_CONFIRMAR } from './ventasConfirmacion'
+import { MENSAJE_LISTA_CAMBIO_COBRO, MENSAJE_PRECIOS_CAMBIARON_COBRO } from './ventasLineas'
 
 describe('esFaltanteDeStock', () => {
   it('reconoce P0001 con hint stock', () => {
@@ -24,6 +24,15 @@ describe('precios_cambiaron (F-2, FR-018; el error lo emite el servidor en F-3)'
   it('reconoce 40001 con hint precios_cambiaron y lo traduce al aviso, antes del mapeo genérico', () => {
     expect(esPreciosCambiaron(error)).toBe(true)
     expect(mensajeDeConfirmacion(error)).toBe(MENSAJE_PRECIOS_CAMBIARON_COBRO)
+  })
+
+  it('distingue el cambio de la lista de precios (details = lista_precios) del de una promoción', () => {
+    const porLista = { ...error, details: 'lista_precios' }
+    expect(esPreciosCambiaron(porLista)).toBe(true)
+    expect(esCambioDeLista(porLista)).toBe(true)
+    expect(mensajeDeConfirmacion(porLista)).toBe(MENSAJE_LISTA_CAMBIO_COBRO)
+    expect(esCambioDeLista(error)).toBe(false)
+    expect(esCambioDeLista({ code: '40001', details: 'lista_precios' })).toBe(false)
   })
 
   it('un 40001 sin ese hint (conflicto de edición) o el hint con otro código NO es precios_cambiaron', () => {

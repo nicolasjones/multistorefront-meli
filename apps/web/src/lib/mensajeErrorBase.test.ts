@@ -19,14 +19,14 @@ describe('mensajeDeErrorBase', () => {
     expect(mensajeDeErrorBase(null, 'x')).toBe('x')
     expect(mensajeDeErrorBase(new Error('relation "t" does not exist'), 'x')).toBe('x')
   })
-})
 
-describe('mensajeDeErrorBase · log sin PII', () => {
-  it('registra solo el código, no el objeto de error', () => {
-    const espia = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mensajeDeErrorBase({ code: '23505', details: 'Key (email)=(ana@x.com)' }, 'Fallo')
-    const args = espia.mock.calls.at(-1) ?? []
-    expect(JSON.stringify(args)).not.toContain('ana@x.com')
-    expect(args).toContain('23505')
+  describe('log sin PII', () => {
+    it('registra solo el código, no el objeto de error', () => {
+      const espia = vi.mocked(console.error)
+      mensajeDeErrorBase({ code: '23505', details: 'Key (email)=(ana@x.com)' }, 'Fallo')
+      const args = espia.mock.calls.at(-1) ?? []
+      expect(JSON.stringify(args)).not.toContain('ana@x.com')
+      expect(args).toContain('23505')
+    })
   })
 })

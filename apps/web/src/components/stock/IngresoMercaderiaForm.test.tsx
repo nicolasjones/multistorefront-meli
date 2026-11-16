@@ -54,7 +54,7 @@ describe('IngresoMercaderiaForm', () => {
     mocks.productos.mockResolvedValue({ data: [{ id: '33333333-3333-3333-3333-333333333333', nombre: 'Producto Uno', sku: 'SKU-1', proveedor_id: '22222222-2222-2222-2222-222222222222' }], error: null })
   })
 
-  it('[MSF-601] la nota del depósito no usa jerga interna', async () => {
+  it('la nota del depósito no usa jerga interna', async () => {
     abrir()
     expect(await screen.findByText('El stock ingresado suma al depósito principal.')).toBeInTheDocument()
     expect(screen.queryByText(/épica/i)).not.toBeInTheDocument()
@@ -73,7 +73,7 @@ describe('IngresoMercaderiaForm', () => {
     expect(screen.queryByText('Costo en USD con hasta dos decimales.')).not.toBeInTheDocument()
   })
 
-  it('[MSF-448:T017] acepta el costo unitario vacío y solo rechaza un costo mal escrito', async () => {
+  it('acepta el costo unitario vacío y solo rechaza un costo mal escrito', async () => {
     abrir()
     await screen.findByText('Nuevo ingreso')
     const costo = screen.getByLabelText('Costo unit. USD')

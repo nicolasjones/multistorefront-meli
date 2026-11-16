@@ -192,7 +192,7 @@ export function PantallaLista({ host }: { host: string }) {
       let fresca: ListaRevalidada
       try {
         fresca = await revalidarLista(host, lista.lineas)
-      } catch (error) {
+      } catch {
         // Si la que falla es la REVISIÓN de la lista (también por exceso de lecturas) el texto es el de la revisión, no el de «varios envíos seguidos».
         setAviso({ tipo: 'revision' })
         return

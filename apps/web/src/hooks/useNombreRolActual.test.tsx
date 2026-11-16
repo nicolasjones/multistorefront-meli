@@ -15,7 +15,7 @@ vi.mock('../lib/supabase', () => ({
   },
 }))
 
-describe('useNombreRolActual (MSF-637)', () => {
+describe('useNombreRolActual', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } } })

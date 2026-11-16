@@ -68,9 +68,9 @@ Si ningún evento coincide, ves «No hay actividad con esos filtros». Probá co
 | Columna | Qué muestra |
 |---|---|
 | **Cuándo** | Fecha y hora, en horario de Buenos Aires. |
-| **Tipo** | Qué clase de evento fue. |
+| **Tipo** | Qué clase de evento fue, con un nombre legible («Categoría creada», «Cobro registrado», «Reparación creada»). |
 | **Tienda** | La tienda a la que pertenece. Dice **Compartido** si el evento no es de una tienda en particular (por ejemplo, un cambio en el catálogo o el stock compartido, que se ven siempre). |
-| **Detalle** | Una frase que cuenta qué pasó, como «Creó la reparación R-0029». |
+| **Detalle** | Una frase que cuenta qué pasó, como «Creó la reparación R-0029». Cuando el evento tiene plata, el importe sale con su moneda: «Cobro de $ 40.000,00 por Transferencia en la factura 0001-00000001». |
 | **Quién** | La persona que lo hizo. Dice **Sistema** cuando lo hizo el propio sistema (por ejemplo, al cambiar un estado de forma automática) y **Tienda online** cuando un cliente pidió un presupuesto desde la tienda (el cliente figura en el detalle del evento: «Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana»). |
 
 ## Ver el detalle de un cambio

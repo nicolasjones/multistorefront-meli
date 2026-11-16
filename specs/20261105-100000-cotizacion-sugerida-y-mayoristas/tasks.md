@@ -1,6 +1,6 @@
 # Tareas: Precios y dólar · Cotización sugerida y mayoristas
 
-**Estado**: MSF-116 ya está en `dokploy`. F-PRE-13 se implementó con la fuente de la Pregunta 1 (DolarApi, dólar oficial venta; ver `docs/precios.md`), confirmada por Nicolás el 2026-11-12. F-PRE-14 está **CANCELADA** (decisión de Nicolás, 2026-11-12) y no tiene tareas.
+**Estado**: MSF-116 ya está en `dokploy`. F-PRE-13 se implementó con la fuente de la Pregunta 1 (DolarApi, dólar oficial venta; ver `docs/precios.md`), confirmada por Nicolás el 2026-11-12. F-PRE-14 se descartó en esta spec (decisión de Nicolás, 2026-11-12; se retomó con spec propia) y no tiene tareas.
 
 ## Phase 1: F-PRE-13 · Cotización sugerida desde una fuente externa
 
@@ -15,12 +15,12 @@
 
 ## Phase 2: Cierre
 
-- [x] T004 [CIERRE] Actualizar `docs/precios.md` y `docs/roadmap-template.md` con la sugerencia y el estado de F-PRE-14 (cancelada/redefinida según la decisión).
-  Hecho: sección «Cotización sugerida» en `docs/precios.md`, fila en el roadmap; F-PRE-14 queda **Cancelada** (decisión de Nicolás, 2026-11-12).
+- [x] T004 [CIERRE] Actualizar `docs/precios.md` y `docs/roadmap-template.md` con la sugerencia y el estado de F-PRE-14 (descartada/redefinida según la decisión).
+  Hecho: sección «Cotización sugerida» en `docs/precios.md`, fila en el roadmap; F-PRE-14 queda **descartada en esta spec** (decisión de Nicolás, 2026-11-12; retomada el 2026-11-15).
 
 ## Plan de ejecución (historias)
 
-F-PRE-13 y F-PRE-14 son independientes entre sí; F-PRE-14 está cancelada: no tiene tareas.
+F-PRE-13 y F-PRE-14 son independientes entre sí; F-PRE-14 no tiene tareas en esta spec.
 
 | Historia | Depende de | Grupo |
 |----------|------------|-------|

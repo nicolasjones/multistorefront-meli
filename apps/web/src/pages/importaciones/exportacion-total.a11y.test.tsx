@@ -14,7 +14,7 @@ import { ImportacionesList } from './list'
 
 // FR-039 (T027): accesibilidad del bloque y de su diálogo. El layout a 320/768/1440 px se verifica en el E2E
 // (jsdom no calcula layout): acá, roles, nombres, foco y reglas de axe.
-describe('[MSF-396:T027] Accesibilidad de «Exportar todos los datos» (FR-039)', () => {
+describe('Accesibilidad de «Exportar todos los datos» (FR-039)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)
