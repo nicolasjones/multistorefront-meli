@@ -50,7 +50,7 @@ describe('parsearFiltros / serializarFiltros', () => {
   })
 })
 
-describe('mapearPagina (MSF-623)', () => {
+describe('mapearPagina', () => {
   it('el conteo de una categoría raíz incluye el de sus subcategorías', () => {
     const pagina = mapearPagina({
       total: 0, pagina: 1, tamano: 24, productos: [],

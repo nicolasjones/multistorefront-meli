@@ -178,7 +178,7 @@ describe('LineasComprobante · recálculo al cambiar cantidad, depósito o preci
     expect(screen.getByRole('button', { name: 'Agregar producto' })).toBeInTheDocument()
   })
 
-  it('las columnas de Precio y Subtotal admiten importes grandes sin pisarse (MSF-629)', () => {
+  it('las columnas de Precio y Subtotal admiten importes grandes sin pisarse', () => {
     const anchos = COLUMNAS.split(' ').filter((parte) => parte.endsWith('px')).map((parte) => Number.parseInt(parte, 10))
     // Producto · Stock · Depósito · Cantidad · Precio s/IVA · Subtotal: las dos últimas, de al menos 150 px.
     expect(anchos.slice(-2).every((ancho) => ancho >= 150)).toBe(true)

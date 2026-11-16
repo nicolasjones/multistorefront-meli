@@ -3,7 +3,7 @@ import { acumularConteoCategorias } from './tiendaConteoCategorias'
 
 const c = (id: string, padreId: string | null, productos: number) => ({ id, nombre: id, padreId, productos })
 
-describe('acumularConteoCategorias (MSF-623)', () => {
+describe('acumularConteoCategorias', () => {
   it('una raíz suma los productos de sus subcategorías y las hojas conservan el suyo', () => {
     const r = acumularConteoCategorias([c('consolas', null, 0), c('portatiles', 'consolas', 4), c('sobremesa', 'consolas', 9), c('otra', null, 2)])
     expect(r.map((x) => [x.id, x.productos])).toEqual([['consolas', 13], ['portatiles', 4], ['sobremesa', 9], ['otra', 2]])

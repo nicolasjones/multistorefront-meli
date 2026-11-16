@@ -70,7 +70,7 @@ beforeEach(() => {
 })
 
 describe('Orden de ingreso (FR-040)', () => {
-  it('muestra los datos y los rótulos, sin importes ni costos ni texto provisional (MSF-614)', async () => {
+  it('muestra los datos y los rótulos, sin importes ni costos ni texto provisional', async () => {
     mocks.obtenerReparacion.mockResolvedValue(BASE)
     const { container } = abrir('orden')
     expect(await screen.findByRole('heading', { name: 'Orden de ingreso' })).toBeTruthy()

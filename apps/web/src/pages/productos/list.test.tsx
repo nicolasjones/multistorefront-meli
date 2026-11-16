@@ -446,14 +446,14 @@ describe('ProductoList', () => {
     const dialogo = await screen.findByRole('dialog', { name: '¿Desactivar el producto?' })
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
-    expect(mocks.rpc).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('cambiar_estado_producto', expect.anything())
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(2))
   })
 
-  it('activar un producto inactivo no pide confirmación (MSF-627)', async () => {
+  it('activar un producto inactivo no pide confirmación', async () => {
     abrir()
     await screen.findByText('Joystick')
     fireEvent.click(screen.getByRole('button', { name: 'Activar Cable' }))

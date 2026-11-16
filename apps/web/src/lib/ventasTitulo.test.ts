@@ -4,7 +4,7 @@ vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
 import { tituloComprobante } from './ventas'
 
-describe('tituloComprobante (MSF-628)', () => {
+describe('tituloComprobante', () => {
   it('rotula factura, presupuesto y nota de crédito, sin «undefined»', () => {
     expect(tituloComprobante('factura', '00000012')).toBe('Factura 00000012')
     expect(tituloComprobante('presupuesto', '00000003')).toBe('Presupuesto 00000003')
