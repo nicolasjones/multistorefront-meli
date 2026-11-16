@@ -541,7 +541,7 @@ begin
 
           perform private.insertar_actividad(
             v_org, v_usuario, 'comprobante.cobro_registrado',
-            format('Cobro de %s por %s en la factura %s (DEV)',
+            format('Cobro de ARS %s por %s en la factura %s (DEV)',
               v_dato.importe, v_dato.forma_nombre, lpad(v_numero::text, 8, '0')),
             v_dato.empresa_id);
         end if;
