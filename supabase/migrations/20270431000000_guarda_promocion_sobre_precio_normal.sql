@@ -11,8 +11,9 @@
 -- Qué hace ahora (misma firma, mismo dueño, mismo `security definer` con `search_path` vacío, mismos permisos):
 --   1. Es candidata TODA línea con promoción (guardada o vigente), no solo las que cambiaron de promoción. La guarda
 --      recalcula con `private.precio_linea_venta_calculo` (el mismo cálculo que `precio_linea_venta`, sin repetir la
---      compuerta de la sesión por línea: la confirmación ya validó el nivel de ventas de la tienda y esta función es
---      `security definer` sin `execute` para la API; ≈ 0,65 ms por línea en lugar de ≈ 6–8 ms). Las líneas sin promoción
+--      compuerta de la sesión por línea. Es seguro: `confirmar_comprobante` ya validó `nivel_ventas_en_empresa = 'edicion'` (y la
+--      pertenencia del comprobante a la organización) ANTES de llamar a la guarda, y esta función es
+--      `security definer` sin `execute` para la API; ≈ 1,3–2,5 ms por línea la guarda completa, medido, en lugar de ≈ 6–8 ms). Las líneas sin promoción
 --      guardada ni vigente siguen sin recalcularse (un cambio solo del precio normal no se rechaza: no hay promoción
 --      que cobrar de más).
 --   2. Si la promoción guardada es la que sigue vigente y el cálculo ya no la deja ganar (el precio normal quedó igual o

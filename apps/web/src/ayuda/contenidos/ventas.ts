@@ -10,7 +10,7 @@ export const ayudaVentas: AyudaPorDestino = {
       'Escaneá el código de barras de cada producto; si se repite, suma una unidad.',
       'Revisá el subtotal, el IVA y el total de la venta.',
       'Elegí la forma de pago (y la cuenta de cobro si te la pide) y tocá Cobrar.',
-      'Precio tachado y «Promoción»: se cobra el promocional. Si dice «Los precios cambiaron» (la promoción venció, cambió, o el precio normal bajó y ya no es mayor que la promoción), revisá el total y cobrá de nuevo.',
+      '«Promoción»: se cobra el promocional. Si dice «Los precios cambiaron» (venció o el normal bajó), revisá el total y cobrá de nuevo.',
     ],
   },
   'ventas-comprobantes': {

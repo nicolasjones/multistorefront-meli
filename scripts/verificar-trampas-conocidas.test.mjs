@@ -252,3 +252,34 @@ test('T7: SQL sin cerrar o con cadenas raras no cuelga ni lanza', () => {
   assert.doesNotThrow(() => t7("select \"id ; current_date"));
   assert.ok(Date.now() - t < 2000);
 });
+
+test('T7: current_date en OTRA columna de fecha del insert no se marca; en ingreso_en sí (QA-3)', () => {
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) values (1, current_date, (now() at time zone 'America/Argentina/Buenos_Aires')::date);"), []);
+  assert.equal(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) values (1, null, current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) values (1, current_date), (2, current_date - 1);").length, 2);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) select 1, current_date from x;").length, 1);
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) select 1, current_date, now()::date from x;"), []);
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en) values (1, current_date);"), []);
+  assert.equal(t7("insert into dominio.reparaciones values (1, current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) values (f(1, 2), coalesce(null, current_date));").length, 1);
+});
+
+test('T7: la exención de throws_ok es solo para su llamada, no para toda la sentencia (QA-4)', () => {
+  const sql = "create function pg_temp.f() returns void language plpgsql as $f$ begin\n  perform throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '22023');\n  insert into dominio.reparaciones (ingreso_en) values (current_date);\nend $f$;";
+  const p = t7(sql);
+  assert.equal(p.length, 1);
+  assert.match(p[0], /x\.sql:3 /);
+  assert.deepEqual(t7("select throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '22023'), 1;"), []);
+});
+
+test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)', () => {
+  const ne = (sql) => recorrerSql(sql).sentencias.filter((x) => x.texto.trim()).length;
+  const sql = "insert into dominio.reparaciones (falla, ingreso_en) values (E'no \\' enciende; roto', current_date);";
+  assert.equal(ne(sql), 1);
+  assert.equal(t7(sql).length, 1);
+  assert.deepEqual(t7("insert into dominio.reparaciones (falla) values (E'dice \\'current_date\\' y; mas');"), []);
+  // Un literal común termina en la primera comilla: el backslash no escapa; con E sí.
+  assert.equal(recorrerSql("select 'a\\'; b'; select 1;").sentencias[0].texto.length, "select 'a\\'".length);
+  assert.equal(recorrerSql("select e'a\\'; b'; select 1;").sentencias[0].texto.length, "select e'a\\'; b'".length);
+  assert.equal(ne("select e'a\\'; b'; select 1;"), 2);
+});
