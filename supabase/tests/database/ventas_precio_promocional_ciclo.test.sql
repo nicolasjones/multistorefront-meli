@@ -12,7 +12,8 @@
 --   · presupuestos: `aceptar_presupuesto` no reprecia, un pendiente conserva el precio hasta que se edita;
 --   · nota de crédito, saldo neto, cobros, contrarreembolso de motos, IVA 21 % y exento sobre facturas promocionales;
 --   · edición manual: sin `editar_precio` 42501; con permiso manda sobre la promoción y deja `comprobante.editado`;
---   · medición de 200 líneas en `confirmar_comprobante`, bandera apagada contra encendida (< 1,5×, mediana de 5).
+--   · medición de 200 líneas en `confirmar_comprobante`, bandera apagada contra encendida (< 1,5× o < 800 ms de sobrecosto, mediana de 7);
+--   · S7 cerrado: la promoción guardada que deja de ser estrictamente menor al precio normal rechaza (promocion_no_menor_al_normal).
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, con el rol que corresponda.
 begin;
 
@@ -59,12 +60,12 @@ insert into dominio.categorias (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joysticks'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena');
 
--- Q1…Q28 de lista $1.000 sin IVA (categoría 21 %) salvo Q17 (exento, $500). Costo $400 en pesos para ver el costo guardado.
+-- Q1…Q36 de lista $1.000 sin IVA (categoría 21 %) salvo Q17 (exento, $500). Costo $400 en pesos para ver el costo guardado.
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo)
 select ('b3000000-0000-0000-0000-' || lpad(n::text, 12, '0'))::uuid, '11111111-1111-1111-1111-111111111111',
        'Producto ' || n, 'Q-' || n, 'ARS', case when n = 17 then 500 else 1000 end,
        'c1000000-0000-0000-0000-000000000001', null, true
-  from generate_series(1, 28) n;
+  from generate_series(1, 36) n;
 insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
   ('b4000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Teclado ajeno', 'TEC-1', 'ARS', 500, 'c2000000-0000-0000-0000-000000000001', null, true);
 update dominio.productos
@@ -203,6 +204,16 @@ exception when others then
   get stacked diagnostics v_hint = pg_exception_hint, v_msg = message_text;
   return sqlstate || '|' || coalesce(v_hint, '') || '|' || v_msg;
 end $$;
+-- Como `err`, pero con el DETALLE del error: 'sqlstate|hint|detail' (el detalle dice qué cambió; ver la guarda de confirmación).
+create function pg_temp.errd(p_sql text) returns text language plpgsql as $$
+declare v_hint text; v_det text;
+begin
+  execute p_sql;
+  return 'ok';
+exception when others then
+  get stacked diagnostics v_hint = pg_exception_hint, v_det = pg_exception_detail;
+  return sqlstate || '|' || coalesce(v_hint, '') || '|' || coalesce(v_det, '');
+end $$;
 create function pg_temp.conf(p_clave text) returns text language sql as $$
   select pg_temp.err(format('select public.confirmar_comprobante(%L)', (select id from comps where clave = p_clave)))
 $$;
@@ -222,7 +233,7 @@ create function pg_temp.stock_de(p_n integer) returns integer language sql secur
   select cantidad from dominio.existencias_deposito where producto_id = pg_temp.pq(p_n) $$;
 create function pg_temp.movs_de(p_n integer) returns integer language sql security definer as $$
   select count(*)::int from dominio.movimientos_stock where producto_id = pg_temp.pq(p_n) $$;
-grant execute on function pg_temp.res(text), pg_temp.promo_de(text), pg_temp.total(text), pg_temp.estado(text), pg_temp.aux(text, timestamptz),
+grant execute on function pg_temp.errd(text), pg_temp.res(text), pg_temp.promo_de(text), pg_temp.total(text), pg_temp.estado(text), pg_temp.aux(text, timestamptz),
   pg_temp.snap(text), pg_temp.stock_de(integer), pg_temp.movs_de(integer), pg_temp.upd(text), pg_temp.id_de(text) to public;
 
 create function pg_temp.msg_c() returns text language sql as $$
@@ -660,25 +671,101 @@ select is(pg_temp.conf('m2'), 'ok', 'T018: la factura con precio manual se confi
 select is(pg_temp.total('m2'), '1200.00/1452.00', 'T018: cobra el manual');
 
 -- ============================================================================
--- S7 (decisión explícita, FR-009/FR-024): una baja del precio NORMAL bajo la promoción mostrada NO rechaza
+-- S7 (cerrado): una baja del precio NORMAL que deja a la promoción guardada IGUAL O POR ENCIMA del normal rechaza
 -- ============================================================================
--- La guarda mira promociones: si la promoción guardada sigue vigente y con el mismo precio, no se recalcula el precio
--- normal (`precio_para` cuesta ≈8,5 ms por llamada; recalcular 200 líneas rompe FR-024). Por eso, si la lista (o la
--- escala, la cotización o el descuento del cliente) baja por DEBAJO de la promoción mostrada, la factura se confirma al
--- precio promocional que vio el cliente (nunca paga más de lo que vio). Esto fija la decisión S7: si algún día el
--- hueco se cierra (seguimiento S7: abaratar `precio_para` o volverlo set-based), este test debe cambiar a un rechazo 40001.
+-- Antes (decisión S7) la guarda no recalculaba la línea cuya promoción seguía vigente al mismo precio y se cobraba la promoción
+-- aunque el precio normal hubiera bajado por debajo: sobrecobro al cliente («gana el más bajo» ya no se cumplía). Ahora la
+-- línea con promoción se recalcula: si la promoción sigue vigente y ya no es ESTRICTAMENTE menor al normal, la confirmación
+-- rechaza con 40001, hint precios_cambiaron y detalle promocion_no_menor_al_normal (mismo contrato que las demás causas).
 select pg_temp.promo('e3000000-0000-0000-0000-000000000025', 25, 'a1000000-0000-0000-0000-000000000001', 800);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('s18', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('s18', jsonb_build_array(pg_temp.q(25, 3)));
 select is(pg_temp.total('s18'), '2400.00/2904.00', 'S7: guardada con la promoción (3 × 800)');
+select is(pg_temp.aux('s18'), 0, 'S7: sin cambios del precio normal la guarda no cuenta nada');
+insert into fotos select 's18', pg_temp.snap('s18');
 reset role;
 update dominio.productos set precio_lista = 700 where id = pg_temp.pq(25);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select is(pg_temp.aux('s18'), 0, 'S7 (decisión): la lista bajó a 700, bajo la promoción 800, y la guarda no la cuenta como desactualizada');
-select is(pg_temp.conf('s18'), 'ok', 'S7 (decisión): se confirma');
-select is(pg_temp.total('s18') || ' ' || pg_temp.promo_de('s18')::text, '2400.00/2904.00 e3000000-0000-0000-0000-000000000025',
-  'S7 (decisión): se cobra la promoción que vio el cliente (2904), no el precio normal más bajo (2541)');
+select is(pg_temp.errd($$select pg_temp.aux('s18')$$), '40001|precios_cambiaron|promocion_no_menor_al_normal',
+  'S7: la lista bajó a 700, bajo la promoción 800: la guarda rechaza (40001, precios_cambiaron, promocion_no_menor_al_normal)');
+select is(pg_temp.conf('s18'), '40001|precios_cambiaron|Los precios cambiaron: el precio normal bajó y la promoción guardada ya no es menor',
+  'S7: confirmar rechaza con el mismo error y hint que las demás causas (no cobra 2904 sobre un normal de 2100)');
+select is(pg_temp.snap('s18'), (select foto from fotos where clave = 's18'), 'S7: el rechazo no deja rastro');
+select is(pg_temp.estado('s18'), 'borrador', 'S7: la factura sigue en borrador');
+select pg_temp.guardar('s18', jsonb_build_array(pg_temp.q(25, 3)));
+select is(pg_temp.res('s18'), '700.00|-|0.00|x1|false', 'S7: el re-guardado reprecia al precio normal (700) sin promoción');
+select is(pg_temp.conf('s18'), 'ok', 'S7: tras re-guardar se confirma');
+select is(pg_temp.total('s18') || ' ' || coalesce(pg_temp.promo_de('s18')::text, '-'), '2100.00/2541.00 -',
+  'S7: se cobra el precio normal más bajo (2541), no la promoción más cara (2904)');
+
+-- El borde: el normal baja EXACTAMENTE al precio de la promoción (una promoción igual al normal no gana: se ignora).
+select pg_temp.promo('e3000000-0000-0000-0000-000000000128', 28, 'a1000000-0000-0000-0000-000000000001', 800);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('s22', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('s22', jsonb_build_array(pg_temp.q(28, 1)));
+select is(pg_temp.promo_de('s22'), 'e3000000-0000-0000-0000-000000000128'::uuid, 'S7 borde: guardada con la promoción 800');
+reset role;
+update dominio.productos set precio_lista = 800 where id = pg_temp.pq(28);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.errd($$select pg_temp.aux('s22')$$), '40001|precios_cambiaron|promocion_no_menor_al_normal',
+  'S7 borde: normal = promoción (800 = 800): la promoción ya no es estrictamente menor y se rechaza');
+reset role;
+update dominio.productos set precio_lista = 801 where id = pg_temp.pq(28);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.aux('s22'), 0, 'S7 borde: normal 801 contra promoción 800: la promoción sigue ganando y no se rechaza');
+select is(pg_temp.conf('s22'), 'ok', 'S7 borde: se confirma y se cobra la promoción');
+select is(pg_temp.total('s22'), '800.00/968.00', 'S7 borde: cobra 800');
+
+-- Lo que NO debe rechazar: el normal baja pero sigue por encima de la promoción; el normal sube; la promoción sigue ganando.
+select pg_temp.promo('e3000000-0000-0000-0000-000000000129', 29, 'a1000000-0000-0000-0000-000000000001', 800);
+select pg_temp.promo('e3000000-0000-0000-0000-000000000130', 30, 'a1000000-0000-0000-0000-000000000001', 800);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('s23', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('s23', jsonb_build_array(pg_temp.q(29, 1), pg_temp.q(30, 1)));
+reset role;
+update dominio.productos set precio_lista = 900 where id = pg_temp.pq(29);
+update dominio.productos set precio_lista = 1200 where id = pg_temp.pq(30);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.aux('s23'), 0, 'S7: el normal bajó a 900 (sobre la promoción) y otro subió a 1200: la promoción sigue ganando, no hay rechazo');
+select is(pg_temp.conf('s23'), 'ok', 'S7: se confirma');
+select is(pg_temp.total('s23'), '1600.00/1936.00', 'S7: cobra las dos promociones (800 + 800)');
+
+-- Una de dos líneas desactualizada alcanza para rechazar (la otra, con la promoción intacta, no lo evita).
+select pg_temp.promo('e3000000-0000-0000-0000-000000000131', 31, 'a1000000-0000-0000-0000-000000000001', 800);
+select pg_temp.promo('e3000000-0000-0000-0000-000000000132', 32, 'a1000000-0000-0000-0000-000000000001', 800);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('s24', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('s24', jsonb_build_array(pg_temp.q(31, 1), pg_temp.q(32, 1)));
+reset role;
+update dominio.productos set precio_lista = 600 where id = pg_temp.pq(32);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.errd($$select pg_temp.aux('s24')$$), '40001|precios_cambiaron|promocion_no_menor_al_normal', 'S7: con dos líneas, una sola con la promoción superada rechaza');
+select is(pg_temp.snap('s24') like 'borrador|%', true, 'S7: y el borrador sigue sin tocar');
+
+-- La causa puede ser el descuento del cliente: se le sube al 15 % después de guardar (900 contra un normal de 1000 → 850).
+select pg_temp.promo('e3000000-0000-0000-0000-000000000133', 33, 'a1000000-0000-0000-0000-000000000001', 900);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('s25', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('s25', jsonb_build_array(pg_temp.q(33, 1)));
+select is(pg_temp.res('s25'), '900.00|1000.00|0.00|x1|false', 'S7 descuento: guardada con la promoción 900 sobre un normal de 1000');
+reset role;
+select set_config('request.jwt.claims', '{}', true);  -- sin sesión de persona: el descuento lo cambia un administrador (el fixture es postgres)
+update dominio.clientes set descuento = 15 where id = 'c5000000-0000-0000-0000-000000000002';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.errd($$select pg_temp.aux('s25')$$), '40001|precios_cambiaron|promocion_no_menor_al_normal',
+  'S7 descuento: con el 15 % del cliente el normal es 850 y la promoción de 900 deja de ser menor: se rechaza');
+reset role;
+select set_config('request.jwt.claims', '{}', true);
+update dominio.clientes set descuento = null where id = 'c5000000-0000-0000-0000-000000000002';
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+
+-- Bandera apagada: la guarda no actúa aunque el normal esté por debajo de la promoción guardada (comportamiento ya documentado).
+select pg_temp.bandera(false);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.aux('s24'), 0, 'S7: con la bandera apagada la guarda no actúa');
+select pg_temp.bandera(true);
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 -- ============================================================================
 -- Hora del servidor: la guarda usa clock_timestamp() (no el now() del inicio de la transacción)
@@ -712,8 +799,11 @@ select is(pg_temp.total('s20'), '8000.00/9680.00', 'Mayorista: cobra la escala')
 -- ============================================================================
 -- Mediana de 7 corridas ALTERNADAS (una apagada, una encendida; la primera de cada una es de calentamiento y no cuenta):
 -- el ruido de la máquina pega a las dos por igual. Tolerancia documentada (CI cargado): pasa si la razón de medianas es
--- < 1,5 o si el sobrecosto absoluto de la mediana encendida es < 100 ms (la guarda cuesta ≈ 20 ms con 200 líneas: una
--- razón alta con una base chica y ruidosa no es una regresión). Encendida: una búsqueda indexada por línea.
+-- < 1,5 o si el sobrecosto absoluto de la mediana encendida es < 800 ms. Desde el cierre de S7 la guarda recalcula el precio
+-- completo de CADA línea con promoción (aquí las 200 llevan una: el peor caso; una venta real lleva unas pocas): cuesta ≈ 1,3–2,3 ms
+-- por línea con `precio_linea_venta_calculo` (≈ 6–8,5 ms con la compuerta de sesión de `precio_linea_venta`, que daría ≈ 1,3–1,7 s con
+-- 200 líneas), es decir ≈ 260–460 ms con 200 líneas; el tope de 800 ms (4 ms por línea) deja margen para un CI cargado y falla si
+-- alguien vuelve a la compuerta por línea.
 
 reset role;
 insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta)
@@ -772,8 +862,8 @@ select diag(format('FR-024: confirmar 200 líneas, mediana de 7 corridas alterna
   (select round((select percentile_cont(0.5) within group (order by ms) from medidas where bandera)::numeric
                / (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera)::numeric, 2))));
 select ok((select percentile_cont(0.5) within group (order by ms) from medidas where bandera) < 1.5 * (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera)
-       or (select percentile_cont(0.5) within group (order by ms) from medidas where bandera) - (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera) < 100,
-  'FR-024: confirmar 200 líneas con la bandera encendida tarda menos de 1,5× que con la apagada (o menos de 100 ms de sobrecosto absoluto)');
+       or (select percentile_cont(0.5) within group (order by ms) from medidas where bandera) - (select percentile_cont(0.5) within group (order by ms) from medidas where not bandera) < 800,
+  'FR-024: confirmar 200 líneas todas con promoción con la bandera encendida tarda menos de 1,5× que con la apagada (o menos de 800 ms de sobrecosto absoluto, 4 ms por línea)');
 
 select * from finish();
 rollback;

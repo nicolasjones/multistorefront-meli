@@ -3803,9 +3803,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "457a6e989c688b71f6309dc345a16dcea4d7201e76235988fd8cad28b4835e28",
+      "pageHash": "5f4ad83db1c66ded8a3ec236935ffee2a0cca6734e03e141e2af17b13de4fb51",
       "sourceHash": "74fe0a6c1c6cfdbc764046a541297202f3a77a7a00e9bedaa4e5d62e69eca9b6",
-      "sourceAt": "f08925dd",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3817,7 +3817,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "f08925dd"
+      "commit": "775b35f0"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
