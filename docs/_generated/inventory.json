@@ -143,6 +143,7 @@
     "/roles/list",
     "/seguimiento",
     "/service-tecnico/estados",
+    "/service-tecnico/etiqueta",
     "/service-tecnico/modelos",
     "/service-tecnico/orden-ingreso",
     "/service-tecnico/remito-entrega",
@@ -1223,5 +1224,5 @@
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 332
+  "paginas": 334
 }

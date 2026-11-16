@@ -212,6 +212,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
   visible («Generó el enlace de seguimiento de R-0001»), nunca el token ni ids; el evento lleva la tienda de la
   reparación. Lo cubre el pgTAP `service_enlace_consulta`. Ver `docs/service-seguimiento.md`.
+- `reparacion.enlace_regenerado` (Service técnico): lo registra la RPC `regenerar_enlace_consulta` cuando se regenera el enlace de seguimiento; su etiqueta en la lista es «Enlace de consulta regenerado».
+- `reparacion.enlace_regenerado` (Service técnico): lo registra la RPC `regenerar_enlace_consulta` cada vez que se
+  regenera el enlace de seguimiento (el token anterior deja de funcionar); admite hasta 10 por persona por hora. El detalle nombra el código visible, nunca
+  el token; el evento lleva la tienda de la reparación. Lo cubre el pgTAP `service_regenerar_enlace_y_reportes_empresa`.
+  Ver `docs/service-seguimiento.md`.
 - `reparacion.comprobante_generado` (F-SVC-13, Service técnico): lo registra `private.registrar_actividad` en la
   misma transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
   idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código
@@ -406,7 +411,7 @@ perform private.registrar_cambio_actividad(
 
 ### Depuración por retención
 
-`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
+La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11-14), no un supuesto. `private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
 `sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
 `workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
 `infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en

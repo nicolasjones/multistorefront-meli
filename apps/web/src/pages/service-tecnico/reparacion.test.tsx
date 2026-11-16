@@ -282,6 +282,39 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByRole('link', { name: 'Imprimir remito' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/remito')
   })
 
+  it('ofrece «Imprimir etiqueta» con lectura o edición, la enlaza a /etiqueta y no la ofrece en una reparación anulada (F-SVC-32, FR-043)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    const lectura = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    lectura.unmount()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    const edicion = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    edicion.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z', anulada_motivo: 'Cliente desistió' })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+    expect(screen.queryByRole('link', { name: 'Imprimir etiqueta' })).toBeNull()
+    // La orden sigue ofreciéndose como hasta ahora.
+    expect(screen.getByRole('link', { name: 'Imprimir orden' })).toBeInTheDocument()
+  })
+
+  it('el orden de tabulación de los botones del encabezado es orden, etiqueta, remito, guardar (P-3)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-24', entregado_por: 'Luis' })
+    abrirDetalle()
+    const orden = await screen.findByRole('link', { name: 'Imprimir orden' })
+    const etiqueta = screen.getByRole('link', { name: 'Imprimir etiqueta' })
+    const remito = screen.getByRole('link', { name: 'Imprimir remito' })
+    const guardarBoton = screen.getByRole('button', { name: 'Guardar' })
+    const enOrden = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(enOrden(orden, etiqueta)).toBe(true)
+    expect(enOrden(etiqueta, remito)).toBe(true)
+    expect(enOrden(remito, guardarBoton)).toBe(true)
+  })
+
   it('una edición con datos viejos avisa del conflicto y ofrece recargar (FR-017)', async () => {
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     mocks.actualizarReparacion.mockRejectedValueOnce({ code: '40001' })

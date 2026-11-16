@@ -8,11 +8,19 @@ import { esIdValido } from './tiendaListado'
 
 export type EscalaPrecio = 'x1' | 'x5' | 'x10' | 'x50'
 
-export type EscalaCliente = { escala: EscalaPrecio; desde: number; hasta: number | null; final: number | null }
+// `precioAnterior` (MSF-932): el precio de la escala cuando una promoción vigente de la tienda lo baja («gana el más
+// bajo, sin acumular»); `final` ya trae el precio promocional. null si no hay promoción en esa escala.
+export type EscalaCliente = { escala: EscalaPrecio; desde: number; hasta: number | null; final: number | null; precioAnterior: number | null }
 
 export type PreciosCliente = { tipo: 'minorista' | 'mayorista'; escalas: EscalaCliente[] }
 
-type FilaEscala = { escala: EscalaPrecio; desde: number; hasta: number | null; final: number | string | null }
+type FilaEscala = {
+  escala: EscalaPrecio
+  desde: number
+  hasta: number | null
+  final: number | string | null
+  precio_anterior?: number | string | null
+}
 type RespuestaPrecios = {
   tipo: 'minorista' | 'mayorista'
   precios: Array<{ producto_id: string; escalas: FilaEscala[] }>
@@ -37,7 +45,13 @@ export async function leerPreciosCliente(host: string, productoId: string): Prom
   if (!producto || producto.escalas.length === 0) return null
   return {
     tipo: respuesta.tipo,
-    escalas: producto.escalas.map((e) => ({ ...e, final: e.final === null ? null : Number(e.final) })),
+    escalas: producto.escalas.map((e) => ({
+      escala: e.escala,
+      desde: e.desde,
+      hasta: e.hasta,
+      final: e.final === null ? null : Number(e.final),
+      precioAnterior: e.precio_anterior == null ? null : Number(e.precio_anterior),
+    })),
   }
 }
 
