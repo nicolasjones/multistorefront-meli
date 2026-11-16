@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "ee00e08e9d9a43bd6bdfb50b0d5e77fcff41a81dd1157d4a8c5d630868b2dd6c",
+      "pageHash": "2b45876ce64fae17e5f072f7dd8176819c2f4d613c045c06e61d8fd41490a42e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "b9906ecb"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -589,14 +589,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "8b146ab47e8f717f1119e823be801d7c29316bba890b2ef5478fa120cd6f3d0d",
-      "sourceHash": "e84474c789d4b4b4e2d4d0f8593254020e15d824209d644430e7968ddd327395",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "1261b73655170edc9ba6b6d7ded2084a48a3a0e877dc90a166f05a4a26142c45",
+      "sourceHash": "92dea233f226f99c574a59b79c332034b63c39f5f5936f027606bfecb3321c15",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "2b8f7624"
+      "commit": "b9906ecb"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -1776,12 +1776,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "5cf2ccef2160d46cb9ecb2fe92995d6ba54225b8fd3167fba711344c36907a5e",
+      "pageHash": "da15650ec4b0dbb8df32b76f4a6a5320bae0f25b5606f7af408cf592ad6dc900",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f586e544"
+      "commit": "488800f2"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2026,16 +2026,16 @@
     },
     "docs/solicitar-acceso.md": {
       "title": "Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)",
-      "pageHash": "b931a63f3bf3cfffb5e9c1aa2196d91f03eab63709f9cd247462e99ec5efa9c7",
-      "sourceHash": "6d967928df492cff2b7bc2036ce0d12d428d8dd903a6cc519658ee67082acbc1",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "fd7a6d4cb8883c9813e8499bb3a58542063eff7cacf60393b17527ca5a00780d",
+      "sourceHash": "ae7816726b7872fe8cef000229d85d215206f7deb8520a19f5218c07548f43d9",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs",
         "apps/web/src/pages/acceso-restringido",
         "apps/web/src/lib/solicitarAcceso.ts"
       ],
       "owner": "producto",
-      "commit": "598696d9"
+      "commit": "043be599"
     },
     "docs/stock-avisos-reposicion.md": {
       "title": "Stock · Avisos de reposición (F-STK-09)",
@@ -2391,14 +2391,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "0bdf4de742573bf50cfb4286bf7f21924974a50237922bcc8d650af7b051e931",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "d8047dd29f39f4fa01ab760624f62486f0dbe41bda2362e940e9a3b2af6fbf02",
+      "sourceHash": "3f947cc947992ae32146fe59b8be8ca60478b10ced10a75c616642e97d505ff9",
+      "sourceAt": "f1e818d9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "488800f2"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -2636,14 +2636,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "16b9f0fdb3351283168344853c261e922badea34fd1218d0b5749a165b9839d1",
-      "sourceHash": "13612bc55c702e3a8b6e7688d347a065b8d9f85cfb36344748c56c7a23bc7059",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "8c80faa43e1c3739e9cc13cac83587c989987829e4256bdb32dcdde2fe1c960a",
+      "sourceHash": "3f947cc947992ae32146fe59b8be8ca60478b10ced10a75c616642e97d505ff9",
+      "sourceAt": "f1e818d9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "488800f2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -2826,15 +2826,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "38e77181ed6bb21cba2341d1a0a69bfcf0c21cf191dd1a6afad1ce913c5b770d",
-      "sourceHash": "6365ff6b74f602dda3d7408939e144ef4e77bfa0caca278deb96067a001895c4",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "7990cda045ff52bf9d41ba703a2f737d5616f5c3ed8d4af8fef1884e0cd26464",
+      "sourceHash": "fc36f475be8721b3c8d6b40923a5e6a06ec6d7b01542ea3eaeeb8020f76a4463",
+      "sourceAt": "f1e818d9",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "ebf4bf4d"
+      "commit": "b9906ecb"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -2854,9 +2854,9 @@
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
-      "pageHash": "ee0709f567e5e672514c27dc582c216229fbfd9e9894c39809c7317d0f2906d3",
-      "sourceHash": "34534c58b9df2683da439b50c08954f2ee91d5f86736079de4d0cc29626c17a5",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "04635187db40c0be3cf9ed6fc9993926d4077649cdec2f0c7a5e08bf92462381",
+      "sourceHash": "af722f6d6756912361cbe7e446bb5e656e99e1c799228384be60752f0b0b7121",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
@@ -2866,7 +2866,7 @@
         "supabase/functions"
       ],
       "owner": "tecnico",
-      "commit": "5369c1e0"
+      "commit": "b9906ecb"
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
@@ -3236,9 +3236,9 @@
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "bcf5ac154af27cccbd45cacef14356a6d169feab2b19e968428fdae1ed6db708",
-      "sourceHash": "fd03599cfa9a475cc72310205fae967f5bad8f5f1d8b92f4417f19f862dd4702",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "db4c82f4fe18ea7a1a87a4672aca2a7bd267a674dba108be3c408d271c2828b4",
+      "sourceHash": "21a5c629c45a9441763ec46ecda9c81c7e28b748b5eb518f261965a22314ba67",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3252,13 +3252,13 @@
         "apps/web/src/pages/tienda-publica"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "488800f2"
     },
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
-      "pageHash": "89647d46a9d52dbc4cc1f864e1a42e2438c82fb6730de57704d773bbb637bb06",
-      "sourceHash": "bf308a4def1e0a68ae1c82975e6def86aabc40f2cb1962b04bd5caa822104173",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "9b96366d6c8e328233c002c42b402eeb02d4543eafadb1488c9fc18cf36f4f26",
+      "sourceHash": "404142dfa829aabef7cd88fc3a563a43b8dd8d9dd30a92d66e851efa0dd507d2",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3267,7 +3267,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "445078c2"
+      "commit": "488800f2"
     },
     "docs/tecnico/tienda-inicio-busqueda-movil.md": {
       "title": "Tienda pública: inicio, búsqueda y versión móvil (MSF-191)",
@@ -3300,16 +3300,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "268edc37abc6b792af9461ed976131260add7ecab21433a48ca645e9ae3366f8",
-      "sourceHash": "5527dbca607ac54264e28e2185aaf4fdfff9c8f071adcc1636dbbccc99175c27",
-      "sourceAt": "ebf4bf4d",
+      "pageHash": "b39cf9399c8664dff82251472fa883f977ae158500d270e3979eb561b0dc5d1a",
+      "sourceHash": "19702d9cc4bb3587038a3674488fa41c95b38c5c6123bd1741ed31ad364781b7",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "4b780ed7"
+      "commit": "488800f2"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",
@@ -3573,9 +3573,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "7e92bda47a8e0c7388e0789f227f89e7a133bab8e19f7a76a5d6187be096bc0d",
+      "pageHash": "01b773ba0c74c8deb948c0636e8d8f93f0de7074a50aa2d443eda432563156ad",
       "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "f1e818d9",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3587,7 +3587,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "f5d8f4a5"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
@@ -3828,6 +3828,19 @@
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
+    },
+    "docs/verificacion-salida-correo.md": {
+      "title": "Verificación de salida del correo (MSF-532)",
+      "pageHash": "40bd42040f2982f1e32d2b36154b1dc14a38daee91a7d54dc50784cbbc6402c3",
+      "sourceHash": "dc6ba941bf8629e2423432aa9115ae06c74adb80f724900bbc2d5fc9f5e7e55a",
+      "sourceAt": "f1e818d9",
+      "sources": [
+        "specs/20261016-130000-perfil-y-permisos-avanzados",
+        "scripts/verificar-salida-correo.mjs",
+        "supabase/functions/solicitar-acceso"
+      ],
+      "owner": "tecnico",
+      "commit": "b9906ecb"
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
