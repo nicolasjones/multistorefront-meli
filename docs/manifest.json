@@ -1889,8 +1889,8 @@
     },
     "docs/revision-seguridad-gastos.md": {
       "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
-      "pageHash": "cf7d3262c75e0b58de7daa6d43f009e0a54b95b3d04001868f6aee3a14656a85",
-      "sourceHash": "dad2a51d8db9cae36873237efc7782040eb5801a61334477149abbe86b44d96e",
+      "pageHash": "ae9068cd3160620c62dfa7de53222db5664226608c430badb4e688c12145a344",
+      "sourceHash": "a0ad2c62d9f78eb0f516cabb5e466eb17f458fee7e808de05db712d911a847a9",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
@@ -1898,7 +1898,7 @@
         "apps/web/src/pages/rentabilidad"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "a8f3d3a9"
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",

@@ -4,7 +4,7 @@
 -- y `exportar_actividad` (security definer: aplica el mismo predicado). El historial de una empresa pausada sigue visible.
 begin;
 
-select plan(15);
+select plan(17);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -79,9 +79,15 @@ reset role;
 -- del nombre del usuario filtrado. Solo el administrador exporta y él accede a todas las empresas, así que se verifica que las tres
 -- consultas lo lleven en su definición y se prueba el predicado directo con la persona restringida.
 select is((select (length(d) - length(replace(d, 'private.empresas_de_actividad()', ''))) / length('private.empresas_de_actividad()')
-             from (select pg_get_functiondef('public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean)'::regprocedure) as d) f), 3,
-  'exportar_actividad aplica el alcance por empresa en sus tres consultas');
+             from (select pg_get_functiondef('public.exportar_actividad(date, date, uuid, uuid, text, text, timestamptz, timestamptz, uuid, integer, integer, uuid, boolean)'::regprocedure) as d) f), 4,
+  'exportar_actividad aplica el alcance por empresa en sus cuatro consultas');
 select pg_temp.como('b1000000-0000-0000-0000-000000000006');
+-- Nombre de la tienda en la constancia: un UUID de empresa ajena no deja su nombre en el detalle (solo el administrador exporta y ve
+-- todo, así que se prueba el predicado con la persona restringida).
+select is((select count(*)::int from private.empresas_de_actividad() x where x = 'e1000000-0000-0000-0000-000000000002'), 0,
+  'la persona restringida no tiene la tienda ajena entre sus empresas de actividad');
+select is((select count(*)::int from dominio.empresas e where e.id = 'e1000000-0000-0000-0000-000000000002' and e.id in (select private.empresas_de_actividad())), 0,
+  'la búsqueda del nombre de la tienda filtrada (mismo predicado que exportar_actividad) no devuelve la tienda ajena');
 select is((select count(*)::int from private.empresas_de_actividad()), 2, 'empresas_de_actividad devuelve sus dos empresas asignadas (activa y pausada)');
 select is((select count(*)::int from private.empresas_accesibles()), 1, 'mientras empresas_accesibles solo la activa (la pausada queda fuera del selector)');
 reset role;

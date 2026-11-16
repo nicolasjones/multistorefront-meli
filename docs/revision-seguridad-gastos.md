@@ -31,6 +31,8 @@ Sin hallazgos bloqueantes ni mayores abiertos. Un hallazgo previo **mayor** (los
 
 - **D19**: Actividad muestra la categoría de un gasto (p. ej. «Sueldos») a quien accede a esa tienda y tiene `actividad` sin `rentabilidad`. Es la consecuencia aceptada de no llevar cifras; si se decide ocultarla, basta cambiar el `detalle` de `guardar_gasto` y `anular_gasto`.
 - **MSF-968 cambia lo que ve quien tiene una sola tienda**: ya no ve el historial de las demás. Es el comportamiento buscado; los eventos sin empresa siguen visibles.
+- **Evento de empresa borrada u huérfana**: un evento cuya `empresa_id` ya no existe en `dominio.empresas` no figura entre las empresas de nadie y queda invisible, incluso para el administrador (falla cerrada). Hoy las empresas no se borran (se pausan), así que no ocurre; si algún día se borran, habrá que decidir si esos eventos pasan a ser visibles para el administrador.
+- **`gasto.exportado` sin empresa** (`20270349000300`): cuando se exporta con «todas las tiendas» el evento se registra sin empresa, por lo que quien tiene `actividad` ve que hubo una exportación de gastos, sus filtros y la cantidad de filas, sin importes. Decisión de diseño: es un hecho de toda la organización (como otras exportaciones) y no revela cifras ni tiendas concretas.
 - **Rendimiento antes de encender**: la base de dev no tiene ventas con costo guardado; el `EXPLAIN` debe repetirse con datos reales (ver [Gastos](gastos.md)).
 - **Mes en curso provisorio**: la tasa del mes en curso está incompleta; el tablero lo rotula.
 

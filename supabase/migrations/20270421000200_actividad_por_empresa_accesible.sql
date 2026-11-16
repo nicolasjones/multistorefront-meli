@@ -7,7 +7,7 @@
 --
 -- Alcance: la política de lectura (de ella dependen `listar_actividad`, `obtener_detalle_actividad` y `opciones_actividad`, que son
 -- `security invoker`) y `exportar_actividad` (`security definer`: no pasa por la política, así que aplica el mismo predicado en
--- sus dos consultas y en la búsqueda del nombre del usuario filtrado). Ningún evento se modifica ni se borra; el registro sigue inalterable.
+-- sus dos consultas, en la búsqueda del nombre del usuario filtrado y en la del nombre de la tienda filtrada: una tienda no accesible figura como «no disponible»). Ningún evento se modifica ni se borra; el registro sigue inalterable.
 --
 -- Migración idempotente. REVERSIÓN (migración posterior): recrear la política con solo organización y sección (20261016120000) y
 -- restaurar `exportar_actividad` de 20270218300000.
@@ -249,7 +249,9 @@ begin
     if p_desde is not null then v_filtros := v_filtros || ('desde el ' || to_char(p_desde, 'DD/MM/YYYY')); end if;
     if p_hasta is not null then v_filtros := v_filtros || ('hasta el ' || to_char(p_hasta, 'DD/MM/YYYY')); end if;
     if p_empresa is not null then
-      select e.nombre into v_nombre from dominio.empresas e where e.id = p_empresa and e.organizacion_id = v_org;
+      select e.nombre into v_nombre from dominio.empresas e
+       where e.id = p_empresa and e.organizacion_id = v_org
+         and e.id in (select private.empresas_de_actividad());
       v_filtros := v_filtros || ('tienda ' || coalesce(v_nombre, 'no disponible'));
     end if;
     if p_actor is not null then
