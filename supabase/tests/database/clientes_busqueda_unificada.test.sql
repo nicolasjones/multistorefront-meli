@@ -1,7 +1,7 @@
 -- Clientes en `dominio` y filtro de texto unificado (listado, exportación y correo masivo).
 -- Cubre: el listado y la exportación devuelven las mismas filas con un texto que solo coincide en
 -- `expreso_preferido`; el índice trigram vive en `dominio`; `dominio/clientes.csv` entra a la exportación
--- total; ninguna función conserva `public.clientes` en su cuerpo; el correo masivo sigue ejecutable por
+-- total; ninguna función conserva la tabla ANTERIOR `public.clientes` (hoy `dominio.clientes`) en su cuerpo; el correo masivo sigue ejecutable por
 -- `authenticated` (el revoke de la migración no le quita EXECUTE a quien lo necesita).
 begin;
 
@@ -67,9 +67,9 @@ select ok(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname not in ('pg_catalog', 'information_schema') and p.prosrc ~ '\mpublic\.clientes\M'),
-  0, 'ninguna función nombra public.clientes en su cuerpo');
+  0, 'ninguna función nombra la tabla anterior public.clientes (hoy dominio.clientes) en su cuerpo');
 
-select is(to_regclass('public.clientes')::text, null, 'public.clientes ya no existe');
+select is(to_regclass('public.clientes')::text, null, 'la tabla anterior public.clientes ya no existe (se movió a dominio.clientes)');
 
 select * from finish();
 rollback;
