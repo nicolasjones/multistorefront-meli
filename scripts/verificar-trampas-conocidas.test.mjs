@@ -369,3 +369,112 @@ test('recorrerSql: sin bypass dentro de bloques; lo malo posterior se sigue marc
   assert.equal(t7("select $$ \" -- /* $$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
   assert.deepEqual(t7("select $$ it's $$; select 1"), []);
 });
+
+// Oráculo: el recorrido anterior (busca el cierre del bloque con indexOf en cada carácter; cuadrático pero de semántica de referencia).
+function recorrerSqlViejo(sql) {
+  const salida = sql.split('');
+  const sentencias = [];
+  const pila = [];
+  let inicio = 0;
+  let sinCerrar = -1; // posición del primer comentario, literal o bloque de dólares que no cierra (SQL roto)
+  const abierto = (i) => { if (sinCerrar < 0) sinCerrar = i; };
+  const blanquear = (desde, hasta) => { for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' '; };
+  let i = 0;
+  while (i < sql.length) {
+    const c = sql[i];
+    // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
+    const tope = pila.length ? sql.indexOf(pila[pila.length - 1], i) : -1;
+    if (c === '-' && sql[i + 1] === '-') {
+      const fin = sql.indexOf('\n', i);
+      let hasta = fin < 0 ? sql.length : fin;
+      if (tope >= 0 && tope < hasta) hasta = tope;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === '/' && sql[i + 1] === '*') {
+      const fin = sql.indexOf('*/', i + 2);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      const hasta = fin < 0 ? sql.length : fin + 2;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === "'") {
+      // E'...' admite \' y \\ como escapes (además de ''); un literal común no.
+      const escapes = /[eE]/.test(sql[i - 1] ?? '') && !/[a-z0-9_$]/i.test(sql[i - 2] ?? ' ');
+      let j = i + 1;
+      while (j < sql.length) {
+        if (escapes && sql[j] === '\\') { j += 2; continue; }
+        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
+        if (sql[j] === "'") break;
+        j++;
+      }
+      if (tope >= 0 && tope < j) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
+      if (j >= sql.length) abierto(i);
+      blanquear(i + 1, Math.min(j, sql.length)); i = j + 1; continue;
+    }
+    if (c === '"') {
+      const fin = sql.indexOf('"', i + 1);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      i = fin < 0 ? sql.length : fin + 1; continue;
+    }
+    if (c === '$') {
+      const m = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i.exec(sql.slice(i, i + 80));
+      if (m) {
+        if (pila.length && pila[pila.length - 1] === m[0]) pila.pop(); else pila.push(m[0]);
+        i += m[0].length; continue;
+      }
+    }
+    if (c === ';' && pila.length === 0) {
+      sentencias.push({ texto: salida.slice(inicio, i).join(''), desde: inicio });
+      inicio = i + 1;
+    }
+    i++;
+  }
+  sentencias.push({ texto: salida.slice(inicio).join(''), desde: inicio });
+  if (pila.length) abierto(sql.length - 1);
+  return { enmascarado: salida.join(''), sentencias, sinCerrar };
+}
+
+// PRNG determinista (mulberry32).
+const prng = (semilla) => () => { semilla |= 0; semilla = (semilla + 0x6d2b79f5) | 0; let x = Math.imul(semilla ^ (semilla >>> 15), 1 | semilla); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+const FICHAS = ['$$', '$x$', '$y$', "'", '"', '--', '/*', '*/', '\n', ';', ' ', 'a', 'E', '(', ')', '$', 'insert into reparaciones (ingreso_en) values (current_date)', 'throws_ok(', ','];
+const aleatorio = (rnd, n) => { let s = ''; while (s.length < n) s += FICHAS[Math.floor(rnd() * FICHAS.length)]; return s; };
+
+test('recorrerSql: ejemplos con tokens que se pisan (cierre vencido) igualan al oráculo y no retroceden', () => {
+  for (const sql of ['$$ $x$$ $x$ -- a\nb $$', '$$$x$$x$*//*a;\';', '$$ $x$$ $x$ /* a $$ \' ; $$', "select $$ a $$$ b $$; select 'x'; --$$"]) {
+    const a = recorrerSql(sql); const b = recorrerSqlViejo(sql);
+    assert.deepEqual(a, b, sql);
+  }
+  assert.equal(recorrerSql('$$$x$$x$*//*a;\';').sinCerrar, recorrerSqlViejo('$$$x$$x$*//*a;\';').sinCerrar);
+});
+
+test('recorrerSql: equivale al oráculo en miles de entradas aleatorias (semilla fija)', () => {
+  const rnd = prng(12345);
+  for (let k = 0; k < 4000; k++) {
+    const sql = aleatorio(rnd, 5 + Math.floor(rnd() * 120));
+    assert.deepEqual(recorrerSql(sql), recorrerSqlViejo(sql), JSON.stringify(sql));
+  }
+});
+
+test('T7: mismos problemas que con el oráculo en miles de entradas aleatorias con una alta mala insertada', () => {
+  const rnd = prng(777);
+  for (let k = 0; k < 2000; k++) {
+    const sql = `${aleatorio(rnd, 40 + Math.floor(rnd() * 80))} ; insert into reparaciones (ingreso_en) values (current_date); ${aleatorio(rnd, 30)}`;
+    const nuevo = t7(sql);
+    const viejo = recorrerSqlViejo(sql);
+    // El oráculo corta igual: se compara la enmascarada y las sentencias, y que T7 no pierda la alta mala cuando el SQL cierra bien.
+    assert.deepEqual(recorrerSql(sql).sentencias, viejo.sentencias, JSON.stringify(sql));
+    if (viejo.sinCerrar < 0 && viejo.sentencias.some((x) => /insert\s+into\s+reparaciones\s*\(ingreso_en\)\s*values\s*\(current_date\)/i.test(x.texto)) && !/throws_ok/i.test(sql)) {
+      assert.ok(nuevo.length >= 1, JSON.stringify(sql));
+    }
+  }
+});
+
+test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 300 KB (< 500 ms)', () => {
+  for (const sql of ['$$ $x$$ $x$ -- a\n'.repeat(20000), '$$ $x$$ $x$ /* a '.repeat(20000), aleatorio(prng(99), 300000), aleatorio(prng(7), 300000).replace(/;/g, ' ')]) {
+    const t = Date.now();
+    recorrerSql(sql);
+    const ms = Date.now() - t;
+    assert.ok(ms < 500, `tardó ${ms} ms`);
+  }
+});

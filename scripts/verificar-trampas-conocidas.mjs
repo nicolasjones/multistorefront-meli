@@ -215,10 +215,21 @@ export function recorrerSql(sql) {
     return idx;
   };
   let i = 0;
+  let ultimo = -1;
   while (i < sql.length) {
-    const c = sql[i];
     // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
-    const tope = pila.length ? pila[pila.length - 1].cierre : -1; // calculado una sola vez al abrir el bloque
+    // Invariante: `i` solo avanza (el recorrido es lineal); si algún camino lo hiciera retroceder, se corrige.
+    if (i <= ultimo) i = ultimo + 1;
+    ultimo = i;
+    if (i >= sql.length) break;
+    // El cierre del bloque se calcula al abrirlo y se refresca solo si quedó atrás (otro token lo pisó): búsqueda memoizada.
+    let tope = -1;
+    if (pila.length) {
+      const bloque = pila[pila.length - 1];
+      if (bloque.cierre >= 0 && bloque.cierre < i) bloque.cierre = sig(bloque.tag, i);
+      tope = bloque.cierre;
+    }
+    const c = sql[i];
     if (c === '-' && sql[i + 1] === '-') {
       const fin = sig('\n', i);
       let hasta = fin < 0 ? sql.length : fin;
