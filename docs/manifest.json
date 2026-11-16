@@ -1812,15 +1812,15 @@
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
-      "pageHash": "96a647cd58822bf903ef784dc4622de5f97c01350163fef8787176063abdfbd3",
-      "sourceHash": "7f35eb898f53a193c733681aea8a64397dc6eeca89ab392436817bbe198d6626",
-      "sourceAt": "452ce9e1",
+      "pageHash": "3b1572f3d7881e4ffd6861983cc53f02c12a11fa52cf06363168a3d580763cab",
+      "sourceHash": "f8270b8eb588ea6fc939c77dbedf3a567a92fc34a6f33ab4d860bae2e6f77ddc",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": "452ce9e1"
+      "commit": "7065a017"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -3900,9 +3900,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "a0f8f2ff27bcaa0d75222411e907939d180212f49f3f760cae43b700c215d290",
-      "sourceHash": "bb5b780f6420efdb3edeb58c7d64c98bf490e67c2b26388624a9f90323999b5c",
-      "sourceAt": "f11aaefb",
+      "pageHash": "a39171c7e33d0e60b20d95bca8ea7b7e3e98c2fd573594ec6bd639dfea325962",
+      "sourceHash": "2197c2adc33e3cfe2ee8b0fbcca9a225a4e2d89d98cb2fac3fbd01de1ca2fb39",
+      "sourceAt": "e9196969",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3914,7 +3914,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "f11aaefb"
+      "commit": "e9196969"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
