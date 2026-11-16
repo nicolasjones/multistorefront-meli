@@ -231,7 +231,7 @@ begin
   end if;
 
   select nullif(btrim(u.email::text), '') into v_correo from auth.users u where u.id = v_actor;
-  if v_correo is null then
+  if v_correo is null or v_correo ~ '[{}]' then
     raise exception 'Tu usuario no tiene un correo para recibir la prueba' using errcode = '22023', hint = 'sin_correo';
   end if;
 

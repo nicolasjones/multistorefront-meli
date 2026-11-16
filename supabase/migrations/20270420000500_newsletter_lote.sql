@@ -59,6 +59,11 @@ begin
   -- Un solo reclamador a la vez: el cupo se calcula y se consume sin que dos lotes lo superen.
   perform pg_advisory_xact_lock(hashtextextended('reclamar_lote_correo_masivo', 0));
 
+  -- Una prueba cuyo correo (el del autor, de auth.users) tiene llaves no se envía: queda fallida con motivo fijo.
+  update dominio.correo_masivo_pruebas p
+     set estado = 'fallido', error = 'Correo inválido', reclamado_hasta = null
+   where p.estado = 'pendiente' and p.correo ~ '[{}]';
+
   -- Pruebas pendientes (o con el reclamo vencido). Las del newsletter llevan la foto y salen con el HTML armado; con la bandera apagada esperan.
   return query
     with tomadas as (
@@ -81,18 +86,18 @@ begin
       left join dominio.empresas e on e.id = t.empresa_id and e.organizacion_id = t.organizacion_id
       left join dominio.tiendas ti on ti.empresa_id = t.empresa_id and ti.organizacion_id = t.organizacion_id;
 
-  -- Un correo con llaves o `%` (sintaxis de plantilla) no se envía nunca: `to` lo muestra el motor de plantillas de Kestra (defensa en profundidad;
+  -- Un correo con llaves (sintaxis de plantilla) no se envía nunca: `to` lo muestra el motor de plantillas de Kestra (defensa en profundidad;
   -- las altas nuevas ya lo rechazan, esto cubre filas anteriores y clientes). Motivo fijo «Correo inválido».
   update dominio.campana_correo_destinatarios d
      set estado = 'omitido', error = 'Correo inválido', reclamado_hasta = null
     from dominio.clientes c
    where c.id = d.cliente_id and d.estado = 'pendiente' and (d.reclamado_hasta is null or d.reclamado_hasta < now())
-     and c.correo ~ '[{}%]';
+     and c.correo ~ '[{}]';
   update dominio.campana_correo_destinatarios d
      set estado = 'omitido', error = 'Correo inválido', reclamado_hasta = null
     from dominio.newsletter_suscriptores s
    where s.id = d.suscriptor_id and d.estado = 'pendiente' and (d.reclamado_hasta is null or d.reclamado_hasta < now())
-     and s.correo ~ '[{}%]';
+     and s.correo ~ '[{}]';
 
   -- Re-verificación (FR-020) de los clientes pendientes sin reclamo vigente.
   update dominio.campana_correo_destinatarios d
@@ -174,7 +179,7 @@ begin
         join dominio.tiendas ti on ti.empresa_id = e.id and ti.organizacion_id = e.organizacion_id
         join dominio.newsletter_configuracion cfg on cfg.empresa_id = e.id and cfg.organizacion_id = e.organizacion_id and cfg.activo
        where s.id = v_fila.sid and s.estado = 'confirmado' and e.activa
-         and s.correo !~ '[{}%]'
+         and s.correo !~ '[{}]'
          and not exists (select 1 from dominio.newsletters nl where nl.id = c.newsletter_id and nl.organizacion_id = c.organizacion_id and nl.cancelada_en is not null)
          for share of s;
       if not found then
@@ -184,6 +189,17 @@ begin
                           from dominio.campanas_correo c2
                           left join dominio.newsletters nl on nl.id = c2.newsletter_id and nl.organizacion_id = c2.organizacion_id
                          where c2.id = v_fila.cid)
+         where u.id = v_fila.did and u.estado = 'pendiente' and (u.reclamado_hasta is null or u.reclamado_hasta < now());
+        continue;
+      end if;
+    end if;
+
+    -- Cliente: el correo vigente se lee ACÁ y se vuelve a filtrar (una edición de la ficha entre la re-verificación y este punto no puede colar llaves).
+    if v_fila.clid is not null then
+      select btrim(cl.correo) into v_correo from dominio.clientes cl where cl.id = v_fila.clid and cl.correo !~ '[{}]';
+      if not found or v_correo is null then
+        update dominio.campana_correo_destinatarios u
+           set estado = 'omitido', error = 'Correo inválido', reclamado_hasta = null
          where u.id = v_fila.did and u.estado = 'pendiente' and (u.reclamado_hasta is null or u.reclamado_hasta < now());
         continue;
       end if;
@@ -200,8 +216,7 @@ begin
     v_token := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
     update dominio.campana_correo_destinatarios u
        set reclamado_hasta = now() + v_vence,
-           correo = case when v_fila.sid is not null then v_correo
-                         else (select btrim(cl.correo) from dominio.clientes cl where cl.id = v_fila.clid) end,
+           correo = v_correo,
            token_hashes = u.token_hashes || encode(sha256(convert_to(v_token, 'utf8')), 'hex')
      where u.id = v_fila.did
     returning u.correo into correo;

@@ -30,7 +30,7 @@ insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo,
 insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Cliente Llaves', 'minorista', '{{envs.kestra_smtp_password}}@ejemplo.com', true);
 -- Un suscriptor anterior a la regla (la restricción nace `not valid`): su correo con llaves nunca se envía.
-alter table dominio.newsletter_suscriptores drop constraint newsletter_suscriptores_correo_llaves_ck;
+alter table dominio.newsletter_suscriptores drop constraint if exists newsletter_suscriptores_correo_llaves_ck;
 insert into dominio.newsletter_suscriptores (id, organizacion_id, empresa_id, correo, estado, version_consentimiento) values
   ('51000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', '{{envs.x}}@ejemplo.com', 'confirmado', 'v1');
 -- Campaña de clientes (la más vieja) y dos newsletters.
@@ -78,6 +78,25 @@ select is((select cuerpo_html from apagada where campana_id = 'ca000000-0000-000
 select is((select count(*)::int from dominio.campana_correo_destinatarios d join dominio.campanas_correo c on c.id = d.campana_id where c.tipo = 'newsletter' and d.estado = 'pendiente' and d.reclamado_hasta is null), 6, 'los destinatarios del newsletter siguen pendientes y sin reclamar');
 select is((select estado from dominio.correo_masivo_pruebas where id = 'aa000000-0000-0000-0000-000000000002'), 'pendiente', 'la prueba del newsletter espera');
 
+-- Capa 2 del filtro de llaves (el bucle del reclamo): un cliente cuyo correo cambia a llaves DESPUÉS de la re-verificación inicial. Un disparador simula la
+-- edición concurrente de la ficha: al omitirse el destinatario de un cliente archivado (paso previo del reclamo) cambia el correo del cliente objetivo.
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
+  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Cliente Archivado', 'minorista', 'archivado@example.com', true, now()),
+  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Cliente Objetivo', 'minorista', 'objetivo@example.com', true, null);
+insert into dominio.campana_correo_destinatarios (id, organizacion_id, campana_id, cliente_id, correo, creado_en) values
+  ('d1000000-0000-0000-0000-000000000041', '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000003', 'archivado@example.com', now() - interval '3 hours'),
+  ('d1000000-0000-0000-0000-000000000042', '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004', 'objetivo@example.com', now() - interval '3 hours');
+create function public.disparador_edicion_concurrente() returns trigger language plpgsql as $$
+begin
+  update dominio.clientes set correo = '{{envs.kestra_smtp_password}}@example.com' where id = 'c1000000-0000-0000-0000-000000000004';
+  return new;
+end $$;
+create trigger edicion_concurrente after update on dominio.campana_correo_destinatarios
+  for each row when (new.id = 'd1000000-0000-0000-0000-000000000041' and new.estado = 'omitido') execute function public.disparador_edicion_concurrente();
+-- Prueba cuyo correo (el del autor) tiene llaves.
+insert into dominio.correo_masivo_pruebas (id, organizacion_id, correo, asunto, mensaje) values
+  ('aa000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', '{{envs.x}}@example.com', 'Prueba con llaves', 'Hola');
+
 -- ---- Bandera encendida ----
 update public.banderas_plataforma set activa = true where clave = 'newsletter';
 -- Cambios antes de reclamar: Dani se dio de baja, Caro volvió a pendiente con baja_en, y la tienda B apaga su interruptor.
@@ -90,6 +109,9 @@ update dominio.campana_correo_destinatarios set reclamado_hasta = null where cli
 update dominio.correo_masivo_pruebas set reclamado_hasta = null;
 create temp table lote as select * from private.reclamar_lote_correo_masivo(50, 100, 900);
 select is((select string_agg(estado || ':' || error, ',' order by id) from dominio.campana_correo_destinatarios where id in ('d1000000-0000-0000-0000-000000000031', 'd1000000-0000-0000-0000-000000000032')), 'omitido:Correo inválido,omitido:Correo inválido', 'un correo con llaves (cliente o suscriptor) nunca se envía: omitido con motivo fijo');
+select is((select estado || ':' || error from dominio.campana_correo_destinatarios where id = 'd1000000-0000-0000-0000-000000000042'), 'omitido:Correo inválido', 'capa 2: el correo que cambió a llaves después de la re-verificación no se envía');
+select is((select estado || ':' || error from dominio.correo_masivo_pruebas where id = 'aa000000-0000-0000-0000-000000000003'), 'fallido:Correo inválido', 'una prueba con llaves en el correo del autor no se envía');
+select is((select count(*)::int from lote where asunto = 'Prueba con llaves' or destinatario_id = 'd1000000-0000-0000-0000-000000000042'), 0, 'ni la prueba ni el cliente con llaves salen en el lote');
 select is((select count(*)::int from lote where correo like '%{%' or correo like '%}%'), 0, 'ninguna fila entregada trae llaves en el correo');
 select is((select estado || ':' || error from dominio.campana_correo_destinatarios where id = 'd1000000-0000-0000-0000-000000000021'), 'omitido:Cancelado', 'un envío cancelado no reenvía aunque su reclamo hubiera vencido');
 select is((select count(*)::int from lote where campana_id in ('ca000000-0000-0000-0000-000000000004', 'ca000000-0000-0000-0000-000000000005')), 0, 'ni el envío cancelado ni la tienda sin dominio entregan nada');

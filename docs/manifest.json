@@ -602,8 +602,8 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "f31203111ec97a0975598c095c9bb0364369a42604bfd8cb8a29ac2c21049a27",
-      "sourceHash": "cee819b82c693d2ddae0cfef2f51156555a04c7608f5ce9e19e67838e5976ac9",
+      "pageHash": "0ebe0e5650c343f8476c015fb12b06d39ccb11da154b65576b11484db996e3e6",
+      "sourceHash": "7fe6f4339e4f908d493fcb410ba43175d1ed25cf15e1a599cd9ce3fa0b103c74",
       "sourceAt": "432db86d",
       "sources": [
         "specs"
@@ -925,9 +925,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "95d1c993a0c5a0e78e3a505d10e8019c374d436e75792e293a024f3b435abfd4",
-      "sourceHash": "9afcbafd4a75b0184fa2d51a4a458075e267730e51e7735a2b8d3bec7e139dae",
-      "sourceAt": "432db86d",
+      "pageHash": "9c8939dda2250094bceefd76c4bef1f2da0b4d68457d5fd18d0333782a9cb5a1",
+      "sourceHash": "4ff9db9ef5e323ecc25e1ba4da51e3293fb77c6ca7d95e4e4efdf18a9e8c7834",
+      "sourceAt": "eced4a51",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -951,7 +951,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "432db86d"
+      "commit": "eced4a51"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",

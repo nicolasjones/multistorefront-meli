@@ -650,4 +650,4 @@ Detalle y reversión en `docs/newsletter.md`.
 (`newsletter-confirmaciones` y el `correo-masivo` actualizado: sin el segundo, un newsletter saldría con la plantilla de clientes); (2) comprobar que el
 SMTP de Kestra (`KESTRA_SMTP_*`) está configurado; (3) encender: `update public.banderas_plataforma set activa = true where clave = 'newsletter';` y activar
 el interruptor de una tienda de prueba desde `Contactos → Newsletter`; (4) probar una suscripción, la confirmación, una prueba y un envío a un suscriptor
-propio. El reclamo del lote no entrega nada del newsletter con la bandera apagada, y el correo masivo a clientes no cambia.
+propio; (5) verificar en ese Kestra que `kestra.templating.recursive-rendering` esté en `false` (queda fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real: pendiente explícito de T034). El reclamo del lote no entrega nada del newsletter con la bandera apagada, y el correo masivo a clientes no cambia.
