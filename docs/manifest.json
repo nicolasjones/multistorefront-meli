@@ -2109,7 +2109,7 @@
     },
     "docs/service-reportes.md": {
       "title": "Service técnico · Reportes y exportación (F-SVC-23, MSF-168)",
-      "pageHash": "466dbb4bb8f8fe7c538616ccfcb85c57981d8ee882ed435579b29b0aa96e19e0",
+      "pageHash": "4bf0af3438798dbadb0629c52ed76faf4f480d4448dd470a8cea37e96206401f",
       "sourceHash": "77e8b99854c9db5ce6810d776b433fd81997fa74a39ac4cc25abf5e07430eb83",
       "sourceAt": "8583cf7f",
       "sources": [
@@ -2162,7 +2162,7 @@
     },
     "docs/service-seguimiento.md": {
       "title": "Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)",
-      "pageHash": "acd020d4bb829b56d233fd8a83de7f34aeb873d872c34c20d02bb14b70d3f363",
+      "pageHash": "3734018b7728ea97488de5ef243f69382d1fe909a147798fcc8ba41c268326fd",
       "sourceHash": "d84541bdd3bceeecaf12ebc3a32fa4f1b97f8895b272894683a53aac847f274a",
       "sourceAt": "8583cf7f",
       "sources": [
