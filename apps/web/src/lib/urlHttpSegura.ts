@@ -6,6 +6,7 @@
 export function urlHttpSegura(url: string | null | undefined): string | null {
   if (typeof url !== 'string') return null
   const texto = url.trim()
+  // eslint-disable-next-line no-control-regex
   if (texto === '' || /[\u0000-\u001f\u007f]/.test(texto)) return null
   if (texto.startsWith('/')) return texto.startsWith('//') || texto.startsWith('/\\') ? null : texto
   try {
