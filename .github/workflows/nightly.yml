@@ -210,7 +210,10 @@ jobs:
           # Dónde lo deja Playwright: `PLAYWRIGHT_BROWSERS_PATH` si el runner lo define; si no, el caché de HOME.
           BASE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
           echo "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-<sin definir>} · base=$BASE"
-          pnpm --filter @platform/web exec playwright install chromium
+          # El runner puede venir con `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` (no descargar el navegador en cada
+          # `pnpm install`): con esa variable, `playwright install` no hace nada y no hay binario. Se quita
+          # sólo para esta llamada, que es la que lo baja.
+          env -u PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD pnpm --filter @platform/web exec playwright install chromium
           # El caché guarda el binario, no las libs del SO (mismo motivo que en validate.yml).
           pnpm --filter @platform/web exec playwright install-deps chromium
           CHROME=""
