@@ -51,7 +51,7 @@ select p.id, e.id, '11111111-1111-1111-1111-111111111111'
 insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
   ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', false, false);
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c7000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 20, 'Mayorista', 'my@example.com', 'mayorista'),
   ('c7000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 21, 'Minorista', 'mn@example.com', 'minorista'),
   ('c7000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 22, 'Suspendida', 'su@example.com', 'mayorista'),

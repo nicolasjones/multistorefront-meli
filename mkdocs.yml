@@ -107,8 +107,11 @@ nav:
           - Cotización del dólar: producto/precios-dolar.md
           - Precios, escalas e IVA: producto/precios-e-iva.md
           - Actualizar precios en bloque: producto/precios-masivos.md
+          - Listas de precios por cliente: producto/listas-de-precios.md
           - Promociones de precio: producto/promociones.md
           - Rentabilidad: producto/rentabilidad.md
+          - Gastos de cada tienda: producto/gastos.md
+          - Tableros analíticos y resumen semanal: producto/tableros-analiticos.md
       - Stock y compras:
           - "Stock: ver, mover y controlar": producto/stock-movimientos.md
           - Depósitos, traslados y reservas: producto/stock-depositos-y-reservas.md
@@ -143,6 +146,8 @@ nav:
           - Páginas propias, medición y Compartir: producto/tienda-contenido-y-analitica.md
           - Consultas de las tiendas: producto/consultas.md
           - Contactos: producto/contactos.md
+          - Opiniones: producto/opiniones.md
+          - Newsletter: producto/newsletter.md
       - Configuración y datos:
           - Importaciones y exportaciones: producto/importaciones.md
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
@@ -189,6 +194,8 @@ nav:
           - "Configuración del dólar y precio propio (épica MSF-352)": configuracion-dolar-y-precio-propio.md
           - "Consultas: bandeja y aviso (MSF-122)": consultas.md
           - "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)": contactos.md
+          - "Opiniones de productos: moderación y tienda (MSF-467)": tienda-opiniones.md
+          - "Newsletter de la tienda (MSF-468)": newsletter.md
           - "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)": cuentas-y-compras-a-proveedores.md
           - "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)": dolar-y-recalculo.md
           - "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)": importaciones.md
@@ -197,7 +204,10 @@ nav:
           - "Listados: carga infinita e imagen de producto": listados.md
           - "Migración inicial de datos · ensayo, conciliación y plan de corte": migracion-inicial-de-datos.md
           - "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)": precios-masivos.md
+          - "Listas de precios por cliente (F-PRE-14 y F-CLI-21)": listas-de-precios.md
+          - "Revisión de seguridad: listas de precios": revision-seguridad-listas-de-precios.md
           - "Rentabilidad (margen por producto y canal)": rentabilidad.md
+          - "Gastos de la empresa y margen después de costos fijos": gastos.md
           - "Stock · Lotes e inventario (épica MSF-131)": stock-lotes-e-inventario.md
           - "Tiendas online: dominio e identidad": tiendas-online.md
           - "Ventas · Catálogos de cobro y envío (épica MSF-139)": ventas-catalogos.md

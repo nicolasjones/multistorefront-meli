@@ -16,6 +16,22 @@ import path from 'node:path';
 
 const RESPALDO = /^bin\.\d+\.\d+\.\d+$/;
 
+// La versión se compara por número y no por texto: «bin.2.10.0» es más nueva que «bin.2.9.0»
+// (con el orden lexicográfico ganaba la vieja).
+function versionDe(nombre) {
+  return nombre.slice('bin.'.length).split('.').map(Number);
+}
+
+// Ordena respaldos del más nuevo al más viejo.
+function porVersionDescendente(a, b) {
+  const va = versionDe(a);
+  const vb = versionDe(b);
+  for (let i = 0; i < va.length; i += 1) {
+    if (va[i] !== vb[i]) return vb[i] - va[i];
+  }
+  return 0;
+}
+
 // ¿El runner está listo para arrancar (tiene el listener)?
 export function tieneBin(dir) {
   return existsSync(path.join(dir, 'bin', 'Runner.Listener'));
@@ -25,8 +41,7 @@ export function tieneBin(dir) {
 export function respaldoUsable(dir) {
   const respaldos = readdirSync(dir)
     .filter((nombre) => RESPALDO.test(nombre))
-    .sort()
-    .reverse();
+    .sort(porVersionDescendente);
   for (const nombre of respaldos) {
     if (existsSync(path.join(dir, nombre, 'Runner.Listener'))) return nombre;
   }

@@ -35,7 +35,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho');
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 insert into dominio.categorias (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joysticks');
@@ -156,6 +156,23 @@ reset role;
 select is((select precio_unitario || '|' || precio_referencia || '|' || (promocion_id is not null) from dominio.comprobantes_venta_lineas
             where comprobante_id = pg_temp.id_de('V1')), '800.00|1000.00|true',
   'la línea de V1 guarda el precio promocional, la referencia y la promoción');
+-- Indicador «ventas con promoción» (analitica.ventas_con_promocion): por producto.
+create function pg_temp.promo(p_producto integer, p_columna text) returns numeric language plpgsql security definer as $$
+declare v numeric;
+begin
+  execute format('select sum(%I) from analitica.ventas_con_promocion where producto_id = $1', p_columna)
+    into v using ('b1000000-0000-0000-0000-' || lpad(p_producto::text, 12, '0'))::uuid;
+  return v;
+end $$;
+grant execute on function pg_temp.promo(integer, text) to public;
+select is(pg_temp.promo(1, 'unidades_con_promocion'), 3::numeric, 'indicador: 3 joysticks vendidos con promoción');
+select is(pg_temp.promo(1, 'descuento_promocional'), 600::numeric, 'indicador: descuento = 3 × (1000 − 800)');
+select is(pg_temp.promo(1, 'unidades_bajo_costo'), 0::numeric, 'indicador: promoción 800 sobre costo 600 no es bajo el costo');
+select is(pg_temp.promo(2, 'unidades_bajo_costo'), 2::numeric, 'aviso S3: 2 cables vendidos con promoción bajo el costo (50 < 100)');
+select is(pg_temp.promo(3, 'unidades_con_promocion'), 0::numeric, 'indicador: el teclado sin promoción no cuenta');
+select is(pg_temp.promo(3, 'pct_unidades_con_promocion'), 0::numeric, 'indicador: 0 % de unidades con promoción en el control');
+select is(pg_temp.promo(1, 'vendido_con_promocion'), pg_temp.promo(1, 'vendido'), 'indicador: todo lo vendido del joystick fue con promoción');
+select is(has_table_privilege('authenticated', 'analitica.ventas_con_promocion', 'select'), false, 'la vista no se concede a authenticated');
 select is((select costo_unitario from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_de('V1')), 600.00,
   'y el costo congelado al confirmar (600): la promoción no cambia el costo');
 

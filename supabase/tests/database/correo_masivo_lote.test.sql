@@ -12,7 +12,7 @@ insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Uno', 'minorista', 'uno@example.com', true, null),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Dos', 'minorista', 'dos@example.com', true, null),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Tres', 'minorista', 'tres@example.com', true, null),
@@ -26,7 +26,7 @@ insert into dominio.campanas_correo (id, organizacion_id, clave, asunto, mensaje
 
 insert into dominio.campana_correo_destinatarios (organizacion_id, campana_id, cliente_id, correo, creado_en)
 select '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000001', c.id, c.correo, now() - interval '2 hours' + ((c.numero - 100) || ' seconds')::interval
-  from clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.numero between 101 and 105;
+  from dominio.clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.numero between 101 and 105;
 insert into dominio.campana_correo_destinatarios (organizacion_id, campana_id, cliente_id, correo)
 values ('22222222-2222-2222-2222-222222222222', 'ca000000-0000-0000-0000-000000000002', 'c2000000-0000-0000-0000-000000000001', 'ajeno@example.com');
 
@@ -144,7 +144,7 @@ select is(
 -- FR-020: re-verificación → omitido
 -- ============================================================================
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
   ('c1000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 11, 'Se archivó', 'minorista', 'archivado@example.com', true, null),
   ('c1000000-0000-0000-0000-000000000012', '11111111-1111-1111-1111-111111111111', 12, 'Dejó de aceptar', 'minorista', 'dejo@example.com', true, null),
   ('c1000000-0000-0000-0000-000000000013', '11111111-1111-1111-1111-111111111111', 13, 'Perdió el correo', 'minorista', 'perdio@example.com', true, null),
@@ -153,16 +153,16 @@ insert into dominio.campanas_correo (id, organizacion_id, clave, asunto, mensaje
 values ('ca000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'aaaaaaaa-0000-0000-0000-000000000005', 'Cuarta', 'Cuarto cuerpo');
 insert into dominio.campana_correo_destinatarios (organizacion_id, campana_id, cliente_id, correo)
 select '11111111-1111-1111-1111-111111111111', 'ca000000-0000-0000-0000-000000000005', c.id, c.correo
-  from clientes c where c.numero between 11 and 14 and c.organizacion_id = '11111111-1111-1111-1111-111111111111';
-update clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000011';
-update clientes set acepta_correo_masivo = false where id = 'c1000000-0000-0000-0000-000000000012';
-update clientes set correo = null where id = 'c1000000-0000-0000-0000-000000000013';
-update clientes set correo = 'nuevo@example.com' where id = 'c1000000-0000-0000-0000-000000000014';
+  from dominio.clientes c where c.numero between 11 and 14 and c.organizacion_id = '11111111-1111-1111-1111-111111111111';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000011';
+update dominio.clientes set acepta_correo_masivo = false where id = 'c1000000-0000-0000-0000-000000000012';
+update dominio.clientes set correo = null where id = 'c1000000-0000-0000-0000-000000000013';
+update dominio.clientes set correo = 'nuevo@example.com' where id = 'c1000000-0000-0000-0000-000000000014';
 update dominio.campana_correo_destinatarios set enviado_en = now() - interval '1 day' where estado = 'enviado';
 
 create temp table lote6 as select * from private.reclamar_lote_correo_masivo(10, 100, 900);
 select is(
-  (select array_agg(c.nombre order by c.nombre) from dominio.campana_correo_destinatarios d join clientes c on c.id = d.cliente_id
+  (select array_agg(c.nombre order by c.nombre) from dominio.campana_correo_destinatarios d join dominio.clientes c on c.id = d.cliente_id
     where d.campana_id = 'ca000000-0000-0000-0000-000000000005' and d.estado = 'omitido'),
   array['Dejó de aceptar', 'Perdió el correo', 'Se archivó'],
   'FR-020: archivado, sin aceptación y sin correo quedan omitidos'
@@ -195,7 +195,7 @@ select is(
   'la baja con un token válido responde true'
 );
 select is(
-  (select acepta_correo_masivo from clientes where id = 'c1000000-0000-0000-0000-000000000005'),
+  (select acepta_correo_masivo from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000005'),
   false,
   'FR-019: la baja pone acepta_correo_masivo en false'
 );

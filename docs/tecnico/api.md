@@ -282,7 +282,7 @@ reversión: [Clientes: modelo, RPC y pantallas](clientes.md).
 
 Además:
 
-- **Alta, edición, archivado y restauración** no usan RPC: el panel escribe directo en `public.clientes`
+- **Alta, edición, archivado y restauración** no usan RPC: el panel escribe directo en `dominio.clientes`
   (PostgREST) y la base aplica `private.nivel_seccion('clientes')`, los grants por columna y los
   disparadores. El **número correlativo** lo asigna `private.asignar_numero_cliente()`; el **DNI/CUIT
   único por organización** lo impone el índice `clientes_org_documento_uq` (`23505`).
@@ -309,7 +309,7 @@ Además:
 - `public.registrar_ingreso_mercaderia(...)` **mantiene la firma**; cambio de comportamiento: el
   `costo_unitario_usd` de cada línea pasa a ser opcional (`null` = sin costo, no cero) y una línea sin
   costo no actualiza `dominio.producto_costos` aunque venga `p_actualizar_costo = true`.
-- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `public.clientes` por PostgREST con las
+- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `dominio.clientes` por PostgREST con las
   columnas `id, nombre, direccion, codigo_postal, localidad, provincia, telefono, expreso_preferido` y
   **no escribe nada**.
 - `dominio.proveedores_contactos` solo tiene `grant select` para `authenticated`: sin `INSERT`, `UPDATE`
@@ -331,7 +331,7 @@ proveedores](cuentas-y-compras-a-proveedores.md).
 Además:
 
 - **Sin tablas nuevas ni alteradas**: no hay RLS que agregar; la función solo lee
-  `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+  `dominio.comprobantes_venta`, `dominio.clientes` y `private.saldo_comprobante`.
 - **Efecto cruzado:** el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`) sincroniza la
   factura al emitir una nota de crédito (pasa a «Cobrado» si lo cobrado más las notas cubren el total y hay
   cobros; ajusta el importe de los contrarreembolsos pendientes al saldo neto). Detalle en
@@ -521,7 +521,7 @@ organización y el actor salen de la sesión.
 | RPC | Contrato | Seguridad |
 |---|---|---|
 | `buscar_producto_por_codigo_barras(p_codigo_barras text)` | Resuelve el producto **activo** de la organización por su EAN-13 (`productos_org_codigo_barras_uidx`). Valida 13 dígitos; sin coincidencia **no devuelve filas** (la pantalla muestra «Producto no encontrado»). Devuelve `(producto_id, nombre, sku, codigo_barras)`. | `security definer`; exige `ventas` en **edición** en la empresa activa |
-| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
+| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `dominio.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
 | `obtener_comprobante(p_id)` | **Misma firma y mismo retorno**: la línea suma la clave `descuento_pct`. | `security definer`; exige `ventas` en lectura o edición |
 | `cerrar_caja(p_empresa_id, p_fecha)` | Cierra el día de una empresa: resume los cobros de esa fecha **por forma de pago y cuenta de cobro**, guarda cierre + detalle y marca `cerrada`. **Idempotente** (un segundo cierre devuelve el existente); si estaba `reabierta`, la vuelve a cerrar y rehace el detalle. No se cierra un día futuro. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
 | `reabrir_caja(p_cierre_id)` | `cerrada` → `reabierta`, con `reabierto_por`/`reabierto_en`. **Idempotente**. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
@@ -799,7 +799,7 @@ Detalle completo: [Tienda online: dominio, publicación y versiones](tienda-domi
 |---|---|---|
 | `public.configurar_dominio_tienda(empresa, dominio, redireccion)` | `{ dominio_vigente, dominio_pendiente, redireccion }`; normaliza y exige unicidad a nivel plataforma entre principales, pendientes y redirecciones | `security definer`; edición en Empresas; `dominio_invalido`, `dominio_en_uso`, `redireccion_invalida`, `redireccion_en_uso` |
 | `public.obtener_dominio_tienda(empresa)` | Dominio vigente y pendiente, redirección, estado de verificación y certificado, última verificación y la tabla de registros con su estado | `security definer`; lectura en Empresas |
-| `public.preparar_verificacion_tienda(empresa)` | `{ dominio, redireccion, token, ip_publica, cname_destino, prefijo_txt }`; aplica el límite de 10 s por tienda | `security definer`; edición en Empresas; `sin_permiso`, `sin_dominio`, `demasiado_pronto` |
+| `public.preparar_verificacion_tienda(empresa)` | `{ dominio, redireccion, token, ip_publica, cname_destino, prefijo_txt }`; aplica el límite de 10 s por tienda | `security definer`; edición en Empresas; `sin_permiso`, `sin_dominio`, `demasiado_pronto`, `plataforma_no_configurada` (22023: la IP de `tienda_dns_plataforma` no es pública, MSF-797) |
 | `public.registrar_verificacion_dns(empresa, dominio, redireccion, resultados, certificado)` | Guarda el resultado de la comprobación y promueve el pendiente si corresponde | **`service_role` únicamente** (la ejecuta la Edge Function); `verificacion_obsoleta` |
 | `publico.redireccion_por_dominio(host)` | `{ dominio_principal }` o `null`; vacío para host desconocido y empresa desactivada | `security definer`; `anon` y `authenticated` |
 | `public.guardar_borrador_tienda(empresa, area, datos)` | Deja el valor completo de un área (`identidad`\|`contenido`\|`catalogo`) en el borrador; valida con las mismas reglas que las RPC vivas | `security definer`; edición en Empresas; `42501`, `22023` por campo |

@@ -204,7 +204,7 @@ castellano.
 - **Aislamiento**: el pago se busca por id **y** por la organización de la sesión; el de otra
   organización devuelve `P0002`, nunca datos ajenos. Una tienda ajena devuelve **cero filas**, no un
   error que delate su existencia.
-- **El nombre del cliente**: el `join` con `public.clientes` es `left` porque Clientes tiene su propia
+- **El nombre del cliente**: el `join` con `dominio.clientes` es `left` porque Clientes tiene su propia
   RLS: un rol con Ventas pero sin Clientes (Depósito) ve la fila sin nombre. El pago **no** se filtra
   por eso: la fila es de Ventas. Leer el nombre con una función `security definer` se descarta a
   propósito: no amplía el alcance de los datos de Clientes.

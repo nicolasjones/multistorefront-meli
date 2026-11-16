@@ -210,7 +210,7 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
   `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
   **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
-  en **Stock** también es del Operador (reportes de inventario, migración `20270325300000`); los demás roles sin ella ven solo cantidades.
+  en **Stock** también es del Operador (reportes de inventario, migración `20270433000000`); los demás roles sin ella ven solo cantidades.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
@@ -422,3 +422,9 @@ permisos y contexto demorados).
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
+
+## Listas de precios (F-PRE-14 y F-CLI-21)
+
+Las listas de precios **no tienen sección propia** en la matriz: solo las escribe el rol **Administrador** (la RPC lo comprueba con `private.es_administrador_de`, como el descuento por cliente) y las leen quienes tienen `clientes` o `ventas` en `lectura` o `edicion` (política `listas_precios_select`). Detalle en [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
+
+Resumen del cierre: crear, editar, archivar, restaurar y asignar listas es **solo del rol Administrador**; leen las listas y la lista de cada cliente quienes tienen `clientes` o `ventas`; la tienda nunca expone el nombre ni el porcentaje de la lista. Revisión completa en [Revisión de seguridad de las listas de precios](revision-seguridad-listas-de-precios.md).

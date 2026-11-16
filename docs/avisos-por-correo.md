@@ -86,3 +86,7 @@ MSF-853 (gate) eliminó el camino directo que quedó sin uso: la Edge Function `
 Los avisos de esta guía son internos (hacia el equipo) y cada persona los enciende o apaga. El correo masivo a clientes
 (MSF-155) es otra cosa: lo redacta el equipo, sale en lotes con cupo diario por el flow `correo-masivo` y cada cliente
 puede darse de baja. No usa `avisos_pendientes` ni estas preferencias. Ver [`correo-masivo.md`](./correo-masivo.md).
+
+## Resumen semanal por correo (F-REP-08, MSF-265)
+
+El resumen semanal para los administradores **no usa la cola `avisos_pendientes` ni el flow `enviar-avisos`**: es un correo por organización (no por persona) con contenido propio, que sigue el patrón del resumen de reposición (Kestra → Edge Function `enviar-resumen-semanal` → RPC de `service_role` → SMTP). Sí reutiliza de MSF-189 el catálogo `tipos_aviso` (tipo `resumen_semanal`, sección `usuarios_permisos`) y `preferencias_aviso` para la **baja personal** desde `/cuenta/avisos`: sin fila de preferencia = recibe el resumen. La pausa de toda la organización se hace en «Mi organización». Detalle en [Resumen semanal por correo](resumen-semanal-correo.md).

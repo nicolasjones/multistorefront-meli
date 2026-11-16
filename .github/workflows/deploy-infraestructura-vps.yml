@@ -127,6 +127,7 @@ jobs:
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno staging
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno staging
       - name: Re-ejecutar superset-init de staging DESPUÉS de importar los dashboards
         # `deploy:vps` ya corrió superset-init, pero ANTES del importador: un dataset nuevo (p. ej. el de
         # «Inventario · Productos y stock (cantidades)») todavía no existía y el rol Guest no recibía su
@@ -213,6 +214,7 @@ jobs:
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno production
           pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno production
+          pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno production
       - name: Re-ejecutar superset-init de producción DESPUÉS de importar los dashboards
         # `deploy:vps` ya corrió superset-init, pero ANTES del importador: un dataset nuevo (p. ej. el de
         # «Inventario · Productos y stock (cantidades)») todavía no existía y el rol Guest no recibía su

@@ -7,7 +7,7 @@ import { leerCategoriasPublicas, categoriasPrincipales, CATEGORIAS_PRINCIPALES, 
 
 const cat = (id: string, nombre: string, productos: number, padreId: string | null = null): CategoriaPublica => ({ id, nombre, productos, padreId, imagen: null })
 
-describe('categoriasPrincipales (MSF-825)', () => {
+describe('categoriasPrincipales', () => {
   it('toma las raíces de mayor a menor cantidad y corta en 6', () => {
     const raices = Array.from({ length: 10 }, (_, i) => cat(`r${i}`, `Raíz ${i}`, i + 1))
     const hijas = [cat('h1', 'Hija enorme', 999, 'r0')]
@@ -39,7 +39,7 @@ describe('categoriasPrincipales (MSF-825)', () => {
   })
 })
 
-describe('filasPanelCategorias (MSF-825, MSF-830)', () => {
+describe('filasPanelCategorias', () => {
   const todas = [
     cat('r1', 'Consolas', 10), cat('r2', 'Juegos', 8),
     cat('h1', 'Xbox', 4, 'r1'), cat('h2', 'Switch', 6, 'r1'), cat('n1', 'Xbox 360', 2, 'h1'), cat('h3', 'PS4', 8, 'r2'),
@@ -60,7 +60,7 @@ describe('filasPanelCategorias (MSF-825, MSF-830)', () => {
   })
 })
 
-describe('leerCategoriasPublicas · imagen (MSF-841)', () => {
+describe('leerCategoriasPublicas · imagen', () => {
   it('lleva la ruta de la foto de la categoría y null cuando no hay (o la base aún no la devuelve)', async () => {
     mocks.rpc.mockResolvedValue({
       data: {
@@ -82,7 +82,7 @@ describe('leerCategoriasPublicas · imagen (MSF-841)', () => {
   })
 })
 
-describe('cuantasEntran (MSF-846)', () => {
+describe('cuantasEntran', () => {
   // 6 entradas de 150 px, «Más categorías» de 160 px y separación de 28 px.
   const anchos = [150, 150, 150, 150, 150, 150]
   it('entran todas cuando alcanza el ancho y no hay más categorías', () => {

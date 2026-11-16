@@ -30,6 +30,13 @@
       "dashboard_slug": "rentabilidad-ventas-reales",
       "seccion": "rentabilidad",
       "rolesPorDefecto": ["administracion"]
+    },
+    {
+      "nombre": "Rentabilidad · Después de costos fijos",
+      "dashboard_slug": "rentabilidad-despues-de-costos-fijos",
+      "seccion": "rentabilidad",
+      "filtro_empresa": true,
+      "rolesPorDefecto": ["administracion"]
     }
   ]
 }

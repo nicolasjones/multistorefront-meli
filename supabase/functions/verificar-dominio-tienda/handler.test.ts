@@ -156,6 +156,16 @@ describe('verificar-dominio-tienda', () => {
     assert.deepEqual(estado.registrados, [])
   })
 
+  it('una IP de plataforma no pública responde 503 sin consultar DNS ni abrir conexiones (MSF-797)', async () => {
+    const { deps, estado } = montar({ rpcError: { message: 'plataforma_no_configurada', code: '22023' } })
+    const res = await pedir(deps)
+    assert.equal(res.status, 503)
+    assert.deepEqual(await res.json(), { error: 'plataforma_no_configurada' })
+    assert.deepEqual(estado.consultas, [])
+    assert.deepEqual(estado.tls, [])
+    assert.deepEqual(estado.registrados, [])
+  })
+
   it('el límite de 10 s responde 429 sin consultar DNS (FR-010)', async () => {
     const { deps, estado } = montar({ rpcError: { message: 'demasiado_pronto', code: '55000' } })
     const res = await pedir(deps)

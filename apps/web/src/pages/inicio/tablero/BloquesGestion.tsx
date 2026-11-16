@@ -17,36 +17,53 @@ type Props = { contexto: ContextoTablero; verVentas: boolean; verStock: boolean;
 // Bloques de gestión de Inicio (F-INI-05, MSF-821): «Qué hacer hoy» (alertas de MSF-361) ya se monta arriba en
 // la página de Inicio; acá van «Resumen por tienda», «Salidas por depósito» y «Actividad reciente». Respetan los filtros del tablero y cada
 // uno tiene su estado de carga, vacío y error. Un bloque sin permiso ni se muestra ni se consulta (FR-011).
-// «Resumen por tienda» y «Salidas por depósito» salen de la MISMA lectura (`resumen_inicio_bloques`).
+// «Resumen por tienda» y «Salidas por depósito» se leen por separado (RF-INI-05-7, MSF-850): cada uno con su carga,
+// su error y su reintento; si falla uno, el otro sigue visible.
 export function BloquesGestion({ contexto, verVentas, verStock, verActividad }: Props) {
-  const { desde, hasta, empresaId, depositoId } = contexto
-  const clave = `${desde}|${hasta}|${empresaId ?? ''}|${depositoId ?? ''}`
-  const leerBloques = useCallback(
-    async () => ({ clave, bloques: await leerBloquesInicio({ desde, hasta, empresaId, depositoId }) }),
-    [clave, desde, hasta, empresaId, depositoId],
-  )
-  const bloques = useLecturaInicio(leerBloques, { habilitado: verVentas || verStock })
-  const actual: BloquesInicio | null = bloques.datos !== null && bloques.datos.clave === clave ? bloques.datos.bloques : null
-  const cargandoBloques = bloques.cargando || (!bloques.hayError && actual === null)
-
   return (
     <Box sx={GRILLA}>
-      {verVentas ? (
-        <TarjetaInicio titulo="Resumen por tienda" cargando={cargandoBloques} hayError={bloques.hayError} onReintentar={() => void bloques.recargar()}>
-          {actual === null ? null : actual.por_tienda ? <ResumenPorTienda tiendas={actual.por_tienda} /> : (
-            <EstadoVacio titulo="No tenés ventas habilitadas en esta tienda" descripcion="Elegí otra tienda o pedile a quien administra tu cuenta que te habilite Ventas." />
-          )}
-        </TarjetaInicio>
-      ) : null}
-      {verStock ? (
-        <TarjetaInicio titulo="Salidas por depósito" cargando={cargandoBloques} hayError={bloques.hayError} onReintentar={() => void bloques.recargar()}>
-          {actual === null ? null : actual.salidas_por_deposito ? <SalidasPorDeposito depositos={actual.salidas_por_deposito} /> : (
-            <EstadoVacio titulo="No tenés Stock habilitado" descripcion="Pedile a quien administra tu cuenta que te habilite Stock." />
-          )}
-        </TarjetaInicio>
-      ) : null}
+      {verVentas ? <ResumenTiendas contexto={contexto} /> : null}
+      {verStock ? <SalidasDepositos contexto={contexto} /> : null}
       {verActividad ? <ActividadReciente contexto={contexto} /> : null}
     </Box>
+  )
+}
+
+function ResumenTiendas({ contexto }: { contexto: ContextoTablero }) {
+  const { desde, hasta, empresaId, depositoId } = contexto
+  const clave = `${desde}|${hasta}|${empresaId ?? ''}|${depositoId ?? ''}`
+  const leer = useCallback(
+    async () => ({ clave, bloques: await leerBloquesInicio({ desde, hasta, empresaId, depositoId }, 'por_tienda') }),
+    [clave, desde, hasta, empresaId, depositoId],
+  )
+  const lectura = useLecturaInicio(leer)
+  const actual: BloquesInicio | null = lectura.datos !== null && lectura.datos.clave === clave ? lectura.datos.bloques : null
+  const cargando = lectura.cargando || (!lectura.hayError && actual === null)
+  return (
+    <TarjetaInicio titulo="Resumen por tienda" cargando={cargando} hayError={lectura.hayError} onReintentar={() => void lectura.recargar()}>
+      {actual === null ? null : actual.por_tienda ? <ResumenPorTienda tiendas={actual.por_tienda} /> : (
+        <EstadoVacio titulo="No tenés ventas habilitadas en esta tienda" descripcion="Elegí otra tienda o pedile a quien administra tu cuenta que te habilite Ventas." />
+      )}
+    </TarjetaInicio>
+  )
+}
+
+function SalidasDepositos({ contexto }: { contexto: ContextoTablero }) {
+  const { desde, hasta, empresaId, depositoId } = contexto
+  const clave = `${desde}|${hasta}|${empresaId ?? ''}|${depositoId ?? ''}`
+  const leer = useCallback(
+    async () => ({ clave, bloques: await leerBloquesInicio({ desde, hasta, empresaId, depositoId }, 'salidas_por_deposito') }),
+    [clave, desde, hasta, empresaId, depositoId],
+  )
+  const lectura = useLecturaInicio(leer)
+  const actual: BloquesInicio | null = lectura.datos !== null && lectura.datos.clave === clave ? lectura.datos.bloques : null
+  const cargando = lectura.cargando || (!lectura.hayError && actual === null)
+  return (
+    <TarjetaInicio titulo="Salidas por depósito" cargando={cargando} hayError={lectura.hayError} onReintentar={() => void lectura.recargar()}>
+      {actual === null ? null : actual.salidas_por_deposito ? <SalidasPorDeposito depositos={actual.salidas_por_deposito} /> : (
+        <EstadoVacio titulo="No tenés Stock habilitado" descripcion="Pedile a quien administra tu cuenta que te habilite Stock." />
+      )}
+    </TarjetaInicio>
   )
 }
 

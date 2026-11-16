@@ -29,7 +29,7 @@
 --
 -- Orden de despliegue: esta migración ANTES que el importador de dashboards y que la web (el importador solo envía
 -- `accion_requerida` y `datasets_permitidos` de CADA tablero; hasta que se reimporte cada directorio de dashboards, sus tableros
--- responden 503 por no tener allowlist: reimportar los seis directorios apenas se aplique la migración).
+-- responden 503 por no tener allowlist: reimportar los siete directorios apenas se aplique la migración).
 --
 -- Hasta que el importador registre el reporte de cantidades, un rol sin `ver_costos` ve el aviso de tablero «todavía no
 -- disponible» (falla segura: nunca los costos).
@@ -179,6 +179,9 @@ update public.reportes r
    set datasets_permitidos = s.datasets
   from (values
 -- SEMILLA-INICIO
+  ('Analítica · Margen real por tienda, categoría y producto', array['margen_real_categoria']),
+  ('Analítica · Ventas por tienda y categoría', array['ventas_empresa_categoria']),
+  ('Rentabilidad · Después de costos fijos', array['margen_costos_fijos_empresa_mes', 'margen_despues_costos_fijos']),
   ('Reportes · Productos más consultados', array['consultas_producto_mas_consultado']),
   ('Inventario · Productos y stock', array['inventario_productos_stock']),
   ('Inventario · Productos y stock (cantidades)', array['inventario_productos_stock_cantidades']),

@@ -42,7 +42,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda Dos'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Tienda Ajena');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Sin deuda', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 201, 'Ajeno', 'minorista');
@@ -222,7 +222,7 @@ select is(
 -- ---------------------------------------------------------------------------------------------
 reset role;
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Estados', 'minorista'),
   ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Centavos', 'minorista'),
   ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 105, 'Tienda desactivada', 'minorista');
@@ -301,7 +301,7 @@ select is(
 
 -- Notas de crédito (decisión del 2026-11-11): RESTAN de la deuda de la factura de la que cuelgan.
 reset role;
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 106, 'Notas de crédito', 'minorista');
 
 insert into dominio.comprobantes_venta
@@ -369,7 +369,7 @@ select is(
 -- Casos de borde de las notas de crédito (revisión independiente de #848): centavos, tienda inaccesible, nota mayor
 -- que el total sin cobros, factura cobrada, nota de otro cliente y mezcla emitida + anulada.
 reset role;
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 107, 'Notas de crédito, bordes', 'minorista');
 
 insert into dominio.comprobantes_venta

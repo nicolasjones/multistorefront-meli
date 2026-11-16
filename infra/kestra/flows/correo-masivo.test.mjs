@@ -55,7 +55,7 @@ test('el correo sale por el SMTP KESTRA_SMTP_* de MSF-189, sin proveedor nuevo (
   const correo = tarea(content, 'enviar_correo');
   assert.match(correo, /type: io\.kestra\.plugin\.notifications\.mail\.MailSend/);
   for (const campo of ['host', 'port', 'username', 'password', 'transportStrategy', 'from']) {
-    assert.match(correo, new RegExp(`${campo}: "\\{\\{ envs\\.kestra_smtp_`), `${campo} sale de KESTRA_SMTP_*`);
+    assert.match(correo, new RegExp(campo === 'from' ? 'from: "\\{\\{.*envs\\.kestra_smtp_from' : `${campo}: "\\{\\{ envs\\.kestra_smtp_`), `${campo} sale de KESTRA_SMTP_*`);
   }
   assert.match(correo, /to: "\{\{ fromJson\(parent\.taskrun\.value\)\.correo \}\}"/);
   assert.doesNotMatch(content, /sendgrid|mailgun|postmark|ses\.amazonaws|api\.resend/i, 'ningún proveedor de correo nuevo');
@@ -72,7 +72,18 @@ test('el cuerpo trae un pie con un enlace de baja propio de cada destinatario y 
   );
   assert.match(correo, /date de baja/, 'el pie ofrece la baja');
   assert.match(correo, /<hr>/, 'el pie va separado del mensaje');
-  assert.doesNotMatch(correo, /\| raw/, 'nada del mensaje se muestra sin escapar');
+  assert.doesNotMatch(correo.replace(/\{\{ fromJson\(parent\.taskrun\.value\)\.cuerpo_html \| raw \}\}/, ''), /\| raw/, 'solo el cuerpo del newsletter, ya escapado por la base, se muestra con raw: nada del mensaje de clientes');
+});
+
+// MSF-468 (RF-NL-20, RF-NL-21, D15): el newsletter usa el cuerpo armado por la base y el remitente de la tienda; el correo de clientes no cambia.
+test('el newsletter usa el cuerpo y el remitente de la tienda que arma la base, y el de clientes conserva su plantilla', async () => {
+  const correo = tarea(await leer(), 'enviar_correo');
+  assert.match(correo, /\{% if fromJson\(parent\.taskrun\.value\)\.tipo == 'newsletter' %\}\{\{ fromJson\(parent\.taskrun\.value\)\.cuerpo_html \| raw \}\}\{% else %\}/, 'cuerpo del newsletter');
+  assert.match(correo, /\{% endif %\}/);
+  assert.match(correo, /from: "\{\{ \(fromJson\(parent\.taskrun\.value\)\.tipo == 'newsletter' and fromJson\(parent\.taskrun\.value\)\.remitente != null\) \? fromJson\(parent\.taskrun\.value\)\.remitente ~ ' <' ~ envs\.kestra_smtp_from ~ '>' : envs\.kestra_smtp_from \}\}"/, 'remitente con el nombre de la tienda sobre la dirección técnica');
+  assert.match(correo, /mensaje \| escape/, 'la plantilla de clientes sigue escapando el mensaje');
+  assert.match(correo, /\/baja-correo\/\{\{ fromJson\(parent\.taskrun\.value\)\.token \?\? 'ejemplo' \}\}/, 'y su enlace de baja de siempre');
+  assert.doesNotMatch(correo, /\| raw[^}]*mensaje|mensaje[^}]*\| raw/, 'el mensaje del dueño nunca se muestra con raw');
 });
 
 test('un fallo del SMTP se reintenta con espera creciente (FR-017)', async () => {

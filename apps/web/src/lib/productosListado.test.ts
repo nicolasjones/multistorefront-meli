@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { MAXIMO_IDS_POR_PETICION } from './repartoIds'
 import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarCostos, consultarProductos, filtroBusquedaProductos, formatearCosto, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
@@ -148,6 +149,34 @@ describe('costo en el listado (F-CAT-16, FR-002)', () => {
     const schema = () => ({ from: () => ({ select: () => ({ in: () => ({ returns: () => Promise.resolve({ data: null, error: { message: 'x' } }) }) }) }) })
     await expect(consultarCostos({ schema } as never, ['p-1'])).rejects.toEqual({ message: 'x' })
   })
+
+  // MSF-716: los ids viajan en el `in.(…)` de la URL GET; con muchos hay que repartirlos.
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`)
+  const largoUrlFiltro = (valores: string[]) =>
+    new URLSearchParams({ producto_id: `in.(${valores.join(',')})` }).toString().length
+
+  for (const cantidad of [500, 1000]) {
+    it(`con ${cantidad} ids reparte en lotes con URL bajo el límite y devuelve todos los costos`, async () => {
+      const llamadas: string[][] = []
+      const schema = () => ({
+        from: () => ({
+          select: () => ({
+            in: (_col: string, valores: string[]) => {
+              llamadas.push(valores)
+              return { returns: () => Promise.resolve({ data: valores.map((id) => ({ producto_id: id, costo: '1.00' })), error: null }) }
+            },
+          }),
+        }),
+      })
+      const costos = await consultarCostos({ schema } as never, ids(cantidad))
+      expect(costos.size).toBe(cantidad)
+      expect(llamadas).toHaveLength(Math.ceil(cantidad / MAXIMO_IDS_POR_PETICION))
+      for (const lote of llamadas) {
+        expect(lote.length).toBeLessThanOrEqual(MAXIMO_IDS_POR_PETICION)
+        expect(largoUrlFiltro(lote)).toBeLessThanOrEqual(8000)
+      }
+    })
+  }
 
   it('formatearCosto da dos decimales y «—» sin costo; 0 es un costo válido', () => {
     expect(formatearCosto('12.5')).toBe('12,50')

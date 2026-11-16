@@ -151,7 +151,7 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(await screen.findByText('La factura tiene que estar confirmada para imprimirla')).toBeInTheDocument()
   })
 
-  it('si el navegador bloquea la ventana ofrece el enlace y registra la impresión solo al abrirlo (MSF-722)', async () => {
+  it('si el navegador bloquea la ventana ofrece el enlace y registra la impresión solo al abrirlo', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
     mocks.abrir.mockImplementation(() => null)
     const { onImpreso, onRegistrado } = abrir()
@@ -168,7 +168,7 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(onRegistrado).toHaveBeenCalledTimes(1)
   })
 
-  it('si la pestaña se cierra mientras se registra ofrece el enlace sin registrar de nuevo (MSF-722)', async () => {
+  it('si la pestaña se cierra mientras se registra ofrece el enlace sin registrar de nuevo', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
     mocks.registrarImpresion.mockImplementation(async () => {
       pestana.closed = true
@@ -185,7 +185,7 @@ describe('ImprimirComprobanteDialog (F-VTA-19)', () => {
     expect(mocks.registrarImpresion).toHaveBeenCalledTimes(1)
   })
 
-  it('si el registro falla al abrir el enlace avisa que la marca «impreso» no quedó (MSF-722)', async () => {
+  it('si el registro falla al abrir el enlace avisa que la marca «impreso» no quedó', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
     mocks.abrir.mockImplementation(() => null)
     mocks.registrarImpresion.mockRejectedValueOnce({ code: '42501', message: 'sin permiso' })
@@ -236,7 +236,7 @@ describe('ImprimirComprobanteDialog · marca de impreso (F-VTA-21)', () => {
     expect(pestana.location.href).toBe('https://storage/doc.pdf?token=1')
   })
 
-  it('si la generación falla cierra la pestaña en blanco y no registra nada (MSF-722)', async () => {
+  it('si la generación falla cierra la pestaña en blanco y no registra nada', async () => {
     mocks.solicitarDocumento.mockResolvedValue(documento())
     mocks.esperarDocumento.mockRejectedValue(Object.assign(new Error('No se pudo generar el documento'), { name: 'ErrorDocumento' }))
     abrir()
@@ -246,7 +246,7 @@ describe('ImprimirComprobanteDialog · marca de impreso (F-VTA-21)', () => {
     expect(mocks.registrarImpresion).not.toHaveBeenCalled()
   })
 
-  it('si la persona cerró la pestaña antes de que el PDF esté listo no se marca como impreso (MSF-722)', async () => {
+  it('si la persona cerró la pestaña antes de que el PDF esté listo no se marca como impreso', async () => {
     mocks.solicitarDocumento.mockResolvedValue(generado)
     mocks.urlFirmadaDocumento.mockImplementation(async () => {
       pestana.closed = true

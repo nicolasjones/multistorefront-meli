@@ -1,10 +1,13 @@
 {
-  "comentario": "Allowlist de datasets de cada tablero tal como la deriva infra/superset/datasets-tablero.mjs desde los YAML versionados. Un test falla si la derivación cambia sin actualizar este archivo (y la semilla de la migración 20270325300000, bloque 4a). Si cambiás un tablero o dataset, regenerá con: node infra/superset/datasets-tablero.mjs",
+  "comentario": "Allowlist de datasets de cada tablero tal como la deriva infra/superset/datasets-tablero.mjs desde los YAML versionados. Un test falla si la derivación cambia sin actualizar este archivo (y la semilla de la migración 20270433000000, bloque 4a). Si cambiás un tablero o dataset, regenerá con: node infra/superset/datasets-tablero.mjs",
   "tableros": {
+    "Analítica · Margen real por tienda, categoría y producto": ["margen_real_categoria"],
+    "Analítica · Ventas por tienda y categoría": ["ventas_empresa_categoria"],
     "Inventario · Productos y stock": ["inventario_productos_stock"],
     "Inventario · Productos y stock (cantidades)": ["inventario_productos_stock_cantidades"],
     "Inventario · Reposición": ["inventario_reposicion"],
     "Rentabilidad · Comparativo": ["margen_comparativo_producto"],
+    "Rentabilidad · Después de costos fijos": ["margen_costos_fijos_empresa_mes", "margen_despues_costos_fijos"],
     "Rentabilidad · Historia": ["margen_historico_producto_canal"],
     "Rentabilidad · Por producto": ["margen_producto_canal"],
     "Rentabilidad · Resumen": ["margen_producto_canal", "rentabilidad_consolidado", "rentabilidad_resumen_empresa"],
