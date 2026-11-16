@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "dd8f846f590ec5f05d0655a05806d0c43e9d8f8aad802f57e2778fc5dfa28f6b",
-      "sourceHash": "9e949bc901c2fa1954701b8a2c8e6e8ecd82c6beba4590f5d2637d4dd8597d23",
-      "sourceAt": "e477d3de",
+      "pageHash": "d4a9dccdc7dff80fd751b1d48e5b015fc9d85924359f465b22d7180782ea0591",
+      "sourceHash": "f9786a7b299f89772e5ebbf7a5e5c665b25a015dca8456d2b62e3f3222c1c06f",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "e477d3de"
+      "commit": "a8f3d3a9"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "d3e0c882f1cf7f03ab9817287638410144627c82a6e815229df170275f13e040",
-      "sourceHash": "a632b2220bc349427c16e6810bd0b7bda9606d683f3e6441e0d7c4f5acc4e142",
-      "sourceAt": "202e8b34",
+      "pageHash": "f6d2f8660e4f34712c436aa33bfde6d461a478a7d85c5cafd4c6ea34f189e119",
+      "sourceHash": "2c75dc09026f7e5abe041e70513f2484fcad774ff12c55f2c8fb588241c0192c",
+      "sourceAt": "7065a017",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "202e8b34"
+      "commit": "7065a017"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -591,25 +591,25 @@
     },
     "docs/cuentas-y-compras-a-proveedores.md": {
       "title": "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)",
-      "pageHash": "6f3bd2bb0c4cc9a724358a7d35ad4735b508d45ebb8429ef8ed359d054c73f34",
-      "sourceHash": "41586214cb53dfc78343c1dc7e3cf93f8886022ffd67fcd1f923ff77336aad70",
-      "sourceAt": "56b825d5",
+      "pageHash": "7041dbb29eb0e04f6acf7b76baa9185cfe1deecb64e7f6946bfabb807423da69",
+      "sourceHash": "7adb9ec26f3622389712b8398224e61c52e0b89735916ef01d6cdb8dc93100c3",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20261029-100000-cuentas-y-compras-a-proveedores"
       ],
       "owner": "tecnico",
-      "commit": "56b825d5"
+      "commit": "7065a017"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "0b11516dc2891ad9879cc51de256a7c6bfcfb01c4efa5d232c7d6020a1ad6958",
-      "sourceHash": "9e949bc901c2fa1954701b8a2c8e6e8ecd82c6beba4590f5d2637d4dd8597d23",
-      "sourceAt": "202e8b34",
+      "pageHash": "2ec662af1b555a689b3f1f768e7f1f37fae37731e08331a109d675f1464d0f6f",
+      "sourceHash": "f9786a7b299f89772e5ebbf7a5e5c665b25a015dca8456d2b62e3f3222c1c06f",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "202e8b34"
+      "commit": "a8f3d3a9"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -720,15 +720,15 @@
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
       "pageHash": "bffc07b935fb557cc6a9427d675c5f5f12db8f03219d2a27e52cf347b105c0c9",
-      "sourceHash": "30c4386b5c9779ecb6fcefe97a14cfdab1de66d8d92731e082e07777a57c121b",
-      "sourceAt": "71c0b1d5",
+      "sourceHash": "0a102ae3a95223f8be9e125bbb9d23c193b5459a06960ee3b0bc485f8d4f8186",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "apps/web/src/pages/gastos",
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "71c0b1d5"
+      "commit": "a8f3d3a9"
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
@@ -857,6 +857,20 @@
       ],
       "owner": "tecnico",
       "commit": "ebf4bf4d"
+    },
+    "docs/listas-de-precios.md": {
+      "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
+      "pageHash": "67dbaee46fc3d4af08636a48054c75b28b7d174e8c64501f6611f7e01c3bfb8b",
+      "sourceHash": "4d69b42fcb51ed6ebaa1560cb2455c395f4fe74268a4d033baef2108b13c43bd",
+      "sourceAt": "82a7096b",
+      "sources": [
+        "specs/20270327-100000-listas-de-precios-por-cliente",
+        "supabase/migrations",
+        "apps/web/src/lib/listasPrecios.ts",
+        "apps/web/e2e/listas-de-precios-recorrido.e2e.ts"
+      ],
+      "owner": "tecnico",
+      "commit": "82a7096b"
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
@@ -1012,26 +1026,26 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "09399e9ed6176ed62cf4d58e2d907d21fb93cd69fb1438aa7e5621c60b309820",
-      "sourceHash": "41859b278faf4a0a9f6dd2b0f3f1287b76592b1f9d6a035559f6d5ea67741c9f",
-      "sourceAt": "7ca1b7c4",
+      "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
+      "sourceHash": "f2307561de9e97642791d22b25e2514f2189d1f40f143e37d55e60f59e4458b6",
+      "sourceAt": "7065a017",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7ca1b7c4"
+      "commit": "7065a017"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
-      "pageHash": "752a5f9622c81e4d844433a57e3825e285462d7af3f25daf3d6366e3527ea94f",
+      "pageHash": "40c43edbb20a2fe5a579924364e5fffab7c52f71129e670fd6897c5313186d8a",
       "sourceHash": "6fdddcf747ee46213227bc60b2c2e55f175b2ac7ec5203f1a6397a5b62b26003",
-      "sourceAt": "ebf4bf4d",
+      "sourceAt": "7065a017",
       "sources": [
         "apps/web/src/lib/escalas.ts",
         "apps/web/src/lib/tiendaPreciosCliente.ts"
       ],
       "owner": "tecnico",
-      "commit": "ebf4bf4d"
+      "commit": "7065a017"
     },
     "docs/precios-masivos.md": {
       "title": "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)",
@@ -1046,9 +1060,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "8658e7beff7da41f4cbcde1f07e6601a9cbf61fbb1b71c17f9acab9f6a13a5f3",
+      "pageHash": "eb2f18a682c71b26cf556a8763754809d3a1e6404ad75ebc3c41a128a3661ab6",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "d22539c5",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1057,7 +1071,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "d22539c5"
+      "commit": "7065a017"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -1262,7 +1276,7 @@
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c972b57b"
+      "commit": "a8f3d3a9"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
@@ -1308,6 +1322,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "ebf4bf4d"
+    },
+    "docs/producto/listas-de-precios.md": {
+      "title": "Listas de precios por cliente",
+      "pageHash": "f44ad47a632e51d444f10ba141a2b703f44fb6fa40ee4746f163eba2c087bc05",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": "7065a017"
     },
     "docs/producto/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos",
@@ -1756,15 +1779,15 @@
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
-      "pageHash": "c78f67952c4e023c292edbfe82dcf807a518e8d3a1f0c33780bca7c8b315a474",
+      "pageHash": "d7fa8dcb0612198a464caf3b9152792cf4e5bc0f3028c5ddc98d34c4b426e45d",
       "sourceHash": "97a3093ff7f5d7a367badfb46d0c8eccc43fd09de4eca83b4ef92ec6708194b5",
-      "sourceAt": "f9fbe402",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7065a017"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -1835,8 +1858,8 @@
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
       "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
-      "sourceHash": "abbb3832cd0bd9defe472a6f8340590e2e0488441682ec7f2405f54e490e3f93",
-      "sourceAt": "a54b6f65",
+      "sourceHash": "0f598f359c6cdd7123030fcda7aba5a563a62efde1bd462b375a17512954a5c3",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1846,7 +1869,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -1890,24 +1913,37 @@
     "docs/revision-seguridad-gastos.md": {
       "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
       "pageHash": "ae9068cd3160620c62dfa7de53222db5664226608c430badb4e688c12145a344",
-      "sourceHash": "a0ad2c62d9f78eb0f516cabb5e466eb17f458fee7e808de05db712d911a847a9",
-      "sourceAt": "a8f3d3a9",
+      "sourceHash": "3a99ac458a38c2599d1a6d5188e63ef1531a4008c44f4b207e00c767c0b8a794",
+      "sourceAt": "53e8956f",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad"
       ],
       "owner": "tecnico",
-      "commit": "a8f3d3a9"
+      "commit": "53e8956f"
+    },
+    "docs/revision-seguridad-listas-de-precios.md": {
+      "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
+      "pageHash": "0e13693772ea6e8836c709f56353fe5e4ade10ddcfd3f6d1c05d95d31609ceb7",
+      "sourceHash": "4a8b19866f214424fea80bdc863c71760f787f21eaf5900d9b8338077d2a90d2",
+      "sourceAt": "bce5eef7",
+      "sources": [
+        "specs/20270327-100000-listas-de-precios-por-cliente",
+        "supabase/migrations",
+        "supabase/tests/database"
+      ],
+      "owner": "tecnico",
+      "commit": "bce5eef7"
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "4d6987bdbc8cc7a8c5604352ad787a2deaeafef2baecc99dbe58f791ee27338b",
+      "pageHash": "8a3353a8cac30ec06e99ced6fcc069d7fc3814e4be06908577df9873d644a56f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0cf3ca6e"
+      "commit": "a8f3d3a9"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2718,9 +2754,9 @@
     },
     "docs/tecnico/cotizacion-sugerida-y-mayoristas.md": {
       "title": "Cotización sugerida y mayoristas (MSF-373)",
-      "pageHash": "2079b561e68b0bf5cb3e837e8c6b8b54bbf5f5b949a40bea68109f3471ead035",
-      "sourceHash": "2933e97eeb6a6b1a9a42b9fc7a15452526fee66b021da37027b92740b591bada",
-      "sourceAt": "7ca1b7c4",
+      "pageHash": "1757221f3256d65b2f142bc3eebd92f9d2b005ef55de4be5734b37a2106452a0",
+      "sourceHash": "3b7e2b5b9af3f34557a10bd1656846a17de259f8fe154b6bcb59ecb37fc5eb82",
+      "sourceAt": "7065a017",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -2730,7 +2766,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": "7ca1b7c4"
+      "commit": "7065a017"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -2749,16 +2785,16 @@
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
-      "pageHash": "e9b3a25d3a49e1443eabffbfd4606bdbd5b95b8e8f284316db90137fd78fb316",
-      "sourceHash": "e0b8a0fe7f2b4c909e27a3c9023fdbb96b5652a879316a1ac68ee9481f61cc50",
-      "sourceAt": "56b825d5",
+      "pageHash": "7be51788729bb7e02db34e847ae320e722a016beca6cb4a4eca68cbf959828ac",
+      "sourceHash": "ba15a6f49374fcfb27823c5568bb30e482a0c0da989e2edf6ef4a77f6017c22a",
+      "sourceAt": "7065a017",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "56b825d5"
+      "commit": "7065a017"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
@@ -3076,8 +3112,8 @@
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
       "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
-      "sourceHash": "6a8c672e409dd726e250974ced0bbc0510a092659924bfe8c585e643518cfb4a",
-      "sourceAt": "a54b6f65",
+      "sourceHash": "88c9e34e122cf0834d957d5d840c9c552e0f35829998dc6f008c170b0cdac479",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3085,7 +3121,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
