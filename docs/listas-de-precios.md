@@ -16,7 +16,7 @@ Guía de referencia de ingeniería del cierre de la spec `specs/20270327-100000-
 | Fase | Entrega | Migraciones | Efecto en el precio |
 |---|---|---|---|
 | 1 · Listas | Tabla `dominio.listas_precios`, RPC de alta, edición, archivo y restauración, pantalla Productos → Listas de precios | `20270340000000`, `20270340000100` (exportación total), `20270346000000` | Ninguno |
-| 2 · Asignación | Columna `clientes.lista_precio_id`, RPC `asignar_lista_precios_cliente`, campo en la ficha, fusión de clientes | `20270340000200`, `20270340000210` | Ninguno |
+| 2 · Asignación | Columna `dominio.clientes.lista_precio_id`, RPC `asignar_lista_precios_cliente`, campo en la ficha, fusión de clientes | `20270340000200`, `20270340000210` | Ninguno |
 | 3 · Motor y ventas | Precedencia en `precio_para_calculo` y `precio_linea_venta(_calculo)`, snapshot por línea, marca «Lista:», nota de crédito heredando | `20270348000000` a `20270348000200` | Sí, detrás de la bandera |
 | 4 · Tienda | «Tu precio», favoritos y presupuesto de la tienda con la lista de la cuenta web | `20270348000300` | Sí, detrás de la bandera |
 | 5 · Cierre | Documentación, revisión de seguridad, recorrido E2E, seguimientos y guards | ninguna | Ninguno |
