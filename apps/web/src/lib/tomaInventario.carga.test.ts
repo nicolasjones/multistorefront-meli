@@ -90,7 +90,7 @@ const categorias = (n: number) =>
 const largoUrlFiltro = (valores: string[]) =>
   new URLSearchParams({ producto_id: `in.(${valores.join(',')})` }).toString().length
 
-describe('cargarFilasToma (MSF-716)', () => {
+describe('cargarFilasToma', () => {
   beforeEach(() => {
     mocks.productos = []
     mocks.porCategoria = null
