@@ -633,6 +633,15 @@
       "owner": "tecnico",
       "commit": "c7860a7c"
     },
+    "docs/documentador-manual-de-usuario.md": {
+      "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
+      "pageHash": "664139a7f54d5ec584b0261ac3c362c665331303e4d7e356577bcfe18d0b2e2f",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "plataforma",
+      "commit": "f5d3fb48"
+    },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
       "pageHash": "4db37f58db599b533be02eb192cb4d39cd13decfa361e772d4e95a7495534eae",

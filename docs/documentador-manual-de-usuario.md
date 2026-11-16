@@ -1,3 +1,7 @@
+---
+owner: plataforma
+sources: []
+---
 # Documentador: `docs/producto/` como manual de usuario (MSF-630)
 
 El agente Documentador (repo del orquestador, `prompts/documentador.md` y
