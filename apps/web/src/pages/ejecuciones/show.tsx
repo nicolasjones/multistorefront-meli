@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { Show } from '@refinedev/mui'
+import { BotonVolver } from '../../components/pagina/BotonVolver'
 import { Alert, Button, Stack, Typography } from '@mui/material'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
@@ -64,7 +65,7 @@ export function EjecucionShow() {
   if (checkingPermiso || checkingOrganizacion) return null
   if (!puedeEscribir || !organizacionId) return <Alert severity="error" sx={{ m: 2 }}>Solo un administrador con una organización activa puede consultar ejecuciones.</Alert>
 
-  return <Show title="Ejecución" canDelete={false} canEdit={false}>
+  return <Show goBack={<BotonVolver />} title="Ejecución" canDelete={false} canEdit={false}>
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {ejecucion && <Stack spacing={1} sx={{ mt: 1 }}>
       <Typography><strong>Capacidad:</strong> {ejecucion.capacidades_ejecucion?.[0]?.clave ?? '—'}</Typography>

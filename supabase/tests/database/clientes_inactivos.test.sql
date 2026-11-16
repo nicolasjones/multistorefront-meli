@@ -24,7 +24,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
 -- Cada organización ya trae su Consumidor final (Nº 1, minorista).
-insert into clientes (organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 101, 'Reciente', 'minorista'),   -- compró hace 20 días: activo
   ('11111111-1111-1111-1111-111111111111', 102, 'Hace100', 'mayorista'),    -- última hace 100 días
   ('11111111-1111-1111-1111-111111111111', 103, 'Hace400', 'minorista'),    -- única compra hace 400 días
@@ -36,7 +36,7 @@ insert into clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 109, 'Empate', 'minorista'),     -- empata con Hace100
   ('22222222-2222-2222-2222-222222222222', 201, 'Ajeno', 'minorista');
 
-update clientes set archivado_en = now() where nombre = 'Archivado';
+update dominio.clientes set archivado_en = now() where nombre = 'Archivado';
 
 insert into dominio.comprobantes_venta
   (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
@@ -57,7 +57,7 @@ select v.org::uuid, c.id, v.tipo, v.numero,
     ('11111111-1111-1111-1111-111111111111', 'Reciente', 'presupuesto', '0001-00000012', 400, 'emitida', 9999),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'factura', '0001-00000001', 300, 'emitida', 77777)
   ) as v(org, nombre, tipo, numero, dias, estado, sin_iva)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre
  where v.tipo <> 'nota_credito';
 
 -- Una nota de crédito siempre cuelga de una factura y trae su tipo (comprobantes_venta_nc_ck).
@@ -70,7 +70,7 @@ select f.organizacion_id, c.id, 'nota_credito', v.numero,
     ('SoloNota', '0001-00000006', 200, 300, '0001-00000011'),
     ('NotaReciente', '0001-00000008', 5, 400, '0001-00000007')
   ) as v(nombre, numero, dias, sin_iva, factura)
-  join clientes c on c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre = v.nombre
+  join dominio.clientes c on c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre = v.nombre
   join dominio.comprobantes_venta f on f.organizacion_id = c.organizacion_id and f.numero = v.factura and f.tipo = 'factura';
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
@@ -140,7 +140,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A');
 insert into public.clientes_empresas (organizacion_id, cliente_id, empresa_id)
 select '11111111-1111-1111-1111-111111111111', c.id, 'e1000000-0000-0000-0000-000000000001'
-  from clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre = 'Hace100';
+  from dominio.clientes c where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre = 'Hace100';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select results_eq(

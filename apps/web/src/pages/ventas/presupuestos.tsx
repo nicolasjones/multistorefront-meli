@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router'
-import { Alert, Box, Button, LinearProgress, Link, Stack, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Alert, Box, Button, LinearProgress, Link, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import FileDownloadIcon from '@mui/icons-material/FileDownload'
 import { useExportarComprobantes } from '../../hooks/useExportarComprobantes'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
@@ -20,7 +21,7 @@ import {
   type PaginaPresupuestos,
   type Presupuesto,
 } from '../../lib/ventasPresupuestos'
-import { mensajeDeErrorComprobante } from '../../lib/ventas'
+import { mensajeDeErrorComprobante, OPERADOR_TIENDA_ONLINE } from '../../lib/ventas'
 import type { FiltrosComprobantes } from '../../lib/ventasComprobantes'
 import { MENSAJE_PREPARANDO, esCancelacion, mensajeDeErrorImpresion } from '../../lib/ventasImpresion'
 import {
@@ -37,16 +38,17 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/es
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const TAMANO_PAGINA = 25
 const ESPERA_BUSQUEDA_MS = 300
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const PAGINA_VACIA: PaginaPresupuestos = { presupuestos: [], total: 0 }
 const TEXTO_AYUDA_TIENDA = 'Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.'
@@ -63,7 +65,7 @@ const columnas: ColumnaAdaptable<Presupuesto>[] = [
   { clave: 'tienda', encabezado: 'Tienda', render: (p) => <EtiquetaEstado texto={p.empresa} variante="contorno" /> },
   { clave: 'fecha', encabezado: 'Fecha', render: (p) => formatearFecha(p.fecha) },
   { clave: 'cliente', encabezado: 'Cliente', render: (p) => <Typography component="span" sx={{ fontWeight: 600 }}>{p.cliente}</Typography> },
-  { clave: 'operador', encabezado: 'Operador', render: (p) => p.operador },
+  { clave: 'operador', encabezado: 'Operador', render: (p) => (p.operador === OPERADOR_TIENDA_ONLINE ? <Typography component="span" color="text.secondary">{p.operador}</Typography> : p.operador) },
   { clave: 'valido_hasta', encabezado: 'Válido hasta', render: (p) => (p.valido_hasta ? formatearFecha(p.valido_hasta) : '—') },
   { clave: 'estado', encabezado: 'Estado', render: (p) => <EtiquetaEstado texto={etiquetaEstadoPresupuesto(p.estado)} variante={varianteEstadoPresupuesto(p.estado)} /> },
   { clave: 'total', encabezado: 'Total', align: 'right', render: (p) => <b>{formatearImporteHistorial(p.total)}</b> },
@@ -148,6 +150,11 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   }, [cargar])
 
   const { presupuestos, total } = datos
+  // Carga infinita (Principio VI): se suman las tandas que entrega la consulta; buscar, filtrar o cambiar de tienda reinicia.
+  const listado = useListadoAcumulado({ items: presupuestos, pagina, setPagina, total, cargando, reinicio: { textoAplicado, estado, empresaId } })
+  const falloTanda = hayError && pagina > 1
+  // Una acción que cambia filas (aceptar) recarga desde la primera tanda.
+  const recargarDesdeInicio = () => (pagina === 1 ? cargar() : setPagina(1))
   // Página fuera de rango (p. ej. se filtró estando en la última página): vuelve a la primera.
   useEffect(() => {
     if (!primeraCarga && !cargando && !hayError && presupuestos.length === 0 && pagina > 1) setPagina(1)
@@ -170,7 +177,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     try {
       const aceptado = await aceptarPresupuesto(p.id)
       setExito(`Presupuesto ${aceptado.numero} aceptado`)
-      await cargar()
+      await recargarDesdeInicio()
     } catch (error) {
       setErrorAccion(mensajeDeErrorComprobante(error, 'No pudimos aceptar el presupuesto.'))
     } finally {
@@ -365,15 +372,15 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
             </ToggleButtonGroup>
           </BarraHerramientas>
 
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
             {primeraCarga || hayError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
           </Box>
-          {cargando && !primeraCarga ? <LinearProgress aria-label="Actualizando presupuestos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
+          {cargando && !primeraCarga && pagina === 1 ? <LinearProgress aria-label="Actualizando presupuestos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={cargando}>
             {primeraCarga ? (
               <EstadoCargaPagina />
-            ) : hayError ? (
+            ) : hayError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los presupuestos." reintentar={() => void cargar()} />
             ) : presupuestos.length === 0 && pagina === 1 ? (
               hayFiltros ? (
@@ -383,17 +390,8 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
               )
             ) : (
               <>
-                <ContenidoAdaptable items={presupuestos} columnas={columnas} obtenerClave={(p) => p.id} acciones={acciones} etiquetaTabla="Presupuestos" />
-                <TablePagination
-                  component="div"
-                  count={total}
-                  page={pagina - 1}
-                  rowsPerPage={TAMANO_PAGINA}
-                  rowsPerPageOptions={[TAMANO_PAGINA]}
-                  onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                  labelRowsPerPage="Presupuestos por página"
-                  labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                />
+                <ContenidoAdaptable items={listado.filas} columnas={columnas} obtenerClave={(p) => p.id} acciones={acciones} etiquetaTabla="Presupuestos" />
+                <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void cargar() : listado.cargarMas} />
               </>
             )}
           </Box>

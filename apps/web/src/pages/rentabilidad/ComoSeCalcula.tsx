@@ -4,7 +4,7 @@ import type { Empresa } from '../../hooks/useEmpresas'
 export const TEXTO_ESTIMACION = 'Estimación con los datos disponibles: no incluye impuestos, envíos ni otros costos.'
 
 // Tarjeta «Cómo se calcula» del resumen (F-REN-02, FR-014; RentabilidadResumen.dc.html). Una fila por
-// tienda de la organización; la fila de Mercado Libre del prototipo NO va (FR-010, Etapa 2). Es solo
+// tienda de la organización; la fila de Mercado Libre del prototipo NO va (FR-010). Es solo
 // presentación: la lista de tiendas la resuelve la pantalla.
 export function ComoSeCalcula({ empresas }: { empresas: readonly Pick<Empresa, 'id' | 'nombre'>[] }) {
   return (
@@ -15,7 +15,7 @@ export function ComoSeCalcula({ empresas }: { empresas: readonly Pick<Empresa, '
           <Typography component="p" fontWeight={600}>Margen = Precio − Costo − Comisión</Typography>
           <Typography component="p" variant="b" sx={{ mt: 0.5 }}>Margen % = Margen ÷ Precio</Typography>
         </Box>
-        <TableContainer sx={{ mt: 1.5 }}>
+        <TableContainer sx={{ mt: 1.5 }} tabIndex={0} role="region" aria-label="Precio y comisión por canal (se desplaza)">
           <Table size="small" aria-label="Precio y comisión por canal">
             <TableHead>
               <TableRow>

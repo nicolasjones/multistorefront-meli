@@ -80,11 +80,12 @@ export function useFaltantes(filtros: FiltrosFaltantes, { habilitado = true }: {
     })
   }, [ambito])
 
-  const alternarTodos = useCallback(() => {
+  // `filas`: las que están a la vista (con carga infinita son las de todas las tandas cargadas).
+  const alternarTodos = useCallback((filas: readonly Faltante[] = faltantes) => {
     setSeleccion((actual) => {
       const items = { ...(actual.ambito === ambito ? actual.items : {}) }
-      const todos = faltantes.length > 0 && faltantes.every((fila) => items[fila.linea_id])
-      for (const fila of faltantes) {
+      const todos = filas.length > 0 && filas.every((fila) => items[fila.linea_id])
+      for (const fila of filas) {
         if (todos) delete items[fila.linea_id]
         else items[fila.linea_id] = fila.cliente_id
       }

@@ -53,7 +53,7 @@ import { DevolucionesList } from './devoluciones'
 
 const rma = (n: number, extra: Partial<RmaListado> = {}): RmaListado => ({
   id: `r-${n}`, actualizado_en: `2026-10-08T10:00:0${n}+00:00`, nota_credito_id: null, nota_credito_numero: null, stock_reingresado: false, numero: `RMA-009${n}`, creado_en: '2026-10-07T15:00:00+00:00', empresa_id: 'e-1', empresa: 'San Javucho',
-  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, cantidad: 3,
+  comprobante_id: `c-${n}`, comprobante_numero: `0003-0000123${n}`, cliente: `Cliente ${n}`, producto: `Joystick ${n}`, producto_id: null, cantidad: 3,
   forma_rma: 'cambio_directo', motivo: 'No enciende', operador: 'Javier', estado: 'abierto', ...extra,
 })
 const pagina = (devoluciones: RmaListado[], total = devoluciones.length) => ({ devoluciones, total })
@@ -117,7 +117,7 @@ describe('DevolucionesList · seguimiento (F-VTA-29, FR-010…FR-012)', () => {
   })
 
   it('el filtro ofrece «Todas» + las cinco formas y pide al servidor la forma elegida (vuelve a la página 1)', async () => {
-    mocks.listarRma.mockImplementation(async (_f: unknown, pag: number) => pagina([rma(1)], pag === 2 ? 9 : 16))
+    mocks.listarRma.mockImplementation(async (_f: unknown, pag: number) => pagina([rma(pag === 2 ? 5 : 1)], 16))
     abrir()
     await screen.findByText('Cliente 1')
     const grupo = screen.getByRole('group', { name: 'Filtrar por forma de RMA' })
@@ -127,7 +127,7 @@ describe('DevolucionesList · seguimiento (F-VTA-29, FR-010…FR-012)', () => {
     expect(within(grupo).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true')
     expect(ultimoPedido()).toMatchObject({ formaRma: '' })
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente|Go to next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.listarRma.mock.calls.at(-1)![1]).toBe(2))
     fireEvent.click(within(grupo).getByRole('button', { name: 'Faltante en envío' }))
     await waitFor(() => expect(ultimoPedido()).toMatchObject({ formaRma: 'faltante_envio' }))

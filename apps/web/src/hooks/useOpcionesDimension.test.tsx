@@ -20,8 +20,8 @@ const consulta = (resultado: () => unknown, orMock?: (...args: unknown[]) => voi
 
 vi.mock('../lib/supabase', () => ({
   supabaseClient: {
-    schema: () => ({ from: () => consulta(() => mocks.productos(), mocks.or) }),
-    from: () => consulta(() => mocks.clientes()),
+    // `productos` y `clientes` viven en `dominio`: ambos se piden con `.schema('dominio').from(...)`.
+    schema: () => ({ from: (tabla: string) => (tabla === 'clientes' ? consulta(() => mocks.clientes()) : consulta(() => mocks.productos(), mocks.or)) }),
   },
 }))
 vi.mock('./useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: mocks.organizacion }) }))
@@ -62,7 +62,13 @@ describe('useOpcionesDimension', () => {
   it('busca por nombre o SKU y quita los caracteres que alterarían el filtro', async () => {
     const { result } = renderHook(() => useOpcionesDimension({ busquedaProducto: ' aur,(x)%*\\ ' }))
     await waitFor(() => expect(result.current.productos).toHaveLength(1))
-    expect(mocks.or).toHaveBeenCalledWith('nombre.ilike.%aur x%,sku.ilike.%aur x%')
+    expect(mocks.or).toHaveBeenCalledWith('nombre_norm.ilike.%aur x%,sku.ilike.%aur x%')
+  })
+
+  it('busca sin tildes ni mayúsculas: «CÁMARA» consulta «camara»', async () => {
+    const { result } = renderHook(() => useOpcionesDimension({ busquedaProducto: 'CÁMARA' }))
+    await waitFor(() => expect(result.current.productos).toHaveLength(1))
+    expect(mocks.or).toHaveBeenCalledWith('nombre_norm.ilike.%camara%,sku.ilike.%camara%')
   })
 
   it('deshabilitado no consulta nada hasta que se habilita', async () => {

@@ -1,19 +1,21 @@
 import { useState, type FormEvent } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TablePagination, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
+import { Box, Button, Chip, FormControlLabel, LinearProgress, Link, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useClientesInactivos, type FilaInactivo } from '../../hooks/useClientesInactivos'
 import type { TipoCliente } from '../../lib/clientes'
 import { validarDias } from '../../lib/diasInactivos'
 import { formatearFecha, formatearPesos } from '../../lib/formatoRanking'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { BarraHerramientas } from '../pagina/BarraHerramientas'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
-const TAMANO_PAGINA = 25
+const TAMANO_TANDA = 25
 const DIAS_POR_DEFECTO = 90
 const ATAJOS_DIAS = [30, 60, 90, 180] as const
 const ANCHO_CAMPO_DIAS = 190
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const etiquetaTipo: Record<TipoCliente, string> = { minorista: 'Minorista', mayorista: 'Mayorista' }
 
@@ -37,8 +39,15 @@ export function ClientesInactivos({ empresaId = null }: { empresaId?: string | n
   }
 
   const { filas, total, isLoading, isFetching, isError, refetch } = useClientesInactivos({
-    dias: aplicado, tipo, incluirConsumidorFinal, empresaId, pagina: cambioEmpresa ? 1 : pagina, tamano: TAMANO_PAGINA,
+    dias: aplicado, tipo, incluirConsumidorFinal, empresaId, pagina: cambioEmpresa ? 1 : pagina, tamano: TAMANO_TANDA,
   })
+
+  // Carga infinita (Principio VI): las tandas se suman; cambiar el plazo, el tipo o la tienda vuelve a la primera.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina, total, cargando: isFetching,
+    reinicio: { aplicado, tipo, incluirConsumidorFinal, empresaId },
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   const aplicar = (texto: string) => {
     const validado = validarDias(texto)
@@ -115,7 +124,7 @@ export function ClientesInactivos({ empresaId = null }: { empresaId?: string | n
         />
       </BarraHerramientas>
 
-      <Box role="status" aria-live="polite" sx={visuallyHidden}>
+      <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
         {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando clientes inactivos" /> : null}
@@ -123,24 +132,24 @@ export function ClientesInactivos({ empresaId = null }: { empresaId?: string | n
       <Box aria-busy={isFetching}>
         {isLoading ? (
           <EstadoCargaPagina />
-        ) : isError ? (
+        ) : isError && !falloTanda ? (
           <EstadoError descripcion="No pudimos cargar los clientes inactivos." reintentar={() => void refetch()} />
-        ) : filas.length === 0 ? (
+        ) : listado.filas.length === 0 ? (
           <EstadoVacio titulo="Ningún cliente dejó de comprar en ese plazo." descripcion="Probá con un plazo más corto." />
         ) : (
           <>
             <Typography variant="xs">Clientes cuya última compra fue hace más de {aplicado} días. Facturado histórico sin IVA, neto de notas de crédito.</Typography>
             <ContenidoAdaptable
-              items={filas}
+              items={listado.filas}
               columnas={columnas}
               obtenerClave={(fila) => fila.cliente_id}
               etiquetaTabla="Clientes inactivos"
             />
-            <TablePagination
-              component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA} rowsPerPageOptions={[TAMANO_PAGINA]}
-              onPageChange={(_, nueva) => setPagina(nueva + 1)}
-              labelRowsPerPage="Clientes por página"
-              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+            <CargaInfinita
+              hayMas={listado.hayMas}
+              cargando={listado.cargandoMas}
+              hayError={falloTanda}
+              onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
             />
           </>
         )}

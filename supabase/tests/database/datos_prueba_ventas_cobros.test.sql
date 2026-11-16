@@ -67,7 +67,7 @@ select is(
 select cmp_ok(
   (select count(*)::int
      from dominio.comprobantes_venta c
-     join public.clientes cl on cl.id = c.cliente_id and cl.organizacion_id = c.organizacion_id
+     join dominio.clientes cl on cl.id = c.cliente_id and cl.organizacion_id = c.organizacion_id
     where c.organizacion_id = '0f5eed00-0000-4000-8000-000000000001'
       and cl.numero = 9100),
   '>=', 6,

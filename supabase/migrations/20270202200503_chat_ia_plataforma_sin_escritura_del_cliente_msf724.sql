@@ -1,0 +1,57 @@
+-- MSF-724 (devolución del PR #566) — la plataforma del chat no se escribe
+-- desde el cliente: ni las capacidades por funcionalidad ni la allowlist de
+-- acciones.
+--
+-- Qué había quedado:
+--   20261005000000 dio a `authenticated` `select, insert, update, delete` sobre
+--   `capacidades_chat_ia` y 20261005000500 lo mismo sobre `acciones_chat_ia`.
+--   Lo único que frenaba a un usuario cualquiera era la RLS: la política
+--   `capacidades_chat_ia_solo_superadmin` (for all) y las políticas de
+--   superadmin de la allowlist. El permiso estaba concedido; la RLS lo
+--   filtraba.
+--   El pgTAP de MSF-724 lo dejó a la vista: el UPDATE de un usuario sobre
+--   `capacidades_chat_ia` NO daba error, affectaba 0 filas (el test decía
+--   "no exception" donde esperaba 42501). Es un control que depende de una
+--   sola cosa: que la RLS siga exactamente como está.
+--
+-- Por qué importa (no es cosmético):
+--   - `capacidades_chat_ia.ejecucion` es lo que habilita que el chat ejecute
+--     acciones sobre una funcionalidad. Si un usuario pudiera ponerla en true,
+--     habilitaría la ejecución de una funcionalidad para su organización.
+--   - `acciones_chat_ia` ES la allowlist del fix: si un usuario pudiera
+--     registrar (feature, rpc), elegiría qué función de `public` se ejecuta
+--     desde el chat. Con la ejecución ya acotada a los privilegios de quien
+--     confirma, la allowlist es el control que impide la escalada.
+--   Con el permiso retirado, el control pasa a ser un permiso denegado
+--   (42501) y no una fila filtrada: no depende de que la RLS no cambie.
+--
+-- Cómo queda:
+--   - `capacidades_chat_ia`: el cliente conserva `select` (la pantalla de
+--     capacidades — apps/web/src/pages/ia/capacidades-chat.tsx — la lee) y
+--     pierde `insert, update, delete`. La escritura va por las RPC de
+--     plataforma `public.actualizar_capacidad_chat_lectura` y
+--     `public.actualizar_capacidad_chat_ejecucion` (security definer, con
+--     `private.is_superadmin()`), que es lo que ya usa esa pantalla.
+--   - `acciones_chat_ia`: el cliente conserva `select` (la allowlist se lee
+--     desde `public.ejecutar_accion_chat_ia`, que es security invoker) y
+--     pierde `insert, update, delete`. La allowlist se carga a mano por un
+--     superadmin (SQL): no hay pantalla que la escriba.
+--   - `anon` no lee ninguna de las dos: son de plataforma (qué puede hacer
+--     el chat), no datos de negocio, y la allowlist nombra funciones
+--     internas.
+--   - `private.puede_chat_leer_funcionalidad` y
+--     `private.puede_chat_ejecutar_funcionalidad` (security definer) leen
+--     `capacidades_chat_ia` como el dueño: no les afecta el revoke.
+--
+-- Reversión: `grant insert, update, delete on table public.capacidades_chat_ia to authenticated;`
+-- y `grant insert, update, delete on table public.acciones_chat_ia to authenticated;`
+-- (con las políticas de superadmin de 20261005000000 y 20261005000500, la RLS
+-- vuelve a ser el único control de la escritura). Si además se quiere que
+-- `anon` vuelva a leerlas: `grant select on table public.capacidades_chat_ia to anon;`
+-- y `grant select on table public.acciones_chat_ia to anon;`. Revertir devuelve
+-- el control a la RLS solamente: no se hace (MSF-724).
+
+revoke insert, update, delete on table public.capacidades_chat_ia from anon, authenticated;
+revoke insert, update, delete on table public.acciones_chat_ia from anon, authenticated;
+revoke select on table public.capacidades_chat_ia from anon;
+revoke select on table public.acciones_chat_ia from anon;

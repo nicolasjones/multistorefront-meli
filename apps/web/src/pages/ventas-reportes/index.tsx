@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { Stack, Tab, Tabs } from '@mui/material'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -11,20 +12,26 @@ import {
   SUBTITULO_REPORTES,
   TEXTO_AYUDA_EMPRESAS,
   TITULO_REPORTES,
+  rangoEsValido,
   rangoPorAtajo,
   type RangoFechas,
 } from '../../lib/ventas-reportes'
 import { ExportarRankingVentas } from './ExportarRankingVentas'
 import { FiltrosPeriodo } from './FiltrosPeriodo'
+import { MasConsultados } from './MasConsultados'
 import { MasVendidos } from './MasVendidos'
 import { RankingClientes } from './RankingClientes'
+import { VentasPeriodoCanal } from './VentasPeriodoCanal'
 
-type PestanaReporte = 'mas-vendidos' | 'ranking-clientes'
+type PestanaReporte = 'mas-vendidos' | 'ranking-clientes' | 'mas-consultados' | 'ventas-periodo-canal'
 
-// Pestañas de la pantalla (FR-005): «Más vendidos» (F-VTA-22) y «Ranking de clientes» (F-VTA-23).
+// Pestañas de la pantalla (FR-005): «Más vendidos» (F-VTA-22), «Ranking de clientes» (F-VTA-23) y
+// «Productos más consultados» (F-REP-04) y «Ventas por período y canal» (F-REP-05).
 const PESTANAS: ReadonlyArray<{ valor: PestanaReporte; etiqueta: string }> = [
   { valor: 'mas-vendidos', etiqueta: 'Más vendidos' },
   { valor: 'ranking-clientes', etiqueta: 'Ranking de clientes' },
+  { valor: 'mas-consultados', etiqueta: 'Productos más consultados' },
+  { valor: 'ventas-periodo-canal', etiqueta: 'Ventas por período y canal' },
 ]
 
 // «Reportes de ventas» (F-VTA-22, FR-005; VentasReportes.dc.html): el marco de la pantalla —título,
@@ -35,7 +42,12 @@ const PESTANAS: ReadonlyArray<{ valor: PestanaReporte; etiqueta: string }> = [
 // nueva tienda, así que nunca quedan filas de la empresa anterior.
 export function ReportesVentas() {
   const [pestana, setPestana] = useState<PestanaReporte>('mas-vendidos')
-  const [rango, setRango] = useState<RangoFechas>(() => rangoPorAtajo(ATAJO_RANGO_INICIAL))
+  // Inicio (F-INI-04, FR-005) enlaza acá con el período ya elegido: `?desde=AAAA-MM-DD&hasta=AAAA-MM-DD`.
+  const [parametrosUrl] = useSearchParams()
+  const [rango, setRango] = useState<RangoFechas>(() => {
+    const pedido = { desde: parametrosUrl.get('desde') ?? '', hasta: parametrosUrl.get('hasta') ?? '' }
+    return rangoEsValido(pedido) ? pedido : rangoPorAtajo(ATAJO_RANGO_INICIAL)
+  })
   // El «Consumidor final» vive en la pantalla (no en la pestaña) porque el botón «Exportar a Excel»
   // del encabezado exporta el ranking con el mismo valor del interruptor (FR-009).
   const [incluirConsumidorFinal, setIncluirConsumidorFinal] = useState(false)
@@ -92,6 +104,20 @@ export function ReportesVentas() {
       <FiltrosPeriodo rango={rango} onCambiar={setRango} />
       {pestana === 'mas-vendidos' ? (
         <MasVendidos
+          rango={rango}
+          empresaId={empresaId}
+          empresaNombre={empresaNombre}
+          cargandoEmpresa={cargandoTiendas}
+        />
+      ) : pestana === 'mas-consultados' ? (
+        <MasConsultados
+          rango={rango}
+          empresaId={empresaId}
+          empresaNombre={empresaNombre}
+          cargandoEmpresa={cargandoTiendas}
+        />
+      ) : pestana === 'ventas-periodo-canal' ? (
+        <VentasPeriodoCanal
           rango={rango}
           empresaId={empresaId}
           empresaNombre={empresaNombre}

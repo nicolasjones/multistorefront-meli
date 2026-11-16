@@ -1,9 +1,21 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/lib/ventas/contrarreembolsos.ts
+  - design/pantallas/VentasTransportes.dc.html
+  - supabase/migrations/20270114120000_contrarreembolsos.sql
+  - supabase/migrations/20270114120100_marcar_contrarreembolso_cobrado.sql
+  - supabase/migrations/20270114120200_listar_contrarreembolsos.sql
+---
+
 # Ventas · Contrarreembolsos por transporte (F-VTA-14)
 
 Historia MSF-410 de la épica MSF-195 (spec `specs/20261024-150000-ventas-cobros-y-conciliacion/`,
 US3 · FR-040…FR-045 · SC-005). Esta nota documenta **la base de datos** de la historia: la tabla
 del contrarreembolso, la función interna que lo abre, la RPC que lo marca cobrado y las de lectura.
-La pantalla vive en `/ventas/transportes` (ver [Pantalla](#pantalla-fr-046)); el cierre de la épica
+La pantalla vive en `/ventas/transportes` (ver [Pantalla](#permiso-por-empresa-y-lectura-para-la-pantalla)); el cierre de la épica
 (`docs/ventas-cobros-y-conciliacion.md`) junta el modelo completo.
 
 Contexto: [Ventas · Cobros por comprobante](./cobros-por-comprobante.md) (F-VTA-12, el libro de
@@ -72,7 +84,9 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   cobra al entregar no genera nada.
 - **Idempotente por (comprobante, guía)**: la misma guía devuelve el contrarreembolso ya abierto,
   sin duplicar y sin evento nuevo.
-- El **importe es el saldo** del comprobante.
+- El **importe es el saldo** del comprobante (el saldo neto: resta sus notas de crédito). Mientras el contrarreembolso
+  está `pendiente`, una nota de crédito que se emite o se anula lo **ajusta** al saldo vigente y deja el evento
+  `contrarreembolso.importe_ajustado` (ver `docs/cobros-por-comprobante.md`).
 - Deja el evento `contrarreembolso.abierto` en la misma transacción, con el actor y la tienda.
 - Toma el comprobante **con bloqueo de fila**: serializa dos aperturas de la misma guía y serializa
   contra el registro de cobros (que bloquea el mismo comprobante), así que el importe nunca se
@@ -142,18 +156,19 @@ Esta historia y **F-VTA-13** agregan una acción cada una a la **misma** matriz
 
 `/ventas/transportes` pasa a llamarse **«Transportes y contrarreembolsos»**, con el subtítulo del
 prototipo («Cobros a la entrega por empresa de transporte, mensajería propia en moto y terminales
-de retiro.»), el filtro `Tienda` común y dos sub-pestañas:
+de retiro.»), el filtro `Tienda` común y tres sub-pestañas (en este orden: Contrarreembolsos, Motos y Terminales de retiro):
 
 - **Contrarreembolsos** (la que abre por defecto): ayuda «El transporte cobra al entregar y rinde
   después.». Dentro van las dos tarjetas y la tabla de los contrarreembolsos.
+- **Motos**: la agrega MSF-145 (F-VTA-24 y F-VTA-25): ayuda «Mensajería propia: se rinde el efectivo cobrado y el costo del envío.»; ver `docs/ventas-motos.md`.
 - **Terminales de retiro**: la tabla de MSF-139 (F-VTA-04) sin cambios, con su recuento,
   `Nueva empresa` y `Editar`.
 
 La pestaña del catálogo se pide recién cuando está a la vista (no se carga la tabla de transportes
 desde la pestaña de contrarreembolsos, ni al revés). Las pestañas son de MUI (`Tabs`/`Tab`), con
 `role="tab"`, `aria-selected`, `tabpanel` y etiqueta accesible; los textos son los del prototipo
-`design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo sigue fuera de
-alcance (despacho), igual que las tarjetas de motos.
+`design/pantallas/VentasTransportes.dc.html`. La pestaña «Motos» del prototipo la entrega MSF-145
+(`docs/ventas-motos.md`).
 
 ### Las tarjetas (FR-045)
 
@@ -165,7 +180,7 @@ alcance (despacho), igual que las tarjetas de motos.
 Cada tarjeta es una región con su título (así el lector de pantalla anuncia de qué tarjeta habla
 el importe) y con el color del prototipo: aviso para lo pendiente, éxito para lo cobrado. Las
 tarjetas van dentro de la sub-pestaña «Contrarreembolsos» porque son sus totales; la tercera
-tarjeta del prototipo («Motos sin rendir») es de despacho y queda fuera de alcance.
+tarjeta del prototipo («Motos sin rendir») existe desde MSF-145 y va dentro de la pestaña «Motos», arriba de su tabla (`TransportesMotos.tsx`, `docs/ventas-motos.md`).
 
 ### La tabla (FR-047)
 

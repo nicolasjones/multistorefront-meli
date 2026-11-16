@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { UMBRAL_RECALCULO_PCT, textoPrecios } from './cotizacion'
+import { UMBRAL_RECALCULO_PCT, textoPrecios, textoSinCambios } from './cotizacion'
 
 // Historial de cargas de la cotización del dólar (F-PRE-04, MSF-286; FR-017/FR-018). La autoridad es la
 // base (migración 20261023140400: `listar_cotizaciones`, tabla `dominio.cotizaciones` inmutable); acá
@@ -20,6 +20,8 @@ export type CargaCotizacion = {
   cargadaPorNombre: string | null
   recalculoAplicado: boolean
   preciosRecalculados: number
+  // Umbral (%) con el que se decidió el recálculo; null en las cargas anteriores a F-PRE-06 (rigió 1 %).
+  umbralPct: number | null
 }
 
 export type PaginaHistorialCotizaciones = {
@@ -35,6 +37,7 @@ type CargaRpc = {
   cargada_por_nombre: string | null
   recalculo_aplicado: boolean
   precios_recalculados: number | string
+  umbral_pct?: number | string | null
 }
 
 type PaginaRpc = { filas: CargaRpc[]; siguiente_cursor: string | null }
@@ -43,8 +46,14 @@ export async function listarCotizacionesRpc(
   cliente: SupabaseClient,
   cursor: string | null,
   limite: number = TAMANO_PAGINA_HISTORIAL_COTIZACIONES,
+  empresaId?: string | null,
 ): Promise<PaginaHistorialCotizaciones> {
-  const { data, error } = await cliente.rpc('listar_cotizaciones', { p_limite: limite, p_cursor: cursor })
+  // Con alcance «una por empresa» el historial es el de la empresa (F-PRE-06); sin ella, la llamada es la de siempre.
+  const { data, error } = await cliente.rpc('listar_cotizaciones', {
+    p_limite: limite,
+    p_cursor: cursor,
+    ...(empresaId ? { p_empresa: empresaId } : {}),
+  })
   if (error) throw error
   const pagina = data as PaginaRpc
   return {
@@ -56,14 +65,15 @@ export async function listarCotizacionesRpc(
       cargadaPorNombre: fila.cargada_por_nombre,
       recalculoAplicado: fila.recalculo_aplicado,
       preciosRecalculados: Number(fila.precios_recalculados),
+      umbralPct: fila.umbral_pct === undefined || fila.umbral_pct === null ? null : Number(fila.umbral_pct),
     })),
     siguienteCursor: pagina.siguiente_cursor,
   }
 }
 
-// Columna «Precios»: «38 precios» si recalculó; si no, «Sin cambios (< 1 %)» (el umbral es el de la base).
-export const textoPreciosCarga = (carga: Pick<CargaCotizacion, 'recalculoAplicado' | 'preciosRecalculados'>) =>
-  carga.recalculoAplicado ? textoPrecios(carga.preciosRecalculados) : `Sin cambios (< ${UMBRAL_RECALCULO_PCT} %)`
+// Columna «Precios»: «38 precios» si recalculó; si no, «Sin cambios (< 1 %)» con el umbral usado en esa carga.
+export const textoPreciosCarga = (carga: Pick<CargaCotizacion, 'recalculoAplicado' | 'preciosRecalculados'> & { umbralPct?: number | null }) =>
+  carga.recalculoAplicado ? textoPrecios(carga.preciosRecalculados) : textoSinCambios(carga.umbralPct ?? UMBRAL_RECALCULO_PCT)
 
 export type TonoVariacion = 'sube' | 'baja' | 'igual'
 
