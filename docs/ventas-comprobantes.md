@@ -366,7 +366,7 @@ Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto t
 | S2 | `copiar_presupuesto` no aplica el descuento del cliente | MSF-933 |
 | S3 | Indicador «ventas con promoción» en reportes y Superset; promoción bajo el costo | MSF-934 (vista hecha; alerta y tablero pendientes de decisión) |
 | S4 | PDF del comprobante con el precio de lista tachado (solo si se cambia la Decisión 6) | MSF-935 |
-| S5 | `private.precio_vigente_empresa` ignora la promoción mayor o igual al normal (hoy la tienda la muestra y el local la ignora) y `guardar_promocion_precio` avisa al cargarla | MSF-936 |
+| S5 | `private.precio_vigente_empresa` ignora la promoción mayor o igual al normal (tienda y local coinciden) y `guardar_promocion_precio` avisa al cargarla. **Hecho** (migración `20270433000000`; ver `promociones-precio.md`) | MSF-936 |
 | S6 | Bandera apagada y reencendida con borradores abiertos: procedimiento operativo y aviso a los cajeros | MSF-937 (procedimiento documentado; aviso en la UI pendiente) |
 | S7 | Recalcular el precio completo en la guarda de confirmar | MSF-938 (cerrado: la guarda recalcula toda línea con promoción y rechaza si deja de ser menor al normal; migración `20270431000000`) |
 
