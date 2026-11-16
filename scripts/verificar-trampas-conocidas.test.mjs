@@ -478,3 +478,24 @@ test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 
     assert.ok(ms < 500, `tardó ${ms} ms`);
   }
 });
+
+test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} de 300 y 600 KB (< 300 ms)', () => {
+  const unicas = (kb) => { let s = ''; for (let n = 0; s.length < kb * 1024; n++) s += `$t${n}$ `; return s; };
+  const alfabeto = (kb, semilla) => { const rnd = prng(semilla); let s = ''; while (s.length < kb * 1024) s += '$xy'[Math.floor(rnd() * 3)]; return s; };
+  for (const sql of [unicas(300), unicas(600), alfabeto(300, 5), alfabeto(600, 6)]) {
+    const t = Date.now();
+    recorrerSql(sql);
+    const ms = Date.now() - t;
+    assert.ok(ms < 300, `tardó ${ms} ms`);
+  }
+});
+
+test('recorrerSql: el cierre por etiqueta es idéntico al oráculo con etiquetas que se pisan y repiten', () => {
+  const rnd = prng(2024);
+  const trozos = ['$$', '$x$', '$y$', '$x$$', '$$x$', 'a', ' ', "'", '--', '\n', ';'];
+  for (let k = 0; k < 3000; k++) {
+    let sql = '';
+    while (sql.length < 60) sql += trozos[Math.floor(rnd() * trozos.length)];
+    assert.deepEqual(recorrerSql(sql), recorrerSqlViejo(sql), JSON.stringify(sql));
+  }
+});

@@ -197,6 +197,8 @@ export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }
 //   · `sinCerrar`: índice del primer comentario, literal o bloque de dólares sin cerrar (-1 si todo cierra);
 //   · `sentencias`: cortes en `;` de primer nivel (los `;` de literales, comentarios y bloques de dólares no cortan), cada una
 //     con su texto enmascarado y su índice de inicio.
+const RE_ETIQUETA = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i;
+
 export function recorrerSql(sql) {
   const salida = sql.split('');
   const sentencias = [];
@@ -214,6 +216,26 @@ export function recorrerSql(sql) {
     memo.set(tok, { desde, idx });
     return idx;
   };
+  // Posiciones de cada etiqueta de dólares (`$$`, `$tag$`) calculadas en UN pasaje (una aparición de la etiqueta X en p equivale a que
+  // la etiqueta que empieza en p sea X); el próximo cierre se busca por bisección: lineal en total aunque haya miles de etiquetas distintas.
+  let posiciones = null;
+  const sigEtiqueta = (tag, desde) => {
+    if (!posiciones) {
+      posiciones = new Map();
+      for (let p = sql.indexOf('$'); p >= 0; p = sql.indexOf('$', p + 1)) {
+        const t = RE_ETIQUETA.exec(sql.slice(p, p + 80));
+        if (!t) continue;
+        const lista = posiciones.get(t[0]);
+        if (lista) lista.push(p); else posiciones.set(t[0], [p]);
+      }
+    }
+    const lista = posiciones.get(tag);
+    if (!lista) return -1;
+    let lo = 0;
+    let hi = lista.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (lista[mid] < desde) lo = mid + 1; else hi = mid; }
+    return lo < lista.length ? lista[lo] : -1;
+  };
   let i = 0;
   let ultimo = -1;
   while (i < sql.length) {
@@ -226,7 +248,7 @@ export function recorrerSql(sql) {
     let tope = -1;
     if (pila.length) {
       const bloque = pila[pila.length - 1];
-      if (bloque.cierre >= 0 && bloque.cierre < i) bloque.cierre = sig(bloque.tag, i);
+      if (bloque.cierre >= 0 && bloque.cierre < i) bloque.cierre = sigEtiqueta(bloque.tag, i);
       tope = bloque.cierre;
     }
     const c = sql[i];
@@ -265,10 +287,10 @@ export function recorrerSql(sql) {
       i = fin < 0 ? sql.length : fin + 1; continue;
     }
     if (c === '$') {
-      const m = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i.exec(sql.slice(i, i + 80));
+      const m = RE_ETIQUETA.exec(sql.slice(i, i + 80));
       if (m) {
         if (pila.length && pila[pila.length - 1].tag === m[0]) pila.pop();
-        else pila.push({ tag: m[0], cierre: sig(m[0], i + m[0].length) });
+        else pila.push({ tag: m[0], cierre: sigEtiqueta(m[0], i + m[0].length) });
         i += m[0].length; continue;
       }
     }
