@@ -1853,8 +1853,8 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "9dfd35063e69fa85c5e1c04f5f806047f8e1d83e74bcd977072a7245c864c661",
-      "sourceHash": "d2bd6aef9953ad106b1bb015144ba053ad6b59fd096a4d071577b475ed526240",
+      "pageHash": "3a5f3fa28ca4aef32d9dca91cdc937166490fadc367c284c7110f8676f07a637",
+      "sourceHash": "155105560e143ecde0f2e30b0db45e9545aad38dd210b2f71e89efe3614a11fb",
       "sourceAt": "e70bdb10",
       "sources": [
         "scripts/tests-afectados.mjs",
