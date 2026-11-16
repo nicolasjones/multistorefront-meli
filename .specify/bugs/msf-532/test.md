@@ -1,7 +1,7 @@
 # Bug Verification: Verificación de salida del correo de «Solicitar acceso» sin verde falso (MSF-532)
 
 - **Slug**: msf-532
-- **Tested**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, tras la devolución del Revisor)
+- **Tested**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, tras la devolución del Revisor) · 2026-11-16 (cuarta ronda, drift de la documentación)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: partial
@@ -86,6 +86,19 @@ Con la mutación «el guion ignora `enviado`» (el verde falso):
 | Lint | `pnpm lint` | pass | Sólo warnings preexistentes del área web. |
 | Build | `pnpm build` | pass | Vite build de `@platform/web` en verde. |
 | Inventario de docs | `node scripts/docs-inventario.mjs` | pass | Regenerado y commiteado (`inventory.json`/`.md`). `docs-manifest.mjs` sigue fallando por 99 páginas sin `owner`/`sources` de la línea base (deuda del Documentador, ajena a esta historia). |
+
+## Cuarta ronda (drift de la documentación y estado del CI)
+
+| Check | Command / Action | Result | Notes |
+|-------|------------------|--------|-------|
+| Suite del guion | `node --test scripts/verificar-salida-correo.test.mjs` | pass | 15/15. |
+| Contrato del handler | `node --test supabase/functions/solicitar-acceso/handler.test.ts` | pass | 11/11. |
+| Documentación del cambio | `pnpm docs:check` | pass | «Documentación de cambios: OK» y «Migraciones OK: 675 archivo(s), 0 nuevo(s) contra origin/dokploy»: ya no hay ninguna versión MODIFICADA (la ronda anterior la había marcado como línea base; la rama integró la base). |
+| Drift de la documentación | `node scripts/docs-drift.mjs` | fail (línea base) | 137 páginas «viejas»: **0 nuevas** respecto de la base de la épica (143) y 6 arregladas (`deployment.md`, `solicitar-acceso.md`, `perfil-y-permisos.md` y las tres `tecnico/tienda-*.md`). El job `build` del workflow `docs` ya estaba rojo en el PR de la épica (#977) y en `dokploy` (161): es deuda de la línea base, no de esta historia. |
+| Lint | `pnpm lint` | pass | exit 0; sólo warnings preexistentes del área web (esta historia no toca `apps/web`). |
+| Build | `pnpm build` | pass | exit 0. |
+| Calidad determinista | `pnpm calidad` | pass (best-effort) | oxlint, knip (código muerto), jscpd, dependency-cruiser y syncpack en verde. El único «hallazgo» es gitleaks, que no pudo arrancar (sin Docker en este entorno: `permission denied … /var/run/docker.sock`); el diff no tiene secretos (sólo nombres de variables y una clave de fixture en el test). |
+| Verificación externa (servidor self-hosted) | `pnpm correo:verificar-salida` contra stg/prd | not-run | Los ambientes responden (HTTP 200 en `stg`/`prd.212-90-120-53.sslip.io`), pero desde esta sesión no hay credenciales de una persona **sin** acceso (`ACCESO_EMAIL`/`ACCESO_PASSWORD`) ni la clave del ambiente, la Edge Function desplegada no tiene el campo `enviado` y el relay SMTP del VPS sigue sin configurar (así lo registra el repo). La evidencia pedida —captura del correo recibido en una casilla externa— es humana por definición. |
 
 ## Recommendation
 

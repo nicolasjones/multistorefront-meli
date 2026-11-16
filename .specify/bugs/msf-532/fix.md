@@ -1,7 +1,7 @@
 # Bug Fix: Verificación de salida del correo de «Solicitar acceso» sin verde falso (MSF-532)
 
 - **Slug**: msf-532
-- **Fixed**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, devolución del Revisor)
+- **Fixed**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, devolución del Revisor) · 2026-11-16 (cuarta ronda, drift de la documentación)
 - **Assessment**: ./assessment.md
 - **Status**: applied
 
@@ -30,6 +30,7 @@ dueño, en lugar de una tarea cerrada sin evidencia.
 | `docs/tecnico/perfil-y-permisos.md` | modified | Verificación de salida (FR-012) con los códigos de salida y el enlace al registro. |
 | `docs/solicitar-acceso.md` | modified | Límite «el envío depende del SMTP» con el estado real de la verificación. |
 | `docs/deployment.md` | modified | Sección «Relay SMTP del servidor (MSF-532)»: relay + SPF/DKIM, estado y dueño. |
+| `docs/tecnico/runbooks/*.md`, `docs/tecnico/sandbox.md` | modified | Nota fechada del cambio de CI (el paso `test:correo:verificar-salida` del job `application`), para que el paso en `validate.yml` no las vuelva «viejas» (`docs-drift.mjs`). |
 | `specs/20261016-130000-perfil-y-permisos-avanzados/tasks/F-ROL-05.md` | modified | Nota `Desvío:` de T013 con el seguimiento **MSF-532** (el `tasks.md` de la épica no se tocó: sus marcas las escribe el runner). |
 | `package.json` | modified | `test:correo:verificar-salida` y su entrada en la cadena `test`. |
 
@@ -102,6 +103,21 @@ return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado
 | `docs/README.md` afirma como hecho la existencia de la Tarea `seguimiento` en el tracker. | Se redacta como «a crear en el tracker» (el repo no da fe de que exista), igual que `docs/deployment.md` y el registro. |
 | La página nueva exige regenerar `docs/_generated/inventory.*`. | Se regenera y se commitea el inventario (`pnpm docs:wiki:inventario`). |
 | `tasks.md` T013 sigue `[x]` sin `Desvío:`. | No se edita `tasks.md` por la regla de la corrida (las marcas las escribe el runner en `specs/<slug>/tasks/<CODE>.md`); la nota `Desvío:` queda en `tasks/F-ROL-05.md`. Queda anotado como desvío consciente. |
+
+## Cuarta ronda (drift de la documentación)
+
+El paso agregado al CI (`validate.yml`) hace que las páginas que declaran `.github/workflows` como fuente
+queden «viejas» para `scripts/docs-drift.mjs`. Sin tocarlas, la rama **agregaba** 6 páginas al rojo del job
+`build` del workflow `docs`.
+
+| Hallazgo | Corrección |
+|---|---|
+| El cambio en `validate.yml` dejaba viejas 6 páginas de CI (`docs/tecnico/runbooks/{ci-trabado,cola-eventos,db-restore,deploy-fallido,supabase-caido}.md` y `docs/tecnico/sandbox.md`). | Cada una lleva la nota fechada `> **CI (2026-11-16):** …` en su bloque de cambios de CI (la convención que ya usan esas páginas) y se regeneró `docs/manifest.json`. |
+
+Resultado: la rama pasa de 143 a **137** páginas viejas, **0 nuevas** respecto de la base de la épica (que
+tengo 143) y arregla 6 que ya estaban viejas: `docs/deployment.md`, `docs/solicitar-acceso.md`,
+`docs/tecnico/perfil-y-permisos.md` y las tres `docs/tecnico/tienda-*.md`. Las 137 que quedan son deuda de la
+línea base (el `dokploy` tiene 161) y el job `build` del workflow `docs` ya estaba rojo en la épica (PR #977).
 
 ## Follow-ups
 
