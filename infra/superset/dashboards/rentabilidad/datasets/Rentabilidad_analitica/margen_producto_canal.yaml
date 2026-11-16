@@ -1,0 +1,330 @@
+# Dataset sobre la vista `analitica.margen_producto_canal` (contrato: specs/20261023-170000-rentabilidad-margen/
+# contracts/analitica-margen.md). Una fila por producto y tienda. `organizacion_id` es la columna
+# sobre la que el guest token fuerza la cláusula `rls`. Solo tiendas propias: sin comisiones de
+# marketplaces (FR-010).
+table_name: margen_producto_canal
+main_dttm_col: null
+description: Margen por producto y tienda sobre el precio neto sin IVA (margen = neto - costo - comisión).
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 9c2e4a7b-1f60-4d83-b5a9-3e7c0d1f2a64
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: margen_promedio_ponderado
+  verbose_name: Margen promedio ponderado
+  metric_type: null
+  expression: SUM(margen) / NULLIF(SUM(precio_neto), 0)
+  description: Suma de márgenes ÷ suma de precios netos (una unidad de cada producto).
+  d3format: .1%
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: Organización dueña de la fila; el token de Superset filtra por esta columna.
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Canal
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: Nombre de la tienda (canal).
+  python_date_format: null
+  extra: {}
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: precio_neto
+  verbose_name: Precio
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: Precio neto de la tienda, sin IVA, en pesos.
+  python_date_format: null
+  extra: {}
+- column_name: costo
+  verbose_name: Costo
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: Costo sin IVA, en pesos.
+  python_date_format: null
+  extra: {}
+- column_name: comision
+  verbose_name: Comisión
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: Comisión de la tienda (0 en esta versión).
+  python_date_format: null
+  extra: {}
+- column_name: margen
+  verbose_name: Margen
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: Precio - costo - comisión.
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct
+  verbose_name: Margen %
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: Margen ÷ precio neto (fracción).
+  python_date_format: null
+  extra: {}
+- column_name: estado
+  verbose_name: Estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: ok, bajo o negativo, contra el umbral de margen bajo de la organización.
+  python_date_format: null
+  extra: {}
+- column_name: producto_busqueda
+  verbose_name: Buscar producto o SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "producto_nombre || ' ' || coalesce(sku, '')"
+  description: 'Texto del buscador: nombre y SKU del producto.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_etiqueta
+  verbose_name: Estado (etiqueta)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE estado WHEN 'ok' THEN 'OK' WHEN 'bajo' THEN 'Bajo' WHEN 'negativo' THEN 'Negativo' END"
+  description: 'OK, Bajo o Negativo; es el valor del filtro de estado.'
+  python_date_format: null
+  extra: {}
+- column_name: precio_texto
+  verbose_name: Precio (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN precio_neto < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(precio_neto)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Precio neto en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: costo_texto
+  verbose_name: Costo (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN costo < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(costo)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Costo en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: comision_texto
+  verbose_name: Comisión (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN comision = 0 THEN '—' ELSE CASE WHEN comision < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(comision)), 'FM999,999,999,999'), ',', '.') END"
+  description: 'Comisión de la tienda; «—» cuando no hay (0 en esta versión).'
+  python_date_format: null
+  extra: {}
+- column_name: margen_texto
+  verbose_name: Margen (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "CASE WHEN margen < 0 THEN '-$ ' ELSE '$ ' END || replace(to_char(round(abs(margen)), 'FM999,999,999,999'), ',', '.')"
+  description: 'Margen en pesos, formato es-AR.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_pct_texto
+  verbose_name: Margen % (texto)
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: "replace(to_char(round(margen_pct * 100, 1), 'FM990.0'), '.', ',') || ' %'"
+  description: 'Margen % con una decimal y coma.'
+  python_date_format: null
+  extra: {}
+- column_name: barra_pct
+  verbose_name: Barra de margen %
+  is_dttm: false
+  is_active: true
+  type: NUMERIC
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: "LEAST(GREATEST(round(margen_pct * 100), 0), 100)"
+  description: 'Ancho de la barra (0 a 100); los negativos quedan en 0.'
+  python_date_format: null
+  extra: {}
+- column_name: margen_color
+  verbose_name: Color del margen
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE WHEN margen < 0 THEN '#C62828' ELSE '#15181D' END"
+  description: 'Color de error del sistema de diseño para márgenes negativos (FR-021).'
+  python_date_format: null
+  extra: {}
+- column_name: barra_color
+  verbose_name: Color de la barra
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#C62828' WHEN 'bajo' THEN '#B36B00' ELSE '#2E7D32' END"
+  description: 'Color de la barra según el estado.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_fondo
+  verbose_name: Fondo del chip de estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#FDE7E7' WHEN 'bajo' THEN '#FFF3D6' ELSE '#E3F4E8' END"
+  description: 'Fondo del chip de estado.'
+  python_date_format: null
+  extra: {}
+- column_name: estado_color
+  verbose_name: Color del chip de estado
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: "CASE estado WHEN 'negativo' THEN '#C62828' WHEN 'bajo' THEN '#B36B00' ELSE '#2E7D32' END"
+  description: 'Texto del chip de estado.'
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 5b1f6c0e-7a3d-4e52-9c1b-2d4f8a6e0b31

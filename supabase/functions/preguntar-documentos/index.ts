@@ -7,8 +7,9 @@
 // Si nada supera el umbral, responde que no encontró información sin
 // llamar al proveedor de generación.
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { prepararInvocacion, sanitizarDato, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
+import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
 import { generarEmbedding } from '../_shared/embeddings.ts'
+import { armarContexto } from './contexto.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,7 +125,11 @@ Deno.serve(async (req) => {
   const documentoPorVersion = new Map((versionesPorFragmento ?? []).map((v: { id: string; documento_id: string }) => [v.id, v.documento_id]))
   const documentosCitados = [...new Set(fragmentos.map((f: { version_id: string }) => documentoPorVersion.get(f.version_id)).filter(Boolean))] as string[]
 
-  const contexto = fragmentos.map((f: { texto: string }) => sanitizarDato({ texto: f.texto }, CONTRATO.datosPermitidos).texto).join('\n\n---\n\n')
+  // Si ningún fragmento trae texto no se llama al proveedor de generación (MSF-725).
+  const contexto = armarContexto(fragmentos)
+  if (!contexto) {
+    return jsonResponse({ respuesta: 'No encontré información relevante en los documentos para responder eso.', documentos_citados: [] }, 200)
+  }
 
   const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
 

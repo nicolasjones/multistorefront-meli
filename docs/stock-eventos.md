@@ -1,3 +1,15 @@
+---
+owner: tecnico
+sources:
+  - specs/20261018-180000-stock-unico-y-alertas
+  - supabase/migrations/20261018180000_stock_cola_eventos.sql
+  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
+  - supabase/migrations/20261018180200_cola_eventos_reclamo.sql
+  - supabase/migrations/20261018180300_cola_eventos_correcciones.sql
+  - supabase/migrations/20261018180400_cola_eventos_interno.sql
+  - supabase/migrations/20261018180500_cola_eventos_interno_revoke_service_role.sql
+---
+
 # Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)
 
 Spec: `specs/20261018-180000-stock-unico-y-alertas/` (épica MSF-231). Esta guía es el contrato contra el que se
@@ -29,6 +41,27 @@ transacción: si la RPC se revierte, no hay evento. Definir el stock mínimo no 
 
 Un consumidor debe tratar `cantidad` como el valor que vale ahora para ese producto; ante eventos fuera de orden gana
 el de `ocurrido_en` más reciente.
+
+### Carga ampliada: depósito, reservado y disponible (F-STK-14 y F-STK-16)
+
+Campos **aditivos**: los consumidores anteriores siguen válidos.
+
+| Campo de `carga` | Significado |
+|------------------|-------------|
+| `deposito_id` | Depósito sobre el que se aplicó el cambio. |
+| `reservado` | Unidades reservadas en total (suma de depósitos) tras el cambio. |
+| `disponible` | `cantidad − reservado` en total tras el cambio; es lo que los canales venden. |
+| `reserva_id` | Solo en `reserva` / `liberacion` (F-STK-16): la reserva que originó el evento. |
+
+F-STK-16 agrega dos valores a `tipo_movimiento` además de `entrada | salida | ajuste`:
+
+- `reserva` y `liberacion`: cambian el disponible **sin** cambiar la cantidad, por eso llevan `diferencia = 0` y
+  `movimiento_id = null`. Clave de idempotencia `<reserva_id>:reserva` / `<reserva_id>:liberacion`.
+- Descontar una reserva no emite un evento propio: lo emite la **salida** que registra en el libro (`salida`, con
+  `reservado` y `disponible` ya actualizados).
+
+Un consumidor que valide `tipo_movimiento` contra la lista cerrada anterior debe aceptar los dos valores nuevos.
+Detalle en `docs/stock-reservas.md`.
 
 ## Cola `public.cola_eventos`
 
@@ -69,7 +102,9 @@ código, para que el futuro consumidor lo trate igual. Decisión aprobada por Ni
 
 Un flow de Kestra o un worker llamará a `reclamar_eventos('stock.actualizado', n, lease)`, enviará el stock a Mercado
 Libre y resolverá cada evento con `confirmar`, `liberar` (falla transitoria) o `agotar` (falla definitiva). Los
-eventos de `agotada` se revisan a mano. Nada de eso existe todavía.
+eventos de `agotada` se revisan a mano: desde MSF-837 el flow `monitoreo-api-entregas` avisa a soporte si hay eventos de la API
+agotados, y desde MSF-836 la purga diaria borra los eventos terminados (`completada` o `agotada`) con más de 90 días y sin entregas
+vivas. Nada de eso existe todavía para un consumidor distinto de la API.
 
 ## Reversión
 

@@ -35,3 +35,9 @@ test('rechaza cuando falta SUPABASE_DB_URL', async () => {
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /SUPABASE_DB_URL/);
 });
+
+test('rechaza cuando falta SUPERSET_ANALITICA_DB_PASSWORD (el rol de Superset no queda sin habilitar)', async () => {
+  const result = await run(['--entorno', 'staging'], { SUPABASE_DB_URL: 'postgres://x', SUPERSET_ANALITICA_DB_PASSWORD: '' });
+  assert.notEqual(result.code, 0);
+  assert.match(result.stderr, /SUPERSET_ANALITICA_DB_PASSWORD/);
+});

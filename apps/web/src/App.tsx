@@ -1,4 +1,4 @@
-import { Authenticated, ErrorComponent, Refine, useGetIdentity } from '@refinedev/core'
+import { Authenticated, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
 import routerProvider, {
@@ -6,9 +6,9 @@ import routerProvider, {
   DocumentTitleHandler,
   UnsavedChangesNotifier,
 } from '@refinedev/react-router'
-import { Avatar, CssBaseline, ThemeProvider } from '@mui/material'
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { BrowserRouter, Link, Navigate, Outlet, Route, Routes } from 'react-router'
+import { CssBaseline, ThemeProvider } from '@mui/material'
+import { lazy, Suspense } from 'react'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { authProvider } from './providers/authProvider'
 import { accessControlProvider } from './providers/accessControlProvider'
 import { i18nProvider } from './providers/i18nProvider'
@@ -21,6 +21,7 @@ import { PermisosPanelProvider } from './context/PermisosPanel'
 import { SiderPanel } from './components/navegacion/SiderPanel'
 import { EncabezadoPanel } from './components/navegacion/EncabezadoPanel'
 import { LoginPage } from './pages/login'
+import { PaginaNoEncontrada } from './pages/no-encontrada/PaginaNoEncontrada'
 import { OrganizacionCreate } from './pages/organizaciones/create'
 import { OrganizacionList } from './pages/organizaciones/list'
 import { OrganizacionEdit } from './pages/organizacion/edit'
@@ -37,11 +38,21 @@ import { ClienteCreate } from './pages/clientes/create'
 import { ClienteEdit } from './pages/clientes/edit'
 import { ClienteList } from './pages/clientes/list'
 import { ClienteShow } from './pages/clientes/show'
+import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
+import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
+import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
+import { TransporteList } from './pages/ventas/transportes/list'
+import { ConfiguracionVentas } from './pages/ventas/configuracion'
+import { CuentasCobroList } from './pages/ventas/cuentas-cobro/list'
+import { DespachoList } from './pages/ventas/despacho'
+import { FaltantesList } from './pages/ventas/faltantes'
+import { VentaMostrador } from './pages/ventas/mostrador'
 import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { EmpresaEdit } from './pages/empresas/edit'
 import { EmpresaList } from './pages/empresas/list'
+import { EmpresaPrecios } from './pages/empresas/precios'
 import { AnaliticaAdministrar } from './pages/analitica/administrar'
 import { AnaliticaList } from './pages/analitica/list'
 import { AnaliticaPermisos } from './pages/analitica/permisos'
@@ -50,6 +61,7 @@ import { UsuarioCreate } from './pages/usuarios/create'
 import { UsuarioList } from './pages/usuarios/list'
 import { RolesPermisos } from './pages/roles/list'
 import { DefinirContrasenaPage } from './pages/acceso/definir-contrasena'
+import { BajaCorreoPage } from './pages/baja-correo'
 import { SolicitarRecuperacionPage } from './pages/acceso/solicitar-recuperacion'
 import { CambiarContrasenaPage } from './pages/cuenta/cambiar-contrasena'
 import { CambiarCorreoPage } from './pages/cuenta/cambiar-correo'
@@ -64,118 +76,86 @@ import { IaCapacidadesMcp } from './pages/ia/capacidades-mcp'
 import { IaChat } from './pages/ia/chat'
 import { IaCapacidadesChat } from './pages/ia/capacidades-chat'
 import { ChatFlotante } from './components/ia/ChatFlotante'
+import { ContenidoPorEmpresa } from './components/pagina/ContenidoPorEmpresa'
 import { IaDocumentos } from './pages/ia/documentos'
 import { temaPanel } from './tema/temaPanel'
 import './App.css'
 
 // La pantalla Actividad queda fuera del recorrido principal: se descarga al entrar (Principio VI).
+const RentabilidadResumen = lazy(() => import('./pages/rentabilidad').then((modulo) => ({ default: modulo.RentabilidadResumen })))
+const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProducto').then((modulo) => ({ default: modulo.RentabilidadPorProducto })))
+const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
+const RentabilidadCostosAdicionales = lazy(() => import('./pages/rentabilidad/CostosAdicionales').then((modulo) => ({ default: modulo.RentabilidadCostosAdicionales })))
+const RentabilidadVentasReales = lazy(() => import('./pages/rentabilidad/VentasReales').then((modulo) => ({ default: modulo.RentabilidadVentasReales })))
+const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
+const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
+const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
 const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) => ({ default: modulo.ActividadList })))
 // Catálogo: también fuera del recorrido principal (Principio VI, FR-018).
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
+const PromocionesList = lazy(() => import('./pages/productos/promociones').then((modulo) => ({ default: modulo.PromocionesList })))
+const ListasPreciosList = lazy(() => import('./pages/productos/listas-de-precios').then((modulo) => ({ default: modulo.ListasPreciosList })))
+const PreciosMasivos = lazy(() => import('./pages/productos/precios-masivos').then((modulo) => ({ default: modulo.PreciosMasivos })))
+const ProductoCarga = lazy(() => import('./pages/productos/carga').then((modulo) => ({ default: modulo.ProductoCarga })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
 const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo) => ({ default: modulo.CategoriaList })))
 // Stock: también fuera del recorrido principal (Principio VI).
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
+const OpinionesList = lazy(() => import('./pages/opiniones/list').then((modulo) => ({ default: modulo.OpinionesList })))
+const ImportacionesList = lazy(() => import('./pages/importaciones/list').then((modulo) => ({ default: modulo.ImportacionesList })))
+const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').then((modulo) => ({ default: modulo.ListasConfigurables })))
+const ApiList = lazy(() => import('./pages/api/list').then((modulo) => ({ default: modulo.ApiList })))
+const LoteStock = lazy(() => import('./pages/stock/lote').then((modulo) => ({ default: modulo.LoteStock })))
 const MotivosMovimiento = lazy(() => import('./pages/stock/motivos').then((modulo) => ({ default: modulo.MotivosMovimiento })))
+const DepositosStock = lazy(() => import('./pages/stock/depositos').then((modulo) => ({ default: modulo.DepositosStock })))
+const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modulo) => ({ default: modulo.ActualizarStockExcel })))
+const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
+const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
+const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const Gastos = lazy(() => import('./pages/gastos').then((modulo) => ({ default: modulo.Gastos })))
+const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
+const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
+const ContactoFicha = lazy(() => import('./pages/contactos/ficha').then((modulo) => ({ default: modulo.ContactoFicha })))
+const ConsultaList = lazy(() => import('./pages/consultas/list').then((modulo) => ({ default: modulo.ConsultaList })))
 const HistorialList = lazy(() => import('./pages/historial/list').then((modulo) => ({ default: modulo.HistorialList })))
 const HistorialImportar = lazy(() => import('./pages/historial/importar').then((modulo) => ({ default: modulo.HistorialImportar })))
+// Migración de datos desde el panel actual (F-MIG-01, FR-010): pantalla puntual
+// del corte, fuera del recorrido principal, por eso se carga al entrar.
+const MigracionImportar = lazy(() => import('./pages/migracion/importar').then((modulo) => ({ default: modulo.MigracionImportar })))
+const MigracionInformes = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformes })))
+const MigracionInformeDetalle = lazy(() => import('./pages/migracion/informes').then((modulo) => ({ default: modulo.MigracionInformeDetalle })))
+// Hoja de etiquetas de envío (F-CLI-17): se descarga solo al imprimir, fuera del recorrido principal.
+const HojaEtiquetas = lazy(() => import('./components/clientes/HojaEtiquetas').then((modulo) => ({ default: modulo.HojaEtiquetas })))
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
 const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
 const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
-
-const services = [
-  ['Refine', 'Interfaz operativa', 'local :4300 · Dokploy'],
-  ['Supabase', 'Datos y autenticación', 'local :9300 · Cloud'],
-  ['Kestra', 'Automatizaciones', 'local :8085 · VPS'],
-  ['Superset', 'Reportes y métricas', 'local :8089 · VPS'],
-]
-
-// Home de quien ya inició sesión, hasta que exista una pantalla de negocio
-// propia (organizaciones/clientes se agregan como recursos en las
-// siguientes historias de la spec 003).
-type Identity = { id: string; email?: string }
-
-type PerfilIdentidad = { nombre: string | null; apellido: string | null }
-
-export function IndicadorSesionActiva() {
-  const { data: identity, isLoading } = useGetIdentity<Identity>()
-  const [fotoUrl, setFotoUrl] = useState<string | null>(null)
-  const [nombreCompleto, setNombreCompleto] = useState<string | null>(null)
-
-  useEffect(() => {
-    let activa = true
-    if (!identity?.id) {
-      setFotoUrl(null)
-      setNombreCompleto(null)
-      return () => { activa = false }
-    }
-    // La identidad solo solicita su propia fila; RLS impide leer perfiles ajenos.
-    const cargarNombreCompleto = async () => {
-      try {
-        const { data } = await supabaseClient
-          .from('perfiles_usuario')
-          .select('nombre, apellido')
-          .eq('user_id', identity.id)
-          .maybeSingle<PerfilIdentidad>()
-        if (activa) setNombreCompleto(data?.nombre && data?.apellido ? `${data.nombre} ${data.apellido}` : null)
-      } catch {
-        if (activa) setNombreCompleto(null)
-      }
-    }
-    void cargarNombreCompleto()
-    // La identidad solo solicita su propia ruta estable; Storage aplica RLS.
-    void supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${identity.id}/avatar`, 60)
-      .then(({ data }) => { if (activa) setFotoUrl(data?.signedUrl ?? null) })
-      .catch(() => { if (activa) setFotoUrl(null) })
-    return () => { activa = false }
-  }, [identity?.id])
-
-  // Al cerrar la sesion Refine invalida la identidad y este componente deja de
-  // renderizarla; asi no queda el correo anterior visible durante la salida.
-  if (isLoading || !identity?.email) {
-    return null
-  }
-
-  return (
-    <p>
-      <Avatar src={fotoUrl ?? undefined} alt="Tu foto de perfil" sx={{ width: 28, height: 28, display: 'inline-flex', verticalAlign: 'middle', mr: 1 }}>?</Avatar>
-      Logueado como <strong>{nombreCompleto ?? identity.email}</strong>. <Link to="/cuenta/perfil">Ver mi perfil</Link>
-    </p>
-  )
-}
-
-function Home() {
-  return (
-    <main className="shell">
-      <header className="hero">
-        <p className="eyebrow">Automation Platform Template</p>
-        <h1>Automatizaciones multi-tenant, coordinadas en un solo producto.</h1>
-        <p className="lead">
-          Base técnica preparada para desarrollar con Claude Code o Codex usando
-          el mismo flujo de especificaciones.
-        </p>
-        <IndicadorSesionActiva />
-      </header>
-
-      <section className="grid" aria-label="Servicios del producto">
-        {services.map(([name, purpose, destination]) => (
-          <article className="card" key={name}>
-            <h2>{name}</h2>
-            <p>{purpose}</p>
-            <small>{destination}</small>
-          </article>
-        ))}
-      </section>
-    </main>
-  )
-}
+const ServicioReportes = lazy(() => import('./pages/service-tecnico/reportes').then((modulo) => ({ default: modulo.ServicioReportes })))
+// Ventas: también fuera del recorrido principal (Principio VI).
+const DevolucionesList = lazy(() => import('./pages/ventas/devoluciones').then((modulo) => ({ default: modulo.DevolucionesList })))
+const ComprobantesList = lazy(() => import('./pages/ventas/comprobantes').then((modulo) => ({ default: modulo.ComprobantesList })))
+const PresupuestosList = lazy(() => import('./pages/ventas/presupuestos').then((modulo) => ({ default: modulo.PresupuestosList })))
+const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((modulo) => ({ default: modulo.ComprobanteVenta })))
+// F-VTA-22 (MSF-347): «Reportes de ventas» (pestaña «Más vendidos»).
+const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
+// F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
+const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
+const TablerosAnaliticos = lazy(() => import('./pages/reportes/Tableros').then((modulo) => ({ default: modulo.TablerosAnaliticos })))
+const ReporteReposicion = lazy(() => import('./pages/reportes/Reposicion').then((modulo) => ({ default: modulo.Reposicion })))
+// F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
+const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
+// Inicio (F-INI-01): reemplaza la portada de servicios del template.
+const InicioPage = lazy(() => import('./pages/inicio').then((modulo) => ({ default: modulo.InicioPage })))
+// Gestión de la tienda online: dentro de Empresas, fuera del recorrido principal (Principio VI).
+const SeguimientoPage = lazy(() => import('./pages/seguimiento').then((modulo) => ({ default: modulo.SeguimientoPage })))
+const VistaPreviaTiendaPagina = lazy(() => import('./pages/empresas/tienda/VistaPreviaTienda').then((modulo) => ({ default: modulo.VistaPreviaTiendaPagina })))
+const GestionTienda = lazy(() => import('./pages/empresas/tienda/GestionTienda').then((modulo) => ({ default: modulo.GestionTienda })))
 
 function App() {
   return (
@@ -184,7 +164,13 @@ function App() {
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine
-            dataProvider={supabaseDataProvider(supabaseClient)}
+            dataProvider={{
+              default: supabaseDataProvider(supabaseClient),
+              // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
+              dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
+            }}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
@@ -209,17 +195,36 @@ function App() {
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
                 show: '/clientes/show/:id',
-                meta: { label: 'Clientes' },
+                meta: { label: 'Clientes', dataProviderName: 'dominio' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
+              { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
               { name: 'productos', list: '/productos', create: '/productos/create', edit: '/productos/:id/edit', meta: { label: 'Productos' } },
               { name: 'categorias', list: '/categorias', meta: { label: 'Categorías' } },
               { name: 'stock', list: '/stock', meta: { label: 'Stock' } },
               { name: 'historial', list: '/historial', meta: { label: 'Historial' } },
+              { name: 'consultas', list: '/consultas', meta: { label: 'Consultas' } },
+              { name: 'contactos', list: '/contactos', meta: { label: 'Contactos' } },
               { name: 'service-tecnico-reparaciones', list: '/service-tecnico/reparaciones', create: '/service-tecnico/reparaciones/nueva', show: '/service-tecnico/reparaciones/:id', meta: { label: 'Reparaciones' } },
               { name: 'service-tecnico-modelos', list: '/service-tecnico/modelos', meta: { label: 'Modelos' } },
               { name: 'service-tecnico-estados', list: '/service-tecnico/estados', meta: { label: 'Estados de reparación' } },
+              { name: 'service-tecnico-reportes', list: '/service-tecnico/reportes', meta: { label: 'Reportes' } },
+              { name: 'ventas-presupuestos', list: '/ventas/presupuestos', meta: { label: 'Presupuestos' } },
+              // F-VTA-22 (MSF-347): «Reportes de ventas» (sección `reportes` de la matriz de permisos).
+              { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
+              { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
+              { name: 'reportes-reposicion', list: '/reportes/reposicion', meta: { label: 'Reposición' } },
+              // F-REP-07 (MSF-265): galería de tableros analíticos ya armados; solo administradores.
+              { name: 'reportes-tableros', list: '/reportes/tableros', meta: { label: 'Tableros analíticos' } },
+              // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
+              { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
+              { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
+              { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
+              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
+              // MSF-467: moderación de opiniones de productos (solo Administrador).
+              { name: 'opiniones', list: '/opiniones', meta: { label: 'Opiniones' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
@@ -242,7 +247,10 @@ function App() {
               },
               { name: 'usuarios', list: '/usuarios', create: '/usuarios/create', meta: { label: 'Usuarios' } },
               { name: 'roles', list: '/roles', meta: { label: 'Roles y permisos' } },
+              { name: 'migracion', list: '/migracion/importar/clientes', meta: { label: 'Migración de datos' } },
               { name: 'actividad', list: '/actividad', meta: { label: 'Actividad' } },
+              { name: 'cotizacion', list: '/cotizacion', meta: { label: 'Cotización del dólar' } },
+              { name: 'rentabilidad', list: '/rentabilidad', meta: { label: 'Rentabilidad' } },
               { name: 'cuenta', list: '/cuenta/perfil', meta: { label: 'Mi cuenta' } },
               { name: 'ia', list: '/ia', meta: { label: 'IA gobernada' } },
             ]}
@@ -258,17 +266,22 @@ function App() {
             <Routes>
               <Route path="/acceso/definir-contrasena" element={<DefinirContrasenaPage />} />
               <Route path="/acceso/solicitar-recuperacion" element={<SolicitarRecuperacionPage />} />
+              {/* Consulta pública del cliente (F-SVC-22): fuera del panel, sin sesión, menú ni barra superior. */}
+              <Route path="/seguimiento/:token" element={<Suspense fallback={null}><SeguimientoPage /></Suspense>} />
+              <Route path="/baja-correo/:token" element={<BajaCorreoPage />} />
               <Route
                 element={
                   <Authenticated key="protegido" fallback={<CatchAllNavigate to="/login" />}>
                     <ThemedLayout Sider={SiderPanel} Header={EncabezadoPanel}>
-                      <Outlet />
+                      <ContenidoPorEmpresa>
+                        <Outlet />
+                      </ContenidoPorEmpresa>
                       <ChatFlotante />
                     </ThemedLayout>
                   </Authenticated>
                 }
               >
-                <Route index element={<Home />} />
+                <Route index element={<Suspense fallback={<EstadoCargaPagina />}><InicioPage /></Suspense>} />
                 <Route path="/organizaciones" element={<OrganizacionList />} />
                 <Route path="/organizaciones/create" element={<OrganizacionCreate />} />
                 <Route path="/servidores" element={<ServidorList />} />
@@ -280,6 +293,36 @@ function App() {
                 <Route path="/integraciones-oauth/administrar" element={<IntegracionOAuthAdministrar />} />
                 <Route path="/ejecuciones" element={<RequiereOrganizacionActiva><EjecucionList /></RequiereOrganizacionActiva>} />
                 <Route path="/ejecuciones/:id" element={<RequiereOrganizacionActiva><EjecucionShow /></RequiereOrganizacionActiva>} />
+                <Route
+                  path="/consultas"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="consultas">
+                        <Suspense fallback={<EstadoCargaPagina />}><ConsultaList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/contactos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="consultas">
+                        <Suspense fallback={<EstadoCargaPagina />}><ContactoList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/contactos/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="consultas">
+                        <Suspense fallback={<EstadoCargaPagina />}><ContactoFicha /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/historial"
                   element={
@@ -308,15 +351,72 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route
+                  path="/clientes/correo-masivo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoNueva /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoHistorial /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/clientes/correo-masivo/historial/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><CorreoMasivoDetalle /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
+                <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
+                <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
+                <Route path="/api" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ApiList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
+                <Route
+                  path="/empresas/:id/tienda/vista-previa"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas" nivelMinimo="edicion">
+                        <Suspense fallback={<EstadoCargaPagina />}><VistaPreviaTiendaPagina /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/empresas/:id/tienda/:pestana"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="empresas">
+                        <Suspense fallback={<EstadoCargaPagina />}><GestionTienda /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/empresas/edit/:id/precios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaPrecios /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/usuarios/create" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><UsuarioCreate /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/miembros" element={<Navigate to="/usuarios" replace />} />
                 <Route path="/miembros/create" element={<Navigate to="/usuarios/create" replace />} />
                 <Route path="/roles" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="usuarios_permisos"><RolesPermisos /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/actividad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="actividad"><Suspense fallback={<EstadoCargaPagina />}><ActividadList /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadResumen /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/productos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadPorProducto /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/comparativo" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadComparativo /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/ventas-reales" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadVentasReales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/costos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosAdicionales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
                   element={
@@ -330,6 +430,38 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="categorias"><Suspense fallback={<EstadoCargaPagina />}><CategoriaList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/promociones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><PromocionesList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/listas-de-precios"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ListasPreciosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/precios-masivos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><PreciosMasivos /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/productos/carga"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ProductoCarga /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -373,11 +505,111 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route path="/gastos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><Gastos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route
+                  path="/stock/ordenes-compra"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><OrdenesCompra /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/depositos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><DepositosStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/lote"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><LoteStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/toma-inventario"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><TomaInventario /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/faltantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><FaltantesStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/excel"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><ActualizarStockExcel /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route
                   path="/stock/motivos"
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/stock/mas-vendidos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MasVendidosStock /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/ventas" element={<Navigate to="/ventas/comprobantes" replace />} />
+                {/* F-VTA-09 (MSF-346): listado de facturas y notas; el alta sigue en /ventas/comprobantes/nuevo. */}
+                <Route
+                  path="/ventas/comprobantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobantesList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/presupuestos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><PresupuestosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem. */}
+                <Route
+                  path="/ventas/devoluciones"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><DevolucionesList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/comprobantes/nuevo"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobanteVenta /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/comprobantes/:id"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><Suspense fallback={<EstadoCargaPagina />}><ComprobanteVenta /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -452,9 +684,20 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route
+                  path="/service-tecnico/reportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioReportes /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route path="/service-tecnico/*" element={<Navigate to="/service-tecnico/reparaciones" replace />} />
                 <Route path="/cuenta/cambiar-contrasena" element={<CambiarContrasenaPage />} />
                 <Route path="/cuenta/cambiar-correo" element={<CambiarCorreoPage />} />
+                <Route path="/cuenta/avisos" element={<Suspense fallback={<EstadoCargaPagina />}><AvisosPage /></Suspense>} />
                 <Route path="/cuenta/perfil" element={<PerfilPage />} />
                 <Route
                   path="/clientes/create"
@@ -473,10 +716,42 @@ function App() {
                   }
                 />
                 <Route
+                  path="/clientes/etiquetas"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><Suspense fallback={<EstadoCargaPagina />}><HojaEtiquetas /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/clientes/show/:id"
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="clientes"><ClienteShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/importar/:entidad"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionImportar /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformes /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/migracion/informes/:carga"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><MigracionInformeDetalle /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -493,6 +768,105 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="proveedores"><ProveedorShow /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/transportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><TransporteList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/reportes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="reportes">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReportesVentas /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/inventario"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/tableros"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><TablerosAnaliticos /></Suspense>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/reposicion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <Suspense fallback={<EstadoCargaPagina />}><ReporteReposicion /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/configuracion"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><ConfiguracionVentas /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/cuentas-cobro"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><CuentasCobroList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/ventas/pagos"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas">
+                        <Suspense fallback={<EstadoCargaPagina />}><PagosList /></Suspense>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (FR-005: ventas en edición). */}
+                <Route
+                  path="/ventas/mostrador"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas" nivelMinimo="edicion"><VentaMostrador /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura). */}
+                <Route
+                  path="/ventas/despacho"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><DespachoList /></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                {/* F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura). */}
+                <Route
+                  path="/ventas/faltantes"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="ventas"><FaltantesList /></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -545,7 +919,7 @@ function App() {
                   </Authenticated>
                 }
               >
-                <Route path="*" element={<ErrorComponent />} />
+                <Route path="*" element={<PaginaNoEncontrada />} />
               </Route>
             </Routes>
             </PermisosPanelProvider>

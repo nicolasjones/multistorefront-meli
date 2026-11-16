@@ -76,7 +76,7 @@ select is(
 );
 select is(
   (select count(*)::int from permisos_rol_accion where organizacion_id = '22222222-2222-2222-2222-222222222222'),
-  16 * 8 * 3, 'crear una organización siembra 16 secciones × 8 roles (con Técnico) × 3 acciones'
+  16 * 8 * 3 + 8 * 7, 'crear una organización siembra 16 secciones × 8 roles (con Técnico) × 3 acciones + editar_precio, anular, emitir_nota_credito, despachar, registrar_cobro, conciliar_pago y cobrar_contrarreembolso en ventas (una fila por rol)'
 );
 select is(
   (select nivel from permisos_rol where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'deposito' and seccion = 'stock'),
@@ -273,25 +273,25 @@ reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000007');
 select ok(not private.puede_escribir(), 'miembro: puede_escribir sigue siendo falso');
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'x')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'x')$$,
   '42501', null, 'clientes (política por sección): el miembro (solo lectura) no inserta'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'ok')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'ok')$$,
   'clientes (política por sección): el administrador inserta'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
 select lives_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'del operador')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'del operador')$$,
   'clientes (política por sección): el operador (edición en Clientes) inserta aunque puede_escribir() sea falso'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000005');
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from dominio.clientes)::int, 0,
   'clientes: depósito (sección en ninguno) no lee filas ni siquiera por la API'
 );
 reset role;

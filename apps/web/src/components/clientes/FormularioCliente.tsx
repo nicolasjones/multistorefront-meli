@@ -1,20 +1,28 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Alert, Box, Button, Chip, LinearProgress, Stack, TextField, Typography } from '@mui/material'
+import {
+  Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography,
+} from '@mui/material'
 import {
   type CampoFicha,
   AVISO_CAMBIO_TIPO,
   type ErroresCliente,
   type FormularioCliente as DatosFormulario,
+  type OpcionesCuentaWeb,
   MENSAJE_DOCUMENTO_REPETIDO,
   TIPOS_CLIENTE,
   aValores,
   esDocumentoRepetido,
   mensajeDeError,
+  opcionesCuentaWeb,
+  parsearDescuento,
   validarCliente,
 } from '../../lib/clientes'
+import { MOTIVO_LISTAS_APAGADAS, formatearAjuste, type ListaPrecios } from '../../lib/listasPrecios'
+import { NOTA_CUENTA_WEB_FORMULARIO, type EstadoCuentaWebFormulario } from '../../lib/cuentasCliente'
 import type { Empresa } from '../../hooks/useEmpresas'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 
 type Props = {
   inicial: DatosFormulario
@@ -26,9 +34,22 @@ type Props = {
   empresas?: Empresa[]
   cargandoEmpresas?: boolean
   errorEmpresas?: boolean
+  // F-VTA-32: el campo «Descuento» lo ve y lo envía solo un Administrador (la base lo exige igual).
+  puedeEditarDescuento?: boolean
+  // F-CLI-21: campo «Lista de precios». Sin esta prop (alta, pruebas) el campo no se muestra. `editable` = Administrador;
+  // los demás la ven en solo lectura. `bandera` apagada: solo se puede quitar la lista (la base responde 55000 al asignar).
+  listasPrecios?: { listas: ListaPrecios[]; cargando: boolean; hayError: boolean; editable: boolean; bandera: boolean }
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (valores: ReturnType<typeof aValores>) => Promise<void>
+  // `opciones` lleva el campo «Cuenta web» para crear/suspenderla en las tiendas tildadas.
+  // `listaPrecioId` solo viaja si el Administrador cambió la lista (`null` = quitarla); la pantalla la asigna por RPC.
+  onGuardar: (
+    valores: ReturnType<typeof aValores> & { descuento?: number | null },
+    opciones: OpcionesCuentaWeb,
+    cambios?: { listaPrecioId?: string | null },
+  ) => Promise<void>
   rutaCancelar: string
+  // Dentro de un popup no se navega: al cancelar se avisa al que lo abrió.
+  onCancelar?: () => void
 }
 
 const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?: string; type?: string }> = [
@@ -47,15 +68,16 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // Formulario compartido por el alta y la edición de clientes (FR-001, FR-014).
 // Layout en diálogo 700px fiel al prototipo Clientes · Listado (grid 2 cols, cards de tipo,
 // número readonly). «Habilitado en» elige las tiendas del cliente (F-CLI-05); las tiendas
-// llegan como prop (catálogo de la organización). Cuenta web sigue fuera (épica MSF-450).
-export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, onGuardar, rutaCancelar }: Props) {
+// llegan como prop (catálogo de la organización). «Cuenta web» crea o suspende la cuenta en
+// cada tienda tildada al guardar (FR-015).
+export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, listasPrecios, onGuardar, rutaCancelar, onCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
-  const refs = useRef<Partial<Record<CampoFicha, HTMLInputElement | null>>>({})
+  const refs = useRef<Partial<Record<CampoFicha | 'descuento', HTMLInputElement | null>>>({})
 
   const cambiar = (campo: CampoFicha) => (event: ChangeEvent<HTMLInputElement>) => {
     setFormulario((actual) => ({ ...actual, [campo]: event.target.value }))
@@ -64,10 +86,16 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
     }
   }
 
+  const listaElegida = listasPrecios?.listas.find((lista) => lista.id === formulario.listaPrecioId) ?? null
+  const descuentoActual = parsearDescuento(formulario.descuento)
+  const tieneDescuentoPersonal = typeof descuentoActual === 'number' && descuentoActual > 0
+
   const enfocarPrimerError = (nuevos: ErroresCliente) => {
     const primero = CAMPOS.find(({ campo }) => nuevos[campo])
     if (primero) {
       refs.current[primero.campo]?.focus()
+    } else if (nuevos.descuento) {
+      refs.current.descuento?.focus()
     }
   }
 
@@ -86,7 +114,14 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(aValores(formulario))
+      const descuento = parsearDescuento(formulario.descuento)
+      const valores = puedeEditarDescuento && descuento !== undefined ? { ...aValores(formulario), descuento } : aValores(formulario)
+      // La lista solo viaja si el Administrador la cambió: sin cambio la firma de siempre (dos argumentos).
+      if (listasPrecios?.editable && formulario.listaPrecioId !== inicial.listaPrecioId) {
+        await onGuardar(valores, opcionesCuentaWeb(formulario), { listaPrecioId: formulario.listaPrecioId === '' ? null : formulario.listaPrecioId })
+      } else {
+        await onGuardar(valores, opcionesCuentaWeb(formulario))
+      }
     } catch (error) {
       if (esDocumentoRepetido(error)) {
         const repetido = { documento: MENSAJE_DOCUMENTO_REPETIDO }
@@ -130,7 +165,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
           fullWidth
         />
         <Box>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Tipo de cliente</Typography>
+          <Typography component="h2" variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Tipo de cliente</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1 }}>
             {TIPOS_CLIENTE.map(({ valor, etiqueta, explicacion }) => (
               <Box
@@ -144,45 +179,56 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
                   textAlign: 'left', cursor: 'pointer',
                 }}
               >
-                <Typography variant="subtitle2">{etiqueta}</Typography>
+                <Typography component="span" variant="subtitle2" display="block">{etiqueta}</Typography>
                 <Typography variant="caption" color="text.secondary">{explicacion}</Typography>
               </Box>
             ))}
           </Box>
         </Box>
         <Box>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Habilitado en</Typography>
-          {cargandoEmpresas ? (
-            <LinearProgress aria-label="Cargando tiendas" />
-          ) : errorEmpresas ? (
-            <Typography variant="body2" color="error">No pudimos cargar las tiendas.</Typography>
-          ) : empresas.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">La organización todavía no tiene tiendas cargadas.</Typography>
-          ) : (
-            <Stack role="group" aria-label="Habilitado en" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {empresas.map((empresa) => {
-                const habilitado = formulario.empresas.includes(empresa.id)
-                return (
-                  <Chip
-                    key={empresa.id}
-                    label={empresa.nombre}
-                    color={habilitado ? 'primary' : 'default'}
-                    variant={habilitado ? 'filled' : 'outlined'}
-                    aria-pressed={habilitado}
-                    onClick={() => setFormulario((actual) => ({
-                      ...actual,
-                      empresas: habilitado
-                        ? actual.empresas.filter((id) => id !== empresa.id)
-                        : [...actual.empresas, empresa.id],
-                    }))}
-                  />
-                )
-              })}
-            </Stack>
-          )}
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            El cliente es único en la organización. Elegí en qué tiendas puede comprar.
+          <SelectorEmpresas
+            empresas={empresas}
+            seleccion={formulario.empresas}
+            onCambiar={(seleccion) => setFormulario((actual) => ({ ...actual, empresas: seleccion }))}
+            etiqueta="Habilitado en"
+            cargando={cargandoEmpresas}
+            hayError={errorEmpresas}
+            mensajeError="No pudimos cargar las tiendas."
+            mensajeVacio="La organización todavía no tiene tiendas cargadas."
+            ayuda="El cliente es único en la organización. Elegí en qué tiendas puede comprar."
+          />
+        </Box>
+        <Box>
+          <Typography component="h2" variant="subtitle2" id="cuenta-web-titulo" sx={{ mb: 1, fontWeight: 600 }}>Cuenta web</Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            aria-labelledby="cuenta-web-titulo"
+            value={formulario.cuentaWeb}
+            onChange={(_, valor: EstadoCuentaWebFormulario | null) => {
+              if (valor === null) return
+              setFormulario((actual) => ({ ...actual, cuentaWeb: valor }))
+            }}
+            sx={{ flexWrap: 'wrap' }}
+          >
+            <ToggleButton value="sin_cuenta">Sin cuenta</ToggleButton>
+            <ToggleButton value="activa">Activa</ToggleButton>
+            <ToggleButton value="suspendida">Suspendida</ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="xs" sx={{ display: 'block', mt: 0.5 }}>
+            {NOTA_CUENTA_WEB_FORMULARIO[formulario.cuentaWeb]}
           </Typography>
+          <FormControlLabel
+            sx={{ mt: 0.5 }}
+            control={
+              <Checkbox
+                checked={formulario.invitarCuentaWeb}
+                disabled={formulario.cuentaWeb !== 'activa'}
+                onChange={(evento) => setFormulario((actual) => ({ ...actual, invitarCuentaWeb: evento.target.checked }))}
+              />
+            }
+            label="Enviar invitación por correo al crear la cuenta"
+          />
         </Box>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
           <TextField label="Correo" type="email" value={formulario.correo} onChange={cambiar('correo')} error={Boolean(errores.correo)} helperText={errores.correo} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.correo = el }} fullWidth />
@@ -198,9 +244,87 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
           <TextField label="Provincia" value={formulario.provincia} onChange={cambiar('provincia')} error={Boolean(errores.provincia)} helperText={errores.provincia} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.provincia = el }} fullWidth />
         </Box>
         <TextField label="Expreso preferido" value={formulario.expreso_preferido} onChange={cambiar('expreso_preferido')} error={Boolean(errores.expreso_preferido)} helperText={errores.expreso_preferido} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.expreso_preferido = el }} fullWidth />
+        {puedeEditarDescuento ? (
+          <TextField
+            label="Descuento (%)"
+            value={formulario.descuento}
+            onChange={(event) => {
+              setFormulario((actual) => ({ ...actual, descuento: event.target.value }))
+              if (errores.descuento) setErrores((actual) => ({ ...actual, descuento: undefined }))
+            }}
+            error={Boolean(errores.descuento)}
+            helperText={errores.descuento ?? 'Se resta del precio de escala en cada venta. Vacío = sin descuento.'}
+            autoComplete="off"
+            slotProps={{ htmlInput: { inputMode: 'decimal' } }}
+            inputRef={(el: HTMLInputElement | null) => { refs.current.descuento = el }}
+            fullWidth
+          />
+        ) : null}
+        {listasPrecios ? (
+          <Box>
+            <TextField
+              select
+              label="Lista de precios"
+              value={formulario.listaPrecioId}
+              onChange={(event) => setFormulario((actual) => ({ ...actual, listaPrecioId: event.target.value }))}
+              disabled={!listasPrecios.editable || listasPrecios.cargando}
+              slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+              error={listasPrecios.hayError}
+              helperText={
+                listasPrecios.hayError
+                  ? 'No pudimos cargar las listas de precios.'
+                  : !listasPrecios.editable
+                    ? 'Solo un administrador puede asignar una lista.'
+                    : !listasPrecios.bandera
+                      ? `${MOTIVO_LISTAS_APAGADAS} Solo podés quitar la lista.`
+                      : 'Vacío = sin lista. La lista se asigna al guardar.'
+              }
+              fullWidth
+            >
+              <MenuItem value="">Sin lista</MenuItem>
+              {/* La lista actual del cliente siempre es una opción: si las listas no se pudieron cargar el valor no queda fuera de rango. */}
+              {formulario.listaPrecioId && !listasPrecios.listas.some((lista) => lista.id === formulario.listaPrecioId) ? (
+                <MenuItem value={formulario.listaPrecioId}>
+                  {listasPrecios.cargando ? 'Cargando…' : 'Lista asignada (no se pudo leer su nombre)'}
+                </MenuItem>
+              ) : null}
+              {listasPrecios.listas.map((lista) => (
+                <MenuItem
+                  key={lista.id}
+                  value={lista.id}
+                  disabled={!listasPrecios.bandera && lista.id !== inicial.listaPrecioId}
+                >
+                  {lista.nombre} ({formatearAjuste(lista.ajustePct)}){lista.archivadaEn ? ' · archivada' : ''}
+                </MenuItem>
+              ))}
+            </TextField>
+            {listaElegida ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {`${listaElegida.nombre}: ${formatearAjuste(listaElegida.ajustePct)} sobre el precio central.`}
+              </Typography>
+            ) : null}
+            {listaElegida && tieneDescuentoPersonal ? (
+              <Alert severity="info" sx={{ mt: 1 }}>
+                Este cliente también tiene un descuento personal. Las listas no se acumulan con el descuento: cuando una venta use la lista,
+                en las líneas que fije la lista no se aplica el descuento personal.
+              </Alert>
+            ) : null}
+          </Box>
+        ) : null}
+        <FormControlLabel
+          control={
+            <Switch
+              checked={formulario.aceptaCorreoMasivo}
+              onChange={(evento) => setFormulario((actual) => ({ ...actual, aceptaCorreoMasivo: evento.target.checked }))}
+            />
+          }
+          label="Incluir en el correo masivo"
+        />
         {formulario.tipo !== inicial.tipo ? <Alert severity="info">{AVISO_CAMBIO_TIPO}</Alert> : null}
         <Stack direction="row" spacing={1} justifyContent="flex-end">
-          <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>
+          {onCancelar
+            ? <Button onClick={onCancelar} disabled={guardando}>Cancelar</Button>
+            : <Button component={RouterLink} to={rutaCancelar} disabled={guardando}>Cancelar</Button>}
           <Button type="submit" variant="contained" disabled={guardando}>
             {guardando ? 'Guardando…' : etiquetaGuardar}
           </Button>

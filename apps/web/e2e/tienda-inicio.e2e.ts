@@ -1,0 +1,111 @@
+import { randomUUID } from 'node:crypto'
+import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
+
+// F-TDA-10 (MSF-399, SC-003 de la épica MSF-191): con los dos dominios del seed (mundojc.localhost y
+// sanjavucho.localhost) cada home muestra solo sus categorías y destacados, con el precio de su empresa,
+// y «Ver todo el catálogo →» lleva a /catalogo. Requiere el stack local (`pnpm dev:supabase`, que aplica
+// `supabase/seed.sql`) y la web servida; siembra con la API admin desde Node (la service-role key nunca
+// llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
+
+// Ids fijos de supabase/seed.sql (MSF-241).
+const TIENDAS = [
+  { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
+  { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
+] as const
+
+// Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
+const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
+
+test.describe('Tienda online · página de inicio (SC-003)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('cada home muestra solo sus categorías y destacados con el precio de su empresa', async ({ browser }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const tiendas = TIENDAS.map((t, i) => ({
+      ...t,
+      categoria: `Cat inicio ${t.nombre} ${sufijo}`,
+      destacado: `Destacado ${t.nombre} ${sufijo}`,
+      comun: `Comun ${t.nombre} ${sufijo}`,
+      precio: 1000 * (i + 1),
+      indice: i,
+    }))
+    const enPesos = (n: number) => `$ ${n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
+
+    try {
+      for (const t of tiendas) {
+        const [categoria] = await rest<{ id: string }>('categorias', [{ organizacion_id: t.organizacion, nombre: t.categoria }], 'dominio')
+        const productos = await rest<{ id: string; nombre: string }>(
+          'productos',
+          [t.destacado, t.comun].map((nombre, n) => ({
+            organizacion_id: t.organizacion, nombre, sku: `E2E-I-${t.indice}-${n}-${sufijo}`,
+            precio_lista: t.precio, moneda: 'ARS', categoria_id: categoria.id,
+          })),
+          'dominio',
+        )
+        await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
+        const elegido = productos.find((p) => p.nombre === t.destacado)!
+        await rest('productos_tienda', [{ empresa_id: t.empresa, producto_id: elegido.id, organizacion_id: t.organizacion, visible: true, destacado: true }], 'dominio')
+      }
+
+      for (const t of tiendas) {
+        const otra = tiendas.find((x) => x.host !== t.host)!
+        const base = `http://${t.host}:${puerto}`
+        const contexto = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+        const page = await contexto.newPage()
+
+        await page.goto(`${base}/`)
+        // Dentro de <main>: el pie también tiene un h2 «Categorías» (y «Contacto») y chocaría con el locator.
+        const principal = page.getByRole('main')
+        await expect(principal.getByRole('heading', { level: 2, name: 'Categorías' })).toBeVisible()
+        await expect(principal.getByRole('heading', { level: 2, name: 'Destacados' })).toBeVisible()
+        // Bloque de consultas del final de la portada: «Escribinos» (siempre) lleva a /contacto.
+        await expect(page.getByTestId('consultas-inicio').getByRole('link', { name: /Escribinos/ })).toBeVisible()
+
+        // Su categoría, con «N productos», y nada de la otra tienda.
+        await expect(page.getByRole('region', { name: 'Categorías' }).getByRole('link', { name: new RegExp(t.categoria) })).toContainText('2 productos')
+        await expect(page.getByText(otra.categoria)).toHaveCount(0)
+
+        // Solo el destacado de la tienda (no el producto común), con el precio de su empresa.
+        await expect(page.getByRole('link', { name: new RegExp(t.destacado) })).toContainText(enPesos(t.precio))
+        await expect(page.getByText(t.comun)).toHaveCount(0)
+        await expect(page.getByText(otra.destacado)).toHaveCount(0)
+
+        // MSF-849: foco de teclado visible (Tab real) en la lupa del buscador y en una categoría de la barra: contorno sólido de 2 px
+        // y, en la lupa (dentro de un campo con `overflow: hidden`), hacia adentro para que no se recorte. Sin ningún control enfocable
+        // con el contorno recortado a mano: se mide el estilo calculado del elemento enfocado.
+        const campoBusqueda = page.getByRole('combobox', { name: 'Buscar productos' })
+        await campoBusqueda.focus()
+        await page.keyboard.press('Tab')
+        const lupa = page.getByRole('button', { name: 'Buscar', exact: true })
+        await expect(lupa).toBeFocused()
+        await expect.poll(() => lupa.evaluate((el) => { const s = getComputedStyle(el); return `${s.outlineStyle} ${s.outlineWidth} ${Number.parseFloat(s.outlineOffset) <= 0}` })).toBe('solid 2px true')
+        // El campo de texto no suma un segundo anillo (solo cambia su borde).
+        await campoBusqueda.focus()
+        expect(await campoBusqueda.evaluate((el) => getComputedStyle(el).outlineStyle)).not.toBe('solid')
+
+        // MSF-847: la portada (héroe a todo el ancho, franjas inclinadas y bloque de consultas) no tiene scroll horizontal entre
+        // 900 y 1280 px, donde el contenido de 1200 px y el borde de la ventana están más cerca.
+        for (const ancho of [900, 1024, 1280]) {
+          await page.setViewportSize({ width: ancho, height: 900 })
+          await page.evaluate(() => document.fonts.ready)
+          await expect
+            .poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), { message: `${t.host} a ${ancho} px: la portada no debe tener scroll horizontal` })
+            .toBeLessThanOrEqual(0)
+        }
+        await page.setViewportSize({ width: 1440, height: 900 })
+
+        // «Ver todo el catálogo →» lleva a /catalogo.
+        await page.getByRole('link', { name: 'Ver todo el catálogo →' }).click()
+        await expect(page).toHaveURL(/\/catalogo$/)
+        await expect(page.getByRole('heading', { level: 1, name: 'Todos los productos' })).toBeVisible()
+        await contexto.close()
+      }
+    } finally {
+      for (const t of tiendas) {
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+      }
+    }
+  })
+})

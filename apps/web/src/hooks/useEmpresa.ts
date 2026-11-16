@@ -7,11 +7,15 @@ export type DatosGeneralesEmpresa = {
   correo: string | null
   instagram: string | null
   direccion: string | null
+  horarios: string | null
+  // F-VTA-19 (FR-008): se imprimen en la factura y el remito.
+  razon_social: string | null
+  cuit: string | null
 }
 
 export type EmpresaDetalle = DatosGeneralesEmpresa & { id: string; activa: boolean }
 
-const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, activa'
+const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, horarios, razon_social, cuit, activa'
 
 // Una empresa por id en `dominio` (esquema por consulta, ver decisión T001).
 // RLS decide: una empresa de otra organización devuelve cero filas y se
@@ -29,6 +33,13 @@ export function useEmpresa(id: string | undefined) {
 
   const cargar = useCallback(async () => {
     const peticion = ++ultimaPeticion.current
+    // Sin id (la empresa activa aún no resolvió) no se consulta: se queda cargando, sin «no encontrada».
+    if (!id) {
+      setCargando(true)
+      setHayError(false)
+      setEmpresa(null)
+      return
+    }
     setCargando(true)
     let resultado: { data: EmpresaDetalle | null; error: unknown }
     try {
@@ -36,7 +47,7 @@ export function useEmpresa(id: string | undefined) {
         .schema('dominio')
         .from('empresas')
         .select(COLUMNAS)
-        .eq('id', id ?? '')
+        .eq('id', id)
         .maybeSingle<EmpresaDetalle>()
     } catch (excepcion) {
       resultado = { data: null, error: excepcion }
@@ -53,11 +64,12 @@ export function useEmpresa(id: string | undefined) {
 
   const actualizar = useCallback(
     async (valores: DatosGeneralesEmpresa) => {
+      if (!id) throw new Error('La empresa todavía no se cargó.')
       const { data, error } = await supabaseClient
         .schema('dominio')
         .from('empresas')
         .update(valores)
-        .eq('id', id ?? '')
+        .eq('id', id)
         .select(COLUMNAS)
         .maybeSingle<EmpresaDetalle>()
       if (error) throw error
@@ -76,11 +88,12 @@ export function useEmpresa(id: string | undefined) {
   // nada y se recarga, para no emitir un evento de actividad falso.
   const cambiarEstado = useCallback(
     async (activa: boolean) => {
+      if (!id) throw new Error('La empresa todavía no se cargó.')
       const { data, error } = await supabaseClient
         .schema('dominio')
         .from('empresas')
         .update({ activa })
-        .eq('id', id ?? '')
+        .eq('id', id)
         .eq('activa', !activa)
         .select(COLUMNAS)
         .maybeSingle<EmpresaDetalle>()

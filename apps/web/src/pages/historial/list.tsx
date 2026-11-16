@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { Alert, Box, Chip, LinearProgress, Stack, Tab, Tabs, TablePagination, TextField, Typography } from '@mui/material'
+import { Alert, Box, Chip, LinearProgress, Stack, Tab, Tabs, TextField, Typography } from '@mui/material'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import {
-  TAMANO_PAGINA_HISTORIAL,
   useHistorialVentasCobros,
   type CobroHistorico,
   type TipoConsultaHistorial,
@@ -17,7 +17,10 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 type Pestana = TipoConsultaHistorial | 'cotizaciones'
 
@@ -29,7 +32,6 @@ const PESTANAS: ReadonlyArray<{ valor: Pestana; etiqueta: string }> = [
 
 // Barra de progreso indeterminada: alto fino propio del componente, no un valor del sistema.
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const TONO_ESTADO: Readonly<Record<string, VarianteEtiqueta>> = {
   Cobrado: 'exito',
@@ -126,16 +128,22 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
     onEmpresa(id)
     setPagina(1)
   }
+  // Carga infinita: se suman las tandas de 25 que ya entrega la RPC del historial.
+  const listado = useListadoAcumulado<VentaHistorica | CobroHistorico>({
+    items: filas, pagina, setPagina, total, cargando: isFetching, reinicio: [tipo, empresaId, textoAplicado],
+  })
+  // Si la tanda siguiente falló, «Reintentar» vuelve a pedir esa misma tanda (no salta a la siguiente).
+  const falloTanda = isError && pagina > 1
   const hayFiltros = textoAplicado.trim() !== '' || empresaId !== ''
   const nombre = esVentas ? 'ventas' : 'cobros'
 
   let contenido: ReactNode
   // Página fuera de rango: el hook vuelve a la 1; mientras tanto no se muestra «Sin resultados».
-  if (isLoading || (pagina > 1 && filas.length === 0 && !isError)) {
+  if (isLoading || (pagina > 1 && listado.filas.length === 0 && !isError)) {
     contenido = <EstadoCargaPagina />
-  } else if (isError) {
+  } else if (isError && !falloTanda) {
     contenido = <EstadoError descripcion={`No pudimos cargar el historial de ${nombre}.`} reintentar={() => void refetch()} />
-  } else if (filas.length === 0) {
+  } else if (listado.filas.length === 0) {
     contenido = hayFiltros ? (
       <EstadoVacio titulo="Sin resultados" descripcion="Probá con otro texto o con otra tienda." />
     ) : (
@@ -145,19 +153,15 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
     contenido = (
       <>
         {esVentas ? (
-          <ContenidoAdaptable items={filas as VentaHistorica[]} columnas={columnasVentas} obtenerClave={(fila) => fila.id} etiquetaTabla="Ventas históricas" />
+          <ContenidoAdaptable items={listado.filas as VentaHistorica[]} columnas={columnasVentas} obtenerClave={(fila) => fila.id} etiquetaTabla="Ventas históricas" />
         ) : (
-          <ContenidoAdaptable items={filas as CobroHistorico[]} columnas={columnasCobros} obtenerClave={(fila) => fila.id} etiquetaTabla="Cobros históricos" />
+          <ContenidoAdaptable items={listado.filas as CobroHistorico[]} columnas={columnasCobros} obtenerClave={(fila) => fila.id} etiquetaTabla="Cobros históricos" />
         )}
-        <TablePagination
-          component="div"
-          count={total}
-          page={pagina - 1}
-          rowsPerPage={TAMANO_PAGINA_HISTORIAL}
-          rowsPerPageOptions={[TAMANO_PAGINA_HISTORIAL]}
-          onPageChange={(_, nueva) => setPagina(nueva + 1)}
-          labelRowsPerPage="Registros por página"
-          labelDisplayedRows={({ from, to, count }) => `Página ${pagina} · ${from}–${to} de ${count}`}
+        <CargaInfinita
+          hayMas={listado.hayMas}
+          cargando={listado.cargandoMas}
+          hayError={falloTanda}
+          onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
         />
       </>
     )
@@ -166,17 +170,15 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
   return (
     <Stack spacing={2}>
       {tiendas.length > 0 ? (
-        <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap" role="group" aria-label="Filtrar por tienda">
-          <Typography component="span" variant="s" sx={{ fontWeight: 600 }}>Tienda</Typography>
-          <Chip label="Todas las tiendas" clickable aria-pressed={empresaId === ''} color={empresaId === '' ? 'primary' : 'default'} variant={empresaId === '' ? 'filled' : 'outlined'} onClick={() => elegirTienda('')} />
-          {tiendas.map((t) => (
-            <Chip key={t.id} label={t.nombre} clickable aria-pressed={empresaId === t.id} color={empresaId === t.id ? 'primary' : 'default'} variant={empresaId === t.id ? 'filled' : 'outlined'} onClick={() => elegirTienda(t.id)} />
-          ))}
-          <Typography component="span" variant="xs">Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales.</Typography>
-        </Stack>
+        <FiltroEmpresa
+          empresas={tiendas}
+          valor={empresaId === '' ? null : empresaId}
+          onCambiar={(id) => elegirTienda(id ?? '')}
+          textoAyuda="Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales."
+        />
       ) : null}
 
-      <BarraHerramientas contador={isLoading || isError ? undefined : `${total} registros mostrados`}>
+      <BarraHerramientas contador={isLoading || (isError && !falloTanda) ? undefined : `${total} registros mostrados`}>
         <TextField
           type="search"
           label="Buscar por cliente o número"
@@ -189,8 +191,8 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
         {hasta ? <Chip variant="outlined" label={`Hasta: ${formatearFecha(hasta)}`} /> : null}
       </BarraHerramientas>
 
-      <Box role="status" aria-live="polite" sx={visuallyHidden}>
-        {isLoading || isError ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
+      <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
+        {isLoading || (isError && !falloTanda) ? '' : `${total} ${total === 1 ? 'resultado' : 'resultados'}`}
       </Box>
       {isFetching && !isLoading ? <LinearProgress aria-label={`Actualizando ${nombre}`} sx={{ height: ALTO_BARRA_CARGA }} /> : null}
       <Box aria-busy={isFetching}>{contenido}</Box>

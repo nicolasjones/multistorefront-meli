@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  DISPONIBILIDADES,
   FORMULARIO_PRODUCTO_VACIO,
   aFormulario,
   aParametrosActualizar,
   aParametrosCrear,
   hayCambios,
+  infoDisponibilidad,
   esCodigoBarrasRepetido,
   mensajeDeError,
   parsearImporte,
@@ -62,6 +64,7 @@ describe('aParametrosCrear', () => {
       p_proveedor_id: null,
       p_codigo_proveedor: null,
       p_codigo_barras: null,
+      p_disponibilidad_manual: null,
     })
     expect(Object.keys(parametros).some((clave) => clave.includes('stock'))).toBe(false)
   })
@@ -129,7 +132,7 @@ describe('proveedor del producto (F-PRV-03)', () => {
   it('aFormulario carga el proveedor y el código del producto', () => {
     const f = aFormulario({
       id: 'p', organizacion_id: 'o', nombre: 'N', descripcion: null, sku: null, compatible_con: [], moneda: 'USD',
-      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C', codigo_barras: '7790001000015',
+      precio_lista: 1, activo: true, updated_at: 't', proveedor_id: 'prv-1', codigo_proveedor: 'C', codigo_barras: '7790001000015', disponibilidad_manual: null,
     }, null)
     expect(f.proveedor_id).toBe('prv-1')
     expect(f.codigo_proveedor).toBe('C')
@@ -165,5 +168,31 @@ describe('proveedor del producto (F-PRV-03)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(mensajeDeError({ code: '22023', message: 'El proveedor no existe o está desactivado' }, 'x'))
       .toBe('Ese proveedor no está disponible. Elegí otro activo o dejá el campo vacío.')
+  })
+})
+
+describe('disponibilidad del producto (F-CAT-17)', () => {
+  it('cuatro estados: Stock y Sin stock se calculan; A pedido y Stock entrante se eligen', () => {
+    expect(DISPONIBILIDADES.map((d) => [d.etiqueta, d.manual])).toEqual([
+      ['Stock', false], ['Sin stock', false], ['A pedido', true], ['Stock entrante en breve', true],
+    ])
+  })
+  it('la ayuda de «A pedido» no afirma que no descuenta stock (spec, Decisión 2)', () => {
+    expect(infoDisponibilidad('a_pedido')?.ayuda).toBe('Se consigue bajo pedido.')
+    expect(infoDisponibilidad('inexistente')).toBeNull()
+  })
+  it('la elección viaja en el alta y vacía viaja nula', () => {
+    expect(aParametrosCrear({ ...valido, disponibilidad_manual: 'stock_entrante' }, { conCosto: false }).p_disponibilidad_manual).toBe('stock_entrante')
+    expect(aParametrosCrear(valido, { conCosto: false }).p_disponibilidad_manual).toBeNull()
+  })
+  it('al actualizar siempre pide cambiarla (nulo = quitar la elección)', () => {
+    const p = aParametrosActualizar(valido, { conCosto: false, id: 'p-1', actualizadoEn: 't' })
+    expect(p).toMatchObject({ p_cambiar_disponibilidad: true, p_disponibilidad_manual: null })
+  })
+  it('aFormulario carga la elección guardada y tocarla cuenta como cambio', () => {
+    const producto = { id: 'p', organizacion_id: 'o', nombre: 'J', descripcion: null, sku: null, compatible_con: [], moneda: 'USD' as const, precio_lista: 1, activo: true, updated_at: 't', proveedor_id: null, codigo_proveedor: null, codigo_barras: null, disponibilidad_manual: 'a_pedido' as const }
+    const inicial = aFormulario(producto, null)
+    expect(inicial.disponibilidad_manual).toBe('a_pedido')
+    expect(hayCambios({ ...inicial, disponibilidad_manual: '' }, inicial)).toBe(true)
   })
 })

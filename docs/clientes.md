@@ -1,70 +1,75 @@
-# Clientes
+---
+owner: producto
+sources:
+  - specs
+  - apps/web/src
+---
 
-Guía de `public.clientes` (épica MSF-180, spec `specs/20261016-130000-clientes-alta-y-busqueda/`).
-La tabla vive en `public` por excepción documentada en la spec (Principio VII): es preexistente, está
-expuesta y `clientes_identificadores_externos` y los tests de aislamiento dependen de ella; moverla a
-`dominio` no es aditivo. El traslado queda trazado como seguimiento (ver «Deuda trazada»).
+# Clientes (MSF-180)
 
-## Modelo
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/clientes.md) · [guía de uso](producto/clientes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
-- Ficha: `numero` (correlativo por organización, asignado bajo advisory lock; nadie lo fija), `nombre`
-  (obligatorio, recortado, **no** único), `documento` (DNI/CUIT, único por organización tras normalizar:
-  `clientes_org_documento_uq`; el error `23505` se muestra en el campo), `correo`, `telefono`, `celular`,
-  `direccion`, `codigo_postal`, `localidad`, `provincia`, `tipo`, `es_consumidor_final`, `archivado_en`
-  (archivar/restaurar; **no existe «Eliminar»**) y `updated_at`.
-- Migraciones aditivas, en orden: `20261016130000_clientes_ficha_y_numeracion`,
-  `20261016130200_clientes_rls_por_seccion_y_actividad`, `20261016130300_clientes_tipo_y_consumidor_final`,
-  `20261016140000_clientes_buscar`, `20261016150000_clientes_exportar`.
-- Actividad: archivar, restaurar, crear y editar registran `cliente.*` en `registro_actividad` (solo con
-  sesión) y **sin datos de contacto** en el detalle.
+**Épica:** MSF-180 — Clientes y proveedores · Clientes alta y búsqueda.
+**Historias:** F-CLI-01 (MSF-262), F-CLI-02 (MSF-282), F-CLI-03 (MSF-301), F-CLI-04 (MSF-318).
+**Spec:** `specs/20261016-130000-clientes-alta-y-busqueda/`.
+**Construcción interna:** [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
 
-## Permisos (FR-004, FR-013)
+El equipo puede dar de alta, editar, buscar y exportar los clientes de la organización, cada uno con
+su tipo minorista o mayorista, y existe el **Consumidor final** para el mostrador, listos para que
+Ventas los use.
 
-| Quién | Qué puede |
-| --- | --- |
-| Administrador, Administración, Operador, Mostrador (`edicion`) | Listar, ver, crear, editar, archivar y restaurar |
-| Consulta (`lectura`) | Listar y ver |
-| Depósito (`ninguno` en la matriz vigente) | Nada: ni siquiera lee filas por la API |
-| Acción `exportar` (Administrador, Operador y Administración por defecto) | Además, exportar a Excel |
+## Qué resuelve
 
-El RLS se evalúa por organización **y** por sección (`private.nivel_seccion('clientes')`); la UI oculta
-botones pero la base es la que manda. `anon` no ejecuta ninguna RPC de clientes ni tiene privilegios sobre
-la tabla (`docs/acceso-ingreso.md`). Detalle por rol: `docs/permisos-por-rol.md`.
+- Antes el panel solo traía el esqueleto de clientes del panel anterior: sin datos de contacto, sin
+  búsqueda, sin tipos y sin forma de darlos de baja.
+- Ahora hay una **ficha de cliente** de la organización con nombre o razón social, DNI/CUIT, correo,
+  teléfono, celular, dirección, código postal, localidad y provincia, y un **número correlativo** por
+  organización que se lo asigna el sistema (nadie lo escribe a mano).
+- El listado **busca y pagina en el servidor**: con miles de clientes no hay que traerlos todos para
+  filtrar en el navegador.
+- Cada cliente tiene **tipo** (minorista o mayorista), que es lo que después define la escala de precio
+  en Ventas.
+- Cada organización tiene un **Consumidor final**: el cliente de mostrador, para vender en el local sin
+  cargar un cliente cada vez.
+- El cliente **se archiva, no se borra**: deja de verse en el listado pero conserva sus datos y sus
+  comprobantes, y se puede restaurar.
+- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**. Cada exportación queda **registrada en la actividad** (evento `clientes.exportados`): quién, cuándo, cuántos clientes y con qué filtros (texto, tipo, archivados, tienda, «con cuenta web»). Una exportación paginada normal deja un solo evento (el primer lote declara el total). Toda llamada que devuelve filas cuenta, también las que continúan con cursor: si descargás filas que no estaban declaradas, queda un evento adicional «(continuación)». Los topes son **por persona, sin importar los filtros** (cambiar el texto, el tipo o «archivados» no abre un cupo nuevo): 50000 filas en 10 minutos deslizantes y 200000 por día (constantes en `private.tope_exportacion_clientes`, sin criterio de negocio definitivo; ajustables). Al superarlos la exportación falla con «Exportaste muchos clientes en poco tiempo: esperá unos minutos antes de volver a exportar» (o el aviso diario). Si lo que ya descargaste más el total de la exportación que pedís no entra en el tope, la exportación se rechaza al empezar, antes de descargar nada. Repetir la exportación cuenta doble: lo entregado en el primer intento sigue contando para la ventana de 10 minutos y para el día. El texto buscado no se escribe en la actividad (solo «con texto»), porque puede ser un DNI, un correo o un teléfono. No se registra si no hay filas o si no tenías permiso.
 
-## Búsqueda y listado (FR-006, FR-007)
+## Para quién
 
-`public.buscar_clientes(p_texto, p_tipo, p_archivados, p_pagina, p_tamano)` es `security invoker` (hereda RLS).
-Busca de forma parcial e insensible a mayúsculas (`lower`; **no** ignora tildes) en nombre, documento, correo, teléfono, localidad
-y número (índice GIN trigram `clientes_busqueda_trgm_idx`, con la misma expresión; la migración `20261016160000_clientes_habilitar_pg_trgm.sql` habilita `pg_trgm` en `extensions` y crea el índice si faltaba y **aborta con error si el índice no queda creado**, para que no haya un salto silencioso); escapa `\`, `%` y `_` del texto; filtra por tipo y por activos/archivados; pagina en el servidor
-(tope de 100 por página) y devuelve el total. La pantalla espera ≈300 ms antes de buscar.
+| Persona | Qué puede hacer |
+|---|---|
+| **Administrador/a, Administración, Operador y Mostrador** (`edicion` en Clientes) | Ver el listado, dar de alta, editar, archivar y restaurar clientes; **imprimir las etiquetas** de los clientes marcados del listado |
+| **Consulta** (`lectura` en Clientes) | Ver el listado y la ficha; no cambia nada, ni desde la pantalla ni llamando directo a la base. **Puede imprimir la etiqueta** de un cliente |
+| **Miembro** (`lectura` en Clientes) | Igual que Consulta |
+| **Depósito** (`ninguno` en la matriz vigente) | No ve la sección ni recibe filas de clientes por la API |
+| **Administrador/a** | Además, **fusionar dos fichas** del mismo cliente (la base lo exige: ningún otro rol puede) |
+| **Con la acción `exportar`** (Administrador, Administración y Operador por defecto) | Además, descargar los clientes a Excel |
 
-## Tipo de cliente (FR-008)
+La matriz de roles y el detalle de permisos están en [Permisos por rol](permisos-por-rol.md).
 
-`clientes.tipo` es `minorista` (por defecto) o `mayorista`, con restricción en base y sin
-valores nulos. Los tipos no se crean ni se borran. Quien edita Clientes puede elegirlo en
-el alta y cambiarlo después, desde el selector «Tipo de cliente» del formulario compartido
-(`FormularioCliente`, alta y edición): muestra qué significa cada tipo y, al cambiarlo en la
-edición, avisa que las próximas ventas usarán la escala del nuevo tipo (lo ya vendido no cambia).
+!!! note "La base manda, no la pantalla"
+    Ocultar un botón es comodidad, no autorización: las políticas de `dominio.clientes` vuelven a
+    comprobar organización y nivel de sección en cada lectura y escritura.
 
-## Consumidor final (FR-009)
+## La ficha del cliente
 
-Cada organización tiene exactamente **un** cliente «Consumidor final» (`es_consumidor_final`),
-minorista, para vender en el mostrador sin cargar un cliente cada vez.
+| Campo | Qué es |
+|---|---|
+| **Número** | Correlativo de la organización. Lo asigna el sistema; no se edita. |
+| **Nombre o razón social** | Obligatorio. Se guarda recortado. **No** es único: dos clientes con el mismo nombre pueden coexistir. |
+| **DNI/CUIT** | Opcional. **Único por organización** (se comparan solo letras y dígitos: sin puntos, guiones ni espacios) e incluye los archivados, para que restaurar nunca choque. Repetirlo se rechaza en el campo. |
+| **Correo, teléfono, celular** | Contacto. |
+| **Dirección, código postal, localidad, provincia** | Domicilio. |
+| **Tipo** | Minorista o Mayorista. Obligatorio; Minorista por defecto. |
+| **Estado** | Activo o Archivado. |
 
-- Las organizaciones existentes lo reciben por backfill de la migración
-  `20261016130300_clientes_tipo_y_consumidor_final.sql`; las nuevas, por el disparador
-  `organizaciones_crear_consumidor_final`.
-- Unicidad por organización: índice único parcial `clientes_consumidor_final_uq`.
-- **Inmutable en la base**: el disparador `clientes_proteger_consumidor_final` rechaza editarlo,
-  archivarlo, cambiarle el tipo o borrarlo, también para `postgres`/`service_role`. El borrado
-  solo se permite en cascada al borrar la organización. Nadie puede marcar a otro cliente
-  como Consumidor final (la columna no se concede a `authenticated`).
-- En la interfaz (ficha y edición) no se ofrece «Editar» ni «Archivar», y no existe «Eliminar».
-- Es un cliente más para las consultas: **aparece en el listado y en las exportaciones**. Búsqueda
-  (F-CLI-02) y exportación (F-CLI-04) deben tratarlo explícitamente (mostrarlo marcado como cliente
-  de mostrador o excluirlo según corresponda), no ignorarlo.
-- Numeración: recibe el siguiente número de su organización. Es el **1** solo en organizaciones
-  nuevas; en las existentes el backfill le asigna el siguiente libre.
+Desde **MSF-232** la ficha tiene dos pestañas: **«Datos»** (lo de siempre, sin cambios) y **«Reparaciones»**, que
+lista las reparaciones del cliente (número, tienda, equipo, estado, ingreso, entrega y total), paginadas y filtradas
+por la empresa activa. La pestaña solo aparece con acceso a Service técnico. Detalle: [Service técnico: cobro,
+avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
+
+## Alta y edición
 
 ## Relación con empresas / tiendas (F-CLI-05)
 
@@ -74,7 +79,7 @@ y de la ficha. **Leer esto antes de tocar clientes: el cliente no es «de una ti
 organización y se habilita en N tiendas.**
 
 - **Tabla:** `public.clientes_empresas` (`cliente_id`, `empresa_id`, `organizacion_id`, `created_at`;
-  PK `(cliente_id, empresa_id)`). Claves foráneas a `public.clientes` y `dominio.empresas` con
+  PK `(cliente_id, empresa_id)`). Claves foráneas a `dominio.clientes` y `dominio.empresas` con
   `on delete cascade`; `empresa_id` y `organizacion_id` indexados. El `organizacion_id` de la fila
   debe coincidir con el del cliente y el de la empresa: lo garantiza el disparador
   `clientes_empresas_validar` (`private.validar_cliente_empresa`), también frente a `postgres`.
@@ -116,7 +121,7 @@ organización y se habilita en N tiendas.**
   `private.empresas_accesibles()`, `hooks/useEmpresasAccesibles.ts`): el Administrador ve todas las
   activas de su organización, un miembro las asignadas y el superadmin las de su organización activa.
   Al entrar, el filtro **arranca en la empresa activa** de la barra superior (como el prototipo:
-  `gc_co` inicializa `tFilt`) y la sigue mientras no se elija un chip; elegir un chip manda sobre la
+  `gc_co` inicializa `tFilt`) y la sigue mientras no se elija una píldora; elegir una píldora manda sobre la
   activa y cambia solo el filtro de la pantalla, no la empresa activa persistida. Migración aditiva
   `20261018160000_selector_empresas_superadmin.sql` (rama del superadmin en `empresas_accesibles`).
 
@@ -124,13 +129,26 @@ organización y se habilita en N tiendas.**
 
 Contrato de lectura para Ventas y Service técnico: `x1` para minorista y `por_cantidad`
 para mayorista; nulo si el cliente no existe o no es visible (security invoker, hereda RLS).
-Regla provisoria hasta que Precios decida: si cambia, solo cambia el cuerpo de la función.
+Es un contrato de lectura que **no define el precio**: la escala de cada línea de una venta la elige Ventas (F-VTA-06, `private.escala_para_linea`: minorista x1; mayorista x1/x5/x10/x50 según la cantidad). Sigue vigente porque el tipo de cliente son dos valores fijos (minorista/mayorista); la tabla `tipos_cliente` con `escala_precio` (contrato de Precios, F-PRE-15) todavía **no existe** en la base. Cuando exista, solo cambia el cuerpo de esta función.
 Ejecutable por `authenticated`; `anon` y `public` sin acceso (FR-013).
 
-## Reversión
+- Columnas: Cliente (nombre, N.º y DNI/CUIT), Tipo, Contacto (correo y teléfono), Localidad, más
+  Expreso preferido y las columnas «Tiendas» y «Cuenta web», que hoy se muestran como «—» porque esas
+  capacidades son de la cuenta web del cliente (MSF-237).
+- El buscador espera ≈300 ms antes de consultar (no busca en cada tecla) y filtra por coincidencia
+  parcial, sin distinguir mayúsculas, sobre **nombre, DNI/CUIT, correo, teléfono, localidad y número**.
+- Filtros combinables: **Todos / Minorista / Mayorista** y **Activos / Archivados** (Activos por
+  defecto).
+- La paginación es del servidor (25 por página) y muestra el total; cambiar de página conserva la
+  búsqueda y los filtros.
+- Estados vacíos con salida: si hay filtros y no hay coincidencias, «No encontramos clientes con esos
+  criterios» con la sugerencia de probar otro texto o quitar un filtro; si no hay ningún cliente
+  cargado, «Todavía no hay clientes cargados.» y el botón «Nuevo cliente» queda a mano (si hay
+  permiso). Un error de carga muestra el estado compartido con «Reintentar».
+- En pantallas angostas (320 px) el listado pasa a tarjetas; funciona con teclado y lector de pantalla
+  y no muestra identificadores técnicos.
 
-Ver el encabezado de la migración: es aditiva y su reversión (funciones, disparadores, índice,
-restricciones y grants) va en una migración posterior; las columnas no se borran en el mismo PR.
+## Archivar y restaurar
 
 Para el filtro por tienda (F-CLI-11, `20261018150000_clientes_filtro_por_tienda.sql`): en una
 migración posterior, `drop function public.buscar_clientes(text, text, boolean, integer, integer, uuid)`,
@@ -143,19 +161,23 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 
 ## Deuda trazada
 
-- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
-- Registro en la actividad de la exportación: MSF-508.
+- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)»: cerrado con MSF-882.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
-- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
+- T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
 
-## Pruebas
+- El tipo se elige entre **Minorista** y **Mayorista**, con una explicación breve de cada uno.
+- Hoy el tipo define la **escala de precios** que Ventas y Service técnico van a leer: minorista
+  `x1` (siempre precio de lista), mayorista `por_cantidad` (escala según la cantidad).
+- Al cambiar el tipo de un cliente existente, el panel avisa que «Al cambiar el tipo, las próximas
+  ventas usarán la escala de precios del nuevo tipo. Lo ya vendido no cambia», y el cambio queda
+  registrado en Actividad.
+- La regla de la escala es **provisoria**: la define Precios más adelante. Si cambia, no cambia la
+  forma de usarla.
 
-pgTAP `supabase/tests/database/clientes_tipo_y_consumidor_final.test.sql` y `clientes_plan_indices.test.sql` (planes de índice, T019); Vitest
-`apps/web/src/pages/clientes/show.test.tsx`, `edit.test.tsx` y
-`apps/web/src/components/clientes/FormularioCliente.test.tsx` (selector de tipo). El aislamiento
-(`aislamiento_organizaciones.test.sql`) cuenta todas las filas, Consumidor final incluido, para que
-una fuga de RLS sobre él sea detectable.
+!!! warning "No se crean tipos"
+    Los tipos son fijos (minorista y mayorista) y no se pueden crear ni borrar. La pantalla «Tipos de
+    cliente» del prototipo, con descuento adicional y condición de pago, **no** se construyó.
 
 ## Exportación a Excel (F-CLI-04, MSF-318)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`private.puede_accion('clientes','exportar')`;
@@ -168,10 +190,10 @@ una fuga de RLS sobre él sea detectable.
   dependencia, `fflate` MIT), cargado con `import()` diferido al exportar. Toda celda es texto y los valores que
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
-- **Límites conocidos:** (1) la exportación no se registra aún en la actividad (la RPC es `stable`; registrarla pide
-  pasarla a `volatile` o un registro desde el cliente): queda como deuda trazada: [MSF-508] «Registrar en la actividad la exportación de clientes» (requisito de auditoría, Principio III); no se resuelve en esta historia.
+- **Límites conocidos:** (1) la exportación se registra en la actividad una sola vez por exportación, en el primer lote con filas y con el total
+  de ese momento (evento `clientes.exportados`, migraciones `20270324110000` y `20270347000000`: desde esta última toda llamada con filas cuenta, ver más abajo), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
-  y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
+  de la exportación solo se cuenta en el primer lote (los topes por persona de 50000 filas en 10 minutos y 200000 por día rigen sobre lo acumulado, y el primer lote ya rechaza una exportación que no cabe), y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo
   borran, falla con `40001` y se reintenta.
 - **UX:** confirmación con el total, progreso, cancelación y error con «Reintentar».
@@ -181,10 +203,16 @@ una fuga de RLS sobre él sea detectable.
 - **Pruebas:** pgTAP `clientes_busqueda_exportacion.test.sql` (permiso, keyset, tope de lote, aislamiento);
   Vitest `lib/exportarClientes.test.ts`, `components/clientes/ExportarClientes.test.tsx` y `pages/clientes/list.test.tsx`.
 
-## Fidelidad al prototipo (Clientes · Listado, `design/pantallas/Clientes.dc.html`)
+- Cada organización tiene **exactamente un** cliente «Consumidor final», de tipo minorista, creado
+  automáticamente. Sirve para vender en el mostrador sin cargar un cliente cada vez.
+- No se puede editar, archivar ni cambiarle el tipo: la base lo rechaza aunque alguien la llame
+  directo.
+- Aparece en el listado y en las exportaciones como un cliente más; la ficha lo marca como **«Cliente
+  de mostrador»**.
+- En organizaciones nuevas es el cliente N.º 1; en las que ya tenían clientes, toma el siguiente
+  número libre.
 
-Mapeo del inventario (51 ítems) contra épicas — la pantalla se construye por partes, cada épica
-dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
+## Exportar clientes
 
 - **MSF-180 (hecho)**: tabla base (Nº, nombre, DNI/CUIT, tipo, localidad), búsqueda/filtros/paginación
   en servidor, ficha con archivo/eliminar lógico, alta/edición, exportar a Excel.
@@ -193,15 +221,15 @@ dueña de la suya (la pantalla evoluciona; ninguna épica reescribe lo ajeno):
   formulario y la ficha, con la tabla `public.clientes_empresas` y la RPC
   `public.guardar_empresas_de_cliente` (ver «Relación con empresas / tiendas»). Sin épica asignada;
   queda como fidelidad de MSF-180.
-- **MSF-155 Backlog (correo masivo)**: diálogo de correo, destinatarios, historial (F-CLI-11/12/13).
-  NO se implementa acá.
-- **MSF-445 Backlog (mejoras)**: etiqueta impresa F-CLI-17. NO se implementa acá.
-- **MSF-171 Backlog (ranking)**: pestaña de ranking F-CLI-14/15/16. NO se implementa acá.
-- **MSF-450 Backlog (cuentas)**: cuenta web e invitación. NO se implementa acá.
+- **MSF-155 (correo masivo)**: destinatarios, redacción y envío con baja, historial (F-CLI-11/12/13).
+  Entregado: ver la guía [`correo-masivo.md`](./correo-masivo.md).
+- **MSF-445 (mejoras)**: entregada completa: etiqueta impresa F-CLI-17 (MSF-446) y fusión F-CLI-18 (MSF-447), ver sus secciones; costos y contactos de proveedor están en `docs/proveedores.md` y `docs/ingreso-de-mercaderia.md`. Contratos: `specs/20261029-100000-mejoras-de-clientes-y-proveedores/contracts/`.
+- **MSF-171 (ranking avanzado)**: entregado por F-CLI-14/15/16; ver «Cierre de la épica MSF-171» al final.
+- **MSF-450 (cuentas y compras a proveedores)**: entregó F-CLI-19, la cuenta corriente y el saldo del cliente (ver «Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)»); F-CLI-20, F-CLI-21 y F-PRV-09 quedan como ideas sin requisitos (`docs/cuentas-y-compras-a-proveedores.md`). La cuenta web y la invitación son de la épica MSF-237 (ver «Cuenta web del cliente» al final).
 - **MSF-142 Backlog (migración)**: importación masiva F-MIG-01. NO se implementa acá.
 - **Sin dueño**: tipo Distribuidor (el check admite
-  minorista/mayorista). La columna Cuenta web no se muestra hasta
-  tenerlo (Tiendas ya es real, F-CLI-05; el filtro por tienda, F-CLI-11).
+  minorista/mayorista). La columna Cuenta web de esta entrega era un placeholder `—`;
+  hoy muestra el estado real (épica MSF-237, ver «Cuenta web del cliente»).
 - **Pruebas**: pgTAP (expreso: round-trip, tope, grants) + Vitest (columnas Contacto/Expreso en
   `pages/clientes/list.test.tsx`; fixtures con `expreso_preferido`).
 
@@ -222,7 +250,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
 - **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
   sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
-  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
+  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `dominio.clientes`), `tipo`
   (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
   en local: `supabase/seed.sql`.
 - **Reversión (migraciones posteriores, aditivas):** quitar `public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)`
@@ -230,6 +258,49 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   la tabla `dominio.comprobantes_venta` y el índice `public.clientes_id_organizacion_uq`.
 - **Pruebas:** pgTAP `ranking_clientes.test.sql` y `comprobantes_venta_contrato.test.sql`; Vitest
   `lib/periodosRanking.test.ts`, `components/clientes/RankingClientes.test.tsx` y `pages/clientes/list.ranking.test.tsx`.
+
+## Comparar el ranking entre dos períodos (F-CLI-14, MSF-384)
+
+- **Qué hace:** en la solapa «Ranking por facturación», el interruptor **Comparar con otro período** agrega los campos
+  Desde/Hasta de comparación (precargados con el período anterior de igual duración) y la tabla pasa a mostrar, por
+  cliente, lo facturado en cada período y la variación en pesos y en porcentaje («—» si la base de comparación es 0).
+  Apagado, el ranking es exactamente el de MSF-126. Sin Excel para esta vista (fuera de alcance).
+- **Función:** `public.ranking_clientes_comparado(p_desde, p_hasta, p_desde_comparacion, p_hasta_comparacion, p_tipo,
+  p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`: `security definer`, sección `clientes` en
+  `lectura`/`edicion` (si no, `42501`), `anon` sin ejecución. Reutiliza el predicado, el signo de notas de crédito y el
+  filtro de tienda del ranking básico, que **no cambia**. Orden: facturado desc, facturado de la comparación desc,
+  nombre, número. Un cliente con facturación en un solo período aparece con 0 en el otro.
+- **Esquema (Principio VII):** sin tablas ni columnas nuevas; la función vive en `public` y lee `dominio`/`public`.
+- **Empresa activa:** al cambiarla, la comparación se remonta (consulta la nueva tienda, página 1, sin filas de la anterior).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_comparado(date, date, date, date, text, boolean, boolean, integer, integer, uuid)`.
+- **Pruebas:** pgTAP `ranking_clientes_comparado.test.sql`; Vitest `lib/periodosRanking.test.ts`,
+  `hooks/useRankingComparado.test.tsx` y `components/clientes/RankingClientes.test.tsx`. Spec:
+  `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
+## Ranking por producto, categoría y provincia (F-CLI-15, MSF-391)
+
+- **Qué hace:** la solapa «Ranking por facturación» suma tres filtros opcionales y combinables entre sí y con Tipo,
+  Consumidor final, Ver con IVA y la tienda: **Producto** (búsqueda por nombre o SKU sobre el catálogo), **Categoría**
+  (con su ruta; una raíz incluye sus subcategorías) y **Provincia** (las presentes en los clientes de la organización).
+  Sin ninguno activo la pantalla sigue llamando a `ranking_clientes`, sin cambios. Las opciones se piden recién cuando
+  la persona entra a los filtros (carga diferida).
+- **Función:** `public.ranking_clientes_por_dimension(p_desde, p_hasta, p_producto_id, p_categoria_id, p_provincia,
+  p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)`, mismas columnas, orden, desempate,
+  paginación, seguridad y validaciones que `ranking_clientes` (más `p_provincia` ≤ 100 caracteres). Con producto o
+  categoría `facturado` suma las **líneas** (`dominio.comprobantes_venta_lineas`) que cumplen el filtro, con el signo de
+  las notas de crédito (sus líneas de devolución restan); `comprobantes` cuenta facturas distintas. Producto y categoría
+  se intersecan. Sin ellos el importe es el del comprobante. La provincia se compara sin mayúsculas ni tildes con
+  `private.clave_texto` (sin extensiones nuevas); un cliente sin provincia no coincide con ningún filtro. Un producto o
+  categoría ajeno o inexistente devuelve vacío. Sin tablas nuevas (Principio VII).
+- **Empresa activa:** al cambiarla se descartan Producto, Categoría y Provincia, se vuelve a la página 1 y se consulta la
+  nueva tienda.
+- **Límites declarados:** sin combinar con «Comparar con otro período» (al activarla los filtros no se ofrecen) y sin
+  «Exportar a Excel» mientras haya un filtro de dimensión activo (la exportación es del ranking completo).
+- **Reversión (aditiva):** `drop function public.ranking_clientes_por_dimension(date, date, uuid, uuid, text, text, boolean, boolean, integer, integer, uuid)`.
+  La migración usa la versión `20270121100000` (el contrato nombraba `20270114110000`, por debajo de la cola aplicada).
+- **Pruebas:** pgTAP `ranking_clientes_por_dimension.test.sql`; Vitest `hooks/useRankingPorDimension.test.tsx`,
+  `hooks/useOpcionesDimension.test.tsx`, `components/clientes/FiltrosDimension.test.tsx` y
+  `components/clientes/RankingClientes.test.tsx`. Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
 
 ## Exportar el ranking a Excel (F-CLI-09, MSF-255)
 - **Quién:** solo quien tiene la acción `exportar` en Clientes (`usePuedeAccion('clientes','exportar')`); la solapa
@@ -273,7 +344,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
   La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
 - **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
-  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  producto), con RLS por organización y sección `ventas`; `dominio.clientes` no cambia de esquema (solo un índice
   único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
 - **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
   y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
@@ -283,3 +354,276 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   a MSF-159/177 del contrato `dominio.comprobantes_venta` y del predicado único de estados. Dueño del ranking en
   Ventas · Reportes: **MSF-159/177** (historias de Ventas); no se creó una Tarea `seguimiento` aparte, por lo que la
   clave de esas historias es el responsable verificable.
+
+## Importación desde el panel actual (F-MIG-01, MSF-299 · épica MSF-142)
+
+- **Quién:** solo el **Administrador de la organización** (`private.puede_escribir()`); `anon` sin acceso y sin
+  service-role en el navegador. En el listado, «Importar» aparece únicamente con ese permiso y lleva a
+  `/migracion/importar/clientes`. La entrada «Migración de datos» vive en Administración (Principio VI).
+- **Archivo:** CSV UTF-8 (si viene de Excel, guardarlo como «CSV UTF-8»). Se acepta coma o punto y coma, BOM,
+  CRLF y comillas escapadas; un archivo ilegible, vacío o sin filas no avanza. «Descargar plantilla CSV»
+  entrega `clientes.csv` con las mismas columnas que el mapeo.
+- **Mapeo (FR-003):** cada columna del archivo se asocia a un campo del cliente; el **identificador del panel
+  actual** y el **nombre o razón social** son obligatorios y no se puede asignar un campo a dos columnas. El
+  «Número» del cliente no se mapea: lo asigna el sistema (D4).
+- **Vista previa (FR-004):** la clasificación la hace la base con las mismas reglas del alta
+  (`previsualizar_lote_clientes`, solo lee): nuevos, a actualizar y filas con error con su número de fila y
+  motivo. Las filas con error no se importan; las válidas sí.
+- **Aplicar (FR-005/006/007/008):** `iniciar_carga_migracion` abre la carga; `aplicar_lote_clientes` procesa
+  lotes de hasta 500 filas y concilia por `clientes_identificadores_externos` con `sistema = 'panel_actual'`
+  (existe → actualiza; no existe → crea, vincula y habilita en las tiendas de la organización);
+  `cerrar_carga_migracion` recalcula los contadores y devuelve el informe. Reaplicar la misma carga no duplica.
+  Cada ejecución deja `public.migracion_cargas` y el resultado por fila en `public.migracion_filas`.
+- **Esquema y RLS (Principio VII):** las dos tablas nuevas están en `public` (herramienta transversal de
+  plataforma), con RLS por organización, lectura solo Administrador, sin escritura directa para
+  `authenticated` y sin privilegios para `anon`; las RPC son `security definer` con `search_path = ''`.
+- **Empresa activa (Principio VIII):** **no aplica filtrado por empresa**. Los clientes son de la
+  organización y se habilitan en las tiendas; la pantalla lo declara y cambiar la empresa de la barra
+  superior no cambia el destino ni mezcla el lote en curso (FR-011).
+- **Reversión:** migración aditiva `20261201100000_migracion_cargas.sql`; el `drop` de funciones y tablas va
+  en una migración posterior (los clientes ya importados no se borran con la reversión). El frontend se
+  revierte con el PR. Detalle en `specs/20261023-120000-migracion-inicial-de-datos/`.
+- **Pruebas:** pgTAP `supabase/tests/database/migracion_clientes.test.sql` (RLS, `anon`, rol, idempotencia,
+  lote atómico, errores por fila); Vitest `lib/migracionCsv.test.ts`, `pages/migracion/entidades/clientes.test.ts`,
+  `pages/migracion/AsistenteImportacion.test.tsx`, `pages/clientes/list.test.tsx` y la guarda de fixtures
+  sintéticas `test/fixtures/fixturesSinteticas.test.ts`. Las fixtures usan dominios reservados y documentos
+  inventados (FR-012).
+
+## Importador de clientes desde el panel actual (MSF-299)
+
+- La RPC `aplicar_lote_clientes` concilia por `clientes_identificadores_externos` (`sistema = 'panel_actual'`).
+  Al **actualizar**, solo se pisan las columnas que el archivo trae **con valor**: una celda vacía (o de solo
+  espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
+- El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
+  cliente hay que reimportarlo en otra carga.
+- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.
+
+## Cuenta web: ajustes de la revisión (MSF-422)
+
+- «Restablecer clave» y el reenvío al reutilizar el usuario envían el enlace al correo del **usuario de Auth** (`getUserById`), no a `clientes.correo`, que pudo editarse después.
+- Si el correo ya salió pero falla el registro de la actividad, `invitar-cliente` responde `ok` con un `aviso` (no error) para que el operador no reenvíe.
+- La política SELECT de `public.cuentas_cliente` filtra además por `private.empresas_accesibles()` (migración `20261211100300`); reversión: recrearla sin ese filtro.
+- «Habilitar/Deshabilitar en <tienda>» relee `clientes_empresas` antes de llamar a `guardar_empresas_de_cliente`, para no pisar cambios de otro operador.
+- Editar un cliente con estados mixtos (una tienda activa, otra suspendida): si el operador no cambia el campo «Cuenta web», no se reactiva ni suspende ninguna cuenta existente (solo se crean las de tiendas nuevas); únicamente cambiar el campo transiciona (`aplicarCuentaWebEnTiendas(..., estadoPrevio)`).
+- Si falla la lectura de las cuentas web existentes al guardar (MSF-694), `aplicarCuentaWebEnTiendas` no lanza: devuelve `errores = N tiendas`. El alta ya creó el cliente, así que sigue a la ficha con «Cliente creado · no se pudo crear la cuenta web en N tiendas» y no vuelve al formulario (reintentar duplicaría el cliente).
+- Defensa en profundidad (MSF-734): `create.tsx` también envuelve la llamada a `aplicarCuentaWebEnTiendas` en try/catch; un rechazo inesperado cuenta como error de cuenta web y el alta sigue a la ficha. En edición, si falla la lectura de las cuentas web, la página muestra «No pudimos cargar la cuenta web del cliente.» con reintento y no ofrece el formulario (cubierto por tests). Pendiente (decisión de producto): idempotencia del alta de clientes sin DNI/CUIT ante pérdida de respuesta de red.
+- `exportar_clientes` con «Con cuenta web» filtra por `private.empresas_accesibles()`, como `buscar_clientes` por RLS. La columna «Cuenta web» del listado (`cuentas_web`) solo incluye tiendas donde el cliente sigue habilitado, igual que la ficha (FR-002).
+- `invitar-cliente` crea el usuario de Auth con `createUser` y envía el enlace recién después de `vincular_cuenta_cliente` (ya no `inviteUserByEmail`): si vincular falla no queda un correo de invitación muerto.
+
+## Cuenta web del cliente (épica MSF-237, spec `20261024-051500-cuenta-web-del-cliente`)
+
+Resumen de F-CLI-05 (alta y estados), F-CLI-06 (ingreso) y F-CLI-07 (precios); el ingreso y la recuperación están en [`acceso-ingreso.md`](./acceso-ingreso.md), la tienda en [`tiendas-online.md`](./tiendas-online.md) y los precios en [`precios-escalas.md`](./precios-escalas.md).
+
+- **Renumeración por merge con `dokploy`**: las migraciones de la épica pasaron a `20261211100000`…`20261211110100` para no chocar con las ya aplicadas en DEV ni quedar por debajo de las de MSF-189 (`20261210130300`); el contenido no cambió.
+- **Modelo**: `public.cuentas_cliente` (una fila por `(cliente, tienda)`, estado `activa|suspendida`, RLS por organización + sección Clientes + `private.empresas_accesibles()`); esquema `public` por ser identidad/acceso de plataforma. Hay **un solo usuario de Auth por cliente** (D1) y la cuenta web **no tiene fila en `usuarios_organizacion`**: no ve nada del panel (FR-006, pgTAP `cuentas_cliente.test.sql`). Reversión: `drop table public.cuentas_cliente cascade` y las funciones de las migraciones `20261211100000`…`20261211100250` en un PR posterior (no se destruye en el mismo PR que las crea).
+- **Estados que ve el operador** (`lib/cuentasCliente.ts`): **Activa**, **Suspendida**, **Sin cuenta** y **No habilitado** (la tienda no está tildada en «Habilitado en»; prevalece sobre los otros y conserva la cuenta, que vuelve a su estado al rehabilitar).
+- **Acciones** (ficha, `BloqueTiendas` y `BloqueCuentaWeb`): crear cuenta web (requiere correo), restablecer clave, suspender, reactivar y habilitar/deshabilitar la tienda. Todas por RPC de `public` con `grant … to authenticated` y `revoke … from public, anon`; cada cambio registra un evento de Actividad con actor y tienda (FR-016).
+- **Invitación**: Edge Function `invitar-cliente` (`crear` | `restablecer`, JWT del operador). Crea o reutiliza el usuario de Auth, no escribe membresía, es idempotente y responde con mensajes controlados idénticos para correo de usuario del panel (D5), cliente de otra organización o tienda no habilitada (FR-018). El enlace vuelve al dominio de la tienda, siempre en `https://` salvo en desarrollo local con `ALLOW_HTTP_REDIRECT=true` (MSF-726; ver `docs/acceso-ingreso.md`). `enable_signup = false` se conserva: no hay auto-registro (D2).
+- **Listado y formulario**: columna «Cuenta web» (chip; en «Todas mis empresas» se agrega según D4) y filtro «Con cuenta web»; el formulario crea la cuenta en cada tienda tildada al guardar. Las tres superficies respetan la empresa activa (Principio VIII, `empresa-activa.test.tsx`).
+
+### Decisiones D1–D6 y contradicciones (para el PR)
+
+| | Decisión adoptada | Dónde |
+|---|---|---|
+| D1 | Una cuenta de Auth por cliente, una fila `cuentas_cliente` por tienda | modelo arriba |
+| D2 | Solo invitación; sin auto-registro ni aprobación del mayorista | fuera de alcance |
+| D3 | Ficha: mayorista ve x1/x5/x10/x50 con rango; tarjetas siguen en x1 | `precios-escalas.md` |
+| D4 | Estado agregado en «Todas mis empresas»: Activa > Suspendida > Sin cuenta | listado |
+| D5 | Correo de usuario del panel ⇒ mensaje genérico, nunca se mezclan identidades | `invitar-cliente` |
+| D6 | Pantallas públicas de ingreso sin dibujar: sistema de diseño; falta que Nicolás las dibuje | seguimiento |
+
+Contradicciones con el prototipo: las pantallas públicas de ingreso/recuperación no existen en `design/pantallas` (D6); la ficha de cliente del prototipo es la fuente del bloque Tiendas/Cuenta web.
+
+## «Mi cuenta» de la cuenta web (F-CLI-20, MSF-452 · épica MSF-176)
+
+La cuenta web activa de una tienda ahora tiene **«Mi cuenta»** en esa tienda: sus compras y presupuestos (cualquier canal, sin borradores, con estado público
+simplificado y total con IVA) y sus **favoritos**, siempre **por tienda**. El panel no cambia: la ficha del cliente y su historial siguen igual y **quien opera el
+panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja de «Habilitado en» rigen en la próxima llamada. Detrás de la bandera de plataforma
+`tienda_pedidos` (apagada por defecto; solo se enciende en dev). Modelo, contratos, permisos y cómo encenderla en
+[`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md).
+
+## Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)
+
+- **Pantalla:** la ficha `/clientes/show/:id` suma a la tarjeta **«Resumen comercial»** el **«Saldo deudor»**
+  (lo que el cliente debe, **con IVA**) y agrega la tarjeta **«Cuenta corriente»**: los comprobantes con saldo
+  pendiente (Comprobante, Fecha, Estado, Total, Cobrado, Saldo y, solo si algún comprobante tiene notas de crédito, «Notas de crédito»; del más reciente al más antiguo). Si el cliente no
+  debe nada, la cuenta corriente muestra el vacío («Este cliente no tiene comprobantes con saldo») y el saldo es `$ 0`.
+  Si la base no responde, el bloque muestra el error con **«Reintentar»** y el «Saldo deudor» queda en «—»: el error
+  no se come el resto de la ficha. Los números de comprobante son texto: el enlace al comprobante es de Ventas.
+  El «Saldo deudor» se pinta como el prototipo —ámbar con deuda, verde cuando el cliente no debe— y la etiqueta
+  «Deuda» de la cuenta corriente va en ámbar. El saldo no depende de las compras: si la sección «Compras» falla, el
+  «Saldo deudor» se sigue viendo (el «Facturado en el año» queda en «—»).
+- **Función:** `public.cuenta_corriente_cliente(p_cliente_id uuid)` (migración
+  `20270222100000_cuenta_corriente_cliente.sql`, **sin tablas nuevas**; recreada después por `20270227110000` y
+  `20270227140000`, que le agregan la columna `notas_credito`, después de `cobrado`): `security definer`, `search_path = ''`,
+  organización de `private.organizacion_id()`, exige Clientes en `lectura`/`edicion` (si no, `42501`); cliente de otra
+  organización o inexistente → saldo `0` y sin documentos (no revela si existe); el encabezado (`saldo_total`,
+  `comprobantes`) viaja en cada fila y, sin documentos abiertos, vuelve solo la fila de encabezado. Cada fila trae el
+  **`id`** del comprobante: el correlativo es por organización, empresa y tipo, así que el número se repite entre
+  tiendas y el `id` es lo que identifica la fila. Las columnas de cada fila son `id`, `numero`, `fecha`, `tipo`,
+  `estado`, `total_con_iva`, `cobrado`, `notas_credito` y `saldo`.
+  `revoke … from public, anon` y `grant execute … to authenticated`.
+- **Cómo se calcula el saldo:** el total, lo cobrado, las notas de crédito y el saldo de cada comprobante los trae
+  `private.saldo_comprobante` (F-VTA-12, que desde la migración `20270227140000` resta las notas de crédito):
+  saldo = `max(total − cobrado − notas de crédito, 0)`. Es el mismo cálculo que ven el detalle del comprobante, el tope
+  al registrar un cobro y el contrarreembolso (ver `docs/cobros-por-comprobante.md`). El estado
+  «Deuda» no se consulta (una factura en «Deuda» no tiene cobros y debe su total completo). Cuentan las **facturas**
+  que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
+  (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
+  suma de los saldos listados.
+- **Alcance:** es la deuda del cliente en **todas las tiendas a las que la persona accede**
+  (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede a todas): no ve deuda de
+  tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
+- **Base de las cifras:** el «Saldo deudor» y la cuenta corriente son **con IVA**; el «Facturado en el año» que ya
+  estaba en la ficha es **sin IVA** (criterio del ranking). Cada número dice su base.
+- **Notas de crédito:** **restan** de la deuda de la factura de la que cuelgan (decisión de Nicolás, 2026-11-11, migración
+  `20270227110000_cuenta_corriente_notas_de_credito.sql`): saldo = `max(total − cobrado − notas de crédito, 0)` por factura, con las
+  notas emitidas (no `borrador` ni `anulada`). La nota que genera la **anulación** de una factura no se descuenta dos veces: esa
+  factura ya no figura. La tabla suma la columna «Notas de crédito». Sigue sin haber **saldo a favor**: si cobros y notas superan
+  el total, la factura queda en $ 0 y no aparece: una factura de 1.000 con 800 cobrados y una nota de 400 desaparece
+  aunque el cliente, en rigor, tendría 200 a favor (ese excedente no se acredita en ningún lado). Los importes se
+  redondean a 2 decimales. Qué estados de la nota restan lo decide `private.comprobante_cuenta_como_facturado`
+  (la misma regla que el ranking y el facturado neto; hoy: ni `borrador` ni `anulada`), vía la migración
+  `20270227130000_cuenta_corriente_estados_nc_compartidos.sql`. La columna «Notas de crédito» se muestra solo si algún
+  comprobante de la lista las tiene.
+- **Tiendas sin acceso o desactivadas:** una persona sin tiendas asignadas ve saldo $ 0, y la deuda de una tienda
+  desactivada no suma (ni para el administrador). La sección «Compras» de la misma ficha sigue siendo de toda la
+  organización: diferencia conocida.
+- **Importes:** con centavos cuando los hay (`$ 1.210,50`, `$ 0,40`) y sin decimales cuando son enteros (`$ 220.000`);
+  el ranking de clientes sigue en pesos enteros.
+- **Estados:** cuentan los siete estados vivos que no son borrador, anulada ni cobrado (`confirmada`, `pendiente`,
+  `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
+- **Permiso:** quien tiene `clientes` en lectura ve total, cobrado, notas de crédito y saldo aunque no acceda a Ventas (es el mismo dato
+  que la sección «Compras»).
+- **Costo:** tres lecturas por cada factura del cliente que no sea borrador, anulada ni cobrado (aunque ya esté saldada), dentro de `private.saldo_comprobante`: el comprobante, sus cobros y la suma de sus notas de crédito (cubierta por el índice `comprobantes_venta_origen_idx`), y sin paginar; son pocas por cliente. Si un cliente real acumulara
+  cientos, se pagina con carga infinita.
+- **Decisiones** (la historia no tenía requisitos; esta definición la tomó el desarrollo y se puede cambiar). Confirmadas por Nicolás el 2026-11-12: la factura «Cobrada» no es deuda, el saldo respeta las tiendas accesibles (`private.empresas_accesibles()`) y el permiso de lectura de Clientes alcanza para ver el saldo. Sigue pendiente qué estados cuentan como deuda (en especial «Pendiente»). El saldo a favor no se
+  muestra: está confirmado que no hay (cobros y notas de más dejan la factura en $ 0). (Cerrado el 2026-11-11: el saldo del
+  comprobante y el tope al cobrar también restan las notas de crédito; antes una factura de 1.000 con una nota de 300
+  mostraba 700 en la ficha del cliente y 1.000 en el comprobante, y dejaba cobrar 1.000.)
+- **Efecto cruzado de `20270227150000`:** el disparador escribe, además de la lectura: pasa la factura a «Cobrado» cuando
+  lo cobrado más las notas cubren el total (solo si hay cobros y la matriz de la organización permite la transición
+  para el actor `sistema`) y ajusta el importe de los contrarreembolsos pendientes al saldo neto. Anular una nota
+  después de «Cobrado» no devuelve la factura a «Deuda». Detalle en `docs/cobros-por-comprobante.md`.
+- **Reversión (migración posterior):** revertir la ampliación implica **cuatro** migraciones, no una, en este orden:
+  1. `20270227150000`: `drop trigger comprobantes_venta_nota_credito_efectos on dominio.comprobantes_venta; drop
+     function private.trg_nota_credito_efectos(); drop function private.sincronizar_efectos_nota_credito(uuid);`
+     (no deshace los estados ni los importes de contrarreembolso que ya escribió).
+  2. `20270227140000`: volver a las definiciones de `20270114100100_saldo_y_lectura_cobros.sql` (`drop function` +
+     `create` de las dos `saldo_comprobante`, sin la columna `notas_credito`) y
+     `revoke execute on function private.comprobante_cuenta_como_facturado(text, text) from authenticated`. Esto
+     también devuelve a Ventas (detalle del comprobante, tope de cobro, contrarreembolso) a `total − cobros`. **Revertir `20270227140000` exige revertir también `20270228200000` y `20270228200100` (Pagos: `listar_pagos` y `resumen_pagos`) en el mismo cambio**; si no, Pagos queda neto de notas y el comprobante bruto.
+  3. `20270227110000` y `20270227130000`: volver `public.cuenta_corriente_cliente` a la definición de
+     `20270222100000_cuenta_corriente_cliente.sql` (sin notas de crédito) con `drop function` + `create`; **no** basta con
+     `drop function`, que dejaría la pantalla sin cuenta corriente (y la ficha espera la forma de respuesta de cada
+     versión: ajustar el hook en el mismo cambio).
+  No se destruye ninguna tabla: la cuenta corriente es una lectura de los documentos y los cobros.
+- **Cómo probarlo:**
+  - *Prerrequisitos:* stack local (`pnpm dev:supabase`) con el seed; una persona con Clientes en `lectura` o `edicion`;
+    un cliente con una factura confirmada de $1.000 y una tienda activa a la que la persona accede.
+  - *Pasos:* (1) abrí `/clientes/show/:id` del cliente: el «Saldo deudor» muestra $ 1.000 y la tabla «Cuenta
+    corriente» la factura con Total $ 1.000, Cobrado $ 0 y Saldo $ 1.000. (2) Registrá un cobro de $ 600 en el
+    comprobante: el saldo baja a $ 400. (3) Emití una nota de crédito de $ 100 sobre esa factura: aparece la columna «Notas
+    de crédito» y el saldo queda en $ 300; el detalle del comprobante muestra el mismo saldo. (4) Emití otra nota de
+    $ 300: el saldo neto es $ 0, la factura pasa a «Cobrado» y sale de la lista; el «Saldo deudor» queda en `$ 0`.
+  - *Resultado esperado:* los tres lugares (ficha, detalle del comprobante y tope al cobrar) coinciden con
+    `total − cobrado − notas de crédito`, nunca negativo, a 2 decimales; con la base caída el bloque muestra el error con
+    «Reintentar».
+  - *Cómo automatizarlo:* pgTAP `supabase/tests/database/cuenta_corriente_cliente.test.sql` (46 aserciones; corre en
+    el job `database` del CI), Vitest `ComprasCliente.test.tsx` y `useCuentaCorrienteCliente.test.tsx`, y el E2E
+    `apps/web/e2e/cuenta-corriente-cliente.e2e.ts` (`pnpm --filter @platform/web test:e2e` con el stack local; **no corre
+    en el CI**).
+- **Pruebas:** pgTAP `cuenta_corriente_cliente.test.sql` (cada fila sale de `private.saldo_comprobante`; las notas de crédito, con centavos, tienda inaccesible, nota sola mayor que el total,
+  factura cobrada, nota de otro cliente y mezcla emitida + anulada); Vitest `ComprasCliente.test.tsx` (carga, vacío, error + reintento, colores del
+  prototipo y axe a 320/768/1440 px) y `useCuentaCorrienteCliente.test.tsx`; E2E `cuenta-corriente-cliente.e2e.ts`
+  (rótulo `[MSF-451:T001]`; **no corre en el CI**, se corre a mano con el stack local: ver `docs/e2e-app.md`).
+- **Prototipo:** la tarjeta «Cuenta corriente» la dibuja esta historia en `design/pantallas/ClienteFicha.dc.html`
+  (y su copia en `design/pantallas/ClienteFicha/`); los inventarios se regeneran con `pnpm prototipo:inventario`.
+
+## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
+
+Solo frontend, **sin migración ni escritura** (el grant `select` de `dominio.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
+
+- **Ficha** (`pages/clientes/show.tsx`): «Etiqueta» (encabezado) e «Imprimir etiqueta de envío» (bloque). Sin dirección no se abre la hoja: aviso «falta dirección» (CA-CLI-17-1).
+- **Listado** (`pages/clientes/list.tsx`): «Imprimir etiquetas (n)» con las filas marcadas (quien edita). Al cambiar la empresa activa se descarta la selección y se reencuadra la página (Principio VIII).
+- **Hoja** (`components/clientes/HojaEtiquetas.tsx`, ruta lazy `/clientes/etiquetas?ids=…` bajo `RequiereAccesoSeccion` «clientes»): una etiqueta por cliente apto en A4 (`@page`, `@media print` oculta menú y barra); guardable como PDF desde el diálogo del navegador. Los clientes sin dirección se omiten y el aviso los nombra. Tras imprimir, «Volver» regresa a la ficha con «Etiqueta enviada a imprimir».
+- **Reglas puras** (`lib/etiquetasCliente.ts`): solo la dirección bloquea; CP, localidad, provincia, teléfono y transporte vacíos se omiten. El parámetro `ids` se valida como UUID, sin repetidos y hasta 200.
+- Pruebas: `etiquetasCliente.test.ts`, `HojaEtiquetas.test.tsx`, `show.etiqueta.test.tsx`, `list.etiquetas.test.tsx` y `apps/web/e2e/clientes-etiqueta.e2e.ts`.
+
+## Fusionar clientes duplicados (F-CLI-18, MSF-447 · épica MSF-445)
+
+Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y la ficha oculta la acción al resto. Sin tablas nuevas (Principio VII: las RPC viven en `public`; `dominio.comprobantes_venta` solo cambia el `cliente_id` de sus filas). Migraciones aditivas `20270205110201`…`20270205110204`.
+
+- **`public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`** (`security definer`, `search_path = ''`, `revoke … from public, anon`, `grant … to authenticated`): bloquea ambas filas ordenadas por id y, en **una sola transacción**, reasigna los documentos de venta y la cuenta web al conservado, archiva al descartado (`archivado_en`; no se borra ni se tocan sus datos) y registra `cliente.fusionado` (Nº y nombre de ambos, sin DNI/CUIT). Devuelve `{ documentos_reasignados, cuentas_reasignadas, campanas_reasignadas, cuentas_dadas_de_baja }`.
+- **Rechazos** (mensaje claro y sin cambios): no Administrador (42501), mismo cliente, falta un cliente, cuenta web de un tercero (22023), inexistente u otra organización (P0002), alguno archivado — también cubre repetir la fusión (22023).
+- **Cuenta web** (un usuario de Auth por cliente, D1): si los dos tienen cuenta web, queda una sola. Con las dos **activas** hay que indicar `p_cuenta_web_de` (de lo contrario se rechaza); si solo un lado tiene cuentas activas, prevalece ese. La no elegida se **elimina** (el usuario de Auth queda sin uso) y la tienda de la que se mantiene queda habilitada en el conservado.
+- **Campañas:** no existe tabla de campañas (MSF-155 sin entregar), así que `campanas_reasignadas` es siempre 0.
+- **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
+- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta: es una **regla vigente por decisión de diseño** (la lista del cliente descartado se pierde al fusionar), no un defecto pendiente; el diálogo avisa si las listas difieren.
+- **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
+- **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
+- Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
+
+## Reparaciones del cliente (F-SVC-15, MSF-429)
+
+La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a Service técnico) que lista sus reparaciones paginadas y por tienda activa; «Datos» conserva el contenido de siempre. Detalle, RPC y reversión en [service-cliente-reparaciones.md](./service-cliente-reparaciones.md).
+
+## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
+
+Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270116120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
+
+- **Inactivo**: tiene al menos una factura que cuenta (`private.comprobante_cuenta_como_facturado`) y su última factura es anterior a *hoy − N días* (hoy en `America/Argentina/Buenos_Aires`, N de 1 a 3650, por defecto 90). La nota de crédito no cuenta como compra. Sin compras y archivados no aparecen (la spec manda sobre el CA-CLI-16-2 del issue, que pedía listar «Sin compras»: un cliente que nunca compró no «dejó» de comprar).
+- **Columnas**: Cliente (enlace a la ficha), Tipo, Última compra, Días sin comprar, Comprobantes (solo facturas), Facturado histórico (neto sin IVA). Orden: última compra ascendente, nombre, número. Paginado en el servidor (25).
+- **Empresa activa**: la tienda de la barra superior se pasa como `p_empresa_id`; al cambiarla vuelve a la página 1 y recarga.
+- **Fuera de alcance**: Excel de la lista y enviarla a una campaña (MSF-155).
+- **Pruebas**: pgTAP `supabase/tests/database/clientes_inactivos.test.sql`; Vitest `useClientesInactivos.test.ts`, `ClientesInactivos.test.tsx`, `list.ranking.test.tsx`.
+
+## Cierre de la épica MSF-171 · Ranking avanzado de clientes (MSF-581)
+
+Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
+
+| Capacidad | Historia | RPC (`public`, `security definer`, sección `clientes` en `lectura`/`edicion`, `anon` sin ejecución) | Migración |
+|-----------|----------|------|-----------|
+| Comparar dos períodos | F-CLI-14 (MSF-384) | `ranking_clientes_comparado` | `20270120100000_ranking_clientes_comparado.sql` |
+| Producto, categoría y provincia | F-CLI-15 (MSF-391) | `ranking_clientes_por_dimension` | `20270121100000_ranking_clientes_por_dimension.sql` |
+| Clientes inactivos | F-CLI-16 (MSF-400) | `clientes_inactivos` | `20270116120000_clientes_inactivos.sql` |
+
+- **Límites declarados:** sin Excel para la comparación, las dimensiones ni los inactivos; la comparación y los filtros de
+  dimensión no se combinan; la lista de inactivos no se envía a una campaña (eso es MSF-155). `public.ranking_clientes` no cambió.
+- **Esquema (Principio VII):** ninguna de las tres crea tablas; son funciones en `public` que leen `dominio`/`public`.
+- **Reversión de la épica:** `drop function` de las tres firmas indicadas en sus secciones (aditivas, sin datos propios).
+- **Reglas del proyecto:** no cambia ninguna regla, por eso `AGENTS.md` y `CLAUDE.md` quedan igual.
+
+## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
+
+`dominio.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+**Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
+permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
+oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
+`cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
+(aditiva; reversión en su encabezado).
+
+## Lista de precios del cliente (F-CLI-21, MSF-453 · épica MSF-450)
+
+`dominio.clientes.lista_precio_id` (nulable, FK compuesta `(lista_precio_id, organizacion_id)` a `dominio.listas_precios`; `null` = sin lista). El **Administrador** la elige en «Editar cliente» → «Lista de precios» (selector de listas activas, con el porcentaje de cada una); quien no es administrador la ve en solo lectura, y la ficha muestra la lista con su porcentaje. La columna no tiene `grant update`: la escribe solo la RPC `public.asignar_lista_precios_cliente(p_cliente, p_lista)` (solo Administrador, idempotente, `p_lista null` quita la lista), que rechaza una lista archivada, un cliente archivado y el **Consumidor final** (`22023`) y una lista o cliente ajeno (`P0002`). Un disparador defensivo repite esas reglas ante otras vías de escritura. Deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva, sin datos de contacto). Con la bandera `listas_precios` apagada asignar responde `55000` y solo se puede quitar.
+
+**Guardado con compensación.** La lista se asigna antes de guardar la ficha; si el guardado de la ficha falla, la pantalla relee la lista actual del cliente y la devuelve a la anterior **solo si sigue siendo la que ella asignó** (si otra persona la cambió entretanto no se pisa y el aviso lo dice: «No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.»; releer y escribir no es atómico, queda una ventana mínima). Si la compensación también falla (o la lista anterior se archivó y no se puede reasignar) se registra en consola y se muestra «No se guardó el cliente y la lista quedó cambiada: revisala.». Mientras cargan las listas el selector muestra «Cargando…», no el aviso de nombre ilegible.
+
+**Sin efecto en el precio:** por ahora la lista solo se guarda; las ventas y la tienda no la aplican (Fases 3 y 4 de la spec). La ficha avisa que no se acumula con el descuento personal. Archivar un cliente conserva su lista; **fusionar** conserva la del cliente que queda y descarta la del absorbido (el diálogo avisa si difieren). Detalle y reversión: [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21-fases-1-y-2). Migraciones `20270340000200_clientes_lista_precio.sql` y `20270340000210_fusion_clientes_lista_precio.sql`; pruebas `clientes_lista_precios.test.sql` y `FormularioCliente.test.tsx`.
+
+## Listados con carga infinita (Principio VI)
+
+Los listados de Clientes dejaron la paginación numerada: cada pantalla sigue pidiendo «la página N» a su RPC y
+`useListadoAcumulado` suma cada tanda a las anteriores; al pie, `CargaInfinita` (scroll + «Cargar más»). Buscar, filtrar
+o cambiar de tienda vuelve a la primera tanda; el contador total, las exportaciones (usan los filtros, no lo cargado) y la
+selección no cambian. Si falla una tanda posterior se conserva lo cargado y el error se muestra al pie con «Reintentar».
+
+- Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
+  «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
+- Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.
+
+## Lista de precios del cliente (F-CLI-21)
+
+La ficha tiene el campo **Lista de precios** (selector de las listas activas; solo lectura para quien no es Administrador). La asigna solo el rol Administrador con `asignar_lista_precios_cliente` (idempotente, registra `cliente.lista_precio_asignada` en Actividad); el **Consumidor final no admite lista**, archivar al cliente conserva su lista y fusionar clientes conserva la del cliente que queda. La lista **no se acumula** con el descuento personal. Con la bandera `listas_precios` apagada la asignación responde `55000` (quitar la lista sigue permitido) y el precio no cambia. La planilla de clientes todavía no exporta la lista (seguimiento MSF-974). Ver [Listas de precios](listas-de-precios.md).

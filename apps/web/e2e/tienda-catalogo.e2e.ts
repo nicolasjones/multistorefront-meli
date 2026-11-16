@@ -1,0 +1,200 @@
+import { randomUUID } from 'node:crypto'
+import { expect, test } from '@playwright/test'
+import { borrar, rest, serviceKey, url } from './soporte/fixtures'
+
+// F-TDA-12 (MSF-355, SC-006 de la épica MSF-167): con los dos dominios del seed (mundojc.localhost y
+// sanjavucho.localhost) el menú lleva a la categoría; los filtros, el orden y la carga infinita cambian el
+// listado sin recargar y la URL copiada da el mismo resultado al reabrirla. Requiere el stack local
+// (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra con la API admin desde
+// Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
+// archivo se omite (no entra al CI público): ver docs/e2e-app.md.
+
+// Ids fijos de supabase/seed.sql (MSF-241).
+const TIENDAS = [
+  { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', nombre: 'Mundo JC' },
+  { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', nombre: 'San Javucho' },
+] as const
+
+const cabeceras = (extra: Record<string, string> = {}) => ({
+  apikey: serviceKey ?? '',
+  authorization: `Bearer ${serviceKey}`,
+  'content-type': 'application/json',
+  'content-profile': 'dominio',
+  'accept-profile': 'dominio',
+  ...extra,
+})
+
+async function actualizar(tabla: string, filtro: string, cuerpo: unknown) {
+  const r = await fetch(`${url}/rest/v1/${tabla}?${filtro}`, { method: 'PATCH', headers: cabeceras(), body: JSON.stringify(cuerpo) })
+  if (!r.ok) throw new Error(`REST PATCH ${tabla}: ${r.status} ${await r.text()}`)
+}
+
+// Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
+const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
+
+const MASIVOS = 26 // 24 en la primera tanda y 2 en la segunda
+
+test.describe('Tienda online · catálogo con filtros y orden (SC-006)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('menú → categoría, filtros, orden, carga infinita y URL compartible', async ({ browser }) => {
+    test.setTimeout(90_000) // siembra de productos masivos y filtros, orden y carga infinita en dos tiendas
+    const sufijo = randomUUID().slice(0, 8)
+    const tiendas = TIENDAS.map((t, i) => ({
+      ...t,
+      categoria: `Cat ${t.nombre} ${sufijo}`,
+      masiva: `Masiva ${t.nombre} ${sufijo}`,
+      barato: `Barato ${t.nombre} ${sufijo}`,
+      medio: `Medio ${t.nombre} ${sufijo}`,
+      caro: `Caro ${t.nombre} ${sufijo}`,
+      indice: i,
+      categoriaId: '',
+      masivaId: '',
+    }))
+
+    try {
+      for (const t of tiendas) {
+        const [categoria, masiva] = await rest<{ id: string }>('categorias', [
+          { organizacion_id: t.organizacion, nombre: t.categoria },
+          { organizacion_id: t.organizacion, nombre: t.masiva },
+        ], 'dominio')
+        t.categoriaId = categoria.id
+        t.masivaId = masiva.id
+
+        // Barato $ 1.000 (5 en stock) · Medio $ 2.000 (sin stock) · Caro $ 3.000 (2 en stock). Sin regla de
+        // empresa ni interruptor de IVA, el precio público es el de lista.
+        const base = [
+          { nombre: t.barato, precio: 1000 },
+          { nombre: t.medio, precio: 2000 },
+          { nombre: t.caro, precio: 3000 },
+        ].map((p, n) => ({
+          organizacion_id: t.organizacion, nombre: p.nombre, sku: `E2E-C-${t.indice}-${n}-${sufijo}`,
+          precio_lista: p.precio, moneda: 'ARS', categoria_id: categoria.id,
+        }))
+        const masivos = Array.from({ length: MASIVOS }, (_, n) => ({
+          organizacion_id: t.organizacion, nombre: `${t.masiva} ${String(n + 1).padStart(2, '0')}`,
+          sku: `E2E-M-${t.indice}-${n}-${sufijo}`, precio_lista: 100 + n, moneda: 'ARS', categoria_id: masiva.id,
+        }))
+        const productos = await rest<{ id: string; nombre: string }>('productos', [...base, ...masivos], 'dominio')
+        await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
+        // La fila de existencias nace con el producto (trigger) en 0.
+        await actualizar('existencias', `producto_id=eq.${productos.find((p) => p.nombre === t.barato)!.id}`, { cantidad: 5 })
+        await actualizar('existencias', `producto_id=eq.${productos.find((p) => p.nombre === t.caro)!.id}`, { cantidad: 2 })
+      }
+
+      for (const t of tiendas) {
+        const otra = tiendas.find((x) => x.host !== t.host)!
+        const base = `http://${t.host}:${puerto}`
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        const tarjetas = page.getByTestId('tarjeta-producto')
+        const contador = page.getByTestId('catalogo-contador')
+
+        // Menú → categoría: solo sus 3 productos, con precio y disponibilidad.
+        await page.goto(`${base}/`)
+        await page.getByRole('navigation', { name: 'Categorías', exact: true }).getByRole('link', { name: t.categoria }).click()
+        await expect(page.getByRole('heading', { level: 1, name: t.categoria })).toBeVisible()
+        await expect(contador).toHaveText('3 productos')
+        await expect(tarjetas).toHaveCount(3)
+        await expect(page.getByRole('link', { name: new RegExp(t.barato) })).toContainText('$ 1.000')
+        await expect(page.getByRole('link', { name: new RegExp(t.medio) })).toContainText('Sin stock')
+        await expect(page.getByText(otra.barato)).toHaveCount(0)
+
+        // «Solo con stock» saca al producto sin existencias y queda en la URL.
+        await page.getByRole('button', { name: 'Solo con stock' }).click()
+        await expect(contador).toHaveText('2 productos')
+        await expect(page.getByText(t.medio)).toHaveCount(0)
+        await expect(page).toHaveURL(/stock=1/)
+
+        // «Limpiar filtros» vuelve a los 3.
+        await page.getByRole('button', { name: 'Limpiar filtros' }).click()
+        await expect(contador).toHaveText('3 productos')
+        await expect(page).not.toHaveURL(/stock=1/)
+
+        // Precio máximo + orden «Mayor precio»: Medio ($ 2.000) primero, Caro ($ 3.000) afuera.
+        const campo = page.getByRole('textbox', { name: 'Precio máximo' })
+        await campo.fill('2500')
+        await campo.press('Enter')
+        await expect(contador).toHaveText('2 productos')
+        // MSF-849: foco de teclado visible (Tab real) en «Ordenar por»: contorno sólido de 2 px (el selector de MUI solo mostraba una onda).
+        await page.getByRole('button', { name: 'Limpiar filtros' }).focus()
+        await page.keyboard.press('Tab')
+        const orden = page.getByRole('combobox', { name: 'Ordenar por' })
+        await expect(orden).toBeFocused()
+        await expect.poll(() => orden.evaluate((el) => { const s = getComputedStyle(el); return `${s.outlineStyle} ${s.outlineWidth}` })).toBe('solid 2px')
+        await orden.click()
+        await page.getByRole('option', { name: 'Mayor precio' }).click()
+        await expect(tarjetas.first()).toContainText(t.medio)
+        await expect(tarjetas.last()).toContainText(t.barato)
+        await expect(page).toHaveURL(/max=2500/)
+        await expect(page).toHaveURL(/orden=precio_desc/)
+
+        // URL compartible: la URL copiada, abierta en otro navegador, da el mismo resultado.
+        const compartida = page.url()
+        const otroContexto = await browser.newContext()
+        const otraPagina = await otroContexto.newPage()
+        await otraPagina.goto(compartida)
+        await expect(otraPagina.getByTestId('catalogo-contador')).toHaveText('2 productos')
+        await expect(otraPagina.getByTestId('tarjeta-producto').first()).toContainText(t.medio)
+        await expect(otraPagina.getByRole('textbox', { name: 'Precio máximo' })).toHaveValue('2500')
+        await expect(otraPagina.getByRole('combobox', { name: 'Ordenar por' })).toHaveText('Mayor precio')
+        await otroContexto.close()
+
+        // Carga infinita de a 24 en el catálogo general filtrado por la categoría masiva (MSF-845).
+        await page.goto(`${base}/catalogo?categoria=${t.masivaId}`)
+        await expect(contador).toHaveText(`${MASIVOS} productos`)
+        // Primera tanda de 24; la segunda puede llegar sola si el pie ya está dentro del margen del observador.
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
+        await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
+        // El scroll hasta el final o «Cargar más» suman la tanda siguiente sin cambiar la URL. El centinela del
+        // componente es el propio botón (margen de 400 px), así que la tanda puede cargarse sola o con el click:
+        // se llega al final de verdad y se acepta cualquiera de las dos vías (sin depender de la carrera).
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+        await expect
+          .poll(
+            async () => {
+              if (await tarjetas.count() >= MASIVOS) return MASIVOS
+              const boton = page.getByRole('button', { name: 'Cargar más' })
+              if (await boton.isVisible().catch(() => false)) await boton.click({ timeout: 1000 }).catch(() => undefined)
+              await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+              return tarjetas.count()
+            },
+            { timeout: 20_000 },
+          )
+          .toBe(MASIVOS)
+        await expect(tarjetas).toHaveCount(MASIVOS)
+        await expect(page.getByText('No hay más resultados.')).toBeVisible()
+        await expect(page).not.toHaveURL(/pagina=/)
+
+        // Un enlace viejo con ?pagina=N no rompe: se ignora y arranca de la primera tanda. La tanda 2 puede
+        // cargarse sola, así que no se afirma «exactamente 24» (carrera): se afirma lo estable, que la URL de
+        // la primera tanda no redirige, el listado se muestra y el total sigue siendo el del servidor.
+        await page.goto(`${base}/catalogo?categoria=${t.masivaId}&pagina=2`)
+        await expect(contador).toHaveText(`${MASIVOS} productos`)
+        await expect(tarjetas.first()).toBeVisible()
+        expect(await tarjetas.count()).toBeGreaterThanOrEqual(24)
+        expect(await tarjetas.count()).toBeLessThanOrEqual(MASIVOS)
+        await expect(page.getByRole('navigation', { name: 'Paginación del catálogo' })).toHaveCount(0)
+
+        // Cambiar un filtro reinicia la lista desde el principio.
+        await page.getByRole('button', { name: 'Solo con stock' }).click()
+        await expect(page).not.toHaveURL(/pagina=/)
+
+        // /catalogo sin categoría: nada de la otra tienda y valores inválidos de la URL se ignoran.
+        await page.goto(`${base}/catalogo?stock=quizas&max=-4&orden=raro&pagina=0`)
+        await expect(page.getByRole('heading', { level: 1, name: 'Todos los productos' })).toBeVisible()
+        await expect(tarjetas.first()).toBeVisible()
+        await expect(page.getByText(otra.barato)).toHaveCount(0)
+        await expect(page.getByText(otra.categoria)).toHaveCount(0)
+        await contexto.close()
+      }
+    } finally {
+      // Limpieza: los productos caen en cascada con sus existencias y filas de tienda.
+      for (const t of tiendas) {
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&sku=like.*${sufijo}`, 'dominio')
+        await borrar(`categorias?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+      }
+    }
+  })
+})

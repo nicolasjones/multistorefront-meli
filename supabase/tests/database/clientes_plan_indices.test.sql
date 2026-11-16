@@ -8,11 +8,11 @@ begin;
 
 select plan(5);
 
-insert into organizaciones (id, nombre)
+insert into public.organizaciones (id, nombre)
 values ('19a0c000-0000-4000-8000-000000005019', 'Org T019')
 on conflict (id) do nothing;
 
-insert into clientes (organizacion_id, nombre, documento, correo, localidad, tipo, archivado_en)
+insert into dominio.clientes (organizacion_id, nombre, documento, correo, localidad, tipo, archivado_en)
 select '19a0c000-0000-4000-8000-000000005019',
        (array['José','María','Ñandú','Sofía','Andrés','Luciana'])[1 + g % 6] || ' Cliente ' || g,
        lpad((20000000 + g)::text, 8, '0'),
@@ -22,7 +22,7 @@ select '19a0c000-0000-4000-8000-000000005019',
        case when g % 10 = 0 then now() end
   from generate_series(1, 5000) g;
 
-analyze public.clientes;
+analyze dominio.clientes;
 
 create function pg_temp.plan_de(p_sql text) returns text language plpgsql as $$
 declare
@@ -43,27 +43,31 @@ set local enable_seqscan = off;
 -- para que el test no dependa de empates de costo.
 set local enable_indexscan = off;
 
+-- En CI el planner a veces elegía el bitmap del btree de organización (la org entera es el seed) en lugar
+-- del GIN. Se descarta ese btree dentro de la transacción (rollback al final) para que la prueba no
+-- dependa del empate de costos; la paginación usa clientes_org_nombre_idx, que no se toca.
+drop index dominio.clientes_organizacion_id_idx;
+
 create temp table pg_temp.busqueda_plan as
 select pg_temp.plan_de($q$
-  select c.id from public.clientes c
+  select c.id from dominio.clientes c
    where c.organizacion_id = '19a0c000-0000-4000-8000-000000005019'
      and c.archivado_en is null
-     and lower(coalesce(c.nombre, '') || ' ' || coalesce(c.documento, '') || ' ' || coalesce(c.correo, '') || ' '
-         || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
-         || c.numero::text) like '%andrés cliente 42%'
+     and private.texto_busqueda_cliente(c.nombre, c.documento, c.correo, c.telefono, c.celular, c.localidad, c.expreso_preferido, c.numero)
+         like '%andrés cliente 42%'
 $q$) as plan;
 
 set local enable_indexscan = on;
 
 create temp table pg_temp.paginacion_plan as
 select pg_temp.plan_de($q$
-  select c.id from public.clientes c
+  select c.id from dominio.clientes c
    where c.organizacion_id = '19a0c000-0000-4000-8000-000000005019' and c.archivado_en is null
    order by lower(c.nombre), c.id limit 25 offset 50
 $q$) as plan;
 
 select cmp_ok(
-  (select count(*)::int from public.clientes
+  (select count(*)::int from dominio.clientes
     where organizacion_id = '19a0c000-0000-4000-8000-000000005019' and archivado_en is null
       and lower(nombre) like '%andrés cliente 42%'),
   '>', 0,
@@ -71,14 +75,14 @@ select cmp_ok(
 );
 
 select ok(
-  (select count(*) from public.clientes
+  (select count(*) from dominio.clientes
     where organizacion_id = '19a0c000-0000-4000-8000-000000005019'
       and not es_consumidor_final) = 5000,
   'seed de 5.000 clientes (sin el Consumidor final que crea el trigger de la org)'
 );
 
 select ok(
-  exists (select 1 from pg_indexes where schemaname = 'public' and indexname = 'clientes_busqueda_trgm_idx'),
+  exists (select 1 from pg_indexes where schemaname = 'dominio' and indexname = 'clientes_busqueda_trgm_idx'),
   'existe clientes_busqueda_trgm_idx (requiere pg_trgm)'
 );
 

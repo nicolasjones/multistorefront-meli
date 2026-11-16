@@ -6,6 +6,8 @@ sources:
 
 # Ingreso de mercadería por proveedor
 
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ingreso-de-mercaderia.md) · [guía de uso](producto/ingreso-de-mercaderia.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
 Épica MSF-219. Al terminar, el depósito registra la mercadería que llega de cada
 proveedor, el stock del depósito único sube de forma atómica y queda un historial
 con fecha, producto, cantidad, operador y proveedor.
@@ -84,6 +86,11 @@ cantidad, costo, destino, empresa, proveedor, operador, estado y el total del
 conjunto filtrado. Pagina en el servidor (25 por defecto, tope 100) y acepta
 filtros por fechas, proveedor, empresa, producto y operador.
 
+Número de fila del archivo de ingresos: `previsualizar_lote_archivo_ingresos` y
+`aplicar_lote_archivo_ingresos` exigen un entero positivo (`^[1-9]\d{0,8}$`); la
+fila `0`, los ceros a la izquierda, los decimales y los valores fuera de rango
+se rechazan con `22023`.
+
 ## Permisos
 
 | Acción | Requisito |
@@ -106,6 +113,61 @@ La UI oculta lo que el rol no puede hacer; la base lo vuelve a validar.
   anulación, stock insuficiente, permisos y aislamiento).
 - Vitest de `lib/ingresos`, `useRegistrarIngreso` e `IngresoMercaderiaForm`.
 
+## Archivo anterior al sistema (F-MIG-03, MSF-330)
+
+Segunda pestaña de Stock › Ingreso de mercadería: el historial de ingresos del panel
+anterior, como archivo de **solo consulta** (no dibujada en el prototipo; usa la tabla del
+historial con Fecha, Producto, Cantidad, Proveedor y Operador, paginada en servidor).
+
+- **Tabla** `dominio.archivo_ingresos_mercaderia` (esquema `dominio`: historial del negocio).
+  Producto, proveedor y operador son **texto** (los ~19 operadores históricos no son usuarios).
+  Único por `(organizacion_id, id_externo)`: reimportar actualiza, no duplica.
+- **Solo lectura:** RLS con `select` por organización (`stock` en `lectura`/`edicion`); sin
+  insert/update/delete para `authenticated` ni acceso para `anon`. Escribe únicamente la RPC
+  `aplicar_lote_archivo_ingresos` (Administrador), desde el asistente en
+  `/migracion/importar/ingresos_archivo` (`previsualizar_lote_archivo_ingresos` solo lee).
+- **No toca stock** ni `dominio.ingresos_mercaderia`: sin FK a productos, proveedores ni
+  depósitos; el stock inicial entra por la carga inicial de Stock (F-STK-07).
+- **Empresa activa (Principio VIII):** el archivo es de la organización (el panel anterior no
+  tenía empresas); la pestaña lo dice y no filtra ni recarga al cambiar de empresa.
+- **Plantilla CSV** `ingresos-anteriores.csv`: Identificador del panel actual, Fecha
+  (`AAAA-MM-DD` o `DD/MM/AAAA`), Producto, Cantidad (entero), Proveedor, Operador.
+- **Confirmación abierta (FR-035):** falta confirmar que el panel actual **exporta ingresos a
+  CSV/Excel** (para clientes ya está confirmado). Si no exporta, la carga depende de otra vía.
+- **Reimportar no borra valores:** si `proveedor` u `operador` vienen vacíos en una reimportación, se conserva el valor anterior (`coalesce`); para vaciarlos hay que corregirlos con un valor explícito.
+- **Identificador repetido:** la vista previa marca como error el `id_externo` repetido dentro del mismo lote (gana la primera fila válida), igual que el aplicado; entre lotes distintos solo el aplicado lo detecta.
+- **Pruebas:** pgTAP `archivo_ingresos.test.sql` (escritura directa rechazada, `anon`, rol,
+  aislamiento, idempotencia, stock e ingresos intactos); Vitest `ArchivoIngresos`,
+  entidad `ingresos` y guarda de fixtures sintéticas.
+- **Reversión** (migración posterior, exportando antes los datos): `drop function
+  public.previsualizar_lote_archivo_ingresos(jsonb), public.aplicar_lote_archivo_ingresos(uuid,
+  integer, jsonb), private.clasificar_fila_archivo_ingreso(uuid, jsonb),
+  private.validar_fila_archivo_ingreso(jsonb), private.fecha_archivo_ingreso(text);` y
+  `drop table dominio.archivo_ingresos_mercaderia;`.
+
+## Selectores de proveedor y producto (MSF-693)
+
+Los selectores de «Nuevo ingreso» y los filtros Proveedor/Producto del historial buscan en el
+servidor (`hooks/useBuscadorCatalogo`):
+
+- **Búsqueda en servidor:** al desplegar la lista traen los primeros 500 por nombre; al escribir,
+  consultan con `ilike` (razón social del proveedor; nombre o SKU del producto) con 250 ms de
+  espera. El texto se sanea antes de armar el filtro (`hooks/useBuscadorCatalogo.ts`): se acota el
+  largo, se quitan los caracteres que separan o agrupan condiciones de PostgREST (`,` `(` `)`
+  `"` `\`) y el comodín `*`, y se escapan los comodines de LIKE (`%` `_`), igual que en el listado
+  de productos. La última búsqueda gana: una respuesta vieja no pisa a la vigente.
+- **Aviso de truncado:** se pide una fila de más para detectar el corte. Si hay más de 500
+  coincidencias se muestra «Hay más de 500 productos: escribí para buscar el que necesitás.» y el
+  aviso sigue visible después de elegir (no lo tapa el texto del producto elegido).
+- **Lo elegido se conserva:** el proveedor o producto elegido se guarda aparte de la lista
+  visible, así sigue en el campo aunque cambie la búsqueda o el registro no esté en la página
+  actual. Al elegir se vuelve a la lista completa.
+- **Errores:** si la consulta falla, el campo lo dice («No pudimos buscar productos. Probá de
+  nuevo.») y el formulario sigue operativo.
+
+Sin migración: aplican la RLS existente de `dominio.proveedores` y `dominio.productos` (la
+organización la resuelve la RLS; la búsqueda no cambia los permisos).
+
 ## Reversión
 
 Migraciones posteriores, exportando antes los datos:
@@ -120,3 +182,27 @@ drop table dominio.ingresos_mercaderia_lineas;
 drop table dominio.ingresos_mercaderia;
 -- restaurar private.sembrar_motivos_movimiento y borrar el motivo de anulación
 ```
+
+## Costo opcional y evolución del costo (F-PRV-07, MSF-448)
+
+- **Costo opcional por línea.** `dominio.ingresos_mercaderia_lineas.costo_unitario_usd` admite `NULL`
+  (migración `20270205110205_costo_ingreso_opcional.sql`). `registrar_ingreso_mercaderia` (misma firma)
+  acepta líneas sin costo —clave ausente o `null`— y las guarda con costo nulo, **no cero**. Con
+  `p_actualizar_costo`, una línea sin costo no toca el costo del producto. El formulario deja el campo
+  «Costo unit. USD» vacío sin error; un costo mal escrito (más de dos decimales) sigue rechazándose.
+- **Evolución del costo.** `public.historial_costos_producto(p_producto_id, p_proveedor_id default null)`
+  (`20270205110206_historial_costos_producto.sql`, `security definer`, solo lectura): una fila por línea de
+  ingreso **registrado** (no anulado) **con costo**, con proveedor, fecha, comprobante y costo, ordenada por
+  fecha. Exige lectura/edición en **Rentabilidad y Proveedores** (no depende de Stock), toma la organización de
+  la sesión y respeta las empresas accesibles. `anon` sin acceso. No crea tablas (esquema: función en `public`).
+- **UI.** En la ficha del proveedor, cada producto ofrece «Evolución del costo» (solo con ambos permisos):
+  `DialogoEvolucionCosto` muestra una serie por proveedor (todas las que vendieron el producto, para comparar)
+  con fecha, comprobante y USD; estados de carga, vacío, error y sin permiso. Empresa activa (Principio VIII):
+  no aplica, la ficha del proveedor no se filtra por la empresa de la barra superior; los datos se acotan a las
+  empresas accesibles del usuario en la base.
+- **Decisión pendiente (spec, decisión abierta 1).** Se relajó la columna existente en vez de agregar otra; falta
+  el OK de Nicolás.
+- **Reversión** (migración posterior): restaurar la versión de `registrar_ingreso_mercaderia` de `20261021180100`,
+  `drop function public.historial_costos_producto(uuid, uuid);` y
+  `alter table dominio.ingresos_mercaderia_lineas alter column costo_unitario_usd set not null;` solo si no
+  quedan filas con costo nulo.

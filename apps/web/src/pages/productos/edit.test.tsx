@@ -20,13 +20,21 @@ const mocks = vi.hoisted(() => ({
   quitarArchivo: vi.fn(),
   useNivelSeccion: vi.fn(),
   useProveedoresBasico: vi.fn(),
+  useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
+  useAlicuotas: vi.fn(),
   empresasProducto: vi.fn(),
+  escalasProducto: vi.fn(),
+  disponibilidad: vi.fn(),
+  relacionados: vi.fn(),
+  variantes: vi.fn(),
+  usePreciosPropios: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
+    from: (tabla: string) => ({ select: () => ({ eq: () => ({ maybeSingle: mocks.disponibilidad, order: () => ({ returns: tabla === 'v_producto_variantes' ? mocks.variantes : mocks.relacionados }) }) }) }),
     schema: () => ({
       from: (tabla: string) => ({
         select: () => ({
@@ -35,7 +43,9 @@ vi.mock('../../lib/supabase', () => ({
               ? { order: () => ({ returns: mocks.imagenes }), returns: mocks.imagenes }
               : tabla === 'producto_empresa'
                 ? { returns: mocks.empresasProducto }
-                : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
+                : tabla === 'producto_precios_escala'
+                  ? { returns: mocks.escalasProducto }
+                  : { maybeSingle: tabla === 'productos' ? mocks.producto : mocks.costo },
         }),
         insert: mocks.insertarImagen,
         delete: () => ({ eq: () => ({ select: mocks.eliminarImagen }) }),
@@ -47,7 +57,11 @@ vi.mock('../../lib/supabase', () => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useCategorias', () => ({ useCategorias: mocks.useCategorias }))
 vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks.useProveedoresBasico }))
+vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
+vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+// El bloque «Precio propio por empresa» (F-PRE-08) tiene su propio test; acá solo se comprueba que se monta.
+vi.mock('../../hooks/usePreciosPropios', () => ({ usePreciosPropios: mocks.usePreciosPropios }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
 import { ProductoEdit } from './edit'
@@ -58,6 +72,10 @@ const niveles = (productos: string, rentabilidad: string) =>
     isLoading: false,
   }))
 
+const A21 = { id: 'a21', nombre: '21 %', porcentaje: 21, exento: false }
+const A105 = { id: 'a105', nombre: '10,5 %', porcentaje: 10.5, exento: false }
+const EXENTO = { id: 'ex', nombre: 'Exento', porcentaje: 0, exento: true }
+
 const CATEGORIAS = [
   { id: 'cat-0', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: [] },
   { id: 'cat-1', nombre: 'Cableados', padre_id: 'cat-0', posicion: 0, empresa_ids: [] },
@@ -66,7 +84,7 @@ const CATEGORIAS = [
 const PRODUCTO = {
   id: 'p-1', organizacion_id: 'org-1', nombre: 'Joystick', descripcion: null, sku: 'JOY-1', compatible_con: ['PS5'],
   moneda: 'USD', precio_lista: 49.9, activo: true, updated_at: '2026-01-01T10:00:00.123456+00:00',
-  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1',
+  proveedor_id: 'prv-2', codigo_proveedor: 'VIEJO-1', codigo_barras: '7790001000015', categoria_id: 'cat-1', alicuota_iva_id: null,
 }
 
 const abrir = () =>
@@ -86,6 +104,7 @@ describe('ProductoEdit', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     niveles('edicion', 'edicion')
     mocks.producto.mockResolvedValue({ data: PRODUCTO, error: null })
+    mocks.useCotizacionInicial.mockReturnValue({ cotizacion: null, cargando: false, hayError: false, recargar: vi.fn() })
     mocks.useProveedoresBasico.mockReturnValue({
       proveedores: [
         { id: 'prv-1', razon_social: 'Proveedor Uno SA', activo: true },
@@ -94,11 +113,19 @@ describe('ProductoEdit', () => {
       cargando: false, hayError: false, recargar: vi.fn(),
     })
     mocks.costo.mockResolvedValue({ data: { costo: 20 }, error: null })
+    mocks.useAlicuotas.mockReturnValue({ alicuotas: [A21, A105, EXENTO], porId: new Map([[A21.id, A21], [A105.id, A105], [EXENTO.id, EXENTO]]), isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresas.mockReturnValue({
       empresas: [{ id: 'emp-1', nombre: 'San Javucho', activa: true }, { id: 'emp-2', nombre: 'Mundo JC', activa: true }],
       isLoading: false, isError: false, refetch: vi.fn(),
     })
     mocks.empresasProducto.mockResolvedValue({ data: [{ empresa_id: 'emp-1' }], error: null })
+    mocks.escalasProducto.mockResolvedValue({ data: [{ escala: 'x5', precio: '40.00' }], error: null })
+    mocks.disponibilidad.mockResolvedValue({ data: { disponibilidad: 'sin_stock' }, error: null })
+    mocks.relacionados.mockResolvedValue({ data: [], error: null })
+    mocks.variantes.mockResolvedValue({ data: [], error: null })
+    mocks.usePreciosPropios.mockReturnValue({
+      precios: [], netos: new Map(), cargando: false, hayError: false, fijar: vi.fn(), quitar: vi.fn(),
+    })
     mocks.rpc.mockResolvedValue({ data: PRODUCTO, error: null })
     mocks.imagenes.mockResolvedValue({ data: [], error: null })
     mocks.firmar.mockResolvedValue({ data: [], error: null })
@@ -127,6 +154,29 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
   })
 
+  it('al cambiar solo el stock de una variante, manda solo esa fila con lo que se leyó y no toca el producto (F-CAT-15)', async () => {
+    mocks.variantes.mockResolvedValue({
+      data: [
+        { id: 'v1', nombre: 'Negro', codigo: 'JOY-N', codigo_barras: null, activa: true, stock: 4 },
+        { id: 'v2', nombre: 'Blanco', codigo: 'JOY-B', codigo_barras: null, activa: true, stock: 3 },
+      ],
+      error: null,
+    })
+    abrir()
+    const stock = await screen.findByLabelText('Stock de la variante 1')
+    expect(stock).toHaveValue(4)
+    fireEvent.change(stock, { target: { value: '9' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('guardar_variantes_producto', expect.anything()))
+    const llamada = mocks.rpc.mock.calls.find(([nombre]) => nombre === 'guardar_variantes_producto')
+    const variantes = (llamada?.[1] as { p_variantes: Array<Record<string, unknown>> }).p_variantes
+    expect(variantes[0]).toMatchObject({ id: 'v1', stock: 9, stock_leido: 4 })
+    // Blanco no se tocó: su stock no viaja, así que la base no puede interpretarlo como un conteo que pise un movimiento ajeno.
+    expect(variantes[1]).toMatchObject({ id: 'v2' })
+    expect(variantes[1]).not.toHaveProperty('stock')
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
   it('conserva el proveedor desactivado ya asignado y reenvía proveedor y código al guardar', async () => {
     abrir()
     expect(await screen.findByLabelText(/^Proveedor$/)).toHaveValue('Proveedor Viejo SA (inactivo)')
@@ -141,6 +191,40 @@ describe('ProductoEdit', () => {
     )
   })
 
+  it('carga los precios por escala y guarda solo ellos con guardar_precios_escala (sin tocar actualizar_producto)', async () => {
+    abrir()
+    expect(await screen.findByLabelText(/^x5 · 5 a 9 u\./)).toHaveValue('40,00')
+    expect(screen.getByLabelText(/^x10 · 10 a 49 u\./)).toHaveValue('')
+    fireEvent.change(screen.getByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35,5' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('guardar_precios_escala', { p_producto: 'p-1', p_x5: 40, p_x10: 35.5, p_x50: null }),
+    )
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+  })
+
+  it('un precio por escala inválido no viaja y deja el error en el campo', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^x50 · 50 u\. o más/), { target: { value: '-3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/Ingresá un precio de cero o más/)).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('si fallan los precios por escala el producto queda guardado y se ofrece reintentar', async () => {
+    mocks.rpc.mockImplementation(async (nombre: string) =>
+      nombre === 'guardar_precios_escala' ? { data: null, error: { code: '42501', message: 'x' } } : { data: PRODUCTO, error: null },
+    )
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^x10 · 10 a 49 u\./), { target: { value: '35' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText(/no pudimos guardar los precios por escala/)).toBeInTheDocument()
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar precios por escala' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los precios por escala/)).not.toBeInTheDocument())
+  })
+
   it('muestra el código de barras y lo reenvía al guardar', async () => {
     abrir()
     const campo = await screen.findByLabelText('Código de barras (EAN-13)')
@@ -152,6 +236,45 @@ describe('ProductoEdit', () => {
         expect.objectContaining({ p_codigo_barras: '7790001000015', p_cambiar_codigo_barras: true }),
       ),
     )
+  })
+
+  it('muestra la disponibilidad calculada y reenvía la elección manual al guardar (F-CAT-17)', async () => {
+    abrir()
+    const sinStock = await screen.findByRole('radio', { name: /^Sin stock/ })
+    expect(sinStock).toBeChecked()
+    expect(sinStock).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /^Stock \(calculado\)/ })).toBeDisabled()
+    fireEvent.click(screen.getByRole('radio', { name: /^A pedido/ }))
+    expect(screen.getByText('Se consigue bajo pedido.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: 'a_pedido', p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('quitar la elección manual de disponibilidad viaja nulo (vuelve a la calculada)', async () => {
+    mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, disponibilidad_manual: 'stock_entrante' }, error: null })
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^Stock entrante en breve/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar la elección manual' }))
+    expect(screen.getByRole('radio', { name: /^Sin stock/ })).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_producto',
+        expect.objectContaining({ p_disponibilidad_manual: null, p_cambiar_disponibilidad: true }),
+      ),
+    )
+  })
+
+  it('con solo lectura en Productos la disponibilidad se ve pero no se elige', async () => {
+    niveles('lectura', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('radio', { name: /^A pedido/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Quitar la elección manual' })).not.toBeInTheDocument()
   })
 
   it('vaciar el código de barras viaja nulo', async () => {
@@ -225,6 +348,15 @@ describe('ProductoEdit', () => {
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nuevo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_costo: null })))
+  })
+
+  it('la ficha muestra «Precios por escala · sin IVA» con «No disponible» mientras Precios no entrega las escalas (F-CAT-16, FR-004)', async () => {
+    niveles('edicion', 'ninguno')
+    abrir()
+    expect(await screen.findByRole('heading', { level: 2, name: 'Precios por escala · sin IVA' })).toBeInTheDocument()
+    expect(screen.getByText('Minorista usa x1 · Mayorista usa la escala según la cantidad')).toBeInTheDocument()
+    expect(await screen.findByText('No disponible')).toBeInTheDocument()
+    expect(screen.queryByText(/Margen/)).not.toBeInTheDocument()
   })
 
   it('con solo lectura muestra la ficha sin acción de guardar', async () => {
@@ -388,6 +520,84 @@ describe('ProductoEdit', () => {
     await waitFor(() => expect(screen.queryByText(/no pudimos guardar las empresas que lo venden/)).not.toBeInTheDocument())
   })
 
+  it('carga los relacionados y guarda solo el cambio de orden con guardar_relacionados (F-CAT-18)', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [
+        { relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' },
+        { relacionado_id: 'r-2', orden: 2, nombre: 'Funda', sku: 'FUN-1', categoria: null, precio: 15, moneda: 'USD' },
+      ],
+      error: null,
+    })
+    abrir()
+    expect(await screen.findByText('2 productos')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Subir Funda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_relacionados', { p_producto: 'p-1', p_relacionados: ['r-2', 'r-1'] })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si no cambian los relacionados no llama a guardar_relacionados', async () => {
+    abrir()
+    expect(await screen.findByText('0 productos')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_relacionados', expect.anything())
+  })
+
+  it('si falla guardar los relacionados, los datos quedan guardados y se ofrece reintentar', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }],
+      error: null,
+    })
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre !== 'guardar_relacionados') return Promise.resolve({ data: PRODUCTO, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: {}, error: null })
+    })
+    abrir()
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar los productos relacionados/)).toBeInTheDocument()
+    expect(screen.queryByText(/boom interno/)).not.toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los productos relacionados/)).not.toBeInTheDocument())
+  })
+
+  it('si la lectura de los relacionados falla, tras el reintento muestra la lista y no la borra al guardar', async () => {
+    let fallar = true
+    mocks.relacionados.mockImplementation(async () =>
+      fallar
+        ? { data: null, error: { code: 'XX000' } }
+        : { data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }], error: null },
+    )
+    abrir()
+    expect(await screen.findByText('No pudimos cargar los productos relacionados.')).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    expect(await screen.findByText('1 producto')).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    // La lista que ya estaba guardada no se manda vacía: los relacionados siguen en pie.
+    expect(mocks.rpc).not.toHaveBeenCalledWith('guardar_relacionados', expect.anything())
+  })
+
+  it('con solo lectura los relacionados se ven sin controles', async () => {
+    mocks.relacionados.mockResolvedValue({
+      data: [{ relacionado_id: 'r-1', orden: 1, nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }],
+      error: null,
+    })
+    niveles('lectura', 'ninguno')
+    abrir()
+    expect(await screen.findByText('Vidrio')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Quitar Vidrio' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' })).not.toBeInTheDocument()
+  })
+
   it('con solo lectura las empresas se ven pero no se pueden cambiar', async () => {
     niveles('lectura', 'ninguno')
     abrir()
@@ -408,6 +618,42 @@ describe('ProductoEdit', () => {
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
     expect(mocks.rpc).toHaveBeenCalledWith('asignar_categoria_producto', { p_producto_id: 'p-1', p_categoria_id: null })
     expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('el IVA hereda de la categoría y cambiarlo guarda solo asignar_alicuota_producto (F-PRE-12)', async () => {
+    abrir()
+    const selector = await screen.findByRole('combobox', { name: 'IVA' })
+    expect(selector).toHaveTextContent('Heredar de la categoría')
+    fireEvent.mouseDown(selector)
+    fireEvent.click(screen.getByRole('option', { name: '10,5 %' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('asignar_alicuota_producto', { p_producto: 'p-1', p_alicuota: 'a105' })
+    expect(mocks.rpc).not.toHaveBeenCalledWith('actualizar_producto', expect.anything())
+  })
+
+  it('si falla el IVA, los datos quedan guardados y se ofrece reintentar', async () => {
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(nombre === 'asignar_alicuota_producto' && fallar ? { data: null, error: { code: '42501', message: 'raw' } } : { data: null, error: null }),
+    )
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'IVA' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Exento' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Los datos se guardaron, pero no pudimos guardar el IVA.')).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar IVA' }))
+    await waitFor(() => expect(screen.queryByText('Los datos se guardaron, pero no pudimos guardar el IVA.')).not.toBeInTheDocument())
+  })
+
+  it('sin cambiar el IVA no llama a la RPC de IVA', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('asignar_alicuota_producto', expect.anything())
   })
 
   it('sin cambiar la categoría no llama a la RPC de categoría', async () => {
@@ -441,5 +687,13 @@ describe('ProductoEdit', () => {
     abrir()
     const selector = await screen.findByRole('combobox', { name: 'Categoría' })
     expect(selector).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('la ficha monta «Precio propio por empresa» con las empresas del producto', async () => {
+    abrir()
+    expect(await screen.findByRole('heading', { name: 'Precio propio por empresa' })).toBeInTheDocument()
+    // Solo San Javucho vende el producto (emp-1); Mundo JC no tiene fila.
+    expect(await screen.findByLabelText('Precio propio (San Javucho)')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Precio propio (Mundo JC)')).not.toBeInTheDocument()
   })
 })

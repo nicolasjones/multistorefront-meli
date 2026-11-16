@@ -31,7 +31,7 @@ select is(has_table_privilege('anon', 'dominio.ingresos_mercaderia', 'select'), 
 
 select is(
   (select count(*)::int from dominio.motivos_movimiento where organizacion_id = '33333333-3333-3333-3333-333333333333'),
-  6, 'una organización nueva nace con los 6 motivos (incluye anulación)'
+  8, 'una organización nueva nace con los 8 motivos (incluye anulación, toma de inventario y carga inicial)'
 );
 select is(
   (select count(*)::int from dominio.motivos_movimiento

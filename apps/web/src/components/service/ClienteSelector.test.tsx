@@ -22,6 +22,7 @@ const cliente = (extra: Partial<ClienteListado>): ClienteListado => ({
   es_consumidor_final: false,
   archivado_en: null,
   empresas: [],
+  cuentas_web: [],
   ...extra,
 })
 

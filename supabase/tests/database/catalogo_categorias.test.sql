@@ -81,7 +81,7 @@ select is(
   (select attname::text from pg_attribute
     where attrelid = 'public.v_productos_listado'::regclass and attnum > 0 and not attisdropped
     order by attnum desc limit 1),
-  'categoria_ids', 'categoria_ids es la última columna de la vista'
+  'compatible_con', 'compatible_con es la última columna de la vista (MSF-360; codigo_barras la precede, F-CAT-14)'
 );
 select is(has_table_privilege('anon', 'public.v_categorias_productos', 'SELECT'), false, 'anon no lee v_categorias_productos');
 select is(has_table_privilege('authenticated', 'public.v_categorias_productos', 'SELECT'), true, 'authenticated lee v_categorias_productos');

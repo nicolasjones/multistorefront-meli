@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261018-170000-empresas-accesibles-y-filtro
+  - specs/20261018-190000-proveedores-y-productos
+  - apps/web/src/components/proveedores/ProveedorFormDialog.tsx
+  - apps/web/src/lib/cuit.ts
+  - apps/web/src/pages/proveedores/list.tsx
+  - apps/web/src/pages/proveedores/show.tsx
+  - supabase/migrations/20261018190001_proveedores_tabla.sql
+  - supabase/migrations/20261018190100_proveedores_rpc.sql
+---
+
 # Proveedores
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/proveedores.md) · [guía de uso](producto/proveedores.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Épica MSF-205 (spec `specs/20261018-190000-proveedores-y-productos/`). Cubre el alta y edición con CUIT
 (F-PRV-01, MSF-336), el listado y la búsqueda (F-PRV-02, MSF-351) y la relación con los productos (F-PRV-03,
@@ -9,9 +24,31 @@ MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; ca
 El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
 importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
 barras y varios proveedores por producto. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
-seguimiento en Jira (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
+seguimiento en el tracker (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
 importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
 varios proveedores por producto MSF-530.
+
+## Varios contactos por proveedor (F-PRV-08, MSF-449)
+
+- **Tabla** `dominio.proveedores_contactos` (esquema `dominio`: es parte de la entidad de negocio «proveedor»): `nombre`
+  obligatorio, `rol`, `correo`, `telefono`, `principal`. RLS por organización y `nivel_seccion('proveedores')`
+  (`lectura`/`edicion` leen); **sin grants de escritura ni `DELETE`** directos; `anon` sin acceso. FK compuesta
+  `(proveedor_id, organizacion_id)`.
+- **Un solo principal por proveedor**, garantizado por el índice único parcial `proveedores_contactos_un_principal_idx`.
+- **RPC** (`security definer`, `revoke … from public, anon`, `grant … to authenticated`):
+  `listar_contactos_proveedor(p_proveedor_id)` (lectura/edición), `agregar_contacto_proveedor(...)` y
+  `marcar_contacto_principal(p_contacto_id)` (edición). Ambas escrituras bloquean la fila del proveedor (`for update`):
+  dos altas simultáneas como principal se serializan y queda una sola. Marcar un principal desmarca al anterior y
+  **copia nombre, correo y teléfono** a `persona_contacto`, `correo` y `telefono` de la ficha, en la misma transacción
+  (esa copia también deja el evento `proveedor.editado` del disparador existente).
+- **Ficha**: sección «Contactos» (`ListaContactos`) con «Agregar contacto» y «Marcar como principal», ocultas sin
+  edición. En «Editar proveedor», con principal, «Persona de contacto», «Correo» y «Teléfono» son de solo lectura con la
+  leyenda «Se toma del contacto principal»; sin principal se editan como antes.
+- **Actividad**: `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado` (ver `docs/actividad.md`).
+- **Reversión** (migración posterior, exportando antes los datos): `drop` de las tres RPC, de
+  `private.aplicar_contacto_principal`, de `private.registrar_actividad_contacto_proveedor` y de la tabla.
+- Pruebas: pgTAP `proveedores_contactos` (CA-PRV-08-1, concurrencia, RLS, grants, `anon`) y Vitest `ListaContactos` /
+  `ProveedorFormDialog`.
 
 ## Revisión de seguridad de cierre (T028)
 
@@ -93,8 +130,12 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   (Principio VII: es una relación del negocio). RLS de lectura por organización y sección `proveedores`; sin grants
   de escritura: solo escribe `guardar_empresas_de_proveedor`. Un disparador valida que proveedor y tienda sean de la
   misma organización. Los proveedores existentes quedan sin tiendas marcadas; un alta nueva también (hay que elegir).
-- Diálogo Nuevo/Editar: chips «Compra para» (uno por tienda). Se guardan después del proveedor; si fallan, el aviso
-  dice que el proveedor sí se guardó y el reintento no lo duplica. Si no se tocan, no se llama a la RPC.
+- Diálogo Nuevo/Editar: casillas «Compra para» (una por tienda), con el mismo patrón de
+  `SelectorEmpresas` que «Disponible en» de Cuentas de cobro. Se guardan después del proveedor; si fallan, el aviso
+  dice que el proveedor sí se guardó y ofrece «Reintentar»: el reintento **vuelve a guardar el formulario
+  completo** sobre el mismo proveedor —no lo duplica— con lo que la persona editó después del fallo, y usando el
+  `updated_at` que devolvió el guardado anterior (si no, el reintento chocaría con el bloqueo optimista). Si no se
+  tocan las tiendas, no se llama a la RPC. (MSF-698)
 - Listado: columna «Compra para» (chips) y filtro «Tienda» (servidor, `p_empresa_id`). Ficha: dato «Compra para».
 - Reversión (migración posterior): ver el encabezado de `20261019120000_proveedores_empresas.sql`.
 
@@ -136,6 +177,14 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 - Reversión: restaurar las RPC de `20261017120200`/`20261017120400`, luego `drop function productos_de_proveedor`,
   `drop view proveedores_basico` y quitar las dos columnas (migración posterior, exportando antes los datos).
 
+## Importación desde el panel actual (F-MIG-02, MSF-313)
+
+El listado suma «Importar» (solo Administrador) que abre el asistente de migración
+(`/migracion/importar/proveedores`). `dominio.proveedores.id_externo` guarda el identificador del
+panel actual (nullable, único por organización) y concilia la carga: reimportar actualiza, no duplica.
+Los vínculos con productos se cargan con `/migracion/importar/vinculos-proveedor-producto`.
+Detalle y reglas en [migracion-datos.md](migracion-datos.md).
+
 ## Actividad
 
 `proveedor.creado|editado|desactivado|reactivado` en `public.registro_actividad` (ver `docs/actividad.md`).
@@ -146,3 +195,7 @@ Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en
 datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
 `private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
+
+## Listados con carga infinita
+
+El listado de proveedores y la sección «Productos» de la ficha cargan por tandas (25 y 10) al llegar al final del scroll, con «Cargar más» como alternativa por teclado; no hay paginación numerada. Siguen pidiendo «la página N» a `listar_proveedores` y `productos_de_proveedor`; el contador total, la búsqueda y los filtros se conservan y cambiarlos (o guardar un proveedor nuevo) vuelve a la primera tanda. En «Productos» cada fila muestra la imagen principal como miniatura con zoom al pasar el mouse. Ver [`listados.md`](./listados.md).

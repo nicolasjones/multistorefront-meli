@@ -1,0 +1,135 @@
+import { randomUUID } from 'node:crypto'
+import { expect, test } from '@playwright/test'
+import { UPSERT_FUSIONAR, borrar, rest, serviceKey, url } from './soporte/fixtures'
+
+// Cierre de la épica MSF-147 (T038, SC-003): con los dos dominios del seed (mundojc.localhost y
+// sanjavucho.localhost) la identidad, los textos y el catálogo visible de cada tienda cambian solo
+// la propia. Requiere el stack local (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web
+// servida; siembra la identidad, el contenido y los productos con la API admin desde Node (la
+// service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
+// archivo se omite (no entra al CI público): ver docs/e2e-app.md.
+
+// Ids fijos de supabase/seed.sql (MSF-241).
+const TIENDAS = [
+  {
+    host: 'mundojc.localhost',
+    organizacion: '0f5eed00-0000-4000-8000-000000000001',
+    empresa: '0f5eed01-0000-4000-8000-000000000001',
+    nombre: 'Mundo JC',
+    color: '#AA1111',
+    bienvenida: 'Bienvenido a Mundo JC',
+    pie: 'Pie de Mundo JC',
+  },
+  {
+    host: 'sanjavucho.localhost',
+    organizacion: '0f5eed00-0000-4000-8000-000000000002',
+    empresa: '0f5eed01-0000-4000-8000-000000000002',
+    nombre: 'San Javucho',
+    color: '#1111AA',
+    bienvenida: 'Bienvenido a San Javucho',
+    pie: 'Pie de San Javucho',
+  },
+] as const
+
+// Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
+const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
+
+test.describe('Tienda online · dos dominios (SC-003)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('identidad, textos y catálogo visible de cada tienda cambian solo la propia', async ({ browser }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const tiendas = TIENDAS.map((t) => ({
+      ...t,
+      visible: `Visible ${t.nombre} ${sufijo}`,
+      oculto: `Oculto ${t.nombre} ${sufijo}`,
+    }))
+
+    try {
+      for (const t of tiendas) {
+        await rest('tienda_identidad?on_conflict=empresa_id', { empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', { empresa_id: t.empresa, organizacion_id: t.organizacion, bienvenida: t.bienvenida, pie: t.pie }, 'dominio', UPSERT_FUSIONAR)
+        const [visible, oculto] = await rest<{ id: string }>('productos', [
+          { organizacion_id: t.organizacion, nombre: t.visible, sku: `E2E-V-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 10 },
+          { organizacion_id: t.organizacion, nombre: t.oculto, sku: `E2E-O-${t.empresa.slice(-1)}-${sufijo}`, precio_lista: 20 },
+        ], 'dominio')
+        await rest('producto_empresa', [visible, oculto].map((p) => ({ producto_id: p.id, empresa_id: t.empresa, organizacion_id: t.organizacion })), 'dominio')
+        await rest('productos_tienda', { empresa_id: t.empresa, producto_id: oculto.id, organizacion_id: t.organizacion, visible: false }, 'dominio')
+      }
+
+      for (const t of tiendas) {
+        const otra = tiendas.find((x) => x.host !== t.host)!
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        await page.goto(`http://${t.host}:${puerto}/`)
+
+        await expect(page.getByRole('heading', { level: 1, name: t.nombre })).toBeVisible()
+        await expect(page.getByText(t.bienvenida)).toBeVisible()
+        await expect(page.getByText(t.pie)).toBeVisible()
+        // El inicio ya no lista productos sueltos (solo categorías y destacados): el catálogo visible se comprueba con la búsqueda.
+        const buscador = page.getByRole('combobox', { name: 'Buscar productos' })
+        await buscador.fill(t.visible)
+        await expect(page.getByRole('option', { name: new RegExp(t.visible) })).toBeVisible()
+        await buscador.fill(t.oculto)
+        // La búsqueda tolera errores: puede sugerir el visible, pero nunca el oculto.
+        await expect(page.getByRole('listbox').or(page.getByText('No encontramos productos con ese nombre.'))).toBeVisible()
+        await expect(page.getByRole('option', { name: new RegExp(t.oculto) })).toHaveCount(0)
+        await buscador.fill('')
+        // Identidad: el color primario de la propia tienda queda como variable de tema.
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue('--tienda-color-primario')))
+          .toBe(t.color)
+
+        // Nada de lo oculto ni de la otra tienda.
+        await expect(page.getByText(t.oculto)).toHaveCount(0)
+        await expect(page.getByText(otra.bienvenida)).toHaveCount(0)
+        await expect(page.getByText(otra.pie)).toHaveCount(0)
+        await expect(page.getByText(otra.visible)).toHaveCount(0)
+        await contexto.close()
+      }
+    } finally {
+      // Limpieza: los productos caen en cascada con sus filas de tienda; identidad y contenido
+      // vuelven al estado del seed (sin fila).
+      for (const t of tiendas) {
+        await borrar(`productos?organizacion_id=eq.${t.organizacion}&nombre=like.*${sufijo}`, 'dominio')
+        await borrar(`tienda_identidad?empresa_id=eq.${t.empresa}`, 'dominio')
+        await borrar(`tienda_contenido?empresa_id=eq.${t.empresa}`, 'dominio')
+      }
+    }
+  })
+
+  // MSF-848: el estilo del encabezado y las mayúsculas son configuración de la identidad, no de la tienda: cada
+  // dominio muestra el suyo (MundoJC oscuro y con mayúsculas; San Javucho claro y sin ellas).
+  test('el estilo del encabezado y las mayúsculas salen de la identidad de cada tienda', async ({ browser }) => {
+    const sufijo = randomUUID().slice(0, 8)
+    const config = [
+      { ...TIENDAS[0], estilo: 'oscuro', mayusculas: true, transformacion: 'uppercase' },
+      { ...TIENDAS[1], estilo: 'claro', mayusculas: false, transformacion: 'none' },
+    ]
+    try {
+      for (const t of config) {
+        await rest('tienda_identidad?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, color_primario: t.color, estilo_heroe: t.estilo, titulos_mayusculas: t.mayusculas,
+        }, 'dominio', UPSERT_FUSIONAR)
+        await rest('tienda_contenido?on_conflict=empresa_id', {
+          empresa_id: t.empresa, organizacion_id: t.organizacion, titulo: `Héroe ${t.nombre} ${sufijo}`, texto_boton: 'Ver catálogo', boton_destino: 'catalogo',
+        }, 'dominio', UPSERT_FUSIONAR)
+      }
+      for (const t of config) {
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        await page.goto(`http://${t.host}:${puerto}/`)
+        const banner = page.getByTestId('banner-home')
+        await expect(banner).toHaveAttribute('data-estilo', t.estilo)
+        await expect(page.getByRole('heading', { level: 1, name: `Héroe ${t.nombre} ${sufijo}` })).toHaveCSS('text-transform', t.transformacion)
+        await expect(banner.getByRole('link', { name: 'Ver catálogo' })).toHaveCSS('text-transform', t.transformacion)
+        await contexto.close()
+      }
+    } finally {
+      for (const t of config) {
+        await borrar('tienda_identidad', `empresa_id=eq.${t.empresa}`)
+        await borrar('tienda_contenido', `empresa_id=eq.${t.empresa}`)
+      }
+    }
+  })
+})

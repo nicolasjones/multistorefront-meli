@@ -1,33 +1,54 @@
 import { type ChangeEvent, type ComponentProps, type FormEvent, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { useCotizacionInicial } from '../../hooks/useCotizacionInicial'
 import { type ProveedorBasico, useProveedoresBasico } from '../../hooks/useProveedoresBasico'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useCategorias } from '../../hooks/useCategorias'
+import { useAlicuotas } from '../../hooks/useAlicuotas'
 import {
-  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, MenuItem, Stack, TextField,
+  Alert, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControl, FormControlLabel,
+  FormHelperText, FormLabel, Radio, RadioGroup, Stack, TextField, Typography,
 } from '@mui/material'
 import {
   type CampoProducto,
   AYUDA_SKU,
+  DISPONIBILIDADES,
+  type Disponibilidad,
+  type DisponibilidadManual,
   type ErroresProducto,
   type FormularioProducto as DatosFormulario,
   AVISO_FALTAN_DATOS,
-  MONEDAS,
-  PRECIO_EN_PESOS_NO_DISPONIBLE,
   esConflicto,
   hayCambios,
   esCodigoBarrasRepetido,
   esSkuRepetido,
   mensajeDeError,
+  parsearImporte,
   validarProducto,
 } from '../../lib/productos'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES, hayCambiosImagenes } from '../../lib/productoImagenes'
 import { EstadoError } from '../estados/EstadosPagina'
+import { PrecioCostoBloque } from '../precios/PrecioCostoBloque'
+import { EscalasPrecio } from '../precios/EscalasPrecio'
+import {
+  ESCALAS_CON_PRECIO,
+  type ErroresEscala,
+  type PreciosEscala,
+  PRECIOS_ESCALA_VACIOS,
+  hayCambiosEscalas,
+  validarPreciosEscala,
+} from '../../lib/escalas'
+import { IvaProducto } from '../precios/IvaProducto'
+import { SIN_ALICUOTA_PRODUCTO } from '../../lib/iva'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { empresasCambiaron } from '../../lib/productoEmpresas'
 import { EmpresasProducto } from './EmpresasProducto'
 import { SelectorCategoria } from './SelectorCategoria'
 import { ImagenesProducto } from './ImagenesProducto'
+import { BloqueRelacionados } from './BloqueRelacionados'
+import { BloqueVariantes } from './BloqueVariantes'
+import { type ErrorVariante, ErrorGuardarVariantes, type FilaVariante, erroresPorFila, mensajeErrorVariantes, variantesCambiaron } from '../../lib/productos-variantes'
+import { type Relacionado, relacionadosCambiaron } from '../../lib/productos-relacionados'
 
 type Props = {
   inicial: DatosFormulario
@@ -37,14 +58,33 @@ type Props = {
   empresasIniciales?: readonly string[]
   // Categoría actual del producto (edición, F-CAT-08); '' = sin categoría. En el alta no hay.
   categoriaInicial?: string
+  // Alícuota propia del producto (edición, F-PRE-12); '' = hereda la de su categoría.
+  alicuotaInicial?: string
+  // Precios por escala del producto (edición, F-PRE-15); en el alta no hay (sin precio = usa la lista).
+  escalasIniciales?: PreciosEscala
+  // Disponibilidad vigente del producto (edición, F-CAT-17); la deriva la base. En el alta no hay.
+  disponibilidadActual?: Disponibilidad | null
+  // Productos relacionados del producto (edición, F-CAT-18); en el alta no hay. `productoId` lo excluye del buscador.
+  productoId?: string | null
+  relacionadosIniciales?: readonly Relacionado[]
+  // La lectura de los relacionados falló (edición): el bloque ofrece reintentar y no se guardan.
+  errorRelacionados?: boolean
+  // Variantes del producto (edición, F-CAT-15); en el alta no hay. Stock: se ve con lectura/edición en Stock y se
+  // edita solo con edición (la base lo exige igual). `errorVariantes`: la lectura falló, el bloque ofrece reintentar.
+  variantesIniciales?: readonly FilaVariante[]
+  errorVariantes?: boolean
+  verStock?: boolean
+  editarStock?: boolean
   // Costo visible y editable solo con edición en Rentabilidad (FR-003); la base lo exige igual.
   conCosto: boolean
   // El costo se ve con lectura en Rentabilidad pero solo se edita con edición (por defecto, igual a conCosto).
   costoEditable?: boolean
   etiquetaGuardar: string
   // Rechaza con el error del servidor; el formulario conserva lo escrito.
-  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null) => Promise<void>
+  onGuardar: (formulario: DatosFormulario, imagenes: CambiosImagenes, empresaIds: string[], categoriaId: string | null, alicuotaId: string | null, escalas: PreciosEscala, relacionadosIds: string[], variantes: FilaVariante[]) => Promise<void>
   rutaCancelar: string
+  // Dentro de un popup no se navega: al cancelar (o descartar) se avisa al que lo abrió.
+  onCancelar?: () => void
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
   // Ante un conflicto de edición concurrente (40001) se ofrece recargar el producto.
@@ -62,14 +102,16 @@ const ETIQUETAS: Readonly<Record<CampoProducto, string>> = {
   proveedor_id: 'Proveedor',
   codigo_proveedor: 'Código del proveedor',
   codigo_barras: 'Código de barras (EAN-13)',
+  disponibilidad_manual: 'Disponibilidad',
 }
 
 // Formulario compartido por el alta y (F-CAT-04) la edición de productos
 // (FR-001, FR-003, FR-004). Sin stock inicial (FR-002).
 const AYUDA_COSTO = 'Si lo dejás vacío se conserva el costo actual: todavía no se puede quitar un costo ya cargado.'
 
-export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, soloLectura = false, onRecargar }: Props) {
+export function FormularioProducto({ inicial, imagenesExistentes = [], empresasIniciales = [], categoriaInicial = '', alicuotaInicial = SIN_ALICUOTA_PRODUCTO, escalasIniciales = PRECIOS_ESCALA_VACIOS, disponibilidadActual = null, productoId = null, relacionadosIniciales = [], errorRelacionados = false, variantesIniciales = [], errorVariantes = false, verStock = false, editarStock = false, conCosto, costoEditable = conCosto, etiquetaGuardar, onGuardar, rutaCancelar, onCancelar, soloLectura = false, onRecargar }: Props) {
   const navigate = useNavigate()
+  const salir = () => (onCancelar ? onCancelar() : navigate(rutaCancelar))
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
   const [errores, setErrores] = useState<ErroresProducto>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
@@ -86,11 +128,22 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
   // Solo activos para asignaciones nuevas; el proveedor ya asignado se conserva aunque se haya desactivado (US3-3).
   const opcionesProveedor = proveedores.filter((p) => p.activo || p.id === inicial.proveedor_id)
   const proveedorElegido = proveedores.find((p) => p.id === formulario.proveedor_id) ?? null
+  const cotizacion = useCotizacionInicial()
   const [empresaIds, setEmpresaIds] = useState<string[]>(() => [...empresasIniciales])
   const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas, refetch: recargarEmpresas } = useEmpresas()
   const [categoriaId, setCategoriaId] = useState<string>(categoriaInicial)
   const { categorias, isLoading: cargandoCategorias, isError: errorCategorias, refetch: recargarCategorias } = useCategorias()
-  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial
+  const [alicuotaId, setAlicuotaId] = useState<string>(alicuotaInicial)
+  const { alicuotas, porId: alicuotaPorId, isLoading: cargandoAlicuotas, isError: errorAlicuotas, refetch: recargarAlicuotas } = useAlicuotas()
+  const alicuotaCategoria = alicuotaPorId.get(categorias.find((categoria) => categoria.id === categoriaId)?.alicuota_iva_id ?? '') ?? null
+  const [escalas, setEscalas] = useState<PreciosEscala>(escalasIniciales)
+  const [relacionados, setRelacionados] = useState<Relacionado[]>(() => [...relacionadosIniciales])
+  const [variantes, setVariantes] = useState<FilaVariante[]>(() => [...variantesIniciales])
+  const [erroresVariantes, setErroresVariantes] = useState<Record<string, ErrorVariante>>({})
+  const [erroresEscalas, setErroresEscalas] = useState<ErroresEscala>({})
+  const refsEscalas = useRef<Partial<Record<(typeof ESCALAS_CON_PRECIO)[number], HTMLInputElement | null>>>({})
+  const netoEnPesos = formulario.moneda === 'ARS' ? parsearImporte(formulario.precio_lista) : null
+  const sucio = hayCambios(formulario, inicial) || hayCambiosImagenes(imagenes) || empresasCambiaron(empresaIds, empresasIniciales) || categoriaId !== categoriaInicial || alicuotaId !== alicuotaInicial || hayCambiosEscalas(escalas, escalasIniciales) || relacionadosCambiaron(relacionados.map((r) => r.id), relacionadosIniciales.map((r) => r.id)) || variantesCambiaron(variantes, variantesIniciales)
 
   // «Sale» por cierre o recarga de la pestaña: el navegador pide confirmar.
   useEffect(() => {
@@ -122,21 +175,42 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     setErrorServidor(null)
     setErrorSku(null)
     setErrorCodigoBarras(null)
+    setErroresVariantes({})
     setConflicto(false)
     const nuevos = validarProducto(formulario, { conCosto })
     setErrores(nuevos)
+    const nuevosEscalas = validarPreciosEscala(escalas)
+    setErroresEscalas(nuevosEscalas)
     const primero = (Object.keys(nuevos) as CampoProducto[])[0]
     if (primero) {
       refs.current[primero]?.focus()
       return
     }
+    const primeraEscala = ESCALAS_CON_PRECIO.find((escala) => nuevosEscalas[escala])
+    if (primeraEscala) {
+      refsEscalas.current[primeraEscala]?.focus()
+      return
+    }
     enVuelo.current = true
     setGuardando(true)
     try {
-      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId)
+      await onGuardar(formulario, imagenes, empresaIds, categoriaId === '' ? null : categoriaId, alicuotaId === SIN_ALICUOTA_PRODUCTO ? null : alicuotaId, escalas, relacionados.map((r) => r.id), variantes)
     } catch (error) {
+      if (error instanceof ErrorGuardarVariantes) {
+        setErroresVariantes(erroresPorFila(error.origen, variantes))
+        setErrorServidor(mensajeErrorVariantes(error.origen))
+        setConflicto(esConflicto(error.origen))
+        return
+      }
       const mensaje = mensajeDeError(error, 'No pudimos guardar el producto.')
-      if (esSkuRepetido(error)) {
+      const detalleUnicidad = error as { code?: string; message?: string } | null
+      if (detalleUnicidad?.code === '23505' && /^El SKU ".*" ya lo usa una variante/.test(detalleUnicidad.message ?? '')) {
+        setErrorSku(detalleUnicidad.message ?? mensaje)
+        refs.current.sku?.focus()
+      } else if (detalleUnicidad?.code === '23505' && /^El código de barras ".*" ya lo usa una variante/.test(detalleUnicidad.message ?? '')) {
+        setErrorCodigoBarras(detalleUnicidad.message ?? mensaje)
+        refs.current.codigo_barras?.focus()
+      } else if (esSkuRepetido(error)) {
         setErrorSku(mensaje)
         refs.current.sku?.focus()
       } else if (esCodigoBarrasRepetido(error)) {
@@ -169,7 +243,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     if (sucio) {
       setConfirmandoDescarte(true)
     } else {
-      navigate(rutaCancelar)
+      salir()
     }
   }
 
@@ -235,30 +309,83 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           <Box><Button size="small" onClick={() => void recargarProveedores()}>Reintentar proveedores</Button></Box>
         ) : null}
         {campoTexto('codigo_proveedor', { disabled: soloLectura || formulario.proveedor_id === '', helperText: formulario.proveedor_id === '' ? 'Elegí un proveedor para cargar su código.' : 'Opcional. Como lo identifica el proveedor.' })}
-        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? '13 dígitos. Opcional.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric' } } })}
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <TextField
-            select
-            label={ETIQUETAS.moneda}
-            value={formulario.moneda}
-            onChange={(event) => setFormulario((actual) => ({ ...actual, moneda: event.target.value as DatosFormulario['moneda'] }))}
-            disabled={soloLectura}
-            fullWidth
-          >
-            {MONEDAS.map(({ valor, etiqueta }) => (
-              <MenuItem key={valor} value={valor}>{etiqueta}</MenuItem>
-            ))}
-          </TextField>
-          {campoTexto('precio_lista', { required: true, slotProps: { htmlInput: { inputMode: 'decimal' } } })}
-        </Stack>
-        <TextField
-          label="Precio en pesos"
-          value={PRECIO_EN_PESOS_NO_DISPONIBLE}
-          disabled
-          helperText="Se calcula cuando Precios esté disponible."
-          fullWidth
+        {campoTexto('codigo_barras', { helperText: errores.codigo_barras ?? errorCodigoBarras ?? 'Se puede escanear al armar un pedido o ingresar mercadería.', error: Boolean(errorCodigoBarras), slotProps: { htmlInput: { inputMode: 'numeric', placeholder: '13 dígitos, o escanealo' } } })}
+        <PrecioCostoBloque
+          moneda={formulario.moneda}
+          precioLista={formulario.precio_lista}
+          costo={formulario.costo}
+          errorPrecio={errores.precio_lista}
+          errorCosto={errores.costo}
+          onMoneda={(moneda) => setFormulario((actual) => ({ ...actual, moneda }))}
+          onPrecio={cambiar('precio_lista')}
+          onCosto={cambiar('costo')}
+          refPrecio={(elemento: HTMLInputElement | null) => {
+            refs.current.precio_lista = elemento
+          }}
+          refCosto={(elemento: HTMLInputElement | null) => {
+            refs.current.costo = elemento
+          }}
+          conCosto={conCosto}
+          costoEditable={costoEditable}
+          soloLectura={soloLectura}
+          cotizacion={cotizacion.cotizacion}
+          cargandoCotizacion={cotizacion.cargando}
+          errorCotizacion={cotizacion.hayError}
+          ayudaCosto={AYUDA_COSTO}
         />
-        {conCosto ? campoTexto('costo', { disabled: soloLectura || !costoEditable, helperText: costoEditable && !soloLectura ? AYUDA_COSTO : undefined, slotProps: { htmlInput: { inputMode: 'decimal' } } }) : null}
+        <EscalasPrecio
+          moneda={formulario.moneda}
+          precioLista={formulario.precio_lista}
+          costo={formulario.costo}
+          valores={escalas}
+          errores={erroresEscalas}
+          onCambiar={(escala, valor) => {
+            setEscalas((actual) => ({ ...actual, [escala]: valor }))
+            setErroresEscalas((actual) => ({ ...actual, [escala]: undefined }))
+          }}
+          refEscala={(escala) => (elemento: HTMLInputElement | null) => {
+            refsEscalas.current[escala] = elemento
+          }}
+          conMargen={conCosto}
+          cotizacion={cotizacion.cotizacion?.valor ?? null}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <FormControl component="fieldset" disabled={soloLectura || guardando}>
+          <FormLabel component="legend">{ETIQUETAS.disponibilidad_manual}</FormLabel>
+          <RadioGroup
+            value={formulario.disponibilidad_manual || disponibilidadActual || ''}
+            onChange={(event) => setFormulario((actual) => ({ ...actual, disponibilidad_manual: event.target.value as DisponibilidadManual }))}
+          >
+            {DISPONIBILIDADES.map(({ valor, etiqueta, ayuda, manual }) => (
+              <FormControlLabel
+                key={valor}
+                value={valor}
+                // «Stock» y «Sin stock» las calcula la base según las existencias: se muestran, no se eligen.
+                disabled={!manual || soloLectura || guardando}
+                control={<Radio />}
+                label={
+                  <Box>
+                    <Typography variant="b">{manual ? etiqueta : `${etiqueta} (calculado)`}</Typography>
+                    <Typography variant="xs" display="block" color="text.secondary">{ayuda}</Typography>
+                  </Box>
+                }
+              />
+            ))}
+          </RadioGroup>
+          <FormHelperText>
+            {formulario.disponibilidad_manual === ''
+              ? 'Sin elección manual: se calcula según las existencias.'
+              : 'Elegida a mano: manda sobre las existencias.'}
+          </FormHelperText>
+          {formulario.disponibilidad_manual !== '' && !soloLectura ? (
+            <Box>
+              <Button size="small" onClick={() => setFormulario((actual) => ({ ...actual, disponibilidad_manual: '' }))}>
+                Quitar la elección manual
+              </Button>
+            </Box>
+          ) : null}
+        </FormControl>
         <SelectorCategoria
           categorias={categorias}
           valor={categoriaId}
@@ -266,6 +393,18 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           cargando={cargandoCategorias}
           hayError={errorCategorias}
           onReintentar={() => void recargarCategorias()}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <IvaProducto
+          alicuotas={alicuotas}
+          alicuotaCategoria={alicuotaCategoria}
+          valor={alicuotaId}
+          onCambiar={setAlicuotaId}
+          neto={netoEnPesos}
+          cargando={cargandoAlicuotas}
+          hayError={errorAlicuotas}
+          onReintentar={() => void recargarAlicuotas()}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
@@ -286,6 +425,27 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
+        <BloqueVariantes
+          filas={variantes}
+          onCambiar={(filas) => { setVariantes(filas); setErroresVariantes({}) }}
+          skuProducto={formulario.sku}
+          verStock={verStock}
+          editarStock={editarStock}
+          errores={erroresVariantes}
+          hayError={errorVariantes}
+          onReintentar={onRecargar}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
+        <BloqueRelacionados
+          productoId={productoId}
+          seleccion={relacionados}
+          onCambiar={setRelacionados}
+          hayError={errorRelacionados}
+          onReintentar={onRecargar}
+          soloLectura={soloLectura}
+          deshabilitado={guardando}
+        />
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={cancelar} disabled={guardando}>{soloLectura ? 'Volver' : 'Cancelar'}</Button>
           {soloLectura ? null : (
@@ -303,7 +463,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmandoDescarte(false)} autoFocus>Seguir editando</Button>
-          <Button color="error" onClick={() => navigate(rutaCancelar)}>Descartar cambios</Button>
+          <Button color="error" onClick={salir}>Descartar cambios</Button>
         </DialogActions>
       </Dialog>
     </Box>

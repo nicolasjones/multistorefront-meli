@@ -1,4 +1,14 @@
-# Sistema de diseño — catálogo de componentes base
+---
+owner: tecnico
+sources:
+  - specs
+---
+
+# Sistema de diseño — catálogo de componentes base (MSF-117)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/sistema-de-diseno.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
+Épica **MSF-117** (historias DS-01..DS-04 = MSF-420, MSF-426, MSF-431, MSF-435). Versión de producto: [Sistema de diseño](producto/sistema-de-diseno.md).
 
 Spec: `specs/20261012-130000-sistema-de-diseno/` (DS-02, FR-004/005/008) y
 `specs/20261017-150000-paridad-visual-prototipo/` (paridad visual con el
@@ -21,6 +31,8 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 | Tabla→tarjetas adaptable | `ContenidoAdaptable` | `components/pagina` |
 | Estados de página | `EstadoCargaPagina`, `EstadoVacio`, `EstadoExito`, `EstadoError` | `components/estados` |
 | Encabezado de página | `EncabezadoPagina` | `components/pagina` |
+| Filtro de empresa/tienda | `FiltroEmpresa` | `components/pagina` |
+| Selección múltiple de empresas | `SelectorEmpresas` | `components/base` |
 | Shell (sider/encabezado/cuenta/empresa) | `SiderPanel`, `EncabezadoPanel`, `MenuCuenta`, `SelectorEmpresa` | `components/navegacion` |
 
 **Navegación (decisión de producto, 2026-10-21):** `SECCIONES_PANEL`
@@ -66,6 +78,9 @@ carga de una pantalla van dentro del contenido, nunca reemplazan el shell.
 3. Todo listado o recurso asincrónico cubre cargando, vacío y error con los estados de página.
 4. Una diferencia con el prototipo se anota en la descripción del PR, no se resuelve con valores sueltos.
 5. Si falta un componente, se agrega en `components/base/` con tokens y tests antes de usarlo.
+6. Toda elección de empresa/tienda reutiliza `FiltroEmpresa` (filtro de pantalla) o
+   `SelectorEmpresas` (selección múltiple en formularios y diálogos); no se duplica con
+   `Chip`, `Select` o listas propias.
 
 ## Decisiones (DS-02)
 
@@ -95,13 +110,22 @@ remapeando `h1..h6`, para no cambiar el significado de las variantes estándar.
 
 ### Guardián de valores sueltos (FR-015/FR-016)
 
-`pnpm estilos:check` (`scripts/verificar-estilos-sueltos.mjs`) falla si
-`apps/web/src/pages/**` usa colores hex/rgba/hsl o `borderRadius`/`height`/
-`minHeight`/`fontSize` con valores literales. Corre en el gate liviano de
+`pnpm estilos:check` (`scripts/verificar-estilos-sueltos.mjs`) recorre
+`apps/web/src/**` y falla si:
+
+- `apps/web/src/pages/**` usa colores hex/rgba/hsl o `borderRadius`/`height`/
+  `minHeight`/`fontSize` con valores literales;
+- CUALQUIER archivo de `apps/web/src` (pages, components, lib, tema…) escribe
+  `width|height|minWidth|minHeight|maxWidth|maxHeight: 1`. En `sx` de MUI un `1`
+  suelto es 100 % del contenedor, no 1 px (un texto «solo para lectores» así
+  ensanchaba la página a 320 px). Para ese texto usá `SOLO_LECTORES`
+  (`components/base/solo-lectores.ts`) o `'1px'`. Esta regla NO admite el
+  comentario de supresión y solo exime la definición del helper y los tests. Corre en el gate liviano de
 `.github/workflows/validate.yml` (job `application`) junto a `docs:check` y
 `lint`.
 
-Quedan exentos (allow-list) por ser los dueños de los valores:
+Para las reglas de color y dimensión (las de `pages/`) quedan exentos
+(allow-list) por ser los dueños de los valores:
 
 - `apps/web/src/tema/**` (tokens y tema),
 - `apps/web/src/components/base/**` y `apps/web/src/components/pagina/**`,
@@ -109,8 +133,7 @@ Quedan exentos (allow-list) por ser los dueños de los valores:
 
 Una línea puede acogerse a la excepción con el comentario
 `estilos-sueltos: ok: <motivo>` cuando el valor no es del sistema de diseño
-(p. ej. `height: 1` de una utilidad de accesibilidad que oculta visualmente sin
-quitar del lector).
+(p. ej. una medida de un tercero). No aplica a la regla de `width|height: 1`.
 
 ## Paridad de pantallas (`paridad-pantallas`)
 
@@ -127,6 +150,17 @@ prototipo `design/pantallas/*.dc.html`.
 - **Píldoras de filtro** (`.chip.btn`): `MuiToggleButtonGroup` agrega separación
   y borde propio a cada píldora (no es un control segmentado); al seleccionar
   quedan oscuras (`MuiToggleButton`).
+- **Filtro de empresa/tienda** (`FiltroEmpresa`): todas las pantallas usan el
+  mismo control —etiqueta «Tienda», «Todas las tiendas» y una píldora por
+  empresa—, como Cuentas de cobro. No se usa `Chip`, `Select` ni un
+  `Autocomplete` para este filtro.
+- **Selección múltiple de empresas** (`SelectorEmpresas`): formularios y
+  diálogos usan casillas con el nombre de cada empresa, como «Disponible en» de
+  Cuentas de cobro. Un `Switch` se reserva para activar/ajustar un registro, no
+  para elegir empresas.
+- **Guardián:** `pnpm ui:empresas:check` (CI) falla si una pantalla vuelve a
+  usar `Chip`, `Select` o `Autocomplete` para elegir empresas; su test es
+  `pnpm test:ui:empresas`.
 - **Ingreso**: layout de dos paneles del prototipo (panel de marca oscuro a la
   izquierda, oculto en pantallas angostas, y formulario a la derecha). El error
   de credenciales sigue anunciándose por la notificación de Refine, sin un
@@ -153,3 +187,41 @@ cliente, filtro por tienda, stock, categorías, «Visible en», precio/costo/mar
 en el listado de productos, selección múltiple con acciones masivas y
 exportación masiva (Mercado Libre, newsletter, destacado).
 
+## Estructura del panel (DS-03)
+
+Encabezado (`EncabezadoPanel`), sider (`SiderPanel`), menú de cuenta
+(`MenuCuenta`) y `SelectorEmpresa` usan tokens y tema; permisos y destinos no
+cambian (`apps/web/src/components/navegacion/`, T013–T017).
+
+- **Selector de empresa**: en `/empresas/edit/:id` lista las empresas de la
+  organización (las filtra RLS), marca la de la ruta y al elegir otra navega a
+  la misma sección con su id. Fuera de esas pantallas queda la etiqueta de la
+  organización, sin cambio. Hoy solo existe la sección «General»
+  (`SelectorEmpresa.tsx`).
+
+## Tema por empresa para tiendas públicas (DS-04)
+
+Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
+(T018–T021); aislado del tema del panel.
+
+- **Contrato** `IdentidadTienda`: `tipografiaTitulos`, `tipografiaTexto`,
+  `colorPrimario`, `colorTexto`, `colorFondo`.
+- `crearTemaTienda(identidad?)` devuelve un tema MUI claro. Cada campo
+  ausente o inválido (color que no sea hex de 3/6 dígitos; tipografía fuera de
+  letras/números/espacio/`_`/`-`, máx. 60) cae a `IDENTIDAD_TIENDA_POR_DEFECTO`
+  (neutro, distinto del panel), para que una tienda sin configurar no se rompa
+  y un valor malicioso no inyecte estilos.
+- `ProveedorTemaTienda` es un `ThemeProvider` anidado: solo afecta a su
+  subárbol y no altera el tema de `App.tsx`.
+- `IDENTIDADES_EJEMPLO` (`mundoJc`: Barlow Condensed/Barlow; `sanJavucho`)
+  sirven solo para validar el mecanismo. Los colores de Mundo JC y todos los de
+  San Javucho son de ejemplo, no confirmados con el prototipo (T020).
+
+**Fuera de alcance / pendiente:**
+
+- La configuración de la identidad por empresa (Empresa · Identidad visual) y
+  su lectura desde BD son de otra épica; hoy el proveedor no está montado en
+  ninguna pantalla, solo en tests. TODO (dueño: épica MSF-147, tienda
+  dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
+- Cómo se comparten los tokens si el front público es otro repo: sin definir.
+- Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.

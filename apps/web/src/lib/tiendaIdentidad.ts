@@ -1,0 +1,334 @@
+import { supabaseClient } from './supabase'
+import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBorrador'
+import { ESTILOS_HEROE, ESTILO_HEROE_POR_DEFECTO, type EstiloHeroe } from '../tema/temaTienda'
+
+export { ESTILOS_HEROE, type EstiloHeroe }
+
+// F-TDA-02 (MSF-266): identidad visual de la tienda online (colores, tipografías, logo y banners).
+// La base repite estas reglas (checks de color/tipografía, bucket `tienda-identidad`, RPC): acá se
+// valida antes para avisar sin ir a la red. Límites por defecto de la spec (D5), en una sola constante.
+
+export const BUCKET_IDENTIDAD = 'tienda-identidad'
+
+// Lista cerrada de tipografías (DS-04, supuesto): la misma que valida la base.
+export const TIPOGRAFIAS = ['system-ui', 'Barlow', 'Barlow Condensed', 'Playfair Display', 'Lato', 'Sora', 'Instrument Sans', 'Bricolage Grotesque', 'DM Sans'] as const
+export type Tipografia = (typeof TIPOGRAFIAS)[number]
+
+export type IdentidadTienda = {
+  colorPrimario: string
+  colorPrimarioOscuro: string
+  colorAcento: string
+  colorFondo: string
+  // Barra superior y pie (MSF-841).
+  colorBarra: string
+  tipografiaTitulos: Tipografia
+  tipografiaTexto: Tipografia
+  logoRuta: string | null
+  bannerRuta: string | null
+  bannerMovilRuta: string | null
+  // Estilo del encabezado de la portada (MSF-848): 'oscuro' (franja oscura, título en mayúsculas) o 'claro' (franja clara con círculo de acento).
+  estiloHeroe: EstiloHeroe
+  // Mayúsculas del menú de categorías, del título y del botón del héroe (MSF-848).
+  titulosMayusculas: boolean
+}
+
+// Tema base de la tienda sin configurar (mismos valores que los defaults de la tabla).
+export const IDENTIDAD_BASE: IdentidadTienda = {
+  colorPrimario: '#222222',
+  colorPrimarioOscuro: '#000000',
+  colorAcento: '#222222',
+  colorFondo: '#FFFFFF',
+  colorBarra: '#222222',
+  tipografiaTitulos: 'system-ui',
+  tipografiaTexto: 'system-ui',
+  logoRuta: null,
+  bannerRuta: null,
+  bannerMovilRuta: null,
+  estiloHeroe: ESTILO_HEROE_POR_DEFECTO,
+  titulosMayusculas: true,
+}
+
+export type ClaveImagen = 'logo' | 'banner' | 'bannerMovil'
+
+type ReglasImagen = { tipos: Readonly<Record<string, string>>; maxBytes: number; maxEtiqueta: string; formatos: string; medidas: string | null }
+
+const MB = 1024 * 1024
+
+export const REGLAS_IMAGEN: Readonly<Record<ClaveImagen, ReglasImagen>> = {
+  logo: {
+    tipos: { 'image/png': 'png', 'image/svg+xml': 'svg' },
+    maxBytes: 1 * MB,
+    maxEtiqueta: '1 MB',
+    formatos: 'PNG o SVG',
+    medidas: null,
+  },
+  banner: {
+    tipos: { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' },
+    maxBytes: 3 * MB,
+    maxEtiqueta: '3 MB',
+    formatos: 'PNG, JPG o WebP',
+    medidas: '1440×440',
+  },
+  bannerMovil: {
+    tipos: { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' },
+    maxBytes: 3 * MB,
+    maxEtiqueta: '3 MB',
+    formatos: 'PNG, JPG o WebP',
+    medidas: '390×300',
+  },
+}
+
+export const tiposAceptados = (clave: ClaveImagen) => Object.keys(REGLAS_IMAGEN[clave].tipos).join(',')
+
+// ---------------------------------------------------------------------------
+// Colores y contraste (FR-022, FR-023)
+// ---------------------------------------------------------------------------
+
+const COLOR_RRGGBB = /^#[0-9A-Fa-f]{6}$/
+
+export const esColorValido = (valor: string) => COLOR_RRGGBB.test(valor.trim())
+
+export const normalizarColor = (valor: string) => valor.trim().toUpperCase()
+
+export const CONTRASTE_MINIMO_AA = 4.5
+
+function luminanciaRelativa(color: string): number {
+  const canal = (inicio: number) => {
+    const c = parseInt(color.slice(inicio, inicio + 2), 16) / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5)
+}
+
+// Contraste WCAG del texto blanco sobre el color dado. null si el color no es #RRGGBB.
+export function contrasteBlancoSobre(color: string): number | null {
+  if (!esColorValido(color)) return null
+  return 1.05 / (luminanciaRelativa(color.trim()) + 0.05)
+}
+
+// Una décima hacia abajo y con coma («7,4»): redondear hacia arriba mostraría «4,5» para 4,46 (que no
+// cumple AA).
+export const formatearContraste = (razon: number) => (Math.floor(razon * 10) / 10).toFixed(1).replace('.', ',')
+
+export type EvaluacionContraste = { razon: number; cumpleAA: boolean; texto: string }
+
+// `sobre` nombra el color evaluado en el texto («el primario», «la barra superior y pie»).
+export function evaluarContraste(color: string, sobre = 'el primario'): EvaluacionContraste | null {
+  const razon = contrasteBlancoSobre(color)
+  if (razon === null) return null
+  const cumpleAA = razon >= CONTRASTE_MINIMO_AA
+  const base = `Contraste de texto blanco sobre ${sobre}: ${formatearContraste(razon)}:1`
+  return {
+    razon,
+    cumpleAA,
+    texto: cumpleAA ? `${base} (AA).` : `${base}. No cumple AA (mínimo 4,5:1): el texto blanco puede costar leerse. Podés guardar igual.`,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Archivos (FR-021, FR-025, FR-026)
+// ---------------------------------------------------------------------------
+
+// Deny-list sobre el texto crudo (sin parsear): un parser tolerante acepta `<svg/onload=…>`, así que el
+// separador antes de `on*` es cualquier espacio o `/`, y las entidades/comentarios se rechazan de plano.
+// Sin anclar a `<…>`: un `>` dentro de un atributo entre comillas (`a=">" onload=…`) no puede esconder el evento.
+const EVENTO_EN_ATRIBUTO = /[\s/"'`]on[a-z]+\s*=/i
+const ETIQUETA_ACTIVA = /<\s*\/?\s*(?:script|foreignObject|iframe|embed|object|audio|video|animate|set|handler|listener)\b/i
+const URL_PELIGROSA = /(?:href|src|action)=["']?(?:javascript|data|vbscript):/i
+const ENTIDAD_O_DOCTYPE = /<!\s*(?:ENTITY|DOCTYPE)|&#?[a-z0-9]+;/i
+const REFERENCIA_EXTERNA = /(?:href|src)=["']?(?:https?:)?\/\//i
+const CSS_EXTERNO = /@import|url\(["']?(?:https?:)?\/\//i
+
+// Un SVG se rechaza si puede ejecutar código: etiquetas activas (script, foreignObject, …), manejadores on*,
+// URL javascript:/data:, entidades (ofuscación), referencias externas o CSS que carga recursos externos.
+// Las pruebas de URL corren sobre el texto sin espacios ni caracteres de control, porque el navegador los
+// ignora dentro del esquema (`jav<TAB>ascript:`). Filtro solo del navegador: ver docs/tiendas-online.md
+// (límites conocidos).
+export function svgEsSeguro(contenido: string): boolean {
+  const compacto = contenido.replace(/[\s\u0000-\u001f]+/g, '')
+  const crudo = [ETIQUETA_ACTIVA, EVENTO_EN_ATRIBUTO, ENTIDAD_O_DOCTYPE]
+  const compactado = [URL_PELIGROSA, REFERENCIA_EXTERNA, CSS_EXTERNO]
+  return !crudo.some((r) => r.test(contenido)) && !compactado.some((r) => r.test(compacto))
+}
+
+function leerTexto(archivo: File): Promise<string> {
+  if (typeof archivo.text === 'function') return archivo.text()
+  return new Promise((resolver, rechazar) => {
+    const lector = new FileReader()
+    lector.onload = () => resolver(String(lector.result ?? ''))
+    lector.onerror = () => rechazar(lector.error)
+    lector.readAsText(archivo)
+  })
+}
+
+// Mensaje de rechazo del archivo, o null si se puede usar. El tipo sale de `file.type` (lo declara el
+// navegador); el SVG además se inspecciona porque es el único formato con contenido ejecutable.
+export async function validarImagen(clave: ClaveImagen, archivo: File): Promise<string | null> {
+  const reglas = REGLAS_IMAGEN[clave]
+  if (!(archivo.type in reglas.tipos)) {
+    return `«${archivo.name}» no es un formato admitido. Usá ${reglas.formatos}.`
+  }
+  if (archivo.size > reglas.maxBytes) {
+    return `«${archivo.name}» supera el máximo de ${reglas.maxEtiqueta}.`
+  }
+  if (archivo.type === 'image/svg+xml') {
+    let contenido: string
+    try {
+      contenido = await leerTexto(archivo)
+    } catch {
+      return `No pudimos leer «${archivo.name}». Probá con otro archivo.`
+    }
+    if (!svgEsSeguro(contenido)) {
+      return `«${archivo.name}» contiene código (script o eventos) y no se puede usar. Exportalo de nuevo como SVG sin scripts.`
+    }
+  }
+  return null
+}
+
+export function rutaArchivo(organizacionId: string, empresaId: string, clave: ClaveImagen, archivo: File): string {
+  const extension = REGLAS_IMAGEN[clave].tipos[archivo.type] ?? 'png'
+  const prefijo = clave === 'bannerMovil' ? 'banner-movil' : clave
+  return `${organizacionId}/${empresaId}/${prefijo}-${crypto.randomUUID()}.${extension}`
+}
+
+export function urlPublica(ruta: string | null): string | null {
+  if (!ruta) return null
+  return supabaseClient.storage.from(BUCKET_IDENTIDAD).getPublicUrl(ruta).data.publicUrl
+}
+
+// ---------------------------------------------------------------------------
+// Lectura y escritura
+// ---------------------------------------------------------------------------
+
+export type FilaIdentidad = {
+  color_primario: string
+  color_primario_oscuro: string
+  color_acento: string
+  color_fondo: string
+  // Ausente en borradores y versiones anteriores a MSF-841: vale el color por defecto.
+  color_barra?: string
+  tipografia_titulos: Tipografia
+  tipografia_texto: Tipografia
+  logo_ruta: string | null
+  banner_ruta: string | null
+  banner_movil_ruta: string | null
+  // Ausentes en borradores y versiones anteriores a MSF-848: valen los valores por defecto.
+  estilo_heroe?: EstiloHeroe
+  titulos_mayusculas?: boolean
+}
+
+export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
+  colorPrimario: fila.color_primario,
+  colorPrimarioOscuro: fila.color_primario_oscuro,
+  colorAcento: fila.color_acento,
+  colorFondo: fila.color_fondo,
+  colorBarra: fila.color_barra ?? IDENTIDAD_BASE.colorBarra,
+  tipografiaTitulos: fila.tipografia_titulos,
+  tipografiaTexto: fila.tipografia_texto,
+  logoRuta: fila.logo_ruta,
+  bannerRuta: fila.banner_ruta,
+  bannerMovilRuta: fila.banner_movil_ruta,
+  estiloHeroe: fila.estilo_heroe === 'claro' ? 'claro' : IDENTIDAD_BASE.estiloHeroe,
+  titulosMayusculas: fila.titulos_mayusculas ?? IDENTIDAD_BASE.titulosMayusculas,
+})
+
+const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, color_barra, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta, estilo_heroe, titulos_mayusculas'
+
+export type IdentidadDeEmpresa = { organizacionId: string; identidad: IdentidadTienda }
+
+// Identidad de una empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no la
+// publicada (RLS: solo la organización de la sesión). Sin fila devuelve el tema base. La empresa se lee aparte
+// porque da la carpeta (organización) de los archivos.
+export async function leerIdentidadDeEmpresa(empresaId: string): Promise<IdentidadDeEmpresa> {
+  const { data: empresa, error: errorEmpresa } = await supabaseClient
+    .schema('dominio')
+    .from('empresas')
+    .select('organizacion_id')
+    .eq('id', empresaId)
+    .maybeSingle<{ organizacion_id: string }>()
+  if (errorEmpresa) throw new Error(errorEmpresa.message)
+  if (!empresa) throw new Error('La empresa no existe')
+
+  const borrador = await obtenerBorrador(empresaId)
+  if (borrador.identidad) {
+    return { organizacionId: empresa.organizacion_id, identidad: identidadDesdeFila(borrador.identidad as unknown as FilaIdentidad) }
+  }
+
+  const { data, error } = await supabaseClient
+    .schema('dominio')
+    .from('tienda_identidad')
+    .select(COLUMNAS)
+    .eq('empresa_id', empresaId)
+    .maybeSingle<FilaIdentidad>()
+  if (error) throw new Error(error.message)
+  return { organizacionId: empresa.organizacion_id, identidad: data ? identidadDesdeFila(data) : IDENTIDAD_BASE }
+}
+
+// «Guardar»: el estado completo va al borrador (F-TDA-06): la tienda pública no cambia hasta publicar.
+// Devuelve lo que quedó guardado.
+export async function guardarIdentidad(empresaId: string, identidad: IdentidadTienda): Promise<IdentidadTienda> {
+  await guardarBorrador(empresaId, 'identidad', {
+    color_primario: identidad.colorPrimario,
+    color_primario_oscuro: identidad.colorPrimarioOscuro,
+    color_acento: identidad.colorAcento,
+    color_fondo: identidad.colorFondo,
+    color_barra: identidad.colorBarra,
+    tipografia_titulos: identidad.tipografiaTitulos,
+    tipografia_texto: identidad.tipografiaTexto,
+    logo_ruta: identidad.logoRuta,
+    banner_ruta: identidad.bannerRuta,
+    banner_movil_ruta: identidad.bannerMovilRuta,
+    estilo_heroe: identidad.estiloHeroe,
+    titulos_mayusculas: identidad.titulosMayusculas,
+  })
+  return identidad
+}
+
+export async function subirImagen(ruta: string, archivo: File): Promise<void> {
+  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).upload(ruta, archivo, { contentType: archivo.type })
+  if (error) throw new Error(error.message)
+}
+
+// Limpieza de archivos que ya no se usan. No interrumpe: un huérfano no rompe nada, solo ocupa lugar.
+// Con `empresaId` solo pide borrar los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
+// los archivos reemplazados pueden seguir en uso por la tienda en línea o por una versión anterior.
+// Esa consulta es solo para no pedir borrados inútiles: la garantía está en la base (MSF-796). La política de
+// borrado del bucket rechaza todo archivo referenciado, aunque se llame a la Storage API directo; un borrado
+// denegado por la política no da error, la API simplemente no lo devuelve como borrado.
+export async function borrarImagenes(rutas: string[], empresaId?: string): Promise<void> {
+  if (rutas.length === 0) return
+  let aBorrar = rutas
+  if (empresaId) {
+    try {
+      aBorrar = await rutasSinReferencia(empresaId, rutas)
+    } catch (error) {
+      console.error('No se pudo comprobar qué archivos de identidad siguen en uso', error instanceof Error ? error.message : error)
+      return
+    }
+  }
+  if (aBorrar.length === 0) return
+  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).remove(aBorrar)
+  if (error) console.error('No se pudieron borrar archivos de identidad sin uso', error.message)
+}
+
+// Identidad pública por host (FR-030): `publico.identidad_por_dominio`, ejecutable por anon. Sin
+// filas (dominio desconocido o empresa desactivada) devuelve null.
+export async function resolverIdentidadPublica(host: string): Promise<IdentidadTienda | null> {
+  const { data, error } = await supabaseClient.schema('publico').rpc('identidad_por_dominio', { host })
+  if (error) throw new Error(error.message)
+  const fila = ((data ?? []) as FilaIdentidad[])[0]
+  return fila ? identidadDesdeFila(fila) : null
+}
+
+// Familias de Google Fonts a cargar para una identidad (la tipografía del sistema no necesita carga).
+export function familiasACargar(identidad: Pick<IdentidadTienda, 'tipografiaTitulos' | 'tipografiaTexto'>): string[] {
+  return [...new Set([identidad.tipografiaTitulos, identidad.tipografiaTexto])].filter((familia) => familia !== 'system-ui')
+}
+
+// URL de la hoja de estilos de Google Fonts para esas familias (solo familias de la lista cerrada).
+export function urlFuentes(familias: readonly string[]): string | null {
+  const validas = familias.filter((familia): familia is Tipografia => (TIPOGRAFIAS as readonly string[]).includes(familia) && familia !== 'system-ui')
+  if (validas.length === 0) return null
+  const parametros = validas.map((familia) => `family=${encodeURIComponent(familia).replace(/%20/g, '+')}:wght@400;500;600;700`).join('&')
+  return `https://fonts.googleapis.com/css2?${parametros}&display=swap`
+}

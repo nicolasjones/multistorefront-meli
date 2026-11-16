@@ -38,6 +38,7 @@ describe('LoginPage', () => {
         email: 'persona@example.com',
         password: 'secreta',
         remember: true,
+        to: null,
       }),
     )
   })

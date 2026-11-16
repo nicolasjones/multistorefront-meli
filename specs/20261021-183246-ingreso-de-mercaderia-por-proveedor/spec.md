@@ -163,7 +163,9 @@ de esquema.
   mercadería»**, visible con `nivel_seccion('stock')` ≠ `ninguno`.
 - Ruta canónica: `/stock/ingresos`. La misma pantalla muestra el formulario
   «Nuevo ingreso» (como el prototipo) y debajo el historial de ingresos con
-  filtros; no se agrega un ítem de navegación propio.
+  filtros. Se agrega como subítem **«Ingreso de mercadería»** dentro de la
+  sección **Stock** del menú lateral (no como ítem de primer nivel), con el
+  mismo permiso de sección `stock`.
 - Las pestañas «Stock actual» y «Movimientos» ya existen (MSF-136) y no
   cambian. «Depósitos de mercadería», «Faltantes» y «Actualizar por Excel» son
   de otras épicas: no se implementan.

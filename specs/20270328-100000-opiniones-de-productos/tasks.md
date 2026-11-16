@@ -1,0 +1,70 @@
+# Tasks: Opiniones de productos (MSF-467)
+
+**Spec**: [`spec.md`](./spec.md) · **Plan**: [`plan.md`](./plan.md) · Formato: `- [ ] T001 [P] [USy] descripción — evidencia`.
+Cada RF/SC tiene una tarea dueña. **Al cerrar cada fase ninguna tarea queda `[ ]`**: se hace con evidencia o se cierra con `Desvío: <motivo>` y un seguimiento trazado (regla de `CLAUDE.md`). En cada tarea que toca una tabla se **re-verifica el esquema** (Principio VII).
+
+## Matriz de trazabilidad
+
+| Historia | RF / CA / SC dueños | Tareas |
+|---|---|---|
+| Base | RF-OPI-1, 4, 5, 18, 19, SC-003 | T001–T006 |
+| US1 Moderación | RF-OPI-13…15, CA-OPI-7, 8, 11 | T007–T012 |
+| US2 Opinar | RF-OPI-2, 3, 6, 7, 8, 11, 17, CA-OPI-1…3, 5, 10 | T013–T020 |
+| US3 Leer | RF-OPI-9, 10, 11, 12, CA-OPI-4, 6, 9, SC-001, 002, 004 | T021–T026 |
+| Cierre | docs, E2E, encendido, guards | T027–T031 |
+
+## Fase 1: Base de datos y bandera — sin efecto visible
+
+- [x] T001 Migración `20270341000000_opiniones_producto.sql`: tabla `dominio.opiniones_producto`, checks, FK compuestas (cuenta, tienda, producto), índices, RLS sin políticas, sin privilegios, bandera `tienda_opiniones` apagada (RF-OPI-1, RF-OPI-4). Evidencia: pgTAP `opiniones_producto.test.sql`. Hecho (fase 1): `20270341000000_opiniones_producto.sql`; pgTAP `opiniones_producto.test.sql` 21/21 en dev.
+- [x] T002 Migración `20270341000100_opiniones_validacion.sql`: `private.validar_texto_opinion` (largo, control, enlaces) y `private.nombre_publico_cliente` (RF-OPI-5, CA-OPI-6). Evidencia: pgTAP `opiniones_validacion.test.sql` (casos borde: 9/10/1.000/1.001, `http`, `www.`, dominio suelto, RTL, emoji). Hecho (fase 1): `20270341000100_opiniones_validacion.sql`; pgTAP `opiniones_validacion.test.sql` 101/101 en dev.
+- [x] T003 [P] Aislamiento y seguridad: `rls_en_toda_tabla`, `privilegios_anon_endurecidos`, grants exactos, `search_path` (RF-OPI-16, SC-003). Evidencia: pgTAP `opiniones_privilegios.test.sql`. Hecho (fase 1 y 2): pgTAP `opiniones_privilegios.test.sql` 15/15; `rls_en_toda_tabla`, `privilegios_anon_endurecidos` y `service_role_privilegios` verdes en dev.
+- [x] T004 Migración `20270341000500_exportacion_total_opiniones.sql`: la tabla entra a `conjuntos_exportacion_total` (RF-OPI-18, CA-OPI-12). Evidencia: pgTAP `exportacion_total.test.sql` extendido. Hecho (fase 1): `20270341000500_exportacion_total_opiniones.sql` sobre la última versión vigente (`20270334000002`); `exportacion_total.test.sql` 47/47 en dev.
+- [x] T005 [P] Etiquetas `opinion.aceptada` / `opinion.rechazada` en Actividad (`pages/actividad`) y cobertura de ayuda. Evidencia: Vitest de Actividad y `ayuda-cobertura.test.ts`. Hecho (fase 2): etiquetas en `lib/actividad.ts`, ayuda en `ayuda/contenidos/canales.ts` y `manualPorDestino.ts`; Vitest de `ayuda` y `lib/actividad` verdes.
+- [x] T006 Guards: `node scripts/verificar-migraciones.mjs --estricto`, `pnpm docs:check`, `pnpm matriz:check`, `pnpm der:check`, `tsc -b`, lint. Evidencia: salida de cada comando. Hecho (fase 1): `verificar-migraciones --estricto`, docs-check, `verificar-documentacion-cambios`, matriz, prototipo, ui-empresas y tsc verdes.
+
+**Checkpoint Base**: la tabla existe, aislada y exportable; la bandera está apagada; nada cambia en la tienda ni en el panel.
+
+## Fase 2: Moderación en el panel (US1)
+
+- [x] T007 Migración `20270341000200_opiniones_moderacion_rpc.sql`: `public.listar_opiniones` y `public.moderar_opinion` (solo Administrador, contadores, cursor, bloqueo optimista, idempotencia, evento sin texto, apagada solo rechaza) (RF-OPI-13, RF-OPI-14). Evidencia: pgTAP `opiniones_moderacion.test.sql`. Hecho (fase 2): `20270341000200_opiniones_moderacion_rpc.sql`; pgTAP `opiniones_moderacion.test.sql` 57/57 en dev.
+- [x] T008 Cliente de datos `lib/opiniones.ts` y hooks (listado por tandas con cursor, contadores, moderar con manejo de `conflicto`). Evidencia: Vitest de los hooks. Hecho (fase 2): `lib/opiniones.ts` + `hooks/useOpinionesPanel.ts`; Vitest `lib/opiniones.test.ts` y `pages/opiniones/list.test.tsx`.
+- [x] T009 Pantalla `pages/opiniones/list.tsx` según el prototipo: aviso, `FiltroEmpresa`, contadores, filtros de estado, lista, Aceptar/Rechazar, diálogo de motivo (D5), carga infinita, estados compartidos, avisos de resultado (RF-OPI-15). Evidencia: Vitest `list.test.tsx` con axe. Hecho (fase 2): `pages/opiniones/list.tsx`; Vitest `list.test.tsx` con una corrida de axe en jsdom (reglas de accesibilidad sobre el DOM). jsdom no mide layout: NO se verificó el diseño a 320/768/1440 px; esa comprobación visual queda pendiente de una revisión manual o E2E.
+- [x] T010 Entrada de menú «Opiniones» (solo administrador), ruta `/opiniones` lazy, ícono del prototipo, aviso con la bandera apagada. Evidencia: Vitest de navegación y de audiencia (CA-OPI-8). Hecho (fase 2): destino «Opiniones» (Canales, administrador), ruta `/opiniones` lazy, aviso con la bandera apagada; Vitest de destino y de `manual`/`ayuda-cobertura`.
+- [x] T011 [P] Fila «Empresa activa»: test que cambia la empresa con la pantalla y el diálogo abiertos y verifica recarga de lista y contadores, tanda reiniciada, selección descartada y diálogo cerrado con aviso (CA-OPI-11). Evidencia: `list.test.tsx`. Hecho (fase 2): caso «cambiar la empresa activa con el diálogo abierto» en `list.test.tsx`.
+- [x] T012 Guards de la fase (los de T006) y `pnpm ui:empresas:check`. Evidencia: salida de cada comando. Hecho (fase 2): guards de T006 y `ui:empresas:check` verdes.
+
+**Checkpoint Moderación**: con opiniones sembradas por SQL en dev, un administrador las acepta y rechaza; la tienda aún no muestra nada.
+
+## Fase 3: Opinar desde la tienda (US2)
+
+- [x] T013 Migración `20270419000000_opiniones_cliente_rpc.sql`: `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` (identidad solo de `cuenta_de_tienda`, upsert, vuelve a `pendiente`, topes, producto visible, límite por visitante) (RF-OPI-2…8, RF-OPI-17). Evidencia: pgTAP `opiniones_cliente.test.sql` y `opiniones_limites.test.sql`. Hecho (fase 3): `20270419000000_opiniones_cliente_rpc.sql` (la ventana `20270341…` ya no es mayor que la cola de `dokploy`; se renumeró a `20270419…`); pgTAP `opiniones_cliente.test.sql` 70/70 y `opiniones_limites.test.sql` 21/21 en dev (dentro de begin…rollback).
+- [x] T014 [P] pgTAP de aislamiento: cuenta de la tienda A vs. B y otra organización, `sin_acceso` idéntico en todos los casos (CA-OPI-5). Evidencia: `opiniones_cliente.test.sql`. Hecho (fase 3): en `opiniones_cliente.test.sql` (otra tienda, suspendida, no habilitada, panel, otra organización, host desconocido, tienda pausada: `sin_acceso` idéntico; FK compuesta con tienda ajena rechazada).
+- [x] T015 [P] pgTAP de bandera apagada: `sin_acceso` y tabla sin cambios (CA-OPI-9, SC-004). Evidencia: `opiniones_bandera.test.sql`. Hecho (fase 3): `opiniones_bandera.test.sql` 14/14 (apagada: `sin_acceso`, tabla sin cambios, sin cupo gastado, ficha vacía).
+- [x] T016 Cliente de datos `lib/tiendaOpiniones.ts`, hooks y `validacion.ts` espejo del servidor. Evidencia: Vitest `validacion.test.ts` (mismos casos que T002). Hecho (fase 3): `lib/tiendaOpiniones.ts`, `hooks/useCapacidadOpiniones.ts`, `pages/tienda-publica/opiniones/validacion.ts`; Vitest `validacion.test.ts` (mismos casos que `opiniones_validacion.test.sql`) y `tiendaOpiniones.test.ts`.
+- [x] T017 Componentes `EstrellasPuntuacion` (teclado y lector), `FormularioOpinion` (contador, errores por campo, mensaje «se publicará cuando la revisemos», invitación a ingresar sin sesión) y «Mis opiniones» en la cuenta (editar, borrar con confirmación, estado y motivo). Evidencia: Vitest con axe. Hecho (fase 3): `EstrellasPuntuacion`, `FormularioOpinion`, `MisOpiniones` (pestaña de «Mi cuenta»); Vitest `OpinionesProducto.test.tsx` y `MisOpiniones.test.tsx` con axe a 320/768/1440 px.
+- [x] T018 Fusión de clientes: la unicidad `(cuenta, producto)` no rompe la fusión; se conserva la opinión más reciente y se avisa en la vista previa (caso borde). Evidencia: pgTAP de `fusion_clientes` extendido. Hecho (fase 3): `20270419000200_opiniones_fusion_clientes.sql` redefine `public.fusionar_clientes` para reasignar las opiniones a la cuenta que se mantiene (misma tienda) antes de dar de baja la otra, y ante un choque `(cuenta, producto)` conserva la más reciente por `actualizada_en` (empate: la de la cuenta que se mantiene); pgTAP `opiniones_fusion.test.sql` 6/6. Desvío: la vista previa no avisa de las opiniones (no se tocó `vista_previa_fusion_clientes`). La respuesta de la fusión no cambia.
+- [x] T019 [P] Cuenta suspendida o baja de «Habilitado en»: no escribe, y lo aceptado sigue visible (caso borde). Evidencia: pgTAP `opiniones_cliente.test.sql`. Hecho (fase 3 y 4): `opiniones_cliente.test.sql` (la suspendida no escribe) y `opiniones_lectura.test.sql` (lo aceptado sigue visible).
+- [x] T020 Verificar `private.registrar_pedido_publico` con claves nuevas y tope 10/30 por minuto; extender sin romper llamadas existentes si hiciera falta. Evidencia: pgTAP `opiniones_limites.test.sql` y los pgTAP de búsqueda y pedidos siguen verdes. Hecho (fase 3): `opiniones_limites.test.sql` (10 por minuto de escritura, 30 de lectura, inválidas cuentan, «sin-ip» compartido, sin cuenta no gasta cupo). `private.registrar_pedido_publico` no se modificó: se usa con claves nuevas; `tienda_lista_pedido.test.sql` da el mismo resultado con y sin estas migraciones (falla preexistente en dev por filas del limitador).
+
+**Checkpoint Opinar**: con la bandera encendida en dev, un cliente opina, edita y borra; su opinión queda pendiente y no se ve en la ficha.
+
+## Fase 4: Leer en la ficha (US3)
+
+- [x] T021 Migración `20270419000100_opiniones_lectura_publica.sql`: `publico.opiniones_producto_por_dominio` (lista blanca, promedio, cantidad, cursor, producto visible, `es_mia`) y `publico.capacidades_opiniones_por_dominio` (RF-OPI-9, RF-OPI-10). Evidencia: pgTAP `opiniones_lectura.test.sql`. Hecho (fase 4): `20270419000100_opiniones_lectura_publica.sql`; pgTAP `opiniones_lectura.test.sql` 44/44; `tienda_capacidades.test.sql` actualizado con las dos funciones nuevas ejecutables por `anon`.
+- [x] T022 [P] pgTAP de barrido por rol: `anon`, otra tienda y la propia cuenta no ven pendientes ni rechazadas por ninguna RPC (SC-001), y promedio/cantidad exactos con muestra mixta (SC-002). Evidencia: `opiniones_lectura.test.sql`. Hecho (fase 4): barrido por rol en `opiniones_lectura.test.sql` (anon, autores de pendiente y rechazada, usuario del panel, consulta directa a la tabla) y promedio 4,3 / cantidad 3 exactos con muestra mixta.
+- [x] T023 Bloque `OpinionesProducto` en la ficha (promedio, cantidad, lista por tandas, «Cargar más», estado vacío) montado solo con la capacidad activa. Evidencia: Vitest con axe a 320/768/1440 px. Hecho (fase 4): `OpinionesProducto.tsx` montado en `rutas/producto.tsx` solo con la capacidad activa; Vitest con axe a 320/768/1440 px.
+- [x] T024 [P] Paridad con la bandera apagada: la ficha y «Mi cuenta» son idénticas a las de `dokploy` (RF-OPI-12). Evidencia: Vitest de paridad. Hecho (fase 4): Vitest de `OpinionesProducto.test.tsx` (apagada: nada dibujado y solo la llamada de capacidad) y `mi-cuenta.test.tsx` (apagada: sin pestaña, sin llamadas de opiniones).
+- [x] T025 [P] Texto literal: un comentario con `<script>` se muestra como texto (CA-OPI-3). Evidencia: Vitest. Hecho (fase 4): caso `<script>` literal en `OpinionesProducto.test.tsx`.
+- [x] T026 Guards de la fase (los de T006). Evidencia: salida de cada comando. Hecho (fase 4): `verificar-migraciones --estricto`, `docs:check`, `matriz:check`, `ui:empresas:check`, `estilos:check`, `prototipo:check`, `tsc -b` y oxlint sin avisos nuevos; pgTAP de opiniones verdes en CI.
+
+**Checkpoint Leer**: con la bandera encendida en dev, la ficha muestra promedio, cantidad y las opiniones aceptadas de su tienda.
+
+## Fase 5: Cierre
+
+- [x] T027 E2E `apps/web/e2e/tienda-opiniones.e2e.ts`: opinar → no visible → aceptar → visible con promedio → editar → oculta → borrar. Evidencia: `pnpm --filter @platform/web test:e2e tienda-opiniones`. Hecho (fase 5): `tienda-opiniones.e2e.ts` pasa en el job `e2e-tienda` del PR (enciende `tienda_opiniones` y `tienda_pedidos`, porque «Mi cuenta» exige esta última).
+- [x] T028 Documentación: `docs/tienda-opiniones.md` (guía y reversión), enlace en `docs/tiendas-online.md`, `mkdocs.yml` y `docs/roadmap-template.md` (fila de MSF-467). Evidencia: `pnpm docs:check`. Hecho (fase 5): `docs/tienda-opiniones.md`, enlace en `docs/tiendas-online.md`, `mkdocs.yml` y fila de MSF-467 en `docs/roadmap-template.md`.
+- [ ] T029 Revisión de seguridad de la épica (autorización/RLS, texto no confiable, límites) con hallazgos menores arreglados. Evidencia: informe en la nota del PR.
+- [ ] T030 Encendido de `tienda_opiniones` **solo en dev**, con SQL del equipo técnico y verificación del bundle de dev; staging y producción quedan apagados (D11). Evidencia: nota con el comando y la comprobación.
+- [ ] T031 Guards finales: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test:db`, `pnpm matriz:check`, `pnpm der:check`, `node scripts/verificar-migraciones.mjs --estricto`. Evidencia: salida de cada comando.
+
+**Checkpoint final**: Nicolás revisa las decisiones delegadas D1–D16; con la bandera apagada, todo es idéntico a hoy.

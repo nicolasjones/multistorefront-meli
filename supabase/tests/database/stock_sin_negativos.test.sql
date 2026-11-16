@@ -22,7 +22,8 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista) v
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick Pro', 'JOY-1', 50);
 
 create temp table ids on commit drop as
-select m.organizacion_id, m.nombre, m.id from dominio.motivos_movimiento m;
+select m.organizacion_id, m.nombre, m.id from dominio.motivos_movimiento m
+where m.organizacion_id = '11111111-1111-1111-1111-111111111111';
 grant select on ids to authenticated;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$

@@ -76,6 +76,7 @@ jobs:
       - run: pnpm db:migrar:cloud -- --entorno staging
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPERSET_ANALITICA_DB_PASSWORD: ${{ secrets.SUPERSET_ANALITICA_DB_PASSWORD }}
 
   production:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call'
@@ -102,3 +103,4 @@ jobs:
       - run: pnpm db:migrar:cloud -- --entorno production
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPERSET_ANALITICA_DB_PASSWORD: ${{ secrets.SUPERSET_ANALITICA_DB_PASSWORD }}

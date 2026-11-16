@@ -13,13 +13,36 @@ import StorefrontIcon from '@mui/icons-material/Storefront'
 import HistoryIcon from '@mui/icons-material/History'
 import DomainIcon from '@mui/icons-material/Domain'
 import LocalShippingIcon from '@mui/icons-material/LocalShipping'
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
+import LocalOfferIcon from '@mui/icons-material/LocalOffer'
+import SellIcon from '@mui/icons-material/Sell'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
+import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
+import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner'
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'
+import CreditCardIcon from '@mui/icons-material/CreditCard'
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong'
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote'
+import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
+import ProductionQuantityLimitsIcon from '@mui/icons-material/ProductionQuantityLimits'
 import BuildIcon from '@mui/icons-material/Build'
 import DevicesIcon from '@mui/icons-material/Devices'
 import TuneIcon from '@mui/icons-material/Tune'
+import CommentIcon from '@mui/icons-material/Comment'
+import ContactsIcon from '@mui/icons-material/Contacts'
+import FileUploadIcon from '@mui/icons-material/FileUpload'
+import ImportExportIcon from '@mui/icons-material/ImportExport'
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
+import ApiIcon from '@mui/icons-material/Api'
+import InsightsIcon from '@mui/icons-material/Insights'
+import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import BarChartIcon from '@mui/icons-material/BarChart'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import PaymentsIcon from '@mui/icons-material/Payments'
+import StarOutlineIcon from '@mui/icons-material/StarOutline'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -42,6 +65,8 @@ export type DestinoPanel = {
   // Funcionalidad del panel (spec 009) que la organización debe tener habilitada para que el destino
   // aparezca. Falla cerrada: sin la lista de funcionalidades habilitadas, un destino con `feature` no se ofrece.
   feature?: string
+  // Contador que acompaña al ítem en el menú (F-CON-01): `consultas_nuevas` = consultas en estado «nueva».
+  insignia?: 'consultas_nuevas'
 }
 
 export type SeccionPanel = {
@@ -65,6 +90,10 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-02: hasta que F-CAT-06 traiga la grilla, /productos redirige al alta (App.tsx).
       { id: 'productos', etiqueta: 'Productos', ruta: '/productos', icono: Inventory2Icon, audiencia: 'organizacion', seccionPermiso: 'productos' },
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
+      // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
+      { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-PRE-14 (MSF-442): listas de precios (porcentaje sobre el precio central); solo las administra el Administrador (carga diferida en App.tsx).
+      { id: 'listas-precios', etiqueta: 'Listas de precios', ruta: '/productos/listas-de-precios', icono: SellIcon, audiencia: 'administrador', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },
@@ -74,19 +103,47 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     destinos: [
       { id: 'stock', etiqueta: 'Stock', ruta: '/stock', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
       { id: 'stock-movimientos', etiqueta: 'Movimientos', ruta: '/stock/movimientos', icono: HistoryIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-ingresos', etiqueta: 'Ingreso de mercadería', ruta: '/stock/ingresos', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'stock-depositos', etiqueta: 'Depósitos de mercadería', ruta: '/stock/depositos', icono: WarehouseIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      // F-PRV-09: pedidos de mercadería a proveedor (salen del listado de reposición de Stock).
+      { id: 'stock-ordenes-compra', etiqueta: 'Órdenes de compra', ruta: '/stock/ordenes-compra', icono: ShoppingCartIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
     ],
   },
   {
+    // F-VTA-05 (FR-009): grupo propio. F-VTA-09 (MSF-346) trae el listado canónico en /ventas/comprobantes.
     id: 'ventas',
     etiqueta: 'Ventas',
     destinos: [
+      // F-VTA-31 (MSF-329): venta de mostrador con lector de código de barras (sección `ventas`).
+      { id: 'ventas-mostrador', etiqueta: 'Venta de mostrador', ruta: '/ventas/mostrador', icono: QrCodeScannerIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      { id: 'ventas-comprobantes', etiqueta: 'Comprobantes', ruta: '/ventas/comprobantes', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-08: listado de presupuestos (aceptar, copiar y modificar).
+      { id: 'ventas-presupuestos', etiqueta: 'Presupuestos', ruta: '/ventas/presupuestos', icono: RequestQuoteIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-28: devoluciones y reclamos (RMA) por ítem.
+      { id: 'ventas-devoluciones', etiqueta: 'Devoluciones', ruta: '/ventas/devoluciones', icono: AssignmentReturnIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-04: transportes y terminales de retiro (sección `ventas` de la matriz de permisos).
+      { id: 'transportes', etiqueta: 'Transportes', ruta: '/ventas/transportes', icono: DeliveryDiningIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-13: conciliación de los pagos por transferencia o depósito (icono del prototipo).
+      { id: 'ventas-pagos', etiqueta: 'Pagos', ruta: '/ventas/pagos', icono: CreditCardIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-01: catálogos del comprobante por empresa; las demás pantallas de Ventas se suman a este grupo.
+      { id: 'ventas-configuracion', etiqueta: 'Configuración de ventas', ruta: '/ventas/configuracion', icono: PointOfSaleIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-03: cuentas de cobro de la organización (lectura con `ventas`, edición solo Administrador).
+      { id: 'cuentas-cobro', etiqueta: 'Cuentas de cobro', ruta: '/ventas/cuentas-cobro', icono: AccountBalanceIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-22 (MSF-347): «Reportes de ventas» (tableros de Superset embebidos). Va con su propia
+      // sección de la matriz (`reportes`), no con `ventas`: es el permiso que exige el token.
+      { id: 'ventas-reportes', etiqueta: 'Reportes de ventas', ruta: '/ventas/reportes', icono: BarChartIcon, audiencia: 'organizacion', seccionPermiso: 'reportes' },
+      // F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura con `ventas`).
+      { id: 'ventas-despacho', etiqueta: 'Despacho', ruta: '/ventas/despacho', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      // F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura con `ventas`).
+      { id: 'ventas-faltantes', etiqueta: 'Faltantes', ruta: '/ventas/faltantes', icono: ProductionQuantityLimitsIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
       { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],
   },
   {
     // Servicio técnico: las tres pantallas del prototipo (también accesibles como
-    // pestañas dentro de cada página). Todas dependen de la funcionalidad
+    // pestañas dentro de cada página) más la de Reportes (F-SVC-23, FR-064), que
+    // embebe el tablero de Superset. Todas dependen de la funcionalidad
     // `service-tecnico` y de la sección `service_tecnico`.
     id: 'service',
     etiqueta: 'Servicio técnico',
@@ -118,6 +175,15 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
         seccionPermiso: 'service_tecnico',
         feature: 'service-tecnico',
       },
+      {
+        id: 'service-tecnico-reportes',
+        etiqueta: 'Reportes',
+        ruta: '/service-tecnico/reportes',
+        icono: InsightsIcon,
+        audiencia: 'organizacion',
+        seccionPermiso: 'service_tecnico',
+        feature: 'service-tecnico',
+      },
     ],
   },
   {
@@ -126,6 +192,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Contactos',
     destinos: [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
+      // F-CLI-11 (MSF-155): correo masivo a clientes; armar el grupo exige edición en Clientes (la pantalla lo valida).
+      { id: 'correo-masivo', etiqueta: 'Correo masivo', ruta: '/clientes/correo-masivo', icono: MailOutlineIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
     ],
   },
@@ -134,7 +202,33 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     id: 'canales',
     etiqueta: 'Canales',
     destinos: [
+      // F-CON-01: bandeja de consultas de las tiendas, primer destino de Canales, con el contador de nuevas.
+      { id: 'consultas', etiqueta: 'Consultas', ruta: '/consultas', icono: CommentIcon, audiencia: 'organizacion', seccionPermiso: 'consultas', insignia: 'consultas_nuevas' },
+      // F-CON-05: libreta de contactos por empresa, debajo de Consultas (misma sección de permisos).
+      { id: 'contactos', etiqueta: 'Contactos', ruta: '/contactos', icono: ContactsIcon, audiencia: 'organizacion', seccionPermiso: 'consultas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+      // MSF-467: moderación previa de las opiniones de productos; solo Administrador (sin sección propia en la matriz).
+      { id: 'opiniones', etiqueta: 'Opiniones', ruta: '/opiniones', icono: StarOutlineIcon, audiencia: 'administrador' },
+    ],
+  },
+  {
+    // F-REN-02: Rentabilidad vive en Análisis (sección `rentabilidad` de la matriz de permisos).
+    id: 'analisis',
+    etiqueta: 'Análisis',
+    destinos: [
+      { id: 'rentabilidad', etiqueta: 'Rentabilidad', ruta: '/rentabilidad', icono: InsightsIcon, audiencia: 'organizacion', seccionPermiso: 'rentabilidad' },
+    ],
+  },
+  {
+    // F-REP-01 (MSF-297): menú «Reportes». Cada reporte sigue la sección de sus datos (los de
+    // inventario, `stock`), no la de `reportes`; los reportes de Ventas y Rentabilidad no se mueven.
+    id: 'reportes',
+    etiqueta: 'Reportes',
+    destinos: [
+      { id: 'reportes-inventario', etiqueta: 'Productos y stock', ruta: '/reportes/inventario', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      { id: 'reportes-reposicion', etiqueta: 'Reposición', ruta: '/reportes/reposicion', icono: AssessmentIcon, audiencia: 'organizacion', seccionPermiso: 'stock' },
+      // F-REP-07 (MSF-265): galería de tableros analíticos ya armados; solo administradores (sin sección propia en la matriz).
+      { id: 'reportes-tableros', etiqueta: 'Tableros analíticos', ruta: '/reportes/tableros', icono: InsightsIcon, audiencia: 'administrador' },
     ],
   },
   // Pantallas ocultas del menú por decisión de producto (2026-10-21):
@@ -149,9 +243,23 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
     etiqueta: 'Administración',
     destinos: [
       { id: 'organizacion', etiqueta: 'Mi organización', ruta: '/organizacion', icono: DomainIcon, audiencia: 'administrador' },
+      // F-PRE-02: carga diaria del dólar (sección `cotizacion_dolar` de la matriz de permisos).
+      { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
+      // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
+      { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
+      // F-GAS-01/02 (MSF-469): gastos generales de cada tienda; solo administradores (sección `rentabilidad`).
+      { id: 'gastos', etiqueta: 'Gastos', ruta: '/gastos', icono: PaymentsIcon, audiencia: 'administrador', seccionPermiso: 'rentabilidad' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
+      // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
+      { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },
       { id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: GroupIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
       { id: 'roles', etiqueta: 'Roles y permisos', ruta: '/roles', icono: AdminPanelSettingsIcon, audiencia: 'administrador', seccionPermiso: 'usuarios_permisos' },
+      // Herramienta de uso único en el corte (F-MIG-01, FR-010): solo Administrador, sin sección de
+      // la matriz porque no es una pantalla operativa del día a día.
+      { id: 'migracion-datos', etiqueta: 'Migración de datos', ruta: '/migracion/importar/clientes', icono: FileUploadIcon, audiencia: 'administrador' },
+      // API pública de la organización (F-API-01, FR-013): claves, avisos y auditoría. Sin sección
+      // de la matriz porque no es una pantalla operativa del día a día.
+      { id: 'api', etiqueta: 'API', ruta: '/api', icono: ApiIcon, audiencia: 'administrador' },
     ],
   },
   {
@@ -168,6 +276,12 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
 ]
 
 export const DESTINOS_PANEL: DestinoPanel[] = SECCIONES_PANEL.flatMap((seccion) => seccion.destinos)
+
+// ¿La ruta del destino coincide con la ubicación actual? Criterio ÚNICO que comparten las migas de pan y la ayuda
+// (F-CFG-02, FR-022): coincidencia exacta, o prefijo para subrutas (fichas, formularios). La raíz `/` solo coincide exacta.
+export function coincideRuta(ruta: string, pathname: string): boolean {
+  return ruta === pathname || (ruta !== '/' && pathname.startsWith(ruta))
+}
 
 // Para miembro/administrador siempre visible; para superadmin, solo con
 // organización activa. 'administrador' reutiliza puede_escribir (contexto ya

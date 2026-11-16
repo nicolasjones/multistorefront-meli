@@ -31,3 +31,18 @@ node infra/superset/importar-dashboards.mjs --source <ruta-al-paquete.zip> --ent
 
 - No se invoca desde ningún workflow automático de push (FR-011) — es invocación manual mientras no exista ningún paquete de dashboard versionado en el repositorio.
 - No decide qué datasets/bases debe mapear el import a nivel de negocio — eso es trabajo del producto derivado cuando tenga su primer dashboard real, documentado como siguiente paso en `docs/adoptar-cicd-staging-produccion.md`.
+
+## Extensión MSF-204 (F-REN-01, 2026-10-24)
+
+La épica de Rentabilidad agregó un modo versionado y automático, sin romper este contrato:
+
+- `--directorio <carpeta>` (además del `--source <paquete.zip>` original): empaqueta los YAML de
+  `infra/superset/dashboards/<producto>/` con `infra/superset/empaquetar-dashboards.mjs`, sustituye
+  el host de la base (`SUPERSET_ANALITICA_DB_HOST`) y excluye `reportes.json` del paquete.
+- La contraseña de la conexión de solo lectura viaja en el campo `passwords` del import
+  (`SUPERSET_ANALITICA_DB_PASSWORD`), nunca en Git.
+- Si el directorio trae `reportes.json`, registra los reportes de forma idempotente en
+  `public.reportes` con su `seccion` (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` —solo server-side—
+  y `SUPERSET_REPORTE_CREADO_POR`). Sin esas variables importa igual y avisa.
+- El workflow `deploy-infraestructura-vps.yml` lo invoca con `--directorio` después de
+  `pnpm deploy:vps` cuando el push toca `infra/superset/dashboards/**`.

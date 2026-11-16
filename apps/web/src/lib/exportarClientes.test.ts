@@ -26,7 +26,7 @@ const fila = (n: number, extra: Partial<FilaExportacion> = {}, total = 3): FilaE
   direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null, archivado_en: null, total, ...extra,
 })
 
-const filtros = { texto: ' norte ', tipo: null, archivados: false, empresaId: null }
+const filtros = { texto: ' norte ', tipo: null, archivados: false, empresaId: null, conCuentaWeb: false }
 
 async function leerXlsx(blob: Blob) {
   const archivos = unzipSync(new Uint8Array(await blob.arrayBuffer()))
@@ -57,7 +57,7 @@ describe('exportarClientes', () => {
 
     expect(mocks.rpc).toHaveBeenCalledTimes(1)
     expect(mocks.rpc).toHaveBeenCalledWith('exportar_clientes', {
-      p_texto: 'norte', p_tipo: null, p_archivados: false, p_despues_de: null, p_limite: TAMANO_LOTE_EXPORTACION, p_empresa_id: null,
+      p_texto: 'norte', p_tipo: null, p_archivados: false, p_despues_de: null, p_limite: TAMANO_LOTE_EXPORTACION, p_empresa_id: null, p_con_cuenta_web: false,
     })
     expect(progresos).toEqual([{ descargados: 3, total: 3 }])
     const { hoja, textos, libro } = await leerXlsx(blob)
@@ -95,6 +95,10 @@ describe('exportarClientes', () => {
   it('un error del servidor se informa con mensaje útil y el de tope pide afinar la búsqueda', async () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x' } })
     await expect(exportarClientes(filtros)).rejects.toThrow(/Afiná la búsqueda/)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_acumulado' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow(/esperá unos minutos antes de volver a exportar/)
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_diario' } })
+    await expect(exportarClientes(filtros)).rejects.toThrow(/máximo diario/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'x' } })
     await expect(exportarClientes(filtros)).rejects.toThrow(/permiso/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'se cayó' } })
@@ -103,6 +107,30 @@ describe('exportarClientes', () => {
     await expect(exportarClientes(filtros)).rejects.toThrow(/cambiaron/)
     mocks.rpc.mockResolvedValueOnce({ data: null, error: { message: 'Failed to fetch' } })
     await expect(exportarClientes(filtros)).rejects.toBeInstanceOf(ErrorExportacion)
+  })
+
+  it('si el primer lote ya excede el tope se avisa antes de descargar nada ni armar el archivo', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_acumulado' } })
+    const alEscribir = vi.fn()
+    mocks.alEscribir = alEscribir
+    const progresos: unknown[] = []
+    await expect(exportarClientes(filtros, { alProgresar: (p) => progresos.push(p) })).rejects.toThrow(/esperá unos minutos antes de volver a exportar/)
+    mocks.alEscribir = undefined
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(alEscribir).not.toHaveBeenCalled()
+    expect(progresos).toHaveLength(0)
+  })
+
+  it('si el primer lote ya excede el tope diario se avisa antes de descargar nada', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: { code: '54000', message: 'x', hint: 'tope_diario' } })
+    const alEscribir = vi.fn()
+    mocks.alEscribir = alEscribir
+    const progresos: unknown[] = []
+    await expect(exportarClientes(filtros, { alProgresar: (p) => progresos.push(p) })).rejects.toThrow(/Llegaste al máximo diario/)
+    mocks.alEscribir = undefined
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(alEscribir).not.toHaveBeenCalled()
+    expect(progresos).toHaveLength(0)
   })
 
   it('se puede cancelar entre lotes', async () => {

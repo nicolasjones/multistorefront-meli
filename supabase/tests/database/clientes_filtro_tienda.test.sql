@@ -9,7 +9,7 @@
 -- «authenticated» vía request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(16);
+select plan(18);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -28,7 +28,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena');
 
-insert into clientes (organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 102, 'Beta', 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 103, 'Gamma', 'mayorista'),
@@ -46,7 +46,7 @@ select c.id, e.id, c.organizacion_id
     ('11111111-1111-1111-1111-111111111111', 'Gamma', 'Mundo JC'),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'Ajena')
   ) as v(org, cliente, empresa)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente
   join dominio.empresas e on e.organizacion_id = v.org::uuid and e.nombre = v.empresa;
 
 -- Facturas de octubre con importes distintos: el ranking ordena por facturado.
@@ -60,7 +60,15 @@ select v.org::uuid, c.id, 'factura', v.numero, v.fecha::date, 'emitida', v.sin_i
     ('11111111-1111-1111-1111-111111111111', 'Sin tienda', '0001-00000004', '2026-10-08', 4000),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', '0001-00000001', '2026-10-09', 9000)
   ) as v(org, cliente, numero, fecha, sin_iva)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente;
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente;
+
+-- Cuenta web activa de Alfa en San Javucho (F-CLI-05): el filtro «Con cuenta web»
+-- de la exportación debe coincidir con el del listado (FR-014).
+insert into public.cuentas_cliente (organizacion_id, cliente_id, empresa_id, auth_user_id, estado)
+select c.organizacion_id, c.id, e.id, 'f1000000-0000-0000-0000-000000000001', 'activa'
+  from dominio.clientes c
+  join dominio.empresas e on e.organizacion_id = c.organizacion_id and e.nombre = 'San Javucho'
+ where c.nombre = 'Alfa';
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -133,6 +141,18 @@ select is(
   'sin filtro por tienda, la exportación incluye a los clientes sin tienda'
 );
 
+select results_eq(
+  $$select nombre from exportar_clientes(p_con_cuenta_web => true)$$,
+  $$values ('Alfa'::text)$$,
+  'la exportación respeta «Con cuenta web» (solo cuentas activas y habilitadas)'
+);
+
+select is(
+  (select count(*)::int from exportar_clientes(p_con_cuenta_web => true, p_empresa_id => 'b1000000-0000-0000-0000-000000000002')),
+  0,
+  '«Con cuenta web» se combina con la tienda elegida'
+);
+
 -- ============================================================================
 -- Ranking por tienda (F-CLI-11)
 -- ============================================================================
@@ -166,12 +186,12 @@ select is(
 -- ============================================================================
 
 select ok(
-  has_function_privilege('authenticated', 'public.buscar_clientes(text, text, boolean, integer, integer, uuid)', 'execute'),
-  'authenticated tiene EXECUTE sobre buscar_clientes con el parámetro de tienda'
+  has_function_privilege('authenticated', 'public.buscar_clientes(text, text, boolean, integer, integer, uuid, boolean)', 'execute'),
+  'authenticated tiene EXECUTE sobre buscar_clientes con el parámetro de tienda y de cuenta web'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.exportar_clientes(text, text, boolean, uuid, integer, uuid)', 'execute'),
-  'authenticated tiene EXECUTE sobre exportar_clientes con el parámetro de tienda'
+  has_function_privilege('authenticated', 'public.exportar_clientes(text, text, boolean, uuid, integer, uuid, boolean)', 'execute'),
+  'authenticated tiene EXECUTE sobre exportar_clientes con los parámetros de tienda y cuenta web'
 );
 select ok(
   has_function_privilege('authenticated', 'public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)', 'execute'),

@@ -1,0 +1,119 @@
+import { randomUUID } from 'node:crypto'
+import { expect, test, type Page } from '@playwright/test'
+import { limpiarOrganizacion, rest, serviceKey, url } from './soporte/fixtures'
+
+// F-TDA-16 (MSF-437, SC-004 y SC-005 de la épica MSF-212): con dos tiendas propias de la corrida (cada una con su dominio) la página /contacto muestra los datos de SU tienda, una consulta enviada llega a la
+// bandeja de Consultas y ventas de SU empresa con origen «formulario», una ráfaga de 6 envíos muestra la espera
+// en el sexto y la bandeja recibe 5, y el HTML escrito queda literal. Requiere el stack local
+// (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web servida; siembra y lee la bandeja con la API
+// admin desde Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL /
+// SUPABASE_SERVICE_ROLE_KEY el archivo se omite: ver docs/e2e-app.md.
+
+const cabeceras = (extra: Record<string, string> = {}) => ({
+  apikey: serviceKey ?? '',
+  authorization: `Bearer ${serviceKey}`,
+  'content-type': 'application/json',
+  'content-profile': 'dominio',
+  'accept-profile': 'dominio',
+  ...extra,
+})
+
+async function leer<T>(consulta: string): Promise<T[]> {
+  const r = await fetch(`${url}/rest/v1/${consulta}`, { headers: cabeceras() })
+  if (!r.ok) throw new Error(`REST GET ${consulta}: ${r.status} ${await r.text()}`)
+  return (await r.json()) as T[]
+}
+
+// Puerto con el que se sirve el panel: los subdominios de `localhost` resuelven a loopback en Chromium.
+const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
+
+async function enviar(page: Page, nombre: string, mensaje: string) {
+  await page.getByLabel(/^Nombre/).fill(nombre)
+  await page.getByLabel(/^Correo o WhatsApp/).fill('visitante@ejemplo.com')
+  await page.getByLabel(/^Mensaje/).fill(mensaje)
+  await page.getByRole('button', { name: 'Enviar consulta' }).click()
+}
+
+type Consulta = { nombre: string; origen: string; mensaje: string; empresa_id: string }
+
+test.describe('Tienda online · contacto con formulario (SC-004, SC-005)', () => {
+  test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+
+  test('datos de cada tienda, consulta que llega a SU bandeja, ráfaga de 6 y HTML literal', async ({ browser }) => {
+    test.setTimeout(90_000) // envíos y ráfaga de 6 por tienda, en dos tiendas
+    const sufijo = randomUUID().slice(0, 8)
+    // Organización, empresa y tienda PROPIAS por corrida (no las del demo, que no se pueden limpiar): la baja de la
+    // organización se lleva las consultas, y cada empresa nace con sus datos de contacto.
+    const orgs: string[] = []
+    const tiendas: Array<{ host: string; empresa: string; nombre: string; whatsapp: string; correo: string; horarios: string; visitante: string }> = []
+    try {
+      for (const i of [0, 1]) {
+        const nombre = `Tienda Contacto ${i} ${sufijo}`
+        const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E contacto ${i} ${sufijo}` })
+        orgs.push(org.id)
+        const datos = {
+          whatsapp: `+54 9 11 5550-00${i}${i}`,
+          correo: `contacto-${i}-${sufijo}@ejemplo.com`,
+          horarios: `Horario ${nombre}`,
+        }
+        const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre, ...datos }, 'dominio')
+        const host = `contacto-${i}-${sufijo}.localhost`
+        await rest('tiendas', { organizacion_id: org.id, empresa_id: empresa.id, dominio: host }, 'dominio')
+        tiendas.push({ host, empresa: empresa.id, nombre, ...datos, visitante: `E2E contacto ${nombre}` })
+      }
+
+      for (const t of tiendas) {
+        const otra = tiendas.find((x) => x.host !== t.host)!
+        const contexto = await browser.newContext()
+        const page = await contexto.newPage()
+        await page.goto(`http://${t.host}:${puerto}/contacto`)
+
+        // Datos de ESTA tienda y de ninguna otra.
+        await expect(page.getByRole('heading', { level: 1, name: 'Contacto' })).toBeVisible()
+        await expect(page.getByTestId('bloque-whatsapp')).toContainText(t.whatsapp)
+        await expect(page.getByTestId('bloque-whatsapp')).toContainText(t.horarios)
+        await expect(page.getByTestId('bloque-correo')).toContainText(t.correo)
+        await expect(page.getByText(otra.correo)).toHaveCount(0)
+        await expect(page.getByText(otra.horarios)).toHaveCount(0)
+
+        // Validación por campo: no se envía nada.
+        await page.getByRole('button', { name: 'Enviar consulta' }).click()
+        await expect(page.getByText('Escribí tu nombre.')).toBeVisible()
+        await expect(page.getByLabel(/^Nombre/)).toBeFocused()
+
+        // Primer envío: confirmación y llegada a la bandeja de SU empresa con origen formulario.
+        await enviar(page, `${t.visitante} 1`, 'Hola, ¿tienen stock?')
+        await expect(page.getByRole('heading', { name: '¡Gracias! Recibimos tu consulta' })).toBeFocused()
+        await page.getByRole('button', { name: 'Enviar otra' }).click()
+        await expect(page.getByLabel(/^Nombre/)).toHaveValue('')
+
+        // HTML literal: se guarda tal cual y la página no lo interpreta.
+        await enviar(page, `${t.visitante} 2`, '<script>window.__xss = 1</script><b>negrita</b>')
+        await page.getByRole('button', { name: 'Enviar otra' }).click()
+        expect(await page.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined()
+
+        // Envíos 3 a 5, y el sexto muestra la espera conservando lo escrito.
+        for (const n of [3, 4, 5]) {
+          await enviar(page, `${t.visitante} ${n}`, `Consulta número ${n}`)
+          await page.getByRole('button', { name: 'Enviar otra' }).click()
+        }
+        await enviar(page, `${t.visitante} 6`, 'Consulta número 6')
+        await expect(page.getByTestId('contacto-espera')).toContainText('Hiciste varias consultas seguidas. Probá de nuevo en')
+        await expect(page.getByLabel(/^Mensaje/)).toHaveValue('Consulta número 6')
+
+        // La bandeja recibió 5, todas de SU empresa y con origen formulario; la sexta no.
+        const consultas = await leer<Consulta>(
+          `consultas?select=nombre,origen,mensaje,empresa_id&nombre=like.${encodeURIComponent(`${t.visitante} *`)}&order=nombre`,
+        )
+        expect(consultas).toHaveLength(5)
+        expect(consultas.every((c) => c.empresa_id === t.empresa && c.origen === 'formulario')).toBe(true)
+        expect(consultas.find((c) => c.nombre.endsWith(' 2'))?.mensaje).toBe('<script>window.__xss = 1</script><b>negrita</b>')
+        expect(consultas.some((c) => c.nombre.endsWith(' 6'))).toBe(false)
+
+        await contexto.close()
+      }
+    } finally {
+      for (const org of orgs) await limpiarOrganizacion(org)
+    }
+  })
+})

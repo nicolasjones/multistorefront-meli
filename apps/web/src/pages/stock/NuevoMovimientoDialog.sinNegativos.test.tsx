@@ -7,8 +7,14 @@ const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   getUser: vi.fn(),
   perfil: vi.fn(),
+  depositos: vi.fn(),
+  stockDeposito: vi.fn(),
 }))
 
+vi.mock('../../lib/depositos', () => ({
+  listarDepositosActivos: mocks.depositos,
+  listarStockPorDeposito: mocks.stockDeposito,
+}))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
@@ -57,6 +63,12 @@ describe('NuevoMovimientoDialog · stock insuficiente', () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1', email: 'operador@example.com' } } })
     mocks.perfil.mockResolvedValue({ data: { nombre: 'Ana', apellido: 'Pérez' }, error: null })
     mocks.rpc.mockResolvedValue({ data: {}, error: null })
+    mocks.depositos.mockResolvedValue([{ id: 'dep-1', nombre: 'Depósito principal', por_defecto: true }])
+    mocks.stockDeposito.mockImplementation(async () => {
+      const respuesta = await mocks.productos()
+      const cantidad = respuesta.data?.[0]?.existencias?.cantidad ?? 0
+      return { 'dep-1': { deposito_id: 'dep-1', cantidad, reservado: 0, disponible: cantidad } }
+    })
   })
 
   it('una salida mayor al stock muestra el aviso con el detalle y deshabilita «Registrar»', async () => {

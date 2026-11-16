@@ -68,8 +68,14 @@ const ultimaLlamada = () => llamadasAListar().at(-1)![1] as Record<string, unkno
 const abrir = () => render(<MemoryRouter><ActividadList /></MemoryRouter>)
 
 async function elegir(etiqueta: string, opcion: string) {
-  fireEvent.mouseDown(screen.getByRole('combobox', { name: etiqueta }))
-  fireEvent.click(await screen.findByRole('option', { name: opcion }))
+  const combo = screen.queryByRole('combobox', { name: etiqueta })
+  if (combo) {
+    fireEvent.mouseDown(combo)
+    fireEvent.click(await screen.findByRole('option', { name: opcion }))
+    return
+  }
+  const grupo = screen.getByRole('group', { name: 'Filtrar por tienda' })
+  fireEvent.click(within(grupo).getByRole('button', { name: opcion }))
 }
 
 describe('ActividadList (F-AUD-01, SC-001)', () => {
@@ -102,6 +108,19 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     expect(screen.getByText('Sistema')).toBeInTheDocument()
   })
 
+  it('rotula «Tienda online» el presupuesto pedido desde la tienda (sin actor) y deja «Sistema» a los demás eventos sin actor (FR-060)', async () => {
+    responder([
+      fila(1, { tipo: 'presupuesto.creado_desde_tienda', actor_id: null, actor_nombre: null, detalle: 'Presupuesto 00000012 pedido desde la tienda Tienda A por el cliente Nº 910 · Ana' }),
+      fila(2, { actor_id: null, actor_nombre: null }),
+    ])
+    abrir()
+
+    const tabla = await screen.findByRole('table')
+    expect(within(tabla).getByText('Tienda online')).toBeInTheDocument()
+    expect(within(tabla).getByText('Presupuesto pedido desde la tienda')).toBeInTheDocument()
+    expect(within(tabla).getByText('Sistema')).toBeInTheDocument()
+  })
+
   it('el operador ve todo: pide el listado sin acotar por usuario ni tipo', async () => {
     responder([fila(1)])
     abrir()
@@ -117,7 +136,7 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await screen.findByRole('table', { name: 'Actividad' })
 
     await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_empresa: 'e-2' }))
-    expect(screen.getByRole('combobox', { name: 'Tienda' })).toHaveTextContent('Mundo JC')
+    expect(screen.getByRole('button', { name: 'Mundo JC' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('combina período, empresa, usuario y tipo, y vuelve a la página 1', async () => {
@@ -164,24 +183,27 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await waitFor(() => expect(ultimaLlamada()).toMatchObject({ p_texto: 'lámpara', p_empresa: 'e-2' }))
   })
 
-  it('pagina en servidor y muestra el rango «1–10 de N»', async () => {
+  it('carga por tandas: suma cada tanda a las anteriores y muestra el total', async () => {
     responder(Array.from({ length: 10 }, (_, i) => fila(i + 1)))
     abrir()
 
-    expect(await screen.findByText('1–10 de 25')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled()
+    expect(await screen.findByText('Detalle 1')).toBeInTheDocument()
+    expect(screen.getByText('25 eventos')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument()
 
     responder(Array.from({ length: 10 }, (_, i) => fila(i + 11)))
-    fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 
-    expect(await screen.findByText('11–20 de 25')).toBeInTheDocument()
+    expect(await screen.findByText('Detalle 20')).toBeInTheDocument()
+    expect(screen.getByText('Detalle 1')).toBeInTheDocument()
     expect(ultimaLlamada()).toMatchObject({ p_pagina: 2 })
 
     responder(Array.from({ length: 5 }, (_, i) => fila(i + 21)))
-    fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 
-    expect(await screen.findByText('21–25 de 25')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Página siguiente' })).toBeDisabled()
+    expect(await screen.findByText('Detalle 25')).toBeInTheDocument()
+    expect(screen.getByText('Detalle 1')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
   })
 
   it('muestra el estado de carga mientras consulta', () => {
@@ -234,5 +256,49 @@ describe('ActividadList (F-AUD-01, SC-001)', () => {
     await act(async () => resolverLenta({ data: [fila(1)], error: null }))
     expect(screen.queryByText('Detalle 1')).not.toBeInTheDocument()
     expect(screen.getByText('Detalle 2')).toBeInTheDocument()
+  })
+
+  describe('detalle del registro (F-AUD-02, FR-007)', () => {
+    const responderConDetalle = () => {
+      mocks.rpc.mockImplementation((nombre: string) => {
+        if (nombre === 'opciones_actividad') return Promise.resolve({ data: OPCIONES, error: null })
+        if (nombre === 'obtener_detalle_actividad') {
+          return Promise.resolve({
+            data: [{ ...fila(1), tipo: 'usuario.rol_cambiado', sensible: true, valor_anterior: { rol: 'Consulta' }, valor_nuevo: { rol: 'Mostrador' } }],
+            error: null,
+          })
+        }
+        return Promise.resolve({ data: [fila(1, { tipo: 'usuario.rol_cambiado' })], error: null })
+      })
+    }
+
+    it('abrir una fila muestra el antes y el después', async () => {
+      responderConDetalle()
+      abrir()
+      await screen.findByRole('table', { name: 'Actividad' })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Ver detalle: Detalle 1' }))
+
+      const dialogo = await screen.findByRole('dialog', { name: 'Detalle de la actividad' })
+      expect(mocks.rpc).toHaveBeenCalledWith('obtener_detalle_actividad', { p_id: 'ev-1' })
+      const tabla = await within(dialogo).findByRole('table', { name: 'Valores del cambio' })
+      expect(within(tabla).getByText('Consulta')).toBeInTheDocument()
+      expect(within(tabla).getByText('Mostrador')).toBeInTheDocument()
+    })
+
+    it('cierra el detalle con aviso al cambiar la empresa activa de la barra superior', async () => {
+      responderConDetalle()
+      mockFiltro({ empresaActivaId: 'e-1' })
+      const { rerender } = abrir()
+      await screen.findByRole('table', { name: 'Actividad' })
+      fireEvent.click(screen.getByRole('button', { name: 'Ver detalle: Detalle 1' }))
+      await screen.findByRole('dialog', { name: 'Detalle de la actividad' })
+
+      mockFiltro({ empresaActivaId: 'e-2' })
+      rerender(<MemoryRouter><ActividadList /></MemoryRouter>)
+
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Detalle de la actividad' })).not.toBeInTheDocument())
+      expect(await screen.findByText('Cambiaste de empresa: cerramos el detalle que estabas viendo.')).toBeInTheDocument()
+    })
   })
 })

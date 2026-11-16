@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - infra/kestra
+  - workers/egress-allowlists.json
+  - workers/historial-importador
+---
+
 # Historial de ventas importado (F-VTA-37 / MSF-293)
 
 Archivo de consulta de las ventas, los cobros y las cotizaciones del dólar que
@@ -124,7 +132,7 @@ sin ese nivel muestra «Acceso restringido» y la entrada de menú no aparece.
   acciones de edición, anulación, borrado ni exportación (el botón `Exportar` del prototipo
   queda fuera de alcance, ver la matriz de la spec).
 - **Empresa activa (Constitución VIII)**: el filtro Tienda parte de la empresa activa de la
-  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); los chips del prototipo la
+  barra superior (`useFiltroPorEmpresaActiva`, F-ROL-06); las píldoras de `FiltroEmpresa` la
   sobreescriben hasta que la activa cambie. Al cambiar de empresa o de organización la
   consulta se remonta: página 1, búsqueda vacía y recarga completa, sin filas de la anterior.
   Test: `list.test.tsx` («sigue a la empresa activa…»).
@@ -308,3 +316,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
     referencias `{{ envs.* }}` de los flows de Kestra (plantillas, no valores).
   - Para confirmarlo con el escáner real: `pnpm calidad` en el CI o en una
     máquina con Docker.
+
+## Carga infinita
+
+Las pestañas Ventas, Cobros y Cotizaciones del dólar cargan por tandas de 25 al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. La búsqueda y la tienda reinician desde la primera tanda y el contador «N registros mostrados» se conserva. No mencionan productos: sin miniatura. Ver [`listados.md`](./listados.md).

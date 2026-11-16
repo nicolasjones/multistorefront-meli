@@ -13,6 +13,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useFeatureHabilitada', () => ({ useFeatureHabilitada: mocks.useFeatureHabilitada }))
 
 vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
+// La insignia de consultas nuevas hace lecturas reales a la red (useConsultas y useEmpresasAccesibles): su
+// `fetch` falla DESPUÉS de que el test terminó y el entorno se cerró, y vitest sale con error aunque todos
+// los tests pasen. Este archivo no prueba la insignia, solo la navegación.
+vi.mock('../consultas/InsigniaConsultasNuevas', () => ({ InsigniaConsultasNuevas: () => null }))
 vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermisosPanel }))
 // ThemedSider depende de useMenu/useActiveAuthProvider/etc, que exigen un
 // <Refine> completo — se reemplaza por un stub que solo invoca `render`,
@@ -22,6 +26,7 @@ vi.mock('../../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermi
 type RenderProp = (props: { collapsed: boolean; items: never[]; logout: null }) => ReactNode
 vi.mock('@refinedev/mui', () => ({ ThemedSider: ({ render }: { render: RenderProp }) => render({ collapsed: false, items: [], logout: null }) }))
 
+import { etiquetarBotonContraer, etiquetarHamburguesa } from './etiquetasRefine'
 import { SiderPanel } from './SiderPanel'
 
 function renderSiderEn(ruta: string) {
@@ -59,6 +64,19 @@ describe('SiderPanel', () => {
     expect(screen.getByRole('link', { name: 'Modelos' })).toHaveAttribute('href', '/service-tecnico/modelos')
     expect(screen.getByRole('link', { name: 'Estados de reparación' })).toHaveAttribute('href', '/service-tecnico/estados')
   })
+  it('con error al cargar permisos muestra «No pudimos verificar» con Reintentar y no el menú completo', () => {
+    const recargar = vi.fn()
+    mocks.usePermisosPanel.mockReturnValue({ permisos: null, isLoading: false, error: true, recargar })
+    mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
+
+    renderSider()
+
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(recargar).toHaveBeenCalledTimes(1)
+  })
+
   it('muestra Inicio y Contactos para un miembro', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
@@ -72,13 +90,16 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Analítica' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Usuarios' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Migración de datos' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Organizaciones' })).not.toBeInTheDocument()
   })
 
   it('muestra Empresas al administrador dentro de Canales y se la oculta al miembro (F-EMP-01, FR-004)', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
     const { unmount } = renderSider()
-    expect(screen.queryByRole('button', { name: 'Canales' })).not.toBeInTheDocument()
+    // Canales existe para el miembro por Consultas (F-CON-01), pero Empresas es solo del administrador.
+    fireEvent.click(screen.getByRole('button', { name: 'Canales' }))
+    expect(screen.getByRole('link', { name: 'Consultas' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Empresas' })).not.toBeInTheDocument()
     unmount()
 
@@ -101,6 +122,7 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Usuarios' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Roles y permisos' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Migración de datos' })).toHaveAttribute('href', '/migracion/importar/clientes')
     expect(screen.getByRole('link', { name: 'Actividad' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Conexiones OAuth' })).not.toBeInTheDocument()
@@ -200,7 +222,7 @@ describe('SiderPanel', () => {
     expect(screen.queryByRole('link', { name: 'Inicio' })).not.toBeInTheDocument()
   })
 
-  it('dentro de Stock ofrece Stock y Movimientos', () => {
+  it('dentro de Stock ofrece Stock, Movimientos, Ingreso de mercadería y Depósitos de mercadería', () => {
     mocks.useContextoPanel.mockReturnValue({ contexto: panelFixtures.miembro, isLoading: false })
 
     renderSider()
@@ -209,6 +231,8 @@ describe('SiderPanel', () => {
 
     expect(screen.getByRole('link', { name: 'Stock' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('link', { name: 'Movimientos' })).toHaveAttribute('href', '/stock/movimientos')
+    expect(screen.getByRole('link', { name: 'Ingreso de mercadería' })).toHaveAttribute('href', '/stock/ingresos')
+    expect(screen.getByRole('link', { name: 'Depósitos de mercadería' })).toHaveAttribute('href', '/stock/depositos')
   })
 
   it('cada ícono de destino es decorativo para el lector de pantalla', () => {
@@ -243,5 +267,22 @@ describe('SiderPanel', () => {
     renderSider()
 
     expect(screen.queryByRole('link', { name: 'Clientes' })).not.toBeInTheDocument()
+  })
+})
+
+describe('etiquetarBotonContraer (a11y del botón de ThemedSider)', () => {
+  it('le da nombre accesible al botón con la flecha izquierda y no toca otros botones ni los que ya tienen nombre', () => {
+    document.body.innerHTML = `
+      <button id="a"><svg data-testid="ChevronLeftIcon"></svg></button>
+      <button id="b" aria-label="Cerrar"><svg data-testid="ChevronLeftIcon"></svg></button>
+      <button id="c"><svg data-testid="MenuIcon"></svg></button>
+      <button id="d" aria-label="open drawer"></button>`
+    etiquetarBotonContraer()
+    etiquetarHamburguesa()
+    expect(document.getElementById('a')).toHaveAttribute('aria-label', 'Contraer el menú lateral')
+    expect(document.getElementById('b')).toHaveAttribute('aria-label', 'Cerrar')
+    expect(document.getElementById('c')).not.toHaveAttribute('aria-label')
+    expect(document.getElementById('d')).toHaveAttribute('aria-label', 'Abrir el menú lateral')
+    document.body.innerHTML = ''
   })
 })

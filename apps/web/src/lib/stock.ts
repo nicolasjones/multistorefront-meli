@@ -3,6 +3,8 @@
 // 20261017140100_stock_registrar_movimiento.sql; acá se espejan solo para validar
 // y previsualizar en el diálogo antes de viajar (la autoridad es la base).
 
+import { normalizarBusqueda } from './busquedaTexto'
+
 export type TipoMovimiento = 'entrada' | 'salida' | 'ajuste'
 
 export const TIPOS_MOVIMIENTO: ReadonlyArray<{ valor: TipoMovimiento; etiqueta: string }> = [
@@ -18,6 +20,8 @@ export const MENSAJE_MOVIMIENTO_REGISTRADO = 'Movimiento registrado'
 export type FormularioMovimiento = {
   tipo: TipoMovimiento
   producto_id: string
+  // Depósito sobre el que se aplica el movimiento (F-STK-14, FR-008/FR-010).
+  deposito_id: string
   // Unidades (entrada/salida) o stock contado (ajuste), tal como las escribe la persona.
   cantidad: string
   fecha: string
@@ -42,8 +46,8 @@ export function fechaDeHoy(ahora: Date = new Date()): string {
   return `${ahora.getFullYear()}-${mes}-${dia}`
 }
 
-export function formularioMovimientoVacio(productoId = ''): FormularioMovimiento {
-  return { tipo: 'entrada', producto_id: productoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
+export function formularioMovimientoVacio(productoId = '', depositoId = ''): FormularioMovimiento {
+  return { tipo: 'entrada', producto_id: productoId, deposito_id: depositoId, cantidad: '', fecha: fechaDeHoy(), motivo_id: '', nota: '' }
 }
 
 // Entero sin signo, sin decimales ni separadores; acota a int4 como la columna.
@@ -76,13 +80,23 @@ export function avisoStockInsuficiente(tipo: TipoMovimiento, actual: number, can
 }
 
 export function motivosDelTipo(motivos: readonly MotivoMovimiento[], tipo: TipoMovimiento): MotivoMovimiento[] {
-  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo))
+  // El motivo de sistema del traslado se usa solo desde «Trasladar» (F-STK-15).
+  return motivos.filter((motivo) => motivo.activo && motivo.aplica_a.includes(tipo) && !esMotivoDeTraslado(motivo.nombre))
+}
+
+export const NOMBRE_MOTIVO_TRASLADO = 'Traslado entre depósitos'
+
+export function esMotivoDeTraslado(nombre: string): boolean {
+  return nombre.trim().toLowerCase() === NOMBRE_MOTIVO_TRASLADO.toLowerCase()
 }
 
 export function validarMovimiento(formulario: FormularioMovimiento, hoy: string = fechaDeHoy()): ErroresMovimiento {
   const errores: ErroresMovimiento = {}
   if (formulario.producto_id === '') {
     errores.producto_id = 'Elegí un producto.'
+  }
+  if (formulario.deposito_id === '') {
+    errores.deposito_id = 'Elegí un depósito.'
   }
   const cantidad = parsearCantidad(formulario.cantidad)
   if (formulario.tipo === 'ajuste') {
@@ -140,9 +154,9 @@ export function validarMinimo(texto: string): { valor: number } | { error: strin
 // caracteres que separan o agrupan condiciones (`,` `(` `)` `"` `\`) y se escapan los
 // comodines de LIKE (`%` `_`), para que lo tipeado no altere la consulta.
 export function filtroBusquedaStock(texto: string): string | null {
-  const limpio = texto.slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
+  const limpio = normalizarBusqueda(texto).slice(0, 80).replace(/[,()"\\]/g, ' ').replace(/[%_]/g, (c) => `\\${c}`).trim()
   if (limpio === '') return null
-  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+  return `nombre_norm.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
 // Solo para registrar movimientos: ahí `23514` con mensaje «No hay stock suficiente» es el disparador de stock

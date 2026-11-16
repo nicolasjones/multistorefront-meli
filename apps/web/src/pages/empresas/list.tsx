@@ -136,9 +136,14 @@ export function EmpresaList() {
             obtenerClave={(empresa) => empresa.id}
             etiquetaTabla="Empresas"
             acciones={(empresa) => (
-              <Button component={RouterLink} to={`/empresas/edit/${empresa.id}`} size="small" aria-label={`Editar ${empresa.nombre}`}>
-                Editar
-              </Button>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                <Button component={RouterLink} to={`/empresas/edit/${empresa.id}`} size="small" aria-label={`Editar ${empresa.nombre}`}>
+                  Editar
+                </Button>
+                <Button component={RouterLink} to={`/empresas/${empresa.id}/tienda/identidad`} size="small" aria-label={`Abrir la tienda de ${empresa.nombre}`}>
+                  Tienda
+                </Button>
+              </Stack>
             )}
           />
           <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ mt: 2 }}>

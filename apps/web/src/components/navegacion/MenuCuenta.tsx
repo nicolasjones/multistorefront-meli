@@ -5,10 +5,15 @@ import { Avatar, Box, Divider, IconButton, ListItemIcon, ListItemText, Menu, Men
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
 import LockResetIcon from '@mui/icons-material/LockReset'
 import AlternateEmailIcon from '@mui/icons-material/AlternateEmail'
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { supabaseClient } from '../../lib/supabase'
 import { tokens } from '../../tema/tokens'
+
+// Tope del nombre en la píldora solo en pantallas angostas (xs): en 320 px un correo largo no debe ensanchar la barra
+// (se recorta con «…»). Desde sm no hay tope, como antes: la barra tiene lugar.
+const ANCHO_MAX_NOMBRE = { xs: 120, sm: 'none' } as const
 
 type Identity = { id: string; email?: string }
 type PerfilIdentidad = { nombre: string | null; apellido: string | null }
@@ -68,6 +73,8 @@ export function MenuCuenta() {
         aria-controls={abierto ? 'menu-cuenta' : undefined}
         aria-haspopup="true"
         sx={{
+          // Un correo largo no debe ensanchar la píldora más que la barra (320 px): el nombre se recorta con «…».
+          maxWidth: '100%',
           gap: 1,
           pl: 0.5,
           pr: 0.75,
@@ -80,7 +87,7 @@ export function MenuCuenta() {
         }}
       >
         <Avatar src={fotoUrl ?? undefined} alt="" sx={{ width: 28, height: 28 }}>{nombreMostrado.charAt(0).toUpperCase()}</Avatar>
-        <Typography noWrap variant="b" color="text.primary">{nombreMostrado}</Typography>
+        <Typography noWrap variant="b" color="text.primary" title={nombreMostrado} sx={{ minWidth: 0, maxWidth: ANCHO_MAX_NOMBRE }}>{nombreMostrado}</Typography>
         <ExpandMoreIcon aria-hidden="true" fontSize="small" sx={{ color: 'text.secondary' }} />
       </IconButton>
       <Menu id="menu-cuenta" anchorEl={anchorEl} open={abierto} onClose={cerrar}>
@@ -100,6 +107,10 @@ export function MenuCuenta() {
         <MenuItem component={RouterLink} to="/cuenta/cambiar-correo" onClick={cerrar}>
           <ListItemIcon><AlternateEmailIcon fontSize="small" /></ListItemIcon>
           <ListItemText>Cambiar correo electrónico</ListItemText>
+        </MenuItem>
+        <MenuItem component={RouterLink} to="/cuenta/avisos" onClick={cerrar}>
+          <ListItemIcon><NotificationsNoneIcon fontSize="small" /></ListItemIcon>
+          <ListItemText>Avisos por correo</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => { cerrar(); cerrarSesion() }}>

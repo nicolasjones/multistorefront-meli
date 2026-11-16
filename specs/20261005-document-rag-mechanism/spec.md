@@ -46,6 +46,10 @@ concepto de dominio del producto de origen.
   respuesta citando los documentos de origen.
 - **FR-005**: sin fragmentos por encima del umbral de similitud, responde
   que no encontró información sin llamar al proveedor de generación.
+  Tampoco llama al proveedor si los fragmentos recuperados no traen texto
+  (contexto vacío). El texto de los fragmentos se sanea con su propia lista
+  permitida (`texto`) y se envuelve con `marcarContenidoNoConfiable`
+  (`contexto.ts`); antes se descartaba por usar la lista del contrato (MSF-725).
 - **FR-006**: eliminar un documento hace purga real (borra objetos de
   Storage de todas las versiones + cascada de versiones/fragmentos), no
   solo ocultamiento.

@@ -1,5 +1,5 @@
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react'
-import { Box, Button, Chip, Dialog, DialogActions, DialogContent, LinearProgress, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, Dialog, DialogActions, DialogContent, Stack, TextField } from '@mui/material'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { guardarEmpresasDeProveedor, useEmpresasDeProveedor } from '../../hooks/useEmpresasDeProveedor'
 import { formatearCuit } from '../../lib/cuit'
@@ -19,6 +19,7 @@ import {
   validarProveedor,
 } from '../../lib/proveedores'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SelectorEmpresas } from '../base/SelectorEmpresas'
 import { TituloDialogo } from '../base/TituloDialogo'
 
 type Props = {
@@ -29,7 +30,11 @@ type Props = {
   onGuardado: (proveedor: Proveedor) => void
   // Ante un conflicto de edición: recargar la ficha con los datos de la otra persona.
   onRecargar?: () => void
+  // Con contacto principal, persona de contacto, correo y teléfono se toman de él (F-PRV-08, FR-026).
+  contactoPrincipal?: boolean
 }
+
+const CAMPOS_DEL_PRINCIPAL: ReadonlyArray<CampoProveedor> = ['persona_contacto', 'correo', 'telefono']
 
 const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: string; multilinea?: boolean; requerido?: boolean }> = [
   { campo: 'razon_social', etiqueta: 'Razón social', requerido: true },
@@ -45,33 +50,33 @@ const CAMPOS: ReadonlyArray<{ campo: CampoProveedor; etiqueta: string; type?: st
 // Proveedores · Listado / Ficha, más «Compra para» (MSF-524, informativo); las
 // condiciones de compra quedan fuera de alcance (spec, Decisiones abiertas 3). La autoridad es la base (CUIT, unicidad, bloqueo
 // optimista): acá se valida antes de viajar y se traducen sus errores.
-export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar }: Props) {
+export function ProveedorFormDialog({ open, proveedor = null, onCerrar, onGuardado, onRecargar, contactoPrincipal = false }: Props) {
   return (
     <Dialog open={open} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-proveedor-form">
       {/* El formulario se monta al abrir: cada apertura parte de los datos vigentes. */}
-      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} />
+      <Formulario proveedor={proveedor} onCerrar={onCerrar} onGuardado={onGuardado} onRecargar={onRecargar} contactoPrincipal={contactoPrincipal} />
     </Dialog>
   )
 }
 
 type PropsFormulario = Omit<Props, 'open'>
 
-function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormulario) {
+function Formulario({ proveedor, onCerrar, onGuardado, onRecargar, contactoPrincipal }: PropsFormulario) {
   const edicion = Boolean(proveedor)
   const inicial: FormularioProveedor = proveedor
     ? { ...aFormulario(proveedor), cuit: formatearCuit(proveedor.cuit) }
     : FORMULARIO_PROVEEDOR_VACIO
   const [formulario, setFormulario] = useState<FormularioProveedor>(inicial)
   const [errores, setErrores] = useState<ErroresProveedor>({})
-  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean } | null>(null)
+  const [errorServidor, setErrorServidor] = useState<{ texto: string; conflicto: boolean; tiendas: boolean } | null>(null)
   const [guardando, setGuardando] = useState(false)
   // «Compra para» (MSF-524): null = sin tocar (rige lo guardado); array = selección editada.
   const { empresas: tiendas, isLoading: cargandoTiendas, isError: errorTiendas } = useEmpresas()
   const guardadas = useEmpresasDeProveedor(proveedor?.id)
   const [seleccion, setSeleccion] = useState<string[] | null>(null)
   const compraPara = seleccion ?? guardadas.empresas
-  const tiendasListas = !cargandoTiendas && !errorTiendas && !guardadas.isLoading && !guardadas.isError
-  // Si el proveedor ya se guardó pero fallaron las tiendas, el reintento no lo vuelve a guardar.
+  // El proveedor ya guardado (alta o edición): el reintento lo actualiza en vez de duplicarlo y
+  // con el `updated_at` que devolvió ese guardado (MSF-698).
   const persistido = useRef<Proveedor | null>(null)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
   const enVuelo = useRef(false)
@@ -94,8 +99,11 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
     }
   }
 
-  const enviar = async (event: FormEvent) => {
-    event.preventDefault()
+  // Guarda el proveedor y sus tiendas. Es la misma operación del formulario y la del botón
+  // «Reintentar» del aviso (MSF-698): si el proveedor ya se guardó, el reintento lo **actualiza**
+  // (no crea otro) con lo que el formulario tiene en ese momento, así no se pierde lo editado
+  // después del fallo; el sello `updated_at` es el que devolvió el guardado anterior.
+  const guardar = async () => {
     if (enVuelo.current) {
       return
     }
@@ -109,12 +117,13 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
     enVuelo.current = true
     setGuardando(true)
     try {
-      if (!persistido.current) {
-        persistido.current = proveedor
+      const anterior = persistido.current
+      const guardado = anterior
+        ? await actualizarProveedor(formulario, { id: anterior.id, actualizadoEn: anterior.updated_at })
+        : proveedor
           ? await actualizarProveedor(formulario, { id: proveedor.id, actualizadoEn: proveedor.updated_at })
           : await crearProveedor(formulario)
-      }
-      const guardado = persistido.current
+      persistido.current = guardado
       if (seleccion !== null) {
         try {
           await guardarEmpresasDeProveedor(guardado.id, seleccion)
@@ -122,6 +131,7 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
           setErrorServidor({
             texto: `El proveedor se guardó, pero no pudimos guardar «Compra para». ${mensajeDeError(error, 'Intentá de nuevo.')}`,
             conflicto: false,
+            tiendas: true,
           })
           return
         }
@@ -137,12 +147,18 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
         setErrorServidor({
           texto: mensajeDeError(error, 'No pudimos guardar el proveedor. Intentá de nuevo.'),
           conflicto: esConflicto(error),
+          tiendas: false,
         })
       }
     } finally {
       enVuelo.current = false
       setGuardando(false)
     }
+  }
+
+  const enviar = async (event: FormEvent) => {
+    event.preventDefault()
+    await guardar()
   }
 
   return (
@@ -154,13 +170,19 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
         <Stack spacing={2} sx={{ pt: 1 }}>
           {errorServidor ? (
             <EstadoError
-              titulo={errorServidor.conflicto ? 'El proveedor cambió.' : 'No se guardó el proveedor.'}
+              titulo={errorServidor.conflicto
+                ? 'El proveedor cambió.'
+                : errorServidor.tiendas ? 'No se guardó «Compra para».' : 'No se guardó el proveedor.'}
               descripcion={errorServidor.texto}
-              reintentar={errorServidor.conflicto && onRecargar ? onRecargar : undefined}
-              etiquetaReintentar="Recargar"
+              reintentar={errorServidor.conflicto
+                ? onRecargar
+                : errorServidor.tiendas ? () => void guardar() : undefined}
+              etiquetaReintentar={errorServidor.conflicto ? 'Recargar' : 'Reintentar'}
             />
           ) : null}
-          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => (
+          {CAMPOS.map(({ campo, etiqueta, type, multilinea, requerido }, indice) => {
+            const delPrincipal = edicion && contactoPrincipal && CAMPOS_DEL_PRINCIPAL.includes(campo)
+            return (
             <TextField
               key={campo}
               label={etiqueta}
@@ -169,7 +191,8 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               onChange={cambiar(campo)}
               onBlur={campo === 'cuit' ? formatearAlSalir : undefined}
               error={Boolean(errores[campo])}
-              helperText={errores[campo]}
+              helperText={delPrincipal ? 'Se toma del contacto principal' : errores[campo]}
+              slotProps={delPrincipal ? { input: { readOnly: true } } : undefined}
               required={requerido}
               multiline={multilinea}
               minRows={multilinea ? 3 : undefined}
@@ -178,37 +201,20 @@ function Formulario({ proveedor, onCerrar, onGuardado, onRecargar }: PropsFormul
               inputRef={(el: HTMLInputElement | HTMLTextAreaElement | null) => { refs.current[campo] = el }}
               fullWidth
             />
-          ))}
-          <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>Compra para</Typography>
-            {cargandoTiendas || guardadas.isLoading ? (
-              <LinearProgress aria-label="Cargando tiendas" />
-            ) : errorTiendas || guardadas.isError ? (
-              <Typography variant="body2" color="error">No pudimos cargar las tiendas.</Typography>
-            ) : tiendas.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">La organización todavía no tiene tiendas cargadas.</Typography>
-            ) : (
-              <Stack role="group" aria-label="Compra para" direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {tiendas.map((tienda) => {
-                  const marcada = compraPara.includes(tienda.id)
-                  return (
-                    <Chip
-                      key={tienda.id}
-                      label={tienda.nombre}
-                      color={marcada ? 'primary' : 'default'}
-                      variant={marcada ? 'filled' : 'outlined'}
-                      aria-pressed={marcada}
-                      disabled={guardando || !tiendasListas}
-                      onClick={() => setSeleccion(marcada ? compraPara.filter((id) => id !== tienda.id) : [...compraPara, tienda.id])}
-                    />
-                  )
-                })}
-              </Stack>
-            )}
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-              Las tiendas marcadas son para las que se le compra a este proveedor.
-            </Typography>
-          </Box>
+            )
+          })}
+          <SelectorEmpresas
+            empresas={tiendas}
+            seleccion={compraPara}
+            onCambiar={setSeleccion}
+            etiqueta="Compra para"
+            cargando={cargandoTiendas || guardadas.isLoading}
+            hayError={errorTiendas || guardadas.isError}
+            mensajeError="No pudimos cargar las tiendas."
+            mensajeVacio="La organización todavía no tiene tiendas cargadas."
+            ayuda="Las tiendas marcadas son para las que se le compra a este proveedor."
+            deshabilitado={guardando}
+          />
         </Stack>
       </DialogContent>
       <DialogActions>

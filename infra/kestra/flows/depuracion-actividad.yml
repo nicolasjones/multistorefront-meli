@@ -1,0 +1,31 @@
+# MSF-259 · F-AUD-02 (FR-009, spec 20261102-100000-auditoria-avanzada-y-soporte).
+# Depura el registro de actividad: borra los eventos con más de 24 meses y deja un evento «Sistema»
+# (`sistema.depurada`) por organización con la cantidad borrada. La retención vive en la base
+# (`private.depurar_registro_actividad`, retención por defecto); el flow solo la dispara. Es idempotente:
+# una segunda corrida no borra nada más, así que reintentar es seguro. Si la función falla (por ejemplo, rol no
+# autorizado), la tarea falla y la ejecución queda en rojo: no se traga el error (Principio III).
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), con EXECUTE solo sobre esta función.
+id: depuracion-actividad
+namespace: platform.auditoria
+labels:
+  capa: core
+  dominio: plataforma
+  componente: depuracion-actividad
+description: "Depura cada día los eventos del registro de actividad con más de 24 meses."
+tasks:
+  - id: depurar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select private.depurar_registro_actividad() as borrados;
+    timeout: PT10M
+    retry:
+      type: constant
+      interval: PT5M
+      maxAttempts: 3
+triggers:
+  - id: diaria
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 4 * * *"

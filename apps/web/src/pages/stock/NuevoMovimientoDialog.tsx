@@ -3,7 +3,12 @@ import {
   Alert, AlertTitle, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
   MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
+import { renderOpcionProducto } from '../../components/base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { supabaseClient } from '../../lib/supabase'
+import {
+  listarDepositosActivos, listarStockPorDeposito, type DepositoOpcion, type StockPorDeposito,
+} from '../../lib/depositos'
 import {
   LARGO_MAXIMO_NOTA, MENSAJE_MOVIMIENTO_REGISTRADO, TIPOS_MOVIMIENTO, TITULO_STOCK_INSUFICIENTE, avisoStockInsuficiente, fechaDeHoy, formularioMovimientoVacio,
   esStockInsuficiente, mensajeDeErrorMovimiento, motivosDelTipo, stockResultante, validarMovimiento,
@@ -45,6 +50,11 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const [formulario, setFormulario] = useState<FormularioMovimiento>(() => formularioMovimientoVacio(productoId))
   const [productos, setProductos] = useState<ProductoStock[]>([])
   const [motivos, setMotivos] = useState<MotivoMovimiento[]>([])
+  const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
+  // Cifras del producto en cada depósito (FR-010): el disponible del depósito elegido manda.
+  const [stockPorDeposito, setStockPorDeposito] = useState<Record<string, StockPorDeposito>>({})
+  const [cargandoStock, setCargandoStock] = useState(false)
+  const [errorStock, setErrorStock] = useState(false)
   const [responsable, setResponsable] = useState('')
   const [catalogoTruncado, setCatalogoTruncado] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -54,6 +64,9 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [registrado, setRegistrado] = useState(false)
   const [recarga, setRecarga] = useState(0)
+  // Las imágenes se piden solo mientras el desplegable de producto está abierto (hasta MAX_PRODUCTOS opciones).
+  const [desplegableAbierto, setDesplegableAbierto] = useState(false)
+  const imagenes = useImagenesProductos(desplegableAbierto ? productos.map((opcion) => opcion.id) : [])
 
   // El producto preseleccionado cambia con la fila desde la que se abre el diálogo.
   useEffect(() => {
@@ -66,7 +79,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
     setCargando(true)
     setErrorCarga(false)
     const cargar = async () => {
-      const [respuestaProductos, respuestaMotivos, sesion] = await Promise.all([
+      const [respuestaProductos, respuestaMotivos, sesion, depositosActivos] = await Promise.all([
         supabaseClient
           .schema('dominio')
           .from('productos')
@@ -83,6 +96,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
           .order('nombre', { ascending: true })
           .returns<MotivoMovimiento[]>(),
         supabaseClient.auth.getUser(),
+        listarDepositosActivos(),
       ])
       if (respuestaProductos.error) throw respuestaProductos.error
       if (respuestaMotivos.error) throw respuestaMotivos.error
@@ -93,6 +107,11 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
         id: fila.id, nombre: fila.nombre, sku: fila.sku, cantidad: cantidadDe(fila.existencias),
       })))
       setMotivos(respuestaMotivos.data ?? [])
+      setDepositos(depositosActivos)
+      const porDefecto = depositosActivos.find((deposito) => deposito.por_defecto) ?? depositosActivos[0]
+      setFormulario((previo) => previo.deposito_id === ''
+        ? formularioMovimientoVacio(previo.producto_id || productoId, porDefecto?.id ?? '')
+        : previo)
       // Mismo criterio que la RPC para actor_nombre: nombre y apellido, o el email si no hay perfil.
       const usuario = sesion.data.user
       let nombre = ''
@@ -115,15 +134,50 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
     return () => { vigente = false }
   }, [abierto, recarga])
 
+  // Lee las cifras del producto en cada depósito; si falla, se avisa y no se permite registrar
+  // (no se adivina el disponible con el total, que puede tener unidades en otro depósito).
+  useEffect(() => {
+    const productoId = formulario.producto_id
+    if (!abierto || productoId === '') {
+      setStockPorDeposito({})
+      setErrorStock(false)
+      return
+    }
+    let vigente = true
+    setCargandoStock(true)
+    setErrorStock(false)
+    listarStockPorDeposito(productoId)
+      .then((filas) => {
+        if (vigente) setStockPorDeposito(filas)
+      })
+      .catch((error) => {
+        console.error('No pudimos leer el stock por depósito.', error)
+        if (vigente) setErrorStock(true)
+      })
+      .finally(() => {
+        if (vigente) setCargandoStock(false)
+      })
+    return () => { vigente = false }
+  }, [abierto, formulario.producto_id, recarga])
+
   const producto = useMemo(() => productos.find((p) => p.id === formulario.producto_id) ?? null, [productos, formulario.producto_id])
   const motivosOfrecidos = useMemo(() => motivosDelTipo(motivos, formulario.tipo), [motivos, formulario.tipo])
+  const deposito = depositos.find((d) => d.id === formulario.deposito_id) ?? null
+  const stockDeposito = stockPorDeposito[formulario.deposito_id] ?? null
+  const cantidadActual = stockDeposito?.cantidad ?? 0
   const errores: ErroresMovimiento = intentoEnvio ? validarMovimiento(formulario) : {}
-  const resultante = producto ? stockResultante(formulario.tipo, producto.cantidad, formulario.cantidad) : null
-  const avisoStock = producto ? avisoStockInsuficiente(formulario.tipo, producto.cantidad, formulario.cantidad) : null
+  const resultante = producto && formulario.deposito_id !== ''
+    ? stockResultante(formulario.tipo, cantidadActual, formulario.cantidad)
+    : null
+  // La barrera es el disponible del depósito (cantidad − reservado), no la cantidad (FR-009).
+  const avisoStock = producto && formulario.deposito_id !== ''
+    ? avisoStockInsuficiente(formulario.tipo, stockDeposito?.disponible ?? 0, formulario.cantidad)
+    : null
 
   const cerrar = () => {
     if (enviando) return
-    setFormulario(formularioMovimientoVacio(productoId))
+    const porDefecto = depositos.find((d) => d.por_defecto) ?? depositos[0]
+    setFormulario(formularioMovimientoVacio(productoId, porDefecto?.id ?? ''))
     setIntentoEnvio(false)
     setErrorEnvio(null)
     setRegistrado(false)
@@ -141,7 +195,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
 
   const registrar = async (evento: FormEvent) => {
     evento.preventDefault()
-    if (enviando || avisoStock) return
+    if (enviando || avisoStock || errorStock) return
     setIntentoEnvio(true)
     if (Object.keys(validarMovimiento(formulario)).length > 0) return
     setEnviando(true)
@@ -149,6 +203,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
     try {
       const { error } = await supabaseClient.rpc('registrar_movimiento_stock', {
         p_producto: formulario.producto_id,
+        p_deposito: formulario.deposito_id,
         p_tipo: formulario.tipo,
         p_cantidad: Number(formulario.cantidad.trim()),
         p_motivo: formulario.motivo_id,
@@ -205,6 +260,9 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                 options={productos}
                 value={producto}
                 getOptionLabel={etiquetaProducto}
+                onOpen={() => setDesplegableAbierto(true)}
+                onClose={() => setDesplegableAbierto(false)}
+                renderOption={renderOpcionProducto<ProductoStock>(imagenes)}
                 isOptionEqualToValue={(a, b) => a.id === b.id}
                 onChange={(_, valor) => setFormulario((previo) => ({ ...previo, producto_id: valor?.id ?? '' }))}
                 noOptionsText="No hay productos que coincidan"
@@ -216,12 +274,38 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                     error={Boolean(errores.producto_id)}
                     helperText={
                       errores.producto_id
-                      ?? (producto ? `Stock actual: ${producto.cantidad}` : undefined)
+                      ?? (producto ? `Stock total: ${producto.cantidad}` : undefined)
                       ?? (catalogoTruncado ? `Se muestran los primeros ${MAX_PRODUCTOS} productos por nombre.` : undefined)
                     }
                   />
                 )}
               />
+              <FormControl required error={Boolean(errores.deposito_id) || errorStock}>
+                <InputLabel id="deposito-movimiento">Depósito de mercadería</InputLabel>
+                <Select
+                  labelId="deposito-movimiento"
+                  label="Depósito de mercadería"
+                  value={formulario.deposito_id}
+                  onChange={(evento) => setFormulario((previo) => ({ ...previo, deposito_id: evento.target.value }))}
+                >
+                  {depositos.map((opcion) => (
+                    <MenuItem key={opcion.id} value={opcion.id}>
+                      {opcion.nombre}{opcion.por_defecto ? ' (por defecto)' : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errorStock ? (
+                  <FormHelperText>No pudimos leer el stock del depósito. Cerrá y volvé a abrir el formulario.</FormHelperText>
+                ) : errores.deposito_id ? (
+                  <FormHelperText>{errores.deposito_id}</FormHelperText>
+                ) : deposito ? (
+                  <FormHelperText>
+                    {cargandoStock
+                      ? 'Leyendo el stock del depósito…'
+                      : `Stock en ${deposito.nombre}: ${cantidadActual}${stockDeposito ? ` · Reservado ${stockDeposito.reservado} · Disponible ${stockDeposito.disponible}` : ''}`}
+                  </FormHelperText>
+                ) : null}
+              </FormControl>
               <TextField
                 label={etiquetaCantidad}
                 value={formulario.cantidad}
@@ -289,7 +373,7 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
           ) : (
             <>
               <Button onClick={cerrar} disabled={enviando}>Cancelar</Button>
-              <Button type="submit" variant="contained" disabled={enviando || cargando || errorCarga || Boolean(avisoStock)}>
+              <Button type="submit" variant="contained" disabled={enviando || cargando || cargandoStock || errorCarga || errorStock || Boolean(avisoStock)}>
                 {enviando ? 'Registrando…' : 'Registrar'}
               </Button>
             </>

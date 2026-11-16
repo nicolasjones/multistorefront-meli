@@ -12,8 +12,24 @@ const ALTO_INICIAL = 600
 const ALTO_MINIMO = 300
 const INTERVALO_RECHEQUEO_MS = 2000
 
+export type MotivoFalloReporte = 'prohibido' | 'no_disponible'
+
 type ReporteEmbebidoProps = {
   reporteId: string
+  // Si el que lo usa maneja el error (p. ej. Rentabilidad: acceso restringido ante 403 y `Reintentar`),
+  // recibe el motivo y el componente no dibuja su propio aviso. Sin esta prop, el comportamiento de
+  // Analítica no cambia: el mensaje de no disponibilidad.
+  alFallar?: (motivo: MotivoFalloReporte) => void
+  // Parámetros de URL del embebido (p. ej. `native_filters` para preseleccionar un filtro nativo). Se leen
+  // al montar: para cambiarlos hay que remontar el componente (`key`), como con `reporteId`.
+  urlParams?: Record<string, string>
+}
+
+// La Edge Function responde 403 cuando el usuario no tiene la sección del reporte (F-REN-01, FR-007).
+// En supabase-js el `FunctionsHttpError` trae la respuesta en `context`.
+function esProhibido(error: unknown): boolean {
+  const contexto = (error as { context?: { status?: number } } | null)?.context
+  return contexto?.status === 403
 }
 
 // Pide el guest token a la Edge Function (contracts/acceso-reporte.md) y
@@ -26,23 +42,39 @@ type ReporteEmbebidoProps = {
 // pages/analitica/list.tsx) para que cambiar de reporte remonte una
 // instancia nueva en vez de reutilizar el estado de la anterior — así el
 // efecto nunca necesita resetear `error` de forma síncrona al arrancar.
-export function ReporteEmbebido({ reporteId }: ReporteEmbebidoProps) {
+export function ReporteEmbebido({ reporteId, alFallar, urlParams }: ReporteEmbebidoProps) {
   const mountPointRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [alto, setAlto] = useState(ALTO_INICIAL)
+  // Último callback sin re-disparar el efecto de montaje cuando el padre lo recrea en cada render.
+  const alFallarRef = useRef(alFallar)
+  const urlParamsRef = useRef(urlParams)
+  useEffect(() => {
+    alFallarRef.current = alFallar
+    urlParamsRef.current = urlParams
+  })
 
   useEffect(() => {
     let cancelled = false
     let intervalo: ReturnType<typeof setInterval> | undefined
+
+    function fallar(motivo: MotivoFalloReporte) {
+      if (cancelled) {
+        return
+      }
+      if (alFallarRef.current) {
+        alFallarRef.current(motivo)
+        return
+      }
+      setError(MENSAJE_NO_DISPONIBLE)
+    }
 
     async function montar() {
       const { data: sesion } = await supabaseClient.auth.getSession()
       const accessToken = sesion.session?.access_token
 
       if (!accessToken) {
-        if (!cancelled) {
-          setError(MENSAJE_NO_DISPONIBLE)
-        }
+        fallar('no_disponible')
         return
       }
 
@@ -56,7 +88,7 @@ export function ReporteEmbebido({ reporteId }: ReporteEmbebidoProps) {
       }
 
       if (fnError || !data?.guest_token) {
-        setError(MENSAJE_NO_DISPONIBLE)
+        fallar(esProhibido(fnError) ? 'prohibido' : 'no_disponible')
         return
       }
 
@@ -70,7 +102,7 @@ export function ReporteEmbebido({ reporteId }: ReporteEmbebidoProps) {
           supersetDomain: data.superset_url,
           mountPoint: mountPointRef.current,
           fetchGuestToken: () => Promise.resolve(data.guest_token),
-          dashboardUiConfig: { hideTitle: true },
+          dashboardUiConfig: { hideTitle: true, urlParams: urlParamsRef.current },
         })
 
         // El dashboard adentro del iframe puede medir cualquier cosa (no
@@ -95,13 +127,11 @@ export function ReporteEmbebido({ reporteId }: ReporteEmbebidoProps) {
         await actualizarAlto()
         intervalo = setInterval(actualizarAlto, INTERVALO_RECHEQUEO_MS)
       } catch {
-        if (!cancelled) {
-          setError(MENSAJE_NO_DISPONIBLE)
-        }
+        fallar('no_disponible')
       }
     }
 
-    montar()
+    montar().catch(() => fallar('no_disponible'))
 
     return () => {
       cancelled = true
