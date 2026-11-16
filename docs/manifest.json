@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "f953649993ab5deff6d1cb2ffc3f2ec055a29c3c474c4665c29e98bc573e3b6f",
-      "sourceHash": "c5a7b5cbb007683364b9eef4f4d40ebe10165b511a4888529df6bd6136f9fe7d",
-      "sourceAt": "6b76bcf5",
+      "pageHash": "9ae2040f311f32aa88c14392f71135bab13077c6fbd9800b204a1a63dc88af20",
+      "sourceHash": "0f4f78c2c920e7a76b1de549bbd1bef21cd62fdca3d0416eaf3e26f645bc05f6",
+      "sourceAt": "8583cf7f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "6b76bcf5"
+      "commit": "8583cf7f"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -2109,9 +2109,9 @@
     },
     "docs/service-reportes.md": {
       "title": "Service técnico · Reportes y exportación (F-SVC-23, MSF-168)",
-      "pageHash": "54aa1071969a58983b83e215dc4505a71da1cae762c69306df82d774caacf4a7",
-      "sourceHash": "6f22fc43e94c26dbc6f467969380dc6e3b88511de1a5fe902f132fe34ebcd371",
-      "sourceAt": "c7860a7c",
+      "pageHash": "4bf0af3438798dbadb0629c52ed76faf4f480d4448dd470a8cea37e96206401f",
+      "sourceHash": "77e8b99854c9db5ce6810d776b433fd81997fa74a39ac4cc25abf5e07430eb83",
+      "sourceAt": "8583cf7f",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes",
         "infra/superset/dashboards/service",
@@ -2122,7 +2122,7 @@
         "supabase/migrations/20270219130300_reportes_service.sql"
       ],
       "owner": "datos",
-      "commit": "c7860a7c"
+      "commit": "8583cf7f"
     },
     "docs/service-repuestos-devolucion.md": {
       "title": "Devolución de repuestos al quitar o anular (F-SVC-11)",
@@ -2162,14 +2162,14 @@
     },
     "docs/service-seguimiento.md": {
       "title": "Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)",
-      "pageHash": "fd9faf74a802968f87164aaf65dd7a94d07eaf98de6c262b6378f64528fffe03",
-      "sourceHash": "d28c36cd70f3e3c313ba9e5256d0b1413640fed236b10afa956985aed8f70654",
-      "sourceAt": "c7860a7c",
+      "pageHash": "3734018b7728ea97488de5ef243f69382d1fe909a147798fcc8ba41c268326fd",
+      "sourceHash": "d84541bdd3bceeecaf12ebc3a32fa4f1b97f8895b272894683a53aac847f274a",
+      "sourceAt": "8583cf7f",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "8583cf7f"
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
