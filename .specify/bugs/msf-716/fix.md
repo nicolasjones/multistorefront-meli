@@ -103,11 +103,12 @@ const filas = await pedirEnOlas(lotes, async (lote) => { /* … .in('producto_id
 
 Última corrida (después de la devolución del Revisor del PR #639, sobre el HEAD de la rama):
 
-- `pnpm --filter @platform/web exec vitest run src/lib/depositos.stockLotes.test.ts src/lib/tomaInventario.carga.test.ts src/lib/productosListado.test.ts src/pages/stock/toma-inventario.test.tsx src/pages/stock/list.test.tsx src/pages/stock/depositos.test.tsx src/lib/categorias.test.ts` → 7 archivos, 117 tests OK.
+- `pnpm --filter @platform/web exec vitest run src/lib/depositos.stockLotes.test.ts src/lib/tomaInventario.carga.test.ts src/lib/productosListado.test.ts src/pages/stock/toma-inventario.test.tsx src/pages/stock/list.test.tsx src/pages/stock/depositos.test.tsx src/lib/categorias.test.ts` → 7 archivos, 124 tests OK.
 - Mutaciones a propósito (para comprobar que los tests vigilan la regla): sin el `.eq('deposito_id', …)` fallan 3 tests; con el depósito cambiado fallan 4; con `consultarCostos` sin repartir fallan los 2 tests de 500 y 1000 ids. Se revirtieron todas.
 - `pnpm lint` → exit 0 (solo warnings preexistentes de `react(set-state-in-effect)` en otros archivos).
 - `pnpm build` → exit 0 (`tsc -b && vite build`).
-- `GITHUB_BASE_REF=dokploy pnpm docs:check` → documentación OK (13 archivos contra `origin/dokploy`); migraciones OK (429 archivos, 0 nuevos).
+- La rama quedó integrada con la base: `git merge origin/dokploy` (conflictos resueltos en `productosListado.ts`, `docs/e2e-app.md` y `reports/calidad.md`) y la corrida de tests/lint/build de arriba es sobre ese estado.
+- `GITHUB_BASE_REF=dokploy pnpm docs:check` → documentación OK (14 archivos contra `origin/dokploy`); migraciones OK (716 archivos, 0 nuevos).
 - `pnpm calidad` → oxlint (SAST), knip (código muerto), jscpd (duplicación), dependency-cruiser (arquitectura) y syncpack OK; **gitleaks no se pudo correr** (no hay acceso al daemon de Docker en este entorno: `docker: permission denied … /var/run/docker.sock`). El diff se revisó a mano: no agrega secretos.
 
 Corrida anterior (arranque de la historia):

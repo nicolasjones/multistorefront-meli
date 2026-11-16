@@ -26,19 +26,19 @@ lotes (cada lote pide el depósito pedido) y que los costos del listado también
 | Filtro por categoría repartido | `apps/web/src/lib/tomaInventario.carga.test.ts` (250 categorías) | pass | 3 lotes de 100; cada URL ≤ 8000 bytes; los productos de los lotes se unen sin repetir y quedan ordenados por nombre |
 | Filtro por depósito por lote | `apps/web/src/lib/depositos.stockLotes.test.ts` y `apps/web/src/lib/tomaInventario.carga.test.ts` | pass | cada lote filtra por el depósito pedido y el stock que vuelve es de ese depósito |
 | Costos del listado repartidos | `apps/web/src/lib/productosListado.test.ts` (500 y 1000 ids) | pass | 5 y 10 lotes; cada URL ≤ 8000 bytes; vuelven los costos de todos los productos |
-| New / updated tests | `pnpm --filter @platform/web exec vitest run src/lib/depositos.stockLotes.test.ts src/lib/tomaInventario.carga.test.ts src/lib/productosListado.test.ts src/pages/stock/toma-inventario.test.tsx src/pages/stock/list.test.tsx src/pages/stock/depositos.test.tsx src/lib/categorias.test.ts` | pass | 7 archivos, 117 tests OK |
+| New / updated tests | `pnpm --filter @platform/web exec vitest run src/lib/depositos.stockLotes.test.ts src/lib/tomaInventario.carga.test.ts src/lib/productosListado.test.ts src/pages/stock/toma-inventario.test.tsx src/pages/stock/list.test.tsx src/pages/stock/depositos.test.tsx src/lib/categorias.test.ts` | pass | 7 archivos, 124 tests OK |
 | Regression suite (área tocada) | mismos 7 archivos | pass | sin regresiones en la pantalla, el listado de Stock, sus depósitos, las categorías y el listado de productos |
 | Los tests vigilan la regla (FEAT-236) | mutación a propósito: se saca el `.eq('deposito_id', …)` y se cambia el depósito | pass | 3 tests fallan (los dos nuevos y el de la unión completa); con `consultarCostos` sin repartir fallan los 2 tests de 500/1000 ids. Se revirtió la mutación |
 | Lint / type-check | `pnpm lint` · `pnpm build` (`tsc -b && vite build`) | pass | lint exit 0 (warnings preexistentes en otros archivos); build exit 0 |
 | E2E de pantalla | `apps/web/e2e/stock-toma-inventario-categorias.e2e.ts` | not-run | Requiere el stack local (`pnpm dev:supabase`): no hay Docker en este entorno. Se omite solo (sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`) y aparece en `playwright test --list` |
-| Documentación | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `docs/stock-toma-inventario.md`, `docs/catalogo.md` y `docs/e2e-app.md` actualizados en el mismo cambio (13 archivos comparados contra `origin/dokploy`) |
+| Documentación | `GITHUB_BASE_REF=dokploy pnpm docs:check` | pass | `docs/stock-toma-inventario.md`, `docs/catalogo.md` y `docs/e2e-app.md` actualizados en el mismo cambio (14 archivos comparados contra `origin/dokploy`) |
 | Calidad determinista | `pnpm calidad` | partial | oxlint (SAST), knip, jscpd, dependency-cruiser y syncpack OK; **gitleaks no se pudo correr** (sin acceso al daemon de Docker). El diff se revisó a mano: no agrega secretos |
 
 ## Output Excerpts
 
 ```
 Test Files  7 passed (7)
-     Tests  117 passed (117)
+     Tests  124 passed (124)
 ```
 
 ```
