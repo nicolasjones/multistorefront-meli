@@ -135,6 +135,16 @@ jobs:
           supabase migration up --local --workdir "$SUPABASE_CI_WORKDIR"
           docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/seed.sql
 
+      # El seed deja las dos tiendas SIN productos visibles (no crea filas en `dominio.producto_empresa`): el
+      # catálogo saldría vacío y no habría ficha que medir. Se siembra el catálogo de medición (cientos de
+      # productos por tienda) para medir sobre un catálogo real. A diferencia del script que mide la RPC
+      # (que revierte), este DEJA datos: la medición es por HTTP y el catálogo tiene que existir mientras mide.
+      - name: Sembrar el catálogo de medición en las dos tiendas del seed
+        env:
+          PRODUCTOS: ${{ inputs.productos || '500' }}
+        run: |
+          docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -v N="$PRODUCTOS" -f - < scripts/sembrar-tienda-medicion.sql
+
       - name: Reiniciar PostgREST, esperar la API y exponer el entorno
         run: |
           docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"

@@ -121,7 +121,7 @@
     "matriz:check": "node scripts/verificar-matriz-pantalla.mjs",
     "test:matriz:pantalla": "node --test scripts/verificar-matriz-pantalla.test.mjs",
     "medir:tienda": "node scripts/medir-tienda-lighthouse.mjs",
-    "test:medir:tienda": "node --test scripts/medir-tienda-lighthouse.test.mjs scripts/medir-tienda-catalogo.test.mjs scripts/verificar-medicion-tienda.test.mjs",
+    "test:medir:tienda": "node --test scripts/medir-tienda-lighthouse.test.mjs scripts/medir-tienda-catalogo.test.mjs scripts/sembrar-tienda-medicion.test.mjs scripts/verificar-medicion-tienda.test.mjs",
     "grafo:init": "graphify extract . --code-only --no-viz && graphify cluster-only . --no-label --no-viz && graphify hook install",
     "workers:discover": "node scripts/descubrir-workers.mjs --json",
     "test:workers:discover": "node --test scripts/descubrir-workers.test.mjs",
