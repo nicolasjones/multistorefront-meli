@@ -175,6 +175,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'reparacion.adjunto_quitado': 'Adjunto de la reparación quitado',
   'reparacion.anulada': 'Reparación anulada',
   'reparacion.aviso_enviado': 'Aviso de reparación enviado',
+  'reparacion.aviso_whatsapp_solicitado': 'Aviso de reparación por WhatsApp solicitado',
   'reparacion.aviso_fallido': 'Aviso de reparación fallido',
   'reparacion.aviso_solicitado': 'Aviso de reparación solicitado',
   'reparacion.comprobante_generado': 'Comprobante de reparación generado',
