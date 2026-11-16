@@ -254,8 +254,8 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   filtrado, no sobre la página. Valida rango (Desde ≤ Hasta, máx. 5 años), tipo, página y tamaño (1–1.000) con `22023`.
   `p_empresa_id` acota a los clientes habilitados en esa tienda (F-CLI-11); `null` = todos.
 - **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
-- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
-  sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
+- **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización,
+  sección `ventas` y empresa accesible (MSF-656), solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
   aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `dominio.clientes`), `tipo`
   (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
   en local: `supabase/seed.sql`.
@@ -567,7 +567,7 @@ Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y
 - **Campañas:** no existe tabla de campañas (MSF-155 sin entregar), así que `campanas_reasignadas` es siempre 0.
 - **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
 - **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta: es una **regla vigente por decisión de diseño** (la lista del cliente descartado se pierde al fusionar), no un defecto pendiente; el diálogo avisa si las listas difieren.
-- **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
+- **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Si los dos clientes tienen cuenta web activa, antes de habilitar el botón aparece un **paso de confirmación en castellano llano**: qué ficha se conserva y cuál se archiva, qué cuenta web se conserva y cuál **se da de baja sin posibilidad de recuperarla**, con una casilla que hay que marcar (cambiar la ficha que se conserva, la cuenta web elegida o el otro cliente la desmarca). La lógica de datos no cambió. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
 - **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
 - Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
 
