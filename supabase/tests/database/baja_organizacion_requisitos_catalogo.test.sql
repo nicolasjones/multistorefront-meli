@@ -3,8 +3,9 @@
 -- con LLAMADAS reales (`private.is_superadmin(`, `private.registrar_actividad(`, `private.confirmar_claves_diferidas(`).
 -- Antes de buscar se descartan, en este orden y con regexp_replace separados: comentarios de bloque, comentarios de línea,
 -- bloques $tag$…$tag$ y literales de texto '…' (con '' escapado). Así nombrarlas en un comentario o dentro de un texto no alcanza.
--- Límite exacto: el análisis es textual y no ejecuta la función. Un `--` dentro de un literal recorta el resto de esa línea (solo
--- puede dar un falso fallo, nunca un falso pase) y una llamada real que nunca se ejecuta (rama muerta) sí pasa: eso lo cubre la
+-- Límite exacto: el análisis es textual y no ejecuta la función. Un comentario (`--` o `/*`) dentro de un literal produce un FALSO
+-- FALLO (recorta o borra de más; nunca un falso pase). Una función de más de 20000 caracteres cuenta como incumplimiento (no se
+-- audita: la limpieza de $tag$ es cuadrática). Una llamada real que nunca se ejecuta (rama muerta) sí pasa: eso lo cubre la
 -- revisión de código. Hoy no existe ninguna función así (ver docs/tecnico/administracion-organizacion.md).
 begin;
 
@@ -16,7 +17,7 @@ create function pg_temp.limpiar_codigo(p_fuente text) returns text language sql 
              regexp_replace(
                regexp_replace(p_fuente, '/\*([^*]|\*+[^*/])*\*+/', ' ', 'g'),
                '--[^\n]*', ' ', 'g'),
-             '\$([A-Za-z_]*)\$.*?\$\1\$', ' ', 'g'),
+             '\$([A-Za-z_]{0,30})\$.*?\$\1\$', ' ', 'g'),
            '''([^'']|'''')*''', ' ', 'g')
 $f$;
 
@@ -26,7 +27,11 @@ create function pg_temp.sin_baja_que_no_llame(p_llamada text) returns integer la
     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
    where p.proname like 'baja\_organizacion%'
      and n.nspname not in ('pg_catalog', 'information_schema')
-     and pg_temp.limpiar_codigo(p.prosrc) !~ p_llamada
+     and case
+           -- Tope de tamaño: la limpieza de $tag$ es cuadrática con muchos `$`; más allá del tope no se audita y cuenta como falta.
+           when length(p.prosrc) > 20000 then true
+           else pg_temp.limpiar_codigo(p.prosrc) !~ p_llamada
+         end
 $f$;
 
 select is(pg_temp.sin_baja_que_no_llame('private\.is_superadmin\s*\('), 0,
