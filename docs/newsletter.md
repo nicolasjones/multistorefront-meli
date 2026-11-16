@@ -6,6 +6,17 @@ sources:
   - supabase/migrations/20270342000100_newsletter_publico.sql
   - supabase/migrations/20270342000200_newsletter_confirmaciones.sql
   - supabase/migrations/20270342000300_exportacion_total_newsletter.sql
+  - supabase/migrations/20270420000000_newsletter_baja_y_gestion.sql
+  - supabase/migrations/20270420000100_newsletters.sql
+  - supabase/migrations/20270420000200_exportacion_total_newsletters.sql
+  - supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql
+  - supabase/migrations/20270420000400_newsletter_envio.sql
+  - supabase/migrations/20270420000500_newsletter_lote.sql
+  - supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql
+  - infra/kestra/flows/correo-masivo.yml
+  - apps/web/src/pages/clientes/newsletter
+  - apps/web/src/lib/newsletter.ts
+  - apps/web/src/pages/tienda-publica/rutas/newsletter.baja.tsx
   - infra/kestra/flows/newsletter-confirmaciones.yml
   - apps/web/src/lib/tiendaNewsletter.ts
   - apps/web/src/pages/tienda-publica/newsletter
@@ -14,16 +25,17 @@ sources:
 
 # Tiendas online · Newsletter de la tienda (MSF-468)
 
-Spec: `specs/20270328-100000-newsletter-de-la-tienda/`. Este documento cubre **las Fases 1 y 2** de `tasks.md` (base de la suscripción y
-confirmación por correo con el formulario en el pie de la tienda). **Todavía no existe ninguna pantalla del panel, ninguna baja desde
-el correo ni ningún envío de newsletter**: ninguna pieza de estas fases envía un newsletter y el correo masivo a clientes (MSF-155,
-`docs/correo-masivo.md`) no cambia. Lo que sale por correo en estas fases es solamente el mensaje de **confirmación** de la suscripción.
+Spec: `specs/20270328-100000-newsletter-de-la-tienda/`. Cubre las seis fases de `tasks.md`: base de la suscripción y confirmación por
+correo con el formulario en el pie (Fases 1 y 2), baja y gestión de suscriptores (Fase 3), composición con vista previa y prueba (Fase 4),
+envío por el motor del correo masivo (Fase 5) y el cierre (Fase 6). El correo masivo a clientes (MSF-155, `docs/correo-masivo.md`) conserva su
+comportamiento: el newsletter **comparte su motor** (campañas, destinatarios, cupo diario, reclamos, baja por hash y SMTP de Kestra) con otra
+lista y otro consentimiento. Guía para quien usa el panel: [Newsletter](producto/newsletter.md).
 
 ## Apagado por defecto
 
 - Bandera de plataforma `newsletter` en `public.banderas_plataforma`, **apagada** (la migración solo inserta la fila).
-- Interruptor por tienda en `dominio.newsletter_configuracion.activo`, **apagado** (sin fila = apagado). En estas fases no hay pantalla
-  para encenderlo: se hace por SQL en dev para probar.
+- Interruptor por tienda en `dominio.newsletter_configuracion.activo`, **apagado** (sin fila = apagado). Con la bandera encendida lo
+  enciende el Administrador desde `Contactos → Newsletter` («Mostrar suscripción en el pie de la tienda»); antes se hace por SQL.
 - Con cualquiera de los dos apagados: el pie no muestra el formulario, `publico.suscribirse_newsletter` responde `error` (idéntico para
   host desconocido, tienda desactivada, interruptor apagado y bandera apagada), `publico.confirmar_newsletter` responde `invalido` y el
   reclamo de confirmaciones no entrega nada (no sale ningún correo).
@@ -63,7 +75,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 
 ## Límites y comportamientos a tener en cuenta
 
-- **Forma estricta del correo**: parte local `atom(.atom)*` con `atom = [a-z0-9'+_=&*#$?^{}~-]+` (sin `%`, `!`, `|`, `/`, ni punto inicial, final o doble; local ≤ 64),
+- **Forma estricta del correo**: parte local `atom(.atom)*` con `atom = [a-z0-9'+_=&*#$?^~-]+ (sin llaves desde la migración `…0600`)` (sin `%`, `!`, `|`, `/`, ni punto inicial, final o doble; local ≤ 64),
   dominio con etiquetas alfanuméricas (guiones solo en el medio) y TLD de dos o más letras (acepta punycode `xn--`; no acepta IP), total ≤ 254, en minúsculas. Sin `<`, `>`, comillas, paréntesis,
   `\`, `:`, `,` ni `;`. Así cada fila es una dirección real, sin rutas fuente legadas (`%`, `!`), y el tope de 3 confirmaciones por dirección y 24 h no se evade con formas como
   `a<victima@dom.com>`. El mismo criterio rige en la tabla (check), en `private.validar_suscripcion_newsletter` y en `lib/tiendaNewsletter.ts`.
@@ -88,16 +100,72 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
   Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).
 - El nombre de la tienda sale de la base sin `"`, `<`, `>`, `\` ni caracteres de control; el cuerpo HTML del correo lo escapa y el asunto (texto plano) sale tal cual, sin entidades.
 
-## Verificación técnica pendiente
+## Baja, gestión, composición y envío (Fases 3 a 5)
 
-- T011(a): si el plugin `MailSend` de Kestra admite los encabezados `List-Unsubscribe` y `List-Unsubscribe-Post` (D3) no se verificó en estas
-  fases: la confirmación no es un newsletter y no lleva baja. Se decide cuando exista el envío (Fase 5).
-- T011(b): CORS de la Edge Function `baja-correo-masivo` para los dominios de las tiendas: se verifica con la página de baja (Fase 3).
+| Capa | Pieza |
+|---|---|
+| Base | `dominio.newsletters` (borradores y envíos; RLS por organización y tienda accesible; `authenticated` solo `select`); columnas nuevas de las tres tablas del correo masivo (`campanas_correo.tipo/newsletter_id/bloques`, `campana_correo_destinatarios.suscriptor_id` con `cliente_id` nulable y `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)`, `correo_masivo_pruebas.bloques/empresa_id`) |
+| RPC del panel (`public`, `security definer`, `search_path = ''`) | `guardar_newsletter_configuracion`, `resumen_newsletter`, `listar_suscriptores_newsletter`, `dar_de_baja_suscriptor_newsletter`, `borrar_datos_suscriptor_newsletter`, `guardar_newsletter`, `descartar_newsletter`, `detalle_newsletter`, `vista_previa_newsletter`, `solicitar_prueba_newsletter`, `enviar_newsletter`, `cancelar_envio_newsletter`, `listar_newsletters` |
+| Internas (`private`) | `exigir_admin_newsletter`, `armar_bloques_newsletter`, `escapar_html`, `cuerpo_html_newsletter`, `remitente_newsletter`; `reclamar_lote_correo_masivo` redefinida |
+| Baja | `public.dar_de_baja_correo_masivo(hash)` (solo `service_role`) ahora resuelve también suscriptores; Edge Function `baja-correo-masivo` **sin cambios de contrato**; página `/newsletter/baja/:token` de la tienda |
+| Kestra | `correo-masivo.yml` usa `cuerpo_html` y `remitente` cuando `tipo = 'newsletter'`; el correo de clientes sale idéntico |
+| Panel | `Contactos → Newsletter` (`/clientes/newsletter`): `pages/clientes/newsletter/` (KPI, interruptor por tienda, suscriptores, campañas, `DialogoNuevaCampana`, `VistaPreviaNewsletter`), `lib/newsletter.ts`, `hooks/useRpcNewsletter.ts` |
+| Pruebas | pgTAP `newsletter_baja`, `newsletter_gestion`, `newsletter_composicion`, `newsletter_envio`, `newsletter_lote`, `exportacion_total` extendido; Vitest de la pantalla, la lib, la página de baja y la lib pública; `test:kestra:correo-masivo` extendido |
+
+### Reglas que importa recordar
+
+- **Permisos (D6)**: ver (KPI, suscriptores, envíos, detalle) es lectura en `clientes`; componer, guardar, enviar, cancelar, dar de baja y borrar datos es **Administrador** con edición en `clientes` y acceso a la tienda, comprobado **dentro de cada RPC** (`42501`; otra organización `P0002`). La UI solo oculta.
+- **Invariante de destinatarios (MSF-967)**: toda lista o conteo de destinatarios filtra `estado = 'confirmado'`, nunca `<> 'baja'`: `resumen_newsletter`, `vista_previa_newsletter`, la foto de `enviar_newsletter` y la re-verificación del reclamo. Un pendiente que conserva `baja_en` no recibe nada (cubierto por pgTAP en gestión, composición, envío y lote).
+- **Sin carreras**: `enviar_newsletter` bloquea el newsletter (`for update`) y toma los confirmados con `for share`; el reclamo bloquea primero al suscriptor (`for share`) y luego al destinatario (`for update skip locked`), el mismo orden que la baja manual (suscriptor y luego destinatarios), así una baja, un borrado o una re-suscripción simultáneos esperan o se aplican antes de enviar sin interbloqueo. La clave de `enviar_newsletter` es la clave de la campaña (`unique (organizacion_id, clave)`): el doble clic devuelve la misma campaña; otra clave sobre un envío cerrado es `55000`.
+- **Bandera y tienda**: con la bandera `newsletter` apagada las RPC de escritura responden `55000` y el reclamo del lote **no entrega nada del newsletter** (lo pendiente queda intacto y retoma al encenderla; las pruebas esperan). `enviar_newsletter` exige además el interruptor de la tienda (`22023` hint `tienda_apagada`) y un dominio activo (`sin_dominio`). La baja y el borrado de datos funcionan siempre. El reclamo vuelve a comprobar interruptor y tienda activa y omite lo pendiente si se apagaron.
+- **Baja**: el enlace de cada correo lleva un token aleatorio por destinatario (solo se guarda su SHA-256 en `token_hashes`), apunta a `https://{dominio de la tienda}/newsletter/baja/{token}` y la página pide un clic (un visor de enlaces no da de baja a nadie). Responde siempre igual. **Borrar datos** deja el correo copiado en los envíos pasados como `[eliminado]`, omite lo pendiente y la FK compuesta suelta `suscriptor_id` (`on delete set null (suscriptor_id)`, sin anular la organización).
+- **Contenido (D13)**: la «foto» (`bloques`) se arma al guardar la vista previa, al pedir la prueba y **al enviar** (no se guardan productos en el borrador): hasta 6 destacados y 6 promociones vigentes (la sección de promociones respeta la bandera `promociones_precio`), con el precio público de la tienda (`private.precio_vigente_empresa`) y el enlace a la ficha. Sin imágenes: el bucket de productos es privado y un correo no puede llevar una URL firmada de larga vida; `imagen_url` queda nulo (pendiente de decisión).
+- **Un solo renderizado (desvío de RF-NL-15, RF-NL-21 y T023)**: el HTML del correo lo arma `private.cuerpo_html_newsletter` (todo texto escapado; enlaces solo `https://`; pie fijo). `vista_previa_newsletter` lo devuelve y el panel lo muestra en un `iframe sandbox=""`; el reclamo del lote lo entrega ya armado al flow, que lo muestra con `| raw` porque la base ya lo escapó. No hay una plantilla de React y otra de Kestra que puedan divergir; pgTAP cubre el escape y el pie con un valor exacto.
+- **Remitente (D15)**: `"{tienda}" <KESTRA_SMTP_FROM>` con el nombre de la tienda saneado en la base (`private.remitente_newsletter`: sin comillas, `<`, `>`, `\` ni caracteres de control, ≤ 80), así un nombre de tienda no inyecta encabezados.
+- **Cupo compartido (D14)**: el cupo diario por organización es uno solo entre clientes y newsletter, en orden de creación de la campaña: un newsletter grande retrasa los correos a clientes. Decidir si se separa el cupo (seguimiento del cierre).
+- **Historiales**: `listar_campanas_correo` y `detalle_campana_correo` (clientes) solo muestran `tipo = 'clientes'`; el historial del newsletter es `listar_newsletters` / `detalle_newsletter`.
+- **Eventos de Actividad** (sin correos, textos ni cuerpo): `newsletter.configurar`, `.guardar`, `.prueba`, `.enviar` (asunto y cantidad), `.cancelar`, `.baja_manual`, `.baja` (solo la primera vez), `.datos_borrados`; con etiquetas en `lib/actividad.ts`.
+- **Cancelado no reenvía**: el reclamo trata como `omitido` («Cancelado») lo pendiente de una campaña cuyo newsletter tiene `cancelada_en`, aunque un reclamo vencido (flow cortado) lo hubiera devuelto a la cola.
+- **Plantillas de Kestra (defensa en profundidad, no una garantía total)**: el flow muestra `cuerpo_html | raw`. `infra/kestra/compose.yaml` fija ahora `kestra.templating.recursive-rendering: false`; **hay que verificar en cada entorno** (dev, stg, prd) que la configuración efectiva lo respete, porque no se pudo comprobar contra un Kestra real. Capas que no dependen de eso: `private.escapar_html` convierte `{` y `}` del cuerpo en entidades (`&#123;` `&#125;`); el remitente pierde llaves, comillas, `<`, `>`, `\` y caracteres de control; el correo del suscriptor no admite llaves (validador, CHECK `newsletter_suscriptores_correo_llaves_ck` validado, y la migración `20270420000600` borra antes las filas viejas con llaves como «Borrar datos») y el reclamo omite («Correo inválido») a cualquier destinatario, de clientes o suscriptores, cuyo correo tenga `{` o `}`; en el caso de clientes el correo se vuelve a leer y filtrar en el bucle, justo antes de enviar, para que una edición concurrente de la ficha no cuele llaves. Una prueba cuyo correo (el del autor) tenga llaves no se pide ni se envía. **Siguen crudos** el `subject` (asunto escrito por el Administrador) y el `mensaje` del correo a clientes: provienen de quien tiene permiso de edición en Clientes y solo serían un riesgo con el renderizado recursivo activo.
+- **Remitente**: `private.remitente_newsletter` quita comillas, `<`, `>`, llaves, barra invertida y caracteres de control.
+- **Cancelar**: deja `omitido` (motivo «Cancelado») lo pendiente que no está reclamado en vuelo; lo reclamado se cierra solo y lo ya enviado no se retira.
+
+### Desvíos respecto de la spec (declarados)
+
+- La baja del suscriptor reutiliza el circuito del correo masivo (hash en `token_hashes` + Edge Function) tal como pide D3; el token lo emite el reclamo del lote (Fase 5), por lo que **no existe enlace de baja antes de que haya un envío**.
+- `private.cerrar_envio_correo_masivo` no se redefine (no hace falta: cierra por id de destinatario o prueba).
+- El reclamo devuelve `cuerpo_html`, `remitente`, `tienda` y `dominio_tienda` en lugar de `bloques` y `dominio` (el HTML ya viene armado; `dominio_tienda` evita chocar con el esquema `dominio`).
+- `newsletter_lote.test.sql` es un archivo nuevo en lugar de extender `correo_masivo_lote.test.sql` (que sigue verde sin cambios: paridad de clientes).
+- axe: el entorno de Vitest (jsdom) no tiene diseño ni contraste y no cambia de ancho: se corrió axe sobre la pantalla en un solo tamaño; los tres anchos (320/768/1440 px) quedan para el E2E (MSF-961).
+
+## Pendientes que requieren a Nicolás o a un entorno real
+
+1. **Publicar el flow `correo-masivo` actualizado en Kestra** (`node infra/kestra/desplegar-flow.mjs --source infra/kestra/flows/correo-masivo.yml --namespace producto.clientes --flow-id correo-masivo --kestra-url …`) y, **antes de encender la bandera**, el flow `newsletter-confirmaciones` (ya mergeado en la Fase 2). Sin el flow nuevo, un newsletter se enviaría con la plantilla de clientes.
+2. **SMTP real**: nada de esta entrega envía correo real en CI. Hay que probar en dev, con la bandera encendida y una tienda de prueba, una suscripción, la confirmación, una prueba y un envío a un suscriptor propio (T034) y mirar cómo llega (entregabilidad, enlace de baja).
+3. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: no se pudo verificar si `MailSend` de Kestra admite encabezados propios. Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen.
+4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
+5. **Cupo compartido** entre clientes y newsletter (D14) y **tope global de confirmaciones** (MSF-971): decidir si se separan.
+6. **CAPTCHA** solo si hay abuso real.
+7. **Rate limit en el borde de la baja** (MSF-980): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
+
+## Verificación técnica (T011)
+
+- T011(a) `List-Unsubscribe`: sin verificar, ver el pendiente 3 (MSF-962).
+- T011(b) CORS de `baja-correo-masivo`: la función responde `Access-Control-Allow-Origin: *` y acepta `content-type`, `authorization`, `apikey` y `x-client-info` (los encabezados de `supabase-js`), así que la página de baja de cualquier dominio de tienda puede invocarla sin cambios; contrato `{ token }` → `{ ok: true }` intacto (MSF-963).
 
 ## Reversión
 
 Inmediata, sin código: `update public.banderas_plataforma set activa = false where clave = 'newsletter';` (el pie deja de mostrar el formulario y el
 flow no envía). Migraciones posteriores (nunca en el mismo PR): `drop function` de las funciones de las migraciones `…0100` y `…0200`,
 `drop table dominio.newsletter_suscriptores, dominio.newsletter_configuracion` (exportar antes los suscriptores si hace falta), borrar la fila de la
-bandera, restaurar la definición de `private.conjuntos_exportacion_total()` de `20270341000500` y el check de `tienda_envios.origen` de
+bandera, restaurar la definición de `private.conjuntos_exportacion_total()` vigente antes de las tablas del newsletter (la de `20270341000500` ya no es la vigente: hoy es `20270418000401`, o `20270349000200` antes de mover `clientes` a `dominio`; no pierdas ninguna fila posterior) y el check de `tienda_envios.origen` de
 `20270321100000`.
+
+Fases 3 a 5 (migraciones `20270420…`, nunca en el mismo PR): `drop function` de las RPC `newsletter` (`enviar_newsletter`, `cancelar_envio_newsletter`,
+`listar_newsletters`, `vista_previa_newsletter`, `solicitar_prueba_newsletter`, `guardar_newsletter`, `descartar_newsletter`, `detalle_newsletter`,
+`guardar_newsletter_configuracion`, `listar_suscriptores_newsletter`, `dar_de_baja_suscriptor_newsletter`, `borrar_datos_suscriptor_newsletter`) y de las
+`private` (`armar_bloques_newsletter`, `cuerpo_html_newsletter`, `escapar_html`, `remitente_newsletter`, `exigir_admin_newsletter`); restaurar
+`reclamar_lote_correo_masivo` (20270201200122), `dar_de_baja_correo_masivo`, `listar_campanas_correo` y `detalle_campana_correo` (20270201200123) y, con
+`resumen_newsletter`, la definición de `20270420000000`; `alter table … drop column` de las columnas nuevas de las tres tablas del correo masivo (solo
+tras borrar o migrar las filas `tipo = 'newsletter'`); `drop table dominio.newsletters`; restaurar `conjuntos_exportacion_total()` de `20270418000401` (sin la fila de `newsletters`); la migración `…0600` se revierte con `drop constraint newsletter_suscriptores_correo_llaves_ck` y el validador de `20270342000100`.
+Desactivar sin revertir: apagar la bandera `newsletter` (el flow deja de enviar y lo pendiente queda intacto).

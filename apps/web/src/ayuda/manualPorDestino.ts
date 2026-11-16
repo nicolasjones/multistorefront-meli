@@ -30,6 +30,7 @@ export const MANUAL_POR_DESTINO: Readonly<Record<string, string>> = {
   'service-tecnico-reportes': 'service-seguimiento-y-reportes',
   clientes: 'clientes',
   'correo-masivo': 'correo-masivo-a-clientes',
+  newsletter: 'newsletter',
   proveedores: 'proveedores',
   consultas: 'consultas',
   contactos: 'contactos',
