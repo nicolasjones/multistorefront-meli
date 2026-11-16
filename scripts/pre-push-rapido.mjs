@@ -14,6 +14,8 @@ export function comandos(archivos, base = 'origin/dokploy') {
     lista.push(['pnpm', ['--filter', '@platform/web', 'exec', 'vitest', 'run', '--changed', base, '--passWithNoTests', '--maxWorkers=1']]);
   }
   if (archivos.some((f) => /^(docs\/|specs\/|mkdocs\.yml$)/.test(f))) lista.push(['pnpm', ['docs:check']]);
+  if (archivos.some((f) => /^(supabase\/(migrations|tests\/database)\/.+\.sql|apps\/web\/e2e\/.+\.ts)$/.test(f))) lista.push(['node', ['scripts/verificar-trampas-conocidas.mjs']]);
+  if (archivos.some((f) => /^apps\/web\/src\/pages\//.test(f))) lista.push(['pnpm', ['estilos:check']]);
   return lista;
 }
 

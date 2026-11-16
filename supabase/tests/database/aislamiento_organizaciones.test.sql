@@ -34,7 +34,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'miembro'),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
-insert into clientes (id, organizacion_id, nombre) values
+insert into dominio.clientes (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente de la Uno'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente de la Dos');
 
@@ -50,28 +50,28 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 2,
+  (select count(*) from dominio.clientes)::int, 2,
   'admin de la organización 1 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
-  (select nombre from clientes order by nombre limit 1), 'Cliente de la Uno',
+  (select nombre from dominio.clientes order by nombre limit 1), 'Cliente de la Uno',
   'admin de la organización 1 ve el cliente correcto (no el de la organización 2)'
 );
 
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('22222222-2222-2222-2222-222222222222', 'Intento cruzado')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('22222222-2222-2222-2222-222222222222', 'Intento cruzado')$$,
   '42501',
   null,
   'admin de la organización 1 no puede insertar un cliente en la organización 2'
 );
 
-update clientes set nombre = 'Hackeado' where organizacion_id = '22222222-2222-2222-2222-222222222222';
+update dominio.clientes set nombre = 'Hackeado' where organizacion_id = '22222222-2222-2222-2222-222222222222';
 
 reset role;
 
 select is(
-  (select nombre from clientes where id = 'c2000000-0000-0000-0000-000000000001'), 'Cliente de la Dos',
+  (select nombre from dominio.clientes where id = 'c2000000-0000-0000-0000-000000000001'), 'Cliente de la Dos',
   'el intento de actualización cruzada del admin de la organización 1 no afectó ninguna fila'
 );
 
@@ -88,12 +88,12 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 2,
+  (select count(*) from dominio.clientes)::int, 2,
   'miembro de la organización 1 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
-  (select nombre from clientes order by nombre limit 1), 'Cliente de la Uno',
+  (select nombre from dominio.clientes order by nombre limit 1), 'Cliente de la Uno',
   'miembro de la organización 1 ve el cliente correcto (no el de la organización 2)'
 );
 
@@ -111,12 +111,12 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 2,
+  (select count(*) from dominio.clientes)::int, 2,
   'admin de la organización 2 ve exactamente un cliente más el Consumidor final'
 );
 
 select is(
-  (select nombre from clientes order by nombre limit 1), 'Cliente de la Dos',
+  (select nombre from dominio.clientes order by nombre limit 1), 'Cliente de la Dos',
   'admin de la organización 2 ve el cliente correcto (no el de la organización 1)'
 );
 
@@ -134,7 +134,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from dominio.clientes)::int, 0,
   'un usuario sin membresía ni perfil de superadmin no ve ningún cliente'
 );
 
@@ -157,18 +157,18 @@ select set_config(
 );
 set local role authenticated;
 
-insert into clientes (id, organizacion_id, nombre) values
+insert into dominio.clientes (id, organizacion_id, nombre) values
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cliente nuevo del admin');
 
 select is(
-  (select count(*) from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111')::int, 3,
+  (select count(*) from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111')::int, 3,
   'admin de la organización 1 puede insertar un cliente en su propia organización'
 );
 
-update clientes set nombre = 'Cliente nuevo del admin (editado)' where id = 'c1000000-0000-0000-0000-000000000002';
+update dominio.clientes set nombre = 'Cliente nuevo del admin (editado)' where id = 'c1000000-0000-0000-0000-000000000002';
 
 select is(
-  (select nombre from clientes where id = 'c1000000-0000-0000-0000-000000000002'),
+  (select nombre from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000002'),
   'Cliente nuevo del admin (editado)',
   'admin de la organización 1 puede editar un cliente de su propia organización'
 );
@@ -183,18 +183,18 @@ select set_config(
 set local role authenticated;
 
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Intento de miembro')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Intento de miembro')$$,
   '42501',
   null,
   'miembro de la organización 1 no puede insertar clientes (solo lectura, FR-011)'
 );
 
-update clientes set nombre = 'Editado por miembro' where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set nombre = 'Editado por miembro' where id = 'c1000000-0000-0000-0000-000000000001';
 
 reset role;
 
 select is(
-  (select nombre from clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'Cliente de la Uno',
+  (select nombre from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'Cliente de la Uno',
   'el intento de edición del miembro de la organización 1 no afectó ninguna fila (solo lectura, FR-011)'
 );
 
@@ -215,7 +215,7 @@ select set_config(
 set local role authenticated;
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from dominio.clientes)::int, 0,
   'el superadmin sin ninguna organización activa no ve ningún cliente (fail-closed)'
 );
 
@@ -243,21 +243,21 @@ set local role authenticated;
 select entrar_a_organizacion('11111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
-  (select count(*) from clientes)::int, 3,
+  (select count(*) from dominio.clientes)::int, 3,
   'tras entrar a la organización 1, el superadmin ve exactamente sus 2 clientes más el Consumidor final'
 );
 
-update clientes set nombre = 'Editado por el superadmin' where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set nombre = 'Editado por el superadmin' where id = 'c1000000-0000-0000-0000-000000000001';
 
 select is(
-  (select nombre from clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'Editado por el superadmin',
+  (select nombre from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'Editado por el superadmin',
   'con la organización 1 activa, el superadmin puede editar sus clientes (como su administrador)'
 );
 
 select entrar_a_organizacion('22222222-2222-2222-2222-222222222222', 'prueba de soporte');
 
 select is(
-  (select count(*) from clientes)::int, 2,
+  (select count(*) from dominio.clientes)::int, 2,
   'tras entrar a la organización 2, el superadmin ve solo el cliente y el Consumidor final de esa organización (el contexto cambió, no se mezclan)'
 );
 
@@ -301,7 +301,7 @@ set local role authenticated;
 select salir_de_organizacion();
 
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from dominio.clientes)::int, 0,
   'tras salir, el superadmin vuelve a no ver ningún cliente (fail-closed, igual que antes de haber entrado)'
 );
 
@@ -412,7 +412,7 @@ select is((select accion from eventos_membresia where target_user_id = 'a1000000
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select is((select count(*) from usuarios_organizacion)::int, 0, 'la persona removida pierde acceso a su membresía');
-select is((select count(*) from clientes)::int, 0, 'la persona removida pierde acceso a los datos de la organización');
+select is((select count(*) from dominio.clientes)::int, 0, 'la persona removida pierde acceso a los datos de la organización');
 reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);

@@ -17,6 +17,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import Inventory2Icon from '@mui/icons-material/Inventory2'
 import CategoryIcon from '@mui/icons-material/Category'
 import LocalOfferIcon from '@mui/icons-material/LocalOffer'
+import SellIcon from '@mui/icons-material/Sell'
 import WarehouseIcon from '@mui/icons-material/Warehouse'
 import DeliveryDiningIcon from '@mui/icons-material/DeliveryDining'
 import PointOfSaleIcon from '@mui/icons-material/PointOfSale'
@@ -38,8 +39,11 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import ApiIcon from '@mui/icons-material/Api'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import PaymentsIcon from '@mui/icons-material/Payments'
+import StarOutlineIcon from '@mui/icons-material/StarOutline'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -89,6 +93,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CAT-08: árbol de categorías de 2 niveles (carga diferida en App.tsx).
       // F-PRE-11: precios promocionales por empresa con fecha de inicio y fin (carga diferida en App.tsx).
       { id: 'promociones', etiqueta: 'Promociones', ruta: '/productos/promociones', icono: LocalOfferIcon, audiencia: 'organizacion', seccionPermiso: 'productos' },
+      // F-PRE-14 (MSF-442): listas de precios (porcentaje sobre el precio central); solo las administra el Administrador (carga diferida en App.tsx).
+      { id: 'listas-precios', etiqueta: 'Listas de precios', ruta: '/productos/listas-de-precios', icono: SellIcon, audiencia: 'administrador', seccionPermiso: 'productos' },
       { id: 'categorias', etiqueta: 'Categorías', ruta: '/categorias', icono: CategoryIcon, audiencia: 'organizacion', seccionPermiso: 'categorias' },
     ],
   },
@@ -189,6 +195,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       // F-CLI-11 (MSF-155): correo masivo a clientes; armar el grupo exige edición en Clientes (la pantalla lo valida).
       { id: 'correo-masivo', etiqueta: 'Correo masivo', ruta: '/clientes/correo-masivo', icono: MailOutlineIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
+      // MSF-468: newsletter de la tienda (suscriptores, composición y envío); componer y enviar son del Administrador (la pantalla y la base lo validan).
+      { id: 'newsletter', etiqueta: 'Newsletter', ruta: '/clientes/newsletter', icono: MarkEmailReadOutlinedIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
     ],
   },
@@ -202,6 +210,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CON-05: libreta de contactos por empresa, debajo de Consultas (misma sección de permisos).
       { id: 'contactos', etiqueta: 'Contactos', ruta: '/contactos', icono: ContactsIcon, audiencia: 'organizacion', seccionPermiso: 'consultas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+      // MSF-467: moderación previa de las opiniones de productos; solo Administrador (sin sección propia en la matriz).
+      { id: 'opiniones', etiqueta: 'Opiniones', ruta: '/opiniones', icono: StarOutlineIcon, audiencia: 'administrador' },
     ],
   },
   {
@@ -240,6 +250,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
       // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
       { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
+      // F-GAS-01/02 (MSF-469): gastos generales de cada tienda; solo administradores (sección `rentabilidad`).
+      { id: 'gastos', etiqueta: 'Gastos', ruta: '/gastos', icono: PaymentsIcon, audiencia: 'administrador', seccionPermiso: 'rentabilidad' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
       { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },

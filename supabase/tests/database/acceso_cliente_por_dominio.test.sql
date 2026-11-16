@@ -23,7 +23,7 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000002', 'mundojc.ejemplo.com'),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000003', 'apagada.ejemplo.com');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Mayorista activo', 'a@example.com', 'mayorista'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Suspendido', 's@example.com', 'minorista'),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Solo habilitado', 'h@example.com', 'minorista');
@@ -123,7 +123,7 @@ select is(
 
 -- Cliente archivado: no da acceso.
 reset role;
-update clientes set archivado_en = now() where id = 'c5000000-0000-0000-0000-000000000003';
+update dominio.clientes set archivado_en = now() where id = 'c5000000-0000-0000-0000-000000000003';
 select pg_temp.como('f2000000-0000-0000-0000-000000000003');
 select is(
   publico.acceso_cliente_por_dominio('sanjavucho.ejemplo.com') ->> 'estado',

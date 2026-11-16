@@ -14,7 +14,7 @@ import {
   periodoTexto,
   type ContenidoResumen,
 } from './contenido.ts'
-import { MAX_CUERPO_BYTES, MAX_INTENTOS, manejar, mensajeDeError, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
+import { CORREO_VALIDO, MAX_CUERPO_BYTES, MAX_INTENTOS, manejar, mensajeDeError, procesarOrganizacion, type Deps, type Generado } from './handler.ts'
 
 const ORG = '11111111-1111-4111-8111-111111111111'
 const RESUMEN = '22222222-2222-4222-8222-222222222222'
@@ -204,6 +204,12 @@ describe('procesarOrganizacion (RF-REP-08-4, RF-REP-08-5)', () => {
     assert.equal(await procesarOrganizacion(ORG, deps), 'fallido')
     assert.equal(enviados.length, 0)
     assert.equal(cierres[0].enviado, false)
+  })
+
+  it('CORREO_VALIDO es igual de estricto que el de los avisos: una sola dirección, sin invisibles ni bidi', () => {
+    for (const bueno of ['ana@example.com', 'a.b+c@sub.example.com.ar']) assert.equal(CORREO_VALIDO.test(bueno), true, bueno)
+    for (const malo of ['a@b.com,c@d.com', 'a@b.com;c@d.com', 'Ana <a@b.com>', '"a"@b.com', 'a@b.com>', 'a b@c.d', 'a@b', 'a@x\u202Ee.com', 'a@x\u200Be.com', 'a@x\u0000e.com'])
+      assert.equal(CORREO_VALIDO.test(malo), false, JSON.stringify(malo))
   })
 
   it('si el correo salió pero no se pudo cerrar, igual informa enviado (al menos una vez, queda en los registros)', async () => {

@@ -29,10 +29,10 @@ const cabeceras = (perfil = 'public') => ({
   'accept-profile': perfil,
 })
 
-async function rest<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
+async function rest<T>(metodo: string, ruta: string, cuerpo?: unknown, perfil = 'public'): Promise<T> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: metodo,
-    headers: { ...cabeceras(), prefer: 'return=representation' },
+    headers: { ...cabeceras(perfil), prefer: 'return=representation' },
     body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
@@ -55,7 +55,7 @@ async function sembrar(opciones: { habilitado: Tienda[]; cuenta?: { tienda: Tien
   const organizacion = (opciones.cuenta?.tienda ?? opciones.habilitado[0]).organizacion
   const [cliente] = await rest<{ id: string }[]>('POST', 'clientes', {
     organizacion_id: organizacion, numero: 900000 + Math.floor(Math.random() * 90000), nombre: `E2E ${sufijo}`, correo, tipo: 'minorista',
-  })
+  }, 'dominio')
   for (const t of opciones.habilitado) {
     await rest('POST', 'clientes_empresas', { cliente_id: cliente.id, empresa_id: t.empresa, organizacion_id: t.organizacion })
   }
@@ -84,7 +84,7 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   test.afterAll(async () => {
     for (const s of creados) {
       await fetch(`${url}/auth/v1/admin/users/${s.authId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
-      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
+      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras('dominio') }).catch(() => undefined)
     }
   })
 

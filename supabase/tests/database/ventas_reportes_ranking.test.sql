@@ -25,7 +25,7 @@ insert into organizaciones (id, nombre) values
 -- organización (nombre 'Consumidor final', tipo 'minorista', `es_consumidor_final = true`): el
 -- fixture lo usa tal cual y no crea otro (el índice `clientes_consumidor_final_uq` admite uno por
 -- organización).
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Distribuidora Ñandú', 'mayorista'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Kiosco La Esquina', 'minorista'),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Cliente Solo Notas', 'minorista'),
@@ -59,7 +59,7 @@ insert into dominio.comprobantes_venta
 values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', 'c5000000-0000-0000-0000-000000000001', 'factura',      '00000001',  1, '2026-09-05', 'confirmada',  700,   847),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', 'c5000000-0000-0000-0000-000000000001', 'factura',      '00000002',  2, '2026-10-05', 'confirmada', 1000,  1210),
-  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', (select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final), 'factura', '00000004', 4, '2026-10-05', 'confirmada', 300, 363),
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', (select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final), 'factura', '00000004', 4, '2026-10-05', 'confirmada', 300, 363),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', 'c5000000-0000-0000-0000-000000000002', 'factura',      '00000005',  5, '2026-09-20', 'confirmada',  200,   242),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', 'c5000000-0000-0000-0000-000000000003', 'factura',      '00000007',  7, '2026-09-25', 'confirmada',  400,   484),
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-0000000000e1', 'c5000000-0000-0000-0000-000000000001', 'presupuesto',  '00000009',  9, '2026-10-05', 'pendiente',  2000,  2420),
@@ -238,7 +238,7 @@ select is(
 );
 select is(
   (select posicion from analitica.ventas_ranking_clientes
-    where cliente_id = (select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
+    where cliente_id = (select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
       and empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
       and fecha = '2026-10-05'),
   2::bigint, 'el Consumidor final (363) es el segundo'
@@ -268,7 +268,7 @@ select is(
 );
 select is(
   (select round(participacion, 2) from analitica.ventas_ranking_clientes
-    where cliente_id = (select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
+    where cliente_id = (select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
       and empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
       and fecha = '2026-10-05'),
   2.50::numeric, 'el Consumidor final participa con el 2,5 % del total'
@@ -288,7 +288,7 @@ select is(
 
 select is(
   (select consumidor_final from analitica.ventas_ranking_clientes
-    where cliente_id = (select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
+    where cliente_id = (select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)
       and empresa_id = 'a1000000-0000-0000-0000-0000000000e1'
       and fecha = '2026-10-05'),
   true, 'la vista marca al Consumidor final para que la exclusión sea opcional'
@@ -303,7 +303,7 @@ select is(
   (select count(*)::int from analitica.ventas_ranking_clientes
     where organizacion_id = '11111111-1111-1111-1111-111111111111'
       and consumidor_final = false
-      and cliente_id = (select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)),
+      and cliente_id = (select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final)),
   0, 'con el Consumidor final excluido no queda ninguna fila suya'
 );
 

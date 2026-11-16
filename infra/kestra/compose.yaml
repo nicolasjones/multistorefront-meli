@@ -29,6 +29,10 @@ services:
             username: kestra
             password: ${KESTRA_DB_PASSWORD:-kestra-local}
         kestra:
+          # Explícito (MSF-468): el HTML del newsletter se muestra con `| raw` y datos de personas pasan por `to`/`from`/`subject`; el
+          # renderizado recursivo volvería a evaluar como plantilla lo que ya salió de otra plantilla. Debe quedar en false.
+          templating:
+            recursive-rendering: false
           repository:
             type: postgres
           storage:
@@ -128,6 +132,8 @@ services:
       ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
       ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
+      # Newsletter de la tienda (MSF-468, flow newsletter-confirmaciones): confirmaciones por ciclo.
+      ENV_NEWSLETTER_CONFIRMACION_LOTE: ${NEWSLETTER_CONFIRMACION_LOTE:-20}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas
@@ -183,6 +189,12 @@ services:
       ENV_API_WEBHOOKS_LOTE: ${API_WEBHOOKS_LOTE:-20}
       # Retención (días) de la auditoría de llamadas de la API (flow purgar-api-llamadas.yml).
       ENV_API_AUDITORIA_RETENCION_DIAS: ${API_AUDITORIA_RETENCION_DIAS:-90}
+      # Envío de WhatsApp al cliente (MSF-952, flow reparaciones-aviso-whatsapp): URL del proveedor de mensajería,
+      # nombre de la plantilla aprobada y token del proveedor. El proveedor concreto lo elige y lo contrata el
+      # cliente (MSF-118, D-1): hasta entonces quedan vacíos y los avisos se cierran como fallidos.
+      ENV_WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
+      ENV_WHATSAPP_PLANTILLA: ${WHATSAPP_PLANTILLA:-}
+      SECRET_WHATSAPP_TOKEN: ${SECRET_WHATSAPP_TOKEN:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.

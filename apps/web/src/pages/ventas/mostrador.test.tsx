@@ -289,6 +289,51 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     expect(mocks.cobro).toHaveBeenCalledWith('c-1', expect.objectContaining({ importe: '1000' }))
   })
 
+  it('si cambió la lista de precios el aviso del cobro lo dice y no cobra solo', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    mocks.agregar.mockResolvedValue(ventaCon([lineaDe('l-1', 'p-1', 'Joystick', 800, null)], 800))
+    mocks.repreciar.mockResolvedValue(ventaCon([lineaDe('l-9', 'p-1', 'Joystick', 750, null)], 750))
+    mocks.confirmar.mockRejectedValueOnce({ code: '40001', hint: 'precios_cambiaron', details: 'lista_precios', message: 'precios cambiaron' })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const boton = await screen.findByRole('button', { name: 'Cobrar' })
+    await waitFor(() => expect((boton as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(boton)
+    expect(await screen.findByText(/El precio de la lista cambió: revisá el total y cobrá de nuevo/)).toBeTruthy()
+    expect(mocks.cobro).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Los precios cambiaron/)).toBeNull()
+  })
+
+  it('una línea que fijó una lista muestra «Lista: nombre ±n %»; con promoción ganadora aclara que rige la promoción; sin lista no aparece', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    const conLista = { lista_nombre: 'Revendedores', lista_ajuste_pct: -20 }
+    mocks.agregar.mockResolvedValue(ventaCon([
+      { ...lineaDe('l-1', 'p-1', 'Joystick', 800, null), ...conLista },
+      { ...lineaDe('l-2', 'p-2', 'Teclado', 500, 800), ...conLista },
+      lineaDe('l-3', 'p-3', 'Cable', 300, null),
+    ], 1600))
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const filaJoystick = (await screen.findByText('Joystick')).closest('tr') as HTMLElement
+    expect(filaJoystick.textContent).toContain('Lista: Revendedores \u221220 %')
+    expect(filaJoystick.textContent).not.toContain('rige la promoción')
+    const filaTeclado = (await screen.findByText('Teclado')).closest('tr') as HTMLElement
+    expect(filaTeclado.textContent).toContain('Lista: Revendedores \u221220 % (rige la promoción)')
+    const filaCable = (await screen.findByText('Cable')).closest('tr') as HTMLElement
+    expect(filaCable.textContent).not.toContain('Lista:')
+  })
+
+  it('si la lista lleva una línea a cero muestra el mensaje de la base con el nombre del producto', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    mocks.agregar.mockRejectedValueOnce({
+      code: '22023',
+      message: 'El producto «Tornillo» (línea 1) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)',
+    })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    expect(await screen.findByText(/El producto «Tornillo» \(línea 1\) queda sin precio con la lista de precios del cliente/)).toBeTruthy()
+  })
+
   it('un 40001 sin hint (conflicto de edición) NO se trata como precios cambiados', async () => {
     mocks.buscar.mockResolvedValue(producto('p-1'))
     mocks.agregar.mockResolvedValue(ventaCon([lineaDe('l-1', 'p-1', 'Joystick', 900, 1000)], 900))

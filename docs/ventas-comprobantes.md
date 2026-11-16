@@ -324,7 +324,7 @@ se borran en el mismo PR que las crea.
 ## Precios especiales por cliente (F-VTA-32, MSF-340 · épica MSF-193)
 
 `guardar_lineas_comprobante` (misma firma y retorno, sin `BREAKING`) calcula el precio de cada línea como
-`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `public.clientes.descuento`
+`round(neto de escala * (1 - descuento / 100), 2)`, **antes del IVA**. El descuento sale de `dominio.clientes.descuento`
 del cliente del comprobante, leído en el servidor: el payload no puede imponerlo (una clave `descuento` se ignora).
 Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
 aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego
@@ -338,6 +338,7 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 
 - `guardar_lineas_comprobante` y `copiar_presupuesto` (esta última sin el descuento del cliente, igual que antes) usan la función con `clock_timestamp()` tomado después del bloqueo del comprobante. Las claves `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran.
 - `obtener_comprobante` devuelve `precio_referencia` por línea (`null` sin promoción) y **no** `promocion_id`.
+- **Listas de precios (F-CLI-21, `20270348000000` a `20270348000200`).** `precio_linea_venta` recibe además el cliente del comprobante y, **con la bandera `listas_precios` encendida**, el precio normal de la línea sale de la lista del cliente cuando no rigen un precio manual, una escala cargada ni un precio propio; en esa línea el descuento personal no se aplica y la promoción gana solo si es estrictamente menor. Cada línea guarda `lista_precio_id` y `lista_ajuste_pct` (snapshot; las notas de crédito lo heredan y `copiar_presupuesto` lo vuelve a calcular). `obtener_comprobante` devuelve por línea `lista_ajuste_pct` y `lista_nombre` (`null` sin lista; **no** devuelve `lista_precio_id`) para la marca «Lista: nombre ±n %». La guarda de la confirmación (`lineas_con_promocion_desactualizada`) también compara el snapshot de la lista contra el motor: cambio de porcentaje, lista reasignada o quitada o bandera apagada entre guardar y confirmar dan `40001` (`precios_cambiaron`); otros cambios del precio normal (ajuste de tienda, escalas) siguen sin detectarse (MSF-970). Una línea que la lista lleva a $0 se rechaza (`22023`) salvo precio manual. Con la bandera apagada el resultado es idéntico al de antes. Detalle en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4).
 - El importe y la referencia quedan **fijados en la línea**: anular, editar o vencer la promoción después no altera un comprobante emitido. Las notas de crédito devuelven al precio cobrado y heredan las dos columnas (`private.copiar_costo_linea_nota`).
 - Con la bandera apagada el resultado es idéntico al anterior (baseline pgTAP columna por columna). Migraciones `20270310100000` a `20270310100300` (reversión en cada encabezado); pgTAP `ventas_precio_promocional.test.sql`. La guarda de `confirmar_comprobante` y las pantallas son las fases F-3 y F-2 de la spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/`.
 

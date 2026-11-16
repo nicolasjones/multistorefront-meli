@@ -12,6 +12,18 @@ export const ayudaAdministracion: AyudaPorDestino = {
       'En «Empresas de la organización» tocá «Editar» para modificar una empresa.',
     ],
   },
+  gastos: {
+    titulo: 'Gastos',
+    resumen:
+      'Acá cargás los gastos generales de cada tienda (alquiler, servicios, sueldos, fletes, insumos, impuestos y otros) para entender cuánto cuesta operarla. Cada gasto es de una sola tienda y puede ser un costo fijo o variable. Los consultás por período, tienda, concepto y tipo de costo, con el total y el desglose. Un gasto no se borra: se anula con un motivo y queda visible con «Mostrar anulados». Cargar un gasto no cambia ninguno de los márgenes de Rentabilidad. Con solo lectura en Rentabilidad ves los gastos; con edición los cargás, editás y anulás.',
+    pasos: [
+      'Elegí la tienda (o «Todas las tiendas») y el período: Hoy, Semana, Mes o Mes anterior.',
+      'Pulsá «Nuevo gasto», elegí el concepto, la tienda, la moneda, el importe y la fecha. El tipo de costo se precarga y lo podés cambiar.',
+      'Si el gasto es en dólares, se convierte a pesos con el dólar de la tienda más cercano a la fecha y ese valor queda guardado.',
+      'Con «Editar» corregís un gasto y con «Anular» lo das de baja indicando el motivo.',
+      'Pulsá «Exportar» para bajar un archivo con los gastos del período y los filtros elegidos.',
+    ],
+  },
   cotizacion: {
     titulo: 'Cotización del dólar',
     resumen:

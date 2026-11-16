@@ -11,7 +11,7 @@ import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, rest, serviceKey, u
 // Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY el archivo se omite (no entra al CI
 // público): ver docs/e2e-app.md.
 
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
 const password = CONTRASENA_E2E
 
 async function token(correo: string): Promise<string> {

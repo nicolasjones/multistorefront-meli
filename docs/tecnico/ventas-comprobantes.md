@@ -60,7 +60,7 @@ MSF-317) y presupuestos (**F-VTA-08**, MSF-331). La vista de producto está en
   comprobante. Se envía con el `updated_at` vigente; mientras guarda, los controles quedan bloqueados. Un
   rechazo no deja líneas a medias.
 - **Descuento por cliente** (F-VTA-32 / MSF-340, épica **MSF-193**): si el cliente tiene **descuento**, la
-  base se lo resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes`
+  base se lo resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `dominio.clientes`
   **en el servidor** (el `payload` no puede imponerlo) y un **precio manual no se toca**. La línea guarda
   `descuento_pct` (0 si el precio es manual) y el rótulo pasa a «escala x1 · 5 % de descuento». Detalle:
   [Precios especiales por cliente (técnico)](ventas-precios-especiales.md).
