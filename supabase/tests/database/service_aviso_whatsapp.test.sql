@@ -255,6 +255,8 @@ select is(
 -- Cierre por el flow (pendiente → enviado/fallido)
 -- ============================================================================
 
+-- Las funciones del flow las ejecuta solo el rol de servicio de Kestra: la prueba las llama como `postgres`.
+reset role;
 select ok(
   (select d->>'canal' = 'whatsapp' and d->>'clave_envio' is not null and d->>'estado_envio' = 'pendiente'
      from (select private.datos_aviso_reparacion((select id from avisos where clave = 'w1')) as d) x),

@@ -16,7 +16,12 @@ porque este entorno no tiene `supabase` CLI ni Docker; los corre el CI con `pnpm
 **El CI de la rama dejó el job `database` y el `e2e-tienda` en rojo**: la migración no llegó a aplicarse (error de
 sintaxis en el `for` de `private.telefono_whatsapp`) y, revisada a mano, tenía un defecto de fondo: un aviso de
 WhatsApp pendiente tapaba al aviso de correo. Las dos cosas están corregidas (ver `fix.md`); el pgTAP nuevo cubre la
-convivencia de los dos canales y el CI es el que lo ejecuta.
+convivencia de los dos canales.
+
+**La segunda corrida del CI aplicó la migración y pasó los 13.753 tests de la base**, pero el pgTAP nuevo abortó: la
+prueba llamaba a `private.datos_aviso_reparacion` con el rol `authenticated` (que no tiene `EXECECUTE` sobre las
+funciones del flow) y por eso moría a mitad de archivo. Se corrigió con un `reset role;` antes del bloque del flow,
+igual que hace el pgTAP del aviso por correo.
 
 ## Checks Performed
 
@@ -27,7 +32,7 @@ convivencia de los dos canales y el CI es el que lo ejecuta.
 | Tests nuevos (web) | `pnpm --filter @platform/web exec vitest run src/pages/service-tecnico/reparacion.avisos.test.tsx src/pages/clientes/show.test.tsx src/lib/whatsapp.test.ts` | pass | 79/79 (3 archivos). |
 | Regresión del correo | pgTAP nuevo (convivencia de canales) + Vitest de `reparacion.avisos` | pass (pgTAP corre en el CI) | La RPC de correo se recrea con el filtro `canal = 'correo'`: el aviso de WhatsApp pendiente no la tapa. |
 | Regresión (DB) | `pnpm test:db:guard-migraciones`, `pnpm test:db:validar-aditivas`, `pnpm db:validar:aditivas` | pass | 30/30, 5/5 y 717 migraciones sin destructivas sin reversión. |
-| pgTAP nuevo | `pnpm test:db` | not-run | Sin `supabase` CLI ni Docker en este entorno; `scripts/supabase-ci.mjs` no aplica. Lo corre el CI. |
+| pgTAP nuevo | `pnpm test:db` | not-run (corrido por el CI) | Sin `supabase` CLI ni Docker en este entorno; `scripts/supabase-ci.mjs` no aplica. Lo corre el CI: la primera corrida=deadó el archivo por el rol (arreglado con `reset role;`). |
 | E2E nuevo | `pnpm test:e2e` | not-run | Requiere `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y la web servida; el spec se omite sin ellos (igual que los otros E2E de Service). |
 | Lint / type-check / build | `pnpm lint`, `pnpm build` | pass | Build completo OK (3.5 s); lint exit 0, solo warnings previos del repo. |
 | Migraciones / docs | `node scripts/verificar-migraciones.mjs`, `pnpm docs:check`, `pnpm matriz:check`, `pnpm e2e:escritura:check`, `pnpm prototipo:check`, `pnpm ui:empresas:check` | pass | 717 migraciones, 1 nueva contra `origin/dokploy`. |
