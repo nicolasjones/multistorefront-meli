@@ -2,33 +2,39 @@
 
 **Épica**: MSF-467 «Tiendas online · Opiniones» (Etapa 2, P2 provisoria) · **Spec**: `opiniones-de-productos` · **Prioridad**: P2
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: **implementada y mergeada en `dokploy`** (F-OPI-01 en el PR #1044; F-OPI-02 y F-OPI-03 en el PR #1058; QA y Código/Seguridad aprobados, CI verde). Las tres historias están Finalizadas; **solo queda la fase de cierre** (T029 revisión de seguridad, T030 encendido de la bandera solo en dev, T031 guards finales), que sigue su curso normal del SDLC sobre `dokploy`. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3, con código de historia `F-OPI-01`…`F-OPI-03`).
+**Estado**: **implementada y mergeada en `dokploy`** (F-OPI-01 en el PR #1044; F-OPI-02 y F-OPI-03 en el PR #1058; QA y Código/Seguridad aprobados, CI verde). Las tres historias están Finalizadas; **solo queda la fase de cierre** (T029 revisión de seguridad, T030 encendido de la bandera solo en dev, T031 guards finales), que sigue su curso normal del SDLC sobre `dokploy`. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3, con código de historia `F-OPI-01`…`F-OPI-03`). La documentación de la épica (este `spec.md`, `plan.md`, `tasks.md` y `contracts/opiniones.md`) está **mergeada en `dokploy`** por el PR #1075.
 **Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-467, el prototipo `design/pantallas/Opiniones.dc.html` (+ `Opiniones.inventory.json` y la entrada «Opiniones (Etapa 2)» de `AdminSider.dc.html`), `docs/tienda-compra-y-cuentas.md` (cuenta web, MSF-237/MSF-176), `docs/tienda-contacto.md` y `docs/seguridad-tienda-compra-y-cuentas.md` (límites por visitante HMAC), `docs/tiendas-online.md`, `docs/tienda-opiniones.md` y el código vigente de `dokploy` (migraciones hasta `20270419000200`).
 
 ## Objetivo
 
 Que un **cliente con cuenta web activa** deje una **opinión con puntuación** (1 a 5 estrellas y un comentario) sobre un producto de **su** tienda, y que un **administrador** la **modere antes de que se publique** (moderación previa): solo las opiniones **aceptadas** se muestran en la ficha pública del producto, junto con el **promedio** y la **cantidad**. Todo detrás de una bandera apagada por defecto.
 
-## Estado de la entrega y decisión de orquestación
+## Estado de la entrega y decisiones pendientes
 
-Esta sección **no describe alcance nuevo**: documenta el estado real de la épica y por qué el release a DEV quedó trabado. Es la que manda sobre cualquier lectura de «sin implementar» de versiones previas de esta spec.
+Esta sección **no describe alcance nuevo**: documenta el estado real de la épica y qué falta para cerrarla. Es la que manda sobre cualquier lectura de «sin implementar» de versiones previas de esta spec.
 
-**🛡️ Decisión de orquestación — release a DEV trabado (PR #1045), no es un conflicto a resolver.**
+### ✅ Implementada y mergeada
 
-- **Diagnóstico verificado** (`git fetch` + `gh pr view`): el PR #1045 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) solo lleva 2 commits de **docs** (`f81ee58d7`, `96ce0cedc`), escritos sobre una foto de `spec.md`/`plan.md`/`tasks.md` **anterior** a la implementación real. La implementación real (fases 1 a 5) ya se mergeó a `dokploy` por otro camino: PR #1044 (`feat/opiniones-fases-1-y-2`) y PR #1058 (`feat/opiniones-fases-3-a-5`), con QA y Código/Seguridad aprobados y CI verde. `dokploy` ya tiene T001–T028 de `tasks.md` marcadas `[x]` con evidencia.
-- **Mergear el PR #1045 ahora pisaría esa evidencia** (su copia de `tasks.md` tiene T001 sin marcar), no la completaría. El conflicto de merge **no es un bug a arreglar**: es una rama de épica *stale*, mismo patrón que MSF-265/MSF-948 (épica superada por un rework que avanzó por ramas de feature directas a `dokploy`).
-- **Acción tomada**: el PR #1045 se cerró **sin merge**, sin tocar código (el motivo quedó explicado en el PR). Los PRs #1068 y #1069, regenerados por Release con la misma cabeza, se cerraron igual.
-- **Pendiente real de la épica** (verificado en `dokploy`, no en el PR viejo): **T029** (revisión de seguridad), **T030** (encendido de `tienda_opiniones` solo en dev) y **T031** (guards finales) siguen `[ ]`. Eso sigue su curso normal del SDLC sobre `dokploy`; no depende del PR cerrado.
-- **Causa raíz, no solo el síntoma**: Release generó 3 PRs idénticos contra esta rama sin rebasar, ignorando la etiqueta `desarrollo-manual`. Se abrió **MSF-984** (hija de MSF-515, deuda técnica) para que Release filtre esa label antes de reintentar el merge a DEV; no es el mismo bug que MSF-951 (ese es el sweep de adopción Backlog→Ready).
-- **Rebase**: es **trabajo manual de Nicolás** (la épica lleva `desarrollo-manual`); no lo resuelve el SDLC solo. Hasta que se rebasee `epic/MSF-467-tiendas-online-opiniones` contra `dokploy` y se resuelva el conflicto de `plan.md`/`spec.md` (reconocer F-OPI-01 ya implementada y renumerar F-OPI-02/F-OPI-03 por encima de lo que ya ocupa `dokploy`), la épica queda **flaggeada** (`sindrome-bloqueo-importante`, `sindrome-escalado-humano`, `desarrollo-manual`) y **no se pide otro merge**.
+- **Historias**: F-OPI-01 (PR #1044 `feat/opiniones-fases-1-y-2`), F-OPI-02 y F-OPI-03 (PR #1058 `feat/opiniones-fases-3-a-5`), con QA y Código/Seguridad aprobados y CI verde. T001–T028 están `[x]` con su evidencia.
+- **Documentación de la épica mergeada**: el PR #1075 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) se **mergeó** el 2026-11-16 a las 11:10:51 (merge commit `78a893bb`), con `application`, `quality`, `liberar` y `validacion` en verde. Antes del merge, un commit `chore: integra dokploy` trayó el estado vigente de `dokploy` a la rama, así que el merge **no revirtió** la implementación real (PR #1044 y #1058). **El release a DEV quedó destrabado y la rama ya no está desfasada**: no hace falta ningún rebase manual.
+- **Pendiente real**: **T029** (revisión de seguridad), **T030** (encendido de `tienda_opiniones` solo en dev) y **T031** (guards finales) siguen `[ ]` y se ejecutan sobre `dokploy`, que es donde vive la implementación.
 
-**Consecuencia para esta rama**: `epic/MSF-467-tiendas-online-opiniones` queda como la **fuente documental** de la épica (spec, plan, tareas y contratos) y **no** como la rama de release. Los tres archivos de esta spec se reescribieron para decir la verdad del estado mergeado —que es justamente lo que faltaba en el PR #1045 y que hacía que su merge pisara la evidencia—. El trabajo que queda (T029–T031) se ejecuta sobre `dokploy`, que ya tiene T001–T028 con evidencia.
+### 🛡️ Decisiones de producto que le corresponden a Nicolás
+
+No bloquean ningún trabajo técnico: la funcionalidad está entregada y apagada por defecto (D11).
+
+1. **Bandera `tienda_opiniones` en dev**: ¿se enciende ahora o se espera a que cierren T029–T031 sobre `dokploy`? El procedimiento exacto de encendido está en `docs/tienda-opiniones.md`; staging y producción quedan apagados.
+2. **Decisiones delegadas D1–D16** (en particular **D3**: no exigir compra previa para opinar) y la **respuesta del comercio** al cliente, que quedó **fuera de alcance** (ver «Fuera de alcance»): ¿se confirman tal cual o se cambian?
+
+Mientras eso no se responda, la épica **no se cierra** y **no se vuelve a generar un PR de release** (los PR #1045 y #1067–#1075 fueron regeneraciones de la misma cabeza; el último se mergeó sin cambios de código).
+
+> **Causa raíz ya trazada, sin pendiente en esta épica**: Release reintentaba el merge a DEV ignorando la etiqueta `desarrollo-manual` de la rama. Se abrió **MSF-984** (hija de MSF-515, deuda técnica) para que Release filtre esa label; no es el mismo bug que MSF-951 (ese es el sweep de adopción Backlog→Ready).
 
 ## Decisión de negocio (Nicolás, 2026-11-15) y decisiones delegadas
 
 **Decisión tomada por Nicolás**: (1) opinan los **clientes con cuenta web**, con puntuación, sobre un producto en la **tienda pública**; (2) el administrador **modera antes de publicar**: una opinión nueva queda **pendiente** y no se ve hasta que se acepta. Nicolás confirmó esta propuesta.
 
-Todo lo demás lo decidió el redactor con criterio simple y coherente con el repo. **Cada «Decisión (delegada)» está para que Nicolás la revise**; cambiarla antes de implementar cuesta solo editar esta spec.
+Todo lo demás lo decidió el redactor con criterio simple y coherente con el repo. **Cada «Decisión (delegada)» está para que Nicolás la revise** (es la decisión pendiente 2 del «Estado de la entrega»): cambiarla ahora es un cambio de código sobre lo ya mergeado, no una edición de esta spec.
 
 | # | Decisión (delegada) | Motivo |
 |---|---|---|
@@ -49,10 +55,11 @@ Todo lo demás lo decidió el redactor con criterio simple y coherente con el re
 | D15 | **Retención**: no hay purga automática. Se conservan hasta que el cliente las borra, se da de baja su cuenta (`on delete cascade`) o se elimina el producto. | Evita un proceso nuevo; los casos de supresión ya están cubiertos. |
 | D16 | **UI mínima de la tienda** (el prototipo solo dibuja la pantalla del administrador): bloque «Opiniones» en la ficha del producto (promedio, cantidad, lista con «Cargar más») y, con sesión, un formulario «Tu opinión» + «Mis opiniones» en la cuenta. Se arma con los componentes y tokens de la tienda, sin copiar HTML del prototipo. | Los requisitos mandan el comportamiento; sin dibujo, lo más cercano sin inventar secciones nuevas. |
 
-> **Para Nicolás (el ticket dice más que la decisión)**: la descripción de MSF-467 habla de que el equipo «**modera y responde**». La decisión del 2026-11-15 solo confirma moderar; las **respuestas del comercio quedan fuera** de esta spec (ver Fuera de alcance) y se pueden sumar después como una columna más.
+> **Para Nicolás (el ticket dice más que la decisión)**: la descripción de MSF-467 habla de que el equipo «**modera y responde**». La decisión del 2026-11-15 solo confirma moderar; las **respuestas del comercio quedan fuera** de esta spec (ver Fuera de alcance) y se pueden sumar después como una columna más. Es parte de la decisión pendiente 2.
 
 ## Modelo y supuestos (verificados en el código de `dokploy`)
 
+- **Dependencias**: MSF-467 no declara que bloquee ni que sea bloqueada por otra épica. En la práctica se apoya en dos cosas ya mergeadas en `dokploy`: la **cuenta web del cliente** (MSF-237/MSF-176), que da la identidad de quien opina, y la **ficha de producto de la tienda**, donde se muestra el bloque. No hace falta ninguna épica previa para que la funcionalidad arranque.
 - La cuenta web es `public.cuentas_cliente` (una por cliente y tienda, estado `activa`/`suspendida`). La identidad de las RPC públicas sale de **`private.cuenta_de_tienda(host)`**, que devuelve `(cuenta_cliente_id, cliente_id, organizacion_id, empresa_id, tipo)` solo si la cuenta está activa, el cliente habilitado y la tienda activa; **ninguna RPC recibe `cliente_id`, `empresa_id` ni `organizacion_id`**.
 - La visibilidad de un producto en una tienda la define `private.catalogo_tienda_efectivo`; una opinión solo se escribe y se lee sobre un producto **efectivamente visible**.
 - El límite por visitante ya existe: `private.visitante_publico(host)` (HMAC con secreto de Vault, MSF-946) y `private.registrar_pedido_publico(clave, tope)` sobre `public.limite_pedidos_publicos`.
@@ -315,19 +322,20 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 
 ## Matriz pantalla↔criterios
 
-`pnpm prototipo:inventario` se corrió: **existe** la pantalla `design/pantallas/Opiniones.dc.html` (título «Tienda · Opiniones (Etapa 2)») con inventario `Opiniones.inventory.json`: **botones** «Aceptar» y «Rechazar»; sin tablas con encabezados, campos, tabs ni diálogos declarados. El HTML dibuja además: aviso informativo, filtro de tienda (píldoras), tres contadores, filtros de estado, la lista de opiniones y un aviso flotante («Opinión aceptada: ya se muestra en la tienda», «Opinión rechazada»). **El prototipo no dibuja nada de la tienda pública** (bloque en la ficha, formulario, «Mis opiniones»): su UI es la mínima declarada en D16. Tampoco dibuja el motivo de rechazo (D5).
+`pnpm prototipo:inventario` se corrió: **existe** la pantalla `design/pantallas/Opiniones.dc.html` (título «Tienda · Opiniones (Etapa 2)») con inventario `Opiniones.inventory.json`: **botones** «Aceptar» y «Rechazar»; sin tablas con encabezados, campos, tabs ni diálogos declarados. El HTML dibuja además: título, aviso informativo, filtro de tienda (píldoras), tres contadores, filtros de estado, la lista de opiniones y un aviso flotante («Opinión aceptada: ya se muestra en la tienda», «Opinión rechazada»). **El prototipo no dibuja nada de la tienda pública** (bloque en la ficha, formulario, «Mis opiniones»): su UI es la mínima declarada en D16. Tampoco dibuja el motivo de rechazo (D5). Cada ítem visible tiene dueño en la tabla siguiente; las diferencias entre lo dibujado y lo entregado van declaradas como **divergencia declarada** (no se omiten en silencio).
 
 | Ítem | Dueño | Nota |
 |---|---|---|
-| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada: ya se muestra en la tienda» |
+| Título de la pantalla | RF-OPI-15 | El prototipo escribe «Opiniones de clientes · Etapa 2»; el panel usa **«Opiniones»** (sin el sufijo de roadmap) con la descripción «Moderá las opiniones que los clientes dejan sobre tus productos». **Divergencia declarada**: el sufijo «Etapa 2» es una marca del roadmap, no del producto |
+| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso de resultado «Opinión aceptada» (el prototipo lo redacta «Opinión aceptada: ya se muestra en la tienda») |
 | Botón **Rechazar** (visible salvo si ya está rechazada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión rechazada». **Decisión D5**: abre un diálogo corto con «Motivo (opcional)», «Rechazar» y «Cancelar»; el prototipo no lo dibuja (UI mínima declarada) |
 | Aviso «Las opiniones nuevas quedan pendientes…» | RF-OPI-15 | Texto literal del prototipo |
-| Aviso flotante tras decidir («Opinión aceptada: ya se muestra en la tienda» / «Opinión rechazada») | RF-OPI-15, CA-OPI-7 | Aviso de resultado con el patrón compartido; el texto es el del prototipo |
+| Aviso flotante tras decidir («Opinión aceptada: ya se muestra en la tienda» / «Opinión rechazada») | RF-OPI-15, CA-OPI-7 | Aviso de resultado con el patrón compartido. **Divergencia declarada**: el implementado dice «Opinión aceptada» (el prototipo agrega «: ya se muestra en la tienda»); el aviso de que la opinión ya se publica está en el patrón compartido y en la fila del botón Aceptar |
 | Contadores Pendientes / Aceptadas / Rechazadas | RF-OPI-13, RF-OPI-15, CA-OPI-11 | Calculados en servidor para el mismo ámbito del filtro de tienda |
 | Filtros Pendientes / Aceptadas / Rechazadas / Todas | RF-OPI-15 | Por defecto «Pendientes»; reinicia la lista |
-| Filtro de tienda («Todas las tiendas» + una por empresa) | RF-OPI-15, CA-OPI-11 | `FiltroEmpresa` compartido; ver fila «Empresa activa». El prototipo lo acompaña del texto «Cada opinión pertenece a la tienda donde se compró. Si elegís una empresa en la barra superior, se filtra por esa tienda.» |
-| Fila: chip de tienda, nombre, fecha, estado, «N sobre 5», texto, «Sobre: producto» | RF-OPI-13, RF-OPI-15, CA-OPI-6 | **Contradicción declarada**: el prototipo muestra «Valeria S.» (y «Cliente anónimo»); por D9/D10 el administrador ve el **nombre completo** del cliente y no existen opiniones anónimas. Mandan los requisitos; se anota en el PR |
-| Entrada de menú «Opiniones (Etapa 2)», solo `admin` | RF-OPI-15, CA-OPI-8 | Se llama «Opiniones» (sin «Etapa 2»), en el grupo donde el prototipo la dibuja (junto a Mercado Libre y Newsletter), ruta `/opiniones`, sección de audiencia administrador, carga diferida (`lazy`), ícono de estrella del prototipo |
+| Filtro de tienda («Todas las tiendas» + una por empresa) | RF-OPI-15, CA-OPI-11 | `FiltroEmpresa` compartido; ver fila «Empresa activa». El prototipo lo acompaña del texto «Cada opinión pertenece a la tienda donde se compró. Si elegís una empresa en la barra superior, se filtra por esa tienda.» **Divergencia declarada**: el texto implementado dice «donde se escribió», porque «donde se compró» contradice D3 (no se exige compra previa) |
+| Fila: chip de tienda, nombre, fecha, estado, «N sobre 5», texto, «Sobre: producto» | RF-OPI-13, RF-OPI-15, CA-OPI-6 | **Contradicción declarada**: el prototipo muestra «Valeria S.» (y «Cliente anónimo»); por D9/D10 el administrador ve el **nombre completo** del cliente y no existen opiniones anónimas. Mandan los requisitos; queda declarado acá y se anotó en el PR de entrega |
+| Entrada de menú «Opiniones (Etapa 2)», solo `admin` | RF-OPI-15, CA-OPI-8 | Se llama «Opiniones» (sin «Etapa 2»), en el grupo **Canales** (donde el prototipo la dibuja, junto a Mercado Libre y Newsletter) y después de «Empresas», como en el prototipo; ruta `/opiniones`, sección de audiencia administrador, carga diferida (`lazy`), ícono de estrella del prototipo |
 | Bloque «Opiniones» de la ficha, formulario «Tu opinión», «Mis opiniones» (tienda) | RF-OPI-11, RF-OPI-21, CA-OPI-1…4 | **No dibujado**: UI mínima del repo (D16), sin inventar secciones; se agrega a la matriz si el equipo lo dibuja |
 | **Empresa activa** | RF-OPI-13, RF-OPI-15, CA-OPI-11 | **Pantalla del panel**: el prototipo lo exige («Si elegís una empresa en la barra superior, se filtra por esa tienda»). La empresa activa de la barra superior es la única fuente: filtra lista y contadores a esa tienda; con «Todas mis empresas» se muestra el chip de tienda en cada fila. `FiltroEmpresa` refleja esa selección (no guarda otra). Al cambiar la empresa: se invalidan y recargan **lista y contadores**, se reinicia la tanda y el cursor, se descarta lo seleccionado y un diálogo de rechazo abierto **se cierra con aviso** (nunca guarda con la empresa anterior). Test: Vitest que cambia la empresa con la pantalla y el diálogo abiertos. **Tienda pública**: «Empresa activa: no aplica» (no es pantalla de panel; la tienda es la del dominio y se resuelve por host) |
 
