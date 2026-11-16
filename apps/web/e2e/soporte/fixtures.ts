@@ -53,6 +53,10 @@ export const cabeceras = (extra: Record<string, string> = {}) => ({
 /** `Prefer` de un upsert que pisa la fila existente (p. ej. la que el disparador de productos ya creó). */
 export const UPSERT_FUSIONAR = 'return=representation,resolution=merge-duplicates'
 
+// `clientes` vive en `dominio` (MSF-882): PostgREST elige el esquema por el perfil, no por el search_path. Las tablas que
+// siguen en `public` (`clientes_empresas`, `clientes_identificadores_externos`) no coinciden con este patrón.
+export const esquemaDe = (ruta: string, esquema: string) => (esquema === 'public' && /^clientes(\?|$)/.test(ruta) ? 'dominio' : esquema)
+
 /**
  * INSERT por la API REST con la service-role; `ruta` puede llevar `?on_conflict=...` para un upsert. Con un `prefer` que no
  * pide `return=representation` (p. ej. `return=minimal`) no hay cuerpo que leer y devuelve `[]`.
@@ -60,7 +64,7 @@ export const UPSERT_FUSIONAR = 'return=representation,resolution=merge-duplicate
 export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: 'POST',
-    headers: cabeceras({ prefer, 'content-profile': esquema }),
+    headers: cabeceras({ prefer, 'content-profile': esquemaDe(ruta, esquema) }),
     body: JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
@@ -69,14 +73,14 @@ export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public',
 
 /** SELECT por la API REST con la service-role (`ruta` lleva el filtro: `tabla?select=...&col=eq.x`). */
 export async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquema }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquemaDe(ruta, esquema) }) })
   if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
 }
 
 /** DELETE por la API REST (`ruta` lleva el filtro). Si falla avisa con `console.warn` y sigue: es limpieza. */
 export async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquemaDe(ruta, esquema) }) })
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
 }
 

@@ -113,7 +113,7 @@ begin
     return true;
   end if;
 
-  update public.clientes c set acepta_correo_masivo = false
+  update dominio.clientes c set acepta_correo_masivo = false
    where c.id = v_cliente and c.organizacion_id = v_org and c.acepta_correo_masivo
   returning true into v_estaba;
 

@@ -165,7 +165,13 @@ function App() {
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine
-            dataProvider={supabaseDataProvider(supabaseClient)}
+            dataProvider={{
+              default: supabaseDataProvider(supabaseClient),
+              // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
+              dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
+            }}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
@@ -190,7 +196,7 @@ function App() {
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
                 show: '/clientes/show/:id',
-                meta: { label: 'Clientes' },
+                meta: { label: 'Clientes', dataProviderName: 'dominio' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },

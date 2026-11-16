@@ -194,7 +194,7 @@ begin
     select o.id from public.organizaciones o
     where not exists (select 1 from dominio.comprobantes_venta v where v.organizacion_id = o.id)
   loop
-    insert into public.clientes (organizacion_id, numero, nombre, tipo) values
+    insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
       (v_org.id, 9001, 'Ferretería Norte', 'mayorista'),
       (v_org.id, 9002, 'Distribuidora Sur', 'mayorista'),
       (v_org.id, 9003, 'María López', 'minorista'),
@@ -221,12 +221,12 @@ begin
         (9004, 'factura',     '0001-00009010', v_inicio + 7,                    'deuda',    125000.00),
         (9004, 'presupuesto', '0001-00009011', v_inicio + 8,                    'pendiente',  99000.00)
       ) as d(numero_cliente, tipo, numero, fecha, estado, sin_iva)
-      join public.clientes c on c.organizacion_id = v_org.id and c.numero = d.numero_cliente;
+      join dominio.clientes c on c.organizacion_id = v_org.id and c.numero = d.numero_cliente;
 
     insert into dominio.comprobantes_venta
       (organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
     select v_org.id, c.id, 'factura', '0001-00009100', v_inicio + 1, 'cobrado', 310000.00, 375100.00
-      from public.clientes c
+      from dominio.clientes c
      where c.organizacion_id = v_org.id and c.es_consumidor_final;
   end loop;
 end $$;
@@ -335,12 +335,12 @@ begin
   values (v_empresa_2, v_org, 'Mundo JC Centro')
   on conflict (id) do nothing;
 
-  insert into public.clientes (organizacion_id, numero, nombre, tipo)
+  insert into dominio.clientes (organizacion_id, numero, nombre, tipo)
   values (v_org, 9100, 'Distribuidora del Centro (DEV)', 'mayorista')
   on conflict (organizacion_id, numero) do nothing;
 
   select c.id into v_cliente
-    from public.clientes c
+    from dominio.clientes c
    where c.organizacion_id = v_org and c.numero = 9100;
 
   -- Sin cliente no hay facturas: se sale (no se siembra a medias).

@@ -1,11 +1,11 @@
 -- MSF-468 (RF-NL-23, T019): `dominio.newsletters` (20270420000100) tiene `organizacion_id`: es dato de negocio de la organización y SE EXPORTA.
--- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270349000200`: ya incluye
--- órdenes de compra, listas de precios, opiniones, newsletter —con su filtro de `confirmacion_hash`— y gastos) copiándola COMPLETA y sumando
--- solo la fila `('dominio', 'newsletters')`. La lista de exclusiones no cambia. Si otra migración posterior a `20270349000200` la redefine,
+-- Redefine `private.conjuntos_exportacion_total()` (misma firma y privilegios) sobre la definición vigente (`20270418000401`: ya incluye
+-- `dominio.clientes`, órdenes de compra, listas de precios, opiniones, newsletter —con su filtro de `confirmacion_hash`— y gastos) copiándola COMPLETA y sumando
+-- solo la fila `('dominio', 'newsletters')`. La lista de exclusiones no cambia. Si otra migración posterior a `20270418000401` la redefine,
 -- esta debe rebasarse sobre ella (la última en aplicarse gana y las filas que no copie se pierden).
 --
 -- Esquemas (Principio VII): sin tablas nuevas; solo una función de plataforma en `private`. Migración aditiva.
--- Reversión (migración posterior): volver a la definición de `20270349000200_gastos_exportacion_total.sql` (sin la fila de newsletters).
+-- Reversión (migración posterior): volver a la definición de `20270418000401_clientes_a_dominio.sql` (sin la fila de newsletters).
 
 create or replace function private.conjuntos_exportacion_total()
 returns table (esquema text, tabla text, columnas text[])
@@ -26,6 +26,7 @@ as $$
     ('dominio', 'categorias'),
     ('dominio', 'categorias_empresa'),
     ('dominio', 'categorias_tienda'),
+    ('dominio', 'clientes'),
     ('dominio', 'cobros_comprobante'),
     ('dominio', 'comprobante_impresiones'),
     ('dominio', 'comprobantes_venta'),
@@ -52,11 +53,11 @@ as $$
     ('dominio', 'estados_reparacion'),
     ('dominio', 'existencias'),
     ('dominio', 'existencias_deposito'),
+    ('dominio', 'existencias_variante'),
     ('dominio', 'faltantes_venta'),
     ('dominio', 'formas_envio'),
     ('dominio', 'formas_pago'),
     ('dominio', 'gastos'),
-    ('dominio', 'existencias_variante'),
     ('dominio', 'historial_cobros'),
     ('dominio', 'historial_comprobantes'),
     ('dominio', 'historial_cotizaciones_dolar'),
@@ -113,7 +114,6 @@ as $$
     ('dominio', 'transiciones_estado_comprobante'),
     ('dominio', 'transportes'),
     ('dominio', 'transportes_empresas'),
-    ('public', 'clientes'),
     ('public', 'clientes_empresas'),
     ('public', 'cuentas_cliente'),
     ('public', 'documentos'),

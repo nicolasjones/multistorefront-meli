@@ -15,7 +15,7 @@
 | Objeto | Esquema | Por qué |
 |---|---|---|
 | `dominio.listas_precios` | `dominio` | Regla comercial del negocio, como `precios_empresa` y `promociones_precio` |
-| `public.clientes.lista_precio_id` | `public` | `clientes` ya vive en `public` (MSF-180); solo una columna nulable con FK compuesta |
+| `dominio.clientes.lista_precio_id` | `dominio` | `clientes` vive en `dominio` (MSF-882; antes en `public`); solo una columna nulable con FK compuesta |
 | `dominio.comprobantes_venta_lineas.lista_precio_id`, `lista_ajuste_pct` | `dominio` | Snapshot de la venta, junto a `descuento_pct` |
 | Fila `listas_precios` en `public.banderas_plataforma` | `public` | Dato de plataforma |
 | RPC y vista de lectura | `public` | Superficie sin datos propios |
@@ -23,7 +23,7 @@
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`** (`node scripts/verificar-migraciones.mjs --estricto`): las Fases 1 y 2 usaron `20270340000000` a `20270340000210`, las Fases 3 y 4 usan `20270348000000` a `20270348000300` y la ventana siguiente libre para la Fase 5 empieza en `20270350…` y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
+Numeración **por encima de toda la cola de `dokploy`** (`node scripts/verificar-migraciones.mjs --estricto`): las Fases 1 y 2 usaron `20270340000000` a `20270340000210`, las Fases 3 y 4 usan `20270348000000` a `20270348000300` y la Fase 5 (cierre) **no agrega migraciones**; si hiciera falta una, usa una versión mayor que la última de `origin/dokploy` (hoy la ventana libre empieza en `20270422…`) y se **renumera al integrar** si otra rama la ocupó (`desarrollo-manual`: renumerar antes del merge).
 
 | Migración | Fase | Contenido |
 |---|---|---|

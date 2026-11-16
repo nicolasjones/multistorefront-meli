@@ -69,7 +69,7 @@ insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, r
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/alfa-1.jpg'),
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 2, '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/alfa-2.jpg');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista', 'my@example.com', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista', 'mn@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista'),

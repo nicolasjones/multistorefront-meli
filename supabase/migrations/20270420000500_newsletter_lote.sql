@@ -27,7 +27,7 @@ immutable
 set search_path = ''
 as $$
   select case when limpio = '' then null else '"' || left(limpio, 80) || '"' end
-    from (select btrim(regexp_replace(coalesce(p_nombre, ''), '["<>\\[:cntrl:]]', '', 'g')) as limpio) x;
+    from (select btrim(regexp_replace(replace(coalesce(p_nombre, ''), chr(92), ''), '["<>[:cntrl:]]', '', 'g')) as limpio) x;
 $$;
 
 revoke execute on function private.remitente_newsletter(text) from public, anon, authenticated;
@@ -84,7 +84,7 @@ begin
   -- Re-verificación (FR-020) de los clientes pendientes sin reclamo vigente.
   update dominio.campana_correo_destinatarios d
      set estado = 'omitido', error = null, reclamado_hasta = null
-    from public.clientes c
+    from dominio.clientes c
    where c.id = d.cliente_id
      and d.estado = 'pendiente'
      and (d.reclamado_hasta is null or d.reclamado_hasta < now())
@@ -93,6 +93,14 @@ begin
           or not c.acepta_correo_masivo
           or c.correo is null
           or c.correo !~ '^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$');
+
+  -- Envío cancelado (RF-NL-18): lo pendiente sin reclamo vigente queda omitido aunque un reclamo vencido (flow cortado) lo hubiera devuelto a la cola.
+  update dominio.campana_correo_destinatarios d
+     set estado = 'omitido', error = 'Cancelado', reclamado_hasta = null
+    from dominio.campanas_correo c
+    join dominio.newsletters nl on nl.id = c.newsletter_id and nl.organizacion_id = c.organizacion_id and nl.cancelada_en is not null
+   where c.id = d.campana_id and c.organizacion_id = d.organizacion_id and c.tipo = 'newsletter'
+     and d.estado = 'pendiente' and (d.reclamado_hasta is null or d.reclamado_hasta < now());
 
   -- Re-verificación de los suscriptores pendientes (RF-NL-20). Con la bandera apagada no se toca nada.
   if v_bandera then
@@ -153,6 +161,7 @@ begin
         join dominio.tiendas ti on ti.empresa_id = e.id and ti.organizacion_id = e.organizacion_id
         join dominio.newsletter_configuracion cfg on cfg.empresa_id = e.id and cfg.organizacion_id = e.organizacion_id and cfg.activo
        where s.id = v_fila.sid and s.estado = 'confirmado' and e.activa
+         and not exists (select 1 from dominio.newsletters nl where nl.id = c.newsletter_id and nl.organizacion_id = c.organizacion_id and nl.cancelada_en is not null)
          for share of s;
       if not found then
         update dominio.campana_correo_destinatarios u
@@ -174,7 +183,7 @@ begin
     update dominio.campana_correo_destinatarios u
        set reclamado_hasta = now() + v_vence,
            correo = case when v_fila.sid is not null then v_correo
-                         else (select btrim(cl.correo) from public.clientes cl where cl.id = v_fila.clid) end,
+                         else (select btrim(cl.correo) from dominio.clientes cl where cl.id = v_fila.clid) end,
            token_hashes = u.token_hashes || encode(sha256(convert_to(v_token, 'utf8')), 'hex')
      where u.id = v_fila.did
     returning u.correo into correo;
@@ -361,7 +370,7 @@ begin
                'error', d.error,
                'baja', d.baja_en is not null) as fila
         from dominio.campana_correo_destinatarios d
-        left join public.clientes cl on cl.id = d.cliente_id and cl.organizacion_id = d.organizacion_id
+        left join dominio.clientes cl on cl.id = d.cliente_id and cl.organizacion_id = d.organizacion_id
        where d.campana_id = p_campana and d.organizacion_id = v_org
        order by 1, d.cliente_id
        limit v_tamano offset (v_pagina - 1) * v_tamano

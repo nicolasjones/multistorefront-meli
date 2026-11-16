@@ -98,7 +98,9 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select replace(replace(replace(replace(replace(coalesce(p_texto, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '"', '&quot;'), '''', '&#39;');
+  -- Además de `& < > " '`, las llaves van como entidad: un texto como `{{ ... }}` o `{% ... %}` nunca llega al motor de plantillas de Kestra
+  -- (defensa en profundidad por si el renderizado recursivo estuviera activo); en el correo se ve igual.
+  select replace(replace(replace(replace(replace(replace(replace(coalesce(p_texto, ''), '&', '&amp;'), '<', '&lt;'), '>', '&gt;'), '"', '&quot;'), '''', '&#39;'), '{', '&#123;'), '}', '&#125;');
 $$;
 
 revoke execute on function private.escapar_html(text) from public, anon, authenticated;

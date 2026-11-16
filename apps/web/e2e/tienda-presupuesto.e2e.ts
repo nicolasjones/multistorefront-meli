@@ -73,7 +73,12 @@ test.describe('Tienda · presupuesto desde la tienda (B2)', () => {
   async function comoPanel<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
     const r = await fetch(`${url}/rest/v1/${ruta}`, {
       method: metodo,
-      headers: cabeceras({ authorization: `Bearer ${panelToken}`, prefer: 'return=representation' }),
+      // `clientes` vive en `dominio` (PostgREST elige el esquema por el perfil).
+      headers: cabeceras({
+        authorization: `Bearer ${panelToken}`,
+        prefer: 'return=representation',
+        ...(/^clientes(\?|$)/.test(ruta) ? { 'accept-profile': 'dominio', 'content-profile': 'dominio' } : {}),
+      }),
       body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
     })
     if (!r.ok) throw new Error(`panel ${metodo} ${ruta}: ${r.status} ${await r.text()}`)

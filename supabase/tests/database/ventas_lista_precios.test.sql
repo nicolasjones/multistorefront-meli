@@ -32,12 +32,12 @@ insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) val
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena', -50);
 
 -- c1 sin lista · c2 con la lista Revendedores · c3 con la lista y descuento personal 10 % · c4 mayorista con la lista
-insert into clientes (id, organizacion_id, numero, nombre, tipo, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, descuento) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente sin lista', 'minorista', null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente con lista', 'minorista', null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente lista y descuento', 'minorista', 10),
   ('c5000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 13, 'Mayorista con lista', 'mayorista', null);
-update clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001'
  where id in ('c5000000-0000-0000-0000-000000000002', 'c5000000-0000-0000-0000-000000000003', 'c5000000-0000-0000-0000-000000000004');
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
@@ -57,7 +57,7 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_
   ('b1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'Producto 5', 'P-5', 'ARS', 4, 'c1000000-0000-0000-0000-000000000001', null, true);
 insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) values
   ('d1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'Casi gratis', -90);
-insert into clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, descuento, lista_precio_id) values
   ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 14, 'Cliente lista -90', 'minorista', null, 'd1000000-0000-0000-0000-000000000009');
 
 create temp table datos as
@@ -225,14 +225,14 @@ select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_d
 reset role;
 update dominio.listas_precios set ajuste_pct = -30 where id = 'd1000000-0000-0000-0000-000000000001';
 select is(pg_temp.lin('fact', 1), '800.00|0.00|true|-20.00', 'D12 · cambiar el porcentaje de la lista no cambia la línea confirmada (ni su snapshot)');
-update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
+update dominio.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
 select is(pg_temp.lin('fact', 1), '800.00|0.00|true|-20.00', 'D12 · quitar la lista al cliente tampoco');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('nueva', 'factura', 'c5000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('nueva', jsonb_build_array(pg_temp.l(1, 1)));
 select is(pg_temp.lin('nueva', 1), '1000.00|0.00|-|-', 'CA-CLI-21-8 · sin lista el cliente vuelve al precio normal desde la próxima línea');
 reset role;
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('nueva', jsonb_build_array(pg_temp.l(1, 1)));
 select is(pg_temp.lin('nueva', 1), '700.00|0.00|true|-30.00', 'el borrador se recalcula con el porcentaje nuevo de la lista (1000 × 0,70) y congela -30');
@@ -344,20 +344,20 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('g_quita', 'factura', 'c5000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('g_quita', jsonb_build_array(pg_temp.l(1, 1)));
 reset role;
-update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
+update dominio.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000002';
 select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_quita'))), '40001|precios_cambiaron|lista_precios',
   'quitar la lista al cliente después de guardar desactualiza la línea');
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000002';
 select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_quita'), now()), 0, 'volver a asignarla la deja como estaba');
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('g_nueva', 'factura', 'c5000000-0000-0000-0000-000000000001');
 select pg_temp.guardar('g_nueva', jsonb_build_array(pg_temp.l(1, 1), pg_temp.l(2, 1)));
 reset role;
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000001';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000001' where id = 'c5000000-0000-0000-0000-000000000001';
 select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_nueva'))), '40001|precios_cambiaron|lista_precios',
   'asignarle una lista después de guardar desactualiza solo la línea que la lista fijaría (la de precio propio no cuenta)');
-update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
+update dominio.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('g_bandera', 'factura', 'c5000000-0000-0000-0000-000000000002');
@@ -391,13 +391,13 @@ select is(pg_temp.lin('barato_sin', 1), '4.00|0.00|-|-', 'sin lista el producto 
 select pg_temp.crear('pres_barato', 'presupuesto', 'c5000000-0000-0000-0000-000000000001');
 select pg_temp.guardar('pres_barato', jsonb_build_array(pg_temp.l(5, 1)));
 reset role;
-update public.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000009' where id = 'c5000000-0000-0000-0000-000000000001';
+update dominio.clientes set lista_precio_id = 'd1000000-0000-0000-0000-000000000009' where id = 'c5000000-0000-0000-0000-000000000001';
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('pres_barato')), '22023',
   'El producto «Producto 5» queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)',
   'copiar presupuesto también rechaza la línea que la lista lleva a $0 y nombra el producto');
 reset role;
-update public.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
+update dominio.clientes set lista_precio_id = null where id = 'c5000000-0000-0000-0000-000000000001';
 
 select * from finish();
 rollback;

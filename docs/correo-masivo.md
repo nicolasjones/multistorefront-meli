@@ -13,7 +13,7 @@ Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con ca
 
 ## Aceptación del cliente
 
-- Columna `public.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
+- Columna `dominio.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
   **sin aceptación** hasta que se los marque (no hay consentimiento previo).
 - Se cambia con el interruptor **«Incluir en el correo masivo»**:
   - en el formulario de alta y edición (`FormularioCliente`); en el **alta nace encendido**, como el prototipo;
@@ -70,7 +70,7 @@ descarta la selección que venía del listado y no muestra filas de la empresa a
 ## Reversión
 
 Migración posterior (nunca en el mismo PR): borrar las dos funciones públicas y `private.clientes_para_correo_masivo`,
-y luego `alter table public.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
+y luego `alter table dominio.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
 
 ---
 

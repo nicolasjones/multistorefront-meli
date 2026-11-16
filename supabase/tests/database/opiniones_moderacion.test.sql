@@ -29,7 +29,7 @@ insert into dominio.empresas (id, organizacion_id, nombre, activa) values
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alfa', 'SKU-ALFA', 1000, 'ARS', true),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Beta', 'SKU-BETA', 1000, 'ARS', true);
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Valeria Sánchez', 'v@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Bruno Díaz', 'b@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Carla Gómez', 'c@example.com', 'minorista');

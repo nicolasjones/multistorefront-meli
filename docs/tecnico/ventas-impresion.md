@@ -19,7 +19,7 @@ sources:
 | Objeto | Esquema | Migración |
 |---|---|---|
 | `dominio.empresas` + `razon_social`, `cuit` (11 dígitos) | `dominio` | `20261211120000_empresas_razon_social_cuit.sql` |
-| `public.clientes.condicion_iva` (texto, tope 60) | `public` | `20261211120050_clientes_condicion_iva.sql` |
+| `dominio.clientes.condicion_iva` (texto, tope 60) | `public` | `20261211120050_clientes_condicion_iva.sql` |
 | `dominio.comprobante_documentos` (`pendiente`/`generado`/`fallido`) + bucket privado `comprobantes-documentos` | `dominio` / Storage | `20261211120100_comprobante_documentos.sql` |
 | Funciones `private.*` del worker | `private` | `20261211120200_documento_funciones_worker.sql` |
 | RPC de documentos | `public` | `20261211120300_documento_rpc.sql` |

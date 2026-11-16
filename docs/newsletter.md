@@ -124,6 +124,9 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - **Cupo compartido (D14)**: el cupo diario por organización es uno solo entre clientes y newsletter, en orden de creación de la campaña: un newsletter grande retrasa los correos a clientes. Decidir si se separa el cupo (seguimiento del cierre).
 - **Historiales**: `listar_campanas_correo` y `detalle_campana_correo` (clientes) solo muestran `tipo = 'clientes'`; el historial del newsletter es `listar_newsletters` / `detalle_newsletter`.
 - **Eventos de Actividad** (sin correos, textos ni cuerpo): `newsletter.configurar`, `.guardar`, `.prueba`, `.enviar` (asunto y cantidad), `.cancelar`, `.baja_manual`, `.baja` (solo la primera vez), `.datos_borrados`; con etiquetas en `lib/actividad.ts`.
+- **Cancelado no reenvía**: el reclamo trata como `omitido` («Cancelado») lo pendiente de una campaña cuyo newsletter tiene `cancelada_en`, aunque un reclamo vencido (flow cortado) lo hubiera devuelto a la cola.
+- **Plantillas de Kestra**: el flow muestra `cuerpo_html | raw`. No hay ninguna configuración `kestra.templating.recursive-rendering` en `infra/kestra` (queda en el valor por defecto de la versión instalada, que no se pudo comprobar), así que no se depende de ella: `private.escapar_html` también convierte `{` y `}` en entidades (`&#123;` `&#125;`), y un texto como `{{ ... }}` o `{% ... %}` nunca llega al motor aunque el renderizado recursivo estuviera activo. Se ve igual en el correo.
+- **Remitente**: `private.remitente_newsletter` quita comillas, `<`, `>`, barra invertida y caracteres de control.
 - **Cancelar**: deja `omitido` (motivo «Cancelado») lo pendiente que no está reclamado en vuelo; lo reclamado se cierra solo y lo ya enviado no se retira.
 
 ### Desvíos respecto de la spec (declarados)
@@ -142,6 +145,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
 5. **Cupo compartido** entre clientes y newsletter (D14) y **tope global de confirmaciones** (MSF-971): decidir si se separan.
 6. **CAPTCHA** solo si hay abuso real.
+7. **Rate limit en el borde de la baja** (MSF-980): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
 
 ## Verificación técnica (T011)
 

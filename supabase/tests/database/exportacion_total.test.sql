@@ -175,7 +175,7 @@ select cmp_ok(
 select ok(
   exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'productos')
   and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'comprobantes_venta')
-  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'public' and tabla = 'clientes'),
+  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'clientes'),
   'incluye catálogo, ventas y clientes'
 );
 select is(
@@ -190,7 +190,7 @@ select is(
 );
 select ok(
   exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'listas_precios')
-  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'public' and tabla = 'clientes' and 'lista_precio_id' = any(columnas)),
+  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'clientes' and 'lista_precio_id' = any(columnas)),
   'las listas de precios y la lista de cada cliente entran a la exportación total (F-PRE-14, RF-CLI-21-8)'
 );
 select ok(
