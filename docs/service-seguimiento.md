@@ -82,7 +82,7 @@ confirmación («El enlace anterior dejará de funcionar…»). Al confirmar, la
 misma organización, tienda accesible, `P0002` uniforme) reemplaza el token de la fila única de la reparación por uno nuevo
 de 192 bits: el anterior deja de resolver (la consulta pública responde 404 uniforme). Si la reparación no tenía enlace, lo crea.
 Registra la actividad `reparacion.enlace_regenerado` («Regeneró el enlace de seguimiento de R-0001», nunca el token).
-**Tope de frecuencia**: 10 regeneraciones por persona por hora (se cuenta con la actividad ya registrada; la 11.ª responde `P0001` `DEMASIADAS_REGENERACIONES` y la pantalla avisa «Regeneraste el enlace demasiadas veces…»). Es un freno contra rotaciones en bucle, no un control de seguridad. Un doble clic dispara una sola regeneración (el botón se deshabilita mientras corre) y «Reintentar» tras un fallo vuelve a pedir la regeneración, no la lectura del enlace. El límite de 30 consultas por 10 minutos por IP no cambia. Migración `20270433000000`; pruebas:
+**Tope de frecuencia**: 10 regeneraciones por persona por hora (se cuenta con la actividad ya registrada; la 11.ª responde `P0001` `DEMASIADAS_REGENERACIONES` y la pantalla avisa «Regeneraste el enlace demasiadas veces…»). Es un freno contra rotaciones en bucle, no un control de seguridad. Un doble clic dispara una sola regeneración (el botón se deshabilita mientras corre) y «Reintentar» tras un fallo vuelve a pedir la regeneración, no la lectura del enlace. El límite de 30 consultas por 10 minutos por IP no cambia. Migración `20270437000000`; pruebas:
 `service_regenerar_enlace_y_reportes_empresa.test.sql` y `EnlaceSeguimientoDialog.test.tsx`. El prototipo no dibuja este
 diálogo (ver spec, *Decisiones abiertas* 1): no hay inventario que actualizar.
 
