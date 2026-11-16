@@ -14,6 +14,8 @@ describe('urlHttpSegura', () => {
     'rechaza %s', (url) => { expect(urlHttpSegura(url)).toBeNull() },
   )
   it('rechaza una URL sin esquema explícito: //host, /\\host, ejemplo.com/x y rutas relativas sin barra', () => {
+    expect(urlHttpSegura('https://evil.example.com@good.example.com/')).toBeNull()
+    expect(urlHttpSegura('http://usuario:clave@tienda.ejemplo.com/')).toBeNull()
     expect(urlHttpSegura('//evil.example.com/x')).toBeNull()
     expect(urlHttpSegura('/\\evil.example.com')).toBeNull()
     expect(urlHttpSegura('ejemplo.com/privacidad')).toBeNull()
