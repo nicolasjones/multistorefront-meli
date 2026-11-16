@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   useOne: vi.fn(),
@@ -13,6 +13,7 @@ vi.mock('@refinedev/core', () => ({
   useOne: mocks.useOne,
   useUpdate: () => ({ mutateAsync: vi.fn() }),
 }))
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: () => ({ contexto: { rol_efectivo: 'miembro' }, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: () => ({ empresas: [], isLoading: false, isError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
@@ -69,7 +70,13 @@ const abrirPestana = async () => {
   fireEvent.click(await screen.findByRole('tab', { name: 'Reparaciones' }))
 }
 
+// La pestaña se carga con lazy(): con el shard cargado el import dinámico supera el 1 s por defecto de findBy*
+// (MSF-754: «2 reparaciones» no aparecía a tiempo). El tope de cada test sigue siendo testTimeout.
+const ESPERA_ASYNC_PREVIA = 1000
+
 describe('Ficha del cliente · pestaña Reparaciones', () => {
+  beforeAll(() => { configure({ asyncUtilTimeout: 10000 }) })
+  afterAll(() => { configure({ asyncUtilTimeout: ESPERA_ASYNC_PREVIA }) })
   beforeEach(() => {
     vi.clearAllMocks()
     celular(false)
@@ -135,11 +142,11 @@ describe('Ficha del cliente · pestaña Reparaciones', () => {
     expect(await screen.findByText('R-0238')).toBeTruthy()
   })
 
-  it('pagina en el servidor con tamaño 25', async () => {
+  it('carga infinita: «Cargar más» pide la tanda siguiente de 25', async () => {
     mocks.listar.mockResolvedValue({ total: 30, filas: [fila(1)] })
     await abrirPestana()
     await screen.findByText('30 reparaciones')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente|Go to next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.listar).toHaveBeenLastCalledWith('c-1', null, 2, 25))
   })
 
@@ -156,7 +163,7 @@ describe('Ficha del cliente · pestaña Reparaciones', () => {
     )
     fireEvent.click(await screen.findByRole('tab', { name: 'Reparaciones' }))
     await screen.findByText('R-0001')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente|Go to next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(mocks.listar).toHaveBeenLastCalledWith('c-1', 'e-1', 2, 25))
 
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: 'e-2', isLoading: false, isError: false, refetch: vi.fn() })

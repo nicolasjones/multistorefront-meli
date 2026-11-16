@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-correo-masivo-a-clientes
+  - infra/kestra/flows/correo-masivo.yml
+---
+
 # Correo masivo a clientes (MSF-155)
 
 Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con cada historia de la épica; hoy cubre
@@ -6,7 +13,7 @@ Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con ca
 
 ## Aceptación del cliente
 
-- Columna `public.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
+- Columna `dominio.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
   **sin aceptación** hasta que se los marque (no hay consentimiento previo).
 - Se cambia con el interruptor **«Incluir en el correo masivo»**:
   - en el formulario de alta y edición (`FormularioCliente`); en el **alta nace encendido**, como el prototipo;
@@ -63,7 +70,7 @@ descarta la selección que venía del listado y no muestra filas de la empresa a
 ## Reversión
 
 Migración posterior (nunca en el mismo PR): borrar las dos funciones públicas y `private.clientes_para_correo_masivo`,
-y luego `alter table public.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
+y luego `alter table dominio.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
 
 ---
 
@@ -219,3 +226,9 @@ Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120
 - Token de baja de unos 244 bits aleatorios; la base guarda solo su SHA-256 y `token_hashes` queda fuera del `grant select` por columna.
 - La service-role vive solo en la Edge Function (servidor); el mensaje se escapa en el correo y el asunto no admite saltos de línea.
 - Riesgos bajos aceptados: la Edge Function anónima no tiene límite de frecuencia propio (conviene ponerlo en el borde) y el token viaja en la ruta `/baja-correo/:token`, mitigado porque la baja exige confirmar con un POST.
+
+## Listas con carga infinita
+
+«Nueva campaña» (destinatarios), «Historial» y el detalle de la campaña (destinatarios) cargan por tandas con
+`useListadoAcumulado` + `CargaInfinita` en vez de páginas numeradas. El resumen de elegibles y el envío usan los filtros
+y no lo que está cargado en pantalla, así que la selección masiva no depende de la tanda visible.

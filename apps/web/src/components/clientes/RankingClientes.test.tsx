@@ -140,13 +140,13 @@ describe('RankingClientes', () => {
     expect(ultimosParametros().tipo).toBeNull()
   })
 
-  it('pagina en el servidor conservando período y filtros, y vuelve a la 1 al cambiar un filtro', () => {
+  it('«Cargar más» pide la tanda siguiente conservando período y filtros, y vuelve a la 1 al cambiar un filtro', () => {
     mocks.useRankingClientes.mockReturnValue(respuesta([fila(1)], { total: 60 }))
     abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Minorista' }))
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosParametros()).toMatchObject({ pagina: 2, tipo: 'minorista', desde: '2026-10-01', hasta: '2026-10-15' })
-    expect(screen.getByText('26–50 de 60')).toBeInTheDocument()
+    expect(screen.getByText('Cliente 1')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: 'Ver con IVA' }))
     expect(ultimosParametros()).toMatchObject({ pagina: 1, conIva: true })
   })
@@ -319,14 +319,14 @@ describe('RankingClientes', () => {
       expect(ultimosParametrosComparado()).toMatchObject({ desde: '2026-09-01', hasta: '2026-09-30', desdeComparacion: '2026-08-02', hastaComparacion: '2026-08-31' })
     })
 
-    it('pagina conservando ambos períodos y filtros y vuelve a la 1 al cambiar un filtro', () => {
+    it('«Cargar más» conserva ambos períodos y filtros y vuelve a la 1 al cambiar un filtro', () => {
       mocks.useRankingComparado.mockReturnValue(respuesta([filaComparada(1)], { total: 60 }))
       abrir()
       activar()
       fireEvent.click(screen.getByRole('button', { name: 'Minorista' }))
-      fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
       expect(ultimosParametrosComparado()).toMatchObject({ pagina: 2, tipo: 'minorista', desdeComparacion: '2026-09-16', hastaComparacion: '2026-09-30', desde: '2026-10-01' })
-      expect(screen.getByText('26–50 de 60')).toBeInTheDocument()
+      expect(screen.getByText('Cliente 1')).toBeInTheDocument()
       fireEvent.click(screen.getByRole('checkbox', { name: 'Ver con IVA' }))
       expect(ultimosParametrosComparado()).toMatchObject({ pagina: 1, conIva: true })
       expect(screen.getByRole('columnheader', { name: 'Facturado (con IVA)' })).toBeInTheDocument()
@@ -358,7 +358,7 @@ describe('RankingClientes', () => {
       mocks.useRankingComparado.mockReturnValue(respuesta([filaComparada(1, { nombre: 'Cliente de la tienda uno' })], { total: 60 }))
       const { rerender } = render(<MemoryRouter><RankingClientes empresaId="e-1" /></MemoryRouter>)
       activar()
-      fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+      fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
       expect(ultimosParametrosComparado()).toMatchObject({ empresaId: 'e-1', pagina: 2 })
 
       // La nueva tienda todavía no respondió: el hook arranca cargando, sin filas de la anterior.

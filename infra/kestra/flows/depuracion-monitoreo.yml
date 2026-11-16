@@ -1,0 +1,30 @@
+# MSF-369 / MSF-354 (épica MSF-206, revisión independiente). Depura cada día los datos que crecen sin parar: eventos de
+# monitoreo con más de 30 días, alertas resueltas con más de 90 días y procesos masivos terminados con más de 180 días
+# (con sus errores). La retención vive en la base (`private.depurar_monitoreo_y_procesos`); el flow solo la dispara.
+# Es idempotente: una segunda corrida no borra nada más, así que reintentar es seguro. Si la función falla (por ejemplo,
+# rol no autorizado), la tarea falla y la ejecución queda en rojo: no se traga el error (Principio III).
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), con EXECUTE solo sobre esta función.
+id: depuracion-monitoreo
+namespace: platform.monitoreo
+labels:
+  capa: core
+  dominio: plataforma
+  componente: depuracion-monitoreo
+description: "Depura cada día eventos y alertas de monitoreo y procesos masivos antiguos."
+tasks:
+  - id: depurar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select * from private.depurar_monitoreo_y_procesos();
+    timeout: PT30M
+    retry:
+      type: constant
+      interval: PT5M
+      maxAttempts: 3
+triggers:
+  - id: diaria
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 4 * * *"

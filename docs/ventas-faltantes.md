@@ -1,3 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-ventas-despacho-y-faltantes
+  - apps/web/src/lib/ventasFaltantes.ts
+  - design/pantallas/VentasComprobante.dc.html
+  - design/pantallas/VentasFaltantes.dc.html
+  - supabase/migrations/20270112130100_faltantes_tabla.sql
+  - supabase/migrations/20270112130200_faltantes_registrar.sql
+---
+
 # Ventas · Faltantes: registro de lo que no se pudo despachar (F-VTA-18)
 
 Historia F-VTA-18 de la épica MSF-135 (MSF-201). Spec:
@@ -63,11 +74,11 @@ y no dentro de `cambiar_estado_despacho` para que valga desde cualquier camino.
 **Decisión (la 3 de *Decisiones abiertas* de la spec):** la épica solo pide **registrar** el faltante. Se resuelve
 al **reanudar el armado**. El cierre automático por ingreso de mercadería que dice el prototipo («se cierra solo
 cuando se ingresa la mercadería») queda **FUERA DE ALCANCE**: se acopla al módulo Stock y a la reserva «A pedido», y
-por eso ese texto **no** se muestra en la pantalla. El aviso al cliente por faltantes es de otra historia (MSF-161).
+por eso ese texto **no** se muestra en la pantalla. El aviso al cliente y la marca «Para avisar» al ingresar mercadería los entrega MSF-161: ver [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md).
 
 ## Listado (FR-043)
 
-`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano)` devuelve los faltantes **abiertos** de las empresas donde
+`public.listar_faltantes(p_empresa_id, p_pagina, p_tamano, p_aviso)` (el cuarto parámetro es de MSF-161) devuelve los faltantes **abiertos** de las empresas donde
 la persona tiene **Ventas al menos en lectura** (el mismo predicado que la RLS de la tabla, así que el listado no
 puede mostrar más que la tabla), con cliente, producto y SKU, cantidad faltante, línea, comprobante, fecha del pedido,
 «desde» (`creado_en`) y el **stock de hoy** (estado y disponible) con la lectura de Stock que ya existe
@@ -162,3 +173,7 @@ migración posterior:
 Los faltantes ya registrados **no se deshacen solos**: son dato nuevo de esta épica (exportarlos antes de borrar la
 tabla). Y los que quedaron registrados dejan la factura en `incompleto`: hay que corregirla desde el despacho
 (reanudar el armado o volver a armarla).
+
+## Carga infinita e imagen del producto
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Faltantes pide de a 10 y reinicia al cambiar de tienda. `public.listar_faltantes` devuelve `producto_id` (migración `20270205110201`, PR #694): la columna Producto muestra la imagen principal como miniatura 40×40 con zoom (`useImagenesProductos` + `MiniaturaProducto`); sin `producto_id` no hay miniatura y la fila queda igual.

@@ -3,6 +3,7 @@
 // acá se espejan solo para validar en el formulario antes de viajar.
 
 import type { EstadoCuentaWebFormulario } from './cuentasCliente'
+import { supabaseClient } from './supabase'
 
 export type Cliente = {
   id: string
@@ -24,6 +25,8 @@ export type Cliente = {
   acepta_correo_masivo: boolean
   // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
   descuento?: number | null
+  // F-CLI-21: lista de precios del cliente (a lo sumo una); null = sin lista. Solo la escribe la RPC `asignar_lista_precios_cliente`.
+  lista_precio_id?: string | null
   created_at: string
 }
 
@@ -50,6 +53,9 @@ export type FormularioCliente = Record<CampoFicha, string> & {
   // F-VTA-32: porcentaje como texto; vacío = sin descuento. Solo lo envía un Administrador (`descuento`
   // no entra en `aValores`: la pantalla lo suma si corresponde).
   descuento: string
+  // F-CLI-21: id de la lista de precios del cliente; vacío = sin lista. No es una columna editable de `clientes`: la pantalla
+  // la asigna con `asignar_lista_precios_cliente` solo si el Administrador la cambió.
+  listaPrecioId: string
   // Campo «Cuenta web» del formulario (F-CLI-05, FR-015): crea o suspende la
   // cuenta en cada tienda tildada al guardar. No es una columna de `clientes`.
   cuentaWeb: EstadoCuentaWebFormulario
@@ -68,6 +74,7 @@ export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   tipo: 'minorista',
   empresas: [],
   descuento: '',
+  listaPrecioId: '',
   cuentaWeb: 'sin_cuenta',
   invitarCuentaWeb: true,
   // El alta nace con el interruptor encendido, como el prototipo (F-CLI-11, FR-002).
@@ -100,7 +107,7 @@ export function aFormulario(
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
   const descuento = cliente.descuento == null ? '' : String(cliente.descuento)
   return {
-    ...texto, tipo: cliente.tipo, empresas, descuento, cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
+    ...texto, tipo: cliente.tipo, empresas, descuento, listaPrecioId: cliente.lista_precio_id ?? '', cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
   } as FormularioCliente
 }
 
@@ -171,5 +178,76 @@ export function esDocumentoRepetido(error: unknown): boolean {
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
+  // Un guardado a medias lleva su propio texto (ya en castellano y sin detalles de la base).
+  if (error instanceof ErrorGuardadoParcial) return error.message
   return porDefecto
 }
+
+// El guardado falló y la lista de precios del cliente no quedó como estaba: la persona tiene que revisarla.
+export class ErrorGuardadoParcial extends Error {
+  constructor(mensaje: string) {
+    super(mensaje)
+    this.name = 'ErrorGuardadoParcial'
+  }
+}
+
+// Fusión de clientes duplicados (F-CLI-18). Las RPC son solo del Administrador (la base lo impone) y operan
+// en la organización de la sesión.
+export type VistaPreviaCliente = {
+  cliente_id: string
+  numero: number
+  nombre: string
+  documentos: number
+  cuentas_web_activas: number
+  cuentas_web_total: number
+  // F-CLI-21: lista de precios de cada ficha (null = sin lista). El que se conserva mantiene la suya; la del absorbido se descarta.
+  lista_precio_id?: string | null
+  lista_nombre?: string | null
+}
+
+export type ResumenFusion = {
+  documentos_reasignados: number
+  cuentas_reasignadas: number
+  campanas_reasignadas: number
+  cuentas_dadas_de_baja: number
+}
+
+export async function vistaPreviaFusion(conservarId: string, descartarId: string): Promise<VistaPreviaCliente[]> {
+  const { data, error } = await supabaseClient.rpc('vista_previa_fusion_clientes', {
+    p_conservar_id: conservarId,
+    p_descartar_id: descartarId,
+  })
+  if (error) throw error
+  return ((data ?? []) as VistaPreviaCliente[]).map((fila) => ({
+    ...fila,
+    documentos: Number(fila.documentos),
+    cuentas_web_activas: Number(fila.cuentas_web_activas),
+    cuentas_web_total: Number(fila.cuentas_web_total),
+  }))
+}
+
+export async function fusionarClientes(conservarId: string, descartarId: string, cuentaWebDe: string | null): Promise<ResumenFusion> {
+  const { data, error } = await supabaseClient.rpc('fusionar_clientes', {
+    p_conservar_id: conservarId,
+    p_descartar_id: descartarId,
+    p_cuenta_web_de: cuentaWebDe,
+  })
+  if (error) throw error
+  return data as ResumenFusion
+}
+
+// Las validaciones de la RPC (permiso, mismo cliente, archivado, cuenta web sin resolver…) ya vienen en
+// castellano y sin identificadores: se muestran tal cual. Cualquier otro error va genérico.
+const CODIGOS_DE_VALIDACION = ['42501', '22023', 'P0002']
+export function mensajeDeFusion(error: unknown): string {
+  if (typeof error === 'object' && error !== null) {
+    const { code, message } = error as { code?: unknown; message?: unknown }
+    if (typeof code === 'string' && CODIGOS_DE_VALIDACION.includes(code) && typeof message === 'string' && message.trim() !== '') {
+      return message
+    }
+  }
+  return mensajeDeError(error, 'No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.')
+}
+
+export const hayCuentaWebParaResolver = (previa: VistaPreviaCliente[]): boolean =>
+  previa.length === 2 && previa.every((cliente) => cliente.cuentas_web_activas > 0)

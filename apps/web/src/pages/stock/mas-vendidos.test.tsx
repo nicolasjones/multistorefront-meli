@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ listar: vi.fn(), useEmpresasAccesibles: vi.fn(), useNivelSeccion: vi.fn() }))
+const mocks = vi.hoisted(() => ({ listar: vi.fn(), useEmpresasAccesibles: vi.fn(), useNivelSeccion: vi.fn(), imagenes: new Map<string, string>() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 // La capa de datos (RPC) va mockeada; la pantalla, el hook y el filtro de tienda son los reales.
 vi.mock('../../lib/masVendidos', async (original) => ({
@@ -101,16 +102,26 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     expect(screen.queryByText(/p-1/)).not.toBeInTheDocument()
   })
 
-  it('pagina de a 25 y la página pedida llega a la consulta (FR-405)', async () => {
+  it('carga infinita de a 25: «Cargar más» pide la tanda siguiente y la suma (FR-405)', async () => {
     estado.total = 60
     abrir()
     await screen.findByText('Producto 1')
     expect(ultimosFiltros()).toMatchObject({ pagina: 1, tamano: 25 })
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
+    expect(screen.getByText('60 productos')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ pagina: 2, tamano: 25 }))
-    expect(screen.getByText('26–50 de 60')).toBeInTheDocument()
+    // La tanda 1 sigue a la vista: se suma, no se reemplaza.
+    expect(screen.getAllByText('Producto 1').length).toBeGreaterThan(0)
+  })
+
+  it('muestra la imagen principal del producto como miniatura', async () => {
+    mocks.imagenes = new Map([['p-1', 'https://img.test/uno.jpg']])
+    abrir()
+    await screen.findByText('Producto 1')
+    expect(document.querySelector('img[src="https://img.test/uno.jpg"]')).not.toBeNull()
+    mocks.imagenes = new Map()
   })
 
   it('el filtro de tienda ofrece «Todas las tiendas» y una por empresa (FR-406)', async () => {
@@ -132,7 +143,7 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     estado.total = 60
     abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ pagina: 2 }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
@@ -157,7 +168,7 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     })
     const { rerender } = abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ pagina: 2 }))
 
     // La respuesta de la nueva empresa tarda: no puede verse nada de la anterior.
@@ -213,7 +224,7 @@ describe('MasVendidosStock · reporte de productos más vendidos (F-STK-18)', ()
     estado.total = 60
     abrir()
     await screen.findByText('Producto 1')
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ pagina: 2 }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Mes anterior' }))

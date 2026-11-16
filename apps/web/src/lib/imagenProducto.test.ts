@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ crearUrls: vi.fn(), desde: vi.fn() }))
+const mocks = vi.hoisted(() => ({ crearUrls: vi.fn(), desde: vi.fn(), desdePanel: vi.fn() }))
 
+// El cliente por defecto es el SIN sesión (anon); el de la app (con la sesión de quien mira) es otro.
 vi.mock('./supabase', () => ({
-  supabaseClient: { storage: { from: mocks.desde } },
+  supabaseSinSesion: { storage: { from: mocks.desde } },
+  supabaseClient: { storage: { from: mocks.desdePanel } },
 }))
 
 import { urlImagenProducto, urlsImagenesProducto } from './imagenProducto'
@@ -26,6 +28,22 @@ describe('imagenProducto', () => {
     const urls = await urlsImagenesProducto([RUTA, RUTA, ''])
     expect(mocks.crearUrls).toHaveBeenCalledWith([RUTA], 3600)
     expect(urls).toEqual({ [RUTA]: 'https://firmada.test/a.png' })
+  })
+
+  it('firma con el cliente SIN sesión (anon), no con el de la app: un cliente de la tienda es `authenticated` y no podría', async () => {
+    mocks.crearUrls.mockResolvedValue({ data: [{ path: RUTA, signedUrl: 'https://firmada.test/a.png' }], error: null })
+    await urlsImagenesProducto([RUTA])
+    expect(mocks.desde).toHaveBeenCalledWith('productos-imagenes')
+    expect(mocks.desdePanel).not.toHaveBeenCalled()
+  })
+
+  it('la vista previa del panel puede pasar el cliente de la app (con la sesión de quien edita)', async () => {
+    mocks.desdePanel.mockReturnValue({ createSignedUrls: mocks.crearUrls })
+    mocks.crearUrls.mockResolvedValue({ data: [{ path: RUTA, signedUrl: 'https://firmada.test/a.png' }], error: null })
+    const { supabaseClient } = await import('./supabase')
+    await urlsImagenesProducto([RUTA], supabaseClient)
+    expect(mocks.desdePanel).toHaveBeenCalledWith('productos-imagenes')
+    expect(mocks.desde).not.toHaveBeenCalled()
   })
 
   it('una sola ruta devuelve su URL firmada', async () => {

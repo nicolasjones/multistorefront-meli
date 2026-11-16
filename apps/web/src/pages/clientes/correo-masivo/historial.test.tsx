@@ -61,10 +61,10 @@ describe('Correo masivo · Historial', () => {
     expect(screen.getByText('6 de 10 procesados')).toBeInTheDocument()
   })
 
-  it('FR-030: pide la página al cambiar de página', () => {
+  it('FR-030: «Cargar más» pide la tanda siguiente de 25', () => {
     mocks.useHistorial.mockReturnValue(respuesta({ total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.useHistorial).toHaveBeenLastCalledWith(expect.objectContaining({ pagina: 2, tamano: 25 }))
   })
 
@@ -116,5 +116,18 @@ describe('Correo masivo · Historial', () => {
     abrir()
     expect(screen.getByText('Sin permiso')).toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente de campañas', () => {
+    const tanda1 = [campana(2)]
+    const tanda2 = [campana(1)]
+    mocks.useHistorial.mockImplementation((p: { pagina: number }) => respuesta({ filas: p.pagina === 2 ? tanda2 : tanda1, total: 2 }))
+    abrir()
+    expect(screen.queryByText('Asunto 1')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(mocks.useHistorial.mock.calls.at(-1)![0]).toMatchObject({ pagina: 2 })
+    expect(screen.getByText('Asunto 2')).toBeInTheDocument()
+    expect(screen.getByText('Asunto 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next page|siguiente/i })).not.toBeInTheDocument()
   })
 })

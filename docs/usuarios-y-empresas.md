@@ -1,15 +1,33 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Usuarios y empresas (F-ROL-07)
 
 Un Administrador define, desde **Usuarios**, en qué empresas trabaja una persona y con qué rol en cada
 una. Spec: `specs/20261016-140000-permisos-por-empresa/` (épica MSF-121, historia F-ROL-07). La
-resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el selector, en `docs/empresa-activa.md`.
+resolución de permisos por empresa está en `docs/permisos-por-rol.md`; el selector, en `docs/empresa-activa.md`;
+la construcción interna, en [Permisos por empresa](tecnico/permisos-por-empresa.md).
+
+## Qué resuelve y para quién
+
+Una organización con varias tiendas necesita que una misma persona pueda trabajar en más de una con un
+rol distinto en cada una (por ejemplo, Operador en una y Consulta en otra), sin crear cuentas duplicadas.
+Desde Usuarios, el Administrador asigna esas tiendas y su rol; la persona ve y opera cada tienda con el
+permiso que le corresponde, y la base de datos lo hace cumplir.
+
+**Límites:** la persona sigue perteneciendo a **una sola organización**; el Administrador de la
+organización accede siempre a todas las empresas y no lleva asignaciones; no existe un Administrador
+limitado a una tienda. La matriz editable de roles es de MSF-125 y no se administra acá.
 
 ## Qué se ve
 
 - **Lista de Usuarios**: columna **Empresas** con una etiqueta «Tienda: Rol» por asignación. Un
   Administrador figura como «Todas las empresas»; quien no tiene asignaciones, «Sin asignar» (rige su
   rol de organización).
-- **Editar usuario**: el selector de **Rol** ofrece los seis roles (Administrador y los cinco por empresa).
+- **Editar usuario**: el selector de **Rol** ofrece los siete roles (Administrador, los cinco por empresa y Técnico).
   Debajo, un casillero por empresa con su selector «Rol en <empresa>». Elegir **Administrador** reemplaza
   la lista por el aviso «accede a todas las empresas» y, al guardar, quita sus asignaciones previas.
 - **Invitar usuario**: la misma lista de empresas y roles; con rol Administrador no se pide ni se envía.

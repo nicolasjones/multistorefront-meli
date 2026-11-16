@@ -18,6 +18,8 @@ type Opciones = {
   deleteUserError?: boolean
   correoAuth?: string
   actividadError?: boolean
+  // Esquema del enlace: `http` solo en desarrollo local (ALLOW_HTTP_REDIRECT=true).
+  protocolo?: 'https' | 'http'
 }
 
 function montar(opciones: Opciones = {}) {
@@ -30,7 +32,7 @@ function montar(opciones: Opciones = {}) {
     consultados: [] as string[],
   }
   const deps: Deps = {
-    protocolo: 'https',
+    protocolo: opciones.protocolo ?? 'https',
     admin: {
       auth: {
         getUser: async (jwt) => jwt === 'valido' ? { data: { user: { id: 'operador-1' } }, error: null } : { data: { user: null }, error: { message: 'x' } },
@@ -95,6 +97,12 @@ describe('invitar-cliente · crear', () => {
     assert.equal('from' in deps.admin, false)
     // El enlace sale después de vincular, al correo del usuario de Auth y con la redirección de la tienda.
     assert.deepEqual(llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'https://sanjavucho.ejemplo.com/definir-contrasena' }])
+  })
+
+  it('el enlace sale en http solo si el entorno lo permite (desarrollo local); por defecto https (MSF-726)', async () => {
+    const local = montar({ protocolo: 'http', preparar: { correo: 'norte@example.com', dominio: 'mundojc.localhost', auth_user_id: null } })
+    await manejar(pedido({ cliente_id: CLIENTE, empresa_id: EMPRESA }), local.deps)
+    assert.deepEqual(local.llamadas.claves, [{ email: 'auth@example.com', redirectTo: 'http://mundojc.localhost/definir-contrasena' }])
   })
 
   it('reutiliza el usuario de Auth del cliente en una segunda tienda: un solo usuario por cliente y enlace de la nueva tienda (FR-003, D1)', async () => {

@@ -23,6 +23,7 @@ import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { mensajeRepuestoAgregado } from '../../lib/reparacionItems'
 import { formatearARS, listarEstados, listarModelos, type EstadoReparacion, type ModeloEquipo } from '../../lib/serviceTecnico'
 import {
@@ -60,6 +61,7 @@ import { AnularDialog } from '../../components/service/AnularDialog'
 import { EntregaDialog } from '../../components/service/EntregaDialog'
 import { HistorialEstados } from '../../components/service/HistorialEstados'
 import { ItemsReparacion } from '../../components/service/ItemsReparacion'
+import { admiteReingresoGarantia } from '../../lib/reparacionGarantia'
 import { ComprobanteReparacion } from '../../components/service/ComprobanteReparacion'
 import { useComprobanteReparacion } from '../../hooks/useComprobanteReparacion'
 import { useAvisosReparacion } from '../../hooks/useAvisosReparacion'
@@ -67,6 +69,21 @@ import { AvisosReparacion } from '../../components/service/AvisosReparacion'
 import { MENSAJE_CLIENTE_SIN_CORREO } from '../../lib/reparacionAvisos'
 
 // Los diálogos de ítems se bajan recién al abrirlos: no pesan en la carga inicial del detalle.
+// Fotos y adjuntos (F-SVC-20): carga diferida, queda fuera del recorrido principal del detalle.
+const AdjuntosReparacion = lazy(() =>
+  import('../../components/service/AdjuntosReparacion').then((modulo) => ({ default: modulo.AdjuntosReparacion })),
+)
+// Reingreso por garantía (F-SVC-21): el diálogo se baja recién al abrirlo.
+const ReingresoGarantiaDialog = lazy(() =>
+  import('../../components/service/ReingresoGarantiaDialog').then((modulo) => ({ default: modulo.ReingresoGarantiaDialog })),
+)
+// Vínculos de garantía (F-SVC-21): también diferidos; solo se pintan si la reparación tiene vínculos.
+const VinculosGarantia = lazy(() =>
+  import('../../components/service/VinculosGarantia').then((modulo) => ({ default: modulo.VinculosGarantia })),
+)
+const EnlaceSeguimientoDialog = lazy(() =>
+  import('../../components/service/EnlaceSeguimientoDialog').then((modulo) => ({ default: modulo.EnlaceSeguimientoDialog })),
+)
 const AgregarManoObraDialog = lazy(() =>
   import('../../components/service/AgregarManoObraDialog').then((modulo) => ({ default: modulo.AgregarManoObraDialog })),
 )
@@ -91,6 +108,7 @@ export function ServicioReparacion() {
   const ubicacion = useLocation()
   const { nivel } = useNivelSeccion('service_tecnico')
   const { nivel: nivelClientes } = useNivelSeccion('clientes')
+  const { organizacionId } = useOrganizacionDeTrabajo()
   const { nivel: nivelVentas } = useNivelSeccion('ventas')
   const { puede: puedeVerCostosEnPanel } = usePuedeAccion('service_tecnico', 'ver_costos')
   const { empresas, empresaActivaId, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresasAccesibles()
@@ -117,6 +135,8 @@ export function ServicioReparacion() {
   const [avisarAlCambiar, setAvisarAlCambiar] = useState(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
+  const [garantiaAbierta, setGarantiaAbierta] = useState(false)
+  const [enlaceAbierto, setEnlaceAbierto] = useState(false)
   const [itemAbierto, setItemAbierto] = useState<'mano_obra' | 'repuesto' | null>(null)
   const ultimaPeticion = useRef(0)
   // Estado vigente para `aplicarOperacion`: la RPC está en vuelo y la clausura del render ya quedó vieja.
@@ -383,6 +403,16 @@ export function ServicioReparacion() {
             {reparacion && reparacion.entrega_real !== null && reparacion.anulada_en === null ? (
               <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/remito`} variant="outlined">
                 Imprimir remito
+              </Button>
+            ) : null}
+            {nivel === 'edicion' && reparacion ? (
+              <Button variant="outlined" onClick={() => setEnlaceAbierto(true)} disabled={guardando}>
+                Enlace de seguimiento
+              </Button>
+            ) : null}
+            {nivel === 'edicion' && reparacion && admiteReingresoGarantia(reparacion) ? (
+              <Button variant="outlined" onClick={() => setGarantiaAbierta(true)} disabled={guardando}>
+                Reingresar por garantía
               </Button>
             ) : null}
             {puedeEditar && reparacion ? (
@@ -685,6 +715,12 @@ export function ServicioReparacion() {
             </CardContent>
           </Card>
           {reparacion ? (
+            <Suspense fallback={null}>
+              {/* Con `key` por reparación: al cambiar de reparación se recarga y no queda nada de la anterior. */}
+              <VinculosGarantia key={reparacion.id} reparacionId={reparacion.id} />
+            </Suspense>
+          ) : null}
+          {reparacion ? (
             <ItemsReparacion
               reparacion={reparacion}
               puedeEditar={puedeEditarItems}
@@ -723,6 +759,18 @@ export function ServicioReparacion() {
               onReintentar={cobro.recargar}
               puedeVerEnVentas={nivelVentas === 'edicion' || nivelVentas === 'lectura'}
             />
+          ) : null}
+          {reparacion ? (
+            <Suspense fallback={null}>
+              {/* Con `key` por reparación: al cambiar de reparación se recarga y no queda nada de la anterior. */}
+              <AdjuntosReparacion
+                key={reparacion.id}
+                reparacionId={reparacion.id}
+                organizacionId={organizacionId}
+                puedeEditar={nivel === 'edicion'}
+                anulada={anulada}
+              />
+            </Suspense>
           ) : null}
         </Stack>
       </ContenedorSeccion>
@@ -773,6 +821,37 @@ export function ServicioReparacion() {
                   }}
                 />
               )}
+            </Suspense>
+          ) : null}
+          {enlaceAbierto && reparacion ? (
+            <Suspense fallback={null}>
+              <EnlaceSeguimientoDialog
+                abierto
+                reparacionId={reparacion.id}
+                codigo={reparacion.codigo}
+                onCerrar={() => setEnlaceAbierto(false)}
+              />
+            </Suspense>
+          ) : null}
+          {garantiaAbierta ? (
+            <Suspense fallback={null}>
+              <ReingresoGarantiaDialog
+                abierto
+                reparacion={reparacion}
+                tecnicos={tecnicos}
+                empresaActivaId={empresaActivaId}
+                onCerrar={() => setGarantiaAbierta(false)}
+                onCambioEmpresa={() => {
+                  setGarantiaAbierta(false)
+                  setExito('Cambiaste de tienda: cerramos el reingreso por garantía sin guardar nada.')
+                }}
+                onReingresada={(nueva) => {
+                  setGarantiaAbierta(false)
+                  // La pantalla se reutiliza al cambiar `:id`: el aviso se fija acá, no por `state`.
+                  setExito(`Reparación ${nueva.codigo} creada por garantía`)
+                  navigate(`/service-tecnico/reparaciones/${nueva.id}`)
+                }}
+              />
             </Suspense>
           ) : null}
           <AnularDialog

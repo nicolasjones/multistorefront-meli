@@ -60,7 +60,7 @@ describe('authProvider.login (F-ACC-01)', () => {
     expect(setMantenerSesion).toHaveBeenCalledWith(true)
   })
 
-  it('vuelve al destino interno de `to` y descarta destinos externos (MSF-700)', async () => {
+  it('vuelve al destino interno de `to` y descarta destinos externos', async () => {
     const ok = await authProvider.login({ email: 'a@example.com', password: 'x', to: '/clientes?consulta=1' })
     expect(ok).toEqual({ success: true, redirectTo: '/clientes?consulta=1' })
     const ext = await authProvider.login({ email: 'a@example.com', password: 'x', to: '//evil.com' })

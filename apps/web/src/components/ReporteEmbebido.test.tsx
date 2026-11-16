@@ -54,6 +54,26 @@ describe('ReporteEmbebido', () => {
     expect(screen.queryByText('Analítica no disponible en este momento.')).not.toBeInTheDocument()
   })
 
+  it('FR-009: sin acceso al reporte (403) no monta el tablero ni ofrece descarga propia', async () => {
+    vi.mocked(embedDashboard).mockClear()
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    vi.mocked(supabaseClient.functions.invoke).mockResolvedValue({
+      data: null,
+      error: { message: 'forbidden', context: { status: 403 } },
+    } as never)
+    const alFallar = vi.fn()
+
+    render(<ReporteEmbebido reporteId="reporte-1" alFallar={alFallar} />)
+
+    await waitFor(() => expect(alFallar).toHaveBeenCalledWith('prohibido'))
+    expect(embedDashboard).not.toHaveBeenCalled()
+    expect(screen.queryByRole('link', { name: /descargar|exportar|csv/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /descargar|exportar|csv/i })).not.toBeInTheDocument()
+  })
+
   it('con alFallar, una falla de servicio (503) llega como no_disponible', async () => {
     vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
       data: { session: { access_token: 'token-de-prueba' } },

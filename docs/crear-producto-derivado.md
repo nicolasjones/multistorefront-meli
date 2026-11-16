@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Crear un producto derivado
 
 Guía práctica para forkear este template a un producto nuevo. No es una spec
@@ -99,7 +105,7 @@ lo que sea que resuelva para su negocio — se especifica con Spec Kit *en el
 repo del fork*, no acá.
 
 Si esa funcionalidad integra un sistema externo, usar también la guía
-[`docs/disenar-conector.md`](./disenar-conector.md): mantiene las tablas y
+`docs/disenar-conector.md` (se lee en GitHub; excluido del sitio): mantiene las tablas y
 reglas de negocio en `dominio` y evita convertir detalles de un proveedor en
 una abstracción prematura del template.
 

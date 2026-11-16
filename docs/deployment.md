@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs
+---
+
 # Entornos y despliegue
 
 ## Desarrollo
@@ -24,6 +30,44 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
+**Salida a internet:** el runtime Edge de cada entorno necesita salir a `dolarapi.com` (función `cotizacion-sugerida`, MSF-373). Sin esa salida la cotización sugerida muestra siempre «No pudimos consultar la cotización sugerida» y la carga manual sigue funcionando. La fuente es DolarApi (`https://dolarapi.com/v1/dolares/oficial`, dólar oficial, precio de venta; URL fija en `supabase/functions/cotizacion-sugerida/handler.ts`), con tiempo máximo de 5 s y sin redirecciones. Una función Edge nueva no queda registrada en el runtime de dev hasta recrear el stack (`Function not found`).
+
+### Banderas de plataforma (MSF-363)
+
+La migración `20270228300000_banderas_plataforma.sql` crea `public.banderas_plataforma` con dos banderas **apagadas por defecto** en cada entorno: `promociones_precio` y `precios_masivos`. Efecto del despliegue: hasta encenderlas, la tienda pública muestra el precio normal (sin precio tachado), la pantalla Promociones queda en modo solo-anular y «Actualizar precios» no aparece. Las promociones ya guardadas no se pierden: al encender la bandera vuelven a regir las que estén en su rango de fechas.
+
+Las enciende el equipo técnico **a mano, por SQL, entorno por entorno**; **no** las enciende una migración ni el despliegue:
+
+```sql
+update public.banderas_plataforma set activa = true where clave in ('promociones_precio', 'precios_masivos');
+```
+
+Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
+
+**`tienda_pedidos` (MSF-176, tienda compra y cuentas).** La migración `20270320100000_tienda_capacidad.sql` suma la bandera `tienda_pedidos`, **apagada por defecto en todo entorno**. Gobierna «Mi cuenta», favoritos, lista de pedido y presupuesto desde la tienda; apagada, las RPC de la épica responden un error genérico sin tocar datos y la tienda no dibuja nada de eso. **Solo se enciende en dev** (D-24) y **con el script**, no a mano: `node scripts/tienda-pedidos-dev.mjs encender|apagar|estado --entorno dev`, que se niega (mensaje en castellano y salida distinta de 0) si no recibe `--entorno dev` o si la conexión no es la de dev (`SUPABASE_DB_URL` con host de dev, un host declarado en `TIENDA_PEDIDOS_DEV_DB_HOSTS` o el contenedor `supabase_db_multistorefront-meli-supabase-dev`). Defensas: de la URL solo acepta `sslmode` y `connect_timeout` (rechaza `host`, `hostaddr`, `service`, `port`, `dbname`, `options`, varios hosts, `%` y varias `@`); borra del entorno del proceso `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGPASSFILE`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGOPTIONS`, `PGSSLMODE`, `PGTARGETSESSIONATTRS`, `PGSYSCONFDIR`, `DOCKER_HOST` y `DOCKER_CONTEXT`; y, por URL **y por contenedor**, comprueba antes de escribir (consulta de solo lectura) que la base es dev: existe una organización «… (demo)» con el id fijo del seed (`0f5eed00-0000-4000-8000-000000000001` o `…0002`) o con uno declarado en `TIENDA_PEDIDOS_DEV_ORG_IDS`. **Staging y producción no se encienden en esta épica**: hacerlo requiere una decisión nueva con demanda medida. Detalle en [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md).
+
+**`listas_precios` (F-PRE-14 y F-CLI-21).** La migración `20270340000000_listas_precios.sql` suma la bandera `listas_precios`, **apagada por defecto en todo entorno**. Apagada, «Guardar lista» y «Asignar» responden `55000`; archivar, restaurar y quitar la lista siguen permitidos. Desde las Fases 3 y 4 (`20270348000000` a `20270348000300`) la bandera también gobierna el **motor de precio**: **apagada, el precio es idéntico al de antes; encendida, un cliente con lista paga el precio de su lista** en el mostrador, los comprobantes y la tienda con cuenta web (precedencia en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4)). Apagarla es la reversión inmediata, sin migrar. **No se enciende hasta que Nicolás lo decida, entorno por entorno.** Nota de activación: los borradores guardados antes de encender la bandera reciben un `40001` («El precio de la lista cambió: revisá el total y confirmá de nuevo») en su primera confirmación **solo si el cliente tiene lista asignada**; volver a guardar las líneas lo resuelve. Lo mismo al apagarla con borradores que ya tenían lista. Encender: `update public.banderas_plataforma set activa = true where clave = 'listas_precios';` (por SQL, el equipo técnico, dev → stg → prd). Ver [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21) y la guía de cierre [Listas de precios](listas-de-precios.md) (procedimiento de encendido paso a paso; la Fase 5 no encendió la bandera en ningún entorno).
+
+**Gate de `promociones_precio` (MSF-816):** desde que el mostrador y los comprobantes cobran la promoción, encender la bandera cambia el precio cobrado además del mostrado. Orden **dev → stg → prd**, cada entorno verificado antes del siguiente. Estado al 2026-11-14: dev **encendida** (desde 2026-11-13), stg y prd **apagadas**. **No encender `promociones_precio` en PRD antes de que la épica esté en dev y verificada** (promoción cobrada en mostrador y comprobante, nota de crédito, vencimiento a mitad de venta, bandera apagada idéntica). Al encender o apagar con ventas abiertas, avisar a los cajeros (S6 = MSF-937).
+
+### Avisos de faltantes (MSF-161)
+
+Despliegue de la épica de avisos de `/ventas/faltantes` en un entorno. **Orden**: (1) migraciones (hasta `20270306130000`), (2) secretos, (3) Edge Function `enviar-aviso-faltante` y las que comparten `_shared/` (`enviar-correo-proveedor`, `enviar-resumen-reposicion`, `solicitar-acceso`), (4) flow `avisos-faltantes` de Kestra, (5) panel. Una Edge Function nueva con la base sin migrar responde 503 `base_no_migrada` sin tomar nada.
+
+Secretos por entorno (nunca en Git; plantillas en `supabase/functions/.env.example` e `infra/kestra/.env.example`):
+
+| Dónde | Variable | stg / prd |
+|---|---|---|
+| Edge Functions | `SMTP_HOST`, `SMTP_FROM`, `SMTP_USER`, `SMTP_PASS` | datos reales del relay (hoy dev usa un buzón de pruebas sin credenciales) |
+| Edge Functions | `SMTP_PORT` | `465` (vacío = 465). 587/STARTTLS **no** funciona con la librería actual |
+| Edge Functions | `SMTP_TLS` | `true` (obligatoria; con otro valor o ausente la función responde 503 `configuracion_smtp` y no envía) |
+| Edge Functions | `SMTP_PERMITIR_INSEGURO` | **no definir**: solo local/dev con buzón de pruebas |
+| Edge Functions | `SMTP_SONDEO` | opcional (`false` lo desactiva) |
+| Edge Functions | `AVISOS_FALTANTES_TOKEN` | secreto real, el mismo que Kestra |
+| Kestra | `AVISOS_FALTANTES_URL`, `AVISOS_FALTANTES_APIKEY`, `SECRET_AVISOS_FALTANTES_TOKEN` | URL alcanzable desde Kestra, clave anon, token **en base64** (decodificado = `AVISOS_FALTANTES_TOKEN`) |
+
+El flow `infra/kestra/flows/avisos-faltantes.yml` se publica con el workflow de publicación de flows (staging por push, producción por `workflow_dispatch`, ver *Publicación de flows de Kestra*). Si un entorno no tiene el secreto o el flow, los avisos quedan «En cola» sin salir. Verificación posterior: avisar un faltante de prueba y comprobar que pasa a «Avisado» y que llega un solo correo con las tildes y el «·» bien. Si se toca `_shared/correo.ts` o `_shared/smtp.ts`, correr antes `smtp-real.deno.ts` (ver `docs/ventas-faltantes-avisos.md`).
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
@@ -31,6 +75,16 @@ Staging valida migraciones, permisos, workflows y conexión entre componentes si
   revalida y baja el bundle nuevo en cada deploy) y los assets con hash, con cache
   inmutable de 1 año. Como el HTML referencia el hash del bundle, no hace falta invalidar
   nada a mano (evita el «no aparece la pantalla nueva» hasta un Ctrl+Shift+R).
+  También proxea `/robots.txt` y `/sitemap.xml` a la Edge Function `tienda-seo` (F-TDA-21): la
+  URL de Supabase y la clave pública se toman de los `ARG VITE_SUPABASE_URL` /
+  `VITE_SUPABASE_PUBLISHABLE_KEY` del build de la imagen (ver `docs/tiendas-online.md`); el build falla si alguno queda vacío.
+  **Son OBLIGATORIOS**: `apps/web/Dockerfile` solo lo construye Dokploy (ningún compose ni workflow del repo lo hace; `infra/refine/compose.yaml`
+  es de desarrollo con Vite y los workflows construyen solo imágenes de workers), así que en la aplicación de Dokploy de `apps/web` y en
+  cada preview hay que definir los *build args* `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` (además de `VITE_PANEL_HOSTS`).
+  Esas rutas van con caché de nginx (5 min, clave por host) y límite de pedidos por IP + host (20 r/s, ráfaga 100) y por IP (100 r/s, ráfaga 200); como nginx queda
+  detrás de Traefik, la IP real se toma de `X-Forwarded-For` desde los rangos privados de la red del proxy. Requisito: Traefik debe pasar
+  `X-Forwarded-For` con la IP del cliente (el repo no define su `trustedIPs`/`forwardedHeaders`); con Cloudflare u otro proxy delante hay
+  que sumar sus rangos a `set_real_ip_from` y usar `real_ip_header CF-Connecting-IP`.
 - `supabase/`: proyecto Supabase Cloud de producción mediante migraciones.
 - `infra/kestra/compose.yaml`: Kestra en el VPS, detrás de HTTPS/reverse proxy.
 - `infra/superset/compose.yaml`: Superset en el VPS, detrás de HTTPS/reverse proxy.
@@ -94,6 +148,12 @@ las credenciales cifradas de Vault no son recuperables. La respuesta operativa
 aceptada es reconectar cada sistema externo y volver a aprovisionar cada
 servidor de organización para generar sus nuevas credenciales SSH y de base.
 No se debe intentar copiar ni reconstruir claves de cifrado desde el backup.
+
+Las **suscripciones a avisos de la API pública** (`public.api_suscripciones`) también guardan su secreto de firma en
+Vault: tras un restore en otra instancia quedan con un secreto ilegible y los avisos no se pueden firmar. La salida es
+**rotar el secreto de cada suscripción** (Administración → API → Suscripciones a avisos → *Rotar secreto*, o
+`public.rotar_secreto_suscripcion_api`), que crea un secreto nuevo en el Vault de la instancia nueva, y entregárselo a
+cada cliente. El secreto ilegible que queda como «anterior» se ignora y se purga a las 24 horas.
 
 ## CI
 
@@ -331,13 +391,95 @@ leen del propio YAML de cada flow. Mismo gate que el resto de esta spec:
 Secrets por Environment: `KESTRA_BASIC_AUTH_USERNAME`,
 `KESTRA_BASIC_AUTH_PASSWORD`, `KESTRA_PUBLIC_URL`.
 
+### Retiro de un flow y de su Edge Function (MSF-853)
+
+Publicar no borra nada: un flow que sale del repo sigue disparando en los
+entornos donde ya estaba publicado, y si la función que llama ya no existe
+falla en cada corrida. Por eso el repo lleva la lista de flows retirados:
+
+- `infra/kestra/flows-retirados.txt`: una línea por flow, `<namespace>/<id>`
+  (los comentarios y las líneas vacías se ignoran). El mismo workflow de
+  publicación borra los de la lista en cada entorno después de publicar
+  (`infra/kestra/desplegar-flow.mjs --retirar`); borrar uno que ya no está
+  no falla (404 = «ya no estaba»). La línea se queda: es el registro de que ese
+  flow no debe volver a existir.
+- A mano, en un entorno (con `KESTRA_BASIC_AUTH_USERNAME` y
+  `KESTRA_BASIC_AUTH_PASSWORD` exportadas, o con `--username`/`--password`):
+  `pnpm kestra:deploy-flow -- --borrar --namespace <ns> --flow-id <id>
+  --kestra-url <url>`.
+
+La Edge Function que ese flow llamaba se baja **aparte y por entorno** (las
+funciones se despliegan a mano con el CLI de cada entorno; no hay CI que las
+borre):
+
+```bash
+# en el workdir del CLI del entorno (/root/supabase-stg, /root/supabase-prd)
+supabase functions delete <nombre-de-la-funcion> --project-ref <ref-del-entorno>
+supabase secrets delete <secreto-de-la-funcion> --project-ref <ref-del-entorno>  # si quedó
+```
+
+Y hay que sacar del `infra/kestra/.env` del entorno las variables que solo
+usaba ese flow, y volver a desplegar Kestra (`pnpm deploy:vps -- <entorno>`):
+`infra/kestra/compose.yaml` ya no las pasa.
+
+**Orden**: primero el flow y la función, después la migración que borra lo que
+usaban. Al revés, el flow queda llamando RPC inexistentes (502/404) y falla en
+cada corrida.
+
+**Obligatorio en dev, stg y prd, ANTES de que la migración llegue al entorno.**
+La migración (`20270306140000`, MSF-853) borra las tres RPC que el flow
+`platform.consultas/avisos-consultas` llama cada minuto. Cuándo llega a cada
+entorno:
+
+- **dev**: el cron de migraciones aplica `supabase/migrations/**` apenas se
+  mergea a `dokploy`. `--retirar` solo corre en `main` vía
+  `publicar-flows-kestra.yml`, así que **nada retira el flow de dev**: hay que
+  hacerlo a mano antes del merge a `dokploy` (ver abajo).
+- **stg**: el flow se retira cuando el push a `main` corre
+  `publicar-flows-kestra.yml`, y las migraciones cloud corren en el mismo push
+  (`migraciones-cloud.yml`): no hay orden garantizado entre ambos workflows.
+  Retiralo a mano antes de mergear a `main`.
+- **prd**: ídem, con el flow retirado a mano (o el paso de producción de
+  `publicar-flows-kestra.yml`) antes de disparar el job de producción de
+  `migraciones-cloud.yml`.
+
+Retiro a mano del flow (sin secretos en el comando; las credenciales van por
+entorno desde el `infra/kestra/.env` del VPS del entorno):
+
+```bash
+# dev (Kestra local del VPS1 en 127.0.0.1:9082; en stg/prd, la KESTRA_PUBLIC_URL del entorno)
+export KESTRA_BASIC_AUTH_USERNAME=... KESTRA_BASIC_AUTH_PASSWORD=...   # leerlas de infra/kestra/.env, no pegarlas en el historial
+pnpm kestra:deploy-flow -- --borrar --namespace platform.consultas --flow-id avisos-consultas \
+  --kestra-url http://127.0.0.1:9082
+# equivalente, con el manifiesto del repo:
+node infra/kestra/desplegar-flow.mjs --retirar --manifiesto infra/kestra/flows-retirados.txt \
+  --kestra-url http://127.0.0.1:9082
+```
+
+Es idempotente (404 = «ya no estaba»). La Edge Function `enviar-aviso-consulta`
+se baja aparte con el CLI del entorno (ver arriba); en dev, al no haber CI que
+la borre, queda registrada pero ya nadie la llama.
+
+**Si no se hace**: la migración se aplica igual (no depende del flow) y el
+entorno queda funcionando, pero el flow viejo sigue publicado y dispara cada
+minuto contra RPC inexistentes: una ejecución fallida por minuto en Kestra
+(ruido de alertas, sin pérdida de datos, porque el alta de consultas ya no
+encola en esa cola) hasta que se retire. Es reversible: retirar el flow en
+cualquier momento corta el ruido.
+
+Antes de aplicar una migración que borra una cola de avisos, mirá que no
+quede nada sin enviar (`select estado, count(*) from <cola> group by 1;`). Si
+quedara algo, ese aviso nunca sale: la cola que lo custodiaba es la que se
+borra. MSF-853: la migración `20270306140000` aborta sola si encuentra avisos
+`pendiente` o `fallido`; hay que resolverlos a mano y volver a aplicar.
+
 ### Migraciones cloud (staging → producción)
 
 **Hook de bloqueo de intentos (migración `20261014100000`, MSF-470) — ACTIVADO (2026-10-15):** en los
 entornos self-hosted (STG y PROD, VPS2) el hook no se activa por migración: se habilita en la config de
 GoTrue del entorno (`GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_ENABLED=true` y
 `GOTRUE_HOOK_PASSWORD_VERIFICATION_ATTEMPT_URI=pg-functions://postgres/public/verificar_intento_acceso`) y se
-verifica con el checklist de `docs/acceso-ingreso.md` («Activación por entorno»). **Verificado en STG y PROD**
+verifica con el checklist de `docs/tecnico/acceso.md` («Activación por entorno (checklist)»). **Verificado en STG y PROD**
 (5 intentos fallidos + 6.º correcto → «Demasiados intentos…»). Persistido en el `supabase/config.toml` del
 workdir del Supabase CLI de cada entorno (`/root/supabase-stg`, `/root/supabase-prd`).
 
@@ -351,7 +493,7 @@ mano desde la pestaña Actions (`workflow_dispatch`) — alternativa sin costo
 a required reviewers, que necesita un plan de pago no disponible aquí (ver
 tasks.md T027 de la spec).
 `SUPABASE_DB_URL` es un secret por Environment — una cadena de conexión
-acotada al proyecto, no un access token de cuenta. Antes de aplicar nada,
+acotada al proyecto, no un access token de cuenta. El script separa la contraseña de la URL y la pasa por `PGPASSWORD` (no por `argv`, visible en `ps`); `redactError` también enmascara esa contraseña si algún mensaje la imprime suelta. Antes de aplicar nada,
 `scripts/validar-migraciones-aditivas.mjs` rechaza cualquier migración
 destructiva (`DROP TABLE`/`COLUMN`, `TRUNCATE`) que no documente su
 Reversión — misma convención ya vigente en `supabase/migrations/` (un
@@ -382,6 +524,32 @@ aplica las pendientes de la rama `dokploy` y las registra en
   versiones duplicadas, reusadas o editadas, y DDL no idempotente en migraciones nuevas.
 
 ## Promoción simple
+
+### Verificación previa de promoción: secreto `visitante_hmac` (DEV → STG → PRD)
+
+`private.hmac_visitante` (usado por `visitante_hash` y `visitante_publico`) exige el secreto `visitante_hmac` de Vault. Lo
+crea la migración `20270323100200` (`private.inicializar_visitante_hmac()`); si falta en el entorno destino (Vault sin
+habilitar, migración corrida con un rol que no ve Vault, secreto borrado), **toda la búsqueda y los pedidos públicos de la
+tienda fallan**. Antes de promover a STG o PRD, y después de aplicar las migraciones, verificar con un `SELECT` que no
+expone el valor:
+
+```sql
+select count(*) = 1 as secreto_visitante_hmac_presente
+  from vault.secrets
+ where name = 'visitante_hmac';
+```
+
+Debe devolver `true`. Si devuelve `false`, no promover: ejecutar `select private.inicializar_visitante_hmac();` con el rol
+`postgres` (crea el secreto si falta y es idempotente) y repetir la verificación. Nunca seleccionar `decrypted_secret`
+ni copiar el valor entre entornos: cada entorno tiene el suyo. Sin cabecera `x-forwarded-for`, la búsqueda y los envíos
+comparten el marcador «sin-ip» (migración `20270347000300`).
+
+### Reglas vigentes que no son defectos
+
+- Fusionar clientes (`fusionar_clientes`) descarta la lista de precios del cliente absorbido: es una decisión de diseño
+  documentada en [clientes.md](clientes.md), no una pérdida a corregir.
+
+### Flujo
 
 ```text
 rama de feature → Preview → staging (si hace falta) → main/producción
@@ -436,7 +604,8 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   **merge queue** (disparador `merge_group`) prueba el PR sobre el base actualizado; se activa con un
   ruleset de rama (`merge_queue` + `required_status_checks`) — ver `docs/control-ci.md`.
 - **Filtro `web`** (job `changes`): si el diff SÓLO toca dirs que no afectan a la app web (`supabase/`,
-  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.github/`), los jobs **`web`** (suite shardeada) y el
+  `infra/`, `scripts/`, `apps/api/`, `docs/`, `specs/`, `.specify/`, `.github/`, `mkdocs.yml` o `*.md` de la raíz —
+  MSF-687: un PR de solo documentación ya no dispara la suite web ni el e2e), los jobs **`web`** (suite shardeada) y el
   **e2e** se **saltean**. Es **conservador**: `web` es `true` por defecto y sólo se apaga cuando TODOS los
   archivos caen en esos dirs (cualquier archivo de raíz o desconocido lo vuelve a prender). `apps/web` depende
   de `@platform/ia`, por eso `packages/**` cuenta como `web`.
@@ -447,9 +616,32 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).
+- **E2E de la tienda pública** (job `e2e-tienda`): corre los 20 `apps/web/e2e/tienda-*.e2e.ts` con **el mismo disparo que
+  el e2e** (`web == 'true'` y `e2e == 'true'`: un PR a `epic/*` no lo corre; sí un PR a `dokploy` o un push), en paralelo con
+  `application` y `web`. Arranca **no bloqueante** (`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`: el fallo
+  llega como `success` a `validacion`/`liberar`) y se pasa a requerido poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes;
+  `CI_E2E_TIENDA=false` lo apaga. Necesita API de Supabase (auth + kong +
+  postgrest + storage), que `database` no levanta (`-x kong,postgrest`), así que arma su propio stack en una **ranura** del CI
+  (`scripts/supabase-ci.mjs reclamar`/`liberar`, la misma reserva que `database`: hasta 5 en paralelo, sin tocar los stacks
+  de desarrollo), lo baja con `supabase stop --no-backup` al terminar y lo alcanza por `host.docker.internal`. Sin Edge
+  Runtime (docker-fuera-de-docker no puede montar `supabase/functions`): `E2E_SIN_EDGE=1` omite `robots.txt`/`sitemap.xml`
+  de `tienda-seo`; una guarda (`pnpm e2e:omitidos:check`) falla si hay más de un test omitido. Espera a lo sumo 10 min una ranura,
+  su timeout es 55 min y el TTL de ranuras es 75 min en este job y en `database` (el que reclama recicla las vencidas). Tiempo agregado: corre en paralelo, así que el camino crítico sólo crece si dura más que el job `web`
+  (estimado 15-20 min: stack 2-3, migraciones 1-2, specs ~10-15 con `--workers=1`). **PRs de forks**: los jobs que corren código
+  del PR en el runner self-hosted (`application`, `web`, `e2e-tienda`, `infrastructure`, `database`, y el carril/`liberar`) se saltean si
+  `head.repo.full_name != github.repository`, y `validacion` falla para ese PR en vez de dar verde con todo `skipped`;
+  `merge_group` y `push` no se ven afectados. Detalle, límites y receta local en
+  `docs/e2e-app.md` (sección «E2E de la tienda pública en el CI»).
 - **Supabase CLI**: en `database` se reusa el binario `supabase` del runner si ya está en la versión esperada
   (evita el `curl | tar` en cada corrida); si no, se descarga.
 - **Cache de Playwright**: los browsers (`~/.cache/ms-playwright`) se cachean (clave por `pnpm-lock.yaml`); el
   `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
+
+## Newsletter de la tienda: bandera y variable de Kestra (MSF-468, Fases 1 y 2)
+
+La bandera `newsletter` (`public.banderas_plataforma`) nace **apagada**; se enciende por SQL dev → stg → prd, nunca por migración, y cada
+tienda lo activa con su propio interruptor (`dominio.newsletter_configuracion.activo`, apagado por defecto). El flow `newsletter-confirmaciones`
+solo envía el correo de confirmación de las suscripciones (no envía newsletters) y usa `NEWSLETTER_CONFIRMACION_LOTE` (20) en `infra/kestra/.env`.
+Detalle y reversión en `docs/newsletter.md`.

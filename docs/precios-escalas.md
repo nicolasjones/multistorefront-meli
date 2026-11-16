@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - apps/web/src/lib/escalas.ts
+  - apps/web/src/lib/tiendaPreciosCliente.ts
+---
+
 # Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)
 
 - **Esquema** (Principio VII): `dominio.producto_precios_escala` es un dato de negocio del producto → `dominio`. La RPC `public.guardar_precios_escala` es superficie de ejecución en `public` y no guarda datos; `private.precio_para` es una función de cálculo en `private`. Migraciones aditivas `20261022150000` y `20261022150100`; la reversión está en el encabezado de cada una.
@@ -36,3 +43,7 @@ La tienda pública muestra a un cliente con **cuenta web activa** los precios de
 - **Web**: `apps/web/src/lib/tiendaPreciosCliente.ts` + `hooks/usePreciosCliente.ts` hacen una llamada por carga de la ficha, sin caché de escala (el cambio de tipo o la suspensión rigen en la próxima carga); sin sesión no se llama a la base. La ficha (`ficha/PreciosCliente.tsx`) muestra «Tu precio» (minorista) o «Tus precios por cantidad» (mayorista). Las **tarjetas del catálogo no cambian**: siguen mostrando el precio x1 público.
 - **Pruebas**: pgTAP `supabase/tests/database/precios_cliente.test.sql` (paridad con `precio_para`, lista blanca, estados), Vitest `tiendaPreciosCliente.test.ts`, `ficha/ficha-precios-cliente.test.tsx` (con axe) y `catalogo/TarjetaProducto.test.tsx`.
 - **Decisión D3**: en el listado el mayorista sigue viendo x1; la tabla de escalas está solo en la ficha. Si se pide otra cosa, se ajusta en `TarjetaProducto.tsx` sin tocar la base.
+
+## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
+
+La **escala cargada** (x5, x10, x50) de un cliente mayorista que compra esa cantidad **gana a la lista de precios** del cliente (paso 2 de la precedencia); la lista solo fija el precio de las líneas que no tienen escala cargada, precio propio ni precio manual. La lista no cambia el tipo de cliente ni la escala que corresponde a la cantidad. Precedencia completa en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y guía en [Listas de precios](listas-de-precios.md).

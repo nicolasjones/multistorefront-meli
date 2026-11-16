@@ -1,6 +1,13 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-repuestos-y-stock
+  - apps/web/src/lib/reparaciones.ts
+---
+
 # Devolución de repuestos al quitar o anular (F-SVC-11)
 
-Historia F-SVC-11 de la épica MSF-217 ([spec](../specs/20261028-100000-service-repuestos-y-stock/spec.md), FR-020…FR-027).
+Historia F-SVC-11 de la épica MSF-217 (`specs/20261028-100000-service-repuestos-y-stock/spec.md`, FR-020…FR-027).
 Complementa [service-repuestos-stock.md](./service-repuestos-stock.md): lo que se descontó al agregar un repuesto vuelve al
 depósito original cuando se quita el ítem o se anula la reparación.
 

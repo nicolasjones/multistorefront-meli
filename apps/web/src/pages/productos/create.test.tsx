@@ -14,14 +14,17 @@ const mocks = vi.hoisted(() => ({
   useCotizacionInicial: vi.fn(),
   useEmpresas: vi.fn(),
   useAlicuotas: vi.fn(),
+  buscarRelacionables: vi.fn(),
+  leerFila: vi.fn(),
+  leerEmpresas: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     rpc: mocks.rpc,
-    schema: () => ({ from: () => ({
+    schema: () => ({ from: (tabla: string) => ({
         insert: mocks.insertarImagen,
-        select: () => ({ eq: () => ({ order: () => ({ returns: mocks.leerImagenes }) }) }),
+        select: () => ({ eq: () => ({ order: () => ({ returns: mocks.leerImagenes }), maybeSingle: () => mocks.leerFila(tabla), returns: mocks.leerEmpresas }) }),
       }) }),
     storage: { from: () => ({ upload: mocks.subir, remove: mocks.quitarArchivo }) },
   },
@@ -32,9 +35,13 @@ vi.mock('../../hooks/useProveedoresBasico', () => ({ useProveedoresBasico: mocks
 vi.mock('../../hooks/useCotizacionInicial', () => ({ useCotizacionInicial: mocks.useCotizacionInicial }))
 vi.mock('../../hooks/useAlicuotas', () => ({ useAlicuotas: mocks.useAlicuotas }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../lib/productos-relacionados', async (original) => ({
+  ...(await original<typeof import('../../lib/productos-relacionados')>()),
+  buscarRelacionables: mocks.buscarRelacionables,
+}))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 
-import { ProductoCreate } from './create'
+import { AltaProducto, ProductoCreate } from './create'
 
 const niveles = (productos: string, rentabilidad: string) =>
   mocks.useNivelSeccion.mockImplementation((seccion: string) => ({
@@ -61,10 +68,27 @@ const abrir = () =>
     <MemoryRouter initialEntries={['/productos/create']}>
       <Routes>
         <Route path="/productos/create" element={<ProductoCreate />} />
-        <Route path="/" element={<p>Inicio</p>} />
+        <Route path="/productos" element={<p>Listado de productos</p>} />
       </Routes>
     </MemoryRouter>,
   )
+
+const abrirDuplicando = (id = 'p-1') =>
+  render(
+    <MemoryRouter initialEntries={[`/productos/create?duplicar_de=${id}`]}>
+      <Routes>
+        <Route path="/productos/create" element={<ProductoCreate />} />
+        <Route path="/productos" element={<p>Listado de productos</p>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+
+const ORIGEN = {
+  id: 'p-1', nombre: 'Joystick Original', descripcion: 'Con vibración', compatible_con: ['PS4', 'PC'], moneda: 'ARS',
+  precio_lista: 1500, proveedor_id: 'prv-1', categoria_id: 'cat-1',
+}
+const origenDeLaBase = (tabla: string) =>
+  Promise.resolve({ data: tabla === 'producto_costos' ? { costo: 900 } : ORIGEN, error: null })
 
 const completar = () => {
   fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Joystick Pro' } })
@@ -91,6 +115,8 @@ describe('ProductoCreate', () => {
     mocks.insertarImagen.mockResolvedValue({ error: null })
     mocks.quitarArchivo.mockResolvedValue({ error: null })
     mocks.leerImagenes.mockResolvedValue({ data: [], error: null })
+    mocks.leerEmpresas.mockResolvedValue({ data: [], error: null })
+    mocks.leerFila.mockResolvedValue({ data: null, error: null })
   })
 
   it('sin datos obligatorios avisa, marca los campos y no guarda', async () => {
@@ -330,7 +356,7 @@ describe('ProductoCreate', () => {
   it('Cancelar con datos pide confirmar «Descartar cambios»; sin datos sale directo', () => {
     const primera = abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    expect(screen.getByText('Inicio')).toBeInTheDocument()
+    expect(screen.getByText('Listado de productos')).toBeInTheDocument()
     primera.unmount()
 
     abrir()
@@ -339,6 +365,19 @@ describe('ProductoCreate', () => {
     expect(screen.getByRole('dialog', { name: 'Descartar cambios' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Seguir editando' }))
     expect(screen.getByLabelText(/^Nombre/)).toHaveValue('Joystick Pro')
+  })
+
+  it('dentro del popup, Cancelar avisa con onCancelar en vez de navegar', () => {
+    const alCancelar = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/productos']}>
+        <Routes>
+          <Route path="/productos" element={<AltaProducto onCancelar={alCancelar} />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+    expect(alCancelar).toHaveBeenCalledTimes(1)
   })
 
   it('con solo lectura en Productos no ofrece el formulario', () => {
@@ -443,6 +482,39 @@ describe('ProductoCreate', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('definir_empresas_producto', { p_producto_id: 'p-9', p_empresa_ids: ['emp-2'] })
   })
 
+  it('tras crear, guarda los relacionados agregados en el orden mostrado (F-CAT-18)', async () => {
+    mocks.buscarRelacionables.mockResolvedValue([{ id: 'r-1', nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }])
+    mocks.rpc.mockImplementation((nombre: string) =>
+      Promise.resolve(nombre === 'crear_producto' ? { data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null } : { data: {}, error: null }))
+    abrir()
+    completar()
+    expect(screen.getByText('0 productos')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' }), { target: { value: 'vidrio' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(mocks.rpc).toHaveBeenCalledWith('guardar_relacionados', { p_producto: 'p-9', p_relacionados: ['r-1'] })
+  })
+
+  it('si fallan los relacionados, el producto queda creado y se ofrece reintentar', async () => {
+    mocks.buscarRelacionables.mockResolvedValue([{ id: 'r-1', nombre: 'Vidrio', sku: 'VID-1', categoria: null, precio: 10, moneda: 'USD' }])
+    let fallar = true
+    mocks.rpc.mockImplementation((nombre: string) => {
+      if (nombre === 'crear_producto') return Promise.resolve({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
+      return Promise.resolve(fallar ? { data: null, error: { code: '57014', message: 'boom interno' } } : { data: {}, error: null })
+    })
+    abrir()
+    completar()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por nombre, SKU o categoría' }), { target: { value: 'vidrio' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Agregar Vidrio' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+    expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    expect(screen.getByText(/no pudimos guardar los productos relacionados/)).toBeInTheDocument()
+    fallar = false
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar relacionados' }))
+    await waitFor(() => expect(screen.queryByText(/no pudimos guardar los productos relacionados/)).not.toBeInTheDocument())
+  })
+
   it('sin empresas elegidas no llama a la RPC de empresas', async () => {
     mocks.rpc.mockResolvedValue({ data: { id: 'p-9', organizacion_id: 'org-1', nombre: 'Joystick Pro' }, error: null })
     abrir()
@@ -518,5 +590,64 @@ describe('ProductoCreate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar categoría' }))
     await waitFor(() => expect(screen.queryByText(/no pudimos asignarle la categoría/)).not.toBeInTheDocument())
     expect(mocks.rpc).toHaveBeenLastCalledWith('asignar_categoria_producto', { p_producto_id: 'p-9', p_categoria_id: 'cat-0' })
+  })
+
+  describe('duplicar (F-CAT-13)', () => {
+    beforeEach(() => {
+      mocks.leerFila.mockImplementation(origenDeLaBase)
+      mocks.leerEmpresas.mockResolvedValue({ data: [{ empresa_id: 'emp-2' }], error: null })
+      mocks.useCategorias.mockReturnValue({ categorias: CATEGORIAS, isLoading: false, isError: false, refetch: vi.fn() })
+    })
+
+    it('precarga desde duplicar_de sin SKU ni código de barras ni imágenes', async () => {
+      niveles('edicion', 'edicion')
+      abrirDuplicando()
+      expect(await screen.findByDisplayValue('Joystick Original')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Con vibración')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('PS4, PC')).toBeInTheDocument()
+      expect(screen.getByLabelText(/^SKU/)).toHaveValue('')
+      expect(screen.getByLabelText(/^Código de barras/)).toHaveValue('')
+      expect(screen.getByRole('switch', { name: 'Mundo JC' })).toBeChecked()
+      expect(screen.getByRole('switch', { name: 'San Javucho' })).not.toBeChecked()
+      expect(mocks.rpc).not.toHaveBeenCalled()
+      expect(mocks.subir).not.toHaveBeenCalled()
+    })
+
+    it('sin acceso a Rentabilidad no lee ni copia el costo', async () => {
+      niveles('edicion', 'ninguno')
+      abrirDuplicando()
+      await screen.findByDisplayValue('Joystick Original')
+      expect(mocks.leerFila).not.toHaveBeenCalledWith('producto_costos')
+    })
+
+    it('origen inexistente o ajeno avisa y deja el alta vacía', async () => {
+      mocks.leerFila.mockResolvedValue({ data: null, error: null })
+      abrirDuplicando('ajeno')
+      expect(await screen.findByText(/No encontramos el producto a duplicar/)).toBeInTheDocument()
+      expect(screen.getByLabelText(/^Nombre/)).toHaveValue('')
+    })
+
+    it('guardado con validaciones del alta: crea un producto nuevo sin SKU y sin enviar duplicar_de', async () => {
+      niveles('edicion', 'edicion')
+      abrirDuplicando()
+      await screen.findByDisplayValue('Joystick Original')
+      fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+      await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('crear_producto', expect.objectContaining({ p_nombre: 'Joystick Original', p_moneda: 'ARS', p_costo: 900 })))
+      const parametros = mocks.rpc.mock.calls.find(([nombre]) => nombre === 'crear_producto')?.[1] as Record<string, unknown>
+      expect(parametros.p_sku).toBeNull()
+      expect(JSON.stringify(parametros)).not.toContain('duplicar')
+      expect(await screen.findByText('Producto creado')).toBeInTheDocument()
+    })
+
+    it('un SKU repetido se informa sin perder lo cargado', async () => {
+      niveles('edicion', 'edicion')
+      mocks.rpc.mockResolvedValue({ data: null, error: { code: '23505', message: 'duplicate key value violates unique constraint "productos_org_sku_uidx"' } })
+      abrirDuplicando()
+      await screen.findByDisplayValue('Joystick Original')
+      fireEvent.change(screen.getByLabelText(/^SKU/), { target: { value: 'JOY-1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
+      expect(await screen.findByText('Ese SKU ya existe')).toBeInTheDocument()
+      expect(screen.getByDisplayValue('Joystick Original')).toBeInTheDocument()
+    })
   })
 })

@@ -1,0 +1,23 @@
+{
+  "comentario": "Un reporte por tablero embebido. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera. `administrador` no se lista: tiene acceso incondicional. Los nombres «Analítica · …» son los que la migración 20270324100100 asigna a todas las organizaciones.",
+  "reportes": [
+    {
+      "nombre": "Analítica · Ventas por tienda y categoría",
+      "dashboard_slug": "analitica-ventas-tienda-categoria",
+      "seccion": "reportes",
+      "filtro_empresa": true,
+      "rolesPorDefecto": [
+        "administracion"
+      ]
+    },
+    {
+      "nombre": "Analítica · Margen real por tienda, categoría y producto",
+      "dashboard_slug": "analitica-margen-real",
+      "seccion": "rentabilidad",
+      "filtro_empresa": true,
+      "rolesPorDefecto": [
+        "administracion"
+      ]
+    }
+  ]
+}

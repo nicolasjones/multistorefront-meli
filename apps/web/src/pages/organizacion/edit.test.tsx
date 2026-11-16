@@ -29,6 +29,8 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('./ResumenSemanal', () => ({ ResumenSemanalOrganizacion: () => null }))
+
 import { OrganizacionEdit } from './edit'
 
 const organizacion = { id: 'org-1', nombre: 'Agenmatica', zona_horaria: 'America/Argentina/Buenos_Aires', logo_path: null }

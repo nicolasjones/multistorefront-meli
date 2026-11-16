@@ -67,7 +67,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('d1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'deposito'),
   ('d1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 20, 'Cliente Dos', 'minorista');
 
@@ -466,12 +466,12 @@ select is(
 -- «Solo con saldo»: el comprobante del pago todavía debe saldo.
 select is(
   (select count(*)::int from public.listar_pagos(p_solo_con_saldo => true)),
-  5, '«Solo con saldo» deja los cinco pagos cuyo comprobante todavía debe'
+  3, '«Solo con saldo» deja los tres pagos cuyo comprobante todavía debe (no la anulada ni la borrador: MSF-450)'
 );
 select is(
   (select count(*)::int from public.listar_pagos(
     p_solo_con_saldo => true, p_empresa_id => 'a1000000-0000-0000-0000-00000000000a')),
-  4, '«Solo con saldo» y el filtro de tienda se combinan'
+  2, '«Solo con saldo» y el filtro de tienda se combinan'
 );
 
 -- Paginación en el servidor: el total del filtro viene en `filas`.

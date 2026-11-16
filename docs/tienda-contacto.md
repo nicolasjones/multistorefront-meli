@@ -1,6 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261202-100000-tienda-whatsapp-y-contacto
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/lib/registroWhatsapp.ts
+  - apps/web/src/lib/whatsapp.ts
+  - apps/web/src/pages/tienda-publica/rutas/contacto.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp
+  - design/pantallas/MJC_Producto.dc.html
+  - supabase/migrations/20261212110000_listar_comprobantes.sql
+---
+
 # Tienda online · Contacto con formulario (F-TDA-16, MSF-437)
 
-Épica MSF-212, spec [`specs/20261202-100000-tienda-whatsapp-y-contacto`](../specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md).
+Épica MSF-212, spec `specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md`.
 El visitante abre `/contacto`, ve el WhatsApp (con horarios) y el correo de **su** tienda y envía una consulta que llega a la
 bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
 
@@ -48,7 +61,7 @@ la migración). El código del front se revierte con `git revert -m 1` del merge
 
 1. El prototipo de **Empresas** no dibuja «Horarios de atención»; el campo se agrega por FR-014 (D2).
 2. La **bajada** de «Contacto» sale del «Texto del pie de página» que la tienda ya configura (F-TDA-03); sin texto, no se muestra.
-3. «Respondemos dentro de las 24 h» y el bloque «Retiro y envíos» del prototipo quedan fuera de alcance (ver matriz de la spec).
+3. ~~«Respondemos dentro de las 24 h» y el bloque «Retiro y envíos» del prototipo quedan fuera de alcance.~~ **Ya no (MSF-831, épica MSF-825)**: la historia los pide y mandan los requisitos. Se muestran en `DatosContacto`: «Respondemos dentro de las 24 h» bajo el correo y «Retiro y envíos» («Coordinamos por WhatsApp», o «por correo» si la tienda no cargó WhatsApp; «No hay compra online en esta versión: consultás y coordinamos.»). Sin ningún dato de contacto no se muestra ni el bloque. El plazo de 24 h es texto fijo de la plataforma, igual que el prototipo; si una tienda necesita otro plazo, habrá que volverlo configurable.
 4. El menú de escritorio suma «Contacto» al final de la lista de categorías (el prototipo lo muestra en otra barra); el menú móvil lo pone después de «Inicio».
 
 ## Verificación
@@ -88,6 +101,7 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - El botón abre un diálogo con el título «Consultar por WhatsApp», la línea «<empresa> · <número>», la etiqueta
   «Mensaje que se va a enviar» con el mensaje ya armado (solo lectura) y los botones «Cancelar» y «Abrir WhatsApp».
   Se cierra con «Cancelar», Esc o clic fuera, sin efectos.
+- El número se lleva a formato internacional antes de armar el enlace (`normalizarNumero`, MSF-696): `+`/`00` se respetan; un número local argentino pierde el `0` troncal y el `15` y lleva `549` (`011 15 5555-0001` → `5491155550001`); sin código de área o ambiguo no hay número (ni botón).
 - «Abrir WhatsApp» abre `https://wa.me/<dígitos>?text=<mensaje codificado>` en una pestaña nueva con `noopener`,
   cierra el diálogo y avisa «Se abrió WhatsApp con el mensaje listo.». El registro del interés va **después** de
   abrir WhatsApp y no espera a la respuesta: ni el límite ni una falla se le muestran al visitante.

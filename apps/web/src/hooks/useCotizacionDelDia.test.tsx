@@ -25,7 +25,7 @@ describe('useCotizacionDelDia', () => {
     const { result } = renderHook(() => useCotizacionDelDia())
     expect(result.current.cargando).toBe(true)
     await waitFor(() => expect(result.current.delDia?.cargadaHoy).toBe(true))
-    expect(result.current.delDia).toEqual({ cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490 })
+    expect(result.current.delDia).toEqual({ cargadaHoy: true, cargadaEn: '2026-10-23T13:32:00Z', cargadaPor: 'Administrador', valor: 1490, avisoActivo: true })
     expect(mocks.rpc).toHaveBeenCalledWith('cotizacion_del_dia')
   })
 

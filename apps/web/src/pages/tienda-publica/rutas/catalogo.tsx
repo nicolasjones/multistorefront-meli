@@ -1,8 +1,10 @@
-import { Box, Breadcrumbs, Typography } from '@mui/material'
-import { Link as EnlaceRuta, useParams, useSearchParams } from 'react-router'
+import { Box, Typography } from '@mui/material'
+import { useParams, useSearchParams } from 'react-router'
 import { normalizarConsulta } from '../../../lib/tiendaBusqueda'
 import { useContextoTienda } from '../layout/LayoutTienda'
+import { MigasTienda } from '../layout/MigasTienda'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
+import { CabeceraSeo } from '../seo/CabeceraSeo'
 import { ordenarSeccionesCatalogo, type ModuloSeccionCatalogo } from '../seccionesCatalogo'
 
 // `/catalogo` (F-TDA-12, FR-035/FR-040): «Todos los productos» con el listado de `secciones-catalogo/`.
@@ -22,11 +24,10 @@ export default function RutaCatalogo({ modulos }: { modulos?: Record<string, Mod
   const secciones = ordenarSeccionesCatalogo(modulos)
   return (
     <Box>
-      <Breadcrumbs aria-label="Migas de pan" sx={{ mb: 1 }}>
-        <Box component={EnlaceRuta} to="/" sx={{ color: 'inherit' }}>Inicio</Box>
-        <Typography color="text.primary" aria-current="page">{miga}</Typography>
-      </Breadcrumbs>
-      <Typography component="h1" variant="h4" sx={{ mb: 2 }}>{titulo}</Typography>
+      {/* Los resultados de búsqueda no se indexan (FR-024); el catálogo sí, con la canónica sin filtros. */}
+      {q ? <CabeceraSeo noindex pagina={titulo} /> : <CabeceraSeo host={host} pagina="Todos los productos" ruta="/catalogo" />}
+      <MigasTienda items={[{ texto: 'Inicio', a: '/' }, { texto: miga }]} />
+      <Typography component="h1" variant="h4" sx={{ fontSize: { xs: 30, md: 44 }, mb: { xs: '16px', md: '24px' } /* estilos-sueltos: ok */ }}>{titulo}</Typography>
       {secciones.map(({ clave, Componente }) => (
         <Componente key={clave} tienda={tienda} host={host} categoriaId={null} />
       ))}

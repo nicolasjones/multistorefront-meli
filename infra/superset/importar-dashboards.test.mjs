@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
 import {
+  buscarReportePorNombre,
   ejecutar,
   importarPaquete,
   mapasDeContrasenas,
@@ -45,12 +46,26 @@ function servidor(estado) {
       estado.form = opciones.body;
       return respuestaJson({});
     }
-    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
-      const fila = JSON.parse(opciones.body);
-      const previa = estado.reportes.get(fila.superset_dashboard_uuid);
-      const guardada = { id: previa?.id ?? `reporte-${estado.reportes.size + 1}`, ...fila };
-      estado.reportes.set(fila.superset_dashboard_uuid, guardada);
-      return respuestaJson([guardada]);
+    if (url.includes('/rest/v1/reportes?')) {
+      const cuerpo = opciones.body ? JSON.parse(opciones.body) : null;
+      if (opciones.method === 'PATCH') {
+        const id = decodeURIComponent(url.match(/[?&]id=eq\.([^&]+)/)?.[1] ?? '');
+        const previa = [...estado.reportes.entries()].find(([, fila]) => fila.id === id);
+        if (!previa) return respuestaJson([], 404);
+        const [clave] = previa;
+        const guardada = { ...previa[1], ...cuerpo };
+        estado.reportes.delete(clave);
+        estado.reportes.set(guardada.superset_dashboard_uuid, guardada);
+        return respuestaJson([guardada]);
+      }
+      if (url.includes('on_conflict=superset_dashboard_uuid')) {
+        const previa = estado.reportes.get(cuerpo.superset_dashboard_uuid);
+        const guardada = { id: previa?.id ?? `reporte-${estado.reportes.size + 1}`, ...cuerpo };
+        estado.reportes.set(cuerpo.superset_dashboard_uuid, guardada);
+        return respuestaJson([guardada]);
+      }
+      const nombre = decodeURIComponent(url.match(/[?&]nombre=eq\.([^&]+)/)?.[1] ?? '');
+      return respuestaJson([...estado.reportes.values()].filter((fila) => fila.nombre === nombre));
     }
     if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
       const fila = JSON.parse(opciones.body);
@@ -169,6 +184,38 @@ test('registra filtro_empresa: el tablero declara si el token acota por empresa 
   assert.equal(estadoFalso.reportes.get(UUID_B).filtro_empresa, false);
 });
 
+test('registrarReportes actualiza la fila del mismo tablero en vez de duplicarla', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = servidor(estadoFalso);
+  const config = { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR };
+  // Fila que dejó la migración: mismo nombre, todavía con el slug en vez del UUID de embebido.
+  await registrarReportes({
+    reportes: [{ nombre: 'Service técnico', dashboard_uuid: 'service-tecnico', seccion: 'service_tecnico', rolesPorDefecto: ['administracion'] }],
+    fetch: fetchFalso,
+    config,
+  });
+  // El importador ya conoce el UUID de embebido que generó Superset.
+  const registros = await registrarReportes({
+    reportes: [{ nombre: 'Service técnico', dashboard_uuid: UUID_B, seccion: 'service_tecnico', rolesPorDefecto: ['administracion'] }],
+    fetch: fetchFalso,
+    config,
+  });
+  assert.equal(estadoFalso.reportes.size, 1, 'el catálogo no puede tener dos filas del mismo tablero');
+  const fila = [...estadoFalso.reportes.values()][0];
+  assert.equal(fila.superset_dashboard_uuid, UUID_B, 'queda el UUID real de embebido');
+  assert.equal(registros[0].id, fila.id, 'misma fila: no se pierde la asignación a las organizaciones');
+  assert.deepEqual([...estadoFalso.roles], [`${fila.id}|administracion`], 'los roles por defecto siguen en esa fila');
+});
+
+test('registrarReportes conserva el autor original al actualizar una fila existente', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = servidor(estadoFalso);
+  const reporte = { nombre: 'Rentabilidad', dashboard_uuid: UUID_A, seccion: 'rentabilidad', rolesPorDefecto: [] };
+  await registrarReportes({ reportes: [reporte], fetch: fetchFalso, config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: CREADO_POR } });
+  await registrarReportes({ reportes: [reporte], fetch: fetchFalso, config: { supabaseUrl: 'http://supabase.local', serviceRoleKey: 'clave', creadoPor: 'otro-usuario' } });
+  assert.equal([...estadoFalso.reportes.values()][0].creado_por, CREADO_POR, 'reimportar no pisa creado_por');
+});
+
 test('empaqueta e importa el directorio: pasa la contraseña aparte y registra los reportes', async () => {
   const estadoFalso = estado();
   const directorio = await directorioDePrueba();
@@ -235,11 +282,18 @@ function superset(embebidos) {
   const fetchFalso = async (url, opciones = {}) => {
     llamadas.push(`${opciones.method ?? 'GET'} ${url}`);
     if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
-    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
     const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
     if (coincidencia) {
       const slug = decodeURIComponent(coincidencia[1]);
       if (opciones.method === 'POST') {
+        // Superset rechaza el POST si no llegan juntos el token CSRF y la cookie de sesión que lo emitió.
+        if (opciones.headers?.cookie !== 'session=abc123') return respuestaJson({ message: 'The CSRF token is missing.' }, 400);
         embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
         return respuestaJson({ result: { uuid: UUID_B } });
       }
@@ -530,6 +584,17 @@ test('el directorio versionado de ventas-reportes se importa y registra los repo
       estadoFalso.reportes.set(fila.superset_dashboard_uuid, guardada);
       return respuestaJson([guardada]);
     }
+    if (url.includes('/rest/v1/reportes?id=eq.')) {
+      const id = url.match(/id=eq\.([^&]+)/)[1];
+      const previa = [...estadoFalso.reportes.values()].find((fila) => fila.id === id);
+      const guardada = { ...previa, ...JSON.parse(opciones.body) };
+      estadoFalso.reportes.set(guardada.superset_dashboard_uuid, guardada);
+      return respuestaJson([guardada]);
+    }
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) {
+      const nombre = decodeURIComponent(url.match(/[?&]nombre=eq\.([^&]+)/)[1]);
+      return respuestaJson([...estadoFalso.reportes.values()].filter((fila) => fila.nombre === nombre));
+    }
     if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
       const fila = JSON.parse(opciones.body);
       estadoFalso.roles.add(`${fila.reporte_id}|${fila.rol_id}`);
@@ -576,6 +641,132 @@ test('el directorio versionado de ventas-reportes se importa y registra los repo
   // Reimportar no duplica los reportes (idempotencia del registro).
   const segunda = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
+  assert.deepEqual(primera.registrados, segunda.registrados);
+});
+
+test('el paquete consultas-reportes se importa y registra «Productos más consultados» en la sección reportes (F-REP-04)', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      estadoFalso.imports += 1;
+      estadoFalso.form = opciones.body;
+      return respuestaJson({});
+    }
+    if (/\/api\/v1\/dashboard\/[^/]+\/embedded$/.test(url)) {
+      return opciones.method === 'POST' ? respuestaJson({ result: { uuid: UUID_A } }) : respuestaJson({}, 404);
+    }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
+    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
+      const fila = JSON.parse(opciones.body);
+      const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
+      const guardada = { id: previa?.id ?? `reporte-${estadoFalso.reportes.size + 1}`, ...fila };
+      estadoFalso.reportes.set(fila.superset_dashboard_uuid, guardada);
+      return respuestaJson([guardada]);
+    }
+    if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
+      const fila = JSON.parse(opciones.body);
+      estadoFalso.roles.add(`${fila.reporte_id}|${fila.rol_id}`);
+      return respuestaJson([fila]);
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  const entorno = {
+    SUPERSET_URL: 'http://superset.local',
+    SUPERSET_USERNAME: 'import',
+    SUPERSET_PASSWORD: 'secreto',
+    SUPERSET_ANALITICA_DB_HOST: 'base.local',
+    SUPERSET_ANALITICA_DB_PASSWORD: 'clave-db',
+    SUPABASE_URL: 'http://supabase.local',
+    SUPABASE_SERVICE_ROLE_KEY: 'clave-servicio',
+    SUPERSET_REPORTE_CREADO_POR: CREADO_POR,
+  };
+  const directorio = path.resolve('infra/superset/dashboards/consultas-reportes');
+
+  const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.imports, 1);
+  assert.equal(primera.registrados.length, 1);
+  const [fila] = [...estadoFalso.reportes.values()];
+  assert.equal(fila.nombre, 'Reportes · Productos más consultados');
+  assert.equal(fila.seccion, 'reportes', 'el reporte queda en la sección `reportes`');
+  assert.equal(fila.filtro_empresa, true, 'el guest token acota el tablero a las empresas accesibles');
+  assert.ok(estadoFalso.roles.has(`${fila.id}|administracion`), 'el rol por defecto es administración');
+  assert.ok(!estadoFalso.roles.has(`${fila.id}|administrador`));
+  assert.deepEqual(
+    JSON.parse(estadoFalso.form.get('passwords')),
+    { 'databases/Ventas_analitica.yaml': 'clave-db' },
+  );
+  const paquete = Buffer.from(await estadoFalso.form.get('formData').arrayBuffer());
+  assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
+
+  // Reimportar no duplica el reporte (idempotencia del registro).
+  const segunda = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
+  assert.deepEqual(primera.registrados, segunda.registrados);
+});
+
+test('el paquete ventas-periodo-canal se importa y registra «Ventas por período y canal» en la sección reportes (F-REP-05)', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      estadoFalso.imports += 1;
+      estadoFalso.form = opciones.body;
+      return respuestaJson({});
+    }
+    if (/\/api\/v1\/dashboard\/[^/]+\/embedded$/.test(url)) {
+      return opciones.method === 'POST' ? respuestaJson({ result: { uuid: UUID_A } }) : respuestaJson({}, 404);
+    }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
+    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
+      const fila = JSON.parse(opciones.body);
+      const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
+      const guardada = { id: previa?.id ?? `reporte-${estadoFalso.reportes.size + 1}`, ...fila };
+      estadoFalso.reportes.set(fila.superset_dashboard_uuid, guardada);
+      return respuestaJson([guardada]);
+    }
+    if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
+      const fila = JSON.parse(opciones.body);
+      estadoFalso.roles.add(`${fila.reporte_id}|${fila.rol_id}`);
+      return respuestaJson([fila]);
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  const entorno = {
+    SUPERSET_URL: 'http://superset.local',
+    SUPERSET_USERNAME: 'import',
+    SUPERSET_PASSWORD: 'secreto',
+    SUPERSET_ANALITICA_DB_HOST: 'base.local',
+    SUPERSET_ANALITICA_DB_PASSWORD: 'clave-db',
+    SUPABASE_URL: 'http://supabase.local',
+    SUPABASE_SERVICE_ROLE_KEY: 'clave-servicio',
+    SUPERSET_REPORTE_CREADO_POR: CREADO_POR,
+  };
+  const directorio = path.resolve('infra/superset/dashboards/ventas-periodo-canal');
+
+  const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.imports, 1);
+  assert.equal(primera.registrados.length, 1);
+  const [fila] = [...estadoFalso.reportes.values()];
+  assert.equal(fila.nombre, 'Reportes · Ventas por período y canal');
+  assert.equal(fila.seccion, 'reportes', 'el reporte queda en la sección `reportes`');
+  assert.equal(fila.filtro_empresa, true, 'el guest token acota el tablero a las empresas accesibles');
+  assert.ok(estadoFalso.roles.has(`${fila.id}|administracion`), 'el rol por defecto es administración');
+  assert.ok(!estadoFalso.roles.has(`${fila.id}|administrador`));
+  assert.deepEqual(
+    JSON.parse(estadoFalso.form.get('passwords')),
+    { 'databases/Ventas_analitica.yaml': 'clave-db' },
+  );
+  const paquete = Buffer.from(await estadoFalso.form.get('formData').arrayBuffer());
+  assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
+
+  // Reimportar no duplica el reporte (idempotencia del registro).
+  const segunda = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.reportes.size, 1, 'reimportar no duplica el reporte');
   assert.deepEqual(primera.registrados, segunda.registrados);
 });
 
@@ -629,4 +820,230 @@ test('el tablero Historia versiona dataset, filtro de producto y reporte de la s
   assert.equal(registrados.length, 1, 'registro único (idempotente)');
   assert.equal(registrados[0].seccion, 'rentabilidad');
   assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
+});
+
+test('el tablero Ventas reales versiona dataset, rango de fechas y reporte de la sección rentabilidad (F-REN-09)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+
+  const dataset = await leer('datasets', 'Rentabilidad_analitica', 'rentabilidad_ventas_real.yaml');
+  assert.match(dataset, /^table_name: rentabilidad_ventas_real$/m, 'el dataset es la vista de ventas reales');
+  for (const columna of ['organizacion_id', 'empresa_nombre', 'producto_nombre', 'fecha', 'vendido', 'costo', 'margen', 'margen_pct']) {
+    assert.match(dataset, new RegExp(`^- column_name: ${columna}$`, 'm'), `el dataset expone ${columna}`);
+  }
+
+  const tablero = await leer('dashboards', 'Rentabilidad_Ventas_reales_6.yaml');
+  assert.match(tablero, /^slug: rentabilidad-ventas-reales$/m);
+  assert.match(tablero, /"name": "Rango de fechas"/, 'rango Desde / Hasta');
+
+  const totales = await leer('charts', 'Ventas_reales_totales_7.yaml');
+  assert.match(totales, /Sin ventas en este período/, 'estado vacío del patrón compartido');
+  assert.doesNotMatch(`${dataset}${tablero}${totales}`, /mercado/i, 'sin Mercado Libre');
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  const registrados = reportes.filter((r) => r.dashboard_slug === 'rentabilidad-ventas-reales');
+  assert.equal(registrados.length, 1, 'registro único (idempotente)');
+  assert.equal(registrados[0].seccion, 'rentabilidad');
+  assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
+});
+
+// F-REP-01 (FR-003): dataset, tablero «Inventario · Productos y stock» y su registro en
+// `public.reportes` con la sección `stock` (no la de `reportes`) y sin filtro por empresa.
+test('los YAML versionados de Inventario son coherentes: filtros nativos, valor total y reporte', async () => {
+  const { readdir, readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/inventario');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const archivosDataset = await readdir(path.join(raiz, 'datasets', 'Inventario_analitica'));
+  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_reposicion.yaml']);
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock.yaml');
+  assert.match(dataset, /^schema: analitica$/m, 'lee solo del esquema analitica');
+  assert.match(dataset, /^table_name: inventario_productos_stock$/m);
+  assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
+  assert.match(dataset, /^- metric_name: valor_total$/m, 'define el valor total del inventario');
+  assert.match(dataset, /SUM\(valor_ars\)/);
+  const uuidDataset = campo(dataset, 'uuid');
+
+  const tabla = await leer('charts', 'Productos_y_stock_1.yaml');
+  assert.equal(campo(tabla, 'dataset_uuid'), uuidDataset);
+  assert.match(tabla, /"query_mode": "raw"/, 'la tabla lista cada producto (sin agrupar)');
+  const valor = await leer('charts', 'Valor_total_1.yaml');
+  assert.equal(campo(valor, 'dataset_uuid'), uuidDataset);
+  assert.match(valor, /"metric": "valor_total"/);
+
+  const tablero = await leer('dashboards', 'Productos_y_stock_1.yaml');
+  assert.equal(campo(tablero, 'slug'), 'inventario-productos-stock');
+  assert.ok(tablero.includes(campo(tabla, 'uuid')) && tablero.includes(campo(valor, 'uuid')), 'el tablero incluye los dos gráficos');
+  for (const columna of ['producto_nombre', 'sku', 'categoria', 'estado_texto']) {
+    assert.ok(tablero.includes(`"column": {"name": "${columna}"}`), `filtro nativo sobre ${columna}`);
+  }
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  assert.deepEqual(reportes.map((r) => r.dashboard_slug), ['inventario-productos-stock', 'inventario-reposicion']);
+  for (const reporte of reportes) {
+    assert.equal(reporte.seccion, 'stock');
+    assert.equal(reporte.filtro_empresa, false);
+    assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
+});
+
+// F-REP-02 (FR-005): dataset de reposición, tablero «Inventario · Reposición» ordenado por severidad
+// y con filtros nativos de producto/SKU, categoría, estado y proveedor.
+test('los YAML versionados de Reposición son coherentes: orden por severidad y filtros nativos', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/inventario');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_reposicion.yaml');
+  assert.match(dataset, /^schema: analitica$/m);
+  assert.match(dataset, /^table_name: inventario_reposicion$/m);
+  assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
+  assert.match(dataset, /^- column_name: faltante_sugerido$/m);
+
+  const tabla = await leer('charts', 'Reposicion_1.yaml');
+  assert.equal(campo(tabla, 'dataset_uuid'), campo(dataset, 'uuid'));
+  assert.match(tabla, /"query_mode": "raw"/);
+  assert.match(tabla, /"order_by_cols": \["\[\\"estado\\", true\]"/, 'primero por severidad: sin_stock antes que stock_bajo');
+
+  const tablero = await leer('dashboards', 'Reposicion_1.yaml');
+  assert.equal(campo(tablero, 'slug'), 'inventario-reposicion');
+  assert.ok(tablero.includes(campo(tabla, 'uuid')), 'el tablero incluye la tabla');
+  for (const columna of ['producto_nombre', 'sku', 'categoria', 'estado_texto', 'proveedor']) {
+    assert.ok(tablero.includes(`"column": {"name": "${columna}"}`), `filtro nativo sobre ${columna}`);
+  }
+});
+
+test('el directorio versionado de inventario se importa y registra el reporte con seccion stock', async () => {
+  const estadoFalso = estado();
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      estadoFalso.imports += 1;
+      estadoFalso.form = opciones.body;
+      return respuestaJson({});
+    }
+    if (/\/api\/v1\/dashboard\/([^/]+)\/embedded$/.test(url)) {
+      // Un uuid de embedding distinto por tablero: el reporte se identifica por él.
+      const uuidEmbebido = `${UUID_A.slice(0, -12)}${String(url.length).padStart(12, '0')}`;
+      return opciones.method === 'POST' ? respuestaJson({ result: { uuid: uuidEmbebido } }) : respuestaJson({}, 404);
+    }
+    // El importador busca primero el reporte por nombre: en este paquete todavía no existe.
+    if (url.includes('/rest/v1/reportes?nombre=eq.')) return respuestaJson([]);
+    if (url.includes('/rest/v1/reportes?on_conflict=superset_dashboard_uuid')) {
+      const fila = JSON.parse(opciones.body);
+      const previa = estadoFalso.reportes.get(fila.superset_dashboard_uuid);
+      const guardada = { id: previa?.id ?? `reporte-${estadoFalso.reportes.size + 1}`, ...fila };
+      estadoFalso.reportes.set(fila.superset_dashboard_uuid, guardada);
+      return respuestaJson([guardada]);
+    }
+    if (url.includes('/rest/v1/reportes_roles_default?on_conflict=reporte_id,rol_id')) {
+      const fila = JSON.parse(opciones.body);
+      estadoFalso.roles.add(`${fila.reporte_id}|${fila.rol_id}`);
+      return respuestaJson([fila]);
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  const entorno = {
+    SUPERSET_URL: 'http://superset.local',
+    SUPERSET_USERNAME: 'import',
+    SUPERSET_PASSWORD: 'secreto',
+    SUPERSET_ANALITICA_DB_HOST: 'base.local',
+    SUPERSET_ANALITICA_DB_PASSWORD: 'clave-db',
+    SUPABASE_URL: 'http://supabase.local',
+    SUPABASE_SERVICE_ROLE_KEY: 'clave-servicio',
+    SUPERSET_REPORTE_CREADO_POR: CREADO_POR,
+  };
+  const directorio = path.resolve('infra/superset/dashboards/inventario');
+
+  const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.imports, 1);
+  assert.equal(primera.registrados.length, 2);
+  const filas = [...estadoFalso.reportes.values()];
+  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Reposición']);
+  for (const fila of filas) {
+    assert.equal(fila.seccion, 'stock', 'el reporte sigue la sección de sus datos');
+    assert.equal(fila.filtro_empresa, false);
+  }
+  assert.deepEqual(
+    JSON.parse(estadoFalso.form.get('passwords')),
+    { 'databases/Inventario_analitica.yaml': 'clave-db' },
+  );
+  const paquete = Buffer.from(await estadoFalso.form.get('formData').arrayBuffer());
+  assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
+
+  await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
+  assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
+});
+
+// El import de Superset exige la cookie de sesión que llega con el token CSRF; sin ella redirige al login y un
+// `fetch` que sigue redirecciones lo veía como éxito sin haber importado nada.
+test('importarPaquete reenvía la cookie de sesión del token CSRF al importar', async () => {
+  let cookieEnviada = null;
+  const fetchFalso = async (url, opciones = {}) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
+    if (url.endsWith('/api/v1/dashboard/import/')) {
+      cookieEnviada = opciones.headers.cookie;
+      return respuestaJson({});
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  await importarPaquete({
+    paquete: Buffer.from('zip'),
+    fetch: fetchFalso,
+    config: { supersetUrl: 'http://superset:8088', username: 'u', password: 'p' },
+  });
+  assert.equal(cookieEnviada, 'session=abc123');
+});
+
+test('importarPaquete falla si Superset redirige el import al login (no lo toma por éxito)', async () => {
+  const fetchFalso = async (url) => {
+    if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/dashboard/import/')) return new Response(null, { status: 302, headers: { location: '/login/' } });
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  await assert.rejects(
+    () => importarPaquete({
+      paquete: Buffer.from('zip'),
+      fetch: fetchFalso,
+      config: { supersetUrl: 'http://superset:8088', username: 'u', password: 'p' },
+    }),
+    /redirigió el import/,
+  );
+});
+
+test('buscarReportePorNombre pide el orden por antigüedad y, con duplicados, usa el más viejo y avisa', async () => {
+  const urls = [];
+  const avisos = [];
+  const original = console.warn;
+  console.warn = (...args) => { avisos.push(args.join(' ')); };
+  try {
+    const fetch = async (url) => {
+      urls.push(url);
+      return respuestaJson([{ id: 'viejo', superset_dashboard_uuid: 'a' }, { id: 'nuevo', superset_dashboard_uuid: 'b' }]);
+    };
+    const fila = await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch, nombre: 'Service técnico' });
+    assert.equal(fila.id, 'viejo');
+    assert.match(urls[0], /order=creado_en\.asc,id\.asc/);
+    assert.equal(avisos.length, 1);
+    assert.match(avisos[0], /2 reportes llamados «Service técnico»/);
+
+    avisos.length = 0;
+    const sola = await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch: async () => respuestaJson([{ id: 'unica' }]), nombre: 'X' });
+    assert.equal(sola.id, 'unica');
+    assert.equal(avisos.length, 0, 'con una sola fila no hay aviso');
+    assert.equal(await buscarReportePorNombre({ baseUrl: 'http://sb', cabeceras: {}, fetch: async () => respuestaJson([]), nombre: 'X' }), null);
+  } finally {
+    console.warn = original;
+  }
 });

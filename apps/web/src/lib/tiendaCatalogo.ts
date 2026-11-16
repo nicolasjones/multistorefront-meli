@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { guardarBorrador, obtenerBorrador } from './tiendaBorrador'
 
 // F-TDA-04 (MSF-312): catálogo visible y destacados de la tienda. La visibilidad efectiva, el
 // motivo de «no se muestra» y el resumen los calcula la base (migración
@@ -78,17 +79,16 @@ export async function listarCatalogoTienda(empresaId: string): Promise<CatalogoT
   }
 }
 
-// Aplica los cambios en una transacción (idempotente) y devuelve el resumen resultante.
-export async function guardarCatalogoTienda(empresaId: string, cambios: CambiosCatalogoTienda): Promise<ResumenCatalogoTienda> {
-  const { data, error } = await supabaseClient.rpc('guardar_catalogo_tienda', {
-    p_empresa: empresaId,
-    p_categorias: cambios.categorias,
-    p_productos: cambios.productos,
-  })
-  if (error) {
-    throw new Error(error.message)
-  }
-  return data as ResumenCatalogoTienda
+// «Guardar» deja los cambios en el borrador (F-TDA-06): se suman a los que ya había (lo último gana por
+// elemento) y la tienda pública no cambia hasta publicar. La visibilidad efectiva se relee con
+// `listarCatalogoTienda`, que ya superpone el borrador.
+export async function guardarCatalogoTienda(empresaId: string, cambios: CambiosCatalogoTienda): Promise<void> {
+  const actual = (await obtenerBorrador(empresaId)).catalogo
+  const categorias = new Map((actual?.categorias ?? []).map((c) => [c.id, c]))
+  const productos = new Map((actual?.productos ?? []).map((p) => [p.id, p]))
+  for (const c of cambios.categorias) categorias.set(c.id, c)
+  for (const p of cambios.productos) productos.set(p.id, p)
+  await guardarBorrador(empresaId, 'catalogo', { categorias: [...categorias.values()], productos: [...productos.values()] })
 }
 
 const formatoPrecio = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

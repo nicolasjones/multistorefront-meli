@@ -1,0 +1,31 @@
+# Specs con UI escritas antes del Principio VIII de la constitución (1.9.0,
+# «Contexto de empresa en pantallas y diálogos»): su matriz mapea lo visible
+# pero no declara la fila «Empresa activa».
+#
+# Se exceptúan SÓLO de ese requisito (no del de `## Matriz pantalla↔criterios`,
+# que gobierna `scripts/matriz-pantalla-exentas.txt`) para no reescribir
+# historial ya mergeado: son specs viejas que los PRs de épica vuelven a
+# sumar contra `main` y el CI las rechazaría por una regla que no existía
+# cuando se escribieron.
+#
+# Toda spec NUEVA debe declarar la fila «Empresa activa» (o «Empresa activa:
+# no aplica» con el motivo). No agregar líneas acá sin motivo: si la spec
+# declara la fila, se borra de esta lista.
+specs/20261018-000000-vigilancia-prototipo
+specs/20261018-070000-clientes-empresas
+specs/20261018-100000-ranking-de-clientes
+specs/20261018-180000-stock-unico-y-alertas
+specs/20261018-190000-proveedores-y-productos
+specs/20261018-220000-seleccion-determinista-pruebas
+specs/20261020-100000-service-alta-estados-y-permisos
+specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
+specs/20261020-120000-catalogo-listado-y-categorias
+specs/20261021-183246-ingreso-de-mercaderia-por-proveedor
+specs/20261022-120000-catalogo-costo-y-disponibilidad
+specs/20261112-200000-tiendas-diseno-del-prototipo
+specs/20270304-100000-tiendas-carga-infinita
+specs/20270305-100000-inicio-tablero-completo
+specs/20270305-100000-tiendas-seguimiento-bd
+specs/20270305-100000-tiendas-seguimiento-front
+specs/20270313-100000-tiendas-hallazgos-qa
+specs/20270314-100000-tiendas-fidelidad-prototipo

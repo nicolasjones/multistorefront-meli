@@ -1,10 +1,21 @@
+---
+owner: datos
+sources:
+  - specs/20270104-100000-ventas-reportes-basicos
+  - infra/superset/dashboards/consultas-reportes
+  - infra/superset/dashboards/ventas-periodo-canal
+  - infra/superset/dashboards/ventas-reportes
+---
+
 # Ventas · Reportes (épica MSF-338)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-reportes.md) · [guía de uso](producto/ventas-reportes.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la pantalla **Reportes de ventas** (`/ventas/reportes`, sección `reportes`): «Más vendidos»
 (F-VTA-22, MSF-347) y «Ranking de clientes» con exportación a Excel (F-VTA-23, MSF-358). Spec:
-[`specs/20270104-100000-ventas-reportes-basicos/`](../specs/20270104-100000-ventas-reportes-basicos/spec.md) ·
+`specs/20270104-100000-ventas-reportes-basicos/spec.md` ·
 contrato de las vistas:
-[`contracts/analitica-ventas-reportes.md`](../specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md) ·
+`contracts/analitica-ventas-reportes.md` (`specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md`) ·
 operación de los tableros: [`operar-superset.md`](./operar-superset.md).
 
 ## Qué cuenta como venta (cálculo y predicado)
@@ -32,7 +43,7 @@ Una sola fuente para las dos pestañas y para el Excel; el criterio **no se reim
 
 **Esquemas (Principio VII)**: la épica **no crea tablas**. Las vistas viven en `analitica` (superficie de
 lectura de Superset, cerrada para `anon` y `authenticated`) y las dos RPC en `public` (superficie de
-ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `public.clientes`,
+ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `dominio.clientes`,
 con su RLS por organización.
 
 ## Filtro por empresa y permisos
@@ -46,6 +57,50 @@ con su RLS por organización.
   `false`: no deja pasar filas. La lista son UUID validados, nunca texto libre del cliente.
 - **Pantalla**: el filtro «Tienda» (`FiltroEmpresa`) sigue a la empresa activa de la barra superior
   (Principio VIII); al cambiarla se recarga el tablero y se descarta la selección vieja.
+
+## Pestaña «Productos más consultados» (F-REP-04, MSF-236)
+
+Tercera pestaña de la pantalla: qué productos tocaron más «Consultar por WhatsApp» (F-CON-02) en un período,
+aunque todavía no los compren. Solo cantidades: **nunca costo ni margen** (decisión 3 de la épica MSF-192).
+
+- **Datos**: vista `analitica.consultas_producto_mas_consultado` (empresa × producto × fecha, desde
+  `dominio.intereses_whatsapp`; columnas `consultas` y `ultima_consulta`). `fecha` es el día en la zona
+  `America/Argentina/Buenos_Aires`. Sin acceso para `anon` ni `authenticated`; la lee `superset_analitica`.
+- **Tablero**: «Reportes · Productos más consultados», paquete propio
+  `infra/superset/dashboards/consultas-reportes/` (`seccion = 'reportes'`, `filtro_empresa = true`, rol por
+  defecto `administracion`). Filtros nativos: rango de fechas y empresa. Se importa con
+  `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/consultas-reportes --entorno staging|production`
+  (el workflow de despliegue lo hace después de `ventas-reportes`).
+- **Estado vacío**: `public.consultas_reportes_conteo(desde, hasta, empresa)` (`security definer`, exige
+  lectura o edición en `reportes`, acota a las empresas accesibles; `anon` sin ejecución) cuenta los toques del
+  período: «No hay consultas por WhatsApp en ese período». Se rige por `reportes` aunque la tabla exija `consultas`.
+- **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
+- **Reversión** (migración `20270202201003`, aditiva): `drop function public.consultas_reportes_conteo(date, date, uuid);`
+  y `drop view analitica.consultas_producto_mas_consultado;`.
+- **Pruebas**: `consultas_mas_consultados.test.sql`, `consultas_mas_consultados_aislamiento.test.sql`, Vitest de la pestaña
+  (`index.test.tsx`, `MasConsultados.test.tsx`) y `pnpm test:superset:importar-dashboards`.
+
+## Pestaña «Ventas por período y canal» (F-REP-05, MSF-248)
+
+Cuarta pestaña de la pantalla: cuánto se vendió por período (día, semana o mes) y por canal (empresa/tienda).
+Muestra comprobantes, unidades y facturado con IVA: **nunca costo ni margen** (decisión 3 de la épica MSF-192).
+
+- **Datos**: vista `analitica.ventas_periodo_canal` (empresa × fecha; columnas `comprobantes`, `unidades`,
+  `facturado`). Usa el mismo predicado y signo que «Más vendidos» (`analitica.comprobante_cuenta_como_facturado`,
+  `analitica.signo_comprobante`): la nota de crédito resta importe y unidades y no suma un comprobante;
+  presupuestos, borradores y anuladas no cuentan. `facturado` es `total_con_iva`, el número del listado y de la
+  exportación de comprobantes. Sin acceso para `anon` ni `authenticated`; la lee `superset_analitica`.
+- **Canal**: la tienda de la empresa. Mercado Libre (MSF-123) no existe todavía: no hay columna ni serie para ese
+  canal; cuando llegue, sus ventas se suman sin cambiar el reporte.
+- **Tablero**: «Reportes · Ventas por período y canal», paquete propio `infra/superset/dashboards/ventas-periodo-canal/`
+  (`seccion = 'reportes'`, `filtro_empresa = true`, rol por defecto `administracion`). Barras apiladas por canal y
+  tabla por canal; filtros nativos de rango de fechas, empresa y «Agrupar por» (día, semana o mes). Se importa con
+  `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/ventas-periodo-canal --entorno staging|production`.
+- **Estado vacío**: reutiliza `public.ventas_reportes_conteo` (sin RPC nueva): «No hay ventas en ese período».
+- **Pantalla**: reutiliza `TableroReporte` y `FiltrosPeriodo`; sigue a la empresa activa (Principio VIII).
+- **Reversión** (migración `20270202201004`, aditiva): `drop view analitica.ventas_periodo_canal;`.
+- **Pruebas**: `ventas_periodo_canal.test.sql`, `ventas_periodo_canal_aislamiento.test.sql`, Vitest de la pestaña
+  (`index.test.tsx`, `VentasPeriodoCanal.test.tsx`) y `pnpm test:superset:importar-dashboards`.
 
 ## Importación de tableros
 
@@ -73,7 +128,7 @@ Verificada con `supabase/tests/database/ventas_reportes_superficie.test.sql` (pg
 |---|---|
 | `anon` | Sin `USAGE` sobre `analitica`, sin `SELECT` en las vistas y sin `EXECUTE` en las dos RPC |
 | `authenticated` | Sin `USAGE` ni `SELECT` sobre `analitica`; lee solo por las RPC (autorizan adentro) |
-| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `public.clientes` |
+| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `dominio.clientes` |
 | RPC `security definer` | `search_path` fijo (`''`), `revoke … from public, anon`, `grant execute … to authenticated`; autorización explícita adentro |
 | Token por empresa | `organizacion_id` + `empresa_id IN (…)` forzados en el servidor (`emitir-acceso-reporte`) |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` sigue verde |
@@ -96,3 +151,7 @@ facturación negativa para clientes con solo notas de crédito, «último compra
 épica (12 h contra la suma nominal de 16 h) y prioridad en el roadmap de diciembre. Además hay que
 **verificar en un Superset real** que los filtros nativos lleguen preseleccionados y que la barra de
 participación se pinte (no hay Superset en desarrollo).
+
+## Enlace desde Inicio (MSF-820)
+
+Reportes de ventas lee `?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` al abrir y, si el rango no es válido, usa el atajo inicial. Inicio enlaza con ese período **solo a quien tiene la sección `reportes`**; Reportes sigue a la empresa activa y no admite tienda ni depósito por URL. Ver [`inicio-y-alertas.md`](./inicio-y-alertas.md).

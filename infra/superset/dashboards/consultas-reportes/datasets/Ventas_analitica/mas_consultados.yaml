@@ -1,0 +1,173 @@
+# Dataset sobre la vista `analitica.consultas_producto_mas_consultado` (F-REP-04, FR-010/FR-011;
+# contrato: specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/rentabilidad-real-y-reportes.md).
+#
+# Grano de la vista: una fila por empresa × producto × fecha. El TABLERO agrupa por producto (nombre +
+# SKU, único por organización: no se muestra ningún identificador técnico) y suma; los filtros nativos
+# (rango de fechas y empresa) se aplican sobre la fila de la vista y recién después se agrega.
+#
+# `organizacion_id` y `empresa_id` son las columnas sobre las que el guest token fuerza la cláusula
+# `rls`. La vista NO tiene costo ni margen: el reporte muestra solo cantidades.
+table_name: consultas_producto_mas_consultado
+main_dttm_col: fecha
+description: 'Productos más consultados por WhatsApp (F-REP-04): cantidad de consultas y última consulta por producto en el período.'
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: analitica
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: f2a18de9-ca73-462b-ba49-f33b51bb764a
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: posicion
+  verbose_name: '#'
+  metric_type: null
+  expression: ROW_NUMBER() OVER (ORDER BY SUM(consultas) DESC, producto_nombre, sku)
+  description: 'Posición en el ranking por consultas; el desempate por nombre y SKU deja el número estable entre corridas.'
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: consultas_total
+  verbose_name: Consultas
+  metric_type: null
+  expression: SUM(consultas)
+  description: 'Toques en «Consultar por WhatsApp» del producto en el período.'
+  d3format: ',d'
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: ultima_consulta_max
+  verbose_name: Última consulta
+  metric_type: null
+  expression: MAX(ultima_consulta)
+  description: 'Fecha y hora de la última consulta del producto en el período.'
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: organizacion_id
+  verbose_name: Organización
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Organización dueña de la fila; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_id
+  verbose_name: Empresa (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Empresa de la consulta; el token de Superset filtra por esta columna.'
+  python_date_format: null
+  extra: {}
+- column_name: empresa_nombre
+  verbose_name: Empresa
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Nombre de la tienda; es la columna del filtro nativo de empresa.'
+  python_date_format: null
+  extra: {}
+- column_name: producto_id
+  verbose_name: Producto (id)
+  is_dttm: false
+  is_active: true
+  type: UUID
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: producto_nombre
+  verbose_name: Producto
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'Nombre del producto; el tablero agrupa por nombre + SKU (una fila por producto).'
+  python_date_format: null
+  extra: {}
+- column_name: sku
+  verbose_name: SKU
+  is_dttm: false
+  is_active: true
+  type: TEXT
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: 'SKU del producto (único por organización): junto con el nombre identifica un producto sin mostrar su id.'
+  python_date_format: null
+  extra: {}
+- column_name: consultas
+  verbose_name: Consultas (por fila)
+  is_dttm: false
+  is_active: true
+  type: BIGINT
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Consultas de la fila (empresa × producto × fecha); el tablero las suma.'
+  python_date_format: null
+  extra: {}
+- column_name: ultima_consulta
+  verbose_name: Última consulta (por fila)
+  is_dttm: true
+  is_active: true
+  type: TIMESTAMP WITH TIME ZONE
+  advanced_data_type: null
+  groupby: false
+  filterable: false
+  expression: null
+  description: 'Instante del último toque de la fila; el tablero toma el máximo.'
+  python_date_format: null
+  extra: {}
+- column_name: fecha
+  verbose_name: Fecha
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: false
+  filterable: true
+  expression: null
+  description: 'Día de la consulta en la zona de la organización; es la columna del filtro nativo de rango de fechas.'
+  python_date_format: '%Y-%m-%d'
+  extra: {}
+version: 1.0.0
+database_uuid: 638bb2f5-2df0-48f8-bef2-533f8ec3c569
