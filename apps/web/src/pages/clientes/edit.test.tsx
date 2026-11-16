@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   useEmpresasAccesibles: vi.fn(),
   guardar: vi.fn(),
   aplicarCuentaWeb: vi.fn(),
+  esAdministrador: vi.fn(),
+  asignarLista: vi.fn(),
+  leerLista: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({
@@ -19,8 +22,22 @@ vi.mock('@refinedev/core', () => ({
   useUpdate: () => ({ mutateAsync: mocks.mutateAsync }),
 }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
-vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdministrador(), isLoading: false }) }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useListasPreciosActivas', () => ({
+  useListasPreciosActivas: () => ({
+    listas: [{ id: 'l-1', nombre: 'Revendedores', descripcion: null, ajustePct: -20, archivadaEn: null, clientesAsignados: 0, actualizadoEn: 't' }],
+    cargando: false,
+    hayError: false,
+  }),
+}))
+vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/listasPrecios', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/listasPrecios')>()),
+  asignarListaPrecios: mocks.asignarLista,
+  leerListaDeCliente: mocks.leerLista,
+}))
+vi.mock('../../hooks/useBanderaListasPrecios', () => ({ useBanderaListasPrecios: () => ({ activa: true, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
   useEmpresasDeCliente: mocks.useEmpresasDeCliente,
   useGuardarEmpresasDeCliente: () => ({ guardar: mocks.guardar }),
@@ -39,7 +56,7 @@ import { ClienteEdit } from './edit'
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: null, correo: null,
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null,
-  archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, created_at: '2026-10-16T10:00:00Z',
+  archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, acepta_whatsapp: false, created_at: '2026-10-16T10:00:00Z',
 }
 
 const abrir = () =>
@@ -66,6 +83,9 @@ describe('ClienteEdit', () => {
     mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: false, refetch: vi.fn() })
     mocks.useEmpresasAccesibles.mockReturnValue({ empresas: [], empresaActivaId: null, isLoading: false, isError: false, refetch: vi.fn() })
     mocks.aplicarCuentaWeb.mockResolvedValue({ creadas: 0, errores: 0 })
+    mocks.esAdministrador.mockReturnValue(false)
+    mocks.asignarLista.mockResolvedValue(undefined)
+    mocks.leerLista.mockResolvedValue('l-1')
     conCliente({})
   })
 
@@ -104,6 +124,14 @@ describe('ClienteEdit', () => {
     expect(screen.queryByLabelText('Tipo de cliente')).not.toBeInTheDocument()
   })
 
+  it('si falla la lectura de las cuentas web, no ofrece el formulario ni guarda nada', () => {
+    mocks.useCuentasWebDeCliente.mockReturnValue({ cuentas: [], isLoading: false, isError: true, refetch: vi.fn() })
+    abrir()
+    expect(screen.getByText('No pudimos cargar la cuenta web del cliente.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
+    expect(mocks.mutateAsync).not.toHaveBeenCalled()
+  })
+
   it('preselecciona las tiendas del cliente y guarda la selección elegida', async () => {
     mocks.useEmpresas.mockReturnValue({ empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], isLoading: false, isError: false })
     mocks.useEmpresasDeCliente.mockReturnValue({ empresas: ['e-1'], isLoading: false, isError: false, refetch: vi.fn() })
@@ -111,5 +139,87 @@ describe('ClienteEdit', () => {
     expect(screen.getByRole('checkbox', { name: 'San Javucho' })).toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() => expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1']))
+  })
+
+  it('el Administrador asigna la lista de precios por RPC (no por la tabla) antes de guardar la ficha', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.asignarLista).toHaveBeenCalledWith({}, 'c-1', 'l-1'))
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled())
+    expect(mocks.mutateAsync.mock.calls[0][0].values).not.toHaveProperty('lista_precio_id')
+    expect(mocks.asignarLista.mock.invocationCallOrder[0]).toBeLessThan(mocks.mutateAsync.mock.invocationCallOrder[0])
+  })
+
+  it('si la base rechaza la asignación no guarda la ficha y muestra el error', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    mocks.asignarLista.mockRejectedValue({ code: '55000', message: 'desactivadas' })
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('No se guardó el cliente.')).toBeInTheDocument()
+    expect(mocks.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('si falla el guardado de la ficha después de asignar la lista, la lista vuelve a la anterior', async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    conCliente({ lista_precio_id: 'l-0' })
+    mocks.mutateAsync.mockRejectedValue(new Error('falló'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('No se guardó el cliente.')).toBeInTheDocument()
+    expect(mocks.asignarLista).toHaveBeenNthCalledWith(1, {}, 'c-1', 'l-1')
+    expect(mocks.asignarLista).toHaveBeenNthCalledWith(2, {}, 'c-1', 'l-0')
+  })
+
+  const guardarConListaNueva = async () => {
+    mocks.esAdministrador.mockReturnValue(true)
+    conCliente({ lista_precio_id: 'l-0' })
+    mocks.mutateAsync.mockRejectedValue(new Error('falló'))
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: /Revendedores/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+  }
+
+  it('si la compensación también falla, lo dice y lo registra en vez de callarlo', async () => {
+    mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: 'XX000' })
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala.')).toBeInTheDocument()
+    expect(console.error).toHaveBeenCalledWith('No se pudo devolver la lista de precios a la anterior.', expect.anything(), expect.anything())
+  })
+
+  it('si la lista anterior se archivó entretanto y no se puede reasignar, da el mismo aviso', async () => {
+    mocks.asignarLista.mockResolvedValueOnce(undefined).mockRejectedValueOnce({ code: '22023', message: 'La lista está archivada' })
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y la lista quedó cambiada: revisala.')).toBeInTheDocument()
+  })
+
+  it('si otra persona cambió la lista mientras tanto, no la pisa y lo avisa', async () => {
+    mocks.leerLista.mockResolvedValue('l-7')
+    await guardarConListaNueva()
+    expect(await screen.findByText('No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.')).toBeInTheDocument()
+    expect(mocks.asignarLista).toHaveBeenCalledTimes(1)
+    expect(console.error).toHaveBeenCalledWith(
+      'La lista de precios cambió mientras se guardaba: no se restaura la anterior.',
+      { esperada: 'l-1', actual: 'l-7' },
+    )
+  })
+
+  it('quien no es Administrador ve la lista en solo lectura y nunca la asigna', async () => {
+    conCliente({ lista_precio_id: 'l-1' })
+    abrir()
+    expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveAttribute('aria-disabled', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalled())
+    expect(mocks.asignarLista).not.toHaveBeenCalled()
   })
 })

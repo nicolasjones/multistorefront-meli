@@ -34,7 +34,7 @@ formulario, historial filtrable y anulación con motivo.
 
 ## Constitution Check
 
-- **I / VII · Esquema**: `ingresos_mercaderia` y `ingresos_mercaderia_lineas` son entidades del negocio → `dominio`; `public` solo publica RPC. Se re-verifica contra las migraciones reales en el cierre (T026). ✔
+- **I / VII · Esquema**: `ingresos_mercaderia` y `ingresos_mercaderia_lineas` son entidades del negocio → `dominio`; `public` solo publica RPC. Se re-verifica contra las migraciones reales en el cierre (T022). ✔
 - **II · Requisitos y permisos**: la spec define roles (`stock` lectura/edición, `rentabilidad` para costo), fallos, auditoría y datos. ✔
 - **III · Atomicidad y consistencia**: la RPC de registro y la de anulación son transaccionales; el stock se mueve solo por la RPC de MSF-136, que bloquea la fila de existencias. La anulación de varias líneas ordena por producto para evitar deadlocks. ✔
 - **VI · Navegación y accesibilidad**: pestaña dentro de Stock, ruta `/stock/ingresos`, estados compartidos, teclado, lector de pantalla y 320/768/1440 px. ✔
@@ -213,7 +213,7 @@ el libro de movimientos), `docs/permisos-por-rol.md` (stock/rentabilidad),
 | `public.organizaciones` | `public` | ✔ plataforma |
 | `public.registro_actividad` | `public` | ✔ plataforma |
 
-Se vuelve a verificar contra las migraciones reales en el cierre (T026).
+Se vuelve a verificar contra las migraciones reales en el cierre (T022).
 
 ## Riesgos y decisiones de implementación
 
@@ -248,3 +248,22 @@ Se vuelve a verificar contra las migraciones reales en el cierre (T026).
   Local/Depósito (stock único); el historial completo y el diálogo de anulación
   no estaban dibujados y se construyeron con el sistema de diseño.
 - **Pendiente**: decisión de producto sobre F-STK-10 y merge del PR.
+
+## Re-verificación de esquema e inventario de consumidores (T022, 2026-11-03)
+
+- **Esquema real**: `ingresos_mercaderia` e `ingresos_mercaderia_lineas` se crean en
+  `dominio` (`20261021180000_ingresos_mercaderia_tablas.sql`) con RLS activa; la tabla
+  `dominio.archivo_ingresos_mercaderia` (`20261201120000`) también vive en `dominio`.
+  `public` solo publica las RPC. Coincide con la tabla de arriba.
+- **Consumidores de `dominio.productos`**: `lib/productos.ts`, `lib/reparacionItems.ts`,
+  `pages/productos/edit.tsx`, `pages/stock/{movimientos,NuevoMovimientoDialog}.tsx`,
+  `components/stock/{IngresoMercaderiaForm,HistorialIngresos,LoteStockForm}.tsx`; en BD, las
+  RPC de catálogo, stock y tienda pública.
+- **Consumidores de `dominio.proveedores`**: `lib/proveedores.ts`, `lib/cuit.ts`,
+  `pages/proveedores/show.tsx`, `pages/migracion/entidades/proveedores.ts`,
+  `components/stock/{IngresoMercaderiaForm,HistorialIngresos}.tsx`; en BD, proveedores
+  (listar, empresas), lotes y las RPC de ingreso.
+- **Consumidores de `dominio.movimientos_stock`**: `lib/stock.ts`, `hooks/useMovimientos.ts`,
+  `pages/stock/movimientos.tsx`; en BD, las RPC de stock (movimiento, lote, traslado, carga
+  inicial), despacho y comprobantes, además de registrar/anular ingreso. Esta épica no
+  altera su esquema.

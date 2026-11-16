@@ -1,3 +1,4 @@
+import { mensajeDeErrorComprobante } from './ventas'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -13,9 +14,11 @@ import {
   disponibleParaVenta,
   guardarLineasComprobante,
   hayFaltante,
+  lineaEnPromocion,
   mensajeFaltante,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   sinLinea,
   type EntradaLinea,
@@ -133,6 +136,46 @@ describe('ventasLineas · entradas y edición', () => {
   })
 })
 
+describe('ventasLineas · precio promocional (F-2, FR-015/FR-016)', () => {
+  it('una línea con precio_referencia numérico está en promoción y su rótulo es «promoción», sin escala ni descuento', () => {
+    const enPromocion = linea({ precio_unitario: 900, precio_referencia: 1000, escala: 'x1', descuento_pct: 0 })
+    expect(lineaEnPromocion(enPromocion)).toBe(true)
+    expect(rotuloEscalaLinea(enPromocion)).toBe('promoción')
+    // Aunque llegara un descuento, la promoción no lo muestra (no se aplicó).
+    expect(rotuloEscalaLinea({ ...enPromocion, descuento_pct: 5 })).toBe('promoción')
+  })
+
+  it('sin referencia (null o ausente) no hay promoción y el rótulo no cambia', () => {
+    expect(lineaEnPromocion(linea({ precio_referencia: null }))).toBe(false)
+    expect(lineaEnPromocion(linea())).toBe(false)
+    expect(rotuloEscalaLinea(linea({ precio_referencia: null }))).toBe('escala x10')
+    expect(rotuloEscalaLinea(linea({ precio_referencia: null, descuento_pct: 5 }))).toBe('escala x10 · 5 % de descuento')
+  })
+
+  it('el precio manual y las líneas sin_stock nunca se muestran en promoción', () => {
+    expect(lineaEnPromocion(linea({ precio_manual: true, precio_referencia: 1000 }))).toBe(false)
+    expect(rotuloEscalaLinea(linea({ precio_manual: true, precio_referencia: 1000 }))).toBe('precio manual')
+    expect(lineaEnPromocion(linea({ sin_stock: true, precio_referencia: 1000 }))).toBe(false)
+  })
+
+  it('mapea precio_referencia a número (o null) y descarta promocion_id si llegara', () => {
+    const [con, sin, ausente] = aLineas([
+      { id: 'a', precio_unitario: '900', precio_referencia: '1000.00', promocion_id: 'prom-1' },
+      { id: 'b', precio_unitario: '900', precio_referencia: null },
+      { id: 'c', precio_unitario: '900' },
+    ])
+    expect(con.precio_referencia).toBe(1000)
+    expect(sin.precio_referencia).toBeNull()
+    expect(ausente.precio_referencia).toBeNull()
+    expect(con).not.toHaveProperty('promocion_id')
+  })
+
+  it('al reenviar las líneas no se manda la referencia ni la promoción (el servidor las ignora y recalcula)', () => {
+    const [enviada] = aEntradas([linea({ precio_unitario: 900, precio_referencia: 1000 })])
+    expect(enviada).toEqual({ producto_id: 'p-1', cantidad: 10, deposito_id: 'd-1', precio_manual: null })
+  })
+})
+
 describe('ventasLineas · base', () => {
   beforeEach(() => {
     mocks.rpc.mockReset()
@@ -160,5 +203,49 @@ describe('ventasLineas · base', () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
     await expect(disponibleParaVenta('p-1', 'd-2')).resolves.toBeNull()
     expect(mocks.rpc).toHaveBeenCalledWith('disponible_para_venta', { p_producto_id: 'p-1', p_deposito_id: 'd-1' })
+  })
+})
+
+describe('ventasLineas · marca de la lista de precios', () => {
+  it('arma «Lista: nombre ±n %» con el porcentaje congelado', () => {
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20 }))).toBe('Lista: Revendedores \u221220 %')
+    expect(marcaListaLinea(linea({ lista_nombre: 'Recargo', lista_ajuste_pct: 12.5 }))).toBe('Lista: Recargo +12,5 %')
+    expect(marcaListaLinea(linea({ lista_nombre: 'Cero', lista_ajuste_pct: 0 }))).toBe('Lista: Cero 0 %')
+  })
+
+  it('cuando gana la promoción la marca aclara que rige la promoción', () => {
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, precio_referencia: 800 }))).toBe(
+      'Lista: Revendedores \u221220 % (rige la promoción)',
+    )
+  })
+
+  it('sin lista, con precio manual o en una línea sin stock no hay marca', () => {
+    expect(marcaListaLinea(linea())).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: null, lista_ajuste_pct: -20 }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: null }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, precio_manual: true }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, sin_stock: true }))).toBeNull()
+  })
+
+  it('aLineas convierte el porcentaje a número, conserva el nombre y descarta el identificador de la lista', () => {
+    const [convertida] = aLineas([{ ...linea(), lista_ajuste_pct: '-20.00', lista_nombre: 'Revendedores', lista_precio_id: 'lista-secreta' }])
+    expect(convertida.lista_ajuste_pct).toBe(-20)
+    expect(convertida.lista_nombre).toBe('Revendedores')
+    expect(JSON.stringify(convertida)).not.toContain('lista-secreta')
+  })
+
+  it('aLineas deja nulos la lista y su porcentaje cuando no llegan', () => {
+    const [convertida] = aLineas([linea()])
+    expect(convertida.lista_ajuste_pct).toBeNull()
+    expect(convertida.lista_nombre).toBeNull()
+  })
+})
+
+describe('ventasLineas · línea que la lista lleva a cero', () => {
+  it('el comprobante muestra el mensaje de la base con el nombre del producto', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const mensaje = 'El producto «Tornillo» (línea 2) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)'
+    expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje, hint: 'producto_id' }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
+    spy.mockRestore()
   })
 })

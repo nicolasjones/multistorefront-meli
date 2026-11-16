@@ -30,6 +30,13 @@ export default defineConfig({
     // CuentaCobroDialog, 874/875 tests OK, 1 timeout de 5s). 15s sigue acotando un
     // cuelgue real, pero elimina el falso rojo que obligaba a re-ejecutar el shard.
     testTimeout: 15000,
+    // Con 149 archivos aislados (un worker cada uno) y runners lentos, un `console.*` emitido justo cuando
+    // el worker se cierra deja pendiente el RPC `onUserConsoleLog` y vitest termina con
+    // `EnvironmentTeardownError: Closing rpc while "onUserConsoleLog" was pending` AUNQUE todos los tests
+    // pasen (exit 1, falso rojo que obligaba a relanzar el shard). Sin interceptar la consola, el log sale
+    // directo a la salida estándar y no hay RPC que cortar. Se pierde solo la atribución de cada línea al
+    // test que la emitió.
+    disableConsoleIntercept: true,
     // Limita la presión de procesos en Windows y evita crear un proceso fork
     // por archivo. Se conserva el aislamiento para que mocks y DOM no se
     // filtren entre pruebas.

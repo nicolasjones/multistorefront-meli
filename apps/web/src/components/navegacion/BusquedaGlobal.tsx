@@ -3,7 +3,10 @@ import SearchIcon from '@mui/icons-material/Search'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { supabaseClient } from '../../lib/supabase'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
+import { OpcionProducto } from '../base/OpcionProducto'
 import { EstadoError } from '../estados/EstadosPagina'
+import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // F-INI-03 (MSF-374): búsqueda global de productos en la barra superior.
 // Solo productos (D-4); la visibilidad por rol la impone la RLS de la RPC, no la pantalla.
@@ -17,10 +20,6 @@ const MINIMO_CARACTERES = 2
 const ESPERA_MS = 300
 const ETIQUETA = 'Buscar producto por nombre o SKU'
 
-const SOLO_LECTORES = {
-  position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap',
-} as const
-
 export function BusquedaGlobal() {
   const navigate = useNavigate()
   const [texto, setTexto] = useState('')
@@ -28,6 +27,7 @@ export function BusquedaGlobal() {
   const [cargando, setCargando] = useState(false)
   const [fallo, setFallo] = useState(false)
   const [reintento, setReintento] = useState(0)
+  const imagenes = useImagenesProductos(resultados.map((resultado) => resultado.producto_id))
 
   const consulta = texto.trim()
   const buscable = consulta.length >= MINIMO_CARACTERES
@@ -101,10 +101,7 @@ export function BusquedaGlobal() {
           const { key, ...resto } = props
           return (
             <li key={key} {...resto}>
-              <Box component="span" sx={{ display: 'flex', flexDirection: 'column' }}>
-                <span>{opcion.nombre}</span>
-                <Box component="span" sx={{ typography: 'caption', color: 'text.secondary' }}>{opcion.sku}</Box>
-              </Box>
+              <OpcionProducto nombre={opcion.nombre} sku={opcion.sku} imagen={imagenes.get(opcion.producto_id)} />
             </li>
           )
         }}

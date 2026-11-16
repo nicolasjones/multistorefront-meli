@@ -1,16 +1,26 @@
+---
+owner: producto
+sources:
+  - specs
+---
+
 # Empresas: datos generales y estado de la tienda
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/empresas.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261012-140000-empresas/` (épica MSF-138, F-EMP-01/02/04/05).
 Migraciones: `supabase/migrations/20261013120000_empresas.sql` y
 `20261013130001_empresas_updated_at.sql`.
 Pruebas: `supabase/tests/database/empresas.test.sql`, `apps/web/src/pages/empresas/{list,edit}.test.tsx`.
+Guía técnica: [Empresas: construcción interna](tecnico/empresas.md).
 
 Una **empresa** es quien vende (su precio, su tienda web y sus cuentas de Mercado Libre); el
 producto, el stock y la cotización son de la organización. Una organización puede tener **1..N**
 empresas: en el lanzamiento el primer cliente tiene dos (San Javucho y Mundo JC), pero **ningún
-código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). El aislamiento
-*entre* empresas lo agrega MSF-121; hasta entonces los usuarios de la organización ven todas las
-de su organización.
+código, consulta, constraint ni prueba asume que son exactamente dos** (FR-003). MSF-121 agrega el rol
+por empresa y la empresa activa: el selector y las secciones por empresa se acotan con
+`private.empresas_accesibles()`, mientras la lectura de `dominio.empresas` sigue siendo por organización
+(todos ven las empresas de su organización).
 
 ## Esquema y RLS (Constitución, Principio VII)
 
@@ -36,6 +46,8 @@ Políticas (migración `20261013120000`):
 
 ## Pantallas
 
+> Exportación total: `private.conjuntos_exportacion_total()` incluye `ordenes_compra` de toda la organización sin alcance por empresa (copia de respaldo); solo la ejecuta el rol de servicio `workers_orquestacion` desde el worker de exportación, nunca una persona de la app. Ver [ordenes-compra.md](ordenes-compra.md).
+
 - `/empresas` (listado): una fila (o tarjeta en pantallas angostas) por empresa con nombre, tienda
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
   muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
@@ -58,6 +70,23 @@ Políticas (migración `20261013120000`):
   `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
 - No cambia el permiso: `usePuedeEscribir()` (espejo de `private.puede_escribir()`) y las políticas de RLS siguen
   siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
+## Gestión de la tienda (MSF-147)
+
+Cada empresa tiene su tienda online resuelta por dominio. La gestión vive dentro de Empresas, en
+`/empresas/:id/tienda/:pestaña` (`identidad`, `contenido`, `catalogo`), y requiere **edición en Empresas**;
+sin ese permiso no se ve la entrada ni se accede por URL. El interruptor `activa` de la empresa es el que
+publica o pausa la tienda (F-EMP-04): con la empresa pausada o sin dominio, el visitante ve «Volvemos
+pronto».
+
+- **Identidad visual:** colores, tipografías, logo y banners de la tienda.
+- **Contenido:** textos del banner, bienvenida, pie, aviso de ficha y botón de contacto.
+- **Catálogo visible:** qué categorías y productos se muestran y cuáles se destacan; precio y stock son de
+  lectura.
+
+La pantalla opera sobre la **empresa activa** de la barra superior (Principio VIII). Los cambios se
+aplican al guardar, sin borrador. Alcance, límites y pendientes:
+[Tienda online: dominio, identidad y vidriera](producto/tienda-dominio-e-identidad.md); detalle técnico:
+[Tienda online: dominio, identidad y catálogo visible](tecnico/tienda-dominio-e-identidad.md).
 
 ## Carga inicial (San Javucho y Mundo JC) — dato, no esquema
 
@@ -101,7 +130,9 @@ drop table if exists dominio.empresas;
 
 Deshacer la spec completa: `git revert -m 1 <merge>`.
 
-## Alta de empresas (F-EMP-03, MSF-277)
+## Alta de empresas (épica MSF-475, historia F-EMP-03 / MSF-277)
+
+**Qué resuelve y para quién:** el administrador de la organización crea una empresa nueva sin armarla de cero, opcionalmente copiando la configuración de otra empresa de su misma organización. Fuera de alcance (roadmap): importar empresas existentes (decisión abierta de la épica), copiar dominio o cuentas, y las tablas de configuración por empresa (precio, tienda web, Mercado Libre), que aún no existen.
 
 Spec: `specs/20261015-100000-alta-de-empresas/`. Migración: `supabase/migrations/20261015110000_alta_de_empresas.sql`.
 Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/components/empresas/DialogoNuevaEmpresa.test.tsx`,
@@ -135,8 +166,27 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
 - Sin E2E automatizado: el repo no tiene suite Playwright de la app (solo `infra/playwright`);
   listado, edición y pausa/reactivación están cubiertos por Vitest y pgTAP (tareas T011/T017/T021/T025
   con nota de desvío). La capacidad «E2E en CI» está en el roadmap del template (#7); la deuda de la suite de la app está trazada en **MSF-499**.
-- El aislamiento entre empresas es de MSF-121; acá todos los usuarios de la organización ven todas
-  las empresas de su organización.
+- El rol por empresa y la empresa activa son de MSF-121 ([Empresa activa](empresa-activa.md)); la RLS de
+  `dominio.empresas` sigue siendo por organización, así que todos ven las empresas de su organización.
 - Borrar una organización borra en cascada sus empresas; no hay papelera (roadmap #33).
+  La cascada completa también con **ingresos de mercadería** (cabecera, líneas, movimientos de stock, proveedores y
+  productos): sus claves `restrict` son diferibles desde MSF-844/MSF-847 (ver más abajo) y lo cubre
+  `supabase/tests/database/baja_organizacion_ingresos.test.sql` (MSF-857). Como esas claves son `deferrable initially deferred`,
+  la prueba llama a `private.confirmar_claves_diferidas()` justo después del `delete` (si no, una violación recién saltaría en el
+  COMMIT, que una prueba con rollback nunca ejecuta); se comprobó mutando (una referencia sin cascada que bloquea la baja hace
+  fallar la prueba) y la baja con ingresos de mercadería se completa de verdad. Siguen fuera de ese alcance las claves de
+  ventas, motos, cotizaciones y el resto del stock: con esos datos `delete from public.organizaciones` puede fallar por
+  clave foránea. No hay ningún flujo de producto que dé de baja una organización (ninguna pantalla la borra); el único
+  camino de código es el rollback de la Edge `crear-organizacion` (organización recién creada, sin datos). Si algún día
+  se necesita una baja real, la decisión de fondo es de producto (¿borrar o conservar el historial?) y no está tomada;
+  la recomendación técnica es una función administrativa `baja_organizacion(uuid)` que borre en orden y con prueba
+  pgTAP, no diferir más claves.
 
 La tienda online de cada empresa (dominio, identidad visual, contenido y catálogo visible) se describe en [tiendas-online.md](./tiendas-online.md).
+
+### Baja de organización: claves de reparaciones y error diferido (MSF-847, MSF-848)
+
+La clave `dominio.reparaciones.empresa_id → empresas` pasa a `deferrable initially deferred`, como las demás del alcance de la baja (MSF-844), para que la cascada no falle con 23503. Siguen fuera del alcance las claves de ventas, motos, cotizaciones y stock. Se agrega `private.confirmar_claves_diferidas()`, que fuerza la comprobación de las claves diferidas y traduce la violación a un error de negocio (P0001, «No se puede borrar: el registro está en uso por otros datos.»); una RPC que borre estas tablas debe invocarla al final de su cuerpo. Revisión de MSF-848: hoy ninguna RPC de las migraciones borra `public.organizaciones`, `dominio.empresas`, proveedores, productos, ingresos de mercadería ni reparaciones (la única baja de organización es el borrado de compensación de la función `crear-organizacion`, que recibe el error por PostgREST), así que no hay función a la que agregar la llamada; la primera RPC de baja de organización o empresa debe llamarla. Una prueba pgTAP con una reparación real (`baja_organizacion_reparaciones_real.test.sql`) comprueba que la baja de la empresa con reparaciones da P0001, que sin referencias la baja se completa y que la cascada de la organización borra las reparaciones. Migración `20270324120300`. Seguridad retroactiva de #1008: la primera versión dejaba diferidas, al terminar, todas las restricciones diferibles de la transacción (`set constraints all deferred`), incluso las `deferrable initially immediate`; `20270347000200` restaura el modo de declaración (solo vuelven a diferirse las `initially deferred`, con nombre calificado) y `baja_organizacion_confirmar_claves_modo.test.sql` lo prueba. Límite explícito: restaura el modo **declarado**, no el que tenía la sesión; si quien la llama había hecho `set constraints X immediate` sobre una `initially deferred`, X vuelve a diferirse (y una `initially immediate` puesta en `deferred` queda inmediata).
+### Aviso de formato del número de WhatsApp (MSF-743)
+
+En la ficha de empresa y en el formulario público de contacto, el campo WhatsApp avisa, sin bloquear, cuando el número no se puede normalizar para `wa.me` (`avisoFormatoWhatsapp` en `apps/web/src/lib/whatsapp.ts`): no avisa con el campo vacío, con un correo ni con un número válido. El formulario público no impide el envío con un número raro; la validación del servidor (8 a 15 dígitos) no cambia. Además, en Documentos IA, si falla la actualización del nombre de una versión, esta se marca `fallida` antes de abortar y no se invoca la indexación (MSF-750), para que no quede en `procesando`.

@@ -1,3 +1,15 @@
+---
+owner: tecnico
+sources:
+  - specs/20261018-180000-stock-unico-y-alertas
+  - supabase/migrations/20261018180000_stock_cola_eventos.sql
+  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
+  - supabase/migrations/20261018180200_cola_eventos_reclamo.sql
+  - supabase/migrations/20261018180300_cola_eventos_correcciones.sql
+  - supabase/migrations/20261018180400_cola_eventos_interno.sql
+  - supabase/migrations/20261018180500_cola_eventos_interno_revoke_service_role.sql
+---
+
 # Stock · eventos `stock.actualizado` y cola durable (F-STK-04, MSF-249)
 
 Spec: `specs/20261018-180000-stock-unico-y-alertas/` (épica MSF-231). Esta guía es el contrato contra el que se
@@ -90,7 +102,9 @@ código, para que el futuro consumidor lo trate igual. Decisión aprobada por Ni
 
 Un flow de Kestra o un worker llamará a `reclamar_eventos('stock.actualizado', n, lease)`, enviará el stock a Mercado
 Libre y resolverá cada evento con `confirmar`, `liberar` (falla transitoria) o `agotar` (falla definitiva). Los
-eventos de `agotada` se revisan a mano. Nada de eso existe todavía.
+eventos de `agotada` se revisan a mano: desde MSF-837 el flow `monitoreo-api-entregas` avisa a soporte si hay eventos de la API
+agotados, y desde MSF-836 la purga diaria borra los eventos terminados (`completada` o `agotada`) con más de 90 días y sin entregas
+vivas. Nada de eso existe todavía para un consumidor distinto de la API.
 
 ## Reversión
 

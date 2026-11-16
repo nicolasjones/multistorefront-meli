@@ -4,6 +4,8 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { renderOpcionProducto } from '../base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { supabaseClient } from '../../lib/supabase'
 import { generarClaveIdempotencia } from '../../lib/ingresos'
 import {
@@ -38,6 +40,9 @@ export function LoteStockForm({ onRegistrado }: Props) {
   const [exito, setExito] = useState<number | null>(null)
   const [clave, setClave] = useState(generarClaveIdempotencia)
   const enCurso = useRef(false)
+  // Las imágenes se piden solo mientras algún desplegable de producto está abierto (hasta 500 opciones).
+  const [desplegableAbierto, setDesplegableAbierto] = useState(false)
+  const imagenes = useImagenesProductos(desplegableAbierto ? productos.map((opcion) => opcion.id) : [])
 
   useEffect(() => {
     let vigente = true
@@ -184,6 +189,9 @@ export function LoteStockForm({ onRegistrado }: Props) {
                     value={producto}
                     loading={cargando}
                     getOptionLabel={etiquetaProducto}
+                    onOpen={() => setDesplegableAbierto(true)}
+                    onClose={() => setDesplegableAbierto(false)}
+                    renderOption={renderOpcionProducto<ProductoOpcion>(imagenes)}
                     isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
                     onChange={(_, nueva) => cambiarLinea(indice, 'producto_id', nueva?.id ?? '')}
                     noOptionsText="No hay productos activos"

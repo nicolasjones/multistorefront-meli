@@ -71,7 +71,7 @@ insert into public.usuario_empresa_activa (user_id, empresa_id) values
   ('f1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001'),
   ('f2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
@@ -548,6 +548,20 @@ select is(
   (select count(*)::int from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f1')),
   0, 'el faltante resuelto no se lista');
 
+-- F-VTA-26 (FR-008): el listado trae `aviso` y `aviso_en` y filtra con `p_aviso`; sin cola, todo «sin_avisar».
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10) where aviso = 'sin_avisar' and aviso_en is null),
+  3, 'sin avisos en la cola, los tres faltantes salen sin_avisar y sin fecha');
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10, 'avisado')),
+  0, 'el filtro avisado no trae nada sin avisos en la cola');
+select is(
+  (select count(*)::int from public.listar_faltantes(null, 1, 10, 'sin_avisar')),
+  3, 'el filtro sin_avisar trae los tres');
+select throws_ok(
+  $$select * from public.listar_faltantes(null, 1, 10, 'otro')$$,
+  '22023', null, 'un filtro de aviso inválido da 22023');
+
 -- La fila del faltante: cliente, producto, SKU, cantidad, línea, comprobante, fecha del pedido y «desde».
 select is(
   (select cliente from public.listar_faltantes(null, 1, 10) where comprobante_id = pg_temp.id_de('f5')),
@@ -697,11 +711,11 @@ select throws_ok(
 
 -- Los permisos de la RPC.
 select is(
-  has_function_privilege('authenticated', 'public.listar_faltantes(uuid, integer, integer)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.listar_faltantes(uuid, integer, integer, text)', 'EXECUTE'),
   true, 'authenticated ejecuta listar_faltantes');
 
 select is(
-  has_function_privilege('anon', 'public.listar_faltantes(uuid, integer, integer)', 'EXECUTE'),
+  has_function_privilege('anon', 'public.listar_faltantes(uuid, integer, integer, text)', 'EXECUTE'),
   false, 'anon no ejecuta listar_faltantes');
 
 -- ============================================================================

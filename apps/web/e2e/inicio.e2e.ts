@@ -2,38 +2,15 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
+import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-156 (MSF-578 · T024 · SC-001, SC-002, SC-003): la pantalla de Inicio con los tres roles y
 // con el cambio de empresa activa de la barra superior.
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la
 // service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite
 // (no entra al CI público). Ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
 const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de inicio: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
 
 async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   const r = await fetch(`${url}/rest/v1/rpc/${funcion}`, {
@@ -45,24 +22,29 @@ async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   return (await r.json()) as T
 }
 
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
+const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
+// `service_role` no tiene permisos sobre `usuarios_empresas` (su único camino de escritura es la RPC del Administrador):
+// el Administrador sembrado asigna las tiendas y los roles por tienda con su propia sesión.
+async function asignarEmpresasComoAdministrador(
+  correoAdmin: string,
+  usuarioId: string,
+  asignaciones: { empresa_id: string; rol_id: string }[],
+) {
+  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
+    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: correoAdmin, password }),
   })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
+  if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
+  const { access_token: token } = (await sesion.json()) as { access_token: string }
+  const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
+  })
+  if (!r.ok) throw new Error(`RPC asignar_empresas_usuario: ${r.status} ${await r.text()}`)
 }
 
 async function ingresar(page: Page, correo: string) {
@@ -76,7 +58,13 @@ async function ingresar(page: Page, correo: string) {
 // Las tarjetas de Inicio son <Card> con el título como <h2>: el contenido de cada una cuelga del mismo
 // <div> (el CardContent), así que se acota por tarjeta para no confundir textos repetidos (por ejemplo, el
 // aviso del dólar aparece en la tarjeta y también en la lista de alertas).
-const tarjeta = (page: Page, titulo: string) => page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+// «Stock hoy» aparece dos veces desde MSF-820: la tarjeta de alertas de stock (`TarjetaStock`, la que aquí se verifica, con su
+// enlace «Ver stock») y el bloque del tablero. El orden en el DOM cambió (hoy el tablero va después de las tarjetas), así que
+// no se elige por posición: se toma la que tiene el enlace «Ver stock», sin cambiar lo que se afirma.
+const tarjeta = (page: Page, titulo: string) => {
+  const portada = page.getByRole('heading', { name: titulo, exact: true }).locator('..')
+  return titulo === 'Stock hoy' ? portada.filter({ has: page.getByRole('link', { name: 'Ver stock' }) }) : portada.last()
+}
 const alertas = (page: Page) => page.getByRole('list', { name: 'Alertas' })
 
 type EmpresaSembrada = { id: string; nombre: string }
@@ -125,20 +113,16 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     { user_id: ids.mostrador, organizacion_id: org.id, rol_id: 'mostrador' },
     { user_id: ids.empresa, organizacion_id: org.id, rol_id: 'consulta' },
   ])
-  await rest('usuarios_empresas', [
-    { user_id: ids.consulta, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'consulta' },
-    { user_id: ids.mostrador, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'mostrador' },
-    // La misma persona con roles distintos en cada tienda: al cambiar de empresa activa cambia lo que ve.
-    { user_id: ids.empresa, empresa_id: empresaA.id, organizacion_id: org.id, rol_id: 'mostrador' },
-    { user_id: ids.empresa, empresa_id: empresaB.id, organizacion_id: org.id, rol_id: 'operador' },
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.consulta, [{ empresa_id: empresaA.id, rol_id: 'consulta' }])
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.mostrador, [{ empresa_id: empresaA.id, rol_id: 'mostrador' }])
+  // La misma persona con roles distintos en cada tienda: al cambiar de empresa activa cambia lo que ve.
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.empresa, [
+    { empresa_id: empresaA.id, rol_id: 'mostrador' },
+    { empresa_id: empresaB.id, rol_id: 'operador' },
   ])
-  // Empresa activa de cada persona: la A, para que el estado inicial sea determinista.
-  await rest('usuario_empresa_activa', [
-    { user_id: ids.administrador, empresa_id: empresaA.id },
-    { user_id: ids.consulta, empresa_id: empresaA.id },
-    { user_id: ids.mostrador, empresa_id: empresaA.id },
-    { user_id: ids.empresa, empresa_id: empresaA.id },
-  ])
+  // Empresa activa del Administrador (sin filas por empresa): la A, para que el estado inicial sea determinista. Las demás
+  // personas quedan con la primera tienda por orden alfabético (la A), que fija la propia asignación.
+  await rest('usuario_empresa_activa', [{ user_id: ids.administrador, empresa_id: empresaA.id }])
 
   // Productos: uno sin stock y otro con stock bajo (alimentan la tarjeta «Stock hoy» y sus alertas).
   const [sinStock, stockBajo] = await rest<{ id: string }>(
@@ -149,25 +133,31 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     ],
     'dominio',
   )
+  // El disparador `productos_crear_existencias` ya crea la fila de cada producto: se actualiza con upsert.
   await rest(
-    'existencias',
+    'existencias?on_conflict=producto_id',
     [
       { producto_id: sinStock.id, organizacion_id: org.id, cantidad: 0, minimo: 0 },
       { producto_id: stockBajo.id, organizacion_id: org.id, cantidad: 3, minimo: 5 },
     ],
     'dominio',
+    UPSERT_FUSIONAR,
   )
 
-  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa).
-  await rest(
-    'consultas',
-    [
-      { organizacion_id: org.id, empresa_id: empresaA.id, origen: 'formulario', nombre: 'Visitante A', contacto: 'visitante-a@example.com', mensaje: 'Consulta de la tienda A' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante B', contacto: 'visitante-b@example.com', mensaje: 'Consulta de la tienda B' },
-      { organizacion_id: org.id, empresa_id: empresaB.id, origen: 'formulario', nombre: 'Visitante C', contacto: 'visitante-c@example.com', mensaje: 'otra consulta de la tienda B' },
-    ],
-    'dominio',
-  )
+  // Consultas nuevas: una en la tienda A y dos en la B (el número cambia con la empresa activa). `service_role` solo lee
+  // `dominio.consultas`: entran como las de la tienda, por la RPC pública y el dominio de cada una.
+  const hosts = [`inicio-a-${sufijo}.localhost`, `inicio-b-${sufijo}.localhost`]
+  await rest('tiendas', [
+    { organizacion_id: org.id, empresa_id: empresaA.id, dominio: hosts[0] },
+    { organizacion_id: org.id, empresa_id: empresaB.id, dominio: hosts[1] },
+  ], 'dominio')
+  for (const [host, nombre, contacto, mensaje] of [
+    [hosts[0], 'Visitante A', 'visitante-a@example.com', 'Consulta de la tienda A'],
+    [hosts[1], 'Visitante B', 'visitante-b@example.com', 'Consulta de la tienda B'],
+    [hosts[1], 'Visitante C', 'visitante-c@example.com', 'otra consulta de la tienda B'],
+  ]) {
+    await crearConsulta(host, { nombre, contacto, mensaje })
+  }
 
   // Alertas: las calcula la base (service_role). Con esto la lista de Inicio tiene de dónde leer.
   await rpc('recalcular_alertas_inicio', { p_organizacion: org.id })
@@ -176,11 +166,9 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
 }
 
 async function limpiar(datos: Sembrado) {
-  await borrar(`registro_actividad?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
-  await borrar(`usuarios_empresas?organizacion_id=eq.${datos.orgId}`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`consultas?organizacion_id=eq.${datos.orgId}`, 'dominio')
+  await borrar(`tiendas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`alertas_inicio?organizacion_id=eq.${datos.orgId}`, 'dominio')
@@ -229,8 +217,18 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(admin.page.getByRole('link', { name: 'Nuevo comprobante' })).toBeVisible()
           await expect(admin.page.getByRole('link', { name: 'Registrar movimiento' })).toBeVisible()
           await expect(admin.page.getByRole('link', { name: 'Nuevo producto' })).toBeVisible()
-          await expect(tarjeta(admin.page, 'Dólar').getByRole('link', { name: 'Cargar ahora' })).toBeVisible()
+          await expect(tarjeta(admin.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' })).toBeVisible()
           await expect(tarjeta(admin.page, 'Tus empresas').getByRole('link', { name: 'Ver empresas' })).toBeVisible()
+        })
+        await paso(admin.page, 'Abre «Cargar dólar del día», ve el impacto antes de guardar y cancela sin guardar nada (F-INI-07)', async () => {
+          await tarjeta(admin.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' }).click()
+          const dialogo = admin.page.getByRole('dialog', { name: 'Cargar dólar del día' })
+          await expect(dialogo).toBeVisible()
+          await dialogo.getByLabel('Dólar del día (pesos por dólar)').fill('1500')
+          await expect(dialogo.getByRole('button', { name: /Aplicar y recalcular|Registrar cotización/ })).toBeEnabled()
+          await dialogo.getByRole('button', { name: 'Cancelar' }).click()
+          await expect(dialogo).toHaveCount(0)
+          await expect(alertas(admin.page).getByText('Todavía no se cargó el dólar de hoy')).toBeVisible()
         })
         await rotulo(admin.page, 'El Administrador ve las tres tarjetas, las alertas y sus accesos')
       } finally {
@@ -250,10 +248,12 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(alertas(consulta.page).getByText('1 consulta nueva sin atender')).toBeVisible()
         })
         await paso(consulta.page, 'No ve los accesos directos ni las acciones de edición', async () => {
+          // Primero espera una alerta que sí debe verse: así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(consulta.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(consulta.page.getByRole('link', { name: 'Nuevo comprobante' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Registrar movimiento' })).toHaveCount(0)
           await expect(consulta.page.getByRole('link', { name: 'Nuevo producto' })).toHaveCount(0)
-          await expect(tarjeta(consulta.page, 'Dólar').getByRole('link', { name: 'Cargar ahora' })).toHaveCount(0)
+          await expect(tarjeta(consulta.page, 'Dólar').getByRole('button', { name: 'Cargar ahora' })).toHaveCount(0)
           await expect(tarjeta(consulta.page, 'Tus empresas').getByRole('link', { name: 'Ver empresas' })).toHaveCount(0)
         })
         await rotulo(consulta.page, 'Consulta lee las tarjetas, pero no tiene acciones')
@@ -272,9 +272,11 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(tarjeta(mostrador.page, 'Dólar')).toBeVisible()
           await expect(mostrador.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
         })
-        await paso(mostrador.page, 'Tampoco ve la alerta de consultas', async () => {
+        await paso(mostrador.page, 'Tampoco ve la alerta de consultas ni la del dólar (solo lectura, CA-INI-07-7)', async () => {
+          // Primero espera una alerta que sí debe verse: así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(mostrador.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(alertas(mostrador.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
-          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toBeVisible()
+          await expect(alertas(mostrador.page).getByText('Todavía no se cargó el dólar de hoy')).toHaveCount(0)
         })
         await rotulo(mostrador.page, 'Sin permiso en Consultas: no ve su tarjeta ni su alerta')
       } finally {
@@ -302,6 +304,8 @@ test.describe('Inicio: permisos por rol y cambio de empresa (MSF-156 · MSF-578)
           await expect(sesion.page.getByRole('button', { name: new RegExp(`^Empresa activa: ${siembra.empresaA.nombre}`) })).toBeVisible()
         })
         await paso(sesion.page, 'Sin permiso en Consultas en esta tienda: no ve su tarjeta ni su alerta', async () => {
+          // Primero espera una alerta que sí debe verse (la de stock): así las ausencias de abajo se comprueban con las alertas ya cargadas.
+          await expect(alertas(sesion.page).getByText('1 producto sin stock')).toBeVisible()
           await expect(sesion.page.getByRole('heading', { name: 'Consultas nuevas', exact: true })).toHaveCount(0)
           await expect(alertas(sesion.page).getByText('1 consulta nueva sin atender')).toHaveCount(0)
         })

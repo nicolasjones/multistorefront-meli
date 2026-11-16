@@ -38,8 +38,8 @@ $$;
 -- Privilegios
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'public.cotizacion_del_dia()', 'EXECUTE'), false, 'anon no ejecuta cotizacion_del_dia');
-select is(has_function_privilege('authenticated', 'public.cotizacion_del_dia()', 'EXECUTE'), true, 'authenticated ejecuta cotizacion_del_dia');
+select is(has_function_privilege('anon', 'public.cotizacion_del_dia(uuid)', 'EXECUTE'), false, 'anon no ejecuta cotizacion_del_dia');
+select is(has_function_privilege('authenticated', 'public.cotizacion_del_dia(uuid)', 'EXECUTE'), true, 'authenticated ejecuta cotizacion_del_dia');
 
 -- ============================================================================
 -- Sin carga confirmada, y la pendiente no cuenta

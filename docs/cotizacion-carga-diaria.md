@@ -1,3 +1,12 @@
+---
+owner: tecnico
+sources:
+  - specs/20261023-120000-dolar-y-recalculo
+  - supabase/migrations/20261023140000_cotizacion_tablas.sql
+  - supabase/migrations/20261023140100_cotizacion_cargar_estado.sql
+  - supabase/migrations/20261023140500_cotizacion_aviso.sql
+---
+
 # Carga diaria de la cotización del dólar (F-PRE-02)
 
 Historia F-PRE-02 (MSF-246) de la épica MSF-116 (`specs/20261023-120000-dolar-y-recalculo/`).
@@ -7,6 +16,8 @@ la confirmación y el recálculo son F-PRE-03; el historial inmutable, F-PRE-04;
 El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 
 ## Modelo
+
+- Al abrir el diálogo se muestra una **cotización sugerida** (dólar oficial, venta) con «Usar este valor», que solo completa el campo (F-PRE-13, MSF-373; ver `docs/precios.md`). Si la fuente no responde, se carga a mano.
 
 - La cotización es **una por organización** (no depende de la empresa activa de la barra superior).
 - Se carga **a mano**, con edición en la sección `cotizacion_dolar` (hoy Administrador y Administración).
@@ -76,3 +87,7 @@ Migración posterior (exportar antes los datos): quitar las dos RPC, el disparad
 `cotizacion_pendiente_vencimiento` y la función `private.fijar_vencimiento_cotizacion`, y las tablas
 `dominio.cotizaciones` y `dominio.cotizacion_pendiente`. Quitar también la ruta, el ítem de menú y el
 recurso `cotizacion` de `SECCION_POR_RECURSO`.
+
+## Carga desde Inicio (MSF-823)
+
+La tarjeta «Dólar» de Inicio abre un diálogo propio con el impacto por tienda antes de guardar (`public.previsualizar_impacto_dolar`, solo lectura) y guarda con `public.aplicar_cotizacion`, que carga y confirma en una sola transacción con las mismas validaciones y permisos que `cargar_cotizacion` y `confirmar_cotizacion`. El diálogo de esta pantalla conserva su flujo (cargar → vista previa → confirmar), pero comparte con el de Inicio el campo del valor: un negativo ya no se descarta en silencio y muestra el mensaje de formato. Ver [`inicio-y-alertas.md`](./inicio-y-alertas.md).

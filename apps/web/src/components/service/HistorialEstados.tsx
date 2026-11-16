@@ -6,7 +6,7 @@ type Props = { eventos: EventoHistorial[]; error?: string | null; onReintentar?:
 function describir(evento: EventoHistorial): string {
   switch (evento.tipo) {
     case 'alta':
-      return `Ingresó en «${evento.estado_nuevo ?? ''}»`
+      return `Ingresó en «${evento.estado_nuevo ?? ''}»${evento.nota ? ` · ${evento.nota}` : ''}`
     case 'estado':
       return `${evento.estado_anterior ?? ''} → ${evento.estado_nuevo ?? ''}`
     case 'entrega':

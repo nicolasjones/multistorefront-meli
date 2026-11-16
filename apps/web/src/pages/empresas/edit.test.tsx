@@ -76,6 +76,16 @@ describe('EmpresaEdit', () => {
     expect(screen.getByLabelText('Moneda')).toHaveValue('ARS · Peso argentino')
   })
 
+  it('avisa el formato del WhatsApp cuando no se puede armar el enlace', async () => {
+    abrir()
+    const campo = await screen.findByLabelText('WhatsApp')
+    fireEvent.change(campo, { target: { value: '1234' } })
+    expect(screen.getByText(/No reconocemos este número/)).toBeInTheDocument()
+    expect(screen.getByText(/No reconocemos este número/)).toHaveAttribute('role', 'status')
+    fireEvent.change(campo, { target: { value: '+54 9 11 1234-5678' } })
+    expect(screen.queryByText(/No reconocemos este número/)).not.toBeInTheDocument()
+  })
+
   it('rechaza nombre vacío y correo inválido sin guardar', async () => {
     abrir()
     const nombre = await screen.findByLabelText(/nombre comercial/i)

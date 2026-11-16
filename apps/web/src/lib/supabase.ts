@@ -115,6 +115,15 @@ export const supabaseClient = createClient(supabaseUrl, supabaseKey, {
   },
 })
 
+// Cliente SIN sesión para la capa pública de la tienda que no debe depender de quién mira: no guarda ni refresca sesión
+// (nada en el almacenamiento: no pisa la del cliente ni la del panel) y siempre habla como `anon`. Hace falta para firmar
+// imágenes (`lib/imagenProducto`): en `storage.objects` de `productos-imagenes` la política de `authenticated` exige ser
+// miembro del panel (20261017120500) y la de lectura pública es solo para `anon` (20261023150200): con la sesión de un
+// cliente de la tienda (rol `authenticated`) no se podría firmar ninguna.
+export const supabaseSinSesion = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sb-tienda-sin-sesion' },
+})
+
 // La marca no debe sobrevivir a la sesión: si vence o se cierra por otra vía
 // (otra pestaña, refresh fallido), la siguiente sesión creada sin el formulario
 // (invitación, recuperación) no puede heredarla en un equipo compartido.

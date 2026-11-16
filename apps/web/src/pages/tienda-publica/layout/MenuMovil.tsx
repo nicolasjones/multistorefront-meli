@@ -2,9 +2,19 @@ import CloseIcon from '@mui/icons-material/Close'
 import MenuIcon from '@mui/icons-material/Menu'
 import { Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemText, Typography, type SxProps, type Theme } from '@mui/material'
 import { useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { useCapacidadesTienda } from '../../../hooks/useCapacidadesTienda'
+import { useContactoTienda } from '../../../hooks/useContactoTienda'
+import { useSesionCliente } from '../../../hooks/useSesionCliente'
+import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 import type { CategoriasTienda } from '../../../hooks/useCategoriasTienda'
+import { categoriasPrincipales, hayMasCategorias } from '../../../lib/tiendaCategorias'
+import { salirCliente } from '../../../lib/tiendaCuenta'
+import { LISTA_DE_PEDIDO_DISPONIBLE } from '../../../lib/tiendaCapacidades'
+import { urlPublica } from '../../../lib/tiendaIdentidad'
 import { ErrorConReintento } from '../ErrorConReintento'
+import { useIdentidadTienda } from './IdentidadTiendaContexto'
+import { LINEA_SUAVE } from './medidas'
 
 const ID_PANEL = 'menu-movil'
 const ID_TITULO = 'menu-movil-titulo'
@@ -13,14 +23,36 @@ const ID_TITULO = 'menu-movil-titulo'
 // «Inicio», «Contacto» (F-TDA-16, FR-010) y la sección «Categorías» (la actual marcada con aria-current). El Drawer de MUI es un modal:
 // atrapa el foco, lo devuelve al botón al cerrar y cierra con Esc o al tocar afuera; además se cierra al
 // navegar. Se muestra solo bajo `md`;
-// desde ahí rige el menú horizontal de escritorio.
-export default function MenuMovil({ categorias }: { categorias: CategoriasTienda }) {
+// desde ahí rige el menú horizontal de escritorio. F-CLI-20 (P-1): con cuenta activa y la función encendida suma, al final y
+// separados por una línea suave, «Mi cuenta» y «Salir» («Mi lista» cuando exista la lista de pedido, B1) (en celular el «Salir» del encabezado pasa acá).
+export default function MenuMovil({ categorias, empresaNombre = '', host = '' }: { categorias: CategoriasTienda; empresaNombre?: string; host?: string }) {
+  const contactoEstado = useContactoTienda(host, host !== '')
+  const contacto = contactoEstado.fase === 'lista' ? contactoEstado.contacto : null
+  const telefono = contacto?.whatsapp?.trim() || null
+  const correo = contacto?.correo?.trim() || null
+  const logo = urlPublica(useIdentidadTienda()?.logoRuta ?? null)
+  // MSF-825: las categorías principales (hasta 6) y «Más categorías» hacia el catálogo, no las ~190 de la base.
+  const principales = categoriasPrincipales(categorias.categorias)
   // Se guarda la ruta en la que se abrió: navegar (también con atrás/adelante) lo cierra sin efectos.
   const { pathname } = useLocation()
   const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
   const abierto = abiertoEn === pathname
+  // Sin host (vista previa del panel) no se lee la sesión ni las capacidades.
+  const sesion = useSesionCliente(host, host !== '')
+  const capacidades = useCapacidadesTienda(host, host !== '')
+  const conCuenta = sesion === 'activa' && capacidades.fase === 'lista' && capacidades.pedidos
+  const navigate = useNavigate()
+  const [saliendo, setSaliendo] = useState(false)
 
   const cerrar = () => setAbiertoEn(null)
+  const salir = () => {
+    setSaliendo(true)
+    void salirCliente().finally(() => {
+      setSaliendo(false)
+      cerrar()
+      navigate('/')
+    })
+  }
   return (
     <>
       <IconButton
@@ -29,56 +61,102 @@ export default function MenuMovil({ categorias }: { categorias: CategoriasTienda
         aria-expanded={abierto}
         aria-controls={abierto ? ID_PANEL : undefined}
         onClick={() => setAbiertoEn(pathname)}
-        sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 48, height: (tema) => tema.spacing(6) }}
+        sx={{ display: { xs: 'inline-flex', md: 'none' }, width: 36, height: 36, ml: '-4px' /* estilos-sueltos: ok */ }}
       >
-        <MenuIcon />
+        <MenuIcon sx={{ fontSize: 28 /* estilos-sueltos: ok */ }} />
       </IconButton>
       <Drawer
         open={abierto}
         onClose={cerrar}
         anchor="left"
-        slotProps={{ paper: { id: ID_PANEL, role: 'dialog', 'aria-modal': true, 'aria-labelledby': ID_TITULO, sx: { width: 'min(320px, 85vw)' } } }}
+        slotProps={{ paper: { id: ID_PANEL, role: 'dialog', 'aria-modal': true, 'aria-labelledby': ID_TITULO, sx: { width: 'min(300px, 85vw)', boxShadow: '12px 0 40px rgba(0,0,0,.25)' /* estilos-sueltos: ok */ } } }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography id={ID_TITULO} component="h2" variant="h6">Menú</Typography>
-          <IconButton aria-label="Cerrar menú" onClick={cerrar} sx={{ width: 48, height: (tema) => tema.spacing(6) }}><CloseIcon /></IconButton>
+        {/* Prototipo (`MJC_M_Home`, menú): cabecera con el logo (34 px) y la X a la derecha, 16 px de relleno y línea inferior; el
+            título «Menú» queda solo para lectores de pantalla (nombre del diálogo). */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 2, borderBottom: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
+          <Typography id={ID_TITULO} component="h2" sx={logo ? SOLO_LECTORES : { fontWeight: 700 }}>Menú</Typography>
+          {logo ? <Box component="img" src={logo} alt={empresaNombre} sx={{ display: 'block', height: 34, width: 'auto', maxWidth: '70%', objectFit: 'contain' /* estilos-sueltos: ok */ }} /> : null}
+          <IconButton aria-label="Cerrar menú" onClick={cerrar} sx={{ ml: 'auto', width: 36, height: 36 /* estilos-sueltos: ok */ }}><CloseIcon /></IconButton>
         </Box>
-        <Box component="nav" aria-label="Menú de la tienda" sx={{ overflowY: 'auto' }}>
+        <Box component="nav" aria-label="Menú de la tienda" sx={{ overflowY: 'auto', py: 1, flex: 1 }}>
           <List disablePadding>
             <ListItem disablePadding>
-              <ListItemButton component={NavLink} to="/" end onClick={cerrar} sx={estiloEntrada}>
-                <ListItemText primary="Inicio" />
-              </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton component={NavLink} to="/contacto" onClick={cerrar} sx={estiloEntrada}>
-                <ListItemText primary="Contacto" />
+              <ListItemButton component={NavLink} to="/" end onClick={cerrar} sx={estiloEntradaPrincipal}>
+                <ListItemText sx={{ m: 0 }} primary="Inicio" slotProps={{ primary: { sx: estiloTexto } }} />
               </ListItemButton>
             </ListItem>
           </List>
-          <Typography component="h3" variant="overline" color="text.secondary" sx={{ display: 'block', px: 2, pt: 2 }}>Categorías</Typography>
+          <Typography component="h3" color="text.secondary" sx={{ display: 'block', px: '20px', pt: '12px', pb: '4px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: 'inherit' /* estilos-sueltos: ok */ }}>Categorías</Typography>
           <List disablePadding aria-busy={categorias.fase === 'cargando'}>
-            {categorias.categorias.map((categoria) => (
+            {principales.map((categoria) => (
               <ListItem key={categoria.id} disablePadding>
                 <ListItemButton component={NavLink} to={`/categoria/${categoria.id}`} onClick={cerrar} sx={estiloEntrada}>
-                  <ListItemText primary={categoria.nombre} slotProps={{ primary: { sx: { overflowWrap: 'anywhere' } } }} />
+                  <ListItemText sx={{ m: 0 }} primary={categoria.nombre} slotProps={{ primary: { sx: { ...estiloTexto, overflowWrap: 'anywhere' } } }} />
                 </ListItemButton>
               </ListItem>
             ))}
+            {hayMasCategorias(categorias.categorias, principales) ? (
+              <ListItem disablePadding>
+                <ListItemButton component={NavLink} to="/catalogo" end onClick={cerrar} sx={estiloEntrada}>
+                  <ListItemText sx={{ m: 0 }} primary="Más categorías" slotProps={{ primary: { sx: estiloTexto } }} />
+                </ListItemButton>
+              </ListItem>
+            ) : null}
           </List>
+          <List disablePadding sx={{ mt: 1, borderTop: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
+            <ListItem disablePadding>
+              <ListItemButton component={NavLink} to="/contacto" onClick={cerrar} sx={estiloEntradaPrincipal}>
+                <ListItemText sx={{ m: 0 }} primary="Contacto" slotProps={{ primary: { sx: estiloTexto } }} />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          {conCuenta ? (
+            <List disablePadding aria-label="Tu cuenta" sx={{ mt: 1, borderTop: LINEA_SUAVE /* estilos-sueltos: ok */ }}>
+              <ListItem disablePadding>
+                <ListItemButton component={NavLink} to="/mi-cuenta" onClick={cerrar} sx={estiloEntradaPrincipal}>
+                  <ListItemText sx={{ m: 0 }} primary="Mi cuenta" slotProps={{ primary: { sx: estiloTexto } }} />
+                </ListItemButton>
+              </ListItem>
+              {/* «Mi lista» solo cuando exista la lista de pedido (B1): hasta entonces `/lista` daría la 404. */}
+              {LISTA_DE_PEDIDO_DISPONIBLE ? (
+                <ListItem disablePadding>
+                  <ListItemButton component={NavLink} to="/lista" onClick={cerrar} sx={estiloEntradaPrincipal}>
+                    <ListItemText sx={{ m: 0 }} primary="Mi lista" slotProps={{ primary: { sx: estiloTexto } }} />
+                  </ListItemButton>
+                </ListItem>
+              ) : null}
+              <ListItem disablePadding>
+                <ListItemButton disabled={saliendo} onClick={salir} sx={estiloEntradaPrincipal}>
+                  <ListItemText sx={{ m: 0 }} primary="Salir" slotProps={{ primary: { sx: estiloTexto } }} />
+                </ListItemButton>
+              </ListItem>
+            </List>
+          ) : null}
           {categorias.fase === 'error' ? (
             <Box sx={{ p: 2 }}>
               <ErrorConReintento titulo="No pudimos cargar las categorías." alReintentar={categorias.reintentar} />
             </Box>
           ) : null}
         </Box>
+        {/* Recuadro inferior del prototipo: superficie, 20 px de relleno, 14 px con interlineado 1,8 (nombre, teléfono y correo). */}
+        <Box data-testid="menu-movil-contacto" sx={(tema) => ({ mt: 'auto', p: '20px', bgcolor: tema.tienda?.superficie ?? 'action.hover', fontSize: 14, lineHeight: 1.8, overflowWrap: 'anywhere' /* estilos-sueltos: ok */ })}>
+          <Box component="b">{empresaNombre}</Box>
+          {telefono ? <><br /><Box component="a" href={`tel:${telefono.replace(/[^\d+]/g, '')}`} sx={{ color: 'inherit', textDecoration: 'none' }}>{telefono}</Box></> : null}
+          {correo ? <><br /><Box component="a" href={`mailto:${encodeURIComponent(correo)}`} sx={{ color: 'inherit', textDecoration: 'none' }}>{correo}</Box></> : null}
+        </Box>
       </Drawer>
     </>
   )
 }
 
-// NavLink pone aria-current="page" en la ruta actual; acá además se resalta.
+// Entradas del prototipo: 16 px; las categorías con 12 px de relleno vertical y 20 px a los lados; «Inicio» y «Contacto» en 600 y
+// con 14 px. NavLink pone aria-current="page" en la ruta actual; acá además se resalta.
+const estiloTexto = { fontSize: 16, fontWeight: 'inherit', lineHeight: 'normal' } as const // estilos-sueltos: ok
 const estiloEntrada: SxProps<Theme> = {
-  minHeight: (tema) => tema.spacing(6),
-  '&[aria-current="page"]': { fontWeight: 700, bgcolor: 'action.selected' },
+  py: '12px', px: '20px', // estilos-sueltos: ok
+  '&[aria-current="page"]': { fontWeight: 700 },
+}
+const estiloEntradaPrincipal: SxProps<Theme> = {
+  // «Inicio» y «Contacto» van en 600 también cuando son la página actual (prototipo: sin estado activo); `aria-current` lo anuncia.
+  py: '14px', px: '20px', fontWeight: 600, // estilos-sueltos: ok
 }

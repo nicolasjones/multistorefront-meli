@@ -3,6 +3,8 @@ import {
   Alert, AlertTitle, Autocomplete, Box, Button, Dialog, DialogActions, DialogContent, FormControl, FormHelperText, InputLabel,
   MenuItem, Select, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
+import { renderOpcionProducto } from '../../components/base/OpcionProducto'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { supabaseClient } from '../../lib/supabase'
 import {
   listarDepositosActivos, listarStockPorDeposito, type DepositoOpcion, type StockPorDeposito,
@@ -62,6 +64,9 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
   const [errorEnvio, setErrorEnvio] = useState<string | null>(null)
   const [registrado, setRegistrado] = useState(false)
   const [recarga, setRecarga] = useState(0)
+  // Las imágenes se piden solo mientras el desplegable de producto está abierto (hasta MAX_PRODUCTOS opciones).
+  const [desplegableAbierto, setDesplegableAbierto] = useState(false)
+  const imagenes = useImagenesProductos(desplegableAbierto ? productos.map((opcion) => opcion.id) : [])
 
   // El producto preseleccionado cambia con la fila desde la que se abre el diálogo.
   useEffect(() => {
@@ -255,6 +260,9 @@ export default function NuevoMovimientoDialog({ abierto, productoId = '', onCerr
                 options={productos}
                 value={producto}
                 getOptionLabel={etiquetaProducto}
+                onOpen={() => setDesplegableAbierto(true)}
+                onClose={() => setDesplegableAbierto(false)}
+                renderOption={renderOpcionProducto<ProductoStock>(imagenes)}
                 isOptionEqualToValue={(a, b) => a.id === b.id}
                 onChange={(_, valor) => setFormulario((previo) => ({ ...previo, producto_id: valor?.id ?? '' }))}
                 noOptionsText="No hay productos que coincidan"

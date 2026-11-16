@@ -1,4 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - apps/web/src
+  - supabase/migrations/20270114130000_reconciliar_acciones_cobros_despacho.sql
+---
+
 # Ventas · Cobros y conciliación (épica MSF-195)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-cobros-y-conciliacion.md) · [guía de uso](producto/ventas-cobros-y-conciliacion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica: los **cobros** de una factura (parciales o totales), la **conciliación** de los
 pagos que tienen cuenta de cobro y los **contrarreembolsos** que cobran los transportes al
@@ -143,14 +153,14 @@ select private.abrir_contrarreembolso(
 | Ruta | Pantalla | Historia |
 |---|---|---|
 | `/ventas/comprobantes/:id` | Detalle del comprobante: tarjeta **Cobros**, diálogo «Registrar cobro» y campo «Cuenta de cobro» (chip Sin conciliar/Conciliado + «Ir a Pagos →»). | F-VTA-12 |
-| `/ventas/pagos` | **Pagos**: tres tarjetas (Por conciliar, Conciliado, Saldo pendiente de clientes), filtro Tienda, filtro de cuentas, «Solo con saldo», tabla con el interruptor «Cobrado» y la tarjeta Cuentas de cobro. | F-VTA-13 |
+| `/ventas/pagos` | **Pagos**: tres tarjetas (Por conciliar, Conciliado, Saldo pendiente de clientes), filtro Tienda, filtro de cuentas, «Solo con saldo», tabla con el interruptor «Cobrado» y la tarjeta Cuentas de cobro. **Saldo neto (MSF-450, decisión 8):** «Saldo pendiente de clientes», la columna «Saldo» y «Solo con saldo» usan el mismo saldo que el detalle del comprobante y la cuenta corriente del cliente: `round(max(total − cobrado − notas de crédito, 0), 2)`, con las notas que no están en borrador ni anuladas (`private.comprobante_cuenta_como_facturado`); no hay saldo a favor, y una factura anulada o en borrador muestra saldo 0 y no entra en «Solo con saldo» (el pago se sigue listando) (`20270228200000` y `20270228200100`). | F-VTA-13 |
 | `/ventas/transportes` | **Transportes y contrarreembolsos**: sub-pestañas «Contrarreembolsos» (tarjetas, tabla y «Marcar cobrado») y «Terminales de retiro» (la tabla de MSF-139, sin cambios). | F-VTA-14 |
 
 Las tres pantallas respetan la **empresa activa** de la barra superior (Principio VIII): al
 cambiarla recargan todas sus consultas, reencuadran la paginación y descartan el filtro que ya no
 existe; el detalle además **cierra con aviso** el diálogo «Registrar cobro» que estuviera abierto.
 
-Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos», «Exportar»,
+Fuera de alcance de la épica (son de MSF-135/MSF-139 u otras): la pestaña «Motos» (la entrega MSF-145, `docs/ventas-motos.md`), «Exportar»,
 la importación de extractos bancarios, el reverso de un cobro mal cargado, el cobro sobre
 presupuestos y los campos de despacho (Guía, Fecha de envío, Armó, Controló, Entregó).
 
@@ -210,8 +220,9 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   escritura directa: `revoke all … from public, anon, authenticated` y `grant select` a
   `authenticated`.
 - **`anon`**: `revoke … from public, anon` y `grant execute … to authenticated` en cada RPC
-  pública; ninguna función de `private` es ejecutable por `anon` ni por `authenticated`.
-- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante`,
+  pública; ninguna función de `private` que registre o lea cobros es ejecutable por `anon` ni por `authenticated`
+  (las que sí lo son, como `private.comprobante_cuenta_como_facturado`, son predicados puros sin acceso a datos).
+- **Funciones internas**: `private.registrar_cobro_interno`, `private.saldo_comprobante` (resta las notas de crédito: ver `docs/cobros-por-comprobante.md`),
   `private.abrir_contrarreembolso`, `private.aplicar_conciliacion` y las de permiso por empresa
   son `security definer` con `search_path = ''` y **sin `grant`**: su permiso vive en la RPC
   pública que las envuelve (y tampoco la ejecuta `service_role`).
@@ -219,7 +230,7 @@ F-VTA-13 y F-VTA-14), con lectura de los pgTAP `cobros_comprobante`, `pagos_conc
   (no solo en la UI); el permiso es por empresa del dato y no por la empresa activa.
 - **Datos bancarios**: los eventos de actividad (`comprobante.cobro_registrado`,
   `pago.conciliado`, `pago.conciliacion_revertida`, `contrarreembolso.abierto`,
-  `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
+  `contrarreembolso.importe_ajustado`, `contrarreembolso.cobrado`) llevan nombre de cuenta, importe y guía, **nunca** el CBU ni el CUIT
   completos. El pgTAP de los datos de DEV lo comprueba sobre los eventos sembrados.
 - **Service-role**: sin referencias en `apps/web/src` (la clave del servidor no llega al
   navegador).
@@ -244,3 +255,7 @@ y `private.puede_accion` con su propia lista, y la última en aplicarse pisaba a
 `20270114130000_reconciliar_acciones_cobros_despacho.sql` deja las diez acciones juntas (`despachar` exige lectura;
 las demás de escritura, edición). Los tests de matriz (`permisos_por_rol`, `rol_tecnico`, `editar_matriz_permisos`)
 cuentan ahora 7 acciones propias de Ventas por rol.
+
+## Carga infinita
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Aplica a **Pagos** (de a 9; las tarjetas y las cuentas se vuelven a pedir con cada tanda, como antes con cada página; conciliar o revertir recarga desde la primera tanda) y a **Cuentas de cobro** (de a 10; «Marcar No usar», reactivar y guardar recargan desde la primera tanda). Sin miniatura: son pagos y cuentas, no productos.

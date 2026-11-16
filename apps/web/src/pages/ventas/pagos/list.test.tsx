@@ -209,12 +209,37 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
     await waitFor(() => expect(ultimoListado().soloConSaldo).toBe(true))
   })
 
-  it('la paginación dice «1–9 de N» y pasa de página en el servidor', async () => {
+  it('«Cargar más» suma la tanda siguiente a lo ya mostrado y avisa cuando no hay más', async () => {
+    const PAGO_3 = { ...PAGO, id: 'p-3', numero: '0001-00000003' }
+    mocks.listarPagos.mockImplementation(async ({ pagina }: { pagina: number }) => (
+      pagina === 1 ? { pagos: [PAGO, PAGO_APROBADO], total: 3 } : { pagos: [PAGO_3], total: 3 }
+    ))
     abrir()
-    expect(await screen.findByText('1–9 de 20')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    expect(await screen.findByRole('link', { name: '0001-00000001' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
 
-    await waitFor(() => expect(ultimoListado().pagina).toBe(2))
+    expect(await screen.findByRole('link', { name: '0001-00000003' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '0001-00000001' })).toBeInTheDocument()
+    expect(ultimoListado().pagina).toBe(2)
+    expect(await screen.findByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('cambiar el filtro «Solo con saldo» reinicia desde la primera tanda', async () => {
+    const PAGO_3 = { ...PAGO, id: 'p-3', numero: '0001-00000003' }
+    mocks.listarPagos.mockImplementation(async ({ pagina, soloConSaldo }: { pagina: number; soloConSaldo: boolean }) => {
+      if (soloConSaldo) return { pagos: [PAGO_APROBADO], total: 1 }
+      return pagina === 1 ? { pagos: [PAGO], total: 2 } : { pagos: [PAGO_3], total: 2 }
+    })
+    abrir()
+    await screen.findByRole('link', { name: '0001-00000001' })
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    await screen.findByRole('link', { name: '0001-00000003' })
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Solo con saldo' }))
+    expect(await screen.findByRole('link', { name: '0001-00000002' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '0001-00000001' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '0001-00000003' })).not.toBeInTheDocument()
+    expect(ultimoListado()).toMatchObject({ pagina: 1, soloConSaldo: true })
   })
 
   it('la empresa activa de la barra superior filtra y vuelve a la primera página', async () => {
@@ -224,7 +249,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
 
     expect(ultimoListado().empresaId).toBe('e-1')
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimoListado().pagina).toBe(2))
 
     fireEvent.click(screen.getByRole('button', { name: 'Mundo JC' }))
@@ -447,11 +472,11 @@ describe('PagosList · el cambio de empresa activa (FR-028)', () => {
     mocks.puedeConciliarPago.mockResolvedValue(true)
   })
 
-  it('al cambiar la empresa recarga las tres consultas y reencuadra la paginación', async () => {
+  it('al cambiar la empresa recarga las tres consultas y reinicia la carga infinita', async () => {
     const { rerender } = abrir()
     await waitFor(() => expect(mocks.listarPagos).toHaveBeenCalled())
 
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimoListado().pagina).toBe(2))
 
     const antes = {
@@ -631,7 +656,7 @@ describe('PagosList · teclado (F-VTA-13, SC-004)', () => {
     await waitFor(() => expect(ultimoListado().soloConSaldo).toBe(true))
   })
 
-  it('el enlace al comprobante y el botón de página siguiente son controles nativos con foco', async () => {
+  it('el enlace al comprobante y «Cargar más» son controles nativos con foco', async () => {
     abrir()
 
     const enlace = await screen.findByRole('link', { name: '0001-00000001' })
@@ -639,7 +664,7 @@ describe('PagosList · teclado (F-VTA-13, SC-004)', () => {
     enlace.focus()
     expect(document.activeElement).toBe(enlace)
 
-    const siguiente = screen.getByRole('button', { name: /next page|siguiente/i })
+    const siguiente = screen.getByRole('button', { name: 'Cargar más' })
     expect(siguiente.tagName).toBe('BUTTON')
     siguiente.focus()
     expect(document.activeElement).toBe(siguiente)

@@ -134,7 +134,7 @@ reset role;
 
 select is(
   (select jsonb_agg(k order by k) from (select jsonb_object_keys(j) k from res where clave = 'alfa_a') s),
-  '["categoria", "compatibilidad", "descripcion", "disponible", "id", "imagenes", "nombre", "precio", "sku"]'::jsonb,
+  '["categoria", "compatibilidad", "descripcion", "disponible", "id", "imagenes", "nombre", "precio", "precio_anterior", "sku"]'::jsonb,
   'columnas expuestas: la lista blanca del contrato (sin organizacion_id, costos, existencias ni proveedor)'
 );
 select is(
