@@ -69,6 +69,12 @@ lista las reparaciones del cliente (número, tienda, equipo, estado, ingreso, en
 por la empresa activa. La pestaña solo aparece con acceso a Service técnico. Detalle: [Service técnico: cobro,
 avisos y ficha del cliente](producto/service-cobro-y-avisos.md).
 
+En el bloque **«Comunicaciones»** de la ficha hay dos interruptores que se guardan al instante: **«Incluir en el correo
+masivo»** (`acepta_correo_masivo`) y **«Acepta avisos por WhatsApp»** (`acepta_whatsapp`, MSF-952). El segundo es el
+**consentimiento** del cliente para que el taller le escriba por WhatsApp: sin él, la base **no encola** ningún aviso
+por WhatsApp (responde `sin_consentimiento`). La fecha del consentimiento la guarda la base
+(`acepta_whatsapp_en`), no el panel. Ver [Service técnico: avisos al cliente](service-avisos.md).
+
 ## Alta y edición
 
 ## Relación con empresas / tiendas (F-CLI-05)

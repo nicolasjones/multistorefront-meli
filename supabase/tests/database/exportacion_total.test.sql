@@ -6,7 +6,7 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(49);
+select plan(50);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -214,6 +214,10 @@ select ok(
   and exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletter_configuracion')
   and not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletter_suscriptores' and 'confirmacion_hash' = any(columnas)),
   'RF-NL-23: los suscriptores y su configuración se exportan sin confirmacion_hash'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletters' and 'asunto' = any(columnas) and 'contenido_enviado' = any(columnas)),
+  'RF-NL-23: los borradores y envíos del newsletter se exportan'
 );
 select is(
   (select count(*)::int
