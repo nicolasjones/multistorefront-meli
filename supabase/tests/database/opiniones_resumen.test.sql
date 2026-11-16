@@ -94,11 +94,13 @@ select ok((select pg_get_indexdef('dominio.opiniones_producto_resumen_idx'::regc
 
 -- (b) La agregación del resumen no usa uniones con `cuentas_cliente`/`clientes` (las FK ya garantizan que existen):
 -- si vuelven, el resumen vuelve a leer el heap de cada opinión aceptada en cada visita a la ficha.
+-- Sin `coalesce`: si el texto de la agregación no aparece (SQL reescrito, otra función), `regexp_match` devuelve NULL y la
+-- aserción FALLA en vez de pasar en vacío (el guard no puede dejar de vigilar sin que se note).
 select is(
-  coalesce((select (regexp_match(p.prosrc, 'select round\(avg.*?;', 'ns'))[1] ilike '%join%'
-              from pg_proc p where p.oid = 'publico.opiniones_producto_por_dominio(text,uuid,timestamptz,uuid,integer)'::regprocedure), false),
+  (select (regexp_match(p.prosrc, 'select round\(avg.*?;', 'ns'))[1] ilike '%join%'
+     from pg_proc p where p.oid = 'publico.opiniones_producto_por_dominio(text,uuid,timestamptz,uuid,integer)'::regprocedure),
   false,
-  'el resumen se calcula solo sobre la tabla de opiniones (sin uniones redundantes)');
+  'el resumen se calcula solo sobre la tabla de opiniones (sin uniones redundantes; si el SQL cambia, esto falla)');
 
 -- (c) El resumen coincide exactamente con las aceptadas de ese producto en esa tienda (SC-002, CA-OPI-4).
 select pg_temp.ip(1);
