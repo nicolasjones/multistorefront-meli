@@ -25,9 +25,10 @@ portada tras 12 h) y pasa después, más la regresión del panel (12 h → cierr
 | Carga del spec E2E | `pnpm --filter @platform/web exec playwright test e2e/tienda-sesion-vencimiento.e2e.ts --list` | pass | El spec carga y lista 1 test (sintaxis e imports OK). |
 | Corrida del E2E contra la app | — | not-run | El caso necesita el stack de Supabase con el seed (la tienda tiene que resolverse por `Host`): en este entorno no hay Docker. Lo corre el job `e2e-tienda` del CI (`VITE_PANEL_HOSTS` + `E2E_TIENDA_CI=1`, donde además no se omite). |
 | Lint | `pnpm lint` | pass | Exit 0: 286 warnings y 0 errores, todos preexistentes (ninguno en los archivos de este diff). |
-| Build | `pnpm build` | pass | Exit 0: `tsc -b && vite build` → `✓ built in 2.40s`. |
+| Build | `pnpm build` | pass | Exit 0: `tsc -b && vite build` → `✓ built in 2.30s`. |
 | Calidad | `pnpm calidad` | pass | oxlint / knip (código muerto) / jscpd (duplicación) / dependency-cruiser (arquitectura) / syncpack en verde. **gitleaks no pudo correr** (sin permisos del socket de Docker en este entorno). |
-| Documentación | `pnpm docs:check` | pass | `Documentación de cambios: OK`; migraciones sin cambios en este diff (tras integrar la base, ver «Output Excerpts»). |
+| Documentación | `pnpm docs:check` | pass | `Documentación de cambios: OK` (3404 archivos) · `Migraciones OK: 675 archivo(s), 0 nuevo(s) contra origin/dokploy`. |
+| Guards de la épica | `GITHUB_BASE_REF=dokploy pnpm der:check` · `pnpm matriz:check` · `pnpm prototipo:check` · `pnpm estilos:check` · `pnpm ui:empresas:check` | pass | DER OK (la spec de la épica), matriz pantalla↔criterios OK, inventario del prototipo al día, sin estilos sueltos, filtros de empresa con los componentes compartidos. |
 
 ## Output Excerpts
 
@@ -51,13 +52,17 @@ $ pnpm lint
 
 $ pnpm build
 > tsc -b && vite build
-✓ built in 2.40s
+✓ built in 2.30s
  EXIT=0
 
 $ pnpm docs:check
 > node scripts/verificar-documentacion-cambios.mjs && node scripts/verificar-migraciones.mjs
-Documentación de cambios: OK (3351 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
-Migraciones OK (el diff de esta historia no toca migraciones).
+Documentación de cambios: OK (3404 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
+Migraciones OK: 675 archivo(s), 0 nuevo(s) contra origin/dokploy.
+
+$ GITHUB_BASE_REF=dokploy pnpm der:check
+✅ specs/20270323-100000-deuda-tecnica-lote-1-seguridad-tienda/spec.md: DER OK
+DER OK (1 spec/s).
 ```
 
 **Prueba de que el test vigila la regla** (se revierte el cambio de prueba):
@@ -75,7 +80,8 @@ Migraciones OK (el diff de esta historia no toca migraciones).
   del CI. El caso carga (`--list`) y su mecánica es la del E2E de MSF-673, que ya corría en ese job.
 - La rama venía atrasada respecto de su base (`epic/MSF-515-lote-1-seguridad-tienda`): el CI de documentación y
   el guard de migraciones fallaban por el contenido heredado de la base (la migración `20270323100100` ya
-  aplicada en `origin/dokploy` y el inventario de docs sin regenerar), no por este diff. Se integró la base.
+  aplicada en `origin/dokploy` y el inventario de docs sin regenerar), no por este diff. Se integró la base
+  (merge `c5987567`) y se regeneraron `docs/_generated` y `docs/manifest.json` (que el job de docs exige al día).
 - Con la regla aplicada, la sesión de un cliente de la tienda sigue viva hasta que se cierra la pestaña o
   hasta el tope de 30 días del servidor (riesgo aceptado, escrito en `fix.md` y en D-11 de la spec de la épica).
 - Sin cambio en el panel: FR-009 / S4 (12 h + `/login`) queda intacto y lo fijan los casos del panel del Vitest.
