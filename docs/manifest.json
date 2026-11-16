@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "27471e93a1066a9844d1c30b096c49dbb6d06fde3121ec20ec95d49b68caa7ab",
-      "sourceHash": "d30d656fcfc6d3d0ad8ed339b54ec129c2d7dc405367c5f75c1aeaef49a95693",
-      "sourceAt": "9cde8838",
+      "pageHash": "494e741d1379f287616f9855fd549b73784a51e87b30b30a1bfec3639039dfa7",
+      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
+      "sourceAt": "38aaabc6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "9cde8838"
+      "commit": "38aaabc6"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -668,14 +668,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "63f4ecf39a6e0fd0a77f4d9b540b7844313241f48b774479ae6f0c9eb43eb484",
-      "sourceHash": "3c45770ad2331608e205633e96d2bb302b93f7c438bd4862edf4cdaaf0184db2",
-      "sourceAt": "b9175f58",
+      "pageHash": "984ebcbfdd0bb7bc3feba0d16b4424e29cfd8f5d067080d324e5ccf690c4686a",
+      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
+      "sourceAt": "83c8c221",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "b9175f58"
+      "commit": "83c8c221"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
