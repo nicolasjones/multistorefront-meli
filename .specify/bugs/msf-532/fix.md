@@ -65,7 +65,7 @@ return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado
 
 ## Local Verification
 
-- Commands run: `node --test scripts/verificar-salida-correo.test.mjs` → 14/14 en verde.
+- Commands run: `node --test scripts/verificar-salida-correo.test.mjs` → 15/15 en verde.
 - Commands run: `node --test supabase/functions/solicitar-acceso/handler.test.ts` → 11/11 en verde.
 - Comprobación de que los tests vigilan la regla (mutaciones a propósito, revertidas):
   - el guion ignora `enviado` → fallan 3 tests (idempotencia, invocación concurrente, Mailpit con `enviado: false`);
@@ -73,8 +73,10 @@ return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado
   - la invocación concurrente afirma `enviado: true` → falla el test del handler;
   - el camino de éxito afirma `enviado: false` → fallan el test del handler y el del contrato.
 - Commands run: `pnpm lint` → ok (sólo warnings preexistentes del área web).
-- Commands run: `pnpm build` → ok.
+- Commands run: `pnpm build` → ok (incluye el type-check `tsc -b` de `@platform/web`).
 - Commands run: `pnpm docs:check` → ok.
+- Commands run: `node scripts/docs-drift.mjs` → 137 páginas «viejas»: 0 nuevas respecto de la base de la épica (143) y 6 arregladas; las que quedan son deuda de la línea base (el job `build` del workflow `docs` ya estaba rojo en el PR de la épica).
+- Commands run: `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack en verde; gitleaks no pudo arrancar (sin Docker en el entorno) y el diff no tiene secretos.
 - Commands run: `pnpm test:docs:check`, `pnpm test:docs:importaciones`, `pnpm test:docs:pasos-manuales`, `pnpm test:openapi`, `pnpm test:ia:sincronizar-edge-functions` → todos en verde.
 - Manual checks: la corrida real contra el SMTP del servidor self-hosted **no se ejecutó** (ver *Residual*).
 
