@@ -219,7 +219,7 @@ persona no sobreviva al cambio: `useFavoritosEntre` lo toma como parte de su cla
   costo, margen, descuento ni operador llega a la pantalla. `cuenta/favoritosSoloEnLaTienda.test.ts` vigila que el panel
   no mencione favoritos (ficha e historial del cliente) ni llame a sus RPC; el aislamiento del lado del servidor (los favoritos no tienen
   privilegios de API) lo prueba el pgTAP de la historia del SQL.
-- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica. La bandera `tienda_pedidos` es **global**: el spec la enciende en `beforeAll` y la restaura en `afterAll`; si el proceso muere entre medio, en una base local queda **encendida** (apagarla con `scripts/tienda-pedidos-dev.mjs apagar --entorno dev` o un `update` sobre `public.banderas_plataforma`).
+- **E2E** `apps/web/e2e/tienda-cuenta.e2e.ts` (job `e2e-tienda`; corrió de verdad con el SQL de #955 en la base del CI: los cuatro casos pasan): ingresar con `?volver=` → ver el historial → guardar y quitar un favorito → suspender la cuenta → «cuenta no activa»; la cuenta de una tienda no entra en la otra; 200 comprobantes por tandas de 20. En el stack del CI `service_role` no tiene privilegios sobre `dominio.clientes` ni `public.cuentas_cliente`, así que el spec da de alta los clientes y suspende la cuenta **como una persona del panel** (administrador de la organización del seed, con su sesión y RLS) y solo usa la service-role para vincular la cuenta web. Se omite si la base no tiene las RPC de la épica. La bandera `tienda_pedidos` es **global**: el spec la enciende en `beforeAll` y la restaura en `afterAll`; si el proceso muere entre medio, en una base local queda **encendida** (apagarla con `scripts/tienda-pedidos-dev.mjs apagar --entorno dev` o un `update` sobre `public.banderas_plataforma`).
 
 ## B1 · Lista de pedido sin cobro (MSF-176)
 
@@ -232,7 +232,7 @@ Todo está detrás de la bandera `tienda_pedidos` (apagada por defecto, encendid
 | Objeto | Esquema | Qué es |
 |---|---|---|
 | `dominio.consulta_items` (**nueva**) | `dominio` | Las líneas de una consulta de pedido: `descripcion` y `sku` copiados del producto, `cantidad` (1 a 9.999) y `precio_referencia` calculado por el servidor. RLS por organización, empresa accesible y sección `consultas` ≥ lectura; `select` solo para `authenticated` (sin escritura ni `anon`); FK compuestas con la consulta (misma empresa y organización) y el producto (`on delete set null (producto_id)`: la línea conserva descripción y SKU). |
-| `dominio.consultas` (alterada) | `dominio` | `origen` suma `pedido`; columna `cliente_id` (nullable, FK compuesta a `public.clientes`, `on delete set null (cliente_id)`) que fija **solo el servidor** con una cuenta activa; `consultas_mensaje_requerido` exime a `pedido` (la nota es opcional). |
+| `dominio.consultas` (alterada) | `dominio` | `origen` suma `pedido`; columna `cliente_id` (nullable, FK compuesta a `dominio.clientes`, `on delete set null (cliente_id)`) que fija **solo el servidor** con una cuenta activa; `consultas_mensaje_requerido` exime a `pedido` (la nota es opcional). |
 | `dominio.tienda_envios` (alterada) | `dominio` | `origen` suma `pedido` y `presupuesto` (el cupo por visitante es el mismo del formulario y de WhatsApp). |
 | `public.consulta_items_bandeja` (vista `security_invoker`) | `public` | Lectura de los ítems para el panel (hereda la RLS de `dominio.consulta_items`). |
 | `public.consultas_bandeja` (alterada) | `public` | Suma al final `cliente_id`, `items_cantidad`, `cliente_numero` y `cliente_nombre` (estas dos con helpers `private` acotados a la organización, como el nombre del producto). |
@@ -429,3 +429,26 @@ Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin t
 ## Pendiente de las otras historias
 
 B2 (presupuesto desde la tienda) tiene su sección arriba. «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos) ya se dibujan: B1 puso `LISTA_DE_PEDIDO_DISPONIBLE` en `true` junto con la ruta `/lista`.
+
+## Menores de las revisiones retroactivas (2026-11-15)
+
+Cierre de los menores que dejaron las revisiones de B1/B2 y de «Mi cuenta» (migración `20270430000000_tienda_menores_revision.sql`; pgTAP `tienda_menores_revision` y `precio_para_compuerta`).
+
+| # | Tema | Qué quedó |
+|---|---|---|
+| 1 | B1: cupo de llamadas | `lista_pedido_por_dominio` y `enviar_lista_pedido` ejecutan todo lo posterior al cupo en un sub-bloque con su manejador (patrón M-3 de B2). Un fallo interno ya no devuelve el cupo: el pgTAP fuerza el fallo y comprueba que el cupo se gastó y que se llega a `limite`. |
+| 2 | Catálogo por ids | `private.catalogo_tienda_efectivo_ids(empresa, ids)` es la misma definición de visibilidad que `catalogo_tienda_efectivo` acotada a los productos pedidos (sin acceso de API). La usan la lista, el envío, `mis_favoritos_por_dominio` y el alta de favoritos. El pgTAP fija la paridad fila por fila con la completa; si cambia una, hay que cambiar la otra en la misma migración. `scripts/medir-tienda-favoritos.sql` sigue sirviendo para medir. |
+| 3 | Enlaces de configuración | `FormularioPedido`, `FormularioSuscripcion` y `PieLegal` solo enlazan `http:`/`https:` con esquema explícito, o una ruta que empiece con una sola `/` (`lib/urlHttpSegura.ts`); `javascript:`, `data:`, `//host` y las URL sin esquema no se enlazan. |
+| 4 | Sin captcha | **Riesgo aceptado** (1.11 del modelo de amenazas de la spec): mitigado por el tope de 5 envíos por hora y por IP, el cupo de 20 llamadas por minuto, la idempotencia, la poda y el aviso por correo agrupado. No dispara cobros ni reservas. Se reevalúa si hay spam real. |
+| 5 | `precio_para` | Desde `20270322100000` es un envoltorio `security definer` con `execute` para `authenticated`. Lo que lo hace seguro: la compuerta `private.precio_sesion_alcanza` (ventas o empresas en lectura/edición **y** producto y empresa de la organización de la sesión; un cliente web o `anon` da `false`) y la ACL (solo dueño y `authenticated`; la compuerta y `precio_para_calculo` sin `execute` de API). El pgTAP `precio_para_compuerta` fija la tabla de verdad y la ACL. |
+| 6 | Historial | Los filtros `organizacion_id` del comprobante y de sus líneas son defensa en profundidad: las FK compuestas ya impiden filas cruzadas, así que ningún dato los distingue. Un pgTAP de catálogo comprueba que siguen en el SQL; los comentarios de las funciones lo documentan. |
+| 7 | Estado público | `estado_publico_comprobante` es un mapeo cerrado. Presupuesto: `anulada` → anulado; `pendiente` → pendiente o vencido; `aceptado`, `convertido` y los estados posteriores → aceptado; **cualquier otro valor → pendiente** (el mismo neutro que usa el front), nunca «aceptado». Nota de crédito anulada → `anulada`. El contrato del front (`EstadoPublico`) ya incluía todos los valores. |
+| 8 | «Tienda pausada → error» | Es un valor de la respuesta: la RPC contesta `{estado: error}` (sin excepción de Postgres ni error HTTP) para no revelar qué hosts existen. Quedó dicho en el comentario de la función (las migraciones aplicadas no se editan). |
+| 9 | «Sin IVA» / «con IVA» | En el detalle de una compra, el precio unitario y el subtotal de cada línea se rotulan «sin IVA»; el total del comprobante dice «con IVA». |
+
+**Deriva de dev (avisar):** dev tiene `private.categorias_visibles_efectivas` y un `private.catalogo_tienda_efectivo` que la usa (jerarquía recursiva de categorías), creados fuera de las migraciones; las migraciones definen la visibilidad de categoría con el padre directo. Los cuerpos de esta migración parten del texto de las migraciones, no de dev; el resto de las funciones que redefine coincide con dev.
+
+**Límite aceptado:** el árbol de categorías (`categorias_visibles_efectivas`) se sigue evaluando entero en cada llamada (es chico frente a los productos); ver 1.12 en la spec.
+
+**Seguimiento (riesgo aceptado):** si el tope por IP no alcanza contra spam real de pedidos, evaluar un desafío sin captcha (token firmado o prueba de trabajo) en `enviar_lista_pedido`.
+

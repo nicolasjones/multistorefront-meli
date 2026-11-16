@@ -1,6 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261202-100000-tienda-whatsapp-y-contacto
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/lib/registroWhatsapp.ts
+  - apps/web/src/lib/whatsapp.ts
+  - apps/web/src/pages/tienda-publica/rutas/contacto.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp
+  - design/pantallas/MJC_Producto.dc.html
+  - supabase/migrations/20261212110000_listar_comprobantes.sql
+---
+
 # Tienda online · Contacto con formulario (F-TDA-16, MSF-437)
 
-Épica MSF-212, spec [`specs/20261202-100000-tienda-whatsapp-y-contacto`](../specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md).
+Épica MSF-212, spec `specs/20261202-100000-tienda-whatsapp-y-contacto/spec.md`.
 El visitante abre `/contacto`, ve el WhatsApp (con horarios) y el correo de **su** tienda y envía una consulta que llega a la
 bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
 
@@ -205,3 +218,8 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   consulta llega a la bandeja de **su** empresa con origen `whatsapp` y el producto (la otra empresa no recibe
   nada), a 320 px el botón ocupa el ancho completo de la fila de acciones y una empresa sin número no muestra el
   botón. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`: ver `docs/e2e-app.md`.
+
+## Origen `newsletter` del límite por visitante (MSF-468)
+
+`dominio.tienda_envios.origen` admite también `newsletter`: el formulario de suscripción del pie, su confirmación y el contacto comparten el **mismo cupo de 5 por hora
+por visitante y tienda** (`private.registrar_envio_tienda`). Ver `docs/newsletter.md`.

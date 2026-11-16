@@ -109,7 +109,7 @@ function Cuerpo({ detalle, celular }: { detalle: Detalle; celular: boolean }) {
                 <Box sx={{ minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{linea.descripcion}</Typography>
                   {linea.codigo ? <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */, overflowWrap: 'anywhere' }}>Cód. {linea.codigo}</Typography> : null}
-                  <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>{formatearCantidad(linea.cantidad)} × {formatearImporteArs(linea.precioUnitario)}</Typography>
+                  <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>{formatearCantidad(linea.cantidad)} × {formatearImporteArs(linea.precioUnitario)} sin IVA</Typography>
                 </Box>
                 <Typography sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatearImporteArs(linea.subtotal)}</Typography>
               </Box>
@@ -123,8 +123,8 @@ function Cuerpo({ detalle, celular }: { detalle: Detalle; celular: boolean }) {
                   <TableCell>Descripción</TableCell>
                   <TableCell>Código</TableCell>
                   <TableCell align="right">Cantidad</TableCell>
-                  <TableCell align="right">Precio unitario</TableCell>
-                  <TableCell align="right">Subtotal</TableCell>
+                  <TableCell align="right">Precio unitario (sin IVA)</TableCell>
+                  <TableCell align="right">Subtotal (sin IVA)</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

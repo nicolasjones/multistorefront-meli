@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - apps/web/src/pages/stock/motivos.tsx
+---
+
 # Listas configurables
 
 Pantalla de administración `/configuracion/listas` (menú Administración → «Listas configurables», solo
@@ -28,7 +35,7 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
   del orden. Reordenar y borrar están fuera de alcance. El `orden` se calcula como `max(orden)+1` sin bloqueo: dos altas simultáneas pueden repetir `orden`; es
   cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
 
-- **Estados de sistema** (migración `20270325200000`, columna `es_sistema`): un estado que el flujo de la
+- **Estados de sistema** (migración `20270433000000`, columna `es_sistema`): un estado que el flujo de la
   consulta necesita (p. ej. el de la acción «Cerrar») no se desactiva, renombra ni borra. La guarda está en la
   base (trigger `estados_consulta_proteger_sistema`, error `23514` con mensaje en castellano que la pantalla
   muestra tal cual) y en la UI (botones deshabilitados con la explicación «Es un estado de sistema: lo

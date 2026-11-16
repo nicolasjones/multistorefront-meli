@@ -168,7 +168,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
   describe('pestaña «Productos más consultados» (F-REP-04, FR-011)', () => {
     const CONSULTADOS = { id: 'rep-mas-consultados', nombre: 'Reportes · Productos más consultados' }
 
-    it('[MSF-236:T029] monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
+    it('monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -181,7 +181,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       )
     })
 
-    it('[MSF-236:T029] un período sin consultas muestra el estado vacío propio', async () => {
+    it('un período sin consultas muestra el estado vacío propio', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS], conteo: 0 })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -189,7 +189,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-236:T029] un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -203,7 +203,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-236:T029] cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
       montar({ reportes: [REPORTE, CONSULTADOS] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
@@ -224,7 +224,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
   describe('pestaña «Ventas por período y canal» (F-REP-05, FR-013)', () => {
     const PERIODO_CANAL = { id: 'rep-ventas-periodo-canal', nombre: 'Reportes · Ventas por período y canal' }
 
-    it('[MSF-248:T037] monta su propio tablero con el período y la empresa activa, y cuenta ventas', async () => {
+    it('monta su propio tablero con el período y la empresa activa, y cuenta ventas', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -235,7 +235,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-sj' }))
     })
 
-    it('[MSF-248:T037] un período sin ventas muestra el estado vacío y no ofrece el canal Mercado Libre', async () => {
+    it('un período sin ventas muestra el estado vacío y no ofrece el canal Mercado Libre', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL], conteo: 0 })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -244,7 +244,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByText(/Mercado Libre/i)).not.toBeInTheDocument()
     })
 
-    it('[MSF-248:T037] un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
@@ -257,7 +257,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
       expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
     })
 
-    it('[MSF-248:T037] cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
       montar({ reportes: [REPORTE, PERIODO_CANAL] })
       await esperarTiendas()
       fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))

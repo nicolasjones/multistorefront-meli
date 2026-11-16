@@ -1,6 +1,13 @@
+---
+owner: tecnico
+sources:
+  - specs/20261104-103000-precios-masivos-y-promociones
+  - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
+---
+
 # Promociones de precio por empresa (F-PRE-11, MSF-439)
 
-Guía de la historia F-PRE-11 de la épica MSF-363. Requisitos: [`spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md) (FR-011 a FR-018, SC-004 a SC-006).
+Guía de la historia F-PRE-11 de la épica MSF-363. Requisitos: `specs/20261104-103000-precios-masivos-y-promociones/spec.md` (FR-011 a FR-018, SC-004 a SC-006).
 
 ## Qué hace
 
@@ -52,7 +59,7 @@ Encender `promociones_precio` enciende **a la vez** la tienda y el cobro en el l
 
 ## Cobro en el mostrador y los comprobantes (MSF-816 · F-1, migraciones `20270310100000` a `20270310100300`)
 
-Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia. Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas (F-2) y guarda de confirmar (F-3): ver `ventas-mostrador.md` y la sección de guarda de `ventas-comprobantes.md`. Pruebas de F-4: `ventas_precio_promocional_paridad.test.sql` y `ventas_precio_promocional_reportes.test.sql`.
+Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia. Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas (F-2) y guarda de confirmar (F-3): ver `ventas-mostrador.md` y la sección de guarda de `ventas-comprobantes.md`. Pruebas de F-4: `ventas_precio_promocional_paridad.test.sql` y `ventas_precio_promocional_reportes.test.sql`. Indicador «ventas con promoción» y promociones bajo el costo (MSF-934): vista `analitica.ventas_con_promocion` (migración `20270326100000`, ver [`ventas-comprobantes.md`](./ventas-comprobantes.md)); procedimiento operativo al apagar y reencender la bandera (MSF-937): ver el mismo documento.
 
 ## Contrato público (migración `20270221100004`)
 
@@ -75,3 +82,7 @@ pgTAP `supabase/tests/database/promociones_precio.test.sql`; Vitest `promociones
 ## Reversión
 
 Para apagar sin migrar: la bandera (ver arriba). Migraciones aditivas (`20270228300000`…`20270228300300` también: se revierten con el `drop` de su encabezado). Para volver atrás: migración posterior que restaure las dos funciones públicas de la tienda (`20261023150200`, `20261023150300`), elimine las RPC y la vista, y (solo si se decide perder los datos) la tabla; o `git revert -m 1` del merge de la spec. La clave `precio_anterior` extra no rompe a los clientes.
+
+## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
+
+La promoción se compara con el precio normal **que ya incluye la lista del cliente** y gana solo si es **estrictamente menor** (no se acumulan); cuando gana, la línea conserva como `precio_referencia` el precio de la lista y el comprobante marca «Lista: … (rige la promoción)». El `40001` de «Los precios cambiaron» también cubre un cambio de la lista entre guardar y confirmar. Detalle en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y [Listas de precios](listas-de-precios.md).

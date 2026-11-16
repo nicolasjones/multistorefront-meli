@@ -17,7 +17,7 @@ import { acotarFilas, TOPE_FILAS_CONSULTA } from './limites.ts'
 // ningún entorno, no solo en desarrollo local. Deno compila TS nativo,
 // así que importar el archivo fuente directo funciona sin build
 // intermedio.
-import { prepararInvocacion, sanitizarDato, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
+import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

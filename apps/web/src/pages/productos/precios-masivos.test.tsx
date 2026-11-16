@@ -88,7 +88,7 @@ describe('PreciosMasivos (F-PRE-10, FR-001, FR-010)', () => {
     expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
-  it('con la bandera apagada (por defecto) explica el motivo y no ofrece la vista previa (MSF-363, decisión 15)', async () => {
+  it('con la bandera apagada (por defecto) explica el motivo y no ofrece la vista previa (decisión 15)', async () => {
     capacidades({ preciosMasivos: false })
     abrir()
     expect(await screen.findByText(/actualización masiva de precios está desactivada/)).toBeInTheDocument()

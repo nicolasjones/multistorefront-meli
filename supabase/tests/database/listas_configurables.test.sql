@@ -166,7 +166,7 @@ select is(
 );
 
 -- ============================================================================
--- Estados de sistema (20270325200000): no se desactivan, renombran ni borran
+-- Estados de sistema (20270433000000): no se desactivan, renombran ni borran
 -- ============================================================================
 
 reset role;

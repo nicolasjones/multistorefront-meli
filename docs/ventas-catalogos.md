@@ -1,4 +1,13 @@
+---
+owner: tecnico
+sources:
+  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
+  - apps/web/src
+---
+
 # Ventas · Catálogos de cobro y envío (épica MSF-139)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-catalogos.md) · [guía de uso](producto/ventas-catalogos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica: formas de pago y de envío por empresa, cuentas de cobro y transportes de la organización.
 Spec: `specs/20261020-100000-ventas-catalogos-de-cobro-y-envio/` (FR-001…FR-020, SC-001…SC-010).

@@ -39,7 +39,7 @@ suspendidos (`usuarios_organizacion.estado`, migración `20261012140100`, F-ACC-
   activado**. Una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
   Se omiten las particiones hijas y las tablas que pertenecen a una extensión.
   No usa una lista fija: enumera el catálogo (`relkind in ('r','p')`) e incluye un
-  control positivo sobre `public.clientes` para que la prueba no pueda pasar en vacío.
+  control positivo sobre `dominio.clientes` para que la prueba no pueda pasar en vacío.
 - `supabase/tests/database/aislamiento_organizaciones.test.sql` (plan 66) verifica con
   dos organizaciones que el administrador y el miembro de la organización 1, el
   administrador de la organización 2 y el superadmin (que entra a una
@@ -57,14 +57,14 @@ La prueba de catálogo exige RLS activado, no que la política sea correcta: una
 política `using (true)` la satisface. Por eso cada tabla de dominio nueva debe
 sumar sus casos a la prueba de aislamiento (dos organizaciones, sin membresía).
 
-El control positivo de la prueba de catálogo fija `public.clientes`: un fork que
+El control positivo de la prueba de catálogo fija `dominio.clientes`: un fork que
 renombre o elimine esa tabla debe actualizar esa aserción.
 
-`public.clientes` ahora filtra también por sección (`private.nivel_seccion('clientes')`, sin DELETE), y el
+`dominio.clientes` ahora filtra también por sección (`private.nivel_seccion('clientes')`, sin DELETE), y el
 Consumidor final es una fila más de cada organización: la prueba `aislamiento_organizaciones` la cuenta, así una
 fuga de RLS sobre él se detecta. Las RPC `buscar_clientes`/`escala_de_cliente` son `security invoker` (heredan
 RLS) y `exportar_clientes` es `security definer` pero toma la organización de `private.organizacion_id()`, nunca
-de un parámetro. Ver [Clientes (producto)](clientes.md) y
+de un parámetro, y registra cada exportación en la actividad (`clientes.exportados`, MSF-508). Ver [Clientes (producto)](clientes.md) y
 [Clientes: modelo, RPC y pantallas](tecnico/clientes.md).
 
 `dominio.producto_imagenes` (F-CAT-05) filtra por `organizacion_id` y por la sección `productos`, y su FK compuesta

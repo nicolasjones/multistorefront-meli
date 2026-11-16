@@ -120,7 +120,7 @@ describe('PresupuestosList', () => {
     expect(screen.getByText('3 presupuestos')).toBeInTheDocument()
   })
 
-  it('la columna Operador dice «Tienda online (cliente)» (en texto secundario) para un presupuesto pedido desde la tienda (MSF-176, B2, FR-061)', async () => {
+  it('la columna Operador dice «Tienda online (cliente)» (en texto secundario) para un presupuesto pedido desde la tienda (B2, FR-061)', async () => {
     mocks.listarPresupuestos.mockResolvedValue(pagina([
       presupuesto(1, { operador: 'Tienda online (cliente)', cliente: 'Cliente tienda' }),
       presupuesto(2, { operador: 'Emilse' }),

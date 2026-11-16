@@ -189,7 +189,7 @@ describe('consultas y acciones', () => {
     consola.mockRestore()
   })
 
-  it('si falla la lectura de cuentas existentes no lanza: cuenta todas las tiendas como error (MSF-694)', async () => {
+  it('si falla la lectura de cuentas existentes no lanza: cuenta todas las tiendas como error', async () => {
     const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom', code: '42501' } })
     const { aplicarCuentaWebEnTiendas } = await import('./cuentasCliente')

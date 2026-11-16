@@ -52,7 +52,7 @@ select is(
 );
 select lives_ok($$select public.crear_empresa('Tienda Sur')$$, 'el administrador crea una empresa sin origen');
 
--- Actividad `empresa.creada` (20270325200100): misma transacción, detalle sin UUID, no sensible.
+-- Actividad `empresa.creada` (20270433000100): misma transacción, detalle sin UUID, no sensible.
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'empresa.creada' and detalle = 'Creó la empresa «Tienda Sur»'
      and actor_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = (select id from dominio.empresas where nombre = 'Tienda Sur')),

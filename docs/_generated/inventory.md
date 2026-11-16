@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **236**
-- Tablas en migraciones: **192**
+- Rutas del panel: **275**
+- Tablas en migraciones: **207**
 - Variables de entorno: **106**
-- Specs: **141**
-- Páginas de documentación: **314**
+- Specs: **157**
+- Páginas de documentación: **332**
 
 ## Rutas del panel
 
@@ -32,6 +32,9 @@
 - `/clientes/create`
 - `/clientes/edit`
 - `/clientes/list`
+- `/clientes/newsletter`
+- `/clientes/newsletter/DialogoNuevaCampana`
+- `/clientes/newsletter/VistaPreviaNewsletter`
 - `/clientes/show`
 - `/conexiones-oauth/list`
 - `/conexiones/create`
@@ -76,6 +79,9 @@
 - `/empresas/tienda/pestanas/publicacion/Versiones`
 - `/empresas/tienda/pestanas/publicacion/VistaPrevia`
 - `/features/administrar`
+- `/gastos`
+- `/gastos/DialogoAnularGasto`
+- `/gastos/DialogoGasto`
 - `/historial/CotizacionesTab`
 - `/historial/importar`
 - `/historial/list`
@@ -115,6 +121,8 @@
 - `/migracion/importar`
 - `/migracion/informes`
 - `/no-encontrada/PaginaNoEncontrada`
+- `/opiniones/list`
+- `/organizacion/ResumenSemanal`
 - `/organizacion/edit`
 - `/organizaciones/create`
 - `/organizaciones/list`
@@ -122,6 +130,7 @@
 - `/productos/create`
 - `/productos/edit`
 - `/productos/list`
+- `/productos/listas-de-precios`
 - `/productos/precios-masivos`
 - `/productos/promociones`
 - `/proveedores/list`
@@ -130,14 +139,17 @@
 - `/rentabilidad/ComoSeCalcula`
 - `/rentabilidad/Comparativo`
 - `/rentabilidad/CostosAdicionales`
+- `/rentabilidad/CostosFijos`
 - `/rentabilidad/DialogoCostoAdicional`
 - `/rentabilidad/DialogoUmbral`
 - `/rentabilidad/Historia`
+- `/rentabilidad/PestanasRentabilidad`
 - `/rentabilidad/PorProducto`
 - `/rentabilidad/VentasReales`
 - `/reportes/ProductosYStock`
 - `/reportes/Reposicion`
 - `/reportes/TableroInventario`
+- `/reportes/Tableros`
 - `/roles/list`
 - `/seguimiento`
 - `/service-tecnico/estados`
@@ -163,6 +175,7 @@
 - `/stock/mas-vendidos`
 - `/stock/motivos`
 - `/stock/movimientos`
+- `/stock/ordenes-compra`
 - `/stock/toma-inventario`
 - `/tienda-publica`
 - `/tienda-publica/EnrutadorTienda`
@@ -172,6 +185,7 @@
 - `/tienda-publica/PantallaError`
 - `/tienda-publica/VolvemosPronto`
 - `/tienda-publica/catalogo/EstadoVacio`
+- `/tienda-publica/catalogo/GrillaProductos`
 - `/tienda-publica/catalogo/Ordenar`
 - `/tienda-publica/catalogo/PanelFiltros`
 - `/tienda-publica/catalogo/PanelFiltrosMovil`
@@ -179,6 +193,13 @@
 - `/tienda-publica/catalogo/TarjetaProducto`
 - `/tienda-publica/contacto/DatosContacto`
 - `/tienda-publica/contacto/FormularioContacto`
+- `/tienda-publica/cuenta/AvisoTienda`
+- `/tienda-publica/cuenta/BotonFavorito`
+- `/tienda-publica/cuenta/DetalleCompra`
+- `/tienda-publica/cuenta/EstadoComprobante`
+- `/tienda-publica/cuenta/FavoritosMiCuenta`
+- `/tienda-publica/cuenta/HistorialMiCuenta`
+- `/tienda-publica/cuenta/VacioMiCuenta`
 - `/tienda-publica/disponibilidad/EtiquetaDisponibilidad`
 - `/tienda-publica/ficha/Ampliacion`
 - `/tienda-publica/ficha/BotonCompartir`
@@ -191,21 +212,39 @@
 - `/tienda-publica/layout/AvisoCookies`
 - `/tienda-publica/layout/BarraSuperior`
 - `/tienda-publica/layout/BuscadorTienda`
+- `/tienda-publica/layout/FocoVisible`
 - `/tienda-publica/layout/IdentidadTiendaContexto`
 - `/tienda-publica/layout/LayoutTienda`
 - `/tienda-publica/layout/MedicionTienda`
 - `/tienda-publica/layout/MenuCategorias`
 - `/tienda-publica/layout/MenuMovil`
+- `/tienda-publica/layout/MigasTienda`
 - `/tienda-publica/layout/PieCategorias`
 - `/tienda-publica/layout/PieInformacion`
 - `/tienda-publica/layout/PieLegal`
 - `/tienda-publica/layout/iconos`
+- `/tienda-publica/lista/BotonAgregarALista`
+- `/tienda-publica/lista/ConfirmacionPedido`
+- `/tienda-publica/lista/DialogoPresupuesto`
+- `/tienda-publica/lista/FormularioPedido`
+- `/tienda-publica/lista/IndicadorLista`
+- `/tienda-publica/lista/LineaLista`
+- `/tienda-publica/lista/PantallaLista`
+- `/tienda-publica/newsletter/FormularioSuscripcion`
+- `/tienda-publica/opiniones/EstrellasPuntuacion`
+- `/tienda-publica/opiniones/FormularioOpinion`
+- `/tienda-publica/opiniones/MisOpiniones`
+- `/tienda-publica/opiniones/OpinionesProducto`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
 - `/tienda-publica/rutas/definir-contrasena`
 - `/tienda-publica/rutas/ingresar`
 - `/tienda-publica/rutas/inicio`
+- `/tienda-publica/rutas/lista`
+- `/tienda-publica/rutas/mi-cuenta`
+- `/tienda-publica/rutas/newsletter.baja`
+- `/tienda-publica/rutas/newsletter.confirmar`
 - `/tienda-publica/rutas/pagina`
 - `/tienda-publica/rutas/producto`
 - `/tienda-publica/rutas/recuperar-contrasena`
@@ -282,6 +321,7 @@
 - `dominio.comprobantes_venta`
 - `dominio.comprobantes_venta_lineas`
 - `dominio.comprobantes_venta_numeracion`
+- `dominio.consulta_items`
 - `dominio.consultas`
 - `dominio.consultas_avisos`
 - `dominio.consultas_configuracion`
@@ -307,8 +347,10 @@
 - `dominio.existencias_variante`
 - `dominio.faltantes_avisos`
 - `dominio.faltantes_venta`
+- `dominio.favoritos_cliente`
 - `dominio.formas_envio`
 - `dominio.formas_pago`
+- `dominio.gastos`
 - `dominio.historial_cobros`
 - `dominio.historial_comprobantes`
 - `dominio.historial_cotizaciones_dolar`
@@ -317,13 +359,21 @@
 - `dominio.ingresos_mercaderia`
 - `dominio.ingresos_mercaderia_lineas`
 - `dominio.intereses_whatsapp`
+- `dominio.listas_precios`
 - `dominio.lotes_stock`
 - `dominio.modelos_equipo`
 - `dominio.motivos_movimiento`
 - `dominio.movimientos_stock`
+- `dominio.newsletter_configuracion`
+- `dominio.newsletter_suscriptores`
+- `dominio.newsletters`
+- `dominio.opiniones_producto`
+- `dominio.ordenes_compra`
+- `dominio.ordenes_compra_items`
 - `dominio.precios_empresa`
 - `dominio.precios_propios_empresa`
 - `dominio.precios_propios_historial`
+- `dominio.presupuestos_tienda`
 - `dominio.producto_costos`
 - `dominio.producto_costos_historial`
 - `dominio.producto_empresa`
@@ -379,6 +429,8 @@
 - `mensajes_chat_ia`
 - `organizaciones`
 - `organizaciones_features`
+- `private.clientes_exportaciones_entregas`
+- `private.clientes_exportaciones_ventana`
 - `private.exportaciones_actividad`
 - `programacion_ejecucion`
 - `public.alertas_monitoreo`
@@ -421,6 +473,8 @@
 - `public.proveedor_capacidad_organizacion`
 - `public.registro_actividad`
 - `public.respaldos_imagenes`
+- `public.resumen_semanal_config`
+- `public.resumen_semanal_envios`
 - `public.solicitudes_acceso`
 - `public.tienda_dns_plataforma`
 - `public.tipos_aviso`
@@ -650,6 +704,7 @@
 - `20261024-100000-ventas-impresion` — Feature Specification: Ventas y despacho · Ventas impresión
 - `20261024-120000-avisos-y-listas-configurables` — Feature Specification: Plataforma · Avisos y listas configurables
 - `20261024-120000-stock-lotes-e-inventario` — Feature Specification: Stock · Stock lotes e inventario
+- `20261024-120000-tienda-compra-y-cuentas` — Feature Specification: Tiendas online · Tienda compra y cuentas
 - `20261024-120000-tienda-inicio-busqueda-movil` — Feature Specification: Tiendas online · Tienda inicio búsqueda móvil
 - `20261024-130000-rentabilidad-comparativos-e-historia` — Feature Specification: Inicio, rentabilidad y reportes · Rentabilidad comparativos e historia
 - `20261024-130000-stock-carga-exportacion-y-avisos` — Feature Specification: Stock · Stock carga, exportación y avisos
@@ -675,8 +730,12 @@
 - `20261104-103000-precios-masivos-y-promociones` — Feature Specification: Precios y dólar · Precios masivos y promociones
 - `20261105-100000-cotizacion-sugerida-y-mayoristas` — Feature Specification: Precios y dólar · Cotización sugerida y mayoristas
 - `20261109-100000-cuenta-corriente-y-saldo-cliente` — Feature Specification: Clientes y proveedores · Cuenta corriente y saldo del cliente
+- `20261109-103000-ordenes-de-compra-a-proveedores` — Feature Specification: Clientes y proveedores · Cuentas y compras a proveedores — F-PRV-09 · Órdenes de compra a proveedores
 - `20261110-100000-ventas-avisos-de-faltantes` — Feature Specification: Ventas y despacho · Ventas avisos de faltantes
 - `20261112-200000-tiendas-diseno-del-prototipo` — Feature Specification: Tiendas online · Diseño del prototipo
+- `20261113-120000-ci-e2e-tienda` — Feature Specification: CI · E2E de la tienda pública (`e2e-tienda`)
+- `20261113-120000-precio-promocional-en-pos-y-comprobantes` — Feature Specification: Precios y dólar · Precio promocional en el mostrador (POS) y en los comprobantes
+- `20261114-100000-analitica-avanzada-y-resumen-por-correo` — Feature Specification: Inicio, rentabilidad y reportes · Analítica avanzada y resumen por correo
 - `20261202-100000-tienda-whatsapp-y-contacto` — Feature Specification: Tiendas online · Tienda WhatsApp y contacto
 - `20270104-100000-ventas-reportes-basicos` — Feature Specification: Ventas y despacho · Ventas reportes básicos
 - `20270105-100000-configuracion-dolar-y-precio-propio` — Feature Specification: Precios y dólar · Configuración dólar y precio propio
@@ -693,4 +752,15 @@
 - `20270305-100000-inicio-tablero-completo` — Feature Specification: Inicio · Tablero completo (ventas, stock, listado y dólar)
 - `20270305-100000-tiendas-seguimiento-bd` — Feature Specification: Tiendas · Seguimiento MSF-846, parte A (base de datos)
 - `20270305-100000-tiendas-seguimiento-front` — Feature Specification: Tiendas públicas · Seguimiento del front (MSF-846, parte B)
+- `20270306-100000-tienda-compra-y-cuentas` — Feature Specification: Tiendas online · Tienda compra y cuentas (lista de pedido, presupuesto y «Mi cuenta»)
 - `20270313-100000-tiendas-hallazgos-qa` — Feature Specification: Tiendas · Hallazgos de la pasada de pruebas en dev (MSF-846, parte C)
+- `20270314-100000-tiendas-fidelidad-prototipo` — Feature Specification: Tiendas públicas · Fidelidad con el prototipo (MSF-847)
+- `20270315-100000-tiendas-identidad-heroe-mayusculas` — Feature Specification: Tiendas · Estilo del encabezado y mayúsculas por identidad (MSF-848)
+- `20270316-100000-tiendas-hallazgos-reauditoria` — Feature Specification: Tiendas públicas · Hallazgos de la re-auditoría de fidelidad (MSF-849)
+- `20270323-100000-deuda-tecnica-lote-1-seguridad-tienda` — Feature Specification: Deuda técnica · Lote 1: seguridad e integridad de la tienda pública (MSF-515)
+- `20270323-100000-service-ideas-futuras-v2` — Feature Specification: Service técnico · Service ideas futuras (aviso por WhatsApp, comisiones de técnicos y etiqueta con QR)
+- `20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs` — Feature Specification: Deuda técnica · Lote 2: higiene de código y documentación (MSF-515)
+- `20270327-100000-listas-de-precios-por-cliente` — Feature Specification: Listas de precios por cliente (F-PRE-14 + F-CLI-21)
+- `20270328-100000-gastos-de-la-empresa` — Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)
+- `20270328-100000-newsletter-de-la-tienda` — Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)
+- `20270328-100000-opiniones-de-productos` — Feature Specification: Opiniones de productos en la tienda (MSF-467)

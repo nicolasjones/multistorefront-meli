@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - scripts/verificar-migraciones.mjs
+---
+
 # Guard de migraciones (`scripts/verificar-migraciones.mjs`)
 
 Corre dentro de `pnpm docs:check` y compara `supabase/migrations` contra una base (`--base`, por defecto

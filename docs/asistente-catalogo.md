@@ -1,6 +1,17 @@
+---
+owner: tecnico
+sources:
+  - specs/20270203-100000-api-e-asistente-con-ia
+  - supabase/migrations/20261003233000_mcp_lectura_centralizada.sql
+  - supabase/migrations/20270224110000_ia_consulta_vistas.sql
+  - supabase/migrations/20270224110100_ia_consulta_registro.sql
+  - supabase/migrations/20270224110200_ia_consulta_tope_mcp.sql
+  - supabase/functions/chat-ia-responder/limites.ts
+---
+
 # Asistente con IA sobre el catálogo (F-IA-01)
 
-Qué es: el chat flotante del panel y el servidor MCP del template pueden responder preguntas sobre **catálogo, stock, precios y ventas** de la organización. Es **solo lectura**: el asistente no escribe ni ejecuta acciones. Épica MSF-233, historia MSF-411. Especificación: [`specs/20270203-100000-api-e-asistente-con-ia/spec.md`](../specs/20270203-100000-api-e-asistente-con-ia/spec.md) (FR-020…FR-025, decisiones D-7 y D-8) y contrato [`contracts/ia-consulta.md`](../specs/20270203-100000-api-e-asistente-con-ia/contracts/ia-consulta.md).
+Qué es: el chat flotante del panel y el servidor MCP del template pueden responder preguntas sobre **catálogo, stock, precios y ventas** de la organización. Es **solo lectura**: el asistente no escribe ni ejecuta acciones. Épica MSF-233, historia MSF-411. Especificación: `specs/20270203-100000-api-e-asistente-con-ia/spec.md` (FR-020…FR-025, decisiones D-7 y D-8) y contrato `contracts/ia-consulta.md` (`specs/20270203-100000-api-e-asistente-con-ia/contracts/ia-consulta.md`).
 
 No agrega pantalla: usa el chat flotante existente y las pantallas de plataforma «Capacidades del Chat IA» y «Capacidades de MCP» (`/ia/capacidades-chat`, `/ia/capacidades-mcp`), donde las cuatro funcionalidades aparecen con **Lectura** activa y **Ejecución** apagada.
 

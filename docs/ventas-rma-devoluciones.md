@@ -1,4 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261027-100000-ventas-rma-devoluciones
+  - apps/web/src/lib/formasRma.ts
+  - design/pantallas/VentasDevoluciones.dc.html
+---
+
 # Ventas · Devoluciones (RMA)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-rma-devoluciones.md) · [guía de uso](producto/ventas-rma-devoluciones.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`). Cubre **F-VTA-28 · Alta de RMA por ítem** (MSF-288), **F-VTA-29 · Formas de resolución y seguimiento** (MSF-304) y **F-VTA-30 · RMA con nota de crédito y stock** (MSF-320); el cierre (MSF-573) agrega la revisión de seguridad y el roadmap.
 

@@ -2,6 +2,7 @@ import { Box, Button, FormHelperText, Link, Stack, TextField, Typography } from 
 import type { ChangeEvent, FormEvent } from 'react'
 import { MAX_CONTACTO_PEDIDO, MAX_NOMBRE_PEDIDO, MAX_NOTA_PEDIDO, type CampoPedido, type DatosPedido, type ErroresPedido } from '../../../lib/tiendaPedido'
 import { useLegalTienda } from '../../../lib/tiendaLegal'
+import { urlHttpSegura } from '../../../lib/urlHttpSegura'
 
 // Formulario del pedido (MSF-176, B1, FR-025/FR-026, P-4). Visitante: «Nombre» (obligatorio, 1 a 100), «Correo o teléfono» (obligatorio) y «Nota (opcional)» (hasta 500, con contador),
 // más el aviso «Usaremos estos datos solo para responderte.» con el enlace «Política de privacidad» si la tienda lo tiene (el mismo enlace legal del pie). Con cuenta activa no se pide nada:
@@ -24,6 +25,8 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
 }) {
   const legal = useLegalTienda(host)
   const privacidad = legal?.enlaces.find((enlace) => /privacidad/i.test(enlace.titulo)) ?? null
+  // Solo http: o https: llegan al href (un `javascript:` o `data:` no se enlaza nunca).
+  const urlPrivacidad = urlHttpSegura(privacidad?.url)
   const cambiar = (campo: CampoPedido) => (evento: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => alCambiar(campo, evento.target.value)
   const enviar = (evento: FormEvent) => {
     evento.preventDefault()
@@ -83,7 +86,7 @@ export function FormularioPedido({ host, conCuenta, datos, errores, enviando, en
         {conCuenta ? null : (
           <Typography color="text.secondary" sx={{ fontSize: 13 /* estilos-sueltos: ok */ }}>
             Usaremos estos datos solo para responderte.{' '}
-            {privacidad ? <Link href={privacidad.url} target="_blank" rel="noopener noreferrer" color="inherit">Política de privacidad</Link> : null}
+            {urlPrivacidad ? <Link href={urlPrivacidad} target="_blank" rel="noopener noreferrer" color="inherit">Política de privacidad</Link> : null}
           </Typography>
         )}
         {conCuenta && alPedirPresupuesto ? (
