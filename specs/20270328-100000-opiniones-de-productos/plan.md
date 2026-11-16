@@ -2,7 +2,7 @@
 
 **Spec**: [`spec.md`](./spec.md) · **Contratos**: [`contracts/opiniones.md`](./contracts/opiniones.md) · **Tareas**: [`tasks.md`](./tasks.md)
 **Alcance de entrega**: `refine` y `supabase`. Sin `kestra`, `superset` ni `workers` (D13: sin avisos).
-**Estado**: **Fases 1 a 4 implementadas y mergeadas en `dokploy`** (F-OPI-01 en el PR #1044, F-OPI-02 y F-OPI-03 en el PR #1058). La fase 5 (cierre) está a medias: T027 (E2E) y T028 (documentación) están hechas; **T029, T030 y T031 siguen pendientes** y se ejecutan sobre `dokploy`. El PR #1045 de esta rama de épica se cerró **sin merge** (ver `## Estado de la rama y decisión de orquestación`).
+**Estado**: **Fases 1 a 4 implementadas y mergeadas en `dokploy`** (F-OPI-01 en el PR #1044, F-OPI-02 y F-OPI-03 en el PR #1058). La fase 5 (cierre) está a medias: T027 (E2E) y T028 (documentación) están hechas; **T029, T030 y T031 siguen pendientes** y se ejecutan sobre `dokploy`. La documentación de la épica (este `plan.md`, el `spec.md`, el `tasks.md` y los contratos) está **mergeada en `dokploy`** por el PR #1075 (ver `## Estado de la rama y decisiones pendientes`).
 
 ## Resumen técnico
 
@@ -52,17 +52,16 @@ Las fases se invocaron una por una (regla de `/speckit-implement`), con `/clear`
 - **Tienda**: `pages/tienda-publica/opiniones/` (`OpinionesProducto`, `EstrellasPuntuacion`, `FormularioOpinion`, `MisOpiniones`, `validacion.ts` espejo del servidor), `lib/tiendaOpiniones.ts`, `hooks/useCapacidadOpiniones.ts`; el bloque se monta en la ficha solo si `capacidades_opiniones_por_dominio` devuelve `opiniones:true`.
 - Texto siempre como nodos de React (nunca `dangerouslySetInnerHTML`).
 
-## Estado de la rama y decisión de orquestación
+## Estado de la rama y decisiones pendientes
 
-**🛡️ El release a DEV está trabado, y no es un conflicto a resolver.**
+**✅ El release a DEV está destrabado: la documentación de la épica ya está mergeada en `dokploy`.**
 
-- El PR #1045 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) lleva solo 2 commits de **docs** sobre una foto de `spec.md`/`plan.md`/`tasks.md` **anterior** a la implementación real. La implementación real (fases 1 a 5) ya está en `dokploy` por el PR #1044 y el PR #1058, con QA y Código/Seguridad aprobados y CI verde.
-- Mergear el PR #1045 **pisaría** la evidencia de `dokploy` (su copia de `tasks.md` tiene T001 sin marcar). El conflicto de merge es una **rama de épica stale**, no un bug: mismo patrón que MSF-265/MSF-948.
-- **El PR #1045 se cerró sin merge** (sin tocar código, con el motivo explicado en el PR). Los PRs #1068 y #1069, regenerados por Release con la misma cabeza, se cerraron igual.
-- **Pendiente real**: T029, T030 y T031, que siguen su curso normal del SDLC **sobre `dokploy`**. No dependen del PR cerrado.
-- **Causa raíz**: Release generó 3 PRs idénticos sin rebasar, ignorando la etiqueta `desarrollo-manual`. Se abrió **MSF-984** (hija de MSF-515) para que Release filtre esa label antes de reintentar.
-- **Rebase**: es trabajo **manual de Nicolás**. Hasta que esta rama se rebasee contra `dokploy`, la épica queda flaggeada (`sindrome-bloqueo-importante`, `sindrome-escalado-humano`, `desarrollo-manual`) y **no se pide otro merge**.
-- **Qué aporta esta rama**: el contenido documental corregido (este `plan.md`, el `spec.md` y el `tasks.md` reescritos) es justamente lo que faltaba en el PR #1045. Sirve de referencia para el rebase manual y para el cierre; **no** es una rama de release.
+- **Implementación**: fases 1 a 4 en `dokploy` por el PR #1044 y el PR #1058, con QA y Código/Seguridad aprobados y CI verde. T001–T028 con evidencia.
+- **Documentación de la épica**: el PR #1075 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) se **mergeó** el 2026-11-16 a las 11:10:51 (merge commit `78a893bb`), con `application`, `quality`, `liberar` y `validacion` en verde. Antes del merge, un commit `chore: integra dokploy` trayó el estado vigente de `dokploy` a la rama, así que el merge **no revirtió** la implementación real. **La rama ya no está desfasada: no hace falta ningún rebase manual.**
+- **Pendiente real**: T029 (revisión de seguridad), T030 (encendido de `tienda_opiniones` solo en dev) y T031 (guards finales), que siguen su curso normal del SDLC **sobre `dokploy`**.
+- **Causa raíz ya trazada**: Release reintentaba el merge a DEV ignorando la etiqueta `desarrollo-manual` de la rama; se abrió **MSF-984** (hija de MSF-515) para que filtre esa label. No hay pendiente en esta épica por ese motivo.
+- **Decisiones de producto de Nicolás** (no bloquean trabajo técnico): (1) ¿se enciende la bandera `tienda_opiniones` en dev ahora o después de T029–T031? (2) ¿se confirman las decisiones delegadas D1–D16 (en particular D3) y la respuesta del comercio, que quedó fuera de alcance?
+- **No se vuelve a generar un PR de release** desde esta rama hasta que haya una decisión: los PR #1045 y #1067–#1075 fueron regeneraciones de la misma cabeza, y el último ya se mergeó sin cambios de código.
 
 ## Riesgos técnicos
 

@@ -98,9 +98,9 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
     `infra/superset/datasets-tablero.snapshot.json` (`node infra/superset/datasets-tablero.mjs`) y la semilla de la
     migración si corresponde → reimportar.
   - **Operador** conserva los costos: la matriz inicial da `ver_costos` en Stock a Administrador, Administración y
-    Operador (migración `20270433000000`, que también lo aplica a las organizaciones existentes). Consulta, Mostrador,
+    Operador (migración `20270434000000`, que también lo aplica a las organizaciones existentes). Consulta, Mostrador,
     Depósito y demás no.
-  - **Orden de despliegue (final)**: 1) migración `20270433000000` (agrega las columnas, **siembra `datasets_permitidos` de
+  - **Orden de despliegue (final)**: 1) migración `20270434000000` (agrega las columnas, **siembra `datasets_permitidos` de
     los 16 tableros existentes** —no hay ventana de 503— y asigna el tablero «(cantidades)» a toda organización que ya
     tiene el de costos, copiando también sus roles; luego lo mantiene al día por triggers); 2) función
     `emitir-acceso-reporte` (si se desplegara antes que la migración, falla toda emisión por la columna inexistente: la
@@ -133,7 +133,7 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 - El tablero se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <staging|production>`
   (lo hace el workflow de despliegue del VPS, idempotente).
 - Reversión: `drop view analitica.inventario_productos_stock;` (migración
-  `20270202201200`; la exigencia por acción y la vista de cantidades son de `20270433000000`, ver su cabecera), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
+  `20270202201200`; la exigencia por acción y la vista de cantidades son de `20270434000000`, ver su cabecera), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
   guardan datos.
 
 ## Reposición (F-REP-02, MSF-311)

@@ -941,7 +941,7 @@ test('la allowlist derivada de los 16 tableros coincide con el snapshot versiona
   assert.deepEqual(derivado, tableros, 'la derivación cambió: actualizá datasets-tablero.snapshot.json y la semilla de la migración (bloque 4a)');
 
   // Semilla de la migración (bloque 4a): cada (nombre, array[...]) debe ser igual a lo derivado.
-  const migracion = await readFile(path.resolve('supabase/migrations/20270433000000_reportes_inventario_solo_cantidades.sql'), 'utf8');
+  const migracion = await readFile(path.resolve('supabase/migrations/20270434000000_reportes_inventario_solo_cantidades.sql'), 'utf8');
   const bloque = migracion.split('-- SEMILLA-INICIO')[1].split('-- SEMILLA-FIN')[0];
   const semilla = {};
   for (const fila of bloque.matchAll(/\('([^']+)', array\[([^\]]*)\]\)/g)) {

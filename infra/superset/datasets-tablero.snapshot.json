@@ -1,5 +1,5 @@
 {
-  "comentario": "Allowlist de datasets de cada tablero tal como la deriva infra/superset/datasets-tablero.mjs desde los YAML versionados. Un test falla si la derivación cambia sin actualizar este archivo (y la semilla de la migración 20270433000000, bloque 4a). Si cambiás un tablero o dataset, regenerá con: node infra/superset/datasets-tablero.mjs",
+  "comentario": "Allowlist de datasets de cada tablero tal como la deriva infra/superset/datasets-tablero.mjs desde los YAML versionados. Un test falla si la derivación cambia sin actualizar este archivo (y la semilla de la migración 20270434000000, bloque 4a). Si cambiás un tablero o dataset, regenerá con: node infra/superset/datasets-tablero.mjs",
   "tableros": {
     "Analítica · Margen real por tienda, categoría y producto": ["margen_real_categoria"],
     "Analítica · Ventas por tienda y categoría": ["ventas_empresa_categoria"],
