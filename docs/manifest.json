@@ -36,7 +36,7 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "3fa0f47b4cb19cfa4953a2efb63bb2cfe1b0ac706c9057a7c80294d0741362d9",
-      "sourceHash": "f2307561de9e97642791d22b25e2514f2189d1f40f143e37d55e60f59e4458b6",
+      "sourceHash": "225fc8b621436b6c911cafcfcc7838a5ec4ba83275552adefc9e0bb5ff97de54",
       "sourceAt": "7065a017",
       "sources": [
         "specs"
@@ -384,14 +384,14 @@
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
       "pageHash": "f6d2f8660e4f34712c436aa33bfde6d461a478a7d85c5cafd4c6ea34f189e119",
-      "sourceHash": "2c75dc09026f7e5abe041e70513f2484fcad774ff12c55f2c8fb588241c0192c",
-      "sourceAt": "7065a017",
+      "sourceHash": "2bb2a4105ef6febe70be18f6c26ea3021212c3ccb31857b061fce7cf358cbe04",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -505,7 +505,7 @@
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
       "pageHash": "9b2de68ad2b68e8532bc83aac699381ecb49a14d37d76e7bb1eacdde2834c07f",
-      "sourceHash": "9089e68589c74b074a255657e3fa3a9510f6b04ff947002d434c5ed4c30cb5bf",
+      "sourceHash": "053d65ab1cebf6163e7652e0f4fd6a8225f77c6466ca99391a959f0aa04942ee",
       "sourceAt": "432db86d",
       "sources": [
         "specs/20261028-100000-correo-masivo-a-clientes",
@@ -593,23 +593,23 @@
       "title": "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)",
       "pageHash": "7041dbb29eb0e04f6acf7b76baa9185cfe1deecb64e7f6946bfabb807423da69",
       "sourceHash": "7adb9ec26f3622389712b8398224e61c52e0b89735916ef01d6cdb8dc93100c3",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261029-100000-cuentas-y-compras-a-proveedores"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "0ebe0e5650c343f8476c015fb12b06d39ccb11da154b65576b11484db996e3e6",
-      "sourceHash": "7fe6f4339e4f908d493fcb410ba43175d1ed25cf15e1a599cd9ce3fa0b103c74",
-      "sourceAt": "432db86d",
+      "sourceHash": "4fcb65336f01c8931ebc2d0a46ae1de02603510b2a476efe83043865d70e5845",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "432db86d"
+      "commit": "9cde8838"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -936,7 +936,7 @@
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
       "pageHash": "9c8939dda2250094bceefd76c4bef1f2da0b4d68457d5fd18d0333782a9cb5a1",
       "sourceHash": "4ff9db9ef5e323ecc25e1ba4da51e3293fb77c6ca7d95e4e4efdf18a9e8c7834",
-      "sourceAt": "eced4a51",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -960,7 +960,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "eced4a51"
+      "commit": "9cde8838"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1047,7 +1047,7 @@
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
-      "sourceHash": "f2307561de9e97642791d22b25e2514f2189d1f40f143e37d55e60f59e4458b6",
+      "sourceHash": "225fc8b621436b6c911cafcfcc7838a5ec4ba83275552adefc9e0bb5ff97de54",
       "sourceAt": "7065a017",
       "sources": [
         "specs"
@@ -1082,7 +1082,7 @@
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
       "pageHash": "eb2f18a682c71b26cf556a8763754809d3a1e6404ad75ebc3c41a128a3661ab6",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1091,7 +1091,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -1364,7 +1364,7 @@
     "docs/producto/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
       "pageHash": "807c3c70a43a53d8b1cde22bd2cf82bf63b2526dd412b8971a7d929e3663e53a",
-      "sourceHash": "5b1b31fdbdfa44ba90b01ee8f1ce5c61fcf7cd14be7f409c8b61dd29cd831536",
+      "sourceHash": "4db3a51c5bb81be2b7272cbb062df9e32164203c471f2ae93dd21615ad526f8b",
       "sourceAt": "432db86d",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
@@ -1946,7 +1946,7 @@
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "0e13693772ea6e8836c709f56353fe5e4ade10ddcfd3f6d1c05d95d31609ceb7",
-      "sourceHash": "4a8b19866f214424fea80bdc863c71760f787f21eaf5900d9b8338077d2a90d2",
+      "sourceHash": "0a70f517cf587f8f34771bb91250bc761270d8236d79fefd10995c00612368d5",
       "sourceAt": "bce5eef7",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -1958,7 +1958,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "ad0cefd99539054c4aa53a84b0beda38a3e3833c9345514ac4be2bcc291ebbbb",
+      "pageHash": "eb051fbe44e630f530ac988c7ab082ba19210254accf71eabdba1f4f937b6cf9",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2776,7 +2776,7 @@
       "title": "Cotización sugerida y mayoristas (MSF-373)",
       "pageHash": "1757221f3256d65b2f142bc3eebd92f9d2b005ef55de4be5734b37a2106452a0",
       "sourceHash": "3b7e2b5b9af3f34557a10bd1656846a17de259f8fe154b6bcb59ecb37fc5eb82",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -2786,7 +2786,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -2806,15 +2806,15 @@
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
       "pageHash": "7be51788729bb7e02db34e847ae320e722a016beca6cb4a4eca68cbf959828ac",
-      "sourceHash": "ba15a6f49374fcfb27823c5568bb30e482a0c0da989e2edf6ef4a77f6017c22a",
-      "sourceAt": "7065a017",
+      "sourceHash": "420d484cc856e31ac28b125b0ff7b9a8076a6e3195c1e34a918b02fd77ca6923",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
@@ -3754,26 +3754,32 @@
       "commit": "ebf4bf4d"
     },
     "docs/tienda-opiniones.md": {
-      "title": "Opiniones de productos: base y moderación (MSF-467)",
-      "pageHash": "78c6b261742936c6093c8ae2370d7ed3b10e7d92db921b95319366a538a65e94",
-      "sourceHash": "f6f52325a39052cfa41c642f852831b7c5897274a4b66c2bdab4ad87734d9466",
-      "sourceAt": "33d1644e",
+      "title": "Opiniones de productos: moderación y tienda (MSF-467)",
+      "pageHash": "0fd0347123cd59bf57f785f21c029dea5eca5444b4f41a9d1b7dc33266ac233a",
+      "sourceHash": "785d0eca5afd31311b2d7cdcf994a5cfc2075c277c7c6b80db367c9362c6df67",
+      "sourceAt": "507c8ae8",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
         "supabase/migrations/20270341000100_opiniones_validacion.sql",
         "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
         "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
-        "apps/web/src/pages/opiniones"
+        "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
+        "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
+        "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "apps/web/src/pages/opiniones",
+        "apps/web/src/pages/tienda-publica/opiniones",
+        "apps/web/src/lib/tiendaOpiniones.ts",
+        "apps/web/e2e/tienda-opiniones.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "33d1644e"
+      "commit": "507c8ae8"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "9204617ba366f62ff3bf6ee9650381e8d1620d4f09a14724b36aa6464e33d07e",
-      "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "f5d8f4a5",
+      "pageHash": "b3898fe508c3b8c793eafa924526436c053e6c63f98a942d05d2ca109a1709e8",
+      "sourceHash": "f963d543356e13d5e137bb099d7704be3314c9fb4de89b0b25aa340d86f66adb",
+      "sourceAt": "00a5805b",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3785,7 +3791,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "f5d8f4a5"
+      "commit": "00a5805b"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

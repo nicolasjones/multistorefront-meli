@@ -17,6 +17,8 @@ import { productoJsonLd } from '../seo/datosEstructurados'
 
 // Carga diferida (FR-012): los relacionados quedan fuera del primer pintado de la ficha.
 const Relacionados = lazy(() => import('../ficha/Relacionados'))
+// Opiniones (MSF-467): fuera del primer pintado; solo dibuja algo con la bandera `tienda_opiniones` encendida.
+const OpinionesProducto = lazy(() => import('../opiniones/OpinionesProducto'))
 
 // `/producto/:productoId` (F-TDA-13, FR-051/FR-056): ficha del producto de ESTA tienda. Inexistente,
 // inactivo, oculto, de categoría oculta, de otra empresa o con un id inválido → la misma 404 amable.
@@ -78,6 +80,7 @@ export default function RutaProducto() {
         </Box>
       </Box>
       <Suspense fallback={null}>
+        <OpinionesProducto host={host} productoId={datos.id} />
         <Relacionados host={host} productoId={datos.id} />
       </Suspense>
     </Box>
