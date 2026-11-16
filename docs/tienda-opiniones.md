@@ -56,6 +56,8 @@ Guía de referencia de la spec `20270328-100000-opiniones-de-productos`: fases 1
 
 Ambas llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
+- El cliente del panel (`apps/web/src/lib/opiniones.ts`) **valida cada fila antes de mostrarla** (T029, H-2): si no tiene la forma del contrato (id, tienda, cliente, producto y fechas presentes, puntuación entera de 1 a 5, estado conocido y el comentario y los tres nombres —empresa, cliente y producto— de verdad texto), la **descarta** en lugar de romper la pantalla o ofrecerla para moderar.
+
 ## RPC de la tienda (`publico`)
 
 Reglas comunes: `security definer`, `search_path` vacío, ninguna recibe cliente, cuenta, empresa ni organización (todo sale de `private.cuenta_de_tienda(host)`), orden **bandera → cuenta → límite → validar → trabajar**, y el `exception when others` registra solo `sqlstate`. `sin_acceso` es idéntico para sin sesión, cuenta suspendida, cliente no habilitado, usuario del panel, otra tienda u organización, host desconocido, tienda pausada y bandera apagada.
