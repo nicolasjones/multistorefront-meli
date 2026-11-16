@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - apps/web/src/pages/stock/motivos.tsx
+---
+
 # Listas configurables
 
 Pantalla de administración `/configuracion/listas` (menú Administración → «Listas configurables», solo
@@ -27,6 +34,18 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
 - Un estado desactivado no se borra ni toca a las consultas que ya lo usan; el nuevo estado queda al final
   del orden. Reordenar y borrar están fuera de alcance. El `orden` se calcula como `max(orden)+1` sin bloqueo: dos altas simultáneas pueden repetir `orden`; es
   cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
+
+- **Estados de sistema** (migración `20270507000400`, columna `es_sistema`): un estado que el flujo de la
+  consulta necesita (p. ej. el de la acción «Cerrar») no se desactiva, renombra ni borra. La guarda está en la
+  base (trigger `estados_consulta_proteger_sistema`, error `23514` con mensaje en castellano que la pantalla
+  muestra tal cual) y en la UI (botones deshabilitados con la explicación «Es un estado de sistema: lo
+  necesita el cierre de las consultas…»). Solo una migración marca un estado como de sistema: la guarda frena a quien usa la app
+  (`authenticated`/`anon`), pero `service_role` y las funciones `security definer` SÍ pueden marcar o desmarcar
+  `es_sistema` y deben hacerlo únicamente desde migraciones. Borrar una organización arrastra sus estados en
+  cascada, también los de sistema. **Hoy no hay ninguno marcado**: las consultas siguen con sus tres estados
+  fijos (Nueva, En curso, Resuelta) y la lista no se siembra; el primer estado de sistema lo marca la
+  migración de la funcionalidad que lo use. **Tarea para F-CFG-01:** esa migración deberá sembrar el estado de
+  cierre (con `es_sistema = true`) para cada organización y para las que se creen después. Pruebas: `listas_configurables.test.sql` y `listas.test.tsx`.
 
 ## Empresa activa
 

@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
+import { violacionesAxe } from '../../test/axe'
 import { COLUMNAS, LineasComprobante } from './LineasComprobante'
+
+const mocks = vi.hoisted(() => ({ imagenes: vi.fn() }))
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: mocks.imagenes }))
 
 const DEPOSITOS = [
   { id: 'd-1', nombre: 'Principal', por_defecto: true },
@@ -54,6 +58,24 @@ function montar(lineas: LineaComprobante[], opciones: Opciones = {}) {
   )
   return { onCambiar, onQuitar }
 }
+
+beforeEach(() => mocks.imagenes.mockReturnValue(new Map()))
+
+describe('LineasComprobante · miniatura del producto', () => {
+  it('muestra la imagen principal del producto junto al nombre y pide solo los productos de las líneas', () => {
+    mocks.imagenes.mockReturnValue(new Map([['p-1', 'https://img/joystick.png']]))
+    montar([linea(), linea({ id: 'l-2', producto_id: null, sin_stock: true, descripcion: 'Mano de obra' })])
+    expect(document.querySelector('img[src="https://img/joystick.png"]')).not.toBeNull()
+    expect(mocks.imagenes).toHaveBeenCalledWith(['p-1', null])
+  })
+
+  it('sin imagen dibuja el marcador vacío y no rompe la fila', () => {
+    mocks.imagenes.mockReturnValue(new Map())
+    montar([linea()])
+    expect(document.querySelector('img')).toBeNull()
+    expect(screen.getByText('Joystick')).toBeInTheDocument()
+  })
+})
 
 describe('LineasComprobante · columnas, disponible y totales (FR-017, FR-019)', () => {
   it('muestra las columnas del prototipo y el pie Subtotal sin IVA / IVA / Total', () => {
@@ -160,5 +182,131 @@ describe('LineasComprobante · recálculo al cambiar cantidad, depósito o preci
     const anchos = COLUMNAS.split(' ').filter((parte) => parte.endsWith('px')).map((parte) => Number.parseInt(parte, 10))
     // Producto · Stock · Depósito · Cantidad · Precio s/IVA · Subtotal: las dos últimas, de al menos 150 px.
     expect(anchos.slice(-2).every((ancho) => ancho >= 150)).toBe(true)
+  })
+})
+
+describe('LineasComprobante · marca de la lista de precios (F-CLI-21, CA-CLI-21-9)', () => {
+  const conLista = (cambios: Partial<LineaComprobante> = {}) =>
+    linea({ cantidad: 1, precio_unitario: 800, escala: 'x1', lista_nombre: 'Revendedores', lista_ajuste_pct: -20, ...cambios })
+
+  it('muestra «Lista: nombre ±n %» bajo el precio de la línea que fijó la lista', () => {
+    montar([conLista()], { puedeEditarPrecio: false })
+    expect(screen.getAllByRole('cell')[4]).toHaveTextContent('Lista: Revendedores \u221220 %')
+  })
+
+  it('un recargo lleva signo más y un 0 % no lleva signo', () => {
+    montar([conLista({ lista_ajuste_pct: 10, lista_nombre: 'Recargo' }), conLista({ id: 'l-2', lista_ajuste_pct: 0, lista_nombre: 'Cero' })], { puedeEditarPrecio: false })
+    expect(screen.getByText('Lista: Recargo +10 %')).toBeInTheDocument()
+    expect(screen.getByText('Lista: Cero 0 %')).toBeInTheDocument()
+  })
+
+  it('con una promoción ganadora la marca dice que rige la promoción', () => {
+    montar([conLista({ precio_unitario: 500, precio_referencia: 800 })], { puedeEditarPrecio: false })
+    expect(screen.getByText('Lista: Revendedores \u221220 % (rige la promoción)')).toBeInTheDocument()
+  })
+
+  it('sin lista no aparece nada nuevo', () => {
+    montar([linea({ lista_ajuste_pct: null, lista_nombre: null })], { puedeEditarPrecio: false })
+    expect(screen.queryByText(/Lista:/)).toBeNull()
+  })
+
+  it('un precio manual no muestra la marca aunque llegue una lista', () => {
+    montar([conLista({ precio_manual: true })], { puedeEditarPrecio: false })
+    expect(screen.queryByText(/Lista:/)).toBeNull()
+  })
+
+  it('no expone el identificador de la lista en el DOM', () => {
+    montar([{ ...conLista(), lista_precio_id: 'lista-secreta' } as LineaComprobante], { puedeEditarPrecio: false })
+    expect(document.body.innerHTML).not.toContain('lista-secreta')
+  })
+
+  it.each([320, 768, 1440])('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    const { container } = render(
+      <LineasComprobante
+        lineas={[conLista()]}
+        totales={{ subtotal: 800, iva: 168, total: 968 }}
+        depositos={DEPOSITOS}
+        editable
+        puedeEditarPrecio
+        ocupado={false}
+        onCambiar={vi.fn()}
+        onQuitar={vi.fn()}
+        onAgregar={vi.fn()}
+      />,
+    )
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+})
+
+describe('LineasComprobante · precio promocional (F-2, FR-016)', () => {
+  const enPromocion = () => linea({ cantidad: 1, precio_unitario: 900, precio_referencia: 1000, escala: 'x1', descuento_pct: 0, subtotal_sin_iva: 900 })
+
+  it('muestra el cobrado, la referencia tachada, la leyenda «Promoción» y el rótulo «promoción» sin escala', () => {
+    montar([enPromocion()], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda).toHaveTextContent('$ 900')
+    const tachado = celda.querySelector('s')
+    expect(tachado).not.toBeNull()
+    expect(tachado).toHaveTextContent('$ 1.000')
+    expect(within(celda).getByText('Promoción')).toBeInTheDocument()
+    expect(within(celda).getByText('promoción')).toBeInTheDocument()
+    expect(celda).not.toHaveTextContent('escala x1')
+    expect(celda).not.toHaveTextContent('% de descuento')
+  })
+
+  it('anuncia «Precio anterior» y «Precio promocional» como texto, no solo con el tachado', () => {
+    montar([enPromocion()], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda).toHaveTextContent('Precio anterior: $ 1.000')
+    expect(celda).toHaveTextContent('Precio promocional: $ 900')
+  })
+
+  it('con permiso para editar el precio el campo sigue siendo el mismo y la referencia se muestra aparte', () => {
+    montar([enPromocion()], { puedeEditarPrecio: true })
+    expect(screen.getByRole('textbox', { name: 'Precio sin IVA de Joystick' })).toHaveValue('900')
+    expect(screen.getAllByRole('cell')[4].querySelector('s')).toHaveTextContent('$ 1.000')
+  })
+
+  it('sin promoción no hay tachado, leyenda ni textos de lector: la celda es la de siempre', () => {
+    montar([linea({ precio_referencia: null })], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda.querySelector('s')).toBeNull()
+    expect(celda).not.toHaveTextContent('Promoción')
+    expect(celda).not.toHaveTextContent('Precio anterior')
+    expect(celda).not.toHaveTextContent('Precio promocional')
+    expect(celda).toHaveTextContent('$ 800')
+    expect(celda).toHaveTextContent('escala x10')
+  })
+
+  it('un precio manual no muestra tachado ni leyenda, aunque llegue una referencia', () => {
+    montar([linea({ precio_manual: true, precio_referencia: 1000 })], { puedeEditarPrecio: false })
+    const celda = screen.getAllByRole('cell')[4]
+    expect(celda.querySelector('s')).toBeNull()
+    expect(celda).not.toHaveTextContent('Promoción')
+    expect(celda).toHaveTextContent('precio manual')
+  })
+
+  it('no expone ningún identificador de promoción en el DOM', () => {
+    montar([{ ...enPromocion(), promocion_id: 'prom-secreta' } as LineaComprobante], { puedeEditarPrecio: false })
+    expect(document.body.innerHTML).not.toContain('prom-secreta')
+  })
+
+  it.each([320, 768, 1440])('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    const { container } = render(
+      <LineasComprobante
+        lineas={[enPromocion(), linea({ id: 'l-2', producto_id: 'p-2', descripcion: 'Cable' })]}
+        totales={{ subtotal: 1700, iva: 357, total: 2057 }}
+        depositos={DEPOSITOS}
+        editable
+        puedeEditarPrecio
+        ocupado={false}
+        onCambiar={vi.fn()}
+        onQuitar={vi.fn()}
+        onAgregar={vi.fn()}
+      />,
+    )
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })

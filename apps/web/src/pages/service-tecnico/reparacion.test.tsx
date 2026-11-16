@@ -18,6 +18,15 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: () => ({ organizacionId: 'org-1', isLoading: false }) }))
+// F-SVC-20: la sección de fotos tiene su propio test (AdjuntosReparacion.test.tsx); acá solo se verifica su integración.
+vi.mock('../../components/service/AdjuntosReparacion', () => ({
+  AdjuntosReparacion: (props: { reparacionId: string; organizacionId: string | null; puedeEditar: boolean; anulada: boolean }) => (
+    <div data-testid="adjuntos" data-puede-editar={String(props.puedeEditar)} data-anulada={String(props.anulada)} data-org={props.organizacionId ?? ''}>
+      Fotos y adjuntos de {props.reparacionId}
+    </div>
+  ),
+}))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 // Avisos al cliente (F-SVC-14): fuera del alcance de este archivo; su historial llega vacío y el cliente con correo.
 vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
@@ -273,6 +282,39 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByRole('link', { name: 'Imprimir remito' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/remito')
   })
 
+  it('ofrece «Imprimir etiqueta» con lectura o edición, la enlaza a /etiqueta y no la ofrece en una reparación anulada (F-SVC-32, FR-043)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    const lectura = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    lectura.unmount()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    const edicion = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    edicion.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z', anulada_motivo: 'Cliente desistió' })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+    expect(screen.queryByRole('link', { name: 'Imprimir etiqueta' })).toBeNull()
+    // La orden sigue ofreciéndose como hasta ahora.
+    expect(screen.getByRole('link', { name: 'Imprimir orden' })).toBeInTheDocument()
+  })
+
+  it('el orden de tabulación de los botones del encabezado es orden, etiqueta, remito, guardar (P-3)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-24', entregado_por: 'Luis' })
+    abrirDetalle()
+    const orden = await screen.findByRole('link', { name: 'Imprimir orden' })
+    const etiqueta = screen.getByRole('link', { name: 'Imprimir etiqueta' })
+    const remito = screen.getByRole('link', { name: 'Imprimir remito' })
+    const guardarBoton = screen.getByRole('button', { name: 'Guardar' })
+    const enOrden = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(enOrden(orden, etiqueta)).toBe(true)
+    expect(enOrden(etiqueta, remito)).toBe(true)
+    expect(enOrden(remito, guardarBoton)).toBe(true)
+  })
+
   it('una edición con datos viejos avisa del conflicto y ofrece recargar (FR-017)', async () => {
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     mocks.actualizarReparacion.mockRejectedValueOnce({ code: '40001' })
@@ -302,6 +344,32 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(screen.getByText('Esta reparación está anulada: solo se puede consultar.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Falla informada')).toBeDisabled()
+  })
+
+  it('integra «Fotos y adjuntos»: editable con edición, anulada de solo lectura y entregada editable (FR-008)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    const normal = abrirDetalle()
+    const seccion = await screen.findByTestId('adjuntos')
+    expect(seccion).toHaveAttribute('data-puede-editar', 'true')
+    expect(seccion).toHaveAttribute('data-anulada', 'false')
+    expect(seccion).toHaveAttribute('data-org', 'org-1')
+    normal.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-25', entregado_por: 'Ana' })
+    const entregada = abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'true')
+    entregada.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z', anulada_motivo: 'x' })
+    abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-anulada', 'true')
+  })
+
+  it('con lectura «Fotos y adjuntos» no es editable', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    abrirDetalle()
+    expect(await screen.findByTestId('adjuntos')).toHaveAttribute('data-puede-editar', 'false')
   })
 
   it('muestra la Entrega real como solo lectura cuando ya se entregó', async () => {

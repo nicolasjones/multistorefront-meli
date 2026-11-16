@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -98,5 +98,19 @@ describe('Correo masivo · Detalle de campaña', () => {
     mocks.useFiltro.mockReturnValue({ empresaActivaId: 'e-2', cargando: false })
     rerender(<Raiz />)
     expect(screen.queryByRole('heading', { name: 'Ofertas de octubre' })).toBeNull()
+  })
+
+  it('carga infinita: «Cargar más» suma la tanda siguiente de destinatarios', () => {
+    const tanda1 = { ...datos, total: 3, destinatarios: datos.destinatarios.slice(0, 2) }
+    const tanda2 = { ...datos, total: 3, destinatarios: datos.destinatarios.slice(2) }
+    mocks.useDetalle.mockImplementation((p: { pagina: number }) => ({
+      datos: p.pagina === 2 ? tanda2 : tanda1, noExiste: false, isLoading: false, isFetching: false, isError: false, refetch: mocks.refetch,
+    }))
+    abrir()
+    expect(screen.queryByText('Gama')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(mocks.useDetalle.mock.calls.at(-1)![0]).toMatchObject({ pagina: 2 })
+    expect(screen.getByText('Alfa')).toBeInTheDocument()
+    expect(screen.getByText('Gama')).toBeInTheDocument()
   })
 })

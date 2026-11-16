@@ -6,10 +6,13 @@ import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
+import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
+import { ResumenSemanalOrganizacion } from './ResumenSemanal'
 
 const BUCKET_LOGOS = 'logos-organizacion'
 const TAMANO_MAXIMO_LOGO = 1024 * 1024
@@ -120,7 +123,7 @@ export function OrganizacionEdit() {
   const zonas = useMemo(() => zonasHorarias(guardada?.zona_horaria ?? ZONA_POR_DEFECTO), [guardada?.zona_horaria])
 
   const encabezado = (
-    <EncabezadoPagina titulo="Mi organización" descripcion="Nombre, logo y zona horaria de tu organización." contexto={<ContextoOrganizacionActiva />} />
+    <EncabezadoPagina titulo="Mi organización" descripcion="Nombre, logo, zona horaria y resumen semanal de tu organización." contexto={<ContextoOrganizacionActiva />} />
   )
   const envolver = (contenido: ReactNode) => (
     <Box>
@@ -130,9 +133,7 @@ export function OrganizacionEdit() {
   )
 
   if (verificandoPermiso || puedeEscribir === null) return envolver(<EstadoCargaPagina />)
-  if (!puedeEscribir) {
-    return envolver(<EstadoError titulo="Acceso restringido" descripcion="Solo los administradores pueden editar los datos de la organización." />)
-  }
+  if (!puedeEscribir) return <AccesoRestringido rol="actual" seccion="Mi organización" />
   if (carga.tipo === 'cargando') return envolver(<EstadoCargaPagina />)
   if (carga.tipo === 'error' || !guardada) {
     return envolver(<EstadoError descripcion="No pudimos cargar los datos de la organización." reintentar={() => void cargar()} />)
@@ -265,17 +266,7 @@ export function OrganizacionEdit() {
                 aria-hidden="true"
                 tabIndex={-1}
                 onChange={elegirArchivo}
-                style={{
-                  position: 'absolute',
-                  width: 1,
-                  height: 1, // estilos-sueltos: ok: utilidad de accesibilidad (input de archivo oculto)
-                  margin: -1,
-                  padding: 0,
-                  overflow: 'hidden',
-                  clip: 'rect(0 0 0 0)',
-                  whiteSpace: 'nowrap',
-                  border: 0,
-                }}
+                style={{ ...SOLO_LECTORES, margin: -1, padding: 0, border: 0 }}
               />
               {logoPath || archivo ? <Button color="inherit" onClick={quitarLogo}>Quitar logo</Button> : null}
             </Stack>
@@ -313,6 +304,8 @@ export function OrganizacionEdit() {
           </List>
         )}
       </Box>
+
+      <ResumenSemanalOrganizacion />
     </Stack>,
   )
 }

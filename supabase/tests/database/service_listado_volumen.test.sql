@@ -21,7 +21,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Tercera');
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null);
 
 create temp table datos as

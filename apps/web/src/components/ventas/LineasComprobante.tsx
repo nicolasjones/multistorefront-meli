@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Alert, Box, Card, CardContent, CardHeader, IconButton, Stack, TextField, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
+import { MiniaturaProducto } from '../base/MiniaturaProducto'
 import { AgregarProductoDialog } from './AgregarProductoDialog'
 import { DepositoSelect } from './DepositoSelect'
+import { PrecioLineaPromocion } from './PrecioLineaPromocion'
 import { EtiquetaAPedido, FaltanteAviso, StockLinea } from './FaltanteAviso'
 import type { DepositoOpcion } from '../../lib/depositos'
 import type { ProductoRepuesto } from '../../lib/reparacionItems'
@@ -17,6 +20,7 @@ import {
   TEXTO_AYUDA_LINEAS,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   type EntradaLinea,
   type LineaComprobante,
@@ -54,11 +58,13 @@ type FilaProps = {
   editable: boolean
   puedeEditarPrecio: boolean
   ocupado: boolean
+  // Imagen principal del producto (URL firmada); sin ella se dibuja el marcador vacío.
+  imagen?: string
   onCambiar: Props['onCambiar']
   onQuitar: Props['onQuitar']
 }
 
-function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, onCambiar, onQuitar }: FilaProps) {
+function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocupado, imagen, onCambiar, onQuitar }: FilaProps) {
   const [cantidad, setCantidad] = useState(String(linea.cantidad))
   const [precio, setPrecio] = useState(String(linea.precio_unitario))
   const [errorCantidad, setErrorCantidad] = useState<string | null>(null)
@@ -178,19 +184,22 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         minWidth: ANCHO_MINIMO,
       }}
     >
-      <Box role="cell" sx={{ minWidth: 0 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
-          {nombre}
-        </Typography>
-        {linea.codigo ? (
-          <Typography variant="caption" color="text.secondary" component="p">
-            {linea.codigo}
+      <Stack role="cell" direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+        <MiniaturaProducto alt="" src={imagen} />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+            {nombre}
           </Typography>
-        ) : null}
-        <Box sx={{ mt: 0.5 }}>
-          <EtiquetaAPedido linea={linea} />
+          {linea.codigo ? (
+            <Typography variant="caption" color="text.secondary" component="p">
+              {linea.codigo}
+            </Typography>
+          ) : null}
+          <Box sx={{ mt: 0.5 }}>
+            <EtiquetaAPedido linea={linea} />
+          </Box>
         </Box>
-      </Box>
+      </Stack>
       <Box role="cell">
         <StockLinea linea={linea} />
       </Box>
@@ -253,44 +262,51 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         ) : null}
       </Box>
       <Box role="cell" sx={{ textAlign: 'right' }}>
-        {puedeEditarPrecio && editable ? (
-          <>
-            <TextField
-              size="small"
-              value={precio}
-              disabled={bloqueado}
-              error={Boolean(errorPrecio)}
-              onChange={(evento) => setPrecio(evento.target.value)}
-              onBlur={(evento) => confirmarPrecio(evento.target.value)}
-              onKeyDown={(evento) => {
-                if (evento.key === 'Enter') {
-                  evento.preventDefault()
-                  confirmarPrecio(precio)
-                }
-              }}
-              slotProps={{
-                htmlInput: {
-                  'aria-label': `Precio sin IVA de ${nombre}`,
-                  'aria-describedby': errorPrecio ? `error-precio-${linea.id}` : undefined,
-                  inputMode: 'decimal',
-                  style: { textAlign: 'right', padding: '4px 6px' },
-                },
-              }}
-            />
-            {errorPrecio ? (
-              <Typography id={`error-precio-${linea.id}`} variant="caption" color="error" component="p" role="alert">
-                {errorPrecio}
-              </Typography>
-            ) : null}
-          </>
-        ) : (
-          <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
-            {formatearPesosPrecio(linea.precio_unitario)}
-          </Typography>
-        )}
+        <PrecioLineaPromocion linea={linea} formatear={formatearPesosPrecio}>
+          {puedeEditarPrecio && editable ? (
+            <>
+              <TextField
+                size="small"
+                value={precio}
+                disabled={bloqueado}
+                error={Boolean(errorPrecio)}
+                onChange={(evento) => setPrecio(evento.target.value)}
+                onBlur={(evento) => confirmarPrecio(evento.target.value)}
+                onKeyDown={(evento) => {
+                  if (evento.key === 'Enter') {
+                    evento.preventDefault()
+                    confirmarPrecio(precio)
+                  }
+                }}
+                slotProps={{
+                  htmlInput: {
+                    'aria-label': `Precio sin IVA de ${nombre}`,
+                    'aria-describedby': errorPrecio ? `error-precio-${linea.id}` : undefined,
+                    inputMode: 'decimal',
+                    style: { textAlign: 'right', padding: '4px 6px' },
+                  },
+                }}
+              />
+              {errorPrecio ? (
+                <Typography id={`error-precio-${linea.id}`} variant="caption" color="error" component="p" role="alert">
+                  {errorPrecio}
+                </Typography>
+              ) : null}
+            </>
+          ) : (
+            <Typography variant="body2" sx={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {formatearPesosPrecio(linea.precio_unitario)}
+            </Typography>
+          )}
+        </PrecioLineaPromocion>
         <Typography variant="caption" color="text.secondary">
           {rotuloEscalaLinea(linea)}
         </Typography>
+        {marcaListaLinea(linea) ? (
+          <Typography variant="caption" color="text.secondary" component="p">
+            {marcaListaLinea(linea)}
+          </Typography>
+        ) : null}
       </Box>
       <Stack role="cell" direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
         <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -324,6 +340,7 @@ export function LineasComprobante({
   onQuitar,
   onAgregar,
 }: Props) {
+  const imagenes = useImagenesProductos(lineas.map((linea) => linea.producto_id))
   const depositoPorDefecto = depositos.find((deposito) => deposito.por_defecto) ?? depositos[0] ?? null
 
   return (
@@ -344,7 +361,7 @@ export function LineasComprobante({
           {MENSAJE_SIN_PERMISO_PRECIO}
         </Typography>
       ) : null}
-      <Box sx={{ overflowX: 'auto' }}>
+      <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Líneas del comprobante (se desplaza)">
         <Box
           role="table"
           aria-label="Líneas del comprobante"
@@ -381,6 +398,7 @@ export function LineasComprobante({
               editable={editable}
               puedeEditarPrecio={puedeEditarPrecio}
               ocupado={ocupado}
+              imagen={linea.producto_id ? imagenes.get(linea.producto_id) : undefined}
               onCambiar={onCambiar}
               onQuitar={onQuitar}
             />

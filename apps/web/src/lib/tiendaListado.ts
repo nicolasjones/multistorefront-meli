@@ -1,9 +1,12 @@
 import { supabaseClient } from './supabase'
 import { acumularConteoCategorias } from './tiendaConteoCategorias'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-12 (MSF-355): página del catálogo público. El filtrado, el orden, el precio final y la
-// paginación los resuelve la base (migración 20261023150200_tienda_catalogo_publico.sql); acá solo se
-// lee la página y se lee/escribe el estado en la query de la URL (FR-036).
+// paginación por servidor los resuelve la base (migración 20261023150200_tienda_catalogo_publico.sql); acá solo
+// se lee cada tanda y se lee/escribe el estado en la query de la URL (FR-036). MSF-845: el visitante no ve
+// páginas numeradas sino carga infinita; `pagina` es solo el número de tanda que se le pide a la RPC y ya no
+// forma parte de los filtros ni de la URL (un `?pagina=N` viejo se ignora y se arranca de la primera tanda).
 
 export const TAMANO_PAGINA = 24
 
@@ -20,7 +23,6 @@ export type FiltrosCatalogo = {
   soloConStock: boolean
   precioMax: number | null
   orden: OrdenCatalogo
-  pagina: number
 }
 
 export const FILTROS_INICIALES: FiltrosCatalogo = {
@@ -28,7 +30,6 @@ export const FILTROS_INICIALES: FiltrosCatalogo = {
   soloConStock: false,
   precioMax: null,
   orden: 'relevancia',
-  pagina: 1,
 }
 
 // Filtros activos que cuenta el botón «Filtrar» de celular (F-TDA-17, FR-041): categoría (salvo que la
@@ -43,6 +44,8 @@ export type ProductoListado = {
   id: string
   nombre: string
   precio: number | null
+  // F-PRE-11: precio normal, solo cuando hay una promoción vigente (la base devuelve null si no).
+  precioAnterior?: number | null
   disponible: boolean
   imagen: string | null
   categoriaId: string | null
@@ -73,16 +76,13 @@ export function esIdValido(valor: string | null | undefined): valor is string {
 export function parsearFiltros(params: URLSearchParams, categoriaFija: string | null = null): FiltrosCatalogo {
   const categoriaConsulta = params.get('categoria')
   const max = params.get('max')
-  const pagina = params.get('pagina')
   const orden = params.get('orden')
   const precioMax = max !== null && ENTERO_POSITIVO.test(max) && Number(max) > 0 ? Number(max) : null
-  const numeroPagina = pagina !== null && ENTERO_POSITIVO.test(pagina) ? Number(pagina) : 1
   return {
     categoria: categoriaFija ?? (esIdValido(categoriaConsulta) ? categoriaConsulta : null),
     soloConStock: params.get('stock') === '1',
     precioMax,
     orden: OPCIONES_ORDEN.some((o) => o.valor === orden) ? (orden as OrdenCatalogo) : 'relevancia',
-    pagina: numeroPagina >= 1 ? numeroPagina : 1,
   }
 }
 
@@ -94,13 +94,12 @@ export function serializarFiltros(filtros: FiltrosCatalogo, incluirCategoria = t
   if (filtros.soloConStock) params.set('stock', '1')
   if (filtros.precioMax !== null) params.set('max', String(filtros.precioMax))
   if (filtros.orden !== 'relevancia') params.set('orden', filtros.orden)
-  if (filtros.pagina > 1) params.set('pagina', String(filtros.pagina))
   return params
 }
 
-// Cambiar cualquier filtro u orden vuelve a la página 1; cambiar solo la página no (FR-036).
-export function conCambio(filtros: FiltrosCatalogo, cambio: Partial<Omit<FiltrosCatalogo, 'pagina'>>): FiltrosCatalogo {
-  return { ...filtros, ...cambio, pagina: 1 }
+// Cambiar cualquier filtro u orden reinicia la lista desde la primera tanda (la URL no lleva tanda).
+export function conCambio(filtros: FiltrosCatalogo, cambio: Partial<FiltrosCatalogo>): FiltrosCatalogo {
+  return { ...filtros, ...cambio }
 }
 
 export type FilaPagina = {
@@ -112,6 +111,7 @@ export type FilaPagina = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -121,14 +121,14 @@ export type FilaPagina = {
 
 // publico.catalogo_pagina_por_dominio es ejecutable por anon (sin sesión). Dominio desconocido o
 // empresa desactivada devuelven null (FR-034): para el front es una tienda sin productos.
-export async function leerPaginaCatalogo(host: string, filtros: FiltrosCatalogo): Promise<PaginaCatalogo> {
+export async function leerPaginaCatalogo(host: string, filtros: FiltrosCatalogo, pagina = 1): Promise<PaginaCatalogo> {
   const { data, error } = await supabaseClient.schema('publico').rpc('catalogo_pagina_por_dominio', {
     host,
     categoria: filtros.categoria,
     solo_con_stock: filtros.soloConStock,
     precio_max: filtros.precioMax,
     orden: filtros.orden,
-    pagina: filtros.pagina,
+    pagina,
   })
   if (error) {
     throw new Error(error.message)
@@ -144,11 +144,12 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
     total: fila.total,
     pagina: fila.pagina,
     tamano: fila.tamano,
-    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({ id: c.id, nombre: c.nombre, padreId: c.padre_id, productos: c.productos }))),
+    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({ id: c.id, nombre: limpiarTextoPublico(c.nombre), padreId: c.padre_id, productos: c.productos }))),
     productos: fila.productos.map((p) => ({
       id: p.id,
-      nombre: p.nombre,
+      nombre: limpiarTextoPublico(p.nombre),
       precio: p.precio === null ? null : Number(p.precio),
+      ...(p.precio_anterior == null ? {} : { precioAnterior: Number(p.precio_anterior) }),
       disponible: p.disponible,
       imagen: p.imagen,
       categoriaId: p.categoria_id,

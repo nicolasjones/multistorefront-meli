@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   useListarCuentasCobro: vi.fn(),
   // Respuestas que la pantalla lee de las RPC de cobros.
   cobros: [] as unknown[],
-  saldo: { total: 1000, cobrado: 0, saldo: 1000 },
+  saldo: { total: 1000, cobrado: 0, saldo: 1000 } as { total: number; cobrado: number; notas_credito?: number; saldo: number },
   puedeRegistrar: true,
 }))
 
@@ -180,6 +180,13 @@ describe('llamadas a la base', () => {
       p_cuenta_cobro_id: 'c-1',
       p_actualizado_en: null,
     })
+  })
+
+  it('el saldo trae las notas de crédito como número y, si la base no las manda, valen 0', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: [{ total: '1000', cobrado: '0', notas_credito: '300.50', saldo: '699.50' }], error: null })
+    mocks.rpc.mockResolvedValueOnce({ data: [{ total: 1000, cobrado: 0, notas_credito: null, saldo: 1000 }], error: null })
+    expect(await saldoComprobante('k-1')).toEqual({ total: 1000, cobrado: 0, notas_credito: 300.5, saldo: 699.5 })
+    expect(await saldoComprobante('k-1')).toEqual({ total: 1000, cobrado: 0, notas_credito: 0, saldo: 1000 })
   })
 
   it('el importe del cobro y el de la lista llegan como número', async () => {
@@ -345,6 +352,12 @@ const FORMAS = [
   { id: 'f-2', empresa_id: 'e-1', nombre: 'Transferencia', tipo: 'transferencia' as const, exige_cuenta_cobro: true, genera_deuda: false, estado_inicial: 'pendiente' as const, orden: 2, activo: true, updated_at: '2026-10-24T10:00:00Z' },
 ]
 
+// Una forma de pago que genera deuda: la factura queda «Deuda» en vez de «Cobrado» (FR-004).
+const FORMAS_CON_DEUDA = [
+  ...FORMAS,
+  { id: 'f-3', empresa_id: 'e-1', nombre: 'Crédito del proveedor', tipo: 'otro' as const, exige_cuenta_cobro: false, genera_deuda: true, estado_inicial: 'pendiente' as const, orden: 3, activo: true, updated_at: '2026-10-24T10:00:00Z' },
+]
+
 function UbicacionActual() {
   const ubicacion = useLocation()
   return <div>{`En ${ubicacion.pathname}`}</div>
@@ -396,6 +409,11 @@ beforeEach(() => {
         return { data: mocks.puedeRegistrar, error: null }
       case 'registrar_cobro':
         return { data: { id: 'b-9', importe: 400 }, error: null }
+      // Las transiciones del estado y el cambio: la base los decide (MSF-715).
+      case 'transiciones_permitidas_comprobante':
+        return { data: ['en_proceso'], error: null }
+      case 'cambiar_estado_comprobante':
+        return { data: { estado: 'en_proceso', updated_at: '2027-01-03T00:00:00Z' }, error: null }
       default:
         return { data: null, error: null }
     }
@@ -585,6 +603,162 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
     )
     expect(await screen.findByText('Cobro registrado · $ 400')).toBeInTheDocument()
     await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBeGreaterThan(1))
+  })
+
+  // MSF-715: tras registrar un cobro la base cambia el estado y el `updated_at` del comprobante. La
+  // pantalla tiene que releerlo: si no, el detalle queda viejo (dice «Pendiente» cuando la base dice
+  // «Cobrado») y la acción siguiente choca con «Otra persona modificó este comprobante».
+  describe('· el detalle se relee después del cobro', () => {
+    const COBRADO = { ...COMPROBANTE, estado: 'cobrado', updated_at: '2027-01-02T00:00:00Z' }
+    const DEUDA = { ...COMPROBANTE, estado: 'deuda', updated_at: '2027-01-02T00:00:00Z' }
+
+    // Registra un cobro por el saldo entero y deja el diálogo listo. Con `fallo` el diálogo queda
+    // abierto (el error se muestra adentro); si no, se espera a que se cierre: mientras el modal
+    // está montado el resto de la pantalla queda `aria-hidden` y no se puede leer con el lector.
+    const registrarCobro = async (forma = 'Transferencia', fallo = false) => {
+      fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
+      const dialogo = await screen.findByRole('dialog')
+      fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Forma de pago' }))
+      fireEvent.click(await screen.findByRole('option', { name: forma }))
+      if (forma === 'Transferencia') {
+        fireEvent.mouseDown(within(dialogo).getByRole('combobox', { name: 'Cuenta de cobro' }))
+        fireEvent.click(await screen.findByRole('option', { name: 'Banco Uno · Comercial Ejemplo SRL' }))
+      }
+      fireEvent.change(within(dialogo).getByRole('textbox', { name: 'Importe' }), { target: { value: '1000' } })
+      fireEvent.click(within(dialogo).getByRole('button', { name: 'Registrar cobro' }))
+      if (!fallo) await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      return dialogo
+    }
+
+    const tarjetaEstado = () => within(screen.getByRole('region', { name: 'Estado' }))
+
+    it('el estado visible pasa a «Cobrado» y la acción siguiente manda el `updated_at` nuevo', async () => {
+      render(arbol('/ventas/comprobantes/k-1'))
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+      // La base deja la factura cobrada y avanza `updated_at`: la próxima lectura lo trae.
+      mocks.obtenerComprobante.mockResolvedValue(COBRADO)
+
+      await registrarCobro()
+
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+      expect(tarjetaEstado().getByRole('button', { name: 'Cobrado' })).toBeInTheDocument()
+
+      // La acción siguiente (cambiar el estado) manda el `updated_at` vigente: con el viejo la base
+      // respondería «Otra persona modificó este comprobante».
+      fireEvent.click(tarjetaEstado().getByRole('button', { name: 'En proceso' }))
+      await waitFor(() =>
+        expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_comprobante', {
+          p_id: 'k-1',
+          p_estado: 'en_proceso',
+          p_actualizado_en: '2027-01-02T00:00:00Z',
+        }),
+      )
+    })
+
+    it('con una forma de pago que genera deuda el estado visible pasa a «Deuda»', async () => {
+      mocks.listarFormasPago.mockResolvedValue(FORMAS_CON_DEUDA)
+      render(arbol('/ventas/comprobantes/k-1'))
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+      mocks.obtenerComprobante.mockResolvedValue(DEUDA)
+
+      await registrarCobro('Crédito del proveedor')
+
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+      expect(tarjetaEstado().getByRole('button', { name: 'Deuda' })).toBeInTheDocument()
+    })
+
+    it('si el cobro falla no se relee el comprobante', async () => {
+      mocks.rpc.mockImplementation(async (nombre: string) => {
+        if (nombre === 'registrar_cobro') {
+          return { data: null, error: { code: '42501', message: 'sin permiso' } }
+        }
+        if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+        if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+        if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+        return { data: null, error: null }
+      })
+      render(arbol('/ventas/comprobantes/k-1'))
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+
+      await registrarCobro('Transferencia', true)
+
+      expect(
+        await screen.findByText(/No tenés permiso para registrar cobros en esta tienda/),
+      ).toBeInTheDocument()
+      // El cobro no se registró: el comprobante queda como estaba y no se relee.
+      expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1)
+    })
+
+    it('el «Reintentar» de la tarjeta de Cobros no pisa lo que se está editando', async () => {
+      // Una factura editable (en borrador): el formulario tiene datos sin guardar.
+      mocks.obtenerComprobante.mockResolvedValue({
+        ...COMPROBANTE,
+        estado: 'borrador',
+        editable: true,
+        puede_editar: true,
+      })
+      let lecturas = 0
+      mocks.rpc.mockImplementation(async (nombre: string) => {
+        if (nombre === 'cobros_de_comprobante') {
+          lecturas += 1
+          return lecturas === 1
+            ? { data: null, error: { code: 'XX000', message: 'detalle técnico' } }
+            : { data: [], error: null }
+        }
+        if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+        if (nombre === 'puede_registrar_cobro') return { data: true, error: null }
+        return { data: null, error: null }
+      })
+      render(arbol('/ventas/comprobantes/k-1'))
+
+      expect(await screen.findByText('No pudimos cargar los cobros de la factura. Reintentá.')).toBeInTheDocument()
+      const fecha = screen.getByLabelText(/^Fecha/)
+      fireEvent.change(fecha, { target: { value: '2026-12-31' } })
+      expect(fecha).toHaveValue('2026-12-31')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+
+      await waitFor(() => expect(llamadas('cobros_de_comprobante')).toBe(2))
+      // El reintento recarga solo los cobros: el comprobante no se relee (si se releyera, el
+      // formulario volvería al valor guardado y la edición se perdería en silencio).
+      expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1)
+      expect(screen.getByLabelText(/^Fecha/)).toHaveValue('2026-12-31')
+    })
+
+    it('si la relectura después del cobro falla, la pantalla no muestra el error general', async () => {
+      render(arbol('/ventas/comprobantes/k-1'))
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+      mocks.obtenerComprobante.mockRejectedValueOnce(new Error('sin red'))
+
+      await registrarCobro()
+
+      // El cobro quedó registrado: la pantalla sigue mostrando el detalle y avisa que hay que recargar.
+      expect(await screen.findByRole('heading', { name: 'Cobros' })).toBeInTheDocument()
+      expect(
+        await screen.findByText(/El cobro quedó registrado, pero no pudimos actualizar el detalle/),
+      ).toBeInTheDocument()
+      expect(screen.queryByText('No pudimos cargar el comprobante.')).not.toBeInTheDocument()
+    })
+
+    it('mientras relee el comprobante, la tarjeta de Estado queda bloqueada', async () => {
+      const pendiente = diferido<Comprobante>()
+      render(arbol('/ventas/comprobantes/k-1'))
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(1))
+      // La relectura queda en vuelo: en esa ventana el `updated_at` de la pantalla es el viejo.
+      mocks.obtenerComprobante.mockReturnValueOnce(pendiente.promesa)
+
+      await registrarCobro()
+
+      await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledTimes(2))
+      expect(tarjetaEstado().getByRole('button', { name: 'En proceso' })).toBeDisabled()
+
+      await act(async () => {
+        pendiente.resolver(COBRADO)
+      })
+      await waitFor(() =>
+        expect(tarjetaEstado().getByRole('button', { name: 'En proceso' })).not.toBeDisabled(),
+      )
+    })
   })
 
   it('un error de la base se muestra en el campo que nombra', async () => {
@@ -1010,6 +1184,25 @@ describe('Detalle del comprobante · solo lectura por rol (F-VTA-12, SC-002)', (
     render(arbol('/ventas/comprobantes/k-1'))
 
     expect(await screen.findByText('No queda saldo pendiente: la factura está cobrada.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
+    // Sin notas de crédito no se ofrece el dato «Notas de crédito».
+    expect(screen.queryByText('Notas de crédito')).not.toBeInTheDocument()
+  })
+
+  it('con notas de crédito muestra cuánto restan y el saldo neto; si cubren la factura, no deja cobrar', async () => {
+    mocks.saldo = { total: 1000, cobrado: 200, notas_credito: 300, saldo: 500 }
+    const { unmount } = render(arbol('/ventas/comprobantes/k-1'))
+
+    const totales = await screen.findByRole('group', { name: 'Totales de los cobros' })
+    expect(within(totales).getByText('Notas de crédito')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 300')).toBeInTheDocument()
+    expect(within(totales).getByText('$ 500')).toBeInTheDocument()
+    expect(screen.queryByText(/No queda saldo pendiente/)).not.toBeInTheDocument()
+    unmount()
+
+    mocks.saldo = { total: 1000, cobrado: 400, notas_credito: 600, saldo: 0 }
+    render(arbol('/ventas/comprobantes/k-1'))
+    expect(await screen.findByText('No queda saldo pendiente: lo cobrado y las notas de crédito cubren la factura.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Registrar cobro' })).toBeDisabled()
   })
 })

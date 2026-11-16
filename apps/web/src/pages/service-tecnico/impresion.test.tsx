@@ -6,9 +6,16 @@ const mocks = vi.hoisted(() => ({
   obtenerReparacion: vi.fn(),
   listarTecnicos: vi.fn(),
   obtenerDatosTienda: vi.fn(),
+  listarAdjuntos: vi.fn(),
+  urlsAdjuntos: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/reparacionAdjuntos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/reparacionAdjuntos')>()),
+  listarAdjuntos: mocks.listarAdjuntos,
+  urlsAdjuntos: mocks.urlsAdjuntos,
+}))
 vi.mock('../../lib/reparaciones', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/reparaciones')>()),
   obtenerReparacion: mocks.obtenerReparacion,
@@ -91,6 +98,23 @@ describe('Orden de ingreso (FR-040)', () => {
     abrir('orden')
     expect(await screen.findByText('Esa reparación ya no existe. Volvé al listado.')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Reintentar' })).toBeTruthy()
+  })
+})
+
+describe('Sin adjuntos en los documentos (FR-009)', () => {
+  it('la orden de ingreso y el remito no muestran ni piden fotos', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(ENTREGADA)
+    const orden = abrir('orden')
+    await screen.findByRole('heading', { name: 'Orden de ingreso' })
+    expect(orden.container.textContent).not.toMatch(/Fotos y adjuntos/)
+    expect(orden.container.querySelector('img')).toBeNull()
+    orden.unmount()
+    const remito = abrir('remito')
+    await screen.findByRole('heading', { name: 'Remito de entrega' })
+    expect(remito.container.textContent).not.toMatch(/Fotos y adjuntos/)
+    expect(remito.container.querySelector('img')).toBeNull()
+    expect(mocks.listarAdjuntos).not.toHaveBeenCalled()
+    expect(mocks.urlsAdjuntos).not.toHaveBeenCalled()
   })
 })
 

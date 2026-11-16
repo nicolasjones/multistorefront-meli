@@ -204,7 +204,7 @@ select is(
 );
 select is(
   (select pg_temp.claves(p) from jsonb_array_elements(pg_temp.sugerir('bq-a.ejemplo.com', 'cable hdmi') -> 'productos') p limit 1),
-  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio'], 'cada sugerencia solo trae la lista blanca de campos'
+  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio', 'precio_anterior'], 'cada sugerencia solo trae la lista blanca de campos'
 );
 
 -- Texto vacío, corto, largo y literal.
@@ -305,7 +305,7 @@ select is(publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', '%%') -> 'prod
 select is((publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', '') ->> 'total')::int, 0, 'resultados: texto vacío no devuelve nada');
 select is(
   (select pg_temp.claves(p) from jsonb_array_elements(publico.busqueda_pagina_por_dominio('bq-a.ejemplo.com', 'cable hdmi') -> 'productos') p limit 1),
-  array['categoria_id', 'destacado', 'disponible', 'id', 'imagen', 'nombre', 'precio'],
+  array['categoria_id', 'destacado', 'disponible', 'id', 'imagen', 'nombre', 'precio', 'precio_anterior'],
   'cada resultado solo trae la lista blanca de campos'
 );
 select is(
@@ -369,24 +369,24 @@ select pg_temp.sugerir('bq-a.ejemplo.com', 'cargador');
 select set_config('request.headers', '', true);
 select is(
   (select visitante from public.limite_pedidos_publicos),
-  encode(sha256(convert_to('198.51.100.9|bq-a.ejemplo.com', 'UTF8')), 'hex'),
-  'el visitante es el hash de la última IP del proxy + host'
+  encode(extensions.hmac('198.51.100.9|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'el visitante es el HMAC de la última IP del proxy + host'
 );
 select is(
   (select count(*)::int from public.limite_pedidos_publicos where visitante like '%203.0.113%' or visitante like '%198.51.100%'),
   0, 'la IP no se guarda en claro'
 );
--- Sin cabecera todos caen en el grupo «desconocido»; con una sola IP, esa es el visitante.
+-- Sin cabecera todos caen en el grupo «sin-ip»; con una sola IP, esa es el visitante.
 select set_config('request.headers', '', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(sha256(convert_to('desconocido|bq-a.ejemplo.com', 'UTF8')), 'hex'),
-  'sin x-forwarded-for el visitante es «desconocido»'
+  encode(extensions.hmac('sin-ip|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'sin x-forwarded-for el visitante es «sin-ip»'
 );
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(sha256(convert_to('203.0.113.7|bq-a.ejemplo.com', 'UTF8')), 'hex'),
+  encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'con una sola IP en x-forwarded-for, esa es el visitante'
 );
 -- Con un proxy de confianza que agrega su IP al final, el visitante es el penúltimo valor.
@@ -394,7 +394,7 @@ create or replace function private.saltos_proxy_confiables() returns integer lan
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7, 198.51.100.9"}', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(sha256(convert_to('203.0.113.7|bq-a.ejemplo.com', 'UTF8')), 'hex'),
+  encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'con un salto de proxy de confianza, el visitante es el penúltimo valor'
 );
 create or replace function private.saltos_proxy_confiables() returns integer language sql immutable set search_path = '' as $f$ select 0; $f$;

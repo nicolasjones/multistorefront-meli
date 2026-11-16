@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar CI/CD de staging a producción en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec
@@ -138,7 +144,7 @@ paquete exportado puntual.
   `SUPABASE_SERVICE_ROLE_KEY` (solo server-side) y
   `SUPERSET_REPORTE_CREADO_POR`; sin ellos importa los dashboards y avisa
   que no registró reportes.
-- Invocación manual: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno staging|production`.
+- Invocación manual: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno dev|staging|production`.
   Para un paquete ya exportado: `--source <paquete.zip>`.
 
 ## 6. Botón único de promoción a producción (spec `20261005-140934-promover-todo-produccion`)

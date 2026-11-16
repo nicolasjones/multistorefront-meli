@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Card, CardContent, FormControlLabel, Link, Snackbar, Stack, Switch, TablePagination,
+  Alert, Box, Card, CardContent, FormControlLabel, Link, Snackbar, Stack, Switch,
   ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
 import { useFiltroPorEmpresaActiva } from '../../../hooks/useFiltroPorEmpresaActiva'
+import { useListadoAcumulado } from '../../../hooks/useListadoAcumulado'
 import { formatearFecha, formatearImporteHistorial } from '../../../lib/formatoHistorial'
 import {
   type CuentaCobroMasUsada,
@@ -23,11 +24,12 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components
 import { BarraHerramientas } from '../../../components/pagina/BarraHerramientas'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
+import { CargaInfinita } from '../../../components/pagina/CargaInfinita'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../../components/pagina/ContenidoAdaptable'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../../components/pagina/FiltroEmpresa'
 
-// El prototipo muestra «1–9 de 386»: nueve pagos por página.
+// Pagos por tanda (carga infinita).
 const TAMANO_PAGINA = 9
 const TODAS = 'todas'
 
@@ -146,8 +148,9 @@ export function PagosList() {
       if (siguiente) await conciliarPago(pago.id, pago.actualizado_en)
       else await revertirConciliacionPago(pago.id, pago.actualizado_en)
       setAviso(`${siguiente ? 'Pago conciliado' : 'Conciliación revertida'} · ${pago.numero}`)
-      // La fila, las tarjetas y el total salen de la base: se vuelve a leer todo.
-      await cargar()
+      // La fila, las tarjetas y el total salen de la base: se vuelve a leer todo, desde la primera tanda.
+      if (pagina === 1) await cargar()
+      else setPagina(1)
     } catch (excepcion) {
       setErrorConciliacion(mensajeDeErrorPagos(
         excepcion,
@@ -158,7 +161,7 @@ export function PagosList() {
     } finally {
       setConciliando(null)
     }
-  }, [conciliando, cargar])
+  }, [conciliando, cargar, pagina])
 
   const columnas = useMemo<ColumnaAdaptable<Pago>[]>(() => [
     { clave: 'fecha', encabezado: 'Fecha', render: (pago) => formatearFecha(pago.fecha.slice(0, 10)) },
@@ -232,6 +235,11 @@ export function PagosList() {
     },
   ], [alternarConciliacion, conciliando, permisos])
 
+  // Carga infinita (Principio VI): se suman las tandas que pide `cargar`; cambiar tienda, cuenta o saldo reinicia.
+  const acumulado = useListadoAcumulado({
+    items: listado.pagos, pagina, setPagina, total: listado.total, cargando, reinicio: { empresaId, cuentaCobroId, soloConSaldo },
+  })
+  const falloTanda = error !== null && pagina > 1
   const primeraCarga = cargando && listado.pagos.length === 0 && !error
 
   return (
@@ -253,7 +261,7 @@ export function PagosList() {
           />
 
           {primeraCarga ? <EstadoCargaPagina lineas={3} /> : null}
-          {error ? <EstadoError descripcion={error} reintentar={() => void cargar()} /> : null}
+          {error && !falloTanda ? <EstadoError descripcion={error} reintentar={() => void cargar()} /> : null}
           {errorConciliacion ? <Alert severity="error" role="alert">{errorConciliacion}</Alert> : null}
 
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -307,19 +315,19 @@ export function PagosList() {
               </BarraHerramientas>
 
               {primeraCarga ? <EstadoCargaPagina lineas={3} /> : null}
-              {error ? null : (
+              {error && !falloTanda ? null : (
                 <Box aria-busy={cargando}>
                   {/* Mientras la consulta está en vuelo va el esqueleto de carga, no un vacío
                       falso: «Sin pagos para mostrar» recién aparece cuando la base respondió
                       (patrón compartido de carga/vacío de Cuentas de cobro y Transportes). */}
-                  {primeraCarga ? null : listado.pagos.length === 0 ? (
+                  {primeraCarga ? null : acumulado.filas.length === 0 ? (
                     <EstadoVacio
                       titulo="Sin pagos para mostrar"
                       descripcion="Cambiá de cuenta o desactivá el filtro de saldo."
                     />
                   ) : (
                     <ContenidoAdaptable
-                      items={listado.pagos}
+                      items={acumulado.filas}
                       columnas={columnas}
                       obtenerClave={(pago) => pago.id}
                       etiquetaTabla="Pagos"
@@ -328,16 +336,9 @@ export function PagosList() {
                 </Box>
               )}
 
-              <TablePagination
-                component="div"
-                count={listado.total}
-                page={pagina - 1}
-                rowsPerPage={TAMANO_PAGINA}
-                rowsPerPageOptions={[TAMANO_PAGINA]}
-                onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                labelRowsPerPage="Pagos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-              />
+              {primeraCarga || (error && !falloTanda) ? null : (
+                <CargaInfinita mostrarFin={acumulado.filas.length > 0} hayMas={acumulado.hayMas} cargando={acumulado.cargandoMas} hayError={falloTanda} onCargarMas={falloTanda ? () => void cargar() : acumulado.cargarMas} />
+              )}
             </CardContent>
           </Card>
 

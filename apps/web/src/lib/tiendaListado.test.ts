@@ -9,9 +9,15 @@ describe('parsearFiltros / serializarFiltros', () => {
     expect(parsearFiltros(new URLSearchParams())).toEqual(FILTROS_INICIALES)
   })
 
-  it('restaura categoría, stock, precio máximo, orden y página', () => {
-    const filtros = parsearFiltros(new URLSearchParams(`categoria=${ID}&stock=1&max=5000&orden=precio_desc&pagina=3`))
-    expect(filtros).toEqual({ categoria: ID, soloConStock: true, precioMax: 5000, orden: 'precio_desc', pagina: 3 })
+  it('restaura categoría, stock, precio máximo, y orden', () => {
+    const filtros = parsearFiltros(new URLSearchParams(`categoria=${ID}&stock=1&max=5000&orden=precio_desc`))
+    expect(filtros).toEqual({ categoria: ID, soloConStock: true, precioMax: 5000, orden: 'precio_desc' })
+  })
+
+  // MSF-845: los enlaces viejos con ?pagina=N no rompen; el parámetro se ignora y se arranca de la primera tanda.
+  it.each(['pagina=3', 'pagina=0', 'pagina=x', 'pagina=999'])('ignora %s (carga infinita)', (consulta) => {
+    expect(parsearFiltros(new URLSearchParams(consulta))).toEqual(FILTROS_INICIALES)
+    expect(serializarFiltros(parsearFiltros(new URLSearchParams(`stock=1&${consulta}`))).toString()).toBe('stock=1')
   })
 
   it.each([
@@ -21,10 +27,6 @@ describe('parsearFiltros / serializarFiltros', () => {
     ['max=abc'],
     ['max=0'],
     ['orden=inventado'],
-    ['pagina=0'],
-    ['pagina=-2'],
-    ['pagina=x'],
-    ['pagina=1.5'],
   ])('ignora el valor inválido %s', (consulta) => {
     expect(parsearFiltros(new URLSearchParams(consulta))).toEqual(FILTROS_INICIALES)
   })
@@ -36,15 +38,15 @@ describe('parsearFiltros / serializarFiltros', () => {
 
   it('serializa solo lo que difiere del valor inicial y es reversible', () => {
     expect(serializarFiltros(FILTROS_INICIALES).toString()).toBe('')
-    const filtros = { categoria: ID, soloConStock: true, precioMax: 5000, orden: 'precio_asc' as const, pagina: 2 }
+    const filtros = { categoria: ID, soloConStock: true, precioMax: 5000, orden: 'precio_asc' as const }
     expect(parsearFiltros(serializarFiltros(filtros))).toEqual(filtros)
     expect(serializarFiltros(filtros, false).has('categoria')).toBe(false)
   })
 
-  it('cambiar un filtro vuelve a la página 1', () => {
-    const filtros = { ...FILTROS_INICIALES, pagina: 4 }
-    expect(conCambio(filtros, { soloConStock: true }).pagina).toBe(1)
-    expect(conCambio(filtros, { orden: 'precio_asc' }).pagina).toBe(1)
+  it('cambiar un filtro devuelve filtros nuevos sin tocar los demás', () => {
+    const filtros = { ...FILTROS_INICIALES, precioMax: 100 }
+    expect(conCambio(filtros, { soloConStock: true })).toEqual({ ...filtros, soloConStock: true })
+    expect(conCambio(filtros, { orden: 'precio_asc' }).precioMax).toBe(100)
   })
 })
 

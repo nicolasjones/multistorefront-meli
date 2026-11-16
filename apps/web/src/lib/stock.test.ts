@@ -72,7 +72,8 @@ describe('stock mínimo y estados (F-STK-05)', () => {
 
   it('arma el filtro de búsqueda sin dejar pasar separadores ni comodines', () => {
     expect(filtroBusquedaStock('   ')).toBeNull()
-    expect(filtroBusquedaStock('joy')).toBe('nombre.ilike.%joy%,sku.ilike.%joy%')
-    expect(filtroBusquedaStock('a,b)(c"\\%_')).toBe('nombre.ilike.%a b  c  \\%\\_%,sku.ilike.%a b  c  \\%\\_%')
+    expect(filtroBusquedaStock('CÁMARA')).toBe('nombre_norm.ilike.%camara%,sku.ilike.%camara%')
+    expect(filtroBusquedaStock('joy')).toBe('nombre_norm.ilike.%joy%,sku.ilike.%joy%')
+    expect(filtroBusquedaStock('a,b)(c"\\%_')).toBe('nombre_norm.ilike.%a b  c  \\%\\_%,sku.ilike.%a b  c  \\%\\_%')
   })
 })

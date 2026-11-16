@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, Link as RouterLink } from 'react-router'
 import {
-  Alert, Box, Button, Chip, Link, LinearProgress, Snackbar, Stack, TablePagination, TextField, Tooltip, Typography,
+  Alert, Box, Button, Chip, Link, LinearProgress, Snackbar, Stack, TextField, Tooltip, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useLibretaContactos } from '../../hooks/useContactos'
 import { TAMANO_PAGINA_CONTACTOS, TEXTO_SIN_PERMISO_EDICION, type Contacto } from '../../lib/contactos'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagina/ContenidoAdaptable'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { CrearContactoDialog } from '../consultas/CrearContactoDialog'
+import { SOLO_LECTORES } from '../../components/base/solo-lectores'
 
 const ESPERA_BUSQUEDA_MS = 300
 const ALTO_BARRA_CARGA = 2
-const visuallyHidden = { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' } as const // estilos-sueltos: ok: oculta visualmente sin quitar del lector
 
 const textoConteo = (total: number) => `${total} ${total === 1 ? 'contacto' : 'contactos'}`
 
@@ -71,9 +73,11 @@ export function ContactoList() {
     { habilitado: listo },
   )
 
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && contactos.length === 0 && pagina > 1) setPagina(1)
-  }, [isLoading, isFetching, isError, contactos.length, pagina])
+  // Carga infinita (Principio VI): los contactos se suman por tandas; buscar o cambiar de tienda vuelve a la primera.
+  const listado = useListadoAcumulado({
+    items: contactos, pagina, setPagina, total, cargando: isFetching, reinicio: { empresaId, textoAplicado },
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   const hayFiltros = textoAplicado.trim() !== '' || empresaId !== null
   const empresaNueva = empresaId ? empresas.find((e) => e.id === empresaId) ?? null : null
@@ -137,15 +141,15 @@ export function ContactoList() {
             size="small"
             sx={{ width: 320, maxWidth: '100%' }}
           />
-          <Box role="status" aria-live="polite" sx={visuallyHidden}>{isLoading || isError ? '' : textoConteo(total)}</Box>
+          <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>{isLoading || isError ? '' : textoConteo(total)}</Box>
           {isFetching && !isLoading ? <LinearProgress aria-label="Actualizando contactos" sx={{ height: ALTO_BARRA_CARGA }} /> : null}
 
           <Box aria-busy={isFetching}>
             {isLoading ? (
               <EstadoCargaPagina />
-            ) : isError ? (
+            ) : isError && !falloTanda ? (
               <EstadoError descripcion="No pudimos cargar los contactos." reintentar={() => void refetch()} />
-            ) : contactos.length === 0 && pagina === 1 ? (
+            ) : listado.filas.length === 0 ? (
               hayFiltros ? (
                 <EstadoVacio titulo="Sin resultados para el filtro." descripcion="Probá con otro texto o con otra tienda." />
               ) : (
@@ -153,22 +157,14 @@ export function ContactoList() {
               )
             ) : (
               <>
-                <ContenidoAdaptable items={contactos} columnas={columnas} obtenerClave={(c) => c.id} etiquetaTabla="Contactos" />
-                <Stack direction="row" justifyContent="flex-end" alignItems="center" useFlexGap flexWrap="wrap">
-                  <Typography component="span" variant="s">{textoConteo(total)}</Typography>
-                  {contactos.length > 0 ? (
-                    <TablePagination
-                      component="div"
-                      count={total}
-                      page={pagina - 1}
-                      rowsPerPage={TAMANO_PAGINA_CONTACTOS}
-                      rowsPerPageOptions={[TAMANO_PAGINA_CONTACTOS]}
-                      onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                      labelRowsPerPage="Contactos por página"
-                      labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
-                    />
-                  ) : null}
-                </Stack>
+                <ContenidoAdaptable items={listado.filas} columnas={columnas} obtenerClave={(c) => c.id} etiquetaTabla="Contactos" />
+                <Typography component="p" variant="s" align="right">{textoConteo(total)}</Typography>
+                <CargaInfinita
+                  hayMas={listado.hayMas}
+                  cargando={listado.cargandoMas}
+                  hayError={falloTanda}
+                  onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
+                />
               </>
             )}
           </Box>

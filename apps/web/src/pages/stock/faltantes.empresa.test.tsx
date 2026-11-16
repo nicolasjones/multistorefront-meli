@@ -145,18 +145,16 @@ describe('FaltantesStock · empresa activa (F-STK-17, FR-304, FR-311, SC-303)', 
     const { rerender } = abrir()
     await screen.findByText('Producto 1')
 
-    fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1', pagina: 2 }))
-    fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1', pagina: 3 }))
-    expect(screen.getByText('51–60 de 60')).toBeInTheDocument()
 
     estadoFiltro.empresaActivaId = 'e-2'
     reabrir(rerender)
 
     // La paginación vuelve a la primera y la consulta sale en la página 1 (no se pide una página vieja).
     await waitFor(() => expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 }))
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
     expect(pedidosDe('e-2')).toHaveLength(1)
   })
 

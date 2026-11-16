@@ -9,13 +9,15 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 // «Más vendidos» (F-STK-18) va al final, después de «Actualizar por Excel» (orden de la spec) y, a
 // diferencia de esa, no se limita a `edicion`: es un reporte de lectura, así que se ofrece con
 // `lectura` o `edicion` en Stock (FR-401). La autorización real de la ruta es la sección `stock`.
-export function PestanasStock({ activa }: { activa: 'stock' | 'movimientos' | 'ingresos' | 'depositos' | 'lote' | 'toma' | 'faltantes' | 'excel' | 'mas-vendidos' }) {
+export function PestanasStock({ activa }: { activa: 'stock' | 'movimientos' | 'ingresos' | 'ordenes-compra' | 'depositos' | 'lote' | 'toma' | 'faltantes' | 'excel' | 'mas-vendidos' }) {
   const { nivel } = useNivelSeccion('stock')
   return (
     <Tabs value={activa} aria-label="Secciones de Stock" variant="scrollable" scrollButtons="auto" sx={{ mb: 2 }}>
       <Tab value="stock" label="Stock actual" component={RouterLink} to="/stock" />
       <Tab value="movimientos" label="Movimientos" component={RouterLink} to="/stock/movimientos" />
       <Tab value="ingresos" label="Ingreso de mercadería" component={RouterLink} to="/stock/ingresos" />
+      {/* F-PRV-09: las órdenes de compra a proveedor salen del listado de reposición de Stock. */}
+      <Tab value="ordenes-compra" label="Órdenes de compra" component={RouterLink} to="/stock/ordenes-compra" />
       <Tab value="depositos" label="Depósitos de mercadería" component={RouterLink} to="/stock/depositos" />
       <Tab value="lote" label="Carga en lote" component={RouterLink} to="/stock/lote" />
       <Tab value="toma" label="Toma de inventario" component={RouterLink} to="/stock/toma-inventario" />

@@ -8,6 +8,7 @@ import {
   type ResponsableDespacho,
   ETIQUETA_RESPONSABLE,
   MENSAJE_ERROR_CARGA_DESPACHO,
+  MENSAJE_DESPACHO_SOLO_LECTURA,
   MENSAJE_EXITO_DESPACHO,
   MENSAJE_SIN_DESPACHO,
   MENSAJE_SIN_ESTADO_DESPACHO,
@@ -39,6 +40,9 @@ type Props = {
   empresaActivaId: string | null
   // Avisa a la pantalla que el despacho cambió, para que recargue el comprobante.
   onCambio?: () => void
+  // La factura ya no admite cambios de despacho (quedó cobrada o con deuda): la tarjeta se sigue
+  // leyendo pero no ofrece avanzar (la base solo despacha una factura confirmada, MSF-715).
+  soloLectura?: boolean
   // Elegir el estado «Incompleto» abre el diálogo «Registrar faltantes» (F-VTA-18, FR-047).
   onRegistrarFaltantes?: () => void
   // Cambia cuando hay que volver a leer el despacho (cambio de estado, de empresa activa).
@@ -48,7 +52,7 @@ type Props = {
 // Al cambiar de tienda se suelta lo elegido, se avisa y se relee el despacho: nunca se guarda un responsable de otra tienda.
 export const AVISO_CAMBIO_DE_TIENDA = 'Cambiaste de tienda: el despacho se recargó para no mezclar datos de dos tiendas.'
 
-export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio, onRegistrarFaltantes, claveRecarga }: Props) {
+export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empresaActivaId, onCambio, onRegistrarFaltantes, claveRecarga, soloLectura = false }: Props) {
   const [datos, setDatos] = useState<DatosDespacho | null>(null)
   const [candidatos, setCandidatos] = useState<ResponsableDespacho[]>([])
   const [cargando, setCargando] = useState(true)
@@ -114,8 +118,9 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
   const estado = datos?.estado_despacho ?? null
   // «Incompleto» (F-VTA-18, FR-047): se ofrece con la factura en Armando o Incompleto —lo que la
   // base acepta para registrar faltantes— y con permiso para despachar en la tienda del comprobante.
+  // En solo lectura (factura cobrada) no se ofrece: la base lo rechaza.
   const puedeElegirIncompleto =
-    Boolean(onRegistrarFaltantes) && puedeDespachar && (estado === 'armando' || estado === 'incompleto')
+    Boolean(onRegistrarFaltantes) && !soloLectura && puedeDespachar && (estado === 'armando' || estado === 'incompleto')
 
   const opcionesDe = useMemo(
     () => (clave: ClaveResponsable): ResponsableDespacho[] => {
@@ -180,7 +185,7 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
         value={valor}
         size="small"
         fullWidth
-        disabled={!esSiguiente || !puedeDespachar || avanzando}
+        disabled={!esSiguiente || !puedeDespachar || avanzando || soloLectura}
         onChange={(evento) => {
           setElegido(evento.target.value)
           setErrorAccion(null)
@@ -266,7 +271,7 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
               {errorAccion ? <EstadoError titulo={errorAccion} /> : null}
               {exito ? <EstadoExito titulo={exito} /> : null}
 
-              {paso && puedeDespachar ? (
+              {paso && puedeDespachar && !soloLectura ? (
                 <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ flexWrap: 'wrap' }}>
                   <Button type="button" variant="contained" disabled={!elegido || avanzando} onClick={() => void avanzar()}>
                     {paso.etiqueta}
@@ -276,7 +281,12 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
                   </Typography>
                 </Stack>
               ) : null}
-              {!puedeDespachar && estado ? (
+              {soloLectura && estado ? (
+                <Typography variant="caption" color="text.secondary">
+                  {MENSAJE_DESPACHO_SOLO_LECTURA}
+                </Typography>
+              ) : null}
+              {!puedeDespachar && estado && !soloLectura ? (
                 <Typography variant="caption" color="text.secondary">
                   {MENSAJE_SIN_DESPACHO}
                 </Typography>

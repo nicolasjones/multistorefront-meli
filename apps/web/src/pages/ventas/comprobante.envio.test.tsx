@@ -62,6 +62,7 @@ vi.mock('../../components/service/ClienteSelector', () => ({ ClienteSelector: ()
 
 import type { Comprobante } from '../../lib/ventas'
 import { MENSAJE_ERROR_DESPACHO } from '../../lib/ventasDespacho'
+import { MENSAJE_ENVIO_SOLO_LECTURA } from '../../lib/ventasEnvio'
 import { ComprobanteVenta } from './comprobante'
 
 const EMPRESAS = [
@@ -183,6 +184,21 @@ describe('Detalle · bloque «Envío y transporte» (F-VTA-16)', () => {
     await screen.findByRole('heading', { name: /Presupuesto 00000001/ })
     expect(screen.queryByRole('region', { name: 'Envío y transporte' })).not.toBeInTheDocument()
     expect(mocks.obtenerFormaEnvioDeComprobante).not.toHaveBeenCalled()
+  })
+
+  // MSF-598: la factura cobrada o con deuda sigue viva para el despacho: el envío se edita igual que en «confirmada».
+  it('con la factura cobrada el bloque sigue visible y editable', async () => {
+    mocks.obtenerComprobante.mockResolvedValue({
+      ...FACTURA,
+      estado: 'cobrado',
+      updated_at: '2026-10-25T10:00:00Z',
+    })
+    render(arbol())
+
+    expect(await screen.findByRole('region', { name: 'Envío y transporte' })).toBeInTheDocument()
+    const transporte = await screen.findByRole('combobox', { name: /Transporte \/ expreso/ })
+    expect(transporte).not.toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByText(MENSAJE_ENVIO_SOLO_LECTURA)).not.toBeInTheDocument()
   })
 })
 
