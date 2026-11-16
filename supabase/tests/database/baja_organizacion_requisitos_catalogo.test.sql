@@ -1,12 +1,24 @@
 -- Prueba de catálogo (menores de la revisión retroactiva de #1008): toda función de baja de organización
 -- (`baja_organizacion*`, en cualquier esquema) debe exigir superadmin, registrar la actividad y confirmar las claves diferidas,
--- con LLAMADAS reales (`private.is_superadmin(`, `private.registrar_actividad(`, `private.confirmar_claves_diferidas(`): se quitan
--- antes los comentarios `--` y `/* */`, así que nombrarlas sólo en un comentario no alcanza. (Un literal de texto sigue siendo
--- un límite: la prueba no ejecuta la función; la revisión de código cubre eso.) Hoy no existe ninguna función así (ver
--- docs/tecnico/administracion-organizacion.md): la prueba falla el día que aparezca una sin esas condiciones.
+-- con LLAMADAS reales (`private.is_superadmin(`, `private.registrar_actividad(`, `private.confirmar_claves_diferidas(`).
+-- Antes de buscar se descartan, en este orden y con regexp_replace separados: comentarios de bloque, comentarios de línea,
+-- bloques $tag$…$tag$ y literales de texto '…' (con '' escapado). Así nombrarlas en un comentario o dentro de un texto no alcanza.
+-- Límite exacto: el análisis es textual y no ejecuta la función. Un `--` dentro de un literal recorta el resto de esa línea (solo
+-- puede dar un falso fallo, nunca un falso pase) y una llamada real que nunca se ejecuta (rama muerta) sí pasa: eso lo cubre la
+-- revisión de código. Hoy no existe ninguna función así (ver docs/tecnico/administracion-organizacion.md).
 begin;
 
 select plan(4);
+
+create function pg_temp.limpiar_codigo(p_fuente text) returns text language sql as $f$
+  select regexp_replace(
+           regexp_replace(
+             regexp_replace(
+               regexp_replace(p_fuente, '/\*([^*]|\*+[^*/])*\*+/', ' ', 'g'),
+               '--[^\n]*', ' ', 'g'),
+             '\$([A-Za-z_]*)\$.*?\$\1\$', ' ', 'g'),
+           '''([^'']|'''')*''', ' ', 'g')
+$f$;
 
 create function pg_temp.sin_baja_que_no_llame(p_llamada text) returns integer language sql as $f$
   select count(*)::integer
@@ -14,7 +26,7 @@ create function pg_temp.sin_baja_que_no_llame(p_llamada text) returns integer la
     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
    where p.proname like 'baja\_organizacion%'
      and n.nspname not in ('pg_catalog', 'information_schema')
-     and regexp_replace(p.prosrc, '--[^\n]*|/\*.*?\*/', '', 'g') !~ p_llamada
+     and pg_temp.limpiar_codigo(p.prosrc) !~ p_llamada
 $f$;
 
 select is(pg_temp.sin_baja_que_no_llame('private\.is_superadmin\s*\('), 0,
