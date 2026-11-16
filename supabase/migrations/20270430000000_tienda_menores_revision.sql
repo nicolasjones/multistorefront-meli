@@ -19,8 +19,8 @@
 --      `(…, organizacion_id)` ya impiden filas cruzadas, así que no se pueden construir datos que los distingan; un pgTAP de catálogo comprueba que
 --      siguen en el SQL de las funciones.
 --
--- Cuerpos: copiados COMPLETOS de la definición vigente en dev (con `public.clientes` ya reemplazado por `dominio.clientes` por la migración
--- 20270418000401). Atributos y ACL idénticos a los de antes (security definer, `search_path` vacío, mismos grants).
+-- Cuerpos: copiados COMPLETOS del texto de las MIGRACIONES (nunca de dev, que tiene deriva: ahí `catalogo_tienda_efectivo` usa un
+-- `private.categorias_visibles_efectivas` que ninguna migración define), con `public.clientes` ya reemplazado por `dominio.clientes` como hizo 20270418000401. Atributos y ACL idénticos a los de antes (security definer, `search_path` vacío, mismos grants).
 -- Migración aditiva. Reversión (migración posterior; no se ejecuta en el mismo PR): restaurar los cuerpos de 20270321100200, 20270322100700,
 -- 20270348000300 (`mis_favoritos_por_dominio`), 20270320100300 (`cambiar_favorito_por_dominio`) y 20270320100400 (`estado_publico_comprobante`) y
 -- `drop function if exists private.catalogo_tienda_efectivo_ids(uuid, uuid[]);`
@@ -28,16 +28,33 @@
 -- ============================================================================
 -- 2. Catálogo efectivo acotado a unos productos
 -- ============================================================================
-CREATE OR REPLACE FUNCTION private.catalogo_tienda_efectivo_ids(p_empresa uuid, p_ids uuid[])
- RETURNS TABLE(producto_id uuid, nombre text, activo boolean, moneda text, precio numeric, stock integer, categoria_id uuid, visible boolean, destacado boolean, efectivo boolean, motivo text)
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+create or replace function private.catalogo_tienda_efectivo_ids(p_empresa uuid, p_ids uuid[])
+returns table (
+  producto_id uuid,
+  nombre text,
+  activo boolean,
+  moneda text,
+  precio numeric,
+  stock integer,
+  categoria_id uuid,
+  visible boolean,
+  destacado boolean,
+  efectivo boolean,
+  motivo text
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
   with cat as (
-    -- Una categoría es visible si ella y todas sus antecesoras lo son.
-    select v.categoria_id as id, v.visible
-      from private.categorias_visibles_efectivas(p_empresa) v
+    -- Una categoría es visible si ella y su padre (si es subcategoría) lo son.
+    select c.id,
+           coalesce(ct.visible, true) and coalesce(cp.visible, true) as visible
+      from dominio.categorias c
+      join dominio.empresas e on e.id = p_empresa and e.organizacion_id = c.organizacion_id
+      left join dominio.categorias_tienda ct on ct.empresa_id = p_empresa and ct.categoria_id = c.id
+      left join dominio.categorias_tienda cp on cp.empresa_id = p_empresa and cp.categoria_id = c.padre_id
   ),
   base as (
     select p.id, p.nombre, p.activo, p.moneda, p.precio_lista, p.categoria_id,
@@ -60,7 +77,7 @@ AS $function$
            when not b.cat_visible then 'No se muestra: categoría oculta'
          end
     from base b;
-$function$;
+$$;
 
 revoke execute on function private.catalogo_tienda_efectivo_ids(uuid, uuid[]) from public, anon, authenticated;
 

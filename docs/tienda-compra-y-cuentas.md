@@ -446,6 +446,8 @@ Cierre de los menores que dejaron las revisiones de B1/B2 y de «Mi cuenta» (mi
 | 8 | «Tienda pausada → error» | Es un valor de la respuesta: la RPC contesta `{estado: error}` (sin excepción de Postgres ni error HTTP) para no revelar qué hosts existen. Quedó dicho en el comentario de la función (las migraciones aplicadas no se editan). |
 | 9 | «Sin IVA» / «con IVA» | En el detalle de una compra, el precio unitario y el subtotal de cada línea se rotulan «sin IVA»; el total del comprobante dice «con IVA». |
 
+**Deriva de dev (avisar):** dev tiene `private.categorias_visibles_efectivas` y un `private.catalogo_tienda_efectivo` que la usa (jerarquía recursiva de categorías), creados fuera de las migraciones; las migraciones definen la visibilidad de categoría con el padre directo. Los cuerpos de esta migración parten del texto de las migraciones, no de dev; el resto de las funciones que redefine coincide con dev.
+
 **Límite aceptado:** el árbol de categorías (`categorias_visibles_efectivas`) se sigue evaluando entero en cada llamada (es chico frente a los productos); ver 1.12 en la spec.
 
 **Seguimiento (riesgo aceptado):** si el tope por IP no alcanza contra spam real de pedidos, evaluar un desafío sin captcha (token firmado o prueba de trabajo) en `enviar_lista_pedido`.
