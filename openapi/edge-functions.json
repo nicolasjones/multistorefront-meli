@@ -1,0 +1,198 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MSF · Edge Functions",
+    "version": "0.1.0",
+    "description": "Contrato de las Edge Functions de MSF (Supabase). Piloto con `invitar-miembro`.\nDerivado de `supabase/functions/invitar-miembro/handler.ts`; si el handler cambia, este archivo cambia con él.\n"
+  },
+  "servers": [
+    {
+      "url": "{supabaseUrl}/functions/v1",
+      "variables": {
+        "supabaseUrl": {
+          "default": "http://127.0.0.1:54321"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/invitar-miembro": {
+      "post": {
+        "operationId": "invitarMiembro",
+        "summary": "Invitar un miembro a la organización o cancelar una invitación pendiente",
+        "description": "Requiere el JWT de un usuario con permiso para gestionar usuarios de su organización.\nCon `accion: \"cancelar\"` cancela la invitación `invitacion_id`; sin `accion` invita a `email` con el rol `rol`.\nLas respuestas de error usan mensajes genéricos a propósito (no revelan si un correo ya existe).\n",
+        "security": [
+          {
+            "bearerJwt": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/Invitar"
+                  },
+                  {
+                    "$ref": "#/components/schemas/Cancelar"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitación enviada o reenviada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitacionCreada"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Invitación cancelada.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "resultado"
+                  ],
+                  "properties": {
+                    "resultado": {
+                      "const": "invitacion_cancelada"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "405": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error"
+          },
+          "502": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error. El código HTTP indica la causa (400 datos inválidos, 403 sin permiso o token inválido, 404 invitación inexistente, 405 método, 409 no se puede invitar a ese correo, 502 falló un servicio externo).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Rol": {
+        "type": "string",
+        "enum": [
+          "administrador",
+          "operador",
+          "consulta",
+          "mostrador",
+          "deposito",
+          "administracion"
+        ]
+      },
+      "Invitar": {
+        "type": "object",
+        "required": [
+          "email",
+          "rol"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "Se normaliza a minúsculas."
+          },
+          "rol": {
+            "$ref": "#/components/schemas/Rol"
+          },
+          "asignaciones": {
+            "type": "array",
+            "description": "Empresas y roles asignados a la invitación (se validan en la RPC `guardar_asignaciones_invitacion`).",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "Cancelar": {
+        "type": "object",
+        "required": [
+          "accion",
+          "invitacion_id"
+        ],
+        "properties": {
+          "accion": {
+            "const": "cancelar"
+          },
+          "invitacion_id": {
+            "type": "string"
+          }
+        }
+      },
+      "InvitacionCreada": {
+        "type": "object",
+        "required": [
+          "resultado"
+        ],
+        "properties": {
+          "resultado": {
+            "type": "string",
+            "enum": [
+              "invitacion_enviada",
+              "invitacion_reenviada"
+            ]
+          }
+        },
+        "additionalProperties": true
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
