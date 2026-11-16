@@ -48,3 +48,15 @@ Cada alta, edición, anulación y exportación queda registrada en [Actividad](a
 ## Con varias tiendas
 
 La pantalla sigue a la tienda activa de la barra superior. Con **Todas las tiendas** suma las tiendas a las que tenés acceso y muestra la columna Tienda. Si cambiás de tienda con un diálogo abierto, se cierra sin guardar nada.
+
+## Margen después de costos fijos
+
+Cuando el equipo técnico lo activa, Rentabilidad suma la pestaña **Después de costos fijos**. Reparte los gastos **fijos** de cada tienda (alquiler, servicios, sueldos…) entre sus productos **en proporción a lo que vendió cada uno en el mes** y muestra cuánto margen queda después de eso, por tienda, consolidado, producto y categoría.
+
+- **El margen que ya ves no cambia**: la pestaña es una medida aparte. Los gastos **variables** (como fletes) no se reparten.
+- **Sin atribuir**: es la parte de los costos fijos que le toca a ventas que no tienen costo guardado; sumada al reparto da el total de fijos del mes.
+- **Mes sin ventas**: no hay con qué repartir; el tablero lo avisa y muestra el total de fijos del mes.
+- **Mes en curso**: es provisorio, porque todavía se están cargando gastos y ventas.
+- Si editás o anulás un gasto de un mes pasado, el margen de ese mes se recalcula solo.
+- La pestaña sigue la tienda activa de la barra superior. Si no tenés permiso de lectura en Rentabilidad, ves el aviso de acceso restringido.
+- Los eventos de gastos en [Actividad](actividad.md) los ve solo quien accede a esa tienda.

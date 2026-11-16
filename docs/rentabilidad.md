@@ -216,6 +216,10 @@ desde `reportes.json`, de forma idempotente. Variables (solo en `.env`/secrets, 
 crea la migración `20261130100300` como `nologin`: el operador le asigna login y contraseña por entorno.
 Detalle del tablero «Por producto» y sus límites en [`operar-superset.md`](./operar-superset.md).
 
+## Después de costos fijos (F-GAS-03, MSF-469)
+
+Pestaña **«Después de costos fijos»** (`/rentabilidad/costos-fijos`), detrás de la bandera `margen_costos_fijos` (apagada por defecto): reparte los gastos fijos de cada tienda (módulo [Gastos](gastos.md)) en proporción a las ventas netas del mes y muestra el margen que queda. **Lo existente no cambia**: las vistas, funciones, RPC, tableros y correos de Rentabilidad devuelven exactamente lo mismo con la bandera apagada y encendida (`margen_costos_fijos_paridad.test.sql`); la medida nueva se construye sobre `analitica.margen_real_categoria` sin redefinirla. Detalle, fórmula y reversión en [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
+
 ## Reversión
 
 Las migraciones son aditivas; el camino de vuelta va en el encabezado de cada una y se aplica en **una

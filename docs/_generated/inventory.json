@@ -129,9 +129,11 @@
     "/rentabilidad/ComoSeCalcula",
     "/rentabilidad/Comparativo",
     "/rentabilidad/CostosAdicionales",
+    "/rentabilidad/CostosFijos",
     "/rentabilidad/DialogoCostoAdicional",
     "/rentabilidad/DialogoUmbral",
     "/rentabilidad/Historia",
+    "/rentabilidad/PestanasRentabilidad",
     "/rentabilidad/PorProducto",
     "/rentabilidad/VentasReales",
     "/reportes/ProductosYStock",
@@ -1221,5 +1223,5 @@
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 331
+  "paginas": 332
 }

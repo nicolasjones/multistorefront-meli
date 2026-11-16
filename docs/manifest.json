@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "18a93ee22c96fb51a1b3c6b2a93ad6bcaef1e6b742b046524004e621da9f5091",
-      "sourceHash": "ccd4fe4ae1b217fb62d6c3e8a2fb9dd7c2ca2b14b8283909422ca37773d6e9b6",
-      "sourceAt": "8451da59",
+      "pageHash": "ea1877fabccf594016975deda79b545da9cf9b7489a20847b7dcb4f53cc7d7cd",
+      "sourceHash": "552cc7d06034876ce7f19829361acb504ecebb3204e381be42ccfe6865384dcc",
+      "sourceAt": "4a93f421",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "4a93f421"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -602,8 +602,8 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "0ebe0e5650c343f8476c015fb12b06d39ccb11da154b65576b11484db996e3e6",
-      "sourceHash": "4fcb65336f01c8931ebc2d0a46ae1de02603510b2a476efe83043865d70e5845",
+      "pageHash": "27471e93a1066a9844d1c30b096c49dbb6d06fde3121ec20ec95d49b68caa7ab",
+      "sourceHash": "d30d656fcfc6d3d0ad8ed339b54ec129c2d7dc405367c5f75c1aeaef49a95693",
       "sourceAt": "9cde8838",
       "sources": [
         "specs"
@@ -727,17 +727,17 @@
       "commit": "c7860a7c"
     },
     "docs/gastos.md": {
-      "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
-      "pageHash": "25aef9e6591f780f2c0f14df14bb72ea9c60428ce7f11afc866a1ecd9b819ee2",
-      "sourceHash": "0da66b83d78a4fb019f3f08e1d634573fc5a8673ad42d522bb4187b0bd626de3",
-      "sourceAt": "71c0b1d5",
+      "title": "Gastos de la empresa y margen después de costos fijos",
+      "pageHash": "bffc07b935fb557cc6a9427d675c5f5f12db8f03219d2a27e52cf347b105c0c9",
+      "sourceHash": "0047fac3a4a1cac60e6ed56b5025a19ee68b49b137ad7009de8b6e33c2d3612c",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "apps/web/src/pages/gastos",
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "71c0b1d5"
+      "commit": "a8f3d3a9"
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
@@ -1291,12 +1291,12 @@
     },
     "docs/producto/gastos.md": {
       "title": "Gastos de cada tienda",
-      "pageHash": "359c47ee70aa542bda053584975d23e1d693122efb3d88c045265c89ab3e6bda",
+      "pageHash": "183f6fdcc53c757b817414335712ceb4c46acc60a340f053e558e96f2779c34e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c972b57b"
+      "commit": "a8f3d3a9"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
@@ -1890,9 +1890,9 @@
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "a3ca5cb0c76e7f7091b8a351047865a1396fccd5cbd13e7f3448a0f83956fe11",
-      "sourceHash": "93ebc74a551510b4fd6ecffaf0644cfb9e73a532f15a81d7cabf56bd0f890f20",
-      "sourceAt": "a54b6f65",
+      "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
+      "sourceHash": "0eb37a64eeb510f5abbfb0699fd6a90ccb76a16b82a54bea6e12277e69d5131f",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1902,7 +1902,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -1943,6 +1943,19 @@
       "owner": "tecnico",
       "commit": "e2ad6a41"
     },
+    "docs/revision-seguridad-gastos.md": {
+      "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
+      "pageHash": "ae9068cd3160620c62dfa7de53222db5664226608c430badb4e688c12145a344",
+      "sourceHash": "3a99ac458a38c2599d1a6d5188e63ef1531a4008c44f4b207e00c767c0b8a794",
+      "sourceAt": "53e8956f",
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "supabase/migrations",
+        "apps/web/src/pages/rentabilidad"
+      ],
+      "owner": "tecnico",
+      "commit": "53e8956f"
+    },
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "0e13693772ea6e8836c709f56353fe5e4ade10ddcfd3f6d1c05d95d31609ceb7",
@@ -1958,7 +1971,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "eb051fbe44e630f530ac988c7ab082ba19210254accf71eabdba1f4f937b6cf9",
+      "pageHash": "d5200313dba7dd57543126228d2e565cabd5385f22ca2aa83da1a99517dec216",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -3133,9 +3146,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "cd1cc01802f1352fd8ced715d34c6727f53d27f9e1a7e60b004e44f28bc2f879",
-      "sourceHash": "fb960c60422718a6243e5f61a67aabe2e7edcf4e042d715fd21ca535ecd798d4",
-      "sourceAt": "a54b6f65",
+      "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
+      "sourceHash": "b434dc0d615a9bac4660d5b6bc0f07015a95e1f53ec410d3f201c5c3a90d22ad",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3143,7 +3156,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

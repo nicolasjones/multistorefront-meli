@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **273**
+- Rutas del panel: **275**
 - Tablas en migraciones: **207**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **331**
+- Páginas de documentación: **332**
 
 ## Rutas del panel
 
@@ -139,9 +139,11 @@
 - `/rentabilidad/ComoSeCalcula`
 - `/rentabilidad/Comparativo`
 - `/rentabilidad/CostosAdicionales`
+- `/rentabilidad/CostosFijos`
 - `/rentabilidad/DialogoCostoAdicional`
 - `/rentabilidad/DialogoUmbral`
 - `/rentabilidad/Historia`
+- `/rentabilidad/PestanasRentabilidad`
 - `/rentabilidad/PorProducto`
 - `/rentabilidad/VentasReales`
 - `/reportes/ProductosYStock`

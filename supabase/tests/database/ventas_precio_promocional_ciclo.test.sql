@@ -655,13 +655,14 @@ select is(pg_temp.res('m1'), '800.00|1000.00|0.00|x1|false', 'T018: sin precio m
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.crear('m2', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
 reset role;
-create temp table eventos_antes as select count(*)::int n from public.registro_actividad where tipo = 'comprobante.editado' and organizacion_id = '11111111-1111-1111-1111-111111111111';
+-- Solo la Tienda A: el operador f…02 solo accede a ella y Actividad filtra por empresa accesible.
+create temp table eventos_antes as select count(*)::int n from public.registro_actividad where tipo = 'comprobante.editado' and organizacion_id = '11111111-1111-1111-1111-111111111111' and empresa_id = 'a1000000-0000-0000-0000-000000000001';
 grant select on eventos_antes to public;
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select pg_temp.guardar('m2', jsonb_build_array(pg_temp.q(24, 1, 700)));
 select is(pg_temp.res('m2'), '700.00|-|0.00|x1|true', 'T018: con editar_precio el manual manda sobre la promoción: precio_manual = true y sin referencia');
 select is(pg_temp.promo_de('m2'), null::uuid, 'T018: sin promoción asociada');
-select is((select count(*)::int from public.registro_actividad where tipo = 'comprobante.editado' and organizacion_id = '11111111-1111-1111-1111-111111111111'),
+select is((select count(*)::int from public.registro_actividad where tipo = 'comprobante.editado' and organizacion_id = '11111111-1111-1111-1111-111111111111' and empresa_id = 'a1000000-0000-0000-0000-000000000001'),
   (select n + 1 from eventos_antes), 'T018: el guardado deja un evento comprobante.editado');
 select is((select r.detalle from public.registro_actividad r where r.tipo = 'comprobante.editado' and r.actor_id = 'f1000000-0000-0000-0000-000000000002'
             order by r.creado_en desc limit 1) like 'Actualizó las líneas de la factura %', true, 'T018: con el detalle de siempre');

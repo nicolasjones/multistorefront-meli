@@ -809,3 +809,6 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 | Capturas de **Ventas reales** y **Costos adicionales**: `pnpm docs:capturas` no existe en esta rama. | Cierre de MSF-192 |
 | Ejecutar el E2E `rentabilidad-real-reportes-roles.e2e.ts` (`[MSF-741:T041]`) con el stack local. | Cierre de MSF-192 |
 
+## Después de costos fijos (MSF-469, F-GAS-03)
+
+Cuatro vistas nuevas de `analitica` (`costos_fijos_empresa_mes`, `ventas_netas_empresa_mes`, `margen_despues_costos_fijos`, `margen_costos_fijos_empresa_mes`) y la función `analitica.bandera_activa(text)`, detrás de la bandera `margen_costos_fijos`. **No se redefinió** `analitica.margen_real_categoria` ni `analitica.rentabilidad_ventas_real`: la medida se apoya en ellas y suma `tasa_fija`, `cargo_costos_fijos`, `margen_despues_fijos` y `margen_despues_fijos_pct`. Pestaña `pages/rentabilidad/CostosFijos.tsx` (la ruta redirige a `/rentabilidad` con la bandera apagada), `PestanasRentabilidad` (suma la pestaña solo con la bandera) y tablero `Rentabilidad · Después de costos fijos` (`reportes.filtro_empresa = true`). Fórmula, seguridad y reversión: [Gastos de la empresa](../gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
