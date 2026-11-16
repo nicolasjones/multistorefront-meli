@@ -32,9 +32,11 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 -- MSF-363 (decisiones 14 y 15): la bandera `precios_masivos` nace apagada; este archivo la enciende para probar el
 -- comportamiento de siempre y la apaga en su propia sección. El permiso es POR TIENDA: el operador edita en las dos tiendas;
 -- «mixto» edita en Tienda Uno y solo lee en Tienda Dos; «solo uno» solo accede a Tienda Uno.
--- Valores sembrados por la migración, ANTES de tocar nada: apagadas de verdad (no solo el default de la columna).
-select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false, 'promociones_precio nace apagada (valor sembrado)');
-select is((select activa from public.banderas_plataforma where clave = 'precios_masivos'), false, 'precios_masivos nace apagada (valor sembrado)');
+-- Las dos banderas existen y el test las fija APAGADAS: el valor sembrado de una base viva (dev) puede estar encendido a propósito,
+-- y que nazcan apagadas lo garantiza el default `false` de la columna (el test del default está en promociones_precio.test.sql).
+select is((select count(*)::int from public.banderas_plataforma where clave in ('promociones_precio', 'precios_masivos')), 2, 'las banderas promociones_precio y precios_masivos existen');
+update public.banderas_plataforma set activa = false where clave in ('promociones_precio', 'precios_masivos');
+select is((select count(*)::int from public.banderas_plataforma where clave in ('promociones_precio', 'precios_masivos') and activa), 0, 'las dos banderas quedan apagadas por el propio test (no dependen del entorno)');
 -- Lo desconocido está apagado: clave inexistente y fila borrada.
 select is(private.bandera_activa('no_existe'), false, 'private.bandera_activa: una clave inexistente cuenta como apagada');
 delete from public.banderas_plataforma where clave = 'precios_masivos';

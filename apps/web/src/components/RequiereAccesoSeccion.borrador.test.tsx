@@ -103,7 +103,7 @@ async function abrirYFallar(hijos?: ReactNode) {
   return { vista, campo }
 }
 
-describe('RequiereAccesoSeccion: reintentar sin perder el borrador (MSF-855)', () => {
+describe('RequiereAccesoSeccion: reintentar sin perder el borrador', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     montajes = 0

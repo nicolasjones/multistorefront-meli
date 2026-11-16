@@ -6,7 +6,7 @@
 -- worker se hacen como dueño con el JWT de un administrador (lo que `autorizar_llamante_ciclo` acepta).
 begin;
 
-select plan(45);
+select plan(50);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -175,7 +175,7 @@ select cmp_ok(
 select ok(
   exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'productos')
   and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'comprobantes_venta')
-  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'public' and tabla = 'clientes'),
+  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'clientes'),
   'incluye catálogo, ventas y clientes'
 );
 select is(
@@ -189,9 +189,35 @@ select is(
   0, 'ninguna columna exportada parece un secreto o un token'
 );
 select ok(
+  exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'listas_precios')
+  and exists (select 1 from private.conjuntos_exportacion_total() where esquema = 'dominio' and tabla = 'clientes' and 'lista_precio_id' = any(columnas)),
+  'las listas de precios y la lista de cada cliente entran a la exportación total (F-PRE-14, RF-CLI-21-8)'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total()
+           where esquema = 'dominio' and tabla = 'opiniones_producto'
+             and 'comentario' = any(columnas) and 'estado' = any(columnas)),
+  'las opiniones de productos (dato del negocio) entran en la exportación total'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total()
+           where esquema = 'dominio' and tabla = 'gastos' and 'importe_pesos' = any(columnas) and 'motivo_anulacion' = any(columnas)),
+  'los gastos de la empresa, anulados incluidos, entran a la exportación total (RF-GAS-17)'
+);
+select ok(
   not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'token_verificacion' = any(columnas))
   and exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'tiendas' and 'dominio' = any(columnas)),
   'tiendas se exporta sin su token de verificación'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletter_suscriptores' and 'correo' = any(columnas))
+  and exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletter_configuracion')
+  and not exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletter_suscriptores' and 'confirmacion_hash' = any(columnas)),
+  'RF-NL-23: los suscriptores y su configuración se exportan sin confirmacion_hash'
+);
+select ok(
+  exists (select 1 from private.conjuntos_exportacion_total() where tabla = 'newsletters' and 'asunto' = any(columnas) and 'contenido_enviado' = any(columnas)),
+  'RF-NL-23: los borradores y envíos del newsletter se exportan'
 );
 select is(
   (select count(*)::int

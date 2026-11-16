@@ -42,16 +42,20 @@ describe('Lista de alertas de Inicio (FR-025, FR-026)', () => {
       alerta('consultas_sin_atender', 2, 'e1'),
       alerta('dolar_sin_cargar', 1),
       alerta('margen_negativo', 4, 'e1'),
+      alerta('cobros_pendientes', 1, 'e1'),
+      alerta('faltantes', 3, 'e1'),
     ])
     render(<MemoryRouter><AlertasInicio /></MemoryRouter>)
     const lista = await screen.findByRole('list', { name: 'Alertas' })
-    expect(within(lista).getAllByRole('listitem')).toHaveLength(5)
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(7)
     expect(screen.getByRole('link', { name: 'Ver: 3 productos sin stock' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('link', { name: 'Ver: 1 producto con stock bajo' })).toHaveAttribute('href', '/stock')
     expect(screen.getByRole('link', { name: 'Abrir: 2 consultas nuevas sin atender' })).toHaveAttribute('href', '/consultas')
     expect(screen.getByRole('link', { name: 'Abrir: Todavía no se cargó el dólar de hoy' })).toHaveAttribute('href', '/cotizacion')
     expect(screen.getByRole('link', { name: 'Ver: 4 productos con margen negativo' })).toHaveAttribute('href', '/rentabilidad/productos')
-    expect(screen.getAllByText('San Javucho')).toHaveLength(2)
+    expect(screen.getByRole('link', { name: 'Ver: 1 cobro pendiente' })).toHaveAttribute('href', '/ventas/comprobantes')
+    expect(screen.getByRole('link', { name: 'Ver: 3 faltantes avisados sin resolver' })).toHaveAttribute('href', '/stock/faltantes')
+    expect(screen.getAllByText('San Javucho')).toHaveLength(4)
   })
 
   it('pide las alertas de la empresa activa de la barra superior', async () => {

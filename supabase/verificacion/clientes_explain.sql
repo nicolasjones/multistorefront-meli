@@ -14,7 +14,7 @@ insert into public.organizaciones (id, nombre)
 values ('00000000-0000-0000-0000-000000000019', 'Org T019')
 on conflict do nothing;
 
-insert into public.clientes (organizacion_id, nombre, documento, correo, localidad, tipo, archivado_en)
+insert into dominio.clientes (organizacion_id, nombre, documento, correo, localidad, tipo, archivado_en)
 select '00000000-0000-0000-0000-000000000019',
        (array['José','María','Ñandú','Sofía','Andrés','Luciana'])[1 + g % 6] || ' Cliente ' || g,
        lpad((20000000 + g)::text, 8, '0'),
@@ -24,31 +24,29 @@ select '00000000-0000-0000-0000-000000000019',
        case when g % 10 = 0 then now() end
   from generate_series(1, 5000) g;
 
-analyze public.clientes;
+analyze dominio.clientes;
 
 -- Búsqueda parcial (mismo predicado que public.buscar_clientes).
 explain (analyze, buffers)
-select c.id from public.clientes c
+select c.id from dominio.clientes c
  where c.organizacion_id = '00000000-0000-0000-0000-000000000019'
    and c.archivado_en is null
-   and lower(coalesce(c.nombre, '') || ' ' || coalesce(c.documento, '') || ' ' || coalesce(c.correo, '') || ' '
-       || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
-       || c.numero::text) like '%andrés cliente 42%';  -- sin unaccent: el índice es lower() puro, la tilde cuenta
+   and private.texto_busqueda_cliente(c.nombre, c.documento, c.correo, c.telefono, c.celular, c.localidad, c.expreso_preferido, c.numero)
+       like '%andrés cliente 42%';  -- sin unaccent: el texto es lower() puro, la tilde cuenta
 
 -- Misma búsqueda forzando el índice (descarta el falso negativo por tamaño de tabla).
 set local enable_seqscan = off;
 explain (analyze, buffers)
-select c.id from public.clientes c
+select c.id from dominio.clientes c
  where c.organizacion_id = '00000000-0000-0000-0000-000000000019'
    and c.archivado_en is null
-   and lower(coalesce(c.nombre, '') || ' ' || coalesce(c.documento, '') || ' ' || coalesce(c.correo, '') || ' '
-       || coalesce(c.telefono, '') || ' ' || coalesce(c.celular, '') || ' ' || coalesce(c.localidad, '') || ' '
-       || c.numero::text) like '%andrés cliente 42%';
+   and private.texto_busqueda_cliente(c.nombre, c.documento, c.correo, c.telefono, c.celular, c.localidad, c.expreso_preferido, c.numero)
+       like '%andrés cliente 42%';
 reset enable_seqscan;
 
 -- Paginación por defecto (orden por nombre, página 3 de 25).
 explain (analyze, buffers)
-select c.id from public.clientes c
+select c.id from dominio.clientes c
  where c.organizacion_id = '00000000-0000-0000-0000-000000000019' and c.archivado_en is null
  order by lower(c.nombre), c.id limit 25 offset 50;
 

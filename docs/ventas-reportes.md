@@ -43,7 +43,7 @@ Una sola fuente para las dos pestañas y para el Excel; el criterio **no se reim
 
 **Esquemas (Principio VII)**: la épica **no crea tablas**. Las vistas viven en `analitica` (superficie de
 lectura de Superset, cerrada para `anon` y `authenticated`) y las dos RPC en `public` (superficie de
-ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `public.clientes`,
+ejecución sin datos propios). El dato de dominio sigue en `dominio.comprobantes_venta*` y `dominio.clientes`,
 con su RLS por organización.
 
 ## Filtro por empresa y permisos
@@ -128,7 +128,7 @@ Verificada con `supabase/tests/database/ventas_reportes_superficie.test.sql` (pg
 |---|---|
 | `anon` | Sin `USAGE` sobre `analitica`, sin `SELECT` en las vistas y sin `EXECUTE` en las dos RPC |
 | `authenticated` | Sin `USAGE` ni `SELECT` sobre `analitica`; lee solo por las RPC (autorizan adentro) |
-| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `public.clientes` |
+| Rol `superset_analitica` | Solo `SELECT` en vistas; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `dominio.clientes` |
 | RPC `security definer` | `search_path` fijo (`''`), `revoke … from public, anon`, `grant execute … to authenticated`; autorización explícita adentro |
 | Token por empresa | `organizacion_id` + `empresa_id IN (…)` forzados en el servidor (`emitir-acceso-reporte`) |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` sigue verde |

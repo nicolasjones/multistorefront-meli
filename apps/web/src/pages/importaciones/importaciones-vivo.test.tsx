@@ -14,7 +14,7 @@ import { REFRESCO_PROCESOS_MS } from '../../lib/procesosMasivos'
 
 const avanzar = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
 
-describe('[MSF-354:T009] Refresco periódico mientras haya procesos abiertos (FR-012)', () => {
+describe('Refresco periódico mientras haya procesos abiertos (FR-012)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     reiniciarFalso()

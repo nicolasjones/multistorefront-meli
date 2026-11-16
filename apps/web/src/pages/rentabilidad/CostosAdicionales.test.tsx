@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   guardar: vi.fn(),
   baja: vi.fn(),
 }))
+vi.mock('../../hooks/useBanderaMargenCostosFijos', () => ({ useBanderaMargenCostosFijos: () => ({ activa: false, cargando: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../hooks/useCostosAdicionales', () => ({ useCostosAdicionales: mocks.useCostosAdicionales }))

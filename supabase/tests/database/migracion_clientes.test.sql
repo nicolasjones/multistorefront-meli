@@ -96,7 +96,7 @@ select is(
   'la vista previa clasifica nueva / nueva / error'
 );
 select is(
-  (select count(*) from clientes where nombre like '%Sintético'),
+  (select count(*) from dominio.clientes where nombre like '%Sintético'),
   0::bigint,
   'la vista previa no escribe clientes'
 );
@@ -144,18 +144,18 @@ select is(
   'las filas inválidas vuelven con su motivo y no se importan'
 );
 select is(
-  (select tipo from clientes where nombre = 'Cliente Uno Sintético'),
+  (select tipo from dominio.clientes where nombre = 'Cliente Uno Sintético'),
   'mayorista',
   'el tipo del archivo se normaliza y se guarda'
 );
 select is(
-  (select c.nombre from clientes_identificadores_externos v join clientes c on c.id = v.cliente_id
+  (select c.nombre from clientes_identificadores_externos v join dominio.clientes c on c.id = v.cliente_id
     where v.sistema = 'panel_actual' and v.identificador_externo = 'P-001'),
   'Cliente Uno Sintético',
   'el cliente queda vinculado al identificador del panel actual'
 );
 select is(
-  (select count(*) from clientes_empresas ce join clientes c on c.id = ce.cliente_id where c.nombre = 'Cliente Uno Sintético'),
+  (select count(*) from clientes_empresas ce join dominio.clientes c on c.id = ce.cliente_id where c.nombre = 'Cliente Uno Sintético'),
   2::bigint,
   'el cliente nuevo queda habilitado en todas las tiendas de la organización'
 );
@@ -225,12 +225,12 @@ select is(
   'un identificador ya vinculado actualiza el cliente en vez de crear otro'
 );
 select is(
-  (select documento || ' / ' || telefono from clientes where nombre = 'Cliente Uno Renombrado'),
+  (select documento || ' / ' || telefono from dominio.clientes where nombre = 'Cliente Uno Renombrado'),
   '20-11111111-1 / 341-555-0001',
   'la actualización solo pisa las columnas que trae el archivo (el documento no mapeado queda)'
 );
 select is(
-  (select correo || ' / ' || localidad from clientes where nombre = 'Cliente Uno Renombrado'),
+  (select correo || ' / ' || localidad from dominio.clientes where nombre = 'Cliente Uno Renombrado'),
   'uno@example.com / Rosario',
   'una celda vacía no borra el dato existente'
 );
@@ -245,7 +245,7 @@ select throws_ok(
   '22023', null, 'una fila sin número de fila aborta el lote'
 );
 select is(
-  (select count(*) from clientes where nombre = 'Cliente Atómico'),
+  (select count(*) from dominio.clientes where nombre = 'Cliente Atómico'),
   0::bigint,
   'el lote abortado no dejó ninguna fila aplicada'
 );
@@ -307,7 +307,7 @@ select is(
   'un identificador de otra organización no se pisa ni se revela que existe'
 );
 select is(
-  (select count(*) from clientes where nombre in ('Intruso', 'Cliente Uno Renombrado')),
+  (select count(*) from dominio.clientes where nombre in ('Intruso', 'Cliente Uno Renombrado')),
   0::bigint,
   'la otra organización no crea ni ve clientes de la primera'
 );

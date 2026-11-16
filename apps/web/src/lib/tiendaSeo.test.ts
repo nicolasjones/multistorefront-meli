@@ -19,7 +19,7 @@ describe('recortar (F-TDA-21, FR-021)', () => {
   })
 })
 
-describe('recortar · caracteres fuera del plano básico (MSF-149)', () => {
+describe('recortar · caracteres fuera del plano básico', () => {
   it('no parte un emoji ni un par sustituto al cortar', () => {
     const r = recortar('😀'.repeat(100), 10)
     expect(Array.from(r)).toHaveLength(10)
@@ -32,7 +32,7 @@ describe('recortar · caracteres fuera del plano básico (MSF-149)', () => {
   })
 })
 
-describe('seoDeTienda · caché con vencimiento (MSF-149)', () => {
+describe('seoDeTienda · caché con vencimiento', () => {
   const fila = { dominio: 'a.test', nombre: 'A', descripcion: 'd', logo_ruta: null, indexable: true }
 
   beforeEach(() => {

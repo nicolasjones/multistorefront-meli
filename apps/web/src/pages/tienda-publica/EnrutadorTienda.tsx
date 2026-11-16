@@ -13,9 +13,11 @@ type CargadorRuta = () => Promise<ModuloRuta>
 const CARGADORES_RUTAS = import.meta.glob<ModuloRuta>(['./rutas/*.tsx', '!./rutas/*.test.tsx']) as Record<string, CargadorRuta>
 
 // Ruta del archivo → paths (ver rutas/LEEME.md): `inicio` es la home; el resto responde en
-// `/<nombre>` y `/<nombre>/:<nombre>Id`.
+// `/<nombre>` y `/<nombre>/:<nombre>Id`. Un nombre con puntos (`newsletter.confirmar.tsx`) es una ruta de varios tramos con un
+// único parámetro final: `/newsletter/confirmar/:token`.
 export function rutaDeArchivo(archivo: string): string[] {
   const nombre = archivo.replace(/^.*\//, '').replace(/\.tsx$/, '')
+  if (nombre.includes('.')) return [`/${nombre.split('.').join('/')}/:token`]
   return nombre === 'inicio' ? ['/'] : [`/${nombre}`, `/${nombre}/:${nombre}Id`]
 }
 

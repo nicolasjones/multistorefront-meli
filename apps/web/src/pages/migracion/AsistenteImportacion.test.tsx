@@ -246,7 +246,7 @@ describe('AsistenteImportacion', () => {
     expect(aplicaciones[1][1]).toMatchObject({ p_carga: 'carga-1' })
   })
 
-  it('[MSF-702] cancelar tras un fallo cierra la carga para que no quede «en curso»', async () => {
+  it('cancelar tras un fallo cierra la carga para que no quede «en curso»', async () => {
     configurarRpc({ aplicarFalla: true })
     abrir()
     await subir()
@@ -260,7 +260,7 @@ describe('AsistenteImportacion', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('cerrar_carga_migracion', { p_carga: 'carga-1' })
   })
 
-  it('[MSF-702] cancelar antes de importar no toca ninguna carga', async () => {
+  it('cancelar antes de importar no toca ninguna carga', async () => {
     abrir()
     await subir()
     botonContinuar()
@@ -323,7 +323,7 @@ describe('AsistenteImportacion', () => {
     expect(screen.queryByLabelText('Archivo CSV de clientes')).not.toBeInTheDocument()
   })
 
-  it('marca las filas con más columnas que el encabezado y no las importa (MSF-699)', async () => {
+  it('marca las filas con más columnas que el encabezado y no las importa', async () => {
     abrir()
     fireEvent.change(screen.getByLabelText('Archivo CSV de clientes'), {
       target: { files: [archivo(CSV_CON_COLUMNAS_DE_MAS)] },

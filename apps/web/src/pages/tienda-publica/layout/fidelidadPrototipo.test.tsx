@@ -33,7 +33,7 @@ describe('tema de la tienda', () => {
   })
 })
 
-describe('tema: botón del héroe y papel (MSF-847, auditoría)', () => {
+describe('tema: botón del héroe y papel (auditoría)', () => {
   const identidades = {
     mundoJc: { colorPrimario: '#A3111D', colorAcento: '#A3111D', colorBarra: '#2A2A2A', colorTexto: '#1F1F1F', colorFondo: '#FFFFFF' },
     sanJavucho: { colorPrimario: '#1B3A5C', colorAcento: '#E9A23B', colorBarra: '#1B3A5C', colorTexto: '#1B2430', colorFondo: '#FBF8F2' },

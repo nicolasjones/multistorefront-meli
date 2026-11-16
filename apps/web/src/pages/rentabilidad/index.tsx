@@ -5,20 +5,19 @@ import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/Repor
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
-import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
 import { useConteoMargen } from '../../hooks/useRentabilidad'
 import {
   NOMBRE_REPORTE_RESUMEN,
-  PESTANAS_RENTABILIDAD,
   RUTA_POR_PRODUCTO_BAJO_O_NEGATIVO,
   SECCION_RENTABILIDAD,
   hayProductosEnRiesgo,
 } from '../../lib/rentabilidad'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 import { ComoSeCalcula } from './ComoSeCalcula'
+import { PestanasRentabilidad } from './PestanasRentabilidad'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoUmbral = lazy(() => import('./DialogoUmbral').then((modulo) => ({ default: modulo.DialogoUmbral })))
@@ -84,7 +83,7 @@ export function RentabilidadResumen() {
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeEditar ? <Button variant="outlined" onClick={() => setDialogoAbierto(true)}>Umbral de margen bajo</Button> : undefined}
-        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasRentabilidad />}
       />
       {conteo && hayProductosEnRiesgo(conteo) ? (
         <Alert

@@ -179,7 +179,7 @@ describe('ProveedorFormDialog', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     resolver({ data: PROVEEDOR, error: null })
   })
-  describe('«Compra para» (MSF-524)', () => {
+  describe('«Compra para»', () => {
     const tienda = (nombre: string) => screen.getByRole('checkbox', { name: nombre })
 
     it('muestra una opción por tienda, sin marcar en el alta', () => {

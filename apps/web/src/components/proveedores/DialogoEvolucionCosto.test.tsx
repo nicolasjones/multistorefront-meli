@@ -27,7 +27,7 @@ describe('DialogoEvolucionCosto', () => {
     mocks.useHistorialCostos.mockReturnValue(respuesta([punto(1), punto(2)]))
   })
 
-  it('[MSF-448:T018] muestra una serie por proveedor con fecha, comprobante y costo en USD', () => {
+  it('muestra una serie por proveedor con fecha, comprobante y costo en USD', () => {
     mocks.useHistorialCostos.mockReturnValue(respuesta([
       punto(1), punto(2),
       punto(3, { proveedor_id: 'prv-2', proveedor_razon_social: 'Proveedor Dos', comprobante: null, costo_unitario_usd: 1234.5 }),

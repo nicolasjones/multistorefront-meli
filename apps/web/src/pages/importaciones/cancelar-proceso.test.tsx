@@ -13,7 +13,7 @@ import { ImportacionesList } from './list'
 
 const abrir = () => render(<MemoryRouter><ImportacionesList /></MemoryRouter>)
 
-describe('[MSF-354:T011] Cancelar un proceso (FR-014)', () => {
+describe('Cancelar un proceso (FR-014)', () => {
   beforeEach(() => {
     reiniciarFalso()
     configurarFiltro(null)

@@ -148,9 +148,12 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
       const csrf = await fetch(`${baseUrl}/api/v1/security/csrf_token/`, { headers: autorizacion, signal: senal() });
       if (!csrf.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrf.status}.`);
       const { result: csrfToken } = await csrf.json();
+      // Igual que en `importarPaquete`: el token CSRF solo vale con la cookie de sesión que llega con él; sin ella
+      // Superset responde 400 («The CSRF token is missing») y el embebido nunca se habilita.
+      const cookie = (csrf.headers?.getSetCookie?.() ?? []).map((valor) => valor.split(';')[0]).join('; ');
       respuesta = await fetch(url, {
         method: 'POST',
-        headers: { ...autorizacion, 'content-type': 'application/json', 'x-csrftoken': csrfToken },
+        headers: { ...autorizacion, 'content-type': 'application/json', 'x-csrftoken': csrfToken, ...(cookie ? { cookie } : {}) },
         body: JSON.stringify({ allowed_domains: dominiosPermitidos }),
         signal: senal(),
       });

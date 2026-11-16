@@ -44,7 +44,7 @@ describe('validarContenido (FR-032, FR-033)', () => {
     expect(validarContenido({ ...CONTENIDO_VACIO, [clave]: 'a'.repeat(largo) })).toEqual({ [clave]: mensaje })
   })
 
-  it('el eslogan acepta justo 80 caracteres (MSF-841)', () => {
+  it('el eslogan acepta justo 80 caracteres', () => {
     expect(validarContenido({ ...CONTENIDO_VACIO, eslogan: 'e'.repeat(80) })).toEqual({})
   })
 
@@ -69,7 +69,7 @@ describe('largoContenido', () => {
   })
 })
 
-describe('aContenido · eslogan (MSF-841)', () => {
+describe('aContenido · eslogan', () => {
   it('una fila o borrador sin eslogan (anterior a la migración) lo deja vacío', () => {
     expect(aContenido({ titulo: 'Hola' }).eslogan).toBe('')
     expect(aContenido({ eslogan: 'Todo para jugar' }).eslogan).toBe('Todo para jugar')

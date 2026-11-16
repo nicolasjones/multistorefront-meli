@@ -39,10 +39,20 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 
 ## Estado
 
-- **No bloqueante** por ahora (`continue-on-error: true` en `.github/workflows/quality.yml`). Cuando el
-  baseline esté limpio, se quita y `quality` pasa a **check requerido** junto con `database`.
+- El job `quality` **falla** (rojo) ante hallazgos, pero **no bloquea el merge**: el ruleset de GitHub
+  (25358575) exige solo `validacion`. No existe `continue-on-error` en el workflow. Para volverlo
+  bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
+- `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
+  `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
+  `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
+- Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
+  exports ni tipos exportados sin uso en `apps/web/src` (antes: ~35 y 6; lotes anteriores los limpiaron), así
+  que no hubo nada que quitar. `oxlint` 1.79.0 sobre `apps/web/src` pasó de 287 a 286 warnings: se quitó el
+  único `no-unused-vars` (parámetro de `catch` sin uso). Quedan sin tocar 205 `set-state-in-effect`, 39 `refs`
+  y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
+  quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
 
 ## Tests web: timeouts
 

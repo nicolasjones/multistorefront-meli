@@ -7,7 +7,7 @@
 -- `anon` y se guardan en una tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(111);
+select plan(112);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -95,7 +95,11 @@ select is(
   (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'banderas_plataforma' and column_name = 'activa'),
   'false', 'las banderas nacen apagadas (default false)'
 );
-select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false, 'promociones_precio nace apagada (valor sembrado por la migración)');
+-- El valor sembrado de una base viva puede estar encendido a propósito (dev): el test no depende de él. La fila existe y el test
+-- la fija apagada antes de probar el apagado; el default `false` de arriba es lo que garantiza que una bandera nueva nazca apagada.
+select is((select count(*)::int from public.banderas_plataforma where clave = 'promociones_precio'), 1, 'promociones_precio existe como bandera de plataforma');
+update public.banderas_plataforma set activa = false where clave = 'promociones_precio';
+select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false, 'promociones_precio apagada (el test la fija; no depende del entorno)');
 update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
 
 -- ============================================================================

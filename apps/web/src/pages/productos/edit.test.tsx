@@ -689,7 +689,7 @@ describe('ProductoEdit', () => {
     expect(selector).toHaveAttribute('aria-disabled', 'true')
   })
 
-  it('[MSF-423:T025] la ficha monta «Precio propio por empresa» con las empresas del producto', async () => {
+  it('la ficha monta «Precio propio por empresa» con las empresas del producto', async () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Precio propio por empresa' })).toBeInTheDocument()
     // Solo San Javucho vende el producto (emp-1); Mundo JC no tiene fila.

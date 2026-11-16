@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   cambiarEstadoReparacion: vi.fn(),
   obtenerComprobanteDeReparacion: vi.fn(),
   avisarClienteDeReparacion: vi.fn(),
+  avisarClientePorWhatsapp: vi.fn(),
   listarAvisosDeReparacion: vi.fn(),
   clienteTieneCorreo: vi.fn(),
 }))
@@ -46,6 +47,7 @@ vi.mock('../../lib/reparacionComprobante', async (importOriginal) => ({
 vi.mock('../../lib/reparacionAvisos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/reparacionAvisos')>()),
   avisarClienteDeReparacion: mocks.avisarClienteDeReparacion,
+  avisarClientePorWhatsapp: mocks.avisarClientePorWhatsapp,
   listarAvisosDeReparacion: mocks.listarAvisosDeReparacion,
   clienteTieneCorreo: mocks.clienteTieneCorreo,
 }))
@@ -75,7 +77,7 @@ const REPARACION: Reparacion = {
 const REPARADA: Reparacion = { ...REPARACION, estado_id: 's-2', estado: 'Reparado' }
 
 const AVISO = (extra: Partial<AvisoReparacion>): AvisoReparacion => ({
-  id: 'a-1', estado_id: 's-2', estado_nombre: 'Reparado', destinatario: 'ana@example.com', estado_envio: 'enviado',
+  id: 'a-1', estado_id: 's-2', estado_nombre: 'Reparado', destinatario: 'ana@example.com', canal: 'correo', estado_envio: 'enviado',
   error: null, solicitado_en: '2026-10-21T13:00:00Z', enviado_en: '2026-10-21T13:01:00Z',
   solicitado_por_nombre: 'Laura Gómez', ...extra,
 })
@@ -119,6 +121,7 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     mocks.clienteTieneCorreo.mockResolvedValue(true)
     mocks.cambiarEstadoReparacion.mockResolvedValue(REPARADA)
     mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'encolado', aviso_id: 'a-9' })
+    mocks.avisarClientePorWhatsapp.mockResolvedValue({ resultado: 'encolado', aviso_id: 'a-10' })
   })
 
   it('muestra la casilla «Avisar al cliente» destildada y cambia el estado sin avisar si no se tilda', async () => {
@@ -249,5 +252,75 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     )
     await waitFor(() => expect(screen.queryByText(/vieja@example\.com/)).not.toBeInTheDocument())
     await waitFor(() => expect(mocks.listarAvisosDeReparacion.mock.calls.length).toBeGreaterThanOrEqual(2))
+  })
+})
+
+describe('Service técnico · Aviso al cliente por WhatsApp desde el servidor', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    niveles('edicion')
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
+    mocks.useEmpresasAccesibles.mockReturnValue({
+      empresas: [{ id: 'e-1', nombre: 'San Javucho', activa: true }], empresaActivaId: 'e-1', isLoading: false, isError: false,
+    })
+    mocks.listarModelos.mockResolvedValue([])
+    mocks.listarTecnicos.mockResolvedValue([])
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), ESTADO('s-2', 'Reparado', 2)])
+    mocks.listarHistorial.mockResolvedValue([])
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    mocks.obtenerComprobanteDeReparacion.mockResolvedValue(null)
+    mocks.listarAvisosDeReparacion.mockResolvedValue([])
+    mocks.clienteTieneCorreo.mockResolvedValue(true)
+    mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'encolado', aviso_id: 'a-9' })
+    mocks.avisarClientePorWhatsapp.mockResolvedValue({ resultado: 'encolado', aviso_id: 'a-10' })
+  })
+
+  it('el botón del encabezado encola el aviso por WhatsApp del estado actual', async () => {
+    abrirDetalle()
+    fireEvent.click(await screen.findByRole('button', { name: 'Avisar por WhatsApp' }))
+    await waitFor(() => expect(mocks.avisarClientePorWhatsapp).toHaveBeenCalledWith('r-1', undefined))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+    expect(await screen.findByText('Aviso por WhatsApp enviado al cliente')).toBeInTheDocument()
+  })
+
+  it('sin consentimiento del cliente informa y no encola', async () => {
+    mocks.avisarClientePorWhatsapp.mockResolvedValue({ resultado: 'sin_consentimiento', aviso_id: null })
+    abrirDetalle()
+    fireEvent.click(await screen.findByRole('button', { name: 'Avisar por WhatsApp' }))
+    expect(await screen.findByText(/El cliente no acepta avisos por WhatsApp/)).toBeInTheDocument()
+    expect(screen.queryByText('Aviso por WhatsApp enviado al cliente')).not.toBeInTheDocument()
+  })
+
+  it('sin teléfono válido informa y no encola', async () => {
+    mocks.avisarClientePorWhatsapp.mockResolvedValue({ resultado: 'sin_telefono', aviso_id: null })
+    abrirDetalle()
+    fireEvent.click(await screen.findByRole('button', { name: 'Avisar por WhatsApp' }))
+    expect(await screen.findByText(/El cliente no tiene un teléfono válido/)).toBeInTheDocument()
+  })
+
+  it('el historial marca el canal y «Reenviar» usa el canal del aviso', async () => {
+    mocks.listarAvisosDeReparacion.mockResolvedValue([
+      AVISO({ id: 'a-2', canal: 'whatsapp', destinatario: '5491122334456', estado_id: 's-1', estado_nombre: 'Recibido' }),
+      AVISO({ id: 'a-3', canal: 'correo', destinatario: 'ana@example.com', estado_id: 's-2', estado_nombre: 'Reparado' }),
+    ])
+    abrirDetalle()
+    const seccion = await screen.findByRole('region', { name: 'Avisos al cliente' })
+    expect(await within(seccion).findByText(/WhatsApp · 5491122334456/)).toBeInTheDocument()
+    fireEvent.click(within(seccion).getByRole('button', { name: 'Reenviar por WhatsApp el aviso del estado Recibido' }))
+    await waitFor(() => expect(mocks.avisarClientePorWhatsapp).toHaveBeenCalledWith('r-1', 's-1'))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+    fireEvent.click(within(seccion).getByRole('button', { name: 'Reenviar aviso del estado Reparado' }))
+    await waitFor(() => expect(mocks.avisarClienteDeReparacion).toHaveBeenCalledWith('r-1', 's-2'))
+  })
+
+  it('con lectura no ofrece el botón de WhatsApp ni el reenvío', async () => {
+    niveles('lectura')
+    mocks.listarAvisosDeReparacion.mockResolvedValue([AVISO({ canal: 'whatsapp' })])
+    abrirDetalle()
+    const seccion = await screen.findByRole('region', { name: 'Avisos al cliente' })
+    await within(seccion).findByText(/WhatsApp/)
+    expect(screen.queryByRole('button', { name: 'Avisar por WhatsApp' })).not.toBeInTheDocument()
+    expect(within(seccion).queryByRole('button', { name: /Reenviar/ })).not.toBeInTheDocument()
   })
 })

@@ -101,7 +101,7 @@ No se crea ninguna tabla: se **alteran** dos de `dominio` y se **leen** varias m
 | `dominio.ingresos_mercaderia_lineas` | existente | Solo se le agrega un disparador de lectura de la línea nueva; no se altera la tabla. |
 | `dominio.ingresos_mercaderia` | existente | Sin cambio: solo se referencia (FK). |
 | `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas` | existentes | Sin cambio: solo se leen (el enlace línea ↔ faltante). |
-| `dominio.productos`, `dominio.empresas`, `public.clientes`, `public.stock_estados` | existentes | Sin cambio: solo se leen (nombre de producto, tienda, correo del cliente, stock de hoy). |
+| `dominio.productos`, `dominio.empresas`, `dominio.clientes`, `public.stock_estados` | existentes | Sin cambio: solo se leen (nombre de producto, tienda, correo del cliente, stock de hoy). |
 | `public.registro_actividad` | existente | Sin cambio: auditoría transversal de `private.registrar_actividad`. |
 
 - Detalle del DER en [Datos y DER](datos.md#ventas-avisos-de-faltantes-msf-161).
