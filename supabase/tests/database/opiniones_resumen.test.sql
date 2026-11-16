@@ -29,8 +29,10 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
   ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
+-- El trigger `productos_crear_existencias` ya dejó la fila de existencias del producto: se actualiza, no se inserta.
 insert into dominio.existencias (producto_id, organizacion_id, cantidad)
-values ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 7);
+values ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 7)
+on conflict (producto_id) do update set cantidad = excluded.cantidad;
 
 -- Seis clientes: cinco de la tienda A (tres con opinión aceptada, una pendiente y una rechazada) y uno de la tienda B.
 -- Una opinión por cuenta y producto (índice único): cada cuenta opina una sola vez.
