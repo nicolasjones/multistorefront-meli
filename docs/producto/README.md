@@ -27,7 +27,7 @@ El menú de la izquierda agrupa las pantallas por tema. Hacé clic en el nombre 
 | **Contactos** | Clientes y proveedores. | [Clientes](clientes.md) · [Proveedores](proveedores.md) |
 | **Canales** | Consultas que llegan desde las tiendas, la libreta de contactos y las empresas (tiendas). | [Consultas](consultas.md) · [Contactos (libreta)](contactos.md) · [Tiendas online](tiendas-online.md) · [Dominio y publicación](tienda-dominio-y-publicacion.md) · [Estados, relacionados, Google y legales](tienda-seo-legal-y-estados.md) · [Pedidos y presupuesto desde la tienda](tienda-compra-y-cuentas.md) · [Opiniones de clientes (próximamente)](opiniones-de-clientes.md) |
 | **Análisis** | Rentabilidad real de los productos, costos adicionales y márgenes; tableros ya armados para cruzar ventas, tiendas y margen, y el resumen semanal por correo. | [Rentabilidad](rentabilidad.md) · [Tableros analíticos](tableros-analiticos.md) |
-| **Administración** | Organización, cotización del dólar, actividad, usuarios, permisos y conexión con otros sistemas. | [Precios y dólar](precios-dolar.md) · [Actividad](actividad.md) · [Importaciones](importaciones.md) · [Usuarios y roles](usuarios-y-roles.md) · [API y avisos](api-y-avisos.md) · [Asistente con IA](asistente.md) |
+| **Administración** | Organización, cotización del dólar, gastos de cada tienda, actividad, usuarios, permisos y conexión con otros sistemas. | [Precios y dólar](precios-dolar.md) · [Gastos de cada tienda](gastos.md) · [Actividad](actividad.md) · [Importaciones](importaciones.md) · [Usuarios y roles](usuarios-y-roles.md) · [API y avisos](api-y-avisos.md) · [Asistente con IA](asistente.md) |
 
 Arriba, junto al menú, está el selector de **empresa activa** (1: con qué tienda estás trabajando) y, a la derecha, el menú con tu nombre (2: perfil, contraseña, cerrar sesión). Ver [Tu organización y tus empresas](organizacion-y-empresas.md) y [Tu perfil](perfil-propio.md).
 
@@ -53,7 +53,7 @@ Al hacer clic en la empresa activa se abre la lista de empresas a las que tenés
 | **Operador** | [Productos](catalogo-productos.md), [Comprobantes](ventas-comprobantes.md) y [Clientes](clientes.md). |
 | **Mostrador** | [Venta de mostrador](ventas-mostrador.md), [Comprobantes](ventas-comprobantes.md), [Cobros](ventas-cobros-y-conciliacion.md) e [Impresión](ventas-impresion.md). |
 | **Depósito** | [Stock](stock-movimientos.md), [Ingreso de mercadería](ingreso-de-mercaderia.md) y [Despacho](ventas-despacho-y-faltantes.md). |
-| **Administración** | [Cobros y conciliación](ventas-cobros-y-conciliacion.md), [Cierre de caja](ventas-cierre-caja.md), [Proveedores](proveedores.md) y [Rentabilidad](rentabilidad.md). |
+| **Administración** | [Cobros y conciliación](ventas-cobros-y-conciliacion.md), [Cierre de caja](ventas-cierre-caja.md), [Gastos de cada tienda](gastos.md), [Proveedores](proveedores.md) y [Rentabilidad](rentabilidad.md). |
 | **Técnico** | [Service técnico](service-listado-items-impresion.md) y [repuestos](service-repuestos-y-stock.md). |
 | **Consulta** | Las pantallas que tu rol permita ver; consultá [Usuarios y roles](usuarios-y-roles.md). |
 

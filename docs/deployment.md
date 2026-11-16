@@ -30,6 +30,24 @@ detrás de **Traefik**. **No se usa Vercel.**
 
 Staging valida migraciones, permisos, workflows y conexión entre componentes sin tocar datos reales.
 
+### Bandera `margen_costos_fijos` (F-GAS-03)
+
+Las migraciones `20270421000000` y `20270421000100` suman la bandera `margen_costos_fijos` en
+`public.banderas_plataforma`, **apagada por defecto en todo entorno**, y las vistas de `analitica` de la medida
+«margen después de costos fijos» (épica MSF-469). Apagada, la pestaña «Después de costos fijos» no se muestra y
+las vistas nuevas no devuelven filas; **ninguna cifra existente cambia** con la bandera apagada ni encendida.
+
+La enciende el equipo técnico **a mano, por SQL, entorno por entorno** (dev → stg → prd); no la enciende una
+migración ni el despliegue:
+
+```sql
+update public.banderas_plataforma set activa = true where clave = 'margen_costos_fijos';
+```
+
+Antes de encender: aplicar las migraciones, importar el tablero (`pnpm superset:importar-dashboards`) y medir el
+`EXPLAIN` con datos reales (la base de dev no tiene ventas con costo guardado). Reversión inmediata, sin migrar:
+`activa = false`. Detalle: [Gastos de la empresa](tecnico/gastos.md).
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik.

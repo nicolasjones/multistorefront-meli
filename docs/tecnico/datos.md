@@ -4450,3 +4450,126 @@ erDiagram
   `20270324100100` y `delete from public.reportes where nombre like 'Analítica · %'` (arrastra asignaciones y roles);
   `drop table` de las dos tablas del resumen, borrado de la fila `resumen_semanal` de `tipos_aviso` y de las
   preferencias, y redefinición de `private.exclusiones_exportacion_total()`.
+
+## Gastos de la empresa y margen después de costos fijos (MSF-469)
+
+Épica **MSF-469** (spec `20270328-100000-gastos-de-la-empresa`), rama `dokploy` (aún sin promover a `main`). Una
+tabla nueva en `dominio` (`dominio.gastos`), cinco RPC de superficie en `public` (`guardar_gasto`, `anular_gasto`,
+`listar_gastos`, `resumen_gastos`, `exportar_gastos`) y **cuatro vistas** en `analitica` más la función
+`analitica.bandera_activa(text)` para la medida «margen después de costos fijos», detrás de la bandera
+`margen_costos_fijos` (apagada por defecto). Migraciones aditivas `20270349000000` (tabla), `20270349000100`
+(RPC de escritura), `20270349000200` (exportación total), `20270349000300` (RPC de consulta y exportación),
+`20270421000000` (bandera y vistas de apoyo) y `20270421000100` (medida); más
+`20270421000200_actividad_por_empresa_accesible.sql` (MSF-968). La reversión está en el encabezado de cada una.
+Detalle de contratos, pantalla, fórmula y operación: [Gastos de la empresa](gastos.md) y
+[Revisión de seguridad de gastos](revision-seguridad-gastos.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.gastos` | **nueva** | Un gasto general de **una** empresa: `fecha` (define el mes de imputación), `categoria` (catálogo cerrado de 7), `tipo_costo` (`fijo`/`variable`), `detalle` (opcional, ≤ 200), `importe` (> 0, en la moneda original), `moneda` (`ARS`/`USD`), `cotizacion_usada` (null si ARS; > 0 si USD) e `importe_pesos` **congelados al guardar**, `recurrente` (marca informativa), `anulado_en`/`anulado_por`/`motivo_anulacion` y `updated_at` como bloqueo optimista. Dos `check`: uno liga moneda, cotización e importe en pesos; otro exige el motivo **si y solo si** el gasto está anulado. FK compuesta `(empresa_id, organizacion_id)` a `dominio.empresas`. RLS activada: `select` solo para `authenticated` con la sección `rentabilidad` (lectura o edición), organización y empresa accesible. **Sin** política ni privilegio de `insert`, `update` ni `delete` para los roles de la aplicación: no hay borrado físico, se anula con motivo. `anon` sin privilegios. |
+| `dominio.empresas` | existente | Tienda dueña del gasto; define el alcance de la cotización y del acceso. Sin cambios de esquema. |
+| `dominio.cotizaciones` | existente | Historial del dólar del que sale la cotización congelada de un gasto en USD. Sin cambios de esquema. |
+| `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas` | existentes | Ventas netas del mes de la empresa (denominador del prorrateo) y base del margen real. Sin cambios de esquema. |
+| `dominio.productos`, `dominio.categorias` | existentes | Producto vendido y su categoría (corte por categoría). Sin cambios de esquema. |
+| `dominio.costos_adicionales_canal` | existente | Costos variables del canal que el margen real ya descuenta (por eso los gastos variables no se prorratean). Sin cambios de esquema. |
+| `public.banderas_plataforma` | **alterada** (dato) | Una fila: `margen_costos_fijos`, `activa = false` por omisión (`on conflict do nothing`: reaplicar la migración no la pisa). La cambia el equipo técnico por SQL. |
+| `public.registro_actividad` | existente | Recibe `gasto.creado`, `gasto.editado`, `gasto.anulado` y `gasto.exportado`. Los eventos **no llevan importes**: guardan concepto, nombre de la empresa y los nombres de los campos modificados. |
+| `public.reportes` | **alterada** (dato) | Una fila: «Rentabilidad · Después de costos fijos», sección `rentabilidad`, con `filtro_empresa = true` (el token lleva `empresa_id`). La registra el importador de tableros desde `infra/superset/dashboards/rentabilidad/reportes.json`, no una migración. |
+
+```mermaid
+erDiagram
+  organizaciones ||--o{ gastos : "tiene"
+  empresas ||--o{ gastos : "gasta"
+  organizaciones ||--o{ cotizaciones : "dólar"
+  empresas ||--o{ comprobantes_venta : "vende"
+  comprobantes_venta ||--o{ comprobantes_venta_lineas : detalla
+  productos ||--o{ comprobantes_venta_lineas : "se vende en"
+  categorias ||--o{ productos : clasifica
+  empresas ||--o{ costos_adicionales_canal : "costos del canal"
+  organizaciones ||--o| rentabilidad_config : "umbral"
+  organizaciones ||--o{ registro_actividad : actividad
+
+  gastos {
+    uuid id PK "nueva"
+    uuid organizacion_id FK "nueva"
+    uuid empresa_id FK "nueva: una sola empresa por gasto"
+    date fecha "nueva: define el mes de imputación"
+    text categoria "nueva: Alquiler, Servicios, Sueldos, Fletes, Insumos, Impuestos u Otros"
+    text tipo_costo "nueva: fijo o variable; solo el fijo se prorratea"
+    text detalle "nueva: opcional, hasta 200"
+    numeric importe "nueva: mayor que 0, en la moneda original"
+    text moneda "nueva: ARS o USD"
+    numeric cotizacion_usada "nueva: dólar de la empresa congelado, null si ARS"
+    numeric importe_pesos "nueva: importe en pesos congelado"
+    boolean recurrente "nueva: marca informativa mensual"
+    timestamptz anulado_en "nueva: null = vigente"
+    uuid anulado_por "nueva"
+    text motivo_anulacion "nueva: obligatorio al anular"
+    uuid creado_por "nueva"
+    timestamptz created_at "nueva"
+    timestamptz updated_at "nueva: bloqueo optimista"
+  }
+  empresas {
+    uuid id PK
+    uuid organizacion_id FK
+    text nombre
+  }
+  organizaciones {
+    uuid id PK
+  }
+  cotizaciones {
+    uuid id PK
+    uuid organizacion_id FK
+    numeric valor
+    timestamptz cargada_en
+  }
+  comprobantes_venta {
+    uuid id PK
+    uuid organizacion_id FK
+    uuid empresa_id FK
+    text tipo
+    text estado
+    date fecha
+  }
+  comprobantes_venta_lineas {
+    uuid id PK
+    uuid comprobante_id FK
+    uuid producto_id FK
+    integer cantidad
+    numeric subtotal_sin_iva
+    numeric costo_unitario
+  }
+  productos {
+    uuid id PK
+    uuid categoria_id FK
+    text nombre
+  }
+  categorias {
+    uuid id PK
+    text nombre
+  }
+  costos_adicionales_canal {
+    uuid id PK
+    uuid empresa_id FK
+    text tipo
+    numeric valor
+  }
+  rentabilidad_config {
+    uuid organizacion_id PK
+    numeric umbral_margen_bajo
+  }
+  registro_actividad {
+    uuid id PK
+    text tipo
+  }
+```
+
+- **`analitica` no tiene tablas**: las cuatro vistas (`costos_fijos_empresa_mes`, `ventas_netas_empresa_mes`,
+  `margen_despues_costos_fijos`, `margen_costos_fijos_empresa_mes`) y `bandera_activa` no tienen privilegios para
+  `PUBLIC`, `anon`, `authenticated` ni `service_role`: las lee solo `superset_analitica`, y el aislamiento por
+  organización y por empresa lo fuerza la cláusula `rls` del guest token.
+- **Ninguna vista existente se redefinió**: `analitica.margen_real_categoria` y `analitica.rentabilidad_ventas_real`
+  siguen igual y la medida nueva se apoya en ellas (`margen_costos_fijos_paridad.test.sql`).
+- **Reversión**: `drop view` de las cuatro vistas y `drop function` de `analitica.bandera_activa`; para la tabla,
+  `drop table dominio.gastos` **exportando antes los datos**, en una migración posterior (no en el mismo PR que la
+  crea). La medida se apaga al instante con `activa = false`.

@@ -152,6 +152,22 @@ Podés cargar el mismo costo en varias tiendas de una vez. Si falla en alguna, e
 
 Administración puede ver la lista, pero los botones de edición son solo del Administrador.
 
+## Pestaña Después de costos fijos
+
+Aparece cuando el equipo técnico la habilita en tu ambiente. Toma los **gastos fijos** que cargaste en
+[Gastos de cada tienda](gastos.md) (alquiler, servicios, sueldos…) y los reparte entre los productos **en
+proporción a lo que vendió cada uno en el mes**. La idea es ver si lo que vendés cubre lo que cuesta operar.
+
+- **El margen que ya ves no cambia**: es una medida aparte. Los gastos **variables** (como fletes) no se reparten.
+- Ves las tarjetas por **tienda** y el **consolidado**, y los cortes por **producto** y por **categoría**.
+- **Sin atribuir** es la parte de los costos fijos que le toca a ventas sin costo guardado; sumada al reparto da el
+  total de fijos del mes.
+- Si el mes no tiene ventas, no hay con qué repartir: el tablero lo avisa y muestra el total de fijos del mes.
+- El **mes en curso** es provisorio: todavía se están cargando gastos y ventas.
+- Si editás o anulás un gasto de un mes pasado, el margen de ese mes se recalcula solo.
+- Sigue la tienda activa de la barra superior. Sin permiso de lectura en Rentabilidad, ves el aviso de acceso
+  restringido.
+
 ## Casos comunes
 
 - **Quiero saber qué productos pierden plata.** Entrá a **Por producto** y filtrá por «Solo negativo», o hacé clic en **Ver detalle** en el aviso del Resumen.

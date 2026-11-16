@@ -96,6 +96,7 @@ nav:
           - Tu perfil: producto/perfil-propio.md
           - Tu organización y tus empresas: producto/organizacion-y-empresas.md
           - Usuarios y roles: producto/usuarios-y-roles.md
+          - Gastos de cada tienda: producto/gastos.md
           - Actividad: producto/actividad.md
           - API y avisos para conectar otros sistemas: producto/api-y-avisos.md
           - "Inicio: tablero, alertas y búsqueda": producto/inicio-y-alertas.md
@@ -267,6 +268,8 @@ nav:
           - Consultas: tecnico/consultas.md
           - Contactos y respuestas rápidas: tecnico/contactos.md
           - Rentabilidad: tecnico/rentabilidad.md
+          - "Gastos de la empresa y margen después de costos fijos (MSF-469)": tecnico/gastos.md
+          - "Revisión de seguridad de gastos (MSF-469)": tecnico/revision-seguridad-gastos.md
           - "Analítica avanzada: galería de tableros (MSF-265)": tecnico/analitica-avanzada.md
           - "Resumen semanal por correo (MSF-265)": tecnico/resumen-semanal-correo.md
           - "Revisión de seguridad de la analítica avanzada (MSF-265)": tecnico/revision-seguridad-analitica-avanzada.md
