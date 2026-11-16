@@ -6,7 +6,8 @@
 // Por qué: la bandera `tienda_opiniones` es del SERVIDOR, así que encenderla en dev no garantiza que el front desplegado
 // tenga la pantalla: si el bundle que se sirve es viejo, la tienda queda sin bloque de opiniones y el panel sin «Opiniones»,
 // y no se nota (con la bandera apagada la ficha es idéntica a la de antes). Este chequeo lee el bundle ya construido y
-// exige que estén los textos de la pantalla del panel, del bloque de la ficha, del formulario y de la pestaña de la cuenta.
+// exige que estén las RPC que usa cada superficie: el listado y la moderación del panel, el bloque de la ficha, el
+// formulario «Tu opinión» y la pestaña «Mis opiniones» de la cuenta.
 //
 // Sale con código 0 si están todos; con código 1 si falta alguno (o si no hay bundle: hay que correr `pnpm build` antes).
 
@@ -16,15 +17,18 @@ import { pathToFileURL } from 'node:url';
 
 export const BUNDLE_POR_DEFECTO = 'apps/web/dist';
 
-// Textos que solo existen si la funcionalidad está en el bundle. Son literales del código (no se obfuscan al minificar).
+// Marcadores: el NOMBRE de la RPC que llama cada superficie (el contrato con la base), no un texto de la pantalla.
+// Son literales del código (no se obfuscan al minificar) y no cambian con el copy: un cambio de textos no puede romper
+// este chequeo, y si falta una RPC es que la funcionalidad no está en el bundle.
 export const MARCADORES = [
-  { archivo: 'pantalla «Opiniones» del panel', texto: 'Moderá las opiniones que los clientes dejan sobre tus productos' },
-  { archivo: 'bloque de opiniones de la ficha', texto: 'Todavía no hay opiniones' },
-  { archivo: 'formulario «Tu opinión»', texto: 'Gracias, tu opinión se publicará cuando la revisemos' },
-  { archivo: 'pestaña «Mis opiniones» de la cuenta', texto: 'Mis opiniones' },
+  { archivo: 'pantalla «Opiniones» del panel (listado)', rpc: 'listar_opiniones' },
+  { archivo: 'pantalla «Opiniones» del panel (moderación)', rpc: 'moderar_opinion' },
+  { archivo: 'bloque de opiniones de la ficha', rpc: 'opiniones_producto_por_dominio' },
+  { archivo: 'formulario «Tu opinión» de la ficha', rpc: 'guardar_opinion_por_dominio' },
+  { archivo: 'pestaña «Mis opiniones» de la cuenta', rpc: 'mis_opiniones_por_dominio' },
 ];
 
-// Los .js del bundle (assets). Los .css y .map no llevan estos textos.
+// Los .js del bundle (assets). Los .css y .map no llevan estos marcadores.
 function jsDelBundle(carpeta) {
   const assets = path.join(carpeta, 'assets');
   if (!fs.existsSync(assets)) return [];
@@ -34,9 +38,9 @@ function jsDelBundle(carpeta) {
 // Devuelve los marcadores que NO aparecen en el bundle.
 export function marcadoresFaltantes(carpeta, marcadores = MARCADORES) {
   const archivos = jsDelBundle(carpeta);
-  if (archivos.length === 0) return marcadores.map((m) => m.texto);
+  if (archivos.length === 0) return marcadores.map((m) => m.rpc);
   const contenido = archivos.map((f) => fs.readFileSync(f, 'utf8')).join('\n');
-  return marcadores.filter((m) => !contenido.includes(m.texto)).map((m) => m.texto);
+  return marcadores.filter((m) => !contenido.includes(m.rpc)).map((m) => m.rpc);
 }
 
 export function verificar(carpeta = BUNDLE_POR_DEFECTO) {
@@ -45,7 +49,7 @@ export function verificar(carpeta = BUNDLE_POR_DEFECTO) {
   }
   const faltantes = marcadoresFaltantes(carpeta);
   if (faltantes.length > 0) {
-    const detalle = MARCADORES.filter((m) => faltantes.includes(m.texto)).map((m) => `  - ${m.archivo}: no aparece «${m.texto}»`).join('\n');
+    const detalle = MARCADORES.filter((m) => faltantes.includes(m.rpc)).map((m) => `  - ${m.archivo}: no aparece la RPC «${m.rpc}»`).join('\n');
     return { ok: false, motivo: `el bundle de ${carpeta} NO trae la funcionalidad de opiniones:\n${detalle}` };
   }
   return { ok: true, motivo: `el bundle de ${carpeta} trae la funcionalidad de opiniones (${MARCADORES.length} marcadores).` };
