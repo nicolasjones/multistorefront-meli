@@ -41,6 +41,8 @@ import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import PaymentsIcon from '@mui/icons-material/Payments'
+import StarOutlineIcon from '@mui/icons-material/StarOutline'
 import type { ContextoPanel } from '../../context/ContextoPanel'
 import { nivelDe, type PermisoSeccion } from '../../lib/permisos'
 
@@ -205,6 +207,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-CON-05: libreta de contactos por empresa, debajo de Consultas (misma sección de permisos).
       { id: 'contactos', etiqueta: 'Contactos', ruta: '/contactos', icono: ContactsIcon, audiencia: 'organizacion', seccionPermiso: 'consultas' },
       { id: 'empresas', etiqueta: 'Empresas', ruta: '/empresas', icono: StorefrontIcon, audiencia: 'administrador' },
+      // MSF-467: moderación previa de las opiniones de productos; solo Administrador (sin sección propia en la matriz).
+      { id: 'opiniones', etiqueta: 'Opiniones', ruta: '/opiniones', icono: StarOutlineIcon, audiencia: 'administrador' },
     ],
   },
   {
@@ -243,6 +247,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'cotizacion', etiqueta: 'Cotización del dólar', ruta: '/cotizacion', icono: AttachMoneyIcon, audiencia: 'organizacion', seccionPermiso: 'cotizacion_dolar' },
       // F-CFG-01: motivos de stock y estados de consulta; solo Administrador.
       { id: 'listas-configurables', etiqueta: 'Listas configurables', ruta: '/configuracion/listas', icono: SettingsIcon, audiencia: 'administrador' },
+      // F-GAS-01/02 (MSF-469): gastos generales de cada tienda; solo administradores (sección `rentabilidad`).
+      { id: 'gastos', etiqueta: 'Gastos', ruta: '/gastos', icono: PaymentsIcon, audiencia: 'administrador', seccionPermiso: 'rentabilidad' },
       { id: 'actividad', etiqueta: 'Actividad', ruta: '/actividad', icono: TimelineIcon, audiencia: 'organizacion', seccionPermiso: 'actividad' },
       // F-IMP-01 (MSF-354): centro de cargas y descargas masivas; solo administradores (D-6).
       { id: 'importaciones', etiqueta: 'Importaciones', ruta: '/importaciones', icono: ImportExportIcon, audiencia: 'administrador' },

@@ -27,16 +27,16 @@ Todo lo de abajo está verificado contra esas migraciones y contra el código de
 
 ## Modelo de datos
 
-**No hay tablas nuevas.** La épica extiende `public.clientes`, que ya existía como esqueleto del
+**No hay tablas nuevas.** La épica extiende `clientes`, que ya existía como esqueleto del
 template (`id`, `organizacion_id`, `nombre`, `created_at`; creada en
-`20260908172920_fundacion_multitenant.sql`). La tabla queda en **`public`** por **excepción
-documentada** al Principio VII: es preexistente y expuesta, y moverla a `dominio` no es aditivo ni
-rompe `clientes_identificadores_externos` ni el control positivo de las pruebas de aislamiento. El
-traslado a `dominio` quedó trazado como seguimiento: [MSF-505].
+`20260908172920_fundacion_multitenant.sql`). La tabla vive en **`dominio.clientes`**: la excepción
+al Principio VII que la dejaba en `public` se cerró con MSF-882 (`20270418000401_clientes_a_dominio.sql`,
+deuda [MSF-505]). `public.clientes_empresas` y `public.clientes_identificadores_externos` siguen en `public`.
+El panel y los scripts piden la tabla con el perfil de esquema `dominio` (PostgREST no usa el `extra_search_path`).
 
 | Tabla / objeto | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
+| `dominio.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
 | `public.organizaciones` | existente | Recibe el disparador `organizaciones_crear_consumidor_final`: cada organización nueva nace con su «Consumidor final». Sin cambios de esquema. |
 | `public.registro_actividad` | existente | Recibe `cliente.creado`, `cliente.editado`, `cliente.archivado` y `cliente.restaurado`. Sin cambios de esquema. |
 | `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`; sin cambios. El mapeo de identificadores sigue válido (la numeración se asigna sola). |
@@ -71,7 +71,7 @@ erDiagram
                         timestamptz creado_en }
 ```
 
-Restricciones e índices sobre `public.clientes`:
+Restricciones e índices sobre `dominio.clientes`:
 
 | Objeto | Qué garantiza |
 |---|---|
@@ -94,6 +94,7 @@ Restricciones e índices sobre `public.clientes`:
 | `20261016140000_clientes_buscar.sql` | `public.buscar_clientes` (M4, parte 1). |
 | `20261016150000_clientes_exportar.sql` | `public.exportar_clientes` (M4, parte 2). |
 | `20270324110000_exportar_clientes_registra_actividad.sql` | MSF-508: la lógica pasa a `private.exportar_clientes_lote` y `public.exportar_clientes` queda como envoltorio `volatile` que registra `clientes.exportados`. |
+| `20270347000000_exportar_clientes_evento_por_llamada.sql` | Seguridad retroactiva de #1011: evento por llamada con filas; topes por organización y persona sin importar los filtros (50000 filas en 10 min y 200000 en 24 h, ajustables en `private.tope_exportacion_clientes`), rechazo temprano en el primer lote, el reintento cuenta doble; texto buscado fuera de la actividad. |
 | `20261016160000_clientes_habilitar_pg_trgm.sql` | Habilita `pg_trgm` en `extensions` y garantiza el índice GIN: **aborta con error si el índice no queda creado**, para que no haya un salto silencioso (en CI la extensión no estaba instalada y la migración de la ficha no creaba el índice). |
 
 La orden es deliberada: M3 reinicia los grants por columna, por eso M2 (`tipo`) va después.
@@ -172,10 +173,10 @@ de merge a `main`; reversión en el encabezado de la migración y en
 
 | Objeto | Estado | Cambio |
 |---|---|---|
-| `public.clientes` | **alterada** | Gana `descuento numeric(5,2)`: porcentaje de 0 a 100 con dos decimales, `null` = sin descuento. `check (descuento is null or (descuento >= 0 and descuento <= 100))` (`clientes_descuento_ck`). |
+| `dominio.clientes` | **alterada** | Gana `descuento numeric(5,2)`: porcentaje de 0 a 100 con dos decimales, `null` = sin descuento. `check (descuento is null or (descuento >= 0 and descuento <= 100))` (`clientes_descuento_ck`). |
 | `public.permisos_rol_accion` | existente | Sin cambio: el descuento no es una acción de la matriz; lo gatea el rol efectivo de Administrador. |
 
-- **Permiso**: `grant update (descuento) on public.clientes to authenticated` — el permiso es **por
+- **Permiso**: `grant update (descuento) on dominio.clientes to authenticated` — el permiso es **por
   columna**. **No se concede en `INSERT`**: un cliente nace sin descuento.
 - **Solo el Administrador** lo cambia: el disparador `clientes_descuento_solo_admin`
   (`before update of descuento`) responde `42501` («Solo un administrador puede cambiar el descuento del
@@ -186,7 +187,7 @@ de merge a `main`; reversión en el encabezado de la migración y en
   registra el evento **`cliente.descuento_editado`** en la **misma transacción**. El detalle lleva «Nº
   <número> · <nombre>» y **no** incluye el valor del descuento.
 - **Cómo lo usa Ventas**: `public.guardar_lineas_comprobante` lo lee **en el servidor**
-  (`select cl.tipo, coalesce(cl.descuento, 0) … from public.clientes`) y lo resta **sobre el neto de
+  (`select cl.tipo, coalesce(cl.descuento, 0) … from dominio.clientes`) y lo resta **sobre el neto de
   escala, antes del IVA**. El `payload` de la RPC **no puede imponer** un descuento. Un `precio_manual`
   no se toca.
 - **Frontend**: el campo **«Descuento (%)»** del formulario solo se renderiza para el Administrador
@@ -228,11 +229,38 @@ Detalle de las RPC en [API y RPC](api.md#clientes-msf-180).
 
 - **Auditoría (MSF-508, Principio III):** `public.exportar_clientes` (`security definer`, `volatile`) llama a
   `private.exportar_clientes_lote` (la lógica de siempre: permiso, tope, filtros, keyset; `stable`, sin grants a
-  `authenticated`) y, en el **primer lote** (`p_despues_de` nulo) con al menos una fila, escribe
-  `clientes.exportados` con `private.registrar_actividad`: «Exportó N clientes a Excel (filtros: …)». El permiso y el
-  tope se validan antes, así que un rechazo (`42501`/`54000`) no deja evento. Los filtros salen con el nombre visible de
-  la tienda (nunca ids) y el texto acotado a 50 caracteres. Un reintento tras un fallo registra de nuevo. Pgtap:
-  `clientes_exportar_actividad.test.sql`.
+  `authenticated`) y escribe `clientes.exportados` con `private.registrar_actividad`: «Exportó N clientes a Excel
+  (filtros: …)». El permiso y el tope de 50000 por exportación se validan antes, así que un rechazo (`42501`/`54000`) no
+  deja evento. Los filtros salen con el nombre visible de la tienda (nunca ids) y el texto buscado **no se escribe**
+  (solo «con texto»; podía ser un DNI, un correo o un teléfono). Desde `20270347000000` (seguridad retroactiva de #1011)
+  cuenta **toda llamada con filas**, no solo el primer lote: `private.clientes_exportaciones_ventana` (sin acceso para la
+  API) lleva una ventana de 10 minutos por organización, persona y huella de filtros con las filas entregadas y las ya
+  declaradas. El primer lote declara el total de la exportación; un lote con cursor suma y solo escribe un evento
+  nuevo «… (continuación)» por las filas que excedan lo declarado (el registro es inalterable: no se edita un evento ya
+  escrito). `private.clientes_exportaciones_ventana` (huella de filtros) solo deduplica eventos. Los **topes** viven en
+  `private.clientes_exportaciones_entregas` (una fila por llamada con filas), por organización y persona **sin importar los
+  filtros**: 50000 filas en 10 minutos deslizantes y 200000 por día, constantes de `private.tope_exportacion_clientes(text)`.
+  Al pasarlos: `54000` con `hint` `tope_acumulado` o `tope_diario` (el 54000 de un solo archivo demasiado grande no lleva hint;
+  el cliente web los distingue), sin entregar filas ni contar. **Rechazo temprano:** en el primer lote (sin cursor) el servidor
+  ya conoce el total a exportar; si lo entregado en la ventana (o en el día) más ese total supera el tope, rechaza ese primer
+  lote antes de entregar nada, y el cliente muestra el mensaje antes de descargar (un total que justo iguala el tope pasa).
+  Un cursor sin primer lote sigue topando por lote. **Sin perdón por reintento:** repetir el primer lote cuenta doble contra
+  la ventana y contra el día (comportamiento esperado); no libera cupo ni permite volver a bajar por cursor con la ventana
+  llena. Las constantes (50000 y 200000) están en `private.tope_exportacion_clientes(text)` y se ajustan sin tocar la función.
+  Un `pg_advisory_xact_lock` por organización y persona, tomado antes de calcular lo acumulado, serializa el cupo: dos
+  exportaciones simultáneas de la misma persona no lo superan (lo comprueba un pgTAP sobre el código de la función y la
+  verificación manual de más abajo). Purga acotada (500 filas por llamada, más de 1 día). Otra persona u otra organización no comparten contador. Pgtap: `clientes_exportar_actividad.test.sql`
+  y `clientes_exportar_actividad_ventana.test.sql`. Reversión: ver el encabezado de la migración.
+- **Verificación manual de la concurrencia** (`supabase/tests/manual/exportar_clientes_concurrencia.sh`, bash + psql, no corre en CI;
+  `PSQL` es el comando que abre psql como superusuario):
+  `PSQL='docker exec -i supabase_db_<proyecto> psql -U postgres -q -At' supabase/tests/manual/exportar_clientes_concurrencia.sh`.
+  Es de **solo lectura y todo se revierte** (`begin … rollback`; no escribe datos ni toca funciones o topes, apto para dev). Usa una
+  persona administradora real: la sesión A toma el cupo de esa persona y lo retiene 8 s con su advisory lock (el lock es por
+  organización y persona: no bloquea a otras personas; **no apuntar a producción**: retiene 8 s el cupo de una persona real) y la sesión B, de la misma persona, debe quedar esperando. Resultado
+  esperado: `esperando el advisory lock (solo la sesión B) a los 4 s: 1 (esperado 1); duración de B: 6s (esperado >= 6)` (la duración puede ser mayor) y `OK: la segunda sesión de la misma persona
+  quedó serializada`. La espera se mide solo para la sesión B (por su `application_name`), así que otra actividad de la base no falsea el resultado; ante Ctrl-C el script mata sus sesiones. Si faltan las migraciones `20270347…` aborta con «Faltan las migraciones 20270347… en este entorno»
+  (código 2); un error real de una sesión se muestra. Contra una función sin el lock imprime `FALLÓ`. Los topes bajos
+  se prueban en pgTAP, no en el script.
 
 - **Quién:** solo quien tiene la acción `exportar` en Clientes
   (`private.puede_accion('clientes','exportar')`; por defecto Administrador, Administración y Operador).
@@ -258,7 +286,7 @@ suma dos capacidades sobre esta base:
 
 - **Etiqueta impresa del cliente (F-CLI-17, MSF-446):** sin RPC y sin escrituras. La hoja
   (`apps/web/src/lib/etiquetasCliente.ts` + `apps/web/src/components/clientes/HojaEtiquetas.tsx`, ruta
-  `/clientes/etiquetas`) lee `public.clientes` con las columnas `id, nombre, direccion, codigo_postal,
+  `/clientes/etiquetas`) lee `dominio.clientes` con las columnas `id, nombre, direccion, codigo_postal,
   localidad, provincia, telefono, expreso_preferido` y arma una etiqueta por cliente. **Solo la dirección
   bloquea** (CA-CLI-17-1); los demás datos vacíos se omiten. La impresión usa `@page` (A4) y `@media
   print` para ocultar menú y barra superior.
@@ -448,7 +476,7 @@ Reversión por migración:
 
 | Deuda | Seguimiento |
 |---|---|
-| Trasladar `public.clientes` al esquema `dominio` (Principio VII) | [MSF-505] |
+| Trasladar `public.clientes` al esquema `dominio` (Principio VII) — **cerrado con MSF-882** | [MSF-505] |
 | E2E de alta, búsqueda y exportación | [MSF-499] |
 | Test de concurrencia con dos conexiones (número correlativo y DNI/CUIT simultáneos): el pgTAP corre en una sola sesión, así que no la ejercita; la garantía es el advisory lock + el índice único | Desvío anotado en T007 de la spec; **sin Jira asociado todavía** |
 
@@ -462,7 +490,7 @@ Reversión por migración:
 - [Service técnico: cobro, avisos y ficha del cliente](service-cobro-y-avisos.md) — la RPC
   `reparaciones_de_cliente` y la pestaña «Reparaciones» de la ficha (MSF-232).
 - [Permisos por rol](../permisos-por-rol.md) — contrato `nivel_seccion` / `puede_accion`.
-- [Aislamiento por organización](../aislamiento-por-organizacion.md) — control positivo sobre `public.clientes`.
+- [Aislamiento por organización](../aislamiento-por-organizacion.md) — control positivo sobre `dominio.clientes`.
 - [Actividad e historial](../actividad.md) — eventos `cliente.*`.
 - [Datos y DER](datos.md#clientes-msf-180) — el modelo dentro del panorama.
 - [API y RPC](api.md#clientes-msf-180) — los contratos resumidos.

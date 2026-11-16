@@ -82,3 +82,7 @@ pgTAP `supabase/tests/database/promociones_precio.test.sql`; Vitest `promociones
 ## Reversión
 
 Para apagar sin migrar: la bandera (ver arriba). Migraciones aditivas (`20270228300000`…`20270228300300` también: se revierten con el `drop` de su encabezado). Para volver atrás: migración posterior que restaure las dos funciones públicas de la tienda (`20261023150200`, `20261023150300`), elimine las RPC y la vista, y (solo si se decide perder los datos) la tabla; o `git revert -m 1` del merge de la spec. La clave `precio_anterior` extra no rompe a los clientes.
+
+## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
+
+La promoción se compara con el precio normal **que ya incluye la lista del cliente** y gana solo si es **estrictamente menor** (no se acumulan); cuando gana, la línea conserva como `precio_referencia` el precio de la lista y el comprobante marca «Lista: … (rige la promoción)». El `40001` de «Los precios cambiaron» también cubre un cambio de la lista entre guardar y confirmar. Detalle en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y [Listas de precios](listas-de-precios.md).

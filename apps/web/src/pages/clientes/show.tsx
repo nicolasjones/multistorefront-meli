@@ -78,7 +78,7 @@ export function ClienteShow() {
       ? 'Cargando…'
       : listaCliente.lista
         ? `${listaCliente.lista.nombre} (${formatearAjuste(listaCliente.lista.ajustePct)})${listaCliente.lista.archivadaEn ? ' · archivada' : ''}`
-        : 'No pudimos cargarla'
+        : null
   // Tiendas del cliente (F-CLI-05): ids de la relación, nombres del catálogo.
   const { empresas: catalogo, isLoading: cargandoCatalogo, isError: errorCatalogo } = useEmpresas()
   const { empresas: tiendasIds, isLoading: cargandoTiendas, isError: errorTiendas, refetch: reintentarTiendas } = useEmpresasDeCliente(cliente?.id)
@@ -274,7 +274,14 @@ export function ClienteShow() {
               {cliente.es_consumidor_final ? null : (
                 <Box sx={{ display: 'contents' }}>
                   <Typography component="dt" color="text.secondary">Lista de precios</Typography>
-                  <Typography component="dd" sx={{ m: 0 }}>{textoLista}</Typography>
+                  <Typography component="dd" sx={{ m: 0 }}>
+                    {textoLista ?? (
+                      <>
+                        No pudimos cargarla{' '}
+                        <Button size="small" onClick={() => listaCliente.reintentar()}>Reintentar</Button>
+                      </>
+                    )}
+                  </Typography>
                 </Box>
               )}
             </Box>

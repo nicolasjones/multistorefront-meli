@@ -191,7 +191,7 @@ function vacioANulo(texto: string): string | null {
 // `clientes` acota a la organización; sin acceso a Clientes devuelve null y la pantalla muestra «—».
 export async function obtenerClienteParaComprobante(id: string): Promise<ClienteComprobante | null> {
   const { data, error } = await supabaseClient
-    .from('clientes')
+    .schema('dominio').from('clientes')
     .select('id, nombre, documento, direccion, localidad, provincia, tipo, es_consumidor_final')
     .eq('id', id)
     .maybeSingle()

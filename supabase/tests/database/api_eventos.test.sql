@@ -17,7 +17,7 @@ insert into auth.users (id, email) values
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente A', 'minorista', null);
 
 insert into dominio.empresas (id, organizacion_id, nombre) values

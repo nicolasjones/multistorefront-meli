@@ -20,8 +20,8 @@ const consulta = (resultado: () => unknown, orMock?: (...args: unknown[]) => voi
 
 vi.mock('../lib/supabase', () => ({
   supabaseClient: {
-    schema: () => ({ from: () => consulta(() => mocks.productos(), mocks.or) }),
-    from: () => consulta(() => mocks.clientes()),
+    // `productos` y `clientes` viven en `dominio`: ambos se piden con `.schema('dominio').from(...)`.
+    schema: () => ({ from: (tabla: string) => (tabla === 'clientes' ? consulta(() => mocks.clientes()) : consulta(() => mocks.productos(), mocks.or)) }),
   },
 }))
 vi.mock('./useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: mocks.organizacion }) }))

@@ -129,6 +129,8 @@ export function mensajeDeErrorOrden(error: unknown, porDefecto: string): string 
     return 'Esa orden ya está cerrada: no se cambia más.'
   }
   if (codigo === '22023') {
+    if (mensaje.includes('no existe') && mensaje.includes('orden')) return 'La orden ya no está disponible. Recargá la lista.'
+    if (mensaje.includes('recepción')) return 'La fecha de recepción no puede ser futura ni anterior a la fecha de la orden.'
     if (mensaje.includes('empresa')) return 'Elegí una empresa activa a la que tengas acceso.'
     if (mensaje.includes('proveedor')) return 'Elegí un proveedor activo de la organización.'
     if (mensaje.includes('fecha')) return 'La fecha de la orden no puede ser futura.'

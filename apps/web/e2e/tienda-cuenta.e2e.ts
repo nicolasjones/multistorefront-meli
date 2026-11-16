@@ -60,7 +60,7 @@ async function hayRpcDeLaEpica(): Promise<boolean> {
 type Sembrado = { correo: string; authId: string; clienteId: string }
 const creados: Sembrado[] = []
 
-// En el stack del CI (`reset-db-ci`) `service_role` no tiene privilegios sobre `public.clientes` ni `public.cuentas_cliente`
+// En el stack del CI (`reset-db-ci`) `service_role` no tiene privilegios sobre `dominio.clientes` ni `public.cuentas_cliente`
 // (solo los de `20270307100000`): los clientes se dan de alta COMO LA PERSONA DEL PANEL (administrador de la organización del
 // seed, con su sesión y RLS), igual que lo hace la pantalla de Clientes, y solo el vínculo de la cuenta web usa la service-role
 // (`vincular_cuenta_cliente`, que es lo que ejecuta la Edge Function de invitación).
@@ -82,7 +82,12 @@ async function sembrarPersonaPanel(organizacion: string): Promise<PersonaPanel> 
 async function comoPanel<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
     method: metodo,
-    headers: cabeceras({ authorization: `Bearer ${panel.token}`, prefer: 'return=representation' }),
+    // `clientes` vive en `dominio` (PostgREST elige el esquema por el perfil).
+    headers: cabeceras({
+      authorization: `Bearer ${panel.token}`,
+      prefer: 'return=representation',
+      ...(/^clientes(\?|$)/.test(ruta) ? { 'accept-profile': 'dominio', 'content-profile': 'dominio' } : {}),
+    }),
     body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
   })
   if (!r.ok) throw new Error(`panel ${metodo} ${ruta}: ${r.status} ${await r.text()}`)

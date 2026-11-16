@@ -33,7 +33,7 @@ Ventas los use.
   cargar un cliente cada vez.
 - El cliente **se archiva, no se borra**: deja de verse en el listado pero conserva sus datos y sus
   comprobantes, y se puede restaurar.
-- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**. Cada exportación queda **registrada en la actividad** (evento `clientes.exportados`): quién, cuándo, cuántos clientes y con qué filtros (texto, tipo, archivados, tienda, «con cuenta web»). Se registra una vez por exportación, no por lote, y no se registra si no hay filas o si no tenías permiso.
+- Los clientes que coincidan con la búsqueda se **exportan a una planilla de Excel**. Cada exportación queda **registrada en la actividad** (evento `clientes.exportados`): quién, cuándo, cuántos clientes y con qué filtros (texto, tipo, archivados, tienda, «con cuenta web»). Una exportación paginada normal deja un solo evento (el primer lote declara el total). Toda llamada que devuelve filas cuenta, también las que continúan con cursor: si descargás filas que no estaban declaradas, queda un evento adicional «(continuación)». Los topes son **por persona, sin importar los filtros** (cambiar el texto, el tipo o «archivados» no abre un cupo nuevo): 50000 filas en 10 minutos deslizantes y 200000 por día (constantes en `private.tope_exportacion_clientes`, sin criterio de negocio definitivo; ajustables). Al superarlos la exportación falla con «Exportaste muchos clientes en poco tiempo: esperá unos minutos antes de volver a exportar» (o el aviso diario). Si lo que ya descargaste más el total de la exportación que pedís no entra en el tope, la exportación se rechaza al empezar, antes de descargar nada. Repetir la exportación cuenta doble: lo entregado en el primer intento sigue contando para la ventana de 10 minutos y para el día. El texto buscado no se escribe en la actividad (solo «con texto»), porque puede ser un DNI, un correo o un teléfono. No se registra si no hay filas o si no tenías permiso.
 
 ## Para quién
 
@@ -49,7 +49,7 @@ Ventas los use.
 La matriz de roles y el detalle de permisos están en [Permisos por rol](permisos-por-rol.md).
 
 !!! note "La base manda, no la pantalla"
-    Ocultar un botón es comodidad, no autorización: las políticas de `public.clientes` vuelven a
+    Ocultar un botón es comodidad, no autorización: las políticas de `dominio.clientes` vuelven a
     comprobar organización y nivel de sección en cada lectura y escritura.
 
 ## La ficha del cliente
@@ -79,7 +79,7 @@ y de la ficha. **Leer esto antes de tocar clientes: el cliente no es «de una ti
 organización y se habilita en N tiendas.**
 
 - **Tabla:** `public.clientes_empresas` (`cliente_id`, `empresa_id`, `organizacion_id`, `created_at`;
-  PK `(cliente_id, empresa_id)`). Claves foráneas a `public.clientes` y `dominio.empresas` con
+  PK `(cliente_id, empresa_id)`). Claves foráneas a `dominio.clientes` y `dominio.empresas` con
   `on delete cascade`; `empresa_id` y `organizacion_id` indexados. El `organizacion_id` de la fila
   debe coincidir con el del cliente y el de la empresa: lo garantiza el disparador
   `clientes_empresas_validar` (`private.validar_cliente_empresa`), también frente a `postgres`.
@@ -161,7 +161,7 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
 
 ## Deuda trazada
 
-- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)».
+- Traslado de `public.clientes` a `dominio`: [MSF-505] «Trasladar public.clientes al esquema dominio (Principio VII)»: cerrado con MSF-882.
 - E2E «alta, búsqueda y exportación»: MSF-499 (ver `docs/e2e-app.md`).
 - T019 (SC-002), seed de ~5.000 clientes y `EXPLAIN`: lo verifica el CI. El pgTAP `supabase/tests/database/clientes_plan_indices.test.sql` (job `database`) siembra 5.000 clientes con tilde, corre `EXPLAIN` con `enable_seqscan = off` y sin el btree `clientes_organizacion_id_idx` dentro de la transacción de prueba, para que el resultado no dependa del empate de costos (prueba que el índice es utilizable, no la elección con costos normales) y **falla** si la búsqueda no usa `clientes_busqueda_trgm_idx` o la paginación no usa `clientes_org_nombre_idx`. Corre como owner, sin RLS. `supabase/verificacion/clientes_explain.sql` es el script manual (`EXPLAIN ANALYZE`, solo base local).
   Desvío: sin Docker acá no se pegó el plan; lo corre el CI (ver commit 0d18b43).
@@ -191,9 +191,9 @@ recrear las tres con su firma previa (sin `p_empresa_id`): `buscar_clientes` com
   empiezan con `=`, `+`, `-`, `@`, tab o retorno llevan un apóstrofo delante (formula injection); ese apóstrofo es visible (p. ej. `'+54…`) y es una limitación aceptada.
   Licencia verificada con `supply-chain-security`: `write-excel-file` y `fflate` son MIT (lockfile con integridad fijada; subpath `write-excel-file/browser` declarado en su `exports`).
 - **Límites conocidos:** (1) la exportación se registra en la actividad una sola vez por exportación, en el primer lote con filas y con el total
-  de ese momento (evento `clientes.exportados`, migración `20270324110000`, MSF-508), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
+  de ese momento (evento `clientes.exportados`, migraciones `20270324110000` y `20270347000000`: desde esta última toda llamada con filas cuenta, ver más abajo), aunque la persona cancele la descarga después: lo que se audita es el acceso a los datos, no que la descarga termine.
   (2) Cada lote reaplica filtro y orden sobre `clientes` (mismo patrón y mismo índice que `buscar_clientes`); el total
-  y el tope solo se cuentan en el primer lote, y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
+  de la exportación solo se cuenta en el primer lote (los topes por persona de 50000 filas en 10 minutos y 200000 por día rigen sobre lo acumulado, y el primer lote ya rechaza una exportación que no cabe), y el máximo son 50 lotes por exportación. (3) El cursor se relee en vivo:
   si renombran al cliente cursor durante la descarga, el orden puede correrse (filas repetidas u omitidas); si lo
   borran, falla con `40001` y se reintenta.
 - **UX:** confirmación con el total, progreso, cancelación y error con «Reintentar».
@@ -250,7 +250,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Base:** sin IVA por defecto; «Ver con IVA» usa `total_con_iva`. Consumidor final arranca excluido (decisión provisoria).
 - **Contrato para Ventas (MSF-159/177):** `dominio.comprobantes_venta` (esquema `dominio`, RLS por organización y
   sección `ventas`, solo `select` para `authenticated`; sin escritura hasta que Ventas la complete con migraciones
-  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `public.clientes`), `tipo`
+  aditivas). Columnas: `id`, `organizacion_id`, `cliente_id` (FK compuesta con `dominio.clientes`), `tipo`
   (`factura`/`presupuesto`), `numero`, `fecha`, `estado`, `total_sin_iva`, `total_con_iva`. Datos de ejemplo solo
   en local: `supabase/seed.sql`.
 - **Reversión (migraciones posteriores, aditivas):** quitar `public.ranking_clientes(date, date, text, boolean, boolean, integer, integer, uuid)`
@@ -344,7 +344,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   `dominio.comprobantes_venta` + `public.clientes_id_organizacion_uq`, siempre en migraciones posteriores aditivas.
   La exportación es solo frontend. La spec completa se deshace con un `git revert -m 1` del merge.
 - **Verificación de esquema (Principio VII):** `dominio.comprobantes_venta` en `dominio` (documento de venta del
-  producto), con RLS por organización y sección `ventas`; `public.clientes` no cambia de esquema (solo un índice
+  producto), con RLS por organización y sección `ventas`; `dominio.clientes` no cambia de esquema (solo un índice
   único aditivo); las dos funciones viven en `public` por ser RPC de la app y leen ambos esquemas.
 - **Seguridad:** ambas RPC son `security definer` con `search_path = ''`, organización de `private.organizacion_id()`
   y sección `clientes` verificada adentro; `revoke … from public, anon` y `grant execute … to authenticated`.
@@ -543,7 +543,7 @@ panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja d
 
 ## Etiqueta impresa del cliente (F-CLI-17, MSF-446)
 
-Solo frontend, **sin migración ni escritura** (el grant `select` de `public.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
+Solo frontend, **sin migración ni escritura** (el grant `select` de `dominio.clientes` a `authenticated` ya cubre `expreso_preferido`; RLS por organización y sección `clientes`).
 
 - **Ficha** (`pages/clientes/show.tsx`): «Etiqueta» (encabezado) e «Imprimir etiqueta de envío» (bloque). Sin dirección no se abre la hoja: aviso «falta dirección» (CA-CLI-17-1).
 - **Listado** (`pages/clientes/list.tsx`): «Imprimir etiquetas (n)» con las filas marcadas (quien edita). Al cambiar la empresa activa se descarta la selección y se reencuadra la página (Principio VIII).
@@ -560,7 +560,7 @@ Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y
 - **Cuenta web** (un usuario de Auth por cliente, D1): si los dos tienen cuenta web, queda una sola. Con las dos **activas** hay que indicar `p_cuenta_web_de` (de lo contrario se rechaza); si solo un lado tiene cuentas activas, prevalece ese. La no elegida se **elimina** (el usuario de Auth queda sin uso) y la tienda de la que se mantiene queda habilitada en el conservado.
 - **Campañas:** no existe tabla de campañas (MSF-155 sin entregar), así que `campanas_reasignadas` es siempre 0.
 - **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
-- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta.
+- **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta: es una **regla vigente por decisión de diseño** (la lista del cliente descartado se pierde al fusionar), no un defecto pendiente; el diálogo avisa si las listas difieren.
 - **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
 - **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
 - Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
@@ -597,7 +597,7 @@ Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `spe
 
 ## Descuento por cliente (F-VTA-32, MSF-340 · épica MSF-193)
 
-`public.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
+`dominio.clientes.descuento` (`numeric(5,2)`, nulable, `check` 0–100; `null` = sin descuento). Lo fija solo un
 **Administrador** (o superadmin) desde «Editar cliente» → «Descuento (%)»: el `grant update (descuento)` lo
 permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
 oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
@@ -607,7 +607,9 @@ oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada
 
 ## Lista de precios del cliente (F-CLI-21, MSF-453 · épica MSF-450)
 
-`public.clientes.lista_precio_id` (nulable, FK compuesta `(lista_precio_id, organizacion_id)` a `dominio.listas_precios`; `null` = sin lista). El **Administrador** la elige en «Editar cliente» → «Lista de precios» (selector de listas activas, con el porcentaje de cada una); quien no es administrador la ve en solo lectura, y la ficha muestra la lista con su porcentaje. La columna no tiene `grant update`: la escribe solo la RPC `public.asignar_lista_precios_cliente(p_cliente, p_lista)` (solo Administrador, idempotente, `p_lista null` quita la lista), que rechaza una lista archivada, un cliente archivado y el **Consumidor final** (`22023`) y una lista o cliente ajeno (`P0002`). Un disparador defensivo repite esas reglas ante otras vías de escritura. Deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva, sin datos de contacto). Con la bandera `listas_precios` apagada asignar responde `55000` y solo se puede quitar.
+`dominio.clientes.lista_precio_id` (nulable, FK compuesta `(lista_precio_id, organizacion_id)` a `dominio.listas_precios`; `null` = sin lista). El **Administrador** la elige en «Editar cliente» → «Lista de precios» (selector de listas activas, con el porcentaje de cada una); quien no es administrador la ve en solo lectura, y la ficha muestra la lista con su porcentaje. La columna no tiene `grant update`: la escribe solo la RPC `public.asignar_lista_precios_cliente(p_cliente, p_lista)` (solo Administrador, idempotente, `p_lista null` quita la lista), que rechaza una lista archivada, un cliente archivado y el **Consumidor final** (`22023`) y una lista o cliente ajeno (`P0002`). Un disparador defensivo repite esas reglas ante otras vías de escritura. Deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva, sin datos de contacto). Con la bandera `listas_precios` apagada asignar responde `55000` y solo se puede quitar.
+
+**Guardado con compensación.** La lista se asigna antes de guardar la ficha; si el guardado de la ficha falla, la pantalla relee la lista actual del cliente y la devuelve a la anterior **solo si sigue siendo la que ella asignó** (si otra persona la cambió entretanto no se pisa y el aviso lo dice: «No se guardó el cliente y otra persona cambió la lista de precios entretanto: revisala.»; releer y escribir no es atómico, queda una ventana mínima). Si la compensación también falla (o la lista anterior se archivó y no se puede reasignar) se registra en consola y se muestra «No se guardó el cliente y la lista quedó cambiada: revisala.». Mientras cargan las listas el selector muestra «Cargando…», no el aviso de nombre ilegible.
 
 **Sin efecto en el precio:** por ahora la lista solo se guarda; las ventas y la tienda no la aplican (Fases 3 y 4 de la spec). La ficha avisa que no se acumula con el descuento personal. Archivar un cliente conserva su lista; **fusionar** conserva la del cliente que queda y descarta la del absorbido (el diálogo avisa si difieren). Detalle y reversión: [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21-fases-1-y-2). Migraciones `20270340000200_clientes_lista_precio.sql` y `20270340000210_fusion_clientes_lista_precio.sql`; pruebas `clientes_lista_precios.test.sql` y `FormularioCliente.test.tsx`.
 
@@ -621,3 +623,7 @@ selección no cambian. Si falla una tanda posterior se conserva lo cargado y el 
 - Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
   «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
 - Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.
+
+## Lista de precios del cliente (F-CLI-21)
+
+La ficha tiene el campo **Lista de precios** (selector de las listas activas; solo lectura para quien no es Administrador). La asigna solo el rol Administrador con `asignar_lista_precios_cliente` (idempotente, registra `cliente.lista_precio_asignada` en Actividad); el **Consumidor final no admite lista**, archivar al cliente conserva su lista y fusionar clientes conserva la del cliente que queda. La lista **no se acumula** con el descuento personal. Con la bandera `listas_precios` apagada la asignación responde `55000` (quitar la lista sigue permitido) y el precio no cambia. La planilla de clientes todavía no exporta la lista (seguimiento MSF-974). Ver [Listas de precios](listas-de-precios.md).

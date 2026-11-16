@@ -87,7 +87,7 @@ insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000008', 2400, now() - interval '1 day', now() + interval '1 day'),
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000009', 3000, now() - interval '1 day', now() + interval '1 day');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista Cuenta', 'my@example.com', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista Cuenta', 'mn@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista'),
@@ -774,7 +774,7 @@ select is((select v from res where k = 'susp_envio'), '{"estado":"invalido","cam
 select is((select v from res where k = 'panel_envio'), '{"estado":"ok"}'::jsonb, 'usuario del panel: envía como visitante');
 select is((select cliente_id from dominio.consultas where nombre = 'Operador de prueba'), null, 'y su consulta no lleva cliente_id');
 -- Una ficha sin ningún contacto no se puede responder: error genérico sin crear nada.
-update clientes set correo = null, telefono = null, celular = null where id = 'c1000000-0000-0000-0000-000000000002';
+update dominio.clientes set correo = null, telefono = null, celular = null where id = 'c1000000-0000-0000-0000-000000000002';
 select pg_temp.ip('10.7.0.3');
 select pg_temp.como('f2000000-0000-0000-0000-000000000002');
 insert into res values
@@ -872,7 +872,7 @@ select is(
 -- ============================================================================
 -- S2 · con cuenta activa, nombre y contacto de la ficha pasan por las mismas reglas que los de un visitante
 -- ============================================================================
-update clientes set nombre = 'Ana' || chr(1) || chr(8238) || '   Pérez', correo = 'no-es-un-correo', telefono = '+54 9 11 5555-1234', celular = null
+update dominio.clientes set nombre = 'Ana' || chr(1) || chr(8238) || '   Pérez', correo = 'no-es-un-correo', telefono = '+54 9 11 5555-1234', celular = null
  where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.ip('10.10.0.4');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
@@ -883,7 +883,7 @@ reset role;
 select is((select v ->> 'estado' from res where k = 's2_sucia'), 'ok', 'S2: la ficha con caracteres raros se puede enviar');
 select is((select nombre from dominio.consultas where mensaje = 'S2 ficha sucia'), 'Ana Pérez', 'S2: del nombre de la ficha se sacan los caracteres de control y bidi');
 select is((select contacto from dominio.consultas where mensaje = 'S2 ficha sucia'), '+54 9 11 5555-1234', 'S2: un correo inválido se saltea y se usa el teléfono válido');
-update clientes set correo = 'x' || chr(7) || '@example.com', telefono = '123', celular = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set correo = 'x' || chr(7) || '@example.com', telefono = '123', celular = null where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.ip('10.10.0.5');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 insert into res values
@@ -891,7 +891,7 @@ insert into res values
      '[{"producto_id":"a1000000-0000-0000-0000-000000000002","cantidad":1}]', gen_random_uuid()));
 reset role;
 select is((select v from res where k = 's2_sin_contacto'), '{"estado":"error"}'::jsonb, 'S2: sin ningún contacto válido en la ficha, error genérico (no se guarda basura)');
-update clientes set nombre = chr(1) || chr(8238), correo = 'ok@example.com' where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set nombre = chr(1) || chr(8238), correo = 'ok@example.com' where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.ip('10.10.0.6');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 insert into res values

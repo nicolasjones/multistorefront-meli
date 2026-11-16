@@ -104,6 +104,7 @@ const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo)
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
+const OpinionesList = lazy(() => import('./pages/opiniones/list').then((modulo) => ({ default: modulo.OpinionesList })))
 const ImportacionesList = lazy(() => import('./pages/importaciones/list').then((modulo) => ({ default: modulo.ImportacionesList })))
 const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').then((modulo) => ({ default: modulo.ListasConfigurables })))
 const ApiList = lazy(() => import('./pages/api/list').then((modulo) => ({ default: modulo.ApiList })))
@@ -114,6 +115,7 @@ const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modu
 const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const Gastos = lazy(() => import('./pages/gastos').then((modulo) => ({ default: modulo.Gastos })))
 const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
@@ -162,7 +164,13 @@ function App() {
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine
-            dataProvider={supabaseDataProvider(supabaseClient)}
+            dataProvider={{
+              default: supabaseDataProvider(supabaseClient),
+              // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
+              dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
+            }}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
@@ -187,7 +195,7 @@ function App() {
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
                 show: '/clientes/show/:id',
-                meta: { label: 'Clientes' },
+                meta: { label: 'Clientes', dataProviderName: 'dominio' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
@@ -215,6 +223,8 @@ function App() {
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
               { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
+              // MSF-467: moderación de opiniones de productos (solo Administrador).
+              { name: 'opiniones', list: '/opiniones', meta: { label: 'Opiniones' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
@@ -367,6 +377,7 @@ function App() {
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/api" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ApiList /></Suspense></RequiereOrganizacionActiva>} />
@@ -494,6 +505,7 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route path="/gastos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><Gastos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/stock/ordenes-compra"
                   element={

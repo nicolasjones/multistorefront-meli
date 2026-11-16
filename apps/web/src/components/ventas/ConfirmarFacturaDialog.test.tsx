@@ -129,6 +129,22 @@ describe('ConfirmarFacturaDialog · precios cambiaron (F-2, FR-018)', () => {
     expect(screen.getByRole('button', { name: 'Confirmar' })).toBeEnabled()
   })
 
+  it('si cambió la lista de precios el aviso lo dice: «El precio de la lista cambió»', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { ...PRECIOS.error, details: 'lista_precios' } })
+    const onPreciosCambiaron = vi.fn().mockResolvedValue(true)
+    const { rerender } = render(
+      <ConfirmarFacturaDialog open comprobante={comprobante()} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(onPreciosCambiaron).toHaveBeenCalledTimes(1))
+    rerender(
+      <ConfirmarFacturaDialog open comprobante={comprobante({ total_con_iva: 3000 })} onCerrar={vi.fn()} onConfirmado={vi.fn()} onPreciosCambiaron={onPreciosCambiaron} />,
+    )
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent('El precio de la lista cambió: revisá el total y confirmá de nuevo')
+    expect(aviso).toHaveTextContent('$ 3.000')
+  })
+
   it('un 40001 de conflicto de edición (sin hint) sigue siendo un error y no reprecia', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Otra persona modificó este comprobante' } })
     const onPreciosCambiaron = vi.fn()

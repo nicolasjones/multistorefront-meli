@@ -23,7 +23,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('f1000000-0000-0000-0000-000000000002', 'f1111111-1111-1111-1111-111111111111', 'miembro'),
   ('f2000000-0000-0000-0000-000000000001', 'f2222222-2222-2222-2222-222222222222', 'administrador');
 
-insert into clientes (id, organizacion_id, nombre) values
+insert into dominio.clientes (id, organizacion_id, nombre) values
   ('f3000000-0000-0000-0000-000000000001', 'f1111111-1111-1111-1111-111111111111', 'Cliente X1'),
   ('f3000000-0000-0000-0000-000000000002', 'f1111111-1111-1111-1111-111111111111', 'Cliente X2'),
   ('f3000000-0000-0000-0000-000000000003', 'f2222222-2222-2222-2222-222222222222', 'Cliente Y1');
@@ -307,7 +307,7 @@ select public.vincular_identificador_externo('f3000000-0000-0000-0000-0000000000
 
 reset role;
 
-delete from clientes where id = 'f3000000-0000-0000-0000-000000000001';
+delete from dominio.clientes where id = 'f3000000-0000-0000-0000-000000000001';
 
 select is(
   (select count(*)::int from clientes_identificadores_externos where cliente_id = 'f3000000-0000-0000-0000-000000000001'),
