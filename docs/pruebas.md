@@ -113,7 +113,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 ## Higiene de nombres de test: sin códigos MSF
 
-`apps/web/src/higieneReferenciasInternas.test.ts` falla si el nombre de un `describe`, `it` o `test` cita un código del tracker (`MSF-123`). El código vive en el mensaje de commit y en el ticket, no en el nombre de la prueba. Al escribir un test para un ítem trazado, nombrá el comportamiento («avisa el formato del WhatsApp…»), no el ticket. Los nombres de seis tests que entraron con el aviso de WhatsApp, Documentos IA y la defensa de alta de clientes se corrigieron por este motivo.
+`apps/web/src/higieneReferenciasInternas.test.ts` falla si el nombre de un `describe`, `it` o `test` cita un código del tracker (`MSF-123`). El código vive en el mensaje de commit y en el ticket, no en el nombre de la prueba. Al escribir un test para un ítem trazado, nombrá el comportamiento («avisa el formato del WhatsApp…»), no el ticket. Los nombres de seis tests que entraron con el aviso de WhatsApp, Documentos IA y la defensa de alta de clientes se corrigieron por este motivo, y lo mismo pasó con los de depósitos y toma de inventario (reparto de ids y carga de 1000 productos).
 
 ## Checks de trampas conocidas
 
