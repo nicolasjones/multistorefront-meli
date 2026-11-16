@@ -623,3 +623,7 @@ selección no cambian. Si falla una tanda posterior se conserva lo cargado y el 
 - Listado de clientes, «Clientes inactivos», ranking (básico, por dimensión y comparado) y las secciones «Compras» y
   «Reparaciones» de la ficha: tandas de 25 (10 en Compras).
 - Ninguna fila muestra un producto (son clientes o comprobantes), así que no lleva miniatura de imagen.
+
+## Lista de precios del cliente (F-CLI-21)
+
+La ficha tiene el campo **Lista de precios** (selector de las listas activas; solo lectura para quien no es Administrador). La asigna solo el rol Administrador con `asignar_lista_precios_cliente` (idempotente, registra `cliente.lista_precio_asignada` en Actividad); el **Consumidor final no admite lista**, archivar al cliente conserva su lista y fusionar clientes conserva la del cliente que queda. La lista **no se acumula** con el descuento personal. Con la bandera `listas_precios` apagada la asignación responde `55000` (quitar la lista sigue permitido) y el precio no cambia. La planilla de clientes todavía no exporta la lista (seguimiento MSF-974). Ver [Listas de precios](listas-de-precios.md).

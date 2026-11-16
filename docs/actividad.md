@@ -390,3 +390,5 @@ Reversión: ver el encabezado de cada migración (los eventos escritos se conser
 ## Eventos del centro de importaciones (F-IMP-01)
 
 `importacion.iniciada`, `importacion.finalizada` e `importacion.cancelada` (no sensibles) los escriben las funciones del proceso masivo en la misma transacción: iniciar, cancelar (una vez por pedido) y cerrar o reconciliar. El detalle trae el nombre del proceso y, al finalizar, las cifras «N correctas y M con error»; nunca referencias, motivos de error ni parámetros. Reversión: `delete from public.tipos_evento_actividad where tipo like 'importacion.%';`.
+
+Las listas de precios (F-PRE-14 y F-CLI-21) registran cinco eventos, todos no sensibles y sin datos de contacto: `lista_precios.creada`, `lista_precios.editada` (porcentaje anterior y nuevo), `lista_precios.archivada`, `lista_precios.restaurada` y `cliente.lista_precio_asignada` (lista anterior y nueva). No figuran entre los seis tipos sensibles del seed de `registro_inalterable.test.sql`, así que no hizo falta tocarlo. Ver [Listas de precios](listas-de-precios.md).

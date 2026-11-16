@@ -55,7 +55,7 @@ export const UPSERT_FUSIONAR = 'return=representation,resolution=merge-duplicate
 
 // `clientes` vive en `dominio` (MSF-882): PostgREST elige el esquema por el perfil, no por el search_path. Las tablas que
 // siguen en `public` (`clientes_empresas`, `clientes_identificadores_externos`) no coinciden con este patrón.
-const esquemaDe = (ruta: string, esquema: string) => (esquema === 'public' && /^clientes(\?|$)/.test(ruta) ? 'dominio' : esquema)
+export const esquemaDe = (ruta: string, esquema: string) => (esquema === 'public' && /^clientes(\?|$)/.test(ruta) ? 'dominio' : esquema)
 
 /**
  * INSERT por la API REST con la service-role; `ruta` puede llevar `?on_conflict=...` para un upsert. Con un `prefer` que no
