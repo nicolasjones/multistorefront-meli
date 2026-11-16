@@ -36,13 +36,13 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "ea1877fabccf594016975deda79b545da9cf9b7489a20847b7dcb4f53cc7d7cd",
-      "sourceHash": "d654233f41a018747f78ee150557ac9ac26665cc3db0687e3369d5104ad2f8c5",
-      "sourceAt": "a8f3d3a9",
+      "sourceHash": "552cc7d06034876ce7f19829361acb504ecebb3204e381be42ccfe6865384dcc",
+      "sourceAt": "4a93f421",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "a8f3d3a9"
+      "commit": "4a93f421"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -384,14 +384,14 @@
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
       "pageHash": "32cf989ce957d97a1dce1d219441e5c0d38b11d73ad4a5cb0c4b9adc82c99cae",
-      "sourceHash": "13cf85b198032238d2fee4408d83bfc0d8eb73e950fc26526383c30e5e2ba689",
-      "sourceAt": "775b35f0",
+      "sourceHash": "1392f7a997b51be83beb01f15d65ca56d5bee1026829bb2e8920b99ff8adc93b",
+      "sourceAt": "0a249dc3",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "775b35f0"
+      "commit": "0a249dc3"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -603,13 +603,13 @@
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "27471e93a1066a9844d1c30b096c49dbb6d06fde3121ec20ec95d49b68caa7ab",
-      "sourceHash": "d654233f41a018747f78ee150557ac9ac26665cc3db0687e3369d5104ad2f8c5",
-      "sourceAt": "a8f3d3a9",
+      "sourceHash": "d30d656fcfc6d3d0ad8ed339b54ec129c2d7dc405367c5f75c1aeaef49a95693",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a8f3d3a9"
+      "commit": "9cde8838"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -2834,13 +2834,13 @@
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
       "pageHash": "9e5c58496409392e2c2a9128b9c0a16ad45422608110ee01e2f85ed7697e215a",
-      "sourceHash": "54040ca947da75c363e145f9cc7b84fccf0c2e6343be77cfc2638f4ed8d9eb4b",
-      "sourceAt": "775b35f0",
+      "sourceHash": "1735f54c05f875560a54663f1c9954df7fd1017cdc83e844200fc26a61915e19",
+      "sourceAt": "488800f2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "488800f2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3147,7 +3147,7 @@
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
       "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
-      "sourceHash": "3a0a902ba488cbc571423c8480ec5276ddd3b9b3053cc6f1a92420d560f6631b",
+      "sourceHash": "b434dc0d615a9bac4660d5b6bc0f07015a95e1f53ec410d3f201c5c3a90d22ad",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
