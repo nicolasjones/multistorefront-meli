@@ -2,7 +2,7 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "b51c4742382def90f61becb0cceac53b98c97ceac22429fadb225f7a1ca1cf30",
+      "pageHash": "41155dd0241ec006fb42254a453010f0728f5a5ef0e81ae6f199cd7ea4e06ba7",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -22,8 +22,8 @@
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
-      "pageHash": "c2c64f5fa255b3a7af2fb87cf372708922ab7ba4563e22e2bf27d8dd080622e7",
-      "sourceHash": "a6066eb1b2f9cfaa3b3e946ace4b296fd536bdec8bc425d7a3aea1b26355d7d4",
+      "pageHash": "a771fdb47a0aa6db00cf34062a2a008b6fa6e57b8adeaf3c112edcb7556f5196",
+      "sourceHash": "d862d1988a374de61b5c1c1137871ccb1c115363e94524f66df6fd2e28d4e69c",
       "sourceAt": "c7860a7c",
       "sources": [
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3f24f6e0aea2c5479c4051a57fa40bb4683bcbcd1539a5421866989f5e20c35a",
-      "sourceHash": "8bd876d70086049b5618567d98022ef9e61590f850bb731bedfce34b7ac3bd85",
-      "sourceAt": "2ab8c7d9",
+      "pageHash": "3ce95e611acf21a192e7845d42e522655f71db3414174333308f1f5918db3f41",
+      "sourceHash": "8022e9a324377e3c7798aa15c5562718026382ca271b317934fbac001dfa427c",
+      "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "2ab8c7d9"
+      "commit": "6b76bcf5"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "72e3120d218b5afb2af7650679501b14e4d6c53ba6dd1ebf58d50ec6542e11f7",
-      "sourceHash": "5959253759776a1f51c8b3eba4864aa127a15bbe92b4d2bfd373c0a59193eb0d",
-      "sourceAt": "2ab8c7d9",
+      "pageHash": "8e8ef99a126f8379522050a6a64912eafcd0a253f04f958573c7435069009d49",
+      "sourceHash": "ceb80199dfacda2a411cb345263f12857ce7476a242dc0ec8da9830ef467a5e4",
+      "sourceAt": "4a93f421",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "2ab8c7d9"
+      "commit": "4a93f421"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "494e741d1379f287616f9855fd549b73784a51e87b30b30a1bfec3639039dfa7",
-      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
-      "sourceAt": "38aaabc6",
+      "pageHash": "e3d682a5269ff8f84e2b3ac0a9e10ecb5bad023f5ce6deb38a79ea1dcbec9c83",
+      "sourceHash": "ba293492c6403710be3f207694a5d331fd9fbb431727bb239fa9ae72cf5e4ee8",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "38aaabc6"
+      "commit": "9cde8838"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -668,14 +668,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "984ebcbfdd0bb7bc3feba0d16b4424e29cfd8f5d067080d324e5ccf690c4686a",
-      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
-      "sourceAt": "83c8c221",
+      "pageHash": "0b08a23c6e706a77b92b94a3dea3dd4eb4c7ad61f0cce9fee1f90e996d1b3115",
+      "sourceHash": "ba293492c6403710be3f207694a5d331fd9fbb431727bb239fa9ae72cf5e4ee8",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "83c8c221"
+      "commit": "775b35f0"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -989,8 +989,8 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "59af0cf08c787f6ee70063987467a59cd8c76efbc8afd8b9a22e9f374181dae1",
-      "sourceHash": "f4f0beb6ff07ba302e53880772677563dc9fcc2dc2590f8fa9f9349443dea28c",
+      "pageHash": "015377b13c4dfd03922870a3ef152734e9e3f2621ff9e9ff953d72a82926202d",
+      "sourceHash": "15b7bcc21993ebfdbab76d5ea6b25ec905ccdb19f0a1eee01f5f5c4c85c0b388",
       "sourceAt": "5ebd123f",
       "sources": [
         "specs"
@@ -1046,8 +1046,8 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
+      "pageHash": "f17236f3b0921bfc634db286ed03f5a76e915f7cecabd92fd23696cd78921770",
+      "sourceHash": "8022e9a324377e3c7798aa15c5562718026382ca271b317934fbac001dfa427c",
       "sourceAt": "7065a017",
       "sources": [
         "specs"
@@ -1057,15 +1057,15 @@
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
-      "pageHash": "40c43edbb20a2fe5a579924364e5fffab7c52f71129e670fd6897c5313186d8a",
-      "sourceHash": "6fdddcf747ee46213227bc60b2c2e55f175b2ac7ec5203f1a6397a5b62b26003",
-      "sourceAt": "7065a017",
+      "pageHash": "afa59f850e46d059768759c474cfeeec3685d543c53c065285e9ac5967164b37",
+      "sourceHash": "22bca1855441df3b48979716336ba7b3e285c91c8cbe4ea6a899067ca21b89e8",
+      "sourceAt": "1354b540",
       "sources": [
         "apps/web/src/lib/escalas.ts",
         "apps/web/src/lib/tiendaPreciosCliente.ts"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "1354b540"
     },
     "docs/precios-masivos.md": {
       "title": "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)",
@@ -1113,7 +1113,7 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "5b521084dd020ead5965c8d9feee3de2191532cea524695278eea1a063b4141a",
+      "pageHash": "c88dc7b08b087de943b250af3c65485f9d6b4e8b30f6602476e3805cf02716cc",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1528,12 +1528,12 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
-      "pageHash": "031642e53f136251b2088a270cdb101b44d04970af463829e191339165037154",
+      "pageHash": "478788ae7d1ad7d4bddaa9c372da02c61a43c8b30082efcf77ddcc0e1d48fd7c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "53cb4c30"
+      "commit": "ff1c96d4"
     },
     "docs/producto/service-repuestos-y-stock.md": {
       "title": "Service técnico: repuestos, stock y costos",
@@ -1812,15 +1812,15 @@
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
-      "pageHash": "d7fa8dcb0612198a464caf3b9152792cf4e5bc0f3028c5ddc98d34c4b426e45d",
-      "sourceHash": "97a3093ff7f5d7a367badfb46d0c8eccc43fd09de4eca83b4ef92ec6708194b5",
-      "sourceAt": "7065a017",
+      "pageHash": "1595bff56b6d07dab20d4a48f15234223f1171369efda0150167e8ee30299a59",
+      "sourceHash": "0aa8c584ae40006499f03b5c0c6351bfbc43c089c90c42e587f3a66af8d060b1",
+      "sourceAt": "1354b540",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "1354b540"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -1906,8 +1906,8 @@
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
-      "pageHash": "4ef0306de94870ddb923578ad4368c90ce3ebbb0798515b8938de6757bb5e90a",
-      "sourceHash": "3fc93c67268c69aa2a02931f668dc159df9452c92fcf251c6388317604bf2f90",
+      "pageHash": "3d08ca48e1db901d0e20993fbd4bbc04adcf56a677403ad91e49487f98703774",
+      "sourceHash": "7f4c4ef6ac062e7a0146d428a213945e634d61e89918b6b6ae0bae1686e18fcf",
       "sourceAt": "c7860a7c",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
@@ -1971,7 +1971,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "d5200313dba7dd57543126228d2e565cabd5385f22ca2aa83da1a99517dec216",
+      "pageHash": "68b61759d435f928d1b17e1ac018e2ce50be1449871950109bb62af1b509fb99",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2003,6 +2003,29 @@
       ],
       "owner": "plataforma",
       "commit": "12525f33"
+    },
+    "docs/seguridad-tienda-opiniones.md": {
+      "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
+      "pageHash": "7cc86261a592112db5a6b2e917291172ecebd78ad2a1b2f24e5fbb48736f87c2",
+      "sourceHash": "9bd5be0e6af5460f852729cde6863c8e2a0a77557a57708e45226960834d0fdb",
+      "sourceAt": "12b4527a",
+      "sources": [
+        "specs/20270328-100000-opiniones-de-productos",
+        "supabase/migrations/20270341000000_opiniones_producto.sql",
+        "supabase/migrations/20270341000100_opiniones_validacion.sql",
+        "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
+        "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
+        "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
+        "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "supabase/migrations/20270507000001_opiniones_resumen_indice.sql",
+        "apps/web/src/pages/opiniones",
+        "apps/web/src/pages/tienda-publica/opiniones",
+        "apps/web/src/lib/opiniones.ts",
+        "apps/web/src/lib/tiendaOpiniones.ts",
+        "apps/web/src/lib/estadoOpinion.ts"
+      ],
+      "owner": "plataforma",
+      "commit": null
     },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
@@ -2054,6 +2077,21 @@
       "owner": "tecnico",
       "commit": "c7860a7c"
     },
+    "docs/service-etiqueta-qr.md": {
+      "title": "Service técnico · Etiqueta con código QR del equipo",
+      "pageHash": "85d90f368eb1a4e434bed29943c5f79b3df4fac81dc61dcf27676d1b27eb22fb",
+      "sourceHash": "20e3356633a4bc53b2645c936380034b719e0d31784f8e21e7f8c341b3c74676",
+      "sourceAt": "ff1c96d4",
+      "sources": [
+        "specs/20270323-100000-service-ideas-futuras-v2",
+        "apps/web/src/lib/qr",
+        "apps/web/src/lib/etiquetaReparacion.ts",
+        "apps/web/src/components/service/EtiquetaReparacion.tsx",
+        "apps/web/src/pages/service-tecnico/etiqueta.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "ff1c96d4"
+    },
     "docs/service-garantia.md": {
       "title": "Service técnico · Reingreso por garantía (F-SVC-21)",
       "pageHash": "1d3ee34604fcceb56d129ceb0c1eef2a109f28116949cd8464227e44102d9d67",
@@ -2067,14 +2105,14 @@
     },
     "docs/service-impresion.md": {
       "title": "Service técnico · Impresión de orden de ingreso y remito de entrega",
-      "pageHash": "c7e70c3f09f63884009845cec5e8cbd35a8de4d159ebb35da2ff5f503dc360e7",
+      "pageHash": "9ce730edfd0b8698a709a309774f5753d5a96e18ae613777c08db1b042000758",
       "sourceHash": "e2b9a4cc8fc5feef3aa01c6792cb0963e8712b23fe0378f56b55dceef703367e",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "ff1c96d4",
       "sources": [
         "specs/20261022-100000-service-listado-items-e-impresion"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "ff1c96d4"
     },
     "docs/service-items.md": {
       "title": "Service técnico · Ítems y costos de la reparación (F-SVC-06)",
@@ -2109,9 +2147,9 @@
     },
     "docs/service-reportes.md": {
       "title": "Service técnico · Reportes y exportación (F-SVC-23, MSF-168)",
-      "pageHash": "54aa1071969a58983b83e215dc4505a71da1cae762c69306df82d774caacf4a7",
-      "sourceHash": "6f22fc43e94c26dbc6f467969380dc6e3b88511de1a5fe902f132fe34ebcd371",
-      "sourceAt": "c7860a7c",
+      "pageHash": "72fa41a5058f42835e482210283d47d84d44964760b4b58b11cd14af4ab65003",
+      "sourceHash": "77e8b99854c9db5ce6810d776b433fd81997fa74a39ac4cc25abf5e07430eb83",
+      "sourceAt": "e0b096d9",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes",
         "infra/superset/dashboards/service",
@@ -2122,7 +2160,7 @@
         "supabase/migrations/20270219130300_reportes_service.sql"
       ],
       "owner": "datos",
-      "commit": "c7860a7c"
+      "commit": "e0b096d9"
     },
     "docs/service-repuestos-devolucion.md": {
       "title": "Devolución de repuestos al quitar o anular (F-SVC-11)",
@@ -2162,31 +2200,32 @@
     },
     "docs/service-seguimiento.md": {
       "title": "Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)",
-      "pageHash": "fd9faf74a802968f87164aaf65dd7a94d07eaf98de6c262b6378f64528fffe03",
-      "sourceHash": "d28c36cd70f3e3c313ba9e5256d0b1413640fed236b10afa956985aed8f70654",
-      "sourceAt": "c7860a7c",
+      "pageHash": "dbe511f8ac8a8068026ed2cdf7b695789f318231dba5f7eeb3d9be19c8569a9d",
+      "sourceHash": "d84541bdd3bceeecaf12ebc3a32fa4f1b97f8895b272894683a53aac847f274a",
+      "sourceAt": "e0b096d9",
       "sources": [
         "specs/20261028-100000-service-seguimiento-y-reportes"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "e0b096d9"
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "cfab6f03ffe97a5c6fa1503ac562e6e024dd390cd993f90f6555168736c18240",
-      "sourceHash": "69f4c9b8330f4719532ea09a382c65c7dbc207f33d8d4741786b7e780f12baf3",
-      "sourceAt": "c7860a7c",
+      "pageHash": "48317c67c2d5f1926f819c900bdc8a4ea7047ac1de2015078bd3a6e1d923730e",
+      "sourceHash": "b296074c164f238e07e4d84d02274531f38f582232b1b972d5d9bb3ed15ae017",
+      "sourceAt": "1e7d6587",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
         "specs/20261028-100000-service-cobro-y-avisos",
         "specs/20261028-100000-service-seguimiento-y-reportes",
+        "specs/20270323-100000-service-ideas-futuras-v2",
         "design/pantallas/ServicioModelos.dc.html",
         "supabase/migrations/20261020100700_service_funcionalidad.sql",
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "1e7d6587"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",
@@ -2588,7 +2627,7 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "ee5da7f8ce44ce2615e1071169de1a365c72341763ecce7b29bab572c5b40c23",
+      "pageHash": "44fbe26ddf29838b1f724f39380fa63dea45395a7788554bb2a34a1b4ba95ae0",
       "sourceHash": "54040ca947da75c363e145f9cc7b84fccf0c2e6343be77cfc2638f4ed8d9eb4b",
       "sourceAt": "775b35f0",
       "sources": [
@@ -2611,8 +2650,8 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "3e0999f2608c4177dca411c4ac36c37bdc2f18600e43dff3f31d585e49146269",
-      "sourceHash": "de34cc44bbac5786a946b64dfd62f6cd3a1ceb4d86f6041284c4c971ef60ba44",
+      "pageHash": "7ff3dd2a28fd5a55f29723cbcacb8719f3001c06525cd311bbf49da85719a231",
+      "sourceHash": "4394687d1dfc137c72af3dc278870afeab5f28ccb7860f8c9e95615427c4f2d4",
       "sourceAt": "5e929d44",
       "sources": [
         "specs",
@@ -2805,9 +2844,9 @@
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "7ae81ed12986a5bafcec1dcad02a9e1546f96cb9ce51acf126f911f343ba1450",
-      "sourceHash": "0a1fe3d4e48f830db0efe2929fd53febd3ab753c9da5e8db3d760e11c20d393f",
-      "sourceAt": "775b35f0",
+      "pageHash": "eddfe6783c0429c861a34d0b6efcf7852a91b2988d912e1e08162231f12f5d27",
+      "sourceHash": "a1f3d5491df5beb0c86507d374837e792306006ec0073f2c534856cbf7724c1d",
+      "sourceAt": "1354b540",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2816,7 +2855,7 @@
         "supabase/config.toml"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "1354b540"
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
@@ -3094,16 +3133,16 @@
     },
     "docs/tecnico/precios-masivos-y-promociones.md": {
       "title": "Precios masivos y promociones",
-      "pageHash": "7d6ed3410a00aadc3a20dafe22888cb514cc852b363469ab8044a34e179bcf7f",
-      "sourceHash": "911c0431ff1356f2466a8845d6ee61a8328a7029522b784d4c29b41b6795b6a4",
-      "sourceAt": "2f645657",
+      "pageHash": "c13ec7397c5e6b82df5be647fffeb25e6861ffde44a9c18953cae19cc1acd2db",
+      "sourceHash": "b090fd2e8a73cade8f9c07ca9a318803ca6821b84bad052f059afb727114fbd8",
+      "sourceAt": "1354b540",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "2f645657"
+      "commit": "1354b540"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
@@ -3770,8 +3809,8 @@
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
-      "pageHash": "0fd0347123cd59bf57f785f21c029dea5eca5444b4f41a9d1b7dc33266ac233a",
-      "sourceHash": "922ae5eb422eea8547bf6bc7b1784ec90d5a352c94f7b7f10cf7b6f040eeb2ad",
+      "pageHash": "7080df852dec5e40c014f907e354e031211e412ce2b263bc60ce89174e7070aa",
+      "sourceHash": "b782002b16e47484d6d4de65244fbddd4ca14b685cafb335c7594ed6af8346d8",
       "sourceAt": "4b1cc5c7",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
@@ -3782,17 +3821,21 @@
         "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
         "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
         "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "supabase/migrations/20270507000001_opiniones_resumen_indice.sql",
         "apps/web/src/pages/opiniones",
         "apps/web/src/pages/tienda-publica/opiniones",
         "apps/web/src/lib/tiendaOpiniones.ts",
-        "apps/web/e2e/tienda-opiniones.e2e.ts"
+        "apps/web/src/lib/opiniones.ts",
+        "apps/web/e2e/tienda-opiniones.e2e.ts",
+        "scripts/tienda-opiniones-dev.mjs",
+        "scripts/verificar-bundle-tienda-opiniones.mjs"
       ],
       "owner": "tecnico",
       "commit": "4b1cc5c7"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "b3898fe508c3b8c793eafa924526436c053e6c63f98a942d05d2ca109a1709e8",
+      "pageHash": "71fe7c82b7dcaff242b63c1348339560c3963f7d0d701edcde68fc68bd89fc91",
       "sourceHash": "100fc42d57229295ac4eb4189a64f3e296db23f5d6faf08862be69281ff4c312",
       "sourceAt": "5846921d",
       "sources": [
@@ -3857,9 +3900,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "670c214c7ceb57eebd4641b27428e10b4e3f93e3aa204e681f3ba354f4634f7d",
-      "sourceHash": "74fe0a6c1c6cfdbc764046a541297202f3a77a7a00e9bedaa4e5d62e69eca9b6",
-      "sourceAt": "e9196969",
+      "pageHash": "99888e5ff26d762ce2ad9526a3eb4c03c26e2fadaa9d321c2f4aadbe4a057552",
+      "sourceHash": "6448466cad3295ac8481b88d1df7334acbbb7858f13fef89a953927deaa9d773",
+      "sourceAt": "452d7af1",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3871,11 +3914,11 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "e9196969"
+      "commit": "452d7af1"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
-      "pageHash": "8556a753c6b336701c796724f729fff7299e4af4a5ab86be09afb1c4353e3e48",
+      "pageHash": "efabcfa48c7d76ed6be735c454232c390b2bcfd6c51ae1789301bea599cd9094",
       "sourceHash": "e195b476ddd8867f93e6ab0cdc833cf65c8c6ca6e74274410e3177a3ba56e88a",
       "sourceAt": "c7860a7c",
       "sources": [
@@ -4023,7 +4066,7 @@
     },
     "docs/ventas-rma-devoluciones.md": {
       "title": "Ventas · Devoluciones (RMA)",
-      "pageHash": "1737c6af0b5f3fb759eaeb01464fb452c85f74bac1aac4d8b3c5b5c167ac4cbf",
+      "pageHash": "54d2867ac126041c43e864cc6f21b3399edcb0499da818c0acf66c63c75b20e3",
       "sourceHash": "1d0af0edb53df0732133498501ec78356186ab42326745868fd842d671496fad",
       "sourceAt": "c7860a7c",
       "sources": [

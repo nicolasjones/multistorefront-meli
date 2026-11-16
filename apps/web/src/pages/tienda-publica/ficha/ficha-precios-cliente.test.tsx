@@ -94,6 +94,40 @@ describe('Ficha · precios según el tipo de cliente', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  it('mayorista con una promoción vigente: la escala que baja muestra el precio promocional y el de la escala tachado', async () => {
+    mocks.precios.mockResolvedValue({
+      tipo: 'mayorista',
+      escalas: [
+        { escala: 'x1', desde: 1, hasta: 4, final: 1000, precioAnterior: 1210 },
+        { escala: 'x5', desde: 5, hasta: 9, final: 1000, precioAnterior: 1089 },
+        { escala: 'x10', desde: 10, hasta: 49, final: 968, precioAnterior: null },
+        { escala: 'x50', desde: 50, hasta: null, final: 847 },
+      ],
+    })
+    const { container } = montar()
+    const bloque = await screen.findByTestId('precios-cliente')
+    const x1 = within(bloque).getByText('x1 · 1 a 4 u.').nextElementSibling as HTMLElement
+    expect(within(x1).getByText('$ 1.000', { exact: false })).toBeInTheDocument()
+    expect(within(x1).getByTestId('precio-anterior')).toHaveTextContent('$ 1.210')
+    expect(within(x1).getByText(/Precio anterior/)).toBeInTheDocument()
+    const x5 = within(bloque).getByText('x5 · 5 a 9 u.').nextElementSibling as HTMLElement
+    expect(within(x5).getByTestId('precio-anterior')).toHaveTextContent('$ 1.089')
+    // Las escalas sin promoción (x10, x50) quedan como siempre: sin tachado.
+    expect(within(bloque).getByText('x10 · 10 a 49 u.').nextElementSibling).toHaveTextContent('$ 968')
+    expect(within(bloque).getByText('x10 · 10 a 49 u.').nextElementSibling?.querySelector('del')).toBeNull()
+    expect(within(bloque).getByText('x50 · 50 u. o más').nextElementSibling?.querySelector('del')).toBeNull()
+    expect(within(bloque).getAllByTestId('precio-anterior')).toHaveLength(2)
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+
+  it('un precio anterior que no es mayor que el final no se tacha (promoción que no baja)', async () => {
+    mocks.precios.mockResolvedValue({ tipo: 'minorista', escalas: [{ escala: 'x1', desde: 1, hasta: 4, final: 1210, precioAnterior: 1210 }] })
+    montar()
+    const bloque = await screen.findByTestId('precios-cliente')
+    expect(within(bloque).queryByTestId('precio-anterior')).not.toBeInTheDocument()
+    expect(within(bloque).getByText('$ 1.210')).toBeInTheDocument()
+  })
+
   it('cliente con lista de precios: «Tu precio» es el que manda el servidor, sin mencionar la lista, y el público sigue visible', async () => {
     // El servidor ya devolvió el precio de su lista (1210 × 0,80 con IVA = 968): la ficha no calcula ni nombra la lista.
     mocks.precios.mockResolvedValue({ tipo: 'minorista', escalas: [{ escala: 'x1', desde: 1, hasta: 4, final: 968 }] })

@@ -195,6 +195,7 @@ nav:
           - "Consultas: bandeja y aviso (MSF-122)": consultas.md
           - "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)": contactos.md
           - "Opiniones de productos: moderación y tienda (MSF-467)": tienda-opiniones.md
+          - "Revisión de seguridad: opiniones de productos (MSF-467)": seguridad-tienda-opiniones.md
           - "Newsletter de la tienda (MSF-468)": newsletter.md
           - "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)": cuentas-y-compras-a-proveedores.md
           - "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)": dolar-y-recalculo.md

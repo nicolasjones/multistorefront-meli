@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **275**
+- Rutas del panel: **276**
 - Tablas en migraciones: **207**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **332**
+- Páginas de documentación: **334**
 
 ## Rutas del panel
 
@@ -153,6 +153,7 @@
 - `/roles/list`
 - `/seguimiento`
 - `/service-tecnico/estados`
+- `/service-tecnico/etiqueta`
 - `/service-tecnico/modelos`
 - `/service-tecnico/orden-ingreso`
 - `/service-tecnico/remito-entrega`

@@ -183,6 +183,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'reparacion.creada': 'Reparación creada',
   'reparacion.editada': 'Reparación editada',
   'reparacion.enlace_generado': 'Enlace de consulta generado',
+  'reparacion.enlace_regenerado': 'Enlace de consulta regenerado',
   'reparacion.entregada': 'Reparación entregada',
   'reparacion.estado_cambiado': 'Estado de reparación cambiado',
   'reparacion.item_agregado': 'Ítem de la reparación agregado',

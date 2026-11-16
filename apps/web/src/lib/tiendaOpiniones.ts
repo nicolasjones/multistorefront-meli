@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { esEstadoOpinion, type EstadoOpinion } from './estadoOpinion'
 import { ErrorCuentaTienda } from './tiendaCuentaDatos'
 import { esIdValido } from './tiendaListado'
 
@@ -6,8 +7,6 @@ import { esIdValido } from './tiendaListado'
 // Quién opina y en qué tienda lo decide el servidor (`private.cuenta_de_tienda(host)`): ninguna llamada manda cliente, cuenta ni
 // empresa. La bandera `tienda_opiniones` la impone el servidor; acá `capacidades` solo decide si se dibuja el bloque. El texto
 // de las opiniones es NO confiable: se devuelve tal cual y la interfaz lo pinta siempre como texto (nunca como HTML).
-
-export type EstadoOpinion = 'pendiente' | 'aceptada' | 'rechazada'
 
 export type OpinionPublica = {
   id: string
@@ -47,8 +46,7 @@ export const TAMANO_TANDA_MIS_OPINIONES = 20
 type Cruda = Record<string, unknown>
 const comoObjeto = (valor: unknown): Cruda | null => (valor !== null && typeof valor === 'object' && !Array.isArray(valor) ? (valor as Cruda) : null)
 const comoTexto = (valor: unknown): string => (typeof valor === 'string' ? valor : '')
-const ESTADOS: readonly EstadoOpinion[] = ['pendiente', 'aceptada', 'rechazada']
-const comoEstado = (valor: unknown): EstadoOpinion => (ESTADOS.includes(valor as EstadoOpinion) ? (valor as EstadoOpinion) : 'pendiente')
+const comoEstado = (valor: unknown): EstadoOpinion => (esEstadoOpinion(valor) ? valor : 'pendiente')
 const comoPuntuacion = (valor: unknown): number | null => (typeof valor === 'number' && Number.isInteger(valor) && valor >= 1 && valor <= 5 ? valor : null)
 
 // Una llamada: `sin_acceso` y cualquier falla se vuelven un `ErrorCuentaTienda`; el resto vuelve tal cual.

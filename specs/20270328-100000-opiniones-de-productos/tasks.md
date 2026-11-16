@@ -7,9 +7,16 @@ Cada RF/SC tiene una tarea dueña. **Al cerrar cada fase ninguna tarea queda `[ 
 
 **Fases 1 a 4 implementadas y mergeadas en `dokploy`** (F-OPI-01 en el PR #1044 `feat/opiniones-fases-1-y-2`; F-OPI-02 y F-OPI-03 en el PR #1058 `feat/opiniones-fases-3-a-5`; QA y Código/Seguridad aprobados, CI verde). **T001–T028 están `[x]` con su evidencia.** La fase 5 (cierre) está a medias: **T029, T030 y T031 siguen `[ ]`** y se ejecutan sobre `dokploy`, que es donde vive la implementación.
 
+**Documentación de la épica mergeada**: el PR #1075 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) se **mergeó** el 2026-11-16 a las 11:10:51 (merge commit `78a893bb`), con `application`, `quality`, `liberar` y `validacion` en verde. Antes del merge, un commit `chore: integra dokploy` trayó el estado vigente de `dokploy` a la rama, así que el merge **no revirtió** la implementación real (PR #1044 y #1058). **El release a DEV quedó destrabado y la rama ya no está desfasada: no hace falta ningún rebase manual.**
+
 **Corrección de la numeración de migraciones** (era el conflicto real entre esta rama y `dokploy`): F-OPI-01 ocupó la ventana `20270341000000`–`20270341000500`; F-OPI-02 y F-OPI-03 renumeraron su migración a `20270419000000`+ porque la ventana `20270341…` ya no era mayor que la cola de `dokploy`. Cualquier migración **nueva** de esta épica va **por encima de `20270419000200`**.
 
-**🛡️ Decisión de orquestación — release a DEV trabado (PR #1045), no es un conflicto a resolver.** El PR #1045 (esta rama → `dokploy`) lleva solo 2 commits de **docs** sobre una foto de `tasks.md` **anterior** a la implementación real; mergearlo **pisaría** la evidencia de `dokploy` (su copia tiene T001 sin marcar). El conflicto es una **rama de épica stale**, no un bug (mismo patrón que MSF-265/MSF-948). **El PR #1045 se cerró sin merge** (y con él los #1068 y #1069, regenerados por Release). Causa raíz: Release reintentó el merge ignorando `desarrollo-manual`; se abrió **MSF-984** para que filtre esa label. El **rebase es trabajo manual de Nicolás**: hasta que esta rama se rebasee contra `dokploy` y se resuelva el conflicto de `plan.md`/`spec.md`, la épica queda flaggeada (`sindrome-bloqueo-importante`, `sindrome-escalado-humano`, `desarrollo-manual`) y **no se pide otro merge**. Esta rama queda como **fuente documental** de la épica, no como rama de release.
+**🛡️ Decisiones de producto que le corresponden a Nicolás** (no bloquean trabajo técnico: la funcionalidad está entregada y apagada por defecto, D11):
+
+1. **Bandera `tienda_opiniones` en dev**: ¿se enciende ahora o se espera a que cierren T029–T031 sobre `dokploy`? El procedimiento exacto está en `docs/tienda-opiniones.md`; staging y producción quedan apagados. **T030 espera esta decisión.**
+2. **Decisiones delegadas D1–D16** (en particular **D3**: no exigir compra previa para opinar) y la **respuesta del comercio** al cliente, que quedó **fuera de alcance**: ¿se confirman tal cual o se cambian?
+
+Mientras eso no se responda, la épica **no se cierra** y **no se vuelve a generar un PR de release** (los PR #1045 y #1067–#1075 fueron regeneraciones de la misma cabeza; el último se mergeó sin cambios de código). Causa raíz ya trazada: Release reintentaba el merge ignorando la etiqueta `desarrollo-manual`; **MSF-984** (hija de MSF-515) lo corrige y no deja pendiente en esta épica.
 
 ## Matriz de trazabilidad (tracker ↔ US ↔ tasks)
 
@@ -70,11 +77,11 @@ Cada RF/SC tiene una tarea dueña. **Al cerrar cada fase ninguna tarea queda `[ 
 
 - [x] T027 [CIERRE] E2E `apps/web/e2e/tienda-opiniones.e2e.ts`: opinar → no visible → aceptar → visible con promedio → editar → oculta → borrar. Evidencia: `pnpm --filter @platform/web test:e2e tienda-opiniones`. Hecho (fase 5): `tienda-opiniones.e2e.ts` pasa en el job `e2e-tienda` del PR (enciende `tienda_opiniones` y `tienda_pedidos`, porque «Mi cuenta» exige esta última).
 - [x] T028 [CIERRE] Documentación: `docs/tienda-opiniones.md` (guía y reversión), enlace en `docs/tiendas-online.md`, `mkdocs.yml` y `docs/roadmap-template.md` (fila de MSF-467). Evidencia: `pnpm docs:check`. Hecho (fase 5): `docs/tienda-opiniones.md`, `docs/producto/opiniones.md`, enlace en `docs/tiendas-online.md`, `mkdocs.yml` y fila de MSF-467 en `docs/roadmap-template.md`.
-- [ ] T029 [CIERRE] Revisión de seguridad de la épica (autorización/RLS, texto no confiable, límites) con hallazgos menores arreglados. Evidencia: informe en la nota del PR. **Pendiente: se ejecuta sobre `dokploy`, no depende del PR #1045 cerrado.**
-- [ ] T030 [CIERRE] Encendido de `tienda_opiniones` **solo en dev**, con SQL del equipo técnico y verificación del bundle de dev; staging y producción quedan apagados (D11). Evidencia: nota con el comando y la comprobación. **Pendiente: se ejecuta sobre `dokploy`.**
+- [ ] T029 [CIERRE] Revisión de seguridad de la épica (autorización/RLS, texto no confiable, límites) con hallazgos menores arreglados. Evidencia: informe en la nota del PR. **Pendiente: se ejecuta sobre `dokploy`, que es donde vive la implementación.**
+- [ ] T030 [CIERRE] Encendido de `tienda_opiniones` **solo en dev**, con SQL del equipo técnico y verificación del bundle de dev; staging y producción quedan apagados (D11). Evidencia: nota con el comando y la comprobación. **Pendiente: se ejecuta sobre `dokploy`. Espera la decisión de Nicolás** (¿se enciende ahora o después de T029–T031?); el procedimiento está en `docs/tienda-opiniones.md`.
 - [ ] T031 [CIERRE] Guards finales: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test:db`, `pnpm matriz:check`, `pnpm der:check`, `node scripts/verificar-migraciones.mjs --estricto`. Evidencia: salida de cada comando. **Pendiente: se ejecuta sobre `dokploy`.**
 
-**Checkpoint final**: Nicolás revisa las decisiones delegadas D1–D16; con la bandera apagada, todo es idéntico a hoy. — **Faltan T029–T031.**
+**Checkpoint final**: Nicolás revisa las decisiones delegadas D1–D16 y decide el encendido de la bandera en dev; con la bandera apagada, todo es idéntico a hoy. — **Faltan T029–T031.**
 
 ## Plan de ejecución (historias)
 
@@ -96,4 +103,4 @@ flowchart LR
 
 **Por qué van en serie**: las tres historias comparten la tabla `dominio.opiniones_producto` y los archivos del front `lib/tiendaOpiniones.ts`, `hooks/useCapacidadOpiniones.ts` y `pages/tienda-publica/opiniones/`; cada una trae **su propia** migración aditiva con su timestamp (`20270341000000`…`20270341000500` para F-OPI-01; `20270419000000`…`20270419000200` para F-OPI-02 y F-OPI-03), sin encadenarse con la de otra. F-OPI-03 va después de F-OPI-02 porque el bloque de la ficha y «Mis opiniones» comparten componentes y el recorrido E2E necesita una opinión real. El cierre va al final, cuando las tres historias están Finalizadas.
 
-**Estado de la ejecución**: F-OPI-01 (grupo 1) **Finalizada** en el PR #1044; F-OPI-02 (grupo 2) y F-OPI-03 (grupo 3) **Finalizadas** en el PR #1058. La tarea de cierre (grupo 4) es la única que queda: T029, T030 y T031, todas `[CIERRE]` y ejecutadas sobre `dokploy`. **No se abre otro release desde esta rama** hasta que Nicolás rebasee `epic/MSF-467-tiendas-online-opiniones` contra `dokploy` (trabajo manual, etiqueta `desarrollo-manual`).
+**Estado de la ejecución**: F-OPI-01 (grupo 1) **Finalizada** en el PR #1044; F-OPI-02 (grupo 2) y F-OPI-03 (grupo 3) **Finalizadas** en el PR #1058. La tarea de cierre (grupo 4) es la única que queda: T029, T030 y T031, todas `[CIERRE]` y ejecutadas sobre `dokploy`. **No se abre otro release desde esta rama**: el PR #1075 ya mergeó esta documentación en `dokploy` y no hay rebase pendiente; se espera la decisión de Nicolás sobre la bandera en dev y las decisiones delegadas D1–D16 (ver «Estado»).
