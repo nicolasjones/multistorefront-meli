@@ -13,6 +13,7 @@ sources:
   - apps/web/src/pages/tienda-publica/opiniones
   - apps/web/src/lib/opiniones.ts
   - apps/web/src/lib/tiendaOpiniones.ts
+  - apps/web/src/lib/estadoOpinion.ts
 ---
 
 # Revisión de seguridad · Opiniones de productos (MSF-467)
@@ -61,6 +62,8 @@ La tabla tiene FK compuestas `(cuenta_cliente_id, organizacion_id, empresa_id)` 
 - **H-2 · El cliente del panel confiaba en la forma de la respuesta** (texto no confiable / disponibilidad).
   `listarOpiniones` se hacía cargo de las filas tal como venían: una fila con un `comentario` que no fuera texto rompía el render de la pantalla de moderación (React no puede pintar un objeto) y una fila con un estado desconocido se pintaba sin etiqueta.
   **Resuelto** en `apps/web/src/lib/opiniones.ts`: la fila se valida antes de mostrarse (id, tienda, cliente, producto y fechas presentes; puntuación entera de 1 a 5; estado conocido; y el comentario y los tres nombres —empresa, cliente y producto— tienen que ser texto, igual que el motivo cuando viene) y, si no cumple, **se descarta** en lugar de romper la pantalla o ofrecerse para moderar. Mismo criterio que el cliente de la tienda (`tiendaOpiniones.ts`). Vigila: Vitest `opiniones.test.ts`.
+- **H-3 · Los estados de una opinión tenían dos dueños** (consistencia): el panel (`lib/opiniones.ts`) y la tienda (`lib/tiendaOpiniones.ts`) tenían cada una su lista de estados; si se agregaba un estado y se actualizaba solo una, el panel **descartaba en silencio** (sin error) toda opinión con el estado nuevo.
+  **Resuelto** en `apps/web/src/lib/estadoOpinion.ts`: la lista y el tipo viven en un solo módulo (`esEstadoOpinion`) y los dos lados lo usan; un estado nuevo se agrega una sola vez. Vigila: Vitest `opiniones.test.ts` (el panel descarta un estado desconocido) y `tiendaOpiniones.test.ts` (la tienda lo trata como pendiente).
 
 ## Riesgos aceptados (no se corrigen; con su mitigación)
 

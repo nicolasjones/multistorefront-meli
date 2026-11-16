@@ -2006,8 +2006,8 @@
     },
     "docs/seguridad-tienda-opiniones.md": {
       "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
-      "pageHash": "e90b7600e075f15152c2ca0bd4e77e6ca61a36e5079eaba1f28c796becf4f304",
-      "sourceHash": "8df5912cddde9ca68761ba27eb91144b62885529a55572a7b6522550bbc90faf",
+      "pageHash": "7cc86261a592112db5a6b2e917291172ecebd78ad2a1b2f24e5fbb48736f87c2",
+      "sourceHash": "a456be26e769d9392362f5ce2d4db00e58b60b316f6889925c2f25c0cb9974db",
       "sourceAt": "476683b0",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
@@ -2021,7 +2021,8 @@
         "apps/web/src/pages/opiniones",
         "apps/web/src/pages/tienda-publica/opiniones",
         "apps/web/src/lib/opiniones.ts",
-        "apps/web/src/lib/tiendaOpiniones.ts"
+        "apps/web/src/lib/tiendaOpiniones.ts",
+        "apps/web/src/lib/estadoOpinion.ts"
       ],
       "owner": "plataforma",
       "commit": "476683b0"
@@ -3808,8 +3809,8 @@
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
-      "pageHash": "5466063fe0ecca43fb9336f76d98f7074f76ce991c055d88125737ff0807a4ff",
-      "sourceHash": "d99fe70ecf556d1aa580623e9b8a68d04af97e0b664227599eecb380fa4a604a",
+      "pageHash": "7080df852dec5e40c014f907e354e031211e412ce2b263bc60ce89174e7070aa",
+      "sourceHash": "f093fea6fb9f7e7700b7763204ab86baecaa5b0711a6bd53a7a492d8b8a80279",
       "sourceAt": "476683b0",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",

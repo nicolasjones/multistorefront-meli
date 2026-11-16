@@ -117,8 +117,10 @@ idéntica a la de antes). El chequeo lee el bundle ya construido:
 pnpm build && pnpm tienda:opiniones:bundle:check
 ```
 
-Falla si en el bundle no están los textos de la pantalla «Opiniones» del panel, del bloque de la ficha, del formulario «Tu
-opinión» y de la pestaña «Mis opiniones» de la cuenta.
+Falla si en el bundle no están las RPC que usa cada superficie: `listar_opiniones` y `moderar_opinion` (pantalla «Opiniones»
+del panel), `opiniones_producto_por_dominio` (bloque de la ficha), `guardar_opinion_por_dominio` (formulario «Tu opinión») y
+`mis_opiniones_por_dominio` (pestaña «Mis opiniones» de la cuenta). Los marcadores son los nombres de las RPC (el contrato con
+la base), no textos de la pantalla: un cambio de copy no puede romper el chequeo.
 
 ## Pantalla del panel
 
