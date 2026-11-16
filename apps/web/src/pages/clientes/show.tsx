@@ -155,6 +155,29 @@ export function ClienteShow() {
     await query.refetch().catch(() => undefined)
   }
 
+  // Consentimiento de WhatsApp (MSF-952): sin este interruptor encendido la base no encola ningún WhatsApp.
+  const cambiarWhatsapp = async (acepta: boolean) => {
+    if (!cliente || procesando) {
+      return
+    }
+    setProcesando(true)
+    setErrorAccion(null)
+    try {
+      await mutateAsync({
+        resource: 'clientes',
+        id: cliente.id,
+        values: { acepta_whatsapp: acepta },
+        successNotification: false,
+      })
+      setConfirmacion(acepta ? 'El cliente acepta avisos por WhatsApp' : 'El cliente ya no acepta avisos por WhatsApp')
+    } catch (error) {
+      setErrorAccion(mensajeDeError(error, 'No pudimos guardar la preferencia de WhatsApp.'))
+    } finally {
+      setProcesando(false)
+    }
+    await query.refetch().catch(() => undefined)
+  }
+
   const ejecutarCuenta = async (empresaId: string, accion: () => Promise<void>, mensaje: string) => {
     setProcesandoCuenta(empresaId)
     setErrorCuenta(null)
@@ -275,6 +298,16 @@ export function ClienteShow() {
                   />
                 }
                 label="Incluir en el correo masivo"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={cliente.acepta_whatsapp}
+                    disabled={!puedeEditar || procesando}
+                    onChange={(evento) => void cambiarWhatsapp(evento.target.checked)}
+                  />
+                }
+                label="Acepta avisos por WhatsApp"
               />
             </Box>
             {nivel === 'lectura' || nivel === 'edicion' ? (

@@ -2,7 +2,9 @@
 owner: tecnico
 sources:
   - specs/20261028-100000-service-cobro-y-avisos
+  - specs/20270323-100000-service-ideas-futuras-v2
   - infra/kestra/flows/reparaciones-aviso-correo.yml
+  - infra/kestra/flows/reparaciones-aviso-whatsapp.yml
 ---
 
 # Service técnico · Avisos al cliente por cambio de estado
@@ -34,10 +36,10 @@ nuevos. Una organización sin esa conexión recibe un error claro (`P0001`, hint
 
 Migraciones (aditivas, con reversión en el encabezado):
 
-- `20270121120600_reparacion_avisos.sql` — la tabla, sus índices y su RLS.
-- `20270121120700_avisar_cliente_reparacion.sql` — RPC que encola el aviso.
-- `20270121120800_avisos_de_reparacion.sql` — RPC de lectura del historial.
-- `20270121120900_avisos_reparacion_flow.sql` — funciones `private` del flow y cierre de pendientes vencidos.
+- `20270201200133_reparacion_avisos.sql` — la tabla, sus índices y su RLS.
+- `20270201200134_avisar_cliente_reparacion.sql` — RPC que encola el aviso.
+- `20270201200135_avisos_de_reparacion.sql` — RPC de lectura del historial.
+- `20270201200136_avisos_reparacion_flow.sql` — funciones `private` del flow y cierre de pendientes vencidos.
 
 ## RPC
 
@@ -74,15 +76,64 @@ que «Reenviar» no quede bloqueado.
 - Cuerpo: saludo con el nombre del cliente, tienda y número, equipo, estado y la descripción del estado. Todos los
   valores se escapan en el HTML; los textos del asunto van sin saltos de línea.
 
+## WhatsApp: el aviso que manda el servidor (MSF-952 · S-1 de MSF-118)
+
+Es el seguimiento **S-1** que la spec `specs/20270323-100000-service-ideas-futuras-v2` dejó trazado (D-1): el aviso por
+WhatsApp **no** es un enlace `wa.me` que abre la persona, sino un aviso que **manda el servidor** a un proveedor de
+mensajería, con los estados `pendiente → enviado/fallido` del mismo modelo y **sin tocar** el aviso por correo.
+
+| Qué | Cómo |
+|-----|------|
+| Canal | `dominio.reparacion_avisos.canal` (`correo` \| `whatsapp`) y `clave_envio` (la clave de idempotencia que se manda al proveedor) |
+| Consentimiento | `dominio.clientes.acepta_whatsapp` (interruptor «Acepta avisos por WhatsApp» de la ficha del cliente). Sin consentimiento **no se encola nada** |
+| Teléfono | `private.telefono_whatsapp` (celular y, si no hay, teléfono) con la misma regla que `normalizarNumero` del front: solo dígitos en formato internacional. Sin número seguro no se encola |
+| RPC | `public.avisar_cliente_whatsapp(p_reparacion uuid, p_estado_id uuid default null)` → `{ resultado: 'encolado' \| 'sin_consentimiento' \| 'sin_telefono', aviso_id }` |
+| Flow | `infra/kestra/flows/reparaciones-aviso-whatsapp.yml` (namespace `producto.service`, cada minuto) |
+
+El botón **«Avisar por WhatsApp»** del encabezado del detalle encola el aviso del estado actual (con `edicion` y
+reparación no anulada) y **«Reenviar»** de la sección «Avisos al cliente» reenvía por el **mismo canal** del aviso que
+se está viendo. En el historial, los avisos de WhatsApp se marcan con el canal y muestran el número del cliente.
+
+El flow entrega el mensaje al proveedor y lo cierra como `enviado`; si el proveedor falla tras 3 reintentos, lo cierra
+como `fallido` con el motivo fijo «No se pudo enviar el WhatsApp» (nunca el mensaje del proveedor, que puede traer
+tokens o credenciales). Un aviso pendiente de más de 15 minutos, o cuya orden quedó agotada o cancelada, se cierra
+como fallido («El WhatsApp tardó demasiado en enviarse. Probá de nuevo.»).
+
+### El proveedor (decisión de negocio pendiente)
+
+El proveedor de mensajería **lo elige y lo contrata el cliente** (D-1 de MSF-118: cuesta por conversación y exige
+plantillas aprobadas y consentimiento). El código habla con un **contrato mínimo**, en la tarea `enviar_whatsapp` del
+flow:
+
+```json
+{ "telefono": "5491122334455", "mensaje": "Hola Ana, te escribimos de San Javucho. Tu reparación R-0001 (Nintendo Switch) está en estado «En diagnóstico».", "plantilla": "reparacion_estado", "clave": "<clave_envio>" }
+```
+
+- `WHATSAPP_API_URL`: la URL del proveedor (vacía hasta que se contrate).
+- `WHATSAPP_PLANTILLA`: el nombre de la plantilla aprobada por el proveedor.
+- `SECRET_WHATSAPP_TOKEN`: el token del proveedor, **en base64** y solo en `infra/kestra/.env` (nunca en Git).
+
+La plantilla del mensaje es fija y transaccional (saludo, tienda, número, equipo, estado y la descripción del estado),
+**sin importes ni costos**. `clave` es la clave de idempotencia del aviso: si el proveedor la respeta, un reintento no
+manda el mensaje dos veces. Mientras no haya proveedor configurado, los avisos se cierran como `fallido`.
+
+Migración: `20270418000403_reparacion_avisos_whatsapp_envio.sql` (aditiva, con reversión en el encabezado).
+
 ## Actividad
 
 `reparacion.aviso_solicitado` (al encolar), `reparacion.aviso_enviado` y `reparacion.aviso_fallido` (al cerrar el
-aviso, con quien lo pidió como actor). Ver `docs/actividad.md`.
+aviso, con quien lo pidió como actor). El aviso de WhatsApp agrega `reparacion.aviso_whatsapp_solicitado` al encolarlo
+(sin el número del cliente) y usa los mismos dos eventos al cerrarlo (el detalle dice «por WhatsApp»). Ver
+`docs/actividad.md`.
 
 ## Pruebas
 
 - pgTAP `supabase/tests/database/service_avisos.test.sql` (`pnpm test:db`).
-- Flow: `pnpm test:kestra:reparaciones-aviso` (`infra/kestra/flows/reparaciones-aviso-correo.test.mjs`).
+- pgTAP `supabase/tests/database/service_aviso_whatsapp.test.sql` (MSF-952: modelo, consentimiento, teléfono, RPC y
+  cierre del flow) (`pnpm test:db`).
+- Flow: `pnpm test:kestra:reparaciones-aviso` (`infra/kestra/flows/reparaciones-aviso-correo.test.mjs`) y
+  `pnpm test:kestra:reparaciones-aviso-whatsapp`
+  (`infra/kestra/flows/reparaciones-aviso-whatsapp.test.mjs`).
 - Vitest `apps/web/src/pages/service-tecnico/reparacion.avisos.test.tsx` (`pnpm test:web`).
 
 ## Reversión
@@ -92,3 +143,9 @@ Migración posterior que quite, en este orden: `drop function private.expirar_av
 `private.datos_aviso_reparacion(uuid)`, `public.avisos_de_reparacion(uuid)`, `public.avisar_cliente_reparacion(uuid,
 uuid)` y `drop table dominio.reparacion_avisos`. Quitar el flow del despliegue de Kestra y revertir el merge de la
 historia (`git revert -m 1`). El cambio de estado de las reparaciones no depende de nada de esto.
+
+Para el aviso de WhatsApp (MSF-952), la reversión es la que dice el encabezado de
+`20270418000403_reparacion_avisos_whatsapp_envio.sql`: quitar `public.avisar_cliente_whatsapp` y
+`private.telefono_whatsapp`, el disparador del consentimiento, las columnas `canal` y `clave_envio` (y los índices
+que las usan), restaurar `public.avisos_de_reparacion` y las funciones `private` del flow a su versión anterior, y
+retirar el flow `reparaciones-aviso-whatsapp` del despliegue de Kestra.

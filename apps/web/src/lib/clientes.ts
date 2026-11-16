@@ -23,6 +23,8 @@ export type Cliente = {
   es_consumidor_final: boolean
   // Acepta el correo masivo (F-CLI-11): solo a quienes lo aceptan se les escribe.
   acepta_correo_masivo: boolean
+  // Acepta los avisos por WhatsApp (MSF-952): sin este consentimiento la base no encola ningún WhatsApp.
+  acepta_whatsapp: boolean
   // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
   descuento?: number | null
   created_at: string
