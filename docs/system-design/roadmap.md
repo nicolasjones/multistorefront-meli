@@ -34,8 +34,10 @@ gantt
 ## Etapa 2 (enero 2027)
 
 Mercado Libre, rentabilidad y reportes avanzados, motos con rendición, gastos,
-newsletter y opiniones (épica MSF-467, todavía sin historias ni implementación: ver
-[Opiniones de clientes](../tecnico/opiniones-de-clientes.md)), matriz de permisos editable.
+newsletter (épica MSF-468, construida pero **apagada por defecto** y todavía sin merge a `main`: ver
+[Newsletter de la tienda](../tecnico/newsletter.md)) y opiniones (épica MSF-467, todavía sin historias ni
+implementación: ver [Opiniones de clientes](../tecnico/opiniones-de-clientes.md)), matriz de permisos
+editable.
 
 ## Decisiones abiertas del cliente
 

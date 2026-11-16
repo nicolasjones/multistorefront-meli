@@ -145,6 +145,7 @@ nav:
           - Contactos: producto/contactos.md
           - Pedidos y presupuesto desde la tienda: producto/tienda-compra-y-cuentas.md
           - Opiniones de clientes (próximamente): producto/opiniones-de-clientes.md
+          - Newsletter de la tienda (próximamente): producto/newsletter.md
       - Configuración y datos:
           - Importaciones y exportaciones: producto/importaciones.md
           - Avisos por correo y listas configurables: producto/avisos-y-listas.md
@@ -263,6 +264,7 @@ nav:
           - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
           - "Lista de pedido, presupuesto y Mi cuenta (MSF-176)": tecnico/tienda-compra-y-cuentas.md
           - Opiniones de clientes (MSF-467): tecnico/opiniones-de-clientes.md
+          - Newsletter de la tienda (MSF-468): tecnico/newsletter.md
       - Consultas y datos:
           - Consultas: tecnico/consultas.md
           - Contactos y respuestas rápidas: tecnico/contactos.md
