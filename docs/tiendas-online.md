@@ -152,10 +152,15 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
 ofrece reintentar.
 
-- **Vencimiento por inactividad (MSF-673, MSF-700)**: a las 12 h sin actividad (`lib/vencimientoSesion.ts`,
-  enganchado en `main.tsx`) en un host de tienda se cierra solo la sesión local (`salirCliente`) y se vuelve a `/`;
-  nunca se redirige a `/login` (la tienda no lo tiene; su ingreso es `/ingresar`) ni se revoca la sesión en otros
-  dispositivos. Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts`.
+- **Vencimiento por inactividad (MSF-740)**: la regla de las 12 h sin actividad es del **panel**
+  (`lib/vencimientoSesion.ts` + `lib/arranqueSesion.ts`, enganchado en `main.tsx`): en un host de tienda
+  **no** se aplica. La sesión de un cliente con cuenta web termina solo por salida explícita («Salir» de
+  la tienda, cierre local) o por el tope de 30 días del servidor (`[auth.sessions] timebox`); el visitante
+  anónimo no ve cierre de sesión ni redirección, y la tienda nunca manda a `/login` (no lo tiene; su
+  ingreso es `/ingresar`). Antes (MSF-673, MSF-700) la tienda heredaba la ventana de 12 h y el primer clic
+  del visitante que volvía al día siguiente lo mandaba a `/`. Si el producto quiere una regla propia para
+  la tienda (otra ventana, redirección a `/ingresar`), es funcionalidad nueva y va con spec de Spec Kit.
+  Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` y Vitest `apps/web/src/lib/arranqueSesion.test.ts`.
 - **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
   `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
 - **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio

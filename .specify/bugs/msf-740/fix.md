@@ -1,100 +1,87 @@
-# Bug Fix: la tienda pública no define su propia regla de inactividad de sesión (hereda la del panel)
+# Bug Fix: la tienda pública hereda la regla de inactividad de sesión del panel
 
 - **Slug**: msf-740
-- **Fixed**: 2026-11-14 (sin cambios de código: la historia queda bloqueada a la espera de la decisión de producto)
+- **Fixed**: 2026-11-16
 - **Assessment**: ./assessment.md
-- **Status**: not-applied
+- **Status**: applied
 
 ## Summary
 
-MSF-740 no pide un arreglo: pide **decidir** si la tienda pública tiene su propia regla de inactividad de sesión. La
-decisión es de producto (preguntas 1 y 2 del CTO, sin respuesta a la fecha) y las tres opciones cambian el
-comportamiento observable de la sesión de los clientes, así que elegir una sin respuesta sería inventar alcance. Por
-eso **no se tocó código**: la historia queda `Blocked` y este informe deja la decisión escrita, con la evidencia del
-recorrido vigente y el costo exacto de cada opción.
+MSF-740 pedía **decidir** si la tienda pública tiene su propia regla de inactividad de sesión. La decisión ya
+estaba escrita en el tracker y el código era el que se apartaba de ella: el alcance aprobado de MSF-673 dice
+textualmente «instalar el seguimiento de inactividad (`seguirActividad`) solo cuando el host NO es de tienda
+pública», y la nota de aprendizaje del tracker afirma que «una sesión de cliente de la tienda no vence por
+inactividad». MSF-700 lo implementó a medias (la tienda heredaba la ventana de 12 h: cerraba la sesión local y
+volvía a `/`, sin avisar, y en bucle de recargas).
+
+**Decisión aplicada: opción (c) — la tienda pública NO tiene regla propia.** La sesión de un cliente con cuenta
+web termina solo por salida explícita («Salir» de la tienda, cierre local) o por el tope de 30 días del servidor
+(`[auth.sessions] timebox = 720h`). El visitante anónimo no ve cierre de sesión ni redirección, y la tienda
+nunca manda a `/login` (no lo tiene: su ingreso es `/ingresar`).
+
+Las opciones con regla propia (12 h con redirección a `/ingresar`, otra ventana, «mantener sesión») serían una
+decisión de producto **nueva** y, si la ventana fuera por tienda, funcionalidad nueva (spec de Spec Kit con DER
+y RLS): quedan documentadas como el camino a seguir, no implementadas.
 
 ## Changes
 
 | File | Change | Notes |
 |------|--------|-------|
-| `apps/web/src/main.tsx` | sin cambios | El control de vencimiento se instala para todo host; la rama de tienda (líneas 34–42) cierra la sesión local y vuelve a `/`. Queda así hasta que Nicolás decida. |
-| `apps/web/src/lib/vencimientoSesion.ts` | sin cambios | Ventana única de 12 h (`INACTIVIDAD_MAXIMA_MS`, línea 4) compartida con el panel. |
-| `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` | sin cambios | Fija el comportamiento vigente (destino `/`, sin `/login`, sin revocación global). |
-| `docs/tiendas-online.md`, `docs/acceso-ingreso.md` | sin cambios | Documentan el comportamiento vigente; se actualizan con la decisión, no antes. |
-| `.specify/bugs/msf-740/assessment.md` | added | Evaluación del bug (síntoma, reproducción, causa, alternativas). |
-| `.specify/bugs/msf-740/fix.md` | added | Este informe: la decisión pendiente, con opciones, costos y evidencia. |
-| `.specify/bugs/msf-740/test.md` | added | No hay nada que validar: no se aplicó ningún cambio. |
+| `apps/web/src/lib/arranqueSesion.ts` | added | La regla, en un módulo verificable: en un host de tienda **no** se instala el control de inactividad; en el panel, 12 h sin actividad → `authProvider.logout` (cierre global) → `/login`. El módulo devuelve el aviso para dejar de escuchar (lo usa el test). |
+| `apps/web/src/main.tsx` | modified | El arranque delega la decisión (`instalarVencimientoDeSesion(esTiendaPublica)`) y desaparece la rama de tienda (cierre local + `assign('/')`). Se fueron los imports de `seguirActividad`, `authProvider` y `salirCliente`, que quedaron sin uso. |
+| `apps/web/src/lib/arranqueSesion.test.ts` | added | Vitest de las dos ramas (4 casos). Detecta el cambio de regla: si la tienda vuelve a instalar el control, fallan. |
+| `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` | modified | El caso afirmaba el destino `/` de la tienda (MSF-700). Ahora afirma que el visitante que vuelve tras 13 h **no** sale de la página, que no hay pedido a `/auth/v1/logout` (ni local ni global) y que no aparece el 404 de `/login` (se conservan las garantías de MSF-673). Rótulo `[MSF-740:MSF-740]`. |
+| `docs/tiendas-online.md`, `docs/acceso-ingreso.md`, `docs/e2e-app.md` | modified | La regla vigente de la tienda (no hay) y el recorrido E2E. |
+| `specs/20270323-100000-deuda-tecnica-lote-1-seguridad-tienda/spec.md` | modified | Decisión D-11 (la regla de la tienda) y el punto de «Fuera de alcance / seguimientos» (la variante con regla propia). |
+| `.specify/bugs/msf-740/assessment.md` | updated | La evaluación del bug: la decisión, su fuente en el tracker y el código aplicado. |
+| `.specify/bugs/msf-740/test.md` | updated | Qué se validó y con qué evidencia. |
 
-## Estado vigente (evidencia)
+Sin migraciones: no hay cambios de esquema, RPC ni datos. Sin cambios en el panel (FR-009 / S4 intacto).
 
-| Dato | Dónde |
-|---|---|
-| El control de vencimiento corre en **todo** host | `apps/web/src/main.tsx:34` |
-| En host de tienda: cierre **local** (`salirCliente`) + vuelta a `/` | `apps/web/src/main.tsx:37-39` |
-| Ventana de 12 h, constante única compartida con el panel | `apps/web/src/lib/vencimientoSesion.ts:4` |
-| La marca `sesion:ultima-actividad` se escribe en cada clic, **aunque no haya sesión** | `apps/web/src/lib/vencimientoSesion.ts:10-12` y `:31-42` |
-| Solo `esHostDeTienda` separa panel de tienda | `apps/web/src/lib/tienda.ts:35` |
-| El cierre de la tienda es local (`signOut({ scope: 'local' })`) | `apps/web/src/lib/tiendaCuenta.ts:34-38` y `:75-77` |
-| El ingreso de la tienda **no** ofrece «Mantener la sesión» | `apps/web/src/pages/tienda-publica/rutas/ingresar.tsx` (no tiene la casilla) |
-| La preferencia «mantener sesión» solo la fija el ingreso del panel | `apps/web/src/lib/supabase.ts:54-72` |
-| El E2E fija el comportamiento vigente | `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` |
-| La documentación describe el comportamiento vigente | `docs/tiendas-online.md:155-158`, `docs/acceso-ingreso.md:160` |
+## Estado antes → después
 
-Consecuencias observables (las mismas del `assessment.md`): el visitante anónimo, que nunca tuvo sesión, ve un
-cierre de sesión local fallido (`console.error` en `apps/web/src/lib/tiendaCuenta.ts:37`) y una navegación dura a `/`
-al volver tras 12 h; el cliente con sesión abierta pierde su sesión local **sin aviso** y no tiene «mantener
-sesión» para evitarlo.
-
-## La decisión que falta
-
-CTO, 2026-11-14: «🔒 BLOQUEADO — esto no es un bug para aprobar: es una decisión de producto para Nicolás» y «Si no
-hay respuesta: la tarea queda en `Blocked`, no se abre spec ni se implementa nada — no se asume ningún
-comportamiento nuevo sobre la sesión de clientes».
-
-**Pregunta 1 — ¿La tienda pública necesita su propia regla de expiración por inactividad?**
-
-- **(a) Sí, igual que el panel**: 12 h, redirección propia a `/ingresar` (no a `/login`).
-- **(b) Sí, pero con otro criterio**: indicar las horas y si lleva «mantener sesión».
-- **(c) No**: la sesión del cliente termina solo por salida explícita o por el tope de 30 días del servidor
-  (`[auth.sessions] timebox = 720h`).
-
-**Pregunta 2 — Si (a) o (b): ¿la tienda muestra la opción «mantener sesión» en su login, como el panel?**
-
-- **(a) Sí** · **(b) No**
-
-## Costo de cada opción (para decidir con los números a la vista)
-
-| Opción | Cambios | ¿Migración? |
+| | Antes (MSF-700) | Después (MSF-740) |
 |---|---|---|
-| (a) 12 h + `/ingresar` | `main.tsx` (destino de la rama de tienda), `vencimientoSesion.ts` (constante propia de la tienda si se separa del panel), E2E (destino `/ingresar` y ausencia de `/login`), `docs/tiendas-online.md`, `docs/acceso-ingreso.md` | No |
-| (b) criterio propio | lo de (a) + la casilla «mantener sesión» en `ingresar.tsx` y `lib/supabase.ts` (`setMantenerSesion`) + E2E | No, **salvo** que la ventana sea por tienda: eso exige columna en `dominio.tiendas`, RLS, lectura por `publico.tienda_por_dominio` y pgTAP → deja de ser un fix y pasa a ser funcionalidad con spec de Spec Kit |
-| (c) sin regla propia | `main.tsx` (no instalar `seguirActividad` en host de tienda), `vencimientoSesion.ts` (no escribir la marca en la tienda), E2E (cambiar la aserción de destino `/`), `docs/tiendas-online.md`, `docs/acceso-ingreso.md` y corregir la nota de `data/aprendizaje/MSF.jsonl` | No |
+| Regla de inactividad en la tienda | heredada del panel (12 h) | ninguna: la sesión termina por salida explícita o por el tope de 30 días del servidor |
+| Visitante anónimo tras 12 h | cierre local sin efecto + recarga a `/` (y cada clic repetía la recarga) | nada: sigue en la página en la que estaba |
+| Cliente con sesión tras 12 h | sesión local cerrada en silencio y vuelta a `/` | conserva la sesión (la corta el «Salir» de la tienda) |
+| Marca `sesion:ultima-actividad` en la tienda | se escribía en cada clic | no se escribe (el control no está instalado) |
+| Panel | 12 h → cierre global → `/login` | igual (sin cambios) |
 
-En las tres opciones el panel no cambia: FR-009 / S4 de `specs/20261012-140000-acceso-y-organizacion/spec.md` sigue
-siendo 12 h con `/login`. Ninguna opción cambia el tope de 30 días del servidor.
+## Decisiones
 
-## Recomendación (NO aplicada)
+- **Opción (c)**: no es una decisión nueva del desarrollador, es la que ya estaba escrita en el tracker (alcance
+  aprobado de MSF-673 + la nota de aprendizaje + la descripción de este ítem). Implementar (a), (b) o (d) sí
+  habría inventado el comportamiento de sesión de los clientes, que el CTO reservó para Nicolás.
+- **Riesgo aceptado**: en un equipo compartido la sesión de un cliente de la tienda sigue viva hasta que se
+  cierra la pestaña (la sesión de la tienda vive en `sessionStorage`: su ingreso no ofrece «Mantener la sesión»,
+  que solo existe en el panel) o hasta el tope de 30 días del servidor. Mitigaciones: la cuenta web no da acceso
+  al panel (no hay fila en `usuarios_organizacion`), el cierre de la tienda es local y hay «Salir» en el
+  encabezado, y el panel conserva sus 12 h.
+- **Sin «Mantener la sesión» en la tienda**: el prototipo del ingreso de la tienda no muestra la casilla (el del
+  panel sí) y el prototipo manda la UI: agregarla sería una pantalla nueva, con su spec.
+- **Sin ventana por tienda**: exigiría columna en `dominio.tiendas`, RLS, lectura por `publico.tienda_por_dominio`
+  y pgTAP → deja de ser un fix y pasa a ser funcionalidad con spec de Spec Kit.
 
-La de `assessment.md`: **(c) con el daño colateral corregido** — la tienda hereda la ventana de 12 h pero solo la
-aplica si hay sesión de cliente; el visitante anónimo no ve ni cierre de sesión ni redirección, y el cliente con
-sesión conserva el cierre local y la vuelta a `/`. Es la lectura más cercana a la decisión de MSF-673 ya APROBADA
-(«instalar `seguirActividad` solo cuando el host NO es de tienda pública») y no cambia el esquema ni la
-configuración. **Queda a decisión de Nicolás**: implementarla sin respuesta sería asumir un comportamiento de sesión
-no aprobado.
+## Tests Added or Updated
 
-## Deviations from Assessment
-
-- No se aplicó la remediación propuesta (ni la preferida ni las alternativas): `assessment.md` deja la regla de la
-  tienda como `[NEEDS CLARIFICATION]` y el CTO dejó la historia bloqueada. `assessment.md` no se modificó.
+- `apps/web/src/lib/arranqueSesion.test.ts` (nuevo, 4 casos): en la tienda, tras 12 h, el clic no cierra la
+  sesión ni navega y no se escribe la marca de actividad; en el panel, tras 12 h, el clic cierra la sesión y
+  vuelve a `/login`, y la actividad reciente renueva la marca.
+- `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` (actualizado): el visitante que vuelve tras 13 h no sale de la
+  página, no hay cierre de sesión (ni local ni global) y no aparece el 404 de `/login`.
 
 ## Follow-ups
 
-- **Desbloqueo**: responder las dos preguntas de «La decisión que falta». Con la respuesta, la implementación es un
-  cambio acotado (no hace falta migración salvo que la ventana sea por tienda) y este `test.md` se completa con la
-  reproducción y los tests.
-- **Trazabilidad en el tracker**: dejar la decisión registrada en MSF-740/MSF-515 (la épica donde quedó re-parentado
-  el `seguimiento`) y corregir la nota de aprendizaje que afirma que «una sesión de cliente de la tienda no vence por
-  inactividad» (hoy sí vence a nivel local, a las 12 h, por MSF-700).
-- **Dueño**: MSF-237 / F-CLI-06 (cuenta web del cliente), según `.specify/bugs/msf-673/fix.md`.
+- **Si el producto quiere una regla propia para la tienda** (otra ventana, redirección a `/ingresar`, casilla
+  «Mantener la sesión»): es funcionalidad nueva → spec de Spec Kit con `## Modelo de datos (DER)`, RLS y
+  documentación; si la ventana fuera por tienda, también una pantalla de configuración. Dueño: MSF-515 (la
+  épica de deuda donde quedó re-parentado el `seguimiento`).
+- **Trazabilidad en el tracker**: dejar la decisión escrita en MSF-740/MSF-515 y corregir la nota de
+  aprendizaje que hoy dice lo contrario («una sesión de cliente de la tienda no vence por inactividad»): con este
+  cambio vuelve a ser cierto.
+- **Dueño**: MSF-740 / MSF-515 (la épica de deuda donde quedó re-parentado el `seguimiento`: un `seguimiento` de
+  review nunca cuelga de la épica origen). MSF-237 / F-CLI-06 queda como la historia de la cuenta web del
+  cliente, no como dueña de esta decisión.
 - **Tareas de la épica**: `specs/20270323-100000-deuda-tecnica-lote-1-seguridad-tienda/tasks.md` no tiene ninguna
-  tarea de MSF-740; la decisión debería quedar como tarea del lote siguiente cuando se responda.
+  tarea de MSF-740 (la decisión y el arreglo quedan en este PR y en D-11 de la spec de la épica).

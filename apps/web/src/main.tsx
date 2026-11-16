@@ -4,12 +4,10 @@ import '@fontsource-variable/sora'
 import '@fontsource-variable/instrument-sans'
 import './index.css'
 import App from './App.tsx'
+import { instalarVencimientoDeSesion } from './lib/arranqueSesion'
 import { instalarDestinoActividad } from './lib/destinoActividad'
 import { iniciarErrores } from './lib/erroresWeb'
-import { seguirActividad } from './lib/vencimientoSesion'
-import { authProvider } from './providers/authProvider'
 import { esHostDeTienda } from './lib/tienda'
-import { salirCliente } from './lib/tiendaCuenta'
 import { TiendaPublicaApp } from './pages/tienda-publica'
 
 // Registro central de errores (F-OPS-03): sin VITE_ERRORES_DSN no envía nada.
@@ -28,18 +26,10 @@ instalarDestinoActividad()
 const host = window.location.host
 const esTiendaPublica = esHostDeTienda(host)
 
-// Vencimiento por inactividad (MSF-700): en la tienda se cierra solo esta sesión
-// (scope local, como `salirCliente`); `authProvider.logout` revoca en todos los dispositivos.
-let cerrando = false
-seguirActividad(() => {
-  if (cerrando) return
-  cerrando = true
-  if (esTiendaPublica) {
-    void salirCliente().finally(() => window.location.assign('/'))
-    return
-  }
-  void authProvider.logout?.({}).finally(() => window.location.assign('/login'))
-})
+// Vencimiento por inactividad (MSF-740): es una regla del PANEL (12 h sin actividad → cierre y `/login`).
+// La tienda pública no la hereda: su sesión termina por salida explícita («Salir») o por el tope de 30 días
+// del servidor. El control no se instala en un host de tienda: el visitante no ve cierre ni redirección.
+instalarVencimientoDeSesion(esTiendaPublica)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
