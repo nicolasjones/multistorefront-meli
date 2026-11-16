@@ -139,3 +139,5 @@ Requisitos y límites del check:
 Lección de #1053 (clientes pasó de `public` a `dominio`): un PR en vuelo que todavía nombra `public.clientes` (en funciones, tests, E2E o docs) **debe rebasar sobre #1053** y cambiar las referencias a `dominio.clientes`; si además redefine `conjuntos_exportacion_total()`, **copiar la lista vigente** (la de `20270418000401`, que ya trae `dominio.clientes`) y no la que tenía su rama. La prueba `clientes_busqueda_unificada.test.sql` falla si alguna función conserva `public.clientes`.
 
 No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
+
+El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.
