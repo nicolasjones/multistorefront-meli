@@ -35,8 +35,8 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "4d0a8b0fb80a5bb6ed3a39a1d0934c9483b17bf0859e403f4181d2741af6fdeb",
-      "sourceHash": "ea95150b880b5c01a01a5fb17af83205824d8494e91cab11a5bc4f14f043b720",
+      "pageHash": "40f29594afbbcd89b49652e6f37c65cf6cac88001714e19f5c96daa07454161a",
+      "sourceHash": "62947a370b8135369cde0c0e00a0549ca1cad139c856f42428717f9370c81b04",
       "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
@@ -990,7 +990,7 @@
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
       "pageHash": "015377b13c4dfd03922870a3ef152734e9e3f2621ff9e9ff953d72a82926202d",
-      "sourceHash": "338c89fd98d9558df1659993155510b36b88be93f56aadfbd48d1224ff075270",
+      "sourceHash": "77e8558235bc2cd99d77b4ce82ef19b92c566a08bddd7990a8932edaaf6b79b2",
       "sourceAt": "5ebd123f",
       "sources": [
         "specs"
@@ -1048,12 +1048,12 @@
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "f17236f3b0921bfc634db286ed03f5a76e915f7cecabd92fd23696cd78921770",
       "sourceHash": "62947a370b8135369cde0c0e00a0549ca1cad139c856f42428717f9370c81b04",
-      "sourceAt": "7065a017",
+      "sourceAt": "e5362ce3",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "e5362ce3"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -1908,14 +1908,14 @@
       "title": "Reportes de inventario (épica MSF-140)",
       "pageHash": "3d08ca48e1db901d0e20993fbd4bbc04adcf56a677403ad91e49487f98703774",
       "sourceHash": "f1fdf9662f84658f4c49f25f67ee0759b14264fa8ac16d1a2ea57e47491744c2",
-      "sourceAt": "56d60776",
+      "sourceAt": "e5362ce3",
       "sources": [
         "specs/20270201-100000-reportes-de-inventario-y-exportacion",
         "infra/superset/dashboards/inventario",
         "infra/superset/superset_config.py"
       ],
       "owner": "datos",
-      "commit": "56d60776"
+      "commit": "e5362ce3"
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
@@ -2628,7 +2628,7 @@
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
       "pageHash": "7ff3dd2a28fd5a55f29723cbcacb8719f3001c06525cd311bbf49da85719a231",
-      "sourceHash": "6b63fe5807db2c67c5116c40271bddd6e7b8da6022c72a1092d270d4c3effed6",
+      "sourceHash": "7d8c5667695fc90bcbecf13fe165a5ea6b9c46e9c2f0fbc6b5d4631de1666ea9",
       "sourceAt": "56d60776",
       "sources": [
         "specs",
