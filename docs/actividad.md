@@ -99,7 +99,7 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 ## Alta de empresas
 
 - `empresa.creada` (no sensible): lo registra `public.crear_empresa` en la misma transacción del alta
-  (migración `20270433000100`), con la empresa y el actor. Detalle sin UUID: «Creó la empresa «X»» o, si copió
+  (migración `20270507000500`), con la empresa y el actor. Detalle sin UUID: «Creó la empresa «X»» o, si copió
   la configuración de otra, «… copiando la configuración de «Y»». Si el alta se rechaza, no queda evento.
   Prueba: `alta_de_empresas.test.sql`.
 

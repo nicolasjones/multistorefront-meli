@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3ce95e611acf21a192e7845d42e522655f71db3414174333308f1f5918db3f41",
+      "pageHash": "ea14a33ae3975000ab8ea049b6f9e3064d4d338527a2e184698820afa4d60e10",
       "sourceHash": "8022e9a324377e3c7798aa15c5562718026382ca271b317934fbac001dfa427c",
-      "sourceAt": "6b76bcf5",
+      "sourceAt": "f9560cc2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "6b76bcf5"
+      "commit": "f9560cc2"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -857,7 +857,7 @@
     },
     "docs/listas-configurables.md": {
       "title": "Listas configurables",
-      "pageHash": "a44b1d0a6ca70ca739f921c9204a01ab68eb09ba664c97ba52ef8379185c9aed",
+      "pageHash": "858702eb7e8e19ce689116ad6acb7b9c3075f06bb5f52dd44a2b3236c79fc123",
       "sourceHash": "5c0e3e125c6cd70b2ff62e6a39ff4740bce4a619d3ee263e93c526301d34f348",
       "sourceAt": "2ab8c7d9",
       "sources": [
