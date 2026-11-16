@@ -6,7 +6,7 @@ import { serviceKey, url } from './soporte/fixtures'
 // Requiere el stack local (`pnpm dev:supabase`, que aplica `supabase/seed.sql`) y la web
 // servida; usa la persona de ejemplo del seed. Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público): ver docs/e2e-app.md. `service_role` no tiene permiso
-// sobre `public.clientes`: la service-role key solo hace de `apikey` del gateway y el identificador del
+// sobre `dominio.clientes`: la service-role key solo hace de `apikey` del gateway y el identificador del
 // cliente de ejemplo se lee con la sesión de la persona de ejemplo (RLS), sin que la clave llegue al navegador.
 
 // El cliente de ejemplo del seed (`supabase/seed.sql`): número 9100, con facturas en las dos
@@ -27,7 +27,7 @@ async function tokenDeLaPersonaDeEjemplo(): Promise<string> {
 
 async function idCliente(): Promise<string> {
   const r = await fetch(`${url}/rest/v1/clientes?numero=eq.${NUMERO_CLIENTE}&select=id`, {
-    headers: { apikey: serviceKey ?? '', authorization: `Bearer ${await tokenDeLaPersonaDeEjemplo()}`, accept: 'application/json' },
+    headers: { apikey: serviceKey ?? '', authorization: `Bearer ${await tokenDeLaPersonaDeEjemplo()}`, accept: 'application/json', 'accept-profile': 'dominio' },
   })
   if (!r.ok) throw new Error(`REST clientes: ${r.status} ${await r.text()}`)
   const filas = (await r.json()) as { id: string }[]

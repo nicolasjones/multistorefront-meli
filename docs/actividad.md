@@ -212,6 +212,11 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   nada), en la misma transacción que la fila de `dominio.reparacion_enlaces_consulta`. El detalle nombra el código
   visible («Generó el enlace de seguimiento de R-0001»), nunca el token ni ids; el evento lleva la tienda de la
   reparación. Lo cubre el pgTAP `service_enlace_consulta`. Ver `docs/service-seguimiento.md`.
+- `reparacion.enlace_regenerado` (Service técnico): lo registra la RPC `regenerar_enlace_consulta` cuando se regenera el enlace de seguimiento; su etiqueta en la lista es «Enlace de consulta regenerado».
+- `reparacion.enlace_regenerado` (Service técnico): lo registra la RPC `regenerar_enlace_consulta` cada vez que se
+  regenera el enlace de seguimiento (el token anterior deja de funcionar); admite hasta 10 por persona por hora. El detalle nombra el código visible, nunca
+  el token; el evento lleva la tienda de la reparación. Lo cubre el pgTAP `service_regenerar_enlace_y_reportes_empresa`.
+  Ver `docs/service-seguimiento.md`.
 - `reparacion.comprobante_generado` (F-SVC-13, Service técnico): lo registra `private.registrar_actividad` en la
   misma transacción que la RPC `generar_comprobante_reparacion` (solo cuando el comprobante se crea; una repetición
   idempotente no vuelve a registrar). Detalle «Generó la factura <número> de la reparación R-000N», con el código
@@ -223,6 +228,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `private.cerrar_aviso_reparacion` registra `aviso_enviado` o `aviso_fallido` una sola vez por aviso (el cierre es
   idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
   (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
+  `docs/service-avisos.md`.
+- `reparacion.aviso_whatsapp_solicitado` (MSF-952, Service técnico): lo registra `private.registrar_actividad` en la
+  misma transacción que la RPC `avisar_cliente_whatsapp` (solo cuando se crea el aviso; una repetición idempotente no
+  vuelve a registrar). El detalle nombra el código visible (`R-000N`) y el estado avisado, **nunca el número de
+  teléfono** del cliente. El cierre del aviso por el flow de WhatsApp reutiliza `reparacion.aviso_enviado` y
+  `reparacion.aviso_fallido` (el detalle dice «por WhatsApp»). Lo cubre el pgTAP `service_aviso_whatsapp`. Ver
   `docs/service-avisos.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
@@ -244,6 +255,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `security invoker` (rige la RLS), fechas inclusivas en hora de Buenos Aires, tamaño de página acotado a 1–100,
   texto acotado a 100 caracteres. Devuelve la página y el `total` del filtro.
 - `public.opciones_actividad()`: tipos y usuarios presentes, para los filtros (hasta 200 de cada uno).
+
+**Alcance por empresa (MSF-968)**: además de la organización y la sección `actividad`, la lectura exige que el evento no tenga empresa (evento de toda la organización) o que la persona acceda a esa empresa (`private.empresas_de_actividad()`: como `empresas_accesibles()` pero incluyendo las pausadas). Aplica a la política `registro_actividad_select` y a `exportar_actividad`. Quien tiene una sola tienda asignada ya no ve el historial de las demás.
 
 ## Datos de ejemplo
 
@@ -333,6 +346,29 @@ Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `rep
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
 
+## Etiquetas e importes legibles (MSF-618)
+
+La columna **Tipo** (y el filtro por tipo) muestran la etiqueta de cada tipo de evento, nunca el nombre interno:
+«Categoría creada», «Cuenta de cobro creada», «Nota de crédito emitida», «Reparación creada».
+
+- **Mapa** `ETIQUETA_TIPO_ACTIVIDAD` (`apps/web/src/lib/actividad.ts`): trae una etiqueta con tildes para **todos** los
+  tipos que emiten las migraciones y el frontend (187 tipos al momento de este cambio). Si una migración agrega un tipo
+  nuevo, hay que agregar su etiqueta: lo vigila el test `apps/web/src/lib/actividad.tipos.test.ts`, que recorre las
+  migraciones, arma la lista de tipos que se registran y falla si alguno no tiene etiqueta, si sobra alguna o si alguna
+  etiqueta conserva el formato interno (con guion bajo).
+- **Respaldo**: un tipo que todavía no figure en el mapa se muestra legible igual («Reparación creada» a partir de
+  `reparacion.creada`), con el diccionario de palabras de `PALABRA_ACTIVIDAD`.
+- **Importes del detalle**: `formatearDetalleActividad` (`apps/web/src/lib/actividad.ts`) da formato argentino a los
+  importes al mostrarlos: «Cobro de $ 859.100,00», «Cobro de US$ 100,50», «$ 1.250,50». Sirve para las filas ya
+  guardadas y para las nuevas; no toca los números que no son importes ni los importes que ya traen separador de miles.
+  La tabla y el **CSV** (FR-012) muestran el mismo texto.
+- **De dónde sale la moneda**: la del **importe**, que es la del comprobante que se cobra. `dominio.comprobantes_venta`
+  no tiene columna de moneda (sus importes son pesos: F-PRE-03 recalcula a pesos los precios en dólares), así que hoy
+  es ARS. El evento `comprobante.cobro_registrado` lo escribe en el detalle («Cobro de ARS 859100 por …», migración
+  `20270432000000_cobro_actividad_con_moneda.sql`) y la pantalla muestra la moneda que trae el texto: no la supone.
+  La cuenta de cobro dice dónde entra el dinero, no en qué unidad se cobra: una cuenta en dólares no convierte el
+  importe. Cuando el comprobante tenga moneda, se lee de ahí y es el único lugar que hay que cambiar.
+- **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985).
 
 ## Registro inalterable con antes y después (F-AUD-02)
 
@@ -375,7 +411,7 @@ perform private.registrar_cambio_actividad(
 
 ### Depuración por retención
 
-`private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
+La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11-14), no un supuesto. `private.depurar_registro_actividad(p_hasta default now())` borra los eventos con más de **24 meses** (`p_hasta` nunca pasa de `now()`), deja un evento
 `sistema.depurada` («Sistema», sin actor) por organización con la cantidad y es idempotente. Solo la ejecutan
 `workers_orquestacion` y `kestra_orquestacion` (el rol con el que corre Kestra). La dispara el flow
 `infra/kestra/flows/depuracion-actividad.yml` (todos los días a las 04:00; si la función falla, la ejecución queda en
@@ -390,3 +426,5 @@ Reversión: ver el encabezado de cada migración (los eventos escritos se conser
 ## Eventos del centro de importaciones (F-IMP-01)
 
 `importacion.iniciada`, `importacion.finalizada` e `importacion.cancelada` (no sensibles) los escriben las funciones del proceso masivo en la misma transacción: iniciar, cancelar (una vez por pedido) y cerrar o reconciliar. El detalle trae el nombre del proceso y, al finalizar, las cifras «N correctas y M con error»; nunca referencias, motivos de error ni parámetros. Reversión: `delete from public.tipos_evento_actividad where tipo like 'importacion.%';`.
+
+Las listas de precios (F-PRE-14 y F-CLI-21) registran cinco eventos, todos no sensibles y sin datos de contacto: `lista_precios.creada`, `lista_precios.editada` (porcentaje anterior y nuevo), `lista_precios.archivada`, `lista_precios.restaurada` y `cliente.lista_precio_asignada` (lista anterior y nueva). No figuran entre los seis tipos sensibles del seed de `registro_inalterable.test.sql`, así que no hizo falta tocarlo. Ver [Listas de precios](listas-de-precios.md).

@@ -28,7 +28,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
 -- Cada organización ya trae su Consumidor final (Nº 1, minorista, activo).
-insert into clientes (organizacion_id, numero, nombre, documento, correo, telefono, localidad, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, documento, correo, telefono, localidad, tipo) values
   ('11111111-1111-1111-1111-111111111111', 777, 'Norte Distribuidora', '30-71234567-8', 'norte@example.com', '341-4421', 'Rosario', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 11, 'Descuento 50%', null, null, null, null, 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 12, 'Descuento 500', null, null, null, null, 'minorista'),
@@ -36,10 +36,10 @@ insert into clientes (organizacion_id, numero, nombre, documento, correo, telefo
   ('11111111-1111-1111-1111-111111111111', 14, 'axb taller', null, null, null, null, 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 15, 'Zeta archivado', null, null, null, null, 'mayorista'),
   ('22222222-2222-2222-2222-222222222222', 20, 'Norte Dos', null, null, null, null, 'minorista');
-update clientes set archivado_en = now() where nombre = 'Zeta archivado';
+update dominio.clientes set archivado_en = now() where nombre = 'Zeta archivado';
 
 -- Cursor de otra organización para probar que exportar_clientes no lo acepta.
-create temp table cursor_ajeno as select id from clientes where nombre = 'Norte Distribuidora';
+create temp table cursor_ajeno as select id from dominio.clientes where nombre = 'Norte Distribuidora';
 grant select on cursor_ajeno to authenticated;
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
@@ -175,14 +175,14 @@ select throws_ok($$select * from exportar_clientes()$$, '42501', null, '«anon»
 
 -- Tope de lote: aunque se pida más, un lote no pasa de 1000 filas.
 reset role;
-insert into clientes (organizacion_id, nombre, tipo)
+insert into dominio.clientes (organizacion_id, nombre, tipo)
   select '11111111-1111-1111-1111-111111111111', 'Lote ' || lpad(i::text, 5, '0'), 'minorista' from generate_series(1, 1005) i;
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from exportar_clientes(null, null, false, null, 5000)), 1000, 'el lote se acota a 1000 filas');
 
 -- Tope total: más de 50.000 coincidencias → 54000 en el primer lote (no un archivo gigante).
 reset role;
-insert into clientes (organizacion_id, nombre, tipo)
+insert into dominio.clientes (organizacion_id, nombre, tipo)
   select '11111111-1111-1111-1111-111111111111', 'Tope ' || lpad(i::text, 5, '0'), 'minorista' from generate_series(1, 49000) i;
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$select * from exportar_clientes()$$, '54000', null, 'más de 50.000 coincidencias: error 54000 («afiná la búsqueda»)');

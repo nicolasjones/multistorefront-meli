@@ -4,7 +4,7 @@
 -- aislamiento entre organizaciones, grants exactos y `anon` sin privilegios. No cambia ningún precio.
 begin;
 
-select plan(77);
+select plan(78);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -231,8 +231,19 @@ reset role;
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname in ('precio_para', 'precio_para_calculo', 'precio_linea_venta', 'precio_linea_venta_calculo')
-      and p.prosrc ilike '%lista%precio%'),
-  0, 'ninguna función del motor de precio menciona las listas');
+      and p.prosrc ilike '%dominio.listas_precios%'),
+  0, 'ninguna función del motor de precio lee la tabla de listas: la lectura vive en private.lista_precios_cliente (Fase 3)');
+
+-- Solo estas funciones leen la tabla de listas (la lectura del motor vive únicamente en private.lista_precios_cliente): si aparece otra,
+-- esta prueba obliga a revisarla.
+select is(
+  (select array_agg(n.nspname || '.' || p.proname order by n.nspname, p.proname)
+     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'private', 'publico', 'dominio', 'analitica') and p.prosrc ilike '%dominio.listas_precios%'),
+  array['private.lista_precios_cliente', 'private.validar_lista_precio_cliente', 'public.archivar_lista_precios',
+        'public.asignar_lista_precios_cliente', 'public.guardar_lista_precios', 'public.obtener_comprobante',
+        'public.restaurar_lista_precios', 'public.vista_previa_fusion_clientes']::text[],
+  'solo la administración de listas, la asignación, la marca del comprobante y private.lista_precios_cliente leen dominio.listas_precios (ninguna otra función del motor ni de la tienda)');
 
 select * from finish();
 rollback;

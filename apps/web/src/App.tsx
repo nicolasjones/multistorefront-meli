@@ -41,6 +41,7 @@ import { ClienteShow } from './pages/clientes/show'
 import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
 import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
 import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
+const NewsletterPage = lazy(() => import('./pages/clientes/newsletter').then((modulo) => ({ default: modulo.NewsletterPage })))
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -87,6 +88,7 @@ const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProdu
 const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
 const RentabilidadCostosAdicionales = lazy(() => import('./pages/rentabilidad/CostosAdicionales').then((modulo) => ({ default: modulo.RentabilidadCostosAdicionales })))
 const RentabilidadVentasReales = lazy(() => import('./pages/rentabilidad/VentasReales').then((modulo) => ({ default: modulo.RentabilidadVentasReales })))
+const RentabilidadCostosFijos = lazy(() => import('./pages/rentabilidad/CostosFijos').then((modulo) => ({ default: modulo.RentabilidadCostosFijos })))
 const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
@@ -115,6 +117,7 @@ const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modu
 const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const Gastos = lazy(() => import('./pages/gastos').then((modulo) => ({ default: modulo.Gastos })))
 const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
@@ -132,6 +135,7 @@ const HojaEtiquetas = lazy(() => import('./components/clientes/HojaEtiquetas').t
 const ServicioReparaciones = lazy(() => import('./pages/service-tecnico/reparaciones').then((modulo) => ({ default: modulo.ServicioReparaciones })))
 const ServicioReparacion = lazy(() => import('./pages/service-tecnico/reparacion').then((modulo) => ({ default: modulo.ServicioReparacion })))
 const ServicioOrdenIngreso = lazy(() => import('./pages/service-tecnico/orden-ingreso').then((modulo) => ({ default: modulo.ServicioOrdenIngreso })))
+const ServicioEtiqueta = lazy(() => import('./pages/service-tecnico/etiqueta').then((modulo) => ({ default: modulo.ServicioEtiqueta })))
 const ServicioRemitoEntrega = lazy(() => import('./pages/service-tecnico/remito-entrega').then((modulo) => ({ default: modulo.ServicioRemitoEntrega })))
 const ServicioModelos = lazy(() => import('./pages/service-tecnico/modelos').then((modulo) => ({ default: modulo.ServicioModelos })))
 const ServicioEstados = lazy(() => import('./pages/service-tecnico/estados').then((modulo) => ({ default: modulo.ServicioEstados })))
@@ -163,7 +167,13 @@ function App() {
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine
-            dataProvider={supabaseDataProvider(supabaseClient)}
+            dataProvider={{
+              default: supabaseDataProvider(supabaseClient),
+              // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
+              dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
+            }}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
@@ -188,7 +198,7 @@ function App() {
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
                 show: '/clientes/show/:id',
-                meta: { label: 'Clientes' },
+                meta: { label: 'Clientes', dataProviderName: 'dominio' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
@@ -368,6 +378,14 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route
+                  path="/clientes/newsletter"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><Suspense fallback={<EstadoCargaPagina />}><NewsletterPage /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
@@ -409,6 +427,7 @@ function App() {
                 <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/ventas-reales" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadVentasReales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/costos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosAdicionales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/costos-fijos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosFijos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"
@@ -498,6 +517,7 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route path="/gastos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><Gastos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/stock/ordenes-compra"
                   element={
@@ -642,6 +662,16 @@ function App() {
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="service_tecnico">
                         <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioOrdenIngreso /></Suspense></RequiereServiceTecnico>
+                      </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/service-tecnico/reparaciones/:id/etiqueta"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="service_tecnico">
+                        <RequiereServiceTecnico><Suspense fallback={<EstadoCargaPagina />}><ServicioEtiqueta /></Suspense></RequiereServiceTecnico>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }

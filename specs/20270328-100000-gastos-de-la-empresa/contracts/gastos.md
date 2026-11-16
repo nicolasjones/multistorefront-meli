@@ -27,7 +27,7 @@ Lectura directa: `authenticated` con la sección `rentabilidad` en lectura/edici
 
 | Función | Efecto | Errores |
 |---|---|---|
-| `guardar_gasto(p_id uuid, p_empresa uuid, p_fecha date, p_categoria text, p_tipo_costo text, p_detalle text, p_importe numeric, p_moneda text, p_recurrente boolean, p_actualizado timestamptz) returns uuid` | Crea (`p_id` null) o edita; congela cotización e importe en pesos; deja `gasto.creado` o `gasto.editado` (anterior y nuevo) | `42501`, `P0002` (empresa ajena o inexistente), `22023` (validación, empresa inactiva, sin cotización), `40001` (cambio concurrente) |
+| `guardar_gasto(p_id uuid, p_empresa uuid, p_fecha date, p_categoria text, p_tipo_costo text, p_detalle text, p_importe numeric, p_moneda text, p_recurrente boolean, p_actualizado timestamptz) returns uuid` | Crea (`p_id` null) o edita; congela cotización e importe en pesos; deja `gasto.creado` o `gasto.editado` (sin cifras: concepto, empresa y nombres de los campos modificados) | `42501`, `P0002` (empresa ajena o inexistente), `22023` (validación, empresa inactiva, sin cotización), `40001` (cambio concurrente) |
 | `anular_gasto(p_id uuid, p_motivo text, p_actualizado timestamptz)` | Anula con motivo; repetirla no falla; deja `gasto.anulado` | `42501`, `P0002`, `22023` (sin motivo), `40001` |
 | `listar_gastos(p_desde date, p_hasta date, p_empresa uuid, p_categoria text, p_tipo_costo text, p_incluir_anulados boolean, p_cursor_fecha date, p_cursor_id uuid, p_limite integer)` | Devuelve la tanda de gastos con `importe`, `moneda`, `importe_pesos`, `empresa_nombre`; orden `fecha desc, id` | `42501` sin `lectura` |
 | `resumen_gastos(p_desde date, p_hasta date, p_empresa uuid, p_categoria text, p_tipo_costo text)` | Total en pesos, conteo y desglose por categoría y tipo; excluye anulados | `42501` sin `lectura` |
@@ -36,7 +36,9 @@ Lectura directa: `authenticated` con la sección `rentabilidad` en lectura/edici
 
 ## Eventos de Actividad
 
-`gasto.creado`, `gasto.editado` (importe, moneda, categoría, tipo, fecha y empresa, anterior y nuevo), `gasto.anulado` (con motivo) y `gasto.exportado`. Importes y categoría sí; sin datos personales.
+`gasto.creado`, `gasto.editado` (concepto, empresa y `campos_modificados`), `gasto.anulado` y `gasto.exportado`. **Sin cifras** (ni importe, ni moneda, ni pesos, ni el motivo de anulación) y sin datos personales: Actividad se lee sin la sección `rentabilidad` (D19, Decisión (delegada)).
+
+**Nota (D19)**: Actividad muestra la categoría del gasto, el nombre de la empresa y los nombres de los campos modificados, nunca cifras; quien tiene `actividad` sin `rentabilidad` puede inferir que existe un gasto de esa categoría (p. ej. «Sueldos») y que se cambió su importe. Es la consecuencia aceptada de D19; si más adelante se decide ocultar también la categoría, bastaría cambiar el `detalle` y el jsonb de las RPC `guardar_gasto` y `anular_gasto`. Además, `registro_actividad_select` filtra por organización y sección `actividad` pero no por empresa accesible (preexistente y común a todos los eventos, no se cambia en este PR): quien tiene `actividad` ve esos datos aun de empresas que no puede acceder. Seguimiento: MSF-968 «Actividad: filtrar registro_actividad por empresas accesibles».
 
 ## Bandera
 

@@ -200,7 +200,9 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Editar/suspender/reactivar usuarios | MSF-125 T036 | Pendiente |
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
+| Avisos de acceso: el Operador ve «No tenés acceso a esta sección» en `/empresas` y `/organizacion` (sin error rojo) y un aviso informativo de «Solo lectura» en el detalle de la empresa; el Administrador no ve ninguno de los dos | MSF-639 | Escrito: `e2e/avisos-acceso.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra una organización con una tienda y dos personas (Administrador y Operador) con la API admin y limpia al final. Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e avisos-acceso`. Guía: `docs/empresas.md` |
 | Permisos por empresa: asignar desde Usuarios, cambiar de empresa activa y nivel de edición resuelto | MSF-121 T022 | Escrito: `e2e/permisos-por-empresa.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). No hay pantalla de una sección por empresa (Ventas/Consultas) todavía: el nivel se comprueba sobre la respuesta de `permisos_actuales` que decide los botones de edición |
+| Gastos: cargar un gasto, verlo en el total del mes, anularlo con motivo y verlo con «Mostrar anulados» | Gastos fase 2 | Escrito: `e2e/gastos.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`). Los gastos se cargan por la pantalla (RPC), no por REST |
 | Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Ejecutado y en verde en el job `e2e-visible-sesion` del CI (corrida 43730923693, 2 tests, MSF-747): `service_role` no escribe `usuarios_empresas`, así que el Administrador sembrado asigna tiendas y roles con la RPC `asignar_empresas_usuario` con su propia sesión. Guía: `docs/inicio-y-alertas.md` |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
@@ -233,7 +235,8 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el job `e2e-tienda` (`E2E_TIENDA_CI=1`) FALLA en vez de omitirse, para no dar un falso verde; en `application`, cuyo build no define `VITE_PANEL_HOSTS`, y en local se omite como antes). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
 | Lista de pedido sin cobro (B1, MSF-176): un visitante agrega 3 productos desde sus fichas, abre «Mi lista», la envía sin pagar y el operador la ve en Consultas como «Pedido» con los 3 ítems; el sexto envío de la hora muestra el aviso de límite y conserva la lista; almacenamiento bloqueado; bandera apagada = nada y `/lista` 404 (SC-002) | MSF-176 T043 | Escrito y verificado: `e2e/tienda-lista-pedido.e2e.ts` (**corrió de verdad en el job `e2e-tienda` y pasó los 3 casos**; corre en serie con un solo worker; el spec enciende la bandera global `tienda_pedidos` en `beforeAll` y la restaura en `afterAll`; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de B1). Usa tienda, productos y persona del panel **propios de la corrida** (la baja de la organización se lleva todo), así el cupo de 5 envíos por hora no se comparte con otros specs. Las consultas entran solo por la RPC pública de la tienda (sin escritura directa en `dominio.consultas`). Guía: `docs/tienda-compra-y-cuentas.md` |
 | Presupuesto desde la tienda (B2, MSF-176): el mayorista con cuenta activa pide el presupuesto desde su lista (cotización del servidor con escala x10, descuento de la ficha e IVA, «lo que ves es lo que se crea»); el operador lo ve «Pendiente» con operador «Tienda online (cliente)», lo acepta con el flujo actual y no hay stock ni cobros; el sexto del día muestra el aviso y conserva la lista; misma clave = mismo número; **dos llamadas simultáneas con 4 creados crean una**; sin cuenta, otra tienda, anónimo y bandera apagada = nada (SC-003, SC-005, SC-006) | MSF-176 T061 | Escrito: `e2e/tienda-presupuesto.e2e.ts` (corre en serie con un solo worker; enciende la bandera global `tienda_pedidos` en `beforeAll` y la restaura en `afterAll`; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene la tabla de B2). Usa tiendas, productos, clientes y persona del panel **propios de la corrida** (la baja de la organización se lleva todo), así el cupo de 5 envíos por hora y los topes por cuenta no se comparten con otros specs. El presupuesto entra solo por la RPC pública de la tienda (sin escritura directa en `dominio.comprobantes_venta` ni en `presupuestos_tienda`). Guía: `docs/tienda-compra-y-cuentas.md` |
-| «Mi cuenta» de la tienda (F-CLI-20): sin sesión va a «Ingresar» con la ruta de vuelta, historial propio con estado público y total con IVA (nada de otro cliente), favoritos desde la ficha y desde «Mi cuenta», cuenta suspendida a mitad de la sesión y 200 comprobantes por tandas de 20 (SC-001, SC-006) | MSF-452 T022 | Escrito: `e2e/tienda-cuenta.e2e.ts` (corre en el job `e2e-tienda` con la bandera `tienda_pedidos` encendida por el propio spec; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de la épica; con el SQL de la épica en la rama (PR #955, ya mergeado) corre de verdad en `e2e-tienda` y pasa; antes de eso sus omisiones rompían `e2e:omitidos:check --max=1`). La bandera `tienda_pedidos` es global: el spec la restaura en `afterAll`, pero si el proceso muere antes queda encendida en la base local. El producto de Favoritos tiene una imagen real en el bucket y el spec verifica que la miniatura carga. Los clientes se siembran como una persona del panel porque `service_role` no tiene grants sobre `public.clientes` en el stack del CI. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack de Supabase local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-cuenta`. Guía: `docs/tienda-compra-y-cuentas.md` |
+| «Mi cuenta» de la tienda (F-CLI-20): sin sesión va a «Ingresar» con la ruta de vuelta, historial propio con estado público y total con IVA (nada de otro cliente), favoritos desde la ficha y desde «Mi cuenta», cuenta suspendida a mitad de la sesión y 200 comprobantes por tandas de 20 (SC-001, SC-006) | MSF-452 T022 | Escrito: `e2e/tienda-cuenta.e2e.ts` (corre en el job `e2e-tienda` con la bandera `tienda_pedidos` encendida por el propio spec; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de la épica; con el SQL de la épica en la rama (PR #955, ya mergeado) corre de verdad en `e2e-tienda` y pasa; antes de eso sus omisiones rompían `e2e:omitidos:check --max=1`). La bandera `tienda_pedidos` es global: el spec la restaura en `afterAll`, pero si el proceso muere antes queda encendida en la base local. El producto de Favoritos tiene una imagen real en el bucket y el spec verifica que la miniatura carga. Los clientes se siembran como una persona del panel porque `service_role` no tiene grants sobre `dominio.clientes` en el stack del CI. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack de Supabase local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-cuenta`. Guía: `docs/tienda-compra-y-cuentas.md` |
+| Toma de inventario: una categoría con 250 productos carga la tabla completa (250 filas con su stock en el sistema) y no aparece «No pudimos cargar los productos de esta categoría» (la URL del `in (…)` se parte en lotes) | MSF-716 FIX (F-STK-11 T014) | Escrito: `e2e/stock-toma-inventario-categorias.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e stock-toma-inventario-categorias`. Siembra organización, administrador, categoría y 250 productos, y limpia al final. Guía: `docs/stock-toma-inventario.md` |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
 
@@ -292,7 +295,7 @@ corren en el job aparte `e2e-tienda` (sección siguiente); el resto (`permisos-p
 
 ## E2E de la tienda pública en el CI (`e2e-tienda`)
 
-El job `e2e-tienda` de `validate.yml` corre los 20 `apps/web/e2e/tienda-*.e2e.ts` en cada PR que toca la web, con la
+El job `e2e-tienda` de `validate.yml` corre todos los `apps/web/e2e/tienda-*.e2e.ts` **y `apps/web/e2e/service-etiqueta-qr.e2e.ts`** (F-SVC-32, MSF-190: es el único E2E de Service que corre en el CI; el filtro de Playwright del paso es `e2e/tienda- e2e/service-etiqueta-qr`) en cada PR que toca la web, con la
 misma política que el resto del e2e: solo si `changes.web == 'true'` y `changes.e2e == 'true'` (un PR a `epic/*`, no) y
 no en borrador, ni con `CI_PAUSED`, ni con la variable de repo `CI_E2E_TIENDA=false` (kill switch), y no en PRs de forks (los
 jobs pesados no corren código de forks en los runners self-hosted; `validacion` falla en un PR de fork en vez de dar verde con todo
@@ -349,7 +352,7 @@ Límites a propósito:
   mismo motivo por el que `pg_prove` corre por `host.docker.internal`). Por eso `E2E_SIN_EDGE=1` omite el único caso que lo
   necesita, `robots.txt`/`sitemap.xml` de `tienda-seo` (su handler se cubre con `pnpm test:edge:tienda-seo` en el job `web`).
   Sigue corriéndose a mano con las funciones servidas (sección «Specs que necesitan algo más»).
-- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. 18 de los 20 specs se omiten solos a
+- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. Casi todos los specs de este job se omiten solos a
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
@@ -700,23 +703,36 @@ scripts/e2e-evidencia.sh publicar                 # sólo manifiesto + MP4 + pub
 ## E2E nocturno (`e2e-nocturno.yml`)
 
 Decisión del gate MSF-852: la suite completa de Playwright (~100 tests, ~20 min en serie) corre en CI como un job
-**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. El gate MSF-852 queda resuelto con esta decisión.
-El workflow es `.github/workflows/e2e-nocturno.yml`.
+**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. La decisión está implementada en
+`.github/workflows/e2e-nocturno.yml`; para que el cron y el disparo manual existan, el archivo tiene que estar en la
+rama por defecto (`main`), como se explica abajo.
 
-**Cómo se reparten los E2E en el CI** (las filas de `e2e-tienda` valen cuando #923 esté mergeado)
+**Cómo se reparten los E2E en el CI**
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, y los specs públicos sin base (`acceso-publico`) | Sí |
-| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`; llega con el PR #923, todavía no mergeado) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Cada PR (`validate.yml`, job `application`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`); el paso exige `changes.web` y `changes.e2e` en `true`, y `changes.e2e` es `false` en todo PR con base `epic/*` | Sí |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`; mismo requisito `changes.web` + `changes.e2e` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
 
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
 
+- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `application`, en cada PR) falla si el workflow deja de cumplir el
+  contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
+  solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
+  omisiones masivas del resumen, `continue-on-error` (dejaría el run verde con la suite omitida), o la aparición de
+  `pull_request`/`pull_request_target` en cualquier forma YAML válida (bloque con cualquier indentación, lista o flujo).
+  Cada marca tiene su test de mutación (`pnpm test:e2e:nocturno`).
+
+- **Dónde tiene que vivir el archivo:** GitHub dispara `schedule` y resuelve `workflow_dispatch`/la API de Actions
+  sólo en la rama por defecto (`main`). El workflow ya aterrizó en `main` con el PR #928 (commit `57ad76da`), así que
+  el cron y el disparo manual existen; mientras vivía únicamente en `dokploy`, el cron no arrancaba y
+  `gh workflow run e2e-nocturno.yml --ref dokploy` respondía `404` (no era un bug del job). Cada corrida hace
+  `checkout` de `dokploy` (o de la rama del disparo manual), así que ejecuta el código y la suite de esa rama.
 - **Cuándo corre:** todos los días a las 05:00 UTC (02:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
-  por `workflow_dispatch`. GitHub solo dispara `schedule` desde la rama por defecto (`main`): el cron empieza a correr
-  cuando el archivo llega a `main`; el run siempre prueba `dokploy`.
+  por `workflow_dispatch`. El run siempre prueba `dokploy` cuando lo dispara el cron.
 - **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow», o `gh workflow run e2e-nocturno.yml`. Inputs opcionales:
   `spec` (uno o más archivos, separados por espacio, p. ej. `tienda-seo precios-iva`) y `grep` (solo los tests cuyo título
   coincida). Vacíos corre toda la suite. Un disparo manual desde otra rama prueba esa rama. Ejemplo:
@@ -749,11 +765,11 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   Docker del host fuera de ese tope. Si el run muere por memoria, bajar réplicas del runner o subir `RUNNER_MEMORY_LIMIT`.
 - **Apagarlo sin PR:** variable de repo `CI_E2E_NOCTURNO=false` (o `CI_PAUSED=true`, el kill switch de `validate.yml`): el job se
   saltea. Por ejemplo, `gh variable set CI_E2E_NOCTURNO --body false` y `gh variable delete CI_E2E_NOCTURNO` para volver a encenderlo.
-- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas, y hoy `database` usa el TTL por
-  defecto de `supabase-ci.mjs` (50 min). Si el nocturno retuviera la ranura más tiempo, un `database` podría reciclar una ranura
-  viva. Por eso el job dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La
-  suite entra holgada (setup ~6 min + ~21 min). Con #923 mergeado el TTL pasa a 75 min y el timeout se puede subir. La hora 05:00 UTC
-  evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`, TTL 90 min), que también limpia ranuras vencidas.
+- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas. `e2e-tienda`,
+  `database` y este workflow fijan `SUPABASE_CI_LOCK_TTL_MIN=75`, por encima del timeout del job. Por eso el nocturno
+  dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La suite entra
+  holgada (setup ~6 min + ~21 min). La hora 05:00 UTC evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`,
+  TTL 90 min), que también limpia ranuras vencidas.
 
 ## Fixture compartido y corridas pendientes (lote MSF-879 / MSF-515)
 

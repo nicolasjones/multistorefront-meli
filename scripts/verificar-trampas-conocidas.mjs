@@ -7,6 +7,8 @@
 //   T4  Tabla nueva con `organizacion_id` que no está en la exportación total   (exportacion_total.test.sql)
 //   T5  E2E que escribe con la service-role key en una tabla de `dominio` sin grant para service_role
 //   T6  Redefinición de `conjuntos_exportacion_total()` que pierde filas de la versión vigente (pisa lo que agregó otra rama)
+//   T7  `current_date` (UTC del CI) como fecha de ingreso de una reparación (insert, update ... set ingreso_en, crear_reparacion):
+//       la app valida «hoy» con la fecha de Buenos Aires
 //
 // No cubre (ya lo hacen otros guards): versiones de migración <= la máxima de la base (`verificar-migraciones.mjs
 // --estricto`) y nombres de test con códigos MSF (guardián `apps/web/src/higieneReferenciasInternas.test.ts`).
@@ -188,6 +190,318 @@ export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }
   return problemas;
 }
 
+// Recorre un SQL respetando comentarios (`--`, `/* */`), literales de comilla simple (con `''` escapado) y bloques de
+// dólares (`$$ ... $$`, `$etiqueta$ ... $etiqueta$`, anidables con etiquetas distintas). Devuelve:
+//   · `enmascarado`: mismo largo y mismas líneas que el original, con los comentarios y el CONTENIDO de los literales de comilla
+//     simple reemplazados por espacios (el código dentro de un bloque de dólares se conserva, también sus literales enmascarados);
+//   · `sinCerrar`: índice del primer comentario, literal o bloque de dólares sin cerrar (-1 si todo cierra);
+//   · `sentencias`: cortes en `;` de primer nivel (los `;` de literales, comentarios y bloques de dólares no cortan), cada una
+//     con su texto enmascarado y su índice de inicio.
+const RE_ETIQUETA = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i;
+
+export function recorrerSql(sql) {
+  const salida = sql.split('');
+  const sentencias = [];
+  const pila = [];
+  let inicio = 0;
+  let sinCerrar = -1; // posición del primer comentario, literal o bloque de dólares que no cierra (SQL roto)
+  const abierto = (i) => { if (sinCerrar < 0) sinCerrar = i; };
+  const blanquear = (desde, hasta) => { for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' '; };
+  // Próxima aparición de `tok` desde `desde`, memoizada: un recorrido de izquierda a derecha no repite búsquedas (lineal).
+  const memo = new Map();
+  const sig = (tok, desde) => {
+    const m = memo.get(tok);
+    if (m && desde >= m.desde && (m.idx === -1 || m.idx >= desde)) return m.idx;
+    const idx = sql.indexOf(tok, desde);
+    memo.set(tok, { desde, idx });
+    return idx;
+  };
+  // Posiciones de cada etiqueta de dólares (`$$`, `$tag$`) calculadas en UN pasaje (una aparición de la etiqueta X en p equivale a que
+  // la etiqueta que empieza en p sea X); el próximo cierre se busca por bisección: lineal en total aunque haya miles de etiquetas distintas.
+  let posiciones = null;
+  const sigEtiqueta = (tag, desde) => {
+    if (!posiciones) {
+      posiciones = new Map();
+      for (let p = sql.indexOf('$'); p >= 0; p = sql.indexOf('$', p + 1)) {
+        const t = RE_ETIQUETA.exec(sql.slice(p, p + 80));
+        if (!t) continue;
+        const lista = posiciones.get(t[0]);
+        if (lista) lista.push(p); else posiciones.set(t[0], [p]);
+      }
+    }
+    const lista = posiciones.get(tag);
+    if (!lista) return -1;
+    let lo = 0;
+    let hi = lista.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (lista[mid] < desde) lo = mid + 1; else hi = mid; }
+    return lo < lista.length ? lista[lo] : -1;
+  };
+  let i = 0;
+  let ultimo = -1;
+  while (i < sql.length) {
+    // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
+    // Invariante: `i` solo avanza (el recorrido es lineal); si algún camino lo hiciera retroceder, se corrige.
+    if (i <= ultimo) i = ultimo + 1;
+    ultimo = i;
+    if (i >= sql.length) break;
+    // El cierre del bloque se calcula al abrirlo y se refresca solo si quedó atrás (otro token lo pisó): búsqueda memoizada.
+    let tope = -1;
+    if (pila.length) {
+      const bloque = pila[pila.length - 1];
+      if (bloque.cierre >= 0 && bloque.cierre < i) bloque.cierre = sigEtiqueta(bloque.tag, i);
+      tope = bloque.cierre;
+    }
+    const c = sql[i];
+    if (c === '-' && sql[i + 1] === '-') {
+      const fin = sig('\n', i);
+      let hasta = fin < 0 ? sql.length : fin;
+      if (tope >= 0 && tope < hasta) hasta = tope;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === '/' && sql[i + 1] === '*') {
+      const fin = sig('*/', i + 2);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      const hasta = fin < 0 ? sql.length : fin + 2;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === "'") {
+      // E'...' admite \' y \\ como escapes (además de ''); un literal común no.
+      const escapes = /[eE]/.test(sql[i - 1] ?? '') && !/[a-z0-9_$]/i.test(sql[i - 2] ?? ' ');
+      let j = i + 1;
+      const limite = tope >= 0 ? tope : sql.length; // dentro de un bloque la búsqueda del cierre no pasa del cierre del bloque
+      while (j < limite) {
+        if (escapes && sql[j] === '\\') { j += 2; continue; }
+        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
+        if (sql[j] === "'") break;
+        j++;
+      }
+      if (tope >= 0 && j >= tope) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
+      if (j >= sql.length) abierto(i);
+      blanquear(i + 1, Math.min(j, sql.length)); i = j + 1; continue;
+    }
+    if (c === '"') {
+      const fin = sig('"', i + 1);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      i = fin < 0 ? sql.length : fin + 1; continue;
+    }
+    if (c === '$') {
+      const m = RE_ETIQUETA.exec(sql.slice(i, i + 80));
+      if (m) {
+        if (pila.length && pila[pila.length - 1].tag === m[0]) pila.pop();
+        else pila.push({ tag: m[0], cierre: sigEtiqueta(m[0], i + m[0].length) });
+        i += m[0].length; continue;
+      }
+    }
+    if (c === ';' && pila.length === 0) {
+      sentencias.push({ texto: salida.slice(inicio, i).join(''), desde: inicio });
+      inicio = i + 1;
+    }
+    i++;
+  }
+  sentencias.push({ texto: salida.slice(inicio).join(''), desde: inicio });
+  if (pila.length) abierto(sql.length - 1);
+  return { enmascarado: salida.join(''), sentencias, sinCerrar };
+}
+
+// Expresión que sigue a `=`/`=>` (desde `desde`) hasta la coma o el cierre de primer nivel (o `where`/`from`/`returning`).
+function expresionDesde(texto, desde) {
+  let nivel = 0;
+  const hasta = Math.min(texto.length, desde + MAX_EXPRESION);
+  for (let i = desde; i < hasta; i++) {
+    const c = texto[i];
+    if (c === '(') nivel++;
+    else if (c === ')') { if (nivel === 0) return texto.slice(desde, i); nivel--; }
+    else if (nivel === 0 && c === ',') return texto.slice(desde, i);
+    else if (nivel === 0 && /\s|\)/.test(texto[i - 1] ?? ' ') && /^(where|from|returning)\b/i.test(texto.slice(i, i + 10))) return texto.slice(desde, i);
+  }
+  // Cortada por el tope sin terminar: no se puede saber si hay un current_date más adelante.
+  return hasta < texto.length ? CONSERVADOR : texto.slice(desde, hasta);
+}
+
+const RE_CURRENT_DATE = /(?<![a-z0-9_])current_date(?![a-z0-9_])/i;
+
+// Parte `texto` en las comas de primer nivel (fuera de paréntesis): [{ txt, off }].
+function partesTop(texto) {
+  const salida = [];
+  let nivel = 0;
+  let ini = 0;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (c === '(') nivel++;
+    else if (c === ')') nivel--;
+    else if (c === ',' && nivel === 0) { salida.push({ txt: texto.slice(ini, i), off: ini }); ini = i + 1; }
+  }
+  salida.push({ txt: texto.slice(ini), off: ini });
+  return salida;
+}
+
+// Límites que mantienen el análisis lineal ante SQL adversarial (paréntesis sin cerrar, miles de updates en una sentencia sin `;`).
+// Pasados los topes la sentencia se trata como incumplimiento conservador: ningún pgTAP real se les acerca.
+export const TOPE_SENTENCIA = 100_000;
+const MAX_ALTAS_POR_SENTENCIA = 500;
+const MAX_EXPRESION = 300;
+const CONSERVADOR = Symbol('conservador');
+
+// Para cada `(` el índice de su `)` (o -1 si no cierra), en un solo pasaje con una pila.
+function paresParentesis(texto) {
+  const cierre = new Int32Array(texto.length).fill(-1);
+  const pila = [];
+  for (let i = 0; i < texto.length; i++) {
+    if (texto[i] === '(') pila.push(i);
+    else if (texto[i] === ')' && pila.length) cierre[pila.pop()] = i;
+  }
+  return cierre;
+}
+
+// Tramos [desde, hasta) de las llamadas `throws_ok(...)`: lo que está dentro de sus argumentos es SQL que se espera que falle.
+function tramosThrowsOk(sentencia, pares) {
+  const tramos = [];
+  for (const m of sentencia.matchAll(/(?<![a-z0-9_])throws_ok\s*\(/gi)) {
+    const abre = m.index + m[0].length - 1;
+    if (pares[abre] < 0) return CONSERVADOR; // sin cierre: no se sabe hasta dónde llega la exención
+    tramos.push([abre, pares[abre] + 1]);
+  }
+  return tramos;
+}
+
+// `insert into reparaciones (cols) values (...)|select ...`: posiciones de `current_date` que caen en la columna `ingreso_en`.
+// Sin lista de columnas no se puede saber a qué columna va cada valor: se marca cualquier `current_date` (conservador).
+// Devuelve índices, o CONSERVADOR si el SQL no se puede analizar de forma acotada (paréntesis sin cerrar o demasiadas altas).
+function usosInsertIngreso(sentencia, pares) {
+  const altas = [...sentencia.matchAll(/insert\s+into\s+(?:dominio\.)?reparaciones\b\s*/gi)];
+  if (altas.length > MAX_ALTAS_POR_SENTENCIA) return CONSERVADOR;
+  const salida = [];
+  for (const ins of altas) {
+    const r = usosUnInsert(sentencia, ins, pares);
+    if (r === CONSERVADOR) return CONSERVADOR;
+    salida.push(...r);
+  }
+  return salida;
+}
+
+function usosUnInsert(sentencia, ins, pares) {
+  const hallados = [];
+  const resto = ins.index + ins[0].length;
+  if (sentencia[resto] !== '(') {
+    const m = RE_CURRENT_DATE.exec(sentencia.slice(resto, resto + MAX_EXPRESION));
+    return m ? [resto + m.index] : [];
+  }
+  const cierre = pares[resto];
+  if (cierre < 0) return CONSERVADOR;
+  const columnas = partesTop(sentencia.slice(resto + 1, cierre)).map((x) => x.txt.trim().replace(/^"|"$/g, '').toLowerCase());
+  const k = columnas.indexOf('ingreso_en');
+  if (k < 0) return [];
+  const base = cierre + 1;
+  const cola = sentencia.slice(base);
+  const listas = []; // [{ txt, off }] por cada fila de valores o lista del select
+  const v = /^\s*(?:overriding\s+\w+\s+value\s+)?values\b/i.exec(cola);
+  if (v) {
+    let i = v[0].length;
+    while (i < cola.length) {
+      const abre = cola.indexOf('(', i);
+      if (abre < 0) break;
+      const fin = pares[base + abre];
+      if (fin < 0) return CONSERVADOR;
+      listas.push({ txt: sentencia.slice(base + abre + 1, fin), off: abre + 1 });
+      i = fin - base + 1;
+      if (!/^\s*,/.test(cola.slice(i, i + 20))) break;
+    }
+  } else {
+    const sel = /^\s*select\b/i.exec(cola);
+    if (!sel) return [];
+    const ini = sel[0].length;
+    const fin = cola.slice(ini).search(/(?<![a-z0-9_])(from|where|returning|on\s+conflict)(?![a-z0-9_])/i);
+    listas.push({ txt: cola.slice(ini, fin < 0 ? cola.length : ini + fin), off: ini });
+  }
+  for (const l of listas) {
+    const celda = partesTop(l.txt)[k];
+    if (!celda) continue;
+    const c = RE_CURRENT_DATE.exec(celda.txt);
+    if (c) hallados.push(base + l.off + celda.off + c.index);
+  }
+  return hallados;
+}
+
+// Usos de `current_date` que alimentan `reparaciones.ingreso_en` dentro de una sentencia ya enmascarada. Devuelve índices
+// (o CONSERVADOR). Lineal: cada `ingreso_en =` se asocia UNA vez con el último `update ... reparaciones` anterior.
+function usosCurrentDateIngreso(sentencia, pares) {
+  const altas = usosInsertIngreso(sentencia, pares);
+  if (altas === CONSERVADOR) return CONSERVADOR;
+  const hallados = [...altas];
+  // (b) update ... reparaciones ... set ... ingreso_en = <expresión con current_date>.
+  const updates = [...sentencia.matchAll(/update\s+(?:dominio\.)?reparaciones\b/gi)].map((m) => m.index);
+  if (updates.length) {
+    let u = 0;
+    for (const m of sentencia.matchAll(/(?<![a-z0-9_])ingreso_en\s*=(?!=)\s*/gi)) {
+      while (u + 1 < updates.length && updates[u + 1] < m.index) u++;
+      if (updates[u] > m.index) continue; // todavía no hubo ningún update antes
+      const ini = m.index + m[0].length;
+      const expr = expresionDesde(sentencia, ini);
+      if (expr === CONSERVADOR) return CONSERVADOR;
+      const c = RE_CURRENT_DATE.exec(expr);
+      if (c) hallados.push(ini + c.index);
+    }
+  }
+  // (c) crear_reparacion(... p_ingreso => <expresión con current_date>) (o p_ingreso_en).
+  if (/(?<![a-z0-9_])crear_reparacion\s*\(/i.test(sentencia)) {
+    for (const m of sentencia.matchAll(/(?<![a-z0-9_])p_ingreso(?:_en)?\s*=>\s*/gi)) {
+      const ini = m.index + m[0].length;
+      const expr = expresionDesde(sentencia, ini);
+      if (expr === CONSERVADOR) return CONSERVADOR;
+      const c = RE_CURRENT_DATE.exec(expr);
+      if (c) hallados.push(ini + c.index);
+    }
+  }
+  return hallados;
+}
+
+// T7: entre 00:00 y 03:00 UTC `current_date` ya es «mañana» en Buenos Aires y `reparaciones.ingreso_en` rechaza fechas futuras.
+// Cubre `insert into reparaciones`, `update reparaciones set ingreso_en = ...` y `crear_reparacion(... p_ingreso => ...)`.
+// El SQL se recorre con `recorrerSql`: los `;` y el texto `current_date` dentro de literales o comentarios no cuentan, y un
+// `throws_ok($$ ... ; ... $$, ...)` es una sola sentencia y solo lo que está dentro de los argumentos del `throws_ok` queda eximido.
+export function revisarFechasBuenosAires({ pruebas }) {
+  const problemas = [];
+  for (const p of pruebas) {
+    const { sentencias, sinCerrar } = recorrerSql(p.sql);
+    if (sinCerrar >= 0) {
+      problemas.push(`${p.ruta}:${lineaDe(p.sql, sinCerrar)} tiene una comilla, comentario o bloque de dólares sin cerrar: el resto del archivo queda sin revisar y no se puede comprobar que no use current_date (UTC) como ingreso. Cerralo.`);
+    }
+    for (const s of sentencias) {
+      const aviso = (idx, texto) => `${p.ruta}:${lineaDe(p.sql, s.desde + idx)} ${texto}`;
+      if (s.texto.length > TOPE_SENTENCIA) {
+        if (/reparaciones|crear_reparacion/i.test(s.texto)) {
+          problemas.push(aviso(0, `sentencia de más de ${TOPE_SENTENCIA} caracteres que toca reparaciones: no se puede comprobar que no use current_date (UTC) como ingreso. Partila con ';'.`));
+        }
+        continue;
+      }
+      const pares = paresParentesis(s.texto);
+      const usos = usosCurrentDateIngreso(s.texto, pares);
+      if (usos === CONSERVADOR) {
+        problemas.push(aviso(0, 'alta de reparación con paréntesis sin cerrar, demasiadas altas o una expresión de ingreso de más de 300 caracteres en una sentencia: no se puede comprobar que no use current_date (UTC) como ingreso. Revisá la sintaxis.'));
+        continue;
+      }
+      // La exención es solo para lo que está DENTRO de los argumentos de un `throws_ok(...)` (prueba que el alta se rechaza).
+      const exentos = tramosThrowsOk(s.texto, pares);
+      if (exentos === CONSERVADOR) {
+        problemas.push(aviso(0, 'throws_ok( sin cerrar: no se sabe hasta dónde llega lo que se exime, no se puede comprobar que no use current_date (UTC) como ingreso. Revisá los paréntesis.'));
+        continue;
+      }
+      let n = 0;
+      for (const idx of usos) {
+        if (exentos.some(([d, h]) => idx >= d && idx < h)) continue;
+        if (++n > 20) { problemas.push(aviso(idx, 'más usos de current_date como ingreso en esta sentencia (se omiten el resto).')); break; }
+        problemas.push(aviso(idx,
+          'usa current_date (UTC) como fecha de ingreso de una reparación: '
+          + "entre las 00:00 y las 03:00 UTC es «mañana» en Buenos Aires y la app rechaza «El ingreso no puede ser una fecha futura». "
+          + "Usá (now() at time zone 'America/Argentina/Buenos_Aires')::date."));
+      }
+    }
+  }
+  return problemas;
+}
+
 const RE_ESCRITURA_E2E = /\b(rest|borrar)\(\s*(['"`])([a-z_][a-z0-9_]*)[^'"`]*\2([^()]*?)\)/gi;
 
 // T5: escrituras E2E con la service-role key en `dominio` (rest/borrar con esquema 'dominio') sin grant para service_role.
@@ -226,6 +540,7 @@ export function revisar({ migracionesDiff, pruebas, e2e, todasMigraciones, sqlTe
   return [
     ...revisarGrants({ migracionesDiff, inalterables }),
     ...revisarVariablesPsql({ pruebas }),
+    ...revisarFechasBuenosAires({ pruebas }),
     ...revisarExportacionTotal({ migracionesDiff }),
     ...revisarSupersetExportacion({ migracionesDiff, todasMigraciones }),
     ...revisarE2E({ e2e, tablasConGrant, versionCreacion, inalterables }),

@@ -2,7 +2,7 @@
 
 **Épicas**: MSF-373 (Precios y dólar · Cotización sugerida y mayoristas) y MSF-450 (Clientes y proveedores · Cuentas y compras a proveedores) · **Spec**: `listas-de-precios-por-cliente` · **Historias**: F-PRE-14 «Listas de precios mayoristas» (MSF-442) y F-CLI-21 «Listas de precios por cliente» (MSF-453) · **Prioridad**: P3
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: spec redactada; **Fases 1 («Listas») y 2 («Asignación») implementadas** (sin efecto en ningún precio); Fases 3, 4 y 5 sin implementar. Reabre y reemplaza la cancelación de F-PRE-14 (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
+**Estado**: spec redactada; **Fases 1 a 5 implementadas** (Fases 1 y 2 sin efecto en ningún precio; Fases 3 y 4 detrás de la bandera `listas_precios`, apagada hasta que Nicolás decida; Fase 5 = cierre). Retoma F-PRE-14, descartada (2026-11-12) por decisión de Nicolás del 2026-11-15; reemplaza también la «Pregunta abierta 1» de `specs/20261029-100000-cuentas-y-compras-a-proveedores/spec.md`.
 **Fuente**: decisión de Nicolás (2026-11-15) comentada en MSF-442 y MSF-453, los tickets, `docs/precios.md`, `docs/precios-escalas.md`, `docs/promociones-precio.md`, `docs/configuracion-dolar-y-precio-propio.md`, `docs/cuentas-y-compras-a-proveedores.md` y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
 
 ## Objetivo
@@ -28,7 +28,7 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 | D9 | **Quién**: solo el rol **Administrador** crea, edita, archiva listas y asigna una lista a un cliente (la base lo exige, como el descuento personal). Leen las listas los roles con `clientes` o `ventas` en lectura, para ver el nombre de la lista y calcular. | Es el criterio de F-VTA-32 (descuento por cliente, solo Administrador). La historia dice «como administrador». |
 | D10 | **Una lista no se borra: se archiva**, y **no se puede archivar una lista con clientes asignados** (la base responde con la cantidad de clientes; primero se reasigna o se quita). Una lista archivada no se puede asignar. | Evita que un cliente cambie de precio sin que nadie lo decida. Es el patrón «se archiva, no se borra» de Clientes. |
 | D11 | **El Consumidor final no admite lista** (es el cliente anónimo del mostrador). | Su precio es el de lista pública por diseño (`es_consumidor_final`, uno por organización). |
-| D12 | **Congelado en la venta**: cada línea guarda `lista_precio_id` y `lista_ajuste_pct` (qué lista y qué porcentaje se usaron). Cambiar el % de una lista o reasignar al cliente **no cambia** comprobantes ya confirmados ni sus notas de crédito; los borradores se recalculan al guardar líneas, como hoy. | Mismo criterio que `descuento_pct` y `precio_referencia`: lo ya vendido no se mueve. |
+| D12 | **Congelado en la venta**: cada línea guarda `lista_precio_id` y `lista_ajuste_pct` (qué lista y qué porcentaje se usaron). Cambiar el % de una lista o reasignar al cliente **no cambia** comprobantes ya confirmados ni sus notas de crédito; los borradores se recalculan al guardar líneas, como hoy. **Un borrador cuyo snapshot de lista ya no coincide con el motor al confirmar (porcentaje cambiado, lista reasignada o quitada, bandera apagada) responde «Los precios cambiaron» y se vuelve a guardar** (no contradice D12: protege lo confirmado, no un borrador). | Mismo criterio que `descuento_pct` y `precio_referencia`: lo ya vendido no se mueve. |
 | D13 | **Bandera de apagado `listas_precios`, apagada por defecto en cada entorno** (tabla `public.banderas_plataforma`, como `promociones_precio`). Apagada: el motor de precio **ignora** las listas (resultado idéntico a hoy), «Guardar lista» y «Asignar» responden `55000`, archivar y quitar siguen permitidos. Se enciende dev → stg → prd por SQL del equipo técnico. | Cambia lo que se cobra: se quiere poder apagarlo al instante sin migrar. Mismo patrón y mismo orden de encendido que las promociones. |
 | D14 | **La tienda con cuenta web usa la misma lista** (Fase 4): «Tu precio» de la ficha y el presupuesto armado desde la tienda salen del mismo motor, así que el precio visto es el que se cobra. Las **tarjetas del catálogo no cambian** (siguen mostrando el precio público x1, igual que hoy para el mayorista). | Evita que la tienda muestre un precio distinto del mostrador. Es una fase aparte y se puede cortar sin afectar al mostrador. |
 | D15 | **Mercado Libre queda fuera**: las listas no generan cola ni precio en publicaciones. | Igual que el precio propio (FR-020 de MSF-352). |
@@ -37,17 +37,17 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 ## Modelo y supuestos (verificados en el código de `dokploy`)
 
 - **Hoy** el precio de una línea de venta sale de `private.precio_linea_venta` (que envuelve `private.precio_para` y `private.escala_para_linea`): escala por tipo de cliente y cantidad → precio propio (solo x1 o escala sin precio) → regla de la empresa (`aplicar_regla_precio`: base `central` o `central_ajuste`, `ajuste_pct`, `redondeo_pesos`) → descuento personal del cliente (`clientes.descuento`, F-VTA-32) → promoción vigente de la tienda («gana el más bajo, sin acumular», MSF-816, bandera `promociones_precio`). La tienda y el presupuesto de la tienda usan las gemelas sin sesión `precio_para_calculo` / `precio_linea_venta_calculo` (MSF-176 B2).
-- **Clientes**: `public.clientes` (esquema `public` por decisión histórica de MSF-180) ya tiene `tipo` (`minorista`/`mayorista`), `descuento` (solo Administrador, con disparador y actividad), `es_consumidor_final`. La cuenta web (`public.cuentas_cliente`) cuelga de `cliente_id`.
+- **Clientes**: `dominio.clientes` (movida de `public` a `dominio` en MSF-882) ya tiene `tipo` (`minorista`/`mayorista`), `descuento` (solo Administrador, con disparador y actividad), `es_consumidor_final`. La cuenta web (`public.cuentas_cliente`) cuelga de `cliente_id`.
 - **No existe** `tipos_cliente` ni su pantalla (F-PRE-15 solo implementó las escalas por producto); `TiposCliente.dc.html` es un prototipo sin entregar. **No hay pantalla dibujada** de listas de precios (ver «Matriz pantalla↔criterios»).
 - **Bloqueo anterior**: las dos historias figuraban como «sin requisitos» y bloqueadas por el modelo comercial. La decisión de Nicolás lo cierra. MSF-116 ya está entregada (F-PRE-13 implementada), así que ya no bloquea.
-- **Cancelación previa**: F-PRE-14 se canceló el 2026-11-12 por chocar con F-PRE-15. Esta spec la reabre con una resolución explícita del choque (D5 y D8). Los textos que dicen «cancelada» en `docs/precios.md`, `docs/cuentas-y-compras-a-proveedores.md` y las specs `20261105-100000-cotizacion-sugerida-y-mayoristas` y `20261029-100000-cuentas-y-compras-a-proveedores` se actualizan en la Fase 5 (no se editan en esta spec).
+- **Cancelación previa**: F-PRE-14 se canceló el 2026-11-12 por chocar con F-PRE-15. Esta spec la retoma con una resolución explícita del choque (D5 y D8). Los textos que dicen «cancelada» en `docs/precios.md`, `docs/cuentas-y-compras-a-proveedores.md` y las specs `20261105-100000-cotizacion-sugerida-y-mayoristas` y `20261029-100000-cuentas-y-compras-a-proveedores` se actualizan en la Fase 5 (no se editan en esta spec).
 
 ### Esquema de datos (Constitución, Principio VII), verificado objeto por objeto
 
 | Objeto | Esquema | Historia | Justificación | Acceso |
 |---|---|---|---|---|
 | `dominio.listas_precios` (tabla nueva) | **`dominio`** | F-PRE-14 | Es una regla comercial del negocio (política de precios), como `precios_empresa`, `promociones_precio` y `producto_precios_escala`: no es plataforma | RLS por organización y por sección; `select` para `authenticated`; **sin escritura directa** (solo RPC `security definer`); sin política `DELETE`; sin privilegios para `anon` |
-| `public.clientes.lista_precio_id` (columna nueva) | `public` (donde ya vive `clientes`, MSF-180) | F-CLI-21 | Atributo del cliente; solo se agrega una columna nulable con FK compuesta a `dominio.listas_precios`. No se mueve `clientes` de esquema | RLS vigente de `clientes`; **sin** `grant update` de columna: solo la RPC `asignar_lista_precios_cliente` la escribe |
+| `dominio.clientes.lista_precio_id` (columna nueva) | `dominio` (donde vive `clientes` desde MSF-882) | F-CLI-21 | Atributo del cliente; solo se agrega una columna nulable con FK compuesta a `dominio.listas_precios`. No se mueve `clientes` de esquema | RLS vigente de `clientes`; **sin** `grant update` de columna: solo la RPC `asignar_lista_precios_cliente` la escribe |
 | `dominio.comprobantes_venta_lineas.lista_precio_id`, `lista_ajuste_pct` (columnas nuevas) | `dominio` | F-CLI-21 | Snapshot de la venta (D12), junto a `descuento_pct` y `precio_referencia` | RLS vigente; las escribe `guardar_lineas_comprobante` |
 | Fila `listas_precios` en `public.banderas_plataforma` | `public` (plataforma) | ambas | Dato, no estructura (D13) | `authenticated` solo lee; la cambia el equipo técnico por SQL |
 | Vista `public.listas_precios_resumen` | `public` | F-PRE-14 | Superficie de lectura con la cantidad de clientes por lista; `security_invoker`, sin datos propios | Hereda la RLS de la tabla |
@@ -56,12 +56,12 @@ Todo lo que sigue **no estaba definido** y se decidió con el criterio de reutil
 
 ## Modelo de datos (DER)
 
-La única tabla nueva es `dominio.listas_precios`. Se alteran `public.clientes` (una columna) y `dominio.comprobantes_venta_lineas` (dos columnas de snapshot). El resto del grafo de precio y de cliente se muestra completo para ver a qué se ata cada pieza y qué tabla alimenta cada paso de la precedencia (D5).
+La única tabla nueva es `dominio.listas_precios`. Se alteran `dominio.clientes` (una columna) y `dominio.comprobantes_venta_lineas` (dos columnas de snapshot). El resto del grafo de precio y de cliente se muestra completo para ver a qué se ata cada pieza y qué tabla alimenta cada paso de la precedencia (D5).
 
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `dominio.listas_precios` | nueva | Lista de precios por organización: nombre, descripción, `ajuste_pct` (−90 a +100), archivada o no, auditoría y bloqueo optimista |
-| `public.clientes` | alterada | Columna `lista_precio_id` (nulable, FK compuesta a la lista): la lista del cliente |
+| `dominio.clientes` | alterada | Columna `lista_precio_id` (nulable, FK compuesta a la lista): la lista del cliente |
 | `dominio.comprobantes_venta_lineas` | alterada | Columnas `lista_precio_id` y `lista_ajuste_pct`: qué lista y qué porcentaje se usaron en la línea (D12) |
 | `dominio.comprobantes_venta` | existente | Comprobante con `cliente_id` y `empresa_id`; define el cliente y la tienda del cálculo |
 | `public.cuentas_cliente` | existente | Cuenta web del cliente en una tienda (Fase 4) |
@@ -259,7 +259,7 @@ Como **administrador** quiero asignar una lista de precios propia a un cliente, 
 
 ### F-CLI-21 — Listas de precios por cliente
 
-- **RF-CLI-21-1**: `public.clientes` DEBE tener `lista_precio_id` nulable con FK compuesta `(lista_precio_id, organizacion_id)` a la lista; no se concede `update` de la columna a `authenticated`.
+- **RF-CLI-21-1**: `dominio.clientes` DEBE tener `lista_precio_id` nulable con FK compuesta `(lista_precio_id, organizacion_id)` a la lista; no se concede `update` de la columna a `authenticated`.
 - **RF-CLI-21-2**: `public.asignar_lista_precios_cliente(cliente, lista)` DEBE asignar o quitar (`null`) la lista, solo Administrador, idempotente, con rechazo de lista archivada o ajena, de cliente ajeno o archivado y del Consumidor final (D11); deja el evento `cliente.lista_precio_asignada` (cliente, lista anterior y nueva).
 - **RF-CLI-21-3**: La ficha del cliente DEBE mostrar el campo «Lista de precios» (selector de listas activas, editable solo por Administrador, solo lectura para los demás) con el porcentaje y el aviso de D6 cuando el cliente también tiene descuento personal; **no** crea una pantalla de gestión nueva (la ficha de cliente absorbe la asignación).
 - **RF-CLI-21-4**: Cuando se calcula una línea, DEBE aplicarse la precedencia de D5–D7 en **un solo lugar** de la base (el motor extiende `private.precio_para_calculo` / `private.precio_linea_venta(_calculo)`; no se duplica la fórmula en la web, en las vistas ni en la tienda).

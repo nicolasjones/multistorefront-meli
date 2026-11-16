@@ -3,7 +3,7 @@
 -- (RF-PRE-14-3), la bandera (55000 salvo quitar), la fusión de clientes y que ningún precio cambia por tener una lista asignada.
 begin;
 
-select plan(57);
+select plan(60);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -25,13 +25,13 @@ insert into dominio.listas_precios (id, organizacion_id, nombre, ajuste_pct) val
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena', -30);
 update dominio.listas_precios set archivada_en = now() where id = 'a1000000-0000-0000-0000-000000000003';
 
-insert into clientes (id, organizacion_id, numero, nombre) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Cliente A'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Cliente B'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Cliente archivado'),
   ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Cliente absorbido'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 201, 'Cliente ajeno');
-update clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000003';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000003';
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin
@@ -41,23 +41,23 @@ begin
 end $$;
 
 create function pg_temp.final_uno() returns uuid language sql as $$
-  select id from public.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final
+  select id from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final
 $$;
 
 -- ============================================================================
 -- Estructura y grants (RF-CLI-21-1)
 -- ============================================================================
 
-select has_column('public', 'clientes', 'lista_precio_id', 'clientes tiene lista_precio_id');
-select col_is_null('public', 'clientes', 'lista_precio_id', 'es nulable (sin lista)');
+select has_column('dominio', 'clientes', 'lista_precio_id', 'clientes tiene lista_precio_id');
+select col_is_null('dominio', 'clientes', 'lista_precio_id', 'es nulable (sin lista)');
 select is(
   (select count(*)::int from pg_constraint where conname = 'clientes_lista_precio_fk' and contype = 'f'
-     and conrelid = 'public.clientes'::regclass and confrelid = 'dominio.listas_precios'::regclass and array_length(conkey, 1) = 2),
+     and conrelid = 'dominio.clientes'::regclass and confrelid = 'dominio.listas_precios'::regclass and array_length(conkey, 1) = 2),
   1, 'FK compuesta (lista, organización) a dominio.listas_precios');
-select is(has_column_privilege('authenticated', 'public.clientes', 'lista_precio_id', 'update'), false, 'authenticated no actualiza la columna');
-select is(has_column_privilege('authenticated', 'public.clientes', 'lista_precio_id', 'insert'), false, 'authenticated no inserta la columna');
-select is(has_column_privilege('authenticated', 'public.clientes', 'lista_precio_id', 'select'), true, 'authenticated la lee');
-select is(has_column_privilege('anon', 'public.clientes', 'lista_precio_id', 'select'), false, 'anon no la lee');
+select is(has_column_privilege('authenticated', 'dominio.clientes', 'lista_precio_id', 'update'), false, 'authenticated no actualiza la columna');
+select is(has_column_privilege('authenticated', 'dominio.clientes', 'lista_precio_id', 'insert'), false, 'authenticated no inserta la columna');
+select is(has_column_privilege('authenticated', 'dominio.clientes', 'lista_precio_id', 'select'), true, 'authenticated la lee');
+select is(has_column_privilege('anon', 'dominio.clientes', 'lista_precio_id', 'select'), false, 'anon no la lee');
 select is(has_function_privilege('anon', 'public.asignar_lista_precios_cliente(uuid, uuid)', 'execute'), false, 'anon no ejecuta la RPC');
 select is(has_function_privilege('authenticated', 'public.asignar_lista_precios_cliente(uuid, uuid)', 'execute'), true, 'authenticated ejecuta la RPC');
 select is(
@@ -76,7 +76,7 @@ select lives_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001')$$,
   'el administrador asigna una lista');
 reset role;
-select is((select lista_precio_id from clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'el cliente queda con la lista');
+select is((select lista_precio_id from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'el cliente queda con la lista');
 select is(
   (select count(*)::int from public.registro_actividad
     where tipo = 'cliente.lista_precio_asignada' and valor_anterior is null and valor_nuevo ->> 'lista' = 'Revendedores' and detalle like '%Cliente A%'),
@@ -136,7 +136,7 @@ select lives_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000002', null)$$,
   'se quita también al segundo');
 reset role;
-select is((select lista_precio_id from clientes where id = 'c1000000-0000-0000-0000-000000000001'), null, 'el cliente vuelve a no tener lista');
+select is((select lista_precio_id from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), null, 'el cliente vuelve a no tener lista');
 select is(
   (select count(*)::int from public.registro_actividad where tipo = 'cliente.lista_precio_asignada' and valor_nuevo is null and detalle like 'Quitó%'),
   2, 'la Actividad registra cada quita (una por cliente)');
@@ -182,7 +182,7 @@ select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001')$$,
   '42501', null, 'un operador no asigna');
 select throws_ok(
-  $$update clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where id = 'c1000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where id = 'c1000000-0000-0000-0000-000000000001'$$,
   '42501', null, 'la escritura directa de la columna está negada');
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
@@ -202,13 +202,13 @@ reset role;
 -- ============================================================================
 
 select throws_ok(
-  $$update clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where es_consumidor_final and organizacion_id = '11111111-1111-1111-1111-111111111111'$$,
+  $$update dominio.clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where es_consumidor_final and organizacion_id = '11111111-1111-1111-1111-111111111111'$$,
   '22023', null, 'el disparador rechaza el Consumidor final aun fuera de la RPC');
 select throws_ok(
-  $$update clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000003' where id = 'c1000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000003' where id = 'c1000000-0000-0000-0000-000000000001'$$,
   '22023', null, 'el disparador rechaza una lista archivada');
 select throws_ok(
-  $$update clientes set lista_precio_id = 'a2000000-0000-0000-0000-000000000001' where id = 'c1000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set lista_precio_id = 'a2000000-0000-0000-0000-000000000001' where id = 'c1000000-0000-0000-0000-000000000001'$$,
   '23503', null, 'la FK compuesta rechaza una lista de otra organización');
 
 -- ============================================================================
@@ -235,7 +235,7 @@ update public.banderas_plataforma set activa = true where clave = 'listas_precio
 -- Fusión de clientes (T012): el conservado mantiene su lista, el absorbido la pierde
 -- ============================================================================
 
-update clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where id in ('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004');
+update dominio.clientes set lista_precio_id = 'a1000000-0000-0000-0000-000000000001' where id in ('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004');
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
   (select lista_nombre from public.vista_previa_fusion_clientes('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004') where cliente_id = 'c1000000-0000-0000-0000-000000000004'),
@@ -244,16 +244,16 @@ select lives_ok(
   $$select public.fusionar_clientes('c1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000004')$$,
   'la fusión funciona');
 reset role;
-select is((select lista_precio_id from clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'el cliente conservado mantiene su lista');
-select is((select lista_precio_id from clientes where id = 'c1000000-0000-0000-0000-000000000004'), null, 'el absorbido pierde la suya');
-select isnt((select archivado_en from clientes where id = 'c1000000-0000-0000-0000-000000000004'), null, 'y queda archivado');
+select is((select lista_precio_id from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'el cliente conservado mantiene su lista');
+select is((select lista_precio_id from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000004'), null, 'el absorbido pierde la suya');
+select isnt((select archivado_en from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000004'), null, 'y queda archivado');
 
 -- ============================================================================
 -- Archivar un cliente conserva su lista (se restaura con ella) y cuenta para la lista
 -- ============================================================================
 
-update clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
-select is((select lista_precio_id from clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'archivar al cliente no le quita la lista');
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
+select is((select lista_precio_id from dominio.clientes where id = 'c1000000-0000-0000-0000-000000000001'), 'a1000000-0000-0000-0000-000000000001'::uuid, 'archivar al cliente no le quita la lista');
 select is(private.cantidad_clientes_lista('a1000000-0000-0000-0000-000000000001'), 1::bigint, 'el conteo incluye a los archivados');
 
 -- ============================================================================
@@ -264,10 +264,10 @@ insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true);
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo) values
   ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alfa', 'PR-1', 1000, 'ARS', true);
-update clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
 create temp table t_precio as
   select * from private.precio_linea_venta_calculo('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'minorista', 1, 0);
-update clientes set lista_precio_id = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set lista_precio_id = null where id = 'c1000000-0000-0000-0000-000000000001';
 select results_eq(
   $$select * from private.precio_linea_venta_calculo('b1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'minorista', 1, 0)$$,
   $$select * from t_precio$$,
@@ -275,8 +275,22 @@ select results_eq(
 select is(
   (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'private' and p.proname in ('precio_para', 'precio_para_calculo', 'precio_linea_venta', 'precio_linea_venta_calculo')
-      and p.prosrc ilike '%lista_precio%'),
-  0, 'ninguna función del motor de precio lee lista_precio_id');
+      and p.prosrc ilike '%dominio.clientes%'),
+  0, 'ninguna función del motor de precio lee clientes.lista_precio_id: la lectura vive en private.lista_precios_cliente (Fase 3)');
+
+-- El motor llega a la lista del cliente solo por private.lista_precios_cliente: ninguna otra función de precio ni de la tienda lee la columna
+-- del cliente con el alias del motor, y el cálculo la invoca.
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname in ('public', 'private', 'publico') and p.proname ~ '^(precio|motor)_' and p.prosrc ilike '%dominio.clientes%' and p.prosrc ilike '%lista_precio_id%' and p.proname <> 'motor_presupuesto_tienda'),
+  0, 'ninguna función de precio ni de la tienda lee clientes.lista_precio_id por su cuenta: solo private.lista_precios_cliente');
+select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where n.nspname = 'private' and p.proname = 'lista_precios_cliente' and p.prosrc ilike '%c.lista_precio_id%'), 1,
+  'private.lista_precios_cliente es quien lee clientes.lista_precio_id');
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'private' and p.proname in ('precio_para_calculo') and p.prosrc ilike '%lista_precios_cliente(%'),
+  1, 'precio_para_calculo obtiene la lista llamando a private.lista_precios_cliente');
 
 select * from finish();
 rollback;

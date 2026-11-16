@@ -138,6 +138,10 @@ jobs:
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
         run: pnpm test:docs:pasos-manuales
+      # Simulacro de restauración (MSF-520): el protocolo tiene que conservar los pasos que miden
+      # los objetivos y la documentación no puede contradecirse sobre si el simulacro corrió.
+      - name: test:docs:simulacro
+        run: pnpm test:docs:simulacro
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
@@ -145,6 +149,9 @@ jobs:
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
+      # Script de la bandera tienda_opiniones (MSF-467, T030): igual, solo dev; Node puro, sin base.
+      - name: test:tienda:opiniones-dev
+        run: pnpm test:tienda:opiniones-dev
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
@@ -154,6 +161,11 @@ jobs:
         run: pnpm test:e2e:escritura
       - name: test:e2e:omitidos (guarda contra omisiones masivas del e2e)
         run: pnpm test:e2e:omitidos
+      # Decisión MSF-852: la suite corre en un job nocturno sobre dokploy y no bloquea PRs. La guarda detecta
+      # si el workflow o su contrato desaparecen sin que nadie lo note (el E2E no puede volver a podrirse en silencio).
+      - run: pnpm e2e:nocturno:check
+      - name: test:e2e:nocturno
+        run: pnpm test:e2e:nocturno
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
@@ -173,6 +185,11 @@ jobs:
       - name: build
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
+      # El bundle que se sirve en dev tiene que traer la funcionalidad de opiniones (MSF-467, T030): con la bandera
+      # encendida, un bundle viejo dejaría la tienda sin bloque de opiniones sin que se note.
+      - name: bundle con opiniones (MSF-467, T030)
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
+        run: pnpm tienda:opiniones:bundle:check
       - name: test:ia
         if: needs.changes.outputs.code == 'true'
         run: pnpm test:ia
@@ -446,7 +463,8 @@ jobs:
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
 
-  # E2E de la TIENDA PÚBLICA (`apps/web/e2e/tienda-*.e2e.ts`, 20 specs). A diferencia de `acceso-publico` (que
+  # E2E de la TIENDA PÚBLICA (todos los `apps/web/e2e/tienda-*.e2e.ts`) y de la etiqueta con QR de Service
+  # (`service-etiqueta-qr.e2e.ts`, F-SVC-32: los demás E2E de Service no corren en el CI). A diferencia de `acceso-publico` (que
   # corre en `application` sin base), estos recorridos siembran con la service-role desde Node y la web lee de
   # PostgREST, así que necesitan un stack de Supabase con API (auth + kong + postgrest + storage). Es un job
   # APARTE (y no un paso de `application`) para correr en paralelo con la suite `web` y no alargar el camino
@@ -462,7 +480,7 @@ jobs:
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && vars.CI_E2E_TIENDA != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}
-    # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
+    # Stack (~2-3 min) + migraciones (~1-2 min) + los specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
     # esperando ranura. El TTL de la ranura (`SUPABASE_CI_LOCK_TTL_MIN`, abajo y en `database`) va por encima del timeout
     # para que otro job no recicle esta ranura mientras el job sigue vivo; un job muerto sin `liberar` la suelta a los 75 min.
     timeout-minutes: 55
@@ -585,11 +603,12 @@ jobs:
           fi
       # Los specs de la tienda cambian el estado de las dos tiendas del seed (pausan una empresa, editan sus datos):
       # UN worker, en serie. `--workers=1` va antes de los filtros y SIN `--` (el `--` de pnpm llega literal a
-      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma sólo los 20 specs.
-      - name: test:e2e (tienda-*)
+      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma los `tienda-*.e2e.ts`; se suma
+      # `e2e/service-etiqueta-qr` (F-SVC-32, MSF-190): los E2E de Service se omiten solos sin `SUPABASE_URL` y acá corre de verdad.
+      - name: test:e2e (tienda-* y service-etiqueta-qr)
         timeout-minutes: 30
-        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
-      # 18 specs se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
+        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda- e2e/service-etiqueta-qr
+      # Los specs de la tienda y el de la etiqueta se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
       # el único omitido permitido es el de `tienda-seo` (`E2E_SIN_EDGE=1`). Lee `apps/web/resultado-e2e.json`.
       - name: Verificar que no haya omisiones inesperadas
         run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1

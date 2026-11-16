@@ -57,7 +57,7 @@ describe('relación con empresas (F-CLI-05)', () => {
   const cliente: Cliente = {
     id: 'c-1', numero: 1, nombre: 'Ana', documento: null, correo: null, telefono: null, celular: null,
     direccion: null, codigo_postal: null, localidad: null, provincia: null, expreso_preferido: null,
-    archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, created_at: '2026-10-18T00:00:00Z',
+    archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, acepta_whatsapp: false, created_at: '2026-10-18T00:00:00Z',
   }
 
   it('aFormulario adjunta las tiendas del cliente (ids) sin mezclarlas con la ficha', () => {

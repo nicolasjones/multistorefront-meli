@@ -273,25 +273,25 @@ reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000007');
 select ok(not private.puede_escribir(), 'miembro: puede_escribir sigue siendo falso');
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'x')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'x')$$,
   '42501', null, 'clientes (política por sección): el miembro (solo lectura) no inserta'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'ok')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'ok')$$,
   'clientes (política por sección): el administrador inserta'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
 select lives_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'del operador')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'del operador')$$,
   'clientes (política por sección): el operador (edición en Clientes) inserta aunque puede_escribir() sea falso'
 );
 reset role;
 select pg_temp.como('b1000000-0000-0000-0000-000000000005');
 select is(
-  (select count(*) from clientes)::int, 0,
+  (select count(*) from dominio.clientes)::int, 0,
   'clientes: depósito (sección en ninguno) no lee filas ni siquiera por la API'
 );
 reset role;

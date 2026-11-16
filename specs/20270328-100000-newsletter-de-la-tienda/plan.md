@@ -1,6 +1,6 @@
 # Plan: Tiendas online · Newsletter (MSF-468)
 
-**Spec**: [`spec.md`](./spec.md) · **Estado**: spec redactada, sin implementar. Decisión de Nicolás (2026-11-15): formulario de suscripción en el pie con baja personal que alimenta el correo masivo (MSF-155) y **el dueño compone cada envío** con vista previa; el resto son decisiones delegadas D1–D18 de la spec.
+**Spec**: [`spec.md`](./spec.md) · **Estado**: implementadas las seis fases (bandera apagada). Decisión de Nicolás (2026-11-15): formulario de suscripción en el pie con baja personal que alimenta el correo masivo (MSF-155) y **el dueño compone cada envío** con vista previa; el resto son decisiones delegadas D1–D18 de la spec.
 
 ## Enfoque
 
@@ -17,7 +17,7 @@ Ver la tabla «Esquema de datos» de la spec: tablas nuevas y alteradas en `domi
 
 ## Migraciones (todas aditivas e idempotentes; reversión en el encabezado de cada una)
 
-Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `20270326100000` (`node scripts/verificar-migraciones.mjs --estricto`); se usa la ventana `20270342000000+` y se **renumera al integrar** si otra rama la ocupó.
+Numeración **por encima de toda la cola de `dokploy`**: la máxima cambia con cada merge (`node scripts/verificar-migraciones.mjs --estricto`; al 2026-11-15 la siguiente ventana libre empieza en `20270350…`); las Fases 1 y 2 usaron `20270342…` y las Fases 3 a 6 la ventana `20270420…` (renumeradas al integrar, por encima de la máxima de `dokploy`); se **renumera al integrar** si otra rama la ocupó.
 
 | Migración | Fase | Contenido |
 |---|---|---|
@@ -25,11 +25,11 @@ Numeración **por encima de toda la cola de `dokploy`**: hoy la máxima es `2027
 | `20270342000100_newsletter_publico.sql` | 1 | `publico.newsletter_por_dominio`, `publico.suscribirse_newsletter`, `publico.confirmar_newsletter`, `private.validar_suscripcion_newsletter` (revoke a `public`/`authenticated`; `anon` solo ejecuta las tres `publico`) |
 | `20270342000200_newsletter_confirmaciones.sql` | 1 | `private.reclamar_confirmaciones_newsletter` (token nuevo, hash, vencimiento 48 h, poda de `pendiente` > 7 días), `private.cerrar_confirmacion_newsletter`; `execute` solo para `kestra_orquestacion` |
 | `20270342000300_exportacion_total_newsletter.sql` | 1 | Las tres tablas entran a `private.exclusiones_exportacion_total()` (rebasar si otra migración posterior a `20270324100300` la redefine) |
-| `20270342000400_newsletter_baja_y_gestion.sql` | 3 | Columnas nuevas de `campanas_correo` (`tipo`, `newsletter_id`, `bloques`), `campana_correo_destinatarios` (`cliente_id` nulable, `suscriptor_id`, checks y único) y `correo_masivo_pruebas` (`bloques`, `empresa_id`); extensión de `dar_de_baja_correo_masivo`; RPC `guardar_newsletter_configuracion`, `listar_suscriptores_newsletter`, `resumen_newsletter`, `dar_de_baja_suscriptor_newsletter`, `borrar_datos_suscriptor_newsletter` |
-| `20270342000500_newsletters.sql` | 4 | `dominio.newsletters` (RLS, grants), RPC `guardar_newsletter`, `descartar_newsletter`, `detalle_newsletter` |
-| `20270342000600_newsletter_bloques_y_prueba.sql` | 4 | `private.armar_bloques_newsletter`, `vista_previa_newsletter`, `solicitar_prueba_newsletter` |
-| `20270342000700_newsletter_envio.sql` | 5 | `enviar_newsletter`, `cancelar_envio_newsletter`, `listar_newsletters` |
-| `20270342000800_newsletter_lote.sql` | 5 | Redefine `private.reclamar_lote_correo_masivo`, `private.cerrar_envio_correo_masivo`, `listar_campanas_correo` y `detalle_campana_correo` (mismas firmas; solo campañas `clientes`; columnas nuevas al final) |
+| `20270420000000_newsletter_baja_y_gestion.sql` | 3 | Columnas nuevas de `campanas_correo` (`tipo`, `newsletter_id`, `bloques`), `campana_correo_destinatarios` (`cliente_id` nulable, `suscriptor_id`, checks y único) y `correo_masivo_pruebas` (`bloques`, `empresa_id`); extensión de `dar_de_baja_correo_masivo`; RPC `guardar_newsletter_configuracion`, `listar_suscriptores_newsletter`, `resumen_newsletter`, `dar_de_baja_suscriptor_newsletter`, `borrar_datos_suscriptor_newsletter` |
+| `20270420000100_newsletters.sql` (más `20270420000200_exportacion_total_newsletters.sql`) | 4 | `dominio.newsletters` (RLS, grants), RPC `guardar_newsletter`, `descartar_newsletter`, `detalle_newsletter` |
+| `20270420000300_newsletter_bloques_y_prueba.sql` | 4 | `private.armar_bloques_newsletter`, `vista_previa_newsletter`, `solicitar_prueba_newsletter` |
+| `20270420000400_newsletter_envio.sql` | 5 | `enviar_newsletter`, `cancelar_envio_newsletter`, `listar_newsletters` |
+| `20270420000500_newsletter_lote.sql` | 5 | Redefine `private.reclamar_lote_correo_masivo`, `private.cerrar_envio_correo_masivo`, `listar_campanas_correo` y `detalle_campana_correo` (mismas firmas; solo campañas `clientes`; columnas nuevas al final) |
 
 La última migración de cada fase deja la reversión **documentada** (no ejecutada en el mismo PR): restaurar las funciones redefinidas a su cuerpo anterior (`20270201200122`, `20270201200123` y la de baja de `20270201200122`), `drop` de las funciones nuevas y, al final, de las tablas nuevas (exportar antes el historial si hace falta); las columnas nuevas de las tablas del correo masivo se retiran solo cuando ninguna función las lee. Desactivar sin revertir: apagar la bandera `newsletter`.
 

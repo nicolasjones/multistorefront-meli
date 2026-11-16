@@ -38,7 +38,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('e1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Ana Pérez', 'minorista', 'ana@example.com'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente sin correo', 'minorista', null),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 10, 'Cliente de la Dos', 'minorista', 'dos@example.com');
@@ -311,7 +311,7 @@ select is((select count(*)::int from public.registro_actividad where tipo = 'rep
 -- Reenviar: un aviso nuevo con el correo ACTUAL (FR-027)
 -- ============================================================================
 
-update public.clientes set correo = 'ana.nueva@example.com' where id = 'c5000000-0000-0000-0000-000000000001';
+update dominio.clientes set correo = 'ana.nueva@example.com' where id = 'c5000000-0000-0000-0000-000000000001';
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 insert into avisos (clave, id)
 select 'a3', (public.avisar_cliente_reparacion((select id from reps where clave = 'r1'), (select diagnostico from datos))->>'aviso_id')::uuid;

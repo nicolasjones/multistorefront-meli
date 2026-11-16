@@ -4,11 +4,11 @@ export const ayudaReportes: AyudaPorDestino = {
   'reportes-inventario': {
     titulo: 'Productos y stock',
     resumen:
-      'Muestra cada producto con su cantidad, su costo y su valor, y el valor total del inventario. Podés filtrar por producto o SKU, categoría y estado; el valor total se calcula solo con lo que dejás filtrado. Un producto sin costo aparece con su stock pero sin valor. Es un reporte de toda la organización, no de una empresa.',
+      'Muestra cada producto con su cantidad y su estado. Quienes pueden ver costos en el resto del producto ven además el costo, el valor de cada producto y el valor total del inventario; el resto (por ejemplo, el rol Consulta) ve solo cantidades, también en el archivo que se descarga. Podés filtrar por producto o SKU, categoría y estado; el valor total se calcula solo con lo que dejás filtrado. Un producto sin costo aparece con su stock pero sin valor. Es un reporte de toda la organización, no de una empresa.',
     pasos: [
-      'Abrí el reporte para ver todos los productos con su stock y su valor.',
+      'Abrí el reporte para ver todos los productos con su stock (y su valor, si podés ver costos).',
       'Filtrá por producto o SKU, categoría o estado para acotar la lista.',
-      'Mirá el valor total del inventario: suma solo las filas filtradas.',
+      'Si podés ver costos, mirá el valor total del inventario: suma solo las filas filtradas.',
     ],
   },
   'reportes-reposicion': {

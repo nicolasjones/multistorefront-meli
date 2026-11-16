@@ -20,6 +20,7 @@ import {
   Typography,
 } from '@mui/material'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import QrCode2Icon from '@mui/icons-material/QrCode2'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
@@ -99,7 +100,7 @@ type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 // Service técnico · Reparación (F-SVC-02, FR-016): alta en `/reparaciones/nueva` y edición en `/reparaciones/:id`.
 // La autoridad de acceso y de costos es la base (RLS y RPC); acá el nivel y `ver_costos` solo deciden qué se ofrece.
 // La sección «Mano de obra y repuestos» (F-SVC-06, FR-027 y FR-028) agrega y quita ítems por RPC propia, no por
-// «Guardar». «Avisar al cliente» y los avisos al cliente son de F-SVC-14 (FR-023 a FR-028). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07).
+// «Guardar». «Avisar al cliente» y los avisos al cliente son de F-SVC-14 (FR-023 a FR-028). «Imprimir orden» e «Imprimir remito» abren las vistas A4 (F-SVC-07); «Imprimir etiqueta» abre la etiqueta con QR (F-SVC-32, P-3).
 // Estado, Historial, Entrega y Anulación son de F-SVC-03 (FR-030 a FR-034): el estado cambia por RPC propia.
 export function ServicioReparacion() {
   const { id } = useParams()
@@ -235,6 +236,8 @@ export function ServicioReparacion() {
   const avisosCliente = useAvisosReparacion(reparacion?.id, reparacion?.cliente_id, empresaActivaId, reparacion !== null)
   const clienteSinCorreo = avisosCliente.clienteConCorreo === false
   const puedeAvisar = reparacion !== null && puedeEditar && !cerrada && !clienteSinCorreo
+  // El aviso por WhatsApp (MSF-952) no depende del correo: la base exige el consentimiento del cliente y un teléfono.
+  const puedeAvisarWhatsapp = reparacion !== null && puedeEditar && !cerrada
   const avisoEnviado = avisosCliente.aviso
   useEffect(() => {
     if (avisoEnviado) setExito(avisoEnviado)
@@ -395,9 +398,23 @@ export function ServicioReparacion() {
                 Avisar al cliente
               </Button>
             ) : null}
+            {puedeAvisarWhatsapp ? (
+              <Button
+                variant="outlined"
+                onClick={() => void avisosCliente.avisarWhatsapp()}
+                disabled={avisosCliente.avisando || guardando}
+              >
+                Avisar por WhatsApp
+              </Button>
+            ) : null}
             {reparacion ? (
               <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/orden`} variant="outlined">
                 Imprimir orden
+              </Button>
+            ) : null}
+            {reparacion && reparacion.anulada_en === null ? (
+              <Button component={RouterLink} to={`/service-tecnico/reparaciones/${reparacion.id}/etiqueta`} variant="outlined" startIcon={<QrCode2Icon />}>
+                Imprimir etiqueta
               </Button>
             ) : null}
             {reparacion && reparacion.entrega_real !== null && reparacion.anulada_en === null ? (
@@ -746,8 +763,11 @@ export function ServicioReparacion() {
               error={avisosCliente.errorCarga}
               onReintentar={avisosCliente.recargar}
               puedeReenviar={puedeEditar && !clienteSinCorreo}
+              puedeReenviarWhatsapp={puedeEditar}
               avisando={avisosCliente.avisando}
-              onReenviar={(estadoId) => void avisosCliente.avisar(estadoId)}
+              onReenviar={(aviso) => void (aviso.canal === 'whatsapp'
+                ? avisosCliente.avisarWhatsapp(aviso.estado_id)
+                : avisosCliente.avisar(aviso.estado_id))}
               sinCorreo={clienteSinCorreo || avisosCliente.errorAvisar === MENSAJE_CLIENTE_SIN_CORREO}
             />
           ) : null}

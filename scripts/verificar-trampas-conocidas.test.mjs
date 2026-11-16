@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, tablasCreadas, sinBase,
+  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, recorrerSql, tablasCreadas, sinBase,
 } from './verificar-trampas-conocidas.mjs';
 
 const mig = (version, sql) => ({ ruta: `supabase/migrations/${version}_prueba.sql`, sql });
@@ -184,4 +184,318 @@ test('el parseo de casts no se cuelga con espacios hostiles (sin ReDoS)', async 
   const t = Date.now();
   filasConjuntosExportacion(sql);
   assert.ok(Date.now() - t < 2000, 'tardó demasiado: ReDoS');
+});
+
+test('current_date en el alta de una reparación falla; con la fecha de Buenos Aires o en otra tabla pasa', () => {
+  const mal = revisarFechasBuenosAires({ pruebas: [{ ruta: 'x.sql', sql: 'insert into dominio.reparaciones (id, ingreso_en)\n  values (1, current_date);' }] });
+  assert.equal(mal.length, 1);
+  assert.match(mal[0], /Buenos_Aires/);
+  const bien = "insert into dominio.reparaciones (id, ingreso_en) values (1, (now() at time zone 'America/Argentina/Buenos_Aires')::date);\ninsert into dominio.otra (f) values (current_date);\nselect throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '42501');";
+  assert.deepEqual(revisarFechasBuenosAires({ pruebas: [{ ruta: 'a.sql', sql: bien }] }), []);
+});
+
+const t7 = (sql) => revisarFechasBuenosAires({ pruebas: [{ ruta: 'x.sql', sql }] });
+
+test('T7: un punto y coma dentro de un literal no corta la sentencia (antes: falso negativo)', () => {
+  assert.equal(t7("insert into dominio.reparaciones (falla, ingreso_en) values ('roto; no enciende', current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (falla, ingreso_en) values ('a;b;c', current_date);").length, 1);
+});
+
+test('T7: throws_ok con punto y coma dentro de $$ ... $$ es una sola sentencia exenta (antes: falso positivo)', () => {
+  const sql = "select throws_ok($$insert into dominio.reparaciones (a, ingreso_en) values (1, current_date); select 1$$, '22023');";
+  assert.deepEqual(t7(sql), []);
+  const etiquetado = "select throws_ok($f$insert into dominio.reparaciones (ingreso_en) values (current_date); x$f$, '22023');";
+  assert.deepEqual(t7(etiquetado), []);
+});
+
+test('T7: la palabra current_date dentro de un literal o un comentario no cuenta', () => {
+  assert.deepEqual(t7("insert into dominio.reparaciones (nota) values ('usa current_date en UTC');"), []);
+  assert.deepEqual(t7("-- insert into dominio.reparaciones (ingreso_en) values (current_date);\nselect 1;"), []);
+  assert.deepEqual(t7("/* update dominio.reparaciones set ingreso_en = current_date; */ select 1;"), []);
+  assert.deepEqual(t7("insert into dominio.reparaciones (nota, ingreso_en) values ('it''s; ok', (now() at time zone 'America/Argentina/Buenos_Aires')::date);"), []);
+});
+
+test('T7: un alta dentro de un bloque do $$ sin throws_ok sí falla', () => {
+  assert.equal(t7("do $$ begin insert into dominio.reparaciones (ingreso_en) values (current_date); end $$;").length, 1);
+});
+
+test('T7: update reparaciones set ingreso_en = current_date falla; otras columnas o la fecha de Buenos Aires no', () => {
+  const mal = t7("update dominio.reparaciones set falla = 'x', ingreso_en = current_date - 1 where id = 1;");
+  assert.equal(mal.length, 1);
+  assert.match(mal[0], /x\.sql:1 /);
+  assert.equal(t7("update reparaciones set ingreso_en = coalesce(ingreso_en, current_date);").length, 1);
+  assert.deepEqual(t7("update dominio.reparaciones set entrega_prevista = current_date where id = 1;"), []);
+  assert.deepEqual(t7("update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date where creado_en::date = current_date;"), []);
+  assert.deepEqual(t7("update dominio.otra set ingreso_en = current_date;"), []);
+});
+
+test('T7: crear_reparacion con p_ingreso => current_date falla; otros argumentos o la fecha de BA no', () => {
+  assert.equal(t7("select public.crear_reparacion(p_empresa_id => 'x', p_ingreso => current_date, p_falla => 'y');").length, 1);
+  assert.equal(t7("select crear_reparacion(p_ingreso_en => current_date);").length, 1);
+  assert.deepEqual(t7("select public.crear_reparacion(p_empresa_id => 'x', p_entrega_prevista => current_date);"), []);
+  assert.deepEqual(t7("select public.crear_reparacion(p_ingreso => (now() at time zone 'America/Argentina/Buenos_Aires')::date, p_falla => 'a');"), []);
+  assert.deepEqual(t7("select throws_ok($$select public.crear_reparacion(p_ingreso => current_date)$$, '22023');"), []);
+});
+
+test('recorrerSql conserva largo y líneas, y no corta en ; de literales ni de dólares', () => {
+  const sql = "select 'a;b' ; -- c;d\nselect $$x;y$$; select 1";
+  const r = recorrerSql(sql);
+  assert.equal(r.enmascarado.length, sql.length);
+  assert.equal(r.sentencias.length, 3);
+  assert.match(r.sentencias[1].texto, /\$\$x;y\$\$/);
+});
+
+test('T7: SQL sin cerrar o con cadenas raras no cuelga ni lanza', () => {
+  const t = Date.now();
+  assert.doesNotThrow(() => t7("select 'sin cerrar; current_date"));
+  assert.doesNotThrow(() => t7('select $$ sin cerrar; insert into reparaciones (x) values (current_date)'));
+  assert.doesNotThrow(() => t7("select \"id ; current_date"));
+  assert.ok(Date.now() - t < 2000);
+});
+
+test('T7: current_date en OTRA columna de fecha del insert no se marca; en ingreso_en sí (QA-3)', () => {
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) values (1, current_date, (now() at time zone 'America/Argentina/Buenos_Aires')::date);"), []);
+  assert.equal(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) values (1, null, current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) values (1, current_date), (2, current_date - 1);").length, 2);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) select 1, current_date from x;").length, 1);
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en, ingreso_en) select 1, current_date, now()::date from x;"), []);
+  assert.deepEqual(t7("insert into dominio.reparaciones (id, prometida_en) values (1, current_date);"), []);
+  assert.equal(t7("insert into dominio.reparaciones values (1, current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (id, ingreso_en) values (f(1, 2), coalesce(null, current_date));").length, 1);
+});
+
+test('T7: la exención de throws_ok es solo para su llamada, no para toda la sentencia (QA-4)', () => {
+  const sql = "create function pg_temp.f() returns void language plpgsql as $f$ begin\n  perform throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '22023');\n  insert into dominio.reparaciones (ingreso_en) values (current_date);\nend $f$;";
+  const p = t7(sql);
+  assert.equal(p.length, 1);
+  assert.match(p[0], /x\.sql:3 /);
+  assert.deepEqual(t7("select throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '22023'), 1;"), []);
+});
+
+test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)', () => {
+  const ne = (sql) => recorrerSql(sql).sentencias.filter((x) => x.texto.trim()).length;
+  const sql = "insert into dominio.reparaciones (falla, ingreso_en) values (E'no \\' enciende; roto', current_date);";
+  assert.equal(ne(sql), 1);
+  assert.equal(t7(sql).length, 1);
+  assert.deepEqual(t7("insert into dominio.reparaciones (falla) values (E'dice \\'current_date\\' y; mas');"), []);
+  // Un literal común termina en la primera comilla: el backslash no escapa; con E sí.
+  assert.equal(recorrerSql("select 'a\\'; b'; select 1;").sentencias[0].texto.length, "select 'a\\'".length);
+  assert.equal(recorrerSql("select e'a\\'; b'; select 1;").sentencias[0].texto.length, "select e'a\\'; b'".length);
+  assert.equal(ne("select e'a\\'; b'; select 1;"), 2);
+});
+
+// Entradas adversariales: el análisis de T7 debe ser lineal (cada una en menos de 1 s) y no lanzar.
+const rapido = (nombre, sql, comprobar = () => {}) => test(`T7 rendimiento: ${nombre}`, () => {
+  const t = Date.now();
+  const r = t7(sql);
+  assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
+  comprobar(r);
+});
+rapido('500 updates y 666 «ingreso_en = 1,» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1, '.repeat(666)}`, (r) => assert.deepEqual(r, []));
+rapido('13000 «ingreso_en = 1» sin comas (cerca del tope): conservador y rápido', `update reparaciones set ${'ingreso_en = 1 '.repeat(6000)}`, (r) => assert.equal(r.length, 1));
+rapido('«ingreso_en =» repetido sin comas ni cierres', `update reparaciones set ${'ingreso_en = 1 '.repeat(20000)}`);
+rapido('2500 altas con paréntesis sin cerrar', 'insert into reparaciones (a,ingreso_en values ('.repeat(2500), (r) => assert.equal(r.length, 1));
+rapido('10000 throws_ok( sin cerrar con un alta', `${'throws_ok('.repeat(10000)} insert into reparaciones (ingreso_en) values (current_date)`);
+rapido('altas anidadas en paréntesis', `${'insert into reparaciones ('.repeat(1500)}ingreso_en${')'.repeat(1500)}`);
+rapido('sentencia gigante que toca reparaciones', `insert into reparaciones (ingreso_en) values (now()); ${'select 1, '.repeat(30000)}select 1 -- reparaciones`.replace(/;/, ' '), (r) => assert.ok(r.length >= 1));
+rapido('muchos usos de current_date en una sentencia', `insert into reparaciones (ingreso_en) values ${'(current_date),'.repeat(3000)}(current_date)`, (r) => assert.ok(r.length <= 21));
+rapido('un solo update con current_date sigue marcándose', 'update reparaciones set a = 1; update reparaciones set ingreso_en = current_date', (r) => assert.equal(r.length, 1));
+
+test('T7 conservador: expresión de ingreso más larga que el tope no se trunca en silencio (1)', () => {
+  const larga = `update reparaciones set ingreso_en = coalesce(${'x, '.repeat(600)}current_date);`;
+  const r = t7(larga);
+  assert.equal(r.length, 1);
+  assert.match(r[0], /no se puede comprobar/);
+  assert.deepEqual(t7("update reparaciones set ingreso_en = coalesce(x, y);"), []);
+  assert.equal(t7(`insert into reparaciones (ingreso_en) select ${'a+'.repeat(400)}current_date`).length, 1);
+});
+
+test('T7 rendimiento: peor caso ingreso_en sin comas bajo el tope de sentencia, < 300 ms', () => {
+  const t = Date.now();
+  t7(`update reparaciones set ${'ingreso_en = 1 '.repeat(6500)}`);
+  assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+});
+
+test('T7 conservador: throws_ok( sin cerrar y comilla o bloque sin cerrar se marcan (3)', () => {
+  assert.equal(t7("select throws_ok($$insert into reparaciones (ingreso_en) values (current_date)$$, '22023';").length, 1);
+  assert.match(t7("select throws_ok(\n$$select 1$$, 'x';")[0], /throws_ok\( sin cerrar/);
+  assert.match(t7("select 1;\nselect 'sin cerrar; current_date")[0], /sin cerrar/);
+  assert.match(t7('select $$ sin cerrar')[0], /sin cerrar/);
+  assert.match(t7('select 1; /* sin cerrar')[0], /sin cerrar/);
+  assert.match(t7('select "id sin cerrar')[0], /sin cerrar/);
+  assert.equal(recorrerSql("select 'a'; select $$b$$").sinCerrar, -1);
+});
+
+test('recorrerSql: dentro de $$ una comilla, comillas dobles o -- que no cierran son datos y no rompen el cierre', () => {
+  const sql = `select f($$o'brien"; drop table x; --$$) , 1; select 2;`;
+  const r = recorrerSql(sql);
+  assert.equal(r.sinCerrar, -1);
+  assert.equal(r.sentencias.filter((x) => x.texto.trim()).length, 2);
+  assert.equal(recorrerSql("select $$ /* x $$; select 1;").sinCerrar, -1);
+  // Dentro de un bloque, un literal que sí cierra se sigue enmascarando.
+  assert.deepEqual(t7("select throws_ok($$insert into reparaciones (nota, ingreso_en) values ('current_date', now())$$, '22023');"), []);
+});
+
+// Bloques de dólares grandes con de todo adentro (comillas, $x$, --, /*, "), con y sin cierre: lineal (< 300 ms).
+const relleno = (kb) => { const u = "$x$ ' -- /* \" "; return u.repeat(Math.ceil((kb * 1024) / u.length)); };
+for (const kb of [100, 300]) {
+  for (const [nombre, armar] of [
+    ['con cierre', (r) => `select $$ ${r} $$; select 1`],
+    ['sin cierre', (r) => `select $$ ${r}`],
+    ['con cierre y una alta mala después', (r) => `select $$ ${r} $$; insert into reparaciones (ingreso_en) values (current_date)`],
+  ]) {
+    test(`recorrerSql rendimiento: bloque $$ de ${kb} KB ${nombre}`, () => {
+      const t = Date.now();
+      const r = recorrerSql(armar(relleno(kb)));
+      const ms = Date.now() - t;
+      assert.ok(ms < 300, `tardó ${ms} ms`);
+      if (nombre === 'sin cierre') assert.ok(r.sinCerrar >= 0);
+      if (nombre === 'con cierre') assert.equal(r.sinCerrar, -1);
+    });
+  }
+}
+for (const [nombre, unidad] of [['/* sin cierre', 'a /* '], ['-- sin salto de línea', 'a -- '], ['comillas dobles sin cerrar', 'a " '], ['$x$ alternados', '$x$ a ']]) {
+  test(`recorrerSql rendimiento: «${nombre}» repetido 100 KB`, () => {
+    const t = Date.now();
+    recorrerSql(`select $$ ${unidad.repeat(Math.ceil(102400 / unidad.length))}`);
+    recorrerSql(unidad.repeat(Math.ceil(102400 / unidad.length)));
+    assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+  });
+}
+
+test('recorrerSql: sin bypass dentro de bloques; lo malo posterior se sigue marcando', () => {
+  assert.equal(t7("select $$ it's $$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.equal(t7("select $a$ x $b$ ' $b$ y $a$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.equal(t7("select $$ \" -- /* $$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.deepEqual(t7("select $$ it's $$; select 1"), []);
+});
+
+// Oráculo: el recorrido anterior (busca el cierre del bloque con indexOf en cada carácter; cuadrático pero de semántica de referencia).
+function recorrerSqlViejo(sql) {
+  const salida = sql.split('');
+  const sentencias = [];
+  const pila = [];
+  let inicio = 0;
+  let sinCerrar = -1; // posición del primer comentario, literal o bloque de dólares que no cierra (SQL roto)
+  const abierto = (i) => { if (sinCerrar < 0) sinCerrar = i; };
+  const blanquear = (desde, hasta) => { for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' '; };
+  let i = 0;
+  while (i < sql.length) {
+    const c = sql[i];
+    // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
+    const tope = pila.length ? sql.indexOf(pila[pila.length - 1], i) : -1;
+    if (c === '-' && sql[i + 1] === '-') {
+      const fin = sql.indexOf('\n', i);
+      let hasta = fin < 0 ? sql.length : fin;
+      if (tope >= 0 && tope < hasta) hasta = tope;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === '/' && sql[i + 1] === '*') {
+      const fin = sql.indexOf('*/', i + 2);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      const hasta = fin < 0 ? sql.length : fin + 2;
+      blanquear(i, hasta); i = hasta; continue;
+    }
+    if (c === "'") {
+      // E'...' admite \' y \\ como escapes (además de ''); un literal común no.
+      const escapes = /[eE]/.test(sql[i - 1] ?? '') && !/[a-z0-9_$]/i.test(sql[i - 2] ?? ' ');
+      let j = i + 1;
+      while (j < sql.length) {
+        if (escapes && sql[j] === '\\') { j += 2; continue; }
+        if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
+        if (sql[j] === "'") break;
+        j++;
+      }
+      if (tope >= 0 && tope < j) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
+      if (j >= sql.length) abierto(i);
+      blanquear(i + 1, Math.min(j, sql.length)); i = j + 1; continue;
+    }
+    if (c === '"') {
+      const fin = sql.indexOf('"', i + 1);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
+      i = fin < 0 ? sql.length : fin + 1; continue;
+    }
+    if (c === '$') {
+      const m = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i.exec(sql.slice(i, i + 80));
+      if (m) {
+        if (pila.length && pila[pila.length - 1] === m[0]) pila.pop(); else pila.push(m[0]);
+        i += m[0].length; continue;
+      }
+    }
+    if (c === ';' && pila.length === 0) {
+      sentencias.push({ texto: salida.slice(inicio, i).join(''), desde: inicio });
+      inicio = i + 1;
+    }
+    i++;
+  }
+  sentencias.push({ texto: salida.slice(inicio).join(''), desde: inicio });
+  if (pila.length) abierto(sql.length - 1);
+  return { enmascarado: salida.join(''), sentencias, sinCerrar };
+}
+
+// PRNG determinista (mulberry32).
+const prng = (semilla) => () => { semilla |= 0; semilla = (semilla + 0x6d2b79f5) | 0; let x = Math.imul(semilla ^ (semilla >>> 15), 1 | semilla); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) / 4294967296; };
+const FICHAS = ['$$', '$x$', '$y$', "'", '"', '--', '/*', '*/', '\n', ';', ' ', 'a', 'E', '(', ')', '$', 'insert into reparaciones (ingreso_en) values (current_date)', 'throws_ok(', ','];
+const aleatorio = (rnd, n) => { let s = ''; while (s.length < n) s += FICHAS[Math.floor(rnd() * FICHAS.length)]; return s; };
+
+test('recorrerSql: ejemplos con tokens que se pisan (cierre vencido) igualan al oráculo y no retroceden', () => {
+  for (const sql of ['$$ $x$$ $x$ -- a\nb $$', '$$$x$$x$*//*a;\';', '$$ $x$$ $x$ /* a $$ \' ; $$', "select $$ a $$$ b $$; select 'x'; --$$"]) {
+    const a = recorrerSql(sql); const b = recorrerSqlViejo(sql);
+    assert.deepEqual(a, b, sql);
+  }
+  assert.equal(recorrerSql('$$$x$$x$*//*a;\';').sinCerrar, recorrerSqlViejo('$$$x$$x$*//*a;\';').sinCerrar);
+});
+
+test('recorrerSql: equivale al oráculo en miles de entradas aleatorias (semilla fija)', () => {
+  const rnd = prng(12345);
+  for (let k = 0; k < 4000; k++) {
+    const sql = aleatorio(rnd, 5 + Math.floor(rnd() * 120));
+    assert.deepEqual(recorrerSql(sql), recorrerSqlViejo(sql), JSON.stringify(sql));
+  }
+});
+
+test('T7: mismos problemas que con el oráculo en miles de entradas aleatorias con una alta mala insertada', () => {
+  const rnd = prng(777);
+  for (let k = 0; k < 2000; k++) {
+    const sql = `${aleatorio(rnd, 40 + Math.floor(rnd() * 80))} ; insert into reparaciones (ingreso_en) values (current_date); ${aleatorio(rnd, 30)}`;
+    const nuevo = t7(sql);
+    const viejo = recorrerSqlViejo(sql);
+    // El oráculo corta igual: se compara la enmascarada y las sentencias, y que T7 no pierda la alta mala cuando el SQL cierra bien.
+    assert.deepEqual(recorrerSql(sql).sentencias, viejo.sentencias, JSON.stringify(sql));
+    if (viejo.sinCerrar < 0 && viejo.sentencias.some((x) => /insert\s+into\s+reparaciones\s*\(ingreso_en\)\s*values\s*\(current_date\)/i.test(x.texto)) && !/throws_ok/i.test(sql)) {
+      assert.ok(nuevo.length >= 1, JSON.stringify(sql));
+    }
+  }
+});
+
+test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 300 KB (< 500 ms)', () => {
+  for (const sql of ['$$ $x$$ $x$ -- a\n'.repeat(20000), '$$ $x$$ $x$ /* a '.repeat(20000), aleatorio(prng(99), 300000), aleatorio(prng(7), 300000).replace(/;/g, ' ')]) {
+    const t = Date.now();
+    recorrerSql(sql);
+    const ms = Date.now() - t;
+    assert.ok(ms < 500, `tardó ${ms} ms`);
+  }
+});
+
+test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} de 300 y 600 KB (< 500 ms)', () => {
+  const unicas = (kb) => { let s = ''; for (let n = 0; s.length < kb * 1024; n++) s += `$t${n}$ `; return s; };
+  const alfabeto = (kb, semilla) => { const rnd = prng(semilla); let s = ''; while (s.length < kb * 1024) s += '$xy'[Math.floor(rnd() * 3)]; return s; };
+  for (const sql of [unicas(300), unicas(600), alfabeto(300, 5), alfabeto(600, 6)]) {
+    const t = Date.now();
+    recorrerSql(sql);
+    const ms = Date.now() - t;
+    assert.ok(ms < 500, `tardó ${ms} ms`);
+  }
+});
+
+test('recorrerSql: el cierre por etiqueta es idéntico al oráculo con etiquetas que se pisan y repiten', () => {
+  const rnd = prng(2024);
+  const trozos = ['$$', '$x$', '$y$', '$x$$', '$$x$', 'a', ' ', "'", '--', '\n', ';'];
+  for (let k = 0; k < 3000; k++) {
+    let sql = '';
+    while (sql.length < 60) sql += trozos[Math.floor(rnd() * trozos.length)];
+    assert.deepEqual(recorrerSql(sql), recorrerSqlViejo(sql), JSON.stringify(sql));
+  }
 });

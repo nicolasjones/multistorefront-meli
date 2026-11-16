@@ -12,6 +12,9 @@ vi.mock('../../../lib/tiendaNewsletter', async (importOriginal) => ({
 
 import { FormularioSuscripcion } from './FormularioSuscripcion'
 
+// El esquema se arma en dos partes para no tener el literal «javascript:» (regla no-script-url de oxlint).
+const JS = 'java' + 'script:'
+
 const llenar = (correo = 'ana@ejemplo.com', casilla = true) => {
   fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: correo } })
   const marca = screen.getByRole('checkbox')
@@ -59,6 +62,12 @@ describe('FormularioSuscripcion', () => {
     await mostrar()
     expect(screen.getByRole('link', { name: 'Política de privacidad' })).toHaveAttribute('href', 'https://mundojc.example/privacidad')
     expect(screen.queryByRole('link', { name: 'Términos' })).toBeNull()
+  })
+
+  it('no enlaza una política de privacidad con un esquema que no es http(s)', async () => {
+    mocks.legal.mockReturnValue({ enlaces: [{ titulo: 'Política de privacidad', url: `${JS}alert(1)` }] })
+    await mostrar()
+    expect(screen.queryByRole('link', { name: 'Política de privacidad' })).toBeNull()
   })
 
   it('CA-NL-1: correo inválido o casilla sin marcar marca el campo y no envía', async () => {

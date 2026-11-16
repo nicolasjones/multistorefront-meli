@@ -45,7 +45,7 @@ reutiliza su estado. `20261206100250` y `20261206100300` son cambios de contrato
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `public.cuentas_cliente` | **nueva** | Cuenta de autenticación por `(cliente, tienda)`: `id`, `organizacion_id`, `cliente_id`, `empresa_id`, `auth_user_id`, `estado` (`activa` \| `suspendida`), `created_at`; única `(cliente_id, empresa_id)`; FK en cascada a organización, cliente, empresa y `auth.users`. |
-| `public.clientes` | existente | Solo se referencia (`cliente_id`); el correo de acceso sale de `clientes.correo`. |
+| `dominio.clientes` | existente | Solo se referencia (`cliente_id`); el correo de acceso sale de `clientes.correo`. |
 | `public.clientes_empresas` | existente | Determina «Habilitado en» y el estado derivado «No habilitado». |
 | `public.organizaciones` | existente | Dueña de la fila y del aislamiento. |
 | `dominio.empresas` | existente | Tienda de la cuenta; la empresa debe ser de la misma organización. |
@@ -169,7 +169,7 @@ datos.
 | Función | Devuelve |
 |---|---|
 | `publico.acceso_cliente_por_dominio(host text)` | `{ estado: 'activa' \| 'suspendida' \| 'sin_cuenta' \| 'no_habilitado', tipo: 'minorista' \| 'mayorista' \| null }` o `null`. `tipo` solo si `estado = 'activa'`. Host desconocido o empresa desactivada ⇒ `null`. Un cliente archivado ⇒ `sin_cuenta`. |
-| `publico.precios_cliente_por_dominio(host text, productos uuid[])` | `{ tipo, precios: [{ producto_id, escalas: [{ escala, desde, hasta, final }] }] }` o `null`. Reutiliza `acceso_cliente_por_dominio`: solo responde a una cuenta **activa y habilitada** en esa tienda. Minorista ⇒ `x1`; mayorista ⇒ `x1`, `x5`, `x10`, `x50` con rangos 1–4, 5–9, 10–49 y 50 o más. Máximo 50 productos por llamada (`22023` si se excede); solo productos efectivamente visibles (`private.catalogo_tienda_efectivo`). |
+| `publico.precios_cliente_por_dominio(host text, productos uuid[])` | `{ tipo, precios: [{ producto_id, escalas: [{ escala, desde, hasta, final }] }] }` o `null`. Desde MSF-932 (`20270507000200`) cada escala suma `precio_anterior` solo cuando una promoción vigente de la tienda la baja (gana el más bajo, sin acumular; ver `promociones-precio.md`). Reutiliza `acceso_cliente_por_dominio`: solo responde a una cuenta **activa y habilitada** en esa tienda. Minorista ⇒ `x1`; mayorista ⇒ `x1`, `x5`, `x10`, `x50` con rangos 1–4, 5–9, 10–49 y 50 o más. Máximo 50 productos por llamada (`22023` si se excede); solo productos efectivamente visibles (`private.catalogo_tienda_efectivo`). |
 
 `private.precio_final_publico_escala(producto, empresa, escala)` compone las fórmulas únicas
 `private.a_pesos` → `private.aplicar_regla_precio` → `private.aplicar_iva`. Respeta el interruptor

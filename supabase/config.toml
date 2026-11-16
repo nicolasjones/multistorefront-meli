@@ -480,6 +480,13 @@ verify_jwt = false
 [functions.api-v1]
 verify_jwt = false
 
+# enviar-resumen-semanal (F-REP-08, docs/resumen-semanal-correo.md): la invoca Kestra con `apikey` + `Authorization: Bearer` (clave
+# del proyecto, un JWT) y el secreto compartido `x-aviso-token`, que es la autenticación real. `verify_jwt = true` queda escrito
+# a propósito, igual que el valor por defecto que usan `enviar-aviso-faltante` y las demás funciones de avisos: el gateway pide
+# el JWT del proyecto Y la función valida el token. No pasar a `false` sin revisar el flow `resumen-semanal`.
+[functions.enviar-resumen-semanal]
+verify_jwt = true
+
 [analytics]
 enabled = false
 # Excepción FR-006 (spec 015) — variable equivalente: SUPABASE_ANALYTICS_PORT

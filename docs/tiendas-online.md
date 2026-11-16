@@ -698,7 +698,7 @@ Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso 
 | Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
 |---|---|---|---|
 | `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
-| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto, con la promoción vigente si baja la escala (`precio_anterior`, MSF-932); `null` sin cuenta activa habilitada | F-CLI-07 |
 
 `anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
 
@@ -1297,6 +1297,7 @@ contacto de la empresa del host.
 - **«Mi cuenta» (F-CLI-20, MSF-452)**: con la bandera `tienda_pedidos` encendida, el encabezado suma «Mi cuenta» para la cuenta web activa, la ficha suma «Guardar en favoritos» y la ruta `/mi-cuenta` lista compras, presupuestos y favoritos. `rutas/ingresar` acepta `?volver=` solo con rutas internas. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Lista de pedido sin cobro (B1, MSF-176)**: con la bandera `tienda_pedidos` encendida, la ficha suma «Agregar a la lista» (y «Ya tenés n en tu lista · Ver lista»), el encabezado «Mi lista (n)», el menú móvil «Mi lista» (con cuenta activa) y «Mi cuenta › Favoritos» «Agregar a la lista»; la ruta `/lista` revalida la lista con el servidor (precio de referencia = el que se ve en la tienda; con cuenta, la escala por cantidad), pide nombre y contacto (con cuenta, no) y la envía **sin pagar**: llega a Consultas como «Pedido» con sus ítems. La lista vive en el navegador (solo `producto_id` y cantidad). Con la bandera apagada no se ve nada y `/lista` es la 404. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Presupuesto desde la tienda (B2, MSF-176)**: con una cuenta activa, la lista suma «Pedir presupuesto»: un diálogo con la **cotización del servidor** (tu escala, tu descuento y las promociones vigentes, con IVA) y, al confirmar, un presupuesto **pendiente** en Ventas (canal tienda online) que el equipo acepta o modifica; **no reserva stock ni cobra nada**. Tope de 5 por día y 10 abiertos por cuenta; reintentar no duplica. Detalle y seguridad en `docs/tienda-compra-y-cuentas.md`.
+- **Opiniones de productos (MSF-467)**: con la bandera `tienda_opiniones` encendida (apagada por defecto, solo dev), la ficha suma el bloque «Opiniones» (promedio, cantidad y las opiniones aceptadas por tandas), un cliente con sesión deja, edita y borra la suya (siempre pasa por moderación previa) desde la ficha y desde la pestaña «Mis opiniones» de «Mi cuenta»; con la bandera apagada la ficha y «Mi cuenta» no cambian. Guía: [`docs/tienda-opiniones.md`](./tienda-opiniones.md).
 
 ## Lote 1 de deuda técnica: seguridad e integridad de la tienda pública (MSF-515)
 

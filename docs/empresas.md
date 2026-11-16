@@ -46,6 +46,8 @@ Políticas (migración `20261013120000`):
 
 ## Pantallas
 
+> Exportación total: `private.conjuntos_exportacion_total()` incluye `ordenes_compra` de toda la organización sin alcance por empresa (copia de respaldo); solo la ejecuta el rol de servicio `workers_orquestacion` desde el worker de exportación, nunca una persona de la app. Ver [ordenes-compra.md](ordenes-compra.md).
+
 - `/empresas` (listado): una fila (o tarjeta en pantallas angostas) por empresa con nombre, tienda
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
   muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
@@ -57,6 +59,17 @@ Políticas (migración `20261013120000`):
   ver `docs/catalogo.md` (sección «Regla de precio por empresa»). La ficha muestra las pestañas «General» y «Precios y moneda».
 - Activar/pausar es una acción inmediata e independiente del formulario; el listado muestra el estado.
 
+### Avisos de acceso (MSF-639)
+
+- `/empresas` (listado) y `/organizacion`: quien llega sin permiso de escritura ve la pantalla común de acceso
+  restringido (`pages/acceso-restringido/AccesoRestringido.tsx`): encabezado «No tenés acceso a esta sección» y el
+  motivo «Tu rol (…) no incluye Empresas / Mi organización. Pedile acceso a un administrador.» — el mismo patrón que
+  Rentabilidad, Listas y Motivos de movimiento. No se consulta ni se muestra ningún dato de la sección.
+- `/empresas/edit/:id`: quien no puede escribir ve la pantalla con el formulario deshabilitado y un aviso
+  **informativo** «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (tono info,
+  `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
+- No cambia el permiso: `usePuedeEscribir()` (espejo de `private.puede_escribir()`) y las políticas de RLS siguen
+  siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
 ## Gestión de la tienda (MSF-147)
 
 Cada empresa tiene su tienda online resuelta por dominio. La gestión vive dentro de Empresas, en
@@ -173,7 +186,7 @@ La tienda online de cada empresa (dominio, identidad visual, contenido y catálo
 
 ### Baja de organización: claves de reparaciones y error diferido (MSF-847, MSF-848)
 
-La clave `dominio.reparaciones.empresa_id → empresas` pasa a `deferrable initially deferred`, como las demás del alcance de la baja (MSF-844), para que la cascada no falle con 23503. Siguen fuera del alcance las claves de ventas, motos, cotizaciones y stock. Se agrega `private.confirmar_claves_diferidas()`, que fuerza la comprobación de las claves diferidas y traduce la violación a un error de negocio (P0001, «No se puede borrar: el registro está en uso por otros datos.»); una RPC que borre estas tablas debe invocarla al final de su cuerpo. Revisión de MSF-848: hoy ninguna RPC de las migraciones borra `public.organizaciones`, `dominio.empresas`, proveedores, productos, ingresos de mercadería ni reparaciones (la única baja de organización es el borrado de compensación de la función `crear-organizacion`, que recibe el error por PostgREST), así que no hay función a la que agregar la llamada; la primera RPC de baja de organización o empresa debe llamarla. Una prueba pgTAP con una reparación real (`baja_organizacion_reparaciones_real.test.sql`) comprueba que la baja de la empresa con reparaciones da P0001, que sin referencias la baja se completa y que la cascada de la organización borra las reparaciones. Migración `20270324120300`.
+La clave `dominio.reparaciones.empresa_id → empresas` pasa a `deferrable initially deferred`, como las demás del alcance de la baja (MSF-844), para que la cascada no falle con 23503. Siguen fuera del alcance las claves de ventas, motos, cotizaciones y stock. Se agrega `private.confirmar_claves_diferidas()`, que fuerza la comprobación de las claves diferidas y traduce la violación a un error de negocio (P0001, «No se puede borrar: el registro está en uso por otros datos.»); una RPC que borre estas tablas debe invocarla al final de su cuerpo. Revisión de MSF-848: hoy ninguna RPC de las migraciones borra `public.organizaciones`, `dominio.empresas`, proveedores, productos, ingresos de mercadería ni reparaciones (la única baja de organización es el borrado de compensación de la función `crear-organizacion`, que recibe el error por PostgREST), así que no hay función a la que agregar la llamada; la primera RPC de baja de organización o empresa debe llamarla. Una prueba pgTAP con una reparación real (`baja_organizacion_reparaciones_real.test.sql`) comprueba que la baja de la empresa con reparaciones da P0001, que sin referencias la baja se completa y que la cascada de la organización borra las reparaciones. Migración `20270324120300`. Seguridad retroactiva de #1008: la primera versión dejaba diferidas, al terminar, todas las restricciones diferibles de la transacción (`set constraints all deferred`), incluso las `deferrable initially immediate`; `20270347000200` restaura el modo de declaración (solo vuelven a diferirse las `initially deferred`, con nombre calificado) y `baja_organizacion_confirmar_claves_modo.test.sql` lo prueba. Límite explícito: restaura el modo **declarado**, no el que tenía la sesión; si quien la llama había hecho `set constraints X immediate` sobre una `initially deferred`, X vuelve a diferirse (y una `initially immediate` puesta en `deferred` queda inmediata).
 ### Aviso de formato del número de WhatsApp (MSF-743)
 
 En la ficha de empresa y en el formulario público de contacto, el campo WhatsApp avisa, sin bloquear, cuando el número no se puede normalizar para `wa.me` (`avisoFormatoWhatsapp` en `apps/web/src/lib/whatsapp.ts`): no avisa con el campo vacío, con un correo ni con un número válido. El formulario público no impide el envío con un número raro; la validación del servidor (8 a 15 dígitos) no cambia. Además, en Documentos IA, si falla la actualización del nombre de una versión, esta se marca `fallida` antes de abortar y no se invoca la indexación (MSF-750), para que no quede en `procesando`.

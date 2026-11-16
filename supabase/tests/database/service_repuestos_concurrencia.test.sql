@@ -23,7 +23,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) values
   ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null);
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, activo) values

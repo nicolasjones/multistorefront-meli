@@ -64,7 +64,7 @@ on conflict (producto_id) do update set cantidad = excluded.cantidad, reservado 
 insert into dominio.existencias_deposito (producto_id, deposito_id, organizacion_id, cantidad, reservado)
 select 'a1000000-0000-0000-0000-000000000001', principal, '11111111-1111-1111-1111-111111111111', 10, 3 from datos;
 
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'minorista'),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente Dos', 'minorista');
 

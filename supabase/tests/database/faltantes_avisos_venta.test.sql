@@ -46,7 +46,7 @@ insert into public.usuario_empresa_activa (user_id, empresa_id) values
   ('f2000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001');
 
 -- Uno tiene correo; Sin Correo no.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', 'uno@example.com', null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente Sin Correo', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente Tres', 'minorista', 'tres@example.com', null);

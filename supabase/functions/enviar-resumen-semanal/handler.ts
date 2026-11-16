@@ -7,6 +7,7 @@
 // perder el resumen); el registro de la base conserva el estado y los intentos.
 import { timingSafeEqual } from 'node:crypto'
 import type { EnviarCorreo } from '../_shared/correo.ts'
+import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import { asuntoResumenSemanal, cuerpoResumenSemanal, type ContenidoResumen } from './contenido.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
@@ -19,7 +20,10 @@ const ERROR_MAX = 300
 // A la base solo va un texto genérico; el detalle SMTP queda en los registros de la función.
 const ERROR_ENVIO_GENERICO = 'Falló el envío del correo; el detalle está en los registros de la función'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Misma clase que `enviar-aviso-faltante`: una sola dirección (sin coma, punto y coma, comillas ni ángulos) y sin los controles
+// e invisibles/bidi que `lineaSegura` convertiría en un espacio dentro de `to`.
+const NO_DIRECCION = `\\s@,;<>"${CARACTERES_NO_PERMITIDOS}`
+export const CORREO_VALIDO = new RegExp(`^[^${NO_DIRECCION}]+@[^${NO_DIRECCION}]+\\.[^${NO_DIRECCION}]+$`)
 
 type Resultado<T> = Promise<{ data: T; error: { message: string } | null }>
 
