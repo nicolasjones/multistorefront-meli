@@ -23,6 +23,10 @@ export type LineaComprobante = {
   precio_manual: boolean
   // F-VTA-32: % de descuento del cliente aplicado al neto de escala (0 = ninguno o precio manual).
   descuento_pct?: number
+  // F-CLI-21 (D12): lista de precios que fijó el precio normal de la línea. El porcentaje es el congelado al cobrar; el nombre es el
+  // actual de la lista. Nulos si no rigió una lista (precio manual, propio, escala, sin lista o bandera apagada).
+  lista_ajuste_pct?: number | null
+  lista_nombre?: string | null
   alicuota_porcentaje: number
   deposito_id: string | null
   deposito: string | null
@@ -61,12 +65,29 @@ export const MENSAJE_PRECIOS_CAMBIARON = 'Los precios cambiaron: revisá el tota
 export const MENSAJE_PRECIOS_CAMBIARON_COBRO = 'Los precios cambiaron: revisá el total y cobrá de nuevo.'
 // En el diálogo «Confirmar factura» no se cobra: se vuelve a confirmar (el cobro es un paso posterior).
 export const MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR = 'Los precios cambiaron: revisá el total y confirmá de nuevo.'
+// F-CLI-21: el rechazo `precios_cambiaron` llega con `details = 'lista_precios'` cuando lo que cambió es la lista de precios del cliente.
+export const MENSAJE_LISTA_CAMBIO_CONFIRMAR = 'El precio de la lista cambió: revisá el total y confirmá de nuevo.'
+export const MENSAJE_LISTA_CAMBIO_COBRO = 'El precio de la lista cambió: revisá el total y cobrá de nuevo.'
 export const MENSAJE_ERROR_ACTUALIZAR_PRECIOS = 'No pudimos actualizar los precios. Probá de nuevo.'
 
 // La línea cobra una promoción de la tienda (F-2, FR-016): el servidor guardó el precio normal como referencia.
 // Un precio manual nunca lleva promoción; las líneas `sin_stock` (Service) tampoco.
 export const lineaEnPromocion = (linea: Pick<LineaComprobante, 'precio_referencia' | 'precio_manual' | 'sin_stock'>): boolean =>
   !linea.precio_manual && !linea.sin_stock && typeof linea.precio_referencia === 'number'
+
+const formatoPorcentajeLista = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+
+// «Lista: Revendedores −20 %» (CA-CLI-21-9). Null cuando la línea no la fijó una lista: nada nuevo en pantalla.
+export function marcaListaLinea(
+  linea: Pick<LineaComprobante, 'lista_ajuste_pct' | 'lista_nombre' | 'precio_manual' | 'sin_stock' | 'precio_referencia'>,
+): string | null {
+  if (linea.precio_manual || linea.sin_stock) return null
+  if (typeof linea.lista_ajuste_pct !== 'number' || !linea.lista_nombre) return null
+  const signo = linea.lista_ajuste_pct > 0 ? '+' : linea.lista_ajuste_pct < 0 ? '\u2212' : ''
+  const marca = `Lista: ${linea.lista_nombre} ${signo}${formatoPorcentajeLista.format(Math.abs(linea.lista_ajuste_pct))} %`
+  // Cuando gana la promoción la lista solo explica la referencia: se aclara para no confundir.
+  return lineaEnPromocion(linea) ? `${marca} (rige la promoción)` : marca
+}
 
 export const rotuloEscalaLinea = (
   linea: Pick<LineaComprobante, 'escala' | 'precio_manual' | 'descuento_pct' | 'precio_referencia' | 'sin_stock'>,
@@ -147,13 +168,15 @@ function numero(valor: unknown): number {
 export function aLineas(dato: unknown): LineaComprobante[] {
   if (!Array.isArray(dato)) return []
   return dato.map((bruto) => {
-    // `promocion_id` nunca se conserva en el cliente (el servidor no lo manda; si llegara, se descarta).
-    const { promocion_id: _promocionId, ...linea } = bruto as Record<string, unknown>
+    // `promocion_id` y `lista_precio_id` nunca se conservan en el cliente (el servidor no los manda; si llegaran, se descartan).
+    const { promocion_id: _promocionId, lista_precio_id: _listaId, ...linea } = bruto as Record<string, unknown>
     return {
       ...(linea as unknown as LineaComprobante),
       cantidad: numero(linea.cantidad),
       precio_unitario: numero(linea.precio_unitario),
       precio_referencia: linea.precio_referencia === null || linea.precio_referencia === undefined ? null : numero(linea.precio_referencia),
+      lista_ajuste_pct: linea.lista_ajuste_pct === null || linea.lista_ajuste_pct === undefined ? null : numero(linea.lista_ajuste_pct),
+      lista_nombre: typeof linea.lista_nombre === 'string' ? linea.lista_nombre : null,
       alicuota_porcentaje: numero(linea.alicuota_porcentaje),
       stock: numero(linea.stock),
       reservado: numero(linea.reservado),

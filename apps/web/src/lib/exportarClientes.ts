@@ -99,7 +99,16 @@ async function pedirLote(filtros: FiltrosExportacion, despuesDe: string | null):
     p_con_cuenta_web: filtros.conCuentaWeb,
   })
   if (error) {
-    const { code } = error as { code?: string }
+    const { code, hint } = error as { code?: string; hint?: string }
+    // Dos 54000 distintos: el acumulado por persona (ventana de 10 minutos o diario) y el de un solo archivo demasiado grande.
+    if (code === '54000' && (hint === 'tope_acumulado' || hint === 'tope_diario')) {
+      throw new ErrorExportacion(
+        hint === 'tope_diario'
+          ? 'Llegaste al máximo diario de clientes exportados. Volvé a intentar mañana.'
+          : 'Exportaste muchos clientes en poco tiempo: esperá unos minutos antes de volver a exportar.',
+        code,
+      )
+    }
     if (code === '54000') throw new ErrorExportacion('Son demasiados clientes para un solo archivo. Afiná la búsqueda e intentá de nuevo.', code)
     if (code === '42501') throw new ErrorExportacion('No tenés permiso para exportar clientes.', code)
     if (code === '40001') throw new ErrorExportacion('Los clientes cambiaron mientras se exportaba. Intentá de nuevo.', code)

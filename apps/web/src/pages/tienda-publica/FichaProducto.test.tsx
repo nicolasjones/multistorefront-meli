@@ -357,7 +357,7 @@ describe('Ficha de producto · accesibilidad (FR-056)', () => {
 })
 
 // MSF-149 (revisión independiente): SEO de la ficha.
-describe('Ficha de producto · SEO (MSF-149)', () => {
+describe('Ficha de producto · SEO', () => {
   const SEO = { dominio: 'mundojc.test', nombre: 'Mundo JC', descripcion: 'Joysticks', logo_ruta: 'o/e/logo.png', indexable: true }
   const meta = (selector: string) => document.head.querySelector(selector)?.getAttribute('content') ?? null
 

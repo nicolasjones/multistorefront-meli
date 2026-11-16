@@ -95,6 +95,7 @@ const ActividadList = lazy(() => import('./pages/actividad/list').then((modulo) 
 const ProductoList = lazy(() => import('./pages/productos/list').then((modulo) => ({ default: modulo.ProductoList })))
 const ProductoEdit = lazy(() => import('./pages/productos/edit').then((modulo) => ({ default: modulo.ProductoEdit })))
 const PromocionesList = lazy(() => import('./pages/productos/promociones').then((modulo) => ({ default: modulo.PromocionesList })))
+const ListasPreciosList = lazy(() => import('./pages/productos/listas-de-precios').then((modulo) => ({ default: modulo.ListasPreciosList })))
 const PreciosMasivos = lazy(() => import('./pages/productos/precios-masivos').then((modulo) => ({ default: modulo.PreciosMasivos })))
 const ProductoCarga = lazy(() => import('./pages/productos/carga').then((modulo) => ({ default: modulo.ProductoCarga })))
 const ProductoCreate = lazy(() => import('./pages/productos/create').then((modulo) => ({ default: modulo.ProductoCreate })))
@@ -103,6 +104,7 @@ const CategoriaList = lazy(() => import('./pages/categorias/list').then((modulo)
 const StockList = lazy(() => import('./pages/stock/list').then((modulo) => ({ default: modulo.StockList })))
 const MovimientosStock = lazy(() => import('./pages/stock/movimientos').then((modulo) => ({ default: modulo.MovimientosStock })))
 const IngresosMercaderia = lazy(() => import('./pages/stock/ingresos').then((modulo) => ({ default: modulo.IngresosMercaderia })))
+const OpinionesList = lazy(() => import('./pages/opiniones/list').then((modulo) => ({ default: modulo.OpinionesList })))
 const ImportacionesList = lazy(() => import('./pages/importaciones/list').then((modulo) => ({ default: modulo.ImportacionesList })))
 const ListasConfigurables = lazy(() => import('./pages/configuracion/listas').then((modulo) => ({ default: modulo.ListasConfigurables })))
 const ApiList = lazy(() => import('./pages/api/list').then((modulo) => ({ default: modulo.ApiList })))
@@ -113,6 +115,8 @@ const ActualizarStockExcel = lazy(() => import('./pages/stock/excel').then((modu
 const FaltantesStock = lazy(() => import('./pages/stock/faltantes').then((modulo) => ({ default: modulo.FaltantesStock })))
 const TomaInventario = lazy(() => import('./pages/stock/toma-inventario').then((modulo) => ({ default: modulo.TomaInventario })))
 const MasVendidosStock = lazy(() => import('./pages/stock/mas-vendidos').then((modulo) => ({ default: modulo.MasVendidosStock })))
+const Gastos = lazy(() => import('./pages/gastos').then((modulo) => ({ default: modulo.Gastos })))
+const OrdenesCompra = lazy(() => import('./pages/stock/ordenes-compra').then((modulo) => ({ default: modulo.OrdenesCompra })))
 // Importación del historial: pantalla puntual de migración (MSF-293, FR-010).
 const ContactoList = lazy(() => import('./pages/contactos/list').then((modulo) => ({ default: modulo.ContactoList })))
 const ContactoFicha = lazy(() => import('./pages/contactos/ficha').then((modulo) => ({ default: modulo.ContactoFicha })))
@@ -142,6 +146,7 @@ const ComprobanteVenta = lazy(() => import('./pages/ventas/comprobante').then((m
 const ReportesVentas = lazy(() => import('./pages/ventas-reportes').then((modulo) => ({ default: modulo.ReportesVentas })))
 // F-REP-01 (MSF-297): reportes de inventario (menú «Reportes»).
 const ReporteProductosStock = lazy(() => import('./pages/reportes/ProductosYStock').then((modulo) => ({ default: modulo.ProductosYStock })))
+const TablerosAnaliticos = lazy(() => import('./pages/reportes/Tableros').then((modulo) => ({ default: modulo.TablerosAnaliticos })))
 const ReporteReposicion = lazy(() => import('./pages/reportes/Reposicion').then((modulo) => ({ default: modulo.Reposicion })))
 // F-VTA-13: conciliación de pagos por cuenta de cobro (MSF-401).
 const PagosList = lazy(() => import('./pages/ventas/pagos/list').then((modulo) => ({ default: modulo.PagosList })))
@@ -159,7 +164,13 @@ function App() {
         <CssBaseline />
         <RefineSnackbarProvider>
           <Refine
-            dataProvider={supabaseDataProvider(supabaseClient)}
+            dataProvider={{
+              default: supabaseDataProvider(supabaseClient),
+              // `dominio.clientes` (Principio VII): PostgREST elige el esquema por el encabezado Accept-Profile /
+              // Content-Profile, no por el extra_search_path; `.schema('dominio')` lo manda. El cast es un parche de tipos:
+              // el data provider de Refine sólo usa `.from`/`.rpc`, que `.schema()` también expone (revisar si Refine cambia).
+              dominio: supabaseDataProvider(supabaseClient.schema('dominio') as unknown as typeof supabaseClient),
+            }}
             authProvider={authProvider}
             accessControlProvider={accessControlProvider}
             i18nProvider={i18nProvider}
@@ -184,7 +195,7 @@ function App() {
                 create: '/clientes/create',
                 edit: '/clientes/edit/:id',
                 show: '/clientes/show/:id',
-                meta: { label: 'Clientes' },
+                meta: { label: 'Clientes', dataProviderName: 'dominio' },
               },
               { name: 'proveedores', list: '/proveedores', show: '/proveedores/show/:id', meta: { label: 'Proveedores' } },
               { name: 'cuentas-cobro', list: '/ventas/cuentas-cobro', meta: { label: 'Cuentas de cobro' } },
@@ -203,6 +214,8 @@ function App() {
               { name: 'ventas-reportes', list: '/ventas/reportes', meta: { label: 'Reportes de ventas' } },
               { name: 'reportes-inventario', list: '/reportes/inventario', meta: { label: 'Productos y stock' } },
               { name: 'reportes-reposicion', list: '/reportes/reposicion', meta: { label: 'Reposición' } },
+              // F-REP-07 (MSF-265): galería de tableros analíticos ya armados; solo administradores.
+              { name: 'reportes-tableros', list: '/reportes/tableros', meta: { label: 'Tableros analíticos' } },
               // F-VTA-28 (MSF-288): devoluciones y reclamos (RMA) por ítem.
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
@@ -210,6 +223,8 @@ function App() {
               { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
               { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
+              // MSF-467: moderación de opiniones de productos (solo Administrador).
+              { name: 'opiniones', list: '/opiniones', meta: { label: 'Opiniones' } },
               { name: 'empresas', list: '/empresas', edit: '/empresas/edit/:id', meta: { label: 'Empresas' } },
               { name: 'conexiones', list: '/conexiones', create: '/conexiones/create', edit: '/conexiones/edit/:id', meta: { label: 'Conexiones' } },
               { name: 'conexiones-oauth', list: '/conexiones-oauth', meta: { label: 'Conexiones OAuth' } },
@@ -362,6 +377,7 @@ function App() {
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/api" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ApiList /></Suspense></RequiereOrganizacionActiva>} />
@@ -426,6 +442,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/productos/listas-de-precios"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="productos"><Suspense fallback={<EstadoCargaPagina />}><ListasPreciosList /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
                   path="/productos/precios-masivos"
                   element={
                     <RequiereOrganizacionActiva>
@@ -478,6 +502,15 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><IngresosMercaderia /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route path="/gastos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><Gastos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route
+                  path="/stock/ordenes-compra"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><OrdenesCompra /></Suspense></RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />
@@ -763,6 +796,14 @@ function App() {
                       <RequiereAccesoSeccion seccion="stock">
                         <Suspense fallback={<EstadoCargaPagina />}><ReporteProductosStock /></Suspense>
                       </RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
+                <Route
+                  path="/reportes/tableros"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <Suspense fallback={<EstadoCargaPagina />}><TablerosAnaliticos /></Suspense>
                     </RequiereOrganizacionActiva>
                   }
                 />

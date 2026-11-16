@@ -2,7 +2,7 @@ import { Suspense, lazy, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import { useOne, useUpdate } from '@refinedev/core'
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, Stack, Switch, Tab, Tabs, Typography,
+  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogContentText, FormControlLabel, Stack, Switch, Tab, Tabs, Typography,
 } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useContextoPanel } from '../../hooks/useContextoPanel'
@@ -10,7 +10,9 @@ import { useEmpresas } from '../../hooks/useEmpresas'
 import { useEmpresasDeCliente } from '../../hooks/useEmpresasDeCliente'
 import { useCuentasWebDeCliente } from '../../hooks/useCuentasWebDeCliente'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
+import { useListaPrecioDeCliente } from '../../hooks/useListaPrecioDeCliente'
 import { type Cliente, mensajeDeError } from '../../lib/clientes'
+import { formatearAjuste } from '../../lib/listasPrecios'
 import { faltantes, rutaEtiquetas } from '../../lib/etiquetasCliente'
 import {
   cambiarEstadoCuentaWeb, habilitarTiendaDeCliente, invitarCuentaWeb, tiendaCuentaWeb, type TiendaCuentaWeb,
@@ -68,6 +70,15 @@ export function ClienteShow() {
   const [seleccionTienda, setSeleccionTienda] = useState<{ base: string | null; valor: string } | null>(null)
 
   const cliente = query.data?.data
+  // F-CLI-21: la lista del cliente, solo lectura (se asigna en «Editar»).
+  const listaCliente = useListaPrecioDeCliente(cliente?.lista_precio_id)
+  const textoLista = !cliente?.lista_precio_id
+    ? '—'
+    : listaCliente.cargando
+      ? 'Cargando…'
+      : listaCliente.lista
+        ? `${listaCliente.lista.nombre} (${formatearAjuste(listaCliente.lista.ajustePct)})${listaCliente.lista.archivadaEn ? ' · archivada' : ''}`
+        : null
   // Tiendas del cliente (F-CLI-05): ids de la relación, nombres del catálogo.
   const { empresas: catalogo, isLoading: cargandoCatalogo, isError: errorCatalogo } = useEmpresas()
   const { empresas: tiendasIds, isLoading: cargandoTiendas, isError: errorTiendas, refetch: reintentarTiendas } = useEmpresasDeCliente(cliente?.id)
@@ -283,7 +294,26 @@ export function ClienteShow() {
                   <Typography component="dd" sx={{ m: 0 }}>{campo === 'descuento' ? (cliente.descuento ? `${cliente.descuento} %` : '—') : (cliente[campo] as string | null) || '—'}</Typography>
                 </Box>
               ))}
+              {cliente.es_consumidor_final ? null : (
+                <Box sx={{ display: 'contents' }}>
+                  <Typography component="dt" color="text.secondary">Lista de precios</Typography>
+                  <Typography component="dd" sx={{ m: 0 }}>
+                    {textoLista ?? (
+                      <>
+                        No pudimos cargarla{' '}
+                        <Button size="small" onClick={() => listaCliente.reintentar()}>Reintentar</Button>
+                      </>
+                    )}
+                  </Typography>
+                </Box>
+              )}
             </Box>
+            {cliente.lista_precio_id && cliente.descuento ? (
+              <Alert severity="info">
+                Este cliente tiene una lista de precios y también un descuento personal. No se acumulan: cuando una venta use la lista, en
+                las líneas que fije la lista no se aplica el descuento personal.
+              </Alert>
+            ) : null}
             <Box>
               <Button variant="outlined" onClick={imprimirEtiqueta}>Imprimir etiqueta de envío</Button>
             </Box>

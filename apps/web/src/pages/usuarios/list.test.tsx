@@ -118,7 +118,7 @@ describe('UsuarioList', () => {
     expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
   })
 
-  it('asigna el rol Técnico desde Editar usuario con la RPC (MSF-182, FR-042)', async () => {
+  it('asigna el rol Técnico desde Editar usuario con la RPC (FR-042)', async () => {
     puedeEscribir.valor = true
     useContextoPanel.mockReturnValue({ contexto: null })
     responderListado([fila()])

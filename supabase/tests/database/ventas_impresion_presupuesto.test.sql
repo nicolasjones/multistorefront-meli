@@ -44,7 +44,7 @@ insert into conexiones (id, organizacion_id, sistema_externo, credencial_vault_i
   ('c1000000-0000-0000-0000-0000000000c1', '11111111-1111-1111-1111-111111111111', 'comprobantes-pdf', gen_random_uuid());
 
 -- Clientes: 1 con correo, 2 sin correo (Consumidor final), 3 con correo mal formado, 4 de la organización Dos.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, correo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, correo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null, 'cliente.uno@example.com'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Consumidor final', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente Tres', 'minorista', null, 'no es un correo'),

@@ -49,7 +49,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
 
 -- c2 minorista sin descuento; c4 minorista 15 %; c9 de la organización dos.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente minorista', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 13, 'Cliente 15 %', 'minorista', null, 15),
   ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 14, 'Distribuidora mayorista', 'mayorista', null, null),

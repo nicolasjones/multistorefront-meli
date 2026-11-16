@@ -108,7 +108,7 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   })
 
-  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar (MSF-841)', async () => {
+  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar', async () => {
     await abrir()
     expect(screen.getByText(/Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\./)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#FFEB3B' } })
@@ -117,7 +117,7 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
   })
 
-  it('un color de barra inválido bloquea Guardar con el mismo error de formato (MSF-841)', async () => {
+  it('un color de barra inválido bloquea Guardar con el mismo error de formato', async () => {
     await abrir()
     fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: 'negro' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
@@ -309,7 +309,7 @@ describe('Identidad visual · empresa activa (Principio VIII)', () => {
   })
 })
 
-describe('Identidad visual · estilo del encabezado y mayúsculas (MSF-848)', () => {
+describe('Identidad visual · estilo del encabezado y mayúsculas', () => {
   it('trae el estilo y las mayúsculas guardados y explica qué hace cada uno', async () => {
     await abrir()
     const selector = screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' })

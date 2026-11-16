@@ -55,7 +55,7 @@ beforeEach(() => {
   mocks.categorias.mockResolvedValue(CATEGORIAS)
 })
 
-describe('identidad aplicada a toda la tienda (MSF-841)', () => {
+describe('identidad aplicada a toda la tienda', () => {
   it('el tema de la tienda llega también a /catalogo, no solo a la portada, y la identidad se lee una sola vez', async () => {
     montar('/catalogo')
     await waitFor(() => expect(screen.getByTestId('sonda').textContent).toBe('#C8102E|"Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif|#2A2A2A'))
@@ -64,7 +64,7 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
     await waitFor(() => expect(document.documentElement.style.getPropertyValue('--tienda-color-barra')).toBe('#2A2A2A'))
   })
 
-  it('la barra superior queda dentro del landmark banner (<header>), en celular y escritorio (axe «region», MSF-846)', async () => {
+  it('la barra superior queda dentro del landmark banner (<header>), en celular y escritorio (axe «region»)', async () => {
     for (const esCelular of [true, false]) {
       celular(esCelular)
       const { unmount } = montar('/')
@@ -170,7 +170,7 @@ describe('identidad aplicada a toda la tienda (MSF-841)', () => {
   })
 })
 
-describe('logo y barra superior (MSF-841)', () => {
+describe('logo y barra superior', () => {
   it('el logo va a la izquierda del encabezado, como imagen enlazada a la portada con el nombre de la tienda; es el h1 en la home', async () => {
     montar('/')
     const marca = await screen.findByRole('heading', { level: 1, name: 'Mundo JC' })
@@ -245,7 +245,7 @@ describe('logo y barra superior (MSF-841)', () => {
   })
 })
 
-describe('encabezado y categorías (MSF-841)', () => {
+describe('encabezado y categorías', () => {
   it('«Inicio» y «Contacto» van en la fila de la marca y la barra de categorías trae solo categorías', async () => {
     montar('/')
     const principal = await screen.findByRole('navigation', { name: 'Principal' })
@@ -263,7 +263,7 @@ describe('encabezado y categorías (MSF-841)', () => {
   })
 })
 
-describe('pie oscuro (MSF-841)', () => {
+describe('pie oscuro', () => {
   it('trae logo, eslogan, texto del pie, categorías, contacto y el © con el nombre de la tienda, sin duplicar el texto del pie', async () => {
     mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos', pie: 'Envíos a todo el país' })
     montar('/')
@@ -306,7 +306,7 @@ describe.each([320, 768, 1440])('accesibilidad del layout a %i px', (ancho) => {
 })
 
 // MSF-848: la identidad llega al layout completo; las mayúsculas del menú y el estilo del héroe salen de ella.
-describe('estilo del encabezado y mayúsculas desde la identidad (MSF-848)', () => {
+describe('estilo del encabezado y mayúsculas desde la identidad', () => {
   it('con «sin mayúsculas» la barra de categorías no transforma el texto; con la identidad por defecto va en mayúsculas', async () => {
     celular(false)
     mocks.identidad.mockResolvedValue({ ...IDENTIDAD, estiloHeroe: 'claro', titulosMayusculas: false })

@@ -6,7 +6,7 @@
 # (rango de fechas, empresa y «Consumidor final») se aplican sobre el grano fino —la fila de la
 # vista— y recién después se agrega por cliente.
 #
-# El grupo del tablero es `nombre` + `numero` + `tipo_texto`: `public.clientes` NO exige nombre
+# El grupo del tablero es `nombre` + `numero` + `tipo_texto`: `dominio.clientes` NO exige nombre
 # único por organización (el índice `clientes_org_nombre_idx` no es único), así que agrupar solo por
 # nombre fusionaría dos clientes homónimos en una fila y su facturación sería la suma de dos
 # clientes. El `numero` es el correlativo por organización y sí es único
@@ -196,7 +196,7 @@ columns:
   groupby: false
   filterable: true
   expression: null
-  description: 'Marca del «Consumidor final» (`public.clientes.es_consumidor_final`).'
+  description: 'Marca del «Consumidor final» (`dominio.clientes.es_consumidor_final`).'
   python_date_format: null
   extra: {}
 - column_name: consumidor_final_texto

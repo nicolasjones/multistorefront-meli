@@ -1350,3 +1350,7 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 - **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
   y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
 - Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
+
+### Lote 3 de deuda técnica: visitante público con HMAC y poda global de envíos (MSF-946, MSF-947)
+
+`private.visitante_publico` (límite de búsquedas y de pedidos públicos de la tienda) deja de usar `sha256(ip|host)` sin clave, que se enumera probando las IPv4, y pasa a HMAC-SHA256 con el secreto `visitante_hmac` de Vault, el mismo de MSF-945. Misma firma y misma entrada; los cupos en curso se reinician una vez porque cambia la clave. Además `private.registrar_envio_tienda` poda en cada registro, hasta 500 filas por vez, lo vencido (más de 24 h) de cualquier empresa y no solo de la que envía, con el índice `tienda_envios_creado_idx`. Migración `20270324120000`; prueba pgTAP `tienda_visitante_publico_hmac_msf946.test.sql`.

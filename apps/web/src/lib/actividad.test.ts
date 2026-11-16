@@ -29,7 +29,7 @@ describe('hora de Buenos Aires (F-AUD-01, FR-004)', () => {
   })
 })
 
-describe('«Quién» del evento (MSF-176, B2, FR-060)', () => {
+describe('«Quién» del evento (B2, FR-060)', () => {
   it('un evento con actor muestra su nombre', () => {
     expect(quienDelEvento('empresa.pausada', 'Ana Admin')).toBe('Ana Admin')
     expect(quienDelEvento('presupuesto.creado_desde_tienda', 'Ana Admin')).toBe('Ana Admin')
@@ -44,6 +44,14 @@ describe('«Quién» del evento (MSF-176, B2, FR-060)', () => {
 describe('etiqueta del tipo', () => {
   it('traduce los tipos conocidos', () => {
     expect(etiquetaTipoActividad('usuario.rol_cambiado')).toBe('Cambio de rol')
+  })
+
+  it('traduce los eventos de las listas de precios', () => {
+    expect(etiquetaTipoActividad('lista_precios.creada')).toBe('Lista de precios creada')
+    expect(etiquetaTipoActividad('lista_precios.editada')).toBe('Lista de precios editada')
+    expect(etiquetaTipoActividad('lista_precios.archivada')).toBe('Lista de precios archivada')
+    expect(etiquetaTipoActividad('lista_precios.restaurada')).toBe('Lista de precios restaurada')
+    expect(etiquetaTipoActividad('cliente.lista_precio_asignada')).toBe('Lista de precios del cliente')
   })
 
   it('un tipo nuevo de otro componente se muestra legible', () => {
