@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { altaUsuario, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E, altaUsuario, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // MSF-816 (gate MSF-834, F-2, SC-004): en la Venta de mostrador, un producto en promoción se escanea al
 // precio promocional (con el precio anterior tachado y la leyenda «Promoción») y se cobra a ese precio; si la
@@ -10,7 +10,6 @@ import { altaUsuario, borrarUsuario, cabeceras, leer, rest, serviceKey, url } fr
 // llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público).
 // Comparte la bandera global `promociones_precio` con los specs de la tienda: corre con `--workers=1`.
 
-const password = 'Correcta-12345!'
 
 const cabecerasDominio = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
@@ -39,7 +38,7 @@ async function fijarBandera(clave: string, activa: boolean): Promise<boolean> {
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
-  await page.getByLabel('Contraseña').fill(password)
+  await page.getByLabel('Contraseña').fill(CONTRASENA_E2E)
   await page.getByRole('button', { name: 'Ingresar' }).click()
   await expect(page).not.toHaveURL(/\/login/)
 }

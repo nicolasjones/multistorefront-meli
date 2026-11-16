@@ -44,6 +44,16 @@ update public.banderas_plataforma set activa = true where clave in ('promociones
 
 Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con `activa = false`. Después de encender, verificar en la tienda del entorno (precio tachado en una promoción vigente) y en Productos (botón «Actualizar precios»). Detalle en [`promociones-precio.md`](./promociones-precio.md) y [`precios-masivos.md`](./precios-masivos.md).
 
+#### Gate de encendido de `promociones_precio` (MSF-816, gate MSF-834)
+
+Con la bandera `promociones_precio` encendida, el mostrador y los comprobantes **cobran el precio promocional** que la tienda muestra (no solo lo muestran). Por eso la bandera tiene un **gate de encendido por entorno**, y **producción no se enciende hasta que el recorrido esté verificado en dev**:
+
+1. **dev**: migraciones `20270310100000` a `20270310100400` + panel; con la bandera apagada nada cambia (comportamiento idéntico al actual). Encender y recorrer: promoción en la tienda y en el mostrador, cobro al precio promocional, nota de crédito al precio cobrado y una venta cuya promoción vence con la venta abierta (debe avisar y repreciar, no cobrar una cifra vieja).
+2. **stg**: mismo recorrido con el bundle y el esquema desplegados. La diferencia de importes entre la tienda y el local, si la hay, es de redondeo (la tienda redondea al peso entero y el local a centavos: menos de $1 por unidad).
+3. **prd**: solo después de stg, con aprobación del equipo técnico. **Hasta entonces, producción sigue apagada.**
+
+Apagar la bandera revierte el comportamiento al instante (sin migrar ni perder datos).
+
 ### Avisos de faltantes (MSF-161)
 
 Despliegue de la épica de avisos de `/ventas/faltantes` en un entorno. **Orden**: (1) migraciones (hasta `20270306130000`), (2) secretos, (3) Edge Function `enviar-aviso-faltante` y las que comparten `_shared/` (`enviar-correo-proveedor`, `enviar-resumen-reposicion`, `solicitar-acceso`), (4) flow `avisos-faltantes` de Kestra, (5) panel. Una Edge Function nueva con la base sin migrar responde 503 `base_no_migrada` sin tomar nada.

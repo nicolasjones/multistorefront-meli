@@ -113,6 +113,7 @@ Dos capacidades del administrador sobre el precio, en la misma épica (MSF-363):
 
 - **Actualización masiva de costos y precios** (F-PRE-10, MSF-436): subir o bajar costos y precios de lista en bloque, por porcentaje o por planilla CSV, con vista previa antes de confirmar y aplicación todo-o-nada. Ruta `/productos/precios-masivos`, botón «Actualizar precios» en Productos. Guía: [`precios-masivos.md`](./precios-masivos.md).
 - **Precios promocionales por empresa** (F-PRE-11, MSF-439): precio promocional con fecha de inicio y fin por empresa; la tienda muestra el precio anterior tachado mientras dura y vuelve sola al normal al vencer (el estado se deriva por fecha, sin tarea programada). Ruta `/productos/promociones`. Guía: [`promociones-precio.md`](./promociones-precio.md).
+- **El mostrador y los comprobantes cobran el mismo precio que la tienda** (MSF-816, gate MSF-834): con la bandera `promociones_precio` encendida, la venta de mostrador y los comprobantes cobran la promoción vigente de la tienda del comprobante (gana el más bajo, sin acumular con la escala ni con el descuento del cliente), la línea guarda el precio cobrado y el de referencia, y confirmar una venta cuyo precio ya no es el que se mostró se rechaza con aviso. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md), [`ventas-mostrador.md`](./ventas-mostrador.md) y [`promociones-precio.md`](./promociones-precio.md).
 
 Especificación: [`specs/20261104-103000-precios-masivos-y-promociones/spec.md`](../specs/20261104-103000-precios-masivos-y-promociones/spec.md).
 

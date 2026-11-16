@@ -46,9 +46,25 @@ Con `promociones_precio` **apagada** (migración `20270228300100`):
 
 `private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
 
-## Cobro en el mostrador y los comprobantes (MSF-816 · F-1, migraciones `20270310100000` a `20270310100300`)
+## Cobro en el mostrador y los comprobantes (MSF-816 · F-1 a F-3, migraciones `20270310100000` a `20270310100400`)
 
-Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia. Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas y guarda de confirmar: fases F-2 y F-3 de la épica.
+Con la bandera `promociones_precio` encendida, el mostrador y los comprobantes cobran **el mismo precio promocional que la tienda muestra** (Decisión 6, implementada):
+
+- `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambia.
+- `confirmar_comprobante` **rechaza** (`40001`, `hint = 'precios_cambiaron'`) si el precio ya no es el que se mostró (la promoción venció, empezó o cambió de precio): la venta se reprecia y hay que cobrar de nuevo. No deja rastro (no mueve stock, costo ni estado).
+- La línea en promoción muestra el precio cobrado, el precio de referencia tachado y la leyenda «Promoción»; si el precio cambia entre dos escaneos, el mostrador avisa «Los precios cambiaron: revisá el total».
+
+Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md) y [`ventas-mostrador.md`](./ventas-mostrador.md). Spec: [`specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md`](../specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md).
+
+### Orden de encendido (gate)
+
+La bandera sigue **apagada por defecto** en los tres entornos. No se enciende en producción hasta que el recorrido esté verificado en dev:
+
+1. **dev**: se despliegan las migraciones `20270310100000` a `20270310100400` y el panel; con la bandera apagada el comportamiento es idéntico al de hoy. Después se enciende y se recorre: promoción en la tienda y en el mostrador, cobro, nota de crédito y una venta cuya promoción vence a mitad.
+2. **stg**: mismo recorrido con el bundle y el esquema ya desplegados; la diferencia de importes entre la tienda y el local, si la hay, es de redondeo (la tienda redondea al peso y el local a centavos: menos de $1 por unidad).
+3. **prd**: solo después de stg, y con la aprobación del equipo técnico. **Producción sigue apagada hasta entonces.**
+
+Para apagar: el mismo `update` con `activa = false` (revierte al instante, sin migrar).
 
 ## Contrato público (migración `20270221100004`)
 
@@ -56,7 +72,7 @@ Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `c
 
 ## Decisiones
 
-- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional; está aprobada y en implementación en otros PRs (hasta entonces sigue vigente lo descrito).
+- **Decisión 6**: carrito, comprobantes, POS y Mercado Libre **no** cobran el promocional; solo se muestra en la tienda (hoy la tienda muestra el precio promocional y el local factura el normal). Nicolás aprobó el 2026-11-12 abrir el gate para que el POS, el carrito y los comprobantes cobren el precio promocional, y el 2026-11-13 (por delegación) **confirmó que SÍ se cobra**: mostrar un precio en la tienda y facturar otro en el local es inaceptable. **Implementada** en la épica MSF-816 ([spec](../specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md), gate MSF-834): el mostrador y los comprobantes cobran el precio promocional de la tienda del comprobante. No hay carrito en la tienda pública (no existe) y Mercado Libre no cobra por este camino (fuera de alcance). La **Decisión 15** (bandera `promociones_precio` apagada por defecto) sigue vigente: hasta encenderla, ni la tienda ni el local muestran ni cobran promociones.
 - **Decisión 15 (aprobada 2026-11-12)**: bandera de apagado, apagada por defecto (ver arriba). Es un cambio de comportamiento respecto de lo desplegado hasta ahora: para que la tienda siga mostrando promociones hay que **encender** `promociones_precio`.
 - **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`). No se tocan el precio por escala ni los precios de cliente por dominio: seguimiento S1 de la spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md` (ID de tracker a asignar; MSF-816 es la épica del POS, no este seguimiento).
 

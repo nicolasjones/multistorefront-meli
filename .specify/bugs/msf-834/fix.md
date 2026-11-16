@@ -1,7 +1,7 @@
-# Bug Fix: reconciliar MSF-834 con la implementación publicada de F-1/F-3
+# Bug Fix: MSF-834 · precio promocional en el mostrador y los comprobantes
 
 - **Slug**: msf-834
-- **Fixed**: 2026-11-14
+- **Fixed**: 2026-11-14 (reconciliación de la rama), 2026-11-16 (F-2 y F-4)
 - **Assessment**: ./assessment.md
 - **Status**: applied
 
@@ -74,8 +74,36 @@ habría reaplicado SQL anterior sobre el publicado (la guarda lenta sin filtro d
 candidatas y los pgTAP viejos), que es justamente lo que pide corregir el
 hallazgo de FR-024.
 
+## Corrida del 2026-11-16 · F-2 (cierre) y F-4 (consistencia, reportes y documentación)
+
+Sobre lo que ya estaba en la rama (F-1 y F-3 publicadas en `dokploy` por el PR #950; F-2 en el commit `28ba4e88`),
+esta corrida completa lo que faltaba de la historia MSF-834 y suma la fase F-4. **Sin migración nueva**: F-4 es
+prueba y documentación.
+
+| File | Change | Notes |
+|------|--------|-------|
+| `design/pantallas/VentasComprobante.dc.html` | precio de referencia tachado, leyenda «Promoción» y aviso «Los precios cambiaron» | T007: el prototipo manda la UI; `pnpm prototipo:inventario` + `prototipo:check` en verde |
+| `apps/web/e2e/ventas-mostrador-promocion.e2e.ts` (nuevo) | E2E del mostrador con precio promocional | T012: `[MSF-834:T012]`, fixture de evidencia, fija y restaura la bandera `promociones_precio` |
+| `supabase/tests/database/ventas_precio_promocional_paridad.test.sql` (nuevo) | paridad tienda↔local | T020 (FR-020): igualdad sin interruptor de IVA y diferencia < $1 por unidad con él; fija las dos exclusiones de la regla |
+| `supabase/tests/database/ventas_precio_promocional_reportes.test.sql` (nuevo) | rentabilidad realizada, margen actual, exportación, evento, API y vista de la IA | T021 (FR-021): los contratos no cambian y lo cobrado es lo que se refleja |
+| `docs/promociones-precio.md`, `docs/precios.md`, `docs/deployment.md`, `docs/tecnico/precios-masivos-y-promociones.md`, `docs/roadmap-template.md` | Decisión 6 «implementada», orden y gate de encendido, correcciones de «seguimiento MSF-816» → S1 | T023 (FR-022) |
+| `specs/20261104-103000-precios-masivos-y-promociones/spec.md` | nota de cierre de la Decisión 6 | T023: la decisión queda cerrada y con la épica que la implementa |
+| `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/notas.md` | evidencia de T007, T012, T013, T020, T021, T023, T024 y los seguimientos S1–S7 | archivo vivo de la spec |
+
+### Lo que NO se tocó
+
+- `private.precio_para` y `private.precio_final_publico`: la función de precio de línea las envuelve, no las modifica.
+- Las cinco migraciones `20270310100000`…`20270310100400`: ya publicadas; no se editó ninguna migración existente.
+- `tasks.md` de la spec: es la especificación compartida entre historias; las marcas las escribe el runner.
+
+
 ## Follow-ups
 
-- Este PR queda como reconciliación de la rama; la implementación de F-1/F-3 ya
-  está en `dokploy` por el PR #950. Si el orquestador lo prefiere, el PR #954 se
-  cierra como superado por #950.
+- La reconciliación de la rama (F-1/F-3) ya está en `dokploy` por el PR #950; el PR #954 sigue vivo con el resto de
+  la historia (F-2 y F-4).
+- **Seguimientos S1–S7** (spec de MSF-816): este nodo no tiene acceso al tracker, así que no se pudieron crear las
+  Tareas `seguimiento` ni anotar sus IDs. Quedan con su título exacto en `notas.md` para que el flujo los trace con
+  dueño; **ninguno puede quedar sin trazar** (S7 además tiene su hueco de FR-009 fijado por pgTAP).
+- **Verificación en dev** (T025 de la fase de cierre): requiere el bundle y el esquema desplegados en dev y el
+  recorrido de encendido; este nodo no tiene acceso a los entornos. El gate de encendido queda documentado en
+  `docs/deployment.md`.
