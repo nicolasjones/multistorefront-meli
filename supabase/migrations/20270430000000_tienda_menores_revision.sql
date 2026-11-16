@@ -186,6 +186,9 @@ begin
     return jsonb_build_object('estado', 'error');
   end;
 exception when others then
+  -- Manejador EXTERIOR: cubre solo lo que corre ANTES del sub-bloque (resolver el host, la bandera, validar las líneas y consumir el cupo: un fallo de
+  -- cualquiera de ellos responde `error` y, si falla el propio cupo, no hay cupo que conservar). Lo posterior al cupo lo atrapa el sub-bloque, que
+  -- conserva el cupo. Un pgTAP fuerza un fallo de cada lado.
   -- Rastro en el servidor solo con sqlstate; nunca el texto del error.
   raise warning 'lista_pedido_por_dominio falló: %', sqlstate;
   return jsonb_build_object('estado', 'error');
@@ -328,6 +331,8 @@ begin
     return jsonb_build_object('estado', 'error');
   end;
 exception when others then
+  -- Manejador EXTERIOR: cubre solo lo que corre ANTES del sub-bloque (host, bandera y consumo del cupo de llamadas). Lo posterior lo atrapa el
+  -- sub-bloque, que conserva el cupo. Un pgTAP fuerza un fallo de cada lado.
   raise warning 'enviar_lista_pedido falló: %', sqlstate;
   return jsonb_build_object('estado', 'error');
 end;

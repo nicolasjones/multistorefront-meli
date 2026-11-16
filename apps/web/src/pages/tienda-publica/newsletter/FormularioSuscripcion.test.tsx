@@ -61,6 +61,12 @@ describe('FormularioSuscripcion', () => {
     expect(screen.queryByRole('link', { name: 'Términos' })).toBeNull()
   })
 
+  it('no enlaza una política de privacidad con un esquema que no es http(s)', async () => {
+    mocks.legal.mockReturnValue({ enlaces: [{ titulo: 'Política de privacidad', url: 'javascript:alert(1)' }] })
+    await mostrar()
+    expect(screen.queryByRole('link', { name: 'Política de privacidad' })).toBeNull()
+  })
+
   it('CA-NL-1: correo inválido o casilla sin marcar marca el campo y no envía', async () => {
     await mostrar()
     enviar()

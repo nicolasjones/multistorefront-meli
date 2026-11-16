@@ -8,7 +8,7 @@
 --   5. Comentarios aclaratorios («tienda pausada → error» es un valor de la respuesta).
 begin;
 
-select plan(43);
+select plan(50);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -39,6 +39,19 @@ insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) 
   ('a1000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
   ('a1000000-0000-0000-0000-000000000006', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111'),
   ('a2000000-0000-0000-0000-000000000005', 'e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
+-- Categorías: «Padre oculto» (oculta en A) con un hijo visible por sí mismo; «Visible». 7 está en el hijo (oculto por herencia), 8 en la visible.
+insert into dominio.categorias (id, organizacion_id, nombre, padre_id, posicion) values
+  ('ce000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Padre oculto', null, 1),
+  ('ce000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Hijo del oculto', 'ce000000-0000-0000-0000-000000000001', 1),
+  ('ce000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Categoría visible', null, 2);
+insert into dominio.categorias_tienda (empresa_id, categoria_id, organizacion_id, visible) values
+  ('e1000000-0000-0000-0000-000000000001', 'ce000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', false);
+insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo, categoria_id) values
+  ('a1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'En categoría oculta', 'SKU-CAT7', 500, 'ARS', true, 'ce000000-0000-0000-0000-000000000002'),
+  ('a1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'En categoría visible', 'SKU-CAT8', 500, 'ARS', true, 'ce000000-0000-0000-0000-000000000003');
+insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values
+  ('a1000000-0000-0000-0000-000000000007', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
+  ('a1000000-0000-0000-0000-000000000008', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
 insert into dominio.productos_tienda (empresa_id, producto_id, organizacion_id, visible, destacado) values
   ('e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', false, false);
 insert into dominio.existencias (producto_id, organizacion_id, cantidad)
@@ -85,10 +98,10 @@ select is(
      from private.catalogo_tienda_efectivo_ids('e1000000-0000-0000-0000-000000000001', array[
        'a1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000003',
        'a1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000006', 'a2000000-0000-0000-0000-000000000005',
-       '99999999-9999-9999-9999-999999999999']::uuid[]) x),
+       'a1000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-000000000008', '99999999-9999-9999-9999-999999999999']::uuid[]) x),
   (select jsonb_agg(to_jsonb(x) order by x.producto_id)
      from private.catalogo_tienda_efectivo('e1000000-0000-0000-0000-000000000001') x),
-  'catalogo_tienda_efectivo_ids con todos los ids (visibles, oculto, inactivo, de B, de otra organización, inexistente) = la completa de A');
+  'catalogo_tienda_efectivo_ids con todos los ids (visibles, oculto, inactivo, de B, de otra organización, inexistente) = la completa de A (incluye categoría oculta por herencia)');
 select is(
   (select jsonb_agg(to_jsonb(x) order by x.producto_id)
      from private.catalogo_tienda_efectivo_ids('e1000000-0000-0000-0000-000000000001',
@@ -97,6 +110,12 @@ select is(
      from private.catalogo_tienda_efectivo('e1000000-0000-0000-0000-000000000001') x
     where x.producto_id in ('a1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000004')),
   'con un subconjunto de ids, el resultado coincide fila por fila con la completa filtrada (efectivo y motivo incluidos)');
+select is(
+  (select x.efectivo::text || '|' || coalesce(x.motivo, '') from private.catalogo_tienda_efectivo_ids('e1000000-0000-0000-0000-000000000001', array['a1000000-0000-0000-0000-000000000007']::uuid[]) x),
+  'false|No se muestra: categoría oculta', 'un producto en una categoría hija de una oculta NO es efectivo (la visibilidad hereda), también con el catálogo acotado');
+select is(
+  (select x.efectivo from private.catalogo_tienda_efectivo_ids('e1000000-0000-0000-0000-000000000001', array['a1000000-0000-0000-0000-000000000008']::uuid[]) x),
+  true, 'un producto en una categoría visible es efectivo');
 select is(
   (select count(*)::int from private.catalogo_tienda_efectivo_ids('e1000000-0000-0000-0000-000000000001', array['a1000000-0000-0000-0000-000000000006']::uuid[])),
   0, 'un producto de otra tienda no sale aunque se pida por id');
@@ -213,6 +232,20 @@ select is((select publico.enviar_lista_pedido('menores-a.ejemplo.com', 'Ana', 'a
   'limite', 'envío: tras 20 llamadas que fallan se llega a limite (el fallo no devuelve el cupo)');
 select is((select count(*)::int from dominio.consultas where origen = 'pedido'), 1, 'las llamadas que fallaron no crearon consultas: solo la del envío ok');
 
+-- Manejador EXTERIOR (lo que corre ANTES del sub-bloque). `validar_items_pedido` sigue lanzando: en la lista se llama antes del cupo.
+delete from public.limite_pedidos_publicos;
+select pg_temp.ip('10.50.0.5');
+select is(publico.lista_pedido_por_dominio('menores-a.ejemplo.com', '[{"producto_id":"a1000000-0000-0000-0000-000000000001","cantidad":1}]'),
+  '{"estado":"error"}'::jsonb, 'lista: un fallo ANTES del cupo lo atrapa el manejador exterior y responde error');
+select is((select count(*)::int from public.limite_pedidos_publicos), 0, 'lista: un fallo antes del cupo no consume cupo (no había cupo que conservar)');
+-- Envío: `visitante_publico` se llama al consumir el cupo de llamadas (antes del sub-bloque).
+create or replace function private.visitante_publico(p_host text) returns text language plpgsql stable as $$
+begin raise exception 'fallo forzado por el pgTAP'; end $$;
+select is(publico.enviar_lista_pedido('menores-a.ejemplo.com', 'Ana', 'ana@example.com', null,
+  '[{"producto_id":"a1000000-0000-0000-0000-000000000001","cantidad":1}]', gen_random_uuid()),
+  '{"estado":"error"}'::jsonb, 'envío: un fallo ANTES del sub-bloque (al consumir el cupo) lo atrapa el manejador exterior y responde error');
+select is((select count(*)::int from public.limite_pedidos_publicos), 0, 'envío: ese fallo no dejó filas de cupo');
+
 -- Estructura: el cupo va ANTES del sub-bloque, y el sub-bloque tiene su propio manejador (3 manejadores en el envío, 2 en la lista).
 select ok(
   (select regexp_count(p.prosrc, 'exception when others') = 2
@@ -244,6 +277,9 @@ select is(
   '["pendiente","pendiente","pendiente","pendiente"]'::jsonb,
   'presupuesto con estado desconocido (nuevo, vacío, borrador, otra capitalización): pendiente, NUNCA aceptado');
 select is(private.estado_publico_comprobante('presupuesto', null, null), 'pendiente', 'presupuesto con estado nulo: pendiente');
+select is(
+  (select jsonb_agg(private.estado_publico_comprobante('presupuesto', x, null)) from unnest(array['cobrado', 'deuda']) x),
+  '["aceptado","aceptado"]'::jsonb, 'presupuesto cobrado o con deuda se muestra «aceptado» (semántica existente: nunca se exponen cobro ni despacho)');
 select is(
   (select jsonb_build_array(private.estado_publico_comprobante('nota_credito', 'confirmada', null), private.estado_publico_comprobante('nota_credito', 'anulada', null),
                             private.estado_publico_comprobante('factura', 'anulada', null), private.estado_publico_comprobante('factura', 'cobrado', null))),

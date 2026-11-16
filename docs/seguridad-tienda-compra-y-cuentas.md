@@ -41,7 +41,7 @@ Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20
 
 MSF-940 (aviso al equipo), MSF-941 (presupuesto desde una consulta de pedido), MSF-942 (filtro por canal), MSF-943 (validez por defecto) y MSF-944 (retención y supresión de consultas, ítems de pedido y presupuestos de la tienda).
 
-## Menores retroactivos (2026-11-16)
+## Menores retroactivos (2026-11-15)
 
 - `private.precio_para` es `security definer` con `execute` para `authenticated`: la compuerta `private.precio_sesion_alcanza` (sin `execute` de API) y la ACL quedan fijadas por el pgTAP `precio_para_compuerta`.
 - `enviar_lista_pedido` sin captcha es un **riesgo aceptado** (mitigaciones: 5 envíos por hora y por IP, 20 llamadas por minuto, idempotencia, aviso agrupado); ver 1.11 en la spec y `tienda-compra-y-cuentas.md`.

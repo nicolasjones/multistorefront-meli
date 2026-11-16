@@ -25,6 +25,13 @@ describe('BloqueLegal (FR-032)', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  it('no muestra un enlace que no es http(s) ni uno sin esquema explícito', () => {
+    render(<BloqueLegal legal={{ ...completo, enlaces: [
+      { titulo: 'Malo', url: 'javascript:alert(1)' }, { titulo: 'Sin esquema', url: '//evil.example.com/x' }, { titulo: 'Bueno', url: 'https://uno.ejemplo.com/b' },
+    ] }} />)
+    expect(within(screen.getByTestId('pie-legal')).getAllByRole('link').map((e) => e.textContent)).toEqual(['Bueno'])
+  })
+
   it('omite los datos ausentes', () => {
     render(<BloqueLegal legal={{ razonSocial: 'Solo S.R.L.', cuit: null, direccion: null, enlaces: [] }} />)
     expect(screen.getByText('Solo S.R.L.')).toBeInTheDocument()

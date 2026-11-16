@@ -430,7 +430,7 @@ Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin t
 
 B2 (presupuesto desde la tienda) tiene su sección arriba. «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos) ya se dibujan: B1 puso `LISTA_DE_PEDIDO_DISPONIBLE` en `true` junto con la ruta `/lista`.
 
-## Menores de las revisiones retroactivas (2026-11-16)
+## Menores de las revisiones retroactivas (2026-11-15)
 
 Cierre de los menores que dejaron las revisiones de B1/B2 y de «Mi cuenta» (migración `20270430000000_tienda_menores_revision.sql`; pgTAP `tienda_menores_revision` y `precio_para_compuerta`).
 
@@ -438,13 +438,15 @@ Cierre de los menores que dejaron las revisiones de B1/B2 y de «Mi cuenta» (mi
 |---|---|---|
 | 1 | B1: cupo de llamadas | `lista_pedido_por_dominio` y `enviar_lista_pedido` ejecutan todo lo posterior al cupo en un sub-bloque con su manejador (patrón M-3 de B2). Un fallo interno ya no devuelve el cupo: el pgTAP fuerza el fallo y comprueba que el cupo se gastó y que se llega a `limite`. |
 | 2 | Catálogo por ids | `private.catalogo_tienda_efectivo_ids(empresa, ids)` es la misma definición de visibilidad que `catalogo_tienda_efectivo` acotada a los productos pedidos (sin acceso de API). La usan la lista, el envío, `mis_favoritos_por_dominio` y el alta de favoritos. El pgTAP fija la paridad fila por fila con la completa; si cambia una, hay que cambiar la otra en la misma migración. `scripts/medir-tienda-favoritos.sql` sigue sirviendo para medir. |
-| 3 | Enlace de privacidad | `FormularioPedido` solo enlaza `http:`/`https:` (`lib/urlHttpSegura.ts`); `javascript:`, `data:` y demás esquemas no se enlazan. |
+| 3 | Enlaces de configuración | `FormularioPedido`, `FormularioSuscripcion` y `PieLegal` solo enlazan `http:`/`https:` con esquema explícito, o una ruta que empiece con una sola `/` (`lib/urlHttpSegura.ts`); `javascript:`, `data:`, `//host` y las URL sin esquema no se enlazan. |
 | 4 | Sin captcha | **Riesgo aceptado** (1.11 del modelo de amenazas de la spec): mitigado por el tope de 5 envíos por hora y por IP, el cupo de 20 llamadas por minuto, la idempotencia, la poda y el aviso por correo agrupado. No dispara cobros ni reservas. Se reevalúa si hay spam real. |
 | 5 | `precio_para` | Desde `20270322100000` es un envoltorio `security definer` con `execute` para `authenticated`. Lo que lo hace seguro: la compuerta `private.precio_sesion_alcanza` (ventas o empresas en lectura/edición **y** producto y empresa de la organización de la sesión; un cliente web o `anon` da `false`) y la ACL (solo dueño y `authenticated`; la compuerta y `precio_para_calculo` sin `execute` de API). El pgTAP `precio_para_compuerta` fija la tabla de verdad y la ACL. |
 | 6 | Historial | Los filtros `organizacion_id` del comprobante y de sus líneas son defensa en profundidad: las FK compuestas ya impiden filas cruzadas, así que ningún dato los distingue. Un pgTAP de catálogo comprueba que siguen en el SQL; los comentarios de las funciones lo documentan. |
 | 7 | Estado público | `estado_publico_comprobante` es un mapeo cerrado. Presupuesto: `anulada` → anulado; `pendiente` → pendiente o vencido; `aceptado`, `convertido` y los estados posteriores → aceptado; **cualquier otro valor → pendiente** (el mismo neutro que usa el front), nunca «aceptado». Nota de crédito anulada → `anulada`. El contrato del front (`EstadoPublico`) ya incluía todos los valores. |
 | 8 | «Tienda pausada → error» | Es un valor de la respuesta: la RPC contesta `{estado: error}` (sin excepción de Postgres ni error HTTP) para no revelar qué hosts existen. Quedó dicho en el comentario de la función (las migraciones aplicadas no se editan). |
 | 9 | «Sin IVA» / «con IVA» | En el detalle de una compra, el precio unitario y el subtotal de cada línea se rotulan «sin IVA»; el total del comprobante dice «con IVA». |
+
+**Límite aceptado:** el árbol de categorías (`categorias_visibles_efectivas`) se sigue evaluando entero en cada llamada (es chico frente a los productos); ver 1.12 en la spec.
 
 **Seguimiento (riesgo aceptado):** si el tope por IP no alcanza contra spam real de pedidos, evaluar un desafío sin captcha (token firmado o prueba de trabajo) en `enviar_lista_pedido`.
 
