@@ -52,7 +52,7 @@ describe('analizarCsv', () => {
     expect(csv.filas[0].celdas).toEqual(['Uno', ''])
   })
 
-  it('marca la fila con más columnas que el encabezado y no descarta las celdas sobrantes (MSF-699)', () => {
+  it('marca la fila con más columnas que el encabezado y no descarta las celdas sobrantes', () => {
     // Export de Excel con punto y coma: la fila trae una celda de más.
     const csv = analizarCsv('id_externo;nombre\n1;Calle 1, piso 2;extra\n')
     expect(csv.filas[0].error).toBe('La fila 2 tiene 3 columnas y se esperaban 2')
@@ -60,7 +60,7 @@ describe('analizarCsv', () => {
     expect(csv.filas[0].celdas).toEqual(['1', 'Calle 1, piso 2', 'extra'])
   })
 
-  it('marca la fila con una coma sin escapar en un valor (MSF-699)', () => {
+  it('marca la fila con una coma sin escapar en un valor', () => {
     const csv = analizarCsv('id_externo,nombre\n1,Cliente, S.A.\n')
     expect(csv.filas[0].error).toBe('La fila 2 tiene 3 columnas y se esperaban 2')
     expect(csv.filas[0].celdas).toEqual(['1', 'Cliente', 'S.A.'])
@@ -72,7 +72,7 @@ describe('analizarCsv', () => {
     expect(csv.filas[0].celdas).toEqual(['1', 'Cliente', ''])
   })
 
-  it('marca la fila cuando una celda vacía precede al dato sobrante y cuenta el ancho real (MSF-699)', () => {
+  it('marca la fila cuando una celda vacía precede al dato sobrante y cuenta el ancho real', () => {
     const csv = analizarCsv('id_externo,nombre,documento\n1,Cliente,,20300123456\n')
     expect(csv.filas[0].error).toBe('La fila 2 tiene 4 columnas y se esperaban 3')
   })

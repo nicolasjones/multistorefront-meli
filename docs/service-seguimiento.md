@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-service-seguimiento-y-reportes
+---
+
 # Service técnico · Consulta de estado por el cliente con enlace (F-SVC-22)
 
 Historia **MSF-157**, épica **MSF-124** · spec en `specs/20261028-100000-service-seguimiento-y-reportes/`

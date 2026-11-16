@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, List, ListItem, ListItemText, Stack, Typography } from '@mui/material'
 import type { Comprobante } from '../../lib/ventas'
 import { formatearPesosPrecio } from '../../lib/precios'
-import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR, disponibleDeLinea } from '../../lib/ventasLineas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_LISTA_CAMBIO_CONFIRMAR, MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR, disponibleDeLinea } from '../../lib/ventasLineas'
 import {
   TITULO_CONFIRMAR_FACTURA,
   cantidadADejarReservada,
   confirmarComprobante,
+  esCambioDeLista,
   esPreciosCambiaron,
   lineasConFaltante,
   mensajeDeConfirmacion,
@@ -41,6 +42,7 @@ export function ConfirmarFacturaDialog({ open, comprobante, onCerrar, onConfirma
 function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: Omit<Props, 'open'>) {
   const [confirmando, setConfirmando] = useState(false)
   const [preciosCambiaron, setPreciosCambiaron] = useState(false)
+  const [porLista, setPorLista] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const faltantes = lineasConFaltante(comprobante.lineas)
   const aPedido = cantidadADejarReservada(comprobante.lineas)
@@ -50,6 +52,7 @@ function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: 
     setConfirmando(true)
     setError(null)
     setPreciosCambiaron(false)
+    setPorLista(false)
     try {
       await confirmarComprobante(comprobante.id)
       onConfirmado()
@@ -57,7 +60,10 @@ function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: 
       if (esPreciosCambiaron(falla)) {
         // Sin efectos en la base: se reprecian las líneas y se pide confirmar de nuevo con el total nuevo.
         const actualizado = await onPreciosCambiaron().catch(() => false)
-        if (actualizado) setPreciosCambiaron(true)
+        if (actualizado) {
+          setPreciosCambiaron(true)
+          setPorLista(esCambioDeLista(falla))
+        }
         else setError(MENSAJE_ERROR_ACTUALIZAR_PRECIOS)
       } else {
         setError(mensajeDeConfirmacion(falla))
@@ -95,7 +101,7 @@ function Contenido({ comprobante, onCerrar, onConfirmado, onPreciosCambiaron }: 
           ) : null}
           <AvisoPreciosCambiaron
             separacion={1.5}
-            mensaje={preciosCambiaron ? `${MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR} Total ahora: ${formatearPesosPrecio(comprobante.total_con_iva)}.` : null}
+            mensaje={preciosCambiaron ? `${porLista ? MENSAJE_LISTA_CAMBIO_CONFIRMAR : MENSAJE_PRECIOS_CAMBIARON_CONFIRMAR} Total ahora: ${formatearPesosPrecio(comprobante.total_con_iva)}.` : null}
           />
           {error ? <Alert severity="error">{error}</Alert> : null}
         </Stack>

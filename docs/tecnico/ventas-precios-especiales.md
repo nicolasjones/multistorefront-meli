@@ -50,7 +50,7 @@ La historia **no crea una pantalla**: toca dos pantallas que ya existían.
 
 | Objeto | Esquema | Estado | Cambio |
 |---|---|---|---|
-| `public.clientes` | `public` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))`. La tabla vive en `public` por la excepción documentada al Principio VII ([Clientes (MSF-180)](datos.md#clientes-msf-180)). |
+| `dominio.clientes` | `dominio` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))`. La tabla vive en `dominio` desde MSF-882 ([Clientes (MSF-180)](datos.md#clientes-msf-180)). |
 | `dominio.comprobantes_venta_lineas` | `dominio` | **alterada** | Gana `descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`: qué descuento se aplicó a esa línea. |
 | `dominio.comprobantes_venta` | `dominio` | existente | Sin cambio: la línea se recalcula al guardar; el comprobante ya guardado **no cambia** aunque luego se edite el descuento del cliente. |
 | `public.organizaciones` | `public` | existente | Sin cambio: de ahí sale la zona horaria con la que se calcula el «día» en otras historias de la épica. |
@@ -68,7 +68,7 @@ El DER completo está en [Datos y DER](datos.md#ventas-mejoras-msf-193).
 ```sql
 -- F-VTA-32: el descuento sale de la ficha del cliente en el servidor, nunca del payload.
 select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
-  from public.clientes cl
+  from dominio.clientes cl
  where cl.id = v_c.cliente_id and cl.organizacion_id = v_org;
 ...
 -- El descuento aplica solo sobre el neto de escala, antes del IVA; un precio manual no se toca.
@@ -86,11 +86,11 @@ Reglas:
 | **Precio manual** | **No se toca**: si la línea trae `precio_manual`, el precio es ese y `descuento_pct` queda en `0`. Es una decisión explícita del operador (decisión abierta 2 de la spec). |
 | Redondeo | `round(..., 2)`: dos decimales. El IVA se calcula **después**, sobre el precio ya descontado. |
 | Historical | La línea guarda el `descuento_pct` que se aplicó: si después se cambia el descuento de la ficha, **lo ya vendido no cambia**. |
-| Payload | El `payload` de `guardar_lineas_comprobante` **no puede imponer un descuento**: el valor sale de `public.clientes`. |
+| Payload | El `payload` de `guardar_lineas_comprobante` **no puede imponer un descuento**: el valor sale de `dominio.clientes`. |
 
 ## Permisos y auditoría (FR-010)
 
-- `grant update (descuento) on public.clientes to authenticated`: el permiso es **por columna**; el
+- `grant update (descuento) on dominio.clientes to authenticated`: el permiso es **por columna**; el
   resto de las columnas de `clientes` siguen con su permiso anterior.
 - **No se concede en `INSERT`**: un cliente **nace sin descuento**.
 - Disparador `clientes_descuento_solo_admin` (`before update of descuento`): si el descuento cambia y
@@ -169,10 +169,10 @@ Con la base a mano (Supabase Studio, sesión de un usuario **autenticado** de la
 
 ```sql
 -- 1. Fijar el descuento (solo Administrador: si no, 42501).
-update public.clientes set descuento = 5 where numero = 10;
+update dominio.clientes set descuento = 5 where numero = 10;
 
 -- 2. Descuento fuera de rango: viola el check (0..100).
-update public.clientes set descuento = 120 where numero = 10;
+update dominio.clientes set descuento = 120 where numero = 10;
 
 -- 3. El payload NO puede imponer el descuento: la RPC lo lee del cliente.
 select public.guardar_lineas_comprobante(
@@ -210,12 +210,12 @@ Migraciones **aditivas**; el encabezado de cada una trae la reversión:
 
 ```sql
 -- 20270201200102_clientes_descuento.sql
-drop trigger clientes_descuento_registrar_actividad on public.clientes;
-drop trigger clientes_descuento_solo_admin on public.clientes;
+drop trigger clientes_descuento_registrar_actividad on dominio.clientes;
+drop trigger clientes_descuento_solo_admin on dominio.clientes;
 drop function private.registrar_actividad_cliente_descuento();
 drop function private.exigir_admin_descuento_cliente();
-revoke update (descuento) on public.clientes from authenticated;
-alter table public.clientes drop column descuento;  -- recién cuando 20270201200103 ya no lo lea
+revoke update (descuento) on dominio.clientes from authenticated;
+alter table dominio.clientes drop column descuento;  -- recién cuando 20270201200103 ya no lo lea
 
 -- 20270201200103_lineas_descuento.sql
 -- restaurar public.guardar_lineas_comprobante y public.obtener_comprobante de

@@ -1,3 +1,14 @@
+---
+owner: operacion
+sources:
+  - specs/20261102-220000-importaciones-y-monitoreo
+  - infra/glitchtip
+  - infra/kestra
+  - workers/_comun/errores.mjs
+  - workers/egress-allowlists.json
+  - apps/web/src/lib/erroresWeb.ts
+---
+
 # Monitoreo y registro de errores
 
 Spec: `specs/20261102-220000-importaciones-y-monitoreo` (MSF-369, F-OPS-03). Esta guía dice **qué se mira, dónde, qué significa cada alerta, cómo ajustar los umbrales y qué variables hay**. No hay pantalla de monitoreo: los errores se consultan en GlitchTip y las alertas llegan por el webhook existente.

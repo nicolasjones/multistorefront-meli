@@ -25,6 +25,19 @@ sources:
 - Sin migración ni RPC: `restablecerContrasena` en `apps/web/src/pages/usuarios/list.tsx` llama a `supabaseClient.auth.resetPasswordForEmail` con redirect `definir-contrasena?tipo=recuperacion` (flujo de F-ACC-02, MSF-119).
 - Suspendido (FR-006) y no-administrador / fila propia (FR-007) son guardas de UX en el cliente; el bloqueo real de un suspendido vive en la membresía/RLS (`docs/acceso-ingreso.md`).
 
+## Baja de organización: requisitos de la primera RPC y límites conocidos
+
+Hoy no hay ninguna RPC que dé de baja una organización (ver [Empresas](../empresas.md)). Cuando se escriba la primera (`baja_organizacion*`), **debe** cumplir, y lo comprueba `supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql` (falla si aparece una función con ese nombre que no llame a las tres; antes de buscar se descartan comentarios, bloques `$tag$…$tag$` y literales de texto, así que nombrarlas ahí no alcanza; el análisis es textual: un comentario (`--` o `/*`) dentro de un literal produce un falso fallo (nunca un falso pase), una función de más de 10000 caracteres cuenta como incumplimiento (el borde es estricto), una etiqueta `$tag$` de más de 30 caracteres no se descarta (caso teórico que cubre la revisión de código) y una llamada real en una rama que nunca se ejecuta sí pasa y lo cubre la revisión de código):
+
+- Exigir **superadmin** (`private.is_superadmin()`), no «administrador de la organización»: borrar una organización entera no es una decisión de quien la usa.
+- **Registrar la actividad** con `private.registrar_actividad` (quién, cuándo y qué organización), antes de borrar.
+- Terminar llamando a `private.confirmar_claves_diferidas()` para traducir el 23503 de las claves diferidas a un error de negocio (P0001).
+
+Límites conocidos de las claves diferidas (MSF-844/847/848, #1008):
+
+- `private.confirmar_claves_diferidas()` restaura el modo **declarado** de cada restricción (`pg_constraint.condeferred`), no el que tenía la sesión. Hacerlo exacto **no es viable**: PostgreSQL no expone el estado de `SET CONSTRAINTS` de la sesión en ningún catálogo ni función, así que no hay de dónde leerlo para guardarlo y restaurarlo. Quien necesite otro modo lo fija de nuevo después de llamarla.
+- Un `DELETE` directo de `dominio.empresas` con reparaciones asociadas (fuera de una RPC que llame a la función de arriba) **falla en el `COMMIT`** con 23503 **sin traducir** (mensaje crudo de PostgreSQL, no P0001), porque la clave `reparaciones.empresa_id` es `deferrable initially deferred`. Es el comportamiento esperado: ninguna pantalla ni RPC borra empresas hoy; quien borre por SQL debe llamar a la función antes del `COMMIT` si quiere el error de negocio.
+
 ## Datos (DER)
 
 ```mermaid
@@ -46,7 +59,7 @@ erDiagram
 
 ## Reversión
 
-Migración aditiva; pasos en [Administración de la organización](../administracion-organizacion.md#reversión). F-USR-03: revertir el commit. Toda la spec: `git revert -m 1 <merge>`.
+Migración aditiva; pasos en [Administración de la organización](../administracion-organizacion.md#reversion). F-USR-03: revertir el commit. Toda la spec: `git revert -m 1 <merge>`.
 
 ## Pendiente
 

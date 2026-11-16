@@ -22,7 +22,7 @@ function leer(valor: Record<string, unknown>, conservado: { clave: string } | nu
   return renderHook(() => useNivelSeccion('ventas'), { wrapper: envoltorio }).result.current
 }
 
-describe('useNivelSeccion: último nivel confirmado (MSF-855)', () => {
+describe('useNivelSeccion: último nivel confirmado', () => {
   beforeEach(() => mocks.usePermisosPanel.mockReset())
 
   it('misma clave en los tres lados y repedido fallido: último nivel con sinConfirmar', () => {

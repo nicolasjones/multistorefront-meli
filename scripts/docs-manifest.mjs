@@ -11,7 +11,9 @@ const root = process.cwd();
 const docs = path.join(root, "docs");
 const out = path.join(docs, "manifest.json");
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
-const headRef = () => (spawnSync("git", ["rev-parse", "--short", "HEAD"], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
+// Último commit propio (sin merges) que tocó `key`: no depende de HEAD, que en el CI es el commit
+// efímero de auto-merge del PR. Así `sourceAt` es el mismo en el PR y en su merge (MSF-950).
+const ultimoCommit = (key) => (spawnSync("git", ["log", "-1", "--no-merges", "--format=%h", "--", key], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
 const walk = (dir, acc = []) => {
   if (!fs.existsSync(dir)) return acc;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -35,17 +37,42 @@ function frontmatter(txt) {
   }
   return { meta, body: txt.slice(m[0].length) };
 }
-function hashSources(sources = []) {
-  const files = [];
+// Archivos que la fuente tenía en `sourceAt` (mismo criterio que docs-drift.mjs: sumar un archivo
+// nuevo no vuelve vieja a la página; sí un cambio o una baja de lo ya documentado).
+function archivosEnCommit(commit, source) {
+  if (!commit) return null;
+  if (spawnSync("git", ["rev-parse", "--verify", "--quiet", `${commit}^{commit}`], { cwd: root }).status !== 0) return null;
+  const r = spawnSync("git", ["ls-tree", "-r", "--name-only", commit, "--", source], { cwd: root, encoding: "utf8" });
+  return r.status === 0 ? new Set(r.stdout.split("\n").filter(Boolean)) : null;
+}
+function hashSources(sources = [], sourceAt = null) {
+  let files = [];
   for (const s of sources) {
     const p = path.join(root, s);
     if (!fs.existsSync(p)) continue;
     if (fs.statSync(p).isDirectory()) files.push(...walk(p));
     else files.push(p);
   }
+  if (sourceAt) {
+    const vigentes = new Set();
+    let alcanceConocido = false;
+    for (const s of sources) {
+      const enCommit = archivosEnCommit(sourceAt, s);
+      if (!enCommit) continue;
+      alcanceConocido = true;
+      for (const f of enCommit) vigentes.add(f);
+    }
+    if (alcanceConocido) {
+      files = files.filter((f) => vigentes.has(rel(f)));
+      for (const f of vigentes) if (!fs.existsSync(path.join(root, f))) files.push(path.join(root, f));
+    }
+  }
   if (!files.length) return "";
   const sorted = [...new Set(files.map(rel))].sort();
-  return sha(sorted.map((f) => `${f}:${sha(fs.readFileSync(path.join(root, f)))}`).join("\n"));
+  return sha(sorted.map((f) => {
+    const abs = path.join(root, f);
+    return fs.existsSync(abs) ? `${f}:${sha(fs.readFileSync(abs))}` : `${f}:borrado`;
+  }).join("\n"));
 }
 const prev = fs.existsSync(out) ? JSON.parse(fs.readFileSync(out, "utf8")) : { pages: {} };
 const pages = {};
@@ -63,13 +90,13 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
   // sólo los archivos que ya existían entonces (agregar una spec no vuelve
   // vieja a toda página que declara `specs` como fuente).
   const reusar = old && old.pageHash === pageHash && old.sourceAt;
-  const sourceHash = reusar ? old.sourceHash || "" : hashSources(sources);
-  const sourceAt = sources.length ? (reusar ? old.sourceAt : headRef()) : null;
+  const sourceAt = sources.length ? (reusar ? old.sourceAt : ultimoCommit(key)) : null;
+  const sourceHash = reusar ? old.sourceHash || "" : hashSources(sources, sourceAt);
   // --no-merges: el hash debe ser estable entre el PR y su merge. Sin esto,
   // en el checkout de merge del CI `git log` devuelve el commit efímero de
   // auto-merge (imposible de pre-commitear) y el check nunca puede dar verde
   // en un PR que toque una página con sources.
-  const commit = old && old.pageHash === pageHash ? old.commit || null : (spawnSync("git", ["log", "-1", "--no-merges", "--format=%h", "--", key], { cwd: root, encoding: "utf8" }).stdout || "").trim() || null;
+  const commit = old && old.pageHash === pageHash ? old.commit || null : ultimoCommit(key);
   pages[key] = {
     title: (body.match(/^#\s+(.+)$/m)?.[1] || path.basename(file)).trim(),
     pageHash,

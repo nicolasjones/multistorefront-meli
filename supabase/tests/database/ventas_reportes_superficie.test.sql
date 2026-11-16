@@ -73,7 +73,7 @@ select is(
 select ok(
   not has_table_privilege('superset_analitica', 'dominio.comprobantes_venta', 'SELECT')
   and not has_table_privilege('superset_analitica', 'dominio.comprobantes_venta_lineas', 'SELECT')
-  and not has_table_privilege('superset_analitica', 'public.clientes', 'SELECT'),
+  and not has_table_privilege('superset_analitica', 'dominio.clientes', 'SELECT'),
   'el rol de Superset no lee las tablas de ventas ni clientes directamente (solo a través de las vistas)'
 );
 

@@ -9,6 +9,8 @@ sources:
 
 # Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../rentabilidad.md).
+
 - **MSF-120** — spec `rentabilidad-margen` · historias F-REN-01 (`0aab690`), F-REN-02 (`730d42d`) y
   F-REN-03 (`1cf16a9`).
 - **MSF-127** — spec `rentabilidad-comparativos-e-historia` · historia F-REN-06 (`28f5c82c`, `ac5d548e`,
@@ -653,7 +655,7 @@ capturas.
 - «Por producto» pasa el filtro inicial por `urlParams` al tablero: `?estado=bajo_o_negativo` o
   `?estado=negativo` se traducen a `native_filters` (rison) del filtro `NATIVE_FILTER-estado`
   (`apps/web/src/lib/rentabilidad.ts`). Cualquier otro valor se ignora.
-- **Desvíos de F-REN-03 (MSF-556):** el orden está fijo por menor margen (no hay selector
+- **Desvíos de F-REN-03 (MSF-555):** el orden está fijo por menor margen (no hay selector
   «Mayor/Menor margen primero») y la búsqueda es un `filter_select` de Superset, no un campo de texto
   libre. La tabla no pagina en el cliente (`row_limit` 10000); el volumen esperado es de cientos de filas
   producto × tienda.
@@ -794,7 +796,7 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 |---|---|
 | Verificar en un Superset real la importación de los tableros y el filtro inicial desde el aviso. | Cierre de MSF-120 (SC-003/SC-009) |
 | Ejecutar el E2E de tres roles con el stack local. | MSF-499 / cierre de MSF-120 |
-| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. | MSF-556 |
+| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. | MSF-555 |
 | Ponderar el consolidado por stock o ventas reales. | MSF-192 |
 | Confirmar si Administración debe ver los tableros y si Consulta debe ver costos. | Cliente / producto |
 | Dónde viven los eventos de Actividad (F-AUD-01 no está cargada en Jira). | Plataforma / producto |
@@ -807,3 +809,6 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 | Capturas de **Ventas reales** y **Costos adicionales**: `pnpm docs:capturas` no existe en esta rama. | Cierre de MSF-192 |
 | Ejecutar el E2E `rentabilidad-real-reportes-roles.e2e.ts` (`[MSF-741:T041]`) con el stack local. | Cierre de MSF-192 |
 
+## Después de costos fijos (MSF-469, F-GAS-03)
+
+Cuatro vistas nuevas de `analitica` (`costos_fijos_empresa_mes`, `ventas_netas_empresa_mes`, `margen_despues_costos_fijos`, `margen_costos_fijos_empresa_mes`) y la función `analitica.bandera_activa(text)`, detrás de la bandera `margen_costos_fijos`. **No se redefinió** `analitica.margen_real_categoria` ni `analitica.rentabilidad_ventas_real`: la medida se apoya en ellas y suma `tasa_fija`, `cargo_costos_fijos`, `margen_despues_fijos` y `margen_despues_fijos_pct`. Pestaña `pages/rentabilidad/CostosFijos.tsx` (la ruta redirige a `/rentabilidad` con la bandera apagada), `PestanasRentabilidad` (suma la pestaña solo con la bandera) y tablero `Rentabilidad · Después de costos fijos` (`reportes.filtro_empresa = true`). Fórmula, seguridad y reversión: [Gastos de la empresa](../gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).

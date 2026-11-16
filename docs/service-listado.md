@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-100000-service-listado-items-e-impresion
+  - supabase/migrations/20261022110100_reparaciones_listado_indices.sql
+  - supabase/migrations/20261022110200_reparaciones_listar.sql
+---
+
 # Service técnico · Listado de reparaciones con filtros por período (F-SVC-04)
 
 Historia **MSF-342**, épica **MSF-199** · spec en `specs/20261022-100000-service-listado-items-e-impresion/`.
@@ -47,7 +55,7 @@ total_cliente`. **Nunca** costos internos ni ganancia.
 
 - `revoke … from public, anon` y `grant execute … to authenticated`. Sin sesión → sin ejecución.
 - **Desvío de la spec (FR-001 pedía `security invoker`)**: la función es `security definer`, como
-  `obtener_reparacion`, porque el cliente vive en `public.clientes`, cuya RLS exige la sección *Clientes*; un rol
+  `obtener_reparacion`, porque el cliente vive en `dominio.clientes`, cuya RLS exige la sección *Clientes*; un rol
   de Service sin esa sección vería el listado vacío. La función aplica a mano el mismo límite que la RLS de
   `reparaciones`: organización del llamador (`private.organizacion_id()`), al menos `lectura` en `service_tecnico`
   (si no, `42501`) y tiendas de `private.empresas_accesibles()`. Con `search_path = ''`.

@@ -13,7 +13,7 @@ export type DatosEtiquetaCliente = {
   expreso_preferido: string | null
 }
 
-// Columnas que se leen de `public.clientes` para armar la hoja.
+// Columnas que se leen de `dominio.clientes` para armar la hoja.
 export const COLUMNAS_ETIQUETA = 'id,nombre,direccion,codigo_postal,localidad,provincia,telefono,expreso_preferido'
 
 export type EtiquetaCliente = { id: string; nombre: string; lineas: string[] }

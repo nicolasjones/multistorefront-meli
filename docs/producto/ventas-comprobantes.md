@@ -5,6 +5,8 @@ sources: []
 
 # Crear un presupuesto o una factura
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-comprobantes.md).
+
 ## Para qué sirve
 
 Acá cargás una **factura** o un **presupuesto** para un cliente: elegís quién compra, en qué tienda, por qué canal, y sumás los productos con su precio. El sistema calcula el precio según el tipo de cliente y la cantidad, y te muestra cuánto hay en cada depósito.

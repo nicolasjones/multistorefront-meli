@@ -1,6 +1,19 @@
+---
+owner: datos
+sources:
+  - specs/20261023-170000-rentabilidad-margen
+  - specs/20261024-130000-rentabilidad-comparativos-e-historia
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - infra/superset/dashboards/rentabilidad
+  - apps/web/src/pages/rentabilidad
+  - supabase/tests/database
+---
+
 # Rentabilidad (margen por producto y canal)
 
-Épica MSF-120 · spec [`rentabilidad-margen`](../specs/20261023-170000-rentabilidad-margen/spec.md) ·
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/rentabilidad.md) · [guía de uso](producto/rentabilidad.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
+Épica MSF-120 · spec `rentabilidad-margen` (`specs/20261023-170000-rentabilidad-margen/spec.md`) ·
 historias F-REN-01 (MSF-204), F-REN-02 (MSF-221) y F-REN-03 (MSF-242) · cierre MSF-553.
 Alcance de entrega: `refine`, `supabase` y `superset` (sin `kestra` ni `workers`: el cálculo es SQL y
 el tablero lo sirve Superset). Todos los supuestos de negocio están **a confirmar con el cliente**.
@@ -85,7 +98,7 @@ como negativo aunque en otra sea bajo. Ponderar por stock o ventas reales queda 
 
 Esquema `analitica`: **solo vistas** (sin tablas) y dos funciones de apoyo `security definer`. Cada vista
 expone `organizacion_id`: es la columna por la que el guest token filtra (`rls`). Contrato completo en
-[`contracts/analitica-margen.md`](../specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md).
+`contracts/analitica-margen.md` (`specs/20261023-170000-rentabilidad-margen/contracts/analitica-margen.md`).
 
 | Objeto | Qué es | Consumidores |
 | --- | --- | --- |
@@ -117,7 +130,7 @@ convertido —igual que el costo— con la cotización más cercana a cada fecha
 dólar (solo con un cambio de costo); uno en USD sí. Sin costo registrado hasta la fecha, sin neto positivo o sin
 ninguna cotización (solo en productos en USD), esa fecha no tiene fila. Los importes del historial solo los ve quien tiene `rentabilidad`
 (la tabla tiene RLS por organización y sección; las vistas y funciones son solo del rol `superset_analitica`).
-Contrato: [`contracts/analitica-comparativos-historia.md`](../specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md).
+Contrato: `contracts/analitica-comparativos-historia.md` (`specs/20261024-130000-rentabilidad-comparativos-e-historia/contracts/analitica-comparativos-historia.md`).
 Reversión (migración posterior): `drop view analitica.margen_historico_producto_canal;`, las dos funciones,
 `drop trigger producto_costos_historial on dominio.producto_costos;`, `drop function private.registrar_costo_historial();`
 y `drop table dominio.producto_costos_historial;` (exportar antes), más borrar la fila de `reportes`.
@@ -203,6 +216,10 @@ desde `reportes.json`, de forma idempotente. Variables (solo en `.env`/secrets, 
 crea la migración `20261130100300` como `nologin`: el operador le asigna login y contraseña por entorno.
 Detalle del tablero «Por producto» y sus límites en [`operar-superset.md`](./operar-superset.md).
 
+## Después de costos fijos (F-GAS-03, MSF-469)
+
+Pestaña **«Después de costos fijos»** (`/rentabilidad/costos-fijos`), detrás de la bandera `margen_costos_fijos` (apagada por defecto): reparte los gastos fijos de cada tienda (módulo [Gastos](gastos.md)) en proporción a las ventas netas del mes y muestra el margen que queda. **Lo existente no cambia**: las vistas, funciones, RPC, tableros y correos de Rentabilidad devuelven exactamente lo mismo con la bandera apagada y encendida (`margen_costos_fijos_paridad.test.sql`); la medida nueva se construye sobre `analitica.margen_real_categoria` sin redefinirla. Detalle, fórmula y reversión en [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
+
 ## Reversión
 
 Las migraciones son aditivas; el camino de vuelta va en el encabezado de cada una y se aplica en **una
@@ -224,7 +241,7 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 4. El Roadmap a diciembre manda «Rentabilidad y reportes avanzados» a enero; el doc del componente la deja P0
    en el Hito 4: Nicolás decide y alinea.
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
-6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
+6. Pendientes de F-REN-03 trazados en **MSF-555**: selector «Mayor/Menor margen primero» y buscador de texto
    libre (hoy orden fijo por menor margen y lista con búsqueda).
 
 ## Costos adicionales del canal (F-REN-08, MSF-209)

@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261110-100000-ventas-avisos-de-faltantes
+  - supabase/functions/_shared/verificacion/smtp-real.deno.ts
+---
+
 # Ventas · Avisos de faltantes (F-VTA-26 y F-VTA-27)
 
 Épica MSF-161 (spec `specs/20261110-100000-ventas-avisos-de-faltantes/`). Se avisa a los clientes con un faltante de despacho cuando vuelve a haber mercadería, a mano (F-VTA-26) o con ayuda del sistema que marca «Para avisar» (F-VTA-27). Pantalla: `/ventas/faltantes` (la de F-VTA-18, `docs/ventas-faltantes.md`).

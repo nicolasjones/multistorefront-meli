@@ -27,7 +27,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda Uno', true);
 
-insert into clientes (organizacion_id, numero, nombre, tipo, provincia) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo, provincia) values
   ('11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista', 'Córdoba'),
   ('11111111-1111-1111-1111-111111111111', 102, 'Beta', 'minorista', 'CORDOBA'),
   ('11111111-1111-1111-1111-111111111111', 103, 'Gamma', 'mayorista', 'Santa Fe'),
@@ -37,7 +37,7 @@ insert into clientes (organizacion_id, numero, nombre, tipo, provincia) values
 -- Solo Alfa y Gamma están habilitados en la tienda.
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id)
 select c.id, 'a1000000-0000-0000-0000-000000000001', c.organizacion_id
-  from clientes c
+  from dominio.clientes c
  where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.nombre in ('Alfa', 'Gamma');
 
 -- Catálogo: «Audio» (raíz) con la subcategoría «Cables»; «Periféricos» (raíz). Un producto por categoría.
@@ -76,7 +76,7 @@ select v.org::uuid, c.id, v.tipo, v.numero, v.fecha::date, v.estado, v.sin_iva, 
     ('11111111-1111-1111-1111-111111111111', 'Consumidor final', 'factura', '0001-00000010', '2026-10-14', 'cobrada', 5000, 6050),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'factura', '0001-00000011', '2026-10-10', 'emitida', 77777, 94110)
   ) as v(org, nombre, tipo, numero, fecha, estado, sin_iva, con_iva)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre;
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.nombre;
 
 -- La nota de crédito exige factura de origen y tipo (comprobantes_venta_nc_ck): cuelga de la 0001-00000001.
 insert into dominio.comprobantes_venta
