@@ -261,14 +261,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "8b385e050001d1c6e8439e2b125d8386545cc2079897d9da1a6ad7a335cb5485",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "4c0b8b45",
+      "pageHash": "12d0cf7562380d7ea2ed9092248dd4a617c37ac25407ff7ffbb9aaa94c90ccc2",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "f47ad9b7"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -294,14 +294,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "9882080771861b239e5659ba81fe491e3430341f64cce8b2ddf96b8f5724bb70",
+      "pageHash": "07f2d535c29c72e8560c0bbf7332c77b5ddb7cee224dcac879328eb1cb321e43",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "54ea7b1b",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "00009f78"
+      "commit": "f9801811"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "53299137ef8285ee3dc3286ecfd59a4799dfcc3f93d56d1f0011024e79ce6a9d",
+      "pageHash": "43facea9dbea25c60fa04ef2c383260e3fe61cfa8eb801de9ec8d6c95bbd2019",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "2a842f21"
+      "commit": "cb74e588"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -445,12 +445,12 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "76421e2db945e82d06cd297ad8676ace70ca2c20012961d6ec864362734af0a0",
+      "pageHash": "5b586a6cfcb87d01c9781ef0aff8c633ed7b5fed72ae3bf7964cc1b6aeb3ff06",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "9dc6f30d"
+      "commit": "2a842f21"
     },
     "docs/producto/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456)",
@@ -573,6 +573,15 @@
       "sources": [],
       "owner": "producto",
       "commit": "a8db4308"
+    },
+    "docs/producto/gastos.md": {
+      "title": "Gastos de cada tienda",
+      "pageHash": "a6ef692cf58038a12f1001ad38c9f6f6d80c9cca0ae95aa058905efc5e9a36d3",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
@@ -749,7 +758,7 @@
     },
     "docs/producto/rentabilidad.md": {
       "title": "Ver la rentabilidad: costos y márgenes",
-      "pageHash": "eb371a4e71d8dacb168f23c26470b3cb4a7adcb224b2c139c986f193fc9a0c29",
+      "pageHash": "0b38da5a4a88c9cdfbdf2f498ec3209fd5952fa0d31e195c1ad7ecc9f5083105",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1122,12 +1131,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "7942198d37fd40dca6cf8e865053ab314b79d802c11d7110459e572b81a77aac",
+      "pageHash": "91ddbf52c4db6a6399fd6359b2b6b62c64555aa0862fc886c137bcaa4ca70340",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "0682630f"
+      "commit": "f10818b1"
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
@@ -1243,14 +1252,14 @@
     },
     "docs/system-design/roadmap.md": {
       "title": "Roadmap",
-      "pageHash": "0cf5fe71565dbc234ce7fa81def1a2add3e8734024074f97abdeefe799438c42",
+      "pageHash": "18a5d4b80dbff49644b11c30460da481cf8b44c3aa55c115bd86b5ec83aa266c",
       "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
-      "sourceAt": "810fd29b",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "0d9b0e67"
+      "commit": "cb74e588"
     },
     "docs/system-design/stock.md": {
       "title": "Stock",
@@ -1416,14 +1425,14 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "b47547782db85591fb4593854fe222a5fc80548d3986792bb3a55d59459cd8bf",
+      "pageHash": "b7afd79e8a50eb400ffc91fa23516d39c2f2ad8a582941ceb7d0418458b97f22",
       "sourceHash": "6683f8ce8afc95307dfd5b5e290870a20d59474e1f6bd27dfa85548ef40f4c84",
-      "sourceAt": "d82baacc",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "9593f63c"
+      "commit": "120002d7"
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
@@ -1611,14 +1620,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "6136098cba33b03b6a130881092e4ac57d4e113219252603485271c6574bb9c9",
+      "pageHash": "c69ac59e8a6d76525dacf79d03b542979a21ec011ab20da5075207ad32a4e751",
       "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
-      "sourceAt": "d1409e01",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "4f6121b4"
+      "commit": "2a842f21"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -1655,6 +1664,20 @@
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
+    },
+    "docs/tecnico/gastos.md": {
+      "title": "Gastos de la empresa y margen después de costos fijos (MSF-469)",
+      "pageHash": "f8629cc749a8ec5f97d2460cf2fcd514b914e0633fb7eca28636e8250496b78e",
+      "sourceHash": "af0212a21fb059d0e425b6f9ef7773774a40b1bf3a869520c261e641aeb2d3f0",
+      "sourceAt": "9bd6edf9",
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "apps/web/src/pages/gastos",
+        "supabase/tests/database",
+        "infra/superset/dashboards/rentabilidad"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/importaciones-y-monitoreo.md": {
       "title": "Importaciones y monitoreo (MSF-206)",
@@ -1934,9 +1957,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "c49deea773e2cfdaa5c2e4f96c4754d848e0699efbc51dff0f3f9da9517706ee",
+      "pageHash": "14b6cb4d095005d8adf5aad4e52c9f4baef632e81b8f4468d98995fd4cf4093b",
       "sourceHash": "6b80ad7198f6c265faa44498bec6b7c34e5f7d40bfd161a643ca469c5f764e7d",
-      "sourceAt": "4bc68324",
+      "sourceAt": "9bd6edf9",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -1968,6 +1991,19 @@
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations",
         "apps/web/src"
+      ],
+      "owner": "tecnico",
+      "commit": null
+    },
+    "docs/tecnico/revision-seguridad-gastos.md": {
+      "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
+      "pageHash": "4a5fc9eb2b0a5ec0b9a897755e27fa7c11c030eccd193f78a0d8d3365ae2d2d7",
+      "sourceHash": "fbb6050c7fe3efe57d728ca117394c8b592a2d7d76eb0316dd362793b6ca0778",
+      "sourceAt": "9bd6edf9",
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "supabase/migrations",
+        "apps/web/src/pages/rentabilidad"
       ],
       "owner": "tecnico",
       "commit": null

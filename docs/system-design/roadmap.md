@@ -33,7 +33,9 @@ gantt
 
 ## Etapa 2 (enero 2027)
 
-Mercado Libre, rentabilidad y reportes avanzados, motos con rendición, gastos,
+Mercado Libre, rentabilidad y reportes avanzados, motos con rendición, gastos (épica MSF-469,
+implementada en la rama `dokploy` y pendiente de promoción a `main`: ver
+[Gastos de la empresa](../tecnico/gastos.md)),
 newsletter y opiniones (épica MSF-467, todavía sin historias ni implementación: ver
 [Opiniones de clientes](../tecnico/opiniones-de-clientes.md)), matriz de permisos editable.
 

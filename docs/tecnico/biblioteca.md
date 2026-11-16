@@ -94,6 +94,9 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Inicio: tablero de ventas y stock, listado por producto y carga del dólar (técnico)](inicio-tablero.md)
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
 - [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
+- [Gastos de cada tienda (producto)](../producto/gastos.md)
+- [Gastos de la empresa y margen después de costos fijos, MSF-469 (técnico)](gastos.md)
+- [Revisión de seguridad de gastos, MSF-469 (técnico)](revision-seguridad-gastos.md)
 
 ## Operación y plataforma
 - [Deployment](../deployment.md)
