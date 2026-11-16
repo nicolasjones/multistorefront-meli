@@ -60,7 +60,7 @@ const largoUrlFiltro = (valores: string[]) =>
 // El límite típico de 8 KB del proxy (nginx) para la línea de petición.
 const LIMITE_PROXY = 8000
 
-describe('listarStockPorDepositoDe (MSF-716)', () => {
+describe('listarStockPorDepositoDe', () => {
   beforeEach(() => {
     mocks.llamadas = []
     mocks.filtrosDeposito = []

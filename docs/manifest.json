@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "18a93ee22c96fb51a1b3c6b2a93ad6bcaef1e6b742b046524004e621da9f5091",
-      "sourceHash": "ccd4fe4ae1b217fb62d6c3e8a2fb9dd7c2ca2b14b8283909422ca37773d6e9b6",
-      "sourceAt": "8451da59",
+      "pageHash": "f953649993ab5deff6d1cb2ffc3f2ec055a29c3c474c4665c29e98bc573e3b6f",
+      "sourceHash": "c5a7b5cbb007683364b9eef4f4d40ebe10165b511a4888529df6bd6136f9fe7d",
+      "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8451da59"
+      "commit": "6b76bcf5"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "0ebe0e5650c343f8476c015fb12b06d39ccb11da154b65576b11484db996e3e6",
-      "sourceHash": "4fcb65336f01c8931ebc2d0a46ae1de02603510b2a476efe83043865d70e5845",
-      "sourceAt": "9cde8838",
+      "pageHash": "494e741d1379f287616f9855fd549b73784a51e87b30b30a1bfec3639039dfa7",
+      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
+      "sourceAt": "38aaabc6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "9cde8838"
+      "commit": "38aaabc6"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -668,14 +668,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "5adbacba918b8c8237962a823263257fe2cc96e6f4d3eb316cc3229ab4345326",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "775b35f0",
+      "pageHash": "984ebcbfdd0bb7bc3feba0d16b4424e29cfd8f5d067080d324e5ccf690c4686a",
+      "sourceHash": "535691a37a1b1f94f784d03707836d5b858989c1e10189f3889f040614950bd9",
+      "sourceAt": "83c8c221",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "83c8c221"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -690,14 +690,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "b7ce5f099e89aabbf4e861d6a661d221b42de7386d8e319fee8348fb11e9b271",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "202e8b34",
+      "pageHash": "7117e24095d5661cee5e9dfacd12b2bc39bf0acdd4b023889145387bf80a014a",
+      "sourceHash": "3c45770ad2331608e205633e96d2bb302b93f7c438bd4862edf4cdaaf0184db2",
+      "sourceAt": "b9175f58",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "202e8b34"
+      "commit": "b9175f58"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -727,17 +727,17 @@
       "commit": "c7860a7c"
     },
     "docs/gastos.md": {
-      "title": "Gastos de la empresa (fases 1 y 2: registro y consulta)",
-      "pageHash": "25aef9e6591f780f2c0f14df14bb72ea9c60428ce7f11afc866a1ecd9b819ee2",
-      "sourceHash": "0da66b83d78a4fb019f3f08e1d634573fc5a8673ad42d522bb4187b0bd626de3",
-      "sourceAt": "71c0b1d5",
+      "title": "Gastos de la empresa y margen después de costos fijos",
+      "pageHash": "bffc07b935fb557cc6a9427d675c5f5f12db8f03219d2a27e52cf347b105c0c9",
+      "sourceHash": "0047fac3a4a1cac60e6ed56b5025a19ee68b49b137ad7009de8b6e33c2d3612c",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
         "apps/web/src/pages/gastos",
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "71c0b1d5"
+      "commit": "a8f3d3a9"
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
@@ -1113,12 +1113,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "f45799b68326b18d0ad04bb8b5d9bf2babf7853833a3335fb83b6f75381d2e71",
+      "pageHash": "5b521084dd020ead5965c8d9feee3de2191532cea524695278eea1a063b4141a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "6b76bcf5"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -1291,12 +1291,12 @@
     },
     "docs/producto/gastos.md": {
       "title": "Gastos de cada tienda",
-      "pageHash": "359c47ee70aa542bda053584975d23e1d693122efb3d88c045265c89ab3e6bda",
+      "pageHash": "183f6fdcc53c757b817414335712ceb4c46acc60a340f053e558e96f2779c34e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c972b57b"
+      "commit": "a8f3d3a9"
     },
     "docs/producto/glosario.md": {
       "title": "Glosario: los términos que ves en pantalla",
@@ -1853,9 +1853,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "9dfd35063e69fa85c5e1c04f5f806047f8e1d83e74bcd977072a7245c864c661",
-      "sourceHash": "d2bd6aef9953ad106b1bb015144ba053ad6b59fd096a4d071577b475ed526240",
-      "sourceAt": "e70bdb10",
+      "pageHash": "b3d84e192d210b82a2fa301ba0055340863d3df4e14ec6a9381f7842a53ad007",
+      "sourceHash": "108415f9c087810b128776b65605e5b01f35defd76190c1ae62e4c55c09187ba",
+      "sourceAt": "0f7c7bc1",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1864,7 +1864,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "e70bdb10"
+      "commit": "0f7c7bc1"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -1879,20 +1879,20 @@
     },
     "docs/release.md": {
       "title": "Release automático (F4)",
-      "pageHash": "8e38509a28c2689cfd8f2a4c1975f8c31989837c2baa84248a3d8d3215454416",
-      "sourceHash": "fd696a0c715a94953f77a73fb6e15be1eea2aa77700f63118913de8bbc9b7ec4",
-      "sourceAt": "4d730bd9",
+      "pageHash": "da2d8bf46b3a463bdf40aeef72c3c44a3a0d0b55892d99d347a8dc9dba8f9c45",
+      "sourceHash": "fb74a3f516208ab649380d2d8983e0a2c7668a9fcdd243591aff03bbc8cc6dc7",
+      "sourceAt": "323157ea",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "323157ea"
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "a3ca5cb0c76e7f7091b8a351047865a1396fccd5cbd13e7f3448a0f83956fe11",
-      "sourceHash": "93ebc74a551510b4fd6ecffaf0644cfb9e73a532f15a81d7cabf56bd0f890f20",
-      "sourceAt": "a54b6f65",
+      "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
+      "sourceHash": "0eb37a64eeb510f5abbfb0699fd6a90ccb76a16b82a54bea6e12277e69d5131f",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1902,7 +1902,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -1943,6 +1943,19 @@
       "owner": "tecnico",
       "commit": "e2ad6a41"
     },
+    "docs/revision-seguridad-gastos.md": {
+      "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
+      "pageHash": "ae9068cd3160620c62dfa7de53222db5664226608c430badb4e688c12145a344",
+      "sourceHash": "3a99ac458a38c2599d1a6d5188e63ef1531a4008c44f4b207e00c767c0b8a794",
+      "sourceAt": "53e8956f",
+      "sources": [
+        "specs/20270328-100000-gastos-de-la-empresa",
+        "supabase/migrations",
+        "apps/web/src/pages/rentabilidad"
+      ],
+      "owner": "tecnico",
+      "commit": "53e8956f"
+    },
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "0e13693772ea6e8836c709f56353fe5e4ade10ddcfd3f6d1c05d95d31609ceb7",
@@ -1958,7 +1971,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "eb051fbe44e630f530ac988c7ab082ba19210254accf71eabdba1f4f937b6cf9",
+      "pageHash": "d5200313dba7dd57543126228d2e565cabd5385f22ca2aa83da1a99517dec216",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1982,14 +1995,14 @@
     },
     "docs/seguridad-tienda-compra-y-cuentas.md": {
       "title": "Revisión de seguridad · Tienda: compra y cuentas (MSF-176)",
-      "pageHash": "5954fef7dd54892f1b824fcf1f7a23d8ed48e41603ec1f23d9d5a802e3535422",
-      "sourceHash": "73fd2445b10d080c3626d43caba154e5268172e02f3ba51124d12c156ef83893",
-      "sourceAt": "c7860a7c",
+      "pageHash": "e98eef9126bcc26531a3414c20a1da2ecfe780c7b572f98eac202d051abaa1ad",
+      "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
+      "sourceAt": "12525f33",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "12525f33"
     },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
@@ -3133,9 +3146,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "cd1cc01802f1352fd8ced715d34c6727f53d27f9e1a7e60b004e44f28bc2f879",
-      "sourceHash": "fb960c60422718a6243e5f61a67aabe2e7edcf4e042d715fd21ca535ecd798d4",
-      "sourceAt": "a54b6f65",
+      "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
+      "sourceHash": "b434dc0d615a9bac4660d5b6bc0f07015a95e1f53ec410d3f201c5c3a90d22ad",
+      "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3143,7 +3156,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a54b6f65"
+      "commit": "a8f3d3a9"
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",
@@ -3717,14 +3730,14 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "af45798dd44d542de0dba0fd63342062e0319e24983ebb3a038aa174d525eb16",
-      "sourceHash": "73fd2445b10d080c3626d43caba154e5268172e02f3ba51124d12c156ef83893",
-      "sourceAt": "775b35f0",
+      "pageHash": "d02cd7c86fe4f835ec633e4f537f3055c09f08ae51934498a355b90eed5b1724",
+      "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
+      "sourceAt": "2a653744",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "producto",
-      "commit": "775b35f0"
+      "commit": "2a653744"
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
@@ -3844,9 +3857,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "457a6e989c688b71f6309dc345a16dcea4d7201e76235988fd8cad28b4835e28",
+      "pageHash": "670c214c7ceb57eebd4641b27428e10b4e3f93e3aa204e681f3ba354f4634f7d",
       "sourceHash": "74fe0a6c1c6cfdbc764046a541297202f3a77a7a00e9bedaa4e5d62e69eca9b6",
-      "sourceAt": "775b35f0",
+      "sourceAt": "e9196969",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3858,7 +3871,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "e9196969"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",

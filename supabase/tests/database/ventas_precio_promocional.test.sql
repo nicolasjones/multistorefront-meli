@@ -323,8 +323,15 @@ select is(has_function_privilege('anon', 'public.copiar_presupuesto(uuid)', 'exe
 -- Bandera por defecto: apagada (T000 en una base local con el seed)
 -- ============================================================================
 
+-- La bandera nace apagada: se comprueba por el default de la columna (el valor sembrado de una base viva puede estar
+-- encendido a propósito) y el test fija él mismo el estado que necesita, sin depender del entorno (en dev suele estar encendida).
+select is(
+  (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'banderas_plataforma' and column_name = 'activa'),
+  'false', 'T000: las banderas de plataforma nacen APAGADAS (default false)'
+);
+select pg_temp.bandera(false);
 select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false,
-  'T000: en una base local con el seed la bandera promociones_precio nace APAGADA');
+  'T000: el test fija la bandera promociones_precio APAGADA para probar el comportamiento legado');
 
 -- ============================================================================
 -- Armado de los comprobantes (los vende el operador de la tienda A; B la vende «mixto»)

@@ -207,7 +207,7 @@ nav:
           - "Listas de precios por cliente (F-PRE-14 y F-CLI-21)": listas-de-precios.md
           - "Revisión de seguridad: listas de precios": revision-seguridad-listas-de-precios.md
           - "Rentabilidad (margen por producto y canal)": rentabilidad.md
-          - "Gastos de la empresa (registro y consulta)": gastos.md
+          - "Gastos de la empresa y margen después de costos fijos": gastos.md
           - "Stock · Lotes e inventario (épica MSF-131)": stock-lotes-e-inventario.md
           - "Tiendas online: dominio e identidad": tiendas-online.md
           - "Ventas · Catálogos de cobro y envío (épica MSF-139)": ventas-catalogos.md
