@@ -51,7 +51,7 @@ insert into dominio.existencias (producto_id, organizacion_id, cantidad)
 select p.id, p.organizacion_id, 7 from dominio.productos p
 on conflict (producto_id) do update set cantidad = excluded.cantidad;
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Valeria Sánchez', 'v@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Bruno Díaz', 'b@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida Ejemplo', 'su@example.com', 'minorista'),
@@ -90,7 +90,7 @@ select set_config('request.headers', '{"x-forwarded-for":"10.5.0.1"}', true);
 
 update public.banderas_plataforma set activa = true where clave = 'tienda_opiniones';
 -- Muestra mixta en la tienda A sobre P1: 3 aceptadas (5, 4, 4 -> 4,3), 1 pendiente (1), 1 rechazada (1). En B sobre P1: 1 aceptada (2).
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 915, 'Dora Pérez', 'v6@example.com', 'minorista');
 insert into auth.users (id, email) values ('f5000000-0000-0000-0000-000000000008', 'cli-6@example.com');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values

@@ -153,7 +153,7 @@ begin
     into v_filas, v_siguiente
     from numerada nu
     join public.cuentas_cliente cc on cc.id = nu.cuenta_cliente_id
-    join public.clientes cl on cl.id = cc.cliente_id and cl.organizacion_id = cc.organizacion_id;
+    join dominio.clientes cl on cl.id = cc.cliente_id and cl.organizacion_id = cc.organizacion_id;
 
   return jsonb_build_object('estado', 'ok',
     'resumen', jsonb_build_object('promedio', v_promedio, 'cantidad', v_cantidad),
