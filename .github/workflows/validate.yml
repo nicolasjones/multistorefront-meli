@@ -149,6 +149,9 @@ jobs:
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
+      # Script de la bandera tienda_opiniones (MSF-467, T030): igual, solo dev; Node puro, sin base.
+      - name: test:tienda:opiniones-dev
+        run: pnpm test:tienda:opiniones-dev
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
@@ -182,6 +185,11 @@ jobs:
       - name: build
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
+      # El bundle que se sirve en dev tiene que traer la funcionalidad de opiniones (MSF-467, T030): con la bandera
+      # encendida, un bundle viejo dejaría la tienda sin bloque de opiniones sin que se note.
+      - name: bundle con opiniones (MSF-467, T030)
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
+        run: pnpm tienda:opiniones:bundle:check
       - name: test:ia
         if: needs.changes.outputs.code == 'true'
         run: pnpm test:ia
