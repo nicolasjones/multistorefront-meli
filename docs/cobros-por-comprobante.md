@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/components/ventas/CobrosComprobante.tsx
+  - apps/web/src/lib/ventas/cobros.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
+  - supabase/migrations/20261212100800_estado_cobro_comprobante.sql
+  - supabase/migrations/20270114100000_cobros_comprobante.sql
+  - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
+---
+
 # Ventas · Cobros por comprobante (F-VTA-12)
 
 Cobros **parciales o totales** de una factura: cuánto se cobró, cuánto falta y en qué estado de
@@ -22,6 +35,8 @@ Las cinco migraciones son **aditivas** (con reversión en el encabezado) y usan 
 | `20270114100200_registrar_cobro_interno.sql` | `private.registrar_cobro_interno`: el único camino para dejar un cobro en el libro. |
 | `20270114100300_registrar_cobro.sql` | La acción `registrar_cobro` en la matriz de permisos y `public.registrar_cobro`. |
 | `20270114100400_puede_registrar_cobro_lectura.sql` | `public.puede_registrar_cobro`: la lectura del permiso para la pantalla. |
+| `20270227140000_saldo_comprobante_resta_notas_credito.sql` | (MSF-450, posterior) las dos `saldo_comprobante` pasan a restar las notas de crédito y devuelven la columna `notas_credito`. |
+| `20270228200000_listar_pagos_saldo_neto.sql`, `20270228200100_resumen_pagos_saldo_neto.sql` | (MSF-450, decisión 8) `listar_pagos` (columna `saldo` y «Solo con saldo») y `resumen_pagos` (`saldo_pendiente`) usan el mismo saldo neto de notas de crédito que `saldo_comprobante`. Misma forma de respuesta. |
 
 La banda es **nueva y mayor** a propósito: con los números que nombra `tasks.md` (`20261209100…`)
 las migraciones quedaban por debajo de la cola ya aplicada en dokploy (`20270112150000`), y
@@ -60,8 +75,10 @@ desactiva más tarde, el cobro ya registrado se conserva).
 
 ## Saldo y lectura
 
-- `public.saldo_comprobante(p_id uuid) → (total, cobrado, saldo)`: total con IVA, suma de los
-  cobros y lo que falta. `security invoker` (manda la RLS de `dominio`) y además filtra por
+- `public.saldo_comprobante(p_id uuid) → (total, cobrado, notas_credito, saldo)`: total con IVA, suma de los
+  cobros, las **notas de crédito** emitidas sobre la factura y lo que falta (`total − cobrado − notas de crédito`,
+  mínimo 0, a 2 decimales; no hay saldo a favor). Cuentan las notas que cuelgan de la factura, del mismo cliente y
+  que no están en `borrador` ni `anulada` (`private.comprobante_cuenta_como_facturado`). `security invoker` (manda la RLS de `dominio`) y además filtra por
   organización y empresa accesible: otra organización recibe `P0002` («El comprobante no existe»),
   nunca datos ajenos. Sin `ventas` devuelve `42501`.
 - `public.cobros_de_comprobante(p_comprobante_id uuid)`: la lista de cobros de la factura (fecha,
@@ -75,7 +92,38 @@ desactiva más tarde, el cobro ya registrado se conserva).
 - `private.saldo_comprobante(p_id uuid)`: la cuenta interna. **Volátil** a propósito: la usa
   `private.registrar_cobro_interno` justo después de insertar el cobro y tiene que ver esa fila
   (una función `stable` usaría el snapshot de la sentencia que la llamó y vería el saldo
-  anterior). No la ejecuta `authenticated`.
+  anterior). No la ejecuta `authenticated`. Devuelve lo mismo que la pública (`total, cobrado, notas_credito,
+  saldo`) y **es el único cálculo del saldo**: de ahí leen el **tope** de `registrar_cobro` (el importe no puede
+  superar el saldo neto), el paso a **Cobrado** (saldo neto 0), el importe del **contrarreembolso** y la cuenta
+  corriente del cliente. Una nota emitida *después* de cobrar no devuelve plata: el saldo queda en 0 y el estado no
+  cambia. Hasta la migración `20270227140000` el saldo era `total − cobros` y la ficha del cliente (que sí restaba las
+  notas) y el comprobante mostraban cifras distintas.
+- **La nota de crédito sincroniza la factura** (disparador de la migración `20270227150000`, sobre las filas
+  `nota_credito` de `dominio.comprobantes_venta`: al insertarse, o al cambiar su estado o su total):
+  - Si lo cobrado más las notas cubren el total (saldo neto 0) y la factura **tiene cobros**, pasa a **Cobrado** por
+    `private.marcar_estado_cobro_comprobante` (actor `sistema`, solo si la matriz de la organización permite la
+    transición: si no, no hace nada —y la factura queda en su estado con saldo 0, porque `registrar_cobro` rechaza todo
+    importe sobre saldo 0— y la emisión de la nota no aborta). Una factura cubierta entera por notas y
+    **sin cobros** queda como está: no hay plata cobrada que justifique «Cobrado».
+  - Los **contrarreembolsos pendientes** de la factura pasan al saldo neto vigente (baja al emitir la nota, sube si se
+    anula; hoy ninguna pantalla ni RPC anula una nota —`anular_comprobante` la rechaza—, así que esa rama solo se alcanza con SQL
+    directo) y dejan el evento `contrarreembolso.importe_ajustado`; el bloqueo optimista avanza para quien tenga la
+    pantalla abierta. Si alguien lo está marcando cobrado en ese instante, se omite (`skip locked`, para no invertir el
+    orden de bloqueos y evitar un deadlock) y su cobro se valida contra el saldo vigente. El importe de un contrarreembolso es siempre mayor que 0: con saldo neto 0 se deja como está y
+    marcarlo cobrado falla con el mensaje de tope (que ya dice el saldo).
+  - **Límite conocido:** si se anula una nota *después* de que la factura pasó a `cobrado`, el saldo vuelve a subir pero
+    el estado no retrocede a `deuda` (una factura cobrada en mostrador, anterior al libro de cobros, puede estar en
+    `cobrado` sin cobros y no hay forma segura de distinguirla). El comprobante muestra el saldo pendiente; la cuenta
+    corriente la oculta por su estado.
+- **Quién más usa el mecanismo (MSF-145, motos).** `public.rendir_envios_moto` (migración `20270228110100`) registra un cobro por
+  cada envío en moto que se rinde, llamando a `private.registrar_cobro_interno` con origen `contrarreembolso`, por
+  `least(abono, saldo neto)` (el tope es el saldo de `private.saldo_comprobante`), la forma de pago de la factura o la
+  «Contrarreembolso» activa de la tienda y sin cuenta de cobro. No duplica lógica: la validación del tope, el paso a Cobrado
+  o Deuda y el evento `comprobante.cobro_registrado` son los de siempre. El envío guarda el `cobro_id`. La nota de crédito
+  posterior baja el `abono` de los envíos sin rendir (`20270228110200`, mismo disparador y mismo `skip locked` que los
+  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). Detalle en `docs/ventas-motos.md`.
+- `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
+  `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 
 ## `private.registrar_cobro_interno`
 
@@ -197,7 +245,8 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
 
 ### Tarjeta «Cobros»
 
-- Totales **Cobrado** y **Saldo**, y la lista de cobros (fecha, forma de pago, cuenta de cobro,
+- Totales **Cobrado** y **Saldo** (y **Notas de crédito**, solo si la factura las tiene: el saldo ya las descuenta y la
+  persona tiene que ver por qué), y la lista de cobros (fecha, forma de pago, cuenta de cobro,
   importe y quién lo registró).
 - Estados del kit: carga (esqueletos), vacío («Todavía no hay cobros») y error con «Reintentar».
   Con la lectura en error **no** se ofrece «Registrar cobro»: el saldo es desconocido, así que el
@@ -205,7 +254,8 @@ tarjeta en `apps/web/src/components/ventas/CobrosComprobante.tsx`.
 - Botón **«Registrar cobro»**: solo con la acción `registrar_cobro` en la empresa de la factura
   y solo si el comprobante es una **factura en estado operativo** (un presupuesto, un borrador o
   una factura anulada no lo muestran: la base los rechaza y la pantalla no ofrece una acción que
-  va a fallar). Sin la acción no aparece, y queda deshabilitado cuando la factura ya no tiene saldo.
+  va a fallar). Sin la acción no aparece, y queda deshabilitado cuando la factura ya no tiene saldo (cobrada, o cubierta por lo cobrado más las notas de crédito:
+  el aviso lo dice).
 
 ### Diálogo «Registrar cobro»
 
@@ -238,6 +288,23 @@ saldo** y **cierra con aviso** el diálogo «Registrar cobro» que estuviera abi
 un cobro de una tienda cargado bajo la otra. Si además la tienda nueva no es la del
 comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
 
+### Después del cobro, el detalle se relee (MSF-715)
+
+Registrar un cobro cambia el comprobante en la base: si el saldo queda en 0 la factura pasa a
+**Cobrado**, y si la forma de pago genera deuda pasa a **Deuda**; en ambos casos avanza su
+`updated_at`. Por eso, al registrarse el cobro la pantalla **relee el comprobante** (estado,
+`updated_at`, transiciones, historial y despacho), además de la lista de cobros y el saldo. Así la
+acción siguiente (cambiar el estado, anular) manda el `updated_at` vigente y no choca con «Otra
+persona modificó este comprobante».
+
+- Mientras relee, la tarjeta «Estado» y las acciones que mandan el `updated_at` quedan bloqueadas.
+- La relectura **no toca el formulario**: el «Reintentar» de la tarjeta de Cobros solo recarga cobros
+  y saldo, y no pisa lo que la persona esté editando.
+- Si la relectura falla, la pantalla no cae al error general (el cobro ya está registrado): avisa
+  que recargue la página y deja sin acciones de estado.
+- Con la factura en **Cobrado**/**Deuda**, «Envío y transporte» y «Responsables del despacho» siguen
+  visibles **en solo lectura** (la base solo admite editarlos con la factura confirmada).
+
 ### Pruebas de la pantalla (SC-002)
 
 `apps/web/src/pages/ventas/comprobante.cobros.test.tsx` (`pnpm test:web`) cubre:
@@ -246,7 +313,7 @@ comprobante, la pantalla se cierra con aviso (regla ya existente de la ficha).
   «Reintentar». Con la lectura en error **no** se ofrece «Registrar cobro» (deny-by-default: el
   saldo es desconocido y el diálogo no dejaría cobrar nada);
 - **el diálogo**: la apertura con el saldo como importe sugerido, la forma de pago que exige
-  cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista;
+  cuenta de cobro, el importe mayor al saldo, el registro con aviso y la recarga de la lista (también la relectura del comprobante, MSF-715);
 - **los estados del diálogo**: si el catálogo de formas de pago de la tienda no se puede leer, el
   diálogo lo dice y no manda un cobro a ciegas; si la tienda no tiene formas de pago, aparece el
   aviso y el botón queda deshabilitado; si las cuentas de cobro no se pueden listar, el error queda

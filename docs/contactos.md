@@ -1,8 +1,18 @@
+---
+owner: tecnico
+sources:
+  - specs/20261029-120000-contactos-y-respuestas-rapidas
+  - apps/web/src/lib/consentimientoContacto.ts
+  - apps/web/src/lib/respuestasRapidas.ts
+---
+
 # Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/contactos.md) · [guía de uso](producto/contactos.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 La libreta guarda a quienes consultan o compran, sin duplicados, con el consentimiento registrado, su historial de
 consultas y compras, y permite anonimizarlos a pedido. Spec:
-[`specs/20261029-120000-contactos-y-respuestas-rapidas`](../specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md)
+`specs/20261029-120000-contactos-y-respuestas-rapidas/spec.md`
 (contrato en `contracts/contactos.md`). Las respuestas rápidas (F-CON-06) se describen al final.
 
 ## Modelo (Principio VII)
@@ -65,7 +75,7 @@ Textos frecuentes por empresa que arman el texto inicial de `Responder` en una c
 
 MSF-154 consume contactos solo por las RPC `buscar_contactos` e `historial_contacto` y por `contacto_id` en `consultas_bandeja`; no
 lee `dominio.contactos` directo ni escribe. Respeta el consentimiento guardado y excluye los anonimizados (`anonimizado_en` no nulo).
-Contacto y cliente (`public.clientes`) son **entidades separadas**, sin FK entre ellas (Decisión abierta 2 de la spec): si deben unificarse,
+Contacto y cliente (`dominio.clientes`) son **entidades separadas**, sin FK entre ellas (Decisión abierta 2 de la spec): si deben unificarse,
 se decide antes de que MSF-154 los consuma.
 
 ## Revisión de seguridad (cierre, FR-020)
@@ -74,3 +84,7 @@ Verificada sobre las migraciones `20270201100000…100500` y `20270201200000…2
 `dominio.respuestas_rapidas`; `revoke all … from public, anon, authenticated` + `grant select` solo a `authenticated` en tablas y vistas;
 toda RPC con `revoke … from public, anon` y `grant … to authenticated`; funciones internas (`private.*`) sin grants; esquema `dominio`
 para las dos tablas (Principio VII); `registro_actividad` sin nombre, correo, teléfono ni texto de respuesta.
+
+## Listado con carga infinita
+
+La libreta de contactos carga por tandas (`useListadoAcumulado` + `CargaInfinita`) en vez de páginas numeradas; buscar o cambiar de tienda vuelve a la primera tanda y el contador total se conserva.

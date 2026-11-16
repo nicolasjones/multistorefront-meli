@@ -1,6 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261023-120000-dolar-y-recalculo
+---
+
 # Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)
 
-Guía de la épica: carga diaria de la cotización del dólar, vista previa de impacto, recálculo atómico de precios, historial inmutable y aviso de «no cargada hoy». Fuente de requisitos: [`spec.md`](../specs/20261023-120000-dolar-y-recalculo/spec.md); contrato de las RPC: [`contracts/dolar-y-recalculo.md`](../specs/20261023-120000-dolar-y-recalculo/contracts/dolar-y-recalculo.md). Los precios y sus fórmulas son los de [`precios.md`](./precios.md) (MSF-114).
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/dolar-y-recalculo.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
+Guía de la épica: carga diaria de la cotización del dólar, vista previa de impacto, recálculo atómico de precios, historial inmutable y aviso de «no cargada hoy». Fuente de requisitos: `specs/20261023-120000-dolar-y-recalculo/spec.md`; contrato de las RPC: `contracts/dolar-y-recalculo.md` (`specs/20261023-120000-dolar-y-recalculo/contracts/dolar-y-recalculo.md`). Los precios y sus fórmulas son los de [`precios.md`](./precios.md) (MSF-114).
 
 ## Modelo (Principio VII)
 
@@ -25,14 +33,14 @@ Las tres tablas tienen RLS por organización (`private.organizacion_id()`) y per
 
 ## Umbral y recálculo
 
-- El umbral es **1 %**, medido contra la cotización **vigente** (última confirmada o, sin ninguna, la inicial de MSF-114). Con variación ≥ 1 % (en valor absoluto) se recalcula; justo 1 % recalcula.
+- El umbral es **1 % por defecto** (se configura por organización desde la tarjeta «Configuración» de Cotización; ver `configuracion-dolar-y-precio-propio.md`), medido contra la cotización **vigente** (última confirmada o, sin ninguna, la inicial de MSF-114). Con variación ≥ 1 % (en valor absoluto) se recalcula; justo 1 % recalcula.
 - Bajo el umbral la cotización **se registra** (queda en el historial) pero no se mueve `cotizacion_aplicada`: los precios no cambian.
 - No se guarda ningún precio en pesos. «Recalcular todos los precios» es cambiar, en **una transacción**, la única fila `cotizacion_aplicada` de la organización; `private.a_pesos` lee `coalesce(aplicada, inicial)`. Por eso ninguna empresa puede quedar con un valor distinto de otra.
 - «Precios recalculados» = productos activos en USD × empresas activas, el mismo número del mosaico de la vista previa.
 
 ## Atomicidad y concurrencia
 
-`confirmar_cotizacion` toma `pg_advisory_xact_lock` por organización y `select … for update` de la pendiente; historial, cotización aplicada, borrado de la pendiente y eventos van en la misma transacción. Doble clic o dos operadores: una confirmación gana y la otra recibe `P0002` sin duplicar el historial. `descartar_cotizacion` es idempotente.
+`confirmar_cotizacion(p_empresa, p_variacion_vista)` toma `pg_advisory_xact_lock` por organización (antes de leer la configuración) y `select … for update` de la pendiente; historial, cotización aplicada, borrado de la pendiente y eventos van en la misma transacción. Doble clic o dos operadores: una confirmación gana y la otra recibe `P0002` sin duplicar el historial. `descartar_cotizacion` es idempotente. Si |variación| supera la confirmación configurada, exige `p_variacion_vista` (la que el usuario vio) y que coincida con la real ±0,05 puntos; si no, `22023` con hint `variacion_inusual` (falta) o `variacion_cambio` (el dólar cambió mientras revisaba). Ver `configuracion-dolar-y-precio-propio.md`.
 
 ## Permisos
 

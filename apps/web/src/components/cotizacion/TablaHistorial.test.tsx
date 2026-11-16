@@ -24,6 +24,7 @@ const carga = (n: number, extra: Partial<CargaCotizacion> = {}): CargaCotizacion
   cargadaPorNombre: 'Javier',
   recalculoAplicado: true,
   preciosRecalculados: 89,
+  umbralPct: null,
   ...extra,
 })
 

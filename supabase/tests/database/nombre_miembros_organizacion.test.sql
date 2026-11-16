@@ -134,7 +134,7 @@ reset role;
 select set_config('request.jwt.claims', json_build_object('sub', '91000000-0000-0000-0000-000000000009', 'role', 'authenticated')::text, true);
 set local role authenticated;
 
-select public.entrar_a_organizacion('91111111-1111-1111-1111-111111111111');
+select public.entrar_a_organizacion('91111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
   (select array_agg(user_id order by user_id) from public.listar_miembros_organizacion()),

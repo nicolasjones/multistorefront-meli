@@ -21,7 +21,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
-insert into clientes (organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo, archivado_en) values
   ('11111111-1111-1111-1111-111111111111', 102, 'Alfa', 'mayorista', 'alfa@example.com', true, null),
   ('11111111-1111-1111-1111-111111111111', 103, 'Beta', 'minorista', 'beta@example.com', true, null),
   ('11111111-1111-1111-1111-111111111111', 105, 'Archivado', 'minorista', 'archivado@example.com', true, now()),
@@ -49,7 +49,7 @@ grant all on creada to authenticated;
 select is((select count(*)::int from dominio.campanas_correo), 1, 'crear_campana_correo crea una campaña');
 
 select results_eq(
-  $$select c.nombre from dominio.campana_correo_destinatarios d join public.clientes c on c.id = d.cliente_id order by 1$$,
+  $$select c.nombre from dominio.campana_correo_destinatarios d join dominio.clientes c on c.id = d.cliente_id order by 1$$,
   $$values ('Alfa'::text), ('Beta'::text)$$,
   'la foto trae solo a los elegibles (no archivados, con correo y con aceptación; ninguno de otra organización)'
 );

@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar los runners locales optimizados
 
 Capacidad `local-ci-runners` de `template-capabilities.json`. Hace que las

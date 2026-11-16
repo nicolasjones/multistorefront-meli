@@ -6,6 +6,8 @@ import { BloqueQueVaACambiar } from './BloqueQueVaACambiar'
 const PREVIA: Previsualizacion = {
   variacionPct: 5,
   recalcula: true,
+  redondeoPesos: 10,
+  umbralPct: 1,
   empresas: [
     { empresaId: 'e1', nombre: 'Mundo JC', precios: 38 },
     { empresaId: 'e2', nombre: 'San Javucho', precios: 1 },

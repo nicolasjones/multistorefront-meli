@@ -1,4 +1,4 @@
-import { argumentValue, redactError, requireEnvironment, run } from './operaciones.mjs';
+import { argumentValue, redactError, requireEnvironment, run, separarContrasena } from './operaciones.mjs';
 
 const args = process.argv.slice(2);
 const entorno = argumentValue(args, '--entorno');
@@ -17,8 +17,11 @@ function sqlHabilitarRolAnalitica(clave) {
 }
 
 try {
-  await run('supabase', ['db', 'push', '--db-url', dbUrl]);
-  await run('psql', [dbUrl, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], { input: sqlHabilitarRolAnalitica(claveAnalitica) });
+  // La contraseña de la URL no viaja en argv (visible en `ps` y /proc/*/cmdline del runner): va por
+  // PGPASSWORD, que `supabase` (pgx) y `psql` (libpq) leen del entorno.
+  const { urlSinContrasena, env } = separarContrasena(dbUrl);
+  await run('supabase', ['db', 'push', '--db-url', urlSinContrasena], { env });
+  await run('psql', [urlSinContrasena, '-X', '-q', '-v', 'ON_ERROR_STOP=1'], { input: sqlHabilitarRolAnalitica(claveAnalitica), env });
   console.log(`Migraciones aplicadas contra el proyecto Supabase de ${entorno}.`);
 } catch (error) {
   throw new Error(redactError(error));

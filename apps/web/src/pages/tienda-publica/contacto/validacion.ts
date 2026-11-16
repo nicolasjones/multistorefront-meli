@@ -16,7 +16,7 @@ export type ErroresContacto = Partial<Record<CampoContacto, string>>
 const CORREO = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
 const TELEFONO = /^\+?[0-9 ()-]+$/
 
-function esContactoValido(contacto: string): boolean {
+export function esContactoValido(contacto: string): boolean {
   if (CORREO.test(contacto)) return true
   if (!TELEFONO.test(contacto)) return false
   const digitos = contacto.replace(/[^0-9]/g, '').length

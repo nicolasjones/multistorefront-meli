@@ -43,6 +43,14 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Empresa A2'),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa B1');
 
+-- Operador y administración acceden a las dos empresas de la organización: la política de lectura de Actividad ahora también
+-- filtra por empresa accesible (el alcance por empresa se prueba en `actividad_por_empresa.test.sql`).
+insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id)
+select u.user_id, e.id, '11111111-1111-1111-1111-111111111111', u.rol_id
+  from (values ('b1000000-0000-0000-0000-000000000002'::uuid, 'operador'), ('b1000000-0000-0000-0000-000000000006'::uuid, 'administracion')) u(user_id, rol_id)
+  cross join dominio.empresas e
+ where e.organizacion_id = '11111111-1111-1111-1111-111111111111';
+
 insert into perfiles_usuario (user_id, nombre, apellido) values
   ('b1000000-0000-0000-0000-000000000003', 'Carla', 'Consulta');
 

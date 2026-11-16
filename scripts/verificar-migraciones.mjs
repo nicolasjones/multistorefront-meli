@@ -7,15 +7,24 @@
 //      registro y el archivo discrepen y que la migración NUNCA se aplique — pasó con
 //      `20261019120000`, que quedó grabada con otro contenido y bloqueó toda la cola).
 //   3. VERSIÓN NUEVA: una migración agregada debe usar una versión MAYOR que la máxima
-//      de la base (no reusar un número viejo).
+//      de la base (no reusar un número viejo). Es ERROR cuando la base es la rama contra
+//      la que se mergea de verdad (una épica en un PR a la épica) o el destino final
+//      (`dokploy`/`main`) en un PR o con `--estricto`. Fuera de eso, comparar una rama de
+//      épica con `dokploy` (que avanza con cada épica que mergea) es sólo un AVISO de
+//      orden: se resuelve al integrar la épica, y no obliga a renombrar en bucle.
+//   0. NOMBRE VÁLIDO: todo archivo de `supabase/migrations/` es `<versión>_<nombre>.sql`. El CLI de Supabase y el cron de las
+//      bases dev/stg/prd (`migrar-supabase-vps.sh`) IGNORAN un archivo sin nombre (`20270202200501.sql`): el CI lo aplica
+//      (toma todos los `.sql`) y los entornos no, así que la migración existe en el repo y nunca llega a la base. Pasó con las
+//      tres migraciones de seguridad MSF-724 del chat de IA, que quedaron sin aplicar en dev.
 //   4. IDEMPOTENCIA: el DDL debe tolerar una aplicación parcial (el aplicador se detiene
 //      en el primer error y reintenta): `ADD COLUMN IF NOT EXISTS`, `DROP ... IF EXISTS`,
 //      `CREATE INDEX IF NOT EXISTS`.
 //
-// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia]
+// Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
 // Sale con código 1 si hay un problema.
 
 import { spawnSync } from 'node:child_process';
+import { revisarDdl } from './guard-migraciones-ddl.mjs';
 
 const args = process.argv.slice(2);
 const valorDe = (flag, def) => {
@@ -24,6 +33,9 @@ const valorDe = (flag, def) => {
 };
 const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
 const soloIdempotencia = args.includes('--solo-idempotencia');
+const esIntegracion = /^origin\/(dokploy|main)$/.test(base);
+// Orden contra la base como ERROR: base de épica, destino final en un PR, o `--estricto`.
+const ordenEstricto = args.includes('--estricto') || !esIntegracion || Boolean(process.env.GITHUB_BASE_REF);
 const git = (a) => spawnSync('git', a, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 
 const problemas = [];
@@ -32,6 +44,16 @@ const avisos = [];
 // --- Migraciones del árbol actual ---
 const archivos = (git(['ls-files', 'supabase/migrations']).stdout || '')
   .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+_.+\.sql$/.test(x));
+
+// Un archivo de migración que no es `<versión>_<nombre>.sql` no lo aplica ni el CLI ni el cron: se rechaza en vez de ignorarlo.
+const todosLosArchivos = (git(['ls-files', 'supabase/migrations']).stdout || '')
+  .split('\n').map((x) => x.trim()).filter(Boolean);
+const NOMBRE_VALIDO = /^supabase\/migrations\/\d+_[^/]+\.sql$/;
+for (const f of todosLosArchivos) {
+  if (!NOMBRE_VALIDO.test(f)) {
+    problemas.push(`nombre inválido ${f}: tiene que ser <versión>_<nombre>.sql; el CLI de Supabase y el cron de las bases lo ignoran y la migración nunca se aplicaría`);
+  }
+}
 
 const porVersion = new Map();
 for (const f of archivos) {
@@ -48,18 +70,32 @@ if (!soloIdempotencia) {
   if (!existeBase) {
     avisos.push(`no existe la base ${base}: se omite el control de versiones (sí corre el de idempotencia)`);
   } else {
+    // En la base también cuentan los archivos SIN nombre (`<versión>.sql`): renombrarlos para que se apliquen no es una versión
+    // nueva ni reusada, es la misma migración con el mismo contenido.
     const enBase = (git(['ls-tree', '-r', '--name-only', base, 'supabase/migrations']).stdout || '')
-      .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+_.+\.sql$/.test(x));
+      .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x));
     const basePorVersion = new Map();
-    for (const f of enBase) basePorVersion.set(f.split('/').pop().split('_')[0], f);
+    const baseTodasPorVersion = new Map();
+    for (const f of enBase) {
+      const ver = f.split('/').pop().split('_')[0].replace(/\.sql$/, '');
+      basePorVersion.set(ver, f);
+      if (!baseTodasPorVersion.has(ver)) baseTodasPorVersion.set(ver, []);
+      baseTodasPorVersion.get(ver).push(f);
+    }
 
     const maxBase = [...basePorVersion.keys()].sort().pop() || '0';
 
     for (const [v, fs_] of porVersion) {
-      const previo = basePorVersion.get(v);
+      // Si la base ya tiene dos archivos con la misma versión (colisión heredada), se compara contra el de la MISMA ruta.
+      const enLaBase = baseTodasPorVersion.get(v) || [];
+      const previo = enLaBase.includes(fs_[0]) ? fs_[0] : basePorVersion.get(v);
       if (!previo) {
         if (v <= maxBase) {
-          problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          if (ordenEstricto) {
+            problemas.push(`versión ${v} REUSADA: ya existe ${maxBase} o mayor en ${base}; usá una versión nueva y mayor (${fs_[0]})`);
+          } else {
+            avisos.push(`versión ${v} está por debajo de ${maxBase} (máxima de ${base}) pero no colisiona: se acomoda al integrar la épica (con \`--estricto\` o en el PR a ${base} es error). El aplicador no ejecuta versiones bajo la cola ya aplicada (${fs_[0]})`);
+          }
         }
         continue;
       }
@@ -87,33 +123,26 @@ if (!soloIdempotencia) {
 
 // --- Idempotencia del DDL (sólo archivos NUEVOS respecto de la base) ---
 const existeBase2 = git(['rev-parse', '--verify', '--quiet', base]).status === 0;
+// «Nuevo» = su VERSIÓN no existe en la base (un archivo renombrado de `<versión>.sql` a `<versión>_<nombre>.sql` no es nuevo).
+const versionesEnBase = new Set(existeBase2
+  ? (git(['ls-tree', '-r', '--name-only', base, 'supabase/migrations']).stdout || '')
+    .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x))
+    .map((x) => x.split('/').pop().split('_')[0].replace(/\.sql$/, ''))
+  : []);
 const nuevos = existeBase2
-  ? archivos.filter((f) => git(['cat-file', '-e', `${base}:${f}`]).status !== 0)
+  ? archivos.filter((f) => !versionesEnBase.has(f.split('/').pop().split('_')[0]))
   : archivos;
 
 const revisar = (archivo) => {
   const sql = git(['show', `:${archivo}`]).stdout || '';
-  const lineas = sql.split('\n');
-  lineas.forEach((linea, i) => {
-    const l = linea.trim();
-    if (/^--/.test(l)) return;
-    const n = i + 1;
-    if (/^alter\s+table\s+[^;]*\badd\s+column\b/i.test(l) && !/add\s+column\s+if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} ADD COLUMN sin IF NOT EXISTS (una aplicación parcial traba el reintento)`);
-    }
-    if (/^drop\s+function\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} DROP FUNCTION sin IF EXISTS`);
-    }
-    if (/^drop\s+(table|view|index|trigger)\b/i.test(l) && !/if\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} DROP sin IF EXISTS (revisá si puede reintentarse)`);
-    }
-    if (/^create\s+(unique\s+)?index\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      problemas.push(`${archivo}:${n} CREATE INDEX sin IF NOT EXISTS`);
-    }
-    if (/^create\s+table\b/i.test(l) && !/if\s+not\s+exists/i.test(l)) {
-      avisos.push(`${archivo}:${n} CREATE TABLE sin IF NOT EXISTS`);
-    }
-  });
+  // Todas las reglas de idempotencia se evalúan por SENTENCIA completa (hasta `;`), no línea por
+  // línea: `alter table t` + `add column x` en líneas distintas (MSF-682), o `create index` +
+  // `if not exists` en la línea siguiente, son el mismo problema.
+  for (const h of revisarDdl(sql)) {
+    const texto = `${archivo}:${h.linea} ${h.mensaje}`;
+    if (h.severidad === 'problema') problemas.push(texto);
+    else avisos.push(texto);
+  }
 };
 for (const f of nuevos) revisar(f);
 

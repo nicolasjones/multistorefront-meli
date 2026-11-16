@@ -82,7 +82,7 @@ export function GrillaFeaturesPorOrganizacion({
   }
 
   return (
-    <TableContainer component={Paper} variant="outlined">
+    <TableContainer tabIndex={0} role="region" aria-label="Funcionalidades por organización (se desplaza)" component={Paper} variant="outlined">
       <Table size="small">
         <TableHead>
           <TableRow>

@@ -1,4 +1,8 @@
 import { supabaseClient } from './supabase'
+import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBorrador'
+import { ESTILOS_HEROE, ESTILO_HEROE_POR_DEFECTO, type EstiloHeroe } from '../tema/temaTienda'
+
+export { ESTILOS_HEROE, type EstiloHeroe }
 
 // F-TDA-02 (MSF-266): identidad visual de la tienda online (colores, tipografías, logo y banners).
 // La base repite estas reglas (checks de color/tipografía, bucket `tienda-identidad`, RPC): acá se
@@ -7,7 +11,7 @@ import { supabaseClient } from './supabase'
 export const BUCKET_IDENTIDAD = 'tienda-identidad'
 
 // Lista cerrada de tipografías (DS-04, supuesto): la misma que valida la base.
-export const TIPOGRAFIAS = ['system-ui', 'Barlow', 'Barlow Condensed', 'Playfair Display', 'Lato', 'Sora', 'Instrument Sans'] as const
+export const TIPOGRAFIAS = ['system-ui', 'Barlow', 'Barlow Condensed', 'Playfair Display', 'Lato', 'Sora', 'Instrument Sans', 'Bricolage Grotesque', 'DM Sans'] as const
 export type Tipografia = (typeof TIPOGRAFIAS)[number]
 
 export type IdentidadTienda = {
@@ -15,11 +19,17 @@ export type IdentidadTienda = {
   colorPrimarioOscuro: string
   colorAcento: string
   colorFondo: string
+  // Barra superior y pie (MSF-841).
+  colorBarra: string
   tipografiaTitulos: Tipografia
   tipografiaTexto: Tipografia
   logoRuta: string | null
   bannerRuta: string | null
   bannerMovilRuta: string | null
+  // Estilo del encabezado de la portada (MSF-848): 'oscuro' (franja oscura, título en mayúsculas) o 'claro' (franja clara con círculo de acento).
+  estiloHeroe: EstiloHeroe
+  // Mayúsculas del menú de categorías, del título y del botón del héroe (MSF-848).
+  titulosMayusculas: boolean
 }
 
 // Tema base de la tienda sin configurar (mismos valores que los defaults de la tabla).
@@ -28,11 +38,14 @@ export const IDENTIDAD_BASE: IdentidadTienda = {
   colorPrimarioOscuro: '#000000',
   colorAcento: '#222222',
   colorFondo: '#FFFFFF',
+  colorBarra: '#222222',
   tipografiaTitulos: 'system-ui',
   tipografiaTexto: 'system-ui',
   logoRuta: null,
   bannerRuta: null,
   bannerMovilRuta: null,
+  estiloHeroe: ESTILO_HEROE_POR_DEFECTO,
+  titulosMayusculas: true,
 }
 
 export type ClaveImagen = 'logo' | 'banner' | 'bannerMovil'
@@ -99,11 +112,12 @@ export const formatearContraste = (razon: number) => (Math.floor(razon * 10) / 1
 
 export type EvaluacionContraste = { razon: number; cumpleAA: boolean; texto: string }
 
-export function evaluarContraste(colorPrimario: string): EvaluacionContraste | null {
-  const razon = contrasteBlancoSobre(colorPrimario)
+// `sobre` nombra el color evaluado en el texto («el primario», «la barra superior y pie»).
+export function evaluarContraste(color: string, sobre = 'el primario'): EvaluacionContraste | null {
+  const razon = contrasteBlancoSobre(color)
   if (razon === null) return null
   const cumpleAA = razon >= CONTRASTE_MINIMO_AA
-  const base = `Contraste de texto blanco sobre el primario: ${formatearContraste(razon)}:1`
+  const base = `Contraste de texto blanco sobre ${sobre}: ${formatearContraste(razon)}:1`
   return {
     razon,
     cumpleAA,
@@ -186,36 +200,45 @@ export function urlPublica(ruta: string | null): string | null {
 // Lectura y escritura
 // ---------------------------------------------------------------------------
 
-type FilaIdentidad = {
+export type FilaIdentidad = {
   color_primario: string
   color_primario_oscuro: string
   color_acento: string
   color_fondo: string
+  // Ausente en borradores y versiones anteriores a MSF-841: vale el color por defecto.
+  color_barra?: string
   tipografia_titulos: Tipografia
   tipografia_texto: Tipografia
   logo_ruta: string | null
   banner_ruta: string | null
   banner_movil_ruta: string | null
+  // Ausentes en borradores y versiones anteriores a MSF-848: valen los valores por defecto.
+  estilo_heroe?: EstiloHeroe
+  titulos_mayusculas?: boolean
 }
 
-const desdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
+export const identidadDesdeFila = (fila: FilaIdentidad): IdentidadTienda => ({
   colorPrimario: fila.color_primario,
   colorPrimarioOscuro: fila.color_primario_oscuro,
   colorAcento: fila.color_acento,
   colorFondo: fila.color_fondo,
+  colorBarra: fila.color_barra ?? IDENTIDAD_BASE.colorBarra,
   tipografiaTitulos: fila.tipografia_titulos,
   tipografiaTexto: fila.tipografia_texto,
   logoRuta: fila.logo_ruta,
   bannerRuta: fila.banner_ruta,
   bannerMovilRuta: fila.banner_movil_ruta,
+  estiloHeroe: fila.estilo_heroe === 'claro' ? 'claro' : IDENTIDAD_BASE.estiloHeroe,
+  titulosMayusculas: fila.titulos_mayusculas ?? IDENTIDAD_BASE.titulosMayusculas,
 })
 
-const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta'
+const COLUMNAS = 'color_primario, color_primario_oscuro, color_acento, color_fondo, color_barra, tipografia_titulos, tipografia_texto, logo_ruta, banner_ruta, banner_movil_ruta, estilo_heroe, titulos_mayusculas'
 
 export type IdentidadDeEmpresa = { organizacionId: string; identidad: IdentidadTienda }
 
-// Identidad guardada de una empresa para la gestión (RLS: solo la organización de la sesión). Sin fila
-// devuelve el tema base. La empresa se lee aparte porque da la carpeta (organización) de los archivos.
+// Identidad de una empresa para la gestión: el borrador si existe para esta área (F-TDA-06, FR-051), si no la
+// publicada (RLS: solo la organización de la sesión). Sin fila devuelve el tema base. La empresa se lee aparte
+// porque da la carpeta (organización) de los archivos.
 export async function leerIdentidadDeEmpresa(empresaId: string): Promise<IdentidadDeEmpresa> {
   const { data: empresa, error: errorEmpresa } = await supabaseClient
     .schema('dominio')
@@ -226,6 +249,11 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
   if (errorEmpresa) throw new Error(errorEmpresa.message)
   if (!empresa) throw new Error('La empresa no existe')
 
+  const borrador = await obtenerBorrador(empresaId)
+  if (borrador.identidad) {
+    return { organizacionId: empresa.organizacion_id, identidad: identidadDesdeFila(borrador.identidad as unknown as FilaIdentidad) }
+  }
+
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('tienda_identidad')
@@ -233,25 +261,27 @@ export async function leerIdentidadDeEmpresa(empresaId: string): Promise<Identid
     .eq('empresa_id', empresaId)
     .maybeSingle<FilaIdentidad>()
   if (error) throw new Error(error.message)
-  return { organizacionId: empresa.organizacion_id, identidad: data ? desdeFila(data) : IDENTIDAD_BASE }
+  return { organizacionId: empresa.organizacion_id, identidad: data ? identidadDesdeFila(data) : IDENTIDAD_BASE }
 }
 
-// «Guardar»: estado completo por la RPC (idempotente). Devuelve lo que quedó guardado.
+// «Guardar»: el estado completo va al borrador (F-TDA-06): la tienda pública no cambia hasta publicar.
+// Devuelve lo que quedó guardado.
 export async function guardarIdentidad(empresaId: string, identidad: IdentidadTienda): Promise<IdentidadTienda> {
-  const { data, error } = await supabaseClient.rpc('guardar_tienda_identidad', {
-    p_empresa_id: empresaId,
-    p_color_primario: identidad.colorPrimario,
-    p_color_primario_oscuro: identidad.colorPrimarioOscuro,
-    p_color_acento: identidad.colorAcento,
-    p_color_fondo: identidad.colorFondo,
-    p_tipografia_titulos: identidad.tipografiaTitulos,
-    p_tipografia_texto: identidad.tipografiaTexto,
-    p_logo_ruta: identidad.logoRuta,
-    p_banner_ruta: identidad.bannerRuta,
-    p_banner_movil_ruta: identidad.bannerMovilRuta,
+  await guardarBorrador(empresaId, 'identidad', {
+    color_primario: identidad.colorPrimario,
+    color_primario_oscuro: identidad.colorPrimarioOscuro,
+    color_acento: identidad.colorAcento,
+    color_fondo: identidad.colorFondo,
+    color_barra: identidad.colorBarra,
+    tipografia_titulos: identidad.tipografiaTitulos,
+    tipografia_texto: identidad.tipografiaTexto,
+    logo_ruta: identidad.logoRuta,
+    banner_ruta: identidad.bannerRuta,
+    banner_movil_ruta: identidad.bannerMovilRuta,
+    estilo_heroe: identidad.estiloHeroe,
+    titulos_mayusculas: identidad.titulosMayusculas,
   })
-  if (error) throw new Error(error.message)
-  return desdeFila(data as FilaIdentidad)
+  return identidad
 }
 
 export async function subirImagen(ruta: string, archivo: File): Promise<void> {
@@ -260,9 +290,24 @@ export async function subirImagen(ruta: string, archivo: File): Promise<void> {
 }
 
 // Limpieza de archivos que ya no se usan. No interrumpe: un huérfano no rompe nada, solo ocupa lugar.
-export async function borrarImagenes(rutas: string[]): Promise<void> {
+// Con `empresaId` solo pide borrar los que ni lo publicado, ni el borrador, ni alguna versión referencian (FR-062):
+// los archivos reemplazados pueden seguir en uso por la tienda en línea o por una versión anterior.
+// Esa consulta es solo para no pedir borrados inútiles: la garantía está en la base (MSF-796). La política de
+// borrado del bucket rechaza todo archivo referenciado, aunque se llame a la Storage API directo; un borrado
+// denegado por la política no da error, la API simplemente no lo devuelve como borrado.
+export async function borrarImagenes(rutas: string[], empresaId?: string): Promise<void> {
   if (rutas.length === 0) return
-  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).remove(rutas)
+  let aBorrar = rutas
+  if (empresaId) {
+    try {
+      aBorrar = await rutasSinReferencia(empresaId, rutas)
+    } catch (error) {
+      console.error('No se pudo comprobar qué archivos de identidad siguen en uso', error instanceof Error ? error.message : error)
+      return
+    }
+  }
+  if (aBorrar.length === 0) return
+  const { error } = await supabaseClient.storage.from(BUCKET_IDENTIDAD).remove(aBorrar)
   if (error) console.error('No se pudieron borrar archivos de identidad sin uso', error.message)
 }
 
@@ -272,7 +317,7 @@ export async function resolverIdentidadPublica(host: string): Promise<IdentidadT
   const { data, error } = await supabaseClient.schema('publico').rpc('identidad_por_dominio', { host })
   if (error) throw new Error(error.message)
   const fila = ((data ?? []) as FilaIdentidad[])[0]
-  return fila ? desdeFila(fila) : null
+  return fila ? identidadDesdeFila(fila) : null
 }
 
 // Familias de Google Fonts a cargar para una identidad (la tipografía del sistema no necesita carga).

@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { spawn } from 'node:child_process';
 
+import { restaurarBin } from '/restaurar-bin.mjs';
+
 function required(name) {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Falta ${name}.`);
@@ -41,6 +43,21 @@ async function removeRegistration() {
 
 const cleanup = async () => { await removeRegistration(); process.exit(0); };
 process.once('SIGINT', cleanup); process.once('SIGTERM', cleanup);
+
+// El runner de GitHub se autoactualiza en el sitio: renombra `bin` a `bin.<version>` y
+// recién después deja el `bin` nuevo. Si el contenedor se reinicia en medio de ese swap
+// (host saturado, OOM, `docker compose up`), `bin` queda AUSENTE y el runner no puede
+// arrancar: `config.sh` muere con "./bin/Runner.Listener: No such file or directory" y
+// el contenedor entra en crash-loop. Peor: en GitHub el runner queda registrado como
+// OFFLINE+OCUPADO y el job que tenía tomado queda huérfano para siempre → el PR
+// espera un CI que nunca termina (MSF-223/MSF-326: 9 runs en cola, 2 h sin avanzar).
+// `restaurarBin` deja el runner como estaba antes de la actualización a medias.
+try {
+  const respaldo = restaurarBin(process.cwd());
+  if (respaldo) console.log(`Se restauró 'bin' desde '${respaldo}' (autoactualización interrumpida a medias).`);
+} catch (error) {
+  console.error(`No se pudo restaurar 'bin': ${error instanceof Error ? error.message : String(error)}`);
+}
 
 try {
   if (existsSync('.runner')) {

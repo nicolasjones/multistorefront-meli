@@ -87,7 +87,8 @@ export function validarIngreso(formulario: FormularioIngreso, hoy: string = fech
     }
 
     const costo = linea.costo_unitario_usd.trim()
-    if (!COSTO.test(costo)) {
+    // F-PRV-07: el costo es opcional; vacío se guarda sin costo (no es cero).
+    if (costo !== '' && !COSTO.test(costo)) {
       erroresLinea.costo_unitario_usd = 'Costo en USD con hasta dos decimales.'
     }
 
@@ -101,14 +102,14 @@ export function validarIngreso(formulario: FormularioIngreso, hoy: string = fech
 export type LineaParaRpc = {
   producto_id: string
   cantidad: number
-  costo_unitario_usd: number
+  costo_unitario_usd: number | null
 }
 
 export function lineasParaRpc(lineas: LineaIngreso[]): LineaParaRpc[] {
   return lineas.map((linea) => ({
     producto_id: linea.producto_id,
     cantidad: Number(linea.cantidad.trim()),
-    costo_unitario_usd: Number(linea.costo_unitario_usd.trim()),
+    costo_unitario_usd: linea.costo_unitario_usd.trim() === '' ? null : Number(linea.costo_unitario_usd.trim()),
   }))
 }
 

@@ -10,10 +10,14 @@ const mocks = vi.hoisted(() => ({
   useResponsablesConsultas: vi.fn(),
   useNivelSeccion: vi.fn(),
   useRespuestasRapidas: vi.fn(),
+  useItemsConsulta: vi.fn(),
   useFiltroPorEmpresaActiva: vi.fn(),
   refetch: vi.fn(),
   refetchDetalle: vi.fn(),
+  imagenes: new Map<string, string>(),
 }))
+
+vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: () => mocks.imagenes }))
 
 vi.mock('../../hooks/useConsultas', () => ({
   useBandejaConsultas: mocks.useBandejaConsultas,
@@ -22,6 +26,7 @@ vi.mock('../../hooks/useConsultas', () => ({
   useResponsablesConsultas: mocks.useResponsablesConsultas,
 }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
+vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -90,10 +95,12 @@ const ultimosFiltros = () => mocks.useBandejaConsultas.mock.calls.at(-1)![0]
 describe('ConsultaList (F-CON-01, FR-006)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.imagenes.clear()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.useConsultasNuevas.mockReturnValue({ total: 3 })
     mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
     mocks.useRespuestasRapidas.mockReturnValue({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'lista', items: [], reintentar: vi.fn() })
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()]))
     mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_CONSULTA ? consulta() : null))
     estadoFiltro.empresaActivaId = null
@@ -153,7 +160,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     vi.useFakeTimers()
     mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()], { total: 60 }))
     abrir()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
     fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar consultas' }), { target: { value: '  ana, (pérez)  ' } })
     act(() => { vi.advanceTimersByTime(300) })
@@ -191,14 +198,56 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-1' })
   })
 
-  it('pagina en el servidor y reencuadra la página al cambiar un filtro', () => {
-    mocks.useBandejaConsultas.mockReturnValue(bandeja([consulta()], { total: 60 }))
+  it('«Cargar más» suma la tanda siguiente y cambiar un filtro reinicia desde la tanda 1', () => {
+    mocks.useBandejaConsultas.mockImplementation((f: { pagina: number; estado: string | null }) =>
+      f.estado === 'resuelta' ? bandeja([consulta({ id: 'r', nombre: 'Rosa' })], { total: 1 })
+        : f.pagina === 2 ? bandeja([consulta({ id: 'b', nombre: 'Beto' })], { total: 2 })
+          : bandeja([consulta({ id: 'a', nombre: 'Alma' })], { total: 2 }))
     abrir()
-    expect(screen.getByText('1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    expect(screen.queryByText(/por página/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getByText('Alma')).toBeInTheDocument()
+    expect(screen.getByText('Beto')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Resuelta' }))
-    expect(ultimosFiltros().pagina).toBe(1)
+    expect(ultimosFiltros()).toMatchObject({ estado: 'resuelta', pagina: 1 })
+    expect(screen.getByText('Rosa')).toBeInTheDocument()
+    expect(screen.queryByText('Alma')).not.toBeInTheDocument()
+    expect(screen.queryByText('Beto')).not.toBeInTheDocument()
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo ve coincidencias y «Cargar más» pide la siguiente con el mismo texto', () => {
+    vi.useFakeTimers()
+    mocks.useBandejaConsultas.mockImplementation((f: { pagina: number; texto: string }) =>
+      f.texto === 'ana'
+        ? bandeja([consulta({ id: `a${f.pagina}`, nombre: `Ana ${f.pagina}` })], { total: 2 })
+        : bandeja([consulta({ id: `t${f.pagina}`, nombre: `Todos ${f.pagina}` })], { total: 3 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Todos 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar consultas' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(300) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    expect(screen.getByText('Ana 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Todos/)).not.toBeInTheDocument()
+    expect(screen.getAllByText('2 consultas').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 2 })
+    expect(screen.getByText('Ana 1')).toBeInTheDocument()
+    expect(screen.getByText('Ana 2')).toBeInTheDocument()
+    expect(screen.queryByText(/Todos/)).not.toBeInTheDocument()
+  })
+
+  it('muestra la imagen principal solo en las consultas con producto', () => {
+    mocks.imagenes.set('prod-1', 'https://ejemplo/prod1.png')
+    mocks.useBandejaConsultas.mockReturnValue(bandeja([
+      consulta({ producto_id: 'prod-1', producto_nombre: 'Funda' }),
+      consulta({ id: 'otra', nombre: 'Carlos' }),
+    ], { total: 2 }))
+    const { container } = abrir()
+    expect(container.querySelector('img[src="https://ejemplo/prod1.png"]')).not.toBeNull()
+    expect(container.querySelectorAll('img')).toHaveLength(1)
   })
 
   it('sin consultas ni filtros muestra el vacío inicial; con filtros, «sin resultados»', () => {
@@ -250,7 +299,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
       </MemoryRouter>,
     )
     expect(screen.getByText('Consulta de Ana Pérez')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /next page|siguiente/i, hidden: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más', hidden: true }))
     expect(ultimosFiltros().pagina).toBe(2)
 
     estadoFiltro.empresaActivaId = 'e-2'
@@ -274,5 +323,72 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     rerender(<MemoryRouter initialEntries={['/consultas']}><ConsultaList /></MemoryRouter>)
     expect(screen.queryByText('Respuestas rápidas · San Javucho')).not.toBeInTheDocument()
     expect(screen.getByText(/Cambió la empresa activa: se cerró «Respuestas rápidas»/)).toBeInTheDocument()
+  })
+})
+
+// MSF-176 · B1 · P-6: consultas de origen pedido.
+describe('ConsultaList · pedidos de la tienda (B1, P-6)', () => {
+  const ID_PEDIDO = 'c1000000-0000-0000-0000-0000000000b1'
+  const pedido = (extra: Partial<Consulta> = {}) => consulta({
+    id: ID_PEDIDO, origen: 'pedido', nombre: 'Bruno Gómez', contacto: 'bruno@example.com', mensaje: null, items_cantidad: 3,
+    cliente_id: null, cliente_numero: null, cliente_nombre: null, ...extra,
+  })
+  const ITEMS = [
+    { orden: 1, producto_id: 'p-1', descripcion: 'Joystick Pro', sku: 'JOY-1', cantidad: 2, precio_referencia: 2500 },
+    { orden: 2, producto_id: null, descripcion: 'Cable USB', sku: null, cantidad: 1, precio_referencia: null },
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.imagenes.clear()
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    mocks.useConsultasNuevas.mockReturnValue({ total: 1 })
+    mocks.useResponsablesConsultas.mockReturnValue({ responsables: [], isLoading: false, isError: false })
+    mocks.useRespuestasRapidas.mockReturnValue({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() })
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'lista', items: ITEMS, reintentar: vi.fn() })
+    mocks.useBandejaConsultas.mockReturnValue(bandeja([pedido(), pedido({ id: 'c1000000-0000-0000-0000-0000000000b2', items_cantidad: 1 })]))
+    mocks.useConsulta.mockImplementation((id: string | null) => detalle(id === ID_PEDIDO ? pedido() : null))
+    estadoFiltro.empresaActivaId = null
+    estadoFiltro.cargando = false
+    estadoFiltro.hayError = false
+    mocks.useFiltroPorEmpresaActiva.mockImplementation(() => {
+      const [sobrescritura, setSobrescritura] = useState<{ base: string | null; valor: string | null } | null>(null)
+      const valor = sobrescritura && sobrescritura.base === estadoFiltro.empresaActivaId ? sobrescritura.valor : estadoFiltro.empresaActivaId
+      return { empresas, valor, cambiar: (id: string | null) => setSobrescritura({ base: estadoFiltro.empresaActivaId, valor: id }), empresaActivaId: estadoFiltro.empresaActivaId, cargando: estadoFiltro.cargando, hayError: estadoFiltro.hayError }
+    })
+  })
+
+  afterEach(() => vi.useRealTimers())
+
+  it('la bandeja muestra el origen «Pedido» y «Pedido de n productos» (singular «1 producto») en la columna Producto', () => {
+    abrir()
+    const filas = screen.getAllByRole('row').slice(1)
+    expect(within(filas[0]).getByText('Pedido')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('Pedido de 3 productos')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('Pedido de 1 producto')).toBeInTheDocument()
+  })
+
+  it('el detalle de un pedido lista los ítems (bloque «Pedido»), la «Nota de la persona» y no muestra «Producto de interés»', () => {
+    abrir(`/consultas?consulta=${ID_PEDIDO}`)
+    expect(screen.getByText('Consulta de Bruno Gómez')).toBeInTheDocument()
+    expect(screen.getByTestId('bloque-pedido')).toBeInTheDocument()
+    expect(screen.getByText('Joystick Pro')).toBeInTheDocument()
+    expect(screen.getByText('Sin nota')).toBeInTheDocument()
+    expect(screen.getByText('Nota de la persona')).toBeInTheDocument()
+    expect(screen.queryByText('Producto de interés')).not.toBeInTheDocument()
+    expect(mocks.useItemsConsulta).toHaveBeenCalledWith(ID_PEDIDO)
+  })
+
+  it('cambiar la empresa activa con un pedido abierto cierra el diálogo y recarga la lista entera (Principio VIII)', () => {
+    vi.useFakeTimers()
+    const { rerender } = render(<MemoryRouter initialEntries={[`/consultas?consulta=${ID_PEDIDO}`]}><ConsultaList /></MemoryRouter>)
+    expect(screen.getByText('Consulta de Bruno Gómez')).toBeInTheDocument()
+    expect(screen.getByTestId('bloque-pedido')).toBeInTheDocument()
+
+    estadoFiltro.empresaActivaId = 'e-2'
+    rerender(<MemoryRouter initialEntries={[`/consultas?consulta=${ID_PEDIDO}`]}><ConsultaList /></MemoryRouter>)
+    expect(screen.queryByText('Consulta de Bruno Gómez')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bloque-pedido')).not.toBeInTheDocument()
+    expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
   })
 })

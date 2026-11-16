@@ -1,3 +1,9 @@
+---
+owner: plataforma
+sources:
+  - specs
+---
+
 # Adoptar Conexiones OAuth de plataforma en un producto derivado
 
 Guía de proceso para traer la capacidad de la spec

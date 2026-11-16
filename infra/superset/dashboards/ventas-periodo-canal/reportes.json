@@ -1,0 +1,14 @@
+{
+  "comentario": "Un reporte por tablero embebido. `dashboard_slug` es el slug del dashboard importado: el importador habilita su embebido y registra el UUID de embedding que Superset genera. `administrador` no se lista: tiene acceso incondicional.",
+  "reportes": [
+    {
+      "nombre": "Reportes · Ventas por período y canal",
+      "dashboard_slug": "reportes-ventas-periodo-canal",
+      "seccion": "reportes",
+      "filtro_empresa": true,
+      "rolesPorDefecto": [
+        "administracion"
+      ]
+    }
+  ]
+}

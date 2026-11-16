@@ -61,7 +61,7 @@ export function IaCapacidadesChat() {
       ) : funcionalidades.length === 0 ? (
         <EstadoVacio titulo="Todavía no hay funcionalidades en el catálogo" descripcion="Las funcionalidades se registran desde su propia migración." />
       ) : (
-        <TableContainer component={Paper} variant="outlined">
+        <TableContainer tabIndex={0} role="region" aria-label="Capacidades del chat (se desplaza)" component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
               <TableRow>
