@@ -668,14 +668,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "5adbacba918b8c8237962a823263257fe2cc96e6f4d3eb316cc3229ab4345326",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "775b35f0",
+      "pageHash": "63f4ecf39a6e0fd0a77f4d9b540b7844313241f48b774479ae6f0c9eb43eb484",
+      "sourceHash": "3c45770ad2331608e205633e96d2bb302b93f7c438bd4862edf4cdaaf0184db2",
+      "sourceAt": "b9175f58",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "b9175f58"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -690,14 +690,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "b7ce5f099e89aabbf4e861d6a661d221b42de7386d8e319fee8348fb11e9b271",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "202e8b34",
+      "pageHash": "7117e24095d5661cee5e9dfacd12b2bc39bf0acdd4b023889145387bf80a014a",
+      "sourceHash": "3c45770ad2331608e205633e96d2bb302b93f7c438bd4862edf4cdaaf0184db2",
+      "sourceAt": "b9175f58",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "202e8b34"
+      "commit": "b9175f58"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
