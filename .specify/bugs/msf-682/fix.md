@@ -86,5 +86,7 @@ for (const sentencia of partirEnmascarado(enmascarar(sql))) {
 ## Follow-ups
 
 - Las 20 migraciones históricas con `ADD COLUMN` sin guard (27 ocurrencias) no se corrigen acá:
-  sus versiones ya están publicadas (inmutables) y el guard sólo revisa archivos nuevos. Una
+  están fuera del alcance del bug (el guard sólo revisa archivos nuevos); agregar guards a una
+  versión publicada está permitido (`sinGuards` en `verificar-migraciones.mjs`), así que se
+  pueden corregir en un seguimiento aparte, sin renumerar. Una
   migración en vuelo con esa forma debe agregar `IF NOT EXISTS` antes de mergear.

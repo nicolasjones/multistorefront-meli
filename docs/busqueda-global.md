@@ -1,3 +1,9 @@
+---
+owner: tecnico
+sources:
+  - specs/20261030-100000-inicio-y-alertas
+---
+
 # Búsqueda global de productos (F-INI-03, MSF-374)
 
 Campo en la barra superior (`EncabezadoPanel` → `BusquedaGlobal`), visible en todas las pantallas del panel.

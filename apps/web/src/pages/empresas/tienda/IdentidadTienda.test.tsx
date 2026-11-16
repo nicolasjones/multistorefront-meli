@@ -29,11 +29,14 @@ const MUNDO_JC: IdentidadTienda = {
   colorPrimarioOscuro: '#7A0A12',
   colorAcento: '#A3111D',
   colorFondo: '#FFFFFF',
+  colorBarra: '#1A1A1A',
   tipografiaTitulos: 'Barlow Condensed',
   tipografiaTexto: 'Barlow',
   logoRuta: 'org-1/e-1/logo-viejo.png',
   bannerRuta: 'org-1/e-1/banner-viejo.png',
   bannerMovilRuta: null,
+  estiloHeroe: 'oscuro',
+  titulosMayusculas: true,
 }
 const SAN_JAVUCHO: IdentidadTienda = { ...IDENTIDAD_BASE, colorPrimario: '#2E6B3F', tipografiaTitulos: 'Playfair Display', tipografiaTexto: 'Lato' }
 
@@ -62,6 +65,7 @@ describe('Identidad visual · carga y estado inicial', () => {
     expect(screen.getByLabelText('Primario oscuro')).toHaveValue('#7A0A12')
     expect(screen.getByLabelText('Acento')).toHaveValue('#A3111D')
     expect(screen.getByLabelText('Fondo')).toHaveValue('#FFFFFF')
+    expect(screen.getByLabelText('Barra superior y pie')).toHaveValue('#1A1A1A')
     expect(screen.getByText('Logo actual de Mundo JC.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Reemplazar logo/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Quitar logo/ })).toBeInTheDocument()
@@ -102,6 +106,23 @@ describe('Identidad visual · colores y contraste (FR-022, FR-023)', () => {
     fireEvent.change(screen.getByLabelText('Primario'), { target: { value: '#FFEB3B' } })
     expect(screen.getByText(/No cumple AA/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  })
+
+  it('el color de la barra superior y pie tiene su propio chequeo de contraste AA que no bloquea guardar', async () => {
+    await abrir()
+    expect(screen.getByText(/Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\./)).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#FFEB3B' } })
+    expect(screen.getByText(/sobre la barra superior y pie: \d+,\d:1\. No cumple AA/)).toBeInTheDocument()
+    expect(screen.getByTestId('vista-previa-barra')).toHaveStyle({ backgroundColor: '#FFEB3B' })
+    expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled()
+  })
+
+  it('un color de barra inválido bloquea Guardar con el mismo error de formato', async () => {
+    await abrir()
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: 'negro' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Revisá los colores marcados: usá el formato #RRGGBB.')).toBeInTheDocument()
+    expect(mocks.guardar).not.toHaveBeenCalled()
   })
 
   it('un color inválido muestra el error del campo y Guardar no llama a la base', async () => {
@@ -193,15 +214,16 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
 
     elegir('logo', archivo('nuevo.png', 'image/png'))
     fireEvent.change(screen.getByLabelText('Primario'), { target: { value: '#c8102e' } })
+    fireEvent.change(screen.getByLabelText('Barra superior y pie'), { target: { value: '#0a0a0a' } })
     await screen.findByText('Hay cambios sin guardar.')
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
 
-    expect(await screen.findByText('Cambios guardados: la tienda ya los muestra.')).toBeInTheDocument()
+    expect(await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).toBeInTheDocument()
     expect(mocks.subir).toHaveBeenCalledTimes(1)
     const rutaNueva = mocks.subir.mock.calls[0][0] as string
     expect(rutaNueva).toMatch(/^org-1\/e-1\/logo-[0-9a-f-]{36}\.png$/)
-    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ colorPrimario: '#C8102E', logoRuta: rutaNueva, bannerRuta: 'org-1/e-1/banner-viejo.png' }))
-    expect(mocks.borrar).toHaveBeenCalledWith(['org-1/e-1/logo-viejo.png'])
+    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ colorPrimario: '#C8102E', colorBarra: '#0A0A0A', logoRuta: rutaNueva, bannerRuta: 'org-1/e-1/banner-viejo.png' }))
+    expect(mocks.borrar).toHaveBeenCalledWith(['org-1/e-1/logo-viejo.png'], 'e-1')
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
   })
 
@@ -214,7 +236,7 @@ describe('Identidad visual · Guardar y Descartar (FR-028)', () => {
 
     expect(await screen.findByText(/No pudimos subir el banner principal\./)).toBeInTheDocument()
     expect(mocks.guardar).not.toHaveBeenCalled()
-    expect(screen.queryByText('Cambios guardados: la tienda ya los muestra.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).not.toBeInTheDocument()
     expect(screen.getByText('Hay cambios sin guardar.')).toBeInTheDocument()
   })
 
@@ -284,5 +306,50 @@ describe('Identidad visual · empresa activa (Principio VIII)', () => {
     expect(screen.getByLabelText('Acento')).toHaveValue('#222222')
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
     expect(screen.queryByText('Logo actual de Mundo JC.')).not.toBeInTheDocument()
+  })
+})
+
+describe('Identidad visual · estilo del encabezado y mayúsculas', () => {
+  it('trae el estilo y las mayúsculas guardados y explica qué hace cada uno', async () => {
+    await abrir()
+    const selector = screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' })
+    expect(selector).toHaveTextContent(/^Oscuro/)
+    expect(screen.getByText('Cómo se ve la franja del banner principal en la portada de la tienda.')).toBeInTheDocument()
+    const interruptor = screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' })
+    expect(interruptor).toBeChecked()
+    expect(interruptor).toHaveAccessibleDescription('Aplica a la barra de categorías, al título del banner y a su botón.')
+  })
+
+  it('elegir «Claro» y apagar las mayúsculas cambia la vista previa y marca cambios', async () => {
+    await abrir()
+    expect(screen.getByTestId('vista-previa-banner')).toHaveStyle({ backgroundColor: 'rgb(122, 10, 18)' })
+    expect(screen.getByText('Todo para tu consola', { selector: 'div' })).toHaveStyle({ textTransform: 'uppercase' })
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    expect(screen.getByText('Hay cambios sin guardar.')).toBeInTheDocument()
+    // Variante clara: la franja pasa a la superficie del fondo (#FFFFFF -> #F4F4F4) y el título deja las mayúsculas.
+    expect(screen.getByTestId('vista-previa-banner')).toHaveStyle({ backgroundColor: 'rgb(244, 244, 244)' })
+    expect(screen.getByText('Todo para tu consola', { selector: 'div' })).toHaveStyle({ textTransform: 'none' })
+    expect(screen.getByTestId('vista-previa-boton')).toHaveStyle({ textTransform: 'none' })
+  })
+
+  it('Guardar manda los dos campos y Descartar vuelve a lo guardado', async () => {
+    mocks.guardar.mockImplementation(async (_empresa: string, identidad: IdentidadTienda) => identidad)
+    await abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descartar' }))
+    expect(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' })).toBeChecked()
+    expect(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' })).toHaveTextContent(/^Oscuro/)
+    expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Estilo del encabezado de la portada' }))
+    fireEvent.click(await screen.findByRole('option', { name: /^Claro/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Títulos del menú y botones en mayúsculas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Cambios guardados en el borrador. Publicalos desde Dominio y publicación.')).toBeInTheDocument()
+    expect(mocks.guardar).toHaveBeenCalledWith('e-1', expect.objectContaining({ estiloHeroe: 'claro', titulosMayusculas: false }))
   })
 })

@@ -6,6 +6,7 @@ import {
   type FiltrosCatalogo,
   type PaginaCatalogo,
 } from './tiendaListado'
+import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-15 (MSF-413): búsqueda de la tienda pública. La coincidencia (sin tildes ni mayúsculas, con
 // tolerancia a errores de tipeo), el precio final y el límite de pedidos los resuelve la base
@@ -27,6 +28,8 @@ export type Sugerencia = {
   id: string
   nombre: string
   precio: number | null
+  // Precio normal, solo con promoción vigente (F-PRE-11); null si no hay.
+  precioAnterior: number | null
   disponible: boolean
   imagen: string | null
   categoriaId: string | null
@@ -45,6 +48,7 @@ type FilaSugerencias = {
     id: string
     nombre: string
     precio: number | string | null
+    precio_anterior?: number | string | null
     disponible: boolean
     imagen: string | null
     categoria_id: string | null
@@ -63,8 +67,9 @@ export async function leerSugerencias(host: string, q: string): Promise<Respuest
     // La base ya devuelve hasta 6; el tope se repite acá como red de seguridad de la constante única.
     sugerencias: fila.productos.slice(0, TOPE_SUGERENCIAS).map((p) => ({
       id: p.id,
-      nombre: p.nombre,
+      nombre: limpiarTextoPublico(p.nombre),
       precio: p.precio === null ? null : Number(p.precio),
+      precioAnterior: p.precio_anterior == null ? null : Number(p.precio_anterior),
       disponible: p.disponible,
       imagen: p.imagen,
       categoriaId: p.categoria_id,
@@ -73,7 +78,7 @@ export async function leerSugerencias(host: string, q: string): Promise<Respuest
 }
 
 // publico.busqueda_pagina_por_dominio: misma forma que el catálogo (MSF-167) más el aviso de espera.
-export async function leerPaginaBusqueda(host: string, q: string, filtros: FiltrosCatalogo): Promise<PaginaCatalogo> {
+export async function leerPaginaBusqueda(host: string, q: string, filtros: FiltrosCatalogo, pagina = 1): Promise<PaginaCatalogo> {
   const { data, error } = await supabaseClient.schema('publico').rpc('busqueda_pagina_por_dominio', {
     host,
     q,
@@ -81,13 +86,13 @@ export async function leerPaginaBusqueda(host: string, q: string, filtros: Filtr
     solo_con_stock: filtros.soloConStock,
     precio_max: filtros.precioMax,
     orden: filtros.orden,
-    pagina: filtros.pagina,
+    pagina,
   })
   if (error) throw new Error(error.message)
   if (!data) return PAGINA_VACIA
   const fila = data as FilaPagina & { limitado?: boolean; espera_segundos?: number | null }
-  const pagina = mapearPagina(fila)
-  return fila.limitado ? { ...pagina, esperaSegundos: Math.max(1, Number(fila.espera_segundos ?? 1)) } : pagina
+  const resultado = mapearPagina(fila)
+  return fila.limitado ? { ...resultado, esperaSegundos: Math.max(1, Number(fila.espera_segundos ?? 1)) } : resultado
 }
 
 // `/catalogo?q=…` desde un texto ya normalizado.

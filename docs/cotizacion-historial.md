@@ -1,3 +1,11 @@
+---
+owner: tecnico
+sources:
+  - specs/20261023-120000-dolar-y-recalculo
+  - supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql
+  - supabase/migrations/20261023140400_cotizacion_historial.sql
+---
+
 # Historial de cotizaciones del dólar (F-PRE-04)
 
 Épica MSF-116, historia MSF-286. Migración `supabase/migrations/20261023140400_cotizacion_historial.sql`;
@@ -17,7 +25,7 @@ importación, seed ni worker que actualice o borre filas.
 **Efecto en operación:** como el trigger es `ENABLE ALWAYS`, corre también con
 `session_replication_role = replica`. Un `pg_restore` de datos sobre una tabla ya poblada o un
 `TRUNCATE ... CASCADE` que la alcance ahora falla: restaurar sobre una base vacía (los `INSERT` no se
-bloquean). Borrar una organización sigue funcionando (cascada permitida).
+bloquean). El historial no impide el borrado en cascada de una organización (ver `docs/empresas.md` para las condiciones de esa baja).
 
 ## Consulta (FR-017)
 

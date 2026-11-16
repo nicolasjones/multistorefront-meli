@@ -46,10 +46,12 @@ export type CobroRegistrado = {
   actualizado_en: string
 }
 
-// Lo que devuelve `public.saldo_comprobante`: total con IVA, lo cobrado y lo que falta.
+// Lo que devuelve `public.saldo_comprobante`: total con IVA, lo cobrado, las notas de crédito emitidas sobre la
+// factura y lo que falta (total − cobrado − notas de crédito, mínimo 0).
 export type SaldoComprobante = {
   total: number
   cobrado: number
+  notas_credito: number
   saldo: number
 }
 
@@ -187,10 +189,11 @@ export async function cobrosDeComprobante(comprobanteId: string): Promise<Cobro[
 export async function saldoComprobante(comprobanteId: string): Promise<SaldoComprobante> {
   const { data, error } = await supabaseClient.rpc('saldo_comprobante', { p_id: comprobanteId })
   if (error) throw error
-  const fila = ((data ?? []) as Array<{ total?: number | string; cobrado?: number | string; saldo?: number | string }>)[0]
+  const fila = ((data ?? []) as Array<{ total?: number | string; cobrado?: number | string; notas_credito?: number | string | null; saldo?: number | string }>)[0]
   return {
     total: Number(fila?.total ?? 0),
     cobrado: Number(fila?.cobrado ?? 0),
+    notas_credito: Number(fila?.notas_credito ?? 0),
     saldo: Number(fila?.saldo ?? 0),
   }
 }

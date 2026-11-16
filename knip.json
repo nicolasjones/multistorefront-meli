@@ -1,8 +1,12 @@
 {
   "ignoreExportsUsedInFile": true,
   "ignoreBinaries": [
+    "graphify",
     "pg_prove",
-    "graphify"
+    "ffmpeg",
+    "hostname",
+    "pkill",
+    "tailscale"
   ],
   "ignore": [
     "apps/web/src/test/renderPanel.tsx",
@@ -10,10 +14,15 @@
     "infra/ia/aprovisionar-proveedores.mjs",
     "infra/runner/entrypoint.mjs",
     "scripts/fixtures/**",
+    "scripts/demo-dataset/**",
     "supabase/functions/**",
     ".agents/**",
     ".claude/**",
     ".opencode/**",
-    ".dependency-cruiser.cjs"
+    ".dependency-cruiser.cjs",
+    "docs/javascripts/zoom-imagenes.js"
+  ],
+  "ignoreDependencies": [
+    "@playwright/test"
   ]
 }

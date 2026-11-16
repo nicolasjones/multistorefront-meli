@@ -55,6 +55,9 @@ RUN curl -fsSL -o actions-runner.tar.gz \
     && ./bin/installdependencies.sh
 
 COPY entrypoint.mjs /entrypoint.mjs
-RUN chmod 0555 /entrypoint.mjs
+# El entrypoint importa la reparación del `bin` (ver `restaurar-bin.mjs`): van los dos
+# en `/` porque el entrypoint se ejecuta con ruta absoluta desde el WORKDIR del runner.
+COPY restaurar-bin.mjs /restaurar-bin.mjs
+RUN chmod 0555 /entrypoint.mjs /restaurar-bin.mjs
 
 ENTRYPOINT ["node", "/entrypoint.mjs"]

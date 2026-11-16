@@ -90,6 +90,14 @@ describe('invitar-miembro', () => {
     assert.deepEqual(llamadas.rpc[2], ['vincular_invitacion', { p_invitacion_id: 'inv-1', p_user_id: 'cuenta-nueva', p_accion: 'invitacion_enviada' }])
   })
 
+  it('[MSF-606] acepta el rol tecnico y lo registra en la invitación', async () => {
+    const { deps, llamadas } = montar()
+    const { status } = await leer(await manejar(pedir({ ...invitar, rol: 'tecnico' }), deps))
+
+    assert.equal(status, 201)
+    assert.deepEqual(llamadas.rpc.find(([nombre]) => nombre === 'registrar_invitacion'), ['registrar_invitacion', { p_email: 'persona@example.com', p_rol_id: 'tecnico' }])
+  })
+
   it('una cuenta existente que ya ingresó no se agrega directo: responde el mismo 409 genérico y no deja invitación', async () => {
     const { deps, llamadas } = montar({ cuentas: [{ id: 'cuenta-ingresada', email: 'persona@example.com', last_sign_in_at: AHORA, email_confirmed_at: AHORA }] })
     const { status, cuerpo } = await leer(await manejar(pedir(invitar), deps))

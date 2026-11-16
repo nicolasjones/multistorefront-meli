@@ -11,6 +11,7 @@ COPY workers/${WORKER}/package.json workers/${WORKER}/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY workers/${WORKER} workers/${WORKER}
+COPY workers/_comun workers/_comun
 RUN pnpm --filter "@workers/${WORKER}" build
 RUN pnpm --filter "@workers/${WORKER}" deploy --prod --legacy /runtime
 
@@ -29,6 +30,8 @@ RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 WORKDIR /app
 COPY --from=build /runtime/ ./
 COPY --from=build /workspace/workers/${WORKER}/dist ./dist
+# Captura opcional de errores (MSF-369): sin ERRORES_DSN es un no-op.
+COPY --from=build /workspace/workers/_comun/errores.mjs ./dist/errores.mjs
 
 LABEL org.opencontainers.image.title="worker-${WORKER}" \
       org.opencontainers.image.source="${REPO_URL}" \

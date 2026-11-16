@@ -118,7 +118,7 @@ describe('UsuarioList', () => {
     expect(await screen.findByText('Usuario guardado')).toBeInTheDocument()
   })
 
-  it('asigna el rol Técnico desde Editar usuario con la RPC (MSF-182, FR-042)', async () => {
+  it('asigna el rol Técnico desde Editar usuario con la RPC (FR-042)', async () => {
     puedeEscribir.valor = true
     useContextoPanel.mockReturnValue({ contexto: null })
     responderListado([fila()])
@@ -240,14 +240,15 @@ describe('UsuarioList', () => {
     useContextoPanel.mockReturnValue({ contexto: null })
     rpc.mockImplementation(async (nombre: string) => (nombre === 'listar_usuarios_organizacion'
       ? { data: [fila({ rol_id: 'administrador' })], error: null }
-      : { data: null, error: { message: 'La organización debe conservar al menos un administrador' } }))
+      : { data: null, error: { code: '23514', message: 'new row violates check constraint "x_check"' } }))
     render(<UsuarioList />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Suspender' }))
     fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Suspender' }))
 
     const dialogo = screen.getByRole('dialog')
-    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('La organización debe conservar al menos un administrador')
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('La organización debe conservar al menos un administrador.')
+    expect(dialogo).not.toHaveTextContent('check constraint')
   })
 
   it('muestra el error de «Restablecer contraseña» dentro del diálogo y no lo duplica en la página', async () => {

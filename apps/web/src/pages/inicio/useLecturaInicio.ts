@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../../lib/empresaActivaRevision'
 import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 
-type Lectura<T> = { ambito: string; datos: T } | { ambito: string; error: true }
+type Lectura<T> = { ambito: string; datos: T } | { ambito: string; error: true; fuente: () => Promise<T> }
 
 // Lectura en vivo de una tarjeta de Inicio. Cada resultado queda atado a su ÁMBITO (organización +
 // revisión de la empresa activa de la barra superior, Principio VIII / FR-010): si el ámbito cambia, lo
@@ -22,7 +22,7 @@ export function useLecturaInicio<T>(leer: () => Promise<T>, { habilitado = true 
       resultado = { ambito, datos: await leer() }
     } catch (error) {
       console.error('No pudimos cargar un dato de Inicio.', error instanceof Error ? error.message : error)
-      resultado = { ambito, error: true }
+      resultado = { ambito, error: true, fuente: leer }
     }
     if (peticion === ultimaPeticion.current) setLectura(resultado)
   }, [ambito, leer])
@@ -32,7 +32,8 @@ export function useLecturaInicio<T>(leer: () => Promise<T>, { habilitado = true 
     else ultimaPeticion.current++
   }, [cargar, habilitado])
 
-  const vigente = habilitado && lectura && lectura.ambito === ambito ? lectura : null
+  // Un error es de la lectura que lo causó: si cambia lo que se lee (otros filtros) deja de valer y vuelve a cargar.
+  const vigente = habilitado && lectura && lectura.ambito === ambito && (!('error' in lectura) || lectura.fuente === leer) ? lectura : null
   return {
     cargando: habilitado && vigente === null,
     hayError: vigente !== null && 'error' in vigente,

@@ -4,9 +4,10 @@ import { supabaseClient } from '../lib/supabase'
 import { useOrganizacionDeTrabajo } from './useOrganizacionDeTrabajo'
 
 // ¿Se confirmó una cotización hoy? (F-PRE-05, FR-019/FR-020). Como el resto de la cotización es de la
-// ORGANIZACIÓN (no de la empresa activa): se recarga solo si cambia la organización de trabajo.
+// ORGANIZACIÓN (no de la empresa activa): se recarga solo si cambia la organización de trabajo. Con alcance
+// «una por empresa» (F-PRE-06) se acota a `empresaId`; sin ella, vale que TODAS las empresas hayan cargado.
 // «Última petición gana»; un error no se traga: queda en `hayError`.
-export function useCotizacionDelDia(habilitado = true) {
+export function useCotizacionDelDia(habilitado = true, empresaId: string | null = null) {
   const { organizacionId } = useOrganizacionDeTrabajo()
   const [delDia, setDelDia] = useState<CotizacionDelDia | null>(null)
   const [cargando, setCargando] = useState(habilitado)
@@ -18,7 +19,7 @@ export function useCotizacionDelDia(habilitado = true) {
     setCargando(true)
     setHayError(false)
     try {
-      const resultado = await leerCotizacionDelDia(supabaseClient)
+      const resultado = await leerCotizacionDelDia(supabaseClient, empresaId)
       if (peticion === ultimaPeticion.current) setDelDia(resultado)
     } catch (error) {
       console.error('No pudimos saber si se cargó el dólar de hoy.', error)
@@ -29,7 +30,7 @@ export function useCotizacionDelDia(habilitado = true) {
     } finally {
       if (peticion === ultimaPeticion.current) setCargando(false)
     }
-  }, [])
+  }, [empresaId])
 
   useEffect(() => {
     // Nunca muestra el estado de la organización anterior mientras llega el nuevo.

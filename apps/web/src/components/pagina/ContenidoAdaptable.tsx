@@ -76,7 +76,7 @@ export function ContenidoAdaptable<T>({ items, columnas, obtenerClave, acciones,
   }
 
   return (
-    <TableContainer>
+    <TableContainer tabIndex={0} role="region" aria-label={etiquetaTabla ? `${etiquetaTabla} (se desplaza)` : undefined}>
       <Table
         aria-label={etiquetaTabla}
         sx={{ '& .MuiTableRow-root:last-child .MuiTableCell-root': { borderBottom: 0 } }}

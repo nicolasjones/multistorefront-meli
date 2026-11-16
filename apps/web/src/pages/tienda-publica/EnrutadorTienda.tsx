@@ -4,7 +4,7 @@ import { EstadoCargaPagina } from '../../components/estados/EstadosPagina'
 import type { TiendaPublica } from '../../lib/tienda'
 import { LayoutTienda } from './layout/LayoutTienda'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'
-import { ErrorConReintento } from './ErrorConReintento'
+import { PantallaError } from './PantallaError'
 
 type ModuloRuta = { default: React.ComponentType }
 type CargadorRuta = () => Promise<ModuloRuta>
@@ -13,9 +13,11 @@ type CargadorRuta = () => Promise<ModuloRuta>
 const CARGADORES_RUTAS = import.meta.glob<ModuloRuta>(['./rutas/*.tsx', '!./rutas/*.test.tsx']) as Record<string, CargadorRuta>
 
 // Ruta del archivo → paths (ver rutas/LEEME.md): `inicio` es la home; el resto responde en
-// `/<nombre>` y `/<nombre>/:<nombre>Id`.
+// `/<nombre>` y `/<nombre>/:<nombre>Id`. Un nombre con puntos (`newsletter.confirmar.tsx`) es una ruta de varios tramos con un
+// único parámetro final: `/newsletter/confirmar/:token`.
 export function rutaDeArchivo(archivo: string): string[] {
   const nombre = archivo.replace(/^.*\//, '').replace(/\.tsx$/, '')
+  if (nombre.includes('.')) return [`/${nombre.split('.').join('/')}/:token`]
   return nombre === 'inicio' ? ['/'] : [`/${nombre}`, `/${nombre}/:${nombre}Id`]
 }
 
@@ -23,7 +25,7 @@ function ErrorDeRuta() {
   const error = useRouteError()
   console.error('No se pudo cargar la página de la tienda', error instanceof Error ? error.message : error)
   return (
-    <ErrorConReintento alReintentar={() => window.location.reload()} />
+    <PantallaError dentroDeTienda alReintentar={() => window.location.reload()} />
   )
 }
 

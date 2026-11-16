@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   useReportesAsignados: vi.fn(),
@@ -96,6 +96,7 @@ const montar = ({
   conteo = 5,
   cargandoConteo = false,
   conSeccion = true,
+  ruta = '/',
 }: {
   nivel?: string
   reportes?: unknown[]
@@ -103,6 +104,7 @@ const montar = ({
   conteo?: number | null
   cargandoConteo?: boolean
   conSeccion?: boolean
+  ruta?: string
 } = {}) => {
   mocks.useReportesAsignados.mockReturnValue({ reportes, isLoading: cargandoReportes })
   // Se resuelve en cada llamada: así el cambio de empresa activa se ve en la respuesta.
@@ -117,7 +119,7 @@ const montar = ({
   mocks.useIsSuperadmin.mockReturnValue({ isSuperadmin: false, isLoading: false })
   mocks.useOrganizacionDeTrabajo.mockReturnValue({ organizacionId: 'org-1', isLoading: false })
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[ruta]}>
       {conSeccion ? (
         <RequiereAccesoSeccion seccion="reportes"><ReportesVentas /></RequiereAccesoSeccion>
       ) : (
@@ -131,12 +133,21 @@ const montar = ({
 const esperarTiendas = () => screen.findByRole('button', { name: 'San Javucho' })
 
 describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
+  // La fecha se fija: el período inicial es «este mes» (del 1 a hoy) y «7 días» va de hoy-6 a hoy, así que el día 7 de
+  // cualquier mes son IDÉNTICOS y tocar «7 días» no cambia el filtro (el tablero no se vuelve a montar). Con la fecha
+  // real, estos tests fallaban un día por mes (7/11/2026). Solo se simula `Date`: los temporizadores siguen reales.
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-10-15T15:00:00Z'))
     vi.clearAllMocks()
     mocks.propsReporte.current = null
     empresaActivaId = 'e-sj'
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u1' } } })
     mocks.maybeSingle.mockResolvedValue({ data: { rol_id: 'operador' }, error: null })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('muestra título, subtítulo, pestañas y el tablero embebido de «Más vendidos»', async () => {
@@ -148,8 +159,120 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(within(pestanas).getAllByRole('tab').map((pestana) => pestana.textContent)).toEqual([
       'Más vendidos',
       'Ranking de clientes',
+      'Productos más consultados',
+      'Ventas por período y canal',
     ])
     expect(screen.getByTestId('tablero')).toHaveTextContent('Tablero rep-mas-vendidos')
+  })
+
+  describe('pestaña «Productos más consultados» (F-REP-04, FR-011)', () => {
+    const CONSULTADOS = { id: 'rep-mas-consultados', nombre: 'Reportes · Productos más consultados' }
+
+    it('monta su propio tablero con el período y la empresa activa, y cuenta consultas (no ventas)', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      expect(await screen.findByTestId('tablero')).toHaveTextContent('Tablero rep-mas-consultados')
+      const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+      expect(rison).toContain('NATIVE_FILTER-rango')
+      expect(rison).toContain("'San Javucho'")
+      expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(
+        expect.objectContaining({ empresaId: 'e-sj', leerConteo: expect.any(Function) }),
+      )
+    })
+
+    it('un período sin consultas muestra el estado vacío propio', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS], conteo: 0 })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      expect(await screen.findByText('No hay consultas por WhatsApp en ese período')).toBeInTheDocument()
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    })
+
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('no_disponible') })
+      expect(await screen.findByText('No pudimos cargar el tablero de «Productos más consultados».')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Reintentar/ })).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Reintentar/ }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('prohibido') })
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    })
+
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+      montar({ reportes: [REPORTE, CONSULTADOS] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Productos más consultados' }))
+      await screen.findByTestId('tablero')
+      const filtro = screen.getByRole('group', { name: 'Filtrar por tienda' })
+      fireEvent.click(within(filtro).getByRole('button', { name: 'Mundo JC' }))
+      await waitFor(() =>
+        expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-mjc' })),
+      )
+      await waitFor(() => {
+        const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+        expect(rison).toContain("'Mundo JC'")
+        expect(rison).not.toContain("'San Javucho'")
+      })
+    })
+  })
+
+  describe('pestaña «Ventas por período y canal» (F-REP-05, FR-013)', () => {
+    const PERIODO_CANAL = { id: 'rep-ventas-periodo-canal', nombre: 'Reportes · Ventas por período y canal' }
+
+    it('monta su propio tablero con el período y la empresa activa, y cuenta ventas', async () => {
+      montar({ reportes: [REPORTE, PERIODO_CANAL] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
+      expect(await screen.findByTestId('tablero')).toHaveTextContent('Tablero rep-ventas-periodo-canal')
+      const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+      expect(rison).toContain('NATIVE_FILTER-rango')
+      expect(rison).toContain("'San Javucho'")
+      expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-sj' }))
+    })
+
+    it('un período sin ventas muestra el estado vacío y no ofrece el canal Mercado Libre', async () => {
+      montar({ reportes: [REPORTE, PERIODO_CANAL], conteo: 0 })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
+      expect(await screen.findByText('No hay ventas en ese período')).toBeInTheDocument()
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Mercado Libre/i)).not.toBeInTheDocument()
+    })
+
+    it('un fallo del tablero ofrece «Reintentar» y un 403 muestra acceso restringido', async () => {
+      montar({ reportes: [REPORTE, PERIODO_CANAL] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('no_disponible') })
+      expect(await screen.findByText('No pudimos cargar el tablero de «Ventas por período y canal».')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /Reintentar/ }))
+      await screen.findByTestId('tablero')
+      await act(async () => { mocks.propsReporte.current?.alFallar?.('prohibido') })
+      expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
+    })
+
+    it('cambiar de empresa remonta el tablero acotado a la nueva tienda', async () => {
+      montar({ reportes: [REPORTE, PERIODO_CANAL] })
+      await esperarTiendas()
+      fireEvent.click(screen.getByRole('tab', { name: 'Ventas por período y canal' }))
+      await screen.findByTestId('tablero')
+      const filtro = screen.getByRole('group', { name: 'Filtrar por tienda' })
+      fireEvent.click(within(filtro).getByRole('button', { name: 'Mundo JC' }))
+      await waitFor(() =>
+        expect(mocks.useConteoVentasReporte).toHaveBeenLastCalledWith(expect.objectContaining({ empresaId: 'e-mjc' })),
+      )
+      await waitFor(() => {
+        const rison = mocks.propsReporte.current?.urlParams?.native_filters ?? ''
+        expect(rison).toContain("'Mundo JC'")
+        expect(rison).not.toContain("'San Javucho'")
+      })
+    })
   })
 
   it('el filtro de empresa ofrece las tiendas accesibles y sigue a la empresa activa', async () => {
@@ -194,6 +317,19 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
     expect(rison).toContain('NATIVE_FILTER-empresa')
     expect(rison).toContain('col:empresa_nombre,op:IN')
     expect(rison).toContain("'San Javucho'")
+  })
+
+  it('abre con el período que Inicio le pasa por la URL (F-INI-04, FR-005)', async () => {
+    montar({ ruta: '/?desde=2026-09-01&hasta=2026-09-30' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').toContain('2026-09-01 : 2026-09-30')
+    expect(screen.getByLabelText('Desde')).toHaveValue('2026-09-01')
+  })
+
+  it('un período inválido en la URL vuelve al mes en curso', async () => {
+    montar({ ruta: '/?desde=2026-09-30&hasta=2026-09-01' })
+    await esperarTiendas()
+    expect(mocks.propsReporte.current?.urlParams?.native_filters ?? '').not.toContain('2026-09-30 : 2026-09-01')
   })
 
   it('sin la sección `reportes` ve acceso restringido y no monta el tablero', async () => {

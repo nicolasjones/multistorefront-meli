@@ -25,6 +25,8 @@ vi.mock('@refinedev/core', () => ({
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../hooks/useEmpresas', () => ({ useEmpresas: mocks.useEmpresas }))
+vi.mock('../../hooks/useListasPreciosActivas', () => ({ useListasPreciosActivas: () => ({ listas: [], cargando: false, hayError: false }) }))
+vi.mock('../../hooks/useBanderaListasPrecios', () => ({ useBanderaListasPrecios: () => ({ activa: true, cargando: false, hayError: false }) }))
 vi.mock('../../hooks/useEmpresasDeCliente', () => ({
   useEmpresasDeCliente: mocks.useEmpresasDeCliente,
   useGuardarEmpresasDeCliente: () => ({ guardar: mocks.guardar }),
@@ -49,7 +51,7 @@ const EMPRESAS = [
 const cliente: Cliente = {
   id: 'c-1', numero: 7, nombre: 'Distribuidora Norte SRL', documento: null, correo: 'norte@example.com',
   telefono: null, celular: null, direccion: null, codigo_postal: null, localidad: null, provincia: null,
-  expreso_preferido: null, archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, created_at: '2026-10-16T10:00:00Z',
+  expreso_preferido: null, archivado_en: null, tipo: 'minorista', es_consumidor_final: false, acepta_correo_masivo: false, acepta_whatsapp: false, created_at: '2026-10-16T10:00:00Z',
 }
 
 function Ficha() {

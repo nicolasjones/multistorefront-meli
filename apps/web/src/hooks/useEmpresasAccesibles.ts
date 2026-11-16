@@ -48,6 +48,17 @@ export function useEmpresasAccesibles() {
     void cargar()
   }, [cargar])
 
+  // Al desmontar, cualquier petición en vuelo queda invalidada («última petición gana»): su respuesta,
+  // sea éxito o error, se descarta sin tocar el estado ni escribir a consola. Sin esto, una petición que
+  // falla después del desmontaje (típico en tests, con el entorno ya cerrado) hacía `setState` tarde y
+  // terminaba en `ReferenceError: window is not defined` aunque todos los tests pasaran.
+  useEffect(() => {
+    const peticiones = ultimaPeticion
+    return () => {
+      peticiones.current += 1
+    }
+  }, [])
+
   const empresaActivaId = empresas.find((empresa) => empresa.esActiva)?.id ?? null
   return { empresas, empresaActivaId, isLoading: cargando, isError: hayError, refetch: cargar }
 }

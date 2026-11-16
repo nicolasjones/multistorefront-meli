@@ -7,8 +7,10 @@
 //
 // Antes de leer el SQL se enmascaran los comentarios (`--`, `/* */`), los literales ('...',
 // E'...'), los identificadores entre comillas dobles ("...") y los cuerpos dollar-quoted
-// (`$$...$$`, `$tag$...$tag$`): el texto enmascarado NO se ejecuta como SQL (es el cuerpo de
-// una plantilla de SQL dinámico) y no debe marcar la migración.
+// (`$$...$$`, `$tag$...$tag$`) que son una plantilla de SQL dinámico (p. ej. `execute $q$...$q$`):
+// ese texto no se ejecuta al aplicar la migración y no debe marcarla. En cambio el cuerpo de un
+// `DO $$...$$` o de un `... AS $$...$$` (función) SÍ se ejecuta como PL/pgSQL: no se enmascara
+// y su DDL se evalúa igual que el de nivel superior (los literales de adentro siguen enmascarados).
 //
 // El enmascarado conserva la longitud y los saltos de línea del original, así los offsets
 // siguen dando el número de línea real del hallazgo.
@@ -54,9 +56,13 @@ const largoIdentificador = (sql, inicio) => {
 };
 
 // Reemplaza por espacios todo lo que no es SQL ejecutable, conservando la longitud.
+// Un cuerpo dollar-quoted es código que se ejecuta si lo antecede `DO [LANGUAGE x]` o `AS`.
+const ES_CUERPO_EJECUTABLE = /\b(?:do|as)\s+(?:language\s+\w+\s+)?$/i;
+
 export const enmascarar = (sql) => {
   let out = '';
   let i = 0;
+  const abiertos = []; // etiquetas de cuerpos ejecutables aún sin cerrar
   while (i < sql.length) {
     const resto = sql.slice(i);
     let largo = 0;
@@ -67,8 +73,16 @@ export const enmascarar = (sql) => {
       largo = m[0].length;
     } else if ((m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(resto))) {
       const etiqueta = m[0];
-      const cierre = resto.indexOf(etiqueta, etiqueta.length);
-      largo = cierre === -1 ? resto.length : cierre + etiqueta.length;
+      if (abiertos[abiertos.length - 1] === etiqueta) {
+        abiertos.pop();
+        largo = etiqueta.length;
+      } else if (ES_CUERPO_EJECUTABLE.test(out) && resto.indexOf(etiqueta, etiqueta.length) !== -1) {
+        abiertos.push(etiqueta);
+        largo = etiqueta.length;
+      } else {
+        const cierre = resto.indexOf(etiqueta, etiqueta.length);
+        largo = cierre === -1 ? resto.length : cierre + etiqueta.length;
+      }
     } else if ((m = /^[eE]'/.exec(resto))) {
       largo = 1 + largoLiteral(sql, i + 1, true);
     } else if ((m = /^'/.exec(resto))) {
@@ -135,7 +149,7 @@ const REGLAS = [
     severidad: 'problema',
     mensaje: 'CREATE INDEX sin IF NOT EXISTS',
     offsets: (t) => (conGuard(t, /\bcreate\s+(?:unique\s+)?index\b/i)
-      && !conGuard(t, /\bcreate\s+(?:unique\s+)?index\s+if\s+not\s+exists\b/i)
+      && !conGuard(t, /\bcreate\s+(?:unique\s+)?index\s+(?:concurrently\s+)?if\s+not\s+exists\b/i)
       ? buscar(t, /\bcreate\s+(?:unique\s+)?index\b/i)
       : []),
   },
@@ -143,9 +157,9 @@ const REGLAS = [
     id: 'drop',
     severidad: 'aviso',
     mensaje: 'DROP sin IF EXISTS (revisá si puede reintentarse)',
-    offsets: (t) => (conGuard(t, /\bdrop\s+(?:concurrently\s+)?(?:table|view|index|trigger)\b/i)
-      && !conGuard(t, /\bdrop\s+(?:concurrently\s+)?(?:table|view|index|trigger)\s+if\s+exists\b/i)
-      ? buscar(t, /\bdrop\s+(?:concurrently\s+)?(?:table|view|index|trigger)\b/i)
+    offsets: (t) => (conGuard(t, /\bdrop\s+(?:table|view|index|trigger)\b/i)
+      && !conGuard(t, /\bdrop\s+(?:table|view|index|trigger)\s+(?:concurrently\s+)?if\s+exists\b/i)
+      ? buscar(t, /\bdrop\s+(?:table|view|index|trigger)\b/i)
       : []),
   },
   {
