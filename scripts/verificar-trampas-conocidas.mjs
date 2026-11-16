@@ -194,6 +194,7 @@ export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }
 // dólares (`$$ ... $$`, `$etiqueta$ ... $etiqueta$`, anidables con etiquetas distintas). Devuelve:
 //   · `enmascarado`: mismo largo y mismas líneas que el original, con los comentarios y el CONTENIDO de los literales de comilla
 //     simple reemplazados por espacios (el código dentro de un bloque de dólares se conserva, también sus literales enmascarados);
+//   · `sinCerrar`: índice del primer comentario, literal o bloque de dólares sin cerrar (-1 si todo cierra);
 //   · `sentencias`: cortes en `;` de primer nivel (los `;` de literales, comentarios y bloques de dólares no cortan), cada una
 //     con su texto enmascarado y su índice de inicio.
 export function recorrerSql(sql) {
@@ -201,17 +202,24 @@ export function recorrerSql(sql) {
   const sentencias = [];
   const pila = [];
   let inicio = 0;
+  let sinCerrar = -1; // posición del primer comentario, literal o bloque de dólares que no cierra (SQL roto)
+  const abierto = (i) => { if (sinCerrar < 0) sinCerrar = i; };
   const blanquear = (desde, hasta) => { for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' '; };
   let i = 0;
   while (i < sql.length) {
     const c = sql[i];
+    // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
+    const tope = pila.length ? sql.indexOf(pila[pila.length - 1], i) : -1;
     if (c === '-' && sql[i + 1] === '-') {
       const fin = sql.indexOf('\n', i);
-      const hasta = fin < 0 ? sql.length : fin;
+      let hasta = fin < 0 ? sql.length : fin;
+      if (tope >= 0 && tope < hasta) hasta = tope;
       blanquear(i, hasta); i = hasta; continue;
     }
     if (c === '/' && sql[i + 1] === '*') {
       const fin = sql.indexOf('*/', i + 2);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
       const hasta = fin < 0 ? sql.length : fin + 2;
       blanquear(i, hasta); i = hasta; continue;
     }
@@ -225,10 +233,14 @@ export function recorrerSql(sql) {
         if (sql[j] === "'") break;
         j++;
       }
+      if (tope >= 0 && tope < j) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
+      if (j >= sql.length) abierto(i);
       blanquear(i + 1, Math.min(j, sql.length)); i = j + 1; continue;
     }
     if (c === '"') {
       const fin = sql.indexOf('"', i + 1);
+      if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
+      if (fin < 0) abierto(i);
       i = fin < 0 ? sql.length : fin + 1; continue;
     }
     if (c === '$') {
@@ -245,7 +257,8 @@ export function recorrerSql(sql) {
     i++;
   }
   sentencias.push({ texto: salida.slice(inicio).join(''), desde: inicio });
-  return { enmascarado: salida.join(''), sentencias };
+  if (pila.length) abierto(sql.length - 1);
+  return { enmascarado: salida.join(''), sentencias, sinCerrar };
 }
 
 // Expresión que sigue a `=`/`=>` (desde `desde`) hasta la coma o el cierre de primer nivel (o `where`/`from`/`returning`).
@@ -259,7 +272,8 @@ function expresionDesde(texto, desde) {
     else if (nivel === 0 && c === ',') return texto.slice(desde, i);
     else if (nivel === 0 && /\s|\)/.test(texto[i - 1] ?? ' ') && /^(where|from|returning)\b/i.test(texto.slice(i, i + 10))) return texto.slice(desde, i);
   }
-  return texto.slice(desde, hasta);
+  // Cortada por el tope sin terminar: no se puede saber si hay un current_date más adelante.
+  return hasta < texto.length ? CONSERVADOR : texto.slice(desde, hasta);
 }
 
 const RE_CURRENT_DATE = /(?<![a-z0-9_])current_date(?![a-z0-9_])/i;
@@ -281,9 +295,9 @@ function partesTop(texto) {
 
 // Límites que mantienen el análisis lineal ante SQL adversarial (paréntesis sin cerrar, miles de updates en una sentencia sin `;`).
 // Pasados los topes la sentencia se trata como incumplimiento conservador: ningún pgTAP real se les acerca.
-export const TOPE_SENTENCIA = 200_000;
+export const TOPE_SENTENCIA = 100_000;
 const MAX_ALTAS_POR_SENTENCIA = 500;
-const MAX_EXPRESION = 1000;
+const MAX_EXPRESION = 300;
 const CONSERVADOR = Symbol('conservador');
 
 // Para cada `(` el índice de su `)` (o -1 si no cierra), en un solo pasaje con una pila.
@@ -299,10 +313,13 @@ function paresParentesis(texto) {
 
 // Tramos [desde, hasta) de las llamadas `throws_ok(...)`: lo que está dentro de sus argumentos es SQL que se espera que falle.
 function tramosThrowsOk(sentencia, pares) {
-  return [...sentencia.matchAll(/(?<![a-z0-9_])throws_ok\s*\(/gi)].map((m) => {
+  const tramos = [];
+  for (const m of sentencia.matchAll(/(?<![a-z0-9_])throws_ok\s*\(/gi)) {
     const abre = m.index + m[0].length - 1;
-    return [abre, (pares[abre] < 0 ? sentencia.length : pares[abre]) + 1];
-  });
+    if (pares[abre] < 0) return CONSERVADOR; // sin cierre: no se sabe hasta dónde llega la exención
+    tramos.push([abre, pares[abre] + 1]);
+  }
+  return tramos;
 }
 
 // `insert into reparaciones (cols) values (...)|select ...`: posiciones de `current_date` que caen en la columna `ingreso_en`.
@@ -377,7 +394,9 @@ function usosCurrentDateIngreso(sentencia, pares) {
       while (u + 1 < updates.length && updates[u + 1] < m.index) u++;
       if (updates[u] > m.index) continue; // todavía no hubo ningún update antes
       const ini = m.index + m[0].length;
-      const c = RE_CURRENT_DATE.exec(expresionDesde(sentencia, ini));
+      const expr = expresionDesde(sentencia, ini);
+      if (expr === CONSERVADOR) return CONSERVADOR;
+      const c = RE_CURRENT_DATE.exec(expr);
       if (c) hallados.push(ini + c.index);
     }
   }
@@ -385,7 +404,9 @@ function usosCurrentDateIngreso(sentencia, pares) {
   if (/(?<![a-z0-9_])crear_reparacion\s*\(/i.test(sentencia)) {
     for (const m of sentencia.matchAll(/(?<![a-z0-9_])p_ingreso(?:_en)?\s*=>\s*/gi)) {
       const ini = m.index + m[0].length;
-      const c = RE_CURRENT_DATE.exec(expresionDesde(sentencia, ini));
+      const expr = expresionDesde(sentencia, ini);
+      if (expr === CONSERVADOR) return CONSERVADOR;
+      const c = RE_CURRENT_DATE.exec(expr);
       if (c) hallados.push(ini + c.index);
     }
   }
@@ -399,7 +420,10 @@ function usosCurrentDateIngreso(sentencia, pares) {
 export function revisarFechasBuenosAires({ pruebas }) {
   const problemas = [];
   for (const p of pruebas) {
-    const { sentencias } = recorrerSql(p.sql);
+    const { sentencias, sinCerrar } = recorrerSql(p.sql);
+    if (sinCerrar >= 0) {
+      problemas.push(`${p.ruta}:${lineaDe(p.sql, sinCerrar)} tiene una comilla, comentario o bloque de dólares sin cerrar: el resto del archivo queda sin revisar y no se puede comprobar que no use current_date (UTC) como ingreso. Cerralo.`);
+    }
     for (const s of sentencias) {
       const aviso = (idx, texto) => `${p.ruta}:${lineaDe(p.sql, s.desde + idx)} ${texto}`;
       if (s.texto.length > TOPE_SENTENCIA) {
@@ -411,11 +435,15 @@ export function revisarFechasBuenosAires({ pruebas }) {
       const pares = paresParentesis(s.texto);
       const usos = usosCurrentDateIngreso(s.texto, pares);
       if (usos === CONSERVADOR) {
-        problemas.push(aviso(0, 'alta de reparación con paréntesis sin cerrar o demasiadas altas en una sentencia: no se puede comprobar que no use current_date (UTC) como ingreso. Revisá la sintaxis.'));
+        problemas.push(aviso(0, 'alta de reparación con paréntesis sin cerrar, demasiadas altas o una expresión de ingreso de más de 300 caracteres en una sentencia: no se puede comprobar que no use current_date (UTC) como ingreso. Revisá la sintaxis.'));
         continue;
       }
       // La exención es solo para lo que está DENTRO de los argumentos de un `throws_ok(...)` (prueba que el alta se rechaza).
-      const exentos = usos.length ? tramosThrowsOk(s.texto, pares) : [];
+      const exentos = tramosThrowsOk(s.texto, pares);
+      if (exentos === CONSERVADOR) {
+        problemas.push(aviso(0, 'throws_ok( sin cerrar: no se sabe hasta dónde llega lo que se exime, no se puede comprobar que no use current_date (UTC) como ingreso. Revisá los paréntesis.'));
+        continue;
+      }
       let n = 0;
       for (const idx of usos) {
         if (exentos.some(([d, h]) => idx >= d && idx < h)) continue;

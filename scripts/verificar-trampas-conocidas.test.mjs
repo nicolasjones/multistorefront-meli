@@ -291,7 +291,8 @@ const rapido = (nombre, sql, comprobar = () => {}) => test(`T7 rendimiento: ${no
   assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
   comprobar(r);
 });
-rapido('500 updates y 666 «ingreso_en = 1» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1 '.repeat(666)}`, (r) => assert.deepEqual(r, []));
+rapido('500 updates y 666 «ingreso_en = 1,» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1, '.repeat(666)}`, (r) => assert.deepEqual(r, []));
+rapido('13000 «ingreso_en = 1» sin comas (cerca del tope): conservador y rápido', `update reparaciones set ${'ingreso_en = 1 '.repeat(6000)}`, (r) => assert.equal(r.length, 1));
 rapido('«ingreso_en =» repetido sin comas ni cierres', `update reparaciones set ${'ingreso_en = 1 '.repeat(20000)}`);
 rapido('2500 altas con paréntesis sin cerrar', 'insert into reparaciones (a,ingreso_en values ('.repeat(2500), (r) => assert.equal(r.length, 1));
 rapido('10000 throws_ok( sin cerrar con un alta', `${'throws_ok('.repeat(10000)} insert into reparaciones (ingreso_en) values (current_date)`);
@@ -299,3 +300,38 @@ rapido('altas anidadas en paréntesis', `${'insert into reparaciones ('.repeat(1
 rapido('sentencia gigante que toca reparaciones', `insert into reparaciones (ingreso_en) values (now()); ${'select 1, '.repeat(30000)}select 1 -- reparaciones`.replace(/;/, ' '), (r) => assert.ok(r.length >= 1));
 rapido('muchos usos de current_date en una sentencia', `insert into reparaciones (ingreso_en) values ${'(current_date),'.repeat(3000)}(current_date)`, (r) => assert.ok(r.length <= 21));
 rapido('un solo update con current_date sigue marcándose', 'update reparaciones set a = 1; update reparaciones set ingreso_en = current_date', (r) => assert.equal(r.length, 1));
+
+test('T7 conservador: expresión de ingreso más larga que el tope no se trunca en silencio (1)', () => {
+  const larga = `update reparaciones set ingreso_en = coalesce(${'x, '.repeat(600)}current_date);`;
+  const r = t7(larga);
+  assert.equal(r.length, 1);
+  assert.match(r[0], /no se puede comprobar/);
+  assert.deepEqual(t7("update reparaciones set ingreso_en = coalesce(x, y);"), []);
+  assert.equal(t7(`insert into reparaciones (ingreso_en) select ${'a+'.repeat(400)}current_date`).length, 1);
+});
+
+test('T7 rendimiento: peor caso ingreso_en sin comas bajo el tope de sentencia, < 300 ms', () => {
+  const t = Date.now();
+  t7(`update reparaciones set ${'ingreso_en = 1 '.repeat(6500)}`);
+  assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+});
+
+test('T7 conservador: throws_ok( sin cerrar y comilla o bloque sin cerrar se marcan (3)', () => {
+  assert.equal(t7("select throws_ok($$insert into reparaciones (ingreso_en) values (current_date)$$, '22023';").length, 1);
+  assert.match(t7("select throws_ok(\n$$select 1$$, 'x';")[0], /throws_ok\( sin cerrar/);
+  assert.match(t7("select 1;\nselect 'sin cerrar; current_date")[0], /sin cerrar/);
+  assert.match(t7('select $$ sin cerrar')[0], /sin cerrar/);
+  assert.match(t7('select 1; /* sin cerrar')[0], /sin cerrar/);
+  assert.match(t7('select "id sin cerrar')[0], /sin cerrar/);
+  assert.equal(recorrerSql("select 'a'; select $$b$$").sinCerrar, -1);
+});
+
+test('recorrerSql: dentro de $$ una comilla, comillas dobles o -- que no cierran son datos y no rompen el cierre', () => {
+  const sql = `select f($$o'brien"; drop table x; --$$) , 1; select 2;`;
+  const r = recorrerSql(sql);
+  assert.equal(r.sinCerrar, -1);
+  assert.equal(r.sentencias.filter((x) => x.texto.trim()).length, 2);
+  assert.equal(recorrerSql("select $$ /* x $$; select 1;").sinCerrar, -1);
+  // Dentro de un bloque, un literal que sí cierra se sigue enmascarando.
+  assert.deepEqual(t7("select throws_ok($$insert into reparaciones (nota, ingreso_en) values ('current_date', now())$$, '22023');"), []);
+});
