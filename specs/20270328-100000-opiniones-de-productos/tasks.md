@@ -55,13 +55,13 @@ Cada RF/SC tiene una tarea dueña. **Al cerrar cada fase ninguna tarea queda `[ 
 - [x] T023 Bloque `OpinionesProducto` en la ficha (promedio, cantidad, lista por tandas, «Cargar más», estado vacío) montado solo con la capacidad activa. Evidencia: Vitest con axe a 320/768/1440 px. Hecho (fase 4): `OpinionesProducto.tsx` montado en `rutas/producto.tsx` solo con la capacidad activa; Vitest con axe a 320/768/1440 px.
 - [x] T024 [P] Paridad con la bandera apagada: la ficha y «Mi cuenta» son idénticas a las de `dokploy` (RF-OPI-12). Evidencia: Vitest de paridad. Hecho (fase 4): Vitest de `OpinionesProducto.test.tsx` (apagada: nada dibujado y solo la llamada de capacidad) y `mi-cuenta.test.tsx` (apagada: sin pestaña, sin llamadas de opiniones).
 - [x] T025 [P] Texto literal: un comentario con `<script>` se muestra como texto (CA-OPI-3). Evidencia: Vitest. Hecho (fase 4): caso `<script>` literal en `OpinionesProducto.test.tsx`.
-- [ ] T026 Guards de la fase (los de T006). Evidencia: salida de cada comando.
+- [x] T026 Guards de la fase (los de T006). Evidencia: salida de cada comando. Hecho (fase 4): `verificar-migraciones --estricto`, `docs:check`, `matriz:check`, `ui:empresas:check`, `estilos:check`, `prototipo:check`, `tsc -b` y oxlint sin avisos nuevos; pgTAP de opiniones verdes en CI.
 
 **Checkpoint Leer**: con la bandera encendida en dev, la ficha muestra promedio, cantidad y las opiniones aceptadas de su tienda.
 
 ## Fase 5: Cierre
 
-- [ ] T027 E2E `apps/web/e2e/tienda-opiniones.e2e.ts`: opinar → no visible → aceptar → visible con promedio → editar → oculta → borrar. Evidencia: `pnpm --filter @platform/web test:e2e tienda-opiniones`.
+- [x] T027 E2E `apps/web/e2e/tienda-opiniones.e2e.ts`: opinar → no visible → aceptar → visible con promedio → editar → oculta → borrar. Evidencia: `pnpm --filter @platform/web test:e2e tienda-opiniones`. Hecho (fase 5): `tienda-opiniones.e2e.ts` pasa en el job `e2e-tienda` del PR (enciende `tienda_opiniones` y `tienda_pedidos`, porque «Mi cuenta» exige esta última).
 - [x] T028 Documentación: `docs/tienda-opiniones.md` (guía y reversión), enlace en `docs/tiendas-online.md`, `mkdocs.yml` y `docs/roadmap-template.md` (fila de MSF-467). Evidencia: `pnpm docs:check`. Hecho (fase 5): `docs/tienda-opiniones.md`, enlace en `docs/tiendas-online.md`, `mkdocs.yml` y fila de MSF-467 en `docs/roadmap-template.md`.
 - [ ] T029 Revisión de seguridad de la épica (autorización/RLS, texto no confiable, límites) con hallazgos menores arreglados. Evidencia: informe en la nota del PR.
 - [ ] T030 Encendido de `tienda_opiniones` **solo en dev**, con SQL del equipo técnico y verificación del bundle de dev; staging y producción quedan apagados (D11). Evidencia: nota con el comando y la comprobación.
