@@ -2007,8 +2007,8 @@
     "docs/seguridad-tienda-opiniones.md": {
       "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
       "pageHash": "2804a04b071075f91ba14801be825cd85873104c1a23a40044c2ebcc38a3c47f",
-      "sourceHash": "360a2af4e6dea8788a55d6ae85115b04e1a40bc0c3df481d59f55b1337bd2677",
-      "sourceAt": null,
+      "sourceHash": "8df5912cddde9ca68761ba27eb91144b62885529a55572a7b6522550bbc90faf",
+      "sourceAt": "1c4a3da3",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
