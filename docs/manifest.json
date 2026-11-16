@@ -752,8 +752,8 @@
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "5581b283c969b9bfd8071b642963a4e754eb2f22ba14d18f423d4225eb64eb41",
-      "sourceHash": "8637614f58729c81de15a6da2e92e79371dd3688f4009e21de005edb7656b51d",
+      "pageHash": "39c91b79fe04e7a87877dded51e1f7c9c54fd861e735d8af340e45f4346a2472",
+      "sourceHash": "ecc7f9dce532e36cb9ebf46f5b7ab3da6554d403fe08d11a26197a7133f862ef",
       "sourceAt": "c7860a7c",
       "sources": [
         "scripts/guard-migraciones-ddl.mjs",
