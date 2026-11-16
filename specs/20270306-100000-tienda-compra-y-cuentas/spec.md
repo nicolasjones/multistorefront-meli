@@ -375,6 +375,8 @@ Todo lo público se trata como hostil. Cada fila tiene su requisito y su prueba 
 | 1.9 | Denegación por lecturas baratas y repetidas | Llamar `lista_pedido_por_dominio` miles de veces | Acotada a 50 productos por llamada (mismo orden que `precios_cliente_por_dominio`); se evalúa aplicar el limitador de pedidos públicos de la búsqueda (`public.limite_pedidos_publicos`) y un `statement_timeout` versionado para `anon`/`authenticated` (seguimiento ya abierto en la épica del tablero, H-7) | Prueba de rendimiento con 50 líneas |
 | 1.10 | Cruce de tenants | Pasar un `producto_id` de otra organización | Los joins van con `organizacion_id` del host; FK compuestas en `consulta_items` | pgTAP de aislamiento entre dos organizaciones |
 
+**Riesgo aceptado 1.11 · `enviar_lista_pedido` sin captcha** (revisión retroactiva 2026-11-16; decisión: NO se implementa captcha). Un humano con muchas IP puede seguir enviando pedidos de mentira. Se acepta porque las mitigaciones acotan el daño: (a) tope de **5 envíos por hora** por (empresa, hash de IP) y de **20 llamadas por minuto** por visitante (el cupo de llamadas sobrevive a los fallos); (b) idempotencia por clave y poda a 24 h; (c) el aviso por correo al equipo se **agrupa** (no hay un correo por pedido); (d) la bandeja de Consultas es de borrado manual y no dispara ningún cobro ni reserva de stock. Se reevalúa si aparece spam real. Seguimiento: evaluar un desafío sin captcha (token firmado o prueba de trabajo) si el tope por IP no alcanza; ver `docs/tienda-compra-y-cuentas.md` («Menores de las revisiones retroactivas»).
+
 ### 2 · B2: crear un comprobante sin sesión de panel (la más sensible)
 
 | # | Amenaza | Vector | Mitigación | Prueba |
