@@ -6,6 +6,8 @@ sources:
 
 # Administración de la organización: datos y configuración
 
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/administracion-organizacion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
+
 Spec: `specs/20261014-140000-administracion-de-usuarios-y-organizacion/` (F-ORG-03, MSF-253, épica MSF-132).
 Migración: `supabase/migrations/20261014160000_organizacion_datos_y_configuracion.sql`.
 Pruebas: `supabase/tests/database/organizacion_datos_y_configuracion.test.sql` y

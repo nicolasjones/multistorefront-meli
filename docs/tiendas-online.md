@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-084830-tienda-dominio-e-identidad
+  - specs/20261023-120000-tienda-catalogo-y-ficha
+  - specs/20261024-051500-cuenta-web-del-cliente
+  - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - infra/glitchtip
+  - scripts/probar-nginx-tienda-seo.sh
+  - apps/web/Dockerfile
+  - apps/web/e2e
+---
+
 # Tiendas online: dominio e identidad
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/tiendas-online.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
 Historias: F-TDA-01 (`MSF-241`), F-TDA-02 (identidad visual, `MSF-266`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible).

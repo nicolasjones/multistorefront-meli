@@ -1,3 +1,13 @@
+---
+owner: plataforma
+sources:
+  - specs/20270305-100000-inicio-tablero-completo
+  - scripts/verificar-documentacion-cambios.mjs
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/pages/inicio
+  - supabase/tests/database
+---
+
 # Revisión de seguridad integral · Inicio, tablero completo (MSF-824)
 
 Cierre de la épica **MSF-824** (spec `specs/20270305-100000-inicio-tablero-completo/`, tarea T017). Cubre las cuatro
@@ -119,7 +129,7 @@ Con la matriz inicial (cada organización puede editarla; la autoridad es la bas
 
 El costo guardado en `comprobantes_venta_lineas.costo_unitario` está fuera del `select` por columna de `authenticated`
 (`docs/rentabilidad.md`); estas funciones lo leen como definer **solo** para un porcentaje, y solo para quien tiene `rentabilidad`.
-El detalle de qué ve cada rol está en [`inicio-y-alertas.md`](./inicio-y-alertas.md#quién-ve-qué-por-bloque-y-por-rol). pgTAP (`inicio_tablero_bloques.test.sql`) cubre
+El detalle de qué ve cada rol está en [`inicio-y-alertas.md`](./inicio-y-alertas.md#quien-ve-que-por-bloque-y-por-rol). pgTAP (`inicio_tablero_bloques.test.sql`) cubre
 `ingresos` y `margen_pct` en `null` sin `rentabilidad` (rol del operador y rol «mixto»: mostrador en una tienda y administración en otra), el acceso del superadmin con y sin organización activa, y la columna `ventas` en `null` sin `ventas`.
 
 ### Denegación de servicio: topes e índice

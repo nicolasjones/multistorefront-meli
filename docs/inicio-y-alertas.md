@@ -1,4 +1,17 @@
+---
+owner: tecnico
+sources:
+  - specs/20261030-100000-inicio-y-alertas
+  - specs/20270305-100000-inicio-tablero-completo
+  - infra/kestra
+  - apps/web/src/lib/inicio.ts
+  - apps/web/src/pages/inicio
+  - supabase/functions
+---
+
 # Inicio y alertas
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/inicio-y-alertas.md) · [guía de uso](producto/inicio-y-alertas.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec base: `specs/20261030-100000-inicio-y-alertas/` (épica MSF-156). Cubre las tres historias de la épica:
 la pantalla de inicio (F-INI-01), las alertas accionables (F-INI-02) y la búsqueda global (F-INI-03).
@@ -6,9 +19,9 @@ La épica **MSF-824 «Inicio · Tablero completo»** (spec `specs/20270305-10000
 a la misma pantalla el tablero de ventas y stock (F-INI-04), los bloques de gestión (F-INI-05), el listado
 «Movimientos por producto» (F-INI-06) y la carga del dólar con impacto (F-INI-07). Las decisiones se numeran
 por spec: **«D-n (spec base)»** son las de MSF-156 (D-1 a D-4) y **«D-n (tablero)»** las de MSF-824 (D-1 a D-12,
-ver [Decisiones de la épica MSF-824](#decisiones-de-la-épica-msf-824)). Qué ve cada rol, los contratos de las RPC y
-los desvíos están en las secciones [Quién ve qué](#quién-ve-qué-por-bloque-y-por-rol),
-[Contratos de las RPC](#contratos-de-las-rpc-de-la-épica-msf-824) y [Desvíos y seguimientos](#desvíos-y-seguimientos-de-la-épica-msf-824);
+ver [Decisiones de la épica MSF-824](#decisiones-de-la-epica-msf-824)). Qué ve cada rol, los contratos de las RPC y
+los desvíos están en las secciones [Quién ve qué](#quien-ve-que-por-bloque-y-por-rol),
+[Contratos de las RPC](#contratos-de-las-rpc-de-la-epica-msf-824) y [Desvíos y seguimientos](#desvios-y-seguimientos-de-la-epica-msf-824);
 la revisión de seguridad integral está en [`seguridad-inicio-tablero.md`](./seguridad-inicio-tablero.md).
 
 **Alcance (decisión D-3 de la spec base):** Inicio es una **pantalla de Refine con consultas en vivo**, no un
