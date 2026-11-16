@@ -48,7 +48,7 @@ CONCURRENTLY IF NOT EXISTS`, `DROP INDEX CONCURRENTLY IF EXISTS`). El enmascarad
 de línea del original, así la línea informada es la real.
 
 La lógica vive en `scripts/guard-migraciones-ddl.mjs` y se prueba con
-`pnpm test:db:guard-migraciones` (`scripts/guard-migraciones-ddl.test.mjs` y `scripts/verificar-migraciones-ddl.test.mjs`), que corre en el CI
+`pnpm test:db:guard-migraciones` (`scripts/guard-migraciones-ddl.test.mjs`, `scripts/verificar-migraciones-ddl.test.mjs` y `scripts/verificar-migraciones.multilinea.test.mjs`, que cubre las sentencias de varias líneas), que corre en el CI
 de validación.
 
 ## Migraciones históricas
