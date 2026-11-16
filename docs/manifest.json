@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3fa0f47b4cb19cfa4953a2efb63bb2cfe1b0ac706c9057a7c80294d0741362d9",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "7065a017",
+      "pageHash": "18a93ee22c96fb51a1b3c6b2a93ad6bcaef1e6b742b046524004e621da9f5091",
+      "sourceHash": "ccd4fe4ae1b217fb62d6c3e8a2fb9dd7c2ca2b14b8283909422ca37773d6e9b6",
+      "sourceAt": "8451da59",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "8451da59"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "f6d2f8660e4f34712c436aa33bfde6d461a478a7d85c5cafd4c6ea34f189e119",
-      "sourceHash": "7b2745de9117b8153169453a3bb9615da5f6b8e1cb62530808fb8a709f2d41f6",
-      "sourceAt": "775b35f0",
+      "pageHash": "32cf989ce957d97a1dce1d219441e5c0d38b11d73ad4a5cb0c4b9adc82c99cae",
+      "sourceHash": "1392f7a997b51be83beb01f15d65ca56d5bee1026829bb2e8920b99ff8adc93b",
+      "sourceAt": "0a249dc3",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "775b35f0"
+      "commit": "0a249dc3"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2005,12 +2005,14 @@
     },
     "docs/service-avisos.md": {
       "title": "Service técnico · Avisos al cliente por cambio de estado",
-      "pageHash": "84133bc1e6307a9d7f997fc1b073dd99e5a7dbeacf0251dcbf03ad410c68610a",
+      "pageHash": "2597662b5d2bbb5f0cb8cd3d5091443aadedd5d9ed2b3104dc40f11efa77a24e",
       "sourceHash": "f534cdcaa7e3f37fac9329ec23e3909a883c449715a535067b18a4a9d9cf7753",
       "sourceAt": "c7860a7c",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
-        "infra/kestra/flows/reparaciones-aviso-correo.yml"
+        "specs/20270323-100000-service-ideas-futuras-v2",
+        "infra/kestra/flows/reparaciones-aviso-correo.yml",
+        "infra/kestra/flows/reparaciones-aviso-whatsapp.yml"
       ],
       "owner": "tecnico",
       "commit": "c7860a7c"
@@ -2818,14 +2820,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "da29f021cf613858374ec1e5459aeb96f463e942e684e2aadb6a5a92c12555bf",
-      "sourceHash": "54040ca947da75c363e145f9cc7b84fccf0c2e6343be77cfc2638f4ed8d9eb4b",
-      "sourceAt": "775b35f0",
+      "pageHash": "9e5c58496409392e2c2a9128b9c0a16ad45422608110ee01e2f85ed7697e215a",
+      "sourceHash": "1735f54c05f875560a54663f1c9954df7fd1017cdc83e844200fc26a61915e19",
+      "sourceAt": "488800f2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "488800f2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
