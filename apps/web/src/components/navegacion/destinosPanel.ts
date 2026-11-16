@@ -39,6 +39,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import ApiIcon from '@mui/icons-material/Api'
 import InsightsIcon from '@mui/icons-material/Insights'
 import MailOutlineIcon from '@mui/icons-material/MailOutline'
+import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import AssessmentIcon from '@mui/icons-material/Assessment'
 import PaymentsIcon from '@mui/icons-material/Payments'
@@ -194,6 +195,8 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       { id: 'clientes', etiqueta: 'Clientes', ruta: '/clientes', icono: BusinessCenterIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       // F-CLI-11 (MSF-155): correo masivo a clientes; armar el grupo exige edición en Clientes (la pantalla lo valida).
       { id: 'correo-masivo', etiqueta: 'Correo masivo', ruta: '/clientes/correo-masivo', icono: MailOutlineIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
+      // MSF-468: newsletter de la tienda (suscriptores, composición y envío); componer y enviar son del Administrador (la pantalla y la base lo validan).
+      { id: 'newsletter', etiqueta: 'Newsletter', ruta: '/clientes/newsletter', icono: MarkEmailReadOutlinedIcon, audiencia: 'organizacion', seccionPermiso: 'clientes' },
       { id: 'proveedores', etiqueta: 'Proveedores', ruta: '/proveedores', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'proveedores' },
     ],
   },

@@ -504,15 +504,15 @@
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
-      "pageHash": "61e8e84be6388e4abf9b16927cfc45700bd81cd2c31b40a6c8eef242361e0398",
-      "sourceHash": "bfde3ab81ab92a4b44bd06b3e7cbdb8bd3a628fd3b38bf50161f70286e41e75c",
-      "sourceAt": "775b35f0",
+      "pageHash": "9b2de68ad2b68e8532bc83aac699381ecb49a14d37d76e7bb1eacdde2834c07f",
+      "sourceHash": "053d65ab1cebf6163e7652e0f4fd6a8225f77c6466ca99391a959f0aa04942ee",
+      "sourceAt": "432db86d",
       "sources": [
         "specs/20261028-100000-correo-masivo-a-clientes",
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "432db86d"
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
@@ -602,14 +602,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "1b505d33dab73c6db7e9fa917a040ddc4581be6a15884fe4341a8f9ad2130458",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
-      "sourceAt": "7065a017",
+      "pageHash": "0ebe0e5650c343f8476c015fb12b06d39ccb11da154b65576b11484db996e3e6",
+      "sourceHash": "4fcb65336f01c8931ebc2d0a46ae1de02603510b2a476efe83043865d70e5845",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "9cde8838"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -934,22 +934,33 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "c5933104e8a5825c432265e8f399e6acce3beb4fc21a28fb239994283b5ecfa1",
-      "sourceHash": "f2ca9eec2f081f82c7f53de96e9dd4ec7597bcf0473c3de6cf9f98e6cc166377",
-      "sourceAt": "b5837392",
+      "pageHash": "9c8939dda2250094bceefd76c4bef1f2da0b4d68457d5fd18d0333782a9cb5a1",
+      "sourceHash": "4ff9db9ef5e323ecc25e1ba4da51e3293fb77c6ca7d95e4e4efdf18a9e8c7834",
+      "sourceAt": "9cde8838",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
         "supabase/migrations/20270342000100_newsletter_publico.sql",
         "supabase/migrations/20270342000200_newsletter_confirmaciones.sql",
         "supabase/migrations/20270342000300_exportacion_total_newsletter.sql",
+        "supabase/migrations/20270420000000_newsletter_baja_y_gestion.sql",
+        "supabase/migrations/20270420000100_newsletters.sql",
+        "supabase/migrations/20270420000200_exportacion_total_newsletters.sql",
+        "supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql",
+        "supabase/migrations/20270420000400_newsletter_envio.sql",
+        "supabase/migrations/20270420000500_newsletter_lote.sql",
+        "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
+        "infra/kestra/flows/correo-masivo.yml",
+        "apps/web/src/pages/clientes/newsletter",
+        "apps/web/src/lib/newsletter.ts",
+        "apps/web/src/pages/tienda-publica/rutas/newsletter.baja.tsx",
         "infra/kestra/flows/newsletter-confirmaciones.yml",
         "apps/web/src/lib/tiendaNewsletter.ts",
         "apps/web/src/pages/tienda-publica/newsletter",
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "b5837392"
+      "commit": "9cde8838"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1084,12 +1095,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "6e3a45867d317c977e05e4dd2e5ea706e877501bcf4498a5981f06836311f3ad",
+      "pageHash": "5dff641b2993bbe9f526356c2b008c1e475044e9ec00c860781cc857f90e10a6",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "bfeaa8b6"
+      "commit": "432db86d"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -1349,6 +1360,19 @@
       "sources": [],
       "owner": "producto",
       "commit": "c7860a7c"
+    },
+    "docs/producto/newsletter.md": {
+      "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
+      "pageHash": "807c3c70a43a53d8b1cde22bd2cf82bf63b2526dd412b8971a7d929e3663e53a",
+      "sourceHash": "4db3a51c5bb81be2b7272cbb062df9e32164203c471f2ae93dd21615ad526f8b",
+      "sourceAt": "432db86d",
+      "sources": [
+        "specs/20270328-100000-newsletter-de-la-tienda",
+        "design/pantallas",
+        "apps/web/src/pages/clientes/newsletter"
+      ],
+      "owner": "producto",
+      "commit": "432db86d"
     },
     "docs/producto/notificaciones.md": {
       "title": "La campanita de notificaciones",
@@ -1934,7 +1958,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "cb20ebed2c337fa2de999ce243bb376240522fcf7d18ef6a174021d201e65907",
+      "pageHash": "eb051fbe44e630f530ac988c7ab082ba19210254accf71eabdba1f4f937b6cf9",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -3702,9 +3726,9 @@
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
-      "pageHash": "786cca048e8b52a025baaf1287ecfc86d4cb339557f60df949b35675a549ccab",
+      "pageHash": "360e769aafd773d1c0292b92468c6acab6b4af89ce17a97b1b5161a667fc8177",
       "sourceHash": "3e6a0ca4a8df4183429929c3d23dabe9691a27f73cc733df0af6cc46ee7d0e10",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "432db86d",
       "sources": [
         "specs/20261202-100000-tienda-whatsapp-y-contacto",
         "scripts/verificar-migraciones.mjs",
@@ -3716,7 +3740,7 @@
         "supabase/migrations/20261212110000_listar_comprobantes.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "432db86d"
     },
     "docs/tienda-movil.md": {
       "title": "Tienda pública · versión móvil (F-TDA-17)",

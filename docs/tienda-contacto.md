@@ -218,3 +218,8 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
   consulta llega a la bandeja de **su** empresa con origen `whatsapp` y el producto (la otra empresa no recibe
   nada), a 320 px el botón ocupa el ancho completo de la fila de acciones y una empresa sin número no muestra el
   botón. Se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`: ver `docs/e2e-app.md`.
+
+## Origen `newsletter` del límite por visitante (MSF-468)
+
+`dominio.tienda_envios.origen` admite también `newsletter`: el formulario de suscripción del pie, su confirmación y el contacto comparten el **mismo cupo de 5 por hora
+por visitante y tienda** (`private.registrar_envio_tienda`). Ver `docs/newsletter.md`.
