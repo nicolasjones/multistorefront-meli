@@ -27,7 +27,7 @@ immutable
 set search_path = ''
 as $$
   select case when limpio = '' then null else '"' || left(limpio, 80) || '"' end
-    from (select btrim(regexp_replace(replace(coalesce(p_nombre, ''), chr(92), ''), '["<>[:cntrl:]]', '', 'g')) as limpio) x;
+    from (select btrim(regexp_replace(replace(coalesce(p_nombre, ''), chr(92), ''), '["<>{}[:cntrl:]]', '', 'g')) as limpio) x;
 $$;
 
 revoke execute on function private.remitente_newsletter(text) from public, anon, authenticated;
@@ -80,6 +80,19 @@ begin
       from tomadas t
       left join dominio.empresas e on e.id = t.empresa_id and e.organizacion_id = t.organizacion_id
       left join dominio.tiendas ti on ti.empresa_id = t.empresa_id and ti.organizacion_id = t.organizacion_id;
+
+  -- Un correo con llaves o `%` (sintaxis de plantilla) no se envía nunca: `to` lo muestra el motor de plantillas de Kestra (defensa en profundidad;
+  -- las altas nuevas ya lo rechazan, esto cubre filas anteriores y clientes). Motivo fijo «Correo inválido».
+  update dominio.campana_correo_destinatarios d
+     set estado = 'omitido', error = 'Correo inválido', reclamado_hasta = null
+    from dominio.clientes c
+   where c.id = d.cliente_id and d.estado = 'pendiente' and (d.reclamado_hasta is null or d.reclamado_hasta < now())
+     and c.correo ~ '[{}%]';
+  update dominio.campana_correo_destinatarios d
+     set estado = 'omitido', error = 'Correo inválido', reclamado_hasta = null
+    from dominio.newsletter_suscriptores s
+   where s.id = d.suscriptor_id and d.estado = 'pendiente' and (d.reclamado_hasta is null or d.reclamado_hasta < now())
+     and s.correo ~ '[{}%]';
 
   -- Re-verificación (FR-020) de los clientes pendientes sin reclamo vigente.
   update dominio.campana_correo_destinatarios d
@@ -161,11 +174,16 @@ begin
         join dominio.tiendas ti on ti.empresa_id = e.id and ti.organizacion_id = e.organizacion_id
         join dominio.newsletter_configuracion cfg on cfg.empresa_id = e.id and cfg.organizacion_id = e.organizacion_id and cfg.activo
        where s.id = v_fila.sid and s.estado = 'confirmado' and e.activa
+         and s.correo !~ '[{}%]'
          and not exists (select 1 from dominio.newsletters nl where nl.id = c.newsletter_id and nl.organizacion_id = c.organizacion_id and nl.cancelada_en is not null)
          for share of s;
       if not found then
         update dominio.campana_correo_destinatarios u
-           set estado = 'omitido', error = null, reclamado_hasta = null
+           set estado = 'omitido', reclamado_hasta = null,
+               error = (select case when nl.cancelada_en is not null then 'Cancelado' end
+                          from dominio.campanas_correo c2
+                          left join dominio.newsletters nl on nl.id = c2.newsletter_id and nl.organizacion_id = c2.organizacion_id
+                         where c2.id = v_fila.cid)
          where u.id = v_fila.did and u.estado = 'pendiente' and (u.reclamado_hasta is null or u.reclamado_hasta < now());
         continue;
       end if;

@@ -12,6 +12,7 @@ sources:
   - supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql
   - supabase/migrations/20270420000400_newsletter_envio.sql
   - supabase/migrations/20270420000500_newsletter_lote.sql
+  - supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql
   - infra/kestra/flows/correo-masivo.yml
   - apps/web/src/pages/clientes/newsletter
   - apps/web/src/lib/newsletter.ts
@@ -125,8 +126,8 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - **Historiales**: `listar_campanas_correo` y `detalle_campana_correo` (clientes) solo muestran `tipo = 'clientes'`; el historial del newsletter es `listar_newsletters` / `detalle_newsletter`.
 - **Eventos de Actividad** (sin correos, textos ni cuerpo): `newsletter.configurar`, `.guardar`, `.prueba`, `.enviar` (asunto y cantidad), `.cancelar`, `.baja_manual`, `.baja` (solo la primera vez), `.datos_borrados`; con etiquetas en `lib/actividad.ts`.
 - **Cancelado no reenvía**: el reclamo trata como `omitido` («Cancelado») lo pendiente de una campaña cuyo newsletter tiene `cancelada_en`, aunque un reclamo vencido (flow cortado) lo hubiera devuelto a la cola.
-- **Plantillas de Kestra**: el flow muestra `cuerpo_html | raw`. No hay ninguna configuración `kestra.templating.recursive-rendering` en `infra/kestra` (queda en el valor por defecto de la versión instalada, que no se pudo comprobar), así que no se depende de ella: `private.escapar_html` también convierte `{` y `}` en entidades (`&#123;` `&#125;`), y un texto como `{{ ... }}` o `{% ... %}` nunca llega al motor aunque el renderizado recursivo estuviera activo. Se ve igual en el correo.
-- **Remitente**: `private.remitente_newsletter` quita comillas, `<`, `>`, barra invertida y caracteres de control.
+- **Plantillas de Kestra (defensa en profundidad, no una garantía total)**: el flow muestra `cuerpo_html | raw`. `infra/kestra/compose.yaml` fija ahora `kestra.templating.recursive-rendering: false`; **hay que verificar en cada entorno** (dev, stg, prd) que la configuración efectiva lo respete, porque no se pudo comprobar contra un Kestra real. Capas que no dependen de eso: `private.escapar_html` convierte `{` y `}` del cuerpo en entidades (`&#123;` `&#125;`); el remitente pierde llaves, comillas, `<`, `>`, `\` y caracteres de control; el correo del suscriptor no admite llaves (validador, CHECK `newsletter_suscriptores_correo_llaves_ck` y migración `20270420000600`) y el reclamo omite («Correo inválido») a cualquier destinatario, de clientes o suscriptores, cuyo correo tenga `{`, `}` o `%`. **Siguen crudos** el `subject` (asunto escrito por el Administrador) y el `mensaje` del correo a clientes: provienen de quien tiene permiso de edición en Clientes y solo serían un riesgo con el renderizado recursivo activo.
+- **Remitente**: `private.remitente_newsletter` quita comillas, `<`, `>`, llaves, barra invertida y caracteres de control.
 - **Cancelar**: deja `omitido` (motivo «Cancelado») lo pendiente que no está reclamado en vuelo; lo reclamado se cierra solo y lo ya enviado no se retira.
 
 ### Desvíos respecto de la spec (declarados)
@@ -157,7 +158,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 Inmediata, sin código: `update public.banderas_plataforma set activa = false where clave = 'newsletter';` (el pie deja de mostrar el formulario y el
 flow no envía). Migraciones posteriores (nunca en el mismo PR): `drop function` de las funciones de las migraciones `…0100` y `…0200`,
 `drop table dominio.newsletter_suscriptores, dominio.newsletter_configuracion` (exportar antes los suscriptores si hace falta), borrar la fila de la
-bandera, restaurar la definición de `private.conjuntos_exportacion_total()` de `20270341000500` y el check de `tienda_envios.origen` de
+bandera, restaurar la definición de `private.conjuntos_exportacion_total()` vigente antes de las tablas del newsletter (la de `20270341000500` ya no es la vigente: hoy es `20270418000401`, o `20270349000200` antes de mover `clientes` a `dominio`; no pierdas ninguna fila posterior) y el check de `tienda_envios.origen` de
 `20270321100000`.
 
 Fases 3 a 5 (migraciones `20270420…`, nunca en el mismo PR): `drop function` de las RPC `newsletter` (`enviar_newsletter`, `cancelar_envio_newsletter`,
@@ -166,5 +167,5 @@ Fases 3 a 5 (migraciones `20270420…`, nunca en el mismo PR): `drop function` d
 `private` (`armar_bloques_newsletter`, `cuerpo_html_newsletter`, `escapar_html`, `remitente_newsletter`, `exigir_admin_newsletter`); restaurar
 `reclamar_lote_correo_masivo` (20270201200122), `dar_de_baja_correo_masivo`, `listar_campanas_correo` y `detalle_campana_correo` (20270201200123) y, con
 `resumen_newsletter`, la definición de `20270420000000`; `alter table … drop column` de las columnas nuevas de las tres tablas del correo masivo (solo
-tras borrar o migrar las filas `tipo = 'newsletter'`); `drop table dominio.newsletters`; restaurar `conjuntos_exportacion_total()` de `20270349000200`.
+tras borrar o migrar las filas `tipo = 'newsletter'`); `drop table dominio.newsletters`; restaurar `conjuntos_exportacion_total()` de `20270418000401` (sin la fila de `newsletters`); la migración `…0600` se revierte con `drop constraint newsletter_suscriptores_correo_llaves_ck` y el validador de `20270342000100`.
 Desactivar sin revertir: apagar la bandera `newsletter` (el flow deja de enviar y lo pendiente queda intacto).

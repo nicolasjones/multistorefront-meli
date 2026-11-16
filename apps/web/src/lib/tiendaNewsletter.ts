@@ -11,7 +11,7 @@ export type ErroresNewsletter = Partial<Record<CampoNewsletter, string>>
 
 // Espejo EXACTO de private.validar_suscripcion_newsletter: una sola dirección con forma estricta: local `atom(.atom)*` (sin `%`, `!`, `|`, `/`, punto inicial, final ni doble), dominio con
 // etiquetas alfanuméricas y TLD de letras ASCII (un dominio IDN entra con sus etiquetas `xn--`; el unicode directo y un TLD `xn--` se rechazan), local ≤ 64 (sin `<`, `>`, comillas, paréntesis, `\`, `:`, `,` ni `;`), recortada y en minúsculas, ≤ 254 y con la casilla marcada.
-const ATOMO = "[a-z0-9'+_=&*#$?^{}~-]+"
+const ATOMO = "[a-z0-9'+_=&*#$?^~-]+"
 const CORREO = new RegExp(`^${ATOMO}(\\.${ATOMO})*@([a-z0-9]([a-z0-9-]*[a-z0-9])?\\.)+[a-z]{2,}$`)
 const MAX_LOCAL = 64
 
@@ -90,7 +90,7 @@ export async function suscribirseNewsletter(host: string, datos: DatosNewsletter
 export type ResultadoConfirmacion = 'ok' | 'vencido' | 'invalido' | 'espera' | 'falla'
 
 // Forma del token del correo (64 hexadecimales): lo que no la cumple ni se envía.
-export const FORMA_TOKEN_NEWSLETTER = /^[0-9a-f]{64}$/
+const FORMA_TOKEN_NEWSLETTER = /^[0-9a-f]{64}$/
 
 export async function confirmarNewsletter(host: string, token: string): Promise<ResultadoConfirmacion> {
   if (!FORMA_TOKEN_NEWSLETTER.test(token)) return 'invalido'

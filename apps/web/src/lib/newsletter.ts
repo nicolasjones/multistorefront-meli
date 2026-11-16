@@ -4,7 +4,6 @@ import { ASUNTO_MAXIMO, MENSAJE_MAXIMO } from './correoMasivo'
 
 export { ASUNTO_MAXIMO, MENSAJE_MAXIMO }
 export const NOMBRE_INTERNO_MAXIMO = 100
-export const RUTA_NEWSLETTER = '/clientes/newsletter'
 
 export type EstadoSuscriptor = 'pendiente' | 'confirmado' | 'baja'
 export type EstadoEnvio = 'borrador' | 'enviando' | 'enviada' | 'cancelada'

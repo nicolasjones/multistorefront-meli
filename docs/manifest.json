@@ -925,8 +925,8 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "1d75d605b95b374d07820992f9f196b46b5d8446b685194c3b396d5ec1c0d356",
-      "sourceHash": "2dec5993e2de262621bbff8ad546ef5bf24439fa1f3a26378e04ce0d20378b37",
+      "pageHash": "95d1c993a0c5a0e78e3a505d10e8019c374d436e75792e293a024f3b435abfd4",
+      "sourceHash": "9afcbafd4a75b0184fa2d51a4a458075e267730e51e7735a2b8d3bec7e139dae",
       "sourceAt": "432db86d",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
@@ -940,6 +940,7 @@
         "supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql",
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
+        "supabase/migrations/20270420000600_newsletter_correo_sin_llaves.sql",
         "infra/kestra/flows/correo-masivo.yml",
         "apps/web/src/pages/clientes/newsletter",
         "apps/web/src/lib/newsletter.ts",
