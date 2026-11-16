@@ -2,12 +2,27 @@
 
 **Épica**: MSF-467 «Tiendas online · Opiniones» (Etapa 2, P2 provisoria) · **Spec**: `opiniones-de-productos` · **Prioridad**: P2
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: spec redactada, **sin implementar**. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3, con código de historia `F-OPI-01`…`F-OPI-03`) para que el tracker las cree a partir de ella.
-**Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-467, el prototipo `design/pantallas/Opiniones.dc.html` (+ `Opiniones.inventory.json` y la entrada «Opiniones (Etapa 2)» de `AdminSider.dc.html`), `docs/tienda-compra-y-cuentas.md` (cuenta web, MSF-237/MSF-176), `docs/tienda-contacto.md` y `docs/seguridad-tienda-compra-y-cuentas.md` (límites por visitante HMAC), `docs/tiendas-online.md` y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
+**Estado**: **implementada y mergeada en `dokploy`** (F-OPI-01 en el PR #1044; F-OPI-02 y F-OPI-03 en el PR #1058; QA y Código/Seguridad aprobados, CI verde). Las tres historias están Finalizadas; **solo queda la fase de cierre** (T029 revisión de seguridad, T030 encendido de la bandera solo en dev, T031 guards finales), que sigue su curso normal del SDLC sobre `dokploy`. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3, con código de historia `F-OPI-01`…`F-OPI-03`).
+**Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-467, el prototipo `design/pantallas/Opiniones.dc.html` (+ `Opiniones.inventory.json` y la entrada «Opiniones (Etapa 2)» de `AdminSider.dc.html`), `docs/tienda-compra-y-cuentas.md` (cuenta web, MSF-237/MSF-176), `docs/tienda-contacto.md` y `docs/seguridad-tienda-compra-y-cuentas.md` (límites por visitante HMAC), `docs/tiendas-online.md`, `docs/tienda-opiniones.md` y el código vigente de `dokploy` (migraciones hasta `20270419000200`).
 
 ## Objetivo
 
 Que un **cliente con cuenta web activa** deje una **opinión con puntuación** (1 a 5 estrellas y un comentario) sobre un producto de **su** tienda, y que un **administrador** la **modere antes de que se publique** (moderación previa): solo las opiniones **aceptadas** se muestran en la ficha pública del producto, junto con el **promedio** y la **cantidad**. Todo detrás de una bandera apagada por defecto.
+
+## Estado de la entrega y decisión de orquestación
+
+Esta sección **no describe alcance nuevo**: documenta el estado real de la épica y por qué el release a DEV quedó trabado. Es la que manda sobre cualquier lectura de «sin implementar» de versiones previas de esta spec.
+
+**🛡️ Decisión de orquestación — release a DEV trabado (PR #1045), no es un conflicto a resolver.**
+
+- **Diagnóstico verificado** (`git fetch` + `gh pr view`): el PR #1045 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) solo lleva 2 commits de **docs** (`f81ee58d7`, `96ce0cedc`), escritos sobre una foto de `spec.md`/`plan.md`/`tasks.md` **anterior** a la implementación real. La implementación real (fases 1 a 5) ya se mergeó a `dokploy` por otro camino: PR #1044 (`feat/opiniones-fases-1-y-2`) y PR #1058 (`feat/opiniones-fases-3-a-5`), con QA y Código/Seguridad aprobados y CI verde. `dokploy` ya tiene T001–T028 de `tasks.md` marcadas `[x]` con evidencia.
+- **Mergear el PR #1045 ahora pisaría esa evidencia** (su copia de `tasks.md` tiene T001 sin marcar), no la completaría. El conflicto de merge **no es un bug a arreglar**: es una rama de épica *stale*, mismo patrón que MSF-265/MSF-948 (épica superada por un rework que avanzó por ramas de feature directas a `dokploy`).
+- **Acción tomada**: el PR #1045 se cerró **sin merge**, sin tocar código (el motivo quedó explicado en el PR). Los PRs #1068 y #1069, regenerados por Release con la misma cabeza, se cerraron igual.
+- **Pendiente real de la épica** (verificado en `dokploy`, no en el PR viejo): **T029** (revisión de seguridad), **T030** (encendido de `tienda_opiniones` solo en dev) y **T031** (guards finales) siguen `[ ]`. Eso sigue su curso normal del SDLC sobre `dokploy`; no depende del PR cerrado.
+- **Causa raíz, no solo el síntoma**: Release generó 3 PRs idénticos contra esta rama sin rebasar, ignorando la etiqueta `desarrollo-manual`. Se abrió **MSF-984** (hija de MSF-515, deuda técnica) para que Release filtre esa label antes de reintentar el merge a DEV; no es el mismo bug que MSF-951 (ese es el sweep de adopción Backlog→Ready).
+- **Rebase**: es **trabajo manual de Nicolás** (la épica lleva `desarrollo-manual`); no lo resuelve el SDLC solo. Hasta que se rebasee `epic/MSF-467-tiendas-online-opiniones` contra `dokploy` y se resuelva el conflicto de `plan.md`/`spec.md` (reconocer F-OPI-01 ya implementada y renumerar F-OPI-02/F-OPI-03 por encima de lo que ya ocupa `dokploy`), la épica queda **flaggeada** (`sindrome-bloqueo-importante`, `sindrome-escalado-humano`, `desarrollo-manual`) y **no se pide otro merge**.
+
+**Consecuencia para esta rama**: `epic/MSF-467-tiendas-online-opiniones` queda como la **fuente documental** de la épica (spec, plan, tareas y contratos) y **no** como la rama de release. Los tres archivos de esta spec se reescribieron para decir la verdad del estado mergeado —que es justamente lo que faltaba en el PR #1045 y que hacía que su merge pisara la evidencia—. El trabajo que queda (T029–T031) se ejecuta sobre `dokploy`, que ya tiene T001–T028 con evidencia.
 
 ## Decisión de negocio (Nicolás, 2026-11-15) y decisiones delegadas
 
@@ -200,7 +215,7 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **Cuenta suspendida o baja de «Habilitado en» después de opinar**: las opiniones **aceptadas siguen visibles** (son contenido ya moderado); la persona ya no puede crear, editar ni borrar hasta recuperar el acceso.
 - **Producto que se oculta, se desactiva o cambia de categoría oculta**: sus opiniones no se muestran ni cuentan en la tienda; **no se borran** y reaparecen si vuelve a ser visible. El panel las sigue listando.
 - **Producto eliminado**: las opiniones se borran en cascada.
-- **Cliente fusionado con otro** (fusión de clientes): se aplica la regla de fusión vigente a `cuentas_cliente`; la opinión sigue atada a la cuenta, así que no se duplica ni se pierde. Si dos cuentas de la fusión opinaron el mismo producto, la unicidad lo impide y la tarea de fusión conserva la más reciente (ver T018).
+- **Cliente fusionado con otro** (fusión de clientes): la opinión sigue atada a la cuenta, así que no se duplica ni se pierde. Como el `on delete cascade` de `dominio.opiniones_producto` se llevaba **todas** las opiniones de la cuenta web dada de baja, `public.fusionar_clientes` **reasigna** antes de la baja las opiniones a la cuenta que se mantiene de la misma tienda; si las dos cuentas de la fusión opinaron el mismo producto (única `(cuenta_cliente_id, producto_id)`), se conserva la más reciente por `actualizada_en` y se descarta la otra. Una opinión de una tienda donde la cuenta que se mantiene no tiene cuenta no puede moverse (la FK compuesta exige la misma tienda) y se va con la cuenta dada de baja (ver T018).
 - **Texto con HTML, scripts o emojis**: se guarda y se muestra **literal** (nodos de React); un `<script>` no se interpreta. El largo se mide en caracteres de Postgres: con emojis el borde puede diferir en ±1 y el servidor manda.
 - **Consumidor final / cliente archivado**: no tienen cuenta web válida (`cuenta_de_tienda` no devuelve nada); no pueden opinar.
 - **Moderar a la vez que el cliente edita**: gana la última escritura **con bloqueo optimista**: la RPC de moderación recibe `actualizada_en` y responde `conflicto` si la fila cambió (D6: una edición vuelve a `pendiente`, así que una aceptación vieja no puede publicar el texto nuevo).
@@ -241,7 +256,7 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **RF-OPI-16**: Toda RPC pública lleva `revoke … from public, anon` y `grant execute … to authenticated` explícitos (las dos de lectura y la de capacidades, además a `anon`); `security definer`, `set search_path = ''`; el `exception when others` registra solo `sqlstate`. El test que prohíbe funciones de `public` ejecutables por `anon` sigue verde: las de `anon` viven en `publico` y figuran en su lista blanca.
 - **RF-OPI-17**: Límite por visitante con `private.visitante_publico` y `private.registrar_pedido_publico` (D12); la IP nunca se guarda; sin cabecera `x-forwarded-for` todos comparten un único cupo («sin-ip», falla cerrada).
 - **RF-OPI-18**: Las opiniones entran en la exportación total (`private.conjuntos_exportacion_total`) y no se agregan a las exclusiones.
-- **RF-OPI-19**: Migraciones aditivas en la ventana `20270341000000`+ (mayores que toda la cola de `dokploy`), cada una con su reversión documentada; `node scripts/verificar-migraciones.mjs --estricto` verde.
+- **RF-OPI-19**: Migraciones **aditivas**, cada una con su reversión documentada, numeradas **por encima de la cola de `dokploy` en el momento de escribirse**: F-OPI-01 ocupó la ventana `20270341000000`–`20270341000500`; F-OPI-02 y F-OPI-03, al empezar, renumeraron a `20270419000000`+ porque la ventana `20270341…` ya no era mayor que la cola. `node scripts/verificar-migraciones.mjs --estricto` verde.
 
 ### Criterios de aceptación
 
@@ -444,19 +459,23 @@ Estrellas en el catálogo, distribución por estrellas y datos `schema.org` (SEO
 
 `contracts/opiniones.md`: firmas, respuestas y errores de las siete RPC (dos del panel y cinco de la tienda), lista blanca de campos y eventos de Actividad.
 
+Además, `public.fusionar_clientes(uuid, uuid, uuid)` —función **existente** que T018 redefine por dentro— **mantiene su firma y su respuesta** (misma `jsonb`, mismas claves); cambia el orden interno: reasigna las opiniones antes de dar de baja la cuenta web descartada. No hay `BREAKING:` que declarar.
+
+**Estado de la bandera**: `tienda_opiniones` está **apagada** en todos los entornos (D11). El encendido **solo en dev** es la tarea T030, que sigue pendiente; staging y producción quedan apagados.
+
 ## Riesgos y desvíos declarados
 
 1. **El ticket habla de «responder»** y la decisión solo de moderar (nota de arriba): las respuestas quedan fuera; si Nicolás las quiere, se suma una columna `respuesta` y una RPC.
 2. **Cuenta sin bandera `tienda_pedidos`**: las opiniones dependen de la cuenta web (MSF-237), no de la bandera de pedidos; se verifica en dev que ingresar a la tienda funciona con `tienda_pedidos` apagada y `tienda_opiniones` encendida. Si no fuera así, la bandera de opiniones exigiría ambas (cambio de una condición).
 3. **Límite por visitante y NAT**: muchos clientes tras una misma IP comparten cupo (10 por minuto); es el mismo riesgo aceptado del formulario de contacto y de pedidos.
 4. **Opiniones falsas de cuentas legítimas** (alguien con cuenta que opina sin haber comprado, D3): lo acota la moderación previa; es la contrapartida de no exigir compra.
-5. **Fusión de clientes**: puede chocar la unicidad `(cuenta, producto)`; se resuelve en T018 y se prueba (caso borde).
-6. **Redefiniciones**: la spec **no** redefine funciones existentes (ficha, capacidades, cuenta); solo agrega funciones nuevas, para no pelear con otras ramas.
+5. **Fusión de clientes**: puede chocar la unicidad `(cuenta, producto)` y el `on delete cascade` se llevaba las opiniones de la cuenta dada de baja; **resuelto en T018** (migración `20270419000200_opiniones_fusion_clientes.sql`): la fusión reasigna las opiniones a la cuenta que se mantiene y conserva la más reciente ante un choque. Probado en `opiniones_fusion.test.sql`.
+6. **Redefiniciones**: la spec **no** redefine las funciones de la ficha, las capacidades ni la cuenta; solo agrega funciones nuevas, para no pelear con otras ramas. Las dos excepciones son `private.conjuntos_exportacion_total()` (D14, la tabla nueva entra en la exportación) y `public.fusionar_clientes` (T018), y **ninguna de las dos cambia su firma ni su respuesta**.
 7. **Sin aviso al administrador**: las opiniones pendientes pueden quedar sin moderar; el contador de la pantalla es la única señal (D13).
 
 ## Reversión
 
-Todas las migraciones son aditivas y se deshacen con una migración posterior, **en este orden** y sin ejecutarla en el mismo PR: (1) `drop function` de las siete RPC y de `capacidades_opiniones_por_dominio`; (2) restaurar `private.conjuntos_exportacion_total()` a la versión previa; (3) `delete from public.banderas_plataforma where clave = 'tienda_opiniones'`; (4) `drop function private.validar_texto_opinion, private.nombre_publico_cliente`; (5) `drop table dominio.opiniones_producto` (**exportar antes**: pierde las opiniones). Apagar la bandera deja todo inerte sin tocar datos y es la reversión operativa inmediata. El código de `apps/web` se revierte con `git revert -m 1` del merge de la spec.
+Todas las migraciones son aditivas y se deshacen con una migración posterior, **en este orden** y sin ejecutarla en el mismo PR: (1) `drop function` de las siete RPC y de `capacidades_opiniones_por_dominio`; (2) restaurar `public.fusionar_clientes` a la versión previa (`20270340000210`, con `dominio.clientes`) y `private.conjuntos_exportacion_total()` a la versión previa; (3) `delete from public.banderas_plataforma where clave = 'tienda_opiniones'`; (4) `drop function private.validar_texto_opinion, private.nombre_publico_cliente`; (5) `drop table dominio.opiniones_producto` (**exportar antes**: pierde las opiniones). Apagar la bandera deja todo inerte sin tocar datos y es la reversión operativa inmediata. El código de `apps/web` se revierte con `git revert -m 1` del merge de la spec.
 
 ## Fuera de alcance
 

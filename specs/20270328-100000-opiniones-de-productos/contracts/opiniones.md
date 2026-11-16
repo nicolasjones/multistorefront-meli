@@ -30,3 +30,13 @@ Orden de verificaciones en la tienda: **bandera `tienda_opiniones` → cuenta �
 
 - Repetir la misma decisión sobre una opinión ya en ese estado responde `ok` **sin** volver a registrar el evento.
 - Eventos de **Actividad** (`private.registrar_actividad`): `opinion.aceptada` y `opinion.rechazada`; detalle «Opinión de N estrellas sobre «producto» aceptada/rechazada» (≤ 500, **sin el comentario ni el motivo**).
+
+## Función existente tocada (misma firma)
+
+| RPC | Roles | Entrada | Salida |
+|---|---|---|---|
+| `public.fusionar_clientes(p_conservar_id uuid, p_descartar_id uuid, p_cuenta_web_de uuid default null)` | `authenticated` (solo Administrador) | los dos clientes a fusionar y, opcionalmente, la cuenta web a descartar | `jsonb` **sin cambios**: mismas claves que antes |
+
+- **Sin `BREAKING:`**: la firma, los `grant`/`revoke`, el `security definer`, el `search_path` vacío y la **respuesta** (mismas claves) quedan iguales.
+- **Qué cambia por dentro** (T018, migración `20270419000200_opiniones_fusion_clientes.sql`): antes de dar de baja la cuenta web descartada, sus opiniones de `dominio.opiniones_producto` se **reasignan** a la cuenta web que se mantiene **de la misma tienda** (la FK compuesta lo exige). Si las dos cuentas opinaron el mismo producto (única `(cuenta_cliente_id, producto_id)`), se conserva la **más reciente** por `actualizada_en` (empate: la de la cuenta que se mantiene) y se descarta la otra. Una opinión de una tienda donde la cuenta que se mantiene no tiene cuenta no puede moverse y se va con la cuenta dada de baja.
+- **Reversión**: restaurar la función desde `20270340000210` (la definición con `dominio.clientes`).
