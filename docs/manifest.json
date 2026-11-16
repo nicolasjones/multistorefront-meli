@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "ea1877fabccf594016975deda79b545da9cf9b7489a20847b7dcb4f53cc7d7cd",
-      "sourceHash": "552cc7d06034876ce7f19829361acb504ecebb3204e381be42ccfe6865384dcc",
-      "sourceAt": "4a93f421",
+      "pageHash": "f953649993ab5deff6d1cb2ffc3f2ec055a29c3c474c4665c29e98bc573e3b6f",
+      "sourceHash": "c5a7b5cbb007683364b9eef4f4d40ebe10165b511a4888529df6bd6136f9fe7d",
+      "sourceAt": "6b76bcf5",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "4a93f421"
+      "commit": "6b76bcf5"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -1113,12 +1113,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "f45799b68326b18d0ad04bb8b5d9bf2babf7853833a3335fb83b6f75381d2e71",
+      "pageHash": "5b521084dd020ead5965c8d9feee3de2191532cea524695278eea1a063b4141a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "6b76bcf5"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
