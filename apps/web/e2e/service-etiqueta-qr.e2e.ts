@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
 import { leerQr } from '../src/lib/qr/qr.lector.test-util'
-import { altaUsuario, borrar, borrarUsuario, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, leer, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // F-SVC-32 (MSF-190, SC-005): etiqueta con código QR. La persona del taller abre la etiqueta desde el detalle; el QR que
 // se dibuja en pantalla se decodifica en el test (con el lector de pruebas, desde el `<path>` del DOM) y tiene que ser
@@ -70,9 +70,9 @@ test.describe('Service técnico · etiqueta con código QR (MSF-190, SC-005)', (
       const [empresa] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: tienda }, 'dominio')
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      await rest('features', { id: 'service-tecnico', nombre: 'Service técnico', descripcion: 'E2E' }, 'public', 'resolution=ignore-duplicates')
-      await rest('organizaciones_features', { feature_id: 'service-tecnico', organizacion_id: org.id, habilitado_por: userId })
-      const [cliente] = await rest<{ id: string }>('clientes', { organizacion_id: org.id, nombre: secretos[0], tipo: 'minorista' })
+      await sql(`insert into public.features (id, nombre, descripcion) values ('service-tecnico', 'Service técnico', 'E2E') on conflict do nothing`)
+      await sql(`insert into public.organizaciones_features (feature_id, organizacion_id, habilitado_por) values ('service-tecnico', $1, $2)`, [org.id, userId])
+      const [cliente] = await sql<{ id: string }>(`insert into dominio.clientes (organizacion_id, nombre, tipo) values ($1, $2, 'minorista') returning id`, [org.id, secretos[0]])
       const [modelo] = await leer<{ id: string }>(`modelos_equipo?organizacion_id=eq.${org.id}&select=id&limit=1`, 'dominio')
 
       const token = await tokenDe(correo)
