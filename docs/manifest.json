@@ -380,12 +380,12 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "de5da107d878141c0d73106af4fb4aa01852a86b058d180a137b27a781f26aa4",
+      "pageHash": "53299137ef8285ee3dc3286ecfd59a4799dfcc3f93d56d1f0011024e79ce6a9d",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4f6121b4"
+      "commit": "2a842f21"
     },
     "docs/producto/acceso-y-sesion.md": {
       "title": "Ingresar, recuperar el acceso y pedir permisos",
@@ -648,6 +648,15 @@
         "specs/011-backups-postgres",
         "infra/kestra/flows"
       ],
+      "owner": "producto",
+      "commit": null
+    },
+    "docs/producto/opiniones-de-clientes.md": {
+      "title": "Opiniones de clientes",
+      "pageHash": "7bc12318823aa51308388e4a0ca4a038ecfcaabab65d2c8d45dc1441842de81b",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
       "owner": "producto",
       "commit": null
     },
@@ -1234,14 +1243,14 @@
     },
     "docs/system-design/roadmap.md": {
       "title": "Roadmap",
-      "pageHash": "dd235dde5efa66a4c2175e245c474174321fee33cc36b8f2f4faab438348f8bc",
-      "sourceHash": "e908d12a2d34fbf6ee9fddd6f0e9ebd31f64c6a7d5b4357a1fb1f7efa445bf99",
-      "sourceAt": "9045e43d",
+      "pageHash": "0cf5fe71565dbc234ce7fa81def1a2add3e8734024074f97abdeefe799438c42",
+      "sourceHash": "0219c8ea88dd80d93fec2c5669974db9b1d4124c8bedf5cc5f237ef7c3e66172",
+      "sourceAt": "810fd29b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "0d9b0e67"
     },
     "docs/system-design/stock.md": {
       "title": "Stock",
@@ -1799,6 +1808,18 @@
       ],
       "owner": "operacion",
       "commit": "2e40e7c0"
+    },
+    "docs/tecnico/opiniones-de-clientes.md": {
+      "title": "Opiniones de clientes (MSF-467)",
+      "pageHash": "136e46125dcc1362f4a44245e54659ecccc82701ce7248ca4d27ca662661132b",
+      "sourceHash": "7a75bd82926938994987ae4e0624c487c51e4d68b36f98f34b8172fe65c2473b",
+      "sourceAt": "810fd29b",
+      "sources": [
+        "design/pantallas/Opiniones.dc.html",
+        "design/pantallas/Opiniones.inventory.json"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
