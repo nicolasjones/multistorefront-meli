@@ -113,6 +113,7 @@ queden «viejas» para `scripts/docs-drift.mjs`. Sin tocarlas, la rama **agregab
 | Hallazgo | Corrección |
 |---|---|
 | El cambio en `validate.yml` dejaba viejas 6 páginas de CI (`docs/tecnico/runbooks/{ci-trabado,cola-eventos,db-restore,deploy-fallido,supabase-caido}.md` y `docs/tecnico/sandbox.md`). | Cada una lleva la nota fechada `> **CI (2026-11-16):** …` en su bloque de cambios de CI (la convención que ya usan esas páginas) y se regeneró `docs/manifest.json`. |
+| El registro y el README afirmaban como hecho que el VPS «no tiene relay SMTP real ni SPF/DKIM» (la assessment lo había rated con confianza **media**: no es inspeccionable desde el repo — el mismo criterio que este bug denuncia para las afirmaciones sin respaldo). | Se reescribieron para decir lo que el repo sabe: «el repo registra el relay SMTP real y el SPF/DKIM del VPS como pendientes». El `CORREO_PRUEBA` concreto (`nicolas.m.jones@gmail.com`) quedó anotado en la tabla de variables, para que quien haga la corrida no tenga que buscarlo. |
 
 Resultado: la rama pasa de 143 a **137** páginas viejas, **0 nuevas** respecto de la base de la épica (que
 tengo 143) y arregla 6 que ya estaban viejas: `docs/deployment.md`, `docs/solicitar-acceso.md`,

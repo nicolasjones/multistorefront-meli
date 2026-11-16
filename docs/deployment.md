@@ -73,7 +73,8 @@ El correo de negocio sale por el SMTP de Supabase Auth (`GOTRUE_SMTP_*`) y el de
 externa hacen falta además los registros DNS **SPF** y **DKIM** del remitente (entregabilidad, no sólo
 salida).
 
-Estado al 2026-11-14: **pendiente** en stg y prd (no hay relay configurado ni entrega verificada).
+Estado al 2026-11-14: **pendiente** en stg y prd (el repo no registra un relay configurado y no hay
+entrega verificada).
 Dueño: infraestructura/Nicolás. La corrida de verificación y su registro están en
 [Verificación de salida del correo](verificacion-salida-correo.md) y quedan trazados como **MSF-532**
 (Tarea `seguimiento` a crear en el tracker).

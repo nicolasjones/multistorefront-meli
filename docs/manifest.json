@@ -2,7 +2,7 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "2b45876ce64fae17e5f072f7dd8176819c2f4d613c045c06e61d8fd41490a42e",
+      "pageHash": "3ea7f6bfc02a807ff558bf3c4a2bbf41c135bf3a98250f48d08eb2a00c31b046",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -589,9 +589,9 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "1261b73655170edc9ba6b6d7ded2084a48a3a0e877dc90a166f05a4a26142c45",
+      "pageHash": "8c7e0319368f2a55e93ece3fc124618e6b7f2c4456e59a3152aae55c04fb9d95",
       "sourceHash": "92dea233f226f99c574a59b79c332034b63c39f5f5936f027606bfecb3321c15",
-      "sourceAt": "f1e818d9",
+      "sourceAt": "b6b88404",
       "sources": [
         "specs"
       ],
@@ -3831,9 +3831,9 @@
     },
     "docs/verificacion-salida-correo.md": {
       "title": "Verificación de salida del correo (MSF-532)",
-      "pageHash": "40bd42040f2982f1e32d2b36154b1dc14a38daee91a7d54dc50784cbbc6402c3",
+      "pageHash": "29fd52b1bbe89f0db321d000e3d52f1ebb3379800daadea957e56c7f76516dc7",
       "sourceHash": "dc6ba941bf8629e2423432aa9115ae06c74adb80f724900bbc2d5fc9f5e7e55a",
-      "sourceAt": "f1e818d9",
+      "sourceAt": "b6b88404",
       "sources": [
         "specs/20261016-130000-perfil-y-permisos-avanzados",
         "scripts/verificar-salida-correo.mjs",

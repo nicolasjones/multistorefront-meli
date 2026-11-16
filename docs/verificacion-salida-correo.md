@@ -15,15 +15,16 @@ Flujo de la pantalla: [Solicitar acceso](solicitar-acceso.md) · [Perfil y permi
 ## Estado
 
 **Pendiente de ejecución en el servidor self-hosted.** La parte (b) de FR-012 exige que el aviso de
-«Solicitar acceso» **salga realmente hacia afuera** y llegue a una casilla externa de prueba. Hoy el
-servidor self-hosted no tiene un relay SMTP real configurado (eso es infraestructura, no código), así que
-la corrida **no se ejecutó** y **no hay evidencia**: la tabla de abajo queda en «pendiente» hasta que el
+«Solicitar acceso» **salga realmente hacia afuera** y llegue a una casilla externa de prueba. El repo
+registra el relay SMTP real y el SPF/DKIM del VPS como **pendientes** (ver
+[Operación](tecnico/operacion.md)) y desde el repositorio no se puede confirmar que estén configurados. La
+corrida **no se ejecutó** y **no hay evidencia**: la tabla de abajo queda en «pendiente» hasta que el
 dueño la complete con la salida real del guion y la captura del correo recibido. No se inventa ningún
 resultado.
 
 `Desvío:` la tarea T013 del guion opt-in (épica MSF-148) queda cerrada sin la corrida real contra el
-servidor: el requisito previo (relay SMTP con credenciales + SPF/DKIM del remitente) no existe todavía en
-el VPS. Seguimiento: **MSF-532** — Tarea `seguimiento` «Ejecutar la verificación de salida del correo contra
+servidor: su requisito previo (relay SMTP con credenciales + SPF/DKIM del remitente) **no está confirmado**
+en el VPS. Seguimiento: **MSF-532** — Tarea `seguimiento` «Ejecutar la verificación de salida del correo contra
 el SMTP real del servidor self-hosted (FR-012b)», dueño: infraestructura / Nicolás; **a crear en el tracker**
 (el repo no da fe de que esa tarea ya exista: la assessment de MSF-532 la dejó sin verificar). El guion
 quedó endurecido para que esa corrida no pueda dar un **verde falso** (ver *Qué garantiza el guion*).
@@ -87,7 +88,7 @@ Variables (los valores reales nunca se commitean):
 | `SUPABASE_ANON_KEY` | Clave anónima del proyecto |
 | `ACCESO_EMAIL`, `ACCESO_PASSWORD` | Credenciales de una persona **sin** acceso a la sección |
 | `SECCION` | Sección sin acceso para esa persona (por omisión `rentabilidad`) |
-| `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`) |
+| `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`): `nicolas.m.jones@gmail.com` |
 | `MAILPIT_URL` | Sólo local, p. ej. `http://127.0.0.1:4302` |
 
 Para que la corrida sea concluyente el aviso tiene que salir **de esa corrida**: el flujo es idempotente por
