@@ -36,13 +36,13 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "18a93ee22c96fb51a1b3c6b2a93ad6bcaef1e6b742b046524004e621da9f5091",
-      "sourceHash": "4d06a3a98cae30cd969db98660fe7d489c924a9f38c67ffe41cc014372e633c4",
-      "sourceAt": "7065a017",
+      "sourceHash": "ccd4fe4ae1b217fb62d6c3e8a2fb9dd7c2ca2b14b8283909422ca37773d6e9b6",
+      "sourceAt": "8451da59",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "8451da59"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -384,14 +384,14 @@
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
       "pageHash": "32cf989ce957d97a1dce1d219441e5c0d38b11d73ad4a5cb0c4b9adc82c99cae",
-      "sourceHash": "30497333f9cb8170656719ca5b5619981d78e8884e0a74fe1f46004ee8010156",
-      "sourceAt": "775b35f0",
+      "sourceHash": "1392f7a997b51be83beb01f15d65ca56d5bee1026829bb2e8920b99ff8adc93b",
+      "sourceAt": "0a249dc3",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "775b35f0"
+      "commit": "0a249dc3"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2821,13 +2821,13 @@
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
       "pageHash": "9e5c58496409392e2c2a9128b9c0a16ad45422608110ee01e2f85ed7697e215a",
-      "sourceHash": "54040ca947da75c363e145f9cc7b84fccf0c2e6343be77cfc2638f4ed8d9eb4b",
-      "sourceAt": "775b35f0",
+      "sourceHash": "1735f54c05f875560a54663f1c9954df7fd1017cdc83e844200fc26a61915e19",
+      "sourceAt": "488800f2",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "488800f2"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
