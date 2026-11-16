@@ -3722,9 +3722,9 @@
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
-      "pageHash": "c7498dd15cbe1ccebf59462ac8d1eaa8587246e0cb96d29610a97d16ad739cb8",
-      "sourceHash": "4635408ae8786c6e4b7ec0252bb5cdbfff85b45bcd1e82322e840783a2e0310e",
-      "sourceAt": "5846921d",
+      "pageHash": "0fd0347123cd59bf57f785f21c029dea5eca5444b4f41a9d1b7dc33266ac233a",
+      "sourceHash": "785d0eca5afd31311b2d7cdcf994a5cfc2075c277c7c6b80db367c9362c6df67",
+      "sourceAt": "507c8ae8",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
@@ -3733,13 +3733,14 @@
         "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
         "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
         "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
+        "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
         "apps/web/src/pages/opiniones",
         "apps/web/src/pages/tienda-publica/opiniones",
         "apps/web/src/lib/tiendaOpiniones.ts",
         "apps/web/e2e/tienda-opiniones.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "5846921d"
+      "commit": "507c8ae8"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",

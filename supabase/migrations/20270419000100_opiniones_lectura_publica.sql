@@ -118,9 +118,13 @@ begin
   -- Con sesión, marca la propia (si no hay sesión o cuenta válida, nadie es «mía»).
   select c.cuenta_cliente_id into v_cuenta from private.cuenta_de_tienda(host) c;
 
+  -- El resumen y la lista salen del MISMO conjunto (aceptadas con su cuenta y su cliente): promedio y cantidad siempre coinciden con
+  -- lo que se puede paginar. Las FK garantizan que cuenta y cliente existen; el join solo hace explícito el conjunto compartido.
   select round(avg(o.puntuacion)::numeric, 1), count(*)
     into v_promedio, v_cantidad
     from dominio.opiniones_producto o
+    join public.cuentas_cliente cc on cc.id = o.cuenta_cliente_id
+    join dominio.clientes cl on cl.id = cc.cliente_id and cl.organizacion_id = cc.organizacion_id
    where o.empresa_id = v_empresa and o.organizacion_id = v_org
      and o.producto_id = producto_id and o.estado = 'aceptada';
 

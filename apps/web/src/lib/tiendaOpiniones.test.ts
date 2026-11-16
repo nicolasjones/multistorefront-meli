@@ -112,3 +112,10 @@ describe('tiendaOpiniones · cuenta', () => {
     expect(pagina.filas[0]).toMatchObject({ productoNombre: 'Joystick', estado: 'rechazada', motivoRechazo: 'Spam' })
   })
 })
+
+describe('tiendaOpiniones · límite de «Mis opiniones»', () => {
+  it('un estado distinto de ok (por ejemplo limite) es un error con reintento, no una lista vacía', async () => {
+    responde({ estado: 'limite', espera_segundos: 20 })
+    await expect(leerMisOpiniones(HOST)).rejects.toMatchObject({ codigo: 'error' })
+  })
+})

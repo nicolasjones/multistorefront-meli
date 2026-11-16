@@ -1,8 +1,8 @@
 -- MSF-467 · Opiniones, Fase 3 (T020). RF-OPI-17, CA-OPI-10. Límite por visitante (HMAC) con claves propias:
---   escritura 10 por minuto (cuentan las inválidas), lectura 30 por minuto, sin cuenta no gasta cupo, «sin-ip» compartido.
+--   escritura 10 por minuto (cuentan las inválidas), lectura 30 por minuto (ficha y «Mis opiniones»), sin cuenta no gasta cupo, «sin-ip» compartido.
 begin;
 
-select plan(17);
+select plan(21);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -142,6 +142,18 @@ select is(publico.opiniones_producto_por_dominio('opi-a.ejemplo.com', null)->>'e
 reset role;
 select is((select count(*)::int from public.limite_pedidos_publicos where visitante like 'opinion|lectura|%'), 1, 'la lectura usa su clave propia');
 select is((select count(*)::int from public.limite_pedidos_publicos where visitante like 'opinion|escritura|%'), 0, 'y no toca la de escritura');
+
+-- «Mis opiniones» comparte el cupo de lectura (30 por minuto): el catálogo efectivo no se evalúa sin tope
+reset role;
+delete from public.limite_pedidos_publicos;
+select pg_temp.ip(5);
+select pg_temp.como('f5000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from generate_series(1, 30) n
+            where publico.mis_opiniones_por_dominio('opi-a.ejemplo.com')->>'estado' = 'ok'), 30, 'mis opiniones: 30 llamadas pasan');
+select is(publico.mis_opiniones_por_dominio('opi-a.ejemplo.com')->>'estado', 'limite', 'mis opiniones: la 31.ª es limite');
+select ok((publico.mis_opiniones_por_dominio('opi-a.ejemplo.com')->>'espera_segundos')::int between 1 and 60, 'mis opiniones: trae espera_segundos');
+reset role;
+select is((select count(*)::int from public.limite_pedidos_publicos where visitante like 'opinion|lectura|%'), 1, 'mis opiniones usa la clave de lectura');
 
 select * from finish();
 rollback;

@@ -238,13 +238,14 @@ create or replace function publico.mis_opiniones_por_dominio(
 )
 returns jsonb
 language plpgsql
-stable
+volatile
 security definer
 set search_path = ''
 as $$
 #variable_conflict use_variable
 declare
   v_cuenta record;
+  v_limite_llamadas jsonb;
   v_limite integer := least(greatest(coalesce(limite, 20), 1), 50);
   v_total bigint;
   v_filas jsonb;
@@ -259,8 +260,17 @@ begin
     return jsonb_build_object('estado', 'sin_acceso');
   end if;
 
+  -- Cupo de llamadas de LECTURA (el mismo `opinion|lectura|…` de la ficha: 30 por minuto por visitante). Acota el costo de evaluar el
+  -- catálogo efectivo de la tienda en cada llamada. Con el límite superado responde `limite`.
+  v_limite_llamadas := private.registrar_pedido_publico(
+    'opinion|lectura|' || private.visitante_publico(host), private.limite_opiniones_lectura_por_minuto());
+  if (v_limite_llamadas ->> 'limitado')::boolean then
+    return jsonb_build_object('estado', 'limite', 'espera_segundos', (v_limite_llamadas ->> 'espera_segundos')::integer);
+  end if;
+
   -- Solo productos visibles hoy (como los favoritos). El cursor (creada_en, id) solo ordena: la consulta siempre filtra por la cuenta.
-  with base as (
+  -- `base` se materializa: el catálogo efectivo se evalúa UNA vez aunque `base` se use dos veces (la tanda y el total).
+  with base as materialized (
     select o.id, o.creada_en, o.producto_id, o.puntuacion, o.comentario, o.estado, o.motivo_rechazo, o.actualizada_en
       from dominio.opiniones_producto o
       join private.catalogo_tienda_efectivo(v_cuenta.empresa_id) x on x.producto_id = o.producto_id and x.efectivo
@@ -310,4 +320,4 @@ revoke execute on function publico.mis_opiniones_por_dominio(text, timestamptz, 
 grant execute on function publico.mis_opiniones_por_dominio(text, timestamptz, uuid, integer) to authenticated;
 
 comment on function publico.mis_opiniones_por_dominio(text, timestamptz, uuid, integer) is
-  'MSF-467 (RF-OPI-8): opiniones de la cuenta activa en la tienda del host (solo de productos visibles hoy), nuevas primero, cursor (desde_creada, desde_id) que solo ordena, límite 1–50 (20). Incluye estado y motivo de rechazo: solo las ve la cuenta autora. siguiente = {creada, id} o null.';
+  'MSF-467 (RF-OPI-8): opiniones de la cuenta activa en la tienda del host (solo de productos visibles hoy), nuevas primero, cursor (desde_creada, desde_id) que solo ordena, límite 1–50 (20). Incluye estado y motivo de rechazo: solo las ve la cuenta autora. 30 llamadas por minuto por visitante (`limite`). siguiente = {creada, id} o null.';
