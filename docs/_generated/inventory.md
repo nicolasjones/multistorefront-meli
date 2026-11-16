@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **265**
-- Tablas en migraciones: **206**
+- Rutas del panel: **275**
+- Tablas en migraciones: **207**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **329**
+- Páginas de documentación: **332**
 
 ## Rutas del panel
 
@@ -32,6 +32,9 @@
 - `/clientes/create`
 - `/clientes/edit`
 - `/clientes/list`
+- `/clientes/newsletter`
+- `/clientes/newsletter/DialogoNuevaCampana`
+- `/clientes/newsletter/VistaPreviaNewsletter`
 - `/clientes/show`
 - `/conexiones-oauth/list`
 - `/conexiones/create`
@@ -136,9 +139,11 @@
 - `/rentabilidad/ComoSeCalcula`
 - `/rentabilidad/Comparativo`
 - `/rentabilidad/CostosAdicionales`
+- `/rentabilidad/CostosFijos`
 - `/rentabilidad/DialogoCostoAdicional`
 - `/rentabilidad/DialogoUmbral`
 - `/rentabilidad/Historia`
+- `/rentabilidad/PestanasRentabilidad`
 - `/rentabilidad/PorProducto`
 - `/rentabilidad/VentasReales`
 - `/reportes/ProductosYStock`
@@ -226,6 +231,10 @@
 - `/tienda-publica/lista/LineaLista`
 - `/tienda-publica/lista/PantallaLista`
 - `/tienda-publica/newsletter/FormularioSuscripcion`
+- `/tienda-publica/opiniones/EstrellasPuntuacion`
+- `/tienda-publica/opiniones/FormularioOpinion`
+- `/tienda-publica/opiniones/MisOpiniones`
+- `/tienda-publica/opiniones/OpinionesProducto`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
@@ -234,6 +243,7 @@
 - `/tienda-publica/rutas/inicio`
 - `/tienda-publica/rutas/lista`
 - `/tienda-publica/rutas/mi-cuenta`
+- `/tienda-publica/rutas/newsletter.baja`
 - `/tienda-publica/rutas/newsletter.confirmar`
 - `/tienda-publica/rutas/pagina`
 - `/tienda-publica/rutas/producto`
@@ -356,6 +366,7 @@
 - `dominio.movimientos_stock`
 - `dominio.newsletter_configuracion`
 - `dominio.newsletter_suscriptores`
+- `dominio.newsletters`
 - `dominio.opiniones_producto`
 - `dominio.ordenes_compra`
 - `dominio.ordenes_compra_items`

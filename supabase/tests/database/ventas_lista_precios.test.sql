@@ -374,6 +374,35 @@ select pg_temp.bandera('listas_precios', true);
 select pg_temp.bandera('promociones_precio', true);
 
 -- ============================================================================
+-- Una promoción guardada que deja de ser menor al precio normal CON la lista rechaza (sobrecobro)
+-- ============================================================================
+-- La lista del cliente (-20 %) y su porcentaje no cambian: baja el precio base del producto. La promoción (700) ganaba contra
+-- 800; con el producto a 800 el normal con lista es 640 y cobrar 700 sería cobrar más que el normal.
+
+reset role;
+insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_lista, categoria_id, disponibilidad_manual, activo) values
+  ('b1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'Producto 6', 'P-6', 'ARS', 1000, 'c1000000-0000-0000-0000-000000000001', null, true);
+insert into dominio.promociones_precio (organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
+  ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-000000000006', 700, now() - interval '1 day', now() + interval '1 day');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select pg_temp.crear('g_sobre', 'factura', 'c5000000-0000-0000-0000-000000000002');
+select pg_temp.guardar('g_sobre', jsonb_build_array(pg_temp.l(6, 1)));
+select is(pg_temp.lin('g_sobre', 1), '700.00|0.00|true|-20.00', 'la promoción de 700 ganó contra el normal con lista (800) y la línea conserva el snapshot de la lista');
+reset role;
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_sobre'), now()), 0, 'sin cambios la guarda no marca nada');
+update dominio.productos set precio_lista = 900 where id = 'b1000000-0000-0000-0000-000000000006';
+select is(private.lineas_con_promocion_desactualizada(pg_temp.id_de('g_sobre'), now()), 0, 'el normal con lista baja a 720: la promoción de 700 sigue ganando y no se rechaza');
+update dominio.productos set precio_lista = 800 where id = 'b1000000-0000-0000-0000-000000000006';
+select is(pg_temp.fallo(format($$select private.lineas_con_promocion_desactualizada(%L, now())$$, pg_temp.id_de('g_sobre'))),
+  '40001|precios_cambiaron|promocion_no_menor_al_normal',
+  'el normal con lista baja a 640 (bajo la promoción de 700): 40001, hint precios_cambiaron y detalle promocion_no_menor_al_normal');
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is(pg_temp.fallo(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('g_sobre'))), '40001|precios_cambiaron|promocion_no_menor_al_normal',
+  'confirmar rechaza con el mismo error y hint (el cliente no paga 700 por algo que cuesta 640)');
+select pg_temp.guardar('g_sobre', jsonb_build_array(pg_temp.l(6, 1)));
+select is(pg_temp.lin('g_sobre', 1), '640.00|0.00|true|-20.00', 'el re-guardado reprecia al normal con lista (640)');
+
+-- ============================================================================
 -- Una lista de -90 % sobre un producto muy barato no cobra $0
 -- ============================================================================
 

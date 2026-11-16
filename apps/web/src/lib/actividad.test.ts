@@ -60,6 +60,9 @@ describe('etiqueta del tipo', () => {
     expect(etiquetaTipoActividad('lista_precios.archivada')).toBe('Lista de precios archivada')
     expect(etiquetaTipoActividad('lista_precios.restaurada')).toBe('Lista de precios restaurada')
     expect(etiquetaTipoActividad('cliente.lista_precio_asignada')).toBe('Lista de precios del cliente')
+    expect(etiquetaTipoActividad('newsletter.enviar')).toBe('Newsletter enviado')
+    expect(etiquetaTipoActividad('newsletter.datos_borrados')).toBe('Datos de un suscriptor del newsletter borrados')
+    expect(etiquetaTipoActividad('newsletter.baja')).toBe('Baja del newsletter desde el enlace')
   })
 
   it('los tipos con formato interno salen con tildes', () => {

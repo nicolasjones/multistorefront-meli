@@ -48,6 +48,8 @@ Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con 
 
 **`listas_precios` (F-PRE-14 y F-CLI-21).** La migración `20270340000000_listas_precios.sql` suma la bandera `listas_precios`, **apagada por defecto en todo entorno**. Apagada, «Guardar lista» y «Asignar» responden `55000`; archivar, restaurar y quitar la lista siguen permitidos. Desde las Fases 3 y 4 (`20270348000000` a `20270348000300`) la bandera también gobierna el **motor de precio**: **apagada, el precio es idéntico al de antes; encendida, un cliente con lista paga el precio de su lista** en el mostrador, los comprobantes y la tienda con cuenta web (precedencia en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4)). Apagarla es la reversión inmediata, sin migrar. **No se enciende hasta que Nicolás lo decida, entorno por entorno.** Nota de activación: los borradores guardados antes de encender la bandera reciben un `40001` («El precio de la lista cambió: revisá el total y confirmá de nuevo») en su primera confirmación **solo si el cliente tiene lista asignada**; volver a guardar las líneas lo resuelve. Lo mismo al apagarla con borradores que ya tenían lista. Encender: `update public.banderas_plataforma set activa = true where clave = 'listas_precios';` (por SQL, el equipo técnico, dev → stg → prd). Ver [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21) y la guía de cierre [Listas de precios](listas-de-precios.md) (procedimiento de encendido paso a paso; la Fase 5 no encendió la bandera en ningún entorno).
 
+**`margen_costos_fijos` (F-GAS-03).** Las migraciones `20270421000000` y `20270421000100` suman la bandera `margen_costos_fijos`, **apagada por defecto en todo entorno**, y las vistas de `analitica` de la medida «margen después de costos fijos». Apagada, la pestaña «Después de costos fijos» no se muestra y las vistas nuevas no devuelven filas; **ninguna cifra existente cambia** con la bandera apagada ni encendida. Antes de encender: aplicar las migraciones, importar el tablero (`pnpm superset:importar-dashboards`) y medir el `EXPLAIN` con datos reales. Encender: `update public.banderas_plataforma set activa = true where clave = 'margen_costos_fijos';` (por SQL, el equipo técnico, dev → stg → prd). Reversión inmediata, sin migrar: `activa = false`. Ver [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
+
 **Gate de `promociones_precio` (MSF-816):** desde que el mostrador y los comprobantes cobran la promoción, encender la bandera cambia el precio cobrado además del mostrado. Orden **dev → stg → prd**, cada entorno verificado antes del siguiente. Estado al 2026-11-14: dev **encendida** (desde 2026-11-13), stg y prd **apagadas**. **No encender `promociones_precio` en PRD antes de que la épica esté en dev y verificada** (promoción cobrada en mostrador y comprobante, nota de crédito, vencimiento a mitad de venta, bandera apagada idéntica). Al encender o apagar con ventas abiertas, avisar a los cajeros (S6 = MSF-937).
 
 ### Avisos de faltantes (MSF-161)
@@ -639,9 +641,15 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
 
-## Newsletter de la tienda: bandera y variable de Kestra (MSF-468, Fases 1 y 2)
+## Newsletter de la tienda: bandera, flows de Kestra y encendido (MSF-468)
 
 La bandera `newsletter` (`public.banderas_plataforma`) nace **apagada**; se enciende por SQL dev → stg → prd, nunca por migración, y cada
 tienda lo activa con su propio interruptor (`dominio.newsletter_configuracion.activo`, apagado por defecto). El flow `newsletter-confirmaciones`
 solo envía el correo de confirmación de las suscripciones (no envía newsletters) y usa `NEWSLETTER_CONFIRMACION_LOTE` (20) en `infra/kestra/.env`.
 Detalle y reversión en `docs/newsletter.md`.
+
+**Pasos manuales (Fases 3 a 5, antes de encender la bandera en un entorno)**: (1) publicar los dos flows en ese Kestra con `infra/kestra/desplegar-flow.mjs`
+(`newsletter-confirmaciones` y el `correo-masivo` actualizado: sin el segundo, un newsletter saldría con la plantilla de clientes); (2) comprobar que el
+SMTP de Kestra (`KESTRA_SMTP_*`) está configurado; (3) encender: `update public.banderas_plataforma set activa = true where clave = 'newsletter';` y activar
+el interruptor de una tienda de prueba desde `Contactos → Newsletter`; (4) probar una suscripción, la confirmación, una prueba y un envío a un suscriptor
+propio; (5) verificar en ese Kestra que `kestra.templating.recursive-rendering` esté en `false` (queda fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real: pendiente explícito de T034). El reclamo del lote no entrega nada del newsletter con la bandera apagada, y el correo masivo a clientes no cambia.

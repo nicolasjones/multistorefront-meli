@@ -2,12 +2,27 @@
 
 **Épica**: MSF-467 «Tiendas online · Opiniones» (Etapa 2, P2 provisoria) · **Spec**: `opiniones-de-productos` · **Prioridad**: P2
 **Alcance de entrega**: `refine` y `supabase` (sin `kestra`, `superset` ni `workers`).
-**Estado**: spec redactada, **sin implementar**. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3) para que el tracker las cree a partir de ella.
-**Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-467, el prototipo `design/pantallas/Opiniones.dc.html` (+ `Opiniones.inventory.json` y la entrada «Opiniones (Etapa 2)» de `AdminSider.dc.html`), `docs/tienda-compra-y-cuentas.md` (cuenta web, MSF-237/MSF-176), `docs/tienda-contacto.md` y `docs/seguridad-tienda-compra-y-cuentas.md` (límites por visitante HMAC), `docs/tiendas-online.md` y el código vigente de `dokploy` (migraciones hasta `20270326100000`).
+**Estado**: **implementada y mergeada en `dokploy`** (F-OPI-01 en el PR #1044; F-OPI-02 y F-OPI-03 en el PR #1058; QA y Código/Seguridad aprobados, CI verde). Las tres historias están Finalizadas; **solo queda la fase de cierre** (T029 revisión de seguridad, T030 encendido de la bandera solo en dev, T031 guards finales), que sigue su curso normal del SDLC sobre `dokploy`. La épica no tenía historias cargadas («se redactan al planificar la Etapa 2»): esta spec las define (US1–US3, con código de historia `F-OPI-01`…`F-OPI-03`).
+**Fuente**: decisión de Nicolás (2026-11-15), el ticket MSF-467, el prototipo `design/pantallas/Opiniones.dc.html` (+ `Opiniones.inventory.json` y la entrada «Opiniones (Etapa 2)» de `AdminSider.dc.html`), `docs/tienda-compra-y-cuentas.md` (cuenta web, MSF-237/MSF-176), `docs/tienda-contacto.md` y `docs/seguridad-tienda-compra-y-cuentas.md` (límites por visitante HMAC), `docs/tiendas-online.md`, `docs/tienda-opiniones.md` y el código vigente de `dokploy` (migraciones hasta `20270419000200`).
 
 ## Objetivo
 
 Que un **cliente con cuenta web activa** deje una **opinión con puntuación** (1 a 5 estrellas y un comentario) sobre un producto de **su** tienda, y que un **administrador** la **modere antes de que se publique** (moderación previa): solo las opiniones **aceptadas** se muestran en la ficha pública del producto, junto con el **promedio** y la **cantidad**. Todo detrás de una bandera apagada por defecto.
+
+## Estado de la entrega y decisión de orquestación
+
+Esta sección **no describe alcance nuevo**: documenta el estado real de la épica y por qué el release a DEV quedó trabado. Es la que manda sobre cualquier lectura de «sin implementar» de versiones previas de esta spec.
+
+**🛡️ Decisión de orquestación — release a DEV trabado (PR #1045), no es un conflicto a resolver.**
+
+- **Diagnóstico verificado** (`git fetch` + `gh pr view`): el PR #1045 (`epic/MSF-467-tiendas-online-opiniones` → `dokploy`) solo lleva 2 commits de **docs** (`f81ee58d7`, `96ce0cedc`), escritos sobre una foto de `spec.md`/`plan.md`/`tasks.md` **anterior** a la implementación real. La implementación real (fases 1 a 5) ya se mergeó a `dokploy` por otro camino: PR #1044 (`feat/opiniones-fases-1-y-2`) y PR #1058 (`feat/opiniones-fases-3-a-5`), con QA y Código/Seguridad aprobados y CI verde. `dokploy` ya tiene T001–T028 de `tasks.md` marcadas `[x]` con evidencia.
+- **Mergear el PR #1045 ahora pisaría esa evidencia** (su copia de `tasks.md` tiene T001 sin marcar), no la completaría. El conflicto de merge **no es un bug a arreglar**: es una rama de épica *stale*, mismo patrón que MSF-265/MSF-948 (épica superada por un rework que avanzó por ramas de feature directas a `dokploy`).
+- **Acción tomada**: el PR #1045 se cerró **sin merge**, sin tocar código (el motivo quedó explicado en el PR). Los PRs #1068 y #1069, regenerados por Release con la misma cabeza, se cerraron igual.
+- **Pendiente real de la épica** (verificado en `dokploy`, no en el PR viejo): **T029** (revisión de seguridad), **T030** (encendido de `tienda_opiniones` solo en dev) y **T031** (guards finales) siguen `[ ]`. Eso sigue su curso normal del SDLC sobre `dokploy`; no depende del PR cerrado.
+- **Causa raíz, no solo el síntoma**: Release generó 3 PRs idénticos contra esta rama sin rebasar, ignorando la etiqueta `desarrollo-manual`. Se abrió **MSF-984** (hija de MSF-515, deuda técnica) para que Release filtre esa label antes de reintentar el merge a DEV; no es el mismo bug que MSF-951 (ese es el sweep de adopción Backlog→Ready).
+- **Rebase**: es **trabajo manual de Nicolás** (la épica lleva `desarrollo-manual`); no lo resuelve el SDLC solo. Hasta que se rebasee `epic/MSF-467-tiendas-online-opiniones` contra `dokploy` y se resuelva el conflicto de `plan.md`/`spec.md` (reconocer F-OPI-01 ya implementada y renumerar F-OPI-02/F-OPI-03 por encima de lo que ya ocupa `dokploy`), la épica queda **flaggeada** (`sindrome-bloqueo-importante`, `sindrome-escalado-humano`, `desarrollo-manual`) y **no se pide otro merge**.
+
+**Consecuencia para esta rama**: `epic/MSF-467-tiendas-online-opiniones` queda como la **fuente documental** de la épica (spec, plan, tareas y contratos) y **no** como la rama de release. Los tres archivos de esta spec se reescribieron para decir la verdad del estado mergeado —que es justamente lo que faltaba en el PR #1045 y que hacía que su merge pisara la evidencia—. El trabajo que queda (T029–T031) se ejecuta sobre `dokploy`, que ya tiene T001–T028 con evidencia.
 
 ## Decisión de negocio (Nicolás, 2026-11-15) y decisiones delegadas
 
@@ -166,7 +181,7 @@ Reglas de la tabla (las impone la base, no el front):
 
 ## User Scenarios & Testing *(mandatory)*
 
-### US1 — El administrador modera las opiniones (P1)
+### US1 (F-OPI-01) — El administrador modera las opiniones (P1)
 
 Un administrador abre **Opiniones** en el menú, ve cuántas hay **Pendientes / Aceptadas / Rechazadas**, filtra por estado y por tienda, lee cada opinión («Sobre: producto», estrellas, texto) y pulsa **Aceptar** o **Rechazar**. Solo lo aceptado se verá en la tienda.
 
@@ -176,7 +191,7 @@ Un administrador abre **Opiniones** en el menú, ve cuántas hay **Pendientes / 
 4. **Dado** otro administrador que moderó la misma opinión un segundo antes, **cuando** pulso un botón con la pantalla vieja, **entonces** veo «La opinión cambió, recargá» y no se pisa su decisión.
 5. **Dado** un usuario que no es administrador, **cuando** intenta abrir la pantalla o llamar la RPC, **entonces** no hay entrada de menú y la RPC responde `42501`.
 
-### US2 — El cliente deja, edita y borra su opinión (P1)
+### US2 (F-OPI-02) — El cliente deja, edita y borra su opinión (P1)
 
 Un cliente con sesión en la tienda abre la ficha de un producto, elige estrellas, escribe su comentario y lo envía. Ve «Gracias, tu opinión se publicará cuando la revisemos». En «Mis opiniones» ve el estado de cada una, puede editarla o borrarla.
 
@@ -186,7 +201,7 @@ Un cliente con sesión en la tienda abre la ficha de un producto, elige estrella
 4. **Dado** un visitante sin sesión o con una cuenta suspendida, **cuando** intenta opinar, **entonces** ve la invitación a ingresar (o el mismo `sin_acceso` genérico) y nada se guarda.
 5. **Dado** que borro mi opinión, **cuando** confirmo, **entonces** desaparece de «Mis opiniones», de la ficha y del promedio.
 
-### US3 — El visitante ve las opiniones aceptadas, el promedio y la cantidad (P2)
+### US3 (F-OPI-03) — El visitante ve las opiniones aceptadas, el promedio y la cantidad (P2)
 
 En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» y la lista de opiniones aceptadas (nombre de pila, estrellas, fecha, texto), nuevas primero, con «Cargar más».
 
@@ -200,7 +215,7 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **Cuenta suspendida o baja de «Habilitado en» después de opinar**: las opiniones **aceptadas siguen visibles** (son contenido ya moderado); la persona ya no puede crear, editar ni borrar hasta recuperar el acceso.
 - **Producto que se oculta, se desactiva o cambia de categoría oculta**: sus opiniones no se muestran ni cuentan en la tienda; **no se borran** y reaparecen si vuelve a ser visible. El panel las sigue listando.
 - **Producto eliminado**: las opiniones se borran en cascada.
-- **Cliente fusionado con otro** (fusión de clientes): se aplica la regla de fusión vigente a `cuentas_cliente`; la opinión sigue atada a la cuenta, así que no se duplica ni se pierde. Si dos cuentas de la fusión opinaron el mismo producto, la unicidad lo impide y la tarea de fusión conserva la más reciente (ver T018).
+- **Cliente fusionado con otro** (fusión de clientes): la opinión sigue atada a la cuenta, así que no se duplica ni se pierde. Como el `on delete cascade` de `dominio.opiniones_producto` se llevaba **todas** las opiniones de la cuenta web dada de baja, `public.fusionar_clientes` **reasigna** antes de la baja las opiniones a la cuenta que se mantiene de la misma tienda; si las dos cuentas de la fusión opinaron el mismo producto (única `(cuenta_cliente_id, producto_id)`), se conserva la más reciente por `actualizada_en` y se descarta la otra. Una opinión de una tienda donde la cuenta que se mantiene no tiene cuenta no puede moverse (la FK compuesta exige la misma tienda) y se va con la cuenta dada de baja (ver T018).
 - **Texto con HTML, scripts o emojis**: se guarda y se muestra **literal** (nodos de React); un `<script>` no se interpreta. El largo se mide en caracteres de Postgres: con emojis el borde puede diferir en ±1 y el servidor manda.
 - **Consumidor final / cliente archivado**: no tienen cuenta web válida (`cuenta_de_tienda` no devuelve nada); no pueden opinar.
 - **Moderar a la vez que el cliente edita**: gana la última escritura **con bloqueo optimista**: la RPC de moderación recibe `actualizada_en` y responde `conflicto` si la fila cambió (D6: una edición vuelve a `pendiente`, así que una aceptación vieja no puede publicar el texto nuevo).
@@ -215,8 +230,8 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **RF-OPI-1**: Existe `dominio.opiniones_producto` con las columnas, checks, FK compuestas e índices del DER; RLS activada sin políticas y sin privilegios para `anon`, `authenticated` ni `public`.
 - **RF-OPI-2**: Una opinión nueva nace siempre `pendiente`. Solo una moderación explícita de un administrador la cambia a `aceptada` o `rechazada`; **ningún camino** del cliente publica directamente.
 - **RF-OPI-3**: El cliente solo puede **crear, editar y borrar su propia** opinión (la de su cuenta); editar una `aceptada` o `rechazada` con contenido distinto la devuelve a `pendiente`, limpia motivo y moderación; borrar la elimina.
-- **RF-OPI-4**: Unicidad por `(cuenta_cliente_id, producto_id)`; topes de 50 opiniones por cuenta y 10 pendientes a la vez (`limite_opiniones` / `limite_pendientes`).
-- **RF-OPI-5**: Validación en servidor (`private.validar_texto_opinion`) y espejo en cliente: puntuación entera 1–5; comentario recortado de 10 a 1.000 caracteres, sin caracteres de control, separadores ni marcas de dirección, **sin enlaces**; motivo de rechazo ≤ 200.
+- **RF-OPI-4**: Unicidad por `(cuenta_cliente_id, producto_id)` (índice de la tabla, RF-OPI-1) y topes de **50 opiniones por cuenta** y **10 pendientes** a la vez (`limite_opiniones` / `limite_pendientes`), los aplican las RPC de la tienda.
+- **RF-OPI-5**: Validación **en servidor** (`private.validar_texto_opinion`): puntuación entera 1–5; comentario recortado de 10 a 1.000 caracteres, sin caracteres de control, separadores ni marcas de dirección, **sin enlaces**; motivo de rechazo ≤ 200.
 - **RF-OPI-6**: Solo se escribe y se lee sobre productos **efectivamente visibles** en la tienda del host (`private.catalogo_tienda_efectivo`); inexistente, oculto, inactivo, de otra tienda u otra organización responden todos `no_encontrado`.
 
 ### Tienda (US2, US3)
@@ -225,8 +240,10 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **RF-OPI-8**: `publico.mis_opiniones_por_dominio(host, desde_creada, desde_id, limite)` devuelve las opiniones de la cuenta con su estado y el motivo de rechazo; solo la cuenta autora las ve.
 - **RF-OPI-9**: `publico.opiniones_producto_por_dominio(host, producto_id, desde_creada, desde_id, limite)` (`anon` y `authenticated`) devuelve el **resumen** (`promedio` con un decimal, `cantidad`) y las opiniones **aceptadas** con una **lista blanca** de campos: `nombre_pila`, `puntuacion`, `comentario`, `fecha` (día), y, si hay sesión, `es_mia`. Nunca ids de cliente, cuenta, organización ni empresa, correo, apellido, estado ni motivo.
 - **RF-OPI-10**: `publico.capacidades_opiniones_por_dominio(host)` → `{estado:"ok", opiniones:true|false}` para que el front dibuje o no el bloque. Host desconocido, empresa desactivada y tienda pausada responden lo mismo (`{estado:"error"}`), sin distinguir casos.
-- **RF-OPI-11**: Ficha pública: bloque «Opiniones» (promedio, cantidad, lista con carga por tandas y «Cargar más»), formulario «Tu opinión» (estrellas operables con teclado, contador de caracteres) con sesión, e invitación a ingresar sin sesión; «Mis opiniones» dentro de «Mi cuenta» con editar y borrar (con confirmación) y el estado de cada una.
+- **RF-OPI-11** (escribir): formulario «Tu opinión» en la ficha (estrellas operables con teclado, contador de caracteres) con sesión, invitación a ingresar sin sesión, y «Mis opiniones» dentro de «Mi cuenta» con editar y borrar (con confirmación) y el estado de cada una.
 - **RF-OPI-12**: Con la bandera apagada el servidor impone el comportamiento (RF-OPI-7 a 10 no tocan datos) y el front no dibuja nada; la ficha es idéntica a la actual.
+- **RF-OPI-20** (espejo en cliente): el navegador aplica **las mismas reglas** que el servidor (puntuación 1–5, comentario de 10 a 1.000 caracteres, sin enlaces ni caracteres de control) y se prueba con los mismos casos que la base.
+- **RF-OPI-21** (leer en la ficha): bloque «Opiniones» de la ficha del producto con promedio, cantidad, lista con carga por tandas y «Cargar más», montado solo con la capacidad activa.
 
 ### Moderación (US1)
 
@@ -239,7 +256,7 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **RF-OPI-16**: Toda RPC pública lleva `revoke … from public, anon` y `grant execute … to authenticated` explícitos (las dos de lectura y la de capacidades, además a `anon`); `security definer`, `set search_path = ''`; el `exception when others` registra solo `sqlstate`. El test que prohíbe funciones de `public` ejecutables por `anon` sigue verde: las de `anon` viven en `publico` y figuran en su lista blanca.
 - **RF-OPI-17**: Límite por visitante con `private.visitante_publico` y `private.registrar_pedido_publico` (D12); la IP nunca se guarda; sin cabecera `x-forwarded-for` todos comparten un único cupo («sin-ip», falla cerrada).
 - **RF-OPI-18**: Las opiniones entran en la exportación total (`private.conjuntos_exportacion_total`) y no se agregan a las exclusiones.
-- **RF-OPI-19**: Migraciones aditivas en la ventana `20270341000000`+ (mayores que toda la cola de `dokploy`), cada una con su reversión documentada; `node scripts/verificar-migraciones.mjs --estricto` verde.
+- **RF-OPI-19**: Migraciones **aditivas**, cada una con su reversión documentada, numeradas **por encima de la cola de `dokploy` en el momento de escribirse**: F-OPI-01 ocupó la ventana `20270341000000`–`20270341000500`; F-OPI-02 y F-OPI-03, al empezar, renumeraron a `20270419000000`+ porque la ventana `20270341…` ya no era mayor que la cola. `node scripts/verificar-migraciones.mjs --estricto` verde.
 
 ### Criterios de aceptación
 
@@ -251,7 +268,8 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 - **CA-OPI-6** (D9): el nombre público es solo la primera palabra del nombre del cliente; con «Valeria Sánchez» se ve «Valeria».
 - **CA-OPI-7** (RF-OPI-14): aceptar y rechazar cambian el estado, registran el evento y recalculan promedio y cantidad; con `actualizada_en` vieja responde `conflicto`.
 - **CA-OPI-8** (D10): un usuario no administrador recibe `42501` en `listar_opiniones` y `moderar_opinion`; no ve la entrada de menú.
-- **CA-OPI-9** (RF-OPI-12, D11): con la bandera apagada, ninguna RPC de tienda lee ni escribe datos y el panel solo permite rechazar.
+- **CA-OPI-9** (RF-OPI-14, D11): con la bandera apagada, el panel solo permite **rechazar**: `moderar_opinion` con `aceptar` responde `55000` y ninguna moderación cambia datos.
+- **CA-OPI-13** (RF-OPI-7, D11): con la bandera apagada, `guardar_opinion_por_dominio` y `borrar_opinion_por_dominio` responden `sin_acceso` y la tabla no cambia (escritura de la tienda).
 - **CA-OPI-10** (RF-OPI-17): superado el límite por minuto, la RPC responde `limite` con `espera_segundos` aun para llamadas inválidas.
 - **CA-OPI-11** (RF-OPI-15): con la empresa activa elegida, la lista y los contadores corresponden solo a esa tienda; con «Todas», aparece la tienda de cada fila.
 - **CA-OPI-12** (RF-OPI-18): la exportación total incluye `dominio.opiniones_producto` y su prueba falla si se omite.
@@ -272,11 +290,11 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 | RF-OPI-1 | pgTAP `opiniones_producto.test.sql`: estructura, checks, FK compuestas (fila con tienda ajena rechazada), RLS activa, **grants exactos** (ninguno a `anon`/`authenticated`/`public`), `search_path` |
 | RF-OPI-2, 3 | pgTAP `opiniones_cliente.test.sql`: alta `pendiente`, edición que vuelve a `pendiente`, intento de forzar `estado`, borrado, no tocar la de otra cuenta |
 | RF-OPI-4 | pgTAP `opiniones_cliente.test.sql`: unicidad, topes 50 y 10, idempotencia |
-| RF-OPI-5 | pgTAP `opiniones_validacion.test.sql` y Vitest `validacion.test.ts` (espejo cliente-servidor: mismos casos) |
+| RF-OPI-5 | pgTAP `opiniones_validacion.test.sql` (9/10/1.000/1.001, `http`, `www.`, dominio suelto, RTL, emoji) |
 | RF-OPI-6 | pgTAP `opiniones_cliente.test.sql`: producto inexistente, oculto, inactivo, de otra tienda y de otra organización → `no_encontrado` idéntico |
 | RF-OPI-7, 8 | pgTAP `opiniones_cliente.test.sql`: orden bandera → cuenta → límite → validar; `sin_acceso` idéntico (sin sesión, suspendida, no habilitada, usuario de panel, otra tienda, host desconocido, empresa desactivada) |
 | RF-OPI-9, 10 | pgTAP `opiniones_lectura.test.sql`: lista blanca **por claves**, solo aceptadas, promedio/cantidad, cursor, producto oculto, aislamiento entre tiendas, `anon` puede leer y no escribir |
-| RF-OPI-11 | Vitest `OpinionesProducto.test.tsx`, `FormularioOpinion.test.tsx`, `MisOpiniones.test.tsx` (estados vacío, carga, error con reintento, axe a 320/768/1440 px, estrellas con teclado) |
+| RF-OPI-11 | Vitest `FormularioOpinion.test.tsx`, `MisOpiniones.test.tsx` (estados vacío, carga, error con reintento, axe a 320/768/1440 px, estrellas con teclado) |
 | RF-OPI-12 | pgTAP `opiniones_bandera.test.sql` (apagada: `sin_acceso`, sin cambios en la tabla) y Vitest de paridad de la ficha |
 | RF-OPI-13, 14 | pgTAP `opiniones_moderacion.test.sql`: solo Administrador (`42501`), contadores, `40001`/`conflicto`, idempotencia, evento de Actividad sin texto, apagada solo rechaza |
 | RF-OPI-15 | Vitest `pages/opiniones/list.test.tsx` (contadores, filtros, botones según estado, diálogo de motivo, carga infinita, axe) |
@@ -284,7 +302,11 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 | RF-OPI-17 | pgTAP `opiniones_limites.test.sql` (11.ª llamada en el minuto → `limite`; «sin-ip» compartido; inválidas también cuentan) |
 | RF-OPI-18 | pgTAP `exportacion_total.test.sql` extendido |
 | RF-OPI-19 | `node scripts/verificar-migraciones.mjs --estricto` |
+| RF-OPI-20 | Vitest `validacion.test.ts` (espejo cliente-servidor: **los mismos casos** que RF-OPI-5) |
+| RF-OPI-21 | Vitest `OpinionesProducto.test.tsx` (bloque de la ficha: promedio, cantidad, «Cargar más», estado vacío, montado solo con la capacidad activa) |
+| CA-OPI-3 | pgTAP `opiniones_validacion.test.sql`: puntuación 0 o 6, comentario de 9 o 1.001 caracteres, con enlace o con caracteres de control → `invalido` con los campos erróneos y sin guardar |
 | CA-OPI-11 / empresa activa | Vitest `list.test.tsx`: cambiar la empresa activa recarga lista y contadores, reencuadra la tanda, descarta lo seleccionado y cierra el diálogo de rechazo con aviso |
+| CA-OPI-13 | pgTAP `opiniones_bandera.test.sql`: con la bandera apagada, escritura → `sin_acceso` y la tabla sin cambios |
 | E2E | Playwright `apps/web/e2e/tienda-opiniones.e2e.ts`: cliente opina → no se ve en la ficha → admin acepta → se ve con promedio → cliente edita → desaparece hasta moderar → cliente borra (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, como los demás E2E de tienda) |
 | SC-001 | `opiniones_lectura.test.sql` (barrido por rol) |
 | SC-002 | `opiniones_lectura.test.sql` (muestra mixta) |
@@ -297,20 +319,149 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 
 | Ítem | Dueño | Nota |
 |---|---|---|
-| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada». **Desvío del prototipo** (decidido en la revisión): el prototipo dice «…: ya se muestra en la tienda», pero en las fases 1 y 2 nada se muestra en la tienda pública; el sufijo vuelve cuando exista la fase 4 |
+| Botón **Aceptar** (visible salvo si ya está aceptada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión aceptada: ya se muestra en la tienda» |
 | Botón **Rechazar** (visible salvo si ya está rechazada) | RF-OPI-14, RF-OPI-15, CA-OPI-7 | Aviso «Opinión rechazada». **Decisión D5**: abre un diálogo corto con «Motivo (opcional)», «Rechazar» y «Cancelar»; el prototipo no lo dibuja (UI mínima declarada) |
 | Aviso «Las opiniones nuevas quedan pendientes…» | RF-OPI-15 | Texto literal del prototipo |
+| Aviso flotante tras decidir («Opinión aceptada: ya se muestra en la tienda» / «Opinión rechazada») | RF-OPI-15, CA-OPI-7 | Aviso de resultado con el patrón compartido; el texto es el del prototipo |
 | Contadores Pendientes / Aceptadas / Rechazadas | RF-OPI-13, RF-OPI-15, CA-OPI-11 | Calculados en servidor para el mismo ámbito del filtro de tienda |
 | Filtros Pendientes / Aceptadas / Rechazadas / Todas | RF-OPI-15 | Por defecto «Pendientes»; reinicia la lista |
-| Filtro de tienda («Todas las tiendas» + una por empresa) | RF-OPI-15, CA-OPI-11 | `FiltroEmpresa` compartido; ver fila «Empresa activa» |
+| Filtro de tienda («Todas las tiendas» + una por empresa) | RF-OPI-15, CA-OPI-11 | `FiltroEmpresa` compartido; ver fila «Empresa activa». El prototipo lo acompaña del texto «Cada opinión pertenece a la tienda donde se compró. Si elegís una empresa en la barra superior, se filtra por esa tienda.» |
 | Fila: chip de tienda, nombre, fecha, estado, «N sobre 5», texto, «Sobre: producto» | RF-OPI-13, RF-OPI-15, CA-OPI-6 | **Contradicción declarada**: el prototipo muestra «Valeria S.» (y «Cliente anónimo»); por D9/D10 el administrador ve el **nombre completo** del cliente y no existen opiniones anónimas. Mandan los requisitos; se anota en el PR |
 | Entrada de menú «Opiniones (Etapa 2)», solo `admin` | RF-OPI-15, CA-OPI-8 | Se llama «Opiniones» (sin «Etapa 2»), en el grupo donde el prototipo la dibuja (junto a Mercado Libre y Newsletter), ruta `/opiniones`, sección de audiencia administrador, carga diferida (`lazy`), ícono de estrella del prototipo |
-| Bloque «Opiniones» de la ficha, formulario «Tu opinión», «Mis opiniones» (tienda) | RF-OPI-11, CA-OPI-1…4 | **No dibujado**: UI mínima del repo (D16), sin inventar secciones; se agrega a la matriz si el equipo lo dibuja |
+| Bloque «Opiniones» de la ficha, formulario «Tu opinión», «Mis opiniones» (tienda) | RF-OPI-11, RF-OPI-21, CA-OPI-1…4 | **No dibujado**: UI mínima del repo (D16), sin inventar secciones; se agrega a la matriz si el equipo lo dibuja |
 | **Empresa activa** | RF-OPI-13, RF-OPI-15, CA-OPI-11 | **Pantalla del panel**: el prototipo lo exige («Si elegís una empresa en la barra superior, se filtra por esa tienda»). La empresa activa de la barra superior es la única fuente: filtra lista y contadores a esa tienda; con «Todas mis empresas» se muestra el chip de tienda en cada fila. `FiltroEmpresa` refleja esa selección (no guarda otra). Al cambiar la empresa: se invalidan y recargan **lista y contadores**, se reinicia la tanda y el cursor, se descarta lo seleccionado y un diálogo de rechazo abierto **se cierra con aviso** (nunca guarda con la empresa anterior). Test: Vitest que cambia la empresa con la pantalla y el diálogo abiertos. **Tienda pública**: «Empresa activa: no aplica» (no es pantalla de panel; la tienda es la del dominio y se resuelve por host) |
+
+## Flujos
+
+Cuatro flujos: el **ciclo de vida** de la opinión (máquina de estados), la **moderación** desde el panel (secuencia), el **alta y la edición** desde la tienda (proceso) y la **lectura en la ficha** (proceso). Cada estado, paso y transición apunta a un RF/CA/SC; lo que no tiene dueño queda declarado **FUERA DE ALCANCE**.
+
+### Flujo 1 · Ciclo de vida de la opinión (máquina de estados)
+
+```mermaid
+stateDiagram-v2
+    [*] --> pendiente: el cliente envia su opinion (RF-OPI-2, RF-OPI-7)
+    pendiente --> pendiente: reenvia el mismo contenido, idempotente (RF-OPI-4)
+    pendiente --> aceptada: el administrador acepta (RF-OPI-14, CA-OPI-7)
+    pendiente --> rechazada: el administrador rechaza, con motivo opcional (RF-OPI-14, D5)
+    aceptada --> rechazada: el administrador la rechaza y deja de publicarse (RF-OPI-14)
+    rechazada --> aceptada: el administrador la acepta (RF-OPI-14)
+    aceptada --> pendiente: el cliente la edita con contenido distinto (RF-OPI-3, D6)
+    rechazada --> pendiente: el cliente la edita con contenido distinto (RF-OPI-3, D6)
+    pendiente --> [*]: el cliente la borra (RF-OPI-3)
+    aceptada --> [*]: el cliente la borra (RF-OPI-3)
+    rechazada --> [*]: el cliente la borra (RF-OPI-3)
+    note right of pendiente
+        el cliente NUNCA publica (no hay transicion
+        desde el cliente a aceptada, RF-OPI-2)
+        respuestas del comercio: FUERA DE ALCANCE
+        moderacion automatica: FUERA DE ALCANCE
+    end note
+```
+
+### Flujo 2 · Moderación desde el panel (secuencia)
+
+```mermaid
+sequenceDiagram
+    actor A as Administrador
+    participant P as Pantalla Opiniones
+    participant R as public.moderar_opinion
+    participant D as dominio.opiniones_producto
+    participant X as public.registro_actividad
+    participant T as Ficha publica de la tienda
+    A->>P: elige empresa activa y filtro de estado (RF-OPI-15, CA-OPI-11)
+    P->>R: listar_opiniones(estado, empresa_id, cursor) (RF-OPI-13)
+    R->>D: lee la fila y calcula los contadores del ambito (RF-OPI-13)
+    D-->>R: filas, contadores y siguiente cursor (RF-OPI-13)
+    R-->>P: filas, contadores y siguiente cursor (RF-OPI-13, RF-OPI-15)
+    A->>P: pulsa Aceptar o Rechazar, con motivo opcional (RF-OPI-15, D5)
+    P->>R: moderar_opinion(id, decision, motivo, actualizada_en_esperada) (RF-OPI-14)
+    alt la fila cambio desde que se abrio la pantalla
+        R-->>P: conflicto 40001, la opinion cambio, recarga (US1 caso 4)
+    else la fila sigue igual
+        R->>D: actualiza el estado y limpia motivo y moderacion (RF-OPI-14)
+        R->>X: opinion.aceptada u opinion.rechazada, sin el texto (RF-OPI-14, D13)
+        R-->>P: ok y aviso flotante del prototipo (RF-OPI-15)
+        T->>D: la proxima lectura recalcula promedio y cantidad (RF-OPI-9, D7)
+    end
+```
+
+Con la bandera `tienda_opiniones` **apagada**, la pantalla solo deja **rechazar**: aceptar responde `55000` y no publica nada (RF-OPI-14, D11).
+
+### Flujo 3 · Dejar, editar y borrar una opinión desde la tienda (proceso)
+
+```mermaid
+flowchart TD
+    C[Cliente con sesion] --> F[Ficha del producto]
+    F --> K[capacidades_opiniones_por_dominio, RF-OPI-10]
+    K -- bandera apagada --> N[No se dibuja el bloque, RF-OPI-12]
+    K -- opiniones true --> S{Hay sesion de cliente}
+    S -- no --> I[Invitacion a ingresar, RF-OPI-11]
+    S -- si --> E[Elige 1 a 5 estrellas y escribe el comentario, RF-OPI-5]
+    E --> G[guardar_opinion_por_dominio, RF-OPI-7]
+    G --> V{Validaciones en orden}
+    V -- bandera, cuenta, limite por visitante 10 por minuto --> L[limite, sin_acceso o error, no se guarda, RF-OPI-17]
+    V -- texto --> W[Topes de 50 opiniones y 10 pendientes por cuenta, RF-OPI-4]
+    V -- todo ok --> O[Queda pendiente, no aparece en la ficha, RF-OPI-2]
+    O --> M[Mis opiniones: ve el estado y el motivo, RF-OPI-8]
+    M --> ED[Editar con contenido distinto vuelve a pendiente, RF-OPI-3, D6]
+    M --> BO[Borrar con confirmacion y desaparece, RF-OPI-3]
+```
+
+No se exige haber comprado el producto (D3): la moderación previa es el filtro. Fotos, votos útiles, respuestas del comercio y opiniones anónimas quedan **FUERA DE ALCANCE**.
+
+### Flujo 4 · Ver las opiniones aceptadas en la ficha (proceso)
+
+```mermaid
+flowchart TD
+    V[Visitante] --> F[Ficha del producto]
+    F --> K[capacidades_opiniones_por_dominio, RF-OPI-10]
+    K -- bandera apagada --> N[La ficha queda igual que hoy, RF-OPI-12]
+    K -- opiniones true --> L[opiniones_producto_por_dominio, RF-OPI-9]
+    L --> B[Lee solo aceptadas de esa tienda y ese producto, RF-OPI-9, D7]
+    B --> P[Promedio con un decimal y cantidad, solo de aceptadas, D7]
+    B --> R[Filas: nombre de pila, puntuacion, comentario y fecha, D9]
+    P --> E{Aceptadas en esta tanda}
+    E -- ninguna --> V2[Todavia no hay opiniones, US3 caso 2]
+    E -- hay --> CM[Cargar mas con el siguiente cursor, RF-OPI-9]
+    R --> W[El visitante no ve estados, motivos ni datos del cliente, RF-OPI-9, D9]
+```
+
+Estrellas en el catálogo, distribución por estrellas y datos `schema.org` (SEO) quedan **FUERA DE ALCANCE**: solo la ficha del producto.
+
+### Dueño de cada paso, estado y transición
+
+| Flujo | Elemento | Dueño | Nota |
+|---|---|---|---|
+| 1 | Estado `pendiente` inicial | RF-OPI-2, RF-OPI-7 | Toda alta nace pendiente |
+| 1 | `pendiente → pendiente` (reenvío) | RF-OPI-4 | Idempotente: mismo contenido, mismo estado y misma fecha |
+| 1 | `pendiente → aceptada` / `→ rechazada` | RF-OPI-14, CA-OPI-7 | Solo el Administrador; idempotente; evento de Actividad |
+| 1 | `aceptada ⇄ rechazada` | RF-OPI-14, US1 caso 3 | El prototipo muestra siempre ambos botones |
+| 1 | `aceptada/rechazada → pendiente` (edición) | RF-OPI-3, D6 | Editar con contenido distinto la vuelve a moderar |
+| 1 | Cualquier estado → borrado | RF-OPI-3 | Borra también de la ficha y del promedio |
+| 1 | Respuesta del comercio | — | **FUERA DE ALCANCE**: el ticket lo pedía, la decisión solo cubre moderar |
+| 1 | Moderación automática | — | **FUERA DE ALCANCE** |
+| 2 | Filtro de empresa y de estado | RF-OPI-13, RF-OPI-15, CA-OPI-11 | La empresa activa manda (ver matriz) |
+| 2 | `moderar_opinion` con `actualizada_en` | RF-OPI-14, US1 caso 4 | Bloqueo optimista: `conflicto` / `40001` |
+| 2 | Evento en Actividad | RF-OPI-14, D13 | `opinion.aceptada` / `opinion.rechazada`, sin el texto |
+| 2 | Aviso flotante «Opinión aceptada: ya se muestra en la tienda» | RF-OPI-15 | Texto literal del prototipo |
+| 2 | Aceptar con la bandera apagada | RF-OPI-14, D11 | `55000`; solo se puede rechazar |
+| 3 | Bloque del formulario y contador | RF-OPI-5, RF-OPI-11 | Estrellas operables con teclado |
+| 3 | Orden bandera → cuenta → límite → validar | RF-OPI-7, RF-OPI-17, CA-OPI-10 | Las llamadas inválidas también cuentan |
+| 3 | Topes por cuenta | RF-OPI-4, CA-OPI-2 | 50 opiniones y 10 pendientes |
+| 3 | Editar y borrar | RF-OPI-3, D6 | «Mis opiniones», con confirmación |
+| 3 | Exigir compra previa | — | **FUERA DE ALCANCE** (D3): el filtro es la moderación |
+| 4 | Resumen promedio y cantidad | RF-OPI-9, D7 | Un decimal; solo aceptadas |
+| 4 | Lista blanca de campos | RF-OPI-9, D9 | Nombre de pila, puntuación, comentario y fecha |
+| 4 | «Cargar más» | RF-OPI-9 | Cursor `(creada_en, id)` |
+| 4 | Estrellas en catálogo o SEO | — | **FUERA DE ALCANCE**: solo la ficha |
 
 ## Contratos
 
 `contracts/opiniones.md`: firmas, respuestas y errores de las siete RPC (dos del panel y cinco de la tienda), lista blanca de campos y eventos de Actividad.
+
+Además, `public.fusionar_clientes(uuid, uuid, uuid)` —función **existente** que T018 redefine por dentro— **mantiene su firma y su respuesta** (misma `jsonb`, mismas claves); cambia el orden interno: reasigna las opiniones antes de dar de baja la cuenta web descartada. No hay `BREAKING:` que declarar.
+
+**Estado de la bandera**: `tienda_opiniones` está **apagada** en todos los entornos (D11). El encendido **solo en dev** es la tarea T030, que sigue pendiente; staging y producción quedan apagados.
 
 ## Riesgos y desvíos declarados
 
@@ -318,13 +469,13 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 2. **Cuenta sin bandera `tienda_pedidos`**: las opiniones dependen de la cuenta web (MSF-237), no de la bandera de pedidos; se verifica en dev que ingresar a la tienda funciona con `tienda_pedidos` apagada y `tienda_opiniones` encendida. Si no fuera así, la bandera de opiniones exigiría ambas (cambio de una condición).
 3. **Límite por visitante y NAT**: muchos clientes tras una misma IP comparten cupo (10 por minuto); es el mismo riesgo aceptado del formulario de contacto y de pedidos.
 4. **Opiniones falsas de cuentas legítimas** (alguien con cuenta que opina sin haber comprado, D3): lo acota la moderación previa; es la contrapartida de no exigir compra.
-5. **Fusión de clientes**: puede chocar la unicidad `(cuenta, producto)`; se resuelve en T018 y se prueba (caso borde).
-6. **Redefiniciones**: la spec **no** redefine funciones existentes (ficha, capacidades, cuenta); solo agrega funciones nuevas, para no pelear con otras ramas.
+5. **Fusión de clientes**: puede chocar la unicidad `(cuenta, producto)` y el `on delete cascade` se llevaba las opiniones de la cuenta dada de baja; **resuelto en T018** (migración `20270419000200_opiniones_fusion_clientes.sql`): la fusión reasigna las opiniones a la cuenta que se mantiene y conserva la más reciente ante un choque. Probado en `opiniones_fusion.test.sql`.
+6. **Redefiniciones**: la spec **no** redefine las funciones de la ficha, las capacidades ni la cuenta; solo agrega funciones nuevas, para no pelear con otras ramas. Las dos excepciones son `private.conjuntos_exportacion_total()` (D14, la tabla nueva entra en la exportación) y `public.fusionar_clientes` (T018), y **ninguna de las dos cambia su firma ni su respuesta**.
 7. **Sin aviso al administrador**: las opiniones pendientes pueden quedar sin moderar; el contador de la pantalla es la única señal (D13).
 
 ## Reversión
 
-Todas las migraciones son aditivas y se deshacen con una migración posterior, **en este orden** y sin ejecutarla en el mismo PR: (1) `drop function` de las siete RPC y de `capacidades_opiniones_por_dominio`; (2) restaurar `private.conjuntos_exportacion_total()` a la versión previa; (3) `delete from public.banderas_plataforma where clave = 'tienda_opiniones'`; (4) `drop function private.validar_texto_opinion, private.nombre_publico_cliente`; (5) `drop table dominio.opiniones_producto` (**exportar antes**: pierde las opiniones). Apagar la bandera deja todo inerte sin tocar datos y es la reversión operativa inmediata. El código de `apps/web` se revierte con `git revert -m 1` del merge de la spec.
+Todas las migraciones son aditivas y se deshacen con una migración posterior, **en este orden** y sin ejecutarla en el mismo PR: (1) `drop function` de las siete RPC y de `capacidades_opiniones_por_dominio`; (2) restaurar `public.fusionar_clientes` a la versión previa (`20270340000210`, con `dominio.clientes`) y `private.conjuntos_exportacion_total()` a la versión previa; (3) `delete from public.banderas_plataforma where clave = 'tienda_opiniones'`; (4) `drop function private.validar_texto_opinion, private.nombre_publico_cliente`; (5) `drop table dominio.opiniones_producto` (**exportar antes**: pierde las opiniones). Apagar la bandera deja todo inerte sin tocar datos y es la reversión operativa inmediata. El código de `apps/web` se revierte con `git revert -m 1` del merge de la spec.
 
 ## Fuera de alcance
 
@@ -339,17 +490,3 @@ Todas las migraciones son aditivas y se deshacen con una migración posterior, *
 - Moderación **automática** por IA o listas de palabras (más allá del rechazo de enlaces).
 - Importar opiniones de Mercado Libre.
 - Opiniones en **Mercado Libre** u otros canales: solo la tienda propia.
-
-### Limitaciones conocidas del filtro de enlaces (revisión de las fases 1 y 2)
-
-`private.texto_opinion_no_permitido` (que usan `validar_texto_opinion` y el motivo de rechazo) es una **heurística**, no una garantía.
-
-- **Qué detecta:** `http:`/`https:`/`ftp:` y `www.`; un dominio con el alfanumérico o guion pegado al punto y un TLD de una **lista cerrada** (genéricos y de país/acortadores que no son palabras comunes: `.ar`, `.com.ar`, `.mx`, `.cl`, `.uy`, `.br`, `.co`, `.pe`, `.py`, `.bo`, `.ec`, `.us`, `.uk`, `.fr`, `.ly`, `.tv`, `.cc`, `.ws`, `.gl`, `.gg`, `.be`, `.ee`, `.fm`, `.gd`, `.gy`, `.sh`, `.vc`, `.ph`, `.pt`, `.ru`, `.cn`, `.jp`, `.au`, `.nz`, `.ca`, `.nl`, `.ch`, `.pl`, `.tr`) seguido de un no alfanumérico o el final, lo que cubre `bit.ly/…`, `youtu.be/…`, `tinyurl.com/…`; y `algo.palabra/` (cualquier TLD seguido de barra: `t.me/…`, `wa.me/…`). Los puntos de otras escrituras (U+3002 «。», U+FF0E «．», U+FF61 «｡», U+2024, U+FE52) se normalizan al punto ASCII antes de evaluar.
-- **Criterio para los TLD que son palabras comunes** (`es`, `me`, `de`, `to`, `it`, `at`, `in`, `se`, `ve`): `algo.es` se rechaza solo si el TLD NO va seguido de un espacio (va seguido de puntuación o del final) **y** lo anterior tiene forma de dominio (4 o más alfanuméricos o guiones seguidos, o termina en guion o dígito). Por eso «mi-tienda.es,» y «mitienda.es.» se rechazan, y «Muy bueno.me gustó», «Lo uso a diario.es genial», «Anda bien.No se calienta» y «Sí.No sé» se aceptan. Un punto seguido de espacio («Excelente producto. Top calidad», «Pedí el 10. Es ok.») no es enlace, y las palabras de dos letras fuera de la lista (`no`, `si`, `mi`, `te`, `la`, `el`, `ya`, `lo`, `le`, `en`, `un`, `al`, `su`) tampoco.
-- **Falso positivo residual aceptado:** «Lo uso en casa.Es» o «Es buenísimo.Se» (palabra de 4 o más caracteres + punto pegado + TLD ambiguo capitalizado, al final del texto o antes de puntuación) se rechaza: la regla de los TLD ambiguos no distingue mayúsculas y ese texto es indistinguible de `mitienda.es`. Se acepta porque el costo es que el cliente reescriba una frase mal puntuada, mientras que relajarlo dejaría pasar `mitienda.Es`.
-- **Qué NO detecta:** ofuscación («ejemplo punto com», «ejemplo . com», «ejemplo(.)com», «ejemplo[.]com»), homógrafos (letras cirílicas parecidas a las latinas), TLD genéricos fuera de la lista, enlaces con espacios dentro, ni `mi-tienda.es hoy` (TLD ambiguo seguido de espacio y palabra: es el precio de no rechazar frases como «diario.es genial»). Y a la inversa, «Excelente.Co» o «bueno.Ca» (TLD de la lista pegados) se tratan como dominio. La moderación previa (D5) es la defensa real.
-- **`http` suelta:** la palabra `http`/`https` sin los dos puntos se **acepta** a propósito (rechazarla daría falsos positivos: «usan https para pagar»); hay una aserción pgTAP explícita.
-- **Rendimiento:** sin cuantificadores anidados; con entradas hostiles de 50.000 caracteres cada comprobación tarda unos 14 ms y con 200.000 caracteres de 60 a 130 ms según la entrada (crecimiento lineal; aserciones pgTAP < 1 s).
-- **Funciones `invoker`:** las funciones `private` de validación son `security invoker` a propósito: son puras (no leen tablas), no necesitan los privilegios del dueño y `security definer` solo ampliaría la superficie. Llevan `search_path` vacío y sin `execute` para la API; las RPC `security definer` que las llaman sí lo tienen.
-
-La fase 3 hereda esta función y sus límites.

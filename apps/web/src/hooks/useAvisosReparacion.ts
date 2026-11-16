@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   MENSAJE_AVISO_ENCOLADO,
+  MENSAJE_AVISO_WHATSAPP_ENCOLADO,
   MENSAJE_CLIENTE_SIN_CORREO,
+  MENSAJE_CLIENTE_SIN_CONSENTIMIENTO,
+  MENSAJE_CLIENTE_SIN_TELEFONO,
   avisarClienteDeReparacion,
+  avisarClientePorWhatsapp,
   clienteTieneCorreo,
   listarAvisosDeReparacion,
   mensajeDeAvisar,
+  mensajeDeAvisarWhatsapp,
   mensajeDeCargarAvisos,
   type AvisoReparacion,
 } from '../lib/reparacionAvisos'
@@ -23,6 +28,8 @@ export type EstadoAvisosReparacion = {
   recargar: () => void
   // Pide el aviso del estado indicado (por defecto, el actual). Devuelve true si quedó encolado.
   avisar: (estadoId?: string) => Promise<boolean>
+  // Igual, pero por WhatsApp (MSF-952): lo manda el servidor al proveedor de mensajería.
+  avisarWhatsapp: (estadoId?: string) => Promise<boolean>
 }
 
 // Avisos al cliente de una reparación y la acción de pedirlos (F-SVC-14). Al cambiar la reparación o la empresa
@@ -114,5 +121,37 @@ export function useAvisosReparacion(
     [reparacionId],
   )
 
-  return { avisos, cargando, errorCarga, clienteConCorreo, avisando, errorAvisar, aviso, recargar, avisar }
+  const avisarWhatsapp = useCallback(
+    async (estadoId?: string) => {
+      // `enVuelo` cubre el doble clic antes de que el estado `avisando` llegue a pintarse.
+      if (!reparacionId || enVuelo.current) return false
+      enVuelo.current = true
+      setAvisando(true)
+      setErrorAvisar(null)
+      setAviso(null)
+      try {
+        const resultado = await avisarClientePorWhatsapp(reparacionId, estadoId)
+        if (resultado.resultado === 'sin_consentimiento') {
+          setErrorAvisar(MENSAJE_CLIENTE_SIN_CONSENTIMIENTO)
+          return false
+        }
+        if (resultado.resultado === 'sin_telefono') {
+          setErrorAvisar(MENSAJE_CLIENTE_SIN_TELEFONO)
+          return false
+        }
+        setAviso(MENSAJE_AVISO_WHATSAPP_ENCOLADO)
+        setVersion((v) => v + 1)
+        return true
+      } catch (error) {
+        setErrorAvisar(mensajeDeAvisarWhatsapp(error))
+        return false
+      } finally {
+        enVuelo.current = false
+        setAvisando(false)
+      }
+    },
+    [reparacionId],
+  )
+
+  return { avisos, cargando, errorCarga, clienteConCorreo, avisando, errorAvisar, aviso, recargar, avisar, avisarWhatsapp }
 }

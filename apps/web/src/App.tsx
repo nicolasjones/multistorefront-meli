@@ -41,6 +41,7 @@ import { ClienteShow } from './pages/clientes/show'
 import { CorreoMasivoNueva } from './pages/clientes/correo-masivo/nueva'
 import { CorreoMasivoHistorial } from './pages/clientes/correo-masivo/historial'
 import { CorreoMasivoDetalle } from './pages/clientes/correo-masivo/detalle'
+const NewsletterPage = lazy(() => import('./pages/clientes/newsletter').then((modulo) => ({ default: modulo.NewsletterPage })))
 import { ProveedorList } from './pages/proveedores/list'
 import { ProveedorShow } from './pages/proveedores/show'
 import { TransporteList } from './pages/ventas/transportes/list'
@@ -87,6 +88,7 @@ const RentabilidadPorProducto = lazy(() => import('./pages/rentabilidad/PorProdu
 const RentabilidadComparativo = lazy(() => import('./pages/rentabilidad/Comparativo').then((modulo) => ({ default: modulo.RentabilidadComparativo })))
 const RentabilidadCostosAdicionales = lazy(() => import('./pages/rentabilidad/CostosAdicionales').then((modulo) => ({ default: modulo.RentabilidadCostosAdicionales })))
 const RentabilidadVentasReales = lazy(() => import('./pages/rentabilidad/VentasReales').then((modulo) => ({ default: modulo.RentabilidadVentasReales })))
+const RentabilidadCostosFijos = lazy(() => import('./pages/rentabilidad/CostosFijos').then((modulo) => ({ default: modulo.RentabilidadCostosFijos })))
 const RentabilidadHistoria = lazy(() => import('./pages/rentabilidad/Historia').then((modulo) => ({ default: modulo.RentabilidadHistoria })))
 const CotizacionPage = lazy(() => import('./pages/cotizacion').then((modulo) => ({ default: modulo.CotizacionPage })))
 const AvisosPage = lazy(() => import('./pages/cuenta/avisos').then((modulo) => ({ default: modulo.AvisosPage })))
@@ -375,6 +377,14 @@ function App() {
                     </RequiereOrganizacionActiva>
                   }
                 />
+                <Route
+                  path="/clientes/newsletter"
+                  element={
+                    <RequiereOrganizacionActiva>
+                      <RequiereAccesoSeccion seccion="clientes"><Suspense fallback={<EstadoCargaPagina />}><NewsletterPage /></Suspense></RequiereAccesoSeccion>
+                    </RequiereOrganizacionActiva>
+                  }
+                />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
                 <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
                 <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
@@ -416,6 +426,7 @@ function App() {
                 <Route path="/rentabilidad/historia" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadHistoria /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/ventas-reales" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadVentasReales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/rentabilidad/costos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosAdicionales /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
+                <Route path="/rentabilidad/costos-fijos" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="rentabilidad"><Suspense fallback={<EstadoCargaPagina />}><RentabilidadCostosFijos /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/cotizacion" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="cotizacion_dolar"><Suspense fallback={<EstadoCargaPagina />}><CotizacionPage /></Suspense></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route
                   path="/productos"

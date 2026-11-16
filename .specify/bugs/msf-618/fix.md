@@ -23,7 +23,7 @@ del detalle salen con su moneda y separadores («Cobro de $ 859.100,00»).
 | `apps/web/src/components/actividad/DetalleActividadDialog.tsx` | modified | El diálogo muestra el detalle formateado. |
 | `apps/web/src/lib/exportarActividad.ts` | modified | El CSV usa el mismo texto que la tabla (FR-012): también el detalle con los importes formateados. |
 | `apps/web/src/lib/exportarActividadCsv.test.ts` | modified | El CSV sale con los importes en formato de moneda. |
-| `supabase/migrations/20270419000201_cobro_actividad_con_moneda.sql` | added | `private.registrar_cobro_interno` escribe la moneda del importe en el detalle del evento («Cobro de ARS 859100 por …»). |
+| `supabase/migrations/20270432000000_cobro_actividad_con_moneda.sql` | added | `private.registrar_cobro_interno` escribe la moneda del importe en el detalle del evento («Cobro de ARS 859100 por …»). |
 | `supabase/tests/database/cobros_comprobante.test.sql` | modified | El detalle del evento lleva la moneda; se cubre el caso de una cuenta de cobro en dólares. |
 | `supabase/seed.sql` | modified | El camino de reserva del seed escribe el detalle con la misma moneda que la función. |
 | `infra/runner/restaurar-bin.mjs` | modified | El respaldo «más nuevo» se elige comparando la versión por número, no por texto. |

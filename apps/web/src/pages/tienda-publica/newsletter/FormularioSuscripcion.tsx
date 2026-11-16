@@ -11,6 +11,7 @@ import {
   type ErroresNewsletter,
 } from '../../../lib/tiendaNewsletter'
 import { useLegalTienda } from '../../../lib/tiendaLegal'
+import { urlHttpSegura } from '../../../lib/urlHttpSegura'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { estiloTituloPie } from '../layout/estilosPie'
 import { COLOR_FOCO } from '../layout/medidas'
@@ -44,6 +45,8 @@ export function FormularioSuscripcion({ host }: { host: string }) {
   if (!activo || !tienda) return null
 
   const politica = legal?.enlaces.find((enlace) => /privacidad/i.test(enlace.titulo)) ?? null
+  // Solo http: o https: llegan al href.
+  const urlPolitica = urlHttpSegura(politica?.url)
 
   const enviar = async (evento?: FormEvent) => {
     evento?.preventDefault()
@@ -140,7 +143,7 @@ export function FormularioSuscripcion({ host }: { host: string }) {
                 sx={{ color: 'inherit', '&.Mui-checked': { color: 'inherit' }, py: 0.25, pl: 0 }}
               />
             }
-            label={<>Acepto recibir novedades de {tienda} por correo.{politica ? <> <Box component="a" href={politica.url} target="_blank" rel="noopener noreferrer" sx={{ color: 'inherit' }}>Política de privacidad</Box></> : null}</>}
+            label={<>Acepto recibir novedades de {tienda} por correo.{urlPolitica ? <> <Box component="a" href={urlPolitica} target="_blank" rel="noopener noreferrer" sx={{ color: 'inherit' }}>Política de privacidad</Box></> : null}</>}
           />
           {errores.consentimiento ? <FormHelperText id="newsletter-consentimiento-error" error sx={{ color: 'inherit', fontWeight: 600 }}>{errores.consentimiento}</FormHelperText> : null}
           {estado.fase === 'espera' ? (

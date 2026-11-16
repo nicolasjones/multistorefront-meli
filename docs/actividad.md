@@ -224,6 +224,12 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   idempotente), con quien pidió el aviso como actor y la tienda de la reparación. El detalle usa el código visible
   (`R-000N`) y el nombre del estado, nunca ids ni el correo del cliente. Lo cubre el pgTAP `service_avisos`. Ver
   `docs/service-avisos.md`.
+- `reparacion.aviso_whatsapp_solicitado` (MSF-952, Service técnico): lo registra `private.registrar_actividad` en la
+  misma transacción que la RPC `avisar_cliente_whatsapp` (solo cuando se crea el aviso; una repetición idempotente no
+  vuelve a registrar). El detalle nombra el código visible (`R-000N`) y el estado avisado, **nunca el número de
+  teléfono** del cliente. El cierre del aviso por el flow de WhatsApp reutiliza `reparacion.aviso_enviado` y
+  `reparacion.aviso_fallido` (el detalle dice «por WhatsApp»). Lo cubre el pgTAP `service_aviso_whatsapp`. Ver
+  `docs/service-avisos.md`.
 - `comprobante.impreso` y `comprobante.reimpreso` (F-VTA-21, Ventas): los registra la RPC `registrar_impresion` en
   la misma transacción que la fila de `dominio.comprobante_impresiones`. `impreso` es la primera impresión de un
   tipo de documento de un comprobante («Imprimió la factura 00000001», «Imprimió el remito …») y `reimpreso` cada
@@ -244,6 +250,8 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `security invoker` (rige la RLS), fechas inclusivas en hora de Buenos Aires, tamaño de página acotado a 1–100,
   texto acotado a 100 caracteres. Devuelve la página y el `total` del filtro.
 - `public.opciones_actividad()`: tipos y usuarios presentes, para los filtros (hasta 200 de cada uno).
+
+**Alcance por empresa (MSF-968)**: además de la organización y la sección `actividad`, la lectura exige que el evento no tenga empresa (evento de toda la organización) o que la persona acceda a esa empresa (`private.empresas_de_actividad()`: como `empresas_accesibles()` pero incluyendo las pausadas). Aplica a la política `registro_actividad_select` y a `exportar_actividad`. Quien tiene una sola tienda asignada ya no ve el historial de las demás.
 
 ## Datos de ejemplo
 
@@ -352,7 +360,7 @@ La columna **Tipo** (y el filtro por tipo) muestran la etiqueta de cada tipo de 
 - **De dónde sale la moneda**: la del **importe**, que es la del comprobante que se cobra. `dominio.comprobantes_venta`
   no tiene columna de moneda (sus importes son pesos: F-PRE-03 recalcula a pesos los precios en dólares), así que hoy
   es ARS. El evento `comprobante.cobro_registrado` lo escribe en el detalle («Cobro de ARS 859100 por …», migración
-  `20270419000201_cobro_actividad_con_moneda.sql`) y la pantalla muestra la moneda que trae el texto: no la supone.
+  `20270432000000_cobro_actividad_con_moneda.sql`) y la pantalla muestra la moneda que trae el texto: no la supone.
   La cuenta de cobro dice dónde entra el dinero, no en qué unidad se cobra: una cuenta en dólares no convierte el
   importe. Cuando el comprobante tenga moneda, se lee de ahí y es el único lugar que hay que cambiar.
 - **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985).
