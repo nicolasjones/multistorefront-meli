@@ -5,7 +5,7 @@
 -- `private.precio_linea_venta(..., p_descuento => 0, p_aplicar_descuento => false)` y no guardaba `descuento_pct`:
 -- el presupuesto copiado de un cliente con descuento salía a precio de lista (más caro que el original y que lo que
 -- cobra `guardar_lineas_comprobante`). Esta migración alinea la copia con el mostrador:
---   * el descuento sale de `public.clientes.descuento` del cliente del presupuesto (el vigente al copiar, como hace
+--   * el descuento sale de `dominio.clientes.descuento` del cliente del presupuesto (el vigente al copiar, como hace
 --     `guardar_lineas_comprobante`);
 --   * `private.precio_linea_venta(..., v_descuento, v_ahora, true)`: gana el más bajo entre el precio con descuento y la
 --     promoción vigente de la tienda, sin acumular (si gana la promoción `descuento_aplicado = 0`);
@@ -77,7 +77,7 @@ begin
 
   -- MSF-933 (S2): el descuento del cliente rige igual que en `guardar_lineas_comprobante`.
   select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
-    from public.clientes cl
+    from dominio.clientes cl
    where cl.id = v_o.cliente_id and cl.organizacion_id = v_org;
   if not found then
     raise exception 'El cliente del presupuesto ya no existe' using errcode = '22023', hint = 'cliente_id';
