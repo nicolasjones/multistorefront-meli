@@ -2,8 +2,8 @@
 // migraciones 20270341000000_opiniones_producto.sql y 20270341000200_opiniones_moderacion_rpc.sql; acá solo se espeja lo
 // necesario para la pantalla (la autoridad es la base: solo el Administrador lista y modera).
 import { supabaseClient } from './supabase'
+import { esEstadoOpinion, type EstadoOpinion } from './estadoOpinion'
 
-export type EstadoOpinion = 'pendiente' | 'aceptada' | 'rechazada'
 export type FiltroEstadoOpinion = EstadoOpinion | 'todas'
 
 export const MAX_MOTIVO_RECHAZO = 200
@@ -47,7 +47,6 @@ export type TandaOpiniones = {
 
 export const CONTADORES_VACIOS: ContadoresOpiniones = { pendientes: 0, aceptadas: 0, rechazadas: 0 }
 
-const ESTADOS: readonly EstadoOpinion[] = ['pendiente', 'aceptada', 'rechazada']
 const textoDe = (valor: unknown): string | null => (typeof valor === 'string' ? valor : null)
 const comoContador = (valor: unknown): number => (typeof valor === 'number' && Number.isFinite(valor) ? valor : 0)
 
@@ -72,7 +71,7 @@ function comoFilaOpinion(valor: unknown): OpinionPanel | null {
   const puntuacion = typeof fila.puntuacion === 'number' && Number.isInteger(fila.puntuacion) && fila.puntuacion >= 1 && fila.puntuacion <= 5
     ? fila.puntuacion
     : null
-  const estado = ESTADOS.includes(fila.estado as EstadoOpinion) ? (fila.estado as EstadoOpinion) : null
+  const estado = esEstadoOpinion(fila.estado) ? fila.estado : null
   if (!id || !empresaId || !clienteId || !productoId || !creadaEn || !actualizadaEn) return null
   if (empresaNombre === null || clienteNombre === null || productoNombre === null || comentario === null) return null
   if (motivoRechazo !== null && typeof motivoRechazo !== 'string') return null

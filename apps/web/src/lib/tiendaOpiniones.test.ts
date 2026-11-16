@@ -111,6 +111,15 @@ describe('tiendaOpiniones · cuenta', () => {
     expect(pagina.total).toBe(1)
     expect(pagina.filas[0]).toMatchObject({ productoNombre: 'Joystick', estado: 'rechazada', motivoRechazo: 'Spam' })
   })
+
+  it('mis opiniones: un estado que la base no define se trata como pendiente (no se inventa otro)', async () => {
+    responde({
+      estado: 'ok', total: 1, siguiente: null,
+      filas: [{ id: O, producto_id: P, producto_nombre: 'Joystick', puntuacion: 2, comentario: 'x', estado: 'publicada', motivo_rechazo: null, creada_en: '2027-03-10T10:00:00+00:00', actualizada_en: '2027-03-11T10:00:00+00:00' }],
+    })
+    const pagina = await leerMisOpiniones(HOST)
+    expect(pagina.filas[0].estado).toBe('pendiente')
+  })
 })
 
 describe('tiendaOpiniones · límite de «Mis opiniones»', () => {
