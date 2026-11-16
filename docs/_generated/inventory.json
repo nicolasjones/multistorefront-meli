@@ -218,6 +218,10 @@
     "/tienda-publica/lista/LineaLista",
     "/tienda-publica/lista/PantallaLista",
     "/tienda-publica/newsletter/FormularioSuscripcion",
+    "/tienda-publica/opiniones/EstrellasPuntuacion",
+    "/tienda-publica/opiniones/FormularioOpinion",
+    "/tienda-publica/opiniones/MisOpiniones",
+    "/tienda-publica/opiniones/OpinionesProducto",
     "/tienda-publica/rutas/catalogo",
     "/tienda-publica/rutas/categoria",
     "/tienda-publica/rutas/contacto",
@@ -1214,5 +1218,5 @@
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
     }
   ],
-  "paginas": 330
+  "paginas": 331
 }

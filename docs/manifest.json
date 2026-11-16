@@ -36,7 +36,7 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "d4a9dccdc7dff80fd751b1d48e5b015fc9d85924359f465b22d7180782ea0591",
-      "sourceHash": "f9786a7b299f89772e5ebbf7a5e5c665b25a015dca8456d2b62e3f3222c1c06f",
+      "sourceHash": "b518ca620eb18f44d6ca04428ea2072916e753bf68e525a4cdfcb4c271836f4e",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs"
@@ -384,14 +384,14 @@
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
       "pageHash": "f6d2f8660e4f34712c436aa33bfde6d461a478a7d85c5cafd4c6ea34f189e119",
-      "sourceHash": "2c75dc09026f7e5abe041e70513f2484fcad774ff12c55f2c8fb588241c0192c",
-      "sourceAt": "7065a017",
+      "sourceHash": "2bb2a4105ef6febe70be18f6c26ea3021212c3ccb31857b061fce7cf358cbe04",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -593,17 +593,17 @@
       "title": "Clientes y proveedores · Cuentas y compras a proveedores (MSF-450)",
       "pageHash": "7041dbb29eb0e04f6acf7b76baa9185cfe1deecb64e7f6946bfabb807423da69",
       "sourceHash": "7adb9ec26f3622389712b8398224e61c52e0b89735916ef01d6cdb8dc93100c3",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261029-100000-cuentas-y-compras-a-proveedores"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "2ec662af1b555a689b3f1f768e7f1f37fae37731e08331a109d675f1464d0f6f",
-      "sourceHash": "f9786a7b299f89772e5ebbf7a5e5c665b25a015dca8456d2b62e3f3222c1c06f",
+      "sourceHash": "b518ca620eb18f44d6ca04428ea2072916e753bf68e525a4cdfcb4c271836f4e",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs"
@@ -729,7 +729,7 @@
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
       "pageHash": "bffc07b935fb557cc6a9427d675c5f5f12db8f03219d2a27e52cf347b105c0c9",
-      "sourceHash": "0a102ae3a95223f8be9e125bbb9d23c193b5459a06960ee3b0bc485f8d4f8186",
+      "sourceHash": "72216eca2d25e0c734a86aa6133ebafe95da3a3a96139e568c0c217e70ab7741",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20270328-100000-gastos-de-la-empresa",
@@ -1036,7 +1036,7 @@
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
-      "sourceHash": "f2307561de9e97642791d22b25e2514f2189d1f40f143e37d55e60f59e4458b6",
+      "sourceHash": "225fc8b621436b6c911cafcfcc7838a5ec4ba83275552adefc9e0bb5ff97de54",
       "sourceAt": "7065a017",
       "sources": [
         "specs"
@@ -1071,7 +1071,7 @@
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
       "pageHash": "eb2f18a682c71b26cf556a8763754809d3a1e6404ad75ebc3c41a128a3661ab6",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1080,7 +1080,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -1867,7 +1867,7 @@
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
       "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
-      "sourceHash": "0f598f359c6cdd7123030fcda7aba5a563a62efde1bd462b375a17512954a5c3",
+      "sourceHash": "417431cd2ca92405cd017747b20e17da21cc7346bd24b822a3a9282f23ba58e4",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
@@ -1935,7 +1935,7 @@
     "docs/revision-seguridad-listas-de-precios.md": {
       "title": "Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)",
       "pageHash": "0e13693772ea6e8836c709f56353fe5e4ade10ddcfd3f6d1c05d95d31609ceb7",
-      "sourceHash": "4a8b19866f214424fea80bdc863c71760f787f21eaf5900d9b8338077d2a90d2",
+      "sourceHash": "0a70f517cf587f8f34771bb91250bc761270d8236d79fefd10995c00612368d5",
       "sourceAt": "bce5eef7",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -1947,7 +1947,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "8a3353a8cac30ec06e99ced6fcc069d7fc3814e4be06908577df9873d644a56f",
+      "pageHash": "eb2ed5e1e548feb43cfe30a4fa652e37ba4a2ee668202b14657a82264f67f107",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2765,7 +2765,7 @@
       "title": "Cotización sugerida y mayoristas (MSF-373)",
       "pageHash": "1757221f3256d65b2f142bc3eebd92f9d2b005ef55de4be5734b37a2106452a0",
       "sourceHash": "3b7e2b5b9af3f34557a10bd1656846a17de259f8fe154b6bcb59ecb37fc5eb82",
-      "sourceAt": "7065a017",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs/20261105-100000-cotizacion-sugerida-y-mayoristas",
         "supabase/functions/cotizacion-sugerida",
@@ -2775,7 +2775,7 @@
         "package.json"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
@@ -2795,15 +2795,15 @@
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
       "pageHash": "7be51788729bb7e02db34e847ae320e722a016beca6cb4a4eca68cbf959828ac",
-      "sourceHash": "ba15a6f49374fcfb27823c5568bb30e482a0c0da989e2edf6ef4a77f6017c22a",
-      "sourceAt": "7065a017",
+      "sourceHash": "420d484cc856e31ac28b125b0ff7b9a8076a6e3195c1e34a918b02fd77ca6923",
+      "sourceAt": "775b35f0",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "7065a017"
+      "commit": "775b35f0"
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
@@ -3121,7 +3121,7 @@
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
       "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
-      "sourceHash": "88c9e34e122cf0834d957d5d840c9c552e0f35829998dc6f008c170b0cdac479",
+      "sourceHash": "71b4243dddabe17a91addc9064e0bcb50a3f55c4bdfac5e145cae4f01c38fa08",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
@@ -3743,26 +3743,32 @@
       "commit": "ebf4bf4d"
     },
     "docs/tienda-opiniones.md": {
-      "title": "Opiniones de productos: base y moderación (MSF-467)",
-      "pageHash": "78c6b261742936c6093c8ae2370d7ed3b10e7d92db921b95319366a538a65e94",
-      "sourceHash": "f6f52325a39052cfa41c642f852831b7c5897274a4b66c2bdab4ad87734d9466",
-      "sourceAt": "33d1644e",
+      "title": "Opiniones de productos: moderación y tienda (MSF-467)",
+      "pageHash": "0fd0347123cd59bf57f785f21c029dea5eca5444b4f41a9d1b7dc33266ac233a",
+      "sourceHash": "785d0eca5afd31311b2d7cdcf994a5cfc2075c277c7c6b80db367c9362c6df67",
+      "sourceAt": "507c8ae8",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
         "supabase/migrations/20270341000100_opiniones_validacion.sql",
         "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
         "supabase/migrations/20270341000500_exportacion_total_opiniones.sql",
-        "apps/web/src/pages/opiniones"
+        "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
+        "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
+        "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "apps/web/src/pages/opiniones",
+        "apps/web/src/pages/tienda-publica/opiniones",
+        "apps/web/src/lib/tiendaOpiniones.ts",
+        "apps/web/e2e/tienda-opiniones.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "33d1644e"
+      "commit": "507c8ae8"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "9204617ba366f62ff3bf6ee9650381e8d1620d4f09a14724b36aa6464e33d07e",
-      "sourceHash": "9a8e0e7f46d9ddc9975c6f9c9fc279559d3db8dadaed9ada90078bc793807b8b",
-      "sourceAt": "f5d8f4a5",
+      "pageHash": "b3898fe508c3b8c793eafa924526436c053e6c63f98a942d05d2ca109a1709e8",
+      "sourceHash": "f963d543356e13d5e137bb099d7704be3314c9fb4de89b0b25aa340d86f66adb",
+      "sourceAt": "00a5805b",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3774,7 +3780,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "f5d8f4a5"
+      "commit": "00a5805b"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

@@ -2,11 +2,11 @@
 
 > Generado por `pnpm docs:wiki:inventario` desde el código. **No editar a mano.**
 
-- Rutas del panel: **267**
+- Rutas del panel: **271**
 - Tablas en migraciones: **206**
 - Variables de entorno: **106**
 - Specs: **157**
-- Páginas de documentación: **330**
+- Páginas de documentación: **331**
 
 ## Rutas del panel
 
@@ -228,6 +228,10 @@
 - `/tienda-publica/lista/LineaLista`
 - `/tienda-publica/lista/PantallaLista`
 - `/tienda-publica/newsletter/FormularioSuscripcion`
+- `/tienda-publica/opiniones/EstrellasPuntuacion`
+- `/tienda-publica/opiniones/FormularioOpinion`
+- `/tienda-publica/opiniones/MisOpiniones`
+- `/tienda-publica/opiniones/OpinionesProducto`
 - `/tienda-publica/rutas/catalogo`
 - `/tienda-publica/rutas/categoria`
 - `/tienda-publica/rutas/contacto`
