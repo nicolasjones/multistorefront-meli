@@ -1,0 +1,11 @@
+slice_name: Ventas por período y canal
+description: 'Facturado con IVA por período y canal (F-REP-05, FR-013). El período se agrupa por día, semana o mes con el filtro «Agrupar por».'
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params: {"datasource": "1__table", "viz_type": "echarts_timeseries_bar", "x_axis": "fecha", "time_grain_sqla": "P1D", "x_axis_sort_asc": true, "x_axis_force_categorical": false, "metrics": ["facturado_total"], "groupby": ["empresa_nombre"], "adhoc_filters": [], "order_desc": true, "row_limit": 10000, "truncate_metric": true, "show_empty_columns": true, "comparison_type": "values", "annotation_layers": [], "forecastEnabled": false, "stack": "Stack", "orientation": "vertical", "show_value": false, "show_legend": true, "legendType": "scroll", "legendOrientation": "top", "x_axis_title": "Período", "x_axis_title_margin": 15, "y_axis_title": "Facturado (con IVA)", "y_axis_title_margin": 30, "y_axis_title_position": "Left", "y_axis_format": ",.2f", "rich_tooltip": true, "tooltipTimeFormat": "smart_date", "extra_form_data": {}, "dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 69e46487-06dd-4f75-bcd1-151494919569
+version: 1.0.0
+dataset_uuid: 29408bf9-e4f1-4b31-a917-954c356dc1f2

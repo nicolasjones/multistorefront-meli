@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequiereAccesoSeccion } from './RequiereAccesoSeccion'
@@ -67,6 +67,41 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
   })
 
+  // Falla cerrada: si el repedido falla con la sección ya abierta SIN clave conocida (o con otra clave), no se conserva nada
+  // ni se sigue ofreciendo con el último nivel. Con la MISMA clave se conserva inerte: ver RequiereAccesoSeccion.borrador.test.tsx (MSF-855).
+  it('si los permisos se vuelven a pedir y fallan, desmonta la sección y avisa (no conserva el último nivel)', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false, error: false })
+    const arbol = () => (
+      <MemoryRouter>
+        <RequiereAccesoSeccion seccion="clientes"><input aria-label="Nombre" /></RequiereAccesoSeccion>
+      </MemoryRouter>
+    )
+    const vista = render(arbol())
+    expect(screen.getByLabelText('Nombre')).toBeInTheDocument()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: true, recargar: vi.fn() })
+    vista.rerender(arbol())
+    expect(screen.queryByLabelText('Nombre')).not.toBeInTheDocument()
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+  })
+
+  // MSF-855: aunque la clave `usuario:organización` cambie sin pasar por la carga, los hijos se remontan (no se arrastra el borrador).
+  it('si la clave usuario:organización cambia, los hijos se remontan y no heredan lo tipeado', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false, error: false, clave: 'u1:o1' })
+    const arbol = () => (
+      <MemoryRouter>
+        <RequiereAccesoSeccion seccion="clientes"><input aria-label="Nombre" /></RequiereAccesoSeccion>
+      </MemoryRouter>
+    )
+    const vista = render(arbol())
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'borrador de o1' } })
+    expect(screen.getByLabelText('Nombre')).toHaveValue('borrador de o1')
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false, error: false, clave: 'u1:o2' })
+    vista.rerender(arbol())
+    expect(screen.getByLabelText('Nombre')).toHaveValue('')
+  })
+
   // F-VTA-31 (FR-005): una pantalla que escribe (la venta de mostrador) exige edición en la sección.
   it('con nivel mínimo «edicion» no abre la sección a quien solo tiene lectura', async () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
@@ -99,6 +134,19 @@ describe('RequiereAccesoSeccion (F-ROL-03, FR-008)', () => {
     expect(hijo).not.toHaveBeenCalled()
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+
+  it('con error al cargar permisos muestra «No pudimos verificar» con Reintentar, sin acceso restringido', () => {
+    const recargar = vi.fn()
+    mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: true, recargar })
+    const hijo = renderizar()
+
+    expect(screen.getByText('No pudimos verificar tus permisos.')).toBeInTheDocument()
+    expect(screen.queryByText('Sección no disponible para tu rol')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Solicitar acceso' })).not.toBeInTheDocument()
+    expect(hijo).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(recargar).toHaveBeenCalledTimes(1)
   })
 
   it('el superadmin no ve la pantalla restringida', async () => {

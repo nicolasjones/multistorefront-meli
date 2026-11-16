@@ -23,13 +23,14 @@ import RutaIngresar from './ingresar'
 
 const contexto = { tienda: { tiendaId: 't-1', empresaNombre: 'Mundo JC', estado: 'publicada' }, host: 'mundojc.localhost', categorias: { fase: 'lista', categorias: [], reintentar: () => undefined } }
 
-function montar() {
+function montar(entrada = '/ingresar') {
   return render(
-    <MemoryRouter initialEntries={['/ingresar']}>
+    <MemoryRouter initialEntries={[entrada]}>
       <Routes>
         <Route element={<Outlet context={contexto} />}>
           <Route path="/ingresar" element={<RutaIngresar />} />
           <Route path="/" element={<p>Inicio de la tienda</p>} />
+          <Route path="/mi-cuenta" element={<p>Mi cuenta de la tienda</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -60,6 +61,29 @@ describe('RutaIngresar (FR-020, FR-021)', () => {
     expect(await screen.findByText('Correo o contraseña incorrectos.')).toBeInTheDocument()
     expect(screen.queryByText('Inicio de la tienda')).not.toBeInTheDocument()
     expect((screen.getByLabelText(/^Contraseña/) as HTMLInputElement).value).toBe('')
+  })
+
+  // F-CLI-20 (FR-002): `?volver=` solo con rutas internas.
+  it('con `?volver=` interno vuelve a esa pantalla tras ingresar', async () => {
+    mocks.ingresarCliente.mockResolvedValue({ ok: true, tipo: 'minorista' })
+    montar('/ingresar?volver=%2Fmi-cuenta%3Fseccion%3Dfavoritos')
+    completar('cli@example.com', 'Clave-12345!')
+    expect(await screen.findByText('Mi cuenta de la tienda')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['https://evil.example/robo', 'sitio externo'],
+    ['//evil.example', 'mismo protocolo'],
+    ['/\\evil.example', 'barra invertida'],
+    ['java' + 'script:alert(1)', 'esquema javascript'],
+    ['evil.example', 'sin barra inicial'],
+    ['/..//evil.example', 'dot-segments'],
+    ['/%5Cevil.example', 'barra invertida codificada'],
+  ])('con `?volver=%s` (%s) lo ignora y va a la portada', async (volver) => {
+    mocks.ingresarCliente.mockResolvedValue({ ok: true, tipo: 'minorista' })
+    montar(`/ingresar?volver=${encodeURIComponent(volver)}`)
+    completar('cli@example.com', 'Clave-12345!')
+    expect(await screen.findByText('Inicio de la tienda')).toBeInTheDocument()
   })
 
   it('ofrece recuperar la contraseña y no ofrece registrarse', () => {

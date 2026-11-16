@@ -179,7 +179,7 @@ describe('ProveedorFormDialog', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     resolver({ data: PROVEEDOR, error: null })
   })
-  describe('«Compra para» (MSF-524)', () => {
+  describe('«Compra para»', () => {
     const tienda = (nombre: string) => screen.getByRole('checkbox', { name: nombre })
 
     it('muestra una opción por tienda, sin marcar en el alta', () => {
@@ -279,6 +279,31 @@ describe('ProveedorFormDialog', () => {
       mocks.useEmpresas.mockReturnValue({ empresas: [], isLoading: false, isError: true })
       abrir()
       expect(screen.getByText('No pudimos cargar las tiendas.')).toBeInTheDocument()
+    })
+  })
+
+  describe('con contacto principal (F-PRV-08, FR-026)', () => {
+    it('muestra persona de contacto, correo y teléfono de solo lectura con la leyenda', () => {
+      abrir({ proveedor: PROVEEDOR, contactoPrincipal: true })
+      for (const nombre of [/Persona de contacto/, /Correo/, /Teléfono/]) {
+        expect(campo(nombre)).toHaveAttribute('readonly')
+      }
+      expect(screen.getAllByText('Se toma del contacto principal')).toHaveLength(3)
+      expect(campo(/Razón social/)).not.toHaveAttribute('readonly')
+      expect(campo(/Dirección/)).not.toHaveAttribute('readonly')
+    })
+
+    it('sin contacto principal los tres campos se editan como siempre', () => {
+      abrir({ proveedor: PROVEEDOR, contactoPrincipal: false })
+      for (const nombre of [/Persona de contacto/, /Correo/, /Teléfono/]) {
+        expect(campo(nombre)).not.toHaveAttribute('readonly')
+      }
+      expect(screen.queryByText('Se toma del contacto principal')).not.toBeInTheDocument()
+    })
+
+    it('en el alta no aplica la solo lectura', () => {
+      abrir({ contactoPrincipal: true })
+      expect(campo(/Correo/)).not.toHaveAttribute('readonly')
     })
   })
 })

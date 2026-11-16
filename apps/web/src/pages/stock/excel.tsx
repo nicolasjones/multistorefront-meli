@@ -217,7 +217,7 @@ export function ActualizarStockExcel() {
 
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography variant="subtitle2" component="h3" gutterBottom>Formato de la planilla</Typography>
-              <TableContainer>
+              <TableContainer tabIndex={0} role="region" aria-label="Formato de la planilla (se desplaza)">
                 <Table size="small" aria-label="Formato de la planilla">
                   <TableHead>
                     <TableRow>
@@ -259,7 +259,7 @@ export function ActualizarStockExcel() {
               <EstadoError titulo={errorVista} reintentar={() => setRecargaVista((valor) => valor + 1)} />
             ) : vista && (
               <>
-                <TableContainer>
+                <TableContainer tabIndex={0} role="region" aria-label="Diferencias a aplicar (se desplaza)">
                   <Table size="small" aria-label="Diferencias a aplicar">
                     <TableHead>
                       <TableRow>

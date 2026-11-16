@@ -3,6 +3,7 @@
 // consulta: búsqueda, filtro de estado, orden estable y paginación, todo resuelto en el servidor.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
+import { normalizarBusqueda } from './busquedaTexto'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -26,6 +27,8 @@ export type FilaProductoListado = {
   disponibilidad: Disponibilidad
   // Código de barras EAN-13 (F-CAT-14, FR-012): se busca por coincidencia exacta.
   codigo_barras: string | null
+  // «Compatible con» (F-CAT-09, FR-004): se muestra como etiquetas; null/vacío = nada.
+  compatible_con: string[] | null
 }
 
 export type ConsultaProductos = {
@@ -40,6 +43,9 @@ export type ConsultaProductos = {
   categoriaId: string | null
   // Filtro de disponibilidad (F-CAT-17, FR-009): null = todas.
   disponibilidad: Disponibilidad | null
+  // Filtro «Compatible con» (F-CAT-09, FR-003): en el estado de la pantalla son las claves elegidas
+  // (en minúsculas); en la consulta al servidor, todas las variantes de mayúsculas de esos valores.
+  compatibles: string[]
 }
 
 export const CONSULTA_INICIAL: ConsultaProductos = {
@@ -51,22 +57,23 @@ export const CONSULTA_INICIAL: ConsultaProductos = {
   empresaId: null,
   categoriaId: null,
   disponibilidad: null,
+  compatibles: [],
 }
 
-const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras'
+const COLUMNAS = 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras, compatible_con'
 
 // Arma el filtro `or` de PostgREST para buscar por nombre o SKU (parcial, sin distinguir
-// mayúsculas). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
+// mayúsculas ni tildes: el nombre se compara con la columna calculada `nombre_norm`). Se acota el largo, se quitan los caracteres que separan o agrupan condiciones
 // (`,` `(` `)` `"` `\`) y el comodín `*` de PostgREST, y se escapan los comodines de LIKE (`%` `_`), para que lo tipeado
 // se busque como texto y no altere la consulta.
 export function filtroBusquedaProductos(texto: string): string | null {
-  const limpio = texto
+  const limpio = normalizarBusqueda(texto)
     .slice(0, LARGO_MAXIMO_BUSQUEDA)
     .replace(/[,()"\\*]/g, ' ')
     .replace(/[%_]/g, (c) => `\\${c}`)
     .trim()
   if (limpio === '') return null
-  return `nombre.ilike.%${limpio}%,sku.ilike.%${limpio}%`
+  return `nombre_norm.ilike.%${limpio}%,sku.ilike.%${limpio}%`
 }
 
 // F-CAT-14 (FR-012): un texto de exactamente 13 dígitos es un código de barras (lo que teclea el lector);
@@ -77,7 +84,42 @@ export function codigoBarrasBuscado(texto: string): string | null {
 }
 
 export function hayFiltrosActivos(consulta: ConsultaProductos): boolean {
-  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null
+  return consulta.texto.trim() !== '' || consulta.estado !== 'todos' || consulta.empresaId !== null || consulta.categoriaId !== null || consulta.disponibilidad !== null || consulta.compatibles.length > 0
+}
+
+// F-CAT-09 (FR-003): los valores de «Compatible con» se comparan sin distinguir mayúsculas. La base guarda
+// cada valor como se tipeó, así que el selector agrupa por clave (minúsculas) y el filtro envía todas las
+// variantes guardadas de las claves elegidas (`compatible_con && {…}`, que usa el índice GIN).
+export type GrupoCompatible = { clave: string; etiqueta: string; variantes: string[] }
+
+export function agruparCompatibles(valores: readonly string[]): GrupoCompatible[] {
+  const grupos = new Map<string, GrupoCompatible>()
+  for (const valor of valores) {
+    if (valor.trim() === '') continue
+    const clave = valor.toLowerCase()
+    const grupo = grupos.get(clave)
+    if (grupo) grupo.variantes.push(valor)
+    else grupos.set(clave, { clave, etiqueta: valor, variantes: [valor] })
+  }
+  return [...grupos.values()]
+}
+
+// Variantes a enviar al servidor para las claves elegidas; descarta las claves que ya no existen.
+export function expandirCompatibles(claves: readonly string[], grupos: readonly GrupoCompatible[]): string[] {
+  const elegidas = new Set(claves)
+  return grupos.filter((g) => elegidas.has(g.clave)).flatMap((g) => g.variantes)
+}
+
+// Literal de array de Postgres para `ov` de PostgREST: cada valor entre comillas con `\` y `"` escapados,
+// para que comas, llaves o comillas tipeadas en un valor no alteren el filtro.
+export function literalArrayPostgres(valores: readonly string[]): string {
+  return `{${valores.map((v) => `"${v.replace(/[\\"]/g, '\\$&')}"`).join(',')}}`
+}
+
+export async function listarCompatibles(cliente: Pick<SupabaseClient, 'rpc'>): Promise<string[]> {
+  const { data, error } = await cliente.rpc('listar_compatibles')
+  if (error) throw error
+  return Array.isArray(data) ? (data as string[]) : []
 }
 
 export type ResultadoProductos = { filas: FilaProductoListado[]; total: number }
@@ -91,7 +133,8 @@ export async function consultarProductos(
   // Coincidencia exacta por el índice único (organizacion_id, codigo_barras); si no, nombre/SKU parcial.
   const codigoBarras = codigoBarrasBuscado(consulta.texto)
   const busqueda = codigoBarras ? null : filtroBusquedaProductos(consulta.texto)
-  if (codigoBarras) peticion = peticion.eq('codigo_barras', codigoBarras)
+  // Un SKU con forma de EAN (13 dígitos) también se encuentra: coincidencia exacta por código de barras o por SKU.
+  if (codigoBarras) peticion = peticion.or(`codigo_barras.eq.${codigoBarras},sku.ilike.${codigoBarras}`)
   else if (busqueda) peticion = peticion.or(busqueda)
   // Se resuelve en el servidor: `empresa_ids @> {empresa}` sobre la vista.
   if (consulta.empresaId) peticion = peticion.contains('empresa_ids', [consulta.empresaId])
@@ -99,6 +142,8 @@ export async function consultarProductos(
   if (consulta.categoriaId) peticion = peticion.contains('categoria_ids', [consulta.categoriaId])
   // Se resuelve en el servidor sobre la columna `disponibilidad` de la vista.
   if (consulta.disponibilidad) peticion = peticion.eq('disponibilidad', consulta.disponibilidad)
+  // Alguno de los valores elegidos (OR), en el servidor.
+  if (consulta.compatibles.length > 0) peticion = peticion.overlaps('compatible_con', literalArrayPostgres(consulta.compatibles))
   const desde = (consulta.pagina - 1) * TAMANO_PAGINA_PRODUCTOS
   const { data, error, count } = await peticion
     // Nulos explícitos (los mismos que Postgres usa por defecto, compatibles con los índices de orden):
@@ -126,6 +171,47 @@ export async function consultarCostos(
     .returns<Array<{ producto_id: string; costo: number | string }>>()
   if (error) throw error
   return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+}
+
+export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }
+
+// Precio de lista de los productos de la página, desde la vista `productos_precio_costo` (F-PRE-01).
+// `precio_central_ars` ya viene convertido por la base con la cotización vigente (`private.a_pesos`),
+// así que acá no se recalcula nada: ARS tal cual; USD → pesos con la última cotización (null si no hay).
+export async function consultarPrecios(
+  cliente: Pick<SupabaseClient, 'from'>,
+  productoIds: readonly string[],
+): Promise<Map<string, PrecioListado>> {
+  if (productoIds.length === 0) return new Map()
+  const { data, error } = await cliente
+    .from('productos_precio_costo')
+    .select('producto_id, moneda, precio_lista, precio_central_ars')
+    .in('producto_id', [...productoIds])
+    .returns<Array<{ producto_id: string; moneda: 'USD' | 'ARS'; precio_lista: number | string | null; precio_central_ars: number | string | null }>>()
+  if (error) throw error
+  const precios = new Map<string, PrecioListado>()
+  for (const fila of data ?? []) {
+    if (fila.precio_lista === null || fila.precio_lista === '') continue
+    precios.set(fila.producto_id, {
+      moneda: fila.moneda,
+      precioLista: Number(fila.precio_lista),
+      precioArs: fila.precio_central_ars === null ? null : Number(fila.precio_central_ars),
+    })
+  }
+  return precios
+}
+
+const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const pesos = (valor: number) => `$ ${FORMATO_PRECIO.format(valor)}`
+
+// Precio para el listado, siempre en pesos: «$ 1.000,00» si el producto está en ARS;
+// «$ 1.570.000,00 (USD 1.000,00)» si está en USD (pesos = USD × última cotización);
+// «USD 1.000,00 (sin cotización)» si falta la cotización; «—» si no tiene precio.
+export function formatearPrecioListado(precio: PrecioListado | undefined): string {
+  if (!precio || !Number.isFinite(precio.precioLista)) return '—'
+  if (precio.moneda === 'ARS') return pesos(precio.precioLista)
+  const usd = `USD ${FORMATO_PRECIO.format(precio.precioLista)}`
+  return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
 }
 
 const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

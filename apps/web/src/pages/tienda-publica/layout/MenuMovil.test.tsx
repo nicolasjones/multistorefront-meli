@@ -12,7 +12,7 @@ const CAT_A = 'ca000000-0000-4000-8000-00000000000a'
 const CAT_B = 'ca000000-0000-4000-8000-00000000000b'
 const lista = (extra: Record<string, unknown> = {}): CategoriasTienda => ({
   fase: 'lista' as const,
-  categorias: [{ id: CAT_A, nombre: 'Joysticks', padreId: null, productos: 3 }, { id: CAT_B, nombre: 'Cargadores', padreId: null, productos: 1 }],
+  categorias: [{ id: CAT_A, nombre: 'Joysticks', padreId: null, productos: 3, imagen: null }, { id: CAT_B, nombre: 'Cargadores', padreId: null, productos: 1, imagen: null }],
   reintentar: () => undefined,
   ...extra,
 })
@@ -34,6 +34,15 @@ describe('Menú móvil (FR-040)', () => {
     montar()
     expect(boton()).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  // MSF-849 (MM-03): «Inicio» actual va en 600 como el prototipo (sin estado activo); `aria-current` lo anuncia.
+  it('«Inicio» actual mide 600 de peso (no 700) y sigue anunciado con aria-current', async () => {
+    montar(lista(), '/')
+    fireEvent.click(boton())
+    const inicio = within(await screen.findByRole('dialog', { name: 'Menú' })).getByRole('link', { name: 'Inicio' })
+    expect(inicio).toHaveAttribute('aria-current', 'page')
+    expect(getComputedStyle(inicio).fontWeight).toBe('600')
   })
 
   it('abierto: «Inicio» y «Categorías» con una entrada por categoría y la actual marcada', async () => {

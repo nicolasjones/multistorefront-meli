@@ -1,0 +1,11 @@
+slice_name: Ventas reales por producto
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku"], "metrics": ["unidades_total", "vendido_total", "costo_total", "costos_adicionales_total", "margen_total", "margen_pct_total", "estado_total"], "percent_metrics": [], "timeseries_limit_metric": "margen_total", "order_desc": true, "row_limit": 10000, "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: d3ee42c3-2449-5d8c-af2d-0f01aee5723c
+version: 1.0.0
+dataset_uuid: dae16317-979b-584e-8473-911885481287

@@ -46,7 +46,16 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'empresa.actualizada': 'Empresa actualizada',
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',
+  'opinion.aceptada': 'Opinión aceptada',
+  'opinion.rechazada': 'Opinión rechazada',
+  'resumen_semanal.pausado': 'Resumen semanal pausado',
+  'resumen_semanal.reanudado': 'Resumen semanal reanudado',
   'usuario.agregado': 'Usuario agregado',
+  'actividad.exportada': 'Actividad exportada',
+  'clientes.exportados': 'Clientes exportados',
+  'importacion.iniciada': 'Importación iniciada',
+  'importacion.finalizada': 'Importación finalizada',
+  'importacion.cancelada': 'Importación cancelada',
   'usuario.rol_cambiado': 'Cambio de rol',
   'usuario.removido': 'Usuario removido',
   'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',
@@ -62,72 +71,46 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'cliente.editado': 'Cliente editado',
   'cliente.archivado': 'Cliente archivado',
   'cliente.restaurado': 'Cliente restaurado',
-  'cliente.descuento_editado': 'Descuento de cliente editado',
-  'categoria.creada': 'Categoría creada',
-  'categoria.editada': 'Categoría editada',
-  'categoria.eliminada': 'Categoría eliminada',
-  'categoria.reordenada': 'Categorías reordenadas',
-  'cuenta_cobro.creada': 'Cuenta de cobro creada',
-  'cuenta_cobro.editada': 'Cuenta de cobro editada',
-  'cuenta_cobro.desactivada': 'Cuenta de cobro desactivada',
-  'cuenta_cobro.reactivada': 'Cuenta de cobro reactivada',
-  'comprobante.creado': 'Comprobante creado',
-  'comprobante.editado': 'Comprobante editado',
-  'comprobante.confirmado': 'Comprobante confirmado',
-  'comprobante.anulado': 'Comprobante anulado',
-  'comprobante.estado_cambiado': 'Estado de comprobante cambiado',
-  'comprobante.cobro_registrado': 'Cobro registrado',
-  'comprobante.documento_solicitado': 'Documento solicitado',
-  'comprobante.impreso': 'Comprobante impreso',
-  'comprobante.reimpreso': 'Comprobante reimpreso',
-  'comprobante.nota_credito_emitida': 'Nota de crédito emitida',
-  'modelo.creado': 'Modelo creado',
-  'modelo.editado': 'Modelo editado',
-  'modelo.desactivado': 'Modelo desactivado',
-  'modelo.reactivado': 'Modelo reactivado',
-  'producto.creado': 'Producto creado',
-  'producto.editado': 'Producto editado',
-  'producto.activado': 'Producto activado',
-  'producto.desactivado': 'Producto desactivado',
-  'producto.categoria_asignada': 'Categoría asignada',
-  'producto.empresas_actualizadas': 'Empresas del producto actualizadas',
-  'producto.imagen_agregada': 'Imagen agregada',
-  'producto.imagen_eliminada': 'Imagen eliminada',
-  'producto.precio_actualizado': 'Precio actualizado',
-  'proveedor.creado': 'Proveedor creado',
-  'proveedor.editado': 'Proveedor editado',
-  'proveedor.desactivado': 'Proveedor desactivado',
-  'proveedor.reactivado': 'Proveedor reactivado',
-  'rma.registrada': 'Devolución registrada',
-  'rma.estado_cambiado': 'Estado de devolución cambiado',
-  'rma.nota_credito_vinculada': 'Nota de crédito vinculada',
-  'rma.stock_reingresado': 'Stock reingresado',
-  'stock.entrada': 'Entrada de stock',
-  'stock.salida': 'Salida de stock',
-  'stock.ajuste': 'Ajuste de stock',
-  'stock.ajuste_manual': 'Ajuste manual de stock',
-  'stock.actualizado': 'Stock actualizado',
-  'stock.carga_inicial': 'Carga inicial de stock',
-  'stock.traslado': 'Traslado de stock',
-  'stock.minimo': 'Stock mínimo modificado',
-  'stock.reserva': 'Reserva de stock',
-  'stock.reserva_descontada': 'Reserva descontada',
-  'stock.reserva_liberada': 'Reserva liberada',
-  'stock.lote_registrado': 'Lote registrado',
-  'stock.faltantes_avisados': 'Faltantes avisados',
-  'stock.deposito_creado': 'Depósito creado',
-  'stock.deposito_editado': 'Depósito editado',
-  'stock.deposito_activo': 'Depósito activado o desactivado',
-  'stock.deposito_defecto': 'Depósito por defecto cambiado',
-  'ingreso.registrado': 'Ingreso registrado',
-  'ingreso.anulado': 'Ingreso anulado',
+  'comprobante.nota_credito_emitida': 'Comprobante nota crédito emitida',
+  'rma.nota_credito_vinculada': 'RMA nota crédito vinculada',
+  'reparacion.editada': 'Reparación editada',
+  'presupuesto.creado_desde_tienda': 'Presupuesto pedido desde la tienda',
+  'gasto.creado': 'Gasto cargado',
+  'gasto.editado': 'Gasto editado',
+  'gasto.anulado': 'Gasto anulado',
+  'gasto.exportado': 'Gastos exportados',
+  'lista_precios.creada': 'Lista de precios creada',
+  'lista_precios.editada': 'Lista de precios editada',
+  'lista_precios.archivada': 'Lista de precios archivada',
+  'lista_precios.restaurada': 'Lista de precios restaurada',
+  'cliente.lista_precio_asignada': 'Lista de precios del cliente',
+}
+
+// Palabras del tipo que llevan tilde o mayúsculas propias cuando no hay etiqueta explícita.
+const PALABRA_ACTIVIDAD: Readonly<Record<string, string>> = { reparacion: 'reparación', credito: 'crédito', rma: 'RMA' }
+
+// Texto de la columna «Tienda»: lo comparten la tabla y el CSV exportado (F-AUD-03, FR-012).
+export function tiendaDelEvento(empresaNombre: string | null, empresaId: string | null): string {
+  return empresaNombre ?? (empresaId ? 'Empresa no disponible' : 'Compartido')
+}
+
+// Texto de la columna «Quién» (lista, detalle y exportación). Un evento sin actor es «Sistema», salvo el presupuesto que pide un cliente desde la tienda
+// (MSF-176, B2, FR-060): no lo hace el sistema ni una persona del panel, lo hace la persona desde la tienda; el cliente queda identificado en el detalle del evento.
+export const TIPO_PRESUPUESTO_DESDE_TIENDA = 'presupuesto.creado_desde_tienda'
+export function quienDelEvento(tipo: string, actorNombre: string | null): string {
+  if (actorNombre) return actorNombre
+  return tipo === TIPO_PRESUPUESTO_DESDE_TIENDA ? 'Tienda online' : 'Sistema'
 }
 
 export function etiquetaTipoActividad(tipo: string): string {
   const conocida = ETIQUETA_TIPO_ACTIVIDAD[tipo]
   if (conocida) return conocida
   const [entidad, accion] = tipo.split('.')
-  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`.trim()
+  const texto = `${entidad ?? ''} ${(accion ?? '').replace(/_/g, ' ')}`
+    .trim()
+    .split(' ')
+    .map((palabra) => PALABRA_ACTIVIDAD[palabra] ?? palabra)
+    .join(' ')
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
@@ -174,19 +157,39 @@ export function formatearCuando(iso: string): string {
   return `${partes.day}/${partes.month}/${partes.year} ${partes.hour}:${partes.minute}`
 }
 
-const formatoImporteDetalle = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// Detalle de un evento (F-AUD-02, FR-006/FR-007): trae el valor anterior y el nuevo.
+export type ValoresActividad = Record<string, unknown>
 
-// «859100» o «90919.40» (punto decimal) / «90919,40» (coma) -> «859.100,00» / «90.919,40».
-function importeLegible(texto: string): string {
-  const numero = Number(texto.replace(',', '.'))
-  return Number.isFinite(numero) ? formatoImporteDetalle.format(numero) : texto
+export type DetalleActividad = EventoActividadListado & {
+  sensible: boolean
+  valorAnterior: ValoresActividad | null
+  valorNuevo: ValoresActividad | null
 }
 
-// Los detalles ya guardados traen los importes crudos. Se les da formato de
-// moneda al mostrarlos: «Cobro de N», «$ N» y «ARS|USD N». No toca otros números.
-export function formatearDetalleActividad(detalle: string): string {
-  return detalle.replace(
-    /(Cobro de |\$ |\b(?:ARS|USD) )(\d+(?:[.,]\d+)?)(?![\d.,]*\d)/g,
-    (_, prefijo: string, n: string) => `${prefijo.startsWith('Cobro') ? 'Cobro de $ ' : prefijo}${importeLegible(n)}`,
-  )
+export type CampoCambiado = { campo: string; anterior: string; nuevo: string }
+
+const SIN_VALOR = '—'
+
+function textoDelValor(valor: unknown): string {
+  if (valor === undefined || valor === null || valor === '') return SIN_VALOR
+  if (typeof valor === 'boolean') return valor ? 'Sí' : 'No'
+  if (typeof valor === 'object') return JSON.stringify(valor)
+  return String(valor)
+}
+
+function etiquetaDelCampo(clave: string): string {
+  return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
+}
+
+// Campo por campo, antes → después, en el orden en que se registraron (anterior primero, luego los que solo
+// existen en el nuevo). Un campo que no existía de un lado se muestra «—».
+export function camposDelCambio(anterior: ValoresActividad | null, nuevo: ValoresActividad | null): CampoCambiado[] {
+  const antes = anterior ?? {}
+  const despues = nuevo ?? {}
+  const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
+  return claves.map((clave) => ({
+    campo: etiquetaDelCampo(clave),
+    anterior: textoDelValor(antes[clave]),
+    nuevo: textoDelValor(despues[clave]),
+  }))
 }

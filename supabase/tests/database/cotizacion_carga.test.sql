@@ -50,10 +50,10 @@ select is(has_table_privilege('anon', 'dominio.cotizaciones', 'SELECT'), false, 
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'INSERT'), false, 'authenticated no inserta en cotizaciones');
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'UPDATE'), false, 'authenticated no actualiza cotizaciones');
 select is(has_table_privilege('authenticated', 'dominio.cotizaciones', 'DELETE'), false, 'authenticated no borra de cotizaciones');
-select is(has_function_privilege('anon', 'public.cargar_cotizacion(numeric)', 'EXECUTE'), false, 'anon no ejecuta cargar_cotizacion');
-select is(has_function_privilege('anon', 'public.estado_cotizacion()', 'EXECUTE'), false, 'anon no ejecuta estado_cotizacion');
-select is(has_function_privilege('authenticated', 'public.cargar_cotizacion(numeric)', 'EXECUTE'), true, 'authenticated ejecuta cargar_cotizacion');
-select is(has_function_privilege('authenticated', 'public.estado_cotizacion()', 'EXECUTE'), true, 'authenticated ejecuta estado_cotizacion');
+select is(has_function_privilege('anon', 'public.cargar_cotizacion(numeric, uuid)', 'EXECUTE'), false, 'anon no ejecuta cargar_cotizacion');
+select is(has_function_privilege('anon', 'public.estado_cotizacion(uuid)', 'EXECUTE'), false, 'anon no ejecuta estado_cotizacion');
+select is(has_function_privilege('authenticated', 'public.cargar_cotizacion(numeric, uuid)', 'EXECUTE'), true, 'authenticated ejecuta cargar_cotizacion');
+select is(has_function_privilege('authenticated', 'public.estado_cotizacion(uuid)', 'EXECUTE'), true, 'authenticated ejecuta estado_cotizacion');
 
 -- ============================================================================
 -- Administrador (org 1): estado inicial y carga
@@ -151,13 +151,15 @@ insert into dominio.cotizaciones (organizacion_id, valor, valor_anterior, variac
 values
   ('11111111-1111-1111-1111-111111111111', 1470, 1465, 0.3413, 'Javier', now() - interval '2 days'),
   ('11111111-1111-1111-1111-111111111111', 1480, 1470, 0.6803, 'Emilse', now() - interval '1 day');
+-- La última confirmada (1480) también es la aplicada: la variación de una carga nueva se mide contra la aplicada (MSF-352).
+insert into dominio.cotizacion_aplicada (organizacion_id, valor) values ('11111111-1111-1111-1111-111111111111', 1480);
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select is((select (public.estado_cotizacion() -> 'vigente' ->> 'valor')::numeric), 1480::numeric, 'la vigente es la última confirmada');
 select is((select public.estado_cotizacion() -> 'vigente' ->> 'cargada_por'), 'Emilse', 'la vigente dice quién la cargó');
 select is(
   (select (public.cargar_cotizacion(1500) ->> 'anterior')::numeric),
-  1480::numeric, 'el anterior de una carga nueva es la última confirmada'
+  1480::numeric, 'el anterior de una carga nueva es la cotización aplicada (la última confirmada que se aplicó)'
 );
 
 -- ============================================================================

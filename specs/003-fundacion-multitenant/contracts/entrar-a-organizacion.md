@@ -1,5 +1,10 @@
 # Contract: RPC `entrar_a_organizacion`
 
+> **Reemplazado (F-OPS-04, MSF-300):** la firma `entrar_a_organizacion(org_id)` ya no existe.
+> Ahora es `entrar_a_organizacion(org_id uuid, p_motivo text)`: el motivo es obligatorio, el
+> acceso vence a las 4 h y se registra como `soporte.*` en la actividad de la organización.
+> Ver `docs/acceso-soporte.md` y `specs/20261102-100000-auditoria-avanzada-y-soporte/contracts/`.
+
 **Quién la llama**: Refine, desde el botón "Ingresar" en cada fila del
 listado de organizaciones (Historia 4), solo accesible a superadmin.
 

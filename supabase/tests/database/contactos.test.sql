@@ -5,7 +5,7 @@
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, como «authenticated» o «anon».
 begin;
 
-select plan(54);
+select plan(55);
 
 -- Devuelve el DETAIL del 23505 de crear_contacto (pgTAP no lo expone).
 create function pg_temp.detalle_duplicado(p_correo text) returns text language plpgsql as $f$
@@ -55,7 +55,7 @@ insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, 
 update dominio.consultas set nota_interna = 'llamó Ana, tel 11-5555-0000' where id = 'c1000000-0000-0000-0000-000000000001';
 
 -- Sin `numero`: lo asigna el disparador (un número fijo choca con clientes_org_numero_uq).
-insert into clientes (id, organizacion_id, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, correo, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente Uno', 'cu@example.com', 'minorista');
 insert into dominio.comprobantes_venta
   (id, organizacion_id, cliente_id, empresa_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva) values

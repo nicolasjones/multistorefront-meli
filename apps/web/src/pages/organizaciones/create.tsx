@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { Create } from '@refinedev/mui'
+import { BotonVolver } from '../../components/pagina/BotonVolver'
 import { useIsSuperadmin } from '../../hooks/useIsSuperadmin'
 import { supabaseClient } from '../../lib/supabase'
 
@@ -55,7 +56,7 @@ export function OrganizacionCreate() {
   }
 
   return (
-    <Create title="Crear organización" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}>
+    <Create goBack={<BotonVolver />} title="Crear organización" isLoading={loading} saveButtonProps={{ style: { display: 'none' } }}>
       <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 480 }}>
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}

@@ -50,8 +50,8 @@ insert into dominio.cotizaciones (organizacion_id, valor, cargada_por_nombre) va
 -- Privilegios
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'public.listar_cotizaciones(integer, text)', 'EXECUTE'), false, 'anon no ejecuta listar_cotizaciones');
-select is(has_function_privilege('authenticated', 'public.listar_cotizaciones(integer, text)', 'EXECUTE'), true, 'authenticated ejecuta listar_cotizaciones');
+select is(has_function_privilege('anon', 'public.listar_cotizaciones(integer, text, uuid)', 'EXECUTE'), false, 'anon no ejecuta listar_cotizaciones');
+select is(has_function_privilege('authenticated', 'public.listar_cotizaciones(integer, text, uuid)', 'EXECUTE'), true, 'authenticated ejecuta listar_cotizaciones');
 select is(
   has_table_privilege('authenticated', 'dominio.cotizaciones', 'insert')
     or has_table_privilege('authenticated', 'dominio.cotizaciones', 'update')

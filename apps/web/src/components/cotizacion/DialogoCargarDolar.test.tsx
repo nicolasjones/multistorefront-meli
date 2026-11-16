@@ -9,7 +9,9 @@ const mocks = vi.hoisted(() => ({
   useCargarCotizacion: vi.fn(),
   useConfirmarCotizacion: vi.fn(),
   usePrevisualizarCotizacion: vi.fn(),
+  useCotizacionSugerida: vi.fn(),
 }))
+vi.mock('../../hooks/useCotizacionSugerida', () => ({ useCotizacionSugerida: mocks.useCotizacionSugerida }))
 vi.mock('../../hooks/useCotizacion', () => ({
   useCargarCotizacion: mocks.useCargarCotizacion,
   useConfirmarCotizacion: mocks.useConfirmarCotizacion,
@@ -54,6 +56,7 @@ const preparar = () => {
   mocks.useCargarCotizacion.mockReturnValue({ cargar: mocks.cargar, enviando: false })
   mocks.useConfirmarCotizacion.mockReturnValue({ confirmar: mocks.confirmar, descartar: mocks.descartar, enviando: false })
   mocks.usePrevisualizarCotizacion.mockReturnValue(previa())
+  mocks.useCotizacionSugerida.mockReturnValue({ estado: 'no_disponible' })
 }
 
 describe('DialogoCargarDolar · paso 1 (carga)', () => {
@@ -110,7 +113,7 @@ describe('DialogoCargarDolar · paso 1 (carga)', () => {
     abrir({ onConfirmada })
     escribir('1490,50')
     fireEvent.click(screen.getByRole('button', { name: 'Cargar dólar' }))
-    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490.5))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490.5, null))
     expect(await screen.findByRole('button', { name: 'Aplicar y recalcular' })).toBeInTheDocument()
     expect(onConfirmada).not.toHaveBeenCalled()
     expect(mocks.confirmar).not.toHaveBeenCalled()
@@ -138,7 +141,7 @@ describe('DialogoCargarDolar · paso 1 (carga)', () => {
     abrir()
     escribir('1490')
     fireEvent.submit(screen.getByLabelText(ETIQUETA).closest('form') as HTMLFormElement)
-    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490))
+    await waitFor(() => expect(mocks.cargar).toHaveBeenCalledWith(1490, null))
   })
 
   it('mientras envía no deja cerrar ni reenviar', () => {
@@ -210,6 +213,54 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
     await waitFor(() => expect(onConfirmada).toHaveBeenCalledWith(confirmada))
     expect(mocks.confirmar).toHaveBeenCalledTimes(1)
+    // Sin aviso de variación inusual a la vista, no se manda la confirmación explícita (la base la exigiría igual).
+    expect(mocks.confirmar).toHaveBeenCalledWith(null, 1.7065)
+  })
+
+  it('con variación inusual a la vista, «Aplicar» manda la confirmación explícita', async () => {
+    mocks.usePrevisualizarCotizacion.mockReturnValue(previa({ variacionPct: 40 }))
+    mocks.confirmar.mockResolvedValue({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 1 } })
+    abrir({ onConfirmada: vi.fn() })
+    await irAlPaso2()
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
+    // Manda la variación que tenía a la vista: la base la compara con la real.
+    await waitFor(() => expect(mocks.confirmar).toHaveBeenCalledWith(null, 40))
+  })
+
+  it('con la variación inusual desfasada en pantalla (15) y 10 en la base: avisa con la de la base y se puede aplicar sin bucle', async () => {
+    mocks.usePrevisualizarCotizacion.mockReturnValue(previa({ variacionPct: 12, confirmacionPct: 10 } as never))
+    mocks.confirmar.mockResolvedValue({ ok: true, confirmada: { id: 'c1', recalculoAplicado: true, preciosRecalculados: 1 } })
+    const onConfirmada = vi.fn()
+    abrir({ onConfirmada, confirmacionPct: 15 })
+    await irAlPaso2()
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
+    expect(screen.getByText(/La variación supera el 10 %/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
+    await waitFor(() => expect(onConfirmada).toHaveBeenCalledTimes(1))
+    expect(mocks.confirmar).toHaveBeenCalledTimes(1)
+    expect(mocks.confirmar).toHaveBeenCalledWith(null, 12)
+  })
+
+  it('si el dólar cambió mientras revisaba, muestra el aviso y recalcula la vista previa', async () => {
+    mocks.usePrevisualizarCotizacion.mockReturnValue(previa({ variacionPct: 40 }))
+    mocks.confirmar.mockResolvedValue({ ok: false, mensaje: 'El dólar cambió mientras revisabas: revisá de nuevo.', revisar: true })
+    const onConfirmada = vi.fn()
+    abrir({ onConfirmada })
+    await irAlPaso2()
+    expect(mocks.recargar).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Aplicar y recalcular' }))
+    expect(await screen.findByText('El dólar cambió mientras revisabas: revisá de nuevo.')).toBeInTheDocument()
+    await waitFor(() => expect(mocks.recargar).toHaveBeenCalledTimes(1))
+    expect(onConfirmada).not.toHaveBeenCalled()
+  })
+
+  it('el paso 1 mide la variación contra la cotización APLICADA y la muestra como «Anterior»', () => {
+    // Aplicada 1.000, última carga 1.465 (no aplicada): 1.151 es +15,1 % contra la aplicada.
+    abrir({ aplicada: 1000 })
+    expect(screen.getByText('Anterior: $ 1.000 (la que usan los precios)')).toBeInTheDocument()
+    escribir('1151')
+    expect(screen.getByText('Variación inusual')).toBeInTheDocument()
   })
 
   it('«Cancelar» descarta la cotización pendiente y cierra', async () => {
@@ -258,5 +309,32 @@ describe('DialogoCargarDolar · paso 2 (vista previa y confirmación)', () => {
     rerender(<DialogoCargarDolar abierto vigente={VIGENTE} onCerrar={vi.fn()} onConfirmada={vi.fn()} />)
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Aplicar y recalcular' })).toBeDisabled()
+  })
+})
+
+describe('DialogoCargarDolar · cotización sugerida (F-PRE-13)', () => {
+  beforeEach(preparar)
+
+  it('muestra la sugerida y «Usar este valor» solo completa el campo, sin cargar nada', () => {
+    mocks.useCotizacionSugerida.mockReturnValue({ estado: 'lista', sugerida: { valor: 1405.5, fuente: 'DolarApi (dólar oficial, venta)', fecha: '2026-11-10T15:00:00.000Z' } })
+    abrir()
+    expect(screen.getByText(/Sugerida:.*por USD · DolarApi.*actualizada el/)).toBeTruthy()
+    expect((screen.getByLabelText(ETIQUETA) as HTMLInputElement).value).toBe('')
+    fireEvent.click(screen.getByRole('button', { name: 'Usar este valor' }))
+    expect((screen.getByLabelText(ETIQUETA) as HTMLInputElement).value).toBe('1405,5')
+    expect(mocks.cargar).not.toHaveBeenCalled()
+  })
+
+  it('con la fuente caída avisa y la carga a mano sigue funcionando', async () => {
+    abrir()
+    expect(screen.getByText(/No pudimos consultar la cotización sugerida/)).toBeTruthy()
+    await irAlPaso2()
+    expect(mocks.cargar).toHaveBeenCalledWith(1490, null)
+  })
+
+  it('mientras busca avisa que está buscando', () => {
+    mocks.useCotizacionSugerida.mockReturnValue({ estado: 'cargando' })
+    abrir()
+    expect(screen.getByText(/Buscando la cotización sugerida/)).toBeTruthy()
   })
 })

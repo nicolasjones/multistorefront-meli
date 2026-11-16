@@ -204,4 +204,42 @@ describe('Correo masivo · Nueva campaña · redactar y enviar', () => {
     expect(screen.getByRole('button', { name: 'Enviar correo' })).toBeDisabled()
     expect(screen.getByText('No hay destinatarios para enviar con estos criterios.')).toBeInTheDocument()
   })
+
+  it('carga infinita: «Cargar más» suma destinatarios y cambiar un filtro vuelve a la primera tanda', () => {
+    const tanda1 = [filaDestinatario(1)]
+    const tanda2 = [filaDestinatario(2)]
+    mocks.useDestinatarios.mockImplementation((f: { pagina: number }) => respuesta(f.pagina === 2 ? tanda2 : tanda1, { total: 60 }))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros().pagina).toBe(2)
+    expect(screen.getAllByText('Cliente 1').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Cliente 2').length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Mayorista' }))
+    expect(ultimosFiltros()).toMatchObject({ tipo: 'mayorista', pagina: 1 })
+    expect(screen.queryByText('Cliente 2')).not.toBeInTheDocument()
+  })
+
+  it('búsqueda: solo coincidencias, «Cargar más» conserva el texto y el total es el de las coincidencias', () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const c1 = [{ ...filaDestinatario(10), nombre: 'Ana López' }]
+    const c2 = [{ ...filaDestinatario(11), nombre: 'Ana Pérez' }]
+    const t1 = [filaDestinatario(1)]
+    const t2 = [filaDestinatario(2)]
+    mocks.useDestinatarios.mockImplementation((f: { texto: string; pagina: number }) => (
+      f.texto === 'ana' ? respuesta(f.pagina === 2 ? c2 : c1, { total: 2 }) : respuesta(f.pagina === 2 ? t2 : t1, { total: 60 })))
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getAllByText('Cliente 2').length).toBeGreaterThan(0)
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar clientes' }), { target: { value: 'ana' } })
+    act(() => { vi.advanceTimersByTime(350) })
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 1 })
+    expect(screen.queryByText('Cliente 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cliente 2')).not.toBeInTheDocument()
+    expect(screen.getByText('2 destinatarios')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(ultimosFiltros()).toMatchObject({ texto: 'ana', pagina: 2 })
+    expect(screen.getAllByText('Ana López').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Ana Pérez').length).toBeGreaterThan(0)
+    vi.useRealTimers()
+  })
 })

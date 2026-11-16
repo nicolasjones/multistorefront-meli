@@ -2,6 +2,8 @@
 
 **Feature Branch**: `epic/MSF-136-stock-stock-movimientos`
 
+**Componente**: Stock
+
 **Jira Epic**: MSF-136 — Stock · Stock movimientos (spec `stock-movimientos`)
 
 **Created**: 2026-10-17

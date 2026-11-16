@@ -11,7 +11,7 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { esHostDeTienda, hostsDelPanel, leerTiendaDeEmpresa, normalizarHost, resolverTienda, urlDeTienda } from './tienda'
+import { esHostDeTienda, hostsDelPanel, leerTiendaDeEmpresa, normalizarHost, resolverRedireccion, resolverTienda, urlDeRedireccion, urlDeTienda } from './tienda'
 
 describe('normalizarHost', () => {
   it.each([
@@ -90,5 +90,31 @@ describe('leerTiendaDeEmpresa', () => {
   it('devuelve null si la empresa todavía no tiene dominio', async () => {
     mocks.maybeSingle.mockResolvedValue({ data: null, error: null })
     await expect(leerTiendaDeEmpresa('e-1')).resolves.toBeNull()
+  })
+})
+
+describe('resolverRedireccion / urlDeRedireccion (F-TDA-05, FR-013)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('devuelve el dominio principal si el host es un «Redirigir también»', async () => {
+    mocks.rpc.mockResolvedValue({ data: [{ dominio_principal: 'mundojc.com.ar' }], error: null })
+    await expect(resolverRedireccion('www.mundojc.com.ar')).resolves.toBe('mundojc.com.ar')
+    expect(mocks.rpc).toHaveBeenCalledWith('redireccion_por_dominio', { host: 'www.mundojc.com.ar' })
+  })
+
+  it('devuelve null para un host desconocido o de una tienda desactivada', async () => {
+    mocks.rpc.mockResolvedValue({ data: [], error: null })
+    await expect(resolverRedireccion('otro.test')).resolves.toBeNull()
+  })
+
+  it('propaga el error de la consulta', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    await expect(resolverRedireccion('x.test')).rejects.toThrow('boom')
+  })
+
+  it('arma la URL del principal conservando ruta, query y hash', () => {
+    const ubicacion = { protocol: 'https:', port: '', pathname: '/producto/3', search: '?a=1', hash: '#x' } as Location
+    expect(urlDeRedireccion('mundojc.com.ar', ubicacion)).toBe('https://mundojc.com.ar/producto/3?a=1#x')
+    expect(urlDeRedireccion('mundojc.com.ar', { ...ubicacion, pathname: '/', search: '', hash: '' } as Location)).toBe('https://mundojc.com.ar/')
   })
 })

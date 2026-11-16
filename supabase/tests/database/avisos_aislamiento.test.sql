@@ -43,7 +43,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-
 set local role authenticated;
 
 select is(
-  (select count(*)::int from public.tipos_aviso), 1,
+  (select count(*)::int from public.tipos_aviso where clave = 'consulta_nueva'), 1,
   'authenticated lee el catálogo'
 );
 select throws_ok(
@@ -51,7 +51,7 @@ select throws_ok(
   '42501', null, 'authenticated no escribe el catálogo'
 );
 select is(
-  (select count(*)::int from public.listar_preferencias_aviso()), 1,
+  (select count(*)::int from public.listar_preferencias_aviso() where tipo = 'consulta_nueva'), 1,
   'el administrador ve el tipo de la sección consultas'
 );
 select is(

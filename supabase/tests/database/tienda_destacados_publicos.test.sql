@@ -158,7 +158,7 @@ select is((select j from res where clave = 'vacio'), null::jsonb, 'host vacío: 
 -- Lista blanca (FR-060)
 select is(
   (select array_agg(k order by k) from (select distinct jsonb_object_keys(p) k from jsonb_array_elements((select j -> 'productos' from res where clave = 'a')) p) s),
-  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio'],
+  array['categoria_id', 'disponible', 'id', 'imagen', 'nombre', 'precio', 'precio_anterior'],
   'cada producto expone solo la lista blanca (sin costos, existencias, proveedor ni organizacion_id)'
 );
 select is(

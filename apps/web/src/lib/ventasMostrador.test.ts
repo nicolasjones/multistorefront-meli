@@ -15,7 +15,8 @@ vi.mock('./ventasLineas', async (original) => ({
 
 import type { Comprobante } from './ventas'
 import {
-  MENSAJE_CODIGO_INVALIDO, agregarProductoAVenta, buscarProductoPorCodigoBarras, esEan13, mensajeDeEscaneo,
+  MENSAJE_CODIGO_INVALIDO, agregarProductoAVenta, buscarProductoPorCodigoBarras, esEan13, esPreciosCambiaron, huboCambioDePrecios,
+  mensajeDeEscaneo, repreciarVenta,
 } from './ventasMostrador'
 
 const DEPOSITO = '9f1c0a52-0000-4000-8000-000000000001'
@@ -71,5 +72,76 @@ describe('ventasMostrador (F-VTA-31)', () => {
   it('traduce los errores del escaneo', () => {
     expect(mensajeDeEscaneo({ code: '22023', hint: 'codigo_barras' })).toBe(MENSAJE_CODIGO_INVALIDO)
     expect(mensajeDeEscaneo({ code: '42501' })).toMatch(/No tenés permiso/)
+  })
+
+  it('reconoce el rechazo «precios_cambiaron» del cobro', () => {
+    expect(esPreciosCambiaron({ code: '40001', hint: 'precios_cambiaron' })).toBe(true)
+    expect(esPreciosCambiaron({ code: '40001' })).toBe(false)
+  })
+
+  it('repreciarVenta re-guarda las mismas cantidades y precios manuales y relee la venta', async () => {
+    const original = {
+      id: 'c-1', updated_at: 't-1',
+      lineas: [
+        { producto_id: 'p-1', cantidad: 2, deposito_id: DEPOSITO, precio_manual: false, precio_unitario: 900, precio_referencia: 1000, sin_stock: false },
+        { producto_id: 'p-2', cantidad: 1, deposito_id: DEPOSITO, precio_manual: true, precio_unitario: 50, sin_stock: false },
+      ],
+    } as unknown as Comprobante
+    mocks.obtener.mockResolvedValue({ id: 'c-1', updated_at: 't-2', lineas: [] })
+    const recargada = await repreciarVenta(original)
+    expect(mocks.guardar).toHaveBeenCalledWith('c-1', [
+      { producto_id: 'p-1', cantidad: 2, deposito_id: DEPOSITO, precio_manual: null },
+      { producto_id: 'p-2', cantidad: 1, deposito_id: DEPOSITO, precio_manual: 50 },
+    ], 't-1')
+    expect(recargada.updated_at).toBe('t-2')
+  })
+})
+
+describe('huboCambioDePrecios (FR-017)', () => {
+  const l = (producto_id: string, precio_unitario: number, precio_referencia: number | null = null, cantidad = 1) =>
+    ({ producto_id, deposito_id: DEPOSITO, precio_unitario, precio_referencia, precio_manual: false, cantidad, sin_stock: false })
+  const v = (...lineas: ReturnType<typeof l>[]) => ({ id: 'c-1', updated_at: 't', lineas }) as unknown as Comprobante
+
+  it('sin venta previa no hay cambio', () => {
+    expect(huboCambioDePrecios(null, v(l('p-1', 900, 1000)), 'p-1')).toBe(false)
+  })
+
+  it('detecta que una línea ya cargada cambió de precio (promoción vencida o iniciada)', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000)), v(l('p-1', 1000), l('p-2', 5)), 'p-2')).toBe(true)
+    expect(huboCambioDePrecios(v(l('p-1', 1000)), v(l('p-1', 900, 1000), l('p-2', 5)), 'p-2')).toBe(true)
+  })
+
+  it('no avisa si los precios de las líneas previas no cambiaron', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000)), v(l('p-1', 900, 1000), l('p-2', 5)), 'p-2')).toBe(false)
+  })
+
+  it('la promoción vence o empieza en la línea que se vuelve a escanear: avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 1000, null, 2)), 'p-1')).toBe(true)
+    expect(huboCambioDePrecios(v(l('p-1', 1000, null, 1)), v(l('p-1', 900, 1000, 2)), 'p-1')).toBe(true)
+  })
+
+  it('el monto de la promoción cambia en OTRA línea (900 → 850): avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000)), v(l('p-1', 850, 1000), l('p-2', 5)), 'p-2')).toBe(true)
+  })
+
+  it('el monto de la promoción cambia en la línea escaneada (ambas en promoción, 900 → 850): avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 850, 1000, 2)), 'p-1')).toBe(true)
+  })
+
+  it('con la misma promoción en la línea escaneada (solo sube la cantidad) no avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 900, 1000, 1)), v(l('p-1', 900, 1000, 2)), 'p-1')).toBe(false)
+  })
+
+  it('un cambio de escala por cantidad sin promoción en la línea escaneada NO avisa', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 1000, null, 4)), v(l('p-1', 900, null, 5)), 'p-1')).toBe(false)
+  })
+
+  it('un producto nuevo con promoción no avisa (no estaba en la venta)', () => {
+    expect(huboCambioDePrecios(v(l('p-1', 500)), v(l('p-1', 500), l('p-2', 900, 1000)), 'p-2')).toBe(false)
+  })
+
+  it('una línea con precio manual que no cambia no avisa', () => {
+    const manual = { ...l('p-1', 50), precio_manual: true }
+    expect(huboCambioDePrecios(v(manual), v(manual, l('p-2', 5)), 'p-2')).toBe(false)
   })
 })

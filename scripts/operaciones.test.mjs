@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import test from 'node:test';
-import { argumentValue, redactError, requireEnvironment, run } from './operaciones.mjs';
+import { argumentValue, redactError, requireEnvironment, run, separarContrasena } from './operaciones.mjs';
 
 test('argumentValue exige el valor de un flag', () => {
   assert.equal(argumentValue(['--entorno', 'staging'], '--entorno'), 'staging');
@@ -56,5 +56,27 @@ test('redactError también elimina la service-role y la contraseña de Superset'
   );
   for (const [nombre, valor] of Object.entries(previos)) {
     if (valor === undefined) delete process.env[nombre]; else process.env[nombre] = valor;
+  }
+});
+
+test('separarContrasena saca la contraseña de la URL y la pasa por PGPASSWORD', () => {
+  const { urlSinContrasena, env } = separarContrasena('postgresql://postgres.ref:p%40ss%3Aw@host.supabase.com:5432/postgres');
+  assert.equal(urlSinContrasena, 'postgresql://postgres.ref@host.supabase.com:5432/postgres');
+  assert.equal(env.PGPASSWORD, 'p@ss:w');
+  assert.ok(!urlSinContrasena.includes('ss'));
+});
+
+test('separarContrasena sin contraseña no define PGPASSWORD', () => {
+  assert.deepEqual(separarContrasena('postgresql://u@host/db').env, {});
+});
+
+test('redactError enmascara la contraseña de SUPABASE_DB_URL aunque aparezca suelta', () => {
+  const anterior = process.env.SUPABASE_DB_URL;
+  process.env.SUPABASE_DB_URL = 'postgres://usuario:clave%2Bsuelta@host/db';
+  try {
+    assert.equal(redactError(new Error('FATAL: password clave+suelta rechazada')), 'FATAL: password [REDACTADO] rechazada');
+  } finally {
+    if (anterior === undefined) delete process.env.SUPABASE_DB_URL;
+    else process.env.SUPABASE_DB_URL = anterior;
   }
 });

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -108,12 +109,48 @@ describe('Pestaña Cotizaciones del dólar', () => {
     expect(screen.getByText('Todavía no hay historial importado.')).toBeInTheDocument()
   })
 
-  it('paginación en servidor: pide la página siguiente', () => {
+  it('carga infinita: «Cargar más» pide la tanda siguiente', () => {
     mocks.useHistorialCotizaciones.mockReturnValue(respuesta([cotizacion(1)], { total: 60 }))
     abrirCotizaciones()
-    expect(screen.getByText('Página 1 · 1–25 de 60')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /siguiente|next/i }))
+    expect(screen.getByText('60 registros mostrados')).toBeInTheDocument()
+    expect(screen.queryByText(/de 60/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
     expect(mocks.setPagina).toHaveBeenCalledWith(2)
+  })
+
+  it('«Cargar más» suma la tanda siguiente a las ya mostradas', () => {
+    mocks.useHistorialCotizaciones.mockImplementation(() => {
+      const [pagina, setPagina] = useState(1)
+      return respuesta([cotizacion(pagina, { cargado_por: `Operador ${pagina}` })], { total: 2, pagina, setPagina })
+    })
+    abrirCotizaciones()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Operador 1')).toBeInTheDocument()
+    expect(screen.getByText('Operador 2')).toBeInTheDocument()
+    expect(screen.getByText('No hay más resultados.')).toBeInTheDocument()
+  })
+
+  it('búsqueda: reinicia en la tanda 1, solo ve coincidencias y «Cargar más» pide la siguiente con el mismo texto', () => {
+    mocks.useHistorialCotizaciones.mockImplementation(() => {
+      const [pagina, setPagina] = useState(1)
+      const [textoAplicado, setTextoAplicado] = useState('')
+      const buscar = (t: string) => { setTextoAplicado(t); setPagina(1) }
+      const coincide = textoAplicado === '05/03/2020'
+      const fila = cotizacion(coincide ? 40 + pagina : pagina, { cargado_por: coincide ? `Coincide ${pagina}` : `Todas ${pagina}` })
+      return respuesta([fila], { total: coincide ? 2 : 3, pagina, setPagina, textoAplicado, setTexto: buscar })
+    })
+    abrirCotizaciones()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Todas 3')).toBeInTheDocument()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Buscar por fecha' }), { target: { value: '05/03/2020' } })
+    expect(screen.getByText('Coincide 1')).toBeInTheDocument()
+    expect(screen.queryByText(/Todas/)).not.toBeInTheDocument()
+    expect(screen.getByText('2 registros mostrados')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cargar más' }))
+    expect(screen.getByText('Coincide 1')).toBeInTheDocument()
+    expect(screen.getByText('Coincide 2')).toBeInTheDocument()
+    expect(screen.queryByText(/Todas/)).not.toBeInTheDocument()
   })
 
   it('en angosto se ven como tarjetas con los mismos datos', () => {
