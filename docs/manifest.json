@@ -1853,9 +1853,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "3a5f3fa28ca4aef32d9dca91cdc937166490fadc367c284c7110f8676f07a637",
-      "sourceHash": "155105560e143ecde0f2e30b0db45e9545aad38dd210b2f71e89efe3614a11fb",
-      "sourceAt": "e70bdb10",
+      "pageHash": "b3d84e192d210b82a2fa301ba0055340863d3df4e14ec6a9381f7842a53ad007",
+      "sourceHash": "108415f9c087810b128776b65605e5b01f35defd76190c1ae62e4c55c09187ba",
+      "sourceAt": "0f7c7bc1",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1864,7 +1864,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "e70bdb10"
+      "commit": "0f7c7bc1"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -1879,14 +1879,14 @@
     },
     "docs/release.md": {
       "title": "Release automático (F4)",
-      "pageHash": "8e38509a28c2689cfd8f2a4c1975f8c31989837c2baa84248a3d8d3215454416",
-      "sourceHash": "fd696a0c715a94953f77a73fb6e15be1eea2aa77700f63118913de8bbc9b7ec4",
-      "sourceAt": "4d730bd9",
+      "pageHash": "da2d8bf46b3a463bdf40aeef72c3c44a3a0d0b55892d99d347a8dc9dba8f9c45",
+      "sourceHash": "fb74a3f516208ab649380d2d8983e0a2c7668a9fcdd243591aff03bbc8cc6dc7",
+      "sourceAt": "323157ea",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "4d730bd9"
+      "commit": "323157ea"
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
