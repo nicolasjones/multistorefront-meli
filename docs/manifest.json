@@ -1046,14 +1046,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f17236f3b0921bfc634db286ed03f5a76e915f7cecabd92fd23696cd78921770",
+      "pageHash": "43abaa74117ad92e3117e7545c5f85e4b390ccd15aac85d676c6685f4b103e39",
       "sourceHash": "8022e9a324377e3c7798aa15c5562718026382ca271b317934fbac001dfa427c",
-      "sourceAt": "7065a017",
+      "sourceAt": "5625d9cd",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "7065a017"
+      "commit": "5625d9cd"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",

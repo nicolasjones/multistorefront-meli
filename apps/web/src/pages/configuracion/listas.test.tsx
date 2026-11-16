@@ -149,7 +149,8 @@ describe('ListasConfigurables', () => {
   it('se opera con teclado: los controles son botones con nombre accesible y las listas, regiones con título', async () => {
     abrir()
     await within(seccionEstados()).findByText('Nueva')
-    expect(screen.getAllByRole('region')).toHaveLength(2)
+    // 4 regiones: las dos secciones de la pantalla y las dos tablas con scroll (ahora con nombre y foco).
+    expect(screen.getAllByRole('region')).toHaveLength(4)
     for (const nombre of ['Renombrar Nueva', 'Desactivar Nueva', 'Activar Archivada']) {
       expect(screen.getByRole('button', { name: nombre }).tagName).toBe('BUTTON')
     }
