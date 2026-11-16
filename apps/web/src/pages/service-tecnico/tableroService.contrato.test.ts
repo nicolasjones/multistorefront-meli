@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -20,7 +20,7 @@ const graficos = {
   importe: leer('charts', 'Importe_por_mes_y_tienda_4.yaml'),
 }
 const reportes = JSON.parse(leer('reportes.json')) as {
-  reportes: { nombre: string; dashboard_slug: string; seccion: string; rolesPorDefecto: string[] }[]
+  reportes: { nombre: string; dashboard_slug: string; seccion: string; filtro_empresa?: boolean; rolesPorDefecto: string[] }[]
 }
 const uuidDe = (yaml: string) => /^uuid: (.+)$/m.exec(yaml)![1]
 
@@ -30,6 +30,17 @@ describe('tablero «Service técnico» (YAML versionado)', () => {
     expect(reportes.reportes[0]).toMatchObject({ nombre: NOMBRE_REPORTE_SERVICE, seccion: 'service_tecnico', dashboard_slug: 'service-tecnico' })
     expect(reportes.reportes[0].rolesPorDefecto).not.toContain('administrador')
     expect(dashboard).toContain('slug: service-tecnico')
+  })
+
+  it('el reporte declara filtro_empresa: el token se acota a las tiendas accesibles de quien mira', () => {
+    expect(reportes.reportes[0].filtro_empresa).toBe(true)
+    // La cláusula `rls` del token se aplica a CADA dataset del tablero: todos tienen que exponer `empresa_id`.
+    const carpeta = path.join(raiz, 'datasets')
+    const datasets = readdirSync(carpeta, { recursive: true, encoding: 'utf8' }).filter((f) => f.endsWith('.yaml'))
+    expect(datasets.length).toBeGreaterThanOrEqual(2)
+    for (const archivo of datasets) {
+      expect(readFileSync(path.join(carpeta, archivo), 'utf8'), archivo).toMatch(/column_name: empresa_id\b/)
+    }
   })
 
   it('tiene los cuatro indicadores de la spec y todos están en el dashboard', () => {
