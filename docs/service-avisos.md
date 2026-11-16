@@ -94,6 +94,11 @@ El botón **«Avisar por WhatsApp»** del encabezado del detalle encola el aviso
 reparación no anulada) y **«Reenviar»** de la sección «Avisos al cliente» reenvía por el **mismo canal** del aviso que
 se está viendo. En el historial, los avisos de WhatsApp se marcan con el canal y muestran el número del cliente.
 
+**El aviso por correo no cambia.** Como el índice de aviso pendiente pasó a ser por (reparación, estado, **canal**),
+`public.avisar_cliente_reparacion` se recrea en la misma migración (mismo nombre, misma firma, mismos permisos y
+mismo comportamiento) para buscar **solo** su canal: un aviso de WhatsApp encolado no puede tapar al de correo ni al
+ revés, y viceversa. El pgTAP cubre que conviven los dos del mismo estado.
+
 El flow entrega el mensaje al proveedor y lo cierra como `enviado`; si el proveedor falla tras 3 reintentos, lo cierra
 como `fallido` con el motivo fijo «No se pudo enviar el WhatsApp» (nunca el mensaje del proveedor, que puede traer
 tokens o credenciales). Un aviso pendiente de más de 15 minutos, o cuya orden quedó agotada o cancelada, se cierra
@@ -147,5 +152,5 @@ historia (`git revert -m 1`). El cambio de estado de las reparaciones no depende
 Para el aviso de WhatsApp (MSF-952), la reversión es la que dice el encabezado de
 `20270418000403_reparacion_avisos_whatsapp_envio.sql`: quitar `public.avisar_cliente_whatsapp` y
 `private.telefono_whatsapp`, el disparador del consentimiento, las columnas `canal` y `clave_envio` (y los índices
-que las usan), restaurar `public.avisos_de_reparacion` y las funciones `private` del flow a su versión anterior, y
-retirar el flow `reparaciones-aviso-whatsapp` del despliegue de Kestra.
+que las usan), restaurar `public.avisos_de_reparacion`, `public.avisar_cliente_reparacion` y las funciones `private`
+del flow a su versión anterior, y retirar el flow `reparaciones-aviso-whatsapp` del despliegue de Kestra.

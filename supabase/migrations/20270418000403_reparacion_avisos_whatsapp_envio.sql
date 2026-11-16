@@ -39,6 +39,7 @@
 --   drop function private.telefono_whatsapp(text, text);
 --   drop trigger clientes_consentimiento_whatsapp on dominio.clientes;
 --   drop function private.marcar_consentimiento_whatsapp();
+--   -- restaurar `public.avisar_cliente_reparacion` (uuid, uuid) de 20270201200134 (sin el filtro por canal);
 --   -- restaurar `public.avisos_de_reparacion` (uuid) de 20270201200135 (sin la columna `canal`);
 --   -- restaurar `private.datos_aviso_reparacion` (uuid), `private.aplicar_cierre_aviso_reparacion` (uuid, text) y
 --   --   `private.expirar_avisos_reparacion` (uuid) de 20270201200136 (sin el canal);
@@ -94,6 +95,124 @@ create unique index if not exists reparacion_avisos_whatsapp_clave_uq
 -- `canal` entra en la lectura por columna de `authenticated` (la pantalla muestra el canal del aviso).
 -- `clave_envio` NO entra: es interna del envío.
 grant select (canal) on dominio.reparacion_avisos to authenticated;
+
+-- =============================================================================
+-- 1-bis. El aviso por correo no se confunde con el de WhatsApp.
+--
+-- El índice pendiente pasó a ser por (reparación, estado, canal): los dos canales pueden tener su aviso pendiente
+-- del mismo estado. Por eso `public.avisar_cliente_reparacion` (20270201200134) tiene que buscar SOLO su canal: si
+-- buscara cualquier pendiente, un aviso de WhatsApp encolado taparía al de correo y el correo no saldría nunca
+-- (el botón «Avisar por correo» devolvería el aviso de WhatsApp como si fuera el suyo).
+--
+-- Se recrea la función CON EL MISMO NOMBRE, FIRMA, PERMISOS Y COMPORTAMIENTO, con el filtro del canal. El correo
+-- no cambia en nada: sigue exigiendo `service_tecnico` en edición, tienda accesible y correo válido, y sigue
+-- siendo idempotente por (reparación, estado) del canal `correo`.
+-- =============================================================================
+
+create or replace function public.avisar_cliente_reparacion(p_reparacion uuid, p_estado_id uuid default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_org uuid := (select private.organizacion_id());
+  v_actor uuid := (select auth.uid());
+  v_rep dominio.reparaciones;
+  v_estado dominio.estados_reparacion;
+  v_correo text;
+  v_aviso dominio.reparacion_avisos;
+  v_conexion uuid;
+  v_capacidad uuid;
+  v_ejecucion uuid;
+begin
+  if v_org is null or v_actor is null
+     or (select private.nivel_seccion('service_tecnico')) <> 'edicion' then
+    raise exception 'Tu rol no puede avisar a los clientes de las reparaciones' using errcode = '42501';
+  end if;
+  if p_reparacion is null then
+    raise exception 'Indicá la reparación' using errcode = '22023';
+  end if;
+
+  select * into v_rep
+    from dominio.reparaciones r
+   where r.id = p_reparacion and r.organizacion_id = v_org
+   for update;
+  if not found
+     or not exists (select 1 from private.empresas_accesibles() a(id) where a.id = v_rep.empresa_id) then
+    raise exception 'La reparación no existe' using errcode = 'P0002';
+  end if;
+  if v_rep.anulada_en is not null then
+    raise exception 'La reparación está anulada: no se puede avisar al cliente' using errcode = '55000';
+  end if;
+
+  select * into v_estado
+    from dominio.estados_reparacion s
+   where s.id = coalesce(p_estado_id, v_rep.estado_id) and s.organizacion_id = v_org;
+  if not found then
+    raise exception 'El estado no existe' using errcode = '22023', hint = 'estado_id';
+  end if;
+
+  select nullif(btrim(cl.correo), '') into v_correo
+    from dominio.clientes cl
+   where cl.id = v_rep.cliente_id and cl.organizacion_id = v_org;
+  -- Sin correo válido no hay a quién avisar: no se crea nada (FR-023).
+  if v_correo is null
+     or length(v_correo) > 320
+     or v_correo !~ '^[^[:space:]@,;<>]+@[^[:space:]@,;<>]+\.[^[:space:]@,;<>]+$' then
+    return jsonb_build_object('resultado', 'sin_correo', 'aviso_id', null);
+  end if;
+
+  -- Un pendiente que ya no puede completarse se cierra como fallido; así «Reenviar» no queda bloqueado.
+  perform private.expirar_avisos_reparacion(v_rep.id);
+
+  -- Solo el aviso del canal `correo`: el de WhatsApp no lo tapa (MSF-952).
+  select * into v_aviso
+    from dominio.reparacion_avisos a
+   where a.reparacion_id = v_rep.id and a.estado_id = v_estado.id
+     and a.canal = 'correo' and a.estado_envio = 'pendiente';
+  if found then
+    return jsonb_build_object('resultado', 'encolado', 'aviso_id', v_aviso.id);
+  end if;
+
+  select c.id into v_conexion
+    from public.conexiones c
+   where c.organizacion_id = v_org and c.sistema_externo = 'comprobantes-pdf' and c.estado = 'activa'
+   order by c.created_at desc
+   limit 1;
+  if v_conexion is null then
+    raise exception 'El envío de avisos todavía no está habilitado para tu organización. Pedile a un administrador que lo active.'
+      using errcode = 'P0001', hint = 'sin_conexion';
+  end if;
+
+  insert into dominio.reparacion_avisos
+    (organizacion_id, empresa_id, reparacion_id, estado_id, estado_nombre, destinatario, canal, solicitado_por)
+  values (v_org, v_rep.empresa_id, v_rep.id, v_estado.id, v_estado.nombre, v_correo, 'correo', v_actor)
+  returning * into v_aviso;
+
+  insert into public.capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg)
+  values (v_org, v_conexion, 'enviar-aviso-reparacion-' || v_aviso.id::text, 900)
+  returning id into v_capacidad;
+
+  insert into public.ejecuciones_worker (organizacion_id, conexion_id, capacidad_id, origen, actor, detalle)
+  values (v_org, v_conexion, v_capacidad, 'manual', v_actor, jsonb_build_object('aviso_id', v_aviso.id))
+  returning id into v_ejecucion;
+
+  insert into public.despachos_ejecucion (ejecucion_id, organizacion_id) values (v_ejecucion, v_org);
+
+  update dominio.reparacion_avisos a set ejecucion_id = v_ejecucion where a.id = v_aviso.id;
+
+  perform private.registrar_actividad(
+    'reparacion.aviso_solicitado',
+    format('Pidió avisar al cliente de la reparación %s (estado «%s»)', private.codigo_reparacion(v_rep.numero), v_estado.nombre),
+    v_rep.empresa_id
+  );
+  return jsonb_build_object('resultado', 'encolado', 'aviso_id', v_aviso.id);
+end;
+$$;
+
+comment on function public.avisar_cliente_reparacion(uuid, uuid) is
+  'F-SVC-14 + MSF-952: encola el aviso por correo al cliente por el estado (por defecto el actual) de una reparación, con su orden de despacho en la misma transacción; sin correo no encola; idempotente por reparación, estado y canal `correo` (el aviso de WhatsApp no lo tapa). Exige service_tecnico en edición y tienda accesible.';
 
 -- =============================================================================
 -- 2. `dominio.clientes`: consentimiento del cliente a recibir avisos por WhatsApp.
@@ -164,6 +283,8 @@ begin
   for v_texto in
     select x from unnest(array[coalesce(p_celular, ''), coalesce(p_telefono, '')]) as x
   loop
+    -- Como `normalizarNumero` del front: primero se recorta el texto (un «+» con espacios delante es internacional).
+    v_texto := btrim(v_texto);
     v_digitos := regexp_replace(v_texto, '[^0-9]', '', 'g');
     if length(v_digitos) < 8 then
       continue;
@@ -199,7 +320,7 @@ begin
       return '549' || v_nacional;
     end if;
     if v_nacional ~ '^[1-9][0-9]{11}$' then
-      for v_area in 2, 3, 4 loop
+      for v_area in 2..4 loop
         if substr(v_nacional, v_area + 1, 2) = '15' then
           return '549' || substr(v_nacional, 1, v_area) || substr(v_nacional, v_area + 3);
         end if;

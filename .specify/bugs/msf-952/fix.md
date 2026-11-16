@@ -18,7 +18,7 @@ que se contrate, la URL y el token quedan vacíos y el flow cierra los avisos co
 
 | File | Change | Notes |
 |------|--------|-------|
-| `supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql` | added | Aditiva: `canal` y `clave_envio` en `dominio.reparacion_avisos`; índice pendiente por canal + clave única; `acepta_whatsapp`/`acepta_whatsapp_en` en `dominio.clientes`; `private.telefono_whatsapp`; `public.avisar_cliente_whatsapp`; `avisos_de_reparacion` con `canal`; funciones del flow por canal. Reversión documentada en el encabezado. |
+| `supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql` | added | Aditiva: `canal` y `clave_envio` en `dominio.reparacion_avisos`; índice pendiente por canal + clave única; `acepta_whatsapp`/`acepta_whatsapp_en` en `dominio.clientes`; `private.telefono_whatsapp`; `public.avisar_cliente_whatsapp`; `avisos_de_reparacion` con `canal`; funciones del flow por canal; `public.avisar_cliente_reparacion` recreada con el filtro del canal `correo`. Reversión documentada en el encabezado. |
 | `supabase/tests/database/service_aviso_whatsapp.test.sql` | added | pgTAP: modelo, privilegios, consentimiento, teléfono, RPC, idempotencia, outbox, actividad sin el número y cierre por canal. |
 | `infra/kestra/flows/reparaciones-aviso-whatsapp.yml` | added | Flow `producto.service` que reclama `enviar-aviso-whatsapp-*`, entrega `{ telefono, mensaje, plantilla, clave }`, cierra como enviado y fallido con motivo fijo; 3 reintentos, cron cada minuto. |
 | `infra/kestra/flows/reparaciones-aviso-whatsapp.test.mjs` | added | Contrato estático del flow (reclamo, secreto, plantilla sin importes, reintentos, cierre idempotente). |
@@ -31,6 +31,23 @@ que se contrate, la URL y el token quedan vacíos y el flow cierra los avisos co
 | `apps/web/e2e/service-aviso-whatsapp.e2e.ts` | added | E2E `[MSF-952:S1]` con el fixture de evidencia: consentimiento en la ficha y aviso encolado con `canal = 'whatsapp'`. |
 | `package.json` | modified | `test:kestra:reparaciones-aviso-whatsapp` en el suite. |
 | `docs/service-avisos.md`, `docs/actividad.md`, `docs/clientes.md`, `docs/tecnico/datos.md` | modified | Guía del canal, evento de actividad, consentimiento y columnas nuevas. |
+
+## Correcciones tras el CI rojo (la migración nunca llegó a aplicarse)
+
+El primer CI de la rama dejó el job `database` (y `e2e-tienda`, que aplica las mismas migraciones) en rojo: la
+migración no llegó a aplicarse nunca. Se corrigieron tres cosas:
+
+1. **`for v_area in 2, 3, 4 loop` → `for v_area in 2..4 loop`** (`private.telefono_whatsapp`): un `for` de enteros de
+   PL/pgSQL lleva el operador de rango `..`; con comas no compila (`syntax error at or near "2"`). Sin esto la
+   migración entera moría en la línea 52 y no se aplicaba ninguna.
+2. **El aviso por correo no podía encolarse con un aviso de WhatsApp pendiente.** El índice de aviso pendiente pasó
+   a ser por (reparación, estado, **canal**), pero `public.avisar_cliente_reparacion` (20270201200134) seguía buscando
+   *cualquier* pendiente: un aviso de WhatsApp encolado tapaba al de correo y «Avisar al cliente» devolvía el aviso de
+   WhatsApp como si fuera el suyo (el correo no salía nunca). Se recrea la función en esta migración con el **mismo
+   nombre, firma, permisos y comportamiento**, buscando solo su canal (`canal = 'correo'`). El pgTAP nuevo cubre que
+   conviven los dos avisos del mismo estado.
+3. **`private.telefono_whatsapp` ahora recorta el texto** (`btrim`) antes de decidir si el número es internacional,
+   igual que `normalizarNumero` del front: un «+» con espacios delante se respeta como internacional en los dos lados.
 
 ## Deviations from Assessment
 
@@ -58,13 +75,14 @@ que se contrate, la URL y el token quedan vacíos y el flow cierra los avisos co
 
 ## Local Verification
 
-- `pnpm --filter @platform/web exec vitest run …` (reparacion.avisos, clientes, show) → 55 tests, 0 fallos.
-- `node --test infra/kestra/flows/reparaciones-aviso-whatsapp.test.mjs …` → 16 tests, 0 fallos.
-- `pnpm --filter @platform/web lint` → OK (solo warnings previos del repo).
-- `pnpm --filter @platform/web build` → OK.
-- `pnpm test:db:guard-migraciones` y `pnpm test:db:validar-aditivas` → 30 y 5 tests, 0 fallos.
-- `pnpm docs:check` → OK; `node scripts/verificar-migraciones.mjs` → 717 archivos, 1 nuevo contra `origin/dokploy`.
-- `pnpm test:kestra:deploy-flow`, `pnpm e2e:escritura:check`, `pnpm matriz:check` → OK.
+- `pnpm --filter @platform/web exec vitest run src/pages/service-tecnico/reparacion.avisos.test.tsx src/pages/clientes/show.test.tsx src/lib/whatsapp.test.ts` → 79 tests, 0 fallos.
+- `node --test infra/kestra/flows/reparaciones-aviso-whatsapp.test.mjs` → 8 tests, 0 fallos.
+- `pnpm lint` → exit 0 (solo warnings previos del repo); `pnpm build` → OK (3.5 s).
+- `pnpm test:db:guard-migraciones` → 30 tests, 0 fallos; `pnpm test:db:validar-aditivas` → 5 tests, 0 fallos.
+- `pnpm db:validar:aditivas` → 717 migraciones, ninguna destructiva sin reversión; `node scripts/verificar-migraciones.mjs` → 717 archivos, 1 nuevo contra `origin/dokploy`.
+- `pnpm docs:check` → OK; `pnpm test:kestra:deploy-flow`, `pnpm e2e:escritura:check`, `pnpm matriz:check`, `pnpm prototipo:check`, `pnpm ui:empresas:check` → OK.
+- `pnpm calidad` → oxlint, knip (código muerto), jscpd, dependency-cruiser y syncpack OK; **gitleaks no se pudo correr** (necesita Docker, sin permisos en este entorno) — el job `quality` del CI lo corrió y salió verde.
+- Estructura PL/pgSQL de la migración verificada con un balanceador de bloques (`begin`/`case`/`end`, `if`/`end if`, `for`/`end loop`) en las 8 funciones y en el bloque `DO`: todo balanceado, y el cuerpo de `public.avisar_cliente_reparacion` es idéntico al de 20270201200134 salvo el filtro del canal.
 - **No ejecutado localmente**: `pnpm test:db` (pgTAP) y `pnpm test:e2e` porque no hay `supabase` CLI ni Docker en este
   entorno; quedan para el CI con `pnpm dev:supabase`.
 
