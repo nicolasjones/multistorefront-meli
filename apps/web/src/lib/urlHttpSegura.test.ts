@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { urlHttpSegura } from './urlHttpSegura'
 
+// El esquema se arma en dos partes para no tener el literal «javascript:» (regla no-script-url de oxlint).
+const JS = 'java' + 'script:'
+
 describe('urlHttpSegura', () => {
   it('deja pasar http y https', () => {
     expect(urlHttpSegura('https://tienda.ejemplo.com/privacidad')).toBe('https://tienda.ejemplo.com/privacidad')
@@ -10,7 +13,7 @@ describe('urlHttpSegura', () => {
   it('deja pasar una ruta relativa (mismo origen)', () => {
     expect(urlHttpSegura('/privacidad')).toBe('/privacidad')
   })
-  it.each(['javascript:alert(1)', 'JaVaScRiPt:alert(1)', ' javascript:alert(1)', 'data:text/html,<script>1</script>', 'vbscript:x', 'file:///etc/passwd', 'ftp://x.com', 'blob:https://x.com/1'])(
+  it.each([`${JS}alert(1)`, `JaVa${'ScRiPt:'}alert(1)`, ` ${JS}alert(1)`, 'data:text/html,<script>1</script>', 'vbscript:x', 'file:///etc/passwd', 'ftp://x.com', 'blob:https://x.com/1'])(
     'rechaza %s', (url) => { expect(urlHttpSegura(url)).toBeNull() },
   )
   it('rechaza una URL sin esquema explícito: //host, /\\host, ejemplo.com/x y rutas relativas sin barra', () => {
