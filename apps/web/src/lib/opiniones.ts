@@ -47,6 +47,50 @@ export type TandaOpiniones = {
 
 export const CONTADORES_VACIOS: ContadoresOpiniones = { pendientes: 0, aceptadas: 0, rechazadas: 0 }
 
+const ESTADOS: readonly EstadoOpinion[] = ['pendiente', 'aceptada', 'rechazada']
+const comoTexto = (valor: unknown): string => (typeof valor === 'string' ? valor : '')
+const comoContador = (valor: unknown): number => (typeof valor === 'number' && Number.isFinite(valor) ? valor : 0)
+
+// T029 (H-2): la respuesta de la RPC es dato NO confiable para la interfaz (mismo criterio que el cliente de la tienda,
+// `tiendaOpiniones.ts`): una fila sin id, sin una puntuación entera de 1 a 5, con un estado desconocido, sin la fecha que
+// exige el bloqueo optimista o con un texto que no es texto se descarta (no se muestra ni se ofrece moderar). Los textos
+// se copian tal cual: el comentario y el motivo nunca se interpretan como HTML.
+export function comoFilaOpinion(valor: unknown): OpinionPanel | null {
+  const fila = valor !== null && typeof valor === 'object' && !Array.isArray(valor) ? (valor as Record<string, unknown>) : null
+  if (!fila) return null
+  const id = comoTexto(fila.id)
+  const empresaId = comoTexto(fila.empresa_id)
+  const clienteId = comoTexto(fila.cliente_id)
+  const productoId = comoTexto(fila.producto_id)
+  const creadaEn = comoTexto(fila.creada_en)
+  const actualizadaEn = comoTexto(fila.actualizada_en)
+  const puntuacion = typeof fila.puntuacion === 'number' && Number.isInteger(fila.puntuacion) && fila.puntuacion >= 1 && fila.puntuacion <= 5
+    ? fila.puntuacion
+    : null
+  const estado = ESTADOS.includes(fila.estado as EstadoOpinion) ? (fila.estado as EstadoOpinion) : null
+  const comentario = fila.comentario
+  const motivoRechazo = fila.motivo_rechazo
+  if (!id || !empresaId || !clienteId || !productoId || !creadaEn || !actualizadaEn) return null
+  if (puntuacion === null || estado === null) return null
+  if (typeof comentario !== 'string') return null
+  if (motivoRechazo !== null && typeof motivoRechazo !== 'string') return null
+  return {
+    id,
+    empresa_id: empresaId,
+    empresa_nombre: comoTexto(fila.empresa_nombre),
+    cliente_id: clienteId,
+    cliente_nombre: comoTexto(fila.cliente_nombre),
+    producto_id: productoId,
+    producto_nombre: comoTexto(fila.producto_nombre),
+    puntuacion,
+    comentario,
+    estado,
+    motivo_rechazo: motivoRechazo,
+    creada_en: creadaEn,
+    actualizada_en: actualizadaEn,
+  }
+}
+
 type ErrorBase = { code?: string }
 
 export async function listarOpiniones(params: {
@@ -63,11 +107,22 @@ export async function listarOpiniones(params: {
     p_limite: params.limite ?? TAMANO_TANDA_OPINIONES,
   })
   if (error) throw error
-  const d = (data ?? {}) as Partial<TandaOpiniones>
+  const d = (data ?? {}) as Record<string, unknown>
+  const contadores = (d.contadores ?? {}) as Record<string, unknown>
+  const siguienteCrudo = (d.siguiente ?? null) as Record<string, unknown> | null
+  const creada = siguienteCrudo ? comoTexto(siguienteCrudo.creada) : ''
+  const idSiguiente = siguienteCrudo ? comoTexto(siguienteCrudo.id) : ''
   return {
-    contadores: { ...CONTADORES_VACIOS, ...(d.contadores ?? {}) },
-    filas: Array.isArray(d.filas) ? d.filas : [],
-    siguiente: d.siguiente ?? null,
+    contadores: {
+      pendientes: comoContador(contadores.pendientes),
+      aceptadas: comoContador(contadores.aceptadas),
+      rechazadas: comoContador(contadores.rechazadas),
+    },
+    filas: (Array.isArray(d.filas) ? d.filas : []).flatMap((fila) => {
+      const valida = comoFilaOpinion(fila)
+      return valida ? [valida] : []
+    }),
+    siguiente: creada && idSiguiente ? { creada, id: idSiguiente } : null,
   }
 }
 

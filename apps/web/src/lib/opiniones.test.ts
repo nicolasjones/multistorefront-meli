@@ -35,6 +35,64 @@ describe('cliente de datos de opiniones', () => {
     expect(tanda).toEqual({ contadores: CONTADORES_VACIOS, filas: [], siguiente: null })
   })
 
+  it('T029 (H-2): una fila con la forma del contrato se muestra tal cual', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: {
+        contadores: { pendientes: 1, aceptadas: 0, rechazadas: 0 },
+        filas: [{
+          id: '11111111-1111-1111-1111-111111111111', empresa_id: 'e1', empresa_nombre: 'Tienda A',
+          cliente_id: 'c1', cliente_nombre: 'Valeria Sánchez', producto_id: 'p1', producto_nombre: 'Alfa',
+          puntuacion: 5, comentario: 'Excelente <script>alert(1)</script>', estado: 'pendiente', motivo_rechazo: null,
+          creada_en: '2027-03-10T10:00:00Z', actualizada_en: '2027-03-10T10:00:00Z',
+        }],
+        siguiente: null,
+      },
+      error: null,
+    })
+    const tanda = await listarOpiniones({ estado: 'pendiente', empresaId: null })
+    expect(tanda.filas).toHaveLength(1)
+    // El texto viene tal cual (la pantalla lo pinta como texto, nunca como HTML).
+    expect(tanda.filas[0].comentario).toBe('Excelente <script>alert(1)</script>')
+    expect(tanda.filas[0].cliente_nombre).toBe('Valeria Sánchez')
+  })
+
+  it('T029 (H-2): una fila fuera del contrato se descarta (no rompe la pantalla ni se ofrece moderar)', async () => {
+    const base = {
+      id: '11111111-1111-1111-1111-111111111111', empresa_id: 'e1', empresa_nombre: 'Tienda A',
+      cliente_id: 'c1', cliente_nombre: 'Valeria', producto_id: 'p1', producto_nombre: 'Alfa',
+      puntuacion: 4, comentario: 'Un comentario normal', estado: 'pendiente', motivo_rechazo: null,
+      creada_en: '2027-03-10T10:00:00Z', actualizada_en: '2027-03-10T10:00:00Z',
+    }
+    mocks.rpc.mockResolvedValue({
+      data: {
+        contadores: { pendientes: 1, aceptadas: 0, rechazadas: 0 },
+        filas: [
+          base,
+          { ...base, comentario: { no: 'es texto' } },
+          { ...base, estado: 'publicada' },
+          { ...base, puntuacion: 9 },
+          { ...base, id: '' },
+          { ...base, actualizada_en: '' },
+        ],
+        siguiente: null,
+      },
+      error: null,
+    })
+    const tanda = await listarOpiniones({ estado: 'todas', empresaId: null })
+    expect(tanda.filas).toHaveLength(1)
+    expect(tanda.filas[0].comentario).toBe('Un comentario normal')
+  })
+
+  it('T029 (H-2): contadores que no son números valen cero y un cursor incompleto no se usa', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { contadores: { pendientes: 'muchas', aceptadas: 2 }, filas: [], siguiente: { creada: 'x' } },
+      error: null,
+    })
+    const tanda = await listarOpiniones({ estado: 'todas', empresaId: null })
+    expect(tanda.contadores).toEqual({ pendientes: 0, aceptadas: 2, rechazadas: 0 })
+    expect(tanda.siguiente).toBeNull()
+  })
+
   it('un error de la RPC se propaga', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501' } })
     await expect(listarOpiniones({ estado: 'todas', empresaId: null })).rejects.toMatchObject({ code: '42501' })

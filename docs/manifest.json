@@ -2004,6 +2004,28 @@
       "owner": "plataforma",
       "commit": "12525f33"
     },
+    "docs/seguridad-tienda-opiniones.md": {
+      "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
+      "pageHash": "2804a04b071075f91ba14801be825cd85873104c1a23a40044c2ebcc38a3c47f",
+      "sourceHash": "360a2af4e6dea8788a55d6ae85115b04e1a40bc0c3df481d59f55b1337bd2677",
+      "sourceAt": null,
+      "sources": [
+        "specs/20270328-100000-opiniones-de-productos",
+        "supabase/migrations/20270341000000_opiniones_producto.sql",
+        "supabase/migrations/20270341000100_opiniones_validacion.sql",
+        "supabase/migrations/20270341000200_opiniones_moderacion_rpc.sql",
+        "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
+        "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
+        "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "supabase/migrations/20270507000001_opiniones_resumen_indice.sql",
+        "apps/web/src/pages/opiniones",
+        "apps/web/src/pages/tienda-publica/opiniones",
+        "apps/web/src/lib/opiniones.ts",
+        "apps/web/src/lib/tiendaOpiniones.ts"
+      ],
+      "owner": "plataforma",
+      "commit": null
+    },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
       "pageHash": "9a0c6e03269210b287792c935829ce1f653e8906ccde1b8f2cbf7010df959a5c",
@@ -3786,8 +3808,8 @@
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
-      "pageHash": "0fd0347123cd59bf57f785f21c029dea5eca5444b4f41a9d1b7dc33266ac233a",
-      "sourceHash": "922ae5eb422eea8547bf6bc7b1784ec90d5a352c94f7b7f10cf7b6f040eeb2ad",
+      "pageHash": "9959f01f068d2cec1eeb1b9866bddf71fccaa159f4ccb5a2bc42f73beaf782cf",
+      "sourceHash": "d8802fda5e01d605e7efe6bccecd99bc1550d1bbba0e8b294d5c7fd07f7ad059",
       "sourceAt": "4b1cc5c7",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
@@ -3798,10 +3820,14 @@
         "supabase/migrations/20270419000000_opiniones_cliente_rpc.sql",
         "supabase/migrations/20270419000100_opiniones_lectura_publica.sql",
         "supabase/migrations/20270419000200_opiniones_fusion_clientes.sql",
+        "supabase/migrations/20270507000001_opiniones_resumen_indice.sql",
         "apps/web/src/pages/opiniones",
         "apps/web/src/pages/tienda-publica/opiniones",
         "apps/web/src/lib/tiendaOpiniones.ts",
-        "apps/web/e2e/tienda-opiniones.e2e.ts"
+        "apps/web/src/lib/opiniones.ts",
+        "apps/web/e2e/tienda-opiniones.e2e.ts",
+        "scripts/tienda-opiniones-dev.mjs",
+        "scripts/verificar-bundle-tienda-opiniones.mjs"
       ],
       "owner": "tecnico",
       "commit": "4b1cc5c7"

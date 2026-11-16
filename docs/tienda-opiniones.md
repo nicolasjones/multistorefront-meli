@@ -9,10 +9,14 @@ sources:
   - supabase/migrations/20270419000000_opiniones_cliente_rpc.sql
   - supabase/migrations/20270419000100_opiniones_lectura_publica.sql
   - supabase/migrations/20270419000200_opiniones_fusion_clientes.sql
+  - supabase/migrations/20270507000001_opiniones_resumen_indice.sql
   - apps/web/src/pages/opiniones
   - apps/web/src/pages/tienda-publica/opiniones
   - apps/web/src/lib/tiendaOpiniones.ts
+  - apps/web/src/lib/opiniones.ts
   - apps/web/e2e/tienda-opiniones.e2e.ts
+  - scripts/tienda-opiniones-dev.mjs
+  - scripts/verificar-bundle-tienda-opiniones.mjs
 ---
 
 # Opiniones de productos: moderación y tienda (MSF-467)
@@ -37,6 +41,7 @@ Guía de referencia de la spec `20270328-100000-opiniones-de-productos`: fases 1
 - FK compuestas `(cuenta_cliente_id, organizacion_id, empresa_id)` → `public.cuentas_cliente`, `(empresa_id, organizacion_id)` → `dominio.empresas` y `(producto_id, organizacion_id)` → `dominio.productos`, todas `on delete cascade`: una fila no puede mezclar organizaciones ni apuntar a una tienda distinta de la de su cuenta.
 - Única `(cuenta_cliente_id, producto_id)`; checks de puntuación, largo del comentario, estado, motivo (solo con `rechazada`) y moderación (`moderada_por`/`moderada_en` presentes si y solo si el estado no es `pendiente`).
 - RLS activada **sin políticas** y sin privilegios para `anon`, `authenticated` ni `public`; solo `service_role` conserva el patrón de las tablas operativas de `dominio` (siembra y E2E). Escriben únicamente las RPC `security definer`.
+- Índices: único `(cuenta_cliente_id, producto_id)`; parcial `(empresa_id, producto_id, creada_en desc, id desc) where estado = 'aceptada'` para la ficha; `(organizacion_id, empresa_id, estado, creada_en desc, id desc)` para el panel; `(organizacion_id, creada_en desc, id desc)` para el orden global; y el parcial **cubriente** `(empresa_id, organizacion_id, producto_id) include (puntuacion) where estado = 'aceptada'` para el resumen de la ficha (el promedio y la cantidad se resuelven leyendo el índice, no el heap: T029, hallazgo H-1).
 - Entra en la exportación total de la organización (`private.conjuntos_exportacion_total`).
 
 ## RPC del panel
@@ -71,13 +76,47 @@ Reglas comunes: `security definer`, `search_path` vacío, ninguna recibe cliente
 
 ## Encender y apagar
 
-La bandera se enciende solo en dev, con SQL del equipo técnico (ninguna migración ni despliegue la enciende):
+La bandera se enciende solo en dev, con SQL del equipo técnico (ninguna migración ni despliegue la enciende). El script
+`scripts/tienda-opiniones-dev.mjs` hace ese SQL y **se niega a operar fuera de dev**:
+
+```bash
+pnpm tienda:opiniones:dev estado   --entorno dev   # consulta (no cambia nada)
+pnpm tienda:opiniones:dev encender --entorno dev   # enciende
+pnpm tienda:opiniones:dev apagar   --entorno dev   # apaga (reversión operativa inmediata, sin tocar datos)
+```
+
+Qué hace y qué se niega a hacer:
+
+- Exige `--entorno dev` explícito; con cualquier otro valor (o sin el) sale con código distinto de 0 y un mensaje en castellano.
+- Exige que la conexión sea la de dev: una URL con etiqueta `dev` y sin etiqueta de staging/producción (o un host declarado a
+  propósito en `TIENDA_OPINIONES_DEV_DB_HOSTS`), o el contenedor local de la base de dev
+  (`supabase_db_multistorefront-meli-supabase-dev`). Con `SUPABASE_DB_URL` ambigua (varios hosts, parámetros que pisan el
+  destino) se niega.
+- **Antes de tocar nada** comprueba por positivo que la base es la de dev: tiene una organización de demostración «… (demo)» con
+  el id fijo del seed (`supabase/seed.sql`) o con los declarados en `TIENDA_OPINIONES_DEV_ORG_IDS`.
+- El SQL viaja por `stdin` (nunca por `argv`) y la contraseña por `PGPASSWORD`; si la base no tiene la fila de la bandera
+  (migración sin aplicar) no inventa nada y lo dice.
+- Staging y producción quedan **apagados** (D11): encenderlas exige una decisión nueva de Nicolás, y este script no las alcanza.
+
+El SQL a mano es el mismo (para un entorno donde el script no llega):
 
 ```sql
 update public.banderas_plataforma set activa = true where clave = 'tienda_opiniones';
 ```
 
-Para apagarla (reversión operativa inmediata, sin tocar datos): el mismo `update` con `activa = false`. Apagada, la ficha y «Mi cuenta» son idénticas a las de antes; el panel solo permite rechazar. Staging y producción quedan apagados (D11).
+Para apagarla (reversión operativa inmediata, sin tocar datos): el mismo `update` con `activa = false`. Apagada, la ficha y «Mi
+cuenta» son idénticas a las de antes; el panel solo permite rechazar.
+
+**Verificación del bundle (T030)**: con la bandera encendida, el front desplegado tiene que traer la funcionalidad; si el
+bundle que se sirve en dev es viejo, la tienda queda sin bloque de opiniones y no se nota (con la bandera apagada la ficha es
+idéntica a la de antes). El chequeo lee el bundle ya construido:
+
+```bash
+pnpm build && pnpm tienda:opiniones:bundle:check
+```
+
+Falla si en el bundle no están los textos de la pantalla «Opiniones» del panel, del bloque de la ficha, del formulario «Tu
+opinión» y de la pestaña «Mis opiniones» de la cuenta.
 
 ## Pantalla del panel
 
@@ -88,5 +127,13 @@ Para apagarla (reversión operativa inmediata, sin tocar datos): el mismo `updat
 `private.texto_opinion_no_permitido` es una **heurística** `invoker` (pura, sin acceso a tablas). Detecta `http:`/`www.`, dominios con un TLD de **lista cerrada** (genéricos y de país como `.ar`, `.com.ar`, `.mx`, `.cl`, `.ly`, `.be`), acortadores como `t.me/`, `wa.me/`, `bit.ly/`, `youtu.be/`, `tinyurl.com/`, y normaliza al punto ASCII los puntos «。» (U+3002), «．» (U+FF0E), «｡» (U+FF61), «․» (U+2024) y «﹒» (U+FE52). Los TLD que son palabras comunes (`es`, `me`, `de`, `to`, `it`, `at`, `in`, `se`, `ve`) solo cuentan si no los sigue un espacio y lo anterior tiene forma de dominio (4 o más caracteres, guion o dígito): «mi-tienda.es,» se rechaza y «diario.es genial» pasa; con barra siempre se rechaza (`wa.me/…`). Un punto con espacio detrás no es enlace. **No detecta** ofuscación («ejemplo punto com», «ejemplo(.)com», «ejemplo[.]com»), homógrafos cirílicos ni TLD fuera de la lista. La palabra `http` suelta, sin dos puntos, se acepta a propósito. **Falso positivo residual aceptado:** «Lo uso en casa.Es» o «Es buenísimo.Se» (palabra de 4 o más caracteres, punto pegado y un TLD ambiguo, aunque vaya capitalizado, al final del texto o antes de puntuación) se rechazan: son indistinguibles de `mitienda.es`, y es preferible que el administrador lo vea en la moderación a dejar pasar enlaces de ese tipo. Con 200.000 caracteres hostiles tarda de 60 a 130 ms según la entrada (crecimiento lineal). La moderación previa es la defensa real; la fase 3 hereda este límite.
 
 ## Reversión
-
 Migraciones aditivas; se deshacen con una migración posterior, sin ejecutarla en el mismo PR (la fusión de clientes se restaura desde `20270340000210`, con `dominio.clientes`): `drop function` de las RPC (panel y tienda: `guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio`, `opiniones_producto_por_dominio`, `capacidades_opiniones_por_dominio`) y de las funciones `private` (incluidos los dos topes por minuto), restaurar `private.conjuntos_exportacion_total()` a la versión de `20270334000002`, borrar la bandera y los tipos de evento, y `drop table dominio.opiniones_producto` (exportar antes: pierde las opiniones). Apagar la bandera deja todo inerte sin tocar datos.
+
+La migración `20270507000001_opiniones_resumen_indice.sql` (el índice cubriente del resumen y la función de lectura sin las uniones redundantes) se revierte con `drop index if exists dominio.opiniones_producto_resumen_idx` y restaurando la función desde `20270419000100_opiniones_lectura_publica.sql`.
+
+## Revisión de seguridad
+
+La revisión de seguridad de la épica (tarea de cierre **T029**: autorización y RLS, texto no confiable y límites) está en
+[`seguridad-tienda-opiniones.md`](./seguridad-tienda-opiniones.md): las barreras revisadas con su prueba, los dos hallazgos
+menores corregidos (H-1: el resumen de la ficha hacía un escaneo completo del producto; H-2: el cliente del panel no validaba
+la forma de las filas) y los riesgos que quedan aceptados con su mitigación.
