@@ -1057,15 +1057,15 @@
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
-      "pageHash": "93c734a53896c10cf098e25cb90e8eaeff40fefb6e939a458c10ea07907d958f",
+      "pageHash": "6cf438d1d0bdefd12b6ee8acf6422dcef8d72d10614b330f0c4712f98b215cdc",
       "sourceHash": "22bca1855441df3b48979716336ba7b3e285c91c8cbe4ea6a899067ca21b89e8",
-      "sourceAt": "d9e75a68",
+      "sourceAt": "531a7741",
       "sources": [
         "apps/web/src/lib/escalas.ts",
         "apps/web/src/lib/tiendaPreciosCliente.ts"
       ],
       "owner": "tecnico",
-      "commit": "d9e75a68"
+      "commit": "531a7741"
     },
     "docs/precios-masivos.md": {
       "title": "Actualización masiva de costos y precios (F-PRE-10 · MSF-436)",
@@ -1812,15 +1812,15 @@
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
-      "pageHash": "45bc328239278d65e5045b0205e34f6d5ef1282a2c16714cd67d77313d73ae33",
-      "sourceHash": "70fd12b1de9ae0489442c96d95f3db8b2ceae42e299724e0fbc27b3a3659588a",
-      "sourceAt": "531a7741",
+      "pageHash": "2559a277c152c8709cda4353ad2765f5ba2c722fe50e514d4f0b556d3da3c258",
+      "sourceHash": "5d8461622741d5b386abe9d26f42d7bdfed7d8b575c46b6da4e0e0bbae870b3f",
+      "sourceAt": "95439bba",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": "531a7741"
+      "commit": "95439bba"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -2821,9 +2821,9 @@
     },
     "docs/tecnico/cuenta-web-cliente.md": {
       "title": "Cuenta web del cliente (MSF-237)",
-      "pageHash": "2f21844e41d996685a83292218a2b6f7f95135c54e059b0d9cb832fa6498a62c",
-      "sourceHash": "14254e3985f8f79989c046fc002259e9792d6937c4a716af71fe19affbb040c4",
-      "sourceAt": "d9e75a68",
+      "pageHash": "f3ea055e81bc6c846c1e425510aef7c74cf61d71b3401f4b460745d7cb8bf745",
+      "sourceHash": "60a8ac568d9abe8c8650f414546e8bce40c33856edf17a9de611ac09b886003b",
+      "sourceAt": "531a7741",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2832,7 +2832,7 @@
         "supabase/config.toml"
       ],
       "owner": "tecnico",
-      "commit": "d9e75a68"
+      "commit": "531a7741"
     },
     "docs/tecnico/cuentas-y-compras-a-proveedores.md": {
       "title": "Cuentas y compras a proveedores (MSF-450)",
@@ -3110,16 +3110,16 @@
     },
     "docs/tecnico/precios-masivos-y-promociones.md": {
       "title": "Precios masivos y promociones",
-      "pageHash": "c229783dbf9ee5db31b1b86033d8bd5a911bbbc0783b0af98d557adda55b6bd2",
-      "sourceHash": "17551cfde06525d96161dad1ba277706a5cf9e6a4fb078695babec2010832832",
-      "sourceAt": "d9e75a68",
+      "pageHash": "549e04bb28255603f73f314e6b9d73e2353382436c6329d7b4917d82eca1d709",
+      "sourceHash": "e523447af7de73ec8592b52e65a9950e9cdf75c15be4ab043a9881264796b76d",
+      "sourceAt": "531a7741",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "d9e75a68"
+      "commit": "531a7741"
     },
     "docs/tecnico/proveedores.md": {
       "title": "Proveedores: modelo, RPC y pantallas (MSF-205)",
@@ -3873,9 +3873,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "dd32c9693f056054d51badfc5543d89d133e42fd6dd9ab0b7b6a9655dcacf5b8",
-      "sourceHash": "5bb8d521b634870ba50f07f7c2cd2d79617b42af88306ac334d9325ef7899715",
-      "sourceAt": "531a7741",
+      "pageHash": "ab1539856bda83274e68c2f9b37ca35ec63a5af703eecca51620b60c616fa443",
+      "sourceHash": "2e94d1d87f552a4c31f2eb7cb6bf9b7de36f2398ff2a506b113a940ef50cbf1f",
+      "sourceAt": "95439bba",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -3887,7 +3887,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "531a7741"
+      "commit": "95439bba"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
