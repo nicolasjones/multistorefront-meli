@@ -14,4 +14,6 @@ Contrato:
     `/categoria/:categoriaId`; `producto.tsx` → `/producto/:productoId`; `catalogo.tsx` → `/catalogo`).
     El componente decide qué hacer con el parámetro que no use (si sobra, puede mostrar
     `PaginaNoEncontrada`).
+  - `<tramo>.<tramo>.tsx` (con puntos) → una sola ruta de varios tramos con un parámetro final `:token`
+    (p. ej. `newsletter.confirmar.tsx` → `/newsletter/confirmar/:token`); el componente lo lee con `useParams().token`.
 - Cualquier otra URL cae en `*` → `PaginaNoEncontrada`.

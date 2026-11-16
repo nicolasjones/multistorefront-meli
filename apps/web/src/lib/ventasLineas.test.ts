@@ -1,3 +1,4 @@
+import { mensajeDeErrorComprobante } from './ventas'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -17,6 +18,7 @@ import {
   mensajeFaltante,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   sinLinea,
   type EntradaLinea,
@@ -201,5 +203,49 @@ describe('ventasLineas · base', () => {
     mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
     await expect(disponibleParaVenta('p-1', 'd-2')).resolves.toBeNull()
     expect(mocks.rpc).toHaveBeenCalledWith('disponible_para_venta', { p_producto_id: 'p-1', p_deposito_id: 'd-1' })
+  })
+})
+
+describe('ventasLineas · marca de la lista de precios', () => {
+  it('arma «Lista: nombre ±n %» con el porcentaje congelado', () => {
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20 }))).toBe('Lista: Revendedores \u221220 %')
+    expect(marcaListaLinea(linea({ lista_nombre: 'Recargo', lista_ajuste_pct: 12.5 }))).toBe('Lista: Recargo +12,5 %')
+    expect(marcaListaLinea(linea({ lista_nombre: 'Cero', lista_ajuste_pct: 0 }))).toBe('Lista: Cero 0 %')
+  })
+
+  it('cuando gana la promoción la marca aclara que rige la promoción', () => {
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, precio_referencia: 800 }))).toBe(
+      'Lista: Revendedores \u221220 % (rige la promoción)',
+    )
+  })
+
+  it('sin lista, con precio manual o en una línea sin stock no hay marca', () => {
+    expect(marcaListaLinea(linea())).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: null, lista_ajuste_pct: -20 }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: null }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, precio_manual: true }))).toBeNull()
+    expect(marcaListaLinea(linea({ lista_nombre: 'Revendedores', lista_ajuste_pct: -20, sin_stock: true }))).toBeNull()
+  })
+
+  it('aLineas convierte el porcentaje a número, conserva el nombre y descarta el identificador de la lista', () => {
+    const [convertida] = aLineas([{ ...linea(), lista_ajuste_pct: '-20.00', lista_nombre: 'Revendedores', lista_precio_id: 'lista-secreta' }])
+    expect(convertida.lista_ajuste_pct).toBe(-20)
+    expect(convertida.lista_nombre).toBe('Revendedores')
+    expect(JSON.stringify(convertida)).not.toContain('lista-secreta')
+  })
+
+  it('aLineas deja nulos la lista y su porcentaje cuando no llegan', () => {
+    const [convertida] = aLineas([linea()])
+    expect(convertida.lista_ajuste_pct).toBeNull()
+    expect(convertida.lista_nombre).toBeNull()
+  })
+})
+
+describe('ventasLineas · línea que la lista lleva a cero', () => {
+  it('el comprobante muestra el mensaje de la base con el nombre del producto', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const mensaje = 'El producto «Tornillo» (línea 2) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)'
+    expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje, hint: 'producto_id' }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
+    spy.mockRestore()
   })
 })

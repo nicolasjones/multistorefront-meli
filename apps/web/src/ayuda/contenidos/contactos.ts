@@ -24,6 +24,18 @@ export const ayudaContactos: AyudaPorDestino = {
       'Entrá a Historial para ver el resultado de cada envío.',
     ],
   },
+  newsletter: {
+    titulo: 'Newsletter',
+    resumen:
+      'Gestiona el newsletter de cada tienda: quién se suscribió desde el pie de la tienda (con confirmación por correo), y las campañas que le mandás. Solo reciben quienes confirmaron; cada correo trae un enlace para darse de baja. Armar, enviar y cancelar campañas, dar de baja a alguien y borrar sus datos es del Administrador; el resto del equipo con acceso a Clientes lo ve en modo lectura.',
+    pasos: [
+      'Activá «Mostrar suscripción en el pie de la tienda» en cada tienda que quiera recibir suscriptores.',
+      'Revisá los suscriptores (Confirmados, Pendientes o Bajas) y buscá por correo.',
+      'Usá «Nueva campaña»: elegí la tienda, escribí asunto y mensaje, y activá si querés sumar productos destacados y promociones vigentes.',
+      'Mirá la vista previa, mandate una prueba y, si está bien, tocá «Enviar a N» y confirmá. Sale por lotes dentro del cupo diario.',
+      'En la lista de campañas podés ver el resultado de cada envío o cancelar lo que todavía no salió.',
+    ],
+  },
   proveedores: {
     titulo: 'Proveedores',
     resumen:

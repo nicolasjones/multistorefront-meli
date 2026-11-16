@@ -1,0 +1,11 @@
+slice_name: Cómo se reparten los costos fijos
+description: null
+certified_by: null
+certification_details: null
+viz_type: markup
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "viz_type": "markup", "markup_type": "markdown", "code": "**Cómo se reparte.** Cada mes, los costos fijos de la tienda (gastos de tipo fijo, sin anular) se reparten **en proporción a las ventas netas sin IVA de ese mes**: tasa de costos fijos = costos fijos ÷ ventas netas. El cargo de cada producto es lo que vendió × la tasa, y el **margen después de fijos** es el margen vigente menos ese cargo. **Sin atribuir** es la parte que le toca a las ventas sin costo guardado. El margen vigente de Rentabilidad no cambia. El **mes en curso** es provisorio: sus gastos y ventas todavía se están cargando."}
+query_context: null
+cache_timeout: null
+uuid: cc541a14-b4b0-5e65-bce0-a597dff0adfd
+version: 1.0.0
+dataset_uuid: fc25f0d5-efb9-5ad8-be7a-08c6b7e2d8b5

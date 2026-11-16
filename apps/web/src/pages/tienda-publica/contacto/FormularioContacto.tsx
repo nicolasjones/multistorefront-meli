@@ -6,6 +6,7 @@ import { ErrorConReintento } from '../ErrorConReintento'
 import { IconoTilde } from '../layout/iconos'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import { useCelular } from '../useAnchoCelular'
+import { avisoFormatoWhatsapp } from '../../../lib/whatsapp'
 import { MENSAJE_CAMPO_SERVIDOR, ORDEN_CAMPOS, validarContacto, type CampoContacto, type DatosContacto, type ErroresContacto } from './validacion'
 import { COLOR_FOCO, LINEA_SUAVE } from '../layout/medidas'
 
@@ -16,6 +17,9 @@ type Fase =
   | { fase: 'espera'; esperaSegundos: number }
   | { fase: 'falla' }
 
+// Texto para el visitante (el de `avisoFormatoWhatsapp` es para quien administra la tienda).
+const AVISO_NUMERO_VISITANTE = 'Revisá el número: escribilo con código de área, por ejemplo +54 9 11 1234-5678.'
+
 const VACIO: DatosContacto = { nombre: '', contacto: '', mensaje: '' }
 
 // Tarjeta del formulario (prototipo): fondo blanco, borde de 1 px, radio 12 y 32 px de relleno; en celular el formulario va
@@ -25,7 +29,10 @@ const estiloTarjeta = { bgcolor: 'background.paper', border: { xs: 0, md: LINEA_
 // Campo del prototipo (`.fin`): el rótulo (14 px/600) ARRIBA del campo —no flotante—, campo de 44 px (el mensaje, de 110 px como
 // mínimo) con borde de 1,5 px, radio 8 y texto de apoyo en el gris secundario (contraste AA) y el foco visible (borde y contorno primarios). El rótulo es un <label> asociado; el error va debajo con
 // `aria-describedby`.
-function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, multilinea = false, inputRef, rotuloVisible = true }: {
+function Campo({ id, etiqueta, ejemplo, valor, alCambiar, alSalir, error, autoComplete, multilinea = false, inputRef, rotuloVisible = true, aviso }: {
+  alSalir?: () => void
+  // Aviso no bloqueante (MSF-743): se muestra si no hay error.
+  aviso?: string | null
   id: string
   etiqueta: string
   ejemplo: string
@@ -51,6 +58,7 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
         placeholder={ejemplo}
         value={valor}
         onChange={alCambiar}
+        onBlur={alSalir}
         error={Boolean(error)}
         inputRef={inputRef}
         inputProps={{ 'aria-required': true, 'aria-invalid': Boolean(error), 'aria-describedby': error ? idError : undefined, autoComplete }}
@@ -61,7 +69,7 @@ function Campo({ id, etiqueta, ejemplo, valor, alCambiar, error, autoComplete, m
           '& input::placeholder, & textarea::placeholder': { color: 'text.secondary', opacity: 1 },
         }}
       />
-      {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : null}
+      {error ? <FormHelperText id={idError} error>{error}</FormHelperText> : aviso ? <FormHelperText role="status">{aviso}</FormHelperText> : null}
     </Box>
   )
 }
@@ -79,6 +87,8 @@ export function FormularioContacto({ host }: { host: string }) {
   const gracias = useRef<HTMLHeadingElement | null>(null)
   const enviandoAhora = useRef(false)
   const debeFocalizarNombre = useRef(false)
+  // El aviso del número se muestra al salir del campo, no mientras el visitante todavía escribe.
+  const [contactoTocado, setContactoTocado] = useState(false)
 
   useEffect(() => {
     if (estado.fase === 'exito') gracias.current?.focus()
@@ -137,6 +147,7 @@ export function FormularioContacto({ host }: { host: string }) {
 
   const enviarOtra = () => {
     setDatos(VACIO)
+    setContactoTocado(false)
     setErrores({})
     clave.current = nuevaClaveEnvio()
     debeFocalizarNombre.current = true
@@ -200,6 +211,8 @@ export function FormularioContacto({ host }: { host: string }) {
               valor={datos.contacto}
               alCambiar={cambiar('contacto')}
               error={errores.contacto}
+              alSalir={() => setContactoTocado(true)}
+              aviso={contactoTocado && avisoFormatoWhatsapp(datos.contacto) ? AVISO_NUMERO_VISITANTE : null}
               inputRef={(el) => { campos.current.contacto = el }}
             />
           </Box>

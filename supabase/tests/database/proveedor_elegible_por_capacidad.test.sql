@@ -23,7 +23,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('a1000000-0000-0000-0000-000000000002', 'a1111111-1111-1111-1111-111111111111', 'miembro'),
   ('a2000000-0000-0000-0000-000000000001', 'a2222222-2222-2222-2222-222222222222', 'administrador');
 
-insert into clientes (id, organizacion_id, nombre) values
+insert into dominio.clientes (id, organizacion_id, nombre) values
   ('a3000000-0000-0000-0000-000000000001', 'a1111111-1111-1111-1111-111111111111', 'Cliente X1'),
   ('a3000000-0000-0000-0000-000000000002', 'a2222222-2222-2222-2222-222222222222', 'Cliente Y1');
 
@@ -381,7 +381,7 @@ where cliente_id = 'a3000000-0000-0000-0000-000000000001' and capacidad = 'capac
 order by id desc
 limit 1;
 
-delete from clientes where id = 'a3000000-0000-0000-0000-000000000001';
+delete from dominio.clientes where id = 'a3000000-0000-0000-0000-000000000001';
 
 select is(
   (select count(*)::int from proveedor_capacidad_cliente where cliente_id = 'a3000000-0000-0000-0000-000000000001'),

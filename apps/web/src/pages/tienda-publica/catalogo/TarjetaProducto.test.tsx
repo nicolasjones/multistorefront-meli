@@ -25,6 +25,12 @@ describe('TarjetaProducto · sin regresión de precio', () => {
     expect(screen.getByTestId('tarjeta-producto')).toHaveAttribute('href', `/producto/${producto.id}`)
   })
 
+  it('un cliente con lista de precios ve en el catálogo el mismo precio público: la lista solo llega a «Tu precio» de la ficha', () => {
+    montar()
+    expect(screen.getByText('$ 18.455')).toBeInTheDocument()
+    expect(screen.queryByText(/lista|Tu precio/i)).not.toBeInTheDocument()
+  })
+
   it('no depende de la sesión: solo recibe el producto, un precio y sin escalas', () => {
     montar()
     expect(screen.getAllByText(/^\$ /)).toHaveLength(1)

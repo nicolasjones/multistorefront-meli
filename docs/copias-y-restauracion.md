@@ -46,10 +46,11 @@ destino se ignora). Una corrida puntual puede usar otros valores con los inputs 
 - Perder como máximo **24 horas** de datos (una copia por día).
 - Volver a operar en **4 horas**.
 
-El simulacro de restauración en staging (guía `docs/simulacro-restauracion.md`, **pendiente: aún no
-existe en esta rama**) mide el tiempo real contra este objetivo. Mientras tanto, los pasos y tiempos
-de la sección de restauración de este documento son la referencia. El simulacro debe incluir un
-envío de prueba del aviso por correo (ver «Puesta en marcha»).
+El simulacro de restauración en staging (guía `docs/simulacro-restauracion.md`) mide el tiempo real
+contra este objetivo; hoy está **documentado pero pendiente de ejecución** (falta la autorización del
+propietario sobre staging, ver el estado en esa guía). Mientras tanto, los pasos y tiempos de la
+sección de restauración de este documento son la referencia. El simulacro debe incluir un envío de
+prueba del aviso por correo (ver «Puesta en marcha»).
 
 ## ⚠️ Riesgo asumido: todo queda en el mismo servidor
 
@@ -147,9 +148,34 @@ ejecución de Kestra.
 
    Los roles y extensiones propios de Supabase deben existir ya en el destino (instancia nueva de
    Supabase self-hosted). Revisar los errores que muestre `pg_restore`.
-5. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
+5. **Reaplicar los privilegios del historial de copias.** `--no-privileges` no aplica los ACL del
+   dump: las nueve funciones `security definer` del historial (`iniciar_respaldo`,
+   `finalizar_respaldo_completado`, `finalizar_respaldo_error`, `iniciar_respaldo_imagenes`,
+   `finalizar_respaldo_imagenes_completado`, `finalizar_respaldo_imagenes_error`,
+   `iniciar_verificacion_restauracion`, `finalizar_verificacion_completado` y
+   `finalizar_verificacion_error`) quedan ejecutables por `PUBLIC` —`anon` podría escribir el
+   historial— y las tablas `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion` quedan sin
+   lectura para `authenticated`. Ejecutar, con la misma conexión `postgres` del restore:
+
+   ```bash
+   psql "$DATABASE_URL" -c 'select private.reaplicar_privilegios_copias();'
+   ```
+
+   Y comprobarlo (mismo criterio que el pgTAP
+   `supabase/tests/database/copias_imagenes_verificaciones.test.sql`):
+
+   ```sql
+   select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
+          has_function_privilege('authenticated', 'public.iniciar_respaldo(text)', 'EXECUTE') as autenticado,
+          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
+   ```
+
+   Lo esperado es `true / false / false` en las nueve funciones. Si la base restaurada es más vieja que
+   la migración que creó la función, aplicar antes las migraciones pendientes
+   (`supabase migration up`): el paso necesita que la función exista.
+6. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
    entrar a la app con un superadmin.
-6. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
+7. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
    una copia fresca post-restauración.
 
 ### B. Imágenes (Storage)

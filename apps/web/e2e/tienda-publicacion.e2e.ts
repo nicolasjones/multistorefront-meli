@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
-import { serviceKey, url } from './soporte/fixtures'
+import { CONTRASENA_E2E, altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
 
 // [MSF-779:T024] Cierre de la épica MSF-133 (SC-003): con dos empresas de organizaciones distintas,
 // alta de dominio, verificación (DNS simulado), preparar cambios en borrador, publicar, restaurar una
@@ -11,45 +11,8 @@ import { serviceKey, url } from './soporte/fixtures'
 // Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY el archivo se omite (no entra al CI
 // público): ver docs/e2e-app.md.
 
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
-const password = 'Correcta-12345!'
-
-const admin = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function restAdmin<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: admin({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrarAdmin(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: admin({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: admin(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function bajaUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: admin() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const password = CONTRASENA_E2E
 
 async function token(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
@@ -96,9 +59,9 @@ test.describe('Tienda online · dominio, borrador y versiones con dos empresas (
     try {
       const tiendas: Array<{ org: string; empresa: string; jwt: string; dominio: string; bienvenida: string }> = []
       for (const letra of ['a', 'b']) {
-        const [org] = await restAdmin<{ id: string }>('organizaciones', { nombre: `E2E tienda ${letra} ${sufijo}` })
+        const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E tienda ${letra} ${sufijo}` })
         orgs.push(org.id)
-        const [empresa] = await restAdmin<{ id: string }>(
+        const [empresa] = await rest<{ id: string }>(
           'empresas',
           { organizacion_id: org.id, nombre: `Empresa ${letra} ${sufijo}` },
           'dominio',
@@ -106,7 +69,7 @@ test.describe('Tienda online · dominio, borrador y versiones con dos empresas (
         const correo = `admin-tienda-${letra}-${sufijo}@example.com`
         const idUsuario = await altaUsuario(correo)
         usuarios.push(idUsuario)
-        await restAdmin('usuarios_organizacion', { user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' })
+        await rest('usuarios_organizacion', { user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' })
         tiendas.push({
           org: org.id,
           empresa: empresa.id,
@@ -195,8 +158,8 @@ test.describe('Tienda online · dominio, borrador y versiones con dos empresas (
       expect(deB.map((v) => v.numero)).not.toContain(3)
     } finally {
       // Las organizaciones caen en cascada con sus empresas, tiendas, borradores y versiones.
-      for (const org of orgs) await borrarAdmin(`organizaciones?id=eq.${org}`)
-      for (const id of usuarios) await bajaUsuario(id)
+      for (const org of orgs) await borrar(`organizaciones?id=eq.${org}`)
+      for (const id of usuarios) await borrarUsuario(id)
     }
   })
 })

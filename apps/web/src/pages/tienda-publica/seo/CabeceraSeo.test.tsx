@@ -78,7 +78,7 @@ describe('CabeceraSeo · página indexable', () => {
     expect(document.title).toBe('web')
   })
 
-  it('con `indexable={false}` (extensión de MSF-133) escribe noindex y no el JSON-LD', async () => {
+  it('con `indexable={false}` (extensión de) escribe noindex y no el JSON-LD', async () => {
     render(<CabeceraSeo host="mundojc.test" pagina="Inicio" indexable={false} datosEstructurados={() => [{ a: 1 }]} />)
     await waitFor(() => expect(meta('meta[name="robots"]')).toBe('noindex'))
     expect(document.head.querySelector('script[type="application/ld+json"]')).toBeNull()
