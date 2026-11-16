@@ -6,6 +6,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   llamadas: [] as string[][],
+  // Depósito con el que cada lote filtró el stock (`eq('deposito_id', …)`).
+  filtrosDeposito: [] as string[],
   falla: null as null | { lote: number },
   enVuelo: 0,
   pico: 0,
@@ -15,10 +17,11 @@ vi.mock('./supabase', () => ({
   supabaseClient: {
     from: () => {
       let ids: string[] = []
+      let depositoId = ''
       const consulta = {
         select: () => consulta,
         in: (_col: string, valores: string[]) => { ids = valores; return consulta },
-        eq: () => consulta,
+        eq: (col: string, valor: string) => { if (col === 'deposito_id') depositoId = valor; return consulta },
         returns: async () => {
           mocks.enVuelo += 1
           mocks.pico = Math.max(mocks.pico, mocks.enVuelo)
@@ -26,11 +29,12 @@ vi.mock('./supabase', () => ({
             // Un turno de espera: las peticiones de una ola quedan efectivamente simultáneas.
             await new Promise((resolver) => setTimeout(resolver, 0))
             mocks.llamadas.push(ids)
+            mocks.filtrosDeposito.push(depositoId)
             if (mocks.falla && mocks.llamadas.length === mocks.falla.lote) {
               return { data: null, error: new Error('boom') }
             }
             return {
-              data: ids.map((id) => ({ producto_id: id, deposito_id: 'dep', cantidad: '2', reservado: '1', disponible: '1' })),
+              data: ids.map((id) => ({ producto_id: id, deposito_id: depositoId, cantidad: '2', reservado: '1', disponible: '1' })),
               error: null,
             }
           } finally {
@@ -43,7 +47,8 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { LOTE_IDS_STOCK, MAXIMA_CONCURRENCIA_STOCK, listarStockPorDepositoDe } from './depositos'
+import { listarStockPorDepositoDe } from './depositos'
+import { MAXIMA_CONCURRENCIA_PETICIONES, MAXIMO_IDS_POR_PETICION } from './repartoIds'
 
 // Ids con la forma de un uuid (36 caracteres): es lo que viaja en la URL.
 const ids = (n: number) => Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`)
@@ -58,6 +63,7 @@ const LIMITE_PROXY = 8000
 describe('listarStockPorDepositoDe (MSF-716)', () => {
   beforeEach(() => {
     mocks.llamadas = []
+    mocks.filtrosDeposito = []
     mocks.falla = null
     mocks.enVuelo = 0
     mocks.pico = 0
@@ -65,8 +71,8 @@ describe('listarStockPorDepositoDe (MSF-716)', () => {
 
   it('con 1000 ids parte en lotes acotados y devuelve la unión completa', async () => {
     const r = await listarStockPorDepositoDe(ids(1000), 'dep')
-    expect(mocks.llamadas.length).toBe(Math.ceil(1000 / LOTE_IDS_STOCK))
-    expect(Math.max(...mocks.llamadas.map((l) => l.length))).toBeLessThanOrEqual(LOTE_IDS_STOCK)
+    expect(mocks.llamadas.length).toBe(Math.ceil(1000 / MAXIMO_IDS_POR_PETICION))
+    expect(Math.max(...mocks.llamadas.map((l) => l.length))).toBeLessThanOrEqual(MAXIMO_IDS_POR_PETICION)
     expect(Object.keys(r)).toHaveLength(1000)
     expect(r[ids(1000)[999]]).toEqual({ deposito_id: 'dep', cantidad: 2, reservado: 1, disponible: 1 })
   })
@@ -78,15 +84,25 @@ describe('listarStockPorDepositoDe (MSF-716)', () => {
     }
   })
 
+  it('cada lote filtra el stock por el depósito pedido, no por otro', async () => {
+    // Si el reparto perdiera (o cambiara) el `.eq('deposito_id', …)`, el stock vendría de otros
+    // depósitos y la toma rotularía diferencias falsas. El mock devuelve el depósito que filtró:
+    // sin el filtro, la fila quedaría sin depósito y este test falla.
+    const r = await listarStockPorDepositoDe(ids(250), 'dep-9')
+    expect(mocks.filtrosDeposito).toHaveLength(mocks.llamadas.length)
+    expect(mocks.filtrosDeposito.every((id) => id === 'dep-9')).toBe(true)
+    expect(r[ids(250)[0]]?.deposito_id).toBe('dep-9')
+  })
+
   it('el mismo conjunto de ids en una sola petición excedería el límite del proxy', () => {
     // El lote sin partir es el que rompía: deja por qué el reparto no es un detalle cosmético.
     expect(largoUrlFiltro(ids(250))).toBeGreaterThan(LIMITE_PROXY)
     expect(largoUrlFiltro(ids(1000))).toBeGreaterThan(LIMITE_PROXY)
   })
 
-  it('no lanza más de MAXIMA_CONCURRENCIA_STOCK peticiones a la vez', async () => {
+  it('no lanza más de MAXIMA_CONCURRENCIA_PETICIONES peticiones a la vez', async () => {
     await listarStockPorDepositoDe(ids(1000), 'dep')
-    expect(mocks.pico).toBeLessThanOrEqual(MAXIMA_CONCURRENCIA_STOCK)
+    expect(mocks.pico).toBeLessThanOrEqual(MAXIMA_CONCURRENCIA_PETICIONES)
     expect(mocks.pico).toBeGreaterThan(1)
   })
 

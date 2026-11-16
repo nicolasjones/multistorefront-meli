@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   total: null as number | null,
   stockVacio: false,
   peticionesStock: [] as string[][],
+  // Depósito con el que cada lote de stock filtró (`eq('deposito_id', …)`).
+  filtrosDeposito: [] as string[],
   peticionesCategoria: [] as string[][],
 }))
 
@@ -22,9 +24,16 @@ vi.mock('./supabase', () => ({
     from: (tabla: string) => {
       let ids: string[] = []
       let columna = ''
+      let depositoFiltrado = ''
       const consulta = {
         select: () => consulta,
-        eq: () => consulta,
+        eq: (col: string, valor: unknown) => {
+          if (tabla === 'stock_por_deposito' && col === 'deposito_id') {
+            depositoFiltrado = String(valor)
+            mocks.filtrosDeposito.push(depositoFiltrado)
+          }
+          return consulta
+        },
         in: (col: string, valores: string[]) => { columna = col; ids = valores; return consulta },
         order: () => consulta,
         limit: () => consulta,
@@ -41,9 +50,16 @@ vi.mock('./supabase', () => ({
           }
           if (columna !== 'producto_id') throw new Error(`Filtro inesperado: ${columna}`)
           mocks.peticionesStock.push(ids)
+          // El stock que sale es el del depósito filtrado; si el filtro se perdiera, el mock
+          // devolvería cifras de otro depósito (diferencias falsas en la toma).
+          const esElPedido = depositoFiltrado === 'dep-1'
           return {
             data: mocks.stockVacio ? [] : ids.map((id) => ({
-              producto_id: id, deposito_id: 'dep-1', cantidad: '3', reservado: '0', disponible: '3',
+              producto_id: id,
+              deposito_id: depositoFiltrado,
+              cantidad: esElPedido ? '3' : '99',
+              reservado: '0',
+              disponible: esElPedido ? '3' : '99',
             })),
             error: null,
             count: null,
@@ -55,7 +71,7 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { LOTE_IDS_STOCK } from './depositos'
+import { MAXIMO_IDS_POR_PETICION } from './repartoIds'
 import { MAXIMO_PRODUCTOS_TOMA, cargarFilasToma } from './tomaInventario'
 
 // Ids con la forma de un uuid (36 caracteres): es lo que viaja en la URL.
@@ -81,6 +97,7 @@ describe('cargarFilasToma (MSF-716)', () => {
     mocks.total = null
     mocks.stockVacio = false
     mocks.peticionesStock = []
+    mocks.filtrosDeposito = []
     mocks.peticionesCategoria = []
   })
 
@@ -100,11 +117,21 @@ describe('cargarFilasToma (MSF-716)', () => {
   it('el stock se pide en lotes cuya URL no excede el límite del proxy', async () => {
     mocks.productos = productos(MAXIMO_PRODUCTOS_TOMA)
     await cargarFilasToma(['c-1'])
-    expect(mocks.peticionesStock.length).toBe(Math.ceil(MAXIMO_PRODUCTOS_TOMA / LOTE_IDS_STOCK))
+    expect(mocks.peticionesStock.length).toBe(Math.ceil(MAXIMO_PRODUCTOS_TOMA / MAXIMO_IDS_POR_PETICION))
     for (const lote of mocks.peticionesStock) {
-      expect(lote.length).toBeLessThanOrEqual(LOTE_IDS_STOCK)
+      expect(lote.length).toBeLessThanOrEqual(MAXIMO_IDS_POR_PETICION)
       expect(largoUrlFiltro(lote)).toBeLessThanOrEqual(8000)
     }
+  })
+
+  it('el stock se pide filtrado por el depósito por defecto, no por otro', async () => {
+    mocks.productos = productos(250)
+    const filas = await cargarFilasToma(['c-1'])
+    expect(mocks.filtrosDeposito).toHaveLength(Math.ceil(250 / MAXIMO_IDS_POR_PETICION))
+    expect(mocks.filtrosDeposito.every((id) => id === 'dep-1')).toBe(true)
+    // Las cifras del sistema salen del depósito filtrado: sin el filtro serían de otro.
+    expect(filas).toHaveLength(250)
+    expect(filas.every((fila) => fila.sistema === 3)).toBe(true)
   })
 
   it('sin stock en el depósito, la fila muestra 0 (no queda indefinido)', async () => {
@@ -138,9 +165,9 @@ describe('cargarFilasToma (MSF-716)', () => {
   it('muchas categorías se reparten en lotes cuya URL no excede el límite del proxy', async () => {
     mocks.productos = productos(2)
     await cargarFilasToma(categorias(250))
-    expect(mocks.peticionesCategoria.length).toBe(Math.ceil(250 / LOTE_IDS_STOCK))
+    expect(mocks.peticionesCategoria.length).toBe(Math.ceil(250 / MAXIMO_IDS_POR_PETICION))
     for (const lote of mocks.peticionesCategoria) {
-      expect(lote.length).toBeLessThanOrEqual(LOTE_IDS_STOCK)
+      expect(lote.length).toBeLessThanOrEqual(MAXIMO_IDS_POR_PETICION)
       expect(largoUrlFiltro(lote)).toBeLessThanOrEqual(8000)
     }
   })

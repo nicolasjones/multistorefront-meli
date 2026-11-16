@@ -295,6 +295,9 @@ Cada producto tiene una **disponibilidad**: `stock`, `sin_stock` (se **derivan**
 - **Columna «Costo» del listado (FR-002).** Solo existe con `lectura`/`edicion` en `rentabilidad`
   (`useNivelSeccion('rentabilidad')`). Tras cargar la página de `v_productos_listado`, `consultarCostos`
   (`lib/productosListado.ts`) hace **una** segunda consulta `dominio.producto_costos` por los ids de la página.
+  Los ids viajan en el `in.(…)` de la URL del GET, así que se reparten en lotes de `MAXIMO_IDS_POR_PETICION`
+  (100) con el helper de `lib/repartoIds.ts`: una página de 25 ids sigue siendo una sola petición, pero un
+  llamador con muchos ids no excede el límite del proxy (MSF-716).
   Sin acceso la columna no se renderiza y no se consulta; RLS devuelve 0 filas al Operador aunque se pida a mano.
   `v_productos_listado` **no** expone costo (pgTAP `catalogo_costo_visibilidad.test.sql`, SC-002). Si la consulta
   de costos falla, el listado se muestra igual con «—» y un aviso «No pudimos cargar los costos». El costo se muestra con dos decimales, sin símbolo de

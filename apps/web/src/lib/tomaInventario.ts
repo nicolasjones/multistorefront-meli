@@ -1,7 +1,6 @@
 import { supabaseClient } from './supabase'
-import {
-  LOTE_IDS_STOCK, enLotes, listarDepositosActivos, listarStockPorDepositoDe, pedirEnOlas,
-} from './depositos'
+import { listarDepositosActivos, listarStockPorDepositoDe } from './depositos'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 // Toma de inventario (F-STK-11, MSF-415). La regla vive en la RPC `confirmar_toma_inventario`
@@ -79,7 +78,7 @@ function unirProductos(productos: readonly FilaProducto[]): FilaProducto[] {
 export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<FilaToma[]> {
   // Los ids de categoría también viajan en la URL (`in.(…)`): se reparten en lotes como los de
   // producto, así que un árbol de categorías grande no vuelve a romper la carga (MSF-716).
-  const lotes = enLotes([...new Set(categoriaIds)], LOTE_IDS_STOCK)
+  const lotes = enLotes([...new Set(categoriaIds)], MAXIMO_IDS_POR_PETICION)
   const respuestas = await pedirEnOlas(lotes, async (lote) => {
     const { data, error, count } = await supabaseClient
       .from('v_productos_listado')
