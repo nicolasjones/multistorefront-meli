@@ -69,6 +69,9 @@ describe('cliente de datos de opiniones', () => {
         filas: [
           base,
           { ...base, comentario: { no: 'es texto' } },
+          { ...base, empresa_nombre: { no: 'es texto' } },
+          { ...base, cliente_nombre: { no: 'es texto' } },
+          { ...base, producto_nombre: { no: 'es texto' } },
           { ...base, estado: 'publicada' },
           { ...base, puntuacion: 9 },
           { ...base, id: '' },
