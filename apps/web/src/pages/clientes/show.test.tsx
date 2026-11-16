@@ -134,7 +134,7 @@ describe('ClienteShow', () => {
     expect(interruptor).toBeDisabled()
   })
 
-  it('el interruptor «Acepta avisos por WhatsApp» guarda el consentimiento del cliente (MSF-952)', async () => {
+  it('el interruptor «Acepta avisos por WhatsApp» guarda el consentimiento del cliente', async () => {
     abrir()
     const interruptor = screen.getByRole('checkbox', { name: 'Acepta avisos por WhatsApp' })
     expect(interruptor).not.toBeChecked()

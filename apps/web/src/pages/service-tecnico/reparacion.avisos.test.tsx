@@ -255,7 +255,7 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
   })
 })
 
-describe('Service técnico · Aviso al cliente por WhatsApp desde el servidor (MSF-952)', () => {
+describe('Service técnico · Aviso al cliente por WhatsApp desde el servidor', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
