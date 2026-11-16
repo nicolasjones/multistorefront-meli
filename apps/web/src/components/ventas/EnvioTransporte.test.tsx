@@ -633,6 +633,8 @@ describe('Cambio de empresa activa (Principio VIII, FR-023)', () => {
     expect(await screen.findByText(AVISO_CAMBIO_DE_TIENDA_ENVIO)).toBeInTheDocument()
     // Lo elegido se soltó: no queda nada de la tienda anterior.
     await waitFor(() => expect(selector(/^Transporte \/ expreso/)).toHaveTextContent('Sin transporte'))
+    // MSF-629: sin transporte elegido la etiqueta no se superpone al texto del selector.
+    expect(screen.getByText(/^Transporte \/ expreso/, { selector: 'label' })).toHaveAttribute('data-shrink', 'true')
     expect(screen.getByLabelText('Guía')).toHaveValue('')
     expect(screen.getByRole('button', { name: ETIQUETA_GUARDAR_ENVIO })).toBeDisabled()
     // Y el envío se volvió a leer.

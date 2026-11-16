@@ -332,6 +332,24 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 «escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
 
+## Correcciones de UI funcional (épica MSF-585)
+
+Tanda de correcciones solo de frontend, un commit por defecto para poder revertirlos por separado:
+
+- **MSF-614** — la orden de ingreso de una reparación no imprime texto provisional: sin condiciones definidas
+  (`CONDICIONES_SERVICIO`) la línea se omite.
+- **MSF-627** — Productos: «Desactivar» pide confirmación; «Activar» sigue siendo directo.
+- **MSF-628** — abrir una nota de crédito directo titula «Nota de crédito NNNNNNNN» (antes «undefined»). Su estado se
+  muestra como lo guarda la base (`confirmada`, rotulado «Pendiente»), igual que en el listado.
+- **MSF-629** — las etiquetas de los selectores vacíos (Armó, Controló, Entregó, Transporte) quedan arriba del campo y
+  las columnas Precio s/IVA y Subtotal de las líneas son más anchas para importes grandes.
+- **MSF-623** — el conteo de productos de una categoría raíz de la tienda (pública y «Catálogo visible») suma el de sus
+  subcategorías (`acumularConteoCategorias`); la base sigue contando solo los directos.
+
+Quedaron sin corregir, por necesitar una decisión o un cambio de base: **MSF-609** (las RPC de documentos, envío,
+responsables y faltantes exigen el estado `confirmada`) y **MSF-615** (la base permite anular y editar datos de una
+reparación entregada: es una decisión de negocio).
+
 ## Precio promocional en el servidor (MSF-816 · F-1)
 
 `private.precio_linea_venta` es la **única** función de precio de línea: envuelve `private.precio_para` y `private.escala_para_linea` (sin modificarlos) y aplica **«gana el más bajo, sin acumular»** entre el precio normal de la línea (escala o precio propio o lista, **menos** el descuento del cliente) y la promoción vigente de la **tienda del comprobante** (`desde <= instante < hasta`, no anulada, solo con la bandera `promociones_precio` encendida). Una promoción mayor o igual al normal se ignora; si gana la promoción, la línea guarda `precio_referencia` (el precio normal del cliente, el «tachado»), `promocion_id` y `descuento_pct = 0`. El `precio_manual` manda siempre y no lleva referencia. La promoción la lee `private.promocion_vigente_fila` (`security definer`, filtra por organización, tienda y producto; sin `execute` para `anon`/`authenticated`).

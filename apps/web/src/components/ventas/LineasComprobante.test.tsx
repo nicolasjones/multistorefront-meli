@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
 import { violacionesAxe } from '../../test/axe'
-import { LineasComprobante } from './LineasComprobante'
+import { COLUMNAS, LineasComprobante } from './LineasComprobante'
 
 const mocks = vi.hoisted(() => ({ imagenes: vi.fn() }))
 vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: mocks.imagenes }))
@@ -176,6 +176,12 @@ describe('LineasComprobante · recálculo al cambiar cantidad, depósito o preci
     montar([])
     expect(screen.getByText('Todavía no agregaste productos. Usá «Agregar producto» para empezar.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agregar producto' })).toBeInTheDocument()
+  })
+
+  it('las columnas de Precio y Subtotal admiten importes grandes sin pisarse', () => {
+    const anchos = COLUMNAS.split(' ').filter((parte) => parte.endsWith('px')).map((parte) => Number.parseInt(parte, 10))
+    // Producto · Stock · Depósito · Cantidad · Precio s/IVA · Subtotal: las dos últimas, de al menos 150 px.
+    expect(anchos.slice(-2).every((ancho) => ancho >= 150)).toBe(true)
   })
 })
 
