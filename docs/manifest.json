@@ -1046,8 +1046,8 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "f3404f33d962d7f9b48333ffe89d94e5084612e336364afd48a2667a23bd15a6",
-      "sourceHash": "ed04052c9732563fc4913e251578270cc4e38d959d6b3b7f840b36413fb76537",
+      "pageHash": "6df6a836f91a800270b03fb3323fc0de53afdc1eeebcc3036f5763870e64db6b",
+      "sourceHash": "c5a7b5cbb007683364b9eef4f4d40ebe10165b511a4888529df6bd6136f9fe7d",
       "sourceAt": "7065a017",
       "sources": [
         "specs"

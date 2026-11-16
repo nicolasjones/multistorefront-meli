@@ -417,7 +417,7 @@ permisos y contexto demorados).
 
 - `BotonVolver` (`components/pagina/BotonVolver.tsx`) reemplaza la flecha sin nombre que `@refinedev/mui` pone en
   `Create`/`Edit`/`Show` (se pasa como `goBack`); `EditButton hideText` lleva `aria-label`.
-- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; no `ContenidoAdaptable`, que pasa a tarjetas en pantallas chicas) lleva `tabIndex={0}`, `role="region"` y un nombre
+- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; también la de `ContenidoAdaptable` cuando recibe `etiquetaTabla`, que en pantallas chicas pasa a tarjetas) lleva `tabIndex={0}`, `role="region"` y un nombre
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
