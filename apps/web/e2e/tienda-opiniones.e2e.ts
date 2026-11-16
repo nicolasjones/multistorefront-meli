@@ -10,7 +10,7 @@ import { altaUsuario, borrar, cabeceras, CONTRASENA_E2E, leer, rest, serviceKey,
 // tablas de solo lectura de `dominio` (`pnpm e2e:escritura:check`): el cliente y su cuenta entran como lo hace el panel y la
 // moderación la hace la persona administradora con su sesión (RPC `moderar_opinion`). Se omite sin `SUPABASE_URL` /
 // `SUPABASE_SERVICE_ROLE_KEY` o si la base todavía no tiene las RPC de opiniones. La función está detrás de la bandera
-// `tienda_opiniones` (apagada por defecto): el spec la enciende y devuelve su valor previo al terminar.
+// `tienda_opiniones` (apagada por defecto): el spec la enciende, junto con `tienda_pedidos` (que habilita «Mi cuenta»), y devuelve sus valores previos al terminar.
 
 // Ids fijos de supabase/seed.sql.
 const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001' } as const
@@ -25,13 +25,13 @@ async function admin<T>(ruta: string, cuerpo: unknown): Promise<T> {
 }
 
 // La bandera nace APAGADA: se enciende para el spec y se devuelve su valor previo. `null` = la base no tiene la fila.
-async function fijarBandera(activa: boolean): Promise<boolean | null> {
-  const ruta = 'banderas_plataforma?clave=eq.tienda_opiniones'
+async function fijarBandera(clave: 'tienda_opiniones' | 'tienda_pedidos', activa: boolean): Promise<boolean | null> {
+  const ruta = `banderas_plataforma?clave=eq.${clave}`
   const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
   const filas = lectura.ok ? ((await lectura.json()) as { activa: boolean }[]) : []
   if (filas.length === 0) return null
   const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
-  if (!r.ok) throw new Error(`bandera tienda_opiniones: ${r.status} ${await r.text()}`)
+  if (!r.ok) throw new Error(`bandera ${clave}: ${r.status} ${await r.text()}`)
   return filas[0].activa
 }
 
@@ -54,6 +54,7 @@ test.describe('Tienda · opiniones de productos', () => {
   test.describe.configure({ mode: 'serial' })
 
   let banderaPrevia: boolean | null = null
+  let pedidosPrevia: boolean | null = null
   let sufijo = ''
   let productoId = ''
   let productoNombre = ''
@@ -85,7 +86,9 @@ test.describe('Tienda · opiniones de productos', () => {
 
   test.beforeAll(async () => {
     test.skip(!(await hayRpcDeOpiniones()), 'La base no tiene todavía las RPC de opiniones de productos.')
-    banderaPrevia = await fijarBandera(true)
+    banderaPrevia = await fijarBandera('tienda_opiniones', true)
+    // «Mi cuenta» (y su pestaña «Mis opiniones») existe solo con la función de cuentas encendida.
+    pedidosPrevia = await fijarBandera('tienda_pedidos', true)
     test.skip(banderaPrevia === null, 'La base no tiene la bandera `tienda_opiniones`.')
 
     sufijo = randomUUID().slice(0, 8)
@@ -115,7 +118,8 @@ test.describe('Tienda · opiniones de productos', () => {
   })
 
   test.afterAll(async () => {
-    if (banderaPrevia !== null) await fijarBandera(banderaPrevia).catch(() => undefined)
+    if (banderaPrevia !== null) await fijarBandera('tienda_opiniones', banderaPrevia).catch(() => undefined)
+    if (pedidosPrevia !== null) await fijarBandera('tienda_pedidos', pedidosPrevia).catch(() => undefined)
     if (productoId) {
       await borrar(`opiniones_producto?producto_id=eq.${productoId}`, 'dominio')
       await borrar(`producto_empresa?producto_id=eq.${productoId}`, 'dominio')

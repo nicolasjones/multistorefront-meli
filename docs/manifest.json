@@ -3722,9 +3722,9 @@
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
-      "pageHash": "4f4103e0b597b42a1d6bcb444e741c76b8a4516582144bc9c36595c4f604f718",
-      "sourceHash": "905ee313503d8f80c497876c20fb2751c7fa59b254309625a5c815b63bd8c8d0",
-      "sourceAt": "33d1644e",
+      "pageHash": "c7498dd15cbe1ccebf59462ac8d1eaa8587246e0cb96d29610a97d16ad739cb8",
+      "sourceHash": "4635408ae8786c6e4b7ec0252bb5cdbfff85b45bcd1e82322e840783a2e0310e",
+      "sourceAt": "5846921d",
       "sources": [
         "specs/20270328-100000-opiniones-de-productos",
         "supabase/migrations/20270341000000_opiniones_producto.sql",
@@ -3739,7 +3739,7 @@
         "apps/web/e2e/tienda-opiniones.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "33d1644e"
+      "commit": "5846921d"
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",

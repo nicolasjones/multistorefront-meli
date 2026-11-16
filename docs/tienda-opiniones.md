@@ -65,7 +65,7 @@ Reglas comunes: `security definer`, `search_path` vacío, ninguna recibe cliente
 ## Tienda pública (front)
 
 - **Ficha** (`/producto/:id`): el bloque «Opiniones» (`pages/tienda-publica/opiniones/OpinionesProducto.tsx`, carga diferida) solo se monta si `capacidades_opiniones_por_dominio` dice `true`. Muestra el promedio y la cantidad, las opiniones por tandas con «Cargar más», y, con sesión, el formulario «Tu opinión» (estrellas con teclado, contador de caracteres, errores por campo y el aviso «se publicará cuando la revisemos»); sin sesión, una invitación a ingresar. El texto de una opinión siempre se pinta como texto de React (nunca como HTML).
-- **Mi cuenta**: con la función encendida aparece la pestaña «Mis opiniones» (`?seccion=opiniones`): estado de cada opinión («Pendiente de revisión», «Publicada», «Rechazada» con su motivo), editar (vuelve a pendiente) y borrar con confirmación.
+- **Mi cuenta**: «Mi cuenta» existe solo con la bandera `tienda_pedidos` encendida; con `tienda_opiniones` también encendida aparece la pestaña «Mis opiniones» (`?seccion=opiniones`): estado de cada opinión («Pendiente de revisión», «Publicada», «Rechazada» con su motivo), editar (vuelve a pendiente) y borrar con confirmación.
 - La validación del cliente (`validacion.ts`) es un **espejo** de `private.validar_texto_opinion` para avisar antes de enviar; el servidor manda siempre.
 
 ## Encender y apagar
