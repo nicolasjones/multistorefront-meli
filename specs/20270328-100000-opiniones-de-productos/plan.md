@@ -28,8 +28,8 @@ Una tabla nueva (`dominio.opiniones_producto`), funciones nuevas de `private`, `
 | `20270341000000_opiniones_producto.sql` | tabla, checks, FK compuestas, índices, RLS sin políticas, grants cero, bandera `tienda_opiniones` apagada | borrar bandera; `drop table` (exportar antes) |
 | `20270341000100_opiniones_validacion.sql` | `private.validar_texto_opinion`, `private.nombre_publico_cliente` | `drop function` |
 | `20270341000200_opiniones_moderacion_rpc.sql` | `public.listar_opiniones`, `public.moderar_opinion` (+ evento de Actividad) | `drop function` |
-| `20270341000300_opiniones_cliente_rpc.sql` | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
-| `20270341000400_opiniones_lectura_publica.sql` | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
+| `20270419000000_opiniones_cliente_rpc.sql` | `publico.guardar_opinion_por_dominio`, `borrar_opinion_por_dominio`, `mis_opiniones_por_dominio` | `drop function` |
+| `20270419000100_opiniones_lectura_publica.sql` | `publico.opiniones_producto_por_dominio`, `publico.capacidades_opiniones_por_dominio` | `drop function` |
 | `20270341000500_exportacion_total_opiniones.sql` | la tabla entra en `conjuntos_exportacion_total` | restaurar la versión previa |
 
 `node scripts/verificar-migraciones.mjs --estricto` en cada fase; rebasar con `origin/dokploy` y renumerar si otra rama ocupó la ventana. Antes de redefinir `conjuntos_exportacion_total` se lee su **última** versión en `dokploy`.
