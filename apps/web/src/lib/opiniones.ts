@@ -48,40 +48,43 @@ export type TandaOpiniones = {
 export const CONTADORES_VACIOS: ContadoresOpiniones = { pendientes: 0, aceptadas: 0, rechazadas: 0 }
 
 const ESTADOS: readonly EstadoOpinion[] = ['pendiente', 'aceptada', 'rechazada']
-const comoTexto = (valor: unknown): string => (typeof valor === 'string' ? valor : '')
+const textoDe = (valor: unknown): string | null => (typeof valor === 'string' ? valor : null)
 const comoContador = (valor: unknown): number => (typeof valor === 'number' && Number.isFinite(valor) ? valor : 0)
 
 // T029 (H-2): la respuesta de la RPC es dato NO confiable para la interfaz (mismo criterio que el cliente de la tienda,
 // `tiendaOpiniones.ts`): una fila sin id, sin una puntuación entera de 1 a 5, con un estado desconocido, sin la fecha que
-// exige el bloqueo optimista o con un texto que no es texto se descarta (no se muestra ni se ofrece moderar). Los textos
-// se copian tal cual: el comentario y el motivo nunca se interpretan como HTML.
-export function comoFilaOpinion(valor: unknown): OpinionPanel | null {
+// exige el bloqueo optimista o con algún campo que no tiene la forma del contrato se descarta (no se muestra ni se ofrece
+// moderar). Los textos se copian tal cual: el comentario y el motivo nunca se interpretan como HTML.
+function comoFilaOpinion(valor: unknown): OpinionPanel | null {
   const fila = valor !== null && typeof valor === 'object' && !Array.isArray(valor) ? (valor as Record<string, unknown>) : null
   if (!fila) return null
-  const id = comoTexto(fila.id)
-  const empresaId = comoTexto(fila.empresa_id)
-  const clienteId = comoTexto(fila.cliente_id)
-  const productoId = comoTexto(fila.producto_id)
-  const creadaEn = comoTexto(fila.creada_en)
-  const actualizadaEn = comoTexto(fila.actualizada_en)
+  const id = textoDe(fila.id)
+  const empresaId = textoDe(fila.empresa_id)
+  const clienteId = textoDe(fila.cliente_id)
+  const productoId = textoDe(fila.producto_id)
+  const creadaEn = textoDe(fila.creada_en)
+  const actualizadaEn = textoDe(fila.actualizada_en)
+  const empresaNombre = textoDe(fila.empresa_nombre)
+  const clienteNombre = textoDe(fila.cliente_nombre)
+  const productoNombre = textoDe(fila.producto_nombre)
+  const comentario = textoDe(fila.comentario)
+  const motivoRechazo = fila.motivo_rechazo ?? null
   const puntuacion = typeof fila.puntuacion === 'number' && Number.isInteger(fila.puntuacion) && fila.puntuacion >= 1 && fila.puntuacion <= 5
     ? fila.puntuacion
     : null
   const estado = ESTADOS.includes(fila.estado as EstadoOpinion) ? (fila.estado as EstadoOpinion) : null
-  const comentario = fila.comentario
-  const motivoRechazo = fila.motivo_rechazo
   if (!id || !empresaId || !clienteId || !productoId || !creadaEn || !actualizadaEn) return null
-  if (puntuacion === null || estado === null) return null
-  if (typeof comentario !== 'string') return null
+  if (empresaNombre === null || clienteNombre === null || productoNombre === null || comentario === null) return null
   if (motivoRechazo !== null && typeof motivoRechazo !== 'string') return null
+  if (puntuacion === null || estado === null) return null
   return {
     id,
     empresa_id: empresaId,
-    empresa_nombre: comoTexto(fila.empresa_nombre),
+    empresa_nombre: empresaNombre,
     cliente_id: clienteId,
-    cliente_nombre: comoTexto(fila.cliente_nombre),
+    cliente_nombre: clienteNombre,
     producto_id: productoId,
-    producto_nombre: comoTexto(fila.producto_nombre),
+    producto_nombre: productoNombre,
     puntuacion,
     comentario,
     estado,
@@ -110,8 +113,8 @@ export async function listarOpiniones(params: {
   const d = (data ?? {}) as Record<string, unknown>
   const contadores = (d.contadores ?? {}) as Record<string, unknown>
   const siguienteCrudo = (d.siguiente ?? null) as Record<string, unknown> | null
-  const creada = siguienteCrudo ? comoTexto(siguienteCrudo.creada) : ''
-  const idSiguiente = siguienteCrudo ? comoTexto(siguienteCrudo.id) : ''
+  const creada = siguienteCrudo ? (textoDe(siguienteCrudo.creada) ?? '') : ''
+  const idSiguiente = siguienteCrudo ? (textoDe(siguienteCrudo.id) ?? '') : ''
   return {
     contadores: {
       pendientes: comoContador(contadores.pendientes),

@@ -10,8 +10,13 @@ select plan(12);
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
-  ('f5000000-0000-0000-0000-000000000001', 'res-a@example.com'),
-  ('f5000000-0000-0000-0000-000000000002', 'res-b@example.com'),
+  ('f5000000-0000-0000-0000-000000000001', 'res-a1@example.com'),
+  ('f5000000-0000-0000-0000-000000000002', 'res-a2@example.com'),
+  ('f5000000-0000-0000-0000-000000000003', 'res-a3@example.com'),
+  ('f5000000-0000-0000-0000-000000000004', 'res-a4@example.com'),
+  ('f5000000-0000-0000-0000-000000000005', 'res-a5@example.com'),
+  ('f5000000-0000-0000-0000-000000000006', 'res-a6@example.com'),
+  ('f5000000-0000-0000-0000-000000000007', 'res-b1@example.com'),
   ('f5000000-0000-0000-0000-000000000009', 'admin@example.com');
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A', true),
@@ -27,15 +32,29 @@ insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) 
 insert into dominio.existencias (producto_id, organizacion_id, cantidad)
 values ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 7);
 
+-- Seis clientes: cinco de la tienda A (tres con opinión aceptada, una pendiente y una rechazada) y uno de la tienda B.
+-- Una opinión por cuenta y producto (índice único): cada cuenta opina una sola vez.
 insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
-  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Valeria Sánchez', 'v@example.com', 'minorista'),
-  ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Bruno Díaz', 'b@example.com', 'minorista');
+  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Valeria Sánchez', 'v1@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Bruno Díaz', 'v2@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Carla Gómez', 'v3@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 913, 'Dora Pérez', 'v4@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 914, 'Elena Soto', 'v5@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 915, 'Franco Ruiz', 'v6@example.com', 'minorista'),
+  ('c1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 916, 'Gina Salas', 'v7@example.com', 'minorista');
+insert into clientes_empresas (cliente_id, empresa_id, organizacion_id)
+select c.id, 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'
+  from dominio.clientes c where c.id <> 'c1000000-0000-0000-0000-000000000007';
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
-  ('c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
-  ('c1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
-insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
-  ('ca000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000001', 'activa'),
-  ('ca000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000002', 'e1000000-0000-0000-0000-000000000002', 'f5000000-0000-0000-0000-000000000002', 'activa');
+  ('c1000000-0000-0000-0000-000000000007', 'e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111');
+insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado)
+select ('ca000000-0000-0000-0000-00000000000' || right(c.id::text, 1))::uuid,
+       '11111111-1111-1111-1111-111111111111',
+       c.id,
+       case when c.id = 'c1000000-0000-0000-0000-000000000007' then 'e1000000-0000-0000-0000-000000000002' else 'e1000000-0000-0000-0000-000000000001' end,
+       ('f5000000-0000-0000-0000-00000000000' || right(c.id::text, 1))::uuid,
+       'activa'
+  from dominio.clientes c;
 
 create function pg_temp.anonimo() returns void language plpgsql as $$
 begin
@@ -54,11 +73,11 @@ update public.banderas_plataforma set activa = true where clave = 'tienda_opinio
 -- Tienda A: 3 aceptadas (5, 4, 4), 1 pendiente y 1 rechazada (no cuentan). Tienda B: 1 aceptada (2) del mismo producto.
 insert into dominio.opiniones_producto (id, organizacion_id, empresa_id, cuenta_cliente_id, producto_id, puntuacion, comentario, estado, motivo_rechazo, moderada_por, moderada_en, creada_en, actualizada_en) values
   ('0d000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 5, 'Aceptada de la tienda A, primera', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-10 10:00+00', '2027-03-10 10:00+00'),
-  ('0d000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 4, 'Aceptada de la tienda A, segunda', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-09 10:00+00', '2027-03-09 10:00+00'),
-  ('0d000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 4, 'Aceptada de la tienda A, tercera', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-08 10:00+00', '2027-03-08 10:00+00'),
-  ('0d000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 1, 'Pendiente que no cuenta', 'pendiente', null, null, null, '2027-03-11 10:00+00', '2027-03-11 10:00+00'),
-  ('0d000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 1, 'Rechazada que no cuenta', 'rechazada', 'Spam', 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-12 10:00+00', '2027-03-12 10:00+00'),
-  ('0d000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'ca000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 2, 'Aceptada de la tienda B solamente', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-10 11:00+00', '2027-03-10 11:00+00');
+  ('0d000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', 4, 'Aceptada de la tienda A, segunda', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-09 10:00+00', '2027-03-09 10:00+00'),
+  ('0d000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', 4, 'Aceptada de la tienda A, tercera', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-08 10:00+00', '2027-03-08 10:00+00'),
+  ('0d000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001', 1, 'Pendiente que no cuenta', 'pendiente', null, null, null, '2027-03-11 10:00+00', '2027-03-11 10:00+00'),
+  ('0d000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'ca000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', 1, 'Rechazada que no cuenta', 'rechazada', 'Spam', 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-12 10:00+00', '2027-03-12 10:00+00'),
+  ('0d000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'ca000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-000000000001', 2, 'Aceptada de la tienda B solamente', 'aceptada', null, 'f5000000-0000-0000-0000-000000000009', now(), '2027-03-10 11:00+00', '2027-03-10 11:00+00');
 
 -- (a) El índice parcial cubriente del resumen existe y cubre `puntuacion` (agregación index-only).
 select ok(to_regclass('dominio.opiniones_producto_resumen_idx') is not null, 'existe el índice parcial del resumen');
@@ -79,6 +98,7 @@ select pg_temp.anonimo();
 insert into res select 'a', publico.opiniones_producto_por_dominio('res-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001');
 select is((select v->'resumen' from res where k = 'a'), '{"promedio":4.3,"cantidad":3}'::jsonb, 'promedio y cantidad exactos: solo las 3 aceptadas de la tienda A');
 select is((select jsonb_array_length(v->'filas') from res where k = 'a'), 3, 'la lista trae las mismas 3 aceptadas que cuenta el resumen');
+reset role;
 select is((select (v->'resumen'->>'cantidad')::int from res where k = 'a'),
   (select count(*)::int from dominio.opiniones_producto o
      join public.cuentas_cliente cc on cc.id = o.cuenta_cliente_id
@@ -89,6 +109,7 @@ select is((select (v->'resumen'->>'cantidad')::int from res where k = 'a'),
       and o.estado = 'aceptada'),
   'el resumen cuenta el mismo conjunto que la lista con sus uniones (mismo resultado, sin el costo)');
 select pg_temp.ip(2);
+select pg_temp.anonimo();
 insert into res select 'b', publico.opiniones_producto_por_dominio('res-b.ejemplo.com', 'a1000000-0000-0000-0000-000000000001');
 select is((select v->'resumen' from res where k = 'b'), '{"promedio":2.0,"cantidad":1}'::jsonb, 'la tienda B ve solo lo suyo (D8)');
 

@@ -19,21 +19,14 @@
 // el prefijo de las variables de entorno y los textos.
 
 import {
-  ACCIONES,
   CONTENEDOR_DEV,
   ErrorEntorno,
   ORGS_DEMO_SEED,
-  VARIABLES_PG_PELIGROSAS,
   comandoPara,
-  entornoLimpio,
-  esHostDev,
   ejecutarComoScript,
-  ejecutarProceso,
   leerArgumentos as leerArgumentosComunes,
-  motivoUrlAmbigua,
   pathToFileURL,
   principal as principalComun,
-  redactar,
   resolverDestino as resolverDestinoComun,
   sqlMarcadorDev as sqlMarcadorDevComun,
   sqlPara as sqlParaComun,
@@ -41,7 +34,7 @@ import {
 
 export const CLAVE_BANDERA = 'tienda_opiniones';
 export const PREFIJO_ENV = 'TIENDA_OPINIONES_DEV';
-export { CONTENEDOR_DEV, VARIABLES_PG_PELIGROSAS, ORGS_DEMO_SEED, ErrorEntorno };
+export { CONTENEDOR_DEV, ORGS_DEMO_SEED, ErrorEntorno };
 
 export const USO = [
   'Uso: node scripts/tienda-opiniones-dev.mjs <encender|apagar|estado> --entorno dev',
@@ -73,7 +66,7 @@ export async function principal(argv, env = process.env, deps = {}) {
   return principalComun(OPCIONES, argv, env, deps);
 }
 
-export { ACCIONES, comandoPara, entornoLimpio, esHostDev, ejecutarProceso, motivoUrlAmbigua, redactar };
+export { comandoPara };
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await ejecutarComoScript('scripts/tienda-opiniones-dev.mjs', OPCIONES);

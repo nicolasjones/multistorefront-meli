@@ -25,7 +25,7 @@ export const MARCADORES = [
 ];
 
 // Los .js del bundle (assets). Los .css y .map no llevan estos textos.
-export function jsDelBundle(carpeta) {
+function jsDelBundle(carpeta) {
   const assets = path.join(carpeta, 'assets');
   if (!fs.existsSync(assets)) return [];
   return fs.readdirSync(assets).filter((f) => f.endsWith('.js')).map((f) => path.join(assets, f));
