@@ -7,6 +7,7 @@
 //   T4  Tabla nueva con `organizacion_id` que no está en la exportación total   (exportacion_total.test.sql)
 //   T5  E2E que escribe con la service-role key en una tabla de `dominio` sin grant para service_role
 //   T6  Redefinición de `conjuntos_exportacion_total()` que pierde filas de la versión vigente (pisa lo que agregó otra rama)
+//   T7  `current_date` (UTC del CI) en el alta de una reparación: la app valida «hoy» con la fecha de Buenos Aires
 //
 // No cubre (ya lo hacen otros guards): versiones de migración <= la máxima de la base (`verificar-migraciones.mjs
 // --estricto`) y nombres de test con códigos MSF (guardián `apps/web/src/higieneReferenciasInternas.test.ts`).
@@ -188,6 +189,26 @@ export function revisarSupersetExportacion({ migracionesDiff, todasMigraciones }
   return problemas;
 }
 
+// T7: entre 00:00 y 03:00 UTC `current_date` ya es «mañana» en Buenos Aires y `reparaciones.ingreso_en` rechaza fechas futuras.
+export function revisarFechasBuenosAires({ pruebas }) {
+  const problemas = [];
+  for (const p of pruebas) {
+    const sql = sinComentarios(p.sql);
+    let desde = 0;
+    for (const sentencia of sql.split(';')) {
+      if (!/throws_ok/i.test(sentencia) && /insert\s+into\s+(?:dominio\.)?reparaciones\b/i.test(sentencia) && /\bcurrent_date\b/i.test(sentencia)) {
+        problemas.push(
+          `${p.ruta}:${lineaDe(sql, desde + sentencia.search(/\bcurrent_date\b/i))} usa current_date (UTC) al insertar una reparación: `
+          + "entre las 00:00 y las 03:00 UTC es «mañana» en Buenos Aires y la app rechaza «El ingreso no puede ser una fecha futura». "
+          + "Usá (now() at time zone 'America/Argentina/Buenos_Aires')::date.",
+        );
+      }
+      desde += sentencia.length + 1;
+    }
+  }
+  return problemas;
+}
+
 const RE_ESCRITURA_E2E = /\b(rest|borrar)\(\s*(['"`])([a-z_][a-z0-9_]*)[^'"`]*\2([^()]*?)\)/gi;
 
 // T5: escrituras E2E con la service-role key en `dominio` (rest/borrar con esquema 'dominio') sin grant para service_role.
@@ -226,6 +247,7 @@ export function revisar({ migracionesDiff, pruebas, e2e, todasMigraciones, sqlTe
   return [
     ...revisarGrants({ migracionesDiff, inalterables }),
     ...revisarVariablesPsql({ pruebas }),
+    ...revisarFechasBuenosAires({ pruebas }),
     ...revisarExportacionTotal({ migracionesDiff }),
     ...revisarSupersetExportacion({ migracionesDiff, todasMigraciones }),
     ...revisarE2E({ e2e, tablasConGrant, versionCreacion, inalterables }),

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, tablasCreadas, sinBase,
+  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, tablasCreadas, sinBase,
 } from './verificar-trampas-conocidas.mjs';
 
 const mig = (version, sql) => ({ ruta: `supabase/migrations/${version}_prueba.sql`, sql });
@@ -184,4 +184,12 @@ test('el parseo de casts no se cuelga con espacios hostiles (sin ReDoS)', async 
   const t = Date.now();
   filasConjuntosExportacion(sql);
   assert.ok(Date.now() - t < 2000, 'tardó demasiado: ReDoS');
+});
+
+test('current_date en el alta de una reparación falla; con la fecha de Buenos Aires o en otra tabla pasa', () => {
+  const mal = revisarFechasBuenosAires({ pruebas: [{ ruta: 'x.sql', sql: 'insert into dominio.reparaciones (id, ingreso_en)\n  values (1, current_date);' }] });
+  assert.equal(mal.length, 1);
+  assert.match(mal[0], /Buenos_Aires/);
+  const bien = "insert into dominio.reparaciones (id, ingreso_en) values (1, (now() at time zone 'America/Argentina/Buenos_Aires')::date);\ninsert into dominio.otra (f) values (current_date);\nselect throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '42501');";
+  assert.deepEqual(revisarFechasBuenosAires({ pruebas: [{ ruta: 'a.sql', sql: bien }] }), []);
 });
