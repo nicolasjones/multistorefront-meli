@@ -27,7 +27,7 @@ sources:
 
 ## Baja de organización: requisitos de la primera RPC y límites conocidos
 
-Hoy no hay ninguna RPC que dé de baja una organización (ver [Empresas](../empresas.md)). Cuando se escriba la primera (`baja_organizacion*`), **debe** cumplir, y lo comprueba `supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql` (falla si aparece una función con ese nombre sin estas condiciones):
+Hoy no hay ninguna RPC que dé de baja una organización (ver [Empresas](../empresas.md)). Cuando se escriba la primera (`baja_organizacion*`), **debe** cumplir, y lo comprueba `supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql` (falla si aparece una función con ese nombre que no llame a las tres funciones; se quitan antes los comentarios, así que nombrarlas en un comentario no alcanza. Un literal de texto sí podría engañarla: la revisión de código lo cubre):
 
 - Exigir **superadmin** (`private.is_superadmin()`), no «administrador de la organización»: borrar una organización entera no es una decisión de quien la usa.
 - **Registrar la actividad** con `private.registrar_actividad` (quién, cuándo y qué organización), antes de borrar.
