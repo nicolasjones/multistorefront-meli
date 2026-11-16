@@ -16,11 +16,13 @@ El guard juzga **las migraciones propias de la rama**: las que agregó, renombr�
 desde el punto de divergencia con la base (`git merge-base <base> HEAD`). Lo que la rama
 heredó sin tocar queda **fuera** del alcance, aunque la base lo haya renumerado después.
 
-Por qué (MSF-749): `dokploy` renumera migraciones casi todos los días. Con el alcance
-anterior (el árbol entero contra la punta de la base), **toda** rama abierta antes del
-renumerado quedaba `BEHIND` con el job `application` en rojo por «versión … REUSADA» o
-«versión … MODIFICADA» de migraciones que ese PR no había tocado: 13 PRs abiertos, ninguno
-mergeable, y la base seguía avanzando.
+Por qué (MSF-749): la base renumera migraciones casi todos los días y de vez en cuando deja
+**dos migraciones con la misma versión** (el 2026-11-02 dejó `20270121120000` en
+`20270121120000_alertas_inicio_tabla.sql` y `20270121120000_cortar_sesiones_miembro_removido.sql`).
+Con el alcance anterior (el árbol entero contra la punta de la base), **toda** rama que
+heredó ese conflicto quedaba `BEHIND` con el job `application` en rojo por «versión
+duplicada …» o «versión … MODIFICADA» de migraciones que ese PR no había tocado: 13 PRs
+abiertos, ninguno mergeable, y la base seguía avanzando.
 
 Lo que **no** se pierde:
 
@@ -32,6 +34,10 @@ Lo que **no** se pierde:
   rama heredó: actualizá tu rama (merge de `origin/dokploy`) antes de mergear».
 - Sin punto de divergencia resoluble (clone superficial sin ancestro común) el guard cae a
   `HEAD~1`; si tampoco puede, revisa el árbol entero (comportamiento previo).
+
+El CI corre el guard sobre el **merge** de la base en la rama (`refs/pull/N/merge`), no
+sobre la rama sola: por eso el alcance se calcula contra el punto de divergencia con la
+punta de la base y no contra la punta de la base con el árbol de la rama.
 
 ## Nombre del archivo
 

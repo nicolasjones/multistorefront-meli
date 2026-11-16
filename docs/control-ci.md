@@ -146,11 +146,11 @@ archivo` sin pasos de código.
   dev/stg/prd). Para verlo antes de limpiar: `pnpm ci:limpiar` (dry-run).
 - **Un PR quedó `BEHIND` y el job `application` falla por el guard de migraciones:** el
   guard juzga sólo las migraciones que la rama agregó o modificó desde el punto de
-  divergencia con la base (MSF-749), así que un rojo por «REUSADA» o «MODIFICADA» de una
-  migración que la rama heredó ya no corresponde a ese PR. Si el log dice «la base
-  `origin/dokploy` renumeró N migración(es) que tu rama heredó», actualizá la rama (merge
-  de la base en la rama del PR) antes de mergear: si no, la migración vieja y la renumerada
-  conviven al integrar.
+  divergencia con la base (MSF-749), así que un rojo por «versión duplicada», «REUSADA» o
+  «MODIFICADA» de una migración que la rama heredó ya no corresponde a ese PR. Si el log
+  dice «la base `origin/dokploy` renumeró N migración(es) que tu rama heredó», actualizá la
+  rama (merge de la base en la rama del PR) antes de mergear: si no, la migración vieja y
+  la renumerada conviven al integrar.
 
 ## Integración protegida de `dokploy`
 
