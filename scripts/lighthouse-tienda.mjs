@@ -28,6 +28,7 @@ import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeF
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { createBrotliCompress, createGzip } from 'node:zlib'
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url))
 const VERSION_LIGHTHOUSE = '12.8.2'
@@ -70,6 +71,9 @@ const TIPOS = {
   '.json': 'application/json',
   '.ico': 'image/x-icon',
 }
+
+// Tipos que el servidor de producción comprime (el texto del bundle y las fuentes).
+const COMPRIMIBLES = /\.(html|js|css|svg|json|woff2?)$/i
 
 // Lee las opciones de la línea de comandos y del entorno.
 export function leerOpciones(argv = [], env = {}) {
@@ -156,14 +160,32 @@ export function evaluar(medianas, umbralMs = UMBRAL_LCP_MS) {
 
 // Servidor estático mínimo para medir el build local sin Docker: sirve `dist` y cae en
 // `index.html` (routing del cliente) para cualquier ruta que no sea un archivo.
+//
+// Comprime como lo hace el servidor de producción (nginx/Caddy sirven el front con gzip o
+// brotli): sin compresión, el chunk de entrada pesa 833 kB en vez de 242 kB y la medición
+// «4G lento» carga con una penalización que en la vida real no existe.
 export function servirBuild(dir, puerto) {
   const raiz = resolve(dir)
   const servidor = createServer((peticion, respuesta) => {
     const ruta = decodeURIComponent((peticion.url ?? '/').split('?')[0])
     const destino = join(raiz, normalize(ruta).replace(/^(\.\.[/\\])+/, ''))
     const archivo = existsSync(destino) && statSync(destino).isFile() ? destino : join(raiz, 'index.html')
-    respuesta.writeHead(200, { 'content-type': TIPOS[extname(archivo)] ?? 'application/octet-stream' })
-    createReadStream(archivo).pipe(respuesta)
+    const tipo = TIPOS[extname(archivo)] ?? 'application/octet-stream'
+    const aceptados = String(peticion.headers['accept-encoding'] ?? '')
+    const compresion = COMPRIMIBLES.test(archivo)
+      ? aceptados.includes('br') ? { codificacion: 'br', flujo: createBrotliCompress() }
+        : aceptados.includes('gzip') ? { codificacion: 'gzip', flujo: createGzip() }
+        : null
+      : null
+    const cabeceras = { 'content-type': tipo, vary: 'accept-encoding' }
+    if (compresion) cabeceras['content-encoding'] = compresion.codificacion
+    respuesta.writeHead(200, cabeceras)
+    if (compresion) {
+      compresion.flujo.pipe(respuesta)
+      createReadStream(archivo).pipe(compresion.flujo)
+    } else {
+      createReadStream(archivo).pipe(respuesta)
+    }
   })
   return new Promise((resolver) => {
     servidor.listen(puerto, '127.0.0.1', () => resolver(servidor))
@@ -203,11 +225,20 @@ async function main() {
   let chromeFlags = opciones.chromeFlags
   let servidor = null
   if (opciones.servir) {
+    // La regla de resolución de Chrome mapea el host a 127.0.0.1; el puerto lo pone la URL. Por eso la URL
+    // tiene que traer el puerto del servidor local: si no, el navegador se iría al host real de Internet y
+    // mediría otra cosa (el build local no se mediría).
+    const url = new URL(opciones.url)
+    if (url.protocol !== 'http:' || url.port !== String(opciones.puerto)) {
+      throw new Error(
+        `Con --servir la URL tiene que ser http://<host>:${opciones.puerto}/ (la que se midió: ${opciones.url}). ` +
+          'El navegador resuelve ese host a 127.0.0.1 y usa el puerto de la URL.',
+      )
+    }
     servidor = await servirBuild(opciones.servir, opciones.puerto)
-    const host = new URL(opciones.url).hostname
-    const regla = `--host-resolver-rules=MAP ${host} 127.0.0.1:${opciones.puerto}`
+    const regla = `--host-resolver-rules=MAP ${url.hostname} 127.0.0.1`
     chromeFlags = `${chromeFlags} ${regla}`.trim()
-    console.log(`lighthouse-tienda: build local servido en 127.0.0.1:${opciones.puerto} para el host ${host}`)
+    console.log(`lighthouse-tienda: build local servido en 127.0.0.1:${opciones.puerto} para el host ${url.hostname}`)
   }
 
   const rutas = pantallasAMedir(opciones)
