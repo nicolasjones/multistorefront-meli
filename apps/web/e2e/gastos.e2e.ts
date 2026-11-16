@@ -23,7 +23,7 @@ async function ingresar(page: Page, correo: string) {
 test.describe('Gastos de la empresa', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('cargar un gasto, verlo en el total del mes y anularlo con motivo', async ({ page }) => {
+  test('[MSF-982:T015] cargar un gasto, verlo en el total del mes y anularlo con motivo', async ({ page }) => {
     test.setTimeout(120_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-gastos-${sufijo}@example.com`
