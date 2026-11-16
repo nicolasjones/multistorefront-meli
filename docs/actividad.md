@@ -333,6 +333,29 @@ Agregar o quitar un repuesto sigue registrando `reparacion.item_agregado` / `rep
 `docs/service-items.md`); el movimiento de stock asociado queda en el historial de movimientos con origen `service`.
 Detalle en `docs/service-repuestos-stock.md` y `docs/service-repuestos-devolucion.md`.
 
+## Etiquetas e importes legibles (MSF-618)
+
+La columna **Tipo** (y el filtro por tipo) muestran la etiqueta de cada tipo de evento, nunca el nombre interno:
+«Categoría creada», «Cuenta de cobro creada», «Nota de crédito emitida», «Reparación creada».
+
+- **Mapa** `ETIQUETA_TIPO_ACTIVIDAD` (`apps/web/src/lib/actividad.ts`): trae una etiqueta con tildes para **todos** los
+  tipos que emiten las migraciones y el frontend (187 tipos al momento de este cambio). Si una migración agrega un tipo
+  nuevo, hay que agregar su etiqueta: lo vigila el test `apps/web/src/lib/actividad.tipos.test.ts`, que recorre las
+  migraciones, arma la lista de tipos que se registran y falla si alguno no tiene etiqueta, si sobra alguna o si alguna
+  etiqueta conserva el formato interno (con guion bajo).
+- **Respaldo**: un tipo que todavía no figure en el mapa se muestra legible igual («Reparación creada» a partir de
+  `reparacion.creada`), con el diccionario de palabras de `PALABRA_ACTIVIDAD`.
+- **Importes del detalle**: `formatearDetalleActividad` (`apps/web/src/lib/actividad.ts`) da formato argentino a los
+  importes al mostrarlos: «Cobro de $ 859.100,00», «Cobro de US$ 100,50», «$ 1.250,50». Sirve para las filas ya
+  guardadas y para las nuevas; no toca los números que no son importes ni los importes que ya traen separador de miles.
+  La tabla y el **CSV** (FR-012) muestran el mismo texto.
+- **De dónde sale la moneda**: la del **importe**, que es la del comprobante que se cobra. `dominio.comprobantes_venta`
+  no tiene columna de moneda (sus importes son pesos: F-PRE-03 recalcula a pesos los precios en dólares), así que hoy
+  es ARS. El evento `comprobante.cobro_registrado` lo escribe en el detalle («Cobro de ARS 859100 por …», migración
+  `20270419000201_cobro_actividad_con_moneda.sql`) y la pantalla muestra la moneda que trae el texto: no la supone.
+  La cuenta de cobro dice dónde entra el dinero, no en qué unidad se cobra: una cuenta en dólares no convierte el
+  importe. Cuando el comprobante tenga moneda, se lee de ahí y es el único lugar que hay que cambiar.
+- **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985).
 
 ## Registro inalterable con antes y después (F-AUD-02)
 

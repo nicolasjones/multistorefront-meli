@@ -35,7 +35,7 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "3fa0f47b4cb19cfa4953a2efb63bb2cfe1b0ac706c9057a7c80294d0741362d9",
+      "pageHash": "baf3c8db14b9b9e236e1545c1208837843546d3eaf8419bd9758c0ca663d50be",
       "sourceHash": "f2307561de9e97642791d22b25e2514f2189d1f40f143e37d55e60f59e4458b6",
       "sourceAt": "7065a017",
       "sources": [
@@ -1093,12 +1093,12 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "f45799b68326b18d0ad04bb8b5d9bf2babf7853833a3335fb83b6f75381d2e71",
+      "pageHash": "5b521084dd020ead5965c8d9feee3de2191532cea524695278eea1a063b4141a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ebf4bf4d"
+      "commit": "c7860a7c"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
