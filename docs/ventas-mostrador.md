@@ -30,6 +30,15 @@ Pantalla `/ventas/mostrador` (menú Ventas → «Venta de mostrador», sección 
   confirmar, el reintento no vuelve a confirmar y no se pueden agregar más productos.
 - **Totales**: la línea muestra el precio **sin** IVA y el subtotal sin IVA; abajo, «Subtotal sin IVA», «IVA» y
   «Total», como en la pantalla de comprobante.
+- **Precio promocional** (MSF-816, gate MSF-834): con la bandera `promociones_precio` encendida, la línea se
+  escanea al **precio promocional** de la tienda (el mismo que muestra la tienda pública): la celda de precio
+  muestra el cobrado, el precio de referencia **tachado** y la leyenda **«Promoción»** en lugar del rótulo de
+  escala. El precio lo calcula la base; el navegador no lo decide. Si entre dos escaneos una promoción vence o
+  empieza, el mostrador compara los precios antes y después del guardado y avisa «Los precios cambiaron: revisá
+  el total» (informativo: no bloquea el escaneo siguiente). Si al cobrar la base rechaza con `40001` y
+  `hint = 'precios_cambiaron'`, la app re-guarda las líneas (mismas cantidades y mismos precios manuales), avisa
+  «Los precios cambiaron: revisá el total y cobrá de nuevo» y **no** cobra sola: hay que tocar «Cobrar» de nuevo,
+  con el total ya recargado. Detalle: [`ventas-comprobantes.md`](./ventas-comprobantes.md).
 - **Empresa activa** (Principio VIII): la venta es de una sola tienda; con «Todas mis empresas» la pantalla
   pide elegir una. Al cambiar de empresa la venta en curso se descarta con aviso (el borrador ya creado
   queda en Comprobantes como `borrador`, no se cobra ni se guarda bajo la otra empresa). Si la tienda cambia
@@ -51,5 +60,9 @@ para la RPC de plataforma; lee `dominio.productos`). Reversión: `drop function 
 - pgTAP `supabase/tests/database/ventas_mostrador.test.sql`.
 - Vitest `apps/web/src/lib/ventasMostrador.test.ts` y `apps/web/src/pages/ventas/mostrador.test.tsx`
   (incremento de la línea con el depósito real, cola de escaneos, descarte al cambiar de tienda, error al
-  cargar las formas de pago y totales con el IVA aparte).
-- E2E `apps/web/e2e/ventas-mostrador.e2e.ts` (`[MSF-329:T007] [F-VTA-31#1]`).
+  cargar las formas de pago, totales con el IVA aparte, precio promocional en la línea, aviso de precios
+  cambiados entre escaneos y reprecio tras un `40001` de `precios_cambiaron`).
+- E2E `apps/web/e2e/ventas-mostrador.e2e.ts` (`[MSF-329:T007] [F-VTA-31#1]`) y
+  `apps/web/e2e/ventas-mostrador-promocion.e2e.ts` (`[MSF-834:T012]`: escanea al precio promocional, cobra ese
+  precio y avisa si la promoción cambia antes del cobro; solo contra el stack local, con `--workers=1` porque
+  comparte la bandera global `promociones_precio` con los specs de la tienda).

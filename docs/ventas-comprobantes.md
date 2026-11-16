@@ -320,6 +320,15 @@ cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de lín
 - **Rendimiento (FR-024):** la guarda hace una búsqueda indexada de promoción por línea y recalcula el precio completo solo en las candidatas (`precio_para` cuesta ≈8,5 ms por llamada; recalcular las 200 líneas daba razón 12); con 200 líneas confirmar con la bandera encendida cuesta < 1,5× que apagada.
 - Migración `20270310100400_confirmar_comprobante_precios_vigentes.sql` (reversión en el encabezado); pgTAP `ventas_precio_promocional_ciclo.test.sql`. Presupuestos: `aceptar_presupuesto` no reprecia y un presupuesto pendiente conserva su precio hasta que se edita.
 
+### Las pantallas (MSF-816 · F-2)
+
+Con la bandera `promociones_precio` encendida, la línea en promoción muestra el **precio cobrado**, el **precio de referencia tachado** (el normal del cliente, con su escala y su descuento) y la leyenda **«Promoción»** en lugar del rótulo de escala (el descuento del cliente no se muestra: no se aplicó). El tachado no es lo único que lo dice: el lector de pantalla oye «Precio promocional» y «Precio anterior». La celda es la misma en el comprobante y en el mostrador (`apps/web/src/components/ventas/PrecioLinea.tsx`); un precio manual no lleva leyenda.
+
+- **Precedencia de la tienda del comprobante:** el precio es el de la **tienda del comprobante**, no el de la empresa activa de la barra superior: un comprobante de la tienda B abierto con la A activa muestra y cobra los precios de B («Todas mis empresas» no habilita el mostrador).
+- **Cambio de precio entre el escaneo y el cobro:** el mostrador compara los precios antes y después de cada escaneo y avisa «Los precios cambiaron: revisá el total» (informativo, no bloquea el escaneo siguiente).
+- **`40001` con `hint = 'precios_cambiaron'`:** la app reconoce el error **antes** del mapeo genérico de `40001` («otra persona modificó…»), re-guarda las líneas con las **mismas** cantidades y los **mismos** precios manuales (lo que reprecia el comprobante) y avisa «Los precios cambiaron: revisá el total y cobrá de nuevo». **No** reintenta el cobro: la persona vuelve a cobrar con el total nuevo (el cobro del mostrador usa el `total_con_iva` ya recargado).
+- Pruebas: Vitest `ventasLineas.test.ts`, `LineasComprobante.test.tsx` (con axe a 320/768/1440 px), `mostrador.test.tsx`, `ConfirmarFacturaDialog.test.tsx`, `comprobante.test.tsx`; E2E `apps/web/e2e/ventas-mostrador-promocion.e2e.ts` (`[MSF-834:T012]`, solo contra el stack local).
+
 ## Costo y cotización por línea (F-REN-09)
 
 `confirmar_comprobante` guarda en cada línea `costo_unitario` (costo en pesos por unidad) y `cotizacion` (dólar vigente) al confirmar, una sola vez: reconfirmar o cambiar el costo después no los mueve. Las notas de crédito copian el costo de la línea original. Detalle y vista `analitica.rentabilidad_ventas_real` en `docs/rentabilidad.md`. Con el alcance de la cotización en «Una por empresa» (F-PRE-06) la cotización y el costo salen de la cotización de la empresa del comprobante (o de la general si la empresa no tiene una propia), igual que el precio de la línea.

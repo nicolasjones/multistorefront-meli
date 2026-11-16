@@ -4,10 +4,11 @@ export const ayudaVentas: AyudaPorDestino = {
   'ventas-mostrador': {
     titulo: 'Venta de mostrador',
     resumen:
-      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Hace falta permiso de edición en Ventas y una tienda elegida.',
+      'Sirve para vender rápido en el mostrador con un lector de código de barras. Cada producto que escaneás se suma a la venta como consumidor final, y al cobrar queda registrada la factura con su cobro. Hace falta permiso de edición en Ventas y una tienda elegida. Si una promoción cambia entre un escaneo y el cobro, el mostrador te avisa que cambiaron los precios y actualiza el total antes de cobrar de nuevo.',
     pasos: [
       'Elegí una tienda en la barra superior si tenés activas todas.',
       'Escaneá el código de barras de cada producto; si se repite, suma una unidad.',
+      'Si el producto está en promoción, la línea muestra el precio tachado y la leyenda «Promoción»: se cobra ese precio.',
       'Revisá el subtotal, el IVA y el total de la venta.',
       'Elegí la forma de pago (y la cuenta de cobro si te la pide) y tocá Cobrar.',
     ],
