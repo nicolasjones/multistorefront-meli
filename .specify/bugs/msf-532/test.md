@@ -1,7 +1,7 @@
 # Bug Verification: Verificación de salida del correo de «Solicitar acceso» sin verde falso (MSF-532)
 
 - **Slug**: msf-532
-- **Tested**: 2026-11-14 · 2026-11-15 (segunda ronda, tras la devolución del Revisor)
+- **Tested**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, tras la devolución del Revisor)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: partial
@@ -75,6 +75,17 @@ Con la mutación «el guion ignora `enviado`» (el verde falso):
   sí es una corrida válida (`enviado: true`).
 - El resto de funciones que comparten el SMTP (avisos de faltantes, resúmenes, correo a proveedor) siguen
   dependiendo del mismo relay: que no esté configurado no es un problema sólo de «Solicitar acceso».
+
+## Tercera ronda (devolución del Revisor)
+
+| Check | Command / Action | Result | Notes |
+|-------|------------------|--------|-------|
+| Suite del guion | `pnpm test:correo:verificar-salida` | pass | 15/15; incluye el test que vigila que los códigos de salida tengan un solo dueño. |
+| Contrato del handler | `node --test supabase/functions/solicitar-acceso/handler.test.ts` | pass | 11/11. |
+| Documentación del cambio | `pnpm docs:check` | fail (línea base) | «Migraciones: versión `20270323100100` MODIFICADA» por estar la rama 319 commits detrás de `origin/dokploy`; esta historia no toca `supabase/migrations` (`git diff origin/dokploy...HEAD -- supabase/migrations` vacío). El job `application` del PR (que corre `docs:check`) pasó en el merge-ref con la base al día. |
+| Lint | `pnpm lint` | pass | Sólo warnings preexistentes del área web. |
+| Build | `pnpm build` | pass | Vite build de `@platform/web` en verde. |
+| Inventario de docs | `node scripts/docs-inventario.mjs` | pass | Regenerado y commiteado (`inventory.json`/`.md`). `docs-manifest.mjs` sigue fallando por 99 páginas sin `owner`/`sources` de la línea base (deuda del Documentador, ajena a esta historia). |
 
 ## Recommendation
 

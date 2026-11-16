@@ -165,11 +165,11 @@ que lo prueba sí corre en el CI: `pnpm test:correo:verificar-salida`).
 - **Servidor:** sin `MAILPIT_URL`; el administrador de la organización de prueba debe tener como correo
   `CORREO_PRUEBA` (obligatoria en ese modo) y se confirma a mano que el mensaje llegó a esa casilla.
   Requiere `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD` y, opcionalmente, `SECCION`.
-- **Códigos de salida:** `0` verificado (esta corrida envió el aviso y el mensaje llegó a Mailpit), `1` esta
-  corrida no envió nada (flujo idempotente por día: el pedido ya estaba notificado; u otra invocación ganó
-  el reclamo del envío), `2` falta una variable de entorno y `3` esta corrida envió el aviso y el SMTP lo
-  aceptó, pero la entrega queda pendiente de confirmación manual. En el servidor el guion **nunca** devuelve
-  `0`: no puede dar un verde falso por una entrega que nadie comprobó.
+- **Códigos de salida:** `0` verificado por Mailpit, `1` esta corrida no envió nada, `2` falta una variable
+  de entorno, `3` el aviso salió y la entrega queda por confirmar a mano. La definición completa y el registro
+  están en [Verificación de salida del correo](../verificacion-salida-correo.md) (única página que los
+  describe); en el servidor el guion **nunca** devuelve `0`: no puede dar un verde falso por una entrega que
+  nadie comprobó.
 - **Qué decide:** el campo `enviado` de la respuesta de `solicitar-acceso` (`{resultado, nuevo, enviado}`):
   sólo vale como evidencia si la corrida **envió** el aviso. Un `0` exige además el mensaje en Mailpit.
 - La entregabilidad (SPF/DKIM del remitente) es infraestructura; si el relay del servidor no está

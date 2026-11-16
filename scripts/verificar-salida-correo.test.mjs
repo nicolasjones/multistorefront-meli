@@ -4,6 +4,7 @@
 // correo y sin tocar un servidor real.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
+import { readFile } from 'node:fs/promises'
 import http from 'node:http'
 import path from 'node:path'
 import test from 'node:test'
@@ -219,6 +220,23 @@ test('el reintento de un envío fallido sí sale: no se informa un falso «no se
     assert.doesNotMatch(`${r.salida}${r.error}`, /Repetí con otra SECCION/)
   } finally {
     await base.cerrar()
+  }
+})
+
+test('los códigos de salida tienen un solo dueño: la tabla del registro', async () => {
+  // El guion y las páginas de técnica apuntan a `docs/verificacion-salida-correo.md`; si alguien copia
+  // la tabla a otro lado, el dato queda con dos dueños que se desincronizan.
+  const leer = (ruta) => readFile(path.join(RAIZ, '..', ruta), 'utf8')
+  const pagina = await leer('docs/verificacion-salida-correo.md')
+  assert.deepEqual([...pagina.matchAll(/^\| `(\d)` \|/gm)].map((m) => m[1]), ['0', '1', '2', '3'])
+
+  const guion = await leer('scripts/verificar-salida-correo.mjs')
+  assert.deepEqual([...guion.matchAll(/^\/\/   (\d) =/gm)].map((m) => m[1]), ['0', '1', '2', '3'])
+
+  for (const ruta of ['docs/tecnico/operacion.md', 'docs/tecnico/perfil-y-permisos.md']) {
+    const texto = await leer(ruta)
+    assert.doesNotMatch(texto, /^\| `\d` \|/m)
+    assert.match(texto, /verificacion-salida-correo\.md/)
   }
 })
 

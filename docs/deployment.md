@@ -76,7 +76,7 @@ salida).
 Estado al 2026-11-14: **pendiente** en stg y prd (no hay relay configurado ni entrega verificada).
 Dueño: infraestructura/Nicolás. La corrida de verificación y su registro están en
 [Verificación de salida del correo](verificacion-salida-correo.md) y quedan trazados como **MSF-532**
-(Tarea `seguimiento` en el tracker).
+(Tarea `seguimiento` a crear en el tracker).
 
 ## Producción
 

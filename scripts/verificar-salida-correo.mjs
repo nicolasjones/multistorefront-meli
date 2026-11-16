@@ -6,14 +6,12 @@
 // la organización de prueba debe tener como correo CORREO_PRUEBA (nicolas.m.jones@gmail.com) y se
 // confirma a mano que el mensaje llegó a esa casilla (evidencia en el PR).
 //
-// Códigos de salida (un 0 SÍ significa «verificado por la máquina»):
-//   0 = verificado: ESTA corrida envió el aviso y el mensaje llegó a Mailpit.
-//   1 = esta corrida NO envió ningún aviso (falló el flujo, no hay administrador, el pedido del día ya
-//       estaba notificado, u otra invocación ganó el reclamo del envío).
+// Códigos de salida (la definición completa, con el detalle de cada caso, está en
+// `docs/verificacion-salida-correo.md`; un `0` SÍ significa «verificado por la máquina»):
+//   0 = verificado por la máquina: el aviso de ESTA corrida llegó a Mailpit.
+//   1 = esta corrida NO envió ningún aviso.
 //   2 = uso incorrecto: falta una variable de entorno.
-//   3 = ESTA corrida envió el aviso y el SMTP lo aceptó, pero la ENTREGA no se puede verificar desde el
-//       servidor: queda pendiente la confirmación manual (captura) y el registro en
-//       `docs/verificacion-salida-correo.md`.
+//   3 = esta corrida envió el aviso y el SMTP lo aceptó; la ENTREGA se confirma a mano.
 //
 // Variables (nunca se commitean valores reales):
 //   AUTH_URL        base de Supabase Auth, p. ej. http://127.0.0.1:9300/auth/v1

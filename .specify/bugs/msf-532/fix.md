@@ -1,7 +1,7 @@
 # Bug Fix: Verificación de salida del correo de «Solicitar acceso» sin verde falso (MSF-532)
 
 - **Slug**: msf-532
-- **Fixed**: 2026-11-14 · 2026-11-15 (segunda ronda, devolución del Revisor)
+- **Fixed**: 2026-11-14 · 2026-11-15 (segunda ronda) · 2026-11-16 (tercera ronda, devolución del Revisor)
 - **Assessment**: ./assessment.md
 - **Status**: applied
 
@@ -93,6 +93,15 @@ return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado
 - **Se agregó un paso al CI** (`validate.yml`): la assessment daba las dos opciones para el hallazgo de
   seguridad («o se agrega el paso al CI, o se corrige la frase») y se hizo la primera, para que la guarda
   anti-verde-falso exista de verdad.
+
+## Tercera ronda (devolución del Revisor)
+
+| Hallazgo | Corrección |
+|---|---|
+| El contrato de códigos de salida está copiado en 4 lugares con redacción distinta. | `docs/verificacion-salida-correo.md` queda como **única** definición; el guion y `docs/tecnico/operacion.md`/`perfil-y-permisos.md` la apuntan. Un test nuevo falla si alguien vuelve a copiar la tabla o si falta un código. |
+| `docs/README.md` afirma como hecho la existencia de la Tarea `seguimiento` en el tracker. | Se redacta como «a crear en el tracker» (el repo no da fe de que exista), igual que `docs/deployment.md` y el registro. |
+| La página nueva exige regenerar `docs/_generated/inventory.*`. | Se regenera y se commitea el inventario (`pnpm docs:wiki:inventario`). |
+| `tasks.md` T013 sigue `[x]` sin `Desvío:`. | No se edita `tasks.md` por la regla de la corrida (las marcas las escribe el runner en `specs/<slug>/tasks/<CODE>.md`); la nota `Desvío:` queda en `tasks/F-ROL-05.md`. Queda anotado como desvío consciente. |
 
 ## Follow-ups
 

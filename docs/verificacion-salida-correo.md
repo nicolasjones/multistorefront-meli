@@ -23,10 +23,10 @@ resultado.
 
 `Desvío:` la tarea T013 del guion opt-in (épica MSF-148) queda cerrada sin la corrida real contra el
 servidor: el requisito previo (relay SMTP con credenciales + SPF/DKIM del remitente) no existe todavía en
-el VPS. Seguimiento trazado: Tarea `seguimiento` en el tracker «Ejecutar la verificación de salida del
-correo contra el SMTP real del servidor self-hosted (FR-012b)» (**MSF-532**, dueño: infraestructura /
-Nicolás). El guion quedó endurecido para que esa corrida no pueda dar un **verde falso** (ver
-*Qué garantiza el guion*).
+el VPS. Seguimiento: **MSF-532** — Tarea `seguimiento` «Ejecutar la verificación de salida del correo contra
+el SMTP real del servidor self-hosted (FR-012b)», dueño: infraestructura / Nicolás; **a crear en el tracker**
+(el repo no da fe de que esa tarea ya exista: la assessment de MSF-532 la dejó sin verificar). El guion
+quedó endurecido para que esa corrida no pueda dar un **verde falso** (ver *Qué garantiza el guion*).
 
 ## Qué verifica
 
@@ -42,6 +42,9 @@ corre en el CI es la suite que prueba el guion contra un servidor local
 de la Edge Function y el guion sigan de acuerdo.
 
 ## Qué garantiza el guion
+
+Esta tabla es la **única** definición de los códigos de salida: el guion
+(`scripts/verificar-salida-correo.mjs`) y las páginas de técnica la apuntan, no la repiten.
 
 | Código | Significado |
 |---|---|
