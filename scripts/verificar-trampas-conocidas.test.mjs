@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, tablasCreadas, sinBase,
+  filasConjuntosExportacion, grantsServiceRole, inalterablesDe, perdidasDeclaradas, revisar, revisarE2E, revisarExportacionTotal, revisarGrants, revisarSupersetExportacion, revisarVariablesPsql, revisarFechasBuenosAires, recorrerSql, tablasCreadas, sinBase,
 } from './verificar-trampas-conocidas.mjs';
 
 const mig = (version, sql) => ({ ruta: `supabase/migrations/${version}_prueba.sql`, sql });
@@ -192,4 +192,63 @@ test('current_date en el alta de una reparación falla; con la fecha de Buenos A
   assert.match(mal[0], /Buenos_Aires/);
   const bien = "insert into dominio.reparaciones (id, ingreso_en) values (1, (now() at time zone 'America/Argentina/Buenos_Aires')::date);\ninsert into dominio.otra (f) values (current_date);\nselect throws_ok($$insert into dominio.reparaciones (ingreso_en) values (current_date)$$, '42501');";
   assert.deepEqual(revisarFechasBuenosAires({ pruebas: [{ ruta: 'a.sql', sql: bien }] }), []);
+});
+
+const t7 = (sql) => revisarFechasBuenosAires({ pruebas: [{ ruta: 'x.sql', sql }] });
+
+test('T7: un punto y coma dentro de un literal no corta la sentencia (antes: falso negativo)', () => {
+  assert.equal(t7("insert into dominio.reparaciones (falla, ingreso_en) values ('roto; no enciende', current_date);").length, 1);
+  assert.equal(t7("insert into dominio.reparaciones (falla, ingreso_en) values ('a;b;c', current_date);").length, 1);
+});
+
+test('T7: throws_ok con punto y coma dentro de $$ ... $$ es una sola sentencia exenta (antes: falso positivo)', () => {
+  const sql = "select throws_ok($$insert into dominio.reparaciones (a, ingreso_en) values (1, current_date); select 1$$, '22023');";
+  assert.deepEqual(t7(sql), []);
+  const etiquetado = "select throws_ok($f$insert into dominio.reparaciones (ingreso_en) values (current_date); x$f$, '22023');";
+  assert.deepEqual(t7(etiquetado), []);
+});
+
+test('T7: la palabra current_date dentro de un literal o un comentario no cuenta', () => {
+  assert.deepEqual(t7("insert into dominio.reparaciones (nota) values ('usa current_date en UTC');"), []);
+  assert.deepEqual(t7("-- insert into dominio.reparaciones (ingreso_en) values (current_date);\nselect 1;"), []);
+  assert.deepEqual(t7("/* update dominio.reparaciones set ingreso_en = current_date; */ select 1;"), []);
+  assert.deepEqual(t7("insert into dominio.reparaciones (nota, ingreso_en) values ('it''s; ok', (now() at time zone 'America/Argentina/Buenos_Aires')::date);"), []);
+});
+
+test('T7: un alta dentro de un bloque do $$ sin throws_ok sí falla', () => {
+  assert.equal(t7("do $$ begin insert into dominio.reparaciones (ingreso_en) values (current_date); end $$;").length, 1);
+});
+
+test('T7: update reparaciones set ingreso_en = current_date falla; otras columnas o la fecha de Buenos Aires no', () => {
+  const mal = t7("update dominio.reparaciones set falla = 'x', ingreso_en = current_date - 1 where id = 1;");
+  assert.equal(mal.length, 1);
+  assert.match(mal[0], /x\.sql:1 /);
+  assert.equal(t7("update reparaciones set ingreso_en = coalesce(ingreso_en, current_date);").length, 1);
+  assert.deepEqual(t7("update dominio.reparaciones set entrega_prevista = current_date where id = 1;"), []);
+  assert.deepEqual(t7("update dominio.reparaciones set ingreso_en = (now() at time zone 'America/Argentina/Buenos_Aires')::date where creado_en::date = current_date;"), []);
+  assert.deepEqual(t7("update dominio.otra set ingreso_en = current_date;"), []);
+});
+
+test('T7: crear_reparacion con p_ingreso => current_date falla; otros argumentos o la fecha de BA no', () => {
+  assert.equal(t7("select public.crear_reparacion(p_empresa_id => 'x', p_ingreso => current_date, p_falla => 'y');").length, 1);
+  assert.equal(t7("select crear_reparacion(p_ingreso_en => current_date);").length, 1);
+  assert.deepEqual(t7("select public.crear_reparacion(p_empresa_id => 'x', p_entrega_prevista => current_date);"), []);
+  assert.deepEqual(t7("select public.crear_reparacion(p_ingreso => (now() at time zone 'America/Argentina/Buenos_Aires')::date, p_falla => 'a');"), []);
+  assert.deepEqual(t7("select throws_ok($$select public.crear_reparacion(p_ingreso => current_date)$$, '22023');"), []);
+});
+
+test('recorrerSql conserva largo y líneas, y no corta en ; de literales ni de dólares', () => {
+  const sql = "select 'a;b' ; -- c;d\nselect $$x;y$$; select 1";
+  const r = recorrerSql(sql);
+  assert.equal(r.enmascarado.length, sql.length);
+  assert.equal(r.sentencias.length, 3);
+  assert.match(r.sentencias[1].texto, /\$\$x;y\$\$/);
+});
+
+test('T7: SQL sin cerrar o con cadenas raras no cuelga ni lanza', () => {
+  const t = Date.now();
+  assert.doesNotThrow(() => t7("select 'sin cerrar; current_date"));
+  assert.doesNotThrow(() => t7('select $$ sin cerrar; insert into reparaciones (x) values (current_date)'));
+  assert.doesNotThrow(() => t7("select \"id ; current_date"));
+  assert.ok(Date.now() - t < 2000);
 });
