@@ -75,12 +75,20 @@ if (!soloIdempotencia) {
     const enBase = (git(['ls-tree', '-r', '--name-only', base, 'supabase/migrations']).stdout || '')
       .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x));
     const basePorVersion = new Map();
-    for (const f of enBase) basePorVersion.set(f.split('/').pop().split('_')[0].replace(/\.sql$/, ''), f);
+    const baseTodasPorVersion = new Map();
+    for (const f of enBase) {
+      const ver = f.split('/').pop().split('_')[0].replace(/\.sql$/, '');
+      basePorVersion.set(ver, f);
+      if (!baseTodasPorVersion.has(ver)) baseTodasPorVersion.set(ver, []);
+      baseTodasPorVersion.get(ver).push(f);
+    }
 
     const maxBase = [...basePorVersion.keys()].sort().pop() || '0';
 
     for (const [v, fs_] of porVersion) {
-      const previo = basePorVersion.get(v);
+      // Si la base ya tiene dos archivos con la misma versión (colisión heredada), se compara contra el de la MISMA ruta.
+      const enLaBase = baseTodasPorVersion.get(v) || [];
+      const previo = enLaBase.includes(fs_[0]) ? fs_[0] : basePorVersion.get(v);
       if (!previo) {
         if (v <= maxBase) {
           if (ordenEstricto) {
