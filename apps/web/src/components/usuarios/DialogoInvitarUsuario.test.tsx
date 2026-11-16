@@ -45,7 +45,7 @@ describe('DialogoInvitarUsuario', () => {
     expect(onEnviada).toHaveBeenCalled()
   })
 
-  it('[MSF-606] invita con rol Técnico', async () => {
+  it('invita con rol Técnico', async () => {
     abrir()
 
     fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'tec@example.com' } })
@@ -109,7 +109,7 @@ describe('DialogoInvitarUsuario', () => {
       } })
     })
 
-    it('[MSF-606] ofrece Técnico como rol por empresa y lo envía', async () => {
+    it('ofrece Técnico como rol por empresa y lo envía', async () => {
       abrir()
 
       fireEvent.change(screen.getByLabelText(/Correo electrónico/), { target: { value: 'tec@example.com' } })

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { decodificarEntidades, limpiarDescripcionPublica, limpiarTextoPublico, quitarPrefijoImportacion } from './tiendaTextos'
 
-describe('quitarPrefijoImportacion (MSF-828)', () => {
+describe('quitarPrefijoImportacion', () => {
   it.each([
     ['&ua ADAPTADOR HDMI A DVI 24+1 (3010)', 'ADAPTADOR HDMI A DVI 24+1 (3010)'],
     ['&uu BOTÓN', 'BOTÓN'],

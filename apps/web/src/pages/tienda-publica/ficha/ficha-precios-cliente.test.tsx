@@ -128,6 +128,18 @@ describe('Ficha · precios según el tipo de cliente', () => {
     expect(within(bloque).getByText('$ 1.210')).toBeInTheDocument()
   })
 
+  it('cliente con lista de precios: «Tu precio» es el que manda el servidor, sin mencionar la lista, y el público sigue visible', async () => {
+    // El servidor ya devolvió el precio de su lista (1210 × 0,80 con IVA = 968): la ficha no calcula ni nombra la lista.
+    mocks.precios.mockResolvedValue({ tipo: 'minorista', escalas: [{ escala: 'x1', desde: 1, hasta: 4, final: 968 }] })
+    const { container } = montar()
+    const bloque = await screen.findByTestId('precios-cliente')
+    expect(within(bloque).getByRole('heading', { name: 'Tu precio' })).toBeInTheDocument()
+    expect(within(bloque).getByText('$ 968')).toBeInTheDocument()
+    expect(screen.getAllByText('$ 1.210').length).toBeGreaterThan(0)
+    expect(document.body).not.toHaveTextContent(/lista de precios|Revendedores/i)
+    expect(await violacionesAxe(container)).toEqual([])
+  })
+
   it('cada carga pide de nuevo: tras suspender la cuenta la próxima carga muestra el precio público', async () => {
     mocks.precios.mockResolvedValue(MAYORISTA)
     const primera = montar()

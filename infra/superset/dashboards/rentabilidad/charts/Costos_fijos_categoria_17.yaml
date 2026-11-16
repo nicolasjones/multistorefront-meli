@@ -1,0 +1,11 @@
+slice_name: Después de fijos por categoría
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "viz_type": "table", "query_mode": "aggregate", "groupby": ["categoria"], "metrics": ["vendido_total", "margen_total", "cargo_total", "margen_despues_total", "margen_despues_pct_total"], "percent_metrics": [], "timeseries_limit_metric": "margen_despues_total", "order_desc": true, "row_limit": 10000, "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 566117ca-5912-5268-b7ec-62aeba3407dc
+version: 1.0.0
+dataset_uuid: fc25f0d5-efb9-5ad8-be7a-08c6b7e2d8b5

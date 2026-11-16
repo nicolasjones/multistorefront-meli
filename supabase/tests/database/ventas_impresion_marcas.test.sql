@@ -40,7 +40,7 @@ insert into public.permisos_rol (organizacion_id, rol_id, seccion, nivel) values
   ('11111111-1111-1111-1111-111111111111', 'deposito', 'ventas', 'ninguno')
 on conflict (organizacion_id, rol_id, seccion) do update set nivel = 'ninguno';
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, condicion_iva) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, condicion_iva) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null, 'Responsable Inscripto'),
   ('c5000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 10, 'Cliente Dos', 'minorista', null, null);
 

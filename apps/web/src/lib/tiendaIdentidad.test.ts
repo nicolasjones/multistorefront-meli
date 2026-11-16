@@ -119,7 +119,7 @@ describe('validación de archivos (FR-021, FR-025, FR-026)', () => {
   })
 })
 
-describe('color de la barra superior y pie (MSF-841)', () => {
+describe('color de la barra superior y pie', () => {
   it('el chequeo AA nombra el color evaluado y usa el mismo criterio', () => {
     expect(evaluarContraste('#222222', 'la barra superior y pie')?.texto).toMatch(/^Contraste de texto blanco sobre la barra superior y pie: \d+,\d:1 \(AA\)\.$/)
     expect(evaluarContraste('#FFEB3B', 'la barra superior y pie')?.cumpleAA).toBe(false)
@@ -135,7 +135,7 @@ describe('color de la barra superior y pie (MSF-841)', () => {
   })
 })
 
-describe('estilo del encabezado y mayúsculas de los títulos (MSF-848)', () => {
+describe('estilo del encabezado y mayúsculas de los títulos', () => {
   const fila = {
     color_primario: '#A3111D', color_primario_oscuro: '#7A0A12', color_acento: '#A3111D', color_fondo: '#FFFFFF',
     tipografia_titulos: 'Sora' as const, tipografia_texto: 'Sora' as const, logo_ruta: null, banner_ruta: null, banner_movil_ruta: null,

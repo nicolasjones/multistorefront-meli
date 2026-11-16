@@ -267,3 +267,10 @@ pidiendo «la página N». Contador, filtros, orden y exportaciones (que usan lo
 ## Enlaces desde Inicio (MSF-820)
 
 La lista de Stock lee `?filtro=sin_stock|stock_bajo` y `?deposito=<uuid>` al abrir (valores fuera de esa lista se ignoran y un depósito inexistente o inactivo vuelve a «todos»), para que los indicadores del tablero de Inicio lleven al listado ya filtrado. Detalle y diferencias de cálculo entre el indicador y la lista en [`inicio-y-alertas.md`](./inicio-y-alertas.md).
+
+## Órdenes de compra a proveedores (F-PRV-09, MSF-454)
+
+Pestaña «Órdenes de compra» (`/stock/ordenes-compra`): el pedido de mercadería que la organización le
+hace a un proveedor, armado desde el listado de reposición (los productos en alerta de ese proveedor).
+Estados `emitida` / `recibida` / `anulada`; recibir no mueve stock (la mercadería entra por «Ingreso de
+mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).

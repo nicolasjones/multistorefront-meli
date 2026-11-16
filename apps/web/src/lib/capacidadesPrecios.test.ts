@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CAPACIDADES_APAGADAS, leerCapacidadesPrecios } from './capacidadesPrecios'
 
-describe('leerCapacidadesPrecios (MSF-363)', () => {
+describe('leerCapacidadesPrecios', () => {
   it('traduce la respuesta de la base', async () => {
     const rpc = vi.fn().mockResolvedValue({
       data: {

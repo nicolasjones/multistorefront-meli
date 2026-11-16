@@ -49,7 +49,7 @@ y Mermaid) está en [Datos y DER](datos.md#modelo-de-la-tienda-msf-147).
 | `dominio.tienda_contenido` | `empresa_id` PK; **nueve** valores recortados por trigger, con límites (80/120/300) y `boton_destino` en lista cerrada (`catalogo`); `eslogan` se agrega en MSF-841; FK compuesta a Empresas. |
 | `dominio.categorias_tienda` | PK `(empresa_id, categoria_id)`; `visible` default `true`; FK compuesta a Empresas y a `dominio.categorias` (MSF-160). Sin fila = visible. |
 | `dominio.productos_tienda` | PK `(empresa_id, producto_id)`; `visible` default `true`, `destacado` default `false`; FK compuesta a Empresas y a `dominio.productos`. Sin fila = visible y no destacado. |
-| Bucket `tienda-identidad` | Lectura pública; escritura solo `authenticated` con edición en Empresas y bajo la carpeta de su organización; 3 MB y tipos PNG/SVG/JPEG/WebP. |
+| Bucket `tienda-identidad` | Lectura pública; escritura solo `authenticated` con edición en Empresas y bajo la carpeta de su organización; 3 MB y tipos PNG/SVG/JPEG/WebP. Desde MSF-796 el borrado exige además que la ruta no esté referenciada por la identidad publicada, el borrador ni ninguna versión. |
 
 - Un producto pertenece a la tienda por `dominio.producto_empresa` (F-CAT-07), no por una tabla nueva.
 - Las rutas de los archivos nunca salen de la carpeta de la empresa (checks de la tabla y de la RPC).

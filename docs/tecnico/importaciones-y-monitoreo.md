@@ -284,3 +284,12 @@ reconciliar_despacho_agotado on public.despachos_ejecucion`, `private.reconcilia
 `public.registrar_evento_monitoreo` y `private.sanitizar_motivo_monitoreo`; y por último las tablas
 `public.procesos_masivos_errores`, `public.procesos_masivos`, `public.alertas_monitoreo` y
 `public.eventos_monitoreo` (solo mientras no haya datos productivos).
+
+## Exportación total: cancelación tardía y deuda pendiente
+
+El worker `exportar-organizacion` vuelve a revisar la cancelación después de subir el ZIP: si la persona canceló mientras
+se subía, borra el archivo del bucket y cierra el proceso como cancelado (si no puede borrarlo, falla para que el flow
+reintente). El `LEEME.txt` del ZIP explica que los textos que empiezan con `=`, `+`, `-` o `@` llevan un apóstrofo delante.
+Siguen pendientes, por necesitar la base local o un cambio de diseño: lista blanca de columnas por tabla, pgTAP del
+aislamiento del worker, paginación por clave primaria, candado de ejecución en curso en Kestra, vencimiento del ZIP y el
+parámetro explícito de `marcar_notificaciones_leidas`.

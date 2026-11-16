@@ -34,7 +34,7 @@ describe('ProductosDelProveedor', () => {
     mocks.useHistorialCostos.mockReturnValue({ puntos: [], cargando: false, hayError: false, recargar: vi.fn() })
   })
 
-  it('[MSF-448:T018] con Rentabilidad y Proveedores ofrece «Evolución del costo» y abre el diálogo del producto', () => {
+  it('con Rentabilidad y Proveedores ofrece «Evolución del costo» y abre el diálogo del producto', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     abrir()
     fireEvent.click(screen.getByRole('button', { name: 'Evolución del costo de Producto 1' }))

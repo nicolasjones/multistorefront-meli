@@ -45,7 +45,7 @@ reutiliza su estado. `20261206100250` y `20261206100300` son cambios de contrato
 | Tabla | Estado | Cambio |
 |---|---|---|
 | `public.cuentas_cliente` | **nueva** | Cuenta de autenticación por `(cliente, tienda)`: `id`, `organizacion_id`, `cliente_id`, `empresa_id`, `auth_user_id`, `estado` (`activa` \| `suspendida`), `created_at`; única `(cliente_id, empresa_id)`; FK en cascada a organización, cliente, empresa y `auth.users`. |
-| `public.clientes` | existente | Solo se referencia (`cliente_id`); el correo de acceso sale de `clientes.correo`. |
+| `dominio.clientes` | existente | Solo se referencia (`cliente_id`); el correo de acceso sale de `clientes.correo`. |
 | `public.clientes_empresas` | existente | Determina «Habilitado en» y el estado derivado «No habilitado». |
 | `public.organizaciones` | existente | Dueña de la fila y del aislamiento. |
 | `dominio.empresas` | existente | Tienda de la cuenta; la empresa debe ser de la misma organización. |

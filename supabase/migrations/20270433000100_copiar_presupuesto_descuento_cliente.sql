@@ -13,11 +13,12 @@
 -- Cambia el resultado también con la bandera `promociones_precio` APAGADA (es la corrección del defecto, no una
 -- consecuencia de la promoción): un cliente con descuento paga con la copia lo mismo que con el mostrador. Sin descuento
 -- del cliente el resultado es idéntico al anterior.
--- Cuerpo de partida: el de 20270310100300 (misma firma, `security definer`, `search_path = ''`, mismos grants); solo
--- cambian los tres puntos de arriba. `private.copiar_costo_linea_nota` no se toca.
+-- Cuerpo de partida: el vigente de 20270348000200 (lista de precios del cliente, F-CLI-21: se conserva la llamada con
+-- `cliente_id` y el snapshot `lista_precio_id`/`lista_ajuste_pct`); misma firma, `security definer`, `search_path = ''`,
+-- mismos grants. Solo cambian los tres puntos de arriba. `private.copiar_costo_linea_nota` no se toca.
 --
 -- Esquema (Principio VII): sin tablas nuevas. Migración aditiva e idempotente (`create or replace`).
--- Reversión (migración posterior): restaurar `public.copiar_presupuesto` de 20270310100300.
+-- Reversión (migración posterior): restaurar `public.copiar_presupuesto` de 20270348000200.
 
 create or replace function public.copiar_presupuesto(p_id uuid)
 returns dominio.comprobantes_venta
@@ -33,7 +34,6 @@ declare
   v_nuevo dominio.comprobantes_venta;
   v_empresa_nombre text;
   v_tipo_cliente text;
-  v_descuento numeric := 0;
   v_defecto uuid;
   v_linea dominio.comprobantes_venta_lineas;
   v_producto dominio.productos;
@@ -42,6 +42,7 @@ declare
   v_unitario numeric;
   v_ahora timestamptz;
   v_porcentaje numeric;
+  v_descuento numeric := 0;
   v_subtotal numeric;
   v_iva numeric;
   v_total_sin numeric := 0;
@@ -127,16 +128,20 @@ begin
     end if;
 
     -- MSF-816 (FR-010) y MSF-933 (S2): misma función de precio que `guardar_lineas_comprobante`: con el descuento
-    -- del cliente y la promoción vigente de la tienda; gana el más bajo, sin acumular (si gana la promoción
-    -- `descuento_aplicado` es 0).
+    -- del cliente, la lista de precios del cliente (F-CLI-21) y la promoción vigente de la tienda; gana el más bajo,
+    -- sin acumular (si gana la promoción o la lista, `descuento_aplicado` es 0).
     select * into v_precio
-      from private.precio_linea_venta(v_producto.id, v_o.empresa_id, v_tipo_cliente, v_linea.cantidad, v_descuento, v_ahora, true);
+      from private.precio_linea_venta(v_producto.id, v_o.empresa_id, v_tipo_cliente, v_linea.cantidad, v_descuento, v_ahora, true, v_o.cliente_id);
     if not found then
       raise exception 'No pudimos calcular el precio de «%»', v_linea.descripcion using errcode = '22023', hint = 'producto_id';
     end if;
     v_unitario := case when v_linea.precio_manual then v_linea.precio_unitario else v_precio.neto_unitario end;
     if v_unitario is null then
       raise exception 'El producto «%» no tiene precio en pesos (falta la cotización del dólar)', v_linea.descripcion
+        using errcode = '22023', hint = 'producto_id';
+    end if;
+    if not v_linea.precio_manual and v_precio.lista_precio_id is not null and v_unitario <= 0 then
+      raise exception 'El producto «%» queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)', v_linea.descripcion
         using errcode = '22023', hint = 'producto_id';
     end if;
     v_porcentaje := case when v_precio.alicuota_exenta then 0 else coalesce(v_precio.alicuota_porcentaje, 0) end;
@@ -146,7 +151,7 @@ begin
     insert into dominio.comprobantes_venta_lineas (
       organizacion_id, comprobante_id, orden, producto_id, descripcion, codigo, cantidad, precio_unitario, escala,
       precio_manual, alicuota_id, alicuota_porcentaje, deposito_id, a_pedido, subtotal_sin_iva, iva,
-      descuento_pct, precio_referencia, promocion_id
+      descuento_pct, precio_referencia, promocion_id, lista_precio_id, lista_ajuste_pct
     )
     values (
       v_org, v_nuevo.id, v_orden, v_producto.id, v_producto.nombre, v_producto.sku, v_linea.cantidad, v_unitario,
@@ -154,7 +159,9 @@ begin
       v_producto.disponibilidad_manual is not distinct from 'a_pedido', v_subtotal, v_iva,
       case when v_linea.precio_manual then 0 else v_precio.descuento_aplicado end,
       case when v_linea.precio_manual then null else v_precio.precio_referencia end,
-      case when v_linea.precio_manual then null else v_precio.promocion_id end
+      case when v_linea.precio_manual then null else v_precio.promocion_id end,
+      case when v_linea.precio_manual then null else v_precio.lista_precio_id end,
+      case when v_linea.precio_manual then null else v_precio.lista_ajuste_pct end
     );
     v_total_sin := v_total_sin + v_subtotal;
     v_total_iva := v_total_iva + v_iva;
@@ -175,9 +182,8 @@ begin
   return v_nuevo;
 end;
 $$;
-
 revoke execute on function public.copiar_presupuesto(uuid) from public, anon;
 grant execute on function public.copiar_presupuesto(uuid) to authenticated;
 
 comment on function public.copiar_presupuesto(uuid) is
-  'Crea un presupuesto pendiente nuevo con las líneas del original (precios recalculados con private.precio_linea_venta, con el descuento del cliente y la promoción vigente —gana el más bajo—, salvo manual); el original no cambia (F-VTA-08, FR-051; MSF-816, MSF-933). Contrato en docs/ventas-comprobantes.md.';
+  'Crea un presupuesto pendiente nuevo con las líneas del original (precios recalculados con private.precio_linea_venta con la lista de precios del cliente si rige, con el descuento del cliente y la promoción vigente —gana el más bajo—, salvo manual); el original no cambia (F-VTA-08, FR-051; MSF-816, MSF-933). Contrato en docs/ventas-comprobantes.md.';

@@ -66,40 +66,40 @@ describe('ProductosYStock (F-REP-01)', () => {
     mocks.propsReporte.current = null
   })
 
-  it('[MSF-297:T004] muestra el título y monta el tablero embebido del reporte', () => {
+  it('muestra el título y monta el tablero embebido del reporte', () => {
     montar()
     expect(screen.getByRole('heading', { name: 'Productos y stock' })).toBeTruthy()
     expect(screen.getByTestId('tablero').textContent).toBe('Tablero rep-stock')
     expect(mocks.montajes).toHaveBeenCalledWith('rep-stock')
   })
 
-  it('[MSF-297:T004] muestra el estado de carga mientras llegan los reportes', () => {
+  it('muestra el estado de carga mientras llegan los reportes', () => {
     montar({ cargando: true })
     expect(screen.queryByTestId('tablero')).toBeNull()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
 
-  it('[MSF-297:T004] avisa cuando el tablero no está asignado a la organización', () => {
+  it('avisa cuando el tablero no está asignado a la organización', () => {
     montar({ reportes: [] })
     expect(screen.getByText(/todavía no está disponible para tu organización/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
-  it('[MSF-297:T005] sin la sección stock muestra «Acceso restringido» y no monta el tablero ni pide token', async () => {
+  it('sin la sección stock muestra «Acceso restringido» y no monta el tablero ni pide token', async () => {
     montar({ nivel: 'ninguno' })
     expect(await screen.findByText('Acceso restringido a Stock')).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
 
-  it('[MSF-297:T005] ante un 403 del token muestra «Acceso restringido»', () => {
+  it('ante un 403 del token muestra «Acceso restringido»', () => {
     montar()
     act(() => mocks.propsReporte.current?.alFallar?.('prohibido'))
     expect(screen.getByText('Acceso restringido a Stock')).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
-  it('[MSF-297:T005] ante una falla de carga muestra el error y «Reintentar» vuelve a montar el tablero', async () => {
+  it('ante una falla de carga muestra el error y «Reintentar» vuelve a montar el tablero', async () => {
     montar()
     expect(mocks.montajes).toHaveBeenCalledTimes(1)
     act(() => mocks.propsReporte.current?.alFallar?.('no_disponible'))
@@ -111,7 +111,7 @@ describe('ProductosYStock (F-REP-01)', () => {
     expect(mocks.montajes).toHaveBeenCalledTimes(2)
   })
 
-  it('[MSF-297:T005] no tiene selector de empresa propio (el inventario es por organización)', () => {
+  it('no tiene selector de empresa propio (el inventario es por organización)', () => {
     montar()
     expect(screen.queryByRole('group', { name: /empresa|tienda/i })).toBeNull()
     expect(screen.queryByText('Todas las tiendas')).toBeNull()
@@ -119,7 +119,7 @@ describe('ProductosYStock (F-REP-01)', () => {
 })
 
 describe('menú «Reportes» (F-REP-01, FR-001)', () => {
-  it('[MSF-297:T004] «Productos y stock» apunta a /reportes/inventario y exige la sección stock', () => {
+  it('«Productos y stock» apunta a /reportes/inventario y exige la sección stock', () => {
     const destino = DESTINOS_PANEL.find((candidato) => candidato.id === 'reportes-inventario')
     expect(destino?.etiqueta).toBe('Productos y stock')
     expect(destino?.ruta).toBe('/reportes/inventario')

@@ -63,6 +63,8 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
   const filas = previa?.estado === 'lista' ? previa.filas : null
   const filaDe = (id: string) => filas?.find((fila) => fila.cliente_id === id)
   const resolverCuenta = filas ? hayCuentaWebParaResolver(filas) : false
+  const nombreLista = (fila: VistaPreviaCliente | undefined) => fila?.lista_nombre ?? 'sin lista'
+  const listasDistintas = Boolean(filas && otroId) && (filaDe(cliente.id)?.lista_precio_id ?? null) !== (filaDe(otroId ?? '')?.lista_precio_id ?? null)
   const nombreOtro = otro?.nombre ?? ''
   const conservado = conservar === 'actual' ? cliente.id : otroId
   const descartado = conservar === 'actual' ? otroId : cliente.id
@@ -131,6 +133,11 @@ export function DialogoFusionarClientes({ abierto, cliente, onCerrar, onFusionad
               <Typography color="text.secondary" role="status">
                 {`${compras(filaDe(cliente.id)?.documentos ?? 0)} y ${compras(filaDe(otroId)?.documentos ?? 0)}: la ficha que se conserva quedará con ${compras((filaDe(cliente.id)?.documentos ?? 0) + (filaDe(otroId)?.documentos ?? 0))}.`}
               </Typography>
+              {listasDistintas ? (
+                <Alert severity="info">
+                  {`Las fichas tienen listas de precios distintas (${nombreLista(filaDe(cliente.id))} en la actual y ${nombreLista(filaDe(otroId))} en la otra). La ficha que se conserva mantiene la suya y la lista de la otra se descarta.`}
+                </Alert>
+              ) : null}
               {resolverCuenta ? (
                 <FormControl required error={faltaCuenta}>
                   <FormLabel id="grupo-cuenta-web">Cuenta web que se mantiene</FormLabel>

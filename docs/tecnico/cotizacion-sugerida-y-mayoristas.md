@@ -13,21 +13,21 @@ sources:
 
 **Épica:** MSF-373 — Precios y dólar · Cotización sugerida y mayoristas · **Spec:**
 `specs/20261105-100000-cotizacion-sugerida-y-mayoristas/` (`spec.md`, `plan.md`, `tasks.md`), **F-PRE-13
-implementada y F-PRE-14 cancelada** (decisiones de Nicolás del 2026-11-12; la spec nació NEEDS_INFO) · **Rama de la épica:** `epic/MSF-373-precios-y-dolar-cotizacion-sugerida-y-ma` (PR #835, despliegue
+implementada; F-PRE-14 se descartó el 2026-11-12 y se retomó y entregó desde el 2026-11-15** (decisiones de Nicolás; la spec nació NEEDS_INFO) · **Rama de la épica:** `epic/MSF-373-precios-y-dolar-cotizacion-sugerida-y-ma` (PR #835, despliegue
 a DEV) · **Cierre:**
 PR #833 (merge `fa61db9f`, integrado en `dokploy`; en `main` llega con la próxima promoción — las citas de
 este documento salen de `dokploy`) · **Alcance de entrega:** `refine` + `supabase` para F-PRE-13; F-PRE-14
-**cancelada**.
+no es de esta épica (spec propia).
 
 La épica tenía dos historias independientes. **Solo se construyó F-PRE-13 (cotización sugerida desde una
 fuente pública)**: la Edge Function `cotizacion-sugerida` y la sugerencia dentro del diálogo «Cargar dólar
-del día» de MSF-116. **F-PRE-14 (listas de precios mayoristas) está CANCELADA** (decisión de Nicolás, 2026-11-12): se
+del día» de MSF-116. **F-PRE-14 (listas de precios mayoristas) se descartó el 2026-11-12 y se RETOMÓ Y ENTREGÓ desde el 2026-11-15** (ver el apartado «Qué no se construyó» de esta épica y la spec `20270327-100000-listas-de-precios-por-cliente`): se
 superponía con las escalas por cantidad de F-PRE-15 (MSF-114), parcialmente construidas (ver abajo), y nunca tuvo requisitos.
 Manual: [Cargar la cotización del dólar](../producto/precios-dolar.md) y
 [Precios, escalas e IVA](../producto/precios-e-iva.md).
 
 La spec nació **NEEDS_INFO**: la propia épica dice que «los requisitos se redactan cuando la épica pase a un
-hito». El 2026-11-12 Nicolás confirmó la fuente de F-PRE-13 (DolarApi, dólar oficial venta) y **canceló
+hito». El 2026-11-12 Nicolás confirmó la fuente de F-PRE-13 (DolarApi, dólar oficial venta) y **descartó
 F-PRE-14**; el número `FR-003` queda reservado y sin implementar.
 
 La documentación que escribió la implementación quedó en `docs/precios.md`, una página que **ya no está en
@@ -103,12 +103,14 @@ lectura efímera de una fuente pública y no se persiste. Por eso **no hay DER q
 - **Prueba de la función:** `pnpm test:edge:cotizacion-sugerida` (script agregado en `package.json`, que
   además entra en `pnpm test:web`).
 
-## Qué no se construyó: F-PRE-14 (listas mayoristas) — CANCELADA
+## Qué no se construyó en esta épica: F-PRE-14 (listas mayoristas) — descartada y luego retomada
 
-**F-PRE-14 está cancelada** (MSF-442, decisión de Nicolás del 2026-11-12). **No hay código, requisitos,
-pantalla, migración ni RPC**, y no se va a implementar: `FR-003` quedó **cancelado** y su número reservado.
+> **Retomada el 2026-11-15** (decisión de Nicolás: una lista es un porcentaje de ajuste sobre el precio central; spec `20270327-100000-listas-de-precios-por-cliente`). Las Fases 1 y 2 (listas, administración y asignación al cliente) y las Fases 3 y 4 (motor de precio, ventas y tienda) están implementadas (el cierre, Fase 5, agrega documentación, revisión de seguridad y el E2E del recorrido); el motor aplica la lista **solo con la bandera `listas_precios` encendida** (apagada, el precio es idéntico al de antes). Ver [Listas de precios](../precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
 
-El conflicto que la motivó quedó resuelto por la cancelación: F-PRE-14 chocaba con F-PRE-15 (escalas de precio,
+**F-PRE-14 no se construyó en esta épica** (MSF-442; Nicolás la descartó el 2026-11-12 y la retomó el 2026-11-15 con spec propia). **En esta épica no hay código, requisitos,
+pantalla, migración ni RPC** de F-PRE-14: `FR-003` quedó reservado y sin implementar acá.
+
+El conflicto que la motivó quedó resuelto por esa decisión: F-PRE-14 chocaba con F-PRE-15 (escalas de precio,
 P0; spec `20261022-120000-precios-e-iva`, ver [Precios e IVA](precios-e-iva.md)). **Estado real de F-PRE-15:** existen las escalas
 por producto y el cálculo `private.precio_para`, pero **no existe** una tabla `tipos_cliente` ni una pantalla «Tipos
 de cliente» (en `apps/web` no hay tal pantalla): el tipo de cliente son dos valores fijos (`minorista` / `mayorista`)
@@ -121,15 +123,15 @@ Lo que existe hoy para mayoristas:
 |---|---|---|
 | Escalas de precio del producto | `dominio.producto_precios_escala`, migración `20261022150000_producto_precios_escala.sql` | Precios sin IVA para x5, x10 y x50; x1 es el precio de lista. |
 | Cálculo por escala | `private.precio_para`, migración `20261022150100_precio_para.sql` | Resuelve la escala pedida y cae al precio de lista si no tiene precio. |
-| Tipo de cliente | `public.clientes.tipo` (`minorista` / `mayorista`), migración `20261016130300_clientes_tipo_y_consumidor_final.sql` | La ficha del cliente define el tipo. |
+| Tipo de cliente | `dominio.clientes.tipo` (`minorista` / `mayorista`), migración `20261016130300_clientes_tipo_y_consumidor_final.sql` | La ficha del cliente define el tipo. |
 | Contrato de escala | `public.escala_de_cliente`, misma migración | Contrato de lectura: devuelve `x1` para minorista y `por_cantidad` para mayorista. Es una **regla provisoria**. |
 | Escala de cada línea de venta | `private.escala_para_linea`, migración `20261203200300_lineas_rpc.sql` | La regla que usa Ventas: mayorista por cantidad (x5, x10, x50), minorista `x1`. |
 | Pantalla del prototipo | `design/pantallas/TiposCliente.dc.html` | Solo existe en el **prototipo**; **no hay pantalla ni tabla `tipos_cliente` construidas**. No es de esta épica. |
 
 En resumen: el precio del revendedor **se arma con el tipo de cliente y las escalas por cantidad de cada
 producto**, no con una «lista de precios» separada. Si el negocio necesita listas propias por revendedor,
-no está planificado: F-PRE-14 se canceló. Si el negocio vuelve a pedirlo, hay que abrir una épica nueva con
-sus requisitos.
+no estaba planificado cuando F-PRE-14 se descartó (2026-11-12); el negocio volvió a pedirlo y se retomó el 2026-11-15 con
+su propia spec (porcentaje sobre el precio central), que convive con las escalas con la precedencia D5 de esa spec.
 
 ## Desvíos de la implementación
 
@@ -146,8 +148,8 @@ Anotados en `tasks.md` de la spec (rama de la épica) y con su evidencia en el c
 | # | Pregunta | Estado |
 |---|---|---|
 | 1 | Fuente y tipo de dólar (oficial, blue, MEP…) | **Resuelta:** DolarApi, dólar oficial venta (confirmada por Nicolás el 2026-11-12). |
-| 2 | ¿F-PRE-14 sigue siendo necesaria o se cancela/redefine frente a las escalas de F-PRE-15? | **Resuelta:** F-PRE-14 se cancela (2026-11-12). |
-| 3 | Modelo comercial mayorista: qué es un revendedor, quién ve la lista y cómo se arma | **Sin objeto:** F-PRE-14 está cancelada. |
+| 2 | ¿F-PRE-14 sigue siendo necesaria o se descarta o redefine frente a las escalas de F-PRE-15? | **Resuelta:** F-PRE-14 se descartó en esta épica (2026-11-12) y se retomó con spec propia (2026-11-15). |
+| 3 | Modelo comercial mayorista: qué es un revendedor, quién ve la lista y cómo se arma | **Resuelta:** una lista es un porcentaje sobre el precio central asignado al cliente (spec propia). |
 | 4 | Hito y horas (M + L ≈ 24 h por talla) | Abierta (no bloquea nada). |
 | 5 | Orden con MSF-116 | Resuelta: MSF-116 ya está en `dokploy` y F-PRE-13 se apoyó en ella. |
 
@@ -235,8 +237,8 @@ la entrega completa.
 
 ## Pendientes y deudas (con dueño)
 
-- **Sin pendientes de decisión:** la fuente (DolarApi, oficial venta) quedó confirmada y F-PRE-14 cancelada
-  el 2026-11-12; solo queda abierta la Pregunta 4 (hito y horas), que no bloquea nada.
+- **Sin pendientes de decisión:** la fuente (DolarApi, oficial venta) quedó confirmada y F-PRE-14 descartada
+  el 2026-11-12 (retomada el 2026-11-15, spec propia); solo queda abierta la Pregunta 4 (hito y horas), que no bloquea nada.
 - **TODO (dueño: Documentador):** capturar el diálogo «Cargar dólar del día» con la sugerencia en
   `docs/producto/img/precios-dolar/`. La herramienta del manual (`pnpm docs:capturas`,
   `apps/web/e2e/capturas/`) **no existe en este repo**; lo más cercano es

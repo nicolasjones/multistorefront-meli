@@ -608,7 +608,7 @@ describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
   // MSF-715: tras registrar un cobro la base cambia el estado y el `updated_at` del comprobante. La
   // pantalla tiene que releerlo: si no, el detalle queda viejo (dice «Pendiente» cuando la base dice
   // «Cobrado») y la acción siguiente choca con «Otra persona modificó este comprobante».
-  describe('MSF-715 · el detalle se relee después del cobro', () => {
+  describe('· el detalle se relee después del cobro', () => {
     const COBRADO = { ...COMPROBANTE, estado: 'cobrado', updated_at: '2027-01-02T00:00:00Z' }
     const DEUDA = { ...COMPROBANTE, estado: 'deuda', updated_at: '2027-01-02T00:00:00Z' }
 

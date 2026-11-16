@@ -282,11 +282,18 @@ function superset(embebidos) {
   const fetchFalso = async (url, opciones = {}) => {
     llamadas.push(`${opciones.method ?? 'GET'} ${url}`);
     if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
-    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
     const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
     if (coincidencia) {
       const slug = decodeURIComponent(coincidencia[1]);
       if (opciones.method === 'POST') {
+        // Superset rechaza el POST si no llegan juntos el token CSRF y la cookie de sesión que lo emitió.
+        if (opciones.headers?.cookie !== 'session=abc123') return respuestaJson({ message: 'The CSRF token is missing.' }, 400);
         embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
         return respuestaJson({ result: { uuid: UUID_B } });
       }
@@ -1039,4 +1046,35 @@ test('buscarReportePorNombre pide el orden por antigüedad y, con duplicados, us
   } finally {
     console.warn = original;
   }
+});
+
+test('el tablero Después de costos fijos versiona datasets, filtro por empresa y reporte de la sección rentabilidad (F-GAS-03)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+
+  for (const [archivo, tabla, columnas] of [
+    ['margen_despues_costos_fijos.yaml', 'margen_despues_costos_fijos', ['organizacion_id', 'empresa_id', 'categoria', 'tasa_fija', 'cargo_costos_fijos', 'margen_despues_fijos', 'margen_despues_fijos_pct']],
+    ['margen_costos_fijos_empresa_mes.yaml', 'margen_costos_fijos_empresa_mes', ['organizacion_id', 'empresa_id', 'ventas_netas', 'costos_fijos', 'sin_atribuir', 'sin_ventas']],
+  ]) {
+    const dataset = await leer('datasets', 'Rentabilidad_analitica', archivo);
+    assert.match(dataset, new RegExp(`^table_name: ${tabla}$`, 'm'));
+    assert.match(dataset, /^schema: analitica$/m);
+    for (const columna of columnas) assert.match(dataset, new RegExp(`^- column_name: ${columna}$`, 'm'), `el dataset expone ${columna}`);
+    // CA-GAS-22: el tablero nunca recibe el detalle de un gasto individual.
+    assert.doesNotMatch(dataset, /dominio\.gastos|column_name: (importe|descripcion|proveedor|motivo)/);
+  }
+
+  const tablero = await leer('dashboards', 'Rentabilidad_Despues_de_costos_fijos_7.yaml');
+  assert.match(tablero, /^slug: rentabilidad-despues-de-costos-fijos$/m);
+  assert.match(tablero, /"name": "Mes"/, 'filtro por mes');
+  for (const rotulo of ['por tienda', 'consolidado', 'por producto', 'por categoría', 'Cómo se reparten']) assert.match(tablero, new RegExp(rotulo));
+  assert.match(await leer('charts', 'Costos_fijos_metodo_18.yaml'), /Sin atribuir/, 'el rótulo del método explica «Sin atribuir»');
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  const registrados = reportes.filter((r) => r.dashboard_slug === 'rentabilidad-despues-de-costos-fijos');
+  assert.equal(registrados.length, 1, 'registro único (idempotente)');
+  assert.equal(registrados[0].seccion, 'rentabilidad');
+  assert.equal(registrados[0].filtro_empresa, true, 'el token se acota a las empresas accesibles: todas las vistas exponen empresa_id');
+  assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
 });

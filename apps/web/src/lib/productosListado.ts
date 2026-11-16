@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
 import { normalizarBusqueda } from './busquedaTexto'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -156,21 +157,27 @@ export async function consultarProductos(
   return { filas: data ?? [], total: count ?? 0 }
 }
 
-// F-CAT-16 (FR-002): costo de los productos de la página, desde `dominio.producto_costos` (la vista no lo expone).
+// F-CAT-16 (FR-002): costo de los productos indicados, desde `dominio.producto_costos` (la vista no lo expone).
 // Solo se llama con acceso a Rentabilidad; la autoridad es RLS, que devuelve 0 filas a quien no corresponde.
+// Los ids viajan en el `in.(…)` de la URL GET: se reparten en lotes (`lib/repartoIds.ts`) como el stock
+// de la toma (MSF-716), así que un llamador con muchos ids no excede el límite del proxy.
 export async function consultarCostos(
   cliente: Pick<SupabaseClient, 'schema'>,
   productoIds: readonly string[],
 ): Promise<Map<string, number | string>> {
   if (productoIds.length === 0) return new Map()
-  const { data, error } = await cliente
-    .schema('dominio')
-    .from('producto_costos')
-    .select('producto_id, costo')
-    .in('producto_id', [...productoIds])
-    .returns<Array<{ producto_id: string; costo: number | string }>>()
-  if (error) throw error
-  return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+  const lotes = enLotes([...new Set(productoIds)], MAXIMO_IDS_POR_PETICION)
+  const filas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error } = await cliente
+      .schema('dominio')
+      .from('producto_costos')
+      .select('producto_id, costo')
+      .in('producto_id', lote)
+      .returns<Array<{ producto_id: string; costo: number | string }>>()
+    if (error) throw error
+    return data ?? []
+  })
+  return new Map(filas.map((fila) => [fila.producto_id, fila.costo]))
 }
 
 export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }

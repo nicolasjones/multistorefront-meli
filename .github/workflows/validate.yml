@@ -23,6 +23,10 @@ on:
         description: "Filtrar por título (p. ej. MSF-121); vacío = toda la suite con sesión"
         type: string
         default: ""
+      e2e_archivos:
+        description: "Specs del E2E con sesión, separados por espacio (nombre de archivo en apps/web/e2e)"
+        type: string
+        default: "permisos-por-empresa.e2e.ts"
 
 permissions:
   contents: read
@@ -114,7 +118,7 @@ jobs:
   application:
     needs: changes
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -126,12 +130,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
         run: pnpm test:docs:pasos-manuales
+      # Simulacro de restauración (MSF-520): el protocolo tiene que conservar los pasos que miden
+      # los objetivos y la documentación no puede contradecirse sobre si el simulacro corrió.
+      - name: test:docs:simulacro
+        run: pnpm test:docs:simulacro
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
@@ -148,6 +158,11 @@ jobs:
         run: pnpm test:e2e:escritura
       - name: test:e2e:omitidos (guarda contra omisiones masivas del e2e)
         run: pnpm test:e2e:omitidos
+      # Decisión MSF-852: la suite corre en un job nocturno sobre dokploy y no bloquea PRs. La guarda detecta
+      # si el workflow o su contrato desaparecen sin que nadie lo note (el E2E no puede volver a podrirse en silencio).
+      - run: pnpm e2e:nocturno:check
+      - name: test:e2e:nocturno
+        run: pnpm test:e2e:nocturno
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
@@ -266,6 +281,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
+    env:
+      SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
       - uses: actions/checkout@v4
         with:
@@ -276,6 +293,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
         run: |
@@ -285,25 +304,45 @@ jobs:
             curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
           fi
           supabase --version
+      # Reserva una ranura como `e2e-tienda` y `database`: sin ella el stack `ci-…` choca con el de otro job de la
+      # misma corrida (nombre de contenedor en uso).
+      - name: Reservar la ranura del stack de Supabase
+        env:
+          SUPABASE_CI_LOCK_MIN: 20
+        run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
         run: |
           node scripts/supabase-ci.mjs puente &
           trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
-          supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
           # El puente solo reenvía la base; la API REST (kong) también vive en el
           # Docker del host: reenviarla a 127.0.0.1 para Node y el navegador.
           API_PORT=$(node --input-type=module -e "import('./scripts/supabase-ci.mjs').then(async (m) => { const fs = await import('node:fs'); const stack = m.derivarStackCi(m.leerConfigDesarrollo(fs.readFileSync('supabase/config.toml', 'utf8')), process.env.GITHUB_REPOSITORY); console.log(stack.puertos['api.port']); })")
           API_PORT=$API_PORT node -e "const net = require('node:net'); const p = Number(process.env.API_PORT); net.createServer((c) => { const d = net.connect(p, 'host.docker.internal'); c.pipe(d).pipe(c); const t = () => { try { c.destroy(); } catch {} try { d.destroy(); } catch {} }; c.on('error', t); d.on('error', t); }).listen(p, '127.0.0.1', () => console.log('puente API listo en 127.0.0.1:' + p));" &
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$API_PORT") 2>/dev/null && break; sleep 0.2; done
       - run: pnpm db:reset:ci
+      # PostgREST arranca antes de que las migraciones creen `dominio` y no queda sano hasta que se las aplica
+      # (por eso `--ignore-health-check` arriba): se lo reinicia después de `db:reset:ci`, como en `e2e-tienda`.
+      - name: Reiniciar PostgREST
+        run: docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+      # Dentro del contenedor del runner `127.0.0.1` es el propio contenedor y el puente de arranque muere al
+      # terminar su paso: la API del stack (publicada en el Docker del host) se alcanza por `host.docker.internal`,
+      # tanto desde Node (specs) como desde Chromium (la web del build), igual que en `e2e-tienda`.
       - name: Exponer claves al build y a los specs
         run: |
           eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
-          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          URL="${API_URL/127.0.0.1/host.docker.internal}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          for intento in $(seq 60); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL/rest/v1/" || true)" = "200" ] && break
+            sleep 2
+          done
+          echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
@@ -325,13 +364,16 @@ jobs:
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
           E2E_GREP: ${{ inputs.e2e_grep }}
+          E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json
         run: |
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          # Los nombres de archivo se pasan por entorno, nunca interpolados en el script.
+          ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
           if [ -n "$E2E_GREP" ]; then
-            pnpm test:e2e permisos-por-empresa.e2e.ts --grep "$E2E_GREP"
+            pnpm test:e2e $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm test:e2e permisos-por-empresa.e2e.ts
+            pnpm test:e2e $ARCHIVOS
           fi
       - name: cobertura:e2e (sesión)
         if: always()
@@ -346,6 +388,13 @@ jobs:
             apps/web/test-results
           retention-days: 14
           if-no-files-found: ignore
+      - name: Bajar el stack y liberar la ranura
+        if: always()
+        run: |
+          if [ -n "$SUPABASE_CI_WORKDIR" ]; then
+            supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          fi
+          node scripts/supabase-ci.mjs liberar
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
   # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
@@ -353,7 +402,7 @@ jobs:
   web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
     # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
     # ~10-15 min. 45 min es sólo la red de seguridad (si un shard se cuelga, no espera una hora).
@@ -420,7 +469,7 @@ jobs:
     # y el job se ve rojo sin frenar el merge. Se pasa a requerido poniendo la variable en `true` tras ~10 corridas
     # verdes (seguimiento en specs/20261113-120000-ci-e2e-tienda/tasks.md). Sin PRs de forks: ver el filtro de `application`.
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && vars.CI_E2E_TIENDA != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}
     # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
     # esperando ranura. El TTL de la ranura (`SUPABASE_CI_LOCK_TTL_MIN`, abajo y en `database`) va por encima del timeout
@@ -436,8 +485,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@v1
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -461,9 +526,11 @@ jobs:
       # stack de `database` (sin kong/postgrest): se lo baja antes para arrancar de cero.
       - name: Levantar el stack de Supabase del CI con API
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
           supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
       - run: pnpm db:reset:ci
@@ -598,7 +665,7 @@ jobs:
   database:
     needs: changes
     if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
     # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
     # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle al TTL. El TTL va a 75 min (igual
@@ -617,8 +684,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@v1
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -632,9 +715,11 @@ jobs:
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci

@@ -32,7 +32,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
 
 -- Uno tiene correo; Sin Correo no.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', 'uno@example.com', null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente Sin Correo', 'minorista', null, null);
 
@@ -202,7 +202,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 -- La fila del aviso no puede apuntar a un cliente de otra organización (FK compuesta).
 reset role;
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000009', '22222222-2222-2222-2222-222222222222', 99, 'Cliente de la Otra', 'minorista', 'otro@example.com', null);
 select throws_ok(
   $$insert into dominio.faltantes_avisos (linea_id, organizacion_id, empresa_id, cliente_id)
@@ -389,7 +389,7 @@ select is(
 
 -- Cliente Tres (con correo) para que su cola no se mezcle con la de Cliente Uno.
 reset role;
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente Tres', 'minorista', 'tres@example.com', null);
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');

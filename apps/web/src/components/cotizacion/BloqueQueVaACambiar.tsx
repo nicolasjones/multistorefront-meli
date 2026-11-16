@@ -12,7 +12,7 @@ const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, ma
 // Bloque «Qué va a cambiar» (F-PRE-03, FR-014; Cotizacion.dc.html): un mosaico por empresa con la
 // cantidad de precios en USD visibles y la tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo».
 // Se muestra solo si la variación alcanza el umbral (lo decide el diálogo con `previa.recalcula`).
-// Mercado Libre queda fuera (Etapa 2). Solo muestra: el cálculo es de la base.
+// Mercado Libre queda fuera: todavía no es un canal elegible. Solo muestra: el cálculo es de la base.
 export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD visibles' }: Props) {
   return (
     <Stack component="section" spacing={1.5} aria-labelledby="titulo-que-va-a-cambiar">

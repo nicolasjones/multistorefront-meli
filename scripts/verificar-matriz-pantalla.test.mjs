@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { motivoSpecSinEmpresa, motivoSpecSinMatriz, specsExentas } from "./verificar-matriz-pantalla.mjs";
+import {
+  claveSpec,
+  motivoSpecSinEmpresa,
+  motivoSpecSinMatriz,
+  specsExentas,
+  specsExentasEmpresa,
+} from "./verificar-matriz-pantalla.mjs";
 
 let dir;
 
@@ -50,6 +56,16 @@ describe("verificar-matriz-pantalla", () => {
     assert.equal(motivoSpecSinEmpresa(spec), null);
   });
 
+  it("rechaza una matriz que sólo menciona «empresa» sin declarar la empresa activa", () => {
+    const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/clientes/list.tsx`\n\n## Matriz pantalla↔criterios\n\n| Filtro «Tienda» | La pantalla filtra por la empresa de la barra superior |\n");
+    assert.equal(motivoSpecSinEmpresa(spec), spec);
+  });
+
+  it("exime a las specs anteriores al Principio VIII de exigir la fila de empresa activa", () => {
+    const spec = escribir("spec.md", "# Spec\n\n`apps/web/src/pages/clientes/list.tsx`\n\n## Matriz pantalla↔criterios\n\n| Filtro «Tienda» | La pantalla filtra por la empresa de la barra superior |\n");
+    assert.equal(motivoSpecSinEmpresa(spec, new Set([claveSpec(spec)])), null);
+  });
+
   it("ignora specs sin UI", () => {
     const spec = escribir("spec.md", "# Spec\n\nSólo cambia `supabase/migrations`.\n");
     assert.equal(motivoSpecSinMatriz(spec), null);
@@ -64,6 +80,20 @@ describe("verificar-matriz-pantalla", () => {
     fs.writeFileSync(archivo, "# comentario\n\nspecs/una-vieja\nspecs/otra  # con nota\n");
     const exentas = specsExentas(archivo);
     assert.deepEqual([...exentas].sort(), ["specs/otra", "specs/una-vieja"]);
+  });
+
+  it("lee la lista de specs exentas de empresa ignorando comentarios", () => {
+    const archivo = path.join(dir, "empresa-exentas.txt");
+    fs.writeFileSync(archivo, "# comentario\n\nspecs/una-vieja\nspecs/otra  # con nota\n");
+    const exentas = specsExentasEmpresa(archivo);
+    assert.deepEqual([...exentas].sort(), ["specs/otra", "specs/una-vieja"]);
+  });
+
+  it("la lista de exentas de empresa apunta a specs que existen", () => {
+    const raiz = path.resolve(import.meta.dirname, "..");
+    for (const clave of specsExentasEmpresa()) {
+      assert.ok(fs.existsSync(path.join(raiz, clave, "spec.md")), `no existe la spec exenta ${clave}`);
+    }
   });
 
   it("no explota si el archivo de exentas no existe", () => {
