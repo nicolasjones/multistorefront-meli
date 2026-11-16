@@ -205,19 +205,28 @@ export function recorrerSql(sql) {
   let sinCerrar = -1; // posición del primer comentario, literal o bloque de dólares que no cierra (SQL roto)
   const abierto = (i) => { if (sinCerrar < 0) sinCerrar = i; };
   const blanquear = (desde, hasta) => { for (let k = desde; k < hasta; k++) if (salida[k] !== '\n') salida[k] = ' '; };
+  // Próxima aparición de `tok` desde `desde`, memoizada: un recorrido de izquierda a derecha no repite búsquedas (lineal).
+  const memo = new Map();
+  const sig = (tok, desde) => {
+    const m = memo.get(tok);
+    if (m && desde >= m.desde && (m.idx === -1 || m.idx >= desde)) return m.idx;
+    const idx = sql.indexOf(tok, desde);
+    memo.set(tok, { desde, idx });
+    return idx;
+  };
   let i = 0;
   while (i < sql.length) {
     const c = sql[i];
     // Dentro de un bloque de dólares el texto puede ser un dato (`$$o'brien"; --$$`): nada de lo que abra adentro puede pasar del cierre del bloque.
-    const tope = pila.length ? sql.indexOf(pila[pila.length - 1], i) : -1;
+    const tope = pila.length ? pila[pila.length - 1].cierre : -1; // calculado una sola vez al abrir el bloque
     if (c === '-' && sql[i + 1] === '-') {
-      const fin = sql.indexOf('\n', i);
+      const fin = sig('\n', i);
       let hasta = fin < 0 ? sql.length : fin;
       if (tope >= 0 && tope < hasta) hasta = tope;
       blanquear(i, hasta); i = hasta; continue;
     }
     if (c === '/' && sql[i + 1] === '*') {
-      const fin = sql.indexOf('*/', i + 2);
+      const fin = sig('*/', i + 2);
       if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
       if (fin < 0) abierto(i);
       const hasta = fin < 0 ? sql.length : fin + 2;
@@ -227,18 +236,19 @@ export function recorrerSql(sql) {
       // E'...' admite \' y \\ como escapes (además de ''); un literal común no.
       const escapes = /[eE]/.test(sql[i - 1] ?? '') && !/[a-z0-9_$]/i.test(sql[i - 2] ?? ' ');
       let j = i + 1;
-      while (j < sql.length) {
+      const limite = tope >= 0 ? tope : sql.length; // dentro de un bloque la búsqueda del cierre no pasa del cierre del bloque
+      while (j < limite) {
         if (escapes && sql[j] === '\\') { j += 2; continue; }
         if (sql[j] === "'" && sql[j + 1] === "'") { j += 2; continue; }
         if (sql[j] === "'") break;
         j++;
       }
-      if (tope >= 0 && tope < j) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
+      if (tope >= 0 && j >= tope) { i++; continue; } // la comilla no cierra antes del bloque: es texto del dato
       if (j >= sql.length) abierto(i);
       blanquear(i + 1, Math.min(j, sql.length)); i = j + 1; continue;
     }
     if (c === '"') {
-      const fin = sql.indexOf('"', i + 1);
+      const fin = sig('"', i + 1);
       if (tope >= 0 && (fin < 0 || tope < fin)) { i++; continue; }
       if (fin < 0) abierto(i);
       i = fin < 0 ? sql.length : fin + 1; continue;
@@ -246,7 +256,8 @@ export function recorrerSql(sql) {
     if (c === '$') {
       const m = /^\$[a-z_][a-z0-9_]*\$|^\$\$/i.exec(sql.slice(i, i + 80));
       if (m) {
-        if (pila.length && pila[pila.length - 1] === m[0]) pila.pop(); else pila.push(m[0]);
+        if (pila.length && pila[pila.length - 1].tag === m[0]) pila.pop();
+        else pila.push({ tag: m[0], cierre: sig(m[0], i + m[0].length) });
         i += m[0].length; continue;
       }
     }

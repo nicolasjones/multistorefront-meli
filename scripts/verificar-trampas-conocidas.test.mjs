@@ -335,3 +335,37 @@ test('recorrerSql: dentro de $$ una comilla, comillas dobles o -- que no cierran
   // Dentro de un bloque, un literal que sí cierra se sigue enmascarando.
   assert.deepEqual(t7("select throws_ok($$insert into reparaciones (nota, ingreso_en) values ('current_date', now())$$, '22023');"), []);
 });
+
+// Bloques de dólares grandes con de todo adentro (comillas, $x$, --, /*, "), con y sin cierre: lineal (< 300 ms).
+const relleno = (kb) => { const u = "$x$ ' -- /* \" "; return u.repeat(Math.ceil((kb * 1024) / u.length)); };
+for (const kb of [100, 300]) {
+  for (const [nombre, armar] of [
+    ['con cierre', (r) => `select $$ ${r} $$; select 1`],
+    ['sin cierre', (r) => `select $$ ${r}`],
+    ['con cierre y una alta mala después', (r) => `select $$ ${r} $$; insert into reparaciones (ingreso_en) values (current_date)`],
+  ]) {
+    test(`recorrerSql rendimiento: bloque $$ de ${kb} KB ${nombre}`, () => {
+      const t = Date.now();
+      const r = recorrerSql(armar(relleno(kb)));
+      const ms = Date.now() - t;
+      assert.ok(ms < 300, `tardó ${ms} ms`);
+      if (nombre === 'sin cierre') assert.ok(r.sinCerrar >= 0);
+      if (nombre === 'con cierre') assert.equal(r.sinCerrar, -1);
+    });
+  }
+}
+for (const [nombre, unidad] of [['/* sin cierre', 'a /* '], ['-- sin salto de línea', 'a -- '], ['comillas dobles sin cerrar', 'a " '], ['$x$ alternados', '$x$ a ']]) {
+  test(`recorrerSql rendimiento: «${nombre}» repetido 100 KB`, () => {
+    const t = Date.now();
+    recorrerSql(`select $$ ${unidad.repeat(Math.ceil(102400 / unidad.length))}`);
+    recorrerSql(unidad.repeat(Math.ceil(102400 / unidad.length)));
+    assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+  });
+}
+
+test('recorrerSql: sin bypass dentro de bloques; lo malo posterior se sigue marcando', () => {
+  assert.equal(t7("select $$ it's $$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.equal(t7("select $a$ x $b$ ' $b$ y $a$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.equal(t7("select $$ \" -- /* $$; insert into reparaciones (ingreso_en) values (current_date)").length, 1);
+  assert.deepEqual(t7("select $$ it's $$; select 1"), []);
+});
