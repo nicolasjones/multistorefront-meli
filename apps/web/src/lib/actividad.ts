@@ -98,6 +98,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'despacho.envio_guardado': 'Envío guardado',
   'despacho.estado_cambiado': 'Estado de despacho cambiado',
   'despacho.faltante_registrado': 'Faltante de despacho registrado',
+  'empresa.creada': 'Empresa creada',
   'empresa.actualizada': 'Empresa actualizada',
   'empresa.pausada': 'Empresa pausada',
   'empresa.reactivada': 'Empresa reactivada',
