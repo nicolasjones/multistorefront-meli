@@ -32,7 +32,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f9200000-0000-0000-0000-000000000001', 'a9200000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'operador');
 
 -- Clientes: c1 minorista sin descuento · c2 5 % · c3 15 % · c4 mayorista 10 % · c9 de la org 2 con 20 %.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
   ('c9000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Minorista sin descuento', 'minorista', null, null),
   ('c9000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente 5 %', 'minorista', null, 5),
   ('c9000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente 15 %', 'minorista', null, 15),
@@ -187,7 +187,7 @@ select pg_temp.bandera(true);
 reset role;
 -- El cambio de descuento lo restringe un disparador a administradores: acá se salta como dueño (fixture).
 set local session_replication_role = replica;
-update public.clientes set descuento = 10 where id = 'c9000000-0000-0000-0000-000000000002';
+update dominio.clientes set descuento = 10 where id = 'c9000000-0000-0000-0000-000000000002';
 set local session_replication_role = origin;
 select pg_temp.como('f9000000-0000-0000-0000-000000000001');
 select pg_temp.copiar('k_dto_nuevo', 'o_c2_p1');
@@ -240,7 +240,7 @@ select pg_temp.como('f9000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('o_c2_p1')), '42501', null, 'consulta no copia presupuestos (42501)');
 reset role;
 -- Cliente de otra organización con descuento no cambia el de la org 1: el de la org 1 sigue en 10 %.
-select is((select descuento from public.clientes where id = 'c9000000-0000-0000-0000-000000000002'), 10::numeric, 'control: el cliente de la org 1 conserva su descuento');
+select is((select descuento from dominio.clientes where id = 'c9000000-0000-0000-0000-000000000002'), 10::numeric, 'control: el cliente de la org 1 conserva su descuento');
 select is(has_function_privilege('anon', 'public.copiar_presupuesto(uuid)', 'execute'), false, 'anon no ejecuta copiar_presupuesto');
 select is(has_function_privilege('authenticated', 'public.copiar_presupuesto(uuid)', 'execute'), true, 'authenticated sigue ejecutando copiar_presupuesto');
 select is((select prosecdef and proconfig = array['search_path=""'] from pg_proc where oid = 'public.copiar_presupuesto(uuid)'::regprocedure), true,
