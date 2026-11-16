@@ -1,10 +1,12 @@
 <!--
 Sync Impact Report
-- Version change: 1.8.0 → 1.9.0 (MINOR: el Principio VI incorpora el patrón único de filtros y
-  selectores de empresa/tienda —`FiltroEmpresa` y `SelectorEmpresas`— y su control automático
-  `pnpm ui:empresas:check` en CI.)
-- Modified principles: Principle VI (controles de empresa/tienda)
-- Added sections: ninguna
+- Version change: 1.10.0 → 1.11.0 (MINOR: integración de `main` en `dokploy`. Conserva el Principio VI con
+  listados de carga infinita y miniatura con zoom (1.10.0) y suma el nuevo Principio VIII — la empresa activa
+  se declara y se respeta en toda pantalla, pop-up y diálogo; el prototipo manda y la matriz de la spec lo
+  verifica (1.9.0 de `main`). La regla «Documentación como parte del cambio», que quedaba también numerada VIII,
+  pasa a IX.)
+- Modified principles: Principle VI (listados e imágenes en listados), Principle IX (renumerado)
+- Added sections: Principio VIII. Contexto de empresa en pantallas y diálogos
 - Removed sections: ninguna
 - Follow-up TODOs: ninguno
 -->
@@ -35,8 +37,9 @@ En desarrollo Docker, cada producto usa su propio proyecto Compose:
 `multistorefront-meli-supabase-dev`,
 `multistorefront-meli-kestra-dev`,
 `multistorefront-meli-superset-dev`,
-`multistorefront-meli-playwright-dev` y
-`multistorefront-meli-runner-dev`. No existe un Compose raíz que los
+`multistorefront-meli-playwright-dev`,
+`multistorefront-meli-runner-dev` y
+`multistorefront-meli-glitchtip-dev`. No existe un Compose raíz que los
 fusione.
 
 ### V. Simplicidad operativa
@@ -65,6 +68,19 @@ de Cuentas de cobro. No se admiten variantes locales con `Chip`, `Select`,
 plan. `pnpm ui:empresas:check` DEBE correr en CI y fallar si reaparece una
 variante.
 
+**Listados e imágenes.** Todo listado del panel DEBE cargar por tandas desde el
+servidor a medida que la persona llega al final, con carga diferida
+(`IntersectionObserver`), sumando cada tanda a lo ya mostrado; las pantallas
+nuevas NO usan paginación numerada (`TablePagination`) y las existentes se
+migran de forma gradual. Buscar, filtrar u ordenar reinicia la lista; el total
+sigue visible; DEBE existir un «Cargar más» operable con teclado y los estados
+de carga, error con reintento y fin de lista usan los patrones compartidos. Una
+excepción (totales por página, exportaciones que dependen de la página) se
+justifica en la spec y el plan. Las miniaturas de imagen en listados conservan
+su tamaño chico y ofrecen una vista ampliada al pasar el mouse mediante el
+componente compartido `MiniaturaProducto`; no se admiten miniaturas ni zooms
+propios por pantalla.
+
 ### VII. Plataforma y dominio (esquemas)
 Cada tabla se ubica según su **naturaleza** (no toda tabla nueva va a `dominio`):
 - **Plataforma / transversal** — organizaciones, perfiles, membresías, feature flags, backups,
@@ -79,6 +95,32 @@ reversión. Esta verificación de esquema NO es solo de la spec: el plan, las ta
 y la revisión de cada PR DEBEN re-verificar, para cada tabla, que su esquema coincide con lo declarado,
 y todo agente u orquestador que opere el repo DEBE aplicarla de punta a punta. La prueba de aislamiento (pgTAP) DEBE recorrer **todos los esquemas expuestos**
 (`public` + `dominio`) y fallar si alguna tabla no tiene RLS. Ver `docs/disenar-conector.md`.
+
+### VIII. Contexto de empresa en pantallas y diálogos
+Toda pantalla, pop-up o diálogo que lea o escriba datos de una empresa DEBE
+declarar y respetar la **empresa activa** de la barra superior (F-ROL-06), en
+los modos que el prototipo indique: una empresa concreta y, si existe, «Todas
+mis empresas» (vista combinada). Reglas:
+- **Una sola fuente de verdad.** La empresa activa es la del selector; la
+  pantalla no guarda su propia empresa ni duplica el selector.
+- **Al cambiar de empresa, la pantalla se reencuadra.** DEBE invalidar y
+  recargar **todas** sus consultas de datos (no alcanza con permisos),
+  reencuadrar la paginación y descartar la selección que ya no existe. Nunca
+  muestra filas ni totales de la empresa anterior.
+- **Los diálogos no mezclan empresas.** Un diálogo abierto al cambiar de
+  empresa se cierra con aviso o se reabre acotado a la nueva; jamás guarda
+  datos cargados de la anterior bajo la nueva.
+- **El prototipo manda.** Si `design/pantallas/*.dc.html` muestra selector,
+  columna, filtro o un texto de empresa (p. ej. Clientes: «Si elegís una
+  empresa en la barra superior, se filtra por esa tienda»), es obligatorio.
+  Si no lo muestra, la spec declara el alcance y por qué no aplica.
+- **Verificación.** La spec con UI incluye la fila «Empresa activa» en
+  `## Matriz pantalla↔criterios` (el CI rechaza la spec si falta) y al menos un
+  test que cambie de empresa, o la declaración «no aplica» con su motivo.
+
+Esta regla nace de la regresión de Clientes con la barra superior (la pantalla
+quedaba con datos de la empresa anterior), que se repitió en Productos,
+Servicios, Modelos y pop-ups.
 
 ## Technology and Quality Gates
 
@@ -119,10 +161,10 @@ Esta constitución prevalece sobre decisiones ad hoc de los agentes. Una
 excepción debe quedar documentada en la spec y su plan. Los cambios de principios
 requieren actualizar versión, fecha y artefactos afectados.
 
-### VIII. Documentación como parte del cambio
+### IX. Documentación como parte del cambio
 Todo cambio de plataforma, worker, Kestra, Supabase, CI o tooling propio DEBE
 actualizar en el mismo cambio una spec, una guía en `docs/`, esta constitución,
 `AGENTS.md` o `CLAUDE.md`. El control automatizado `pnpm docs:check` DEBE correr
 en CI para impedir que el código evolucione sin una decisión o contrato escrito.
 
-**Version**: 1.9.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-10-23
+**Version**: 1.11.0 | **Ratified**: 2026-09-06 | **Last Amended**: 2026-11-13

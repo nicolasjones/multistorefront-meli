@@ -41,7 +41,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta'),
   ('e1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'deposito');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente a archivar', 'minorista', null),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 10, 'Cliente de la Dos', 'minorista', null);
@@ -143,7 +143,7 @@ reset role;
 -- Los movimientos de la carga de ítems quedan fuera de la cuenta: el cobro no agrega ninguno.
 create temp table mov_base as select count(*)::int as n from dominio.movimientos_stock;
 grant select on mov_base to public;
-update public.clientes set archivado_en = now() where id = 'c5000000-0000-0000-0000-000000000002';
+update dominio.clientes set archivado_en = now() where id = 'c5000000-0000-0000-0000-000000000002';
 
 -- ============================================================================
 -- Rechazos

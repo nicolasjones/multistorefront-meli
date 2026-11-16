@@ -330,7 +330,7 @@ select set_config(
 );
 set local role authenticated;
 
-select entrar_a_organizacion('c1111111-1111-1111-1111-111111111111');
+select entrar_a_organizacion('c1111111-1111-1111-1111-111111111111', 'prueba de soporte');
 
 select is(
   (select public.tiene_feature_publica('feature-uno')),
@@ -338,7 +338,7 @@ select is(
   'superadmin con X activa: true'
 );
 
-select entrar_a_organizacion('c3333333-3333-3333-3333-333333333333');
+select entrar_a_organizacion('c3333333-3333-3333-3333-333333333333', 'prueba de soporte');
 
 select is(
   (select public.tiene_feature_publica('feature-uno')),

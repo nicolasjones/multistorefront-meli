@@ -4,7 +4,7 @@ import { supabaseClient } from './supabase'
 // reutilizan dominio.motivos_movimiento y su editor (pages/stock/motivos.tsx), sin RPC propia.
 export const LARGO_MAXIMO_ITEM_LISTA = 80
 
-export type EstadoConsulta = { id: string; nombre: string; activo: boolean; orden: number }
+export type EstadoConsulta = { id: string; nombre: string; activo: boolean; orden: number; es_sistema?: boolean }
 
 export function validarNombreItem(texto: string): string | null {
   const recortado = texto.trim()
@@ -19,6 +19,9 @@ export function mensajeDeErrorLista(error: unknown, porDefecto: string): string 
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
+  const mensaje = (error as { message?: string } | null)?.message ?? ''
+  // Guarda de la base (estados de sistema): todos sus mensajes dicen «de sistema» y ya están en castellano llano.
+  if (code === '23514' && mensaje.includes('de sistema')) return mensaje
   if (code === '23514') return 'El nombre no puede estar vacío.'
   if (code === '23505') return 'Ya existe un estado con ese nombre.'
   if (code === 'P0002') return 'El estado ya no existe. Recargá la lista.'
@@ -29,7 +32,7 @@ export async function listarEstadosConsulta(): Promise<EstadoConsulta[]> {
   const { data, error } = await supabaseClient
     .schema('dominio')
     .from('estados_consulta')
-    .select('id, nombre, activo, orden')
+    .select('id, nombre, activo, orden, es_sistema')
     .order('orden', { ascending: true })
     .returns<EstadoConsulta[]>()
   if (error) throw error

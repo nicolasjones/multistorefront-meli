@@ -63,6 +63,18 @@ describe('validarIngreso', () => {
   })
 })
 
+describe('costo opcional (F-PRV-07)', () => {
+  it('acepta el costo vacío y lo manda como null (no cero)', () => {
+    const lineas = [{ producto_id: PRODUCTO, cantidad: '2', costo_unitario_usd: '  ' }]
+    expect(validarIngreso({ ...valido(), lineas }, HOY).porLinea).toBeUndefined()
+    expect(lineasParaRpc(lineas)).toEqual([{ producto_id: PRODUCTO, cantidad: 2, costo_unitario_usd: null }])
+  })
+
+  it('un costo 0 explícito sigue siendo 0', () => {
+    expect(lineasParaRpc([{ producto_id: PRODUCTO, cantidad: '1', costo_unitario_usd: '0' }])[0].costo_unitario_usd).toBe(0)
+  })
+})
+
 describe('lineasParaRpc', () => {
   it('convierte cantidad y costo a números', () => {
     expect(lineasParaRpc([{ producto_id: PRODUCTO, cantidad: ' 3 ', costo_unitario_usd: '12.40' }])).toEqual([

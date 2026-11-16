@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
 }))
+vi.mock('../../hooks/useBanderaMargenCostosFijos', () => ({ useBanderaMargenCostosFijos: () => ({ activa: false, cargando: false }) }))
 vi.mock('../../hooks/useReportesAsignados', () => ({ useReportesAsignados: mocks.useReportesAsignados }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
 vi.mock('../acceso-restringido/AccesoRestringido', () => ({
@@ -59,7 +60,7 @@ describe('RentabilidadHistoria', () => {
     montar()
     expect(screen.getByRole('heading', { level: 1, name: 'Rentabilidad' })).toBeInTheDocument()
     const pestanas = screen.getByRole('tablist', { name: 'Secciones de Rentabilidad' })
-    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo', 'Historia'])
+    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Resumen', 'Por producto', 'Comparativo', 'Historia', 'Ventas reales', 'Costos adicionales'])
     expect(within(pestanas).getByRole('tab', { name: 'Historia' })).toHaveAttribute('href', '/rentabilidad/historia')
     expect(screen.getByTestId('tablero')).toHaveTextContent('Tablero rep-historia')
     expect(screen.queryByText(/Mercado Libre/)).not.toBeInTheDocument()

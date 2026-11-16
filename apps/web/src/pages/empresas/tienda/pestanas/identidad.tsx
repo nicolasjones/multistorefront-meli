@@ -6,17 +6,18 @@ import {
   subirImagen, urlPublica, type ClaveImagen, type IdentidadDeEmpresa, type IdentidadTienda,
 } from '../../../../lib/tiendaIdentidad'
 import { tokens } from '../../../../tema/tokens'
+import { crearTemaTienda } from '../../../../tema/temaTienda'
 import { EstadoCargaPagina, EstadoError } from '../../../../components/estados/EstadosPagina'
 import { ImagenTienda, useUrlLocal, type EstadoImagen } from '../componentes/imagen-tienda/ImagenTienda'
 import {
-  AvisoContraste, CampoColor, MuestraTipografia, SelectorTipografia, useFuentes,
+  AvisoContraste, CampoColor, InterruptorMayusculas, MuestraTipografia, SelectorEstiloHeroe, SelectorTipografia, useFuentes,
 } from '../componentes/identidad/CamposDeIdentidad'
 import type { PropsPestanaTienda } from '../pestanas'
 
-// F-TDA-02 (US2, FR-020…FR-030): pestaña «Identidad visual». Todo cambio vive en el formulario hasta
-// «Guardar» (sin borrador: no se escribe nada al elegir ni al previsualizar); «Descartar» vuelve al
-// último valor guardado. «Guardar» sube los archivos nuevos, llama a la RPC y recién entonces la tienda
-// pública cambia.
+// F-TDA-02 (US2, FR-020…FR-030) y F-TDA-06 (FR-051): pestaña «Identidad visual». Todo cambio vive en el
+// formulario hasta «Guardar» (no se escribe nada al elegir ni al previsualizar); «Descartar» vuelve al último
+// valor guardado (borrador o publicado). «Guardar» sube los archivos nuevos y los deja en el borrador: la tienda
+// pública cambia recién al publicar desde «Dominio y publicación».
 
 type Imagenes = Record<ClaveImagen, EstadoImagen>
 
@@ -33,21 +34,25 @@ const imagenesDe = (identidad: IdentidadTienda): Imagenes => ({
   bannerMovil: { ruta: identidad.bannerMovilRuta, archivo: null },
 })
 
-type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'tipografiaTitulos' | 'tipografiaTexto'>
+type Campos = Pick<IdentidadTienda, 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra' | 'tipografiaTitulos' | 'tipografiaTexto' | 'estiloHeroe' | 'titulosMayusculas'>
 const camposDe = (identidad: IdentidadTienda): Campos => ({
   colorPrimario: identidad.colorPrimario,
   colorPrimarioOscuro: identidad.colorPrimarioOscuro,
   colorAcento: identidad.colorAcento,
   colorFondo: identidad.colorFondo,
+  colorBarra: identidad.colorBarra,
   tipografiaTitulos: identidad.tipografiaTitulos,
   tipografiaTexto: identidad.tipografiaTexto,
+  estiloHeroe: identidad.estiloHeroe,
+  titulosMayusculas: identidad.titulosMayusculas,
 })
 
-const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo'; etiqueta: string }> = [
+const COLORES: ReadonlyArray<{ clave: 'colorPrimario' | 'colorPrimarioOscuro' | 'colorAcento' | 'colorFondo' | 'colorBarra'; etiqueta: string }> = [
   { clave: 'colorPrimario', etiqueta: 'Primario' },
   { clave: 'colorPrimarioOscuro', etiqueta: 'Primario oscuro' },
   { clave: 'colorAcento', etiqueta: 'Acento' },
   { clave: 'colorFondo', etiqueta: 'Fondo' },
+  { clave: 'colorBarra', etiqueta: 'Barra superior y pie' },
 ]
 
 function Tarjeta({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -69,11 +74,23 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
   const fondo = color(campos.colorFondo, IDENTIDAD_BASE.colorFondo)
   const oscuro = color(campos.colorPrimarioOscuro, IDENTIDAD_BASE.colorPrimarioOscuro)
   const acento = color(campos.colorAcento, IDENTIDAD_BASE.colorAcento)
+  const barra = color(campos.colorBarra, IDENTIDAD_BASE.colorBarra)
+  // MSF-848: la miniatura sigue el estilo del encabezado y las mayúsculas. Los colores de la variante clara salen del MISMO tema que
+  // usa la tienda (`crearTemaTienda`): una sola derivación, así la miniatura no se desvía de lo que se publica.
+  const claro = campos.estiloHeroe === 'claro'
+  const mayusculas = campos.titulosMayusculas ? 'uppercase' : 'none'
+  const { heroe, botonDestacado } = crearTemaTienda({
+    colorPrimario: primario, colorPrimarioOscuro: oscuro, colorAcento: acento, colorFondo: fondo, colorBarra: barra, estiloHeroe: campos.estiloHeroe,
+  }).tienda!
+  const fondoBanner = claro ? heroe.fondo : oscuro
+  const textoBanner = claro ? heroe.texto : '#FFFFFF' // estilos-sueltos: ok
+  const fondoBoton = claro ? botonDestacado.fondo : primario
+  const textoBoton = claro ? botonDestacado.texto : '#FFFFFF' // estilos-sueltos: ok
   const titulos = `"${campos.tipografiaTitulos}", system-ui, sans-serif`
   const texto = `"${campos.tipografiaTexto}", system-ui, sans-serif`
   return (
     <Card data-testid="vista-previa" variant="outlined" sx={{ overflow: 'hidden', bgcolor: fondo, fontFamily: texto }}>
-      <Box sx={{ bgcolor: oscuro, height: (tema) => tema.spacing(1.5) }} />
+      <Box data-testid="vista-previa-barra" sx={{ bgcolor: barra, height: (tema) => tema.spacing(1.5) }} />
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.25, py: 0.75, bgcolor: fondo }}>
         {logoUrl ? <Box component="img" src={logoUrl} alt="" sx={{ height: (tema) => tema.spacing(3), maxWidth: 120, objectFit: 'contain' }} /> : <Box sx={{ width: 60, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'divider' }} />}
         <Box sx={{ width: 100, height: (tema) => tema.spacing(1.5), borderRadius: (tema) => tema.shape.borderRadius, bgcolor: 'action.hover' }} />
@@ -81,18 +98,18 @@ function VistaPrevia({ campos, logoUrl, bannerUrl }: { campos: Campos; logoUrl: 
       <Box
         data-testid="vista-previa-banner"
         sx={{
-          color: 'common.white',
+          color: textoBanner,
           px: 1.5,
           py: 2,
           minHeight: (tema) => tema.spacing(8.75),
-          bgcolor: oscuro,
+          bgcolor: fondoBanner,
           backgroundImage: bannerUrl ? `url("${bannerUrl}")` : undefined,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       >
-        <Typography component="div" sx={{ fontFamily: titulos, fontSize: tokens.tipografia.escala.b.tamano, fontWeight: 700, lineHeight: 1.1, maxWidth: 170 }}>Todo para tu consola</Typography>
-        <Box component="span" sx={{ display: 'inline-block', mt: 1, bgcolor: primario, color: 'common.white', fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, px: 1, py: 0.5, borderRadius: (tema) => tema.shape.borderRadius }}>Ver catálogo</Box>
+        <Typography component="div" sx={{ fontFamily: titulos, fontSize: tokens.tipografia.escala.b.tamano, fontWeight: 700, lineHeight: 1.1, maxWidth: 170, textTransform: mayusculas }}>Todo para tu consola</Typography>
+        <Box component="span" data-testid="vista-previa-boton" sx={{ display: 'inline-block', mt: 1, bgcolor: fondoBoton, color: textoBoton, textTransform: mayusculas, fontSize: tokens.tipografia.escala.xs.tamano, fontWeight: 700, px: 1, py: 0.5, borderRadius: (tema) => tema.shape.borderRadius }}>Ver catálogo</Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.75, p: 1.25 }}>
         {[1, 2, 3].map((n) => (
@@ -121,7 +138,8 @@ function FormularioIdentidad({
 
   const hayCambios = useMemo(() => {
     const igualesCampos = (Object.keys(campos) as Array<keyof Campos>).every((clave) => {
-      const nuevo = clave.startsWith('color') ? normalizarColor(campos[clave]) : campos[clave]
+      const valor = campos[clave]
+      const nuevo = typeof valor === 'string' && clave.startsWith('color') ? normalizarColor(valor) : valor
       return nuevo === guardado[clave]
     })
     const igualesImagenes = CLAVES_IMAGEN.every((clave) => imagenes[clave].archivo === null && imagenes[clave].ruta === guardado[RUTA_DE[clave]])
@@ -191,8 +209,11 @@ function FormularioIdentidad({
         colorPrimarioOscuro: normalizarColor(campos.colorPrimarioOscuro),
         colorAcento: normalizarColor(campos.colorAcento),
         colorFondo: normalizarColor(campos.colorFondo),
+        colorBarra: normalizarColor(campos.colorBarra),
         tipografiaTitulos: campos.tipografiaTitulos,
         tipografiaTexto: campos.tipografiaTexto,
+        estiloHeroe: campos.estiloHeroe,
+        titulosMayusculas: campos.titulosMayusculas,
         logoRuta: rutas.logo,
         bannerRuta: rutas.banner,
         bannerMovilRuta: rutas.bannerMovil,
@@ -203,7 +224,7 @@ function FormularioIdentidad({
       setCampos(camposDe(resultado))
       setImagenes(imagenesDe(resultado))
       setExito(true)
-      void borrarImagenes(sinUso)
+      void borrarImagenes(sinUso, empresaId)
     } catch (error) {
       if (error instanceof ErrorSubida) {
         await borrarImagenes(subidas)
@@ -240,7 +261,10 @@ function FormularioIdentidad({
             ))}
           </Box>
           <Box sx={{ mt: 1 }}>
-            <AvisoContraste colorPrimario={campos.colorPrimario} />
+            <Stack spacing={1}>
+              <AvisoContraste colorPrimario={campos.colorPrimario} />
+              <AvisoContraste colorPrimario={campos.colorBarra} sobre="la barra superior y pie" />
+            </Stack>
           </Box>
         </Tarjeta>
         <Tarjeta titulo="Tipografía">
@@ -249,6 +273,12 @@ function FormularioIdentidad({
             <SelectorTipografia etiqueta="Texto" valor={campos.tipografiaTexto} onChange={(valor) => cambiarCampo('tipografiaTexto', valor)} />
           </Stack>
           <MuestraTipografia titulos={campos.tipografiaTitulos} texto={campos.tipografiaTexto} />
+        </Tarjeta>
+        <Tarjeta titulo="Portada y menú">
+          <Stack spacing={2}>
+            <SelectorEstiloHeroe valor={campos.estiloHeroe} onChange={(valor) => cambiarCampo('estiloHeroe', valor)} />
+            <InterruptorMayusculas valor={campos.titulosMayusculas} onChange={(valor) => cambiarCampo('titulosMayusculas', valor)} />
+          </Stack>
         </Tarjeta>
         <Tarjeta titulo="Banner e imágenes principales">
           <Stack spacing={2.5}>
@@ -266,7 +296,7 @@ function FormularioIdentidad({
           <Stack spacing={1.5}>
             {hayCambios ? <Alert severity="warning" role="status">Hay cambios sin guardar.</Alert> : null}
             {errorGuardar ? <Alert severity="error" role="alert">{errorGuardar}</Alert> : null}
-            {exito && !hayCambios ? <Alert severity="success" role="status">Cambios guardados: la tienda ya los muestra.</Alert> : null}
+            {exito && !hayCambios ? <Alert severity="success" role="status">Cambios guardados en el borrador. Publicalos desde Dominio y publicación.</Alert> : null}
             <Stack direction="row" spacing={1} justifyContent="flex-end">
               <Button color="inherit" size="small" onClick={descartar} disabled={!hayCambios || guardando}>Descartar</Button>
               <Button variant="contained" size="small" onClick={() => void guardar()} disabled={!hayCambios || guardando}>

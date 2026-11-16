@@ -1,3 +1,10 @@
+---
+owner: tecnico
+sources:
+  - specs/20261028-100000-correo-masivo-a-clientes
+  - infra/kestra/flows/correo-masivo.yml
+---
+
 # Correo masivo a clientes (MSF-155)
 
 Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con cada historia de la épica; hoy cubre
@@ -6,7 +13,7 @@ Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con ca
 
 ## Aceptación del cliente
 
-- Columna `public.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
+- Columna `dominio.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
   **sin aceptación** hasta que se los marque (no hay consentimiento previo).
 - Se cambia con el interruptor **«Incluir en el correo masivo»**:
   - en el formulario de alta y edición (`FormularioCliente`); en el **alta nace encendido**, como el prototipo;
@@ -63,7 +70,7 @@ descarta la selección que venía del listado y no muestra filas de la empresa a
 ## Reversión
 
 Migración posterior (nunca en el mismo PR): borrar las dos funciones públicas y `private.clientes_para_correo_masivo`,
-y luego `alter table public.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
+y luego `alter table dominio.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
 
 ---
 
@@ -219,3 +226,19 @@ Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120
 - Token de baja de unos 244 bits aleatorios; la base guarda solo su SHA-256 y `token_hashes` queda fuera del `grant select` por columna.
 - La service-role vive solo en la Edge Function (servidor); el mensaje se escapa en el correo y el asunto no admite saltos de línea.
 - Riesgos bajos aceptados: la Edge Function anónima no tiene límite de frecuencia propio (conviene ponerlo en el borde) y el token viaja en la ruta `/baja-correo/:token`, mitigado porque la baja exige confirmar con un POST.
+
+## Listas con carga infinita
+
+«Nueva campaña» (destinatarios), «Historial» y el detalle de la campaña (destinatarios) cargan por tandas con
+`useListadoAcumulado` + `CargaInfinita` en vez de páginas numeradas. El resumen de elegibles y el envío usan los filtros
+y no lo que está cargado en pantalla, así que la selección masiva no depende de la tanda visible.
+
+## Newsletter de la tienda sobre este motor (MSF-468)
+
+El newsletter de cada tienda **reutiliza este motor** (`docs/newsletter.md`): sus envíos son campañas `tipo = 'newsletter'` cuyos destinatarios son
+**suscriptores** (`campana_correo_destinatarios.suscriptor_id`, con `cliente_id` nulable y `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)`),
+con la foto del contenido en `campanas_correo.bloques`. El cupo diario por organización se **comparte** (en orden de creación de la campaña). El reclamo
+(`private.reclamar_lote_correo_masivo`) devuelve además `tipo`, `tienda`, `remitente`, `dominio_tienda` y `cuerpo_html` (columnas al final) y re-verifica a cada
+suscriptor (`confirmado`, tienda activa e interruptor encendido); los historiales de esta guía solo muestran las campañas `tipo = 'clientes'`.
+`dar_de_baja_correo_masivo` también resuelve suscriptores. **Los correos a clientes salen igual que antes** (pgTAP `correo_masivo_lote`, `correo_masivo_campanas`,
+`correo_masivo_destinatarios` y `correo_masivo_historial` sin cambios y verdes).

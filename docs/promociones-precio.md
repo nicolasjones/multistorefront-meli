@@ -1,0 +1,106 @@
+---
+owner: tecnico
+sources:
+  - specs/20261104-103000-precios-masivos-y-promociones
+  - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
+---
+
+# Promociones de precio por empresa (F-PRE-11, MSF-439)
+
+Guía de la historia F-PRE-11 de la épica MSF-363. Requisitos: `specs/20261104-103000-precios-masivos-y-promociones/spec.md` (FR-011 a FR-018, SC-004 a SC-006).
+
+## Qué hace
+
+Una promoción fija un **precio promocional** (sin IVA, en pesos) para un producto en **una empresa**, válido entre `desde` (incluido) y `hasta` (excluido). Durante ese rango la tienda de la empresa muestra el precio promocional con el anterior tachado; fuera de él, el precio de siempre. Pantalla: **Productos → Promociones** (`/productos/promociones`, sección `productos`; edición requiere `edicion`).
+
+## Modelo (esquema `dominio`, Principio VII)
+
+Tabla `dominio.promociones_precio` (migración `20270221100001`): FK compuestas a empresa y producto de la misma organización, `precio_promocional > 0`, `hasta > desde`, `anulada_at`, índice `(empresa_id, producto_id, desde, hasta)`, RLS, sin política DELETE, sin privilegios para `anon`. **La lectura es por tienda** (migración `20270223200000`, aprobada retroactivamente por Nicolás el 2026-11-12): la política exige la organización y `private.nivel_productos_en_empresa(empresa_id)` en `lectura` o `edicion`; una tienda desactivada o una persona sin tiendas asignadas no leen promociones (el acceso por tienda exige `private.empresas_accesibles()`, solo tiendas activas). Un disparador impide que dos promociones **no anuladas** del mismo producto y empresa se solapen (`23P01`).
+
+Los estados `programada`, `vigente` y `vencida` **no se guardan**: se derivan por consulta de `desde`/`hasta` y la hora actual (Decisión 1: sin Kestra ni worker, sin ventana de precio vencido por una tarea caída). Solo `anulada` es un dato. La vista `public.promociones_precio_estado` (`security_invoker`) los expone.
+
+## RPC (`public`, migraciones `20270221100002`, `20270223200000` y `20270225100000`)
+
+- `guardar_promocion_precio(...)`: crea o edita (bloqueo optimista con `updated_at`; idempotente; no edita vencidas ni anuladas). Devuelve la fila; si el precio promocional **no es menor al precio normal** de la tienda suma `aviso_codigo = 'promocion_no_menor_al_normal'` y `aviso` (ver «Promoción no menor al precio normal»).
+- `anular_promocion_precio(id, actualizado)`: anula; repetirla no falla.
+- Ambas son `security definer` (con `search_path` vacío) y validan sesión, sección `productos` = edición, que empresa y producto sean de la organización y que la persona tenga `productos` en edición **en la tienda de la promoción** (`private.nivel_productos_en_empresa`; quien edita productos en la tienda A no programa ni anula promociones de la B). El permiso por tienda se comprueba antes de bloquear la promoción: sin permiso siempre responde `42501`. Errores: `42501`, `P0002`, `22023`, `23P01`, `40001`, `22003`. Eventos de actividad `promocion_precio.programada|actualizada|anulada`.
+- Permisos: `authenticated` ejecuta; `anon` y `public` revocados.
+- `public.capacidades_precios()` (`20270228300300`) informa a la pantalla las banderas y el nivel de `productos` **por tienda** (`{ empresa_id: edicion|lectura|ninguno }`): «Nueva promoción», «Editar» y «Anular» se habilitan según la tienda de cada promoción, no con el nivel global (antes quien solo leía una tienda veía los botones y el servidor respondía `42501`). La autoridad sigue siendo la RPC.
+
+## Bandera de apagado
+
+Las promociones (y «Actualizar precios», ver [`precios-masivos.md`](./precios-masivos.md)) tienen una bandera **por entorno, APAGADA por defecto** (migración `20270228300000`, tabla `public.banderas_plataforma`, mismo patrón que `public.tienda_dns_plataforma`: la cambia el equipo técnico por SQL; `authenticated` solo lee). Claves: `promociones_precio` y `precios_masivos`. Una clave inexistente cuenta como apagada.
+
+```sql
+-- encender
+update public.banderas_plataforma set activa = true  where clave = 'promociones_precio';
+update public.banderas_plataforma set activa = true  where clave = 'precios_masivos';
+-- apagar (reversión inmediata, sin migrar ni borrar datos)
+update public.banderas_plataforma set activa = false where clave = 'promociones_precio';
+update public.banderas_plataforma set activa = false where clave = 'precios_masivos';
+```
+
+Es un cambio de datos de la base: rige al instante, sin desplegar la aplicación ni reiniciar nada. Cada `update` queda con `updated_at`. **Impacto de despliegue:** las migraciones crean las banderas apagadas, así que al llegar a cada entorno (dev, stg, prd) la tienda deja de mostrar el precio tachado y «Actualizar precios» queda deshabilitado hasta que alguien con acceso a la base ejecute el `update`; una migración no las enciende (ver [`deployment.md`](./deployment.md), «Banderas de plataforma»).
+
+Con `promociones_precio` **apagada** (migración `20270228300100`):
+
+- `private.promocion_vigente` devuelve null: las cinco funciones públicas de la tienda (catálogo, ficha, destacados, sugerencias y búsqueda) calculan el precio con `private.precio_vigente_empresa` (y `catalogo_pagina_por_dominio`, desde `20270228300400`, directo con `private.promocion_vigente`, la misma regla), así que muestran el **precio normal** y `precio_anterior` null, idéntico a una tienda sin promociones (el orden y el filtro por precio también usan el normal).
+- `guardar_promocion_precio` responde `55000` («Las promociones de precio están desactivadas en este entorno») después del permiso global y antes de tocar datos. `anular_promocion_precio` sigue permitida (apagar no impide limpiar).
+- La pantalla **Promociones** sigue listando, en modo **solo-anular**: sin «Nueva promoción» ni «Editar», con «Anular» habilitado donde el permiso por tienda lo permite, y un aviso con el motivo (si no se pueden leer las banderas, falla cerrado: sin ninguna acción). Las promociones guardadas no se tocan: al encender la bandera vuelven a regir las que estén en su rango de fechas.
+- La vista `promociones_precio_estado` sigue mostrando el estado por fecha, pero solo la lee esa pantalla (que queda oculta).
+
+## Orden de encendido y gate (MSF-816)
+
+Encender `promociones_precio` enciende **a la vez** la tienda y el cobro en el local. Orden: **dev → stg → prd**, cada uno por SQL por el equipo técnico y con su verificación. Estado al 2026-11-14: **dev encendida desde 2026-11-13**; **stg y prd apagadas**. **No encender `promociones_precio` en producción antes de que la épica MSF-816 esté en dev y verificada** (cobro de una promoción en el mostrador y en el comprobante, nota de crédito, venta con vencimiento a mitad, bandera apagada idéntica). Con borradores abiertos al apagar o encender, ver S6 = MSF-937 en [`ventas-comprobantes.md`](./ventas-comprobantes.md#comportamiento-conocido-y-seguimientos-msf-816-f-4). Detalle del gate en [`deployment.md`](./deployment.md#banderas-de-plataforma-msf-363).
+
+## Cálculo (migración `20270221100003`)
+
+`private.precio_vigente_empresa(producto, empresa, ahora)` parte del neto de la empresa, aplica la promoción vigente, luego la alícuota de IVA según el interruptor «Precios que ve el cliente», y devuelve también el precio anterior. Desvío del plan: el precio normal sale de `private.precio_final_publico` (escala x1 + regla de la empresa), no de `private.precio_neto_empresa` (`20270221100003`), de modo que sin promoción es idéntico a lo que la tienda ya mostraba.
+
+## Promoción no menor al precio normal (S5 = MSF-936, migración `20270433000000`)
+
+Una promoción es útil solo si baja el precio. La regla es **la misma en la tienda y en el local** (gana el más bajo, sin acumular): una promoción cuyo precio **no es estrictamente menor** al precio normal de la tienda se **ignora**.
+
+- **Tienda**: `private.promocion_vigente` (la única lectura de la promoción de la tienda) devuelve null si el precio de la promoción, visto como lo ve el cliente (con la alícuota y el interruptor «Precios que ve el cliente», `private.precio_con_iva_visible`), no es menor que `private.precio_final_publico`. Así lo ignoran por igual `private.precio_vigente_empresa` (ficha, destacados, sugerencias, búsqueda y validación del pedido) y `publico.catalogo_pagina_por_dominio` (que la llama directo, también para el tope y el orden por precio): se muestra el precio normal y `precio_anterior` null; ya no aparece un «precio promocional» más alto que el normal. Con «Precios con IVA» la comparación es la del precio publicado: si el redondeo al peso deja promoción y normal iguales (p. ej. 999,90 sin IVA contra 1.000), la tienda no tiene descuento que mostrar y la ignora, mientras el local (que compara netos) cobraría los 999,90: diferencia menor a $1 por unidad, la misma cota de FR-020. La condición solo se evalúa en filas con promoción vigente, así que el costo por producto sin promoción no cambia. Medido con 5.000 productos y todos con promoción: la lectura costaba ~0,07 ms por producto y con la comparación ~0,6 ms (la versión `language sql` costaba ~1,8 ms, por eso `promocion_vigente` es plpgsql: primero lee la fila por índice y recién ahí compara); `precio_vigente_empresa` pasó de ~0,7 a ~1,6 ms por producto promocionado. La búsqueda con tope u orden por precio recorre todas las coincidencias (statement_timeout de 3 s): con un catálogo de miles de productos y la gran mayoría en promoción a la vez conviene vigilarla (ver notas de la spec).
+- **Carga**: `guardar_promocion_precio` **no rechaza**: guarda y avisa. El resultado suma `aviso_codigo = 'promocion_no_menor_al_normal'` y `aviso` (texto); sin aviso el resultado es la fila de siempre. Se avisa en el alta, en la edición y en sus repeticiones idempotentes. La promoción queda guardada porque el precio normal puede bajar después (lista, escala, regla de la tienda) y entonces empieza a aplicarse sola. Con la bandera apagada sigue el `55000`.
+- **Pantalla Promociones**: tras guardar muestra un aviso de advertencia («…se guardó, pero no se aplicará mientras no lo baje») en lugar del de éxito simple. La columna «Precio normal» de la lista permite ver la diferencia.
+- **Bandera `promociones_precio` apagada**: sin cambios (`promocion_vigente` ya devolvía null).
+- Pruebas: `promociones_precio_no_menor_normal.test.sql` (regla menor/igual/mayor con y sin IVA, catálogo con tope de precio, ficha, paridad con `precio_linea_venta`, bandera apagada, aislamiento por organización, aviso y permisos) y la paridad de F-4 (`ventas_precio_promocional_paridad.test.sql`), que ahora afirma que tienda y local coinciden también con promociones ≥ normal.
+
+## Cobro en el mostrador y los comprobantes (MSF-816 · F-1, migraciones `20270310100000` a `20270310100300`)
+
+Con la bandera `promociones_precio` encendida, `guardar_lineas_comprobante` y `copiar_presupuesto` cobran la promoción vigente **de la tienda del comprobante** si es menor al precio normal del cliente (sin acumular con su descuento ni con la escala; desde S2 = MSF-933, migración `20270507000100`, `copiar_presupuesto` también aplica el descuento del cliente, con la bandera encendida o apagada), y la línea guarda el snapshot (`precio_referencia`, `promocion_id`). La lee `private.promocion_vigente_fila`; `private.promocion_vigente` (la tienda) no cambiaba en F-1 (desde S5 ignora la promoción no menor al normal). Encender la bandera enciende a la vez la tienda y el local. Detalle en [`ventas-comprobantes.md`](./ventas-comprobantes.md). Pantallas (F-2) y guarda de confirmar (F-3): ver `ventas-mostrador.md` y la sección de guarda de `ventas-comprobantes.md`. Pruebas de F-4: `ventas_precio_promocional_paridad.test.sql` y `ventas_precio_promocional_reportes.test.sql`.
+
+## Tienda con sesión de cliente (S1 = MSF-932, migración `20270507000200`)
+
+`publico.precios_cliente_por_dominio` (precio por escala del cliente con cuenta activa: minorista x1, mayorista x1/x5/x10/x50) **aplica las promociones** con la misma regla del local y de la lista de pedido (`private.precio_referencia_pedido`): **gana el más bajo, sin acumular**. Antes no las miraba: un mayorista con cantidad 1-4 veía en la tienda su precio x1 sin promoción y en el local pagaba la promoción. Esto reemplaza la nota de la Decisión 7 sobre S1.
+
+- Por producto lee `private.promocion_vigente` (la lectura de la tienda; con la bandera `promociones_precio` **apagada** devuelve null: la respuesta es idéntica a la de antes). Por escala, la promoción (con la alícuota y el interruptor «Precios que ve el cliente») reemplaza al precio de la escala **solo si es estrictamente menor**; entonces `final` es el precio promocional y la escala suma `precio_anterior` (el precio de la escala). Una promoción mayor o igual, o una escala más barata que la promoción (p. ej. x10 a 800 contra una promoción de 850), queda como antes y sin `precio_anterior`. El descuento de la ficha del cliente no entra (solo aparece en la cotización del presupuesto de la tienda).
+- Web: la ficha muestra el precio de la escala tachado con el promocional (`PrecioTachado`, con textos para lector de pantalla) en las escalas que baja la promoción.
+- Pruebas: `tienda_precios_cliente_promociones.test.sql` (paridad exacta con `private.precio_linea_venta` por cantidad en la tienda sin IVA, con `precio_referencia_pedido`, con IVA a menos de $1, bandera apagada idéntica, otra tienda, vencida/anulada, aislamiento por organización) y Vitest `tiendaPreciosCliente.test.ts` y `ficha-precios-cliente.test.tsx`.
+
+## Contrato público (migración `20270221100004`)
+
+`publico.catalogo_pagina_por_dominio` y `publico.producto_por_dominio` suman la clave `precio_anterior` (null sin promoción vigente) y `precio` sale del cálculo con promoción. Aditivo, misma lista blanca. El orden y el filtro por precio del catálogo usan el precio vigente. En la web, `PrecioTachado` tacha el anterior solo si es mayor que el vigente y lo dice también al lector de pantalla («Precio anterior», «Precio actual»).
+
+## Decisiones
+
+- **Decisión 6 (implementada, épica MSF-816, gate MSF-834)**: el mostrador (POS) y los comprobantes **cobran el precio promocional** de la tienda del comprobante (gana el más bajo, sin acumular con el descuento del cliente ni con la escala; el precio manual manda). Nicolás aprobó abrir el gate el 2026-11-12 y decidió el 2026-11-13 que sí se cobra. Mercado Libre, el carrito y el checkout quedan fuera (el carrito y el checkout no existen) y las reparaciones (Service) no cambian. Implementada en cuatro fases: F-1 servidor y snapshot (#944), F-3 guarda de confirmar (#950), F-2 pantallas (#957) y F-4 pruebas de consistencia (#958). Comportamiento conocido y seguimientos S1…S7 (MSF-932…MSF-938): [`ventas-comprobantes.md`](./ventas-comprobantes.md#comportamiento-conocido-y-seguimientos-msf-816-f-4).
+- **Decisión 15 (aprobada 2026-11-12)**: bandera de apagado, apagada por defecto (ver arriba). Es un cambio de comportamiento respecto de lo desplegado hasta ahora: para que la tienda siga mostrando promociones hay que **encender** `promociones_precio`.
+- **Decisión 7**: se adopta el precio vigente (con `precio_anterior`) en catálogo, ficha, destacados y búsqueda (migraciones `20270221100004` y `20270221100005`); desde S5 (MSF-936) solo cuando la promoción es menor al precio normal. El catálogo, la ficha pública y los destacados no muestran escalas; los precios de cliente por dominio (escalas del cliente con sesión) se alinearon después con el seguimiento **S1 = MSF-932** (hecho, migración `20270507000200`; ver «Tienda con sesión de cliente» arriba; MSF-816 es la épica del POS, spec `specs/20261113-120000-precio-promocional-en-pos-y-comprobantes/spec.md`).
+
+## Límite de filas de PostgREST
+
+`supabase/config.toml` fija `max_rows = 1000`: PostgREST recorta cada respuesta a ese tope sin avisar, así que un `.limit(2000)` no trae más. Por eso la pantalla **Promociones** (a) lee la lista por tandas de 500 con `.range()` (orden `desde`, `id`) hasta que una vuelve corta, y (b) busca el producto del diálogo «Nueva promoción» en el servidor (`useBuscadorCatalogo`: nombre o SKU, «contiene», con espera al escribir y tope de 500 opciones con aviso si el catálogo se cortó), en vez de bajar todos los productos activos. Con ~2.900 productos se llega a cualquiera escribiendo parte del nombre o del SKU.
+
+## Verificación
+
+pgTAP `supabase/tests/database/promociones_precio.test.sql`; Vitest `promociones.test.ts`, `promociones.test.tsx`, `PrecioTachado.test.tsx`; E2E `apps/web/e2e/tienda-promocion.e2e.ts` (ver [`e2e-app.md`](./e2e-app.md)).
+
+## Reversión
+
+Para apagar sin migrar: la bandera (ver arriba). Migraciones aditivas (`20270228300000`…`20270228300300` también: se revierten con el `drop` de su encabezado). Para volver atrás: migración posterior que restaure las dos funciones públicas de la tienda (`20261023150200`, `20261023150300`), elimine las RPC y la vista, y (solo si se decide perder los datos) la tabla; o `git revert -m 1` del merge de la spec. La clave `precio_anterior` extra no rompe a los clientes.
+
+## Convivencia con las listas de precios (F-PRE-14 y F-CLI-21)
+
+La promoción se compara con el precio normal **que ya incluye la lista del cliente** y gana solo si es **estrictamente menor** (no se acumulan); cuando gana, la línea conserva como `precio_referencia` el precio de la lista y el comprobante marca «Lista: … (rige la promoción)». El `40001` de «Los precios cambiaron» también cubre un cambio de la lista entre guardar y confirmar. Detalle en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4) y [Listas de precios](listas-de-precios.md).

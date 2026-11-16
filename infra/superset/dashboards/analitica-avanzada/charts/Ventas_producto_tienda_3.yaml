@@ -1,0 +1,11 @@
+slice_name: 'Productos por tienda y categoría'
+description: 'Unidades y facturado de cada producto en cada tienda, de mayor a menor facturado (F-REP-07).'
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "dashboards": [], "viz_type": "table", "query_mode": "aggregate", "groupby": ["producto_nombre", "sku", "categoria", "empresa_nombre"], "metrics": ["unidades_total", "facturado_total"], "percent_metrics": [], "timeseries_limit_metric": "facturado_total", "order_desc": true, "row_limit": 10000, "time_range": "No filter", "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: 25fb4c62-7ff9-5f83-baf6-b0d6ef4acd01
+version: 1.0.0
+dataset_uuid: 312a8321-4afc-5edc-96bc-a7becee93996

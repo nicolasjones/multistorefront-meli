@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Link as RouterLink } from 'react-router'
+import { Link as RouterLink, useSearchParams } from 'react-router'
 import { MarcoAcceso } from '../components/pagina/MarcoAcceso'
 import { tokens } from '../tema/tokens'
 
@@ -23,14 +23,16 @@ export function LoginPage() {
     email: string
     password: string
     remember: boolean
+    to?: string | null
   }>()
+  const [params] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(false)
 
   const enviar = (event: FormEvent) => {
     event.preventDefault()
-    ingresar({ email, password, remember }).catch(() => {})
+    ingresar({ email, password, remember, to: params.get('to') }).catch(() => {})
   }
 
   return (

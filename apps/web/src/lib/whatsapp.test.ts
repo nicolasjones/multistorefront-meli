@@ -1,16 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { armarMensaje, normalizarNumero, urlWhatsapp } from './whatsapp'
+import { armarMensaje, avisoFormatoWhatsapp, normalizarNumero, urlWhatsapp } from './whatsapp'
 
 // F-TDA-14 (FR-022, FR-023): número, mensaje y URL del enlace de WhatsApp desde la ficha.
 describe('normalizarNumero', () => {
   it.each([
     ['+54 9 11 5555-0001', '5491155550001'],
-    ['(011) 5555-0001', '01155550001'],
     ['5491155550001', '5491155550001'],
     ['  549 115 555 0001  ', '5491155550001'],
-  ])('deja solo los dígitos de %s', (entrada, esperado) => {
+  ])('%s ya internacional queda en dígitos', (entrada, esperado) => {
     expect(normalizarNumero(entrada)).toBe(esperado)
   })
+
+  // MSF-696: wa.me exige el código de país; un número local debe llevarse a 549 + área + número.
+  it.each([
+    ['11 5555-0001', '5491155550001'],
+    ['011 5555-0001', '5491155550001'],
+    ['(011) 15-5555-0001', '5491155550001'],
+    ['011 15 5555-0001', '5491155550001'],
+    ['0351 15 555-0001', '5493515550001'],
+    ['351 555-0001', '5493515550001'],
+    ['+54 11 5555-0001', '5491155550001'],
+    ['54 11 5555-0001', '5491155550001'],
+    ['0054 9 11 5555-0001', '5491155550001'],
+    ['+34 600 123 456', '34600123456'],
+    ['0034 600 123 456', '34600123456'],
+  ])('lleva %s a formato internacional', (entrada, esperado) => {
+    expect(normalizarNumero(entrada)).toBe(esperado)
+    expect(normalizarNumero(esperado)).toBe(esperado === '34600123456' ? null : esperado)
+  })
+
+  it.each([['5555-0001'], ['15 5555-0001'], ['600 123 456 78'], ['+54 1 5555'], ['+1234567890123456']])(
+    '%s es ambiguo o local sin área: sin número',
+    (entrada) => {
+      expect(normalizarNumero(entrada)).toBeNull()
+    },
+  )
 
   it.each([['1234567'], [''], ['   '], ['sin-numero'], [null], [undefined]])(
     '%s no es un número válido',
@@ -62,6 +86,10 @@ describe('urlWhatsapp', () => {
     expect(url).toBe('https://wa.me/5491155550001?text=Hola%20Mundo%20JC%2C%20quiero%20consultar%20por%20Joystick%20Pro%20(%24%2018.455).%20%C2%BFEst%C3%A1%20disponible%3F')
   })
 
+  it('un número local lleva el código de país', () => {
+    expect(urlWhatsapp('11 5555-0001', 'hola')).toBe('https://wa.me/5491155550001?text=hola')
+  })
+
   it('sin número válido no hay URL', () => {
     expect(urlWhatsapp('1234567', 'Hola')).toBeNull()
     expect(urlWhatsapp(null, 'Hola')).toBeNull()
@@ -78,5 +106,19 @@ describe('urlWhatsapp', () => {
     // `no-script-url` del gate de calidad, aunque acá solo sea una entrada de prueba.
     const esquemaEjecutable = ['java', 'script:alert(1)'].join('')
     expect(urlWhatsapp(esquemaEjecutable, 'Hola')).toBeNull()
+  })
+})
+
+describe('avisoFormatoWhatsapp', () => {
+  it('no avisa con vacío, correo o número normalizable', () => {
+    expect(avisoFormatoWhatsapp('')).toBeNull()
+    expect(avisoFormatoWhatsapp(null)).toBeNull()
+    expect(avisoFormatoWhatsapp('a@b.com')).toBeNull()
+    expect(avisoFormatoWhatsapp('+54 9 11 1234-5678')).toBeNull()
+    expect(avisoFormatoWhatsapp('11 1234 5678')).toBeNull()
+  })
+  it('avisa con un número que no se puede normalizar', () => {
+    expect(avisoFormatoWhatsapp('1234')).toMatch(/No reconocemos/)
+    expect(avisoFormatoWhatsapp('12345678')).toMatch(/No reconocemos/)
   })
 })

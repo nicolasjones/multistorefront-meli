@@ -4,7 +4,7 @@ import { violacionesAxe } from '../../../test/axe'
 import { contarFiltrosActivos, FILTROS_INICIALES, type FiltrosCatalogo } from '../../../lib/tiendaListado'
 import PanelFiltrosMovil from './PanelFiltrosMovil'
 
-// F-TDA-17 (SC-007, FR-041/FR-048): «Filtrar·N», panel «Filtros» con Limpiar, Categoría, «Solo con stock»,
+// F-TDA-17 (SC-007, FR-041/FR-048): «Filtrar» con la píldora N, panel «Filtros» con Limpiar, Categoría, «Solo con stock»,
 // «Precio máximo» (D5) y Ordenar, «Ver N productos», foco devuelto y cantidad anunciada.
 
 const CAT_A = 'ca000000-0000-4000-8000-00000000000a'
@@ -49,10 +49,10 @@ describe('Panel de filtros móvil (FR-041, FR-048)', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'false')
   })
 
-  it('con filtros activos muestra «· N» y lo anuncia a lector de pantalla', () => {
+  it('con filtros activos muestra la cantidad en una píldora y la anuncia a lector de pantalla', () => {
     montar({ soloConStock: true, precioMax: 5000 })
     const boton = screen.getByTestId('filtrar-movil')
-    expect(boton).toHaveTextContent('Filtrar· 2')
+    expect(boton).toHaveTextContent('Filtrar2')
     expect(boton).toHaveTextContent('2 filtros activos')
   })
 
@@ -62,11 +62,15 @@ describe('Panel de filtros móvil (FR-041, FR-048)', () => {
     const panel = await screen.findByRole('dialog', { name: 'Filtros' })
     expect(screen.getByTestId('filtrar-movil')).toHaveAttribute('aria-expanded', 'true')
     expect(within(panel).getByRole('button', { name: 'Limpiar' })).toBeInTheDocument()
-    expect(within(panel).getByRole('heading', { name: 'Categorías' })).toBeInTheDocument()
-    expect(within(panel).getByRole('button', { name: 'Joysticks 3 productos' })).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'Categoría' })).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Joysticks' })).toHaveAttribute('aria-pressed', 'false')
+    expect(within(panel).getByRole('button', { name: 'Todo' })).toHaveAttribute('aria-pressed', 'true')
     expect(within(panel).getByRole('button', { name: 'Solo con stock' })).toHaveAttribute('aria-pressed', 'false')
     expect(within(panel).getByRole('textbox', { name: 'Precio máximo' })).toBeInTheDocument()
-    expect(within(panel).getByRole('combobox', { name: 'Ordenar por' })).toBeInTheDocument()
+    // «Ordenar» son tres píldoras (prototipo); la vigente (Relevancia) está marcada.
+    expect(within(panel).getByRole('button', { name: 'Relevancia' })).toHaveAttribute('aria-pressed', 'true')
+    expect(within(panel).getByRole('button', { name: 'Menor precio' })).toHaveAttribute('aria-pressed', 'false')
+    expect(within(panel).getByRole('button', { name: 'Mayor precio' })).toBeInTheDocument()
     // «Limpiar filtros» de escritorio no se duplica en el panel.
     expect(within(panel).queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument()
   })
@@ -77,12 +81,14 @@ describe('Panel de filtros móvil (FR-041, FR-048)', () => {
     const panel = await screen.findByRole('dialog')
     fireEvent.click(within(panel).getByRole('button', { name: 'Solo con stock' }))
     expect(acciones.alCambiarStock).toHaveBeenCalledWith(true)
-    fireEvent.click(within(panel).getByRole('button', { name: 'Joysticks 3 productos' }))
+    fireEvent.click(within(panel).getByRole('button', { name: 'Joysticks' }))
     expect(acciones.alElegirCategoria).toHaveBeenCalledWith(CAT_A)
     const precio = within(panel).getByRole('textbox', { name: 'Precio máximo' })
     fireEvent.change(precio, { target: { value: '12.000' } })
     fireEvent.blur(precio)
     expect(acciones.alCambiarPrecioMax).toHaveBeenCalledWith(12000)
+    fireEvent.click(within(panel).getByRole('button', { name: 'Mayor precio' }))
+    expect(acciones.alCambiarOrden).toHaveBeenCalledWith('precio_desc')
     fireEvent.click(within(panel).getByRole('button', { name: 'Limpiar' }))
     expect(acciones.alLimpiar).toHaveBeenCalledTimes(1)
   })

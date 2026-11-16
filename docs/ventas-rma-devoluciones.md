@@ -1,4 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261027-100000-ventas-rma-devoluciones
+  - apps/web/src/lib/formasRma.ts
+  - design/pantallas/VentasDevoluciones.dc.html
+---
+
 # Ventas · Devoluciones (RMA)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-rma-devoluciones.md) · [guía de uso](producto/ventas-rma-devoluciones.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`). Cubre **F-VTA-28 · Alta de RMA por ítem** (MSF-288), **F-VTA-29 · Formas de resolución y seguimiento** (MSF-304) y **F-VTA-30 · RMA con nota de crédito y stock** (MSF-320); el cierre (MSF-573) agrega la revisión de seguridad y el roadmap.
 
@@ -33,7 +43,7 @@ Guía de la épica MSF-178 (spec `specs/20261027-100000-ventas-rma-devoluciones`
 | `public.listar_rma(busqueda, forma, estado, empresa, pagina, tamano)` | `public` | `security invoker`; delega en `private.listar_rma_sesion`, que deriva organización y tiendas del JWT. Orden: creación desc, número desc. Desde F-VTA-29 devuelve también `actualizado_en` (sello del bloqueo optimista). |
 | `public.cambiar_estado_rma(id, estado, actualizado_en)` | `public` | `security definer`. `ventas` en edición en la tienda del RMA; transición lineal; idempotente; bloqueo optimista (`for update` + `actualizado_en`, renovado con `clock_timestamp()`); evento `rma.estado_cambiado`. Errores: `42501` permiso, `P0002` no existe, `22023` estado o transición inválidos, `40001` conflicto. |
 
-Ambas tablas tienen RLS por organización y sección `ventas` (`select` con lectura o edición), **sin escritura directa** y `anon` sin privilegios. Las RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
+Ambas tablas tienen RLS por organización, sección `ventas` (`select` con lectura o edición) y **empresa accesible** (`private.empresas_accesibles()`; `rma_items` la hereda del RMA — MSF-656), **sin escritura directa** y `anon` sin privilegios. Las RPC llevan `revoke … from public, anon` y `grant execute … to authenticated`.
 
 La cantidad ya devuelta se cuenta sobre los ítems de RMA anteriores de la misma línea. Una nota de crédito de «Devolución de productos» emitida aparte (sin pasar por el RMA) no se descuenta acá.
 
@@ -61,3 +71,7 @@ Revisión de `registrar_rma`, `listar_rma`, `cambiar_estado_rma`, `vincular_nota
 F-VTA-30: migraciones aditivas `20270113120000` (`alter table dominio.rma drop column stock_reingresado_en, drop column nota_credito_id`), `20270113120100` (`drop function public.vincular_nota_credito_rma(uuid, text, jsonb, text)`), `20270113120200` (`drop function public.reingresar_stock_rma(uuid, uuid)`) y `20270113120300` (recrea `listar_rma` sin las tres columnas del vínculo; se vuelve a `20270113110100`). Las notas emitidas y los movimientos de stock del libro no se deshacen solos.
 
 Migraciones aditivas `20270113100000`, `20270113100100`, `20270113100200`, `20270113110000` (`drop function public.cambiar_estado_rma(uuid, text, timestamptz)`) y `20270113110100` (recrea `listar_rma` con `actualizado_en`; se vuelve a la definición de `20270113100200`); el camino de reversión está en el encabezado de cada una (`drop function`, `drop table dominio.rma_items`, `drop table dominio.rma`). El PR se revierte entero con `git revert -m 1`.
+
+## Carga infinita
+
+Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/listados.md`): sigue pidiendo «la página N» a su consulta y `useListadoAcumulado` suma cada tanda a las anteriores; `CargaInfinita` al pie trae «Cargar más» (teclado), carga, error con «Reintentar» y «No hay más resultados.». El contador total, los filtros y la exportación no cambian; buscar o filtrar reinicia desde la tanda 1. Devoluciones pide de a 8; cambiar tienda o forma de RMA reinicia, y avanzar el estado, resolver o registrar una devolución recarga desde la primera tanda. La columna Producto resume los ítems («X +2 más») y lleva la miniatura del producto de la **primera línea** (`producto_id` de `listar_rma`, migración `20270205110201`, PR #694); si esa línea es un artículo sin stock, `producto_id` es null y no hay miniatura.

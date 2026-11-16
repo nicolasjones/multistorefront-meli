@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Alert, Autocomplete, Box, Button, Stack, TablePagination, TextField, Typography } from '@mui/material'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Autocomplete, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { supabaseClient } from '../../lib/supabase'
-import { TAMANO_PAGINA_MOVIMIENTOS, useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
+import { useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
 import { useExportarCsv } from '../../hooks/useExportarCsv'
 import { nombreArchivoCsv, type ColumnaCsv } from '../../lib/exportarCsv'
 import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
@@ -13,6 +13,11 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
+import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
+import { renderOpcionProducto } from '../../components/base/OpcionProducto'
+import { CargaInfinita } from '../../components/pagina/CargaInfinita'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 import { tokens } from '../../tema/tokens'
 
@@ -31,6 +36,7 @@ type ResumenProducto = {
 }
 
 const LIMITE_RESUMEN = 200
+const SIN_FILAS: Movimiento[] = []
 
 const etiquetaProducto = (opcion: OpcionProducto) => (opcion.sku ? `${opcion.nombre} · ${opcion.sku}` : opcion.nombre)
 
@@ -49,16 +55,19 @@ const formatearDiferencia = (diferencia: number) => (diferencia > 0 ? `+${difere
 
 // Una sola declaración de columnas para la tabla y para el CSV (F-STK-08, FR-104): lo que se
 // exporta es lo que se ve, con los mismos encabezados y orden, sin acciones.
-const COLUMNAS: Array<ColumnaAdaptable<Movimiento> & ColumnaCsv<Movimiento>> = [
+const columnasMovimientos = (imagenes: ReadonlyMap<string, string> = new Map()): Array<ColumnaAdaptable<Movimiento> & ColumnaCsv<Movimiento>> => [
   { clave: 'fecha', encabezado: 'Fecha', valor: (fila) => formatearFecha(fila.fecha), render: (fila) => <Typography variant="b">{formatearFecha(fila.fecha)}</Typography> },
   {
     clave: 'producto',
     encabezado: 'Producto',
     valor: (fila) => etiquetaProductoMovimiento(fila),
     render: (fila) => (
-      <Stack spacing={0}>
-        <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto_nombre ?? 'Producto no disponible'}</Typography>
-        <Typography variant="xs">{fila.producto_sku ?? '—'}</Typography>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <MiniaturaProducto alt="" src={imagenes.get(fila.producto_id)} />
+        <Stack spacing={0}>
+          <Typography variant="b" sx={{ fontWeight: tokens.tipografia.pesoEnfasis }}>{fila.producto_nombre ?? 'Producto no disponible'}</Typography>
+          <Typography variant="xs">{fila.producto_sku ?? '—'}</Typography>
+        </Stack>
       </Stack>
     ),
   },
@@ -91,7 +100,9 @@ const COLUMNAS: Array<ColumnaAdaptable<Movimiento> & ColumnaCsv<Movimiento>> = [
   { clave: 'responsable', encabezado: 'Responsable', valor: (fila) => fila.responsable, render: (fila) => <Typography variant="b">{fila.responsable ?? '—'}</Typography> },
 ]
 
-// Historial de movimientos (F-STK-03, FR-010/FR-012): solo lectura, paginado en servidor,
+const COLUMNAS_EXPORTACION = columnasMovimientos()
+
+// Historial de movimientos (F-STK-03, FR-010/FR-012): solo lectura, carga infinita sobre el RPC paginado,
 // con filtro por producto. Visible para lectura y edición (RequiereAccesoSeccion en la ruta);
 // no ofrece ninguna acción de escritura, el historial es inmodificable.
 const LIMITE_OPCIONES_PRODUCTO = 200
@@ -120,7 +131,7 @@ export function MovimientosStock() {
     return (data ?? []) as unknown as Movimiento[]
   }, [productoId])
   const exportacion = useExportarCsv<Movimiento>({
-    columnas: COLUMNAS,
+    columnas: COLUMNAS_EXPORTACION,
     nombreArchivo: nombreArchivoMovimientos,
     tamanoLote: LOTE_EXPORTACION,
     pedirLote: pedirLoteExportacion,
@@ -175,10 +186,13 @@ export function MovimientosStock() {
     void cargarResumen()
   }, [cargarResumen])
 
-  // Página fuera de rango (p. ej. el historial cambió): se vuelve a la primera.
-  useEffect(() => {
-    if (movimientos !== null && movimientos.length === 0 && pagina > 1) setPagina(1)
-  }, [movimientos, pagina])
+  const listado = useListadoAcumulado({ items: movimientos ?? SIN_FILAS, pagina, setPagina, total, cargando, reinicio: productoId })
+  const imagenes = useImagenesProductos(listado.filas.map((fila) => fila.producto_id))
+  // Imágenes de las opciones solo mientras el desplegable está abierto (el catálogo puede ser largo).
+  const [desplegableAbierto, setDesplegableAbierto] = useState(false)
+  const imagenesOpciones = useImagenesProductos(desplegableAbierto ? productos.map((opcion) => opcion.id) : [])
+  const columnas = useMemo(() => columnasMovimientos(imagenes), [imagenes])
+  const falloTanda = hayError && pagina > 1
 
   const opcionActual = productos.find((opcion) => opcion.id === productoId) ?? null
 
@@ -198,6 +212,9 @@ export function MovimientosStock() {
               options={productos}
               value={opcionActual}
               getOptionLabel={etiquetaProducto}
+              onOpen={() => setDesplegableAbierto(true)}
+              onClose={() => setDesplegableAbierto(false)}
+              renderOption={renderOpcionProducto<OpcionProducto>(imagenesOpciones)}
               isOptionEqualToValue={(opcion, valor) => opcion.id === valor.id}
               onChange={(_, nueva) => {
                 setProductoId(nueva?.id ?? '')
@@ -254,32 +271,28 @@ export function MovimientosStock() {
               />
             </Box>
           ) : null}
-          {hayError ? (
+          {hayError && !falloTanda ? (
             <EstadoError descripcion="No pudimos cargar el historial de movimientos." reintentar={() => void recargar()} />
-          ) : movimientos === null || (movimientos.length === 0 && pagina > 1) ? (
+          ) : movimientos === null ? (
             <EstadoCargaPagina />
-          ) : movimientos.length === 0 ? (
+          ) : listado.filas.length === 0 ? (
             <EstadoVacio
               titulo={productoId ? 'Este producto todavía no tiene movimientos.' : 'Todavía no hay movimientos de stock.'}
               descripcion="Cuando registres entradas, salidas o ajustes, los vas a ver acá."
             />
           ) : (
-            <Box aria-busy={cargando} sx={{ opacity: cargando ? 0.5 : 1, transition: 'opacity 150ms' }}>
+            <Box aria-busy={cargando} sx={{ opacity: cargando && pagina === 1 ? 0.5 : 1, transition: 'opacity 150ms' }}>
               <ContenidoAdaptable
-                items={movimientos}
-                columnas={COLUMNAS}
+                items={listado.filas}
+                columnas={columnas}
                 obtenerClave={(fila) => fila.id}
                 etiquetaTabla="Historial de movimientos de stock"
               />
-              <TablePagination
-                component="div"
-                count={total}
-                page={pagina - 1}
-                rowsPerPage={TAMANO_PAGINA_MOVIMIENTOS}
-                rowsPerPageOptions={[TAMANO_PAGINA_MOVIMIENTOS]}
-                onPageChange={(_, nueva) => setPagina(nueva + 1)}
-                labelRowsPerPage="Movimientos por página"
-                labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+              <CargaInfinita
+                hayMas={listado.hayMas}
+                cargando={listado.cargandoMas}
+                hayError={falloTanda}
+                onCargarMas={falloTanda ? () => void recargar() : listado.cargarMas}
               />
             </Box>
           )}

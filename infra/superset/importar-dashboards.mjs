@@ -16,13 +16,14 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { argumentValue, redactError } from '../../scripts/operaciones.mjs';
 import { conexionesDelDirectorio, empaquetarDashboards } from './empaquetar-dashboards.mjs';
+import { datasetsPermitidos } from './datasets-tablero.mjs';
 
 const SLUG = /^[a-z0-9][a-z0-9-]*$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function validarEntorno(entorno) {
-  if (!['staging', 'production'].includes(entorno)) {
-    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno staging|production');
+  if (!['dev', 'staging', 'production'].includes(entorno)) {
+    throw new Error('Uso: node infra/superset/importar-dashboards.mjs --source <paquete.zip> --entorno dev|staging|production');
   }
 }
 
@@ -46,6 +47,13 @@ export function validarReportes(manifiesto) {
     }
     if (reporte.seccion !== undefined && reporte.seccion !== null && String(reporte.seccion).trim() === '') {
       throw new Error(`El reporte ${reporte.nombre} tiene una sección vacía.`);
+    }
+    if (reporte.accion_requerida !== undefined && reporte.accion_requerida !== null && String(reporte.accion_requerida).trim() === '') {
+      throw new Error(`El reporte ${reporte.nombre} tiene una acción requerida vacía.`);
+    }
+    if (reporte.datasets_permitidos_extra !== undefined
+      && (!Array.isArray(reporte.datasets_permitidos_extra) || !reporte.datasets_permitidos_extra.every((n) => /^[a-z0-9_]+$/.test(n)))) {
+      throw new Error(`El reporte ${reporte.nombre} tiene "datasets_permitidos_extra" y debe ser un arreglo de nombres de dataset (a-z, 0-9, _).`);
     }
     if (reporte.filtro_empresa !== undefined && typeof reporte.filtro_empresa !== 'boolean') {
       throw new Error(`El reporte ${reporte.nombre} tiene "filtro_empresa" y debe ser booleano.`);
@@ -80,6 +88,10 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
   });
   if (!csrfResponse.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrfResponse.status}.`);
   const { result: csrfToken } = await csrfResponse.json();
+  // El import (`POST /dashboard/import/`) NO está exento de CSRF: Superset valida el token contra la sesión, así que
+  // hay que reenviar la cookie de sesión que llega con el token. Sin ella, Superset responde 302 al login y, como
+  // `fetch` sigue la redirección, el script creía haber importado cuando no se había creado nada.
+  const cookie = (csrfResponse.headers?.getSetCookie?.() ?? []).map((valor) => valor.split(';')[0]).join('; ');
 
   const formData = new FormData();
   formData.append('formData', new Blob([paquete]), 'dashboard_export.zip');
@@ -88,10 +100,19 @@ export async function importarPaquete({ paquete, fetch, config, passwords, timeo
 
   const importResponse = await fetch(`${baseUrl}/api/v1/dashboard/import/`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${accessToken}`, 'x-csrftoken': csrfToken },
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      'x-csrftoken': csrfToken,
+      referer: `${baseUrl}/`,
+      ...(cookie ? { cookie } : {}),
+    },
     body: formData,
+    redirect: 'manual',
     signal: senal(),
   });
+  if (importResponse.status >= 300 && importResponse.status < 400) {
+    throw new Error(`Superset redirigió el import (HTTP ${importResponse.status}): falta la sesión o el token CSRF; no se importó nada.`);
+  }
   if (!importResponse.ok) throw new Error(`Import de Superset devolvió HTTP ${importResponse.status}.`);
   return importResponse;
 }
@@ -135,9 +156,12 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
       const csrf = await fetch(`${baseUrl}/api/v1/security/csrf_token/`, { headers: autorizacion, signal: senal() });
       if (!csrf.ok) throw new Error(`Obtener el CSRF token de Superset devolvió HTTP ${csrf.status}.`);
       const { result: csrfToken } = await csrf.json();
+      // Igual que en `importarPaquete`: el token CSRF solo vale con la cookie de sesión que llega con él; sin ella
+      // Superset responde 400 («The CSRF token is missing») y el embebido nunca se habilita.
+      const cookie = (csrf.headers?.getSetCookie?.() ?? []).map((valor) => valor.split(';')[0]).join('; ');
       respuesta = await fetch(url, {
         method: 'POST',
-        headers: { ...autorizacion, 'content-type': 'application/json', 'x-csrftoken': csrfToken },
+        headers: { ...autorizacion, 'content-type': 'application/json', 'x-csrftoken': csrfToken, ...(cookie ? { cookie } : {}) },
         body: JSON.stringify({ allowed_domains: dominiosPermitidos }),
         signal: senal(),
       });
@@ -148,6 +172,23 @@ export async function resolverEmbebidos({ reportes, fetch, config, dominiosPermi
     resueltos.push({ ...reporte, dashboard_uuid: result.uuid });
   }
   return resueltos;
+}
+
+// Busca en el catálogo una fila con el mismo nombre. Una migración puede haber dejado la fila del
+// reporte con el slug del tablero en vez del UUID de embebido (Superset genera ese UUID al importar,
+// así que la migración no puede conocerlo): en ese caso hay que actualizar esa fila en vez de
+// insertar otra, porque el catálogo no puede tener dos filas del mismo tablero (la app lo busca por
+// nombre y quedaría mostrando la que no tiene el UUID de embebido).
+export async function buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre }) {
+  // `reportes.nombre` no es único: se ordena por antigüedad (la fila más vieja es la que registró la migración o el primer
+  // import) para que el PATCH sea determinista, y si hay más de una se avisa en lugar de elegir una en silencio.
+  const url = `${baseUrl}/rest/v1/reportes?nombre=eq.${encodeURIComponent(nombre)}&select=id,superset_dashboard_uuid&order=creado_en.asc,id.asc`;
+  const filas = await pedirJson(fetch, url, { headers: cabeceras });
+  if (!Array.isArray(filas)) return null;
+  if (filas.length > 1) {
+    console.warn(`importar-dashboards: hay ${filas.length} reportes llamados «${nombre}»; se actualiza el más antiguo (${filas[0].id}). Revisá y borrá el duplicado.`);
+  }
+  return filas[0] ?? null;
 }
 
 // Registro idempotente: upsert por `superset_dashboard_uuid` (no duplica al reimportar) y upsert de
@@ -163,19 +204,33 @@ export async function registrarReportes({ reportes, fetch, config }) {
   };
   const registrados = [];
   for (const reporte of reportes) {
-    const [fila] = await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
-      method: 'POST',
-      headers: cabeceras,
-      body: JSON.stringify({
-        superset_dashboard_uuid: reporte.dashboard_uuid,
-        nombre: reporte.nombre,
-        seccion: reporte.seccion ?? null,
-        // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente =
-        // `false`, el comportamiento anterior (el token solo filtra la organización).
-        filtro_empresa: reporte.filtro_empresa === true,
-        creado_por: config.creadoPor,
-      }),
-    });
+    const cuerpo = {
+      superset_dashboard_uuid: reporte.dashboard_uuid,
+      nombre: reporte.nombre,
+      seccion: reporte.seccion ?? null,
+      // `accion_requerida`: acción de la matriz (p. ej. `ver_costos`) que el reporte exige además de la sección. Se envía
+      // siempre (null si no se declara) para que quitarla de reportes.json también la quite de la base.
+      accion_requerida: reporte.accion_requerida ?? null,
+      // `datasets_permitidos`: allowlist de datasets del tablero (se deriva de los YAML + `datasets_permitidos_extra`).
+      // El token del tablero queda vedado, por regla rls `1 = 0`, para todo dataset de Superset que no esté acá.
+      // Sin allowlist calculable (paquete .zip sin directorio) no se toca la que ya tiene la base.
+      ...(Array.isArray(reporte.datasets_permitidos) ? { datasets_permitidos: reporte.datasets_permitidos } : {}),
+      // F-VTA-22: el tablero declara si su cláusula `rls` puede acotar por `empresa_id`. Ausente = `false`.
+      filtro_empresa: reporte.filtro_empresa === true,
+    };
+    const existente = await buscarReportePorNombre({ baseUrl, cabeceras, fetch, nombre: reporte.nombre });
+    const [fila] = existente
+      ? await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?id=eq.${existente.id}`, {
+        method: 'PATCH',
+        headers: cabeceras,
+        // La fila ya existe: se conserva su autor original (auditoría), no se pisa `creado_por`.
+        body: JSON.stringify(cuerpo),
+      })
+      : await pedirJson(fetch, `${baseUrl}/rest/v1/reportes?on_conflict=superset_dashboard_uuid`, {
+        method: 'POST',
+        headers: cabeceras,
+        body: JSON.stringify({ ...cuerpo, creado_por: config.creadoPor }),
+      });
     if (!fila?.id) throw new Error(`Supabase no devolvió el reporte ${reporte.nombre}.`);
 
     const roles = (reporte.rolesPorDefecto ?? []).filter((rol) => rol && rol !== 'administrador');
@@ -256,6 +311,12 @@ export async function ejecutar({ args, fetch = globalThis.fetch, env = process.e
 
   if (!manifiesto) return { registrados: [] };
   const reportes = validarReportes(manifiesto);
+  if (directorio) {
+    // Allowlist de datasets de cada tablero, derivada de los YAML versionados (ver datasets-tablero.mjs).
+    for (const reporte of reportes) reporte.datasets_permitidos = await datasetsPermitidos(directorio, reporte);
+  } else {
+    console.warn('Sin --directorio no se puede derivar la allowlist de datasets (datasets_permitidos): se conserva la que ya tiene cada reporte.');
+  }
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPERSET_REPORTE_CREADO_POR) {
     console.warn('reportes.json presente, pero faltan SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY o SUPERSET_REPORTE_CREADO_POR: no se registraron reportes.');
     return { registrados: [] };

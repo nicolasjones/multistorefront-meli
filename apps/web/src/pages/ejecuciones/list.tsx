@@ -5,6 +5,7 @@ import { Alert, Button, Table, TableBody, TableCell, TableContainer, TableHead, 
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
+import { mensajeDeErrorBase } from '../../lib/mensajeErrorBase'
 
 type Ejecucion = {
   id: string
@@ -37,7 +38,7 @@ export function EjecucionList() {
     let cancelled = false
     supabaseClient.from('ejecuciones_worker').select('id, origen, estado, iniciada_en, finalizada_en, motivo_sanitizado, capacidades_ejecucion(clave)').eq('organizacion_id', organizacionId).order('iniciada_en', { ascending: false }).limit(100).then(({ data, error: queryError }) => {
       if (cancelled) return
-      if (queryError) setError(queryError.message)
+      if (queryError) setError(mensajeDeErrorBase(queryError, 'No pudimos cargar las ejecuciones. Reintentá en unos minutos.'))
       else setEjecuciones((data ?? []) as Ejecucion[])
     })
     return () => { cancelled = true }
@@ -49,7 +50,7 @@ export function EjecucionList() {
   return <List title="Ejecuciones" headerButtons={<Button component={RouterLink} to="/historial/importar" variant="outlined">Importar historial</Button>}>
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {ejecuciones.length === 0 && !error && <Typography color="text.secondary">Todavía no hay ejecuciones registradas para esta organización.</Typography>}
-    <TableContainer><Table><TableHead><TableRow><TableCell>Capacidad</TableCell><TableCell>Origen</TableCell><TableCell>Estado</TableCell><TableCell>Duración</TableCell><TableCell>Motivo</TableCell><TableCell align="right">Detalle</TableCell></TableRow></TableHead><TableBody>
+    <TableContainer tabIndex={0} role="region" aria-label="Ejecuciones (se desplaza)"><Table><TableHead><TableRow><TableCell>Capacidad</TableCell><TableCell>Origen</TableCell><TableCell>Estado</TableCell><TableCell>Duración</TableCell><TableCell>Motivo</TableCell><TableCell align="right">Detalle</TableCell></TableRow></TableHead><TableBody>
       {ejecuciones.map((ejecucion) => <TableRow key={ejecucion.id}><TableCell>{ejecucion.capacidades_ejecucion?.[0]?.clave ?? '—'}</TableCell><TableCell>{ejecucion.origen}</TableCell><TableCell>{ejecucion.estado}</TableCell><TableCell>{duracion(ejecucion.iniciada_en, ejecucion.finalizada_en)}</TableCell><TableCell>{ejecucion.motivo_sanitizado ?? '—'}</TableCell><TableCell align="right"><Button component={RouterLink} to={`/ejecuciones/${ejecucion.id}`} size="small">Ver</Button></TableCell></TableRow>)}
     </TableBody></Table></TableContainer>
   </List>

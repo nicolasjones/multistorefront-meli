@@ -15,7 +15,9 @@ import { join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url))
-const OBJETIVO = join(RAIZ, 'apps/web/src/pages')
+// Se recorre TODO `apps/web/src`: la regla de `width|height: 1` vale en cualquier archivo (pages, components, lib, tema…);
+// las reglas de color y dimensión (FR-015) solo en `pages/` (ver `analizar`).
+export const OBJETIVOS = [join(RAIZ, 'apps/web/src')]
 
 // Rutas (relativas a la raíz) donde un valor suelto es legítimo: son las
 // dueñas de los tokens o no son pantallas.
@@ -27,6 +29,11 @@ export const RUTAS_EXENTAS = [
 
 const COLOR_SUELTO = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
 const DIMENSION_SUELTA = /(?<![A-Za-z_-])(borderRadius|height|minHeight|fontSize)\s*:\s*(\d+(?:\.\d+)?|'[^']*(?:px|rem|em)'|"[^"]*(?:px|rem|em)")/g
+// `width: 1` en `sx` de MUI es 100 % (no 1 px) y desborda la página (a 320 px, 16 px de scroll horizontal). Para texto solo
+// para lectores de pantalla existe `SOLO_LECTORES` (`components/base/solo-lectores.ts`). Esta regla corre en pages Y
+// components, NO admite el comentario de supresión y solo exime la definición del helper.
+const UNO_SUELTO = /(?<![A-Za-z_-])(width|height|minWidth|minHeight|maxWidth|maxHeight)\s*:\s*1\b(?![.\d%])/g
+export const RUTA_HELPER_SOLO_LECTORES = 'apps/web/src/components/base/solo-lectores.ts'
 const SUPRESION = /estilos-sueltos:\s*ok/
 const COMENTARIO = /^\s*(?:\/\/|\/\*|\*)/
 
@@ -38,13 +45,22 @@ const esExento = (rutaRelativa) =>
 // Analiza el contenido de un archivo y devuelve los hallazgos (línea + motivo).
 // Se exporta para el test (`node --test`).
 export function analizar(contenido, rutaRelativa = 'archivo.tsx') {
-  if (esExento(rutaRelativa)) {
+  if (/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(rutaRelativa) || rutaRelativa.endsWith('.d.ts')) {
     return []
   }
 
   const hallazgos = []
   contenido.split('\n').forEach((linea, indice) => {
-    if (COMENTARIO.test(linea) || SUPRESION.test(linea)) {
+    if (COMENTARIO.test(linea)) {
+      return
+    }
+    if (rutaRelativa !== RUTA_HELPER_SOLO_LECTORES) {
+      for (const coincidencia of linea.matchAll(UNO_SUELTO)) {
+        hallazgos.push({ linea: indice + 1, motivo: `${coincidencia[1]}: 1 es 100 % en sx de MUI, no 1 px: usar SOLO_LECTORES (components/base/solo-lectores.ts) o '1px'` })
+      }
+    }
+    // Las reglas de color y dimensión (FR-015) siguen siendo solo de las pantallas.
+    if (!rutaRelativa.startsWith('apps/web/src/pages/') || esExento(rutaRelativa) || SUPRESION.test(linea)) {
       return
     }
     if (COLOR_SUELTO.test(linea)) {
@@ -69,7 +85,7 @@ function archivosDe(dir) {
 
 export function revisarPaginas() {
   const resultados = []
-  for (const archivo of archivosDe(OBJETIVO)) {
+  for (const archivo of OBJETIVOS.flatMap(archivosDe)) {
     const rutaRelativa = relative(RAIZ, archivo).split(sep).join('/')
     const hallazgos = analizar(readFileSync(archivo, 'utf8'), rutaRelativa)
     if (hallazgos.length > 0) {
@@ -82,7 +98,7 @@ export function revisarPaginas() {
 function main() {
   const resultados = revisarPaginas()
   if (resultados.length === 0) {
-    console.log('estilos-sueltos: sin valores sueltos en apps/web/src/pages (FR-015).')
+    console.log('estilos-sueltos: sin valores sueltos en apps/web/src (FR-015; color y dimensión en pages/, width/height: 1 en todo src).')
     return
   }
 

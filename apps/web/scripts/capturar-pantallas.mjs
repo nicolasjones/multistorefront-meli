@@ -14,6 +14,8 @@
 //
 // `PANTALLAS_ESTADO` es el `storageState` de Playwright (para rutas con
 // sesión). Sin él sólo se capturan las rutas públicas.
+// `PANTALLAS_VIDEO=1` graba un video del recorrido (`app-recorrido.webm`), con
+// un rótulo por pantalla; `PANTALLAS_PAUSA` ajusta la espera entre pantallas.
 import { chromium } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
@@ -33,6 +35,24 @@ const RUTAS = (process.env.PANTALLAS_RUTAS || "clientes,productos,empresas,usuar
   .filter(Boolean);
 
 const VIEWPORT = { width: 1440, height: 900 };
+const VIDEO = process.env.PANTALLAS_VIDEO === "1";
+const PAUSA = Number(process.env.PANTALLAS_PAUSA) || (VIDEO ? 3500 : 2500);
+const CAPTION = process.env.PANTALLAS_CAPTION !== "0";
+
+// Rótulo fijo abajo a la izquierda para que el video se entienda sin narración.
+async function rotulo(pagina, texto) {
+  if (!CAPTION) return;
+  await pagina.evaluate((t) => {
+    let el = document.getElementById("__recorrido_rotulo");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "__recorrido_rotulo";
+      el.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483647;background:#111;color:#fff;font:600 18px/1.4 system-ui;padding:10px 16px;border-radius:10px;opacity:.92;pointer-events:none";
+      document.body.appendChild(el);
+    }
+    el.textContent = t;
+  }, texto).catch(() => {});
+}
 
 // Prototipos de primer nivel (evita las carpetas con copias anidadas).
 function prototipos() {
@@ -47,13 +67,18 @@ async function main() {
   fs.mkdirSync(salidaDir, { recursive: true });
 
   const navegador = await chromium.launch();
-  const contexto = await navegador.newContext({ viewport: VIEWPORT, storageState: ESTADO || undefined });
+  const contexto = await navegador.newContext({
+    viewport: VIEWPORT,
+    storageState: ESTADO || undefined,
+    recordVideo: VIDEO ? { dir: salidaDir, size: VIEWPORT } : undefined,
+  });
   const pagina = await contexto.newPage();
 
   for (const archivo of prototipos()) {
     const nombre = path.basename(archivo).replace(/\.dc\.html$/i, "");
     await pagina.goto(pathToFileURL(archivo).href, { waitUntil: "load" });
-    await pagina.waitForTimeout(400);
+    await rotulo(pagina, `Prototipo: ${nombre}`);
+    await pagina.waitForTimeout(VIDEO ? PAUSA : 400);
     const destino = path.join(salidaDir, `prototipo-${nombre}.png`);
     await pagina.screenshot({ path: destino, fullPage: true });
     console.log(`prototipo -> ${path.relative(repoDir, destino)}`);
@@ -62,13 +87,24 @@ async function main() {
   if (APP_URL) {
     for (const ruta of RUTAS) {
       await pagina.goto(`${APP_URL}/${ruta}`, { waitUntil: "load" });
-      await pagina.waitForTimeout(2500);
+      await rotulo(pagina, `Pantalla: /${ruta}`);
+      await pagina.waitForTimeout(PAUSA);
       const destino = path.join(salidaDir, `app-${ruta.replace(/\//g, "-")}.png`);
       await pagina.screenshot({ path: destino });
       console.log(`app ${ruta} -> ${path.relative(repoDir, destino)}`);
     }
   }
 
+  const video = pagina.video();
+  await contexto.close();
+  if (video) {
+    const origen = await video.path().catch(() => null);
+    if (origen) {
+      const destino = path.join(salidaDir, APP_URL ? "app-recorrido.webm" : "prototipo-recorrido.webm");
+      fs.renameSync(origen, destino);
+      console.log(`video -> ${path.relative(repoDir, destino)}`);
+    }
+  }
   await navegador.close();
   console.log(`\nCapturas en ${path.relative(repoDir, salidaDir)}` + (APP_URL ? "" : "\n(app: pasá PANTALLAS_APP_URL para capturar también las rutas)"));
 }

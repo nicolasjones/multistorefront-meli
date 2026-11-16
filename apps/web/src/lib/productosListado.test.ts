@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { MAXIMO_IDS_POR_PETICION } from './repartoIds'
 import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarCostos, consultarProductos, filtroBusquedaProductos, formatearCosto, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
@@ -14,19 +15,19 @@ function clienteFalso(respuesta: { data: unknown; error: unknown; count: number 
 
 describe('filtroBusquedaProductos', () => {
   it('busca por nombre o SKU', () => {
-    expect(filtroBusquedaProductos('joy')).toBe('nombre.ilike.%joy%,sku.ilike.%joy%')
+    expect(filtroBusquedaProductos('joy')).toBe('nombre_norm.ilike.%joy%,sku.ilike.%joy%')
   })
   it('escapa los comodines % y _ para buscarlos como texto', () => {
-    expect(filtroBusquedaProductos('100%_x')).toBe('nombre.ilike.%100\\%\\_x%,sku.ilike.%100\\%\\_x%')
+    expect(filtroBusquedaProductos('100%_x')).toBe('nombre_norm.ilike.%100\\%\\_x%,sku.ilike.%100\\%\\_x%')
   })
   it('quita los caracteres que alterarían el filtro', () => {
-    expect(filtroBusquedaProductos('a,b(c)"d\\e')).toBe('nombre.ilike.%a b c  d e%,sku.ilike.%a b c  d e%')
+    expect(filtroBusquedaProductos('a,b(c)"d\\e')).toBe('nombre_norm.ilike.%a b c  d e%,sku.ilike.%a b c  d e%')
   })
   it('quita el comodín * de PostgREST', () => {
-    expect(filtroBusquedaProductos('a*b')).toBe('nombre.ilike.%a b%,sku.ilike.%a b%')
+    expect(filtroBusquedaProductos('a*b')).toBe('nombre_norm.ilike.%a b%,sku.ilike.%a b%')
   })
   it('acota el largo y devuelve null si queda vacío', () => {
-    expect(filtroBusquedaProductos('x'.repeat(500))).toBe(`nombre.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%,sku.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%`)
+    expect(filtroBusquedaProductos('x'.repeat(500))).toBe(`nombre_norm.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%,sku.ilike.%${'x'.repeat(LARGO_MAXIMO_BUSQUEDA)}%`)
     expect(filtroBusquedaProductos('   ')).toBeNull()
     expect(filtroBusquedaProductos('(,)')).toBeNull()
   })
@@ -40,7 +41,7 @@ describe('consultarProductos', () => {
     const resultado = await consultarProductos(cliente, CONSULTA_INICIAL)
     expect(resultado).toEqual({ filas: respuesta.data, total: 60 })
     expect(llamadas[0]).toEqual(['from', 'v_productos_listado'])
-    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras', { count: 'exact' }])
+    expect(llamadas).toContainEqual(['select', 'id, nombre, sku, activo, imagen_ruta, empresa_ids, categoria_id, categoria_ruta, disponibilidad, codigo_barras, compatible_con', { count: 'exact' }])
     expect(llamadas).toContainEqual(['order', 'nombre', { ascending: true, nullsFirst: false }])
     expect(llamadas).toContainEqual(['order', 'id', { ascending: true }])
     expect(llamadas).toContainEqual(['range', 0, 24])
@@ -49,9 +50,9 @@ describe('consultarProductos', () => {
 
   it('aplica inactivos, búsqueda, orden descendente por estado y la página pedida', async () => {
     const { cliente, llamadas } = clienteFalso(respuesta)
-    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null })
+    await consultarProductos(cliente, { texto: 'cab', estado: 'inactivos', columnaOrden: 'activo', direccion: 'desc', pagina: 3, empresaId: null, categoriaId: null, disponibilidad: null, compatibles: [] })
     expect(llamadas).toContainEqual(['eq', 'activo', false])
-    expect(llamadas).toContainEqual(['or', 'nombre.ilike.%cab%,sku.ilike.%cab%'])
+    expect(llamadas).toContainEqual(['or', 'nombre_norm.ilike.%cab%,sku.ilike.%cab%'])
     expect(llamadas).toContainEqual(['order', 'activo', { ascending: false, nullsFirst: true }])
     expect(llamadas).toContainEqual(['range', 50, 74])
   })
@@ -107,16 +108,19 @@ describe('búsqueda por código de barras (F-CAT-14)', () => {
     expect(codigoBarrasBuscado(' 7790001000015 ')).toBe('7790001000015')
     for (const otro of ['779000100001', '77900010000150', '77900010000AB', 'joystick', '']) expect(codigoBarrasBuscado(otro)).toBeNull()
   })
-  it('13 dígitos consulta por coincidencia exacta y no usa nombre/SKU', async () => {
+  it('13 dígitos consulta por coincidencia exacta de código de barras o de SKU, sin buscar por nombre', async () => {
     const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: '7790001000015' })
-    expect(llamadas).toContainEqual(['eq', 'codigo_barras', '7790001000015'])
-    expect(llamadas.some(([m]) => m === 'or')).toBe(false)
+    expect(llamadas).toContainEqual(['or', 'codigo_barras.eq.7790001000015,sku.ilike.7790001000015'])
+    expect(llamadas.some(([, f]) => typeof f === 'string' && f.includes('nombre_norm'))).toBe(false)
+  })
+  it('ignora tildes y mayúsculas: «CÁMARA» se busca como «camara»', () => {
+    expect(filtroBusquedaProductos('CÁMARA')).toBe('nombre_norm.ilike.%camara%,sku.ilike.%camara%')
   })
   it('otro texto sigue por nombre/SKU sin condición de código de barras', async () => {
     const { cliente, llamadas } = clienteFalso({ data: [], error: null, count: 0 })
     await consultarProductos(cliente, { ...CONSULTA_INICIAL, texto: 'joy' })
-    expect(llamadas).toContainEqual(['or', 'nombre.ilike.%joy%,sku.ilike.%joy%'])
+    expect(llamadas).toContainEqual(['or', 'nombre_norm.ilike.%joy%,sku.ilike.%joy%'])
     expect(llamadas.some(([m, columna]) => m === 'eq' && columna === 'codigo_barras')).toBe(false)
   })
 })
@@ -145,6 +149,34 @@ describe('costo en el listado (F-CAT-16, FR-002)', () => {
     const schema = () => ({ from: () => ({ select: () => ({ in: () => ({ returns: () => Promise.resolve({ data: null, error: { message: 'x' } }) }) }) }) })
     await expect(consultarCostos({ schema } as never, ['p-1'])).rejects.toEqual({ message: 'x' })
   })
+
+  // MSF-716: los ids viajan en el `in.(…)` de la URL GET; con muchos hay que repartirlos.
+  const ids = (n: number) => Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`)
+  const largoUrlFiltro = (valores: string[]) =>
+    new URLSearchParams({ producto_id: `in.(${valores.join(',')})` }).toString().length
+
+  for (const cantidad of [500, 1000]) {
+    it(`con ${cantidad} ids reparte en lotes con URL bajo el límite y devuelve todos los costos`, async () => {
+      const llamadas: string[][] = []
+      const schema = () => ({
+        from: () => ({
+          select: () => ({
+            in: (_col: string, valores: string[]) => {
+              llamadas.push(valores)
+              return { returns: () => Promise.resolve({ data: valores.map((id) => ({ producto_id: id, costo: '1.00' })), error: null }) }
+            },
+          }),
+        }),
+      })
+      const costos = await consultarCostos({ schema } as never, ids(cantidad))
+      expect(costos.size).toBe(cantidad)
+      expect(llamadas).toHaveLength(Math.ceil(cantidad / MAXIMO_IDS_POR_PETICION))
+      for (const lote of llamadas) {
+        expect(lote.length).toBeLessThanOrEqual(MAXIMO_IDS_POR_PETICION)
+        expect(largoUrlFiltro(lote)).toBeLessThanOrEqual(8000)
+      }
+    })
+  }
 
   it('formatearCosto da dos decimales y «—» sin costo; 0 es un costo válido', () => {
     expect(formatearCosto('12.5')).toBe('12,50')

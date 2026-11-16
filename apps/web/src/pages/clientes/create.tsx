@@ -19,8 +19,14 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 // Tiendas (F-CLI-05): el cliente se crea y luego se guarda en qué tiendas queda
 // habilitado (la RPC necesita el id recién creado). Un cliente nuevo arranca
 // habilitado en todas las tiendas, como el prototipo.
-export function ClienteCreate() {
-  const navigate = useNavigate()
+type AltaClienteProps = {
+  onCancelar: () => void
+  // Cliente creado (y sus tiendas/cuenta web intentadas): la página sigue a la ficha, el popup se cierra.
+  alCrear: (id: string, mensaje: string) => void
+}
+
+// Alta de cliente sin marco de página: la usan la ruta `/clientes/create` y el popup «Nuevo cliente» del listado.
+export function AltaCliente({ onCancelar, alCrear }: AltaClienteProps) {
   const { nivel, isLoading } = useNivelSeccion('clientes')
   const { mutateAsync } = useCreate<{ id: string }>()
   const { empresas, isLoading: cargandoEmpresas, isError: errorEmpresas } = useEmpresas()
@@ -30,9 +36,7 @@ export function ClienteCreate() {
   const { empresaActivaId } = useEmpresasAccesibles()
 
   return (
-    <Box>
-      <EncabezadoPagina titulo="Nuevo cliente" contexto={<ContextoOrganizacionActiva />} />
-      <ContenedorSeccion>
+    <>
         {isLoading || nivel === null ? (
           <EstadoCargaPagina />
         ) : nivel !== 'edicion' ? (
@@ -48,6 +52,7 @@ export function ClienteCreate() {
             errorEmpresas={errorEmpresas}
             etiquetaGuardar="Crear cliente"
             rutaCancelar="/clientes"
+            onCancelar={onCancelar}
             onGuardar={async (valores, opciones) => {
               const { empresas: tiendas, ...datos } = valores
               const { data } = await mutateAsync({ resource: 'clientes', values: datos, successNotification: false })
@@ -63,17 +68,39 @@ export function ClienteCreate() {
               }
               // Crea/suspende la cuenta web en cada tienda tildada (FR-015). Un fallo
               // parcial no revierte el cliente: se informa al llegar a la ficha.
-              const { errores } = tiendasGuardadas
-                ? await aplicarCuentaWebEnTiendas(data.id, tiendas, opciones.estado, opciones.invitar)
-                : { errores: tiendas.length }
+              // Defensa en profundidad (MSF-734): aunque aplicarCuentaWebEnTiendas no
+              // debería lanzar, un rechazo inesperado no puede dejar el formulario con
+              // error tras haber creado el cliente (el reintento lo duplicaría).
+              let errores = tiendas.length
+              if (tiendasGuardadas) {
+                try {
+                  ({ errores } = await aplicarCuentaWebEnTiendas(data.id, tiendas, opciones.estado, opciones.invitar))
+                } catch (error) {
+                  console.error('Cliente creado pero falló la cuenta web', error)
+                }
+              }
               const invitacion = opciones.estado === 'activa' && opciones.invitar && errores === 0
               const mensaje = errores > 0
                 ? `Cliente creado · no se pudo crear la cuenta web en ${errores} ${errores === 1 ? 'tienda' : 'tiendas'}`
                 : invitacion ? 'Cliente creado · invitación enviada' : 'Cliente creado'
-              navigate(`/clientes/show/${data.id}`, { state: { mensaje } })
+              alCrear(data.id, mensaje)
             }}
           />
         )}
+    </>
+  )
+}
+
+export function ClienteCreate() {
+  const navigate = useNavigate()
+  return (
+    <Box>
+      <EncabezadoPagina titulo="Nuevo cliente" contexto={<ContextoOrganizacionActiva />} />
+      <ContenedorSeccion>
+        <AltaCliente
+          onCancelar={() => navigate('/clientes')}
+          alCrear={(id, mensaje) => navigate(`/clientes/show/${id}`, { state: { mensaje } })}
+        />
       </ContenedorSeccion>
     </Box>
   )

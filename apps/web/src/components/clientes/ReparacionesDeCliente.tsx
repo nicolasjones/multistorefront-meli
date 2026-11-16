@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
-import { Box, LinearProgress, Link, Stack, TablePagination, Typography } from '@mui/material'
+import { Box, LinearProgress, Link, Stack, Typography } from '@mui/material'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { formatearDiaCompleto } from '../../lib/reparacionesListado'
 import {
@@ -8,6 +8,8 @@ import {
 } from '../../lib/reparacionesDeCliente'
 import { formatearARS } from '../../lib/serviceTecnico'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
+import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
+import { CargaInfinita } from '../pagina/CargaInfinita'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
 import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAdaptable'
 
@@ -56,10 +58,12 @@ export function ReparacionesDeCliente({ clienteId }: { clienteId: string }) {
   const { filas, total, isLoading, isFetching, isError, refetch } =
     useReparacionesDeCliente(clienteId, empresaActivaId, pagina, TAMANO_PAGINA_REPARACIONES_CLIENTE)
 
-  // Página fuera de rango (bajó la cantidad): vuelve a la primera.
-  useEffect(() => {
-    if (!isLoading && !isFetching && !isError && pagina > 1 && filas.length === 0 && total > 0) setElegida({ clave, pagina: 1 })
-  }, [isLoading, isFetching, isError, pagina, filas.length, total, clave])
+  // Carga infinita (Principio VI): las tandas se suman; cambiar de cliente o de empresa vuelve a la primera.
+  const listado = useListadoAcumulado({
+    items: filas, pagina, setPagina: (nueva) => setElegida({ clave, pagina: nueva }), total, cargando: isFetching,
+    reinicio: `${clienteId}|${clave}`,
+  })
+  const falloTanda = isError && listado.filas.length > 0
 
   const contador = `${total} ${total === 1 ? 'reparación' : 'reparaciones'}`
 
@@ -68,26 +72,25 @@ export function ReparacionesDeCliente({ clienteId }: { clienteId: string }) {
       <Typography id="titulo-reparaciones-cliente" component="h2" variant="h6" sx={{ mb: 1 }}>Reparaciones</Typography>
       {cargandoEmpresas || isLoading ? (
         <EstadoCargaPagina />
-      ) : isError ? (
+      ) : isError && !falloTanda ? (
         <EstadoError descripcion="No pudimos cargar las reparaciones del cliente." reintentar={() => void refetch()} />
-      ) : filas.length === 0 && total === 0 ? (
+      ) : listado.filas.length === 0 && total === 0 ? (
         <EstadoVacio titulo="Este cliente todavía no tiene reparaciones" />
       ) : (
         <Box aria-busy={isFetching}>
           <Typography color="text.secondary" role="status" sx={{ mb: 1 }}>{contador}</Typography>
           {isFetching ? <LinearProgress aria-label="Actualizando reparaciones" /> : null}
           <ContenidoAdaptable
-            items={filas}
+            items={listado.filas}
             columnas={columnas}
             obtenerClave={(reparacion) => reparacion.id}
             etiquetaTabla="Reparaciones del cliente"
           />
-          <TablePagination
-            component="div" count={total} page={pagina - 1} rowsPerPage={TAMANO_PAGINA_REPARACIONES_CLIENTE}
-            rowsPerPageOptions={[TAMANO_PAGINA_REPARACIONES_CLIENTE]}
-            onPageChange={(_, nueva) => setElegida({ clave, pagina: nueva + 1 })}
-            labelRowsPerPage="Reparaciones por página"
-            labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
+          <CargaInfinita
+            hayMas={listado.hayMas}
+            cargando={listado.cargandoMas}
+            hayError={falloTanda}
+            onCargarMas={falloTanda ? () => void refetch() : listado.cargarMas}
           />
         </Box>
       )}
