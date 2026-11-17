@@ -26,10 +26,10 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     soltar: async (_j, _id, reclamo) => {
       if (opciones.soltarFalla) throw new Error('soltar: boom')
       if (v.estado === 'procesando' && v.motivo_error === reclamo) v.motivo_error = null },
-    marcarFallida: async (_j, _id, motivo) => {
+    marcarFallida: async (_j, _id, motivo, reclamo) => {
       if (opciones.activarLaOtra) { v.estado = 'activa'; return false }
       if (opciones.marcarFalla) return false
-      if (v.estado === 'procesando') { v.estado = 'fallida'; v.motivo_error = motivo; return true }
+      if (v.estado === 'procesando' && v.motivo_error === reclamo) { v.estado = 'fallida'; v.motivo_error = motivo; return true }
       return false
     },
     estado: async () => (opciones.estadoTrasInvalida !== undefined && opciones.activarInvalida ? opciones.estadoTrasInvalida : v.estado),
@@ -293,6 +293,92 @@ describe('indexar-documento', () => {
     assert.equal(((await (await pedir(invalida.deps)).json()) as { codigo: string }).codigo, 'no_procesable')
     const procesada = montar({ version: { estado: 'reemplazada' } })
     assert.equal(((await (await pedir(procesada.deps)).json()) as { codigo: string }).codigo, 'no_procesable')
+  })
+
+  describe('invariante: nunca se borran fragmentos de una versión activa', () => {
+    function contarBorrados(m: ReturnType<typeof montar>) {
+      const c = { n: 0 }
+      const original = m.deps.borrarFragmentos
+      m.deps.borrarFragmentos = async (...a) => { c.n++; return original(...a) }
+      return c
+    }
+
+    it('(a) la versión se activa durante el proveedor: 200 ya_activa y no se borra ni se inserta nada', async () => {
+      const m = montar()
+      const c = contarBorrados(m)
+      const embeddings = m.deps.embeddings
+      m.deps.embeddings = async (...a) => { const r = await embeddings(...a); m.v.estado = 'activa'; return r }
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 200)
+      assert.equal(((await res.json()) as { ya_activa?: boolean }).ya_activa, true)
+      assert.equal(c.n, 0)
+      assert.equal(m.insertados(), 0)
+    })
+
+    it('(b) activar devuelve invalida con la versión ya activa: 200 ya_activa y no se borra tras el 22023', async () => {
+      const m = montar({ activarInvalida: true })
+      const c = contarBorrados(m)
+      // `estado()` ciego: aísla el guard basado en la relectura de la versión (el de `yaActiva` queda neutralizado).
+      m.deps.estado = async () => 'procesando'
+      const activar = m.deps.activar
+      m.deps.activar = async (...a) => { const r = await activar(...a); m.v.estado = 'activa'; return r }
+      const antes = m.insertados()
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 200)
+      assert.equal(c.n, 1, 'solo el borrado previo al insert; ninguno tras el 22023')
+      assert.equal(m.insertados() - antes > 0, true)
+    })
+
+    it('(c) dejarFallida con la versión activa durante la extracción: 200 ya_activa, sin marcar ni borrar', async () => {
+      const m = montar({ texto: '   ' })
+      const c = contarBorrados(m)
+      m.deps.estado = async () => 'procesando'
+      const extraer = m.deps.extraerTexto
+      m.deps.extraerTexto = async (...a) => { const r = await extraer(...a); m.v.estado = 'activa'; return r }
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 200)
+      assert.equal(m.v.estado, 'activa')
+      assert.equal(c.n, 0)
+    })
+  })
+
+  it('22023 con la versión procesando de OTRA invocación: no borra, suelta con el reclamo propio y responde 409', async () => {
+    const m = montar({ activarInvalida: true })
+    const soltados: string[] = []
+    const soltar = m.deps.soltar
+    m.deps.soltar = async (j, id, reclamo) => { soltados.push(reclamo); return soltar(j, id, reclamo) }
+    const activar = m.deps.activar
+    m.deps.activar = async (...a) => { const r = await activar(...a); m.v.motivo_error = 'indexando:otra'; return r }
+    let borrados = 0
+    const original = m.deps.borrarFragmentos
+    m.deps.borrarFragmentos = async (...a) => { borrados++; return original(...a) }
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 409)
+    assert.equal(borrados, 1, 'solo el previo al insert')
+    assert.equal(soltados.length, 1)
+    assert.match(soltados[0], /^indexando:\d+:abc$/)
+    assert.equal(m.v.motivo_error, 'indexando:otra', 'no libera el candado de la otra invocación')
+  })
+
+  it('un rechazo de la política de IA guarda un texto fijo, no el código interno', async () => {
+    const m = montar()
+    m.deps.validarEntrada = () => { throw new Error('POLITICA_IA_INACTIVA') }
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 422)
+    const cuerpo = JSON.stringify(await res.json())
+    assert.doesNotMatch(cuerpo, /POLITICA_IA_INACTIVA/)
+    assert.doesNotMatch(m.v.motivo_error ?? '', /POLITICA_IA_INACTIVA/)
+    assert.equal(m.v.estado, 'fallida')
+  })
+
+  it('una versión que desaparece durante el procesamiento responde 404 (no 409 ocupado) al fallar', async () => {
+    const m = montar({ texto: '   ' })
+    const extraer = m.deps.extraerTexto
+    const leer = m.deps.version
+    let desaparecida = false
+    m.deps.extraerTexto = async (...a) => { const r = await extraer(...a); desaparecida = true; return r }
+    m.deps.version = async (...a) => (desaparecida ? null : leer(...a))
+    assert.equal((await pedir(m.deps)).status, 404)
   })
 
   it('carrera: si marcarFallida no aplica porque otra invocación ya la activó, no borra nada y responde 200 idempotente', async () => {

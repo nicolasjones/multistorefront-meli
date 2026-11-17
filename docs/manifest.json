@@ -739,8 +739,8 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "a9a3edb8129a8e74b91b91952f15f05dc7744c2f08a8bcc5e56f44431d5c1080",
-      "sourceHash": "bec46520d0dd4b2b8889b6815bf0cb2a3f1b21e078d46676bb1b730745d209ac",
+      "pageHash": "a2870fca341c571fa1c55657d1af049c62e748674c7a37ec19d2a85d6ed7e48e",
+      "sourceHash": "3985644ae253ee21a3ccb39ef2563a521652e0255c09e3cb46f10c2cdbd2f432",
       "sourceAt": "8dfafc4f",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",

@@ -76,8 +76,8 @@ Deno.serve((req) => {
       if (error) throw new Error(`soltar: ${error.code ?? ''} ${error.message}`)
     },
     // Solo mientras sigue `procesando`: una versión ya activa (o reemplazada) nunca se pisa a `fallida`.
-    marcarFallida: async (jwt, id, motivo) => {
-      const { data, error } = await comoUsuario(jwt).from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando').select('id')
+    marcarFallida: async (jwt, id, motivo, reclamo) => {
+      const { data, error } = await comoUsuario(jwt).from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando').eq('motivo_error', reclamo).select('id')
       if (error) console.error('indexar-documento: no se pudo marcar la versión fallida', error.code ?? '', error.message)
       return !error && (data?.length ?? 0) === 1
     },

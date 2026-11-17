@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   BUCKET_DOCUMENTOS,
   procesamientoInterrumpido,
+  ErrorIndexacion,
+  mensajeDeIndexacion,
   FORMATOS_DOCUMENTO,
   MAX_BYTES_DOCUMENTO,
   extensionDeDocumento,
@@ -69,5 +71,28 @@ describe('procesamientoInterrumpido', () => {
     expect(procesamientoInterrumpido({ estado: 'activa', subida_en: '2026-06-01T10:00:00Z' }, ahora)).toBe(false)
     expect(procesamientoInterrumpido({ estado: 'fallida', subida_en: '2026-06-01T10:00:00Z' }, ahora)).toBe(false)
     expect(procesamientoInterrumpido({ estado: 'procesando', subida_en: 'no-es-fecha' }, ahora)).toBe(false)
+  })
+})
+
+describe('mensajeDeIndexacion', () => {
+  it('usa un texto fijo por estado y código, y genérico para el resto', () => {
+    expect(mensajeDeIndexacion(new ErrorIndexacion('x', 409, 'ocupado'))).toMatch(/Ya se está procesando/)
+    expect(mensajeDeIndexacion(new ErrorIndexacion('x', 409, 'no_procesable'))).toMatch(/ya no se puede procesar/)
+    expect(mensajeDeIndexacion(new ErrorIndexacion('texto interno', 403))).toBe('No tenés permiso para procesar este documento.')
+    expect(mensajeDeIndexacion(new ErrorIndexacion('texto interno', 404))).toBe('Esta versión ya no existe.')
+    expect(mensajeDeIndexacion(new ErrorIndexacion('texto interno', 429))).toMatch(/demasiados intentos/)
+    expect(mensajeDeIndexacion(new Error('algo'))).toMatch(/No pudimos procesar/)
+  })
+
+  it('el 501/502/503/500 no muestra el texto del backend ni nombra al proveedor', () => {
+    for (const status of [500, 501, 502, 503]) {
+      const m = mensajeDeIndexacion(new ErrorIndexacion('solo OpenAI por ahora', status))
+      expect(m).toMatch(/No pudimos procesar el documento ahora/)
+      expect(m).not.toMatch(/OpenAI/)
+    }
+  })
+
+  it('el 422 muestra el texto del backend (ya es un texto fijo accionable)', () => {
+    expect(mensajeDeIndexacion(new ErrorIndexacion('El documento no tiene contenido para indexar.', 422))).toBe('El documento no tiene contenido para indexar.')
   })
 })

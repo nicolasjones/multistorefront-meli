@@ -17,6 +17,7 @@ import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from '.
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const respuesta = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 const SIN_PERMISO = 'No tenés permiso para indexar este documento.'
+const MOTIVO_ENTRADA_INVALIDA = 'La configuración de IA de tu organización no permite indexar este documento. Contactá a un administrador.'
 const MOTIVO_SIN_PERMISO = 'No tenés permiso para activar esta versión: la búsqueda documental no está habilitada o solo puede activarla quien la subió o un administrador.'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -35,7 +36,7 @@ export type Deps = {
   reclamar(jwt: string, id: string, motivoPrevio: string | null, reclamo: string): Promise<boolean>
   soltar(jwt: string, id: string, reclamo: string): Promise<void>
   /** Falso si la base rechazó o no pudo aplicar el update (se registra en `index.ts`). */
-  marcarFallida(jwt: string, id: string, motivo: string): Promise<boolean>
+  marcarFallida(jwt: string, id: string, motivo: string, reclamo: string): Promise<boolean>
   estado(jwt: string, id: string): Promise<string | null>
   descargar(jwt: string, ruta: string): Promise<Uint8Array | null>
   extraerTexto(bytes: Uint8Array, nombre: string): Promise<string | null>
@@ -101,17 +102,19 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   }
   const yaActiva = async () => (await deps.estado(jwt, versionId)) === 'activa'
   const respuestaIdempotente = () => respuesta({ version_id: versionId, ya_activa: true }, 200)
+  const noExiste = () => respuesta({ error: 'Esta versión ya no existe.' }, 404)
   const ocupada = () => respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   // Los fragmentos solo se borran si esta invocación SIGUE siendo la dueña de la versión: relee la versión y exige
   // `procesando` con su propio reclamo. Así nunca se borran los de una versión ya `activa` ni los de otra invocación
   // que retomó la versión tras vencer el reclamo propio. Límite: entre la relectura y el borrado hay una ventana
   // mínima (sin transacción, sin marca de intento por fragmento: requeriría una migración, ver docs).
-  type Propiedad = 'dueno' | 'activa' | 'ajena'
+  type Propiedad = 'dueno' | 'activa' | 'ajena' | 'inexistente'
   const propiedad = async (): Promise<Propiedad> => {
     const actual = await deps.version(jwt, versionId)
-    if (actual?.estado === 'activa') return 'activa'
-    return actual && actual.estado === 'procesando' && actual.motivo_error === reclamo ? 'dueno' : 'ajena'
+    if (!actual) return 'inexistente'
+    if (actual.estado === 'activa') return 'activa'
+    return actual.estado === 'procesando' && actual.motivo_error === reclamo ? 'dueno' : 'ajena'
   }
   const borrarSiDueno = async (): Promise<boolean> => {
     try {
@@ -129,8 +132,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const dejarFallida = async (motivo: string): Promise<Response | null> => {
     const dueno = await propiedad()
     if (dueno === 'activa') return respuestaIdempotente()
+    if (dueno === 'inexistente') return noExiste()
     if (dueno === 'ajena') return ocupada()
-    if (await deps.marcarFallida(jwt, versionId, motivo)) {
+    if (await deps.marcarFallida(jwt, versionId, motivo, reclamo)) {
       // Ya `fallida`: sus fragmentos no sirven. Mejor esfuerzo; si falla queda rastro en el log.
       try { await deps.borrarFragmentos(jwt, versionId) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
       return null
@@ -169,7 +173,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       deps.validarEntrada(politica, fragmentos[0])
     } catch (error) {
-      return await fallar(error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA')
+      // El código interno (p. ej. POLITICA_IA_INACTIVA) va al log; al usuario y a `motivo_error` solo un texto fijo.
+      console.error('indexar-documento: entrada rechazada por la política de IA', error instanceof Error ? error.message : error)
+      return await fallar(MOTIVO_ENTRADA_INVALIDA)
     }
 
     let embeddings: number[][]
@@ -184,6 +190,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     // Los fragmentos previos de esta versión (de un intento anterior) se borran antes de insertar.
     const preparados = await propiedad()
     if (preparados === 'activa') return respuestaIdempotente()
+    if (preparados === 'inexistente') return noExiste()
     if (preparados === 'ajena') return ocupada()
     if (!(await deps.borrarFragmentos(jwt, versionId))) return await reintentable('No se pudieron preparar los fragmentos indexados, probá de nuevo.', 502)
     const filas = fragmentos.map((t, i) => ({ version_id: versionId, organizacion_id: version.organizacion_id, texto: t, embedding: `[${embeddings[i].join(',')}]`, orden: i }))

@@ -86,7 +86,8 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
 - El 409 lleva un `codigo`: `ocupado` (candado vigente) o `no_procesable` (ya procesada o 22023). La pantalla muestra un
   mensaje propio por estado/código, nunca el texto del backend (salvo el 422, accionable), y tras `no_procesable` o 404
   deja de ofrecer «Reintentar».
-- La pantalla decide el mensaje amable por el estado HTTP 409 (`ErrorIndexacion.status`), no por el texto.
+- La pantalla decide el mensaje por el estado HTTP y el `codigo` (`ErrorIndexacion.status` y `.codigo`), no por el texto del backend.
+- El rechazo de la política de IA (p. ej. `POLITICA_IA_INACTIVA`) va al log; al usuario y a `motivo_error` solo llega un texto fijo. `marcarFallida` solo aplica si el reclamo en la base sigue siendo el propio. Deuda (junto con el borrado de fragmentos): un borrado condicional por reclamo y estado en SQL cerraría la ventana restante sin transacción.
 - Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
 - **Rechazo de permisos al activar (42501)** (carrera o regla distinta de la base): no es transitorio. La función
