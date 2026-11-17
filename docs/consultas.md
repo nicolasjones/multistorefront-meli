@@ -33,8 +33,8 @@ Tiendas online (MSF-212).
 | `public.consulta_items_bandeja` (vista `security_invoker`) | `public` | Lectura de esos ítems para el panel; hereda la RLS de la tabla. |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta de la bandeja; solo `service_role` y la RPC de la tienda (`publico.enviar_consulta_contacto`, que aplica el anti-spam). `anon` y `authenticated` no la ejecutan. |
 | `public.consultas_bandeja` (vista `security_invoker`), `actualizar_consulta`, `contar_consultas_nuevas`, `responsables_consultas`, `guardar_correo_avisos_consultas` | `public` | Lectura y ejecución desde el panel; no guardan datos. |
-| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02). Sin datos personales. |
-| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; la ejecuta la tienda (`anon`). |
+| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02; hoy solo el sembrado demo la alimenta; ver MSF-657). Sin datos personales. |
+| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` (MSF-657: ya no es pública; la tienda usa `registrar_consulta_whatsapp`). |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. |
 
 ## Estados
@@ -98,16 +98,16 @@ de la consulta siguen; hay que borrarlos aparte. La baja de la organización se 
 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 
-Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada producto. Spec:
+Cuenta cuántas veces se tocó «Consultar por WhatsApp» en cada producto (diseño original; hoy la tienda registra el contacto con `registrar_consulta_whatsapp` y solo el sembrado del dataset demo alimenta esta tabla, MSF-657). Spec:
 `specs/20261024-140000-consultas-seguimiento-y-whatsapp/spec.md`
 (contrato en `contracts/consultas-seguimiento.md`).
 
-- **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque.
-- **RPC** `publico.registrar_interes_whatsapp(host, producto_id)`: la empresa sale solo del host (`dominio.tiendas`); host desconocido o empresa desactivada → el mismo `P0002` genérico, resuelto antes de validar el producto; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`. Ejecutable por `anon` y `authenticated`. Sin anti-spam propio (es de la tienda, F-TDA-14 / MSF-212).
+- **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque (hoy solo el sembrado demo la alimenta; ver MSF-657).
+- **RPC** `publico.registrar_interes_whatsapp(host, producto_id)`: la empresa sale solo del host (`dominio.tiendas`); host desconocido o empresa desactivada → el mismo `P0002` genérico, resuelto antes de validar el producto; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`. Desde `20270507150100` (MSF-657) solo `service_role`: `anon` y `authenticated` no la ejecutan. Sin cuota ni límite propio: por eso ya no es pública; las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) sí aplican la cuota.
 - **Vista** `public.interes_whatsapp_por_producto` (`security_invoker`): `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. Aplica la RLS de la tabla; `anon` sin acceso. Es el contrato de lectura para F-REP-04 (productos más consultados).
 - **Permisos**: se ve con `consultas` ≥ `lectura` y empresa accesible; nadie inserta, edita ni borra desde la app (sin políticas de escritura). En el panel, el botón `Interés por WhatsApp` de Consultas abre un diálogo (`InteresWhatsappDialog`) con `Producto`, `Tienda` (solo en «Todas mis empresas»), `Veces` y `Último interés`, ordenado de mayor a menor; al cambiar de empresa se recarga y el diálogo abierto se cierra con aviso (Principio VIII).
-- **Contrato para F-TDA-14**: la tienda llama a la RPC con su host y el `producto_id` al tocar el botón; no manda empresa ni organización.
-- **Pruebas**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`, Vitest `pages/consultas/InteresWhatsappDialog.test.tsx` y E2E de la RPC.
+- **Contrato para F-TDA-14** (histórico): la tienda iba a llamar a la RPC con su host y el `producto_id`; no manda empresa ni organización. Desde MSF-657 no la llama: usa `registrar_consulta_whatsapp` y la RPC del interés es interna (solo `service_role`).
+- **Pruebas**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`, Vitest `pages/consultas/InteresWhatsappDialog.test.tsx`. El E2E de la RPC previsto en el diseño original no se implementó y quedó superado por MSF-657 (la RPC es interna).
 - **Reversión**: migraciones aditivas `20261214100000`…`20261214100200`; en una migración posterior, de la más nueva a la más vieja: `drop view public.interes_whatsapp_por_producto`, `drop function publico.registrar_interes_whatsapp(text, uuid)` y `drop table dominio.intereses_whatsapp` (exportar antes los datos).
 
 ## Responder desde el panel (F-CON-04, MSF-244)
@@ -198,11 +198,10 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 - **El aviso sale por la cola de plataforma**: `private.emitir_aviso` es `security definer` con
   `search_path = ''` y solo lo llaman funciones internas; el destino lo decide la base (preferencia, sección y
   acceso a la empresa), nunca el pedido. Ver [`avisos-por-correo.md`](./avisos-por-correo.md).
-- **Interés por WhatsApp (MSF-130, FR-015)**: `dominio.intereses_whatsapp` con RLS por organización, empresa accesible y `consultas` ≥ `lectura`, sin políticas de escritura y con `revoke all … from public, anon, authenticated` + `grant select` a `authenticated`; la vista es `security_invoker` y `anon` no la lee; `anon` solo ejecuta `publico.registrar_interes_whatsapp` (`search_path = ''`, empresa solo por dominio, mismo `P0002` para dominio desconocido y empresa desactivada); no guarda datos personales. Esquemas: tabla en `dominio`, RPC en `publico`, vista en `public` (sin datos). Los enlaces de `Responder por` van codificados (`encodeURIComponent`, `wa.me` solo con dígitos). Comprobado por pgTAP (`interes_whatsapp.test.sql`, `consultas_responder.test.sql`, `rls_en_toda_tabla`).
+- **Interés por WhatsApp (MSF-130, FR-015)**: `dominio.intereses_whatsapp` con RLS por organización, empresa accesible y `consultas` ≥ `lectura`, sin políticas de escritura y con `revoke all … from public, anon, authenticated` + `grant select` a `authenticated`; la vista es `security_invoker` y `anon` no la lee; `anon` no ejecuta ninguna función de interés: `publico.registrar_interes_whatsapp` es solo `service_role` desde MSF-657 (`search_path = ''`, empresa solo por dominio, mismo `P0002` para dominio desconocido y empresa desactivada); no guarda datos personales. Esquemas: tabla en `dominio`, RPC en `publico`, vista en `public` (sin datos). Los enlaces de `Responder por` van codificados (`encodeURIComponent`, `wa.me` solo con dígitos). Comprobado por pgTAP (`interes_whatsapp.test.sql`, `consultas_responder.test.sql`, `rls_en_toda_tabla`).
 - **Esquemas contra el Principio VII**: las dos tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
-- **Riesgos aceptados**: (1) la RPC pública no tiene límite de frecuencia: el anti-spam es de MSF-212 y mientras
-  no exista un tercero puede llenar la bandeja de una tienda; (2) entrega «al menos una vez» (posible
+- **Riesgos aceptados**: (1) `publico.registrar_interes_whatsapp` no tiene límite de frecuencia ni idempotencia, y por eso desde MSF-657 ya no es pública (solo `service_role`); las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) aplican la cuota anti-spam; (2) entrega «al menos una vez» (posible
   duplicado); (3) los datos personales del visitante no tienen política de retención (abajo).
 
 ## Retención pendiente
@@ -254,3 +253,9 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 ## Bandeja con carga infinita e imagen del producto
 
 La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Buscar, cambiar estado, fechas, tienda o guardar una consulta reinicia desde la primera tanda; el contador total se mantiene. La columna «Producto» muestra la imagen principal como miniatura con zoom cuando la consulta tiene `producto_id`, y lo mismo el diálogo «Interés por WhatsApp». Ver [`listados.md`](./listados.md).
+
+## Privilegios de `publico.crear_consulta_publica` y `publico.registrar_interes_whatsapp` (MSF-653, MSF-657)
+
+El código de las migraciones ya revoca `publico.crear_consulta_publica` a `public`, `anon` y `authenticated` (`20261212120800`) y ninguna migración posterior la vuelve a otorgar; el pgTAP `consultas.test.sql` fija que `anon` y `authenticated` no la ejecutan y que `service_role` sí. Que el DEV la muestre ejecutable por `anon` es **deriva del entorno** (la migración figura aplicada pero el ACL real no coincide, síntoma de «aplicada-manual» de MSF-647): se corrige reaplicando el `revoke` en el DEV y verificando el ACL de las funciones de `publico` después de cada despliegue; no hay nada que cambiar en el código. `publico.registrar_interes_whatsapp` recibe el mismo tratamiento desde `20270507150100`.
+
+Único llamador real de `publico.registrar_interes_whatsapp` fuera de las pruebas: el sembrado del dataset demo (`scripts/demo-dataset/modulos/07-tiendas.mjs`, paso 7), que desde MSF-657 la invoca con la service-role key en vez de la anon key.

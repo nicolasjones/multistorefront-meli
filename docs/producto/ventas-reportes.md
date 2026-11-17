@@ -92,7 +92,7 @@ Muestra los productos que más veces se consultaron por WhatsApp en el período:
 | **Última consulta** | Fecha y hora de la consulta más reciente. |
 
 - Los productos aparecen ordenados por cantidad de consultas, de mayor a menor.
-- Cuenta cada toque en «Consultar por WhatsApp», no cada venta.
+- Cuenta cada toque en «Consultar por WhatsApp», no cada venta. Hoy solo el sembrado demo registra esos toques (MSF-657): la tienda real no los carga por ahora.
 - Se toman el período y la tienda de los filtros de arriba.
 - No muestra costo ni margen: son solo cantidades y fechas.
 - Si no hubo consultas en el período, ves «No hay consultas por WhatsApp en ese período».
