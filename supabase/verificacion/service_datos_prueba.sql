@@ -40,7 +40,7 @@ begin
     (c_ana, c_org, 'administrador', 'activo'), (c_luis, c_org, 'operador', 'activo') on conflict do nothing;
   insert into dominio.empresas (id, organizacion_id, nombre) values
     (c_norte, c_org, 'Tienda Norte'), (c_sur, c_org, 'Tienda Sur') on conflict do nothing;
-  insert into public.clientes (id, organizacion_id, numero, nombre, tipo)
+  insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo)
     values (c_cliente, c_org, 1, 'Cliente de prueba', 'minorista') on conflict do nothing;
 
   select id into v_modelo from dominio.modelos_equipo where organizacion_id = c_org order by equipo, modelo limit 1;

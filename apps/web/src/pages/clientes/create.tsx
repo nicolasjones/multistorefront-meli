@@ -68,9 +68,17 @@ export function AltaCliente({ onCancelar, alCrear }: AltaClienteProps) {
               }
               // Crea/suspende la cuenta web en cada tienda tildada (FR-015). Un fallo
               // parcial no revierte el cliente: se informa al llegar a la ficha.
-              const { errores } = tiendasGuardadas
-                ? await aplicarCuentaWebEnTiendas(data.id, tiendas, opciones.estado, opciones.invitar)
-                : { errores: tiendas.length }
+              // Defensa en profundidad (MSF-734): aunque aplicarCuentaWebEnTiendas no
+              // debería lanzar, un rechazo inesperado no puede dejar el formulario con
+              // error tras haber creado el cliente (el reintento lo duplicaría).
+              let errores = tiendas.length
+              if (tiendasGuardadas) {
+                try {
+                  ({ errores } = await aplicarCuentaWebEnTiendas(data.id, tiendas, opciones.estado, opciones.invitar))
+                } catch (error) {
+                  console.error('Cliente creado pero falló la cuenta web', error)
+                }
+              }
               const invitacion = opciones.estado === 'activa' && opciones.invitar && errores === 0
               const mensaje = errores > 0
                 ? `Cliente creado · no se pudo crear la cuenta web en ${errores} ${errores === 1 ? 'tienda' : 'tiendas'}`

@@ -29,7 +29,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Tienda A'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Tienda B');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, correo, acepta_correo_masivo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'minorista', 'alfa@example.com', true),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Beta', 'minorista', 'beta@example.com', true),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Gama', 'minorista', 'gama@example.com', true),

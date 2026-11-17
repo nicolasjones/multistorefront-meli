@@ -31,32 +31,32 @@ end $$;
 -- ============================================================================
 
 select is(
-  (select count(*)::int from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final),
+  (select count(*)::int from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final),
   1, 'la organización Uno tiene exactamente un Consumidor final'
 );
 select is(
-  (select count(*)::int from clientes where es_consumidor_final
+  (select count(*)::int from dominio.clientes where es_consumidor_final
      and organizacion_id in ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222')),
   2, 'cada organización creada tiene el suyo (disparador en organizaciones)'
 );
 select results_eq(
-  $$select nombre, tipo, archivado_en is null, numero from clientes
+  $$select nombre, tipo, archivado_en is null, numero from dominio.clientes
      where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
   $$values ('Consumidor final'::text, 'minorista'::text, true, 1)$$,
   'el Consumidor final es minorista, está activo y recibe el número 1'
 );
 select is(
   (select count(*)::int from organizaciones o
-    where not exists (select 1 from clientes c where c.organizacion_id = o.id and c.es_consumidor_final)),
+    where not exists (select 1 from dominio.clientes c where c.organizacion_id = o.id and c.es_consumidor_final)),
   0, 'ninguna organización existente queda sin Consumidor final (backfill + disparador)'
 );
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre, tipo, es_consumidor_final)
+  $$insert into dominio.clientes (organizacion_id, nombre, tipo, es_consumidor_final)
     values ('11111111-1111-1111-1111-111111111111', 'Otro mostrador', 'minorista', true)$$,
   '23505', null, 'no puede haber un segundo Consumidor final en la organización'
 );
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre, tipo, es_consumidor_final)
+  $$insert into dominio.clientes (organizacion_id, nombre, tipo, es_consumidor_final)
     values ('22222222-2222-2222-2222-222222222222', 'Mostrador mayorista', 'mayorista', true)$$,
   '23514', null, 'un Consumidor final no puede ser mayorista (restricción en base)'
 );
@@ -66,29 +66,29 @@ select throws_ok(
 -- ============================================================================
 
 select throws_ok(
-  $$update clientes set nombre = 'Renombrado' where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
+  $$update dominio.clientes set nombre = 'Renombrado' where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
   '42501', null, 'el Consumidor final no se edita (ni como postgres)'
 );
 select throws_ok(
-  $$update clientes set archivado_en = now() where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
+  $$update dominio.clientes set archivado_en = now() where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
   '42501', null, 'el Consumidor final no se archiva'
 );
 select throws_ok(
-  $$update clientes set tipo = 'mayorista' where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
+  $$update dominio.clientes set tipo = 'mayorista' where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
   '42501', null, 'el Consumidor final no cambia de tipo'
 );
 select throws_ok(
-  $$delete from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
+  $$delete from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final$$,
   '42501', null, 'el Consumidor final no se borra'
 );
 
-insert into clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c3000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Cliente minorista', 'minorista'),
   ('c3000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cliente mayorista', 'mayorista'),
   ('c3000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'Cliente de la Dos', 'minorista');
 
 select throws_ok(
-  $$update clientes set es_consumidor_final = true where id = 'c3000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set es_consumidor_final = true where id = 'c3000000-0000-0000-0000-000000000001'$$,
   '42501', null, 'un cliente común no se convierte en Consumidor final'
 );
 
@@ -98,49 +98,49 @@ select throws_ok(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(
-  (select count(*)::int from clientes where es_consumidor_final), 1,
+  (select count(*)::int from dominio.clientes where es_consumidor_final), 1,
   'el administrador ve el Consumidor final de su organización en el listado'
 );
 select throws_ok(
-  $$update clientes set nombre = 'Renombrado' where es_consumidor_final$$,
+  $$update dominio.clientes set nombre = 'Renombrado' where es_consumidor_final$$,
   '42501', null, 'el administrador no edita el Consumidor final'
 );
 select throws_ok(
-  $$update clientes set archivado_en = now() where es_consumidor_final$$,
+  $$update dominio.clientes set archivado_en = now() where es_consumidor_final$$,
   '42501', null, 'el administrador no archiva el Consumidor final'
 );
 select throws_ok(
-  $$delete from clientes where es_consumidor_final$$,
+  $$delete from dominio.clientes where es_consumidor_final$$,
   '42501', null, 'el administrador no borra el Consumidor final'
 );
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre, es_consumidor_final) values ('11111111-1111-1111-1111-111111111111', 'Falso mostrador', true)$$,
+  $$insert into dominio.clientes (organizacion_id, nombre, es_consumidor_final) values ('11111111-1111-1111-1111-111111111111', 'Falso mostrador', true)$$,
   '42501', null, 'el llamador no puede fijar `es_consumidor_final` al insertar'
 );
 select throws_ok(
-  $$update clientes set es_consumidor_final = true where id = 'c3000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set es_consumidor_final = true where id = 'c3000000-0000-0000-0000-000000000001'$$,
   '42501', null, 'el llamador no puede cambiar `es_consumidor_final`'
 );
 
 -- Tipo (FR-008)
 select lives_ok(
-  $$insert into clientes (id, organizacion_id, nombre) values ('c3000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Sin tipo explícito')$$,
+  $$insert into dominio.clientes (id, organizacion_id, nombre) values ('c3000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'Sin tipo explícito')$$,
   'alta sin tipo: se acepta'
 );
 select is(
-  (select tipo from clientes where id = 'c3000000-0000-0000-0000-000000000004'),
+  (select tipo from dominio.clientes where id = 'c3000000-0000-0000-0000-000000000004'),
   'minorista', 'el tipo por defecto es minorista'
 );
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre, tipo) values ('11111111-1111-1111-1111-111111111111', 'Tipo raro', 'distribuidor')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre, tipo) values ('11111111-1111-1111-1111-111111111111', 'Tipo raro', 'distribuidor')$$,
   '23514', null, 'un tipo fuera de minorista/mayorista se rechaza'
 );
 select throws_ok(
-  $$update clientes set tipo = null where id = 'c3000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set tipo = null where id = 'c3000000-0000-0000-0000-000000000001'$$,
   '23502', null, 'el tipo no puede quedar vacío'
 );
 select lives_ok(
-  $$update clientes set tipo = 'mayorista' where id = 'c3000000-0000-0000-0000-000000000001'$$,
+  $$update dominio.clientes set tipo = 'mayorista' where id = 'c3000000-0000-0000-0000-000000000001'$$,
   'el administrador cambia el tipo de un cliente común'
 );
 reset role;
@@ -157,7 +157,7 @@ select is(
   escala_de_cliente('c3000000-0000-0000-0000-000000000002'), 'por_cantidad', 'mayorista → por_cantidad'
 );
 select is(
-  escala_de_cliente((select id from clientes where es_consumidor_final)), 'x1', 'Consumidor final → x1'
+  escala_de_cliente((select id from dominio.clientes where es_consumidor_final)), 'x1', 'Consumidor final → x1'
 );
 select is(
   escala_de_cliente('c3000000-0000-0000-0000-000000000003'), null, 'cliente de otra organización → nulo (RLS)'
@@ -176,7 +176,7 @@ select ok(has_function_privilege('authenticated', 'public.escala_de_cliente(uuid
 
 insert into organizaciones (id, nombre) values ('33333333-3333-3333-3333-333333333333', 'Organización Tres');
 select is(
-  (select count(*)::int from clientes where organizacion_id = '33333333-3333-3333-3333-333333333333' and es_consumidor_final),
+  (select count(*)::int from dominio.clientes where organizacion_id = '33333333-3333-3333-3333-333333333333' and es_consumidor_final),
   1, 'una organización nueva recibe su Consumidor final automáticamente'
 );
 select lives_ok(

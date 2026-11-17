@@ -14,7 +14,7 @@ const DESTINO = `${ORG}/${EJEC}.zip`;
 
 const CONJUNTOS: Conjunto[] = [
   { esquema: 'dominio', tabla: 'productos', columnas: ['id', 'nombre', 'precio'] },
-  { esquema: 'public', tabla: 'clientes', columnas: ['id', 'nombre'] },
+  { esquema: 'dominio', tabla: 'clientes', columnas: ['id', 'nombre'] },
 ];
 
 let directorio: string;
@@ -33,6 +33,7 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
   const errores: unknown[][] = [];
   const pedidos: unknown[][] = [];
   const limpiezas: string[][] = [];
+  const borrados: string[] = [];
   const puertos: Puertos = {
     enCurso: async () => true,
     datos: async () => ({ organizacion_id: ORG, proceso_id: PROCESO, conjuntos: conjuntos.length }),
@@ -47,12 +48,13 @@ function armar(datosPorTabla: Record<string, Record<string, unknown>[]>, sobre: 
     cerrarProceso: async (...args) => { cierresProceso.push(args); },
     abrirZip: () => crearEscritorZip({ directorio }),
     subir: async (archivo, destino) => { subidas.push({ destino, zip: new Uint8Array(readFileSync(archivo.ruta)) }); },
+    borrar: async (destino) => { borrados.push(destino); },
     limpiarAnteriores: async (carpeta, conservar) => { limpiezas.push([carpeta, conservar]); },
     cerrarEjecucion: async (...args) => { cierresEjecucion.push(args); },
     evento: () => {},
     ...sobre,
   };
-  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas };
+  return { puertos, subidas, cierresProceso, cierresEjecucion, progresos, errores, pedidos, limpiezas, borrados };
 }
 
 // strFromU8 descarta el BOM: se decodifica conservándolo para verificarlo.
@@ -63,13 +65,13 @@ const clientes = [{ id: 'c1', nombre: 'Ana' }];
 
 describe('ZIP con un CSV por conjunto (FR-033)', () => {
   it('sube un ZIP con un CSV por conjunto, un LEEME y cierra completado', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
     expect(s.codigo).toBe(0);
     expect(t.subidas).toHaveLength(1);
     expect(t.subidas[0].destino).toBe(DESTINO);
     const archivos = unzipSync(t.subidas[0].zip);
-    expect(Object.keys(archivos).sort()).toEqual(['LEEME.txt', 'dominio/productos.csv', 'public/clientes.csv']);
+    expect(Object.keys(archivos).sort()).toEqual(['LEEME.txt', 'dominio/clientes.csv', 'dominio/productos.csv']);
     const csv = strFromU8(archivos['dominio/productos.csv']);
     expect(csv.startsWith('﻿')).toBe(true);
     const lineas = csv.slice(1).split('\r\n');
@@ -82,13 +84,13 @@ describe('ZIP con un CSV por conjunto (FR-033)', () => {
   });
 
   it('informa el avance por conjunto con total = cantidad de conjuntos', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos);
     expect(t.progresos).toEqual([[0, 2], [1, 2], [2, 2]]);
   });
 
   it('lee por lotes sin cargar el conjunto entero', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos, { tamanoLote: 2 });
     expect(t.pedidos.filter((p) => p[1] === 'productos').map((p) => [p[2], p[3]])).toEqual([[0, 2], [2, 2], [4, 2]]);
     const csv = strFromU8(unzipSync(t.subidas[0].zip)['dominio/productos.csv']);
@@ -96,13 +98,13 @@ describe('ZIP con un CSV por conjunto (FR-033)', () => {
   });
 
   it('un conjunto vacío igual sale con su encabezado', async () => {
-    const t = armar({ 'dominio.productos': [], 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': [], 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos);
     expect(strFromU8(unzipSync(t.subidas[0].zip)['dominio/productos.csv'])).toBe('﻿id;nombre;precio\r\n');
   });
 
   it('no deja archivos temporales en disco', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos);
     expect(readdirSync(directorio)).toEqual([]);
   });
@@ -110,10 +112,10 @@ describe('ZIP con un CSV por conjunto (FR-033)', () => {
 
 describe('errores por conjunto (FR-034)', () => {
   it('un conjunto que falla se registra, el resto sigue y cierra con_errores', async () => {
-    const t = armar({ 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.clientes': clientes }, {
       filas: async (_id, esquema, tabla) => {
         if (tabla === 'productos') throw new Error('relation "dominio.productos" secreto interno');
-        return esquema === 'public' ? clientes : [];
+        return tabla === 'clientes' ? clientes : [];
       },
     });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
@@ -136,7 +138,7 @@ describe('errores por conjunto (FR-034)', () => {
 describe('cancelación (FR-034, SC-005)', () => {
   it('cancelada antes de empezar un conjunto: sin ZIP, sin subida, cierra cancelado', async () => {
     let consultas = 0;
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       cancelado: async () => { consultas += 1; return consultas >= 2; },
     });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
@@ -150,7 +152,7 @@ describe('cancelación (FR-034, SC-005)', () => {
 
   it('cancelada entre lotes de un conjunto: corta sin ZIP parcial', async () => {
     let consultas = 0;
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       // 1.ª antes del conjunto, 2.ª entre lotes.
       cancelado: async () => { consultas += 1; return consultas >= 2; },
     });
@@ -159,6 +161,40 @@ describe('cancelación (FR-034, SC-005)', () => {
     expect(t.subidas).toHaveLength(0);
     expect(t.cierresProceso[0].slice(1, 2)).toEqual(['cancelado']);
     expect(readdirSync(directorio)).toEqual([]);
+  });
+});
+
+describe('cancelación posterior a la subida', () => {
+  it('borra el ZIP subido, cierra cancelado y no hace la retención', async () => {
+    // 2 conjuntos: 2 consultas durante la lectura (antes de cada conjunto); la 3.ª es la posterior a la subida.
+    let consultas = 0;
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
+      cancelado: async () => { consultas += 1; return consultas >= 3; },
+    });
+    const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
+    expect(s.codigo).toBe(0);
+    expect(t.subidas).toHaveLength(1);
+    expect(t.borrados).toEqual([DESTINO]);
+    expect(t.limpiezas).toHaveLength(0);
+    expect(t.cierresProceso).toEqual([[PROCESO, 'cancelado', 'CANCELADA']]);
+    expect(t.cierresEjecucion[0].slice(0, 2)).toEqual([EJEC, 'exitosa']);
+  });
+
+  it('si no se puede borrar el ZIP propaga el error para que el flow reintente', async () => {
+    let consultas = 0;
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
+      cancelado: async () => { consultas += 1; return consultas >= 3; },
+      borrar: async () => { throw new Error('BORRADO_FALLIDO:500'); },
+    });
+    await expect(exportarOrganizacion(EJEC, ORG, t.puertos)).rejects.toThrow('BORRADO_CANCELADA_FALLIDO');
+    expect(t.cierresProceso).toHaveLength(0);
+  });
+
+  it('el LEEME documenta el apóstrofo de la neutralización de fórmulas', async () => {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
+    await exportarOrganizacion(EJEC, ORG, t.puertos);
+    const leeme = strFromU8(unzipSync(t.subidas[0].zip)['LEEME.txt']);
+    expect(leeme).toContain('apóstrofo');
   });
 });
 
@@ -178,7 +214,7 @@ describe('fallas no reintentables (código 78)', () => {
   });
 
   it('el ZIP supera el tope: proceso fallido con motivo sanitizado y sin archivo', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       abrirZip: () => crearEscritorZip({ directorio, topeBytes: 10 }),
     });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
@@ -198,7 +234,7 @@ describe('fallas no reintentables (código 78)', () => {
 
   it('con el entorno completo delega y cierra los puertos', async () => {
     let cerrado = false;
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     const s = await ejecutarDesdeEntorno(
       { ORGANIZACION_ID: ORG, EJECUCION_ID: EJEC, SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k' },
       () => ({ puertos: t.puertos, cerrar: async () => { cerrado = true; } }),
@@ -210,7 +246,7 @@ describe('fallas no reintentables (código 78)', () => {
 
 describe('falla técnica en la subida', () => {
   it('propaga el error para que el flow reintente, sin cerrar el proceso y sin dejar el temporal', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       subir: async () => { throw new Error('SUBIDA_FALLIDA:500'); },
     });
     await expect(exportarOrganizacion(EJEC, ORG, t.puertos)).rejects.toThrow('SUBIDA_FALLIDA:500');
@@ -221,13 +257,13 @@ describe('falla técnica en la subida', () => {
 
 describe('retención del archivo anterior (FR-037)', () => {
   it('borra los ZIP anteriores de la organización conservando el nuevo', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes });
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes });
     await exportarOrganizacion(EJEC, ORG, t.puertos);
     expect(t.limpiezas).toEqual([[`${ORG}/`, DESTINO]]);
   });
 
   it('si la limpieza falla, la exportación igual termina bien', async () => {
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       limpiarAnteriores: async () => { throw new Error('BORRADO_FALLIDO:500'); },
     });
     const s = await exportarOrganizacion(EJEC, ORG, t.puertos);
@@ -237,7 +273,7 @@ describe('retención del archivo anterior (FR-037)', () => {
 
   it('la limpieza corre después de la subida y antes del cierre', async () => {
     const orden: string[] = [];
-    const t = armar({ 'dominio.productos': productos, 'public.clientes': clientes }, {
+    const t = armar({ 'dominio.productos': productos, 'dominio.clientes': clientes }, {
       subir: async () => { orden.push('subir'); },
       limpiarAnteriores: async () => { orden.push('limpiar'); },
       cerrarProceso: async () => { orden.push('cerrar'); },

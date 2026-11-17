@@ -23,6 +23,7 @@ vi.mock('../../../lib/tiendaCuenta', async (original) => ({
   salirCliente: mocks.salirCliente,
 }))
 
+import { reiniciarCapacidadOpiniones } from '../../../lib/tiendaOpiniones'
 import RutaMiCuenta from './mi-cuenta'
 
 const HOST = 'mundojc.localhost'
@@ -81,6 +82,7 @@ function montar(entrada = '/mi-cuenta') {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  reiniciarCapacidadOpiniones()
   fijarAncho(1440)
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
   mocks.schema.mockReturnValue({ rpc: mocks.rpc })
@@ -271,5 +273,40 @@ describe('/mi-cuenta (P-3)', () => {
     const { container } = montar()
     await screen.findByText(/Nº 00000012/)
     expect(await violacionesAxe(container)).toEqual([])
+  })
+})
+
+describe('/mi-cuenta · «Mis opiniones» (bandera tienda_opiniones)', () => {
+  const MIS_OPINIONES = {
+    estado: 'ok', total: 1, siguiente: null,
+    filas: [{ id: '0c000000-0000-4000-8000-000000000001', producto_id: P_1, producto_nombre: 'Joystick Pro', puntuacion: 5, comentario: 'Muy bueno', estado: 'aceptada', motivo_rechazo: null, creada_en: '2027-03-10T10:00:00+00:00', actualizada_en: '2027-03-10T10:00:00+00:00' }],
+  }
+
+  it('con la función apagada la pantalla es idéntica a la de antes: sin pestaña y sin pedir opiniones', async () => {
+    rpcs({ capacidades_opiniones_por_dominio: { estado: 'ok', opiniones: false }, mis_compras_por_dominio: COMPRAS })
+    montar('/mi-cuenta?seccion=opiniones')
+    await screen.findByText('Nº 00000012')
+    const pestanas = screen.getByRole('tablist', { name: 'Secciones de Mi cuenta' })
+    expect(within(pestanas).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Compras y presupuestos', 'Favoritos'])
+    expect(mocks.rpc).not.toHaveBeenCalledWith('mis_opiniones_por_dominio', expect.anything())
+  })
+
+  it('con la función encendida suma la pestaña «Mis opiniones» y recién ahí pide la lista', async () => {
+    rpcs({ capacidades_opiniones_por_dominio: { estado: 'ok', opiniones: true }, mis_compras_por_dominio: COMPRAS, mis_opiniones_por_dominio: MIS_OPINIONES })
+    montar()
+    await screen.findByText('Nº 00000012')
+    const pestana = await screen.findByRole('tab', { name: 'Mis opiniones' })
+    expect(within(screen.getByRole('tablist', { name: 'Secciones de Mi cuenta' })).getAllByRole('tab').map((t) => t.textContent)).toEqual(['Compras y presupuestos', 'Favoritos', 'Mis opiniones'])
+    expect(mocks.rpc).not.toHaveBeenCalledWith('mis_opiniones_por_dominio', expect.anything())
+    fireEvent.click(pestana)
+    expect(screen.getByTestId('ubicacion')).toHaveTextContent('/mi-cuenta?seccion=opiniones')
+    expect(await screen.findByText('Publicada')).toBeInTheDocument()
+  })
+
+  it('abrir con ?seccion=opiniones arranca en esa pestaña cuando la función está encendida', async () => {
+    rpcs({ capacidades_opiniones_por_dominio: { estado: 'ok', opiniones: true }, mis_compras_por_dominio: COMPRAS, mis_opiniones_por_dominio: MIS_OPINIONES })
+    montar('/mi-cuenta?seccion=opiniones')
+    expect(await screen.findByText('Publicada')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Mis opiniones' })).toHaveAttribute('aria-selected', 'true')
   })
 })

@@ -147,7 +147,7 @@ empresa_id, empresa, cliente, equipo, modelo, numero_serie, estado, estado_tono,
 entrega_prevista, total_cliente`.
 
 **Desvío de la spec**: el requisito pedía `security invoker`, pero la función es `security definer`, igual que
-`obtener_reparacion`. El cliente vive en `public.clientes`, cuya RLS exige la sección *Clientes*; un rol de
+`obtener_reparacion`. El cliente vive en `dominio.clientes`, cuya RLS exige la sección *Clientes*; un rol de
 Service sin esa sección vería el listado vacío. La función aplica a mano el mismo límite de la RLS de
 `reparaciones`: organización del llamador, al menos `lectura` en `service_tecnico` y tiendas de
 `private.empresas_accesibles()`.

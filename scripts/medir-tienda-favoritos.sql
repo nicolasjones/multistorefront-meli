@@ -17,7 +17,7 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, m
  select ('b9000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'99999999-9999-9999-9999-999999999999','P'||n,'S'||n,100,'ARS',true from generate_series(1,:N) n;
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
  select id,'e9000000-0000-0000-0000-000000000001',organizacion_id from dominio.productos where organizacion_id='99999999-9999-9999-9999-999999999999';
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values ('c9000000-0000-0000-0000-000000000001','99999999-9999-9999-9999-999999999999',5000,'C','minorista');
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values ('c9000000-0000-0000-0000-000000000001','99999999-9999-9999-9999-999999999999',5000,'C','minorista');
 insert into clientes_empresas values ('c9000000-0000-0000-0000-000000000001','e9000000-0000-0000-0000-000000000001','99999999-9999-9999-9999-999999999999');
 insert into cuentas_cliente (organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values ('99999999-9999-9999-9999-999999999999','c9000000-0000-0000-0000-000000000001','e9000000-0000-0000-0000-000000000001','f9000000-0000-0000-0000-000000000001','activa');
 update public.banderas_plataforma set activa=true where clave='tienda_pedidos';

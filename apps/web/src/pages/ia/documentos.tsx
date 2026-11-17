@@ -156,7 +156,11 @@ export function IaDocumentos() {
       // con una versión nueva, el nombre sigue al archivo realmente subido.
       if (documentoId) {
         const { error: nombreError } = await supabaseClient.from('documentos').update({ nombre: archivo.name }).eq('id', docId)
-        if (nombreError) throw new Error(`No pudimos actualizar el nombre del documento: ${nombreError.message}`)
+        if (nombreError) {
+          // Sin el nombre nuevo la indexación no se invoca: la versión no puede quedar en «procesando» (MSF-750).
+          await supabaseClient.from('versiones_documento').update({ estado: 'fallida' }).eq('id', versionId)
+          throw new Error(`No pudimos actualizar el nombre del documento: ${nombreError.message}`)
+        }
       }
 
       const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })

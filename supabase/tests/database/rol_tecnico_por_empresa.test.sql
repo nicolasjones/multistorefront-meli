@@ -20,7 +20,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho'),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$

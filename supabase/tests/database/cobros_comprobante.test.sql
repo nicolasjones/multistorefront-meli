@@ -63,7 +63,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('d1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'mostrador'),
   ('d1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 20, 'Cliente Dos', 'minorista');
 
@@ -1032,13 +1032,13 @@ select is(
 select is(
   (select actor_id from public.registro_actividad
     where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'
-      and detalle like 'Cobro de 100%'),
+      and detalle like 'Cobro de ARS 100%'),
   'd1000000-0000-0000-0000-000000000002'::uuid, 'el evento del cobro por la RPC guarda quién lo registró'
 );
 select is(
   (select empresa_id from public.registro_actividad
     where tipo = 'comprobante.cobro_registrado' and organizacion_id = '11111111-1111-1111-1111-111111111111'
-      and detalle like 'Cobro de 100%'),
+      and detalle like 'Cobro de ARS 100%'),
   'a1000000-0000-0000-0000-00000000000a'::uuid, 'el evento del cobro guarda la tienda'
 );
 select ok(
@@ -1284,6 +1284,35 @@ select is(
   'cobrado', 'pero el estado no retrocede solo (límite documentado)');
 
 reset role;
+
+-- ============================================================================
+-- La moneda del importe va en el detalle (MSF-618): el texto dice de qué moneda
+-- es el importe, así la pantalla no lo muestra siempre como pesos.
+-- ============================================================================
+
+insert into dominio.cuentas_cobro (id, organizacion_id, nombre, titular, banco, activa, moneda) values
+  ('e1000000-0000-0000-0000-00000000000d', '11111111-1111-1111-1111-111111111111', 'Billetera Dólares', 'Titular Cinco', 'Nubank', true, 'USD');
+insert into dominio.cuentas_cobro_empresas (cuenta_id, empresa_id, organizacion_id) values
+  ('e1000000-0000-0000-0000-00000000000d', 'a1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111');
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, confirmado_en) values
+  ('f1000000-0000-0000-0000-000000000040', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'c1000000-0000-0000-0000-000000000001', 'factura', '0001-00000040', '2026-12-04', 'confirmada', 1000, 1000, now());
+
+select lives_ok(
+  $$select private.registrar_cobro_interno(
+      'f1000000-0000-0000-0000-000000000040', 100.50,
+      'b1000000-0000-0000-0000-00000000000b', 'e1000000-0000-0000-0000-00000000000d',
+      'manual', 'd1000000-0000-0000-0000-000000000002')$$,
+  'se registra un cobro de 100,50 en una cuenta en dólares'
+);
+select is(
+  (select detalle from public.registro_actividad
+    where tipo = 'comprobante.cobro_registrado'
+      and organizacion_id = '11111111-1111-1111-1111-111111111111'
+      and detalle like '%de la factura 0001-00000040%'),
+  'Cobro de ARS 100.50 por Transferencia en la cuenta Billetera Dólares de la factura 0001-00000040',
+  'el detalle dice la moneda del importe: la del comprobante, no la de la cuenta (el importe descuenta un saldo en pesos)'
+);
 
 select * from finish();
 

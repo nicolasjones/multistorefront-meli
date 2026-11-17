@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { etiquetaTipoActividad, formatearCuando, quienDelEvento, rangoDelPeriodo, tiendaDelEvento, type FiltrosActividad } from './actividad'
+import { etiquetaTipoActividad, formatearCuando, formatearDetalleActividad, quienDelEvento, rangoDelPeriodo, tiendaDelEvento, type FiltrosActividad } from './actividad'
 import { armarCsv, descargarCsv, nombreArchivoCsv, type ColumnaCsv } from './exportarCsv'
 
 // Exportación de la actividad a CSV (F-AUD-03, MSF-278, FR-011…FR-013). Las filas salen de la RPC
@@ -35,7 +35,7 @@ export const COLUMNAS_EXPORTACION_ACTIVIDAD: readonly ColumnaCsv<FilaExportacion
   { encabezado: 'Cuándo', valor: (fila) => formatearCuando(fila.creado_en) },
   { encabezado: 'Tipo', valor: (fila) => etiquetaTipoActividad(fila.tipo) },
   { encabezado: 'Tienda', valor: (fila) => tiendaDelEvento(fila.empresa_nombre, fila.empresa_id) },
-  { encabezado: 'Detalle', valor: (fila) => fila.detalle },
+  { encabezado: 'Detalle', valor: (fila) => formatearDetalleActividad(fila.detalle) },
   { encabezado: 'Quién', valor: (fila) => quienDelEvento(fila.tipo, fila.actor_nombre) },
 ]
 

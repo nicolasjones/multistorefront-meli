@@ -92,8 +92,8 @@ async function directorioDePrueba() {
     path.join(directorio, 'reportes.json'),
     JSON.stringify({
       reportes: [
-        { nombre: 'Resumen', dashboard_uuid: UUID_A, seccion: 'rentabilidad', rolesPorDefecto: ['administracion', 'administrador'] },
-        { nombre: 'Por producto', dashboard_uuid: UUID_B, seccion: 'rentabilidad', rolesPorDefecto: ['administracion'] },
+        { nombre: 'Resumen', dashboard_uuid: UUID_A, seccion: 'rentabilidad', rolesPorDefecto: ['administracion', 'administrador'], datasets_permitidos_extra: ['resumen'] },
+        { nombre: 'Por producto', dashboard_uuid: UUID_B, seccion: 'rentabilidad', rolesPorDefecto: ['administracion'], datasets_permitidos_extra: ['por_producto'] },
       ],
     }),
   );
@@ -282,11 +282,18 @@ function superset(embebidos) {
   const fetchFalso = async (url, opciones = {}) => {
     llamadas.push(`${opciones.method ?? 'GET'} ${url}`);
     if (url.endsWith('/api/v1/security/login')) return respuestaJson({ access_token: 'token' });
-    if (url.endsWith('/api/v1/security/csrf_token/')) return respuestaJson({ result: 'csrf' });
+    if (url.endsWith('/api/v1/security/csrf_token/')) {
+      return new Response(JSON.stringify({ result: 'csrf' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'set-cookie': 'session=abc123; HttpOnly; Path=/' },
+      });
+    }
     const coincidencia = url.match(/\/api\/v1\/dashboard\/([^/]+)\/embedded$/);
     if (coincidencia) {
       const slug = decodeURIComponent(coincidencia[1]);
       if (opciones.method === 'POST') {
+        // Superset rechaza el POST si no llegan juntos el token CSRF y la cookie de sesión que lo emitió.
+        if (opciones.headers?.cookie !== 'session=abc123') return respuestaJson({ message: 'The CSRF token is missing.' }, 400);
         embebidos.set(slug, { uuid: UUID_B, dominios: JSON.parse(opciones.body).allowed_domains });
         return respuestaJson({ result: { uuid: UUID_B } });
       }
@@ -850,7 +857,7 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
 
   const archivosDataset = await readdir(path.join(raiz, 'datasets', 'Inventario_analitica'));
-  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_reposicion.yaml']);
+  assert.deepEqual(archivosDataset.sort(), ['inventario_productos_stock.yaml', 'inventario_productos_stock_cantidades.yaml', 'inventario_reposicion.yaml']);
   const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock.yaml');
   assert.match(dataset, /^schema: analitica$/m, 'lee solo del esquema analitica');
   assert.match(dataset, /^table_name: inventario_productos_stock$/m);
@@ -874,11 +881,144 @@ test('los YAML versionados de Inventario son coherentes: filtros nativos, valor 
   }
 
   const { reportes } = JSON.parse(await leer('reportes.json'));
-  assert.deepEqual(reportes.map((r) => r.dashboard_slug), ['inventario-productos-stock', 'inventario-reposicion']);
+  assert.deepEqual(
+    reportes.map((r) => r.dashboard_slug),
+    ['inventario-productos-stock', 'inventario-productos-stock-cantidades', 'inventario-reposicion'],
+  );
   for (const reporte of reportes) {
     assert.equal(reporte.seccion, 'stock');
     assert.equal(reporte.filtro_empresa, false);
     assert.ok(!reporte.rolesPorDefecto.includes('administrador'));
+  }
+  // Solo el tablero con costos exige la acción `ver_costos`; el de cantidades y el de reposición no.
+  assert.deepEqual(
+    reportes.filter((r) => r.accion_requerida).map((r) => [r.dashboard_slug, r.accion_requerida]),
+    [['inventario-productos-stock', 'ver_costos']],
+  );
+});
+
+// Allowlist de datasets por tablero (rol Guest único): cada tablero de cada directorio debe tener la suya, derivada de
+// sus YAML; el token de un tablero queda vedado para todo dataset que no esté en ella.
+test('la allowlist de datasets de cada tablero se deriva de los YAML de todos los directorios', async () => {
+  const { readFile, readdir } = await import('node:fs/promises');
+  const { datasetsPermitidos } = await import('./datasets-tablero.mjs');
+  const raiz = path.resolve('infra/superset/dashboards');
+  const porSlug = new Map();
+  for (const directorio of await readdir(raiz)) {
+    const { reportes } = JSON.parse(await readFile(path.join(raiz, directorio, 'reportes.json'), 'utf8'));
+    for (const reporte of reportes) {
+      const nombres = await datasetsPermitidos(path.join(raiz, directorio), reporte);
+      assert.ok(nombres.length > 0, `${reporte.nombre} tiene allowlist`);
+      porSlug.set(reporte.dashboard_slug, nombres);
+    }
+  }
+  // Inventario: Reposición NO incluye el dataset con costos; el de cantidades tampoco; el de costos solo el suyo.
+  assert.deepEqual(porSlug.get('inventario-reposicion'), ['inventario_reposicion']);
+  assert.deepEqual(porSlug.get('inventario-productos-stock-cantidades'), ['inventario_productos_stock_cantidades']);
+  assert.deepEqual(porSlug.get('inventario-productos-stock'), ['inventario_productos_stock']);
+  // Un tablero con varios datasets (gráficos y filtros nativos) los lleva todos.
+  assert.deepEqual(porSlug.get('rentabilidad-resumen'), ['margen_producto_canal', 'rentabilidad_consolidado', 'rentabilidad_resumen_empresa']);
+  for (const [slug, nombres] of porSlug) {
+    if (slug.startsWith('inventario-') && slug !== 'inventario-productos-stock') {
+      assert.ok(!nombres.includes('inventario_productos_stock'), `${slug} no puede leer el dataset con costos`);
+    }
+  }
+});
+
+// Snapshot versionado: el contenido EXACTO de la allowlist de los 16 tableros. Si cambia un tablero o dataset (o la
+// derivación), este test obliga a revisarlo y a actualizar el snapshot y la semilla de la migración.
+test('la allowlist derivada de los 16 tableros coincide con el snapshot versionado y con la semilla de la migración', async () => {
+  const { readFile, readdir } = await import('node:fs/promises');
+  const { datasetsPermitidos } = await import('./datasets-tablero.mjs');
+  const raiz = path.resolve('infra/superset/dashboards');
+  const derivado = {};
+  for (const directorio of await readdir(raiz)) {
+    const { reportes } = JSON.parse(await readFile(path.join(raiz, directorio, 'reportes.json'), 'utf8'));
+    for (const reporte of reportes) derivado[reporte.nombre] = await datasetsPermitidos(path.join(raiz, directorio), reporte);
+  }
+  const { tableros } = JSON.parse(await readFile(path.resolve('infra/superset/datasets-tablero.snapshot.json'), 'utf8'));
+  assert.equal(Object.keys(derivado).length, 16);
+  assert.deepEqual(derivado, tableros, 'la derivación cambió: actualizá datasets-tablero.snapshot.json y la semilla de la migración (bloque 4a)');
+
+  // Semilla de la migración (bloque 4a): cada (nombre, array[...]) debe ser igual a lo derivado.
+  const migracion = await readFile(path.resolve('supabase/migrations/20270438000000_reportes_inventario_solo_cantidades.sql'), 'utf8');
+  const bloque = migracion.split('-- SEMILLA-INICIO')[1].split('-- SEMILLA-FIN')[0];
+  const semilla = {};
+  for (const fila of bloque.matchAll(/\('([^']+)', array\[([^\]]*)\]\)/g)) {
+    semilla[fila[1]] = [...fila[2].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  }
+  assert.deepEqual(semilla, derivado, 'la semilla de datasets_permitidos de la migración se desvió de lo que deriva el importador');
+});
+
+test('cada gráfico y filtro nativo de un tablero tiene su dataset en la allowlist (nadie queda con filas vacías)', async () => {
+  const { readFile, readdir } = await import('node:fs/promises');
+  const { datasetsPermitidos } = await import('./datasets-tablero.mjs');
+  const raiz = path.resolve('infra/superset/dashboards');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+  for (const directorio of await readdir(raiz)) {
+    const dir = path.join(raiz, directorio);
+    const nombresDataset = new Map();
+    for (const archivo of await readdir(path.join(dir, 'datasets'), { recursive: true })) {
+      if (!archivo.endsWith('.yaml')) continue;
+      const texto = await readFile(path.join(dir, 'datasets', archivo), 'utf8');
+      nombresDataset.set(campo(texto, 'uuid'), campo(texto, 'table_name'));
+    }
+    const graficos = [];
+    for (const archivo of await readdir(path.join(dir, 'charts'))) {
+      const texto = await readFile(path.join(dir, 'charts', archivo), 'utf8');
+      graficos.push({ uuid: campo(texto, 'uuid'), dataset: campo(texto, 'dataset_uuid') });
+    }
+    const { reportes } = JSON.parse(await readFile(path.join(dir, 'reportes.json'), 'utf8'));
+    for (const reporte of reportes) {
+      const permitidos = await datasetsPermitidos(dir, reporte);
+      let tablero = null;
+      for (const archivo of await readdir(path.join(dir, 'dashboards'))) {
+        const texto = await readFile(path.join(dir, 'dashboards', archivo), 'utf8');
+        if (campo(texto, 'slug') === reporte.dashboard_slug) tablero = texto;
+      }
+      for (const grafico of graficos.filter((g) => tablero.includes(g.uuid))) {
+        assert.ok(permitidos.includes(nombresDataset.get(grafico.dataset)), `${reporte.nombre}: el gráfico ${grafico.uuid} usa un dataset fuera de la allowlist`);
+      }
+      for (const [uuid, nombre] of nombresDataset) {
+        if (tablero.includes(uuid)) assert.ok(permitidos.includes(nombre), `${reporte.nombre}: el filtro nativo usa ${nombre}, fuera de la allowlist`);
+      }
+    }
+  }
+});
+
+test('datasetsPermitidos falla si el tablero no existe o no tiene datasets, y suma datasets_permitidos_extra', async () => {
+  const { datasetsPermitidos } = await import('./datasets-tablero.mjs');
+  const directorio = path.resolve('infra/superset/dashboards/inventario');
+  await assert.rejects(() => datasetsPermitidos(directorio, { nombre: 'X', dashboard_slug: 'no-existe' }), /no-existe/);
+  await assert.rejects(() => datasetsPermitidos(directorio, { nombre: 'Sin datasets' }), /no tiene datasets/);
+  assert.deepEqual(
+    await datasetsPermitidos(directorio, { nombre: 'R', dashboard_slug: 'inventario-reposicion', datasets_permitidos_extra: ['otro_dataset'] }),
+    ['inventario_reposicion', 'otro_dataset'],
+  );
+  assert.throws(() => validarReportes({ reportes: [{ nombre: 'X', dashboard_slug: 'a-b', datasets_permitidos_extra: ["x'y"] }] }), /datasets_permitidos_extra/);
+});
+
+// Decisión de Nicolás (Decisión abierta 3 de MSF-140): el rol sin `ver_costos` ve solo cantidades. El dataset, el
+// gráfico y el tablero de cantidades NO pueden nombrar costo ni valor: lo que no está en la vista no se muestra ni se exporta.
+test('los YAML de Productos y stock (cantidades) no exponen costos ni valor', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/inventario');
+  const leer = async (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+  const campo = (texto, nombre) => texto.match(new RegExp(`^${nombre}: (.+)$`, 'm'))?.[1].trim();
+
+  const dataset = await leer('datasets', 'Inventario_analitica', 'inventario_productos_stock_cantidades.yaml');
+  const tabla = await leer('charts', 'Productos_y_stock_cantidades_1.yaml');
+  const tablero = await leer('dashboards', 'Productos_y_stock_cantidades_1.yaml');
+  assert.match(dataset, /^table_name: inventario_productos_stock_cantidades$/m);
+  assert.match(dataset, /^- column_name: organizacion_id$/m, 'expone organizacion_id para el rls del guest token');
+  assert.equal(campo(tabla, 'dataset_uuid'), campo(dataset, 'uuid'));
+  assert.ok(tablero.includes(campo(tabla, 'uuid')), 'el tablero incluye la tabla');
+  assert.equal(campo(tablero, 'slug'), 'inventario-productos-stock-cantidades');
+  const columnasDataset = [...dataset.matchAll(/^- column_name: (\w+)$/gm)].map((m) => m[1]);
+  assert.deepEqual(columnasDataset, ['organizacion_id', 'producto_id', 'producto_nombre', 'sku', 'categoria', 'cantidad', 'minimo', 'estado', 'estado_texto']);
+  assert.doesNotMatch(dataset, /^- metric_name: valor_total$/m);
+  for (const [nombre, texto] of [['dataset', dataset.split('\n').filter((l) => !l.startsWith('#') && !l.startsWith('description:')).join('\n')], ['gráfico', tabla.split('\n').filter((l) => !l.startsWith('description:')).join('\n')], ['tablero', tablero.split('\n').filter((l) => !l.startsWith('description:')).join('\n')]]) {
+    assert.doesNotMatch(texto, /costo|valor_|valor_total|"valor"/i, `el ${nombre} de cantidades no menciona costo ni valor`);
   }
 });
 
@@ -954,9 +1094,9 @@ test('el directorio versionado de inventario se importa y registra el reporte co
 
   const primera = await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
   assert.equal(estadoFalso.imports, 1);
-  assert.equal(primera.registrados.length, 2);
+  assert.equal(primera.registrados.length, 3);
   const filas = [...estadoFalso.reportes.values()];
-  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Reposición']);
+  assert.deepEqual(filas.map((f) => f.nombre).sort(), ['Inventario · Productos y stock', 'Inventario · Productos y stock (cantidades)', 'Inventario · Reposición']);
   for (const fila of filas) {
     assert.equal(fila.seccion, 'stock', 'el reporte sigue la sección de sus datos');
     assert.equal(fila.filtro_empresa, false);
@@ -969,7 +1109,12 @@ test('el directorio versionado de inventario se importa y registra el reporte co
   assert.doesNotMatch(paquete.toString('utf8'), /clave-db/);
 
   await ejecutar({ args: ['--directorio', directorio, '--entorno', 'staging'], fetch: fetchFalso, env: entorno });
-  assert.equal(estadoFalso.reportes.size, 2, 'reimportar no duplica los reportes');
+  assert.equal(estadoFalso.reportes.size, 3, 'reimportar no duplica los reportes');
+  assert.equal(filas.find((f) => f.nombre === 'Inventario · Productos y stock').accion_requerida, 'ver_costos', 'el tablero con costos exige ver_costos');
+  assert.equal(filas.find((f) => f.nombre === 'Inventario · Productos y stock (cantidades)').accion_requerida, null, 'se envía null para poder limpiar una exigencia quitada del JSON');
+  assert.deepEqual(filas.find((f) => f.nombre === 'Inventario · Productos y stock (cantidades)').datasets_permitidos, ['inventario_productos_stock_cantidades']);
+  assert.deepEqual(filas.find((f) => f.nombre === 'Inventario · Reposición').datasets_permitidos, ['inventario_reposicion']);
+  assert.deepEqual(filas.find((f) => f.nombre === 'Inventario · Productos y stock').datasets_permitidos, ['inventario_productos_stock']);
 });
 
 // El import de Superset exige la cookie de sesión que llega con el token CSRF; sin ella redirige al login y un
@@ -1039,4 +1184,35 @@ test('buscarReportePorNombre pide el orden por antigüedad y, con duplicados, us
   } finally {
     console.warn = original;
   }
+});
+
+test('el tablero Después de costos fijos versiona datasets, filtro por empresa y reporte de la sección rentabilidad (F-GAS-03)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const raiz = path.resolve('infra/superset/dashboards/rentabilidad');
+  const leer = (...partes) => readFile(path.join(raiz, ...partes), 'utf8');
+
+  for (const [archivo, tabla, columnas] of [
+    ['margen_despues_costos_fijos.yaml', 'margen_despues_costos_fijos', ['organizacion_id', 'empresa_id', 'categoria', 'tasa_fija', 'cargo_costos_fijos', 'margen_despues_fijos', 'margen_despues_fijos_pct']],
+    ['margen_costos_fijos_empresa_mes.yaml', 'margen_costos_fijos_empresa_mes', ['organizacion_id', 'empresa_id', 'ventas_netas', 'costos_fijos', 'sin_atribuir', 'sin_ventas']],
+  ]) {
+    const dataset = await leer('datasets', 'Rentabilidad_analitica', archivo);
+    assert.match(dataset, new RegExp(`^table_name: ${tabla}$`, 'm'));
+    assert.match(dataset, /^schema: analitica$/m);
+    for (const columna of columnas) assert.match(dataset, new RegExp(`^- column_name: ${columna}$`, 'm'), `el dataset expone ${columna}`);
+    // CA-GAS-22: el tablero nunca recibe el detalle de un gasto individual.
+    assert.doesNotMatch(dataset, /dominio\.gastos|column_name: (importe|descripcion|proveedor|motivo)/);
+  }
+
+  const tablero = await leer('dashboards', 'Rentabilidad_Despues_de_costos_fijos_7.yaml');
+  assert.match(tablero, /^slug: rentabilidad-despues-de-costos-fijos$/m);
+  assert.match(tablero, /"name": "Mes"/, 'filtro por mes');
+  for (const rotulo of ['por tienda', 'consolidado', 'por producto', 'por categoría', 'Cómo se reparten']) assert.match(tablero, new RegExp(rotulo));
+  assert.match(await leer('charts', 'Costos_fijos_metodo_18.yaml'), /Sin atribuir/, 'el rótulo del método explica «Sin atribuir»');
+
+  const { reportes } = JSON.parse(await leer('reportes.json'));
+  const registrados = reportes.filter((r) => r.dashboard_slug === 'rentabilidad-despues-de-costos-fijos');
+  assert.equal(registrados.length, 1, 'registro único (idempotente)');
+  assert.equal(registrados[0].seccion, 'rentabilidad');
+  assert.equal(registrados[0].filtro_empresa, true, 'el token se acota a las empresas accesibles: todas las vistas exponen empresa_id');
+  assert.deepEqual(registrados[0].rolesPorDefecto, ['administracion']);
 });

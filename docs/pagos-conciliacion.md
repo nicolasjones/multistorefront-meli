@@ -143,7 +143,7 @@ empresa accesible y `ventas` en lectura o edición) y `revoke … from public, a
 
 ### El nombre del cliente y la RLS de Clientes
 
-`public.clientes` tiene su propia RLS por sección (Clientes). Un rol con Ventas pero **sin**
+`dominio.clientes` tiene su propia RLS por sección (Clientes). Un rol con Ventas pero **sin**
 Clientes (Depósito) no ve esas filas: por eso el JOIN del cliente es `LEFT` y el nombre puede
 venir vacío. **El pago no se filtra por esto** (la fila del pago es de Ventas): lo que el rol no
 puede leer, no se muestra. La alternativa —leer el nombre con una función `security definer`— se

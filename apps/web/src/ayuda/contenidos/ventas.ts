@@ -10,18 +10,19 @@ export const ayudaVentas: AyudaPorDestino = {
       'Escaneá el código de barras de cada producto; si se repite, suma una unidad.',
       'Revisá el subtotal, el IVA y el total de la venta.',
       'Elegí la forma de pago (y la cuenta de cobro si te la pide) y tocá Cobrar.',
-      'Precio tachado y «Promoción»: se cobra el promocional. Si dice «Los precios cambiaron», revisá el total y cobrá de nuevo.',
+      '«Promoción»: se cobra el promocional. Si dice «Los precios cambiaron» (venció o el normal bajó), revisá el total y cobrá de nuevo.',
     ],
   },
   'ventas-comprobantes': {
     titulo: 'Comprobantes',
     resumen:
-      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo. En una línea con promoción ves el precio anterior tachado; si al confirmar aparece «Los precios cambiaron», revisá el total y confirmá de nuevo.',
+      'Es el listado de facturas y notas de crédito (las notas restan del saldo de su factura). Podés buscar por cliente o número, filtrar por operador, estado, pago, envío y tienda, y entrar a cada comprobante para ver su detalle. Desde acá también se crea un comprobante nuevo. En una línea con promoción ves el precio anterior tachado; si al confirmar aparece «Los precios cambiaron» (la promoción venció o cambió, o el precio normal bajó por debajo de la promoción: nunca se cobra una promoción más cara que el precio normal) o «El precio de la lista cambió», revisá el total y confirmá de nuevo.',
     pasos: [
       'Escribí el cliente o el número en el buscador.',
       'Afiná con los filtros de operador, estado, pago y envío; usá Limpiar filtros para volver atrás.',
       'Tocá el número de un comprobante para abrir su detalle.',
       'Tocá Nuevo comprobante para cargar una venta.',
+      'Si una línea dice «Lista: nombre ±n %», su precio sale de la lista del cliente; uno manual, propio o por escala manda sobre ella.',
     ],
   },
   'ventas-presupuestos': {

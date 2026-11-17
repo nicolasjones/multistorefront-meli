@@ -34,4 +34,15 @@ export const ayudaCanales: AyudaPorDestino = {
       'Tocá «Nueva empresa» para crear otra.',
     ],
   },
+  opiniones: {
+    titulo: 'Opiniones',
+    resumen:
+      'Pantalla solo para administradores. Muestra las opiniones que los clientes dejan sobre tus productos, con sus estrellas y su texto. Una opinión nueva queda pendiente: solo las que aceptás se muestran en la tienda. Podés rechazarlas, con un motivo opcional.',
+    pasos: [
+      'Elegí la tienda con el filtro de empresas, o mirá todas.',
+      'Filtrá por Pendientes, Aceptadas, Rechazadas o Todas.',
+      'Leé cada opinión y pulsá Aceptar o Rechazar.',
+      'Si el sistema te avisa que las opiniones están desactivadas, solo podés rechazar.',
+    ],
+  },
 }

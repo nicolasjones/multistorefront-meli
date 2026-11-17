@@ -30,7 +30,7 @@ revisa `.specify/memory/constitution.md` y los artefactos de la funcionalidad en
 - **Imágenes en listados: miniatura chica con zoom al pasar el mouse.** La miniatura no se agranda para no romper el ancho de la fila; la vista ampliada es la de `MiniaturaProducto` (popper flotante al pasar el mouse). No se crean miniaturas ni zooms propios por pantalla.
 - Habilitar una capacidad o herramienta sin un caso de uso de negocio todavía (una extensión de Postgres, una imagen Docker) no necesita spec — la funcionalidad real que la use, sí.
 - Lo que se entrega es código versionado en git. Evitá herramientas cuya licencia restrinja el uso comercial de lo que se opera como propio (por eso Kestra —Apache 2.0— en vez de n8n —Sustainable Use License—). Los dashboards de Superset se exportan a YAML y se commitean, nunca quedan solo en la UI.
-- El CI corre en runners self-hosted (`infra/runner/`), no en `ubuntu-latest` — no lo cambies sin motivo, evita gasto de minutos de GitHub Actions.
+- El CI corre por defecto en runners self-hosted (`infra/runner/`). Los jobs pesados (`application`, `web`, `e2e-tienda`, `database`) pasan a runners estándar de GitHub (`ubuntu-latest`, gratis porque el repo es público) con la variable de repo `CI_RUNS_ON_PESADO=["ubuntu-latest"]`: ver `docs/control-ci.md`. Si el repo pasara a privado, ese uso se cobra por minuto: volver a self-hosted borrando la variable.
 - Toda spec nueva abre su Pull Request contra `main` al crear la rama, no al terminar — el PR no es revisión por pares (un solo agente opera el repo), es el gate de CI/Preview y el punto de reversión. El cierre es el merge de ese PR con merge commit (`--no-ff`), nunca squash ni rebase, para poder deshacer la spec completa con un único `git revert -m 1`; la rama no se borra al mergear hasta confirmar que el cierre quedó estable.
 - `anon` solo ejecuta las RPC de acceso (`bloqueo_acceso_hasta`, `registrar_fallo_acceso`): la migración `20261013120001` revoca el resto y un test pgTAP falla si otra función de `public` queda ejecutable por `anon`. Toda RPC de `public` que deba llamarse desde la app lleva `grant execute on function ... to authenticated` explícito y `revoke ... from public, anon` en su migración. Las tablas y secuencias nuevas de `public` nacen sin privilegios para `anon` (migración `20261013130000`). Ver `docs/acceso-ingreso.md`.
 - Las migraciones de Supabase son aditivas o llevan su camino de reversión explícito documentado en la spec — no se destruye una columna o tabla en el mismo PR que la crea.
@@ -56,6 +56,29 @@ implementación sin documentación equivalente debe fallar.
   no como página. Los links del sitio deben resolver dentro de `docs/`, aunque
   el archivo exista en el repo. `scripts/docs-check.mjs` rechaza ambos casos;
   las páginas de `exclude_docs` no se revisan porque se leen en GitHub.
+
+## Trampas conocidas del repo
+
+Cada una fue un fallo real de CI (2026-11-15). Detalle de los checks en `docs/pruebas.md` («Checks de trampas conocidas»).
+
+- Tabla nueva `dominio.<x>` sin `grant ... to service_role` en su migración: check `verificar-trampas-conocidas.mjs` (T1).
+- `:'variable'` de psql dentro de `$$ ... $$` en un pgTAP (no se interpola; usar `format('%L', ...)`): check `verificar-trampas-conocidas.mjs` (T2).
+- Nombre de `describe`/`it`/`test` con código `MSF-<n>`: cubierto por el guardián `apps/web/src/higieneReferenciasInternas.test.ts`.
+- Tabla nueva con `organizacion_id` fuera de `conjuntos_exportacion_total()`/`exclusiones_exportacion_total()`: check `verificar-trampas-conocidas.mjs` (T4).
+- Migración que redefine `private.conjuntos_exportacion_total()` y pierde filas de la versión vigente (dos ramas en paralelo se pisan): check `verificar-trampas-conocidas.mjs` (T6). Parte siempre de la última migración que la define (en `origin/dokploy`) y conserva toda su lista; si quitás una fila a propósito, declaralo con `-- exportacion-total: se quita <esquema>.<tabla> (motivo)`. Integración: al mergear cualquier rama que toque esa función, las demás pendientes deben rebasar su migración sobre la nueva versión (copiar la lista completa vigente y sumar solo sus filas, renumerando si hace falta) antes de su propio merge. `pnpm prepush` exige la rama rebasada/integrada con `origin/dokploy` (el check lee las migraciones del árbol local); en CI el checkout es el merge ref con `fetch-depth: 0`. Sin `origin/dokploy`, el check falla en CI y solo avisa en local.
+- Pantalla en `apps/web/src/pages` con valores sueltos de estilo (`borderRadius` numérico, colores hex, `height`/`fontSize` fijos): `pnpm estilos:check` (`verificar-estilos-sueltos.mjs`) rompe el job `application`; `pnpm prepush` lo corre cuando el diff toca `apps/web/src/pages`. Radio aceptado: `(tema) => \`${tema.shape.borderRadius}px\``.
+- E2E que escribe con la service key en una tabla sin grant a `service_role`: check `verificar-trampas-conocidas.mjs` (T5).
+- `current_date` (UTC del CI) como fecha de ingreso/operación en un pgTAP: entre 00:00 y 03:00 UTC la app (que valida con la fecha de Buenos Aires) la rechaza como futura; usar `(now() at time zone 'America/Argentina/Buenos_Aires')::date`: check `verificar-trampas-conocidas.mjs` (T7: cubre `insert into reparaciones`, `update reparaciones set ingreso_en = …` y `crear_reparacion(… p_ingreso => …)`; recorre el SQL respetando literales `'…'`, comentarios y bloques `$$ … $$`).
+- Migración con versión menor o igual a la máxima de `origin/dokploy`: check `verificar-migraciones.mjs --estricto`.
+- Un tipo nuevo de evento de Actividad debe declararse en el seed de `registro_inalterable.test.sql` (y marcarse no sensible si corresponde): sin check, criterio humano.
+- Pantalla nueva sin entrada de ayuda (`ayuda/contenidos/…`, `ayuda-cobertura`, `manual.test`) ni mapeo en `manualPorDestino.ts`: cubierto por tests de Vitest.
+- `ALTER TABLE` en un test tras escrituras con claves diferibles falla con «pending trigger events»: usar `set constraints all immediate`; sin check, criterio humano.
+- Los jobs E2E con sesión comparten el stack `ci-multistorefront-meli`: dos corridas manuales simultáneas se pisan; sin check, criterio humano.
+- Título de commit de más de 100 caracteres: lo rechaza commitlint en CI; sin check local.
+- Cada merge a `dokploy` deja conflictos en `docs/roadmap-template.md`, `package.json` y `docs/manifest.json` de los demás PR: resolver conservando ambos lados y regenerar con `pnpm docs:wiki:inventario` y `node scripts/docs-manifest.mjs`; sin check, criterio humano.
+- Cada merge a `dokploy` sube la versión máxima de migraciones: todo PR en vuelo con migraciones por debajo de la máxima falla `verificar-migraciones --estricto`; antes de mergear, comparar con `origin/dokploy` y renumerar con `git mv` a una ventana libre (al 2026-11-15 la siguiente libre es `20270350…`); cada merge además deja conflicto en `docs/manifest.json` e `docs/_generated/inventory.*`: regenerar con `node scripts/docs-manifest.mjs` y `node scripts/docs-inventario.mjs`; un PR por vez y serializar; sin check, criterio humano.
+- Ningún PR de código se mergea sin dos revisiones independientes (QA y Código/Seguridad) sobre el SHA final: el skill `desarrollo-manual` y su script `merge-con-revisiones.sh` lo imponen.
+- Docker publica puertos saltándose ufw (infra, no repo): sin check, criterio humano.
 
 ## Uso selectivo de skills
 

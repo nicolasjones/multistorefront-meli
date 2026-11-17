@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 
 // Depósitos de mercadería (F-STK-14, MSF-316). El esquema y las reglas viven en las migraciones
 // 20261023100000_depositos_tablas.sql, 20261023100100_depositos_gestion.sql y
@@ -183,18 +184,26 @@ export async function listarStockPorDeposito(productoId: string): Promise<Record
 }
 
 // Cifras de varios productos en un depósito, para el control de depósito del
-// listado Stock actual (FR-011, D-4).
+// listado Stock actual (FR-011, D-4) y la toma de inventario (hasta 1000 productos).
+// El filtro `in ('producto_id', …)` viaja en la URL del GET: los ids se reparten en lotes
+// (`lib/repartoIds.ts`) para que la URL no exceda el límite del proxy (MSF-716). Si un lote
+// falla, propaga el error (nunca devuelve stock parcial, que rotularía diferencias falsas en la toma).
 export async function listarStockPorDepositoDe(productoIds: string[], depositoId: string): Promise<Record<string, StockPorDeposito>> {
-  if (productoIds.length === 0) return {}
-  const { data, error } = await supabaseClient
-    .from('stock_por_deposito')
-    .select('producto_id, deposito_id, cantidad, reservado, disponible')
-    .in('producto_id', productoIds)
-    .eq('deposito_id', depositoId)
-    .returns<FilaStockPorDeposito[]>()
-  if (error) throw error
+  const ids = [...new Set(productoIds)]
+  if (ids.length === 0) return {}
+  const lotes = enLotes(ids, MAXIMO_IDS_POR_PETICION)
+  const respuestas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error } = await supabaseClient
+      .from('stock_por_deposito')
+      .select('producto_id, deposito_id, cantidad, reservado, disponible')
+      .in('producto_id', lote)
+      .eq('deposito_id', depositoId)
+      .returns<FilaStockPorDeposito[]>()
+    if (error) throw error
+    return data ?? []
+  })
   return Object.fromEntries(
-    (data ?? []).map((fila) => [fila.producto_id, {
+    respuestas.map((fila) => [fila.producto_id, {
       deposito_id: fila.deposito_id,
       cantidad: Number(fila.cantidad),
       reservado: Number(fila.reservado),

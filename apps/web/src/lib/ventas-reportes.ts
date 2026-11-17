@@ -126,7 +126,7 @@ function filtroRango({ desde, hasta }: RangoFechas): string {
 }
 
 // Filtro nativo de empresa: el nombre de la tienda (el token del guest es el máximo alcanzable).
-function filtroEmpresa(empresa: string): string {
+export function filtroEmpresa(empresa: string): string {
   const valor = textoRison(empresa)
   return `(${FILTRO_EMPRESA_ID}:(extraFormData:(filters:!((col:${COLUMNA_EMPRESA},op:IN,val:!(${valor}))))),filterState:(label:!(${valor}),value:!(${valor})),id:${FILTRO_EMPRESA_ID},ownState:()))`
 }

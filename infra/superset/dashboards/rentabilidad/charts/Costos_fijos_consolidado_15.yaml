@@ -1,0 +1,11 @@
+slice_name: Después de fijos consolidado
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params: {"datasource": "1__table", "adhoc_filters": [], "extra_form_data": {}, "time_range": "No filter", "viz_type": "table", "query_mode": "aggregate", "groupby": [], "metrics": ["ventas_total", "margen_total", "fijos_total", "margen_despues_total", "sin_atribuir_total", "tasa_texto"], "percent_metrics": [], "timeseries_limit_metric": "ventas_total", "order_desc": true, "row_limit": 1, "ignore_dashboards": []}
+query_context: null
+cache_timeout: null
+uuid: d488fb67-6388-51f4-98d6-df6739e72e27
+version: 1.0.0
+dataset_uuid: 2eb446b0-2ac6-5019-8811-b3bbc093bd20
