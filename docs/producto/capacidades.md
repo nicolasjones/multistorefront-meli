@@ -57,6 +57,12 @@ Una bandeja con los mensajes que los visitantes envían desde las tiendas, y avi
 ## Contactos
 Una libreta con las personas que consultan o compran, por tienda y sin duplicados, con su consentimiento, su historial de consultas y compras y la opción de anonimizar sus datos. También incluye textos frecuentes para responder más rápido. Guía: [Contactos](contactos.md).
 
+## Newsletter
+Cada tienda puede juntar suscriptores propios desde un formulario en el pie, con confirmación por correo y baja de un clic, y el Administrador compone y envía newsletters desde el panel. La función está construida pero **apagada por defecto**: la enciende el equipo técnico. Guía: [Newsletter de la tienda](newsletter.md).
+
+## Conexión con otros sistemas y asistente
+Un Administrador puede crear **claves de API de solo lectura** para que otro sistema consulte productos, stock, precios y ventas de la organización, y suscripciones para que el otro sistema reciba avisos de cambios. Además, el chat flotante del panel responde preguntas sobre el catálogo, el stock, los precios y las ventas, sin modificar nada. Guías: [API y avisos](api-y-avisos.md) · [Asistente con IA](asistente.md).
+
 ## Rentabilidad
 Ver cuánto margen deja cada producto en cada tienda y detectar los de margen bajo o negativo. Guía: [Rentabilidad](rentabilidad.md).
 
