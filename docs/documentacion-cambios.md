@@ -117,16 +117,21 @@ muestra las guías de uso y las «Guías de referencia» elegidas, y `docs-check
 que los enlaces internos resuelvan, pero no exige que toda página esté en el menú. Esas páginas se publican igual y se
 llegan por enlace; por eso `capturas-documentacion.md` se enlaza desde esta página y desde `dataset-demo.md`.
 
-**Límites conocidos del validador de enlaces.** `docs-check` (`scripts/docs-enlaces.mjs`) valida `[texto](destino "título")`
-(también anidado, como `[![a](i.png)](otra.md)`), `[texto](<destino con espacios>)`, las definiciones `[x]: destino`,
-`<a href="…">` y `<img src="…">`, y fuera de los bloques de código. Falla si un enlace excede un tope (texto 1500, destino
-300, título 1000, blancos 1000 y etiqueta HTML 1000 caracteres) o si un bloque de código queda sin cerrar. No valida:
-- el uso `[texto][x]` ni `[x][]` (solo el destino de su definición `[x]: …`); una referencia sin definición se muestra
-  literal y no rompe el build;
-- otras etiquetas HTML con rutas (`<source>`, `<link>`, `<video src>`, `srcset`) ni atributos con entidades;
-- destinos con espacios sin `<…>` (`[a](mi archivo.md)`) ni títulos entre paréntesis (`[a](b.md (título))`);
-- el texto y el destino separados por un salto de línea (`[a]` + línea nueva + `(b.md)`; CommonMark tampoco lo trata como enlace);
-- bloques de código con sangría de 4 espacios (no se enmascaran: un enlace allí se valida) ni código en línea (`` `[a](b.md)` ``
-  también se valida).
-Un bloque con fences mezclados se interpreta como CommonMark: cierra solo con el mismo carácter (` o ~) y una longitud
-igual o mayor a la de apertura.
+**Límites conocidos del validador de enlaces.** `docs-check` (`scripts/docs-enlaces.mjs`) valida, fuera de los bloques de
+código, los enlaces en línea (también anidados, como una imagen dentro de un enlace), los destinos entre `<…>` con
+espacios, las definiciones de referencia y las etiquetas HTML `a` (atributo `href`) e `img` (atributo `src`). Falla si un
+enlace excede un tope (texto 1500, destino 300, título 1000, blancos 1000 y etiqueta HTML 1000 caracteres) o si un bloque de
+código queda sin cerrar. No valida, con ejemplo:
+
+```text
+Uso de una referencia:        [texto][x]  y  [x][]   (solo se valida el destino de su definición «[x]: destino»;
+                                                       una referencia sin definición se muestra literal)
+Otras etiquetas HTML:         <source src=…>  <link href=…>  <video src=…>  srcset=…
+Destino con espacios sin <>:  [a](mi archivo.md)
+Título entre paréntesis:      [a](b.md (título))
+Texto y destino en 2 líneas:  [a] + salto de línea + (b.md)   (CommonMark tampoco lo trata como enlace)
+Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
+```
+
+Un bloque con fences mezclados se interpreta como CommonMark: cierra solo con el mismo carácter (backtick o tilde) y una
+longitud igual o mayor a la de apertura.
