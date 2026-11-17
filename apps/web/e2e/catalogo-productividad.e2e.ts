@@ -45,6 +45,10 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
       const [emp] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa }, 'dominio')
       // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
       await asignarEmpresasComoAdministrador(correoAdmin, idOperador, [{ empresa_id: emp.id, rol_id: 'operador' }])
+      // La RPC fija la empresa asignada como activa, y con una empresa activa el listado solo muestra los productos ya
+      // vinculados a ella. Los 3 productos de este recorrido nacen sin vínculo (justo lo que la última acción agrega), así que
+      // se deja a la persona sin empresa activa, como cuando la asignación se sembraba directo.
+      await borrar(`usuario_empresa_activa?user_id=eq.${idOperador}`)
       const [cat] = await rest<{ id: string }>('categorias', { organizacion_id: org.id, nombre: categoria }, 'dominio')
       const productos = await rest<{ id: string }>(
         'productos',
