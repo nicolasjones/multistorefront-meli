@@ -76,6 +76,14 @@ const versionesDe = (ref) => new Set(
     .map((x) => x.split('/').pop().split('_')[0].replace(/\.sql$/, ''))
 );
 
+// Nombres de archivo (sin ruta) de las migraciones de `ref`: el aviso de renumeración compara por nombre y no por versión,
+// para detectar también una migración que la base renombró conservando la versión.
+const nombresDe = (ref) => new Set(
+  (git(['ls-tree', '-r', '--name-only', ref, '--', 'supabase/migrations']).stdout || '')
+    .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+(_.+)?\.sql$/.test(x))
+    .map((x) => x.split('/').pop())
+);
+
 // --- Migraciones del árbol actual ---
 const archivos = (git(['ls-files', 'supabase/migrations']).stdout || '')
   .split('\n').map((x) => x.trim()).filter((x) => /^supabase\/migrations\/\d+_.+\.sql$/.test(x));
@@ -135,11 +143,13 @@ for (const [v, fs_] of porVersion) {
 
 // Las versiones que la base tiene publicadas (contra las que se compara el alcance).
 const versionesEnBase = existeBase ? versionesDe(commitBase) : new Set();
+// Los nombres de archivo que la base tiene publicados (contra los que se compara el aviso de renumeración).
+const nombresEnBase = existeBase ? nombresDe(commitBase) : new Set();
 
 // La base renumeró migraciones que la rama heredó: no es culpa de este PR, pero la rama
 // tiene que actualizarse antes de mergear (si no, la migración vieja y la nueva conviven).
 if (commitBase && forkEsMergeBase) {
-  const renumeradas = [...versionesDe(fork)].filter((v) => !versionesEnBase.has(v)).sort();
+  const renumeradas = [...nombresDe(fork)].filter((n) => !nombresEnBase.has(n)).sort();
   if (renumeradas.length) {
     avisos.push(`la base ${base} renumeró o quitó ${renumeradas.length} migración(es) que tu rama heredó (${renumeradas.slice(0, 5).join(', ')}${renumeradas.length > 5 ? ', …' : ''}): actualizá tu rama (merge de ${base}) antes de mergear`);
   }
