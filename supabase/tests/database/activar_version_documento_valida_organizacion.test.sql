@@ -4,7 +4,7 @@
 -- funcionalidad apagada, y anon sin EXECUTE.
 begin;
 
-select plan(14);
+select plan(13);
 
 insert into organizaciones (id, nombre) values
   ('c1111111-1111-1111-1111-111111111111', 'Org A'),

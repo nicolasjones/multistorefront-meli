@@ -8,7 +8,7 @@
 -- como `authenticated`.
 begin;
 
-select plan(42);
+select plan(41);
 
 -- ============================================================================
 -- Fixture

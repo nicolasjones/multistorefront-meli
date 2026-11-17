@@ -254,3 +254,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 ## Bandeja con carga infinita e imagen del producto
 
 La bandeja de consultas carga por tandas de 25 desde `consultas_bandeja` al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. Buscar, cambiar estado, fechas, tienda o guardar una consulta reinicia desde la primera tanda; el contador total se mantiene. La columna «Producto» muestra la imagen principal como miniatura con zoom cuando la consulta tiene `producto_id`, y lo mismo el diálogo «Interés por WhatsApp». Ver [`listados.md`](./listados.md).
+
+## Privilegios de `publico.crear_consulta_publica` y `publico.registrar_interes_whatsapp` (MSF-653, MSF-657)
+
+El código de las migraciones ya revoca `publico.crear_consulta_publica` a `public`, `anon` y `authenticated` (`20261212120800`) y ninguna migración posterior la vuelve a otorgar; el pgTAP `consultas.test.sql` fija que `anon` y `authenticated` no la ejecutan y que `service_role` sí. Que el DEV la muestre ejecutable por `anon` es **deriva del entorno** (la migración figura aplicada pero el ACL real no coincide, síntoma de «aplicada-manual» de MSF-647): se corrige reaplicando el `revoke` en el DEV y verificando el ACL de las funciones de `publico` después de cada despliegue; no hay nada que cambiar en el código. `publico.registrar_interes_whatsapp` recibe el mismo tratamiento desde `20270507150100`.
