@@ -225,10 +225,12 @@ and (select private.nivel_seccion('consultas')) in ('lectura', 'edicion')
   (`«Cambiaste de empresa: cerramos el interés por WhatsApp…»`). Al reabrir, nunca asoman filas de la
   empresa anterior.
 
+> Diseño original; hoy ningún visitante dispara la función: es interna (solo `service_role`, MSF-657) y solo el sembrado demo la usa.
+
 ```mermaid
 sequenceDiagram
-  actor V as Visitante
-  participant T as Llamador interno con service_role (MSF-657; la tienda pública ya no la llama)
+  actor V as Sembrado demo (service_role) - diseño original: visitante
+  participant T as Llamador interno - diseño original: tienda
   participant R as publico.registrar_interes_whatsapp
   participant DB as dominio.intereses_whatsapp
   actor A as Administración (panel)

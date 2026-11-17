@@ -2603,9 +2603,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "fc68c62662b6fe1d27271dc1d039300317b0fd472fd6f55a0ebe1b4e79570b6c",
-      "sourceHash": "66ccc4ced18879fe2b2f1a019a03656a3558ad85d2f5e2fc83754192c35e3e16",
-      "sourceAt": "3ce6fd76",
+      "pageHash": "64be5b655888d74e6f9312f92cb1d78825fb805a5bbaac486484b355557cab1e",
+      "sourceHash": "035f36648a1f154f1d09e9b563d68e91b1cd7c3e53492d0bcb4f8727f0e62f26",
+      "sourceAt": "bdbd1ac3",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations",
@@ -2621,7 +2621,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "3ce6fd76"
+      "commit": "bdbd1ac3"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "81ddadfea916a6f20f9b3a23c652e619c7839cc5a5c4720a686cf0b2cf9fd8d5",
+      "pageHash": "06b837acb7e1ed60f968f1a08878f376a5d4bdab0bb0377fb5ba0ee17fd713d5",
       "sourceHash": "a4e9408afb7ede4d906fb159775b1a87f6a485619f45ca122600279aa16fc171",
-      "sourceAt": "614136f9",
+      "sourceAt": "1e94e2ad",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "614136f9"
+      "commit": "1e94e2ad"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",

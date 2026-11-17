@@ -106,7 +106,7 @@ Regla para el equipo: **toda RPC nueva lleva `grant execute ... to authenticated
 nueva en `public` nace con `revoke execute ... from public, anon` (ver `CLAUDE.md`). El test pgTAP
 `estado_usuario` falla si `anon` ejecuta algo fuera de las RPC de acceso.
 
-**MSF-130 (interés por WhatsApp)** sumó una RPC de la tienda, hoy interna (MSF-657):
+**MSF-130 (interés por WhatsApp)** sumó una RPC (hoy interna, solo `service_role`, MSF-657; la tienda no la llama):
 `publico.registrar_interes_whatsapp(host text, producto_id uuid)` fue ejecutable por `anon` y `authenticated`; **desde `20270507150100` (MSF-657) solo la ejecuta `service_role`** (no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Vive en el esquema **`publico`** (no en `public`), así que **no** entra en la lista de RPC de `public`
 permitidas a `anon`: esa lista sigue siendo `bloqueo_acceso_hasta`, `registrar_fallo_acceso` y
 `limpiar_intentos_acceso`. La empresa sale **solo del dominio** (`dominio.tiendas`), no guarda datos
