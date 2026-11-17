@@ -269,4 +269,44 @@ describe('IaDocumentos', () => {
     await waitFor(() => expect(mocks.updateVersion).toHaveBeenCalledWith({ estado: 'fallida' }))
     expect(mocks.invoke).not.toHaveBeenCalled()
   })
+
+  describe('versión interrumpida', () => {
+    const vieja = { id: 'ver-1', estado: 'procesando', subida_en: '2020-01-01T00:00:00Z', motivo_error: 'indexando:123:abc' }
+
+    async function abrirHistorial() {
+      mocks.documentos = [documento]
+      mocks.versiones = [vieja]
+      render(<IaDocumentos />)
+      fireEvent.click(await screen.findByText('contrato.txt'))
+      return await screen.findByText(/Se interrumpió el procesamiento/)
+    }
+
+    it('muestra «Se interrumpió el procesamiento» con Reintentar y oculta el candado indexando:', async () => {
+      await abrirHistorial()
+      expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+      expect(screen.queryByText(/indexando:/)).not.toBeInTheDocument()
+    })
+
+    it('Reintentar invoca indexar-documento para ESA versión', async () => {
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      await waitFor(() => expect(mocks.invoke).toHaveBeenCalledWith('indexar-documento', { body: { version_id: 'ver-1' } }))
+    })
+
+    it('si el backend rechaza, muestra el error real en pantalla (no solo un toast)', async () => {
+      mocks.errorInvoke = { message: 'No tenés permiso para activar esta versión.' }
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText('No tenés permiso para activar esta versión.')).toBeInTheDocument()
+    })
+
+    it('una versión procesando reciente no ofrece Reintentar', async () => {
+      mocks.documentos = [documento]
+      mocks.versiones = [{ ...vieja, subida_en: new Date().toISOString() }]
+      render(<IaDocumentos />)
+      fireEvent.click(await screen.findByText('contrato.txt'))
+      await screen.findByText('procesando')
+      expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+    })
+  })
 })

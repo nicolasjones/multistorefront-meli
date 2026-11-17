@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import test from 'node:test';
 import { spawn } from 'node:child_process';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 const script = path.resolve('scripts/deploy-vps.mjs');
 
@@ -38,4 +40,26 @@ test('rechaza cuando no hay ningún entorno', async () => {
   const result = await run([]);
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Uso:/);
+});
+
+test('preflight: sin CORREO_MASIVO_URL_BAJA dice qué variable falta y dónde definirla, antes de tocar Docker', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'deploy-vps-'));
+  const archivo = path.join(dir, '.env.staging');
+  await writeFile(archivo, 'OTRA=1\nCORREO_MASIVO_URL_BAJA=\n');
+  const child = spawn(process.execPath, [script, 'staging'], { env: { ...process.env, DEPLOY_VPS_ENV_FILE: archivo }, stdio: ['ignore', 'pipe', 'pipe'] });
+  let stderr = '';
+  child.stderr.on('data', (c) => { stderr += c; });
+  const code = await new Promise((r) => child.on('close', r));
+  assert.notEqual(code, 0);
+  assert.match(stderr, /Falta definir CORREO_MASIVO_URL_BAJA en \.env\.staging/);
+  assert.match(stderr, /VPS_DEPLOY_ENV/);
+  assert.match(stderr, /https:\/\/panel\.ejemplo\.com/);
+});
+
+test('preflight: con la variable definida no la reclama (variablesFaltantes)', async () => {
+  const { variablesFaltantes, leerEnv } = await import('./preflight-deploy-vps.mjs');
+  assert.deepEqual(variablesFaltantes('CORREO_MASIVO_URL_BAJA=https://panel.ejemplo.com\n'), []);
+  assert.deepEqual(variablesFaltantes('export CORREO_MASIVO_URL_BAJA="https://panel.ejemplo.com"').length, 0);
+  assert.equal(variablesFaltantes('# CORREO_MASIVO_URL_BAJA=x').length, 1);
+  assert.equal(leerEnv('A=1\nB = "dos"').get('B'), 'dos');
 });

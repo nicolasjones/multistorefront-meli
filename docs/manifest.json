@@ -504,15 +504,15 @@
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
-      "pageHash": "f7ee8d730ba54a38abe90e4cffa6d3578df8c640e282248abb0e574b918b8039",
-      "sourceHash": "7d7fec573c0f9f2e80139940eddc1e8a2d26755a02622e0b15aaef107fd9ffb6",
-      "sourceAt": "432db86d0",
+      "pageHash": "66977d9affd4090cb6b621f83c8a5a81b21171c9f4980dc4fc7c0530361212ca",
+      "sourceHash": "9d5f88e4b89276b9be6ea00258afca714ef2c9d480b940e50ec517be1ff5cf43",
+      "sourceAt": "46c0e5de",
       "sources": [
         "specs/20261028-100000-correo-masivo-a-clientes",
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "tecnico",
-      "commit": "432db86d0"
+      "commit": "46c0e5de"
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
@@ -655,16 +655,16 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "d849359009203888ba56e4c7b693b7040184d3ba0df3b4e995adedabf0cec561",
-      "sourceHash": "13302e754cc5e1f78a68ec0562def5c11a663c5ffbe993ad63775c886a000915",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "9dcbb7589928820a7639a100818f516df919e819036caf2e5286a45d3cef8eb4",
+      "sourceHash": "0b71df4614c140b94539fd388c5d7fd47fdde9ebf5c4d9794cb0e0414e8c479c",
+      "sourceAt": "46c0e5de",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c9"
+      "commit": "46c0e5de"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -739,9 +739,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "a7b6b61e9d5a08f16604950b3d05a8d33511c8660389f64f4f1fb5996e10ef6a",
-      "sourceHash": "48189ac95de238727f9b7ef3d117d7c2b427d61f16b0092099504565b997e5cc",
-      "sourceAt": "46c0e5de",
+      "pageHash": "aabb0b43e285174ebcf656a911ab019f90ab27487257ac9d4d1559df73b1beea",
+      "sourceHash": "795044ef8795492709cda13178fa582740e9db0c502fd70cb3b9daba0c2127cb",
+      "sourceAt": "c964d4a2",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/preguntar-documentos/index.ts",
@@ -758,7 +758,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "46c0e5de"
+      "commit": "c964d4a2"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",

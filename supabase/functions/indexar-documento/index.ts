@@ -116,10 +116,11 @@ Deno.serve((req) => {
     },
     activar: async (jwt, versionId) => {
       const cliente = comoUsuario(jwt)
-      if ((await cliente.rpc('activar_version_documento', { p_version_id: versionId })).error) return false
+      const { error } = await cliente.rpc('activar_version_documento', { p_version_id: versionId })
+      if (error) return error.code === '42501' ? 'permiso' : 'error'
       // Libera la marca de reclamación (ya no aplica a una versión activa); si falla, no afecta al resultado.
       await cliente.from('versiones_documento').update({ motivo_error: null }).eq('id', versionId).eq('estado', 'activa')
-      return true
+      return 'ok'
     },
     ahora: () => Date.now(),
     id: () => crypto.randomUUID(),

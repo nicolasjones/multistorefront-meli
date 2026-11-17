@@ -19,9 +19,10 @@ import { acotarFilas, TOPE_FILAS_CONSULTA } from './limites.ts'
 // intermedio.
 import { prepararInvocacion, invocarProveedorIa, sanitizarDato, marcarContenidoNoConfiable, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
 import { fetchConTimeout } from '../_shared/fetch-ia.ts'
+import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import {
-  ErrorPersistencia, MAX_TOKENS_RESPUESTA, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje,
-  limiteConfigurado, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
+  ErrorPersistencia, MAX_TOKENS_RESPUESTA, describirPropuesta, filtrosSeguros, guardarMensaje,
+  limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
 } from './guardas.ts'
 
 const corsHeaders = {
@@ -140,12 +141,10 @@ Deno.serve(async (req) => {
   // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora. La cuota es de
   // MEJOR ESFUERZO: se cuenta sobre `mensajes_chat_ia` y el usuario conserva DELETE sobre sus mensajes, así que borrar
   // los reinicia (pendiente: tabla de uso sin DELETE para el usuario, docs/funciones-edge-endurecimiento.md).
-  const { data: tieneChat, error: featureError } = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
-  if (featureError) {
-    console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureError.message)
-    return jsonResponse({ error: 'No se pudo verificar la funcionalidad del chat.' }, 503)
-  }
-  if (!tieneChat) return jsonResponse({ error: 'El Chat IA no está habilitado para tu organización.' }, 403)
+  const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
+  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureChat.error.message)
+  const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
+  if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
 
   const hace1h = new Date(Date.now() - 60 * 60 * 1000).toISOString()
   const { count: recientes, error: cuotaError } = await asUser
@@ -153,10 +152,8 @@ Deno.serve(async (req) => {
     .select('id', { count: 'exact', head: true })
     .eq('origen', 'usuario')
     .gte('creado_en', hace1h)
-  if (cuotaError) return jsonResponse({ error: 'No se pudo verificar tu cuota de uso.' }, 503)
-  if (excedeLimite(recientes ?? 0, limiteConfigurado(Deno.env.get('CHAT_IA_LIMITE_HORA')))) {
-    return jsonResponse({ error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' }, 429)
-  }
+  const sinCuota = rechazoPorCuota(recientes, cuotaError, limiteConfigurado(Deno.env.get('CHAT_IA_LIMITE_HORA')))
+  if (sinCuota) return jsonResponse({ error: sinCuota.error }, sinCuota.status)
 
   // Gobernanza real, vía las funciones ya existentes de governed-ai-core
   // (private.resolver_politica_ia / obtener_clave_perfil_ia) — otorgadas

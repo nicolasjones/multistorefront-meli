@@ -27,6 +27,13 @@ export function excedeLimite(mensajesUltimaHora: number, limite: number = LIMITE
   return mensajesUltimaHora >= limite
 }
 
+// Decisión de la cuota (pura): un error al contarla no deja pasar (503) y el tope corta con 429.
+export function rechazoPorCuota(recientes: number | null | undefined, error: unknown, limite: number): { status: number; error: string } | null {
+  if (error) return { status: 503, error: 'No se pudo verificar tu cuota de uso.' }
+  if (excedeLimite(recientes ?? 0, limite)) return { status: 429, error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' }
+  return null
+}
+
 export function limiteConfigurado(valor: string | undefined): number {
   const n = Number(valor)
   return Number.isInteger(n) && n > 0 ? n : LIMITE_MENSAJES_POR_HORA

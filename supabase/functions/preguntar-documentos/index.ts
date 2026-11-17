@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
 import { generarEmbedding } from '../_shared/embeddings.ts'
 import { fetchConTimeout } from '../_shared/fetch-ia.ts'
+import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import { crearLimitador, enteroPositivo } from '../_shared/limite-memoria.ts'
 import { armarContexto } from './contexto.ts'
 
@@ -70,12 +71,10 @@ Deno.serve(async (req) => {
 
   // Antes de gastar crédito (embedding y generación): la organización del usuario debe tener la funcionalidad
   // `busqueda-documental` (verificada con su propio JWT) y el usuario no puede estar abusando de la función.
-  const { data: tieneFeature, error: featureError } = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
-  if (featureError) {
-    console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureError.message)
-    return jsonResponse({ error: 'No se pudo verificar la funcionalidad de búsqueda documental.' }, 503)
-  }
-  if (!tieneFeature) return jsonResponse({ error: 'La búsqueda documental no está habilitada para tu organización.' }, 403)
+  const featureDocs = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
+  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureDocs.error.message)
+  const sinDocs = rechazoPorFuncionalidad(featureDocs, { noHabilitada: 'La búsqueda documental no está habilitada para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
+  if (sinDocs) return jsonResponse({ error: sinDocs.error }, sinDocs.status)
   if (!limitador.consumir(callerData.user.id)) return jsonResponse({ error: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.' }, 429)
 
   const { data: politicaFilas, error: politicaError } = await admin.rpc('resolver_politica_ia', { p_codigo: CONSUMIDOR_CODIGO })

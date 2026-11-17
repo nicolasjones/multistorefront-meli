@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   BUCKET_DOCUMENTOS,
+  procesamientoInterrumpido,
   FORMATOS_DOCUMENTO,
   MAX_BYTES_DOCUMENTO,
   extensionDeDocumento,
@@ -57,5 +58,16 @@ describe('extensión y bucket', () => {
 
   it('usa el bucket de búsqueda documental', () => {
     expect(BUCKET_DOCUMENTOS).toBe('documentos-rag')
+  })
+})
+
+describe('procesamientoInterrumpido', () => {
+  const ahora = Date.parse('2026-06-01T12:00:00Z')
+  it('solo marca como interrumpida una versión procesando de más de 15 minutos', () => {
+    expect(procesamientoInterrumpido({ estado: 'procesando', subida_en: '2026-06-01T11:50:00Z' }, ahora)).toBe(false)
+    expect(procesamientoInterrumpido({ estado: 'procesando', subida_en: '2026-06-01T11:40:00Z' }, ahora)).toBe(true)
+    expect(procesamientoInterrumpido({ estado: 'activa', subida_en: '2026-06-01T10:00:00Z' }, ahora)).toBe(false)
+    expect(procesamientoInterrumpido({ estado: 'fallida', subida_en: '2026-06-01T10:00:00Z' }, ahora)).toBe(false)
+    expect(procesamientoInterrumpido({ estado: 'procesando', subida_en: 'no-es-fecha' }, ahora)).toBe(false)
   })
 })

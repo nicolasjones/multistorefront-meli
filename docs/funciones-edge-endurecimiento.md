@@ -58,11 +58,17 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
 
 - Una invocación duplicada ya no deja la versión activa como `fallida`: la primera **reclama** la versión con un
   compare-and-swap sobre `versiones_documento.motivo_error` (`indexando:<instante>:<id>`, vence a los 10 minutos);
-  la segunda recibe 409. `marcarFallida` solo actúa mientras la versión sigue `procesando`.
+  la segunda recibe 409. `marcarFallida` solo actúa mientras la versión sigue `procesando`. La pantalla de Documentos
+  IA no muestra el candado `indexando:…` como si fuera un motivo de error.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
-  Errores transitorios (proveedor, descarga, base) **sueltan la reclamación y dejan la versión `procesando`**: el
-  frontend puede reintentar la misma versión (antes devolvía 409 «ya procesada»). Los fragmentos de un intento
-  previo se borran antes de insertar.
+- **Rechazo de permisos al activar (42501)** (funcionalidad apagada, o quien invoca no es quien subió ni un
+  administrador): no es transitorio. La versión queda `fallida` con un motivo claro y la función responde **403**.
+- Errores transitorios (proveedor, descarga, base) **sueltan la reclamación y dejan la versión `procesando`**; la
+  función responde 502/503/500. **No hay reintento ni barrido automático.** El reintento es **manual**: la pantalla de
+  Documentos IA marca como «Se interrumpió el procesamiento» toda versión que sigue `procesando` pasados 15 minutos
+  desde su subida y ofrece el botón **Reintentar**, que vuelve a invocar `indexar-documento` para esa misma versión
+  (los fragmentos del intento previo se borran antes de insertar). Si el backend responde 403, 422 o 502, el mensaje
+  real se muestra en la pantalla. Subir de nuevo el archivo crea otra versión y deja la anterior `procesando`.
 
 ## `enviar-correo-proveedor` y avisos (MSF-731)
 
@@ -103,14 +109,22 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 - El flow `correo-masivo` empieza con un `Assert` (`validar_url_baja`): si `CORREO_MASIVO_URL_BAJA` está vacía, no es
   https o apunta a `localhost`/`127.0.0.1`, **falla antes de reclamar el lote** y no sale ningún correo.
   `CORREO_MASIVO_PERMITIR_LOCAL=true` (solo `infra/kestra/.env.example`, desarrollo) lo relaja.
-- `infra/kestra/compose.vps.yaml` exige `CORREO_MASIVO_URL_BAJA` (`${…:?}`): **el despliegue al VPS falla si el
-  `.env.staging`/`.env.production` no la define.** Debe ser el origen público https del panel, sin barra final.
+- `infra/kestra/compose.vps.yaml` exige `CORREO_MASIVO_URL_BAJA` (`${…:?}`). **Definila en el secret `VPS_DEPLOY_ENV`
+  de GitHub de staging Y de production ANTES de llevar este cambio a `main`.** Valor: el origen público https del
+  panel de ese ambiente, sin barra final (por ejemplo `https://panel.ejemplo.com`).
+- Si falta, el deploy corta con un error de preflight de `scripts/deploy-vps.mjs` que nombra la variable y el secret
+  (antes de `docker compose config`). Sin el preflight, `docker compose config` falla y se aborta el despliegue de los
+  tres productos (Kestra es el primero del ciclo; Superset y Nango no se tocan en esa corrida). Lo ya desplegado sigue
+  corriendo.
+- `CORREO_MASIVO_PERMITIR_LOCAL` (default `false` en el Compose; `true` solo en `infra/kestra/.env.example`) permite
+  que el enlace de baja sea http/localhost. **No la definas en staging ni production.**
 - Sin verificar: que la ruta `/baja-correo/:token` exista solo en el host del panel (ver informe de frontend).
 
 ## Pendientes (requieren migración o una decisión de negocio)
 
 | Pendiente | Por qué no se hizo | Propuesta |
 |---|---|---|
+| Barrido automático de versiones `procesando` de `indexar-documento` | Necesita migración | Función `private.cerrar_versiones_documento_colgadas(p_horas int default 6)` que pase a `fallida` (motivo «Se interrumpió el procesamiento») las `procesando` con más de N horas, programada con pg_cron o un flow de Kestra; hoy solo hay reintento manual |
 | Tope persistente de uso de IA y de correos por usuario/organización (MSF-727, MSF-731) | Necesita una tabla y definir los topes por plan | `uso_funciones_edge(usuario_id, organizacion_id, funcion, creado_en)` con RLS, RPC `consumir_cupo_funcion(p_funcion, p_max, p_ventana)` que cuente e inserte en una transacción; reemplaza `_shared/limite-memoria.ts`. Topes por defecto: chat 60/h, preguntas 30/h, correos a proveedor 20/h (los de este lote). Decidir si el tope es por usuario, por organización o por ambos |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
 | El tope del chat se elude borrando mensajes (MSF-727) | Revocar `DELETE` o mover el contador exige migración (no hay en este lote) | Opción A: `revoke delete on mensajes_chat_ia from authenticated` y una RPC `borrar_conversacion_chat_ia` que archive en vez de borrar. Opción B (preferida, y la misma tabla del tope persistente): `uso_funciones_edge` sin `DELETE` para el usuario, y que el chat cuente ahí |

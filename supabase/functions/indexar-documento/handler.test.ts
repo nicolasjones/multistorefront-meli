@@ -9,7 +9,7 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; version?: Partial<VersionDoc> } = {}) {
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc> } = {}) {
   const v: VersionDoc = { id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
@@ -33,10 +33,11 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     borrarFragmentos: async () => { fragmentos = 0; return true },
     insertarFragmentos: async (_j, filas) => { fragmentos += filas.length; insertados += filas.length; return true },
     activar: async () => {
-      if (opciones.activarFalla) return false
-      if (v.estado !== 'procesando') return false
+      if (opciones.activarPermiso) return 'permiso'
+      if (opciones.activarFalla) return 'error'
+      if (v.estado !== 'procesando') return 'error'
       v.estado = 'activa'
-      return true
+      return 'ok'
     },
     ahora: () => AHORA,
     id: () => 'abc',
@@ -115,10 +116,26 @@ describe('indexar-documento', () => {
 
   it('si activar falla porque otra invocación ya la activó, responde éxito sin marcar fallida', async () => {
     const m = montar()
-    m.deps.activar = async () => { m.v.estado = 'activa'; return false }
+    m.deps.activar = async () => { m.v.estado = 'activa'; return 'error' }
     const res = await pedir(m.deps)
     assert.equal(res.status, 200)
     assert.equal(m.v.estado, 'activa')
+  })
+
+  it('un rechazo de permisos al activar (42501) deja la versión fallida con un 403 claro, no procesando colgada', async () => {
+    const m = montar({ activarPermiso: true })
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 403)
+    assert.equal(m.v.estado, 'fallida')
+    assert.match(m.v.motivo_error ?? '', /permiso/)
+    assert.equal(m.fragmentosGuardados(), 0)
+  })
+
+  it('un fallo transitorio al activar sí queda reintentable', async () => {
+    const m = montar({ activarFalla: true })
+    assert.equal((await pedir(m.deps)).status, 502)
+    assert.equal(m.v.estado, 'procesando')
+    assert.equal(m.v.motivo_error, null)
   })
 
   it('valida sesión y version_id', async () => {

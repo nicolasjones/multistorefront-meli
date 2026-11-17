@@ -8,8 +8,9 @@
 // Concurrencia: dos invocaciones sobre la misma versión no pueden indexar a la vez. La primera reclama la versión
 // (compare-and-swap sobre `motivo_error`, ver reglas.ts); la segunda recibe 409. Una versión `fallida` nunca pisa a
 // una `activa`: `marcarFallida` solo actúa mientras sigue `procesando`.
-// Errores: los permanentes (documento sin texto, demasiado grande) dejan la versión `fallida`; los transitorios
-// (proveedor, storage, base) sueltan la reclamación y dejan la versión `procesando` para reintentar.
+// Errores: los permanentes (documento sin texto, demasiado grande, permiso 42501 al activar) dejan la versión `fallida`;
+// los transitorios (proveedor, storage, base) sueltan la reclamación y dejan la versión `procesando`: no hay reintento
+// automático ni barrido, el reintento es manual (botón «Reintentar» de la pantalla de Documentos IA).
 import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from './reglas.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
@@ -36,7 +37,8 @@ export type Deps = {
   embeddings(textos: string[], clave: string): Promise<number[][]>
   borrarFragmentos(jwt: string, versionId: string): Promise<boolean>
   insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>): Promise<boolean>
-  activar(jwt: string, versionId: string): Promise<boolean>
+  /** `permiso` = la base rechazó con 42501 (funcionalidad apagada, o no es quien subió ni administrador). */
+  activar(jwt: string, versionId: string): Promise<'ok' | 'permiso' | 'error'>
   ahora(): number
   id(): string
 }
@@ -113,9 +115,17 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (!(await deps.insertarFragmentos(jwt, filas))) return await reintentable('No se pudieron guardar los fragmentos indexados, probá de nuevo.', 502)
 
     // Activación atómica (RPC): reemplaza la versión activa anterior y activa esta en una sola transacción.
-    if (!(await deps.activar(jwt, versionId))) {
+    const activacion = await deps.activar(jwt, versionId)
+    if (activacion !== 'ok') {
       // Si otra invocación la activó entre tanto, el resultado ya es el esperado: no se marca fallida ni se tocan sus fragmentos.
       if ((await deps.estado(jwt, versionId)) === 'activa') return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
+      // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo claro.
+      if (activacion === 'permiso') {
+        await deps.borrarFragmentos(jwt, versionId)
+        const motivo = 'No tenés permiso para activar esta versión: la búsqueda documental no está habilitada o solo puede activarla quien la subió o un administrador.'
+        await deps.marcarFallida(jwt, versionId, motivo)
+        return respuesta({ error: motivo }, 403)
+      }
       return await reintentable('No se pudo activar la nueva versión, probá de nuevo.', 502)
     }
     return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)

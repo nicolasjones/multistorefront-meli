@@ -126,3 +126,10 @@ test('el flow valida la URL de baja antes de reclamar el lote y el VPS la exige 
   assert.match(ejemplo, /^CORREO_MASIVO_PERMITIR_LOCAL=true$/m, 'el ejemplo local sí lo permite');
   assert.match(vps, /ENV_CORREO_MASIVO_URL_BAJA: \$\{CORREO_MASIVO_URL_BAJA:\?/, 'el overlay del VPS falla si la variable no está definida');
 });
+
+test('la comprobación de https del Assert es por prefijo (startsWith), no por subcadena', async () => {
+  const validar = tarea(await leer(), 'validar_url_baja');
+  assert.match(validar, /startsWith\('https:\/\/'\)/, 'https se exige al inicio de la URL');
+  assert.doesNotMatch(validar, /replace\(\{'https:\/\/'/, 'ya no se acepta «https://» en cualquier parte de la URL');
+  assert.doesNotMatch(validar, /\bcontains\b/, 'ninguna comprobación por contains');
+});

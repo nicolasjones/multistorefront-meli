@@ -6,7 +6,7 @@ import { List } from '@refinedev/mui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useContextoPanel } from '../../context/ContextoPanel'
-import { BUCKET_DOCUMENTOS, mimeDeDocumento, validarArchivoDocumento } from '../../lib/documentosIa'
+import { BUCKET_DOCUMENTOS, mimeDeDocumento, procesamientoInterrumpido, validarArchivoDocumento } from '../../lib/documentosIa'
 import { supabaseClient } from '../../lib/supabase'
 
 type Documento = { id: string; nombre: string; creado_en: string }
@@ -14,6 +14,18 @@ type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_
 
 const MENSAJE_FUNCIONALIDAD = 'No pudimos verificar si la búsqueda documental está habilitada para tu organización. Revisá la conexión e intentá de nuevo.'
 const MENSAJE_CARGA = 'No pudimos cargar los documentos. Revisá la conexión e intentá de nuevo.'
+
+/** Invoca la indexación de una versión; ante un error de la función devuelve su mensaje real (403, 422, 502…). */
+async function invocarIndexacion(versionId: string): Promise<void> {
+  const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
+  if (!invokeError) return
+  let mensajeError = invokeError.message
+  if (invokeError instanceof FunctionsHttpError) {
+    const cuerpo = await invokeError.context.json().catch(() => null)
+    mensajeError = cuerpo?.error ?? mensajeError
+  }
+  throw new Error(mensajeError)
+}
 
 /**
  * Limpieza compensatoria (MSF-699): si la subida falla antes de registrar la
@@ -48,6 +60,7 @@ export function IaDocumentos() {
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [versionesPorDocumento, setVersionesPorDocumento] = useState<Record<string, VersionDocumento[]>>({})
   const [subiendo, setSubiendo] = useState(false)
+  const [reintentando, setReintentando] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pregunta, setPregunta] = useState('')
   const [preguntando, setPreguntando] = useState(false)
@@ -163,15 +176,7 @@ export function IaDocumentos() {
         }
       }
 
-      const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
-      if (invokeError) {
-        let mensajeError = invokeError.message
-        if (invokeError instanceof FunctionsHttpError) {
-          const cuerpo = await invokeError.context.json().catch(() => null)
-          mensajeError = cuerpo?.error ?? mensajeError
-        }
-        throw new Error(mensajeError)
-      }
+      await invocarIndexacion(versionId)
 
       await cargarDocumentos()
       if (docId) await verHistorial(docId)
@@ -186,6 +191,22 @@ export function IaDocumentos() {
       setSubiendo(false)
     }
   }, [contexto?.organizacion_id, cargarDocumentos, verHistorial])
+
+  // Reintento manual de una versión que quedó «procesando» (fallo transitorio): invoca de nuevo la indexación de ESA
+  // versión. El backend valida quién puede (quien subió o administrador) y su error real se muestra en pantalla.
+  const reintentarIndexacion = useCallback(async (documentoId: string, versionId: string) => {
+    setError(null)
+    setReintentando(versionId)
+    try {
+      await invocarIndexacion(versionId)
+    } catch (reintentoError) {
+      setError(reintentoError instanceof Error ? reintentoError.message : 'No se pudo reintentar el procesamiento.')
+    } finally {
+      setReintentando(null)
+      await cargarDocumentos()
+      await verHistorial(documentoId)
+    }
+  }, [cargarDocumentos, verHistorial])
 
   const eliminar = useCallback(async (documentoId: string) => {
     if (!window.confirm('¿Eliminar este documento? Esta acción borra el archivo y todo su contenido indexado, no se puede deshacer.')) return
@@ -293,9 +314,28 @@ export function IaDocumentos() {
               >
                 <ListItemText
                   primary={documento.nombre}
+                  slotProps={{ secondary: { component: 'div' } }}
                   secondary={
                     versionesPorDocumento[documento.id]
-                      ? versionesPorDocumento[documento.id].map((v) => `${v.estado}${v.motivo_error && !v.motivo_error.startsWith('indexando:') ? ` (${v.motivo_error})` : ''}`).join(' · ')
+                      ? (
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                          {versionesPorDocumento[documento.id].map((v) => procesamientoInterrumpido(v) ? (
+                            <Stack key={v.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                              <span>procesando · Se interrumpió el procesamiento</span>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={reintentando === v.id}
+                                onClick={(evento) => { evento.stopPropagation(); void reintentarIndexacion(documento.id, v.id) }}
+                              >
+                                {reintentando === v.id ? 'Reintentando...' : 'Reintentar'}
+                              </Button>
+                            </Stack>
+                          ) : (
+                            <span key={v.id}>{`${v.estado}${v.motivo_error && !v.motivo_error.startsWith('indexando:') ? ` (${v.motivo_error})` : ''}`}</span>
+                          ))}
+                        </Stack>
+                      )
                       : 'Click para ver historial de versiones'
                   }
                 />

@@ -1,7 +1,7 @@
 // `node --test supabase/functions/chat-ia-responder/guardas.test.ts` (pnpm test:edge:chat-ia-limites).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje, limiteConfigurado, resolverLlamadas, validarEntrada } from './guardas.ts'
+import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje, limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada } from './guardas.ts'
 
 describe('validarEntrada', () => {
   it('acepta un mensaje normal con o sin conversación', () => {
@@ -93,5 +93,14 @@ describe('resolverLlamadas', () => {
     const r = await resolverLlamadas(llamadas, async (n) => { ejecutadas++; return lectura(n) })
     assert.equal(ejecutadas, MAX_HERRAMIENTAS_POR_TURNO)
     if (r.tipo === 'resultados') assert.equal(r.resultados.length, llamadas.length)
+  })
+})
+
+describe('rechazoPorCuota', () => {
+  it('deja pasar bajo el tope, corta con 429 al alcanzarlo y con 503 si no se pudo contar', () => {
+    assert.equal(rechazoPorCuota(5, null, 60), null)
+    assert.equal(rechazoPorCuota(null, null, 60), null)
+    assert.equal(rechazoPorCuota(60, null, 60)?.status, 429)
+    assert.equal(rechazoPorCuota(0, { message: 'x' }, 60)?.status, 503)
   })
 })
