@@ -151,13 +151,12 @@ jobs:
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
       # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
-      # lo seguro): antes no corrían en ningún workflow. ~1 min. Los pesados o rotos quedan documentados
+      # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
+      # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
+      # con un resumen. ~1,5 min. Los pesados o rotos quedan documentados
       # en docs/control-ci.md («Decisiones pendientes del lote 26»).
       - name: test:ci:scripts
         run: pnpm test:ci:scripts
-      # Gate de egress de workers (MSF-684): en worker-images.yml solo corría en `main`.
-      - name: test:workers:egress (política de egress al día con los workers y flows)
-        run: pnpm test:workers:egress
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev

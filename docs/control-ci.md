@@ -162,13 +162,25 @@ archivo` sin pasos de código.
   usan los flows (`comprobantes-pdf`, `historial-ventas`, `importar-productos`) y los workers de cada una (`workers`). Los 5 workers
   solo hablan con Supabase (ya cubierto por `common`), por eso `solo_supabase: true` y `domains: []`. `scripts/validar-egress-workers.mjs`
   falla si hay un worker descubierto sin entrada, si la política nombra un worker inexistente o si un flow referencia una red sin
-  entrada (test: `scripts/validar-egress-workers.test.mjs`). Se corre también en el job `application` (antes solo corría en
-  `worker-images.yml`, que dispara solo en `main`).
+  entrada, o si hay `solo_supabase: true` con `domains` no vacío; los dominios no admiten comodines de TLD (`*.com`). Lee la red de
+  los flows con comillas simples o dobles, `--network=…`, `--network …` y en subdirectorios de `infra/kestra/flows`, y rechaza un
+  `--network` literal fuera de la convención `worker-egress-<sistema>` (test: `scripts/validar-egress-workers.test.mjs`). Se corre
+  también en el job `application` (dentro de `test:ci:scripts`; antes solo corría en `worker-images.yml`, que dispara solo en `main`).
+  **Límite**: valida estructura y consistencia; NO detecta un `fetch` nuevo a un tercero en un worker ya listado (la allowlist real
+  la aplica el firewall/proxy del servidor). Nota: 4 workers pueden enviar errores a GlitchTip con `ERRORES_DSN`
+  (`workers/_comun/errores.mjs`); hoy ningún flow lo pasa (no-op). Si se activa, hay que declarar el host en `domains`
+  (ver el campo `notas` del JSON).
 - **Migraciones aditivas (MSF-688).** `validar-migraciones-aditivas.mjs` también detecta `DROP SCHEMA`, `DROP FUNCTION` y
-  `DELETE FROM` sin `WHERE`, y el marcador `Reversión` debe estar en un comentario SQL (no vale `reversible` en un literal).
-  `DROP CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido). Las 750 migraciones actuales pasan.
+  `DELETE FROM` sin `WHERE`; un tokenizador mínimo respeta los literales (`select '--'; drop table x;` ya no pasa) y el marcador
+  debe ser un comentario que nombre la «reversión» sin negarla (`-- sin reversión` no vale; `reversible` tampoco). No se exige que
+  empiece con «Reversión:» porque las 750 migraciones históricas usan formatos distintos. Corre también en `application` sobre las
+  750 (~1,5 s). **Límites** (no cubre): SQL dinámico con `execute`; `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`;
+  `ALTER TABLE t DROP c` sin `COLUMN`; `UPDATE` sin `WHERE`; `REVOKE`; no valida que la reversión tenga pasos. `DROP
+  CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido).
 - **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
-  del orden de 1 minuto): ver «Decisiones pendientes del lote 26».
+  ~1,5 a 3 minutos): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
+  fallaron (no corta en la primera). La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
+  `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
 
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)
 
@@ -177,14 +189,16 @@ archivo` sin pasos de código.
   por día) sobre los runners, con el riesgo de rojos por la cola compartida del stack de Supabase. Alternativas: (a) agregar
   `dokploy` a `push.branches` (cobertura total, costo alto); (b) mantener el e2e nocturno (`e2e-nocturno.yml`) como red de seguridad
   (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
-  si se quiere validar el resultado integrado. Requiere decisión de Nicolás.
+  si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
+  la API de rulesets). Requiere decisión de Nicolás.
 - **Tests que el CI sigue sin correr (MSF-679).** Quedan fuera por pesados o por fallar hoy (ver la tabla en
   «Verificación» del PR): `template:capabilities:check`, `test:outbox:frontera` y `test:ia:aprovisionamiento` fallan en `dokploy`
   actual y hay que arreglarlos antes de encenderlos; los `test:*:e2e`, `test:db` y los de runtime necesitan stack.
 - **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
-  tocan acá. Propuesta: habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar
-  `token:` de un PAT/GitHub App a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment
-  `staging` (el puerto 7635 de `172.17.0.1` ya no responde) y agregar una alerta cuando falle el job `staging`.
+  tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
+  habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar `token:` de un PAT/GitHub App
+  a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment `staging` y su puerto (según el
+  ítem, el destino rechazaba conexiones) y agregar una alerta cuando falle el job `staging`.
 - **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
   `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
   o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por

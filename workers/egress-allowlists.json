@@ -34,5 +34,8 @@
         "importar-productos"
       ]
     }
-  }
+  },
+  "notas": [
+    "Los workers comprobantes-pdf, exportar-comprobantes, exportar-organizacion e historial-importador pueden enviar errores a GlitchTip por HTTP si se define ERRORES_DSN (workers/_comun/errores.mjs). Ningun flow lo pasa hoy: sin ERRORES_DSN es un no-op. Si se activa, hay que declarar el host de GlitchTip en `domains` de esas redes y quitar solo_supabase."
+  ]
 }

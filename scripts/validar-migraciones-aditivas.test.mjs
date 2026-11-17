@@ -85,3 +85,18 @@ test('la palabra reversión fuera de un comentario no cuenta como camino de reve
     assert.notEqual((await run(dir)).code, 0);
   });
 });
+
+test('un -- dentro de un literal no anula el resto de la línea', async () => {
+  await withMigrations({ '001.sql': "select '--'; drop table x;" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});
+
+test('un comentario negado («sin reversión») no cuenta como camino de reversión', async () => {
+  await withMigrations({ '001.sql': '-- sin reversión\ndrop table x;' }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+  await withMigrations({ '001.sql': '/* Camino de reversión: recrear x */\ndrop table x;' }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});

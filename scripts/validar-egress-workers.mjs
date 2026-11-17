@@ -4,20 +4,50 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { discoverWorkers } from './descubrir-workers.mjs';
 
-const DOMINIO = /^(\*\.)?[a-z0-9.-]+$/i;
-const RED_EN_FLOW = /WORKER_NETWORK_ESPERADA="worker-egress-([a-z0-9][a-z0-9-]*)"/g;
+// Dominio permitido: nombre completo o comodín `*.` sobre un dominio con al menos DOS etiquetas
+// (`*.proveedor.com` sí; `*.com` o `*` no, abrirían todo un TLD).
+const DOMINIO = /^(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
+const COMODIN_DE_TLD = /^\*\.[a-z0-9-]+$/i;
+const RED_CONVENCIONAL = /worker-egress-([a-z0-9][a-z0-9-]*)/gi;
+const NETWORK_LITERAL = /--network(?:=|\s+)["']?([^"'\s$\\]+)/g;
 
-// Redes `worker-egress-<sistema>` que declaran los flows de Kestra (las plantillas usan
-// `$SISTEMA_EXTERNO`, que no coincide con el patrón y se ignora).
+// LÍMITES: este validador comprueba ESTRUCTURA y consistencia (workers, redes de flows y allowlist). NO
+// detecta que un worker ya listado agregue un `fetch` a un tercero nuevo: la allowlist real se aplica fuera
+// de Docker (firewall/proxy del servidor) y un destino nuevo exige declarar `domains` a mano en la revisión.
+
+function archivosYaml(directorio) {
+  const salida = [];
+  if (!fs.existsSync(directorio)) return salida;
+  for (const entrada of fs.readdirSync(directorio, { withFileTypes: true })) {
+    const ruta = path.join(directorio, entrada.name);
+    if (entrada.isDirectory()) salida.push(...archivosYaml(ruta));
+    else if (/\.ya?ml$/.test(entrada.name)) salida.push(ruta);
+  }
+  return salida;
+}
+
+// Redes `worker-egress-<sistema>` que nombran los flows de Kestra, con cualquier sintaxis (comillas simples o
+// dobles, `WORKER_NETWORK_ESPERADA=…`, `--network=…`, `--network …`) y en subdirectorios. Las plantillas usan
+// `worker-egress-$SISTEMA_EXTERNO`, que no coincide con el patrón y se ignora.
 export function redesDeFlows(directorio) {
   const redes = new Set();
-  if (!fs.existsSync(directorio)) return redes;
-  for (const archivo of fs.readdirSync(directorio)) {
-    if (!/\.ya?ml$/.test(archivo)) continue;
-    const texto = fs.readFileSync(path.join(directorio, archivo), 'utf8');
-    for (const m of texto.matchAll(RED_EN_FLOW)) redes.add(m[1]);
+  for (const archivo of archivosYaml(directorio)) {
+    const texto = fs.readFileSync(archivo, 'utf8');
+    for (const m of texto.matchAll(RED_CONVENCIONAL)) redes.add(m[1].toLowerCase());
   }
   return redes;
+}
+
+// `--network <nombre literal>` que no sigue la convención `worker-egress-<sistema>` (las variables `$…` se permiten).
+export function redesFueraDeConvencion(directorio) {
+  const invalidas = [];
+  for (const archivo of archivosYaml(directorio)) {
+    const texto = fs.readFileSync(archivo, 'utf8');
+    for (const m of texto.matchAll(NETWORK_LITERAL)) {
+      if (!/^worker-egress-[a-z0-9][a-z0-9-]*$/i.test(m[1])) invalidas.push(`${archivo}: --network ${m[1]}`);
+    }
+  }
+  return invalidas;
 }
 
 // Valida la política. `workersDescubiertos` son los ids de `workers/*`; `redesFlows` los sistemas que
@@ -43,8 +73,11 @@ export function validarPolitica(policy, workersDescubiertos = [], redesFlows = n
       throw new Error(`${system}: red de egress invalida o ausente.`);
     }
     const domains = entry.domains ?? [];
-    if (!Array.isArray(domains) || domains.some((domain) => !DOMINIO.test(domain))) {
-      throw new Error(`${system}: dominios de egress invalidos o ausentes.`);
+    if (!Array.isArray(domains) || domains.some((domain) => !DOMINIO.test(domain) || COMODIN_DE_TLD.test(domain))) {
+      throw new Error(`${system}: dominios de egress invalidos o ausentes (sin comodines de TLD como *.com).`);
+    }
+    if (entry.solo_supabase === true && domains.length > 0) {
+      throw new Error(`${system}: solo_supabase=true es incoherente con domains no vacio.`);
     }
     if (domains.length === 0 && entry.solo_supabase !== true) {
       throw new Error(`${system}: dominios de egress invalidos o ausentes.`);
@@ -63,7 +96,7 @@ export function validarPolitica(policy, workersDescubiertos = [], redesFlows = n
     throw new Error(`Workers sin allowlist de egress en workers/egress-allowlists.json: ${sinEntrada.join(', ')}.`);
   }
   const inexistentes = [...cubiertos].filter((id) => !workersDescubiertos.includes(id));
-  if (workersDescubiertos.length > 0 && inexistentes.length > 0) {
+  if (inexistentes.length > 0) {
     throw new Error(`La politica de egress nombra workers que no existen: ${inexistentes.join(', ')}.`);
   }
   const redesSinEntrada = [...redesFlows].filter((sistema) => !systems.includes(sistema));
@@ -76,7 +109,10 @@ export function validarPolitica(policy, workersDescubiertos = [], redesFlows = n
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const policy = JSON.parse(fs.readFileSync(path.join('workers', 'egress-allowlists.json'), 'utf8'));
   const workers = discoverWorkers(path.resolve('workers')).map((w) => w.id);
-  const redes = redesDeFlows(path.join('infra', 'kestra', 'flows'));
+  const dirFlows = path.join('infra', 'kestra', 'flows');
+  const fuera = redesFueraDeConvencion(dirFlows);
+  if (fuera.length > 0) throw new Error(`Redes de flows fuera de la convencion worker-egress-<sistema>: ${fuera.join('; ')}.`);
+  const redes = redesDeFlows(dirFlows);
   const total = validarPolitica(policy, workers, redes);
   process.stdout.write(
     `OK: politica de egress v${policy.version} valida para ${total} red(es) y ${workers.length} worker(s) descubiertos, con destinos permitidos y denegados.\n`,
