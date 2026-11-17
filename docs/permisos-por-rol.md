@@ -41,6 +41,12 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
 - Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
   Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
   lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
+- **Actividad por empresa accesible (MSF-968):** además de la organización y el nivel en `actividad`, la lectura del historial
+  (política `registro_actividad_select`, `listar_actividad`, `obtener_detalle_actividad`, `opciones_actividad` y
+  `exportar_actividad`) solo muestra los eventos sin empresa (de toda la organización) y los de las empresas a las que la persona
+  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el resto, las asignadas; las pausadas
+  cuentan para no perder su historial). Cambio visible: Operador y Administración con una sola tienda asignada ya no ven los eventos
+  de las demás; el Administrador sigue viendo todo. Ver `docs/actividad.md`.
 - Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización
   (`private.es_administrador_de`); ni el permiso `exportar` ni el nivel de la sección `productos` los habilitan.
 
@@ -209,7 +215,8 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
   `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
-  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
+  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
+  en **Stock** también es del Operador (reportes de inventario, migración `20270438000000`); los demás roles sin ella ven solo cantidades.
 - **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
   DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
   rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
@@ -417,7 +424,13 @@ permisos y contexto demorados).
 
 - `BotonVolver` (`components/pagina/BotonVolver.tsx`) reemplaza la flecha sin nombre que `@refinedev/mui` pone en
   `Create`/`Edit`/`Show` (se pasa como `goBack`); `EditButton hideText` lleva `aria-label`.
-- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; no `ContenidoAdaptable`, que pasa a tarjetas en pantallas chicas) lleva `tabIndex={0}`, `role="region"` y un nombre
+- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; también la de `ContenidoAdaptable` cuando recibe `etiquetaTabla`, que en pantallas chicas pasa a tarjetas) lleva `tabIndex={0}`, `role="region"` y un nombre
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
+
+## Listas de precios (F-PRE-14 y F-CLI-21)
+
+Las listas de precios **no tienen sección propia** en la matriz: solo las escribe el rol **Administrador** (la RPC lo comprueba con `private.es_administrador_de`, como el descuento por cliente) y las leen quienes tienen `clientes` o `ventas` en `lectura` o `edicion` (política `listas_precios_select`). Detalle en [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
+
+Resumen del cierre: crear, editar, archivar, restaurar y asignar listas es **solo del rol Administrador**; leen las listas y la lista de cada cliente quienes tienen `clientes` o `ventas`; la tienda nunca expone el nombre ni el porcentaje de la lista. Revisión completa en [Revisión de seguridad de las listas de precios](revision-seguridad-listas-de-precios.md).

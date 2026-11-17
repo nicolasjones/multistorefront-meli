@@ -1,3 +1,8 @@
+---
+owner: producto
+sources: []
+---
+
 # Documentación
 
 Tres entradas según lo que necesites:
@@ -43,12 +48,16 @@ Tres entradas según lo que necesites:
 | Ventas: contrarreembolsos por transporte y guía de la épica de cobros | [contrarreembolsos-transporte.md](contrarreembolsos-transporte.md), [ventas-cobros-y-conciliacion.md](ventas-cobros-y-conciliacion.md) |
 | Ventas: despacho (armado, control, entrega) y faltantes | [ventas-despacho.md](ventas-despacho.md), [ventas-faltantes.md](ventas-faltantes.md), [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md) |
 | Ventas: venta de mostrador con lector de código de barras | [ventas-mostrador.md](ventas-mostrador.md) |
-| Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-cobro.md](service-cobro.md) |
+| Service técnico: reparaciones, ítems, impresión y cobro | [service-tecnico.md](service-tecnico.md), [service-items.md](service-items.md), [service-listado.md](service-listado.md), [service-impresion.md](service-impresion.md), [service-etiqueta-qr.md](service-etiqueta-qr.md), [service-cobro.md](service-cobro.md) |
 | Ingreso de mercadería por proveedor | [ingreso-de-mercaderia.md](ingreso-de-mercaderia.md) |
+| Dataset de demostración (San Javucho y Mundo JC) | [dataset-demo.md](dataset-demo.md) |
+| Órdenes de compra a proveedores | [ordenes-compra.md](ordenes-compra.md) |
+| Gastos de la empresa (registro y consulta) | [gastos.md](gastos.md), [producto/gastos.md](producto/gastos.md) |
 | Ambientes y despliegue | [deployment.md](deployment.md), [ambientes-verificacion.md](ambientes-verificacion.md), [adoptar-cicd-staging-produccion.md](adoptar-cicd-staging-produccion.md) |
 | Pasos manuales de infraestructura en VPS2 (publicar el sitio de docs, orden de arranque de `tailnet-forwards`, stack Edge de dev, revocar la clave de API de prueba) | [pasos-manuales-vps2.md](pasos-manuales-vps2.md) |
 | Kestra: ejecuciones, conectores, OAuth | [adoptar-ciclo-ejecuciones.md](adoptar-ciclo-ejecuciones.md), [disenar-conector.md](disenar-conector.md), [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md) |
 | Superset | [operar-superset.md](operar-superset.md) |
+| Servidor MCP: credenciales, sesiones y revocación | [servidor-mcp.md](servidor-mcp.md) |
 | Workers | [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md) |
 | CI y runners | [adoptar-runners-locales.md](adoptar-runners-locales.md), [ci-self-hosted-storage.md](ci-self-hosted-storage.md), [adoptar-ci-base-aislada.md](adoptar-ci-base-aislada.md) |
 | Prototipos y sistema de diseño | [prototipos.md](prototipos.md), [sistema-de-diseno.md](sistema-de-diseno.md), [adoptar-kit-panel-operable.md](adoptar-kit-panel-operable.md) |
@@ -57,9 +66,11 @@ Tres entradas según lo que necesites:
 | Documentación obligatoria y skills | [documentacion-cambios.md](documentacion-cambios.md), [skills.md](skills.md) |
 | Arquitectura y roadmap | [architecture.md](architecture.md), [roadmap-template.md](roadmap-template.md) |
 | Copias y restauración | [copias-y-restauracion.md](copias-y-restauracion.md), [simulacro-restauracion.md](simulacro-restauracion.md) |
+| Verificación de salida del correo de «Solicitar acceso» | [verificacion-salida-correo.md](verificacion-salida-correo.md) |
 
 ## Deuda trazada
 
 - **Pasos manuales de VPS2 (MSF-854)**: publicar el sitio de docs, el orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev y revocar la clave de API de prueba `PRUEBA-claude-2026-11-11` los hace Nicolás (piden acceso al VPS2 y credenciales que no están en Git). El procedimiento, la verificación y la reversión de cada uno: [pasos-manuales-vps2.md](pasos-manuales-vps2.md).
 - **Simulacro de restauración en staging**: documentado pero **no ejecutado** (sin autorización sobre staging); ver [simulacro-restauracion.md](simulacro-restauracion.md). Seguimiento: **MSF-520** (Tarea `seguimiento` en el tracker).
+- **Verificación de salida del correo de «Solicitar acceso» desde el servidor self-hosted**: documentada pero **no ejecutada** (el repo registra el relay SMTP real y el SPF/DKIM del VPS como pendientes); el guion no puede dar un verde falso. Ver [verificacion-salida-correo.md](verificacion-salida-correo.md). Seguimiento: **MSF-532** — Tarea `seguimiento` «Ejecutar la verificación de salida del correo contra el SMTP real del servidor self-hosted (FR-012b)», dueño: infraestructura/Nicolás; **a crear en el tracker** (el repo no da fe de que esa tarea ya exista).
 - `deployment.md` todavía menciona Supabase Cloud para producción; la constitución v1.8.0 establece Supabase self-hosted sin Cloud. Corregir al documentar el ambiente de producción.

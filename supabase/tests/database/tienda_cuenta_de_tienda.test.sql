@@ -34,7 +34,7 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000002', 'cdt-b.ejemplo.com'),
   ('22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-000000000001', 'cdt-x.ejemplo.com');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 901, 'Mayorista', 'my@example.com', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 902, 'Minorista', 'mn@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 903, 'Suspendida', 'su@example.com', 'mayorista'),
@@ -42,9 +42,9 @@ insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 905, 'Archivado', 'ar@example.com', 'minorista'),
   ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 901, 'Cliente Dos', 'c2@example.com', 'minorista');
 -- El consumidor final de la organización Uno (la base puede traerlo sembrado: se reutiliza o se crea).
-insert into clientes (id, organizacion_id, numero, nombre, tipo, es_consumidor_final)
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, es_consumidor_final)
 select 'c1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 906, 'Consumidor final propio', 'minorista', true
- where not exists (select 1 from clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final);
+ where not exists (select 1 from dominio.clientes where organizacion_id = '11111111-1111-1111-1111-111111111111' and es_consumidor_final);
 
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
   ('c1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111'),
@@ -56,7 +56,7 @@ insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
   ('c2000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id)
 select c.id, 'e1000000-0000-0000-0000-000000000001', c.organizacion_id
-  from clientes c
+  from dominio.clientes c
  where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.es_consumidor_final
 on conflict do nothing;
 
@@ -71,10 +71,10 @@ insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_u
 -- La cuenta del consumidor final (el cliente existe, pero nunca da acceso).
 insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado)
 select 'ca000000-0000-0000-0000-000000000007', c.organizacion_id, c.id, 'e1000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-000000000006', 'activa'
-  from clientes c
+  from dominio.clientes c
  where c.organizacion_id = '11111111-1111-1111-1111-111111111111' and c.es_consumidor_final;
 -- Un cliente archivado con la sesión todavía viva.
-update clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000005';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000005';
 
 -- Llama a la función como lo haría una RPC security definer: con la sesión (claims) de esa persona, o sin sesión (null).
 create function pg_temp.cuenta(p_user uuid, p_host text) returns jsonb language plpgsql as $$

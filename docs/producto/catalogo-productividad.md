@@ -79,7 +79,8 @@ Qué se copia y qué no:
 ## Lo que todavía no se puede
 
 - **Borrar productos:** no se borran, se desactivan (usá «Cambiar estado → Desactivar»).
-- **Marcar destacado** y **enviar al newsletter** de a varios.
+- **Marcar destacado** y **enviar al newsletter** de a varios. El newsletter de la tienda tiene su propia
+  guía: [Newsletter de la tienda](newsletter.md).
 - **Cambiar SKU, código de barras, precio o costo** de varios productos a la vez.
 - **Seleccionar todos los resultados** de una búsqueda o filtro: la casilla del encabezado marca solo los productos que
   ya se ven en la lista.

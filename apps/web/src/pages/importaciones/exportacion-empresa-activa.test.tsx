@@ -32,7 +32,7 @@ function conActivaCambiante() {
 // Constitución, Principio VIII: la exportación total es de TODA la organización, así que no depende de la empresa
 // activa (FR-039). Este test fija esa decisión: cambiar de empresa no la oculta, no la recarga con otro filtro y no
 // cierra el diálogo abierto.
-describe('[MSF-396:T026] Exportar todos los datos con la empresa activa (FR-039)', () => {
+describe('Exportar todos los datos con la empresa activa (FR-039)', () => {
   beforeEach(() => {
     reiniciarFalso()
     responderExportacionTotal(exportacionTotal())

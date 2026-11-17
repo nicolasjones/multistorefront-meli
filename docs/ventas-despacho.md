@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-130000-ventas-despacho-y-faltantes
+  - apps/web/src/components/ventas/EnvioTransporte.tsx
+  - apps/web/src/lib/ventasDespacho.ts
+  - apps/web/src/lib/ventasEnvio.ts
+  - design/pantallas
+  - supabase/migrations/20270112100400_despacho_responsables.sql
+  - supabase/migrations/20270112100500_despacho_cambiar_estado.sql
+  - supabase/migrations/20270112100600_despacho_responsables_acceso_ventas.sql
+---
+
 # Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)
 
 Historias F-VTA-15 (MSF-152) y F-VTA-16 (MSF-166) de la épica MSF-135. Spec:
@@ -15,7 +28,7 @@ El despacho es un **campo propio de la factura**, separado del estado documental
 - `estado_despacho` es nulable y solo puede existir en `tipo = 'factura'` (check). `estado` sigue siendo el estado
   documental (`borrador`, `confirmada`, `anulada`, …); los dos comparten los nombres `armando` e `incompleto` pero
   viven en columnas distintas y los mueven historias distintas.
-- La RLS vigente de `dominio.comprobantes_venta` no cambia: se lee por organización y sección `ventas`. **No hay
+- La RLS de lectura de `dominio.comprobantes_venta` es por organización, sección `ventas` y empresa accesible (`private.empresas_accesibles()`, MSF-656); el despacho no la cambia. **No hay
   grants de escritura nuevos**: el estado y los responsables se escriben solo por RPC `security definer`. `anon` no
   tiene acceso. El **privilegio de lectura** sí es por columna desde `20270112140500_envio_aislamiento.sql` (F-VTA-16,
   ver «Transporte y guía»): las tres columnas del envío quedan sin lectura directa para `authenticated`.
@@ -155,7 +168,7 @@ microsegundos y la base responde siempre `40001` (conflicto).
 ### Dónde se carga (FR-023)
 
 El bloque **«Envío y transporte»** del comprobante es la pantalla de esos datos (se detalla en
-«[Bloque «Envío y transporte»](#bloque-envío-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
+«[Bloque «Envío y transporte»](#bloque-envio-y-transporte-fr-023)»): el selector de transporte lleva el rótulo de
 la forma de envío («Transporte / expreso», «Correo» o «Mensajería propia»), con «Retiro en local» avisa que el
 cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelta lo elegido y se relee el envío.
 

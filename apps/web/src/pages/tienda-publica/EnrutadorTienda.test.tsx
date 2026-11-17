@@ -37,6 +37,10 @@ describe('rutaDeArchivo (FR-003)', () => {
     expect(rutaDeArchivo('./rutas/categoria.tsx')).toEqual(['/categoria', '/categoria/:categoriaId'])
     expect(rutaDeArchivo('./rutas/producto.tsx')).toEqual(['/producto', '/producto/:productoId'])
   })
+
+  it('un nombre con puntos es una ruta de varios tramos con el parámetro final :token', () => {
+    expect(rutaDeArchivo('./rutas/newsletter.confirmar.tsx')).toEqual(['/newsletter/confirmar/:token'])
+  })
 })
 
 describe('layout, menú y pie (FR-003, FR-004, FR-005, FR-008)', () => {

@@ -1,4 +1,19 @@
+---
+owner: tecnico
+sources:
+  - specs/20261022-084830-tienda-dominio-e-identidad
+  - specs/20261023-120000-tienda-catalogo-y-ficha
+  - specs/20261024-051500-cuenta-web-del-cliente
+  - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - infra/glitchtip
+  - scripts/probar-nginx-tienda-seo.sh
+  - apps/web/Dockerfile
+  - apps/web/e2e
+---
+
 # Tiendas online: dominio e identidad
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/tiendas-online.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Spec: `specs/20261022-084830-tienda-dominio-e-identidad/` (épica MSF-147).
 Historias: F-TDA-01 (`MSF-241`), F-TDA-02 (identidad visual, `MSF-266`), F-TDA-03 (`MSF-294`, contenido y textos comerciales), F-TDA-04 (`MSF-312`, catálogo visible).
@@ -152,10 +167,15 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
 ofrece reintentar.
 
-- **Vencimiento por inactividad (MSF-673, MSF-700)**: a las 12 h sin actividad (`lib/vencimientoSesion.ts`,
-  enganchado en `main.tsx`) en un host de tienda se cierra solo la sesión local (`salirCliente`) y se vuelve a `/`;
-  nunca se redirige a `/login` (la tienda no lo tiene; su ingreso es `/ingresar`) ni se revoca la sesión en otros
-  dispositivos. Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts`.
+- **Vencimiento por inactividad (MSF-740)**: la regla de las 12 h sin actividad es del **panel**
+  (`lib/vencimientoSesion.ts` + `lib/arranqueSesion.ts`, enganchado en `main.tsx`): en un host de tienda
+  **no** se aplica. La sesión de un cliente con cuenta web termina solo por salida explícita («Salir» de
+  la tienda, cierre local) o por el tope de 30 días del servidor (`[auth.sessions] timebox`); el visitante
+  anónimo no ve cierre de sesión ni redirección, y la tienda nunca manda a `/login` (no lo tiene; su
+  ingreso es `/ingresar`). Antes (MSF-673, MSF-700) la tienda heredaba la ventana de 12 h y el primer clic
+  del visitante que volvía al día siguiente lo mandaba a `/`. Si el producto quiere una regla propia para
+  la tienda (otra ventana, redirección a `/ingresar`), es funcionalidad nueva y va con spec de Spec Kit.
+  Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` y Vitest `apps/web/src/lib/arranqueSesion.test.ts`.
 - **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
   `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
 - **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio
@@ -683,7 +703,7 @@ Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso 
 | Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
 |---|---|---|---|
 | `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
-| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto, con la promoción vigente si baja la escala (`precio_anterior`, MSF-932); `null` sin cuenta activa habilitada | F-CLI-07 |
 
 `anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
 
@@ -1282,6 +1302,7 @@ contacto de la empresa del host.
 - **«Mi cuenta» (F-CLI-20, MSF-452)**: con la bandera `tienda_pedidos` encendida, el encabezado suma «Mi cuenta» para la cuenta web activa, la ficha suma «Guardar en favoritos» y la ruta `/mi-cuenta` lista compras, presupuestos y favoritos. `rutas/ingresar` acepta `?volver=` solo con rutas internas. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Lista de pedido sin cobro (B1, MSF-176)**: con la bandera `tienda_pedidos` encendida, la ficha suma «Agregar a la lista» (y «Ya tenés n en tu lista · Ver lista»), el encabezado «Mi lista (n)», el menú móvil «Mi lista» (con cuenta activa) y «Mi cuenta › Favoritos» «Agregar a la lista»; la ruta `/lista` revalida la lista con el servidor (precio de referencia = el que se ve en la tienda; con cuenta, la escala por cantidad), pide nombre y contacto (con cuenta, no) y la envía **sin pagar**: llega a Consultas como «Pedido» con sus ítems. La lista vive en el navegador (solo `producto_id` y cantidad). Con la bandera apagada no se ve nada y `/lista` es la 404. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Presupuesto desde la tienda (B2, MSF-176)**: con una cuenta activa, la lista suma «Pedir presupuesto»: un diálogo con la **cotización del servidor** (tu escala, tu descuento y las promociones vigentes, con IVA) y, al confirmar, un presupuesto **pendiente** en Ventas (canal tienda online) que el equipo acepta o modifica; **no reserva stock ni cobra nada**. Tope de 5 por día y 10 abiertos por cuenta; reintentar no duplica. Detalle y seguridad en `docs/tienda-compra-y-cuentas.md`.
+- **Opiniones de productos (MSF-467)**: con la bandera `tienda_opiniones` encendida (apagada por defecto, solo dev), la ficha suma el bloque «Opiniones» (promedio, cantidad y las opiniones aceptadas por tandas), un cliente con sesión deja, edita y borra la suya (siempre pasa por moderación previa) desde la ficha y desde la pestaña «Mis opiniones» de «Mi cuenta»; con la bandera apagada la ficha y «Mi cuenta» no cambian. Guía: [`docs/tienda-opiniones.md`](./tienda-opiniones.md).
 
 ## Lote 1 de deuda técnica: seguridad e integridad de la tienda pública (MSF-515)
 
@@ -1335,3 +1356,7 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 - **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
   y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
 - Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
+
+### Lote 3 de deuda técnica: visitante público con HMAC y poda global de envíos (MSF-946, MSF-947)
+
+`private.visitante_publico` (límite de búsquedas y de pedidos públicos de la tienda) deja de usar `sha256(ip|host)` sin clave, que se enumera probando las IPv4, y pasa a HMAC-SHA256 con el secreto `visitante_hmac` de Vault, el mismo de MSF-945. Misma firma y misma entrada; los cupos en curso se reinician una vez porque cambia la clave. Además `private.registrar_envio_tienda` poda en cada registro, hasta 500 filas por vez, lo vencido (más de 24 h) de cualquier empresa y no solo de la que envía, con el índice `tienda_envios_creado_idx`. Migración `20270324120000`; prueba pgTAP `tienda_visitante_publico_hmac_msf946.test.sql`.

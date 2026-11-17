@@ -13,6 +13,8 @@
 --   (h) idempotencia (misma clave = mismo número, un solo comprobante, un solo cupo gastado); (i) un error provocado a mitad deja el contador de numeración sin cambio;
 --   (j) `anon` sin `execute`; (k) `anon` y `authenticated` sin escritura sobre las tablas; (l) ninguna respuesta con texto de Postgres; (m) bandera apagada = `sin_acceso`
 --   sin tocar datos; (n) el evento de actividad (actor nulo, número y cliente, sin correo ni teléfono).
+-- Cobertura de la LISTA DE PRECIOS del cliente en el presupuesto de la tienda (F-CLI-21, Fase 4): vive en `precio_lista_tienda_paridad.test.sql`
+-- (cotizar y crear con un cliente con lista, snapshot en las líneas, paridad con el panel y bandera apagada). Acá el motor sigue sin lista.
 begin;
 
 select plan(182);
@@ -119,7 +121,7 @@ select p.id, p.organizacion_id, 7 from dominio.productos p on conflict (producto
 
 -- Clientes: 1 mayorista con descuento 12,5 % · 2 minorista · 3 suspendida · 4 no habilitada en A (solo en B) · 6 con cuenta en B · 7 de la organización 2 con cuenta en X ·
 -- 9 y 10: cuentas para los topes y la concurrencia (mayoristas).
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista Cuenta', 'my@example.com', 'mayorista', 12.5),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista Cuenta', 'mn@example.com', 'minorista', 0),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista', 0),
@@ -296,11 +298,11 @@ select is(pg_temp.fila('antes_suspender') ->> 'estado', 'ok', '(b) la cuenta act
 select is(pg_temp.fila('despues_suspender'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: cotizar responde sin_acceso AL INSTANTE');
 select is(pg_temp.fila('despues_suspender_crear'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: crear responde sin_acceso AL INSTANTE');
 -- Un cliente archivado y la baja de «Habilitado en» también cortan al instante.
-update public.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.10');
 insert into res values ('archivado', publico.cotizar_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1')));
 reset role;
-update public.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
 select is(pg_temp.fila('archivado'), '{"estado":"sin_acceso"}'::jsonb, '(b) cliente archivado: sin_acceso');
 delete from public.clientes_empresas where cliente_id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.11');
@@ -896,9 +898,11 @@ select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and v
 -- M-3: el cupo de llamadas SOBREVIVE a una excepción (no se revierte con el bloque que falla)
 -- ============================================================================
 -- Se reemplaza el motor por uno que falla (dentro de esta transacción, que se deshace al final) y se cuenta el contador de la cuenta antes y después.
-create or replace function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
+drop function private.motor_presupuesto_tienda(uuid, jsonb);
+create function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
 returns table (orden integer, producto_id uuid, estado text, descripcion text, codigo text, cantidad integer, precio_unitario numeric, escala text, alicuota_id uuid,
-  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean)
+  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean,
+  lista_precio_id uuid, lista_ajuste_pct numeric)
 language plpgsql security definer set search_path = '' as $$
 begin
   raise exception 'falla provocada del motor';

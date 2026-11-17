@@ -43,7 +43,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Distribuidora Ñandú', 'mayorista'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cliente Número', 'minorista'),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente de la Dos', 'minorista');

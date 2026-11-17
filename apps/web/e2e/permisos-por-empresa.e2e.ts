@@ -13,6 +13,27 @@ import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, url } 
 
 const password = 'Correcta-12345!'
 
+// `service_role` no tiene permisos sobre `public.perfiles_usuario` (mínimo privilegio por tabla): el perfil lo
+// crea la propia persona, con su sesión, como lo permite la política `perfiles_usuario_insert_titular`.
+const claveAnonima =
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+async function crearPerfilComoTitular(correo: string, perfil: Record<string, unknown>) {
+  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: correo, password }),
+  })
+  if (!sesion.ok) throw new Error(`Login de ${correo}: ${sesion.status} ${await sesion.text()}`)
+  const { access_token: token } = (await sesion.json()) as { access_token: string }
+  const r = await fetch(`${url}/rest/v1/perfiles_usuario`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(perfil),
+  })
+  if (!r.ok) throw new Error(`REST perfiles_usuario: ${r.status} ${await r.text()}`)
+}
+
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
   await page.getByLabel('Correo').fill(correo)
@@ -70,7 +91,7 @@ test.describe('Permisos por empresa (F-ROL-04/06/07)', () => {
       ids.push(idAdmin)
       const idPersona = await altaUsuario(correoPersona)
       // El listado de Usuarios muestra el nombre del perfil (sin perfil dice «Perfil sin completar», no el correo): se le da uno.
-      await rest('perfiles_usuario', { user_id: idPersona, nombre: `Persona ${sufijo}`, apellido: 'Empresas' })
+      await crearPerfilComoTitular(correoPersona, { user_id: idPersona, nombre: `Persona ${sufijo}`, apellido: 'Empresas' })
       ids.push(idPersona)
       await rest('usuarios_organizacion', [
         { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' },

@@ -1,3 +1,16 @@
+---
+owner: tecnico
+sources:
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - infra/kestra/flows/enviar-avisos.yml
+  - supabase/migrations/20261210120000_avisos_catalogo.sql
+  - supabase/migrations/20261210120100_avisos_preferencias.sql
+  - supabase/migrations/20261210120200_avisos_listar_preferencias.sql
+  - supabase/migrations/20261210120300_avisos_cola.sql
+  - supabase/migrations/20261210120400_avisos_agrupacion.sql
+  - supabase/migrations/20261210120500_avisos_reclamar.sql
+---
+
 # Avisos por correo configurables
 
 Épica MSF-189 · historia F-NOT-01 (MSF-319). Spec: `specs/20261024-120000-avisos-y-listas-configurables/`.
@@ -73,3 +86,7 @@ MSF-853 (gate) eliminó el camino directo que quedó sin uso: la Edge Function `
 Los avisos de esta guía son internos (hacia el equipo) y cada persona los enciende o apaga. El correo masivo a clientes
 (MSF-155) es otra cosa: lo redacta el equipo, sale en lotes con cupo diario por el flow `correo-masivo` y cada cliente
 puede darse de baja. No usa `avisos_pendientes` ni estas preferencias. Ver [`correo-masivo.md`](./correo-masivo.md).
+
+## Resumen semanal por correo (F-REP-08, MSF-265)
+
+El resumen semanal para los administradores **no usa la cola `avisos_pendientes` ni el flow `enviar-avisos`**: es un correo por organización (no por persona) con contenido propio, que sigue el patrón del resumen de reposición (Kestra → Edge Function `enviar-resumen-semanal` → RPC de `service_role` → SMTP). Sí reutiliza de MSF-189 el catálogo `tipos_aviso` (tipo `resumen_semanal`, sección `usuarios_permisos`) y `preferencias_aviso` para la **baja personal** desde `/cuenta/avisos`: sin fila de preferencia = recibe el resumen. La pausa de toda la organización se hace en «Mi organización». Detalle en [Resumen semanal por correo](resumen-semanal-correo.md).

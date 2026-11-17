@@ -8,6 +8,8 @@ sources:
 
 # Cuentas y compras a proveedores (MSF-450)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../cuentas-y-compras-a-proveedores.md).
+
 **Épica:** MSF-450 — Clientes y proveedores · Cuentas y compras a proveedores · **Spec:** `specs/20261029-100000-cuentas-y-compras-a-proveedores/` (`spec.md`, `plan.md`, `tasks.md`) · **Rama:** `epic/MSF-450-clientes-y-proveedores-cuentas-y-compras` (PR #829, abierto; la épica está integrada en `dokploy` por el PR #826, merge `a559fbf0`; en `main` llega con la próxima promoción — las citas de este documento salen de `dokploy`) · **Alcance de entrega de la épica:** ninguno (solo documentación); la historia que sí se construyó declara `refine` y `supabase`.
 
 La épica registra **cuatro ideas condicionadas a validar demanda**, todas P3 y en Backlog, con la regla explícita de que «los requisitos se redactan cuando cada historia pase a un hito». De las cuatro, **solo una llegó a un hito y se construyó**: F-CLI-19 (MSF-451), «Cuenta corriente y saldo del cliente». Las otras tres siguen **sin código** y no tienen requisitos de comportamiento: inventarlos sería decidir por el cliente lo que todavía no pidió.
@@ -20,7 +22,7 @@ Resumen de producto: [Clientes](../producto/clientes.md) (ficha del cliente) y [
 |---|---|---|---|---|---|
 | F-CLI-19 | Cuenta corriente y saldo del cliente | P3 | L | **Construida** (MSF-451), con definición provisoria | Cómo Ventas maneja los cobros y el estado «Deuda» |
 | F-CLI-20 | Historial y favoritos en la cuenta web | P3 | L | Backlog, sin código | La cuenta web del cliente (MSF-237); equivale a F-CON-07 y F-TDA-27, acotados a esto |
-| F-CLI-21 | Listas de precios por cliente | P3 | L | Backlog, sin código | Relacionada con F-PRE-14 (Precios), **cancelada** el 2026-11-12 |
+| F-CLI-21 | Listas de precios por cliente | P3 | L | Implementada (Fases 1 a 5; bandera `listas_precios` apagada hasta que Nicolás decida) | Relacionada con F-PRE-14 (Precios), que se había descartado el 2026-11-12 y se **retomó y entregó** el 2026-11-15 (spec `20270327-100000-listas-de-precios-por-cliente`; ver [Listas de precios](../listas-de-precios.md)) |
 | F-PRV-09 | Órdenes de compra a proveedores | P3 | L | Backlog, sin código | El ingreso de mercadería por proveedor y el listado de reposición de Stock (MSF-368) |
 
 En `specs/20261029-100000-cuentas-y-compras-a-proveedores/tasks.md`, las tareas T002, T003 y T004 (F-CLI-20, F-CLI-21 y F-PRV-09) quedan **abiertas a propósito** por decisión del responsable: no hay requisitos que implementar. T001 (F-CLI-19) se cerró con la spec de la historia; T010–T012 (cierre: guía, roadmap y gates) están cerradas.
@@ -73,7 +75,7 @@ Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`, r
 | `dominio.comprobantes_venta` | `dominio` (existente) | Los documentos del cliente: se leen. |
 | `dominio.cobros_comprobante` | `dominio` (existente) | El libro de cobros (F-VTA-12): se lee. |
 | `private.saldo_comprobante` | `private` (existente) | El saldo del comprobante: se llama; es su único dueño. No está expuesta (`revoke … from public, anon, authenticated`). |
-| `public.clientes` | `public` (existente) | Se lee para saber si el cliente es de la organización de la sesión. |
+| `dominio.clientes` | `public` (existente) | Se lee para saber si el cliente es de la organización de la sesión. |
 | `public.cuenta_corriente_cliente` | `public` (RPC nueva) | Mecanismo de plataforma (lo usan el panel y la tienda), no una entidad de negocio. |
 
 ## Guía de prueba
@@ -155,7 +157,7 @@ rótulos propuestos sigue la numeración de `tasks.md` de la spec.
 
 Revisada por agentes independientes (QA y Código + Seguridad) sobre el commit final y de nuevo sobre las correcciones posteriores (notas de crédito, disparador de efectos, saldo neto en Pagos):
 
-- **Sin tablas nuevas**: no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+- **Sin tablas nuevas**: no hay RLS que agregar; la función solo lee `dominio.comprobantes_venta`, `dominio.clientes` y `private.saldo_comprobante`.
 - **`security definer` con `search_path = ''`**: todo está calificado (`public.`, `dominio.`, `private.`).
 - **Aislamiento**: la organización sale de `private.organizacion_id()`, nunca de un argumento; el alcance por tienda sale de `private.empresas_accesibles()`.
 - **Permisos**: exige la sección `clientes` en `lectura`/`edicion` (`42501` si no); `revoke … from public, anon` y `grant execute … to authenticated`; `private.saldo_comprobante` no está expuesta.
@@ -167,7 +169,7 @@ La migración es **aditiva** y lleva su reversión en el encabezado: `drop funct
 
 ## Preguntas abiertas (de la épica, sin resolver)
 
-1. **Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) está **cancelada** (2026-11-12). Hoy el tipo de cliente son dos valores fijos (minorista / mayorista; no existe una tabla `tipos_cliente`) y la escala de cada línea sale del tipo y la cantidad con `private.escala_para_linea`. F-CLI-21 (listas por cliente) sigue sin requisitos.
+1. **Tipo de cliente vs. cantidad (F-CLI-21):** F-PRE-14 (listas mayoristas) se había descartado el 2026-11-12 y se **retomó y entregó el 2026-11-15** (las listas de F-CLI-21 se definieron: porcentaje sobre el precio central, ver [Precios](../precios.md)). Hoy el tipo de cliente son dos valores fijos (minorista / mayorista; no existe una tabla `tipos_cliente`) y la escala de cada línea sale del tipo y la cantidad con `private.escala_para_linea`. F-CLI-21 (listas por cliente) ya tiene spec y está implementada (Fases 1 a 5); el precio con lista rige solo con la bandera `listas_precios` encendida.
 2. **F-CLI-20 = F-CON-07 = F-TDA-27:** Tiendas online deja las cuentas en P3; manda el roadmap hasta que se defina.
 3. **Cuenta corriente (F-CLI-19):** **decidido:** las notas de crédito restan (2026-11-11), la «Cobrada» no es deuda y el saldo se ve por tienda accesible (2026-11-12). **A confirmar:** qué estados cuentan como deuda (en especial «Pendiente» y «Confirmada») y si el saldo a favor se muestra (hoy no).
 4. **Sin pantallas ni horas:** el documento exige pantalla antes de cargar a Jira; las historias se cargaron igual por pedido, con aviso en cada una.

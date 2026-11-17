@@ -8,6 +8,8 @@ sources:
 
 # Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../contactos.md).
+
 **Épica:** MSF-144 — Consultas y ventas · Contactos y respuestas rápidas.
 **Historias:** F-CON-05 Libreta de contactos (MSF-260) y F-CON-06 Respuestas rápidas (MSF-274).
 **Spec:** `specs/20261029-120000-contactos-y-respuestas-rapidas/` (`spec.md`, `plan.md`, `tasks.md`,
@@ -329,7 +331,7 @@ Git: `git revert -m 1 e57118a0`.
 1. **Texto de consentimiento y plazo de conservación**: el texto definitivo y el plazo los define el
    cliente. Hoy el texto es una constante versionada marcada `v1-pendiente` y **no hay expiración
    automática**: solo anonimización manual. Dueño: producto/cliente.
-2. **Contacto y cliente**: son entidades separadas, sin FK entre `dominio.contactos` y `public.clientes`.
+2. **Contacto y cliente**: son entidades separadas, sin FK entre `dominio.contactos` y `dominio.clientes`.
    Si deben unificarse, se decide antes de que MSF-154 consuma contactos. Dueño: producto.
 3. **Vínculo de compras**: es manual desde la ficha porque el alta de ventas (MSF-159) no pide un
    contacto. Dueño: producto/Ventas.

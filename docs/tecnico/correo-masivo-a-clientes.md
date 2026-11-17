@@ -26,7 +26,7 @@ Migraciones aditivas, cada una con su reversión en el encabezado:
 
 | Migración | Objeto | Esquema | Justificación (Principio VII) |
 |---|---|---|---|
-| `20270120100000_clientes_acepta_correo_masivo` | `public.clientes.acepta_correo_masivo boolean not null default false` | `public` | Dato genérico del cliente; los existentes quedan sin consentimiento. |
+| `20270120100000_clientes_acepta_correo_masivo` | `dominio.clientes.acepta_correo_masivo boolean not null default false` | `public` | Dato genérico del cliente; los existentes quedan sin consentimiento. |
 | `20270121110000_campanas_correo` | `dominio.campanas_correo` | `dominio` | Hecho del negocio: campaña, asunto y mensaje. |
 | idem | `dominio.campana_correo_destinatarios` | `dominio` | Foto de destinatarios al crear y estado (`pendiente`, `enviado`, `fallido`, `omitido`). |
 | idem | `dominio.correo_masivo_pruebas` | `dominio` | Pedidos de prueba al autor; no son campaña; sin acceso por API. |
@@ -100,4 +100,4 @@ porque la baja exige un POST de confirmación.
 
 Migraciones posteriores (nunca en el mismo PR): borrar las funciones de baja, historial, lote, creación y
 destinatarios; `drop table` de las tres tablas de `dominio` (exportar antes el historial si hace falta); luego
-`alter table public.clientes drop column acepta_correo_masivo`. El flow y la Edge Function se retiran aparte.
+`alter table dominio.clientes drop column acepta_correo_masivo`. El flow y la Edge Function se retiran aparte.

@@ -346,7 +346,7 @@ La regla ya existía en el template (spec 003). Lo que agrega esta épica:
   expuesta no tiene RLS. Enumera `pg_class` × `pg_namespace` con `n.nspname in ('public','dominio')`,
   `relkind in ('r','p')`, saltando particiones hijas (`not c.relispartition`) y tablas de extensiones
   (`d.deptype = 'e'`). No usa una lista fija: una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
-  Incluye un **control positivo** sobre `public.clientes` para que la prueba no pueda pasar en vacío.
+  Incluye un **control positivo** sobre `dominio.clientes` para que la prueba no pueda pasar en vacío.
 - `supabase/tests/database/aislamiento_organizaciones.test.sql` (plan 66) verifica con dos organizaciones que cada
   uno ve solo lo suyo y que un usuario sin membresía no ve nada.
 - `supabase/tests/database/estado_usuario.test.sql` (plan 40) cubre el estado de la membresía, el bloqueo por

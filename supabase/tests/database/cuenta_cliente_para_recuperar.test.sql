@@ -23,7 +23,7 @@ insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'a3000000-0000-0000-0000-000000000002', 'mundojc.ejemplo.com'),
   ('11111111-1111-1111-1111-111111111111', 'a3000000-0000-0000-0000-000000000003', 'apagada.ejemplo.com');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, archivado_en) values
   ('c6000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 20, 'Activo', 'a@example.com', 'minorista', null),
   ('c6000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 21, 'Suspendido', 's@example.com', 'minorista', null),
   ('c6000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 22, 'Archivado', 'ar@example.com', 'minorista', now()),

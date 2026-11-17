@@ -21,6 +21,9 @@ Un solo catálogo de productos para todas las tiendas, con categorías, fotos y 
 ## Stock
 Ver las existencias por producto y depósito, registrar movimientos, trasladar mercadería entre depósitos, reservar, hacer tomas de inventario, cargar y exportar stock y recibir avisos. Guías: [Movimientos](stock-movimientos.md) · [Depósitos y reservas](stock-depositos-y-reservas.md) · [Lotes e inventario](stock-lotes-e-inventario.md) · [Carga, exportación y avisos](stock-carga-exportacion-y-avisos.md).
 
+## Reportes de inventario
+Ver cuánto vale el inventario y qué productos están sin stock o con stock bajo, con el faltante sugerido y el proveedor, y descargar cualquiera de las dos tablas a una planilla. Guía: [Reportes de inventario](reportes-de-inventario.md).
+
 ## Compras
 Registrar la mercadería que llega de un proveedor (con su costo, opcional) y mantener la lista de proveedores, con sus contactos y el historial de costo de cada producto. Guías: [Ingreso de mercadería](ingreso-de-mercaderia.md) · [Proveedores](proveedores.md).
 
@@ -53,6 +56,12 @@ Una bandeja con los mensajes que los visitantes envían desde las tiendas, y avi
 
 ## Contactos
 Una libreta con las personas que consultan o compran, por tienda y sin duplicados, con su consentimiento, su historial de consultas y compras y la opción de anonimizar sus datos. También incluye textos frecuentes para responder más rápido. Guía: [Contactos](contactos.md).
+
+## Newsletter
+Cada tienda puede juntar suscriptores propios desde un formulario en el pie, con confirmación por correo y baja de un clic, y el Administrador compone y envía newsletters desde el panel. La función está construida pero **apagada por defecto**: la enciende el equipo técnico. Guía: [Newsletter de la tienda](newsletter.md).
+
+## Conexión con otros sistemas y asistente
+Un Administrador puede crear **claves de API de solo lectura** para que otro sistema consulte productos, stock, precios y ventas de la organización, y suscripciones para que el otro sistema reciba avisos de cambios. Además, el chat flotante del panel responde preguntas sobre el catálogo, el stock, los precios y las ventas, sin modificar nada. Guías: [API y avisos](api-y-avisos.md) · [Asistente con IA](asistente.md).
 
 ## Rentabilidad
 Ver cuánto margen deja cada producto en cada tienda y detectar los de margen bajo o negativo. Guía: [Rentabilidad](rentabilidad.md).

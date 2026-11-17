@@ -9,7 +9,7 @@ import { aLineas, type LineaComprobante } from './ventasLineas'
 export type TipoComprobante = 'factura' | 'presupuesto'
 export type CanalVenta = 'mostrador' | 'tienda_online' | 'telefono_whatsapp'
 
-// Mercado Libre queda para la Etapa 2: el prototipo lo muestra deshabilitado, no es un canal elegible.
+// Mercado Libre todavía no es un canal de venta elegible: el prototipo lo muestra deshabilitado.
 export const CANALES_VENTA: ReadonlyArray<{ valor: CanalVenta; etiqueta: string }> = [
   { valor: 'mostrador', etiqueta: 'Mostrador' },
   { valor: 'tienda_online', etiqueta: 'Tienda online' },
@@ -18,6 +18,13 @@ export const CANALES_VENTA: ReadonlyArray<{ valor: CanalVenta; etiqueta: string 
 export const AYUDA_CANAL_ML = 'Mercado Libre no está disponible todavía como canal.'
 
 export const ETIQUETA_TIPO: Readonly<Record<TipoComprobante, string>> = { factura: 'Factura', presupuesto: 'Presupuesto' }
+
+// Título de un comprobante abierto. `obtener_comprobante` también devuelve notas de crédito (se abren desde el
+// listado) y su tipo no está en `ETIQUETA_TIPO`: sin esto el título decía «undefined 00000001» (MSF-628).
+export function tituloComprobante(tipo: string, numero: string): string {
+  const etiqueta = tipo === 'nota_credito' ? 'Nota de crédito' : (ETIQUETA_TIPO as Readonly<Record<string, string>>)[tipo] ?? 'Comprobante'
+  return `${etiqueta} ${numero}`
+}
 
 export type ClienteComprobante = {
   id: string
@@ -191,7 +198,7 @@ function vacioANulo(texto: string): string | null {
 // `clientes` acota a la organización; sin acceso a Clientes devuelve null y la pantalla muestra «—».
 export async function obtenerClienteParaComprobante(id: string): Promise<ClienteComprobante | null> {
   const { data, error } = await supabaseClient
-    .from('clientes')
+    .schema('dominio').from('clientes')
     .select('id, nombre, documento, direccion, localidad, provincia, tipo, es_consumidor_final')
     .eq('id', id)
     .maybeSingle()

@@ -5,6 +5,8 @@ sources: []
 
 # Venta de mostrador
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-mostrador.md).
+
 ## Para qué sirve
 
 En el mostrador escaneás los productos con el lector de código de barras y cobrás en el momento, sin

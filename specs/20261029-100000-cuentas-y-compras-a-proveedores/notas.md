@@ -20,20 +20,20 @@ Lecciones y pendientes de la auditoría retroactiva por roles de MSF-450 (2026-1
 
 Decisiones que el desarrollo tomó de forma provisoria y que él tiene que confirmar o cambiar:
 
-1. **¿Cobrada ≠ deuda?** Hoy una factura en «Cobrado» no entra a la cuenta corriente aunque su cobro no esté en el libro.
+1. **¿Cobrada ≠ deuda?** *(Confirmado sin cambios de código el 2026-11-14, decisión 9.)* Hoy una factura en «Cobrado» no entra a la cuenta corriente aunque su cobro no esté en el libro.
 2. **Estados «Pendiente» y «Confirmada» como deuda.** Hoy cuentan los siete estados vivos (`confirmada`, `pendiente`,
    `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`); un pgTAP los fija uno por uno.
-3. **Saldo por tiendas accesibles vs. por organización.** La cuenta corriente suma las tiendas a las que la persona
+3. **Saldo por tiendas accesibles vs. por organización.** *(Confirmado sin cambios de código el 2026-11-14, decisión 9: queda por tiendas accesibles.)* La cuenta corriente suma las tiendas a las que la persona
    accede (`private.empresas_accesibles()`), pero la sección «Compras» de la misma ficha es de toda la organización:
    inconsistencia dentro de la misma pantalla.
-4. **Permiso `clientes` en lectura.** Quien lo tiene ve total, cobrado, notas de crédito y saldo aunque no acceda a Ventas.
+4. **Permiso `clientes` en lectura.** *(Confirmado sin cambios de código el 2026-11-14, decisión 10.)* Quien lo tiene ve total, cobrado, notas de crédito y saldo aunque no acceda a Ventas.
 5. **Sin saldo a favor (confirmado) y su consecuencia.** Una factura de 1.000 con 800 cobrados y una nota de 400
    desaparece de la cuenta corriente aunque el cliente, en rigor, tendría 200 a favor: ese excedente no se acredita en
    ningún lado.
 6. **«Facturado» del ranking en pesos enteros vs. saldo con centavos.** Son dos presentaciones distintas (y dos bases:
    sin IVA y con IVA).
-7. **Alinear `resumen_pagos` y `listar_pagos` «Solo con saldo» (RESUELTO el 2026-11-12).** Antes NO restaban las notas de crédito; la decisión 8 (tarea T013 de la spec 20261109-100000-cuenta-corriente-y-saldo-cliente, migraciones `20270228200000` y `20270228200100`) los alineó con la cuenta corriente. Ver *Decisiones tomadas (2026-11-12)* de esa spec.
-8. **Aprobación retroactiva de las migraciones `20270227140000` y `20270227150000`**, que cambian el comportamiento de
+7. **Alinear `resumen_pagos` y `listar_pagos` «Solo con saldo» (RESUELTO el 2026-11-12; decisión 8 ratificada el 2026-11-14, sin código nuevo: ya en `dokploy`, test `pagos_saldo_neto.test.sql`).** Antes NO restaban las notas de crédito; la decisión 8 (tarea T013 de la spec 20261109-100000-cuenta-corriente-y-saldo-cliente, migraciones `20270228200000` y `20270228200100`) los alineó con la cuenta corriente. Ver *Decisiones tomadas (2026-11-12)* de esa spec.
+8. **Aprobación retroactiva de las migraciones `20270227140000` y `20270227150000`** *(APROBADA el 2026-11-14, decisión 7, por delegación de Nicolás; no se revierten)*, que cambian el comportamiento de
    Ventas (ver lección 2). Si no las aprueba, se revierten (`docs/clientes.md`, *Reversión*).
 9. **MSF-452, MSF-453 y MSF-454** (las ideas F-CLI-20, F-CLI-21 y F-PRV-09 de la épica) no tienen requisitos por diseño,
    pero tienen un «Implementation Report» de runs fallidos en It's a Plan. Hay que ponerlas en HOLD/espera para que el
@@ -43,7 +43,7 @@ Decisiones que el desarrollo tomó de forma provisoria y que él tiene que confi
 
 Auditoría de `docs/*.md` y specs contra `origin/dokploy` (migraciones, RPC, componentes y ayuda en `apps/web/src/ayuda`). Solo documentación.
 
-- `docs/cuentas-y-compras-a-proveedores.md`: «Preguntas abiertas» 1 y 3 seguían tratando F-PRE-14 como choque abierto y el saldo a favor como pregunta; F-PRE-14 está cancelada (2026-11-12) y no hay saldo a favor. Reescritas; la fila de F-CLI-21 ya no depende de F-PRE-14. Siguen provisorios los estados que cuentan como deuda.
-- `spec.md`, `plan.md` y `tasks.md` (T003): anotada la cancelación de F-PRE-14 donde decían «no existe en el repo» o pedían coordinarla.
+- `docs/cuentas-y-compras-a-proveedores.md`: «Preguntas abiertas» 1 y 3 seguían tratando F-PRE-14 como choque abierto y el saldo a favor como pregunta; F-PRE-14 estaba descartada (2026-11-12; después se retomó) y no hay saldo a favor. Reescritas; la fila de F-CLI-21 ya no depende de F-PRE-14. Siguen provisorios los estados que cuentan como deuda.
+- `spec.md`, `plan.md` y `tasks.md` (T003): anotado el descarte de F-PRE-14 donde decían «no existe en el repo» o pedían coordinarla.
 - `docs/roadmap-template.md`: la fila de MSF-450 ya no dice que el saldo a favor sea provisorio y fija la fórmula del saldo neto.
 - `docs/tecnico/cuentas-y-compras-a-proveedores.md` de `main` conserva la pregunta de F-PRE-14 abierta (línea ~169): requiere PR a `main`.

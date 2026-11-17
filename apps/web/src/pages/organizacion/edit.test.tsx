@@ -29,6 +29,8 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
+vi.mock('./ResumenSemanal', () => ({ ResumenSemanalOrganizacion: () => null }))
+
 import { OrganizacionEdit } from './edit'
 
 const organizacion = { id: 'org-1', nombre: 'Agenmatica', zona_horaria: 'America/Argentina/Buenos_Aires', logo_path: null }
@@ -165,7 +167,11 @@ describe('OrganizacionEdit', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
 
-    expect(await screen.findByText('Acceso restringido')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeInTheDocument()
+    expect(screen.getByText('Tu rol (actual) no incluye Mi organización. Pedile acceso a un administrador.')).toBeInTheDocument()
+    // El aviso no es un error rojo: se fue el «Acceso restringido» de otra pantalla (MSF-639).
+    expect(screen.queryByText('Acceso restringido')).not.toBeInTheDocument()
+    expect(document.querySelector('.MuiAlert-standardError')).toBeNull()
     expect(mocks.maybeSingle).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: 'Guardar cambios' })).not.toBeInTheDocument()
   })

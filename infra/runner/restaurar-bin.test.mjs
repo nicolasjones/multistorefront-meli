@@ -61,6 +61,20 @@ test('con varios respaldos usa el más nuevo', () => {
   }
 });
 
+test('la versión del respaldo se compara por número, no por texto', () => {
+  const dir = runnerFixture('2.9.0');
+  try {
+    mkdirSync(path.join(dir, 'bin.2.10.0'));
+    writeFileSync(path.join(dir, 'bin.2.10.0', 'Runner.Listener'), 'x');
+    // «2.10.0» es más nueva que «2.9.0» aunque por texto «2.9.0» sea mayor.
+    assert.equal(respaldoUsable(dir), 'bin.2.10.0');
+    assert.equal(restaurarBin(dir), 'bin.2.10.0');
+    assert.equal(tieneBin(dir), true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('sin bin ni respaldo no inventa nada (queda el crash-loop para que lo vea el log)', () => {
   const dir = runnerFixture();
   try {

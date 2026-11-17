@@ -1,4 +1,14 @@
+---
+owner: tecnico
+sources:
+  - specs/20261102-220000-importaciones-y-monitoreo
+  - workers/CONTRATO.md
+  - apps/web/src/lib/procesosMasivos.ts
+---
+
 # Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)
+
+> **Guía de referencia de ingeniería.** Existe una versión reorganizada: [guía de uso](producto/importaciones.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
 Registro genérico de cargas y descargas masivas de la Plataforma, más la
 pantalla `/importaciones` que las muestra. **No importa ni exporta nada por sí

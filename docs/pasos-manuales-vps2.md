@@ -1,3 +1,11 @@
+---
+owner: operacion
+sources:
+  - scripts/docs-api-publica.sh
+  - apps/web/src/pages/api/PanelClaves.tsx
+  - supabase/migrations/20270224110201_api_claves.sql
+---
+
 # Pasos manuales de infraestructura en VPS2 (MSF-854)
 
 Cuatro operaciones que **no se pueden hacer desde el repo**: piden acceso al VPS2
@@ -106,6 +114,9 @@ El drop-in sube también `TimeoutStartSec`: systemd corta el arranque a los 90 s
 defecto (`DefaultTimeoutStartSec`) y mataría la espera antes de que levante la base.
 Con 600 s hay margen; si aun así no alcanza, el servicio queda **fallido y sin tomar
 los puertos**, que es el estado seguro (las bases pueden levantar).
+`TimeoutStartSec` va en la sección `[Service]`: bajo `[Unit]` systemd lo ignora («Unknown key name»)
+y rige el límite por defecto. En el hub ya existe `orden-supabase.conf` (espera hasta 180 s y fija 240 s);
+al ordenarse después de `esperar-docker.conf` su valor es el que rige.
 
 El drop-in **no se aplica hasta reiniciar el servicio**: `daemon-reload` solo lo
 registra. El `ExecStartPre` espera **únicamente a la base de prd**; dev y stg quedan
@@ -123,9 +134,9 @@ install -d /etc/systemd/system/tailnet-forwards.service.d
 cat >/etc/systemd/system/tailnet-forwards.service.d/esperar-docker.conf <<'EOF'
 [Unit]
 After=docker.service
-TimeoutStartSec=600
 
 [Service]
+TimeoutStartSec=600
 ExecStartPre=/bin/sh -c 'until docker ps --format "{{.Names}}" | grep -qx "supabase_db_multistorefront-meli-supabase-prd"; do sleep 2; done'
 EOF
 systemd-analyze verify tailnet-forwards.service   # valida la sintaxis antes de aplicar

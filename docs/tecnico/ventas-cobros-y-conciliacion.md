@@ -8,6 +8,8 @@ sources:
 
 # Ventas · cobros y conciliación (técnico, MSF-195)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-cobros-y-conciliacion.md).
+
 Implementación de la épica **MSF-195** (spec `20261024-150000-ventas-cobros-y-conciliacion`):
 **F-VTA-12** cobros por comprobante (MSF-389), **F-VTA-13** conciliación de pagos por cuenta de cobro
 (MSF-401) y **F-VTA-14** contrarreembolsos por transporte (MSF-410). La vista de producto está en
@@ -202,7 +204,7 @@ castellano.
 - **Aislamiento**: el pago se busca por id **y** por la organización de la sesión; el de otra
   organización devuelve `P0002`, nunca datos ajenos. Una tienda ajena devuelve **cero filas**, no un
   error que delate su existencia.
-- **El nombre del cliente**: el `join` con `public.clientes` es `left` porque Clientes tiene su propia
+- **El nombre del cliente**: el `join` con `dominio.clientes` es `left` porque Clientes tiene su propia
   RLS: un rol con Ventas pero sin Clientes (Depósito) ve la fila sin nombre. El pago **no** se filtra
   por eso: la fila es de Ventas. Leer el nombre con una función `security definer` se descarta a
   propósito: no amplía el alcance de los datos de Clientes.

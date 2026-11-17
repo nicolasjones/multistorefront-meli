@@ -50,7 +50,7 @@ comment on function private.ip_publica_valida(text) is
   'MSF-797: true si es una IPv4 en notación decimal estricta (4 octetos 0-255, sin ceros a la izquierda) fuera de los rangos no públicos (0/8, 10/8, 100.64/10, 127/8, 169.254/16, 172.16/12, 192.0.0/24, 192.0.2/24, 192.168/16, 198.18/15, 224/4, 240/4). Admite TEST-NET-2 y TEST-NET-3 (valor sembrado y tests).';
 
 revoke execute on function private.ip_publica_valida(text) from public, anon;
-grant execute on function private.ip_publica_valida(text) to authenticated;
+grant execute on function private.ip_publica_valida(text) to authenticated, service_role;
 
 -- CHECK sobre la configuración (la fila única). NOT VALID rige para todo insert/update desde ya.
 alter table public.tienda_dns_plataforma drop constraint if exists tienda_dns_plataforma_ip_publica;

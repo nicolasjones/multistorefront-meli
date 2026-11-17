@@ -7,6 +7,8 @@ sources:
 
 # Ventas impresión: datos, worker y flujos (MSF-213)
 
+> Detalle de ingeniería ampliado (contratos, RPC, migraciones y decisiones): [guía de referencia](../ventas-impresion.md).
+
 Épica MSF-213 (F-VTA-19/20/21, cierre MSF-565). Spec: `specs/20261024-100000-ventas-impresion/`
 (`spec.md`, `plan.md`, `tasks.md`, `contracts/ventas-impresion.md`). Mergeada por la PR #380 (commit
 `58452852`); documento de la épica: `docs/ventas-impresion.md` en ese commit. Producto:
@@ -17,7 +19,7 @@ sources:
 | Objeto | Esquema | Migración |
 |---|---|---|
 | `dominio.empresas` + `razon_social`, `cuit` (11 dígitos) | `dominio` | `20261211120000_empresas_razon_social_cuit.sql` |
-| `public.clientes.condicion_iva` (texto, tope 60) | `public` | `20261211120050_clientes_condicion_iva.sql` |
+| `dominio.clientes.condicion_iva` (texto, tope 60) | `public` | `20261211120050_clientes_condicion_iva.sql` |
 | `dominio.comprobante_documentos` (`pendiente`/`generado`/`fallido`) + bucket privado `comprobantes-documentos` | `dominio` / Storage | `20261211120100_comprobante_documentos.sql` |
 | Funciones `private.*` del worker | `private` | `20261211120200_documento_funciones_worker.sql` |
 | RPC de documentos | `public` | `20261211120300_documento_rpc.sql` |
