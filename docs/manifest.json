@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "9fec8ac2c9daed4280145e3f4a16267105fb7ace67eacff61296b21cfa9a01fc",
+      "pageHash": "9e85699b4359838c7362d05f25bd46cda5924d487b10b6545b33107f93dccf1e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "dd8bb20e"
+      "commit": "d313c5ddd"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -504,15 +504,15 @@
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
-      "pageHash": "9b2de68ad2b68e8532bc83aac699381ecb49a14d37d76e7bb1eacdde2834c07f",
-      "sourceHash": "053d65ab1cebf6163e7652e0f4fd6a8225f77c6466ca99391a959f0aa04942ee",
-      "sourceAt": "432db86d",
+      "pageHash": "f7ee8d730ba54a38abe90e4cffa6d3578df8c640e282248abb0e574b918b8039",
+      "sourceHash": "7d7fec573c0f9f2e80139940eddc1e8a2d26755a02622e0b15aaef107fd9ffb6",
+      "sourceAt": "432db86d0",
       "sources": [
         "specs/20261028-100000-correo-masivo-a-clientes",
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "tecnico",
-      "commit": "432db86d"
+      "commit": "432db86d0"
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
@@ -655,16 +655,16 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "4db37f58db599b533be02eb192cb4d39cd13decfa361e772d4e95a7495534eae",
+      "pageHash": "d849359009203888ba56e4c7b693b7040184d3ba0df3b4e995adedabf0cec561",
       "sourceHash": "13302e754cc5e1f78a68ec0562def5c11a663c5ffbe993ad63775c886a000915",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -736,6 +736,29 @@
       ],
       "owner": "tecnico",
       "commit": "c7860a7c"
+    },
+    "docs/funciones-edge-endurecimiento.md": {
+      "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
+      "pageHash": "37f12ce316f20a09d77437c6098d95d666e56fce64dcfebdc46500242a55ddf3",
+      "sourceHash": "766bb007dea322505354bb502c3a0fa77a2e94523ffc4c73317dbfd4baf6a83d",
+      "sourceAt": null,
+      "sources": [
+        "supabase/functions/chat-ia-responder/guardas.ts",
+        "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/indexar-documento/handler.ts",
+        "supabase/functions/enviar-correo-proveedor/handler.ts",
+        "supabase/functions/_shared/embeddings.ts",
+        "supabase/functions/_shared/fetch-ia.ts",
+        "supabase/functions/_shared/limite-memoria.ts",
+        "supabase/functions/_shared/token.ts",
+        "supabase/functions/crear-organizacion/handler.ts",
+        "packages/mcp-server/src/herramientas.ts",
+        "packages/mcp-server/src/servidor.ts",
+        "packages/ia/src/purga.ts",
+        "infra/kestra/flows/correo-masivo.yml"
+      ],
+      "owner": "plataforma",
+      "commit": null
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -1855,9 +1878,9 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "8d18f330d580eec2a8535722b48cf3701bf3c94c885ce83fce4a845599d2b1ab",
+      "pageHash": "7e2efb3d3b34b4144ed458a0ea5f950ac894adb6ad4af9a564e7bb8a32e11a9e",
       "sourceHash": "e0342e17d81fa7c41d62f0083b84b0460c0b707ec8fc3e9b57d9cb31520a1e8d",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261018-170000-empresas-accesibles-y-filtro",
         "specs/20261018-190000-proveedores-y-productos",
@@ -1869,7 +1892,7 @@
         "supabase/migrations/20261018190100_proveedores_rpc.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
@@ -2249,16 +2272,16 @@
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
-      "pageHash": "cf73851f2b06cb965d82340140f13eded13323f22771dea0e78c7f22122f0309",
-      "sourceHash": "cbac3b937edd1afd883dad79286a422755c8fb87c574022a90f60087f0a5def9",
-      "sourceAt": "92b340d7",
+      "pageHash": "885fac7c7bd36e75a915f8eee68201e9803133ad1b15925a77a6a95b18f1dea2",
+      "sourceHash": "4f1ad6ef4a66789b42812c968daf6eae8637a53a6b42f37ed943a3e2274ff283",
+      "sourceAt": "d313c5ddd",
       "sources": [
         "packages/mcp-server/src/servidor.ts",
         "packages/mcp-server/src/autenticacion.ts",
         "packages/mcp-server/CONTRATO.md"
       ],
       "owner": "plataforma",
-      "commit": "92b340d7"
+      "commit": "d313c5ddd"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",

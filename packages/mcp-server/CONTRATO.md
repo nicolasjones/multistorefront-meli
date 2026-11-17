@@ -5,7 +5,7 @@ larga vida (no un proceso puntual por ejecución).
 
 ## Entrada y salida
 
-Escucha HTTP en `MCP_SERVER_PORT` (default 8787), sobre `node:http` nativo
+Escucha HTTP en `MCP_SERVER_PORT` (default del proceso 8787; el compose de desarrollo `infra/mcp-server/compose.yaml` publica 8788), sobre `node:http` nativo
 (sin Express — ver research.md R8, incompatibilidad real encontrada con el
 puente Hono del SDK), rutas `POST /mcp` y `DELETE /mcp` (protocolo
 Streamable HTTP, modo **con sesión**: `sessionIdGenerator` genera un
@@ -58,6 +58,14 @@ distinto (no la cierra) y error de la base. Corre dentro de `pnpm test:ia`.
 Contenedor propio: `infra/mcp-server/Dockerfile` + `infra/mcp-server/compose.yaml`
 (`pnpm dev:mcp-server` / `pnpm dev:down:mcp-server`), mismo patrón que
 `infra/refine` — sin Compose raíz (Principio IV), ciclo de despliegue
-independiente del resto de la plataforma. `MCP_SERVER_PORT` (default 8787)
+independiente del resto de la plataforma. `MCP_SERVER_PORT` (default 8787 en el proceso, 8788 en el compose)
 y `SUPABASE_SERVICE_ROLE_KEY` se configuran en `.env` (nunca versionado) —
 ver `.env.example`.
+
+## Robustez del servidor (lote de funciones edge, MSF-729)
+
+- Una excepción no controlada del handler HTTP responde `500 {"error":"Error interno."}` y queda en el log: no termina el proceso ni tumba el MCP de las demás organizaciones. Los mensajes de la base nunca llegan al cliente externo (`EJECUCION_EN_CURSO`, `EJECUCION_NO_DISPONIBLE`, `ERROR_AL_EJECUTAR`, `ERROR_AL_LEER`); el detalle queda en `ejecuciones_mcp.motivo_error` (solo superadmin) y en el log.
+- Nombres de herramienta: una funcionalidad con una sola fila en `fuentes_mcp`/`acciones_mcp` conserva `leer_<feature>`/`ejecutar_<feature>`; con varias filas (la PK permite `(feature_id, vista)` y `(feature_id, rpc)`) cada herramienta es `leer_<feature>_<vista>` / `ejecutar_<feature>_<rpc>`. Un nombre repetido se omite en vez de abortar el `initialize`.
+- Candado de ejecución: antes de `iniciar_ejecucion_mcp` se vencen (`estado='fallida'`, `motivo_error='vencida'`) las ejecuciones `en_curso` de esa credencial y acción con más de `MCP_EJECUCION_VENCE_MIN` minutos (default 10). Si `finalizar_ejecucion_mcp` falla, se registra en el log.
+- Override de organización en `ejecutar_*`: se pisa con la de la credencial cualquier parámetro cuyo nombre normalizado sea `organizacion`, `organizacion_id`, `organizacionId`, `p_organizacion_id`, `org_id`, `organization_id`… Sigue siendo una defensa de segundo nivel: la garantía real debe ser un wrapper SQL por acción que reciba la organización desde la credencial (pendiente, ver `docs/funciones-edge-limites-y-registro.md`).
+- El compose de `infra/mcp-server` es de **desarrollo** (`tsx watch`, bind mount del repo y `service_role` en el entorno): no usarlo tal cual en un ambiente compartido.

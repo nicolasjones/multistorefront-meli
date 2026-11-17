@@ -32,16 +32,50 @@ function permitidosDesdeFilas(filas: unknown[]): string[] {
   return primera && typeof primera === 'object' ? Object.keys(primera) : []
 }
 
+// Minutos tras los cuales una ejecución `en_curso` se considera abandonada (proceso reiniciado o fallo al
+// finalizarla): sin vencimiento, el índice único parcial bloquearía esa acción para la credencial para siempre.
+const EJECUCION_VENCE_MIN = Number(process.env.MCP_EJECUCION_VENCE_MIN ?? 10)
+
+// Nombre de herramienta válido para MCP (letras, números, `_`, `-`, `.`).
+function segmento(texto: string): string {
+  return texto.replace(/[^A-Za-z0-9_.-]/g, '_')
+}
+
+// `fuentes_mcp` y `acciones_mcp` permiten varias filas por feature (PK (feature_id, vista) / (feature_id, rpc)): con
+// un nombre por feature, el segundo `registerTool` lanzaba «already registered» y tumbaba el `initialize` de todos.
+// Una feature con una sola fila conserva `<prefijo>_<feature>`; con varias, cada fila lleva su discriminador.
+export function nombreHerramienta(prefijo: 'leer' | 'ejecutar', featureId: string, discriminador: string, filasDeLaFeature: number): string {
+  return filasDeLaFeature > 1 ? `${prefijo}_${segmento(featureId)}_${segmento(discriminador)}` : `${prefijo}_${segmento(featureId)}`
+}
+
+function contar(filas: Array<{ feature_id: string }>): Map<string, number> {
+  const conteo = new Map<string, number>()
+  for (const fila of filas) conteo.set(fila.feature_id, (conteo.get(fila.feature_id) ?? 0) + 1)
+  return conteo
+}
+
+// Clave que designa a la organización en los parámetros de una acción (`organizacion_id`, `organizacionId`,
+// `p_organizacion_id`, `org_id`, `organization_id`…): se compara sin mayúsculas ni separadores.
+export function esClaveDeOrganizacion(clave: string): boolean {
+  return /^(p)?(organizacion|organization|org)(id|uuid)?$/.test(clave.toLowerCase().replace(/[^a-z0-9]/g, ''))
+}
+
 export async function registrarHerramientas(server: McpServer, conexion: ConexionAutenticada): Promise<void> {
   const { admin, organizacionId } = conexion
 
-  const { data: fuentes } = await admin.from('fuentes_mcp').select('feature_id, vista, descripcion')
-  for (const fuente of fuentes ?? []) {
+  const { data: fuentesCrudas } = await admin.from('fuentes_mcp').select('feature_id, vista, descripcion')
+  const fuentes = [...(fuentesCrudas ?? [])].sort((a, b) => `${a.feature_id}/${a.vista}`.localeCompare(`${b.feature_id}/${b.vista}`))
+  const filasPorFuente = contar(fuentes)
+  const registradas = new Set<string>()
+  for (const fuente of fuentes) {
     const { data: puedeLeer } = await admin.rpc('puede_mcp_leer_funcionalidad', { p_feature_id: fuente.feature_id, p_organizacion_id: organizacionId })
     if (!puedeLeer) continue
 
+    const nombre = nombreHerramienta('leer', fuente.feature_id, fuente.vista, filasPorFuente.get(fuente.feature_id) ?? 1)
+    if (registradas.has(nombre)) continue
+    registradas.add(nombre)
     server.registerTool(
-      `leer_${fuente.feature_id}`,
+      nombre,
       {
         title: fuente.descripcion ?? `Leer ${fuente.feature_id}`,
         description: fuente.descripcion ?? `Lee datos de ${fuente.feature_id}.`,
@@ -66,13 +100,18 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
 
   const { credencialId } = conexion
 
-  const { data: acciones } = await admin.from('acciones_mcp').select('feature_id, rpc, descripcion')
-  for (const accion of acciones ?? []) {
+  const { data: accionesCrudas } = await admin.from('acciones_mcp').select('feature_id, rpc, descripcion')
+  const acciones = [...(accionesCrudas ?? [])].sort((a, b) => `${a.feature_id}/${a.rpc}`.localeCompare(`${b.feature_id}/${b.rpc}`))
+  const filasPorAccion = contar(acciones)
+  for (const accion of acciones) {
     const { data: puedeEjecutar } = await admin.rpc('puede_mcp_ejecutar_funcionalidad', { p_feature_id: accion.feature_id, p_organizacion_id: organizacionId })
     if (!puedeEjecutar) continue
 
+    const nombre = nombreHerramienta('ejecutar', accion.feature_id, accion.rpc, filasPorAccion.get(accion.feature_id) ?? 1)
+    if (registradas.has(nombre)) continue
+    registradas.add(nombre)
     server.registerTool(
-      `ejecutar_${accion.feature_id}`,
+      nombre,
       {
         title: accion.descripcion ?? `Ejecutar ${accion.feature_id}`,
         description: accion.descripcion ?? `Ejecuta una acción sobre ${accion.feature_id}.`,
@@ -85,10 +124,22 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
         // firma tipada — supabase-js resuelve los parámetros nombrados
         // contra esa firma, igual que PostgREST (research.md R4, no hay
         // forma genérica de invocar una firma arbitraria por SQL dinámico).
+        // Libera el candado de una ejecución abandonada (proceso reiniciado o `finalizar_ejecucion_mcp` fallido).
+        const vencidaAntesDe = new Date(Date.now() - EJECUCION_VENCE_MIN * 60_000).toISOString()
+        const { error: vencerError } = await admin.from('ejecuciones_mcp')
+          .update({ estado: 'fallida', motivo_error: 'vencida', finalizada_en: new Date().toISOString() })
+          .eq('credencial_id', credencialId).eq('feature_id', accion.feature_id).eq('estado', 'en_curso').lt('iniciada_en', vencidaAntesDe)
+        if (vencerError) console.error('mcp: no se pudo vencer la ejecución abandonada', vencerError.message)
+
         const { data: ejecucionId, error: inicioError } = await admin.rpc('iniciar_ejecucion_mcp', {
           p_credencial_id: credencialId, p_feature_id: accion.feature_id,
         })
-        if (inicioError || !ejecucionId) return { content: [{ type: 'text', text: inicioError?.message ?? 'No se pudo iniciar la ejecución.' }], isError: true }
+        if (inicioError || !ejecucionId) {
+          // Sin `message` de la base (nombre de índices, funciones): el cliente externo solo ve un texto fijo.
+          if (inicioError) console.error('mcp: no se pudo iniciar la ejecución', inicioError.message)
+          const enCurso = inicioError?.code === '23505'
+          return { content: [{ type: 'text', text: enCurso ? 'EJECUCION_EN_CURSO' : 'EJECUCION_NO_DISPONIBLE' }], isError: true }
+        }
 
         // El cliente MCP externo no decide la organización, nunca: si sus
         // parametros incluyen una clave con pinta de organización, se pisa
@@ -102,18 +153,24 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
         // funcionalidad ejecutable nueva).
         const parametrosSeguros = { ...(parametros ?? {}) }
         for (const clave of Object.keys(parametrosSeguros)) {
-          if (/organizacion_id$/i.test(clave)) parametrosSeguros[clave] = organizacionId
+          if (esClaveDeOrganizacion(clave)) parametrosSeguros[clave] = organizacionId
         }
 
         const { data, error } = await admin.rpc(accion.rpc, parametrosSeguros)
 
-        await admin.rpc('finalizar_ejecucion_mcp', {
+        // El motivo completo queda en la auditoría (solo superadmin); al cliente no se le devuelve.
+        const { error: finalizarError } = await admin.rpc('finalizar_ejecucion_mcp', {
           p_ejecucion_id: ejecucionId,
           p_estado: error ? 'fallida' : 'completada',
           p_motivo_error: error?.message ?? null,
         })
+        // Si no se puede cerrar, la fila queda `en_curso` hasta vencer (EJECUCION_VENCE_MIN): se deja rastro.
+        if (finalizarError) console.error('mcp: no se pudo finalizar la ejecución', ejecucionId, finalizarError.message)
 
-        if (error) return { content: [{ type: 'text', text: error.message }], isError: true }
+        if (error) {
+          console.error('mcp: la acción falló', accion.rpc, error.message)
+          return { content: [{ type: 'text', text: 'ERROR_AL_EJECUTAR' }], isError: true }
+        }
         return { content: [{ type: 'text', text: JSON.stringify(data) }] }
       },
     )

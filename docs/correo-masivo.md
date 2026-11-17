@@ -139,6 +139,10 @@ falla igual, no lo pisa a `fallido` aunque el correo ya haya salido. `private.ce
 «al menos una vez»: si Kestra se corta entre enviar y cerrar, el correo puede salir dos veces.
 
 Variables (`infra/kestra/.env.example`): `CORREO_MASIVO_LOTE`, `CORREO_MASIVO_LIMITE_DIARIO`, `CORREO_MASIVO_URL_BAJA`.
+`CORREO_MASIVO_URL_BAJA` es **obligatoria en el VPS** (`infra/kestra/compose.vps.yaml` falla el despliegue si falta) y debe
+ser el origen público https del panel, sin barra final. El flow empieza con la tarea `validar_url_baja`: con una URL
+vacía, http o a `localhost` falla antes de reclamar el lote y no manda ningún correo; solo `CORREO_MASIVO_PERMITIR_LOCAL=true`
+(desarrollo local) lo relaja. Detalle en [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).
 Las dos funciones `private.*` solo las ejecuta `kestra_orquestacion`.
 
 ## Baja

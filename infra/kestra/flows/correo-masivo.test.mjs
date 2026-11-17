@@ -105,3 +105,24 @@ test('agotados los reintentos el destinatario queda fallido con un motivo fijo, 
   assert.match(envio, /id: cerrar_fallido/);
   assert.doesNotMatch(content.slice(content.indexOf('id: cerrar_enviado')), /id: cerrar_fallido/);
 });
+
+// El enlace de baja no puede salir roto: el flow se niega a enviar con una URL vacía, http o localhost (salvo desarrollo local).
+test('el flow valida la URL de baja antes de reclamar el lote y el VPS la exige definida', async () => {
+  const [contenido, compose, vps, ejemplo] = await Promise.all([
+    leer(),
+    readFile('infra/kestra/compose.yaml', 'utf8'),
+    readFile('infra/kestra/compose.vps.yaml', 'utf8'),
+    readFile('infra/kestra/.env.example', 'utf8'),
+  ]);
+  const posValidar = contenido.indexOf('- id: validar_url_baja');
+  assert.ok(posValidar > 0, 'hay una validación de la URL de baja');
+  assert.ok(posValidar < contenido.indexOf('- id: reclamar'), 'se valida ANTES de reclamar el lote');
+  const validar = tarea(contenido, 'validar_url_baja');
+  assert.match(validar, /type: io\.kestra\.plugin\.core\.execution\.Assert/);
+  assert.match(validar, /https:\/\//, 'exige https');
+  assert.match(validar, /localhost/, 'rechaza localhost');
+  assert.match(validar, /correo_masivo_permitir_local/, 'solo el desarrollo local lo puede relajar');
+  assert.match(compose, /ENV_CORREO_MASIVO_PERMITIR_LOCAL: \$\{CORREO_MASIVO_PERMITIR_LOCAL:-false\}/, 'por defecto NO se permite local');
+  assert.match(ejemplo, /^CORREO_MASIVO_PERMITIR_LOCAL=true$/m, 'el ejemplo local sí lo permite');
+  assert.match(vps, /ENV_CORREO_MASIVO_URL_BAJA: \$\{CORREO_MASIVO_URL_BAJA:\?/, 'el overlay del VPS falla si la variable no está definida');
+});
