@@ -191,7 +191,7 @@ describe('RankingClientes (F-VTA-23, FR-008): el tablero del ranking y el interr
     render(tablero())
     await responder(0, 5)
     expect(
-      await screen.findByText('El tablero de «Ranking de clientes» todavía no está disponible para tu organización.'),
+      await screen.findByText(/El tablero de «Ranking de clientes» todavía no está disponible: falta importarlo en este entorno\. Pedile al administrador de la plataforma que importe los tableros/),
     ).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })

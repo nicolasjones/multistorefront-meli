@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from './EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoTableroNoDisponible, EstadoVacio, textoTableroNoDisponible } from './EstadosPagina'
 
 describe('EstadoCargaPagina', () => {
   it('muestra feedback visual inmediato con semántica de estado (T037: antes de que resuelva cualquier carga)', () => {
@@ -54,5 +54,15 @@ describe('EstadoError', () => {
     render(<EstadoError />)
 
     expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+  })
+})
+
+describe('EstadoTableroNoDisponible', () => {
+  it('dice la causa (falta importar el tablero en este entorno) y la acción (pedirlo al administrador)', () => {
+    render(<EstadoTableroNoDisponible nombre="«Ranking de clientes»" />)
+
+    expect(screen.getByText(textoTableroNoDisponible('«Ranking de clientes»'))).toBeInTheDocument()
+    expect(textoTableroNoDisponible('X')).toMatch(/falta importarlo en este entorno/)
+    expect(textoTableroNoDisponible('X')).toMatch(/administrador de la plataforma/)
   })
 })

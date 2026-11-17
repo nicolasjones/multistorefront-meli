@@ -195,6 +195,21 @@ describe('acceso a datos', () => {
     expect(categorias).toEqual([{ id: 'joy', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: ['e1', 'e2'] }])
     expect(conteos.get('joy')).toBe(4)
   })
+  it('leerCategorias ordena los conteos por organización y categoría (la vista no tiene clave única)', async () => {
+    const ordenes: string[] = []
+    const vacia = (registrar: boolean) => ({
+      select: () => {
+        const q = {
+          order: (columna: string) => { if (registrar) ordenes.push(columna); return q },
+          range: () => ({ returns: () => Promise.resolve({ data: [], error: null }) }),
+        }
+        return q
+      },
+    })
+    const cliente = { schema: () => ({ from: () => vacia(false) }), from: () => vacia(true) }
+    await leerCategorias(cliente as never)
+    expect(ordenes).toEqual(['organizacion_id', 'categoria_id'])
+  })
   it('leerCategorias pagina: no se queda en el tope de 1000 filas de PostgREST', async () => {
     const muchas = Array.from({ length: 1200 }, (_, i) => ({ id: `c${i}`, nombre: `C${i}`, padre_id: null, posicion: i }))
     const pedidos: Array<[number, number]> = []

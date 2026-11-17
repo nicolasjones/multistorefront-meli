@@ -81,7 +81,7 @@ describe('Reposicion (F-REP-02)', () => {
 
   it('avisa cuando el tablero no está asignado a la organización', () => {
     montar({ reportes: [] })
-    expect(screen.getByText(/«Reposición» todavía no está disponible para tu organización/)).toBeTruthy()
+    expect(screen.getByText(/«Reposición» todavía no está disponible: falta importarlo en este entorno/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 

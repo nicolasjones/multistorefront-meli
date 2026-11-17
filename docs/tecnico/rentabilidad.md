@@ -521,7 +521,7 @@ margen_pct          = margen / vendido               -- null si vendido ≤ 0
 
 - **Entorno:** stack local con la rama de la épica (`pnpm dev:supabase` + `pnpm dev`; panel en
   `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él, la pantalla de
-  «Ventas reales» muestra «El tablero de Rentabilidad todavía no está disponible para tu organización»— o el
+  «Ventas reales» muestra «El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno»— o el
   ambiente **DEV** con la épica desplegada y los tableros importados:
 
   ```bash

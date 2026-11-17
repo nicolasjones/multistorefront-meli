@@ -121,7 +121,7 @@ describe('ProductosYStock (F-REP-01)', () => {
 
   it('avisa cuando el tablero no está asignado a la organización', () => {
     montar({ reportes: [] })
-    expect(screen.getByText(/todavía no está disponible para tu organización/)).toBeTruthy()
+    expect(screen.getByText(/falta importarlo en este entorno\. Pedile al administrador de la plataforma/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
