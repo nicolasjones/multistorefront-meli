@@ -11,14 +11,14 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "61adc0f690706111da8ed37449d8d0d77f710c05fc3164d5bf10f92f8355eb1e",
-      "sourceHash": "2f659cf4df5f791cd94ad32fdac1799f768b9be8348e322f5b4d118ad8c4f9ab",
-      "sourceAt": "92a276f4",
+      "pageHash": "a069e4106bbe7739a698eb52b96f63f4f7ee4856c66c2ce3cc13709e523d0fde",
+      "sourceHash": "7dc9ff4beaa157ad469e608b4e7f87c7388a147abb22fd15f7f673f050dc4c7e",
+      "sourceAt": "b545011f",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "92a276f4"
+      "commit": "b545011f"
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
@@ -679,14 +679,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "0b08a23c6e706a77b92b94a3dea3dd4eb4c7ad61f0cce9fee1f90e996d1b3115",
-      "sourceHash": "ba293492c6403710be3f207694a5d331fd9fbb431727bb239fa9ae72cf5e4ee8",
-      "sourceAt": "775b35f0",
+      "pageHash": "f655c8a80995def98a14333372ffdee03f8502e72ce5e2c2d49ef80d51dc9cd1",
+      "sourceHash": "7dc9ff4beaa157ad469e608b4e7f87c7388a147abb22fd15f7f673f050dc4c7e",
+      "sourceAt": "b545011f",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "b545011f"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -3859,9 +3859,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "71fe7c82b7dcaff242b63c1348339560c3963f7d0d701edcde68fc68bd89fc91",
-      "sourceHash": "100fc42d57229295ac4eb4189a64f3e296db23f5d6faf08862be69281ff4c312",
-      "sourceAt": "5846921d",
+      "pageHash": "757bcbc6943b77789b1032da9e40a6b076d7159123a87f3a7e03e830bd9579da",
+      "sourceHash": "cb97bee30165cb389999134a8ad7065e1d96b0dd4b58e94de8f01079b5af0638",
+      "sourceAt": "b545011f",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3873,7 +3873,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "5846921d"
+      "commit": "b545011f"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

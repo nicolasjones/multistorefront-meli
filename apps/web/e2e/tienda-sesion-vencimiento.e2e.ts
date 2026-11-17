@@ -1,13 +1,18 @@
 import { expect, test } from './fixture'
 
-// [MSF-673] Tienda pública: el primer clic de un visitante que vuelve tras más de 12 h lo mandaba
-// a `/login` (ruta que la tienda no tiene → 404) y le cerraba la sesión. El control de vencimiento
-// por inactividad lleva a `/login` solo en el panel; en un host de tienda (MSF-700) cierra la sesión local y vuelve a `/`.
+// [MSF-740] Tienda pública: la regla de inactividad de sesión es del PANEL (12 h sin actividad → cierre de
+// sesión y vuelta a `/login`). La tienda NO la hereda: la sesión de un cliente con cuenta web termina solo por
+// salida explícita («Salir» de la tienda) o por el tope de 30 días del servidor.
 //
-// El caso es de arranque (no necesita la base): la marca `sesion:ultima-actividad` se adelanta 13 h
-// con un init script (corre antes que la app) y después se hace el primer clic del visitante.
-// Si el build no define `VITE_PANEL_HOSTS`, este host se sirve como panel y el caso no aplica:
-// el panel manda al ingreso solo, sin actividad, y el test se omite con ese motivo.
+// Antes de MSF-740 la tienda heredaba esa ventana: el primer clic de un visitante que volvía tras más de 12 h
+// cerraba su sesión local y lo mandaba a `/` —y como la marca vencida no se renueva ni se borra, cada clic
+// posterior lo volvía a llevar a la portada (bucle de recargas). El caso adelanta la marca
+// `sesion:ultima-actividad` 13 h con un init script (corre antes que la app) y comprueba que, en un host de
+// tienda, ese primer clic NO cierra la sesión ni redirige a ninguna parte.
+//
+// Se conservan las garantías de MSF-673: nunca `/login` (ruta que la tienda no tiene), nunca 404 y nunca
+// revocación global. Si el build no define `VITE_PANEL_HOSTS`, este host se sirve como panel y el caso no
+// aplica: el panel manda al ingreso solo, sin actividad, y el test se omite con ese motivo.
 // Ver docs/tiendas-online.md y docs/acceso-ingreso.md.
 
 const HOST_TIENDA = 'mundojc.localhost'
@@ -16,22 +21,25 @@ const HORAS_POR_MS = 60 * 60 * 1000
 
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer clic no manda a /login, no revoca globalmente y vuelve a /', async ({ page }) => {
+test('[MSF-740:MSF-740] en la tienda, tras más de 12 h sin actividad el primer clic no cierra la sesión ni redirige', async ({ page }) => {
   const marca = String(Date.now() - 13 * HORAS_POR_MS)
   await page.addInitScript(
     ([clave, valor]) => window.localStorage.setItem(clave, valor),
     [CLAVE_ULTIMA_ACTIVIDAD, marca],
   )
 
-  // `authProvider.logout` (panel) revoca la sesión en todos los dispositivos; la tienda (MSF-700)
-  // cierra solo la local (`scope=local`). Se vigila cualquier logout que no sea local.
+  // `authProvider.logout` (panel) revoca la sesión en todos los dispositivos. En la tienda no hay cierre por
+  // inactividad: no debe haber ningún pedido de cierre, y menos uno global.
+  const cierres: string[] = []
   const revocacionesGlobales: string[] = []
   page.on('request', (peticion) => {
     const url = peticion.url()
-    if (url.includes('/auth/v1/logout') && !url.includes('scope=local')) revocacionesGlobales.push(url)
+    if (!url.includes('/auth/v1/logout')) return
+    cierres.push(url)
+    if (!url.includes('scope=local')) revocacionesGlobales.push(url)
   })
 
-  await page.goto(`http://${HOST_TIENDA}:${puerto}/`)
+  await page.goto(`http://${HOST_TIENDA}:${puerto}/ingresar`)
 
   // El panel (sin sesión) manda a `/login` al cargar; la tienda no. Si aparece `/login`, este host
   // no se está sirviendo como tienda y el caso no aplica. En el job `e2e-tienda` (`E2E_TIENDA_CI=1`) NO se omite: arma el build con
@@ -41,20 +49,22 @@ test('[MSF-673:MSF-673] en la tienda, tras más de 12 h sin actividad el primer 
   if (process.env.E2E_TIENDA_CI === '1') expect(sirveComoPanel, 'El build no define VITE_PANEL_HOSTS: el host no se sirve como tienda').toBe(false)
   test.skip(sirveComoPanel, 'Este host no se sirve como tienda (falta VITE_PANEL_HOSTS en el build): el caso no aplica.')
 
-  // El primer clic del visitante que vuelve al día siguiente.
-  await page.mouse.click(4, 4)
+  // La página de ingreso tiene que estar montada: si la tienda no se resolvió, el caso no probaría nada.
+  const tituloIngreso = page.getByRole('heading', { name: 'Ingresar' })
+  await expect(tituloIngreso).toBeVisible()
 
-  // Con el defecto, el clic cerraba la sesión y hacía `assign('/login')`: se espera a que esa
-  // navegación ocurra (o a que la página quede quieta) antes de afirmar que no pasó.
-  const redirigio = await Promise.race([
-    page.waitForURL(/\/login(\?|$)/, { timeout: 4000 }).then(() => true, () => false),
-    page.waitForTimeout(4000).then(() => false),
-  ])
+  // El primer clic del visitante que vuelve al día siguiente, sobre el título (no es un enlace).
+  await tituloIngreso.click()
 
-  expect(redirigio).toBe(false)
-  // Cierre local (MSF-700): el destino es la portada de la tienda, no `/login`.
-  expect(new URL(page.url()).pathname).toBe('/')
+  // La tienda no aplica la regla del panel: el visitante se queda donde está (antes lo mandaban a `/`).
+  const navego = await page
+    .waitForURL((url) => url.pathname !== '/ingresar', { timeout: 5000 })
+    .then(() => true, () => false)
+
+  expect(navego, 'la tienda no aplica la regla de inactividad del panel: el visitante no debe ser redirigido').toBe(false)
+  expect(new URL(page.url()).pathname).toBe('/ingresar')
   // La tienda no tiene 404 para `/login`: con el defecto el visitante veía «No encontramos esta página».
   await expect(page.getByTestId('pagina-no-encontrada')).toHaveCount(0)
+  expect(cierres).toEqual([])
   expect(revocacionesGlobales).toEqual([])
 })
