@@ -683,6 +683,8 @@ La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el
 
 **No medido todavía.** El entorno donde se cerró la épica no tenía acceso a Docker, así que no hubo stack local con el seed y no hay cifras que registrar (no se inventan). La medición queda trazada en **MSF-552** (seguimiento). Protocolo a seguir:
 
+En el CI, el job `medir` de `nightly.yml` busca el Chromium de Playwright para Lighthouse (`CHROME_PATH`). Playwright cambió la carpeta del binario de `chrome-linux/` a `chrome-linux64/`; el paso «Instalar Chromium» acepta las dos disposiciones (antes el job fallaba con «no hay binario de Chromium» aunque el runner ya tenía el navegador).
+
 1. `pnpm dev:supabase`, build del front y preview con las dos tiendas del seed.
 2. Lighthouse en perfil móvil (`.lighthouserc.json`) sobre `/catalogo` y `/producto/:id` de ambas tiendas.
 3. Medir `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos (techo de diseño, ver «Costo y techo esperado» arriba).

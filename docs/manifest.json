@@ -267,7 +267,7 @@
       "title": "Avisos por correo configurables",
       "pageHash": "8b9f9f8e5c5d7fe9b2f303c8d72de50d6f23fd128b1760348752307ee313456b",
       "sourceHash": "9f78e8a8dbacd9d31446df538515989f149e4076ff07a7ad48ace388381312af",
-      "sourceAt": null,
+      "sourceAt": "fa03ceec6",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "infra/kestra/flows/enviar-avisos.yml",
@@ -433,7 +433,7 @@
       "title": "Consultas: bandeja y aviso (MSF-122)",
       "pageHash": "2377a8d019841b6eb36c894dcaaf7c300db4ffed058e3d7adc1f2dd1bd1f5b82",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": null,
+      "sourceAt": "fa0d16ab9",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -1834,7 +1834,7 @@
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
       "pageHash": "22aa7c6632a1d3ecee278b69147909e014d2d32a0d2e9464c8aadbd78f97640e",
       "sourceHash": "0aa8c584ae40006499f03b5c0c6351bfbc43c089c90c42e587f3a66af8d060b1",
-      "sourceAt": null,
+      "sourceAt": "859901ff6",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
@@ -3699,7 +3699,7 @@
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
       "sourceHash": "31cc455b734c02d7859ac36491b9a40c1f24df01fc53effb9d042a7afb9b9a18",
-      "sourceAt": null,
+      "sourceAt": "fa03ceec6",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3848,7 +3848,7 @@
       "title": "Tienda online · Compra y cuentas (MSF-176)",
       "pageHash": "6e7451bdbd19de45569ed3b59ff07a98b7d718bd1e0e9ddf2756c0fb5042356a",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
-      "sourceAt": null,
+      "sourceAt": "fa03ceec6",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
@@ -3912,9 +3912,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "757bcbc6943b77789b1032da9e40a6b076d7159123a87f3a7e03e830bd9579da",
-      "sourceHash": "cb97bee30165cb389999134a8ad7065e1d96b0dd4b58e94de8f01079b5af0638",
-      "sourceAt": "b545011f",
+      "pageHash": "3263a827189a7118ff73d67472e8f4f7902738f54dd097fd5287df9be0284767",
+      "sourceHash": "2b048b4c6ca96cd12a2a64bc15a395bf503fde2928787f27ca547f452b5e290e",
+      "sourceAt": "452d7af14",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3926,7 +3926,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "b545011f"
+      "commit": "452d7af14"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
@@ -3979,7 +3979,7 @@
       "title": "Ventas · Comprobantes",
       "pageHash": "2386b84af9f4ef6db816238a49064db60b8b2dae1ad3d850b74a529cd81c0902",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
-      "sourceAt": null,
+      "sourceAt": "fa03ceec6",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
