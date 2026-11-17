@@ -8,7 +8,7 @@ import { useListaPedido } from '../../../hooks/useListaPedido'
 import { useListadoPorCursor } from '../../../hooks/useListadoPorCursor'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
 import { LISTA_DE_PEDIDO_DISPONIBLE } from '../../../lib/tiendaCapacidades'
-import { cambiarFavorito, esSinAcceso, leerMisFavoritos, type CursorFavoritos, type FavoritoCuenta } from '../../../lib/tiendaCuentaDatos'
+import { cambiarFavorito, esLimite, esSinAcceso, leerMisFavoritos, type CursorFavoritos, type FavoritoCuenta } from '../../../lib/tiendaCuentaDatos'
 import { formatearPrecioArs } from '../../../lib/tiendaListado'
 import { ErrorConReintento } from '../ErrorConReintento'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
@@ -21,6 +21,14 @@ import { VacioMiCuenta } from './VacioMiCuenta'
 type FavoritoVista = FavoritoCuenta & { imagenUrl: string | null }
 
 const textoContador = (n: number) => `${n} ${n === 1 ? 'favorito' : 'favoritos'}`
+
+// El aviso de un fallo al quitar o volver a guardar un favorito: el cupo de llamadas por cuenta (H-3) tiene su texto y su
+// espera; lo demás es el error genérico.
+const mensajeDeFallo = (error: unknown, generico: string): string => {
+  if (esLimite(error)) return error.message
+  if (esSinAcceso(error)) return 'Tu cuenta no está activa en esta tienda'
+  return generico
+}
 
 // «Favoritos» de «Mi cuenta» (F-CLI-20, FR-008/FR-009, P-3): los productos que la cuenta guardó en ESTA tienda, el último guardado
 // primero, por tandas de 20 con carga infinita. Cada tarjeta: miniatura (con zoom), nombre (enlace a la ficha), disponibilidad,
@@ -60,7 +68,6 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
   }, [fase, filas.length, hayMas, cargandoMas, errorMas, cargarMas])
 
   const publicar = (mensaje: string, error = false, accion?: AvisoCuenta['accion']) => setAviso(crearAviso(mensaje, error, accion))
-
   // «Agregar a la lista» (MSF-176, B1, T039): suma 1 unidad a la lista de pedido de esta tienda, con los mismos avisos que la ficha.
   const agregarALaLista = (favorito: FavoritoVista) => {
     const resultado = lista.agregar(favorito.productoId)
@@ -86,12 +93,12 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
               if (vuelta.estado === 'ok' && quitado) listado.reponer(quitado.fila, quitado.indice)
               else publicar(vuelta.estado === 'limite_favoritos' ? 'Llegaste al máximo de favoritos' : 'No pudimos guardar el favorito. Probá de nuevo.', true)
             })
-            .catch((error: unknown) => publicar(esSinAcceso(error) ? 'Tu cuenta no está activa en esta tienda' : 'No pudimos guardar el favorito. Probá de nuevo.', true))
+            .catch((error: unknown) => publicar(mensajeDeFallo(error, 'No pudimos guardar el favorito. Probá de nuevo.'), true))
         },
       })
     } catch (error) {
       if (esSinAcceso(error)) alSinAcceso()
-      else publicar('No pudimos quitar el favorito. Probá de nuevo.', true)
+      else publicar(mensajeDeFallo(error, 'No pudimos quitar el favorito. Probá de nuevo.'), true)
     } finally {
       setQuitando(null)
     }
@@ -99,7 +106,8 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
 
   if (fase === 'sin_acceso') return null
   if (fase === 'cargando') return <EstadoCargaPagina etiqueta="Cargando tus favoritos" />
-  if (fase === 'error') return <ErrorConReintento titulo="No pudimos cargar tus favoritos." alReintentar={listado.reintentar} />
+  // El cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera: no es una caída de red.
+  if (fase === 'error') return <ErrorConReintento titulo={listado.espera?.mensaje ?? 'No pudimos cargar tus favoritos.'} alReintentar={listado.reintentar} />
   if (filas.length === 0 && !hayMas) {
     return (
       <>
@@ -154,7 +162,7 @@ export function FavoritosMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           )
         })}
       </Box>
-      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} textoFin="Llegaste al final de tus favoritos" sustantivo="favoritos" cargados={filas.length} />
+      <CargaInfinita hayMas={hayMas} cargando={cargandoMas} hayError={errorMas} onCargarMas={cargarMas} textoFin="Llegaste al final de tus favoritos" sustantivo="favoritos" cargados={filas.length} espera={listado.espera} />
       <AvisoTienda aviso={aviso} alCerrar={() => setAviso(null)} />
     </Box>
   )

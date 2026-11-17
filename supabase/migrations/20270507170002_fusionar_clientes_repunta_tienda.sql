@@ -3,6 +3,11 @@
 -- `public.fusionar_clientes` (F-CLI-18) reasigna los comprobantes y la cuenta web al cliente conservado y archiva al descartado, pero dejaba apuntando al archivado dos columnas que
 -- agregó la épica de la tienda: `dominio.presupuestos_tienda.cliente_id` (B2) y `dominio.consultas.cliente_id` (B1). Ahora las repunta en la misma transacción.
 --
+-- Además, la cuenta web que NO se elige se da de baja con un `delete` y la FK del vínculo del presupuesto es `on delete set null (cuenta_cliente_id)`: sus presupuestos quedaban
+-- sin cuenta (fuera del conteo de los topes por cuenta y de la idempotencia `(cuenta, clave_envio)`), con lo que el cliente fusionado podía gastar el tope dos veces. Ahora, antes
+-- de darla de baja, sus presupuestos pasan a la cuenta que sobrevive de la misma empresa. Y el re-apuntado de las consultas no hace avanzar `updated_at` (es un traslado de datos,
+-- no una edición): se desactiva el trigger `consultas_normalizar` solo para ese `update`.
+--
 -- Es la última versión vigente de la función (`20270419000200_opiniones_fusion_clientes.sql`: con `dominio.clientes`, el bloque de opiniones de MSF-467 y `lista_precio_id = null` al archivar)
 -- más ese cambio; misma firma y mismos grants.
 --
@@ -107,6 +112,19 @@ begin
      where p.cuenta_cliente_id = cp.id and cp.cliente_id = v_perdedor and cp.organizacion_id = v_org
        and cg.cliente_id = v_gana and cg.empresa_id = cp.empresa_id and cg.organizacion_id = v_org;
 
+    -- Cierre MSF-176 (H-2): los presupuestos de la tienda del cliente que pierde la cuenta web NO pueden quedar huérfanos. Con la FK en `on delete set null
+    -- (cuenta_cliente_id)` el `delete` de abajo les dejaría `cuenta_cliente_id` nulo: sus vínculos saldrían del conteo de los topes por cuenta (5 por día y 10
+    -- abiertos, FR-057) y de la idempotencia `(cuenta, clave_envio)`, y el cliente fusionado podría gastar el tope COMPLETO dos veces. Antes de dar de baja la cuenta,
+    -- sus presupuestos pasan a la cuenta que sobrevive de la MISMA empresa (la FK es compuesta por cuenta, organización y empresa): si en esa empresa no queda
+    -- ninguna cuenta, no hay tops que valgan y el vínculo queda sin cuenta (lo admite la columna).
+    update dominio.presupuestos_tienda pt
+       set cuenta_cliente_id = cg.id
+      from public.cuentas_cliente cc, public.cuentas_cliente cg
+     where pt.cuenta_cliente_id = cc.id
+       and cc.cliente_id = case when v_gana = p_conservar_id then p_descartar_id else p_conservar_id end
+       and cc.organizacion_id = v_org
+       and cg.cliente_id = v_gana and cg.empresa_id = cc.empresa_id and cg.organizacion_id = v_org;
+
     -- La cuenta no elegida se da de baja (se elimina; el usuario de Auth queda sin uso).
     delete from public.cuentas_cliente cc
      where cc.cliente_id = case when v_gana = p_conservar_id then p_descartar_id else p_conservar_id end;
@@ -136,9 +154,15 @@ begin
   update dominio.presupuestos_tienda pt
      set cliente_id = p_conservar_id
    where pt.cliente_id = p_descartar_id and pt.organizacion_id = v_org;
+  -- Reapuntar una consulta es un TRASLADO de datos, no una edición: el trigger `consultas_normalizar` (BEFORE UPDATE) hace avanzar `updated_at` ante cualquier
+  -- cambio de la fila, y las consultas re-apuntadas aparecerían en la bandeja como modificadas ahora, sin que nadie las haya tocado (la columna solo debe avanzar
+  -- ante un cambio real de estado, responsable o nota: así lo define su comentario). Se desactiva el trigger SOLO para este `update`: es DDL transaccional, así que
+  -- si algo falla la transacción entera se deshace y el trigger vuelve a estar activo.
+  alter table dominio.consultas disable trigger consultas_normalizar;
   update dominio.consultas q
      set cliente_id = p_conservar_id
    where q.cliente_id = p_descartar_id and q.organizacion_id = v_org;
+  alter table dominio.consultas enable trigger consultas_normalizar;
 
   -- Campañas: MSF-155 no se entregó y no existe tabla de campañas; no hay nada que reasignar.
 
@@ -159,7 +183,7 @@ end;
 $$;
 
 comment on function public.fusionar_clientes(uuid, uuid, uuid) is
-  'F-CLI-18 (MSF-447): fusiona dos clientes de la organización de la sesión (solo Administrador): reasigna documentos de venta, cuenta web y opiniones de productos al conservado y archiva al descartado, todo en una transacción. MSF-176 (H-2): repunta también los presupuestos de la tienda y las consultas de pedido del cliente descartado.';
+  'F-CLI-18 (MSF-447): fusiona dos clientes de la organización de la sesión (solo Administrador): reasigna documentos de venta, cuenta web y opiniones de productos al conservado y archiva al descartado, todo en una transacción. MSF-176 (H-2): repunta también los presupuestos de la tienda y las consultas de pedido del cliente descartado; los presupuestos de la cuenta web que se da de baja pasan a la cuenta que sobrevive (si no, sus vínculos quedarían sin cuenta y fuera del conteo de los topes por cuenta) y las consultas re-apuntadas no hacen avanzar `updated_at`.';
 
 revoke execute on function public.fusionar_clientes(uuid, uuid, uuid) from public, anon;
 grant execute on function public.fusionar_clientes(uuid, uuid, uuid) to authenticated;

@@ -69,7 +69,7 @@ definiciones vigentes»).
 
 **Preferred**: rehacer el PR sobre `origin/dokploy` actual:
 
-1. **Numerar** las migraciones del cierre por encima del máximo real de la base (`20270507140101` en adelante) y reconstruir cada
+1. **Numerar** las migraciones del cierre por encima del máximo real de la base (`20270507170001` en adelante) y reconstruir cada
    cuerpo sobre la **definición vigente** en `dokploy` (no sobre la del 2026-11-14): `fusionar_clientes` sobre
    `20270419000200`, las cinco RPC de «Mi cuenta» sobre `20270430000000`/`20270320100300`/`20270320100400`, `enviar_lista_pedido`
    sobre `20270430000000` y `crear_presupuesto_tienda` sobre `20270507130100`.
@@ -88,10 +88,10 @@ definiciones vigentes»).
 - Dejar H-4 sin probar en este PR: **descartado**; el cierre tiene que dejar la prueba de cada hallazgo sobre el código vigente.
 
 **Files likely to change**:
-- `supabase/migrations/20270507140101_presupuestos_tienda_vinculo_persistente.sql` (nueva)
-- `supabase/migrations/20270507140102_fusionar_clientes_repunta_tienda.sql` (nueva)
-- `supabase/migrations/20270507140103_tienda_cupo_llamadas_cuenta.sql` (nueva)
-- `supabase/migrations/20270507140104_tienda_caracteres_invisibles.sql` (nueva)
+- `supabase/migrations/20270507170001_presupuestos_tienda_vinculo_persistente.sql` (nueva)
+- `supabase/migrations/20270507170002_fusionar_clientes_repunta_tienda.sql` (nueva)
+- `supabase/migrations/20270507170003_tienda_cupo_llamadas_cuenta.sql` (nueva)
+- `supabase/migrations/20270507170004_tienda_caracteres_invisibles.sql` (nueva)
 - `supabase/tests/database/tienda_cierre_hallazgos.test.sql` (nueva)
 - `apps/web/src/lib/tiendaCuentaDatos.ts`, `apps/web/src/lib/tiendaCuentaDatos.test.ts`
 - `apps/web/src/lib/tiendaPedido.ts`, `apps/web/src/lib/tiendaPedido.test.ts`
@@ -106,6 +106,26 @@ definiciones vigentes»).
   invisibles en B1 y B2).
 - Vitest `apps/web/src/lib/tiendaCuentaDatos.test.ts`: un `limite` del servidor es un error con reintento, no «cuenta no activa».
 - Vitest `apps/web/src/pages/tienda-publica/cuenta/BotonFavorito.test.tsx`: el aviso del límite no dice «cuenta no está activa».
+
+## Devolución del Revisor (2026-11-17, PR #1128 sobre `e18615a4b`)
+
+El Revisor devolvió el PR con **cambios solicitados** (revisión técnica + seguridad). Los ocho hallazgos y qué se hizo con cada
+uno (el detalle técnico está en `fix.md`):
+
+| # | Hallazgo | Severidad | Qué se hizo |
+|---|---|---|---|
+| 1 | Las cuatro migraciones del cierre quedaban por debajo del máximo real de la base → «versión REUSADA» en el job `application` (y el aplicador nunca las correría). | Alta | Renumeradas a `20270507170001`–`20270507170004` (por encima de `20270507170000`, el máximo real de `dokploy`), sin tocar el SQL. |
+| 2 | La evidencia de `.specify/bugs/msf-988/{fix,test,assessment}.md` describía un estado que no existía (el guard salía con código 1 y los máximos citados eran los viejos). | Media | Corregida: los tres documentos dicen el máximo real (`20270507170000`), las versiones nuevas y la salida real del guard. |
+| 3 | `fusionar_clientes` no repuntaba `cuenta_cliente_id`: los presupuestos del cliente al que se da de baja la cuenta quedaban sin cuenta (fuera de los topes FR-057 y de la idempotencia `(cuenta, clave)`). El pgTAP fijaba ese detachment como comportamiento. | Media | La fusión pasa esos presupuestos a la cuenta que sobrevive de la misma empresa antes de darla de baja; el pgTAP ahora cubre los **dos** casos del diálogo (se conserva la cuenta del conservado y la del descartado) y exige que la cuenta que sobrevive no arranque en cero. |
+| 4 | `MENSAJE_LIMITE` y `esperaSegundos` nunca llegaban a la pantalla: un `limite` era indistinguible de una caída de red. | Baja | El error del cupo lleva los segundos en su texto; `useListadoPorCursor` expone el aviso con la espera (el patrón compartido de `CargaInfinita` con `espera`), `useFavoritosEntre` avisa el cupo, y las tres pantallas lo muestran (ficha, historial y favoritos). |
+| 5 | El conjunto de caracteres bloqueados vivía en tres lugares y ningún test decía que fueran iguales. | Baja | Vitest nuevo (`tiendaPedido.caracteres.test.ts`) que compara **carácter por carácter** el conjunto del SQL con el del front sobre todo el BMP, y que exige que las dos funciones del servidor usen el mismo conjunto. |
+| 6 | El contrato y la guía decían que solo `favoritos_entre_por_dominio` pasa a `volatile`, pero cambian las cinco. | Baja | Corregido el contrato y la guía de seguridad (las cinco cambian; `cambiar_favorito_por_dominio` ya era `volatile`). |
+| 7 | El camino de reversión de la migración del vínculo era incompleto: `set not null` revienta con las filas de cuenta nula (justo lo que la migración produce). | Baja | La tabla de migraciones de la guía dice de borrar o reasignar esas filas antes. |
+| 8 | El re-apuntado de `dominio.consultas` hacía avanzar `updated_at` (trigger `consultas_normalizar`): los pedidos re-apuntados aparecían como modificados ahora. | Baja | La fusión desactiva ese trigger solo para ese `update` (es DDL transaccional) y el pgTAP comprueba que la consulta conserva su `updated_at`. |
+
+Además, el CI en rojo del commit anterior señalaba tres cosas del job `database` (el `duplicate key` del fixture del pgTAP del cierre,
+la ráfaga de 203 favoritos contra el cupo nuevo y el comentario de `mis_compras_por_dominio` que perdía el «DEFENSA EN PROFUNDIDAD»):
+las tres están corregidas y documentadas en `fix.md`.
 
 ## Risks & Considerations
 

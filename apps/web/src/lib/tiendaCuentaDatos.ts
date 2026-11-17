@@ -15,7 +15,7 @@ export class ErrorCuentaTienda extends Error {
   readonly codigo: 'sin_acceso' | 'error' | 'limite'
   readonly esperaSegundos: number
   constructor(codigo: 'sin_acceso' | 'error' | 'limite', esperaSegundos = 0) {
-    super(codigo === 'sin_acceso' ? MENSAJE_SIN_ACCESO : codigo === 'limite' ? MENSAJE_LIMITE : MENSAJE_ERROR)
+    super(codigo === 'sin_acceso' ? MENSAJE_SIN_ACCESO : codigo === 'limite' ? mensajeLimite(esperaSegundos) : MENSAJE_ERROR)
     this.name = 'ErrorCuentaTienda'
     this.codigo = codigo
     this.esperaSegundos = esperaSegundos
@@ -25,8 +25,13 @@ export class ErrorCuentaTienda extends Error {
 export const MENSAJE_SIN_ACCESO = 'Tu cuenta no está activa en esta tienda'
 export const MENSAJE_ERROR = 'No pudimos completar la operación. Probá de nuevo.'
 export const MENSAJE_LIMITE = 'Hiciste muchas consultas seguidas. Esperá un momento y probá de nuevo.'
+// El texto del cupo con los segundos que pidió el servidor: sin ellos, la persona no sabe cuánto tiene que esperar.
+export const mensajeLimite = (esperaSegundos: number): string =>
+  esperaSegundos > 0 ? `Hiciste muchas consultas seguidas. Esperá ${esperaSegundos} segundos y probá de nuevo.` : MENSAJE_LIMITE
 
 export const esSinAcceso = (error: unknown): boolean => error instanceof ErrorCuentaTienda && error.codigo === 'sin_acceso'
+// El cupo de llamadas por cuenta NO es una caída de red: la pantalla lo distingue y avisa su texto y su espera.
+export const esLimite = (error: unknown): error is ErrorCuentaTienda => error instanceof ErrorCuentaTienda && error.codigo === 'limite'
 
 export type TipoComprobantePublico = 'compra' | 'presupuesto' | 'nota_credito'
 export type EstadoPublico = 'pendiente' | 'aceptado' | 'vencido' | 'anulado' | 'confirmada' | 'anulada' | 'nota_credito'

@@ -94,6 +94,35 @@ describe('useListadoPorCursor', () => {
     expect(alSinAcceso).toHaveBeenCalledTimes(1)
   })
 
+  it('el cupo de llamadas por cuenta (H-3) se distingue de una caída de red: expone el aviso con la espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn().mockRejectedValueOnce(new ErrorCuentaTienda('limite', 20))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('error'))
+    expect(result.current.espera).toEqual({ mensaje: 'Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.', segundos: 20 })
+  })
+
+  it('el cupo en una tanda siguiente deja lo cargado y expone el aviso con la espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn()
+      .mockResolvedValueOnce({ total: 3, filas: [fila('1')], siguiente: 'c2' })
+      .mockRejectedValueOnce(new ErrorCuentaTienda('limite', 30))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('lista'))
+    act(() => result.current.cargarMas())
+    await waitFor(() => expect(result.current.errorMas).toBe(true))
+    expect(result.current.filas.map((f) => f.id)).toEqual(['1'])
+    expect(result.current.espera).toEqual({ mensaje: 'Hiciste muchas consultas seguidas. Esperá 30 segundos y probá de nuevo.', segundos: 30 })
+  })
+
+  it('un error de red no es un cupo: no hay aviso de espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn().mockRejectedValueOnce(new Error('red'))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('error'))
+    expect(result.current.espera).toBeNull()
+  })
+
   it('quitar saca una fila y baja el total; reponer la devuelve en su lugar', async () => {
     const leer = vi.fn().mockResolvedValue({ total: 3, filas: [fila('1'), fila('2'), fila('3')], siguiente: null })
     const { result } = montar(leer)

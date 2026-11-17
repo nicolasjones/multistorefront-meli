@@ -6,6 +6,7 @@ vi.mock('./supabase', () => ({ supabaseClient: { schema: mocks.schema } }))
 import {
   cambiarFavorito,
   ErrorCuentaTienda,
+  esLimite,
   esSinAcceso,
   formatearCantidad,
   formatearFechaCuenta,
@@ -102,15 +103,24 @@ describe('límite de llamadas por cuenta (H-3)', () => {
     const error = await llamar().catch((e: unknown) => e)
     expect(error).toBeInstanceOf(ErrorCuentaTienda)
     expect(esSinAcceso(error)).toBe(false)
+    expect(esLimite(error)).toBe(true)
     expect((error as ErrorCuentaTienda).codigo).toBe('limite')
     expect((error as ErrorCuentaTienda).esperaSegundos).toBe(17)
-    expect((error as Error).message).toBe('Hiciste muchas consultas seguidas. Esperá un momento y probá de nuevo.')
+    // El texto lleva la espera real: es lo que la pantalla muestra (sin ella, no hay cuánto esperar).
+    expect((error as Error).message).toBe('Hiciste muchas consultas seguidas. Esperá 17 segundos y probá de nuevo.')
   })
 
   it('sin espera informada usa 60 segundos', async () => {
     mocks.rpc.mockResolvedValue({ data: { estado: 'limite' }, error: null })
     const error = await leerMisCompras(HOST).catch((e: unknown) => e)
     expect((error as ErrorCuentaTienda).esperaSegundos).toBe(60)
+    expect((error as Error).message).toBe('Hiciste muchas consultas seguidas. Esperá 60 segundos y probá de nuevo.')
+  })
+
+  it('un error de red NO es un límite (el cupo se distingue de una caída)', async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'red' } })
+    const error = await leerMisCompras(HOST).catch((e: unknown) => e)
+    expect(esLimite(error)).toBe(false)
   })
 })
 

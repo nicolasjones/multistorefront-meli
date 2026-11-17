@@ -39,7 +39,8 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
 
   if (listado.fase === 'sin_acceso') return null
   if (listado.fase === 'cargando') return <EstadoCargaPagina etiqueta="Cargando tus compras" />
-  if (listado.fase === 'error') return <ErrorConReintento titulo="No pudimos cargar tus compras." alReintentar={listado.reintentar} />
+  // El cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera: no es una caída de red.
+  if (listado.fase === 'error') return <ErrorConReintento titulo={listado.espera?.mensaje ?? 'No pudimos cargar tus compras.'} alReintentar={listado.reintentar} />
   if (listado.filas.length === 0 && !listado.hayMas) {
     return <VacioMiCuenta titulo="Todavía no tenés compras ni presupuestos en esta tienda" descripcion="Cuando compres o pidas un presupuesto, lo vas a ver acá." />
   }
@@ -107,7 +108,7 @@ export function HistorialMiCuenta({ host, alSinAcceso }: { host: string; alSinAc
           </Table>
         </TableContainer>
       )}
-      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} textoFin="Llegaste al final de tus compras y presupuestos" sustantivo="comprobantes" cargados={listado.filas.length} />
+      <CargaInfinita hayMas={listado.hayMas} cargando={listado.cargandoMas} hayError={listado.errorMas} onCargarMas={listado.cargarMas} textoFin="Llegaste al final de tus compras y presupuestos" sustantivo="comprobantes" cargados={listado.filas.length} espera={listado.espera} />
     </Box>
   )
 }

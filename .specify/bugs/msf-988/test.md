@@ -16,38 +16,53 @@ parte de base de datos queda para el job `database` del CI. Por eso el veredicto
 PR sin mergear, con el fix de seguridad ausente de la base) sí está resuelto en el código, pero la prueba de base de datos no se
 ejercitó acá.
 
+**Ronda del CI (2026-11-17, jobs `application`, `database` y `validacion` en rojo sobre el commit anterior):** el log sunken los cuatro
+puntos que faltaban y este commit los corrige — la versión `REUSADA` de las cuatro migraciones, el `duplicate key` del fixture del pgTAP
+del cierre, la ráfaga de 203 favoritos contra el cupo nuevo y el comentario de `mis_compras_por_dominio` que perdía el «DEFENSA EN
+PROFUNDIDAD» (lo fijaba `tienda_menores_revision.test.sql`). Los detalles están en la fila «Correcciones del CI» de la tabla.
+
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
 | Reproduction (post-fix) | `gh pr view 965 --json mergeable,mergeStateStatus` y `git merge-base --is-ancestor 4f22868d3 origin/dokploy` | pass | El PR #965 sigue `CONFLICTING` (no se toca: la entrega es un PR **nuevo** de esta rama, `fix/bug-MSF-988`, contra `dokploy`). El fix de esta rama sí está sobre `origin/dokploy` (4 migraciones nuevas + pgTAP + front + docs). |
-| New / updated tests (front) | `vitest run src/lib/tiendaCuentaDatos.test.ts src/lib/tiendaPedido.test.ts src/pages/tienda-publica/cuenta/BotonFavorito.test.tsx` | pass | 71 pruebas en verde (3 archivos). |
-| Regression suite (front) | `vitest run` de `tiendaOpiniones`, `favoritosSoloEnLaTienda`, `useListadoPorCursor`, `useFavoritosEntre` y la carpeta `cuenta` | pass | 87 pruebas en verde (6 archivos). Son los que dependen de `tiendaCuentaDatos`/`tiendaPedido`. |
-| New / updated tests (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | not-run | No hay Postgres ni Docker en este nodo. Queda para el job `database` del CI (55 aserciones). |
-| Lint / type-check | `pnpm --filter @platform/web lint` | pass | Solo avisos preexistentes de `oxlint` en archivos que la historia no toca. |
-| Build | `pnpm build` (`tsc -b` + `vite build`) | pass | Sin errores de tipos ni de build. |
-| Guard de migraciones | `node scripts/verificar-migraciones.mjs --estricto` | pass | 754 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507140101` a `20270507140104`, por encima del máximo real de la base (`20270507140100`). |
-| Documentación | `pnpm docs:check` | pass | Documentación de cambios OK; migraciones OK; trampas conocidas OK (4 migraciones y 1 pgTAP revisados). |
+| New / updated tests (front) | `vitest run src/lib/tiendaCuentaDatos.test.ts src/lib/tiendaPedido.test.ts src/lib/tiendaPedido.caracteres.test.ts src/hooks/useListadoPorCursor.test.tsx src/hooks/useFavoritosEntre.test.tsx src/pages/tienda-publica/cuenta/` | pass | 142 pruebas en verde (8 archivos). |
+| El test vigila la regla (FEAT-236) | Mutación a propósito en `tiendaCuentaDatos.ts`: (a) `menseLimite` devuelve siempre el texto genérico; (b) `esLimite` devuelve siempre `false` | pass | (a) rompe 12 pruebas de 5 archivos; (b) rompe los tests del cupo: los tests **detectan** el cambio de la regla, no la describen. Las dos mutaciones se revirtieron. |
+| Regression suite (front) | `vitest run src/lib/tiendaOpiniones.test.ts src/pages/tienda-publica/cuenta/favoritosSoloEnLaTienda.test.ts src/pages/tienda-publica/lista/ src/pages/tienda-publica/opiniones/ src/hooks/useComprasCliente.test.tsx src/components/consultas/` | pass | 188 pruebas en verde (12 archivos). Son los que dependen de `tiendaCuentaDatos`/`tiendaPedido`. |
+| New / updated tests (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | not-run | No hay Postgres ni Docker en este nodo. Queda para el job `database` del CI (64 aserciones). |
+| Lint / type-check | `pnpm --filter @platform/web lint` | pass | Código 0; solo avisos preexistentes de `oxlint` y **ninguno** en los archivos que la historia toca. |
+| Build | `pnpm build` (`tsc -b` + `vite build`) | pass | Sin errores de tipos ni de build (`✓ built in 5.34s`). |
+| Guard de migraciones | `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` | pass | Código 0: 757 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507170001` a `20270507170004`, por encima del máximo real de la base (`20270507170000`, que entró con el merge del PR #1124). |
+| Documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4047 archivos comparados); migraciones OK (757 archivos, 4 nuevos); trampas conocidas OK (4 migraciones y 2 pruebas pgTAP revisados). |
 | DER de la spec | `node scripts/verificar-der.mjs specs/20270306-100000-tienda-compra-y-cuentas/spec.md` | pass | DER OK (la columna alterada está marcada). |
 | Matriz pantalla↔criterios | `pnpm matriz:check` | pass | 0 specs nuevas revisadas (esta historia no agrega pantallas). |
-| Calidad | `pnpm calidad` | partial | `oxlint`, `knip`, `jscpd`, `dependency-cruiser` y `syncpack` en OK; `gitleaks` no se pudo correr (necesita Docker). |
-| Equivalencia de cuerpos | Comparación carácter a carácter entre los cuerpos de `20270507140104` y sus migraciones de origen | pass | `enviar_lista_pedido` y `crear_presupuesto_tienda` son idénticos salvo las dos constantes de caracteres. Las cinco RPC de `20270507140103` difieren de las vigentes solo por el cupo, el bloque anidado y `stable` → `volatile`. `fusionar_clientes` de `20270507140102` es el vigente más los dos `update` que repuntan. |
+| Calidad | `pnpm calidad:code` | pass | `oxlint`, `knip`, `jscpd`, `dependency-cruiser` y `syncpack` en OK; `gitleaks` **saltado** (necesita Docker, que en este nodo da «permission denied»). |
+| Equivalencia de cuerpos | Comparación carácter a carácter entre los cuerpos de `20270507170004` y sus migraciones de origen | pass | `enviar_lista_pedido` y `crear_presupuesto_tienda` son idénticos salvo las dos constantes de caracteres. Las cinco RPC de `20270507170003` difieren de las vigentes solo por el cupo, el bloque anidado y `stable` → `volatile`. `fusionar_clientes` de `20270507170002` es el vigente más los dos `update` que repuntan. |
+| Correcciones del CI (2026-11-17) | Logs de los jobs `application`, `database` y `validacion` del PR #1128 | pass | El CI en rojo señalaba cuatro cosas, todas corregidas en este commit: (a) `application`: las cuatro migraciones tenían versión `REUSADA` (por debajo del máximo de `dokploy`) → renumeradas a `20270507170001`–`20270507170004`; (b) `database`: el pgTAP del cierre moría en la línea 46 con «duplicate key … existencias_pkey» (el trigger `productos_crear_existencias` ya deja una fila por producto) → el fixture ahora hace `on conflict (producto_id) do update`; (c) `database`: `tienda_favoritos.test.sql` fallaba 20 de 111 (la ráfaga de 203 favoritos chocaba con el cupo nuevo de 120 por minuto) → el test sube el cupo **dentro de su transacción**, igual que hacía el PR #965; (d) `database`: `tienda_menores_revision.test.sql` fallaba la prueba 50 (el comentario de `mis_compras_por_dominio` perdía el «DEFENSA EN PROFUNDIDAD») → los comentarios de las ocho funciones redefinidas reproducen los de la base y suman la nota del hallazgo. |
 
 ## Output Excerpts
 
 ```
- Test Files  3 passed (3)
-      Tests  71 passed (71)
+ Test Files  8 passed (8)
+      Tests  142 passed (142)
 ```
 
 ```
- Test Files  6 passed (6)
-      Tests  87 passed (87)
+ Test Files  12 passed (12)
+      Tests  188 passed (188)
 ```
 
 ```
-Migraciones OK: 754 archivo(s), 4 nuevo(s) contra origin/dokploy.
-Trampas conocidas: OK (4 migración(es), 1 prueba(s) pgTAP y 0 E2E revisados contra origin/dokploy).
+Migraciones OK: 757 archivo(s), 4 nuevo(s) contra origin/dokploy.
+Trampas conocidas: OK (4 migración(es), 2 prueba(s) pgTAP y 0 E2E revisados contra origin/dokploy).
+```
+
+```
+Documentación de cambios: OK (4047 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
+```
+
+```
+✓ built in 5.34s
 ```
 
 ```
@@ -55,7 +70,7 @@ Trampas conocidas: OK (4 migración(es), 1 prueba(s) pgTAP y 0 E2E revisados con
 ```
 
 ```
-✓ built in 3.00s
+Matriz pantalla↔criterios: OK (0 specs nuevas revisadas, 0 exentas).
 ```
 
 ## Residual Risks
@@ -66,7 +81,7 @@ Trampas conocidas: OK (4 migración(es), 1 prueba(s) pgTAP y 0 E2E revisados con
   Auth (3 vínculos sin cuenta).
 - El cupo de `crear_presupuesto_tienda` es de 10 por minuto (real): el pgTAP lo sube a 100 **solo dentro de su transacción** para
   poder hacer la ráfaga de H-6; el valor real no cambia.
-- La migración `20270507140101` cambia la regla de borrado de tres FK de `dominio.presupuestos_tienda`: es el punto de la historia que
+- La migración `20270507170001` cambia la regla de borrado de tres FK de `dominio.presupuestos_tienda`: es el punto de la historia que
   toca datos. Su reversión está documentada en el propio archivo (FK de la cuenta a `cascade`, las otras dos a `no action` y
   `set not null` en la columna).
 - H-1 (hash de IP reversible) no se corrige: queda trazado como **MSF-945**.

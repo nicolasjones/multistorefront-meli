@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { esSinAcceso } from '../lib/tiendaCuentaDatos'
+import { esLimite, esSinAcceso } from '../lib/tiendaCuentaDatos'
 
 // Carga infinita de un listado paginado por cursor (Constitución, Principio VI): la primera tanda se pide al cambiar
 // `clave` (host, filtros…: nunca se mezcla lo de otra consulta) y `cargarMas` suma la siguiente a lo ya mostrado. Es el
@@ -8,6 +8,10 @@ import { esSinAcceso } from '../lib/tiendaCuentaDatos'
 // Se usa junto con `CargaInfinita`.
 
 export type TandaPorCursor<T, C> = { total: number; filas: T[]; siguiente: C | null }
+
+// Aviso de espera (el patrón compartido de `CargaInfinita` con `espera`): el cupo de llamadas por cuenta (H-3) no es una
+// caída de red, así que la pantalla explica cuánto esperar en vez de mostrar el error genérico.
+export type Espera = { mensaje: string; segundos: number }
 
 type Opciones<T, C> = {
   // Identidad de la consulta: cambiarla descarta lo acumulado y vuelve a la primera tanda.
@@ -31,6 +35,8 @@ export type ListadoPorCursor<T> = {
   // Quita una fila ya cargada (p. ej. un favorito recién quitado) y devuelve lo necesario para volver a ponerla.
   quitar: (id: string) => { fila: T; indice: number } | null
   reponer: (fila: T, indice: number) => void
+  // El cupo de llamadas por cuenta (H-3) con su espera; `null` si el fallo no fue un cupo.
+  espera: Espera | null
 }
 
 type Estado<T, C> = {
@@ -41,6 +47,7 @@ type Estado<T, C> = {
   siguiente: C | null
   cargandoMas: boolean
   errorMas: boolean
+  espera: Espera | null
 }
 
 export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Opciones<T, C>): ListadoPorCursor<T> {
@@ -69,17 +76,19 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
     enCurso.current = false
     funciones.current.leer(null)
       .then((tanda) => {
-        if (!cancelada) setEstado({ clave: claveCompleta, fase: 'lista', filas: tanda.filas, total: tanda.total, siguiente: tanda.siguiente, cargandoMas: false, errorMas: false })
+        if (!cancelada) setEstado({ clave: claveCompleta, fase: 'lista', filas: tanda.filas, total: tanda.total, siguiente: tanda.siguiente, cargandoMas: false, errorMas: false, espera: null })
       })
       .catch((error: unknown) => {
         if (cancelada) return
         if (esSinAcceso(error)) {
-          setEstado({ clave: claveCompleta, fase: 'sin_acceso', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false })
+          setEstado({ clave: claveCompleta, fase: 'sin_acceso', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false, espera: null })
           funciones.current.alSinAcceso?.()
           return
         }
-        console.error('No se pudo cargar el listado de Mi cuenta', error instanceof Error ? error.message : error)
-        setEstado({ clave: claveCompleta, fase: 'error', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false })
+        // El cupo de llamadas por cuenta (H-3) se distingue de una caída de red: la pantalla muestra su texto y la espera.
+        const espera = esLimite(error) ? { mensaje: error.message, segundos: error.esperaSegundos } : null
+        if (!espera) console.error('No se pudo cargar el listado de Mi cuenta', error instanceof Error ? error.message : error)
+        setEstado({ clave: claveCompleta, fase: 'error', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false, espera })
       })
     return () => { cancelada = true }
   }, [claveCompleta])
@@ -97,18 +106,19 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
         const vistos = new Set(actual.filas.map(funciones.current.idDe))
         const nuevas = tanda.filas.filter((fila) => !vistos.has(funciones.current.idDe(fila)))
         setEstado((previo) => (previo && previo.clave === actual.clave
-          ? { ...previo, filas: [...previo.filas, ...nuevas], total: tanda.total, siguiente: tanda.filas.length === 0 ? null : tanda.siguiente, cargandoMas: false, errorMas: false }
+          ? { ...previo, filas: [...previo.filas, ...nuevas], total: tanda.total, siguiente: tanda.filas.length === 0 ? null : tanda.siguiente, cargandoMas: false, errorMas: false, espera: null }
           : previo))
       })
       .catch((error: unknown) => {
         if (!vigente()) return
         if (esSinAcceso(error)) {
-          setEstado({ clave: actual.clave, fase: 'sin_acceso', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false })
+          setEstado({ clave: actual.clave, fase: 'sin_acceso', filas: [], total: 0, siguiente: null, cargandoMas: false, errorMas: false, espera: null })
           funciones.current.alSinAcceso?.()
           return
         }
-        console.error('No se pudo cargar más filas de Mi cuenta', error instanceof Error ? error.message : error)
-        setEstado((previo) => (previo && previo.clave === actual.clave ? { ...previo, cargandoMas: false, errorMas: true } : previo))
+        const espera = esLimite(error) ? { mensaje: error.message, segundos: error.esperaSegundos } : null
+        if (!espera) console.error('No se pudo cargar más filas de Mi cuenta', error instanceof Error ? error.message : error)
+        setEstado((previo) => (previo && previo.clave === actual.clave ? { ...previo, cargandoMas: false, errorMas: true, espera } : previo))
       })
       .finally(() => {
         if (vigente()) enCurso.current = false
@@ -140,7 +150,7 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
   }, [])
 
   if (!estado || estado.clave !== claveCompleta) {
-    return { fase: 'cargando', filas: [], total: 0, hayMas: false, cargandoMas: false, errorMas: false, cargarMas, reintentar, quitar, reponer }
+    return { fase: 'cargando', filas: [], total: 0, hayMas: false, cargandoMas: false, errorMas: false, cargarMas, reintentar, quitar, reponer, espera: null }
   }
   return {
     fase: estado.fase,
@@ -153,5 +163,6 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
     reintentar,
     quitar,
     reponer,
+    espera: estado.espera,
   }
 }
