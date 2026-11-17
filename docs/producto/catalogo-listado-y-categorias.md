@@ -3,7 +3,7 @@ owner: producto
 sources:
   - apps/web/src/pages/categorias
   - apps/web/src/pages/productos/list.tsx
-- specs
+  - specs/20261020-120000-catalogo-listado-y-categorias
 ---
 
 # Catálogo: listado y categorías (MSF-160)

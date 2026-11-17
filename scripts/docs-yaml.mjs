@@ -57,3 +57,26 @@ export function erroresYaml(yml) {
   });
   return errores;
 }
+
+/**
+ * Valida el front matter de una página: el manifest lo lee con un parser laxo que acepta una lista
+ * rota, pero para YAML es inválido un ítem `- x` en columna 0 después de una clave de lista (queda
+ * fuera de `sources:`) o un tabulador en la indentación.
+ * @param {string} txt contenido de la página @param {string} nombre ruta para el mensaje
+ * @returns {string[]} errores con línea y motivo
+ */
+export function erroresFrontMatter(txt, nombre) {
+  const m = txt.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!m) return [];
+  const errores = [];
+  const lineas = m[1].split("\n");
+  let enLista = false;
+  lineas.forEach((l, i) => {
+    const n = i + 2; // la línea 1 es el `---` de apertura
+    if (/^\t/.test(l)) errores.push(`${nombre}:${n}: tabulador en el front matter`);
+    if (/^[A-Za-z_]+:\s*$/.test(l)) enLista = true;
+    else if (/^[A-Za-z_]+:/.test(l)) enLista = false;
+    else if (/^- /.test(l) && enLista) errores.push(`${nombre}:${n}: ítem de lista en columna 0 dentro del front matter (indentá con dos espacios)`);
+  });
+  return errores;
+}

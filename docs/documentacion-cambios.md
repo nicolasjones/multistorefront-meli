@@ -78,20 +78,21 @@ capturas son de solo lectura (no confirman formularios). No corren con `pnpm tes
 aparte a propósito, `apps/web/playwright.capturas.config.ts`).
 
 **Estado (MSF-877, 2026-11-17).** El repo tiene 262 imágenes versionadas bajo `docs/producto/img/`, en 44 carpetas.
-Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
+La guía de uso es [Capturas del manual de usuario](capturas-documentacion.md). Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
 Las capturas de pantallas cambiadas hoy (Productos con Margen, Empresas, Migración de datos con pestañas, Actividad,
 Importaciones) quedan pendientes de recaptura con el comando de arriba. Además, el comentario de
-`playwright.capturas.config.ts` remite a un `docs/capturas-documentacion.md` que no existe; la guía vigente es
-`dataset-demo.md`.
+`playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
 
 ## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
 
 **Estado (medido el 2026-11-17 con `git rev-list --left-right --count origin/main...origin/dokploy`).** `main` tiene 16
 commits que `dokploy` no tiene y `dokploy` tiene 4186 que `main` no tiene (ancestro común `54ea7b1b`). Los 16 de `main`
-son de documentación salvo uno: manual de Inicio con capturas (`docs/producto/img/inicio/`), alineación de avisos de
+son de documentación salvo dos archivos de configuración: manual de Inicio con capturas (`docs/producto/img/inicio/`), alineación de avisos de
 faltantes (MSF-161), cierres documentales de MSF-176, MSF-265, MSF-467 y MSF-469, y el workflow
-`.github/workflows/e2e-nocturno.yml` (llevado a `main` para que dispare el cron). Hay 51 archivos de `docs/` distintos
-entre ambas ramas. La documentación de usuario quedó escrita en `main` sin el código que la respalda, que vive solo en
+`.github/workflows/e2e-nocturno.yml` (llevado a `main` para que dispare el cron) y un ajuste de `mkdocs.yml`. Entre
+las puntas actuales de ambas ramas difieren 272 archivos de `docs/` (`git diff --stat origin/main origin/dokploy -- docs`);
+de ellos, 51 son lo que `main` cambió desde el ancestro común (`git diff --stat 54ea7b1b origin/main -- docs`) y el resto
+es lo que `dokploy` agregó o cambió desde entonces. La documentación de usuario quedó escrita en `main` sin el código que la respalda, que vive solo en
 `dokploy`.
 
 **Procedimiento de reconciliación (sin tocar `main` desde `dokploy`).**
@@ -100,7 +101,9 @@ entre ambas ramas. La documentación de usuario quedó escrita en `main` sin el 
 2. Antes del Release, en una rama desde `dokploy`: `git merge origin/main`. Los conflictos de `docs/` se resuelven a favor
    del contenido de `dokploy` (que refleja el código vigente) salvo los textos y capturas que solo existen en `main`
    (manual de Inicio), que se revisan contra el código de `dokploy` antes de conservarlos.
-3. `docs/manifest.json` y `docs/_generated/` no se resuelven a mano: `git checkout --theirs` y regenerar con
+3. `docs/manifest.json` y `docs/_generated/` no se resuelven a mano: en ese `git merge origin/main` estás parado en la rama que integra (la de `dokploy`), así que
+   `--ours` es tu versión y `--theirs` la de `main` (el estado viejo): `git checkout --ours docs/manifest.json docs/_generated`
+   y regenerar con
    `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`.
 4. Correr `node scripts/docs-drift.mjs` y `node scripts/docs-check.mjs`; revisar las páginas con deriva (MSF-858).
 5. Recién entonces abrir el PR a `main`; `docs.yml` corre en PR hacia `main`.

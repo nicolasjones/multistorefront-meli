@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { erroresYaml } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter } from "./docs-yaml.mjs";
 
 function walk(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -118,6 +118,7 @@ export function verificarDocumentacion(root = process.cwd()) {
   );
   let links = 0;
   for (const file of mdFiles) {
+    for (const e of erroresFrontMatter(fs.readFileSync(file, "utf8"), path.relative(root, file))) errores.push(e);
     let txt = fs.readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, "");
     for (const m of txt.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
       let t = m[1].replace(/^<|>$/g, "");

@@ -3,7 +3,7 @@ owner: producto
 sources:
   - apps/web/src/pages/stock/ordenes-compra.tsx
   - apps/web/src/pages/reportes/Reposicion.tsx
-- specs
+  - specs/20261018-180000-stock-unico-y-alertas
 ---
 
 # Stock único y alertas (MSF-231)

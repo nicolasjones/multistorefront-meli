@@ -1,7 +1,7 @@
 // El agente edita mkdocs.yml; un ':' de más rompe el build de docs. Se avisa antes de abrir el PR.
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { erroresYaml } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter } from "./docs-yaml.mjs";
 
 describe("erroresYaml", () => {
   it("un nav válido no da errores", () => {
@@ -50,5 +50,21 @@ describe("erroresYaml", () => {
     const errs = erroresYaml("nav:\n\t- Producto: producto.md");
     assert.equal(errs.length, 1);
     assert.match(errs[0], /tabulador/);
+  });
+});
+
+describe("erroresFrontMatter", () => {
+  it("un front matter con lista indentada es válido", () => {
+    assert.deepEqual(erroresFrontMatter("---\nowner: producto\nsources:\n  - specs\n  - apps/web\n---\n# T\n", "a.md"), []);
+  });
+
+  it("detecta un ítem en columna 0 entre ítems indentados", () => {
+    const errs = erroresFrontMatter("---\nowner: producto\nsources:\n  - a\n- specs\n---\n# T\n", "a.md");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /a\.md:5/);
+  });
+
+  it("sin front matter no hay errores", () => {
+    assert.deepEqual(erroresFrontMatter("# Solo texto\n- item\n", "a.md"), []);
   });
 });

@@ -94,10 +94,12 @@ comentario «Decisión tomada» en su ticket.
 
 ### MSF-993 · Interés por WhatsApp
 
-- **Estado:** Decidida, pendiente de implementar (lote de interfaz y SQL de consultas).
+- **Estado:** Decidida, pendiente de implementar (lote de interfaz y SQL de consultas). Ya aplicado: que
+  `registrar_interes_whatsapp` sea solo para `service_role` (migración
+  `20270507150100_registrar_interes_whatsapp_solo_interna.sql:14-15`). Falta lo demás.
 - **Decisión:** el diálogo «Interés por WhatsApp» y «Productos más consultados» leen las consultas de origen WhatsApp
-  (la bandeja), sin tabla aparte. `registrar_interes_whatsapp` queda interna (solo `service_role`) y la tabla
-  `intereses_whatsapp` solo para el sembrado demo hasta retirarla.
+  (la bandeja), sin tabla aparte, y se retira la tabla `intereses_whatsapp` (hasta entonces solo para el sembrado demo).
+  Pendiente de implementar: leer las consultas de origen WhatsApp en la interfaz y retirar esa tabla.
 - **Fundamento:** evita una segunda tabla alimentada por una RPC pública (más superficie de abuso) y reutiliza la cuota
   y el anti-spam de `registrar_consulta_whatsapp`.
 
@@ -193,3 +195,14 @@ comentario «Decisión tomada» en su ticket.
 - **Decisión:** se mantiene el merge protegido por `merge-con-revisiones.sh` y `merge-seguro.sh` (dos revisiones sobre
   el SHA final más CI verde); no se cambian las reglas de GitHub (la protección de rama es de pago en repos privados).
 - **Fundamento:** ya funciona y está probado.
+
+## Acciones que siguen siendo de Nicolás
+
+Estas acciones no las hace ningún lote de código; quedan a cargo de Nicolás:
+
+- **SMTP real (MSF-532):** elegir el proveedor y cargar las credenciales.
+- **`CORREO_MASIVO_URL_BAJA`:** cargarla en `VPS_DEPLOY_ENV` de staging y de production antes de promover.
+- **Promoción DEV → STG → PRD:** ejecutarla. Recordá la regla de MSF-924: STG tiene que ir un paso adelante de PRD (se
+  sincroniza con `dokploy` y se valida allí antes de promover a PRD).
+- **Reglas de GitHub, runners y servidores:** los cambios de configuración fuera del repo (MSF-648, MSF-649, MSF-703,
+  MSF-704).
