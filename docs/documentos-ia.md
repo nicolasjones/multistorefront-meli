@@ -89,3 +89,11 @@ antes del intento (solo el que creó esta misma subida).
 ## Activación de una versión (MSF-652)
 
 `public.activar_version_documento(p_version_id)` (la llama `indexar-documento` con la sesión de quien subió el archivo) valida, desde `20270507150000`: que la versión pertenezca a la organización del llamador (versión inexistente, ya procesada o de otra organización dan el mismo error genérico `22023`), que la funcionalidad `busqueda-documental` esté habilitada y que el llamador sea quien subió la versión o un administrador de la organización (`42501` si no). `anon` no ejecuta la RPC. Prueba: `supabase/tests/database/activar_version_documento_valida_organizacion.test.sql`.
+
+## Escritura de fragmentos y archivos (lote 32 · MSF-651)
+
+Desde `20270507180400` las políticas de escritura de `public.fragmentos_indexados` (insert, update, delete) y las de insert y delete
+del bucket `documentos-rag` exigen `private.puede_escribir()` además de la organización: el rol Consulta (y cualquiera que no sea
+administrador) lee pero no sube, modifica ni borra por la API directa. La indexación corre con el rol de servicio y no cambia.
+**Fuera de este ítem** (queda anotado): las tablas `documentos` y `versiones_documento` siguen con políticas de escritura solo por
+organización. Prueba: `lote32_documentos_escritura_puede_escribir.test.sql`.

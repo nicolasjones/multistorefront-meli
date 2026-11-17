@@ -383,8 +383,8 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "c2dec74c65ba224f8fccf6bc7cfd2d35fee505e531017531526be7b4610b30d0",
-      "sourceHash": "834a932463184011a510c938895319ac7b83a09e145ee01d96026917660a6a5b",
+      "pageHash": "387342e257628d10b862a50a2c325f5dcd57ad261e9b91e5321a477190ffd13c",
+      "sourceHash": "4495223187accba845e5469162a4483d5c58e88156d35ee876e69df8e542a153",
       "sourceAt": "57614044",
       "sources": [
         "specs",
@@ -395,9 +395,9 @@
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
-      "pageHash": "0876c19ebdf3053df646804141e3ffc134ed7fb8e1edabbf42d637cdc72fae08",
-      "sourceHash": "cbacea1cb67c5ebe7ba4cd3c7f93f44f4b9460247f5f1e7713dff8fb9cdfe887",
-      "sourceAt": "c7860a7c",
+      "pageHash": "7785961b723972a22e7783cb87e377d4c87795d1c5fe672bd88160a01916d98d",
+      "sourceHash": "7809d56eddd8e36fa704f82313c16f7d184a3e5c846f7e2b35c2630422ddee35",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261024-150000-ventas-cobros-y-conciliacion",
         "scripts/verificar-migraciones.mjs",
@@ -409,7 +409,7 @@
         "supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio (épica MSF-352)",
@@ -504,7 +504,7 @@
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
-      "pageHash": "66977d9affd4090cb6b621f83c8a5a81b21171c9f4980dc4fc7c0530361212ca",
+      "pageHash": "c7c6da1df76564609e6788dd32f93d148c74d1f04f5883e0ba0787044b4e8682",
       "sourceHash": "9d5f88e4b89276b9be6ea00258afca714ef2c9d480b940e50ec517be1ff5cf43",
       "sourceAt": "0c4845aa",
       "sources": [
@@ -655,7 +655,7 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "b28f00936c2093a1b9072cbb7a7db57145f819478dd76537d63fea4ea5fec745",
+      "pageHash": "bed756dc72009e66d1751f651d06432f3304dc87e7185aaae23fb91d7c43c70c",
       "sourceHash": "f24222a959f467abe980c9eeb4893e5b117103fcd1bc3a5e1b9a69dfa79e1bfd",
       "sourceAt": "0c4845aa",
       "sources": [
@@ -721,9 +721,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "5cd0382e84d8317cccbb2f2268ee24b7f577e8d995c88018ddd471691c259ee3",
-      "sourceHash": "97e03a527e9d5e03d1710f0bbda5ca3110aa5ca736dc45ca2a3959baaa9a09a9",
-      "sourceAt": "882b71b9",
+      "pageHash": "fbc39182eb19981b7860fdfcb4bf40c7ceff1cb652d331de1950b0e64c443de0",
+      "sourceHash": "1ba55c9d25c1ed7932da01313e6499761b16557f9b6b60e299d6118c08f54c93",
+      "sourceAt": "07b6946b",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -731,7 +731,7 @@
         "apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx"
       ],
       "owner": "tecnico",
-      "commit": "882b71b9"
+      "commit": "07b6946b"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -883,14 +883,14 @@
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "87d258df1490b2b5a33194920608fe8054232cc16c95d0895cd8275337e4fd42",
-      "sourceHash": "391647e46efaaa28e33fafc0da7cf4cc6534b6e3d1700fbee54c7b43af6acf5f",
-      "sourceAt": "c7860a7c",
+      "pageHash": "3d14bb3b61cd2426223faee5b7cf1a289205f1243058c6b01915f5b54b8026b9",
+      "sourceHash": "894a35272ff56d53ffb61e6cc15ef465341f58250323f3cdcc13d46c2201b109",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "apps/web/src/lib/iva.ts"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
@@ -2268,9 +2268,9 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "ea4b1e409f0e0c3ca6060c1af7c784efe5069fe7ffe1b6981c618ddf85a52da1",
+      "pageHash": "2af25937e42feaaca69a4c9d71ae4ff7755b765da856471960ceeefb827b3fd2",
       "sourceHash": "b296074c164f238e07e4d84d02274531f38f582232b1b972d5d9bb3ed15ae017",
-      "sourceAt": "3d8efbc2",
+      "sourceAt": "bdb1eaeb",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
@@ -2282,7 +2282,7 @@
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "3d8efbc2"
+      "commit": "bdb1eaeb"
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
@@ -2431,14 +2431,14 @@
     },
     "docs/stock-lotes-e-inventario.md": {
       "title": "Stock · Lotes e inventario (épica MSF-131)",
-      "pageHash": "bd96e00aa245a4ecae980c005fcd9a785433a243b0bf2abd979ee9c9e56acb3d",
+      "pageHash": "dd53eaf4bf4626addf6e8c64ff1ceaaf351acacfce71545032415c32bb97c344",
       "sourceHash": "cd4955a7e43f42c8cb410a99124374388c36523e3a7e2d3e8ad0e05a74dc36a2",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261024-120000-stock-lotes-e-inventario"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/stock-lotes.md": {
       "title": "Stock · Carga en lote (F-STK-10, MSF-407)",

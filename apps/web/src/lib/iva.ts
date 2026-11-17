@@ -26,17 +26,17 @@ export const SIN_ALICUOTA_PRODUCTO = ''
 export const NOTA_OPCIONES_IVA = 'Opciones: 21 %, 10,5 %, Exento. Cada producto puede tener el suyo.'
 export const AYUDA_IVA_EMPRESA = 'El IVA sale de la categoría de cada producto (o del propio producto).'
 
-// Precio final = neto × (1 + alícuota), al peso entero (mitad hacia arriba); Exento ⇒ final = neto.
-// En enteros (centavos × puntos básicos) para no arrastrar error de coma flotante: el mismo
-// resultado que `private.aplicar_iva` de la base. El neto se toma a centavos: vale para importes
+// Precio final = neto × (1 + alícuota), al centavo (mitad hacia arriba, igual que el total del comprobante);
+// Exento ⇒ final = neto. En enteros (centavos × puntos básicos) para no arrastrar error de coma flotante: el
+// mismo resultado que `private.aplicar_iva` de la base (MSF-720). El neto se toma a centavos: vale para importes
 // con hasta 2 decimales (los del formulario); un neto con más decimales puede diferir de la base.
 export function calcularFinal(neto: number, alicuota: Pick<Alicuota, 'porcentaje' | 'exento'>): number {
   if (alicuota.exento) return neto
   const centavos = Math.round(neto * 100)
   const puntosBasicos = Math.round(alicuota.porcentaje * 100)
   const producto = centavos * (10_000 + puntosBasicos)
-  const resto = producto % 1_000_000
-  return (producto - resto) / 1_000_000 + (resto >= 500_000 ? 1 : 0)
+  const resto = producto % 10_000
+  return ((producto - resto) / 10_000 + (resto >= 5_000 ? 1 : 0)) / 100
 }
 
 export async function leerAlicuotas(cliente: Pick<SupabaseClient, 'schema'>): Promise<Alicuota[]> {
