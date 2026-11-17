@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "7982819d394e4be9cc97f10e7a5eb7a3edc27dc9559506982fa16779ccb00898",
-      "sourceHash": "f70015038b3be42078895037d6692c087b886fba16f1d8456ad60463943da292",
-      "sourceAt": "f5eb679e",
+      "pageHash": "294241c7f15b0d0145e3f160e59f5b994a84fb204c288734ab60756c3af3201a",
+      "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
+      "sourceAt": "a4303cff",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "f5eb679e"
+      "commit": "a4303cff"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -752,15 +752,15 @@
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "39c91b79fe04e7a87877dded51e1f7c9c54fd861e735d8af340e45f4346a2472",
-      "sourceHash": "ecc7f9dce532e36cb9ebf46f5b7ab3da6554d403fe08d11a26197a7133f862ef",
-      "sourceAt": "c7860a7c",
+      "pageHash": "5361cac73ee0402230a9d530d6de9f819d502e39fba6e8398cb5ee02b1d428e2",
+      "sourceHash": "a3b72c92b9bf4a3446fdda2de30e10a64c5cc8dc2ac824f974dc24cd923e2ec0",
+      "sourceAt": "a4303cff",
       "sources": [
         "scripts/guard-migraciones-ddl.mjs",
         "scripts/verificar-migraciones.mjs"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "a4303cff"
     },
     "docs/guia-funcional.md": {
       "title": "Guía funcional: cómo usar el sistema",
@@ -4117,14 +4117,14 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "c9600d557e0424dd92a1bf39137eb7e5a69cbc8a898d4e0adab768df6946414f",
-      "sourceHash": "bf13efa8d731aeb8ad4e9a2351dc8a50163da9a894862dd20e00036c658e2bdf",
-      "sourceAt": "c7860a7c",
+      "pageHash": "f65cc257f21cd4f87a483eea335ee6dda4562e338a9395d64dad41875da7652a",
+      "sourceHash": "03353df28e55c4c0320fd4b9a73f1a7fc7b9bd3b0e4b040323c3a83489ff3332",
+      "sourceAt": "a4303cff",
       "sources": [
         "scripts/verificar-migraciones.mjs"
       ],
       "owner": "plataforma",
-      "commit": "c7860a7c"
+      "commit": "a4303cff"
     }
   }
 }
