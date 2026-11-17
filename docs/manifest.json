@@ -4117,8 +4117,8 @@
     },
     "docs/verificacion-salida-correo.md": {
       "title": "Verificación de salida del correo (MSF-532)",
-      "pageHash": "8d0f164e7efa1fa08e8d57240dc7bae928dfa193e860043f1b4089fce78e9e45",
-      "sourceHash": "dc95af4cb77c61d195cec9e5b2049b19bd57127ddc83b2dbe1f528afbbf3e547",
+      "pageHash": "155afe708356f3bbc1c2f6507c93bd04b86069f4c97472884f7c2ae03652fa13",
+      "sourceHash": "93847928409fad4a7fa69434a94f67afb1661704d7da7e75b3e38d2d120c7f26",
       "sourceAt": "42cec371",
       "sources": [
         "specs/20261016-130000-perfil-y-permisos-avanzados",
@@ -4130,8 +4130,8 @@
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "f65cc257f21cd4f87a483eea335ee6dda4562e338a9395d64dad41875da7652a",
-      "sourceHash": "03353df28e55c4c0320fd4b9a73f1a7fc7b9bd3b0e4b040323c3a83489ff3332",
+      "pageHash": "312fe56ee4b8582cea5f57587950cfec9eae77c4b340dd239ef652063b0a2ca0",
+      "sourceHash": "d4827487c464692dfd9f7c95b2e45092036b4e64170267184f8f69c714032f3e",
       "sourceAt": "a4303cff",
       "sources": [
         "scripts/verificar-migraciones.mjs"
