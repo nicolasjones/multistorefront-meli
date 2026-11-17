@@ -21,7 +21,7 @@ const CORREO_PRUEBA = 'nicolas.m.jones@gmail.com'
  * real), no antes de arrancar el guion (si no, la ventana de 5 s del guion lo descarta y el test falla
  * de forma intermitente cuando el runner tarda).
  */
-const levantar = async ({ estadoToken = 200, respuestaFuncion = { cuerpo: {} }, mensajes = [] }) => {
+const levantar = async ({ estadoToken = 200, respuestaFuncion = { cuerpo: {} }, mensajes = [], mailpitColgado = false }) => {
   const servidor = http.createServer((req, res) => {
     const responder = (codigo, cuerpo) => {
       res.writeHead(codigo, { 'Content-Type': 'application/json' })
@@ -34,6 +34,8 @@ const levantar = async ({ estadoToken = 200, respuestaFuncion = { cuerpo: {} }, 
     if (url.startsWith('/functions/v1/solicitar-acceso')) {
       return responder(respuestaFuncion.codigo ?? 200, respuestaFuncion.cuerpo)
     }
+    // Mailpit colgado: acepta la conexión y nunca responde (el guion tiene que cortar por su cuenta).
+    if (url.startsWith('/api/v1/messages') && mailpitColgado) return
     if (url.startsWith('/api/v1/messages')) return responder(200, { messages: typeof mensajes === 'function' ? mensajes() : mensajes })
     return responder(404, { error: 'ruta desconocida' })
   })
@@ -283,5 +285,23 @@ test('en local, sin aviso en Mailpit, no hay verde', async () => {
     assert.match(r.error, /no apareció en Mailpit/)
   } finally {
     await base.cerrar()
+  }
+})
+
+test('en local, un Mailpit que no responde no cuelga el guion: corta por tiempo y no da verde', async () => {
+  const base = await levantar({
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+    mailpitColgado: true,
+  })
+  try {
+    const inicio = Date.now()
+    const r = await correr(entorno(base, { MAILPIT_URL: base.url, MAILPIT_TIMEOUT_MS: '100' }))
+    assert.equal(r.codigo, 1)
+    assert.match(r.error, /no apareció en Mailpit/)
+    // 10 intentos de 100 ms más la espera de 500 ms entre ellos: bien por debajo de un cuelgue real.
+    assert.ok(Date.now() - inicio < 20_000, 'el guion tardó demasiado: la consulta a Mailpit no tiene tope')
+  } finally {
+    // El servidor de prueba conserva las conexiones colgadas: se cierran para que `cerrar` no espere.
+    base.cerrar()
   }
 })

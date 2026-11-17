@@ -19,6 +19,8 @@
 //   SUPABASE_ANON_KEY, ACCESO_EMAIL, ACCESO_PASSWORD   credenciales de la persona sin acceso
 //   SECCION         clave de la sección sin acceso para esa persona (por omisión «rentabilidad»)
 //   MAILPIT_URL     opcional (local), p. ej. http://127.0.0.1:4302
+//   MAILPIT_TIMEOUT_MS  opcional: tope de cada consulta a Mailpit (por omisión 5000 ms); una consulta que no
+//                   responde cuenta como «el aviso aún no apareció» en vez de dejar el guion colgado
 //   CORREO_PRUEBA   obligatoria sin MAILPIT_URL: es la casilla externa donde se confirma la recepción
 const requerida = (nombre) => {
   const valor = process.env[nombre]
@@ -37,6 +39,8 @@ const mailpit = process.env.MAILPIT_URL?.replace(/\/$/, '')
 // Sin Mailpit no hay forma de verificar la entrega desde el servidor: la casilla de la prueba es
 // obligatoria, porque es donde el aviso tiene que llegar.
 const correoPrueba = process.env.CORREO_PRUEBA?.trim()
+// Tope de cada consulta a Mailpit: sin él, un Mailpit que acepta la conexión y no contesta cuelga el guion.
+const topeMailpitMs = Number(process.env.MAILPIT_TIMEOUT_MS) > 0 ? Number(process.env.MAILPIT_TIMEOUT_MS) : 5000
 if (!mailpit && !correoPrueba) {
   console.error('Falta la variable CORREO_PRUEBA: sin MAILPIT_URL el guion necesita saber a qué casilla externa debe llegar el aviso.')
   process.exit(2)
@@ -96,7 +100,7 @@ if (!cuerpo.enviado) {
 if (mailpit) {
   // Mailpit puede tardar un instante en indexar el mensaje.
   for (let intento = 0; intento < 10; intento += 1) {
-    const lista = await fetch(`${mailpit}/api/v1/messages`).then((r) => r.json()).catch(() => null)
+    const lista = await fetch(`${mailpit}/api/v1/messages`, { signal: AbortSignal.timeout(topeMailpitMs) }).then((r) => r.json()).catch(() => null)
     const mensaje = (lista?.messages ?? []).find((m) => /Solicitud de acceso/.test(m.Subject ?? '') && Date.parse(m.Created) >= inicio - 5000)
     if (mensaje) {
       console.log(`OK: el correo «${mensaje.Subject}» llegó a Mailpit para ${(mensaje.To ?? []).map((t) => t.Address).join(', ')}.`)
