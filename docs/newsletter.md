@@ -142,7 +142,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 
 1. **Publicar el flow `correo-masivo` actualizado en Kestra** (`node infra/kestra/desplegar-flow.mjs --source infra/kestra/flows/correo-masivo.yml --namespace producto.clientes --flow-id correo-masivo --kestra-url …`) y, **antes de encender la bandera**, el flow `newsletter-confirmaciones` (ya mergeado en la Fase 2). Sin el flow nuevo, un newsletter se enviaría con la plantilla de clientes.
 2. **SMTP real**: nada de esta entrega envía correo real en CI. Hay que probar en dev, con la bandera encendida y una tienda de prueba, una suscripción, la confirmación, una prueba y un envío a un suscriptor propio (T034) y mirar cómo llega (entregabilidad, enlace de baja).
-3. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: no se pudo verificar si `MailSend` de Kestra admite encabezados propios. Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen.
+3. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: **verificado: `MailSend` de Kestra NO admite encabezados propios** (ver «Seguimientos de seguridad y entregabilidad»). Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen. Queda decidir el camino (propuesta abajo) con un SMTP real.
 4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
 5. **Cupo compartido** entre clientes y newsletter (D14) y **tope global de confirmaciones** (MSF-971): decidir si se separan.
 6. **CAPTCHA** solo si hay abuso real.
@@ -150,8 +150,22 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 
 ## Verificación técnica (T011)
 
-- T011(a) `List-Unsubscribe`: sin verificar, ver el pendiente 3 (MSF-962).
+- T011(a) `List-Unsubscribe`: verificado, el plugin no tiene la propiedad (MSF-962, abajo).
 - T011(b) CORS de `baja-correo-masivo`: la función responde `Access-Control-Allow-Origin: *` y acepta `content-type`, `authorization`, `apikey` y `x-client-info` (los encabezados de `supabase-js`), así que la página de baja de cualquier dominio de tienda puede invocarla sin cambios; contrato `{ token }` → `{ ok: true }` intacto (MSF-963).
+
+## Seguimientos de seguridad y entregabilidad
+
+Revisión del lote de deuda técnica MSF-515 (2026-11-17). Qué se comprobó en el repo, qué cambió y qué queda para un entorno real.
+
+### `List-Unsubscribe` en el `MailSend` de Kestra (MSF-962)
+
+- **Evidencia.** La tarea del flow `correo-masivo` es `io.kestra.plugin.notifications.mail.MailSend` (Kestra `v1.3.35`, `infra/kestra/compose.yaml`). Se leyó la documentación del plugin de correo de Kestra (página de `MailSend`, versión 1.6.9) y la fuente de `plugin-email` (`MailSend.java`): las únicas propiedades son `from`, `to`, `cc`, `bcc`, `subject`, `htmlTextContent`, `plainTextContent`, `attachments`, `embeddedImages`, `host`, `port`, `username`, `password`, `transportStrategy`, `sessionTimeout`, `verifyServerIdentity`, `trustedHosts`, `accessToken` y `assets`. **No hay ninguna para encabezados**: `List-Unsubscribe` y `List-Unsubscribe-Post` no se pueden agregar con esa tarea. La versión exacta del plugin que trae la imagen `v1.3.35` no se pudo inspeccionar desde el repo (no hay Kestra levantado acá), pero una versión anterior tiene aún menos propiedades.
+- **No se cambió el flow** (solo el comentario que lo explica): reemplazar el envío no se puede probar sin Kestra y SMTP vivos.
+- **Propuesta (para decidir con un SMTP real):**
+  1. *Camino recomendado*: un relay SMTP que agregue los encabezados por su cuenta (Postmark, Amazon SES, Mailgun y similares los ofrecen en su plantilla o API), sin tocar el flow. Es lo más simple y lo que mejor cuida la entregabilidad.
+  2. *Alternativa en el repo*: cambiar la tarea `enviar_correo` por una tarea de script de Kestra (`io.kestra.plugin.scripts.python.Script` con `smtplib` y `email.message.EmailMessage`, que sí permiten `msg['List-Unsubscribe'] = '<https://…>'`), conservando el reintento y el cierre del destinatario.
+  3. *Requisito de cualquiera de las dos*: el `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058) exige un `POST` a una URL `https` con cuerpo `application/x-www-form-urlencoded` (`List-Unsubscribe=One-Click`) y sin sesión. Hoy `baja-correo-masivo` solo acepta JSON `{ token }`: habría que sumarle el token por la URL (`?token=…`) y el cuerpo de formulario, sin tocar el contrato JSON. Con solo `List-Unsubscribe: <https://…/newsletter/baja/TOKEN>` (sin `-Post`) no hace falta tocar la función, pero Gmail y Yahoo piden el un clic para los envíos masivos.
+- **Pendiente real**: elegir el camino y probarlo con SMTP real (entregabilidad). Hasta entonces la baja depende del enlace del cuerpo.
 
 ## Reversión
 

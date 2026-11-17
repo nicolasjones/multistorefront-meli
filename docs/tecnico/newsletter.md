@@ -549,7 +549,7 @@ rótulos por tarea.
 | E2E del recorrido (`apps/web/e2e/tienda-newsletter.e2e.ts`) | QA / Playwright | T032; seguimiento MSF-978. |
 | axe a 320/768/1440 px del formulario, del diálogo y de la pantalla | QA | T009 y T021; seguimiento MSF-961. |
 | Revisión de seguridad de la épica (`authz-security`, `crypto-secrets`) | Quien revisa el PR | T033: **sin informe**. |
-| `List-Unsubscribe` / `List-Unsubscribe-Post` | Operaciones | T011: no se pudo verificar si `MailSend` de Kestra admite encabezados propios. Seguimiento MSF-962. |
+| `List-Unsubscribe` / `List-Unsubscribe-Post` | Operaciones | MSF-962: verificado, `MailSend` de Kestra no admite encabezados propios (plugin de correo 1.6.9: sin propiedad de encabezados). Falta elegir el camino (relay SMTP o script) y probarlo con SMTP real; ver `docs/newsletter.md`. |
 | CORS de la Edge Function `baja-correo-masivo` | Operaciones | T011: responde `Access-Control-Allow-Origin: *` y acepta los encabezados de `supabase-js`, así que no hizo falta tocarlo. Seguimiento MSF-963. |
 | Imágenes en el correo | Producto / Plataforma | `imagen_url` queda nulo: hay que decidir entre un bucket público de miniaturas o una URL firmada de larga vida. |
 | Cupo diario separado del newsletter y alerta al alcanzar el tope global | Producto | D14 y MSF-971: hoy el cupo es uno solo entre clientes y newsletter. |
