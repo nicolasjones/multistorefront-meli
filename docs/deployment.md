@@ -627,7 +627,7 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 - **e2e y suite web SÓLO al integrar la épica** (`e2e`, output del job `changes`): un PR de **historia** o el
   **cierre** apuntan a la rama de la **épica** (`epic/<KEY>-…`), así que `e2e` es `false` y la **suite `web`**
   (job `web`) más el **Playwright e2e** se **saltean** — se validan al integrar la épica (PR `epic/* → dokploy`,
-  o un push a `dokploy`/`main`/`staging`, donde `e2e` es `true`). El `build` (type-check) **sí** sigue corriendo
+  o un push a `main`/`staging`, donde `e2e` es `true`; el push a `dokploy` **no** dispara `Validate`, ver «Decisión pendiente» en `docs/control-ci.md`). El `build` (type-check) **sí** sigue corriendo
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).

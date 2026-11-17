@@ -56,7 +56,7 @@ cada uno termina muy por debajo.
 
 En un PR a `dokploy` el job `web` corre `vitest run --changed <merge-base>`: solo los tests que dependen (por el grafo de
 imports) de los archivos modificados; un cambio de configuración o de `package.json` dispara la suite completa. La suite
-**completa** corre en el `push` a `dokploy`/`main`/`staging`, en el cierre de la épica (PR `epic/* → dokploy`) y en
+**completa** corre en el `push` a `main`/`staging` (el push a `dokploy` no dispara `Validate`: decisión pendiente más abajo), en el cierre de la épica (PR `epic/* → dokploy`) y en
 `merge_group`: es la red de seguridad. El store de pnpm se cachea entre corridas (`setup-node` con `cache: pnpm`).
 
 El job `web` hace el clon completo en los PRs para poder calcular el diff (`fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}`).
@@ -152,6 +152,62 @@ archivo` sin pasos de código.
   rama (merge de la base en la rama del PR) antes de mergear: si no, la migración vieja y
   la renumerada conviven al integrar.
 
+## Cambios de CI de la auditoría MSF-647 (lote 26)
+
+- **Borrador → Ready (MSF-675).** `Validate` escucha `pull_request` con `types: [opened, synchronize, reopened, ready_for_review]`.
+  Antes, un PR abierto como borrador dejaba los jobs pesados en `skipped` y `validacion` en verde (los `skipped` cuentan como OK);
+  al marcarlo Ready no había corrida nueva y se podía mergear sin tests, build ni base de datos. Con `ready_for_review` el cambio a
+  Ready dispara una corrida completa. El `concurrency` por rama cancela la corrida del borrador en curso, sin pérdida.
+- **Gate de egress de workers (MSF-684).** `workers/egress-allowlists.json` declara ahora las redes `worker-egress-<sistema>` que
+  usan los flows (`comprobantes-pdf`, `historial-ventas`, `importar-productos`) y los workers de cada una (`workers`). Los 5 workers
+  solo hablan con Supabase (ya cubierto por `common`), por eso `solo_supabase: true` y `domains: []`. `scripts/validar-egress-workers.mjs`
+  falla si hay un worker descubierto sin entrada, si la política nombra un worker inexistente o si un flow referencia una red sin
+  entrada, o si hay `solo_supabase: true` con `domains` no vacío; los dominios no admiten comodines de TLD (`*.com`). Lee la red de
+  los flows con comillas simples o dobles, `--network=…`, `--network …`, `--net`, `network_mode:`/`networkMode:`, continuaciones de línea con `\` y
+  subdirectorios de `infra/kestra/flows`, y rechaza cualquier red literal (`host`, `bridge`, `$(…)`) fuera de la convención
+  `worker-egress-<sistema>` (se aceptan variables `$VAR`, `${VAR:?msg}` y `none`; `${VAR…}` se acepta sin resolver el valor real de la variable (solo se valida el valor por defecto literal; que `WORKER_NETWORK` valga una red correcta en el servidor no se comprueba): `${VAR:-host}` y los defaults anidados (`${A:-${B:-host}}`) se rechazan (un default solo puede ser una red válida, `none` o una variable simple `$X`): un valor por defecto literal debe ser una red válida; `--network=\` + salto de línea + valor se une antes de validar). **No cubre** `networks:` de un compose ni un `--network` fuera de los YAML de `infra/kestra/flows` (test: `scripts/validar-egress-workers.test.mjs`). Se corre
+  también en el job `application` (dentro de `test:ci:scripts`; antes solo corría en `worker-images.yml`, que dispara solo en `main`).
+  **Límite**: valida estructura y consistencia; NO detecta un `fetch` nuevo a un tercero en un worker ya listado (la allowlist real
+  la aplica el firewall/proxy del servidor). Nota: 4 workers pueden enviar errores a GlitchTip con `ERRORES_DSN`
+  (`workers/_comun/errores.mjs`); hoy ningún flow lo pasa (no-op). Si se activa, hay que declarar el host en `domains`
+  (ver el campo `notas` del JSON).
+- **Migraciones aditivas (MSF-688).** `validar-migraciones-aditivas.mjs` también detecta `DROP SCHEMA`, `DROP FUNCTION` y
+  `DELETE FROM` sin `WHERE`; un tokenizador mínimo respeta literales `'…'`, `E'…\'…'`, dollar-quoting `$tag$…$tag$` (su cuerpo se analiza como SQL) y comentarios de bloque anidados (`select '--'; drop table x;` ya no pasa) y el marcador
+  debe ser un comentario que nombre la «reversión» sin negarla (`-- sin reversión` no vale; `reversible` tampoco; `-- Reversión: ninguna` / `n/a` / `no aplica` / vacío sin pasos en la línea siguiente tampoco). El filtro es conservador: `-- Reversión: no hay reversión automática` se rechaza aunque declare un camino manual; reescribirlo (p. ej. `-- Reversión: restaurar desde el backup`). No se exige que
+  empiece con «Reversión:» porque las 750 migraciones históricas usan formatos distintos. Corre también en `application` sobre las
+  750 (~1,5 s). **Límites** (no cubre): SQL dinámico con `execute`; `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`;
+  `ALTER TABLE t DROP c` sin `COLUMN`; `UPDATE` sin `WHERE`; `REVOKE`; no valida que la reversión tenga pasos. `DROP
+  CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido). Tampoco modela `standard_conforming_strings = off`. Los tags
+  de dollar-quote admiten letras Unicode (`$é$`) y el análisis es casi lineal: el índice de tags se calcula una vez sobre el texto completo (con ~1 MB hostil, de tags únicos, repetidos o anidados, tarda 0,1 a 0,4 s); los dollar-quotes anidados más allá de 100 niveles se tratan como código plano (sus `drop` cuentan); `$a$a$ drop table t; $a$` se marca destructivo aunque en PG es un string (falso positivo conservador); las líneas de comentario se normalizan (espacios colapsados) antes de las regex del marcador para evitar ReDoS. `-- Reversion: none` /
+  `n.a.` / `na` / `nothing` también se rechazan.
+- **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
+  ~1,5 a 3 minutos en el runner de CI; la cifra no se reproduce en hosts cargados, donde medimos ~160 s): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
+  fallaron (no corta en la primera). Cada suite tiene timeout (600 s por defecto; `--timeout <s>` o `CORRER_SUITES_TIMEOUT_S`) y una
+  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. `test:ci:scripts` (y `docs:wiki:check`) necesitan un `.git` real: no corren en un worktree montado sin gitdir. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Cada suite corre en su propio grupo de procesos (`detached` = setsid; se guarda `pid > 1` antes de `kill(-pid)` porque `kill(-0)`/`kill(-1)` alcanzarían al propio runner o a todos los procesos) y al vencer el timeout se mata el grupo entero (shell, pnpm, node y nietos); un Ctrl-C o SIGTERM al runner no llega al grupo de la suite en curso (sigue hasta su timeout). La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
+  `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
+
+### Decisiones pendientes del lote 26 (no se tocaron a propósito)
+
+- **`Validate` en `push` a `dokploy` (MSF-685).** Hoy no corre (`push: branches: [main, staging]`); la documentación lo afirmaba y
+  se corrigió. Encenderlo haría correr web (~10 min repartidos en shards), build, e2e y `database` en CADA merge a `dokploy` (varios
+  por día) sobre los runners, con el riesgo de rojos por la cola compartida del stack de Supabase. Alternativas: (a) agregar
+  `dokploy` a `push.branches` (cobertura total, costo alto); (b) mantener el e2e nocturno (`e2e-nocturno.yml`) como red de seguridad
+  (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
+  si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
+  la API de rulesets). Requiere decisión de Nicolás.
+- **Tests que el CI sigue sin correr (MSF-679).** Quedan fuera por pesados o por fallar hoy (ver la tabla en
+  «Verificación» del PR): `template:capabilities:check`, `test:outbox:frontera` y `test:ia:aprovisionamiento` fallan en `dokploy`
+  actual y hay que arreglarlos antes de encenderlos; los `test:*:e2e`, `test:db` y los de runtime necesitan stack.
+- **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
+  tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
+  habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar `token:` de un PAT/GitHub App
+  a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment `staging` y su puerto (según el
+  ítem, el destino rechazaba conexiones) y agregar una alerta cuando falle el job `staging`.
+- **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
+  `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
+  o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
+  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: queda como ítem aparte.
+
 ## Integración protegida de `dokploy`
 
 `dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`) con:
@@ -164,7 +220,7 @@ archivo` sin pasos de código.
   probarse contra el `dokploy` actual y, cada vez que otro PR entraba, había que actualizar la rama y repetir todo el CI;
   con PRs de agentes entrando seguido ninguno llegaba a mergear. Con el auto-merge del repo habilitado, un PR entra solo
   cuando `validacion` pasa. Riesgo aceptado: dos PRs verdes por separado podrían romper juntos; lo cubre la suite completa
-  del push a `dokploy` y el e2e del cierre de épica. Para volver atrás: ponerlo en `true` en el ruleset.
+  de la suite completa que corre al integrar la épica (PR `epic/* → dokploy`) y del e2e nocturno sobre `dokploy`. Para volver atrás: ponerlo en `true` en el ruleset.
 - **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
   falla a propósito: mientras el CI está pausado no se mergea.
 
