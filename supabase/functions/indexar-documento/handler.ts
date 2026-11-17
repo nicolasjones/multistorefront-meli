@@ -87,11 +87,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // exista la RPC pública `puede_indexar_version` (ver docs/funciones-edge-endurecimiento.md).
   const esAdministrador = !!contexto && !contexto.es_superadmin && contexto.rol_efectivo === 'administrador' && contexto.organizacion_id === version.organizacion_id
   if (!esQuienSubio && !esAdministrador) return respuesta({ error: SIN_PERMISO }, 403)
-  if (version.estado !== 'procesando') return respuesta({ error: 'Esta versión ya fue procesada.' }, 409)
-  if (reclamoVigente(version.motivo_error, deps.ahora())) return respuesta({ error: 'Esta versión ya se está indexando.' }, 409)
+  if (version.estado !== 'procesando') return respuesta({ error: 'Esta versión ya fue procesada.', codigo: 'no_procesable' }, 409)
+  if (reclamoVigente(version.motivo_error, deps.ahora())) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   const reclamo = nuevoReclamo(deps.ahora(), deps.id())
-  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) return respuesta({ error: 'Esta versión ya se está indexando.' }, 409)
+  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   // Soltar el candado nunca debe lanzar; si falla, el candado queda vigente hasta que venza (10 min): se deja rastro.
   const soltarSeguro = async () => {
@@ -101,13 +101,38 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   }
   const yaActiva = async () => (await deps.estado(jwt, versionId)) === 'activa'
   const respuestaIdempotente = () => respuesta({ version_id: versionId, ya_activa: true }, 200)
+  const ocupada = () => respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
+
+  // Los fragmentos solo se borran si esta invocación SIGUE siendo la dueña de la versión: relee la versión y exige
+  // `procesando` con su propio reclamo. Así nunca se borran los de una versión ya `activa` ni los de otra invocación
+  // que retomó la versión tras vencer el reclamo propio. Límite: entre la relectura y el borrado hay una ventana
+  // mínima (sin transacción, sin marca de intento por fragmento: requeriría una migración, ver docs).
+  type Propiedad = 'dueno' | 'activa' | 'ajena'
+  const propiedad = async (): Promise<Propiedad> => {
+    const actual = await deps.version(jwt, versionId)
+    if (actual?.estado === 'activa') return 'activa'
+    return actual && actual.estado === 'procesando' && actual.motivo_error === reclamo ? 'dueno' : 'ajena'
+  }
+  const borrarSiDueno = async (): Promise<boolean> => {
+    try {
+      if ((await propiedad()) !== 'dueno') return false
+      return await deps.borrarFragmentos(jwt, versionId)
+    } catch (error) {
+      console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error)
+      return false
+    }
+  }
 
   // Registra la versión como `fallida` (solo si sigue `procesando`) y recién entonces borra sus fragmentos. Si no se
   // aplicó porque otra invocación ya la activó (carrera), no se borra nada y la respuesta es idempotente (200); si no se
   // pudo por otra causa, se suelta el candado y es reintentable (502).
   const dejarFallida = async (motivo: string): Promise<Response | null> => {
+    const dueno = await propiedad()
+    if (dueno === 'activa') return respuestaIdempotente()
+    if (dueno === 'ajena') return ocupada()
     if (await deps.marcarFallida(jwt, versionId, motivo)) {
-      await deps.borrarFragmentos(jwt, versionId)
+      // Ya `fallida`: sus fragmentos no sirven. Mejor esfuerzo; si falla queda rastro en el log.
+      try { await deps.borrarFragmentos(jwt, versionId) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
       return null
     }
     if (await yaActiva()) return respuestaIdempotente()
@@ -118,7 +143,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const fallar = async (motivo: string) => (await dejarFallida(motivo)) ?? respuesta({ error: motivo }, 422)
   // Error transitorio: se libera la reclamación y se puede reintentar con la misma versión.
   const reintentable = async (mensaje: string, status: number) => {
-    await deps.borrarFragmentos(jwt, versionId)
+    await borrarSiDueno()
     await soltarSeguro()
     return respuesta({ error: mensaje }, status)
   }
@@ -157,6 +182,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
     // Una reclamación que venció durante un proveedor lento puede haber sido retomada: no pisar a la otra invocación.
     // Los fragmentos previos de esta versión (de un intento anterior) se borran antes de insertar.
+    const preparados = await propiedad()
+    if (preparados === 'activa') return respuestaIdempotente()
+    if (preparados === 'ajena') return ocupada()
     if (!(await deps.borrarFragmentos(jwt, versionId))) return await reintentable('No se pudieron preparar los fragmentos indexados, probá de nuevo.', 502)
     const filas = fragmentos.map((t, i) => ({ version_id: versionId, organizacion_id: version.organizacion_id, texto: t, embedding: `[${embeddings[i].join(',')}]`, orden: i }))
     if (!(await deps.insertarFragmentos(jwt, filas))) return await reintentable('No se pudieron guardar los fragmentos indexados, probá de nuevo.', 502)
@@ -170,11 +198,15 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       // transitorio ni se marca `fallida`. Se borran los fragmentos de ESTE intento, se suelta el candado y se responde
       // un 409 genérico (404 genérico si la versión ya no existe), así la pantalla no repite un intento que fallará igual.
       if (activacion === 'invalida') {
-        await deps.borrarFragmentos(jwt, versionId)
+        const actual = await deps.version(jwt, versionId)
+        if (!actual) { await soltarSeguro(); return respuesta({ error: 'Esta versión ya no existe.' }, 404) }
+        if (actual.estado === 'activa') return respuestaIdempotente()
+        // Solo se borra si la versión sigue siendo nuestra o ya no está en juego (no `activa`, no retomada por otra).
+        if (!(actual.estado === 'procesando' && actual.motivo_error !== reclamo)) {
+          try { await deps.borrarFragmentos(jwt, versionId) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
+        }
         await soltarSeguro()
-        return (await deps.estado(jwt, versionId)) === null
-          ? respuesta({ error: 'Esta versión ya no existe.' }, 404)
-          : respuesta({ error: 'Esta versión ya no se puede procesar.' }, 409)
+        return respuesta({ error: 'Esta versión ya no se puede procesar.', codigo: 'no_procesable' }, 409)
       }
       // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo
       // claro. Quien llega acá ya pasó la autorización previa (subió la versión o es administrador); la única forma de

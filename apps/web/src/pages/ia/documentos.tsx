@@ -7,7 +7,7 @@ import { List } from '@refinedev/mui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useContextoPanel } from '../../context/ContextoPanel'
-import { BUCKET_DOCUMENTOS, mimeDeDocumento, procesamientoInterrumpido, validarArchivoDocumento } from '../../lib/documentosIa'
+import { BUCKET_DOCUMENTOS, ErrorIndexacion, mensajeDeIndexacion, mimeDeDocumento, procesamientoInterrumpido, validarArchivoDocumento } from '../../lib/documentosIa'
 import { supabaseClient } from '../../lib/supabase'
 
 type Documento = { id: string; nombre: string; creado_en: string }
@@ -16,25 +16,20 @@ type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_
 const MENSAJE_FUNCIONALIDAD = 'No pudimos verificar si la búsqueda documental está habilitada para tu organización. Revisá la conexión e intentá de nuevo.'
 const MENSAJE_CARGA = 'No pudimos cargar los documentos. Revisá la conexión e intentá de nuevo.'
 
-/** Error de la función con su estado HTTP (estable), para decidir por estado y no por el texto del mensaje. */
-export class ErrorIndexacion extends Error {
-  constructor(mensaje: string, readonly status: number | null) {
-    super(mensaje)
-  }
-}
-
 /** Invoca la indexación de una versión; ante un error de la función devuelve su mensaje real (403, 422, 502…). */
 async function invocarIndexacion(versionId: string): Promise<void> {
   const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
   if (!invokeError) return
   let mensajeError = invokeError.message
   let status: number | null = null
+  let codigo: string | null = null
   if (invokeError instanceof FunctionsHttpError) {
     status = invokeError.context.status
     const cuerpo = await invokeError.context.json().catch(() => null)
     mensajeError = cuerpo?.error ?? mensajeError
+    codigo = typeof cuerpo?.codigo === 'string' ? cuerpo.codigo : null
   }
-  throw new ErrorIndexacion(mensajeError, status)
+  throw new ErrorIndexacion(mensajeError, status, codigo)
 }
 
 /**
@@ -72,6 +67,7 @@ export function IaDocumentos() {
   const [versionesPorDocumento, setVersionesPorDocumento] = useState<Record<string, VersionDocumento[]>>({})
   const [subiendo, setSubiendo] = useState(false)
   const [reintentando, setReintentando] = useState<string | null>(null)
+  const [noProcesables, setNoProcesables] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [pregunta, setPregunta] = useState('')
   const [preguntando, setPreguntando] = useState(false)
@@ -197,7 +193,7 @@ export function IaDocumentos() {
       if (!versionRegistrada) {
         await limpiarSubidaIncompleta(docId, documentoCreado, objetoSubido ? storagePath : null)
       }
-      setError(subidaError instanceof Error ? subidaError.message : 'No se pudo subir el documento.')
+      setError(subidaError instanceof ErrorIndexacion ? mensajeDeIndexacion(subidaError) : subidaError instanceof Error ? subidaError.message : 'No se pudo subir el documento.')
     } finally {
       setSubiendo(false)
     }
@@ -211,9 +207,12 @@ export function IaDocumentos() {
     try {
       await invocarIndexacion(versionId)
     } catch (reintentoError) {
-      const mensaje = reintentoError instanceof Error ? reintentoError.message : 'No se pudo reintentar el procesamiento.'
-      // 409: otro intento ya está en curso (candado vigente), no es un error. Se decide por estado HTTP, no por texto.
-      setError(reintentoError instanceof ErrorIndexacion && reintentoError.status === 409 ? 'Ya se está procesando; esperá unos minutos y volvé a revisar.' : mensaje)
+      // El mensaje sale del estado HTTP y del `codigo` (no del texto del backend, que puede nombrar al proveedor).
+      setError(mensajeDeIndexacion(reintentoError))
+      // Una versión que ya no se puede procesar no vuelve a ofrecer «Reintentar»: repetiría el mismo 409.
+      if (reintentoError instanceof ErrorIndexacion && ((reintentoError.status === 409 && reintentoError.codigo === 'no_procesable') || reintentoError.status === 404)) {
+        setNoProcesables((previo) => new Set(previo).add(versionId))
+      }
     } finally {
       setReintentando(null)
       await cargarDocumentos()
@@ -337,7 +336,7 @@ export function IaDocumentos() {
                             // Los demás ven el estado sin el botón (si no, recibirían un 403).
                             <Stack key={v.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                               <span>procesando · Se interrumpió el procesamiento</span>
-                              {(v.subida_por === identidad?.id || (contexto?.rol_efectivo === 'administrador' && !contexto.es_superadmin)) && (
+                              {!noProcesables.has(v.id) && (v.subida_por === identidad?.id || (contexto?.rol_efectivo === 'administrador' && !contexto.es_superadmin)) && (
                               <Button
                                 size="small"
                                 variant="outlined"

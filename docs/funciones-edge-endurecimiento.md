@@ -79,6 +79,13 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   (`ya_activa`); el fallo se registra y, si además `soltar` falla, el candado queda vigente hasta vencer (10 minutos) y
   queda una línea en el log («no se pudo soltar el candado»). El contexto (rol) solo se lee si quien invoca no subió la
   versión; si la lectura falla, 503.
+- Los fragmentos solo se borran si la invocación sigue siendo la dueña de la versión (relee: `procesando` con su propio
+  reclamo); nunca los de una versión `activa` ni los de otra invocación que la retomó. Límite: entre la relectura y el
+  borrado hay una ventana mínima sin transacción; cerrarla del todo exige una marca de intento en `fragmentos_indexados`
+  o un borrado condicional en SQL (migración). Si `borrarFragmentos` lanza, el candado se suelta igual.
+- El 409 lleva un `codigo`: `ocupado` (candado vigente) o `no_procesable` (ya procesada o 22023). La pantalla muestra un
+  mensaje propio por estado/código, nunca el texto del backend (salvo el 422, accionable), y tras `no_procesable` o 404
+  deja de ofrecer «Reintentar».
 - La pantalla decide el mensaje amable por el estado HTTP 409 (`ErrorIndexacion.status`), no por el texto.
 - Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.

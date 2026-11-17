@@ -242,9 +242,57 @@ describe('indexar-documento', () => {
     const m = montar({ activarInvalida: true })
     assert.equal((await pedir(m.deps)).status, 409)
     assert.equal(m.fragmentosGuardados(), 0)
-    const inexistente = montar({ activarInvalida: true, estadoTrasInvalida: null })
+    const inexistente = montar({ activarInvalida: true })
+    const leer = inexistente.deps.version
+    let lecturas = 0
+    inexistente.deps.version = async (...a) => (++lecturas > 2 ? null : leer(...a))
     assert.equal((await pedir(inexistente.deps)).status, 404)
-    assert.equal(inexistente.fragmentosGuardados(), 0)
+  })
+
+  it('22023 con la versión ya activa por otra invocación: 200 idempotente y NO borra fragmentos', async () => {
+    const m = montar({ activarInvalida: true })
+    const activar = m.deps.activar
+    m.deps.activar = async (...a) => { const r = await activar(...a); m.v.estado = 'activa'; return r }
+    let borrados = 0
+    const original = m.deps.borrarFragmentos
+    m.deps.borrarFragmentos = async (...a) => { borrados++; return original(...a) }
+    const antes = borrados
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 200)
+    assert.equal(borrados, antes + 1, 'solo el borrado previo a insertar; ninguno tras el 22023')
+  })
+
+  it('si otra invocación retomó la versión (reclamo distinto), no se borran sus fragmentos y se responde ocupado', async () => {
+    const m = montar({ embeddingsFalla: true })
+    const embeddings = m.deps.embeddings
+    m.deps.embeddings = async (...a) => { m.v.motivo_error = 'indexando:otra'; return embeddings(...a) }
+    let borrados = 0
+    const original = m.deps.borrarFragmentos
+    m.deps.borrarFragmentos = async (...a) => { borrados++; return original(...a) }
+    await pedir(m.deps)
+    assert.equal(borrados, 0)
+    assert.equal(m.v.motivo_error, 'indexando:otra')
+  })
+
+  it('si borrarFragmentos lanza en una rama reintentable, el candado se suelta igual', async () => {
+    const m = montar({ embeddingsFalla: true })
+    m.deps.borrarFragmentos = async () => { throw new Error('boom') }
+    const errores = console.error
+    console.error = () => {}
+    try {
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 502)
+    } finally { console.error = errores }
+    assert.equal(m.v.motivo_error, null)
+  })
+
+  it('el 409 distingue el candado vigente (ocupado) de lo que ya no se puede procesar (no_procesable)', async () => {
+    const ocupado = montar({ version: { motivo_error: nuevoReclamo(AHORA - 60_000, 'x') } })
+    assert.equal(((await (await pedir(ocupado.deps)).json()) as { codigo: string }).codigo, 'ocupado')
+    const invalida = montar({ activarInvalida: true })
+    assert.equal(((await (await pedir(invalida.deps)).json()) as { codigo: string }).codigo, 'no_procesable')
+    const procesada = montar({ version: { estado: 'reemplazada' } })
+    assert.equal(((await (await pedir(procesada.deps)).json()) as { codigo: string }).codigo, 'no_procesable')
   })
 
   it('carrera: si marcarFallida no aplica porque otra invocación ya la activó, no borra nada y responde 200 idempotente', async () => {

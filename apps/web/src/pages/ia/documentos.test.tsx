@@ -199,7 +199,7 @@ describe('IaDocumentos', () => {
   })
 
   it('si la indexación falla, no borra el documento ni el objeto (la versión ya quedó registrada)', async () => {
-    mocks.errorInvoke = { message: 'No pudimos extraer texto de este documento' }
+    mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'No pudimos extraer texto de este documento' }), { status: 422 }))
     const input = await montar()
 
     fireEvent.change(input, { target: { files: [archivo('contrato.txt')] } })
@@ -300,10 +300,10 @@ describe('IaDocumentos', () => {
     })
 
     it('si el backend rechaza, muestra el error real en pantalla (no solo un toast)', async () => {
-      mocks.errorInvoke = { message: 'No tenés permiso para activar esta versión.' }
+      mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'texto interno' }), { status: 403 }))
       await abrirHistorial()
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-      expect(await screen.findByText('No tenés permiso para activar esta versión.')).toBeInTheDocument()
+      expect(await screen.findByText('No tenés permiso para procesar este documento.')).toBeInTheDocument()
     })
 
     it('un miembro que no subió la versión no ve Reintentar; un administrador sí', async () => {
@@ -348,11 +348,29 @@ describe('IaDocumentos', () => {
       expect(screen.queryByText('Texto cualquiera del backend')).not.toBeInTheDocument()
     })
 
+    it('un 409 no_procesable muestra su propio mensaje y deja de ofrecer Reintentar', async () => {
+      mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'x', codigo: 'no_procesable' }), { status: 409 }))
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText(/ya no se puede procesar/)).toBeInTheDocument()
+      expect(screen.queryByText(/Ya se está procesando/)).not.toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument())
+    })
+
+    it('un 501/502 muestra un mensaje genérico, sin el texto del backend (que puede nombrar al proveedor)', async () => {
+      mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'solo OpenAI por ahora' }), { status: 501 }))
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText(/No pudimos procesar el documento ahora/)).toBeInTheDocument()
+      expect(screen.queryByText(/OpenAI/)).not.toBeInTheDocument()
+    })
+
     it('un 403 con un texto parecido NO se trata como el 409 amable: se muestra el error real', async () => {
       mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'Ya se está indexando, pero sin permiso' }), { status: 403 }))
       await abrirHistorial()
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-      expect(await screen.findByText('Ya se está indexando, pero sin permiso')).toBeInTheDocument()
+      expect(await screen.findByText('No tenés permiso para procesar este documento.')).toBeInTheDocument()
+      expect(screen.queryByText(/Ya se está procesando/)).not.toBeInTheDocument()
     })
 
     it('una versión procesando reciente no ofrece Reintentar', async () => {
