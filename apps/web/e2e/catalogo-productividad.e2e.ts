@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test } from './fixture'
 import type { Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // MSF-218 · F-CAT-12 (SC-002, parte E2E): un Operador marca 3 productos en el listado, los mueve de categoría,
 // los desactiva y les agrega una empresa. Requiere el stack local (`pnpm dev:supabase`). Siembra con la API admin
@@ -25,6 +25,7 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
     test.setTimeout(90_000) // mueve, desactiva y asigna empresa a 3 productos con tres diálogos masivos
     const sufijo = randomUUID().slice(0, 8)
     const correo = `operador-masiva-${sufijo}@example.com`
+    const correoAdmin = `admin-masiva-${sufijo}@example.com`
     const nombres = [1, 2, 3].map((n) => `Masivo ${n} ${sufijo}`)
     const categoria = `Joysticks ${sufijo}`
     const empresa = `Tienda masiva ${sufijo}`
@@ -37,9 +38,13 @@ test.describe('Catálogo · productividad (MSF-218, F-CAT-12)', () => {
       const idOperador = await altaUsuario(correo)
       usuarios.push(idOperador)
       await rest('usuarios_organizacion', { user_id: idOperador, organizacion_id: org.id, rol_id: 'operador' })
+      // `service_role` no escribe en `usuarios_empresas`: un Administrador de la organización asigna la empresa con la RPC.
+      const idAdmin = await altaUsuario(correoAdmin)
+      usuarios.push(idAdmin)
+      await rest('usuarios_organizacion', { user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' })
       const [emp] = await rest<{ id: string }>('empresas', { organizacion_id: org.id, nombre: empresa }, 'dominio')
       // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
-      await rest('usuarios_empresas', { user_id: idOperador, empresa_id: emp.id, organizacion_id: org.id, rol_id: 'operador' })
+      await asignarEmpresasComoAdministrador(correoAdmin, idOperador, [{ empresa_id: emp.id, rol_id: 'operador' }])
       const [cat] = await rest<{ id: string }>('categorias', { organizacion_id: org.id, nombre: categoria }, 'dominio')
       const productos = await rest<{ id: string }>(
         'productos',
