@@ -117,6 +117,7 @@ nav:
           - Depósitos, traslados y reservas: producto/stock-depositos-y-reservas.md
           - Lotes e inventario: producto/stock-lotes-e-inventario.md
           - Carga inicial, exportación y avisos: producto/stock-carga-exportacion-y-avisos.md
+          - Reportes de inventario: producto/reportes-de-inventario.md
           - Proveedores: producto/proveedores.md
           - Ingreso de mercadería: producto/ingreso-de-mercaderia.md
       - Ventas:
@@ -273,6 +274,7 @@ nav:
           - Depósitos y reservas: tecnico/stock-depositos-y-reservas.md
           - Lotes e inventario: tecnico/stock-lotes-e-inventario.md
           - Carga inicial, exportación y avisos: tecnico/stock-carga-exportacion-y-avisos.md
+          - Reportes de inventario: tecnico/reportes-inventario.md
           - Ingreso de mercadería: tecnico/ingreso-de-mercaderia.md
           - Proveedores: tecnico/proveedores.md
           - Clientes: tecnico/clientes.md
@@ -295,6 +297,7 @@ nav:
           - Estados, relacionados, SEO y legal: tecnico/tienda-seo-legal-y-estados.md
           - Contenido, analítica y compartir: tecnico/tienda-contenido-y-analitica.md
           - Cuenta web del cliente: tecnico/cuenta-web-cliente.md
+          - Newsletter de la tienda (MSF-468): tecnico/newsletter.md
       - Consultas y datos:
           - Consultas: tecnico/consultas.md
           - Contactos y respuestas rápidas: tecnico/contactos.md

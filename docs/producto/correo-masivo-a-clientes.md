@@ -45,7 +45,8 @@ Para el **equipo que administra Clientes** (roles con edición en la sección Cl
 ## Fuera de alcance (no hecho en esta épica)
 
 - Reenviar o editar una campaña ya creada; el historial es solo lectura.
-- Newsletter con suscriptores por tienda (`Newsletter.dc.html`): no tiene historia en esta épica.
+- El newsletter de la tienda (suscriptores por tienda) es otra función, construida pero apagada por defecto: ver
+  [Newsletter de la tienda](newsletter.md).
 - Enviar la lista de «Clientes inactivos» (MSF-171) a una campaña: relación declarada, sin bloqueo; no se verificó
   en esta épica. TODO (dueño: MSF-171).
 - Límite de frecuencia propio de la Edge Function de baja: queda para el borde (riesgo bajo aceptado en el cierre).
