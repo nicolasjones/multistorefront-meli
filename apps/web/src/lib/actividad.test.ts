@@ -138,6 +138,8 @@ describe('campos del cambio (F-AUD-02, FR-007)', () => {
       { campo: 'Total', anterior: '90.919,40', nuevo: '859.100,00' },
       { campo: 'Cantidad', anterior: '12', nuevo: '15' },
     ])
+    // Falso positivo evitado: un campo cuyo nombre solo contiene la palabra no es un importe.
+    expect(camposDelCambio({ total_items: '3' }, { total_items: '4' })).toEqual([{ campo: 'Total items', anterior: '3', nuevo: '4' }])
   })
 
   it('arma campo por campo el antes y el después', () => {

@@ -378,12 +378,13 @@ function textoDelValor(valor: unknown): string {
   return String(valor)
 }
 
-// Campos de importe del antes → después: se muestran con formato de moneda («90.919,40»), no con el punto decimal crudo.
-const RE_CAMPO_IMPORTE = /(^|_)(importe|monto|total|subtotal|precio|costo|saldo|valor|cobrado|deuda)(_|$)/
+// Campos de importe del antes → después: lista explícita de nombres de columna (no una heurística por palabra suelta, que
+// daría formato de moneda a un campo que no lo es, p. ej. «total_items»). Un campo nuevo de importe se agrega acá.
+const CAMPOS_IMPORTE = new Set(['importe', 'monto', 'total', 'subtotal', 'precio', 'precio_lista', 'costo', 'saldo', 'valor', 'cobrado', 'deuda'])
 
 function textoDelCampo(clave: string, valor: unknown): string {
   const crudo = textoDelValor(valor)
-  if (crudo === SIN_VALOR || !RE_CAMPO_IMPORTE.test(clave) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
+  if (crudo === SIN_VALOR || !CAMPOS_IMPORTE.has(clave) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
   const texto = String(valor).trim()
   return /^-?\d+(?:[.,]\d+)?$/.test(texto) ? importeLegible(texto) : crudo
 }

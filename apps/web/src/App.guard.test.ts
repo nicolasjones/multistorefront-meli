@@ -40,3 +40,12 @@ describe('rutas heredadas de Miembros (FR-019)', () => {
     expect(app).toContain(`<Route path="${origen}" element={<Navigate to="${destino}" replace />} />`)
   })
 })
+
+// La importación del historial es solo de administradores: la ruta lo exige antes de montar la pantalla.
+describe('rutas solo de administradores', () => {
+  it('/historial/importar se envuelve en RequiereAdministrador', () => {
+    const bloque = app.split(/<Route\b/).find((trozo) => /^\s+path="\/historial\/importar"/.test(trozo))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAdministrador')
+  })
+})
