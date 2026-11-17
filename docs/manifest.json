@@ -37,7 +37,7 @@
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "2397313d6a145ccb3efdaadf84e14749a686e6aa2efb26a5b6244cd94e322b88",
       "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs"
       ],
@@ -314,7 +314,7 @@
       "title": "Calidad determinista (F1)",
       "pageHash": "ab63a68600f82fb84ffc1b09df9bd0a7bbad0c38283c6ea6202b6e19e10ff718",
       "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs"
       ],
@@ -1059,7 +1059,7 @@
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
       "pageHash": "f0cf1a5a189c728fe53834e0cc36cc98ab6b6057c593c3d150e77bfbd42c0230",
       "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs"
       ],
@@ -2685,7 +2685,7 @@
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
       "pageHash": "96862aa25180f1a821530e2c2c20ba3c76b82251ca5971c6683be21aed9b6773",
       "sourceHash": "14e01b263222d90a08f5c7c638ab257e0997813b913b85e583fa6bae4bcf338e",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3051,7 +3051,7 @@
       "title": "Newsletter de la tienda (MSF-468)",
       "pageHash": "8fe7827f42a5ca9dbc0416f638ec3a6d8546a6bd4aff6c3644fc6fe270a3486a",
       "sourceHash": "fa6ad7d8152a2e65f818ec9584d7083d11cdb6d5d1bfe19921d9b7c412fc5655",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -3124,7 +3124,7 @@
       "title": "Operación",
       "pageHash": "16613e8dd50aebe8277848b17ec097b496ba37e0eeef1c27b36c803e6ec960cd",
       "sourceHash": "06393ca6d5004a0366b2d402d3c70867da624747bba0e9ea6923520b3be5fc18",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         ".github/workflows",
         "infra"
@@ -3152,7 +3152,7 @@
       "title": "Perfil y permisos avanzados (MSF-148)",
       "pageHash": "717e2c3041e910c9fa40baa46e70c5f771799cc8ece4b2372bf197a532aed059",
       "sourceHash": "ee1d9ac50658c7ef6ad973558ef99f519451ede8ce91b83b3faaaa20703eca21",
-      "sourceAt": null,
+      "sourceAt": "166bec5a",
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
@@ -4172,16 +4172,16 @@
     },
     "docs/verificacion-salida-correo.md": {
       "title": "Verificación de salida del correo (MSF-532)",
-      "pageHash": "155afe708356f3bbc1c2f6507c93bd04b86069f4c97472884f7c2ae03652fa13",
-      "sourceHash": "93847928409fad4a7fa69434a94f67afb1661704d7da7e75b3e38d2d120c7f26",
-      "sourceAt": "42cec371",
+      "pageHash": "ddca139c67214e701b91e6f28398f84615f9c0050ecfa41c39bc69b06df9967f",
+      "sourceHash": "14ad95eacdf1ab116b3be41c89306ac230c59f14d97d0c528cf18b5a22201ec7",
+      "sourceAt": "9e0ee9e3",
       "sources": [
         "specs/20261016-130000-perfil-y-permisos-avanzados",
         "scripts/verificar-salida-correo.mjs",
         "supabase/functions/solicitar-acceso"
       ],
       "owner": "tecnico",
-      "commit": "42cec371"
+      "commit": "9e0ee9e3"
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
