@@ -274,3 +274,7 @@ Pestaña «Órdenes de compra» (`/stock/ordenes-compra`): el pedido de mercader
 hace a un proveedor, armado desde el listado de reposición (los productos en alerta de ese proveedor).
 Estados `emitida` / `recibida` / `anulada`; recibir no mueve stock (la mercadería entra por «Ingreso de
 mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).
+
+## Textos de Movimientos y Faltantes
+
+La nota de un movimiento de una reserva «A pedido» no muestra el identificador interno del comprobante (`comprobante:<uuid>`): se lee «el comprobante». Poner el número del comprobante exige cambiar la nota en la base. La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.

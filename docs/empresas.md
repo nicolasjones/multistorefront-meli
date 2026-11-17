@@ -190,3 +190,7 @@ La clave `dominio.reparaciones.empresa_id → empresas` pasa a `deferrable initi
 ### Aviso de formato del número de WhatsApp (MSF-743)
 
 En la ficha de empresa y en el formulario público de contacto, el campo WhatsApp avisa, sin bloquear, cuando el número no se puede normalizar para `wa.me` (`avisoFormatoWhatsapp` en `apps/web/src/lib/whatsapp.ts`): no avisa con el campo vacío, con un correo ni con un número válido. El formulario público no impide el envío con un número raro; la validación del servidor (8 a 15 dígitos) no cambia. Además, en Documentos IA, si falla la actualización del nombre de una versión, esta se marca `fallida` antes de abortar y no se invoca la indexación (MSF-750), para que no quede en `procesando`.
+
+## Listado de Empresas: datos reales por fila
+
+Las columnas «Tienda web», «Precio» y «Productos visibles» leen el estado real de cada empresa (dominio de la tienda, regla de precio y productos visibles del catálogo de la tienda) en `useResumenEmpresas`. Cada dato falla por separado y se ve «No disponible». «Mercado Libre» sigue diciendo «Sin configurar» porque todavía no hay integración que consultar.

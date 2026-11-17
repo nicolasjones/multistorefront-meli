@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d81cf4792638a8e79ba1f900cccc67068fe5468f7403326c3944e5802af6b9d6",
-      "sourceHash": "fba35e49b21b9b0a4e1321d3bdcd4ca25001fb6377149132ec24e69c8c45e1db",
-      "sourceAt": "3d97e3de",
+      "pageHash": "4aba92103d2418e04ced82cd86b8d89eb20316f12e4e23d954b2a44fc39d5ff6",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": "c935dae1",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d97e3de"
+      "commit": "c935dae1"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -701,14 +701,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "7117e24095d5661cee5e9dfacd12b2bc39bf0acdd4b023889145387bf80a014a",
-      "sourceHash": "3c45770ad2331608e205633e96d2bb302b93f7c438bd4862edf4cdaaf0184db2",
-      "sourceAt": "b9175f58",
+      "pageHash": "2ca100d990d651d20a12e767290a381c508a1111f699256845924719ab140d1a",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": "202e8b34c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "b9175f58"
+      "commit": "202e8b34c"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -773,16 +773,16 @@
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
-      "pageHash": "ea0b0feeaaea4155e4040f8f387203ec73c565d889b51b549e7dc91f63789e89",
-      "sourceHash": "4770980073d9998618fafa9d3d42546d41e7e445e553758ee14d7189e3bb8ef4",
-      "sourceAt": "c7860a7c",
+      "pageHash": "9b3c28f62c2aa857fbf748211bcc63db4b13d8941f2574779bbf284c97b0c340",
+      "sourceHash": "2c00e426769315a850128dd99d3881815f7e6b78fa8eb9f78f32a693d2a01e67",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "infra/kestra",
         "workers/egress-allowlists.json",
         "workers/historial-importador"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/importaciones.md": {
       "title": "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)",
@@ -894,14 +894,14 @@
     },
     "docs/migracion-datos.md": {
       "title": "Migración inicial de datos",
-      "pageHash": "522d20bc2487f11178ae9039b1015e82b569867aa0e6f49ca42efe609bc855eb",
+      "pageHash": "9f90ae028d52ef047fb6de92ef8b92eb71bf0b16ce0af5c6ad92b6c93b57aea5",
       "sourceHash": "24cd1dca0a1e99b9646de46adffae3f1db8c0f25f992f4d31d522b7d5cccab23",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "supabase/migrations/20261201110000_proveedores_id_externo.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/migracion-inicial-de-datos.md": {
       "title": "Migración inicial de datos · ensayo, conciliación y plan de corte",
@@ -1091,9 +1091,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "960872959a4066a99682d0595fb767ac50395de2abe0984ef6e3b6de2a3e2c4d",
+      "pageHash": "dcb458d5755ccb52df93c86ca5e597d20f9c2cb9b67c8e953ce7ce6fd4f187f3",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "775b35f0",
+      "sourceAt": "ffbf1836",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1102,7 +1102,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "ffbf1836"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -2231,9 +2231,9 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "48317c67c2d5f1926f819c900bdc8a4ea7047ac1de2015078bd3a6e1d923730e",
+      "pageHash": "527e96a8656b1db58a0a0cee40cb776501455f90f3efe245f8c1516ea6a2ea54",
       "sourceHash": "b296074c164f238e07e4d84d02274531f38f582232b1b972d5d9bb3ed15ae017",
-      "sourceAt": "1e7d6587",
+      "sourceAt": "1e7d65873",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
@@ -2245,7 +2245,7 @@
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "1e7d6587"
+      "commit": "1e7d65873"
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
@@ -2473,14 +2473,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "4aeeeaa6e3d1293558351f71d52e71686333eab4b8eafdf4dd2f1880e661af8d",
-      "sourceHash": "17c3519a21d2ea7d2975b0dcced41155312843e819d78b475741747f2f607f76",
-      "sourceAt": "8e36a98d",
+      "pageHash": "6f634cf051ce6a07f5ad1b56746629d2121e0c26262fb4ebe2ded779e02a6461",
+      "sourceHash": "470bd9a1febce6b846561b24479091950e7dfaa96fdb26916da171fd0aefa7b5",
+      "sourceAt": "8e36a98d0",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8e36a98d"
+      "commit": "8e36a98d0"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
@@ -3977,7 +3977,7 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "4afeed93ccb48b8a4fea34fee474a5320d3e2d1d78cfccb5087be02cc12896de",
+      "pageHash": "541302763b0ff9d85c0a2020e299e69d3085080fa80a6e4b38413d9e36004c62",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
       "sourceAt": "ba5af1b8",
       "sources": [
@@ -3991,7 +3991,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "ba5af1b8"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
