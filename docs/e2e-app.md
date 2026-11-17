@@ -121,8 +121,10 @@ en otros componentes lo corrige el PR #876, no este.
   una persona (`rpc`, `rpcComo`, `tokenDe`), `actualizar`/`modificar` (PATCH), `leer(consulta)` y `cabeceras` con perfil `dominio` por defecto
   en algunas tiendas, `cuenta-web-cliente` (`rest(metodo, ruta, cuerpo)`), `importaciones-soporte.ts`, `ventas-faltantes-soporte.ts`
   (`leer` con `dominio` por defecto, exportado a otros specs) y `ayuda`/`panel-sin-desborde` (`borrar` con la URL completa). `e2e/semillas.ts` (los helpers compartidos de `stock-historias`,
-  `exportacion-total`...) re-exporta los del fixture y conserva `password`, `ingresar` y `tokenDe`. Siguen con sus copias, a la espera de
-  que se mergee el PR que los modifica, `ordenes-compra` (#869) y `service-cobro-avisos` (#691).
+  `exportacion-total`...) re-exporta los del fixture y conserva `password`, `ingresar` y `tokenDe`. `avisos-acceso`, `ordenes-compra` y
+  `stock-toma-inventario-categorias` también lo usan (lote MSF-879): conservan solo lo propio (`ingresar`, y en `ordenes-compra` el
+  PATCH `actualizar`); el alta masiva de 250 productos pasa `prefer = 'return=minimal'` a `rest`. Los specs que siguen con helpers
+  propios y el motivo están en «Fixture compartido y corridas pendientes».
 - `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el runtime de **Edge**, no en Playwright: se exporta (o va en
   `supabase/.env`) antes de `supabase start`, porque `config.toml` lo declara en `[edge_runtime.secrets]`.
 - `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá
@@ -798,6 +800,13 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     propósito hacia un puerto derivado del CI (base 20000 más 6000 por ranura); eso exige intención activa. Endurecimiento posible, no aplicado:
     exigir `CI=true` o repetir el `docker ps --filter publish` de `verificarDestinoCi`. `pg` llega por
     `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
+  - **Adopción en el resto de los specs (MSF-856, lote MSF-879).** Con `avisos-acceso`, `ordenes-compra` y
+    `stock-toma-inventario-categorias` migrados, los specs con `rest` local son solo los de la lista siguiente; el resto de `e2e/`
+    importa `rest`/`borrar`/`altaUsuario`... de `soporte/fixtures` (la cifra «~44 specs» del seguimiento ya estaba superada). Quedan
+    con helpers propios, a propósito: `cabeceras` con perfil `dominio` por defecto y `actualizar`/`leer` de las tiendas (firma distinta:
+    `tabla, filtro, cuerpo` o ruta con `accept-profile` por defecto); `precios-iva`/`stock-actual-vivo`/`ordenes-compra` (`modificar`/
+    `actualizar`, PATCH que el fixture no ofrece); `ayuda`/`panel-sin-desborde` (`borrar` con URL completa); `ventas-faltantes-soporte`
+    (`leer` con `dominio` por defecto, exportado a otros specs). Estos E2E los valida el CI (`e2e-visible-sesion`), no el entorno local.
   - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
     `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
     tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
