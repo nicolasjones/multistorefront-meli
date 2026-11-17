@@ -35,15 +35,15 @@ const dir = argumentValue(args, '--dir', 'supabase/migrations');
 // línea que nombra la «reversión» (la palabra completa, no «reversible») y no está negada («sin reversión»,
 // «no hay reversión»; el filtro es CONSERVADOR: `-- Reversión: no hay reversión automática` también se rechaza
 // aunque declare un camino manual, hay que reescribirlo, p. ej. `-- Reversión: restaurar desde el backup`); un valor vacío
-// o «ninguna» / «n/a» / «no aplica» tras `Reversión:` tampoco vale; las 750 migraciones históricas usan formatos muy distintos («Camino de reversión»,
+// o «ninguna» / «ninguno» / «n/a» / «no aplica» tras `Reversión:` tampoco vale; las 750 migraciones históricas usan formatos muy distintos («Camino de reversión»,
 // «Reversión (en migración posterior)», …), por eso no se exige que la línea EMPIECE con «Reversión:».
 // No se valida que haya pasos ni que sean correctos.
 const DESTRUCTIVE = /\bDROP\s+(?:TABLE|COLUMN|SCHEMA|FUNCTION)\b|\bTRUNCATE\b/i;
 const DELETE_SIN_WHERE = /\bDELETE\s+FROM\b[^;]*(?:;|$)/gi;
 const MARKER_LINEA = /\brevers(?:ión|ion)(?![\p{L}\d_])/iu;
-const MARKER_NEGADO = /\b(?:sin|no\s+hay|ninguna?)\s+(?:camino\s+de\s+)?revers/iu;
+const MARKER_NEGADO = /\b(?:sin|no\s+hay|ningun[oa])\s+(?:camino\s+de\s+)?revers/iu;
 // `-- Reversión: ninguna` / `n/a` / `no aplica` / vacío declaran que NO hay reversión: no cuentan.
-const MARKER_VACIO = /\brevers(?:ión|ion)\s*:\s*(?:ninguna?|none|nothing|nil|n\.?\/?a\.?|no\s+aplica|no\s+hay|nada|-+|\.+|tbd|todo)\s*\.?\s*$/iu;
+const MARKER_VACIO = /\brevers(?:ión|ion)\s*:\s*(?:ningun[oa]|none|nothing|nil|n\.?\/?a\.?|no\s+aplica|no\s+hay|nada|-+|\.+|tbd|todo)\s*\.?\s*$/iu;
 // `Reversión:` sin nada más en la línea es válido solo si la línea de comentario siguiente trae contenido (los pasos).
 const SOLO_MARCADOR = /\brevers(?:ión|ion)\s*:?\s*$/iu;
 const limpiar = (linea) => linea.replace(/\s+/g, ' ').replace(/^\s*(?:--+|\/\*+|\*+)\s*/, '').replace(/\*\/\s*$/, '').trim();

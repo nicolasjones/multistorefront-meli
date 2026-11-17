@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { correrSuites, debeMatarGrupo } from './correr-suites.mjs';
+import { correrSuites, debeMatarGrupo, defecto } from './correr-suites.mjs';
 
 const sinSalida = { write() {} };
 
@@ -111,4 +111,24 @@ test('al vencer el timeout se mata el grupo: el nieto no queda huérfano y el te
 test('debeMatarGrupo solo acepta pids enteros mayores que 1', () => {
   for (const malo of [undefined, null, 0, -0, 1, -1, 1.5, Number.NaN, Infinity, '123']) assert.equal(debeMatarGrupo(malo), false, String(malo));
   for (const bueno of [2, 12345]) assert.equal(debeMatarGrupo(bueno), true);
+});
+
+test('el kill(-pid) real pasa por debeMatarGrupo: solo mata el grupo con un pid válido', () => {
+  const matados = [];
+  const kill = (pid, senal) => { matados.push([pid, senal]); };
+  const con = (r) => defecto('x', 1000, { spawn: () => r, kill });
+  // Timeout (ETIMEDOUT) o muerte por señal con un pid real: se mata el grupo entero.
+  assert.deepEqual(con({ pid: 4242, error: { code: 'ETIMEDOUT' }, signal: 'SIGKILL', status: null }), { estado: 1, senal: 'SIGKILL' });
+  assert.deepEqual(con({ pid: 4243, signal: 'SIGTERM', status: null }), { estado: 1, senal: 'SIGTERM' });
+  assert.deepEqual(matados, [[-4242, 'SIGKILL'], [-4243, 'SIGKILL']]);
+  // Pids peligrosos (0 y -0 = grupo del runner, 1 = todos los procesos, undefined): nunca se llama a kill.
+  matados.length = 0;
+  for (const pid of [0, -0, 1, undefined, null]) con({ pid, error: { code: 'ETIMEDOUT' }, signal: 'SIGKILL', status: null });
+  assert.deepEqual(matados, []);
+  // Sin timeout ni señal no se mata nada y se devuelve el exit code.
+  assert.equal(con({ pid: 4244, status: 0 }), 0);
+  assert.equal(con({ pid: 4244, status: 3 }), 3);
+  assert.deepEqual(matados, []);
+  // Si el grupo ya terminó, kill lanza y se ignora.
+  assert.deepEqual(defecto('x', 1000, { spawn: () => ({ pid: 4245, signal: 'SIGKILL', status: null }), kill: () => { throw new Error('ESRCH'); } }), { estado: 1, senal: 'SIGKILL' });
 });
