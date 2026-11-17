@@ -65,7 +65,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
 
 - Es una selección **suficiente y determinista**, no “la mínima posible”: si
   tocás una página, corre toda la suite web (no sólo ese archivo).
-- El **gate del PR** sigue corriendo todo en CI. Este plan es para iterar y para
+- El **gate del PR** corre en CI la suite web, la base de datos, el e2e público y los tests de scripts rápidos (`pnpm test:ci:scripts`); no corre todos los `test:edge:*`/`test:kestra:*`/`test:superset:*` (ver «Decisiones pendientes del lote 26» en `docs/control-ci.md`). Este plan es para iterar y para
   saber de antemano qué va a validar el PR.
 - Los E2E con sesión (`permisos-por-empresa`, `stock-movimientos`) no entran acá:
   necesitan Supabase local (ver `docs/e2e-app.md`).

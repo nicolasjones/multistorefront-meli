@@ -56,7 +56,7 @@ cada uno termina muy por debajo.
 
 En un PR a `dokploy` el job `web` corre `vitest run --changed <merge-base>`: solo los tests que dependen (por el grafo de
 imports) de los archivos modificados; un cambio de configuración o de `package.json` dispara la suite completa. La suite
-**completa** corre en el `push` a `dokploy`/`main`/`staging`, en el cierre de la épica (PR `epic/* → dokploy`) y en
+**completa** corre en el `push` a `main`/`staging` (el push a `dokploy` no dispara `Validate`: decisión pendiente más abajo), en el cierre de la épica (PR `epic/* → dokploy`) y en
 `merge_group`: es la red de seguridad. El store de pnpm se cachea entre corridas (`setup-node` con `cache: pnpm`).
 
 El job `web` hace el clon completo en los PRs para poder calcular el diff (`fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}`).
@@ -152,6 +152,44 @@ archivo` sin pasos de código.
   rama (merge de la base en la rama del PR) antes de mergear: si no, la migración vieja y
   la renumerada conviven al integrar.
 
+## Cambios de CI de la auditoría MSF-647 (lote 26)
+
+- **Borrador → Ready (MSF-675).** `Validate` escucha `pull_request` con `types: [opened, synchronize, reopened, ready_for_review]`.
+  Antes, un PR abierto como borrador dejaba los jobs pesados en `skipped` y `validacion` en verde (los `skipped` cuentan como OK);
+  al marcarlo Ready no había corrida nueva y se podía mergear sin tests, build ni base de datos. Con `ready_for_review` el cambio a
+  Ready dispara una corrida completa. El `concurrency` por rama cancela la corrida del borrador en curso, sin pérdida.
+- **Gate de egress de workers (MSF-684).** `workers/egress-allowlists.json` declara ahora las redes `worker-egress-<sistema>` que
+  usan los flows (`comprobantes-pdf`, `historial-ventas`, `importar-productos`) y los workers de cada una (`workers`). Los 5 workers
+  solo hablan con Supabase (ya cubierto por `common`), por eso `solo_supabase: true` y `domains: []`. `scripts/validar-egress-workers.mjs`
+  falla si hay un worker descubierto sin entrada, si la política nombra un worker inexistente o si un flow referencia una red sin
+  entrada (test: `scripts/validar-egress-workers.test.mjs`). Se corre también en el job `application` (antes solo corría en
+  `worker-images.yml`, que dispara solo en `main`).
+- **Migraciones aditivas (MSF-688).** `validar-migraciones-aditivas.mjs` también detecta `DROP SCHEMA`, `DROP FUNCTION` y
+  `DELETE FROM` sin `WHERE`, y el marcador `Reversión` debe estar en un comentario SQL (no vale `reversible` en un literal).
+  `DROP CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido). Las 750 migraciones actuales pasan.
+- **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
+  del orden de 1 minuto): ver «Decisiones pendientes del lote 26».
+
+### Decisiones pendientes del lote 26 (no se tocaron a propósito)
+
+- **`Validate` en `push` a `dokploy` (MSF-685).** Hoy no corre (`push: branches: [main, staging]`); la documentación lo afirmaba y
+  se corrigió. Encenderlo haría correr web (~10 min repartidos en shards), build, e2e y `database` en CADA merge a `dokploy` (varios
+  por día) sobre los runners, con el riesgo de rojos por la cola compartida del stack de Supabase. Alternativas: (a) agregar
+  `dokploy` a `push.branches` (cobertura total, costo alto); (b) mantener el e2e nocturno (`e2e-nocturno.yml`) como red de seguridad
+  (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
+  si se quiere validar el resultado integrado. Requiere decisión de Nicolás.
+- **Tests que el CI sigue sin correr (MSF-679).** Quedan fuera por pesados o por fallar hoy (ver la tabla en
+  «Verificación» del PR): `template:capabilities:check`, `test:outbox:frontera` y `test:ia:aprovisionamiento` fallan en `dokploy`
+  actual y hay que arreglarlos antes de encenderlos; los `test:*:e2e`, `test:db` y los de runtime necesitan stack.
+- **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
+  tocan acá. Propuesta: habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar
+  `token:` de un PAT/GitHub App a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment
+  `staging` (el puerto 7635 de `172.17.0.1` ya no responde) y agregar una alerta cuando falle el job `staging`.
+- **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
+  `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
+  o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
+  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: queda como ítem aparte.
+
 ## Integración protegida de `dokploy`
 
 `dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`) con:
@@ -164,7 +202,7 @@ archivo` sin pasos de código.
   probarse contra el `dokploy` actual y, cada vez que otro PR entraba, había que actualizar la rama y repetir todo el CI;
   con PRs de agentes entrando seguido ninguno llegaba a mergear. Con el auto-merge del repo habilitado, un PR entra solo
   cuando `validacion` pasa. Riesgo aceptado: dos PRs verdes por separado podrían romper juntos; lo cubre la suite completa
-  del push a `dokploy` y el e2e del cierre de épica. Para volver atrás: ponerlo en `true` en el ruleset.
+  de la suite completa que corre al integrar la épica (PR `epic/* → dokploy`) y del e2e nocturno sobre `dokploy`. Para volver atrás: ponerlo en `true` en el ruleset.
 - **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
   falla a propósito: mientras el CI está pausado no se mergea.
 

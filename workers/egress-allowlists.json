@@ -3,7 +3,36 @@
   "common": {
     "supabase": "host definido por PGHOST o SUPABASE_URL del servidor",
     "vault": "solo a traves del canal de base de datos autorizado",
-    "blocked_examples": ["example.com"]
+    "blocked_examples": [
+      "example.com"
+    ]
   },
-  "workers": {}
+  "workers": {
+    "comprobantes-pdf": {
+      "network": "worker-egress-comprobantes-pdf",
+      "solo_supabase": true,
+      "domains": [],
+      "workers": [
+        "comprobantes-pdf"
+      ]
+    },
+    "historial-ventas": {
+      "network": "worker-egress-historial-ventas",
+      "solo_supabase": true,
+      "domains": [],
+      "workers": [
+        "exportar-comprobantes",
+        "exportar-organizacion",
+        "historial-importador"
+      ]
+    },
+    "importar-productos": {
+      "network": "worker-egress-importar-productos",
+      "solo_supabase": true,
+      "domains": [],
+      "workers": [
+        "importar-productos"
+      ]
+    }
+  }
 }

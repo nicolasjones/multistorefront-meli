@@ -62,3 +62,26 @@ test('no confunde ALTER TABLE ... DROP CONSTRAINT con una migración destructiva
     assert.equal(result.code, 0, result.stderr);
   });
 });
+
+test('rechaza DROP SCHEMA, DROP FUNCTION y DELETE FROM sin WHERE sin reversión', async () => {
+  for (const sql of ['drop schema viejo cascade;', 'drop function public.f();', 'delete from demo;']) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, sql);
+    });
+  }
+});
+
+test('acepta DELETE FROM con WHERE y DROP FUNCTION con reversión comentada', async () => {
+  await withMigrations({
+    '001.sql': "delete from demo where id = 1;\ndelete from demo\n where creado < now();",
+    '002.sql': '-- Reversión: recrear public.f() con la migración 001.\ndrop function public.f();',
+  }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});
+
+test('la palabra reversión fuera de un comentario no cuenta como camino de reversión', async () => {
+  await withMigrations({ '001.sql': "drop table demo;\ninsert into notas values ('reversible');" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});

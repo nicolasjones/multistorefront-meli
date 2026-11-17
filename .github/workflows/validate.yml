@@ -2,6 +2,10 @@ name: Validate
 
 on:
   pull_request:
+    # `ready_for_review`: un PR abierto como borrador deja los jobs pesados en `skipped` (ver el `if` de
+    # `application`); sin este tipo, al marcarlo Ready no habría corrida nueva y `validacion` daría verde
+    # sin tests, build ni base de datos (MSF-675).
+    types: [opened, synchronize, reopened, ready_for_review]
   # Merge queue: al encolar un PR, GitHub corre el workflow sobre el grupo de
   # merge (`merge_group`) con el base ya integrado. Sin este disparador, los
   # checks requeridos no reportan y el PR no sale de la cola. Ver docs/control-ci.md.
@@ -146,6 +150,14 @@ jobs:
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
+      # lo seguro): antes no corrían en ningún workflow. ~1 min. Los pesados o rotos quedan documentados
+      # en docs/control-ci.md («Decisiones pendientes del lote 26»).
+      - name: test:ci:scripts
+        run: pnpm test:ci:scripts
+      # Gate de egress de workers (MSF-684): en worker-images.yml solo corría en `main`.
+      - name: test:workers:egress (política de egress al día con los workers y flows)
+        run: pnpm test:workers:egress
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev

@@ -22,18 +22,33 @@ import { argumentValue } from './operaciones.mjs';
 const args = process.argv.slice(2);
 const dir = argumentValue(args, '--dir', 'supabase/migrations');
 
-const DESTRUCTIVE = /\bDROP\s+TABLE\b|\bDROP\s+COLUMN\b|\bTRUNCATE\b/i;
-const MARKER = /revers/i;
+// MSF-688: además de DROP TABLE/COLUMN y TRUNCATE se detectan DROP SCHEMA, DROP FUNCTION y
+// DELETE FROM sin WHERE (borrado masivo). Sigue sin flaguearse DROP CONSTRAINT (ver arriba).
+const DESTRUCTIVE = /\bDROP\s+(?:TABLE|COLUMN|SCHEMA|FUNCTION)\b|\bTRUNCATE\b/i;
+const DELETE_SIN_WHERE = /\bDELETE\s+FROM\b(?:(?!;)[^])*?(?:;|$)/gi;
+// El marcador debe estar en un COMENTARIO (no vale la palabra «reversible» suelta en el SQL ni en un
+// identificador): `-- Reversión: ...` o `/* Reversión ... */`.
+const MARKER = /(?:--[^\n]*|\/\*[^]*?)revers/i;
 
 function sinComentarios(sql) {
-  return sql.replace(/--.*$/gm, '');
+  return sql.replace(/\/\*[^]*?\*\//g, '').replace(/--.*$/gm, '');
+}
+
+export function esDestructiva(sql) {
+  const ejecutable = sinComentarios(sql);
+  if (DESTRUCTIVE.test(ejecutable)) return true;
+  return (ejecutable.match(DELETE_SIN_WHERE) ?? []).some((sentencia) => !/\bWHERE\b/i.test(sentencia));
+}
+
+export function tieneReversion(sql) {
+  return MARKER.test(sql);
 }
 
 const files = (await readdir(dir)).filter((file) => file.endsWith('.sql'));
 const sinReversion = [];
 for (const file of files) {
   const content = await readFile(path.join(dir, file), 'utf8');
-  if (DESTRUCTIVE.test(sinComentarios(content)) && !MARKER.test(content)) sinReversion.push(file);
+  if (esDestructiva(content) && !tieneReversion(content)) sinReversion.push(file);
 }
 
 if (sinReversion.length > 0) {

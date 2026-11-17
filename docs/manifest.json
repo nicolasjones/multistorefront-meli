@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "294241c7f15b0d0145e3f160e59f5b994a84fb204c288734ab60756c3af3201a",
+      "pageHash": "7a6bebc2807015ffd4c0ffd5e577bb4e2562795681f482b5049db135acded13d",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "a4303cff",
+      "sourceAt": "a4303cff1",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "a4303cff"
+      "commit": "a4303cff1"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -613,14 +613,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "c41d5bcab8d8963d8329561446826e8298561a9f841bba8d763db270e1cf1331",
-      "sourceHash": "e162c5a255fe4e5e2d4b3bf1b85965ae728ae86ea6278c8e607edadb24d43b9e",
-      "sourceAt": "dd8bb20e",
+      "pageHash": "6aff291cd38b9265e32ff94e4b8eccf29e29ba2f8feb8e304d6cef32e5494183",
+      "sourceHash": "fce385b69abdf4a17aa2ca03d80b81e26dc340f02b9810bd3c6ff29f1d909eb6",
+      "sourceAt": "dd8bb20ea",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "dd8bb20e"
+      "commit": "dd8bb20ea"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -1873,9 +1873,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "2704e659e6765cd5379dc2d15e7a4181fee9e5b34ba8c69da862eeb41c42996a",
-      "sourceHash": "56926107fb687d62993245b1a044a96baf2647d129360f42c1f333d3bc59e95d",
-      "sourceAt": "1c31cbf6",
+      "pageHash": "e7e69504706c0e101755731b81d0cf58ccb4b74f0de6b395ff9e3f6d2f873803",
+      "sourceHash": "44e2dbdcefd64851241e673101e427fd634ce9301c5d86779c195d32ac81ce65",
+      "sourceAt": "926cced4",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1884,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "1c31cbf6"
+      "commit": "926cced4"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
