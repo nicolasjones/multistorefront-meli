@@ -679,9 +679,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "cdb4d3751ee89cec5a5dbcd79c8818ee19fecf23b12ba9128a33ed1f5a30dfd2",
+      "pageHash": "e9644113e7aa2dc555428539f8ff01b506a19950246b02a62e097519f3d9ef49",
       "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": "dd00bb9e",
+      "sourceAt": "fd68f31f",
       "sources": [
         "specs"
       ],

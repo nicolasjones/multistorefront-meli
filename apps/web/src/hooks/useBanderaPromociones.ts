@@ -14,8 +14,8 @@ export function useBanderaPromociones(activo: boolean): { valor: boolean | null;
   const [valor, setValor] = useState<boolean | null>(null)
   const ultima = useRef(0)
   const montado = useRef(true)
-  // Con un rol sin permiso de lectura la lectura falla en cada vuelta: se registra una sola vez por montaje.
-  const falloRegistrado = useRef(false)
+  // Con un rol sin permiso de lectura la lectura falla en cada vuelta: se registra una vez por mensaje distinto, no en cada vuelta.
+  const falloRegistrado = useRef<string | null>(null)
 
   const releer = useCallback(async (): Promise<boolean | null> => {
     const peticion = ++ultima.current
@@ -24,8 +24,9 @@ export function useBanderaPromociones(activo: boolean): { valor: boolean | null;
       if (montado.current && peticion === ultima.current) setValor(resultado)
       return resultado
     } catch (error) {
-      if (!falloRegistrado.current) {
-        falloRegistrado.current = true
+      const mensaje = error instanceof Error ? error.message : String(error)
+      if (falloRegistrado.current !== mensaje) {
+        falloRegistrado.current = mensaje
         console.error('No pudimos leer la bandera de promociones.', error)
       }
       return null

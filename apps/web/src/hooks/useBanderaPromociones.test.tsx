@@ -93,6 +93,26 @@ describe('useBanderaPromociones', () => {
     expect(console.error).toHaveBeenCalledTimes(1)
   })
 
+  it('registra de nuevo solo cuando cambia el mensaje del error', async () => {
+    vi.useFakeTimers()
+    mocks.leer.mockRejectedValue(new Error('sin permiso'))
+    renderHook(() => useBanderaPromociones(true))
+    await act(async () => {})
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(INTERVALO_RELECTURA_BANDERA_MS)
+    })
+    expect(console.error).toHaveBeenCalledTimes(1)
+    mocks.leer.mockRejectedValue(new Error('red caída'))
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(INTERVALO_RELECTURA_BANDERA_MS)
+    })
+    expect(console.error).toHaveBeenCalledTimes(2)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(INTERVALO_RELECTURA_BANDERA_MS)
+    })
+    expect(console.error).toHaveBeenCalledTimes(2)
+  })
+
   it('al desmontar se limpian el intervalo y los listeners', async () => {
     vi.useFakeTimers()
     mocks.leer.mockResolvedValue(true)

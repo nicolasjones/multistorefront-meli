@@ -165,6 +165,25 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     }
   })
 
+  it('al desmontar tras una lectura fallida se cancela el reintento pendiente', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValue(null)
+      preparar()
+      const { unmount } = render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+      unmount()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000)
+      })
+      expect(mocks.releerBandera).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('la base se reinicia con una venta nueva: tras cobrar, el cambio anterior no vuelve a avisar', async () => {
     preparar()
     mocks.confirmar.mockResolvedValue(undefined)
