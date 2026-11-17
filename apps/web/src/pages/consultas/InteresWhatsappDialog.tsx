@@ -24,6 +24,8 @@ type Carga =
   | { estado: 'listo'; filas: InteresPorProducto[] }
 
 // F-CON-02 (FR-005, FR-006): interés por WhatsApp por producto de la empresa activa (Principio VIII).
+// Nota MSF-657: hoy solo el sembrado demo carga `dominio.intereses_whatsapp` (la tienda registra consultas con
+// `registrar_consulta_whatsapp`); el texto de estado vacío queda pendiente de decisión de producto.
 // La empresa activa del selector es la única fuente de verdad: si cambia con el diálogo abierto se
 // cierra con aviso y nunca queda una fila de la empresa anterior.
 export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: Props) {

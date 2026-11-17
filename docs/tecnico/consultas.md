@@ -27,7 +27,7 @@ migra nada: reusa `public.actualizar_consulta` de MSF-122.
 ## Modelo
 
 Todo es entidad de negocio y vive en `dominio` (Principio VII). `public` solo expone la vista y las RPC del
-panel; `publico` expone la RPC que llama la tienda.
+panel; `publico` aloja la RPC del interés, interna desde MSF-657 (solo `service_role`); las RPC públicas de la tienda son otras.
 
 | Objeto | Esquema | Para qué | Migración |
 |---|---|---|---|
@@ -36,8 +36,8 @@ panel; `publico` expone la RPC que llama la tienda.
 | `dominio.consultas_avisos` | `dominio` | Cola histórica del aviso por correo; desde MSF-189 solo drena lo ya encolado (el camino nuevo usa `public.avisos_pendientes`). | `20261205200100_consultas_avisos.sql` |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta; la llama la tienda como `anon`. | `20261205100100_crear_consulta_publica.sql` |
 | `public.consultas_bandeja` + RPC del panel | `public` | Lectura y edición desde el panel; no guardan datos. | `20261205100200`, `20261205100300`, `20261205100500` |
-| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda. **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
-| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; la ejecuta la tienda como `anon`. | `20261214100100_registrar_interes_whatsapp.sql` |
+| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda (diseño original; desde MSF-657 solo el sembrado demo lo alimenta). **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
+| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` desde `20270507150100` (MSF-657). | `20261214100100_registrar_interes_whatsapp.sql` |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. | `20261214100200_interes_whatsapp_por_producto.sql` |
 
 Migraciones aditivas; la reversión va en una migración posterior (ver [Reversión](#reversion)). Las
@@ -154,15 +154,15 @@ Errores que traduce la UI: `40001` conflicto de edición, `42501` sin permiso, `
 
 ## Interés por WhatsApp (F-CON-02, MSF-130)
 
-Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada producto. **Sin datos
-personales**: cada fila es un toque, no una persona.
+Cuenta cuántas veces se tocó «Consultar por WhatsApp» en cada producto (diseño original; hoy solo el sembrado del dataset demo alimenta la tabla, MSF-657). **Sin datos
+personales**: cada fila es un toque, no una persona (hoy solo el sembrado demo la alimenta; ver MSF-657).
 
 ### Modelo
 
 | Objeto | Esquema | Para qué |
 |---|---|---|
 | `dominio.intereses_whatsapp` | `dominio` | `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). |
-| `publico.registrar_interes_whatsapp(host text, producto_id uuid) → void` | `publico` | Alta del interés. `security definer`, `search_path = ''`. |
+| `publico.registrar_interes_whatsapp(host text, producto_id uuid) → void` | `publico` | Alta del interés. Solo `service_role` (MSF-657). `security definer`, `search_path = ''`. |
 | `public.interes_whatsapp_por_producto` | `public` (vista) | Lectura agrupada por empresa y producto. `security_invoker`. |
 
 - **Sin datos personales:** ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. La RPC **no los recibe**:
@@ -172,15 +172,15 @@ personales**: cada fila es un toque, no una persona.
 - **Errores**: dominio desconocido o empresa desactivada → el **mismo** `P0002` genérico
   (`'tienda no disponible'`), resuelto **antes** de validar el producto para que no se pueda sondear qué
   dominios existen; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`.
-- **Sin anti-spam propio:** cada toque suma; el límite es de la tienda (MSF-212, F-TDA-14).
+- **Sin anti-spam propio:** cada toque suma y la función no tiene límite propio: por eso desde MSF-657 ya no es pública; las RPC públicas de la tienda sí aplican cuota.
 - **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad de la tabla
   y de la vista.
 
 ```ts
-publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void
+publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void  -- solo service_role (MSF-657)
 ```
 
-Permisos: `revoke execute … from public` + `grant execute … to anon, authenticated`. Vive en `publico`, así que
+Permisos: desde `20270507150100` (MSF-657) `revoke execute … from public, anon, authenticated` + `grant execute … to service_role` (antes: `grant … to anon, authenticated`; se cerró porque no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Es interna: solo la llama el sembrado del dataset demo. Vive en `publico`, así que
 **no** entra a la lista de RPC de `public` permitidas a `anon` (detalle: [Acceso y organización](acceso.md#superficie-de-anon)).
 
 ### Vista de lectura
@@ -225,10 +225,12 @@ and (select private.nivel_seccion('consultas')) in ('lectura', 'edicion')
   (`«Cambiaste de empresa: cerramos el interés por WhatsApp…»`). Al reabrir, nunca asoman filas de la
   empresa anterior.
 
+> Diseño original; hoy ningún visitante dispara la función: es interna (solo `service_role`, MSF-657) y solo el sembrado demo la usa.
+
 ```mermaid
 sequenceDiagram
-  actor V as Visitante
-  participant T as Tienda (MSF-212 · F-TDA-14)
+  actor V as Sembrado demo (service_role) - diseño original: visitante
+  participant T as Llamador interno - diseño original: tienda
   participant R as publico.registrar_interes_whatsapp
   participant DB as dominio.intereses_whatsapp
   actor A as Administración (panel)
@@ -259,11 +261,11 @@ datos si importan).
 
 ### Pruebas
 
-- pgTAP `supabase/tests/database/interes_whatsapp.test.sql` (38 aserciones): la fila **no tiene columnas
+- pgTAP `supabase/tests/database/interes_whatsapp.test.sql` (41 aserciones): la fila **no tiene columnas
   personales**, el mismo `P0002` para dominio desconocido y empresa desactivada, producto de otra organización,
   aislamiento entre **dos organizaciones** y entre empresas sin acceso, permisos por nivel de la sección
   `consultas`, insert/update/delete directos rechazados, `anon` sin privilegios sobre la tabla ni la vista y
-  `anon` solo con la RPC.
+  `anon` y `authenticated` **sin** `execute` sobre la RPC (desde MSF-657 solo `service_role` la ejecuta).
 - Vitest `apps/web/src/pages/consultas/InteresWhatsappDialog.test.tsx`: lista y orden, vacío con explicación,
   error con reintento, columna **Tienda** según la empresa activa, cambio de empresa con el diálogo abierto
   (avisa y cierra), respuesta tardía de una lectura vieja, teclado (Escape y botón Cerrar) y visibilidad del
@@ -360,11 +362,9 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
 - **RLS en la tabla nueva**: `enable row level security`, una sola política de `select` por organización,
   empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura**; `revoke all … from public, anon,
   authenticated` + `grant select … to authenticated`.
-- **`anon`**: sin privilegios sobre la tabla ni sobre la vista; su única puerta es
-  `publico.registrar_interes_whatsapp` (`security definer`, `search_path = ''`), que vive en `publico` y por
-  eso no altera la lista de RPC de `public` permitidas a `anon`.
+- **`anon`**: sin privilegios sobre la tabla ni sobre la vista; no ejecuta ninguna función de interés: `publico.registrar_interes_whatsapp` (`security definer`, `search_path = ''`) es solo `service_role` desde MSF-657 y vive en `publico`, por lo que no altera la lista de RPC de `public` permitidas a `anon`.
 - **Sin datos personales**: la RPC no los recibe ni los guarda; no hay IP, nombre, teléfono, correo ni
-  mensaje. No hay forma de deduplicar toques sin identificar a la persona: cada toque cuenta.
+  mensaje. No hay forma de deduplicar toques sin identificar a la persona: cada toque cuenta (hoy solo el sembrado demo la alimenta; ver MSF-657).
 - **Sin enumeración de dominios**: mismo `P0002` para dominio desconocido y empresa desactivada, resuelto
   antes de validar el producto.
 - **Enlaces codificados**: `encodeURIComponent` en el `mailto:` (correo, asunto y cuerpo) y en el `text` de
@@ -502,7 +502,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 ## Verificación
 
 - pgTAP: `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql`,
-  `interes_whatsapp.test.sql` (38 aserciones), `consultas_responder.test.sql` (13 aserciones) y
+  `interes_whatsapp.test.sql` (41 aserciones), `consultas_responder.test.sql` (13 aserciones) y
   `rls_en_toda_tabla` (aislamiento entre dos organizaciones, tres niveles de permiso, alta solo por RPC,
   validaciones, conflicto de edición, actividad y `anon`).
 - Vitest: `apps/web/src/pages/consultas/list.test.tsx`, `components/consultas/DetalleConsulta.test.tsx`,

@@ -494,3 +494,19 @@ Reversión por migración:
 - [Actividad e historial](../actividad.md) — eventos `cliente.*`.
 - [Datos y DER](datos.md#clientes-msf-180) — el modelo dentro del panorama.
 - [API y RPC](api.md#clientes-msf-180) — los contratos resumidos.
+
+## Pendiente: unicidad del identificador externo por organización (MSF-596)
+
+**Estado verificado en `origin/dokploy`:** `public.clientes_identificadores_externos` no tiene `organizacion_id` y su único es `(sistema, identificador_externo)` en toda la instancia. `vincular_identificador_externo` responde `23505` aunque el otro cliente sea de otra organización, y revela que el identificador existe en otro tenant.
+
+**Por qué no se corrige en este lote:** los datos existentes no se rompen (ampliar el alcance de un único es seguro y `organizacion_id` se completa desde `clientes`), pero la corrección no es solo de esquema. Hay que reescribir con la misma regla todas las funciones que buscan por `(sistema, identificador_externo)` sin filtrar organización: `vincular_identificador_externo`, la carga de clientes de la migración inicial (`20261201100000`: hoy detecta «El identificador ya está en uso» justamente por el único global, y `panel_actual` usa ids correlativos que **sí chocarían** entre organizaciones), la verificación de `20261201130000` y la conciliación. Esas definiciones fueron reescritas en vivo por `20270418000401` (`public.clientes` a `dominio.clientes`), así que cada una hay que partirla de su definición vigente y no de la migración original. Además cambia comportamiento visible de la carga (un identificador de otra organización deja de ser error) y la tabla pasa a ser candidata de `conjuntos_exportacion_total()`.
+
+**Propuesta concreta (migración aditiva, en su propio lote):**
+
+1. `alter table public.clientes_identificadores_externos add column organizacion_id uuid references public.organizaciones (id) on delete cascade;` con relleno `update ... set organizacion_id = c.organizacion_id from dominio.clientes c where c.id = cliente_id`, luego `not null` y un trigger `before insert` que lo derive del cliente (para que no se desincronice).
+2. Crear `unique (organizacion_id, sistema, identificador_externo)` y recién después quitar `clientes_identificadores_externos_sistema_identificador_key`.
+3. Reemplazar las funciones nombradas arriba filtrando por `organizacion_id` (y `on conflict (organizacion_id, sistema, identificador_externo)`); el mensaje de «ya vinculado a otro cliente» solo aplica dentro de la misma organización.
+4. Política RLS de lectura por `organizacion_id` directo; sumar la tabla a `private.conjuntos_exportacion_total()` (check T6).
+5. pgTAP: dos organizaciones vinculan el mismo `(sistema, identificador)`; la carga de clientes en ambas no choca; el mismo identificador en la misma organización sigue dando `23505`; la reversión es `drop` de la columna y del único nuevo, y recrear el único global solo si no hay duplicados entre organizaciones.
+
+**Decisión de negocio a confirmar:** si dos organizaciones pueden compartir el mismo identificador externo de un sistema (se asume que sí, cada organización es un tenant independiente).
