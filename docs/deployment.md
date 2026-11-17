@@ -564,6 +564,42 @@ comparten el marcador «sin-ip» (migración `20270347000300`).
 - Fusionar clientes (`fusionar_clientes`) descarta la lista de precios del cliente absorbido: es una decisión de diseño
   documentada en [clientes.md](clientes.md), no una pérdida a corregir.
 
+### Orden de la promoción STG → PRD y gate (MSF-674)
+
+**Decisión:** STG va **un paso adelante** de PRD. Antes de disparar «Promover todo a producción» hay que **sincronizar STG con
+`dokploy`** (el push a `main` que corre los jobs `staging` de migraciones, infraestructura y flows) y esperar a que terminen en verde.
+El gate de cada mecanismo (`scripts/verificar-staging-exitoso.mjs`) autoriza la promoción de un SHA si hay un run de `staging`
+exitoso para ese SHA **o** si el último run exitoso es ancestro y desde entonces no cambió ningún archivo de `on.push.paths` del
+workflow (un commit que no toca ese mecanismo nunca genera run de staging y no debe bloquear). Si hay cambios relevantes sin pasar por
+staging, el gate rechaza y nombra los archivos: volver a sincronizar STG. Detalle en `docs/control-ci.md`, «MSF-674».
+
+### Clave de host del VPS (MSF-706)
+
+El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKeyChecking=yes` contra una clave **fijada**; ya no se usa
+`ssh-keyscan`. Para dejarla lista (una vez por entorno, **acción de Nicolás**):
+
+1. Obtener la clave pública del host por un canal de confianza (consola del proveedor, o `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
+   en el propio VPS y comparar la huella). Con la clave ya verificada: `ssh-keyscan -t ed25519 <host>` desde una máquina de confianza
+   **y comparar la huella** con la del paso anterior.
+2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** versionarla en
+   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas).
+3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
+   deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
+
+### Credenciales obligatorias e imágenes de workers inmutables en el VPS (MSF-705, MSF-712)
+
+`infra/<producto>/compose.vps.yaml` exige las credenciales de Kestra, Superset y Nango (`x-variables-obligatorias`, `${VAR:?}`): si falta una,
+`docker compose config` falla y el despliegue se corta **antes** de arrancar con un valor por defecto conocido. El arranque local
+documentado (`pnpm dev:kestra`, `dev:superset`, `dev:nango` con `compose.yaml` y sus defaults `change-me-local`) **no cambia**: los defaults
+siguen solo en el Compose base. El preflight de `scripts/deploy-vps.mjs` (`scripts/preflight-deploy-vps.mjs`) las reclama antes de tocar
+Docker y nombra cada variable faltante. Las 5 `*_IMAGEN` de los workers (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
+`EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser **referencias inmutables**
+(`imagen@sha256:<64 hex>` o tag igual al SHA del commit): un tag mutable (`:latest`) nunca se actualiza en el servidor porque el despacho hace
+`docker image inspect || docker pull`. Tres controles: (1) `worker-images.yml` lee el digest tras publicar, verifica que `:latest` y `:SHA`
+coincidan y deja las referencias `imagen@sha256:…` en el resumen del job para pegarlas en el `.env` del ambiente; (2) el preflight rechaza
+valores con `:latest`, sin tag o con tag no inmutable; (3) cada flow de despacho rechaza una imagen mutable antes del `docker pull`
+(excepto `local/*`, construidas en la misma máquina, para desarrollo).
+
 ### Flujo
 
 ```text

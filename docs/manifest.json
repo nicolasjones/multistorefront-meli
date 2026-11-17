@@ -477,7 +477,7 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "5a9b2c3fb38dde08678a69d4771cba198e8e87d29fabc607c8fff28e7c21d64f",
+      "pageHash": "d0a694ad6f80bc557fa11bec97ef53f43cd871b104e5c5c96fde4bddad01d451",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
       "sourceAt": "ec872198",
       "sources": [
@@ -491,16 +491,16 @@
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
-      "pageHash": "7ab975be262acd0acd0b06c67f78180dc49f5e855d192ee3b626b2302c36f7ac",
-      "sourceHash": "e235c72f2f41f8b5cfbd0284b8f1fb46ea29b5526c26ea9d721e1c17faec20fc",
-      "sourceAt": "24f7fdb5",
+      "pageHash": "8ee72e1e0bca77b4add5b7ea8949730ae3392304d8df4cf38f5e38ed447b4662",
+      "sourceHash": "13c02540238ea27a253c0da5fab9941b0fc5a5f9e1296c3232e221a18a5e3cae",
+      "sourceAt": "24f7fdb5a",
       "sources": [
         "specs/011-backups-postgres",
         "specs/20261018-120000-operacion-copias-y-documentacion",
         "infra/kestra"
       ],
       "owner": "operacion",
-      "commit": "24f7fdb5"
+      "commit": "24f7fdb5a"
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
@@ -613,8 +613,8 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "6aff291cd38b9265e32ff94e4b8eccf29e29ba2f8feb8e304d6cef32e5494183",
-      "sourceHash": "52db4eb79564208471f7d20f73e5c9432f4afbe9fe97ec24128293fc90846c14",
+      "pageHash": "a3b54e6a0a92491ea7fb21e9f086bee7ebae40efd5e800eb14cc2c15a81b84c1",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
       "sourceAt": "782dd190",
       "sources": [
         "specs"
@@ -1037,14 +1037,14 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "fc276d6684a20621973721622bbb91fc38cdf41abdc0dc6561677ac04c2a831a",
-      "sourceHash": "7c79a6ead1ee4b9322a408b8e0a9f7481e5e8aea2d3c54fec9413db25d93ff06",
-      "sourceAt": "5ebd123f",
+      "pageHash": "8b8f5548071e233b815ec0e932ddc9cc34370d5fe46e76f9820dd7aa1ecd0af3",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "4e75877b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "5ebd123f"
+      "commit": "4e75877b"
     },
     "docs/ordenes-compra.md": {
       "title": "Stock · Órdenes de compra a proveedores (F-PRV-09, MSF-454)",

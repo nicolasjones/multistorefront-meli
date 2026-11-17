@@ -194,7 +194,7 @@ archivo` sin pasos de código.
   `dokploy` a `push.branches` (cobertura total, costo alto); (b) mantener el e2e nocturno (`e2e-nocturno.yml`) como red de seguridad
   (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
   si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
-  la API de rulesets). Requiere decisión de Nicolás.
+  la API de rulesets). **Resuelto en el lote 36:** decisión de Nicolás = no encenderlo en cada push; corrida diaria (ver abajo, MSF-685).
 - **Tests que el CI sigue sin correr (MSF-679).** Quedan fuera por pesados o por fallar hoy (ver la tabla en
   «Verificación» del PR): `template:capabilities:check`, `test:outbox:frontera` y `test:ia:aprovisionamiento` fallan en `dokploy`
   actual y hay que arreglarlos antes de encenderlos; los `test:*:e2e`, `test:db` y los de runtime necesitan stack.
@@ -207,6 +207,101 @@ archivo` sin pasos de código.
   `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
   o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
   ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: queda como ítem aparte.
+
+## Cambios de CI de la auditoría MSF-647 (lote 36)
+
+Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo, si ya estaba o si necesita una acción de Nicolás.
+
+- **MSF-685 · `Validate` diario sobre `dokploy` (decisión tomada: NO en cada push).** `Validate` sigue sin correr en cada push a
+  `dokploy`; el gate por PR queda igual. Se agrega `.github/workflows/validate-diario.yml`: una vez por día (06:23 UTC) **dispara**
+  `Validate` completo con `workflow_dispatch` sobre `--ref dokploy` (`e2e_record=false`). Se dispara en vez de agregar `schedule` a
+  `validate.yml` porque `schedule` solo corre desde la rama por defecto (`main`) y queremos validar `dokploy` con SU versión del
+  workflow. El resultado se mira en Actions → Validate → rama `dokploy` (check `validacion`); si queda rojo, se arregla antes de
+  promover. La primera corrida ocurre cuando el archivo llegue a `main`; antes se puede probar con «Run workflow».
+- **MSF-904 · `application` paralelizado.** Era una cadena serial de ~14 pasos. Los chequeos estáticos y las suites de Node puro
+  (`docs:check`, tests de docs, guards de migraciones, `test:ci:scripts`, estilos, matriz, prototipo, `lint`) pasaron al job nuevo
+  **`chequeos`**, que corre en paralelo con `application` (build, tests con `needs.changes`, e2e). Cada paso vive en exactamente uno
+  de los dos jobs y los dos cuentan para `validacion` y `liberar`: no se perdió ningún check. Además la instalación de Chromium
+  (`playwright install`, la parte más lenta del e2e) arranca en segundo plano mientras se compila y un paso `esperar playwright
+  install` la espera y falla si terminó con error (código de salida en `$RUNNER_TEMP/playwright-install.rc`). El caché de
+  `~/.cache/ms-playwright` y las dependencias del SO se mantienen como antes.
+- **MSF-901 · `validacion` y la matriz `web`.** `web` ahora corre con `fail-fast: false`: un shard rojo ya no cancela a los otros dos
+  (antes `validacion` veía jobs `cancelled` mezclados con la falla real). La lógica de `validacion` salió del YAML a
+  `scripts/verificar-validacion.mjs` (con tests, `pnpm test:ci`): `failure` falla siempre y se informa primero; un `cancelled` sin
+  ninguna falla falla con un mensaje propio («la corrida no cuenta como validada: volvé a correrla»); `e2e-tienda` es no bloqueante
+  mientras `E2E_TIENDA_BLOQUEA` no sea `true` también cuando termina `cancelled` (su `continue-on-error` solo cubría `failure`); un
+  job que no figura en `needs` no se da por bueno. Un PR de un fork nunca hace checkout ni ejecuta su código en este job.
+- **MSF-925 · acciones pineadas por SHA.** Las acciones de GitHub (`checkout`, `setup-node`, `pnpm/action-setup`, `cache`,
+  `upload-artifact`, `setup-python`, `supabase/setup-cli`, `release-please-action`) van por SHA completo de commit con el tag en un
+  comentario (`@<sha> # v4`). Los SHA se resolvieron con `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` (y, si el tag es anotado,
+  con `git/tags/<sha>`; `supabase/setup-cli@v1` es una rama y se resolvió a `v1.7.3`). Para subir una versión: resolver el SHA nuevo
+  y cambiar los dos valores. `pnpm workflows:check` (`scripts/verificar-workflows.mjs`, en `chequeos` y en `test:ci`) falla si
+  aparece una acción por tag o un SHA sin comentario.
+- **MSF-926 · `timeout-minutes` en todos los jobs.** Los 8 workflows que no lo tenían ahora lo declaran en cada job que corre pasos
+  (deploy de infraestructura 30, migraciones 20, docs 45, nightly 45, publicar flows 15, quality 20, release-please 15,
+  worker-images 60; valores por encima del máximo observado con `gh run list`, salvo corridas con cola de runner). Los jobs que solo
+  llaman a un workflow reutilizable (`promover-todo-a-produccion`) no admiten la clave. Lo verifica `pnpm workflows:check`.
+- **MSF-928 · los tests omitidos no pasan en verde por omisión.** `scripts/verificar-e2e-omitidos.mjs` suma `--requeridos=a,b`: falla
+  si algún test de esos specs se omitió o si el spec no aparece en el reporte, y escribe en el resumen del job cuántos tests corrieron
+  y cuántos se omitieron por archivo. El job `application` lo corre con los dos specs públicos (`acceso-publico` y
+  `recorrido-publico`, `--max=0`). **Ya estaba:** `e2e-tienda` (`--max=1`) y el nocturno (falla si más de la mitad se omite y lista
+  los omitidos por archivo). Los 26 tests con sesión se siguen saltando sin stack en las corridas sin base, a propósito: no se pueden
+  exigir donde no hay Supabase; los cubre `e2e-visible-sesion`/nocturno.
+- **MSF-929 · `quality` y el store de pnpm.** `.gitleaks.toml` excluye por ruta `.pnpm-store/`, `node_modules/`,
+  `.local/share/pnpm/` y `.cache/pnpm/` (código de terceros descargado, con claves de ejemplo de sus propios tests). **No** se exime
+  ninguna carpeta del repo: un secreto en `apps/`, `packages/`, `supabase/`, etc. se sigue detectando (test en
+  `scripts/calidad.test.mjs`, necesita el binario `gitleaks`; se saltea si no está).
+- **MSF-706 · clave de host del VPS fijada.** El deploy ya no usa `ssh-keyscan`; `scripts/preparar-known-hosts-vps.mjs` toma la
+  clave pública del host del secret `VPS_SSH_KNOWN_HOSTS` o de `infra/vps/known_hosts.<entorno>`, la valida (un solo host, sin
+  comodines ni marcadores) y configura SSH con `StrictHostKeyChecking=yes` y ese único archivo. **Sin clave fijada el job falla** con
+  instrucciones. **Necesita acción de Nicolás** antes del próximo deploy: ver `docs/deployment.md`, «Clave de host del VPS».
+- **MSF-674 · gate de promoción `stg → prd`.** `scripts/verificar-staging-exitoso.mjs` exigía un run exitoso de `staging` **para el
+  mismo SHA**, pero `staging` dispara por `paths`: un commit que no toca esos archivos nunca genera run y `promover-todo-a-produccion`
+  fallaba casi siempre. Ahora valida lo que corresponde: (1) run exitoso para el mismo SHA → autoriza; (2) si no, el run exitoso más
+  reciente cuyo SHA sea **ancestro** del que se promueve y **ningún archivo de `on.push.paths` del workflow** (se lee del propio
+  archivo) cambió desde entonces → autoriza («staging ya validó el último estado relevante»); (3) cambios relevantes posteriores,
+  comparación truncada (≥ 300 archivos o más commits que los listados) o ningún ancestro → rechaza y nombra los archivos. Decisión
+  de proceso (documentada en `docs/deployment.md`): **STG va un paso adelante de PRD y se sincroniza STG con `dokploy` ANTES de
+  promover**. No se promovió nada ni se tocó ningún secret.
+- **MSF-916 · dependencias con avisos HIGH.** `pnpm audit --prod` bajó de 12 a 0 avisos de severidad alta con overrides en
+  `pnpm-workspace.yaml` (`axios` ≥ 1.20, `follow-redirects` ≥ 1.16.2, `body-parser` ≥ 2.4, `zod` ≥ 4.6.6; todas con más de dos semanas
+  de publicadas). Verificado: `pnpm test:ia` (incluye `@platform/mcp-server`) y `tsc -b` de `apps/web`. Quedan 3 bajos y 10 moderados.
+
+### Pendientes del lote 36 que necesitan acción de Nicolás (no son código del repo)
+
+Propuestas exactas; ninguna se aplicó.
+
+- **MSF-648 · puertos publicados a Internet (Postgres, Studio, Kong, Inbucket, Dokploy).** Acción en el servidor: (1) en el firewall del
+  VPS (`ufw`/grupo de seguridad) permitir entrada solo a 22, 80 y 443 y a la red de Tailscale; (2) en Dokploy, quitar los «Published
+  Ports» de los servicios de Supabase y publicar solo por Traefik con TLS; (3) enlazar los puertos que deban quedar en el host a
+  `127.0.0.1` o a la IP de Tailscale (`127.0.0.1:PUERTO:PUERTO`); (4) el panel de Dokploy detrás de Tailscale o con acceso por IP.
+  Verificar desde fuera de la VPN con `nmap -Pn <ip-publica>`: solo 22/80/443.
+- **MSF-649 · secreto JWT / contraseña por defecto del DEV vivo.** Acción: generar un `JWT_SECRET` nuevo (≥ 32 bytes aleatorios) y
+  contraseñas nuevas de Postgres/dashboard, regenerar `ANON_KEY` y `SERVICE_ROLE_KEY` firmadas con el secreto nuevo, cargarlas en
+  Dokploy (nunca en git) y reiniciar el stack; luego rotar los secrets del Environment que las usen (`SUPABASE_SERVICE_ROLE_KEY`,
+  `VITE_SUPABASE_PUBLISHABLE_KEY`) y los de las Edge Functions. Todas las sesiones activas se invalidan.
+- **MSF-703 / MSF-704 · runners self-hosted con root y `docker.sock` en un repo público, y store de pnpm compartido.** Propuesta:
+  (1) pasar el repo a privado o, si debe ser público, **no correr PRs de forks** en self-hosted (ya se rechazan en `validacion`; agregar en
+  Settings → Actions → General «Require approval for all outside collaborators»); (2) usar runners efímeros (`--ephemeral`) sin el socket
+  del host (Docker rootless o `sysbox`) y con usuario no root; (3) un store de pnpm por runner o de solo lectura para los jobs de PR
+  (hoy `infra/runner/compose.yaml` comparte `pnpm-store` entre réplicas y repos), para que un PR no pueda envenenar paquetes de otro job.
+  Es un cambio de infraestructura que rompe el CI actual si se aplica a medias: planificarlo con una ventana.
+- **MSF-680 · `release-please` y la rama `main`.** Solo documentación: ver «Decisiones pendientes del lote 26» (habilitar «Allow
+  GitHub Actions to create and approve pull requests» o pasar `token:` de un PAT/GitHub App a `release-please-action`; revisar el
+  secret `SUPABASE_DB_URL` del Environment `staging`; alerta cuando falle el job `staging`). Con el gate de MSF-674 ya no hace falta
+  un run de staging por cada SHA para promover.
+- **MSF-706 · secret `VPS_SSH_KNOWN_HOSTS`** (o versionar `infra/vps/known_hosts.<entorno>`): obtener la línea del host por un canal
+  de confianza (consola del proveedor o `ssh-keygen -lf` contra la huella publicada) y cargarla; ver `docs/deployment.md`.
+- **MSF-705 · variables obligatorias en el VPS.** Antes de mergear a `main` o promover, comprobar que `VPS_DEPLOY_ENV` de staging y
+  producción trae las 14 credenciales nuevas (`KESTRA_*`, `SUPERSET_*`, `NANGO_*`) y las 5 `*_IMAGEN` de workers por digest (MSF-712);
+  el preflight del deploy lo reclama con un mensaje que nombra cada una.
+- **MSF-902 · PRs abiertos en conflicto: procedimiento (no se cerró ningún PR).** (1) Listar: `gh pr list --state open --json
+  number,title,headRefName,mergeable,updatedAt --jq '.[] | select(.mergeable=="CONFLICTING")'`. (2) Por cada uno: avisar al
+  responsable y, si la rama es de un agente/SDLC, correr `git fetch origin && git merge origin/dokploy` en un worktree propio (en
+  conflictos de `docs/manifest.json` y `docs/_generated/*` quedarse con `--theirs` y regenerar con `pnpm docs:wiki:check`; renumerar
+  migraciones con el skill `desarrollo-manual`), empujar y esperar el CI. (3) Si la rama lleva más de 14 días sin actividad y el
+  conflicto toca archivos que `dokploy` ya cambió a fondo, dejar un comentario con el diff de conflictos y pedir decisión de Nicolás:
+  rebasar, rehacer o cerrar. No cerrar PRs automáticamente: cada cierre es una decisión de Nicolás.
 
 ## Integración protegida de `dokploy`
 
@@ -284,6 +379,14 @@ la limpieza de fin de job y el janitor resuelven el caso normal sin cortar nada.
 corrección hay que asegurarse de que el workflow llegue a la rama por defecto
 (o cambiar la rama por defecto del repositorio). Mientras tanto, la limpieza de
 fin de cada job en `validate.yml` ya evita que la fuga se acumule.
+
+**Lote 36 (MSF-736).** `init: true` (tini como PID 1) ya estaba en el `runner` y en `playwright`; faltaba en los contenedores que lanzan
+Chromium por otro camino. Ahora todo `docker run` de un worker (7 flows de despacho de Kestra) lleva `--init` y
+`--pids-limit "${WORKER_PIDS:-1024}"` (tope de procesos: un worker no puede agotar los PID del servidor), y `kestra`, `superset` y
+`nango-server` también tienen `init: true`. Lo verifica `infra/kestra/validar-robustez-flows.test.mjs` y
+`infra/kestra/validar-workers-runtime.mjs`. Los zombis que ya existen en los runners se limpian recreándolos con el compose actual
+(`docker compose -f infra/runner/compose.yaml up -d --force-recreate`, **acción de Nicolás** en el host; el `limpiar-ci` los cuenta
+pero no puede matar un zombi: solo el PID 1 los cosecha).
 
 ## El runner no se autoactualiza dentro del contenedor (2026-11-03)
 
