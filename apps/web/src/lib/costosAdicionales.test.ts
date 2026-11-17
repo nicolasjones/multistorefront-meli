@@ -76,6 +76,18 @@ describe('formato del valor de un costo', () => {
     expect(formatearValorCosto({ tipo: 'monto', valor: 12500 })).toBe('$ 12.500 por unidad')
   })
 
+  it('un monto con centavos no se redondea a pesos enteros', () => {
+    expect(formatearValorCosto({ tipo: 'monto', valor: 12.5 })).toBe('$ 12,50 por unidad')
+    expect(formatearValorCosto({ tipo: 'monto', valor: 0.4 })).toBe('$ 0,40 por unidad')
+    expect(formatearValorCosto({ tipo: 'monto', valor: 1234.56 })).toBe('$ 1.234,56 por unidad')
+  })
+
+  it('un monto entero sigue sin decimales y el porcentaje no cambia', () => {
+    expect(formatearValorCosto({ tipo: 'monto', valor: 12 })).toBe('$ 12 por unidad')
+    expect(formatearValorCosto({ tipo: 'monto', valor: 0 })).toBe('$ 0 por unidad')
+    expect(formatearValorCosto({ tipo: 'porcentaje', valor: 12.5 })).toBe('12,5 %')
+  })
+
   it('el texto del valor vuelve a ser el mismo valor al leerlo (ida y vuelta)', () => {
     for (const valor of [0, 5, 12.5, 0.25, 99.99]) expect(parsearValorCosto(valorATexto(valor))).toBe(valor)
   })
