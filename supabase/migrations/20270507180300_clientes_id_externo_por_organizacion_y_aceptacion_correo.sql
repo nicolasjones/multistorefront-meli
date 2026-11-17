@@ -80,6 +80,9 @@ alter table public.clientes_identificadores_externos
   add constraint clientes_identificadores_externos_org_sistema_identificador_key
   unique (organizacion_id, sistema, identificador_externo);
 
+comment on table public.clientes_identificadores_externos is
+  'Mapeo genérico entre un cliente y su identidad en un sistema externo. sistema es texto libre (no hay catálogo de sistemas externos). Desde MSF-596 lleva organizacion_id (la mantiene un disparador desde el cliente) y el identificador es único por (organización, sistema, identificador).';
+
 comment on column public.clientes_identificadores_externos.organizacion_id is
   'MSF-596: organización del cliente (la mantiene un disparador). El identificador externo es único por (organización, sistema, identificador).';
 

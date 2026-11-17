@@ -108,8 +108,8 @@ select pg_temp.alfa('base_a', 'f7000000-0000-0000-0000-000000000001', 's1-a.ejem
 select pg_temp.alfa('base_min_b', 'f7000000-0000-0000-0000-000000000002', 's1-b.ejemplo.com');
 select is(pg_temp.escalas('base_b'), '[["x1",1000,null],["x5",900,null],["x10",800,null],["x50",1000,null]]'::jsonb,
   'sin promoción, tienda B (sin IVA): las cuatro escalas de siempre y sin precio_anterior');
-select is(pg_temp.escalas('base_a'), '[["x1",1331,null],["x5",1198,null],["x10",1065,null],["x50",1331,null]]'::jsonb,
-  'sin promoción, tienda A (con IVA y +10 %): 1331 / 1198 / 1065 / 1331');
+select is(pg_temp.escalas('base_a'), '[["x1",1331,null],["x5",1197.90,null],["x10",1064.80,null],["x50",1331,null]]'::jsonb,
+  'sin promoción, tienda A (con IVA y +10 %): 1331 / 1197,90 / 1064,80 / 1331');
 
 -- Promoción vigente de la tienda B para Alfa (neto 850), de la tienda A (neto 850), vencida y anulada de Beta,
 -- y una de la organización 2.
@@ -139,20 +139,20 @@ select is(pg_temp.escalas('may_b'), '[["x1",850,1000],["x5",850,900],["x10",800,
   'mayorista, promoción 850: gana en x1, x5 y x50 (con el precio de la escala como anterior); x10 (800) es más baja: queda igual y sin anterior');
 select is(pg_temp.escalas('min_b'), '[["x1",850,1000]]'::jsonb, 'minorista, promoción 850: x1 sale a 850 con anterior 1000');
 -- Todavía no hay promoción en la tienda A: la de B no se le aplica.
-select is(pg_temp.escalas('may_a'), '[["x1",1331,null],["x5",1198,null],["x10",1065,null],["x50",1331,null]]'::jsonb,
+select is(pg_temp.escalas('may_a'), '[["x1",1331,null],["x5",1197.90,null],["x10",1064.80,null],["x50",1331,null]]'::jsonb,
   'la promoción de la tienda B no se aplica en la tienda A (cada tienda tiene las suyas)');
 
--- Promoción en A (neto 850 → 1029 con IVA).
+-- Promoción en A (neto 850 → 1028,50 con IVA).
 insert into dominio.promociones_precio (id, organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
   ('c5000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 850, now() - interval '1 hour', now() + interval '1 day');
 select pg_temp.alfa('may_a2', 'f7000000-0000-0000-0000-000000000001', 's1-a.ejemplo.com');
-select is(pg_temp.escalas('may_a2'), '[["x1",1029,1331],["x5",1029,1198],["x10",1029,1065],["x50",1029,1331]]'::jsonb,
-  'tienda A con IVA: la promoción 850 neto (1029 con IVA) gana en las cuatro escalas, cada una con su precio como anterior');
--- Con IVA, una promoción cuyo precio con IVA no baja la escala x10 (1065): neto 930 = 1125 con IVA gana a x1/x5/x50 pero no a x10.
+select is(pg_temp.escalas('may_a2'), '[["x1",1028.50,1331],["x5",1028.50,1197.90],["x10",1028.50,1064.80],["x50",1028.50,1331]]'::jsonb,
+  'tienda A con IVA: la promoción 850 neto (1028,50 con IVA) gana en las cuatro escalas, cada una con su precio como anterior');
+-- Con IVA, una promoción cuyo precio con IVA no baja la escala x10 (1064,80): neto 930 = 1125,30 con IVA gana a x1/x5/x50 pero no a x10.
 update dominio.promociones_precio set precio_promocional = 930 where id = 'c5000000-0000-0000-0000-00000000000a';
 select pg_temp.alfa('may_a3', 'f7000000-0000-0000-0000-000000000001', 's1-a.ejemplo.com');
-select is(pg_temp.escalas('may_a3'), '[["x1",1125,1331],["x5",1125,1198],["x10",1065,null],["x50",1125,1331]]'::jsonb,
-  'tienda A con IVA: la promoción 930 neto (1125 con IVA) gana a x1, x5 y x50 pero no a x10 (1065)');
+select is(pg_temp.escalas('may_a3'), '[["x1",1125.30,1331],["x5",1125.30,1197.90],["x10",1064.80,null],["x50",1125.30,1331]]'::jsonb,
+  'tienda A con IVA: la promoción 930 neto (1125,30 con IVA) gana a x1, x5 y x50 pero no a x10 (1064,80)');
 
 -- Igual y mayor al precio normal: la escala no cambia y no trae precio_anterior.
 update dominio.promociones_precio set precio_promocional = 1000 where id = 'c5000000-0000-0000-0000-00000000000b';

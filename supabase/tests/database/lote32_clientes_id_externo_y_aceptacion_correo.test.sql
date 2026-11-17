@@ -180,7 +180,7 @@ select is(public.marcar_aceptacion_correo_clientes(array['c1000000-0000-0000-000
 reset role;
 select is((select acepta_correo_masivo from dominio.clientes where id = 'c1000000-0000-0000-0000-00000000000b'), true, 'y el cliente 1B sigue como lo dejó su organización');
 set local role anon;
-select throws_ok($$select public.marcar_aceptacion_correo_clientes(array['c1000000-0000-0000-0000-00000000000a']::uuid[], true)$$, '42501', null, 'anon no ejecuta (permission denied)');
+select throws_ok($$select public.marcar_aceptacion_correo_clientes(array['c1000000-0000-0000-0000-00000000000a']::uuid[], true)$$, '42501', 'permission denied for function marcar_aceptacion_correo_clientes', 'anon no ejecuta la acción masiva');
 
 -- API directa: el interruptor por la API estampa quién y cuándo (disparador), sin poder falsificarlos
 reset role;

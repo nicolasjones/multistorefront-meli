@@ -90,10 +90,16 @@ antes del intento (solo el que creó esta misma subida).
 
 `public.activar_version_documento(p_version_id)` (la llama `indexar-documento` con la sesión de quien subió el archivo) valida, desde `20270507150000`: que la versión pertenezca a la organización del llamador (versión inexistente, ya procesada o de otra organización dan el mismo error genérico `22023`), que la funcionalidad `busqueda-documental` esté habilitada y que el llamador sea quien subió la versión o un administrador de la organización (`42501` si no). `anon` no ejecuta la RPC. Prueba: `supabase/tests/database/activar_version_documento_valida_organizacion.test.sql`.
 
-## Escritura de fragmentos y archivos (lote 32 · MSF-651)
+## Escritura de documentos: Consulta no escribe (lote 32 · MSF-651)
 
-Desde `20270507180400` las políticas de escritura de `public.fragmentos_indexados` (insert, update, delete) y las de insert y delete
-del bucket `documentos-rag` exigen `private.puede_escribir()` además de la organización: el rol Consulta (y cualquiera que no sea
-administrador) lee pero no sube, modifica ni borra por la API directa. La indexación corre con el rol de servicio y no cambia.
-**Fuera de este ítem** (queda anotado): las tablas `documentos` y `versiones_documento` siguen con políticas de escritura solo por
-organización. Prueba: `lote32_documentos_escritura_puede_escribir.test.sql`.
+Regla: **el rol Consulta no sube, modifica ni borra documentos de la búsqueda documental**; los demás roles (Administrador, Operador,
+Mostrador, Depósito, Administración, Técnico) siguen operando como hasta ahora. Desde `20270507180400` las políticas de escritura de
+`public.fragmentos_indexados`, `public.documentos`, `public.versiones_documento` y las de insert/delete del bucket `documentos-rag`
+exigen `private.puede_gestionar_documentos()` (miembro activo con rol distinto de `consulta`, o superadmin con organización activa);
+`private.eliminar_documento` (la RPC `eliminar_documento`) rechaza con `42501` a Consulta. La lectura y la búsqueda no cambian.
+
+La función Edge `indexar-documento` escribe y borra los fragmentos con el **cliente de servicio**, pero solo después de la
+autorización que ya hace con el JWT del usuario (funcionalidad, RLS sobre la versión, permiso y reclamo propio) y acotada a esa
+versión: relee la versión por RLS y exige que los fragmentos sean de esa versión y de su organización (el handler no cambió de
+orden). `service_role` tiene grants explícitos sobre `fragmentos_indexados`. La pantalla distingue «No tenés permiso para subir
+documentos» (403/42501/RLS) del error de conexión. Pruebas: `lote32_documentos_escritura_consulta.test.sql`.

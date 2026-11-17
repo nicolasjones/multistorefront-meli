@@ -144,8 +144,10 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.revertir_cobro(%L, 'Cobro mal cargado')$$, 'c0b00000-0000-0000-0000-000000000001'),
   '42501', 'Solo el administrador puede revertir un cobro', 'Consulta no revierte');
 reset role;
+set local role anon;
 select throws_ok(format($$select public.revertir_cobro(%L, 'Cobro mal cargado')$$, 'c0b00000-0000-0000-0000-000000000001'),
-  '42501', null, 'anon / sin sesión no revierte');
+  '42501', 'permission denied for function revertir_cobro', 'anon no revierte');
+reset role;
 select is(pg_temp.neto('f1000000-0000-0000-0000-000000000001'), 1000::numeric, 'sin permiso el libro no cambió');
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
@@ -224,20 +226,20 @@ select throws_ok(format($$select public.conciliar_pago(%L, pg_temp.upd_cobro(%L)
 select throws_ok(
   $$insert into dominio.cobros_comprobante (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 100, 'b1000000-0000-0000-0000-00000000000a', 'reversion', 'd1000000-0000-0000-0000-000000000001', 'Admin')$$,
-  '42501', null, 'authenticated no escribe en el libro directamente');
+  '42501', 'permission denied for table cobros_comprobante', 'authenticated no escribe en el libro directamente');
 reset role;
 select throws_ok(
   $$insert into dominio.cobros_comprobante (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, revierte_cobro_id, motivo_reversion)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', 100, 'b1000000-0000-0000-0000-00000000000a', 'reversion', 'd1000000-0000-0000-0000-000000000001', 'Admin', 'c0b00000-0000-0000-0000-000000000001', 'x')$$,
-  '23514', null, 'un contra-asiento con importe positivo viola el check del libro');
+  '23514', 'new row for relation "cobros_comprobante" violates check constraint "cobros_comprobante_reversion_ck"', 'un contra-asiento con importe positivo viola el check del libro');
 select throws_ok(
   $$insert into dominio.cobros_comprobante (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', -100, 'b1000000-0000-0000-0000-00000000000a', 'manual', 'd1000000-0000-0000-0000-000000000001', 'Admin')$$,
-  '23514', null, 'un cobro manual negativo viola el check del libro');
+  '23514', 'new row for relation "cobros_comprobante" violates check constraint "cobros_comprobante_reversion_ck"', 'un cobro manual negativo viola el check del libro');
 select throws_ok(
   format($$insert into dominio.cobros_comprobante (organizacion_id, empresa_id, comprobante_id, importe, forma_pago_id, origen, registrado_por, registrado_por_nombre, revierte_cobro_id, motivo_reversion)
     values ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'f1000000-0000-0000-0000-000000000001', -600, 'b1000000-0000-0000-0000-00000000000a', 'reversion', 'd1000000-0000-0000-0000-000000000001', 'Admin', 'c0b00000-0000-0000-0000-000000000002', 'otra')$$),
-  '23505', null, 'dos contra-asientos del mismo cobro violan el único');
+  '23505', 'duplicate key value violates unique constraint "cobros_comprobante_revierte_uq"', 'dos contra-asientos del mismo cobro violan el único');
 
 select * from finish();
 rollback;

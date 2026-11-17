@@ -36,7 +36,7 @@ select is((select private.nivel_seccion('categorias')), 'ninguno', 'Depósito ti
 select is((select private.nivel_seccion('stock')), 'edicion', 'y stock en edición');
 select is((select array_agg(nombre) from dominio.categorias), array['Joysticks']::text[], 'Depósito ve las categorías de su organización (y solo esas)');
 select throws_ok($$insert into dominio.categorias (organizacion_id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Nueva')$$,
-  '42501', null, 'Depósito no crea categorías');
+  '42501', 'new row violates row-level security policy for table "categorias"', 'Depósito no crea categorías');
 with u as (update dominio.categorias set nombre = 'Pisada' returning 1) select is((select count(*)::int from u), 0, 'Depósito no modifica categorías');
 with d as (delete from dominio.categorias returning 1) select is((select count(*)::int from d), 0, 'Depósito no borra categorías');
 
@@ -58,7 +58,7 @@ select is((select array_agg(nombre) from dominio.categorias), array['Ajenas']::t
 -- anon: nada
 reset role;
 set local role anon;
-select throws_ok($$select count(*) from dominio.categorias$$, '42501', null, 'anon no lee categorías');
+select throws_ok($$select count(*) from dominio.categorias$$, '42501', 'permission denied for schema dominio', 'anon no lee categorías');
 
 select * from finish();
 rollback;

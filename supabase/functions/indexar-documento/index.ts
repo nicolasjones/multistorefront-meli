@@ -1,6 +1,6 @@
 // Contrato: specs/.../contracts/indexacion-documento.md. La lógica vive en handler.ts (con tests); acá solo se cablean
-// los clientes reales: la sesión del usuario (RLS) para los datos de negocio y service-role únicamente para resolver
-// la política y la credencial de IA.
+// los clientes reales: la sesión del usuario (RLS) para los datos de negocio y service-role para resolver la política
+// y la credencial de IA y, tras autorizar con el usuario, para escribir/borrar los fragmentos de la versión autorizada.
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
@@ -43,8 +43,16 @@ Deno.serve((req) => {
   const url = Deno.env.get('SUPABASE_URL')!
   const anon = Deno.env.get('SUPABASE_ANON_KEY')!
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-  // Nunca service-role para datos de negocio: la versión debe pertenecer a la organización del usuario (RLS).
+  // Los datos de negocio se leen/actualizan con la sesión del usuario: la versión debe pertenecer a su organización (RLS).
   const comoUsuario = (jwt: string) => createClient(url, anon, { global: { headers: { Authorization: `Bearer ${jwt}` } } })
+
+  // La versión tal como la ve el usuario por RLS (null si no existe, es de otra organización o no tiene acceso).
+  const versionDelUsuario = async (jwt: string, versionId: string): Promise<{ organizacion_id: string } | null> => {
+    const { data, error } = await comoUsuario(jwt).from('versiones_documento').select('id, documentos(organizacion_id)').eq('id', versionId).maybeSingle()
+    // deno-lint-ignore no-explicit-any
+    const doc = (data as any)?.documentos as { organizacion_id: string } | null | undefined
+    return error || !data || !doc ? null : { organizacion_id: doc.organizacion_id }
+  }
 
   const deps: Deps = {
     getUser: async (jwt) => {
@@ -114,11 +122,21 @@ Deno.serve((req) => {
       )
     },
     embeddings: (textos, clave) => generarEmbeddings(textos.map((t) => (sanitizarDato({ texto: t }, CONTRATO.datosPermitidos) as { texto: string }).texto), clave),
-    borrarFragmentos: async (jwt, versionId) => !(await comoUsuario(jwt).from('fragmentos_indexados').delete().eq('version_id', versionId)).error,
+    // Los fragmentos se escriben y borran con el cliente de SERVICIO (así la indexación no depende del rol del usuario), pero
+    // SOLO después de la autorización que ya hizo el handler con el JWT del usuario (funcionalidad, RLS sobre la versión,
+    // permiso y reclamo propio) y acotado a esa versión: se relee la versión con la sesión del usuario (RLS) y se exige que
+    // los fragmentos sean de ella y de su organización.
+    borrarFragmentos: async (jwt, versionId) => {
+      if (!(await versionDelUsuario(jwt, versionId))) return false
+      return !(await admin.from('fragmentos_indexados').delete().eq('version_id', versionId)).error
+    },
     insertarFragmentos: async (jwt, filas) => {
-      const cliente = comoUsuario(jwt)
+      if (filas.length === 0) return true
+      const versionId = filas[0].version_id
+      const version = await versionDelUsuario(jwt, versionId)
+      if (!version || filas.some((f) => f.version_id !== versionId || f.organizacion_id !== version.organizacion_id)) return false
       for (let i = 0; i < filas.length; i += LOTE_INSERCION) {
-        if ((await cliente.from('fragmentos_indexados').insert(filas.slice(i, i + LOTE_INSERCION))).error) return false
+        if ((await admin.from('fragmentos_indexados').insert(filas.slice(i, i + LOTE_INSERCION))).error) return false
       }
       return true
     },
