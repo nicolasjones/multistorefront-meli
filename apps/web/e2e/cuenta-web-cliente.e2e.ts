@@ -109,6 +109,8 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   })
 
   test('suspendida, sin cuenta en la tienda y no habilitada no entran, con el mismo mensaje que una clave errónea', async ({ page }) => {
+    // Seis ingresos con siembra de cuatro clientes y `slowMo` del modo visible: los 60 s del CI no alcanzan (medido en sesión).
+    test.setTimeout(180_000)
     const suspendida = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'suspendida' } })
     // Un cliente pertenece a una sola organización (las empresas habilitadas deben ser de ella): habilitado en Mundo JC, sin cuenta web.
     const sinCuenta = await sembrar({ habilitado: [MUNDO] })
@@ -131,7 +133,11 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   test('recuperar responde igual con y sin cuenta (SC-006)', async ({ page, request }) => {
     const s = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'activa' } })
     const sonda = await request.post(`${url}/functions/v1/recuperar-clave-cliente`, { data: {}, headers: { apikey: serviceKey ?? '' }, failOnStatusCode: false })
-    test.skip(sonda.status() === 404 || sonda.status() >= 502, 'La Edge Function recuperar-clave-cliente no está servida (`supabase functions serve`).')
+    // Servida, la función responde 400 («Datos inválidos») a un cuerpo vacío (`supabase/functions/recuperar-clave-cliente/handler.ts:72-74`).
+    // El job de sesión arranca el stack con `-x …,edge-runtime,…` (`validate.yml`, paso «Levantar el stack de Supabase del CI»): sin Edge,
+    // Kong responde 500 «An unexpected error occurred» (evidencia: run 44185502449) y la pantalla muestra «No pudimos enviar el
+    // enlace ahora». Solo en ese caso (la sonda no es el 400 de la función) se omite, con el estado recibido en el motivo.
+    test.skip(sonda.status() !== 400, `La Edge Function recuperar-clave-cliente no está servida en este stack (la sonda devolvió ${sonda.status()} en vez del 400 de la función): hace falta \`supabase functions serve\`.`)
 
     const avisos: string[] = []
     for (const correo of [s.correo, `nadie-${randomUUID().slice(0, 8)}@example.com`]) {

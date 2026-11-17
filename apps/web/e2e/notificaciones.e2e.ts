@@ -15,7 +15,7 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
   test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-378:T010] punto, lista, abrir un aviso, marcar todas y aislamiento entre personas', async ({ browser }, testInfo) => {
-    test.setTimeout(180_000)
+    test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
     const correos = { quien: `notif-${sufijo}@example.com`, otra: `notif-otra-${sufijo}@example.com` }
     const usuarios: string[] = []

@@ -390,6 +390,10 @@ jobs:
           E2E_VIDEO: 'on'
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
+          # Cámara lenta reducida: el job es manual y corre en un host compartido y saturado; con los 350 ms / 30 pasos de
+          # los videos locales los recorridos visibles agotan sus timeouts. Los defaults del modo local no cambian.
+          E2E_SLOWMO_MS: '100'
+          E2E_MOUSE_PASOS: '10'
           E2E_GREP: ${{ inputs.e2e_grep }}
           E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json

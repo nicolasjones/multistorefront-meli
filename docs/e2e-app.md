@@ -842,16 +842,26 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
     `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
     todavía en sesión.
-  - **Estado de MSF-964/965/966: ABIERTOS.** Ninguno se da por resuelto hasta que los 6 specs (`cuenta-web-cliente`, `exportacion-total`,
-    `importaciones`, `importaciones-a11y`, `productos-create-permisos`, `notificaciones`) pasen en una corrida de sesión; en la corrida
-    44176286432 (cancelada a los 40 min) solo pasó `productos-create-permisos`.
+  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: `exportacion-total` + `importaciones-a11y` verdes (run
+    44188166361), `e2e/importaciones` + `productos-create-permisos` verdes (44191224534), `notificaciones` flake por timeout de 180 s que
+    pasó sin cambios al reintentar (44193675064 / 44195930872) y `cuenta-web-cliente` 2 de 4 (44185502449): 5 de 6 specs verdes. Falta:
+    `cuenta-web-cliente` (el test de ingresos agotaba 60 s: ahora `test.setTimeout(180_000)`, a validar; y SC-006, ver abajo).
+  - **SC-006 (recuperar) en el job de sesión: causa real y decisión.** La pantalla mostraba «No pudimos enviar el enlace ahora» porque
+    `POST /functions/v1/recuperar-clave-cliente` devolvía 500 de Kong (`{"message":"An unexpected error occurred"}`, traza del run
+    44185502449): el job levanta el stack con `-x studio,mailpit,imgproxy,logflare,vector,edge-runtime,…` (`validate.yml`, paso «Levantar
+    el stack de Supabase del CI»), o sea SIN Edge Runtime ni Mailpit; la función no existe en ese stack. La omisión previa solo cubría
+    404 y >=502, no ese 500. Servida, la función responde 400 a un cuerpo vacío (`handler.ts:72-74`), así que el test se omite con
+    `test.skip` y motivo explícito SOLO si la sonda no devuelve ese 400. No se habilitó Edge/SMTP en el job (cambia el stack compartido
+    del CI sin poder probarlo aquí): MSF-964 queda abierto para SC-006 hasta servir la función (`supabase functions serve` con
+    `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`/`ALLOW_HTTP_REDIRECT=true`) y habilitar el correo local.
   - **Timeouts de 300 s en sesión visible (`exportacion-total`, `importaciones`, `importaciones-a11y`).** La hipótesis del
     `actionTimeout` quedó descartada: son del recorrido visible (slowMo 350 ms, cursor de 30 pasos hacia cada clic, rótulos de 2,2 s, video
     1080p) con el runner cargado. No se suben los timeouts. Se corre en grupos de 2 specs como máximo (input `e2e_archivos`), uno por
     corrida, p. ej. `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos="exportacion-total.e2e.ts importaciones.e2e.ts"`,
     luego `"importaciones-a11y.e2e.ts cuenta-web-cliente.e2e.ts"` y `"notificaciones.e2e.ts productos-create-permisos.e2e.ts"`. Bajo carga
     se puede bajar la cámara lenta con las variables `E2E_SLOWMO_MS` (por defecto 350, `playwright.config.ts`) y `E2E_MOUSE_PASOS` (por
-    defecto 30, `visible.ts`), p. ej. 100 y 10; el comportamiento por defecto no cambia (el job aún no las exporta).
+    defecto 30, `visible.ts`); el job `e2e-visible-sesion` las exporta en 100 y 10 (host compartido y saturado), y el modo local/video conserva
+    350 y 30. `notificaciones` pasó a `test.setTimeout(300_000)` (flake de 180 s).
   - **`notificaciones`:** falló a los ~3 min en medio del recorrido visible, pero la traza quedó truncada por la cancelación del job:
     causa NO confirmada.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
