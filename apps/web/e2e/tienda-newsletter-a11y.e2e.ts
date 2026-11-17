@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { UPSERT_FUSIONAR, borrar, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, borrar, fijarBanderaPlataforma, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Newsletter de la tienda (spec newsletter-de-la-tienda, T009): axe (WCAG 2 A y AA) del formulario del pie y de la página de
 // confirmación `/newsletter/confirmar/:token` a 320, 768 y 1440 px, sin desborde horizontal. Usa la tienda del seed
@@ -12,17 +12,7 @@ const TIENDA = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-80
 const ANCHOS = [320, 768, 1440] as const
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-async function fijarBandera(activa: boolean): Promise<boolean | null> {
-  const ruta = 'banderas_plataforma?clave=eq.newsletter'
-  const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
-  // Un error HTTP no es «la bandera no existe»: falla fuerte para no seguir con un estado desconocido.
-  if (!lectura.ok) throw new Error(`lectura de la bandera newsletter: ${lectura.status} ${await lectura.text()}`)
-  const filas = (await lectura.json()) as { activa: boolean }[]
-  if (filas.length === 0) return null
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
-  if (!r.ok) throw new Error(`bandera newsletter: ${r.status} ${await r.text()}`)
-  return filas[0].activa
-}
+const fijarBandera = (activa: boolean) => fijarBanderaPlataforma('newsletter', activa)
 
 type ResultadoAxe = { violations: { id: string; nodes: { target: unknown[] }[] }[] }
 type AxeEnVentana = { axe: { run: (contexto: Document | { include: string[][] }, opciones: unknown) => Promise<ResultadoAxe> } }
