@@ -71,32 +71,32 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
     }
   })
 
+  // Un test por viewport y por página: cada uno es corto (el job `e2e-tienda` tiene 60 s por test) y usa el `page` del fixture, que el
+  // propio runner cierra (sin contexto manual).
+  const origen = `http://${TIENDA.host}:${puerto}`
   for (const ancho of ANCHOS) {
-    test(`formulario del pie y página de confirmación sin violaciones de axe a ${ancho} px`, async ({ browser }) => {
-      const contexto = await browser.newContext({ viewport: { width: ancho, height: 900 } })
-      const page = await contexto.newPage()
-      try {
-        const origen = `http://${TIENDA.host}:${puerto}`
+    test(`el formulario del pie no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width: ancho, height: 900 })
+      await page.goto(`${origen}/`)
+      const pie = page.getByTestId('pie-newsletter')
+      await pie.scrollIntoViewIfNeeded()
+      await expect(pie.getByRole('heading', { name: 'Newsletter' })).toBeVisible()
+      expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario vacío').toEqual([])
+      await pie.getByRole('button', { name: 'Suscribirme' }).click()
+      await expect(pie.locator('#newsletter-correo-error')).toBeVisible()
+      expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario con errores').toEqual([])
+      expect(await sinDesborde(page), 'el formulario no desborda').toBe(true)
+    })
 
-        // 1) Formulario del pie: vacío y con los errores de validación a la vista.
-        await page.goto(`${origen}/`)
-        const pie = page.getByTestId('pie-newsletter')
-        await pie.scrollIntoViewIfNeeded()
-        await expect(pie.getByRole('heading', { name: 'Newsletter' })).toBeVisible()
-        expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario vacío').toEqual([])
-        await pie.getByRole('button', { name: 'Suscribirme' }).click()
-        await expect(pie.locator('#newsletter-correo-error')).toBeVisible()
-        expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario con errores').toEqual([])
-        expect(await sinDesborde(page), 'el formulario no desborda').toBe(true)
-
-        // 2) Página de confirmación con un enlace inválido (no hace falta sembrar suscriptores).
-        await page.goto(`${origen}/newsletter/confirmar/${'x'.repeat(43)}`)
-        await expect(page.getByTestId('newsletter-confirmacion')).toBeVisible()
-        expect(await violacionesAxe(page), 'confirmación').toEqual([])
-        expect(await sinDesborde(page), 'la confirmación no desborda').toBe(true)
-      } finally {
-        await contexto.close()
-      }
+    // Enlace inválido: no hace falta sembrar suscriptores.
+    test(`la página de confirmación no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width: ancho, height: 900 })
+      await page.goto(`${origen}/newsletter/confirmar/${'x'.repeat(43)}`)
+      await expect(page.getByTestId('newsletter-confirmacion')).toBeVisible()
+      expect(await violacionesAxe(page), 'confirmación').toEqual([])
+      expect(await sinDesborde(page), 'la confirmación no desborda').toBe(true)
     })
   }
 })
