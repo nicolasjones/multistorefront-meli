@@ -183,3 +183,23 @@ describe.each(ANCHOS_TIENDA)('accesibilidad del detalle de un pedido a %i px', (
     expect(await violacionesAxe(conError.baseElement)).toEqual([])
   }, 60000)
 })
+
+// MSF-941: «Crear presupuesto» desde el pedido.
+describe('DetalleConsulta · crear presupuesto desde el pedido', () => {
+  it('lo ofrece solo con edición de Ventas', () => {
+    mocks.nivelClientes = 'lectura'
+    const { unmount } = montar()
+    expect(screen.queryByRole('button', { name: 'Crear presupuesto' })).toBeNull()
+    unmount()
+    mocks.nivelClientes = 'edicion'
+    montar()
+    expect(screen.getByRole('button', { name: 'Crear presupuesto' })).toBeEnabled()
+  })
+
+  it('con los ítems todavía cargando queda deshabilitado', () => {
+    mocks.nivelClientes = 'edicion'
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'cargando', items: [], reintentar: mocks.reintentar })
+    montar()
+    expect(screen.getByRole('button', { name: 'Crear presupuesto' })).toBeDisabled()
+  })
+})
