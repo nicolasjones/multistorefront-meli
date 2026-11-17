@@ -110,13 +110,13 @@ sources:
   manual y opt-in; no corre en `pnpm test` ni en el CI (la **suite** que lo prueba sí corre en el CI:
   `pnpm test:correo:verificar-salida`). En local comprueba la API de Mailpit con
   `MAILPIT_URL`; contra el servidor self-hosted se confirma a mano que el mensaje llega a `CORREO_PRUEBA`,
-  que es obligatoria en ese modo. Los códigos de salida (`0` verificado por Mailpit, `1` esta corrida no
-  envió nada, `2` falta una variable, `3` el aviso salió y la entrega queda por confirmar a mano) y su
-  registro están en [Verificación de salida del correo](../verificacion-salida-correo.md); en el servidor el
+  que es obligatoria en ese modo. Los códigos de salida y el registro de corridas están en
+  [Verificación de salida del correo](../verificacion-salida-correo.md) (definición única); en el servidor el
   guion **nunca** devuelve `0`, así que nunca es «verificado a mano».
 - **Pendiente:** relay SMTP real y entregabilidad (SPF/DKIM) en el VPS. Dueño: infraestructura/Nicolás.
-  La corrida contra el SMTP real **no se ejecutó** y no hay evidencia: queda trazada como **MSF-532**
-  (Tarea `seguimiento` a crear en el tracker) y registrada en
+  La corrida contra el SMTP real **no se ejecutó** y no hay evidencia. **MSF-532** es la historia que entregó
+  el guion y su documentación (ya cerrada); la corrida real es una Tarea `seguimiento` hija que **todavía no
+  tiene clave propia en el tracker** (pendiente de crear) y se registra en
   [Verificación de salida del correo](../verificacion-salida-correo.md).
   Detalle: [Perfil y permisos avanzados](perfil-y-permisos.md) · [Solicitar acceso](../solicitar-acceso.md).
 

@@ -32,7 +32,7 @@ describe('catálogo de estados del comprobante', () => {
 
   it('la tarjeta del detalle ofrece los estados en el orden del prototipo y todos existen en el catálogo', () => {
     expect(ESTADOS_DE_LA_TARJETA).toEqual(['confirmada', 'aceptado', 'cobrado', 'en_proceso', 'deuda', 'armando', 'incompleto'])
-    for (const estado of ESTADOS_DE_LA_TARJETA) expect(ESTADOS_COMPROBANTE[estado]).toBeDefined()
+    for (const estado of ESTADOS_DE_LA_TARJETA) expect(Object.keys(ESTADOS_COMPROBANTE), estado).toContain(estado)
   })
 
   it('solo Cobrado y Deuda son estados que se actualizan con el cobro', () => {
