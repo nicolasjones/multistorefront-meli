@@ -5,7 +5,7 @@
 ## Pública (la llama la tienda, MSF-212 · F-TDA-14)
 
 ```ts
-publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void
+publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void  -- vigente: solo service_role (MSF-657)
 ```
 
 - Ejecutable por `anon` y `authenticated`. La empresa se resuelve **solo** por `host` (`dominio.tiendas`); no recibe `empresa_id`. **No recibe ni guarda datos personales.**

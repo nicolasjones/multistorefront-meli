@@ -162,7 +162,7 @@ personales**: cada fila es un toque, no una persona.
 | Objeto | Esquema | Para qué |
 |---|---|---|
 | `dominio.intereses_whatsapp` | `dominio` | `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). |
-| `publico.registrar_interes_whatsapp(host text, producto_id uuid) → void` | `publico` | Alta del interés. `security definer`, `search_path = ''`. |
+| `publico.registrar_interes_whatsapp(host text, producto_id uuid) → void` | `publico` | Alta del interés. Solo `service_role` (MSF-657). `security definer`, `search_path = ''`. |
 | `public.interes_whatsapp_por_producto` | `public` (vista) | Lectura agrupada por empresa y producto. `security_invoker`. |
 
 - **Sin datos personales:** ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. La RPC **no los recibe**:
@@ -177,7 +177,7 @@ personales**: cada fila es un toque, no una persona.
   y de la vista.
 
 ```ts
-publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void
+publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void  -- solo service_role (MSF-657)
 ```
 
 Permisos: `revoke execute … from public` + `grant execute … to anon, authenticated`. Vive en `publico`, así que
@@ -360,9 +360,7 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
 - **RLS en la tabla nueva**: `enable row level security`, una sola política de `select` por organización,
   empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura**; `revoke all … from public, anon,
   authenticated` + `grant select … to authenticated`.
-- **`anon`**: sin privilegios sobre la tabla ni sobre la vista; su única puerta es
-  `publico.registrar_interes_whatsapp` (`security definer`, `search_path = ''`), que vive en `publico` y por
-  eso no altera la lista de RPC de `public` permitidas a `anon`.
+- **`anon`**: sin privilegios sobre la tabla ni sobre la vista; no ejecuta ninguna función de interés: `publico.registrar_interes_whatsapp` (`security definer`, `search_path = ''`) es solo `service_role` desde MSF-657 y vive en `publico`, por lo que no altera la lista de RPC de `public` permitidas a `anon`.
 - **Sin datos personales**: la RPC no los recibe ni los guarda; no hay IP, nombre, teléfono, correo ni
   mensaje. No hay forma de deduplicar toques sin identificar a la persona: cada toque cuenta.
 - **Sin enumeración de dominios**: mismo `P0002` para dominio desconocido y empresa desactivada, resuelto

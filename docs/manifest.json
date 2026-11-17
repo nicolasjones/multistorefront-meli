@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "1ecaa7a6799e86400919153b31bb316cf8da966f95b27144d45de3643f3ecd23",
-      "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": "22e0b6f5",
+      "pageHash": "9883d9e50136fdec6fddfdc011c404c0ba71f8b837b9a5cdef24c48274cf6788",
+      "sourceHash": "8f185fca1bbe67f891487db630ee280d60a69d617ea97f087e19062eac962c39",
+      "sourceAt": "3ce6fd76",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "22e0b6f5"
+      "commit": "3ce6fd76"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -1991,12 +1991,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "68b61759d435f928d1b17e1ac018e2ce50be1449871950109bb62af1b509fb99",
+      "pageHash": "4b83e8d20af15d077b3215e0c1aa9c42c9ade1f6c4454f068aabcbcc468edb46",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5846921d"
+      "commit": "5846921d7"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "362a4142be87eb57c9228242dbe1c2eaa1fc33172e819cd1fd2fb0ac3db447ec",
-      "sourceHash": "e58b078979e61d34a915133ca342a6484aa23c40a1a23c87aebe2671f8796be0",
-      "sourceAt": "764d5e1c",
+      "pageHash": "4ed303268375fd7e904bd5d09b6d4a8ae4cc3d23d7e8f2b0564cd8163026d580",
+      "sourceHash": "a4e9408afb7ede4d906fb159775b1a87f6a485619f45ca122600279aa16fc171",
+      "sourceAt": "3ce6fd76",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "764d5e1c"
+      "commit": "3ce6fd76"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
@@ -2905,14 +2905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "b085f78627e8ed77feaa405e25fdeb753a1e7e79e54b06713c920cdf0877c3a5",
+      "pageHash": "cc47c729d1c9367a8682e8973eb013e016b090eeb0312d20fef0310867a5ce40",
       "sourceHash": "82ed3a9eaf1364b8a3ab7a01cc41d1377fc5360edf5cdc9a3ee631b24737a627",
-      "sourceAt": "c35d315c",
+      "sourceAt": "54895abc",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c35d315c"
+      "commit": "54895abc"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3613,16 +3613,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "b39cf9399c8664dff82251472fa883f977ae158500d270e3979eb561b0dc5d1a",
-      "sourceHash": "1de44284937103f67b0ae99d55be652e6cfaa5743870ac1f7e6a15c59e4942ac",
-      "sourceAt": "488800f2",
+      "pageHash": "7e6d06dd9079bf491c0dcdc5bf1aec2e268211ba333343e4e8b4b3557a13824d",
+      "sourceHash": "efa52f1a88cd36e258b3ff571e3331f58d37e67ff3f1c67df1cc9ef138260506",
+      "sourceAt": "488800f2d",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "488800f2"
+      "commit": "488800f2d"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",

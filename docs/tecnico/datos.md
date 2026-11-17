@@ -1609,7 +1609,7 @@ erDiagram
     text sku }
 ```
 
-- **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)`
+- **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)` (solo `service_role` desde MSF-657)
   recibe solo el host y el producto; la empresa sale del dominio (`dominio.tiendas`).
 - Cada toque es una fila: **no hay deduplicación** (identificar al visitante exigiría guardar datos) y el
   anti-spam es de la tienda (MSF-212).
