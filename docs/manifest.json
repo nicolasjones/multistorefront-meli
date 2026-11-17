@@ -265,9 +265,9 @@
     },
     "docs/avisos-por-correo.md": {
       "title": "Avisos por correo configurables",
-      "pageHash": "6de976bc1e8d0d148800b7ca9361ce0b8a827322533213e5744ba88bd5480c94",
+      "pageHash": "8b9f9f8e5c5d7fe9b2f303c8d72de50d6f23fd128b1760348752307ee313456b",
       "sourceHash": "9f78e8a8dbacd9d31446df538515989f149e4076ff07a7ad48ace388381312af",
-      "sourceAt": "8451da59",
+      "sourceAt": null,
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "infra/kestra/flows/enviar-avisos.yml",
@@ -279,7 +279,7 @@
         "supabase/migrations/20261210120500_avisos_reclamar.sql"
       ],
       "owner": "tecnico",
-      "commit": "8451da59"
+      "commit": null
     },
     "docs/ayuda-en-panel.md": {
       "title": "Ayuda dentro del panel (MSF-385 · F-CFG-02)",
@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "fd981d06a64a2e77a85f489e0739a392f5204eb26a4e01db5065ac279774360c",
+      "pageHash": "2377a8d019841b6eb36c894dcaaf7c300db4ffed058e3d7adc1f2dd1bd1f5b82",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": "dc5599ace",
+      "sourceAt": null,
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "dc5599ace"
+      "commit": null
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -3697,16 +3697,16 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "c915403193c7c7bd387fcd4b7d3292588b1cac87298c64a23d9228159535c1e9",
-      "sourceHash": "91338ab0b556ad99915d2241285fc2c70585faa069c9cc04de9275a5d290fff0",
-      "sourceAt": "775b35f0",
+      "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
+      "sourceHash": "31cc455b734c02d7859ac36491b9a40c1f24df01fc53effb9d042a7afb9b9a18",
+      "sourceAt": null,
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": null
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
@@ -3846,14 +3846,14 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "fda9af50b7ddab960d5a2da1205353b42cda01db06fe9f662355a9b585983114",
+      "pageHash": "6e7451bdbd19de45569ed3b59ff07a98b7d718bd1e0e9ddf2756c0fb5042356a",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
-      "sourceAt": "ffbf1836",
+      "sourceAt": null,
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "producto",
-      "commit": "ffbf1836"
+      "commit": null
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
@@ -3977,7 +3977,7 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "29810aa136af2aae0a1742a4fdf9050261c458535515748466b2627dc6e1c16d",
+      "pageHash": "2386b84af9f4ef6db816238a49064db60b8b2dae1ad3d850b74a529cd81c0902",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
       "sourceAt": null,
       "sources": [
