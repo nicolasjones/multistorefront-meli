@@ -4,6 +4,13 @@ services:
     environment:
       # Sin esta variable el despliegue del VPS falla: el Compose base cae a http://localhost:5173 y cada correo masivo
       # saldría con el enlace de baja roto (MSF-711). Debe ser el origen público https del panel, sin barra final.
+      # MSF-712: imágenes de los workers por referencia INMUTABLE (digest o tag de commit). El Compose base trae `local/...:latest` solo
+      # para desarrollo; en el VPS un tag mutable no se actualiza nunca (el despacho hace `docker image inspect || docker pull`).
+      ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:?Definí HISTORIAL_IMPORTADOR_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_IMPORTAR_PRODUCTOS_IMAGEN: ${IMPORTAR_PRODUCTOS_IMAGEN:?Definí IMPORTAR_PRODUCTOS_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:?Definí EXPORTAR_COMPROBANTES_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_EXPORTAR_ORGANIZACION_IMAGEN: ${EXPORTAR_ORGANIZACION_IMAGEN:?Definí EXPORTAR_ORGANIZACION_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_COMPROBANTES_PDF_IMAGEN: ${COMPROBANTES_PDF_IMAGEN:?Definí COMPROBANTES_PDF_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:?Definí CORREO_MASIVO_URL_BAJA (origen público https del panel) en el .env del ambiente}
 
 # MSF-705: credenciales OBLIGATORIAS en el VPS. El Compose base trae valores por defecto (`change-me-local`, `*-local`)

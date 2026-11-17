@@ -63,7 +63,35 @@ export const VARIABLES_OBLIGATORIAS = [
     nombre: 'NANGO_SECRET_KEY_DEV',
     descripcion: 'credencial de nango sin valor por defecto en el VPS (infra/nango/compose.vps.yaml, MSF-705)',
   },
+  {
+    nombre: 'HISTORIAL_IMPORTADOR_IMAGEN',
+    descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
+    inmutable: true,
+  },
+  {
+    nombre: 'IMPORTAR_PRODUCTOS_IMAGEN',
+    descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
+    inmutable: true,
+  },
+  {
+    nombre: 'EXPORTAR_COMPROBANTES_IMAGEN',
+    descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
+    inmutable: true,
+  },
+  {
+    nombre: 'EXPORTAR_ORGANIZACION_IMAGEN',
+    descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
+    inmutable: true,
+  },
+  {
+    nombre: 'COMPROBANTES_PDF_IMAGEN',
+    descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
+    inmutable: true,
+  },
 ];
+
+// Referencia inmutable de una imagen: digest `@sha256:<64 hex>` o tag igual al SHA del commit (40 hex). `:latest` o sin tag no sirven.
+export const IMAGEN_INMUTABLE = /^[^\s@:]+(?::\d+)?(?:\/[^\s@:]+)*(?:@sha256:[0-9a-f]{64}|:[0-9a-f]{40})$/;
 
 // Lee KEY=valor de un .env (sin expandir variables): suficiente para saber si la clave está definida y no vacía.
 export function leerEnv(contenido) {
@@ -78,7 +106,11 @@ export function leerEnv(contenido) {
 
 export function variablesFaltantes(contenido) {
   const valores = leerEnv(contenido);
-  return VARIABLES_OBLIGATORIAS.filter(({ nombre }) => !valores.get(nombre));
+  // Falta si no está definida o, para las imágenes de workers, si no es una referencia inmutable (MSF-712).
+  return VARIABLES_OBLIGATORIAS.filter(({ nombre, inmutable }) => {
+    const valor = valores.get(nombre);
+    return !valor || (inmutable && !IMAGEN_INMUTABLE.test(valor));
+  });
 }
 
 export function mensajeFaltantes(faltantes, entorno, archivo = `.env.${entorno}`) {

@@ -57,6 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/validar-egress-workers.mjs
+          : > "$RUNNER_TEMP/worker-imagenes.txt"
 
           # descubrir-workers.mjs termina con error (stderr, stdout vacío) si
           # no hay ningún worker todavía — se captura antes de exigir
@@ -124,5 +125,26 @@ jobs:
               --sbom=true \
               --push .
             docker buildx imagetools inspect "$image:$SHA" >/dev/null
+            # MSF-712: el servidor hace `docker image inspect || docker pull`: un tag mutable (`:latest`) nunca se actualiza si la
+            # imagen ya está. Se publica la referencia INMUTABLE (digest) y se verifica que `:latest` y `:SHA` apunten a lo mismo.
+            digest=$(docker buildx imagetools inspect "$image:$SHA" --format '{{ .Manifest.Digest }}')
+            digest_latest=$(docker buildx imagetools inspect "$image:latest" --format '{{ .Manifest.Digest }}')
+            case "$digest" in sha256:????????????????????????????????????????????????????????????????) ;; *) echo "No se pudo leer el digest de $image:$SHA ($digest)" >&2; exit 1 ;; esac
+            if [ "$digest" != "$digest_latest" ]; then
+              echo "$image:latest ($digest_latest) no coincide con $image:$SHA ($digest)" >&2
+              exit 1
+            fi
+            docker buildx imagetools inspect "$image@$digest" >/dev/null
+            echo "$image@$digest" >> "$RUNNER_TEMP/worker-imagenes.txt"
             rm -f "$report"
           done <<< "$workers"
+
+          {
+            echo "### Imágenes de workers publicadas (referencia inmutable, MSF-712)"
+            echo
+            echo "Copiá cada línea a la variable \`*_IMAGEN\` del \`.env\` del ambiente (secret VPS_DEPLOY_ENV); el despliegue rechaza \`:latest\`."
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/worker-imagenes.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -201,3 +201,29 @@ test('los contenedores de larga vida usan init: true (MSF-736)', () => {
     assert.match(bloque[1], /^ {4}init: true$/m, `${archivo}/${servicio}: falta init: true`);
   }
 });
+
+// --- MSF-712: workers por referencia inmutable ---
+
+test('todo flow que despacha un worker rechaza tags mutables antes del pull (MSF-712)', () => {
+  const patron = /grep -Eq '(\^local\/\|@sha256:\[0-9a-f\]\{64\}\$\|:\[0-9a-f\]\{40\}\$)'/;
+  const conDocker = flows.filter((f) => f.texto.includes('docker image inspect'));
+  assert.ok(conDocker.length >= 7);
+  for (const f of conDocker) {
+    const guarda = f.texto.match(patron);
+    assert.ok(guarda, `${f.id}: falta la guarda de imagen inmutable`);
+    assert.ok(f.texto.indexOf(guarda[0]) < f.texto.indexOf('docker image inspect'), `${f.id}: la guarda va antes del pull`);
+  }
+  const ok = (imagen) => {
+    try {
+      execFileSync('sh', ['-c', `printf '%s' "$1" | grep -Eq '^local/|@sha256:[0-9a-f]{64}$|:[0-9a-f]{40}$'`, 'sh', imagen]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  assert.equal(ok('ghcr.io/o/r-worker-x:latest'), false);
+  assert.equal(ok('ghcr.io/o/r-worker-x'), false);
+  assert.equal(ok(`ghcr.io/o/r-worker-x@sha256:${'a'.repeat(64)}`), true);
+  assert.equal(ok(`ghcr.io/o/r-worker-x:${'b'.repeat(40)}`), true);
+  assert.equal(ok('local/worker-x:latest'), true);
+});

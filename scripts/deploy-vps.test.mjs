@@ -60,7 +60,7 @@ test('preflight: sin CORREO_MASIVO_URL_BAJA dice qué variable falta y dónde de
 
 test('preflight: con las variables definidas no las reclama (variablesFaltantes)', async () => {
   const { variablesFaltantes, leerEnv, VARIABLES_OBLIGATORIAS } = await import('./preflight-deploy-vps.mjs');
-  const completo = VARIABLES_OBLIGATORIAS.map(({ nombre }) => `${nombre}=x`).join('\n');
+  const completo = VARIABLES_OBLIGATORIAS.map(({ nombre, inmutable }) => `${nombre}=${inmutable ? `ghcr.io/org/worker@sha256:${'b'.repeat(64)}` : 'x'}`).join('\n');
   assert.deepEqual(variablesFaltantes(`${completo}\n`), []);
   assert.deepEqual(variablesFaltantes(completo.replace('CORREO_MASIVO_URL_BAJA=x', 'export CORREO_MASIVO_URL_BAJA="https://panel.ejemplo.com"')).length, 0);
   assert.deepEqual(variablesFaltantes(completo.replace('CORREO_MASIVO_URL_BAJA=x', '# CORREO_MASIVO_URL_BAJA=x')).map((f) => f.nombre), ['CORREO_MASIVO_URL_BAJA']);
@@ -72,7 +72,7 @@ test('preflight: con CORREO_MASIVO_URL_BAJA definida el script no corta con «Fa
   const dir = await mkdtemp(path.join(tmpdir(), 'deploy-vps-ok-'));
   const archivo = path.join(dir, '.env.staging');
   const { VARIABLES_OBLIGATORIAS } = await import('./preflight-deploy-vps.mjs');
-  await writeFile(archivo, `${VARIABLES_OBLIGATORIAS.map(({ nombre }) => `${nombre}=${nombre === 'CORREO_MASIVO_URL_BAJA' ? 'https://panel.ejemplo.com' : 'valor-de-prueba'}`).join('\n')}\n`);
+  await writeFile(archivo, `${VARIABLES_OBLIGATORIAS.map(({ nombre, inmutable }) => `${nombre}=${nombre === 'CORREO_MASIVO_URL_BAJA' ? 'https://panel.ejemplo.com' : inmutable ? `ghcr.io/org/worker@sha256:${'a'.repeat(64)}` : 'valor-de-prueba'}`).join('\n')}\n`);
   // Doble de `docker` en el PATH: registra los argumentos y sale 0, así no se toca ningún Docker real.
   const bin = path.join(dir, 'bin');
   await mkdir(bin);
@@ -97,7 +97,7 @@ test('las credenciales del VPS son obligatorias en compose.vps.yaml y coinciden 
     const texto = await readFile(path.resolve('infra', producto, 'compose.vps.yaml'), 'utf8');
     const bloque = texto.match(/^x-variables-obligatorias:\n((?: {2}.+\n)+)/m);
     assert.ok(bloque, `${producto}: falta x-variables-obligatorias`);
-    for (const m of bloque[1].matchAll(/\$\{([A-Z0-9_]+):\?/g)) enCompose.add(m[1]);
+    for (const m of texto.matchAll(/\$\{([A-Z0-9_]+):\?/g)) enCompose.add(m[1]);
     assert.ok([...bloque[1].matchAll(/\$\{([A-Z0-9_]+):\?/g)].length >= 4, `${producto}: pocas variables obligatorias`);
     // El Compose base conserva sus valores locales; el overlay del VPS no puede tener un valor por defecto para estas.
     assert.doesNotMatch(bloque[1], /:-/, `${producto}: una obligatoria no puede traer valor por defecto`);
@@ -105,4 +105,15 @@ test('las credenciales del VPS son obligatorias en compose.vps.yaml y coinciden 
   const preflight = new Set(VARIABLES_OBLIGATORIAS.map((v) => v.nombre));
   for (const nombre of enCompose) assert.ok(preflight.has(nombre), `${nombre} está en el Compose pero no en el preflight`);
   for (const nombre of preflight) if (nombre !== 'CORREO_MASIVO_URL_BAJA') assert.ok(enCompose.has(nombre), `${nombre} está en el preflight pero no en el Compose`);
+});
+
+test('preflight: una imagen de worker con tag mutable (:latest) o sin tag cuenta como faltante (MSF-712)', async () => {
+  const { variablesFaltantes, VARIABLES_OBLIGATORIAS } = await import('./preflight-deploy-vps.mjs');
+  const base = VARIABLES_OBLIGATORIAS.map(({ nombre, inmutable }) => `${nombre}=${inmutable ? `ghcr.io/org/worker@sha256:${'c'.repeat(64)}` : 'x'}`);
+  assert.deepEqual(variablesFaltantes(base.join('\n')), []);
+  const con = (valor) => base.map((l) => (l.startsWith('HISTORIAL_IMPORTADOR_IMAGEN=') ? `HISTORIAL_IMPORTADOR_IMAGEN=${valor}` : l)).join('\n');
+  for (const mutable of ['ghcr.io/org/worker:latest', 'ghcr.io/org/worker', 'ghcr.io/org/worker:v1', 'local/worker-historial-importador:latest']) {
+    assert.deepEqual(variablesFaltantes(con(mutable)).map((f) => f.nombre), ['HISTORIAL_IMPORTADOR_IMAGEN'], mutable);
+  }
+  assert.deepEqual(variablesFaltantes(con(`ghcr.io/org/worker:${'d'.repeat(40)}`)), [], 'el tag del commit es inmutable');
 });
