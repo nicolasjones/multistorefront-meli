@@ -1106,7 +1106,7 @@
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
-      "pageHash": "5dff641b2993bbe9f526356c2b008c1e475044e9ec00c860781cc857f90e10a6",
+      "pageHash": "ac98d2963c5888d218cdbfff03176b007cf701546f5136ecf832c7a449f8917a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1171,7 +1171,7 @@
     },
     "docs/producto/capacidades.md": {
       "title": "Qué podés hacer con el sistema",
-      "pageHash": "a034ceae02e0eebf557650a5973619220f4d423dd4d28bdd0c1334a60499b142",
+      "pageHash": "2f7658679e8618a3e0efffe0bd88ff9d26fc278496601fd3c5b3703501dc1a6f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -1511,6 +1511,15 @@
       "owner": "producto",
       "commit": "c7860a7c"
     },
+    "docs/producto/reportes-de-inventario.md": {
+      "title": "Reportes de inventario: cuánto vale tu stock y qué reponer",
+      "pageHash": "d736da38d3047d1a6028cfe357cdf43b249146b3c35c889e680cd9d423fa0dbc",
+      "sourceHash": "",
+      "sourceAt": null,
+      "sources": [],
+      "owner": "producto",
+      "commit": null
+    },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
       "pageHash": "708ed1a5343896361f4dabc926bb3dbe9756e2851b8b159c40741d270997b04b",
@@ -1682,7 +1691,7 @@
     },
     "docs/producto/usuarios-y-roles.md": {
       "title": "Usuarios y roles: quién puede qué",
-      "pageHash": "ebe638b5506a607f1a363312b43b3a8f88d0c072699d6ee5206bf4fa791574a3",
+      "pageHash": "fedde3fb1a6077b980d372d17dee5a093c9a76874eff80254135d8ab1baf94d5",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
@@ -2701,8 +2710,8 @@
     },
     "docs/tecnico/biblioteca.md": {
       "title": "Biblioteca",
-      "pageHash": "b47547782db85591fb4593854fe222a5fc80548d3986792bb3a55d59459cd8bf",
-      "sourceHash": "44a38720c942fd18408a0446beb754d8ce5d300db81463c163e5a9c88840c72c",
+      "pageHash": "e449391fe00a759416e01647423a99ce805399b959889d06dd868de415256be5",
+      "sourceHash": "f49b57594586b0c30b0144766de77001f3f49988d8f04ae7911c314ed27601de",
       "sourceAt": "120002d7",
       "sources": [
         "apps/web/src"
@@ -2896,14 +2905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "745da081d5de22ac0d868bd645a3be6bb147eaa37191550510ab602a775de626",
-      "sourceHash": "4e83720b7318b452f41311e365f56313b12db0edcd8eea65ebff7509fec2b2dd",
-      "sourceAt": "598b94c8",
+      "pageHash": "79bb98780af8431238e63748644a4935c5fbf26c04e4a811e3d10a15177790b2",
+      "sourceHash": "82ed3a9eaf1364b8a3ab7a01cc41d1377fc5360edf5cdc9a3ee631b24737a627",
+      "sourceAt": "159e2e4a",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "598b94c8"
+      "commit": "159e2e4a"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3220,6 +3229,25 @@
       ],
       "owner": "tecnico",
       "commit": "a8f3d3a9"
+    },
+    "docs/tecnico/reportes-inventario.md": {
+      "title": "Reportes de inventario y exportación (técnico, MSF-140)",
+      "pageHash": "6b5100b6d9af5afeda96b6de8f1c613b1341d97873755e2bfc44e0496619094f",
+      "sourceHash": "1d90662d346f02f389ef426119dd609d8c798d4045dd1b170aea618e8ebfecc6",
+      "sourceAt": null,
+      "sources": [
+        "specs/20270201-100000-reportes-de-inventario-y-exportacion",
+        "supabase/migrations/20270202201200_analitica_inventario_productos_stock.sql",
+        "supabase/migrations/20270202201201_analitica_inventario_reposicion.sql",
+        "infra/superset/dashboards/inventario",
+        "infra/superset/superset_config.py",
+        "apps/web/src/pages/reportes",
+        "apps/web/src/lib/reportes-inventario.ts",
+        "apps/web/src/components/navegacion/destinosPanel.ts",
+        "apps/web/e2e/reportes-inventario.e2e.ts"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/runbooks/README.md": {
       "title": "Runbooks",

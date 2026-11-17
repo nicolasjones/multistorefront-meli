@@ -74,7 +74,7 @@ Estas son las acciones con permiso propio y quiénes las tienen al empezar (las 
 |---|---|
 | Eliminar | Administrador |
 | Exportar | Administrador, Operador, Administración |
-| Ver costos | Administrador, Administración |
+| Ver costos | Administrador, Administración (y Operador, solo en Stock) |
 | Modificar el precio de una línea de venta | Administrador, Operador |
 | Anular un comprobante | Administrador, Administración |
 | Emitir una nota de crédito | Administrador, Administración |
