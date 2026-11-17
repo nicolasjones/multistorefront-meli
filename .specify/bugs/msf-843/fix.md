@@ -77,6 +77,12 @@ El hallazgo simulado es el que knip reportó en el CI del 2026-11-12 (`pg` sin d
 - `node --test scripts/calidad.test.mjs` → 3/3 en verde (1 previo de MSF-683 + 2 nuevos).
 - `pnpm test:ci` → verde (incluye `scripts/calidad.test.mjs`).
 - `pnpm dlx knip@6.44.1 --no-progress` sobre `dokploy` actual → **0 hallazgos**, exit 0.
+- Reproducción del hallazgo original sobre `dokploy` actual: restaurando **un solo archivo**
+  (`git show 3892a22f:apps/web/e2e/ventas-impresion.e2e.ts > apps/web/e2e/ventas-impresion.e2e.ts`)
+  y corriendo knip, sale `Unlisted dependencies (1)` / `pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130`
+  (exit 1) — el texto exacto que el reporte decía que no se podía leer. Al restaurar el archivo,
+  knip vuelve a 0. Deja probado que el hallazgo existió y que knip sigue detectándolo (no está
+  silenciado).
 - `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` → OK.
 - `pnpm lint` → exit 0. `pnpm build` → exit 0.
 - `pnpm calidad` → `knip`, `oxlint`, `jscpd`, `dependency-cruiser` y `syncpack` en **ok**; `gitleaks`

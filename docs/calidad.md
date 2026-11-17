@@ -58,7 +58,7 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 
 Un `quality` rojo que no dice qué encontró obliga a reproducir la herramienta a mano para
 saber la causa. `scripts/calidad.mjs` lo evita con dos garantías, y las dos están fijadas por
-test (`pnpm test:ci` → `scripts/calidad.test.mjs`):
+test (`pnpm test:ci` → `scripts/calidad.test.mjs`). A eso se suma cómo hay que leer el informe:
 
 1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
    `## <check>` por cada check con hallazgos, con su salida; `reports/calidad.log` lleva la
@@ -67,6 +67,14 @@ test (`pnpm test:ci` → `scripts/calidad.test.mjs`):
    su modo de anotaciones (`::warning`/`::error`): el runner las consume como anotaciones y el
    texto del hallazgo desaparece del log, así que el rojo queda sin diagnóstico. `calidad.mjs`
    la borra del entorno de los hijos y los corre con `NO_COLOR`/`FORCE_COLOR` apagados.
+3. **La copia versionada de `reports/calidad.md` es una foto de una corrida vieja.** El job
+   `quality` regenera el informe en el workspace y lo sube como artifact `calidad-reporte`; lo que
+   quedó versionado es la última corrida local que alguien commiteó, y por convención no se
+   commitea una regenerada (el diff no lleva reporte generado). Esa copia puede marcar
+   `hallazgos` de un problema que ya no existe: en MSF-843 seguía diciendo
+   `knip (código muerto) | hallazgos` cuando knip ya daba 0, y eso fue lo que apuntó al hallazgo
+   inexistente. El estado que vale es el del artifact del CI o el de `pnpm calidad` en el momento;
+   para el código, `pnpm dlx knip@6.44.1 --no-progress`.
 
 Esto es lo que pasó en MSF-843: el `quality` del PR #882 quedó rojo con un knip que en el log
 sólo aparecía como `apps/web/src/pages/conexiones/list.tsx:44:1`, sin el texto que explicaba el

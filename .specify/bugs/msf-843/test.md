@@ -22,6 +22,8 @@ modo de anotaciones y dejaba el log sin texto).
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
 | Reproducción (post-fix) — knip | `pnpm dlx knip@6.44.1 --no-progress` sobre `dokploy` actual (`0d75df2c`) | pass | 0 hallazgos, exit 0. El hallazgo del CI (`pg` sin declarar en `apps/web/e2e/ventas-impresion.e2e.ts:88:130`) ya no está en la base. |
+| Reproducción del hallazgo ORIGINAL | `git show 3892a22f:apps/web/e2e/ventas-impresion.e2e.ts > apps/web/e2e/ventas-impresion.e2e.ts` + `pnpm dlx knip@6.44.1 --no-progress` (después `git checkout --` del archivo) | pass (reproduce) | Sale **idéntico** al texto que el reporte decía que no se podía leer: `Unlisted dependencies (1)` / `pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130` (exit 1). Al restaurar el archivo, knip vuelve a 0. Es la prueba de que el hallazgo existió y de que knip **no** está silenciado: sigue viendo ese archivo. |
+| Hallazgo del log (`conexiones/list.tsx:44:1`) | lectura del archivo completo (71 líneas) | pass (no es código muerto) | Los 11 imports se usan todos, `columnas:15` se usa en `61`, `ConexionList:23` es la ruta del panel y la línea 44 es el `useEffect` que dispara la carga (su retorno es la función de cleanup). No hay código muerto que quitar en ese archivo. |
 | Reproducción (post-fix) — `docs:check` | `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | pass | `Documentación de cambios: OK`; `Migraciones OK`; `Trampas conocidas: OK`. |
 | Reproducción (post-fix) — guardián | `pnpm e2e:escritura:check` | pass | `ningún spec escribe directo en tablas de solo lectura para service_role`. |
 | Tests nuevos | `node --test scripts/calidad.test.mjs` | pass | 3/3 (1 previo de MSF-683 + 2 de MSF-843). |
@@ -69,6 +71,18 @@ Trampas conocidas: OK (0 migración(es), 0 prueba(s) pgTAP y 0 E2E revisados con
 ```
 
 ```text
+# el hallazgo ORIGINAL, reproducido sobre dokploy actual (2026-11-17):
+$ git show 3892a22f:apps/web/e2e/ventas-impresion.e2e.ts > apps/web/e2e/ventas-impresion.e2e.ts
+$ pnpm dlx knip@6.44.1 --no-progress
+Unlisted dependencies (1)
+pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130
+EXIT=1
+$ git checkout -- apps/web/e2e/ventas-impresion.e2e.ts
+$ pnpm dlx knip@6.44.1 --no-progress
+EXIT=0
+```
+
+```text
 # el log del job quality que falló (run 43324206071, job 131552415859) — la última línea del paso:
 2026-11-12T22:58:50.9539306Z ##[warning]apps/web/src/pages/conexiones/list.tsx:44:1[ELIFECYCLE] Command failed with exit code 1.
 # (no aparecen ni el encabezado "== knip (código muerto)" ni el bloque "---- RESUMEN ----")
@@ -111,12 +125,15 @@ Trampas conocidas: OK (0 migración(es), 0 prueba(s) pgTAP y 0 E2E revisados con
   debe cambiarse con él.
 - La suite completa de `pnpm test` (pgTAP y E2E) no se corrió localmente: necesita el stack de
   Supabase; corre en el CI.
-- El hallazgo original del log del CI (`apps/web/src/pages/conexiones/list.tsx:44:1`) no se pudo
-  reconstruir como hallazgo de knip: el archivo es idéntico byte a byte en la base del CI, en el head
-  del CI y en `dokploy` actual, y su línea 44 nunca fue una declaración exportada. La hipótesis
-  sostenida (el runner consumió la salida de knip en modo anotaciones y el log conserva sólo el
-  último texto renderizado) queda anotada en el assessment; con este PR, `reports/calidad.log` la
-  vuelve innecesaria como fuente de verdad.
+- El hallazgo original del log del CI (`apps/web/src/pages/conexiones/list.tsx:44:1`) no era un
+  hallazgo de knip: el archivo es idéntico byte a byte en la base del CI, en el head del CI y en
+  `dokploy` actual, su línea 44 nunca fue una declaración exportada y no tiene código muerto
+  (revisado a mano). El hallazgo real —`pg` sin declarar en `apps/web/e2e/ventas-impresion.e2e.ts`—
+  **quedó reproducido** el 2026-11-17 restaurando ese único archivo desde `3892a22f`, y el texto
+  que knip imprime coincide byte a byte con lo que el reporte decía que no se podía leer. Por qué
+  el log mostraba la ruta equivocada (el runner consumió la salida de knip en modo anotaciones y el
+  log conserva sólo el último texto renderizado) queda anotado en el assessment; con este PR,
+  `reports/calidad.log` lo vuelve innecesario como fuente de verdad.
 
 ## Recommendation
 
