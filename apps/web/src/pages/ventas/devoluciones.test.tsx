@@ -255,6 +255,29 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     expect(screen.queryByRole('option', { name: /NOTA/ })).not.toBeInTheDocument()
   })
 
+  it('si falla la carga de comprobantes avisa y permite reintentar', async () => {
+    mocks.listarComprobantes.mockRejectedValueOnce(new Error('red'))
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    expect(await within(dialogo).findByText('No pudimos cargar los comprobantes.')).toBeInTheDocument()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Reintentar' }))
+    await waitFor(() => expect(within(dialogo).queryByText('No pudimos cargar los comprobantes.')).not.toBeInTheDocument())
+  })
+
+  it('si se agota el tope de páginas sin juntar facturas avisa que hay más resultados', async () => {
+    const anuladas = Array.from({ length: 50 }, (_, i) => ({
+      id: `a-${i}`, numero: `A-${i}`, tipo: 'factura', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-07', cliente: 'X', operador: 'E', estado: 'anulada', forma_pago: null, envio: null, total: 1,
+    }))
+    mocks.listarComprobantes.mockResolvedValue({ comprobantes: anuladas, total: 100000 })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    expect(await within(dialogo).findByText('Hay más resultados: refiná la búsqueda.')).toBeInTheDocument()
+  })
+
   it('valida antes de enviar: sin comprobante, ítem ni motivo no llama a la base', async () => {
     abrir()
     await screen.findByText('Cliente 1')

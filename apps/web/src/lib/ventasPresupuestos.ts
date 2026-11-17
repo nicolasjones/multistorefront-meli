@@ -105,15 +105,22 @@ function aResultado(dato: unknown): PresupuestoResultado {
   return { id: fila.id, numero: fila.numero, estado: String(fila.estado ?? '') }
 }
 
-// `aceptar_presupuesto` rechaza con 55000 y un texto propio («está vencido», «ya no se puede aceptar»): se muestra ese
-// texto en vez del genérico «comprobante cerrado». Solo se toma el mensaje si es de esta RPC, nunca uno técnico.
-const MENSAJES_ACEPTAR_DE_LA_RPC = ['El presupuesto está vencido', 'Este presupuesto ya no se puede aceptar'] as const
+// `aceptar_presupuesto` rechaza con 55000 y un texto propio. Se devuelve SIEMPRE la constante del catálogo que coincide
+// con el texto de la RPC (nunca el `message` del servidor); cualquier otro 55000 cae al genérico de comprobantes.
+const MENSAJES_ACEPTAR_DE_LA_RPC = [
+  'El presupuesto está vencido y no se puede aceptar',
+  'Este presupuesto ya no se puede aceptar',
+] as const
 
 export function mensajeDeAceptarPresupuesto(error: unknown, porDefecto: string): string {
   const e = error as { code?: string; message?: unknown } | null
-  if (e?.code === '55000' && typeof e.message === 'string' && MENSAJES_ACEPTAR_DE_LA_RPC.some((p) => (e.message as string).startsWith(p))) {
-    console.error(porDefecto, e.code)
-    return e.message
+  const conocido =
+    e?.code === '55000' && typeof e.message === 'string'
+      ? MENSAJES_ACEPTAR_DE_LA_RPC.find((m) => (e.message as string).startsWith(m))
+      : undefined
+  if (conocido) {
+    console.error(porDefecto, e?.code)
+    return conocido
   }
   return mensajeDeErrorComprobante(error, porDefecto)
 }

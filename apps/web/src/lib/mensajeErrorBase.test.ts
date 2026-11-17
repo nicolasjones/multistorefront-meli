@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { esErrorDeNegocio, mensajeDeErrorBase } from './mensajeErrorBase'
+import { mensajeDeErrorBase } from './mensajeErrorBase'
 
 describe('mensajeDeErrorBase', () => {
   beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}) })
@@ -19,10 +19,6 @@ describe('mensajeDeErrorBase', () => {
     expect(mensajeDeErrorBase({ code: '55000' }, 'x')).toMatch(/estado actual/)
     expect(mensajeDeErrorBase({ code: '55006' }, 'x')).toMatch(/en curso/)
     expect(mensajeDeErrorBase({ code: '54000' }, 'x')).toMatch(/máximo/)
-    expect(esErrorDeNegocio({ code: '55000' })).toBe(true)
-    expect(esErrorDeNegocio({ code: 'P0002' })).toBe(true)
-    expect(esErrorDeNegocio({ code: 'XX000' })).toBe(false)
-    expect(esErrorDeNegocio(null)).toBe(false)
   })
 
   it('tolera errores sin forma (null, string, Error)', () => {

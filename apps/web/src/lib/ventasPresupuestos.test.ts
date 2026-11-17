@@ -33,7 +33,9 @@ describe('listarPresupuestos', () => {
 describe('mensajeDeAceptarPresupuesto', () => {
   it('muestra el texto de la RPC cuando el presupuesto está vencido o ya no se acepta', () => {
     const vencido = { code: '55000', message: 'El presupuesto está vencido y no se puede aceptar' }
-    expect(mensajeDeAceptarPresupuesto(vencido, 'x')).toBe(vencido.message)
+    expect(mensajeDeAceptarPresupuesto(vencido, 'x')).toBe('El presupuesto está vencido y no se puede aceptar')
+    // Texto con cola del servidor: se devuelve la constante, no el mensaje crudo.
+    expect(mensajeDeAceptarPresupuesto({ ...vencido, message: `${vencido.message} (id 123)` }, 'x')).toBe(vencido.message)
     const otro = { code: '55000', message: 'Este presupuesto ya no se puede aceptar' }
     expect(mensajeDeAceptarPresupuesto(otro, 'x')).toBe(otro.message)
   })

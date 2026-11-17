@@ -16,7 +16,8 @@ Lote de la auditoría MSF-647: errores de negocio que PostgREST contesta como 5x
 ## Qué pasa hoy
 
 Las RPC de `public` avisan «no» al usuario con `raise exception ... using errcode = '<código>'`. PostgREST
-traduce el SQLSTATE a HTTP por **clase** (documentación de PostgREST, no reproducido contra la versión instalada):
+traduce el SQLSTATE a HTTP por **clase**. La columna HTTP sale de la documentación de PostgREST y **no está verificada
+contra la versión instalada** (en especial la fila `40001`):
 
 | SQLSTATE | Uso en las RPC | HTTP de PostgREST |
 |---|---|---|
@@ -38,11 +39,11 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
    repo el patrón `PT404`/`PT409` de PostgREST (`raise ... using errcode = 'PT409'`) que permita un 4xx sin
    cambiar de semántica. Sin ese patrón probado contra la versión instalada, no se introduce uno nuevo.
 2. **Catálogo central en `lib/mensajeErrorBase.ts`**: `mensajeDeErrorBase` ahora traduce también `55000`, `55006`
-   y `54000`, y `esErrorDeNegocio(error)` identifica los códigos que son «no» de negocio y no una falla del
-   servidor (para monitoreo y reintentos del cliente).
+   y `54000` con un texto accionable (los textos propios de cada pantalla tienen prioridad). El estado HTTP y el
+   monitoreo del servidor no cambian: ver «Pendiente».
 3. **Brecha concreta cerrada**: `aceptar_presupuesto` responde `55000` con «El presupuesto está vencido…» y la
    pantalla mostraba el genérico «Este comprobante ya está cerrado». `mensajeDeAceptarPresupuesto` muestra el
-   texto propio de la RPC (solo textos conocidos de esa RPC, nunca el `message` crudo).
+   texto fijo del catálogo que coincide con el de la RPC (nunca el `message` del servidor).
 4. **MSF-638** (`obtener_reparacion`): una reparación de una tienda inaccesible se trata como inexistente a
    propósito (no revela que existe) y la ficha, la orden y el remito ya muestran «Esa reparación ya no existe»
    (`mensajeDeErrorReparacion`, código `P0002`). Lo único pendiente es el estado HTTP.
@@ -55,8 +56,9 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
   mensaje, hint)` y migrar por olas, empezando por las críticas (`obtener_reparacion`, `aceptar_presupuesto`,
   `anular_comprobante`, `confirmar_comprobante`, `cambiar_estado_despacho`, `actualizar_producto`), cada ola con su
   pgTAP; 3) actualizar a la vez los mapeos del cliente para aceptar el código viejo y el nuevo.
-- Alcance aproximado por código (última definición en las migraciones; el conteo exacto sale de `pg_proc`):
-  `P0002` ~109 funciones, `55000` ~39, `40001` ~38, `54000` ~13, `55006` 3. Consulta exacta:
+- Alcance por código, **contado por migraciones, sin verificar contra `pg_proc`** (última definición de cada función
+  de `public`): `P0002` 163 funciones (más 22 en `private` y 2 en `publico`), `55000` 39, `40001` 38, `54000` 13,
+  `55006` 3. Consulta para verificarlo en una base:
   `select proname from pg_proc where pronamespace = 'public'::regnamespace and prosrc ~* 'errcode\s*=\s*''55000''';`
 - `publico.registrar_interes_whatsapp` y `publico.crear_consulta_publica` lanzan `P0002` ante un host desconocido y
   los llama `anon`: se resuelven con la misma convención, cuidando de no revelar qué hosts existen.
@@ -74,7 +76,9 @@ auditado, o se permite anular dejando el cobro como saldo a favor? Hasta decidir
 
 El diálogo pedía la página 1 (20 filas) de `listar_comprobantes` y filtraba en el cliente las facturas no
 borrador ni anuladas. Ahora `listarFacturasElegibles` (`lib/facturasElegibles.ts`) filtra cada página y sigue con
-la siguiente hasta juntar 20 elegibles (tope: 10 páginas de 50). Sin cambios en la base.
+la siguiente hasta juntar 20 elegibles (tope: 10 páginas de 50), corta si la persona cierra el diálogo o sigue
+tipeando, avisa «Hay más resultados: refiná la búsqueda» si se agota el tope con páginas pendientes y, si una página
+falla, muestra «No pudimos cargar los comprobantes.» con «Reintentar». Sin cambios en la base.
 
 Pendiente: el pedido de ofrecer **Borrador** y **Anulada** en el filtro Estado de Comprobantes y mostrar el estado de
 despacho en el listado cambia lo visible, y el prototipo (`VentasComprobantes.dc.html`) manda la UI: primero hay que

@@ -59,6 +59,9 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
   const [busqueda, setBusqueda] = useState('')
   const [opciones, setOpciones] = useState<ComprobanteElegible[]>([])
   const [cargandoOpciones, setCargandoOpciones] = useState(false)
+  const [opcionesTruncadas, setOpcionesTruncadas] = useState(false)
+  const [errorOpciones, setErrorOpciones] = useState(false)
+  const [intentoOpciones, setIntentoOpciones] = useState(0)
   const [comprobante, setComprobante] = useState<ComprobanteElegible | null>(null)
   const [lineas, setLineas] = useState<LineaElegible[]>([])
   const [errorLineas, setErrorLineas] = useState(false)
@@ -75,6 +78,7 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
   useEffect(() => {
     let vigente = true
     setCargandoOpciones(true)
+    setErrorOpciones(false)
     const espera = setTimeout(() => {
       void (async () => {
         try {
@@ -82,13 +86,17 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
             { ...FILTROS_VACIOS, busqueda, empresaId },
             (c) => !ESTADOS_SIN_RMA.includes(c.estado),
             20,
+            () => !vigente,
           )
           if (!vigente) return
-          setOpciones(elegibles.map((c) => ({ id: c.id, numero: c.numero, cliente: c.cliente, empresa: c.empresa })))
+          setOpciones(elegibles.facturas.map((c) => ({ id: c.id, numero: c.numero, cliente: c.cliente, empresa: c.empresa })))
+          setOpcionesTruncadas(elegibles.truncado)
         } catch (falla) {
           if (!vigente) return
           console.error('No pudimos cargar los comprobantes.', falla)
           setOpciones([])
+          setOpcionesTruncadas(false)
+          setErrorOpciones(true)
         }
         if (vigente) setCargandoOpciones(false)
       })()
@@ -97,7 +105,7 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
       vigente = false
       clearTimeout(espera)
     }
-  }, [busqueda, empresaId])
+  }, [busqueda, empresaId, intentoOpciones])
 
   const elegirComprobante = (elegido: ComprobanteElegible | null) => {
     setComprobante(elegido)
@@ -181,6 +189,13 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
               />
             )}
           />
+
+          {errorOpciones && (
+            <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => setIntentoOpciones((n) => n + 1)}>Reintentar</Button>}>
+              No pudimos cargar los comprobantes.
+            </Alert>
+          )}
+          {opcionesTruncadas && !errorOpciones && <Alert severity="info">Hay más resultados: refiná la búsqueda.</Alert>}
 
           <TextField
             select
