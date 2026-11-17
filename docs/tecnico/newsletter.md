@@ -374,7 +374,9 @@ stateDiagram-v2
   La UI solo oculta: componer, guardar, enviar, cancelar, dar de baja y borrar datos exigen rol
   Administrador con edición en `clientes`.
 - **Invariante de destinatarios (MSF-967):** toda lista o conteo filtra `estado = 'confirmado'`, nunca
-  `<> 'baja'`. Un `pendiente` que conserva `baja_en` no cuenta ni recibe nada.
+  `<> 'baja'`. Un `pendiente` que conserva `baja_en` no cuenta ni recibe nada. El pgTAP
+  `newsletter_invariante_confirmado.test.sql` lo fija en los cuatro caminos (reclamo del lote, KPI y listado, vista previa y foto de
+  `enviar_newsletter`) y revisa el código de esas funciones: una función nueva que elija destinatarios debe sumarse a su lista.
 - Eventos de Actividad (`apps/web/src/lib/actividad.ts`), sin correos, mensajes ni cuerpo:
   `newsletter.configurar`, `.guardar`, `.prueba`, `.enviar` (asunto y cantidad), `.cancelar`, `.baja`
   (solo la primera vez), `.baja_manual`, `.datos_borrados`.
