@@ -48,27 +48,27 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
       await expect(page.getByRole('heading', { name: 'Actividad', exact: true })).toBeVisible()
 
       // Período por defecto (últimos 7 días): los 12 eventos recientes; el de hace 20 días queda afuera.
-      await expect(page.getByText('12 eventos')).toBeVisible()
+      await expect(page.getByText('12 eventos', { exact: true })).toBeVisible()
 
       // Búsqueda por texto.
       await escribir(page, page.getByLabel('Buscar en la actividad'), marca)
       await expect(page.getByText('1 evento', { exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: `Ver detalle: Quitó a ${marca} de la organización` })).toBeVisible()
       await escribir(page, page.getByLabel('Buscar en la actividad'), '')
-      await expect(page.getByText('12 eventos')).toBeVisible()
+      await expect(page.getByText('12 eventos', { exact: true })).toBeVisible()
 
       // Filtro por tipo.
-      await page.getByLabel('Tipo').click()
-      await page.getByRole('option', { name: 'Usuario removido' }).click()
+      await clic(page, page.getByLabel('Tipo'))
+      await clic(page, page.getByRole('option', { name: 'Usuario removido' }))
       await expect(page.getByText('1 evento', { exact: true })).toBeVisible()
-      await page.getByLabel('Tipo').click()
-      await page.getByRole('option', { name: 'Todos los tipos' }).click()
-      await expect(page.getByText('12 eventos')).toBeVisible()
+      await clic(page, page.getByLabel('Tipo'))
+      await clic(page, page.getByRole('option', { name: 'Todos los tipos' }))
+      await expect(page.getByText('12 eventos', { exact: true })).toBeVisible()
 
       // Período: con 30 días entra el evento antiguo.
-      await page.getByLabel('Período').click()
-      await page.getByRole('option', { name: 'Últimos 30 días' }).click()
-      await expect(page.getByText('13 eventos')).toBeVisible()
+      await clic(page, page.getByLabel('Período'))
+      await clic(page, page.getByRole('option', { name: 'Últimos 30 días' }))
+      await expect(page.getByText('13 eventos', { exact: true })).toBeVisible()
 
       // Sin resultados: estado vacío que explica que hay filtros.
       await escribir(page, page.getByLabel('Buscar en la actividad'), `no-existe-${sufijo}`)

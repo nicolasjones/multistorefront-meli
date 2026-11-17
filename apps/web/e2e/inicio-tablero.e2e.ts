@@ -31,8 +31,11 @@ type Sembrado = {
   idsUsuario: string[]
 }
 
-async function sembrar(sufijo: string): Promise<Sembrado> {
+// Lo creado se registra en `registro` a medida que se crea: si la siembra falla a mitad, `limpiar` borra lo que alcanzó a existir.
+async function sembrar(sufijo: string, registro: Partial<Sembrado>): Promise<void> {
+  registro.idsUsuario = []
   const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E tablero ${sufijo}` })
+  registro.orgId = org.id
   const [empresa] = await rest<{ id: string; nombre: string }>('empresas', [{ organizacion_id: org.id, nombre: `Tienda tablero ${sufijo}`, activa: true }], 'dominio')
   const correos = {
     administrador: `admin-tablero-${sufijo}@example.com`,
@@ -40,7 +43,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     consulta: `consulta-tablero-${sufijo}@example.com`,
   } as const
   const ids: Record<string, string> = {}
-  for (const [rol, correo] of Object.entries(correos)) ids[rol] = await altaUsuario(correo)
+  for (const [rol, correo] of Object.entries(correos)) {
+    ids[rol] = await altaUsuario(correo)
+    registro.idsUsuario.push(ids[rol])
+  }
   await rest('usuarios_organizacion', [
     { user_id: ids.administrador, organizacion_id: org.id, rol_id: 'administrador' },
     { user_id: ids.operador, organizacion_id: org.id, rol_id: 'operador' },
@@ -77,18 +83,32 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     'dominio',
     UPSERT_FUSIONAR,
   )
-  return { orgId: org.id, tienda: empresa.nombre, skuAlerta, nombreAlerta, nombreSinStock, nombreNormal, correos, idsUsuario: Object.values(ids) }
+  Object.assign(registro, { tienda: empresa.nombre, skuAlerta, nombreAlerta, nombreSinStock, nombreNormal, correos })
 }
 
-async function limpiar(datos: Sembrado) {
-  await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
-  await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
-  await borrar(`producto_empresa?organizacion_id=eq.${datos.orgId}`, 'dominio')
-  await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
-  await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
-  await borrar(`empresas?organizacion_id=eq.${datos.orgId}`, 'dominio')
-  await borrar(`organizaciones?id=eq.${datos.orgId}`)
-  for (const id of datos.idsUsuario) await borrarUsuario(id)
+// Cada borrado va protegido: si uno falla, los siguientes igual corren y al final se informa lo que no se pudo limpiar.
+async function limpiar(datos: Partial<Sembrado>) {
+  const fallos: string[] = []
+  const intentar = async (nombre: string, accion: () => Promise<unknown>) => {
+    try {
+      await accion()
+    } catch (error) {
+      fallos.push(`${nombre}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  const ids = datos.idsUsuario ?? []
+  if (datos.orgId) {
+    const org = datos.orgId
+    if (ids.length > 0) await intentar('usuario_empresa_activa', () => borrar(`usuario_empresa_activa?user_id=in.(${ids.join(',')})`))
+    await intentar('usuarios_organizacion', () => borrar(`usuarios_organizacion?organizacion_id=eq.${org}`))
+    await intentar('producto_empresa', () => borrar(`producto_empresa?organizacion_id=eq.${org}`, 'dominio'))
+    await intentar('existencias', () => borrar(`existencias?organizacion_id=eq.${org}`, 'dominio'))
+    await intentar('productos', () => borrar(`productos?organizacion_id=eq.${org}`, 'dominio'))
+    await intentar('empresas', () => borrar(`empresas?organizacion_id=eq.${org}`, 'dominio'))
+    await intentar('organizaciones', () => borrar(`organizaciones?id=eq.${org}`))
+  }
+  for (const id of ids) await intentar(`usuario ${id}`, () => borrarUsuario(id))
+  if (fallos.length > 0) console.warn(`Limpieza incompleta de inicio-tablero:\n${fallos.join('\n')}`)
 }
 
 const resumenTiendas = (page: Page) => page.getByRole('list', { name: 'Resumen por tienda' })
@@ -100,10 +120,10 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   test('el Administrador ve los bloques con ingresos, filtra, ordena y exporta «Movimientos por producto»', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
-    let datos: Sembrado | undefined
+    const datos: Partial<Sembrado> = {}
     try {
-      datos = await sembrar(sufijo)
-      const siembra = datos
+      await sembrar(sufijo, datos)
+      const siembra = datos as Sembrado
       const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
       try {
         await prepararPaginaVisible(admin.page)
@@ -119,7 +139,7 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
           await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
           await expect(page.getByRole('heading', { name: 'Actividad reciente', exact: true })).toBeVisible()
         })
-        await paso(page, 'En «Movimientos por producto» ve los dos productos sembrados', async () => {
+        await paso(page, 'En «Movimientos por producto» ve los tres productos sembrados', async () => {
           await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
           await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
           await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
@@ -159,17 +179,17 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
       }
     } finally {
-      if (datos) await limpiar(datos)
+      await limpiar(datos)
     }
   })
 
   test('Consulta lee sin exportar y Operador no ve ingresos', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
-    let datos: Sembrado | undefined
+    const datos: Partial<Sembrado> = {}
     try {
-      datos = await sembrar(sufijo)
-      const siembra = datos
+      await sembrar(sufijo, datos)
+      const siembra = datos as Sembrado
 
       const consulta = await abrirContextoGrabado(browser, testInfo, 'consulta')
       try {
@@ -205,17 +225,17 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         await cerrarContextoGrabado(operador.contexto, operador.page, testInfo)
       }
     } finally {
-      if (datos) await limpiar(datos)
+      await limpiar(datos)
     }
   })
 
   test('si falla «Resumen por tienda», el error y el reintento son solo de ese bloque', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
-    let datos: Sembrado | undefined
+    const datos: Partial<Sembrado> = {}
     try {
-      datos = await sembrar(sufijo)
-      const siembra = datos
+      await sembrar(sufijo, datos)
+      const siembra = datos as Sembrado
       const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
       try {
         await prepararPaginaVisible(admin.page)
@@ -249,7 +269,7 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
       }
     } finally {
-      if (datos) await limpiar(datos)
+      await limpiar(datos)
     }
   })
 })

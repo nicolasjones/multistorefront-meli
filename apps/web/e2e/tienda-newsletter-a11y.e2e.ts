@@ -15,7 +15,9 @@ const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(pr
 async function fijarBandera(activa: boolean): Promise<boolean | null> {
   const ruta = 'banderas_plataforma?clave=eq.newsletter'
   const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
-  const filas = lectura.ok ? ((await lectura.json()) as { activa: boolean }[]) : []
+  // Un error HTTP no es «la bandera no existe»: falla fuerte para no seguir con un estado desconocido.
+  if (!lectura.ok) throw new Error(`lectura de la bandera newsletter: ${lectura.status} ${await lectura.text()}`)
+  const filas = (await lectura.json()) as { activa: boolean }[]
   if (filas.length === 0) return null
   const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
   if (!r.ok) throw new Error(`bandera newsletter: ${r.status} ${await r.text()}`)
@@ -41,7 +43,8 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
   test.describe.configure({ mode: 'serial' })
 
   let banderaPrevia: boolean | null = null
-  let configuracionPrevia: { activo: boolean }[] = []
+  // `null` hasta que la lectura previa de la configuración tuvo éxito: sin ella no se restaura ni se borra nada.
+  let configuracionPrevia: { activo: boolean }[] | null = null
 
   test.beforeAll(async () => {
     banderaPrevia = await fijarBandera(true)
@@ -58,9 +61,14 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
   // Restauración en `afterAll`: la bandera y el interruptor vuelven a su valor previo aunque un test falle.
   test.afterAll(async () => {
     if (banderaPrevia === null) return
-    if (configuracionPrevia.length === 0) await borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
-    else await rest('newsletter_configuracion?on_conflict=empresa_id', [{ empresa_id: TIENDA.empresa, organizacion_id: TIENDA.organizacion, activo: configuracionPrevia[0].activo }], 'dominio', UPSERT_FUSIONAR)
-    await fijarBandera(banderaPrevia)
+    try {
+      if (configuracionPrevia !== null) {
+        if (configuracionPrevia.length === 0) await borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
+        else await rest('newsletter_configuracion?on_conflict=empresa_id', [{ empresa_id: TIENDA.empresa, organizacion_id: TIENDA.organizacion, activo: configuracionPrevia[0].activo }], 'dominio', UPSERT_FUSIONAR)
+      }
+    } finally {
+      await fijarBandera(banderaPrevia)
+    }
   })
 
   for (const ancho of ANCHOS) {
