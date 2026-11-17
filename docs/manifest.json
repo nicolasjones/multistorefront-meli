@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "8e8ef99a126f8379522050a6a64912eafcd0a253f04f958573c7435069009d49",
-      "sourceHash": "ceb80199dfacda2a411cb345263f12857ce7476a242dc0ec8da9830ef467a5e4",
-      "sourceAt": "4a93f421",
+      "pageHash": "c2dec74c65ba224f8fccf6bc7cfd2d35fee505e531017531526be7b4610b30d0",
+      "sourceHash": "834a932463184011a510c938895319ac7b83a09e145ee01d96026917660a6a5b",
+      "sourceAt": "57614044",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "4a93f421"
+      "commit": "57614044"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -479,7 +479,7 @@
       "title": "Control de concurrencia del CI",
       "pageHash": "5a9b2c3fb38dde08678a69d4771cba198e8e87d29fabc607c8fff28e7c21d64f",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "59834067",
+      "sourceAt": "ec872198",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "59834067"
+      "commit": "ec872198"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -614,13 +614,13 @@
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
       "pageHash": "6aff291cd38b9265e32ff94e4b8eccf29e29ba2f8feb8e304d6cef32e5494183",
-      "sourceHash": "fce385b69abdf4a17aa2ca03d80b81e26dc340f02b9810bd3c6ff29f1d909eb6",
-      "sourceAt": "dd8bb20ea",
+      "sourceHash": "52db4eb79564208471f7d20f73e5c9432f4afbe9fe97ec24128293fc90846c14",
+      "sourceAt": "782dd190",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "dd8bb20ea"
+      "commit": "782dd190"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -868,15 +868,15 @@
     },
     "docs/listas-configurables.md": {
       "title": "Listas configurables",
-      "pageHash": "858702eb7e8e19ce689116ad6acb7b9c3075f06bb5f52dd44a2b3236c79fc123",
+      "pageHash": "6d0fe00cb0474ecec0a9246efb878f1b501276186564d645cfb7194a595b0522",
       "sourceHash": "5c0e3e125c6cd70b2ff62e6a39ff4740bce4a619d3ee263e93c526301d34f348",
-      "sourceAt": "2ab8c7d9",
+      "sourceAt": "57614044",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "apps/web/src/pages/stock/motivos.tsx"
       ],
       "owner": "tecnico",
-      "commit": "2ab8c7d9"
+      "commit": "57614044"
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
@@ -1873,9 +1873,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "e7e69504706c0e101755731b81d0cf58ccb4b74f0de6b395ff9e3f6d2f873803",
-      "sourceHash": "44e2dbdcefd64851241e673101e427fd634ce9301c5d86779c195d32ac81ce65",
-      "sourceAt": "926cced4",
+      "pageHash": "24c0735f12642da13fb1525ffbbe29e1d8407226213b411b901973f4f9825c03",
+      "sourceHash": "44975d82e49dbadef2d8fbbe95d2c76b65a85c00c2173d3e0626e7f43c98d806",
+      "sourceAt": "782dd190",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1884,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "926cced4"
+      "commit": "782dd190"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
