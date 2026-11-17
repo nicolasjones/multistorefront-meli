@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
+import { clic, escribir } from './visible'
 import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
 
 // Actividad con filtros (F-AUD-01, MSF-463 T015): listado del Administrador con total, búsqueda por texto, filtro por tipo, período y
@@ -13,9 +14,9 @@ const haceDias = (dias: number) => new Date(Date.now() - dias * 86_400_000).toIS
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
-  await page.getByLabel('Correo').fill(correo)
-  await page.getByLabel('Contraseña').fill(password)
-  await page.getByRole('button', { name: 'Ingresar' }).click()
+  await escribir(page, page.getByLabel('Correo'), correo)
+  await escribir(page, page.getByLabel('Contraseña'), password)
+  await clic(page, page.getByRole('button', { name: 'Ingresar' }))
   await expect(page).not.toHaveURL(/\/login/)
 }
 
@@ -50,10 +51,10 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
       await expect(page.getByText('12 eventos')).toBeVisible()
 
       // Búsqueda por texto.
-      await page.getByLabel('Buscar en la actividad').fill(marca)
+      await escribir(page, page.getByLabel('Buscar en la actividad'), marca)
       await expect(page.getByText('1 evento', { exact: true })).toBeVisible()
       await expect(page.getByRole('button', { name: `Ver detalle: Quitó a ${marca} de la organización` })).toBeVisible()
-      await page.getByLabel('Buscar en la actividad').fill('')
+      await escribir(page, page.getByLabel('Buscar en la actividad'), '')
       await expect(page.getByText('12 eventos')).toBeVisible()
 
       // Filtro por tipo.
@@ -70,7 +71,7 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
       await expect(page.getByText('13 eventos')).toBeVisible()
 
       // Sin resultados: estado vacío que explica que hay filtros.
-      await page.getByLabel('Buscar en la actividad').fill(`no-existe-${sufijo}`)
+      await escribir(page, page.getByLabel('Buscar en la actividad'), `no-existe-${sufijo}`)
       await expect(page.getByText('No hay actividad con esos filtros.')).toBeVisible()
     } finally {
       if (orgId) {

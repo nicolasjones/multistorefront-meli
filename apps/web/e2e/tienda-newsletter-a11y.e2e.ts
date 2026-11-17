@@ -22,10 +22,13 @@ async function fijarBandera(activa: boolean): Promise<boolean | null> {
   return filas[0].activa
 }
 
+type ResultadoAxe = { violations: { id: string; nodes: { target: unknown[] }[] }[] }
+type AxeEnVentana = { axe: { run: (contexto: Document, opciones: unknown) => Promise<ResultadoAxe> } }
+
 async function violacionesAxe(page: Page): Promise<string[]> {
   await page.addScriptTag({ path: createRequire(import.meta.url).resolve('axe-core') })
   return page.evaluate(async () => {
-    const axe = (window as unknown as { axe: { run: (c: Document, o: unknown) => Promise<{ violations: { id: string; nodes: { target: unknown[] }[] }[] }> } }).axe
+    const axe = (window as unknown as AxeEnVentana).axe
     const resultado = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
     return resultado.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
   })
@@ -52,6 +55,7 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
     )
   })
 
+  // Restauración en `afterAll`: la bandera y el interruptor vuelven a su valor previo aunque un test falle.
   test.afterAll(async () => {
     if (banderaPrevia === null) return
     if (configuracionPrevia.length === 0) await borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')

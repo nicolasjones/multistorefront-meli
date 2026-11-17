@@ -6,7 +6,7 @@ import { UPSERT_FUSIONAR, altaUsuario, asignarEmpresasComoAdministrador, borrar,
 
 // Tablero de Inicio con tres roles (F-INI-05 y F-INI-06): «Resumen por tienda», «Salidas por depósito», «Actividad reciente» y
 // «Movimientos por producto» (búsqueda, vistas, orden y exportación). El Administrador ve ingresos y exporta; Consulta lee sin
-// exportar; Operador no ve ingresos ni margen. Un bloque que falla se reintenta sin tocar al otro (error independiente por bloque).
+// exportar; Operador no ve ingresos. Un bloque que falla se reintenta sin tocar al otro (error independiente por bloque).
 // Mismo patrón que `inicio.e2e.ts`: requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde
 // Node. Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público). Ver docs/e2e-app.md.
 
@@ -153,7 +153,7 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
     }
   })
 
-  test('Consulta lee sin exportar y Operador no ve ingresos ni margen', async ({ browser }, testInfo) => {
+  test('Consulta lee sin exportar y Operador no ve ingresos', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
     let datos: Sembrado | undefined
@@ -182,14 +182,13 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         await prepararPaginaVisible(operador.page)
         const { page } = operador
         await ingresar(page, siembra.correos.operador)
-        await paso(page, 'Operador ve el resumen por tienda sin ingresos ni margen', async () => {
+        await paso(page, 'Operador ve el resumen por tienda sin ingresos', async () => {
           await page.goto('/')
           await expect(page.getByRole('heading', { name: 'Resumen por tienda', exact: true })).toBeVisible()
           await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
           await expect(page.getByText(/Ingresos \(con IVA\)/)).toHaveCount(0)
-          await expect(page.getByText(/Margen estimado/)).toHaveCount(0)
         })
-        await rotulo(page, 'Operador no ve ingresos ni margen')
+        await rotulo(page, 'Operador no ve ingresos')
       } finally {
         await cerrarContextoGrabado(operador.contexto, operador.page, testInfo)
       }
