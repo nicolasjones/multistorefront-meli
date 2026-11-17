@@ -1000,8 +1000,8 @@
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
-      "pageHash": "015377b13c4dfd03922870a3ef152734e9e3f2621ff9e9ff953d72a82926202d",
-      "sourceHash": "15b7bcc21993ebfdbab76d5ea6b25ec905ccdb19f0a1eee01f5f5c4c85c0b388",
+      "pageHash": "fc276d6684a20621973721622bbb91fc38cdf41abdc0dc6561677ac04c2a831a",
+      "sourceHash": "7c79a6ead1ee4b9322a408b8e0a9f7481e5e8aea2d3c54fec9413db25d93ff06",
       "sourceAt": "5ebd123f",
       "sources": [
         "specs"
@@ -1910,8 +1910,8 @@
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "e96e1031504bf51df8d29a2a5aa8f47d5c4b8c8ba6c914aba7b472921d8b21e6",
-      "sourceHash": "0eb37a64eeb510f5abbfb0699fd6a90ccb76a16b82a54bea6e12277e69d5131f",
+      "pageHash": "caae2dcb09078b747327af21a931ded6144db5bf0c6158a4a2ddb64654852d5d",
+      "sourceHash": "3128de7c53ef9bd71247af90d05bf57ba8b9533a71f0e677e61b7d032dd4db9c",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
@@ -3243,8 +3243,8 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "ac3dcd272100d7c6e486fb03c00d406b161cfb8e43103f865b6178cb2017c573",
-      "sourceHash": "b434dc0d615a9bac4660d5b6bc0f07015a95e1f53ec410d3f201c5c3a90d22ad",
+      "pageHash": "afbc8131084b9ddd35890eb6bcf25afe9c6cce5565cf72559d44cf60656379e2",
+      "sourceHash": "9526821aeb2902054db35085ddac779251871237ca4b57ae219df4f7dac89d2e",
       "sourceAt": "a8f3d3a9",
       "sources": [
         "supabase/migrations",
