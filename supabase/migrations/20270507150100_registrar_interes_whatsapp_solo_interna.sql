@@ -5,7 +5,8 @@
 -- `publico.registrar_consulta_whatsapp` (con cuota). Mismo criterio que `publico.crear_consulta_publica`
 -- (`20261212120800`): deja de ser pública y solo la ejecuta `service_role` (y el propietario).
 --
--- Llamadores verificados (grep en apps/web, supabase/functions, workers, infra, Kestra): ninguno.
+-- Llamadores verificados (grep en todo el árbol): ninguno en apps/web, supabase/functions, workers, infra ni Kestra; el único
+-- es el sembrado del dataset demo (`scripts/demo-dataset/modulos/07-tiendas.mjs`, paso 7), que pasa a usar la service-role key.
 -- Esquemas (Principio VII): no se crean ni alteran tablas. Migración aditiva (solo privilegios).
 -- Reversión (migración posterior):
 --   grant execute on function publico.registrar_interes_whatsapp(text, uuid) to anon, authenticated;

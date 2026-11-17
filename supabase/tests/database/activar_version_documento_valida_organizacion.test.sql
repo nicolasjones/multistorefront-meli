@@ -4,7 +4,7 @@
 -- funcionalidad apagada, y anon sin EXECUTE.
 begin;
 
-select plan(13);
+select plan(17);
 
 insert into organizaciones (id, nombre) values
   ('c1111111-1111-1111-1111-111111111111', 'Org A'),
@@ -84,6 +84,35 @@ select lives_ok(
   $$select public.activar_version_documento('c4000000-0000-0000-0000-000000000003')$$,
   'un administrador de la organización puede activar la versión');
 reset role;
+
+-- Versión ya procesada (la activó el administrador): reactivarla da el mismo error genérico
+select set_config('request.jwt.claims', json_build_object('sub', 'c1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  $$select public.activar_version_documento('c4000000-0000-0000-0000-000000000003')$$,
+  '22023', 'Versión no encontrada o ya procesada', 'una versión ya procesada no se puede volver a activar');
+reset role;
+
+-- Superadmin: sin organización activa no encuentra la versión; con la organización activa pero sin
+-- membresía ni haberla subido, no es administrador propio: 42501
+insert into versiones_documento (id, documento_id, storage_path, estado, subida_por) values
+  ('c4000000-0000-0000-0000-000000000005', 'c3000000-0000-0000-0000-000000000001', 'ruta-nueva-4', 'procesando', 'c1000000-0000-0000-0000-000000000002');
+select set_config('request.jwt.claims', json_build_object('sub', 'c5000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  $$select public.activar_version_documento('c4000000-0000-0000-0000-000000000005')$$,
+  '22023', 'Versión no encontrada o ya procesada', 'superadmin sin organización activa: no encuentra la versión');
+reset role;
+insert into superadmin_organizacion_activa (user_id, organizacion_id) values
+  ('c5000000-0000-0000-0000-000000000005', 'c1111111-1111-1111-1111-111111111111');
+set local role authenticated;
+select throws_ok(
+  $$select public.activar_version_documento('c4000000-0000-0000-0000-000000000005')$$,
+  '42501', null, 'superadmin con la organización activa pero sin membresía ni haberla subido: rechazado');
+reset role;
+select is((select estado from versiones_documento where id = 'c4000000-0000-0000-0000-000000000005'), 'procesando',
+  'la versión sigue procesando tras los intentos del superadmin');
+delete from superadmin_organizacion_activa where user_id = 'c5000000-0000-0000-0000-000000000005';
 
 -- Funcionalidad apagada
 insert into versiones_documento (id, documento_id, storage_path, estado, subida_por) values
