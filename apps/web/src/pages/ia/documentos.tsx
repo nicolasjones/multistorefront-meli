@@ -202,7 +202,9 @@ export function IaDocumentos() {
     try {
       await invocarIndexacion(versionId)
     } catch (reintentoError) {
-      setError(reintentoError instanceof Error ? reintentoError.message : 'No se pudo reintentar el procesamiento.')
+      const mensaje = reintentoError instanceof Error ? reintentoError.message : 'No se pudo reintentar el procesamiento.'
+      // 409 con el candado vigente: otro intento ya está en curso, no es un error.
+      setError(/ya se está indexando/i.test(mensaje) ? 'Ya se está procesando; esperá unos minutos y volvé a revisar.' : mensaje)
     } finally {
       setReintentando(null)
       await cargarDocumentos()
@@ -326,7 +328,7 @@ export function IaDocumentos() {
                             // Los demás ven el estado sin el botón (si no, recibirían un 403).
                             <Stack key={v.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                               <span>procesando · Se interrumpió el procesamiento</span>
-                              {(v.subida_por === identidad?.id || contexto?.rol_efectivo === 'administrador') && (
+                              {(v.subida_por === identidad?.id || (contexto?.rol_efectivo === 'administrador' && !contexto.es_superadmin)) && (
                               <Button
                                 size="small"
                                 variant="outlined"

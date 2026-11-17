@@ -9,14 +9,14 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; versionAjena?: boolean; rol?: string } = {}) {
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string } = {}) {
   const v: VersionDoc = { subida_por: 'u1', id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
   const deps: Deps = {
     getUser: async (jwt) => jwt === 'ok' ? { id: 'u1' } : null,
     feature: async () => ({ data: !opciones.featureApagada, error: null }),
-    contexto: async () => ({ organizacion_id: 'org-1', rol_efectivo: opciones.rol ?? 'miembro', es_superadmin: false }),
+    contexto: async () => opciones.contextoNull ? null : ({ organizacion_id: 'org-1', rol_efectivo: opciones.rol ?? 'miembro', es_superadmin: opciones.superadmin ?? false }),
     version: async () => opciones.versionAjena ? null : ({ ...v }),
     reclamar: async (_j, _id, previo, reclamo) => {
       if (v.estado !== 'procesando' || v.motivo_error !== previo) return false
@@ -24,7 +24,11 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
       return true
     },
     soltar: async (_j, _id, reclamo) => { if (v.estado === 'procesando' && v.motivo_error === reclamo) v.motivo_error = null },
-    marcarFallida: async (_j, _id, motivo) => { if (v.estado === 'procesando') { v.estado = 'fallida'; v.motivo_error = motivo } },
+    marcarFallida: async (_j, _id, motivo) => {
+      if (opciones.marcarFalla) return false
+      if (v.estado === 'procesando') { v.estado = 'fallida'; v.motivo_error = motivo; return true }
+      return false
+    },
     estado: async () => v.estado,
     descargar: async () => opciones.descargaFalla ? null : new Uint8Array([1]),
     extraerTexto: async () => opciones.texto === undefined ? 'hola mundo '.repeat(50) : opciones.texto,
@@ -35,6 +39,7 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     borrarFragmentos: async () => { fragmentos = 0; return true },
     insertarFragmentos: async (_j, filas) => { fragmentos += filas.length; insertados += filas.length; return true },
     activar: async () => {
+      if (opciones.activarInvalida) return 'invalida'
       if (opciones.activarPermiso) return 'permiso'
       if (opciones.activarFalla) return 'error'
       if (v.estado !== 'procesando') return 'error'
@@ -184,6 +189,29 @@ describe('indexar-documento', () => {
       assert.equal(m.v.estado, 'procesando')
     })
 
+    it('un superadmin que además es administrador real queda fuera (criterio conservador intencional)', async () => {
+      const m = montar({ version: { subida_por: 'otro-usuario' }, rol: 'administrador', superadmin: true })
+      assert.equal((await pedir(m.deps)).status, 403)
+      assert.equal(m.v.estado, 'procesando')
+    })
+
+    it('sin contexto (error del RPC): quien no subió recibe 503 fail-closed; quien subió sigue', async () => {
+      const ajeno = montar({ version: { subida_por: 'otro-usuario' }, contextoNull: true })
+      const llamadas = espiar(ajeno)
+      assert.equal((await pedir(ajeno.deps)).status, 503)
+      assert.deepEqual(llamadas, [])
+      assert.equal((await pedir(montar({ contextoNull: true }).deps)).status, 200)
+    })
+
+    it('el 403 de sin permiso, de funcionalidad apagada y de versión inexistente tienen el mismo cuerpo', async () => {
+      const cuerpos = await Promise.all([
+        montar({ version: { subida_por: 'otro-usuario' } }),
+        montar({ featureApagada: true }),
+        montar({ versionAjena: true }),
+      ].map(async (m) => await (await pedir(m.deps)).text()))
+      assert.equal(new Set(cuerpos).size, 1)
+    })
+
     it('quien subió la versión la indexa', async () => {
       assert.equal((await pedir(montar().deps)).status, 200)
     })
@@ -197,6 +225,22 @@ describe('indexar-documento', () => {
       rota.deps.feature = async () => ({ data: null, error: { message: 'x' } })
       assert.equal((await pedir(rota.deps)).status, 503)
     })
+  })
+
+  it('22023 al activar (versión ya procesada, ajena o inexistente) es un 409 no reintentable, sin marcar fallida', async () => {
+    const m = montar({ activarInvalida: true })
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 409)
+    assert.equal(m.v.estado, 'procesando')
+    assert.equal(m.v.motivo_error, null)
+  })
+
+  it('si no se puede registrar la versión fallida, se suelta el candado y responde 502 reintentable', async () => {
+    const m = montar({ texto: '   ', marcarFalla: true })
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 502)
+    assert.equal(m.v.estado, 'procesando')
+    assert.equal(m.v.motivo_error, null)
   })
 
   it('valida sesión y version_id', async () => {

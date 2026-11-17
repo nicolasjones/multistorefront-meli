@@ -67,6 +67,14 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   vive en `activar_version_documento` (#1121) y usa la membresía propia (`private.es_administrador_propio_de`), que no
   tiene wrapper público; aquí el administrador se resuelve por el rol efectivo del contexto. Propuesta: exponer una RPC
   pública `puede_indexar_version(p_version_id)` que aplique la misma regla y usarla en el handler y en la pantalla.
+  Consecuencias que quedan fijadas con tests: un **superadmin** que además es administrador real de la organización es
+  rechazado (criterio conservador intencional, igual en la pantalla: no ve «Reintentar»); si el RPC de contexto falla y
+  quien invoca no subió la versión, la función falla cerrado con **503**; el 403 de «sin permiso», de funcionalidad apagada
+  y de versión inexistente tienen el mismo cuerpo. Carrera conocida: un administrador degradado durante la indexación
+  recibe 42501 al activar y deja la versión `fallida` (la reintenta quien subió o un administrador vigente).
+- Un 22023 al activar (versión ya procesada, ajena o inexistente para la base) responde 409 sin marcar `fallida` ni
+  reintentar; si `marcarFallida` no puede aplicarse se registra en el log, se suelta el candado y se responde 502.
+- Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
 - **Rechazo de permisos al activar (42501)** (carrera o regla distinta de la base): no es transitorio. La función
   responde **403** y, si quien invoca es quien subió o administrador, deja la versión `fallida` con un motivo claro; en

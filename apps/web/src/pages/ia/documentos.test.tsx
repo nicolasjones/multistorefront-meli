@@ -324,6 +324,27 @@ describe('IaDocumentos', () => {
       expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
     })
 
+    it('un superadmin que no subió la versión no ve Reintentar aunque su rol efectivo sea administrador', async () => {
+      mocks.documentos = [documento]
+      mocks.versiones = [{ ...vieja, subida_por: 'otro-usuario' }]
+      mocks.useContextoPanel.mockReturnValue({
+        contexto: { organizacion_id: 'org-1', es_superadmin: true, organizacion_nombre: 'Org', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
+        isLoading: false, error: null, invalidar: vi.fn(),
+      })
+      render(<IaDocumentos />)
+      fireEvent.click(await screen.findByText('contrato.txt'))
+      await screen.findByText(/Se interrumpió el procesamiento/)
+      expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+    })
+
+    it('un reintento con el candado vigente (409) muestra un mensaje amable, no el error crudo', async () => {
+      mocks.errorInvoke = { message: 'Esta versión ya se está indexando.' }
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText(/Ya se está procesando; esperá unos minutos/)).toBeInTheDocument()
+      expect(screen.queryByText('Esta versión ya se está indexando.')).not.toBeInTheDocument()
+    })
+
     it('una versión procesando reciente no ofrece Reintentar', async () => {
       mocks.documentos = [documento]
       mocks.versiones = [{ ...vieja, subida_en: new Date().toISOString() }]

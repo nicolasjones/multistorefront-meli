@@ -34,7 +34,8 @@ export type Deps = {
   version(jwt: string, id: string): Promise<VersionDoc | null>
   reclamar(jwt: string, id: string, motivoPrevio: string | null, reclamo: string): Promise<boolean>
   soltar(jwt: string, id: string, reclamo: string): Promise<void>
-  marcarFallida(jwt: string, id: string, motivo: string): Promise<void>
+  /** Falso si la base rechazó o no pudo aplicar el update (se registra en `index.ts`). */
+  marcarFallida(jwt: string, id: string, motivo: string): Promise<boolean>
   estado(jwt: string, id: string): Promise<string | null>
   descargar(jwt: string, ruta: string): Promise<Uint8Array | null>
   extraerTexto(bytes: Uint8Array, nombre: string): Promise<string | null>
@@ -45,7 +46,8 @@ export type Deps = {
   borrarFragmentos(jwt: string, versionId: string): Promise<boolean>
   insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>): Promise<boolean>
   /** `permiso` = la base rechazó con 42501 (funcionalidad apagada, o no es quien subió ni administrador). */
-  activar(jwt: string, versionId: string): Promise<'ok' | 'permiso' | 'error'>
+  /** `invalida` = 22023 (versión ya procesada, ajena o inexistente para la base): no se reintenta. */
+  activar(jwt: string, versionId: string): Promise<'ok' | 'permiso' | 'invalida' | 'error'>
   ahora(): number
   id(): string
 }
@@ -72,8 +74,13 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const version = await deps.version(jwt, versionId)
   // Versión inexistente, de otra organización o sin permiso: el MISMO 403, sin revelar si existe.
   if (!version) return respuesta({ error: SIN_PERMISO }, 403)
-  const contexto = await deps.contexto(jwt)
   const esQuienSubio = version.subida_por !== null && version.subida_por === usuario.id
+  const contexto = await deps.contexto(jwt)
+  // Falla cerrado: si no se puede resolver el rol (error del RPC de contexto) y no es quien subió, no se puede decidir
+  // el permiso de administrador → 503 (no es un «no» definitivo), sin tocar nada.
+  if (!contexto && !esQuienSubio) return respuesta({ error: 'No se pudo verificar tu permiso, probá de nuevo.' }, 503)
+  // Un superadmin queda fuera aunque sea además administrador real de la organización: criterio conservador hasta que
+  // exista la RPC pública `puede_indexar_version` (ver docs/funciones-edge-endurecimiento.md).
   const esAdministrador = !!contexto && !contexto.es_superadmin && contexto.rol_efectivo === 'administrador' && contexto.organizacion_id === version.organizacion_id
   if (!esQuienSubio && !esAdministrador) return respuesta({ error: SIN_PERMISO }, 403)
   if (version.estado !== 'procesando') return respuesta({ error: 'Esta versión ya fue procesada.' }, 409)
@@ -85,7 +92,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // Error permanente: la versión queda `fallida` (solo si sigue `procesando`).
   const fallar = async (motivo: string) => {
     await deps.borrarFragmentos(jwt, versionId)
-    await deps.marcarFallida(jwt, versionId, motivo)
+    // Si no se pudo registrar el fallo, la versión no puede quedar con el candado puesto: se suelta y es reintentable.
+    if (!(await deps.marcarFallida(jwt, versionId, motivo))) {
+      await deps.soltar(jwt, versionId, reclamo)
+      return respuesta({ error: 'No se pudo registrar el resultado, probá de nuevo.' }, 502)
+    }
     return respuesta({ error: motivo }, 422)
   }
   // Error transitorio: se libera la reclamación y se puede reintentar con la misma versión.
@@ -138,16 +149,19 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (activacion !== 'ok') {
       // Si otra invocación la activó entre tanto, el resultado ya es el esperado: no se marca fallida ni se tocan sus fragmentos.
       if ((await deps.estado(jwt, versionId)) === 'activa') return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
-      // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo claro.
+      // 22023: la base dice que la versión ya no se puede activar (ya procesada, ajena o inexistente): no es
+      // transitorio ni se marca `fallida`; se suelta el candado y se responde un 409 genérico.
+      if (activacion === 'invalida') {
+        await deps.soltar(jwt, versionId, reclamo)
+        return respuesta({ error: 'Esta versión ya no se puede procesar.' }, 409)
+      }
+      // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo
+      // claro. Quien llega acá ya pasó la autorización previa (subió la versión o es administrador); la única forma de
+      // que la base lo rechace es una carrera (p. ej. un administrador degradado durante la indexación): en ese caso
+      // la versión igual queda `fallida` y es quien subió o un administrador vigente quien la reintenta subiendo de nuevo.
       if (activacion === 'permiso') {
-        // Solo quien subió la versión o un administrador puede dejarla `fallida` y borrar sus fragmentos; en otro caso
-        // (carrera o regla distinta de la base) se suelta la reclamación y se responde 403 sin tocar nada.
-        if (esQuienSubio || esAdministrador) {
-          await deps.borrarFragmentos(jwt, versionId)
-          await deps.marcarFallida(jwt, versionId, MOTIVO_SIN_PERMISO)
-        } else {
-          await deps.soltar(jwt, versionId, reclamo)
-        }
+        await deps.borrarFragmentos(jwt, versionId)
+        if (!(await deps.marcarFallida(jwt, versionId, MOTIVO_SIN_PERMISO))) await deps.soltar(jwt, versionId, reclamo)
         return respuesta({ error: MOTIVO_SIN_PERMISO }, 403)
       }
       return await reintentable('No se pudo activar la nueva versión, probá de nuevo.', 502)

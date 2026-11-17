@@ -739,9 +739,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "d58137b5d30d4966045086be685552c2bf92083fd7cbdef3508492700b513959",
-      "sourceHash": "dfa89e7c1ebb6a62654dcae2ece5b198ed5bc61f823e95b3b87f00f881887a9f",
-      "sourceAt": "0c4845aa",
+      "pageHash": "81e5aec40ec76c2883c72fd805b359dd3e89a40fbc870770c3d6b5daba79b9e5",
+      "sourceHash": "c4f672d7e789ee2287007ebb841a79eeb6f97979bfa498edc85c906d3d27f3a3",
+      "sourceAt": "c2af6010",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/preguntar-documentos/index.ts",
@@ -758,7 +758,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "0c4845aa"
+      "commit": "c2af6010"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",

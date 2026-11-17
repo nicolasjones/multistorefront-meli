@@ -76,7 +76,9 @@ Deno.serve((req) => {
     },
     // Solo mientras sigue `procesando`: una versión ya activa (o reemplazada) nunca se pisa a `fallida`.
     marcarFallida: async (jwt, id, motivo) => {
-      await comoUsuario(jwt).from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando')
+      const { data, error } = await comoUsuario(jwt).from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando').select('id')
+      if (error) console.error('indexar-documento: no se pudo marcar la versión fallida', error.code ?? '', error.message)
+      return !error && (data?.length ?? 0) === 1
     },
     estado: async (jwt, id) => (await comoUsuario(jwt).from('versiones_documento').select('estado').eq('id', id).maybeSingle()).data?.estado ?? null,
     descargar: async (jwt, ruta) => {
@@ -122,7 +124,7 @@ Deno.serve((req) => {
     activar: async (jwt, versionId) => {
       const cliente = comoUsuario(jwt)
       const { error } = await cliente.rpc('activar_version_documento', { p_version_id: versionId })
-      if (error) return error.code === '42501' ? 'permiso' : 'error'
+      if (error) return error.code === '42501' ? 'permiso' : error.code === '22023' ? 'invalida' : 'error'
       // Libera la marca de reclamación (ya no aplica a una versión activa); si falla, no afecta al resultado.
       await cliente.from('versiones_documento').update({ motivo_error: null }).eq('id', versionId).eq('estado', 'activa')
       return 'ok'
