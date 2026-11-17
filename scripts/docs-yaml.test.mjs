@@ -67,4 +67,25 @@ describe("erroresFrontMatter", () => {
   it("sin front matter no hay errores", () => {
     assert.deepEqual(erroresFrontMatter("# Solo texto\n- item\n", "a.md"), []);
   });
+
+  it("normaliza CRLF y BOM en vez de omitir la página", () => {
+    const crlf = "\uFEFF---\r\nowner: producto\r\nsources:\r\n  - a\r\n- specs\r\n---\r\n# T\r\n";
+    const errs = erroresFrontMatter(crlf, "a.md");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /a\.md:5/);
+    assert.deepEqual(erroresFrontMatter("\uFEFF---\r\nowner: x\r\nsources: []\r\n---\r\n# T\r\n", "a.md"), []);
+  });
+
+  it("detecta un flujo sin cerrar", () => {
+    const errs = erroresFrontMatter("---\nowner: x\nsources: [a\n---\n# T\n", "a.md");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /sin cerrar/);
+  });
+
+  it("un front matter vacío es válido y uno sin cerrar se reporta", () => {
+    assert.deepEqual(erroresFrontMatter("---\n---\n# T\n", "a.md"), []);
+    const errs = erroresFrontMatter("---\nowner: x\n# T\n", "a.md");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /no se cierra/);
+  });
 });

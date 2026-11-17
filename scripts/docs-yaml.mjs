@@ -61,22 +61,32 @@ export function erroresYaml(yml) {
 /**
  * Valida el front matter de una página: el manifest lo lee con un parser laxo que acepta una lista
  * rota, pero para YAML es inválido un ítem `- x` en columna 0 después de una clave de lista (queda
- * fuera de `sources:`) o un tabulador en la indentación.
+ * fuera de `sources:`), un tabulador en la indentación o un valor de flujo sin cerrar (`sources: [a`).
+ * Normaliza `\r\n` y el BOM antes de analizar. Un front matter que se abre con `---` y no se cierra se
+ * reporta (no se omite en silencio).
  * @param {string} txt contenido de la página @param {string} nombre ruta para el mensaje
  * @returns {string[]} errores con línea y motivo
  */
 export function erroresFrontMatter(txt, nombre) {
-  const m = txt.match(/^---\n([\s\S]*?)\n---\n?/);
-  if (!m) return [];
+  const norm = txt.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  if (!/^---[ \t]*(\n|$)/.test(norm)) return [];
+  const m = norm.match(/^---[ \t]*\n([\s\S]*?)\n---[ \t]*(\n|$)/) ?? norm.match(/^---[ \t]*\n()---[ \t]*(\n|$)/);
+  if (!m) return [`${nombre}:1: el front matter se abre con --- y no se cierra: no se puede analizar`];
   const errores = [];
-  const lineas = m[1].split("\n");
   let enLista = false;
-  lineas.forEach((l, i) => {
+  m[1].split("\n").forEach((l, i) => {
     const n = i + 2; // la línea 1 es el `---` de apertura
     if (/^\t/.test(l)) errores.push(`${nombre}:${n}: tabulador en el front matter`);
     if (/^[A-Za-z_]+:\s*$/.test(l)) enLista = true;
     else if (/^[A-Za-z_]+:/.test(l)) enLista = false;
     else if (/^- /.test(l) && enLista) errores.push(`${nombre}:${n}: ítem de lista en columna 0 dentro del front matter (indentá con dos espacios)`);
+    const flujo = l.match(/^[A-Za-z_]+:\s*([[{].*)$/);
+    if (flujo) {
+      const v = flujo[1];
+      const abre = (v.match(/[[{]/g) ?? []).length;
+      const cierra = (v.match(/[\]}]/g) ?? []).length;
+      if (abre !== cierra) errores.push(`${nombre}:${n}: valor de flujo sin cerrar (${v.trim()})`);
+    }
   });
   return errores;
 }

@@ -284,11 +284,14 @@ test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)
   assert.equal(ne("select e'a\\'; b'; select 1;"), 2);
 });
 
+// Tiempo mínimo de 3 corridas: los tests corren en paralelo con otros y un pico de carga del host no debe dar un falso
+// positivo; un recorrido superlineal sigue pasándose del tope en las 3 corridas.
+const mejorDeTres = (fn) => { let mejor = Infinity; let r; for (let i = 0; i < 3; i++) { const t = Date.now(); r = fn(); mejor = Math.min(mejor, Date.now() - t); } return { ms: mejor, r }; };
+
 // Entradas adversariales: el análisis de T7 debe ser lineal (cada una en menos de 1 s) y no lanzar.
 const rapido = (nombre, sql, comprobar = () => {}) => test(`T7 rendimiento: ${nombre}`, () => {
-  const t = Date.now();
-  const r = t7(sql);
-  assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
+  const { ms, r } = mejorDeTres(() => t7(sql));
+  assert.ok(ms < 1000, `tardó ${ms} ms`);
   comprobar(r);
 });
 rapido('500 updates y 666 «ingreso_en = 1,» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1, '.repeat(666)}`, (r) => assert.deepEqual(r, []));
@@ -311,9 +314,8 @@ test('T7 conservador: expresión de ingreso más larga que el tope no se trunca 
 });
 
 test('T7 rendimiento: peor caso ingreso_en sin comas bajo el tope de sentencia, < 300 ms', () => {
-  const t = Date.now();
-  t7(`update reparaciones set ${'ingreso_en = 1 '.repeat(6500)}`);
-  assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+  const { ms } = mejorDeTres(() => t7(`update reparaciones set ${'ingreso_en = 1 '.repeat(6500)}`));
+  assert.ok(ms < 300, `tardó ${ms} ms`);
 });
 
 test('T7 conservador: throws_ok( sin cerrar y comilla o bloque sin cerrar se marcan (3)', () => {
@@ -345,9 +347,7 @@ for (const kb of [100, 300]) {
     ['con cierre y una alta mala después', (r) => `select $$ ${r} $$; insert into reparaciones (ingreso_en) values (current_date)`],
   ]) {
     test(`recorrerSql rendimiento: bloque $$ de ${kb} KB ${nombre}`, () => {
-      const t = Date.now();
-      const r = recorrerSql(armar(relleno(kb)));
-      const ms = Date.now() - t;
+      const { ms, r } = mejorDeTres(() => recorrerSql(armar(relleno(kb))));
       assert.ok(ms < 300, `tardó ${ms} ms`);
       if (nombre === 'sin cierre') assert.ok(r.sinCerrar >= 0);
       if (nombre === 'con cierre') assert.equal(r.sinCerrar, -1);
@@ -356,10 +356,11 @@ for (const kb of [100, 300]) {
 }
 for (const [nombre, unidad] of [['/* sin cierre', 'a /* '], ['-- sin salto de línea', 'a -- '], ['comillas dobles sin cerrar', 'a " '], ['$x$ alternados', '$x$ a ']]) {
   test(`recorrerSql rendimiento: «${nombre}» repetido 100 KB`, () => {
-    const t = Date.now();
-    recorrerSql(`select $$ ${unidad.repeat(Math.ceil(102400 / unidad.length))}`);
-    recorrerSql(unidad.repeat(Math.ceil(102400 / unidad.length)));
-    assert.ok(Date.now() - t < 300, `tardó ${Date.now() - t} ms`);
+    const { ms } = mejorDeTres(() => {
+      recorrerSql(`select $$ ${unidad.repeat(Math.ceil(102400 / unidad.length))}`);
+      recorrerSql(unidad.repeat(Math.ceil(102400 / unidad.length)));
+    });
+    assert.ok(ms < 300, `tardó ${ms} ms`);
   });
 }
 
@@ -470,11 +471,13 @@ test('T7: mismos problemas que con el oráculo en miles de entradas aleatorias c
   }
 });
 
+// Mejor de 3 corridas: un pico de carga del host (los tests corren en paralelo) no debe dar un falso positivo, y un
+// recorrido cuadrático sigue pasándose del tope en las 3 corridas.
+const medirMin = (sql) => { let mejor = Infinity; for (let i = 0; i < 3; i++) { const t = Date.now(); recorrerSql(sql); mejor = Math.min(mejor, Date.now() - t); } return mejor; };
+
 test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 300 KB (< 500 ms)', () => {
   for (const sql of ['$$ $x$$ $x$ -- a\n'.repeat(20000), '$$ $x$$ $x$ /* a '.repeat(20000), aleatorio(prng(99), 300000), aleatorio(prng(7), 300000).replace(/;/g, ' ')]) {
-    const t = Date.now();
-    recorrerSql(sql);
-    const ms = Date.now() - t;
+    const ms = medirMin(sql);
     assert.ok(ms < 500, `tardó ${ms} ms`);
   }
 });
@@ -483,9 +486,7 @@ test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x
   const unicas = (kb) => { let s = ''; for (let n = 0; s.length < kb * 1024; n++) s += `$t${n}$ `; return s; };
   const alfabeto = (kb, semilla) => { const rnd = prng(semilla); let s = ''; while (s.length < kb * 1024) s += '$xy'[Math.floor(rnd() * 3)]; return s; };
   for (const sql of [unicas(300), unicas(600), alfabeto(300, 5), alfabeto(600, 6)]) {
-    const t = Date.now();
-    recorrerSql(sql);
-    const ms = Date.now() - t;
+    const ms = medirMin(sql);
     assert.ok(ms < 500, `tardó ${ms} ms`);
   }
 });

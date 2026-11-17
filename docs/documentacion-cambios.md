@@ -110,3 +110,9 @@ es lo que `dokploy` agregó o cambió desde entonces. La documentación de usuar
 
 Pendiente: este procedimiento no se ejecutó en este lote (no se tocó `main`); la integración de `origin/main` en `dokploy`
 queda para quien prepare el Release.
+
+**Páginas planas fuera del menú.** `mkdocs.yml` no lista todas las páginas planas de `docs/` (p. ej. `control-ci.md`,
+`deployment.md`, `documentacion-cambios.md`, `capturas-documentacion.md` y `decisiones-2026-11-17.md`): el menú solo
+muestra las guías de uso y las «Guías de referencia» elegidas, y `docs-check` valida que cada entrada del menú exista y
+que los enlaces internos resuelvan, pero no exige que toda página esté en el menú. Esas páginas se publican igual y se
+llegan por enlace; por eso `capturas-documentacion.md` se enlaza desde esta página y desde `dataset-demo.md`.

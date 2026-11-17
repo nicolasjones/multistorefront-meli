@@ -84,7 +84,7 @@ Los módulos no son idempotentes: para repetir uno hay que hacer `--reset` compl
 
 ## Capturas para la documentación de usuario
 
-Con el dataset cargado, los specs de `apps/web/e2e/capturas/*.capturas.ts` recorren las pantallas y guardan los PNG que
+Con el dataset cargado (guía completa: [Capturas del manual de usuario](capturas-documentacion.md)), los specs de `apps/web/e2e/capturas/*.capturas.ts` recorren las pantallas y guardan los PNG que
 ilustran el manual de usuario (`docs/producto/img/<página>/NN-descripcion.png` en la rama de documentación). Son de
 **solo lectura**: abren y completan formularios y diálogos pero nunca los confirman, así que no modifican datos.
 
