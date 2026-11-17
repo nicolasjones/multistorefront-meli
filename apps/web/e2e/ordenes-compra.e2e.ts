@@ -72,6 +72,10 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
       // Alta: el proveedor es el del producto en alerta y la cantidad sugerida es el mínimo.
       await page.getByRole('button', { name: 'Nueva orden de compra' }).click()
       const alta = page.getByRole('dialog', { name: 'Nueva orden de compra' })
+      // Con «Todas mis empresas» activa (el estado inicial del Administrador sin empresa elegida) el alta no trae empresa por
+      // omisión: hay que elegir la de la compra, o el envío se frena con «Elegí la empresa de la compra».
+      await alta.getByLabel('Empresa de la compra').click()
+      await page.getByRole('option', { name: empresa }).click()
       await alta.getByLabel('Proveedor').click()
       await page.getByRole('option', { name: proveedor }).click()
       await expect(alta.getByText(producto)).toBeVisible()

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
-import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // MSF-639: los avisos de acceso deben seguir el patrón común del panel.
@@ -52,14 +52,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     { user_id: ids.administrador, organizacion_id: org.id, rol_id: 'administrador' },
     { user_id: ids.operador, organizacion_id: org.id, rol_id: 'operador' },
   ])
-  // Asignación por empresa: sin ella el selector de la barra superior quedaría vacío.
-  await rest('usuarios_empresas', [
-    { user_id: ids.operador, empresa_id: empresa.id, organizacion_id: org.id, rol_id: 'operador' },
-  ])
-  await rest('usuario_empresa_activa', [
-    { user_id: ids.administrador, empresa_id: empresa.id },
-    { user_id: ids.operador, empresa_id: empresa.id },
-  ])
+  // Asignación por empresa: sin ella el selector de la barra superior quedaría vacío. `service_role` no escribe en
+  // `usuarios_empresas`: la asigna el Administrador sembrado con la RPC, que además fija la empresa activa del Operador.
+  await rest('usuario_empresa_activa', [{ user_id: ids.administrador, empresa_id: empresa.id }])
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.operador, [{ empresa_id: empresa.id, rol_id: 'operador' }])
 
   return {
     orgId: org.id,
