@@ -245,7 +245,28 @@ test('empaqueta e importa el directorio: pasa la contraseña aparte y registra l
   assert.equal(resultado.registrados.length, 2);
 });
 
-test('sin credenciales de Supabase importa los dashboards y avisa que no registró reportes', async () => {
+test('sin credenciales de Supabase falla en rojo y dice cuáles faltan (MSF-713)', async () => {
+  const estadoFalso = estado();
+  const directorio = await directorioDePrueba();
+  await assert.rejects(
+    () => ejecutar({
+      args: ['--directorio', directorio, '--entorno', 'staging'],
+      fetch: servidor(estadoFalso),
+      env: {
+        SUPERSET_URL: 'http://superset.local',
+        SUPERSET_USERNAME: 'import',
+        SUPERSET_PASSWORD: 'secreto',
+        SUPERSET_ANALITICA_DB_HOST: 'base.local',
+        SUPABASE_URL: 'http://supabase.local',
+      },
+    }),
+    /faltan SUPABASE_SERVICE_ROLE_KEY, SUPERSET_REPORTE_CREADO_POR/,
+  );
+  assert.equal(estadoFalso.imports, 1, 'los dashboards ya se habían importado cuando se detecta la falta');
+  assert.equal(estadoFalso.reportes.size, 0);
+});
+
+test('con --omitir-reportes importa los dashboards, avisa y no registra reportes', async () => {
   const estadoFalso = estado();
   const directorio = await directorioDePrueba();
   const avisos = [];
@@ -253,7 +274,7 @@ test('sin credenciales de Supabase importa los dashboards y avisa que no registr
   console.warn = (mensaje) => avisos.push(mensaje);
   try {
     const resultado = await ejecutar({
-      args: ['--directorio', directorio, '--entorno', 'staging'],
+      args: ['--directorio', directorio, '--entorno', 'staging', '--omitir-reportes'],
       fetch: servidor(estadoFalso),
       env: {
         SUPERSET_URL: 'http://superset.local',
@@ -267,7 +288,7 @@ test('sin credenciales de Supabase importa los dashboards y avisa que no registr
     console.warn = original;
   }
   assert.equal(estadoFalso.imports, 1);
-  assert.ok(avisos.some((mensaje) => /no se registraron reportes/.test(mensaje)));
+  assert.ok(avisos.some((mensaje) => /NO se registraron reportes/.test(mensaje)));
 });
 
 test('importarPaquete falla con un paquete vacío antes de pedir credenciales', async () => {
