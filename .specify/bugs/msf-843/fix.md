@@ -88,8 +88,8 @@ El hallazgo simulado es el que knip reportó en el CI del 2026-11-12 (`pg` sin d
 - `pnpm calidad` → `knip`, `oxlint`, `jscpd`, `dependency-cruiser` y `syncpack` en **ok**; `gitleaks`
   no corrió porque necesita el daemon de Docker (no disponible en este entorno) y este diff no agrega
   secretos.
-- CI del PR #1127: `quality` (run `44148206192`) **success**, con `knip (código muerto): ok`;
-  `Validate` (run `44148206054`) **success** en `application`, `infrastructure` y `validacion`. En el
+- CI del PR #1127: `quality` (run `44159631864`) **success**, con `knip (código muerto): ok`;
+  `Validate` (run `44159632130`) **success** en `application`, `infrastructure` y `validacion`. En el
   job `infrastructure` corrieron los dos tests nuevos (35/35).
 
 ## Deviations from Assessment
