@@ -6,17 +6,17 @@
 
 ## Phase 1: F-CON-02 · Interés por WhatsApp registrado
 
-**Goal**: tabla sin datos personales, RPC pública, vista de lectura y diálogo por producto en Consultas.
+**Goal**: tabla sin datos personales, RPC (original pública; desde MSF-657 solo service_role), vista de lectura y diálogo por producto en Consultas.
 
 - [ ] T001 [F-CON-02][US1] Migración `supabase/migrations/20261024300000_intereses_whatsapp.sql`: `dominio.intereses_whatsapp` (`id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`), FK compuestas, RLS por organización y empresa accesible con select `consultas`≥`lectura`, sin escritura, `anon` sin privilegios, reversión en el encabezado (FR-001) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
-- [ ] T002 [F-CON-02][US1] Migración `supabase/migrations/20261024300100_registrar_interes_whatsapp.sql`: `publico.registrar_interes_whatsapp(host, producto_id)` (`security definer`, `search_path = ''`, empresa solo por dominio, `P0002` genérico antes de validar, `22023` producto inválido, `grant … to anon, authenticated`) (FR-002, FR-003) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
+- [ ] T002 [F-CON-02][US1] Migración `supabase/migrations/20261024300100_registrar_interes_whatsapp.sql`: `publico.registrar_interes_whatsapp(host, producto_id)` (`security definer`, `search_path = ''`, empresa solo por dominio, `P0002` genérico antes de validar, `22023` producto inválido, `grant … to anon, authenticated`; MSF-657 lo cambió a solo `service_role`) (FR-002, FR-003) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
 - [ ] T003 [P] [F-CON-02][US1] Migración `supabase/migrations/20261024300200_interes_whatsapp_por_producto.sql`: vista `public.interes_whatsapp_por_producto` `security_invoker` agrupada por empresa y producto, sin acceso para `anon` (FR-004) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
-- [ ] T004 [F-CON-02][US1] pgTAP `supabase/tests/database/interes_whatsapp.test.sql`: alta, fila sin datos personales, errores genéricos, producto de otra organización, aislamiento entre dos organizaciones y empresas, permisos por nivel, escritura directa rechazada, `anon` solo ejecuta la RPC permitida (actualizar la lista), `rls_en_toda_tabla` verde (SC-001)
+- [ ] T004 [F-CON-02][US1] pgTAP `supabase/tests/database/interes_whatsapp.test.sql`: alta, fila sin datos personales, errores genéricos, producto de otra organización, aislamiento entre dos organizaciones y empresas, permisos por nivel, escritura directa rechazada, `anon` solo ejecuta la RPC permitida (actualizar la lista; originalmente: MSF-657 la sacó de `anon`, hoy solo `service_role`), `rls_en_toda_tabla` verde (SC-001)
 - [ ] T005 [P] [F-CON-02][US1] `apps/web/src/lib/interesWhatsapp.ts`: lectura de la vista filtrada por empresa activa y mapeo de errores a mensajes claros (soporte de FR-005 y FR-006) (verificación: Vitest `InteresWhatsappDialog.test.tsx` (`pnpm test:web`))
 - [ ] T006 [F-CON-02][US1] `apps/web/src/pages/consultas/InteresWhatsappDialog.tsx` + botón `Interés por WhatsApp` en la pantalla (visible con `consultas`≥`lectura`): columnas `Producto`, `Tienda` (solo «Todas mis empresas»), `Veces`, `Último interés`; orden descendente; carga, vacío y error con `Reintentar`; 320/768/1440 px y teclado (FR-005) (verificación: Vitest `InteresWhatsappDialog.test.tsx` (`pnpm test:web`))
 - [ ] T007 [F-CON-02][US1] Empresa activa en el diálogo: invalidar y recargar al cambiar de empresa, cerrar con aviso el diálogo abierto, sin datos de la empresa anterior (FR-006) (verificación: Vitest `InteresWhatsappDialog.test.tsx`, caso cambio de empresa (`pnpm test:web`))
 - [ ] T008 [F-CON-02][US1] Vitest del diálogo `apps/web/src/pages/consultas/InteresWhatsappDialog.test.tsx`: orden, vacío, error con reintento, columna `Tienda`, cambio de empresa, sin permiso, teclado/lector (SC-002) (verificación: `pnpm test:web`)
-- [ ] T009 [F-CON-02][US1] E2E de la RPC como la usa la tienda: llamar con host y producto suma un interés sin datos personales y el administrador lo ve en el diálogo (SC-002, parte E2E) (verificación: E2E Playwright `pnpm test:e2e`)
+- [ ] T009 [F-CON-02][US1] E2E de la RPC (MSF-657: ya no la usa la tienda; solo `service_role`): llamar con host y producto suma un interés sin datos personales y el administrador lo ve en el diálogo (SC-002, parte E2E) (verificación: E2E Playwright `pnpm test:e2e`)
 
 **Checkpoint F-CON-02**: `pnpm test:db`, `pnpm lint`, `pnpm build` y `pnpm test:web` verdes.
 
@@ -39,8 +39,8 @@
 
 **Goal**: lo que ninguna historia atiende. Las tareas `[CIERRE]` las ejecuta la Tarea de cierre y **nunca** son prerequisito de una historia.
 
-- [ ] T018 [P] [CIERRE] `docs/consultas.md` (interés sin datos personales, RPC, vista, permisos, contrato para F-TDA-14 y F-REP-04, respuesta desde el panel, texto inicial, reversión), `docs/acceso-ingreso.md` (RPC permitida a `anon`) y fila de `docs/roadmap-template.md`; `pnpm docs:check` verde (FR-014) (verificación: `pnpm docs:check`)
-- [ ] T019 [P] [CIERRE] Revisión de seguridad: RLS y grants de tabla, vista y RPC, `anon` solo con la RPC pública, ausencia de datos personales, enlaces codificados, y esquema de cada objeto contra el Principio VII (FR-015) (verificación: pgTAP de RLS/grants y `pnpm test:db`)
+- [ ] T018 [P] [CIERRE] `docs/consultas.md` (interés sin datos personales, RPC, vista, permisos, contrato para F-TDA-14 y F-REP-04, respuesta desde el panel, texto inicial, reversión), `docs/acceso-ingreso.md` (RPC permitida a `anon`; MSF-657: hoy solo `service_role`) y fila de `docs/roadmap-template.md`; `pnpm docs:check` verde (FR-014) (verificación: `pnpm docs:check`)
+- [ ] T019 [P] [CIERRE] Revisión de seguridad: RLS y grants de tabla, vista y RPC, `anon` solo con la RPC pública (originalmente; MSF-657: hoy solo `service_role`), ausencia de datos personales, enlaces codificados, y esquema de cada objeto contra el Principio VII (FR-015) (verificación: pgTAP de RLS/grants y `pnpm test:db`)
 - [ ] T020 [CIERRE] `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `rls_en_toda_tabla`, `pnpm prototipo:check` y `pnpm matriz:check` verdes (SC-005) (verificación: `pnpm lint && pnpm build && pnpm infra:config && pnpm test`)
 
 **Checkpoint Cierre**: ninguna tarea queda `[ ]` sin hacerse o cerrarse con `Desvío:` y seguimiento trazado.
