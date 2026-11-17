@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mensajeDeErrorBase } from './mensajeErrorBase'
+import { esErrorDeNegocio, mensajeDeErrorBase } from './mensajeErrorBase'
 
 describe('mensajeDeErrorBase', () => {
   beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}) })
@@ -13,6 +13,16 @@ describe('mensajeDeErrorBase', () => {
   it('mapea por código y prioriza los mensajes de la pantalla', () => {
     expect(mensajeDeErrorBase({ code: '42501' }, 'x')).toMatch(/permiso/)
     expect(mensajeDeErrorBase({ code: '23514' }, 'x', { '23514': 'Propio.' })).toBe('Propio.')
+  })
+
+  it('traduce los errores de negocio 55000, 55006 y 54000 sin tratarlos como falla', () => {
+    expect(mensajeDeErrorBase({ code: '55000' }, 'x')).toMatch(/estado actual/)
+    expect(mensajeDeErrorBase({ code: '55006' }, 'x')).toMatch(/en curso/)
+    expect(mensajeDeErrorBase({ code: '54000' }, 'x')).toMatch(/máximo/)
+    expect(esErrorDeNegocio({ code: '55000' })).toBe(true)
+    expect(esErrorDeNegocio({ code: 'P0002' })).toBe(true)
+    expect(esErrorDeNegocio({ code: 'XX000' })).toBe(false)
+    expect(esErrorDeNegocio(null)).toBe(false)
   })
 
   it('tolera errores sin forma (null, string, Error)', () => {
