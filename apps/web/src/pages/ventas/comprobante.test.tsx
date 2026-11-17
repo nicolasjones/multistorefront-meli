@@ -570,3 +570,24 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     expect(mocks.confirmarComprobante).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Comprobante de venta · aviso que llega por la ruta', () => {
+  function EstadoDeLaRuta() {
+    const ubicacion = useLocation()
+    return <output data-testid="estado-ruta">{JSON.stringify(ubicacion.state)}</output>
+  }
+
+  it('muestra el aviso y lo limpia del historial para que no reaparezca al recargar', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/ventas/comprobantes/k-1', state: { aviso: '2 líneas del pedido no se pasaron: revisalas.' } }]}>
+        <EstadoDeLaRuta />
+        <Routes>
+          <Route path="/ventas/comprobantes/:id" element={<ComprobanteVenta />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('2 líneas del pedido no se pasaron: revisalas.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('estado-ruta')).toHaveTextContent('null'))
+    expect(screen.getByText('2 líneas del pedido no se pasaron: revisalas.')).toBeInTheDocument()
+  })
+})

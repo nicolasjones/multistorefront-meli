@@ -81,3 +81,7 @@ antes del intento (solo el que creó esta misma subida).
   base, limpieza del documento y del objeto cuando falla la subida o la versión, versión nueva
   que actualiza el nombre, cancelación del selector de «Actualizar» y errores de la RPC de
   funcionalidad y de la lista.
+
+## Activación de una versión (MSF-652)
+
+`public.activar_version_documento(p_version_id)` (la llama `indexar-documento` con la sesión de quien subió el archivo) valida, desde `20270507150000`: que la versión pertenezca a la organización del llamador (versión inexistente, ya procesada o de otra organización dan el mismo error genérico `22023`), que la funcionalidad `busqueda-documental` esté habilitada y que el llamador sea quien subió la versión o un administrador de la organización (`42501` si no). `anon` no ejecuta la RPC. Prueba: `supabase/tests/database/activar_version_documento_valida_organizacion.test.sql`.

@@ -33,6 +33,9 @@ export const TITULO_MOSTRADOR = 'Venta de mostrador'
 
 export const MENSAJE_SIN_TIENDA_ACTIVA = 'Elegí una tienda en la barra superior para escanear.'
 export const MENSAJE_ERROR_FORMAS_PAGO = 'No pudimos cargar las formas de pago de esta tienda. Probá de nuevo.'
+// Lectura base de la bandera al abrir la venta: si falla se reintenta (espera creciente) hasta este tope.
+const INTENTOS_BASE_BANDERA = 4
+const ESPERA_REINTENTO_BASE_BANDERA_MS = 5_000
 
 // Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329; FR-002…FR-005). La venta en curso es una
 // factura `borrador` (canal Mostrador, Consumidor final, empresa activa) que se crea al primer escaneo. La base
@@ -86,15 +89,25 @@ export function VentaMostrador() {
   const ventaVigenteId = ventaVigente?.id ?? null
   const banderaAlAbrir = base !== null && base.ventaId === ventaVigenteId ? base.valor : null
   // La base sale de una lectura hecha al abrir la venta (no del valor del montaje: el mostrador queda abierto todo el día).
-  // Si esa lectura falla no hay base y no se avisa.
+  // Si esa lectura falla se reintenta con espera creciente hasta un tope; agotado, no hay base y no se avisa.
   useEffect(() => {
     if (ventaVigenteId === null) return
     let vigente = true
-    void releerBandera().then((leida) => {
-      if (vigente) setBase((previa) => (previa?.ventaId === ventaVigenteId && previa.valor !== null ? previa : { ventaId: ventaVigenteId, valor: leida }))
-    })
+    let temporizador: number | undefined
+    const leerBase = (intento: number) => {
+      void releerBandera().then((leida) => {
+        if (!vigente) return
+        if (leida === null && intento < INTENTOS_BASE_BANDERA) {
+          temporizador = window.setTimeout(() => leerBase(intento + 1), ESPERA_REINTENTO_BASE_BANDERA_MS * intento)
+          return
+        }
+        setBase((previa) => (previa?.ventaId === ventaVigenteId && previa.valor !== null ? previa : { ventaId: ventaVigenteId, valor: leida }))
+      })
+    }
+    leerBase(1)
     return () => {
       vigente = false
+      window.clearTimeout(temporizador)
     }
   }, [ventaVigenteId, releerBandera])
   const avisoBandera = ventaVigente ? avisoCambioBandera(banderaAlAbrir, banderaPromociones) : null
