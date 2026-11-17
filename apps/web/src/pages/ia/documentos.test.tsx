@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   errorDocumentos: null as { message: string } | null,
   errorInsertDocumento: null as { message: string } | null,
   errorInsertVersion: null as { message: string } | null,
-  errorUpload: null as { message: string } | null,
+  errorUpload: null as { message: string; statusCode?: string } | null,
   errorFeature: null as { message: string } | null,
   errorInvoke: null as { message: string } | null,
   errorInvokeHttp: null as Error | null,

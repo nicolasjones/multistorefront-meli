@@ -395,9 +395,9 @@
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
-      "pageHash": "7785961b723972a22e7783cb87e377d4c87795d1c5fe672bd88160a01916d98d",
-      "sourceHash": "7809d56eddd8e36fa704f82313c16f7d184a3e5c846f7e2b35c2630422ddee35",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "c4211161d76370976e649ee75cfd77ec9100454d6e07da77e0447c7e178015a0",
+      "sourceHash": "8822612ba52139c9d32c87179bfc5456f61234948ce1e546a257d7807668210b",
+      "sourceAt": "330af49f",
       "sources": [
         "specs/20261024-150000-ventas-cobros-y-conciliacion",
         "scripts/verificar-migraciones.mjs",
@@ -409,7 +409,7 @@
         "supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c9"
+      "commit": "330af49f"
     },
     "docs/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio (épica MSF-352)",
@@ -655,16 +655,16 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "bed756dc72009e66d1751f651d06432f3304dc87e7185aaae23fb91d7c43c70c",
+      "pageHash": "cc6c0451a35723380fe5d7bbf68da1801bb8640c53d778958e4724f91991a27b",
       "sourceHash": "f24222a959f467abe980c9eeb4893e5b117103fcd1bc3a5e1b9a69dfa79e1bfd",
-      "sourceAt": "0c4845aa",
+      "sourceAt": "a848a279",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
       ],
       "owner": "tecnico",
-      "commit": "0c4845aa"
+      "commit": "a848a279"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -735,9 +735,9 @@
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
-      "pageHash": "273c078f14d9f223e7b85ca592e29b56b333d60ce6c4b4b44388d7021ba092e6",
-      "sourceHash": "7f04ae9065d57fa5767fa74c4cf3d14f388bd930190eda7a6975a9e40c332eb9",
-      "sourceAt": "c7860a7c",
+      "pageHash": "0540718a7941f16d2f8d4d8de7959068bfc8fa1b0c90f807518c0d0631552a55",
+      "sourceHash": "c7bab6851d91a0e5fadfc5d091c25be2fbfd348cd5c3cd11be65a656fd04710d",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20270215-100000-notificaciones-ayuda-y-exportacion-total",
         "infra/kestra/compose.yaml",
@@ -749,7 +749,7 @@
         "supabase/migrations/20270219170000_exportacion_total_reparaciones_service.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",

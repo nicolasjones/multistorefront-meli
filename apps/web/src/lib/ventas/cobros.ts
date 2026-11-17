@@ -21,7 +21,7 @@ export type Cobro = {
   cuenta_cobro_banco: string | null
   cuenta_cobro_titular: string | null
   importe: number
-  origen: 'manual' | 'contrarreembolso'
+  origen: 'manual' | 'contrarreembolso' | 'reversion'
   conciliado: boolean
   aprobado_por: string | null
   registrado_por: string | null
@@ -36,7 +36,7 @@ export type CobroRegistrado = {
   importe: number
   forma_pago_id: string
   cuenta_cobro_id: string | null
-  origen: 'manual' | 'contrarreembolso'
+  origen: 'manual' | 'contrarreembolso' | 'reversion'
   registrado_por: string
   registrado_por_nombre: string
   registrado_en: string

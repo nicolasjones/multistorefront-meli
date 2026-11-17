@@ -26,17 +26,29 @@ export const SIN_ALICUOTA_PRODUCTO = ''
 export const NOTA_OPCIONES_IVA = 'Opciones: 21 %, 10,5 %, Exento. Cada producto puede tener el suyo.'
 export const AYUDA_IVA_EMPRESA = 'El IVA sale de la categoría de cada producto (o del propio producto).'
 
-// Precio final = neto × (1 + alícuota), al centavo (mitad hacia arriba, igual que el total del comprobante);
-// Exento ⇒ final = neto. En enteros (centavos × puntos básicos) para no arrastrar error de coma flotante: el
-// mismo resultado que `private.aplicar_iva` de la base (MSF-720). El neto se toma a centavos: vale para importes
-// con hasta 2 decimales (los del formulario); un neto con más decimales puede diferir de la base.
+// Precio final = neto × (1 + alícuota), al centavo, redondeando la mitad ALEJÁNDOSE DEL CERO (igual que `round(numeric, 2)` de
+// Postgres, que usa `private.aplicar_iva` y el total del comprobante); Exento ⇒ final = neto (MSF-720). Aritmética decimal exacta con
+// BigInt (neto y alícuota a 10 decimales), sin errores de coma flotante: vale también para netos con 3 decimales y negativos.
+const ESCALA = 10n ** 10n
+
+function aDecimalEscalado(valor: number): bigint {
+  // `toFixed(10)` da los dígitos decimales «de lectura» del número (1.005 → «1.0050000000»), no su expansión binaria.
+  const texto = Math.abs(valor).toFixed(10)
+  const [entero, fraccion] = texto.split('.')
+  const escalado = BigInt(entero) * ESCALA + BigInt(fraccion ?? '0')
+  return valor < 0 ? -escalado : escalado
+}
+
 export function calcularFinal(neto: number, alicuota: Pick<Alicuota, 'porcentaje' | 'exento'>): number {
   if (alicuota.exento) return neto
-  const centavos = Math.round(neto * 100)
-  const puntosBasicos = Math.round(alicuota.porcentaje * 100)
-  const producto = centavos * (10_000 + puntosBasicos)
-  const resto = producto % 10_000
-  return ((producto - resto) / 10_000 + (resto >= 5_000 ? 1 : 0)) / 100
+  const n = aDecimalEscalado(neto)
+  const p = aDecimalEscalado(alicuota.porcentaje)
+  // final × 100 (centavos) = neto × (100 + alícuota) / 100 × 100 = n × (100·S + p) / S²  (con n, p escalados por S)
+  const numerador = (n < 0n ? -n : n) * (100n * ESCALA + p)
+  const divisor = ESCALA * ESCALA
+  const cociente = numerador / divisor
+  const centavos = (numerador % divisor) * 2n >= divisor ? cociente + 1n : cociente
+  return (n < 0n ? -Number(centavos) : Number(centavos)) / 100
 }
 
 export async function leerAlicuotas(cliente: Pick<SupabaseClient, 'schema'>): Promise<Alicuota[]> {

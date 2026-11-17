@@ -171,6 +171,22 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
     await waitFor(() => expect(mocks.listarPagos).toHaveBeenCalled())
   })
 
+  it('muestra «Revertido» y «Reversión» en vez del interruptor de conciliación (MSF-667)', async () => {
+    mocks.listarPagos.mockResolvedValue({
+      pagos: [
+        { ...PAGO, estado_reversion: 'revertido' },
+        { ...PAGO, id: 'p-3', importe: -400, numero: '0001-00000003', estado_reversion: 'reversion' },
+        { ...PAGO_APROBADO, estado_reversion: null },
+      ],
+      total: 3,
+    })
+    abrir()
+
+    expect(await screen.findByText('Revertido')).toBeInTheDocument()
+    expect(screen.getByText('Reversión')).toBeInTheDocument()
+    expect(screen.getAllByRole('switch')).toHaveLength(1)
+  })
+
   it('muestra las tres tarjetas con el importe y la bajada', async () => {
     abrir()
 

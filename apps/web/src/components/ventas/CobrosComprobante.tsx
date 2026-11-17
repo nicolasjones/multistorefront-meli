@@ -182,7 +182,7 @@ function ListaCobros({ cobros }: { cobros: Cobro[] }) {
               <Typography variant="body2">{formatearFecha(cobro.fecha.slice(0, 10))}</Typography>
             </Box>
             <Box role="cell" sx={{ minWidth: 0 }}>
-              <Typography variant="body2">{cobro.forma_pago ?? '—'}</Typography>
+              <Typography variant="body2">{cobro.origen === 'reversion' ? `Reversión de cobro · ${cobro.forma_pago ?? '—'}` : (cobro.forma_pago ?? '—')}</Typography>
             </Box>
             <Box role="cell" sx={{ minWidth: 0 }}>
               <Typography variant="body2">{textoCuentaCobro(cobro) ?? '—'}</Typography>

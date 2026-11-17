@@ -361,8 +361,12 @@ persona modificó este comprobante».
 - **MSF-660 (ya estaba)**: `saldo = total_con_iva − notas de crédito emitidas − cobros` (mínimo 0, sin estado nuevo, sin recalcular
   comprobantes viejos) está desde `20270227140000_saldo_comprobante_resta_notas_credito.sql` y lo usan el tope de `registrar_cobro`,
   la cuenta corriente, `listar_pagos`/`resumen_pagos` y los contrarreembolsos.
-- **Pendiente de UI** (lote de interfaz): botón «Revertir cobro» (solo administrador, con motivo) en el detalle del comprobante y
-  mostrar la reversión en el historial de cobros. Pruebas: `supabase/tests/database/lote32_cobros_anulacion_y_reversion.test.sql`.
+- **Lectores de pagos** (`20270507180800`): `resumen_pagos` no cuenta como «por conciliar» ni «conciliado» el cobro revertido ni su
+  contra-asiento (el saldo sigue siendo el neto); `listar_pagos` agrega `estado_reversion` (`revertido` / `reversion` / nulo) y la
+  pantalla Pagos los muestra con una etiqueta en vez del interruptor; `cuentas_cobro_mas_usadas` no los cuenta como uso. El detalle
+  del comprobante rotula el contra-asiento como «Reversión de cobro».
+- **Aún NO hay pantalla para `revertir_cobro`**: queda para el lote de UI (botón «Revertir cobro» solo para el administrador, con
+  motivo obligatorio, con el prototipo primero). Hoy se invoca solo por RPC. Pruebas: `supabase/tests/database/lote32_cobros_anulacion_y_reversion.test.sql`.
 
 ## Reversión
 

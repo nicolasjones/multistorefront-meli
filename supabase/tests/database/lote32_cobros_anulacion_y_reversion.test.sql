@@ -212,9 +212,19 @@ select is(pg_temp.est('f1000000-0000-0000-0000-000000000006'), 'anulada', 'F_PAR
 -- ============================================================================
 -- Conciliación: ni el contra-asiento ni el original revertido
 -- ============================================================================
+-- Pagos: antes de revertir hay un cobro de 700 por conciliar (y el de 500 ya conciliado)
+select is((select por_conciliar_cantidad::int || '/' || conciliado_cantidad::int || '/' || por_conciliar_importe from public.resumen_pagos()), '1/1/700.00', 'antes de revertir: 1 por conciliar (700) y 1 conciliado');
+select is((select usos::int from public.cuentas_cobro_mas_usadas() where nombre = 'Banco Uno'), 2, 'antes de revertir: la cuenta tiene 2 usos');
 select lives_ok(format($$create temp table rev2 as select public.revertir_cobro(%L, 'Cuenta equivocada') as id$$, 'c0b00000-0000-0000-0000-000000000008'),
   'se revierte el cobro con cuenta sin conciliar');
 grant select on rev2 to public;
+-- MSF-667 (QA): el cobro revertido y su contra-asiento se netean en los lectores de pagos
+select is((select por_conciliar_cantidad::int || '/' || conciliado_cantidad::int || '/' || por_conciliar_importe from public.resumen_pagos()), '0/1/0', 'tras revertir: nada por conciliar por ese cobro (queda como antes de cobrar)');
+select is((select usos::int from public.cuentas_cobro_mas_usadas() where nombre = 'Banco Uno'), 1, 'la cuenta vuelve a 1 uso: ni el cobro revertido ni el contra-asiento cuentan');
+select is((select array_agg(coalesce(estado_reversion, 'normal') order by importe) from public.listar_pagos(null, null, false, 1, 50) where comprobante_id = 'f1000000-0000-0000-0000-000000000008'),
+  array['reversion', 'revertido']::text[], 'listar_pagos muestra el contra-asiento como «reversion» y el cobro como «revertido»');
+select is((select estado_reversion from public.listar_pagos(null, null, false, 1, 50) where comprobante_id = 'f1000000-0000-0000-0000-000000000002'), null::text, 'el cobro normal no tiene estado de reversión');
+select is((select count(*)::int from public.listar_pagos(null, null, false, 1, 50) where not conciliado and estado_reversion is null), 0, 'ningún pago «por conciliar» sin revertir queda pendiente (nada que conciliar masivamente)');
 select throws_ok(format($$select public.conciliar_pago(%L, pg_temp.upd_cobro(%L))$$, 'c0b00000-0000-0000-0000-000000000008', 'c0b00000-0000-0000-0000-000000000008'),
   '55000', 'Este cobro fue revertido: no se puede conciliar', 'el cobro revertido no se concilia');
 select throws_ok(format($$select public.conciliar_pago(%L, pg_temp.upd_cobro(%L))$$, (select id from rev2), (select id from rev2)),

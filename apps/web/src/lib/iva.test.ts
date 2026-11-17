@@ -12,6 +12,30 @@ describe('calcularFinal (F-PRE-12, FR-021)', () => {
     expect(calcularFinal(100.1, IVA_21)).toBe(121.12)
   })
 
+  // Valores de `private.aplicar_iva(neto, alícuota, false)` en Postgres (round half away from zero a 2 decimales).
+  it.each([
+    [1.005, 21, 1.22],
+    [0.995, 21, 1.2],
+    [1234.565, 21, 1493.82],
+    [1234.565, 10.5, 1364.19],
+    [-0.005, 0, -0.01],
+    [-1.005, 0, -1.01],
+    [-1.005, 21, -1.22],
+    [0.005, 0, 0.01],
+    [1.005, 0, 1.01],
+    [2.675, 0, 2.68],
+    [0.015, 0, 0.02],
+    [-0.015, 0, -0.02],
+    [0.125, 0, 0.13],
+    [-0.125, 0, -0.13],
+    [10.05, 10, 11.06],
+    [99.99, 27, 126.99],
+    [0.01, 21, 0.01],
+    [333.33, 10.5, 368.33],
+  ])('coincide con la base: %s con %s %% = %s', (neto, porcentaje, esperado) => {
+    expect(calcularFinal(neto, { porcentaje, exento: false })).toBe(esperado)
+  })
+
   it('Exento deja el final igual al neto', () => {
     expect(calcularFinal(29186, EXENTO)).toBe(29186)
   })

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Card, CardContent, FormControlLabel, Link, Snackbar, Stack, Switch,
+  Alert, Box, Card, CardContent, Chip, FormControlLabel, Link, Snackbar, Stack, Switch,
   ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -207,6 +207,10 @@ export function PagosList() {
         // y no llama a la RPC: la base igual lo rechaza, pero la pantalla no ofrece lo que la
         // base va a rechazar.
         const puede = permisos[pago.empresa_id] === true
+        // Un cobro revertido (o su contra-asiento) ya no se concilia: se muestra como revertido.
+        if (pago.estado_reversion) {
+          return <Chip size="small" variant="outlined" label={pago.estado_reversion === 'revertido' ? 'Revertido' : 'Reversión'} />
+        }
         return (
           <Switch
             size="small"
