@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, FormHelperText,
+  Alert, Box, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, FormControlLabel, FormHelperText, Link,
   LinearProgress, Snackbar, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -281,8 +281,8 @@ export function FaltantesList() {
   return (
     <Box>
       <EncabezadoPagina
-        titulo="Faltantes"
-        descripcion="Líneas vendidas o pedidas sin stock."
+        titulo="Faltantes de despacho"
+        descripcion="Líneas de facturas vendidas o pedidas sin stock que se avisan al cliente."
         contexto={<ContextoOrganizacionActiva />}
         accion={
           puedeAvisar ? (
@@ -294,6 +294,9 @@ export function FaltantesList() {
       />
       <ContenedorSeccion>
         <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">
+            Las líneas «A pedido» con reserva están en <Link component={RouterLink} to="/stock/faltantes">Faltantes de stock</Link>.
+          </Typography>
           <FiltroEmpresa
             empresas={empresas}
             valor={empresaId}

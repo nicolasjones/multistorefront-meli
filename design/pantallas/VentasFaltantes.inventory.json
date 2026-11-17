@@ -31,7 +31,7 @@
     "Comprobantes",
     "Presupuestos",
     "Pagos",
-    "Faltantes",
+    "Faltantes de despacho",
     "Devoluciones (RMA)",
     "Transportes y contrarreembolsos",
     "Reintentar",
@@ -42,7 +42,7 @@
     "Comprobantes",
     "Presupuestos",
     "Pagos",
-    "Faltantes",
+    "Faltantes de despacho",
     "Devoluciones (RMA)",
     "Transportes y contrarreembolsos"
   ],

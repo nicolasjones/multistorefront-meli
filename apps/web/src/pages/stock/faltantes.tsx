@@ -197,8 +197,8 @@ export function FaltantesStock() {
   return (
     <Box>
       <EncabezadoPagina
-        titulo="Faltantes"
-        descripcion="Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve."
+        titulo="Faltantes de stock (A pedido)"
+        descripcion="Líneas «A pedido» de facturas confirmadas que esperan mercadería. Se avisa al cliente cuando el producto vuelve."
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeAvisar ? (
           <Button variant="contained" disabled={cantidadElegidos === 0} onClick={() => setDialogo(true)}>
@@ -208,6 +208,9 @@ export function FaltantesStock() {
       />
       <ContenedorSeccion>
         <PestanasStock activa="faltantes" />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          ¿Buscás lo que quedó sin armar en un despacho? Eso está en <Link component={RouterLink} to="/ventas/faltantes">Faltantes de despacho</Link>.
+        </Typography>
         <Stack spacing={2}>
           {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
             <FiltroEmpresa

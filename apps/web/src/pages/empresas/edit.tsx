@@ -1,3 +1,4 @@
+import { CampoDominioEmpresa } from '../../components/empresas/CampoDominioEmpresa'
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
@@ -233,7 +234,7 @@ export function EmpresaEdit() {
               </Button>
             )}
           </Box>
-          <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
+          <CampoDominioEmpresa empresaId={empresa.id} />
           <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
           <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
           <TextField

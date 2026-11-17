@@ -10,9 +10,11 @@ const mocks = vi.hoisted(() => ({
   usePuedeEscribir: vi.fn(),
   setWarnWhen: vi.fn(),
   getUser: vi.fn(),
+  dominio: vi.fn(),
 }))
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.setWarnWhen }) }))
+vi.mock('../../hooks/useDominioTienda', () => ({ useDominioTienda: () => mocks.dominio() }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
@@ -65,6 +67,14 @@ describe('EmpresaEdit', () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } } })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.lectura.mockResolvedValue({ data: mundoJc, error: null })
+    mocks.dominio.mockReturnValue({ dominio: { dominioVigente: null, dominioPendiente: null }, isLoading: false, isError: false })
+  })
+
+  it('el dominio muestra el vigente real y enlaza a «Dominio y publicación»', async () => {
+    mocks.dominio.mockReturnValue({ dominio: { dominioVigente: 'mundojc.com.ar', dominioPendiente: null }, isLoading: false, isError: false })
+    abrir()
+    expect(await screen.findByLabelText('Dominio')).toHaveValue('mundojc.com.ar')
+    expect(screen.getByRole('link', { name: 'Dominio y publicación' })).toHaveAttribute('href', '/empresas/e-2/tienda/publicacion')
   })
 
   it('muestra los datos generales con dominio, idioma y moneda fijos', async () => {

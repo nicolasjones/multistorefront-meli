@@ -224,7 +224,7 @@ function App() {
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
-              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes de despacho' } },
               { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               // MSF-467: moderación de opiniones de productos (solo Administrador).

@@ -102,7 +102,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
 
   it('muestra el título «Faltantes» y su descripción (FR-044)', async () => {
     abrir()
-    expect(await screen.findByRole('heading', { name: 'Faltantes', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Faltantes de despacho', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Líneas vendidas o pedidas sin stock.')).toBeInTheDocument()
   })
 
@@ -346,7 +346,7 @@ describe('ruta de Faltantes (F-VTA-18, FR-045)', () => {
   it('el menú de Ventas tiene la entrada «Faltantes» que apunta a la pantalla', () => {
     const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')
     const entrada = ventas?.destinos.find((destino) => destino.id === 'ventas-faltantes')
-    expect(entrada?.etiqueta).toBe('Faltantes')
+    expect(entrada?.etiqueta).toBe('Faltantes de despacho')
     expect(entrada?.ruta).toBe('/ventas/faltantes')
     expect(entrada?.seccionPermiso).toBe('ventas')
     // Y es un destino del panel (aparece en el menú junto a los demás).

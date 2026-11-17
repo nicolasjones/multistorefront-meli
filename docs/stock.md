@@ -284,4 +284,4 @@ La nota de un movimiento de una reserva «A pedido» no muestra el identificador
 
 - La pestaña muestra el **depósito** sobre el que opera (el principal, solo lectura): la RPC `confirmar_toma_inventario` ajusta siempre el depósito por defecto. Elegir otro depósito necesita un parámetro nuevo en la RPC (pendiente del lote de SQL).
 - El selector ofrece **«Sin categoría»**: los productos activos sin categoría (`categoria_id is null`).
-- El rol **Depósito** (edita Stock, sin la sección `categorias`) ve las categorías en el selector: la migración `20270507180000_categorias_lectura_para_toma_de_inventario.sql` agrega la política de lectura `categorias_select_stock` en `dominio.categorias` para quien tiene `stock = edicion`. No abre escritura. Prueba: `supabase/tests/database/categorias_lectura_toma_inventario.test.sql`.
+- El rol **Depósito** (edita Stock, sin la sección `categorias`) ve las categorías en el selector gracias a la política de lectura adicional en `dominio.categorias` que trae el PR #1136 (lote 32, dependencia de base); este lote no toca SQL.
