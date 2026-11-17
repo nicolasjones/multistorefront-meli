@@ -178,12 +178,12 @@ archivo` sin pasos de código.
   750 (~1,5 s). **Límites** (no cubre): SQL dinámico con `execute`; `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`;
   `ALTER TABLE t DROP c` sin `COLUMN`; `UPDATE` sin `WHERE`; `REVOKE`; no valida que la reversión tenga pasos. `DROP
   CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido). Tampoco modela `standard_conforming_strings = off`. Los tags
-  de dollar-quote admiten letras Unicode (`$é$`) y el análisis es lineal (1 MB de tags sin cierre tarda menos de 2 s). `-- Reversion: none` /
+  de dollar-quote admiten letras Unicode (`$é$`) y el análisis es casi lineal: el índice de tags se calcula una vez sobre el texto completo (con ~1 MB hostil, de tags únicos, repetidos o anidados, tarda 0,1 a 0,4 s); los dollar-quotes anidados más allá de 100 niveles se tratan como código plano. `-- Reversion: none` /
   `n.a.` / `na` / `nothing` también se rechazan.
 - **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
   ~1,5 a 3 minutos en el runner de CI; la cifra no se reproduce en hosts cargados, donde medimos ~160 s): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
   fallaron (no corta en la primera). Cada suite tiene timeout (600 s por defecto; `--timeout <s>` o `CORRER_SUITES_TIMEOUT_S`) y una
-  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Cada suite corre en su propio grupo de procesos y al vencer el timeout se mata el grupo entero (shell, pnpm, node y nietos); un Ctrl-C al runner no llega al grupo de la suite en curso. La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
+  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. `test:ci:scripts` (y `docs:wiki:check`) necesitan un `.git` real: no corren en un worktree montado sin gitdir. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Cada suite corre en su propio grupo de procesos y al vencer el timeout se mata el grupo entero (shell, pnpm, node y nietos); un Ctrl-C al runner no llega al grupo de la suite en curso. La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
   `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
 
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)

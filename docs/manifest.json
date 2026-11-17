@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "22f17adec6cca0ac1052062969ddd5e81c0697880be9a08da5f1396fa951bca4",
+      "pageHash": "ebcb5b6fce97e69c377fad7edf502407ef0af70b2609a925bb2a2cb27cc70256",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "e85a0414",
+      "sourceAt": "ce76a5ff",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "e85a0414"
+      "commit": "ce76a5ff"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",

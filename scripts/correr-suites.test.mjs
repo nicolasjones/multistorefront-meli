@@ -1,8 +1,25 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import { correrSuites } from './correr-suites.mjs';
 
 const sinSalida = { write() {} };
+
+// Muerto = no existe (ESRCH) o es un zombi (estado Z en /proc): en un contenedor sin init el nieto huérfano
+// queda zombi hasta que alguien lo recolecte, y eso cuenta como muerto.
+function estaMuerto(pid) {
+  try {
+    process.kill(pid, 0);
+  } catch (error) {
+    return error.code === 'ESRCH';
+  }
+  try {
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return stat.slice(stat.lastIndexOf(')') + 2).startsWith('Z');
+  } catch {
+    return true;
+  }
+}
 
 test('corre todas las suites aunque alguna falle y devuelve 1 con el resumen', () => {
   const corridas = [];
@@ -70,7 +87,6 @@ test('CORRER_SUITES_TIMEOUT_S y --timeout inválidos salen con 2 y mensaje claro
 });
 
 test('al vencer el timeout se mata el grupo: el nieto no queda huérfano y el test tarda pocos segundos', async () => {
-  const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const { spawnSync } = await import('node:child_process');
@@ -86,7 +102,7 @@ test('al vencer el timeout se mata el grupo: el nieto no queda huérfano y el te
     const pid = Number(fs.readFileSync(pidfile, 'utf8'));
     assert.ok(pid > 0);
     await new Promise((resolve) => setTimeout(resolve, 200));
-    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+    assert.ok(estaMuerto(pid), `el nieto ${pid} sigue vivo`);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

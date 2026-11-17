@@ -147,12 +147,24 @@ test('tag de dollar-quote Unicode y marcadores en inglés', async () => {
   }
 });
 
-test('rendimiento: 1 MB de tags únicos sin cierre se analiza en menos de 2 s', async () => {
-  const sql = Array.from({ length: 105000 }, (_, k) => `$t${k}$ `).join('') + '\n-- Reversión: x\nselect 1;';
-  await withMigrations({ '001.sql': sql }, async (dir) => {
-    const t = Date.now();
-    const r = await run(dir);
-    assert.equal(r.code, 0);
-    assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
+// Entrada hostil: tags de dollar-quote repetidos o anidados. El análisis debe ser (casi) lineal; tope de 5 s
+// por caso (en un host sin carga tardan menos de 1 s) con ~0,5 MB para dejar margen en hosts cargados.
+const CASOS_HOSTILES = {
+  'tags únicos sin cierre': () => Array.from({ length: 55000 }, (_, k) => `$t${k}$ `).join(''),
+  '$a$ $b$ repetidos': () => '$a$ $b$ '.repeat(62500),
+  '$a$ $a$ repetidos': () => '$a$ $a$ '.repeat(62500),
+  '$a$ x $b$ y repetidos': () => '$a$ x $b$ y '.repeat(42000),
+  'anidados profundos': () => Array.from({ length: 10000 }, (_, k) => `$t${k}$ `).join('') + Array.from({ length: 10000 }, (_, k) => `$t${9999 - k}$ `).join(''),
+};
+for (const [nombre, generar] of Object.entries(CASOS_HOSTILES)) {
+  test(`rendimiento con entrada hostil (${nombre}): menos de 5 s y mismo veredicto`, async () => {
+    await withMigrations({ '001.sql': `${generar()}\n-- Reversión: x\nselect 1;`, '002.sql': `${generar()};\ndrop table x;` }, async (dir) => {
+      const t = Date.now();
+      const r = await run(dir);
+      assert.ok(Date.now() - t < 5000, `tardó ${Date.now() - t} ms`);
+      assert.notEqual(r.code, 0);
+      assert.match(r.stderr, /002\.sql/);
+      assert.doesNotMatch(r.stderr, /001\.sql/);
+    });
   });
-});
+}

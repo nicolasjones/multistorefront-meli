@@ -61,17 +61,14 @@ function esCaracterDeIdentificador(c) {
 const TAG_DOLLAR = /\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$/uy;
 const TAGS_GLOBAL = /(?=(\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$))/gu;
 
-// Posiciones de cada `$tag$` del texto, calculadas UNA vez por llamada (lineal): buscar el cierre de cada
-// apertura con `indexOf` era cuadrático con muchos tags únicos sin cierre.
-function tagsDe(sql) {
-  if (tagsDe.sql === sql) return tagsDe.mapa;
+// Posiciones de cada `$tag$` del texto COMPLETO, calculadas UNA sola vez (lineal) y compartidas por toda la
+// recursión: recalcularlas por nivel era cuadrático con entrada hostil (`'$a$ $b$ '.repeat(n)`).
+function indexarTags(sql) {
   const mapa = new Map();
   for (const m of sql.matchAll(TAGS_GLOBAL)) {
     const lista = mapa.get(m[1]);
     if (lista) lista.push(m.index); else mapa.set(m[1], [m.index]);
   }
-  tagsDe.sql = sql;
-  tagsDe.mapa = mapa;
   return mapa;
 }
 
@@ -87,33 +84,44 @@ function siguienteTag(mapa, tag, desde) {
   return lo < lista.length ? lista[lo] : -1;
 }
 
+// Profundidad máxima de dollar-quotes anidados que se analizan como SQL; más allá el interior se trata como
+// código plano (conservador: sus `drop` cuentan) para no agotar la pila con entrada hostil.
+const PROFUNDIDAD_MAXIMA = 100;
+
 export function separar(sql) {
-  let ejecutable = '';
-  const comentarios = [];
-  let i = 0;
-  while (i < sql.length) {
+  const salida = { ejecutable: [], comentarios: [] };
+  recorrer(sql, 0, sql.length, indexarTags(sql), salida, 0);
+  return { ejecutable: salida.ejecutable.join(''), comentarios: salida.comentarios };
+}
+
+// Tokeniza `sql[desde, hasta)`; los offsets son del texto completo, así el índice de tags se comparte.
+function recorrer(sql, desde, hasta, mapa, salida, profundidad) {
+  const { ejecutable, comentarios } = salida;
+  let i = desde;
+  while (i < hasta) {
     const c = sql[i];
     const dos = sql.slice(i, i + 2);
     if (dos === '--') {
       const fin = sql.indexOf('\n', i);
-      const hasta = fin === -1 ? sql.length : fin;
-      comentarios.push(sql.slice(i, hasta));
-      i = hasta;
+      const h = fin === -1 || fin > hasta ? hasta : fin;
+      comentarios.push(sql.slice(i, h));
+      i = h;
     } else if (dos === '/*') {
-      let profundidad = 1;
+      let nivel = 1;
       let j = i + 2;
-      while (j < sql.length && profundidad > 0) {
-        if (sql.startsWith('/*', j)) { profundidad += 1; j += 2; }
-        else if (sql.startsWith('*/', j)) { profundidad -= 1; j += 2; }
+      while (j < hasta && nivel > 0) {
+        if (sql.startsWith('/*', j)) { nivel += 1; j += 2; }
+        else if (sql.startsWith('*/', j)) { nivel -= 1; j += 2; }
         else j += 1;
       }
-      comentarios.push(...sql.slice(i, j).split('\n'));
-      ejecutable += ' ';
+      j = Math.min(j, hasta);
+      for (const linea of sql.slice(i, j).split('\n')) comentarios.push(linea);
+      ejecutable.push(' ');
       i = j;
     } else if (c === "'" || c === '"') {
       const conEscapes = c === "'" && /^[eE]$/.test(sql[i - 1] ?? '') && !esCaracterDeIdentificador(sql[i - 2]);
       let j = i + 1;
-      while (j < sql.length) {
+      while (j < hasta) {
         if (conEscapes && sql[j] === '\\') { j += 2; continue; }
         if (sql[j] === c) {
           if (sql[j + 1] === c) { j += 2; continue; }
@@ -121,27 +129,28 @@ export function separar(sql) {
         }
         j += 1;
       }
-      ejecutable += `${c}${c}`;
+      ejecutable.push(`${c}${c}`);
       i = j + 1;
     } else if (c === '$' && !esCaracterDeIdentificador(sql[i - 1])) {
       TAG_DOLLAR.lastIndex = i;
       const abre = TAG_DOLLAR.exec(sql);
-      const cierre = abre ? siguienteTag(tagsDe(sql), abre[0], i + abre[0].length) : -1;
-      if (abre && cierre !== -1) {
-        const interior = separar(sql.slice(i + abre[0].length, cierre));
-        ejecutable += ` ${interior.ejecutable} `;
-        comentarios.push(...interior.comentarios);
+      const cierre = abre && i + abre[0].length <= hasta ? siguienteTag(mapa, abre[0], i + abre[0].length) : -1;
+      if (abre && cierre !== -1 && cierre + abre[0].length <= hasta) {
+        const ini = i + abre[0].length;
+        ejecutable.push(' ');
+        if (profundidad >= PROFUNDIDAD_MAXIMA) ejecutable.push(sql.slice(ini, cierre));
+        else recorrer(sql, ini, cierre, mapa, salida, profundidad + 1);
+        ejecutable.push(' ');
         i = cierre + abre[0].length;
       } else {
-        ejecutable += c;
+        ejecutable.push(c);
         i += 1;
       }
     } else {
-      ejecutable += c;
+      ejecutable.push(c);
       i += 1;
     }
   }
-  return { ejecutable, comentarios };
 }
 
 export function esDestructiva(sql) {
