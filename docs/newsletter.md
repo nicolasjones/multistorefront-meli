@@ -136,7 +136,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - `private.cerrar_envio_correo_masivo` no se redefine (no hace falta: cierra por id de destinatario o prueba).
 - El reclamo devuelve `cuerpo_html`, `remitente`, `tienda` y `dominio_tienda` en lugar de `bloques` y `dominio` (el HTML ya viene armado; `dominio_tienda` evita chocar con el esquema `dominio`).
 - `newsletter_lote.test.sql` es un archivo nuevo en lugar de extender `correo_masivo_lote.test.sql` (que sigue verde sin cambios: paridad de clientes).
-- axe: el entorno de Vitest (jsdom) no tiene diseño ni contraste y no cambia de ancho: se corrió axe sobre la pantalla en un solo tamaño; los tres anchos (320/768/1440 px) quedan para el E2E (MSF-961).
+- axe: el entorno de Vitest (jsdom) no tiene diseño ni contraste y no cambia de ancho: se corrió axe sobre la pantalla en un solo tamaño; los tres anchos (320/768/1440 px) los cubre `e2e/tienda-newsletter-a11y.e2e.ts` (MSF-961). Ese E2E encontró un `color-contrast` real: los mensajes de error del formulario salían en el rojo del tema (`.Mui-error` de `FormHelperText` le gana a un `color: inherit` suelto) sobre el pie oscuro; ahora heredan el color del pie (`ESTILO_ERROR_PIE`).
 
 ## Pendientes que requieren a Nicolás o a un entorno real
 
