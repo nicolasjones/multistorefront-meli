@@ -613,8 +613,8 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "6aff291cd38b9265e32ff94e4b8eccf29e29ba2f8feb8e304d6cef32e5494183",
-      "sourceHash": "52db4eb79564208471f7d20f73e5c9432f4afbe9fe97ec24128293fc90846c14",
+      "pageHash": "f5489a49d5ef107dfecff49c03ee6fac5ddaf70463a592d334af72358833ba2c",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
       "sourceAt": "782dd190",
       "sources": [
         "specs"
@@ -807,6 +807,26 @@
       "sources": [],
       "owner": "producto",
       "commit": "c7860a7c"
+    },
+    "docs/higiene-base-datos.md": {
+      "title": "Higiene y endurecimiento de la base de datos (lote 33)",
+      "pageHash": "1658689cd58148fa5db81d298faacf45b7b0dd12072cb0ec921aa75769383ad2",
+      "sourceHash": "03cd8628d3bb5d6f2deef04d3af3a081df1ee1f2a71fccb78f85dc408a196c2c",
+      "sourceAt": "eadcedcb",
+      "sources": [
+        "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
+        "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
+        "supabase/migrations/20270507190200_cotizaciones_clave_primaria_surrogada.sql",
+        "supabase/migrations/20270507190300_politicas_denegar_todo_tablas_sin_politica.sql",
+        "supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql",
+        "supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql",
+        "supabase/tests/database/seguridad_global_higiene_base.test.sql",
+        "supabase/verificacion/higiene_base.sql",
+        "scripts/verificar-higiene-base.mjs",
+        "scripts/analizar-definer-search-path.mjs"
+      ],
+      "owner": "plataforma",
+      "commit": "eadcedcb"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
