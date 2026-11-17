@@ -75,7 +75,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // Versión inexistente, de otra organización o sin permiso: el MISMO 403, sin revelar si existe.
   if (!version) return respuesta({ error: SIN_PERMISO }, 403)
   const esQuienSubio = version.subida_por !== null && version.subida_por === usuario.id
-  const contexto = await deps.contexto(jwt)
+  // El contexto (rol) solo hace falta si NO es quien subió la versión; un fallo al leerlo cuenta como «sin contexto».
+  let contexto: Awaited<ReturnType<Deps['contexto']>> = null
+  if (!esQuienSubio) {
+    try { contexto = await deps.contexto(jwt) } catch (error) { console.error('indexar-documento: no se pudo leer el contexto', error instanceof Error ? error.message : error) }
+  }
   // Falla cerrado: si no se puede resolver el rol (error del RPC de contexto) y no es quien subió, no se puede decidir
   // el permiso de administrador → 503 (no es un «no» definitivo), sin tocar nada.
   if (!contexto && !esQuienSubio) return respuesta({ error: 'No se pudo verificar tu permiso, probá de nuevo.' }, 503)
@@ -89,20 +93,33 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const reclamo = nuevoReclamo(deps.ahora(), deps.id())
   if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) return respuesta({ error: 'Esta versión ya se está indexando.' }, 409)
 
-  // Error permanente: la versión queda `fallida` (solo si sigue `procesando`).
-  const fallar = async (motivo: string) => {
-    await deps.borrarFragmentos(jwt, versionId)
-    // Si no se pudo registrar el fallo, la versión no puede quedar con el candado puesto: se suelta y es reintentable.
-    if (!(await deps.marcarFallida(jwt, versionId, motivo))) {
-      await deps.soltar(jwt, versionId, reclamo)
-      return respuesta({ error: 'No se pudo registrar el resultado, probá de nuevo.' }, 502)
+  // Soltar el candado nunca debe lanzar; si falla, el candado queda vigente hasta que venza (10 min): se deja rastro.
+  const soltarSeguro = async () => {
+    try { await deps.soltar(jwt, versionId, reclamo) } catch (error) {
+      console.error('indexar-documento: no se pudo soltar el candado, vence solo en 10 minutos', error instanceof Error ? error.message : error)
     }
-    return respuesta({ error: motivo }, 422)
   }
+  const yaActiva = async () => (await deps.estado(jwt, versionId)) === 'activa'
+  const respuestaIdempotente = () => respuesta({ version_id: versionId, ya_activa: true }, 200)
+
+  // Registra la versión como `fallida` (solo si sigue `procesando`) y recién entonces borra sus fragmentos. Si no se
+  // aplicó porque otra invocación ya la activó (carrera), no se borra nada y la respuesta es idempotente (200); si no se
+  // pudo por otra causa, se suelta el candado y es reintentable (502).
+  const dejarFallida = async (motivo: string): Promise<Response | null> => {
+    if (await deps.marcarFallida(jwt, versionId, motivo)) {
+      await deps.borrarFragmentos(jwt, versionId)
+      return null
+    }
+    if (await yaActiva()) return respuestaIdempotente()
+    await soltarSeguro()
+    return respuesta({ error: 'No se pudo registrar el resultado, probá de nuevo.' }, 502)
+  }
+  // Error permanente: la versión queda `fallida`.
+  const fallar = async (motivo: string) => (await dejarFallida(motivo)) ?? respuesta({ error: motivo }, 422)
   // Error transitorio: se libera la reclamación y se puede reintentar con la misma versión.
   const reintentable = async (mensaje: string, status: number) => {
     await deps.borrarFragmentos(jwt, versionId)
-    await deps.soltar(jwt, versionId, reclamo)
+    await soltarSeguro()
     return respuesta({ error: mensaje }, status)
   }
 
@@ -148,21 +165,24 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     const activacion = await deps.activar(jwt, versionId)
     if (activacion !== 'ok') {
       // Si otra invocación la activó entre tanto, el resultado ya es el esperado: no se marca fallida ni se tocan sus fragmentos.
-      if ((await deps.estado(jwt, versionId)) === 'activa') return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
+      if (await yaActiva()) return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
       // 22023: la base dice que la versión ya no se puede activar (ya procesada, ajena o inexistente): no es
-      // transitorio ni se marca `fallida`; se suelta el candado y se responde un 409 genérico.
+      // transitorio ni se marca `fallida`. Se borran los fragmentos de ESTE intento, se suelta el candado y se responde
+      // un 409 genérico (404 genérico si la versión ya no existe), así la pantalla no repite un intento que fallará igual.
       if (activacion === 'invalida') {
-        await deps.soltar(jwt, versionId, reclamo)
-        return respuesta({ error: 'Esta versión ya no se puede procesar.' }, 409)
+        await deps.borrarFragmentos(jwt, versionId)
+        await soltarSeguro()
+        return (await deps.estado(jwt, versionId)) === null
+          ? respuesta({ error: 'Esta versión ya no existe.' }, 404)
+          : respuesta({ error: 'Esta versión ya no se puede procesar.' }, 409)
       }
       // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo
       // claro. Quien llega acá ya pasó la autorización previa (subió la versión o es administrador); la única forma de
       // que la base lo rechace es una carrera (p. ej. un administrador degradado durante la indexación): en ese caso
       // la versión igual queda `fallida` y es quien subió o un administrador vigente quien la reintenta subiendo de nuevo.
       if (activacion === 'permiso') {
-        await deps.borrarFragmentos(jwt, versionId)
-        if (!(await deps.marcarFallida(jwt, versionId, MOTIVO_SIN_PERMISO))) await deps.soltar(jwt, versionId, reclamo)
-        return respuesta({ error: MOTIVO_SIN_PERMISO }, 403)
+        const resultado = await dejarFallida(MOTIVO_SIN_PERMISO)
+        return resultado ?? respuesta({ error: MOTIVO_SIN_PERMISO }, 403)
       }
       return await reintentable('No se pudo activar la nueva versión, probá de nuevo.', 502)
     }

@@ -74,6 +74,12 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   recibe 42501 al activar y deja la versión `fallida` (la reintenta quien subió o un administrador vigente).
 - Un 22023 al activar (versión ya procesada, ajena o inexistente para la base) responde 409 sin marcar `fallida` ni
   reintentar; si `marcarFallida` no puede aplicarse se registra en el log, se suelta el candado y se responde 502.
+- Un 22023 también borra los fragmentos de ese intento (409 genérico, o 404 si la versión ya no existe). Si
+  `marcarFallida` no aplica porque otra invocación ya activó la versión, no se borra nada y se responde 200 idempotente
+  (`ya_activa`); el fallo se registra y, si además `soltar` falla, el candado queda vigente hasta vencer (10 minutos) y
+  queda una línea en el log («no se pudo soltar el candado»). El contexto (rol) solo se lee si quien invoca no subió la
+  versión; si la lectura falla, 503.
+- La pantalla decide el mensaje amable por el estado HTTP 409 (`ErrorIndexacion.status`), no por el texto.
 - Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
 - **Rechazo de permisos al activar (42501)** (carrera o regla distinta de la base): no es transitorio. La función

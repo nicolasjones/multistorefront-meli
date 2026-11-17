@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 
 type Resultado = { data?: unknown; error?: { message: string } | null }
 
@@ -25,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   errorUpload: null as { message: string } | null,
   errorFeature: null as { message: string } | null,
   errorInvoke: null as { message: string } | null,
+  errorInvokeHttp: null as Error | null,
   identidad: { id: 'user-1' } as { id: string } | undefined,
 }))
 
@@ -110,6 +112,7 @@ describe('IaDocumentos', () => {
     mocks.errorUpload = null
     mocks.errorFeature = null
     mocks.errorInvoke = null
+    mocks.errorInvokeHttp = null
     mocks.identidad = { id: 'user-1' }
     mocks.errorUpdateDocumento = null
     mocks.useContextoPanel.mockReturnValue({
@@ -123,7 +126,7 @@ describe('IaDocumentos', () => {
     mocks.storageFrom.mockReturnValue({ upload: mocks.upload, remove: mocks.remove })
     mocks.upload.mockImplementation(async () => ({ error: mocks.errorUpload }))
     mocks.remove.mockImplementation(async () => ({ error: null }))
-    mocks.invoke.mockImplementation(async () => ({ data: {}, error: mocks.errorInvoke }))
+    mocks.invoke.mockImplementation(async () => ({ data: {}, error: mocks.errorInvokeHttp ?? mocks.errorInvoke }))
   })
 
   it('rechaza un archivo de formato no admitido antes de tocar la base', async () => {
@@ -338,11 +341,18 @@ describe('IaDocumentos', () => {
     })
 
     it('un reintento con el candado vigente (409) muestra un mensaje amable, no el error crudo', async () => {
-      mocks.errorInvoke = { message: 'Esta versión ya se está indexando.' }
+      mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'Texto cualquiera del backend' }), { status: 409 }))
       await abrirHistorial()
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
       expect(await screen.findByText(/Ya se está procesando; esperá unos minutos/)).toBeInTheDocument()
-      expect(screen.queryByText('Esta versión ya se está indexando.')).not.toBeInTheDocument()
+      expect(screen.queryByText('Texto cualquiera del backend')).not.toBeInTheDocument()
+    })
+
+    it('un 403 con un texto parecido NO se trata como el 409 amable: se muestra el error real', async () => {
+      mocks.errorInvokeHttp = new FunctionsHttpError(new Response(JSON.stringify({ error: 'Ya se está indexando, pero sin permiso' }), { status: 403 }))
+      await abrirHistorial()
+      fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+      expect(await screen.findByText('Ya se está indexando, pero sin permiso')).toBeInTheDocument()
     })
 
     it('una versión procesando reciente no ofrece Reintentar', async () => {

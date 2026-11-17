@@ -9,7 +9,7 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string } = {}) {
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; estadoTrasInvalida?: string | null; activarLaOtra?: boolean; soltarFalla?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string } = {}) {
   const v: VersionDoc = { subida_por: 'u1', id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
@@ -23,13 +23,16 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
       v.motivo_error = reclamo
       return true
     },
-    soltar: async (_j, _id, reclamo) => { if (v.estado === 'procesando' && v.motivo_error === reclamo) v.motivo_error = null },
+    soltar: async (_j, _id, reclamo) => {
+      if (opciones.soltarFalla) throw new Error('soltar: boom')
+      if (v.estado === 'procesando' && v.motivo_error === reclamo) v.motivo_error = null },
     marcarFallida: async (_j, _id, motivo) => {
+      if (opciones.activarLaOtra) { v.estado = 'activa'; return false }
       if (opciones.marcarFalla) return false
       if (v.estado === 'procesando') { v.estado = 'fallida'; v.motivo_error = motivo; return true }
       return false
     },
-    estado: async () => v.estado,
+    estado: async () => (opciones.estadoTrasInvalida !== undefined && opciones.activarInvalida ? opciones.estadoTrasInvalida : v.estado),
     descargar: async () => opciones.descargaFalla ? null : new Uint8Array([1]),
     extraerTexto: async () => opciones.texto === undefined ? 'hola mundo '.repeat(50) : opciones.texto,
     politica: async () => ({ politica_id: 'p', contrato_id: 'c', perfil_principal_id: 'pf', limite_intentos: 1, limite_segundos: 60, perfil_fallback_id: null }),
@@ -233,6 +236,49 @@ describe('indexar-documento', () => {
     assert.equal(res.status, 409)
     assert.equal(m.v.estado, 'procesando')
     assert.equal(m.v.motivo_error, null)
+  })
+
+  it('22023: borra los fragmentos de este intento y responde 409 (o 404 si la versión ya no existe), sin reintento', async () => {
+    const m = montar({ activarInvalida: true })
+    assert.equal((await pedir(m.deps)).status, 409)
+    assert.equal(m.fragmentosGuardados(), 0)
+    const inexistente = montar({ activarInvalida: true, estadoTrasInvalida: null })
+    assert.equal((await pedir(inexistente.deps)).status, 404)
+    assert.equal(inexistente.fragmentosGuardados(), 0)
+  })
+
+  it('carrera: si marcarFallida no aplica porque otra invocación ya la activó, no borra nada y responde 200 idempotente', async () => {
+    const m = montar({ texto: '   ', activarLaOtra: true })
+    let borrados = 0
+    const original = m.deps.borrarFragmentos
+    m.deps.borrarFragmentos = async (...a) => { borrados++; return original(...a) }
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 200)
+    assert.equal(m.v.estado, 'activa')
+    assert.equal(borrados, 0)
+  })
+
+  it('si soltar también falla en la rama 502, no lanza y deja rastro en el log', async () => {
+    const m = montar({ texto: '   ', marcarFalla: true, soltarFalla: true })
+    const errores: unknown[][] = []
+    const original = console.error
+    console.error = (...a: unknown[]) => { errores.push(a) }
+    try {
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 502)
+    } finally { console.error = original }
+    assert.ok(errores.some((e) => String(e[0]).includes('no se pudo soltar el candado')))
+  })
+
+  it('no lee el contexto si quien invoca subió la versión; si la lectura lanza y no subió, 503', async () => {
+    const subio = montar()
+    let lecturas = 0
+    subio.deps.contexto = async () => { lecturas++; return null }
+    assert.equal((await pedir(subio.deps)).status, 200)
+    assert.equal(lecturas, 0)
+    const ajeno = montar({ version: { subida_por: 'otro-usuario' } })
+    ajeno.deps.contexto = async () => { throw new Error('boom') }
+    assert.equal((await pedir(ajeno.deps)).status, 503)
   })
 
   it('si no se puede registrar la versión fallida, se suelta el candado y responde 502 reintentable', async () => {

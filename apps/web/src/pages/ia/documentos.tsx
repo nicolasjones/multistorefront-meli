@@ -16,16 +16,25 @@ type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_
 const MENSAJE_FUNCIONALIDAD = 'No pudimos verificar si la búsqueda documental está habilitada para tu organización. Revisá la conexión e intentá de nuevo.'
 const MENSAJE_CARGA = 'No pudimos cargar los documentos. Revisá la conexión e intentá de nuevo.'
 
+/** Error de la función con su estado HTTP (estable), para decidir por estado y no por el texto del mensaje. */
+export class ErrorIndexacion extends Error {
+  constructor(mensaje: string, readonly status: number | null) {
+    super(mensaje)
+  }
+}
+
 /** Invoca la indexación de una versión; ante un error de la función devuelve su mensaje real (403, 422, 502…). */
 async function invocarIndexacion(versionId: string): Promise<void> {
   const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
   if (!invokeError) return
   let mensajeError = invokeError.message
+  let status: number | null = null
   if (invokeError instanceof FunctionsHttpError) {
+    status = invokeError.context.status
     const cuerpo = await invokeError.context.json().catch(() => null)
     mensajeError = cuerpo?.error ?? mensajeError
   }
-  throw new Error(mensajeError)
+  throw new ErrorIndexacion(mensajeError, status)
 }
 
 /**
@@ -203,8 +212,8 @@ export function IaDocumentos() {
       await invocarIndexacion(versionId)
     } catch (reintentoError) {
       const mensaje = reintentoError instanceof Error ? reintentoError.message : 'No se pudo reintentar el procesamiento.'
-      // 409 con el candado vigente: otro intento ya está en curso, no es un error.
-      setError(/ya se está indexando/i.test(mensaje) ? 'Ya se está procesando; esperá unos minutos y volvé a revisar.' : mensaje)
+      // 409: otro intento ya está en curso (candado vigente), no es un error. Se decide por estado HTTP, no por texto.
+      setError(reintentoError instanceof ErrorIndexacion && reintentoError.status === 409 ? 'Ya se está procesando; esperá unos minutos y volvé a revisar.' : mensaje)
     } finally {
       setReintentando(null)
       await cargarDocumentos()
