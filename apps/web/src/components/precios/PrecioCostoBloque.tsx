@@ -9,6 +9,8 @@ import {
   formatearPesosPrecio,
   resumirPrecios,
 } from '../../lib/precios'
+import { useHref, useInRouterContext } from 'react-router'
+import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { MargenEstimado } from './MargenEstimado'
 
 type Props = {
@@ -108,10 +110,26 @@ export function PrecioCostoBloque({
       ) : null}
       {hintCosto !== null ? <Typography variant="caption" color="text.secondary">{hintCosto}</Typography> : null}
       {conCosto ? <MargenEstimado margen={resumen.margen} /> : null}
-      <Box>
-        {/* Pestaña nueva: el formulario puede tener cambios sin guardar y no se pierden al mirar o cargar el dólar. */}
-        <Button size="small" component="a" href="/cotizacion" target="_blank" rel="noopener noreferrer" aria-label="Cotización (se abre en una pestaña nueva)">Cotización →</Button>
-      </Box>
+      <EnlaceCotizacion />
+
     </Stack>
   )
+}
+
+// «Cotización →»: solo para quien tiene la sección `cotizacion_dolar` (sin ella la pantalla dice «Acceso restringido»).
+// Se abre en pestaña nueva: el formulario puede tener cambios sin guardar y no se pierden al mirar o cargar el dólar.
+function EnlaceCotizacion() {
+  const { nivel } = useNivelSeccion('cotizacion_dolar')
+  const enRouter = useInRouterContext()
+  if (nivel !== 'lectura' && nivel !== 'edicion') return null
+  return <Box>{enRouter ? <BotonCotizacionConRouter /> : <BotonCotizacion href="/cotizacion" />}</Box>
+}
+
+// Con router, la dirección respeta el basename de la aplicación.
+function BotonCotizacionConRouter() {
+  return <BotonCotizacion href={useHref('/cotizacion')} />
+}
+
+function BotonCotizacion({ href }: { href: string }) {
+  return <Button size="small" component="a" href={href} target="_blank" rel="noopener noreferrer" aria-label="Cotización (se abre en una pestaña nueva)">Cotización →</Button>
 }
