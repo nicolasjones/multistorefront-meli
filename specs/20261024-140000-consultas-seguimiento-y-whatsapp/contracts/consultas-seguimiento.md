@@ -2,15 +2,15 @@
 
 Épica MSF-130 · spec `consultas-seguimiento-y-whatsapp`. Todo es **nuevo y aditivo**; no cambia la firma de nada existente (reusa `public.actualizar_consulta` de MSF-122 tal cual).
 
-## Pública (la llama la tienda, MSF-212 · F-TDA-14)
+## Interna (solo `service_role` desde MSF-657; originalmente pública, la llamaba la tienda, MSF-212 · F-TDA-14)
 
 ```ts
 publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void  -- vigente: solo service_role (MSF-657)
 ```
 
-- Ejecutable por `anon` y `authenticated`. La empresa se resuelve **solo** por `host` (`dominio.tiendas`); no recibe `empresa_id`. **No recibe ni guarda datos personales.**
+- Ejecutable solo por `service_role` desde `20270507150100` (MSF-657; originalmente por `anon` y `authenticated`). La empresa se resuelve **solo** por `host` (`dominio.tiendas`); no recibe `empresa_id`. **No recibe ni guarda datos personales.**
 - Errores: `P0002` dominio desconocido o empresa desactivada (mensaje genérico, idéntico en ambos casos, resuelto antes de validar); `22023` producto inexistente o de otra organización (campo en `DETAIL`).
-- Efecto: suma una fila en `dominio.intereses_whatsapp`. Sin anti-spam aquí (es de la tienda).
+- Efecto: suma una fila en `dominio.intereses_whatsapp`. Sin anti-spam aquí: por eso ya no es pública (la tienda usa `registrar_consulta_whatsapp`, con cuota).
 
 ## Vista (panel, `authenticated`; consumidor previsto F-REP-04)
 

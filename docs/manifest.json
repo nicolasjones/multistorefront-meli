@@ -11,14 +11,14 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "f7b603998a1e0fa4baa2de11307c7c41530eaaf93a8ba4e923525125fa2a32ab",
-      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": "764d5e1c",
+      "pageHash": "1a3c3f9a386059ca0cd3943370f10fd2f52927c051a572cc7cb715e8bba8fc15",
+      "sourceHash": "60a777d49479a4111ab8ba85b8106b93cd6a0e362166d628fa4eedf350ebd095",
+      "sourceAt": "3ce6fd76",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "764d5e1c"
+      "commit": "3ce6fd76"
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "9883d9e50136fdec6fddfdc011c404c0ba71f8b837b9a5cdef24c48274cf6788",
-      "sourceHash": "8f185fca1bbe67f891487db630ee280d60a69d617ea97f087e19062eac962c39",
-      "sourceAt": "3ce6fd76",
+      "pageHash": "68c799e9bba8f0a5fc25d341d8ea34830fe31c7a346132899a88f81c364bea33",
+      "sourceHash": "6ba31b829be90fd2f4c91ac4f4d0b835e173e28c6a29be37cebf9c4053adad0f",
+      "sourceAt": "c629b40e",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "3ce6fd76"
+      "commit": "c629b40e"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -2603,9 +2603,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "dfa2f3e8b9c23f50b9a41bb5a9c84cde1e0f45ff6c57d94f767ec5083dc5070a",
-      "sourceHash": "8eb4d2b79d1185267d45ed10b798c5b838863c97a4bc5fd883b2526dcbb31cf4",
-      "sourceAt": "764d5e1c",
+      "pageHash": "fc68c62662b6fe1d27271dc1d039300317b0fd472fd6f55a0ebe1b4e79570b6c",
+      "sourceHash": "66ccc4ced18879fe2b2f1a019a03656a3558ad85d2f5e2fc83754192c35e3e16",
+      "sourceAt": "3ce6fd76",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations",
@@ -2621,7 +2621,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "764d5e1c"
+      "commit": "3ce6fd76"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "4ed303268375fd7e904bd5d09b6d4a8ae4cc3d23d7e8f2b0564cd8163026d580",
+      "pageHash": "d50b95b7ace160f11810ae97ab7dd6c3523b44ebe6b7c913dfdcc5e0ad2e0dac",
       "sourceHash": "a4e9408afb7ede4d906fb159775b1a87f6a485619f45ca122600279aa16fc171",
-      "sourceAt": "3ce6fd76",
+      "sourceAt": "c629b40e",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "3ce6fd76"
+      "commit": "c629b40e"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
@@ -2905,14 +2905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "cc47c729d1c9367a8682e8973eb013e016b090eeb0312d20fef0310867a5ce40",
-      "sourceHash": "82ed3a9eaf1364b8a3ab7a01cc41d1377fc5360edf5cdc9a3ee631b24737a627",
-      "sourceAt": "54895abc",
+      "pageHash": "b392993a36ee208a8c2334ed0eca80ba0a9a7bcab650a51c6a9c513bb333c935",
+      "sourceHash": "ed961921e6b2c7668a715b467213b63d05552c9276b84e97852d396655c50d44",
+      "sourceAt": "c629b40e",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "54895abc"
+      "commit": "c629b40e"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3613,16 +3613,16 @@
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
-      "pageHash": "7e6d06dd9079bf491c0dcdc5bf1aec2e268211ba333343e4e8b4b3557a13824d",
-      "sourceHash": "efa52f1a88cd36e258b3ff571e3331f58d37e67ff3f1c67df1cc9ef138260506",
-      "sourceAt": "488800f2d",
+      "pageHash": "20c5d2bd8f60afdb5c047f101c940f00a2888bd7674d5eed817b8c8dc0c5a1f1",
+      "sourceHash": "8116a9fe35458001f694bd046eda6b8b438d47ac8ef05144056c6148494aae72",
+      "sourceAt": "c629b40e",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "488800f2d"
+      "commit": "c629b40e"
     },
     "docs/tecnico/usuarios-y-roles.md": {
       "title": "Usuarios y roles (MSF-125)",

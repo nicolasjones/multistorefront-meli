@@ -9,13 +9,13 @@
 | Objeto | Esquema | Motivo |
 |---|---|---|
 | `intereses_whatsapp` | `dominio` | Registro de negocio (interés de visitantes por un producto de una tienda). |
-| `publico.registrar_interes_whatsapp` | `publico` | Superficie `anon`, sin datos propios (precedente `crear_consulta_publica`). |
+| `publico.registrar_interes_whatsapp` | `publico` | Superficie `anon` original, sin datos propios (precedente `crear_consulta_publica`); desde MSF-657 solo `service_role`. |
 | `interes_whatsapp_por_producto` | `public` (vista) | Superficie de lectura, `security_invoker`. |
 
 ## Migraciones (aditivas, con reversión en el encabezado)
 
 1. `20261024300000_intereses_whatsapp.sql` — tabla + RLS (sin escritura) + índices. Reversión: `drop table dominio.intereses_whatsapp;` (exportar antes si hay datos).
-2. `20261024300100_registrar_interes_whatsapp.sql` — RPC pública. Reversión: `drop function publico.registrar_interes_whatsapp(text, uuid);`.
+2. `20261024300100_registrar_interes_whatsapp.sql` — RPC (pública al crearse; desde MSF-657 solo `service_role`). Reversión: `drop function publico.registrar_interes_whatsapp(text, uuid);`.
 3. `20261024300200_interes_whatsapp_por_producto.sql` — vista `security_invoker`. Reversión: `drop view public.interes_whatsapp_por_producto;`.
 
 F-CON-04 **no** tiene migración (reusa `actualizar_consulta`).

@@ -201,8 +201,7 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 - **Interés por WhatsApp (MSF-130, FR-015)**: `dominio.intereses_whatsapp` con RLS por organización, empresa accesible y `consultas` ≥ `lectura`, sin políticas de escritura y con `revoke all … from public, anon, authenticated` + `grant select` a `authenticated`; la vista es `security_invoker` y `anon` no la lee; `anon` no ejecuta ninguna función de interés: `publico.registrar_interes_whatsapp` es solo `service_role` desde MSF-657 (`search_path = ''`, empresa solo por dominio, mismo `P0002` para dominio desconocido y empresa desactivada); no guarda datos personales. Esquemas: tabla en `dominio`, RPC en `publico`, vista en `public` (sin datos). Los enlaces de `Responder por` van codificados (`encodeURIComponent`, `wa.me` solo con dígitos). Comprobado por pgTAP (`interes_whatsapp.test.sql`, `consultas_responder.test.sql`, `rls_en_toda_tabla`).
 - **Esquemas contra el Principio VII**: las dos tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
-- **Riesgos aceptados**: (1) la RPC pública no tiene límite de frecuencia: el anti-spam es de MSF-212 y mientras
-  no exista un tercero puede llenar la bandeja de una tienda; (2) entrega «al menos una vez» (posible
+- **Riesgos aceptados**: (1) `publico.registrar_interes_whatsapp` no tiene límite de frecuencia ni idempotencia, y por eso desde MSF-657 ya no es pública (solo `service_role`); las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) aplican la cuota anti-spam; (2) entrega «al menos una vez» (posible
   duplicado); (3) los datos personales del visitante no tienen política de retención (abajo).
 
 ## Retención pendiente

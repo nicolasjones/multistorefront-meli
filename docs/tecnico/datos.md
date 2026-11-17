@@ -1547,7 +1547,7 @@ erDiagram
 
 ## Consultas: interés por WhatsApp y respuesta desde el panel (MSF-130)
 
-Una tabla nueva en `dominio` y dos superficies de lectura: la RPC en `publico` (la llama la tienda) y la
+Una tabla nueva en `dominio` y dos superficies de lectura: la RPC en `publico` (originalmente la llamaba la tienda; desde MSF-657 es solo `service_role`) y la
 vista en `public`. Migraciones aditivas `20261214100000_intereses_whatsapp.sql`,
 `20261214100100_registrar_interes_whatsapp.sql` y `20261214100200_interes_whatsapp_por_producto.sql` (rama
 `epic/MSF-130-consultas-y-ventas-consultas-seguimiento`, pendiente de merge a `main`; reversión en el

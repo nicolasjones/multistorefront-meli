@@ -180,7 +180,7 @@ personales**: cada fila es un toque, no una persona.
 publico.registrar_interes_whatsapp(host: text, producto_id: uuid): void  -- solo service_role (MSF-657)
 ```
 
-Permisos: `revoke execute … from public` + `grant execute … to anon, authenticated`. Vive en `publico`, así que
+Permisos: desde `20270507150100` (MSF-657) `revoke execute … from public, anon, authenticated` + `grant execute … to service_role` (antes: `grant … to anon, authenticated`; se cerró porque no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Es interna: solo la llama el sembrado del dataset demo. Vive en `publico`, así que
 **no** entra a la lista de RPC de `public` permitidas a `anon` (detalle: [Acceso y organización](acceso.md#superficie-de-anon)).
 
 ### Vista de lectura
@@ -228,7 +228,7 @@ and (select private.nivel_seccion('consultas')) in ('lectura', 'edicion')
 ```mermaid
 sequenceDiagram
   actor V as Visitante
-  participant T as Tienda (MSF-212 · F-TDA-14)
+  participant T as Llamador interno con service_role (MSF-657; la tienda pública ya no la llama)
   participant R as publico.registrar_interes_whatsapp
   participant DB as dominio.intereses_whatsapp
   actor A as Administración (panel)
