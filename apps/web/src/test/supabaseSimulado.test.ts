@@ -5,11 +5,11 @@ import { clienteSupabaseSimulado } from './supabaseSimulado'
 describe('clienteSupabaseSimulado', () => {
   it('implementa schema(): el cliente de las pantallas ya no cae en «schema is not a function»', async () => {
     const cliente = clienteSupabaseSimulado({ tablas: { 'dominio.empresas': [{ id: 'e1' }], productos: [{ id: 'p1' }] }, rpc: { saludo: 'hola' } })
-    expect(await (cliente.schema('dominio').from('empresas').select('*').eq('x', 1).order('id') as PromiseLike<unknown>)).toEqual({ data: [{ id: 'e1' }], error: null, count: 1 })
+    expect(await cliente.schema('dominio').from('empresas').select('*').eq('x', 1).order('id')).toEqual({ data: [{ id: 'e1' }], error: null, count: 1 })
     expect(cliente.schema).toHaveBeenCalledWith('dominio')
     expect((await cliente.schema('publico').rpc('saludo')).data).toBe('hola')
-    expect((await (cliente.from('productos').select('id') as PromiseLike<{ data: unknown }>)).data).toEqual([{ id: 'p1' }])
-    expect((await (cliente.from('vacia') as PromiseLike<{ data: unknown }>)).data).toEqual([])
+    expect((await cliente.from('productos').select('id')).data).toEqual([{ id: 'p1' }])
+    expect((await cliente.from('vacia')).data).toEqual([])
   })
 
   it('camino feliz de las imágenes principales: la foto real se firma y llega, no el placeholder', async () => {

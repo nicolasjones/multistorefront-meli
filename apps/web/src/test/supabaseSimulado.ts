@@ -20,11 +20,12 @@ export type OpcionesClienteSimulado = {
   firmadas?: Record<string, string>
 }
 
-type Cadena = Record<string, unknown>
+type Resultado = { data: unknown[]; error: null; count: number }
+type Cadena = PromiseLike<Resultado> & { [metodo: string]: (...argumentos: unknown[]) => Cadena }
 
 function cadenaDe(filas: unknown[]): Cadena {
-  const resultado = { data: filas, error: null, count: filas.length }
-  const cadena: Cadena = new Proxy(
+  const resultado: Resultado = { data: filas, error: null, count: filas.length }
+  const cadena = new Proxy(
     {},
     {
       get(_, propiedad) {
@@ -33,7 +34,7 @@ function cadenaDe(filas: unknown[]): Cadena {
         return () => cadena
       },
     },
-  )
+  ) as Cadena
   return cadena
 }
 
