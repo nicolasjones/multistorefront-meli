@@ -1487,7 +1487,7 @@ erDiagram
   bloquea el correo) y se agrega `reparacion_avisos_whatsapp_clave_uq`. `dominio.clientes` suma `acepta_whatsapp` y
   `acepta_whatsapp_en` (consentimiento). RPC `public.avisar_cliente_whatsapp` y flow
   `reparaciones-aviso-whatsapp`. Migración `20270418000403_reparacion_avisos_whatsapp_envio.sql` (aditiva). Detalle:
-  [Service técnico: avisos al cliente](service-avisos.md#whatsapp-el-aviso-que-manda-el-servidor-msf-952--s-1-de-msf-118).
+  [Service técnico: avisos al cliente](../service-avisos.md#whatsapp-el-aviso-que-manda-el-servidor-msf-952--s-1-de-msf-118).
 - Detalle de RPC, flow, pantallas y reversión: [Service técnico: cobro, avisos y ficha del cliente
   (técnico)](service-cobro-y-avisos.md).
 
