@@ -20,6 +20,9 @@ import {
 } from '../../lib/ventasMostrador'
 import { LectorCodigoBarras } from '../../components/ventas/LectorCodigoBarras'
 import { AvisoPreciosCambiaron } from '../../components/ventas/AvisoPreciosCambiaron'
+import { AvisoBanderaPromociones } from '../../components/ventas/AvisoBanderaPromociones'
+import { useBanderaPromociones } from '../../hooks/useBanderaPromociones'
+import { avisoCambioBandera } from '../../lib/avisoBanderaPromociones'
 import { PrecioLineaPromocion } from '../../components/ventas/PrecioLineaPromocion'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -75,6 +78,16 @@ export function VentaMostrador() {
   const descarte = avisoDescarte ?? (ventaDeOtraTienda ? mensajeDescarteVenta(ventaDeOtraTienda.empresa) : null)
   const exigeCuenta = formas.find((forma) => forma.id === formaId)?.exige_cuenta_cobro === true
   const cuentas = useListarCuentasCobro({ empresaId: empresaActivaId, estado: 'activas', pagina: 1, tamano: 200 })
+
+  // MSF-937: valor de la bandera de promociones visto al abrir la venta; si cambia con la venta abierta se avisa.
+  const banderaPromociones = useBanderaPromociones(ventaVigente !== null)
+  const [banderaAlAbrir, setBanderaAlAbrir] = useState<boolean | null>(null)
+  const ventaVigenteId = ventaVigente?.id ?? null
+  useEffect(() => {
+    if (ventaVigenteId === null) setBanderaAlAbrir(null)
+    else setBanderaAlAbrir((previa) => previa ?? banderaPromociones)
+  }, [ventaVigenteId, banderaPromociones])
+  const avisoBandera = ventaVigente ? avisoCambioBandera(banderaAlAbrir, banderaPromociones) : null
 
   useEffect(() => {
     if (!empresaActivaId) return
@@ -246,6 +259,7 @@ export function VentaMostrador() {
           </Alert>
         )}
         <AvisoPreciosCambiaron mensaje={ventaVigente ? avisoPrecios : null} />
+        <AvisoBanderaPromociones mensaje={avisoBandera} onCerrar={() => setBanderaAlAbrir(banderaPromociones)} />
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}

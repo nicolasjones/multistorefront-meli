@@ -3698,7 +3698,7 @@
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
-      "sourceHash": "31cc455b734c02d7859ac36491b9a40c1f24df01fc53effb9d042a7afb9b9a18",
+      "sourceHash": "8909a976fe7396b5f0ea3edef89a40daad7e8750489898b554ebadbc3c66d5b2",
       "sourceAt": null,
       "sources": [
         "specs",
@@ -3977,7 +3977,7 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "2386b84af9f4ef6db816238a49064db60b8b2dae1ad3d850b74a529cd81c0902",
+      "pageHash": "8d4b846a01ff3bbbebce7ee68547c813de28248f5abf3b7abd834df95672b4c3",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
       "sourceAt": null,
       "sources": [
@@ -4097,9 +4097,9 @@
     },
     "docs/ventas-mostrador.md": {
       "title": "Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329)",
-      "pageHash": "c2f1f7e985d21b484329c15c255a3c569b99feb1a24946179b9ceb1689bf8ce4",
+      "pageHash": "41de3124a29e6f5b5f0586ae6c80c33d167e632bf99f1cabf5108ceaa821d78b",
       "sourceHash": "f104b7a9a5e784168c60f01ecac469966bfa1fdc12d190867402c655fa4ee562",
-      "sourceAt": "c7860a7c",
+      "sourceAt": null,
       "sources": [
         "specs/20261027-100000-ventas-mejoras",
         "supabase/migrations/20270114100000_cobros_comprobante.sql",
@@ -4107,7 +4107,7 @@
         "supabase/migrations/20270202200400_mostrador_buscar_producto.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": null
     },
     "docs/ventas-motos.md": {
       "title": "Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)",

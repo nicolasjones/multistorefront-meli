@@ -11,9 +11,11 @@ const mocks = vi.hoisted(() => ({
   confirmar: vi.fn(),
   cobro: vi.fn(),
   repreciar: vi.fn(),
+  bandera: vi.fn(),
 }))
 
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.empresas }))
+vi.mock('../../hooks/useBanderaPromociones', () => ({ useBanderaPromociones: mocks.bandera }))
 vi.mock('../../hooks/useListarCuentasCobro', () => ({ useListarCuentasCobro: () => ({ cuentas: [] }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/ventas/formasPago', () => ({ listarFormasPago: mocks.formas }))
@@ -59,6 +61,7 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     mocks.consumidor.mockResolvedValue('cf-1')
     mocks.formas.mockResolvedValue([{ id: 'f-1', nombre: 'Efectivo', activo: true, exige_cuenta_cobro: false }])
     mocks.puede.mockResolvedValue(true)
+    mocks.bandera.mockReturnValue(false)
   })
 
   it('un código inexistente muestra «Producto no encontrado» y no crea la venta', async () => {
@@ -67,6 +70,30 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     await escanear('7790000000000')
     expect(await screen.findByText('Producto no encontrado')).toBeTruthy()
     expect(mocks.agregar).not.toHaveBeenCalled()
+  })
+
+  it('avisa cuando la bandera de promociones cambió con la venta abierta y se puede cerrar', async () => {
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    mocks.agregar.mockResolvedValue(venta())
+    const { rerender } = render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    expect(screen.queryByText(/promociones de precio se activaron/)).toBeNull()
+    mocks.bandera.mockReturnValue(true)
+    rerender(<VentaMostrador />)
+    expect(await screen.findByText(/promociones de precio se activaron/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /close|cerrar/i }))
+    await waitFor(() => expect(screen.queryByText(/promociones de precio se activaron/)).toBeNull())
+  })
+
+  it('no avisa si la bandera ya estaba activa al abrir la venta', async () => {
+    mocks.bandera.mockReturnValue(true)
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    mocks.agregar.mockResolvedValue(venta())
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    expect(screen.queryByText(/promociones de precio se/)).toBeNull()
   })
 
   it('un código que no es EAN-13 se rechaza sin llamar a la base', async () => {
