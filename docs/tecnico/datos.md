@@ -3704,6 +3704,109 @@ erDiagram
 - Escritura únicamente vía `private.registrar_actividad` (misma transacción que la operación de origen) y la RPC acotada `public.registrar_actividad`; lectura vía `public.listar_actividad` y `public.opciones_actividad`.
 - Reversión: ver sección «Reversión» de [Actividad e historial](../actividad.md).
 
+## Reportes de inventario y exportación (MSF-140)
+
+Épica **MSF-140** (spec `20270201-100000-reportes-de-inventario-y-exportacion`). **No crea tablas**:
+agrega tres **vistas** en el esquema `analitica` (solo vistas y funciones de apoyo) y tres filas en
+`public.reportes` por `reportes.json`. Migraciones `20270202201200` y `20270202201201` (las dos vistas) y
+`20270438000000` (vista de solo cantidades y las columnas `reportes.accion_requerida` y
+`reportes.datasets_permitidos`); aditivas, con la reversión en el encabezado de cada una y consolidada en
+[Reportes de inventario (técnico)](reportes-inventario.md#reversion).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `analitica.inventario_productos_stock` | **nueva (vista)** | Una fila por producto activo con cantidad, mínimo, estado, costo en su moneda, costo en pesos (cotización vigente) y valor en pesos. |
+| `analitica.inventario_reposicion` | **nueva (vista)** | Una fila por producto activo sin stock o con stock bajo, con proveedor, código de proveedor y faltante sugerido. |
+| `analitica.inventario_productos_stock_cantidades` | **nueva (vista)** | Lo mismo que la de stock sin costo ni valor, para los roles sin la acción `ver_costos`; no lee `dominio.producto_costos`. |
+| `public.reportes` | existente | Tres filas nuevas: `seccion = 'stock'` y `filtro_empresa = false`; la del tablero con costos lleva `accion_requerida = 'ver_costos'`. Columnas nuevas (`20270438000000`): `accion_requerida` y `datasets_permitidos`. |
+| `dominio.productos` | existente | Solo se lee (`nombre`, `sku`, `categoria_id`, `moneda`, `proveedor_id`, `codigo_proveedor`, `activo`). |
+| `dominio.existencias` | existente | Solo se lee (`cantidad`, `minimo`). |
+| `dominio.categorias` | existente | Solo se lee (`nombre`). |
+| `dominio.proveedores` | existente | Solo se lee (`razon_social`). |
+| `dominio.producto_costos` | existente | Solo se lee (`costo`) para el reporte de stock. |
+
+```mermaid
+erDiagram
+  ORGANIZACIONES ||--o{ PRODUCTOS : "tiene"
+  ORGANIZACIONES ||--o{ REPORTES : "catálogo"
+  CATEGORIAS ||--o{ PRODUCTOS : "clasifica"
+  PROVEEDORES ||--o{ PRODUCTOS : "provee"
+  PRODUCTOS ||--|| EXISTENCIAS : "stock"
+  PRODUCTOS ||--o| PRODUCTO_COSTOS : "costo"
+  PRODUCTOS ||--o{ INVENTARIO_PRODUCTOS_STOCK : "aparece en"
+  PRODUCTOS ||--o{ INVENTARIO_REPOSICION : "aparece en"
+  EXISTENCIAS ||--o{ INVENTARIO_PRODUCTOS_STOCK : "alimenta"
+  EXISTENCIAS ||--o{ INVENTARIO_REPOSICION : "alimenta"
+
+  REPORTES { uuid id PK
+    uuid superset_dashboard_uuid UK
+    text nombre
+    text seccion
+    boolean filtro_empresa
+    text accion_requerida "nueva: ver_costos en el tablero con costos"
+    text_array datasets_permitidos "nueva: allowlist del tablero" }
+  PRODUCTOS { uuid id PK
+    uuid organizacion_id FK
+    text nombre
+    text sku
+    uuid categoria_id FK
+    uuid proveedor_id FK
+    text codigo_proveedor
+    text moneda
+    boolean activo }
+  EXISTENCIAS { uuid organizacion_id
+    uuid producto_id FK
+    integer cantidad
+    integer minimo }
+  CATEGORIAS { uuid id PK
+    uuid organizacion_id FK
+    text nombre }
+  PROVEEDORES { uuid id PK
+    uuid organizacion_id FK
+    text razon_social }
+  PRODUCTO_COSTOS { uuid organizacion_id
+    uuid producto_id FK
+    numeric costo }
+  ORGANIZACIONES { uuid id PK
+    text nombre }
+  INVENTARIO_PRODUCTOS_STOCK { uuid organizacion_id "nueva: columna del rls"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    text categoria "nueva"
+    integer cantidad "nueva"
+    integer minimo "nueva"
+    text estado "nueva: sin_stock|stock_bajo|disponible"
+    text moneda_costo "nueva"
+    numeric costo "nueva"
+    numeric costo_ars "nueva: cotización vigente"
+    numeric valor_ars "nueva: cantidad × costo_ars" }
+  INVENTARIO_REPOSICION { uuid organizacion_id "nueva: columna del rls"
+    uuid producto_id "nueva"
+    text producto_nombre "nueva"
+    text sku "nueva"
+    text categoria "nueva"
+    text proveedor "nueva"
+    text codigo_proveedor "nueva"
+    integer cantidad "nueva"
+    integer minimo "nueva"
+    text estado "nueva: sin_stock|stock_bajo"
+    integer faltante_sugerido "nueva: máximo(mínimo − cantidad, 0)" }
+```
+
+- **No se crean tablas ni entidades nuevas**: las vistas viven en `analitica` (superficie de lectura de
+  Superset, cerrada para `anon` y `authenticated`, leída solo por el rol `superset_analitica`) y no guardan
+  datos. El dato de dominio sigue en `dominio.productos`, `dominio.existencias`, `dominio.categorias`,
+  `dominio.proveedores` y `dominio.producto_costos`.
+- **El cálculo no se reimplementa**: `analitica.a_pesos` convierte el costo a pesos con la cotización
+  vigente (la misma función que usa Rentabilidad). El estado usa la misma regla que `public.stock_estados`.
+- **El aislamiento** lo fuerza la cláusula `rls` del guest token (`organizacion_id`): por eso las
+  vistas exponen esa columna. No hay `empresa_id`: el inventario es por organización (Principio VIII no
+  aplica).
+- **La épica no agrega un ERD propio**: al no haber tablas nuevas, el grafo es el de stock y catálogo
+  (arriba). Detalle de pantallas, tableros, exportación y pruebas:
+  [Reportes de inventario (técnico)](reportes-inventario.md).
+
 ## Datos vivos vs. archivo
 
 - **Vivos:** comprobantes, cobros, stock, reparaciones. Afectan estados, saldos y reportes.
@@ -4210,3 +4313,39 @@ erDiagram
   (sin datos que conservar).
 
 
+## Newsletter de la tienda (MSF-468)
+
+Épica **MSF-468** (spec `20270328-100000-newsletter-de-la-tienda`), rama de integración `dokploy` (aún sin
+promover a `main`: en `main` no hay ninguna migración de newsletter). Tres tablas nuevas en `dominio`, cuatro
+alteradas (las tres del correo masivo de MSF-155 y `dominio.tienda_envios`) y una fila nueva en
+`public.banderas_plataforma`. Migraciones aditivas `20270342000000`–`20270342000300` y
+`20270420000000`–`20270420000600`; la reversión está en el encabezado de cada una. Detalle de contratos,
+RPC, flows, empresa activa y pruebas: [Newsletter de la tienda](newsletter.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.newsletter_configuracion` | **nueva** | Una fila por tienda: `empresa_id` (PK), `organizacion_id` (FK), `activo boolean not null default false` (interruptor «Mostrar suscripción en el pie de la tienda») y `actualizado_en`. RLS por organización y tienda accesible; `authenticated` solo `select`. |
+| `dominio.newsletter_suscriptores` | **nueva** | Suscriptor de **una** tienda: `correo` (recortado, en minúsculas, ≤ 254, forma estricta y sin llaves), `estado` (`pendiente` \| `confirmado` \| `baja`), `origen` (`formulario`), `version_consentimiento`, `consentimiento_en`, `confirmacion_hash` (SHA-256; el token en claro nunca se guarda), `confirmacion_vence`, `confirmacion_solicitada_en`, `confirmacion_enviada_en`, `confirmacion_reclamada_hasta`, `confirmacion_intentos`, `confirmaciones_24h`, `confirmaciones_desde`, `confirmado_en`, `baja_en` y `creado_en`. Único `(empresa_id, lower(correo))`. RLS por organización y tienda accesible; `grant select` **por columna**, sin `confirmacion_hash`; `anon` sin privilegios. |
+| `dominio.newsletters` | **nueva** | Borrador o envío de una tienda: `nombre_interno` (≤ 100), `asunto` (≤ 200, sin saltos de línea), `mensaje` (≤ 10 000, texto plano), `incluir_destacados`, `incluir_promociones`, `contenido_enviado` (jsonb: la foto del contenido), `campana_id` (FK a `dominio.campanas_correo`), `enviada_en`, `cancelada_en`, `version` (bloqueo optimista), `creada_por`, `creada_en` y `actualizada_en`. RLS por organización y tienda accesible; se escribe solo por RPC `security definer`. |
+| `dominio.campanas_correo` | **alterada** | Columnas `tipo text not null default 'clientes'` (check `clientes` \| `newsletter`), `newsletter_id uuid` (FK a `dominio.newsletters`) y `bloques jsonb` (la foto del contenido). |
+| `dominio.campana_correo_destinatarios` | **alterada** | `cliente_id` pasa a admitir nulo y se suma `suscriptor_id uuid` (FK a `dominio.newsletter_suscriptores`), con `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)` y único `(campana_id, suscriptor_id)`. |
+| `dominio.correo_masivo_pruebas` | **alterada** | Columnas `bloques jsonb` (contenido de la prueba) y `empresa_id uuid` (la tienda de la prueba). |
+| `dominio.tienda_envios` | **alterada** | Solo el `check` de `origen` suma `newsletter` (el límite de 5 por hora por visitante que comparte con el contacto y WhatsApp). |
+| `public.banderas_plataforma` | **alterada** | Solo una **fila** nueva: `newsletter`, **apagada**. Se enciende por SQL, nunca por migración. |
+| `dominio.empresas`, `dominio.tiendas` | existentes | Dueña del newsletter y del dominio público que arma los enlaces de confirmación y baja. |
+| `public.clientes` | existente | Sin cambios: **no** se enlaza con los suscriptores (otra lista y otro consentimiento). |
+| `dominio.productos_tienda`, `dominio.productos`, `dominio.promociones_precio` | existentes | Fuente de la foto del contenido (hasta 6 destacados y 6 promociones vigentes, con el precio público de la tienda). |
+| `public.registro_actividad` | existente | Recibe los eventos `newsletter.*` (sin correos, mensajes ni cuerpo). |
+| `public.organizaciones` | existente | Dueña de todo. |
+
+- **La capacidad nace apagada**: con la bandera `newsletter` apagada o el interruptor de la tienda apagado,
+  el pie no muestra el formulario, las RPC de escritura responden `55000` y el flow no envía. La baja y el
+  borrado de datos funcionan siempre.
+- **Exportación total**: las tres tablas nuevas entran en la allow-list `private.conjuntos_exportacion_total()`,
+  pero `confirmacion_hash` (SHA-256 del token de confirmación) queda **fuera** del volcado: con el dump no se
+  puede confirmar ninguna suscripción.
+- **El esquema `publico` no tiene tablas**: las tres funciones anónimas (`newsletter_por_dominio`,
+  `suscribirse_newsletter`, `confirmar_newsletter`) viven en el esquema `publico` y no devuelven ids, hash ni
+  la IP.
+- **Reversión**: apagar la bandera es inmediato y sin código; el resto está en el encabezado de cada
+  migración (ver [Newsletter de la tienda](newsletter.md#reversion)).
