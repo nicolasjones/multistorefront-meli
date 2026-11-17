@@ -5,7 +5,7 @@
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified — los dos rojos del reporte no se reproducen sobre `dokploy` actual (knip: 0
-  hallazgos; `docs:check`: OK) y las dos reglas que hacían el rojo indiagnosticable quedan fijadas
+  hallazgos; `docs:check`: OK) y las tres reglas que hacían el rojo indiagnosticable quedan fijadas
   por test, con mutación comprobada.
 
 ## Summary
@@ -13,9 +13,10 @@
 El hallazgo real del `quality` (knip) y el del `application` (`docs:check`) están resueltos en la base:
 knip da 0 hallazgos y `docs:check` pasa. Lo que este PR agrega es la cobertura que faltaba para que
 un rojo de calidad vuelva a decir **qué** encontró: dos tests que corren `scripts/calidad.mjs` con un
-`pnpm` falso y exigen (a) que la salida del check que falló esté en `reports/calidad.md` y en
-`reports/calidad.log` y (b) que las herramientas no hereden `GITHUB_ACTIONS` (que las volaba a su
-modo de anotaciones y dejaba el log sin texto).
+`pnpm` falso y exigen (a) que la salida del check que falló esté en `reports/calidad.md`, en
+`reports/calidad.log` **y en el log del propio paso del CI** (stdout, sin recortar) y (b) que las
+herramientas no hereden `GITHUB_ACTIONS` (que las volaba a su modo de anotaciones y dejaba el log sin
+texto).
 
 ## Checks Performed
 
@@ -26,9 +27,11 @@ modo de anotaciones y dejaba el log sin texto).
 | Hallazgo del log (`conexiones/list.tsx:44:1`) | lectura del archivo completo (71 líneas) | pass (no es código muerto) | Los 11 imports se usan todos, `columnas:15` se usa en `61`, `ConexionList:23` es la ruta del panel y la línea 44 es el `useEffect` que dispara la carga (su retorno es la función de cleanup). No hay código muerto que quitar en ese archivo. |
 | Reproducción (post-fix) — `docs:check` | `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | pass | `Documentación de cambios: OK`; `Migraciones OK`; `Trampas conocidas: OK`. |
 | Reproducción (post-fix) — guardián | `pnpm e2e:escritura:check` | pass | `ningún spec escribe directo en tablas de solo lectura para service_role`. |
+| Documentación del tooling contra el código | `docs/calidad.md` vs `scripts/calidad.mjs` y `package.json` | pass | La tabla «Qué corre» dice lo que el script corre de verdad (gitleaks con binario nativo, docker sólo de respaldo; SAST con oxlint 1.79.0) y el bloque «Uso» cita `pnpm calidad:code` (el script que define `package.json`), no `pnpm calidad --code`, que no existe. El encabezado de `scripts/calidad.mjs` pasó a `--only=secrets,sast`, la forma que el parser acepta. |
 | Tests nuevos | `node --test scripts/calidad.test.mjs` | pass | 3/3 (1 previo de MSF-683 + 2 de MSF-843). |
 | Test que detecta la regla (FEAT-236) | se quitó `delete childEnv.GITHUB_ACTIONS;` de `scripts/calidad.mjs` y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «las herramientas no heredan GITHUB_ACTIONS». Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | se quitó el `fallos.flatMap(...)` (la sección `## <check>`) de la plantilla del informe y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló». Se revirtió la mutación. |
+| Test que detecta la regla (FEAT-236) | el check con hallazgos volvió a imprimir sólo las últimas 40 líneas de su salida (`res.out.split("\n").slice(-40)`) y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló» (el hallazgo quedaba fuera del log del CI). Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | se inyectó `export const __prueba_muerta_msf843 = 1` en `apps/web/src/pages/conexiones/list.tsx` y se corrió knip | pass (detecta) | knip lo reporta (`apps/web/src/pages/conexiones/list.tsx:73:14`): la herramienta knip está viva y ve ese archivo. Se revirtió la inyección. |
 | Suite de CI | `pnpm test:ci` | pass | Verde (incluye `scripts/calidad.test.mjs`). |
 | Lint | `pnpm lint` | pass | exit 0 (sólo warnings preexistentes de `apps/web/src`, fuera de este cambio). |
@@ -56,6 +59,10 @@ $ node --test scripts/calidad.test.mjs
 ✖ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
 
 # con el `fallos.flatMap(...)` quitado de la plantilla de reports/calidad.md:
+ℹ tests 3  ℹ pass 2  ℹ fail 1
+✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
+
+# con el stdout del check con hallazgos recortado a las últimas 40 líneas:
 ℹ tests 3  ℹ pass 2  ℹ fail 1
 ✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
 ```

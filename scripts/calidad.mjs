@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // F1 — Calidad DETERMINISTA del producto (sin LLM).
 // Corre, best-effort, los checks que no dependen del criterio de una persona/agente:
-//   - secretos ......... gitleaks (docker)
-//   - SAST ............. semgrep  (docker)
+//   - secretos ......... gitleaks (binario nativo; docker de respaldo)
+//   - SAST ............. oxlint  1.79.0 (sin docker)
 //   - código muerto .... knip     (pnpm dlx)
 //   - duplicación ...... jscpd    (pnpm dlx)
 //   - ciclos/arquitectura dependency-cruiser (pnpm dlx)
@@ -11,8 +11,8 @@
 // (menos ida y vuelta). Si una herramienta no está disponible, se SALTE A con aviso (no rompe el flujo).
 //
 // Uso:  pnpm calidad            # todo
-//       pnpm calidad --code     # sólo código (sin docker)
-//       node scripts/calidad.mjs --only secrets,sast
+//       pnpm calidad:code       # sólo código (sin docker)
+//       node scripts/calidad.mjs --only=secrets,sast
 //
 // Escribe `reports/calidad.md` (resumen) y `reports/calidad.log` (salida COMPLETA de cada herramienta) y
 // devuelve exit != 0 si algún check falló. Un error de una herramienta (excepción, timeout, buffer)
@@ -63,7 +63,12 @@ function add(name, res, { hint = "" } = {}) {
   const status = res.missing ? "saltado" : res.code === 0 ? "ok" : "hallazgos";
   rows.push({ name, status, out: res.out, hint });
   console.log(`\n== ${name}: ${status}${res.missing ? " (herramienta no disponible)" : ""}`);
-  if (!res.missing && res.out) console.log(res.out.split("\n").slice(-40).join("\n"));
+  // Un check con hallazgos imprime su salida COMPLETA: el log del paso del CI es lo primero que
+  // se lee en el PR y, si se recorta, el rojo vuelve a quedar sin diagnóstico (MSF-843). Los que
+  // pasan no necesitan el detalle: se quedan con las últimas líneas.
+  if (!res.missing && res.out) {
+    console.log(status === "hallazgos" ? res.out : res.out.split("\n").slice(-40).join("\n"));
+  }
 }
 
 // Red de seguridad: cualquier error inesperado se informa con su causa y sale por el mismo camino (exit 1).

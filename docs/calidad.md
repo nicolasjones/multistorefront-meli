@@ -15,7 +15,7 @@ Checks que **no dependen del criterio** de una persona/agente. El objetivo es do
 
 ```bash
 pnpm calidad                 # todo
-pnpm calidad --code          # sin docker (sin secretos/SAST)
+pnpm calidad:code            # sin docker (gitleaks usa el binario nativo o se salta)
 pnpm calidad --only=secrets,sast
 node scripts/calidad.mjs --no-docker
 ```
@@ -27,8 +27,8 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 
 | Check | Herramienta | Qué detecta |
 |---|---|---|
-| Secretos | **gitleaks** (docker) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
-| SAST | **semgrep** (docker, reglas `p/secrets`, `p/typescript`, `p/react`) | patrones inseguros, XSS, secretos en código |
+| Secretos | **gitleaks** (binario nativo; docker sólo de respaldo) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
+| SAST | **oxlint** 1.79.0 (`-D no-eval -D no-new-func -D no-implied-eval -D no-script-url` sobre `apps`, `packages`, `supabase/functions`) | `eval`, `new Function`, URLs `script:` |
 | Código muerto | **knip** | archivos/exports/deps sin usar |
 | Duplicación | **jscpd** (`.jscpd.json`) | bloques copiados |
 | Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |
@@ -63,6 +63,8 @@ test (`pnpm test:ci` → `scripts/calidad.test.mjs`). A eso se suma cómo hay qu
 1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
    `## <check>` por cada check con hallazgos, con su salida; `reports/calidad.log` lleva la
    salida completa de todas las herramientas. El artifact `calidad-reporte` sube los dos.
+   El log del paso del CI también lo dice: la salida **completa** del check que falló se imprime
+   en consola (los que pasan, sólo sus últimas 40 líneas). Es lo primero que se lee en el PR.
 2. **Las herramientas no heredan `GITHUB_ACTIONS`.** Con esa variable, knip y oxlint cambian a
    su modo de anotaciones (`::warning`/`::error`): el runner las consume como anotaciones y el
    texto del hallazgo desaparece del log, así que el rojo queda sin diagnóstico. `calidad.mjs`

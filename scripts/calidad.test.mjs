@@ -19,6 +19,10 @@ test("[MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no co
 // Lo que knip habría reportado en el `quality` de MSF-843: una dependencia que el paquete
 // que la importa no declara. Sale como texto legible, no como anotación `::warning`.
 const HALLAZGO_FALSO = "pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130";
+// Salida larga: el hallazgo va al principio y después hay ruido. Así el log del CI sólo lo
+// muestra si la salida se imprime COMPLETA —si se recorta a las últimas líneas, el hallazgo
+// se pierde y el rojo vuelve a quedar sin diagnóstico.
+const RUIDO = Array.from({ length: 42 }, (_, i) => `línea de ruido ${i + 1}`);
 
 // Corre `scripts/calidad.mjs` con un `pnpm` falso en el PATH: el shim contesta `--version`
 // (para que la herramienta esté disponible) y, en el `pnpm dlx knip@…` que dispara el check
@@ -39,6 +43,7 @@ if (args.includes("--version")) { console.log("11.19.0"); process.exit(0); }
 console.log("GHA=" + (process.env.GITHUB_ACTIONS === undefined ? "<unset>" : process.env.GITHUB_ACTIONS));
 console.log("Unlisted dependencies (1)");
 console.log(${JSON.stringify(HALLAZGO_FALSO)});
+for (const l of ${JSON.stringify(RUIDO)}) console.log(l);
 process.exit(1);
 `,
   );
@@ -61,6 +66,10 @@ test("[MSF-843] el informe de calidad dice qué encontró el check que falló", 
   assert.match(md, /## knip \(código muerto\)/, "reports/calidad.md tiene que tener la sección del check que falló");
   assert.ok(md.includes(HALLAZGO_FALSO), "reports/calidad.md tiene que traer el hallazgo del check que falló");
   assert.ok(log.includes(HALLAZGO_FALSO), "reports/calidad.log tiene que traer el hallazgo del check que falló");
+  // El log del paso del CI (stdout) es lo primero que se lee en el PR: si deja de decir qué
+  // encontró —o lo recorta— el rojo vuelve a ser indiagnosticable aunque los artifacts traigan
+  // la salida.
+  assert.ok(r.stdout.includes(HALLAZGO_FALSO), "el log del CI tiene que decir qué encontró el check que falló");
 });
 
 test("[MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)", () => {
