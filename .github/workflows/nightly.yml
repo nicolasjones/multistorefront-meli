@@ -219,7 +219,8 @@ jobs:
           CHROME=""
           for base in "$BASE" "$HOME/.cache/ms-playwright" /ms-playwright; do
             [ -d "$base" ] || continue
-            cand=$(ls -d "$base"/chromium-*/chrome-linux/chrome "$base"/chromium_headless_shell-*/chrome-linux/headless_shell 2>/dev/null | head -1 || true)
+            # Playwright cambió la carpeta del binario (`chrome-linux` → `chrome-linux64`): se aceptan las dos.
+            cand=$(ls -d "$base"/chromium-*/chrome-linux*/chrome "$base"/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell "$base"/chromium_headless_shell-*/chrome-linux*/headless_shell 2>/dev/null | head -1 || true)
             if [ -n "$cand" ]; then CHROME="$cand"; break; fi
           done
           if [ -z "$CHROME" ]; then
