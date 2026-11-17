@@ -188,7 +188,7 @@ export function FaltantesStock() {
         />
         <Typography variant="xs" component="p" sx={{ mt: 1 }}>
           {`${cantidadElegidos} ${cantidadElegidos === 1 ? 'seleccionado' : 'seleccionados'} de ${total} ${total === 1 ? 'faltante' : 'faltantes'}. `}
-          Un faltante se cierra solo cuando se ingresa la mercadería.
+          Un faltante se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
         </Typography>
       </Box>
     )

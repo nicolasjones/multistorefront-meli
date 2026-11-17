@@ -40,3 +40,20 @@ describe('rutas heredadas de Miembros (FR-019)', () => {
     expect(app).toContain(`<Route path="${origen}" element={<Navigate to="${destino}" replace />} />`)
   })
 })
+
+// La importación del historial es solo de administradores: la ruta lo exige antes de montar la pantalla.
+// Quita comentarios de bloque (`/* */`, `{/* */}`) y de línea para que el texto de un comentario no cuente como código.
+const sinComentarios = (texto: string) => texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/.*$/gm, '')
+
+describe('rutas solo de administradores', () => {
+  it('/historial/importar se envuelve en RequiereAdministrador', () => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => /^\s+path="\/historial\/importar"/.test(trozo))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAdministrador')
+  })
+
+  it('un comentario con el nombre del guard no engaña al chequeo', () => {
+    const falso = '<Route path="/x" element={<A />} />{/* <RequiereAdministrador> */}\n  // <RequiereAdministrador>'
+    expect(sinComentarios(falso)).not.toContain('RequiereAdministrador')
+  })
+})

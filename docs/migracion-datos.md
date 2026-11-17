@@ -101,3 +101,7 @@ cargados y el catálogo de productos cargado por Catálogo).
 `lib/mensajeErrorBase.ts` (`mensajeDeErrorBase`) traduce el error de base a un mensaje en castellano por `code`
 y nunca muestra el `message` crudo. En consola registra solo el `code` (no el objeto): `details`/`hint` de
 PostgREST pueden traer datos de la fila (PII).
+
+## Acceso a cada entidad
+
+La pantalla de migración muestra pestañas (Clientes, Proveedores, Vínculos proveedor ↔ producto, Ingresos anteriores) mientras no haya una carga en curso. «Importaciones» ofrece además los accesos «Importar historial de ventas» y «Migración de datos». El menú sigue llamándose «Migración de datos».

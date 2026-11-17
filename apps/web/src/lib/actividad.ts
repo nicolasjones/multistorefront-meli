@@ -378,6 +378,22 @@ function textoDelValor(valor: unknown): string {
   return String(valor)
 }
 
+// Campos de importe del antes → después. Criterio acotado por nombre de columna: la columna es (o empieza con) una palabra
+// de importe (`total`, `precio_unitario`, `monto_pagado`, `costo_unitario_usd`…), salvo que termine en una palabra de
+// conteo, porcentaje o identificador (`total_items`, `total_filas`, `descuento_pct`). Un nombre nuevo fuera de este
+// criterio se ve sin formato de moneda: se agrega acá.
+const RE_CAMPO_IMPORTE = /^(importe|monto|costo|precio|saldo|subtotal|total|descuento|recargo|valor|cobrado|deuda)(_[a-z0-9_]+)?$/
+const RE_CAMPO_NO_IMPORTE = /_(pct|porcentaje|items|filas|cuentas|cantidad|id|dias|orden|recalculados)$/
+
+const esCampoImporte = (clave: string) => RE_CAMPO_IMPORTE.test(clave) && !RE_CAMPO_NO_IMPORTE.test(clave)
+
+function textoDelCampo(clave: string, valor: unknown): string {
+  const crudo = textoDelValor(valor)
+  if (crudo === SIN_VALOR || !esCampoImporte(clave) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
+  const texto = String(valor).trim()
+  return /^-?\d+(?:[.,]\d+)?$/.test(texto) ? importeLegible(texto) : crudo
+}
+
 function etiquetaDelCampo(clave: string): string {
   return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
 }
@@ -390,7 +406,7 @@ export function camposDelCambio(anterior: ValoresActividad | null, nuevo: Valore
   const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
   return claves.map((clave) => ({
     campo: etiquetaDelCampo(clave),
-    anterior: textoDelValor(antes[clave]),
-    nuevo: textoDelValor(despues[clave]),
+    anterior: textoDelCampo(clave, antes[clave]),
+    nuevo: textoDelCampo(clave, despues[clave]),
   }))
 }

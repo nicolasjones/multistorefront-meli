@@ -201,7 +201,7 @@ describe('Detalle · tarjeta Estado y chip (FR-024)', () => {
     }
     expect(tarjeta().queryByRole('button', { name: /Entregado/ })).not.toBeInTheDocument()
     expect(tarjeta().getByRole('button', { name: 'Pendiente' })).toHaveAttribute('aria-pressed', 'true')
-    expect(tarjeta().getByText('Creado: el stock queda reservado, todavía no se descuenta.')).toBeInTheDocument()
+    expect(tarjeta().getByText('Creado: el stock ya se descontó al confirmar; solo los productos «A pedido» quedan reservados y se descuentan al entregarlos.')).toBeInTheDocument()
   })
 
   it('deshabilita con motivo los chips que el rol no puede elegir y habilita los permitidos', async () => {

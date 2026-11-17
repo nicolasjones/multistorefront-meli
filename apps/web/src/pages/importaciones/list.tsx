@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Alert, Box, Button, Chip, LinearProgress, Stack, Typography } from '@mui/material'
+import { Link as RouterLink } from 'react-router'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -104,6 +105,12 @@ export function ImportacionesList() {
         titulo="Importaciones"
         descripcion="Cargas y descargas masivas de la organización, con su avance y sus errores."
         contexto={<ContextoOrganizacionActiva />}
+        accion={(
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button component={RouterLink} to="/historial/importar" variant="outlined">Importar historial de ventas</Button>
+            <Button component={RouterLink} to="/migracion/importar/clientes" variant="outlined">Migración de datos</Button>
+          </Stack>
+        )}
       />
       <ContenedorSeccion>
         {/* Toda la organización: no depende de la empresa activa ni del filtro de abajo (F-OPS-06, FR-039). */}

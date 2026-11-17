@@ -55,7 +55,7 @@ describe('definición de la entidad proveedores (FR-020)', () => {
   })
 
   it('ofrece seguir con los vínculos al terminar', () => {
-    expect(ENTIDAD_PROVEEDORES.siguiente?.ruta).toBe('/migracion/importar/vinculos-proveedor-producto')
+    expect(ENTIDAD_PROVEEDORES.siguiente?.ruta).toBe('/migracion/importar/vinculos_proveedor_producto')
     expect(obtenerEntidad('vinculos-proveedor-producto')).toBe(ENTIDAD_VINCULOS)
   })
 })
