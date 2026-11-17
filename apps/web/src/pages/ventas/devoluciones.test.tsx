@@ -294,6 +294,58 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     await waitFor(() => expect(within(dialogo).queryByText('Hay más resultados: refiná la búsqueda.')).not.toBeInTheDocument())
   })
 
+  // Guarda de resultados obsoletos del diálogo: cada búsqueda lleva su `vigente`; si la persona siguió tipeando, la
+  // respuesta tardía de la búsqueda anterior no debe pisar las opciones de la actual (sin la guarda se pintaban las viejas).
+  it('el resultado tardío de una búsqueda anterior no pisa las facturas de la actual', async () => {
+    const factura = (id: string, numero: string) => ({
+      id, numero, tipo: 'factura', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-07', cliente: 'Cliente', operador: 'E', estado: 'pendiente', forma_pago: null, envio: null, total: 1,
+    })
+    let resolverPrimera: (valor: unknown) => void = () => undefined
+    mocks.listarComprobantes.mockReset()
+    mocks.listarComprobantes.mockReturnValueOnce(new Promise((resolver) => { resolverPrimera = resolver }))
+    mocks.listarComprobantes.mockResolvedValue({ comprobantes: [factura('c-2', 'ACTUAL-2')], total: 1 })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    const combo = within(dialogo).getByRole('combobox', { name: /Comprobante/ })
+    fireEvent.change(combo, { target: { value: 'actual' } })
+    await waitFor(() => expect(mocks.listarComprobantes).toHaveBeenCalledTimes(2))
+    fireEvent.mouseDown(combo)
+    expect(await screen.findByRole('option', { name: /ACTUAL-2/ })).toBeInTheDocument()
+    resolverPrimera({ comprobantes: [factura('c-1', 'OBSOLETA-1')], total: 1 })
+    await new Promise((resolver) => setTimeout(resolver, 50))
+    expect(screen.getByRole('option', { name: /ACTUAL-2/ })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /OBSOLETA-1/ })).not.toBeInTheDocument()
+  })
+
+  // Cerrar el diálogo desmonta el contenido (cada apertura parte limpia). Con React 18 un `setState` tardío sobre un
+  // componente desmontado no avisa ni se nota, así que este test fija el comportamiento visible: la respuesta de la
+  // búsqueda de la apertura anterior no aparece al reabrir (no detecta por sí solo la falta de la guarda).
+  it('la respuesta tardía de un diálogo cerrado no se pinta al reabrirlo', async () => {
+    const factura = (id: string, numero: string) => ({
+      id, numero, tipo: 'factura', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-07', cliente: 'Cliente', operador: 'E', estado: 'pendiente', forma_pago: null, envio: null, total: 1,
+    })
+    let resolverPrimera: (valor: unknown) => void = () => undefined
+    mocks.listarComprobantes.mockReset()
+    mocks.listarComprobantes.mockReturnValueOnce(new Promise((resolver) => { resolverPrimera = resolver }))
+    mocks.listarComprobantes.mockResolvedValue({ comprobantes: [factura('c-2', 'REABIERTA-2')], total: 1 })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Nueva devolución' })).not.toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const reabierto = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    await waitFor(() => expect(mocks.listarComprobantes).toHaveBeenCalledTimes(2))
+    resolverPrimera({ comprobantes: [factura('c-1', 'OBSOLETA-1')], total: 1 })
+    await new Promise((resolver) => setTimeout(resolver, 50))
+    fireEvent.mouseDown(within(reabierto).getByRole('combobox', { name: /Comprobante/ }))
+    expect(await screen.findByRole('option', { name: /REABIERTA-2/ })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /OBSOLETA-1/ })).not.toBeInTheDocument()
+  })
+
   it('valida antes de enviar: sin comprobante, ítem ni motivo no llama a la base', async () => {
     abrir()
     await screen.findByText('Cliente 1')
