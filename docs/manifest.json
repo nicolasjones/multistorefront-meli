@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "8e8ef99a126f8379522050a6a64912eafcd0a253f04f958573c7435069009d49",
-      "sourceHash": "ceb80199dfacda2a411cb345263f12857ce7476a242dc0ec8da9830ef467a5e4",
-      "sourceAt": "4a93f421",
+      "pageHash": "c2dec74c65ba224f8fccf6bc7cfd2d35fee505e531017531526be7b4610b30d0",
+      "sourceHash": "834a932463184011a510c938895319ac7b83a09e145ee01d96026917660a6a5b",
+      "sourceAt": "57614044",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "4a93f421"
+      "commit": "57614044"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -868,15 +868,15 @@
     },
     "docs/listas-configurables.md": {
       "title": "Listas configurables",
-      "pageHash": "858702eb7e8e19ce689116ad6acb7b9c3075f06bb5f52dd44a2b3236c79fc123",
+      "pageHash": "6d0fe00cb0474ecec0a9246efb878f1b501276186564d645cfb7194a595b0522",
       "sourceHash": "5c0e3e125c6cd70b2ff62e6a39ff4740bce4a619d3ee263e93c526301d34f348",
-      "sourceAt": "2ab8c7d9",
+      "sourceAt": "57614044",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "apps/web/src/pages/stock/motivos.tsx"
       ],
       "owner": "tecnico",
-      "commit": "2ab8c7d9"
+      "commit": "57614044"
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
@@ -1873,9 +1873,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "2704e659e6765cd5379dc2d15e7a4181fee9e5b34ba8c69da862eeb41c42996a",
-      "sourceHash": "56926107fb687d62993245b1a044a96baf2647d129360f42c1f333d3bc59e95d",
-      "sourceAt": "1c31cbf6",
+      "pageHash": "f94fe48c3ac25bb21e51a725760ded79c014c36bee5df75749b54f72d6caba0e",
+      "sourceHash": "44e2dbdcefd64851241e673101e427fd634ce9301c5d86779c195d32ac81ce65",
+      "sourceAt": "57614044",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1884,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "1c31cbf6"
+      "commit": "57614044"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
