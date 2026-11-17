@@ -831,15 +831,29 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     efímeros de un stack efímero. `cuenta-web-cliente` sí genera una clave aleatoria por corrida. (3) `anonKey` de ese archivo
     ahora lee primero `VITE_SUPABASE_PUBLISHABLE_KEY`, como el fixture: es intencional, porque el job `e2e-visible-sesion` solo exporta
     esa variable (no `SUPABASE_ANON_KEY`) y antes el login de la siembra salía con `apikey` vacío (401).
-  - **Job de sesión con `--workers=2`.** `validate.yml` (`e2e-visible-sesion`) corre `playwright test --workers=2` y no un worker por
-    spec: con el runner cargado, seis specs visibles a la vez (cursor, rótulos, `slowMo`, video 1080p) agotaron los timeouts de 3-5 min.
-  - **`cuenta-web-cliente` en el job de sesión (4 de 4 en rojo con `ERR_CONNECTION_REFUSED` en `127.0.0.1:<api>`).** Causa: el
-    `action_link` de `generate_link` lo arma GoTrue con su URL externa (`http://127.0.0.1:<puerto de la API>`); el navegador corre
-    dentro del contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API murió con su paso. El spec ya
-    fallaba así antes de este lote (nunca se había corrido en sesión): `generarEnlace` ahora reemplaza el origen del enlace por el de
-    `SUPABASE_URL` (`host.docker.internal`, el mismo de la web y de los specs). El redirect de vuelta sigue necesitando el puerto
-    de `site_url`/`additional_redirect_urls` de `supabase/config.toml` (4300): el job sirve la web en 4300 (el `WEB_PORT` que escribe en
-    `GITHUB_ENV` no llega al proceso de ese mismo paso); con otro puerto GoTrue rechazaría el `redirect_to`.
+  - **Job de sesión con `--workers=2 --retries=0`.** `validate.yml` (`e2e-visible-sesion`) corre `playwright test --workers=2 --retries=0` y no un worker por
+    spec (los reintentos duplican el tiempo de cada rojo y con 5 min por spec visible y 40 min de tope del job agotan el job): con el runner cargado, seis specs visibles a la vez (cursor, rótulos, `slowMo`, video 1080p) agotaron los timeouts de 3-5 min.
+  - **`cuenta-web-cliente` en el job de sesión (4 de 4 en rojo).** Dos causas, ambas pre-existentes (el spec nunca se había corrido
+    en sesión). (1) `ERR_CONNECTION_REFUSED` en `127.0.0.1:<api>`: GoTrue arma el `action_link` de `generate_link` con su URL
+    externa y el navegador corre dentro del contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API
+    murió con su paso; `generarEnlace` reemplaza el origen del enlace por el de `SUPABASE_URL` (`host.docker.internal`). (2) Con eso
+    el `verify` redirige bien a `mundojc.localhost:4300/definir-contrasena`, pero se servía el PANEL y no la TIENDA: el build del job
+    de sesión no exportaba `VITE_PANEL_HOSTS` (sí `e2e-tienda`); ahora el paso «Exponer claves» exporta `VITE_PANEL_HOSTS=localhost,127.0.0.1`,
+    igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
+    `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
+    todavía en sesión.
+  - **Estado de MSF-964/965/966: ABIERTOS.** Ninguno se da por resuelto hasta que los 6 specs (`cuenta-web-cliente`, `exportacion-total`,
+    `importaciones`, `importaciones-a11y`, `productos-create-permisos`, `notificaciones`) pasen en una corrida de sesión; en la corrida
+    44176286432 (cancelada a los 40 min) solo pasó `productos-create-permisos`.
+  - **Timeouts de 300 s en sesión visible (`exportacion-total`, `importaciones`, `importaciones-a11y`).** La hipótesis del
+    `actionTimeout` quedó descartada: son del recorrido visible (slowMo 350 ms, cursor de 30 pasos hacia cada clic, rótulos de 2,2 s, video
+    1080p) con el runner cargado. No se suben los timeouts. Se corre en grupos de 2 specs como máximo (input `e2e_archivos`), uno por
+    corrida, p. ej. `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos="exportacion-total.e2e.ts importaciones.e2e.ts"`,
+    luego `"importaciones-a11y.e2e.ts cuenta-web-cliente.e2e.ts"` y `"notificaciones.e2e.ts productos-create-permisos.e2e.ts"`. Bajo carga
+    se puede bajar la cámara lenta con las variables `E2E_SLOWMO_MS` (por defecto 350, `playwright.config.ts`) y `E2E_MOUSE_PASOS` (por
+    defecto 30, `visible.ts`), p. ej. 100 y 10; el comportamiento por defecto no cambia (el job aún no las exporta).
+  - **`notificaciones`:** falló a los ~3 min en medio del recorrido visible, pero la traza quedó truncada por la cancelación del job:
+    causa NO confirmada.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de

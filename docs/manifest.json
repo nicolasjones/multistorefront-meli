@@ -679,14 +679,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "4d0053411503a314cf2def1afc450f5006adba82c563b7873b4805f12abb2368",
-      "sourceHash": "52db4eb79564208471f7d20f73e5c9432f4afbe9fe97ec24128293fc90846c14",
-      "sourceAt": "c6039b33",
+      "pageHash": "48c75cdab6ed90e9e6f22c8737f74f7abc40d7d63102797e31cdbcfe3174cbac",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "3fb7f20d",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c6039b33"
+      "commit": "3fb7f20d"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",

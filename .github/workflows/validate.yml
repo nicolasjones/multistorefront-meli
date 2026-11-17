@@ -368,6 +368,9 @@ jobs:
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          # Igual que `e2e-tienda`: sin esto el build sirve el PANEL en `mundojc.localhost` y las tiendas del seed no se resuelven
+          # (`cuenta-web-cliente` cargaba el panel en vez de la tienda en /definir-contrasena).
+          echo "VITE_PANEL_HOSTS=localhost,127.0.0.1" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
       - uses: actions/cache@v4
@@ -396,10 +399,12 @@ jobs:
           ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
           # `--workers=2`: el runner va cargado (load ~50) y con un worker por spec, el recorrido visible (cursor, rótulos, `slowMo`,
           # video 1080p) agota los timeouts de 3-5 min de seis specs a la vez. Va antes de los filtros y SIN `--`.
+          # `--retries=0`: un reintento duplica el tiempo de cada rojo y, con 5 min por spec visible y 40 min de tope del job, agota el job
+          # entero. Esto NO da por resueltos MSF-964/965/966: siguen abiertos hasta que los 6 specs pasen en una corrida de sesión.
           if [ -n "$E2E_GREP" ]; then
-            pnpm --filter @platform/web exec playwright test --workers=2 $ARCHIVOS --grep "$E2E_GREP"
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm --filter @platform/web exec playwright test --workers=2 $ARCHIVOS
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS
           fi
       - name: cobertura:e2e (sesión)
         if: always()
