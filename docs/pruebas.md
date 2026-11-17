@@ -148,4 +148,8 @@ Lección de #1053 (clientes pasó de `public` a `dominio`): un PR en vuelo que t
 
 No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
 
+### Versiones de migración y la fecha del calendario (MSF-589)
+
+Las versiones de `supabase/migrations/` **no son la fecha del día**: la regla es «siempre mayor que la máxima de `origin/dokploy`» (`verificar-migraciones.mjs --estricto`, regla 3). Al 2026-11-17 hay 503 de 750 migraciones con versión posterior a hoy (la última es `20270507140100`, de la ventana de lotes) porque cada lote reserva una ventana por delante de la anterior. El riesgo que describía el hallazgo (una migración con fecha real, anterior a la máxima, que `supabase migration up` / `db push` trate como «insertada antes de la última» y exija `--include-all`) **ya lo previene el guard**: una versión menor o igual a la máxima falla el job `application`. No se renumeran las migraciones ya aplicadas en DEV (cambiaría su registro: ver «VERSIÓN INMUTABLE» en el encabezado del script). Criterio vigente: usar la ventana libre que indique el lote o, si no la hay, una versión mayor que la máxima, aunque sea futura.
+
 El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.

@@ -405,6 +405,25 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
 - El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.
 
+## Condición frente al IVA: vías de carga (MSF-594)
+
+`dominio.clientes.condicion_iva` (texto libre, hasta 60 caracteres) la imprime la factura interna. Antes no tenía
+ninguna vía de carga. La migración `20270507170000_clientes_condicion_iva_via_de_carga.sql` abre las de base de datos:
+
+- **API**: `authenticated` puede insertar y actualizar la columna (`grant` por columna; la RLS por organización y
+  el nivel de la sección `clientes` siguen mandando; el check de 60 caracteres sigue vigente).
+- **Importación**: `aplicar_lote_clientes` toma la clave opcional `condicion_iva` de cada fila y
+  `validar_fila_cliente_migracion` la limita a 60 caracteres. Como las demás columnas, una celda vacía no borra el
+  dato existente.
+- Prueba: `supabase/tests/database/clientes_condicion_iva_carga.test.sql`.
+
+**Pendiente (decisión de interfaz)**: el campo en el formulario de alta/edición, la fila en la ficha y la columna
+«Condición de IVA» del diálogo «Importar clientes» **no están en el prototipo** (`ClienteFicha.dc.html`,
+`Clientes.dc.html`), y la regla del repo es que el prototipo manda la UI. Propuesta: agregarlos al prototipo como un
+selector con las condiciones habituales (Responsable Inscripto, Monotributista, Exento, Consumidor Final, No
+Responsable) más «Otra», guardando el texto elegido; en el importador, el alias `condicion iva` / `situacion iva`.
+Hasta que se dibuje, la columna se carga por API o por un archivo de importación que traiga `condicion_iva`.
+
 ## Cuenta web: ajustes de la revisión (MSF-422)
 
 - «Restablecer clave» y el reenvío al reutilizar el usuario envían el enlace al correo del **usuario de Auth** (`getUserById`), no a `clientes.correo`, que pudo editarse después.
