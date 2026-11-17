@@ -36,10 +36,12 @@ async function violacionesAxe(page: Page, selector?: string): Promise<string[]> 
   }, selector)
 }
 
-// El aviso de cookies tapa el pie a 320 px: se decide («Rechazar», como en `tienda-legal`) antes de interactuar, sin `force`.
+// El aviso de cookies puede tapar el pie a 320 px: si aparece, se decide («Rechazar», como en `tienda-legal`) antes de interactuar, sin
+// `force`. No en todos los stacks aparece (en el de sesión no estaba): se espera un instante y, si no hay aviso, se sigue.
 async function resolverAvisoCookies(page: Page) {
   const aviso = page.getByRole('region', { name: 'Aviso de cookies' })
-  await expect(aviso).toBeVisible()
+  const aparecio = await aviso.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false)
+  if (!aparecio) return
   await aviso.getByRole('button', { name: 'Rechazar' }).click()
   await expect(aviso).toHaveCount(0)
 }

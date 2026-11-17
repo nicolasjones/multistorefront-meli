@@ -116,160 +116,152 @@ const avisoDeError = (page: Page) => page.getByRole('alert').filter({ hasText: '
 
 test.describe('Inicio · tablero de gestión con tres roles', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // En serie y con UNA siembra para los tres tests: en paralelo, tres contextos con video 1920x1080 y tres siembras (altas de usuario,
+  // logins de asignación) agotaban los 5 min del test en el job de sesión (MSF-881).
+  test.describe.configure({ mode: 'serial' })
+  const datos: Partial<Sembrado> = {}
+
+  test.beforeAll(async () => {
+    test.setTimeout(240_000)
+    await sembrar(randomUUID().slice(0, 8), datos)
+  })
+
+  test.afterAll(async () => {
+    await limpiar(datos)
+  })
 
   test('el Administrador ve los bloques con ingresos, filtra, ordena y exporta «Movimientos por producto»', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
-    const sufijo = randomUUID().slice(0, 8)
-    const datos: Partial<Sembrado> = {}
+    const siembra = datos as Sembrado
+    const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
     try {
-      await sembrar(sufijo, datos)
-      const siembra = datos as Sembrado
-      const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
-      try {
-        await prepararPaginaVisible(admin.page)
-        const { page } = admin
-        await ingresar(page, siembra.correos.administrador)
-        await paso(page, 'Abre Inicio y ve «Resumen por tienda» con ingresos', async () => {
-          await page.goto('/')
-          await expect(page.getByRole('heading', { name: 'Resumen por tienda', exact: true })).toBeVisible()
-          await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
-          await expect(resumenTiendas(page).getByText(/Ingresos \(con IVA\)/)).toBeVisible()
-        })
-        await paso(page, 'Ve «Salidas por depósito» y «Actividad reciente»', async () => {
-          await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
-          await expect(page.getByRole('heading', { name: 'Actividad reciente', exact: true })).toBeVisible()
-        })
-        await paso(page, 'En «Movimientos por producto» ve los tres productos sembrados', async () => {
-          await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
-          await expect(page.getByText(siembra.nombreSinStock).first()).toBeVisible()
-        })
-        await paso(page, 'Busca por SKU y queda solo el producto buscado', async () => {
-          await escribir(page, page.getByLabel('Buscar producto o SKU'), siembra.skuAlerta)
-          await expect(page.getByText('Mostrando 1 de 1 producto')).toBeVisible()
-          await expect(page.getByText(siembra.nombreSinStock)).toHaveCount(0)
-        })
-        await paso(page, 'Una búsqueda sin resultados muestra el estado vacío y «Limpiar filtros» lo revierte', async () => {
-          await escribir(page, page.getByLabel('Buscar producto o SKU'), `no-existe-${sufijo}`)
-          await expect(page.getByText('Sin movimientos para estos filtros')).toBeVisible()
-          await clic(page, page.getByRole('button', { name: 'Limpiar filtros' }))
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-        })
-        await paso(page, 'La vista «En alerta» deja los dos productos en alerta y saca al normal', async () => {
-          await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'En alerta' }))
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
-          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
-          await expect(page.getByText(siembra.nombreNormal)).toHaveCount(0)
-          await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'Todos' }))
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-        })
-        await paso(page, 'Cambia el sentido del orden', async () => {
-          await clic(page, page.getByRole('button', { name: '↑ Ascendente' }))
-          await expect(page.getByRole('button', { name: '↓ Descendente' })).toBeVisible()
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-        })
-        await paso(page, 'Exporta lo que ve a un CSV con fecha en el nombre', async () => {
-          const descarga = page.waitForEvent('download')
-          await clic(page, page.getByRole('button', { name: 'Exportar' }))
-          expect((await descarga).suggestedFilename()).toMatch(/^movimientos-por-producto-\d{4}-\d{2}-\d{2}\.csv$/)
-        })
-        await rotulo(page, 'El Administrador ve ingresos y exporta')
-      } finally {
-        await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
-      }
+      await prepararPaginaVisible(admin.page)
+      const { page } = admin
+      await ingresar(page, siembra.correos.administrador)
+      await paso(page, 'Abre Inicio y ve «Resumen por tienda» con ingresos', async () => {
+        await page.goto('/')
+        await expect(page.getByRole('heading', { name: 'Resumen por tienda', exact: true })).toBeVisible()
+        await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
+        await expect(resumenTiendas(page).getByText(/Ingresos \(con IVA\)/)).toBeVisible()
+      })
+      await paso(page, 'Ve «Salidas por depósito» y «Actividad reciente»', async () => {
+        await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Actividad reciente', exact: true })).toBeVisible()
+      })
+      await paso(page, 'En «Movimientos por producto» ve los tres productos sembrados', async () => {
+        await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+        await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
+        await expect(page.getByText(siembra.nombreSinStock).first()).toBeVisible()
+      })
+      await paso(page, 'Busca por SKU y queda solo el producto buscado', async () => {
+        await escribir(page, page.getByLabel('Buscar producto o SKU'), siembra.skuAlerta)
+        await expect(page.getByText('Mostrando 1 de 1 producto')).toBeVisible()
+        await expect(page.getByText(siembra.nombreSinStock)).toHaveCount(0)
+      })
+      await paso(page, 'Una búsqueda sin resultados muestra el estado vacío y «Limpiar filtros» lo revierte', async () => {
+        await escribir(page, page.getByLabel('Buscar producto o SKU'), `no-existe-${siembra.orgId}`)
+        await expect(page.getByText('Sin movimientos para estos filtros')).toBeVisible()
+        await clic(page, page.getByRole('button', { name: 'Limpiar filtros' }))
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+      })
+      await paso(page, 'La vista «En alerta» deja los dos productos en alerta y saca al normal', async () => {
+        await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'En alerta' }))
+        await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+        await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
+        await expect(page.getByText(siembra.nombreNormal)).toHaveCount(0)
+        await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'Todos' }))
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+      })
+      await paso(page, 'Cambia el sentido del orden', async () => {
+        await clic(page, page.getByRole('button', { name: '↑ Ascendente' }))
+        await expect(page.getByRole('button', { name: '↓ Descendente' })).toBeVisible()
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+      })
+      await paso(page, 'Exporta lo que ve a un CSV con fecha en el nombre', async () => {
+        const descarga = page.waitForEvent('download')
+        await clic(page, page.getByRole('button', { name: 'Exportar' }))
+        expect((await descarga).suggestedFilename()).toMatch(/^movimientos-por-producto-\d{4}-\d{2}-\d{2}\.csv$/)
+      })
+      await rotulo(page, 'El Administrador ve ingresos y exporta')
     } finally {
-      await limpiar(datos)
+      await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
     }
   })
 
   test('Consulta lee sin exportar y Operador no ve ingresos', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
-    const sufijo = randomUUID().slice(0, 8)
-    const datos: Partial<Sembrado> = {}
+    const siembra = datos as Sembrado
+
+    const consulta = await abrirContextoGrabado(browser, testInfo, 'consulta')
     try {
-      await sembrar(sufijo, datos)
-      const siembra = datos as Sembrado
-
-      const consulta = await abrirContextoGrabado(browser, testInfo, 'consulta')
-      try {
-        await prepararPaginaVisible(consulta.page)
-        const { page } = consulta
-        await ingresar(page, siembra.correos.consulta)
-        await paso(page, 'Consulta ve «Movimientos por producto» pero sin el botón «Exportar»', async () => {
-          await page.goto('/')
-          await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
-          await expect(page.getByLabel('Buscar producto o SKU')).toBeVisible()
-          await expect(page.getByRole('button', { name: 'Exportar' })).toHaveCount(0)
-        })
-        await rotulo(page, 'Consulta lee los movimientos pero no exporta')
-      } finally {
-        await cerrarContextoGrabado(consulta.contexto, consulta.page, testInfo)
-      }
-
-      const operador = await abrirContextoGrabado(browser, testInfo, 'operador')
-      try {
-        await prepararPaginaVisible(operador.page)
-        const { page } = operador
-        await ingresar(page, siembra.correos.operador)
-        await paso(page, 'Operador ve el resumen por tienda sin ingresos', async () => {
-          await page.goto('/')
-          await expect(page.getByRole('heading', { name: 'Resumen por tienda', exact: true })).toBeVisible()
-          await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
-          await expect(page.getByText(/Ingresos \(con IVA\)/)).toHaveCount(0)
-        })
-        await rotulo(page, 'Operador no ve ingresos')
-      } finally {
-        await cerrarContextoGrabado(operador.contexto, operador.page, testInfo)
-      }
+      await prepararPaginaVisible(consulta.page)
+      const { page } = consulta
+      await ingresar(page, siembra.correos.consulta)
+      await paso(page, 'Consulta ve «Movimientos por producto» pero sin el botón «Exportar»', async () => {
+        await page.goto('/')
+        await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+        await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
+        await expect(page.getByLabel('Buscar producto o SKU')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Exportar' })).toHaveCount(0)
+      })
+      await rotulo(page, 'Consulta lee los movimientos pero no exporta')
     } finally {
-      await limpiar(datos)
+      await cerrarContextoGrabado(consulta.contexto, consulta.page, testInfo)
+    }
+
+    const operador = await abrirContextoGrabado(browser, testInfo, 'operador')
+    try {
+      await prepararPaginaVisible(operador.page)
+      const { page } = operador
+      await ingresar(page, siembra.correos.operador)
+      await paso(page, 'Operador ve el resumen por tienda sin ingresos', async () => {
+        await page.goto('/')
+        await expect(page.getByRole('heading', { name: 'Resumen por tienda', exact: true })).toBeVisible()
+        await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
+        await expect(page.getByText(/Ingresos \(con IVA\)/)).toHaveCount(0)
+      })
+      await rotulo(page, 'Operador no ve ingresos')
+    } finally {
+      await cerrarContextoGrabado(operador.contexto, operador.page, testInfo)
     }
   })
 
   test('si falla «Resumen por tienda», el error y el reintento son solo de ese bloque', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
-    const sufijo = randomUUID().slice(0, 8)
-    const datos: Partial<Sembrado> = {}
+    const siembra = datos as Sembrado
+    const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
     try {
-      await sembrar(sufijo, datos)
-      const siembra = datos as Sembrado
-      const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
-      try {
-        await prepararPaginaVisible(admin.page)
-        const { page } = admin
-        // Falla solo la lectura de «Resumen por tienda» (la RPC recibe `p_seccion`); «Salidas por depósito» pasa.
-        let fallar = true
-        await page.route('**/rest/v1/rpc/resumen_inicio_bloques', async (ruta) => {
-          const cuerpo = ruta.request().postDataJSON() as { p_seccion?: string } | null
-          if (fallar && cuerpo?.p_seccion === 'por_tienda') {
-            await ruta.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'falla simulada' }) })
-            return
-          }
-          await ruta.continue()
-        })
-        await ingresar(page, siembra.correos.administrador)
-        await paso(page, 'Solo «Resumen por tienda» muestra el error con «Reintentar»', async () => {
-          await page.goto('/')
-          await expect(avisoDeError(page)).toHaveCount(1)
-          await expect(avisoDeError(page).getByRole('button', { name: 'Reintentar' })).toBeVisible()
-          await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
-        })
-        await paso(page, 'Al reintentar, el bloque se recupera y no queda ningún error', async () => {
-          fallar = false
-          await clic(page, avisoDeError(page).getByRole('button', { name: 'Reintentar' }))
-          await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
-          await expect(avisoDeError(page)).toHaveCount(0)
-        })
-        await rotulo(page, 'El error y el reintento son independientes por bloque')
-      } finally {
-        await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
-      }
+      await prepararPaginaVisible(admin.page)
+      const { page } = admin
+      // Falla solo la lectura de «Resumen por tienda» (la RPC recibe `p_seccion`); «Salidas por depósito» pasa.
+      let fallar = true
+      await page.route('**/rest/v1/rpc/resumen_inicio_bloques', async (ruta) => {
+        const cuerpo = ruta.request().postDataJSON() as { p_seccion?: string } | null
+        if (fallar && cuerpo?.p_seccion === 'por_tienda') {
+          await ruta.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ message: 'falla simulada' }) })
+          return
+        }
+        await ruta.continue()
+      })
+      await ingresar(page, siembra.correos.administrador)
+      await paso(page, 'Solo «Resumen por tienda» muestra el error con «Reintentar»', async () => {
+        await page.goto('/')
+        await expect(avisoDeError(page)).toHaveCount(1)
+        await expect(avisoDeError(page).getByRole('button', { name: 'Reintentar' })).toBeVisible()
+        await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
+        await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+      })
+      await paso(page, 'Al reintentar, el bloque se recupera y no queda ningún error', async () => {
+        fallar = false
+        await clic(page, avisoDeError(page).getByRole('button', { name: 'Reintentar' }))
+        await expect(resumenTiendas(page).getByText(siembra.tienda)).toBeVisible()
+        await expect(avisoDeError(page)).toHaveCount(0)
+      })
+      await rotulo(page, 'El error y el reintento son independientes por bloque')
     } finally {
-      await limpiar(datos)
+      await cerrarContextoGrabado(admin.contexto, admin.page, testInfo)
     }
   })
 })
