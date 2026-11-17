@@ -135,7 +135,7 @@ El filtro **Tienda** sigue a la **empresa activa** de la barra superior:
 | **No hay ventas en ese período.** | Probá con otro período o con otra tienda. |
 | **No hay consultas por WhatsApp en ese período.** | Probá con otro período o con otra tienda. |
 | **No pudimos cargar el tablero de «…».** | Usá **Reintentar**. Si sigue fallando, avisá al equipo de soporte. |
-| **El tablero de «…» todavía no está disponible para tu organización.** | Pedíselo al equipo de soporte. |
+| **El tablero de «…» todavía no está disponible: falta importarlo en este entorno.** | Pedile al administrador de la plataforma que importe los tableros y volvé a intentar. |
 | **No tenés acceso a esta sección.** | Tu rol no incluye Reportes. Usá **Solicitar acceso** o pedile acceso al Administrador. |
 | **No hay clientes en el ranking con esos filtros.** | Probá con otro período o activá el **Consumidor final**. |
 

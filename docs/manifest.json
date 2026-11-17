@@ -1504,12 +1504,12 @@
     },
     "docs/producto/rentabilidad.md": {
       "title": "Ver la rentabilidad: costos y márgenes",
-      "pageHash": "e221396d22e26335f721b4262e0be41a048e4176ff6c7ca7bb3bdfa7bd6f0998",
+      "pageHash": "1b3788048f2ff62126bc4b77301473f0ebf4cd2665d8ec12112b3cac78b8dfe4",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/producto/reportes-de-inventario.md": {
       "title": "Reportes de inventario: cuánto vale tu stock y qué reponer",
@@ -1803,12 +1803,12 @@
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
-      "pageHash": "c39c7f96668a241f1cc1c500eeca43adca7f4a91c744b59d55e52a42f07bc7f0",
+      "pageHash": "d7d0b73cb5ed2af1d4e8003d1728bc2b4a1157a25d2f43cbfcd6d4c5025a69a8",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/producto/ventas-rma-devoluciones.md": {
       "title": "Registrar y resolver devoluciones y reclamos (RMA)",
@@ -1873,9 +1873,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "ffea4ad7243a50472ea4b9eeb80489d79e7b5d2776898eeae5cf58af8429d74b",
-      "sourceHash": "eaffd39a009b0b65e6fad53b79a6a71ace0b0b54495d15786522178f62d24ddc",
-      "sourceAt": "df343d15",
+      "pageHash": "2704e659e6765cd5379dc2d15e7a4181fee9e5b34ba8c69da862eeb41c42996a",
+      "sourceHash": "56926107fb687d62993245b1a044a96baf2647d129360f42c1f333d3bc59e95d",
+      "sourceAt": "1c31cbf6",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1884,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "df343d15"
+      "commit": "1c31cbf6"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -1910,9 +1910,9 @@
     },
     "docs/rentabilidad.md": {
       "title": "Rentabilidad (margen por producto y canal)",
-      "pageHash": "caae2dcb09078b747327af21a931ded6144db5bf0c6158a4a2ddb64654852d5d",
-      "sourceHash": "3128de7c53ef9bd71247af90d05bf57ba8b9533a71f0e677e61b7d032dd4db9c",
-      "sourceAt": "a8f3d3a9",
+      "pageHash": "12c927377e179ffffbd0e12f461a602bd1908f1a3a025d2947435bd6b1be743f",
+      "sourceHash": "95850be6075247faa8e39aa7205d3969f50150900fac056875593c67db151628",
+      "sourceAt": "4e75877b",
       "sources": [
         "specs/20261023-170000-rentabilidad-margen",
         "specs/20261024-130000-rentabilidad-comparativos-e-historia",
@@ -1922,7 +1922,7 @@
         "supabase/tests/database"
       ],
       "owner": "datos",
-      "commit": "a8f3d3a9"
+      "commit": "4e75877b"
     },
     "docs/reportes-inventario.md": {
       "title": "Reportes de inventario (épica MSF-140)",
@@ -3243,9 +3243,9 @@
     },
     "docs/tecnico/rentabilidad.md": {
       "title": "Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)",
-      "pageHash": "afbc8131084b9ddd35890eb6bcf25afe9c6cce5565cf72559d44cf60656379e2",
-      "sourceHash": "9526821aeb2902054db35085ddac779251871237ca4b57ae219df4f7dac89d2e",
-      "sourceAt": "a8f3d3a9",
+      "pageHash": "d05e586483219c9499e4e6d0570667aea533a86caf270899b9a3cd4f2dbc6fb1",
+      "sourceHash": "13b832874aa73e1b1a2e4b0f7d5a8ed1d6e0ff90c89b425a43c1b097f81bab8d",
+      "sourceAt": "4e75877b",
       "sources": [
         "supabase/migrations",
         "apps/web/src/pages/rentabilidad",
@@ -3253,7 +3253,7 @@
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "a8f3d3a9"
+      "commit": "4e75877b"
     },
     "docs/tecnico/reportes-inventario.md": {
       "title": "Reportes de inventario y exportación (técnico, MSF-140)",
@@ -3802,16 +3802,16 @@
     },
     "docs/tecnico/ventas-reportes.md": {
       "title": "Ventas · reportes (técnico, MSF-338, MSF-192)",
-      "pageHash": "fcfd0ab7744cbea191e09a5bb543f979c43e57a814859a50a621070f54f87229",
-      "sourceHash": "91338ab0b556ad99915d2241285fc2c70585faa069c9cc04de9275a5d290fff0",
-      "sourceAt": "775b35f0",
+      "pageHash": "f90e5219f55805649f314951b0907cb201b779c7b195bf1665d42bd4207a5e4f",
+      "sourceHash": "d70bbbd1e37e90593889ac10f8f733a52bdb417772288141f546d39682cbdd40",
+      "sourceAt": "775b35f04",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "775b35f04"
     },
     "docs/tecnico/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",
@@ -3979,7 +3979,7 @@
       "title": "Ventas · Comprobantes",
       "pageHash": "4afeed93ccb48b8a4fea34fee474a5320d3e2d1d78cfccb5087be02cc12896de",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
-      "sourceAt": null,
+      "sourceAt": "ba5af1b8",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -4099,7 +4099,7 @@
       "title": "Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329)",
       "pageHash": "41de3124a29e6f5b5f0586ae6c80c33d167e632bf99f1cabf5108ceaa821d78b",
       "sourceHash": "f104b7a9a5e784168c60f01ecac469966bfa1fdc12d190867402c655fa4ee562",
-      "sourceAt": null,
+      "sourceAt": "48b70df5",
       "sources": [
         "specs/20261027-100000-ventas-mejoras",
         "supabase/migrations/20270114100000_cobros_comprobante.sql",

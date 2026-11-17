@@ -216,13 +216,15 @@ desde `reportes.json`, de forma idempotente. Variables (solo en `.env`/secrets, 
 crea la migración `20261130100300` como `nologin`: el operador le asigna login y contraseña por entorno.
 Detalle del tablero «Por producto» y sus límites en [`operar-superset.md`](./operar-superset.md).
 
-### «El tablero de Rentabilidad todavía no está disponible para tu organización» (MSF-625)
+### «El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno» (MSF-625)
 
 No depende de una configuración por organización: el catálogo `public.reportes` es de la plataforma. La pantalla muestra
 ese mensaje cuando no hay una fila de `public.reportes` con el nombre del tablero (p. ej. `Rentabilidad · Comparativo`) en
 ese entorno, es decir, cuando no se corrió `pnpm superset:importar-dashboards` para Rentabilidad (o el registro falló). Se
-resuelve corriendo ese comando en el entorno; una organización nueva o la del dataset demo no necesita nada más. Mejorar el
-texto del mensaje para que nombre la causa queda como pendiente (MSF-896).
+resuelve corriendo ese comando en el entorno; una organización nueva o la del dataset demo no necesita nada más. El aviso
+ya nombra la causa y la acción («falta importarlo en este entorno. Pedile al administrador de la plataforma que importe los
+tableros y volvé a intentar») y sale del componente compartido `EstadoTableroNoDisponible`, que usan las cinco pantallas de
+Rentabilidad, «Después de costos fijos» y los tableros de Ventas e Inventario.
 
 ## Después de costos fijos (F-GAS-03, MSF-469)
 

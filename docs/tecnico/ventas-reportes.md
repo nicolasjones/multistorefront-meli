@@ -408,7 +408,7 @@ como fracción con formato `0.0%`; las dos pantallas muestran el mismo número.
 
 - **Entorno:** stack local con las ramas de las épicas (`pnpm dev:supabase` + `pnpm dev`; panel en
   `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él la pantalla muestra
-  «El tablero de «…» todavía no está disponible para tu organización»— o el ambiente **DEV** con las épicas
+  «El tablero de «…» todavía no está disponible: falta importarlo en este entorno»— o el ambiente **DEV** con las épicas
   desplegadas y los tableros importados:
 
   ```bash
