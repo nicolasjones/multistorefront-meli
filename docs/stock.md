@@ -279,3 +279,9 @@ mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).
 ## Textos de Movimientos y Faltantes
 
 La nota de un movimiento de una reserva «A pedido» no muestra el identificador interno del comprobante (`comprobante:<uuid>`): se lee «el comprobante». Poner el número del comprobante exige cambiar la nota en la base. La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
+
+## Toma de inventario: depósito, «Sin categoría» y rol Depósito (lote 34)
+
+- La pestaña muestra el **depósito** sobre el que opera (el principal, solo lectura): la RPC `confirmar_toma_inventario` ajusta siempre el depósito por defecto. Elegir otro depósito necesita un parámetro nuevo en la RPC (pendiente del lote de SQL).
+- El selector ofrece **«Sin categoría»**: los productos activos sin categoría (`categoria_id is null`).
+- El rol **Depósito** (edita Stock, sin la sección `categorias`) ve las categorías en el selector: la migración `20270507180000_categorias_lectura_para_toma_de_inventario.sql` agrega la política de lectura `categorias_select_stock` en `dominio.categorias` para quien tiene `stock = edicion`. No abre escritura. Prueba: `supabase/tests/database/categorias_lectura_toma_inventario.test.sql`.

@@ -7,22 +7,36 @@ export const CLAVE_MANTENER_SESION = 'sesion:mantener'
 
 const INTERVALO_REGISTRO_MS = 60 * 1000
 
+// `localStorage` puede faltar o lanzar (ventana privada, datos del sitio bloqueados, cuota llena): sin él no hay reloj de
+// inactividad, la sesión no se considera vencida y nada se rompe (el tope real lo impone el servidor).
+function conAlmacenamiento<T>(accion: () => T, porOmision: T): T {
+  try {
+    return accion()
+  } catch {
+    return porOmision
+  }
+}
+
 export function registrarActividad(ahora = Date.now()) {
-  localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora))
+  conAlmacenamiento(() => localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(ahora)), undefined)
 }
 
 // Contrato: sin marca de actividad (localStorage limpiado o sesión previa al
 // despliegue) NO se considera vencida; quien llama debe registrar actividad
 // (`authProvider.check` lo hace en cada llamada) para que el reloj arranque.
 export function sesionVencidaPorInactividad(ahora = Date.now()) {
-  if (localStorage.getItem(CLAVE_MANTENER_SESION) === 'true') return false
-  const ultima = Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))
-  return Number.isFinite(ultima) && ultima > 0 && ahora - ultima > INACTIVIDAD_MAXIMA_MS
+  return conAlmacenamiento(() => {
+    if (localStorage.getItem(CLAVE_MANTENER_SESION) === 'true') return false
+    const ultima = Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))
+    return Number.isFinite(ultima) && ultima > 0 && ahora - ultima > INACTIVIDAD_MAXIMA_MS
+  }, false)
 }
 
 export function limpiarRastroDeSesion() {
-  localStorage.removeItem(CLAVE_ULTIMA_ACTIVIDAD)
-  localStorage.removeItem(CLAVE_MANTENER_SESION)
+  conAlmacenamiento(() => {
+    localStorage.removeItem(CLAVE_ULTIMA_ACTIVIDAD)
+    localStorage.removeItem(CLAVE_MANTENER_SESION)
+  }, undefined)
 }
 
 // Registra actividad de la persona (limitada a una escritura por minuto).

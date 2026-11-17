@@ -108,10 +108,13 @@ export function UsuarioList() {
     // autorizada; nunca se consulta perfiles_usuario.
     if (filas.length === 0) return
     const rutas = filas.map((fila) => `${fila.user_id}/avatar`)
-    const { data: firmadas } = await supabaseClient.storage.from('fotos-perfil').createSignedUrls(rutas, 60)
+    // Quien no cargó foto no tiene objeto: la firma responde NoSuchKey para esa ruta. No es un fallo de la pantalla: se
+    // muestra la inicial, sin `console.error` ni aviso; tampoco rompe la lista si la firma entera falla.
+    const firmadas = await supabaseClient.storage.from('fotos-perfil').createSignedUrls(rutas, 60)
+      .then(({ data }) => data, () => null)
     const porUsuario: Record<string, string> = {}
     for (const firmada of firmadas ?? []) {
-      if (firmada.signedUrl && firmada.path) porUsuario[firmada.path.replace(/\/avatar$/, '')] = firmada.signedUrl
+      if (!firmada.error && firmada.signedUrl && firmada.path) porUsuario[firmada.path.replace(/\/avatar$/, '')] = firmada.signedUrl
     }
     setFotos(porUsuario)
   }, [])

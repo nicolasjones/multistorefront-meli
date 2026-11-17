@@ -175,15 +175,24 @@ describe('EmpresaEdit', () => {
     expect(mocks.update).not.toHaveBeenCalled()
   })
 
+  it('rechaza un CUIT de 11 dígitos con el dígito verificador mal', async () => {
+    abrir()
+    fireEvent.change(await screen.findByLabelText('CUIT'), { target: { value: '30-71234567-8' } })
+    fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
+
+    expect(await screen.findByText('El CUIT no es válido: revisá el dígito verificador.')).toBeInTheDocument()
+    expect(mocks.update).not.toHaveBeenCalled()
+  })
+
   it('guarda el CUIT solo con dígitos y los vacíos como null', async () => {
     mocks.escritura.mockResolvedValue({ data: { ...mundoJc, razon_social: 'Mundo JC SRL', cuit: '30712345678' }, error: null })
     abrir()
     fireEvent.change(await screen.findByLabelText('Razón social'), { target: { value: '  Mundo JC SRL ' } })
-    fireEvent.change(screen.getByLabelText('CUIT'), { target: { value: '30-71234567-8' } })
+    fireEvent.change(screen.getByLabelText('CUIT'), { target: { value: '30-71234567-1' } })
     fireEvent.click(screen.getByRole('button', { name: /guardar cambios/i }))
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
-    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ razon_social: 'Mundo JC SRL', cuit: '30712345678', direccion: null }))
+    expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ razon_social: 'Mundo JC SRL', cuit: '30712345671', direccion: null }))
   })
 
   it('al cambiar de empresa no arrastra el aviso de guardado de la anterior', async () => {

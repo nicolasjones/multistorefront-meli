@@ -417,12 +417,16 @@ ninguna vía de carga. La migración `20270507170000_clientes_condicion_iva_via_
   dato existente.
 - Prueba: `supabase/tests/database/clientes_condicion_iva_carga.test.sql`.
 
-**Pendiente (decisión de interfaz)**: el campo en el formulario de alta/edición, la fila en la ficha y la columna
-«Condición de IVA» del diálogo «Importar clientes» **no están en el prototipo** (`ClienteFicha.dc.html`,
-`Clientes.dc.html`), y la regla del repo es que el prototipo manda la UI. Propuesta: agregarlos al prototipo como un
-selector con las condiciones habituales (Responsable Inscripto, Monotributista, Exento, Consumidor Final, No
-Responsable) más «Otra», guardando el texto elegido; en el importador, el alias `condicion iva` / `situacion iva`.
-Hasta que se dibuje, la columna se carga por API o por un archivo de importación que traiga `condicion_iva`.
+**Interfaz (lote 34)**: la ficha y el alta de cliente tienen el campo **«Condición de IVA»**: un selector con las
+condiciones habituales (Responsable Inscripto, Monotributista, Exento, Consumidor Final, No Responsable), «Sin
+indicar» y «Otra», que abre un campo de texto (hasta 60 caracteres). La ficha de solo lectura la muestra. El importador
+de clientes suma la columna «Condición de IVA» (alias `condicion iva`, `condicion de iva`, `situacion iva`). Se dibujó
+en el prototipo (`ClienteFicha.dc.html`, `Clientes.dc.html`) y se declaró en la matriz de
+`specs/20271117-100000-lote-34-interfaz-textos-y-roles/spec.md`.
+
+**Documento (DNI/CUIT)**: el formulario exige DNI de 7 u 8 dígitos o CUIT con dígito verificador (`validarCuit`).
+Un documento ya guardado que no cumple el formato no bloquea el guardado de otros cambios: solo se valida si se
+modifica.
 
 ## Cuenta web: ajustes de la revisión (MSF-422)
 

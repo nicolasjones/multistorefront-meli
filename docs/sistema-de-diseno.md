@@ -225,3 +225,11 @@ Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
   dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
 - Cómo se comparten los tokens si el front público es otro repo: sin definir.
 - Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.
+
+## Importes, fechas y textos compartidos (lote 34)
+
+- **Importes** (`apps/web/src/lib/formatoImporte.ts`): `formatearImporte` es el único formateador de pesos del panel. Entero sin decimales («$ 64.200»), con centavos siempre dos decimales («$ 64.200,50», nunca «$ 64.200,5»), punto de miles también en cuatro dígitos (el `Intl` `es-AR` no agrupa «1500») y «—» si no es un número. Opciones: `centavos: 'siempre'` (comprobantes, gastos), `simbolo` (`US$`) y `menos` (`antes`/`despues`). Los formateadores de `precios`, `promociones`, `formatoHistorial`, `formatoRanking`, `gastos`, `serviceTecnico`, `tiendaCuentaDatos` y `listasPrecios` delegan en él; un formateador nuevo se agrega a este archivo.
+- **Fechas de calendario** (`periodosRanking.fechaDeMarca`): una marca `timestamptz` llega en UTC; cortarle los diez primeros caracteres corre un día después de las 21:00 de Buenos Aires. Cobros, pagos, contrarreembolsos y envíos en moto usan `fechaDeMarca`.
+- **Chat IA**: el botón flotante solo lo ve quien puede escribir (`puede_escribir`); la base revalida en `ejecutar_accion_chat_ia`. Si el envío falla, el texto vuelve al campo; «Confirmar» se deshabilita mientras corre.
+- **Rutas solo para administradores**: `/historial/importar` y `/stock/motivos` usan `RequiereAdministrador` (la autorización real es la RLS/RPC). `/empresas` y `/empresas/edit/:id` exigen la sección `empresas`.
+- **Documento base**: `apps/web/index.html` declara `lang="es"`, título «Gestión comercial» y meta description; el panel de marca del ingreso no nombra tiendas ni la plantilla.

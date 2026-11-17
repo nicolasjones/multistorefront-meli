@@ -383,8 +383,8 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "c2dec74c65ba224f8fccf6bc7cfd2d35fee505e531017531526be7b4610b30d0",
-      "sourceHash": "834a932463184011a510c938895319ac7b83a09e145ee01d96026917660a6a5b",
+      "pageHash": "aa48860524349c637945f1d976fd668c240524b23c62cef1f6db134ae4cd88a6",
+      "sourceHash": "3e20adf00711691fa94108d4db84df6b50b697c140daca22e78f9cc76b23e24d",
       "sourceAt": "57614044",
       "sources": [
         "specs",
@@ -2310,14 +2310,14 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
-      "pageHash": "583531141a951fce7cd6f918f4f59d1a2beee3b470dd5fd74083a88b093bb13d",
-      "sourceHash": "f4b991122f7c987c90e8e0a6bd58104f921320c25c4cf0a2b50ab70bd5290591",
-      "sourceAt": "c7860a7c",
+      "pageHash": "7d9b4154dbae264c80e06439b93616acd0a7026ae38daab32385a2fdfa1850ad",
+      "sourceHash": "97c91ca9542c1538999ec7bd4c5e1fdaf8a20efe5f8d5a27cad3658db4b7bb46",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
@@ -2510,14 +2510,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "6f634cf051ce6a07f5ad1b56746629d2121e0c26262fb4ebe2ded779e02a6461",
-      "sourceHash": "470bd9a1febce6b846561b24479091950e7dfaa96fdb26916da171fd0aefa7b5",
-      "sourceAt": "8e36a98d0",
+      "pageHash": "cae1ee78882130cf8d5565b7e186a0d6187b49376fb61da20a5cd9887b4fd5fe",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "9e37897a",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8e36a98d0"
+      "commit": "9e37897a"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

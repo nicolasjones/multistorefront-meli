@@ -302,17 +302,16 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(screen.getByRole('link', { name: 'Imprimir orden' })).toBeInTheDocument()
   })
 
-  it('el orden de tabulación de los botones del encabezado es orden, etiqueta, remito, guardar (P-3)', async () => {
+  it('el orden de tabulación de los botones del encabezado es orden, etiqueta, remito (P-3); entregada no ofrece guardar', async () => {
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-24', entregado_por: 'Luis' })
     abrirDetalle()
     const orden = await screen.findByRole('link', { name: 'Imprimir orden' })
     const etiqueta = screen.getByRole('link', { name: 'Imprimir etiqueta' })
     const remito = screen.getByRole('link', { name: 'Imprimir remito' })
-    const guardarBoton = screen.getByRole('button', { name: 'Guardar' })
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
     const enOrden = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
     expect(enOrden(orden, etiqueta)).toBe(true)
     expect(enOrden(etiqueta, remito)).toBe(true)
-    expect(enOrden(remito, guardarBoton)).toBe(true)
   })
 
   it('una edición con datos viejos avisa del conflicto y ofrece recargar (FR-017)', async () => {
