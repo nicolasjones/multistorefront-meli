@@ -17,7 +17,7 @@ function redValida(valor) {
   const exp = /^\$\{[A-Za-z_]\w*(?::?([-=+?])(.*?))?\}?$/.exec(valor);
   if (!exp) return false;
   // `${VAR:-host}`: un valor por defecto literal debe ser una red válida (o ninguno). `:?msg` y `${VAR}` valen.
-  return exp[1] === undefined || exp[1] === '?' || exp[2] === '' || /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$.*)$/i.test(exp[2]);
+  return exp[1] === undefined || exp[1] === '?' || exp[2] === '' || /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$[A-Za-z_]\w*)$/i.test(exp[2]);
 }
 
 // LÍMITES: este validador comprueba ESTRUCTURA y consistencia (workers, redes de flows y allowlist). NO

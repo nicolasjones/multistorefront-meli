@@ -28,7 +28,9 @@ const dir = argumentValue(args, '--dir', 'supabase/migrations');
 // LÍMITES (a propósito, es un gate barato y no un parser de SQL). NO detecta: SQL dinámico con `execute`;
 // `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`; `ALTER TABLE t DROP c` sin la palabra
 // COLUMN; `UPDATE` sin `WHERE`; `REVOKE`; tampoco modela `standard_conforming_strings = off` (con ese ajuste `'\\'`
-// escapa la comilla en literales comunes y el tokenizador los leería mal); un `$tag$` mal cerrado se lee como texto común; un cuerpo `$$…$$` que
+// escapa la comilla en literales comunes y el tokenizador los leería mal); un `$tag$` mal cerrado se lee como texto común; los dollar-quotes anidados más allá de 100 niveles se tratan
+// como código plano (sus `drop` cuentan); `$a$a$ drop table t; $a$` se marca destructivo aunque en PG es un
+// string (falso positivo conservador, hay que declarar la reversión); un cuerpo `$$…$$` que
 // es solo texto (no SQL) con la palabra `drop table` cuenta como destructivo (falso positivo, conservador). El camino de reversión se acepta si algún comentario tiene una
 // línea que nombra la «reversión» (la palabra completa, no «reversible») y no está negada («sin reversión»,
 // «no hay reversión»; el filtro es CONSERVADOR: `-- Reversión: no hay reversión automática` también se rechaza
@@ -44,7 +46,7 @@ const MARKER_NEGADO = /\b(?:sin|no\s+hay|ninguna?)\s+(?:camino\s+de\s+)?revers/i
 const MARKER_VACIO = /\brevers(?:ión|ion)\s*:\s*(?:ninguna?|none|nothing|nil|n\.?\/?a\.?|no\s+aplica|no\s+hay|nada|-+|\.+|tbd|todo)\s*\.?\s*$/iu;
 // `Reversión:` sin nada más en la línea es válido solo si la línea de comentario siguiente trae contenido (los pasos).
 const SOLO_MARCADOR = /\brevers(?:ión|ion)\s*:?\s*$/iu;
-const limpiar = (linea) => linea.replace(/^\s*(?:--+|\/\*+|\*+)\s*/, '').replace(/\*\/\s*$/, '').trim();
+const limpiar = (linea) => linea.replace(/\s+/g, ' ').replace(/^\s*(?:--+|\/\*+|\*+)\s*/, '').replace(/\*\/\s*$/, '').trim();
 
 // Tokenizador mínimo: separa el SQL ejecutable de los comentarios respetando:
 //  - `--` hasta fin de línea y `/* */` ANIDADOS (Postgres los anida; el `drop` dentro de un comentario no cuenta);
@@ -119,7 +121,9 @@ function recorrer(sql, desde, hasta, mapa, salida, profundidad) {
       ejecutable.push(' ');
       i = j;
     } else if (c === "'" || c === '"') {
-      const conEscapes = c === "'" && /^[eE]$/.test(sql[i - 1] ?? '') && !esCaracterDeIdentificador(sql[i - 2]);
+      // Dentro de un rango (cuerpo de un dollar-quote) no se mira antes de `desde`: el texto previo es el delimitador.
+      const previo = (k) => (i - k >= desde ? sql[i - k] : undefined);
+      const conEscapes = c === "'" && /^[eE]$/.test(previo(1) ?? '') && !esCaracterDeIdentificador(previo(2));
       let j = i + 1;
       while (j < hasta) {
         if (conEscapes && sql[j] === '\\') { j += 2; continue; }
@@ -131,7 +135,7 @@ function recorrer(sql, desde, hasta, mapa, salida, profundidad) {
       }
       ejecutable.push(`${c}${c}`);
       i = j + 1;
-    } else if (c === '$' && !esCaracterDeIdentificador(sql[i - 1])) {
+    } else if (c === '$' && !esCaracterDeIdentificador(i > desde ? sql[i - 1] : undefined)) {
       TAG_DOLLAR.lastIndex = i;
       const abre = TAG_DOLLAR.exec(sql);
       const cierre = abre && i + abre[0].length <= hasta ? siguienteTag(mapa, abre[0], i + abre[0].length) : -1;
@@ -161,7 +165,9 @@ export function esDestructiva(sql) {
 
 export function tieneReversion(sql) {
   const { comentarios } = separar(sql);
-  return comentarios.some((linea, indice) => {
+  return comentarios.some((cruda, indice) => {
+    // Se colapsan los espacios ANTES de las regex con `\s*` adyacentes (`\s*\.?\s*$`): con 100k espacios eran cuadráticas (ReDoS).
+    const linea = cruda.replace(/\s+/g, ' ');
     if (!MARKER_LINEA.test(linea) || MARKER_NEGADO.test(linea)) return false;
     const texto = limpiar(linea);
     if (MARKER_VACIO.test(texto)) return false;

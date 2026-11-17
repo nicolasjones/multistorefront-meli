@@ -134,12 +134,13 @@ test('redes evasivas: --network=\\ + salto + host y ${NET:-host}; valores por de
     'a.yml': 'docker run --network=\\\n   host x',
     'b.yml': 'docker run --network "${NET:-host}" x',
     'c.yml': 'docker run --network "${NET:=bridge}" x',
-    'ok1.yml': 'docker run --network "${NET:-worker-egress-ok}" x',
+    'd.yml': 'docker run --network=${NET:-${X:-host}} x',
+    'ok1.yml': 'docker run --network "${NET:-worker-egress-ok}" --net=${N:-$OTRA} x',
     'ok2.yml': 'docker run --network "${WORKER_NETWORK:?Debe configurarse}" x',
     'ok3.yml': 'docker run --network "${NET}" x',
   }, (dir) => {
     const fuera = redesFueraDeConvencion(dir).join('\n');
-    for (const esperado of ['a.yml', 'b.yml', 'c.yml']) assert.match(fuera, new RegExp(esperado.replace('.', '\\.')));
+    for (const esperado of ['a.yml', 'b.yml', 'c.yml', 'd.yml']) assert.match(fuera, new RegExp(esperado.replace('.', '\\.')));
     assert.doesNotMatch(fuera, /ok\d\.yml/);
   });
 });

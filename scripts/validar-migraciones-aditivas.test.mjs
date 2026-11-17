@@ -168,3 +168,23 @@ for (const [nombre, generar] of Object.entries(CASOS_HOSTILES)) {
     });
   });
 }
+
+test('un $b$ pegado a $a$ al inicio del cuerpo sigue anidándose', async () => {
+  await withMigrations({ '001.sql': "DO $a$$$ ' $$; drop table t; $a$;" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});
+
+test('ReDoS: una línea de marcador con 1 MB de espacios se analiza en menos de 2 s', async () => {
+  const relleno = ' '.repeat(1000000);
+  await withMigrations({
+    '001.sql': `-- Reversion: none${relleno}\ndrop table t;`,
+    '002.sql': `-- Reversión:${relleno}\n-- paso\ndrop table t;`,
+  }, async (dir) => {
+    const t = Date.now();
+    const r = await run(dir);
+    assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
+    assert.match(r.stderr, /001\.sql/);
+    assert.doesNotMatch(r.stderr, /002\.sql/);
+  });
+});
