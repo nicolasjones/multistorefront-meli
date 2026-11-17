@@ -5,7 +5,7 @@
 // base (`recalcular_alertas_inicio`), que es idempotente: reintentar es seguro. El registro de cada ejecución
 // por organización (fecha y cantidad) lo guarda la base en dominio.alertas_inicio_calculos; acá se devuelve el
 // resumen y los errores quedan en los registros de la función sin datos de negocio.
-import { timingSafeEqual } from 'node:crypto'
+import { tokenValido } from '../_shared/token.ts'
 
 // Función servidor a servidor (la llama Kestra con x-aviso-token): sin `Access-Control-Allow-Origin: *`, ningún navegador
 // de otro origen puede invocarla.
@@ -27,12 +27,6 @@ export type Deps = {
   }
 }
 
-const tokenValido = (esperado: string | undefined, recibido: string | null) => {
-  if (!esperado || !recibido) return false
-  const a = new TextEncoder().encode(esperado)
-  const b = new TextEncoder().encode(recibido)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 const mensajeDeError = (error: unknown) =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error sin detalle'

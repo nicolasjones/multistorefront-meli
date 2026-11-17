@@ -1976,16 +1976,16 @@
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
-      "pageHash": "25417e8b22a7a7cf15a1717206ac731bb152264ce04e21a012b15d08f5b64d50",
-      "sourceHash": "a8ee64397fa196c0ff8a6dc1fe0ad18fece53c7c321c90f8fc7c0086c1a86e45",
-      "sourceAt": "e2ad6a41",
+      "pageHash": "a7add2522ffd8af18f17d621678512cd3f50a68efc144cb826576f0b45b1586e",
+      "sourceHash": "e34ca70ded136df3e7669cde0997cf357b6ae9665b7da7cc577b393ee35efb06",
+      "sourceAt": "e2ad6a412",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "e2ad6a41"
+      "commit": "e2ad6a412"
     },
     "docs/revision-seguridad-analitica-avanzada.md": {
       "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",

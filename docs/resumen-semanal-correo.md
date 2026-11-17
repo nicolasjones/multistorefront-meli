@@ -54,7 +54,7 @@ Las secciones cuya fuente no existe se omiten sin error. Solo hay **agregados** 
 
 | Dónde | Variable | Nota |
 |---|---|---|
-| Función (`supabase secrets set`) | `RESUMEN_SEMANAL_TOKEN` | Secreto compartido con Kestra (`x-aviso-token`); sin él la función rechaza todo |
+| Función (`supabase secrets set`) | `RESUMEN_SEMANAL_TOKEN` | Secreto compartido con Kestra (`x-aviso-token`); sin él la función rechaza todo (503). Se compara en tiempo constante sobre los SHA-256 de ambos valores, sin cortar por longitud (helper `_shared/token.ts`) |
 | Función | `PANEL_URL`, `SMTP_*` | Los mismos de los demás correos |
 | `supabase/config.toml` (`[edge_runtime.secrets]`) | `RESUMEN_SEMANAL_TOKEN = "env(…)"` | Para el runtime de dev |
 | Kestra (`infra/kestra/.env`) | `RESUMEN_SEMANAL_URL`, `RESUMEN_SEMANAL_APIKEY`, `SECRET_RESUMEN_SEMANAL_TOKEN` | El token va **en base64** (`printf '%s' '<token>' | base64 -w0`); decodificado debe igualar al de la función |
