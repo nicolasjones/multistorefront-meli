@@ -146,7 +146,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
 5. **Cupo compartido** entre clientes y newsletter (D14) y **tope global de confirmaciones** (MSF-971): decidir si se separan.
 6. **CAPTCHA** solo si hay abuso real.
-7. **Rate limit en el borde de la baja** (MSF-980): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
+7. **Rate limit en el borde de la baja** (MSF-980): **no se resuelve en el repo** (propuesta abajo): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
 
 ## Verificación técnica (T011)
 
@@ -172,6 +172,15 @@ Revisión del lote de deuda técnica MSF-515 (2026-11-17). Qué se comprobó en 
 - **Lo que se comprobó.** La página `/newsletter/baja/:token` corre en el dominio de cada tienda y llama con `supabaseClient.functions.invoke('baja-correo-masivo', { body: { token } })` (`apps/web/src/lib/tiendaNewsletter.ts`). El SDK instalado (`@supabase/supabase-js` 2.115.0, lockfile) manda `authorization`, `apikey`, `x-client-info` y `content-type`, y opcionalmente `x-retry-count`, `traceparent`, `tracestate` y `baggage` (lista oficial de `@supabase/supabase-js/cors`). La función ya respondía `Access-Control-Allow-Origin: *` con los cuatro primeros y con CORS en todas sus respuestas (200, 400, 405 y 500). `*` es lo correcto: los dominios de las tiendas son abiertos, la función no usa cookies ni credenciales y la autenticación es el token del enlace.
 - **Lo que se cambió** (`supabase/functions/baja-correo-masivo/handler.ts`): se agregaron a los encabezados permitidos los opcionales del SDK (si alguna vez se activa la propagación de trazas, el preflight no rompería la baja), `Access-Control-Allow-Methods: POST, OPTIONS` y `Access-Control-Max-Age: 86400` solo en el preflight. Contrato intacto. `pnpm test:edge:baja-correo-masivo` (9 pruebas) cubre el preflight, CORS en todas las respuestas y el contrato.
 - **Pendiente real (por entorno)**: confirmar en dev, stg y prd con `curl -i -X OPTIONS https://<supabase>/functions/v1/baja-correo-masivo -H 'Origin: https://<tienda>' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,apikey,x-client-info,content-type'` y un `POST` con la clave pública que el gateway no responda `401` antes de llegar a la función. `supabase/config.toml` **no** declara `[functions.baja-correo-masivo]`: por defecto el gateway exige `verify_jwt`, y una clave pública que no sea un JWT (publishable) terminaría en `401` sin cabeceras CORS (el navegador lo muestra como error de CORS). La baja de clientes (`/baja-correo/:token`) llama igual y funciona en dev, pero si algún entorno falla así, el arreglo es `[functions.baja-correo-masivo] verify_jwt = false` en el `config.toml` del workdir de ese entorno (mismo criterio que `consultar-estado-reparacion`, `docs/service-seguimiento.md`); no se agregó acá porque cambia la postura del gateway y no se pudo probar contra uno.
+
+### Rate limit de la baja (MSF-980)
+
+- **Decisión: no se implementa en el repo.** Un contador dentro de la función o de la base **empeora** el problema que se quiere evitar: el riesgo es de disponibilidad (los tokens son de 244 bits y la respuesta es siempre la misma, no hay enumeración), y un contador agrega una escritura a la base por cada pedido, justo la carga que un ataque busca provocar. Un contador en memoria de la función no sirve: cada instancia del runtime tiene el suyo y se reinician. El límite útil está **antes** de la función.
+- **Propuesta concreta (infraestructura, fuera del repo):** limitar por IP la ruta `/functions/v1/baja-correo-masivo` en el borde de cada entorno.
+  - *Con Cloudflare delante*: regla de límite de tasa sobre `http.request.uri.path eq "/functions/v1/baja-correo-masivo"` (30 pedidos por minuto y por IP, bloqueo de 10 minutos); una persona legítima hace uno o dos.
+  - *Sin Cloudflare (Supabase self-hosted)*: en `kong.yml` del stack, una ruta propia para esa función con el plugin `rate-limiting` (`minute: 30`, `limit_by: ip`, `policy: local`), o `limit_req_zone`/`limit_req` de nginx en el proxy que atiende `/functions/v1/`.
+  - Respuesta `429` con `Retry-After`: la página de baja ya muestra «Probá de nuevo en un rato» ante un error del servidor.
+- **Pendiente**: aplicar la regla en cada entorno (dueño: Operaciones) y probarla con 40 pedidos seguidos desde una IP.
 
 ## Reversión
 

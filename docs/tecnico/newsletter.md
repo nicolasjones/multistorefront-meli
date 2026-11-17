@@ -554,7 +554,7 @@ rótulos por tarea.
 | Imágenes en el correo | Producto / Plataforma | `imagen_url` queda nulo: hay que decidir entre un bucket público de miniaturas o una URL firmada de larga vida. |
 | Cupo diario separado del newsletter y alerta al alcanzar el tope global | Producto | D14 y MSF-971: hoy el cupo es uno solo entre clientes y newsletter. |
 | CAPTCHA de la suscripción | Producto | Solo si hay abuso real. |
-| Rate limit en el borde de la baja (Edge Function anónima) | Plataforma | MSF-980: los tokens son de 244 bits y la respuesta es uniforme, pero la función no limita por visitante. |
+| Rate limit en el borde de la baja (Edge Function anónima) | Plataforma | MSF-980: los tokens son de 244 bits y la respuesta es uniforme, pero la función no limita por visitante. No se resuelve en el repo (un contador en la base agrega carga): regla por IP en Cloudflare, Kong o nginx; propuesta en `docs/newsletter.md`. |
 | Verificar `kestra.templating.recursive-rendering: false` en dev, stg y prd | Operaciones | Fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real. |
 | Reubicar el ítem de menú a «Canales» o actualizar el prototipo | Producto | Desvío abierto: la implementación lo puso en **Contactos** y el prototipo lo dibuja en **Canales**. |
 | Mergear la épica a `main` | Spec Kit | Todo vive en `dokploy`: en `main` no hay migraciones, RPC, rutas, flows ni tests. |
