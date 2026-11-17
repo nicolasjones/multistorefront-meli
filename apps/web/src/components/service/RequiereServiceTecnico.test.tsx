@@ -73,6 +73,14 @@ describe('RequiereServiceTecnico', () => {
     expect(await violacionesAxe(container)).toEqual([])
   })
 
+  it('mientras se resuelve el rol no muestra ningún mensaje que dependa de él', () => {
+    mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
+    abrir()
+    expect(screen.queryByText(/pedísela indicando/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Pedile a un administrador/)).not.toBeInTheDocument()
+  })
+
   it('mientras resuelve la funcionalidad no monta el contenido', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: null, isLoading: true })
     abrir()

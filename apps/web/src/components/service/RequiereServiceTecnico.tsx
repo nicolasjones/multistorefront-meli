@@ -35,7 +35,9 @@ function RequiereFuncionalidad({ children }: { children: ReactNode }) {
 // a soporte; al resto, que se lo pida a un administrador de su organización.
 function FuncionalidadNoHabilitada() {
   const { isSuperadmin } = useIsSuperadmin()
-  const { puedeEscribir } = usePuedeEscribir()
+  const { puedeEscribir, isLoading } = usePuedeEscribir()
+  // Mientras se resuelve el rol no se muestra ningún mensaje que dependa de él.
+  if (isLoading || puedeEscribir === null) return <EstadoCargaPagina />
   const descripcion = isSuperadmin
     ? 'Activala para esta organización desde Plataforma · Funcionalidades.'
     : puedeEscribir

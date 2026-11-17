@@ -13,7 +13,7 @@ export type ResumenEmpresa = {
   productosVisibles: number | null
 }
 
-type FilaTienda = { empresa_id: string; dominio: string }
+type FilaTienda = { empresa_id: string; dominio: string; created_at?: string }
 type FilaRegla = { empresa_id: string; base: ReglaPrecio['base']; ajuste_pct: number | string; mostrar_con_iva?: boolean; updated_at: string }
 
 async function intentar<T>(lectura: () => PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> {
@@ -41,10 +41,13 @@ export function useResumenEmpresas(empresaIds: string[]) {
     const ids = clave.split(',')
     void (async () => {
       const [tiendas, reglas] = await Promise.all([
-        intentar<FilaTienda[]>(() => supabaseClient.schema('dominio').from('tiendas').select('empresa_id, dominio').in('empresa_id', ids).returns<FilaTienda[]>()),
+        intentar<FilaTienda[]>(() => supabaseClient.schema('dominio').from('tiendas').select('empresa_id, dominio, created_at').in('empresa_id', ids).returns<FilaTienda[]>()),
         intentar<FilaRegla[]>(() => supabaseClient.schema('dominio').from('precios_empresa').select('empresa_id, base, ajuste_pct, mostrar_con_iva, updated_at').in('empresa_id', ids).returns<FilaRegla[]>()),
       ])
-      const dominios = new Map((tiendas ?? []).map((fila) => [fila.empresa_id, fila.dominio]))
+      // Con más de una tienda por empresa rige la más antigua (desempate por dominio): resultado determinista.
+      const ordenadas = [...(tiendas ?? [])].sort((a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.dominio.localeCompare(b.dominio))
+      const dominios = new Map<string, string>()
+      for (const fila of ordenadas) if (!dominios.has(fila.empresa_id)) dominios.set(fila.empresa_id, fila.dominio)
       const visibles = new Map<string, number | null>()
       await Promise.all(ids.map(async (id) => {
         if (!dominios.has(id)) { visibles.set(id, tiendas === null ? null : 0); return }

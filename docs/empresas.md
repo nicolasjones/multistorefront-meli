@@ -197,3 +197,4 @@ Las columnas «Tienda web», «Precio» y «Productos visibles» leen el estado 
 
 El resumen se lee con una consulta por dato para todas las empresas (tiendas y reglas de precio); los productos visibles se piden a `listar_catalogo_tienda` solo para las empresas con tienda, porque la visibilidad efectiva la resuelve la base. Una versión agregada (un solo conteo para todas) requiere SQL y queda pendiente. Se vuelve a leer al cambiar la empresa activa.
 
+Límite conocido: las lecturas de tiendas y precios usan `.in('empresa_id', ids)` con todos los ids en la URL; una organización con más de ~100 empresas superaría el tope de URL y habría que partirlas en lotes. Con más de una tienda por empresa se toma la más antigua.

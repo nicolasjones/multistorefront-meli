@@ -701,14 +701,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "369988d0071961070901503d61fdf3298b02eddc0a0c7fe8ec2ab8e7de35278d",
-      "sourceHash": "a0cb426f12d3b012d4157209dad8b972662b63776a47f2bfa9686554f3ad9a4d",
-      "sourceAt": "3d8efbc2",
+      "pageHash": "10bb3e0e96e0b58fc05db3a4440f47a2f1446ef4ea6d424940060709fd996c2e",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "bdb1eaeb",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d8efbc2"
+      "commit": "bdb1eaeb"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
