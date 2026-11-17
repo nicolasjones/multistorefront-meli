@@ -117,13 +117,15 @@ jobs:
           CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
         run: node scripts/ci-lane.mjs reclamar
 
-  # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
+  # MSF-904: chequeos estáticos y suites de Node puro (docs, guards, tooling, lint). No necesitan el build, así que corren EN
+  # PARALELO con `application`. No se perdió ningún check: cada paso vive en exactamente uno de los dos jobs y los dos cuentan
+  # para `validacion`. Misma condición de disparo que `application` (kill switch, borrador, forks).
   # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
-  application:
+  chequeos:
     needs: changes
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -195,9 +197,58 @@ jobs:
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
       - run: pnpm lint
+
+  # Lo PESADO: build, tests y e2e (sólo si hay código). Lo liviano (docs, guards, tooling y lint) corre en `chequeos`, en paralelo
+  # (MSF-904: antes eran ~14 pasos en serie en este job).
+  # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
+  application:
+    needs: changes
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # El e2e sirve `apps/web/dist`. Además de cuando cambia código, se buildea si el
       # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
       # si no, el build se saltea y el e2e falla por dist ausente.
+      # MSF-904: la instalación de Chromium (+ deps del SO) es de lo más lento y no depende del build: arranca en segundo plano
+      # mientras se compila y el paso `esperar playwright install` (antes del e2e) la espera y falla si falló. El caché de
+      # `~/.cache/ms-playwright` va antes y guarda el binario.
+      - uses: actions/cache@v4
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install (en segundo plano)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: |
+          rm -f "$RUNNER_TEMP/playwright-install.rc"
+          (
+            (
+              set -e
+              if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+                # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin libglib-2.0 (el browser muere con
+                # "error while loading shared libraries") hay que instalar SIEMPRE las deps del SO, aun con cache hit.
+                echo "chromium en cache -> binario + deps del SO"
+                pnpm --filter @platform/web exec playwright install chromium
+                pnpm --filter @platform/web exec playwright install-deps chromium
+              else
+                pnpm --filter @platform/web exec playwright install --with-deps chromium
+              fi
+            )
+            echo $? > "$RUNNER_TEMP/playwright-install.rc"
+          ) > "$RUNNER_TEMP/playwright-install.log" 2>&1 < /dev/null &
       - name: build
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
@@ -224,25 +275,15 @@ jobs:
       # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
       # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
       # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.
-      - uses: actions/cache@v4
+      - name: esperar playwright install
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
-        with:
-          path: ~/.cache/ms-playwright
-          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - name: playwright install
-        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        timeout-minutes: 10
         run: |
-          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
-            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
-            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
-            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
-            # fallaba en PRs que no tenían nada que ver (falso rojo).
-            echo "chromium en cache -> binario + deps del SO"
-            pnpm --filter @platform/web exec playwright install chromium
-            pnpm --filter @platform/web exec playwright install-deps chromium
-          else
-            pnpm --filter @platform/web exec playwright install --with-deps chromium
-          fi
+          # `wait` no sirve entre pasos (otro shell): se espera el archivo con el código de salida de la instalación.
+          while [ ! -f "$RUNNER_TEMP/playwright-install.rc" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/playwright-install.log"
+          rc=$(cat "$RUNNER_TEMP/playwright-install.rc")
+          if [ "$rc" != "0" ]; then echo "playwright install terminó con código $rc"; exit 1; fi
       - name: test:e2e
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         env:
@@ -433,7 +474,9 @@ jobs:
     # Más de 3 shards NO ayuda: la máquina (8 núcleos, load ~30) está limitada por CPU, no por tramos.
     timeout-minutes: 45
     strategy:
-      fail-fast: true
+      # MSF-901: con `fail-fast: true` un shard rojo CANCELABA a los otros dos y `validacion` veía jobs `cancelled` mezclados con el
+      # fallo real. Apagado: los tres shards terminan y cada uno informa su resultado (el costo es no cortar antes la corrida roja).
+      fail-fast: false
       matrix:
         shard: [1, 2, 3]
     steps:
@@ -756,7 +799,7 @@ jobs:
   # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: ${{ always() && vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
@@ -776,43 +819,34 @@ jobs:
   # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
   # falla a propósito: mientras el CI está pausado no se mergea.
   validacion:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: always()
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 5
     steps:
+      # Un PR de un fork NUNCA ejecuta su código en el runner self-hosted: se rechaza con un paso inline, sin checkout.
+      - name: PR de un fork
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
+          exit 1
+      - uses: actions/checkout@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          node-version: 24
       - name: Verificar que nada haya fallado
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           EVENTO: ${{ github.event_name }}
           REPO_ORIGEN: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
-        run: |
-          # Los PRs de forks no corren en los runners self-hosted (los jobs pesados los saltean): sin esto
-          # `validacion` daría verde con todo `skipped`. Hay que re-publicar la rama dentro del repo.
-          if [ "$EVENTO" = "pull_request" ] && [ "$REPO_ORIGEN" != "$REPO" ]; then
-            echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
-            exit 1
-          fi
-          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
-            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
-            exit 1
-          fi
-          fallo=0
-          for resultado in \
-            "changes=${{ needs.changes.result }}" \
-            "application=${{ needs.application.result }}" \
-            "web=${{ needs.web.result }}" \
-            "e2e-tienda=${{ needs.e2e-tienda.result }}" \
-            "infrastructure=${{ needs.infrastructure.result }}" \
-            "database=${{ needs.database.result }}"; do
-            echo "$resultado"
-            case "$resultado" in
-              *=success|*=skipped) ;;
-              *) fallo=1 ;;
-            esac
-          done
-          if [ "$fallo" = "1" ]; then
-            echo "Hay jobs fallidos o cancelados: no se valida."
-            exit 1
-          fi
-          echo "Validación OK (los jobs skipped cuentan como OK)."
+          CI_PAUSED: ${{ vars.CI_PAUSED }}
+          E2E_TIENDA_BLOQUEA: ${{ vars.E2E_TIENDA_BLOQUEA }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        # La lógica vive en scripts/verificar-validacion.mjs (con tests): `failure` y `cancelled` se distinguen y `e2e-tienda` no
+        # bloquea mientras E2E_TIENDA_BLOQUEA no sea `true` (MSF-901).
+        run: node scripts/verificar-validacion.mjs
