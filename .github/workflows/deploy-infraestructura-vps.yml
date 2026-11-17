@@ -32,10 +32,11 @@ name: Deploy infraestructura VPS
 # producción. Mismo mecanismo que migraciones-cloud.yml — ver ahí el
 # porqué de no depender de required reviewers (repos derivados privados).
 #
-# ssh-keyscan ya no redirige su stderr a /dev/null: silenciaba cualquier
-# error real de conexión (host inalcanzable, DNS, etc.), dejando el job sin
-# ningún rastro del motivo cuando fallaba — encontrado en T025 al disparar
-# producción por primera vez.
+# Clave de host (MSF-706): ya NO se usa ssh-keyscan (confiaba a ciegas en lo que
+# contestara la red en cada despliegue). La clave pública del host va FIJADA
+# (secret VPS_SSH_KNOWN_HOSTS o infra/vps/known_hosts.<entorno>) y la conexión
+# corre con StrictHostKeyChecking=yes (scripts/preparar-known-hosts-vps.mjs);
+# sin clave fijada el job falla con instrucciones. Ver docs/deployment.md.
 #
 # Playwright no dispara este workflow ni lo despliega scripts/deploy-vps.mjs:
 # a diferencia de Kestra/Superset/Nango no es un producto de plataforma
@@ -84,12 +85,15 @@ jobs:
         env:
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/vps_deploy_key
           chmod 600 ~/.ssh/vps_deploy_key
-          ssh-keyscan -H "$VPS_SSH_HOST" >> ~/.ssh/known_hosts
+          # MSF-706: clave de host FIJADA (secret VPS_SSH_KNOWN_HOSTS o infra/vps/known_hosts.staging) y StrictHostKeyChecking=yes;
+          # sin ella el paso falla (ya no se confía a ciegas en lo que conteste la red con ssh-keyscan).
+          node scripts/preparar-known-hosts-vps.mjs --host "$VPS_SSH_HOST" --entorno staging
           eval "$(ssh-agent -s)"
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
@@ -173,12 +177,13 @@ jobs:
         env:
           VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
           VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+          VPS_SSH_KNOWN_HOSTS: ${{ secrets.VPS_SSH_KNOWN_HOSTS }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > ~/.ssh/vps_deploy_key
           chmod 600 ~/.ssh/vps_deploy_key
-          ssh-keyscan -H "$VPS_SSH_HOST" >> ~/.ssh/known_hosts
+          node scripts/preparar-known-hosts-vps.mjs --host "$VPS_SSH_HOST" --entorno production
           eval "$(ssh-agent -s)"
           echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK" >> "$GITHUB_ENV"
           echo "SSH_AGENT_PID=$SSH_AGENT_PID" >> "$GITHUB_ENV"
