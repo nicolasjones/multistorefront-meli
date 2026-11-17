@@ -216,6 +216,14 @@ desde `reportes.json`, de forma idempotente. Variables (solo en `.env`/secrets, 
 crea la migración `20261130100300` como `nologin`: el operador le asigna login y contraseña por entorno.
 Detalle del tablero «Por producto» y sus límites en [`operar-superset.md`](./operar-superset.md).
 
+### «El tablero de Rentabilidad todavía no está disponible para tu organización» (MSF-625)
+
+No depende de una configuración por organización: el catálogo `public.reportes` es de la plataforma. La pantalla muestra
+ese mensaje cuando no hay una fila de `public.reportes` con el nombre del tablero (p. ej. `Rentabilidad · Comparativo`) en
+ese entorno, es decir, cuando no se corrió `pnpm superset:importar-dashboards` para Rentabilidad (o el registro falló). Se
+resuelve corriendo ese comando en el entorno; una organización nueva o la del dataset demo no necesita nada más. Mejorar el
+texto del mensaje para que nombre la causa queda como pendiente (MSF-896).
+
 ## Después de costos fijos (F-GAS-03, MSF-469)
 
 Pestaña **«Después de costos fijos»** (`/rentabilidad/costos-fijos`), detrás de la bandera `margen_costos_fijos` (apagada por defecto): reparte los gastos fijos de cada tienda (módulo [Gastos](gastos.md)) en proporción a las ventas netas del mes y muestra el margen que queda. **Lo existente no cambia**: las vistas, funciones, RPC, tableros y correos de Rentabilidad devuelven exactamente lo mismo con la bandera apagada y encendida (`margen_costos_fijos_paridad.test.sql`); la medida nueva se construye sobre `analitica.margen_real_categoria` sin redefinirla. Detalle, fórmula y reversión en [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
@@ -241,8 +249,8 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 4. El Roadmap a diciembre manda «Rentabilidad y reportes avanzados» a enero; el doc del componente la deja P0
    en el Hito 4: Nicolás decide y alinea.
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
-6. Pendientes de F-REN-03 trazados en **MSF-555**: selector «Mayor/Menor margen primero» y buscador de texto
-   libre (hoy orden fijo por menor margen y lista con búsqueda).
+6. Selector «Mayor/Menor margen primero» y buscador de texto libre de F-REN-03: **límite permanente de Superset**
+   (decisión en **MSF-896**, antes MSF-555); hoy orden fijo por menor margen y lista con búsqueda.
 
 ## Costos adicionales del canal (F-REN-08, MSF-209)
 
