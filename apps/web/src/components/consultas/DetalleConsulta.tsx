@@ -21,6 +21,7 @@ import { avisoRespuestaRegistrada, enlaceRespuesta, registrarRespuesta } from '.
 import { ContactoConsulta } from '../../pages/consultas/ContactoConsulta'
 import { TituloDialogo } from '../base/TituloDialogo'
 import { BloquePedido } from './BloquePedido'
+import { BotonCrearPresupuesto } from './BotonCrearPresupuesto'
 import { ClientePedido } from './ClientePedido'
 import { EstadoError } from '../estados/EstadosPagina'
 
@@ -277,6 +278,16 @@ function Formulario({ consulta, puedeEditar, onCerrar, onGuardado, onRecargar, i
               </Button>
             </span>
           </Tooltip>
+        ) : null}
+        {items !== null && puedeEditar ? (
+          <BotonCrearPresupuesto
+            consulta={consulta}
+            items={items}
+            ocupado={guardando}
+            onOcupado={(ocupado) => { enVuelo.current = ocupado; setGuardando(ocupado) }}
+            onError={(texto) => setErrorServidor(texto === null ? null : { texto, conflicto: false })}
+            onCreado={onGuardado}
+          />
         ) : null}
         {puedeEditar ? (
           <Button type="submit" variant="contained" disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar'}</Button>

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   aFechaHoraLocal,
   anularPromocion,
+  AVISO_PROMOCION_BAJO_COSTO,
   AVISO_PROMOCION_NO_MENOR,
   guardarPromocion,
   leerPromociones,
@@ -163,6 +164,16 @@ describe('promociones · acceso a la base', () => {
     await expect(guardarPromocion({ rpc: otroCodigo } as never, datos)).resolves.toEqual({ aviso: null })
     const sinDatos = vi.fn().mockResolvedValue({ data: null, error: null })
     await expect(guardarPromocion({ rpc: sinDatos } as never, datos)).resolves.toEqual({ aviso: null })
+    // MSF-958: aviso de costo (solo llega a quien ve rentabilidad), solo o junto al de «no menor al normal».
+    const bajoCosto = vi.fn().mockResolvedValue({ data: { id: 'p1', aviso_costo_codigo: 'promocion_bajo_el_costo' }, error: null })
+    await expect(guardarPromocion({ rpc: bajoCosto } as never, datos)).resolves.toEqual({ aviso: AVISO_PROMOCION_BAJO_COSTO })
+    const ambos = vi.fn().mockResolvedValue({
+      data: { id: 'p1', aviso_codigo: 'promocion_no_menor_al_normal', aviso_costo_codigo: 'promocion_bajo_el_costo' },
+      error: null,
+    })
+    await expect(guardarPromocion({ rpc: ambos } as never, datos)).resolves.toEqual({
+      aviso: `${AVISO_PROMOCION_NO_MENOR} ${AVISO_PROMOCION_BAJO_COSTO}`,
+    })
   })
 
   it('anular envía el id y el updated_at; un error de la base se propaga', async () => {
