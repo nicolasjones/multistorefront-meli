@@ -86,7 +86,7 @@ de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.interese
 | `dominio.intereses_whatsapp` | `dominio` | **existente** | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`). |
 | `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270104090050`). |
 | `dominio.comprobantes_venta` / `dominio.comprobantes_venta_lineas` | `dominio` | **existentes** | Solo se leen. |
-| `public.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
+| `dominio.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
 | `public.stock_estados` | `public` | **existente** | Solo se lee (`cantidad`, `estado`). |
 
 El DER completo está en [Datos y DER](datos.md#ventas-reportes-basicos-msf-338).
@@ -126,7 +126,7 @@ Migración `20270104090100_analitica_ventas_ranking_clientes.sql`. Columnas: `or
   0.
 - `ultimo_comprador` = fecha del comprobante más reciente que cuenta del cliente **en esa tienda** (con
   varias tiendas, el tablero toma el máximo).
-- `consumidor_final` es la **marca** (`public.clientes.es_consumidor_final`): la vista **no excluye a
+- `consumidor_final` es la **marca** (`dominio.clientes.es_consumidor_final`): la vista **no excluye a
   nadie**, la exclusión se decide donde se aplica (filtro nativo del tablero y parámetro de la RPC).
 - **`posicion` y `participacion` se recalculan sobre el filtro**: en la vista son del cliente en todo el
   alcance visible; cuando la pantalla o la RPC filtran por período o tienda, el filtro se aplica **antes**
@@ -309,7 +309,7 @@ en una fila. El SKU sí es único por organización (`productos_org_sku_uidx`).
 | Orden | Por facturación neta descendente (`timeseries_limit_metric: facturado_total` + `order_desc: true`). |
 | Filtros nativos | `NATIVE_FILTER-rango`, `NATIVE_FILTER-empresa` y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`, valor inicial «No» = excluido). |
 
-El grupo es `nombre` + `numero` + `tipo_texto` por la misma razón que en «Más vendidos» (`public.clientes`
+El grupo es `nombre` + `numero` + `tipo_texto` por la misma razón que en «Más vendidos» (`dominio.clientes`
 no exige nombre único por organización); `numero` es el correlativo por organización y sí es único.
 
 `reportes.json` declara los dos tableros:
@@ -536,7 +536,7 @@ historia. Resultado: **sin hallazgos bloqueantes**.
 |---|---|
 | `anon` | Sin `USAGE` sobre `analitica`, sin `SELECT` en las vistas y sin `EXECUTE` en las dos RPC. |
 | `authenticated` | Sin `USAGE` ni `SELECT` sobre `analitica`; lee solo por las RPC (autorizan adentro). |
-| Rol `superset_analitica` | Solo `SELECT` en las vistas y `execute` en los envoltorios; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `public.clientes`. |
+| Rol `superset_analitica` | Solo `SELECT` en las vistas y `execute` en los envoltorios; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `dominio.clientes`. |
 | RPC `security definer` | `set search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated` y autorización explícita adentro. |
 | Token por empresa | `organizacion_id` + `empresa_id IN (…)` forzados en el servidor; UUIDs validados; `503` (no token) si no se puede resolver el alcance. |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` sigue verde. |

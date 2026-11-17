@@ -2,9 +2,9 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ select: vi.fn(), from: vi.fn(), print: vi.fn() }))
+const mocks = vi.hoisted(() => ({ select: vi.fn(), from: vi.fn(), schema: vi.fn(), print: vi.fn() }))
 
-vi.mock('../../lib/supabase', () => ({ supabaseClient: { from: mocks.from } }))
+vi.mock('../../lib/supabase', () => ({ supabaseClient: { schema: mocks.schema } }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: { id: 'o-1' } }) }))
 
 import { HojaEtiquetas } from './HojaEtiquetas'
@@ -31,6 +31,7 @@ describe('HojaEtiquetas (F-CLI-17, FR-001, FR-002, FR-005)', () => {
     vi.clearAllMocks()
     window.print = mocks.print
     mocks.select.mockReset()
+    mocks.schema.mockReturnValue({ from: mocks.from })
     mocks.from.mockReturnValue({ select: () => ({ in: mocks.select }) })
     mocks.select.mockImplementation(async (_col: string, ids: string[]) => ({ data: filas.filter((f) => ids.includes(f.id)), error: null }))
   })
@@ -42,6 +43,7 @@ describe('HojaEtiquetas (F-CLI-17, FR-001, FR-002, FR-005)', () => {
       expect(within(etiqueta).getByText(texto)).toBeInTheDocument()
     }
     expect(screen.getAllByRole('article')).toHaveLength(1)
+    expect(mocks.schema).toHaveBeenCalledWith('dominio')
     expect(mocks.from).toHaveBeenCalledWith('clientes')
   })
 

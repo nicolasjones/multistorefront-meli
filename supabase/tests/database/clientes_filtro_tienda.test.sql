@@ -28,7 +28,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('b1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC'),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Ajena');
 
-insert into clientes (organizacion_id, numero, nombre, tipo) values
+insert into dominio.clientes (organizacion_id, numero, nombre, tipo) values
   ('11111111-1111-1111-1111-111111111111', 101, 'Alfa', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 102, 'Beta', 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 103, 'Gamma', 'mayorista'),
@@ -46,7 +46,7 @@ select c.id, e.id, c.organizacion_id
     ('11111111-1111-1111-1111-111111111111', 'Gamma', 'Mundo JC'),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', 'Ajena')
   ) as v(org, cliente, empresa)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente
   join dominio.empresas e on e.organizacion_id = v.org::uuid and e.nombre = v.empresa;
 
 -- Facturas de octubre con importes distintos: el ranking ordena por facturado.
@@ -60,13 +60,13 @@ select v.org::uuid, c.id, 'factura', v.numero, v.fecha::date, 'emitida', v.sin_i
     ('11111111-1111-1111-1111-111111111111', 'Sin tienda', '0001-00000004', '2026-10-08', 4000),
     ('22222222-2222-2222-2222-222222222222', 'Ajeno', '0001-00000001', '2026-10-09', 9000)
   ) as v(org, cliente, numero, fecha, sin_iva)
-  join clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente;
+  join dominio.clientes c on c.organizacion_id = v.org::uuid and c.nombre = v.cliente;
 
 -- Cuenta web activa de Alfa en San Javucho (F-CLI-05): el filtro «Con cuenta web»
 -- de la exportación debe coincidir con el del listado (FR-014).
 insert into public.cuentas_cliente (organizacion_id, cliente_id, empresa_id, auth_user_id, estado)
 select c.organizacion_id, c.id, e.id, 'f1000000-0000-0000-0000-000000000001', 'activa'
-  from clientes c
+  from dominio.clientes c
   join dominio.empresas e on e.organizacion_id = c.organizacion_id and e.nombre = 'San Javucho'
  where c.nombre = 'Alfa';
 

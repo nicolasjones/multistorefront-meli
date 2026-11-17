@@ -17,7 +17,7 @@ async function buscar() {
   await waitFor(() => expect(mocks.buscarProductosConAviso).toHaveBeenCalledWith('cam'))
 }
 
-describe('AgregarProductoDialog · hay más resultados (MSF-722)', () => {
+describe('AgregarProductoDialog · hay más resultados', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('avisa «Hay más resultados» cuando la búsqueda supera el tope', async () => {

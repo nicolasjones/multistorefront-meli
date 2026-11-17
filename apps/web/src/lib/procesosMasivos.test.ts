@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { COLUMNAS_CSV_ERRORES, correctas, nombreArchivoErrores, resultado } from './procesosMasivos'
 import { armarCsv } from './exportarCsv'
 
-describe('[MSF-354] resultado de un proceso (CA-IMP-01-1)', () => {
+describe('resultado de un proceso (CA-IMP-01-1)', () => {
   it('procesados incluye los con error: 500 filas con 20 inválidas son 480 correctas y 20 con error', () => {
     expect(correctas({ procesados: 500, con_errores: 20 })).toBe(480)
     expect(resultado({ procesados: 500, con_errores: 20 })).toBe('480 correctas y 20 con error')
@@ -14,7 +14,7 @@ describe('[MSF-354] resultado de un proceso (CA-IMP-01-1)', () => {
   })
 })
 
-describe('[MSF-354] reporte de errores en CSV (RF-IMP-01-3)', () => {
+describe('reporte de errores en CSV (RF-IMP-01-3)', () => {
   it('trae fila, columna y motivo, con BOM y sin fórmulas ejecutables', () => {
     const csv = armarCsv(COLUMNAS_CSV_ERRORES, [
       { id: '1', fila: 7, columna: 'precio', referencia: '-SKU', motivo_sanitizado: '@mal\tdato' },

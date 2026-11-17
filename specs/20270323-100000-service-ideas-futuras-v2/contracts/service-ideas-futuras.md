@@ -172,17 +172,17 @@ Sin RPC ni tablas. Contratos del front:
 ### `urlEtiquetaReparacion(origen: string, id: string): string` (`lib/etiquetaReparacion.ts`)
 
 - Devuelve exactamente `` `${origen sin barras finales}/service-tecnico/reparaciones/${id}` ``.
-- `id`: solo `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$` (minúsculas); `origen`: `http:` o `https:`, sin credenciales (`user:pass@`), sin ruta, sin query ni fragmento. Cualquier otra entrada lanza `Error` (nunca se imprime una etiqueta con una URL distinta de la prevista).
+- `id`: solo `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$` (sin distinguir mayúsculas; se devuelve tal cual); `origen`: `http:` o `https:` con host ASCII (nombre, incluido `*.localhost`, o IPv6 entre corchetes como `[::1]`) y puerto opcional, sin credenciales (`user:pass@`), sin ruta (salvo una barra final), sin query ni fragmento. Cualquier otra entrada lanza `Error` (nunca se imprime una etiqueta con una URL distinta de la prevista).
 - Es lo **único** que se codifica en el QR.
 
 ### `generarQr(texto: string): { version: number, tamano: number, modulos: boolean[][] }` (`lib/qr/`)
 
 - UTF-8, modo byte, corrección **M**, versiones 1–10 (capacidad en bytes: 14, 26, 42, 62, 84, 106, 122, 152, 180, 213), versión mínima que entra, máscara de menor penalización (reglas 1–4 de la norma), información de formato (BCH 15,5) y de versión (BCH 18,6 desde la versión 7), módulo oscuro fijo.
 - `tamano = 17 + 4 × version`. `modulos[fila][columna]` verdadero = oscuro. Lanza `QrDemasiadoLargo` si el texto pasa de 213 bytes.
-- `qrASvgPath(modulos, { zonaQuieta = 4 }): { viewBox: string, d: string }`: un solo trazo `M x y h1 v1 h-1 z` por módulo oscuro (o corridas horizontales fusionadas), coordenadas enteras.
+- `qrASvgPath(modulos, { zonaQuieta = 4 }): string` (el `d` de un único `<path>`) y `qrASvg(...)`: `{ path, lado, viewBox }`; corridas horizontales fusionadas `M x y h<largo> v1 h-<largo> z`, coordenadas enteras.
 
 ### Medidas de la etiqueta (`lib/etiquetaReparacion.ts`)
 
 - `TAMANOS_ETIQUETA`: `chica 40×25`, `mediana 50×30` (por defecto), `grande 70×40` (mm); `personalizada` con `ancho ∈ [25,100]`, `alto ∈ [15,100]` enteros; `copias ∈ [1,10]`.
-- `moduloMinimoMm = 0.4`. Lado del QR = `min(alto − 2 × 1.5 mm, ancho × 0.5)` en horizontal, `min(ancho − 3 mm, alto × 0.6)` en vertical; `mmPorModulo = ladoQr / (tamano + 2 × zonaQuieta)`; si `mmPorModulo < 0.4`, la etiqueta está «demasiado chica».
-- Preferencia en `localStorage['msf.service.etiqueta']` = `{ "tamano": "mediana", "ancho": 50, "alto": 30 }` (sin copias); lectura validada y recortada; acceso en `try/catch`.
+- `moduloMinimoMm = 0.4`. Lado del QR = `min(alto − 3 mm, (ancho − 3 mm) × 0.6)` en horizontal (ancho ≥ 1,25 × alto) y `min(ancho − 3 mm, (alto − 3 mm) × 0.6)` en vertical (nunca más del 60 % de la dimensión que comparte con el texto); `mmPorModulo = ladoQr / (tamano + 2 × zonaQuieta)`; si `mmPorModulo < 0.4`, la etiqueta está «demasiado chica».
+- Preferencia en `localStorage['msf.service.etiqueta']` = `{ "tamano": "mediana", "ancho": 50, "alto": 30 }` (sin copias; `ancho` y `alto` son las medidas de «Personalizada» y se conservan aunque se elija otro tamaño); lectura validada y recortada; acceso en `try/catch`.

@@ -1,16 +1,22 @@
 import { supabaseClient } from './supabase'
 
-// Aviso por correo al cliente por el estado de su reparación (F-SVC-14, MSF-424, FR-021, FR-023, FR-026). La autoridad
-// es la base: `avisar_cliente_reparacion` valida permiso y tienda, no encola sin correo y es idempotente;
-// `avisos_de_reparacion` devuelve el historial. Acá solo se llaman y se traducen los errores a castellano llano.
+// Aviso por correo al cliente por el estado de su reparación (F-SVC-14, MSF-424, FR-021, FR-023, FR-026) y aviso por
+// WhatsApp que manda el servidor al proveedor de mensajería (MSF-952, S-1 de MSF-118). La autoridad es la base:
+// `avisar_cliente_reparacion` y `avisar_cliente_whatsapp` validan permiso y tienda, no encolan sin el dato del canal
+// (correo o consentimiento y teléfono) y son idempotentes; `avisos_de_reparacion` devuelve el historial. Acá solo se
+// llaman y se traducen los errores a castellano llano.
 
 export type EstadoEnvioAviso = 'pendiente' | 'enviado' | 'fallido'
+
+// Canal del aviso: `correo` (F-SVC-14) o `whatsapp` (MSF-952, envío desde el servidor).
+export type CanalAviso = 'correo' | 'whatsapp'
 
 export type AvisoReparacion = {
   id: string
   estado_id: string
   estado_nombre: string
   destinatario: string
+  canal: CanalAviso
   estado_envio: EstadoEnvioAviso
   error: string | null
   solicitado_en: string
@@ -21,10 +27,21 @@ export type AvisoReparacion = {
 
 export type ResultadoAviso = { resultado: 'encolado' | 'sin_correo'; aviso_id: string | null }
 
+// Sin consentimiento del cliente o sin un teléfono válido no se encola nada (la base lo decide).
+export type ResultadoAvisoWhatsapp = {
+  resultado: 'encolado' | 'sin_consentimiento' | 'sin_telefono'
+  aviso_id: string | null
+}
+
 export const MENSAJE_AVISO_ENCOLADO = 'Aviso enviado al cliente'
+export const MENSAJE_AVISO_WHATSAPP_ENCOLADO = 'Aviso por WhatsApp enviado al cliente'
 export const MENSAJE_CLIENTE_SIN_CORREO = 'El cliente no tiene correo'
+export const MENSAJE_CLIENTE_SIN_CONSENTIMIENTO =
+  'El cliente no acepta avisos por WhatsApp: pedile que lo acepte en su ficha.'
+export const MENSAJE_CLIENTE_SIN_TELEFONO = 'El cliente no tiene un teléfono válido para WhatsApp'
 export const MENSAJE_ERROR_CARGAR_AVISOS = 'No pudimos cargar los avisos al cliente.'
 export const MENSAJE_ERROR_AVISAR = 'No pudimos avisar al cliente. El estado ya quedó cambiado: probá avisar de nuevo.'
+export const MENSAJE_ERROR_AVISAR_WHATSAPP = 'No pudimos avisar al cliente por WhatsApp. Probá de nuevo.'
 export const MENSAJE_SIN_PERMISO_AVISAR = 'Tu rol no puede avisar a los clientes de las reparaciones.'
 export const MENSAJE_AVISOS_SIN_CONEXION = 'El envío de avisos todavía no está habilitado para tu organización. Pedile a un administrador que lo active.'
 
@@ -45,6 +62,18 @@ export function mensajeDeAvisar(error: unknown): string {
   return MENSAJE_ERROR_AVISAR
 }
 
+// El aviso por WhatsApp no cambia el estado de la reparación: su error es otro.
+export function mensajeDeAvisarWhatsapp(error: unknown): string {
+  const e = error as ErrorDeBase
+  if (typeof e?.message === 'string' && PREFIJOS_MENSAJE_DE_LA_RPC.some((prefijo) => e.message?.startsWith(prefijo))) {
+    return e.message
+  }
+  if (e?.code === '42501') return MENSAJE_SIN_PERMISO_AVISAR
+  if (e?.code === 'P0001' && e.hint === 'sin_conexion') return MENSAJE_AVISOS_SIN_CONEXION
+  if (e?.code === '55000') return 'La reparación está anulada: no se puede avisar al cliente.'
+  return MENSAJE_ERROR_AVISAR_WHATSAPP
+}
+
 export function mensajeDeCargarAvisos(error: unknown): string {
   const e = error as ErrorDeBase
   if (e?.code === 'P0002') return 'Esa reparación no existe o no pertenece a tu organización.'
@@ -61,6 +90,17 @@ export async function avisarClienteDeReparacion(reparacionId: string, estadoId?:
   return data as ResultadoAviso
 }
 
+// Aviso por WhatsApp (MSF-952): lo manda el servidor al proveedor de mensajería; la base exige el consentimiento del
+// cliente y un teléfono válido, y devuelve el motivo si no puede encolarlo.
+export async function avisarClientePorWhatsapp(reparacionId: string, estadoId?: string): Promise<ResultadoAvisoWhatsapp> {
+  const { data, error } = await supabaseClient.rpc('avisar_cliente_whatsapp', {
+    p_reparacion: reparacionId,
+    p_estado_id: estadoId ?? null,
+  })
+  if (error) throw error
+  return data as ResultadoAvisoWhatsapp
+}
+
 export async function listarAvisosDeReparacion(reparacionId: string): Promise<AvisoReparacion[]> {
   const { data, error } = await supabaseClient.rpc('avisos_de_reparacion', { p_reparacion: reparacionId })
   if (error) throw error
@@ -71,7 +111,7 @@ export async function listarAvisosDeReparacion(reparacionId: string): Promise<Av
 // (sin acceso a Clientes o error): en ese caso decide la base al pedir el aviso (`sin_correo`).
 export async function clienteTieneCorreo(clienteId: string): Promise<boolean | null> {
   try {
-    const { data, error } = await supabaseClient.from('clientes').select('correo').eq('id', clienteId).maybeSingle()
+    const { data, error } = await supabaseClient.schema('dominio').from('clientes').select('correo').eq('id', clienteId).maybeSingle()
     if (error || !data) return null
     const correo = (data as { correo: string | null }).correo
     return typeof correo === 'string' && correo.trim() !== ''
