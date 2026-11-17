@@ -185,6 +185,8 @@ flowchart TD
 
 ### F4 · Del toque en WhatsApp al reporte (F-REP-04)
 
+> Nota MSF-657: el alta en `dominio.intereses_whatsapp` es por una RPC interna (solo `service_role`); la tienda ya no la llama (usa `registrar_consulta_whatsapp`) y hoy solo el sembrado demo la alimenta.
+
 ```mermaid
 flowchart LR
   A[Cliente toca Consultar por WhatsApp en la tienda] --> B[(dominio.intereses_whatsapp · F-CON-02)]

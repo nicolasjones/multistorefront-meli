@@ -23,7 +23,7 @@ Al terminar, el administrador ve cuántas veces se tocó «Consultar por WhatsAp
 
 | Objeto | Esquema | Historia | Justificación | RLS / acceso |
 |--------|---------|----------|---------------|--------------|
-| `intereses_whatsapp` (**nueva**: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`; **sin datos personales**) | `dominio` | F-CON-02 | Registro de negocio: cuántas veces un visitante tocó el botón en un producto de una tienda. No es dato de plataforma. | `organizacion_id = (select private.organizacion_id())` y `empresa_id in (select private.empresas_accesibles())`; select con `consultas`≥`lectura`; **sin insert, update ni delete desde la app** (el alta es solo la RPC pública); `anon` sin privilegios sobre la tabla |
+| `intereses_whatsapp` (**nueva**: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`; **sin datos personales**) | `dominio` | F-CON-02 | Registro de negocio: cuántas veces un visitante tocó el botón en un producto de una tienda. No es dato de plataforma. | `organizacion_id = (select private.organizacion_id())` y `empresa_id in (select private.empresas_accesibles())`; select con `consultas`≥`lectura`; **sin insert, update ni delete desde la app** (el alta es solo la RPC; originalmente pública, desde MSF-657 solo `service_role`); `anon` sin privilegios sobre la tabla |
 | RPC `publico.registrar_interes_whatsapp` | `publico` | F-CON-02 | Superficie para `anon` (precedente `publico.crear_consulta_publica`); no almacena datos; escribe por `security definer`. | `grant execute … to anon, authenticated` (original; MSF-657 lo reemplazó por solo `service_role` y salió de la lista de `anon`); entra a la lista de RPC permitidas a `anon` del pgTAP (ver `docs/acceso-ingreso.md`) |
 | Vista `public.interes_whatsapp_por_producto` | `public` | F-CON-02 | Superficie de lectura, no almacena datos. | `security_invoker`: aplica la RLS de la tabla; `anon` sin acceso |
 | F-CON-04 | — | F-CON-04 | **Sin tablas ni RPC nuevas**: reusa `public.actualizar_consulta` de MSF-122. | — |
@@ -34,7 +34,7 @@ La prueba pgTAP `rls_en_toda_tabla` (recorre `public` + `dominio`) debe seguir v
 
 ### User Story 1 - Interés por WhatsApp registrado (F-CON-02, P1, talla S)
 
-El visitante toca «Consultar por WhatsApp» en la ficha de un producto de una tienda: el sistema suma **un interés** a ese producto de esa tienda, sin guardar ningún dato de la persona. El administrador ve cuántas veces se tocó en cada producto.
+*(Diseño original; ver nota MSF-657 en el diagrama de F1.)* El visitante toca «Consultar por WhatsApp» en la ficha de un producto de una tienda: el sistema suma **un interés** a ese producto de esa tienda, sin guardar ningún dato de la persona. El administrador ve cuántas veces se tocó en cada producto.
 
 **Why this priority**: es el dato que alimenta el reporte de productos más consultados y le dice al negocio qué producto despierta interés aunque nadie escriba.
 
@@ -75,13 +75,15 @@ El operador abre una consulta y toca `Responder por <correo|WhatsApp>`: se abre 
 - Contacto de teléfono **sin código de país** (la validación de MSF-122 acepta 7 a 15 dígitos): el enlace usa los dígitos tal cual; WhatsApp puede no resolver el chat correcto. No se inventa una regla de país (*Decisiones abiertas* 4).
 - El texto inicial se codifica en la URL (acentos, saltos de línea, `&`); un nombre con caracteres especiales no rompe el enlace.
 - Doble clic en `Responder`: no se duplica el cambio (la llamada es idempotente por `updated_at`: el segundo intento no cambia nada).
-- Muchos toques del mismo visitante: cada toque suma un interés (no hay identificación para deduplicar sin guardar datos personales); el anti-spam es de la tienda (MSF-212), igual que en `crear_consulta_publica`.
+- Muchos toques del mismo visitante: cada toque suma un interés (no hay identificación para deduplicar sin guardar datos personales); la función no tiene límite propio; originalmente se esperaba el anti-spam de la tienda (MSF-212) como en `crear_consulta_publica`, pero desde MSF-657 la RPC es interna (solo `service_role`) y las RPC públicas de la tienda aplican cuota.
 - Producto con intereses y luego eliminado: la clave foránea compuesta impide borrarlo en silencio; un producto sin nombre visible no se muestra con su id técnico.
 - Cambiar de empresa con el diálogo del conteo o el detalle abiertos: se cierran con aviso (Principio VIII).
 
 ## Flujos
 
 ### F1 · Interés por WhatsApp registrado y consultado
+
+> **Nota MSF-657 (vigente):** el flujo de abajo es el diseño original. Desde `20270507150100` `publico.registrar_interes_whatsapp` es interna (solo `service_role`, sin límite propio); la tienda ya no la llama (usa `registrar_consulta_whatsapp`, con cuota) y hoy solo el sembrado del dataset demo alimenta `dominio.intereses_whatsapp`.
 
 ```mermaid
 sequenceDiagram
@@ -175,8 +177,8 @@ Dueños: FR-010. Las transiciones manuales son de MSF-122 (`actualizar_consulta`
 
 ### Cierre (docs, seguridad, roadmap)
 
-- **FR-014**: `docs/consultas.md` (de MSF-122) documenta el interés por WhatsApp (modelo sin datos personales, RPC, vista, permisos, contrato para F-TDA-14 y F-REP-04, reversión) y la respuesta desde el panel (canales, texto inicial, estado y responsable); `docs/acceso-ingreso.md` suma la RPC permitida a `anon`; fila de `docs/roadmap-template.md` actualizada; `pnpm docs:check` verde. *(verificación: `pnpm docs:check`)*
-- **FR-015**: Revisión de seguridad de la superficie nueva: RLS de la tabla, `anon` solo con la RPC pública, validación de entrada, ausencia de datos personales, sin enumeración de dominios, enlaces codificados, y el esquema de cada objeto contra el Principio VII. *(verificación: pgTAP de RLS/grants (`pnpm test:db`) y revisión de seguridad registrada en T019)*
+- **FR-014**: `docs/consultas.md` (de MSF-122) documenta el interés por WhatsApp (modelo sin datos personales, RPC, vista, permisos, contrato para F-TDA-14 y F-REP-04, reversión) y la respuesta desde el panel (canales, texto inicial, estado y responsable); `docs/acceso-ingreso.md` suma la RPC permitida a `anon` (originalmente; desde MSF-657 no está en la lista de `anon`: es solo `service_role`); fila de `docs/roadmap-template.md` actualizada; `pnpm docs:check` verde. *(verificación: `pnpm docs:check`)*
+- **FR-015**: Revisión de seguridad de la superficie nueva: RLS de la tabla, `anon` solo con la RPC pública (originalmente; desde MSF-657 `anon` no ejecuta ninguna función de interés), validación de entrada, ausencia de datos personales, sin enumeración de dominios, enlaces codificados, y el esquema de cada objeto contra el Principio VII. *(verificación: pgTAP de RLS/grants (`pnpm test:db`) y revisión de seguridad registrada en T019)*
 - **SC-005**: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `rls_en_toda_tabla`, `pnpm prototipo:check` y `pnpm matriz:check` verdes. *(verificación: `pnpm lint && pnpm build && pnpm infra:config && pnpm test && pnpm prototipo:check && pnpm matriz:check`)*
 
 ## Decisiones abiertas

@@ -28,8 +28,8 @@ F-CON-04 **no** tiene migración (reusa `actualizar_consulta`).
 
 ## Pruebas
 
-pgTAP (`interes_whatsapp`, `consultas_responder`), Vitest (diálogo, enlaces y texto), Playwright (responder con dos canales y rol de solo lectura). `rls_en_toda_tabla` y la lista de RPC permitidas a `anon` se actualizan en F-CON-02.
+pgTAP (`interes_whatsapp`, `consultas_responder`), Vitest (diálogo, enlaces y texto), Playwright (responder con dos canales y rol de solo lectura). `rls_en_toda_tabla` y la lista de RPC permitidas a `anon` se actualizan en F-CON-02 (MSF-657 sacó después esta RPC de `anon`: hoy solo `service_role`).
 
 ## Riesgos
 
-Spam de intereses (anti-spam de la tienda, MSF-212); teléfonos sin código de país; texto inicial que reemplazará F-CON-06; MSF-122 sin mergear.
+Spam de intereses (se esperaba el anti-spam de la tienda, MSF-212; MSF-657 cerró la RPC a `anon`); teléfonos sin código de país; texto inicial que reemplazará F-CON-06; MSF-122 sin mergear.

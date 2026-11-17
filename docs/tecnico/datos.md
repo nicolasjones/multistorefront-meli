@@ -1557,7 +1557,7 @@ nada**: reusa `public.actualizar_consulta` de MSF-122.
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `dominio.intereses_whatsapp` | **nueva** | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). **Sin datos personales**: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. RLS por organización, empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura** (el alta es solo la RPC) y `anon` sin privilegios. |
+| `dominio.intereses_whatsapp` | **nueva** | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). **Sin datos personales**: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. RLS por organización, empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura** (el alta es solo la RPC, interna desde MSF-657: solo `service_role`; hoy solo el sembrado demo la usa) y `anon` sin privilegios. |
 | `public.interes_whatsapp_por_producto` (vista) | **nueva** | Lectura agrupada por empresa y producto: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. `security_invoker`: aplica la RLS de la tabla, de `dominio.empresas` y de `dominio.productos`. No almacena datos. |
 | `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
 | `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
@@ -1611,8 +1611,8 @@ erDiagram
 
 - **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)` (solo `service_role` desde MSF-657)
   recibe solo el host y el producto; la empresa sale del dominio (`dominio.tiendas`).
-- Cada toque es una fila: **no hay deduplicación** (identificar al visitante exigiría guardar datos) y el
-  anti-spam es de la tienda (MSF-212).
+- Cada toque es una fila: **no hay deduplicación** (identificar al visitante exigiría guardar datos) y la
+  función no tiene límite propio (por eso desde MSF-657 ya no es pública; las RPC públicas de la tienda sí aplican cuota).
 - La vista es el **contrato de lectura** de la pantalla de Consultas y del reporte de productos más
   consultados (F-REP-04).
 - **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad.

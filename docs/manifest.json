@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "68c799e9bba8f0a5fc25d341d8ea34830fe31c7a346132899a88f81c364bea33",
-      "sourceHash": "6ba31b829be90fd2f4c91ac4f4d0b835e173e28c6a29be37cebf9c4053adad0f",
-      "sourceAt": "c629b40e",
+      "pageHash": "d01c7a0c07b54cbcd621eec24ebac4d0b1ec5381d43bc1768d3bf247d8d39cab",
+      "sourceHash": "856d80bbbca5340226bdac84ba8ced9a26a85e750111ccc53c3ca3893c81ac70",
+      "sourceAt": "bdbd1ac3",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "c629b40e"
+      "commit": "bdbd1ac3"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -602,14 +602,14 @@
     },
     "docs/dataset-demo.md": {
       "title": "Dataset de demostración (San Javucho y Mundo JC)",
-      "pageHash": "445fe4143c645c68cc9187a2fa40b78f768759508c1095af6d04965103511af8",
-      "sourceHash": "de6b00b7f5825ad59fe2be1c55437ff7687901f7d411ce9a4d01e7df536a005d",
-      "sourceAt": "78a94d97",
+      "pageHash": "1755f964c99d58ddcc35d49ba00d4f8416b6e37680655044b3bedce9f1709612",
+      "sourceHash": "4888f1e3002d8773392fdf62d7653a129c12c90c43f78203fc7ac3d20e21d70d",
+      "sourceAt": "b1173066b",
       "sources": [
         "scripts/demo-dataset"
       ],
       "owner": "producto",
-      "commit": "78a94d97"
+      "commit": "b1173066b"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "d50b95b7ace160f11810ae97ab7dd6c3523b44ebe6b7c913dfdcc5e0ad2e0dac",
+      "pageHash": "e302409fcf4c15b957818fbe5de5b80cd256a13d95fb4c952fde2f14c1ccda2b",
       "sourceHash": "a4e9408afb7ede4d906fb159775b1a87f6a485619f45ca122600279aa16fc171",
-      "sourceAt": "c629b40e",
+      "sourceAt": "bdbd1ac3",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c629b40e"
+      "commit": "bdbd1ac3"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
@@ -2905,14 +2905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "b392993a36ee208a8c2334ed0eca80ba0a9a7bcab650a51c6a9c513bb333c935",
+      "pageHash": "fa3176d77510b8c52bb27bf8c47a6689a3dafbc5845f4b133a9d73eeab43b731",
       "sourceHash": "ed961921e6b2c7668a715b467213b63d05552c9276b84e97852d396655c50d44",
-      "sourceAt": "c629b40e",
+      "sourceAt": "bdbd1ac3",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "c629b40e"
+      "commit": "bdbd1ac3"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",

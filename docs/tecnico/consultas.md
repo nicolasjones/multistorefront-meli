@@ -27,7 +27,7 @@ migra nada: reusa `public.actualizar_consulta` de MSF-122.
 ## Modelo
 
 Todo es entidad de negocio y vive en `dominio` (Principio VII). `public` solo expone la vista y las RPC del
-panel; `publico` expone la RPC que llama la tienda.
+panel; `publico` aloja la RPC del interés, interna desde MSF-657 (solo `service_role`); las RPC públicas de la tienda son otras.
 
 | Objeto | Esquema | Para qué | Migración |
 |---|---|---|---|
@@ -36,7 +36,7 @@ panel; `publico` expone la RPC que llama la tienda.
 | `dominio.consultas_avisos` | `dominio` | Cola histórica del aviso por correo; desde MSF-189 solo drena lo ya encolado (el camino nuevo usa `public.avisos_pendientes`). | `20261205200100_consultas_avisos.sql` |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta; la llama la tienda como `anon`. | `20261205100100_crear_consulta_publica.sql` |
 | `public.consultas_bandeja` + RPC del panel | `public` | Lectura y edición desde el panel; no guardan datos. | `20261205100200`, `20261205100300`, `20261205100500` |
-| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda. **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
+| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda (diseño original; desde MSF-657 solo el sembrado demo lo alimenta). **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
 | `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` desde `20270507150100` (MSF-657). | `20261214100100_registrar_interes_whatsapp.sql` |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. | `20261214100200_interes_whatsapp_por_producto.sql` |
 
@@ -154,7 +154,7 @@ Errores que traduce la UI: `40001` conflicto de edición, `42501` sin permiso, `
 
 ## Interés por WhatsApp (F-CON-02, MSF-130)
 
-Cuenta cuántas veces los visitantes tocaron «Consultar por WhatsApp» en cada producto. **Sin datos
+Cuenta cuántas veces se tocó «Consultar por WhatsApp» en cada producto (diseño original; hoy solo el sembrado del dataset demo alimenta la tabla, MSF-657). **Sin datos
 personales**: cada fila es un toque, no una persona.
 
 ### Modelo
@@ -172,7 +172,7 @@ personales**: cada fila es un toque, no una persona.
 - **Errores**: dominio desconocido o empresa desactivada → el **mismo** `P0002` genérico
   (`'tienda no disponible'`), resuelto **antes** de validar el producto para que no se pueda sondear qué
   dominios existen; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`.
-- **Sin anti-spam propio:** cada toque suma; el límite es de la tienda (MSF-212, F-TDA-14).
+- **Sin anti-spam propio:** cada toque suma y la función no tiene límite propio: por eso desde MSF-657 ya no es pública; las RPC públicas de la tienda sí aplican cuota.
 - **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad de la tabla
   y de la vista.
 
