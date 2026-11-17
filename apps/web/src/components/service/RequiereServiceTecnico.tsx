@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { useIsSuperadmin } from '../../hooks/useIsSuperadmin'
+import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useFeatureHabilitada } from '../../hooks/useFeatureHabilitada'
 import { Button } from '@mui/material'
 import { Link } from 'react-router'
@@ -28,16 +30,24 @@ function RequiereFuncionalidad({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// El permiso de la persona ya se validó arriba: lo que falta es la funcionalidad de la organización, así que
-// el mensaje no habla del rol ni manda a pedir acceso a quien quizá ya es administrador.
+// El permiso de la persona ya se validó arriba: lo que falta es la funcionalidad de la organización, así que el mensaje
+// no habla del rol. Solo un superadmin la activa (Plataforma · Funcionalidades): al administrador se le dice que la pida
+// a soporte; al resto, que se lo pida a un administrador de su organización.
 function FuncionalidadNoHabilitada() {
+  const { isSuperadmin } = useIsSuperadmin()
+  const { puedeEscribir } = usePuedeEscribir()
+  const descripcion = isSuperadmin
+    ? 'Activala para esta organización desde Plataforma · Funcionalidades.'
+    : puedeEscribir
+      ? 'Tu rol tiene acceso, pero la funcionalidad todavía no se activó para tu organización. La activa el soporte de la plataforma: pedísela indicando «Servicio técnico».'
+      : 'La funcionalidad todavía no se activó para tu organización. Pedile a un administrador que gestione su habilitación con el soporte de la plataforma.'
   return (
     <>
       <EncabezadoPagina titulo="Servicio técnico" />
       <ContenedorSeccion>
         <EstadoVacio
           titulo="Servicio técnico no está habilitado para tu organización"
-          descripcion="Tu rol tiene acceso, pero esta funcionalidad todavía no se activó para la organización. Pedí que la habiliten desde la configuración de la organización o al soporte de la plataforma."
+          descripcion={descripcion}
           accion={<Button color="inherit" component={Link} to="/">Volver al inicio</Button>}
         />
       </ContenedorSeccion>
