@@ -5932,7 +5932,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>empresa_id y producto_id usan FK compuestas con organizacion_id: un interés no puede apuntar a otra organización.</li>
           <li>La RLS filtra por organizacion_id, por empresa accesible y por la sección consultas en lectura o edición.</li>
-          <li>No hay políticas de escritura: el alta es solo la RPC pública, y anon no tiene privilegios sobre la tabla.</li>
+          <li>No hay políticas de escritura: el alta es solo la RPC, interna desde MSF-657 (solo service_role), y anon no tiene privilegios sobre la tabla ni ejecuta la función.</li>
         </ul>
       </div>
 
@@ -5943,7 +5943,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </div>
         <ul>
           <li>La tabla guarda organización, empresa, producto y fecha: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje.</li>
-          <li>Cada fila es un toque, no una persona: no hay deduplicación y el anti-spam es de la tienda (MSF-212).</li>
+          <li>Cada fila es un toque, no una persona: no hay deduplicación ni límite propio (desde MSF-657 la RPC es interna, solo service_role; las RPC públicas de la tienda sí aplican cuota).</li>
           <li>La RPC público.registrar_interes_whatsapp recibe solo host y producto_id; la empresa sale del dominio.</li>
         </ul>
       </div>

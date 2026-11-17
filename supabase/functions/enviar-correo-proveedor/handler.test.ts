@@ -80,6 +80,41 @@ describe('enviar-correo-proveedor', () => {
     assert.equal(enviados.length, 0)
   })
 
+  it('rechaza un proveedor inactivo y un correo cargado que no es una dirección válida', async () => {
+    const inactivo = montar({ proveedor: { razon_social: 'Acme', correo: 'ventas@acme.com', activo: false } })
+    assert.equal((await pedir(inactivo.deps, valido)).status, 422)
+    assert.equal(inactivo.enviados.length, 0)
+    for (const correo of ['sin-arroba', 'a@b', 'a@b.com, c@d.com', 'a@b.com\nBcc: x@y.com', 'a b@c.com', `${'a'.repeat(250)}@b.com`]) {
+      const m = montar({ proveedor: { razon_social: 'Acme', correo, activo: true } })
+      assert.equal((await pedir(m.deps, valido)).status, 422, correo)
+      assert.equal(m.enviados.length, 0, correo)
+    }
+  })
+
+  it('aplica el tope por usuario: pasado el límite responde 429 y no envía', async () => {
+    const { deps, enviados } = montar()
+    let usos = 0
+    deps.limitar = () => ++usos <= 2
+    assert.equal((await pedir(deps, valido)).status, 200)
+    assert.equal((await pedir(deps, valido)).status, 200)
+    assert.equal((await pedir(deps, valido)).status, 429)
+    assert.equal(enviados.length, 2)
+  })
+
+  it('registra cada envío (usuario, proveedor y resultado) sin asunto ni cuerpo', async () => {
+    const ok = montar()
+    const eventos: unknown[] = []
+    ok.deps.registrar = (e) => eventos.push(e)
+    await pedir(ok.deps, valido)
+    const roto = montar({ falloSmtp: true })
+    roto.deps.registrar = (e) => eventos.push(e)
+    await pedir(roto.deps, valido)
+    assert.deepEqual(eventos, [
+      { usuarioId: 'u1', proveedorId: ID, resultado: 'enviado' },
+      { usuarioId: 'u1', proveedorId: ID, resultado: 'fallido' },
+    ])
+  })
+
   it('valida proveedor_id, asunto y mensaje (vacíos, largos, tipos)', async () => {
     const largo = (n: number) => 'a'.repeat(n)
     for (const body of [

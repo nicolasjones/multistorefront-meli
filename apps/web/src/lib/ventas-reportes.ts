@@ -189,7 +189,7 @@ export async function leerConteoVentas(
 
 // Conteo de toques en «Consultar por WhatsApp» del período (F-REP-04): estado vacío de la pestaña
 // «Productos más consultados». Misma forma y mismo alcance que `leerConteoVentas`, pero sobre
-// `dominio.intereses_whatsapp`; la RPC se rige por la sección `reportes`, no por `consultas`.
+// `dominio.intereses_whatsapp` (hoy solo la alimenta el sembrado demo, MSF-657); la RPC se rige por la sección `reportes`, no por `consultas`.
 export async function leerConteoConsultas(
   cliente: SupabaseClient,
   { rango, empresaId }: { rango: RangoFechas; empresaId: string | null },

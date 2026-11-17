@@ -9,6 +9,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
 import { generarEmbedding } from '../_shared/embeddings.ts'
+import { fetchConTimeout } from '../_shared/fetch-ia.ts'
+import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
+import { crearLimitador, enteroPositivo } from '../_shared/limite-memoria.ts'
 import { armarContexto } from './contexto.ts'
 
 const corsHeaders = {
@@ -23,6 +26,10 @@ function jsonResponse(body: unknown, status: number) {
 const CONSUMIDOR_CODIGO = 'rag-busqueda-documental'
 const UMBRAL_SIMILITUD = 0.5
 const K_FRAGMENTOS = 6
+const PREGUNTA_MAX = 2000
+const MAX_TOKENS_RESPUESTA = 1024
+// Mejor esfuerzo por isolate (ver _shared/limite-memoria.ts); la cuota persistente por usuario queda como pendiente.
+const limitador = crearLimitador({ max: enteroPositivo(Deno.env.get('PREGUNTAR_DOCUMENTOS_LIMITE_HORA'), 30), ventanaMs: 60 * 60 * 1000 })
 
 const CONTRATO: ContratoConsumidor = {
   codigo: CONSUMIDOR_CODIGO,
@@ -50,15 +57,25 @@ Deno.serve(async (req) => {
   const { data: callerData, error: callerError } = await admin.auth.getUser(jwt)
   if (callerError || !callerData?.user) return jsonResponse({ error: 'No autorizado' }, 403)
 
-  let body: { pregunta?: string }
+  let body: { pregunta?: unknown } | null
   try {
     body = await req.json()
   } catch {
     return jsonResponse({ error: 'Cuerpo inválido: se esperaba JSON.' }, 400)
   }
-  if (!body.pregunta) return jsonResponse({ error: 'Falta "pregunta".' }, 400)
+  const pregunta = typeof body?.pregunta === 'string' ? body.pregunta : ''
+  if (!pregunta.trim()) return jsonResponse({ error: 'Falta "pregunta".' }, 400)
+  if (pregunta.length > PREGUNTA_MAX) return jsonResponse({ error: `La pregunta admite hasta ${PREGUNTA_MAX} caracteres.` }, 400)
 
   const asUser = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: `Bearer ${jwt}` } } })
+
+  // Antes de gastar crédito (embedding y generación): la organización del usuario debe tener la funcionalidad
+  // `busqueda-documental` (verificada con su propio JWT) y el usuario no puede estar abusando de la función.
+  const featureDocs = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
+  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureDocs.error.message)
+  const sinDocs = rechazoPorFuncionalidad(featureDocs, { noHabilitada: 'La búsqueda documental no está habilitada para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
+  if (sinDocs) return jsonResponse({ error: sinDocs.error }, sinDocs.status)
+  if (!limitador.consumir(callerData.user.id)) return jsonResponse({ error: 'Hiciste demasiadas preguntas en poco tiempo. Probá de nuevo más tarde.' }, 429)
 
   const { data: politicaFilas, error: politicaError } = await admin.rpc('resolver_politica_ia', { p_codigo: CONSUMIDOR_CODIGO })
   const politica = politicaFilas?.[0]
@@ -79,7 +96,7 @@ Deno.serve(async (req) => {
         limiteSegundos: politica.limite_segundos,
         perfilFallbackId: politica.perfil_fallback_id,
       },
-      { pregunta: body.pregunta },
+      { pregunta },
       // 0, no 1: intentos ya consumidos antes de esta llamada (mismo bug
       // real encontrado y corregido en chat-companion-mechanism).
       0,
@@ -140,13 +157,13 @@ Deno.serve(async (req) => {
       credencial.clave,
       {
         model: perfil.modeloId,
-        max_tokens: 1024,
+        max_tokens: MAX_TOKENS_RESPUESTA,
         messages: [
           { role: 'system', content: 'Respondé la pregunta del usuario usando únicamente el contexto provisto. Si el contexto no alcanza, decí que no encontraste la información.' },
           { role: 'user', content: `Contexto:\n${contexto}\n\nPregunta: ${entradaSanitizada.pregunta}` },
         ],
       },
-      (url, init) => fetch(url, init),
+      fetchConTimeout(Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)),
     ) as { choices: Array<{ message: { content: string } }> }
     textoFinal = respuesta.choices?.[0]?.message?.content ?? 'No pude generar una respuesta.'
   } catch {

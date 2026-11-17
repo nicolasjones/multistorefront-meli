@@ -68,7 +68,7 @@ vuelve a montar.
 
 **No hay tablas nuevas.** MSF-338 agrega **vistas** en el esquema `analitica` (solo vistas y funciones),
 **dos RPC** en `public` y **una columna** en `public.reportes`. MSF-192 suma **dos vistas** más y **una RPC
-de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.intereses_whatsapp` y
+de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.intereses_whatsapp` —hoy solo la alimenta el sembrado demo, ver MSF-657— y
 `dominio.comprobantes_venta*`).
 
 | Objeto | Esquema | Estado | Cambio |
@@ -179,7 +179,7 @@ que reusan el marco, los filtros, `TableroReporte` y el patrón de estados de MS
 Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`,
 `fecha date`, `consultas bigint`, `ultima_consulta timestamptz`.
 
-- Lee `dominio.intereses_whatsapp` (F-CON-02): **un toque en «Consultar por WhatsApp» = una consulta**, no
+- Lee `dominio.intereses_whatsapp` (F-CON-02; hoy solo el sembrado demo la alimenta, ver MSF-657): **un toque en «Consultar por WhatsApp» = una consulta**, no
   una venta.
 - `fecha` es el día en `America/Argentina/Buenos_Aires` de `created_at`; `ultima_consulta` es el instante
   máximo del grupo.
@@ -202,7 +202,7 @@ Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `fecha date`, `comp
 
 | RPC | Qué hace | Seguridad / errores |
 |---|---|---|
-| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | Toques de WhatsApp del período; decide el vacío «No hay consultas por WhatsApp en ese período». | `security definer`, `search_path = ''`; exige `reportes` ≥ lectura (`42501`) y acota a `private.empresas_accesibles()`; `revoke … from public, anon` y `grant … to authenticated`. |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | Toques de WhatsApp del período (hoy solo del sembrado demo, ver MSF-657); decide el vacío «No hay consultas por WhatsApp en ese período». | `security definer`, `search_path = ''`; exige `reportes` ≥ lectura (`42501`) y acota a `private.empresas_accesibles()`; `revoke … from public, anon` y `grant … to authenticated`. |
 
 ### Frontend
 
@@ -425,7 +425,7 @@ como fracción con formato `0.0%`; las dos pantallas muestran el mismo número.
   - Dos **clientes** (uno minorista y otro minorista más) y el **«Consumidor final»** de la organización.
   - Una **factura confirmada** en la tienda A, otra en la tienda B y, en el mismo período, una **nota de
     crédito** (resta) y un **presupuesto** (no cuenta).
-  - Dos o tres **toques en «Consultar por WhatsApp»** sobre un producto (para «Productos más consultados»).
+  - Dos o tres **toques en «Consultar por WhatsApp»** sobre un producto (para «Productos más consultados»; esa tabla hoy solo la alimenta el sembrado demo, ver MSF-657).
 
 ### Pasos
 

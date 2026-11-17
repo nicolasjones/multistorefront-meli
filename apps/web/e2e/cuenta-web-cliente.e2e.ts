@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, sql, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, sql, TOPE_FETCH_MS, url } from './soporte/fixtures'
 
 // F-CLI-06 (MSF-428, SC-005 y SC-006) con las dos tiendas del seed (mundojc.localhost y sanjavucho.localhost):
 //  - invitación → definir contraseña → ingresar → «Salir» (SC-005);
@@ -16,16 +16,24 @@ const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-800
 const SAN = { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002' } as const
 type Tienda = typeof MUNDO | typeof SAN
 
-const CLAVE = 'Clave-Segura-123!'
+// Contraseña de prueba distinta en cada corrida (los usuarios se dan de baja al terminar).
+const CLAVE = `Cw-${randomUUID()}!`
 const GENERICO = 'Correo o contraseña incorrectos.'
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 const origen = (t: Tienda) => `http://${t.host}:${puerto}`
 
 // Enlace de invitación/recuperación de la API admin de Auth (la firma es propia de este spec: no es una siembra).
 async function generarEnlace(correo: string, redirectTo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/generate_link`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ type: 'recovery', email: correo, redirect_to: redirectTo }) })
+  const r = await fetch(`${url}/auth/v1/admin/generate_link`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'POST', headers: cabeceras(), body: JSON.stringify({ type: 'recovery', email: correo, redirect_to: redirectTo }) })
   if (!r.ok) throw new Error(`Auth admin generate_link: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { action_link: string }).action_link
+  // GoTrue arma el enlace con SU url externa (`http://127.0.0.1:<api>`), pero en el job de sesión el navegador corre dentro del
+  // contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API murió con su paso: el `goto` daba
+  // ERR_CONNECTION_REFUSED. Se reemplaza el origen por el de `SUPABASE_URL` (`host.docker.internal`, el mismo que usan la web y los specs).
+  const enlace = new URL(((await r.json()) as { action_link: string }).action_link)
+  const base = new URL(url ?? enlace.origin)
+  enlace.protocol = base.protocol
+  enlace.host = base.host
+  return enlace.toString()
 }
 
 type Sembrado = { correo: string; authId: string; clienteId: string }

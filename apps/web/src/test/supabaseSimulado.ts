@@ -10,9 +10,11 @@ import { vi } from 'vitest'
 // (si el mock se declara con `vi.hoisted`/`vi.mock`, importá este módulo con `await import` dentro de la fábrica).
 //
 // `tablas` es `tabla → filas` (o `esquema.tabla → filas`, que gana sobre la forma corta); lo no declarado devuelve `[]`.
-// Cada consulta es una cadena que acepta cualquier método (`select`, `eq`, `in`, `order`, `returns`…) y se resuelve con
-// `{ data, error: null }`; `rpc` resuelve con lo declarado en `rpc` (o `null`). `schema` es un `vi.fn` para poder
-// afirmar qué esquema se pidió.
+// LÍMITE: filtra solo de forma mínima: `eq(col, valor)`, `in(col, valores)`, `order(col, { ascending })` y `limit(n)`; el resto de
+// los métodos (`select`, `or`, `ilike`, `range`, `returns`…) se aceptan y se ignoran. No usarlo para probar filtrado complejo.
+// Cada consulta se resuelve con `{ data, error: null, count }`; `rpc` resuelve con lo declarado en `rpc` (o `null`). `schema`
+// es un `vi.fn` para poder afirmar qué esquema se pidió. `createSignedUrls` devuelve una entrada por ruta pedida, como el real:
+// las rutas no declaradas en `firmadas` vuelven con `error: 'Object not found'` y sin URL.
 export type OpcionesClienteSimulado = {
   tablas?: Record<string, unknown[]>
   rpc?: Record<string, unknown>
@@ -25,12 +27,21 @@ type Cadena = PromiseLike<Resultado> & { [metodo: string]: (...argumentos: unkno
 
 function cadenaDe(filas: unknown[]): Cadena {
   const resultado: Resultado = { data: filas, error: null, count: filas.length }
+  const valor = (fila: unknown, columna: string) => (fila as Record<string, unknown>)[columna]
   const cadena = new Proxy(
     {},
     {
       get(_, propiedad) {
         if (propiedad === 'then') return (resolver: (valor: unknown) => unknown) => Promise.resolve(resultado).then(resolver)
         if (propiedad === 'maybeSingle' || propiedad === 'single') return () => Promise.resolve({ data: filas[0] ?? null, error: null })
+        if (propiedad === 'eq') return (columna: string, esperado: unknown) => cadenaDe(filas.filter((fila) => valor(fila, columna) === esperado))
+        if (propiedad === 'in') return (columna: string, esperados: unknown[]) => cadenaDe(filas.filter((fila) => esperados.includes(valor(fila, columna))))
+        if (propiedad === 'limit') return (maximo: number) => cadenaDe(filas.slice(0, maximo))
+        if (propiedad === 'order')
+          return (columna: string, opciones?: { ascending?: boolean }) => {
+            const signo = opciones?.ascending === false ? -1 : 1
+            return cadenaDe([...filas].sort((a, b) => signo * (String(valor(a, columna)) < String(valor(b, columna)) ? -1 : String(valor(a, columna)) > String(valor(b, columna)) ? 1 : 0)))
+          }
         return () => cadena
       },
     },
@@ -52,9 +63,11 @@ export function clienteSupabaseSimulado({ tablas = {}, rpc = {}, firmadas = {} }
       return porEsquema.get(nombre)!
     }),
     storage: {
-      from: vi.fn(() => ({
+      from: vi.fn((_bucket?: string) => ({
         createSignedUrls: vi.fn(async (rutas: string[]) => ({
-          data: rutas.filter((ruta) => ruta in firmadas).map((ruta) => ({ path: ruta, signedUrl: firmadas[ruta], error: null })),
+          data: rutas.map((ruta) =>
+            ruta in firmadas ? { path: ruta, signedUrl: firmadas[ruta], error: null } : { path: ruta, signedUrl: '', error: 'Object not found' },
+          ),
           error: null,
         })),
       })),

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
-import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, sql, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, sql, TOPE_FETCH_MS, url } from './soporte/fixtures'
 import { clic } from './visible'
 
 // Soporte de los E2E del centro de importaciones (F-IMP-01 · MSF-354). Requiere el stack local
@@ -13,6 +13,8 @@ import { clic } from './visible'
 // `procesos_masivos` ni `procesos_masivos_errores` (la REST responde 42501): esas filas se siembran y se limpian con `sql()`.
 export { serviceKey, url }
 const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+// Contraseña fija de los E2E (`CONTRASENA_E2E`): `ayuda` y `panel-sin-desborde` dan de alta a su gente con ese literal y entran con
+// `ingresar` de este archivo, así que no puede ser aleatoria sin tocarlos (son usuarios efímeros de un stack efímero).
 const password = CONTRASENA_E2E
 
 // Sesión del administrador para llamar a las funciones de la app como lo haría la pantalla.
@@ -21,7 +23,7 @@ async function tokenDe(correo: string): Promise<string> {
     method: 'POST',
     headers: { apikey: anonKey ?? '', 'content-type': 'application/json' },
     body: JSON.stringify({ email: correo, password }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
   })
   if (!r.ok) throw new Error(`login de ${correo}: ${r.status} ${await r.text()}`)
   return ((await r.json()) as { access_token: string }).access_token
@@ -52,8 +54,9 @@ export async function conexionDe(orgId: string, sistema: string): Promise<string
 /** Proceso masivo sembrado como lo deja el «worker» (sin grant para `service_role`): inserta las columnas dadas y devuelve su id. */
 async function insertarProceso(campos: Record<string, unknown>): Promise<{ id: string }> {
   const columnas = Object.keys(campos)
+  if (!columnas.every((columna) => /^[a-z_]+$/.test(columna))) throw new Error('insertarProceso: nombre de columna inválido')
   const [fila] = await sql<{ id: string }>(
-    `insert into public.procesos_masivos (${columnas.join(', ')}) values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+    `insert into public.procesos_masivos (${columnas.map((columna) => `"${columna}"`).join(', ')}) values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
     Object.values(campos),
   )
   return fila
@@ -90,7 +93,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   const token = await tokenDe(correo)
   const r = await fetch(`${url}/rest/v1/rpc/iniciar_proceso_masivo`, {
     method: 'POST',
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     headers: { apikey: anonKey ?? '', authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       p_conexion_id: conexionId,
@@ -142,8 +145,10 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
 }
 
 // Limpieza por `sql()` de lo que `service_role` no puede borrar por la REST (sin grant: daría 42501). Si falla avisa y sigue.
-async function limpiarTabla(tabla: string, orgId: string) {
-  await sql(`delete from public.${tabla} where organizacion_id = $1`, [orgId]).catch((e) => console.warn(`limpieza E2E: ${tabla} → ${(e as Error).message}`))
+const TABLAS_LIMPIABLES = ['procesos_masivos', 'capacidades_ejecucion', 'conexiones'] as const
+async function limpiarTabla(tabla: (typeof TABLAS_LIMPIABLES)[number], orgId: string) {
+  if (!TABLAS_LIMPIABLES.includes(tabla)) throw new Error(`limpiarTabla: tabla no permitida (${tabla})`)
+  await sql(`delete from public."${tabla}" where organizacion_id = $1`, [orgId]).catch((e) => console.warn(`limpieza E2E: ${tabla} → ${(e as Error).message}`))
 }
 
 export async function limpiar(datos: Sembrado) {

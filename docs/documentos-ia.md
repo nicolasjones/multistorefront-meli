@@ -40,6 +40,10 @@ Si algo falla en el medio, se deshace lo que **ese** intento creó:
 - Si falla la indexación, la versión ya quedó registrada: se conservan el documento, la versión
   y el objeto. La versión queda en `fallida` con su motivo (es el estado que deja la Edge
   Function `indexar-documento`).
+  Desde el lote de endurecimiento, solo los errores permanentes (documento sin texto o con más de 2000 fragmentos)
+  dejan la versión `fallida`; un fallo transitorio (proveedor, descarga) la deja `procesando`, y una invocación
+  duplicada recibe 409 sin pisar la versión activa. Pasados 15 minutos la pantalla muestra «Se interrumpió el procesamiento»
+  con el botón Reintentar (reintento manual; no hay barrido automático). Un 42501 al activar deja la versión `fallida`. Ver [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).
 
 La limpieza es *best effort*: si no se puede borrar, queda registrado en la consola y el mensaje
 que ve el usuario sigue siendo el de la causa real. Nunca se borra un documento que ya existía
@@ -81,3 +85,7 @@ antes del intento (solo el que creó esta misma subida).
   base, limpieza del documento y del objeto cuando falla la subida o la versión, versión nueva
   que actualiza el nombre, cancelación del selector de «Actualizar» y errores de la RPC de
   funcionalidad y de la lista.
+
+## Activación de una versión (MSF-652)
+
+`public.activar_version_documento(p_version_id)` (la llama `indexar-documento` con la sesión de quien subió el archivo) valida, desde `20270507150000`: que la versión pertenezca a la organización del llamador (versión inexistente, ya procesada o de otra organización dan el mismo error genérico `22023`), que la funcionalidad `busqueda-documental` esté habilitada y que el llamador sea quien subió la versión o un administrador de la organización (`42501` si no). `anon` no ejecuta la RPC. Prueba: `supabase/tests/database/activar_version_documento_valida_organizacion.test.sql`.

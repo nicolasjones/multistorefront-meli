@@ -2,6 +2,10 @@ name: Validate
 
 on:
   pull_request:
+    # `ready_for_review`: un PR abierto como borrador deja los jobs pesados en `skipped` (ver el `if` de
+    # `application`); sin este tipo, al marcarlo Ready no habría corrida nueva y `validacion` daría verde
+    # sin tests, build ni base de datos (MSF-675).
+    types: [opened, synchronize, reopened, ready_for_review]
   # Merge queue: al encolar un PR, GitHub corre el workflow sobre el grupo de
   # merge (`merge_group`) con el base ya integrado. Sin este disparador, los
   # checks requeridos no reportan y el PR no sale de la cola. Ver docs/control-ci.md.
@@ -146,6 +150,13 @@ jobs:
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
+      # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
+      # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
+      # con un resumen. ~1,5 min. Los pesados o rotos quedan documentados
+      # en docs/control-ci.md («Decisiones pendientes del lote 26»).
+      - name: test:ci:scripts
+        run: pnpm test:ci:scripts
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
@@ -383,10 +394,12 @@ jobs:
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           # Los nombres de archivo se pasan por entorno, nunca interpolados en el script.
           ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
+          # `--workers=2`: el runner va cargado (load ~50) y con un worker por spec, el recorrido visible (cursor, rótulos, `slowMo`,
+          # video 1080p) agota los timeouts de 3-5 min de seis specs a la vez. Va antes de los filtros y SIN `--`.
           if [ -n "$E2E_GREP" ]; then
-            pnpm test:e2e $ARCHIVOS --grep "$E2E_GREP"
+            pnpm --filter @platform/web exec playwright test --workers=2 $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm test:e2e $ARCHIVOS
+            pnpm --filter @platform/web exec playwright test --workers=2 $ARCHIVOS
           fi
       - name: cobertura:e2e (sesión)
         if: always()

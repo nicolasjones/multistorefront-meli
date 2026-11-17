@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { conexionDe, ingresar, limpiar, serviceKey, sembrar, sistemaExterno, url, violacionesAxe, type Sembrado } from './importaciones-soporte'
-import { altaUsuario, cabeceras, CONTRASENA_E2E, rest, sql } from './soporte/fixtures'
+import { altaUsuario, cabeceras, rest, sql } from './soporte/fixtures'
 import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // Cierre de F-OPS-06 (MSF-396 · T028 · SC-006): el administrador pide la exportación total, ve el avance en el
@@ -34,7 +34,7 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
       otra = await sembrar(`${sufijo}o`)
       await conexionExportaciones(datos.orgId)
       const correoSinPermiso = `consulta-exp-${sufijo}@example.com`
-      const idConsulta = await altaUsuario(correoSinPermiso, CONTRASENA_E2E)
+      const idConsulta = await altaUsuario(correoSinPermiso)
       extras.push(idConsulta)
       await rest('usuarios_organizacion', { user_id: idConsulta, organizacion_id: datos.orgId, rol_id: 'consulta' })
 

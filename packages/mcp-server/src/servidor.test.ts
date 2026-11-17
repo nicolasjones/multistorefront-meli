@@ -127,3 +127,35 @@ describe('servidor HTTP: sesión existente', () => {
     await delDueño.text()
   })
 })
+
+describe('servidor HTTP: excepciones del handler', () => {
+  let servidor: Server | undefined
+  afterEach(() => new Promise<void>((r) => (servidor ? servidor.close(() => r()) : r())))
+
+  it('una excepción al abrir la sesión responde 500 genérico y el servidor sigue atendiendo', async () => {
+    let falla = true
+    const admin = {
+      from: () => ({ select: () => Promise.resolve({ data: [] }), insert: () => Promise.resolve({ error: null }) }),
+      rpc: (nombre: string) => {
+        if (falla) throw new Error('detalle interno: índice ejecuciones_mcp_en_curso_idx')
+        return Promise.resolve({ data: nombre === 'validar_credencial_mcp' ? 'org-1' : 'cred-1' })
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any
+    servidor = crearServidorHttp(admin)
+    await new Promise<void>((r) => servidor!.listen(0, r))
+    const url = `http://127.0.0.1:${(servidor.address() as AddressInfo).port}/mcp`
+    const init = () => fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', Authorization: 'Bearer tok' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-03-26', capabilities: {}, clientInfo: { name: 't', version: '0' } } }),
+    })
+    const r = await init()
+    expect(r.status).toBe(500)
+    expect(await r.text()).not.toContain('ejecuciones_mcp_en_curso_idx')
+    falla = false
+    const despues = await init()
+    expect(despues.status).toBe(200)
+    await despues.text()
+  })
+})
