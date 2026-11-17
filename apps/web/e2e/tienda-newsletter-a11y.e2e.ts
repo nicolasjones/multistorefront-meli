@@ -36,6 +36,14 @@ async function violacionesAxe(page: Page, selector?: string): Promise<string[]> 
   }, selector)
 }
 
+// El aviso de cookies tapa el pie a 320 px: se decide («Rechazar», como en `tienda-legal`) antes de interactuar, sin `force`.
+async function resolverAvisoCookies(page: Page) {
+  const aviso = page.getByRole('region', { name: 'Aviso de cookies' })
+  await expect(aviso).toBeVisible()
+  await aviso.getByRole('button', { name: 'Rechazar' }).click()
+  await expect(aviso).toHaveCount(0)
+}
+
 const sinDesborde = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
 
 test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => {
@@ -72,13 +80,13 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
   })
 
   // Un test por viewport y por página: cada uno es corto (el job `e2e-tienda` tiene 60 s por test) y usa el `page` del fixture, que el
-  // propio runner cierra (sin contexto manual).
+  // propio runner cierra (sin contexto manual), con el aviso de cookies resuelto antes de interactuar.
   const origen = `http://${TIENDA.host}:${puerto}`
   for (const ancho of ANCHOS) {
     test(`el formulario del pie no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
-      test.setTimeout(120_000)
       await page.setViewportSize({ width: ancho, height: 900 })
       await page.goto(`${origen}/`)
+      await resolverAvisoCookies(page)
       const pie = page.getByTestId('pie-newsletter')
       await pie.scrollIntoViewIfNeeded()
       await expect(pie.getByRole('heading', { name: 'Newsletter' })).toBeVisible()
@@ -91,9 +99,9 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
 
     // Enlace inválido: no hace falta sembrar suscriptores.
     test(`la página de confirmación no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
-      test.setTimeout(120_000)
       await page.setViewportSize({ width: ancho, height: 900 })
       await page.goto(`${origen}/newsletter/confirmar/${'x'.repeat(43)}`)
+      await resolverAvisoCookies(page)
       await expect(page.getByTestId('newsletter-confirmacion')).toBeVisible()
       expect(await violacionesAxe(page), 'confirmación').toEqual([])
       expect(await sinDesborde(page), 'la confirmación no desborda').toBe(true)
