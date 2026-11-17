@@ -69,13 +69,21 @@ select throws_ok($$select public.vincular_identificador_externo('c1000000-0000-0
   '23505', 'El identificador externo ya está vinculado a otro cliente', 'dentro de la misma organización sigue siendo único');
 select is((select (public.vincular_identificador_externo('c1000000-0000-0000-0000-00000000000a', 'sis', 'EXT-1')).cliente_id),
   'c1000000-0000-0000-0000-00000000000a'::uuid, 'revincular el mismo par al mismo cliente es idempotente');
+-- Orden inverso: la otra organización vincula primero EXT-5 y esta lo vincula y revincula después (la lectura del
+-- conflicto no debe devolver el vínculo ajeno).
+select pg_temp.como('e2000000-0000-0000-0000-000000000001');
+select public.vincular_identificador_externo('c2000000-0000-0000-0000-00000000000a', 'sis', 'EXT-5');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select public.vincular_identificador_externo('c1000000-0000-0000-0000-00000000000a', 'sis', 'EXT-5');
+select is((select (public.vincular_identificador_externo('c1000000-0000-0000-0000-00000000000a', 'sis', 'EXT-5')).cliente_id),
+  'c1000000-0000-0000-0000-00000000000a'::uuid, 'revincular tras el vínculo de otra organización devuelve el propio, no el ajeno');
 select throws_ok($$select public.vincular_identificador_externo('c2000000-0000-0000-0000-00000000000a', 'sis', 'EXT-9')$$,
   '42501', 'No puede gestionar identificadores externos de esta organización', 'vincular un cliente de otra organización sigue prohibido');
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select throws_ok($$select public.vincular_identificador_externo('c1000000-0000-0000-0000-00000000000b', 'sis', 'EXT-2')$$,
   '42501', 'No puede gestionar identificadores externos de esta organización', 'un rol sin administración no vincula');
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.clientes_identificadores_externos), 1, 'la organización dos ve solo su vínculo');
+select is((select count(*)::int from public.clientes_identificadores_externos), 2, 'la organización dos ve solo sus vínculos (EXT-1 y EXT-5)');
 
 -- El disparador toma la organización del cliente aunque se intente otra
 reset role;

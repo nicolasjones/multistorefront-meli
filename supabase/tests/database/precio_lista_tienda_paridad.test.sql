@@ -148,10 +148,10 @@ update public.banderas_plataforma set activa = true where clave = 'listas_precio
 select pg_temp.como('f3000000-0000-0000-0000-000000000001');
 select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x1'), 968::numeric,
   'Tu precio · mayorista con lista, tienda A: x1 = 1000 × 0,80 = 800 + IVA 21 % = 968');
-select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x5'), 1198::numeric,
-  'Tu precio · x5 cargada (900) rige con el +10 % de la tienda: 990 + IVA, redondeado = 1198');
-select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x10'), 1065::numeric,
-  'Tu precio · x10 cargada (800): 880 + IVA = 1065 (redondeado al peso entero)');
+select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x5'), 1197.90::numeric,
+  'Tu precio · x5 cargada (900) rige con el +10 % de la tienda: 990 + IVA, al centavo = 1197,90');
+select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x10'), 1064.80::numeric,
+  'Tu precio · x10 cargada (800): 880 + IVA = 1064,80 (al centavo)');
 select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001', 'x50'), 968::numeric,
   'Tu precio · x50 sin precio cargado: cae a x1 y rige la lista (968)');
 select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000002', 'x1'), 2904::numeric,
@@ -160,8 +160,8 @@ select is(pg_temp.tu_precio('lp-a.ejemplo.com', 'a1000000-0000-0000-0000-0000000
   'Tu precio · producto con precio propio (2500) en la tienda: la lista no rige (2500 + IVA = 3025)');
 insert into res values ('may_a', publico.precios_cliente_por_dominio('lp-a.ejemplo.com', array['a1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000004']::uuid[]));
 insert into res values ('may_b', publico.precios_cliente_por_dominio('lp-b.ejemplo.com', array['a1000000-0000-0000-0000-000000000001']::uuid[]));
-select is((select (e ->> 'final')::numeric from res, jsonb_array_elements(v -> 'precios' -> 1 -> 'escalas') e where k = 'may_a' and e ->> 'escala' = 'x1'), 1198::numeric,
-  'Tu precio · redondeo de la tienda: 1234,56 × 0,80 = 987,648 se redondea a 990 y con IVA 1198');
+select is((select (e ->> 'final')::numeric from res, jsonb_array_elements(v -> 'precios' -> 1 -> 'escalas') e where k = 'may_a' and e ->> 'escala' = 'x1'), 1197.90::numeric,
+  'Tu precio · redondeo de la tienda: 1234,56 × 0,80 = 987,648 se redondea a 990 y con IVA 1197,90');
 select is((select (e ->> 'final')::numeric from res, jsonb_array_elements(v -> 'precios' -> 0 -> 'escalas') e where k = 'may_b' and e ->> 'escala' = 'x1'), 800::numeric,
   'Tu precio · tienda B (sin IVA, sin ajuste): 800');
 select is((select (e ->> 'final')::numeric from res, jsonb_array_elements(v -> 'precios' -> 0 -> 'escalas') e where k = 'may_b' and e ->> 'escala' = 'x5'), 900::numeric,

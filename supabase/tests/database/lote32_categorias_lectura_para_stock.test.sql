@@ -40,14 +40,12 @@ select throws_ok($$insert into dominio.categorias (organizacion_id, nombre) valu
 with u as (update dominio.categorias set nombre = 'Pisada' returning 1) select is((select count(*)::int from u), 0, 'Depósito no modifica categorías');
 with d as (delete from dominio.categorias returning 1) select is((select count(*)::int from d), 0, 'Depósito no borra categorías');
 
--- Mostrador también tiene categorías en ninguno y stock en lectura: las ve (solo lectura).
--- Un rol al que la organización le saca el stock (matriz editable) vuelve a no verlas.
-reset role;
-update public.permisos_rol set nivel = 'ninguno'
- where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'tecnico' and seccion in ('stock', 'categorias');
+-- Quien solo LEE stock (Técnico: stock en lectura, categorías en ninguno) no gana lectura de categorías: la toma de
+-- inventario se confirma con stock en edición.
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');
-select is((select private.nivel_seccion('stock')), 'ninguno', 'Técnico sin stock en esta organización');
-select is((select count(*)::int from dominio.categorias), 0, 'sin stock ni categorías no ve categorías');
+select is((select private.nivel_seccion('stock')), 'lectura', 'Técnico lee stock');
+select is((select private.nivel_seccion('categorias')), 'ninguno', 'y no tiene categorías');
+select is((select count(*)::int from dominio.categorias), 0, 'sin stock en edición ni categorías no ve categorías');
 
 -- Consulta (categorías en lectura) sigue viéndolas por su sección.
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');

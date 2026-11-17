@@ -5,7 +5,8 @@
 -- 20261020130100), así que el selector llegaba vacío aunque la persona sí puede contar stock.
 --
 -- Arreglo: una política `select` ADICIONAL (las políticas permisivas se suman) para quien tiene la sección `stock` en
--- lectura o edición, siempre dentro de su organización. Solo lectura: nadie gana permiso de escritura sobre categorías
+-- EDICIÓN (la toma de inventario se confirma con `stock` en edición; quien solo lee stock, como Mostrador, no gana lectura de
+-- categorías: `catalogo_categorias` lo verifica), siempre dentro de su organización. Solo lectura: nadie gana permiso de escritura sobre categorías
 -- (insert/update/delete siguen exigiendo la sección `categorias` en edición). Se exponen nombres y jerarquía de
 -- categorías de SU organización, que ya ve en los productos que cuenta.
 --
@@ -15,5 +16,5 @@ create policy categorias_select_stock on dominio.categorias
   for select to authenticated
   using (
     organizacion_id = (select private.organizacion_id())
-    and (select private.nivel_seccion('stock')) in ('lectura', 'edicion')
+    and (select private.nivel_seccion('stock')) = 'edicion'
   );

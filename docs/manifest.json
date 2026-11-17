@@ -2431,14 +2431,14 @@
     },
     "docs/stock-lotes-e-inventario.md": {
       "title": "Stock · Lotes e inventario (épica MSF-131)",
-      "pageHash": "dd53eaf4bf4626addf6e8c64ff1ceaaf351acacfce71545032415c32bb97c344",
+      "pageHash": "ed36d88b896c3686efc76fda35fcb75e12a0ce4773606266ef48660c15ec761d",
       "sourceHash": "cd4955a7e43f42c8cb410a99124374388c36523e3a7e2d3e8ad0e05a74dc36a2",
-      "sourceAt": "c7860a7c9",
+      "sourceAt": "330af49f",
       "sources": [
         "specs/20261024-120000-stock-lotes-e-inventario"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c9"
+      "commit": "330af49f"
     },
     "docs/stock-lotes.md": {
       "title": "Stock · Carga en lote (F-STK-10, MSF-407)",

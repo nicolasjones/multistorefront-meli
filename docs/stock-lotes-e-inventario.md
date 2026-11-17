@@ -46,7 +46,7 @@ Las dos pantallas no consultan por empresa: el stock es único por organización
 
 El selector de «Toma de inventario» lee `dominio.categorias`, cuya política exigía la sección `categorias`; Depósito la tiene en
 `ninguno` (y `stock` en edición), así que el selector llegaba vacío. Era un problema de RLS, no de interfaz: `20270507180600` agrega
-la política de **solo lectura** `categorias_select_stock` (organización + `stock` en lectura o edición). No da escritura sobre
+la política de **solo lectura** `categorias_select_stock` (organización + `stock` en **edición**: quien solo lee stock, como Mostrador, no gana lectura de categorías). No da escritura sobre
 categorías. Prueba: `lote32_categorias_lectura_para_stock.test.sql`.
 
 ## Reversión

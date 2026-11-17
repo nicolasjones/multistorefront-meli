@@ -134,7 +134,7 @@ select is(
 );
 select is(
   (select final from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x10')),
-  932.00, 'x10 con regla e IVA: 770 × 1,21 = 931,7 → 932'
+  931.70, 'x10 con regla e IVA: 770 × 1,21 = 931,7 (al centavo, MSF-720)'
 );
 select is(
   (select neto from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'x1')),
