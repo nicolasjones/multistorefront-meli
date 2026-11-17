@@ -17,6 +17,16 @@ export const FILTROS_ESTADO: ReadonlyArray<{ valor: FiltroEstadoPresupuesto; eti
   { valor: 'convertido', etiqueta: 'Convertido en factura' },
 ]
 
+// Canal del presupuesto (MSF-942): `panel` lo cargó el equipo; `tienda` lo pidió un cliente desde la tienda online. La base lo deriva del vínculo real
+// (`dominio.presupuestos_tienda`) y lo filtra ANTES de paginar y contar, así `total` y las tandas son correctos.
+export type FiltroOrigenPresupuesto = 'todos' | 'panel' | 'tienda'
+
+export const FILTROS_ORIGEN: ReadonlyArray<{ valor: FiltroOrigenPresupuesto; etiqueta: string }> = [
+  { valor: 'todos', etiqueta: 'Todos los canales' },
+  { valor: 'panel', etiqueta: 'Panel' },
+  { valor: 'tienda', etiqueta: 'Tienda online' },
+]
+
 const ETIQUETA_ESTADO: Readonly<Record<EstadoPresupuesto, string>> = {
   pendiente: 'Pendiente',
   aceptado: 'Aceptado',
@@ -58,6 +68,7 @@ export const puedeCopiarPresupuesto = (p: Pick<Presupuesto, 'puede_editar'>) => 
 export type ParametrosListadoPresupuestos = {
   busqueda: string
   estado: FiltroEstadoPresupuesto
+  origen?: FiltroOrigenPresupuesto
   empresaId: string | null
   pagina: number
   tamano: number
@@ -73,6 +84,7 @@ export async function listarPresupuestos(parametros: ParametrosListadoPresupuest
     p_empresa_id: parametros.empresaId,
     p_pagina: parametros.pagina,
     p_tamano: parametros.tamano,
+    p_origen: parametros.origen === undefined || parametros.origen === 'todos' ? null : parametros.origen,
   })
   if (error) throw error
   const filas = (data ?? []) as FilaListado[]

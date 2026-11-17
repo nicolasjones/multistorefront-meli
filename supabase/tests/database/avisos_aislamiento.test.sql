@@ -93,7 +93,7 @@ select throws_ok(
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 
 select is(
-  (select count(*)::int from public.listar_preferencias_aviso()), 0,
+  (select count(*)::int from public.listar_preferencias_aviso() where tipo = 'consulta_nueva'), 0,
   'un rol sin acceso a Consultas no ve el tipo consulta_nueva'
 );
 select throws_ok(

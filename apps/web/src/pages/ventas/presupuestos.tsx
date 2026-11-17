@@ -10,6 +10,7 @@ import { useOrganizacionActiva } from '../../hooks/useOrganizacionActiva'
 import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import {
   FILTROS_ESTADO,
+  FILTROS_ORIGEN,
   aceptarPresupuesto,
   copiarPresupuesto,
   etiquetaEstadoPresupuesto,
@@ -18,6 +19,7 @@ import {
   puedeCopiarPresupuesto,
   varianteEstadoPresupuesto,
   type FiltroEstadoPresupuesto,
+  type FiltroOrigenPresupuesto,
   type PaginaPresupuestos,
   type Presupuesto,
 } from '../../lib/ventasPresupuestos'
@@ -99,6 +101,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<FiltroEstadoPresupuesto>('todos')
+  const [origen, setOrigen] = useState<FiltroOrigenPresupuesto>('todos')
   const [pagina, setPagina] = useState(1)
   const [datos, setDatos] = useState<PaginaPresupuestos>(PAGINA_VACIA)
   const [cargando, setCargando] = useState(true)
@@ -131,7 +134,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     const peticion = ++ultimaPeticion.current
     setCargando(true)
     try {
-      const resultado = await listarPresupuestos({ busqueda: textoAplicado, estado, empresaId: empresaId === '' ? null : empresaId, pagina, tamano: TAMANO_PAGINA })
+      const resultado = await listarPresupuestos({ busqueda: textoAplicado, estado, origen, empresaId: empresaId === '' ? null : empresaId, pagina, tamano: TAMANO_PAGINA })
       if (peticion !== ultimaPeticion.current) return
       setDatos(resultado)
       setHayError(false)
@@ -143,7 +146,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     }
     setCargando(false)
     setPrimeraCarga(false)
-  }, [textoAplicado, estado, empresaId, pagina])
+  }, [textoAplicado, estado, origen, empresaId, pagina])
 
   useEffect(() => {
     void cargar()
@@ -151,7 +154,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
 
   const { presupuestos, total } = datos
   // Carga infinita (Principio VI): se suman las tandas que entrega la consulta; buscar, filtrar o cambiar de tienda reinicia.
-  const listado = useListadoAcumulado({ items: presupuestos, pagina, setPagina, total, cargando, reinicio: { textoAplicado, estado, empresaId } })
+  const listado = useListadoAcumulado({ items: presupuestos, pagina, setPagina, total, cargando, reinicio: { textoAplicado, estado, origen, empresaId } })
   const falloTanda = hayError && pagina > 1
   // Una acción que cambia filas (aceptar) recarga desde la primera tanda.
   const recargarDesdeInicio = () => (pagina === 1 ? cargar() : setPagina(1))
@@ -160,7 +163,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     if (!primeraCarga && !cargando && !hayError && presupuestos.length === 0 && pagina > 1) setPagina(1)
   }, [primeraCarga, cargando, hayError, presupuestos.length, pagina])
 
-  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'todos' || empresaId !== ''
+  const hayFiltros = textoAplicado.trim() !== '' || estado !== 'todos' || origen !== 'todos' || empresaId !== ''
 
   // Exportar (F-VTA-09, FR-006/FR-010): mismos filtros que el listado y la vía según el total. Los filtros de
   // cobro y envío no aplican a presupuestos; se envían vacíos.
@@ -290,7 +293,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     : undefined
   const exportarBoton = puedeExportar
     ? (
-      <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => void exportar()} disabled={exportando || primeraCarga || hayError}>
+      <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => void exportar()} disabled={exportando || primeraCarga || hayError || origen !== 'todos'} title={origen !== 'todos' ? 'La exportación todavía no filtra por canal: elegí «Todos los canales».' : undefined}>
         {exportando ? 'Exportando…' : 'Exportar'}
       </Button>
     )
@@ -369,6 +372,20 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
               sx={{ flexWrap: 'wrap' }}
             >
               {FILTROS_ESTADO.map((f) => <ToggleButton key={f.valor} value={f.valor}>{f.etiqueta}</ToggleButton>)}
+            </ToggleButtonGroup>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              aria-label="Filtrar por canal"
+              value={origen}
+              onChange={(_, nuevoOrigen: FiltroOrigenPresupuesto | null) => {
+                if (nuevoOrigen === null) return
+                setOrigen(nuevoOrigen)
+                setPagina(1)
+              }}
+              sx={{ flexWrap: 'wrap' }}
+            >
+              {FILTROS_ORIGEN.map((f) => <ToggleButton key={f.valor} value={f.valor}>{f.etiqueta}</ToggleButton>)}
             </ToggleButtonGroup>
           </BarraHerramientas>
 
