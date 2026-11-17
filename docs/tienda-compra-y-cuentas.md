@@ -428,6 +428,30 @@ Con la bandera `tienda_pedidos` apagada las dos RPC responden `sin_acceso` sin t
 - Vitest con axe a 320, 768 y 1440 px: `DialogoPresupuesto`, `ConfirmacionPedido`, los traductores y los rótulos del panel.
 - E2E `tienda-presupuesto.e2e.ts` (job `e2e-tienda`): el mayorista pide, el operador lo acepta; el sexto del día; **dos llamadas simultáneas con 4 creados crean una** (el lock con sesiones de verdad); misma clave = mismo número; sin cuenta, otra tienda, anónimo y bandera apagada.
 
+## Cierre: hallazgos de la revisión de seguridad integral (MSF-988)
+
+Detalle y estado de cada hallazgo en [`seguridad-tienda-compra-y-cuentas.md`](./seguridad-tienda-compra-y-cuentas.md). Lo que cambia para quien opera o desarrolla:
+
+- **Baja de una cuenta o fusión de clientes (H-2)**: el presupuesto pedido desde la tienda **conserva** su vínculo (rótulo «Tienda online (cliente)», «Nota del cliente») aunque se borre la cuenta; la fusión de clientes repunta los presupuestos y las consultas de pedido del cliente descartado al conservado.
+- **Cupo de llamadas en «Mi cuenta» (H-3)**: las cinco RPC de la historia A aceptan 120 llamadas por minuto y cuenta; superado responden `limite` y la pantalla muestra su error con reintento. El uso normal (una llamada por ficha, tandas de 20) queda muy por debajo.
+- **El cupo sobrevive a un error (H-4)** en la lista de pedido y en el envío, como en el presupuesto: ya estaba corregido en `dokploy` por los menores retroactivos del 2026-11-15 (`20270430000000`) y el cierre lo vuelve a probar sobre el código vigente. Un `statement_timeout` (57014) no lo atrapa `when others`: la llamada falla entera y no gasta cupo (ver la guía de seguridad).
+- **Caracteres invisibles (H-6)**: además de los de control, separadores y marcas de dirección, se rechazan U+00AD, U+061C, U+180E y los invisibles U+200B a U+200D, U+2060 a U+2064 y U+FEFF, en el nombre, el contacto y la nota de la lista de pedido, en la nota del presupuesto y en el front (mismo conjunto).
+- **Medición de rendimiento**: `scripts/medir-tienda-favoritos.sql` solo corre con `-v BASE_DESCARTABLE=si` y en una base con 5 organizaciones o menos (guard de entorno).
+
+### Migraciones del cierre (aditivas)
+
+| Migración | Contenido | Reversión (migración posterior) |
+|---|---|---|
+| `20270507140101_presupuestos_tienda_vinculo_persistente.sql` | `dominio.presupuestos_tienda.cuenta_cliente_id` admite nulo y su FK pasa a `on delete set null (cuenta_cliente_id)`; las FK de cliente y comprobante pasan a `on delete cascade` (para que la baja de la organización no se bloquee) | `alter column cuenta_cliente_id set not null` y volver las tres FK a `on delete cascade` / `no action` |
+| `20270507140102_fusionar_clientes_repunta_tienda.sql` | `public.fusionar_clientes` repunta `dominio.presupuestos_tienda.cliente_id` y `dominio.consultas.cliente_id` al cliente conservado | restaurar el cuerpo de `20270419000200_opiniones_fusion_clientes.sql` |
+| `20270507140103_tienda_cupo_llamadas_cuenta.sql` | `private.limite_llamadas_cuenta_por_minuto()` (120) y cupo por cuenta en las cinco RPC de «Mi cuenta» (se toman después de resolver la cuenta y antes de cualquier lectura) | restaurar los cuerpos de `20270430000000_tienda_menores_revision.sql` y `20270320100400_tienda_historial_rpc.sql`; `drop function if exists private.limite_llamadas_cuenta_por_minuto();` |
+| `20270507140104_tienda_caracteres_invisibles.sql` | conjunto de caracteres bloqueados ampliado (U+00AD, U+180E, U+2061 a U+2064) en `enviar_lista_pedido` y `crear_presupuesto_tienda` | restaurar los cuerpos de `20270430000000_tienda_menores_revision.sql` y `20270507130100_aviso_presupuesto_tienda.sql` |
+
+### Pruebas del cierre
+
+- pgTAP `supabase/tests/database/tienda_cierre_hallazgos.test.sql`: el vínculo sobrevive a la baja de la cuenta y a la fusión (y la baja de la organización no se bloquea), el cupo por cuenta de las cinco RPC de «Mi cuenta» (y sobrevive a un error), el cupo de la lista y del envío sobrevive a una excepción, y los caracteres invisibles se rechazan en B1 y B2.
+- Vitest: `lib/tiendaCuentaDatos.test.ts` (el `limite` del servidor es un error con reintento, no «cuenta no activa») y `cuenta/BotonFavorito.test.tsx` (el aviso del límite no dice «cuenta no está activa»).
+
 ## Seguridad: qué no hace A
 
 - No recibe identidades del llamador (cliente, cuenta, empresa, organización): el cursor y los ids solo ordenan o buscan dentro de lo propio.

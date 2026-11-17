@@ -10,17 +10,21 @@ import { limpiarTextoPublico } from './tiendaTextos'
 
 // `sin_acceso` = la sesión no es de una cuenta activa y habilitada en esta tienda (sin sesión, suspendida, de otra tienda,
 // usuario del panel…): el servidor responde lo mismo en todos los casos. `error` = falla de red o de la base.
+// `limite` = demasiadas llamadas seguidas de la cuenta (cupo por minuto, H-3 de la revisión de seguridad): se trata como un error con reintento, con su propio texto.
 export class ErrorCuentaTienda extends Error {
-  readonly codigo: 'sin_acceso' | 'error'
-  constructor(codigo: 'sin_acceso' | 'error') {
-    super(codigo === 'sin_acceso' ? MENSAJE_SIN_ACCESO : MENSAJE_ERROR)
+  readonly codigo: 'sin_acceso' | 'error' | 'limite'
+  readonly esperaSegundos: number
+  constructor(codigo: 'sin_acceso' | 'error' | 'limite', esperaSegundos = 0) {
+    super(codigo === 'sin_acceso' ? MENSAJE_SIN_ACCESO : codigo === 'limite' ? MENSAJE_LIMITE : MENSAJE_ERROR)
     this.name = 'ErrorCuentaTienda'
     this.codigo = codigo
+    this.esperaSegundos = esperaSegundos
   }
 }
 
 export const MENSAJE_SIN_ACCESO = 'Tu cuenta no está activa en esta tienda'
 export const MENSAJE_ERROR = 'No pudimos completar la operación. Probá de nuevo.'
+export const MENSAJE_LIMITE = 'Hiciste muchas consultas seguidas. Esperá un momento y probá de nuevo.'
 
 export const esSinAcceso = (error: unknown): boolean => error instanceof ErrorCuentaTienda && error.codigo === 'sin_acceso'
 
@@ -108,6 +112,7 @@ async function llamar(funcion: string, argumentos: Record<string, unknown>): Pro
   const respuesta = comoObjeto(data)
   if (!respuesta) throw new ErrorCuentaTienda('error')
   if (respuesta.estado === 'sin_acceso') throw new ErrorCuentaTienda('sin_acceso')
+  if (respuesta.estado === 'limite') throw new ErrorCuentaTienda('limite', Math.max(1, Math.round(Number(respuesta.espera_segundos) || 60)))
   return respuesta
 }
 

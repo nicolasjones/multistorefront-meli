@@ -123,12 +123,12 @@ export const MENSAJES_PEDIDO: Record<CampoPedido, string> = {
 }
 export const MENSAJE_CARACTERES = 'Hay caracteres que no podemos aceptar.'
 
-// De control, separadores de línea Unicode, marcas de dirección del texto, U+061C y los ceros de ancho (U+200B a U+200D, U+2060 y U+FEFF): el MISMO conjunto que `enviar_lista_pedido` y
-// `crear_presupuesto_tienda` (M-4 de la revisión). En la nota se acepta el salto de línea.
+// De control, separadores de línea Unicode, marcas de dirección del texto, U+00AD (guion blando), U+061C, U+180E y los invisibles (ceros de ancho U+200B a U+200D, U+2060 a U+2064 y U+FEFF):
+// el MISMO conjunto que `enviar_lista_pedido` y `crear_presupuesto_tienda` (M-4 y H-6 de las revisiones). En la nota se acepta el salto de línea.
 // eslint-disable-next-line no-control-regex
-const PROHIBIDOS_LINEA = /[\u0001-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/
+const PROHIBIDOS_LINEA = /[\u0001-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/
 // eslint-disable-next-line no-control-regex
-const PROHIBIDOS_NOTA = /[\u0001-\u0009\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060\u2066-\u2069\ufeff]/
+const PROHIBIDOS_NOTA = /[\u0001-\u0009\u000b-\u001f\u007f-\u009f\u00ad\u061c\u180e\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/
 
 // Con cuenta activa no se piden nombre ni contacto (`conCuenta`): solo se valida la nota.
 export function validarPedido(datos: DatosPedido, conCuenta: boolean): ErroresPedido {

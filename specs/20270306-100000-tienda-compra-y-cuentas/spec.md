@@ -132,7 +132,7 @@ erDiagram
     uuid id PK "nueva"
     uuid organizacion_id "nueva"
     uuid empresa_id "nueva"
-    uuid cuenta_cliente_id FK "nueva"
+    uuid cuenta_cliente_id FK "nueva: nullable, on delete set null (cierre H-2)"
     uuid cliente_id FK "nueva"
     uuid comprobante_id FK "nueva: unica"
     uuid clave_envio "nueva: unica con la cuenta"
