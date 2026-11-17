@@ -4,8 +4,6 @@
     "graphify",
     "pg_prove",
     "ffmpeg",
-    "hostname",
-    "pkill",
     "tailscale"
   ],
   "ignore": [

@@ -352,14 +352,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "367e4f04f0a6a70fc972d555a9e495c7f6a17950e66c972bf50c5903bd1d7f73",
-      "sourceHash": "200131e2d9aaa45a83e2f06a9dcc08464d12e7cd14c603d039b4de5baecd99d2",
-      "sourceAt": "0c443b13",
+      "pageHash": "aad4bcb6d69e4621425a1b46419848efeed35c6977d73c460f32d822f6ecf54f",
+      "sourceHash": "fba35e49b21b9b0a4e1321d3bdcd4ca25001fb6377149132ec24e69c8c45e1db",
+      "sourceAt": "3fb2aaf1",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "0c443b13"
+      "commit": "3fb2aaf1"
     },
     "docs/changelog.md": {
       "title": "Changelog",
