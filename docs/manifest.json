@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "b53feaadc411af12adc26ae6f1ee3fc3e12936ef7811e68ece9a3ffb3c703582",
+      "pageHash": "1ecaa7a6799e86400919153b31bb316cf8da966f95b27144d45de3643f3ecd23",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": "764d5e1c",
+      "sourceAt": "22e0b6f5",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "764d5e1c"
+      "commit": "22e0b6f5"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
