@@ -57,6 +57,8 @@ function contar(filas: Array<{ feature_id: string }>): Map<string, number> {
 // Clave que designa a la organización en los parámetros de una acción (`organizacion_id`, `organizacionId`,
 // `p_organizacion_id`, `org_id`, `organization_id`…): se compara sin mayúsculas ni separadores.
 export function esClaveDeOrganizacion(clave: string): boolean {
+  // Criterio histórico (sufijo `organizacion_id`: `proveedor_organizacion_id`, `target_organizacion_id`…) O el normalizado.
+  if (/organizacion_id$/i.test(clave)) return true
   return /^(p)?(organizacion|organization|org)(id|uuid)?$/.test(clave.toLowerCase().replace(/[^a-z0-9]/g, ''))
 }
 
@@ -72,7 +74,10 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
     if (!puedeLeer) continue
 
     const nombre = nombreHerramienta('leer', fuente.feature_id, fuente.vista, filasPorFuente.get(fuente.feature_id) ?? 1)
-    if (registradas.has(nombre)) continue
+    if (registradas.has(nombre)) {
+      console.warn('mcp: nombre de herramienta repetido tras normalizar, se omite', nombre)
+      continue
+    }
     registradas.add(nombre)
     server.registerTool(
       nombre,
@@ -108,7 +113,10 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
     if (!puedeEjecutar) continue
 
     const nombre = nombreHerramienta('ejecutar', accion.feature_id, accion.rpc, filasPorAccion.get(accion.feature_id) ?? 1)
-    if (registradas.has(nombre)) continue
+    if (registradas.has(nombre)) {
+      console.warn('mcp: nombre de herramienta repetido tras normalizar, se omite', nombre)
+      continue
+    }
     registradas.add(nombre)
     server.registerTool(
       nombre,

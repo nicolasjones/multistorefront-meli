@@ -29,8 +29,10 @@ Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba r
   proveedor. Sin la funcionalidad: 403. Si la verificación falla: 503.
 - `chat-ia-responder` valida el cuerpo (`mensaje` de texto, hasta 4000 caracteres; `conversacion_id` UUID), comprueba
   que la conversación exista y sea del usuario (404 si no; antes el insert fallaba por RLS en silencio y la función
-  seguía llamando al proveedor) y aplica un tope por usuario: 60 mensajes por hora (`CHAT_IA_LIMITE_HORA`), contado
-  sobre `mensajes_chat_ia` con la sesión del usuario, así que es un tope real y compartido entre instancias (429).
+  seguía llamando al proveedor) y aplica un tope por usuario: 60 mensajes por hora (`CHAT_IA_LIMITE_HORA`, 429),
+  contado sobre `mensajes_chat_ia` con la sesión del usuario. Es compartido entre instancias pero de **mejor esfuerzo**:
+  `authenticated` conserva `DELETE` sobre sus propios mensajes (la migración MSF-724 solo revocó insert/update), así que
+  borrarlos reinicia el contador (ver «Pendientes»).
 - `preguntar-documentos`: `pregunta` hasta 2000 caracteres y un límite de 30 preguntas por hora y usuario
   (`PREGUNTAR_DOCUMENTOS_LIMITE_HORA`). Ese límite vive **en memoria del isolate**: frena un bucle, pero no es una
   cuota global (ver «Pendientes»).
@@ -80,7 +82,7 @@ Detalle en `packages/mcp-server/CONTRATO.md`, sección «Robustez del servidor»
 revalidación de credencial por solicitud. Este lote agrega: `try/catch` del handler HTTP (500 genérico, el proceso no
 muere), nombres de herramienta únicos cuando una funcionalidad tiene varias vistas o acciones, vencimiento de
 ejecuciones `en_curso` abandonadas (10 minutos, `MCP_EJECUCION_VENCE_MIN`), mensajes genéricos al cliente externo y un
-override de organización más amplio en `ejecutar_*`.
+override de organización que une el criterio histórico (sufijo `organizacion_id`, p. ej. `proveedor_organizacion_id`) con variantes normalizadas (`organizacionId`, `org_id`, `p_organizacion_id`...).
 
 ## Deudas menores (MSF-732)
 
@@ -111,6 +113,9 @@ override de organización más amplio en `ejecutar_*`.
 |---|---|---|
 | Tope persistente de uso de IA y de correos por usuario/organización (MSF-727, MSF-731) | Necesita una tabla y definir los topes por plan | `uso_funciones_edge(usuario_id, organizacion_id, funcion, creado_en)` con RLS, RPC `consumir_cupo_funcion(p_funcion, p_max, p_ventana)` que cuente e inserte en una transacción; reemplaza `_shared/limite-memoria.ts`. Topes por defecto: chat 60/h, preguntas 30/h, correos a proveedor 20/h (los de este lote). Decidir si el tope es por usuario, por organización o por ambos |
 | Historial persistente de envíos a proveedores (MSF-731) | Tabla nueva | `dominio.proveedores_correos_enviados(id, organizacion_id, proveedor_id, usuario_id, asunto, creado_en, resultado)` con RLS por organización y lectura con `proveedores`; la función la escribe con la sesión del usuario |
+| El tope del chat se elude borrando mensajes (MSF-727) | Revocar `DELETE` o mover el contador exige migración (no hay en este lote) | Opción A: `revoke delete on mensajes_chat_ia from authenticated` y una RPC `borrar_conversacion_chat_ia` que archive en vez de borrar. Opción B (preferida, y la misma tabla del tope persistente): `uso_funciones_edge` sin `DELETE` para el usuario, y que el chat cuente ahí |
+| El override de organización del MCP es por nombre de parámetro (MSF-729) | No cubre `id_organizacion`, `tenant_id`, `empresa_id` | El wrapper SQL por acción (fila de arriba) es la solución de fondo; abrir ticket y no registrar acciones con esos parámetros hasta tenerlo |
+| Lista negra de columnas secretas en `sanitizarDato` (MSF-730) | Es por nombre, ampliada pero no exhaustiva | La lista permitida por vista (`columnas`, fila siguiente) es el control real; priorizarla |
 | Columnas permitidas por vista en el chat (MSF-730) | `fuentes_chat_ia` no tiene la columna | `alter table fuentes_chat_ia add column columnas text[]`; `leer` hace `select(columnas.join(','))` y rechaza si es nula |
 | Índice único `(version_id, orden)` y estado `indexando` en `versiones_documento` (MSF-728) | Migración | `create unique index … on fragmentos_indexados (version_id, orden)`; ampliar el `check` de estado con `indexando` y que `activar_version_documento` acepte `indexando`. Con eso el candado deja de usar `motivo_error` |
 | `feature_id` único o nombres por vista/RPC en `fuentes_mcp` / `acciones_mcp`; wrapper SQL por acción que inyecte la organización desde la credencial; vencimiento dentro de `iniciar_ejecucion_mcp` (MSF-729) | Migración y decisión de modelo | Wrapper `private.ejecutar_accion_mcp(p_credencial_id, p_rpc, p_parametros)` que resuelva la organización por la credencial y llame a la RPC registrada; mover el vencimiento (hoy en TypeScript) a SQL |

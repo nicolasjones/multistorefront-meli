@@ -137,7 +137,9 @@ Deno.serve(async (req) => {
   })
 
   // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia`
-  // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora.
+  // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora. La cuota es de
+  // MEJOR ESFUERZO: se cuenta sobre `mensajes_chat_ia` y el usuario conserva DELETE sobre sus mensajes, así que borrar
+  // los reinicia (pendiente: tabla de uso sin DELETE para el usuario, docs/funciones-edge-endurecimiento.md).
   const { data: tieneChat, error: featureError } = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
   if (featureError) {
     console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureError.message)

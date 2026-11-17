@@ -44,7 +44,7 @@ tasks:
     errorMessage: "CORREO_MASIVO_URL_BAJA debe ser el origen público https del panel (no localhost) y no puede quedar vacía."
     conditions:
       - "{{ ((envs.correo_masivo_url_baja ?? '') | length) > 0 }}"
-      - "{{ (((envs.correo_masivo_url_baja ?? '') | replace({'https://': ''}) | length) < ((envs.correo_masivo_url_baja ?? '') | length)) or (envs.correo_masivo_permitir_local ?? 'false') == 'true' }}"
+      - "{{ ((envs.correo_masivo_url_baja ?? '') | startsWith('https://')) or (envs.correo_masivo_permitir_local ?? 'false') == 'true' }}"
       - "{{ (((envs.correo_masivo_url_baja ?? '') | replace({'localhost': '', '127.0.0.1': '', '0.0.0.0': ''}) | length) == ((envs.correo_masivo_url_baja ?? '') | length)) or (envs.correo_masivo_permitir_local ?? 'false') == 'true' }}"
   - id: reclamar
     type: io.kestra.plugin.jdbc.postgresql.Query

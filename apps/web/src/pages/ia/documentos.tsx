@@ -295,7 +295,7 @@ export function IaDocumentos() {
                   primary={documento.nombre}
                   secondary={
                     versionesPorDocumento[documento.id]
-                      ? versionesPorDocumento[documento.id].map((v) => `${v.estado}${v.motivo_error ? ` (${v.motivo_error})` : ''}`).join(' · ')
+                      ? versionesPorDocumento[documento.id].map((v) => `${v.estado}${v.motivo_error && !v.motivo_error.startsWith('indexando:') ? ` (${v.motivo_error})` : ''}`).join(' · ')
                       : 'Click para ver historial de versiones'
                   }
                 />

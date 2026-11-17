@@ -115,11 +115,27 @@ describe('nombres de herramienta', () => {
 })
 
 describe('esClaveDeOrganizacion', () => {
-  it.each(['organizacion_id', 'organizacionId', 'p_organizacion_id', 'org_id', 'orgId', 'organization_id', 'organizacion'])('reconoce %s', (clave) => {
+  it.each(['proveedor_organizacion_id', 'target_organizacion_id', 'organizacion_id', 'organizacionId', 'p_organizacion_id', 'org_id', 'orgId', 'organization_id', 'organizacion'])('reconoce %s', (clave) => {
     expect(esClaveDeOrganizacion(clave)).toBe(true)
   })
   it.each(['producto_id', 'cliente_id', 'organizacion_nombre'])('no toca %s', (clave) => {
     expect(esClaveDeOrganizacion(clave)).toBe(false)
+  })
+})
+
+describe('nombres repetidos tras normalizar', () => {
+  it('avisa con console.warn y omite el segundo en vez de callarlo', async () => {
+    const admin = crearAdminFalso({
+      fuentes: [{ feature_id: 'a b', vista: 'v', descripcion: null }, { feature_id: 'a_b', vista: 'v', descripcion: null }],
+      acciones: [], lecturaPermitida: { 'a b': true, 'a_b': true }, ejecucionPermitida: {},
+    })
+    const servidor = crearServidorFalso()
+    const aviso = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await registrarHerramientas(servidor as any, { organizacionId: 'o', credencialId: 'c', admin, token: 't' })
+    expect(servidor.registradas).toEqual(['leer_a_b'])
+    expect(aviso).toHaveBeenCalled()
+    aviso.mockRestore()
   })
 })
 
@@ -158,9 +174,9 @@ describe('ejecutar_*', () => {
     const m = montar({})
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await registrarHerramientas(m.servidor as any, m.conexion)
-    await m.ejecutar({ organizacionId: 'ajena', org_id: 'ajena', p_organizacion_id: 'ajena', cantidad: 3 })
+    await m.ejecutar({ organizacionId: 'ajena', org_id: 'ajena', p_organizacion_id: 'ajena', proveedor_organizacion_id: 'ajena', target_organizacion_id: 'ajena', cantidad: 3 })
     const accion = m.llamadas.find((l) => l.nombre === 'rpc_x')!
-    expect(accion.parametros).toEqual({ organizacionId: 'org-1', org_id: 'org-1', p_organizacion_id: 'org-1', cantidad: 3 })
+    expect(accion.parametros).toEqual({ organizacionId: 'org-1', org_id: 'org-1', p_organizacion_id: 'org-1', proveedor_organizacion_id: 'org-1', target_organizacion_id: 'org-1', cantidad: 3 })
   })
 
   it('no devuelve al cliente el mensaje de la base al fallar el inicio ni la acción', async () => {
