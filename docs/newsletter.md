@@ -151,7 +151,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 ## Verificación técnica (T011)
 
 - T011(a) `List-Unsubscribe`: verificado, el plugin no tiene la propiedad (MSF-962, abajo).
-- T011(b) CORS de `baja-correo-masivo`: la función responde `Access-Control-Allow-Origin: *` y acepta `content-type`, `authorization`, `apikey` y `x-client-info` (los encabezados de `supabase-js`), así que la página de baja de cualquier dominio de tienda puede invocarla sin cambios; contrato `{ token }` → `{ ok: true }` intacto (MSF-963).
+- T011(b) CORS de `baja-correo-masivo`: verificado y endurecido (MSF-963, abajo); contrato `{ token }` → `{ ok: true }` intacto.
 
 ## Seguimientos de seguridad y entregabilidad
 
@@ -166,6 +166,12 @@ Revisión del lote de deuda técnica MSF-515 (2026-11-17). Qué se comprobó en 
   2. *Alternativa en el repo*: cambiar la tarea `enviar_correo` por una tarea de script de Kestra (`io.kestra.plugin.scripts.python.Script` con `smtplib` y `email.message.EmailMessage`, que sí permiten `msg['List-Unsubscribe'] = '<https://…>'`), conservando el reintento y el cierre del destinatario.
   3. *Requisito de cualquiera de las dos*: el `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058) exige un `POST` a una URL `https` con cuerpo `application/x-www-form-urlencoded` (`List-Unsubscribe=One-Click`) y sin sesión. Hoy `baja-correo-masivo` solo acepta JSON `{ token }`: habría que sumarle el token por la URL (`?token=…`) y el cuerpo de formulario, sin tocar el contrato JSON. Con solo `List-Unsubscribe: <https://…/newsletter/baja/TOKEN>` (sin `-Post`) no hace falta tocar la función, pero Gmail y Yahoo piden el un clic para los envíos masivos.
 - **Pendiente real**: elegir el camino y probarlo con SMTP real (entregabilidad). Hasta entonces la baja depende del enlace del cuerpo.
+
+### CORS de `baja-correo-masivo` (MSF-963)
+
+- **Lo que se comprobó.** La página `/newsletter/baja/:token` corre en el dominio de cada tienda y llama con `supabaseClient.functions.invoke('baja-correo-masivo', { body: { token } })` (`apps/web/src/lib/tiendaNewsletter.ts`). El SDK instalado (`@supabase/supabase-js` 2.115.0, lockfile) manda `authorization`, `apikey`, `x-client-info` y `content-type`, y opcionalmente `x-retry-count`, `traceparent`, `tracestate` y `baggage` (lista oficial de `@supabase/supabase-js/cors`). La función ya respondía `Access-Control-Allow-Origin: *` con los cuatro primeros y con CORS en todas sus respuestas (200, 400, 405 y 500). `*` es lo correcto: los dominios de las tiendas son abiertos, la función no usa cookies ni credenciales y la autenticación es el token del enlace.
+- **Lo que se cambió** (`supabase/functions/baja-correo-masivo/handler.ts`): se agregaron a los encabezados permitidos los opcionales del SDK (si alguna vez se activa la propagación de trazas, el preflight no rompería la baja), `Access-Control-Allow-Methods: POST, OPTIONS` y `Access-Control-Max-Age: 86400` solo en el preflight. Contrato intacto. `pnpm test:edge:baja-correo-masivo` (9 pruebas) cubre el preflight, CORS en todas las respuestas y el contrato.
+- **Pendiente real (por entorno)**: confirmar en dev, stg y prd con `curl -i -X OPTIONS https://<supabase>/functions/v1/baja-correo-masivo -H 'Origin: https://<tienda>' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: authorization,apikey,x-client-info,content-type'` y un `POST` con la clave pública que el gateway no responda `401` antes de llegar a la función. `supabase/config.toml` **no** declara `[functions.baja-correo-masivo]`: por defecto el gateway exige `verify_jwt`, y una clave pública que no sea un JWT (publishable) terminaría en `401` sin cabeceras CORS (el navegador lo muestra como error de CORS). La baja de clientes (`/baja-correo/:token`) llama igual y funciona en dev, pero si algún entorno falla así, el arreglo es `[functions.baja-correo-masivo] verify_jwt = false` en el `config.toml` del workdir de ese entorno (mismo criterio que `consultar-estado-reparacion`, `docs/service-seguimiento.md`); no se agregó acá porque cambia la postura del gateway y no se pudo probar contra uno.
 
 ## Reversión
 
