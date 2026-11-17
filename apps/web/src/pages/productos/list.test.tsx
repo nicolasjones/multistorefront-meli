@@ -137,16 +137,28 @@ describe('ProductoList', () => {
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
   })
 
-  it('muestra las columnas del prototipo con «—» donde todavía no hay dato', async () => {
+  it('muestra las columnas del prototipo con «—» donde no hay dato; sin Rentabilidad no hay Margen', async () => {
     abrir()
     await screen.findByText('Joystick')
     const tabla = screen.getByRole('table', { name: 'Productos' })
-    for (const encabezado of ['Producto', 'Precio', 'Margen', 'Stock', 'Categoría', 'Estado']) {
+    for (const encabezado of ['Producto', 'Precio', 'Stock', 'Categoría', 'Estado']) {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
+    expect(within(tabla).queryByRole('columnheader', { name: /Margen/ })).not.toBeInTheDocument()
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
-    expect(within(filaCable).getAllByText('—')).toHaveLength(3)
+    // El SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(2)
+  })
+
+  it('con acceso a Rentabilidad la columna Margen calcula (precio − costo) / precio en pesos y «—» sin costo', async () => {
+    niveles('lectura', 'lectura')
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).getByRole('columnheader', { name: /Margen/ })).toBeInTheDocument()
+    // Joystick: USD 100 a 157.000 pesos (dólar 1.570), costo USD 12,50 = 19.625 pesos → 87,5 %.
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('87,5 %')).toBeInTheDocument()
   })
 
   it('Precio siempre en pesos: ARS tal cual y USD convertido con la última cotización y el USD entre paréntesis', async () => {

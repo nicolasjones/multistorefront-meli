@@ -109,7 +109,8 @@ export function PrecioCostoBloque({
       {hintCosto !== null ? <Typography variant="caption" color="text.secondary">{hintCosto}</Typography> : null}
       {conCosto ? <MargenEstimado margen={resumen.margen} /> : null}
       <Box>
-        <Button size="small" disabled aria-label="Cotización (disponible con la carga del dólar)">Cotización →</Button>
+        {/* Pestaña nueva: el formulario puede tener cambios sin guardar y no se pierden al mirar o cargar el dólar. */}
+        <Button size="small" component="a" href="/cotizacion" target="_blank" rel="noopener noreferrer" aria-label="Cotización (se abre en una pestaña nueva)">Cotización →</Button>
       </Box>
     </Stack>
   )

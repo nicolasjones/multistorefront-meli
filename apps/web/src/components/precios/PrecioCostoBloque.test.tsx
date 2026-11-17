@@ -40,6 +40,14 @@ describe('PrecioCostoBloque', () => {
     expect(screen.getByText('El precio de lista se carga sin IVA.')).toBeInTheDocument()
   })
 
+  it('«Cotización →» es un enlace habilitado a la pantalla de Cotización, en pestaña nueva', () => {
+    montar()
+    const enlace = screen.getByRole('link', { name: /Cotización/ })
+    expect(enlace).toHaveAttribute('href', '/cotizacion')
+    expect(enlace).toHaveAttribute('target', '_blank')
+    expect(enlace).not.toHaveAttribute('aria-disabled', 'true')
+  })
+
   it('ARS: el precio y el costo se muestran tal cual, sin conversión ni dólar', () => {
     montar({ moneda: 'ARS', precioLista: '1000', costo: '600', cotizacion: null })
     expect(screen.getByLabelText('Precio en pesos')).toHaveValue('$ 1.000')

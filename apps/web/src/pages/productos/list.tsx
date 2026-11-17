@@ -22,6 +22,7 @@ import {
   consultarProductos,
   expandirCompatibles,
   formatearCosto,
+  margenListado,
   hayFiltrosActivos,
   type ColumnaOrdenProducto,
   type ConsultaProductos,
@@ -43,6 +44,7 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { infoDisponibilidad } from '../../lib/productos'
+import { formatearMargen } from '../../lib/precios'
 import { tokens } from '../../tema/tokens'
 
 // Diálogos de la edición masiva (F-CAT-12): carga diferida, no pesan en el recorrido principal del listado.
@@ -57,14 +59,8 @@ const COLUMNAS_ORDENABLES: ReadonlyArray<ColumnaOrdenProducto> = ['nombre', 'sku
 
 type FilaProducto = FilaProductoListado & { imagen_url?: string | null }
 
-// Margen queda visible con «—» hasta que llegue Rentabilidad (FR-002, Decisión 5 de la spec). Costo (F-CAT-16) solo se muestra con acceso a Rentabilidad.
+// Costo (F-CAT-16) y Margen solo se muestran con acceso a Rentabilidad: el margen deja deducir el costo.
 const SIN_DATO = '—'
-const columnaPendiente = (clave: string, encabezado: string): ColumnaAdaptable<FilaProducto> => ({
-  clave,
-  encabezado,
-  align: 'right',
-  render: () => <Typography variant="b" color="text.secondary">{SIN_DATO}</Typography>,
-})
 
 // «Precio»: siempre en pesos; si el producto está en USD, pesos a la última cotización y el USD entre paréntesis.
 const columnaPrecio = (precios: ReadonlyMap<string, PrecioListado>): ColumnaAdaptable<FilaProducto> => ({
@@ -119,6 +115,17 @@ const columnaCosto = (costos: ReadonlyMap<string, number | string>): ColumnaAdap
   },
 })
 
+// «Margen»: (precio − costo) / precio de cada producto de la página; «—» si falta el precio o el costo.
+const columnaMargen = (precios: ReadonlyMap<string, PrecioListado>, costos: ReadonlyMap<string, number | string>): ColumnaAdaptable<FilaProducto> => ({
+  clave: 'margen',
+  encabezado: 'Margen',
+  align: 'right',
+  render: (producto) => {
+    const margen = margenListado(precios.get(producto.id), costos.get(producto.id))
+    return <Typography variant="b" color={margen === null ? 'text.secondary' : undefined}>{formatearMargen(margen)}</Typography>
+  },
+})
+
 // «Compatible con» (F-CAT-09, FR-004): cada valor es una etiqueta; sin valores no se muestra nada.
 const etiquetasCompatible = (producto: FilaProducto) => {
   const valores = producto.compatible_con ?? []
@@ -146,8 +153,6 @@ const columnasBase: ColumnaAdaptable<FilaProducto>[] = [
       </Stack>
     ),
   },
-  columnaPendiente('precio', 'Precio'),
-  columnaPendiente('margen', 'Margen'),
   {
     // F-CAT-17 (FR-009): etiqueta de disponibilidad, derivada en la base. La cantidad numérica queda fuera de esta historia.
     clave: 'stock',
@@ -256,7 +261,7 @@ export function ProductoList() {
   const idsSeleccionados = useMemo(() => [...idsMarcados], [idsMarcados])
 
   const columnas = useMemo(() => {
-    const [producto, , ...resto] = columnasBase
+    const [producto, ...resto] = columnasBase
     const columnaSeleccion: ColumnaAdaptable<FilaProducto> = {
       clave: 'seleccion',
       // Sin texto visible: el «Seleccionar todos» va en el encabezado de esta columna (como el prototipo).
@@ -273,7 +278,7 @@ export function ProductoList() {
       ...(puedeEditar ? [columnaSeleccion] : []),
       producto,
       columnaPrecio(precios),
-      ...(veCosto ? [columnaCosto(costos)] : []),
+      ...(veCosto ? [columnaCosto(costos), columnaMargen(precios, costos)] : []),
       ...resto,
       columnaVisibleEn(empresas),
       columnaEstado,
