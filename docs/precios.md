@@ -217,3 +217,6 @@ Sobre ese precio normal:
 ## Listado de Productos: Margen y Cotización
 
 La columna «Margen» del listado de Productos ((precio − costo) / precio, en pesos) solo existe con acceso a Rentabilidad, igual que «Costo». El botón «Cotización →» del bloque de precio abre la pantalla de Cotización en una pestaña nueva. «Stock bajo» y «Sin vincular a ML» siguen deshabilitados hasta que existan sus datos.
+
+El margen del listado es una **estimación**: (precio de lista − costo) / precio de lista, en pesos, con el costo en la moneda del producto (en USD se convierte con la misma cotización con que la base convirtió el precio). No incluye impuestos ni descuentos y puede diferir del margen de Rentabilidad; la celda lo aclara en un tooltip. El enlace «Cotización →» solo se ofrece a quien tiene la sección `cotizacion_dolar`, respeta el basename del router y abre en pestaña nueva.
+

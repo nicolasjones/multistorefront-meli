@@ -194,3 +194,6 @@ En la ficha de empresa y en el formulario público de contacto, el campo WhatsAp
 ## Listado de Empresas: datos reales por fila
 
 Las columnas «Tienda web», «Precio» y «Productos visibles» leen el estado real de cada empresa (dominio de la tienda, regla de precio y productos visibles del catálogo de la tienda) en `useResumenEmpresas`. Cada dato falla por separado y se ve «No disponible». «Mercado Libre» sigue diciendo «Sin configurar» porque todavía no hay integración que consultar.
+
+El resumen se lee con una consulta por dato para todas las empresas (tiendas y reglas de precio); los productos visibles se piden a `listar_catalogo_tienda` solo para las empresas con tienda, porque la visibilidad efectiva la resuelve la base. Una versión agregada (un solo conteo para todas) requiere SQL y queda pendiente. Se vuelve a leer al cambiar la empresa activa.
+

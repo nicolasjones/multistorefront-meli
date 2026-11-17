@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "4aba92103d2418e04ced82cd86b8d89eb20316f12e4e23d954b2a44fc39d5ff6",
-      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": "c935dae1",
+      "pageHash": "c3c59c9288768fbacab5802ce3a438999f34e5ec1c404f905f566cbd683d9a6c",
+      "sourceHash": "a0cb426f12d3b012d4157209dad8b972662b63776a47f2bfa9686554f3ad9a4d",
+      "sourceAt": "3d8efbc2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "c935dae1"
+      "commit": "3d8efbc2"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -701,14 +701,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "2ca100d990d651d20a12e767290a381c508a1111f699256845924719ab140d1a",
-      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": "202e8b34c",
+      "pageHash": "369988d0071961070901503d61fdf3298b02eddc0a0c7fe8ec2ab8e7de35278d",
+      "sourceHash": "a0cb426f12d3b012d4157209dad8b972662b63776a47f2bfa9686554f3ad9a4d",
+      "sourceAt": "3d8efbc2",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "202e8b34c"
+      "commit": "3d8efbc2"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1091,9 +1091,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "dcb458d5755ccb52df93c86ca5e597d20f9c2cb9b67c8e953ce7ce6fd4f187f3",
+      "pageHash": "6f92d49098e310bcb9eb0daf569930c9c60fcabf089382e51926220792f7deb6",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "ffbf1836",
+      "sourceAt": "3d8efbc2",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1102,7 +1102,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "ffbf1836"
+      "commit": "3d8efbc2"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -2231,9 +2231,9 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "527e96a8656b1db58a0a0cee40cb776501455f90f3efe245f8c1516ea6a2ea54",
+      "pageHash": "ea4b1e409f0e0c3ca6060c1af7c784efe5069fe7ffe1b6981c618ddf85a52da1",
       "sourceHash": "b296074c164f238e07e4d84d02274531f38f582232b1b972d5d9bb3ed15ae017",
-      "sourceAt": "1e7d65873",
+      "sourceAt": "3d8efbc2",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
@@ -2245,7 +2245,7 @@
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "1e7d65873"
+      "commit": "3d8efbc2"
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
