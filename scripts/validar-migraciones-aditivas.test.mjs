@@ -135,3 +135,24 @@ test('rechaza Reversión vacía, ninguna, n/a y no aplica; acepta pasos en la l�
     assert.equal((await run(dir)).code, 0);
   });
 });
+
+test('tag de dollar-quote Unicode y marcadores en inglés', async () => {
+  await withMigrations({ '001.sql': '$é$ -- $é$; drop table t;' }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+  for (const marcador of ['-- Reversion: none', '-- Reversion: n.a.', '-- Reversion: na', '-- Reversion: nothing']) {
+    await withMigrations({ '001.sql': `${marcador}\ndrop table t;` }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, marcador);
+    });
+  }
+});
+
+test('rendimiento: 1 MB de tags únicos sin cierre se analiza en menos de 2 s', async () => {
+  const sql = Array.from({ length: 105000 }, (_, k) => `$t${k}$ `).join('') + '\n-- Reversión: x\nselect 1;';
+  await withMigrations({ '001.sql': sql }, async (dir) => {
+    const t = Date.now();
+    const r = await run(dir);
+    assert.equal(r.code, 0);
+    assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
+  });
+});

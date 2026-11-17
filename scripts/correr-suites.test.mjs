@@ -51,3 +51,20 @@ test('el binario real sale con 1 si una suite falla y 0 si no', async () => {
   const bien = spawnSync(process.execPath, [script, 'node -e "process.exit(0)"'], { encoding: 'utf8' });
   assert.equal(bien.status, 0);
 });
+
+test('CORRER_SUITES_TIMEOUT_S y --timeout inválidos salen con 2 y mensaje claro, sin stack', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const script = new URL('./correr-suites.mjs', import.meta.url).pathname;
+  for (const crudo of ['abc', '0', '-5', 'Infinity', '999999']) {
+    const env = { ...process.env, CORRER_SUITES_TIMEOUT_S: crudo };
+    const r = spawnSync(process.execPath, [script, 'node -e "0"'], { encoding: 'utf8', env });
+    assert.equal(r.status, 2, crudo);
+    assert.match(r.stderr, /CORRER_SUITES_TIMEOUT_S debe ser/);
+    assert.doesNotMatch(r.stderr, /\n\s+at /);
+  }
+  const r = spawnSync(process.execPath, [script, '--timeout', 'x', 'node -e "0"'], { encoding: 'utf8' });
+  assert.equal(r.status, 2);
+  assert.match(r.stderr, /--timeout debe ser/);
+  const ok = spawnSync(process.execPath, [script, 'node -e "0"'], { encoding: 'utf8', env: { ...process.env, CORRER_SUITES_TIMEOUT_S: '30' } });
+  assert.equal(ok.status, 0);
+});

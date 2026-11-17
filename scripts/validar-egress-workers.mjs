@@ -9,13 +9,22 @@ import { discoverWorkers } from './descubrir-workers.mjs';
 const DOMINIO = /^(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
 const RED_CONVENCIONAL = /worker-egress-([a-z0-9][a-z0-9-]*)/gi;
 // `--network x`, `--network=x`, `--net x`, `--net=x` (alias de docker) y `network_mode: x` / `networkMode: x`.
-const NETWORK_LITERAL = /(?:--net(?:work)?(?:=|\s+)|network_?mode["']?\s*[:=]\s*)["']?([^"'\s,}]+)/gi;
+const NETWORK_LITERAL = /(?:--net(?:work)?(?:=\s*|\s+)|network_?mode["']?\s*[:=]\s*)["']?([^"'\s,}]+)/gi;
 // `none` = sin red (más estricto que cualquier allowlist). Una variable se lee hasta el primer espacio, por eso no se exige el `}`.
-const RED_VALIDA = /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$\{[A-Za-z_]\w*.*|\$[A-Za-z_]\w*)$/i;
+function redValida(valor) {
+  if (/^worker-egress-[a-z0-9][a-z0-9-]*$/i.test(valor) || /^none$/i.test(valor)) return true;
+  if (/^\$[A-Za-z_]\w*$/.test(valor)) return true;
+  const exp = /^\$\{[A-Za-z_]\w*(?::?([-=+?])(.*?))?\}?$/.exec(valor);
+  if (!exp) return false;
+  // `${VAR:-host}`: un valor por defecto literal debe ser una red válida (o ninguno). `:?msg` y `${VAR}` valen.
+  return exp[1] === undefined || exp[1] === '?' || exp[2] === '' || /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$.*)$/i.test(exp[2]);
+}
 
 // LÍMITES: este validador comprueba ESTRUCTURA y consistencia (workers, redes de flows y allowlist). NO
 // detecta que un worker ya listado agregue un `fetch` a un tercero nuevo: la allowlist real se aplica fuera
 // de Docker (firewall/proxy del servidor) y un destino nuevo exige declarar `domains` a mano en la revisión.
+// Tampoco cubre `networks:` de un compose ni un `--network` en archivos que no sean YAML de `infra/kestra/flows`
+// (scripts, Dockerfiles, otros directorios): solo se leen los `*.yml`/`*.yaml` de ese árbol.
 
 function archivosYaml(directorio) {
   const salida = [];
@@ -48,7 +57,7 @@ export function redesFueraDeConvencion(directorio) {
   for (const archivo of archivosYaml(directorio)) {
     const texto = fs.readFileSync(archivo, 'utf8').replace(/\\\r?\n\s*/g, ' ');
     for (const m of texto.matchAll(NETWORK_LITERAL)) {
-      if (!RED_VALIDA.test(m[1])) invalidas.push(`${archivo}: red ${m[1]}`);
+      if (!redValida(m[1])) invalidas.push(`${archivo}: red ${m[1]}`);
     }
   }
   return invalidas;

@@ -8,6 +8,17 @@ import path from 'node:path';
 // `ejecutar(comando, timeoutMs)` devuelve el exit code (número) o `{ estado, senal }` si lo mató una señal
 // (incluido el timeout por suite, SIGTERM). Timeout por suite: `--timeout <s>` o CORRER_SUITES_TIMEOUT_S (600 por defecto).
 export const TIMEOUT_POR_DEFECTO_S = 600;
+export const TIMEOUT_MAXIMO_S = 86400;
+// Limitación: SIGKILL mata solo el shell de la suite; los procesos nietos pueden quedar huérfanos.
+
+// Valida un timeout en segundos (finito, > 0 y <= TIMEOUT_MAXIMO_S). Lanza un Error con mensaje claro.
+export function parsearTimeoutS(crudo, origen) {
+  const n = Number(crudo);
+  if (String(crudo).trim() === '' || !Number.isFinite(n) || n <= 0 || n > TIMEOUT_MAXIMO_S) {
+    throw new Error(`${origen} debe ser un número de segundos mayor que 0 y de hasta ${TIMEOUT_MAXIMO_S} (recibido: ${JSON.stringify(crudo)}).`);
+  }
+  return n;
+}
 
 export function correrSuites(comandos, { ejecutar = defecto, salida = process.stdout, timeoutS = TIMEOUT_POR_DEFECTO_S } = {}) {
   const resultados = comandos.map((comando) => {
@@ -31,14 +42,18 @@ function defecto(comando, timeoutMs) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   let argumentos = process.argv.slice(2);
-  let timeoutS = Number(process.env.CORRER_SUITES_TIMEOUT_S) || TIMEOUT_POR_DEFECTO_S;
-  if (argumentos[0] === '--timeout') {
-    timeoutS = Number(argumentos[1]);
-    if (!(timeoutS > 0)) {
-      console.error('--timeout requiere segundos > 0');
-      process.exit(2);
+  let timeoutS = TIMEOUT_POR_DEFECTO_S;
+  try {
+    if (process.env.CORRER_SUITES_TIMEOUT_S !== undefined && process.env.CORRER_SUITES_TIMEOUT_S !== '') {
+      timeoutS = parsearTimeoutS(process.env.CORRER_SUITES_TIMEOUT_S, 'CORRER_SUITES_TIMEOUT_S');
     }
-    argumentos = argumentos.slice(2);
+    if (argumentos[0] === '--timeout') {
+      timeoutS = parsearTimeoutS(argumentos[1] ?? '', '--timeout');
+      argumentos = argumentos.slice(2);
+    }
+  } catch (error) {
+    console.error(error.message);
+    process.exit(2);
   }
   const comandos = argumentos;
   if (comandos.length === 0) {

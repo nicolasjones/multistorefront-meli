@@ -27,7 +27,8 @@ const dir = argumentValue(args, '--dir', 'supabase/migrations');
 //
 // LÍMITES (a propósito, es un gate barato y no un parser de SQL). NO detecta: SQL dinámico con `execute`;
 // `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`; `ALTER TABLE t DROP c` sin la palabra
-// COLUMN; `UPDATE` sin `WHERE`; `REVOKE`; un `$tag$` mal cerrado se lee como texto común; un cuerpo `$$…$$` que
+// COLUMN; `UPDATE` sin `WHERE`; `REVOKE`; tampoco modela `standard_conforming_strings = off` (con ese ajuste `'\\'`
+// escapa la comilla en literales comunes y el tokenizador los leería mal); un `$tag$` mal cerrado se lee como texto común; un cuerpo `$$…$$` que
 // es solo texto (no SQL) con la palabra `drop table` cuenta como destructivo (falso positivo, conservador). El camino de reversión se acepta si algún comentario tiene una
 // línea que nombra la «reversión» (la palabra completa, no «reversible») y no está negada («sin reversión»,
 // «no hay reversión»; el filtro es CONSERVADOR: `-- Reversión: no hay reversión automática` también se rechaza
@@ -40,7 +41,7 @@ const DELETE_SIN_WHERE = /\bDELETE\s+FROM\b[^;]*(?:;|$)/gi;
 const MARKER_LINEA = /\brevers(?:ión|ion)(?![\p{L}\d_])/iu;
 const MARKER_NEGADO = /\b(?:sin|no\s+hay|ninguna?)\s+(?:camino\s+de\s+)?revers/iu;
 // `-- Reversión: ninguna` / `n/a` / `no aplica` / vacío declaran que NO hay reversión: no cuentan.
-const MARKER_VACIO = /\brevers(?:ión|ion)\s*:\s*(?:ninguna?|n\/?a|no\s+aplica|no\s+hay|nada|-+|\.+|tbd|todo)\s*\.?\s*$/iu;
+const MARKER_VACIO = /\brevers(?:ión|ion)\s*:\s*(?:ninguna?|none|nothing|nil|n\.?\/?a\.?|no\s+aplica|no\s+hay|nada|-+|\.+|tbd|todo)\s*\.?\s*$/iu;
 // `Reversión:` sin nada más en la línea es válido solo si la línea de comentario siguiente trae contenido (los pasos).
 const SOLO_MARCADOR = /\brevers(?:ión|ion)\s*:?\s*$/iu;
 const limpiar = (linea) => linea.replace(/^\s*(?:--+|\/\*+|\*+)\s*/, '').replace(/\*\/\s*$/, '').trim();
@@ -54,6 +55,36 @@ const limpiar = (linea) => linea.replace(/^\s*(?:--+|\/\*+|\*+)\s*/, '').replace
 // Los literales quedan vacíos en `ejecutable`.
 function esCaracterDeIdentificador(c) {
   return c !== undefined && /[A-Za-z0-9_$\u0080-\uffff]/.test(c);
+}
+
+// Tag de dollar-quote: `$$` o `$tag$` con letras Unicode (como Postgres: `$é$`), dígitos y `_` (sin dígito inicial).
+const TAG_DOLLAR = /\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$/uy;
+const TAGS_GLOBAL = /(?=(\$(?:[\p{L}_][\p{L}\p{N}_]*)?\$))/gu;
+
+// Posiciones de cada `$tag$` del texto, calculadas UNA vez por llamada (lineal): buscar el cierre de cada
+// apertura con `indexOf` era cuadrático con muchos tags únicos sin cierre.
+function tagsDe(sql) {
+  if (tagsDe.sql === sql) return tagsDe.mapa;
+  const mapa = new Map();
+  for (const m of sql.matchAll(TAGS_GLOBAL)) {
+    const lista = mapa.get(m[1]);
+    if (lista) lista.push(m.index); else mapa.set(m[1], [m.index]);
+  }
+  tagsDe.sql = sql;
+  tagsDe.mapa = mapa;
+  return mapa;
+}
+
+// Primera posición >= `desde` donde aparece `tag` (búsqueda binaria), o -1.
+function siguienteTag(mapa, tag, desde) {
+  const lista = mapa.get(tag) ?? [];
+  let lo = 0;
+  let hi = lista.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (lista[mid] < desde) lo = mid + 1; else hi = mid;
+  }
+  return lo < lista.length ? lista[lo] : -1;
 }
 
 export function separar(sql) {
@@ -93,8 +124,9 @@ export function separar(sql) {
       ejecutable += `${c}${c}`;
       i = j + 1;
     } else if (c === '$' && !esCaracterDeIdentificador(sql[i - 1])) {
-      const abre = /^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/.exec(sql.slice(i));
-      const cierre = abre ? sql.indexOf(abre[0], i + abre[0].length) : -1;
+      TAG_DOLLAR.lastIndex = i;
+      const abre = TAG_DOLLAR.exec(sql);
+      const cierre = abre ? siguienteTag(tagsDe(sql), abre[0], i + abre[0].length) : -1;
       if (abre && cierre !== -1) {
         const interior = separar(sql.slice(i + abre[0].length, cierre));
         ejecutable += ` ${interior.ejecutable} `;
