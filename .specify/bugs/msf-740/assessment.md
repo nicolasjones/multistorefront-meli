@@ -41,8 +41,8 @@ Esperado (lo que hay que decidir y dejar escrito): una regla explícita para la 
 
 Mecánica de reproducción tomada del E2E ya existente `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` (init script + primer clic); verificada por lectura de código, **sin ejecutar** en esta assessment.
 
-- [NEEDS CLARIFICATION: qué debe pasar exactamente al vencer en la tienda: volver a `/`, quedarse en la misma página con un aviso, o no cerrar nada.]
-- [NEEDS CLARIFICATION: si la tienda debe tener una ventana distinta de 12 h, si no debe tener regla propia, o si debe poder configurarse por tienda.]
+- Resuelta: al vencer no pasa nada en la tienda; no cierra la sesión ni redirige (ver `fix.md`, opción (c)).
+- Resuelta: la tienda no tiene regla propia de inactividad ni ventana configurable (ver `fix.md`, opción (c)); la variante con regla propia queda como decisión de producto futura.
 
 ## Suspected Code Paths
 
