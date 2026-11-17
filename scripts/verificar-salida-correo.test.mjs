@@ -256,6 +256,33 @@ test('en local, con el aviso en Mailpit, la salida queda verificada', async () =
   }
 })
 
+test('en local, con CORREO_PRUEBA, un aviso dirigido a otra casilla no da verde', async () => {
+  const base = await levantar({
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+    mensajes: () => [{ Subject: 'Solicitud de acceso a Rentabilidad', Created: new Date().toISOString(), To: [{ Address: 'otra@ejemplo.com' }] }],
+  })
+  try {
+    const r = await correr(entorno(base, { MAILPIT_URL: base.url, CORREO_PRUEBA }))
+    assert.equal(r.codigo, 1)
+    assert.doesNotMatch(r.salida, /OK: el correo/)
+  } finally {
+    await base.cerrar()
+  }
+})
+
+test('en local, con CORREO_PRUEBA, el aviso dirigido a esa casilla (sin distinguir mayúsculas) da verde', async () => {
+  const base = await levantar({
+    respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+    mensajes: avisoEnMailpit,
+  })
+  try {
+    const r = await correr(entorno(base, { MAILPIT_URL: base.url, CORREO_PRUEBA: CORREO_PRUEBA.toUpperCase() }))
+    assert.equal(r.codigo, 0)
+  } finally {
+    await base.cerrar()
+  }
+})
+
 test('en local, un aviso en Mailpit que no salió de esta corrida no da verde', async () => {
   // Reproduce el verde falso: la función no envió nada (`enviado: false`) pero hay un «Solicitud de acceso»
   // en Mailpit. El `0` tiene que ser prueba de ESTA corrida.
