@@ -17,7 +17,7 @@
 -- (cotizar y crear con un cliente con lista, snapshot en las líneas, paridad con el panel y bandera apagada). Acá el motor sigue sin lista.
 begin;
 
-select plan(218);
+select plan(227);
 
 -- ============================================================================
 -- Fixture
@@ -878,6 +878,19 @@ select is((select count(*)::int from public.listar_presupuestos(null, 'pendiente
   'MSF-942: el filtro de canal se combina con el de estado');
 select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, ' ')), (select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200)), 'MSF-942: un origen vacío equivale a todos');
 select throws_ok($$select * from public.listar_presupuestos(null, null, null, 1, 10, 'inventado')$$, '22023', null, 'MSF-942: un origen desconocido se rechaza');
+-- Exportación CSV por canal: misma regla del vínculo que el listado.
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'exportar_comprobantes: origen tienda exporta exactamente los presupuestos con vínculo');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), (select count(*)::int from public.exportar_comprobantes('presupuestos')) - (select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')),
+  'exportar_comprobantes: panel + tienda = todos');
+select cmp_ok((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), '>', 0, 'exportar_comprobantes: hay presupuestos de panel (la prueba distingue de verdad)');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda') e where e.id not in (select comprobante_id from dominio.presupuestos_tienda)), 0, 'exportar_comprobantes: ninguno del canal tienda es de panel');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel') e where e.id in (select comprobante_id from dominio.presupuestos_tienda)), 0, 'exportar_comprobantes: ninguno del canal panel es de la tienda');
+select is((select max(filas)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'exportar_comprobantes: filas es el total del canal');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', 'inexistente-xyz', null, null, null, null, null, 'tienda')), 0, 'exportar_comprobantes: el canal se combina con la búsqueda');
+select is((select count(*)::int from public.exportar_comprobantes('comprobantes', p_origen => 'tienda')), 0, 'exportar_comprobantes: las facturas nunca son del canal tienda');
+select throws_ok($$select * from public.exportar_comprobantes('presupuestos', p_origen => 'inventado')$$, '22023', null, 'exportar_comprobantes: un origen desconocido se rechaza');
 reset role;
 select pg_temp.como('f3000000-0000-0000-0000-000000000008', '10.90.0.2');
 select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '22222222-2222-2222-2222-222222222222'),
