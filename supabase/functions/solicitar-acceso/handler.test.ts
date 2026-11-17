@@ -52,7 +52,7 @@ describe('solicitar-acceso', () => {
     const res = await pedir(deps)
 
     assert.equal(res.status, 200)
-    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: true })
+    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: true, enviado: true })
     assert.deepEqual(estado.rpc, [['solicitar_acceso', { p_seccion: 'rentabilidad' }]])
     assert.equal(estado.enviados.length, 1)
     assert.deepEqual(estado.enviados[0].para, ['admin1@example.com', 'admin2@example.com'])
@@ -65,17 +65,19 @@ describe('solicitar-acceso', () => {
     const res = await pedir(deps)
 
     assert.equal(res.status, 200)
-    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: false })
+    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: false, enviado: false })
     assert.equal(estado.enviados.length, 0)
     assert.equal(estado.reclamos, 0)
   })
 
-  it('doble clic concurrente: quien pierde el reclamo no envía', async () => {
+  it('doble clic concurrente: quien pierde el reclamo no envía y lo dice', async () => {
     const { deps, estado } = montar({ reclamoPerdido: true })
     const res = await pedir(deps)
 
     assert.equal(res.status, 200)
     assert.equal(estado.enviados.length, 0)
+    // `enviado: false` es lo que le permite al guion de verificación no atribuirse un envío ajeno (MSF-532).
+    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: true, enviado: false })
   })
 
   it('si falla el envío, el pedido queda, responde error reintentable y libera el envío', async () => {
@@ -93,6 +95,9 @@ describe('solicitar-acceso', () => {
 
     assert.equal(res.status, 200)
     assert.equal(estado.enviados.length, 1)
+    // El aviso SALE en esta corrida aunque el pedido del día ya existiera: `enviado` lo distingue de «no se
+    // envió nada» (MSF-532).
+    assert.deepEqual(await res.json(), { resultado: 'solicitud_enviada', nuevo: false, enviado: true })
   })
 
   it('organización sin administrador activo: informa y no pierde el registro', async () => {
@@ -100,7 +105,7 @@ describe('solicitar-acceso', () => {
     const res = await pedir(deps)
 
     assert.equal(res.status, 200)
-    assert.equal((await res.json() as { resultado: string }).resultado, 'sin_administradores')
+    assert.deepEqual(await res.json(), { resultado: 'sin_administradores', nuevo: true, enviado: false })
     assert.equal(estado.enviados.length, 0)
     assert.equal(estado.liberaciones, 1)
   })

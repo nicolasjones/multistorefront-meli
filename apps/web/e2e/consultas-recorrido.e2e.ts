@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-122 (SC-004, SC-008): una consulta enviada desde la tienda aparece en la bandeja en menos de
 // 5 s y la base emite el aviso al equipo; se abre su enlace, se asigna, anota y resuelve con tres roles
@@ -14,18 +14,40 @@ const LIMITE_BANDEJA_MS = 5_000
 
 type AvisoConsulta = { tipo_aviso: string; datos: Record<string, string> }
 
+const tokens = new Map<string, string>()
+
+// `public.avisos_pendientes` no se lee por la API (ni `service_role` ni `authenticated`): cada persona ve sus avisos con la RPC
+// de la campanita, `listar_notificaciones`, con su propia sesión. La RPC solo trae los de su organización y de las secciones
+// a las que tiene acceso.
+async function tokenDe(correo: string): Promise<string> {
+  const guardado = tokens.get(correo)
+  if (guardado) return guardado
+  const r = await fetch(`${url}/auth/v1/token?grant_type=password`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ email: correo, password }) })
+  if (!r.ok) throw new Error(`sesión de ${correo}: ${r.status} ${await r.text()}`)
+  const { access_token: token } = (await r.json()) as { access_token: string }
+  tokens.set(correo, token)
+  return token
+}
+
 // Avisos de nueva consulta de una persona para el visitante dado (los emite la base al crear la consulta).
-async function avisosSinEspera(userId: string, nombre: string): Promise<AvisoConsulta[]> {
-  const r = await fetch(`${url}/rest/v1/avisos_pendientes?user_id=eq.${userId}&tipo_aviso=eq.consulta_nueva&select=tipo_aviso,datos`, { headers: cabeceras() })
-  if (!r.ok) throw new Error(`avisos_pendientes: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as AvisoConsulta[]).filter((aviso) => aviso.datos?.Nombre === nombre)
+async function avisosSinEspera(correo: string, nombre: string): Promise<AvisoConsulta[]> {
+  const r = await fetch(`${url}/rest/v1/rpc/listar_notificaciones`, {
+    method: 'POST',
+    headers: cabeceras({ authorization: `Bearer ${await tokenDe(correo)}` }),
+    body: JSON.stringify({ p_limite: 50 }),
+  })
+  if (!r.ok) throw new Error(`listar_notificaciones de ${correo}: ${r.status} ${await r.text()}`)
+  const { items } = (await r.json()) as { items: { tipo_nombre: string; datos: Record<string, string> }[] }
+  return items
+    .filter((aviso) => aviso.tipo_nombre === 'Consulta nueva' && aviso.datos?.Nombre === nombre)
+    .map((aviso) => ({ tipo_aviso: 'consulta_nueva', datos: aviso.datos }))
 }
 
 // Espera (hasta 20 s) a que el aviso de ese visitante llegue a la persona.
-async function avisosDe(userId: string, nombre: string): Promise<AvisoConsulta[]> {
+async function avisosDe(correo: string, nombre: string): Promise<AvisoConsulta[]> {
   const limite = Date.now() + 20_000
   while (Date.now() < limite) {
-    const propios = await avisosSinEspera(userId, nombre)
+    const propios = await avisosSinEspera(correo, nombre)
     if (propios.length > 0) return propios
     await new Promise((resolver) => setTimeout(resolver, 500))
   }
@@ -76,8 +98,9 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: organizacion, rol_id: rol })
-        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
-        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: organizacion, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa). `service_role`
+        // no escribe en `usuarios_empresas`: el Administrador de la organización, sembrado primero, las asigna con la RPC.
+        if (rol !== 'administrador') await asignarEmpresasComoAdministrador(correos.admin, id, [{ empresa_id: empresaId, rol_id: rol }])
       }
 
       // SC-004: desde que la tienda envía hasta que la bandeja la muestra pasan menos de 5 s.
@@ -95,7 +118,7 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
       // SC-008: al entrar la consulta la base emite el aviso (`emitir_aviso`, migración 20261210130300) solo a quien tiene
       // acceso a Consultas en esa empresa, con los datos de la consulta; el correo SMTP de `enviar-aviso-consulta`
       // ya no existe (MSF-853).
-      const [avisoAdmin] = await avisosDe(usuarios[0], visitante)
+      const [avisoAdmin] = await avisosDe(correos.admin, visitante)
       expect(avisoAdmin.datos).toMatchObject({
         Empresa: empresa,
         Origen: 'Formulario de contacto',
@@ -103,11 +126,11 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
         Contacto: 'visitante@example.com',
         Mensaje: 'Hola, ¿tienen stock?',
       })
-      const [avisoLectura] = await avisosDe(usuarios[1], visitante) // el rol Consulta también ve la sección
+      const [avisoLectura] = await avisosDe(correos.lectura, visitante) // el rol Consulta también ve la sección
       expect(avisoLectura.datos.Nombre).toBe(visitante)
       // No lo reciben ni Mostrador (sin acceso a Consultas) ni la persona de OTRA organización.
-      expect(await avisosSinEspera(usuarios[2], visitante)).toHaveLength(0)
-      expect(await avisosSinEspera(usuarios[3], visitante)).toHaveLength(0)
+      expect(await avisosSinEspera(correos.sinAcceso, visitante)).toHaveLength(0)
+      expect(await avisosSinEspera(correos.ajena, visitante)).toHaveLength(0)
       // El detalle se abre desde el panel por la ruta `/consultas?consulta=<id>`: el aviso no lleva
       // enlace (es una fila de `public.avisos_pendientes`).
       await admin.goto(`/consultas?consulta=${consultaId}`)

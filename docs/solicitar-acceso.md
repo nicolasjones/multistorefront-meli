@@ -76,6 +76,8 @@ Variables de la función (solo en `supabase/functions/.env.example`; los valores
 - **El envío depende del SMTP de Supabase.** Supabase no expone un correo transaccional libre: se reutiliza
   el mismo SMTP de Auth (Mailpit en local y el relay `GOTRUE_SMTP_*` en el servidor self-hosted). Si el
   servidor no tiene un SMTP real configurado, el correo no sale; es infraestructura a cargo de Nicolás.
+  La salida real hacia afuera todavía **no está verificada**: está registrada (en «pendiente») en
+  [Verificación de salida del correo](verificacion-salida-correo.md) y trazada como **MSF-532**.
 - **Reutilización futura:** si MSF-224 entrega antes un mecanismo propio de notificaciones, se reemplaza
   solo el transporte del correo, no el flujo del pedido.
 - **La regla de permisos no cambia acá.** Aprobar el pedido sigue siendo una acción de Administrador en la

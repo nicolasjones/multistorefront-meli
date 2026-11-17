@@ -21,6 +21,7 @@ import {
   AYUDA_CANAL_ML,
   CANALES_VENTA,
   ETIQUETA_TIPO,
+  tituloComprobante,
   MENSAJE_CERRADO,
   aFormulario,
   crearComprobante,
@@ -149,7 +150,8 @@ export function ComprobanteVenta() {
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
-  const [aviso, setAviso] = useState<string | null>(null)
+  // `aviso` en el estado de la ruta: lo deja «Crear presupuesto» desde un pedido (MSF-941) para líneas omitidas o un presupuesto que quedó vacío.
+  const [aviso, setAviso] = useState<string | null>((ubicacion.state as { aviso?: string } | null)?.aviso ?? null)
   const [clienteConsultado, setClienteConsultado] = useState<ClienteComprobante | null>(null)
   // Cobros (F-VTA-12, FR-007…FR-009): lista, saldo y permiso de la acción `registrar_cobro`.
   const [cobros, setCobros] = useState<Cobro[]>([])
@@ -620,7 +622,7 @@ export function ComprobanteVenta() {
   }
 
   const titulo = comprobante
-    ? `${ETIQUETA_TIPO[comprobante.tipo]} ${comprobante.numero}`
+    ? tituloComprobante(comprobante.tipo, comprobante.numero)
     : formulario.tipo === 'presupuesto'
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'

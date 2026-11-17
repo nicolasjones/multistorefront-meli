@@ -338,6 +338,20 @@ describe('PresupuestosList', () => {
     await waitFor(() => expect(ultimoPedido()).toMatchObject({ estado: 'vencido', pagina: 1 }))
   })
 
+  it('filtra por canal: pide p_origen a la base, vuelve a la página 1 y deshabilita la exportación', async () => {
+    abrir()
+    await screen.findByText('Cliente 1')
+    const grupo = screen.getByRole('group', { name: 'Filtrar por canal' })
+    expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual(['Todos los canales', 'Panel', 'Tienda online'])
+    expect(ultimoPedido().origen).toBe('todos')
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Tienda online' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'tienda', pagina: 1 }))
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeDisabled()
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Todos los canales' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'todos', pagina: 1 }))
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled()
+  })
+
   it('«Cargar más» pide la tanda siguiente y la suma; el contador conserva el total', async () => {
     mocks.listarPresupuestos.mockImplementation(async ({ pagina: n }: { pagina: number }) =>
       n === 2 ? pagina([presupuesto(30)], 3) : pagina([presupuesto(1), presupuesto(2)], 3))

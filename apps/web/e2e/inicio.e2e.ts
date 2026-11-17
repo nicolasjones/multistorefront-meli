@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
-import { UPSERT_FUSIONAR, altaUsuario, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-156 (MSF-578 · T024 · SC-001, SC-002, SC-003): la pantalla de Inicio con los tres roles y
 // con el cambio de empresa activa de la barra superior.
@@ -20,31 +20,6 @@ async function rpc<T>(funcion: string, argumentos: unknown): Promise<T> {
   })
   if (!r.ok) throw new Error(`RPC ${funcion}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T
-}
-
-const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-
-// `service_role` no tiene permisos sobre `usuarios_empresas` (su único camino de escritura es la RPC del Administrador):
-// el Administrador sembrado asigna las tiendas y los roles por tienda con su propia sesión.
-async function asignarEmpresasComoAdministrador(
-  correoAdmin: string,
-  usuarioId: string,
-  asignaciones: { empresa_id: string; rol_id: string }[],
-) {
-  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
-  const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: correoAdmin, password }),
-  })
-  if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
-  const { access_token: token } = (await sesion.json()) as { access_token: string }
-  const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
-    method: 'POST',
-    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
-  })
-  if (!r.ok) throw new Error(`RPC asignar_empresas_usuario: ${r.status} ${await r.text()}`)
 }
 
 async function ingresar(page: Page, correo: string) {

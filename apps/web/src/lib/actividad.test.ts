@@ -64,6 +64,7 @@ describe('etiqueta del tipo', () => {
     expect(etiquetaTipoActividad('newsletter.enviar')).toBe('Newsletter enviado')
     expect(etiquetaTipoActividad('newsletter.datos_borrados')).toBe('Datos de un suscriptor del newsletter borrados')
     expect(etiquetaTipoActividad('newsletter.baja')).toBe('Baja del newsletter desde el enlace')
+    expect(etiquetaTipoActividad('newsletter.tope_confirmaciones')).toBe('Tope de confirmaciones por hora del newsletter alcanzado')
   })
 
   it('los tipos con formato interno salen con tildes', () => {

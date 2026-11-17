@@ -10,5 +10,5 @@ Las tareas de **esta** historia quedaron hechas (la historia está **Finalizada*
 - [x] T010
 - [x] T011
 - [x] T012
-- [x] T013
+- [x] T013 — Desvío: la corrida real contra el SMTP del servidor self-hosted **no se ejecutó** (el VPS no tiene relay SMTP real ni SPF/DKIM, así que el aviso no sale). El guion quedó endurecido para que no pueda dar un verde falso y la corrida quedó registrada en «pendiente» con su dueño y su protocolo: `docs/verificacion-salida-correo.md`. Seguimiento: **MSF-532** — Tarea `seguimiento` «Ejecutar la verificación de salida del correo contra el SMTP real del servidor self-hosted (FR-012b)», dueño: infraestructura/Nicolás; **a crear en el tracker** (el repo no da fe de que ya exista). Ver commit 043be599.
 - [x] T014

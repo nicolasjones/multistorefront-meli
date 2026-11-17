@@ -21,7 +21,9 @@
 # visible es el de la tienda sobre la dirección técnica compartida; el HTML solo se muestra con `| raw` porque ya está escapado. Un correo de
 # clientes sale exactamente igual que antes. El cuerpo del newsletter sale con las llaves como entidades (`&#123;`), el remitente y el correo no admiten llaves y
 # `compose.yaml` fija `kestra.templating.recursive-rendering: false` (verificar en cada entorno); `subject` y el mensaje de clientes siguen crudos. Con la bandera `newsletter` apagada el reclamo no entrega nada del newsletter.
-# Pendiente (T011a, MSF-962): el encabezado `List-Unsubscribe` no se agrega: no se pudo verificar si `MailSend` admite encabezados propios.
+# Pendiente (T011a, MSF-962): el encabezado `List-Unsubscribe` no se agrega. VERIFICADO: `MailSend` no tiene ninguna propiedad de encabezados (documentación y fuente del plugin de correo,
+# 1.6.9). Para agregarlo hay que enviar por un relay SMTP que lo ponga o por una tarea de script con `smtplib`, y el un clic (RFC 8058) exige que `baja-correo-masivo` acepte el POST de
+# formulario con el token en la URL: propuesta y pendiente real (SMTP vivo) en docs/newsletter.md, «Seguimientos de seguridad y entregabilidad».
 # Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo EXECUTE sobre las dos funciones de este
 # flow. Variables: CORREO_MASIVO_LOTE (50), CORREO_MASIVO_LIMITE_DIARIO (500) y CORREO_MASIVO_URL_BAJA (origen
 # público del panel, donde vive `/baja-correo/:token`); ver infra/kestra/.env.example.

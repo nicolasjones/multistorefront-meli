@@ -149,6 +149,11 @@ jobs:
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
+      # Guion de verificación de salida del correo (MSF-532): Node puro, sin base y sin red. Detecta que el
+      # contrato `{resultado, nuevo, enviado}` de `solicitar-acceso` y el guion sigan de acuerdo: si no, el
+      # guion podría dar un verde falso (un `0` sin que la corrida haya enviado nada).
+      - name: test:correo:verificar-salida
+        run: pnpm test:correo:verificar-salida
       # Script de la bandera tienda_opiniones (MSF-467, T030): igual, solo dev; Node puro, sin base.
       - name: test:tienda:opiniones-dev
         run: pnpm test:tienda:opiniones-dev

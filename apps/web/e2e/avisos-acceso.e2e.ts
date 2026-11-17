@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // MSF-639: los avisos de acceso deben seguir el patrón común del panel.
@@ -10,52 +11,7 @@ import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node
 // (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el
 // archivo se omite (no entra al CI público). Ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de avisos de acceso: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
+const password = CONTRASENA_E2E
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
@@ -96,14 +52,10 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
     { user_id: ids.administrador, organizacion_id: org.id, rol_id: 'administrador' },
     { user_id: ids.operador, organizacion_id: org.id, rol_id: 'operador' },
   ])
-  // Asignación por empresa: sin ella el selector de la barra superior quedaría vacío.
-  await rest('usuarios_empresas', [
-    { user_id: ids.operador, empresa_id: empresa.id, organizacion_id: org.id, rol_id: 'operador' },
-  ])
-  await rest('usuario_empresa_activa', [
-    { user_id: ids.administrador, empresa_id: empresa.id },
-    { user_id: ids.operador, empresa_id: empresa.id },
-  ])
+  // Asignación por empresa: sin ella el selector de la barra superior quedaría vacío. `service_role` no escribe en
+  // `usuarios_empresas`: la asigna el Administrador sembrado con la RPC, que además fija la empresa activa del Operador.
+  await rest('usuario_empresa_activa', [{ user_id: ids.administrador, empresa_id: empresa.id }])
+  await asignarEmpresasComoAdministrador(correos.administrador, ids.operador, [{ empresa_id: empresa.id, rol_id: 'operador' }])
 
   return {
     orgId: org.id,
@@ -147,7 +99,8 @@ test.describe('Avisos de acceso (MSF-639)', () => {
           await expect(operador.page.getByText('Tu rol (actual) no incluye Empresas. Pedile acceso a un administrador.')).toBeVisible()
         })
         await paso(operador.page, 'No es un error rojo: no aparece el aviso viejo «Acceso restringido»', async () => {
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          // `exact`: en modo visible el rótulo narrado (#__e2e_rotulo) repite estas palabras y `getByText` por subcadena lo contaría.
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
         })
         await rotulo(operador.page, 'Empresas: acceso restringido con el patrón común, no un error')
@@ -156,7 +109,7 @@ test.describe('Avisos de acceso (MSF-639)', () => {
           await operador.page.goto('/organizacion')
           await expect(operador.page.getByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeVisible()
           await expect(operador.page.getByText('Tu rol (actual) no incluye Mi organización. Pedile acceso a un administrador.')).toBeVisible()
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
         })
         await rotulo(operador.page, 'Mi organización: el mismo acceso restringido, sin error rojo')
@@ -171,7 +124,7 @@ test.describe('Avisos de acceso (MSF-639)', () => {
         })
         await paso(operador.page, 'El aviso informativo no es un error rojo', async () => {
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
         })
         await rotulo(operador.page, 'Detalle de la empresa: «Solo lectura» informativo, no un error')
       } finally {

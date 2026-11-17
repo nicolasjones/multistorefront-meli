@@ -947,6 +947,38 @@ caracteres. Índice nuevo: `dominio.movimientos_stock_org_fecha_dia_idx (organiz
 (diferencia, deposito_id, producto_id, tipo)` en `20270305105000` (el índice previo de esa tabla es por
 `creado_en`). «Actividad reciente» no usa RPC nueva: lee `public.listar_actividad`.
 
+### Newsletter de la tienda (MSF-468)
+
+Fuente: `supabase/migrations/20270342000000`–`20270342000300` y `20270420000000`–`20270420000600` (rama de
+integración `dokploy`, PRs #1042 y #1057; aún no en `main`). Las RPC del panel son `security definer` con
+`set search_path = ''`, `revoke execute … from public, anon` y `grant execute … to authenticated`; las tres
+`publico` de la tienda son las **únicas** que `anon` puede ejecutar. Contratos, flujos, empresa activa y
+guía de prueba: [Newsletter de la tienda](newsletter.md).
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `publico.newsletter_por_dominio(p_host text)` | `{ activo: boolean, tienda: text \| null }`; `activo` solo con bandera, interruptor y tienda activos; en el resto de los casos, `{ activo: false }` sin distinguir el motivo | — |
+| `publico.suscribirse_newsletter(p_host text, p_correo text, p_consentimiento boolean, p_clave uuid, p_trampa text)` | `{ resultado: 'ok' }` \| `{ resultado: 'invalido', campos: [...] }` \| `{ resultado: 'limite', espera_segundos: n }` \| `{ resultado: 'error' }`. Crea o reactiva la suscripción `pendiente`; respuesta idéntica para dirección nueva, existente o en baja | `42501` sin `execute`; nunca devuelve ids, hash, IP ni el estado de la dirección |
+| `publico.confirmar_newsletter(p_host text, p_token text)` | `{ resultado: 'ok' \| 'vencido' \| 'invalido' \| 'limite' }`; idempotente | `42501` sin `execute` |
+| `public.resumen_newsletter(p_empresa uuid default null)` | `jsonb` `{ confirmados, pendientes, bajas, envios, bandera, tiendas }` | `42501` sin lectura en `clientes` o sin acceso a la tienda |
+| `public.listar_suscriptores_newsletter(p_empresa uuid default null, p_estado text default null, p_texto text default null, p_pagina integer default 1, p_tamano integer default 25)` | `jsonb` `{ total, filas }`; búsqueda literal por correo; `p_tamano` acotado a 1–100 | `42501`, `22023` estado o búsqueda inválidos |
+| `public.listar_newsletters(p_empresa uuid default null, p_estado text default null, p_pagina integer default 1, p_tamano integer default 25)` | `jsonb` `{ total, filas }` con estado (`borrador` \| `enviando` \| `enviada` \| `cancelada`) y totales | `42501`, `22023` |
+| `public.guardar_newsletter_configuracion(p_empresa uuid, p_activo boolean)` | `jsonb` `{ empresa_id, activo }`; Administrador | `42501` sin Administrador · `55000` bandera apagada |
+| `public.dar_de_baja_suscriptor_newsletter(p_suscriptor uuid)` | `jsonb` `{ ok }`; idempotente; omite lo pendiente; funciona con la bandera apagada | `42501` sin Administrador |
+| `public.borrar_datos_suscriptor_newsletter(p_suscriptor uuid)` | `jsonb` `{ ok }`; borra la fila y deja `[eliminado]` en los correos copiados | `42501` sin Administrador |
+| `public.guardar_newsletter(p_id uuid, p_version integer, p_empresa uuid, p_nombre text, p_asunto text, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ id, version }`; bloqueo optimista | `40001` el borrador cambió · `55000` ya se envió · `42501` |
+| `public.descartar_newsletter(p_id uuid)` | `jsonb` `{ ok }`; solo borradores | `42501`, `P0002` |
+| `public.detalle_newsletter(p_id uuid)` | Borrador o envío con la foto enviada y los totales | `42501`, `P0002` |
+| `public.vista_previa_newsletter(p_empresa uuid, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ cuerpo_html, confirmados, generado_en }`; el HTML ya viene escapado | `42501` |
+| `public.solicitar_prueba_newsletter(p_empresa uuid, p_asunto text, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ ok }`; tope de 5 por hora; no cuenta contra el cupo diario | `42501` |
+| `public.enviar_newsletter(p_id uuid, p_version integer, p_clave uuid)` | `jsonb` `{ campana_id, destinatarios }`; idempotente por clave | `22023` sin confirmados (hint `sin_destinatarios`) o tienda apagada · `40001` versión vieja · `42501` |
+| `public.cancelar_envio_newsletter(p_id uuid)` | `jsonb` `{ cancelados }`; lo pendiente queda `omitido` | `42501` |
+| `public.dar_de_baja_correo_masivo(p_token_hash text)` | `boolean`; ahora resuelve también suscriptores (quedan en `baja` conservando el correo) | Solo `service_role` |
+
+`private.reclamar_confirmaciones_newsletter`, `private.cerrar_confirmacion_newsletter` y
+`private.reclamar_lote_correo_masivo` **no** se conceden a la app: solo el rol `kestra_orquestacion` las
+ejecuta. La Edge Function `baja-correo-masivo` conserva su contrato (`{ token }` → `{ ok: true }`).
+
 ## Cómo descubrir el contrato
 
 1. **Migraciones** en `supabase/migrations` (fuente de verdad).

@@ -51,7 +51,9 @@ const ESTADOS_DE_COBRO: ReadonlyArray<string> = ['cobrado', 'deuda']
 export const esEstadoDeCobro = (estado: string): boolean => ESTADOS_DE_COBRO.includes(estado)
 
 export function definicionEstado(estado: string): DefinicionEstado {
-  return ESTADOS_COMPROBANTE[estado as EstadoComprobante] ?? { etiqueta: estado, tono: 'neutral', ayuda: '' }
+  return Object.hasOwn(ESTADOS_COMPROBANTE, estado)
+    ? ESTADOS_COMPROBANTE[estado as EstadoComprobante]
+    : { etiqueta: estado, tono: 'neutral', ayuda: '' }
 }
 
 export const etiquetaEstadoComprobante = (estado: string): string => definicionEstado(estado).etiqueta

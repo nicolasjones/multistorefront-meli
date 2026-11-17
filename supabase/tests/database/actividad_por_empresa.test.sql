@@ -4,7 +4,7 @@
 -- y `exportar_actividad` (security definer: aplica el mismo predicado). El historial de una empresa pausada sigue visible.
 begin;
 
-select plan(17);
+select plan(18);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -94,6 +94,22 @@ reset role;
 select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where n.nspname = 'private' and p.proname = 'empresas_de_actividad'
               and not has_function_privilege('anon', p.oid, 'execute')), 1, 'anon no ejecuta empresas_de_actividad');
+
+-- Guardia estructural: las únicas funciones `security definer` que leen (o depuran) `registro_actividad` son estas cinco. Una función
+-- definer no pasa por la política, así que una nueva (o una sobrecarga vieja de `exportar_actividad`) que la lea debe revisarse a mano:
+-- aplicar `private.empresas_de_actividad()` o justificar por qué no hace falta, y sumarse a esta lista.
+--   * private.alertar_tope_confirmaciones_newsletter: solo hace un `exists` (boolean) sobre los eventos de su organización y tienda para
+--     no repetir la alerta del tope global en la misma hora; no devuelve filas ni datos de otras empresas.
+--   * private.depurar_registro_actividad: solo borra por antigüedad, restringida a los roles de orquestación.
+--   * public.exportar_actividad: aplica el alcance por empresa en sus consultas (aserción de arriba).
+--   * public.historial_comprobante: solo eventos de la empresa del comprobante y con `ventas` en esa empresa.
+--   * public.regenerar_enlace_consulta: solo cuenta los eventos de la propia persona (tope por hora), no devuelve filas.
+select is((select array_agg(n.nspname || '.' || p.proname order by n.nspname, p.proname)
+             from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+            where p.prosecdef and p.prokind = 'f' and n.nspname in ('public', 'private', 'publico', 'dominio')
+              and p.prosrc ~* '(from|join|using)\s+(only\s+)?(public\.)?registro_actividad\M'),
+  array['private.alertar_tope_confirmaciones_newsletter', 'private.depurar_registro_actividad', 'public.exportar_actividad', 'public.historial_comprobante', 'public.regenerar_enlace_consulta'],
+  'solo cinco funciones security definer leen el registro de actividad, cada una con su propio control');
 
 select * from finish();
 rollback;

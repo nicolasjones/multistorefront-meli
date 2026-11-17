@@ -107,11 +107,17 @@ sources:
 - Si no hay administrador activo en la organización, el pedido se conserva y la pantalla avisa que no hay a
   quién notificar; el reclamo de envío se libera para un reintento posterior.
 - **Verificación de salida:** `pnpm correo:verificar-salida` (`scripts/verificar-salida-correo.mjs`) es
-  manual y opt-in; no corre en `pnpm test` ni en el CI. En local comprueba la API de Mailpit con
-  `MAILPIT_URL`; contra el servidor self-hosted se confirma a mano que el mensaje llega a `CORREO_PRUEBA`.
-  Variables: `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD`, `SECCION`,
-  `MAILPIT_URL` (opcional) y `CORREO_PRUEBA` (opcional).
+  manual y opt-in; no corre en `pnpm test` ni en el CI (la **suite** que lo prueba sí corre en el CI:
+  `pnpm test:correo:verificar-salida`). En local comprueba la API de Mailpit con
+  `MAILPIT_URL`; contra el servidor self-hosted se confirma a mano que el mensaje llega a `CORREO_PRUEBA`,
+  que es obligatoria en ese modo. Los códigos de salida (`0` verificado por Mailpit, `1` esta corrida no
+  envió nada, `2` falta una variable, `3` el aviso salió y la entrega queda por confirmar a mano) y su
+  registro están en [Verificación de salida del correo](../verificacion-salida-correo.md); en el servidor el
+  guion **nunca** devuelve `0`, así que nunca es «verificado a mano».
 - **Pendiente:** relay SMTP real y entregabilidad (SPF/DKIM) en el VPS. Dueño: infraestructura/Nicolás.
+  La corrida contra el SMTP real **no se ejecutó** y no hay evidencia: queda trazada como **MSF-532**
+  (Tarea `seguimiento` a crear en el tracker) y registrada en
+  [Verificación de salida del correo](../verificacion-salida-correo.md).
   Detalle: [Perfil y permisos avanzados](perfil-y-permisos.md) · [Solicitar acceso](../solicitar-acceso.md).
 
 ## E2E y evidencia
