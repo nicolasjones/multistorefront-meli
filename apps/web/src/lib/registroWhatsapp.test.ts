@@ -12,7 +12,7 @@ const HOST = 'mundojc.localhost'
 const PRODUCTO = '11111111-1111-4111-8111-111111111111'
 const CLAVE = '00000000-0000-4000-8000-0000000000a1'
 
-// F-TDA-14 (FR-024): el registro del interés por WhatsApp nunca bloquea la apertura ni muestra
+// F-TDA-14 (FR-024): el registro de la consulta por WhatsApp (`registrar_consulta_whatsapp`) nunca bloquea la apertura ni muestra
 // fallas o límite al visitante.
 describe('registrarConsultaWhatsapp', () => {
   beforeEach(() => vi.clearAllMocks())
