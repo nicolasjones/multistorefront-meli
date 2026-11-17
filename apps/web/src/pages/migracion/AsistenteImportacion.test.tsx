@@ -140,6 +140,16 @@ describe('AsistenteImportacion', () => {
     configurarRpc()
   })
 
+  it('ofrece las cuatro entidades como pestañas para llegar a proveedores e ingresos anteriores', () => {
+    render(asistente())
+    const pestanas = screen.getByRole('tablist', { name: 'Qué datos importar' })
+    expect(pestanas).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Proveedores' })).toHaveAttribute('href', '/migracion/importar/proveedores')
+    expect(screen.getByRole('tab', { name: 'Ingresos anteriores' })).toHaveAttribute('href', '/migracion/importar/ingresos_archivo')
+    expect(screen.getByRole('tab', { name: 'Vínculos proveedor ↔ producto' })).toHaveAttribute('href', '/migracion/importar/vinculos_proveedor_producto')
+    expect(screen.getByRole('tab', { name: 'Clientes' })).toHaveAttribute('href', '/migracion/importar/clientes')
+  })
+
   it('sube el CSV, auto-mapea y muestra la vista previa con los totales', async () => {
     abrir()
     await subir()

@@ -20,6 +20,7 @@ import {
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { useEmpresaActiva } from '../../hooks/useEmpresaActiva'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
@@ -70,6 +71,14 @@ function indiceDePaso(paso: Paso): number {
  * la mezcla. El permiso real lo aplican las RPC y RLS; acá solo se evita
  * ofrecer el asistente a quien no es Administrador (FR-009).
  */
+// Entidades que se pueden cargar desde «Migración de datos» (una pantalla por entidad, FR-010).
+const PESTANAS_MIGRACION = [
+  { etiqueta: 'Clientes', to: '/migracion/importar/clientes' },
+  { etiqueta: 'Proveedores', to: '/migracion/importar/proveedores' },
+  { etiqueta: 'Vínculos proveedor ↔ producto', to: '/migracion/importar/vinculos_proveedor_producto' },
+  { etiqueta: 'Ingresos anteriores', to: '/migracion/importar/ingresos_archivo' },
+]
+
 export function AsistenteImportacion({ definicion }: { definicion: DefinicionEntidad }) {
   const { puedeEscribir, isLoading: cargandoPermiso } = usePuedeEscribir()
   const { empresas } = useEmpresaActiva()
@@ -261,6 +270,8 @@ export function AsistenteImportacion({ definicion }: { definicion: DefinicionEnt
         titulo="Migración de datos"
         descripcion={definicion.descripcion}
         contexto={<ContextoOrganizacionActiva />}
+        // Sin carga en curso se puede cambiar de entidad; durante una carga las pestañas no se ofrecen para no perderla.
+        pestanas={paso === 'subir' ? <PestanasPagina pestanas={PESTANAS_MIGRACION} etiqueta="Qué datos importar" /> : undefined}
         accion={paso !== 'subir'
           ? <Button onClick={reiniciar} variant="outlined" disabled={paso === 'aplicando'}>Cancelar</Button>
           : <Button component={RouterLink} to="/migracion/informes" variant="outlined">Informes de conciliación</Button>}
