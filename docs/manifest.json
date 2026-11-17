@@ -321,6 +321,19 @@
       "owner": "tecnico",
       "commit": "d9ae478c"
     },
+    "docs/capturas-documentacion.md": {
+      "title": "Capturas del manual de usuario",
+      "pageHash": "9afd8d4b1a29783df50d1d9d5e385a5188255af29b77c268db869e0fe66a7ef3",
+      "sourceHash": "7ea6aac9470956dabb3aec02ea876b86522b87cef15c351727a8af9e77d36133",
+      "sourceAt": "882abece",
+      "sources": [
+        "apps/web/playwright.capturas.config.ts",
+        "apps/web/e2e/capturas/lib.ts",
+        "apps/web/package.json"
+      ],
+      "owner": "plataforma",
+      "commit": "882abece"
+    },
     "docs/catalogo-exportacion.md": {
       "title": "Catálogo · Exportar productos a CSV (F-CAT-11)",
       "pageHash": "5e370cf1602dce33dd3db7c08238e38b8cccc3b98cea9df9be9049ac8f9801f5",
@@ -613,12 +626,12 @@
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
-      "pageHash": "ef1d636181a6a52f18b1b400ad024f5ce5295b9c278864a647d64090246d79e5",
+      "pageHash": "2357d76133d068dc49fe665c6c1d78e762af75736a07002eb442b2fae9c25ec6",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": null
+      "commit": "882abece"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -644,14 +657,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "722faf2e176bae814fb8532eb60a546a302e71b5bb4830701806ea495d46ff99",
-      "sourceHash": "0015f5503f984b3a7d83ffcf189f672cc75cd2e11487db1d2165419188ab873a",
-      "sourceAt": "bc0f78b3a",
+      "pageHash": "34044c90390d6954952b76b20460994d9336d146620a54c4c42e30e0dd76eb68",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "882abece",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "bc0f78b3a"
+      "commit": "882abece"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -1269,16 +1282,16 @@
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
-      "pageHash": "61d7003f212c040bde4616721d6e5fa86a660ed880a9da420a76b6db82296756",
-      "sourceHash": "a2c9d5814dab29a943334fd86c412f7386d31e979fd8bb8fabb3b217a7bf9441",
-      "sourceAt": "54895abcd",
+      "pageHash": "526940957e7d47751370cca310141c57b92271f74c63ae00996e3a78dbded16e",
+      "sourceHash": "33c651ab891b5f5d0c95b989fa4b5b678071c65ee5c2f2c8216bdf08cdf58f2b",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/categorias",
         "apps/web/src/pages/productos/list.tsx",
-        "specs"
+        "specs/20261020-120000-catalogo-listado-y-categorias"
       ],
       "owner": "producto",
-      "commit": "54895abcd"
+      "commit": "882abece"
     },
     "docs/producto/catalogo-productividad.md": {
       "title": "Catálogo: cambios masivos y duplicar productos",
@@ -1629,17 +1642,18 @@
     },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
-      "pageHash": "04a34322a358199e498a79adea6178bec98bc5167fd3d8c1bbec88437559c205",
-      "sourceHash": "52e53db078684eaf12bc589dd0a1b50833f3bdd10143b94dc13af7e6ad03255b",
-      "sourceAt": "308782bc4",
+      "pageHash": "5f56947b72195cf0b2199f480d0df0f8e6770471f7dc011918ee676466465420",
+      "sourceHash": "2162e530ce9fb2e0efaad58ce6a73c35dfc12119a051599958fc5b8bba10b0aa",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/service-tecnico/modelos.tsx",
         "apps/web/src/pages/service-tecnico/estados.tsx",
-        "specs",
-        "design/pantallas"
+        "specs/20261020-100000-service-alta-estados-y-permisos",
+        "design/pantallas/ServicioModelos.dc.html",
+        "design/pantallas/ServicioEstados.dc.html"
       ],
       "owner": "producto",
-      "commit": "308782bc4"
+      "commit": "882abece"
     },
     "docs/producto/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
@@ -1678,17 +1692,18 @@
     },
     "docs/producto/service-seguimiento-y-reportes.md": {
       "title": "Service técnico: fotos, garantía, seguimiento del cliente y reportes",
-      "pageHash": "e451a77f1e31210feb16599f52f37ed985b74b45ae0c31fee0d6975889a5394d",
-      "sourceHash": "dd437227d3f6afa0423d08eab28c5c1149c1c547c30b186ab1de330843cc8aff",
-      "sourceAt": "6d47b766e",
+      "pageHash": "dc6a2e39831e22c60a56492a3b2d69eebc28825a201c8dc41188a27f7d850dc4",
+      "sourceHash": "99bccd248ad09054c51314b07130b382a972bfa4eb43f5167a2929a3e49b8fee",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/service-tecnico/reportes.tsx",
-        "specs",
-        "supabase/migrations",
-        "apps/web/src"
+        "apps/web/src/pages/service-tecnico/reparacion.tsx",
+        "specs/20261028-100000-service-seguimiento-y-reportes",
+        "supabase/migrations/20270437000000_service_regenerar_enlace_y_reportes_por_empresa.sql",
+        "supabase/migrations/20270219160100_reparacion_enlaces_consulta.sql"
       ],
       "owner": "producto",
-      "commit": "6d47b766e"
+      "commit": "882abece"
     },
     "docs/producto/sistema-de-diseno.md": {
       "title": "Sistema de diseño (MSF-117)",
@@ -1752,16 +1767,16 @@
     },
     "docs/producto/stock-unico-y-alertas.md": {
       "title": "Stock único y alertas (MSF-231)",
-      "pageHash": "16c29bc698d6e6c389d7e72764930c2a608777ca35c1a82ded9e2ce8cf44b9f9",
-      "sourceHash": "84530d4e181c1532f119c560c76edb8051eccfe20ef90910fd3a5ab1025f7d4c",
-      "sourceAt": "53cb4c30c",
+      "pageHash": "4bea25ba35942edaa6dd566bd141e4e9d09823ccf716801f7d5d610640e3431c",
+      "sourceHash": "e47aca4b3a581c2aea5e1f14754f6b319a1418a8adaec693a791e11df40b5397",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/stock/ordenes-compra.tsx",
         "apps/web/src/pages/reportes/Reposicion.tsx",
-        "specs"
+        "specs/20261018-180000-stock-unico-y-alertas"
       ],
       "owner": "producto",
-      "commit": "53cb4c30c"
+      "commit": "882abece"
     },
     "docs/producto/tableros-analiticos.md": {
       "title": "Tableros analíticos y resumen semanal",
@@ -1833,30 +1848,29 @@
     },
     "docs/producto/ventas-avisos-de-faltantes.md": {
       "title": "Avisar a los clientes cuando vuelve a haber stock",
-      "pageHash": "9fe90540824c0b4736456abb6db4fc57eb6764e2d83880b1d3b97e924d47d8f4",
-      "sourceHash": "",
-      "sourceAt": "9dc6f30d3",
+      "pageHash": "b7f06af902610ae470ae440ca359a194d24295ac5755516fbaad74e7c7b31700",
+      "sourceHash": "102c489d4e31f4de5326aa2750c616c9903792781aeab5dc35461dd6589fb5fa",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/ventas/faltantes.tsx"
       ],
       "owner": "producto",
-      "commit": "9dc6f30d3"
+      "commit": "882abece"
     },
     "docs/producto/ventas-catalogos.md": {
       "title": "Ventas · catálogos de cobro y envío (MSF-139)",
-      "pageHash": "7df2da2421518c61a7bccd1f21031adbd4848f359cd345af36c036d9e3e6a13e",
-      "sourceHash": "fe3d8ea6d034aa4caca3c158a23f3f068d60cd185e4c6b812e7e153c90a1ac67",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "962e04ce1074bd839700dea92c7ffbca00c7a4d6a8e037672ae171de43615b49",
+      "sourceHash": "dbdd1579188ea3f3a4ddfdef82df9c901e92fc28741d8ccba0cf4a8401fe5a53",
+      "sourceAt": "882abece",
       "sources": [
         "apps/web/src/pages/ventas/transportes",
         "apps/web/src/pages/ventas/configuracion",
         "apps/web/src/pages/ventas/cuentas-cobro",
-        "specs",
-        "apps/web/src",
-        "design/pantallas"
+        "specs/20261020-100000-ventas-catalogos-de-cobro-y-envio",
+        "design/pantallas/CuentasCobro.dc.html"
       ],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "882abece"
     },
     "docs/producto/ventas-cierre-caja.md": {
       "title": "Cierre de caja",
@@ -2094,16 +2108,16 @@
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
-      "pageHash": "347a2261cdb567727a79b5e28ccf0c5639f1b99e77602958316ebaf72d8bf2e8",
-      "sourceHash": "2afd397d0ab39c41f1620013176fcfe2340aaa092cd8e6e6c844c44b92fd2a4f",
-      "sourceAt": "e2ad6a412",
+      "pageHash": "c0fa14a8c9524e9663f843e411b92999ba92e26cdfbd22e17b01458c8d0a92c9",
+      "sourceHash": "a3ebd26c65fcbe41b36381e263536d45db50b05d61bb887bcbe4eac8489dd422",
+      "sourceAt": "882abece",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "e2ad6a412"
+      "commit": "882abece"
     },
     "docs/revision-seguridad-analitica-avanzada.md": {
       "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
@@ -4193,9 +4207,9 @@
     },
     "docs/ventas-faltantes.md": {
       "title": "Ventas · Faltantes: registro de lo que no se pudo despachar (F-VTA-18)",
-      "pageHash": "82d75778daa74e29e6a2a09f0f53cfbf7f34602348b8f7952f49cdf2f1dd5441",
+      "pageHash": "cca0539b69447b04f5d57b9dc15595565ad0db55502e1e8bc9d4afa1263ef29c",
       "sourceHash": "9bf21ed2a6818803854c0156c1f112d1af4d3a8063bf489da3a38bc6fa04044f",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "882abece",
       "sources": [
         "specs/20261024-130000-ventas-despacho-y-faltantes",
         "apps/web/src/lib/ventasFaltantes.ts",
@@ -4205,7 +4219,7 @@
         "supabase/migrations/20270112130200_faltantes_registrar.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "882abece"
     },
     "docs/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)",
