@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { correrSuites } from './correr-suites.mjs';
+import { correrSuites, debeMatarGrupo } from './correr-suites.mjs';
 
 const sinSalida = { write() {} };
 
@@ -106,4 +106,9 @@ test('al vencer el timeout se mata el grupo: el nieto no queda huérfano y el te
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('debeMatarGrupo solo acepta pids enteros mayores que 1', () => {
+  for (const malo of [undefined, null, 0, -0, 1, -1, 1.5, Number.NaN, Infinity, '123']) assert.equal(debeMatarGrupo(malo), false, String(malo));
+  for (const bueno of [2, 12345]) assert.equal(debeMatarGrupo(bueno), true);
 });

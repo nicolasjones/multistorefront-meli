@@ -34,10 +34,16 @@ export function correrSuites(comandos, { ejecutar = defecto, salida = process.st
   return { resultados, fallidas, codigo: fallidas.length > 0 ? 1 : 0 };
 }
 
+// `process.kill(-pid)` solo es seguro con un pid entero > 1: con 0 o -0 alcanza al grupo del propio runner y con 1 a
+// todos los procesos del usuario.
+export function debeMatarGrupo(pid) {
+  return Number.isInteger(pid) && pid > 1;
+}
+
 function defecto(comando, timeoutMs) {
   const r = spawnSync(comando, { shell: true, stdio: 'inherit', timeout: timeoutMs, killSignal: 'SIGKILL', detached: true });
   // Guarda: `process.kill(-pid)` con pid 0 o 1 mataría el grupo del propio runner (-0) o TODOS los procesos (-1).
-  if ((r.signal || r.error?.code === 'ETIMEDOUT') && Number.isInteger(r.pid) && r.pid > 1) {
+  if ((r.signal || r.error?.code === 'ETIMEDOUT') && debeMatarGrupo(r.pid)) {
     try { process.kill(-r.pid, 'SIGKILL'); } catch { /* el grupo ya terminó */ }
   }
   if (r.signal) return { estado: 1, senal: r.signal };

@@ -188,3 +188,18 @@ test('ReDoS: una línea de marcador con 1 MB de espacios se analiza en menos de 
     assert.doesNotMatch(r.stderr, /002\.sql/);
   });
 });
+
+// Estos casos SÍ disparan las regex cuadráticas si se quita el colapso de espacios (sin él: 2 s con 50k y
+// ~11 s con 100k espacios); con el colapso tardan milisegundos.
+test('ReDoS: marcadores con 100k espacios seguidos de texto (MARKER_VACIO y SOLO_MARCADOR) tardan menos de 1 s', async () => {
+  const relleno = ' '.repeat(100000);
+  await withMigrations({
+    '001.sql': `-- Reversión: none${relleno}x\ndrop table t;`,
+    '002.sql': `-- Reversión${relleno}x\ndrop table t;`,
+  }, async (dir) => {
+    const t = Date.now();
+    const r = await run(dir);
+    assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
+    assert.equal(r.code, 0);
+  });
+});
