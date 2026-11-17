@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "9fec8ac2c9daed4280145e3f4a16267105fb7ace67eacff61296b21cfa9a01fc",
+      "pageHash": "a35b36ff3265f82aef95b2be6b286240fb6f2e7eb0d029d1392cdeaf80525d7c",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "dd8bb20e"
+      "commit": null
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d81cf4792638a8e79ba1f900cccc67068fe5468f7403326c3944e5802af6b9d6",
-      "sourceHash": "fba35e49b21b9b0a4e1321d3bdcd4ca25001fb6377149132ec24e69c8c45e1db",
-      "sourceAt": "3d97e3de",
+      "pageHash": "2397313d6a145ccb3efdaadf84e14749a686e6aa2efb26a5b6244cd94e322b88",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3d97e3de"
+      "commit": null
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -312,14 +312,14 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "b09729868a06054dedb94b68e3aad4909d8b5d17c2279347614de521fb72bce4",
-      "sourceHash": "f4f0beb6ff07ba302e53880772677563dc9fcc2dc2590f8fa9f9349443dea28c",
-      "sourceAt": "d9ae478c",
+      "pageHash": "ab63a68600f82fb84ffc1b09df9bd0a7bbad0c38283c6ea6202b6e19e10ff718",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "d9ae478c"
+      "commit": null
     },
     "docs/catalogo-exportacion.md": {
       "title": "Catálogo · Exportar productos a CSV (F-CAT-11)",
@@ -1057,14 +1057,14 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "9f257950292069247be64b48263d5981e74860a7939a3c0efec607ee59aefc08",
-      "sourceHash": "9983a5764716aa765c3826ae6e2bf087fcdce2ce6a13154ed09a9c7ac4feb9a4",
-      "sourceAt": "89f4ead5",
+      "pageHash": "f0cf1a5a189c728fe53834e0cc36cc98ab6b6057c593c3d150e77bfbd42c0230",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "89f4ead5"
+      "commit": null
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -2683,9 +2683,9 @@
     },
     "docs/tecnico/auditoria-y-soporte.md": {
       "title": "Auditoría avanzada y soporte (MSF-170), construcción interna",
-      "pageHash": "3adba25aeb44cdedfb2746a1290b23d1b0cb56412a21c8a910c056d632fd8de7",
-      "sourceHash": "25571b51bc41501ab9e570890322da6b079a8add3bca5b0efe875ae1c431808a",
-      "sourceAt": "56d60776",
+      "pageHash": "96862aa25180f1a821530e2c2c20ba3c76b82251ca5971c6683be21aed9b6773",
+      "sourceHash": "14e01b263222d90a08f5c7c638ab257e0997813b913b85e583fa6bae4bcf338e",
+      "sourceAt": null,
       "sources": [
         "specs",
         "supabase/migrations",
@@ -2694,7 +2694,7 @@
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "56d60776"
+      "commit": null
     },
     "docs/tecnico/avisos-y-listas.md": {
       "title": "Avisos y listas: modelo, RPC y flujos (MSF-189)",
@@ -3049,16 +3049,18 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "fc9570226116f3529085cda593df9fcaeb7ef45d58dcc9fcb578dd461c7e02d0",
-      "sourceHash": "a0f552665209e538aa2f2b6797d20b2e5b94070368cb1a37958c3c9b0b22a299",
-      "sourceAt": "e1507ad5",
+      "pageHash": "8fe7827f42a5ca9dbc0416f638ec3a6d8546a6bd4aff6c3644fc6fe270a3486a",
+      "sourceHash": "fa6ad7d8152a2e65f818ec9584d7083d11cdb6d5d1bfe19921d9b7c412fc5655",
+      "sourceAt": null,
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
         "supabase/migrations/20270342000100_newsletter_publico.sql",
         "supabase/migrations/20270342000200_newsletter_confirmaciones.sql",
+        "supabase/migrations/20270342000300_exportacion_total_newsletter.sql",
         "supabase/migrations/20270420000000_newsletter_baja_y_gestion.sql",
         "supabase/migrations/20270420000100_newsletters.sql",
+        "supabase/migrations/20270420000200_exportacion_total_newsletters.sql",
         "supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql",
         "supabase/migrations/20270420000400_newsletter_envio.sql",
         "supabase/migrations/20270420000500_newsletter_lote.sql",
@@ -3070,7 +3072,7 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "e1507ad5"
+      "commit": null
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
@@ -3120,15 +3122,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "7990cda045ff52bf9d41ba703a2f737d5616f5c3ed8d4af8fef1884e0cd26464",
-      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
-      "sourceAt": "b9906ecb",
+      "pageHash": "16613e8dd50aebe8277848b17ec097b496ba37e0eeef1c27b36c803e6ec960cd",
+      "sourceHash": "06393ca6d5004a0366b2d402d3c70867da624747bba0e9ea6923520b3be5fc18",
+      "sourceAt": null,
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "b9906ecb"
+      "commit": null
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -3148,9 +3150,9 @@
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
-      "pageHash": "04635187db40c0be3cf9ed6fc9993926d4077649cdec2f0c7a5e08bf92462381",
-      "sourceHash": "1a8e5f45fcb7d7920b20e5850f6558ec3e04390fba33b11d9fa1d577af5e79b0",
-      "sourceAt": "b9906ecb",
+      "pageHash": "717e2c3041e910c9fa40baa46e70c5f771799cc8ece4b2372bf197a532aed059",
+      "sourceHash": "ee1d9ac50658c7ef6ad973558ef99f519451ede8ce91b83b3faaaa20703eca21",
+      "sourceAt": null,
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
@@ -3160,7 +3162,7 @@
         "supabase/functions"
       ],
       "owner": "tecnico",
-      "commit": "b9906ecb"
+      "commit": null
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
