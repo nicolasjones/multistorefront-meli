@@ -33,6 +33,10 @@ modo de anotaciones y dejaba el log sin texto).
 | Build / type-check | `pnpm build` | pass | exit 0. |
 | Calidad | `pnpm calidad` | pass (con salvedad) | `knip`, `oxlint`, `jscpd`, `dependency-cruiser` y `syncpack` en **ok**; `gitleaks` no corrió porque necesita el daemon de Docker (no disponible en este entorno) y este diff no agrega secretos. |
 | Guardián de e2e | `pnpm test:e2e:escritura` | pass | 16/16. |
+| CI del PR #1127 — `quality` | run `44148206192` | pass | `gitleaks`, `oxlint`, **`knip (código muerto): ok`**, `jscpd`, `dependency-cruiser`, `syncpack` y `commitlint` en **ok**. |
+| CI del PR #1127 — `application` | run `44148206054` (job `134269148266`) | pass | Incluye `pnpm docs:check`, `pnpm lint` y `pnpm build`. |
+| CI del PR #1127 — `infrastructure` | run `44148206054` (job `134269148209`) | pass | `pnpm test:ci` → 35/35; los dos tests nuevos de MSF-843 corrieron y pasaron en el CI. |
+| CI del PR #1127 — `validacion` | run `44148206054` (job `134270104300`) | pass | Sin causa propia: agrega los resultados de los demás jobs. |
 
 ## Output Excerpts
 
@@ -70,13 +74,38 @@ Trampas conocidas: OK (0 migración(es), 0 prueba(s) pgTAP y 0 E2E revisados con
 # (no aparecen ni el encabezado "== knip (código muerto)" ni el bloque "---- RESUMEN ----")
 ```
 
+```text
+# el CI del PR #1127 (run 44148206192, job quality):
+== gitleaks (secretos): ok
+== oxlint (SAST): ok
+== knip (código muerto): ok
+== jscpd (duplicación): ok
+== dependency-cruiser (arquitectura): ok
+== syncpack (versiones): ok
+== commitlint (mensajes): ok
+---- RESUMEN ----
+  ok         gitleaks (secretos)
+  ok         oxlint (SAST)
+  ok         knip (código muerto)
+  ok         jscpd (duplicación)
+  ok         dependency-cruiser (arquitectura)
+  ok         syncpack (versiones)
+  ok         commitlint (mensajes)
+
+# el CI del PR #1127 (run 44148206054, job infrastructure — pnpm test:ci):
+✔ [MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no corra ninguna herramienta
+✔ [MSF-843] el informe de calidad dice qué encontró el check que falló
+✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
+ℹ tests 35  ℹ pass 35  ℹ fail 0
+```
+
 ## Residual Risks
 
-- El `HEAD` de `dokploy` (`0d75df2c`) no tiene ninguna corrida de CI registrada: la evidencia verde de
-  `quality`/`application`/`validacion` sobre la base actual llega con el PR de esta historia, no con
-  una corrida previa.
-- `gitleaks` no se pudo correr localmente (sin daemon de Docker). En el CI corre el binario nativo; el
-  diff de este PR no agrega secretos.
+- La evidencia verde de `quality`/`application`/`validacion` sobre la base actual llegó con el PR
+  #1127 (`quality` run `44148206192`, `Validate` run `44148206054`). El `HEAD` de `dokploy` por sí
+  solo sigue sin corrida propia: el merge de este PR es la corrida de la base.
+- `gitleaks` no se pudo correr localmente (sin daemon de Docker). En el CI corre el binario nativo y
+  salió **ok** (run `44148206192`); el diff de este PR no agrega secretos.
 - El test usa un `pnpm` falso en el `PATH`: depende de que `scripts/calidad.mjs` invoque `pnpm` por
   nombre. Si mañana el script deja de usar `pnpm` (o cambia cómo invoca las herramientas), el test
   debe cambiarse con él.
@@ -91,7 +120,6 @@ Trampas conocidas: OK (0 migración(es), 0 prueba(s) pgTAP y 0 E2E revisados con
 
 ## Recommendation
 
-Cerrar el bug — verificado sobre `dokploy` actual: los dos rojos del reporte no se reproducen y la
-causa por la que el `quality` era indiagnosticable queda fijada por test (con mutación comprobada).
-Esperar el CI del PR (`quality`, `application` y `validacion` en verde sobre la base actual) antes de
-mergear, porque el `HEAD` de `dokploy` no tiene todavía ninguna corrida registrada.
+Cerrar el bug — verificado sobre `dokploy` actual: los dos rojos del reporte no se reproducen, la causa
+por la que el `quality` era indiagnosticable queda fijada por test (con mutación comprobada) y el CI
+del PR #1127 deja `quality`, `application` y `validacion` en **verde** sobre la base actual.
