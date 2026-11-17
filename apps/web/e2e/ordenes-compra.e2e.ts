@@ -34,6 +34,8 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-454:T012] crea una orden desde el listado de reposición y la marca como recibida', async ({ page }) => {
+    // En modo visible (slowMo 350 ms) el recorrido completo pasa del minuto por omisión: el primer intento se cortaba por tiempo.
+    test.setTimeout(180_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-ordenes-${sufijo}@example.com`
     const empresa = `Tienda órdenes ${sufijo}`
