@@ -165,7 +165,7 @@ archivo` sin pasos de código.
   entrada, o si hay `solo_supabase: true` con `domains` no vacío; los dominios no admiten comodines de TLD (`*.com`). Lee la red de
   los flows con comillas simples o dobles, `--network=…`, `--network …`, `--net`, `network_mode:`/`networkMode:`, continuaciones de línea con `\` y
   subdirectorios de `infra/kestra/flows`, y rechaza cualquier red literal (`host`, `bridge`, `$(…)`) fuera de la convención
-  `worker-egress-<sistema>` (se aceptan variables `$VAR`, `${VAR:?msg}` y `none`; `${VAR:-host}` se rechaza: un valor por defecto literal debe ser una red válida; `--network=\` + salto de línea + valor se une antes de validar). **No cubre** `networks:` de un compose ni un `--network` fuera de los YAML de `infra/kestra/flows` (test: `scripts/validar-egress-workers.test.mjs`). Se corre
+  `worker-egress-<sistema>` (se aceptan variables `$VAR`, `${VAR:?msg}` y `none`; `${VAR…}` se acepta sin resolver el valor real de la variable (solo se valida el valor por defecto literal; que `WORKER_NETWORK` valga una red correcta en el servidor no se comprueba): `${VAR:-host}` se rechaza: un valor por defecto literal debe ser una red válida; `--network=\` + salto de línea + valor se une antes de validar). **No cubre** `networks:` de un compose ni un `--network` fuera de los YAML de `infra/kestra/flows` (test: `scripts/validar-egress-workers.test.mjs`). Se corre
   también en el job `application` (dentro de `test:ci:scripts`; antes solo corría en `worker-images.yml`, que dispara solo en `main`).
   **Límite**: valida estructura y consistencia; NO detecta un `fetch` nuevo a un tercero en un worker ya listado (la allowlist real
   la aplica el firewall/proxy del servidor). Nota: 4 workers pueden enviar errores a GlitchTip con `ERRORES_DSN`
@@ -183,7 +183,7 @@ archivo` sin pasos de código.
 - **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
   ~1,5 a 3 minutos en el runner de CI; la cifra no se reproduce en hosts cargados, donde medimos ~160 s): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
   fallaron (no corta en la primera). Cada suite tiene timeout (600 s por defecto; `--timeout <s>` o `CORRER_SUITES_TIMEOUT_S`) y una
-  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Limitación: SIGKILL mata solo el shell de la suite; los procesos nietos pueden quedar huérfanos. La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
+  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Cada suite corre en su propio grupo de procesos y al vencer el timeout se mata el grupo entero (shell, pnpm, node y nietos); un Ctrl-C al runner no llega al grupo de la suite en curso. La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
   `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
 
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)

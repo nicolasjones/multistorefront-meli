@@ -9,7 +9,8 @@ import path from 'node:path';
 // (incluido el timeout por suite, SIGTERM). Timeout por suite: `--timeout <s>` o CORRER_SUITES_TIMEOUT_S (600 por defecto).
 export const TIMEOUT_POR_DEFECTO_S = 600;
 export const TIMEOUT_MAXIMO_S = 86400;
-// Limitación: SIGKILL mata solo el shell de la suite; los procesos nietos pueden quedar huérfanos.
+// Cada suite corre en su propio grupo de procesos (`detached`): al vencer el timeout se mata el GRUPO entero
+// (shell, pnpm, node y nietos), no solo el shell. Si se interrumpe el runner con Ctrl-C, el grupo de la suite en curso no recibe la señal.
 
 // Valida un timeout en segundos (finito, > 0 y <= TIMEOUT_MAXIMO_S). Lanza un Error con mensaje claro.
 export function parsearTimeoutS(crudo, origen) {
@@ -34,7 +35,10 @@ export function correrSuites(comandos, { ejecutar = defecto, salida = process.st
 }
 
 function defecto(comando, timeoutMs) {
-  const r = spawnSync(comando, { shell: true, stdio: 'inherit', timeout: timeoutMs, killSignal: 'SIGKILL' });
+  const r = spawnSync(comando, { shell: true, stdio: 'inherit', timeout: timeoutMs, killSignal: 'SIGKILL', detached: true });
+  if ((r.signal || r.error?.code === 'ETIMEDOUT') && r.pid) {
+    try { process.kill(-r.pid, 'SIGKILL'); } catch { /* el grupo ya terminó */ }
+  }
   if (r.signal) return { estado: 1, senal: r.signal };
   if (r.error?.code === 'ETIMEDOUT') return { estado: 1, senal: 'SIGKILL' };
   return r.status ?? 1;

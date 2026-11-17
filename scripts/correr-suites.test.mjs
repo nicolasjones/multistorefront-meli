@@ -32,7 +32,7 @@ test('reporta la señal que mató a la suite y pasa el timeout configurado', () 
 test('el binario mata una suite colgada con --timeout y lo informa', async () => {
   const { spawnSync } = await import('node:child_process');
   const script = new URL('./correr-suites.mjs', import.meta.url).pathname;
-  const r = spawnSync(process.execPath, [script, '--timeout', '1', 'node -e "setTimeout(()=>{},60000)"'], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [script, '--timeout', '1', 'node -e "setTimeout(()=>{},60000)"'], { encoding: 'utf8', timeout: 20000 });
   assert.equal(r.status, 1);
   assert.match(r.stdout, /murió por SIGKILL/);
 });
@@ -67,4 +67,27 @@ test('CORRER_SUITES_TIMEOUT_S y --timeout inválidos salen con 2 y mensaje claro
   assert.match(r.stderr, /--timeout debe ser/);
   const ok = spawnSync(process.execPath, [script, 'node -e "0"'], { encoding: 'utf8', env: { ...process.env, CORRER_SUITES_TIMEOUT_S: '30' } });
   assert.equal(ok.status, 0);
+});
+
+test('al vencer el timeout se mata el grupo: el nieto no queda huérfano y el test tarda pocos segundos', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'suites-'));
+  const pidfile = path.join(dir, 'nieto.pid');
+  const script = new URL('./correr-suites.mjs', import.meta.url).pathname;
+  const t = Date.now();
+  try {
+    const r = spawnSync(process.execPath, [script, '--timeout', '1', `sh -c 'sleep 30 & echo $! > ${pidfile}; wait'`], { encoding: 'utf8', timeout: 20000 });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /murió por SIGKILL/);
+    assert.ok(Date.now() - t < 10000, `tardó ${Date.now() - t} ms`);
+    const pid = Number(fs.readFileSync(pidfile, 'utf8'));
+    assert.ok(pid > 0);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
