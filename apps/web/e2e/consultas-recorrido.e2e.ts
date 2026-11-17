@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // Cierre de MSF-122 (SC-004, SC-008): una consulta enviada desde la tienda aparece en la bandeja en menos de
 // 5 s y la base emite el aviso al equipo; se abre su enlace, se asigna, anota y resuelve con tres roles
@@ -76,8 +76,9 @@ test.describe('Consultas · de la tienda al aviso y la bandeja (MSF-122, SC-004,
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: organizacion, rol_id: rol })
-        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
-        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: organizacion, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa). `service_role`
+        // no escribe en `usuarios_empresas`: el Administrador de la organización, sembrado primero, las asigna con la RPC.
+        if (rol !== 'administrador') await asignarEmpresasComoAdministrador(correos.admin, id, [{ empresa_id: empresaId, rol_id: rol }])
       }
 
       // SC-004: desde que la tienda envía hasta que la bandeja la muestra pasan menos de 5 s.
