@@ -245,7 +245,7 @@ describe('ventasLineas · línea que la lista lleva a cero', () => {
   it('el comprobante muestra el mensaje de la base con el nombre del producto', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const mensaje = 'El producto «Tornillo» (línea 2) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)'
-    expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje, hint: 'producto_id' }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
+    expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
     spy.mockRestore()
   })
 

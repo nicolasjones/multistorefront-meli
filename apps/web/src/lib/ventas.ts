@@ -162,6 +162,12 @@ export function errorDeCampo(error: unknown): { campo: CampoComprobante; mensaje
 // Texto fijo para una validación de la base sin campo asociado: el `message` crudo del servidor no se muestra.
 export const MENSAJE_DATO_INVALIDO_COMPROBANTE = 'Hay un dato del comprobante que no es válido. Revisá lo cargado y probá de nuevo.'
 
+// Catálogo de validaciones de la base sin campo (`hint`) que sí se muestran tal cual, porque son accionables y llevan el
+// nombre del producto que armó la propia función: la línea que la lista de precios del cliente lleva a cero.
+const VALIDACIONES_CONOCIDAS: readonly RegExp[] = [
+  /^El producto «[^»\n]{1,200}»(?: \(línea \d{1,4}\))? queda sin precio con la lista de precios del cliente \(el descuento lo lleva a cero\)$/,
+]
+
 export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): string {
   const e = error as ErrorDeBase
   // Se registra solo el código: el objeto de error completo trae mensaje, detalle y pista del servidor.
@@ -170,9 +176,12 @@ export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): s
   if (e?.code === '40001') return MENSAJE_CONFLICTO_COMPROBANTE
   if (e?.code === '55000') return MENSAJE_CERRADO
   if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
-  // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario, en castellano y sin
-  // nombrar tablas ni columnas (el mismo que `errorDeCampo`). Cualquier otro 22023 muestra un texto fijo.
-  if (e?.code === '22023') return e.message && CAMPOS.some((campo) => campo === e.hint) ? e.message : MENSAJE_DATO_INVALIDO_COMPROBANTE
+  // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario (el mismo que
+  // `errorDeCampo`) y las del catálogo `VALIDACIONES_CONOCIDAS` también; cualquier otro 22023 muestra un texto fijo.
+  if (e?.code === '22023') {
+    const mensaje = typeof e.message === 'string' ? e.message : ''
+    return mensaje && (CAMPOS.some((campo) => campo === e.hint) || VALIDACIONES_CONOCIDAS.some((patron) => patron.test(mensaje))) ? mensaje : MENSAJE_DATO_INVALIDO_COMPROBANTE
+  }
   return porDefecto
 }
 
