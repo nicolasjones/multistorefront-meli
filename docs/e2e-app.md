@@ -809,13 +809,22 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     `tabla, filtro, cuerpo` o ruta con `accept-profile` por defecto); `precios-iva`/`stock-actual-vivo`/`ordenes-compra` (`modificar`/
     `actualizar`, PATCH que el fixture no ofrece); `ayuda`/`panel-sin-desborde` (`borrar` con URL completa); `ventas-faltantes-soporte`
     (`leer` con `dominio` por defecto, exportado a otros specs). Estos E2E los valida el CI (`e2e-visible-sesion`), no el entorno local.
-  - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
-    `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
-    tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
-    job `132881521943`), causa sin diagnosticar; no están verdes, así que se revirtió la migración. `productos-create-permisos` y
-    `notificaciones` fallan en CI por el mismo grant ausente (`conexiones`, `avisos_pendientes`; run `43735017948`), ya antes de este cambio.
-    Seguimiento: MSF-964 (`cuenta-web-cliente`), MSF-965 (`exportacion-total`/`importaciones`/`importaciones-a11y`), MSF-966
-    (grants de `service_role`: migración vs `sql()`, decisión de Nicolás).
+  - **Migración de los que quedaban (lote 27).** `cuenta-web-cliente`, `exportacion-total`, `importaciones`, `importaciones-a11y`,
+    `productos-create-permisos` y `notificaciones` ya usan el fixture compartido (`importaciones-soporte.ts` lo envuelve). Decisión
+    sobre el grant de `service_role` (opción (b)): no se da por migración; lo que no tiene grant (`conexiones`, `capacidades_ejecucion`,
+    `sistemas_externos`, `procesos_masivos`, `procesos_masivos_errores`, `avisos_pendientes`, `clientes_empresas`, `cuentas_cliente`) se
+    siembra y se limpia con `sql()`. `cuenta-web-cliente` vincula la cuenta con la RPC `vincular_cuenta_cliente` (EXECUTE para
+    `service_role`, `rest('rpc/…', cuerpo, 'public', 'return=minimal')`) y suspende con `sql()`; `altaUsuario(correo, null)` da de alta
+    a la persona sin contraseña (invitación pendiente).
+  - **Timeouts de 5 min de `exportacion-total`/`importaciones`/`importaciones-a11y` (causa probable, sin corrida local).** El CI
+    no deja ninguna traza (el run `43736941987` no conserva artefactos) y el timeout no apunta a una línea: la config no fija
+    `actionTimeout`, así que un `click`, `fill` o `boundingBox` sobre un elemento que no aparece espera hasta el tope del test en vez
+    de fallar en segundos. Además, en modo visible cada tecla tipeada por `escribir` cuesta `delay` (90 ms) más el `slowMo` (350 ms),
+    ~30 s por ingreso (`exportacion-total` ingresa tres veces). Cambios: `ingresar` de `importaciones-soporte` llena con `fill`;
+    los cinco specs fijan `test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })` (un fallo real sale en 30 s señalando la
+    acción); `sql()` fija `connectionTimeoutMillis`/`query_timeout` y las llamadas `fetch` de la siembra llevan `AbortSignal.timeout`.
+    Sin aserciones quitadas. Falta la corrida de sesión que lo confirme: si siguen agotando el tiempo, el mensaje ya dirá dónde.
+    Seguimiento: MSF-964, MSF-965 y MSF-966 pendientes solo de esa corrida.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de

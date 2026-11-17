@@ -149,3 +149,11 @@ Lección de #1053 (clientes pasó de `public` a `dominio`): un PR en vuelo que t
 No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
 
 El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.
+
+## Cliente de Supabase simulado en los tests de la web
+
+`apps/web/src/test/supabaseSimulado.ts` (`clienteSupabaseSimulado`) implementa `.schema(nombre)`, `from`/`rpc` y
+`storage.from().createSignedUrls`. Los mocks que declaran `supabaseClient: {}` o esparcen el cliente real (`{ ...actual.supabaseClient }`,
+que pierde `schema` por ser método del prototipo) hacían caer a `imagenesPrincipales` y a Inicio en «cliente.schema is not a function»: el
+error se atrapa y el test pasaba por el camino del `catch`, no por el feliz. Usalo (`tablas`, `rpc`, `firmadas`) en los mocks nuevos; su test
+cubre el camino feliz de las imágenes principales. Corregidos: `busqueda-global`, `AgregarProductoDialog` y `feature-ml`.
