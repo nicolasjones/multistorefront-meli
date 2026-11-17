@@ -4,7 +4,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { erroresYaml, erroresFrontMatter, enlacesMarkdown } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter, enlacesMarkdown, MAX_EXCESOS_ENLACE } from "./docs-yaml.mjs";
 
 function walk(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -119,21 +119,31 @@ export function verificarDocumentacion(root = process.cwd()) {
   let links = 0;
   for (const file of mdFiles) {
     for (const e of erroresFrontMatter(fs.readFileSync(file, "utf8"), path.relative(root, file))) errores.push(e);
-    let txt = fs.readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, "");
-    for (const m of enlacesMarkdown(txt)) {
-      let t = m[1].replace(/^<|>$/g, "");
+    // Los bloques de código se vacían conservando los saltos de línea (los números de línea siguen siendo los del archivo).
+    const txt = fs.readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, (bloque) => bloque.replace(/[^\n]/g, ""));
+    const rel = path.relative(root, file);
+    const delArchivo = [];
+    const { enlaces, excesos, masExcesos } = enlacesMarkdown(txt);
+    for (const x of excesos) delArchivo.push(`${rel}:${x.linea}: enlace demasiado largo para validarse (${x.motivo})`);
+    for (const m of enlaces) {
+      let t = m.destino.replace(/^<|>$/g, "");
       if (/^(https?:|mailto:|#|\/)/i.test(t)) continue;
-      t = decodeURIComponent(t.split("#")[0].split("?")[0]);
+      try { t = decodeURIComponent(t.split("#")[0].split("?")[0]); }
+      catch { delArchivo.push(`${rel}:${m.linea}: enlace con codificación % mal formada (${t})`); continue; }
       if (!t) continue;
       links++;
       const target = path.resolve(path.dirname(file), t);
       if (fueraDeDocs(docs, target)) {
         // MkDocs strict sólo resuelve archivos de docs/: un link que sale del árbol aborta el build.
-        errores.push(`${path.relative(root, file)} → ${t} (fuera de docs/)`);
+        delArchivo.push(`${rel} → ${t} (fuera de docs/) [línea ${m.linea}]`);
       } else if (!fs.existsSync(target)) {
-        errores.push(`${path.relative(root, file)} → ${t} (no existe)`);
+        delArchivo.push(`${rel} → ${t} (no existe) [línea ${m.linea}]`);
       }
     }
+    // Tope de errores por archivo para no inundar la salida.
+    for (const e of delArchivo.slice(0, MAX_EXCESOS_ENLACE)) errores.push(e);
+    const restantes = delArchivo.length - Math.min(delArchivo.length, MAX_EXCESOS_ENLACE) + masExcesos;
+    if (restantes > 0) errores.push(`${rel}: …y ${restantes} error(es) de enlaces más`);
   }
   ok.push(`links internos: ${links}`);
 

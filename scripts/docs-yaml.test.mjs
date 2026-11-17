@@ -1,7 +1,7 @@
 // El agente edita mkdocs.yml; un ':' de más rompe el build de docs. Se avisa antes de abrir el PR.
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { erroresYaml, erroresFrontMatter, enlacesMarkdown, LARGO_MAXIMO_LINEA } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter, enlacesMarkdown, LARGO_MAXIMO_LINEA, MAX_TEXTO_ENLACE, MAX_DESTINO_ENLACE, MAX_TITULO_ENLACE, MAX_BLANCOS_ENLACE, MAX_EXCESOS_ENLACE } from "./docs-yaml.mjs";
 
 describe("erroresYaml", () => {
   it("un nav válido no da errores", () => {
@@ -137,10 +137,19 @@ const enlaces = {
   "título sin cerrar": (n) => '[a](x "'.repeat(n / 7),
 };
 
+// Miles de enlaces que exceden un tope: reportarlos no puede costar más que O(n).
+const enlacesLargos = {
+  "destinos de 301": (n) => `[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) `.repeat(n / (MAX_DESTINO_ENLACE + 8)),
+  "textos de 1501": (n) => `[${"t".repeat(MAX_TEXTO_ENLACE + 1)}](a.md) `.repeat(n / (MAX_TEXTO_ENLACE + 10)),
+  "títulos de 1001": (n) => `[a](b "${"t".repeat(MAX_TITULO_ENLACE + 1)}") `.repeat(n / (MAX_TITULO_ENLACE + 12)),
+  "blancos de 1001": (n) => `[a](b${" ".repeat(MAX_BLANCOS_ENLACE + 1)}"t") `.repeat(n / (MAX_BLANCOS_ENLACE + 12)),
+};
+
 describe("rendimiento con entradas hostiles (escala lineal)", () => {
   for (const [titulo, fabrica, fn] of [
     ...Object.entries(hostiles).map(([k, f]) => [`front matter: ${k}`, f, (s) => erroresFrontMatter(s, "h.md")]),
     ...Object.entries(enlaces).map(([k, f]) => [`enlaces: ${k}`, f, enlacesMarkdown]),
+    ...Object.entries(enlacesLargos).map(([k, f]) => [`enlaces demasiado largos: ${k}`, f, enlacesMarkdown]),
   ]) {
     it(titulo, () => {
       const t = {};
@@ -155,10 +164,34 @@ describe("rendimiento con entradas hostiles (escala lineal)", () => {
 });
 
 describe("enlacesMarkdown", () => {
-  it("extrae enlaces con y sin título", () => {
-    assert.deepEqual(enlacesMarkdown('a [x](a.md) b ![i](img/p.png "t") [y](b.md#z)').map((m) => m[1]), ["a.md", "img/p.png", "b.md#z"]);
+  const destinos = (s) => enlacesMarkdown(s).enlaces.map((m) => m.destino);
+  it("extrae enlaces con y sin título, con su línea", () => {
+    const r = enlacesMarkdown('a [x](a.md) b\n![i](img/p.png "t") [y](b.md#z)');
+    assert.deepEqual(r.enlaces.map((m) => [m.destino, m.linea]), [["a.md", 1], ["img/p.png", 2], ["b.md#z", 2]]);
   });
   it("ignora lo que no es un enlace", () => {
-    assert.deepEqual(enlacesMarkdown("[a] (b) [c](  d) [e]( ) [f](g"), []);
+    assert.deepEqual(enlacesMarkdown("[a] (b) [c](  d) [e]( ) [f](g"), { enlaces: [], excesos: [], masExcesos: 0 });
+  });
+  const caso = (nombre, ok, mal, motivo) => it(`tope de ${nombre}: el límite se valida y uno más se reporta`, () => {
+    const a = enlacesMarkdown(ok);
+    assert.equal(a.enlaces.length, 1, "el límite exacto se procesa");
+    assert.deepEqual(a.excesos, []);
+    const b = enlacesMarkdown(`\nlinea\n${mal}`);
+    assert.equal(b.enlaces.length, 0);
+    assert.equal(b.excesos.length, 1);
+    assert.equal(b.excesos[0].linea, 3);
+    assert.match(b.excesos[0].motivo, new RegExp(motivo));
+  });
+  caso("destino", `[a](${"x".repeat(MAX_DESTINO_ENLACE)})`, `[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)})`, "destino");
+  caso("texto", `[${"t".repeat(MAX_TEXTO_ENLACE)}](a.md)`, `[${"t".repeat(MAX_TEXTO_ENLACE + 1)}](a.md)`, "texto");
+  caso("título", `[a](b "${"t".repeat(MAX_TITULO_ENLACE)}")`, `[a](b "${"t".repeat(MAX_TITULO_ENLACE + 1)}")`, "título");
+  caso("blancos antes del título", `[a](b${" ".repeat(MAX_BLANCOS_ENLACE)}"t")`, `[a](b${" ".repeat(MAX_BLANCOS_ENLACE + 1)}"t")`, "título");
+  it("limita los excesos guardados y cuenta el resto", () => {
+    const r = enlacesMarkdown(`[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) `.repeat(MAX_EXCESOS_ENLACE + 25));
+    assert.equal(r.excesos.length, MAX_EXCESOS_ENLACE);
+    assert.equal(r.masExcesos, 25);
+  });
+  it("un enlace normal después de uno demasiado largo se sigue extrayendo", () => {
+    assert.deepEqual(destinos(`[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) [b](ok.md)`), ["ok.md"]);
   });
 });

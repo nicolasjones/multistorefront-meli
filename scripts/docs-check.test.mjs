@@ -92,4 +92,47 @@ describe("verificarDocumentacion", () => {
     escribir(root, "docs/guia/otra.md", "# Otra\n");
     assert.deepEqual(verificarDocumentacion(root).errores, []);
   });
+
+  it("un enlace roto escondido tras un destino demasiado largo falla cerrado, con archivo y línea", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/pagina.md", `# P\n\n[roto](${"a/".repeat(151)}falta.md)\n`);
+    const errs = verificarDocumentacion(root).errores;
+    assert.ok(errs.some((e) => /docs\/guia\/pagina\.md:3: enlace demasiado largo para validarse \(destino\)/.test(e)), errs.join("\n"));
+  });
+
+  it("cada tope excedido da un error de docs-check", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/texto.md", `[${"t".repeat(1501)}](otra.md)\n`);
+    escribir(root, "docs/guia/titulo.md", `[a](otra.md "${"t".repeat(1001)}")\n`);
+    escribir(root, "docs/guia/blancos.md", `[a](otra.md${" ".repeat(1001)}"t")\n`);
+    escribir(root, "docs/guia/otra.md", "# Otra\n");
+    const errs = verificarDocumentacion(root).errores.join("\n");
+    assert.match(errs, /texto\.md:1: enlace demasiado largo para validarse \(texto\)/);
+    assert.match(errs, /titulo\.md:1: enlace demasiado largo para validarse \(título\)/);
+    assert.match(errs, /blancos\.md:1: enlace demasiado largo para validarse \(título/);
+  });
+
+  it("los topes exactos se validan como un enlace normal", (t) => {
+    const root = crearRepo(t, "nav: []");
+    const largo = "d/".repeat(147) + "xxx.md"; // 294 + 6 = 300 caracteres
+    assert.equal(largo.length, 300);
+    escribir(root, `docs/guia/${largo}`, "# Larga\n");
+    escribir(root, "docs/guia/pagina.md", `[${"t".repeat(1500)}](${largo})\n`);
+    assert.deepEqual(verificarDocumentacion(root).errores, []);
+  });
+
+  it("un % mal formado en un destino se reporta con archivo y línea sin tumbar el proceso", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/pagina.md", "# P\n[a](100%.md)\n");
+    const errs = verificarDocumentacion(root).errores;
+    assert.ok(errs.some((e) => /docs\/guia\/pagina\.md:2: enlace con codificación % mal formada/.test(e)), errs.join("\n"));
+  });
+
+  it("limita los errores de enlaces por archivo", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/pagina.md", "[a](falta.md)\n".repeat(80));
+    const errs = verificarDocumentacion(root).errores.filter((e) => e.startsWith("docs/guia/pagina.md"));
+    assert.equal(errs.length, 51);
+    assert.match(errs[50], /…y 30 error\(es\) de enlaces más/);
+  });
 });

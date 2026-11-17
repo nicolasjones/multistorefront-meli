@@ -116,19 +116,38 @@ export function erroresFrontMatter(txt, nombre) {
   return errores;
 }
 
-const MAX_TEXTO_ENLACE = 1500;
-const MAX_DESTINO_ENLACE = 300;
-const MAX_TITULO_ENLACE = 1000;
+export const MAX_TEXTO_ENLACE = 1500;
+export const MAX_DESTINO_ENLACE = 300;
+export const MAX_TITULO_ENLACE = 1000;
+export const MAX_BLANCOS_ENLACE = 1000;
+export const MAX_EXCESOS_ENLACE = 50;
 const esBlanco = (c) => c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f" || c === "\v";
 
 /**
  * Extrae los enlaces `[texto](destino)` y `[texto](destino "título")` de un texto Markdown con un solo recorrido
- * (sin regex con retroceso: una página con miles de `[` sin cerrar no cuelga el control). Devuelve `[crudo, destino]`.
- * @param {string} txt @returns {Array<[string, string]>}
+ * (sin regex con retroceso: una página con miles de `[` sin cerrar no cuelga el control). Los topes son inclusivos
+ * (texto hasta 1500, destino hasta 300, título hasta 1000 y hasta 1000 blancos antes del título). Un enlace que excede
+ * un tope NO se ignora: se devuelve en `excesos` con su línea para que el control falle cerrado. Se guardan a lo sumo
+ * `MAX_EXCESOS_ENLACE` excesos (el resto se cuenta en `masExcesos`).
+ * @param {string} txt
+ * @returns {{enlaces: Array<{crudo: string, destino: string, linea: number}>, excesos: Array<{linea: number, motivo: string}>, masExcesos: number}}
  */
 export function enlacesMarkdown(txt) {
-  const out = [];
+  const enlaces = [];
+  const excesos = [];
+  let masExcesos = 0;
   const n = txt.length;
+  // Contador de líneas monotónico: el costo total de calcular líneas es O(n).
+  let posLinea = 0;
+  let nLinea = 1;
+  const lineaEn = (idx) => {
+    for (; posLinea < idx && posLinea < n; posLinea++) if (txt[posLinea] === "\n") nLinea++;
+    return nLinea;
+  };
+  const exceso = (idx, motivo) => {
+    if (excesos.length < MAX_EXCESOS_ENLACE) excesos.push({ linea: lineaEn(idx), motivo });
+    else masExcesos++;
+  };
   let abre = -1;
   for (let i = 0; i < n; i++) {
     const c = txt[i];
@@ -136,23 +155,27 @@ export function enlacesMarkdown(txt) {
     if (c !== "]") continue;
     const desde = abre;
     abre = -1;
-    if (txt[i + 1] !== "(" || desde < 0 || i - desde > MAX_TEXTO_ENLACE) continue;
+    if (txt[i + 1] !== "(" || desde < 0) continue;
+    if (i - desde - 1 > MAX_TEXTO_ENLACE) { exceso(desde, "texto"); continue; }
     const ini = i + 2;
     let j = ini;
-    while (j < n && j - ini < MAX_DESTINO_ENLACE && txt[j] !== ")" && !esBlanco(txt[j])) j++;
+    while (j < n && j - ini <= MAX_DESTINO_ENLACE && txt[j] !== ")" && !esBlanco(txt[j])) j++;
+    if (j - ini > MAX_DESTINO_ENLACE) { exceso(desde, "destino"); i = j - 1; continue; }
     if (j === ini || j >= n) continue;
     const destino = txt.slice(ini, j);
     if (txt[j] !== ")") {
       let k = j;
-      while (k < n && esBlanco(txt[k]) && k - j < MAX_TITULO_ENLACE) k++;
+      while (k < n && esBlanco(txt[k]) && k - j <= MAX_BLANCOS_ENLACE) k++;
+      if (k - j > MAX_BLANCOS_ENLACE) { exceso(desde, "título (blancos antes del título)"); i = k - 1; continue; }
       if (k === j || txt[k] !== '"') continue;
       let f = k + 1;
-      while (f < n && f - k < MAX_TITULO_ENLACE && txt[f] !== '"') f++;
+      while (f < n && f - k - 1 <= MAX_TITULO_ENLACE && txt[f] !== '"') f++;
+      if (f - k - 1 > MAX_TITULO_ENLACE) { exceso(desde, "título"); i = f - 1; continue; }
       if (txt[f] !== '"' || txt[f + 1] !== ")") continue;
       j = f + 1;
     }
-    out.push([txt.slice(desde, j + 1), destino]);
+    enlaces.push({ crudo: txt.slice(desde, j + 1), destino, linea: lineaEn(desde) });
     i = j;
   }
-  return out;
+  return { enlaces, excesos, masExcesos };
 }
