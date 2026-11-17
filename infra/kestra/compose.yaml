@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
 
   kestra:
+    # MSF-736: tini como PID 1 cosecha los procesos zombi (ver infra/runner/compose.yaml).
+    init: true
     image: kestra/kestra:v1.3.35
     user: root
     command: server standalone --worker-thread=32

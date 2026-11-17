@@ -178,3 +178,26 @@ test('el filtro acepta solo los errores esperados de un Postgres sin Supabase y 
   ];
   assert.deepEqual(inesperados([...esperados, ...reales]), reales);
 });
+
+// --- MSF-736: procesos zombi (chrome-headless <defunct>) ---
+
+test('todo `docker run` de un worker lleva --init y tope de procesos (MSF-736)', () => {
+  let total = 0;
+  for (const f of flows) {
+    for (const m of f.texto.matchAll(/^\s*docker run --rm \\\n([\s\S]*?)\n\s*\S*\{\{ (?:envs\.\w+|inputs\.imagen) \}\}/gm)) {
+      total += 1;
+      assert.match(m[1], /--init \\/, `${f.id}: falta --init`);
+      assert.match(m[1], /--pids-limit /, `${f.id}: falta --pids-limit`);
+    }
+  }
+  assert.ok(total >= 7, `solo se encontraron ${total} docker run`);
+});
+
+test('los contenedores de larga vida usan init: true (MSF-736)', () => {
+  for (const [archivo, servicio] of [['infra/runner/compose.yaml', 'runner'], ['infra/playwright/compose.yaml', 'playwright'], ['infra/kestra/compose.yaml', 'kestra'], ['infra/superset/compose.yaml', 'superset'], ['infra/nango/compose.yaml', 'nango-server']]) {
+    const texto = readFileSync(archivo, 'utf8');
+    const bloque = texto.match(new RegExp(`^  ${servicio}:\\n([\\s\\S]*?)(?=^  \\S|^\\S|(?![\\s\\S]))`, 'm'));
+    assert.ok(bloque, `${archivo}: no se encontró el servicio ${servicio}`);
+    assert.match(bloque[1], /^ {4}init: true$/m, `${archivo}/${servicio}: falta init: true`);
+  }
+});

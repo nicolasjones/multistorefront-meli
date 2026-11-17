@@ -105,6 +105,8 @@ tasks:
                   fi
                 fi
                 docker run --rm \
+                  --init \
+                  --pids-limit "${WORKER_PIDS:-1024}" \
                   --read-only \
                   --tmpfs /tmp:rw,noexec,nosuid,size=64m \
                   --cap-drop=ALL \
