@@ -80,13 +80,24 @@ export function VentaMostrador() {
   const cuentas = useListarCuentasCobro({ empresaId: empresaActivaId, estado: 'activas', pagina: 1, tamano: 200 })
 
   // MSF-937: valor de la bandera de promociones visto al abrir la venta; si cambia con la venta abierta se avisa.
-  const banderaPromociones = useBanderaPromociones(ventaVigente !== null)
+  const { valor: banderaPromociones, releer: releerBandera } = useBanderaPromociones(ventaVigente !== null)
   const [banderaAlAbrir, setBanderaAlAbrir] = useState<boolean | null>(null)
   const ventaVigenteId = ventaVigente?.id ?? null
+  // La base sale de una lectura hecha al abrir la venta (no del valor del montaje: el mostrador queda abierto todo el día).
+  // Si esa lectura falla no hay base y no se avisa.
   useEffect(() => {
-    if (ventaVigenteId === null) setBanderaAlAbrir(null)
-    else setBanderaAlAbrir((previa) => previa ?? banderaPromociones)
-  }, [ventaVigenteId, banderaPromociones])
+    if (ventaVigenteId === null) {
+      setBanderaAlAbrir(null)
+      return
+    }
+    let vigente = true
+    void releerBandera().then((leida) => {
+      if (vigente) setBanderaAlAbrir((previa) => previa ?? leida)
+    })
+    return () => {
+      vigente = false
+    }
+  }, [ventaVigenteId, releerBandera])
   const avisoBandera = ventaVigente ? avisoCambioBandera(banderaAlAbrir, banderaPromociones) : null
 
   useEffect(() => {

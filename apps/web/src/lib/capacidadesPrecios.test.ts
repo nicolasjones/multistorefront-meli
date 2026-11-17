@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { CAPACIDADES_APAGADAS, leerCapacidadesPrecios } from './capacidadesPrecios'
+import { CAPACIDADES_APAGADAS, leerBanderaPromociones, leerCapacidadesPrecios } from './capacidadesPrecios'
 
 describe('leerCapacidadesPrecios', () => {
   it('traduce la respuesta de la base', async () => {
@@ -27,5 +27,30 @@ describe('leerCapacidadesPrecios', () => {
   it('un error de la base se propaga (el hook lo trata como apagado)', async () => {
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: '42501' } })
     await expect(leerCapacidadesPrecios({ rpc } as never)).rejects.toEqual({ code: '42501' })
+  })
+})
+
+describe('leerBanderaPromociones', () => {
+  const clienteCon = (resultado: { data: unknown; error: unknown }) => {
+    const maybeSingle = vi.fn().mockResolvedValue(resultado)
+    const eq = vi.fn().mockReturnValue({ maybeSingle })
+    const select = vi.fn().mockReturnValue({ eq })
+    const from = vi.fn().mockReturnValue({ select })
+    return { cliente: { from } as never, from, eq }
+  }
+
+  it('lee solo la fila de la bandera', async () => {
+    const { cliente, from, eq } = clienteCon({ data: { activa: true }, error: null })
+    expect(await leerBanderaPromociones(cliente)).toBe(true)
+    expect(from).toHaveBeenCalledWith('banderas_plataforma')
+    expect(eq).toHaveBeenCalledWith('clave', 'promociones_precio')
+  })
+
+  it('una clave inexistente cuenta como apagada', async () => {
+    expect(await leerBanderaPromociones(clienteCon({ data: null, error: null }).cliente)).toBe(false)
+  })
+
+  it('un error se propaga', async () => {
+    await expect(leerBanderaPromociones(clienteCon({ data: null, error: { code: '42501' } }).cliente)).rejects.toEqual({ code: '42501' })
   })
 })

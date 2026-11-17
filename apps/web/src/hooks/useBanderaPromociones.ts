@@ -1,42 +1,53 @@
-import { useEffect, useRef, useState } from 'react'
-import { leerCapacidadesPrecios } from '../lib/capacidadesPrecios'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { leerBanderaPromociones } from '../lib/capacidadesPrecios'
 import { supabaseClient } from '../lib/supabase'
 
 export const INTERVALO_RELECTURA_BANDERA_MS = 60_000
 
-// MSF-937: valor vivo de la bandera `promociones_precio`. Se lee al montar, al volver a la pestaña y cada minuto
-// mientras `activo` (hay una venta abierta). Si una lectura falla se conserva la última conocida (`null` si nunca hubo).
-export function useBanderaPromociones(activo: boolean): boolean | null {
+// MSF-937: valor vivo de la bandera `promociones_precio`. Se lee al montar y, mientras `activo` (hay una venta abierta),
+// al volver a la pestaña y cada minuto. `releer()` fuerza una lectura nueva y devuelve su valor (`null` si falló): sirve
+// para fijar la base de comparación DESPUÉS de abrir una venta, no con un valor viejo del montaje. Si una lectura falla se
+// conserva la última conocida.
+export function useBanderaPromociones(activo: boolean): { valor: boolean | null; releer: () => Promise<boolean | null> } {
   const [valor, setValor] = useState<boolean | null>(null)
   const ultima = useRef(0)
+  const montado = useRef(true)
+
+  const releer = useCallback(async (): Promise<boolean | null> => {
+    const peticion = ++ultima.current
+    try {
+      const resultado = await leerBanderaPromociones(supabaseClient)
+      if (montado.current && peticion === ultima.current) setValor(resultado)
+      return resultado
+    } catch (error) {
+      console.error('No pudimos leer la bandera de promociones.', error)
+      return null
+    }
+  }, [])
 
   useEffect(() => {
-    let vigente = true
-    const leer = () => {
-      const peticion = ++ultima.current
-      leerCapacidadesPrecios(supabaseClient)
-        .then((c) => {
-          if (vigente && peticion === ultima.current) setValor(c.promociones)
-        })
-        .catch((error: unknown) => {
-          console.error('No pudimos releer la bandera de promociones.', error)
-        })
-    }
-    leer()
-    if (!activo) return () => { vigente = false }
-    const alVolver = () => {
-      if (document.visibilityState === 'visible') leer()
-    }
-    const intervalo = window.setInterval(leer, INTERVALO_RELECTURA_BANDERA_MS)
-    document.addEventListener('visibilitychange', alVolver)
-    window.addEventListener('focus', leer)
+    montado.current = true
+    void releer()
     return () => {
-      vigente = false
+      montado.current = false
+    }
+  }, [releer])
+
+  useEffect(() => {
+    if (!activo) return
+    const alVolver = () => {
+      if (document.visibilityState === 'visible') void releer()
+    }
+    const alEnfocar = () => void releer()
+    const intervalo = window.setInterval(() => void releer(), INTERVALO_RELECTURA_BANDERA_MS)
+    document.addEventListener('visibilitychange', alVolver)
+    window.addEventListener('focus', alEnfocar)
+    return () => {
       window.clearInterval(intervalo)
       document.removeEventListener('visibilitychange', alVolver)
-      window.removeEventListener('focus', leer)
+      window.removeEventListener('focus', alEnfocar)
     }
-  }, [activo])
+  }, [activo, releer])
 
-  return valor
+  return { valor, releer }
 }

@@ -3698,7 +3698,7 @@
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
-      "sourceHash": "8909a976fe7396b5f0ea3edef89a40daad7e8750489898b554ebadbc3c66d5b2",
+      "sourceHash": "f4591cb5a1c4ca6578e5007cfce11a60052ad63ad3678840975be4f2626c9ef2",
       "sourceAt": null,
       "sources": [
         "specs",
@@ -3977,7 +3977,7 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "8d4b846a01ff3bbbebce7ee68547c813de28248f5abf3b7abd834df95672b4c3",
+      "pageHash": "4afeed93ccb48b8a4fea34fee474a5320d3e2d1d78cfccb5087be02cc12896de",
       "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
       "sourceAt": null,
       "sources": [
