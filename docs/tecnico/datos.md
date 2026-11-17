@@ -4313,3 +4313,39 @@ erDiagram
   (sin datos que conservar).
 
 
+## Newsletter de la tienda (MSF-468)
+
+Épica **MSF-468** (spec `20270328-100000-newsletter-de-la-tienda`), rama de integración `dokploy` (aún sin
+promover a `main`: en `main` no hay ninguna migración de newsletter). Tres tablas nuevas en `dominio`, cuatro
+alteradas (las tres del correo masivo de MSF-155 y `dominio.tienda_envios`) y una fila nueva en
+`public.banderas_plataforma`. Migraciones aditivas `20270342000000`–`20270342000300` y
+`20270420000000`–`20270420000600`; la reversión está en el encabezado de cada una. Detalle de contratos,
+RPC, flows, empresa activa y pruebas: [Newsletter de la tienda](newsletter.md).
+
+| Tabla | Estado | Cambio |
+|---|---|---|
+| `dominio.newsletter_configuracion` | **nueva** | Una fila por tienda: `empresa_id` (PK), `organizacion_id` (FK), `activo boolean not null default false` (interruptor «Mostrar suscripción en el pie de la tienda») y `actualizado_en`. RLS por organización y tienda accesible; `authenticated` solo `select`. |
+| `dominio.newsletter_suscriptores` | **nueva** | Suscriptor de **una** tienda: `correo` (recortado, en minúsculas, ≤ 254, forma estricta y sin llaves), `estado` (`pendiente` \| `confirmado` \| `baja`), `origen` (`formulario`), `version_consentimiento`, `consentimiento_en`, `confirmacion_hash` (SHA-256; el token en claro nunca se guarda), `confirmacion_vence`, `confirmacion_solicitada_en`, `confirmacion_enviada_en`, `confirmacion_reclamada_hasta`, `confirmacion_intentos`, `confirmaciones_24h`, `confirmaciones_desde`, `confirmado_en`, `baja_en` y `creado_en`. Único `(empresa_id, lower(correo))`. RLS por organización y tienda accesible; `grant select` **por columna**, sin `confirmacion_hash`; `anon` sin privilegios. |
+| `dominio.newsletters` | **nueva** | Borrador o envío de una tienda: `nombre_interno` (≤ 100), `asunto` (≤ 200, sin saltos de línea), `mensaje` (≤ 10 000, texto plano), `incluir_destacados`, `incluir_promociones`, `contenido_enviado` (jsonb: la foto del contenido), `campana_id` (FK a `dominio.campanas_correo`), `enviada_en`, `cancelada_en`, `version` (bloqueo optimista), `creada_por`, `creada_en` y `actualizada_en`. RLS por organización y tienda accesible; se escribe solo por RPC `security definer`. |
+| `dominio.campanas_correo` | **alterada** | Columnas `tipo text not null default 'clientes'` (check `clientes` \| `newsletter`), `newsletter_id uuid` (FK a `dominio.newsletters`) y `bloques jsonb` (la foto del contenido). |
+| `dominio.campana_correo_destinatarios` | **alterada** | `cliente_id` pasa a admitir nulo y se suma `suscriptor_id uuid` (FK a `dominio.newsletter_suscriptores`), con `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)` y único `(campana_id, suscriptor_id)`. |
+| `dominio.correo_masivo_pruebas` | **alterada** | Columnas `bloques jsonb` (contenido de la prueba) y `empresa_id uuid` (la tienda de la prueba). |
+| `dominio.tienda_envios` | **alterada** | Solo el `check` de `origen` suma `newsletter` (el límite de 5 por hora por visitante que comparte con el contacto y WhatsApp). |
+| `public.banderas_plataforma` | **alterada** | Solo una **fila** nueva: `newsletter`, **apagada**. Se enciende por SQL, nunca por migración. |
+| `dominio.empresas`, `dominio.tiendas` | existentes | Dueña del newsletter y del dominio público que arma los enlaces de confirmación y baja. |
+| `public.clientes` | existente | Sin cambios: **no** se enlaza con los suscriptores (otra lista y otro consentimiento). |
+| `dominio.productos_tienda`, `dominio.productos`, `dominio.promociones_precio` | existentes | Fuente de la foto del contenido (hasta 6 destacados y 6 promociones vigentes, con el precio público de la tienda). |
+| `public.registro_actividad` | existente | Recibe los eventos `newsletter.*` (sin correos, mensajes ni cuerpo). |
+| `public.organizaciones` | existente | Dueña de todo. |
+
+- **La capacidad nace apagada**: con la bandera `newsletter` apagada o el interruptor de la tienda apagado,
+  el pie no muestra el formulario, las RPC de escritura responden `55000` y el flow no envía. La baja y el
+  borrado de datos funcionan siempre.
+- **Exportación total**: las tres tablas nuevas entran en la allow-list `private.conjuntos_exportacion_total()`,
+  pero `confirmacion_hash` (SHA-256 del token de confirmación) queda **fuera** del volcado: con el dump no se
+  puede confirmar ninguna suscripción.
+- **El esquema `publico` no tiene tablas**: las tres funciones anónimas (`newsletter_por_dominio`,
+  `suscribirse_newsletter`, `confirmar_newsletter`) viven en el esquema `publico` y no devuelven ids, hash ni
+  la IP.
+- **Reversión**: apagar la bandera es inmediato y sin código; el resto está en el encabezado de cada
+  migración (ver [Newsletter de la tienda](newsletter.md#reversion)).
