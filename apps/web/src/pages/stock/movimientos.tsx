@@ -5,7 +5,7 @@ import { useMovimientos, type Movimiento } from '../../hooks/useMovimientos'
 import { useExportarCsv } from '../../hooks/useExportarCsv'
 import { nombreArchivoCsv, type ColumnaCsv } from '../../lib/exportarCsv'
 import { ExportarCsvBoton } from '../../components/stock/ExportarCsvBoton'
-import { ESTADOS_STOCK, type EstadoStock } from '../../lib/stock'
+import { ESTADOS_STOCK, notaLegibleDeMovimiento, type EstadoStock } from '../../lib/stock'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -75,11 +75,11 @@ const columnasMovimientos = (imagenes: ReadonlyMap<string, string> = new Map()):
   {
     clave: 'motivo',
     encabezado: 'Motivo / nota',
-    valor: (fila) => [fila.motivo, fila.nota].filter(Boolean).join(' · ') || null,
+    valor: (fila) => [fila.motivo, notaLegibleDeMovimiento(fila.nota)].filter(Boolean).join(' · ') || null,
     render: (fila) => (
       <Stack spacing={0}>
         <Typography variant="b">{fila.motivo ?? '—'}</Typography>
-        {fila.nota ? <Typography variant="xs">{fila.nota}</Typography> : null}
+        {fila.nota ? <Typography variant="xs">{notaLegibleDeMovimiento(fila.nota)}</Typography> : null}
       </Stack>
     ),
   },
