@@ -1,6 +1,7 @@
 import { Button, Tooltip } from '@mui/material'
 import { useNavigate } from 'react-router'
 import type { ItemsConsulta } from '../../hooks/useItemsConsulta'
+import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import type { Consulta } from '../../lib/consultas'
 import { ErrorPresupuestoDesdePedido, crearPresupuestoDesdePedido } from '../../lib/presupuestoDesdePedido'
@@ -20,6 +21,7 @@ type Props = {
 export function BotonCrearPresupuesto({ consulta, items, ocupado, onOcupado, onError, onCreado }: Props) {
   const navegar = useNavigate()
   const { nivel } = useNivelSeccion('ventas')
+  const { contexto } = useContextoPanel()
   if (nivel !== 'edicion') return null
   const pendiente = items.fase !== 'lista'
 
@@ -28,12 +30,22 @@ export function BotonCrearPresupuesto({ consulta, items, ocupado, onOcupado, onE
     onOcupado(true)
     onError(null)
     try {
-      const creado = await crearPresupuestoDesdePedido(consulta, items.items)
-      onCreado(creado.omitidas > 0
-        ? `Presupuesto ${creado.numero} creado · ${creado.omitidas} ${creado.omitidas === 1 ? 'línea' : 'líneas'} del pedido no se pasaron: revisalas`
-        : `Presupuesto ${creado.numero} creado desde el pedido de ${consulta.nombre}`)
-      navegar(`/ventas/comprobantes/${creado.id}`)
+      const creado = await crearPresupuestoDesdePedido(consulta, items.items, contexto?.organizacion_id ?? null)
+      if (creado.omitidas > 0) {
+        const aviso = `${creado.omitidas} ${creado.omitidas === 1 ? 'línea' : 'líneas'} del pedido no se pasaron porque el producto ya no existe: revisalas.`
+        onCreado(`Presupuesto ${creado.numero} creado · ${aviso}`)
+        // El aviso viaja en el estado de la ruta: el diálogo y la lista se abandonan al navegar.
+        navegar(`/ventas/comprobantes/${creado.id}`, { state: { aviso } })
+      } else {
+        onCreado(`Presupuesto ${creado.numero} creado desde el pedido de ${consulta.nombre}`)
+        navegar(`/ventas/comprobantes/${creado.id}`, { state: { mensaje: `Presupuesto ${creado.numero} creado desde el pedido de ${consulta.nombre}` } })
+      }
     } catch (error) {
+      if (error instanceof ErrorPresupuestoDesdePedido && error.presupuesto) {
+        // Existe pero vacío: se lleva a la persona a completarlo, no a reintentar.
+        navegar(`/ventas/comprobantes/${error.presupuesto.id}`, { state: { aviso: error.message } })
+        return
+      }
       onError(error instanceof ErrorPresupuestoDesdePedido ? error.message : 'No pudimos crear el presupuesto. Intentá de nuevo; si sigue fallando, revisá tus permisos de Ventas.')
     } finally {
       onOcupado(false)

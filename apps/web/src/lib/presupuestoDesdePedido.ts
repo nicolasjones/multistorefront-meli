@@ -12,7 +12,14 @@ export const MENSAJE_PEDIDO_SIN_PRODUCTOS = 'El pedido no tiene productos que si
 export const MENSAJE_SIN_CONSUMIDOR_FINAL = 'La consulta no tiene cliente y la organización no tiene «Consumidor final»: vinculá un cliente primero.'
 
 /** Error de negocio con texto apto para mostrar tal cual. */
-export class ErrorPresupuestoDesdePedido extends Error {}
+export class ErrorPresupuestoDesdePedido extends Error {
+  /** Presente cuando el presupuesto SÍ se creó pero no se pudieron cargar sus líneas: hay que completarlo a mano, no reintentar. */
+  readonly presupuesto?: { id: string; numero: string }
+  constructor(mensaje: string, presupuesto?: { id: string; numero: string }) {
+    super(mensaje)
+    this.presupuesto = presupuesto
+  }
+}
 
 export type ResultadoPresupuestoDesdePedido = {
   id: string
@@ -37,22 +44,30 @@ export function entradasDesdePedido(items: readonly ItemConsulta[]): { entradas:
   return { entradas, omitidas }
 }
 
-export async function crearPresupuestoDesdePedido(consulta: Pick<Consulta, 'empresa_id' | 'cliente_id' | 'nombre' | 'contacto'>, items: readonly ItemConsulta[]): Promise<ResultadoPresupuestoDesdePedido> {
+export async function crearPresupuestoDesdePedido(consulta: Pick<Consulta, 'empresa_id' | 'cliente_id' | 'nombre' | 'contacto'>, items: readonly ItemConsulta[], organizacionId: string | null): Promise<ResultadoPresupuestoDesdePedido> {
   const { entradas, omitidas } = entradasDesdePedido(items)
   if (entradas.length === 0) throw new ErrorPresupuestoDesdePedido(MENSAJE_PEDIDO_SIN_PRODUCTOS)
-  const clienteId = consulta.cliente_id ?? (await obtenerConsumidorFinal())
+  const clienteId = consulta.cliente_id ?? (await obtenerConsumidorFinal(organizacionId))
   if (clienteId === null) throw new ErrorPresupuestoDesdePedido(MENSAJE_SIN_CONSUMIDOR_FINAL)
 
   const creado = await crearComprobante({
     tipo: 'presupuesto',
     empresa_id: consulta.empresa_id,
     cliente: { id: clienteId, nombre: consulta.nombre, contacto: consulta.contacto },
-    canal: '',
+    // El pedido viene de la tienda; `crear_comprobante` exige un canal válido.
+    canal: 'tienda_online',
     fecha: hoyEnArgentina(),
     valido_hasta: '',
   })
-  // Si el guardado de líneas falla queda un presupuesto vacío: la pantalla del presupuesto lo muestra y se puede completar o anular desde ahí.
-  const actualizadoEn = (await obtenerComprobante(creado.id)).updated_at
-  await guardarLineasComprobante(creado.id, entradas, actualizadoEn)
+  // Desde acá el presupuesto ya existe: un fallo NO puede decir «no se creó» (invitaría a reintentar y a acumular presupuestos vacíos).
+  try {
+    const actualizadoEn = (await obtenerComprobante(creado.id)).updated_at
+    await guardarLineasComprobante(creado.id, entradas, actualizadoEn)
+  } catch {
+    throw new ErrorPresupuestoDesdePedido(
+      `Se creó el presupuesto N° ${creado.numero} pero no se pudieron cargar los productos: abrilo y agregalos a mano.`,
+      { id: creado.id, numero: creado.numero },
+    )
+  }
   return { id: creado.id, numero: creado.numero, omitidas }
 }

@@ -32,7 +32,7 @@ describe('presupuesto desde un pedido', () => {
   })
 
   it('crea un presupuesto para el cliente de la consulta y le guarda las líneas con el sello vigente', async () => {
-    const resultado = await crearPresupuestoDesdePedido(consulta, [item()])
+    const resultado = await crearPresupuestoDesdePedido(consulta, [item()], 'org-1')
     expect(mocks.crearComprobante).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'presupuesto', empresa_id: 'e-1', cliente: expect.objectContaining({ id: 'cl-1' }), fecha: '2026-11-17' }))
     expect(mocks.guardarLineasComprobante).toHaveBeenCalledWith('c-1', [{ producto_id: 'p-1', cantidad: 2, deposito_id: null, precio_manual: null }], 'sello')
     expect(mocks.obtenerConsumidorFinal).not.toHaveBeenCalled()
@@ -40,14 +40,31 @@ describe('presupuesto desde un pedido', () => {
   })
 
   it('sin cliente en la consulta usa Consumidor final', async () => {
-    await crearPresupuestoDesdePedido({ ...consulta, cliente_id: null }, [item()])
+    await crearPresupuestoDesdePedido({ ...consulta, cliente_id: null }, [item()], 'org-1')
+    expect(mocks.obtenerConsumidorFinal).toHaveBeenCalledWith('org-1')
     expect(mocks.crearComprobante).toHaveBeenCalledWith(expect.objectContaining({ cliente: expect.objectContaining({ id: 'cf-1' }) }))
   })
 
   it('no crea nada si no hay productos que presupuestar o no hay Consumidor final', async () => {
-    await expect(crearPresupuestoDesdePedido(consulta, [item({ producto_id: null })])).rejects.toBeInstanceOf(ErrorPresupuestoDesdePedido)
+    await expect(crearPresupuestoDesdePedido(consulta, [item({ producto_id: null })], 'org-1')).rejects.toBeInstanceOf(ErrorPresupuestoDesdePedido)
     mocks.obtenerConsumidorFinal.mockResolvedValue(null)
-    await expect(crearPresupuestoDesdePedido({ ...consulta, cliente_id: null }, [item()])).rejects.toBeInstanceOf(ErrorPresupuestoDesdePedido)
+    await expect(crearPresupuestoDesdePedido({ ...consulta, cliente_id: null }, [item()], 'org-1')).rejects.toBeInstanceOf(ErrorPresupuestoDesdePedido)
     expect(mocks.crearComprobante).not.toHaveBeenCalled()
+  })
+
+  it('si falla el guardado de las líneas informa el presupuesto creado (número e id) y no pide reintentar', async () => {
+    mocks.guardarLineasComprobante.mockRejectedValue(new Error('boom'))
+    const error = await crearPresupuestoDesdePedido(consulta, [item()], 'org-1').catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ErrorPresupuestoDesdePedido)
+    expect((error as ErrorPresupuestoDesdePedido).presupuesto).toEqual({ id: 'c-1', numero: '00000007' })
+    expect((error as Error).message).toContain('00000007')
+    expect((error as Error).message).not.toMatch(/reintent|de nuevo/i)
+  })
+
+  it('si falla la relectura del presupuesto recién creado también informa que existe', async () => {
+    mocks.obtenerComprobante.mockRejectedValue(new Error('boom'))
+    const error = await crearPresupuestoDesdePedido(consulta, [item()], 'org-1').catch((e: unknown) => e)
+    expect((error as ErrorPresupuestoDesdePedido).presupuesto?.id).toBe('c-1')
+    expect(mocks.guardarLineasComprobante).not.toHaveBeenCalled()
   })
 })

@@ -27,6 +27,7 @@ vi.mock('../../hooks/useConsultas', () => ({
 }))
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: mocks.useRespuestasRapidas }))
 vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: () => ({ contexto: { organizacion_id: 'org-1' } }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaActiva: mocks.useFiltroPorEmpresaActiva }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
