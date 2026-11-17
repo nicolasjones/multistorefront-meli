@@ -155,7 +155,7 @@ Errores que traduce la UI: `40001` conflicto de edición, `42501` sin permiso, `
 ## Interés por WhatsApp (F-CON-02, MSF-130)
 
 Cuenta cuántas veces se tocó «Consultar por WhatsApp» en cada producto (diseño original; hoy solo el sembrado del dataset demo alimenta la tabla, MSF-657). **Sin datos
-personales**: cada fila es un toque, no una persona.
+personales**: cada fila es un toque, no una persona (hoy solo el sembrado demo la alimenta; ver MSF-657).
 
 ### Modelo
 
@@ -259,11 +259,11 @@ datos si importan).
 
 ### Pruebas
 
-- pgTAP `supabase/tests/database/interes_whatsapp.test.sql` (38 aserciones): la fila **no tiene columnas
+- pgTAP `supabase/tests/database/interes_whatsapp.test.sql` (41 aserciones): la fila **no tiene columnas
   personales**, el mismo `P0002` para dominio desconocido y empresa desactivada, producto de otra organización,
   aislamiento entre **dos organizaciones** y entre empresas sin acceso, permisos por nivel de la sección
   `consultas`, insert/update/delete directos rechazados, `anon` sin privilegios sobre la tabla ni la vista y
-  `anon` solo con la RPC.
+  `anon` y `authenticated` **sin** `execute` sobre la RPC (desde MSF-657 solo `service_role` la ejecuta).
 - Vitest `apps/web/src/pages/consultas/InteresWhatsappDialog.test.tsx`: lista y orden, vacío con explicación,
   error con reintento, columna **Tienda** según la empresa activa, cambio de empresa con el diálogo abierto
   (avisa y cierra), respuesta tardía de una lectura vieja, teclado (Escape y botón Cerrar) y visibilidad del
@@ -362,7 +362,7 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
   authenticated` + `grant select … to authenticated`.
 - **`anon`**: sin privilegios sobre la tabla ni sobre la vista; no ejecuta ninguna función de interés: `publico.registrar_interes_whatsapp` (`security definer`, `search_path = ''`) es solo `service_role` desde MSF-657 y vive en `publico`, por lo que no altera la lista de RPC de `public` permitidas a `anon`.
 - **Sin datos personales**: la RPC no los recibe ni los guarda; no hay IP, nombre, teléfono, correo ni
-  mensaje. No hay forma de deduplicar toques sin identificar a la persona: cada toque cuenta.
+  mensaje. No hay forma de deduplicar toques sin identificar a la persona: cada toque cuenta (hoy solo el sembrado demo la alimenta; ver MSF-657).
 - **Sin enumeración de dominios**: mismo `P0002` para dominio desconocido y empresa desactivada, resuelto
   antes de validar el producto.
 - **Enlaces codificados**: `encodeURIComponent` en el `mailto:` (correo, asunto y cuerpo) y en el `text` de
@@ -500,7 +500,7 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 ## Verificación
 
 - pgTAP: `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql`,
-  `interes_whatsapp.test.sql` (38 aserciones), `consultas_responder.test.sql` (13 aserciones) y
+  `interes_whatsapp.test.sql` (41 aserciones), `consultas_responder.test.sql` (13 aserciones) y
   `rls_en_toda_tabla` (aislamiento entre dos organizaciones, tres niveles de permiso, alta solo por RPC,
   validaciones, conflicto de edición, actividad y `anon`).
 - Vitest: `apps/web/src/pages/consultas/list.test.tsx`, `components/consultas/DetalleConsulta.test.tsx`,

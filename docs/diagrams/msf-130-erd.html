@@ -5932,7 +5932,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <ul>
           <li>empresa_id y producto_id usan FK compuestas con organizacion_id: un interés no puede apuntar a otra organización.</li>
           <li>La RLS filtra por organizacion_id, por empresa accesible y por la sección consultas en lectura o edición.</li>
-          <li>No hay políticas de escritura: el alta es solo la RPC pública, y anon no tiene privilegios sobre la tabla.</li>
+          <li>No hay políticas de escritura: el alta es solo la RPC, interna desde MSF-657 (solo service_role), y anon no tiene privilegios sobre la tabla ni ejecuta la función.</li>
         </ul>
       </div>
 

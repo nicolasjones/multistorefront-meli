@@ -88,7 +88,7 @@ Como administrador quiero ver cuánto gané con lo efectivamente vendido en un p
 Como administrador quiero ver qué productos más consultan los clientes por WhatsApp en un período, para saber qué les interesa aunque todavía no lo compren.
 
 **Escenarios**:
-1. **Dado** toques en «Consultar por WhatsApp» registrados (F-CON-02), **cuando** abro el reporte con un rango «Desde / Hasta», **entonces** veo los productos ordenados por cantidad de consultas del período, con la cantidad y la fecha de la última.
+1. **Dado** toques en «Consultar por WhatsApp» registrados (F-CON-02; hoy solo el sembrado demo los carga, ver MSF-657), **cuando** abro el reporte con un rango «Desde / Hasta», **entonces** veo los productos ordenados por cantidad de consultas del período, con la cantidad y la fecha de la última.
 2. **Dado** un filtro por empresa, **entonces** cuenta solo las consultas de esa tienda; sin filtro, las de todas las empresas accesibles.
 3. **Dado** un período sin consultas, **entonces** estado vacío compartido.
 4. **Dado** dos organizaciones o empresas no accesibles, **entonces** nunca aparecen filas ajenas; el reporte **no muestra costo ni margen**.
@@ -189,14 +189,14 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-  A[Cliente toca Consultar por WhatsApp en la tienda] --> B[(dominio.intereses_whatsapp · F-CON-02)]
+  A["Sembrado demo con service_role - diseño original: cliente toca Consultar por WhatsApp"] --> B[(dominio.intereses_whatsapp · F-CON-02)]
   B --> C[analitica.consultas_producto_mas_consultado]
   C --> D[Tablero: productos ordenados por consultas del período]
 ```
 
 | Paso | Dueño |
 |---|---|
-| Registro del toque | Fuera de alcance: lo entrega MSF-130 (F-CON-02); aquí solo se lee |
+| Registro del toque | Fuera de alcance: lo entrega MSF-130 (F-CON-02); aquí solo se lee (hoy solo el sembrado demo lo carga, ver MSF-657) |
 | Vista y tablero | US3-1…4, FR-010, FR-011 |
 
 ## Requirements *(mandatory)*

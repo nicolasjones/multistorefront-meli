@@ -8,7 +8,7 @@
 
 | Objeto | Esquema | Motivo |
 |---|---|---|
-| `intereses_whatsapp` | `dominio` | Registro de negocio (interés de visitantes por un producto de una tienda). |
+| `intereses_whatsapp` | `dominio` | Registro de negocio (interés de visitantes por un producto de una tienda; hoy solo el sembrado demo la alimenta; ver MSF-657). |
 | `publico.registrar_interes_whatsapp` | `publico` | Superficie `anon` original, sin datos propios (precedente `crear_consulta_publica`); desde MSF-657 solo `service_role`. |
 | `interes_whatsapp_por_producto` | `public` (vista) | Superficie de lectura, `security_invoker`. |
 

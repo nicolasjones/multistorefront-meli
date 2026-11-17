@@ -23,7 +23,7 @@ Al terminar, el administrador ve cuántas veces se tocó «Consultar por WhatsAp
 
 | Objeto | Esquema | Historia | Justificación | RLS / acceso |
 |--------|---------|----------|---------------|--------------|
-| `intereses_whatsapp` (**nueva**: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`; **sin datos personales**) | `dominio` | F-CON-02 | Registro de negocio: cuántas veces un visitante tocó el botón en un producto de una tienda. No es dato de plataforma. | `organizacion_id = (select private.organizacion_id())` y `empresa_id in (select private.empresas_accesibles())`; select con `consultas`≥`lectura`; **sin insert, update ni delete desde la app** (el alta es solo la RPC; originalmente pública, desde MSF-657 solo `service_role`); `anon` sin privilegios sobre la tabla |
+| `intereses_whatsapp` (**nueva**: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`; **sin datos personales**) | `dominio` | F-CON-02 | Registro de negocio: cuántas veces un visitante tocó el botón en un producto de una tienda (hoy solo el sembrado demo la alimenta; ver MSF-657). No es dato de plataforma. | `organizacion_id = (select private.organizacion_id())` y `empresa_id in (select private.empresas_accesibles())`; select con `consultas`≥`lectura`; **sin insert, update ni delete desde la app** (el alta es solo la RPC; originalmente pública, desde MSF-657 solo `service_role`); `anon` sin privilegios sobre la tabla |
 | RPC `publico.registrar_interes_whatsapp` | `publico` | F-CON-02 | Superficie para `anon` (precedente `publico.crear_consulta_publica`); no almacena datos; escribe por `security definer`. | `grant execute … to anon, authenticated` (original; MSF-657 lo reemplazó por solo `service_role` y salió de la lista de `anon`); entra a la lista de RPC permitidas a `anon` del pgTAP (ver `docs/acceso-ingreso.md`) |
 | Vista `public.interes_whatsapp_por_producto` | `public` | F-CON-02 | Superficie de lectura, no almacena datos. | `security_invoker`: aplica la RLS de la tabla; `anon` sin acceso |
 | F-CON-04 | — | F-CON-04 | **Sin tablas ni RPC nuevas**: reusa `public.actualizar_consulta` de MSF-122. | — |
@@ -49,7 +49,7 @@ La prueba pgTAP `rls_en_toda_tabla` (recorre `public` + `dominio`) debe seguir v
 7. **Dado** un usuario con `consultas`=`ninguno` o de otra organización/empresa sin acceso, **entonces** no ve ningún conteo (la base lo impide, no solo la pantalla).
 8. **Dado** que todavía no hubo ningún interés, **entonces** se ve el estado vacío compartido con una explicación.
 
-**Independent Test**: pgTAP (alta, validaciones, aislamiento, permisos, sin datos personales) + Vitest de la lista + la RPC llamada como lo haría la tienda.
+**Independent Test**: pgTAP (alta, validaciones, aislamiento, permisos, sin datos personales) + Vitest de la lista + (original: la RPC llamada como lo haría la tienda; no implementado, superado por MSF-657).
 
 ### User Story 2 - Responder desde el panel (F-CON-04, P1, talla S)
 
@@ -87,8 +87,8 @@ El operador abre una consulta y toca `Responder por <correo|WhatsApp>`: se abre 
 
 ```mermaid
 sequenceDiagram
-  actor V as Visitante
-  participant T as Tienda (ficha de producto)
+  actor V as Sembrado demo (service_role) - diseño original: visitante
+  participant T as Llamador interno - diseño original: tienda (ficha de producto)
   participant R as publico.registrar_interes_whatsapp
   participant DB as dominio.intereses_whatsapp
   actor A as Administrador (panel)
@@ -108,7 +108,7 @@ sequenceDiagram
   DB-->>A: producto, tienda, veces, último interés
 ```
 
-Dueños: alta y validación FR-001, FR-002, FR-003; lectura FR-004, FR-005; empresa activa FR-006. **Fuera de alcance**: el botón y la apertura de WhatsApp en la ficha (Tiendas online, MSF-212, F-TDA-14); el reporte de productos más consultados (F-REP-04); el anti-spam (MSF-212).
+Dueños: alta y validación FR-001, FR-002, FR-003; lectura FR-004, FR-005; empresa activa FR-006. **Fuera de alcance**: el botón y la apertura de WhatsApp en la ficha (Tiendas online, MSF-212, F-TDA-14); el reporte de productos más consultados (F-REP-04); el anti-spam (MSF-212) (original; MSF-657 cerró la RPC a anon en vez de ponerle cuota).
 
 ### F2 · Responder una consulta desde el panel
 
@@ -160,8 +160,8 @@ Dueños: FR-010. Las transiciones manuales son de MSF-122 (`actualizar_consulta`
 - **FR-004**: Vista `public.interes_whatsapp_por_producto` (`security_invoker`) con `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total` y `ultimo_interes_at`, agrupada por empresa y producto; es el **contrato de lectura** para esta pantalla y para F-REP-04. *(verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)*
 - **FR-005**: En Consultas, el botón `Interés por WhatsApp` (visible con `consultas`≥`lectura`) abre un diálogo con la lista por producto: `Producto`, `Tienda` (solo con «Todas mis empresas»), `Veces` y `Último interés`, ordenada por `Veces` descendente; estados de carga, vacío y error con `Reintentar` compartidos; teclado, lector de pantalla y 320/768/1440 px. *Diferencia con el prototipo anotada*: el prototipo no dibuja este diálogo (regla de fuentes 5/6). *(verificación: Vitest `apps/web/src/pages/consultas/InteresWhatsappDialog.test.tsx` (`pnpm test:web`))*
 - **FR-006**: **Empresa activa** (Principio VIII): el diálogo usa la empresa de la barra superior como única fuente de verdad; al cambiarla invalida y recarga todas sus consultas, reencuadra y no muestra datos de la empresa anterior. *(verificación: Vitest `InteresWhatsappDialog.test.tsx`, caso «cambio de empresa» (`pnpm test:web`))*
-- **SC-001**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`: alta correcta, la fila no tiene columnas personales, dominio desconocido y empresa desactivada con el mismo error, producto de otra organización, aislamiento entre **dos organizaciones** y entre empresas sin acceso, permisos por `edicion`/`lectura`/`ninguno`, insert/update/delete directos rechazados, `anon` sin privilegios sobre la tabla y la vista, `anon` solo ejecuta las RPC permitidas, `rls_en_toda_tabla` verde. *(verificación: `pnpm test:db` (`interes_whatsapp.test.sql`))*
-- **SC-002**: Vitest del diálogo: lista ordenada, vacío, error con reintento, columna `Tienda` según la empresa activa, cambio de empresa sin datos arrastrados, acceso sin permiso, teclado/lector. E2E: llamar la RPC como lo hace la tienda (host + producto) suma un interés sin datos personales y el administrador lo ve. *(verificación: `pnpm test:web` (`InteresWhatsappDialog.test.tsx`) y E2E Playwright `pnpm test:e2e`)*
+- **SC-001**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`: alta correcta, la fila no tiene columnas personales, dominio desconocido y empresa desactivada con el mismo error, producto de otra organización, aislamiento entre **dos organizaciones** y entre empresas sin acceso, permisos por `edicion`/`lectura`/`ninguno`, insert/update/delete directos rechazados, `anon` sin privilegios sobre la tabla y la vista, `anon` solo ejecuta las RPC permitidas (original; desde MSF-657 el test fija que `anon` y `authenticated` NO ejecutan la RPC y solo `service_role` sí), `rls_en_toda_tabla` verde. *(verificación: `pnpm test:db` (`interes_whatsapp.test.sql`))*
+- **SC-002**: Vitest del diálogo: lista ordenada, vacío, error con reintento, columna `Tienda` según la empresa activa, cambio de empresa sin datos arrastrados, acceso sin permiso, teclado/lector. E2E (original; no implementado, superado por MSF-657: la tienda ya no llama la RPC): llamar la RPC como lo hace la tienda (host + producto) suma un interés sin datos personales y el administrador lo ve. *(verificación: `pnpm test:web` (`InteresWhatsappDialog.test.tsx`) y E2E Playwright `pnpm test:e2e`)*
 
 ### F-CON-04 · Responder desde el panel
 
@@ -196,7 +196,7 @@ Dueños: FR-010. Las transiciones manuales son de MSF-122 (`actualizar_consulta`
 | Req. | Verificación |
 |------|--------------|
 | FR-001…FR-004, SC-001 | pgTAP `interes_whatsapp.test.sql` |
-| FR-005, FR-006, SC-002 | Vitest del diálogo + prueba E2E de la RPC |
+| FR-005, FR-006, SC-002 | Vitest del diálogo + prueba E2E de la RPC (original; no implementada, superada por MSF-657) |
 | FR-007…FR-009, FR-012, FR-013, SC-003 | Vitest `responder.test.tsx` (`pnpm test:web`) |
 | FR-010, FR-011 | Vitest `responder.test.tsx` + pgTAP `consultas_responder.test.sql` |
 | SC-004 | Playwright + pgTAP `consultas_responder.test.sql` |

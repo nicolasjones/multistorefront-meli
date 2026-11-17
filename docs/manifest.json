@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "d01c7a0c07b54cbcd621eec24ebac4d0b1ec5381d43bc1768d3bf247d8d39cab",
-      "sourceHash": "856d80bbbca5340226bdac84ba8ced9a26a85e750111ccc53c3ca3893c81ac70",
-      "sourceAt": "bdbd1ac3",
+      "pageHash": "5e233c18b7ec86db7b434b22ff6e15e16e2200835bf41f6d54a4bbe8e0deff94",
+      "sourceHash": "9b48404d8a96d4e69b3c77f869657e092141407e19dd8cd7997b1ac449a17093",
+      "sourceAt": "614136f9",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "bdbd1ac3"
+      "commit": "614136f9"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -1803,12 +1803,12 @@
     },
     "docs/producto/ventas-reportes.md": {
       "title": "Reportes de ventas",
-      "pageHash": "d7d0b73cb5ed2af1d4e8003d1728bc2b4a1157a25d2f43cbfcd6d4c5025a69a8",
+      "pageHash": "b0be8deded901809a898c2d84620a897c1a2c9d3b7aad018dd9f269150898465",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "926cced4"
     },
     "docs/producto/ventas-rma-devoluciones.md": {
       "title": "Registrar y resolver devoluciones y reclamos (RMA)",
@@ -2660,14 +2660,14 @@
     },
     "docs/tecnico/api.md": {
       "title": "API y RPC",
-      "pageHash": "5966f884c4a2d2a89d9e101f358a2a198c66cd5dac58f711362ff6b6bad775ee",
-      "sourceHash": "f44a0dc80d68368ad73cf0dfd2b56b3ae726a2de9ed9b5f2138088eb959537fd",
-      "sourceAt": "452d7af1",
+      "pageHash": "58f3a545f43b9f30bb9cd9de3d73e94b2f2e1864db0a6a4f015c90bca3e82076",
+      "sourceHash": "82ed3a9eaf1364b8a3ab7a01cc41d1377fc5360edf5cdc9a3ee631b24737a627",
+      "sourceAt": "54895abc",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "452d7af1"
+      "commit": "54895abc"
     },
     "docs/tecnico/arquitectura.md": {
       "title": "Arquitectura",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "e302409fcf4c15b957818fbe5de5b80cd256a13d95fb4c952fde2f14c1ccda2b",
+      "pageHash": "81ddadfea916a6f20f9b3a23c652e619c7839cc5a5c4720a686cf0b2cf9fd8d5",
       "sourceHash": "a4e9408afb7ede4d906fb159775b1a87f6a485619f45ca122600279aa16fc171",
-      "sourceAt": "bdbd1ac3",
+      "sourceAt": "614136f9",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "bdbd1ac3"
+      "commit": "614136f9"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",
@@ -2905,14 +2905,14 @@
     },
     "docs/tecnico/datos.md": {
       "title": "Datos y DER",
-      "pageHash": "fa3176d77510b8c52bb27bf8c47a6689a3dafbc5845f4b133a9d73eeab43b731",
+      "pageHash": "e9659dfdcf69cbbb515c0b143b8f4767347f06c75ad8896aedf2749dec3768dc",
       "sourceHash": "ed961921e6b2c7668a715b467213b63d05552c9276b84e97852d396655c50d44",
-      "sourceAt": "bdbd1ac3",
+      "sourceAt": "614136f9",
       "sources": [
         "supabase/migrations"
       ],
       "owner": "tecnico",
-      "commit": "bdbd1ac3"
+      "commit": "614136f9"
     },
     "docs/tecnico/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo: modelo, RPC y operación",
@@ -3802,16 +3802,16 @@
     },
     "docs/tecnico/ventas-reportes.md": {
       "title": "Ventas · reportes (técnico, MSF-338, MSF-192)",
-      "pageHash": "f90e5219f55805649f314951b0907cb201b779c7b195bf1665d42bd4207a5e4f",
-      "sourceHash": "d70bbbd1e37e90593889ac10f8f733a52bdb417772288141f546d39682cbdd40",
-      "sourceAt": "775b35f04",
+      "pageHash": "1b1732baa7efd28228f909f89788920588e99d69bdf82d96c60a1f4d0100bacb",
+      "sourceHash": "3a7d6a819dd80704318009dacb0e5a4d1222da52a8d4f7aba34c4be7fbba36bb",
+      "sourceAt": "926cced4",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "775b35f04"
+      "commit": "926cced4"
     },
     "docs/tecnico/ventas-rma-devoluciones.md": {
       "title": "Ventas · devoluciones (RMA), técnico (MSF-178)",
@@ -4129,9 +4129,9 @@
     },
     "docs/ventas-reportes.md": {
       "title": "Ventas · Reportes (épica MSF-338)",
-      "pageHash": "d4edc9479b26329cfa5d7ffcf596a2009c0fa538d0d07c50a10ba5656bfdc0bc",
+      "pageHash": "b6e9461eb9c71d234ae9ceb126a78bd30ef07d409bd8c48f0d94dc2e74e13dfa",
       "sourceHash": "e80abd55fe785a14429e43a7437fad34975f4fcace2090c9ae1c6d32e89fe046",
-      "sourceAt": "775b35f0",
+      "sourceAt": "775b35f04",
       "sources": [
         "specs/20270104-100000-ventas-reportes-basicos",
         "infra/superset/dashboards/consultas-reportes",
@@ -4139,7 +4139,7 @@
         "infra/superset/dashboards/ventas-reportes"
       ],
       "owner": "datos",
-      "commit": "775b35f0"
+      "commit": "775b35f04"
     },
     "docs/ventas-rma-devoluciones.md": {
       "title": "Ventas · Devoluciones (RMA)",

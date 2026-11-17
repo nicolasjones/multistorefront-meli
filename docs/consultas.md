@@ -33,7 +33,7 @@ Tiendas online (MSF-212).
 | `public.consulta_items_bandeja` (vista `security_invoker`) | `public` | Lectura de esos ítems para el panel; hereda la RLS de la tabla. |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta de la bandeja; solo `service_role` y la RPC de la tienda (`publico.enviar_consulta_contacto`, que aplica el anti-spam). `anon` y `authenticated` no la ejecutan. |
 | `public.consultas_bandeja` (vista `security_invoker`), `actualizar_consulta`, `contar_consultas_nuevas`, `responsables_consultas`, `guardar_correo_avisos_consultas` | `public` | Lectura y ejecución desde el panel; no guardan datos. |
-| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02). Sin datos personales. |
+| `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto (F-CON-02; hoy solo el sembrado demo la alimenta; ver MSF-657). Sin datos personales. |
 | `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` (MSF-657: ya no es pública; la tienda usa `registrar_consulta_whatsapp`). |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. |
 
@@ -102,12 +102,12 @@ Cuenta cuántas veces se tocó «Consultar por WhatsApp» en cada producto (dise
 `specs/20261024-140000-consultas-seguimiento-y-whatsapp/spec.md`
 (contrato en `contracts/consultas-seguimiento.md`).
 
-- **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque.
+- **Sin datos personales**: `dominio.intereses_whatsapp` guarda solo `organizacion_id`, `empresa_id`, `producto_id` y `created_at`. No hay nombre, teléfono, correo, IP ni mensaje; cada fila es un toque (hoy solo el sembrado demo la alimenta; ver MSF-657).
 - **RPC** `publico.registrar_interes_whatsapp(host, producto_id)`: la empresa sale solo del host (`dominio.tiendas`); host desconocido o empresa desactivada → el mismo `P0002` genérico, resuelto antes de validar el producto; producto nulo, inexistente o de otra organización → `22023` con `producto_id` en `DETAIL`. Desde `20270507150100` (MSF-657) solo `service_role`: `anon` y `authenticated` no la ejecutan. Sin cuota ni límite propio: por eso ya no es pública; las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) sí aplican la cuota.
 - **Vista** `public.interes_whatsapp_por_producto` (`security_invoker`): `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. Aplica la RLS de la tabla; `anon` sin acceso. Es el contrato de lectura para F-REP-04 (productos más consultados).
 - **Permisos**: se ve con `consultas` ≥ `lectura` y empresa accesible; nadie inserta, edita ni borra desde la app (sin políticas de escritura). En el panel, el botón `Interés por WhatsApp` de Consultas abre un diálogo (`InteresWhatsappDialog`) con `Producto`, `Tienda` (solo en «Todas mis empresas»), `Veces` y `Último interés`, ordenado de mayor a menor; al cambiar de empresa se recarga y el diálogo abierto se cierra con aviso (Principio VIII).
 - **Contrato para F-TDA-14** (histórico): la tienda iba a llamar a la RPC con su host y el `producto_id`; no manda empresa ni organización. Desde MSF-657 no la llama: usa `registrar_consulta_whatsapp` y la RPC del interés es interna (solo `service_role`).
-- **Pruebas**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`, Vitest `pages/consultas/InteresWhatsappDialog.test.tsx` y E2E de la RPC.
+- **Pruebas**: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`, Vitest `pages/consultas/InteresWhatsappDialog.test.tsx`. El E2E de la RPC previsto en el diseño original no se implementó y quedó superado por MSF-657 (la RPC es interna).
 - **Reversión**: migraciones aditivas `20261214100000`…`20261214100200`; en una migración posterior, de la más nueva a la más vieja: `drop view public.interes_whatsapp_por_producto`, `drop function publico.registrar_interes_whatsapp(text, uuid)` y `drop table dominio.intereses_whatsapp` (exportar antes los datos).
 
 ## Responder desde el panel (F-CON-04, MSF-244)

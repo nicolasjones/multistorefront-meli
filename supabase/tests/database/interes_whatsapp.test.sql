@@ -3,7 +3,7 @@
 -- el mismo error genérico para dominio desconocido y empresa desactivada (resuelto antes de validar el
 -- producto), producto inválido o de otra organización, escritura directa rechazada, aislamiento entre dos
 -- organizaciones y entre empresas sin acceso, permisos por nivel de la sección `consultas`, agregación
--- de la vista y `anon` solo con la RPC (sin acceso a la tabla ni a la vista).
+-- de la vista y `anon` sin acceso a la RPC (solo service_role, MSF-657), ni a la tabla ni a la vista.
 -- El fixture corre como postgres (RLS no aplica); las llamadas públicas, como `anon`; las lecturas,
 -- como `authenticated`.
 begin;

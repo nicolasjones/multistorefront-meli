@@ -6,7 +6,7 @@
 
 ## Phase 1: F-CON-02 · Interés por WhatsApp registrado
 
-**Goal**: tabla sin datos personales, RPC pública, vista de lectura y diálogo por producto en Consultas.
+**Goal**: tabla sin datos personales, RPC (original pública; desde MSF-657 solo service_role), vista de lectura y diálogo por producto en Consultas.
 
 - [ ] T001 [F-CON-02][US1] Migración `supabase/migrations/20261024300000_intereses_whatsapp.sql`: `dominio.intereses_whatsapp` (`id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`), FK compuestas, RLS por organización y empresa accesible con select `consultas`≥`lectura`, sin escritura, `anon` sin privilegios, reversión en el encabezado (FR-001) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
 - [ ] T002 [F-CON-02][US1] Migración `supabase/migrations/20261024300100_registrar_interes_whatsapp.sql`: `publico.registrar_interes_whatsapp(host, producto_id)` (`security definer`, `search_path = ''`, empresa solo por dominio, `P0002` genérico antes de validar, `22023` producto inválido, `grant … to anon, authenticated`; MSF-657 lo cambió a solo `service_role`) (FR-002, FR-003) (verificación: pgTAP `supabase/tests/database/interes_whatsapp.test.sql`)
