@@ -358,3 +358,10 @@ La épica **no dibuja pantalla propia**: la referencia visual es `MLImportacione
 | Confirmación de cancelación | FR-014 |
 | Aviso al cambiar de empresa con el diálogo abierto | FR-015 |
 | F-OPS-03 no tiene pantalla (herramienta de errores y alertas por webhook) | FR-020, FR-029 |
+
+### Accesos agregados a «Importaciones» (fuera de prototipo)
+
+| Ítem | Pantalla | Estado |
+|---|---|---|
+| Botones «Importar historial de ventas» (`/historial/importar`) y «Migración de datos» (`/migracion/importar/clientes`) en el encabezado | Importaciones | En alcance, sin prototipo: enlaces de navegación para administradores a cargas que no tenían acceso visible; no cambian datos. Empresa activa: no aplica (son de toda la organización) |
+

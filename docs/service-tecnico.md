@@ -314,3 +314,10 @@ Antes de integrar la épica a `dokploy` se hicieron dos revisiones independiente
 ## Ideas futuras (épica MSF-118)
 
 Spec: `specs/20270323-100000-service-ideas-futuras-v2/`. Se implementa historia por historia (F-SVC-32, F-SVC-30, F-SVC-31). Guías: [Etiqueta con código QR](service-etiqueta-qr.md) (F-SVC-32, MSF-190: etiqueta imprimible con QR a la reparación, generador de QR propio y su verificación; sin migraciones ni dependencias).
+
+## Funcionalidad no habilitada
+
+La guarda `RequiereServiceTecnico` exige permiso en la sección y la funcionalidad `service-tecnico` habilitada para la organización. Cuando falta la funcionalidad se muestra «Servicio técnico no está habilitado para tu organización», sin hablar del rol ni mandar a pedir acceso a un administrador.
+
+El texto distingue a quien ya es administrador (pedir la activación al soporte de la plataforma), a un superadmin (activarla en Plataforma · Funcionalidades) y al resto (pedirle a un administrador de su organización).
+

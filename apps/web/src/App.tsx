@@ -32,6 +32,7 @@ import { ConexionEdit } from './pages/conexiones/edit'
 import { ConexionList } from './pages/conexiones/list'
 import { ConexionOAuthList } from './pages/conexiones-oauth/list'
 import { IntegracionOAuthAdministrar } from './pages/integraciones-oauth/administrar'
+import { RequiereAdministrador } from './components/RequiereAdministrador'
 import { EjecucionList } from './pages/ejecuciones/list'
 import { EjecucionShow } from './pages/ejecuciones/show'
 import { ClienteCreate } from './pages/clientes/create'
@@ -341,7 +342,9 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas">
-                        <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                        <RequiereAdministrador seccion="Importar historial">
+                          <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                        </RequiereAdministrador>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }

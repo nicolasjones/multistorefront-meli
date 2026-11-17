@@ -51,7 +51,7 @@ export const CANTIDAD_MAXIMA_LINEA = 99_999
 export const PRECIO_MAXIMO_LINEA = 99_999_999.99
 
 export const TEXTO_AYUDA_LINEAS =
-  'El precio sale de la escala del producto según el tipo de cliente y la cantidad. Disp. = stock del depósito elegido menos lo reservado. El stock se reserva al vender y se descuenta recién al marcar el comprobante como Entregado.'
+  'El precio sale de la escala del producto según el tipo de cliente y la cantidad. Disp. = stock del depósito elegido menos lo reservado. Al confirmar la factura se descuenta el stock de cada producto; solo los «A pedido» quedan reservados y se descuentan al entregarlos.'
 export const ETIQUETA_A_PEDIDO = 'A pedido · no descuenta stock'
 export const MENSAJE_SIN_LINEAS = 'Todavía no agregaste productos. Usá «Agregar producto» para empezar.'
 export const MENSAJE_CANTIDAD_LINEA = `Ingresá una cantidad entera de 1 a ${CANTIDAD_MAXIMA_LINEA}.`

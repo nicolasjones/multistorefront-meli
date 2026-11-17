@@ -107,7 +107,7 @@ describe('AsistenteImportacion con proveedores y vínculos', () => {
       p_entidad: 'proveedores', p_archivo: 'proveedores.csv', p_filas_total: 2,
     })
     expect(screen.getByRole('link', { name: /vínculos proveedor/ })).toHaveAttribute(
-      'href', '/migracion/importar/vinculos-proveedor-producto',
+      'href', '/migracion/importar/vinculos_proveedor_producto',
     )
   })
 
