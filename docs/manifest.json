@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "4989f6722c3483ce8b3277cbae4b889ad41930a1f875e98d5e4be30aee44b77c",
+      "pageHash": "a66ac01eae57e186356a4928784b0865564c17c8b9121c65baf8352f3c160891",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "ddc151fe"
+      "commit": "92b340d7"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -2237,6 +2237,19 @@
       ],
       "owner": "tecnico",
       "commit": "1e7d6587"
+    },
+    "docs/servidor-mcp.md": {
+      "title": "Servidor MCP: credenciales, sesiones y revocación",
+      "pageHash": "cf73851f2b06cb965d82340140f13eded13323f22771dea0e78c7f22122f0309",
+      "sourceHash": "cbac3b937edd1afd883dad79286a422755c8fb87c574022a90f60087f0a5def9",
+      "sourceAt": "92b340d7",
+      "sources": [
+        "packages/mcp-server/src/servidor.ts",
+        "packages/mcp-server/src/autenticacion.ts",
+        "packages/mcp-server/CONTRATO.md"
+      ],
+      "owner": "plataforma",
+      "commit": "92b340d7"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",
