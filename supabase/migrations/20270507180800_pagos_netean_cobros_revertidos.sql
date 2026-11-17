@@ -77,7 +77,7 @@ $function$;
 revoke execute on function public.resumen_pagos(uuid) from public, anon;
 grant execute on function public.resumen_pagos(uuid) to authenticated;
 
-drop function public.listar_pagos(uuid, uuid, boolean, integer, integer);
+drop function if exists public.listar_pagos(uuid, uuid, boolean, integer, integer);
 
 CREATE OR REPLACE FUNCTION public.listar_pagos(p_empresa_id uuid DEFAULT NULL::uuid, p_cuenta_cobro_id uuid DEFAULT NULL::uuid, p_solo_con_saldo boolean DEFAULT false, p_pagina integer DEFAULT 1, p_tamano integer DEFAULT 10)
  RETURNS TABLE(id uuid, fecha timestamp with time zone, empresa_id uuid, empresa text, comprobante_id uuid, numero text, cliente text, cuenta_cobro_id uuid, cuenta_cobro text, importe numeric, aprobado_por text, conciliado boolean,
