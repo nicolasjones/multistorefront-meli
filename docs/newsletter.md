@@ -83,8 +83,8 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
   no se guarda ni se envía y la respuesta sigue siendo `ok` (sin señal de tope). El tope por dirección no ve los alias de proveedor (`+tag`, puntos de Gmail, catch-all de un dominio):
   un atacante sigue pudiendo mandar hasta ese tope por hora a un mismo buzón; el límite por visitante (5/h) y el tope global lo acotan, y si aparece abuso real se agrega CAPTCHA
   (seguimiento). **Con el tope lleno, las altas legítimas se descartan EN SILENCIO** (la respuesta es `ok` pero el correo nunca llega) hasta una hora, y quien reúna 200 direcciones
-  (unos 40 visitantes a 5/h) agota el cupo de la tienda: es un riesgo de disponibilidad (DoS) aceptado en estas fases. Mitigación prevista: CAPTCHA o cupo separado por visitante, más una
-  alerta al alcanzar el tope (no hay alerta todavía): seguimiento MSF-971. El tope se cuenta bajo un lock por tienda (`pg_advisory_xact_lock`), de modo que dos suscripciones simultáneas no lo
+  (unos 40 visitantes a 5/h) agota el cupo de la tienda: es un riesgo de disponibilidad (DoS) aceptado en estas fases. Mitigación: **alerta al alcanzar el tope** (hecha, ver «Seguimientos
+  de seguridad y entregabilidad»: evento de Actividad `newsletter.tope_confirmaciones`, a lo sumo uno por hora y tienda); el CAPTCHA o el cupo por visitante quedan como propuesta documentada (MSF-971). El tope se cuenta bajo un lock por tienda (`pg_advisory_xact_lock`), de modo que dos suscripciones simultáneas no lo
   superan; la fila de la dirección se toma con `for update`, así que una re-suscripción nunca anula el hash que el flow acaba de reclamar. Un envío que agota sus 4 ciclos anula el enlace (hash y vencimiento), de modo que la persona puede pedir otro.
 - **Invariante para las fases 3 a 5**: un tercero puede dejar `pendiente` a una dirección que estaba en `baja` (conserva `baja_en`). El reclamo de lote del correo masivo (MSF-155), los KPI de activos y la
   foto de destinatarios de `enviar_newsletter` filtran SIEMPRE `estado = 'confirmado'`, NUNCA `estado <> 'baja'`. Seguimiento: MSF-967.
@@ -144,8 +144,8 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 2. **SMTP real**: nada de esta entrega envía correo real en CI. Hay que probar en dev, con la bandera encendida y una tienda de prueba, una suscripción, la confirmación, una prueba y un envío a un suscriptor propio (T034) y mirar cómo llega (entregabilidad, enlace de baja).
 3. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: **verificado: `MailSend` de Kestra NO admite encabezados propios** (ver «Seguimientos de seguridad y entregabilidad»). Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen. Queda decidir el camino (propuesta abajo) con un SMTP real.
 4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
-5. **Cupo compartido** entre clientes y newsletter (D14) y **tope global de confirmaciones** (MSF-971): decidir si se separan.
-6. **CAPTCHA** solo si hay abuso real.
+5. **Cupo compartido** entre clientes y newsletter (D14): decidir si se separan. La **alerta del tope global de confirmaciones** (MSF-971) ya existe; el CAPTCHA o el cupo por visitante siguen como propuesta.
+6. **CAPTCHA** solo si hay abuso real: la alerta del tope es el disparador (ver propuesta).
 7. **Rate limit en el borde de la baja** (MSF-980): **no se resuelve en el repo** (propuesta abajo): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
 
 ## Verificación técnica (T011)
@@ -181,6 +181,12 @@ Revisión del lote de deuda técnica MSF-515 (2026-11-17). Qué se comprobó en 
   - *Sin Cloudflare (Supabase self-hosted)*: en `kong.yml` del stack, una ruta propia para esa función con el plugin `rate-limiting` (`minute: 30`, `limit_by: ip`, `policy: local`), o `limit_req_zone`/`limit_req` de nginx en el proxy que atiende `/functions/v1/`.
   - Respuesta `429` con `Retry-After`: la página de baja ya muestra «Probá de nuevo en un rato» ante un error del servidor.
 - **Pendiente**: aplicar la regla en cada entorno (dueño: Operaciones) y probarla con 40 pedidos seguidos desde una IP.
+
+### Tope global de confirmaciones: alerta, CAPTCHA y cupo separado (MSF-971)
+
+- **Hecho: alerta.** Migración `20270507110100_newsletter_alerta_tope_confirmaciones.sql`: cuando el tope global (200 por hora y tienda) descarta una alta legítima (nueva, o el reenvío de una dirección existente), `suscribirse_newsletter` registra un evento de Actividad `newsletter.tope_confirmaciones` (no sensible, **sin dirección ni IP**), a lo sumo **uno por hora y tienda** (la comprobación va bajo el lock por tienda que ya existía, así dos altas simultáneas no emiten dos). La respuesta al visitante no cambia (`ok` idéntico: sin señal de tope). Un fallo al registrar la alerta no rompe la alta. Se ve en Actividad con la etiqueta «Tope de confirmaciones por hora del newsletter alcanzado». pgTAP `newsletter_alerta_tope.test.sql`. Reversión: ver el encabezado de la migración.
+- **Decisión: cupo separado por visitante no se agrega.** El cupo por visitante ya existe (5 por hora y visitante, `registrar_envio_tienda`); 40 visitantes a 5 por hora llenan el tope igual. Separar el cupo no distingue a quien reparte las altas entre muchas IP.
+- **Propuesta para el CAPTCHA (solo con abuso real: la alerta es el disparador):** Cloudflare Turnstile (gratuito y sin pedir interacción en la mayoría de los casos): el formulario del pie suma el widget, una Edge Function nueva `suscribir-newsletter` valida el token con el secreto de Turnstile (`TURNSTILE_SECRET_KEY`, variable de la función) y recién ahí llama a `publico.suscribirse_newsletter` con la service-role; `anon` deja de ejecutar la RPC. Es infraestructura externa y un cambio de superficie pública: se decide cuando la alerta dispare con tráfico real. Alternativa más barata: subir el tope por tienda (hoy 200, `private.tope_confirmaciones_hora_newsletter()`) o hacerlo configurable.
 
 ## Reversión
 
