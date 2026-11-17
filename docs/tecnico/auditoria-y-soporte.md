@@ -64,6 +64,19 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
   organización ya no existe) y la depuración por retención (`20270207100002…`), que marca la transacción
   con `set_config('msf.depurando_actividad','on', true)` y limpia la marca al terminar o al fallar.
 
+### Alcance por empresa (MSF-968)
+
+La política `registro_actividad_select` (migración `20270421000200`) agrega a la organización y a la sección `actividad` el
+predicado `empresa_id is null or empresa_id in (select private.empresas_de_actividad())`. Como `listar_actividad`,
+`obtener_detalle_actividad` y `opciones_actividad` son `security invoker`, heredan el filtro (lista, `total` y opciones de
+tipo y usuario salen de las filas visibles); `exportar_actividad` es `security definer`, no pasa por la política y repite el
+predicado en sus cuatro consultas. El historial de una empresa pausada se conserva visible (`empresas_de_actividad` no filtra
+por `activa`). El índice `registro_actividad_org_empresa_fecha_idx` ya cubre `(organizacion_id, empresa_id, creado_en)`; el
+subselect de empresas es un subselect no correlacionado (se evalúa una vez por consulta). La escritura no cambia: los eventos se insertan solo desde
+las funciones `security definer` y el registro sigue inalterable. Reversión: migración posterior que recree la política sin el
+último predicado y restaure `exportar_actividad` de `20270218300000`. Guardia: el pgTAP `actividad_por_empresa.test.sql` fija
+qué funciones `security definer` leen el registro.
+
 ### Detalle
 
 - `public.obtener_detalle_actividad(p_id uuid)` es `security invoker` (rige la RLS), devuelve `valor_anterior`,
