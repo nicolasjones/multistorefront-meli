@@ -1873,9 +1873,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "b3d84e192d210b82a2fa301ba0055340863d3df4e14ec6a9381f7842a53ad007",
-      "sourceHash": "108415f9c087810b128776b65605e5b01f35defd76190c1ae62e4c55c09187ba",
-      "sourceAt": "0f7c7bc1",
+      "pageHash": "6cfa453c91419ec522190585dcae775513ccd1d42bf7eac055b3f9c00a0faaba",
+      "sourceHash": "bcfa8b17031bf0c1ab51a401207e3d1c90b5bbff38553636ed0c6d562f2b5ad3",
+      "sourceAt": "9c4764dd5",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1884,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "0f7c7bc1"
+      "commit": "9c4764dd5"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
