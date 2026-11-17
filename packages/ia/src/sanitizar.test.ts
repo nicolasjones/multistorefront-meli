@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clavesActivadas, marcarContenidoNoConfiable } from './sanitizar.js'
+import { clavesActivadas, marcarContenidoNoConfiable, sanitizarDato } from './sanitizar.js'
 
 describe('marcarContenidoNoConfiable', () => {
   it('envuelve el texto con un delimitador y deja el contenido original intacto adentro', () => {
@@ -58,5 +58,13 @@ describe('clavesActivadas', () => {
 
   it('devuelve vacío si ninguna clave declarada está presente en la entrada', () => {
     expect(clavesActivadas({ clavesNoConfiables: ['noExiste'], datosPermitidos: ['noExiste'] }, { otraClave: 'texto' })).toEqual([])
+  })
+})
+
+describe('sanitizarDato: columnas con nombre de secreto', () => {
+  it('quita key, clave, api_key, hash, jwt, pin y contrasena, pero conserva nombres parecidos', () => {
+    const fila = { id: 1, api_key: 'a', apiKey: 'a', key: 'k', clave: 'c', token_hash: 'h', hash: 'h', jwt: 'j', pin: '1', contrasena: 'x', password: 'p', shipping: 's', monkey: 'm', nombre: 'n' }
+    const limpio = sanitizarDato(fila, Object.keys(fila)) as Record<string, unknown>
+    expect(Object.keys(limpio).sort()).toEqual(['id', 'monkey', 'nombre', 'shipping'])
   })
 })

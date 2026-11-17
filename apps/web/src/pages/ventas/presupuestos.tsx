@@ -12,6 +12,7 @@ import {
   FILTROS_ESTADO,
   FILTROS_ORIGEN,
   aceptarPresupuesto,
+  mensajeDeAceptarPresupuesto,
   copiarPresupuesto,
   etiquetaEstadoPresupuesto,
   listarPresupuestos,
@@ -182,7 +183,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
       setExito(`Presupuesto ${aceptado.numero} aceptado`)
       await recargarDesdeInicio()
     } catch (error) {
-      setErrorAccion(mensajeDeErrorComprobante(error, 'No pudimos aceptar el presupuesto.'))
+      setErrorAccion(mensajeDeAceptarPresupuesto(error, 'No pudimos aceptar el presupuesto.'))
     } finally {
       setAccion(null)
     }
