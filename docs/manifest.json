@@ -615,14 +615,14 @@
     },
     "docs/dataset-demo.md": {
       "title": "Dataset de demostración (San Javucho y Mundo JC)",
-      "pageHash": "1755f964c99d58ddcc35d49ba00d4f8416b6e37680655044b3bedce9f1709612",
-      "sourceHash": "4888f1e3002d8773392fdf62d7653a129c12c90c43f78203fc7ac3d20e21d70d",
-      "sourceAt": "b1173066b",
+      "pageHash": "b324a5294705aa569b0bbdc3e6ec278e44c2ea68764c51462bd6a8596835c96b",
+      "sourceHash": "d33810dc44cc08da26e39589b6ecb56015d7ffcce4c1d4d0a73e9b51a6434602",
+      "sourceAt": "056ac1ed",
       "sources": [
         "scripts/demo-dataset"
       ],
       "owner": "producto",
-      "commit": "b1173066b"
+      "commit": "056ac1ed"
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
@@ -657,14 +657,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "34044c90390d6954952b76b20460994d9336d146620a54c4c42e30e0dd76eb68",
+      "pageHash": "1e61fbac6db8388e8ceb25b7e7539f71a6abda76b4a8ba97e4c1dc4ad8c3e68d",
       "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "882abece",
+      "sourceAt": "056ac1ed",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "882abece"
+      "commit": "056ac1ed"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
