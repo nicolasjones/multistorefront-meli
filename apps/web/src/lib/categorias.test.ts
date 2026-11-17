@@ -206,6 +206,19 @@ describe('acceso a datos', () => {
     expect(categorias).toHaveLength(1200)
     expect(pedidos).toEqual([[0, 499], [500, 999], [1000, 1499]])
   })
+  it('leerCategorias no cicla sin fin si el servidor ignora el rango', async () => {
+    const bloque = Array.from({ length: 500 }, (_, i) => ({ id: `c${i}`, nombre: `C${i}`, padre_id: null, posicion: i }))
+    let llamadas = 0
+    const sinRango = {
+      select: () => {
+        const q = { order: () => q, range: () => ({ returns: () => { llamadas += 1; return Promise.resolve({ data: bloque, error: null }) } }) }
+        return q
+      },
+    }
+    const cliente = { schema: () => ({ from: () => sinRango }), from: () => sinRango }
+    await expect(leerCategorias(cliente as never)).rejects.toThrow(/máximo de filas/)
+    expect(llamadas).toBeLessThanOrEqual(3 * 200)
+  })
   it('leerCategorias propaga el error de una tanda', async () => {
     const mala = { select: () => { const q = { order: () => q, range: () => ({ returns: () => Promise.resolve({ data: null, error: { code: '42501' } }) }) }; return q } }
     const cliente = { schema: () => ({ from: () => mala }), from: () => mala }

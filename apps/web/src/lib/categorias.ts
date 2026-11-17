@@ -193,15 +193,21 @@ export const TAMANO_TANDA_CATEGORIAS = 500
 
 type Tanda<T> = (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: unknown }>
 
+// Tope de tandas: si el servidor ignorara `.range()` y devolviera siempre el mismo bloque, la lectura
+// no debe ciclar sin fin ni crecer sin límite en memoria (200 tandas = 100.000 filas por tabla).
+const MAX_TANDAS_CATEGORIAS = 200
+
 async function leerPorTandas<T>(pedir: Tanda<T>): Promise<T[]> {
   const filas: T[] = []
-  for (let desde = 0; ; desde += TAMANO_TANDA_CATEGORIAS) {
+  for (let n = 0; n < MAX_TANDAS_CATEGORIAS; n++) {
+    const desde = n * TAMANO_TANDA_CATEGORIAS
     const { data, error } = await pedir(desde, desde + TAMANO_TANDA_CATEGORIAS - 1)
     if (error) throw error
     const tanda = data ?? []
     filas.push(...tanda)
     if (tanda.length < TAMANO_TANDA_CATEGORIAS) return filas
   }
+  throw new Error('La lectura de categorías superó el máximo de filas admitido')
 }
 
 export async function leerCategorias(cliente: Pick<SupabaseClient, 'schema' | 'from'>): Promise<{ categorias: Categoria[]; conteos: Map<string, number> }> {
