@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "9fec8ac2c9daed4280145e3f4a16267105fb7ace67eacff61296b21cfa9a01fc",
+      "pageHash": "9e85699b4359838c7362d05f25bd46cda5924d487b10b6545b33107f93dccf1e",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "dd8bb20e"
+      "commit": "46c0e5de"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -383,15 +383,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "8e8ef99a126f8379522050a6a64912eafcd0a253f04f958573c7435069009d49",
-      "sourceHash": "ceb80199dfacda2a411cb345263f12857ce7476a242dc0ec8da9830ef467a5e4",
-      "sourceAt": "4a93f421",
+      "pageHash": "c2dec74c65ba224f8fccf6bc7cfd2d35fee505e531017531526be7b4610b30d0",
+      "sourceHash": "834a932463184011a510c938895319ac7b83a09e145ee01d96026917660a6a5b",
+      "sourceAt": "57614044",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "4a93f421"
+      "commit": "57614044"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "294241c7f15b0d0145e3f160e59f5b994a84fb204c288734ab60756c3af3201a",
+      "pageHash": "5a9b2c3fb38dde08678a69d4771cba198e8e87d29fabc607c8fff28e7c21d64f",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "a4303cff",
+      "sourceAt": "ec872198",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "a4303cff"
+      "commit": "ec872198"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -504,15 +504,15 @@
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
-      "pageHash": "9b2de68ad2b68e8532bc83aac699381ecb49a14d37d76e7bb1eacdde2834c07f",
-      "sourceHash": "053d65ab1cebf6163e7652e0f4fd6a8225f77c6466ca99391a959f0aa04942ee",
-      "sourceAt": "432db86d",
+      "pageHash": "66977d9affd4090cb6b621f83c8a5a81b21171c9f4980dc4fc7c0530361212ca",
+      "sourceHash": "9d5f88e4b89276b9be6ea00258afca714ef2c9d480b940e50ec517be1ff5cf43",
+      "sourceAt": "0c4845aa",
       "sources": [
         "specs/20261028-100000-correo-masivo-a-clientes",
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "tecnico",
-      "commit": "432db86d"
+      "commit": "0c4845aa"
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
@@ -613,14 +613,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "c41d5bcab8d8963d8329561446826e8298561a9f841bba8d763db270e1cf1331",
-      "sourceHash": "e162c5a255fe4e5e2d4b3bf1b85965ae728ae86ea6278c8e607edadb24d43b9e",
-      "sourceAt": "dd8bb20e",
+      "pageHash": "6aff291cd38b9265e32ff94e4b8eccf29e29ba2f8feb8e304d6cef32e5494183",
+      "sourceHash": "52db4eb79564208471f7d20f73e5c9432f4afbe9fe97ec24128293fc90846c14",
+      "sourceAt": "782dd190",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "dd8bb20e"
+      "commit": "782dd190"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -655,16 +655,16 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "fff3b53d5e814f07a28b10fa31da291b3044443ff05d82d7d4952d7de8b9c995",
-      "sourceHash": "13302e754cc5e1f78a68ec0562def5c11a663c5ffbe993ad63775c886a000915",
-      "sourceAt": "764d5e1c",
+      "pageHash": "b28f00936c2093a1b9072cbb7a7db57145f819478dd76537d63fea4ea5fec745",
+      "sourceHash": "f24222a959f467abe980c9eeb4893e5b117103fcd1bc3a5e1b9a69dfa79e1bfd",
+      "sourceAt": "0c4845aa",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
       ],
       "owner": "tecnico",
-      "commit": "764d5e1c"
+      "commit": "0c4845aa"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -719,6 +719,20 @@
       "owner": "operacion",
       "commit": "c7860a7c"
     },
+    "docs/errores-negocio-postgrest.md": {
+      "title": "Errores de negocio de las RPC y su respuesta HTTP",
+      "pageHash": "5cd0382e84d8317cccbb2f2268ee24b7f577e8d995c88018ddd471691c259ee3",
+      "sourceHash": "97e03a527e9d5e03d1710f0bbda5ca3110aa5ca736dc45ca2a3959baaa9a09a9",
+      "sourceAt": "882b71b9",
+      "sources": [
+        "apps/web/src/lib/mensajeErrorBase.ts",
+        "apps/web/src/lib/ventasPresupuestos.ts",
+        "apps/web/src/lib/facturasElegibles.ts",
+        "apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "882b71b9"
+    },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
       "pageHash": "273c078f14d9f223e7b85ca592e29b56b333d60ce6c4b4b44388d7021ba092e6",
@@ -736,6 +750,29 @@
       ],
       "owner": "tecnico",
       "commit": "c7860a7c"
+    },
+    "docs/funciones-edge-endurecimiento.md": {
+      "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
+      "pageHash": "6b4947db349adb9e3c4e1d6b476e6c018aba3cc607efcc6d50d4ca89e5819c2e",
+      "sourceHash": "3985644ae253ee21a3ccb39ef2563a521652e0255c09e3cb46f10c2cdbd2f432",
+      "sourceAt": "93f0dc4b",
+      "sources": [
+        "supabase/functions/chat-ia-responder/guardas.ts",
+        "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/indexar-documento/handler.ts",
+        "supabase/functions/enviar-correo-proveedor/handler.ts",
+        "supabase/functions/_shared/embeddings.ts",
+        "supabase/functions/_shared/fetch-ia.ts",
+        "supabase/functions/_shared/limite-memoria.ts",
+        "supabase/functions/_shared/token.ts",
+        "supabase/functions/crear-organizacion/handler.ts",
+        "packages/mcp-server/src/herramientas.ts",
+        "packages/mcp-server/src/servidor.ts",
+        "packages/ia/src/purga.ts",
+        "infra/kestra/flows/correo-masivo.yml"
+      ],
+      "owner": "plataforma",
+      "commit": "93f0dc4b"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -868,15 +905,15 @@
     },
     "docs/listas-configurables.md": {
       "title": "Listas configurables",
-      "pageHash": "858702eb7e8e19ce689116ad6acb7b9c3075f06bb5f52dd44a2b3236c79fc123",
+      "pageHash": "6d0fe00cb0474ecec0a9246efb878f1b501276186564d645cfb7194a595b0522",
       "sourceHash": "5c0e3e125c6cd70b2ff62e6a39ff4740bce4a619d3ee263e93c526301d34f348",
-      "sourceAt": "2ab8c7d9",
+      "sourceAt": "57614044",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "apps/web/src/pages/stock/motivos.tsx"
       ],
       "owner": "tecnico",
-      "commit": "2ab8c7d9"
+      "commit": "57614044"
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
@@ -1855,9 +1892,9 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "8d18f330d580eec2a8535722b48cf3701bf3c94c885ce83fce4a845599d2b1ab",
+      "pageHash": "7e2efb3d3b34b4144ed458a0ea5f950ac894adb6ad4af9a564e7bb8a32e11a9e",
       "sourceHash": "e0342e17d81fa7c41d62f0083b84b0460c0b707ec8fc3e9b57d9cb31520a1e8d",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "46c0e5de",
       "sources": [
         "specs/20261018-170000-empresas-accesibles-y-filtro",
         "specs/20261018-190000-proveedores-y-productos",
@@ -1869,13 +1906,13 @@
         "supabase/migrations/20261018190100_proveedores_rpc.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "46c0e5de"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "2704e659e6765cd5379dc2d15e7a4181fee9e5b34ba8c69da862eeb41c42996a",
-      "sourceHash": "56926107fb687d62993245b1a044a96baf2647d129360f42c1f333d3bc59e95d",
-      "sourceAt": "1c31cbf6",
+      "pageHash": "24c0735f12642da13fb1525ffbbe29e1d8407226213b411b901973f4f9825c03",
+      "sourceHash": "44975d82e49dbadef2d8fbbe95d2c76b65a85c00c2173d3e0626e7f43c98d806",
+      "sourceAt": "782dd190",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -1884,7 +1921,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "1c31cbf6"
+      "commit": "782dd190"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
@@ -2249,16 +2286,16 @@
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
-      "pageHash": "cf73851f2b06cb965d82340140f13eded13323f22771dea0e78c7f22122f0309",
-      "sourceHash": "cbac3b937edd1afd883dad79286a422755c8fb87c574022a90f60087f0a5def9",
-      "sourceAt": "92b340d7",
+      "pageHash": "885fac7c7bd36e75a915f8eee68201e9803133ad1b15925a77a6a95b18f1dea2",
+      "sourceHash": "7085f7b73a81039e97610ca800939e46e603d3fc854cd2c870b73820a6995341",
+      "sourceAt": "46c0e5de",
       "sources": [
         "packages/mcp-server/src/servidor.ts",
         "packages/mcp-server/src/autenticacion.ts",
         "packages/mcp-server/CONTRATO.md"
       ],
       "owner": "plataforma",
-      "commit": "92b340d7"
+      "commit": "46c0e5de"
     },
     "docs/simulacro-restauracion.md": {
       "title": "Simulacro de restauración (cierre de MSF-457)",

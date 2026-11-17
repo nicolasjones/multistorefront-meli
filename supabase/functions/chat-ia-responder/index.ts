@@ -17,7 +17,13 @@ import { acotarFilas, TOPE_FILAS_CONSULTA } from './limites.ts'
 // ningún entorno, no solo en desarrollo local. Deno compila TS nativo,
 // así que importar el archivo fuente directo funciona sin build
 // intermedio.
-import { prepararInvocacion, invocarProveedorIa, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
+import { prepararInvocacion, invocarProveedorIa, sanitizarDato, marcarContenidoNoConfiable, type ContratoConsumidor, type PerfilModelo } from '../_shared/ia/index.ts'
+import { fetchConTimeout } from '../_shared/fetch-ia.ts'
+import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
+import {
+  ErrorPersistencia, MAX_TOKENS_RESPUESTA, describirPropuesta, filtrosSeguros, guardarMensaje,
+  limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
+} from './guardas.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -81,7 +87,7 @@ type BloqueAnthropic =
 // Completions API) envuelve eso en {type:'function', function:{...,
 // parameters}}. Derivar la forma de OpenAI de la misma fuente evita
 // mantener dos definiciones del esquema por separado.
-function herramientaOpenAI(h: typeof HERRAMIENTA_LEER) {
+function herramientaOpenAI(h: { name: string; description: string; input_schema: unknown }) {
   return { type: 'function' as const, function: { name: h.name, description: h.description, parameters: h.input_schema } }
 }
 
@@ -115,19 +121,39 @@ Deno.serve(async (req) => {
   const { data: callerData, error: callerError } = await admin.auth.getUser(jwt)
   if (callerError || !callerData?.user) return jsonResponse({ error: 'No autorizado' }, 403)
 
-  let body: { conversacion_id?: string; mensaje?: string }
+  let cuerpoCrudo: unknown
   try {
-    body = await req.json()
+    cuerpoCrudo = await req.json()
   } catch {
     return jsonResponse({ error: 'Cuerpo inválido: se esperaba JSON.' }, 400)
   }
-  if (!body.mensaje) return jsonResponse({ error: 'Falta "mensaje".' }, 400)
+  const validacion = validarEntrada(cuerpoCrudo)
+  if (!validacion.ok) return jsonResponse({ error: validacion.error }, 400)
+  const body = { mensaje: validacion.entrada.mensaje, conversacion_id: validacion.entrada.conversacionId }
 
   // Nunca service-role para datos de negocio — toda lectura/escritura corre
   // con el RLS del propio usuario.
   const asUser = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: `Bearer ${jwt}` } },
   })
+
+  // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia`
+  // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora. La cuota es de
+  // MEJOR ESFUERZO: se cuenta sobre `mensajes_chat_ia` y el usuario conserva DELETE sobre sus mensajes, así que borrar
+  // los reinicia (pendiente: tabla de uso sin DELETE para el usuario, docs/funciones-edge-endurecimiento.md).
+  const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
+  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureChat.error.message)
+  const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
+  if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
+
+  const hace1h = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  const { count: recientes, error: cuotaError } = await asUser
+    .from('mensajes_chat_ia')
+    .select('id', { count: 'exact', head: true })
+    .eq('origen', 'usuario')
+    .gte('creado_en', hace1h)
+  const sinCuota = rechazoPorCuota(recientes, cuotaError, limiteConfigurado(Deno.env.get('CHAT_IA_LIMITE_HORA')))
+  if (sinCuota) return jsonResponse({ error: sinCuota.error }, sinCuota.status)
 
   // Gobernanza real, vía las funciones ya existentes de governed-ai-core
   // (private.resolver_politica_ia / obtener_clave_perfil_ia) — otorgadas
@@ -148,7 +174,12 @@ Deno.serve(async (req) => {
   // existente (la RLS de conversaciones_chat_ia ya exige que sea del
   // propio usuario — una conversacion_id ajena simplemente no matchea).
   let conversacionId = body.conversacion_id
-  if (!conversacionId) {
+  if (conversacionId) {
+    // Una conversación inexistente o ajena (la RLS no devuelve la fila) se rechaza antes de llamar al proveedor.
+    const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
+    if (existenteError) return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
+    if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
+  } else {
     const { data: nueva, error: nuevaError } = await asUser
       .from('conversaciones_chat_ia')
       .insert({ usuario_id: callerData.user.id })
@@ -158,9 +189,14 @@ Deno.serve(async (req) => {
     conversacionId = nueva.id
   }
 
-  await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
+  try {
+    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'usuario', contenido: body.mensaje })
+  } catch {
+    return jsonResponse({ error: 'No se pudo guardar tu mensaje.' }, 500)
+  }
 
   async function responderError(mensaje: string, status: number) {
+    // Mejor esfuerzo: el error ya se informa en la respuesta HTTP; si tampoco se puede guardar, no se pisa el status.
     await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: mensaje, estado: 'fallida' })
     return jsonResponse({ conversacion_id: conversacionId, error: mensaje }, status)
   }
@@ -208,6 +244,7 @@ Deno.serve(async (req) => {
     return await responderError(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
   }
 
+  const perfilLimiteSegundos = Math.min(Number(politica.limite_segundos) || CONTRATO.limiteSegundos, 90)
   const perfil: PerfilModelo = { id: politica.perfil_principal_id, proveedorCodigo: credencial.proveedor_codigo, modeloId: credencial.modelo_id }
 
   async function leer(vista: string, filtros: Record<string, string | number> = {}) {
@@ -218,12 +255,19 @@ Deno.serve(async (req) => {
     if (!puedeLeer) return { error: 'FUENTE_NO_DISPONIBLE' }
 
     // Tope de filas (F-IA-01, FR-023): se pide una de más para saber si hubo recorte y avisarlo al modelo.
+    const seguros = filtrosSeguros(filtros)
+    if (!seguros.ok) return { error: 'FILTROS_INVALIDOS' }
     let query = asUser.from(vista).select('*').limit(TOPE_FILAS_CONSULTA + 1)
-    for (const [clave, valor] of Object.entries(filtros)) query = query.eq(clave, valor)
+    for (const [clave, valor] of Object.entries(seguros.filtros)) query = query.eq(clave, valor)
     const { data: filasLeidas, error } = await query
     if (error) return { error: 'ERROR_AL_LEER' }
     const acotado = acotarFilas(filasLeidas)
-    const data = acotado.filas
+    // La vista ya es una fuente curada por un superadmin; sanitizarDato quita además las columnas con nombre de
+    // secreto (password/token/cookie…) antes de que los datos salgan hacia el tercero.
+    const primera = acotado.filas[0]
+    const data = acotado.filas.length > 0
+      ? sanitizarDato(acotado.filas, primera && typeof primera === 'object' ? Object.keys(primera as Record<string, unknown>) : []) as unknown[]
+      : acotado.filas
     // CONTRATO.datosPermitidos es el allowlist de la ENTRADA (mensaje del
     // usuario) — no aplica acá. sanitizarDato(data, CONTRATO.datosPermitidos)
     // borraría casi todas las columnas de cualquier vista real (solo
@@ -251,7 +295,8 @@ Deno.serve(async (req) => {
       p_conversacion_id: conversacionId,
       p_rpc: rpc,
       p_parametros: parametros,
-      p_descripcion: descripcion,
+      // Lo que ve quien confirma: la acción y los parámetros reales, no solo la redacción del modelo.
+      p_descripcion: describirPropuesta(rpc, parametros, descripcion),
     })
     if (error || !creada?.propuesta) return { propuesta: false, motivo: 'ACCION_NO_DISPONIBLE' }
     return { propuesta: true }
@@ -260,10 +305,8 @@ Deno.serve(async (req) => {
   // Compartido entre los dos adaptadores: ejecuta la herramienta pedida y
   // devuelve qué hacer — terminar la respuesta acá (propuesta creada o
   // acción rechazada) o seguir el ciclo con el resultado de "leer".
-  type ResultadoHerramienta =
-    | { tipo: 'propuesta' }
-    | { tipo: 'rechazo'; mensaje: string }
-    | { tipo: 'resultado'; valor: unknown }
+  // (ResultadoHerramienta viene de guardas.ts)
+  const contenidoHerramienta = (valor: unknown) => marcarContenidoNoConfiable(JSON.stringify(valor))
 
   async function manejarHerramienta(name: string, input: Record<string, unknown>): Promise<ResultadoHerramienta> {
     if (name === 'ejecutar') {
@@ -294,8 +337,8 @@ Deno.serve(async (req) => {
       return await invocarProveedorIa(
         perfil,
         credencial.clave,
-        { model: perfil.modeloId, max_tokens: 1024, system: SYSTEM_PROMPT, tools: [HERRAMIENTA_LEER, HERRAMIENTA_EJECUTAR], messages: mensajes },
-        (url, init) => fetch(url, init),
+        { model: perfil.modeloId, max_tokens: MAX_TOKENS_RESPUESTA, system: SYSTEM_PROMPT, tools: [HERRAMIENTA_LEER, HERRAMIENTA_EJECUTAR], messages: mensajes },
+        fetchConTimeout(perfilLimiteSegundos),
       ) as { content: BloqueAnthropic[]; stop_reason: string }
     }
 
@@ -307,20 +350,21 @@ Deno.serve(async (req) => {
       return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
     }
 
-    // Un único ciclo de tool-calling (alcance de este mecanismo).
+    // Un único ciclo de tool-calling (alcance de este mecanismo). Si el modelo pide varias herramientas en el mismo
+    // turno, la API exige un `tool_result` por cada `tool_use`: se resuelven todas.
     if (respuesta.stop_reason === 'tool_use') {
-      const bloqueTool = respuesta.content.find((b): b is Extract<BloqueAnthropic, { type: 'tool_use' }> => b.type === 'tool_use')
-      if (bloqueTool) {
-        const resultado = await manejarHerramienta(bloqueTool.name, bloqueTool.input)
+      const bloques = respuesta.content.filter((b): b is Extract<BloqueAnthropic, { type: 'tool_use' }> => b.type === 'tool_use')
+      if (bloques.length > 0) {
+        const turno = await resolverLlamadas(bloques.map((b) => ({ id: b.id, name: b.name, input: b.input })), manejarHerramienta)
 
-        if (resultado.tipo === 'propuesta') return jsonResponse({ conversacion_id: conversacionId, propuesta: true }, 200)
-        if (resultado.tipo === 'rechazo') {
-          await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: resultado.mensaje })
-          return jsonResponse({ conversacion_id: conversacionId, respuesta: resultado.mensaje }, 200)
+        if (turno.tipo === 'propuesta') return jsonResponse({ conversacion_id: conversacionId, propuesta: true }, 200)
+        if (turno.tipo === 'rechazo') {
+          await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'chat', contenido: turno.mensaje })
+          return jsonResponse({ conversacion_id: conversacionId, respuesta: turno.mensaje }, 200)
         }
 
         mensajes.push({ role: 'assistant', content: respuesta.content })
-        mensajes.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: bloqueTool.id, content: JSON.stringify(resultado.valor) }] })
+        mensajes.push({ role: 'user', content: turno.resultados.map((r) => ({ type: 'tool_result' as const, tool_use_id: r.id, content: contenidoHerramienta(r.valor) })) })
 
         try {
           respuesta = await llamar()
@@ -333,7 +377,7 @@ Deno.serve(async (req) => {
 
     const textoFinal = respuesta.content.find((b): b is Extract<BloqueAnthropic, { type: 'text' }> => b.type === 'text')?.text
       ?? 'No encontré información relevante para responder eso.'
-    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: textoFinal })
+    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'chat', contenido: textoFinal })
     return jsonResponse({ conversacion_id: conversacionId, respuesta: textoFinal }, 200)
   }
 
@@ -354,8 +398,8 @@ Deno.serve(async (req) => {
       return await invocarProveedorIa(
         perfil,
         credencial.clave,
-        { model: perfil.modeloId, tools: [herramientaOpenAI(HERRAMIENTA_LEER), herramientaOpenAI(HERRAMIENTA_EJECUTAR)], messages: mensajes },
-        (url, init) => fetch(url, init),
+        { model: perfil.modeloId, max_tokens: MAX_TOKENS_RESPUESTA, tools: [herramientaOpenAI(HERRAMIENTA_LEER), herramientaOpenAI(HERRAMIENTA_EJECUTAR)], messages: mensajes },
+        fetchConTimeout(perfilLimiteSegundos),
       ) as { choices: Array<{ message: { content: string | null; tool_calls?: ToolCallOpenAI[] }; finish_reason: string }> }
     }
 
@@ -370,24 +414,27 @@ Deno.serve(async (req) => {
     let mensajeRespuesta = respuesta.choices[0]?.message
 
     if (mensajeRespuesta?.tool_calls && mensajeRespuesta.tool_calls.length > 0) {
-      const toolCall = mensajeRespuesta.tool_calls[0]
-      let input: Record<string, unknown>
-      try {
-        input = JSON.parse(toolCall.function.arguments)
-      } catch {
-        input = {}
-      }
+      const llamadas = mensajeRespuesta.tool_calls.map((tc) => {
+        let input: Record<string, unknown>
+        try {
+          const parsed = JSON.parse(tc.function.arguments)
+          input = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+        } catch {
+          input = {}
+        }
+        return { id: tc.id, name: tc.function.name, input }
+      })
+      // La API exige un mensaje `tool` por cada `tool_call_id` del turno: se resuelven todos.
+      const turno = await resolverLlamadas(llamadas, manejarHerramienta)
 
-      const resultado = await manejarHerramienta(toolCall.function.name, input)
-
-      if (resultado.tipo === 'propuesta') return jsonResponse({ conversacion_id: conversacionId, propuesta: true }, 200)
-      if (resultado.tipo === 'rechazo') {
-        await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: resultado.mensaje })
-        return jsonResponse({ conversacion_id: conversacionId, respuesta: resultado.mensaje }, 200)
+      if (turno.tipo === 'propuesta') return jsonResponse({ conversacion_id: conversacionId, propuesta: true }, 200)
+      if (turno.tipo === 'rechazo') {
+        await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'chat', contenido: turno.mensaje })
+        return jsonResponse({ conversacion_id: conversacionId, respuesta: turno.mensaje }, 200)
       }
 
       mensajes.push({ role: 'assistant', content: mensajeRespuesta.content, tool_calls: mensajeRespuesta.tool_calls })
-      mensajes.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(resultado.valor) })
+      for (const r of turno.resultados) mensajes.push({ role: 'tool', tool_call_id: r.id, content: contenidoHerramienta(r.valor) })
 
       try {
         respuesta = await llamar()
@@ -399,9 +446,16 @@ Deno.serve(async (req) => {
     }
 
     const textoFinal = mensajeRespuesta?.content ?? 'No encontré información relevante para responder eso.'
-    await asUser.from('mensajes_chat_ia').insert({ conversacion_id: conversacionId, origen: 'chat', contenido: textoFinal })
+    await guardarMensaje(asUser, { conversacion_id: conversacionId, origen: 'chat', contenido: textoFinal })
     return jsonResponse({ conversacion_id: conversacionId, respuesta: textoFinal }, 200)
   }
 
-  return credencial.adaptador === 'openai' ? await cicloOpenAI() : await cicloAnthropic()
+  try {
+    return credencial.adaptador === 'openai' ? await cicloOpenAI() : await cicloAnthropic()
+  } catch (error) {
+    // Un insert rechazado (RLS, conversación ajena, caída) ya no se ignora: se responde 500 en vez de «ok» sin historial.
+    if (error instanceof ErrorPersistencia) return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
+    console.error('chat-ia-responder: error inesperado', error instanceof Error ? error.message : error)
+    return jsonResponse({ error: 'No se pudo procesar el mensaje.' }, 500)
+  }
 })

@@ -25,7 +25,7 @@
 // se optó por el servidor HTTP nativo en vez de seguir ese rastro, ya que
 // es el patrón que la propia documentación del SDK ejemplifica.
 import { randomUUID } from 'node:crypto'
-import { createServer, type Server } from 'node:http'
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -66,7 +66,17 @@ export function crearServidorHttp(adminInyectado?: SupabaseClient): Server {
   }, Math.max(1000, Math.min(SESION_INACTIVA_MS, 60_000)))
   barrido.unref()
 
-  const http = createServer(async (req, res) => {
+  const http = createServer((req, res) => {
+    // Una excepción del handler (base caída, SDK, herramienta rota) no puede escapar como rechazo sin capturar: en
+    // Node termina el proceso y tumba el MCP de todas las organizaciones. Se responde 500 sin detalles internos.
+    atender(req, res).catch((error) => {
+      console.error('mcp: error no controlado en la solicitud', error instanceof Error ? error.message : error)
+      if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'application/json' }).end(JSON.stringify({ error: 'Error interno.' }))
+      else res.end()
+    })
+  })
+
+  async function atender(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (req.url !== '/mcp') {
       res.writeHead(404).end()
       return
@@ -145,7 +155,7 @@ export function crearServidorHttp(adminInyectado?: SupabaseClient): Server {
     })
     await server.connect(transport)
     await transport.handleRequest(req, res)
-  })
+  }
   http.on('close', () => clearInterval(barrido))
   return http
 }
