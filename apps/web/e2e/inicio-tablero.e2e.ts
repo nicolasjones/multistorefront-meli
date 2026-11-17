@@ -26,6 +26,7 @@ type Sembrado = {
   skuAlerta: string
   nombreAlerta: string
   nombreSinStock: string
+  nombreNormal: string
   correos: { administrador: string; operador: string; consulta: string }
   idsUsuario: string[]
 }
@@ -52,30 +53,37 @@ async function sembrar(sufijo: string): Promise<Sembrado> {
   const skuAlerta = `E2E-TB-B-${sufijo}`
   const nombreAlerta = `Producto con stock bajo ${sufijo}`
   const nombreSinStock = `Producto sin stock ${sufijo}`
-  const [sinStock, stockBajo] = await rest<{ id: string }>(
+  const nombreNormal = `Producto normal ${sufijo}`
+  const productos = await rest<{ id: string }>(
     'productos',
     [
       { organizacion_id: org.id, nombre: nombreSinStock, sku: `E2E-TB-S-${sufijo}`, moneda: 'ARS', precio_lista: 100 },
       { organizacion_id: org.id, nombre: nombreAlerta, sku: skuAlerta, moneda: 'ARS', precio_lista: 100 },
+      { organizacion_id: org.id, nombre: nombreNormal, sku: `E2E-TB-N-${sufijo}`, moneda: 'ARS', precio_lista: 100 },
     ],
     'dominio',
   )
+  const [sinStock, stockBajo, normal] = productos
+  // La RPC de movimientos exige la fila de `producto_empresa` cuando hay una empresa activa.
+  await rest('producto_empresa', productos.map((p) => ({ producto_id: p.id, empresa_id: empresa.id, organizacion_id: org.id })), 'dominio')
   // El disparador `productos_crear_existencias` ya crea la fila de cada producto: se actualiza con upsert.
   await rest(
     'existencias?on_conflict=producto_id',
     [
       { producto_id: sinStock.id, organizacion_id: org.id, cantidad: 0, minimo: 0 },
       { producto_id: stockBajo.id, organizacion_id: org.id, cantidad: 3, minimo: 5 },
+      { producto_id: normal.id, organizacion_id: org.id, cantidad: 10, minimo: 1 },
     ],
     'dominio',
     UPSERT_FUSIONAR,
   )
-  return { orgId: org.id, tienda: empresa.nombre, skuAlerta, nombreAlerta, nombreSinStock, correos, idsUsuario: Object.values(ids) }
+  return { orgId: org.id, tienda: empresa.nombre, skuAlerta, nombreAlerta, nombreSinStock, nombreNormal, correos, idsUsuario: Object.values(ids) }
 }
 
 async function limpiar(datos: Sembrado) {
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
+  await borrar(`producto_empresa?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`existencias?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`productos?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`empresas?organizacion_id=eq.${datos.orgId}`, 'dominio')
@@ -113,7 +121,7 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         })
         await paso(page, 'En «Movimientos por producto» ve los dos productos sembrados', async () => {
           await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
           await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
           await expect(page.getByText(siembra.nombreSinStock).first()).toBeVisible()
         })
@@ -126,18 +134,20 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
           await escribir(page, page.getByLabel('Buscar producto o SKU'), `no-existe-${sufijo}`)
           await expect(page.getByText('Sin movimientos para estos filtros')).toBeVisible()
           await clic(page, page.getByRole('button', { name: 'Limpiar filtros' }))
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
         })
-        await paso(page, 'La vista «En alerta» deja al producto con stock bajo', async () => {
+        await paso(page, 'La vista «En alerta» deja los dos productos en alerta y saca al normal', async () => {
           await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'En alerta' }))
-          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
-          await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'Todos' }))
           await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
+          await expect(page.getByText(siembra.nombreNormal)).toHaveCount(0)
+          await clic(page, page.getByRole('group', { name: 'Vistas rápidas' }).getByRole('button', { name: 'Todos' }))
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
         })
         await paso(page, 'Cambia el sentido del orden', async () => {
           await clic(page, page.getByRole('button', { name: '↑ Ascendente' }))
           await expect(page.getByRole('button', { name: '↓ Descendente' })).toBeVisible()
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
         })
         await paso(page, 'Exporta lo que ve a un CSV con fecha en el nombre', async () => {
           const descarga = page.waitForEvent('download')
@@ -169,7 +179,9 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
         await paso(page, 'Consulta ve «Movimientos por producto» pero sin el botón «Exportar»', async () => {
           await page.goto('/')
           await expect(page.getByRole('heading', { name: 'Movimientos por producto', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
+          await expect(page.getByText(siembra.nombreAlerta).first()).toBeVisible()
+          await expect(page.getByLabel('Buscar producto o SKU')).toBeVisible()
           await expect(page.getByRole('button', { name: 'Exportar' })).toHaveCount(0)
         })
         await rotulo(page, 'Consulta lee los movimientos pero no exporta')
@@ -224,7 +236,7 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
           await expect(avisoDeError(page)).toHaveCount(1)
           await expect(avisoDeError(page).getByRole('button', { name: 'Reintentar' })).toBeVisible()
           await expect(page.getByRole('heading', { name: 'Salidas por depósito', exact: true })).toBeVisible()
-          await expect(page.getByText('Mostrando 2 de 2 productos')).toBeVisible()
+          await expect(page.getByText('Mostrando 3 de 3 productos')).toBeVisible()
         })
         await paso(page, 'Al reintentar, el bloque se recupera y no queda ningún error', async () => {
           fallar = false

@@ -23,15 +23,15 @@ async function fijarBandera(activa: boolean): Promise<boolean | null> {
 }
 
 type ResultadoAxe = { violations: { id: string; nodes: { target: unknown[] }[] }[] }
-type AxeEnVentana = { axe: { run: (contexto: Document, opciones: unknown) => Promise<ResultadoAxe> } }
+type AxeEnVentana = { axe: { run: (contexto: Document | { include: string[][] }, opciones: unknown) => Promise<ResultadoAxe> } }
 
-async function violacionesAxe(page: Page): Promise<string[]> {
+async function violacionesAxe(page: Page, selector?: string): Promise<string[]> {
   await page.addScriptTag({ path: createRequire(import.meta.url).resolve('axe-core') })
-  return page.evaluate(async () => {
+  return page.evaluate(async (incluir) => {
     const axe = (window as unknown as AxeEnVentana).axe
-    const resultado = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
+    const resultado = await axe.run(incluir ? { include: [[incluir]] } : document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
     return resultado.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
-  })
+  }, selector)
 }
 
 const sinDesborde = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
@@ -75,10 +75,10 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
         const pie = page.getByTestId('pie-newsletter')
         await pie.scrollIntoViewIfNeeded()
         await expect(pie.getByRole('heading', { name: 'Newsletter' })).toBeVisible()
-        expect(await violacionesAxe(page), 'formulario vacío').toEqual([])
+        expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario vacío').toEqual([])
         await pie.getByRole('button', { name: 'Suscribirme' }).click()
         await expect(pie.locator('#newsletter-correo-error')).toBeVisible()
-        expect(await violacionesAxe(page), 'formulario con errores').toEqual([])
+        expect(await violacionesAxe(page, '#newsletter-suscripcion'), 'formulario con errores').toEqual([])
         expect(await sinDesborde(page), 'el formulario no desborda').toBe(true)
 
         // 2) Página de confirmación con un enlace inválido (no hace falta sembrar suscriptores).

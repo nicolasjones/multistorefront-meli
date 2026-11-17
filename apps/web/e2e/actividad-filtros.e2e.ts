@@ -75,7 +75,7 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
       await expect(page.getByText('No hay actividad con esos filtros.')).toBeVisible()
     } finally {
       if (orgId) {
-        await borrar(`registro_actividad?organizacion_id=eq.${orgId}`)
+        // `registro_actividad` es inalterable (no se borra con service_role): las filas sembradas quedan, con una organización propia por corrida.
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
         await borrar(`organizaciones?id=eq.${orgId}`)
       }
