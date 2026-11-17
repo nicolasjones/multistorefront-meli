@@ -84,6 +84,21 @@ describe('FormularioSuscripcion', () => {
     expect(mocks.suscribir).not.toHaveBeenCalled()
   })
 
+  it('los mensajes de error heredan el color del pie y no usan el rojo del tema (contraste AA)', async () => {
+    const { container } = render(
+      <div style={{ color: 'rgb(255, 255, 255)' }}>
+        <FormularioSuscripcion host="mundojc.localhost" />
+      </div>,
+    )
+    await screen.findByTestId('pie-newsletter')
+    enviar()
+    for (const id of ['newsletter-correo-error', 'newsletter-consentimiento-error']) {
+      const mensaje = container.querySelector(`#${id}`) as HTMLElement
+      expect(mensaje).not.toBeNull()
+      expect(getComputedStyle(mensaje).color).toBe('rgb(255, 255, 255)')
+    }
+  })
+
   it('con datos válidos envía con clave y campo trampa vacío y muestra el mensaje de éxito', async () => {
     await mostrar()
     llenar()

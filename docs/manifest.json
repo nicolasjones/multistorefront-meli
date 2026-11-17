@@ -679,14 +679,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "41db1c8a44be5b66530b337e51e4e63c2ef9b694c866da9aed82a445b41bdd58",
-      "sourceHash": "9983a5764716aa765c3826ae6e2bf087fcdce2ce6a13154ed09a9c7ac4feb9a4",
-      "sourceAt": "69897d08",
+      "pageHash": "3247a8b26fa31de8ca2b84c404e49416ffd8899f08fdce8c5e593636de2020ad",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": null,
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "69897d08"
+      "commit": null
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -945,9 +945,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "f956062b931d93c241d6cba4563ae313ccb09e60509e669fdf44f68c2d9d551c",
-      "sourceHash": "c7fb8e3c1d4cad3fa4a214579580a1a7ee23c60751ec0dd82f03c97f23c2c6a1",
-      "sourceAt": "e1507ad5",
+      "pageHash": "3da8be5b1a333d335f25f1707820501af0679a2930136623369847be77ea72ab",
+      "sourceHash": "5d783ff5c846fd477425e2fd5149eaede463a9160861b2eaa53ae39d0e38af72",
+      "sourceAt": null,
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -971,7 +971,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "e1507ad5"
+      "commit": null
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -3698,7 +3698,7 @@
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
-      "sourceHash": "31cc455b734c02d7859ac36491b9a40c1f24df01fc53effb9d042a7afb9b9a18",
+      "sourceHash": "d3dd8ebb5a08bce154c6eeda9850600cdf977b4b83621c5153652f6decdb27c4",
       "sourceAt": null,
       "sources": [
         "specs",
