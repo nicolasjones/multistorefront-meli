@@ -288,6 +288,23 @@ test('en local, sin aviso en Mailpit, no hay verde', async () => {
   }
 })
 
+test('un MAILPIT_TIMEOUT_MS no finito o enorme no rompe el guion: cae al tope por omisión o al máximo', async () => {
+  // `AbortSignal.timeout(Infinity)` lanza TypeError: sin el arreglo el guion se caía antes de consultar Mailpit.
+  for (const valor of ['Infinity', '-Infinity', 'NaN', '', '1e12']) {
+    const base = await levantar({
+      respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },
+      mensajes: avisoEnMailpit,
+    })
+    try {
+      const r = await correr(entorno(base, { MAILPIT_URL: base.url, MAILPIT_TIMEOUT_MS: valor }))
+      assert.equal(r.codigo, 0, `MAILPIT_TIMEOUT_MS=${JSON.stringify(valor)}: ${r.error}`)
+      assert.match(r.salida, /llegó a Mailpit/)
+    } finally {
+      await base.cerrar()
+    }
+  }
+})
+
 test('en local, un Mailpit que no responde no cuelga el guion: corta por tiempo y no da verde', async () => {
   const base = await levantar({
     respuestaFuncion: { cuerpo: { resultado: 'solicitud_enviada', nuevo: true, enviado: true } },

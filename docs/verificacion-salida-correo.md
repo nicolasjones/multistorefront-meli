@@ -90,7 +90,7 @@ Variables (los valores reales nunca se commitean):
 | `SECCION` | Sección sin acceso para esa persona (por omisión `rentabilidad`) |
 | `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`): `nicolas.m.jones@gmail.com` |
 | `MAILPIT_URL` | Sólo local, p. ej. `http://127.0.0.1:4302` |
-| `MAILPIT_TIMEOUT_MS` | Opcional: tope de cada consulta a Mailpit (por omisión 5000 ms). Si Mailpit no responde, la consulta cuenta como «el aviso aún no apareció» y el guion termina con `1`, no queda colgado |
+| `MAILPIT_TIMEOUT_MS` | Opcional: tope de cada consulta a Mailpit (por omisión 5000 ms, máximo 60000 ms: un valor no finito como `Infinity`, vacío o no positivo cae al por omisión y uno mayor al máximo se acota). Si Mailpit no responde, la consulta cuenta como «el aviso aún no apareció» y el guion termina con `1`, no queda colgado |
 
 Para que la corrida sea concluyente el aviso tiene que salir **de esa corrida**: el flujo es idempotente por
 día, así que si el pedido del día ya estaba notificado la corrida no vuelve a avisar (`enviado: false`) y el

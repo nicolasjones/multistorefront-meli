@@ -19,7 +19,8 @@
 //   SUPABASE_ANON_KEY, ACCESO_EMAIL, ACCESO_PASSWORD   credenciales de la persona sin acceso
 //   SECCION         clave de la sección sin acceso para esa persona (por omisión «rentabilidad»)
 //   MAILPIT_URL     opcional (local), p. ej. http://127.0.0.1:4302
-//   MAILPIT_TIMEOUT_MS  opcional: tope de cada consulta a Mailpit (por omisión 5000 ms); una consulta que no
+//   MAILPIT_TIMEOUT_MS  opcional: tope de cada consulta a Mailpit (por omisión 5000 ms, máximo 60000 ms; un valor no
+//                   finito o no positivo cae al por omisión y uno mayor al máximo se acota); una consulta que no
 //                   responde cuenta como «el aviso aún no apareció» en vez de dejar el guion colgado
 //   CORREO_PRUEBA   obligatoria sin MAILPIT_URL: es la casilla externa donde se confirma la recepción
 const requerida = (nombre) => {
@@ -40,7 +41,14 @@ const mailpit = process.env.MAILPIT_URL?.replace(/\/$/, '')
 // obligatoria, porque es donde el aviso tiene que llegar.
 const correoPrueba = process.env.CORREO_PRUEBA?.trim()
 // Tope de cada consulta a Mailpit: sin él, un Mailpit que acepta la conexión y no contesta cuelga el guion.
-const topeMailpitMs = Number(process.env.MAILPIT_TIMEOUT_MS) > 0 ? Number(process.env.MAILPIT_TIMEOUT_MS) : 5000
+// Un valor no finito (`Infinity`, `NaN`), vacío o no positivo cae al valor por omisión: `AbortSignal.timeout(Infinity)` lanza
+// TypeError. Un valor enorme se acota a TOPE_MAXIMO_MAILPIT_MS para que una consulta nunca pueda colgar el guion.
+const TOPE_POR_OMISION_MAILPIT_MS = 5000
+const TOPE_MAXIMO_MAILPIT_MS = 60000
+const topeSolicitado = Number(process.env.MAILPIT_TIMEOUT_MS)
+const topeMailpitMs = Number.isFinite(topeSolicitado) && topeSolicitado > 0
+  ? Math.min(topeSolicitado, TOPE_MAXIMO_MAILPIT_MS)
+  : TOPE_POR_OMISION_MAILPIT_MS
 if (!mailpit && !correoPrueba) {
   console.error('Falta la variable CORREO_PRUEBA: sin MAILPIT_URL el guion necesita saber a qué casilla externa debe llegar el aviso.')
   process.exit(2)
