@@ -77,6 +77,8 @@ Alcance de entrega: `refine`, `supabase` y `kestra`.
 
 ### Depuración por retención
 
+La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11-14); no queda como supuesto pendiente.
+
 - `private.depurar_registro_actividad(p_hasta timestamptz default now())` borra los eventos con más de
   24 meses, deja un evento `sistema.depurada` por organización con la cantidad y es idempotente. Solo la
   ejecutan `workers_orquestacion` y `kestra_orquestacion`.

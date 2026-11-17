@@ -62,3 +62,14 @@ export function urlWhatsapp(numero: string | null | undefined, mensaje: string):
   if (!digitos) return null
   return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`
 }
+
+const CORREO_SIMPLE = /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/
+
+// MSF-743: aviso (no bloqueante) cuando un texto se usa como WhatsApp pero no alcanza para armar el enlace `wa.me`.
+// Vacío o un correo → null (no hay nada que avisar). Si no se puede normalizar → texto para el usuario.
+export function avisoFormatoWhatsapp(texto: string | null | undefined): string | null {
+  const valor = (texto ?? '').trim()
+  if (valor === '' || CORREO_SIMPLE.test(valor)) return null
+  if (normalizarNumero(valor)) return null
+  return 'No reconocemos este número: el botón de WhatsApp no se mostrará. Usá el formato con código de área, por ejemplo +54 9 11 1234-5678.'
+}

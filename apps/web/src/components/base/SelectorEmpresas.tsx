@@ -17,6 +17,8 @@ type Props = {
   ayuda?: ReactNode
   error?: string
   deshabilitado?: boolean
+  // Una sola empresa a la vez (p. ej. el gasto es de una tienda): marcar otra reemplaza la selección.
+  unica?: boolean
 }
 
 // Selección múltiple de empresas/tiendas para formularios y diálogos. Usa casillas, como «Disponible
@@ -34,8 +36,13 @@ export function SelectorEmpresas({
   ayuda,
   error,
   deshabilitado = false,
+  unica = false,
 }: Props) {
   const alternar = (empresaId: string, marcada: boolean) => {
+    if (unica) {
+      onCambiar(marcada ? [empresaId] : [])
+      return
+    }
     const siguiente = new Set(seleccion)
     if (marcada) siguiente.add(empresaId)
     else siguiente.delete(empresaId)

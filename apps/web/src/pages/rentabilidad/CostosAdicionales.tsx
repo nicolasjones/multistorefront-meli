@@ -5,7 +5,6 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../../components/pagi
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { FiltroEmpresa } from '../../components/pagina/FiltroEmpresa'
-import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useCostosAdicionales } from '../../hooks/useCostosAdicionales'
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
@@ -16,8 +15,9 @@ import {
   formatearValorCosto,
   mensajeDeErrorCosto,
 } from '../../lib/costosAdicionales'
-import { PESTANAS_RENTABILIDAD, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
+import { SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
 import { supabaseClient } from '../../lib/supabase'
+import { PestanasRentabilidad } from './PestanasRentabilidad'
 
 // El diálogo (MUI Dialog + formulario) queda fuera de la carga inicial de la pantalla (Principio VI).
 const DialogoCostoAdicional = lazy(() =>
@@ -136,7 +136,7 @@ export function RentabilidadCostosAdicionales() {
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
         accion={nuevo}
-        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasRentabilidad />}
       />
       <Alert severity="info" role="note">
         Los costos adicionales (envío, impuestos u otros) se descuentan del margen de cada producto en la empresa donde se cargan.

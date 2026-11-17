@@ -17,7 +17,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho');
 insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001', 'sanjavucho.ejemplo.com');
-insert into clientes (id, organizacion_id, numero, nombre, correo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'norte@example.com');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
   ('c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');

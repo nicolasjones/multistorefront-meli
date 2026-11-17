@@ -75,8 +75,8 @@ async function asegurarUsuario() {
 }
 async function asegurarCliente(orgId, nombre, correo) {
   const q = `clientes?organizacion_id=eq.${orgId}&nombre=eq.${encodeURIComponent(nombre)}&select=id&limit=1`;
-  let c = await first(`/rest/v1/${q}`);
-  if (!c) c = (await call("/rest/v1/clientes", { method: "POST", body: { organizacion_id: orgId, nombre, correo }, prefer: "return=representation" }))[0];
+  let c = await first(`/rest/v1/${q}`, "dominio");
+  if (!c) c = (await call("/rest/v1/clientes", { method: "POST", schema: "dominio", body: { organizacion_id: orgId, nombre, correo }, prefer: "return=representation" }))[0];
   return c;
 }
 async function asegurarProducto(orgId, nombre, sku, precio) {

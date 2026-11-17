@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EntradaLinea, LineaComprobante } from '../../lib/ventasLineas'
 import { violacionesAxe } from '../../test/axe'
-import { LineasComprobante } from './LineasComprobante'
+import { COLUMNAS, LineasComprobante } from './LineasComprobante'
 
 const mocks = vi.hoisted(() => ({ imagenes: vi.fn() }))
 vi.mock('../../hooks/useImagenesProductos', () => ({ useImagenesProductos: mocks.imagenes }))
@@ -176,6 +176,66 @@ describe('LineasComprobante · recálculo al cambiar cantidad, depósito o preci
     montar([])
     expect(screen.getByText('Todavía no agregaste productos. Usá «Agregar producto» para empezar.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Agregar producto' })).toBeInTheDocument()
+  })
+
+  it('las columnas de Precio y Subtotal admiten importes grandes sin pisarse', () => {
+    const anchos = COLUMNAS.split(' ').filter((parte) => parte.endsWith('px')).map((parte) => Number.parseInt(parte, 10))
+    // Producto · Stock · Depósito · Cantidad · Precio s/IVA · Subtotal: las dos últimas, de al menos 150 px.
+    expect(anchos.slice(-2).every((ancho) => ancho >= 150)).toBe(true)
+  })
+})
+
+describe('LineasComprobante · marca de la lista de precios (F-CLI-21, CA-CLI-21-9)', () => {
+  const conLista = (cambios: Partial<LineaComprobante> = {}) =>
+    linea({ cantidad: 1, precio_unitario: 800, escala: 'x1', lista_nombre: 'Revendedores', lista_ajuste_pct: -20, ...cambios })
+
+  it('muestra «Lista: nombre ±n %» bajo el precio de la línea que fijó la lista', () => {
+    montar([conLista()], { puedeEditarPrecio: false })
+    expect(screen.getAllByRole('cell')[4]).toHaveTextContent('Lista: Revendedores \u221220 %')
+  })
+
+  it('un recargo lleva signo más y un 0 % no lleva signo', () => {
+    montar([conLista({ lista_ajuste_pct: 10, lista_nombre: 'Recargo' }), conLista({ id: 'l-2', lista_ajuste_pct: 0, lista_nombre: 'Cero' })], { puedeEditarPrecio: false })
+    expect(screen.getByText('Lista: Recargo +10 %')).toBeInTheDocument()
+    expect(screen.getByText('Lista: Cero 0 %')).toBeInTheDocument()
+  })
+
+  it('con una promoción ganadora la marca dice que rige la promoción', () => {
+    montar([conLista({ precio_unitario: 500, precio_referencia: 800 })], { puedeEditarPrecio: false })
+    expect(screen.getByText('Lista: Revendedores \u221220 % (rige la promoción)')).toBeInTheDocument()
+  })
+
+  it('sin lista no aparece nada nuevo', () => {
+    montar([linea({ lista_ajuste_pct: null, lista_nombre: null })], { puedeEditarPrecio: false })
+    expect(screen.queryByText(/Lista:/)).toBeNull()
+  })
+
+  it('un precio manual no muestra la marca aunque llegue una lista', () => {
+    montar([conLista({ precio_manual: true })], { puedeEditarPrecio: false })
+    expect(screen.queryByText(/Lista:/)).toBeNull()
+  })
+
+  it('no expone el identificador de la lista en el DOM', () => {
+    montar([{ ...conLista(), lista_precio_id: 'lista-secreta' } as LineaComprobante], { puedeEditarPrecio: false })
+    expect(document.body.innerHTML).not.toContain('lista-secreta')
+  })
+
+  it.each([320, 768, 1440])('no tiene violaciones de accesibilidad a %i px', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    const { container } = render(
+      <LineasComprobante
+        lineas={[conLista()]}
+        totales={{ subtotal: 800, iva: 168, total: 968 }}
+        depositos={DEPOSITOS}
+        editable
+        puedeEditarPrecio
+        ocupado={false}
+        onCambiar={vi.fn()}
+        onQuitar={vi.fn()}
+        onAgregar={vi.fn()}
+      />,
+    )
+    expect(await violacionesAxe(container)).toEqual([])
   })
 })
 

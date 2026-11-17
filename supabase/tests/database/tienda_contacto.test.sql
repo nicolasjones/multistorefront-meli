@@ -6,7 +6,7 @@
 -- tabla temporal; las verificaciones corren como postgres.
 begin;
 
-select plan(40);
+select plan(42);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)
@@ -284,6 +284,16 @@ select set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-
 set local role authenticated;
 select ok((select count(*)::int from dominio.tienda_envios) > 0, 'RLS: la organización dueña ve sus envíos');
 reset role;
+
+-- MSF-468 (newsletter, T005): el origen `newsletter` comparte el cupo de 5 por hora con el formulario y WhatsApp.
+select set_config('request.headers', '{"x-forwarded-for":"10.0.0.77"}', true);
+select private.registrar_envio_tienda('e1000000-0000-0000-0000-000000000002', 'newsletter', gen_random_uuid()) from generate_series(1, 4);
+select is(
+  (select j ->> 'estado' from (select publico.enviar_consulta_contacto('ct-b.ejemplo.com', 'Ana', 'ana@ejemplo.com', 'Quinto del cupo', '00000000-0000-0000-0000-0000000000d9') as j) x),
+  'ok', 'newsletter: cuatro suscripciones y un contacto caben en el cupo de 5 por hora');
+select is(
+  private.registrar_envio_tienda('e1000000-0000-0000-0000-000000000002', 'newsletter', gen_random_uuid()) ->> 'estado',
+  'limite', 'newsletter: el cupo del contacto y el del newsletter es el mismo (el sexto responde límite)');
 
 select * from finish();
 rollback;

@@ -221,3 +221,119 @@ describe('FormularioCliente', () => {
     await waitFor(() => expect(onGuardar).toHaveBeenCalledWith(expect.objectContaining({ empresas: ['e-1'] }), expect.anything()))
   })
 })
+
+describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => {
+  const LISTAS = [
+    { id: 'l-1', nombre: 'Revendedores', descripcion: null, ajustePct: -20, archivadaEn: null, clientesAsignados: 0, actualizadoEn: 't' },
+    { id: 'l-2', nombre: 'Gremio', descripcion: null, ajustePct: 5.5, archivadaEn: null, clientesAsignados: 0, actualizadoEn: 't' },
+  ]
+  const abrirConLista = (
+    cambios: { editable?: boolean; bandera?: boolean; hayError?: boolean; cargando?: boolean; listaPrecioId?: string; descuento?: string } = {},
+    onGuardar = vi.fn().mockResolvedValue(undefined),
+  ) => {
+    render(
+      <MemoryRouter>
+        <FormularioCliente
+          inicial={{ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', listaPrecioId: cambios.listaPrecioId ?? '', descuento: cambios.descuento ?? '' }}
+          etiquetaGuardar="Guardar"
+          onGuardar={onGuardar}
+          rutaCancelar="/clientes"
+          puedeEditarDescuento
+          listasPrecios={{ listas: cambios.cargando ? [] : LISTAS, cargando: cambios.cargando ?? false, hayError: cambios.hayError ?? false, editable: cambios.editable ?? true, bandera: cambios.bandera ?? true }}
+        />
+      </MemoryRouter>,
+    )
+    return onGuardar
+  }
+
+  const elegir = (nombre: string | RegExp) => {
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    fireEvent.click(screen.getByRole('option', { name: nombre }))
+  }
+
+  it('si la lista actual del cliente no está entre las cargadas, igual es una opción y no queda un valor fuera de rango', () => {
+    const consola = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    abrirConLista({ listaPrecioId: 'l-9', hayError: true })
+    expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveTextContent('Lista asignada')
+    expect(consola.mock.calls.flat().join(' ')).not.toMatch(/out-of-range/)
+    consola.mockRestore()
+  })
+
+  it('mientras cargan las listas muestra «Cargando…» y no el aviso de nombre ilegible', () => {
+    abrirConLista({ listaPrecioId: 'l-1', cargando: true })
+    const combo = screen.getByRole('combobox', { name: /Lista de precios/ })
+    expect(combo).toHaveTextContent('Cargando…')
+    expect(combo).not.toHaveTextContent('no se pudo leer')
+  })
+
+  it('sin la prop no muestra el campo (alta)', () => {
+    abrir()
+    expect(screen.queryByText('Lista de precios')).not.toBeInTheDocument()
+  })
+
+  it('el Administrador elige una lista activa, ve su porcentaje y se envía solo lo que cambió', async () => {
+    const onGuardar = abrirConLista()
+    expect(screen.getByRole('combobox', { name: /Lista de precios/ })).toHaveTextContent('Sin lista')
+    elegir(/Revendedores/)
+    expect(screen.getByText('Revendedores: -20 % sobre el precio central.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][2]).toEqual({ listaPrecioId: 'l-1' })
+  })
+
+  it('sin tocar la lista no manda cambio de lista; quitarla manda null', async () => {
+    const sinCambio = abrirConLista({ listaPrecioId: 'l-1' })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(sinCambio).toHaveBeenCalled())
+    expect(sinCambio.mock.calls[0][2]).toBeUndefined()
+  })
+
+  it('quitar la lista envía null', async () => {
+    const onGuardar = abrirConLista({ listaPrecioId: 'l-1' })
+    elegir('Sin lista')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][2]).toEqual({ listaPrecioId: null })
+  })
+
+  it('quien no es Administrador la ve en solo lectura y no envía cambios', async () => {
+    const onGuardar = abrirConLista({ editable: false, listaPrecioId: 'l-2' })
+    const campo = screen.getByRole('combobox', { name: /Lista de precios/ })
+    expect(campo).toHaveAttribute('aria-disabled', 'true')
+    expect(campo).toHaveTextContent('Gremio (+5,5 %)')
+    expect(screen.getByText('Solo un administrador puede asignar una lista.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    expect(onGuardar.mock.calls[0][2]).toBeUndefined()
+  })
+
+  it('avisa que no se acumula con el descuento personal', () => {
+    abrirConLista({ listaPrecioId: 'l-1', descuento: '5' })
+    expect(screen.getByText(/Este cliente también tiene un descuento personal/)).toBeInTheDocument()
+  })
+
+  it('sin descuento personal no muestra el aviso', () => {
+    abrirConLista({ listaPrecioId: 'l-1' })
+    expect(screen.queryByText(/descuento personal/)).not.toBeInTheDocument()
+  })
+
+  it('con la bandera apagada avisa y solo permite quitar la lista actual', () => {
+    abrirConLista({ bandera: false, listaPrecioId: 'l-1' })
+    expect(screen.getByText(/desactivadas en este entorno/)).toBeInTheDocument()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Lista de precios/ }))
+    expect(screen.getByRole('option', { name: /Gremio/ })).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByRole('option', { name: /Revendedores/ })).not.toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('si no pudo cargar las listas lo dice', () => {
+    abrirConLista({ hayError: true })
+    expect(screen.getByText('No pudimos cargar las listas de precios.')).toBeInTheDocument()
+  })
+
+  it.each([320, 768, 1440])('sin violaciones de axe a %i px', async (ancho) => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: ancho })
+    abrirConLista({ listaPrecioId: 'l-1', descuento: '5' })
+    const { violacionesAxe } = await import('../../test/axe')
+    expect(await violacionesAxe(document.body)).toEqual([])
+  })
+})

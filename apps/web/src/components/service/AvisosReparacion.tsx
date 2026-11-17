@@ -9,8 +9,11 @@ type Props = {
   onReintentar: () => void
   // «Reenviar» solo con edición y cliente con correo; la RPC rechaza reparaciones anuladas (FR-027).
   puedeReenviar: boolean
+  // El reenvío por WhatsApp no depende del correo: la base exige el consentimiento del cliente y un teléfono válido.
+  puedeReenviarWhatsapp: boolean
   avisando: boolean
-  onReenviar: (estadoId: string) => void
+  // Reenvía por el MISMO canal del aviso: correo (F-SVC-14) o WhatsApp (MSF-952).
+  onReenviar: (aviso: AvisoReparacion) => void
   // El cliente no tiene correo: se avisa en la sección (FR-023).
   sinCorreo: boolean
 }
@@ -29,7 +32,7 @@ const formatoFecha = new Intl.DateTimeFormat('es-AR', {
 
 // Sección «Avisos al cliente» del detalle de la reparación (F-SVC-14, FR-026, FR-027): historial con Pendiente /
 // Enviado / Fallido, destinatario, fecha y quién lo pidió, y «Reenviar» con edición. Visible con `lectura`.
-export function AvisosReparacion({ avisos, cargando, error, onReintentar, puedeReenviar, avisando, onReenviar, sinCorreo }: Props) {
+export function AvisosReparacion({ avisos, cargando, error, onReintentar, puedeReenviar, puedeReenviarWhatsapp, avisando, onReenviar, sinCorreo }: Props) {
   return (
     <Card component="section" aria-labelledby="titulo-avisos-reparacion">
       <CardHeader title={<Typography id="titulo-avisos-reparacion" component="h2" variant="t3">Avisos al cliente</Typography>} />
@@ -63,19 +66,25 @@ export function AvisosReparacion({ avisos, cargando, error, onReintentar, puedeR
                   >
                     <EtiquetaEstado texto={etiqueta.texto} variante={etiqueta.variante} />
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="body2">{`Estado «${aviso.estado_nombre}» · ${aviso.destinatario}`}</Typography>
+                      <Typography variant="body2">
+                        {`Estado «${aviso.estado_nombre}»${aviso.canal === 'whatsapp' ? ' · WhatsApp' : ''} · ${aviso.destinatario}`}
+                      </Typography>
                       <Typography variant="caption" color="text.secondary">
                         {`${formatoFecha.format(new Date(aviso.solicitado_en))}${aviso.solicitado_por_nombre ? ` · pidió ${aviso.solicitado_por_nombre}` : ''}`}
                         {aviso.estado_envio === 'fallido' && aviso.error ? ` · ${aviso.error}` : ''}
                       </Typography>
                     </Box>
-                    {puedeReenviar && aviso.estado_envio !== 'pendiente' ? (
+                    {(aviso.canal === 'whatsapp' ? puedeReenviarWhatsapp : puedeReenviar) && aviso.estado_envio !== 'pendiente' ? (
                       <Button
                         size="small"
                         variant="outlined"
                         disabled={avisando}
-                        onClick={() => onReenviar(aviso.estado_id)}
-                        aria-label={`Reenviar aviso del estado ${aviso.estado_nombre}`}
+                        onClick={() => onReenviar(aviso)}
+                        aria-label={
+                          aviso.canal === 'whatsapp'
+                            ? `Reenviar por WhatsApp el aviso del estado ${aviso.estado_nombre}`
+                            : `Reenviar aviso del estado ${aviso.estado_nombre}`
+                        }
                       >
                         Reenviar
                       </Button>

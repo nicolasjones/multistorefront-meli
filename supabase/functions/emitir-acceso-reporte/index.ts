@@ -45,7 +45,7 @@ Deno.serve((req) => {
     reporte: async (jwt, reporteId) => {
       const { data, error } = await comoUsuario(jwt)
         .from('reportes')
-        .select('superset_dashboard_uuid, filtro_empresa')
+        .select('superset_dashboard_uuid, filtro_empresa, datasets_permitidos')
         .eq('id', reporteId)
         .maybeSingle()
       if (error) {
@@ -60,6 +60,8 @@ Deno.serve((req) => {
         dashboardUuid: data.superset_dashboard_uuid as string,
         // `filtro_empresa` (F-VTA-22): el tablero declara si su cláusula `rls` acota por empresa.
         filtroEmpresa: data.filtro_empresa === true,
+        // Allowlist de datasets del tablero (rol Guest compartido); ver `reglasDatasetsAjenos`.
+        datasetsPermitidos: Array.isArray(data.datasets_permitidos) ? (data.datasets_permitidos as string[]) : [],
       }
     },
     config: {

@@ -21,7 +21,7 @@ function diferida<T>() {
   return { promesa, resolver, rechazar }
 }
 
-describe('useCapacidadesPrecios (MSF-363)', () => {
+describe('useCapacidadesPrecios', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

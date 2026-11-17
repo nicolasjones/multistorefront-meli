@@ -260,7 +260,7 @@ describe('Transportes y contrarreembolsos (FR-046)', () => {
     expect(screen.getByText('El transporte cobra al entregar y rinde después.')).toBeInTheDocument()
   })
 
-  it('la sub-pestaña «Terminales de retiro» conserva la tabla de MSF-139', async () => {
+  it('la sub-pestaña «Terminales de retiro» conserva la tabla de', async () => {
     renderPantalla()
     fireEvent.click(screen.getByRole('tab', { name: 'Terminales de retiro' }))
     expect(await screen.findByText('Expreso Uno')).toBeInTheDocument()

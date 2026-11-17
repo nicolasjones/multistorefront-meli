@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
 }))
+vi.mock('../../hooks/useBanderaMargenCostosFijos', () => ({ useBanderaMargenCostosFijos: () => ({ activa: false, cargando: false }) }))
 vi.mock('../../hooks/useReportesAsignados', () => ({ useReportesAsignados: mocks.useReportesAsignados }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
 vi.mock('../acceso-restringido/AccesoRestringido', () => ({

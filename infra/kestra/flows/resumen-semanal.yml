@@ -1,0 +1,43 @@
+# MSF-265 · F-REP-08 (RF-REP-08-1, RF-REP-08-4, RF-REP-08-5). Resumen semanal por correo a los administradores de cada
+# organización: los lunes a las 08:00 (hora de Buenos Aires) llama a la Edge Function `enviar-resumen-semanal` con
+# `{"barrer": true}`; la función arma, por organización, el resumen de la semana que terminó (ventas, margen, stock en
+# alerta y faltantes pendientes; las secciones sin fuente se omiten) y lo manda por el SMTP del proyecto. Cada 15 minutos
+# se repite la llamada solo para REINTENTAR lo que falló: la base registra un resumen por organización y semana
+# (`public.resumen_semanal_envios`, único por semana), reserva cada uno 2 minutos y no reenvía uno `enviado`, así que
+# repetir la llamada no duplica. Es el "disparo" porque el repo prohíbe disparar HTTP desde SQL
+# (docs/adoptar-ciclo-ejecuciones.md §3.1): la base solo calcula y registra. Cada organización puede pausarlo en Mi
+# organización (la base no genera nada si está pausado).
+# Secretos: el token compartido vive en SECRET_RESUMEN_SEMANAL_TOKEN, en base64 (solo infra/kestra/.env); la clave pública
+# (anon) solo cruza el gateway de Supabase y no autoriza nada por sí sola.
+id: resumen-semanal
+namespace: platform.avisos
+labels:
+  capa: producto
+  dominio: reportes
+  componente: resumen-semanal
+description: "Envía por correo, los lunes 08:00 (Buenos Aires), el resumen semanal a los administradores de cada organización y reintenta lo que falló."
+tasks:
+  - id: barrer_resumenes
+    type: io.kestra.plugin.core.http.Request
+    uri: "{{ envs.resumen_semanal_url }}"
+    method: POST
+    contentType: application/json
+    headers:
+      apikey: "{{ envs.resumen_semanal_apikey }}"
+      Authorization: "Bearer {{ envs.resumen_semanal_apikey }}"
+      x-aviso-token: "{{ secret('RESUMEN_SEMANAL_TOKEN') }}"
+    body: '{"barrer": true}'
+    timeout: PT5M
+    retry:
+      type: constant
+      interval: PT1M
+      maxAttempts: 2
+triggers:
+  - id: lunes_0800
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "0 8 * * 1"
+    timezone: America/Argentina/Buenos_Aires
+  - id: reintentos
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "*/15 * * * *"
+    timezone: America/Argentina/Buenos_Aires

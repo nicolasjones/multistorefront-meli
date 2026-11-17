@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { PaginaNoEncontrada } from './PaginaNoEncontrada'
 
-describe('PaginaNoEncontrada (MSF-636)', () => {
+describe('PaginaNoEncontrada', () => {
   it('muestra la pantalla propia en castellano, no la de la librería', () => {
     render(<MemoryRouter><PaginaNoEncontrada /></MemoryRouter>)
 

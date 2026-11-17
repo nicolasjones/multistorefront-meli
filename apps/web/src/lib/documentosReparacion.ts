@@ -8,8 +8,9 @@ import type { ItemReparacion, Reparacion } from './reparaciones'
 export const ROTULO_NO_FISCAL = 'Documento no fiscal'
 export const ROTULO_SIN_IVA = 'Importes sin IVA'
 
-// Texto de condiciones provisorio (spec, Decisiones abiertas 3): pendiente de confirmar por el negocio.
-export const CONDICIONES_PENDIENTES = 'Condiciones del servicio: pendiente de confirmar.'
+// Texto de condiciones del servicio (spec, Decisiones abiertas 3): el negocio todavía no lo definió. Mientras sea
+// `null` la orden no imprime la línea (MSF-614): jamás se muestra un texto provisional al cliente.
+export const CONDICIONES_SERVICIO: string | null = null
 
 export type DatosTienda = { nombre: string; direccion: string | null; whatsapp: string | null; correo: string | null }
 
@@ -20,7 +21,7 @@ export type DocumentoOrden = {
   tienda: DatosTienda
   numero: string
   filas: FilaDocumento[]
-  condiciones: string
+  condiciones: string | null
 }
 
 export type TablaItems = { titulo: string; filas: ItemReparacion[]; subtotal: number }
@@ -70,7 +71,7 @@ export function armarOrdenIngreso(reparacion: Reparacion, tienda: DatosTienda, t
     tienda,
     numero: reparacion.codigo,
     filas: filasComunes(reparacion, tecnico),
-    condiciones: CONDICIONES_PENDIENTES,
+    condiciones: CONDICIONES_SERVICIO,
   }
 }
 
