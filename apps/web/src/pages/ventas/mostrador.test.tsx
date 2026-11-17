@@ -145,6 +145,7 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     expect(screen.queryByText(AVISO)).toBeNull()
     // Venta nueva con la bandera ya en true: la base es la lectura nueva (true), sin aviso.
     mocks.releerBandera.mockResolvedValue(true)
+    mocks.agregar.mockResolvedValue({ ...venta(), id: 'c-2' })
     await escanear(CODIGO)
     await screen.findByText('Joystick')
     await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(2))

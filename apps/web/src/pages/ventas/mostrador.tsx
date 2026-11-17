@@ -81,18 +81,17 @@ export function VentaMostrador() {
 
   // MSF-937: valor de la bandera de promociones visto al abrir la venta; si cambia con la venta abierta se avisa.
   const { valor: banderaPromociones, releer: releerBandera } = useBanderaPromociones(ventaVigente !== null)
-  const [banderaAlAbrir, setBanderaAlAbrir] = useState<boolean | null>(null)
+  // Base asociada a la venta que la leyó: con otra venta (o sin venta) deja de valer, sin efecto que la reinicie.
+  const [base, setBase] = useState<{ ventaId: string; valor: boolean | null } | null>(null)
   const ventaVigenteId = ventaVigente?.id ?? null
+  const banderaAlAbrir = base !== null && base.ventaId === ventaVigenteId ? base.valor : null
   // La base sale de una lectura hecha al abrir la venta (no del valor del montaje: el mostrador queda abierto todo el día).
   // Si esa lectura falla no hay base y no se avisa.
   useEffect(() => {
-    if (ventaVigenteId === null) {
-      setBanderaAlAbrir(null)
-      return
-    }
+    if (ventaVigenteId === null) return
     let vigente = true
     void releerBandera().then((leida) => {
-      if (vigente) setBanderaAlAbrir((previa) => previa ?? leida)
+      if (vigente) setBase((previa) => (previa?.ventaId === ventaVigenteId && previa.valor !== null ? previa : { ventaId: ventaVigenteId, valor: leida }))
     })
     return () => {
       vigente = false
@@ -270,7 +269,7 @@ export function VentaMostrador() {
           </Alert>
         )}
         <AvisoPreciosCambiaron mensaje={ventaVigente ? avisoPrecios : null} />
-        <AvisoBanderaPromociones mensaje={avisoBandera} onCerrar={() => setBanderaAlAbrir(banderaPromociones)} />
+        <AvisoBanderaPromociones mensaje={avisoBandera} onCerrar={() => ventaVigenteId !== null && setBase({ ventaId: ventaVigenteId, valor: banderaPromociones })} />
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}
