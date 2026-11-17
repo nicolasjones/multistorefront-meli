@@ -267,7 +267,7 @@
       "title": "Avisos por correo configurables",
       "pageHash": "8b9f9f8e5c5d7fe9b2f303c8d72de50d6f23fd128b1760348752307ee313456b",
       "sourceHash": "9f78e8a8dbacd9d31446df538515989f149e4076ff07a7ad48ace388381312af",
-      "sourceAt": null,
+      "sourceAt": "fa03ceec",
       "sources": [
         "specs/20261024-120000-avisos-y-listas-configurables",
         "infra/kestra/flows/enviar-avisos.yml",
@@ -352,14 +352,14 @@
     },
     "docs/catalogo.md": {
       "title": "Catálogo de productos",
-      "pageHash": "aad4bcb6d69e4621425a1b46419848efeed35c6977d73c460f32d822f6ecf54f",
-      "sourceHash": "fba35e49b21b9b0a4e1321d3bdcd4ca25001fb6377149132ec24e69c8c45e1db",
-      "sourceAt": "3fb2aaf1",
+      "pageHash": "4bba78c203cf3780338b6a9b4c304d8fa7d8ace4c0b0d01e7626a0131160f484",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": "b08b9e63",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "3fb2aaf1"
+      "commit": "b08b9e63"
     },
     "docs/changelog.md": {
       "title": "Changelog",
@@ -433,7 +433,7 @@
       "title": "Consultas: bandeja y aviso (MSF-122)",
       "pageHash": "2377a8d019841b6eb36c894dcaaf7c300db4ffed058e3d7adc1f2dd1bd1f5b82",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": null,
+      "sourceAt": "fa0d16ab",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -681,7 +681,7 @@
       "title": "Suite E2E de la app (Playwright)",
       "pageHash": "3247a8b26fa31de8ca2b84c404e49416ffd8899f08fdce8c5e593636de2020ad",
       "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": null,
+      "sourceAt": "09bca9e7",
       "sources": [
         "specs"
       ],
@@ -947,7 +947,7 @@
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
       "pageHash": "3da8be5b1a333d335f25f1707820501af0679a2930136623369847be77ea72ab",
       "sourceHash": "6bab7f12e871609881a1da4412ec275ce73ca072d816d07d159ee9404204f7bc",
-      "sourceAt": null,
+      "sourceAt": "2a80c3c6",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -1834,7 +1834,7 @@
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
       "pageHash": "22aa7c6632a1d3ecee278b69147909e014d2d32a0d2e9464c8aadbd78f97640e",
       "sourceHash": "0aa8c584ae40006499f03b5c0c6351bfbc43c089c90c42e587f3a66af8d060b1",
-      "sourceAt": null,
+      "sourceAt": "859901ff",
       "sources": [
         "specs/20261104-103000-precios-masivos-y-promociones",
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
@@ -3698,8 +3698,8 @@
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
-      "sourceHash": "e3cb8cc15d15c22c86f870506a1895592f93907ae7fbb7cae811a0f861fc4f14",
-      "sourceAt": null,
+      "sourceHash": "d023504a7463bb45d78064073f824c85e51c057279bdcd1e7d72d66fd02c4cfc",
+      "sourceAt": "fa03ceec",
       "sources": [
         "specs",
         "supabase/migrations",
@@ -3846,14 +3846,14 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "6e7451bdbd19de45569ed3b59ff07a98b7d718bd1e0e9ddf2756c0fb5042356a",
+      "pageHash": "d305f3282f8c2deaca77cfb421d83f18b17e295a9171aaab9fb78cea96a30fd9",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
-      "sourceAt": null,
+      "sourceAt": "b08b9e63",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "b08b9e63"
     },
     "docs/tienda-contacto.md": {
       "title": "Tienda online · Contacto con formulario (F-TDA-16, MSF-437)",
@@ -4072,15 +4072,15 @@
     },
     "docs/ventas-listado-comprobantes.md": {
       "title": "Ventas · Listado de comprobantes y exportación",
-      "pageHash": "7c4bf85e118c7a8ae8619ad3a5949751596e9d9b295249071f6fd8414f88998e",
+      "pageHash": "ce085a838ca951247b239dd207055086593d99bedd33514e2891ba8e9b8e8d37",
       "sourceHash": "6362238eab8f8e080f8d575962242cdb6a3dd11ad4746cdf7da6334960410c1c",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "b08b9e63",
       "sources": [
         "infra/kestra/flows/exportar-comprobantes.yml",
         "workers/exportar-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "b08b9e63"
     },
     "docs/ventas-listado-estados.md": {
       "title": "Ventas · Listado, estados y anulación (épica MSF-177)",
