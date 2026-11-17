@@ -2,59 +2,18 @@ import { randomUUID } from 'node:crypto'
 import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
-import { clic, escribir } from './visible'
+import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, sql, url } from './soporte/fixtures'
+import { clic } from './visible'
 
 // Soporte de los E2E del centro de importaciones (F-IMP-01 · MSF-354). Requiere el stack local
 // (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde Node (la service-role key
-// nunca llega al navegador). Los procesos de prueba nacen por las funciones de la base: el pendiente
-// por `iniciar_proceso_masivo` con la sesión del administrador; los demás estados, con la siembra.
-export const url = process.env.SUPABASE_URL
-export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
-const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de importaciones: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', extra: Record<string, string> = {}): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema, ...extra }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
+// nunca llega al navegador) sobre el fixture compartido (`soporte/fixtures.ts`). Los procesos de prueba nacen por las
+// funciones de la base: el pendiente por `iniciar_proceso_masivo` con la sesión del administrador; los demás estados,
+// con la siembra. `service_role` NO tiene grant sobre `conexiones`, `capacidades_ejecucion`, `sistemas_externos`,
+// `procesos_masivos` ni `procesos_masivos_errores` (la REST responde 42501): esas filas se siembran y se limpian con `sql()`.
+export { serviceKey, url }
+const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+const password = CONTRASENA_E2E
 
 // Sesión del administrador para llamar a las funciones de la app como lo haría la pantalla.
 async function tokenDe(correo: string): Promise<string> {
@@ -62,6 +21,7 @@ async function tokenDe(correo: string): Promise<string> {
     method: 'POST',
     headers: { apikey: anonKey ?? '', 'content-type': 'application/json' },
     body: JSON.stringify({ email: correo, password }),
+    signal: AbortSignal.timeout(30_000),
   })
   if (!r.ok) throw new Error(`login de ${correo}: ${r.status} ${await r.text()}`)
   return ((await r.json()) as { access_token: string }).access_token
@@ -78,6 +38,27 @@ export type Sembrado = {
 
 const haceSegundos = (segundos: number) => new Date(Date.now() - segundos * 1000).toISOString()
 
+/** Fila de `public.sistemas_externos` (referencia de las conexiones) sin pisar la que ya exista. Solo siembra. */
+export async function sistemaExterno(id: string, descripcion: string) {
+  await sql('insert into public.sistemas_externos (id, descripcion) values ($1, $2) on conflict (id) do nothing', [id, descripcion])
+}
+
+/** Conexión de la organización con un sistema externo (sin grant para `service_role`). Devuelve su id. */
+export async function conexionDe(orgId: string, sistema: string): Promise<string> {
+  const [conexion] = await sql<{ id: string }>('insert into public.conexiones (organizacion_id, sistema_externo, credencial_vault_id) values ($1, $2, $3) returning id', [orgId, sistema, randomUUID()])
+  return conexion.id
+}
+
+/** Proceso masivo sembrado como lo deja el «worker» (sin grant para `service_role`): inserta las columnas dadas y devuelve su id. */
+async function insertarProceso(campos: Record<string, unknown>): Promise<{ id: string }> {
+  const columnas = Object.keys(campos)
+  const [fila] = await sql<{ id: string }>(
+    `insert into public.procesos_masivos (${columnas.join(', ')}) values (${columnas.map((_, i) => `$${i + 1}`).join(', ')}) returning id`,
+    Object.values(campos),
+  )
+  return fila
+}
+
 export async function sembrar(sufijo: string): Promise<Sembrado> {
   const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E importaciones ${sufijo}` })
   const [empresaA, empresaB] = (
@@ -91,19 +72,13 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     )
   ).map((e) => ({ id: e.id, nombre: e.nombre }))
   const correo = `admin-imp-${sufijo}@example.com`
-  const idAdmin = await altaUsuario(correo)
+  const idAdmin = await altaUsuario(correo, password)
   await rest('usuarios_organizacion', [{ user_id: idAdmin, organizacion_id: org.id, rol_id: 'administrador' }])
 
   // Conexión y capacidad del ciclo de ejecuciones, para que `iniciar_proceso_masivo` tenga dónde colgar.
-  await rest('sistemas_externos', { id: 'procesos-prueba', descripcion: 'Sistema de prueba de procesos masivos' }, 'public', {
-    prefer: 'resolution=ignore-duplicates,return=minimal',
-  }).catch(() => undefined)
-  const [conexion] = await rest<{ id: string }>('conexiones', {
-    organizacion_id: org.id,
-    sistema_externo: 'procesos-prueba',
-    credencial_vault_id: randomUUID(),
-  })
-  await rest('capacidades_ejecucion', { organizacion_id: org.id, conexion_id: conexion.id, clave: 'importar-prueba', tiempo_max_seg: 3600 })
+  await sistemaExterno('procesos-prueba', 'Sistema de prueba de procesos masivos')
+  const conexionId = await conexionDe(org.id, 'procesos-prueba')
+  await sql('insert into public.capacidades_ejecucion (organizacion_id, conexion_id, clave, tiempo_max_seg) values ($1, $2, $3, $4)', [org.id, conexionId, 'importar-prueba', 3600])
 
   const nombres = {
     pendiente: `Carga pendiente ${sufijo}`,
@@ -115,9 +90,10 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   const token = await tokenDe(correo)
   const r = await fetch(`${url}/rest/v1/rpc/iniciar_proceso_masivo`, {
     method: 'POST',
+    signal: AbortSignal.timeout(30_000),
     headers: { apikey: anonKey ?? '', authorization: `Bearer ${token}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      p_conexion_id: conexion.id,
+      p_conexion_id: conexionId,
       p_capacidad: 'importar-prueba',
       p_tipo: 'importacion',
       p_funcionalidad: 'catalogo',
@@ -128,7 +104,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
   if (!r.ok) throw new Error(`RPC iniciar_proceso_masivo: ${r.status} ${await r.text()}`)
 
   // En curso (con avance) en la tienda B y terminado con errores sin empresa: los deja el «worker».
-  await rest('procesos_masivos', {
+  await insertarProceso({
     organizacion_id: org.id,
     empresa_id: empresaB.id,
     tipo: 'exportacion',
@@ -141,7 +117,7 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     creado_en: haceSegundos(120),
     iniciado_en: haceSegundos(110),
   })
-  const [conErrores] = await rest<{ id: string }>('procesos_masivos', {
+  const conErrores = await insertarProceso({
     organizacion_id: org.id,
     empresa_id: null,
     tipo: 'importacion',
@@ -156,27 +132,38 @@ export async function sembrar(sufijo: string): Promise<Sembrado> {
     iniciado_en: haceSegundos(290),
     finalizado_en: haceSegundos(200),
   })
-  await rest('procesos_masivos_errores', [
-    { proceso_id: conErrores.id, organizacion_id: org.id, fila: 3, referencia: 'MLA-100', motivo_sanitizado: 'Precio inválido' },
-    { proceso_id: conErrores.id, organizacion_id: org.id, fila: 7, referencia: 'MLA-200', motivo_sanitizado: 'Falta el título' },
-  ])
+  await sql(
+    `insert into public.procesos_masivos_errores (proceso_id, organizacion_id, fila, referencia, motivo_sanitizado)
+     values ($1, $2, 3, 'MLA-100', 'Precio inválido'), ($1, $2, 7, 'MLA-200', 'Falta el título')`,
+    [conErrores.id, org.id],
+  )
 
   return { orgId: org.id, correo, empresaA, empresaB, nombres, idsUsuario: [idAdmin] }
 }
 
+// Limpieza por `sql()` de lo que `service_role` no puede borrar por la REST (sin grant: daría 42501). Si falla avisa y sigue.
+async function limpiarTabla(tabla: string, orgId: string) {
+  await sql(`delete from public.${tabla} where organizacion_id = $1`, [orgId]).catch((e) => console.warn(`limpieza E2E: ${tabla} → ${(e as Error).message}`))
+}
+
 export async function limpiar(datos: Sembrado) {
   await borrar(`usuario_empresa_activa?user_id=in.(${datos.idsUsuario.join(',')})`)
-  await borrar(`procesos_masivos?organizacion_id=eq.${datos.orgId}`)
+  await limpiarTabla('procesos_masivos', datos.orgId)
+  await limpiarTabla('capacidades_ejecucion', datos.orgId)
+  await limpiarTabla('conexiones', datos.orgId)
   await borrar(`usuarios_organizacion?organizacion_id=eq.${datos.orgId}`)
   await borrar(`empresas?organizacion_id=eq.${datos.orgId}`, 'dominio')
   await borrar(`organizaciones?id=eq.${datos.orgId}`)
   for (const id of datos.idsUsuario) await borrarUsuario(id)
 }
 
+// Ingreso por el formulario. Los campos se llenan con `fill` y no se tipean con el recorrido visible: en modo visible cada
+// tecla cuesta el `delay` de 90 ms más el `slowMo` de 350 ms del proyecto, y un correo y una clave de ~45 caracteres
+// suman ~30 s por ingreso (`exportacion-total` ingresa tres veces); el clic en «Ingresar» sí mueve el cursor.
 export async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
-  await escribir(page, page.getByLabel('Correo'), correo)
-  await escribir(page, page.getByLabel('Contraseña'), password)
+  await page.getByLabel('Correo').fill(correo)
+  await page.getByLabel('Contraseña').fill(password)
   await clic(page, page.getByRole('button', { name: 'Ingresar' }))
   await expect(page).not.toHaveURL(/\/login/)
 }

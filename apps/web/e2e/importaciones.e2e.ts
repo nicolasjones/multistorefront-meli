@@ -9,6 +9,9 @@ import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY el archivo se omite (no entra al CI público). Ver docs/e2e-app.md.
 test.describe('Centro de importaciones y exportaciones (MSF-354)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Sin tope por acción, un elemento que no aparece (clic, `boundingBox`, `fill`) deja el test colgado hasta su timeout de 5 min y
+  // oculta el fallo real; con tope falla en 30 s señalando la acción.
+  test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-354:T014] ver avance y errores, cancelar un proceso y cambiar de empresa, sin violaciones de accesibilidad', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)

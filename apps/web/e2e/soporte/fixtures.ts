@@ -87,12 +87,15 @@ export async function borrar(ruta: string, esquema = 'public') {
 /** Contraseña con la que los specs dan de alta a sus personas de prueba. */
 export const CONTRASENA_E2E = 'Correcta-12345!'
 
-/** Alta de una persona por la API admin de Auth (correo confirmado). Devuelve su id. */
-export async function altaUsuario(correo: string, password = CONTRASENA_E2E): Promise<string> {
+/**
+ * Alta de una persona por la API admin de Auth (correo confirmado). Devuelve su id. Con `password = null` la persona nace SIN
+ * contraseña (la invitación pendiente de definirla).
+ */
+export async function altaUsuario(correo: string, password: string | null = CONTRASENA_E2E): Promise<string> {
   const r = await fetch(`${url}/auth/v1/admin/users`, {
     method: 'POST',
     headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
+    body: JSON.stringify({ email: correo, email_confirm: true, ...(password === null ? {} : { password }) }),
   })
   if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
   return ((await r.json()) as { id: string }).id
@@ -220,7 +223,9 @@ function cargarPg(): { Client: new (config: Record<string, unknown>) => ClienteP
 export async function sql<T = Record<string, unknown>>(consulta: string, valores: unknown[] = []): Promise<T[]> {
   const destino = validarDestinoSql(process.env)
   const { Client } = cargarPg()
-  const cliente = new Client(destino)
+  // Con tope de conexión y de consulta: sin él, un Postgres que no responde (puente caído, bloqueo) deja el test colgado hasta
+  // su timeout de 5 min en vez de fallar con un mensaje.
+  const cliente = new Client({ ...destino, connectionTimeoutMillis: 20_000, query_timeout: 60_000, statement_timeout: 60_000 })
   try {
     await cliente.connect()
     return (await cliente.query(consulta, valores)).rows as T[]

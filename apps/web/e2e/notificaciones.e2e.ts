@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
 import { ingresar, serviceKey, url, violacionesAxe } from './importaciones-soporte'
 import { clic, paso, prepararPaginaVisible } from './visible'
-import { altaUsuario, cabeceras, rest } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, rest, sql } from './soporte/fixtures'
 
 // F-NOT-02 (MSF-378 · T010 · SC-002): la campanita muestra el punto y la lista de avisos propios, un aviso
 // abierto queda leído, «Marcar todas» apaga el punto y otra persona no ve avisos ajenos. Siembra con la
@@ -10,6 +10,9 @@ import { altaUsuario, cabeceras, rest } from './soporte/fixtures'
 
 test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Sin tope por acción, un elemento que no aparece (clic, `boundingBox`, `fill`) deja el test colgado hasta su timeout de 5 min y
+  // oculta el fallo real; con tope falla en 30 s señalando la acción.
+  test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-378:T010] punto, lista, abrir un aviso, marcar todas y aislamiento entre personas', async ({ browser }, testInfo) => {
     test.setTimeout(180_000)
@@ -26,14 +29,13 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: orgId, rol_id: 'administrador' })
       }
-      await rest('avisos_pendientes', ['Ana', 'Beto', 'Cami'].map((nombre, i) => ({
-        organizacion_id: orgId,
-        user_id: usuarios[0],
-        tipo_aviso: 'consulta_nueva',
-        grupo_id: randomUUID(),
-        datos: { Nombre: `${nombre} ${sufijo}`, Producto: 'Remera' },
-        creado_en: new Date(Date.now() - (i + 1) * 60_000).toISOString(),
-      })))
+      // `service_role` no tiene grant sobre `public.avisos_pendientes` (la REST daría 42501): se siembra por `sql()`.
+      for (const [i, nombre] of ['Ana', 'Beto', 'Cami'].entries()) {
+        await sql(
+          'insert into public.avisos_pendientes (organizacion_id, user_id, tipo_aviso, grupo_id, datos, creado_en) values ($1, $2, $3, $4, $5::jsonb, $6)',
+          [orgId, usuarios[0], 'consulta_nueva', randomUUID(), JSON.stringify({ Nombre: `${nombre} ${sufijo}`, Producto: 'Remera' }), new Date(Date.now() - (i + 1) * 60_000).toISOString()],
+        )
+      }
 
       const { page } = sesion
       await prepararPaginaVisible(page)
@@ -82,11 +84,11 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
       await cerrarContextoGrabado(sesion.contexto, sesion.page, testInfo)
       await cerrarContextoGrabado(sesionOtra.contexto, sesionOtra.page, testInfo)
       if (orgId) {
-        await fetch(`${url}/rest/v1/avisos_pendientes?organizacion_id=eq.${orgId}`, { method: 'DELETE', headers: cabeceras() })
-        await fetch(`${url}/rest/v1/usuarios_organizacion?organizacion_id=eq.${orgId}`, { method: 'DELETE', headers: cabeceras() })
-        await fetch(`${url}/rest/v1/organizaciones?id=eq.${orgId}`, { method: 'DELETE', headers: cabeceras() })
+        await sql('delete from public.avisos_pendientes where organizacion_id = $1', [orgId]).catch((e) => console.warn(`limpieza E2E: avisos_pendientes → ${(e as Error).message}`))
+        await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)
+        await borrar(`organizaciones?id=eq.${orgId}`)
       }
-      for (const id of usuarios) await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
+      for (const id of usuarios) await borrarUsuario(id)
     }
   })
 })
