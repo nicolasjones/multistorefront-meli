@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "a66ac01eae57e186356a4928784b0865564c17c8b9121c65baf8352f3c160891",
+      "pageHash": "9fec8ac2c9daed4280145e3f4a16267105fb7ace67eacff61296b21cfa9a01fc",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "92b340d7"
+      "commit": "dd8bb20e"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -613,14 +613,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "e3d682a5269ff8f84e2b3ac0a9e10ecb5bad023f5ce6deb38a79ea1dcbec9c83",
-      "sourceHash": "ba293492c6403710be3f207694a5d331fd9fbb431727bb239fa9ae72cf5e4ee8",
-      "sourceAt": "9cde8838",
+      "pageHash": "c41d5bcab8d8963d8329561446826e8298561a9f841bba8d763db270e1cf1331",
+      "sourceHash": "e162c5a255fe4e5e2d4b3bf1b85965ae728ae86ea6278c8e607edadb24d43b9e",
+      "sourceAt": "dd8bb20e",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "9cde8838"
+      "commit": "dd8bb20e"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -2286,16 +2286,16 @@
     },
     "docs/solicitar-acceso.md": {
       "title": "Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)",
-      "pageHash": "b931a63f3bf3cfffb5e9c1aa2196d91f03eab63709f9cd247462e99ec5efa9c7",
-      "sourceHash": "bbf8d894a77a24b869a1c50c7ccf880b9367a3d5afd03c419abda043beaad5fb",
-      "sourceAt": "598696d9",
+      "pageHash": "fd7a6d4cb8883c9813e8499bb3a58542063eff7cacf60393b17527ca5a00780d",
+      "sourceHash": "7d217b61680e4fcac4d27c012b026b27e28ab1f9456417605646a44c2a81f705",
+      "sourceAt": "043be599",
       "sources": [
         "specs",
         "apps/web/src/pages/acceso-restringido",
         "apps/web/src/lib/solicitarAcceso.ts"
       ],
       "owner": "producto",
-      "commit": "598696d9"
+      "commit": "043be599"
     },
     "docs/stock-avisos-reposicion.md": {
       "title": "Stock · Avisos de reposición (F-STK-09)",
@@ -3086,15 +3086,15 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "38e77181ed6bb21cba2341d1a0a69bfcf0c21cf191dd1a6afad1ce913c5b770d",
-      "sourceHash": "325505ad1bc149aa98ac81388d94577484478119b9f41bfb5a52c324bc3228c9",
-      "sourceAt": "c7860a7c",
+      "pageHash": "7990cda045ff52bf9d41ba703a2f737d5616f5c3ed8d4af8fef1884e0cd26464",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b9906ecb",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "c7860a7c"
+      "commit": "b9906ecb"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -3114,9 +3114,9 @@
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
-      "pageHash": "ee0709f567e5e672514c27dc582c216229fbfd9e9894c39809c7317d0f2906d3",
-      "sourceHash": "e20b871a7a6b564bf861123e784c232764cd20cb59307371d907c4be40b65b56",
-      "sourceAt": "5369c1e0",
+      "pageHash": "04635187db40c0be3cf9ed6fc9993926d4077649cdec2f0c7a5e08bf92462381",
+      "sourceHash": "1a8e5f45fcb7d7920b20e5850f6558ec3e04390fba33b11d9fa1d577af5e79b0",
+      "sourceAt": "b9906ecb",
       "sources": [
         "specs",
         "apps/web/src/pages/cuenta",
@@ -3126,7 +3126,7 @@
         "supabase/functions"
       ],
       "owner": "tecnico",
-      "commit": "5369c1e0"
+      "commit": "b9906ecb"
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
@@ -3232,75 +3232,75 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "e8e2284bc68329f4ccba9193b10140ab03e8608051c7d794b41de2f90b78b463",
-      "sourceHash": "a15684a2b4517e39d17249315d8371240b5e25235a9f82029f87f66983571c5a",
-      "sourceAt": "d3335884",
+      "pageHash": "5f73e9748a2763ec9f559c35f9615eb6a1dbf3346c117eae37133aea4c73ff4e",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "b6b88404"
     },
     "docs/tecnico/runbooks/cola-eventos.md": {
       "title": "Cola de eventos trabada",
-      "pageHash": "d7b620c0b55fc064a73912dd6ac6cf45008bdf8c9aadb284cb3918c15f8c2520",
-      "sourceHash": "a15684a2b4517e39d17249315d8371240b5e25235a9f82029f87f66983571c5a",
-      "sourceAt": "d3335884",
+      "pageHash": "1ca3587df17865c2b4833895a5c61837619e8e55d396d35912abc428ee17b58b",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "b6b88404"
     },
     "docs/tecnico/runbooks/db-restore.md": {
       "title": "Restaurar base de datos",
-      "pageHash": "010c047a4325f16c39ed7513731793b134c56ede6ca79740cb91fafbe3d3d60f",
-      "sourceHash": "c5b5f1bb194ddba10a4577c52e6938d5f80213dca434f3306d1998d3afca7e81",
-      "sourceAt": "d0781294",
+      "pageHash": "43b6cfc2702b55629357dd49e45c31c906497605834d96694f63831a0e68db1c",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d0781294"
+      "commit": "b6b88404"
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "aa2deec7a14eb6fc8d8805c34c1639009bd5943fef5259f106fb26d882980b30",
-      "sourceHash": "a15684a2b4517e39d17249315d8371240b5e25235a9f82029f87f66983571c5a",
-      "sourceAt": "d3335884",
+      "pageHash": "b983d2e19a6afd7018892ae19a3bdca2af79b9b576efbfbf7c6c0608121d4082",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "b6b88404"
     },
     "docs/tecnico/runbooks/supabase-caido.md": {
       "title": "Supabase caído",
-      "pageHash": "19a9dbd5382cdb062f448d6ec8604e4d8adcc1972b8f1c4ec7624f371e2260f8",
-      "sourceHash": "a15684a2b4517e39d17249315d8371240b5e25235a9f82029f87f66983571c5a",
-      "sourceAt": "d3335884",
+      "pageHash": "f6d329070dbb9ef84f064adf58e6f5530c5a7c1826d18d2feea036b80973e2a4",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "b6b88404"
     },
     "docs/tecnico/sandbox.md": {
       "title": "Sandbox de onboarding",
-      "pageHash": "1372dd80a9b69fc31f0fd977ddbf2fe24d36469603ce91fa4743908af75ce4c4",
-      "sourceHash": "a15684a2b4517e39d17249315d8371240b5e25235a9f82029f87f66983571c5a",
-      "sourceAt": "d3335884",
+      "pageHash": "aa80b57aef13989ddcee28fc70098c9e3b5be1439e9af0bed3dfdff0636e142f",
+      "sourceHash": "4ad8b4fa39a423c6825b6a90ddefde686a3c7765f605d08f689af1183136e9df",
+      "sourceAt": "b6b88404",
       "sources": [
         ".github/workflows",
         "infra"
       ],
       "owner": "operacion",
-      "commit": "d3335884"
+      "commit": "b6b88404"
     },
     "docs/tecnico/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
@@ -4114,6 +4114,19 @@
       ],
       "owner": "tecnico",
       "commit": "c7860a7c"
+    },
+    "docs/verificacion-salida-correo.md": {
+      "title": "Verificación de salida del correo (MSF-532)",
+      "pageHash": "29fd52b1bbe89f0db321d000e3d52f1ebb3379800daadea957e56c7f76516dc7",
+      "sourceHash": "dc6ba941bf8629e2423432aa9115ae06c74adb80f724900bbc2d5fc9f5e7e55a",
+      "sourceAt": "dd8bb20e",
+      "sources": [
+        "specs/20261016-130000-perfil-y-permisos-avanzados",
+        "scripts/verificar-salida-correo.mjs",
+        "supabase/functions/solicitar-acceso"
+      ],
+      "owner": "tecnico",
+      "commit": "dd8bb20e"
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",

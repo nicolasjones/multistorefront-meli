@@ -70,6 +70,19 @@ Secretos por entorno (nunca en Git; plantillas en `supabase/functions/.env.examp
 
 El flow `infra/kestra/flows/avisos-faltantes.yml` se publica con el workflow de publicación de flows (staging por push, producción por `workflow_dispatch`, ver *Publicación de flows de Kestra*). Si un entorno no tiene el secreto o el flow, los avisos quedan «En cola» sin salir. Verificación posterior: avisar un faltante de prueba y comprobar que pasa a «Avisado» y que llega un solo correo con las tildes y el «·» bien. Si se toca `_shared/correo.ts` o `_shared/smtp.ts`, correr antes `smtp-real.deno.ts` (ver `docs/ventas-faltantes-avisos.md`).
 
+### Relay SMTP del servidor (MSF-532)
+
+El correo de negocio sale por el SMTP de Supabase Auth (`GOTRUE_SMTP_*`) y el de las Edge Functions
+(`SMTP_*`): sin relay configurado en el VPS **no sale correo**. Para que el mensaje llegue a una casilla
+externa hacen falta además los registros DNS **SPF** y **DKIM** del remitente (entregabilidad, no sólo
+salida).
+
+Estado al 2026-11-14: **pendiente** en stg y prd (el repo no registra un relay configurado y no hay
+entrega verificada).
+Dueño: infraestructura/Nicolás. La corrida de verificación y su registro están en
+[Verificación de salida del correo](verificacion-salida-correo.md) y quedan trazados como **MSF-532**
+(Tarea `seguimiento` a crear en el tracker).
+
 ## Producción
 
 - `apps/web`: app web (Refine) en Dokploy (VPS2), detrás de Traefik. La imagen sirve
