@@ -1,4 +1,4 @@
-import { mensajeDeErrorComprobante } from './ventas'
+import { MENSAJE_DATO_INVALIDO_COMPROBANTE, mensajeDeErrorComprobante } from './ventas'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -246,6 +246,22 @@ describe('ventasLineas · línea que la lista lleva a cero', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const mensaje = 'El producto «Tornillo» (línea 2) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)'
     expect(mensajeDeErrorComprobante({ code: '22023', message: mensaje, hint: 'producto_id' }, 'No pudimos guardar las líneas del comprobante.')).toBe(mensaje)
+    spy.mockRestore()
+  })
+
+  it('un 22023 sin campo muestra un texto fijo y no el mensaje crudo del servidor', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const texto = mensajeDeErrorComprobante({ code: '22023', message: 'violates constraint "x_fk" on table "comprobantes"' }, 'No pudimos guardar.')
+    expect(texto).toBe(MENSAJE_DATO_INVALIDO_COMPROBANTE)
+    expect(texto).not.toContain('constraint')
+    spy.mockRestore()
+  })
+
+  it('solo registra el código del error, no el objeto completo del servidor', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    mensajeDeErrorComprobante({ code: '22023', message: 'detalle interno', details: 'fila 3', hint: 'secreto' }, 'No pudimos guardar.')
+    expect(spy).toHaveBeenCalledWith('No pudimos guardar.', '22023')
+    expect(JSON.stringify(spy.mock.calls)).not.toContain('detalle interno')
     spy.mockRestore()
   })
 })

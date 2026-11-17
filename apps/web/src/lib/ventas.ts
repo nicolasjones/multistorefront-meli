@@ -159,15 +159,20 @@ export function errorDeCampo(error: unknown): { campo: CampoComprobante; mensaje
   return campo ? { campo, mensaje: e.message } : null
 }
 
+// Texto fijo para una validación de la base sin campo asociado: el `message` crudo del servidor no se muestra.
+export const MENSAJE_DATO_INVALIDO_COMPROBANTE = 'Hay un dato del comprobante que no es válido. Revisá lo cargado y probá de nuevo.'
+
 export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): string {
-  console.error(porDefecto, error)
   const e = error as ErrorDeBase
+  // Se registra solo el código: el objeto de error completo trae mensaje, detalle y pista del servidor.
+  console.error(porDefecto, e?.code ?? 'sin código')
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '40001') return MENSAJE_CONFLICTO_COMPROBANTE
   if (e?.code === '55000') return MENSAJE_CERRADO
   if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
-  // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
-  if (e?.code === '22023' && e.message) return e.message
+  // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario, en castellano y sin
+  // nombrar tablas ni columnas (el mismo que `errorDeCampo`). Cualquier otro 22023 muestra un texto fijo.
+  if (e?.code === '22023') return e.message && CAMPOS.some((campo) => campo === e.hint) ? e.message : MENSAJE_DATO_INVALIDO_COMPROBANTE
   return porDefecto
 }
 
