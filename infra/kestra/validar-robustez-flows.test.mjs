@@ -206,12 +206,12 @@ test('los contenedores de larga vida usan init: true (MSF-736)', () => {
 
 test('todo flow que despacha un worker rechaza tags mutables antes del pull (MSF-712)', () => {
   const patron = /grep -Eq '(\^local\/\|@sha256:\[0-9a-f\]\{64\}\$\|:\[0-9a-f\]\{40\}\$)'/;
-  const conDocker = flows.filter((f) => f.texto.includes('docker image inspect'));
+  const conDocker = flows.filter((f) => f.texto.includes('- docker image inspect'));
   assert.ok(conDocker.length >= 7);
   for (const f of conDocker) {
     const guarda = f.texto.match(patron);
     assert.ok(guarda, `${f.id}: falta la guarda de imagen inmutable`);
-    assert.ok(f.texto.indexOf(guarda[0]) < f.texto.indexOf('docker image inspect'), `${f.id}: la guarda va antes del pull`);
+    assert.ok(f.texto.indexOf(guarda[0]) < f.texto.indexOf('- docker image inspect'), `${f.id}: la guarda va antes del pull`);
   }
   const ok = (imagen) => {
     try {
