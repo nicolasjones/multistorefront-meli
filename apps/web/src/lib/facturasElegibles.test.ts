@@ -32,7 +32,7 @@ describe('listarFacturasElegibles', () => {
 
   it('termina cuando el listado se agota o el tope de páginas se alcanza', async () => {
     listar.mockResolvedValue({ comprobantes: [fila(1, 'anulada')], total: 1 })
-    expect(await listarFacturasElegibles(filtros, buenas)).toEqual({ facturas: [], truncado: false })
+    expect(await listarFacturasElegibles(filtros, buenas)).toEqual({ facturas: [], truncado: false, cancelado: false })
     expect(listar).toHaveBeenCalledTimes(1)
     listar.mockReset()
     listar.mockResolvedValue({ comprobantes: Array.from({ length: 50 }, (_, i) => fila(i, 'anulada')), total: 100000 })
@@ -43,7 +43,7 @@ describe('listarFacturasElegibles', () => {
 
   it('una página vacía corta el bucle aunque el total diga que quedan filas', async () => {
     listar.mockResolvedValue({ comprobantes: [], total: 100000 })
-    expect(await listarFacturasElegibles(filtros, buenas)).toEqual({ facturas: [], truncado: false })
+    expect(await listarFacturasElegibles(filtros, buenas)).toEqual({ facturas: [], truncado: false, cancelado: false })
     expect(listar).toHaveBeenCalledTimes(1)
   })
 
@@ -53,8 +53,9 @@ describe('listarFacturasElegibles', () => {
       cancelar = true
       return { comprobantes: [fila(1, 'anulada')], total: 100000 }
     })
-    await listarFacturasElegibles(filtros, buenas, 20, () => cancelar)
+    const r = await listarFacturasElegibles(filtros, buenas, 20, () => cancelar)
     expect(listar).toHaveBeenCalledTimes(1)
+    expect(r).toEqual({ facturas: [], truncado: false, cancelado: true })
   })
 
   it('propaga el error de una página del bucle', async () => {

@@ -278,6 +278,22 @@ describe('DevolucionesList (F-VTA-28, FR-003…FR-008)', () => {
     expect(await within(dialogo).findByText('Hay más resultados: refiná la búsqueda.')).toBeInTheDocument()
   })
 
+  it('el aviso de más resultados no queda pegado al empezar una búsqueda nueva', async () => {
+    const anuladas = Array.from({ length: 50 }, (_, i) => ({
+      id: `a-${i}`, numero: `A-${i}`, tipo: 'factura', empresa_id: 'e-1', empresa: 'San Javucho', fecha: '2026-10-07', cliente: 'X', operador: 'E', estado: 'anulada', forma_pago: null, envio: null, total: 1,
+    }))
+    mocks.listarComprobantes.mockResolvedValue({ comprobantes: anuladas, total: 100000 })
+    abrir()
+    await screen.findByText('Cliente 1')
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva devolución' }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Nueva devolución' })
+    expect(await within(dialogo).findByText('Hay más resultados: refiná la búsqueda.')).toBeInTheDocument()
+    // La búsqueda siguiente queda en vuelo: mientras tanto el aviso de la anterior no debe verse.
+    mocks.listarComprobantes.mockReturnValue(new Promise(() => undefined))
+    fireEvent.change(within(dialogo).getByRole('combobox', { name: /Comprobante/ }), { target: { value: 'kiosco' } })
+    await waitFor(() => expect(within(dialogo).queryByText('Hay más resultados: refiná la búsqueda.')).not.toBeInTheDocument())
+  })
+
   it('valida antes de enviar: sin comprobante, ítem ni motivo no llama a la base', async () => {
     abrir()
     await screen.findByText('Cliente 1')

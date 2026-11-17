@@ -79,6 +79,7 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
     let vigente = true
     setCargandoOpciones(true)
     setErrorOpciones(false)
+    setOpcionesTruncadas(false)
     const espera = setTimeout(() => {
       void (async () => {
         try {
@@ -88,7 +89,7 @@ function Contenido({ empresaId, onCerrar, onRegistrada }: Omit<Props, 'open'>) {
             20,
             () => !vigente,
           )
-          if (!vigente) return
+          if (!vigente || elegibles.cancelado) return
           setOpciones(elegibles.facturas.map((c) => ({ id: c.id, numero: c.numero, cliente: c.cliente, empresa: c.empresa })))
           setOpcionesTruncadas(elegibles.truncado)
         } catch (falla) {
