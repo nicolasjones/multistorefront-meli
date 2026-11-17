@@ -7,16 +7,5 @@ services:
     networks: !reset
       default: {}
 
-# MSF-705: credenciales OBLIGATORIAS en el VPS. El Compose base trae valores por defecto (`change-me-local`, `*-local`)
-# solo para el arranque local documentado; en un ambiente real, si falta la variable, `docker compose config` falla y el
-# despliegue se corta en vez de arrancar Superset con una credencial conocida. Los valores van en `.env.staging`/`.env.production`
-# (secret VPS_DEPLOY_ENV). Este bloque no llega al contenedor: es una extensión de Compose que solo se interpola.
-x-variables-obligatorias:
-  superset_db_password: ${SUPERSET_DB_PASSWORD:?Definí SUPERSET_DB_PASSWORD en el .env del ambiente (contraseña de la base de Superset)}
-  superset_secret_key: ${SUPERSET_SECRET_KEY:?Definí SUPERSET_SECRET_KEY en el .env del ambiente (clave de sesión de Superset, 42 caracteres o más)}
-  superset_admin_password: ${SUPERSET_ADMIN_PASSWORD:?Definí SUPERSET_ADMIN_PASSWORD en el .env del ambiente (contraseña del administrador de Superset)}
-  superset_guest_token_jwt_secret: ${SUPERSET_GUEST_TOKEN_JWT_SECRET:?Definí SUPERSET_GUEST_TOKEN_JWT_SECRET en el .env del ambiente (secreto que firma los guest tokens)}
-  superset_guest_token_password: ${SUPERSET_GUEST_TOKEN_PASSWORD:?Definí SUPERSET_GUEST_TOKEN_PASSWORD en el .env del ambiente (contraseña de la cuenta de servicio de guest tokens)}
-
 # The VPS reverse proxy joins this project's default network and forwards HTTPS
 # traffic to superset:8088. Use a distinct .env.staging or .env.production file.

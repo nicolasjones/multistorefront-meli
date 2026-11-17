@@ -37,9 +37,26 @@ export function lineasValidas(contenido, host) {
   return validas;
 }
 
-export async function preparar({ host, entorno, secreto, sshDir, raiz = process.cwd() }) {
+// Modo transicional (MSF-706): staging y producción son SIEMPRE estrictos; en `dev` la falta de clave fijada advierte y se usa
+// `StrictHostKeyChecking=accept-new` (confía en la primera clave y falla si luego cambia) hasta que VPS_ESTRICTO=1.
+export function esEstricto(entorno, env = process.env) {
+  return entorno !== 'dev' || env.VPS_ESTRICTO === '1';
+}
+
+async function sinClaveFijada({ host, sshDir, entorno }) {
+  await mkdir(sshDir, { recursive: true, mode: 0o700 });
+  const known = path.join(sshDir, 'known_hosts_vps');
+  await writeFile(known, '', { mode: 0o600 });
+  const config = path.join(sshDir, 'config');
+  let previo = '';
+  try { previo = await readFile(config, 'utf8'); } catch { /* sin config previa */ }
+  await writeFile(config, `${previo}# vps-deploy (MSF-706)\nHost ${host}\n  StrictHostKeyChecking accept-new\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n# fin vps-deploy\n`, { mode: 0o600 });
+  return { origen: `ninguna (modo transicional ${entorno})`, lineas: 0, known, config, advertencia: `No hay clave de host fijada para ${entorno}: se usa StrictHostKeyChecking=accept-new (modo transicional). Cargá el secret VPS_SSH_KNOWN_HOSTS o infra/vps/known_hosts.${entorno} y activá VPS_ESTRICTO=1 (docs/deployment.md, «Pasar dev a modo estricto»).` };
+}
+
+export async function preparar({ host, entorno, secreto, sshDir, raiz = process.cwd(), estricto = esEstricto(entorno) }) {
   if (!host) throw new Error('Falta --host (VPS_SSH_HOST).');
-  if (!['staging', 'production'].includes(entorno)) throw new Error('Uso: --entorno staging|production');
+  if (!['dev', 'staging', 'production'].includes(entorno)) throw new Error('Uso: --entorno dev|staging|production');
   let contenido = secreto?.trim() ? secreto : '';
   let origen = 'el secret VPS_SSH_KNOWN_HOSTS';
   if (!contenido) {
@@ -48,6 +65,7 @@ export async function preparar({ host, entorno, secreto, sshDir, raiz = process.
       contenido = await readFile(archivo, 'utf8');
       origen = `infra/vps/known_hosts.${entorno}`;
     } catch {
+      if (!estricto) return await sinClaveFijada({ host, sshDir, entorno });
       throw new Error(`No hay clave de host fijada para ${entorno}: definí el secret VPS_SSH_KNOWN_HOSTS del Environment o versioná infra/vps/known_hosts.${entorno}. No se usa ssh-keyscan (confiaría a ciegas en la red). Ver docs/deployment.md, «Clave de host del VPS».`);
     }
   }
@@ -72,7 +90,8 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   const arg = (n) => { const i = process.argv.indexOf(n); return i === -1 ? undefined : process.argv[i + 1]; };
   try {
     const r = await preparar({ host: arg('--host'), entorno: arg('--entorno'), secreto: process.env.VPS_SSH_KNOWN_HOSTS, sshDir: arg('--ssh-dir') ?? path.join(os.homedir(), '.ssh') });
-    console.log(`Clave de host del VPS fijada desde ${r.origen} (${r.lineas} línea(s)); StrictHostKeyChecking=yes.`);
+    if (r.advertencia) console.warn(`::warning::${r.advertencia}`);
+    else console.log(`Clave de host del VPS fijada desde ${r.origen} (${r.lineas} línea(s)); StrictHostKeyChecking=yes.`);
   } catch (error) {
     console.error(`::error::${error.message}`);
     process.exit(1);

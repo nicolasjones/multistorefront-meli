@@ -586,19 +586,33 @@ El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKey
 3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
    deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
 
-### Credenciales obligatorias e imágenes de workers inmutables en el VPS (MSF-705, MSF-712)
+### Credenciales obligatorias, imágenes inmutables y clave de host: modo transicional (MSF-705, MSF-706, MSF-712)
 
-`infra/<producto>/compose.vps.yaml` exige las credenciales de Kestra, Superset y Nango (`x-variables-obligatorias`, `${VAR:?}`): si falta una,
-`docker compose config` falla y el despliegue se corta **antes** de arrancar con un valor por defecto conocido. El arranque local
-documentado (`pnpm dev:kestra`, `dev:superset`, `dev:nango` con `compose.yaml` y sus defaults `change-me-local`) **no cambia**: los defaults
-siguen solo en el Compose base. El preflight de `scripts/deploy-vps.mjs` (`scripts/preflight-deploy-vps.mjs`) las reclama antes de tocar
-Docker y nombra cada variable faltante. Las 5 `*_IMAGEN` de los workers (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
-`EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser **referencias inmutables**
-(`imagen@sha256:<64 hex>` o tag igual al SHA del commit): un tag mutable (`:latest`) nunca se actualiza en el servidor porque el despacho hace
-`docker image inspect || docker pull`. Tres controles: (1) `worker-images.yml` lee el digest tras publicar, verifica que `:latest` y `:SHA`
-coincidan y deja las referencias `imagen@sha256:…` en el resumen del job para pegarlas en el `.env` del ambiente; (2) el preflight rechaza
-valores con `:latest`, sin tag o con tag no inmutable; (3) cada flow de despacho rechaza una imagen mutable antes del `docker pull`
-(excepto `local/*`, construidas en la misma máquina, para desarrollo).
+Tres controles hacen que el despliegue **falle cerrado** si faltan valores que solo se cargan a mano:
+
+1. **Credenciales (MSF-705).** `infra/<producto>/compose.estricto.yaml` exige las 14 credenciales de Kestra, Superset y Nango (`${VAR:?}`).
+2. **Imágenes de workers inmutables (MSF-712).** Las 5 `*_IMAGEN` (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
+   `EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser `imagen@sha256:<64 hex>` o un tag igual al
+   SHA del commit (un tag mutable como `:latest` nunca se actualiza: el despacho hace `docker image inspect || docker pull`). `worker-images.yml`
+   deja las referencias en el resumen del job; cada flow de despacho rechaza una imagen mutable antes del pull (salvo `local/*`, desarrollo).
+3. **Clave de host (MSF-706).** Ver la sección anterior.
+
+**Modo por entorno.** `staging` y `production` son **siempre estrictos**: el preflight (`scripts/preflight-deploy-vps.mjs`) corta el despliegue
+antes de tocar Docker con la lista de variables que faltan (solo NOMBRES, nunca valores) y se usa `compose.estricto.yaml`. `VPS_ESTRICTO=0` no
+los relaja. `dev` es **transicional**: el preflight imprime una advertencia fuerte (`::warning::MODO TRANSICIONAL (dev)`) con la lista exacta de lo
+que falta y el despliegue **continúa** sin `compose.estricto.yaml` (con los valores por defecto locales y, para SSH, `StrictHostKeyChecking=accept-new`
+si no hay clave fijada). Siguen bloqueando siempre, también en dev, las variables que ya eran obligatorias antes (`CORREO_MASIVO_URL_BAJA`).
+El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
+
+**Pasar dev a modo estricto (acción de Nicolás, paso a paso):**
+
+1. Correr un deploy de dev y leer la advertencia: lista exactamente qué falta.
+2. Cargar en el `.env.dev` (secret `VPS_DEPLOY_ENV` del Environment de dev) las 14 credenciales (valores nuevos y aleatorios, nunca los
+   `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
+3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.dev` (ver «Clave de host del VPS»).
+4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
+5. Definir `VPS_ESTRICTO=1` en el entorno del deploy de dev (variable del Environment o del `.env`) y repetir: ahora dev bloquea igual que staging.
+6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).
 
 ### Flujo
 

@@ -28,6 +28,8 @@ concurrency:
 
 jobs:
   disparar:
+    # Solo en el repo propio: un fork (si el schedule llegara a habilitarse allí) no gasta runners ni dispara nada.
+    if: github.repository == 'nicolasjones/multistorefront-meli'
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
     steps:

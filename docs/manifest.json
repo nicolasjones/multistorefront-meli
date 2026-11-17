@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "d0a694ad6f80bc557fa11bec97ef53f43cd871b104e5c5c96fde4bddad01d451",
+      "pageHash": "cb548751eddd2ddac3ee3ba206d5b0ce434c5aef55e2dcfa406be3e970c8e6df",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "ec872198",
+      "sourceAt": "7636e349",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,7 +487,7 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "ec872198"
+      "commit": "7636e349"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -613,14 +613,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "a3b54e6a0a92491ea7fb21e9f086bee7ebae40efd5e800eb14cc2c15a81b84c1",
+      "pageHash": "6c4e44cc902a948f82056c61407a3eed2b87a68708c1a19672f8eb7b82ef0cf3",
       "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "782dd190",
+      "sourceAt": "7636e349",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "782dd190"
+      "commit": "7636e349"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",

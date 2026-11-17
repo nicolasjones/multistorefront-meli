@@ -254,7 +254,7 @@ Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo,
 - **MSF-706 · clave de host del VPS fijada.** El deploy ya no usa `ssh-keyscan`; `scripts/preparar-known-hosts-vps.mjs` toma la
   clave pública del host del secret `VPS_SSH_KNOWN_HOSTS` o de `infra/vps/known_hosts.<entorno>`, la valida (un solo host, sin
   comodines ni marcadores) y configura SSH con `StrictHostKeyChecking=yes` y ese único archivo. **Sin clave fijada el job falla** con
-  instrucciones. **Necesita acción de Nicolás** antes del próximo deploy: ver `docs/deployment.md`, «Clave de host del VPS».
+  instrucciones. En `dev` solo advierte (modo transicional); en staging/production necesita acción de Nicolás antes del próximo deploy: ver `docs/deployment.md`, «Clave de host del VPS».
 - **MSF-674 · gate de promoción `stg → prd`.** `scripts/verificar-staging-exitoso.mjs` exigía un run exitoso de `staging` **para el
   mismo SHA**, pero `staging` dispara por `paths`: un commit que no toca esos archivos nunca genera run y `promover-todo-a-produccion`
   fallaba casi siempre. Ahora valida lo que corresponde: (1) run exitoso para el mismo SHA → autoriza; (2) si no, el run exitoso más
@@ -266,6 +266,13 @@ Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo,
 - **MSF-916 · dependencias con avisos HIGH.** `pnpm audit --prod` bajó de 12 a 0 avisos de severidad alta con overrides en
   `pnpm-workspace.yaml` (`axios` ≥ 1.20, `follow-redirects` ≥ 1.16.2, `body-parser` ≥ 2.4, `zod` ≥ 4.6.6; todas con más de dos semanas
   de publicadas). Verificado: `pnpm test:ia` (incluye `@platform/mcp-server`) y `tsc -b` de `apps/web`. Quedan 3 bajos y 10 moderados.
+
+**Modo transicional por entorno (MSF-705/706/712).** Los tres controles que fallan cerrado (credenciales obligatorias, imágenes de workers
+inmutables y clave de host fijada) bloquean siempre en `staging` y `production`; en `dev` solo **advierten** (mensaje con la lista exacta de lo que
+falta) hasta que se cargue todo y se active `VPS_ESTRICTO=1`. Así un faltante no frena el despliegue de todo lo que se mergea a `dokploy`. Los
+despliegues del VPS (`deploy-infraestructura-vps.yml`) corren en push a `main` (staging) y a mano (production), no en `dokploy`. Procedimiento
+para pasar dev a estricto: `docs/deployment.md`, «Pasar dev a modo estricto». Cubierto por `scripts/deploy-vps.test.mjs` y
+`scripts/preparar-known-hosts-vps.test.mjs`.
 
 ### Pendientes del lote 36 que necesitan acción de Nicolás (no son código del repo)
 

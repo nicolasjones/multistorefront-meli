@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactError, run } from './operaciones.mjs';
-import { mensajeFaltantes, variablesFaltantes } from './preflight-deploy-vps.mjs';
+import { clasificarFaltantes, mensajeAdvertencia, mensajeFaltantes, modoEstricto, variablesFaltantes } from './preflight-deploy-vps.mjs';
 
 // `up` necesita su propia variante de run(): run() en modo no silencioso
 // usa stdio 'inherit' (el progreso de Compose queda visible en el log, pero
@@ -54,20 +54,23 @@ async function upConReintento(args, options) {
 // cualquier "--" literal en vez de asumir una posición fija, para que
 // funcione igual con o sin él.
 const environment = process.argv.slice(2).filter((value) => value !== '--')[0];
-if (!['staging', 'production'].includes(environment)) throw new Error('Uso: pnpm deploy:vps -- staging|production');
+if (!['dev', 'staging', 'production'].includes(environment)) throw new Error('Uso: pnpm deploy:vps -- dev|staging|production');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // DEPLOY_VPS_ENV_FILE solo lo usan las pruebas para apuntar a un archivo temporal.
 const envFile = process.env.DEPLOY_VPS_ENV_FILE ?? path.join(root, `.env.${environment}`);
 try { await access(envFile); } catch { throw new Error(`No existe .env.${environment} en el VPS.`); }
 
 // Preflight: antes de tocar Docker, comprobar las variables que el Compose exige.
-const faltantes = variablesFaltantes(await readFile(envFile, 'utf8'));
-if (faltantes.length > 0) throw new Error(mensajeFaltantes(faltantes, environment, path.basename(envFile)));
+// Staging y producción son estrictos siempre; dev solo con VPS_ESTRICTO=1 (modo transicional, MSF-705/706/712).
+const estricto = modoEstricto(environment);
+const { bloqueantes, advertencias } = clasificarFaltantes(variablesFaltantes(await readFile(envFile, 'utf8')), estricto);
+if (bloqueantes.length > 0) throw new Error(mensajeFaltantes(bloqueantes, environment, path.basename(envFile)));
+if (advertencias.length > 0) console.warn(mensajeAdvertencia(advertencias, path.basename(envFile)));
 
 // Puerto de la base del entorno: el compose lo usa para la URL de respaldos
 // (KESTRA_BACKUPS_DB_URL/PGDUMP_URL). Sin esto, cae al default (7634 = dev).
 if (!process.env.SUPABASE_DB_PORT) {
-  process.env.SUPABASE_DB_PORT = environment === "staging" ? "7635" : "7636";
+  process.env.SUPABASE_DB_PORT = environment === "staging" ? "7635" : environment === "production" ? "7636" : "7634";
 }
 
 // Playwright NO entra en este loop: a diferencia de Kestra/Superset/Nango,
@@ -91,7 +94,7 @@ for (const product of ['kestra', 'superset', 'nango']) {
   // runner self-hosted causó un IsADirectoryError real en superset-init
   // (Docker crea un directorio vacío cuando el bind mount apunta a un
   // archivo que no existe en la ruta resuelta). Detectado en T025.
-  const args = ['compose', '--project-name', `platform-${environment}-${product}`, '--project-directory', productDir, '--env-file', envFile, '-f', composeBase, '-f', composeVps];
+  const args = ['compose', '--project-name', `platform-${environment}-${product}`, '--project-directory', productDir, '--env-file', envFile, '-f', composeBase, '-f', composeVps, ...(estricto ? ['-f', `infra/${product}/compose.estricto.yaml`] : [])];
   await run('docker', [...args, 'config', '--quiet'], { cwd: root });
   // --ignore-buildable salta los servicios con build: (p. ej. superset-init) que no
   // tienen de dónde bajarse; build los compila a partir de su Dockerfile. Separado

@@ -10,83 +10,102 @@ export const VARIABLES_OBLIGATORIAS = [
   {
     nombre: 'KESTRA_DB_PASSWORD',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'KESTRA_BASIC_AUTH_USERNAME',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'KESTRA_BASIC_AUTH_PASSWORD',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'KESTRA_BACKUPS_DB_PASSWORD',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'KESTRA_ORQUESTACION_DB_PASSWORD',
     descripcion: 'credencial de kestra sin valor por defecto en el VPS (infra/kestra/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'SUPERSET_DB_PASSWORD',
     descripcion: 'credencial de superset sin valor por defecto en el VPS (infra/superset/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'SUPERSET_SECRET_KEY',
     descripcion: 'credencial de superset sin valor por defecto en el VPS (infra/superset/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'SUPERSET_ADMIN_PASSWORD',
     descripcion: 'credencial de superset sin valor por defecto en el VPS (infra/superset/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'SUPERSET_GUEST_TOKEN_JWT_SECRET',
     descripcion: 'credencial de superset sin valor por defecto en el VPS (infra/superset/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'SUPERSET_GUEST_TOKEN_PASSWORD',
     descripcion: 'credencial de superset sin valor por defecto en el VPS (infra/superset/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'NANGO_DB_PASSWORD',
     descripcion: 'credencial de nango sin valor por defecto en el VPS (infra/nango/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'NANGO_ENCRYPTION_KEY',
     descripcion: 'credencial de nango sin valor por defecto en el VPS (infra/nango/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'NANGO_DASHBOARD_PASSWORD',
     descripcion: 'credencial de nango sin valor por defecto en el VPS (infra/nango/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'NANGO_SECRET_KEY_DEV',
     descripcion: 'credencial de nango sin valor por defecto en el VPS (infra/nango/compose.vps.yaml, MSF-705)',
+    soloEstricto: true,
   },
   {
     nombre: 'HISTORIAL_IMPORTADOR_IMAGEN',
     descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
     inmutable: true,
+    soloEstricto: true,
   },
   {
     nombre: 'IMPORTAR_PRODUCTOS_IMAGEN',
     descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
     inmutable: true,
+    soloEstricto: true,
   },
   {
     nombre: 'EXPORTAR_COMPROBANTES_IMAGEN',
     descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
     inmutable: true,
+    soloEstricto: true,
   },
   {
     nombre: 'EXPORTAR_ORGANIZACION_IMAGEN',
     descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
     inmutable: true,
+    soloEstricto: true,
   },
   {
     nombre: 'COMPROBANTES_PDF_IMAGEN',
     descripcion: 'imagen del worker por referencia inmutable (imagen@sha256:<64 hex> o tag de commit de 40 hex), nunca :latest (MSF-712; la publica worker-images.yml en su resumen)',
     inmutable: true,
+    soloEstricto: true,
   },
 ];
 
@@ -118,5 +137,28 @@ export function mensajeFaltantes(faltantes, entorno, archivo = `.env.${entorno}`
     `Falta definir ${faltantes.map((f) => f.nombre).join(', ')} en ${archivo} (se sintetiza desde el secret VPS_DEPLOY_ENV de GitHub del entorno ${entorno}).`,
     ...faltantes.map((f) => `- ${f.nombre}: ${f.descripcion}.`),
     'Sin esas variables `docker compose config` falla y se aborta el despliegue de Kestra, Superset y Nango (lo ya desplegado sigue corriendo): ninguno arranca con una credencial por defecto (MSF-705). Ver docs/deployment.md y, para CORREO_MASIVO_URL_BAJA, docs/correo-masivo.md.',
+  ].join('\n');
+}
+
+// Modo transicional (MSF-705, MSF-706, MSF-712): staging y producción son SIEMPRE estrictos (fail-closed). En `dev` los controles nuevos
+// advierten y el despliegue continúa, hasta que se carguen los valores y se pase a estricto con VPS_ESTRICTO=1 (docs/deployment.md,
+// «Pasar dev a modo estricto»). VPS_ESTRICTO=0 NO relaja staging ni producción.
+export function modoEstricto(entorno, env = process.env) {
+  return entorno !== 'dev' || env.VPS_ESTRICTO === '1';
+}
+
+// Separa lo que corta el despliegue de lo que solo advierte. Solo se manejan NOMBRES: nunca el valor de una variable.
+export function clasificarFaltantes(faltantes, estricto) {
+  return {
+    bloqueantes: faltantes.filter((f) => !f.soloEstricto || estricto),
+    advertencias: faltantes.filter((f) => f.soloEstricto && !estricto),
+  };
+}
+
+export function mensajeAdvertencia(faltantes, archivo) {
+  return [
+    `::warning::MODO TRANSICIONAL (dev): faltan o son inválidas ${faltantes.length} variable(s) en ${archivo}; el despliegue CONTINÚA, pero staging y producción lo rechazarían:`,
+    ...faltantes.map((f) => `- ${f.nombre}: ${f.descripcion}.`),
+    'Cargalas en el .env de dev y activá VPS_ESTRICTO=1 para que dev también bloquee (docs/deployment.md, «Pasar dev a modo estricto»).',
   ].join('\n');
 }

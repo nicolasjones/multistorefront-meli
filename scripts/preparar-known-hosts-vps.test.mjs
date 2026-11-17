@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { lineasValidas, preparar } from './preparar-known-hosts-vps.mjs';
+import { esEstricto, lineasValidas, preparar } from './preparar-known-hosts-vps.mjs';
 
 const CLAVE = `AAAAC3NzaC1lZDI1NTE5AAAAI${'A'.repeat(40)}`;
 const LINEA = `vps.ejemplo.com ssh-ed25519 ${CLAVE}`;
@@ -54,4 +54,21 @@ test('los workflows de despliegue ya no usan ssh-keyscan y llaman al preparador 
   assert.equal(wf.match(/node scripts\/preparar-known-hosts-vps\.mjs/g).length, 2);
   assert.match(wf, /--entorno staging/);
   assert.match(wf, /--entorno production/);
+});
+
+test('modo transicional: en dev sin clave fijada advierte y usa accept-new; staging y production siguen fallando', async () => {
+  const raiz = await mkdtemp(path.join(tmpdir(), 'raiz-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
+  assert.equal(esEstricto('staging', {}), true);
+  assert.equal(esEstricto('production', { VPS_ESTRICTO: '0' }), true);
+  assert.equal(esEstricto('dev', {}), false);
+  assert.equal(esEstricto('dev', { VPS_ESTRICTO: '1' }), true);
+  const r = await preparar({ host: 'vps.ejemplo.com', entorno: 'dev', secreto: '', sshDir: dir, raiz, estricto: false });
+  assert.match(r.advertencia, /accept-new/);
+  assert.match(await readFile(path.join(dir, 'config'), 'utf8'), /StrictHostKeyChecking accept-new/);
+  await assert.rejects(() => preparar({ host: 'vps.ejemplo.com', entorno: 'dev', secreto: '', sshDir: dir, raiz, estricto: true }), /No hay clave de host fijada/);
+  await assert.rejects(() => preparar({ host: 'vps.ejemplo.com', entorno: 'staging', secreto: '', sshDir: dir, raiz }), /No hay clave de host fijada/);
+  // Con clave fijada, dev también la usa y queda estricto.
+  const ok = await preparar({ host: 'vps.ejemplo.com', entorno: 'dev', secreto: LINEA, sshDir: dir, raiz, estricto: false });
+  assert.equal(ok.advertencia, undefined);
 });
