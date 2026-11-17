@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
+import { violacionesAxe } from '../../test/axe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -20,6 +21,8 @@ vi.mock('../../lib/migracionCsv', async (importOriginal) => {
 
 import { AsistenteImportacion } from './AsistenteImportacion'
 import { ENTIDAD_CLIENTES } from './entidades/clientes'
+import { ENTIDAD_PROVEEDORES } from './entidades/proveedores'
+import { ENTIDAD_VINCULOS } from './entidades/vinculos'
 
 const CSV = [
   'Identificador del panel actual,Nombre o razón social,Tipo de cliente',
@@ -148,6 +151,17 @@ describe('AsistenteImportacion', () => {
     expect(screen.getByRole('tab', { name: 'Ingresos anteriores' })).toHaveAttribute('href', '/migracion/importar/ingresos_archivo')
     expect(screen.getByRole('tab', { name: 'Vínculos proveedor ↔ producto' })).toHaveAttribute('href', '/migracion/importar/vinculos_proveedor_producto')
     expect(screen.getByRole('tab', { name: 'Clientes' })).toHaveAttribute('href', '/migracion/importar/clientes')
+  })
+
+  it('al llegar por «Seguir con los vínculos» la pestaña de vínculos queda activa', () => {
+    const ruta = ENTIDAD_PROVEEDORES.siguiente?.ruta ?? ''
+    render(<MemoryRouter initialEntries={[ruta]}><AsistenteImportacion definicion={ENTIDAD_VINCULOS} /></MemoryRouter>)
+    expect(screen.getByRole('tab', { name: 'Vínculos proveedor ↔ producto' })).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('las pestañas de entidades no tienen violaciones de axe', async () => {
+    const { container } = render(asistente())
+    expect(await violacionesAxe(container)).toEqual([])
   })
 
   it('sube el CSV, auto-mapea y muestra la vista previa con los totales', async () => {

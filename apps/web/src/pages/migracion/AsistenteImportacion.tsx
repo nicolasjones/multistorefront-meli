@@ -20,6 +20,7 @@ import {
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
+import { ID_ENTIDAD_VINCULOS, rutaImportacion } from './entidades/rutas'
 import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { useEmpresaActiva } from '../../hooks/useEmpresaActiva'
@@ -75,7 +76,7 @@ function indiceDePaso(paso: Paso): number {
 const PESTANAS_MIGRACION = [
   { etiqueta: 'Clientes', to: '/migracion/importar/clientes' },
   { etiqueta: 'Proveedores', to: '/migracion/importar/proveedores' },
-  { etiqueta: 'Vínculos proveedor ↔ producto', to: '/migracion/importar/vinculos_proveedor_producto' },
+  { etiqueta: 'Vínculos proveedor ↔ producto', to: rutaImportacion(ID_ENTIDAD_VINCULOS) },
   { etiqueta: 'Ingresos anteriores', to: '/migracion/importar/ingresos_archivo' },
 ]
 
