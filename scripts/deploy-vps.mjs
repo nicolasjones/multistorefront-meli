@@ -1,8 +1,7 @@
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
 import { redactError, run } from './operaciones.mjs';
 import { mensajeFaltantes, variablesFaltantes } from './preflight-deploy-vps.mjs';
 
@@ -63,7 +62,7 @@ try { await access(envFile); } catch { throw new Error(`No existe .env.${environ
 
 // Preflight: antes de tocar Docker, comprobar las variables que el Compose exige.
 const faltantes = variablesFaltantes(await readFile(envFile, 'utf8'));
-if (faltantes.length > 0) throw new Error(mensajeFaltantes(faltantes, environment));
+if (faltantes.length > 0) throw new Error(mensajeFaltantes(faltantes, environment, path.basename(envFile)));
 
 // Puerto de la base del entorno: el compose lo usa para la URL de respaldos
 // (KESTRA_BACKUPS_DB_URL/PGDUMP_URL). Sin esto, cae al default (7634 = dev).

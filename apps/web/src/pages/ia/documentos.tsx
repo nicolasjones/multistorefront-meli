@@ -2,6 +2,7 @@ import { Alert, Box, Button, Chip, IconButton, List as MuiList, ListItem, ListIt
 import DeleteIcon from '@mui/icons-material/Delete'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { useGetIdentity } from '@refinedev/core'
 import { List } from '@refinedev/mui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -10,7 +11,7 @@ import { BUCKET_DOCUMENTOS, mimeDeDocumento, procesamientoInterrumpido, validarA
 import { supabaseClient } from '../../lib/supabase'
 
 type Documento = { id: string; nombre: string; creado_en: string }
-type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_error: string | null }
+type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_error: string | null; subida_por: string | null }
 
 const MENSAJE_FUNCIONALIDAD = 'No pudimos verificar si la búsqueda documental está habilitada para tu organización. Revisá la conexión e intentá de nuevo.'
 const MENSAJE_CARGA = 'No pudimos cargar los documentos. Revisá la conexión e intentá de nuevo.'
@@ -54,6 +55,7 @@ async function limpiarSubidaIncompleta(docId: string | null, documentoCreado: bo
 
 export function IaDocumentos() {
   const { contexto, isLoading: cargandoContexto } = useContextoPanel()
+  const { data: identidad } = useGetIdentity<{ id: string }>()
   const [habilitado, setHabilitado] = useState<boolean | null>(null)
   const [errorHabilitado, setErrorHabilitado] = useState<string | null>(null)
   const [documentos, setDocumentos] = useState<Documento[] | null>(null)
@@ -112,7 +114,7 @@ export function IaDocumentos() {
   const verHistorial = useCallback(async (documentoId: string) => {
     const { data } = await supabaseClient
       .from('versiones_documento')
-      .select('id, estado, subida_en, motivo_error')
+      .select('id, estado, subida_en, motivo_error, subida_por')
       .eq('documento_id', documentoId)
       .order('subida_en', { ascending: false })
     setVersionesPorDocumento((previo) => ({ ...previo, [documentoId]: (data ?? []) as VersionDocumento[] }))
@@ -320,8 +322,11 @@ export function IaDocumentos() {
                       ? (
                         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
                           {versionesPorDocumento[documento.id].map((v) => procesamientoInterrumpido(v) ? (
+                            // Reintentar solo para quien subió la versión o un administrador: es la regla del backend.
+                            // Los demás ven el estado sin el botón (si no, recibirían un 403).
                             <Stack key={v.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                               <span>procesando · Se interrumpió el procesamiento</span>
+                              {(v.subida_por === identidad?.id || contexto?.rol_efectivo === 'administrador') && (
                               <Button
                                 size="small"
                                 variant="outlined"
@@ -330,6 +335,7 @@ export function IaDocumentos() {
                               >
                                 {reintentando === v.id ? 'Reintentando...' : 'Reintentar'}
                               </Button>
+                              )}
                             </Stack>
                           ) : (
                             <span key={v.id}>{`${v.estado}${v.motivo_error && !v.motivo_error.startsWith('indexando:') ? ` (${v.motivo_error})` : ''}`}</span>

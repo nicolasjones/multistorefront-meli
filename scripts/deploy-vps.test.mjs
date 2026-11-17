@@ -51,7 +51,7 @@ test('preflight: sin CORREO_MASIVO_URL_BAJA dice qué variable falta y dónde de
   child.stderr.on('data', (c) => { stderr += c; });
   const code = await new Promise((r) => child.on('close', r));
   assert.notEqual(code, 0);
-  assert.match(stderr, /Falta definir CORREO_MASIVO_URL_BAJA en \.env\.staging/);
+  assert.match(stderr, /Falta definir CORREO_MASIVO_URL_BAJA en \.env\.staging \(/);
   assert.match(stderr, /VPS_DEPLOY_ENV/);
   assert.match(stderr, /https:\/\/panel\.ejemplo\.com/);
 });

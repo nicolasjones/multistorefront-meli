@@ -9,13 +9,15 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc> } = {}) {
-  const v: VersionDoc = { id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; versionAjena?: boolean; rol?: string } = {}) {
+  const v: VersionDoc = { subida_por: 'u1', id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
   const deps: Deps = {
     getUser: async (jwt) => jwt === 'ok' ? { id: 'u1' } : null,
-    version: async () => ({ ...v }),
+    feature: async () => ({ data: !opciones.featureApagada, error: null }),
+    contexto: async () => ({ organizacion_id: 'org-1', rol_efectivo: opciones.rol ?? 'miembro', es_superadmin: false }),
+    version: async () => opciones.versionAjena ? null : ({ ...v }),
     reclamar: async (_j, _id, previo, reclamo) => {
       if (v.estado !== 'procesando' || v.motivo_error !== previo) return false
       v.motivo_error = reclamo
@@ -136,6 +138,65 @@ describe('indexar-documento', () => {
     assert.equal((await pedir(m.deps)).status, 502)
     assert.equal(m.v.estado, 'procesando')
     assert.equal(m.v.motivo_error, null)
+  })
+
+  describe('autorización previa', () => {
+    // Espías sobre todo lo costoso o destructivo: ninguna debe ejecutarse si la autorización falla.
+    function espiar(m: ReturnType<typeof montar>) {
+      const llamadas: string[] = []
+      for (const nombre of ['reclamar', 'descargar', 'embeddings', 'borrarFragmentos', 'insertarFragmentos', 'marcarFallida', 'soltar', 'activar'] as const) {
+        const original = m.deps[nombre] as (...a: unknown[]) => unknown
+        ;(m.deps as Record<string, unknown>)[nombre] = (...a: unknown[]) => { llamadas.push(nombre); return original(...a) }
+      }
+      return llamadas
+    }
+    const sinPermiso = { error: 'No tenés permiso para indexar este documento.' }
+
+    it('un miembro que no subió la versión ni es administrador recibe 403 y no se hace nada costoso ni destructivo', async () => {
+      const m = montar({ version: { subida_por: 'otro-usuario' } })
+      const llamadas = espiar(m)
+      const res = await pedir(m.deps)
+      assert.equal(res.status, 403)
+      assert.deepEqual(await res.json(), sinPermiso)
+      assert.deepEqual(llamadas, [])
+      assert.equal(m.v.estado, 'procesando')
+      assert.equal(m.v.motivo_error, null)
+    })
+
+    it('versión inexistente o de otra organización: el MISMO 403, sin revelar existencia', async () => {
+      const ajena = montar({ versionAjena: true })
+      const llamadas = espiar(ajena)
+      const res = await pedir(ajena.deps)
+      assert.equal(res.status, 403)
+      assert.deepEqual(await res.json(), sinPermiso)
+      assert.deepEqual(llamadas, [])
+    })
+
+    it('un administrador de esa organización que no subió la versión sí la indexa', async () => {
+      const m = montar({ version: { subida_por: 'otro-usuario' }, rol: 'administrador' })
+      assert.equal((await pedir(m.deps)).status, 200)
+      assert.equal(m.v.estado, 'activa')
+    })
+
+    it('un administrador de OTRA organización no pasa', async () => {
+      const m = montar({ version: { subida_por: 'otro-usuario', organizacion_id: 'org-2' }, rol: 'administrador' })
+      assert.equal((await pedir(m.deps)).status, 403)
+      assert.equal(m.v.estado, 'procesando')
+    })
+
+    it('quien subió la versión la indexa', async () => {
+      assert.equal((await pedir(montar().deps)).status, 200)
+    })
+
+    it('con la funcionalidad apagada, 403 sin tocar nada; si no se puede verificar, 503', async () => {
+      const apagada = montar({ featureApagada: true })
+      const llamadas = espiar(apagada)
+      assert.equal((await pedir(apagada.deps)).status, 403)
+      assert.deepEqual(llamadas, [])
+      const rota = montar()
+      rota.deps.feature = async () => ({ data: null, error: { message: 'x' } })
+      assert.equal((await pedir(rota.deps)).status, 503)
+    })
   })
 
   it('valida sesión y version_id', async () => {

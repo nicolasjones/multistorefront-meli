@@ -11,18 +11,25 @@
 // Errores: los permanentes (documento sin texto, demasiado grande, permiso 42501 al activar) dejan la versión `fallida`;
 // los transitorios (proveedor, storage, base) sueltan la reclamación y dejan la versión `procesando`: no hay reintento
 // automático ni barrido, el reintento es manual (botón «Reintentar» de la pantalla de Documentos IA).
+import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from './reglas.ts'
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const respuesta = (body: unknown, status: number) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+const SIN_PERMISO = 'No tenés permiso para indexar este documento.'
+const MOTIVO_SIN_PERMISO = 'No tenés permiso para activar esta versión: la búsqueda documental no está habilitada o solo puede activarla quien la subió o un administrador.'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export type VersionDoc = { id: string; estado: string; motivo_error: string | null; storage_path: string; nombre: string; organizacion_id: string }
+export type VersionDoc = { subida_por: string | null; id: string; estado: string; motivo_error: string | null; storage_path: string; nombre: string; organizacion_id: string }
 type Politica = { politica_id: string; contrato_id: string; perfil_principal_id: string; limite_intentos: number; limite_segundos: number; perfil_fallback_id: string | null }
 type Credencial = { clave: string; proveedor_codigo: string }
 
 export type Deps = {
   getUser(jwt: string): Promise<{ id: string } | null>
+  /** `tiene_feature_publica('busqueda-documental')` con el JWT del usuario. */
+  feature(jwt: string): Promise<{ data: unknown; error: unknown }>
+  /** `contexto_panel_actual()` con el JWT del usuario (organización activa y rol efectivo); null si no se pudo leer. */
+  contexto(jwt: string): Promise<{ organizacion_id: string | null; rol_efectivo: string | null; es_superadmin: boolean } | null>
   // Todo lo que sigue corre con la sesión del usuario (RLS), salvo `politica` y `credencial` (service-role, solo lectura de gobernanza).
   version(jwt: string, id: string): Promise<VersionDoc | null>
   reclamar(jwt: string, id: string, motivoPrevio: string | null, reclamo: string): Promise<boolean>
@@ -49,14 +56,26 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!jwt) return respuesta({ error: 'No autorizado' }, 403)
-  if (!(await deps.getUser(jwt))) return respuesta({ error: 'No autorizado' }, 403)
+  const usuario = await deps.getUser(jwt)
+  if (!usuario) return respuesta({ error: 'No autorizado' }, 403)
 
   const body = await req.json().catch(() => null) as { version_id?: unknown } | null
   const versionId = body?.version_id
   if (typeof versionId !== 'string' || !UUID.test(versionId)) return respuesta({ error: 'Falta "version_id".' }, 400)
 
+  // AUTORIZACIÓN PREVIA, antes de reclamar, descargar, gastar crédito o tocar fragmentos: la RLS deja a cualquier
+  // miembro de la organización actualizar versiones, pero indexar (y activar) solo le corresponde a quien subió la
+  // versión o a un administrador de esa organización (misma regla que `activar_version_documento`).
+  const sinFeature = rechazoPorFuncionalidad(await deps.feature(jwt), { noHabilitada: SIN_PERMISO, noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
+  if (sinFeature) return respuesta({ error: sinFeature.error }, sinFeature.status)
+
   const version = await deps.version(jwt, versionId)
-  if (!version) return respuesta({ error: 'Versión no encontrada.' }, 404)
+  // Versión inexistente, de otra organización o sin permiso: el MISMO 403, sin revelar si existe.
+  if (!version) return respuesta({ error: SIN_PERMISO }, 403)
+  const contexto = await deps.contexto(jwt)
+  const esQuienSubio = version.subida_por !== null && version.subida_por === usuario.id
+  const esAdministrador = !!contexto && !contexto.es_superadmin && contexto.rol_efectivo === 'administrador' && contexto.organizacion_id === version.organizacion_id
+  if (!esQuienSubio && !esAdministrador) return respuesta({ error: SIN_PERMISO }, 403)
   if (version.estado !== 'procesando') return respuesta({ error: 'Esta versión ya fue procesada.' }, 409)
   if (reclamoVigente(version.motivo_error, deps.ahora())) return respuesta({ error: 'Esta versión ya se está indexando.' }, 409)
 
@@ -121,10 +140,15 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       if ((await deps.estado(jwt, versionId)) === 'activa') return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
       // Un rechazo de permisos NO es transitorio (reintentar da lo mismo): la versión queda `fallida` con un motivo claro.
       if (activacion === 'permiso') {
-        await deps.borrarFragmentos(jwt, versionId)
-        const motivo = 'No tenés permiso para activar esta versión: la búsqueda documental no está habilitada o solo puede activarla quien la subió o un administrador.'
-        await deps.marcarFallida(jwt, versionId, motivo)
-        return respuesta({ error: motivo }, 403)
+        // Solo quien subió la versión o un administrador puede dejarla `fallida` y borrar sus fragmentos; en otro caso
+        // (carrera o regla distinta de la base) se suelta la reclamación y se responde 403 sin tocar nada.
+        if (esQuienSubio || esAdministrador) {
+          await deps.borrarFragmentos(jwt, versionId)
+          await deps.marcarFallida(jwt, versionId, MOTIVO_SIN_PERMISO)
+        } else {
+          await deps.soltar(jwt, versionId, reclamo)
+        }
+        return respuesta({ error: MOTIVO_SIN_PERMISO }, 403)
       }
       return await reintentable('No se pudo activar la nueva versión, probá de nuevo.', 502)
     }

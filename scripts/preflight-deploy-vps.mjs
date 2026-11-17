@@ -25,9 +25,9 @@ export function variablesFaltantes(contenido) {
   return VARIABLES_OBLIGATORIAS.filter(({ nombre }) => !valores.get(nombre));
 }
 
-export function mensajeFaltantes(faltantes, entorno) {
+export function mensajeFaltantes(faltantes, entorno, archivo = `.env.${entorno}`) {
   return [
-    `Falta definir ${faltantes.map((f) => f.nombre).join(', ')} en .env.${entorno} (se sintetiza desde el secret VPS_DEPLOY_ENV de GitHub del entorno ${entorno}).`,
+    `Falta definir ${faltantes.map((f) => f.nombre).join(', ')} en ${archivo} (se sintetiza desde el secret VPS_DEPLOY_ENV de GitHub del entorno ${entorno}).`,
     ...faltantes.map((f) => `- ${f.nombre}: ${f.descripcion}.`),
     'Sin esa variable `docker compose config` falla y se aborta el despliegue de Kestra, Superset y Nango (lo ya desplegado sigue corriendo). Ver docs/correo-masivo.md.',
   ].join('\n');

@@ -60,14 +60,22 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   compare-and-swap sobre `versiones_documento.motivo_error` (`indexando:<instante>:<id>`, vence a los 10 minutos);
   la segunda recibe 409. `marcarFallida` solo actúa mientras la versión sigue `procesando`. La pantalla de Documentos
   IA no muestra el candado `indexando:…` como si fuera un motivo de error.
+- **Autorización previa** (antes de reclamar, descargar, gastar crédito o tocar fragmentos): con el JWT del usuario se
+  verifica la funcionalidad `busqueda-documental` y que quien invoca sea **quien subió la versión** (`subida_por`) o un
+  **administrador de esa organización** (`contexto_panel_actual().rol_efectivo`, sin superadmin, misma organización que
+  la versión). Si no, 403 con el mismo cuerpo para versión inexistente, ajena o sin permiso. Brecha: la regla definitiva
+  vive en `activar_version_documento` (#1121) y usa la membresía propia (`private.es_administrador_propio_de`), que no
+  tiene wrapper público; aquí el administrador se resuelve por el rol efectivo del contexto. Propuesta: exponer una RPC
+  pública `puede_indexar_version(p_version_id)` que aplique la misma regla y usarla en el handler y en la pantalla.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
-- **Rechazo de permisos al activar (42501)** (funcionalidad apagada, o quien invoca no es quien subió ni un
-  administrador): no es transitorio. La versión queda `fallida` con un motivo claro y la función responde **403**.
+- **Rechazo de permisos al activar (42501)** (carrera o regla distinta de la base): no es transitorio. La función
+  responde **403** y, si quien invoca es quien subió o administrador, deja la versión `fallida` con un motivo claro; en
+  otro caso solo suelta la reclamación, sin marcar ni borrar nada.
 - Errores transitorios (proveedor, descarga, base) **sueltan la reclamación y dejan la versión `procesando`**; la
   función responde 502/503/500. **No hay reintento ni barrido automático.** El reintento es **manual**: la pantalla de
   Documentos IA marca como «Se interrumpió el procesamiento» toda versión que sigue `procesando` pasados 15 minutos
   desde su subida y ofrece el botón **Reintentar**, que vuelve a invocar `indexar-documento` para esa misma versión
-  (los fragmentos del intento previo se borran antes de insertar). Si el backend responde 403, 422 o 502, el mensaje
+  (los fragmentos del intento previo se borran antes de insertar). El botón solo aparece para quien subió la versión o un administrador. Si el backend responde 403, 422 o 502, el mensaje
   real se muestra en la pantalla. Subir de nuevo el archivo crea otra versión y deja la anterior `procesando`.
 
 ## `enviar-correo-proveedor` y avisos (MSF-731)

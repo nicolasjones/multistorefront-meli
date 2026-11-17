@@ -25,9 +25,11 @@ const mocks = vi.hoisted(() => ({
   errorUpload: null as { message: string } | null,
   errorFeature: null as { message: string } | null,
   errorInvoke: null as { message: string } | null,
+  identidad: { id: 'user-1' } as { id: string } | undefined,
 }))
 
 vi.mock('../../context/ContextoPanel', () => ({ useContextoPanel: mocks.useContextoPanel }))
+vi.mock('@refinedev/core', () => ({ useGetIdentity: () => ({ data: mocks.identidad }) }))
 vi.mock('@refinedev/mui', () => ({ List: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
@@ -108,6 +110,7 @@ describe('IaDocumentos', () => {
     mocks.errorUpload = null
     mocks.errorFeature = null
     mocks.errorInvoke = null
+    mocks.identidad = { id: 'user-1' }
     mocks.errorUpdateDocumento = null
     mocks.useContextoPanel.mockReturnValue({
       contexto: { organizacion_id: 'org-1', es_superadmin: false, organizacion_nombre: 'Org', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
@@ -271,7 +274,7 @@ describe('IaDocumentos', () => {
   })
 
   describe('versión interrumpida', () => {
-    const vieja = { id: 'ver-1', estado: 'procesando', subida_en: '2020-01-01T00:00:00Z', motivo_error: 'indexando:123:abc' }
+    const vieja = { id: 'ver-1', estado: 'procesando', subida_en: '2020-01-01T00:00:00Z', motivo_error: 'indexando:123:abc', subida_por: 'user-1' }
 
     async function abrirHistorial() {
       mocks.documentos = [documento]
@@ -298,6 +301,27 @@ describe('IaDocumentos', () => {
       await abrirHistorial()
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
       expect(await screen.findByText('No tenés permiso para activar esta versión.')).toBeInTheDocument()
+    })
+
+    it('un miembro que no subió la versión no ve Reintentar; un administrador sí', async () => {
+      mocks.documentos = [documento]
+      mocks.versiones = [{ ...vieja, subida_por: 'otro-usuario' }]
+      mocks.useContextoPanel.mockReturnValue({
+        contexto: { organizacion_id: 'org-1', es_superadmin: false, organizacion_nombre: 'Org', rol_efectivo: 'miembro', puede_escribir: true, puede_copiar_identificador_tecnico: false },
+        isLoading: false, error: null, invalidar: vi.fn(),
+      })
+      const { unmount } = render(<IaDocumentos />)
+      fireEvent.click(await screen.findByText('contrato.txt'))
+      await screen.findByText(/Se interrumpió el procesamiento/)
+      expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+      unmount()
+      mocks.useContextoPanel.mockReturnValue({
+        contexto: { organizacion_id: 'org-1', es_superadmin: false, organizacion_nombre: 'Org', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
+        isLoading: false, error: null, invalidar: vi.fn(),
+      })
+      render(<IaDocumentos />)
+      fireEvent.click(await screen.findByText('contrato.txt'))
+      expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
     })
 
     it('una versión procesando reciente no ofrece Reintentar', async () => {

@@ -51,14 +51,19 @@ Deno.serve((req) => {
       const { data, error } = await admin.auth.getUser(jwt)
       return error || !data?.user ? null : { id: data.user.id }
     },
+    feature: async (jwt) => await comoUsuario(jwt).rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' }),
+    contexto: async (jwt) => {
+      const { data, error } = await comoUsuario(jwt).rpc('contexto_panel_actual').single()
+      return error || !data ? null : data as { organizacion_id: string | null; rol_efectivo: string | null; es_superadmin: boolean }
+    },
     version: async (jwt, id) => {
       const { data, error } = await comoUsuario(jwt).from('versiones_documento')
-        .select('id, estado, motivo_error, storage_path, documentos(nombre, organizacion_id)').eq('id', id).maybeSingle()
+        .select('id, estado, motivo_error, storage_path, subida_por, documentos(nombre, organizacion_id)').eq('id', id).maybeSingle()
       if (error || !data) return null
       // deno-lint-ignore no-explicit-any
       const doc = (data as any).documentos as { nombre: string; organizacion_id: string } | null
       if (!doc) return null
-      return { id: data.id, estado: data.estado, motivo_error: data.motivo_error, storage_path: data.storage_path, nombre: doc.nombre, organizacion_id: doc.organizacion_id } satisfies VersionDoc
+      return { subida_por: data.subida_por, id: data.id, estado: data.estado, motivo_error: data.motivo_error, storage_path: data.storage_path, nombre: doc.nombre, organizacion_id: doc.organizacion_id } satisfies VersionDoc
     },
     reclamar: async (jwt, id, motivoPrevio, reclamo) => {
       let q = comoUsuario(jwt).from('versiones_documento').update({ motivo_error: reclamo }).eq('id', id).eq('estado', 'procesando')
