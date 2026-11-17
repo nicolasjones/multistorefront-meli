@@ -1,0 +1,59 @@
+# Purga del almacenamiento interno de Kestra (MSF-707). Los flows de copias dejan en el almacenamiento de Kestra
+# (volumen kestra-data) los archivos de cada ejecución; el dump completo de la base se borra al terminar
+# (`finally` de respaldo-postgres), pero ejecuciones anteriores, otros archivos intermedios, logs y métricas se
+# acumulaban sin tope. Este flow borra ejecuciones TERMINADAS con más de N días (KESTRA_RETENCION_EJECUCIONES_DIAS,
+# por defecto 7), junto con sus archivos, logs y métricas. No toca ejecuciones en curso.
+#
+# Las copias durables viven en el destino de respaldos, no acá: purgar esto no pierde ningún respaldo.
+id: purgar-almacenamiento-kestra
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: "Purga ejecuciones terminadas de Kestra con más de N días, con sus archivos (dumps incluidos), logs y métricas."
+
+inputs:
+  - id: dias
+    type: STRING
+    required: false
+    description: "Reemplaza KESTRA_RETENCION_EJECUCIONES_DIAS solo para esta corrida (entero >= 1)."
+
+concurrency:
+  limit: 1
+  behavior: CANCEL
+
+tasks:
+  - id: purgar_ejecuciones_y_archivos
+    type: io.kestra.plugin.core.execution.PurgeExecutions
+    timeout: PT1H
+    endDate: "{{ now() | dateAdd((inputs.dias ?? envs.kestra_retencion_ejecuciones_dias ?? 7) | number * -1, 'DAYS') }}"
+    states:
+      - SUCCESS
+      - WARNING
+      - FAILED
+      - KILLED
+      - CANCELLED
+    purgeExecution: true
+    purgeLog: true
+    purgeMetric: true
+    purgeStorage: true
+
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: purgar-almacenamiento-kestra
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  # Diario, después de las copias y de la retención del destino.
+  - id: schedule_diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "45 4 * * *"

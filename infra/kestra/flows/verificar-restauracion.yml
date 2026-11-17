@@ -27,11 +27,13 @@ tasks:
     password: "{{ envs.kestra_backups_db_password }}"
     fetchType: FETCH_ONE
     sql: select * from public.iniciar_verificacion_restauracion();
+    timeout: PT1M
 
   # Trae el archivo del destino de respaldos (remoto rclone `respaldos`).
   - id: traer_copia
     type: io.kestra.plugin.scripts.shell.Commands
     containerImage: rclone/rclone:1.68.2
+    timeout: PT1H
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       pullPolicy: IF_NOT_PRESENT
@@ -66,6 +68,7 @@ tasks:
   - id: restaurar_y_comprobar
     type: io.kestra.plugin.scripts.shell.Commands
     containerImage: postgres:17-alpine
+    timeout: PT2H
     taskRunner:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       pullPolicy: IF_NOT_PRESENT
@@ -84,12 +87,41 @@ tasks:
       - su-exec postgres pg_ctl -D "$DATOS" -o "-c listen_addresses= -c unix_socket_directories=/tmp" -w -l /tmp/pg.log start >/dev/null
       - PSQL="psql -h /tmp -U postgres -X -v ON_ERROR_STOP=1"
       - $PSQL -d postgres -c "create database verificacion" >/dev/null
-      # Los roles y extensiones propios de Supabase no existen acá: los
-      # errores de pg_restore se cuentan pero no cortan; lo que decide es que
-      # las tablas esperadas existan y tengan datos.
-      - pg_restore -h /tmp -U postgres -d verificacion --no-owner --no-privileges "{{ workingDir }}/respaldo.dump" 2>/tmp/restore.err || true
+      # MSF-708: la verificación ya no tolera cualquier error. pg_restore se
+      # corre SIN `|| true` y su salida se clasifica: solo se aceptan los
+      # errores ESPERADOS en un Postgres pelado (roles, extensiones, esquemas y
+      # permisos propios de Supabase que acá no existen: ver PATRON_ESPERADOS).
+      # Cualquier otro error (datos corruptos, archivo cortado, tabla que no se
+      # puede crear, violación de restricción) hace fallar la verificación. Además
+      # el índice del archivo (pg_restore --list) debe tener entradas, y cada tabla
+      # con datos en el índice debe existir en la base restaurada.
+      - |
+        PATRON_ESPERADOS='(role "[^"]+" does not exist|extension "[^"]+" is not available|could not open extension control file|permission denied to (create|set|change|use)|must be (owner|superuser)|schema "(public|extensions|auth|storage|graphql|graphql_public|realtime|vault|pgsodium|pgsodium_masks|net|supabase_functions|supabase_migrations|_realtime|_analytics|pgbouncer|private)" already exists|publication "[^"]+" does not exist|event trigger|extension "[^"]+" does not exist)'
+      - |
+        pg_restore --list "{{ workingDir }}/respaldo.dump" > /tmp/toc.txt || { echo "pg_restore no puede leer el índice del archivo de respaldo (archivo dañado o cortado)" >&2; exit 1; }
+        ENTRADAS=$(grep -c 'TABLE DATA' /tmp/toc.txt || true)
+        if [ "$ENTRADAS" -lt 1 ]; then echo "El índice del respaldo no tiene ninguna tabla con datos" >&2; exit 1; fi
+      - pg_restore -h /tmp -U postgres -d verificacion --no-owner --no-privileges "{{ workingDir }}/respaldo.dump" 2>/tmp/restore.err && RC_RESTORE=0 || RC_RESTORE=$?
       - ERRORES=$(grep -c 'error:' /tmp/restore.err || true)
-      - DETALLE="errores_pg_restore=$ERRORES"
+      - INESPERADOS=$(grep 'error:' /tmp/restore.err | grep -Ev "$PATRON_ESPERADOS" || true)
+      - |
+        if [ -n "$INESPERADOS" ]; then
+          echo "pg_restore terminó con errores no esperados (código $RC_RESTORE):" >&2
+          echo "$INESPERADOS" | head -n 10 >&2
+          exit 1
+        fi
+      # Todas las tablas con datos del índice existen en la restauración.
+      - |
+        rm -f /tmp/faltantes
+        grep 'TABLE DATA' /tmp/toc.txt | sed -E 's/^.*TABLE DATA ([^ ]+) ([^ ]+) .*$/\1.\2/' | while IFS= read -r T; do
+          ESQ=${T%%.*}; TAB=${T#*.}
+          if [ "$($PSQL -At -d verificacion -c "select to_regclass(format('%I.%I', '$ESQ', '$TAB')) is not null")" != "t" ]; then
+            echo "La tabla $T está en el respaldo pero no se restauró" >&2
+            echo x >> /tmp/faltantes
+          fi
+        done
+        if [ -s /tmp/faltantes ]; then exit 1; fi
+      - DETALLE="errores_pg_restore=$ERRORES (esperados); tablas_con_datos_en_el_respaldo=$ENTRADAS"
       - |
         for TABLA in $(echo "$TABLAS" | tr ',' ' '); do
           if ! echo "$TABLA" | grep -qE '^[a-z_]+\.[a-z_]+$'; then
@@ -120,6 +152,13 @@ tasks:
       id: "{{ outputs.iniciar_verificacion.row.id }}"
       duracion: "{{ outputs.restaurar_y_comprobar.vars.duracion }}"
       detalle: "{{ outputs.restaurar_y_comprobar.vars.detalle }}"
+    timeout: PT1M
+
+# MSF-707: la copia traída del destino para verificarla no queda en el almacenamiento interno de Kestra.
+finally:
+  - id: purgar_archivos_de_la_ejecucion
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+    allowFailure: true
 
 # Cualquier falla registra el motivo real y avisa al soporte. Si falló
 # iniciar_verificacion no hay fila que cerrar (sin copia o ya en curso).
@@ -138,6 +177,7 @@ errors:
         parameters:
           id: "{{ outputs.iniciar_verificacion.row.id }}"
           motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+        timeout: PT1M
   - id: avisar_fallo
     type: io.kestra.plugin.core.flow.Subflow
     namespace: platform.backups

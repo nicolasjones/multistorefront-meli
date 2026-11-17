@@ -14,6 +14,14 @@ labels:
   dominio: ventas
   componente: comprobantes-documentos
 description: "Genera el PDF de la factura y del remito de un comprobante de venta."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
+# MSF-710 · reclamo vs peor caso: 5 documentos / 2 en paralelo = 3 rondas; por documento (peor caso) conexión 60 s + SSH 3 x 300 s + 2 x 10 s
+# + resolver 60 s + liberar 60 s = 1100 s; 3 x 1100 = 3300 s. El reclamo (3600 s) debe superarlo.
+# reclamo-s: 3600 · peor-caso-s: 3300
 tasks:
   - id: reclamar
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -21,7 +29,8 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
-    sql: select r.*, r.detalle->>'documento_id' as documento_id from private.reclamar_despachos_capacidad('generar-documento-venta-', 5, 600) r;
+    sql: select r.*, r.detalle->>'documento_id' as documento_id from private.reclamar_despachos_capacidad('generar-documento-venta-', 5, 3600) r;
+    timeout: PT1M
   - id: despachar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar.rows }}"
@@ -40,6 +49,7 @@ tasks:
             sql: select * from private.datos_despacho_conexion(CAST(:organizacion_id AS uuid), 'comprobantes-pdf');
             parameters:
               organizacion_id: "{{ fromJson(taskrun.value).organizacion_id }}"
+            timeout: PT1M
           - id: despacho_ssh
             type: io.kestra.plugin.fs.ssh.Command
             host: "{{ outputs.resolver_conexion[parent.taskrun.value].row.host }}"
@@ -110,6 +120,7 @@ tasks:
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
               accion: "{{ (outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '') == '' ? 'confirmar' : 'agotar' }}"
               motivo: "{{ outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '' }}"
+            timeout: PT1M
         errors:
           # Falla técnica después de los 3 intentos de SSH: la orden vuelve a
           # pendiente con demora y, al llegar a 3 reclamos, queda agotada.
@@ -122,6 +133,20 @@ tasks:
             parameters:
               despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: comprobantes-documentos
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_comprobantes
     type: io.kestra.plugin.core.trigger.Schedule
