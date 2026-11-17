@@ -1,7 +1,8 @@
 import { supabaseClient } from './supabase'
 import { esIdValido } from './tiendaListado'
 
-// F-TDA-14 (MSF-433): registro del interés por WhatsApp desde la ficha (FR-024). El visitante abre
+// F-TDA-14 (MSF-433): registro de la consulta por WhatsApp desde la ficha (FR-024). Va por `registrar_consulta_whatsapp`
+// (con cuota); NO carga `dominio.intereses_whatsapp`: `registrar_interes_whatsapp` es interna desde MSF-657. El visitante abre
 // WhatsApp y la consulta llega a la bandeja de Consultas y ventas de esa empresa con origen `whatsapp`.
 // El registro NUNCA bloquea la apertura ni muestra fallas o límite al visitante (D3): si algo falla, se
 // registra en la consola y el visitante sigue con su WhatsApp abierto. Lo que decide la base es
