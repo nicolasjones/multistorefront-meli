@@ -107,8 +107,8 @@ select is(
   (select c.relrowsecurity from pg_class c where c.oid = 'dominio.favoritos_cliente'::regclass),
   true, 'dominio.favoritos_cliente tiene RLS activada');
 select is(
-  (select count(*)::int from pg_policy where polrelid = 'dominio.favoritos_cliente'::regclass),
-  0, 'sin políticas: solo se accede por RPC security definer');
+  (select count(*)::int from pg_policy where polrelid = 'dominio.favoritos_cliente'::regclass and polname <> 'favoritos_cliente_denegar_todo'),
+  0, 'sin políticas de acceso (solo la que deniega todo): solo se accede por RPC security definer');
 select is(
   (select count(*)::int from information_schema.role_table_grants
     where table_schema = 'dominio' and table_name = 'favoritos_cliente' and grantee in ('anon', 'authenticated', 'PUBLIC')),
