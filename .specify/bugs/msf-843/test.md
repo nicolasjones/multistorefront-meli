@@ -5,8 +5,8 @@
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified — los dos rojos del reporte no se reproducen sobre `dokploy` actual (knip: 0
-  hallazgos; `docs:check`: OK) y las tres reglas que hacían el rojo indiagnosticable quedan fijadas
-  por test, con mutación comprobada.
+  hallazgos; `docs:check`: OK) y las reglas que hacían el rojo indiagnosticable quedan fijadas por
+  test, con mutación comprobada.
 
 ## Summary
 

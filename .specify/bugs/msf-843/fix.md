@@ -14,7 +14,8 @@ guardián `scripts/verificar-e2e-sin-escritura-directa.mjs` llegó a `dokploy` c
 (`docs/e2e-app.md`) en el mismo commit (`611957f3`). Lo que **sí** quedaba sin cubrir era la causa por
 la que ese rojo fue indiagnosticable: `scripts/calidad.mjs` dejaba pasar `GITHUB_ACTIONS` a las
 herramientas (knip y oxlint pasaban a su modo de anotaciones, que el runner consume y borra del log) y
-no escribía la salida del check que falló. Esta rama fija las tres reglas con tests y las documenta.
+no escribía la salida del check que falló. Esta rama fija con tests las reglas que hacían el rojo
+indiagnosticable y las documenta.
 
 ## Changes
 
@@ -22,7 +23,7 @@ no escribía la salida del check que falló. Esta rama fija las tres reglas con 
 |------|--------|-------|
 | `scripts/calidad.test.mjs` | modified | Dos tests que corren `scripts/calidad.mjs` con un `pnpm` falso en el `PATH`: uno exige que la salida del check que falló esté en `reports/calidad.md` (sección `## <check>`), en `reports/calidad.log` **y en el log del propio paso del CI** (stdout, sin recortar); el otro exige que los hijos **no** hereden `GITHUB_ACTIONS`. |
 | `scripts/calidad.mjs` | modified | Un check con hallazgos imprime su salida **completa** en consola (antes: las últimas 40 líneas, que podían dejar el hallazgo fuera del log del CI). El encabezado del archivo pasa a describir lo que el script hace de verdad (gitleaks con binario nativo, SAST con oxlint, `pnpm calidad:code`, `--only=`). |
-| `docs/calidad.md` | modified | Sección «Un rojo de calidad tiene que poder diagnosticarse»: las tres garantías, quién las fija por test y por qué MSF-843 quedó sin diagnóstico. Además, la tabla de «Qué corre» y el bloque de «Uso» dicen lo que el script hace de verdad (antes: semgrep/docker y `pnpm calidad --code`, que no existe). |
+| `docs/calidad.md` | modified | Sección «Un rojo de calidad tiene que poder diagnosticarse»: las garantías, quién las fija por test y por qué MSF-843 quedó sin diagnóstico. Además, la tabla de «Qué corre» y el bloque de «Uso» dicen lo que el script hace de verdad (antes: semgrep/docker y `pnpm calidad --code`, que no existe). |
 | `.specify/bugs/msf-843/` | added | assessment, fix y test de este bug. |
 
 Sin tocar: `scripts/verificar-e2e-sin-escritura-directa.mjs`, `.github/workflows/validate.yml`,
