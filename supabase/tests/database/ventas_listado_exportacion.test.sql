@@ -421,6 +421,23 @@ select throws_ok(
 );
 
 -- Canal (p_origen) en la exportación: inmediata y diferida. El presupuesto del fixture no tiene vínculo con la tienda: es «panel».
+-- Prueba positiva del canal «tienda»: se vincula el presupuesto del fixture con una cuenta web (como lo deja
+-- `publico.crear_presupuesto_tienda`), se exporta por canal y se quita el vínculo para que el resto siga igual.
+reset role;
+insert into auth.users (id, email) values ('f9000000-0000-0000-0000-000000000001', 'cuenta-web-exportacion@example.com');
+insert into public.cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
+  ('ca900000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', 'f9000000-0000-0000-0000-000000000001', 'activa');
+insert into dominio.presupuestos_tienda (organizacion_id, empresa_id, cuenta_cliente_id, cliente_id, comprobante_id, clave_envio)
+select c.organizacion_id, c.empresa_id, 'ca900000-0000-0000-0000-000000000001', c.cliente_id, c.id, 'c9000000-0000-0000-0000-000000000001'
+  from dominio.comprobantes_venta c
+ where c.tipo = 'presupuesto' and c.organizacion_id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), 1, 'origen tienda: exporta el presupuesto vinculado con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), 0, 'origen panel: no exporta el presupuesto vinculado con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos')), 1, 'sin canal exporta el presupuesto vinculado');
+reset role;
+delete from dominio.presupuestos_tienda where comprobante_id in (select id from dominio.comprobantes_venta where tipo = 'presupuesto' and organizacion_id = '11111111-1111-1111-1111-111111111111');
+delete from public.cuentas_cliente where id = 'ca900000-0000-0000-0000-000000000001';
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), 1, 'origen panel: exporta el presupuesto sin vínculo con la tienda');
 select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), 0, 'origen tienda: no exporta presupuestos sin vínculo');

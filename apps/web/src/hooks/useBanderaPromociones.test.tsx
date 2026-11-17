@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({ leer: vi.fn() }))
 vi.mock('../lib/capacidadesPrecios', () => ({ leerBanderaPromociones: mocks.leer }))
 vi.mock('../lib/supabase', () => ({ supabaseClient: {} }))
 
-import { INTERVALO_RELECTURA_BANDERA_MS, useBanderaPromociones } from './useBanderaPromociones'
+import { INTERVALO_RELECTURA_BANDERA_MS, useBanderaPromociones, VENTANA_DEDUPLICACION_MS } from './useBanderaPromociones'
 
 describe('useBanderaPromociones', () => {
   beforeEach(() => {
@@ -50,17 +50,47 @@ describe('useBanderaPromociones', () => {
   })
 
   it('relee al volver a la pestaña y al enfocar la ventana', async () => {
+    vi.useFakeTimers()
     mocks.leer.mockResolvedValue(true)
     renderHook(() => useBanderaPromociones(true))
-    await waitFor(() => expect(mocks.leer).toHaveBeenCalledTimes(1))
+    await act(async () => {})
+    expect(mocks.leer).toHaveBeenCalledTimes(1)
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(VENTANA_DEDUPLICACION_MS + 1)
       document.dispatchEvent(new Event('visibilitychange'))
     })
-    await waitFor(() => expect(mocks.leer).toHaveBeenCalledTimes(2))
+    expect(mocks.leer).toHaveBeenCalledTimes(2)
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(VENTANA_DEDUPLICACION_MS + 1)
       window.dispatchEvent(new Event('focus'))
     })
-    await waitFor(() => expect(mocks.leer).toHaveBeenCalledTimes(3))
+    expect(mocks.leer).toHaveBeenCalledTimes(3)
+  })
+
+  it('visibilitychange y focus juntos al volver a la pestaña hacen una sola lectura', async () => {
+    vi.useFakeTimers()
+    mocks.leer.mockResolvedValue(true)
+    renderHook(() => useBanderaPromociones(true))
+    await act(async () => {})
+    mocks.leer.mockClear()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(VENTANA_DEDUPLICACION_MS + 1)
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+    })
+    expect(mocks.leer).toHaveBeenCalledTimes(1)
+  })
+
+  it('si la lectura falla en cada vuelta, registra el error una sola vez', async () => {
+    vi.useFakeTimers()
+    mocks.leer.mockRejectedValue(new Error('sin permiso'))
+    renderHook(() => useBanderaPromociones(true))
+    await act(async () => {})
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(INTERVALO_RELECTURA_BANDERA_MS * 3)
+    })
+    expect(mocks.leer.mock.calls.length).toBeGreaterThanOrEqual(4)
+    expect(console.error).toHaveBeenCalledTimes(1)
   })
 
   it('al desmontar se limpian el intervalo y los listeners', async () => {

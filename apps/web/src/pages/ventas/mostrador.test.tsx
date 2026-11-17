@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -125,6 +125,44 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     await screen.findByText('Joystick')
     await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalled())
     expect(screen.queryByText(AVISO)).toBeNull()
+  })
+
+  it('si la lectura al abrir falla, reintenta hasta tener base y después avisa del cambio', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValueOnce(null).mockResolvedValue(false)
+      preparar()
+      const { rerender } = render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6_000)
+      })
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(2))
+      mocks.bandera.mockReturnValue(true)
+      rerender(<VentaMostrador />)
+      expect(await screen.findByText(/promociones de precio se activaron/)).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('el reintento de la lectura base tiene tope', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValue(null)
+      preparar()
+      render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000)
+      })
+      expect(mocks.releerBandera).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('la base se reinicia con una venta nueva: tras cobrar, el cambio anterior no vuelve a avisar', async () => {
