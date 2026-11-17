@@ -125,7 +125,7 @@ describe('ReporteEmbebido', () => {
     expect(vi.mocked(embedDashboard).mock.calls[1][0].dashboardUiConfig?.urlParams).toBeUndefined()
   })
 
-  it('MSF-678: fetchGuestToken usa el token ya emitido una vez y luego pide uno nuevo en cada renovación', async () => {
+  it('fetchGuestToken usa el token ya emitido una vez y luego pide uno nuevo en cada renovación', async () => {
     vi.mocked(embedDashboard).mockClear()
     vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
       data: { session: { access_token: 'token-de-prueba' } },
@@ -149,7 +149,7 @@ describe('ReporteEmbebido', () => {
     expect(invoke).toHaveBeenLastCalledWith('emitir-acceso-reporte', { body: { reporte_id: 'reporte-1' } })
   })
 
-  it('MSF-678: si la renovación del token falla, avisa y no devuelve un token vencido', async () => {
+  it('si la renovación del token falla, avisa y no devuelve un token vencido', async () => {
     vi.mocked(embedDashboard).mockClear()
     vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
       data: { session: { access_token: 'token-de-prueba' } },
