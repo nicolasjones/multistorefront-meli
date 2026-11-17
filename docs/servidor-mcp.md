@@ -1,3 +1,11 @@
+---
+owner: plataforma
+sources:
+  - packages/mcp-server/src/servidor.ts
+  - packages/mcp-server/src/autenticacion.ts
+  - packages/mcp-server/CONTRATO.md
+---
+
 # Servidor MCP: credenciales, sesiones y revocación
 
 Spec: `specs/20261005-170000-servidor-mcp-generico/`.
