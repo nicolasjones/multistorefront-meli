@@ -552,7 +552,7 @@ rótulos por tarea.
 | `List-Unsubscribe` / `List-Unsubscribe-Post` | Operaciones | MSF-962: verificado, `MailSend` de Kestra no admite encabezados propios (plugin de correo 1.6.9: sin propiedad de encabezados). Falta elegir el camino (relay SMTP o script) y probarlo con SMTP real; ver `docs/newsletter.md`. |
 | CORS de la Edge Function `baja-correo-masivo` | Operaciones | MSF-963: verificado y endurecido (preflight con los encabezados del SDK, métodos y `Max-Age`; `pnpm test:edge:baja-correo-masivo`). Falta confirmar por entorno que el gateway no responda `401` antes de la función (`verify_jwt`); ver `docs/newsletter.md`. |
 | Imágenes en el correo | Producto / Plataforma | `imagen_url` queda nulo: hay que decidir entre un bucket público de miniaturas o una URL firmada de larga vida. |
-| Cupo diario separado del newsletter y alerta al alcanzar el tope global | Producto | D14 y MSF-971: hoy el cupo es uno solo entre clientes y newsletter. |
+| Cupo diario separado del newsletter | Producto | D14: hoy el cupo es uno solo entre clientes y newsletter. La alerta al alcanzar el tope global ya existe (MSF-971). |
 | CAPTCHA de la suscripción | Producto | Solo si hay abuso real. |
 | Rate limit en el borde de la baja (Edge Function anónima) | Plataforma | MSF-980: los tokens son de 244 bits y la respuesta es uniforme, pero la función no limita por visitante. No se resuelve en el repo (un contador en la base agrega carga): regla por IP en Cloudflare, Kong o nginx; propuesta en `docs/newsletter.md`. |
 | Verificar `kestra.templating.recursive-rendering: false` en dev, stg y prd | Operaciones | Fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real. |
