@@ -103,10 +103,28 @@ test('marca --network literal fuera de la convencion y permite variables', () =>
     'b.yml': 'docker run --network=bridge x',
     'c.yml': 'docker run --network "${WORKER_NETWORK:?falta}" x',
     'd.yml': 'docker run --network worker-egress-ok x',
+    'e.yml': 'docker run --network none x',
   }, (dir) => {
     const fuera = redesFueraDeConvencion(dir);
     assert.equal(fuera.length, 2);
     assert.match(fuera.join('\n'), /host/);
     assert.match(fuera.join('\n'), /bridge/);
+  });
+});
+
+test('cubre --net, network_mode/networkMode, continuacion de linea y $(...)', () => {
+  flows({
+    'a.yml': 'docker run --net=host x',
+    'b.yml': 'docker run --net host x',
+    'c.yml': 'services:\n  w:\n    network_mode: host',
+    'd.yml': 'networkMode: "host"',
+    'e.yml': 'docker run --network \\\n   bridge \\\n x',
+    'f.yml': 'docker run --network=$(calcular_red) x',
+    'ok1.yml': 'docker run --net=worker-egress-ok --network "${WORKER_NETWORK:?falta}" x',
+    'ok2.yml': 'network_mode: worker-egress-ok',
+  }, (dir) => {
+    const fuera = redesFueraDeConvencion(dir).join('\n');
+    for (const esperado of ['a.yml', 'b.yml', 'c.yml', 'd.yml', 'e.yml', 'f.yml']) assert.match(fuera, new RegExp(esperado.replace('.', '\\.')));
+    assert.doesNotMatch(fuera, /ok\d\.yml/);
   });
 });

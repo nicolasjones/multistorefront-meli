@@ -100,3 +100,38 @@ test('un comentario negado («sin reversión») no cuenta como camino de reversi
     assert.equal((await run(dir)).code, 0);
   });
 });
+
+test('dollar-quoting, E\'…\\\'…\' y comentarios de bloque anidados', async () => {
+  const malas = [
+    "select $$it's$$; drop table t;",
+    "select $tag$ -- no es comentario $tag$; drop table t;",
+    "select E'it\\'s'; drop table t;",
+    "do $$ begin drop table t; end $$;",
+    "/* a /* b */ c */ drop table t;",
+  ];
+  for (const sql of malas) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, sql);
+    });
+  }
+  const buenas = [
+    '/* a /* drop table t; */ drop table t; */ select 1;',
+    '-- drop table t;\nselect 1;',
+  ];
+  for (const sql of buenas) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.equal((await run(dir)).code, 0, sql);
+    });
+  }
+});
+
+test('rechaza Reversión vacía, ninguna, n/a y no aplica; acepta pasos en la línea siguiente', async () => {
+  for (const marcador of ['-- Reversión: ninguna', '-- Reversion: n/a', '-- Reversión: no aplica.', '-- Reversión:\nselect 1;', '-- Reversión: no hay reversión automática']) {
+    await withMigrations({ '001.sql': `${marcador}\ndrop table t;` }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, marcador);
+    });
+  }
+  await withMigrations({ '001.sql': '-- Reversión:\n--   create table t (id int);\ndrop table t;' }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});

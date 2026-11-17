@@ -163,23 +163,25 @@ archivo` sin pasos de código.
   solo hablan con Supabase (ya cubierto por `common`), por eso `solo_supabase: true` y `domains: []`. `scripts/validar-egress-workers.mjs`
   falla si hay un worker descubierto sin entrada, si la política nombra un worker inexistente o si un flow referencia una red sin
   entrada, o si hay `solo_supabase: true` con `domains` no vacío; los dominios no admiten comodines de TLD (`*.com`). Lee la red de
-  los flows con comillas simples o dobles, `--network=…`, `--network …` y en subdirectorios de `infra/kestra/flows`, y rechaza un
-  `--network` literal fuera de la convención `worker-egress-<sistema>` (test: `scripts/validar-egress-workers.test.mjs`). Se corre
+  los flows con comillas simples o dobles, `--network=…`, `--network …`, `--net`, `network_mode:`/`networkMode:`, continuaciones de línea con `\` y
+  subdirectorios de `infra/kestra/flows`, y rechaza cualquier red literal (`host`, `bridge`, `$(…)`) fuera de la convención
+  `worker-egress-<sistema>` (se aceptan variables `$VAR` y `none`) (test: `scripts/validar-egress-workers.test.mjs`). Se corre
   también en el job `application` (dentro de `test:ci:scripts`; antes solo corría en `worker-images.yml`, que dispara solo en `main`).
   **Límite**: valida estructura y consistencia; NO detecta un `fetch` nuevo a un tercero en un worker ya listado (la allowlist real
   la aplica el firewall/proxy del servidor). Nota: 4 workers pueden enviar errores a GlitchTip con `ERRORES_DSN`
   (`workers/_comun/errores.mjs`); hoy ningún flow lo pasa (no-op). Si se activa, hay que declarar el host en `domains`
   (ver el campo `notas` del JSON).
 - **Migraciones aditivas (MSF-688).** `validar-migraciones-aditivas.mjs` también detecta `DROP SCHEMA`, `DROP FUNCTION` y
-  `DELETE FROM` sin `WHERE`; un tokenizador mínimo respeta los literales (`select '--'; drop table x;` ya no pasa) y el marcador
-  debe ser un comentario que nombre la «reversión» sin negarla (`-- sin reversión` no vale; `reversible` tampoco). No se exige que
+  `DELETE FROM` sin `WHERE`; un tokenizador mínimo respeta literales `'…'`, `E'…\'…'`, dollar-quoting `$tag$…$tag$` (su cuerpo se analiza como SQL) y comentarios de bloque anidados (`select '--'; drop table x;` ya no pasa) y el marcador
+  debe ser un comentario que nombre la «reversión» sin negarla (`-- sin reversión` no vale; `reversible` tampoco; `-- Reversión: ninguna` / `n/a` / `no aplica` / vacío sin pasos en la línea siguiente tampoco). El filtro es conservador: `-- Reversión: no hay reversión automática` se rechaza aunque declare un camino manual; reescribirlo (p. ej. `-- Reversión: restaurar desde el backup`). No se exige que
   empiece con «Reversión:» porque las 750 migraciones históricas usan formatos distintos. Corre también en `application` sobre las
   750 (~1,5 s). **Límites** (no cubre): SQL dinámico con `execute`; `DROP TYPE/VIEW/POLICY/INDEX/TRIGGER/ROLE/EXTENSION/OWNED`;
   `ALTER TABLE t DROP c` sin `COLUMN`; `UPDATE` sin `WHERE`; `REVOKE`; no valida que la reversión tenga pasos. `DROP
   CONSTRAINT/DEFAULT/NOT NULL` sigue sin marcarse (falso positivo conocido).
 - **Tests rápidos de tooling en el job `application` (MSF-679, parcial).** Paso `pnpm test:ci:scripts` (Node puro, sin base ni red,
-  ~1,5 a 3 minutos): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
-  fallaron (no corta en la primera). La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
+  ~1,5 a 3 minutos en el runner de CI; la cifra no se reproduce en hosts cargados, donde medimos ~160 s): lo corre `scripts/correr-suites.mjs`, que ejecuta TODAS las suites y falla al final con un resumen de las que
+  fallaron (no corta en la primera). Cada suite tiene timeout (600 s por defecto; `--timeout <s>` o `CORRER_SUITES_TIMEOUT_S`) y una
+  suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
   `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
 
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)

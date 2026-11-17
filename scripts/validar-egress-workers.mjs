@@ -7,9 +7,11 @@ import { discoverWorkers } from './descubrir-workers.mjs';
 // Dominio permitido: nombre completo o comodín `*.` sobre un dominio con al menos DOS etiquetas
 // (`*.proveedor.com` sí; `*.com` o `*` no, abrirían todo un TLD).
 const DOMINIO = /^(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
-const COMODIN_DE_TLD = /^\*\.[a-z0-9-]+$/i;
 const RED_CONVENCIONAL = /worker-egress-([a-z0-9][a-z0-9-]*)/gi;
-const NETWORK_LITERAL = /--network(?:=|\s+)["']?([^"'\s$\\]+)/g;
+// `--network x`, `--network=x`, `--net x`, `--net=x` (alias de docker) y `network_mode: x` / `networkMode: x`.
+const NETWORK_LITERAL = /(?:--net(?:work)?(?:=|\s+)|network_?mode["']?\s*[:=]\s*)["']?([^"'\s,}]+)/gi;
+// `none` = sin red (más estricto que cualquier allowlist). Una variable se lee hasta el primer espacio, por eso no se exige el `}`.
+const RED_VALIDA = /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$\{[A-Za-z_]\w*.*|\$[A-Za-z_]\w*)$/i;
 
 // LÍMITES: este validador comprueba ESTRUCTURA y consistencia (workers, redes de flows y allowlist). NO
 // detecta que un worker ya listado agregue un `fetch` a un tercero nuevo: la allowlist real se aplica fuera
@@ -38,13 +40,15 @@ export function redesDeFlows(directorio) {
   return redes;
 }
 
-// `--network <nombre literal>` que no sigue la convención `worker-egress-<sistema>` (las variables `$…` se permiten).
+// Red fijada con otra sintaxis (`--net`, `network_mode`, `host`, `$(…)`) que no sigue la convención
+// `worker-egress-<sistema>`. Se permiten solo las variables `$VAR` / `${VAR…}`. Las continuaciones de línea
+// (`\` + salto) se unen antes de leer, así `--network \` + nombre en la línea siguiente también se detecta.
 export function redesFueraDeConvencion(directorio) {
   const invalidas = [];
   for (const archivo of archivosYaml(directorio)) {
-    const texto = fs.readFileSync(archivo, 'utf8');
+    const texto = fs.readFileSync(archivo, 'utf8').replace(/\\\r?\n\s*/g, ' ');
     for (const m of texto.matchAll(NETWORK_LITERAL)) {
-      if (!/^worker-egress-[a-z0-9][a-z0-9-]*$/i.test(m[1])) invalidas.push(`${archivo}: --network ${m[1]}`);
+      if (!RED_VALIDA.test(m[1])) invalidas.push(`${archivo}: red ${m[1]}`);
     }
   }
   return invalidas;
@@ -73,7 +77,7 @@ export function validarPolitica(policy, workersDescubiertos = [], redesFlows = n
       throw new Error(`${system}: red de egress invalida o ausente.`);
     }
     const domains = entry.domains ?? [];
-    if (!Array.isArray(domains) || domains.some((domain) => !DOMINIO.test(domain) || COMODIN_DE_TLD.test(domain))) {
+    if (!Array.isArray(domains) || domains.some((domain) => !DOMINIO.test(domain))) {
       throw new Error(`${system}: dominios de egress invalidos o ausentes (sin comodines de TLD como *.com).`);
     }
     if (entry.solo_supabase === true && domains.length > 0) {
