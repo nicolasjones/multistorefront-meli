@@ -120,7 +120,9 @@ export type DatosLista = {
 
 // «-20», «-12,5», «+10», «0,25». Acepta coma o punto; hasta 2 decimales; de -90 a +100. Inválido → null.
 export function parsearAjuste(texto: string): number | null {
-  const limpio = texto.trim().replace(/\s/g, '').replace('%', '')
+  // Los espacios de los extremos se recortan y se admite uno antes del «%» (como lo muestra `formatearAjuste`);
+  // un espacio dentro del número («1 0», «- 20») no es válido.
+  const limpio = texto.trim().replace(/\s*%$/, '')
   if (!/^[+-]?\d+([.,]\d{1,2})?$/.test(limpio)) return null
   const valor = Number(limpio.replace(',', '.'))
   if (!Number.isFinite(valor) || valor < AJUSTE_MINIMO || valor > AJUSTE_MAXIMO) return null

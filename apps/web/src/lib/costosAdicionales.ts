@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { formatearPesos } from './formatoRanking'
+import { formatearPesosConCentavos } from './formatoRanking'
 
 // Costos adicionales del canal (F-REN-08, spec `rentabilidad-real-y-reportes-de-ventas`). La autoridad es
 // la base (migraciones 20270201100000 y 20270201100010: `listar_costos_adicionales`,
@@ -73,8 +73,9 @@ export function validarCostoAdicional(entrada: {
   return errores
 }
 
+// El monto por unidad admite centavos (12,5 → «$ 12,50»); un entero se ve sin decimales («$ 12.500»).
 export const formatearValorCosto = (costo: Pick<CostoAdicional, 'tipo' | 'valor'>) =>
-  costo.tipo === 'porcentaje' ? `${valorATexto(costo.valor)} %` : `${formatearPesos(costo.valor)} por unidad`
+  costo.tipo === 'porcentaje' ? `${valorATexto(costo.valor)} %` : `${formatearPesosConCentavos(costo.valor)} por unidad`
 
 // Mensaje claro según el código de la base; nunca el texto técnico.
 export function mensajeDeErrorCosto(error: { code?: string } | null | undefined, empresaNombre?: string): string {

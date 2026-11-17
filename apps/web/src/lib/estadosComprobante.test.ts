@@ -24,6 +24,12 @@ describe('catálogo de estados del comprobante', () => {
     expect(etiquetaEstadoComprobante('')).toBe('')
   })
 
+  it('un nombre heredado de Object no se toma por un estado', () => {
+    for (const nombre of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+      expect(definicionEstado(nombre), nombre).toEqual({ etiqueta: nombre, tono: 'neutral', ayuda: '' })
+    }
+  })
+
   it('la tarjeta del detalle ofrece los estados en el orden del prototipo y todos existen en el catálogo', () => {
     expect(ESTADOS_DE_LA_TARJETA).toEqual(['confirmada', 'aceptado', 'cobrado', 'en_proceso', 'deuda', 'armando', 'incompleto'])
     for (const estado of ESTADOS_DE_LA_TARJETA) expect(ESTADOS_COMPROBANTE[estado]).toBeDefined()
