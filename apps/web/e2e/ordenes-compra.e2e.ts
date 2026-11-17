@@ -34,6 +34,8 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('[MSF-454:T012] crea una orden desde el listado de reposición y la marca como recibida', async ({ page }) => {
+    // En modo visible (slowMo 350 ms) el recorrido completo pasa del minuto por omisión: el primer intento se cortaba por tiempo.
+    test.setTimeout(180_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-ordenes-${sufijo}@example.com`
     const empresa = `Tienda órdenes ${sufijo}`
@@ -72,6 +74,10 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
       // Alta: el proveedor es el del producto en alerta y la cantidad sugerida es el mínimo.
       await page.getByRole('button', { name: 'Nueva orden de compra' }).click()
       const alta = page.getByRole('dialog', { name: 'Nueva orden de compra' })
+      // Con «Todas mis empresas» activa (el estado inicial del Administrador sin empresa elegida) el alta no trae empresa por
+      // omisión: hay que elegir la de la compra, o el envío se frena con «Elegí la empresa de la compra».
+      await alta.getByLabel('Empresa de la compra').click()
+      await page.getByRole('option', { name: empresa }).click()
       await alta.getByLabel('Proveedor').click()
       await page.getByRole('option', { name: proveedor }).click()
       await expect(alta.getByText(producto)).toBeVisible()
@@ -91,7 +97,8 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
       await expect(detalle.getByText(producto)).toBeVisible()
       await detalle.getByRole('button', { name: 'Marcar como recibida' }).click()
       await expect(page.getByText('Orden marcada como recibida')).toBeVisible()
-      await expect(detalle.getByText('Recibida')).toBeVisible()
+      // `exact`: el detalle también dice «Recibida: <fecha>» y el chip de estado es solo «Recibida».
+      await expect(detalle.getByText('Recibida', { exact: true })).toBeVisible()
     } finally {
       if (orgId) {
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)

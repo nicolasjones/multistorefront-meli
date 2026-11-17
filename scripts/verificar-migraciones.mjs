@@ -30,7 +30,7 @@
 // (no falla) y pide actualizar la rama.
 //
 // Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
-// Sale con código 1 si hay un problema y con 2 si `--base` o `GITHUB_BASE_REF` empiezan con `-`.
+// Sale con código 1 si hay un problema y con 2 si `--base` o `GITHUB_BASE_REF` empiezan con `-`, o si `--base` no trae valor (ausente o vacío).
 
 import { spawnSync } from 'node:child_process';
 import { revisarDdl } from './guard-migraciones-ddl.mjs';
@@ -40,6 +40,15 @@ const valorDe = (flag, def) => {
   const i = args.indexOf(flag);
   return i >= 0 && args[i + 1] ? args[i + 1] : def;
 };
+// `--base` sin valor o con valor vacío (`--base ""`) no cae en silencio a la base por omisión: se rechaza. Un GITHUB_BASE_REF
+// vacío (push sin PR) sí es normal y usa la base por omisión.
+{
+  const i = args.indexOf('--base');
+  if (i >= 0 && !args[i + 1]) {
+    console.error(`--base inválido (${JSON.stringify(args[i + 1] ?? '')}): falta el valor; pasá una rama, p. ej. --base origin/dokploy, o quitá la opción para usar la base por omisión.`);
+    process.exit(2);
+  }
+}
 // Defensa en profundidad: una base que empieza con `-` se leería como opción de git (`--output=…`, `--upload-pack=…`) en
 // los `git rev-parse`/`merge-base`/`diff` de más abajo. `--base --estricto` (falta el valor) también cae acá.
 for (const [origen, valor] of [['--base', valorDe('--base', '')], ['GITHUB_BASE_REF', process.env.GITHUB_BASE_REF ?? '']]) {

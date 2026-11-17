@@ -335,6 +335,25 @@ test('rechaza un GITHUB_BASE_REF que empieza con «-»', () => {
   });
 });
 
+test('rechaza --base vacío o sin valor en vez de caer en silencio a la base por omisión', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    for (const args of [['--base', ''], ['--base']]) {
+      const r = correr(dir, args);
+      assert.equal(r.status, 2, `${JSON.stringify(args)}: ${r.stderr}`);
+      assert.match(r.stderr, /--base inválido/);
+      assert.match(r.stderr, /falta el valor/);
+    }
+  });
+});
+
+test('un push sin base ni GITHUB_BASE_REF (o con GITHUB_BASE_REF vacío) usa la base por omisión', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    assert.equal(correr(dir, []).status, 0);
+    const r = spawnSync(process.execPath, [script], { cwd: dir, encoding: 'utf8', env: { ...process.env, GITHUB_BASE_REF: '' } });
+    assert.equal(r.status, 0, r.stderr);
+  });
+});
+
 test('una base normal (con barra o sin ella) no se rechaza por el guion', () => {
   conRepo(['20270115100200'], ['20270121110303'], (dir) => {
     assert.equal(correr(dir, ['--base', 'origin/dokploy']).status, 0);

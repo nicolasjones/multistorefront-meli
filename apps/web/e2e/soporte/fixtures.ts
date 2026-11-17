@@ -105,6 +105,35 @@ export async function borrarUsuario(id: string) {
 }
 
 /**
+ * Asigna empresas y rol por empresa a una persona como lo hace la pantalla de Usuarios: `service_role` no escribe en
+ * `public.usuarios_empresas` (su único camino de escritura es la RPC `asignar_empresas_usuario` del Administrador de la
+ * organización), así que la RPC se llama con la sesión de un Administrador ya sembrado. La RPC reemplaza las asignaciones de
+ * la persona y fija la primera empresa como activa si no tenía una válida.
+ */
+export async function asignarEmpresasComoAdministrador(
+  correoAdmin: string,
+  usuarioId: string,
+  asignaciones: { empresa_id: string; rol_id: string }[],
+  password = CONTRASENA_E2E,
+) {
+  const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: correoAdmin, password }),
+  })
+  if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
+  const { access_token: token } = (await sesion.json()) as { access_token: string }
+  const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
+    method: 'POST',
+    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
+  })
+  if (!r.ok) throw new Error(`RPC asignar_empresas_usuario: ${r.status} ${await r.text()}`)
+}
+
+/**
  * Alta de una consulta como la de la tienda: `service_role` solo LEE `dominio.consultas`, así que entra por la RPC pública
  * (la empresa se resuelve por el dominio de `dominio.tiendas`). Devuelve el id de la consulta.
  */

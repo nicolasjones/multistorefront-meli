@@ -8,6 +8,7 @@ sources:
 
 Corre dentro de `pnpm docs:check` y compara `supabase/migrations` contra una base (`--base`, por defecto
 `origin/dokploy`; en un PR, `origin/$GITHUB_BASE_REF`).
+Un `--base` sin valor o vacío (`--base ""`) se rechaza con salida 2 en vez de caer en silencio a la base por omisión; un `GITHUB_BASE_REF` vacío (push sin PR) sí usa la base por omisión.
 
 El alcance son **las migraciones propias de la rama** (las que agregó, renombró o modificó desde el
 punto de divergencia con la base, `git merge-base`); las colisiones se comparan contra la **punta** de la
