@@ -84,7 +84,7 @@ describe('FormularioSuscripcion', () => {
     expect(mocks.suscribir).not.toHaveBeenCalled()
   })
 
-  it('los mensajes de error heredan el color del pie y no usan el rojo del tema (contraste AA, MSF-961)', async () => {
+  it('los mensajes de error heredan el color del pie y no usan el rojo del tema (contraste AA)', async () => {
     const { container } = render(
       <div style={{ color: 'rgb(255, 255, 255)' }}>
         <FormularioSuscripcion host="mundojc.localhost" />
