@@ -11,14 +11,14 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "a069e4106bbe7739a698eb52b96f63f4f7ee4856c66c2ce3cc13709e523d0fde",
-      "sourceHash": "7dc9ff4beaa157ad469e608b4e7f87c7388a147abb22fd15f7f673f050dc4c7e",
-      "sourceAt": "b545011f",
+      "pageHash": "f7b603998a1e0fa4baa2de11307c7c41530eaaf93a8ba4e923525125fa2a32ab",
+      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
+      "sourceAt": "764d5e1c",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "b545011f"
+      "commit": "764d5e1c"
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
@@ -431,9 +431,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "2377a8d019841b6eb36c894dcaaf7c300db4ffed058e3d7adc1f2dd1bd1f5b82",
+      "pageHash": "1ecaa7a6799e86400919153b31bb316cf8da966f95b27144d45de3643f3ecd23",
       "sourceHash": "415f944f15dff1d168d34a58fe51ea01e41828847989652b5436d74765e4149f",
-      "sourceAt": "fa0d16ab",
+      "sourceAt": "22e0b6f5",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -443,7 +443,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "22e0b6f5"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -655,16 +655,16 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "4db37f58db599b533be02eb192cb4d39cd13decfa361e772d4e95a7495534eae",
+      "pageHash": "fff3b53d5e814f07a28b10fa31da291b3044443ff05d82d7d4952d7de8b9c995",
       "sourceHash": "13302e754cc5e1f78a68ec0562def5c11a663c5ffbe993ad63775c886a000915",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "764d5e1c",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "764d5e1c"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -2603,9 +2603,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "17a67ab9d5b52d2efbcc138d55d086ba4427add223bd20aa84d35ee1ccd32095",
-      "sourceHash": "b3bbb0c94b44c0b4575d8d4e7feed9297af2eb23c46fb414f744dbf2f48b61dd",
-      "sourceAt": "775b35f0",
+      "pageHash": "dfa2f3e8b9c23f50b9a41bb5a9c84cde1e0f45ff6c57d94f767ec5083dc5070a",
+      "sourceHash": "8eb4d2b79d1185267d45ed10b798c5b838863c97a4bc5fd883b2526dcbb31cf4",
+      "sourceAt": "764d5e1c",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations",
@@ -2621,7 +2621,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "764d5e1c"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
@@ -2796,16 +2796,16 @@
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",
-      "pageHash": "0ab6664afcab3539974bec77bce9fd6a8f1b95e0abf34b54ddfca67ac57da07f",
-      "sourceHash": "91338ab0b556ad99915d2241285fc2c70585faa069c9cc04de9275a5d290fff0",
-      "sourceAt": "775b35f0",
+      "pageHash": "7c712a8abe1bdc480d375874858b5fbaf752d001b6b9e48401fe89023a89d3b6",
+      "sourceHash": "d70bbbd1e37e90593889ac10f8f733a52bdb417772288141f546d39682cbdd40",
+      "sourceAt": "775b35f04",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "775b35f0"
+      "commit": "775b35f04"
     },
     "docs/tecnico/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio",
@@ -2822,15 +2822,15 @@
     },
     "docs/tecnico/consultas.md": {
       "title": "Consultas: modelo, RPC y aviso",
-      "pageHash": "eb646ecd93f2857b35421c4090fc3ecf8103ca7dc1a5b8945547ea1c6eaba9fd",
-      "sourceHash": "295f2a80170af646be062d8805bd8315e9184ec5de5fc2f6a400aa64e48ee7b5",
-      "sourceAt": "c7860a7c",
+      "pageHash": "362a4142be87eb57c9228242dbe1c2eaa1fc33172e819cd1fd2fb0ac3db447ec",
+      "sourceHash": "e58b078979e61d34a915133ca342a6484aa23c40a1a23c87aebe2671f8796be0",
+      "sourceAt": "764d5e1c",
       "sources": [
         "supabase/migrations",
         "infra/kestra/flows"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "764d5e1c"
     },
     "docs/tecnico/contactos.md": {
       "title": "Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)",

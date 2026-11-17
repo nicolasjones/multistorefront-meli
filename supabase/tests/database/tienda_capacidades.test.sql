@@ -123,7 +123,6 @@ select is(
     'publico.producto_por_dominio(text,uuid)',
     'publico.redireccion_por_dominio(text)',
     'publico.registrar_consulta_whatsapp(text,uuid,uuid)',
-    'publico.registrar_interes_whatsapp(text,uuid)',
     'publico.relacionados_por_dominio(text,uuid)',
     'publico.seo_tienda_por_dominio(text)',
     'publico.sitemap_por_dominio(text)',

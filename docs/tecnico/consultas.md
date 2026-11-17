@@ -37,7 +37,7 @@ panel; `publico` expone la RPC que llama la tienda.
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta; la llama la tienda como `anon`. | `20261205100100_crear_consulta_publica.sql` |
 | `public.consultas_bandeja` + RPC del panel | `public` | Lectura y edición desde el panel; no guardan datos. | `20261205100200`, `20261205100300`, `20261205100500` |
 | `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda. **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
-| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; la ejecuta la tienda como `anon`. | `20261214100100_registrar_interes_whatsapp.sql` |
+| `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` desde `20270507150100` (MSF-657). | `20261214100100_registrar_interes_whatsapp.sql` |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. | `20261214100200_interes_whatsapp_por_producto.sql` |
 
 Migraciones aditivas; la reversión va en una migración posterior (ver [Reversión](#reversion)). Las
