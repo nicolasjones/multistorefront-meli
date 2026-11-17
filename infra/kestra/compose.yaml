@@ -132,6 +132,9 @@ services:
       ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
       ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
+      # Solo desarrollo local: permite que el enlace de baja sea http/localhost. En un ambiente real queda `false` y el flow
+      # `correo-masivo` se niega a enviar con un enlace de baja que apunte a localhost (MSF-711).
+      ENV_CORREO_MASIVO_PERMITIR_LOCAL: ${CORREO_MASIVO_PERMITIR_LOCAL:-false}
       # Newsletter de la tienda (MSF-468, flow newsletter-confirmaciones): confirmaciones por ciclo.
       ENV_NEWSLETTER_CONFIRMACION_LOTE: ${NEWSLETTER_CONFIRMACION_LOTE:-20}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual

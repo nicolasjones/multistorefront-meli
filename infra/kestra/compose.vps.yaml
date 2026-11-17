@@ -1,6 +1,10 @@
 services:
   kestra:
     ports: !reset []
+    environment:
+      # Sin esta variable el despliegue del VPS falla: el Compose base cae a http://localhost:5173 y cada correo masivo
+      # saldría con el enlace de baja roto (MSF-711). Debe ser el origen público https del panel, sin barra final.
+      ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:?Definí CORREO_MASIVO_URL_BAJA (origen público https del panel) en el .env del ambiente}
 
 # The VPS reverse proxy joins this project's default network and forwards HTTPS
 # traffic to kestra:8080. Use a distinct .env.staging or .env.production file.

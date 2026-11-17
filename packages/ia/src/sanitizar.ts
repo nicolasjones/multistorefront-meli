@@ -1,4 +1,6 @@
-const clavesProhibidas = /password|secret|token|cookie|authorization|session/i
+// Lista negra por nombre de columna. `key`, `clave`, `hash`, `jwt`, `pin`, `pwd` solo cuentan como palabra completa
+// (separada por `_`, `-` o `.`) para no descartar columnas como `shipping` o `monkey`.
+const clavesProhibidas = /password|contrase[nñ]a|passwd|secret|token|cookie|authorization|session|api[_-]?key|apikey|(^|[_.-])(key|clave|hash|jwt|pin|pwd)([_.-]|$)/i
 
 export function sanitizarDato(valor: unknown, permitidos: readonly string[]): unknown {
   if (Array.isArray(valor)) return valor.map((item) => sanitizarDato(item, permitidos))

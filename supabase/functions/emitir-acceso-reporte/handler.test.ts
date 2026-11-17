@@ -282,6 +282,15 @@ describe('emitir-acceso-reporte', () => {
     assert.equal((await manejar(pedir(), deps)).status, 403)
   })
 
+  it('503 analitica_no_disponible si falla la RPC que resuelve la organización (no 403)', async () => {
+    const { deps, llamadas } = montar()
+    deps.resolverOrganizacion = async () => { throw new Error('rpc caída') }
+    const res = await manejar(pedir(), deps)
+    assert.equal(res.status, 503)
+    assert.deepEqual(await res.json(), { error: 'analitica_no_disponible' })
+    assert.equal(llamadas.superset.length, 0)
+  })
+
   it('503 analitica_no_disponible si falla la lectura del reporte (no 403: es un fallo del servicio)', async () => {
     const { deps, llamadas } = montar({ reporteFalla: true })
     const res = await manejar(pedir(), deps)
