@@ -7,9 +7,10 @@
 // el archivo igual que el servidor, sin distinguir mayúsculas.
 
 import type { DefinicionEntidad } from '../../../lib/migracion'
+import { ID_ENTIDAD_VINCULOS } from './rutas'
 
 export const ENTIDAD_VINCULOS: DefinicionEntidad = {
-  id: 'vinculos_proveedor_producto',
+  id: ID_ENTIDAD_VINCULOS,
   etiqueta: 'Vínculos proveedor ↔ producto',
   sustantivo: 'vínculo',
   sustantivoPlural: 'vínculos',

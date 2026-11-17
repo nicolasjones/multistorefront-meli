@@ -213,3 +213,10 @@ Sobre ese precio normal:
 - **Actividad:** `lista_precios.creada`, `lista_precios.editada` (porcentaje anterior y nuevo), `lista_precios.archivada`, `lista_precios.restaurada` y `cliente.lista_precio_asignada` (lista anterior y nueva, sin datos de contacto).
 - **Pruebas:** pgTAP `listas_precios.test.sql`, `listas_precios_bandera.test.sql` y `clientes_lista_precios.test.sql`; `exportacion_total.test.sql` extendido; Vitest `listas-de-precios.test.tsx` y `FormularioCliente.test.tsx`. Fases 3 y 4: pgTAP `precio_lista_cliente.test.sql` (paridad con la bandera apagada y con clientes sin lista contra una copia del cálculo anterior, y cada regla de precedencia), `ventas_lista_precios.test.sql` (guardar líneas, copiar presupuesto, notas de crédito, snapshot, validación de la confirmación) y `precio_lista_tienda_paridad.test.sql` (mostrador↔tienda, estados de cuenta, lista blanca); Vitest `LineasComprobante.test.tsx`, `ventasLineas.test.ts`, `ficha-precios-cliente.test.tsx` y `TarjetaProducto.test.tsx`.
 - **Reversión inmediata, sin migrar:** apagar la bandera. De cada fase: `git revert -m 1` de su merge; la tabla y la columna quedan inertes (aditivas).
+
+## Listado de Productos: Margen y Cotización
+
+La columna «Margen» del listado de Productos ((precio − costo) / precio, en pesos) solo existe con acceso a Rentabilidad, igual que «Costo». El botón «Cotización →» del bloque de precio abre la pantalla de Cotización en una pestaña nueva. «Stock bajo» y «Sin vincular a ML» siguen deshabilitados hasta que existan sus datos.
+
+El margen del listado es una **estimación**: (precio de lista − costo) / precio de lista, en pesos, con el costo en la moneda del producto (en USD se convierte con la misma cotización con que la base convirtió el precio). No incluye impuestos ni descuentos y puede diferir del margen de Rentabilidad; la celda lo aclara en un tooltip. El enlace «Cotización →» solo se ofrece a quien tiene la sección `cotizacion_dolar`, respeta el basename del router y abre en pestaña nueva.
+

@@ -320,3 +320,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
 ## Carga infinita
 
 Las pestañas Ventas, Cobros y Cotizaciones del dólar cargan por tandas de 25 al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. La búsqueda y la tienda reinician desde la primera tanda y el contador «N registros mostrados» se conserva. No mencionan productos: sin miniatura. Ver [`listados.md`](./listados.md).
+
+## Acceso y textos de la importación
+
+La ruta `/historial/importar` exige ser administrador (`RequiereAdministrador`) además de acceso a Ventas; se llega desde «Importaciones». El resumen de una importación fallida sin filas rechazadas ya no menciona al «worker». La ayuda del filtro de tienda no habla de las cotizaciones del dólar, que no usan ese filtro. Pendientes: tienda con nombre repetido (lo resuelve el worker) y plantilla descargable (falta el contrato de columnas).

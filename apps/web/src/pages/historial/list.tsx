@@ -174,7 +174,7 @@ function ConsultaVentasCobros({ tipo, tiendas, empresaId, onEmpresa }: { tipo: T
           empresas={tiendas}
           valor={empresaId === '' ? null : empresaId}
           onCambiar={(id) => elegirTienda(id ?? '')}
-          textoAyuda="Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales."
+          textoAyuda="Cada venta y cobro quedó asignado a la tienda que lo emitió."
         />
       ) : null}
 

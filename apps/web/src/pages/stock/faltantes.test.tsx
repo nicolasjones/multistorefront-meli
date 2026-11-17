@@ -137,7 +137,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     abrir()
     await screen.findByText('Producto 1')
     expect(screen.getByText(/0 seleccionados de 2 faltantes\./)).toBeInTheDocument()
-    expect(screen.getByText(/Un faltante se cierra solo cuando se ingresa la mercadería\./)).toBeInTheDocument()
+    expect(screen.getByText(/Un faltante se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo\./)).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001'))
     expect(screen.getByText(/1 seleccionado de 2 faltantes\./)).toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Seleccionar todos'))

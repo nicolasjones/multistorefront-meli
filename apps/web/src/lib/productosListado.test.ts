@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { MAXIMO_IDS_POR_PETICION } from './repartoIds'
-import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarCostos, consultarProductos, filtroBusquedaProductos, formatearCosto, hayFiltrosActivos, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
+import { CONSULTA_INICIAL, codigoBarrasBuscado, consultarCostos, consultarProductos, filtroBusquedaProductos, formatearCosto, hayFiltrosActivos, margenListado, LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
 function clienteFalso(respuesta: { data: unknown; error: unknown; count: number | null }) {
   const llamadas: Array<[string, ...unknown[]]> = []
@@ -184,5 +184,22 @@ describe('costo en el listado (F-CAT-16, FR-002)', () => {
     expect(formatearCosto(null)).toBe('—')
     expect(formatearCosto(undefined)).toBe('—')
     expect(formatearCosto('abc')).toBe('—')
+  })
+})
+
+describe('margenListado', () => {
+  it('en pesos es (precio − costo) / precio', () => {
+    expect(margenListado({ moneda: 'ARS', precioLista: 200, precioArs: 200 }, '150')).toBeCloseTo(0.25)
+  })
+
+  it('en USD pasa el costo a pesos con la cotización con que la base convirtió el precio', () => {
+    expect(margenListado({ moneda: 'USD', precioLista: 100, precioArs: 150000 }, 12.5)).toBeCloseTo((150000 - 18750) / 150000)
+  })
+
+  it('sin precio en pesos, sin costo o con precio cero no inventa un margen', () => {
+    expect(margenListado(undefined, 5)).toBeNull()
+    expect(margenListado({ moneda: 'USD', precioLista: 100, precioArs: null }, 5)).toBeNull()
+    expect(margenListado({ moneda: 'ARS', precioLista: 100, precioArs: 100 }, undefined)).toBeNull()
+    expect(margenListado({ moneda: 'ARS', precioLista: 0, precioArs: 0 }, 5)).toBeNull()
   })
 })
