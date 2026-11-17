@@ -385,11 +385,23 @@ function textoDelValor(valor: unknown): string {
 const RE_CAMPO_IMPORTE = /^(importe|monto|costo|precio|saldo|subtotal|total|descuento|recargo|valor|cobrado|deuda)(_[a-z0-9_]+)?$/
 const RE_CAMPO_NO_IMPORTE = /_(pct|porcentaje|items|filas|cuentas|cantidad|id|dias|orden|recalculados)$/
 
-const esCampoImporte = (clave: string) => RE_CAMPO_IMPORTE.test(clave) && !RE_CAMPO_NO_IMPORTE.test(clave)
+// Excepciones explícitas: columnas que el criterio por prefijo tomaría por importe y no lo son (`total_clientes` es un
+// conteo, `saldo_stock` son unidades). Se muestran crudas. Una columna nueva con prefijo de importe que no sea dinero
+// se agrega acá.
+const CAMPOS_QUE_NO_SON_IMPORTE: ReadonlySet<string> = new Set(['total_clientes', 'saldo_stock'])
 
-function textoDelCampo(clave: string, valor: unknown): string {
+// `valor` de `costos_adicionales_canal` es un porcentaje o un monto según su `tipo` (el mismo registro). Solo se formatea
+// como moneda cuando el `tipo` de ese lado es `monto`; con `porcentaje` se deja crudo. Sin `tipo` (otras entidades con un
+// `valor` de importe, p. ej. la cotización) rige el criterio por nombre.
+const esCampoImporte = (clave: string, tipoDelRegistro?: unknown) => {
+  if (CAMPOS_QUE_NO_SON_IMPORTE.has(clave)) return false
+  if (clave === 'valor' && tipoDelRegistro === 'porcentaje') return false
+  return RE_CAMPO_IMPORTE.test(clave) && !RE_CAMPO_NO_IMPORTE.test(clave)
+}
+
+function textoDelCampo(clave: string, valor: unknown, tipoDelRegistro?: unknown): string {
   const crudo = textoDelValor(valor)
-  if (crudo === SIN_VALOR || !esCampoImporte(clave) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
+  if (crudo === SIN_VALOR || !esCampoImporte(clave, tipoDelRegistro) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
   const texto = String(valor).trim()
   return /^-?\d+(?:[.,]\d+)?$/.test(texto) ? importeLegible(texto) : crudo
 }
@@ -406,7 +418,7 @@ export function camposDelCambio(anterior: ValoresActividad | null, nuevo: Valore
   const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
   return claves.map((clave) => ({
     campo: etiquetaDelCampo(clave),
-    anterior: textoDelCampo(clave, antes[clave]),
-    nuevo: textoDelCampo(clave, despues[clave]),
+    anterior: textoDelCampo(clave, antes[clave], antes.tipo),
+    nuevo: textoDelCampo(clave, despues[clave], despues.tipo),
   }))
 }

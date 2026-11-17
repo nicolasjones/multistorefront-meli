@@ -86,4 +86,23 @@ describe('useResumenEmpresas', () => {
     await waitFor(() => expect(result.current['e-1']).toBeDefined())
     expect(result.current['e-1'].dominioTienda).toBe('vieja.example.com')
   })
+
+  it('con dos tiendas por empresa toma la más antigua también cuando llega primero (orden inverso)', async () => {
+    mocks.tiendas.mockResolvedValue({ data: [
+      { empresa_id: 'e-1', dominio: 'vieja.example.com', created_at: '2026-01-01' },
+      { empresa_id: 'e-1', dominio: 'nueva.example.com', created_at: '2026-02-01' },
+    ], error: null })
+    const { result } = renderHook(() => useResumenEmpresas(['e-1']))
+    await waitFor(() => expect(result.current['e-1']).toBeDefined())
+    expect(result.current['e-1'].dominioTienda).toBe('vieja.example.com')
+  })
+
+  it('con la misma antigüedad desempata por dominio, llegue como llegue', async () => {
+    for (const orden of [['b.example.com', 'a.example.com'], ['a.example.com', 'b.example.com']]) {
+      mocks.tiendas.mockResolvedValue({ data: orden.map((dominio) => ({ empresa_id: 'e-1', dominio, created_at: '2026-01-01' })), error: null })
+      const { result } = renderHook(() => useResumenEmpresas(['e-1']))
+      await waitFor(() => expect(result.current['e-1']).toBeDefined())
+      expect(result.current['e-1'].dominioTienda).toBe('a.example.com')
+    }
+  })
 })
