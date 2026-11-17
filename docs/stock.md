@@ -76,7 +76,8 @@ recibe ningún privilegio.
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
-  carga diferida.
+  carga diferida. `/stock/motivos` está envuelta en `RequiereAdministrador`: quien no es administrador ve «Solo para
+  administradores» (la autorización real es la RLS de `dominio.motivos_movimiento`: escribe solo `puede_escribir()`).
 - `/stock`: producto, SKU y cantidad, con «Nuevo movimiento» (general y por fila) solo para quien edita. El diálogo
   muestra el stock resultante antes de confirmar, el responsable, deshabilita el doble envío y confirma «Movimiento
   registrado».

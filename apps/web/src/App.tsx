@@ -390,12 +390,12 @@ function App() {
                   }
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
-                <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/api" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ApiList /></Suspense></RequiereOrganizacionActiva>} />
-                <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaEdit /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
                 <Route
                   path="/empresas/:id/tienda/vista-previa"
@@ -573,7 +573,11 @@ function App() {
                   path="/stock/motivos"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense></RequiereAccesoSeccion>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <RequiereAdministrador seccion="Motivos de movimiento">
+                          <Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense>
+                        </RequiereAdministrador>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

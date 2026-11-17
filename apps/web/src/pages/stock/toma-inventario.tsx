@@ -11,7 +11,7 @@ import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { armarArbol, leerCategoriasSelector, opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
 import { supabaseClient } from '../../lib/supabase'
 import {
-  MENSAJE_TOMA_CONFIRMADA, armarItemsToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
+  MENSAJE_TOMA_CONFIRMADA, SIN_CATEGORIA, armarItemsToma, cargarDepositoToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
   rotularDiferencia, validarToma, type AjusteToma, type FilaToma,
 } from '../../lib/tomaInventario'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
@@ -36,6 +36,7 @@ export function TomaInventario() {
   const [categoriasListas, setCategoriasListas] = useState(false)
   const [errorCategorias, setErrorCategorias] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
+  const [deposito, setDeposito] = useState<string | null>(null)
   const [filas, setFilas] = useState<FilaToma[]>([])
   const [cargandoFilas, setCargandoFilas] = useState(false)
   const [errorFilas, setErrorFilas] = useState<string | null>(null)
@@ -61,13 +62,21 @@ export function TomaInventario() {
   }, [recargaCategorias])
 
   useEffect(() => {
+    let vigente = true
+    cargarDepositoToma()
+      .then((encontrado) => { if (vigente) setDeposito(encontrado.nombre) })
+      .catch((error) => { console.error('No pudimos cargar el depósito de la toma.', error) })
+    return () => { vigente = false }
+  }, [])
+
+  useEffect(() => {
     if (categoriaId === '') { setFilas([]); return }
     let vigente = true
     setCargandoFilas(true)
     setErrorFilas(null)
     setContados({})
     setIntentoConfirmar(false)
-    cargarFilasToma(idsDeOpcion(categorias, categoriaId))
+    cargarFilasToma(categoriaId === SIN_CATEGORIA ? [] : idsDeOpcion(categorias, categoriaId), categoriaId === SIN_CATEGORIA)
       .then((lista) => { if (vigente) { setFilas(lista); setCargandoFilas(false) } })
       .catch((error) => {
         console.error('No pudimos cargar los productos de la toma.', error)
@@ -138,8 +147,16 @@ export function TomaInventario() {
                 onChange={(evento) => setCategoriaId(evento.target.value)}
               >
                 {opciones.map((opcion) => <MenuItem key={opcion.id} value={opcion.id}>{opcion.ruta}</MenuItem>)}
+                <MenuItem value={SIN_CATEGORIA}>Sin categoría</MenuItem>
               </Select>
             </FormControl>
+            <TextField
+              label="Depósito"
+              value={deposito ?? ''}
+              disabled
+              helperText="La toma corrige el stock del depósito principal."
+              sx={{ maxWidth: 420 }}
+            />
             {categoriaId === '' ? (
               <EstadoVacio titulo="Elegí una categoría" descripcion="Vas a contar sus productos y corregir las diferencias con ajustes." />
             ) : cargandoFilas ? (
@@ -147,7 +164,7 @@ export function TomaInventario() {
             ) : errorFilas ? (
               <EstadoError titulo={errorFilas} reintentar={() => setRecargaFilas((valor) => valor + 1)} />
             ) : filas.length === 0 ? (
-              <EstadoVacio titulo="Esta categoría no tiene productos" descripcion="Elegí otra categoría para hacer la toma." />
+              <EstadoVacio titulo={categoriaId === SIN_CATEGORIA ? 'No hay productos sin categoría' : 'Esta categoría no tiene productos'} descripcion="Elegí otra categoría para hacer la toma." />
             ) : (
               <>
                 <TableContainer tabIndex={0} role="region" aria-label="Productos de la toma de inventario (se desplaza)">
