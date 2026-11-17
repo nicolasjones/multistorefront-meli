@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -14,6 +15,7 @@ vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabaj
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: { auth: { getUser: async () => ({ data: { user: null } }) } },
 }))
+vi.mock('react-router', () => ({ Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a> }))
 vi.mock('../../pages/acceso-restringido/AccesoRestringido', () => ({
   AccesoRestringido: ({ seccion }: { seccion: string }) => <p>Acceso restringido a {seccion}</p>,
 }))
@@ -44,7 +46,9 @@ describe('RequiereServiceTecnico', () => {
   it('sin la funcionalidad habilitada muestra «Acceso restringido» y no monta el contenido', () => {
     mocks.useFeatureHabilitada.mockReturnValue({ habilitada: false, isLoading: false })
     abrir()
-    expect(screen.getByText('Acceso restringido a Servicio técnico')).toBeInTheDocument()
+    expect(screen.getByText('Servicio técnico no está habilitado para tu organización')).toBeInTheDocument()
+    expect(screen.queryByText(/tu rol no incluye/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Acceso restringido a Servicio técnico')).not.toBeInTheDocument()
     expect(screen.queryByText('Contenido de Service')).not.toBeInTheDocument()
   })
 
