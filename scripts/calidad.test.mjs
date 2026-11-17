@@ -19,10 +19,12 @@ test("[MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no co
 // Lo que knip habría reportado en el `quality` de MSF-843: una dependencia que el paquete
 // que la importa no declara. Sale como texto legible, no como anotación `::warning`.
 const HALLAZGO_FALSO = "pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130";
-// Salida larga: el hallazgo va al principio y después hay ruido. Así el log del CI sólo lo
-// muestra si la salida se imprime COMPLETA —si se recorta a las últimas líneas, el hallazgo
-// se pierde y el rojo vuelve a quedar sin diagnóstico.
-const RUIDO = Array.from({ length: 42 }, (_, i) => `línea de ruido ${i + 1}`);
+// Salida larga: el hallazgo va al principio y después hay ruido. Así el log del CI y el informe
+// sólo lo muestran si la salida se imprime COMPLETA —si se recorta a las últimas líneas, el
+// hallazgo se pierde y el rojo vuelve a quedar sin diagnóstico. El ruido tiene que ser MÁS largo
+// que los dos recortes que hay que vigilar (40 líneas en la consola, 60 en el informe): si no,
+// el test pasa aunque el recorte vuelva.
+const RUIDO = Array.from({ length: 70 }, (_, i) => `línea de ruido ${i + 1}`);
 
 // Corre `scripts/calidad.mjs` con un `pnpm` falso en el PATH: el shim contesta `--version`
 // (para que la herramienta esté disponible) y, en el `pnpm dlx knip@…` que dispara el check

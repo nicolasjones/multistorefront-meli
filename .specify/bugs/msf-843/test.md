@@ -14,9 +14,9 @@ El hallazgo real del `quality` (knip) y el del `application` (`docs:check`) est�
 knip da 0 hallazgos y `docs:check` pasa. Lo que este PR agrega es la cobertura que faltaba para que
 un rojo de calidad vuelva a decir **qué** encontró: dos tests que corren `scripts/calidad.mjs` con un
 `pnpm` falso y exigen (a) que la salida del check que falló esté en `reports/calidad.md`, en
-`reports/calidad.log` **y en el log del propio paso del CI** (stdout, sin recortar) y (b) que las
-herramientas no hereden `GITHUB_ACTIONS` (que las volaba a su modo de anotaciones y dejaba el log sin
-texto).
+`reports/calidad.log` **y en el log del propio paso del CI** (stdout, sin recortar en ninguno de los
+tres) y (b) que las herramientas no hereden `GITHUB_ACTIONS` (que las volaba a su modo de anotaciones
+y dejaba el log sin texto).
 
 ## Checks Performed
 
@@ -24,7 +24,7 @@ texto).
 |-------|------------------|--------|-------|
 | Reproducción (post-fix) — knip | `pnpm dlx knip@6.44.1 --no-progress` sobre `dokploy` actual (`0d75df2c`) | pass | 0 hallazgos, exit 0. El hallazgo del CI (`pg` sin declarar en `apps/web/e2e/ventas-impresion.e2e.ts:88:130`) ya no está en la base. |
 | Reproducción del hallazgo ORIGINAL | `git show 3892a22f:apps/web/e2e/ventas-impresion.e2e.ts > apps/web/e2e/ventas-impresion.e2e.ts` + `pnpm dlx knip@6.44.1 --no-progress` (después `git checkout --` del archivo) | pass (reproduce) | Sale **idéntico** al texto que el reporte decía que no se podía leer: `Unlisted dependencies (1)` / `pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130` (exit 1). Al restaurar el archivo, knip vuelve a 0. Es la prueba de que el hallazgo existió y de que knip **no** está silenciado: sigue viendo ese archivo. |
-| Hallazgo del log (`conexiones/list.tsx:44:1`) | lectura del archivo completo (71 líneas) | pass (no es código muerto) | Los 11 imports se usan todos, `columnas:15` se usa en `61`, `ConexionList:23` es la ruta del panel y la línea 44 es el `useEffect` que dispara la carga (su retorno es la función de cleanup). No hay código muerto que quitar en ese archivo. |
+| Hallazgo del log (`conexiones/list.tsx:44:1`) | lectura del archivo completo (71 líneas) + comparación con el head del CI (`git diff 3892a22f HEAD -- apps/web/src/pages/conexiones/list.tsx`) | pass (no es código muerto) | Los 11 imports se usan todos, `columnas:15` se usa en `61`, `ConexionList:23` se usa en `apps/web/src/App.tsx:293` (la ruta `/conexiones`) y la línea 44 es el `useEffect` que dispara la carga (su retorno es la función de cleanup). Respecto del head del CI (`3892a22f`), el archivo difiere en **una** línea (el `aria-label` del `EditButton`, un ajuste de accesibilidad de MSF-585): la línea 44 sigue siendo el mismo `useEffect`, nunca fue una declaración exportada. |
 | Reproducción (post-fix) — `docs:check` | `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | pass | `Documentación de cambios: OK`; `Migraciones OK`; `Trampas conocidas: OK`. |
 | Reproducción (post-fix) — guardián | `pnpm e2e:escritura:check` | pass | `ningún spec escribe directo en tablas de solo lectura para service_role`. |
 | Documentación del tooling contra el código | `docs/calidad.md` vs `scripts/calidad.mjs` y `package.json` | pass | La tabla «Qué corre» dice lo que el script corre de verdad (gitleaks con binario nativo, docker sólo de respaldo; SAST con oxlint 1.79.0) y el bloque «Uso» cita `pnpm calidad:code` (el script que define `package.json`), no `pnpm calidad --code`, que no existe. El encabezado de `scripts/calidad.mjs` pasó a `--only=secrets,sast`, la forma que el parser acepta. |
@@ -32,6 +32,7 @@ texto).
 | Test que detecta la regla (FEAT-236) | se quitó `delete childEnv.GITHUB_ACTIONS;` de `scripts/calidad.mjs` y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «las herramientas no heredan GITHUB_ACTIONS». Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | se quitó el `fallos.flatMap(...)` (la sección `## <check>`) de la plantilla del informe y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló». Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | el check con hallazgos volvió a imprimir sólo las últimas 40 líneas de su salida (`res.out.split("\n").slice(-40)`) y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló» (el hallazgo quedaba fuera del log del CI). Se revirtió la mutación. |
+| Test que detecta la regla (FEAT-236) | la sección del check que falló en `reports/calidad.md` volvió a recortarse a las últimas 60 líneas y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló» (el hallazgo quedaba fuera del informe). **Con el ruido de 42 líneas que había antes, esta mutación NO la detectaba** (42 < 60): por eso el shim ahora emite 70 líneas, más que los dos recortes que hay que vigilar. Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | se inyectó `export const __prueba_muerta_msf843 = 1` en `apps/web/src/pages/conexiones/list.tsx` y se corrió knip | pass (detecta) | knip lo reporta (`apps/web/src/pages/conexiones/list.tsx:73:14`): la herramienta knip está viva y ve ese archivo. Se revirtió la inyección. |
 | Suite de CI | `pnpm test:ci` | pass | Verde (incluye `scripts/calidad.test.mjs`). |
 | Lint | `pnpm lint` | pass | exit 0 (sólo warnings preexistentes de `apps/web/src`, fuera de este cambio). |
@@ -65,6 +66,14 @@ $ node --test scripts/calidad.test.mjs
 # con el stdout del check con hallazgos recortado a las últimas 40 líneas:
 ℹ tests 3  ℹ pass 2  ℹ fail 1
 ✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
+
+# con la sección del check que falló de reports/calidad.md recortada a las últimas 60 líneas:
+ℹ tests 3  ℹ pass 2  ℹ fail 1
+✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
+
+# con el `delete childEnv.GITHUB_ACTIONS;` quitado de scripts/calidad.mjs:
+ℹ tests 3  ℹ pass 2  ℹ fail 1
+✖ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
 ```
 
 ```text
@@ -134,14 +143,16 @@ EXIT=0
 - La suite completa de `pnpm test` (pgTAP y E2E) no se corrió localmente: necesita el stack de
   Supabase; corre en el CI.
 - El hallazgo original del log del CI (`apps/web/src/pages/conexiones/list.tsx:44:1`) no era un
-  hallazgo de knip: el archivo es idéntico byte a byte en la base del CI, en el head del CI y en
-  `dokploy` actual, su línea 44 nunca fue una declaración exportada y no tiene código muerto
-  (revisado a mano). El hallazgo real —`pg` sin declarar en `apps/web/e2e/ventas-impresion.e2e.ts`—
-  **quedó reproducido** el 2026-11-17 restaurando ese único archivo desde `3892a22f`, y el texto
-  que knip imprime coincide byte a byte con lo que el reporte decía que no se podía leer. Por qué
-  el log mostraba la ruta equivocada (el runner consumió la salida de knip en modo anotaciones y el
-  log conserva sólo el último texto renderizado) queda anotado en el assessment; con este PR,
-  `reports/calidad.log` lo vuelve innecesario como fuente de verdad.
+  hallazgo de knip: la línea 44 es el `useEffect` que dispara la carga (igual en el head del CI
+  `3892a22f` que en `dokploy` actual, donde el archivo difiere del head del CI sólo por el
+  `aria-label` del `EditButton`, un ajuste de accesibilidad de MSF-585), nunca fue una declaración
+  exportada y no tiene código muerto (revisado a mano). El hallazgo real —`pg` sin declarar en
+  `apps/web/e2e/ventas-impresion.e2e.ts`— **quedó reproducido** el 2026-11-17 restaurando ese único
+  archivo desde `3892a22f`, y el texto que knip imprime coincide byte a byte con lo que el reporte
+  decía que no se podía leer. Por qué el log mostraba la ruta equivocada (el runner consumió la
+  salida de knip en modo anotaciones y el log conserva sólo el último texto renderizado) queda
+  anotado en el assessment; con este PR, `reports/calidad.log` lo vuelve innecesario como fuente de
+  verdad.
 
 ## Recommendation
 

@@ -14,7 +14,8 @@
 //       pnpm calidad:code       # sólo código (sin docker)
 //       node scripts/calidad.mjs --only=secrets,sast
 //
-// Escribe `reports/calidad.md` (resumen) y `reports/calidad.log` (salida COMPLETA de cada herramienta) y
+// Escribe `reports/calidad.md` (resumen + la salida COMPLETA de cada check con hallazgos) y
+// `reports/calidad.log` (salida COMPLETA de cada herramienta) y
 // devuelve exit != 0 si algún check falló. Un error de una herramienta (excepción, timeout, buffer)
 // queda como `hallazgos` con su causa y se llega al bloque `---- RESUMEN ----`. Un error del propio script
 // (uncaughtException/unhandledRejection) sale con exit 1 dejando la causa en consola y en `reports/calidad.log`.
@@ -133,7 +134,10 @@ const md = [
   `|---|---|`,
   ...rows.map((r) => `| ${r.name} | ${r.status} |`),
   ``,
-  ...fallos.flatMap((r) => [`## ${r.name}`, "", "```", r.out.split("\n").slice(-60).join("\n"), "```", ""]),
+  // El informe lleva la salida COMPLETA del check que falló: si se recorta, el hallazgo puede
+  // quedar fuera y el rojo vuelve a ser indiagnosticable (MSF-843). Los checks que pasan no
+  // necesitan su salida.
+  ...fallos.flatMap((r) => [`## ${r.name}`, "", "```", r.out, "```", ""]),
   `Salida completa de cada herramienta: \`reports/calidad.log\` (artifact \`calidad-reporte\`).`,
   ``,
 ].join("\n");

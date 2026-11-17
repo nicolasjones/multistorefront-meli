@@ -61,7 +61,8 @@ saber la causa. `scripts/calidad.mjs` lo evita con dos garantías, y las dos est
 test (`pnpm test:ci` → `scripts/calidad.test.mjs`). A eso se suma cómo hay que leer el informe:
 
 1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
-   `## <check>` por cada check con hallazgos, con su salida; `reports/calidad.log` lleva la
+   `## <check>` por cada check con hallazgos, con su salida **completa** —recortarla volvería a
+   esconder el hallazgo, que es justo lo que se quiere evitar—; `reports/calidad.log` lleva la
    salida completa de todas las herramientas. El artifact `calidad-reporte` sube los dos.
    El log del paso del CI también lo dice: la salida **completa** del check que falló se imprime
    en consola (los que pasan, sólo sus últimas 40 líneas). Es lo primero que se lee en el PR.
