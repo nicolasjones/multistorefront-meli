@@ -39,7 +39,7 @@ solo funciones, un índice y el bucket de Storage.
 |---|---|---|
 | `public.listar_comprobantes(...)` | `public` | `security invoker`, `authenticated`; página de facturas y notas con `filas` = total del filtro. |
 | `public.operadores_de_comprobantes(uuid)` | `public` | `security invoker`; opciones del filtro Operador acotadas por tienda. |
-| `public.exportar_comprobantes(text, ...)` | `public` | `security invoker`; todas las filas del filtro, tope 10.000; exige `ventas/exportar`. |
+| `public.exportar_comprobantes(text, ...)` | `public` | `security invoker`; todas las filas del filtro (incluido `p_origen`, canal panel/tienda de Presupuestos), tope 10.000; exige `ventas/exportar`. |
 | `public.solicitar_exportacion_comprobantes(text, jsonb)` | `public` | `security definer`; registra la ejecución diferida y su orden de despacho. |
 | `public.archivo_exportacion_comprobantes(uuid)` | `public` | `security definer`; solo el solicitante con `ventas/exportar` (si no, `42501`/`P0002`); ruta del CSV únicamente si la ejecución terminó `exitosa`. |
 | `private.comprobantes_consulta(...)` | `private` | Consulta única compartida por listado, exportación y worker. Sin grant a `authenticated`. |

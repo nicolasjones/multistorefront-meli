@@ -113,7 +113,7 @@ select is(
   (select count(*)::int from unnest(array[
     'public.listar_comprobantes(text,text,uuid,uuid,uuid,uuid,integer,integer)',
     'public.operadores_de_comprobantes(uuid)',
-    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)',
+    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)',
     'public.solicitar_exportacion_comprobantes(text,jsonb)',
     'public.archivo_exportacion_comprobantes(uuid)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute')),
@@ -123,7 +123,7 @@ select is(
   (select count(*)::int from unnest(array[
     'public.listar_comprobantes(text,text,uuid,uuid,uuid,uuid,integer,integer)',
     'public.operadores_de_comprobantes(uuid)',
-    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)',
+    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)',
     'public.solicitar_exportacion_comprobantes(text,jsonb)',
     'public.archivo_exportacion_comprobantes(uuid)'
   ]) as f where has_function_privilege('authenticated', f::regprocedure, 'execute')),
@@ -138,15 +138,15 @@ select is(
   false, 'operadores_de_comprobantes es security invoker'
 );
 select is(
-  (select prosecdef from pg_proc where oid = 'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)'::regprocedure),
+  (select prosecdef from pg_proc where oid = 'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)'::regprocedure),
   false, 'exportar_comprobantes es security invoker'
 );
 select is(
-  has_function_privilege('authenticated', 'private.comprobantes_consulta(uuid,uuid[],text[],text,text,uuid,uuid,uuid,uuid,integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'private.comprobantes_consulta(uuid,uuid[],text[],text,text,uuid,uuid,uuid,uuid,integer,integer,text)', 'execute'),
   false, 'authenticated no ejecuta la consulta interna que recibe organización y empresas'
 );
 select is(
-  has_function_privilege('authenticated', 'private.comprobantes_consulta_sesion(text[],text,text,uuid,uuid,uuid,uuid,integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'private.comprobantes_consulta_sesion(text[],text,text,uuid,uuid,uuid,uuid,integer,integer,text)', 'execute'),
   true, 'el puente que deriva organización y empresas de la sesión sí es ejecutable'
 );
 select is(
@@ -419,6 +419,26 @@ select throws_ok(
     pg_temp.exec_id()),
   '22023', null, 'el lote del worker tiene un tope'
 );
+
+-- Canal (p_origen) en la exportación: inmediata y diferida. El presupuesto del fixture no tiene vínculo con la tienda: es «panel».
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), 1, 'origen panel: exporta el presupuesto sin vínculo con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), 0, 'origen tienda: no exporta presupuestos sin vínculo');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => ' ')), 1, 'un origen vacío equivale a todos');
+select throws_ok($$select * from public.exportar_comprobantes('presupuestos', p_origen => 'inventado')$$, '22023', null, 'un origen desconocido se rechaza en la exportación');
+select throws_ok($$select public.solicitar_exportacion_comprobantes('presupuestos', '{"origen":"inventado"}'::jsonb)$$, '22023', null, 'la solicitud diferida rechaza un origen desconocido');
+select isnt(public.solicitar_exportacion_comprobantes('presupuestos', '{"origen":"panel"}'::jsonb), null, 'la solicitud diferida acepta el origen');
+reset role;
+select is(
+  (select e.detalle->'filtros'->>'origen' from public.ejecuciones_worker e
+    where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'presupuestos' limit 1),
+  'panel', 'el origen queda guardado en los filtros de la ejecución');
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'e1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select is(
+  (select count(*)::int from private.filas_exportacion_comprobantes(
+    (select e.id from public.ejecuciones_worker e where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'presupuestos' limit 1), 0, 100)),
+  1, 'el worker recibe las filas del canal guardado');
 
 -- Descarga por quien la pidió (FR-010): estado propio, ruta solo si terminó, nada de ejecuciones ajenas.
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');
