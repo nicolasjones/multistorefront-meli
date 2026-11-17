@@ -10,7 +10,9 @@ import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import { asuntoResumenSemanal, cuerpoResumenSemanal, type ContenidoResumen } from './contenido.ts'
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
+// Función servidor a servidor (la llama Kestra con x-aviso-token): sin `Access-Control-Allow-Origin: *`, ningún navegador
+// de otro origen puede invocarla.
+const corsHeaders = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 export const MAX_INTENTOS = 5

@@ -26,9 +26,12 @@ Deno.serve((req) => {
       return !error && !!data?.user
     },
     resolverOrganizacion: async (jwt, reporteId) => {
-      const { data } = await comoUsuario(jwt).rpc('resolver_organizacion_reporte', {
+      const { data, error } = await comoUsuario(jwt).rpc('resolver_organizacion_reporte', {
         p_reporte_id: reporteId,
       })
+      // Un error de la RPC es un fallo del servicio, no «sin acceso»: se propaga y el handler responde 503
+      // `analitica_no_disponible` (antes se ignoraba y todo daba 403, igual que ya se corrigió para `reporte`).
+      if (error) throw new Error(`No se pudo resolver la organización del reporte: ${error.message}`)
       return (data as string | null) ?? null
     },
     empresasAccesibles: async (jwt) => {

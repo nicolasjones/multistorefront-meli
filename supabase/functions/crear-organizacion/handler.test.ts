@@ -20,6 +20,7 @@ function montar(opciones: Opciones = {}) {
     borradas: [] as unknown[],
     invitados: [] as string[],
     membresias: [] as unknown[],
+    usuariosBorrados: [] as string[],
   }
   const deps: Deps = {
     admin: {
@@ -29,6 +30,7 @@ function montar(opciones: Opciones = {}) {
             ? { data: { user: { id: 'caller' } }, error: null }
             : { data: null, error: { message: 'expirado' } },
         admin: {
+          deleteUser: async (id: string) => { llamadas.usuariosBorrados.push(id); return { error: null } },
           inviteUserByEmail: async (email) => {
             llamadas.invitados.push(email)
             return opciones.inviteError
@@ -139,6 +141,24 @@ describe('crear-organizacion', () => {
     const res = await manejar(pedido(valido), deps)
     assert.equal(res.status, 400)
     assert.deepEqual(llamadas.borradas, ['org-1'])
+    // El usuario invitado también se borra: un reintento con el mismo correo no debe dar 422.
+    assert.deepEqual(llamadas.usuariosBorrados, ['fundador'])
+    assert.doesNotMatch(JSON.stringify(await res.json()), /fk/)
+  })
+
+  it('cuerpo null o con tipos que no son texto: 400, no un TypeError', async () => {
+    const { deps, llamadas } = montar()
+    for (const cuerpo of [null, { nombre: 5, email_fundador: 'a@b.c' }, { nombre: 'Acme', email_fundador: { x: 1 } }, []]) {
+      assert.equal((await manejar(pedido(cuerpo), deps)).status, 400, JSON.stringify(cuerpo))
+    }
+    assert.deepEqual(llamadas.insertOrg, [])
+  })
+
+  it('los errores de la base y de GoTrue no se devuelven textuales', async () => {
+    const a = await manejar(pedido(valido), montar({ insertOrgError: true }).deps)
+    assert.doesNotMatch(JSON.stringify(await a.json()), /duplicada/)
+    const b = await manejar(pedido(valido), montar({ inviteError: { message: 'smtp interno host=10.0.0.5', status: 500 } }).deps)
+    assert.doesNotMatch(JSON.stringify(await b.json()), /10\.0\.0\.5/)
   })
 
   it('si no se puede insertar la organización no invita a nadie', async () => {

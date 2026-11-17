@@ -1,8 +1,9 @@
-import { access } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactError, run } from './operaciones.mjs';
+import { mensajeFaltantes, variablesFaltantes } from './preflight-deploy-vps.mjs';
 
 // `up` necesita su propia variante de run(): run() en modo no silencioso
 // usa stdio 'inherit' (el progreso de Compose queda visible en el log, pero
@@ -55,8 +56,13 @@ async function upConReintento(args, options) {
 const environment = process.argv.slice(2).filter((value) => value !== '--')[0];
 if (!['staging', 'production'].includes(environment)) throw new Error('Uso: pnpm deploy:vps -- staging|production');
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const envFile = path.join(root, `.env.${environment}`);
+// DEPLOY_VPS_ENV_FILE solo lo usan las pruebas para apuntar a un archivo temporal.
+const envFile = process.env.DEPLOY_VPS_ENV_FILE ?? path.join(root, `.env.${environment}`);
 try { await access(envFile); } catch { throw new Error(`No existe .env.${environment} en el VPS.`); }
+
+// Preflight: antes de tocar Docker, comprobar las variables que el Compose exige.
+const faltantes = variablesFaltantes(await readFile(envFile, 'utf8'));
+if (faltantes.length > 0) throw new Error(mensajeFaltantes(faltantes, environment, path.basename(envFile)));
 
 // Puerto de la base del entorno: el compose lo usa para la URL de respaldos
 // (KESTRA_BACKUPS_DB_URL/PGDUMP_URL). Sin esto, cae al default (7634 = dev).

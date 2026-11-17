@@ -84,8 +84,9 @@ export async function sembrar(ctx) {
     await op.rpc('guardar_empresas_de_cliente', { p_cliente_id: fila.id, p_empresa_ids: ids(c.empresas) })
     ctx.clientes[c.clave] = { id: fila.id, numero: fila.numero, nombre: c.nombre, tipo: c.tipo, empresas: c.empresas, correo: c.correo, provincia: c.provincia, documento: c.documento, expreso_preferido: c.expreso_preferido, archivado: c.archivado, condicion_iva: c.condicion_iva }
   }
-  // `condicion_iva` NO se carga: la columna no tiene permiso para `authenticated` ni RPC, y la service-role tampoco puede
-  // actualizar public.clientes (falla con «permission denied for function documento_normalizado», ver informe).
+  // `condicion_iva` todavía no se carga desde este módulo (el alta usa `op.rpc`/RPC existentes sin esa columna). Ya hay vía:
+  // `authenticated` puede insertar/actualizar la columna (migración 20270507170000) y la importación la acepta; falta
+  // sumarla a la carga de este dataset demo.
   // Archivados al final: un cliente archivado ya no admite cuenta web ni vinculaciones.
   const aArchivar = defs.filter((c) => c.archivado)
   log(`${defs.length} clientes (${defs.filter((c) => c.tipo === 'mayorista').length} mayoristas)`)
