@@ -38,10 +38,10 @@ texto).
 | Build / type-check | `pnpm build` | pass | exit 0. |
 | Calidad | `pnpm calidad` | pass (con salvedad) | `knip`, `oxlint`, `jscpd`, `dependency-cruiser` y `syncpack` en **ok**; `gitleaks` no corrió porque necesita el daemon de Docker (no disponible en este entorno) y este diff no agrega secretos. |
 | Guardián de e2e | `pnpm test:e2e:escritura` | pass | 16/16. |
-| CI del PR #1127 — `quality` | run `44159631864` (job `134309635504`) | pass | `gitleaks`, `oxlint`, **`knip (código muerto): ok`**, `jscpd`, `dependency-cruiser`, `syncpack` y `commitlint` en **ok**. |
-| CI del PR #1127 — `application` | run `44159632130` (job `134309844830`) | pass | Incluye `pnpm docs:check`, `pnpm lint` y `pnpm build`. |
-| CI del PR #1127 — `infrastructure` | run `44159632130` (job `134309844777`) | pass | `pnpm test:ci` → 35/35; los dos tests nuevos de MSF-843 corrieron y pasaron en el CI. |
-| CI del PR #1127 — `validacion` | run `44159632130` (job `134311089949`) | pass | Sin causa propia: agrega los resultados de los demás jobs. |
+| CI del PR #1127 — `quality` | run `44184387889` (job `134396877895`), commit `f904930f3` | pass | `gitleaks`, `oxlint`, **`knip (código muerto): ok`**, `jscpd`, `dependency-cruiser`, `syncpack` y `commitlint` en **ok**, con el bloque `---- RESUMEN ----` impreso en el log del paso. |
+| CI del PR #1127 — `application` | run `44184387968` (job `134397057501`), commit `f904930f3` | pass | Incluye `pnpm docs:check`, `pnpm lint` y `pnpm build`. |
+| CI del PR #1127 — `infrastructure` | run `44184387968` (job `134397057378`), commit `f904930f3` | pass | `pnpm test:ci` → 35/35; los tres tests de `scripts/calidad.test.mjs` corrieron y pasaron en el CI. |
+| CI del PR #1127 — `validacion` | run `44184387968` (job `134398383180`), commit `f904930f3` | pass | Sin causa propia: agrega los resultados de los demás jobs. |
 
 ## Output Excerpts
 
@@ -96,7 +96,7 @@ EXIT=0
 ```
 
 ```text
-# el CI del PR #1127 (run 44159631864, job quality):
+# el CI del PR #1127 (run 44184387889, job quality — commit f904930f3):
 == gitleaks (secretos): ok
 == oxlint (SAST): ok
 == knip (código muerto): ok
@@ -113,7 +113,7 @@ EXIT=0
   ok         syncpack (versiones)
   ok         commitlint (mensajes)
 
-# el CI del PR #1127 (run 44159632130, job infrastructure — pnpm test:ci):
+# el CI del PR #1127 (run 44184387968, job infrastructure — pnpm test:ci):
 ✔ [MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no corra ninguna herramienta
 ✔ [MSF-843] el informe de calidad dice qué encontró el check que falló
 ✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
@@ -123,10 +123,11 @@ EXIT=0
 ## Residual Risks
 
 - La evidencia verde de `quality`/`application`/`validacion` sobre la base actual llegó con el PR
-  #1127 (`quality` run `44159631864`, `Validate` run `44159632130`). El `HEAD` de `dokploy` por sí
-  solo sigue sin corrida propia: el merge de este PR es la corrida de la base.
+  #1127 (`quality` run `44184387889`, `Validate` run `44184387968`, ambos sobre el commit
+  `f904930f3`, que es el que lleva el código). El `HEAD` de `dokploy` por sí solo sigue sin corrida
+  propia: el merge de este PR es la corrida de la base.
 - `gitleaks` no se pudo correr localmente (sin daemon de Docker). En el CI corre el binario nativo y
-  salió **ok** (run `44159631864`); el diff de este PR no agrega secretos.
+  salió **ok** (run `44184387889`); el diff de este PR no agrega secretos.
 - El test usa un `pnpm` falso en el `PATH`: depende de que `scripts/calidad.mjs` invoque `pnpm` por
   nombre. Si mañana el script deja de usar `pnpm` (o cambia cómo invoca las herramientas), el test
   debe cambiarse con él.

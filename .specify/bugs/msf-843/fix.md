@@ -93,9 +93,10 @@ líneas de ruido van **después** del hallazgo a propósito: si el script recort
 - `pnpm calidad` → `knip`, `oxlint`, `jscpd`, `dependency-cruiser` y `syncpack` en **ok**; `gitleaks`
   no corrió porque este entorno no tiene el binario nativo ni daemon de Docker (el CI instala el
   binario) y este diff no agrega secretos.
-- CI del PR #1127: `quality` (run `44159631864`) **success**, con `knip (código muerto): ok`;
-  `Validate` (run `44159632130`) **success** en `application`, `infrastructure` y `validacion`. En el
-  job `infrastructure` corrieron los dos tests nuevos (35/35).
+- CI del PR #1127 (commit `f904930f3`): `quality` (run `44184387889`) **success**, con
+  `knip (código muerto): ok` y el bloque `---- RESUMEN ----` impreso en el log del paso; `Validate`
+  (run `44184387968`) **success** en `application`, `infrastructure` y `validacion`. En el job
+  `infrastructure` corrieron los tres tests de `scripts/calidad.test.mjs` (35/35).
 
 ## Deviations from Assessment
 
