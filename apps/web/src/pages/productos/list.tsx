@@ -122,7 +122,11 @@ const columnaMargen = (precios: ReadonlyMap<string, PrecioListado>, costos: Read
   align: 'right',
   render: (producto) => {
     const margen = margenListado(precios.get(producto.id), costos.get(producto.id))
-    return <Typography variant="b" color={margen === null ? 'text.secondary' : undefined}>{formatearMargen(margen)}</Typography>
+    return (
+      <Tooltip title="Estimado: (precio de lista − costo) / precio de lista, en pesos. No incluye impuestos ni descuentos.">
+        <Typography variant="b" color={margen === null ? 'text.secondary' : undefined}>{formatearMargen(margen)}</Typography>
+      </Tooltip>
+    )
   },
 })
 
