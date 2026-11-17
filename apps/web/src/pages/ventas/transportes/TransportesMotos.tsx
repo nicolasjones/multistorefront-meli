@@ -1,3 +1,4 @@
+import { fechaDeMarca } from '../../../lib/periodosRanking'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Alert, Box, Button, Checkbox, LinearProgress, Link, Stack, Switch, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -43,7 +44,7 @@ type Props = {
 }
 
 // Fecha dd/mm del prototipo (la base entrega AAAA-MM-DD).
-const fechaCorta = (iso: string) => formatearFecha(iso.slice(0, 10)).slice(0, 5)
+const fechaCorta = (iso: string) => formatearFecha(fechaDeMarca(iso)).slice(0, 5)
 
 // Pestaña «Motos» de Transportes (F-VTA-24 y F-VTA-25, FR-006, FR-007 y FR-020…FR-025): tarjeta
 // «Motos sin rendir», tabla de envíos en moto, registro/edición, rendición por fila y en lote.
