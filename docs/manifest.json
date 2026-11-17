@@ -35,14 +35,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "93b74292f385c2c5bfc21d50fe8409180d21097e03c776d57f565535f9ae7ad1",
-      "sourceHash": "9983a5764716aa765c3826ae6e2bf087fcdce2ce6a13154ed09a9c7ac4feb9a4",
-      "sourceAt": "dc5599ac",
+      "pageHash": "d81cf4792638a8e79ba1f900cccc67068fe5468f7403326c3944e5802af6b9d6",
+      "sourceHash": "fba35e49b21b9b0a4e1321d3bdcd4ca25001fb6377149132ec24e69c8c45e1db",
+      "sourceAt": "3d97e3de",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "dc5599ac"
+      "commit": "3d97e3de"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -880,8 +880,8 @@
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "065ef6a5112dc7cb6ee56a9614cda01eebf134f4486fcde0f30fed5a6ab5ddf2",
-      "sourceHash": "4d69b42fcb51ed6ebaa1560cb2455c395f4fe74268a4d033baef2108b13c43bd",
+      "pageHash": "3bf92aae20af98eb1bc60b445ae7b95cc4ed345df6e2c8fb5ef59bbab1f74631",
+      "sourceHash": "6b4ca49f6d327786270bb6644561e27b6f72d56f840490eb2823fd329e4c765a",
       "sourceAt": "e70bdb10",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -945,9 +945,9 @@
     },
     "docs/newsletter.md": {
       "title": "Tiendas online · Newsletter de la tienda (MSF-468)",
-      "pageHash": "4229b2c98c3a050f151a689db85453fea77510d666d0752c7ed8cbb9395f25fb",
-      "sourceHash": "f21f7b5195a431cef91de8fd0d250830030ee2d30d9a880b7ff53f9589456bec",
-      "sourceAt": "9cde8838",
+      "pageHash": "f3985e3f9db7a2acfe6ab0ac298449d158071dba9077b81d42e5b698e83637ba",
+      "sourceHash": "c7fb8e3c1d4cad3fa4a214579580a1a7ee23c60751ec0dd82f03c97f23c2c6a1",
+      "sourceAt": "5356a51b",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -971,7 +971,7 @@
         "apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx"
       ],
       "owner": "tecnico",
-      "commit": "9cde8838"
+      "commit": "5356a51b"
     },
     "docs/notificaciones-en-panel.md": {
       "title": "Centro de notificaciones en el panel (MSF-378 · F-NOT-02)",
@@ -1091,7 +1091,7 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "eb2f18a682c71b26cf556a8763754809d3a1e6404ad75ebc3c41a128a3661ab6",
+      "pageHash": "960872959a4066a99682d0595fb767ac50395de2abe0984ef6e3b6de2a3e2c4d",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
       "sourceAt": "775b35f0",
       "sources": [
@@ -3049,9 +3049,9 @@
     },
     "docs/tecnico/newsletter.md": {
       "title": "Newsletter de la tienda (MSF-468)",
-      "pageHash": "cde1fa398da764c9b85fdf64ddc718b4e1cffde17bd0aec5991f9bcb921a4855",
+      "pageHash": "fc9570226116f3529085cda593df9fcaeb7ef45d58dcc9fcb578dd461c7e02d0",
       "sourceHash": "a0f552665209e538aa2f2b6797d20b2e5b94070368cb1a37958c3c9b0b22a299",
-      "sourceAt": "54895abc",
+      "sourceAt": "e1507ad5",
       "sources": [
         "specs/20270328-100000-newsletter-de-la-tienda",
         "supabase/migrations/20270342000000_newsletter_suscripcion.sql",
@@ -3070,7 +3070,7 @@
         "design/pantallas/Newsletter.inventory.json"
       ],
       "owner": "tecnico",
-      "commit": "54895abc"
+      "commit": "e1507ad5"
     },
     "docs/tecnico/notificaciones-ayuda-y-exportacion-total.md": {
       "title": "Notificaciones, ayuda y exportación total (MSF-224)",
@@ -3846,7 +3846,7 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "d02cd7c86fe4f835ec633e4f537f3055c09f08ae51934498a355b90eed5b1724",
+      "pageHash": "b572381d423c57b82201021cfafb98c7dba405088788c83a963f4b4f057f6736",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
       "sourceAt": "2a653744",
       "sources": [

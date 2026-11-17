@@ -37,7 +37,7 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 - **Nota de activación**: los borradores guardados antes de encender reciben un `40001` (hint `precios_cambiaron`, `detail = 'lista_precios'`) en su primera confirmación **solo si el cliente tiene una lista asignada**; volver a guardar las líneas lo resuelve. Lo mismo al apagarla con borradores que ya tenían lista.
 - **Reversión inmediata, sin migrar**: la misma sentencia con `activa = false`. Lo ya vendido conserva su snapshot.
 - **Ojo con el E2E**: el recorrido `listas-de-precios-recorrido.e2e.ts` cambia la bandera global del stack efímero y la restaura al final (si la restauración falla avisa por consola); no correrlo en paralelo con otro E2E que lea `listas_precios` ni contra un entorno compartido.
-- Antes de encender en prd conviene decidir el seguimiento MSF-969 (lista de pedido de la tienda).
+- La lista de pedido de la tienda («Enviar consulta») ya usa la lista del cliente con sesión (MSF-969, migración `20270507110000`): muestra y guarda el mismo precio que «Tu precio». Sin lista, sin sesión o con la bandera apagada no cambia.
 
 ## Contratos que quedaron
 
@@ -57,7 +57,7 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 
 | Ticket | Qué queda |
 |---|---|
-| MSF-969 | La lista de pedido de la tienda («Enviar consulta», `private.precio_referencia_pedido`) muestra el precio público. No se corrigió en el cierre: exige cambiar la firma de la función y sus tres llamadores (`lista_pedido_por_dominio`, `crear_consulta_pedido`, `enviar_lista_pedido`) y el precio de referencia que guarda cada consulta; es una decisión de producto previa a prd. |
+| MSF-969 | **Resuelto** (migración `20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql`): la lista de pedido de la tienda («Enviar consulta») y el `precio_referencia` que guarda cada consulta usan la lista del cliente con sesión, igual que «Tu precio» (gana el más bajo contra la promoción; sin el descuento de la ficha). Las consultas ya enviadas no se recalculan. |
 | MSF-973 | Asignación masiva de una lista a muchos clientes. |
 | MSF-974 | Exportar la lista del cliente en la planilla de clientes. |
 | MSF-975 | Analítica de ventas por lista. |

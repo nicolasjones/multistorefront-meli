@@ -241,6 +241,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'newsletter.enviar': 'Newsletter enviado',
   'newsletter.cancelar': 'Envío de newsletter cancelado',
   'newsletter.baja': 'Baja del newsletter desde el enlace',
+  'newsletter.tope_confirmaciones': 'Tope de confirmaciones por hora del newsletter alcanzado',
   'newsletter.baja_manual': 'Suscriptor del newsletter dado de baja',
   'newsletter.datos_borrados': 'Datos de un suscriptor del newsletter borrados',
 }
