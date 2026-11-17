@@ -8,7 +8,7 @@
 -- como `authenticated`.
 begin;
 
-select plan(38);
+select plan(42);
 
 -- ============================================================================
 -- Fixture
@@ -67,10 +67,12 @@ end $$;
 -- Estructura y privilegios (FR-001, FR-002)
 -- ============================================================================
 
-select is(has_function_privilege('anon', 'publico.registrar_interes_whatsapp(text, uuid)', 'execute'), true,
-  'anon ejecuta la RPC pública');
-select is(has_function_privilege('authenticated', 'publico.registrar_interes_whatsapp(text, uuid)', 'execute'), true,
-  'authenticated ejecuta la RPC pública');
+select is(has_function_privilege('anon', 'publico.registrar_interes_whatsapp(text, uuid)', 'execute'), false,
+  'anon NO ejecuta la RPC (sin cuota ni idempotencia: la tienda usa registrar_consulta_whatsapp)');
+select is(has_function_privilege('authenticated', 'publico.registrar_interes_whatsapp(text, uuid)', 'execute'), false,
+  'authenticated NO ejecuta la RPC');
+select is(has_function_privilege('service_role', 'publico.registrar_interes_whatsapp(text, uuid)', 'execute'), true,
+  'service_role ejecuta la RPC');
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'publico' and c.relkind in ('r', 'p')),
@@ -109,10 +111,21 @@ select is(has_table_privilege('anon', 'dominio.intereses_whatsapp', 'select'), f
 select is(has_table_privilege('anon', 'public.interes_whatsapp_por_producto', 'select'), false, 'anon sin SELECT en la vista');
 
 -- ============================================================================
--- Alta como anon: empresa solo por dominio (FR-002)
+-- Alta como service_role: empresa solo por dominio (FR-002); anon y authenticated no la ejecutan (MSF-657)
 -- ============================================================================
 
 set local role anon;
+select throws_ok(
+  $$select publico.registrar_interes_whatsapp('tienda-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'anon no puede llamar la RPC (no llena la métrica sin cota)');
+reset role;
+set local role authenticated;
+select throws_ok(
+  $$select publico.registrar_interes_whatsapp('tienda-a.ejemplo.com', 'a1000000-0000-0000-0000-000000000001')$$,
+  '42501', null, 'authenticated no puede llamar la RPC');
+reset role;
+
+set local role service_role;
 
 select lives_ok(
   $$select publico.registrar_interes_whatsapp('  Tienda-A.Ejemplo.com.:443 ', 'a1000000-0000-0000-0000-000000000001')$$,
@@ -156,6 +169,8 @@ select throws_ok(
   $$select publico.registrar_interes_whatsapp('tienda-a.ejemplo.com', null)$$,
   '22023', 'producto inválido', 'producto nulo → datos inválidos');
 
+reset role;
+set local role anon;
 -- anon no toca la tabla ni la vista.
 select throws_ok($$select * from dominio.intereses_whatsapp$$, '42501', null, 'anon no lee la tabla');
 select throws_ok($$select * from public.interes_whatsapp_por_producto$$, '42501', null, 'anon no lee la vista');
