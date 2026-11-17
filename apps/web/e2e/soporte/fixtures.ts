@@ -84,6 +84,22 @@ export async function borrar(ruta: string, esquema = 'public') {
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
 }
 
+/**
+ * Fija `activa` en una bandera de plataforma (`public.banderas_plataforma`) y devuelve su valor previo (`null` si la bandera
+ * no existe: no se escribe nada). Un error HTTP en la lectura o en el PATCH lanza: seguir con un estado desconocido
+ * escondería la causa. La guarda de «solo Supabase local» es la de `url` (se valida al cargar este módulo).
+ */
+export async function fijarBanderaPlataforma(clave: string, activa: boolean): Promise<boolean | null> {
+  const ruta = `banderas_plataforma?clave=eq.${encodeURIComponent(clave)}`
+  const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
+  if (!lectura.ok) throw new Error(`lectura de la bandera ${clave}: ${lectura.status} ${await lectura.text()}`)
+  const filas = (await lectura.json()) as { activa: boolean }[]
+  if (filas.length === 0) return null
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
+  if (!r.ok) throw new Error(`bandera ${clave}: ${r.status} ${await r.text()}`)
+  return filas[0].activa
+}
+
 /** Contraseña con la que los specs dan de alta a sus personas de prueba. */
 export const CONTRASENA_E2E = 'Correcta-12345!'
 
