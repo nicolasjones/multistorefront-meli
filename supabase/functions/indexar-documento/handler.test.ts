@@ -354,10 +354,48 @@ describe('indexar-documento', () => {
     m.deps.borrarFragmentos = async (...a) => { borrados++; return original(...a) }
     const res = await pedir(m.deps)
     assert.equal(res.status, 409)
+    assert.equal(((await res.json()) as { codigo: string }).codigo, 'no_procesable', 'no es «ocupado»: reintentar repetiría el mismo 409')
     assert.equal(borrados, 1, 'solo el previo al insert')
     assert.equal(soltados.length, 1)
     assert.match(soltados[0], /^indexando:\d+:abc$/)
     assert.equal(m.v.motivo_error, 'indexando:otra', 'no libera el candado de la otra invocación')
+  })
+
+  it('si la versión desaparece justo antes del borrado previo al insert, responde 404 (no 409) sin gastar el insert', async () => {
+    const m = montar()
+    const leer = m.deps.version
+    let lecturas = 0
+    m.deps.version = async (...a) => (++lecturas >= 2 ? null : leer(...a))
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 404)
+    assert.equal(m.insertados(), 0)
+  })
+
+  it('marcarFallida recibe el reclamo propio; si otra invocación retomó la versión antes, no marca ni borra ni libera su candado', async () => {
+    // El reclamo que se pasa es el que el handler escribió en la versión (no uno cualquiera).
+    const propio = montar({ texto: '   ' })
+    const recibidos: string[] = []
+    const original = propio.deps.marcarFallida
+    let reclamoVigente = ''
+    const reclamar = propio.deps.reclamar
+    propio.deps.reclamar = async (j, id, previo, reclamo) => { reclamoVigente = reclamo; return reclamar(j, id, previo, reclamo) }
+    propio.deps.marcarFallida = async (j, id, motivo, reclamo) => { recibidos.push(reclamo); return original(j, id, motivo, reclamo) }
+    assert.equal((await pedir(propio.deps)).status, 422)
+    assert.deepEqual(recibidos, [reclamoVigente])
+
+    // Otra invocación toma la versión entre la relectura de propiedad y el update condicional (el mock cambia el candado
+    // justo antes de aplicar el update, que compara el reclamo como lo hace la consulta real).
+    const m = montar({ texto: '   ' })
+    let borrados = 0
+    const borrar = m.deps.borrarFragmentos
+    m.deps.borrarFragmentos = async (...a) => { borrados++; return borrar(...a) }
+    const marcar = m.deps.marcarFallida
+    m.deps.marcarFallida = async (...a) => { m.v.motivo_error = 'indexando:otra'; return marcar(...a) }
+    const res = await pedir(m.deps)
+    assert.equal(res.status, 502)
+    assert.equal(m.v.estado, 'procesando', 'no se marcó fallida la versión que ahora es de otra invocación')
+    assert.equal(m.v.motivo_error, 'indexando:otra', 'no se liberó el candado ajeno')
+    assert.equal(borrados, 0)
   })
 
   it('un rechazo de la política de IA guarda un texto fijo, no el código interno', async () => {

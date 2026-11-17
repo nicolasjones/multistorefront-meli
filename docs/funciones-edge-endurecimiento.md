@@ -86,6 +86,12 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
 - El 409 lleva un `codigo`: `ocupado` (candado vigente) o `no_procesable` (ya procesada o 22023). La pantalla muestra un
   mensaje propio por estado/código, nunca el texto del backend (salvo el 422, accionable), y tras `no_procesable` o 404
   deja de ofrecer «Reintentar».
+- En la rama 22023 con la versión `procesando` de OTRA invocación se responde `no_procesable` (no `ocupado`): no se borra
+  nada, se suelta solo el reclamo propio y la pantalla no vuelve a ofrecer «Reintentar». Si entre la relectura de
+  propiedad y `marcarFallida` otra invocación retoma la versión, el update condicional por reclamo no aplica y se responde
+  502 sin marcar ni borrar. Deuda de pruebas: la consulta real de `marcarFallida` en `index.ts` (`.eq('estado','procesando')`
+  y `.eq('motivo_error', reclamo)`) no tiene test propio porque `index.ts` corre en Deno con `npm:` y no se importa desde
+  `node --test`; se cubre con el mock del handler y con la revisión de código.
 - La pantalla decide el mensaje por el estado HTTP y el `codigo` (`ErrorIndexacion.status` y `.codigo`), no por el texto del backend.
 - El rechazo de la política de IA (p. ej. `POLITICA_IA_INACTIVA`) va al log; al usuario y a `motivo_error` solo llega un texto fijo. `marcarFallida` solo aplica si el reclamo en la base sigue siendo el propio. Deuda (junto con el borrado de fragmentos): un borrado condicional por reclamo y estado en SQL cerraría la ventana restante sin transacción.
 - Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
