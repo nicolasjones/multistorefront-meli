@@ -30,7 +30,7 @@
 // (no falla) y pide actualizar la rama.
 //
 // Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
-// Sale con código 1 si hay un problema.
+// Sale con código 1 si hay un problema y con 2 si `--base` o `GITHUB_BASE_REF` empiezan con `-`.
 
 import { spawnSync } from 'node:child_process';
 import { revisarDdl } from './guard-migraciones-ddl.mjs';
@@ -40,6 +40,14 @@ const valorDe = (flag, def) => {
   const i = args.indexOf(flag);
   return i >= 0 && args[i + 1] ? args[i + 1] : def;
 };
+// Defensa en profundidad: una base que empieza con `-` se leería como opción de git (`--output=…`, `--upload-pack=…`) en
+// los `git rev-parse`/`merge-base`/`diff` de más abajo. `--base --estricto` (falta el valor) también cae acá.
+for (const [origen, valor] of [['--base', valorDe('--base', '')], ['GITHUB_BASE_REF', process.env.GITHUB_BASE_REF ?? '']]) {
+  if (valor.startsWith('-')) {
+    console.error(`${origen} inválido (${JSON.stringify(valor)}): no puede empezar con «-»; se confundiría con una opción de git.`);
+    process.exit(2);
+  }
+}
 const base = valorDe('--base', process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : 'origin/dokploy');
 const soloIdempotencia = args.includes('--solo-idempotencia');
 const esIntegracion = /^origin\/(dokploy|main)$/.test(base);

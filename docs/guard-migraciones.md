@@ -39,6 +39,10 @@ El CI corre el guard sobre el **merge** de la base en la rama (`refs/pull/N/merg
 sobre la rama sola: por eso el alcance se calcula contra el punto de divergencia con la
 punta de la base y no contra la punta de la base con el árbol de la rama.
 
+Defensa en profundidad: el guard rechaza (salida `2`, sin tocar git) un `--base` o un `GITHUB_BASE_REF` que empiece
+con `-`, porque se leería como una opción de git (`--output=…`) en los `git rev-parse`, `merge-base` y `diff` que usa.
+Un `--base` sin valor (`--base --estricto`) cae en el mismo rechazo en vez de tragarse la bandera siguiente.
+
 ## Nombre del archivo
 
 Todo archivo de `supabase/migrations/` tiene que llamarse `<versión>_<nombre>.sql`. El CLI de Supabase y el cron que aplica

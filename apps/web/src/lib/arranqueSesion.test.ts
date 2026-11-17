@@ -49,12 +49,11 @@ describe('instalarVencimientoDeSesion', () => {
 
     const detener = instalarVencimientoDeSesion(false)
     window.dispatchEvent(new Event('pointerdown'))
-    await Promise.resolve()
-    await Promise.resolve()
+    // La redirección llega cuando termina `logout` (promesa): se espera la condición, no un número fijo de ticks.
+    await vi.waitFor(() => expect(mocks.assign).toHaveBeenCalledWith('/login'))
     detener?.()
 
     expect(mocks.logout).toHaveBeenCalledTimes(1)
-    expect(mocks.assign).toHaveBeenCalledWith('/login')
   })
 
   it('en el panel la actividad reciente renueva la marca y no cierra la sesión', () => {

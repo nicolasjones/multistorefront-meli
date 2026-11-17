@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
+import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // MSF-716 (F-STK-11, T014): la toma de inventario con una categoría grande fallaba porque el stock
@@ -10,65 +11,10 @@ import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin desde
 // Node (la service-role key nunca llega al navegador). Sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 // el archivo se omite (no entra al CI público): ver docs/e2e-app.md.
-const url = process.env.SUPABASE_URL
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const password = 'Correcta-12345!'
-
-// La service-role key crea y borra datos: solo contra un Supabase local.
-const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
-if (url && !HOSTS_LOCALES.includes(new URL(url).hostname)) {
-  throw new Error(`E2E de toma de inventario: SUPABASE_URL (${new URL(url).hostname}) no es un Supabase local; se aborta.`)
-}
+const password = CONTRASENA_E2E
 
 // Categoría grande: con 250 ids la URL del `in.(…)` mide ≈9,9 KB (el proxy corta a 8 KB).
 const CANTIDAD_PRODUCTOS = 250
-
-const cabeceras = (extra: Record<string, string> = {}) => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  ...extra,
-})
-
-async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=representation', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T[]
-}
-
-// Alta masiva: no hace falta la representación de 250 filas.
-async function restMinimo(ruta: string, cuerpo: unknown, esquema = 'public'): Promise<void> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: 'POST',
-    headers: cabeceras({ prefer: 'return=minimal', 'content-profile': esquema }),
-    body: JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${ruta}: ${r.status} ${await r.text()}`)
-}
-
-async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquema }) })
-  if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
-}
-
-async function altaUsuario(correo: string): Promise<string> {
-  const r = await fetch(`${url}/auth/v1/admin/users`, {
-    method: 'POST',
-    headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
-  })
-  if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-  return ((await r.json()) as { id: string }).id
-}
-
-async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
-  if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
-}
 
 async function ingresar(page: Page, correo: string) {
   await page.goto('/login')
@@ -100,13 +46,14 @@ test.describe('Stock · toma de inventario con categoría grande (MSF-716, F-STK
         { organizacion_id: org.id, nombre: nombreCategoria, posicion: 0 },
         'dominio',
       )
-      await restMinimo('productos', Array.from({ length: CANTIDAD_PRODUCTOS }, (_, i) => ({
+      // Alta masiva: no hace falta la representación de 250 filas (`return=minimal`).
+      await rest('productos', Array.from({ length: CANTIDAD_PRODUCTOS }, (_, i) => ({
         organizacion_id: org!.id,
         categoria_id: categoria.id,
         nombre: `Producto toma ${sufijo} ${i}`,
         sku: `E2E-TOMA-${sufijo}-${i}`,
         precio_lista: 100,
-      })), 'dominio')
+      })), 'dominio', 'return=minimal')
 
       const { contexto, page } = await abrirContextoGrabado(browser, testInfo)
       try {

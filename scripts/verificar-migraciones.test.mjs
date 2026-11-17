@@ -316,3 +316,28 @@ test('sin ancestro común con la base (clone superficial): cae a HEAD~1 y no se 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('rechaza una base que empieza con «-» (se leería como opción de git)', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    for (const args of [['--base', '--output=/tmp/x'], ['--base', '-x'], ['--base', '--estricto']]) {
+      const r = correr(dir, args);
+      assert.equal(r.status, 2, `${args.join(' ')}: ${r.stderr}`);
+      assert.match(r.stderr, /--base inválido/);
+    }
+  });
+});
+
+test('rechaza un GITHUB_BASE_REF que empieza con «-»', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    const r = correr(dir, [], { GITHUB_BASE_REF: '--output=/tmp/x' });
+    assert.equal(r.status, 2, r.stderr);
+    assert.match(r.stderr, /GITHUB_BASE_REF inválido/);
+  });
+});
+
+test('una base normal (con barra o sin ella) no se rechaza por el guion', () => {
+  conRepo(['20270115100200'], ['20270121110303'], (dir) => {
+    assert.equal(correr(dir, ['--base', 'origin/dokploy']).status, 0);
+    assert.equal(correr(dir, [], { GITHUB_BASE_REF: 'dokploy' }).status, 0);
+  });
+});

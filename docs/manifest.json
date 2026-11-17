@@ -679,8 +679,8 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "f655c8a80995def98a14333372ffdee03f8502e72ce5e2c2d49ef80d51dc9cd1",
-      "sourceHash": "7dc9ff4beaa157ad469e608b4e7f87c7388a147abb22fd15f7f673f050dc4c7e",
+      "pageHash": "498d6c09ada94750d2c20156e82bb72c01d5d6288d6f9a9abb07a69c5ff7ef3d",
+      "sourceHash": "aff5dbab9c97b3fb92faa368a698c23a31c42d1164daddb7340683c0c2b99e20",
       "sourceAt": "b545011f",
       "sources": [
         "specs"
@@ -752,15 +752,15 @@
     },
     "docs/guard-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
-      "pageHash": "5361cac73ee0402230a9d530d6de9f819d502e39fba6e8398cb5ee02b1d428e2",
-      "sourceHash": "a3b72c92b9bf4a3446fdda2de30e10a64c5cc8dc2ac824f974dc24cd923e2ec0",
-      "sourceAt": "a4303cff",
+      "pageHash": "d94c34ba61402bf226fa6657b4655aeffd5c90b6f5bf568287872b458f5d6d4b",
+      "sourceHash": "909fb32707115aa66c101e5990652b7723ac102868f983a7803e74972cbbaef4",
+      "sourceAt": "e7ebd30f",
       "sources": [
         "scripts/guard-migraciones-ddl.mjs",
         "scripts/verificar-migraciones.mjs"
       ],
       "owner": "plataforma",
-      "commit": "a4303cff"
+      "commit": "e7ebd30f"
     },
     "docs/guia-funcional.md": {
       "title": "Guía funcional: cómo usar el sistema",
@@ -4117,16 +4117,16 @@
     },
     "docs/verificacion-salida-correo.md": {
       "title": "Verificación de salida del correo (MSF-532)",
-      "pageHash": "29fd52b1bbe89f0db321d000e3d52f1ebb3379800daadea957e56c7f76516dc7",
-      "sourceHash": "dc6ba941bf8629e2423432aa9115ae06c74adb80f724900bbc2d5fc9f5e7e55a",
-      "sourceAt": "dd8bb20e",
+      "pageHash": "8d0f164e7efa1fa08e8d57240dc7bae928dfa193e860043f1b4089fce78e9e45",
+      "sourceHash": "dc95af4cb77c61d195cec9e5b2049b19bd57127ddc83b2dbe1f528afbbf3e547",
+      "sourceAt": "42cec371",
       "sources": [
         "specs/20261016-130000-perfil-y-permisos-avanzados",
         "scripts/verificar-salida-correo.mjs",
         "supabase/functions/solicitar-acceso"
       ],
       "owner": "tecnico",
-      "commit": "dd8bb20e"
+      "commit": "42cec371"
     },
     "docs/verificar-migraciones.md": {
       "title": "Guard de migraciones (`scripts/verificar-migraciones.mjs`)",
