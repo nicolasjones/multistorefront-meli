@@ -215,6 +215,7 @@ nav:
           - "Ventas · Catálogos de cobro y envío (épica MSF-139)": ventas-catalogos.md
           - "Ventas · Cobros y conciliación (épica MSF-195)": ventas-cobros-y-conciliacion.md
           - "Ventas · Comprobantes": ventas-comprobantes.md
+          - "Errores de negocio de las RPC y su respuesta HTTP": errores-negocio-postgrest.md
           - "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)": ventas-impresion.md
           - "Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329)": ventas-mostrador.md
           - "Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)": ventas-motos.md

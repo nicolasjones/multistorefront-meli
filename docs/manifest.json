@@ -719,6 +719,20 @@
       "owner": "operacion",
       "commit": "c7860a7c"
     },
+    "docs/errores-negocio-postgrest.md": {
+      "title": "Errores de negocio de las RPC y su respuesta HTTP",
+      "pageHash": "5cd0382e84d8317cccbb2f2268ee24b7f577e8d995c88018ddd471691c259ee3",
+      "sourceHash": "97e03a527e9d5e03d1710f0bbda5ca3110aa5ca736dc45ca2a3959baaa9a09a9",
+      "sourceAt": "882b71b9",
+      "sources": [
+        "apps/web/src/lib/mensajeErrorBase.ts",
+        "apps/web/src/lib/ventasPresupuestos.ts",
+        "apps/web/src/lib/facturasElegibles.ts",
+        "apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx"
+      ],
+      "owner": "tecnico",
+      "commit": "882b71b9"
+    },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
       "pageHash": "273c078f14d9f223e7b85ca592e29b56b333d60ce6c4b4b44388d7021ba092e6",
