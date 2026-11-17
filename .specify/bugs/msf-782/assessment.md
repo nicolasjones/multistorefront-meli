@@ -33,7 +33,7 @@ instante) el archivo falla con el error exacto del CI; en local, sin retraso, la
 
 - `apps/web/src/pages/clientes/formulario-cuenta-web.test.tsx:160` — el assert que reportó el rojo; espera con el timeout por defecto de Testing Library (1 s).
 - `apps/web/src/pages/clientes/formulario-cuenta-web.test.tsx:116,131,147` — misma carrera en las demás esperas del archivo (`waitFor` y `findByText` con 1 s).
-- `apps/web/src/pages/clientes/create.tsx:83-86` — origen del mensaje; **no se toca** (el texto y el comportamiento del producto se mantienen).
+- `apps/web/src/pages/clientes/create.tsx:83-85` — origen del mensaje; **no se toca** (el texto y el comportamiento del producto se mantienen).
 - `apps/web/src/test/setup.ts` — no define timeout global; `apps/web/vite.config.ts` define `testTimeout: 15000` (por test), no `asyncUtilTimeout` (por espera).
 
 ## Root Cause Hypothesis

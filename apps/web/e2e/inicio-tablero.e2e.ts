@@ -86,7 +86,8 @@ async function sembrar(sufijo: string, registro: Partial<Sembrado>): Promise<voi
   Object.assign(registro, { tienda: empresa.nombre, skuAlerta, nombreAlerta, nombreSinStock, nombreNormal, correos })
 }
 
-// Cada borrado va protegido: si uno falla, los siguientes igual corren y al final se informa lo que no se pudo limpiar.
+// `borrar()` y `borrarUsuario()` ya avisan con `console.warn` cuando la API responde con error HTTP (no lanzan): lo que acá se captura
+// es lo que sí lanza (p. ej. un corte de red), para que los borrados siguientes igual corran. El resumen final cubre solo esos casos.
 async function limpiar(datos: Partial<Sembrado>) {
   const fallos: string[] = []
   const intentar = async (nombre: string, accion: () => Promise<unknown>) => {
@@ -191,7 +192,6 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   })
 
   test('Consulta lee sin exportar y Operador no ve ingresos', async ({ browser }, testInfo) => {
-    // El recorrido visible (cursor, rótulos, tipeo a 90 ms por letra) es lento a propósito: con ~15 acciones el Administrador rozaba los 300 s.
     test.setTimeout(600_000)
     const siembra = datos as Sembrado
 
@@ -231,7 +231,6 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   })
 
   test('si falla «Resumen por tienda», el error y el reintento son solo de ese bloque', async ({ browser }, testInfo) => {
-    // El recorrido visible (cursor, rótulos, tipeo a 90 ms por letra) es lento a propósito: con ~15 acciones el Administrador rozaba los 300 s.
     test.setTimeout(600_000)
     const siembra = datos as Sembrado
     const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
