@@ -119,11 +119,11 @@ export function verificarDocumentacion(root = process.cwd()) {
   let links = 0;
   for (const file of mdFiles) {
     for (const e of erroresFrontMatter(fs.readFileSync(file, "utf8"), path.relative(root, file))) errores.push(e);
-    // Los bloques de código se vacían conservando los saltos de línea (los números de línea siguen siendo los del archivo).
-    const txt = fs.readFileSync(file, "utf8").replace(/```[\s\S]*?```/g, (bloque) => bloque.replace(/[^\n]/g, ""));
+    const txt = fs.readFileSync(file, "utf8");
     const rel = path.relative(root, file);
     const delArchivo = [];
-    const { enlaces, excesos, masExcesos } = enlacesMarkdown(txt);
+    const { enlaces, excesos, masExcesos, sinCerrar } = enlacesMarkdown(txt);
+    for (const l of sinCerrar) delArchivo.push(`${rel}:${l}: bloque de código sin cerrar (los enlaces que siguen no se validan)`);
     for (const x of excesos) delArchivo.push(`${rel}:${x.linea}: enlace demasiado largo para validarse (${x.motivo})`);
     for (const m of enlaces) {
       let t = m.destino.replace(/^<|>$/g, "");

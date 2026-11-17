@@ -135,4 +135,42 @@ describe("verificarDocumentacion", () => {
     assert.equal(errs.length, 51);
     assert.match(errs[50], /…y 30 error\(es\) de enlaces más/);
   });
+
+  it("(A) un enlace exterior roto detrás de una imagen anidada se detecta", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/img.png", "x");
+    escribir(root, "docs/guia/pagina.md", "# P\n\n[![a](img.png)](roto.md)\n");
+    const errs = verificarDocumentacion(root).errores;
+    assert.ok(errs.some((e) => /pagina\.md → roto\.md \(no existe\) \[línea 3\]/.test(e)), errs.join("\n"));
+    assert.ok(!errs.some((e) => /img\.png/.test(e)));
+  });
+
+  it("(B) un enlace roto después de fences mezclados se detecta y un fence sin cerrar falla", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/mezcla.md", "~~~\n```\n[x](dentro.md)\n~~~\n[roto](fuera.md)\n");
+    escribir(root, "docs/guia/abierto.md", "```\n[x](dentro.md)\n");
+    const errs = verificarDocumentacion(root).errores.join("\n");
+    assert.match(errs, /mezcla\.md → fuera\.md \(no existe\) \[línea 5\]/);
+    assert.doesNotMatch(errs, /dentro\.md/);
+    assert.match(errs, /abierto\.md:1: bloque de código sin cerrar/);
+  });
+
+  it("(C) valida referencias, HTML y destinos con espacios", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/con espacios.md", "# Ok\n");
+    escribir(root, "docs/guia/pagina.md", "[a]: falta-ref.md\n<a href=\"falta-html.md\">x</a>\n<img src=falta-img.png>\n[b](<con espacios.md>) [c](<falta con espacios.md>)\n");
+    const errs = verificarDocumentacion(root).errores.join("\n");
+    for (const f of ["falta-ref.md", "falta-html.md", "falta-img.png", "falta con espacios.md"]) assert.match(errs, new RegExp(`${f} \\(no existe\\)`));
+    assert.doesNotMatch(errs, /→ con espacios\.md/);
+  });
+
+  it("una página hostil de 1 MB con miles de enlaces demasiado largos termina y limita la salida", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/pagina.md", `[a](${"x".repeat(400)}) `.repeat(2600));
+    const t0 = Date.now();
+    const errs = verificarDocumentacion(root).errores.filter((e) => e.startsWith("docs/guia/pagina.md"));
+    assert.ok(Date.now() - t0 < 10000, `tardó ${Date.now() - t0} ms`);
+    assert.equal(errs.length, 51);
+    assert.match(errs[50], /…y 2550 error\(es\) de enlaces más/);
+  });
 });

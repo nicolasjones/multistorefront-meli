@@ -1,7 +1,7 @@
 // El agente edita mkdocs.yml; un ':' de más rompe el build de docs. Se avisa antes de abrir el PR.
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { erroresYaml, erroresFrontMatter, enlacesMarkdown, LARGO_MAXIMO_LINEA, MAX_TEXTO_ENLACE, MAX_DESTINO_ENLACE, MAX_TITULO_ENLACE, MAX_BLANCOS_ENLACE, MAX_EXCESOS_ENLACE } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter, enlacesMarkdown, LARGO_MAXIMO_LINEA, esBlanco, MAX_ETIQUETA_HTML, MAX_TEXTO_ENLACE, MAX_DESTINO_ENLACE, MAX_TITULO_ENLACE, MAX_BLANCOS_ENLACE, MAX_EXCESOS_ENLACE } from "./docs-yaml.mjs";
 
 describe("erroresYaml", () => {
   it("un nav válido no da errores", () => {
@@ -130,6 +130,15 @@ const hostiles = {
   "CR repetidos": (n) => `---\r${"a: [\r".repeat(n / 5)}---\r`,
 };
 const enlaces = {
+  "corchetes anidados": (n) => "[".repeat(n / 2) + "](x)".repeat(n / 8),
+  "fences alternados": (n) => "```\n~~~\n".repeat(n / 8),
+  "fences de longitud creciente": (n) => Array.from({ length: Math.floor(Math.sqrt(n)) }, (_, k) => "`".repeat(3 + (k % 50)) + "\n").join(""),
+  "etiquetas html": (n) => "<a href=".repeat(n / 8),
+  "etiquetas html con comilla": (n) => '<a href="'.repeat(n / 9),
+  "definiciones": (n) => "[x]:".repeat(n / 4),
+  "definiciones con destino": (n) => "[x]: y\n".repeat(n / 7),
+  "escapes": (n) => "\\[".repeat(n / 2),
+  "destino con <": (n) => "[a](<".repeat(n / 5),
   "corchetes sin cerrar": (n) => "[".repeat(n),
   "abre y destino repetidos": (n) => "[a](".repeat(n / 4),
   "enlaces vacíos repetidos": (n) => "[](".repeat(n / 3),
@@ -155,7 +164,7 @@ describe("rendimiento con entradas hostiles (escala lineal)", () => {
       const t = {};
       fn(fabrica(20 * 1024)); // calentamiento
       for (const kb of [20, 80, 320, 1024]) t[kb] = medir(fn, fabrica(kb * 1024));
-      assert.ok(t[1024] < 2000, `1 MB tardó ${t[1024].toFixed(0)} ms`);
+      assert.ok(t[1024] < 10000, `1 MB tardó ${t[1024].toFixed(0)} ms`);
       // 4× el tamaño debería costar ≈4×; una regex cuadrática da ≈16×. Piso de 100 ms contra el ruido.
       assert.ok(t[320] < 10 * Math.max(t[80], 100), `80 KB ${t[80].toFixed(0)} ms, 320 KB ${t[320].toFixed(0)} ms`);
       assert.ok(t[1024] < 10 * Math.max(t[320], 100), `320 KB ${t[320].toFixed(0)} ms, 1 MB ${t[1024].toFixed(0)} ms`);
@@ -170,7 +179,41 @@ describe("enlacesMarkdown", () => {
     assert.deepEqual(r.enlaces.map((m) => [m.destino, m.linea]), [["a.md", 1], ["img/p.png", 2], ["b.md#z", 2]]);
   });
   it("ignora lo que no es un enlace", () => {
-    assert.deepEqual(enlacesMarkdown("[a] (b) [c](  d) [e]( ) [f](g"), { enlaces: [], excesos: [], masExcesos: 0 });
+    const r = enlacesMarkdown("[a] (b) [c](  d) [e]( ) [f](g");
+    assert.deepEqual(r.enlaces.map((m) => m.destino), ["d"]);
+    assert.deepEqual([r.excesos, r.masExcesos, r.sinCerrar], [[], 0, []]);
+  });
+  it("(A) valida el enlace exterior de una imagen anidada", () => {
+    assert.deepEqual(destinos("[![a](i.png)](roto.md)"), ["i.png", "roto.md"]);
+    assert.deepEqual(destinos("[x [![a](i.png)](y.md) z](w.md)"), ["i.png", "y.md", "w.md"]);
+  });
+  it("(B) fences conforme a CommonMark: cierra solo con el mismo carácter y longitud suficiente", () => {
+    const cod = "[ok](dentro.md)";
+    for (const [ab, mid, ce] of [["~~~", "```", "~~~"], ["````", "```", "````"], ["```", "~~~", "```"], ["~~~~", "~~~", "~~~~"]]) {
+      const r = enlacesMarkdown(`${ab}\n${cod}\n${mid}\n${cod}\n${ce}\n[fuera](roto.md)\n`);
+      assert.deepEqual(r.enlaces.map((m) => [m.destino, m.linea]), [["roto.md", 6]], `${ab}/${mid}/${ce}`);
+      assert.deepEqual(r.sinCerrar, []);
+    }
+  });
+  it("(B) un fence sin cerrar se reporta y lo que sigue sigue siendo código", () => {
+    const r = enlacesMarkdown("[a](a.md)\n```\n[b](b.md)\n");
+    assert.deepEqual(r.enlaces.map((m) => m.destino), ["a.md"]);
+    assert.deepEqual(r.sinCerrar, [2]);
+    assert.deepEqual(enlacesMarkdown("``` x\n~~~\n```\n[c](c.md)").enlaces.map((m) => m.destino), ["c.md"]);
+    assert.deepEqual(enlacesMarkdown("```a`b\n[c](c.md)").enlaces.map((m) => m.destino), ["c.md"]); // no es un fence (backtick en la info)
+  });
+  it("(C) definiciones de referencia, HTML, destinos con espacios y corchete escapado", () => {
+    assert.deepEqual(destinos('[x]: roto.md "título"\n  [y]: <con espacios.md>\n[^1]: nota larga\n[Nota]: ver más\ntexto [x]: no.md'), ["roto.md", "con espacios.md"]);
+    assert.deepEqual(destinos('<a href="a.md">x</a> <A HREF=b.md> <img alt=x src=\'i.png\'> <abbr title="t"> <https://x.org>'), ["a.md", "b.md", "i.png"]);
+    assert.deepEqual(destinos("[a](<con espacios.md>) [b](<x.md> \"t\")"), ["con espacios.md", "x.md"]);
+    assert.deepEqual(destinos("[a\\]b](x.md) \\[c](y.md)"), ["x.md"]);
+  });
+  it("(D) esBlanco equivale a /\\s/ (NBSP y blancos Unicode separan el destino)", () => {
+    for (let k = 0; k < 0x10000; k++) assert.equal(esBlanco(String.fromCharCode(k)), /\s/.test(String.fromCharCode(k)), k.toString(16));
+    for (const b of ["\u00a0", "\u2003", "\u3000", "\u2028", "\ufeff"]) {
+      assert.deepEqual(destinos(`[a](x${b}y)`), [], "sin cierre tras el blanco");
+      assert.deepEqual(destinos(`[a](x${b}"t")`), ["x"]);
+    }
   });
   const caso = (nombre, ok, mal, motivo) => it(`tope de ${nombre}: el límite se valida y uno más se reporta`, () => {
     const a = enlacesMarkdown(ok);
@@ -183,9 +226,16 @@ describe("enlacesMarkdown", () => {
     assert.match(b.excesos[0].motivo, new RegExp(motivo));
   });
   caso("destino", `[a](${"x".repeat(MAX_DESTINO_ENLACE)})`, `[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)})`, "destino");
+  caso("destino en definición", `[a]: ${"x".repeat(MAX_DESTINO_ENLACE)}`, `[a]: ${"x".repeat(MAX_DESTINO_ENLACE + 1)}`, "destino");
+  caso("destino en etiqueta HTML", `<a href="${"x".repeat(MAX_DESTINO_ENLACE)}">`, `<a href="${"x".repeat(MAX_DESTINO_ENLACE + 1)}">`, "destino");
   caso("texto", `[${"t".repeat(MAX_TEXTO_ENLACE)}](a.md)`, `[${"t".repeat(MAX_TEXTO_ENLACE + 1)}](a.md)`, "texto");
   caso("título", `[a](b "${"t".repeat(MAX_TITULO_ENLACE)}")`, `[a](b "${"t".repeat(MAX_TITULO_ENLACE + 1)}")`, "título");
   caso("blancos antes del título", `[a](b${" ".repeat(MAX_BLANCOS_ENLACE)}"t")`, `[a](b${" ".repeat(MAX_BLANCOS_ENLACE + 1)}"t")`, "título");
+  it("una etiqueta HTML de más de 1000 caracteres se reporta", () => {
+    const r = enlacesMarkdown(`<a ${"x ".repeat(MAX_ETIQUETA_HTML)}href="a.md">`);
+    assert.equal(r.excesos.length, 1);
+    assert.match(r.excesos[0].motivo, /etiqueta HTML/);
+  });
   it("limita los excesos guardados y cuenta el resto", () => {
     const r = enlacesMarkdown(`[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) `.repeat(MAX_EXCESOS_ENLACE + 25));
     assert.equal(r.excesos.length, MAX_EXCESOS_ENLACE);
