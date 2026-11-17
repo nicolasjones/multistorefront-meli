@@ -34,13 +34,15 @@ export async function buscarProductoPorCodigoBarras(codigo: string): Promise<Pro
 }
 
 // El cliente «Consumidor final» de la organización (RLS de `clientes`); `null` si no hay (FR-003).
-export async function obtenerConsumidorFinal(): Promise<string | null> {
-  const { data, error } = await supabaseClient
+// Con `organizacionId` filtra explícitamente por la organización (no depende solo de la RLS: un superadmin con varias organizaciones a la vista no recibe la ajena).
+export async function obtenerConsumidorFinal(organizacionId?: string | null): Promise<string | null> {
+  let consulta = supabaseClient
     .schema('dominio').from('clientes')
     .select('id')
     .eq('es_consumidor_final', true)
     .is('archivado_en', null)
-    .limit(1)
+  if (organizacionId) consulta = consulta.eq('organizacion_id', organizacionId)
+  const { data, error } = await consulta.limit(1)
   if (error) throw error
   return ((data ?? [])[0] as { id: string } | undefined)?.id ?? null
 }
