@@ -880,8 +880,8 @@
     },
     "docs/listas-de-precios.md": {
       "title": "Listas de precios por cliente (F-PRE-14 y F-CLI-21)",
-      "pageHash": "065ef6a5112dc7cb6ee56a9614cda01eebf134f4486fcde0f30fed5a6ab5ddf2",
-      "sourceHash": "4d69b42fcb51ed6ebaa1560cb2455c395f4fe74268a4d033baef2108b13c43bd",
+      "pageHash": "3bf92aae20af98eb1bc60b445ae7b95cc4ed345df6e2c8fb5ef59bbab1f74631",
+      "sourceHash": "6b4ca49f6d327786270bb6644561e27b6f72d56f840490eb2823fd329e4c765a",
       "sourceAt": "e70bdb10",
       "sources": [
         "specs/20270327-100000-listas-de-precios-por-cliente",
@@ -1091,7 +1091,7 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "eb2f18a682c71b26cf556a8763754809d3a1e6404ad75ebc3c41a128a3661ab6",
+      "pageHash": "960872959a4066a99682d0595fb767ac50395de2abe0984ef6e3b6de2a3e2c4d",
       "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
       "sourceAt": "775b35f0",
       "sources": [
@@ -3846,7 +3846,7 @@
     },
     "docs/tienda-compra-y-cuentas.md": {
       "title": "Tienda online · Compra y cuentas (MSF-176)",
-      "pageHash": "d02cd7c86fe4f835ec633e4f537f3055c09f08ae51934498a355b90eed5b1724",
+      "pageHash": "b572381d423c57b82201021cfafb98c7dba405088788c83a963f4b4f057f6736",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
       "sourceAt": "2a653744",
       "sources": [
