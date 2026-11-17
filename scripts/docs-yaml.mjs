@@ -82,10 +82,11 @@ export function erroresFrontMatter(txt, nombre) {
     else if (/^- /.test(l) && enLista) errores.push(`${nombre}:${n}: ítem de lista en columna 0 dentro del front matter (indentá con dos espacios)`);
     const flujo = l.match(/^[A-Za-z_]+:\s*([[{].*)$/);
     if (flujo) {
-      const v = flujo[1];
+      // Lo que va entre comillas (`title: "[a"` no es un flujo) no cuenta.
+      const v = flujo[1].replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, "");
       const abre = (v.match(/[[{]/g) ?? []).length;
       const cierra = (v.match(/[\]}]/g) ?? []).length;
-      if (abre !== cierra) errores.push(`${nombre}:${n}: valor de flujo sin cerrar (${v.trim()})`);
+      if (abre !== cierra) errores.push(`${nombre}:${n}: valor de flujo sin cerrar (${flujo[1].trim()})`);
     }
   });
   return errores;

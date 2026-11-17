@@ -138,6 +138,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Tests de los controles de documentación (docs-yaml, docs-check, trampas conocidas, documentación de cambios).
+      - name: test:docs:check
+        run: pnpm test:docs:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales

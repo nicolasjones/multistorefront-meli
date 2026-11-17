@@ -88,4 +88,24 @@ describe("erroresFrontMatter", () => {
     assert.equal(errs.length, 1);
     assert.match(errs[0], /no se cierra/);
   });
+
+  it("un corchete entre comillas no es un flujo sin cerrar", () => {
+    assert.deepEqual(erroresFrontMatter('---\ntitle: "[a"\nowner: x\n---\n# T\n', "a.md"), []);
+    assert.deepEqual(erroresFrontMatter("---\ntitle: '{a'\nsources: [a, \"b]\"]\n---\n", "a.md"), []);
+    assert.equal(erroresFrontMatter("---\nsources: [a\n---\n", "a.md").length, 1);
+  });
+
+  it("una página hostil de 1 MB se analiza en tiempo lineal", () => {
+    const casos = [
+      "---\nowner: x\n" + "[".repeat(1_000_000),
+      "---\nowner: x\nsources: " + "[".repeat(1_000_000) + "\n---\n",
+      "---\r" + "a: [\r".repeat(200_000) + "---\r",
+      "---\n" + "\n---x".repeat(200_000),
+    ];
+    for (const c of casos) {
+      const t = Date.now();
+      erroresFrontMatter(c, "h.md");
+      assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
+    }
+  });
 });
