@@ -107,7 +107,7 @@ describe('RentabilidadCostosFijos', () => {
 
   it('si el tablero no está registrado para la organización lo dice, sin tablero ni reintento', () => {
     montar({ reportes: [] })
-    expect(screen.getByText(/todavía no está disponible para tu organización/)).toBeInTheDocument()
+    expect(screen.getByText(/falta importarlo en este entorno\. Pedile al administrador de la plataforma/)).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 

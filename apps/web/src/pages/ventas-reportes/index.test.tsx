@@ -398,7 +398,7 @@ describe('ReportesVentas (F-VTA-22, FR-005, SC-002, SC-003)', () => {
   it('si el tablero no está asignado a la organización lo dice sin detalle técnico', async () => {
     montar({ reportes: [{ id: 'otro', nombre: 'Ventas mensuales' }] })
     await esperarTiendas()
-    expect(screen.getByText('El tablero de «Más vendidos» todavía no está disponible para tu organización.')).toBeInTheDocument()
+    expect(screen.getByText(/El tablero de «Más vendidos» todavía no está disponible: falta importarlo en este entorno\. Pedile al administrador de la plataforma que importe los tableros/)).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 

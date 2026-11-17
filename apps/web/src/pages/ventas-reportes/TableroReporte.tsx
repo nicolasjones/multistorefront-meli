@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoVacio, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { useConteoVentasReporte } from '../../hooks/useVentasReportes'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
@@ -98,7 +98,7 @@ export function TableroReporte({
       />
     )
   } else if (!reporte) {
-    tablero = <EstadoError descripcion={`El tablero de «${etiquetaReporte}» todavía no está disponible para tu organización.`} />
+    tablero = <EstadoTableroNoDisponible nombre={`«${etiquetaReporte}»`} />
   } else if (falloActual === 'no_disponible') {
     tablero = <EstadoError descripcion={`No pudimos cargar el tablero de «${etiquetaReporte}».`} reintentar={reintentar} />
   } else {

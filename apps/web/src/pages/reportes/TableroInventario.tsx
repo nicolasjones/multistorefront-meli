@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { useReportesAsignados, type ReporteAsignado } from '../../hooks/useReportesAsignados'
 import { SECCION_INVENTARIO } from '../../lib/reportes-inventario'
@@ -45,7 +45,7 @@ export function TableroInventarioConReportes({ nombreReporte, etiquetaReporte, r
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion={`El tablero de «${etiquetaReporte}» todavía no está disponible para tu organización.`} />
+    tablero = <EstadoTableroNoDisponible nombre={`«${etiquetaReporte}»`} />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion={`No pudimos cargar el tablero de «${etiquetaReporte}».`} reintentar={reintentar} />
   } else {

@@ -219,7 +219,7 @@ export async function leerCategorias(cliente: Pick<SupabaseClient, 'schema' | 'f
       cliente.schema('dominio').from('categorias_empresa').select('categoria_id, empresa_id').order('categoria_id').order('empresa_id').range(desde, hasta)
         .returns<Array<{ categoria_id: string; empresa_id: string }>>()),
     leerPorTandas<{ categoria_id: string; productos: number }>((desde, hasta) =>
-      cliente.from('v_categorias_productos').select('categoria_id, productos').order('categoria_id').range(desde, hasta)
+      cliente.from('v_categorias_productos').select('categoria_id, productos').order('organizacion_id').order('categoria_id').range(desde, hasta)
         .returns<Array<{ categoria_id: string; productos: number }>>()),
   ])
   const empresasPor = new Map<string, string[]>()
