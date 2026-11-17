@@ -95,7 +95,8 @@ test.describe('Órdenes de compra a proveedores (MSF-454)', () => {
       await expect(detalle.getByText(producto)).toBeVisible()
       await detalle.getByRole('button', { name: 'Marcar como recibida' }).click()
       await expect(page.getByText('Orden marcada como recibida')).toBeVisible()
-      await expect(detalle.getByText('Recibida')).toBeVisible()
+      // `exact`: el detalle también dice «Recibida: <fecha>» y el chip de estado es solo «Recibida».
+      await expect(detalle.getByText('Recibida', { exact: true })).toBeVisible()
     } finally {
       if (orgId) {
         await borrar(`usuarios_organizacion?organizacion_id=eq.${orgId}`)

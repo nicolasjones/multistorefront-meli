@@ -99,7 +99,8 @@ test.describe('Avisos de acceso (MSF-639)', () => {
           await expect(operador.page.getByText('Tu rol (actual) no incluye Empresas. Pedile acceso a un administrador.')).toBeVisible()
         })
         await paso(operador.page, 'No es un error rojo: no aparece el aviso viejo «Acceso restringido»', async () => {
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          // `exact`: en modo visible el rótulo narrado (#__e2e_rotulo) repite estas palabras y `getByText` por subcadena lo contaría.
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
         })
         await rotulo(operador.page, 'Empresas: acceso restringido con el patrón común, no un error')
@@ -108,7 +109,7 @@ test.describe('Avisos de acceso (MSF-639)', () => {
           await operador.page.goto('/organizacion')
           await expect(operador.page.getByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeVisible()
           await expect(operador.page.getByText('Tu rol (actual) no incluye Mi organización. Pedile acceso a un administrador.')).toBeVisible()
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
         })
         await rotulo(operador.page, 'Mi organización: el mismo acceso restringido, sin error rojo')
@@ -123,7 +124,7 @@ test.describe('Avisos de acceso (MSF-639)', () => {
         })
         await paso(operador.page, 'El aviso informativo no es un error rojo', async () => {
           await expect(operador.page.locator('.MuiAlert-standardError')).toHaveCount(0)
-          await expect(operador.page.getByText('Acceso restringido')).toHaveCount(0)
+          await expect(operador.page.getByText('Acceso restringido', { exact: true })).toHaveCount(0)
         })
         await rotulo(operador.page, 'Detalle de la empresa: «Solo lectura» informativo, no un error')
       } finally {
