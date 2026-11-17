@@ -131,7 +131,8 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   })
 
   test('el Administrador ve los bloques con ingresos, filtra, ordena y exporta «Movimientos por producto»', async ({ browser }, testInfo) => {
-    test.setTimeout(300_000)
+    // El recorrido visible (cursor, rótulos, tipeo a 90 ms por letra) es lento a propósito: con ~15 acciones el Administrador rozaba los 300 s.
+    test.setTimeout(600_000)
     const siembra = datos as Sembrado
     const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
     try {
@@ -190,7 +191,8 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   })
 
   test('Consulta lee sin exportar y Operador no ve ingresos', async ({ browser }, testInfo) => {
-    test.setTimeout(300_000)
+    // El recorrido visible (cursor, rótulos, tipeo a 90 ms por letra) es lento a propósito: con ~15 acciones el Administrador rozaba los 300 s.
+    test.setTimeout(600_000)
     const siembra = datos as Sembrado
 
     const consulta = await abrirContextoGrabado(browser, testInfo, 'consulta')
@@ -229,7 +231,8 @@ test.describe('Inicio · tablero de gestión con tres roles', () => {
   })
 
   test('si falla «Resumen por tienda», el error y el reintento son solo de ese bloque', async ({ browser }, testInfo) => {
-    test.setTimeout(300_000)
+    // El recorrido visible (cursor, rótulos, tipeo a 90 ms por letra) es lento a propósito: con ~15 acciones el Administrador rozaba los 300 s.
+    test.setTimeout(600_000)
     const siembra = datos as Sembrado
     const admin = await abrirContextoGrabado(browser, testInfo, 'administrador')
     try {

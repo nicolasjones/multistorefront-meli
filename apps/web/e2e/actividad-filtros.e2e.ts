@@ -24,6 +24,8 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('el Administrador filtra por texto, tipo y período, y ve el estado vacío con filtros', async ({ page }) => {
+    // Cada `clic`/`escribir` del recorrido visible cuesta ~2 s (cursor y espera): con ~15 acciones y la siembra, 60 s no alcanzan.
+    test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-act-${sufijo}@example.com`
     const marca = `marca${sufijo}`
