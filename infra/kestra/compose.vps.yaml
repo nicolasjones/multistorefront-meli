@@ -6,5 +6,16 @@ services:
       # saldría con el enlace de baja roto (MSF-711). Debe ser el origen público https del panel, sin barra final.
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:?Definí CORREO_MASIVO_URL_BAJA (origen público https del panel) en el .env del ambiente}
 
+# MSF-705: credenciales OBLIGATORIAS en el VPS. El Compose base trae valores por defecto (`change-me-local`, `*-local`)
+# solo para el arranque local documentado; en un ambiente real, si falta la variable, `docker compose config` falla y el
+# despliegue se corta en vez de arrancar Kestra con una credencial conocida. Los valores van en `.env.staging`/`.env.production`
+# (secret VPS_DEPLOY_ENV). Este bloque no llega al contenedor: es una extensión de Compose que solo se interpola.
+x-variables-obligatorias:
+  kestra_db_password: ${KESTRA_DB_PASSWORD:?Definí KESTRA_DB_PASSWORD en el .env del ambiente (contraseña de la base de Kestra)}
+  kestra_basic_auth_username: ${KESTRA_BASIC_AUTH_USERNAME:?Definí KESTRA_BASIC_AUTH_USERNAME en el .env del ambiente (usuario de la UI/API de Kestra)}
+  kestra_basic_auth_password: ${KESTRA_BASIC_AUTH_PASSWORD:?Definí KESTRA_BASIC_AUTH_PASSWORD en el .env del ambiente (contraseña de la UI/API de Kestra)}
+  kestra_backups_db_password: ${KESTRA_BACKUPS_DB_PASSWORD:?Definí KESTRA_BACKUPS_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_backups)}
+  kestra_orquestacion_db_password: ${KESTRA_ORQUESTACION_DB_PASSWORD:?Definí KESTRA_ORQUESTACION_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_orquestacion)}
+
 # The VPS reverse proxy joins this project's default network and forwards HTTPS
 # traffic to kestra:8080. Use a distinct .env.staging or .env.production file.
