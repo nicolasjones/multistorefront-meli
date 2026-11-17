@@ -68,7 +68,7 @@ jobs:
       e2e: ${{ steps.d.outputs.e2e }}
       lane: ${{ steps.carril.outputs.lane }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - id: d
@@ -127,19 +127,22 @@ jobs:
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # MSF-925/926: acciones pineadas por SHA y todos los jobs con timeout-minutes (scripts/verificar-workflows.mjs).
+      - name: workflows:check
+        run: pnpm workflows:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
@@ -207,13 +210,13 @@ jobs:
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -225,7 +228,7 @@ jobs:
       # MSF-904: la instalación de Chromium (+ deps del SO) es de lo más lento y no depende del build: arranca en segundo plano
       # mientras se compila y el paso `esperar playwright install` (antes del e2e) la espera y falla si falló. El caché de
       # `~/.cache/ms-playwright` va antes y guarda el binario.
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         with:
           path: ~/.cache/ms-playwright
@@ -299,6 +302,12 @@ jobs:
           # (no como filtro de archivo), así que antes corría los 103 specs. `exec playwright test <archivo>` filtra de verdad.
           pnpm --filter @platform/web exec playwright test acceso-publico.e2e.ts recorrido-publico.e2e.ts
           # El reporte JSON (`resultado-e2e.json`) sale de la config en CI.
+      # MSF-928: Playwright cuenta un test omitido como éxito. Los dos specs públicos de este job no deben omitirse nunca
+      # (no dependen de ningún stack): si uno se salta por un entorno incompleto, el job falla, y el resumen del job cuenta
+      # los corridos y omitidos por archivo.
+      - name: e2e omitidos (los specs requeridos de este job no se pueden omitir)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=0 --requeridos=acceso-publico.e2e.ts,recorrido-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): viaja en el
       # artefacto y lo importa el panel SDLC, que sirve los videos.
       - name: cobertura:e2e
@@ -328,7 +337,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report
@@ -349,13 +358,13 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -411,7 +420,7 @@ jobs:
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -444,7 +453,7 @@ jobs:
         if: always()
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/resultado-e2e.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report-sesion
@@ -480,15 +489,15 @@ jobs:
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # En un PR hace falta el historial para calcular qué tests afecta el diff (`--changed`).
           # OJO: '0' va entre comillas. En una expresión `a && 0 || 1`, el 0 es falso y siempre daría 1 (clon superficial).
           fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas: ahorra el costo fijo de `pnpm install` en cada tramo.
@@ -546,11 +555,11 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -565,7 +574,7 @@ jobs:
           echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         if: runner.environment == 'github-hosted'
         with:
           version: 2.116.0
@@ -646,7 +655,7 @@ jobs:
       # `VITE_PANEL_HOSTS`: sin él el panel se sirve en `mundojc.localhost` y las tiendas no se resuelven.
       - name: build de la web contra el stack del CI
         run: pnpm --filter @platform/web exec vite build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -681,7 +690,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure() || cancelled()
         with:
           name: playwright-report-tienda
@@ -710,13 +719,13 @@ jobs:
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - run: pnpm infra:config
@@ -744,13 +753,13 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -765,7 +774,7 @@ jobs:
           echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1
         if: runner.environment == 'github-hosted'
         with:
           version: 2.116.0
@@ -804,8 +813,8 @@ jobs:
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: Liberar carril de admisión
@@ -830,11 +839,11 @@ jobs:
         run: |
           echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
           exit 1
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           sparse-checkout: scripts
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           node-version: 24

@@ -40,10 +40,11 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: [self-hosted, platform-local]
+    # MSF-926: tope explícito (el default de GitHub son 360 min: un job colgado ocuparía el runner self-hosted horas).
+    timeout-minutes: 60
     environment: worker-images-production
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Construir, escanear y publicar workers
         env:
           REGISTRY: ghcr.io

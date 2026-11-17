@@ -18,6 +18,13 @@ paths = [
   '''(^|/)\.specify/''',
   '''(^|/)graphify-out/''',
   '''(^|/)design/''',
+  # MSF-929: el store local de pnpm y las cachés de dependencias son CÓDIGO DE TERCEROS descargado, no del repo: traen claves de
+  # ejemplo de sus propios tests/docs y ponían el gate `quality` rojo con falsos positivos. Se excluyen SOLO estas carpetas de
+  # dependencias; el código del repo (apps/, packages/, supabase/, infra/, scripts/, workers/...) sigue escaneándose completo.
+  '''(^|/)\.pnpm-store/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.local/share/pnpm/''',
+  '''(^|/)\.cache/pnpm/''',
 ]
 # Vectores de prueba de CBU (públicos, válidos por dígito verificador, NO reales; MSF-240).
 # Se exime solo el valor exacto, no el archivo: un secreto pegado en el doc sigue detectándose.
