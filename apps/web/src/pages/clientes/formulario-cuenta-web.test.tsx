@@ -73,6 +73,12 @@ const abrir = (ruta: string, elemento: ReactNode) =>
 const escribir = (etiqueta: RegExp | string, valor: string) =>
   fireEvent.change(screen.getByLabelText(etiqueta), { target: { value: valor } })
 
+// El job `web` del CI corre este archivo en un shard, sobre un runner compartido: con
+// la CPU saturada la cadena del alta (crear cliente → tiendas → cuenta web → ficha)
+// tarda más que el 1 s por defecto de `findBy*` y el test falla por tiempo, no por
+// lógica (MSF-782). Los asserts siguen siendo estrictos: solo cambia la espera.
+const ESPERA = { timeout: 5000 }
+
 describe('campo «Cuenta web» del formulario (FR-015)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -113,10 +119,10 @@ describe('campo «Cuenta web» del formulario (FR-015)', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: 'Mundo JC' }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
 
-    await waitFor(() => expect(mocks.mutateCreate).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.mutateCreate).toHaveBeenCalledTimes(1), ESPERA)
     expect(mocks.guardar).toHaveBeenCalledWith('c-nuevo', ['e-1'])
     expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-nuevo', ['e-1'], 'activa', true)
-    expect(await screen.findByText('Cliente creado · invitación enviada')).toBeInTheDocument()
+    expect(await screen.findByText('Cliente creado · invitación enviada', undefined, ESPERA)).toBeInTheDocument()
   })
 
   it('sin la casilla de invitación crea la cuenta y avisa solo el alta', async () => {
@@ -128,8 +134,8 @@ describe('campo «Cuenta web» del formulario (FR-015)', () => {
     expect(invitacion).not.toBeChecked()
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
 
-    await waitFor(() => expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-nuevo', ['e-1', 'e-2'], 'activa', false))
-    expect(await screen.findByText('Cliente creado')).toBeInTheDocument()
+    await waitFor(() => expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-nuevo', ['e-1', 'e-2'], 'activa', false), ESPERA)
+    expect(await screen.findByText('Cliente creado', undefined, ESPERA)).toBeInTheDocument()
   })
 
   it('la edición parte del estado guardado y al pasar a Suspendida aplica el cambio', async () => {
@@ -144,10 +150,10 @@ describe('campo «Cuenta web» del formulario (FR-015)', () => {
     expect(screen.getByText('No puede ingresar hasta que lo reactives.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
-    await waitFor(() => expect(mocks.mutateUpdate).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.mutateUpdate).toHaveBeenCalledTimes(1), ESPERA)
     expect(mocks.guardar).toHaveBeenCalledWith('c-1', ['e-1', 'e-2'])
     expect(mocks.aplicarCuentaWeb).toHaveBeenCalledWith('c-1', ['e-1', 'e-2'], 'suspendida', false, 'activa')
-    expect(await screen.findByText('Cliente guardado')).toBeInTheDocument()
+    expect(await screen.findByText('Cliente guardado', undefined, ESPERA)).toBeInTheDocument()
   })
 
   it('si una tienda falla, lo informa sin perder el cliente creado', async () => {
@@ -157,6 +163,6 @@ describe('campo «Cuenta web» del formulario (FR-015)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Activa' }))
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
 
-    expect(await screen.findByText('Cliente creado · no se pudo crear la cuenta web en 2 tiendas')).toBeInTheDocument()
+    expect(await screen.findByText('Cliente creado · no se pudo crear la cuenta web en 2 tiendas', undefined, ESPERA)).toBeInTheDocument()
   })
 })
