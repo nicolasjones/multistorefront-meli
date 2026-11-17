@@ -133,6 +133,13 @@ describe('importes del detalle con formato de moneda', () => {
 })
 
 describe('campos del cambio (F-AUD-02, FR-007)', () => {
+  it('da formato de moneda a los campos de importe del antes y después, y no toca los demás números', () => {
+    expect(camposDelCambio({ total: '90919.40', cantidad: '12' }, { total: 859100, cantidad: '15' })).toEqual([
+      { campo: 'Total', anterior: '90.919,40', nuevo: '859.100,00' },
+      { campo: 'Cantidad', anterior: '12', nuevo: '15' },
+    ])
+  })
+
   it('arma campo por campo el antes y el después', () => {
     expect(camposDelCambio({ rol: 'Consulta' }, { rol: 'Mostrador' })).toEqual([{ campo: 'Rol', anterior: 'Consulta', nuevo: 'Mostrador' }])
   })

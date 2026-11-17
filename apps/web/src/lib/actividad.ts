@@ -378,6 +378,16 @@ function textoDelValor(valor: unknown): string {
   return String(valor)
 }
 
+// Campos de importe del antes → después: se muestran con formato de moneda («90.919,40»), no con el punto decimal crudo.
+const RE_CAMPO_IMPORTE = /(^|_)(importe|monto|total|subtotal|precio|costo|saldo|valor|cobrado|deuda)(_|$)/
+
+function textoDelCampo(clave: string, valor: unknown): string {
+  const crudo = textoDelValor(valor)
+  if (crudo === SIN_VALOR || !RE_CAMPO_IMPORTE.test(clave) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
+  const texto = String(valor).trim()
+  return /^-?\d+(?:[.,]\d+)?$/.test(texto) ? importeLegible(texto) : crudo
+}
+
 function etiquetaDelCampo(clave: string): string {
   return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
 }
@@ -390,7 +400,7 @@ export function camposDelCambio(anterior: ValoresActividad | null, nuevo: Valore
   const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
   return claves.map((clave) => ({
     campo: etiquetaDelCampo(clave),
-    anterior: textoDelValor(antes[clave]),
-    nuevo: textoDelValor(despues[clave]),
+    anterior: textoDelCampo(clave, antes[clave]),
+    nuevo: textoDelCampo(clave, despues[clave]),
   }))
 }
