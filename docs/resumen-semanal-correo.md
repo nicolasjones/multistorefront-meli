@@ -48,6 +48,8 @@ Las secciones cuya fuente no existe se omiten sin error. Solo hay **agregados** 
 ## Pausa y baja
 
 - **Pausa por organización**: «Mi organización» → «Resumen semanal por correo» (interruptor). Solo administradores (`configurar_resumen_semanal` exige `private.puede_escribir()`); un cambio real deja el evento `resumen_semanal.pausado` o `resumen_semanal.reanudado` en [Actividad](actividad.md).
+- **Interruptor y refresco**: el interruptor refleja de inmediato lo guardado; si el cambio se guardó pero el refresco posterior falla, la pantalla dice «Se guardó, pero no pudimos actualizar el estado» con «Reintentar», en lugar de «no se guardó» (`apps/web/src/pages/organizacion/ResumenSemanal.tsx:18`, `:95`).
+- **Endurecimiento de la función**: `enviar-resumen-semanal` es solo para Kestra: sin `Access-Control-Allow-Origin: *`, valida el destinatario como una única dirección y exige un token no débil (`supabase/functions/enviar-resumen-semanal/handler.ts`; ver [Endurecimiento de funciones Edge](funciones-edge-endurecimiento.md)).
 - **Baja personal**: «Avisos por correo» (`/cuenta/avisos`) lista «Resumen semanal de la organización» para quien tiene la sección `usuarios_permisos` (por defecto, el administrador).
 
 ## Secretos y variables (solo por entorno)

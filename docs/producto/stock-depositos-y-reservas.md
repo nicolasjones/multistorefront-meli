@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/stock/depositos.tsx
+  - apps/web/src/pages/stock/DepositoDialog.tsx
+  - apps/web/src/pages/stock/TrasladarDialog.tsx
 ---
 
 # Depósitos, traslados y reservas de stock

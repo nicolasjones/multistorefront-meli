@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/empresas
+  - apps/web/src/pages/organizacion
 ---
 
 # Tu organización y tus empresas

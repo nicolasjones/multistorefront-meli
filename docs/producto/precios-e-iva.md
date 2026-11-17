@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/promociones.tsx
+  - apps/web/src/pages/productos/listas-de-precios.tsx
 ---
 
 # Cómo se calcula el precio final

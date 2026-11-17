@@ -1,7 +1,9 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/stock/ordenes-compra.tsx
+  - apps/web/src/pages/reportes/Reposicion.tsx
+- specs
 ---
 
 # Stock único y alertas (MSF-231)

@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/stock/movimientos.tsx
+  - apps/web/src/pages/stock/list.tsx
 ---
 
 # Stock: ver, mover y controlar

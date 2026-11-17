@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/faltantes.tsx
 ---
 
 # Avisar a los clientes cuando vuelve a haber stock

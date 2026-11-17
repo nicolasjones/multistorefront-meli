@@ -1,7 +1,10 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/ventas/transportes
+  - apps/web/src/pages/ventas/configuracion
+  - apps/web/src/pages/ventas/cuentas-cobro
+- specs
   - apps/web/src
   - design/pantallas
 ---

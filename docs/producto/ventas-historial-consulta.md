@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/historial/list.tsx
+  - apps/web/src/pages/historial/importar.tsx
 ---
 
 # Historial de ventas y cobros anteriores

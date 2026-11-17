@@ -1,7 +1,9 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/service-tecnico/modelos.tsx
+  - apps/web/src/pages/service-tecnico/estados.tsx
+- specs
   - design/pantallas
 ---
 

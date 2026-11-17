@@ -61,3 +61,49 @@ directorio entero (`specs`, `supabase/migrations`, `apps/web/src`), así que el 
 las páginas que lista el drift y regenerar con `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`
 en el PR `dokploy` → `main`. Acotar las fuentes de cada página a su spec o archivo concreto permitiría
 volver a correr el control en cada PR.
+
+## Capturas del manual: regla de proceso y estado (MSF-644, MSF-877)
+
+**Regla (MSF-644).** Todo PR que cambia una pantalla rehace las capturas del manual de usuario que esa pantalla
+ilustra. El comando es `pnpm docs:capturas` (raíz; delega en `pnpm --filter @platform/web docs:capturas`, que corre
+`playwright test -c playwright.capturas.config.ts`, definido en `apps/web/package.json`). Para un solo spec:
+`pnpm docs:capturas 20-ventas`. Los specs están en `apps/web/e2e/capturas/` (`10-primeros-pasos`, `20-ventas`,
+`30-stock`, `40-catalogo-tiendas`, `50-service-consultas`, `pantallas`) y escriben en `docs/producto/img/<página>/`
+(variable `CAPTURAS_DESTINO` para cambiar el destino). Si el PR no puede rehacerlas (p. ej. no hay stack), lo declara en
+su descripción y la página queda anotada como pendiente de recaptura.
+
+**Requisitos.** Stack local de Supabase con el dataset demo (`pnpm demo:dataset -- --reset`, ver `dataset-demo.md`) y la
+web servida (`E2E_BASE_URL`) o el build para `vite preview`; variables `SUPABASE_URL` y `SUPABASE_ANON_KEY`. Las
+capturas son de solo lectura (no confirman formularios). No corren con `pnpm test:e2e` ni en el CI público (config
+aparte a propósito, `apps/web/playwright.capturas.config.ts`).
+
+**Estado (MSF-877, 2026-11-17).** El repo tiene 262 imágenes versionadas bajo `docs/producto/img/`, en 44 carpetas.
+Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
+Las capturas de pantallas cambiadas hoy (Productos con Margen, Empresas, Migración de datos con pestañas, Actividad,
+Importaciones) quedan pendientes de recaptura con el comando de arriba. Además, el comentario de
+`playwright.capturas.config.ts` remite a un `docs/capturas-documentacion.md` que no existe; la guía vigente es
+`dataset-demo.md`.
+
+## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
+
+**Estado (medido el 2026-11-17 con `git rev-list --left-right --count origin/main...origin/dokploy`).** `main` tiene 16
+commits que `dokploy` no tiene y `dokploy` tiene 4186 que `main` no tiene (ancestro común `54ea7b1b`). Los 16 de `main`
+son de documentación salvo uno: manual de Inicio con capturas (`docs/producto/img/inicio/`), alineación de avisos de
+faltantes (MSF-161), cierres documentales de MSF-176, MSF-265, MSF-467 y MSF-469, y el workflow
+`.github/workflows/e2e-nocturno.yml` (llevado a `main` para que dispare el cron). Hay 51 archivos de `docs/` distintos
+entre ambas ramas. La documentación de usuario quedó escrita en `main` sin el código que la respalda, que vive solo en
+`dokploy`.
+
+**Procedimiento de reconciliación (sin tocar `main` desde `dokploy`).**
+
+1. La reconciliación ocurre en el PR `dokploy` → `main` (Release), no con cambios directos en `main`.
+2. Antes del Release, en una rama desde `dokploy`: `git merge origin/main`. Los conflictos de `docs/` se resuelven a favor
+   del contenido de `dokploy` (que refleja el código vigente) salvo los textos y capturas que solo existen en `main`
+   (manual de Inicio), que se revisan contra el código de `dokploy` antes de conservarlos.
+3. `docs/manifest.json` y `docs/_generated/` no se resuelven a mano: `git checkout --theirs` y regenerar con
+   `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`.
+4. Correr `node scripts/docs-drift.mjs` y `node scripts/docs-check.mjs`; revisar las páginas con deriva (MSF-858).
+5. Recién entonces abrir el PR a `main`; `docs.yml` corre en PR hacia `main`.
+
+Pendiente: este procedimiento no se ejecutó en este lote (no se tocó `main`); la integración de `origin/main` en `dokploy`
+queda para quien prepare el Release.

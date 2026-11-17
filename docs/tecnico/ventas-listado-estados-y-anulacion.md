@@ -47,20 +47,20 @@ MSF-159, de la que se parte, en [Ventas · comprobantes (técnico)](ventas-compr
 | Estado | Etiqueta | Tono | Nota |
 |---|---|---|---|
 | `borrador` | Borrador | neutral | No descuenta ni reserva stock. |
-| `confirmada` | **Pendiente** | neutral | Traducción: no se altera `confirmar_comprobante` de MSF-159. |
-| `pendiente` | Pendiente | neutral | Estado de un presupuesto. |
+| `confirmada` | **Pendiente** | neutral | Traducción: no se altera `confirmar_comprobante` de MSF-159. La ayuda aclara que el stock ya se descontó al confirmar y que solo los productos «A pedido» quedan reservados y se descuentan al entregarlos (`estadosComprobante.ts`). |
+| `pendiente` | Pendiente | neutral | Estado de un presupuesto (misma ayuda de stock que `confirmada` en el catálogo). |
 | `aceptado` | Aceptado | contorno | |
 | `cobrado` | Cobrado | éxito | Estado de cobro (MSF-195). |
 | `en_proceso` | En proceso | info | |
 | `deuda` | Deuda | error | Estado de cobro (MSF-195). |
-| `armando` | Armando | primario | |
-| `incompleto` | Incompleto | aviso | |
+| `armando` | Armando | primario | Ayuda: el stock ya se descontó al confirmar la factura. |
+| `incompleto` | Incompleto | aviso | Ayuda: los faltantes se registran con «Registrar faltantes» y son los de Ventas · Faltantes. |
 | `anulada` | Anulada | contorno | El documento dejó de valer. |
 
 `ESTADOS_DE_LA_TARJETA` es el orden del prototipo (sin `borrador`, `pendiente` ni `anulada`).
 `motivoDeshabilitado()` calcula por qué un chip está deshabilitado: el estado actual, `borrador`, `anulada`,
 los estados de cobro («Se actualiza solo con el cobro del comprobante.») o «Tu rol no puede pasar de X a Y».
-«Entregado» (MSF-135) no existe en el catálogo.
+«Entregado» (MSF-135) no existe en el catálogo. `definicionEstado()` (`estadosComprobante.ts:53`) resuelve con `Object.hasOwn`: un estado desconocido (p. ej. `constructor`) cae a su etiqueta cruda con tono neutral, sin heredar propiedades del prototipo.
 
 ## Modelo de datos
 

@@ -1,7 +1,9 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/categorias
+  - apps/web/src/pages/productos/list.tsx
+- specs
 ---
 
 # Catálogo: listado y categorías (MSF-160)

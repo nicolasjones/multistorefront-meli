@@ -216,7 +216,8 @@ disponible llega a 0.
   `p_deposito`. La barrera es el **disponible** del depósito.
 - **Movimientos.** `apps/web/src/pages/stock/movimientos.tsx`: columna «Depósito» en el detalle, resumen por producto
   con **Queda**, **Reserv.** y **Disp.**, y el tipo rotulado «Traslado · Salida» / «Traslado · Entrada» cuando el
-  movimiento tiene `traslado_id`.
+  movimiento tiene `traslado_id`. La nota se muestra con `notaLegibleDeMovimiento` (`lib/stock.ts`): las referencias internas `comprobante:<uuid>[:linea:N]` de las reservas «A pedido» salen como «el comprobante».
+- **Stock por depósito en lotes.** `listarStockPorDepositoDe` (`apps/web/src/lib/depositos.ts:191`) reparte los ids de producto en lotes con `lib/repartoIds.ts` (`enLotes`, `pedirEnOlas`, `MAXIMO_IDS_POR_PETICION`) para que la URL del GET no exceda el límite del proxy (MSF-716); si un lote falla propaga el error y nunca devuelve stock parcial (rotularía diferencias falsas en la toma de inventario).
 - **Tiempo real.** `apps/web/src/lib/useExistenciasRealtime.ts` se suscribe a `dominio.existencias` **y**
   `dominio.existencias_deposito` de la organización activa (agrupando con `ESPERA_AGRUPAR_MS = 300`).
 - **Permisos.** Ver la pantalla exige `lectura` o `edicion` en `stock`; administrar depósitos exige Administrador

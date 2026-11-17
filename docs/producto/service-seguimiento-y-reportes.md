@@ -1,7 +1,8 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/service-tecnico/reportes.tsx
+- specs
   - supabase/migrations
   - apps/web/src
 ---
