@@ -67,27 +67,92 @@ export function erroresYaml(yml) {
  * @param {string} txt contenido de la página @param {string} nombre ruta para el mensaje
  * @returns {string[]} errores con línea y motivo
  */
+export const LARGO_MAXIMO_LINEA = 10000;
+
+/** Cuenta corchetes y llaves fuera de comillas en una sola pasada (O(n); una comilla sin cerrar llega al fin de línea). */
+function flujoSinCerrar(v) {
+  let abre = 0;
+  let cierra = 0;
+  let q = "";
+  for (let i = 0; i < v.length; i++) {
+    const c = v[i];
+    if (q) {
+      if (q === '"' && c === "\\") i++;
+      else if (c === q) q = "";
+    } else if (c === '"' || c === "'") q = c;
+    else if (c === "[" || c === "{") abre++;
+    else if (c === "]" || c === "}") cierra++;
+  }
+  return abre !== cierra;
+}
+
+const esLetraClave = (c) => (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_";
+
 export function erroresFrontMatter(txt, nombre) {
-  const norm = txt.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
-  if (!/^---[ \t]*(\n|$)/.test(norm)) return [];
-  const m = norm.match(/^---[ \t]*\n([\s\S]*?)\n---[ \t]*(\n|$)/) ?? norm.match(/^---[ \t]*\n()---[ \t]*(\n|$)/);
-  if (!m) return [`${nombre}:1: el front matter se abre con --- y no se cierra: no se puede analizar`];
+  // Sin regex con retroceso: todo el análisis es lineal en el tamaño de la página.
+  const norm = txt.charCodeAt(0) === 0xfeff ? txt.slice(1) : txt;
+  const lineas = norm.split(/\r\n?|\n/);
+  if (lineas[0].trimEnd() !== "---") return [];
+  let cierre = -1;
+  for (let j = 1; j < lineas.length; j++) if (lineas[j].trimEnd() === "---") { cierre = j; break; }
+  if (cierre < 0) return [`${nombre}:1: el front matter se abre con --- y no se cierra: no se puede analizar`];
   const errores = [];
   let enLista = false;
-  m[1].split("\n").forEach((l, i) => {
-    const n = i + 2; // la línea 1 es el `---` de apertura
-    if (/^\t/.test(l)) errores.push(`${nombre}:${n}: tabulador en el front matter`);
-    if (/^[A-Za-z_]+:\s*$/.test(l)) enLista = true;
-    else if (/^[A-Za-z_]+:/.test(l)) enLista = false;
-    else if (/^- /.test(l) && enLista) errores.push(`${nombre}:${n}: ítem de lista en columna 0 dentro del front matter (indentá con dos espacios)`);
-    const flujo = l.match(/^[A-Za-z_]+:\s*([[{].*)$/);
-    if (flujo) {
-      // Lo que va entre comillas (`title: "[a"` no es un flujo) no cuenta.
-      const v = flujo[1].replace(/"(?:[^"\\]|\\.)*"|'[^']*'/g, "");
-      const abre = (v.match(/[[{]/g) ?? []).length;
-      const cierra = (v.match(/[\]}]/g) ?? []).length;
-      if (abre !== cierra) errores.push(`${nombre}:${n}: valor de flujo sin cerrar (${flujo[1].trim()})`);
-    }
-  });
+  for (let j = 1; j < cierre; j++) {
+    const l = lineas[j];
+    const n = j + 1;
+    if (l.length > LARGO_MAXIMO_LINEA) { errores.push(`${nombre}:${n}: línea demasiado larga en el front matter (más de ${LARGO_MAXIMO_LINEA} caracteres)`); continue; }
+    if (l[0] === "\t") errores.push(`${nombre}:${n}: tabulador en el front matter`);
+    let k = 0;
+    while (k < l.length && esLetraClave(l[k])) k++;
+    const esClave = k > 0 && l[k] === ":";
+    if (esClave) {
+      const resto = l.slice(k + 1);
+      enLista = resto.trim() === "";
+      const v = resto.trimStart();
+      if ((v[0] === "[" || v[0] === "{") && flujoSinCerrar(v)) errores.push(`${nombre}:${n}: valor de flujo sin cerrar (${v.trim()})`);
+    } else if (l.startsWith("- ") && enLista) errores.push(`${nombre}:${n}: ítem de lista en columna 0 dentro del front matter (indentá con dos espacios)`);
+  }
   return errores;
+}
+
+const MAX_TEXTO_ENLACE = 1500;
+const MAX_DESTINO_ENLACE = 300;
+const MAX_TITULO_ENLACE = 1000;
+const esBlanco = (c) => c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f" || c === "\v";
+
+/**
+ * Extrae los enlaces `[texto](destino)` y `[texto](destino "título")` de un texto Markdown con un solo recorrido
+ * (sin regex con retroceso: una página con miles de `[` sin cerrar no cuelga el control). Devuelve `[crudo, destino]`.
+ * @param {string} txt @returns {Array<[string, string]>}
+ */
+export function enlacesMarkdown(txt) {
+  const out = [];
+  const n = txt.length;
+  let abre = -1;
+  for (let i = 0; i < n; i++) {
+    const c = txt[i];
+    if (c === "[") { abre = i; continue; }
+    if (c !== "]") continue;
+    const desde = abre;
+    abre = -1;
+    if (txt[i + 1] !== "(" || desde < 0 || i - desde > MAX_TEXTO_ENLACE) continue;
+    const ini = i + 2;
+    let j = ini;
+    while (j < n && j - ini < MAX_DESTINO_ENLACE && txt[j] !== ")" && !esBlanco(txt[j])) j++;
+    if (j === ini || j >= n) continue;
+    const destino = txt.slice(ini, j);
+    if (txt[j] !== ")") {
+      let k = j;
+      while (k < n && esBlanco(txt[k]) && k - j < MAX_TITULO_ENLACE) k++;
+      if (k === j || txt[k] !== '"') continue;
+      let f = k + 1;
+      while (f < n && f - k < MAX_TITULO_ENLACE && txt[f] !== '"') f++;
+      if (txt[f] !== '"' || txt[f + 1] !== ")") continue;
+      j = f + 1;
+    }
+    out.push([txt.slice(desde, j + 1), destino]);
+    i = j;
+  }
+  return out;
 }

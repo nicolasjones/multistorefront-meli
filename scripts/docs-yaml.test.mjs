@@ -1,7 +1,7 @@
 // El agente edita mkdocs.yml; un ':' de más rompe el build de docs. Se avisa antes de abrir el PR.
 import { strict as assert } from "node:assert";
 import { describe, it } from "node:test";
-import { erroresYaml, erroresFrontMatter } from "./docs-yaml.mjs";
+import { erroresYaml, erroresFrontMatter, enlacesMarkdown, LARGO_MAXIMO_LINEA } from "./docs-yaml.mjs";
 
 describe("erroresYaml", () => {
   it("un nav válido no da errores", () => {
@@ -95,17 +95,70 @@ describe("erroresFrontMatter", () => {
     assert.equal(erroresFrontMatter("---\nsources: [a\n---\n", "a.md").length, 1);
   });
 
-  it("una página hostil de 1 MB se analiza en tiempo lineal", () => {
-    const casos = [
-      "---\nowner: x\n" + "[".repeat(1_000_000),
-      "---\nowner: x\nsources: " + "[".repeat(1_000_000) + "\n---\n",
-      "---\r" + "a: [\r".repeat(200_000) + "---\r",
-      "---\n" + "\n---x".repeat(200_000),
-    ];
-    for (const c of casos) {
-      const t = Date.now();
-      erroresFrontMatter(c, "h.md");
-      assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
-    }
+  it("casos de corrección con comillas y escapes", () => {
+    const e = (v) => erroresFrontMatter(`---\nt: ${v}\n---\n`, "a.md").length;
+    assert.equal(e('[ "x'), 1);
+    assert.equal(e('["a", [b'), 1);
+    assert.equal(e('["a\\"]", [b'), 1);
+    assert.equal(e('["a]", [b'), 1);
+    assert.equal(e("[a, 'b"), 1);
+    assert.equal(e('["a\\"]", b]'), 0);
+    assert.equal(e('["a]", b]'), 0);
+  });
+
+  it("una línea de más de 10.000 caracteres se reporta sin analizarla", () => {
+    const errs = erroresFrontMatter(`---\nt: [${"a".repeat(LARGO_MAXIMO_LINEA)}\n---\n`, "a.md");
+    assert.equal(errs.length, 1);
+    assert.match(errs[0], /demasiado larga/);
+  });
+
+  it("CR suelto como separador de línea también se analiza", () => {
+    assert.equal(erroresFrontMatter("---\rsources:\r  - a\r- specs\r---\r", "a.md").length, 1);
+  });
+});
+
+// Entradas hostiles: el tiempo tiene que escalar de forma lineal (no cuadrática) con el tamaño.
+const medir = (fn, s) => { const t = performance.now(); fn(s); return performance.now() - t; };
+const hostiles = {
+  "comilla con escapes sin cierre": (n) => `---\nt: [ "${'\\"'.repeat(n / 2)}\n---\n`,
+  "comilla simple sin cerrar": (n) => `---\nt: [ '${"a".repeat(n)}\n---\n`,
+  "barras invertidas": (n) => `---\nt: ["${"\\\\".repeat(n / 2)}\n---\n`,
+  "comillas alternadas": (n) => `---\nt: [${"\"'".repeat(n / 2)}\n---\n`,
+  "corchetes anidados": (n) => `---\nt: ${"[".repeat(n)}\n---\n`,
+  "muchas líneas con flujo": (n) => `---\n${'a: ["\\"\n'.repeat(n / 7)}---\n`,
+  "sin cierre": (n) => `---\n${"x: 1\n".repeat(n / 5)}`,
+  "CR repetidos": (n) => `---\r${"a: [\r".repeat(n / 5)}---\r`,
+};
+const enlaces = {
+  "corchetes sin cerrar": (n) => "[".repeat(n),
+  "abre y destino repetidos": (n) => "[a](".repeat(n / 4),
+  "enlaces vacíos repetidos": (n) => "[](".repeat(n / 3),
+  "destino larguísimo": (n) => `[a](${"x".repeat(n)}`,
+  "título sin cerrar": (n) => '[a](x "'.repeat(n / 7),
+};
+
+describe("rendimiento con entradas hostiles (escala lineal)", () => {
+  for (const [titulo, fabrica, fn] of [
+    ...Object.entries(hostiles).map(([k, f]) => [`front matter: ${k}`, f, (s) => erroresFrontMatter(s, "h.md")]),
+    ...Object.entries(enlaces).map(([k, f]) => [`enlaces: ${k}`, f, enlacesMarkdown]),
+  ]) {
+    it(titulo, () => {
+      const t = {};
+      fn(fabrica(20 * 1024)); // calentamiento
+      for (const kb of [20, 80, 320, 1024]) t[kb] = medir(fn, fabrica(kb * 1024));
+      assert.ok(t[1024] < 2000, `1 MB tardó ${t[1024].toFixed(0)} ms`);
+      // 4× el tamaño debería costar ≈4×; una regex cuadrática da ≈16×. Piso de 100 ms contra el ruido.
+      assert.ok(t[320] < 10 * Math.max(t[80], 100), `80 KB ${t[80].toFixed(0)} ms, 320 KB ${t[320].toFixed(0)} ms`);
+      assert.ok(t[1024] < 10 * Math.max(t[320], 100), `320 KB ${t[320].toFixed(0)} ms, 1 MB ${t[1024].toFixed(0)} ms`);
+    });
+  }
+});
+
+describe("enlacesMarkdown", () => {
+  it("extrae enlaces con y sin título", () => {
+    assert.deepEqual(enlacesMarkdown('a [x](a.md) b ![i](img/p.png "t") [y](b.md#z)').map((m) => m[1]), ["a.md", "img/p.png", "b.md#z"]);
+  });
+  it("ignora lo que no es un enlace", () => {
+    assert.deepEqual(enlacesMarkdown("[a] (b) [c](  d) [e]( ) [f](g"), []);
   });
 });
