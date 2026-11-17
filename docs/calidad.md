@@ -54,6 +54,25 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
   y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
   quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
 
+## Un rojo de calidad tiene que poder diagnosticarse
+
+Un `quality` rojo que no dice qué encontró obliga a reproducir la herramienta a mano para
+saber la causa. `scripts/calidad.mjs` lo evita con dos garantías, y las dos están fijadas por
+test (`pnpm test:ci` → `scripts/calidad.test.mjs`):
+
+1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
+   `## <check>` por cada check con hallazgos, con su salida; `reports/calidad.log` lleva la
+   salida completa de todas las herramientas. El artifact `calidad-reporte` sube los dos.
+2. **Las herramientas no heredan `GITHUB_ACTIONS`.** Con esa variable, knip y oxlint cambian a
+   su modo de anotaciones (`::warning`/`::error`): el runner las consume como anotaciones y el
+   texto del hallazgo desaparece del log, así que el rojo queda sin diagnóstico. `calidad.mjs`
+   la borra del entorno de los hijos y los corre con `NO_COLOR`/`FORCE_COLOR` apagados.
+
+Esto es lo que pasó en MSF-843: el `quality` del PR #882 quedó rojo con un knip que en el log
+sólo aparecía como `apps/web/src/pages/conexiones/list.tsx:44:1`, sin el texto que explicaba el
+hallazgo. El hallazgo real era otro (una dependencia `pg` sin declarar en
+`apps/web/e2e/ventas-impresion.e2e.ts:88:130`) y no se pudo leer sin correr la herramienta.
+
 ## Tests web: timeouts
 
 `apps/web/vite.config.ts` fija `testTimeout: 15000` (el default de vitest es 5 s). La suite

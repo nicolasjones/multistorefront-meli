@@ -15,3 +15,55 @@ test("[MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no co
   assert.ok(fs.existsSync(path.join(cwd, "reports", "calidad.log")));
   assert.ok(fs.existsSync(path.join(cwd, "reports", "calidad.md")));
 });
+
+// Lo que knip habría reportado en el `quality` de MSF-843: una dependencia que el paquete
+// que la importa no declara. Sale como texto legible, no como anotación `::warning`.
+const HALLAZGO_FALSO = "pg  apps/web/e2e/ventas-impresion.e2e.ts:88:130";
+
+// Corre `scripts/calidad.mjs` con un `pnpm` falso en el PATH: el shim contesta `--version`
+// (para que la herramienta esté disponible) y, en el `pnpm dlx knip@…` que dispara el check
+// de código muerto, imprime el hallazgo de knip y sale con código 1. También dice si el hijo
+// heredó GITHUB_ACTIONS: con esa variable knip y oxlint cambian de formato y escriben
+// anotaciones `::warning`/`::error` en vez de texto, así que el log del CI deja de decir qué
+// encontraron — fue justo lo que dejó el `quality` de MSF-843 rojo sin diagnóstico.
+function correrCalidadConPnpmFalso() {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-"));
+  const bin = path.join(cwd, "bin");
+  fs.mkdirSync(bin);
+  const shim = path.join(bin, "pnpm");
+  fs.writeFileSync(
+    shim,
+    `#!/usr/bin/env node
+const args = process.argv.slice(2);
+if (args.includes("--version")) { console.log("11.19.0"); process.exit(0); }
+console.log("GHA=" + (process.env.GITHUB_ACTIONS === undefined ? "<unset>" : process.env.GITHUB_ACTIONS));
+console.log("Unlisted dependencies (1)");
+console.log(${JSON.stringify(HALLAZGO_FALSO)});
+process.exit(1);
+`,
+  );
+  fs.chmodSync(shim, 0o755);
+  const r = spawnSync(process.execPath, [script, "--only=deadcode"], {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}`, GITHUB_ACTIONS: "1" },
+  });
+  const leer = (nombre) => {
+    const archivo = path.join(cwd, "reports", nombre);
+    return fs.existsSync(archivo) ? fs.readFileSync(archivo, "utf8") : "";
+  };
+  return { r, md: leer("calidad.md"), log: leer("calidad.log") };
+}
+
+test("[MSF-843] el informe de calidad dice qué encontró el check que falló", () => {
+  const { r, md, log } = correrCalidadConPnpmFalso();
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(md, /## knip \(código muerto\)/, "reports/calidad.md tiene que tener la sección del check que falló");
+  assert.ok(md.includes(HALLAZGO_FALSO), "reports/calidad.md tiene que traer el hallazgo del check que falló");
+  assert.ok(log.includes(HALLAZGO_FALSO), "reports/calidad.log tiene que traer el hallazgo del check que falló");
+});
+
+test("[MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)", () => {
+  const { log } = correrCalidadConPnpmFalso();
+  assert.match(log, /GHA=<unset>/, "el hijo de scripts/calidad.mjs tiene que correr sin GITHUB_ACTIONS");
+});
