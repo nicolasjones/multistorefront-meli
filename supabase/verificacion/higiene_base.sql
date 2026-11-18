@@ -1,6 +1,7 @@
 -- Diagnóstico de higiene de la base (lote 33: MSF-918/922/923/899/917/658/671/920/921). SOLO LECTURA.
 -- Uso: node scripts/verificar-higiene-base.mjs --docker <contenedor> | DATABASE_URL=... ; o psql -f este archivo.
 -- Cada fila: (control, cantidad, detalle). Esperado en una base alineada con el código: todas las cantidades en 0
+-- (el control de migraciones vive en higiene_base_migraciones.sql y solo corre si existe el esquema supabase_migrations)
 -- salvo `vistas_definer_permitidas` (1: public.proveedores_basico) y `definer_sp_heredadas` (3, plan en docs/higiene-base-datos.md).
 set default_transaction_read_only = on;
 
@@ -57,6 +58,4 @@ union all select 'fk_no_validas', count(*), left(coalesce(string_agg(d, ', '), '
 union all select 'vistas_definer_permitidas', count(*), left(coalesce(string_agg(d, ', '), ''), 300) from vistas_definer
 union all select 'definer_sp_heredadas', count(*), left(coalesce(string_agg(d, ', '), ''), 300) from definer_sp
 union all select 'anon_ejecuta_public_publico', count(*), left(coalesce(string_agg(d, ', '), ''), 300) from anon_publico
-union all select 'migraciones_registradas', count(*), '' from supabase_migrations.schema_migrations
-union all select 'migraciones_sin_statements', count(*), 'esperado: el cron migrar-supabase-vps.sh inserta statements = {} por diseño' from supabase_migrations.schema_migrations where statements is null or cardinality(statements) = 0
-union all select 'migraciones_nombre_vacio', count(*), left(coalesce(string_agg(version, ', '), ''), 300) from supabase_migrations.schema_migrations where name is null or btrim(name) = '';
+union all select 'anon_authenticated_create_en_public', count(*), 'roles con CREATE sobre el esquema public (mitiga el secuestro de search_path de las funciones definer heredadas)' from (select r from unnest(array['anon', 'authenticated']) r where has_schema_privilege(r, 'public', 'CREATE')) t;

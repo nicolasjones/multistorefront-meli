@@ -832,9 +832,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "1bcc3e2fa7a2679d4f956a0831b7aa7f985cf6506b877e0ce28ae66760a1854a",
-      "sourceHash": "03cd8628d3bb5d6f2deef04d3af3a081df1ee1f2a71fccb78f85dc408a196c2c",
-      "sourceAt": "eadcedcb",
+      "pageHash": "512ccdeb70e08f466749d64eb99b832c20a2d8adde6253c3b93162fa9533c2b8",
+      "sourceHash": "07e22c3ad19dfc95327247d894990151b89b1c19555b9e66beaee612b35c04b9",
+      "sourceAt": "a24d4284",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -845,11 +845,12 @@
         "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
+        "supabase/verificacion/higiene_base_migraciones.sql",
         "scripts/verificar-higiene-base.mjs",
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "eadcedcb"
+      "commit": "a24d4284"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",

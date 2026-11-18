@@ -8,6 +8,9 @@
 // Es una heurística CONSERVADORA (falsos «revisar» posibles, ningún falso «segura» conocido): una función «segura» igual debe
 // pasar TODA la suite pgTAP antes de migrarla.
 //
+// NO detecta (revisión humana): `set local search_path` dentro del cuerpo, `OPERATOR(esquema.op)`, operadores de extensiones fuera de la
+// lista fija, el texto de SQL dinámico (solo marca la existencia de execute/format), vistas/triggers/defaults. Ver docs/higiene-base-datos.md.
+//
 // Uso (solo lectura, no modifica la base):
 //   node scripts/analizar-definer-search-path.mjs --docker <contenedor>      # psql dentro de un contenedor (usuario postgres)
 //   DATABASE_URL=postgres://... node scripts/analizar-definer-search-path.mjs # psql contra una URL

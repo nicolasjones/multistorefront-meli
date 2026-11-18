@@ -10,6 +10,7 @@ sources:
   - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
+  - supabase/verificacion/higiene_base_migraciones.sql
   - scripts/verificar-higiene-base.mjs
   - scripts/analizar-definer-search-path.mjs
 ---
@@ -49,7 +50,7 @@ La prueba global falla si aparece una FK nueva sin índice y fuera de esas dos e
 `node scripts/verificar-higiene-base.mjs --docker <contenedor>`.
 
 Con el DEV al 97 % de almacenamiento en índices (MSF-920), cada índice nuevo cuesta: **antes de promover** medir el espacio
-(consulta de «MSF-920» abajo) y, si hace falta, retirar primero índices sin uso. Estos 153 se justifican por las cascadas
+(consulta de «MSF-920» abajo) y, si hace falta, retirar primero índices sin uso. Estos 154 índices (153 de `20270507190000`/`…190100` más 1 de `…190600`, la FK del contra-asiento de cobros del lote 32) se justifican por las cascadas
 (baja de organización) y los joins por FK; si el diagnóstico de uso muestra alguno sin lecturas tras un ciclo, se retira con
 `drop index` en una migración posterior.
 
@@ -86,6 +87,8 @@ alter table public.conexiones validate constraint conexiones_sistema_externo_fke
 sin calificar, operadores de extensiones o SQL dinámico). Es conservador y solo lectura. Una «segura» además debe pasar toda la
 suite pgTAP antes de migrarse; no se cambia ninguna en bloque a ciegas.
 
+Lo que el análisis **NO detecta** (sigue siendo trabajo de revisión humana; por eso una «segura» exige además la suite completa): un `set local search_path` dentro del cuerpo, operadores calificados `OPERATOR(esquema.op)` y los no calificados de extensiones fuera de la lista fija (`<=>`, `<->`, `<#>`, `%`, `%>`, `<%`, `@@@`), SQL dinámico (cualquier `execute`/`format` se marca «a revisar» sin analizar el texto armado), objetos sin calificar referenciados solo por funciones que llama (se evalúa cada cuerpo por separado) y tablas/funciones/tipos creados después del análisis. No analiza vistas, triggers ni defaults de columna que invoquen funciones.
+
 Con las migraciones del repo quedaban 9 funciones; 6 eran seguras y se migraron con `alter function … set search_path = ''`:
 `private.registrar_cambios_seguridad_usuario`, `public.registrar_inicio_sesion(jsonb)`,
 `private.procesar_falla_orquestacion(uuid,uuid,text)`, `public.bloqueo_acceso_hasta(text)`,
@@ -98,6 +101,8 @@ Pendientes (a revisar), todas de `20260909…`, en el camino caliente de **toda*
 | `private.is_superadmin()` | `superadmins` | calificar `public.superadmins` y pasar a `''` |
 | `private.organizacion_id()` | `usuarios_organizacion` | calificar `public.usuarios_organizacion` y pasar a `''` |
 | `private.puede_escribir()` | `usuarios_organizacion` | ídem |
+
+**Riesgo de secuestro de `search_path` mientras estén en `public`**: se mitiga porque `anon` y `authenticated` **no tienen `CREATE` sobre el esquema `public`** (PG15 lo revoca a `PUBLIC` por defecto; verificado con `has_schema_privilege('anon','public','CREATE')` y `has_schema_privilege('authenticated','public','CREATE')`, ambos `false`, en el Postgres descartable pgvector 0.8.0-pg15). Nadie que no sea dueño puede crear en `public` un objeto que sombree a `superadmins` o `usuarios_organizacion`. `verificar-higiene-base.mjs` lo comprueba en cada base (control `anon_authenticated_create_en_public`, esperado 0) y es solo diagnóstico, no una aserción de pgTAP, porque depende del `grant` del entorno y no del código.
 
 Van en una migración propia, con la suite completa y una medición de plan de consulta (son `stable` y las usan las
 políticas; no deben perder la inlineabilidad). La prueba global tiene estas tres como lista permitida: al migrarlas se
@@ -116,7 +121,8 @@ aprobación y se corre contra una copia primero.
 ### Diagnóstico
 
 ```bash
-# 1. Controles de higiene (FK sin índice, RLS sin política, sin PK, NOT VALID, vistas, definer, superficie anon, migraciones)
+# 1. Controles de higiene (FK sin índice, RLS sin política, sin PK, NOT VALID, vistas, definer, superficie anon, CREATE en public, migraciones)
+#    (los controles del registro de migraciones se omiten solos si la base no tiene supabase_migrations)
 node scripts/verificar-higiene-base.mjs --docker <contenedor-db-dev> --versiones
 # 2. Funciones definer con search_path distinto de ''
 node scripts/analizar-definer-search-path.mjs --docker <contenedor-db-dev>
