@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   listarPresupuestos: vi.fn(),
   aceptarPresupuesto: vi.fn(),
   copiarPresupuesto: vi.fn(),
+  facturarPresupuesto: vi.fn(),
+  obtenerVinculoPresupuesto: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
   useNivelSeccion: vi.fn(),
   useOrganizacionActiva: vi.fn(),
@@ -25,6 +27,8 @@ vi.mock('../../lib/ventasPresupuestos', async (importar) => ({
   listarPresupuestos: mocks.listarPresupuestos,
   aceptarPresupuesto: mocks.aceptarPresupuesto,
   copiarPresupuesto: mocks.copiarPresupuesto,
+  facturarPresupuesto: mocks.facturarPresupuesto,
+  obtenerVinculoPresupuesto: mocks.obtenerVinculoPresupuesto,
 }))
 vi.mock('../../lib/ventasPresupuestoCorreo', async (importar) => ({
   ...(await importar<typeof import('../../lib/ventasPresupuestoCorreo')>()),
@@ -97,6 +101,8 @@ describe('PresupuestosList', () => {
     ]))
     mocks.aceptarPresupuesto.mockResolvedValue({ id: 'p-1', numero: '00000001', estado: 'aceptado' })
     mocks.copiarPresupuesto.mockResolvedValue({ id: 'p-9', numero: '00000009', estado: 'pendiente' })
+    mocks.facturarPresupuesto.mockResolvedValue({ id: 'f-1', numero: '00000031', estado: 'borrador' })
+    mocks.obtenerVinculoPresupuesto.mockResolvedValue({ presupuesto_id: 'p-4', presupuesto_numero: '00000004', factura_id: 'f-7', factura_numero: '00000040', factura_estado: 'borrador' })
     mocks.prepararImpresionPresupuesto.mockResolvedValue({ documento: { id: 'd-1' }, url: 'https://storage/p.pdf' })
     mocks.enviarYEsperar.mockResolvedValue({ id: 'v-1', estado: 'enviado' })
     vi.spyOn(window, 'open').mockImplementation(() => ({ opener: null }) as Window)
@@ -133,13 +139,13 @@ describe('PresupuestosList', () => {
     expect(screen.getByText('Emilse')).toBeInTheDocument()
   })
 
-  it('ofrece «Exportar», «Imprimir» y «Enviar por correo», pero no Facturar (fuera de alcance)', async () => {
+  it('ofrece «Exportar», «Imprimir», «Enviar por correo» y «Facturar»', async () => {
     abrir()
     await screen.findByText('Cliente 1')
     expect(screen.getByRole('button', { name: 'Exportar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Imprimir 00000001' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Enviar por correo 00000001' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Facturar/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Facturar 00000001' })).toBeInTheDocument()
   })
 
   it('«Exportar» arma el CSV de presupuestos con los filtros de la pantalla', async () => {
@@ -318,6 +324,71 @@ describe('PresupuestosList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Aceptar 00000001' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('ya está cerrado')
     expect(screen.queryByText(/aceptado$/)).not.toBeInTheDocument()
+  })
+
+  it('«Facturar» solo se habilita en un presupuesto aceptado y vigente', async () => {
+    mocks.listarPresupuestos.mockResolvedValue(pagina([
+      presupuesto(1),
+      presupuesto(2, { estado: 'aceptado', valido_hasta: null }),
+      presupuesto(3, { estado: 'vencido' }),
+      presupuesto(4, { estado: 'aceptado', valido_hasta: '2020-01-01' }),
+      presupuesto(5, { estado: 'aceptado', valido_hasta: '2099-12-31' }),
+      presupuesto(6, { estado: 'convertido' }),
+    ]))
+    abrir()
+    await screen.findByText('Cliente 1')
+    for (const numero of ['00000001', '00000003', '00000004', '00000006']) {
+      expect(screen.getByRole('button', { name: `Facturar ${numero}` })).toBeDisabled()
+    }
+    for (const numero of ['00000002', '00000005']) {
+      expect(screen.getByRole('button', { name: `Facturar ${numero}` })).toBeEnabled()
+    }
+  })
+
+  it('con lectura no hay «Facturar»', async () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    mocks.listarPresupuestos.mockResolvedValue(pagina([presupuesto(2, { estado: 'aceptado', valido_hasta: null, puede_editar: false })]))
+    abrir()
+    await screen.findByText('Cliente 2')
+    expect(screen.queryByRole('button', { name: /Facturar/ })).not.toBeInTheDocument()
+  })
+
+  it('Facturar crea la factura y abre su detalle', async () => {
+    abrir()
+    await screen.findByText('Cliente 2')
+    fireEvent.click(screen.getByRole('button', { name: 'Facturar 00000002' }))
+    await waitFor(() => expect(screen.getByTestId('ubicacion')).toHaveTextContent('/ventas/comprobantes/f-1'))
+    expect(mocks.facturarPresupuesto).toHaveBeenCalledWith('p-2')
+  })
+
+  it('si Facturar falla muestra el mensaje de negocio y recarga la lista', async () => {
+    mocks.facturarPresupuesto.mockRejectedValue({ code: '55000', message: 'El presupuesto está vencido y no se puede facturar' })
+    abrir()
+    await screen.findByText('Cliente 2')
+    const llamadas = mocks.listarPresupuestos.mock.calls.length
+    fireEvent.click(screen.getByRole('button', { name: 'Facturar 00000002' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('El presupuesto está vencido y no se puede facturar')
+    expect(screen.queryByTestId('ubicacion')).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.listarPresupuestos.mock.calls.length).toBeGreaterThan(llamadas))
+  })
+
+  it('un presupuesto convertido ofrece «Ver factura» y abre la factura vinculada', async () => {
+    mocks.listarPresupuestos.mockResolvedValue(pagina([presupuesto(4, { estado: 'convertido' })]))
+    abrir()
+    await screen.findByText('Cliente 4')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver la factura de 00000004' }))
+    await waitFor(() => expect(screen.getByTestId('ubicacion')).toHaveTextContent('/ventas/comprobantes/f-7'))
+    expect(mocks.obtenerVinculoPresupuesto).toHaveBeenCalledWith('p-4')
+  })
+
+  it('«Ver factura» sin vínculo avisa y no navega', async () => {
+    mocks.obtenerVinculoPresupuesto.mockResolvedValue(null)
+    mocks.listarPresupuestos.mockResolvedValue(pagina([presupuesto(4, { estado: 'convertido' })]))
+    abrir()
+    await screen.findByText('Cliente 4')
+    fireEvent.click(screen.getByRole('button', { name: 'Ver la factura de 00000004' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('No encontramos la factura de este presupuesto.')
+    expect(screen.queryByTestId('ubicacion')).not.toBeInTheDocument()
   })
 
   it('Copiar crea el presupuesto nuevo y abre su edición', async () => {

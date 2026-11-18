@@ -12,7 +12,11 @@ import {
   FILTROS_ESTADO,
   FILTROS_ORIGEN,
   aceptarPresupuesto,
+  facturarPresupuesto,
   mensajeDeAceptarPresupuesto,
+  mensajeDeFacturarPresupuesto,
+  obtenerVinculoPresupuesto,
+  puedeFacturarPresupuesto,
   copiarPresupuesto,
   etiquetaEstadoPresupuesto,
   listarPresupuestos,
@@ -75,9 +79,9 @@ const columnas: ColumnaAdaptable<Presupuesto>[] = [
 ]
 
 // Pantalla Presupuestos (F-VTA-08, FR-053/FR-054): VentasPresupuestos.dc.html. Lista, busca y filtra; por fila
-// ofrece Aceptar, Copiar y Modificar según el estado, e Imprimir y Enviar por correo (F-VTA-20, FR-022/FR-025/FR-028:
-// `lectura` imprime, solo `edicion` envía). Fuera de alcance (matriz pantalla↔criterios): Exportar y Facturar, las
-// demás pestañas de Ventas y el aviso de conversión a factura.
+// ofrece Aceptar, Copiar, Modificar y Facturar según el estado, e Imprimir y Enviar por correo (F-VTA-20, FR-022/FR-025/FR-028:
+// `lectura` imprime, solo `edicion` envía). Un presupuesto Convertido ofrece «Ver factura». Fuera de alcance (matriz
+// pantalla↔criterios): las demás pestañas de Ventas y el aviso de conversión a factura.
 // Con la empresa activa de la barra superior el filtro de tienda la sigue y, al cambiarla, la pantalla se remonta:
 // vuelve a la página 1, limpia búsqueda y mensajes y recarga todo (Constitución VIII).
 export function PresupuestosList() {
@@ -93,7 +97,7 @@ export function PresupuestosList() {
   )
 }
 
-type Accion = { id: string; tipo: 'aceptar' | 'copiar' | 'imprimir' | 'enviar' }
+type Accion = { id: string; tipo: 'aceptar' | 'copiar' | 'imprimir' | 'enviar' | 'facturar' | 'ver_factura' }
 
 function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: ReadonlyArray<{ id: string; nombre: string }>; empresaId: string; onEmpresa: (id: string) => void }) {
   const navigate = useNavigate()
@@ -202,6 +206,41 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     }
   }
 
+  // Facturar: crea la factura en borrador con los precios del presupuesto y abre su detalle. La base es idempotente (doble clic o
+  // reintento devuelven la misma factura) y la lista se recarga para que el presupuesto figure «Convertido».
+  async function facturar(p: Presupuesto) {
+    setAccion({ id: p.id, tipo: 'facturar' })
+    setErrorAccion(null)
+    setExito(null)
+    try {
+      const factura = await facturarPresupuesto(p.id)
+      navigate(`/ventas/comprobantes/${factura.id}`, { state: { mensaje: `Facturaste el presupuesto ${p.numero}: creamos la factura ${factura.numero} en borrador, con los precios del presupuesto` } })
+    } catch (error) {
+      setErrorAccion(mensajeDeFacturarPresupuesto(error, 'No pudimos facturar el presupuesto.'))
+      setAccion(null)
+      void recargarDesdeInicio()
+    }
+  }
+
+  // Un presupuesto convertido lleva a su factura (el vínculo se lee al hacer clic: el listado no lo trae).
+  async function verFactura(p: Presupuesto) {
+    setAccion({ id: p.id, tipo: 'ver_factura' })
+    setErrorAccion(null)
+    setExito(null)
+    try {
+      const vinculo = await obtenerVinculoPresupuesto(p.id)
+      if (!vinculo) {
+        setErrorAccion('No encontramos la factura de este presupuesto.')
+        setAccion(null)
+        return
+      }
+      navigate(`/ventas/comprobantes/${vinculo.factura_id}`)
+    } catch (error) {
+      setErrorAccion(mensajeDeErrorComprobante(error, 'No pudimos abrir la factura del presupuesto.'))
+      setAccion(null)
+    }
+  }
+
   // Imprimir (FR-022): pide el PDF, espera que esté, lo abre y registra la impresión.
   async function imprimir(p: Presupuesto) {
     controlAccion.current?.abort()
@@ -257,9 +296,8 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
 
   const ocupado = accion !== null
   const acciones = (p: Presupuesto) => {
-    // Un presupuesto convertido en factura ya no se imprime ni se envía (FR-021).
+    // Un presupuesto convertido en factura ya no se imprime ni se envía (FR-021); se ofrece abrir su factura.
     const documentable = p.estado !== 'convertido'
-    if (!p.puede_editar && !documentable) return null
     return (
       <Stack direction="row" spacing={0.5} justifyContent="flex-end" useFlexGap flexWrap="wrap">
         {documentable ? (
@@ -272,9 +310,17 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
             {accion?.id === p.id && accion.tipo === 'enviar' ? 'Enviando…' : ETIQUETA_ENVIAR_CORREO}
           </Button>
         ) : null}
+        {!documentable ? (
+          <Button size="small" variant="outlined" disabled={ocupado} onClick={() => void verFactura(p)} aria-label={`Ver la factura de ${p.numero}`}>
+            {accion?.id === p.id && accion.tipo === 'ver_factura' ? 'Abriendo…' : 'Ver factura'}
+          </Button>
+        ) : null}
         {p.puede_editar ? (<>
         <Button size="small" variant="outlined" disabled={ocupado || !puedeAceptarOModificarPresupuesto(p)} onClick={() => void aceptar(p)} aria-label={`Aceptar ${p.numero}`}>
           {accion?.id === p.id && accion.tipo === 'aceptar' ? 'Aceptando…' : 'Aceptar'}
+        </Button>
+        <Button size="small" variant="outlined" disabled={ocupado || !puedeFacturarPresupuesto(p)} onClick={() => void facturar(p)} aria-label={`Facturar ${p.numero}`}>
+          {accion?.id === p.id && accion.tipo === 'facturar' ? 'Facturando…' : 'Facturar'}
         </Button>
         <Button size="small" variant="outlined" disabled={ocupado || !puedeCopiarPresupuesto(p)} onClick={() => void copiar(p)} aria-label={`Copiar ${p.numero}`}>
           {accion?.id === p.id && accion.tipo === 'copiar' ? 'Copiando…' : 'Copiar'}
@@ -304,7 +350,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     <Box>
       <EncabezadoPagina
         titulo="Presupuestos"
-        descripcion="Cotizaciones a clientes. Se pueden copiar y modificar."
+        descripcion="Cotizaciones a clientes. Se pueden copiar, modificar y facturar."
         accion={<>{exportarBoton}{nuevo}</>}
         contexto={<ContextoOrganizacionActiva />}
       />
