@@ -15,7 +15,7 @@ Checks que **no dependen del criterio** de una persona/agente. El objetivo es do
 
 ```bash
 pnpm calidad                 # todo
-pnpm calidad --code          # sin docker (sin secretos/SAST)
+pnpm calidad:code            # sin docker (gitleaks usa el binario nativo o se salta)
 pnpm calidad --only=secrets,sast
 node scripts/calidad.mjs --no-docker
 ```
@@ -27,8 +27,8 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 
 | Check | Herramienta | Qué detecta |
 |---|---|---|
-| Secretos | **gitleaks** (docker) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
-| SAST | **semgrep** (docker, reglas `p/secrets`, `p/typescript`, `p/react`) | patrones inseguros, XSS, secretos en código |
+| Secretos | **gitleaks** (binario nativo; docker sólo de respaldo) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
+| SAST | **oxlint** 1.79.0 (`-D no-eval -D no-new-func -D no-implied-eval -D no-script-url` sobre `apps`, `packages`, `supabase/functions`) | `eval`, `new Function`, URLs `script:` |
 | Código muerto | **knip** | archivos/exports/deps sin usar |
 | Duplicación | **jscpd** (`.jscpd.json`) | bloques copiados |
 | Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |
@@ -53,6 +53,36 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
   único `no-unused-vars` (parámetro de `catch` sin uso). Quedan sin tocar 205 `set-state-in-effect`, 39 `refs`
   y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
   quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
+
+## Un rojo de calidad tiene que poder diagnosticarse
+
+Un `quality` rojo que no dice qué encontró obliga a reproducir la herramienta a mano para
+saber la causa. `scripts/calidad.mjs` lo evita con dos garantías, y las dos están fijadas por
+test (`pnpm test:ci` → `scripts/calidad.test.mjs`). A eso se suma cómo hay que leer el informe:
+
+1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
+   `## <check>` por cada check con hallazgos, con su salida **completa** —recortarla volvería a
+   esconder el hallazgo, que es justo lo que se quiere evitar—; `reports/calidad.log` lleva la
+   salida completa de todas las herramientas. El artifact `calidad-reporte` sube los dos.
+   El log del paso del CI también lo dice: la salida **completa** del check que falló se imprime
+   en consola (los que pasan, sólo sus últimas 40 líneas). Es lo primero que se lee en el PR.
+2. **Las herramientas no heredan `GITHUB_ACTIONS`.** Con esa variable, knip y oxlint cambian a
+   su modo de anotaciones (`::warning`/`::error`): el runner las consume como anotaciones y el
+   texto del hallazgo desaparece del log, así que el rojo queda sin diagnóstico. `calidad.mjs`
+   la borra del entorno de los hijos y los corre con `NO_COLOR`/`FORCE_COLOR` apagados.
+3. **La copia versionada de `reports/calidad.md` es una foto de una corrida vieja.** El job
+   `quality` regenera el informe en el workspace y lo sube como artifact `calidad-reporte`; lo que
+   quedó versionado es la última corrida local que alguien commiteó, y por convención no se
+   commitea una regenerada (el diff no lleva reporte generado). Esa copia puede marcar
+   `hallazgos` de un problema que ya no existe: en MSF-843 seguía diciendo
+   `knip (código muerto) | hallazgos` cuando knip ya daba 0, y eso fue lo que apuntó al hallazgo
+   inexistente. El estado que vale es el del artifact del CI o el de `pnpm calidad` en el momento;
+   para el código, `pnpm dlx knip@6.44.1 --no-progress`.
+
+Esto es lo que pasó en MSF-843: el `quality` del PR #882 quedó rojo con un knip que en el log
+sólo aparecía como `apps/web/src/pages/conexiones/list.tsx:44:1`, sin el texto que explicaba el
+hallazgo. El hallazgo real era otro (una dependencia `pg` sin declarar en
+`apps/web/e2e/ventas-impresion.e2e.ts:88:130`) y no se pudo leer sin correr la herramienta.
 
 ## Tests web: timeouts
 
