@@ -10,7 +10,8 @@ import { pathToFileURL } from 'node:url';
 const recorrer = (suite, acumulado) => {
   for (const spec of suite.specs ?? []) {
     for (const prueba of spec.tests ?? []) {
-      acumulado.push({ titulo: spec.title, archivo: spec.file ?? suite.file, estado: prueba.status });
+      const motivo = (prueba.annotations ?? []).find((anotacion) => anotacion.type === 'skip' || anotacion.type === 'omitido')?.description;
+      acumulado.push({ titulo: spec.title, archivo: spec.file ?? suite.file, estado: prueba.status, motivo });
     }
   }
   for (const hija of suite.suites ?? []) recorrer({ ...hija, file: hija.file ?? suite.file }, acumulado);
@@ -87,7 +88,7 @@ if (esCli) {
   }
   const reporte = JSON.parse(readFileSync(archivo, 'utf8'));
   const resultado = evaluar(reporte, maximo);
-  for (const omitido of resultado.omitidos) console.log(` - omitido: ${omitido.archivo} › ${omitido.titulo}`);
+  for (const omitido of resultado.omitidos) console.log(` - omitido: ${omitido.archivo} › ${omitido.titulo}${omitido.motivo ? ` (motivo: ${omitido.motivo})` : ''}`);
   console[resultado.ok ? 'log' : 'error'](resultado.mensaje);
   const argRequeridos = resto.find((arg) => arg.startsWith('--requeridos'));
   let requeridos = [];

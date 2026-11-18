@@ -5,7 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('../../lib/supabase', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/supabase')>()
-  return { ...actual, supabaseClient: { ...actual.supabaseClient, rpc } }
+  const { clienteSupabaseSimulado } = await import('../../test/supabaseSimulado')
+  // El cliente real no se puede esparcir: `schema` es método del prototipo y se perdería; el simulado lo implementa.
+  return { ...actual, supabaseClient: { ...clienteSupabaseSimulado(), rpc } }
 })
 
 import { BusquedaGlobal } from './BusquedaGlobal'

@@ -26,6 +26,12 @@ test('falla si no corrió nada o si todo se omitió', () => {
   assert.equal(evaluar(reporte('skipped'), 1).ok, false);
 });
 
+test('recupera el motivo del omitido desde las anotaciones del reporte', () => {
+  const conMotivo = { suites: [{ file: 'a.e2e.ts', specs: [{ title: 't', tests: [{ status: 'skipped', annotations: [{ type: 'skip', description: 'sin Edge' }] }] }, { title: 'u', tests: [{ status: 'expected' }] }] }] };
+  const { omitidos } = resumir(conMotivo);
+  assert.equal(omitidos[0].motivo, 'sin Edge');
+});
+
 // MSF-928: los specs que el job DEBE correr no pueden omitirse, aunque el total esté bajo el tope.
 const delArchivo = (archivo, ...estados) => ({ file: archivo, suites: [{ title: 'describe', specs: estados.map((e) => ({ title: `t-${e}`, file: archivo, tests: [{ status: e }] })) }] });
 

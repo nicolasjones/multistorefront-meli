@@ -14,6 +14,9 @@ import { paso, prepararPaginaVisible } from './visible'
 // Mismo stack y siembra que `importaciones.e2e.ts`; se omite sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.
 test.describe('Alta de producto: permisos que llegan tarde o fallan', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Sin tope por acción, un elemento que no aparece (clic, `boundingBox`, `fill`) deja el test colgado hasta su timeout de 5 min y
+  // oculta el fallo real; con tope falla en 30 s señalando la acción.
+  test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-499:T-create] guardia de regresión (no detecta el bug: no reproducido): con permisos y organización tardíos el formulario se monta una vez', async ({ browser }, testInfo) => {
     test.setTimeout(180_000)

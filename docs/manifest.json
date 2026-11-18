@@ -701,14 +701,14 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "e9644113e7aa2dc555428539f8ff01b506a19950246b02a62e097519f3d9ef49",
-      "sourceHash": "c09dbd3aeed68e3bda277031267c70b7dfbbb3ef784b21c0bcfa8ac3870fa7a5",
-      "sourceAt": "fd68f31f",
+      "pageHash": "8698d3540e6ab1d4a3b64b548a30cf6921c9b0a981a161afef0e58995004d104",
+      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
+      "sourceAt": "ca66978d",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "ca66978d"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -2042,9 +2042,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "24c0735f12642da13fb1525ffbbe29e1d8407226213b411b901973f4f9825c03",
-      "sourceHash": "44975d82e49dbadef2d8fbbe95d2c76b65a85c00c2173d3e0626e7f43c98d806",
-      "sourceAt": "782dd190",
+      "pageHash": "78007a4c89d0e674eb49005a01a54cd3284f154d5689bea4a09811a7b7fc8af3",
+      "sourceHash": "9e4a6a6ff34233af66808b1ac64519288184b88011e5250ca1ab2e7161a6abbb",
+      "sourceAt": "c6039b33",
       "sources": [
         "scripts/tests-afectados.mjs",
         "apps/web/src/components",
@@ -2053,7 +2053,7 @@
         "design/pantallas"
       ],
       "owner": "plataforma",
-      "commit": "782dd190"
+      "commit": "c6039b33"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
