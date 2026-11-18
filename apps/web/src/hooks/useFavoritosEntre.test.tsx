@@ -60,6 +60,14 @@ describe('useFavoritosEntre', () => {
     await waitFor(() => expect(dos.result.current.fase).toBe('sin_acceso'))
   })
 
+  it('el cupo de llamadas por cuenta (H-3) se avisa con su texto y su espera (no es una caída de red)', async () => {
+    const alLimite = vi.fn()
+    mocks.leerFavoritosEntre.mockRejectedValueOnce(new ErrorCuentaTienda('limite', 25))
+    const { result } = renderHook(() => useFavoritosEntre(HOST, [A], true, 0, alLimite))
+    await waitFor(() => expect(result.current.fase).toBe('error'))
+    expect(alLimite).toHaveBeenCalledWith('Hiciste muchas consultas seguidas. Esperá 25 segundos y probá de nuevo.')
+  })
+
   it('al cerrar la sesión (activo pasa a false) se descarta lo de esa persona y al volver a entrar se vuelve a pedir', async () => {
     mocks.leerFavoritosEntre.mockResolvedValueOnce([A]).mockResolvedValueOnce([])
     const { result, rerender } = renderHook(({ activo }) => useFavoritosEntre(HOST, [A], activo), { initialProps: { activo: true } })

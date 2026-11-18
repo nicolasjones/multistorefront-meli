@@ -7,7 +7,7 @@ import { useCelular } from '../useAnchoCelular'
 import { useCapacidadesTienda } from '../../../hooks/useCapacidadesTienda'
 import { useFavoritosEntre } from '../../../hooks/useFavoritosEntre'
 import { useSesionClienteDetallada } from '../../../hooks/useSesionCliente'
-import { cambiarFavorito, esSinAcceso } from '../../../lib/tiendaCuentaDatos'
+import { cambiarFavorito, esLimite, esSinAcceso } from '../../../lib/tiendaCuentaDatos'
 import { enlaceIngresarConVolver } from '../../../lib/tiendaVolver'
 import { AvisoTienda } from './AvisoTienda'
 import { crearAviso, type AvisoCuenta } from './aviso'
@@ -28,13 +28,14 @@ export function BotonFavorito({ host, productoId, nombre }: { host: string; prod
   const ubicacion = useLocation()
   // P-2: a ancho completo hasta `md` (celular y tableta); desde escritorio, a la izquierda y del tamaño del texto.
   const anchoCompleto = useCelular()
-  const favoritos = useFavoritosEntre(host, [productoId], encendida && sesion === 'activa', versionSesion)
   const [guardando, setGuardando] = useState(false)
   const [aviso, setAviso] = useState<AvisoCuenta | null>(null)
   const [cuentaInactiva, setCuentaInactiva] = useState(false)
+  const publicar = (mensaje: string, error = false) => setAviso(crearAviso(mensaje, error))
+  // El cupo de llamadas por cuenta (H-3) no es una caída de red: se avisa con su texto y la espera que pidió el servidor.
+  const favoritos = useFavoritosEntre(host, [productoId], encendida && sesion === 'activa', versionSesion, (mensaje) => publicar(mensaje, true))
 
   if (!encendida || sesion === 'desconocida') return null
-  const publicar = (mensaje: string, error = false) => setAviso(crearAviso(mensaje, error))
 
   if (sesion === 'sin_sesion') {
     return (
@@ -74,6 +75,9 @@ export function BotonFavorito({ host, productoId, nombre }: { host: string; prod
       if (esSinAcceso(error)) {
         setCuentaInactiva(true)
         publicar(TEXTO_CUENTA_INACTIVA, true)
+      } else if (esLimite(error)) {
+        // El cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera: no es una caída de red.
+        publicar(error.message, true)
       } else {
         publicar(TEXTO_FAVORITO_ERROR, true)
       }

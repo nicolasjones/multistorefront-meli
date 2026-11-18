@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { EstadoCargaPagina, EstadoVacio } from '../../../components/estados/EstadosPagina'
 import { SOLO_LECTORES } from '../../../components/base/solo-lectores'
 import {
+  esLimite,
   esSinAcceso,
   ETIQUETA_TIPO,
   formatearFechaCuenta,
@@ -20,7 +21,8 @@ import { EstadoComprobante } from './EstadoComprobante'
 type Estado =
   | { clave: string; fase: 'lista'; detalle: Detalle }
   | { clave: string; fase: 'no_encontrada' }
-  | { clave: string; fase: 'error' }
+  // El cupo de llamadas por cuenta (H-3) trae su texto con los segundos: no es una caída de red y se avisa con ese texto.
+  | { clave: string; fase: 'error'; avisoLimite: string | null }
 
 const ID_TITULO = 'detalle-compra-titulo'
 
@@ -44,8 +46,10 @@ export function DetalleCompra({ host, comprobanteId, alCerrar, alSinAcceso }: { 
           alSinAcceso()
           return
         }
-        console.error('No se pudo cargar el detalle del comprobante', error instanceof Error ? error.message : error)
-        setEstado({ clave, fase: 'error' })
+        // El cupo de llamadas por cuenta (H-3) se distingue de una caída de red: la pantalla muestra su texto con la espera.
+        const avisoLimite = esLimite(error) ? error.message : null
+        if (!avisoLimite) console.error('No se pudo cargar el detalle del comprobante', error instanceof Error ? error.message : error)
+        setEstado({ clave, fase: 'error', avisoLimite })
       })
     return () => { cancelada = true }
     // `clave` resume host, comprobante e intento; `alSinAcceso` es estable en la pantalla.
@@ -65,7 +69,7 @@ export function DetalleCompra({ host, comprobanteId, alCerrar, alSinAcceso }: { 
       </DialogTitle>
       <DialogContent dividers>
         {!vigente ? <EstadoCargaPagina etiqueta="Cargando el comprobante" /> : null}
-        {vigente?.fase === 'error' ? <ErrorConReintento titulo="No pudimos cargar el comprobante." alReintentar={reintentar} /> : null}
+        {vigente?.fase === 'error' ? <ErrorConReintento titulo={vigente.avisoLimite ?? 'No pudimos cargar el comprobante.'} alReintentar={reintentar} /> : null}
         {vigente?.fase === 'no_encontrada' ? (
           <VolverAMisCompras alVolver={alCerrar} />
         ) : null}

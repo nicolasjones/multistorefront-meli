@@ -1,4 +1,5 @@
-import { act, renderHook, waitFor } from '@testing-library/react'
+import { act, render, renderHook, waitFor } from '@testing-library/react'
+import { useLayoutEffect, useRef } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ErrorCuentaTienda } from '../lib/tiendaCuentaDatos'
 import { useListadoPorCursor, type TandaPorCursor } from './useListadoPorCursor'
@@ -94,6 +95,35 @@ describe('useListadoPorCursor', () => {
     expect(alSinAcceso).toHaveBeenCalledTimes(1)
   })
 
+  it('el cupo de llamadas por cuenta (H-3) se distingue de una caída de red: expone el aviso con la espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn().mockRejectedValueOnce(new ErrorCuentaTienda('limite', 20))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('error'))
+    expect(result.current.espera).toEqual({ mensaje: 'Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.', segundos: 20 })
+  })
+
+  it('el cupo en una tanda siguiente deja lo cargado y expone el aviso con la espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn()
+      .mockResolvedValueOnce({ total: 3, filas: [fila('1')], siguiente: 'c2' })
+      .mockRejectedValueOnce(new ErrorCuentaTienda('limite', 30))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('lista'))
+    act(() => result.current.cargarMas())
+    await waitFor(() => expect(result.current.errorMas).toBe(true))
+    expect(result.current.filas.map((f) => f.id)).toEqual(['1'])
+    expect(result.current.espera).toEqual({ mensaje: 'Hiciste muchas consultas seguidas. Esperá 30 segundos y probá de nuevo.', segundos: 30 })
+  })
+
+  it('un error de red no es un cupo: no hay aviso de espera', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const leer = vi.fn().mockRejectedValueOnce(new Error('red'))
+    const { result } = montar(leer)
+    await waitFor(() => expect(result.current.fase).toBe('error'))
+    expect(result.current.espera).toBeNull()
+  })
+
   it('quitar saca una fila y baja el total; reponer la devuelve en su lugar', async () => {
     const leer = vi.fn().mockResolvedValue({ total: 3, filas: [fila('1'), fila('2'), fila('3')], siguiente: null })
     const { result } = montar(leer)
@@ -108,5 +138,31 @@ describe('useListadoPorCursor', () => {
     expect(result.current.total).toBe(3)
     act(() => result.current.reponer(fila('2'), 1))
     expect(result.current.filas).toHaveLength(3)
+  })
+
+  // React corre los efectos PASIVOS (`useEffect`) después de pintar: un clic puede llegar antes de que se vacíen. Si el
+  // estado vigente se copiara a un ref en un efecto pasivo, ese clic leería un ref viejo y el botón «Cargar más» no
+  // haría nada (la lista no avanza y no hay error: la persona ve un botón muerto). Este caso dispara la tanda siguiente
+  // desde un efecto de LAYOUT, que es lo que pasa en el navegador cuando el clic llega antes de que React vacíe los
+  // pasivos: el estado vigente tiene que estar disponible en el mismo commit que pintó las filas.
+  it('«Cargar más» pide la tanda siguiente aunque el clic llegue antes de que React vacíe los efectos pasivos', async () => {
+    const leer = vi.fn()
+      .mockResolvedValueOnce({ total: 2, filas: [fila('1')], siguiente: 'c2' })
+      .mockResolvedValueOnce({ total: 2, filas: [fila('2')], siguiente: null })
+    function Listado() {
+      const listado = useListadoPorCursor<Fila, string>({ clave: 'a', leer, idDe: (f) => f.id })
+      const pedido = useRef(false)
+      useLayoutEffect(() => {
+        if (!pedido.current && listado.fase === 'lista') {
+          pedido.current = true
+          listado.cargarMas()
+        }
+      })
+      return <ul>{listado.filas.map((f) => <li key={f.id}>{f.id}</li>)}</ul>
+    }
+    const { container } = render(<Listado />)
+    await waitFor(() => expect(leer).toHaveBeenCalledTimes(2))
+    expect(leer).toHaveBeenLastCalledWith('c2')
+    await waitFor(() => expect(container.textContent).toContain('2'))
   })
 })

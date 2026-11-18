@@ -127,6 +127,27 @@ describe('BotonFavorito · ficha del producto (P-2)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos guardar el favorito. Probá de nuevo.')
   })
 
+  it('el límite de llamadas por cuenta (H-3) no se confunde con «cuenta no activa»: avisa el cupo con su espera y el botón sigue disponible', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    montar()
+    const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })
+    await waitFor(() => expect(guardar).toBeEnabled())
+    rpcs({ cambiar_favorito_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    fireEvent.click(guardar)
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent('Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.')
+    expect(aviso).not.toHaveTextContent('Tu cuenta no está activa')
+    expect(screen.getByRole('button', { name: 'Guardar en favoritos' })).toBeEnabled()
+  })
+
+  it('el límite de llamadas al LEER los favoritos también se avisa (no es una caída de red)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    rpcs({ favoritos_entre_por_dominio: { estado: 'limite', espera_segundos: 15 } })
+    montar()
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent('Hiciste muchas consultas seguidas. Esperá 15 segundos y probá de nuevo.')
+  })
+
   it('si la cuenta dejó de estar activa avisa «Tu cuenta no está activa en esta tienda» y deshabilita el botón', async () => {
     montar()
     const guardar = await screen.findByRole('button', { name: 'Guardar en favoritos' })

@@ -175,6 +175,13 @@ describe('HistorialMiCuenta · Compras y presupuestos (FR-003, FR-004, P-3)', ()
     expect(screen.getAllByRole('row')).toHaveLength(3)
   })
 
+  it('el cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera, no como una caída de red', async () => {
+    rpcs({ mis_compras_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    montar()
+    expect(await screen.findByText('Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar tus compras.')).not.toBeInTheDocument()
+  })
+
   it('la cuenta suspendida a mitad de la sesión: el primer sin_acceso avisa a la pantalla y no deja datos', async () => {
     const alSinAcceso = vi.fn()
     rpcs({ mis_compras_por_dominio: (a) => (a.desde_id ? { estado: 'sin_acceso' } : PAGINA_1) })
@@ -309,6 +316,15 @@ describe('DetalleCompra (FR-005, FR-006, P-3)', () => {
     await waitFor(() => expect(alSinAcceso).toHaveBeenCalledTimes(1))
   })
 
+  // H-3: `mi_compra_por_dominio` es una de las cinco RPC con cupo: su límite se avisa con su texto y los segundos de
+  // espera, no como una caída de red.
+  it('el cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera, no como una caída de red', async () => {
+    rpcs({ mi_compra_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    montar()
+    expect(await screen.findByText('Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el comprobante.')).not.toBeInTheDocument()
+  })
+
   it('«Cerrar» y Esc cierran el detalle', async () => {
     rpcs({ mi_compra_por_dominio: DETALLE })
     const alCerrar = vi.fn()
@@ -427,6 +443,16 @@ describe('FavoritosMiCuenta (FR-008, FR-009, P-3)', () => {
     await screen.findByRole('list', { name: 'Favoritos' })
     fireEvent.click(screen.getByRole('button', { name: 'Quitar Joystick Pro de favoritos' }))
     expect(await screen.findByText('Todavía no guardaste favoritos')).toBeInTheDocument()
+  })
+
+  it('el cupo de llamadas por cuenta (H-3) al quitar un favorito avisa su texto y la espera', async () => {
+    rpcs({ mis_favoritos_por_dominio: PAGINA, cambiar_favorito_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    montar()
+    await screen.findByRole('list', { name: 'Favoritos' })
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar Joystick Pro de favoritos' }))
+    const aviso = await screen.findByRole('alert')
+    expect(aviso).toHaveTextContent('Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.')
+    expect(screen.getAllByRole('listitem')).toHaveLength(2)
   })
 
   it('un error al quitar avisa y no saca la tarjeta', async () => {

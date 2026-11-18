@@ -388,6 +388,9 @@ select is((select v ->> 'total' from res where k = 'min_a'), '2', 'al volver a p
 -- Tope de 200 favoritos por cuenta (FR-009, amenaza 3.4) y cursor / límite (amenaza 3.5)
 -- ============================================================================
 delete from dominio.favoritos_cliente where cuenta_cliente_id = 'ca000000-0000-0000-0000-000000000003';
+-- Esta prueba guarda 203 favoritos en una sola transacción (ráfaga que ninguna persona hace en un minuto): se sube el cupo de llamadas por minuto SOLO acá (la
+-- transacción se deshace al final). El cupo en sí (120 por minuto, H-3) se prueba en `tienda_cierre_hallazgos.test.sql`.
+create or replace function private.limite_llamadas_cuenta_por_minuto() returns integer language sql immutable set search_path = '' as $$ select 100000; $$;
 select pg_temp.como('f2000000-0000-0000-0000-000000000002');
 insert into res values
   ('doscientos', (select jsonb_build_object('oks', count(*) filter (where r ->> 'estado' = 'ok'), 'total', count(*))
