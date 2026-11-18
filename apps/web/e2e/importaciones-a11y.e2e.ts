@@ -9,6 +9,9 @@ const ANCHOS = [320, 768, 1440]
 
 test.describe('Centro de importaciones: accesibilidad y responsive (MSF-354)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Sin tope por acción, un elemento que no aparece (clic, `boundingBox`, `fill`) deja el test colgado hasta su timeout de 5 min y
+  // oculta el fallo real; con tope falla en 30 s señalando la acción.
+  test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-354:T013] sin violaciones de axe a 320, 768 y 1440 px, con teclado y sin identificadores técnicos', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
