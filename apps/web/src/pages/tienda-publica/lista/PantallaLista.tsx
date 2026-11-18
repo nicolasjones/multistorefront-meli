@@ -8,7 +8,7 @@ import { useSesionClienteDetallada } from '../../../hooks/useSesionCliente'
 import { urlsImagenesProducto } from '../../../lib/imagenProducto'
 import { leerLista, type LineaPedido } from '../../../lib/listaPedido'
 import { minutosDeEspera } from '../../../lib/tiendaContacto'
-import { formatearPrecioArs } from '../../../lib/tiendaListado'
+import { formatearPrecioArs, totalLista } from '../../../lib/tiendaListado'
 import {
   enviarListaPedido,
   ErrorListaPedido,
@@ -159,7 +159,7 @@ export function PantallaLista({ host }: { host: string }) {
   const visibles = lista.lineas.filter((linea) => porId.has(linea.productoId))
   const agotadas = lista.lineas.filter((linea) => noDisponibles.has(linea.productoId) && !porId.has(linea.productoId))
   const conPrecio = visibles.filter((linea) => porId.get(linea.productoId)?.precioUnitario != null)
-  const total = conPrecio.reduce((suma, linea) => suma + (porId.get(linea.productoId)?.precioUnitario ?? 0) * linea.cantidad, 0)
+  const total = totalLista(conPrecio.map((linea) => ({ precioUnitario: porId.get(linea.productoId)?.precioUnitario ?? 0, cantidad: linea.cantidad })))
   const sinProductos = visibles.length === 0 && agotadas.length === 0
   const hayLista = lista.lineas.length > 0
 

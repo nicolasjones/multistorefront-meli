@@ -94,7 +94,7 @@ describe('BotonWhatsApp', () => {
     expect(dialogo).toBeInTheDocument()
     expect(screen.getByText('Mundo JC · +54 9 11 7365-2596')).toBeInTheDocument()
     expect(screen.getByLabelText('Mensaje que se va a enviar')).toHaveValue(
-      'Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455). ¿Está disponible?',
+      'Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455,40). ¿Está disponible?',
     )
   })
 
@@ -112,7 +112,7 @@ describe('BotonWhatsApp', () => {
     const enlace = new URL(url)
     expect(`${enlace.origin}${enlace.pathname}`).toBe('https://wa.me/5491173652596')
     expect(enlace.searchParams.get('text')).toBe(mostrado)
-    expect(mostrado).toBe('Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455). ¿Está disponible?')
+    expect(mostrado).toBe('Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455,40). ¿Está disponible?')
     abrir.mockRestore()
   })
 
