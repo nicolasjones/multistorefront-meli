@@ -69,7 +69,7 @@ definiciones vigentes»).
 
 **Preferred**: rehacer el PR sobre `origin/dokploy` actual:
 
-1. **Numerar** las migraciones del cierre por encima del máximo real de la base (`20270507170001` en adelante) y reconstruir cada
+1. **Numerar** las migraciones del cierre por encima del máximo real de la base (`20270507200101` en adelante) y reconstruir cada
    cuerpo sobre la **definición vigente** en `dokploy` (no sobre la del 2026-11-14): `fusionar_clientes` sobre
    `20270419000200`, las cinco RPC de «Mi cuenta» sobre `20270430000000`/`20270320100300`/`20270320100400`, `enviar_lista_pedido`
    sobre `20270430000000` y `crear_presupuesto_tienda` sobre `20270507130100`.
@@ -88,10 +88,10 @@ definiciones vigentes»).
 - Dejar H-4 sin probar en este PR: **descartado**; el cierre tiene que dejar la prueba de cada hallazgo sobre el código vigente.
 
 **Files likely to change**:
-- `supabase/migrations/20270507170001_presupuestos_tienda_vinculo_persistente.sql` (nueva)
-- `supabase/migrations/20270507170002_fusionar_clientes_repunta_tienda.sql` (nueva)
-- `supabase/migrations/20270507170003_tienda_cupo_llamadas_cuenta.sql` (nueva)
-- `supabase/migrations/20270507170004_tienda_caracteres_invisibles.sql` (nueva)
+- `supabase/migrations/20270507200101_presupuestos_tienda_vinculo_persistente.sql` (nueva)
+- `supabase/migrations/20270507200102_fusionar_clientes_repunta_tienda.sql` (nueva)
+- `supabase/migrations/20270507200103_tienda_cupo_llamadas_cuenta.sql` (nueva)
+- `supabase/migrations/20270507200104_tienda_caracteres_invisibles.sql` (nueva)
 - `supabase/tests/database/tienda_cierre_hallazgos.test.sql` (nueva)
 - `apps/web/src/lib/tiendaCuentaDatos.ts`, `apps/web/src/lib/tiendaCuentaDatos.test.ts`
 - `apps/web/src/lib/tiendaPedido.ts`, `apps/web/src/lib/tiendaPedido.test.ts`
@@ -114,8 +114,8 @@ uno (el detalle técnico está en `fix.md`):
 
 | # | Hallazgo | Severidad | Qué se hizo |
 |---|---|---|---|
-| 1 | Las cuatro migraciones del cierre quedaban por debajo del máximo real de la base → «versión REUSADA» en el job `application` (y el aplicador nunca las correría). | Alta | Renumeradas a `20270507170001`–`20270507170004` (por encima de `20270507170000`, el máximo real de `dokploy`), sin tocar el SQL. |
-| 2 | La evidencia de `.specify/bugs/msf-988/{fix,test,assessment}.md` describía un estado que no existía (el guard salía con código 1 y los máximos citados eran los viejos). | Media | Corregida: los tres documentos dicen el máximo real (`20270507170000`), las versiones nuevas y la salida real del guard. |
+| 1 | Las cuatro migraciones del cierre quedaban por debajo del máximo real de la base → «versión REUSADA» en el job `application` (y el aplicador nunca las correría). | Alta | Renumeradas a `20270507200101`–`20270507200104` (por encima de `20270507180800`, el máximo real de `dokploy` al verificar; era `20270507170000` cuando se renumeró), sin tocar el SQL. |
+| 2 | La evidencia de `.specify/bugs/msf-988/{fix,test,assessment}.md` describía un estado que no existía (el guard salía con código 1 y los máximos citados eran los viejos). | Media | Corregida: los tres documentos dicen el máximo real verificado (`20270507180800`), las versiones nuevas y la salida real del guard. |
 | 3 | `fusionar_clientes` no repuntaba `cuenta_cliente_id`: los presupuestos del cliente al que se da de baja la cuenta quedaban sin cuenta (fuera de los topes FR-057 y de la idempotencia `(cuenta, clave)`). El pgTAP fijaba ese detachment como comportamiento. | Media | La fusión pasa esos presupuestos a la cuenta que sobrevive de la misma empresa antes de darla de baja; el pgTAP ahora cubre los **dos** casos del diálogo (se conserva la cuenta del conservado y la del descartado) y exige que la cuenta que sobrevive no arranque en cero. |
 | 4 | `MENSAJE_LIMITE` y `esperaSegundos` nunca llegaban a la pantalla: un `limite` era indistinguible de una caída de red. | Baja | El error del cupo lleva los segundos en su texto; `useListadoPorCursor` expone el aviso con la espera (el patrón compartido de `CargaInfinita` con `espera`), `useFavoritosEntre` avisa el cupo, y las tres pantallas lo muestran (ficha, historial y favoritos). |
 | 5 | El conjunto de caracteres bloqueados vivía en tres lugares y ningún test decía que fueran iguales. | Baja | Vitest nuevo (`tiendaPedido.caracteres.test.ts`) que compara **carácter por carácter** el conjunto del SQL con el del front sobre todo el BMP, y que exige que las dos funciones del servidor usen el mismo conjunto. |
@@ -126,6 +126,21 @@ uno (el detalle técnico está en `fix.md`):
 Además, el CI en rojo del commit anterior señalaba tres cosas del job `database` (el `duplicate key` del fixture del pgTAP del cierre,
 la ráfaga de 203 favoritos contra el cupo nuevo y el comentario de `mis_compras_por_dominio` que perdía el «DEFENSA EN PROFUNDIDAD»):
 las tres están corregidas y documentadas en `fix.md`.
+
+## Devolución del Revisor (2026-11-18, PR #1128 sobre `f9ab19e640`)
+
+Segunda devolución del mismo PR: cinco hallazgos Baja. Todos atendidos en un commit nuevo (detalle técnico en `fix.md` y `test.md`):
+
+| # | Hallazgo | Severidad | Qué se hizo |
+|---|---|---|---|
+| 1 | `mi_compra_por_dominio` (la 5ª RPC con cupo) no distinguía el `limite` de una caída de red en `DetalleCompra`: se veía el genérico sin los segundos. | Baja | El `catch` usa `esLimite`; el error con reintento muestra el texto del cupo y la espera. Vitest en `MiCuentaPantallas.test.tsx`. |
+| 2 | El re-apuntado de `cuenta_cliente_id` podía violar `presupuestos_tienda_clave_uq` si dos cuentas de la empresa comparten `clave_envio` (la unicidad de `tienda_envios` solo protege 24 h) y la fusión abortaba con «duplicate key». | Baja | El `update` no re-apunta el que choca: queda sin cuenta al darse de baja la suya y la fusión sigue. pgTAP nuevo con dos cuentas y la misma clave. |
+| 3 | La tabla «Migraciones del cierre» y las guías citaban `20270507170001`–`20270507170004`, que no existen en este SHA. | Baja | Actualizadas a `20270507200101`–`20270507200104` en `docs/tienda-compra-y-cuentas.md`, `docs/seguridad-tienda-compra-y-cuentas.md` y `docs/clientes.md`. |
+| 4 | La evidencia de la historia citaba las versiones viejas y afirmaba que el guard había corrido con ellas. | Baja | `fix.md`, `test.md` y este `assessment.md` dicen las versiones reales y el máximo real (`20270507180800`); el guard se volvió a correr (`--estricto`, código 0). |
+| 5 | El DER de la spec declaraba `public.clientes`, pero la tabla vive en `dominio` desde `20270418000401` y la FK del cierre apunta a `dominio.clientes`. | Baja | El grafo y la tabla de `dominio.consultas` declaran `dominio.clientes`. |
+
+Además, el job `web (2)` caía en `OpinionesProducto.test.tsx` («Cargar más»): el clic podía llegar antes de que React vaciara los
+efectos pasivos y el ref del estado vigente quedaba viejo. La copia pasa a `useLayoutEffect`, con test de regresión.
 
 ## Risks & Considerations
 

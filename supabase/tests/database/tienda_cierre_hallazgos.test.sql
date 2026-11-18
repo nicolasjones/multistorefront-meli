@@ -12,7 +12,7 @@
 -- `public.listar_presupuestos` tiene un sexto parámetro (MSF-942) y `crear_presupuesto_tienda` avisa al equipo al final (MSF-940).
 begin;
 
-select plan(64);
+select plan(70);
 
 -- ============================================================================
 -- Fixture
@@ -26,7 +26,9 @@ insert into auth.users (id, email) values
   ('f5000000-0000-0000-0000-000000000005', 'sin-cuenta@example.com'),
   ('f5000000-0000-0000-0000-000000000007', 'panel@example.com'),
   ('f5000000-0000-0000-0000-000000000008', 'conservado-2@example.com'),
-  ('f5000000-0000-0000-0000-000000000009', 'descartado-2@example.com');
+  ('f5000000-0000-0000-0000-000000000009', 'descartado-2@example.com'),
+  ('f5000000-0000-0000-0000-000000000010', 'chave-1@example.com'),
+  ('f5000000-0000-0000-0000-000000000011', 'chave-2@example.com');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('f5000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo');
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values
@@ -57,7 +59,9 @@ insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo)
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 712, 'Suelto', 'su@example.com', 'minorista'),
   ('c5000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 713, 'Cupo', 'cu@example.com', 'minorista'),
   ('c5000000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 714, 'Conservado dos', 'co2@example.com', 'minorista'),
-  ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 715, 'Descartado dos', 'de2@example.com', 'minorista');
+  ('c5000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 715, 'Descartado dos', 'de2@example.com', 'minorista'),
+  ('c5000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 716, 'Clave uno', 'c1@example.com', 'minorista'),
+  ('c5000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 717, 'Clave dos', 'c2@example.com', 'minorista');
 insert into clientes_empresas (cliente_id, empresa_id, organizacion_id)
 select id, 'e5000000-0000-0000-0000-000000000001', organizacion_id from dominio.clientes where id::text like 'c5000000%';
 insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
@@ -66,7 +70,9 @@ insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_u
   ('ca500000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000003', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000003', 'activa'),
   ('ca500000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000004', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000004', 'activa'),
   ('ca500000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000005', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000008', 'activa'),
-  ('ca500000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000006', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000009', 'activa');
+  ('ca500000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000006', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000009', 'activa'),
+  ('ca500000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000007', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000010', 'activa'),
+  ('ca500000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000008', 'e5000000-0000-0000-0000-000000000001', 'f5000000-0000-0000-0000-000000000011', 'activa');
 update public.banderas_plataforma set activa = true where clave = 'tienda_pedidos';
 
 create function pg_temp.como(p_user uuid, p_ip text default '10.9.0.1') returns void language plpgsql as $$
@@ -165,6 +171,33 @@ select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cl
   'H-2: la cuenta que sobrevive NO arranca en cero: los dos presupuestos cuentan para sus topes (5 por día y 10 abiertos)');
 select is((select cliente_id from public.cuentas_cliente where id = 'ca500000-0000-0000-0000-000000000006'), 'c5000000-0000-0000-0000-000000000005'::uuid,
   'H-2: y la cuenta que sobrevive ya es del cliente conservado');
+
+-- Tercera fusión: dos cuentas de la MISMA empresa con la MISMA `clave_envio`. Es posible porque la unicidad de
+-- `dominio.tienda_envios (empresa_id, clave_envio)` solo protege 24 h (la poda borra esas filas): al re-apuntar el vínculo
+-- del cliente perdedor a la cuenta que sobrevive, la unicidad `(cuenta_cliente_id, clave_envio)` (la idempotencia de B2)
+-- choca y el `update` abortaba con «duplicate key»: el administrador no podía fusionar ese par de clientes.
+select pg_temp.como('f5000000-0000-0000-0000-000000000010', '10.1.0.6');   -- el cliente «clave uno»
+insert into res values ('pres_clave_1', publico.crear_presupuesto_tienda('cierre-a.ejemplo.com', pg_temp.items('a5000000-0000-0000-0000-000000000001', '1'), 'Nota del cliente uno', 'c0000000-0000-0000-0000-000000000601'));
+reset role;
+-- La poda de lo vencido (más de 24 h) borra el envío: la misma clave vuelve a estar libre para otra cuenta de la empresa.
+delete from dominio.tienda_envios where empresa_id = 'e5000000-0000-0000-0000-000000000001' and clave_envio = 'c0000000-0000-0000-0000-000000000601';
+select pg_temp.como('f5000000-0000-0000-0000-000000000011', '10.1.0.7');   -- el cliente «clave dos»
+insert into res values ('pres_clave_2', publico.crear_presupuesto_tienda('cierre-a.ejemplo.com', pg_temp.items('a5000000-0000-0000-0000-000000000002', '1'), 'Nota del cliente dos', 'c0000000-0000-0000-0000-000000000601'));
+reset role;
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000601'), 2,
+  'H-2: dos cuentas distintas de la misma empresa tienen presupuestos con la misma clave (la poda de 24 h liberó la clave)');
+select pg_temp.como('f5000000-0000-0000-0000-000000000007', '10.1.0.3');   -- el administrador
+select lives_ok($$select public.fusionar_clientes('c5000000-0000-0000-0000-000000000007', 'c5000000-0000-0000-0000-000000000008', 'c5000000-0000-0000-0000-000000000007')$$,
+  'H-2: la fusión NO falla por «duplicate key» cuando las dos cuentas tienen la misma clave de envío');
+reset role;
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000601' and cuenta_cliente_id = 'ca500000-0000-0000-0000-000000000007'), 1,
+  'H-2: el presupuesto de la cuenta que sobrevive sigue con su cuenta');
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000601'), 2,
+  'H-2: los dos vínculos siguen existiendo (no se borra ninguno)');
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000601' and cuenta_cliente_id is null), 1,
+  'H-2: el que chocaba NO se re-apunta: queda sin cuenta al bajar la cuenta que lo tenía (el vínculo no se pierde)');
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-000000000601' and cliente_id = 'c5000000-0000-0000-0000-000000000007'), 2,
+  'H-2: y los dos quedan con el cliente conservado');
 
 -- ============================================================================
 -- H-3: cupo de llamadas por cuenta en las cinco RPC de «Mi cuenta»
@@ -286,9 +319,9 @@ select is((select count(*)::int from dominio.consultas where origen = 'pedido' a
 -- ============================================================================
 -- H-2 (efecto sobre las bajas): borrar el usuario de Auth conserva el vínculo; la baja de la ORGANIZACIÓN sigue funcionando con presupuestos
 -- ============================================================================
-select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is not null), 4, 'bajas: antes de borrar al usuario, los cuatro vínculos con cuenta están con cuenta (los dos de la cuenta conservada y los dos de la cuenta que sobrevivió a la segunda fusión)');
+select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is not null), 5, 'bajas: antes de borrar al usuario, los cinco vínculos con cuenta están con cuenta (los dos de la cuenta conservada, los dos de la cuenta que sobrevivió a la segunda fusión y el de la cuenta que sobrevivió a la tercera)');
 select lives_ok($$delete from auth.users where id = 'f5000000-0000-0000-0000-000000000001'$$, 'bajas: borrar el usuario de Auth (que borra su cuenta web) no falla');
-select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is null), 3, 'bajas: y los vínculos de sus presupuestos siguen existiendo, sin cuenta (los tres: el suelto, el del descartado y el nuevo)');
+select is((select count(*)::int from dominio.presupuestos_tienda where cuenta_cliente_id is null), 4, 'bajas: y los vínculos de sus presupuestos siguen existiendo, sin cuenta (los cuatro: el suelto, el del descartado, el nuevo y el que chocó en la tercera fusión)');
 select lives_ok($$delete from organizaciones where id = '11111111-1111-1111-1111-111111111111'$$, 'bajas: la baja de la organización con presupuestos de la tienda NO se bloquea (las FK de cliente y comprobante son cascade)');
 select is((select count(*)::int from dominio.presupuestos_tienda), 0, 'bajas: y no queda ningún vínculo');
 

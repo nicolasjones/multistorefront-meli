@@ -1,7 +1,7 @@
 # Bug Verification: MSF-988 — cierre de los hallazgos H-2 a H-6 de MSF-176 sobre `dokploy` actual
 
 - **Slug**: msf-988
-- **Tested**: 2026-11-17
+- **Tested**: 2026-11-18
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: partial
@@ -21,6 +21,12 @@ puntos que faltaban y este commit los corrige — la versión `REUSADA` de las c
 del cierre, la ráfaga de 203 favoritos contra el cupo nuevo y el comentario de `mis_compras_por_dominio` que perdía el «DEFENSA EN
 PROFUNDIDAD» (lo fijaba `tienda_menores_revision.test.sql`). Los detalles están en la fila «Correcciones del CI» de la tabla.
 
+**Devolución del Revisor (2026-11-18):** los cinco hallazgos Baja de esta devolución están atendidos: el cupo de
+`mi_compra_por_dominio` llega a la pantalla de detalle con su texto y sus segundos; la fusión no aborta con «duplicate key» cuando las
+dos cuentas comparten `clave_envio` (con pgTAP nuevo); las referencias documentales y de esta evidencia dicen las versiones reales;
+el DER de la spec declara `dominio.clientes`; y el botón «Cargar más» que caía en `web (2)` tiene su test de regresión (el ref del
+estado vigente se copia en un efecto de layout).
+
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
@@ -29,28 +35,30 @@ PROFUNDIDAD» (lo fijaba `tienda_menores_revision.test.sql`). Los detalles está
 | New / updated tests (front) | `vitest run src/lib/tiendaCuentaDatos.test.ts src/lib/tiendaPedido.test.ts src/lib/tiendaPedido.caracteres.test.ts src/hooks/useListadoPorCursor.test.tsx src/hooks/useFavoritosEntre.test.tsx src/pages/tienda-publica/cuenta/` | pass | 142 pruebas en verde (8 archivos). |
 | El test vigila la regla (FEAT-236) | Mutación a propósito en `tiendaCuentaDatos.ts`: (a) `menseLimite` devuelve siempre el texto genérico; (b) `esLimite` devuelve siempre `false` | pass | (a) rompe 12 pruebas de 5 archivos; (b) rompe los tests del cupo: los tests **detectan** el cambio de la regla, no la describen. Las dos mutaciones se revirtieron. |
 | Regression suite (front) | `vitest run src/lib/tiendaOpiniones.test.ts src/pages/tienda-publica/cuenta/favoritosSoloEnLaTienda.test.ts src/pages/tienda-publica/lista/ src/pages/tienda-publica/opiniones/ src/hooks/useComprasCliente.test.tsx src/components/consultas/` | pass | 188 pruebas en verde (12 archivos). Son los que dependen de `tiendaCuentaDatos`/`tiendaPedido`. |
-| New / updated tests (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | not-run | No hay Postgres ni Docker en este nodo. Queda para el job `database` del CI (64 aserciones). |
+| New / updated tests (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | not-run | No hay Postgres ni Docker en este nodo. Queda para el job `database` del CI (70 aserciones; 6 nuevas para el choque de `clave_envio`). |
 | Lint / type-check | `pnpm --filter @platform/web lint` | pass | Código 0; solo avisos preexistentes de `oxlint` y **ninguno** en los archivos que la historia toca. |
 | Build | `pnpm build` (`tsc -b` + `vite build`) | pass | Sin errores de tipos ni de build (`✓ built in 5.34s`). |
-| Guard de migraciones | `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` | pass | Código 0: 757 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507170001` a `20270507170004`, por encima del máximo real de la base (`20270507170000`, que entró con el merge del PR #1124). |
+| Guard de migraciones | `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` | pass | Código 0: 757 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507200101` a `20270507200104`, por encima del máximo real de la base al verificar (`20270507180800`, el último lote integrado en `dokploy`). |
 | Documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4047 archivos comparados); migraciones OK (757 archivos, 4 nuevos); trampas conocidas OK (4 migraciones y 2 pruebas pgTAP revisados). |
 | DER de la spec | `node scripts/verificar-der.mjs specs/20270306-100000-tienda-compra-y-cuentas/spec.md` | pass | DER OK (la columna alterada está marcada). |
 | Matriz pantalla↔criterios | `pnpm matriz:check` | pass | 0 specs nuevas revisadas (esta historia no agrega pantallas). |
 | Calidad | `pnpm calidad:code` | pass | `oxlint`, `knip`, `jscpd`, `dependency-cruiser` y `syncpack` en OK; `gitleaks` **saltado** (necesita Docker, que en este nodo da «permission denied»). |
-| Equivalencia de cuerpos | Comparación carácter a carácter entre los cuerpos de `20270507170004` y sus migraciones de origen | pass | `enviar_lista_pedido` y `crear_presupuesto_tienda` son idénticos salvo las dos constantes de caracteres. Las cinco RPC de `20270507170003` difieren de las vigentes solo por el cupo, el bloque anidado y `stable` → `volatile`. `fusionar_clientes` de `20270507170002` es el vigente más los dos `update` que repuntan. |
-| Correcciones del CI (2026-11-17) | Logs de los jobs `application`, `database` y `validacion` del PR #1128 | pass | El CI en rojo señalaba cuatro cosas, todas corregidas en este commit: (a) `application`: las cuatro migraciones tenían versión `REUSADA` (por debajo del máximo de `dokploy`) → renumeradas a `20270507170001`–`20270507170004`; (b) `database`: el pgTAP del cierre moría en la línea 46 con «duplicate key … existencias_pkey» (el trigger `productos_crear_existencias` ya deja una fila por producto) → el fixture ahora hace `on conflict (producto_id) do update`; (c) `database`: `tienda_favoritos.test.sql` fallaba 20 de 111 (la ráfaga de 203 favoritos chocaba con el cupo nuevo de 120 por minuto) → el test sube el cupo **dentro de su transacción**, igual que hacía el PR #965; (d) `database`: `tienda_menores_revision.test.sql` fallaba la prueba 50 (el comentario de `mis_compras_por_dominio` perdía el «DEFENSA EN PROFUNDIDAD») → los comentarios de las ocho funciones redefinidas reproducen los de la base y suman la nota del hallazgo. |
+| Equivalencia de cuerpos | Comparación carácter a carácter entre los cuerpos de `20270507200104` y sus migraciones de origen | pass | `enviar_lista_pedido` y `crear_presupuesto_tienda` son idénticos salvo las dos constantes de caracteres. Las cinco RPC de `20270507200103` difieren de las vigentes solo por el cupo, el bloque anidado y `stable` → `volatile`. `fusionar_clientes` de `20270507200102` es el vigente más los dos `update` que repuntan. |
+| Correcciones del CI (2026-11-17) | Logs de los jobs `application`, `database` y `validacion` del PR #1128 | pass | El CI en rojo señalaba cuatro cosas, todas corregidas en este commit: (a) `application`: las cuatro migraciones tenían versión `REUSADA` (por debajo del máximo de `dokploy`) → renumeradas a `20270507200101`–`20270507200104`; (b) `database`: el pgTAP del cierre moría en la línea 46 con «duplicate key … existencias_pkey» (el trigger `productos_crear_existencias` ya deja una fila por producto) → el fixture ahora hace `on conflict (producto_id) do update`; (c) `database`: `tienda_favoritos.test.sql` fallaba 20 de 111 (la ráfaga de 203 favoritos chocaba con el cupo nuevo de 120 por minuto) → el test sube el cupo **dentro de su transacción**, igual que hacía el PR #965; (d) `database`: `tienda_menores_revision.test.sql` fallaba la prueba 50 (el comentario de `mis_compras_por_dominio` perdía el «DEFENSA EN PROFUNDIDAD») → los comentarios de las ocho funciones redefinidas reproducen los de la base y suman la nota del hallazgo. |
+| Correcciones del CI (2026-11-18) | Log del job `web (2)` del PR #1128 (`OpinionesProducto.test.tsx` › «Cargar más» suma la tanda siguiente con el cursor y no repite filas) | pass | El clic en «Cargar más» podía llegar antes de que React vaciara los efectos pasivos y el ref del estado vigente quedaba viejo: el botón no hacía nada. La copia pasa a `useLayoutEffect` y un test nuevo reproduce el caso (efecto de layout que dispara `cargarMas` en el mismo commit que pintó las filas). |
+| Cupo en la 5ª RPC (DetalleCompra) | `vitest run src/pages/tienda-publica/cuenta/MiCuentaPantallas.test.tsx` | pass | `mi_compra_por_dominio` responde `limite` → la pantalla muestra el texto del cupo con los segundos y **no** el genérico «No pudimos cargar el comprobante.». |
+| Choque de `clave_envio` en la fusión (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` (6 aserciones nuevas) | not-run | Dos cuentas de la misma empresa con la misma `clave_envio` (la poda de 24 h la libera): la fusión no falla, el vínculo que choca queda sin cuenta y los dos siguen con el cliente conservado. Queda para el job `database` del CI. |
 
 ## Output Excerpts
 
 ```
- Test Files  8 passed (8)
-      Tests  142 passed (142)
+ Test Files  5 passed (5)
+      Tests  141 passed (141)
 ```
 
-```
- Test Files  12 passed (12)
-      Tests  188 passed (188)
-```
+Corrida focalizada de la devolución del 2026-11-18: `useListadoPorCursor.test.tsx`, `MiCuentaPantallas.test.tsx` y
+`pages/tienda-publica/opiniones/` (el archivo que caía en `web (2)`). Las corridas completas de la devolución anterior (142 y 188
+pruebas en verde) siguen vigentes sobre este estado.
 
 ```
 Migraciones OK: 757 archivo(s), 4 nuevo(s) contra origin/dokploy.
@@ -78,10 +86,10 @@ Matriz pantalla↔criterios: OK (0 specs nuevas revisadas, 0 exentas).
 - **El pgTAP no se ejecutó localmente** (sin Postgres ni Docker en este nodo): si algún detalle de la base difiere de lo asumido, el
   job `database` del CI lo detecta. Los puntos más expuestos son: (a) el orden de los cascades al borrar la organización (el pgTAP
   exige que la baja **no** se bloquee) y (b) el conteo de filas de `dominio.presupuestos_tienda` tras la fusión y la baja del usuario de
-  Auth (3 vínculos sin cuenta).
+  Auth (4 vínculos sin cuenta, incluido el que chocaba por `clave_envio`).
 - El cupo de `crear_presupuesto_tienda` es de 10 por minuto (real): el pgTAP lo sube a 100 **solo dentro de su transacción** para
   poder hacer la ráfaga de H-6; el valor real no cambia.
-- La migración `20270507170001` cambia la regla de borrado de tres FK de `dominio.presupuestos_tienda`: es el punto de la historia que
+- La migración `20270507200101` cambia la regla de borrado de tres FK de `dominio.presupuestos_tienda`: es el punto de la historia que
   toca datos. Su reversión está documentada en el propio archivo (FK de la cuenta a `cascade`, las otras dos a `no action` y
   `set not null` en la columna).
 - H-1 (hash de IP reversible) no se corrige: queda trazado como **MSF-945**.

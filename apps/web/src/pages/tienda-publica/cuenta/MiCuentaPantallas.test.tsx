@@ -316,6 +316,15 @@ describe('DetalleCompra (FR-005, FR-006, P-3)', () => {
     await waitFor(() => expect(alSinAcceso).toHaveBeenCalledTimes(1))
   })
 
+  // H-3: `mi_compra_por_dominio` es una de las cinco RPC con cupo: su límite se avisa con su texto y los segundos de
+  // espera, no como una caída de red.
+  it('el cupo de llamadas por cuenta (H-3) se avisa con su texto y la espera, no como una caída de red', async () => {
+    rpcs({ mi_compra_por_dominio: { estado: 'limite', espera_segundos: 20 } })
+    montar()
+    expect(await screen.findByText('Hiciste muchas consultas seguidas. Esperá 20 segundos y probá de nuevo.')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el comprobante.')).not.toBeInTheDocument()
+  })
+
   it('«Cerrar» y Esc cierran el detalle', async () => {
     rpcs({ mi_compra_por_dominio: DETALLE })
     const alCerrar = vi.fn()

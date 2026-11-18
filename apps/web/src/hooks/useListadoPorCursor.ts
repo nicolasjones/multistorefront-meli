@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { esLimite, esSinAcceso } from '../lib/tiendaCuentaDatos'
 
 // Carga infinita de un listado paginado por cursor (Constitución, Principio VI): la primera tanda se pide al cambiar
@@ -65,7 +65,12 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
   const enCurso = useRef(false)
   const ultimo = useRef<Estado<T, C> | null>(null)
   const funciones = useRef({ leer, idDe, alSinAcceso })
-  useEffect(() => {
+  // El estado vigente y las funciones de lectura se copian a un ref para que `cargarMas` (que no cambia de identidad)
+  // lea lo último. La copia va en un efecto de LAYOUT, no en uno pasivo: React corre los pasivos DESPUÉS de pintar, así
+  // que un clic puede llegar antes de que se vacíen y el botón «Cargar más» no haría nada (la lista no avanza y no hay
+  // error: la persona ve un botón muerto). Con el efecto de layout la copia está lista en el mismo commit que pintó las
+  // filas, antes de que pueda llegar el clic.
+  useLayoutEffect(() => {
     ultimo.current = estado
     funciones.current = { leer, idDe, alSinAcceso }
   })

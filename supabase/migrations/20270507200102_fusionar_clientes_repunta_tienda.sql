@@ -117,13 +117,24 @@ begin
     -- abiertos, FR-057) y de la idempotencia `(cuenta, clave_envio)`, y el cliente fusionado podría gastar el tope COMPLETO dos veces. Antes de dar de baja la cuenta,
     -- sus presupuestos pasan a la cuenta que sobrevive de la MISMA empresa (la FK es compuesta por cuenta, organización y empresa): si en esa empresa no queda
     -- ninguna cuenta, no hay tops que valgan y el vínculo queda sin cuenta (lo admite la columna).
+    -- La unicidad `(cuenta_cliente_id, clave_envio)` (la idempotencia de B2) puede CHOCAR al re-apuntar: dos cuentas de la MISMA empresa pueden tener la misma
+    -- `clave_envio` (la unicidad de `dominio.tienda_envios (empresa_id, clave_envio)` solo protege 24 h, hasta que la poda borra esas filas). La fila que chocaría
+    -- NO se re-apunta: se queda con la cuenta que se da de baja y, al borrarla, queda SIN cuenta (el vínculo no se pierde, pero sale de los topes por cuenta). Es
+    -- preferible a que la fusión se caiga con un «duplicate key» y el administrador no pueda fusionar ese par de clientes.
     update dominio.presupuestos_tienda pt
        set cuenta_cliente_id = cg.id
       from public.cuentas_cliente cc, public.cuentas_cliente cg
      where pt.cuenta_cliente_id = cc.id
        and cc.cliente_id = case when v_gana = p_conservar_id then p_descartar_id else p_conservar_id end
        and cc.organizacion_id = v_org
-       and cg.cliente_id = v_gana and cg.empresa_id = cc.empresa_id and cg.organizacion_id = v_org;
+       and cg.cliente_id = v_gana and cg.empresa_id = cc.empresa_id and cg.organizacion_id = v_org
+       and not exists (
+         select 1
+           from dominio.presupuestos_tienda otro
+          where otro.cuenta_cliente_id = cg.id
+            and otro.clave_envio = pt.clave_envio
+            and otro.id <> pt.id
+       );
 
     -- La cuenta no elegida se da de baja (se elimina; el usuario de Auth queda sin uso).
     delete from public.cuentas_cliente cc
@@ -183,7 +194,7 @@ end;
 $$;
 
 comment on function public.fusionar_clientes(uuid, uuid, uuid) is
-  'F-CLI-18 (MSF-447): fusiona dos clientes de la organización de la sesión (solo Administrador): reasigna documentos de venta, cuenta web y opiniones de productos al conservado y archiva al descartado, todo en una transacción. MSF-176 (H-2): repunta también los presupuestos de la tienda y las consultas de pedido del cliente descartado; los presupuestos de la cuenta web que se da de baja pasan a la cuenta que sobrevive (si no, sus vínculos quedarían sin cuenta y fuera del conteo de los topes por cuenta) y las consultas re-apuntadas no hacen avanzar `updated_at`.';
+  'F-CLI-18 (MSF-447): fusiona dos clientes de la organización de la sesión (solo Administrador): reasigna documentos de venta, cuenta web y opiniones de productos al conservado y archiva al descartado, todo en una transacción. MSF-176 (H-2): repunta también los presupuestos de la tienda y las consultas de pedido del cliente descartado; los presupuestos de la cuenta web que se da de baja pasan a la cuenta que sobrevive (si no, sus vínculos quedarían sin cuenta y fuera del conteo de los topes por cuenta) y las consultas re-apuntadas no hacen avanzar `updated_at`. Un presupuesto cuya `clave_envio` choca con la de la cuenta que sobrevive NO se re-apunta (queda sin cuenta al bajar la cuenta que lo tenía): la fusión no falla por eso.';
 
 revoke execute on function public.fusionar_clientes(uuid, uuid, uuid) from public, anon;
 grant execute on function public.fusionar_clientes(uuid, uuid, uuid) to authenticated;
