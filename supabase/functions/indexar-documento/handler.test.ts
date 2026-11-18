@@ -9,13 +9,14 @@ const ID = '11111111-1111-4111-8111-111111111111'
 const AHORA = 1_800_000_000_000
 
 // Base en memoria con la semántica real: reclamar es compare-and-swap, marcarFallida solo actúa sobre `procesando`.
-function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; estadoTrasInvalida?: string | null; activarLaOtra?: boolean; soltarFalla?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string } = {}) {
+function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; activarFalla?: boolean; descargaFalla?: boolean; activarPermiso?: boolean; version?: Partial<VersionDoc>; featureApagada?: boolean; contextoNull?: boolean; superadmin?: boolean; activarInvalida?: boolean; estadoTrasInvalida?: string | null; activarLaOtra?: boolean; soltarFalla?: boolean; marcarFalla?: boolean; versionAjena?: boolean; rol?: string; sinPermisoEscritura?: boolean } = {}) {
   const v: VersionDoc = { subida_por: 'u1', id: ID, estado: 'procesando', motivo_error: null, storage_path: 'o/a.txt', nombre: 'a.txt', organizacion_id: 'org-1', ...opciones.version }
   let fragmentos = 0
   let insertados = 0
   const deps: Deps = {
     getUser: async (jwt) => jwt === 'ok' ? { id: 'u1' } : null,
     feature: async () => ({ data: !opciones.featureApagada, error: null }),
+    puedeGestionar: async () => opciones.sinPermisoEscritura !== true,
     contexto: async () => opciones.contextoNull ? null : ({ organizacion_id: 'org-1', rol_efectivo: opciones.rol ?? 'miembro', es_superadmin: opciones.superadmin ?? false }),
     version: async () => opciones.versionAjena ? null : ({ ...v }),
     reclamar: async (_j, _id, previo, reclamo) => {
@@ -284,6 +285,18 @@ describe('indexar-documento', () => {
       assert.equal(res.status, 502)
     } finally { console.error = errores }
     assert.equal(m.v.motivo_error, null)
+  })
+
+  it('si el reclamo no afecta filas por falta de permiso (rol de solo lectura) responde el MISMO 403 que ajena, no un 409 «ocupado»', async () => {
+    const sinPermiso = montar({ sinPermisoEscritura: true })
+    sinPermiso.deps.reclamar = async () => false
+    const res = await pedir(sinPermiso.deps)
+    assert.equal(res.status, 403)
+    const ajena = await pedir(montar({ versionAjena: true }).deps)
+    assert.deepEqual(await res.json(), await ajena.json())
+    const ocupada = montar()
+    ocupada.deps.reclamar = async () => false
+    assert.equal((await pedir(ocupada.deps)).status, 409, 'con permiso, 0 filas sí es «ocupado»')
   })
 
   it('el 409 distingue el candado vigente (ocupado) de lo que ya no se puede procesar (no_procesable)', async () => {

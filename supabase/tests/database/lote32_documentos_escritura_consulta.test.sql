@@ -18,6 +18,7 @@ insert into auth.users (id, email) values
   ('d1000000-0000-0000-0000-000000000006', 'administracion-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000007', 'tecnico-uno@example.com'),
   ('d1000000-0000-0000-0000-000000000008', 'suspendido-uno@example.com'),
+  ('d1000000-0000-0000-0000-000000000009', 'miembro-uno@example.com'),
   ('d2000000-0000-0000-0000-000000000001', 'admin-dos@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
@@ -29,6 +30,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) val
   ('d1000000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'administracion', 'activo'),
   ('d1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'tecnico', 'activo'),
   ('d1000000-0000-0000-0000-000000000008', '11111111-1111-1111-1111-111111111111', 'operador', 'suspendido'),
+  ('d1000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'miembro', 'activo'),
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 
 insert into public.features (id, nombre, descripcion) values ('busqueda-documental', 'RAG', 'x') on conflict do nothing;
@@ -120,6 +122,15 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select is((select private.puede_gestionar_documentos()), true, 'Operador sí');
 select pg_temp.como('d1000000-0000-0000-0000-000000000008');
 select is((select private.puede_gestionar_documentos()), false, 'un miembro suspendido no');
+select pg_temp.como('d1000000-0000-0000-0000-000000000009');
+select is((select private.puede_gestionar_documentos()), false, 'el rol heredado miembro (solo lectura) no puede gestionar documentos');
+select ok(pg_temp.ciclo(8) like '42501:%', 'miembro no escribe (lista blanca de roles escritores)');
+select pg_temp.como('d2000000-0000-0000-0000-000000000001');
+select is((select private.puede_gestionar_documentos()), true, 'el administrador de otra organización gestiona SUS documentos');
+reset role;
+set local role anon;
+select throws_ok($$select private.puede_gestionar_documentos()$$, '42501', 'permission denied for schema private', 'anon no ejecuta el helper');
+reset role;
 
 -- ============================================================================
 -- Consulta: lee, no escribe ni borra

@@ -9,7 +9,9 @@
 --
 -- Qué cambia:
 --   · `private.puede_gestionar_documentos()` (`security definer`, `stable`, `search_path = ''`): verdadero para un miembro ACTIVO
---     de la organización cuyo rol NO es `consulta`, y para el superadmin con una organización activa (`private.puede_escribir()`).
+--     de la organización con un rol ESCRITOR (lista blanca: administrador, operador, mostrador, deposito, administracion,
+--     tecnico) y para el superadmin con una organización activa (`private.puede_escribir()`). Consulta y el rol heredado
+--     `miembro` (solo lectura en la matriz) NO escriben, y un rol de solo lectura futuro tampoco por defecto.
 --     Execute solo para `authenticated` (lo usan las políticas).
 --   · Políticas de escritura (insert/update/delete) de `fragmentos_indexados`, `documentos`, `versiones_documento` y del
 --     bucket `documentos-rag` (insert/delete) exigen además ese helper; el alta de documento y de versión siguen exigiendo la
@@ -39,12 +41,12 @@ as $$
        where u.user_id = (select auth.uid())
          and u.organizacion_id = (select private.organizacion_id())
          and u.estado = 'activo'
-         and u.rol_id <> 'consulta'
+         and u.rol_id in ('administrador', 'operador', 'mostrador', 'deposito', 'administracion', 'tecnico')
     );
 $$;
 
 comment on function private.puede_gestionar_documentos() is
-  'MSF-651: true si el usuario actual puede subir, indexar y borrar documentos RAG: miembro activo de la organización con un rol distinto de Consulta, o superadmin con organización activa.';
+  'MSF-651: true si el usuario actual puede subir, indexar y borrar documentos RAG: miembro activo con un rol escritor (administrador, operador, mostrador, deposito, administracion, tecnico), o superadmin con organización activa. Consulta y miembro no.';
 
 revoke execute on function private.puede_gestionar_documentos() from public, anon;
 grant execute on function private.puede_gestionar_documentos() to authenticated;

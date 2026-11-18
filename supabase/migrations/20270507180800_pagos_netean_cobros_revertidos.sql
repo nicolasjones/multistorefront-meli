@@ -8,6 +8,7 @@
 --   · `listar_pagos`: agrega la columna `estado_reversion` (`'revertido'` para el cobro revertido, `'reversion'` para el
 --     contra-asiento, nulo para el resto) para que la pantalla los muestre como revertidos y no los ofrezca a conciliar. Cambia
 --     la forma de la respuesta: drop + create (los consumidores leen por nombre).
+--     (la definición vigente ya lee los clientes de `dominio.clientes`, no de `public.clientes`: la tabla se trasladó en 20270418000401.)
 --   · `cuentas_cobro_mas_usadas`: no cuenta como uso de la cuenta ni al cobro revertido ni a su contra-asiento.
 -- Mismos grants (revoke public/anon, grant authenticated), `security invoker`, `search_path = ''`.
 --

@@ -30,6 +30,8 @@ export type Deps = {
   /** `tiene_feature_publica('busqueda-documental')` con el JWT del usuario. */
   feature(jwt: string): Promise<{ data: unknown; error: unknown }>
   /** `contexto_panel_actual()` con el JWT del usuario (organización activa y rol efectivo); null si no se pudo leer. */
+  /** ¿El usuario puede escribir documentos (rol escritor)? Se consulta solo cuando el reclamo no afectó filas, para distinguir permiso de «ocupado». */
+  puedeGestionar(jwt: string): Promise<boolean>
   contexto(jwt: string): Promise<{ organizacion_id: string | null; rol_efectivo: string | null; es_superadmin: boolean } | null>
   // Todo lo que sigue corre con la sesión del usuario (RLS), salvo `politica` y `credencial` (service-role, solo lectura de gobernanza).
   version(jwt: string, id: string): Promise<VersionDoc | null>
@@ -92,7 +94,11 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (reclamoVigente(version.motivo_error, deps.ahora())) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   const reclamo = nuevoReclamo(deps.ahora(), deps.id())
-  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
+  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) {
+    // 0 filas por falta de permiso (rol de solo lectura) no es «ocupado»: mismo 403 que inexistente o ajena, sin oráculo.
+    if (!(await deps.puedeGestionar(jwt))) return respuesta({ error: SIN_PERMISO }, 403)
+    return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
+  }
 
   // Soltar el candado nunca debe lanzar; si falla, el candado queda vigente hasta que venza (10 min): se deja rastro.
   const soltarSeguro = async () => {

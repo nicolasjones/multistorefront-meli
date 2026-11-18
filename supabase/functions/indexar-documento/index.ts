@@ -5,6 +5,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
+import { escrituraFragmentos } from './fragmentos.ts'
+import { puedeGestionarDocumentos } from './reglas.ts'
 
 const CONSUMIDOR_CODIGO = 'rag-busqueda-documental'
 const CONTRATO: ContratoConsumidor = {
@@ -123,22 +125,11 @@ Deno.serve((req) => {
     },
     embeddings: (textos, clave) => generarEmbeddings(textos.map((t) => (sanitizarDato({ texto: t }, CONTRATO.datosPermitidos) as { texto: string }).texto), clave),
     // Los fragmentos se escriben y borran con el cliente de SERVICIO (así la indexación no depende del rol del usuario), pero
-    // SOLO después de la autorización que ya hizo el handler con el JWT del usuario (funcionalidad, RLS sobre la versión,
-    // permiso y reclamo propio) y acotado a esa versión: se relee la versión con la sesión del usuario (RLS) y se exige que
-    // los fragmentos sean de ella y de su organización.
-    borrarFragmentos: async (jwt, versionId) => {
-      if (!(await versionDelUsuario(jwt, versionId))) return false
-      return !(await admin.from('fragmentos_indexados').delete().eq('version_id', versionId)).error
-    },
-    insertarFragmentos: async (jwt, filas) => {
-      if (filas.length === 0) return true
-      const versionId = filas[0].version_id
-      const version = await versionDelUsuario(jwt, versionId)
-      if (!version || filas.some((f) => f.version_id !== versionId || f.organizacion_id !== version.organizacion_id)) return false
-      for (let i = 0; i < filas.length; i += LOTE_INSERCION) {
-        if ((await admin.from('fragmentos_indexados').insert(filas.slice(i, i + LOTE_INSERCION))).error) return false
-      }
-      return true
+    // SOLO después de la autorización del handler y acotado a la versión y organización que el usuario ve por RLS (fragmentos.ts).
+    ...escrituraFragmentos(admin as never, versionDelUsuario, LOTE_INSERCION),
+    puedeGestionar: async (jwt) => {
+      const { data, error } = await comoUsuario(jwt).rpc('contexto_panel_actual').single()
+      return !error && !!data && puedeGestionarDocumentos(data as { rol_efectivo: string | null; es_superadmin: boolean })
     },
     activar: async (jwt, versionId) => {
       const cliente = comoUsuario(jwt)
