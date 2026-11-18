@@ -196,7 +196,8 @@ export function aFormulario(producto: Producto, costo: number | string | null): 
 }
 
 // Parámetros de public.actualizar_producto (M4): `p_actualizado_en` es el updated_at
-// leído al abrir la ficha (bloqueo optimista). Un costo vacío viaja nulo = sin cambio.
+// leído al abrir la ficha (bloqueo optimista). Un costo vacío de quien puede editarlo viaja con `p_borrar_costo` = true
+// y la base lo BORRA (nulo solo = «no se envió», sin cambio); sin permiso de costo nunca se borra.
 export type ParametrosActualizarProducto = ParametrosCrearProducto & {
   p_id: string
   p_actualizado_en: string
@@ -206,13 +207,15 @@ export type ParametrosActualizarProducto = ParametrosCrearProducto & {
   p_cambiar_codigo_barras: true
   // F-CAT-17: igual; el formulario reenvía la elección (nulo = quitarla).
   p_cambiar_disponibilidad: true
+  // MSF-723: vaciar el costo lo borra; con false (o sin el permiso) el costo no se toca.
+  p_borrar_costo: boolean
 }
 
 export function aParametrosActualizar(
   formulario: FormularioProducto,
   { conCosto, id, actualizadoEn }: { conCosto: boolean; id: string; actualizadoEn: string },
 ): ParametrosActualizarProducto {
-  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, p_cambiar_codigo_barras: true, p_cambiar_disponibilidad: true, ...aParametrosCrear(formulario, { conCosto }) }
+  return { p_id: id, p_actualizado_en: actualizadoEn, p_cambiar_proveedor: true, p_cambiar_codigo_barras: true, p_cambiar_disponibilidad: true, p_borrar_costo: conCosto && formulario.costo.trim() === '', ...aParametrosCrear(formulario, { conCosto }) }
 }
 
 // ¿Hay algo cargado que se perdería al salir? (diálogo «Descartar cambios»).
