@@ -140,6 +140,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Tests de los controles de documentación (docs-yaml, docs-check, trampas conocidas, documentación de cambios).
+      - name: test:docs:check
+        run: pnpm test:docs:check
       # MSF-925/926: acciones pineadas por SHA y todos los jobs con timeout-minutes (scripts/verificar-workflows.mjs).
       - name: workflows:check
         run: pnpm workflows:check

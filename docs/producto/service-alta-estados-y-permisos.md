@@ -1,8 +1,11 @@
 ---
 owner: producto
 sources:
-  - specs
-  - design/pantallas
+  - apps/web/src/pages/service-tecnico/modelos.tsx
+  - apps/web/src/pages/service-tecnico/estados.tsx
+  - specs/20261020-100000-service-alta-estados-y-permisos
+  - design/pantallas/ServicioModelos.dc.html
+  - design/pantallas/ServicioEstados.dc.html
 ---
 
 # Service técnico: alta, estados y permisos (MSF-182)

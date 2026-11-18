@@ -1,9 +1,11 @@
 ---
 owner: producto
 sources:
-  - specs
-  - apps/web/src
-  - design/pantallas
+  - apps/web/src/pages/ventas/transportes
+  - apps/web/src/pages/ventas/configuracion
+  - apps/web/src/pages/ventas/cuentas-cobro
+  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
+  - design/pantallas/CuentasCobro.dc.html
 ---
 
 # Ventas · catálogos de cobro y envío (MSF-139)

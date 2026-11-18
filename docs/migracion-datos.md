@@ -51,7 +51,7 @@ fila con documento repetido.
 Reutilizan el asistente genérico (subir → mapear → vista previa con errores por fila → aplicar
 por lotes → resultado y registro en `migracion_cargas`/`migracion_filas`). Rutas:
 `/migracion/importar/proveedores` (botón «Importar» de Proveedores, solo Administrador) y
-`/migracion/importar/vinculos-proveedor-producto` (se ofrece al terminar la carga de proveedores).
+`/migracion/importar/vinculos_proveedor_producto` (se ofrece al terminar la carga de proveedores).
 Orden de carga: **clientes → proveedores → vínculos** (los vínculos necesitan los proveedores ya
 cargados y el catálogo de productos cargado por Catálogo).
 

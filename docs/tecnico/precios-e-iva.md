@@ -189,6 +189,7 @@ Guardar lo mismo **no** deja evento: los triggers comparan antes/después.
 | Tabla «Así quedan los precios» (muestra la **miniatura del producto** en su columna) | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
 | Bloque «Precio y costo» del formulario de producto | `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | «Margen estimado (escala x1)» | `apps/web/src/components/precios/MargenEstimado.tsx` |
+| Enlace «Cotización →» del bloque (solo con la sección `cotizacion_dolar` en lectura o edición; abre `/cotizacion` en pestaña nueva con `useHref`, respetando el basename del router) | `EnlaceCotizacion` en `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | Bloque «Precios por escala · sin IVA» | `apps/web/src/components/precios/EscalasPrecio.tsx` |
 | Campo «IVA» del producto | `apps/web/src/components/precios/IvaProducto.tsx` |
 | Fórmulas espejadas, formato de importes y mensajes de error | `apps/web/src/lib/precios.ts`, `lib/iva.ts`, `lib/escalas.ts` |

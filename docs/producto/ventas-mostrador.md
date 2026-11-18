@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/mostrador.tsx
 ---
 
 # Venta de mostrador

@@ -1,6 +1,10 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/pages/clientes/edit.tsx
+  - apps/web/src/pages/clientes/show.tsx
 ---
 
 # Clientes

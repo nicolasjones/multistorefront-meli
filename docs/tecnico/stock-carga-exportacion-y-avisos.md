@@ -192,9 +192,13 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
   `apps/web/src/components/stock/ExportarCsvBoton.tsx` (botón). Las pantallas declaran sus columnas en **un solo
   arreglo** que usan la tabla y el CSV (`columnasStock` en `list.tsx`, `COLUMNAS` en `movimientos.tsx`), así que no
   se desfasan.
+  En Movimientos, la nota (tabla y CSV) pasa por `notaLegibleDeMovimiento` (`apps/web/src/lib/stock.ts`), que reemplaza
+  la referencia interna `comprobante:<uuid>[:linea:N]` de las reservas «A pedido» por «el comprobante».
 - **Faltantes.** `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
   fila y «seleccionar todo» en el encabezado de la columna de casillas (como en el prototipo), filtro `FiltroEmpresa`,
   carga por tandas de 25 con «Cargar más» y **miniatura del producto**; pie «N seleccionados de M faltantes».
+  El texto de ayuda de la pantalla dice (`faltantes.tsx`) que un faltante se cierra al entregar el pedido o al liberar la
+  reserva y que ingresar mercadería **no** lo cierra solo (antes decía lo contrario, copiado del prototipo).
 - **Más vendidos.** `apps/web/src/pages/stock/mas-vendidos.tsx` + `apps/web/src/lib/masVendidos.ts` +
   `apps/web/src/hooks/useMasVendidos.ts`: carga por tandas de a 25 (con «Cargar más») y período con
   `apps/web/src/lib/periodosRanking.ts` (mismo rango máximo de 5 años y misma zona `America/Argentina/Buenos_Aires`
