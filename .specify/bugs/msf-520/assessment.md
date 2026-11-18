@@ -260,7 +260,7 @@ pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner --no-privileg
 - `--clean` **recrea** cada objeto: la tabla que vuelve a nacer tiene los permisos por defecto, no
   los del dump. La evidencia está en el propio repo: el pgTAP de MSF-520 simula el restore y
   comprueba que «tras el restore simulado el historial queda sin lectura para `authenticated»»
-  (`supabase/tests/database/copias_restauracion_privilegios_msf520.test.sql:68-76`); el mismo
+  (`supabase/tests/database/copias_restauracion_privilegios_msf520.test.sql:72-81`); el mismo
   mecanismo alcanza a todas las tablas del app.
 - Con la base así, `authenticated` no lee las tablas y, sin `USAGE` sobre el esquema `private`, fallan
   hasta las políticas de RLS (el panel no muestra datos). El paso 7 del simulacro («el panel inicia

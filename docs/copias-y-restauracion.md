@@ -194,9 +194,11 @@ ejecución de Kestra.
      la transacción y la base queda como estaba (nada a medias).
    - Los roles y extensiones propios de Supabase deben existir ya en el destino (instancia nueva de
      Supabase self-hosted): son los que el dump referencia en sus `GRANT`. En el simulacro el destino
-     es la misma base de la que salió la copia, así que ya están; para restaurar en otro ambiente,
-     compararlos antes (`select rolname from pg_roles order by 1;` en origen y destino) y revisar los
-     errores que muestre `pg_restore`.
+     es la misma base de la que salió la copia, así que ya están; si alguno se borró después de la
+     copia, el restore aborta con «role ... does not exist» y, como es atómico, la base queda como
+     estaba: crear el rol (o restaurar de una copia anterior) y reintentar. Para restaurar en otro
+     ambiente, compararlos antes (`select rolname from pg_roles order by 1;` en origen y destino) y
+     revisar los errores que muestre `pg_restore`.
 5. **Cerrar la diferencia de esquema y reaplicar los privilegios del historial.**
    1. La copia es de un día anterior: aplicá las migraciones pendientes sobre la base restaurada
       (`supabase db push --db-url "$DATABASE_URL"`, el mismo mecanismo del deploy; ver
