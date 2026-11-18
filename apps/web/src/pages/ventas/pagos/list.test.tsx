@@ -171,7 +171,7 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
     await waitFor(() => expect(mocks.listarPagos).toHaveBeenCalled())
   })
 
-  it('muestra «Revertido» y «Reversión» en vez del interruptor de conciliación (MSF-667)', async () => {
+  it('muestra «Revertido» y «Reversión» en vez del interruptor de conciliación', async () => {
     mocks.listarPagos.mockResolvedValue({
       pagos: [
         { ...PAGO, estado_reversion: 'revertido' },
