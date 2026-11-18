@@ -5,7 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
-import { escrituraFragmentos } from './fragmentos.ts'
+import { escrituraFragmentos, type ClienteFragmentos } from './fragmentos.ts'
 import { puedeGestionarDocumentos } from './reglas.ts'
 
 const CONSUMIDOR_CODIGO = 'rag-busqueda-documental'
@@ -54,6 +54,11 @@ Deno.serve((req) => {
     // deno-lint-ignore no-explicit-any
     const doc = (data as any)?.documentos as { organizacion_id: string } | null | undefined
     return error || !data || !doc ? null : { organizacion_id: doc.organizacion_id }
+  }
+
+  const servicioFragmentos: ClienteFragmentos = {
+    borrar: (versionId, organizacionId) => admin.from('fragmentos_indexados').delete().eq('version_id', versionId).eq('organizacion_id', organizacionId),
+    insertar: (filas) => admin.from('fragmentos_indexados').insert(filas),
   }
 
   const deps: Deps = {
@@ -126,7 +131,7 @@ Deno.serve((req) => {
     embeddings: (textos, clave) => generarEmbeddings(textos.map((t) => (sanitizarDato({ texto: t }, CONTRATO.datosPermitidos) as { texto: string }).texto), clave),
     // Los fragmentos se escriben y borran con el cliente de SERVICIO (así la indexación no depende del rol del usuario), pero
     // SOLO después de la autorización del handler y acotado a la versión y organización que el usuario ve por RLS (fragmentos.ts).
-    ...escrituraFragmentos(admin as never, versionDelUsuario, LOTE_INSERCION),
+    ...escrituraFragmentos(servicioFragmentos, versionDelUsuario, LOTE_INSERCION),
     puedeGestionar: async (jwt) => {
       const { data, error } = await comoUsuario(jwt).rpc('contexto_panel_actual').single()
       return !error && !!data && puedeGestionarDocumentos(data as { rol_efectivo: string | null; es_superadmin: boolean })

@@ -29,9 +29,9 @@ export type Deps = {
   getUser(jwt: string): Promise<{ id: string } | null>
   /** `tiene_feature_publica('busqueda-documental')` con el JWT del usuario. */
   feature(jwt: string): Promise<{ data: unknown; error: unknown }>
-  /** `contexto_panel_actual()` con el JWT del usuario (organización activa y rol efectivo); null si no se pudo leer. */
-  /** ¿El usuario puede escribir documentos (rol escritor)? Se consulta solo cuando el reclamo no afectó filas, para distinguir permiso de «ocupado». */
+  /** ¿El usuario tiene un rol escritor de documentos (lista blanca)? Se consulta antes de cualquier otra rama de permiso. */
   puedeGestionar(jwt: string): Promise<boolean>
+  /** `contexto_panel_actual()` con el JWT del usuario (organización activa y rol efectivo); null si no se pudo leer. */
   contexto(jwt: string): Promise<{ organizacion_id: string | null; rol_efectivo: string | null; es_superadmin: boolean } | null>
   // Todo lo que sigue corre con la sesión del usuario (RLS), salvo `politica` y `credencial` (service-role, solo lectura de gobernanza).
   version(jwt: string, id: string): Promise<VersionDoc | null>
@@ -77,6 +77,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const version = await deps.version(jwt, versionId)
   // Versión inexistente, de otra organización o sin permiso: el MISMO 403, sin revelar si existe.
   if (!version) return respuesta({ error: SIN_PERMISO }, 403)
+  // El rol va PRIMERO: un rol de solo lectura (p. ej. Consulta, aunque figure como autor de una versión heredada) recibe el
+  // mismo 403 que una versión ajena, antes de la rama «quien subió» y sin llegar a reclamar.
+  if (!(await deps.puedeGestionar(jwt))) return respuesta({ error: SIN_PERMISO }, 403)
   const esQuienSubio = version.subida_por !== null && version.subida_por === usuario.id
   // El contexto (rol) solo hace falta si NO es quien subió la versión; un fallo al leerlo cuenta como «sin contexto».
   let contexto: Awaited<ReturnType<Deps['contexto']>> = null
@@ -94,11 +97,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   if (reclamoVigente(version.motivo_error, deps.ahora())) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   const reclamo = nuevoReclamo(deps.ahora(), deps.id())
-  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) {
-    // 0 filas por falta de permiso (rol de solo lectura) no es «ocupado»: mismo 403 que inexistente o ajena, sin oráculo.
-    if (!(await deps.puedeGestionar(jwt))) return respuesta({ error: SIN_PERMISO }, 403)
-    return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
-  }
+  if (!(await deps.reclamar(jwt, versionId, version.motivo_error, reclamo))) return respuesta({ error: 'Esta versión ya se está indexando.', codigo: 'ocupado' }, 409)
 
   // Soltar el candado nunca debe lanzar; si falla, el candado queda vigente hasta que venza (10 min): se deja rastro.
   const soltarSeguro = async () => {

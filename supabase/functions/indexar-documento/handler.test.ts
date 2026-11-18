@@ -287,11 +287,14 @@ describe('indexar-documento', () => {
     assert.equal(m.v.motivo_error, null)
   })
 
-  it('si el reclamo no afecta filas por falta de permiso (rol de solo lectura) responde el MISMO 403 que ajena, no un 409 «ocupado»', async () => {
-    const sinPermiso = montar({ sinPermisoEscritura: true })
-    sinPermiso.deps.reclamar = async () => false
-    const res = await pedir(sinPermiso.deps)
+  it('un rol de solo lectura que figura como autor recibe el MISMO 403 que una versión ajena, antes de reclamar', async () => {
+    const consulta = montar({ sinPermisoEscritura: true })
+    let reclamos = 0
+    const reclamar = consulta.deps.reclamar
+    consulta.deps.reclamar = async (...args) => { reclamos++; return reclamar(...args) }
+    const res = await pedir(consulta.deps)
     assert.equal(res.status, 403)
+    assert.equal(reclamos, 0, 'no llega a reclamar la versión')
     const ajena = await pedir(montar({ versionAjena: true }).deps)
     assert.deepEqual(await res.json(), await ajena.json())
     const ocupada = montar()

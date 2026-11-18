@@ -3,12 +3,10 @@
 // acota SIEMPRE por la versión y la organización que el usuario ve por RLS (MSF-651).
 export type FilaFragmento = { version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }
 
-// Subconjunto del cliente de Supabase que se usa: `delete().eq().eq()` e `insert()`.
+// Lo mínimo que se necesita del cliente de servicio (index.ts lo arma sobre supabase-js, sin `any`).
 export type ClienteFragmentos = {
-  from(tabla: 'fragmentos_indexados'): {
-    delete(): { eq(columna: string, valor: string): { eq(columna: string, valor: string): PromiseLike<{ error: unknown }> } }
-    insert(filas: FilaFragmento[]): PromiseLike<{ error: unknown }>
-  }
+  borrar(versionId: string, organizacionId: string): PromiseLike<{ error: unknown }>
+  insertar(filas: FilaFragmento[]): PromiseLike<{ error: unknown }>
 }
 
 // La versión tal como la ve el usuario por RLS (null si no existe, es de otra organización o no tiene acceso).
@@ -19,7 +17,7 @@ export function escrituraFragmentos(servicio: ClienteFragmentos, versionDelUsuar
     borrarFragmentos: async (jwt: string, versionId: string): Promise<boolean> => {
       const version = await versionDelUsuario(jwt, versionId)
       if (!version) return false
-      const { error } = await servicio.from('fragmentos_indexados').delete().eq('version_id', versionId).eq('organizacion_id', version.organizacion_id)
+      const { error } = await servicio.borrar(versionId, version.organizacion_id)
       return !error
     },
     insertarFragmentos: async (jwt: string, filas: FilaFragmento[]): Promise<boolean> => {
@@ -28,7 +26,7 @@ export function escrituraFragmentos(servicio: ClienteFragmentos, versionDelUsuar
       const version = await versionDelUsuario(jwt, versionId)
       if (!version || filas.some((f) => f.version_id !== versionId || f.organizacion_id !== version.organizacion_id)) return false
       for (let i = 0; i < filas.length; i += loteInsercion) {
-        if ((await servicio.from('fragmentos_indexados').insert(filas.slice(i, i + loteInsercion))).error) return false
+        if ((await servicio.insertar(filas.slice(i, i + loteInsercion))).error) return false
       }
       return true
     },

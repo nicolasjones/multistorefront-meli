@@ -7,16 +7,13 @@ const fila = (orden: number, extra: Partial<FilaFragmento> = {}): FilaFragmento 
 function montar(version: { organizacion_id: string } | null, errorEn?: 'delete' | 'insert') {
   const registro: Array<{ op: string; filtros?: Array<[string, string]>; n?: number }> = []
   const servicio = {
-    from: () => ({
-      delete: () => {
-        const filtros: Array<[string, string]> = []
-        const cadena = { eq: (c: string, v: string) => { filtros.push([c, v]); return filtros.length === 2 ? Promise.resolve({ error: errorEn === 'delete' ? 'x' : null }).then((r) => { registro.push({ op: 'delete', filtros }); return r }) : cadena } }
-        return cadena as never
-      },
-      insert: async (filas: FilaFragmento[]) => { registro.push({ op: 'insert', n: filas.length }); return { error: errorEn === 'insert' ? 'x' : null } },
-    }),
+    borrar: async (versionId: string, organizacionId: string) => {
+      registro.push({ op: 'delete', filtros: [['version_id', versionId], ['organizacion_id', organizacionId]] })
+      return { error: errorEn === 'delete' ? 'x' : null }
+    },
+    insertar: async (filas: FilaFragmento[]) => { registro.push({ op: 'insert', n: filas.length }); return { error: errorEn === 'insert' ? 'x' : null } },
   }
-  return { registro, ...escrituraFragmentos(servicio as never, async () => version, 2) }
+  return { registro, ...escrituraFragmentos(servicio, async () => version, 2) }
 }
 
 describe('escritura de fragmentos con el cliente de servicio', () => {
