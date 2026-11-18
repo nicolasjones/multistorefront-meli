@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -359,6 +359,15 @@ describe('PresupuestosList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Facturar 00000002' }))
     await waitFor(() => expect(screen.getByTestId('ubicacion')).toHaveTextContent('/ventas/comprobantes/f-1'))
     expect(mocks.facturarPresupuesto).toHaveBeenCalledWith('p-2')
+  })
+
+  it('un doble clic en Facturar factura una sola vez', async () => {
+    mocks.facturarPresupuesto.mockReturnValue(new Promise(() => undefined))
+    abrir()
+    await screen.findByText('Cliente 2')
+    const boton = screen.getByRole('button', { name: 'Facturar 00000002' })
+    act(() => { boton.click(); boton.click() })
+    expect(mocks.facturarPresupuesto).toHaveBeenCalledTimes(1)
   })
 
   it('si Facturar falla muestra el mensaje de negocio y recarga la lista', async () => {

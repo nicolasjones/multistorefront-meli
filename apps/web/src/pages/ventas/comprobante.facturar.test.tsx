@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -126,8 +126,8 @@ describe('Ventas · Facturar un presupuesto aceptado', () => {
     mocks.facturarPresupuesto.mockReturnValue(new Promise(() => undefined))
     arbol()
     const boton = await screen.findByRole('button', { name: 'Facturar' })
-    fireEvent.click(boton)
-    fireEvent.click(boton)
+    // Dos clics en el mismo instante, antes de que la pantalla vuelva a dibujarse.
+    act(() => { boton.click(); boton.click() })
     expect(mocks.facturarPresupuesto).toHaveBeenCalledTimes(1)
     expect(await screen.findByRole('button', { name: 'Facturando…' })).toBeDisabled()
   })

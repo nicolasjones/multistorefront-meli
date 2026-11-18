@@ -466,8 +466,11 @@ export function ComprobanteVenta() {
   // «Facturar» (decisión de producto): solo en un presupuesto aceptado y vigente. Crea la factura en borrador con los precios del
   // presupuesto y la abre; un segundo clic o un reintento devuelve la misma factura (la base es idempotente).
   const puedeFacturar = comprobante !== null && comprobante.tipo === 'presupuesto' && nivel === 'edicion' && puedeFacturarPresupuesto(comprobante)
+  const facturandoAhora = useRef(false)
   async function facturar() {
-    if (!comprobante || facturando) return
+    // La marca en una referencia corta el doble clic del mismo instante (el estado recién se actualiza al volver a dibujar).
+    if (!comprobante || facturandoAhora.current) return
+    facturandoAhora.current = true
     setFacturando(true)
     setErrorGeneral(null)
     try {
@@ -479,6 +482,7 @@ export function ComprobanteVenta() {
       setErrorGeneral(mensajeDeFacturarPresupuesto(error, 'No pudimos facturar el presupuesto.'))
       void cargar()
     } finally {
+      facturandoAhora.current = false
       setFacturando(false)
     }
   }

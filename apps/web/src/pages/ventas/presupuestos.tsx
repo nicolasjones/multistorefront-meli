@@ -120,6 +120,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   const [reintento, setReintento] = useState<(() => void) | null>(null)
   const ultimaPeticion = useRef(0)
   const controlAccion = useRef<AbortController | null>(null)
+  const facturandoAhora = useRef(false)
 
   // Salir de la pantalla (o cambiar de empresa, que la remonta) corta la consulta del avance en curso.
   useEffect(() => () => controlAccion.current?.abort(), [])
@@ -209,6 +210,9 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   // Facturar: crea la factura en borrador con los precios del presupuesto y abre su detalle. La base es idempotente (doble clic o
   // reintento devuelven la misma factura) y la lista se recarga para que el presupuesto figure «Convertido».
   async function facturar(p: Presupuesto) {
+    // La referencia corta el doble clic del mismo instante (`accion` recién se actualiza al volver a dibujar).
+    if (facturandoAhora.current) return
+    facturandoAhora.current = true
     setAccion({ id: p.id, tipo: 'facturar' })
     setErrorAccion(null)
     setExito(null)
@@ -219,6 +223,8 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
       setErrorAccion(mensajeDeFacturarPresupuesto(error, 'No pudimos facturar el presupuesto.'))
       setAccion(null)
       void recargarDesdeInicio()
+    } finally {
+      facturandoAhora.current = false
     }
   }
 
