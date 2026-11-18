@@ -31,3 +31,8 @@ export function reclamoVigente(motivoError: string | null | undefined, ahora: nu
   const desde = Number(motivoError.slice(PREFIJO_RECLAMO.length).split(':')[0])
   return Number.isFinite(desde) && ahora - desde < RECLAMO_VENCE_MS
 }
+
+// Roles que pueden gestionar documentos RAG (los mismos que `private.puede_gestionar_documentos()`; lista blanca).
+export const ROLES_ESCRITORES_DOCUMENTOS = ['administrador', 'operador', 'mostrador', 'deposito', 'administracion', 'tecnico'] as const
+export const puedeGestionarDocumentos = (contexto: { rol_efectivo: string | null; es_superadmin: boolean } | null): boolean =>
+  !!contexto && (contexto.es_superadmin || (ROLES_ESCRITORES_DOCUMENTOS as readonly string[]).includes(contexto.rol_efectivo ?? ''))
