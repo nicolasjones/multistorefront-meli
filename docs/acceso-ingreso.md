@@ -1,7 +1,20 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261012-140000-acceso-y-organizacion
+  - apps/web/src/pages/login.tsx
+  - apps/web/src/providers/authProvider.ts
+  - apps/web/src/lib/passwordPolicy.ts
+  - apps/web/src/lib/vencimientoSesion.ts
+  - apps/web/src/lib/supabase.ts
+  - apps/web/src/lib/tiendaCuenta.ts
+  - supabase/config.toml
+  - supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql
+  - supabase/migrations/20261012140200_intentos_acceso.sql
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
+  - scripts/verificar-hook-bloqueo.e2e.mjs
+  - scripts/e2e-acceso.e2e.mjs
 ---
 
 # Acceso: ingreso, recuperación y sesión (MSF-119)

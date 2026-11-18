@@ -1,7 +1,22 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261016-140000-permisos-por-empresa
+  - apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx
+  - apps/web/src/components/navegacion/SiderPanel.tsx
+  - apps/web/src/components/pagina/ContenidoPorEmpresa.tsx
+  - apps/web/src/hooks/useEmpresasAccesibles.ts
+  - apps/web/src/hooks/useFiltroPorEmpresaActiva.ts
+  - apps/web/src/hooks/useConsultas.ts
+  - apps/web/src/lib/cambioEmpresaActiva.ts
+  - apps/web/src/lib/empresaActivaRevision.ts
+  - supabase/migrations/20261016150100_cambiar_empresa_activa.sql
+  - supabase/migrations/20261017120000_cambiar_empresa_activa_serializada.sql
+  - supabase/migrations/20261018160000_selector_empresas_superadmin.sql
+  - supabase/migrations/20261018170000_empresa_activa_todas.sql
+  - supabase/tests/database/cambiar_empresa_activa.test.sql
+  - supabase/tests/database/empresa_activa_todas.test.sql
+  - supabase/tests/database/consultas.test.sql
 ---
 
 # Empresa activa (F-ROL-06)

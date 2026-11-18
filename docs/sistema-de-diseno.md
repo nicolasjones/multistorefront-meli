@@ -1,7 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/20261012-130000-sistema-de-diseno
+  - specs/20261017-150000-paridad-visual-prototipo
+  - specs/20261017-193000-paridad-pantallas
+  - apps/web/src/tema/tokens.ts
+  - apps/web/src/tema/temaPanel.ts
+  - apps/web/src/tema/temaTienda.ts
+  - apps/web/src/tema/ProveedorTemaTienda.tsx
+  - apps/web/src/components/navegacion/destinosPanel.ts
+  - apps/web/src/components/navegacion/SelectorEmpresa.tsx
+  - apps/web/src/components/navegacion/TituloPanel.tsx
+  - scripts/verificar-estilos-sueltos.mjs
+  - scripts/verificar-ui-empresas.mjs
+  - .github/workflows/validate.yml
 ---
 
 # Sistema de diseño — catálogo de componentes base (MSF-117)
@@ -35,16 +47,15 @@ no repiten colores, radios ni alturas: usan el componente base o el tema.
 | Selección múltiple de empresas | `SelectorEmpresas` | `components/base` |
 | Shell (sider/encabezado/cuenta/empresa) | `SiderPanel`, `EncabezadoPanel`, `MenuCuenta`, `SelectorEmpresa` | `components/navegacion` |
 
-**Navegación (decisión de producto, 2026-10-21):** `SECCIONES_PANEL`
-(`components/navegacion/destinosPanel.ts`) es la única fuente. El sider agrupa
-**Contactos** (Clientes, Proveedores), **Canales** (Empresas), **Stock**
-(Stock, Movimientos), **Servicio técnico** (Reparaciones, Modelos, Estados de
-reparación) y **Administración** (Mi organización, Actividad, Usuarios,
-Roles y permisos). No hay sección Operación. **Ejecuciones**, **Analítica**
-(ver y administrar), **Chat IA**, **Documentos**, **Conexiones** y
-**Conexiones OAuth** no se ofrecen en el menú, pero sus rutas, páginas y
-permisos siguen existiendo en `App.tsx`. Para volver a mostrarlas, restaurar
-sus destinos en la sección que corresponda.
+**Navegación:** `SECCIONES_PANEL` (`components/navegacion/destinosPanel.ts`) es la única fuente. El sider
+agrupa, en este orden, **Inicio**, **Catálogo**, **Stock**, **Ventas**, **Servicio técnico**, **Contactos**
+(Clientes, Correo masivo, Newsletter, Proveedores), **Canales** (Consultas, Contactos, Empresas, Opiniones),
+**Análisis**, **Reportes**, **Administración** (Mi organización, Cotización del dólar, Actividad, Usuarios, Roles y
+permisos, entre otros) y **Plataforma** (superadmin). Cada destino declara su audiencia y la sección de la
+matriz de permisos que lo habilita. **Ejecuciones**, **Analítica** (ver y administrar), **Chat IA**,
+**Documentos**, **Conexiones** y **Conexiones OAuth** no se ofrecen en el menú (decisión de producto del
+2026-10-21), pero sus rutas, páginas y permisos siguen existiendo en `App.tsx`. Para volver a mostrarlas,
+restaurar sus destinos en la sección que corresponda.
 
 **Regla de shell (2026-10-21):** un guard o provider del layout **no debe
 desmontar el sider/encabezado durante una revalidación en segundo plano**. Se
@@ -205,7 +216,8 @@ Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
 (T018–T021); aislado del tema del panel.
 
 - **Contrato** `IdentidadTienda`: `tipografiaTitulos`, `tipografiaTexto`,
-  `colorPrimario`, `colorTexto`, `colorFondo`.
+  `colorPrimario`, `colorTexto`, `colorFondo` y, opcionales, `colorPrimarioOscuro`, `colorAcento`, `colorBarra`,
+  `estiloHeroe` (`oscuro` o `claro`) y `titulosMayusculas`.
 - `crearTemaTienda(identidad?)` devuelve un tema MUI claro. Cada campo
   ausente o inválido (color que no sea hex de 3/6 dígitos; tipografía fuera de
   letras/números/espacio/`_`/`-`, máx. 60) cae a `IDENTIDAD_TIENDA_POR_DEFECTO`
@@ -219,9 +231,9 @@ Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
 
 **Fuera de alcance / pendiente:**
 
-- La configuración de la identidad por empresa (Empresa · Identidad visual) y
-  su lectura desde BD son de otra épica; hoy el proveedor no está montado en
-  ninguna pantalla, solo en tests. TODO (dueño: épica MSF-147, tienda
-  dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
+- La configuración de la identidad por empresa (Empresa · Identidad visual) y su lectura son de otra épica
+  ([Tienda online: dominio, identidad y vidriera](producto/tienda-dominio-e-identidad.md)). El proveedor ya está
+  montado: en el layout de la tienda pública (`pages/tienda-publica/layout/IdentidadTiendaContexto.tsx`), en la
+  pantalla «Volvemos pronto» (`VolvemosPronto.tsx`) y en la vista previa del panel (`pages/empresas/tienda/VistaPreviaTienda.tsx`).
 - Cómo se comparten los tokens si el front público es otro repo: sin definir.
 - Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.
