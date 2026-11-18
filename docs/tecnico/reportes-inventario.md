@@ -4,6 +4,10 @@ sources:
   - specs/20270201-100000-reportes-de-inventario-y-exportacion
   - supabase/migrations/20270202201200_analitica_inventario_productos_stock.sql
   - supabase/migrations/20270202201201_analitica_inventario_reposicion.sql
+  - supabase/migrations/20270438000000_reportes_inventario_solo_cantidades.sql
+  - supabase/functions/emitir-acceso-reporte/handler.ts
+  - infra/superset/importar-dashboards.mjs
+  - apps/web/src/components/ReporteEmbebido.tsx
   - infra/superset/dashboards/inventario
   - infra/superset/superset_config.py
   - apps/web/src/pages/reportes
@@ -132,6 +136,7 @@ El DER del grafo afectado está en [Datos y DER](datos.md#reportes-de-inventario
   token una regla `rls` `1 = 0` por cada dataset que no esté en `reportes.datasets_permitidos` del tablero
   (la allowlist la calcula el importador desde los YAML). Sin allowlist no se emite token (503). Detalle y
   riesgos en [Reportes de inventario (operación)](../reportes-inventario.md).
+- **Vencimiento y renovación del token**: el guest token vence a los 600 segundos por defecto (`SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS` en `infra/superset/superset_config.py`); `apps/web/src/components/ReporteEmbebido.tsx` usa el token ya emitido y, cuando el SDK renueva, pide uno nuevo a `emitir-acceso-reporte`, que vuelve a validar el acceso.
 - **Empresa activa: no aplica** (Principio VIII): el inventario es por organización y el token no lleva
   `empresa_id`.
 - Verificación: `supabase/tests/database/reportes_inventario_acceso.test.sql`,
@@ -159,7 +164,7 @@ Directorio `infra/superset/dashboards/inventario/`:
 - Los filtros son **nativos del tablero** (no los inyecta Refine): la pantalla no preselecciona filtros por
   URL. El valor total es una métrica sobre el mismo dataset, así que se recalcula solo con las filas
   filtradas.
-- Importación: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno staging|production`.
+- Importación: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno staging|production`. El importador falla si faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR` y hay `reportes.json`; `--omitir-reportes` importa solo los dashboards a propósito (`infra/superset/importar-dashboards.mjs`).
   El importador habilita el embebido por `dashboard_slug` y registra los reportes de forma idempotente (no
   duplica filas y no asigna `administrador`, que tiene acceso incondicional). El workflow de despliegue del
   VPS ejecuta la importación.

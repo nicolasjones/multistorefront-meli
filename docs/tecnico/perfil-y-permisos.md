@@ -1,12 +1,20 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - apps/web/src/pages/cuenta
-  - apps/web/src/pages/acceso-restringido
-  - apps/web/src/lib
-  - supabase/migrations
-  - supabase/functions
+  - specs/20261016-130000-perfil-y-permisos-avanzados
+  - apps/web/src/pages/cuenta/perfil.tsx
+  - apps/web/src/pages/cuenta/cambiar-contrasena.tsx
+  - apps/web/src/pages/acceso-restringido/AccesoRestringido.tsx
+  - apps/web/src/components/RequiereAccesoSeccion.tsx
+  - apps/web/src/lib/solicitarAcceso.ts
+  - apps/web/src/lib/passwordPolicy.ts
+  - supabase/functions/solicitar-acceso/handler.ts
+  - supabase/functions/solicitar-acceso/index.ts
+  - supabase/functions/_shared/correo.ts
+  - supabase/migrations/20261017100000_solicitudes_acceso.sql
+  - supabase/migrations/20261017100001_rpc_solicitar_acceso.sql
+  - supabase/tests/database/solicitudes_acceso.test.sql
+  - scripts/verificar-salida-correo.mjs
 ---
 
 # Perfil y permisos avanzados (MSF-148)

@@ -2,7 +2,7 @@
 owner: producto
 sources:
   - specs/20270328-100000-newsletter-de-la-tienda
-  - design/pantallas
+  - design/pantallas/Newsletter.dc.html
   - apps/web/src/pages/clientes/newsletter
 ---
 

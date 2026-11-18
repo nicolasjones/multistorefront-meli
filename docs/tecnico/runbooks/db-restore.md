@@ -1,8 +1,11 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - supabase/migrations/20270418000301_reaplica_privilegios_copias.sql
+  - supabase/tests/database/copias_imagenes_verificaciones.test.sql
+  - infra/kestra/flows/respaldo-postgres.yml
+  - infra/kestra/flows/respaldo-imagenes.yml
+  - .github/workflows/validate.yml
 ---
 
 # Restaurar base de datos
@@ -47,4 +50,4 @@ Si el backup no cubre el incidente o falla la restauración: escalar a operació
 
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
 
-> **CI (2026-11-16):** el job `application` de Validate corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.
+> **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.

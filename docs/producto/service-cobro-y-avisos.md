@@ -1,10 +1,24 @@
 ---
 owner: producto
 sources:
-  - specs
-  - design/pantallas
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261028-100000-service-cobro-y-avisos
+  - design/pantallas/ServicioReparacion.dc.html
+  - design/pantallas/ClienteFicha.dc.html
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
+  - apps/web/src/components/service/ComprobanteReparacion.tsx
+  - apps/web/src/components/service/AvisosReparacion.tsx
+  - apps/web/src/hooks/useAvisosReparacion.ts
+  - apps/web/src/lib/reparacionAvisos.ts
+  - apps/web/src/lib/reparacionesDeCliente.ts
+  - apps/web/src/pages/clientes/show.tsx
+  - apps/web/e2e/service-cobro-avisos.e2e.ts
+  - supabase/migrations/20270201200128_comprobantes_origen.sql
+  - supabase/migrations/20270201200130_generar_comprobante_reparacion.sql
+  - supabase/migrations/20270201200131_comprobante_de_reparacion.sql
+  - supabase/migrations/20270201200134_avisar_cliente_reparacion.sql
+  - supabase/migrations/20270201200137_reparaciones_de_cliente.sql
+  - supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
 ---
 
 # Service técnico: cobro, avisos y ficha del cliente (MSF-232)
@@ -13,7 +27,7 @@ sources:
 mediante un comprobante de Ventas» (MSF-418), F-SVC-14 «Notificación al cliente por cambio de estado» (MSF-424) y
 F-SVC-15 «Vínculo con la ficha del cliente» (MSF-429), más el cierre MSF-576 (recorrido E2E).
 **Spec:** `specs/20261028-100000-service-cobro-y-avisos/`. **Rama:**
-`epic/MSF-232-service-tecnico-service-cobro-y-avisos`, **pendiente de merge a `main`**.
+`epic/MSF-232-service-tecnico-service-cobro-y-avisos` (ya integrada en el código vigente).
 Detalle técnico: [Service técnico: cobro, avisos y ficha del cliente (técnico)](../tecnico/service-cobro-y-avisos.md).
 
 Esta página explica **qué resuelve** la épica: una reparación **se cobra generando un comprobante de Ventas**
@@ -67,7 +81,11 @@ sección **«Mano de obra y repuestos»**, junto al «Total al cliente».
   En Ventas esas líneas se ven en solo lectura, con la marca «No descuenta stock».
 - **El comprobante es una foto del momento**: si los ítems de la reparación cambian después, el comprobante no se
   resincroniza. Mientras esté en `borrador` se corrige en Ventas.
-- **Anular** el comprobante libera la reparación: se puede generar uno nuevo y el anulado queda como historial.
+- **Anular** el comprobante libera la reparación: se puede generar uno nuevo y el anulado queda como historial. Ventas
+  solo deja anular una **factura confirmada** y rechaza la que ya está **cobrada** (se corrige con una nota de crédito),
+  la que ya fue **entregada** («La factura ya fue entregada: corregí con nota de crédito o RMA») y la que tiene **cobros
+  registrados**, aunque sean parciales («La factura tiene cobros registrados: revertí el cobro o corregila con una nota
+  de crédito»). Una factura en borrador no se anula (no movió stock) (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`).
 
 !!! warning "Una decisión pendiente de confirmar con el cliente"
     Se genera una **factura**, no un presupuesto, y la **alícuota de IVA** de cada línea se resuelve con
@@ -77,8 +95,8 @@ sección **«Mano de obra y repuestos»**, junto al «Total al cliente».
 
 ## Aviso al cliente por cambio de estado
 
-El aviso es **por correo** (WhatsApp queda en el backlog, [MSF-118]). El cliente **puede no tener correo**: en ese
-caso se avisa en pantalla y no se encola nada.
+El aviso por defecto es **por correo**; también se puede avisar **por WhatsApp** (ver «Aviso por WhatsApp» más abajo).
+El cliente **puede no tener correo**: en ese caso se avisa en pantalla y no se encola nada.
 
 - La **casilla «Avisar al cliente»** aparece junto al selector de estado, **destildada por defecto** (no se manda un
   correo sin querer). Al confirmarse el cambio, el estado cambia **primero** y el aviso se pide **después**: si el
@@ -104,6 +122,22 @@ caso se avisa en pantalla y no se encola nada.
 !!! note "El aviso nunca bloquea el cambio de estado"
     Es una regla de la épica: el cambio de estado va primero y el aviso se pide aparte. Un correo que falla no
     «deshace» la reparación ni la deja en un estado raro.
+
+### Aviso por WhatsApp
+
+Junto a «Avisar al cliente» el encabezado ofrece **«Avisar por WhatsApp»** (`pages/service-tecnico/reparacion.tsx`), que avisa
+el **estado actual** y, a diferencia del correo, **no depende** de que el cliente tenga correo.
+
+- Aparece con **`service_tecnico` en edición** y con la reparación **no cerrada** (ni en un estado que cierra ni con entrega real).
+- La base exige que el cliente tenga activado **«Acepta avisos por WhatsApp»** en su ficha y un teléfono válido en formato
+  internacional; si falta alguno no se encola nada y la pantalla dice «El cliente no acepta avisos por WhatsApp: pedile que
+  lo acepte en su ficha.» o «El cliente no tiene un teléfono válido para WhatsApp». Cuando queda encolado: «Aviso por WhatsApp
+  enviado al cliente».
+- En **«Avisos al cliente»** los avisos de WhatsApp llevan la marca «· WhatsApp» junto al estado y **«Reenviar»** reenvía por
+  el **mismo canal** del aviso.
+- El mensaje es fijo (saludo, tienda, número, equipo, estado y su descripción), sin importes ni costos. El proveedor de
+  mensajería lo contrata el cliente: **mientras no haya proveedor configurado, estos avisos se cierran como «Fallido»**
+  (detalle técnico en [Avisos al cliente (técnico)](../service-avisos.md)).
 
 ## La pestaña «Reparaciones» de la ficha del cliente
 
@@ -227,8 +261,9 @@ Prototipos: `design/pantallas/ServicioReparacion.dc.html` y `design/pantallas/Cl
 6. **Confirmar y cobrar.** En Ventas, confirmá la factura y cobrala: se tiene que ver el estado del comprobante
    (**Pendiente**, que es la factura confirmada, y luego **Cobrado**) y **ningún** movimiento de stock en el depósito.
    Volvé al detalle de la reparación: la tarjeta «Comprobante asociado» muestra el estado nuevo.
-7. **Anular y volver a cobrar (opcional).** Anulá la factura en Ventas: la reparación vuelve a ofrecer «Generar
-   comprobante» y el comprobante anulado queda en el historial de Ventas.
+7. **Anular y volver a generar (opcional).** Con otro comprobante generado y **confirmado, sin cobros** (si ya está cobrado
+   no se puede anular), anulalo en Ventas con su motivo: la reparación vuelve a ofrecer «Generar comprobante» y el
+   comprobante anulado queda en el historial de Ventas.
 8. **Avisar al cliente.** Con la sesión de **Administrador**, en la misma reparación, pulsá el botón **«Avisar al
    cliente»** del encabezado: se tiene que ver el mensaje **«Aviso enviado al cliente»** y, en la sección **«Avisos al
    cliente»**, una fila con el estado avisado, el correo del cliente, la fecha, quién lo pidió y el resultado
@@ -317,7 +352,7 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 
 ## Fuera de alcance de esta épica
 
-- **WhatsApp** u otro canal distinto del correo (backlog de la épica; lo extiende F-SVC-30 de MSF-118).
+- Otro canal que no sea correo ni WhatsApp. (El aviso por WhatsApp se agregó después de esta épica; ver «Aviso por WhatsApp».)
 - **Centro de notificaciones** para el personal (F-NOT, MSF-224): no bloquea, es otra línea.
 - **Resincronizar** el comprobante si cambian los ítems, y un **comprobante propio de Service**: el cobro se hace con
   Ventas.
@@ -329,7 +364,6 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 
 | Qué falta | Por qué | Dueño |
 |---|---|---|
-| **Merge de la épica a `main`** | La implementación (migraciones, RPC, flow, pantallas y pruebas) está en la rama de la épica | responsable de plataforma (cierre de MSF-232) |
 | **Rótulo del E2E** | El test se rotula `[MSF-576:T032]` y el manifiesto de cobertura no lo ata a MSF-232 | responsable de plataforma (cierre de MSF-232) |
 | **Confirmar las decisiones provisorias** (factura vs. presupuesto, alícuota, texto del correo, casilla destildada, nombre de la pestaña, quién genera) | Son decisiones de la spec que el cliente tiene que confirmar | Producto (cliente) |
 | **Artefacto del prototipo de la pestaña «Reparaciones»** | `ClienteFicha.dc.html` no la dibuja y el aviso tampoco tiene artboard | Producto / diseño |
@@ -338,7 +372,7 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 ## Estado
 
 Implementado en la rama `epic/MSF-232-service-tecnico-service-cobro-y-avisos` con sus tres historias (F-SVC-13 /
-MSF-418, F-SVC-14 / MSF-424, F-SVC-15 / MSF-429) y el cierre (MSF-576), **pendiente de merge a `main`**. La fuente
+MSF-418, F-SVC-14 / MSF-424, F-SVC-15 / MSF-429) y el cierre (MSF-576), ya integrada en el código vigente. La fuente
 funcional es `specs/20261028-100000-service-cobro-y-avisos/spec.md`; las pruebas están en
 `supabase/tests/database/service_cobro*.test.sql`, `supabase/tests/database/service_avisos.test.sql`,
 `supabase/tests/database/service_cliente_reparaciones.test.sql`, en `apps/web/src/pages/service-tecnico/*.test.tsx`,

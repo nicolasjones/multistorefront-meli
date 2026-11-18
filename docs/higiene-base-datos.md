@@ -113,6 +113,13 @@ funciones definer con `''` y solo esas 9 distintas. La diferencia es de la base 
 migraciones «aplicada-manual»): se corrige reconciliando el DEV con el runbook, no con una migración masiva. Después de
 reconciliar, correr el script de análisis contra el DEV: lo que liste ahí sí es candidato real, con el mismo criterio.
 
+## Qué corre en el CI
+
+Los scripts `verificar-higiene-base.mjs` y `analizar-definer-search-path.mjs` son de diagnóstico contra una base viva y no corren en el
+CI; lo que sí corre son sus **pruebas unitarias** (`scripts/verificar-higiene-base.test.mjs`, `scripts/analizar-definer-search-path.test.mjs`)
+dentro de `pnpm test:db:guard-migraciones`, que el job `chequeos` de `validate.yml` ejecuta en cada PR. La prueba pgTAP
+`seguridad_global_higiene_base.test.sql` corre con el resto de `pnpm test:db`.
+
 ## Runbook: higiene del DEV (MSF-658 / MSF-671) — solo diagnóstico, no se ejecuta desde el repo
 
 Estado de la **base viva**, no del código. Los comandos son de solo lectura salvo la sección «Reconciliación», que requiere

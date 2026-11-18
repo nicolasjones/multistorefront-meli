@@ -3,6 +3,7 @@ owner: tecnico
 sources:
   - specs/20261024-130000-ventas-despacho-y-faltantes
   - apps/web/src/lib/ventasFaltantes.ts
+  - apps/web/src/pages/ventas/faltantes.tsx
   - design/pantallas/VentasComprobante.dc.html
   - design/pantallas/VentasFaltantes.dc.html
   - supabase/migrations/20270112130100_faltantes_tabla.sql
@@ -87,9 +88,9 @@ en `filas`. Una tienda ajena devuelve **cero filas**, no un error: el error dela
 
 ## Pantalla «Ventas · Faltantes» (FR-044, FR-045, FR-046)
 
-- Ruta `/ventas/faltantes`, entrada **«Faltantes»** en el grupo Ventas del menú (icono de cantidad en producción),
+- Ruta `/ventas/faltantes`, entrada **«Faltantes de despacho»** en el grupo Ventas del menú (icono de cantidad en producción),
   protegida por la sección `ventas`.
-- Título «Faltantes», descripción «Líneas vendidas o pedidas sin stock.» y **filtro de tienda** (`FiltroEmpresa`:
+- Título «Faltantes de despacho», descripción «Líneas vendidas o pedidas sin stock.» y **filtro de tienda** (`FiltroEmpresa`:
   «Todas las tiendas» + una por empresa) con su texto de ayuda: «Por defecto se ven todas; si elegís una empresa en
   la barra superior, se filtra por esa tienda.»
 - Columnas: **Tienda, Cliente, Producto (con SKU), Pedido, Comprobante, Desde, Stock hoy**; en pantallas angostas la
@@ -98,6 +99,8 @@ en `filas`. Una tienda ajena devuelve **cero filas**, no un error: el error dela
 - «Pedido» son **las unidades que faltan** de esa línea; «Desde» es **cuándo se registró el faltante**; «Stock hoy»
   muestra la etiqueta del estado del producto (`Sin stock`/`Stock bajo`/`Disponible`; `Sin dato` cuando el producto no
   tiene stock cargado) y las unidades disponibles.
+- Un enlace a «Faltantes de stock» (`/stock/faltantes`) aclara que las líneas «A pedido» con reserva se ven en esa otra pantalla
+  (`apps/web/src/pages/ventas/faltantes.tsx`; la pantalla de Stock tiene el enlace inverso).
 - Es de **solo lectura**: los faltantes los registra el despacho, no esta pantalla.
 - **Empresa activa (Principio VIII):** el filtro hereda la empresa activa de la barra superior; al cambiarla se
   recarga la consulta, la paginación vuelve a la primera página y **no se muestra ni una fila ni un total de la
@@ -141,10 +144,10 @@ fecha de registro y el stock de hoy).
   `despacho.faltante_registrado`, resolución al reanudar el armado y el listado con filtro por tienda, total,
   paginación y stock de hoy; el aislamiento se prueba con **dos tiendas de la misma organización**: quien tiene
   Ventas en las dos ve los tres faltantes y quien solo tiene Ventas en una no ve los de la otra) (`pnpm test:db`).
-- Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes», filtro de tienda y su texto,
+- Vitest: `apps/web/src/pages/ventas/faltantes.test.tsx` (SC-009: título «Faltantes de despacho», filtro de tienda y su texto,
   columnas, rótulos de «Stock hoy» y unidades, fecha de «Desde», estado de carga, paginación, «Sin resultados», error
   con reintento, solo lectura, **cambio de empresa** —recarga y reencuadre—, la ruta `/ventas/faltantes` guardada por
-  la sección `ventas` junto con la entrada «Faltantes» del menú, la pantalla angosta con las mismas filas en tarjetas
+  la sección `ventas` junto con la entrada «Faltantes de despacho» del menú, la pantalla angosta con las mismas filas en tarjetas
   y el reencuadre cuando la página quedó sin filas),
   `apps/web/src/hooks/useListarFaltantes.test.tsx` (SC-009: la respuesta de una tienda no se dibuja bajo otra),
   `apps/web/src/components/ventas/RegistrarFaltantesDialog.test.tsx` (SC-009: el diálogo se abre al elegir
@@ -182,6 +185,6 @@ Los listados de esta pantalla usan **carga infinita** (Principio VI, `docs/lista
 > un pedido: el disparador `resolver_faltantes_al_reanudar` (`supabase/migrations/20270112130200_faltantes_registrar.sql:203-227`)
 > los resuelve cuando el comprobante pasa de `incompleto` a `armando`. La pantalla `/stock/faltantes` (vista
 > `faltantes_listado`, `20261213100300_faltantes_listado.sql`; texto en `apps/web/src/pages/stock/faltantes.tsx:191`)
-> cierra con otro criterio: al descontarse o liberarse la reserva «A pedido». Ambos son correctos para su modelo; hasta
-> que MSF-664 los unifique (decisión: una sola pantalla `/stock/faltantes`, ver [decisiones](decisiones-2026-11-17.md))
-> conviven con criterios distintos.
+> cierra con otro criterio: al descontarse o liberarse la reserva «A pedido». Ambos son correctos para su modelo y se **mantienen las dos
+> pantallas** con nombres distintos («Faltantes de despacho» y «Faltantes de stock (A pedido)»), cada una con un enlace a la
+> otra; ver [Stock · Faltantes](stock-faltantes.md).

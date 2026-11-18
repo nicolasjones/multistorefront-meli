@@ -1,8 +1,24 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - infra/kestra/flows
+  - specs/20261024-120000-avisos-y-listas-configurables
+  - infra/kestra/flows/enviar-avisos.yml
+  - apps/web/src/lib/avisos.ts
+  - apps/web/src/lib/listas.ts
+  - apps/web/src/hooks/usePreferenciasAviso.ts
+  - apps/web/src/hooks/useEstadosConsulta.ts
+  - apps/web/src/pages/cuenta/avisos.tsx
+  - apps/web/src/pages/configuracion/listas.tsx
+  - apps/web/src/pages/configuracion/PanelEstadosConsulta.tsx
+  - apps/web/src/pages/stock/motivos.tsx
+  - supabase/migrations/20261205200100_consultas_avisos.sql
+  - supabase/migrations/20261210120000_avisos_catalogo.sql
+  - supabase/migrations/20261210120100_avisos_preferencias.sql
+  - supabase/migrations/20261210120300_avisos_cola.sql
+  - supabase/migrations/20261210120400_avisos_agrupacion.sql
+  - supabase/migrations/20261210130000_estados_consulta_lista.sql
+  - supabase/migrations/20261210130300_consultas_aviso_emitir.sql
+  - supabase/migrations/20270507000400_estados_consulta_de_sistema.sql
 ---
 
 # Avisos y listas: modelo, RPC y flujos (MSF-189)
@@ -86,6 +102,8 @@ texto con `nueva|en_curso|resuelta` y `estados_consulta` todavía no tiene FK ni
 - `public.avisos_pendientes`: RLS activa **sin políticas** para `authenticated`; `revoke all` de `public`,
   `anon` y `authenticated`. Solo la tocan funciones `security definer` y las tres funciones que ejecuta
   Kestra.
+- El flow `enviar-avisos` corre una sola vez a la vez (`concurrency` límite 1, `CANCEL`), con `timeout` por tarea y aviso al
+  soporte si falla (subflow `aviso-fallo-flujo`, solo con la tarea que falló).
 - `dominio.estados_consulta`: `select` con organización activa y `private.nivel_seccion('consultas')` en
   `lectura` o `edicion`; `insert`/`update` solo con `private.puede_escribir()` (Administrador); **sin
   delete** y `anon` sin privilegios.
@@ -227,7 +245,10 @@ Variables del envío, solo en `.env` (nunca en Git):
 
 - **Estados de consulta sin conectar:** `dominio.estados_consulta` y su pantalla existen, pero
   `dominio.consultas.estado` sigue con los tres valores fijos de MSF-122. Falta una historia que haga que la
-  bandeja lea la lista, migre los estados y defina qué pasa con los estados de sistema.
+  bandeja lea la lista y migre los estados. El mecanismo de **estados de sistema** ya existe (columna `es_sistema` y el disparador
+  `estados_consulta_proteger_sistema`, migración `20270507000400_estados_consulta_de_sistema.sql`: un estado de sistema no se
+  desactiva, renombra ni borra desde la app, error `23514`; solo una migración lo marca), pero todavía no hay ninguno sembrado
+  (detalle en [Listas configurables](../listas-configurables.md)).
   `TODO (dueño: Producto / Consultas)`.
 - **Preferencias por persona:** no por persona y empresa; agregar `empresa_id` a la clave sería una migración
   aditiva si el producto lo pide.

@@ -1,11 +1,35 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src
-  - infra/kestra/flows
+  - specs/20261102-100000-auditoria-avanzada-y-soporte
+  - supabase/migrations/20270207100001_registro_inalterable_antes_despues.sql
+  - supabase/migrations/20270207100002_depurar_registro_actividad.sql
+  - supabase/migrations/20270207100003_acceso_soporte_auditado.sql
+  - supabase/migrations/20270210110000_exportar_actividad.sql
+  - supabase/migrations/20270214300001_exportar_actividad_cursor.sql
+  - supabase/migrations/20270217900000_registro_actividad_triggers_always_y_bitacora_soporte.sql
+  - supabase/migrations/20270217900001_exportar_actividad_constancia_servidor.sql
+  - supabase/migrations/20270217900002_cerrar_accesos_soporte_vencidos.sql
+  - supabase/migrations/20270218300000_exportar_actividad_limites.sql
+  - supabase/migrations/20270421000200_actividad_por_empresa_accesible.sql
+  - supabase/tests/database/registro_inalterable.test.sql
+  - supabase/tests/database/depurar_registro_actividad.test.sql
+  - supabase/tests/database/exportar_actividad.test.sql
+  - supabase/tests/database/exportar_actividad_limites.test.sql
+  - supabase/tests/database/acceso_soporte_vigencia.test.sql
+  - supabase/tests/database/acceso_soporte_actividad.test.sql
+  - supabase/tests/database/actividad_por_empresa.test.sql
+  - apps/web/src/components/actividad/DetalleActividadDialog.tsx
+  - apps/web/src/components/actividad/BotonExportarActividad.tsx
+  - apps/web/src/components/DialogoMotivoSoporte.tsx
+  - apps/web/src/components/OrganizacionActivaBanner.tsx
+  - apps/web/src/pages/organizaciones/list.tsx
+  - apps/web/src/lib/exportarActividad.ts
+  - apps/web/src/lib/superadmin.ts
+  - apps/web/e2e/actividad-exportar.e2e.ts
+  - infra/kestra/flows/depuracion-actividad.yml
+  - infra/kestra/flows/cierre-accesos-soporte.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
 ---
 
 # Auditoría avanzada y soporte (MSF-170), construcción interna
@@ -96,7 +120,7 @@ La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11
   24 meses, deja un evento `sistema.depurada` por organización con la cantidad y es idempotente. Solo la
   ejecutan `workers_orquestacion` y `kestra_orquestacion`.
 - El flow `infra/kestra/flows/depuracion-actividad.yml` corre todos los días a las 04:00 y falla visible
-  si la función falla; lo valida `infra/kestra/validar-depuracion-actividad.test.mjs`.
+  si la función falla; lo valida `infra/kestra/validar-depuracion-actividad.test.mjs`. Si falla, un bloque `errors` invoca el subflow `aviso-fallo-flujo` (namespace `platform.alertas`) y avisa por correo al equipo de soporte.
 
 ### Pruebas y reversión
 
@@ -172,7 +196,7 @@ La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11
   vencidos; la migración reescribe **todos** los helpers que leían la tabla (`organizacion_id`,
   `puede_escribir`, `nivel_seccion`, `puede_accion*`, `rol_id`, los `puede_*_en_empresa`, etc.) para que
   lean la vista. `entrar_a_organizacion`, `salir_de_organizacion` y `cerrar_accesos_soporte_vencidos` (`20270217900002`, la
-  ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento.
+  ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento. El flow `cierre-accesos-soporte` corre de a una ejecución por vez (`concurrency` límite 1, `CANCEL`) y, si falla, avisa por el mismo subflow `aviso-fallo-flujo`.
 - Contrato **BREAKING**: `public.entrar_a_organizacion(org_id uuid, p_motivo text)` reemplaza a la versión
   de un argumento; sin motivo (o en blanco o > 500) devuelve `22023`, sin ser superadmin `42501`, y si la
   organización no existe `P0002`. `public.salir_de_organizacion()` conserva la firma.

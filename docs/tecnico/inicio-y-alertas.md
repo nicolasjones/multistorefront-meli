@@ -1,9 +1,28 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261030-100000-inicio-y-alertas
+  - apps/web/e2e/inicio.e2e.ts
+  - apps/web/src/lib/inicio.ts
+  - apps/web/src/pages/inicio/index.tsx
+  - apps/web/src/pages/inicio/AccesosDirectos.tsx
+  - apps/web/src/pages/inicio/AlertasInicio.tsx
+  - apps/web/src/pages/inicio/TarjetaConsultas.tsx
+  - apps/web/src/pages/inicio/TarjetaDolar.tsx
+  - apps/web/src/pages/inicio/TarjetaEmpresas.tsx
+  - apps/web/src/pages/inicio/TarjetaStock.tsx
+  - apps/web/src/components/navegacion/busqueda-global.test.tsx
+  - supabase/functions/recalcular-alertas-inicio/handler.ts
+  - supabase/functions/_shared/token.ts
+  - infra/kestra/flows/alertas-inicio.yml
+  - supabase/migrations/20270201200127_alertas_inicio_tabla.sql
+  - supabase/migrations/20270201200140_busqueda_global_productos.sql
+  - supabase/migrations/20270203120000_busqueda_sin_tildes_columna_calculada.sql
+  - supabase/migrations/20270213100007_alertas_inicio_respeta_aviso.sql
+  - supabase/migrations/20270325000000_alertas_inicio_cobros_y_faltantes.sql
+  - supabase/tests/database/alertas_inicio.test.sql
+  - supabase/tests/database/alertas_inicio_cobros_faltantes.test.sql
+  - supabase/tests/database/busqueda_global.test.sql
 ---
 
 # Inicio y alertas: pantalla, recálculo y búsqueda global
@@ -35,7 +54,7 @@ sources:
 
 Fuentes de las tarjetas: `perfiles_usuario`, `empresas_para_selector()`, `public.stock_estados`, `public.consultas_bandeja` (estado `nueva`, empresa activa), `estado_cotizacion()` y `cotizacion_del_dia()`. Carga y error son por tarjeta. Al cambiar de empresa Inicio se remonta y recarga todo (Principio VIII). Sin tarjetas de Mercado Libre hasta que existan esas épicas (FR-009, FR-027).
 
-## Datos (migraciones aditivas `20270201200127`–`20270201200140`, más `20270203120000` (búsqueda sin tildes) y `20270213100007` (alertas respetan el aviso))
+## Datos (migraciones aditivas `20270201200127`–`20270201200140`, más `20270203120000` (búsqueda sin tildes), `20270213100007` (alertas respetan el aviso) y `20270325000000` (cobros pendientes y faltantes))
 
 | Objeto | Esquema | Función | Reversión |
 |---|---|---|---|
@@ -46,11 +65,11 @@ Fuentes de las tarjetas: `perfiles_usuario`, `empresas_para_selector()`, `public
 | `alertas_inicio_calculo` | `public` | fecha del último cálculo (aviso de demora) | `drop view` |
 | `buscar_productos_global(p_q text, p_limite int default 8)` | `public` | `security invoker`; mínimo 2 caracteres (`22023`), tope 20; `pg_trgm` para el nombre | `drop function public.buscar_productos_global(text, integer)` |
 
-Tipos de alerta (lista cerrada por `check`): `sin_stock`, `stock_bajo`, `consultas_sin_atender`, `dolar_sin_cargar`, `margen_negativo` (este último solo si existe `analitica.margen_producto_canal`). El enlace sale de un mapa fijo por tipo, nunca de texto libre (FR-025). `pg_trgm` se habilita en la migración de la búsqueda (T017).
+Tipos de alerta (lista cerrada por `check`): `sin_stock`, `stock_bajo`, `consultas_sin_atender`, `dolar_sin_cargar`, `margen_negativo` (este último solo si existe `analitica.margen_producto_canal`). Desde `20270325000000_alertas_inicio_cobros_y_faltantes.sql` se suman `cobros_pendientes` (sección ventas, enlace `/ventas/comprobantes`: facturas confirmadas con saldo neto mayor a cero, es decir total menos cobros y notas de crédito, por empresa) y `faltantes` (sección stock, enlace `/stock/faltantes`: faltantes avisados y todavía sin resolver, por empresa); ninguno tiene umbral y la migración amplía los `check` de `dominio.alertas_inicio` y redefine `recalcular_alertas_inicio`. En la pantalla, `AlertasInicio.tsx` oculta `dolar_sin_cargar` a quien no tiene edición sobre `cotizacion_dolar` (la base no filtra por edición). El enlace sale de un mapa fijo por tipo, nunca de texto libre (FR-025). `pg_trgm` se habilita en la migración de la búsqueda (T017).
 
 ## Recálculo
 
-`infra/kestra/flows/alertas-inicio.yml` (cada 15 minutos) → Edge Function `supabase/functions/recalcular-alertas-inicio` (`POST {"barrer": true}`, cabecera `x-aviso-token`) → `recalcular_alertas_inicio` por organización. Idempotente; si una organización falla, la función sigue con las demás y responde 502 para que Kestra reintente.
+`infra/kestra/flows/alertas-inicio.yml` (cada 15 minutos) → Edge Function `supabase/functions/recalcular-alertas-inicio` (`POST {"barrer": true}`, cabecera `x-aviso-token`, validada con `tokenValido` de `supabase/functions/_shared/token.ts`: compara los SHA-256 en tiempo constante, sin cortar por longitud, y falla cerrado si falta el esperado o el recibido; responde 403 sin autenticación) → `recalcular_alertas_inicio` por organización. Idempotente; si una organización falla, la función sigue con las demás y responde 502 para que Kestra reintente. El flow corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`), la petición tiene `timeout: PT5M` con 2 intentos separados por un minuto, y si falla avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo`.
 
 Variables (solo ejemplos en `.env.example`): `ALERTAS_INICIO_URL`, `ALERTAS_INICIO_APIKEY`, `SECRET_ALERTAS_INICIO_TOKEN` (base64, en `infra/kestra/.env`) y `ALERTAS_INICIO_TOKEN` (decodificado, secretos de la función).
 

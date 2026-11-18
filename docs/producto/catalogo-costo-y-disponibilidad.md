@@ -1,7 +1,11 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261022-120000-catalogo-costo-y-disponibilidad
+  - apps/web/e2e/catalogo-costo-disponibilidad.e2e.ts
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/lib/productosListado.ts
+  - apps/web/src/components/productos/FormularioProducto.tsx
 ---
 
 # Catálogo: costo y disponibilidad (MSF-179)
@@ -9,7 +13,7 @@ sources:
 **Épica:** MSF-179 · **Historias:** F-CAT-16 (costo, proveedor y escalas de precio), F-CAT-17 (disponibilidad) y
 F-CAT-14 (código de barras buscable).
 **Spec:** `specs/20261022-120000-catalogo-costo-y-disponibilidad/` (rama
-`epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad`, merge `a485805f`, **pendiente de merge a `main`**).
+`epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad`, ya integrada en el código vigente).
 **Construcción interna:** [Catálogo: costo y disponibilidad (técnico)](../tecnico/catalogo-costo-y-disponibilidad.md).
 
 Completa el catálogo con lo que faltaba para vender y reponer: cada producto tiene una **disponibilidad**
@@ -151,7 +155,7 @@ Guía para probar la épica a mano hoy, sin pedirle código a nadie.
 
 Existe el E2E `apps/web/e2e/catalogo-costo-disponibilidad.e2e.ts` (tarea T022 de la spec, rótulo
 `[MSF-179:T022]`), que cubre los pasos 1 a 4 (costo Administrador vs Operador, disponibilidad, filtro y escaneo).
-Todavía **no tiene el rótulo `[MSF-179:T022]` en el título del test** y no se ejecutó en el entorno de la épica
+Todavía **no tiene el rótulo `[MSF-179:T022]` en el título del test** (el título actual es «el Administrador ve el costo y el Operador no; ambos ven la disponibilidad y escanean») y no se ejecutó en el entorno de la épica
 (sin Docker). **Pendiente de automatizar:** pasos 6 a 8 (edición de disponibilidad, escalas de precio y costo
 oculto en la ficha); dueño: Catálogo. Cubren esa base hoy los tests pgTAP `catalogo_disponibilidad`,
 `catalogo_codigo_barras` y `catalogo_listado_codigo_barras`.
@@ -163,18 +167,17 @@ oculto en la ficha); dueño: Catálogo. Cubren esa base hoy los tests pgTAP `cat
 | Reserva y descuento de stock de «A pedido» y «Stock entrante en breve» | MSF-292 (Stock · depósitos y reservas) |
 | Depósitos, stock por depósito y reservado | MSF-292 |
 | Cálculo, edición y margen de las escalas; tipo de cliente | Precios (MSF-114) |
-| Columna Margen, stock numérico y «Stock bajo» | Rentabilidad (MSF-120) y Stock |
+| Columna Margen del listado | Ya se ve, solo con acceso a Rentabilidad: es una estimación `(precio de lista − costo) / precio de lista` en pesos, sin impuestos ni descuentos, y «—» si falta el precio o el costo (ver [Catálogo de productos](../catalogo.md)). Stock numérico y «Stock bajo»: Stock |
 | Exportar e importar CSV | Ya se puede (solo el Administrador): ver [filtrar por compatible, importar y exportar planillas](catalogo-compatibilidad-y-planillas.md) |
-| Edición masiva, variantes y su código de barras | Todavía no se puede; está planificado |
+| Edición masiva y variantes | Ya existen: ver [Catálogo de productos](../catalogo.md) y [variantes y relacionados](catalogo-variantes-y-relacionados.md). Cada variante tiene su propio código de barras |
 | Restringir el proveedor al Administrador | Decisión abierta de MSF-205 |
 | Lector por cámara | Fuera de alcance (el lector es de teclado/USB) |
 | Rediseño del listado y de las pantallas | Fuera de alcance: se amplían las de MSF-456 y MSF-160 |
 
 ## Estado
 
-Implementado en la rama `epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad` (merge `a485805f`), **pendiente
-de merge a `main`**. Depende de MSF-160 (listado y vista `v_productos_listado`) y MSF-205 (proveedores), también
-en sus ramas. El E2E de cierre está escrito pero **no se ejecutó** por falta de Docker en el entorno; se corre a
+Implementado y fusionado desde la rama `epic/MSF-179-catalogo-catalogo-costo-y-disponibilidad` (merge `a485805f`).
+Depende de MSF-160 (listado y vista `v_productos_listado`) y MSF-205 (proveedores). El E2E de cierre está escrito pero **no se ejecutó** por falta de Docker en el entorno; se corre a
 mano con `pnpm dev:supabase` (ver [Suite E2E](../e2e-app.md)).
 
 ## Para profundizar

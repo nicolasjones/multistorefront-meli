@@ -2,8 +2,20 @@
 owner: tecnico
 sources:
   - specs/20261114-100000-analitica-avanzada-y-resumen-por-correo
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/src/pages/reportes/Tableros.tsx
+  - apps/web/src/pages/reportes/Tableros.test.tsx
+  - apps/web/src/lib/tablerosAnaliticos.ts
+  - apps/web/src/lib/tablerosAnaliticos.test.ts
+  - apps/web/src/components/ReporteEmbebido.tsx
+  - supabase/functions/emitir-acceso-reporte/handler.ts
+  - infra/superset/dashboards/analitica-avanzada
+  - infra/superset/analitica-avanzada.test.mjs
+  - infra/superset/importar-dashboards.mjs
+  - infra/superset/superset_config.py
+  - supabase/migrations/20270324100000_analitica_tableros_avanzados.sql
+  - supabase/migrations/20270324100100_reportes_tableros_analiticos.sql
+  - supabase/tests/database/analitica_tableros_avanzados.test.sql
+  - .github/workflows/deploy-infraestructura-vps.yml
 ---
 
 # Analítica avanzada: galería de tableros (F-REP-07)
@@ -21,7 +33,7 @@ El administrador **elige entre tableros ya armados** y versionados en el repo, c
 | Pantalla «Tableros analíticos» (`/reportes/tableros`, menú *Reportes*, solo administradores, carga diferida) | `apps/web/src/pages/reportes/Tableros.tsx` |
 | Catálogo (título, descripción, cruces, filtros de cada tablero) | `apps/web/src/lib/tablerosAnaliticos.ts` |
 | Componente de embebido (sin cambios) | `apps/web/src/components/ReporteEmbebido.tsx` |
-| Token de invitado (sin cambios) | `supabase/functions/emitir-acceso-reporte/` |
+| Token de invitado | `supabase/functions/emitir-acceso-reporte/`: si falla la RPC `resolver_organizacion_reporte` responde 503 `analitica_no_disponible` (no 403); el token vence a los 600 s por defecto (`GUEST_TOKEN_JWT_EXP_SECONDS` en `infra/superset/superset_config.py`) y `ReporteEmbebido.tsx` pide uno nuevo a la función cada vez que el SDK renueva, así que cada renovación vuelve a validar el acceso |
 | Vistas `analitica.ventas_empresa_categoria` y `analitica.margen_real_categoria` | `supabase/migrations/20270324100000_analitica_tableros_avanzados.sql` |
 | Alta y asignación de los tableros | `supabase/migrations/20270324100100_reportes_tableros_analiticos.sql` |
 | Tableros en YAML | `infra/superset/dashboards/analitica-avanzada/` |
@@ -66,7 +78,7 @@ Los YAML se validaron de forma estructural y contra un Superset simulado; no se 
 3. Registrarlo en `reportes.json` con `filtro_empresa: true`; si su nombre empieza con «Analítica · » la migración `20270324100100` ya asigna los tableros nuevos a todas las organizaciones (un tablero con otro nombre se asigna a mano en `/analitica/administrar`).
 4. Describirlo en `lib/tablerosAnaliticos.ts` (título, descripción, cruces, filtros) y agregar la carpeta a los dos pasos de importación del workflow de despliegue.
 
-Importar en un entorno: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <dev|staging|production>` (idempotente). Detalle del importador y del mapeo de UUIDs en [Operar Superset](operar-superset.md).
+Si hay `reportes.json` y faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR`, el importador **falla** (importa los dashboards pero avisa que los reportes no se registraron); para importar solo los dashboards a propósito se pasa `--omitir-reportes` (`infra/superset/importar-dashboards.mjs`). Importar en un entorno: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <dev|staging|production>` (idempotente). Detalle del importador y del mapeo de UUIDs en [Operar Superset](operar-superset.md).
 
 ## Reversión
 

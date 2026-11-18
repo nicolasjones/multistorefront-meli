@@ -1,9 +1,22 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - supabase/migrations/20261023100300_tienda_catalogo_visible.sql
+  - supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql
+  - supabase/migrations/20270228300500_productos_nombre_sin_prefijo_de_importacion.sql
+  - supabase/migrations/20270228300600_prefijo_importacion_permiso_de_ejecucion.sql
+  - supabase/tests/database/tienda_categorias_publicas.test.sql
+  - supabase/tests/database/productos_nombre_importacion.test.sql
+  - scripts/verificar-migraciones.mjs
+  - apps/web/src/lib/tiendaCategorias.ts
+  - apps/web/src/lib/tiendaTextos.ts
+  - apps/web/src/lib/tiendaBusqueda.ts
+  - apps/web/src/lib/tiendaInicio.ts
+  - apps/web/src/lib/tiendaRelacionados.ts
+  - apps/web/src/pages/tienda-publica/layout/MenuCategorias.tsx
+  - apps/web/src/pages/tienda-publica/layout/MenuMovil.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieCategorias.tsx
+  - apps/web/src/pages/tienda-publica/secciones/CategoriasInicio.tsx
 ---
 
 # Tienda pública: corrección de la demo frente al prototipo (MSF-825)
@@ -45,7 +58,9 @@ código por tienda.
 
 Las tres versiones (`20270228300400`, `…300500`, `…300600`) quedaron **por encima** de la máxima de
 `origin/dokploy` en el momento del merge (`20270228300300`): `scripts/verificar-migraciones.mjs` falla con
-«versión REUSADA» si una migración nueva queda por debajo de la base.
+«versión REUSADA» si una migración **propia de la rama** queda por debajo de la base cuando esa base es el destino
+final (`dokploy`/`main`) o la rama contra la que se mergea de verdad; contra una rama de épica que avanza sola solo
+avisa del orden (el guard juzga únicamente las migraciones que la rama agregó, renombró o modificó).
 
 ## Modelo de datos (DER)
 

@@ -30,7 +30,7 @@ Todas las tablas tienen RLS por organización (`private.organizacion_id()`), sin
 
 1. **Precio central en pesos** = `precio_lista` si la moneda es ARS; si es USD, `round(precio_lista × cotización, 2)`. USD sin cotización cargada da `null` (no se inventa un valor).
 2. **Neto de la empresa** = central, o central × (1 + ajuste %) redondeado al **$ 10 más cercano** (base `central_ajuste`).
-3. **Final** = neto × (1 + alícuota) al peso entero; Exento ⇒ final = neto. La alícuota es la del producto o, si no tiene, la de su categoría.
+3. **Final** = neto × (1 + alícuota) al centavo (redondeo a 2 decimales, desde la migración `20270507180200_aplicar_iva_al_centavo.sql`); Exento ⇒ final = neto. La alícuota es la del producto o, si no tiene, la de su categoría.
 4. **Margen** = (neto − costo en pesos) / neto, siempre sobre el neto (sin IVA). El interruptor de IVA no lo cambia.
 
 El front solo espeja las fórmulas para textos de ejemplo (`lib/precios.ts`, `lib/iva.ts`); la autoridad es la base.

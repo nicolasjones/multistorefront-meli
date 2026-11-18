@@ -2,8 +2,12 @@
 owner: tecnico
 sources:
   - specs/20261114-100000-analitica-avanzada-y-resumen-por-correo
-  - supabase/migrations
-  - apps/web/src
+  - supabase/migrations/20270324100200_resumen_semanal.sql
+  - supabase/functions/enviar-resumen-semanal/handler.ts
+  - supabase/functions/enviar-resumen-semanal/index.ts
+  - supabase/functions/_shared/token.ts
+  - infra/kestra/flows/resumen-semanal.yml
+  - apps/web/src/pages/organizacion/ResumenSemanal.tsx
 ---
 
 # Resumen semanal por correo (F-REP-08)

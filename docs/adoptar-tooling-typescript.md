@@ -1,7 +1,13 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/020-tooling-typescript
+  - package.json
+  - infra/kestra/renderizar-flow.mjs
+  - infra/kestra/desplegar-flow.mjs
+  - infra/runner/entrypoint.mjs
+  - scripts/deploy-vps.mjs
+  - scripts/reset-db-ci.mjs
 ---
 
 # Adoptar tooling Node/TypeScript en un producto derivado
@@ -19,6 +25,11 @@ Kestra coordina y los workers ejecutan integraciones aisladas.
 | IA, secretos y runtime | `pnpm test:ia:aprovisionamiento`, `pnpm test:kestra:secretos`, `pnpm test:kestra:runtime` | scripts PowerShell correspondientes | Migrado y retirado; E2E explícito: `pnpm test:kestra:secretos:e2e` |
 | Runner autocontenido | `infra/runner/entrypoint.mjs` | `infra/runner/entrypoint.sh` | Migrado; Node ya está instalado en la imagen del runner |
 | Fixtures internos Docker | — | `infra/kestra/fixtures/{worker,worker-runtime,ssh-host}/*.sh` | Excepción técnica explícita: son contratos de `ENTRYPOINT`, `/custom-cont-init.d` o `sh` de imágenes Docker efímeras. No son comandos públicos ni tooling operativo; sus Dockerfiles los invocan dentro de imágenes base que no requieren Node. |
+
+Scripts de shell posteriores al inventario: hoy `scripts/` también tiene `docs-api-publica.sh`, `e2e-evidencia.sh` y
+`probar-nginx-tienda-seo.sh`, que no figuran arriba. No se verificó aquí si corresponde migrarlos o declararlos como excepción
+técnica; al aplicar esta guía hay que inventariarlos como cualquier script propio. El despliegue `pnpm deploy:vps` (`scripts/deploy-vps.mjs`)
+suma además `scripts/preflight-deploy-vps.mjs` y `scripts/preparar-known-hosts-vps.mjs` (ambos Node), descritos en `docs/deployment.md`.
 
 Antes de ejecutar el E2E local de Kestra, reconciliar el rol JDBC con el
 entorno local mediante `pnpm kestra:sincronizar-rol-local`. El comando exige

@@ -2,6 +2,7 @@
 owner: producto
 sources:
   - apps/web/src/pages/migracion
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
 ---
 
 # Migración inicial de datos
@@ -34,7 +35,7 @@ Menú lateral **Administración → Migración de datos**. Abre la importación 
 
 | Datos | Qué trae | Qué hace falta en el archivo |
 |---|---|---|
-| **Clientes** | La base de clientes. Si ya los cargaste, se actualizan sin duplicarse. | Obligatorios: **Identificador del panel actual** y **Nombre o razón social**. También: DNI / CUIT, Tipo de cliente, Correo, Teléfono, Celular, Dirección, CP, Localidad, Provincia, Expreso preferido. |
+| **Clientes** | La base de clientes. Si ya los cargaste, se actualizan sin duplicarse. | Obligatorios: **Identificador del panel actual** y **Nombre o razón social**. También: DNI / CUIT, Tipo de cliente, Correo, Teléfono, Celular, Dirección, CP, Localidad, Provincia, Expreso preferido, Condición de IVA. |
 | **Proveedores** | Los proveedores, sin duplicar. | Obligatorios: **Identificador del panel actual**, **Razón social** y **CUIT**. También: Persona de contacto, Correo, Teléfono, Dirección, Observaciones. |
 | **Vínculos proveedor ↔ producto** | Qué proveedor tiene cada producto del catálogo. Cargá antes los proveedores y el catálogo. | Obligatorios: **SKU del producto** e **Identificador del proveedor en el panel actual**. Opcional: **Código del proveedor**. |
 | **Ingresos anteriores** | El historial de ingresos de mercadería del sistema anterior. Queda solo para consultar y **no modifica el stock**. | Obligatorios: **Identificador del panel actual**, **Fecha**, **Producto** y **Cantidad**. También: Proveedor, Operador. |
@@ -54,7 +55,7 @@ Cada tipo de dato tiene su propia pantalla de importación, con los mismos pasos
 *Importación de ingresos anteriores.*
 
 
-El **Identificador del panel actual** es el código que cada registro tenía en el sistema anterior. Con él, el sistema reconoce qué ya cargó y no duplica nada si volvés a subir el mismo archivo.
+El **Identificador del panel actual** es el código que cada registro tenía en el sistema anterior. Con él, el sistema reconoce qué ya cargó y no duplica nada si volvés a subir el mismo archivo. En clientes, el identificador es único dentro de tu organización: otra organización puede tener el mismo código sin que se crucen.
 
 ## Importar una planilla paso a paso
 

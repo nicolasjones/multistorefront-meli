@@ -1,7 +1,15 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/verificar-documentacion-cambios.mjs
+  - scripts/docs-check.mjs
+  - scripts/docs-drift.mjs
+  - scripts/docs-enlaces.mjs
+  - scripts/docs-inventario.mjs
+  - scripts/docs-manifest.mjs
+  - .github/workflows/docs.yml
+  - .github/workflows/validate.yml
+  - apps/web/playwright.capturas.config.ts
 ---
 
 # Documentación obligatoria de cambios
@@ -17,7 +25,8 @@ el registro del flujo oficial en `.specify/bugs/<slug>/` (`assessment.md`,
 El control `pnpm docs:check` compara la rama con su base Git y falla si detecta
 código o infraestructura sin una actualización documental. En un pull request
 el workflow obtiene el historial completo y usa `GITHUB_BASE_REF`; en local se
-puede indicar otra base con `DOCUMENTATION_CHECK_BASE`.
+puede indicar otra base con `DOCUMENTATION_CHECK_BASE`. En `validate.yml` corre en el job `chequeos`
+(`pnpm docs:check` y `pnpm test:docs:check`, que prueba el verificador, las trampas conocidas y el YAML del front matter).
 
 La documentación debe registrar la decisión, el contrato afectado, los riesgos,
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados

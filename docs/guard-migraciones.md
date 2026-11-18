@@ -3,6 +3,9 @@ owner: plataforma
 sources:
   - scripts/guard-migraciones-ddl.mjs
   - scripts/verificar-migraciones.mjs
+  - scripts/verificar-migraciones.test.mjs
+  - scripts/guard-migraciones-ddl.test.mjs
+  - scripts/verificar-migraciones.multilinea.test.mjs
 ---
 
 # Guard de migraciones (`scripts/verificar-migraciones.mjs`)
@@ -41,7 +44,7 @@ punta de la base y no contra la punta de la base con el árbol de la rama.
 
 Defensa en profundidad: el guard rechaza (salida `2`, sin tocar git) un `--base` o un `GITHUB_BASE_REF` que empiece
 con `-`, porque se leería como una opción de git (`--output=…`) en los `git rev-parse`, `merge-base` y `diff` que usa.
-Un `--base` sin valor (`--base --estricto`) cae en el mismo rechazo en vez de tragarse la bandera siguiente.
+Un `--base` sin valor (`--base --estricto`) cae en el mismo rechazo en vez de tragarse la bandera siguiente. Un `--base ""` (vacío) también se rechaza con salida `2` en vez de caer en silencio a la base por omisión; un `GITHUB_BASE_REF` vacío (push sin PR) sí usa la base por omisión (`scripts/verificar-migraciones.mjs`).
 
 ## Nombre del archivo
 

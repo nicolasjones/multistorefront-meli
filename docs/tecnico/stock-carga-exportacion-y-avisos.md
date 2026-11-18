@@ -1,8 +1,32 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - apps/web/src/pages/stock
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - supabase/migrations/20261212140000_stock_avisos_reposicion.sql
+  - supabase/migrations/20261212140100_stock_resumen_reposicion_rpc.sql
+  - supabase/migrations/20261213100000_stock_cargas_iniciales.sql
+  - supabase/migrations/20261213100100_stock_carga_inicial_rpc.sql
+  - supabase/migrations/20261213100200_faltantes_avisos.sql
+  - supabase/migrations/20261213100300_faltantes_listado.sql
+  - supabase/migrations/20261213100400_avisar_faltantes.sql
+  - supabase/migrations/20261213100500_productos_mas_vendidos.sql
+  - supabase/functions/enviar-aviso-faltante
+  - supabase/functions/enviar-resumen-reposicion
+  - supabase/tests/database/stock_carga_inicial.test.sql
+  - apps/web/src/pages/stock/PestanasStock.tsx
+  - apps/web/src/pages/stock/excel.tsx
+  - apps/web/src/pages/stock/faltantes.tsx
+  - apps/web/src/pages/stock/mas-vendidos.tsx
+  - apps/web/src/lib/cargaStock.ts
+  - apps/web/src/lib/exportarCsv.ts
+  - apps/web/src/lib/faltantes.ts
+  - apps/web/src/lib/masVendidos.ts
+  - apps/web/src/lib/periodosRanking.ts
+  - apps/web/src/lib/stock.ts
+  - apps/web/src/hooks/useExportarCsv.ts
+  - apps/web/src/hooks/useMasVendidos.ts
+  - apps/web/src/components/stock/ExportarCsvBoton.tsx
+  - apps/web/src/App.tsx
 ---
 
 # Stock · carga inicial, exportación y avisos (MSF-368)
@@ -182,7 +206,7 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
 
 - **Rutas y pestañas.** `/stock/excel`, `/stock/faltantes` y `/stock/mas-vendidos` en `apps/web/src/App.tsx`, con
   carga diferida, `RequiereOrganizacionActiva` y `RequiereAccesoSeccion seccion="stock"`. La tira
-  `apps/web/src/pages/stock/PestanasStock.tsx` suma **«Faltantes»**, **«Actualizar por Excel»** (solo con `edicion`)
+  `apps/web/src/pages/stock/PestanasStock.tsx` suma **«Faltantes de stock»**, **«Actualizar por Excel»** (solo con `edicion`)
   y **«Más vendidos»** (con `lectura` o `edicion`). No hay recurso Refine propio: se llega desde la pestaña.
 - **Carga inicial.** `apps/web/src/pages/stock/excel.tsx` + `apps/web/src/lib/cargaStock.ts`: la planilla se lee en
   el navegador (import diferido de la librería de Excel), `MAXIMO_FILAS_CARGA = 2000` y
@@ -194,7 +218,7 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
   se desfasan.
   En Movimientos, la nota (tabla y CSV) pasa por `notaLegibleDeMovimiento` (`apps/web/src/lib/stock.ts`), que reemplaza
   la referencia interna `comprobante:<uuid>[:linea:N]` de las reservas «A pedido» por «el comprobante».
-- **Faltantes.** `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
+- **Faltantes.** (título de la pantalla: «Faltantes de stock (A pedido)»; trae un enlace a «Faltantes de despacho», `/ventas/faltantes`, que es otra pantalla con otros datos) `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
   fila y «seleccionar todo» en el encabezado de la columna de casillas (como en el prototipo), filtro `FiltroEmpresa`,
   carga por tandas de 25 con «Cargar más» y **miniatura del producto**; pie «N seleccionados de M faltantes».
   El texto de ayuda de la pantalla dice (`faltantes.tsx`) que un faltante se cierra al entregar el pedido o al liberar la

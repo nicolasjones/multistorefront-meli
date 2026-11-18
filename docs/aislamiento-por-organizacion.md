@@ -1,7 +1,14 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261012-140000-acceso-y-organizacion
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/tests/database/aislamiento_organizaciones.test.sql
+  - supabase/tests/database/estado_usuario.test.sql
+  - supabase/tests/database/seguridad_global_higiene_base.test.sql
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20270507190300_politicas_denegar_todo_tablas_sin_politica.sql
+  - supabase/config.toml
 ---
 
 # Aislamiento por organización
@@ -34,7 +41,7 @@ suspendidos (`usuarios_organizacion.estado`, migración `20261012140100`, F-ACC-
 
 ## Cómo se hace cumplir
 
-- `supabase/tests/database/rls_en_toda_tabla.test.sql` (plan 4) recorre el catálogo
+- `supabase/tests/database/rls_en_toda_tabla.test.sql` (plan 5) recorre el catálogo
   (`pg_class`) de `public` y `dominio` y **falla si alguna tabla no tiene RLS
   activado**. Una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
   Se omiten las particiones hijas y las tablas que pertenecen a una extensión.
@@ -48,6 +55,10 @@ suspendidos (`usuarios_organizacion.estado`, migración `20261012140100`, F-ACC-
 - `supabase/tests/database/estado_usuario.test.sql` (plan 40) cubre el estado de la
   membresía (MSF-119 · F-ACC-01): un suspendido no resuelve organización, no escribe y
   no conserva privilegios de administración.
+- `supabase/tests/database/seguridad_global_higiene_base.test.sql` exige además que **toda tabla con RLS tenga al menos una
+  política explícita** (línea 129); las tablas que no tenían ninguna quedaron con una política que deniega todo
+  (`using false`, migración `20270507190300_politicas_denegar_todo_tablas_sin_politica.sql`). Ver
+  [Higiene de la base](higiene-base-datos.md).
 - Revisión del build (T019): las tablas creadas en `supabase/migrations`
   habilitan RLS; ninguna tabla expuesta queda sin él.
 

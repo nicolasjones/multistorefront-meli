@@ -1,8 +1,25 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - infra/kestra/flows
+  - specs/20261023-120000-consultas-bandeja-y-aviso
+  - specs/20261024-140000-consultas-seguimiento-y-whatsapp
+  - specs/20261202-100000-tienda-whatsapp-y-contacto/contracts/tienda-contacto.md
+  - supabase/migrations/20261205100000_consultas.sql
+  - supabase/migrations/20261205100100_crear_consulta_publica.sql
+  - supabase/migrations/20261205100200_actualizar_consulta.sql
+  - supabase/migrations/20261205100300_consultas_bandeja.sql
+  - supabase/migrations/20261205100500_consultas_devolucion_revisor.sql
+  - supabase/migrations/20261205200000_consultas_configuracion.sql
+  - supabase/migrations/20261210130300_consultas_aviso_emitir.sql
+  - supabase/migrations/20261212120800_crear_consulta_publica_solo_interna.sql
+  - supabase/migrations/20261214100000_intereses_whatsapp.sql
+  - supabase/migrations/20261214100100_registrar_interes_whatsapp.sql
+  - supabase/migrations/20261214100200_interes_whatsapp_por_producto.sql
+  - supabase/migrations/20270306140000_avisos_consulta_camino_directo.sql
+  - infra/kestra/flows/enviar-avisos.yml
+  - infra/kestra/flows-retirados.txt
+  - apps/web/src/pages/consultas/list.tsx
+  - apps/web/src/lib/consultas.ts
 ---
 
 # Consultas: modelo, RPC y aviso
@@ -32,23 +49,21 @@ panel; `publico` aloja la RPC del interés, interna desde MSF-657 (solo `service
 | Objeto | Esquema | Para qué | Migración |
 |---|---|---|---|
 | `dominio.consultas` | `dominio` | Lo que preguntó un visitante a una empresa. | `20261205100000_consultas.sql` |
-| `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa); desde MSF-189 solo la usa el camino anterior de drenaje. | `20261205200000_consultas_configuracion.sql` |
-| `dominio.consultas_avisos` | `dominio` | Cola histórica del aviso por correo; desde MSF-189 solo drena lo ya encolado (el camino nuevo usa `public.avisos_pendientes`). | `20261205200100_consultas_avisos.sql` |
+| `dominio.consultas_configuracion` | `dominio` | Dirección de avisos de la empresa (una fila por empresa); ya no alimenta ningún aviso (ver «Aviso por correo»). | `20261205200000_consultas_configuracion.sql` |
+| `dominio.consultas_avisos` (retirada) | `dominio` | Cola del aviso directo por correo; se eliminó junto con sus tres RPC (el aviso vigente usa `public.avisos_pendientes`). | creada en `20261205200100_consultas_avisos.sql`, borrada en `20270306140000_avisos_consulta_camino_directo.sql` |
 | `publico.crear_consulta_publica` | `publico` | Único punto de alta; la llama la tienda como `anon`. | `20261205100100_crear_consulta_publica.sql` |
 | `public.consultas_bandeja` + RPC del panel | `public` | Lectura y edición desde el panel; no guardan datos. | `20261205100200`, `20261205100300`, `20261205100500` |
 | `dominio.intereses_whatsapp` | `dominio` | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda (diseño original; desde MSF-657 solo el sembrado demo lo alimenta). **Sin datos personales.** | `20261214100000_intereses_whatsapp.sql` |
 | `publico.registrar_interes_whatsapp` | `publico` | Alta del interés; solo `service_role` desde `20270507150100` (MSF-657). | `20261214100100_registrar_interes_whatsapp.sql` |
 | `public.interes_whatsapp_por_producto` (vista `security_invoker`) | `public` | Lectura agrupada por empresa y producto; no guarda datos. | `20261214100200_interes_whatsapp_por_producto.sql` |
 
-Migraciones aditivas; la reversión va en una migración posterior (ver [Reversión](#reversion)). Las
-migraciones `20261205200200_consultas_avisos_reintentos.sql` redefinen dos funciones del aviso, sin tablas
-nuevas.
+Migraciones aditivas; la reversión va en una migración posterior (ver [Reversión](#reversion)). La cola
+`dominio.consultas_avisos` y sus tres RPC se retiraron en `20270306140000_avisos_consulta_camino_directo.sql`.
 
 ```mermaid
 erDiagram
   EMPRESAS ||--o{ CONSULTAS : "recibe"
   PRODUCTOS ||--o{ CONSULTAS : "interés (opcional)"
-  CONSULTAS ||--|| CONSULTAS_AVISOS : "encola"
   EMPRESAS ||--o| CONSULTAS_CONFIGURACION : "dirección de avisos"
 
   CONSULTAS {
@@ -72,16 +87,6 @@ erDiagram
     text correo_avisos "nullable: usa empresas.correo"
     timestamptz updated_at
   }
-  CONSULTAS_AVISOS {
-    uuid consulta_id PK
-    uuid organizacion_id FK
-    uuid empresa_id FK
-    text estado "pendiente|enviado|fallido|sin_destinatario"
-    int intentos
-    text ultimo_error
-    timestamptz enviado_en
-    timestamptz updated_at "reserva de 2 min"
-  }
 ```
 
 Detalle del grafo y de las tablas existentes: [Datos y DER](datos.md).
@@ -94,15 +99,13 @@ Detalle del grafo y de las tablas existentes: [Datos y DER](datos.md).
   `public.actualizar_consulta`.
 - `dominio.consultas_configuracion`: lectura con `consultas` o `empresas` en `lectura`/`edicion`; escritura
   solo por `public.guardar_correo_avisos_consultas` con `empresas = edicion`.
-- `dominio.consultas_avisos`: lectura solo con `empresas = edicion`; escritura solo desde funciones
-  `security definer` y las RPC de `service_role` que usa la función de aviso.
 - `anon` no tiene privilegios sobre las tablas. **Desde MSF-212** ya no ejecuta
   `publico.crear_consulta_publica` de forma directa (ver la sección «RPC pública»): el único camino
   público del alta es `publico.enviar_consulta_contacto`, que aplica el límite de envíos.
 
-Fuente: `supabase/migrations/20261205100000_consultas.sql`, `20261205200000_consultas_configuracion.sql` y
-`20261205200100_consultas_avisos.sql`. Las políticas se prueban en `supabase/tests/database/consultas.test.sql`,
-`consultas_aviso.test.sql` y `rls_en_toda_tabla`.
+Fuente: `supabase/migrations/20261205100000_consultas.sql` y `20261205200000_consultas_configuracion.sql`. Las
+políticas se prueban en `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql` (dirección de
+avisos y retiro del camino directo) y `rls_en_toda_tabla`.
 
 ## RPC pública
 
@@ -125,7 +128,7 @@ publico.crear_consulta_publica(
   2000; `producto_id` de la misma organización.
 - Crea la consulta en estado `nueva`, devuelve su id y encola el aviso.
 - **Permisos:** hasta MSF-212 era ejecutable por `anon` y `authenticated`. La migración
-  `20261212100100_crear_consulta_publica_solo_interna.sql` (rama de MSF-212) le revoca la ejecución a
+  `20261212120800_crear_consulta_publica_solo_interna.sql` (rama de MSF-212) le revoca la ejecución a
   `public`, `anon` y `authenticated` y la deja en `service_role` y el propietario: mientras estuvo
   abierta, `anon` podía llamarla por PostgREST y saltearse el límite de 5 envíos por hora. Ahora la
   invoca `private.entregar_a_bandeja` desde `publico.enviar_consulta_contacto` (que es `security
@@ -417,8 +420,13 @@ Modelo, RPC, permisos, anonimización y pruebas: [Contactos y respuestas rápida
 4. Reintentos: `registrar_fallo_aviso` reprograma con espera de 1, 2, 4 y 8 minutos; al quinto intento queda
    `fallido` con el error. Un reclamo vence a los 10 minutos: si Kestra se cae a mitad de un envío, el grupo
    vuelve a estar disponible. Garantía **al menos una vez** (puede duplicarse en esa falla poco frecuente).
-5. `dominio.consultas_avisos`, el flow `avisos-consultas` y la Edge Function `enviar-aviso-consulta` quedan
-   **solo para drenar** lo que ya estaba encolado por el camino anterior. Las consultas nuevas no entran ahí.
+5. El camino anterior (la tabla `dominio.consultas_avisos`, sus tres RPC, el flow `avisos-consultas` y la
+   Edge Function `enviar-aviso-consulta`) se **eliminó**: la migración `20270306140000_avisos_consulta_camino_directo.sql`
+   borra la tabla y las RPC (y aborta si quedara un aviso `pendiente` o `fallido`), y el flow figura en
+   `infra/kestra/flows-retirados.txt`. La guía [Consultas](../consultas.md#aviso-por-correo) lo detalla.
+6. El flow `enviar-avisos` corre con `concurrency` de 1 (una corrida a la vez), `timeout` por tarea y un bloque
+   `errors:` que avisa al soporte con el subflow `aviso-fallo-flujo` (solo informa la tarea que falló, no el
+   mensaje del error): `infra/kestra/flows/enviar-avisos.yml`.
 
 ```mermaid
 sequenceDiagram
@@ -451,18 +459,8 @@ El envío nuevo usa las variables de `infra/kestra/.env.example`: `KESTRA_SMTP_H
 dominio (SPF/DKIM) es una decisión operativa todavía abierta. Detalle:
 [Avisos y listas](avisos-y-listas.md#operacion).
 
-Quedan solo para el camino anterior (drenaje de `dominio.consultas_avisos`):
-
-| Variable | Dónde | Para qué |
-|---|---|---|
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | `supabase/functions/.env.example` | Proveedor de la Edge Function; en local, Mailpit. |
-| `PANEL_URL` | `supabase/functions/.env.example` y `.env.example` | Base pública del panel para el enlace del correo. |
-| `AVISOS_CONSULTAS_TOKEN` | `supabase/functions/.env.example` | Secreto compartido con Kestra; sin él la función responde 503. |
-| `SECRET_AVISOS_CONSULTAS_TOKEN` (base64) y URL/clave del barrido | `infra/kestra/.env.example` | El flow `avisos-consultas` los usa para llamar a la función. |
-
-Para reprocesar el camino anterior a mano, invocá la función con `{"barrer": true}` y el header
-`x-aviso-token`, o dejá que el flow `avisos-consultas` corra en el minuto siguiente. La cola nueva
-(`public.avisos_pendientes`) se opera como se describe en [Avisos y listas](avisos-y-listas.md#operacion).
+La cola vigente (`public.avisos_pendientes`) se opera como se describe en [Avisos y listas](avisos-y-listas.md#operacion).
+Las variables de la Edge Function retirada (`AVISOS_CONSULTAS_TOKEN` y el barrido de Kestra) ya no existen en los `.env.example`.
 
 ## Retención
 
@@ -480,10 +478,9 @@ conservación sigue sin definir y la baja es manual por **Anonimizar**. Ver
 
 Las migraciones son aditivas; la reversión va en una migración posterior, de la más nueva a la más vieja:
 
-1. Aviso: `drop trigger consultas_encolar_aviso on dominio.consultas`, `drop function` de
-   `public.avisos_consulta_pendientes`, `tomar_aviso_consulta`, `cerrar_aviso_consulta` y
-   `private.encolar_aviso_consulta`, y `drop table dominio.consultas_avisos`. Apagar el flow de Kestra
-   `avisos-consultas` y retirar la función `enviar-aviso-consulta`.
+1. Aviso: `drop trigger consultas_encolar_aviso on dominio.consultas` y `drop function
+   private.encolar_aviso_consulta`. (La cola `dominio.consultas_avisos`, sus tres RPC, el flow `avisos-consultas`
+   y la función `enviar-aviso-consulta` ya no existen: ver `20270306140000_avisos_consulta_camino_directo.sql`.)
 2. Dirección de avisos: `drop function public.guardar_correo_avisos_consultas` y
    `private.correo_avisos_consulta`, y `drop table dominio.consultas_configuracion`.
 3. Interés por WhatsApp (MSF-130): `drop view public.interes_whatsapp_por_producto`, `drop function
@@ -507,10 +504,8 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
   validaciones, conflicto de edición, actividad y `anon`).
 - Vitest: `apps/web/src/pages/consultas/list.test.tsx`, `components/consultas/DetalleConsulta.test.tsx`,
   `hooks/useConsultas.test.tsx`, `pages/consultas/InteresWhatsappDialog.test.tsx`,
-  `pages/consultas/responder.test.tsx`, `pages/empresas/CorreoAvisosConsultas.test.tsx`,
-  `supabase/functions/enviar-aviso-consulta/handler.test.ts` e
-  `infra/kestra/validar-avisos-consultas.test.mjs`.
+  `pages/consultas/responder.test.tsx`, `pages/empresas/CorreoAvisosConsultas.test.tsx`.
 - E2E: `apps/web/e2e/consultas-recorrido.e2e.ts` — envía una consulta como `anon`, comprueba que
-  aparece en la bandeja en menos de 5 s, dispara el barrido, lee el correo en Mailpit, abre el enlace,
-  asigna, anota y resuelve con los tres roles, y verifica que otra organización no la ve. Se omite sin
+  aparece en la bandeja en menos de 5 s, comprueba que la base emitió el aviso (lo lee con
+  `listar_notificaciones`, no por correo), abre el enlace, asigna, anota y resuelve con los tres roles, y verifica que otra organización no la ve. Se omite sin
   `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y aborta si `SUPABASE_URL` no es un host local.

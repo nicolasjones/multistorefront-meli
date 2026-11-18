@@ -1,7 +1,11 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - infra/kestra/compose.yaml
+  - infra/kestra/flows/respaldo-postgres.yml
+  - infra/glitchtip/compose.yaml
+  - scripts/deploy-vps.mjs
+  - docs/deployment.md
 ---
 
 # Infraestructura
@@ -20,8 +24,8 @@ flowchart LR
 ## Decisiones
 
 - VPS en cuenta a nombre del cliente; despliegue con Dokploy/Traefik.
-- Cloudflare delante: DNS, TLS y caché de vitrinas.
-- Supabase como backend gestionado (alternativa: Postgres propio si se decide).
+- Cloudflare delante: DNS, TLS y caché de vitrinas (diseño previsto; el repo no lo configura: hoy los entornos salen por Traefik, ver [Entornos y despliegue](../deployment.md)).
+- Supabase self-hosted en el VPS, administrado con Dokploy (junto con Kestra, Superset y Nango).
 - Superset embebido para reportes; Kestra solo cuando haya orquestación larga.
 
 ## Entornos
@@ -43,8 +47,8 @@ Ver [../deployment.md](../deployment.md).
 
 ## Observabilidad
 
-Logs de aplicación y base, monitoreo de disponibilidad, alertas por falla de
-workers y de backups.
+Registro de errores en GlitchTip, flows de monitoreo en Kestra (tiendas, cola, sincronización) y alertas por falla de
+flows y de backups: ver [Monitoreo](../monitoreo.md).
 
 ## Latencia
 

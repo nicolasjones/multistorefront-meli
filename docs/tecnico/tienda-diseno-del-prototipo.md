@@ -1,9 +1,31 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261112-200000-tiendas-diseno-del-prototipo
+  - apps/web/src/pages/tienda-publica/layout/IdentidadTiendaContexto.tsx
+  - apps/web/src/tema/temaTienda.ts
+  - apps/web/src/pages/tienda-publica/layout/BarraSuperior.tsx
+  - apps/web/src/pages/tienda-publica/layout/LayoutTienda.tsx
+  - apps/web/src/pages/tienda-publica/layout/MenuCategorias.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieCategorias.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieInformacion.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieLegal.tsx
+  - apps/web/src/pages/tienda-publica/secciones/CategoriasInicio.tsx
+  - apps/web/src/pages/tienda-publica/secciones/ConsultasInicio.tsx
+  - apps/web/src/lib/tiendaIdentidad.ts
+  - apps/web/src/lib/tiendaContenido.ts
+  - apps/web/src/lib/tiendaBorrador.ts
+  - apps/web/src/pages/tienda-publica/layout/tiendaDiseno.test.tsx
+  - apps/web/e2e/tienda-dos-dominios.e2e.ts
+  - supabase/tests/database/tienda_identidad.test.sql
+  - supabase/migrations/20270305100100_tienda_vista_previa_categorias_imagen.sql
+  - supabase/migrations/20270306100000_tienda_vista_previa_categorias_paridad.sql
+  - supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql
+  - supabase/migrations/20270302100000_api_seguimientos_msf233.sql
+  - supabase/migrations/20270303100000_tienda_tipografias_prototipo.sql
+  - supabase/migrations/20270303200000_tienda_color_barra.sql
+  - supabase/migrations/20270303300000_tienda_eslogan.sql
+  - supabase/migrations/20270303400000_tienda_categorias_imagen.sql
 ---
 
 # Tienda pública: diseño del prototipo (MSF-841)
@@ -17,9 +39,9 @@ y `5f565cb8`; migraciones renumeradas en `01c1901e`). Depende de
 [MSF-191 (inicio, búsqueda y móvil)](tienda-inicio-busqueda-movil.md) y
 [MSF-212 (WhatsApp y contacto)](tienda-whatsapp-y-contacto.md).
 
-> **Estado:** implementada en la rama de la épica, pendiente de verificación visual en dev y de merge.
-> T017 (verificación contra el prototipo con Playwright) y T018 (foto de categoría en la vista previa del panel)
-> siguen abiertas; el detalle está en [Pendientes](#pendientes).
+> **Estado:** integrada en `dokploy` (PR #887 y los de cierre). T017 (verificación visual con Playwright en dev, 2026-11-13) y T018 (foto
+> de categoría en la vista previa del panel, resuelta después en la migración `20270305100100_tienda_vista_previa_categorias_imagen.sql`)
+> están cerradas; lo que queda abierto está en [Pendientes](#pendientes).
 
 Resumen para quien administra la tienda: [Las tiendas online de tu negocio](../producto/tiendas-online.md) e
 [Identidad, textos y dirección de la tienda](../producto/tienda-dominio-e-identidad.md).
@@ -92,8 +114,10 @@ El detalle de columnas, RPC y contratos está en
   hoja de Google Fonts se pide con `display=swap` y `preconnect` a `fonts.googleapis.com` /
   `fonts.gstatic.com`.
 - **Vista previa del panel:** recibe la identidad inyectada (`ProveedorFuenteTienda`) y no toca variables
-  globales. No muestra la barra, el encabezado ni el pie (son solo de la tienda pública) y no calcula la foto de
-  categoría (`vista_previa_tienda` no devuelve `imagen`): muestra el recuadro neutro.
+  globales. No muestra la barra, el encabezado ni el pie (son solo de la tienda pública). La foto de categoría sí llega: desde
+  `20270305100100_tienda_vista_previa_categorias_imagen.sql` `public.vista_previa_tienda` devuelve `imagen` por categoría con la misma regla
+  que `publico.categorias_por_dominio` (`lib/tiendaBorrador.ts` la pasa a la vista previa, y es `null` si ninguna tiene imagen); la migración
+  `20270306100000_tienda_vista_previa_categorias_paridad.sql` alinea además el conteo (total del árbol) y omite las categorías vacías.
 
 ## Accesibilidad
 
@@ -111,7 +135,7 @@ de las tarjetas. El contraste del texto blanco sobre `colorBarra` lo informa la 
   izquierda, el logo al centro y la lupa a la derecha.
 - El menú de celular no tiene el logo ni el buscador como ícono (se conserva el buscador a todo el ancho de
   MSF-825).
-- El héroe oscuro de la portada no es del layout: depende de los banners configurados (`BannerHome`).
+- El héroe de la portada no es del layout: depende de los banners configurados (`BannerHome`); su estilo claro u oscuro y las mayúsculas de los títulos se configuran en la identidad (`estilo_heroe`, ver [dominio e identidad](tienda-dominio-e-identidad.md)).
 - La tarjeta de producto, el catálogo, la categoría, la ficha y las versiones móviles no se rediseñaron en este
   tramo: solo cambia el marco común (barra, encabezado, pie) y la identidad.
 - El campo de «categorías principales» por tienda sigue siendo una decisión abierta de MSF-825.
@@ -177,7 +201,7 @@ de las tarjetas. El contraste del texto blanco sobre `colorBarra` lo informa la 
 | `[MSF-841:T003]` | Vitest de contenido (`apps/web/src/lib/tiendaContenido.test.ts`) | pgTAP del tope de 80 y del `hint = 'eslogan'` |
 | `[MSF-841:T004]` | Vitest de `CategoriasInicio` (`rutas/inicio/CategoriasInicio.test.tsx`) | pgTAP de `imagen` en `publico.categorias_por_dominio` |
 | `[MSF-841:T005]`–`[MSF-841:T014]` | Vitest + axe de `layout/tiendaDiseno.test.tsx`, `CategoriasInicio.test.tsx` y `ConsultasInicio.test.tsx` | E2E con los dos dominios del seed (`apps/web/e2e/tienda-dos-dominios.e2e.ts`) |
-| `[MSF-841:T017]` | — | Verificación visual contra `design/pantallas/MJC_*` y `SJ_*` con Playwright, pendiente en dev |
+| `[MSF-841:T017]` | — | Verificación visual contra `design/pantallas/MJC_*` y `SJ_*` con Playwright, hecha en dev el 2026-11-13 con el desvío indicado en Pendientes |
 
 ```bash
 pnpm dev:supabase
@@ -196,6 +220,6 @@ encabezado con logo, el pie oscuro y las tarjetas con foto. En este repositorio 
 
 | Pendiente | Dueño | Estado |
 |---|---|---|
-| T017 — verificación visual contra el prototipo con Playwright en dev | Nicolás / equipo de desarrollo | Abierta; no se corrió por falta de memoria libre en el servidor |
-| T018 — foto de categoría en la vista previa del panel | Producto / desarrollo | Abierta; `vista_previa_tienda` no devuelve `imagen`, la vista previa muestra el recuadro neutro |
+| T017 — verificación visual contra el prototipo con Playwright en dev | Nicolás / equipo de desarrollo | Cerrada con desvío (2026-11-13): se revisaron Mundo JC y San Javucho a 1440 px, Mundo JC a 1024 px y San Javucho a 390 px; no se comparó píxel a píxel ni se revisaron ficha y catálogo en móvil |
+| T018 — foto de categoría en la vista previa del panel | Producto / desarrollo | Cerrada: `vista_previa_tienda` devuelve `imagen` desde `20270305100100` |
 | Recapturas del manual de usuario | Documentador / equipo de diseño | Pendiente de `pnpm docs:capturas` |

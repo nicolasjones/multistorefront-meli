@@ -362,6 +362,11 @@ stateDiagram-v2
 - **`correo-masivo`** (existente): si la fila trae `tipo = 'newsletter'`, usa el `cuerpo_html` ya armado por
   la base y el `remitente` con el nombre de la tienda; el correo de clientes sale **idéntico** a hoy.
   El flujo muestra el HTML con `| raw` porque la base ya lo escapó.
+- **Robustez de ambos flows** (`infra/kestra/flows/correo-masivo.yml` y `newsletter-confirmaciones.yml`):
+  `concurrency` con límite 1 y `behavior: CANCEL` (una corrida a la vez; la nueva se descarta si la anterior
+  sigue en curso), `timeout` en cada tarea de red, base y correo, y un bloque `errors:` que invoca el subflow
+  `aviso-fallo-flujo` con solo el identificador de la tarea que falló (nunca el mensaje del error, que podría
+  traer datos de personas). Criterio general: [Copias y restauración](../copias-y-restauracion.md).
 
 ### Permisos, RLS y actividad
 

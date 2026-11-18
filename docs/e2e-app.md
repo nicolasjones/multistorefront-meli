@@ -1,7 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - apps/web/playwright.config.ts
+  - apps/web/e2e/verificar-dist.mjs
+  - .github/workflows/validate.yml
+  - .github/workflows/e2e-nocturno.yml
+  - scripts/verificar-e2e-omitidos.mjs
+  - scripts/verificar-e2e-nocturno.mjs
+  - scripts/verificar-e2e-sin-escritura-directa.mjs
+  - scripts/armar-video-evidencia.mjs
+  - scripts/publicar-videos-e2e.mjs
+  - scripts/cobertura-e2e.mjs
 ---
 
 # Suite E2E de la app (Playwright)
@@ -360,7 +369,7 @@ Límites a propósito:
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
-  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `application` con `pnpm test:e2e:omitidos`). Con
+  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `chequeos` con `pnpm test:e2e:omitidos`). Con
   `--permitidos=archivo.e2e.ts::fragmento del título` cada omitido tiene que SER el esperado (el archivo y el título coinciden): en `e2e-tienda`
   `tienda-seo.e2e.ts::robots.txt` y en `e2e-visible-sesion` `cuenta-web-cliente.e2e.ts::SC-006`; antes `--max=1` toleraba cualquier omitido.
   Además `tienda-sesion-vencimiento` falla (no se omite) en el job `e2e-tienda` (variable explícita `E2E_TIENDA_CI=1`, que solo setea ese job: en `application` el build no define `VITE_PANEL_HOSTS` y el spec se sigue omitiendo) si el build no sirve el host como tienda, y
@@ -717,7 +726,7 @@ rama por defecto (`main`), como se explica abajo.
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
+| Cada PR (`validate.yml`, job `chequeos`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
 | Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`); el paso exige `changes.web` y `changes.e2e` en `true`, y `changes.e2e` es `false` en todo PR con base `epic/*` | Sí |
 | Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`; mismo requisito `changes.web` + `changes.e2e` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
@@ -725,7 +734,7 @@ rama por defecto (`main`), como se explica abajo.
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
 
-- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `application`, en cada PR) falla si el workflow deja de cumplir el
+- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `chequeos`, en cada PR) falla si el workflow deja de cumplir el
   contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
   solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
   omisiones masivas del resumen, `continue-on-error` (dejaría el run verde con la suite omitida), o la aparición de

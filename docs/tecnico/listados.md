@@ -1,7 +1,84 @@
 ---
 owner: tecnico
 sources:
-  - apps/web/src
+  - apps/web/src/components/base/MiniaturaProducto.tsx
+  - apps/web/src/components/clientes/ClientesInactivos.tsx
+  - apps/web/src/components/clientes/ComprasCliente.tsx
+  - apps/web/src/components/clientes/RankingClientes.tsx
+  - apps/web/src/components/clientes/RankingComparado.tsx
+  - apps/web/src/components/clientes/ReparacionesDeCliente.tsx
+  - apps/web/src/components/cotizacion/TablaHistorial.tsx
+  - apps/web/src/components/navegacion/ListaNotificaciones.tsx
+  - apps/web/src/components/pagina/CargaInfinita.tsx
+  - apps/web/src/components/precios/TablaAsiQuedan.tsx
+  - apps/web/src/components/proveedores/ProductosDelProveedor.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
+  - apps/web/src/components/stock/ArchivoIngresos.tsx
+  - apps/web/src/components/stock/HistorialIngresos.tsx
+  - apps/web/src/components/stock/HistorialLotes.tsx
+  - apps/web/src/components/ventas/ContrarreembolsosTabla.tsx
+  - apps/web/src/components/ventas/LineasComprobante.tsx
+  - apps/web/src/hooks/useArchivoIngresos.ts
+  - apps/web/src/hooks/useCatalogoPublico.ts
+  - apps/web/src/hooks/useComprobantes.ts
+  - apps/web/src/hooks/useHistorialVentasCobros.ts
+  - apps/web/src/hooks/useImagenesProductos.ts
+  - apps/web/src/hooks/useIngresos.ts
+  - apps/web/src/hooks/useListadoAcumulado.ts
+  - apps/web/src/hooks/useListadoPorCursor.ts
+  - apps/web/src/hooks/useMovimientos.ts
+  - apps/web/src/lib/actividad.ts
+  - apps/web/src/lib/consultas.ts
+  - apps/web/src/lib/contactos.ts
+  - apps/web/src/lib/faltantes.ts
+  - apps/web/src/lib/imagenesPrincipales.ts
+  - apps/web/src/lib/masVendidos.ts
+  - apps/web/src/lib/productoImagenes.ts
+  - apps/web/src/lib/productosListado.ts
+  - apps/web/src/lib/reparacionesDeCliente.ts
+  - apps/web/src/lib/reparacionesListado.ts
+  - apps/web/src/lib/rma.ts
+  - apps/web/src/pages/actividad/list.tsx
+  - apps/web/src/pages/clientes/correo-masivo/detalle.tsx
+  - apps/web/src/pages/clientes/correo-masivo/historial.tsx
+  - apps/web/src/pages/clientes/correo-masivo/nueva.tsx
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/newsletter/index.tsx
+  - apps/web/src/pages/consultas/InteresWhatsappDialog.tsx
+  - apps/web/src/pages/consultas/list.tsx
+  - apps/web/src/pages/contactos/list.tsx
+  - apps/web/src/pages/cotizacion/index.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/catalogo.tsx
+  - apps/web/src/pages/gastos/index.tsx
+  - apps/web/src/pages/historial/CotizacionesTab.tsx
+  - apps/web/src/pages/historial/list.tsx
+  - apps/web/src/pages/importaciones/DetalleImportacion.tsx
+  - apps/web/src/pages/importaciones/list.tsx
+  - apps/web/src/pages/inicio/tablero/MovimientosPorProducto.tsx
+  - apps/web/src/pages/opiniones/list.tsx
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/listas-de-precios.tsx
+  - apps/web/src/pages/productos/precios-masivos.tsx
+  - apps/web/src/pages/proveedores/list.tsx
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - apps/web/src/pages/stock/faltantes.tsx
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/stock/mas-vendidos.tsx
+  - apps/web/src/pages/stock/movimientos.tsx
+  - apps/web/src/pages/stock/ordenes-compra.tsx
+  - apps/web/src/pages/stock/toma-inventario.tsx
+  - apps/web/src/pages/tienda-publica/cuenta/FavoritosMiCuenta.tsx
+  - apps/web/src/pages/tienda-publica/cuenta/HistorialMiCuenta.tsx
+  - apps/web/src/pages/tienda-publica/secciones-catalogo/ListadoProductos.tsx
+  - apps/web/src/pages/ventas/comprobantes.tsx
+  - apps/web/src/pages/ventas/cuentas-cobro/list.tsx
+  - apps/web/src/pages/ventas/despacho.tsx
+  - apps/web/src/pages/ventas/devoluciones.tsx
+  - apps/web/src/pages/ventas/faltantes.tsx
+  - apps/web/src/pages/ventas/pagos/list.tsx
+  - apps/web/src/pages/ventas/presupuestos.tsx
+  - apps/web/src/pages/ventas/transportes/TransportesMotos.tsx
+  - apps/web/src/pages/ventas/transportes/list.tsx
 ---
 
 # Listados: carga infinita e imagen de producto (MSF-789)
@@ -43,9 +120,9 @@ Texto de la constitución (`d059ecf0`, «Listados e imágenes»):
   mouse** mediante el componente compartido `MiniaturaProducto`; no se admiten miniaturas ni zooms propios por
   pantalla.
 
-Verificado sobre `origin/dokploy`: en `apps/web/src` **no queda ningún `TablePagination`**
-(`git grep TablePagination origin/dokploy -- apps/web/src` no devuelve coincidencias). La paginación queda sólo en
-la capa de datos: las RPC y las vistas siguen paginando en el servidor.
+Al cierre de la épica no quedaba ningún `TablePagination` en `apps/web/src` (verificado sobre `origin/dokploy`). **Hoy hay una excepción:** `pages/stock/ordenes-compra.tsx` (órdenes de compra a proveedores, posterior a la épica) pagina con `TablePagination` y `TAMANO_PAGINA_ORDENES`. La paginación queda además en la capa de datos: las RPC y las vistas siguen paginando en el servidor.
+
+**Listados posteriores a la épica que sí usan el pie `CargaInfinita`:** Gastos (`pages/gastos/index.tsx`), Listas de precios (`pages/productos/listas-de-precios.tsx`, con `useListadoAcumulado` y tandas de 25), Precios masivos (`pages/productos/precios-masivos.tsx`, 25 filas visibles por vez), Opiniones (`pages/opiniones/list.tsx`), Newsletter (`pages/clientes/newsletter/index.tsx`, tandas de 25 con `useListadoAcumulado`), Importaciones y su detalle (`pages/importaciones/list.tsx`, `DetalleImportacion.tsx`), envíos en moto (`pages/ventas/transportes/TransportesMotos.tsx`, tandas de 25), «Movimientos por producto» de Inicio (`pages/inicio/tablero/MovimientosPorProducto.tsx`) y la lista de notificaciones (`components/navegacion/ListaNotificaciones.tsx`). Las listas de «Mi cuenta» y las opiniones de la tienda pública (`pages/tienda-publica/cuenta/FavoritosMiCuenta.tsx`, `HistorialMiCuenta.tsx` y `pages/tienda-publica/opiniones/*`) usan `hooks/useListadoPorCursor.ts`: acumulan por cursor `(fecha, id)` porque sus RPC no entregan un número de página.
 
 ## Piezas compartidas
 
@@ -138,7 +215,7 @@ No se agranda la miniatura para no romper el ancho de la fila.
 | Historial de ingresos | `/stock/ingresos` | `components/stock/HistorialIngresos.tsx` | 25 | fechas, proveedor, empresa, producto, operador | sí |
 | Archivo de ingresos | (en `/stock/ingresos`) | `components/stock/ArchivoIngresos.tsx` | 25 | — | no: el archivo guarda el producto como texto |
 | Comprobantes | `/ventas/comprobantes` | `pages/ventas/comprobantes.tsx` | 12 | filtros | no |
-| Presupuestos | `/ventas/presupuestos` | `pages/ventas/presupuestos.tsx` | 25 | texto, estado, empresa | no |
+| Presupuestos | `/ventas/presupuestos` | `pages/ventas/presupuestos.tsx` | 25 | texto, estado, canal, empresa | no |
 | Devoluciones (RMA) | `/ventas/devoluciones` | `pages/ventas/devoluciones.tsx` | 8 | empresa, forma de RMA | sí (ver *Datos*) |
 | Faltantes de ventas | `/ventas/faltantes` | `pages/ventas/faltantes.tsx` | 10 | empresa | sí (ver *Datos*) |
 | Despacho | `/ventas/despacho` | `pages/ventas/despacho.tsx` | 10 | búsqueda, estado, empresa | no |
@@ -217,7 +294,7 @@ La migración que lo resuelve es **`supabase/migrations/20270204100000_ventas_li
 `public.listar_faltantes`, `private.listar_rma_sesion` y `public.listar_rma` con `producto_id`; `drop function` +
 `create` con la misma firma, y la reversión documentada en el encabezado). **Esa migración está en la rama
 `origin/feat/ventas-faltantes-rma-producto-id` (commit `d8345089`, PR #694 abierto contra `dokploy`) y NO está mergeada en `dokploy` ni en `main`**:
-hasta que se integre, esas dos pantallas muestran el nombre del producto **sin** miniatura, porque el código ya
+hasta que se integre (verificado el 2026-11-18: ninguna definición vigente de `listar_faltantes` ni de `listar_rma` del árbol devuelve `producto_id`), esas dos pantallas muestran el nombre del producto **sin** miniatura, porque el código ya
 pide `producto_id` y la base todavía no lo devuelve.
 
 !!! warning "TODO · migración de `producto_id`"

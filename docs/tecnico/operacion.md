@@ -1,8 +1,15 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - .github/workflows/validate.yml
+  - .github/workflows/quality.yml
+  - .github/workflows/docs.yml
+  - .github/workflows/nightly.yml
+  - infra/kestra/flows/enviar-avisos.yml
+  - infra/kestra/flows-retirados.txt
+  - infra/kestra/compose.yaml
+  - supabase/functions/_shared/smtp.ts
+  - scripts/verificar-salida-correo.mjs
 ---
 
 # Operación
@@ -19,13 +26,16 @@ sources:
 - `Validate`: docs, lint, tests, pgTAP, build, e2e público; el job manual `e2e-visible-sesion` graba el recorrido con sesión y adjunta el video (ver [E2E de la app](../e2e-app.md)).
 - `quality`: secretos, SAST, dead code, duplicación, arquitectura, versiones, commitlint. El job falla ante hallazgos pero **no bloquea el merge por sí solo**: el ruleset exige únicamente `validacion` (`.github/workflows/quality.yml`, cabecera; ver [Calidad](../calidad.md)).
 - `docs` (publicación de la wiki): corre solo en PR hacia `main`, push a `main` o a mano (`.github/workflows/docs.yml:6-9`); no corre en PR a `dokploy` porque el drift de fuentes de directorio entero saltaría siempre.
-- `nightly`: regresiones y chequeos programados.
+- `nightly`: Lighthouse (performance) y axe (accesibilidad) sobre el build; no bloquea PRs, pero falla en rojo si encuentra algo (`.github/workflows/nightly.yml`). El E2E nocturno con sesión corre aparte en `e2e-nocturno.yml`.
 - **Regla:** no se mergea con un check **requerido** en rojo; los no requeridos no frenan el merge pero se miran.
 
 ## Backups y recuperación
 
-- Backups de Postgres/volúmenes y copia offsite; ensayo de restauración mensual.
-- Referencia: **[CI self-hosted y storage](../ci-self-hosted-storage.md)** y la documentación de infra.
+- Copia diaria de la base (03:00) y de las imágenes de Storage (03:15), retención por días con tope, verificación de restauración
+  semanal (lunes 05:00, en una base descartable) y alertas por correo ante fallo o ausencia de copias. **Las copias viven en el mismo
+  servidor que la aplicación** (riesgo asumido; el destino externo se activa solo con variables).
+- Referencia: **[Copias de seguridad y restauración](../copias-y-restauracion.md)** y **[Operar el sistema](../operar-sistema.md)**
+  (purgas y retenciones programadas de Kestra).
 
 ## Cotización del dólar (MSF-116)
 
@@ -66,20 +76,12 @@ sources:
 - **Pendiente:** conectar `estados_consulta` con la bandeja de Consultas (hoy usa tres estados fijos) y elegir
   proveedor/remitente de correo (SPF/DKIM). Detalle: [Avisos y listas](avisos-y-listas.md).
 
-## Avisos de consultas (MSF-122)
+## Avisos de consultas
 
-> **Desde MSF-189 (MSF-562)** las consultas nuevas **no** encolan en `dominio.consultas_avisos`: el
-> disparador emite por `private.emitir_aviso` y las envía `enviar-avisos` (ver arriba). Este flow y la Edge
-> Function quedan solo para **drenar** lo que ya estaba encolado por el camino anterior.
-
-- El flow `avisos-consultas` (`infra/kestra/flows/avisos-consultas.yml`) corre **cada minuto**, barre
-  `dominio.consultas_avisos` y llama a la Edge Function `enviar-aviso-consulta` con `{"barrer": true}`.
-- Variables: `SMTP_*`, `PANEL_URL` y `AVISOS_CONSULTAS_TOKEN` en `supabase/functions/.env.example`; el token y
-  la URL/clave del barrido en `infra/kestra/.env.example`. Sin secretos en Git.
-- Reintentos: tope de 5 intentos y reserva de 2 minutos; un aviso `enviado` no se reenvía. Un fallo de
-  correo **no** revierte la consulta.
-- En local, el correo se lee en **Mailpit**. Para reprocesar a mano, invocá la función con
-  `{"barrer": true}` y el header `x-aviso-token`. Detalle: [Consultas](consultas.md#aviso-por-correo).
+El camino directo anterior (flow `avisos-consultas`, Edge Function `enviar-aviso-consulta` y la cola `dominio.consultas_avisos` con sus tres
+RPC) **se retiró**: la migración `20270306140000_avisos_consulta_camino_directo.sql` elimina la cola y el flow figura en
+`infra/kestra/flows-retirados.txt`. Las consultas nuevas emiten por `private.emitir_aviso` y las envía `enviar-avisos` (ver «Avisos por correo y
+listas»). Detalle: [Consultas](consultas.md#aviso-por-correo).
 
 ## Migración inicial de datos (MSF-142)
 
