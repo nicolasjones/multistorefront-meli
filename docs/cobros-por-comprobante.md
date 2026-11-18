@@ -392,3 +392,9 @@ alter table public.permisos_rol_accion add constraint permisos_rol_accion_accion
 
 Antes de revertir hay que **exportar los cobros ya cargados**: son datos de dinero y no se
 recalculan.
+
+## Revertir un cobro (pantalla)
+
+En la tarjeta **Cobros** del detalle de la factura, el **administrador** ve en cada cobro normal el botón **Revertir cobro**. El diálogo pide un **motivo obligatorio** (hasta 300 caracteres) y llama a `public.revertir_cobro`: el cobro no se borra, se agrega un contra-asiento con quién, cuándo y por qué, y la factura vuelve a tener saldo (si estaba «Cobrado», pasa a «Deuda»). La columna **Estado** marca «Revertido» (el cobro) y «Reversión» (el contra-asiento). El botón no aparece en el contra-asiento, en un cobro ya revertido, en el de un contrarreembolso ni en uno conciliado (primero se revierte la conciliación); la base rechaza lo mismo aunque se intente por otra vía. Al cambiar de tienda con el diálogo abierto, se cierra sin enviar nada.
+
+Técnico: `public.cobros_de_comprobante` devuelve `estado_reversion` (`revertido` / `reversion` / nulo) y `motivo_reversion` (migración `20270507210500`).

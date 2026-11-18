@@ -133,4 +133,4 @@ Un lote no se edita, no se anula ni se borra. Si algo quedó mal, corregilo con 
 
 **¿Puedo imprimir una hoja de conteo?** Por ahora no. Podés usar **Exportar** en [Stock actual](stock-movimientos.md) para bajar la lista y contar con ella.
 
-**¿Se puede elegir otro depósito en la toma o en el lote?** Por ahora no: ambos usan el depósito por defecto.
+**¿Se puede elegir otro depósito en la toma?** Sí: la pantalla **Toma de inventario** tiene el selector **Depósito** (arranca en el principal). Los productos se muestran con el stock de ese depósito y el ajuste se registra en ese depósito. Si cambiás de depósito o de empresa activa, se descarta lo que habías contado y se recarga la lista. **¿Y en el lote?** Todavía no: el lote usa el depósito por defecto.

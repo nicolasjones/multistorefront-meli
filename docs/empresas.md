@@ -198,3 +198,7 @@ Las columnas «Tienda web», «Precio» y «Productos visibles» leen el estado 
 El resumen se lee con una consulta por dato para todas las empresas (tiendas y reglas de precio); los productos visibles se piden a `listar_catalogo_tienda` solo para las empresas con tienda, porque la visibilidad efectiva la resuelve la base. Una versión agregada (un solo conteo para todas) requiere SQL y queda pendiente. Se vuelve a leer al cambiar la empresa activa.
 
 Límite conocido: las lecturas de tiendas y precios usan `.in('empresa_id', ids)` con todos los ids en la URL; una organización con más de ~100 empresas superaría el tope de URL y habría que partirlas en lotes. Con más de una tienda por empresa se toma la más antigua.
+
+## Datos sensibles de la empresa (lote 38)
+
+El CUIT, el correo y el WhatsApp de `dominio.empresas` ya no se pueden leer de la tabla con el rol de la aplicación (privilegio `SELECT` por columna): el selector de empresas y los filtros siguen funcionando con las columnas básicas. La pantalla **Empresas** lee la ficha completa con `public.empresa_datos` (exige la sección `empresas` en lectura o edición) y los documentos de una reparación leen dirección, WhatsApp y correo de la tienda con `public.empresa_contacto_documentos` (sección `empresas` o `service_tecnico`; sin CUIT). El CUIT de una empresa se valida en el servidor con su dígito verificador al cargarlo o cambiarlo. Pendiente: endurecer por sección la política de escritura (`puede_escribir`).

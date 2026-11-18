@@ -5,8 +5,8 @@
 - Rutas del panel: **276**
 - Tablas en migraciones: **207**
 - Variables de entorno: **111**
-- Specs: **157**
-- Páginas de documentación: **345**
+- Specs: **158**
+- Páginas de documentación: **346**
 
 ## Rutas del panel
 
@@ -770,3 +770,4 @@
 - `20270328-100000-gastos-de-la-empresa` — Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)
 - `20270328-100000-newsletter-de-la-tienda` — Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)
 - `20270328-100000-opiniones-de-productos` — Feature Specification: Opiniones de productos en la tienda (MSF-467)
+- `20271118-100000-lote-38-parciales` — Lote 38: ítems parciales con decisión tomada (SQL + interfaz)

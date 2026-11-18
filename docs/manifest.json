@@ -396,21 +396,21 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "387342e257628d10b862a50a2c325f5dcd57ad261e9b91e5321a477190ffd13c",
-      "sourceHash": "4495223187accba845e5469162a4483d5c58e88156d35ee876e69df8e542a153",
-      "sourceAt": "57614044",
+      "pageHash": "b9bd0b960a742a48d3f5cf00129ff9e1920d65f17a12cf8e59d366203c4881ac",
+      "sourceHash": "f528adb66f8928295284e1f3817faf079ea2e390499c3985e47ea9ae4813ae1f",
+      "sourceAt": "330af49f",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "57614044"
+      "commit": "330af49f"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
-      "pageHash": "c4211161d76370976e649ee75cfd77ec9100454d6e07da77e0447c7e178015a0",
-      "sourceHash": "8822612ba52139c9d32c87179bfc5456f61234948ce1e546a257d7807668210b",
-      "sourceAt": "330af49f",
+      "pageHash": "359622313f31e475af680e506777c4bd21b62d84bf62e329f3eedc8c6c3d6a7e",
+      "sourceHash": "69348a3f3667c3ebd83185502198e34b136bf01be383f19943360613bb0bc9f2",
+      "sourceAt": "999ce8f8",
       "sources": [
         "specs/20261024-150000-ventas-cobros-y-conciliacion",
         "scripts/verificar-migraciones.mjs",
@@ -422,7 +422,7 @@
         "supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql"
       ],
       "owner": "tecnico",
-      "commit": "330af49f"
+      "commit": "999ce8f8"
     },
     "docs/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio (épica MSF-352)",
@@ -444,9 +444,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "5e233c18b7ec86db7b434b22ff6e15e16e2200835bf41f6d54a4bbe8e0deff94",
-      "sourceHash": "9b48404d8a96d4e69b3c77f869657e092141407e19dd8cd7997b1ac449a17093",
-      "sourceAt": "614136f9",
+      "pageHash": "f3fed2b03c6b98a5a757786ae0f811f2e11b11837f50a4d7b759cecfbaee68a0",
+      "sourceHash": "b820528b6c5254117b799963014f33797ca200af64e357d240a3efb68afd4909",
+      "sourceAt": "1e94e2ad",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -456,7 +456,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "614136f9"
+      "commit": "1e94e2ad"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -723,14 +723,14 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "10bb3e0e96e0b58fc05db3a4440f47a2f1446ef4ea6d424940060709fd996c2e",
-      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "bdb1eaeb",
+      "pageHash": "1137a977b8aa32c915cb65b86ae5c936bc714744108fc33700efdc8b0aae7d9d",
+      "sourceHash": "b94f26be5f38788e9f115876b8e0578dc2e48cfdcc0ae8514269d99dfe4b2118",
+      "sourceAt": "4d376c34",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "bdb1eaeb"
+      "commit": "4d376c34"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -832,9 +832,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "512ccdeb70e08f466749d64eb99b832c20a2d8adde6253c3b93162fa9533c2b8",
-      "sourceHash": "07e22c3ad19dfc95327247d894990151b89b1c19555b9e66beaee612b35c04b9",
-      "sourceAt": "a24d4284",
+      "pageHash": "7f63352756dc2c44514f12550c433be3b23de6148da92078d9fa7d74cc782910",
+      "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
+      "sourceAt": "ff6f945b",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -850,7 +850,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "a24d4284"
+      "commit": "ff6f945b"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -927,14 +927,14 @@
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "3d14bb3b61cd2426223faee5b7cf1a289205f1243058c6b01915f5b54b8026b9",
-      "sourceHash": "894a35272ff56d53ffb61e6cc15ef465341f58250323f3cdcc13d46c2201b109",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "f0fe5c03eb25d62511b6997d7af0469ebf92dee3de965dee73bc26a9d9e66a47",
+      "sourceHash": "b38a4f5a41b0978988e76de5f7a32e825d74867426fd2865d1117d7815a0ef8e",
+      "sourceAt": "330af49f",
       "sources": [
         "apps/web/src/lib/iva.ts"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c9"
+      "commit": "330af49f"
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
@@ -1293,14 +1293,14 @@
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
-      "pageHash": "d927f7abdb6036740551eab88ca445ce1fdf0d9f2cfa8f88c1c7b4ad301efb41",
-      "sourceHash": "22a90f6964e750a6ed3d5fe1d49921622356c4ae9b51e629213d76915ecf857e",
-      "sourceAt": "8fd8aaf5",
+      "pageHash": "7c939e179457d977e7623c11b598c83c24e350dd42c45fe5be91373168341cf2",
+      "sourceHash": "84530d4e181c1532f119c560c76edb8051eccfe20ef90910fd3a5ab1025f7d4c",
+      "sourceAt": "8fd8aaf59",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8fd8aaf5"
+      "commit": "8fd8aaf59"
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
@@ -1352,9 +1352,9 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "1005b8b80b62577e9029c68d866a175b5605b135fd7615e08117e0ed3d985a1c",
-      "sourceHash": "16aaa4ce02872a92243937621a3a6567caee950eed4404270f9323a574e319d5",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "745310b04ab02c429af1bed7c34f907c8ddd96bceb89a06ce58ee326225a991b",
+      "sourceHash": "94324bd9f5140799713e81571622b007be42ab31a2440217167f3979b424d70a",
+      "sourceAt": "fb6a5c7a",
       "sources": [
         "apps/web/src/pages/clientes/list.tsx",
         "apps/web/src/pages/clientes/create.tsx",
@@ -1362,7 +1362,7 @@
         "apps/web/src/pages/clientes/show.tsx"
       ],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "fb6a5c7a"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -1765,15 +1765,15 @@
     },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Cargar mercadería en lote y hacer la toma de inventario",
-      "pageHash": "b67fccb7ba17bcb957ead349e893abe17d26aec078e0a41c4543b6b0cd49db46",
-      "sourceHash": "75550b3f835357878e6b33ba36085a40c034b8bac1b12d1e87e9f7f026d138c6",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "98b9bc1644935a1f0152b53ea3db7c62fad2f66be07c34cbc2a303b4a900cf6b",
+      "sourceHash": "3404e10d6675901f5e4180759ab9043da02886c370f96da5c6c88790c93b2c41",
+      "sourceAt": "fb6a5c7a",
       "sources": [
         "apps/web/src/pages/stock/lote.tsx",
         "apps/web/src/pages/stock/toma-inventario.tsx"
       ],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "fb6a5c7a"
     },
     "docs/producto/stock-movimientos.md": {
       "title": "Stock: ver, mover y controlar",
@@ -1905,14 +1905,14 @@
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
-      "pageHash": "1257c28dd3302021e0e2a5e2308469b9351498a8ebe7f891ae8fc2a831b7add8",
-      "sourceHash": "74db0ada03be7d9765b83880a2fb5a3e64a4ae77acf93595dc719c62fc48ee9f",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "f3e090cbbe908317523eebc5b994429889e3fce76383b930adbefa73585af961",
+      "sourceHash": "eb1daed02feafe6f489df30e667edb042a2133c5fc0d416fb65459987885db06",
+      "sourceAt": "fb6a5c7a",
       "sources": [
         "apps/web/src/pages/ventas/pagos/list.tsx"
       ],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "fb6a5c7a"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",

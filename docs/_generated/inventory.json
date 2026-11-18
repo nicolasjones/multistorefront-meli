@@ -1227,7 +1227,11 @@
     {
       "slug": "20270328-100000-opiniones-de-productos",
       "titulo": "Feature Specification: Opiniones de productos en la tienda (MSF-467)"
+    },
+    {
+      "slug": "20271118-100000-lote-38-parciales",
+      "titulo": "Lote 38: ítems parciales con decisión tomada (SQL + interfaz)"
     }
   ],
-  "paginas": 345
+  "paginas": 346
 }
