@@ -34,7 +34,7 @@ test('tiene id, namespace del producto y corre cada minuto', async () => {
 
 test('reclama solo las órdenes enviar-aviso-whatsapp-* con un límite y un reclamo acotados', async () => {
   const content = await leer();
-  assert.match(content, /private\.reclamar_despachos_capacidad\('enviar-aviso-whatsapp-', 5, 900\)/);
+  assert.match(content, /private\.reclamar_despachos_capacidad\('enviar-aviso-whatsapp-', 5, 1200\)/);
   assert.doesNotMatch(content, /reclamar_despachos_ejecucion/, 'el reclamo genérico tomaría órdenes de otros productos');
   assert.doesNotMatch(content, /enviar-aviso-reparacion-/, 'no reclama las órdenes del aviso por correo');
   assert.match(content, /detalle->>'aviso_id' as aviso_id/, 'el flow necesita el aviso a despachar');

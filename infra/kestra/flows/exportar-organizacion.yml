@@ -14,6 +14,11 @@ labels:
   dominio: exportacion
   componente: exportar-organizacion
 description: "Exporta todos los datos de la organización a un ZIP con un CSV por conjunto, a pedido de un administrador."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: reclamar
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -22,6 +27,7 @@ tasks:
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
     sql: select * from private.reclamar_despachos_capacidad('exportar-organizacion-', 5, 3600);
+    timeout: PT1M
   - id: despachar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar.rows }}"
@@ -40,6 +46,7 @@ tasks:
             sql: select * from private.datos_despacho_conexion(CAST(:organizacion_id AS uuid), 'historial-ventas');
             parameters:
               organizacion_id: "{{ fromJson(taskrun.value).organizacion_id }}"
+            timeout: PT1M
           - id: despacho_ssh
             type: io.kestra.plugin.fs.ssh.Command
             host: "{{ outputs.resolver_conexion[parent.taskrun.value].row.host }}"
@@ -54,6 +61,11 @@ tasks:
               interval: PT30S
               maxInterval: PT2M
             commands:
+              # MSF-712: con `docker image inspect || docker pull` un tag mutable (`:latest`) nunca se actualiza en el servidor si la imagen ya está.
+              # Se exige una referencia inmutable (digest `@sha256:` o tag del commit de 40 hex); `local/*` son imágenes construidas en la misma máquina (desarrollo).
+              - |
+                IMAGEN_WORKER="{{ envs.exportar_organizacion_imagen }}"
+                printf '%s' "$IMAGEN_WORKER" | grep -Eq '^local/|@sha256:[0-9a-f]{64}$|:[0-9a-f]{40}$' || { echo "La imagen del worker debe ir por digest (@sha256:...) o por tag de commit, no por un tag mutable: $IMAGEN_WORKER" >&2; exit 64; }
               - docker image inspect {{ envs.exportar_organizacion_imagen }} >/dev/null 2>&1 || docker pull {{ envs.exportar_organizacion_imagen }}
               - |
                 set -a
@@ -67,6 +79,8 @@ tasks:
                 WORKER_STDERR=$(mktemp)
                 WORKER_RC=0
                 docker run --rm \
+                  --init \
+                  --pids-limit "${WORKER_PIDS:-1024}" \
                   --read-only \
                   --tmpfs /tmp:rw,noexec,nosuid,size=256m \
                   --cap-drop=ALL \
@@ -109,6 +123,7 @@ tasks:
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
               accion: "{{ (outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '') == '' ? 'confirmar' : 'agotar' }}"
               motivo: "{{ outputs.despacho_ssh[parent.taskrun.value].vars.no_reintentable ?? '' }}"
+            timeout: PT1M
         errors:
           # Falla técnica después de los 3 intentos de SSH: la orden vuelve a
           # pendiente con demora y, al llegar a 3 reclamos, queda agotada.
@@ -121,6 +136,20 @@ tasks:
             parameters:
               despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: exportar-organizacion
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_exportar_organizacion
     type: io.kestra.plugin.core.trigger.Schedule

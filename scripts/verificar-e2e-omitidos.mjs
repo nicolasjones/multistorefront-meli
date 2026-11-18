@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 // Guarda contra omisiones masivas del E2E (job `e2e-tienda`): 18 specs de la tienda se omiten a nivel `describe`
@@ -32,6 +32,51 @@ export function evaluar(reporte, maximoOmitidos) {
   return { ok: true, mensaje: `E2E sin omisiones inesperadas: ${corridos} corridos, ${omitidos.length} omitidos (máximo ${maximoOmitidos}).`, omitidos };
 }
 
+// MSF-928: además del tope global, `--requeridos=a.e2e.ts,b.e2e.ts` exige que ESOS specs hayan corrido: si un test de uno se omitió
+// (o el spec no aparece en el reporte) el job falla aunque el total de omitidos esté bajo el tope. Cada spec que el job debe correr
+// se nombra, así un `test.skip` por entorno incompleto no pasa en verde.
+export function evaluarRequeridos(reporte, requeridos) {
+  const pruebas = (reporte.suites ?? []).flatMap((suite) => recorrer(suite, []));
+  const problemas = [];
+  for (const requerido of requeridos) {
+    const delSpec = pruebas.filter((prueba) => String(prueba.archivo ?? '').endsWith(requerido));
+    if (delSpec.length === 0) problemas.push(`${requerido}: no aparece en el reporte (no corrió).`);
+    else {
+      const omitidos = delSpec.filter((prueba) => prueba.estado === 'skipped');
+      if (omitidos.length > 0) problemas.push(`${requerido}: ${omitidos.length} de ${delSpec.length} tests omitidos (${omitidos.slice(0, 3).map((o) => o.titulo).join('; ')}).`);
+    }
+  }
+  return problemas;
+}
+
+// `--requeridos=a,b`: rechaza un valor vacío, una coma de más o un nombre con espacios (antes se ignoraban en silencio y el job pasaba sin exigir nada).
+export function parsearRequeridos(valor) {
+  const partes = String(valor).split(',');
+  if (partes.some((p) => p === '' || /\s/.test(p))) {
+    throw new Error(`--requeridos inválido ("${valor}"): lista de archivos separados por coma, sin vacíos ni espacios (p. ej. --requeridos=a.e2e.ts,b.e2e.ts).`);
+  }
+  return partes;
+}
+
+// Resumen en Markdown (para $GITHUB_STEP_SUMMARY): cuántos corrieron y cuántos se omitieron, por archivo.
+export function resumenMarkdown(reporte) {
+  const pruebas = (reporte.suites ?? []).flatMap((suite) => recorrer(suite, []));
+  const porArchivo = new Map();
+  for (const prueba of pruebas) {
+    const fila = porArchivo.get(prueba.archivo) ?? { corridos: 0, omitidos: 0 };
+    if (prueba.estado === 'skipped') fila.omitidos += 1; else fila.corridos += 1;
+    porArchivo.set(prueba.archivo, fila);
+  }
+  const total = pruebas.length;
+  const omitidos = pruebas.filter((prueba) => prueba.estado === 'skipped').length;
+  const lineas = ['### E2E: tests corridos y omitidos', '', `${total - omitidos} corridos, ${omitidos} omitidos de ${total}.`, ''];
+  if (omitidos > 0) {
+    lineas.push('| Archivo | Corridos | Omitidos |', '|---|---|---|');
+    for (const [archivo, { corridos, omitidos: o }] of [...porArchivo].filter(([, f]) => f.omitidos > 0)) lineas.push(`| \`${archivo}\` | ${corridos} | ${o} |`);
+  }
+  return `${lineas.join('\n')}\n`;
+}
+
 const esCli = !!process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (esCli) {
   const [archivo, ...resto] = process.argv.slice(2);
@@ -40,8 +85,22 @@ if (esCli) {
     console.error('Uso: node scripts/verificar-e2e-omitidos.mjs <reporte.json> [--max=N]');
     process.exit(2);
   }
-  const resultado = evaluar(JSON.parse(readFileSync(archivo, 'utf8')), maximo);
+  const reporte = JSON.parse(readFileSync(archivo, 'utf8'));
+  const resultado = evaluar(reporte, maximo);
   for (const omitido of resultado.omitidos) console.log(` - omitido: ${omitido.archivo} › ${omitido.titulo}`);
   console[resultado.ok ? 'log' : 'error'](resultado.mensaje);
-  process.exit(resultado.ok ? 0 : 1);
+  const argRequeridos = resto.find((arg) => arg.startsWith('--requeridos'));
+  let requeridos = [];
+  if (argRequeridos !== undefined) {
+    try {
+      requeridos = parsearRequeridos(argRequeridos.startsWith('--requeridos=') ? argRequeridos.slice(13) : '');
+    } catch (error) {
+      console.error(error.message);
+      process.exit(2);
+    }
+  }
+  const problemas = evaluarRequeridos(reporte, requeridos);
+  for (const problema of problemas) console.error(`Spec requerido omitido: ${problema}`);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, resumenMarkdown(reporte));
+  process.exit(resultado.ok && problemas.length === 0 ? 0 : 1);
 }

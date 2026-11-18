@@ -124,4 +124,51 @@ describe('ReporteEmbebido', () => {
     await waitFor(() => expect(embedDashboard).toHaveBeenCalledTimes(2))
     expect(vi.mocked(embedDashboard).mock.calls[1][0].dashboardUiConfig?.urlParams).toBeUndefined()
   })
+
+  it('fetchGuestToken usa el token ya emitido una vez y luego pide uno nuevo en cada renovación', async () => {
+    vi.mocked(embedDashboard).mockClear()
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    const invoke = vi.mocked(supabaseClient.functions.invoke)
+    invoke.mockReset()
+    invoke
+      .mockResolvedValueOnce({ data: { guest_token: 'g1', dashboard_uuid: 'uuid', superset_url: 'http://superset' }, error: null } as never)
+      .mockResolvedValueOnce({ data: { guest_token: 'g2', dashboard_uuid: 'uuid', superset_url: 'http://superset' }, error: null } as never)
+    vi.mocked(embedDashboard).mockResolvedValue(undefined as never)
+
+    render(<ReporteEmbebido reporteId="reporte-1" />)
+    await waitFor(() => expect(embedDashboard).toHaveBeenCalledTimes(1))
+    const { fetchGuestToken } = vi.mocked(embedDashboard).mock.calls[0][0]
+
+    expect(await fetchGuestToken()).toBe('g1')
+    expect(invoke).toHaveBeenCalledTimes(1)
+    expect(await fetchGuestToken()).toBe('g2')
+    expect(invoke).toHaveBeenCalledTimes(2)
+    expect(invoke).toHaveBeenLastCalledWith('emitir-acceso-reporte', { body: { reporte_id: 'reporte-1' } })
+  })
+
+  it('si la renovación del token falla, avisa y no devuelve un token vencido', async () => {
+    vi.mocked(embedDashboard).mockClear()
+    vi.mocked(supabaseClient.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'token-de-prueba' } },
+      error: null,
+    } as never)
+    const invoke = vi.mocked(supabaseClient.functions.invoke)
+    invoke.mockReset()
+    invoke
+      .mockResolvedValueOnce({ data: { guest_token: 'g1', dashboard_uuid: 'uuid', superset_url: 'http://superset' }, error: null } as never)
+      .mockResolvedValueOnce({ data: null, error: { message: 'forbidden', context: { status: 403 } } } as never)
+    vi.mocked(embedDashboard).mockResolvedValue(undefined as never)
+    const alFallar = vi.fn()
+
+    render(<ReporteEmbebido reporteId="reporte-1" alFallar={alFallar} />)
+    await waitFor(() => expect(embedDashboard).toHaveBeenCalledTimes(1))
+    const { fetchGuestToken } = vi.mocked(embedDashboard).mock.calls[0][0]
+
+    await fetchGuestToken()
+    await expect(fetchGuestToken()).rejects.toThrow('No se pudo renovar')
+    expect(alFallar).toHaveBeenCalledWith('prohibido')
+  })
 })

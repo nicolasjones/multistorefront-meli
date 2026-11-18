@@ -2,7 +2,7 @@
 #
 # Corrido cada minuto. Por cada corrida:
 #   1. Reclama los eventos que la API avisa (stock, precio y venta) con
-#      `private.api_reclamar_eventos_api` (lease de 300 s, 5 intentos). El evento
+#      `private.api_reclamar_eventos_api` (lease de 2700 s, 5 intentos). El evento
 #      queda en `reclamada` mientras se reparte: si el flow se corta, el lease
 #      vence y el evento vuelve a estar disponible.
 #   2. Reparte el evento entre las suscripciones activas de la organización
@@ -13,7 +13,7 @@
 #      devolvió el reclamo: el reintento del aviso vive en `api_entregas`, no
 #      en la cola de eventos.
 #   4. Reclama las entregas pendientes (`private.api_reclamar_entregas`, lease de
-#      300 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
+#      600 s) y llama a la Edge Function `entregar-webhook`, que firma el aviso,
 #      revalida el destino por DNS (SSRF) y deja el resultado. La base calcula
 #      la espera del reintento: 5 intentos con 60 s × 2^(intentos-1) y estado
 #      final `agotada`. El HTTP no reintenta: cada reclamo es UN intento.
@@ -38,8 +38,11 @@ inputs:
     type: STRING
     required: false
     description: "Eventos (total, no por tipo) y entregas por corrida (por defecto API_WEBHOOKS_LOTE)."
-# Una sola corrida a la vez: la siguiente se cancela si la anterior sigue en curso (cada minuto), así el lease de 300 s de las
-# entregas reclamadas (lote × timeout total de 10 s por destino / concurrencia) no vence mientras se entregan.
+# Una sola corrida a la vez: la siguiente se cancela si la anterior sigue en curso (cada minuto), así el lease de las entregas
+# reclamadas no vence mientras se entregan.
+# MSF-710 · reclamo vs peor caso (lote 20, 2 en paralelo = 10 rondas): evento = fan-out 3 x 60 s + 2 x 10 s + confirmar 60 s = 260 s,
+# 10 x 260 = 2600 s (reclamo de eventos 2700 s); entrega = HTTP de 30 s sin reintento, 10 x 30 = 300 s (reclamo de entregas 600 s).
+# reclamo-s: 2700 · peor-caso-s: 2600
 concurrency:
   limit: 1
   behavior: CANCEL
@@ -50,9 +53,10 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
-    sql: select * from private.api_reclamar_eventos_api(ARRAY['stock.actualizado', 'precio.actualizado', 'venta.registrada'], CAST(:lote AS integer), 300, 5);
+    sql: select * from private.api_reclamar_eventos_api(ARRAY['stock.actualizado', 'precio.actualizado', 'venta.registrada'], CAST(:lote AS integer), 2700, 5);
     parameters:
       lote: "{{ inputs.lote ?? envs.api_webhooks_lote ?? 20 }}"
+    timeout: PT1M
   - id: repartir
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar_eventos.rows }}"
@@ -71,6 +75,7 @@ tasks:
           type: constant
           interval: PT10S
           maxAttempts: 3
+        timeout: PT1M
       - id: confirmar_evento
         type: io.kestra.plugin.jdbc.postgresql.Query
         url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -80,15 +85,17 @@ tasks:
         parameters:
           evento_id: "{{ fromJson(parent.taskrun.value).evento_id }}"
           intento: "{{ fromJson(parent.taskrun.value).intento }}"
+        timeout: PT1M
   - id: reclamar_entregas
     type: io.kestra.plugin.jdbc.postgresql.Query
     url: "{{ envs.kestra_orquestacion_db_url }}"
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
-    sql: select id, evento_id, suscripcion_id, intentos from private.api_reclamar_entregas(CAST(:lote AS integer), 300);
+    sql: select id, evento_id, suscripcion_id, intentos from private.api_reclamar_entregas(CAST(:lote AS integer), 600);
     parameters:
       lote: "{{ inputs.lote ?? envs.api_webhooks_lote ?? 20 }}"
+    timeout: PT1M
   - id: entregar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar_entregas.rows }}"
@@ -105,6 +112,19 @@ tasks:
           Authorization: "Bearer {{ secret('ENTREGAR_WEBHOOK_APIKEY') }}"
         body: '{"entrega_id": "{{ fromJson(parent.taskrun.value).id }}"}'
         timeout: PT30S
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: entregar-webhooks-api
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: cada_minuto
     type: io.kestra.plugin.core.trigger.Schedule

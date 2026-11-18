@@ -23,6 +23,14 @@ labels:
   dominio: service
   componente: reparaciones-aviso-whatsapp
 description: "Envía por WhatsApp al cliente el aviso del estado de su reparación, desde el servidor."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
+# MSF-710 · reclamo vs peor caso: 5 avisos / 2 en paralelo = 3 rondas; por aviso (peor caso) datos 60 s + WhatsApp 3 x 30 s + 2 x 30 s
+# + cierre 60 s + resolver 60 s = 330 s; 3 x 330 = 990 s. El reclamo (1200 s) debe superarlo.
+# reclamo-s: 1200 · peor-caso-s: 990
 tasks:
   - id: reclamar
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -30,7 +38,8 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
-    sql: select r.*, r.detalle->>'aviso_id' as aviso_id from private.reclamar_despachos_capacidad('enviar-aviso-whatsapp-', 5, 900) r;
+    sql: select r.*, r.detalle->>'aviso_id' as aviso_id from private.reclamar_despachos_capacidad('enviar-aviso-whatsapp-', 5, 1200) r;
+    timeout: PT1M
   - id: despachar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar.rows }}"
@@ -52,6 +61,7 @@ tasks:
               from (select private.datos_aviso_reparacion(CAST(:aviso_id AS uuid)) as d) x;
             parameters:
               aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+            timeout: PT1M
           # Plantilla aprobada del aviso de estado (MSF-952): saludo, tienda, número, equipo, estado y descripción.
           # Sin importes ni costos, y con la descripción solo si el estado la tiene.
           - id: enviar_whatsapp
@@ -83,6 +93,7 @@ tasks:
             sql: select private.cerrar_aviso_reparacion(CAST(:aviso_id AS uuid), NULL);
             parameters:
               aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+            timeout: PT1M
           - id: resolver_outbox
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -92,6 +103,7 @@ tasks:
             parameters:
               despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
+            timeout: PT1M
         errors:
           # El proveedor falló tras sus reintentos: el aviso se cierra como fallido con un motivo fijo (no el mensaje
           # del proveedor) y la orden se confirma para no reenviar en bucle.
@@ -103,6 +115,7 @@ tasks:
             sql: select private.cerrar_aviso_reparacion(CAST(:aviso_id AS uuid), 'No se pudo enviar el WhatsApp');
             parameters:
               aviso_id: "{{ fromJson(parent.taskrun.value).aviso_id }}"
+            timeout: PT1M
           - id: confirmar_despacho
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -112,6 +125,20 @@ tasks:
             parameters:
               despacho_id: "{{ fromJson(parent.taskrun.value).despacho_id }}"
               intento: "{{ fromJson(parent.taskrun.value).intento }}"
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: reparaciones-aviso-whatsapp
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_whatsapp
     type: io.kestra.plugin.core.trigger.Schedule

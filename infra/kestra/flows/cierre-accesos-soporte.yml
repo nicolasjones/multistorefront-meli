@@ -11,6 +11,11 @@ labels:
   dominio: plataforma
   componente: cierre-accesos-soporte
 description: "Cada 15 minutos asienta el vencimiento de los accesos de soporte que quedaron abiertos."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: cerrar
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -24,6 +29,19 @@ tasks:
       type: constant
       interval: PT2M
       maxAttempts: 3
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: cierre-accesos-soporte
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: cada-quince-minutos
     type: io.kestra.plugin.core.trigger.Schedule
