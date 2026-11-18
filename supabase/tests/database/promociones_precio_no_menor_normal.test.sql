@@ -94,8 +94,8 @@ select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000001'), '[1000, null]'
 select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[968, 1210]'::jsonb,
   'E2 (con IVA): la promoción 800 sin IVA se aplica (968 con IVA) con anterior 1210');
 update dominio.promociones_precio set precio_promocional = 990 where id = 'c5000000-0000-0000-0000-00000000000b';
-select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1198, 1210]'::jsonb,
-  'E2: 990 sin IVA (1198 con IVA) es menor y se aplica');
+select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1197.90, 1210]'::jsonb,
+  'E2: 990 sin IVA (990 × 1,21 = 1197,90 con IVA, al centavo) es menor y se aplica');
 update dominio.promociones_precio set precio_promocional = 1000 where id = 'c5000000-0000-0000-0000-00000000000b';
 select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1210, null]'::jsonb,
   'E2: promoción igual al neto normal: se ignora');
@@ -103,8 +103,10 @@ update dominio.promociones_precio set precio_promocional = 1200 where id = 'c500
 select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1210, null]'::jsonb,
   'E2: promoción mayor al neto normal: se ignora (antes mostraba 1452 con IVA, más que el normal 1210)');
 update dominio.promociones_precio set precio_promocional = 999.9 where id = 'c5000000-0000-0000-0000-00000000000b';
-select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1210, null]'::jsonb,
-  'E2: 999,90 sin IVA da 1210 al redondear al peso, igual al normal: no hay descuento que mostrar y se ignora (empate por redondeo)');
+-- MSF-720: con el redondeo al centavo ya no hay «empate por redondeo»: 999,90 × 1,21 = 1209,879 → 1209,88, que es MENOR que el
+-- normal (1210,00), así que la promoción aplica (descuento real de 0,12). El empate verdadero es 1000 (arriba): se ignora.
+select is(pg_temp.tienda('e5000000-0000-0000-0000-000000000002'), '[1209.88, 1210]'::jsonb,
+  'E2: 999,90 sin IVA da 1209,88 con IVA, menor que el normal 1210,00: se aplica (la promoción nunca da un precio mayor)');
 update dominio.promociones_precio set precio_promocional = 800 where id = 'c5000000-0000-0000-0000-00000000000b';
 
 -- ============================================================================

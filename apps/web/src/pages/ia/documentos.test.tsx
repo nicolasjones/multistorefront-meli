@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
   errorDocumentos: null as { message: string } | null,
   errorInsertDocumento: null as { message: string } | null,
   errorInsertVersion: null as { message: string } | null,
-  errorUpload: null as { message: string } | null,
+  errorUpload: null as { message: string; statusCode?: string } | null,
   errorFeature: null as { message: string } | null,
   errorInvoke: null as { message: string } | null,
   errorInvokeHttp: null as Error | null,
@@ -185,6 +185,17 @@ describe('IaDocumentos', () => {
     await waitFor(() => expect(mocks.deleteDocumento).toHaveBeenCalled())
     expect(mocks.remove).not.toHaveBeenCalled()
     expect(mocks.insertVersion).not.toHaveBeenCalled()
+  })
+
+  it('si la subida es rechazada por permiso (403), lo dice y no habla de la conexión', async () => {
+    mocks.errorUpload = { message: 'new row violates row-level security policy', statusCode: '403' }
+    const input = await montar()
+
+    fireEvent.change(input, { target: { files: [archivo('contrato.txt')] } })
+
+    expect(await screen.findByText('No tenés permiso para subir documentos.')).toBeInTheDocument()
+    expect(screen.queryByText(/Revisá tu conexión/)).not.toBeInTheDocument()
+    await waitFor(() => expect(mocks.deleteDocumento).toHaveBeenCalled())
   })
 
   it('si falla el registro de la versión, borra el objeto del bucket y el documento', async () => {

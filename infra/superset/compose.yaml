@@ -74,6 +74,8 @@ services:
     restart: "no"
 
   superset:
+    # MSF-736: tini como PID 1 cosecha los procesos zombi (ver infra/runner/compose.yaml).
+    init: true
     image: multistorefront-meli/superset:6.1.0
     build:
       context: .

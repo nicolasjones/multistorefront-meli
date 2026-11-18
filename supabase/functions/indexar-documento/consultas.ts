@@ -22,7 +22,7 @@ export function consultaMarcarFallida(cliente: Cliente, id: string, motivo: stri
   return cliente.from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando').eq('motivo_error', reclamo).select('id')
 }
 
-// Borrado de fragmentos condicional en SQL (cliente de servicio): solo si la versión sigue en manos de este reclamo.
-export function llamarBorrarFragmentosSiDueno(cliente: Cliente, versionId: string, reclamo: string) {
-  return cliente.rpc('borrar_fragmentos_si_dueno', { p_version_id: versionId, p_reclamo: reclamo })
+// Borrado de fragmentos condicional en SQL (cliente de servicio): solo si la versión (de esa organización) sigue en manos de este reclamo.
+export function llamarBorrarFragmentosSiDueno(cliente: Cliente, versionId: string, organizacionId: string, reclamo: string) {
+  return cliente.rpc('borrar_fragmentos_si_dueno', { p_version_id: versionId, p_organizacion_id: organizacionId, p_reclamo: reclamo })
 }

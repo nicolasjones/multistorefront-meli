@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ buscarProductosConAviso: vi.fn() }))
-vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
+vi.mock('../../lib/supabase', async () => ({ supabaseClient: (await import('../../test/supabaseSimulado')).clienteSupabaseSimulado() }))
 vi.mock('../../lib/reparacionItems', () => ({ buscarProductosConAviso: mocks.buscarProductosConAviso }))
 vi.mock('../../lib/ventasLineas', () => ({ disponibleParaVenta: vi.fn().mockResolvedValue(1) }))
 

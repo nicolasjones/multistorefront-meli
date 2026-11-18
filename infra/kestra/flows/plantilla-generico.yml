@@ -75,6 +75,11 @@ tasks:
               interval: PT30S
               maxInterval: PT2M
             commands:
+              # MSF-712: con `docker image inspect || docker pull` un tag mutable (`:latest`) nunca se actualiza en el servidor si la imagen ya está.
+              # Se exige una referencia inmutable (digest `@sha256:` o tag del commit de 40 hex); `local/*` son imágenes construidas en la misma máquina (desarrollo).
+              - |
+                IMAGEN_WORKER="{{ inputs.imagen }}"
+                printf '%s' "$IMAGEN_WORKER" | grep -Eq '^local/|@sha256:[0-9a-f]{64}$|:[0-9a-f]{40}$' || { echo "La imagen del worker debe ir por digest (@sha256:...) o por tag de commit, no por un tag mutable: $IMAGEN_WORKER" >&2; exit 64; }
               - docker image inspect {{ inputs.imagen }} >/dev/null 2>&1 || docker pull {{ inputs.imagen }}
               - |
                 set -a
@@ -105,6 +110,8 @@ tasks:
                   fi
                 fi
                 docker run --rm \
+                  --init \
+                  --pids-limit "${WORKER_PIDS:-1024}" \
                   --read-only \
                   --tmpfs /tmp:rw,noexec,nosuid,size=64m \
                   --cap-drop=ALL \

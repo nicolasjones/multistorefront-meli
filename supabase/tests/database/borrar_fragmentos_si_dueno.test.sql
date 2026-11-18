@@ -3,7 +3,7 @@
 -- Datos inventados.
 begin;
 
-select plan(18);
+select plan(21);
 
 insert into organizaciones (id, nombre) values ('d1111111-1111-1111-1111-111111111111', 'Org Fragmentos');
 insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000001', 'subidor-frag@example.com');
@@ -27,38 +27,47 @@ select v, 'd1111111-1111-1111-1111-111111111111', 'texto ' || n, ('[' || array_t
        generate_series(1, 2) as n;
 
 -- Privilegios: solo service_role (las dos funciones).
-select is(has_function_privilege('service_role', 'public.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), true, 'service_role ejecuta la función pública');
-select is(has_function_privilege('authenticated', 'public.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), false, 'authenticated no ejecuta la función pública');
-select is(has_function_privilege('anon', 'public.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), false, 'anon no ejecuta la función pública');
-select is(has_function_privilege('service_role', 'private.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), true, 'service_role ejecuta la función privada');
-select is(has_function_privilege('authenticated', 'private.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), false, 'authenticated no ejecuta la función privada');
-select is(has_function_privilege('anon', 'private.borrar_fragmentos_si_dueno(uuid, text)', 'execute'), false, 'anon no ejecuta la función privada');
+select is(has_function_privilege('service_role', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), true, 'service_role ejecuta la función pública');
+select is(has_function_privilege('authenticated', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'authenticated no ejecuta la función pública');
+select is(has_function_privilege('anon', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'anon no ejecuta la función pública');
+select is(has_function_privilege('service_role', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), true, 'service_role ejecuta la función privada');
+select is(has_function_privilege('authenticated', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'authenticated no ejecuta la función privada');
+select is(has_function_privilege('anon', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'anon no ejecuta la función privada');
 
 -- Definición endurecida.
-select is((select prosecdef from pg_proc where oid = 'private.borrar_fragmentos_si_dueno(uuid, text)'::regprocedure), true, 'la función privada es security definer');
-select is((select proconfig from pg_proc where oid = 'private.borrar_fragmentos_si_dueno(uuid, text)'::regprocedure), array['search_path=""'], 'la función privada fija search_path vacío');
+select is((select prosecdef from pg_proc where oid = 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)'::regprocedure), true, 'la función privada es security definer');
+select is((select proconfig from pg_proc where oid = 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)'::regprocedure), array['search_path=""'], 'la función privada fija search_path vacío');
 
 -- Una versión retomada por otra invocación: no se borra nada.
-select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000002', 'reclamo-propio'), false, 'retomada por otra invocación: no es dueña');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000002', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), false, 'retomada por otra invocación: no es dueña');
 select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000002'), 2::bigint, 'los fragmentos de la versión retomada siguen');
 
 -- Una versión activa: nunca se borra.
-select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000003', 'reclamo-propio'), false, 'versión activa: no es dueña');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000003', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), false, 'versión activa: no es dueña');
 select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000003'), 2::bigint, 'los fragmentos de la versión activa siguen');
 
 -- Versión inexistente.
-select is(public.borrar_fragmentos_si_dueno('00000000-0000-0000-0000-00000000dead', 'reclamo-propio'), false, 'versión inexistente: false');
+select is(public.borrar_fragmentos_si_dueno('00000000-0000-0000-0000-00000000dead', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), false, 'versión inexistente: false');
 
 -- Dueña (procesando con el reclamo propio): borra.
-select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'reclamo-propio'), true, 'procesando con el reclamo propio: es dueña');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'procesando con el reclamo propio: es dueña');
 select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000001'), 0::bigint, 'se borraron los fragmentos de la versión propia');
 
 -- Ya fallida por esta invocación: borra (la limpieza posterior a marcarFallida).
-select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'reclamo-propio'), true, 'versión fallida: se limpian sus fragmentos');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'versión fallida: se limpian sus fragmentos');
 select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000004'), 0::bigint, 'se borraron los fragmentos de la versión fallida');
 
+-- Otra organización: no es dueña aunque el reclamo coincida (se restaura el reclamo para aislar el caso).
+insert into organizaciones (id, nombre) values ('d2222222-2222-2222-2222-222222222222', 'Otra org');
+update versiones_documento set estado = 'procesando', motivo_error = 'reclamo-propio' where id = 'd4000000-0000-0000-0000-000000000004';
+insert into fragmentos_indexados (version_id, organizacion_id, texto, embedding, orden)
+  values ('d4000000-0000-0000-0000-000000000004', 'd1111111-1111-1111-1111-111111111111', 'x', ('[' || array_to_string(array_fill(0, array[1536]), ',') || ']')::public.vector, 1);
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'd2222222-2222-2222-2222-222222222222', 'reclamo-propio'), false, 'otra organización: no es dueña');
+select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000004'), 1::bigint, 'los fragmentos no se borran con otra organización');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'con la organización correcta sí');
+
 -- Sin fragmentos: sigue siendo dueña.
-select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'reclamo-propio'), true, 'sin fragmentos: dueña igual (idempotente)');
+select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'sin fragmentos: dueña igual (idempotente)');
 
 select * from finish();
 rollback;

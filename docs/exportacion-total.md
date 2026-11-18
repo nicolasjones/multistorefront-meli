@@ -54,3 +54,7 @@ Las tablas `dominio.actualizaciones_precio` (lotes de actualización masiva de p
 ## Reversión
 
 Las migraciones son aditivas (`…200003_exportacion_total_conjuntos.sql`, `…200004_exportacion_total_solicitud.sql`); su reversión está en el encabezado de cada una (drop de las funciones, la capacidad y el bucket `exportaciones-organizacion`). Sin tablas nuevas en `public`/`dominio`. Para volver atrás sin tocar la base: `git revert -m 1` del merge y quitar el flow de Kestra.
+
+## Identificadores externos de clientes (lote 32 · MSF-596)
+
+`public.clientes_identificadores_externos` ganó `organizacion_id` y entra en la exportación total (`20270507180700`): es el mapeo propio de cada cliente con su identificador en un sistema externo, dato de la organización (no derivado ni de otra organización).

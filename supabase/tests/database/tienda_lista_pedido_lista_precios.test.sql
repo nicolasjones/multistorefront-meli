@@ -185,8 +185,8 @@ select is((select count(*)::int from cmp where pedido is distinct from tu_precio
   'PARIDAD: la lista de pedido del mayorista con lista muestra el mismo precio que «Tu precio» en los 32 casos');
 select is((select pedido from cmp where host = 'lp-a.ejemplo.com' and cantidad = 1 and producto = 'a1000000-0000-0000-0000-000000000001'), 968::numeric,
   'mayorista con lista, tienda A: Alfa x1 = 1000 × 0,80 = 800 + IVA 21 % = 968 (y no el 1331 público)');
-select is((select pedido from cmp where host = 'lp-a.ejemplo.com' and cantidad = 5 and producto = 'a1000000-0000-0000-0000-000000000001'), 1198::numeric,
-  'la escala cargada (x5 = 900) no la pisa la lista: 990 + IVA = 1198');
+select is((select pedido from cmp where host = 'lp-a.ejemplo.com' and cantidad = 5 and producto = 'a1000000-0000-0000-0000-000000000001'), 1197.90::numeric,
+  'la escala cargada (x5 = 900) no la pisa la lista: 990 + IVA = 1197,90');
 select is((select pedido from cmp where host = 'lp-a.ejemplo.com' and cantidad = 5 and producto = 'a1000000-0000-0000-0000-000000000002'), 2904::numeric,
   'sin escala cargada rige la lista aun con cantidad de x5: Beta 3000 × 0,80 = 2400 + IVA = 2904');
 select is((select pedido from cmp where host = 'lp-a.ejemplo.com' and cantidad = 1 and producto = 'a1000000-0000-0000-0000-000000000003'), 3025::numeric,
@@ -273,7 +273,7 @@ reset role;
 select is(pg_temp.precio('promo', 'a1000000-0000-0000-0000-000000000002'), 2420::numeric, 'promoción menor que la lista: gana la promoción (2420)');
 select is(pg_temp.anterior('promo', 'a1000000-0000-0000-0000-000000000002'), 2904::numeric, 'la lista queda como precio anterior (2904)');
 select is(pg_temp.precio('promo', 'a1000000-0000-0000-0000-000000000002'), (select (v ->> 'beta')::numeric from res where k = 'tu_promo'), 'y es el mismo precio que «Tu precio»');
-select is(pg_temp.precio('promo', 'a1000000-0000-0000-0000-000000000004'), 1198::numeric, 'promoción mayor que la lista: gana la lista (1198), sin acumular');
+select is(pg_temp.precio('promo', 'a1000000-0000-0000-0000-000000000004'), 1197.90::numeric, 'promoción mayor que la lista: gana la lista (1197,90), sin acumular');
 select is(pg_temp.anterior('promo', 'a1000000-0000-0000-0000-000000000004'), null, 'y no hay precio anterior');
 select is(pg_temp.precio('promo', 'a1000000-0000-0000-0000-000000000004'), (select (v ->> 'delta')::numeric from res where k = 'tu_promo'), 'también igual a «Tu precio»');
 
@@ -287,7 +287,7 @@ select pg_temp.pedir('off', 'f3000000-0000-0000-0000-000000000001', '10.20.5.1',
 select pg_temp.pedir('off_x5', 'f3000000-0000-0000-0000-000000000001', '10.20.5.2', 'lp-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000001', '5'));
 select is(pg_temp.precio('off', 'a1000000-0000-0000-0000-000000000001'), 1331::numeric, 'bandera apagada: x1 del mayorista con lista = precio público de siempre (1331)');
 select is(pg_temp.precio('off', 'a1000000-0000-0000-0000-000000000002'), 3993::numeric, 'bandera apagada: sin escala cargada, el público (3993)');
-select is(pg_temp.precio('off_x5', 'a1000000-0000-0000-0000-000000000001'), 1198::numeric, 'bandera apagada: la escala cargada x5 sigue rigiendo (1198)');
+select is(pg_temp.precio('off_x5', 'a1000000-0000-0000-0000-000000000001'), 1197.90::numeric, 'bandera apagada: la escala cargada x5 sigue rigiendo (1197,90)');
 select pg_temp.sesion('f3000000-0000-0000-0000-000000000001', '10.20.5.3');
 insert into res values ('envio_off', publico.enviar_lista_pedido('lp-a.ejemplo.com', 'x', 'x', 'bandera apagada',
   pg_temp.items('a1000000-0000-0000-0000-000000000001', '1'), 'aaaaaaaa-0000-0000-0000-000000000103'));

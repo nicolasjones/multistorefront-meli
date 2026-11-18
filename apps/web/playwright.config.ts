@@ -12,7 +12,9 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${webPort}`
 // cámara lenta y video a resolución completa para que se siga por pantalla.
 // Va a nivel de proyecto (máxima precedencia sobre el device).
 const VISIBLE = process.env.E2E_VISIBLE === '1'
-if (VISIBLE) console.log('[e2e] modo visible: 1920x1080, slowMo 350ms')
+// `E2E_SLOWMO_MS` (por defecto 350) baja la cámara lenta en corridas bajo carga; el video queda más rápido.
+const SLOWMO_MS = Number(process.env.E2E_SLOWMO_MS ?? 350)
+if (VISIBLE) console.log(`[e2e] modo visible: 1920x1080, slowMo ${SLOWMO_MS}ms`)
 
 export default defineConfig({
   testDir: './e2e',
@@ -46,7 +48,7 @@ export default defineConfig({
             // Chromium completo (no headless-shell): el shell capa la ventana
             // en 800x600 e ignora el viewport pedido.
             launchOptions: {
-              slowMo: 350,
+              slowMo: SLOWMO_MS,
               channel: 'chromium',
               args: ['--window-size=1920,1080', '--force-device-scale-factor=1'],
             },

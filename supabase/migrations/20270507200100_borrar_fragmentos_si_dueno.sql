@@ -2,7 +2,7 @@
 -- el handler releía la versión y luego borraba sus fragmentos en dos pasos sin transacción; en el medio otra
 -- invocación podía retomar o activar la versión. Esta función hace la comprobación y el borrado en UNA transacción.
 --
--- `private.borrar_fragmentos_si_dueno(p_version_id, p_reclamo)` borra los fragmentos de la versión solo si ésta
+-- `private.borrar_fragmentos_si_dueno(p_version_id, p_organizacion_id, p_reclamo)` borra los fragmentos de la versión solo si ésta
 -- sigue en manos de la invocación que llama: existe, NO está `activa` y NO fue retomada por otra invocación
 -- (`procesando` con un `motivo_error` distinto del reclamo propio). Cubre los tres usos del handler: reintento
 -- previo a insertar (`procesando` con el reclamo propio), limpieza tras un error transitorio y limpieza tras
@@ -15,11 +15,11 @@
 -- Ambas: `security definer`, `set search_path = ''`.
 --
 -- Migración aditiva. Reversión (migración posterior):
---   drop function if exists public.borrar_fragmentos_si_dueno(uuid, text);
---   drop function if exists private.borrar_fragmentos_si_dueno(uuid, text);
+--   drop function if exists public.borrar_fragmentos_si_dueno(uuid, uuid, text);
+--   drop function if exists private.borrar_fragmentos_si_dueno(uuid, uuid, text);
 --   y en `supabase/functions/indexar-documento` volver al borrado con la sesión del usuario.
 
-create or replace function private.borrar_fragmentos_si_dueno(p_version_id uuid, p_reclamo text)
+create or replace function private.borrar_fragmentos_si_dueno(p_version_id uuid, p_organizacion_id uuid, p_reclamo text)
 returns boolean
 language plpgsql
 security definer
@@ -29,27 +29,29 @@ declare
   v_estado text;
   v_motivo text;
 begin
+  -- La versión debe ser de la organización que el handler autorizó por RLS (MSF-651): si no, nada se borra.
   select v.estado, v.motivo_error into v_estado, v_motivo
     from public.versiones_documento v
-   where v.id = p_version_id
-     for share;
+    join public.documentos d on d.id = v.documento_id
+   where v.id = p_version_id and d.organizacion_id = p_organizacion_id
+     for share of v;
   if not found or v_estado = 'activa'
      or (v_estado = 'procesando' and v_motivo is distinct from p_reclamo) then
     return false;
   end if;
-  delete from public.fragmentos_indexados where version_id = p_version_id;
+  delete from public.fragmentos_indexados where version_id = p_version_id and organizacion_id = p_organizacion_id;
   return true;
 end;
 $$;
 
-create or replace function public.borrar_fragmentos_si_dueno(p_version_id uuid, p_reclamo text)
+create or replace function public.borrar_fragmentos_si_dueno(p_version_id uuid, p_organizacion_id uuid, p_reclamo text)
 returns boolean
 language sql
 security definer
 set search_path = ''
-as $$ select private.borrar_fragmentos_si_dueno(p_version_id, p_reclamo) $$;
+as $$ select private.borrar_fragmentos_si_dueno(p_version_id, p_organizacion_id, p_reclamo) $$;
 
-revoke execute on function private.borrar_fragmentos_si_dueno(uuid, text) from public, anon, authenticated;
-revoke execute on function public.borrar_fragmentos_si_dueno(uuid, text) from public, anon, authenticated;
-grant execute on function private.borrar_fragmentos_si_dueno(uuid, text) to service_role;
-grant execute on function public.borrar_fragmentos_si_dueno(uuid, text) to service_role;
+revoke execute on function private.borrar_fragmentos_si_dueno(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.borrar_fragmentos_si_dueno(uuid, uuid, text) from public, anon, authenticated;
+grant execute on function private.borrar_fragmentos_si_dueno(uuid, uuid, text) to service_role;
+grant execute on function public.borrar_fragmentos_si_dueno(uuid, uuid, text) to service_role;

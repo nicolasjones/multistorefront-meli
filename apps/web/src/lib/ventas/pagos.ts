@@ -22,6 +22,8 @@ export type Pago = {
   // «Aprobado por»: el nombre de quien aprobó (o null si no está aprobado).
   aprobado_por: string | null
   conciliado: boolean
+  // MSF-667: «revertido» = el cobro tiene un contra-asiento; «reversion» = es el contra-asiento; null = normal.
+  estado_reversion: 'revertido' | 'reversion' | null
   // Lo que le queda al cliente en el comprobante del pago (no el total de la factura).
   saldo: number
   // La versión que viaja al conciliar: si el pago cambió, la base lo rechaza (40001).

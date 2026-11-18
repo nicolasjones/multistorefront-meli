@@ -68,9 +68,9 @@ describe('consultaSoltar', () => {
 })
 
 describe('llamarBorrarFragmentosSiDueno', () => {
-  it('llama a la función SQL condicional con la versión y el reclamo, sin borrar por tabla', () => {
+  it('llama a la función SQL condicional con la versión, la organización y el reclamo, sin borrar por tabla', () => {
     const { cliente, llamadas } = clienteSimulado()
-    llamarBorrarFragmentosSiDueno(cliente, 'v1', 'rec-4')
-    assert.deepEqual(llamadas, [['rpc', 'borrar_fragmentos_si_dueno', { p_version_id: 'v1', p_reclamo: 'rec-4' }]])
+    llamarBorrarFragmentosSiDueno(cliente, 'v1', 'org-1', 'rec-4')
+    assert.deepEqual(llamadas, [['rpc', 'borrar_fragmentos_si_dueno', { p_version_id: 'v1', p_organizacion_id: 'org-1', p_reclamo: 'rec-4' }]])
   })
 })
