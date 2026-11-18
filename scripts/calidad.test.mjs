@@ -29,10 +29,12 @@ const RUIDO = Array.from({ length: 70 }, (_, i) => `línea de ruido ${i + 1}`);
 // Corre `scripts/calidad.mjs` con un `pnpm` falso en el PATH: el shim contesta `--version`
 // (para que la herramienta esté disponible) y, en el `pnpm dlx knip@…` que dispara el check
 // de código muerto, imprime el hallazgo de knip y sale con código 1. También dice si el hijo
-// heredó GITHUB_ACTIONS: con esa variable knip y oxlint cambian de formato y escriben
-// anotaciones `::warning`/`::error` en vez de texto, así que el log del CI deja de decir qué
-// encontraron — fue justo lo que dejó el `quality` de MSF-843 rojo sin diagnóstico.
-function correrCalidadConPnpmFalso() {
+// heredó GITHUB_ACTIONS: oxlint tiene un formato `github` que escribe anotaciones `::warning` (el
+// runner las consume como anotaciones y del log sólo queda la anotación renderizada, no la salida
+// de la herramienta), y el script le borra esa variable del entorno para que ninguna herramienta
+// pueda cambiar a ese formato por él. `ruidoInicialKb` hace que el shim imprima ese volumen de
+// ruido ANTES del hallazgo.
+function correrCalidadConPnpmFalso({ ruidoInicialKb = 0 } = {}) {
   const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-"));
   const bin = path.join(cwd, "bin");
   fs.mkdirSync(bin);
@@ -43,10 +45,11 @@ function correrCalidadConPnpmFalso() {
 const args = process.argv.slice(2);
 if (args.includes("--version")) { console.log("11.19.0"); process.exit(0); }
 console.log("GHA=" + (process.env.GITHUB_ACTIONS === undefined ? "<unset>" : process.env.GITHUB_ACTIONS));
+for (let i = 0; i < ${ruidoInicialKb}; i++) console.log("x".repeat(1024));
 console.log("Unlisted dependencies (1)");
 console.log(${JSON.stringify(HALLAZGO_FALSO)});
 for (const l of ${JSON.stringify(RUIDO)}) console.log(l);
-process.exit(1);
+process.exitCode = 1;
 `,
   );
   fs.chmodSync(shim, 0o755);
@@ -74,9 +77,18 @@ test("[MSF-843] el informe de calidad dice qué encontró el check que falló", 
   assert.ok(r.stdout.includes(HALLAZGO_FALSO), "el log del CI tiene que decir qué encontró el check que falló");
 });
 
-test("[MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)", () => {
+test("[MSF-843] las herramientas no heredan GITHUB_ACTIONS (oxlint puede escribir anotaciones `::warning`, que el runner consume como anotaciones)", () => {
   const { log } = correrCalidadConPnpmFalso();
   assert.match(log, /GHA=<unset>/, "el hijo de scripts/calidad.mjs tiene que correr sin GITHUB_ACTIONS");
+});
+
+// El log del paso del CI se corta si el script sale con `process.exit(1)`: en Linux, lo que no
+// entra en el buffer del pipe (64 KiB) se descarta. El hallazgo va DESPUÉS de una salida larga,
+// así que con `process.exit(1)` no llegaría al log y el rojo volvería a quedar sin diagnóstico.
+test("[MSF-843] el log del CI no pierde el final de la salida del check que falló", () => {
+  const { r } = correrCalidadConPnpmFalso({ ruidoInicialKb: 200 });
+  assert.equal(r.status, 1, r.stdout);
+  assert.ok(r.stdout.includes(HALLAZGO_FALSO), "el final del log del CI tiene que traer el hallazgo del check que falló");
 });
 
 // MSF-929: el store local de pnpm no pone rojo el escaneo de secretos, pero el código del repo se sigue escaneando completo.

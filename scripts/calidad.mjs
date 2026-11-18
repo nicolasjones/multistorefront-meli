@@ -30,8 +30,11 @@ const only = (argv.find((a) => a.startsWith("--only=")) || "").replace("--only="
 const skipDocker = argv.includes("--no-docker");
 const wants = (name) => (!only.length || only.includes(name));
 
-// Las herramientas corren sin anotaciones de GitHub Actions (`::warning`) ni color: oxlint cambia de
-// formato con GITHUB_ACTIONS=1 y la salida del hijo se vuelve ruidosa y difícil de diagnosticar.
+// Las herramientas corren sin anotaciones de GitHub Actions (`::warning`) ni color. oxlint tiene un
+// formato `github` que escribe anotaciones `::warning`: el runner las consume como anotaciones y del
+// log sólo queda la anotación renderizada (`##[warning]…`), no la salida de la herramienta. El script
+// fuerza `--format=default` en oxlint y además le borra `GITHUB_ACTIONS` del entorno, para que
+// ninguna herramienta cambie a ese formato por el entorno.
 const childEnv = { ...process.env, NO_COLOR: "1", FORCE_COLOR: "0", CI: process.env.CI || "1" };
 delete childEnv.GITHUB_ACTIONS;
 const TIMEOUT_MS = 10 * 60 * 1000;
@@ -145,5 +148,13 @@ try { fs.writeFileSync(path.join(dir, "calidad.md"), md); } catch { /* best-effo
 
 console.log(`\n---- RESUMEN ----`);
 for (const r of rows) console.log(`  ${r.status.padEnd(10)} ${r.name}`);
-if (fallos.length) { console.log(`\n${fallos.length} check(s) con hallazgos.`); process.exit(1); }
-console.log(`\nTodo OK.`);
+if (fallos.length) {
+  console.log(`\n${fallos.length} check(s) con hallazgos.`);
+  // `process.exitCode` y NO `process.exit(1)`: en Linux, `process.exit(1)` descarta la cola de
+  // stdout que no entra en el buffer del pipe (64 KiB). Con suficiente salida, el final del log
+  // —justo el bloque del check que falló y este resumen— se pierde y el rojo vuelve a quedar
+  // mudo (MSF-843). Con `exitCode` el proceso termina solo y la cola se vacía.
+  process.exitCode = 1;
+} else {
+  console.log(`\nTodo OK.`);
+}
