@@ -444,9 +444,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "5e233c18b7ec86db7b434b22ff6e15e16e2200835bf41f6d54a4bbe8e0deff94",
-      "sourceHash": "9b48404d8a96d4e69b3c77f869657e092141407e19dd8cd7997b1ac449a17093",
-      "sourceAt": "614136f9",
+      "pageHash": "a1f3421957236d253355667eece116baab38c0b1cb5922884a8a315b001cad25",
+      "sourceHash": "b820528b6c5254117b799963014f33797ca200af64e357d240a3efb68afd4909",
+      "sourceAt": "1e94e2ad",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -456,7 +456,7 @@
         "apps/web/src/lib/textoInicialConsulta.ts"
       ],
       "owner": "tecnico",
-      "commit": "614136f9"
+      "commit": "1e94e2ad"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -743,9 +743,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "fbc39182eb19981b7860fdfcb4bf40c7ceff1cb652d331de1950b0e64c443de0",
-      "sourceHash": "1ba55c9d25c1ed7932da01313e6499761b16557f9b6b60e299d6118c08f54c93",
-      "sourceAt": "07b6946b",
+      "pageHash": "dce3e1c55c927690a734e1ea589781b41e1ec7f2d586d1d21d99a5e7b4934758",
+      "sourceHash": "9da13574ce7c280b474c64b2b98cc6b7a1a082831386def81c1b4033e343700a",
+      "sourceAt": "330af49f",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -753,7 +753,7 @@
         "apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx"
       ],
       "owner": "tecnico",
-      "commit": "07b6946b"
+      "commit": "330af49f"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -1366,14 +1366,14 @@
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
-      "pageHash": "ccc68c704a0ef2ea01f87e7c9c3009dedf1fb6902b271f508b9e00692d59cb74",
+      "pageHash": "a4b085b5d0453ae76468ea1557dc1c67d969fe4e5ffc1e3b26616aa6554c9435",
       "sourceHash": "e29666df77becaaf3c41e3ee710aeee2e4ed02b75052b63d0dac08b951756c2f",
-      "sourceAt": "2a80c3c6",
+      "sourceAt": "fb6a5c7a",
       "sources": [
         "apps/web/src/pages/consultas"
       ],
       "owner": "producto",
-      "commit": "2a80c3c6"
+      "commit": "fb6a5c7a"
     },
     "docs/producto/contactos.md": {
       "title": "Contactos: la libreta de personas",
@@ -1916,16 +1916,16 @@
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
-      "pageHash": "e4adf98b760ea497e4850adb519993d96bb5fceba46fd0cd14be4c6ceedfac35",
-      "sourceHash": "e90496d2a345464aad05439b504872c7bac3e3f4f10ce5673d9edab56889469c",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "de148c5baf0e0217f33b1e410bb45614751d195e5af4d17001f26207eabcb5e7",
+      "sourceHash": "78ab51e5e86392c2f57e4641856deca86dd5753f08cb5fd1b759e1d05951a912",
+      "sourceAt": "fb6a5c7a",
       "sources": [
         "apps/web/src/pages/ventas/comprobantes.tsx",
         "apps/web/src/pages/ventas/comprobante.tsx",
         "apps/web/src/pages/ventas/presupuestos.tsx"
       ],
       "owner": "producto",
-      "commit": "c7860a7c9"
+      "commit": "fb6a5c7a"
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
@@ -3888,8 +3888,8 @@
     },
     "docs/tecnico/ventas-comprobantes.md": {
       "title": "Ventas · comprobantes (técnico, MSF-159)",
-      "pageHash": "d41da21ceac8b117e52ca9bb146146b1ca2ca786161c6f11fa5311d23fb775fe",
-      "sourceHash": "d023504a7463bb45d78064073f824c85e51c057279bdcd1e7d72d66fd02c4cfc",
+      "pageHash": "b17f46f36cfc65206e52327d22c39046baad8e6c93c78f08513f5c75157be73a",
+      "sourceHash": "5e6489707ae40816e316eb53ff595a6076df783920cec31a4010962454a7c8a6",
       "sourceAt": "fa03ceec",
       "sources": [
         "specs",
@@ -3897,7 +3897,7 @@
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "fa03ceec"
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
@@ -4168,9 +4168,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "541302763b0ff9d85c0a2020e299e69d3085080fa80a6e4b38413d9e36004c62",
-      "sourceHash": "147acee0a58ee9be70bae93a67ae1dd2a0a023256d977e1a5cb4ed2a1fc7e177",
-      "sourceAt": "ba5af1b8",
+      "pageHash": "3e7e9b0d0afa5d8fcb201b1bdb5b625326027c58ace1323659568833d78ef586",
+      "sourceHash": "0c2f7debbaa7282090d1ed58586e95bc23393feaed9282078ed269ba1b0a7f7d",
+      "sourceAt": "3d8efbc2",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -4182,7 +4182,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "ba5af1b8"
+      "commit": "3d8efbc2"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",

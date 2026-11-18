@@ -86,8 +86,8 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   el filtro no devuelve nada.
 - **Estados**: `pendiente` → `aceptado`. **`vencido` se deriva** (no se guarda ni hay job): un `pendiente`
   con `valido_hasta` anterior a hoy (hoy en America/Argentina/Buenos_Aires, `private.hoy_argentina`). Un
-  vencido no se acepta ni se modifica. `Convertido en factura` existe como filtro pero no tiene filas hasta
-  que se decida la conversión (*Decisiones abiertas* 2).
+  vencido no se acepta ni se modifica. **`convertido`** (lote 39): el presupuesto ya se facturó; no se acepta,
+  no se modifica ni se factura de nuevo (se puede copiar). Se muestra «Convertido en factura».
 - **Acciones por fila** (solo con `ventas` en edición en la tienda del presupuesto): **Aceptar** y
   **Modificar** solo en `pendiente` (deshabilitados en aceptado/vencido); **Copiar** en cualquier estado, que
   es la forma de renovar un vencido o repetir uno aceptado. Modificar abre `/ventas/comprobantes/:id`.
@@ -100,8 +100,23 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
   manual**, que se conserva. El depósito se conserva si la tienda aún vende desde él; si no, va el principal.
   Un producto que ya no está activo detiene la copia con un mensaje que lo nombra. El original no cambia.
   Registra `presupuesto.copiado`.
-- Fuera de alcance (matriz de la spec): Enviar por correo, Imprimir, Facturar, las demás pestañas de Ventas y
-  el aviso de conversión a factura. Por eso el subtítulo dice «Se pueden copiar y modificar».
+- **Facturar** (lote 39): `public.facturar_presupuesto(p_presupuesto_id)` convierte un presupuesto **aceptado**, no vencido y no
+  convertido en una factura `borrador` con vínculo (`origen_presupuesto_id`, FK compuesta e índice único: un presupuesto se
+  convierte una sola vez) y deja el presupuesto en `convertido`. **Precios congelados**: las líneas se copian tal cual (precio,
+  escala, descuento, promoción, lista, IVA, depósito) y la guarda `precios_cambiaron` de la confirmación no vigila una factura con
+  origen; los totales son la suma de las líneas copiadas. Exige `ventas` en edición en la tienda; `for update` sobre el presupuesto;
+  idempotente (un presupuesto ya convertido devuelve su factura, sin duplicar ni auditar de nuevo). Errores: `42501` permiso,
+  `P0002` no existe (también de otra organización), `22023` (sin líneas, cliente archivado, producto inactivo —nombrado—, tienda
+  desactivada) y `55000` (pendiente: «Aceptá el presupuesto antes de facturarlo»; vencido; otro estado). Registra
+  `presupuesto.facturado`. La factura se confirma después por el flujo normal (con su control de stock). `obtener_vinculo_presupuesto(p_id)`
+  devuelve el vínculo en los dos sentidos (la factura de un presupuesto convertido o el presupuesto de origen de una factura).
+  UI: «Facturar» en la fila y en el detalle del presupuesto aceptado y vigente, «Ver factura» en el convertido y los avisos de
+  vínculo en el detalle. Spec: `specs/20271118-110000-lote-39-facturar-presupuesto/`. Pruebas: pgTAP `facturar_presupuesto.test.sql`,
+  Vitest `comprobante.facturar.test.tsx`, `presupuestos.test.tsx` y `ventasPresupuestos.test.ts`.
+  Reversión (migración posterior, solo si no hay facturas con origen): `drop function public.facturar_presupuesto(uuid)`,
+  `drop function public.obtener_vinculo_presupuesto(uuid)`, quitar la columna `origen_presupuesto_id` con su índice y restituir
+  `private.lineas_con_promocion_desactualizada` de `20270507120000`.
+- Fuera de alcance (matriz de la spec): las demás pestañas de Ventas y el aviso de conversión a factura.
 - **Exportar** (F-VTA-09, FR-006/FR-010): exporta todos los presupuestos del filtro a CSV (hasta 10.000) o
   pide la exportación diferida por encima, igual que Comprobantes. Ver
   [ventas-listado-comprobantes.md](ventas-listado-comprobantes.md).
@@ -181,6 +196,8 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `confirmar_comprobante(p_id)` | **F-VTA-07.** Confirma una `factura` en `borrador` con ≥ 1 línea (ver «Confirmación y stock»). Idempotente. Exige `ventas` en `edicion` en la empresa del comprobante. |
 | `aceptar_presupuesto(p_id)` | **F-VTA-08.** `pendiente` → `aceptado`, idempotente (reintentar no duplica el evento). Rechaza un vencido o un estado que no admite aceptar (`55000`). Exige `ventas` en `edicion` en la tienda. No toca stock. |
 | `copiar_presupuesto(p_id)` | **F-VTA-08.** Crea el presupuesto nuevo descrito arriba. Lee el original con `for share`. Exige `edicion` en la tienda. Las líneas de precio manual conservan su precio sin volver a exigir `editar_precio` a quien copia (decisión vigente; pendiente de confirmar con negocio). Si el cliente ya no existe falla con `22023` y un mensaje propio (la FK de `comprobantes_venta` hoy impide borrarlo; es una guarda defensiva). **Precio (MSF-933, S2)**: reprecia como el mostrador (`private.precio_linea_venta`): aplica el **descuento vigente del cliente** y la promoción de la tienda, gana el más bajo sin acumular, y guarda `descuento_pct` (0 si ganó la promoción o si el precio es manual). Antes copiaba a precio de lista sin el descuento (defecto del hallazgo 3). |
+| `facturar_presupuesto(p_presupuesto_id)` | **Lote 39.** Presupuesto aceptado y vigente → factura `borrador` con vínculo y precios congelados; el presupuesto pasa a `convertido`. Idempotente y serializada (`for update` + índice único). Exige `edicion` en la tienda. Errores `42501`, `P0002`, `22023`, `55000`. Registra `presupuesto.facturado`. |
+| `obtener_vinculo_presupuesto(p_id)` | **Lote 39.** Vínculo presupuesto ↔ factura (cero filas si no hay o sin acceso); exige `lectura` o `edicion` en la tienda. |
 | `listar_presupuestos(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano, p_origen)` | **F-VTA-08.** Lectura paginada (tope 200 por página): id, número, empresa, fecha, cliente, operador, válido hasta, estado (con `vencido` derivado), total, `puede_editar` y `filas` (total del filtro). Solo tiendas con `ventas` en `lectura` o `edicion`; una tienda ajena devuelve cero filas. `p_estado` ∈ pendiente · aceptado · vencido · convertido (otro valor: `22023`). `p_origen` (MSF-942, por defecto `null` = todos) ∈ `panel` · `tienda` (según el vínculo `dominio.presupuestos_tienda`; otro valor: `22023`): filtra antes de contar y paginar, así `filas` y las tandas son del canal elegido. |
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
@@ -283,7 +300,7 @@ permisos por empresa, `anon`, precio manual y concurrencia de stock. Resultado: 
 
 ## Fuera de alcance (estas historias)
 
-Correo / impresión / Facturar de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
+Correo / impresión de Presupuestos, descuento de las reservas «A pedido» al entregar (MSF-135),
 anulación y notas de crédito (F-VTA-11, MSF-177), impresión y envío (MSF-213), cobro/conciliación, despacho,
 observaciones e historial de estados. El listado y la exportación de Comprobantes y Presupuestos son de F-VTA-09. La elección de forma de pago y envío en pantalla espera los catálogos
 de MSF-139; la base ya los acepta y los valida cuando existan.
