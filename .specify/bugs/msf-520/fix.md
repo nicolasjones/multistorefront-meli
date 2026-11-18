@@ -95,8 +95,9 @@ assert.ok(!bloqueRestore.includes('--no-privileges'), 'el restore tiene que apli
 - Mutaciones (FEAT-236): cuatro cambios deliberados sobre los documentos (volver a
   `--no-privileges`, sacar `--exit-on-error`, sacar el paso de migraciones pendientes y sacar la
   verificación del app), cada uno deja el test correspondiente en rojo. Ver `./test.md`.
-- pgTAP: **no corrido localmente** (este entorno no tiene Docker ni Postgres de desarrollo; el CI
-  corre la suite pgTAP completa sobre una base limpia en el job `database`).
+- pgTAP: **no corrido localmente** (este entorno no tiene Docker ni Postgres de desarrollo), pero
+  **pasó en el CI** (job `database`): `copias_restauracion_privilegios_msf520.test.sql ... ok` y
+  `Result: PASS` (409 archivos, 15.102 tests) sobre una base limpia con todas las migraciones aplicadas.
 
 ## Deviations from Assessment
 

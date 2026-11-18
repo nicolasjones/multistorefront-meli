@@ -32,7 +32,7 @@ autorización, el simulacro no falle en el paso 7 por una base sin permisos.
 | Build | `pnpm build` | pass | exit 0 («✓ built in 2.96s»). |
 | Calidad determinista | `pnpm calidad:code` | pass | «Todo OK» (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks omitido por `--no-docker`). |
 | Migraciones | — | n/a | Esta entrega **no crea migración**: el cambio es de procedimiento y de tests. La función `private.reaplicar_privilegios_copias()` de la primera pasada se mantiene. |
-| pgTAP del repo | `pnpm test:db:ci` | not-run | Este entorno no tiene Docker ni Postgres de desarrollo: la suite pgTAP la corre el CI (job `database`, `pg_prove` sobre `supabase/tests/database/*.sql`) sobre una base limpia. |
+| pgTAP del repo | `pnpm test:db:ci` | not-run (local) / pass (CI) | Local no corre: este entorno no tiene Docker ni Postgres de desarrollo. En el CI (job `database`, `pg_prove` sobre `supabase/tests/database/*.sql`) pasó: `copias_restauracion_privilegios_msf520.test.sql ... ok` y `Result: PASS` (409 archivos, 15.102 tests). |
 | Simulacro en staging | — | skipped | Sin autorización sobre staging (no es ejecutable por el agente). El registro de resultados sigue vacío y sin firma. |
 
 ## Mutaciones (FEAT-236: el test tiene que FALLAR si la regla cambia)
@@ -93,9 +93,11 @@ Todo OK.
 
 ## Residual Risks
 
-- **El pgTAP del repo no se corrió localmente** (sin Docker ni Postgres de desarrollo): lo corre el CI
-  en el job `database`. Lo que no se probó localmente es el pgTAP sobre la base de la plataforma (roles
-  `anon`/`authenticated`/`kestra_backups` reales y las migraciones completas).
+- **El pgTAP del repo no se corrió localmente** (sin Docker ni Postgres de desarrollo), pero **corrió
+  en el CI** (job `database`): `copias_restauracion_privilegios_msf520.test.sql ... ok` y `Result: PASS`
+  (409 archivos, 15.102 tests) sobre una base limpia con todas las migraciones aplicadas — o sea, las
+  tres aserciones nuevas (USAGE de `authenticated` sobre `private`, lectura de `public.organizaciones`
+  y `dominio.empresas`, y `anon` sin lectura) se comprobaron contra la base real.
 - **El simulacro en staging sigue sin ejecutarse**: los objetivos RPO ≤ 24 h y RTO ≤ 4 h (FR-011,
   SC-002) no están medidos ni firmados. Ningún cambio de este PR altera ese estado.
 - **El restore con permisos exige que el destino tenga los roles que el dump referencia** (en el
