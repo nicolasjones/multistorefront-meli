@@ -126,7 +126,7 @@ test('dollar-quoting, E\'…\\\'…\' y comentarios de bloque anidados', async (
 });
 
 test('rechaza Reversión vacía, ninguna, n/a y no aplica; acepta pasos en la línea siguiente', async () => {
-  for (const marcador of ['-- Reversión: ninguna', '-- Reversion: n/a', '-- Reversión: no aplica.', '-- Reversión:\nselect 1;', '-- Reversión: no hay reversión automática']) {
+  for (const marcador of ['-- Reversión: ninguna', '-- Reversión: ninguno', '-- Reversión: ninguno.', '-- Reversión: Ninguno', '-- Reversion: n/a', '-- Reversión: no aplica.', '-- Reversión:\nselect 1;', '-- Reversión: no hay reversión automática']) {
     await withMigrations({ '001.sql': `${marcador}\ndrop table t;` }, async (dir) => {
       assert.notEqual((await run(dir)).code, 0, marcador);
     });

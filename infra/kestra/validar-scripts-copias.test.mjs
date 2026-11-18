@@ -63,7 +63,7 @@ test('la ventana en horas se respeta en el borde y rechaza valores inválidos', 
   // A las 09:00 con 6 h el corte es 03:00: la copia de las 03:00 entra; la de 02:59:59 no.
   assert.equal(alerta(['20261117-030000-1.dump'], ['20261117-030000/'], '6').status, 0);
   assert.equal(alerta(['20261117-025959-1.dump'], ['20261117-030000/'], '6').status, 1);
-  for (const malo of ['0', '', '08', '-1', 'abc', '1.5']) {
+  for (const malo of ['0', '', '08', '-1', 'abc', '1.5', '99999', '99999999999999999999']) {
     const r = alerta(['20261117-030000-1.dump'], ['20261117-031500/'], `'${malo}'`);
     assert.equal(r.status, 1, `horas=${malo}`);
     assert.match(r.stderr, /RESPALDOS_AUSENCIA_HORAS debe ser un entero/);
@@ -87,7 +87,18 @@ test('la retención valida los plazos con mensajes claros: «08», vacío, 0 y t
   }
 });
 
-test('el tope de imágenes cuenta todo: días y mensuales juntas, y la última siempre queda', () => {
+test('la retención rechaza más de 4 dígitos (desborde en BusyBox) y valores con salto de línea, y acepta 9999', () => {
+  assert.equal(plazos({ DIAS: '9999', MENSUALES: '9999', IMAGENES_DIAS: '9999', IMAGENES_MAX: '9999' }).status, 0, '9999 es el máximo válido');
+  for (const variable of ['DIAS', 'MENSUALES', 'IMAGENES_DIAS', 'IMAGENES_MENSUALES', 'IMAGENES_MAX']) {
+    for (const valor of ['10000', '99999999999999999999', '5\nabc', 'abc\n5', '5\n']) {
+      const r = plazos({ [variable]: valor });
+      assert.equal(r.status, 1, `${variable}=${JSON.stringify(valor)}`);
+      assert.match(r.stderr, /debe ser un entero/, `${variable}=${JSON.stringify(valor)}`);
+    }
+  }
+});
+
+function purgarImagenes(dias, mensuales, tope) {
   const inicio = retencion.indexOf('purgar() {');
   const fin = retencion.indexOf('\n        }\n', inicio);
   const funcion = retencion.slice(inicio, fin + '\n        }\n'.length).replace(/^ {8}/gm, '');
@@ -95,13 +106,25 @@ test('el tope de imágenes cuenta todo: días y mensuales juntas, y la última s
   for (let m = 0; m < 6; m += 1) nombres.push(`2026${String(5 + m).padStart(2, '0')}01-031500`); // 1.º de mayo..octubre
   for (let d = 12; d <= 18; d += 1) nombres.push(`202611${d}-031500`.replace('202611', '202611'));
   const rclone = `rclone() { if [ "$1" = lsf ]; then printf '%s\\n' ${nombres.map((n) => `'${n}'`).join(' ')}; else echo "BORRA \${2##*/}"; fi; }`;
-  const r = correr(`BORRADOS=0\nLISTA_TMP=$(mktemp)\n${funcion}\n${rclone}\npurgar imagenes --dirs-only 7 4 7`, { RAIZ: 'respaldos:/x', AHORA: String(Date.UTC(2026, 10, 18, 4, 30) / 1000) });
+  const r = correr(`BORRADOS=0\nLISTA_TMP=$(mktemp)\n${funcion}\n${rclone}\npurgar imagenes --dirs-only ${dias} ${mensuales} ${tope}`, { RAIZ: 'respaldos:/x', AHORA: String(Date.UTC(2026, 10, 18, 4, 30) / 1000) });
   assert.equal(r.status, 0, r.stderr);
   const borradas = new Set(r.stdout.split('\n').filter((l) => l.startsWith('BORRA ')).map((l) => l.slice(6)));
-  const conservadas = nombres.filter((n) => !borradas.has(n));
+  return nombres.filter((n) => !borradas.has(n));
+}
+
+test('el tope de imágenes cuenta todo: días y mensuales juntas, y la última siempre queda', () => {
+  const conservadas = purgarImagenes(7, 4, 7);
   assert.ok(conservadas.length <= 7, `con tope 7 quedaron ${conservadas.length}`);
   assert.ok(conservadas.includes('20261118-031500'), 'la más reciente siempre queda');
 });
+
+test('el tope de imágenes también corta en el bucle de días (más días vigentes que el tope, sin mensuales)', () => {
+  // 7 copias dentro de la ventana de 7 días y tope 3: si el tope no se aplicara al bucle de días quedarían 7.
+  const conservadas = purgarImagenes(7, 0, 3);
+  assert.equal(conservadas.length, 3, `con tope 3 quedaron ${conservadas.length}`);
+  assert.deepEqual(conservadas, ['20261116-031500', '20261117-031500', '20261118-031500'], 'se conservan las más nuevas');
+});
+
 
 // --- verificar-restauracion: clasificación de errores sin mostrar datos ---
 

@@ -263,6 +263,20 @@ describe('indexar-documento', () => {
     assert.equal(borrados, antes + 1, 'solo el borrado previo a insertar; ninguno tras el 22023')
   })
 
+  it('todo borrado de fragmentos lleva el reclamo propio (el SQL decide la propiedad en la misma transacción)', async () => {
+    const m = montar({ embeddingsFalla: true })
+    const reclamos: string[] = []
+    m.deps.borrarFragmentos = async (_j, _id, reclamo) => { reclamos.push(reclamo); return true }
+    await pedir(m.deps)
+    assert.ok(reclamos.length > 0)
+    assert.ok(reclamos.every((r) => r === m.v.motivo_error || r.startsWith('indexando:')), `reclamos: ${reclamos}`)
+    const ok = montar()
+    const vistos: string[] = []
+    ok.deps.borrarFragmentos = async (_j, _id, reclamo) => { vistos.push(reclamo); return true }
+    await pedir(ok.deps)
+    assert.deepEqual(vistos.map((r) => r.startsWith('indexando:')), [true])
+  })
+
   it('si otra invocación retomó la versión (reclamo distinto), no se borran sus fragmentos y se responde ocupado', async () => {
     const m = montar({ embeddingsFalla: true })
     const embeddings = m.deps.embeddings

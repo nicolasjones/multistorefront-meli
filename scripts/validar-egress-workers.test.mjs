@@ -144,3 +144,21 @@ test('redes evasivas: --network=\\ + salto + host y ${NET:-host}; valores por de
     assert.doesNotMatch(fuera, /ok\d\.yml/);
   });
 });
+
+test('rechaza ${NET:- host} (espacio inicial), sufijos tras la llave y llaves sin cerrar; acepta las variables bien formadas', () => {
+  flows({
+    'a.yml': 'docker run --network "${NET:- host}" x',
+    'b.yml': 'docker run --network "${A}${B}" x',
+    'c.yml': 'docker run --network=${A:-worker-egress-ok}${B} x',
+    'd.yml': 'docker run --network=${A:?}${B} x',
+    'e.yml': 'docker run --network ${NET:-host x',
+    'f.yml': 'docker run --network=${NET}host x',
+    'ok1.yml': 'docker run --network "${NET:-worker-egress-ok}" x',
+    'ok2.yml': 'docker run --network "${WORKER_NETWORK:?Debe configurarse}" --net=$NET x',
+    'ok3.yml': 'docker run --network "${NET:-}" x',
+  }, (dir) => {
+    const fuera = redesFueraDeConvencion(dir).join('\n');
+    for (const esperado of ['a.yml', 'b.yml', 'c.yml', 'd.yml', 'e.yml', 'f.yml']) assert.match(fuera, new RegExp(esperado.replace('.', '\\.')), esperado);
+    assert.doesNotMatch(fuera, /ok\d\.yml/);
+  });
+});

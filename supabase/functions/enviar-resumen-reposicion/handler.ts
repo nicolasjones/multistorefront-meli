@@ -6,7 +6,7 @@
 // relay abierto. Garantía: al menos una vez. Si el correo salió pero la base no pudo cerrar el resumen,
 // los productos siguen sin marca y el próximo barrido los vuelve a avisar (se prefiere un duplicado a
 // perder el aviso).
-import { timingSafeEqual } from 'node:crypto'
+import { tokenValido } from '../_shared/token.ts'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { asuntoResumen, cuerpoResumen, enlaceStock, type ProductoResumen } from './contenido.ts'
 
@@ -47,12 +47,6 @@ export type Deps = {
   enviar: EnviarCorreo
 }
 
-const tokenValido = (esperado: string | undefined, recibido: string | null) => {
-  if (!esperado || !recibido) return false
-  const a = new TextEncoder().encode(esperado)
-  const b = new TextEncoder().encode(recibido)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 // Al registro va el error sin host, IP ni correo: la librería SMTP puede incluir el servidor o el usuario.
 const mensajeDeError = (error: unknown) =>

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -90,4 +90,30 @@ test('MSF-706: el valor EFECTIVO de ssh es yes aunque haya un `Host *` previo co
   assert.equal(config.match(/# vps-deploy/g).length, 1);
   assert.ok(config.startsWith('# vps-deploy'));
   assert.equal(efectivo('vps.ejemplo.com').stricthostkeychecking, 'true');
+});
+
+test('esEstricto lee VPS_ESTRICTO de la misma fuente que el preflight: el proceso manda y, si no está, el .env del entorno', () => {
+  assert.equal(esEstricto('dev', {}, 'VPS_ESTRICTO=1\n'), true);
+  assert.equal(esEstricto('dev', {}, 'OTRA=1\n'), false);
+  assert.equal(esEstricto('dev', { VPS_ESTRICTO: '0' }, 'VPS_ESTRICTO=1\n'), false, 'la variable del proceso manda');
+  assert.equal(esEstricto('production', {}, ''), true);
+});
+
+test('~/.ssh/config queda en 0600 aunque ya existiera con otros permisos', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
+  await writeFile(path.join(dir, 'config'), 'Host otro\n  User x\n', { mode: 0o644 });
+  await chmod(path.join(dir, 'config'), 0o644);
+  await preparar({ host: 'vps.ejemplo.com', entorno: 'staging', secreto: LINEA, sshDir: dir, raiz: dir });
+  assert.equal((await stat(path.join(dir, 'config'))).mode & 0o777, 0o600);
+  await chmod(path.join(dir, 'config'), 0o644);
+  await preparar({ host: 'vps.ejemplo.com', entorno: 'dev', secreto: '', sshDir: dir, raiz: dir, estricto: false });
+  assert.equal((await stat(path.join(dir, 'config'))).mode & 0o777, 0o600, 'también en el modo transicional');
+});
+
+test('el host se valida antes de escribir nada: sin espacios, comodines ni saltos de línea', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
+  for (const malo of ['vps.ejemplo.com\n  ProxyCommand x', 'vps ejemplo', '*', 'a;b', 'vps.ejemplo.com\n']) {
+    await assert.rejects(() => preparar({ host: malo, entorno: 'staging', secreto: LINEA, sshDir: dir, raiz: dir }), /--host solo admite/, JSON.stringify(malo));
+  }
+  await assert.rejects(() => readFile(path.join(dir, 'config'), 'utf8'), /ENOENT/, 'no se escribió el config');
 });

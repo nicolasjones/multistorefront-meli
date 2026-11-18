@@ -333,7 +333,8 @@ describe('PresupuestosList', () => {
     abrir()
     await screen.findByText('Cliente 1')
     fireEvent.click(screen.getByRole('button', { name: 'Copiar 00000001' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('El producto «Cable» ya no está activo')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Hay un dato del comprobante que no es válido')
+    expect(screen.queryByText(/Cable/)).not.toBeInTheDocument()
     expect(screen.queryByTestId('ubicacion')).not.toBeInTheDocument()
   })
 

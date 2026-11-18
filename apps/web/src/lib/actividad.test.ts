@@ -147,6 +147,27 @@ describe('campos del cambio (F-AUD-02, FR-007)', () => {
     expect(camposDelCambio({ total_items: '3' }, { total_items: '4' })).toEqual([{ campo: 'Total items', anterior: '3', nuevo: '4' }])
   })
 
+  it('no da formato de moneda a conteos ni unidades aunque su nombre empiece con una palabra de importe', () => {
+    expect(camposDelCambio({ total_clientes: '3', saldo_stock: '12' }, { total_clientes: '4', saldo_stock: '10' })).toEqual([
+      { campo: 'Total clientes', anterior: '3', nuevo: '4' },
+      { campo: 'Saldo stock', anterior: '12', nuevo: '10' },
+    ])
+    // El resto de `saldo_*` y `total_*` sigue siendo importe.
+    expect(camposDelCambio({ saldo_pendiente: '5' }, { saldo_pendiente: '7' })[0].nuevo).toBe('7,00')
+  })
+
+  it('el valor de un costo adicional es un porcentaje o un monto según su tipo', () => {
+    expect(camposDelCambio({ tipo: 'porcentaje', valor: '12.5' }, { tipo: 'porcentaje', valor: '15' }).find((c) => c.campo === 'Valor'))
+      .toEqual({ campo: 'Valor', anterior: '12.5', nuevo: '15' })
+    expect(camposDelCambio({ tipo: 'monto', valor: '1250.5' }, { tipo: 'monto', valor: '2000' }).find((c) => c.campo === 'Valor'))
+      .toEqual({ campo: 'Valor', anterior: '1.250,50', nuevo: '2.000,00' })
+    // Cambio de tipo: cada lado se formatea con su propio tipo.
+    expect(camposDelCambio({ tipo: 'porcentaje', valor: '10' }, { tipo: 'monto', valor: '500' }).find((c) => c.campo === 'Valor'))
+      .toEqual({ campo: 'Valor', anterior: '10', nuevo: '500,00' })
+    // Sin tipo (p. ej. la cotización) el valor sigue siendo un importe.
+    expect(camposDelCambio({ valor: '1200' }, { valor: '1300' })[0].nuevo).toBe('1.300,00')
+  })
+
   it('arma campo por campo el antes y el después', () => {
     expect(camposDelCambio({ rol: 'Consulta' }, { rol: 'Mostrador' })).toEqual([{ campo: 'Rol', anterior: 'Consulta', nuevo: 'Mostrador' }])
   })

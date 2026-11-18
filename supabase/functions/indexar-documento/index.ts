@@ -5,6 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
+import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno } from './consultas.ts'
 import { escrituraFragmentos, type ClienteFragmentos } from './fragmentos.ts'
 import { puedeGestionarDocumentos } from './reglas.ts'
 
@@ -57,7 +58,8 @@ Deno.serve((req) => {
   }
 
   const servicioFragmentos: ClienteFragmentos = {
-    borrar: (versionId, organizacionId) => admin.from('fragmentos_indexados').delete().eq('version_id', versionId).eq('organizacion_id', organizacionId),
+    // Borrado condicional atómico (public.borrar_fragmentos_si_dueno): solo si la versión sigue en manos de este reclamo.
+    borrar: (versionId, organizacionId, reclamo) => llamarBorrarFragmentosSiDueno(admin, versionId, organizacionId, reclamo),
     insertar: (filas) => admin.from('fragmentos_indexados').insert(filas),
   }
 
@@ -81,18 +83,16 @@ Deno.serve((req) => {
       return { subida_por: data.subida_por, id: data.id, estado: data.estado, motivo_error: data.motivo_error, storage_path: data.storage_path, nombre: doc.nombre, organizacion_id: doc.organizacion_id } satisfies VersionDoc
     },
     reclamar: async (jwt, id, motivoPrevio, reclamo) => {
-      let q = comoUsuario(jwt).from('versiones_documento').update({ motivo_error: reclamo }).eq('id', id).eq('estado', 'procesando')
-      q = motivoPrevio === null ? q.is('motivo_error', null) : q.eq('motivo_error', motivoPrevio)
-      const { data, error } = await q.select('id')
+      const { data, error } = await consultaReclamar(comoUsuario(jwt), id, motivoPrevio, reclamo)
       return !error && (data?.length ?? 0) === 1
     },
     soltar: async (jwt, id, reclamo) => {
-      const { error } = await comoUsuario(jwt).from('versiones_documento').update({ motivo_error: null }).eq('id', id).eq('estado', 'procesando').eq('motivo_error', reclamo)
+      const { error } = await consultaSoltar(comoUsuario(jwt), id, reclamo)
       if (error) throw new Error(`soltar: ${error.code ?? ''} ${error.message}`)
     },
     // Solo mientras sigue `procesando`: una versión ya activa (o reemplazada) nunca se pisa a `fallida`.
     marcarFallida: async (jwt, id, motivo, reclamo) => {
-      const { data, error } = await comoUsuario(jwt).from('versiones_documento').update({ estado: 'fallida', motivo_error: motivo }).eq('id', id).eq('estado', 'procesando').eq('motivo_error', reclamo).select('id')
+      const { data, error } = await consultaMarcarFallida(comoUsuario(jwt), id, motivo, reclamo)
       if (error) console.error('indexar-documento: no se pudo marcar la versión fallida', error.code ?? '', error.message)
       return !error && (data?.length ?? 0) === 1
     },

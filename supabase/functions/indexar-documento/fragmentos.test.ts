@@ -4,12 +4,12 @@ import { escrituraFragmentos, type FilaFragmento } from './fragmentos.ts'
 
 const fila = (orden: number, extra: Partial<FilaFragmento> = {}): FilaFragmento => ({ version_id: 'v1', organizacion_id: 'org-1', texto: 't', embedding: '[0]', orden, ...extra })
 
-function montar(version: { organizacion_id: string } | null, errorEn?: 'delete' | 'insert') {
+function montar(version: { organizacion_id: string } | null, errorEn?: 'delete' | 'insert', noDueno = false) {
   const registro: Array<{ op: string; filtros?: Array<[string, string]>; n?: number }> = []
   const servicio = {
-    borrar: async (versionId: string, organizacionId: string) => {
-      registro.push({ op: 'delete', filtros: [['version_id', versionId], ['organizacion_id', organizacionId]] })
-      return { error: errorEn === 'delete' ? 'x' : null }
+    borrar: async (versionId: string, organizacionId: string, reclamo: string) => {
+      registro.push({ op: 'delete', filtros: [['version_id', versionId], ['organizacion_id', organizacionId], ['reclamo', reclamo]] })
+      return { data: !noDueno, error: errorEn === 'delete' ? { code: 'x' } : null }
     },
     insertar: async (filas: FilaFragmento[]) => { registro.push({ op: 'insert', n: filas.length }); return { error: errorEn === 'insert' ? 'x' : null } },
   }
@@ -17,14 +17,17 @@ function montar(version: { organizacion_id: string } | null, errorEn?: 'delete' 
 }
 
 describe('escritura de fragmentos con el cliente de servicio', () => {
-  it('borra filtrando por version_id Y organizacion_id de la versión que el usuario ve', async () => {
+  it('borra filtrando por version_id, organizacion_id de la versión que el usuario ve y el reclamo propio', async () => {
     const m = montar({ organizacion_id: 'org-1' })
-    assert.equal(await m.borrarFragmentos('jwt', 'v1'), true)
-    assert.deepEqual(m.registro, [{ op: 'delete', filtros: [['version_id', 'v1'], ['organizacion_id', 'org-1']] }])
+    assert.equal(await m.borrarFragmentos('jwt', 'v1', 'rec-1'), true)
+    assert.deepEqual(m.registro, [{ op: 'delete', filtros: [['version_id', 'v1'], ['organizacion_id', 'org-1'], ['reclamo', 'rec-1']] }])
+  })
+  it('si la base dice que la versión ya no es de este reclamo (activa o retomada) devuelve false', async () => {
+    assert.equal(await montar({ organizacion_id: 'org-1' }, undefined, true).borrarFragmentos('jwt', 'v1', 'rec-1'), false)
   })
   it('no toca nada si el usuario no ve la versión (inexistente, ajena o sin acceso)', async () => {
     const m = montar(null)
-    assert.equal(await m.borrarFragmentos('jwt', 'v1'), false)
+    assert.equal(await m.borrarFragmentos('jwt', 'v1', 'rec-1'), false)
     assert.equal(await m.insertarFragmentos('jwt', [fila(0)]), false)
     assert.deepEqual(m.registro, [])
   })
@@ -40,7 +43,7 @@ describe('escritura de fragmentos con el cliente de servicio', () => {
     assert.deepEqual(m.registro, [])
   })
   it('un error de la base devuelve false; sin filas es verdadero sin tocar la base', async () => {
-    assert.equal(await montar({ organizacion_id: 'org-1' }, 'delete').borrarFragmentos('jwt', 'v1'), false)
+    assert.equal(await montar({ organizacion_id: 'org-1' }, 'delete').borrarFragmentos('jwt', 'v1', 'rec-1'), false)
     assert.equal(await montar({ organizacion_id: 'org-1' }, 'insert').insertarFragmentos('jwt', [fila(0)]), false)
     const vacio = montar({ organizacion_id: 'org-1' })
     assert.equal(await vacio.insertarFragmentos('jwt', []), true)
