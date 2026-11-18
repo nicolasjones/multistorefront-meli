@@ -68,7 +68,7 @@ jobs:
       e2e: ${{ steps.d.outputs.e2e }}
       lane: ${{ steps.carril.outputs.lane }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - id: d
@@ -117,27 +117,32 @@ jobs:
           CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
         run: node scripts/ci-lane.mjs reclamar
 
-  # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
+  # MSF-904: chequeos estáticos y suites de Node puro (docs, guards, tooling, lint). No necesitan el build, así que corren EN
+  # PARALELO con `application`. No se perdió ningún check: cada paso vive en exactamente uno de los dos jobs y los dos cuentan
+  # para `validacion`. Misma condición de disparo que `application` (kill switch, borrador, forks).
   # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
-  application:
+  chequeos:
     needs: changes
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # MSF-925/926: acciones pineadas por SHA y todos los jobs con timeout-minutes (scripts/verificar-workflows.mjs).
+      - name: workflows:check
+        run: pnpm workflows:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
@@ -195,9 +200,58 @@ jobs:
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
       - run: pnpm lint
+
+  # Lo PESADO: build, tests y e2e (sólo si hay código). Lo liviano (docs, guards, tooling y lint) corre en `chequeos`, en paralelo
+  # (MSF-904: antes eran ~14 pasos en serie en este job).
+  # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
+  application:
+    needs: changes
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # El e2e sirve `apps/web/dist`. Además de cuando cambia código, se buildea si el
       # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
       # si no, el build se saltea y el e2e falla por dist ausente.
+      # MSF-904: la instalación de Chromium (+ deps del SO) es de lo más lento y no depende del build: arranca en segundo plano
+      # mientras se compila y el paso `esperar playwright install` (antes del e2e) la espera y falla si falló. El caché de
+      # `~/.cache/ms-playwright` va antes y guarda el binario.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install (en segundo plano)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: |
+          rm -f "$RUNNER_TEMP/playwright-install.rc"
+          (
+            (
+              set -e
+              if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+                # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin libglib-2.0 (el browser muere con
+                # "error while loading shared libraries") hay que instalar SIEMPRE las deps del SO, aun con cache hit.
+                echo "chromium en cache -> binario + deps del SO"
+                pnpm --filter @platform/web exec playwright install chromium
+                pnpm --filter @platform/web exec playwright install-deps chromium
+              else
+                pnpm --filter @platform/web exec playwright install --with-deps chromium
+              fi
+            )
+            echo $? > "$RUNNER_TEMP/playwright-install.rc"
+          ) > "$RUNNER_TEMP/playwright-install.log" 2>&1 < /dev/null &
       - name: build
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
@@ -224,25 +278,15 @@ jobs:
       # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
       # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
       # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.
-      - uses: actions/cache@v4
+      - name: esperar playwright install
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
-        with:
-          path: ~/.cache/ms-playwright
-          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - name: playwright install
-        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        timeout-minutes: 10
         run: |
-          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
-            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
-            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
-            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
-            # fallaba en PRs que no tenían nada que ver (falso rojo).
-            echo "chromium en cache -> binario + deps del SO"
-            pnpm --filter @platform/web exec playwright install chromium
-            pnpm --filter @platform/web exec playwright install-deps chromium
-          else
-            pnpm --filter @platform/web exec playwright install --with-deps chromium
-          fi
+          # `wait` no sirve entre pasos (otro shell): se espera el archivo con el código de salida de la instalación.
+          while [ ! -f "$RUNNER_TEMP/playwright-install.rc" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/playwright-install.log"
+          rc=$(cat "$RUNNER_TEMP/playwright-install.rc")
+          if [ "$rc" != "0" ]; then echo "playwright install terminó con código $rc"; exit 1; fi
       - name: test:e2e
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         env:
@@ -258,6 +302,12 @@ jobs:
           # (no como filtro de archivo), así que antes corría los 103 specs. `exec playwright test <archivo>` filtra de verdad.
           pnpm --filter @platform/web exec playwright test acceso-publico.e2e.ts recorrido-publico.e2e.ts
           # El reporte JSON (`resultado-e2e.json`) sale de la config en CI.
+      # MSF-928: Playwright cuenta un test omitido como éxito. Los dos specs públicos de este job no deben omitirse nunca
+      # (no dependen de ningún stack): si uno se salta por un entorno incompleto, el job falla, y el resumen del job cuenta
+      # los corridos y omitidos por archivo.
+      - name: e2e omitidos (los specs requeridos de este job no se pueden omitir)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=0 --requeridos=acceso-publico.e2e.ts,recorrido-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): viaja en el
       # artefacto y lo importa el panel SDLC, que sirve los videos.
       - name: cobertura:e2e
@@ -287,7 +337,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report
@@ -308,13 +358,13 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -368,9 +418,12 @@ jobs:
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          # Igual que `e2e-tienda`: sin esto el build sirve el PANEL en `mundojc.localhost` y las tiendas del seed no se resuelven
+          # (`cuenta-web-cliente` cargaba el panel en vez de la tienda en /definir-contrasena).
+          echo "VITE_PANEL_HOSTS=localhost,127.0.0.1" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -387,6 +440,12 @@ jobs:
           E2E_VIDEO: 'on'
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
+          # Cámara lenta reducida: el job es manual y corre en un host compartido y saturado; con los 350 ms / 30 pasos de
+          # los videos locales los recorridos visibles agotan sus timeouts. Los defaults del modo local no cambian.
+          E2E_SLOWMO_MS: '100'
+          E2E_MOUSE_PASOS: '10'
+          # Video de los contextos en 1280x720 (el 1080p tardaba ~200 s en cerrar y adjuntar 2 contextos de `notificaciones` en el host saturado).
+          E2E_VIDEO_CONTEXTOS: baja
           E2E_GREP: ${{ inputs.e2e_grep }}
           E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json
@@ -394,16 +453,24 @@ jobs:
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
           # Los nombres de archivo se pasan por entorno, nunca interpolados en el script.
           ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
+          # `--workers=2`: el runner va cargado (load ~50) y con un worker por spec, el recorrido visible (cursor, rótulos, `slowMo`,
+          # video 1080p) agota los timeouts de 3-5 min de seis specs a la vez. Va antes de los filtros y SIN `--`.
+          # `--retries=0`: un reintento duplica el tiempo de cada rojo y, con 5 min por spec visible y 40 min de tope del job, agota el job
+          # entero. Esto NO da por resueltos MSF-964/965/966: siguen abiertos hasta que los 6 specs pasen en una corrida de sesión.
           if [ -n "$E2E_GREP" ]; then
-            pnpm test:e2e $ARCHIVOS --grep "$E2E_GREP"
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm test:e2e $ARCHIVOS
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS
           fi
+      # Guarda de omitidos del job de sesión: solo se tolera 1 (SC-006 de `cuenta-web-cliente`, que se omite porque este stack se levanta
+      # sin Edge Runtime: ver docs/e2e-app.md). Imprime el motivo de cada omitido (el reporter de lista no lo muestra).
+      - name: Verificar que no haya omisiones inesperadas
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
       - name: cobertura:e2e (sesión)
         if: always()
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/resultado-e2e.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report-sesion
@@ -433,19 +500,21 @@ jobs:
     # Más de 3 shards NO ayuda: la máquina (8 núcleos, load ~30) está limitada por CPU, no por tramos.
     timeout-minutes: 45
     strategy:
-      fail-fast: true
+      # MSF-901: con `fail-fast: true` un shard rojo CANCELABA a los otros dos y `validacion` veía jobs `cancelled` mezclados con el
+      # fallo real. Apagado: los tres shards terminan y cada uno informa su resultado (el costo es no cortar antes la corrida roja).
+      fail-fast: false
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # En un PR hace falta el historial para calcular qué tests afecta el diff (`--changed`).
           # OJO: '0' va entre comillas. En una expresión `a && 0 || 1`, el 0 es falso y siempre daría 1 (clon superficial).
           fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas: ahorra el costo fijo de `pnpm install` en cada tramo.
@@ -503,11 +572,11 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -522,7 +591,7 @@ jobs:
           echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         if: runner.environment == 'github-hosted'
         with:
           version: 2.116.0
@@ -603,7 +672,7 @@ jobs:
       # `VITE_PANEL_HOSTS`: sin él el panel se sirve en `mundojc.localhost` y las tiendas no se resuelven.
       - name: build de la web contra el stack del CI
         run: pnpm --filter @platform/web exec vite build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -638,7 +707,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure() || cancelled()
         with:
           name: playwright-report-tienda
@@ -667,13 +736,13 @@ jobs:
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - run: pnpm infra:config
@@ -701,13 +770,13 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
@@ -722,7 +791,7 @@ jobs:
           echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         if: runner.environment == 'github-hosted'
         with:
           version: 2.116.0
@@ -756,13 +825,13 @@ jobs:
   # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: ${{ always() && vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: Liberar carril de admisión
@@ -776,43 +845,34 @@ jobs:
   # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
   # falla a propósito: mientras el CI está pausado no se mergea.
   validacion:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: always()
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 5
     steps:
+      # Un PR de un fork NUNCA ejecuta su código en el runner self-hosted: se rechaza con un paso inline, sin checkout.
+      - name: PR de un fork
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
+          exit 1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          node-version: 24
       - name: Verificar que nada haya fallado
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           EVENTO: ${{ github.event_name }}
           REPO_ORIGEN: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
-        run: |
-          # Los PRs de forks no corren en los runners self-hosted (los jobs pesados los saltean): sin esto
-          # `validacion` daría verde con todo `skipped`. Hay que re-publicar la rama dentro del repo.
-          if [ "$EVENTO" = "pull_request" ] && [ "$REPO_ORIGEN" != "$REPO" ]; then
-            echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
-            exit 1
-          fi
-          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
-            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
-            exit 1
-          fi
-          fallo=0
-          for resultado in \
-            "changes=${{ needs.changes.result }}" \
-            "application=${{ needs.application.result }}" \
-            "web=${{ needs.web.result }}" \
-            "e2e-tienda=${{ needs.e2e-tienda.result }}" \
-            "infrastructure=${{ needs.infrastructure.result }}" \
-            "database=${{ needs.database.result }}"; do
-            echo "$resultado"
-            case "$resultado" in
-              *=success|*=skipped) ;;
-              *) fallo=1 ;;
-            esac
-          done
-          if [ "$fallo" = "1" ]; then
-            echo "Hay jobs fallidos o cancelados: no se valida."
-            exit 1
-          fi
-          echo "Validación OK (los jobs skipped cuentan como OK)."
+          CI_PAUSED: ${{ vars.CI_PAUSED }}
+          E2E_TIENDA_BLOQUEA: ${{ vars.E2E_TIENDA_BLOQUEA }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        # La lógica vive en scripts/verificar-validacion.mjs (con tests): `failure` y `cancelled` se distinguen y `e2e-tienda` no
+        # bloquea mientras E2E_TIENDA_BLOQUEA no sea `true` (MSF-901).
+        run: node scripts/verificar-validacion.mjs

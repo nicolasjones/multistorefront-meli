@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fixture'
-import { ingresar, limpiar, serviceKey, sembrar, url, violacionesAxe, type Sembrado } from './importaciones-soporte'
+import { conexionDe, ingresar, limpiar, serviceKey, sembrar, sistemaExterno, url, violacionesAxe, type Sembrado } from './importaciones-soporte'
+import { altaUsuario, cabeceras, rest, sql } from './soporte/fixtures'
 import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 
 // Cierre de F-OPS-06 (MSF-396 · T028 · SC-006): el administrador pide la exportación total, ve el avance en el
@@ -9,39 +10,16 @@ import { clic, paso, prepararPaginaVisible, rotulo } from './visible'
 // Requiere el stack local (`pnpm dev:supabase`) y la web servida; sin SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY se omite.
 test.describe('Exportar todos los datos (MSF-396)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
+  // Sin tope por acción, un elemento que no aparece (clic, `boundingBox`, `fill`) deja el test colgado hasta su timeout de 5 min y
+  // oculta el fallo real; con tope falla en 30 s señalando la acción.
+  test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
-  const cabeceras = (extra: Record<string, string> = {}) => ({ apikey: serviceKey ?? '', authorization: `Bearer ${serviceKey}`, ...extra })
-
-  async function rest(ruta: string, metodo: string, cuerpo?: unknown) {
-    const r = await fetch(`${url}/rest/v1/${ruta}`, {
-      method: metodo,
-      headers: cabeceras({ 'content-type': 'application/json', prefer: 'return=representation' }),
-      body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
-    })
-    if (!r.ok) throw new Error(`REST ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
-    return (await r.json()) as Record<string, unknown>[]
-  }
-
-  async function altaUsuario(correo: string): Promise<string> {
-    const r = await fetch(`${url}/auth/v1/admin/users`, {
-      method: 'POST',
-      headers: cabeceras({ 'content-type': 'application/json' }),
-      body: JSON.stringify({ email: correo, password: 'Correcta-12345!', email_confirm: true }),
-    })
-    if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
-    return ((await r.json()) as { id: string }).id
-  }
-
-  // Organización con conexión de exportaciones (`historial-ventas`), como la deja un administrador de la plataforma.
+  // `service_role` no tiene grant sobre `conexiones`, `sistemas_externos` ni `procesos_masivos` (la REST daría 42501): se siembran
+  // por `sql()` (solo siembra; lo que se VERIFICA se mira en la pantalla). La conexión de exportaciones (`historial-ventas`)
+  // la deja un administrador de la plataforma; el esquema no trae la referencia, se siembra sin pisar la existente.
   async function conexionExportaciones(orgId: string) {
-    // La referencia `historial-ventas` no viene en el esquema (la crea el alta del sistema): se siembra sin pisar la existente.
-    const ref = await fetch(`${url}/rest/v1/sistemas_externos?on_conflict=id`, {
-      method: 'POST',
-      headers: cabeceras({ 'content-type': 'application/json', prefer: 'resolution=ignore-duplicates' }),
-      body: JSON.stringify({ id: 'historial-ventas', descripcion: 'Historial de ventas (exportaciones de la organización)' }),
-    })
-    if (!ref.ok) throw new Error(`REST sistemas_externos: ${ref.status} ${await ref.text()}`)
-    await rest('conexiones', 'POST', { organizacion_id: orgId, sistema_externo: 'historial-ventas', credencial_vault_id: randomUUID() })
+    await sistemaExterno('historial-ventas', 'Historial de ventas (exportaciones de la organización)')
+    await conexionDe(orgId, 'historial-ventas')
   }
 
   test('[MSF-396:T028] pedir, ver el avance, descargar el ZIP y respetar los permisos, sin violaciones de accesibilidad', async ({ browser }, testInfo) => {
@@ -58,7 +36,7 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
       const correoSinPermiso = `consulta-exp-${sufijo}@example.com`
       const idConsulta = await altaUsuario(correoSinPermiso)
       extras.push(idConsulta)
-      await rest('usuarios_organizacion', 'POST', { user_id: idConsulta, organizacion_id: datos.orgId, rol_id: 'consulta' })
+      await rest('usuarios_organizacion', { user_id: idConsulta, organizacion_id: datos.orgId, rol_id: 'consulta' })
 
       const { page } = sesion
       await prepararPaginaVisible(page)
@@ -86,15 +64,16 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
       })
 
       // La siembra hace de worker: sube el ZIP al bucket y cierra el proceso.
-      const [proceso] = await rest(`procesos_masivos?organizacion_id=eq.${datos.orgId}&funcionalidad=eq.exportacion_total&select=id,ejecucion_id`, 'GET')
-      const ruta = `${datos.orgId}/${String(proceso.ejecucion_id)}.zip`
+      const [proceso] = await sql<{ id: string; ejecucion_id: string }>("select id, ejecucion_id from public.procesos_masivos where organizacion_id = $1 and funcionalidad = 'exportacion_total'", [datos.orgId])
+      const ruta = `${datos.orgId}/${proceso.ejecucion_id}.zip`
       const subida = await fetch(`${url}/storage/v1/object/exportaciones-organizacion/${ruta}`, {
         method: 'POST',
         headers: cabeceras({ 'content-type': 'application/zip' }),
+        signal: AbortSignal.timeout(30_000),
         body: Buffer.from('PK\x05\x06' + '\0'.repeat(18), 'binary'),
       })
       if (!subida.ok) throw new Error(`subida del ZIP: ${subida.status} ${await subida.text()}`)
-      await rest(`procesos_masivos?id=eq.${String(proceso.id)}`, 'PATCH', { estado: 'completado', total: 3, procesados: 3, finalizado_en: new Date().toISOString() })
+      await sql("update public.procesos_masivos set estado = 'completado', total = 3, procesados = 3, finalizado_en = now() where id = $1", [proceso.id])
 
       await paso(page, 'Descarga el ZIP cuando termina', async () => {
         await page.reload()
@@ -140,11 +119,9 @@ test.describe('Exportar todos los datos (MSF-396)', () => {
       if (datos) {
         await fetch(`${url}/storage/v1/object/exportaciones-organizacion`, {
           method: 'DELETE',
-          headers: cabeceras({ 'content-type': 'application/json' }),
+          headers: cabeceras(),
           body: JSON.stringify({ prefixes: [`${datos.orgId}/`] }),
         }).catch(() => undefined)
-        await fetch(`${url}/rest/v1/capacidades_ejecucion?organizacion_id=eq.${datos.orgId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
-        await fetch(`${url}/rest/v1/conexiones?organizacion_id=eq.${datos.orgId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
         datos.idsUsuario.push(...extras)
         await limpiar(datos)
       }

@@ -33,13 +33,42 @@ tocan directamente: siempre pasan por un remoto `rclone` de nombre estable, `res
 Solo el **superadmin** puede leer los historiales (RLS); ningún rol de organización ni `anon` ve
 nada, y solo el rol `kestra_backups` escribe (vía funciones `security definer`).
 
-### Retención
+### Retención (por días, con tope)
 
-30 copias diarias recientes + la primera copia de cada uno de los 12 últimos meses
-(`RESPALDOS_RETENCION_DIARIAS`, `RESPALDOS_RETENCION_MENSUALES`). La purga **nunca borra la copia
-más reciente** y solo toca nombres con la forma `AAAAMMDD-HHMMSS…` (cualquier otro archivo del
-destino se ignora). Una corrida puntual puede usar otros valores con los inputs `diarias` y
-`mensuales` del flow.
+La retención es **por días**, no por cantidad (MSF-714): se conservan las copias de los últimos `RESPALDOS_RETENCION_DIAS` días (30 por
+defecto; el nombre anterior `RESPALDOS_RETENCION_DIARIAS` se acepta como respaldo en el Compose) más la primera copia de cada uno de los
+`RESPALDOS_RETENCION_MENSUALES` últimos meses (12). Las **fotos completas de imágenes** pesan todo Storage, así que tienen plazo y tope
+propios: `RESPALDOS_IMAGENES_RETENCION_DIAS` (7), `RESPALDOS_IMAGENES_RETENCION_MENSUALES` (2) y `RESPALDOS_IMAGENES_MAX_COPIAS` (7, mínimo 1: **tope total**, mensuales incluidas: nunca quedan más de 7 fotos, contando desde la más nueva; 0 no significa «sin tope», se rechaza). La purga **nunca borra la copia más reciente** y solo toca nombres con la forma
+`AAAAMMDD-HHMMSS…` (cualquier otro archivo del destino se ignora). Una corrida puntual puede usar otros valores con los inputs `dias` y
+`mensuales` del flow `retencion-copias`.
+
+### Almacenamiento interno de Kestra (MSF-707)
+
+El dump completo de la base se publica como archivo de salida de la tarea `pg_dump` y quedaba en el almacenamiento de Kestra (volumen
+`kestra-data`) sin purga. Ahora `respaldo-postgres` y `verificar-restauracion` tienen un bloque `finally` con
+`PurgeCurrentExecutionFiles` (borra los archivos de la ejecución, con éxito o con error) y el flow `purgar-almacenamiento-kestra` (diario
+04:45) borra ejecuciones terminadas con más de `KESTRA_RETENCION_EJECUCIONES_DIAS` días (7), con sus archivos, logs y métricas. Las copias
+durables están en el destino de respaldos, no en Kestra: purgar Kestra no pierde ningún respaldo.
+
+### Alerta de ausencia y tiempos máximos (MSF-709)
+
+Los flows avisaban cuando **fallaban**, no cuando **no corrían** (Kestra caído, trigger apagado, destino que dejó de recibir archivos).
+`alerta-ausencia-respaldos` (diario 06:30) lista el destino y compara la fecha del **nombre** de cada copia (`AAAAMMDD-HHMMSS`, UTC) con el corte, porque `rclone lsf --max-age` no filtra carpetas, y falla, con aviso por correo a `SOPORTE_CORREO`, si no hay una
+copia de la base **y** una foto de imágenes de las últimas `RESPALDOS_AUSENCIA_HORAS` horas (30). Todos los plazos (días, meses, tope, horas) son enteros sin ceros a la izquierda: `08`, vacío o texto se rechazan con un mensaje claro y sin borrar nada. Toda tarea de copia tiene `timeout`
+(`pg_dump` 2 h, copia al destino 1 h, imágenes 3 h, retención 30 min). El resto de los flows programados ahora tienen bloque `errors:` con
+aviso (`aviso-fallo-flujo`, que solo informa la tarea que falló, no el mensaje del error), `timeout` en cada tarea de red/base/correo y,
+si corren cada 15 minutos o menos, `concurrency` (una corrida a la vez; el reclamo de cada outbox es mayor o igual que el peor caso, declarado en los
+comentarios `reclamo-s`/`peor-caso-s` de cada flow y verificado por el test). El contrato lo fija `pnpm test:kestra:copias` (`validar-robustez-flows.test.mjs`).
+
+### La verificación de restauración falla ante un error real (MSF-708)
+
+`verificar-restauracion` ya no corre `pg_restore ... || true`. Restaura la última copia en un Postgres descartable **sin red** (dentro del
+contenedor, nunca contra una base viva) y: (1) exige que el índice del archivo (`pg_restore --list`) se pueda leer y tenga tablas con datos;
+(2) clasifica la salida de `pg_restore`: solo se aceptan los errores esperados en un Postgres pelado (roles, extensiones, esquemas y permisos
+propios de Supabase, lista `PATRON_ESPERADOS` en el flow), **cualquier otro error falla la verificación**; el log muestra solo el código de salida y un conteo por categoría, nunca el texto crudo (puede citar valores de los datos); (3) cada tabla con
+datos del índice debe existir en la base restaurada; (4) las tablas de `RESPALDOS_VERIFICAR_TABLAS` deben tener filas. Si aparece un error
+esperado nuevo e inocuo, se agrega explícitamente al patrón (un falso rojo es preferible a un verde mentiroso). Cubierto por
+`validar-robustez-flows.test.mjs` (el filtro rechaza datos corruptos, relaciones ausentes y archivos cortados).
 
 ### Objetivo de recuperación (propuesta, a confirmar con el cliente)
 

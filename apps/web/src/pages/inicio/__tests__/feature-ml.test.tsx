@@ -9,8 +9,9 @@ const filas = vi.hoisted(() => [
   { id: 'a2', empresa_id: null, tipo: 'precios_en_revision', cantidad: 5, calculada_en: new Date().toISOString() },
   { id: 'a3', empresa_id: null, tipo: 'mercado_libre_pausado', cantidad: 1, calculada_en: new Date().toISOString() },
 ])
-vi.mock('../../../lib/supabase', () => ({
+vi.mock('../../../lib/supabase', async () => ({
   supabaseClient: {
+    ...(await import('../../../test/supabaseSimulado')).clienteSupabaseSimulado(),
     from: () => {
       const consulta: Record<string, unknown> = {}
       consulta.select = () => consulta

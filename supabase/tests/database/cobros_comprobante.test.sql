@@ -216,13 +216,13 @@ select throws_ok(
 );
 
 -- Las cuatro FK compuestas están en la base (organización y empresa, no solo el id), y además
--- la FK directa a la organización: cinco en total.
+-- la FK directa a la organización: cinco, más la FK del contra-asiento al cobro que revierte (MSF-667): seis en total.
 select is(
   (select count(*)::int from pg_constraint c
      join pg_class t on t.oid = c.conrelid
      join pg_namespace n on n.oid = t.relnamespace
     where n.nspname = 'dominio' and t.relname = 'cobros_comprobante' and c.contype = 'f'),
-  5, 'el cobro tiene FK a organización, comprobante, empresa, forma de pago y cuenta de cobro'
+  6, 'el cobro tiene FK a organización, comprobante, empresa, forma de pago, cuenta de cobro y cobro revertido'
 );
 
 -- La cuenta «No usar» (activa = false) no se ofrece para un cobro nuevo.

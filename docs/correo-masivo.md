@@ -249,3 +249,9 @@ con la foto del contenido en `campanas_correo.bloques`. El cupo diario por organ
 suscriptor (`confirmado`, tienda activa e interruptor encendido); los historiales de esta guía solo muestran las campañas `tipo = 'clientes'`.
 `dar_de_baja_correo_masivo` también resuelve suscriptores. **Los correos a clientes salen igual que antes** (pgTAP `correo_masivo_lote`, `correo_masivo_campanas`,
 `correo_masivo_destinatarios` y `correo_masivo_historial` sin cambios y verdes).
+
+## Aceptación en la migración de clientes (lote 32 · MSF-666)
+
+La base migrada ya no queda con cero elegibles: la importación lee `acepta_correo` y hay una acción masiva con registro de quién y
+cuándo (`acepta_correo_masivo_por` / `acepta_correo_masivo_en`). Sin valor por defecto: vacío = sin aceptación. Detalle en
+`docs/clientes.md`.

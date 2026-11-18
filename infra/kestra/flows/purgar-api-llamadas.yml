@@ -31,6 +31,7 @@ tasks:
     sql: select private.purgar_api_llamadas(CAST(:retencion AS integer));
     parameters:
       retencion: "{{ inputs.retencion_dias ?? envs.api_auditoria_retencion_dias ?? 90 }}"
+    timeout: PT1M
 errors:
   - id: avisar_fallo
     type: io.kestra.plugin.core.flow.Subflow

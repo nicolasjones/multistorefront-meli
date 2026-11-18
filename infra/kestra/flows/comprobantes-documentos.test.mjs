@@ -15,7 +15,7 @@ const leer = async () => sinComentarios(await readFile(FLOW, 'utf8'));
 
 test('reclama solo las órdenes generar-documento-venta-* con un límite y un reclamo acotados', async () => {
   const content = await leer();
-  assert.match(content, /private\.reclamar_despachos_capacidad\('generar-documento-venta-', 5, 600\)/);
+  assert.match(content, /private\.reclamar_despachos_capacidad\('generar-documento-venta-', 5, 3600\)/);
   assert.doesNotMatch(content, /reclamar_despachos_ejecucion/, 'el reclamo genérico tomaría órdenes de otros productos');
   assert.match(content, /detalle->>'documento_id' as documento_id/, 'el flow necesita el documento a generar');
 });

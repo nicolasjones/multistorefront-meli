@@ -34,6 +34,13 @@ labels:
   dominio: clientes
   componente: correo-masivo
 description: "Envía por lotes, con cupo diario y enlace de baja, el correo masivo a clientes."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+# Con `concurrency` en 1 el reclamo (900 s) solo cumple de plazo de recuperación ante una caída: nadie más reclama mientras la corrida
+# sigue procesando su lote (lote 50 / 2 en paralelo: el peor caso supera el reclamo, pero una corrida no se solapa con otra).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   # El enlace de baja (opt-out) no puede salir roto: sin una URL pública https, o apuntando a localhost (el valor por
   # defecto del Compose de desarrollo), el flow falla ANTES de reclamar el lote, así que no se manda ningún correo.
@@ -56,6 +63,7 @@ tasks:
     parameters:
       lote: "{{ envs.correo_masivo_lote ?? 50 }}"
       limite: "{{ envs.correo_masivo_limite_diario ?? 500 }}"
+    timeout: PT1M
   - id: enviar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar.rows }}"
@@ -89,6 +97,7 @@ tasks:
                   interval: PT30S
                   maxInterval: PT5M
                   maxAttempts: 4
+                timeout: PT2M
             errors:
               # El correo falló tras sus reintentos: el destinatario queda fallido con un motivo fijo (no el mensaje del
               # SMTP). Si el fallo fue al cerrar, el cierre es idempotente y no pisa a un enviado.
@@ -100,6 +109,7 @@ tasks:
                 sql: select private.cerrar_envio_correo_masivo(CAST(:destinatario AS uuid), 'fallido', 'No se pudo enviar el correo');
                 parameters:
                   destinatario: "{{ fromJson(parent.taskrun.value).destinatario_id }}"
+                timeout: PT1M
           - id: cerrar_enviado
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -112,6 +122,20 @@ tasks:
               type: constant
               interval: PT5S
               maxAttempts: 3
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: correo-masivo
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_correo_masivo
     type: io.kestra.plugin.core.trigger.Schedule
