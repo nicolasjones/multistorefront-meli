@@ -86,6 +86,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     expect(screen.getByRole('heading', { name: 'Faltantes de stock (A pedido)', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve.')).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Faltantes de stock', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Faltantes de despacho' })).toHaveAttribute('href', '/ventas/faltantes')
     expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
     expect(screen.getByText('Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.')).toBeInTheDocument()
     for (const nombre of ['Seleccionar todos', 'Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy', 'Aviso']) {

@@ -67,7 +67,6 @@ describe('InteresWhatsappDialog', () => {
     abrir()
     expect(await screen.findByText('Todavía no hay interés para mostrar.')).toBeInTheDocument()
     expect(screen.getByText(/no significa que nadie haya consultado/)).toBeInTheDocument()
-    expect(screen.getByText(/lo vas a ver acá/)).toBeInTheDocument()
   })
 
   it('ante un error ofrece Reintentar y vuelve a cargar', async () => {

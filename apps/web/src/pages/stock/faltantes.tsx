@@ -198,7 +198,7 @@ export function FaltantesStock() {
     <Box>
       <EncabezadoPagina
         titulo="Faltantes de stock (A pedido)"
-        descripcion="Líneas «A pedido» de facturas confirmadas que esperan mercadería. Se avisa al cliente cuando el producto vuelve."
+        descripcion="Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve."
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeAvisar ? (
           <Button variant="contained" disabled={cantidadElegidos === 0} onClick={() => setDialogo(true)}>

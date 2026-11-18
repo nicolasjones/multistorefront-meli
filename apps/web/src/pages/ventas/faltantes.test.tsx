@@ -104,6 +104,7 @@ describe('FaltantesList · empresa activa (F-VTA-18, FR-044, FR-046)', () => {
     abrir()
     expect(await screen.findByRole('heading', { name: 'Faltantes de despacho', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Líneas vendidas o pedidas sin stock.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Faltantes de stock' })).toHaveAttribute('href', '/stock/faltantes')
   })
 
   it('ofrece el filtro de tienda con su texto de ayuda y filtra por la tienda elegida (FR-044)', async () => {

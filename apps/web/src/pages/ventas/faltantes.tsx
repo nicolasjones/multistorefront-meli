@@ -282,7 +282,7 @@ export function FaltantesList() {
     <Box>
       <EncabezadoPagina
         titulo="Faltantes de despacho"
-        descripcion="Líneas de facturas vendidas o pedidas sin stock que se avisan al cliente."
+        descripcion="Líneas vendidas o pedidas sin stock."
         contexto={<ContextoOrganizacionActiva />}
         accion={
           puedeAvisar ? (

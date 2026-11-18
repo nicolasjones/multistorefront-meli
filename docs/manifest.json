@@ -2310,14 +2310,14 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
-      "pageHash": "7d9b4154dbae264c80e06439b93616acd0a7026ae38daab32385a2fdfa1850ad",
-      "sourceHash": "97c91ca9542c1538999ec7bd4c5e1fdaf8a20efe5f8d5a27cad3658db4b7bb46",
-      "sourceAt": "c7860a7c9",
+      "pageHash": "7423d286ffaa00850f326aeb7c337258b0b108a151b992bd73fb98671f913d72",
+      "sourceHash": "f17f48b7d31065a3db28f142fe0edd6490810b210b7c00311a1a7d6c9d72cdde",
+      "sourceAt": "6ba53199",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c9"
+      "commit": "6ba53199"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
@@ -2414,9 +2414,9 @@
     },
     "docs/stock-faltantes.md": {
       "title": "Stock · Faltantes con aviso de reposición (F-STK-17)",
-      "pageHash": "88708b59928dbb22a5165c3c64a374bc15bb8122df0813210246e80071a36b4c",
-      "sourceHash": "2fe6081a442420b27ad98f12f6e1b06a5d5f7acca7b5bd42d55bb8636aeba398",
-      "sourceAt": "c7860a7c",
+      "pageHash": "8696b3d19bd4fc5ecb53561c082a3439b6c713d259685cc7b2aa7c6f0c9796ae",
+      "sourceHash": "ab1074507e579af326250026ee2ba7deb1f07ee378635592ee3fdf7e5feca626",
+      "sourceAt": "6ba53199",
       "sources": [
         "specs/20261024-130000-stock-carga-exportacion-y-avisos",
         "infra/kestra",
@@ -2427,7 +2427,7 @@
         "supabase/migrations/20261213100400_avisar_faltantes.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "6ba53199"
     },
     "docs/stock-lotes-e-inventario.md": {
       "title": "Stock · Lotes e inventario (épica MSF-131)",
@@ -2510,14 +2510,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "cae1ee78882130cf8d5565b7e186a0d6187b49376fb61da20a5cd9887b4fd5fe",
-      "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "9e37897a",
+      "pageHash": "17ed452555f425f8f5e0135c7e63c867c6a8deca3d1c8ec968f8003b0686fdf4",
+      "sourceHash": "f17f48b7d31065a3db28f142fe0edd6490810b210b7c00311a1a7d6c9d72cdde",
+      "sourceAt": "6ba53199",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "9e37897a"
+      "commit": "6ba53199"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
