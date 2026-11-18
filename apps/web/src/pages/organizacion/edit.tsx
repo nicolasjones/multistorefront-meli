@@ -1,3 +1,4 @@
+import { etiquetaZonaHoraria } from '../../lib/zonaHoraria'
 import { type ChangeEvent, type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
@@ -245,7 +246,7 @@ export function OrganizacionEdit() {
             fullWidth
             slotProps={{ select: { native: true } }}
           >
-            {zonas.map((valor) => <option key={valor} value={valor}>{valor}</option>)}
+            {zonas.map((valor) => <option key={valor} value={valor}>{etiquetaZonaHoraria(valor)}</option>)}
           </TextField>
           <Box component="section" aria-labelledby="logo-organizacion-titulo">
             <Typography id="logo-organizacion-titulo" component="h2" variant="subtitle1" sx={{ mb: 1 }}>Logo</Typography>

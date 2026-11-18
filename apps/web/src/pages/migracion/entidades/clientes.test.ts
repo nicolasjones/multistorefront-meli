@@ -7,7 +7,7 @@ import {
   contenidoPlantilla,
   mapeoAutomatico,
 } from '../../../lib/migracion'
-import { ENCABEZADOS_CLIENTES, CSV_CLIENTES_SINTETICOS } from '../../../test/fixtures/clientesMigracion'
+import { ENCABEZADOS_CLIENTES, ENCABEZADOS_PLANTILLA_CLIENTES, CSV_CLIENTES_SINTETICOS } from '../../../test/fixtures/clientesMigracion'
 import { ENTIDAD_CLIENTES } from './clientes'
 import { obtenerEntidad } from './registro'
 
@@ -16,7 +16,7 @@ describe('definición de la entidad clientes', () => {
     expect(ENTIDAD_CLIENTES.rpcPrevisualizar).toBe('previsualizar_lote_clientes')
     expect(ENTIDAD_CLIENTES.rpcAplicar).toBe('aplicar_lote_clientes')
     expect(ENTIDAD_CLIENTES.archivoPlantilla).toBe('clientes.csv')
-    expect(contenidoPlantilla(ENTIDAD_CLIENTES).trim().split(',')).toEqual([...ENCABEZADOS_CLIENTES])
+    expect(contenidoPlantilla(ENTIDAD_CLIENTES).trim().split(',')).toEqual([...ENCABEZADOS_PLANTILLA_CLIENTES])
   })
 
   it('registra clientes y rechaza entidades desconocidas', () => {

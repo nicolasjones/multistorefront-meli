@@ -9,12 +9,12 @@ const EMPRESAS = [
 ]
 
 describe('EmpresasProducto', () => {
-  it('muestra una fila por empresa (sin asumir cuántas) con «Precio: —» y un interruptor accesible', () => {
+  it('muestra una fila por empresa (sin asumir cuántas) sin un «Precio: —» que nunca se completa y con un interruptor accesible', () => {
     render(<EmpresasProducto empresas={EMPRESAS} seleccion={['emp-1']} onCambiar={vi.fn()} />)
     expect(screen.getAllByRole('switch')).toHaveLength(3)
     expect(screen.getByRole('switch', { name: 'San Javucho' })).toBeChecked()
     expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
-    expect(screen.getAllByText('Precio: —')).toHaveLength(3)
+    expect(screen.queryByText('Precio: —')).not.toBeInTheDocument()
     expect(screen.getByText('Vieja SA (inactiva)')).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Vieja SA (inactiva)' })).not.toBeChecked()
   })

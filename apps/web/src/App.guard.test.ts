@@ -77,6 +77,18 @@ describe('rutas solo de administradores', () => {
     expect(bloque).toContain('<RequiereAdministrador')
   })
 
+  it.each(['/empresas', '/empresas/edit/:id'])('%s se envuelve en RequiereAccesoSeccion de «empresas»', (ruta) => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => trozo.trimStart().startsWith(`path="${ruta}"`))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAccesoSeccion seccion="empresas">')
+  })
+
+  it('/stock/motivos se envuelve en RequiereAdministrador', () => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => /^\s+path="\/stock\/motivos"/.test(trozo))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAdministrador')
+  })
+
   it('un comentario con el nombre del guard no engaña al chequeo', () => {
     const falso = '<Route path="/x" element={<A />} />{/* <RequiereAdministrador> */}\n  // <RequiereAdministrador>'
     expect(sinComentarios(falso)).not.toContain('RequiereAdministrador')

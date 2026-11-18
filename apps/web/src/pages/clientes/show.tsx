@@ -43,6 +43,7 @@ const DATOS: ReadonlyArray<{ campo: keyof Cliente; etiqueta: string }> = [
   { campo: 'localidad', etiqueta: 'Localidad' },
   { campo: 'provincia', etiqueta: 'Provincia' },
   { campo: 'expreso_preferido', etiqueta: 'Expreso preferido' },
+  { campo: 'condicion_iva', etiqueta: 'Condición de IVA' },
   { campo: 'descuento', etiqueta: 'Descuento' },
 ]
 

@@ -24,7 +24,7 @@ describe('SolicitarRecuperacionPage', () => {
 
   async function requestFor(email: string) {
     render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
-    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: email } })
+    fireEvent.change(screen.getByLabelText(/^Correo/), { target: { value: email } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación' }))
     await screen.findByText(neutralNotice)
   }
@@ -46,7 +46,7 @@ describe('SolicitarRecuperacionPage', () => {
   it('does not reveal account existence when the request is limited or fails', async () => {
     resetPasswordForEmail.mockResolvedValue({ error: new Error('rate limit') })
     render(<MemoryRouter><SolicitarRecuperacionPage /></MemoryRouter>)
-    fireEvent.change(screen.getByLabelText(/^Email/), { target: { value: 'persona@example.com' } })
+    fireEvent.change(screen.getByLabelText(/^Correo/), { target: { value: 'persona@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace de recuperación' }))
 
     expect(await screen.findByText('No pudimos enviar el enlace ahora. Intentá nuevamente más tarde.')).toBeInTheDocument()

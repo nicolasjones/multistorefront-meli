@@ -99,7 +99,7 @@ export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: 
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Veces que se tocó «Consultar por WhatsApp» en cada producto de la tienda. No guarda datos de quien tocó.
+            Veces que se tocó «Consultar por WhatsApp» en cada producto de la tienda, sin datos de quien tocó. Este resumen todavía no recibe datos de la tienda: se va a completar cuando se lean las consultas que llegan por WhatsApp.
           </Typography>
           {cargandoEmpresas || carga.estado === 'cargando' ? <EstadoCargaPagina lineas={4} /> : null}
           {!cargandoEmpresas && carga.estado === 'error' ? (
@@ -107,8 +107,8 @@ export function InteresWhatsappDialog({ abierto, onCerrar, onEmpresaCambiada }: 
           ) : null}
           {!cargandoEmpresas && carga.estado === 'listo' && carga.filas.length === 0 ? (
             <EstadoVacio
-              titulo="Todavía no hay interés registrado."
-              descripcion="Cuando alguien toque «Consultar por WhatsApp» en un producto de la tienda, lo vas a ver acá."
+              titulo="Todavía no hay interés para mostrar."
+              descripcion="Hoy este resumen no recibe datos de la tienda; no significa que nadie haya consultado."
             />
           ) : null}
           {!cargandoEmpresas && carga.estado === 'listo' && carga.filas.length > 0 ? (

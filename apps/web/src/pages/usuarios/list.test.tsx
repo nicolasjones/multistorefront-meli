@@ -45,6 +45,23 @@ describe('UsuarioList', () => {
     expect(screen.getByText('M')).toBeInTheDocument()
   })
 
+  it('una ruta sin foto (NoSuchKey) o una firma que falla se ve como inicial, sin console.error ni caída de la lista', async () => {
+    const consola = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    useContextoPanel.mockReturnValue({ contexto: null })
+    rpc.mockResolvedValue({ data: [{ user_id: 'member-a', rol_id: 'miembro', created_at: '2026-01-01T00:00:00Z', estado: 'activo', ultimo_acceso: null, email: null, es_propio: false, nombre: 'Mia', apellido: 'Miembro' }], error: null })
+    createSignedUrls.mockResolvedValue({ data: [{ path: 'member-a/avatar', signedUrl: null, error: 'Object not found' }] })
+    const { unmount } = render(<UsuarioList />)
+    await waitFor(() => expect(createSignedUrls).toHaveBeenCalled())
+    expect(await screen.findByText('Mia Miembro')).toBeInTheDocument()
+    expect(screen.queryByAltText('Foto de Mia Miembro')).not.toBeInTheDocument()
+    unmount()
+    createSignedUrls.mockRejectedValue(new Error('NoSuchKey'))
+    render(<UsuarioList />)
+    expect(await screen.findByText('Mia Miembro')).toBeInTheDocument()
+    expect(consola).not.toHaveBeenCalled()
+    consola.mockRestore()
+  })
+
   it('muestra nombre y apellido en una única identidad visible, nunca el user_id crudo', async () => {
     useContextoPanel.mockReturnValue({ contexto: null })
     rpc.mockResolvedValue({ data: [{ user_id: 'member-a', rol_id: 'miembro', created_at: '2026-01-01T00:00:00Z', estado: 'activo', ultimo_acceso: null, email: null, es_propio: false, nombre: 'Mia', apellido: 'Miembro' }], error: null })

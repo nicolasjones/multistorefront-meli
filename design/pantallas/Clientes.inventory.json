@@ -42,6 +42,7 @@
     "CP",
     "Localidad",
     "Provincia",
+    "Condición de IVA",
     "Expreso preferido",
     "Habilitado en",
     "Cuenta web",
@@ -88,6 +89,7 @@
         "CP",
         "Localidad",
         "Provincia",
+        "Condición de IVA",
         "Expreso preferido",
         "Habilitado en",
         "Cuenta web"

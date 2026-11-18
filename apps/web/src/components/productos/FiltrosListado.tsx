@@ -9,8 +9,8 @@ import { SOLO_LECTORES } from '../base/solo-lectores'
 
 // Filtros que llegan con otras épicas (FR-004): se ven, pero deshabilitados y con su explicación.
 const FILTROS_PENDIENTES: ReadonlyArray<{ etiqueta: string; motivo: string }> = [
-  { etiqueta: 'Stock bajo', motivo: 'Disponible cuando llegue el módulo de Stock.' },
-  { etiqueta: 'Sin vincular a ML', motivo: 'Disponible cuando se integre Mercado Libre.' },
+  { etiqueta: 'Stock bajo', motivo: 'El listado de productos todavía no trae el estado de stock. Usá el filtro «Stock bajo» de la pantalla Stock.' },
+  { etiqueta: 'Sin vincular a ML', motivo: 'Sin datos todavía: la vinculación de productos con Mercado Libre no está integrada.' },
 ]
 
 const OPCIONES_ORDEN: ReadonlyArray<{ valor: ColumnaOrdenProducto; etiqueta: string }> = [

@@ -177,7 +177,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
     setErrorCodigoBarras(null)
     setErroresVariantes({})
     setConflicto(false)
-    const nuevos = validarProducto(formulario, { conCosto })
+    const nuevos = validarProducto(formulario, { conCosto, costoInicial: inicial.costo })
     setErrores(nuevos)
     const nuevosEscalas = validarPreciosEscala(escalas)
     setErroresEscalas(nuevosEscalas)

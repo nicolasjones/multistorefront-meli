@@ -151,7 +151,7 @@ export function FormularioCategoria({ categoria, padreInicial = null, categorias
               onCambiar={setEmpresaIds}
               etiqueta="Visible en"
               mensajeVacio="Todavía no hay empresas cargadas."
-              ayuda={empresaIds.length === 0 ? 'Sin ninguna tienda marcada, la categoría no se ve en ninguna.' : 'La categoría aparece en el menú de las tiendas marcadas.'}
+              ayuda="Indica a qué tiendas pertenece la categoría en el panel. Lo que muestra la tienda pública se elige en la pestaña «Catálogo visible» de cada tienda."
             />
             <Typography variant="s" role="status">Ruta: «{ruta}»</Typography>
           </Stack>

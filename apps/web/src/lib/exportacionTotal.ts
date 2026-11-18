@@ -1,5 +1,6 @@
 // Exportar todos los datos (F-OPS-06, MSF-396): textos y llamadas del bloque de `/importaciones`.
 // El proceso vive en el centro de procesos masivos (F-IMP-01); acá solo se pide y se descarga el ZIP.
+import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import { COLUMNAS_PROCESO, type ProcesoMasivo } from './procesosMasivos'
 
@@ -28,7 +29,7 @@ export async function solicitarExportacionTotal(): Promise<{ proceso_id: string;
 }
 
 export function nombreArchivoExportacionTotal(fecha: Date = new Date()): string {
-  return `exportacion-total-${fecha.toISOString().slice(0, 10)}.zip`
+  return `exportacion-total-${hoyEnOrganizacion(fecha)}.zip`
 }
 
 // Descarga con una URL firmada de vida corta; la política de Storage solo la deja a un administrador de la organización.
