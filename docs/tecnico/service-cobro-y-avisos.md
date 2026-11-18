@@ -278,6 +278,22 @@ Mensajes y mapeo de errores: `apps/web/src/lib/reparacionAvisos.ts` (`MENSAJE_AV
 - La pestaña «Reparaciones» de la ficha filtra por la empresa activa; al cambiarla, la consulta se invalida, se
   recarga, vuelve a la **primera tanda** y no quedan filas de la empresa anterior.
 
+## Aviso por WhatsApp desde el servidor (MSF-952)
+
+Además del correo, el aviso de estado puede salir por WhatsApp, enviado por el servidor (ya no un «click-to-chat»).
+Detalle del flujo y del flow de Kestra en [Service · avisos al cliente](../service-avisos.md). Lo verificado en el código:
+
+- `dominio.reparacion_avisos` suma `canal` (`correo` | `whatsapp`) y `clave_envio` (idempotencia, no legible por
+  `authenticated`); `dominio.clientes.acepta_whatsapp` es el consentimiento; `public.avisos_de_reparacion` devuelve el
+  `canal` (migración `20270418000403_reparacion_avisos_whatsapp_envio.sql`).
+- `public.avisar_cliente_whatsapp(p_reparacion, p_estado_id)` (`security definer`, no ejecutable por `anon`) valida
+  sección, tienda, anulación, estado, consentimiento y teléfono (`private.telefono_whatsapp`, misma regla que
+  `lib/whatsapp.ts`) y devuelve `{ resultado: 'encolado' | 'sin_consentimiento' | 'sin_telefono', aviso_id }`.
+- Cliente web: `avisarClientePorWhatsapp` y `mensajeDeAvisarWhatsapp` en `apps/web/src/lib/reparacionAvisos.ts`;
+  `useAvisosReparacion` expone `avisarWhatsapp`. Sin consentimiento muestra «El cliente no acepta avisos por WhatsApp:
+  pedile que lo acepte en su ficha.»; sin teléfono, «El cliente no tiene un teléfono válido para WhatsApp».
+- La actividad no lleva el número de teléfono (solo el código de la reparación y el estado avisado).
+
 ## Actividad
 
 | Evento | Cuándo | Detalle |

@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/cuenta
 ---
 
 # Tu perfil: nombre, foto, contraseña y correo

@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/faltantes.tsx
 ---
 
 # Avisar a los clientes cuando vuelve a haber stock
@@ -77,7 +78,7 @@ Tres cosas que conviene saber:
 ## Límites
 
 - **El sistema no manda ningún correo por su cuenta.** El aviso lo enviás vos.
-- **Avisar no cierra el pedido.** El faltante se sigue verindo hasta que retomes el armado de la factura.
+- **Avisar no cierra el pedido.** El faltante se sigue viendo hasta que retomes el armado de la factura.
 - **No se avisa dos veces el mismo pedido** sin que lo confirmes con la casilla de reaviso.
 - **Se avisa de a 200 pedidos por vez**: si marcaste más, el sistema te avisa cuántos desmarcar.
 - Solo se avisan los pedidos **abiertos** de las tiendas a las que tenés acceso.
@@ -106,3 +107,8 @@ Tres cosas que conviene saber:
 - [Cargar stock desde una planilla, exportar y recibir avisos](stock-carga-exportacion-y-avisos.md) — los avisos de
   los pedidos «a pedido» de Stock.
 - [Clientes](clientes.md) — cargarle el correo a un cliente para poder avisarle.
+
+> **Dos criterios de cierre.** Los faltantes que se registran al armar un pedido se resuelven al reanudar el armado; los
+> de la pantalla Stock → Faltantes se cierran al entregar el pedido o al liberar la reserva. Hasta que se unifiquen en una
+> sola pantalla (decisión pendiente de implementar), conviven los dos criterios. Detalle técnico en
+> [Faltantes de ventas](../ventas-faltantes.md).

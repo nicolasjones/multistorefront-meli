@@ -70,6 +70,9 @@ Parámetros:
 | `public.anular_promocion_precio(p_id, p_actualizado)` | Anula (programada o vigente), también con la bandera apagada (apagar no impide limpiar). Exige `productos` = edición en la tienda de la promoción. Idempotente; una vencida no se anula. Registra `promocion_precio.anulada`. | `42501` · `P0002` · `22023` · `40001` |
 | `public.promociones_precio_estado` (vista, `security_invoker`) | Cada promoción con `estado` derivado (`programada`, `vigente`, `vencida`, `anulada`), `precio_normal` y `precio_vigente` de la empresa. | — |
 
+
+Avisos del resultado de `guardar_promocion_precio` (se guarda igual, no bloquea): `aviso_codigo = 'promocion_no_menor_al_normal'` (migración `20270433000000`, MSF-936: el precio promocional no es menor al normal de la tienda, y esa promoción no se aplica mientras no baje) y `aviso_costo_codigo = 'promocion_bajo_el_costo'` (migración `20270507120000`, MSF-958: el precio queda bajo el costo; solo se informa a quien tiene la sección `rentabilidad`). El cliente web los traduce en `guardarPromocion` (`apps/web/src/lib/promociones.ts`: `CODIGO_AVISO_NO_MENOR`, `CODIGO_AVISO_BAJO_COSTO`) y `promociones.tsx` los muestra como aviso `warning` junto al éxito. La guarda de confirmación que rechaza una promoción que dejó de ser estrictamente menor al normal es de `20270431000000` (ver [Ventas · comprobantes](../ventas-comprobantes.md)).
+
 ## Banderas de plataforma y permiso por tienda
 
 ### Banderas `promociones_precio` y `precios_masivos` (apagadas por defecto)
