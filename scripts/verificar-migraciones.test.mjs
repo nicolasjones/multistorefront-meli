@@ -198,6 +198,30 @@ test('rama atrás de la base (la base renumeró una migración) sin tocar migrac
   });
 });
 
+test('rama atrás: el aviso de renumeración compara por nombre y lista el archivo heredado', () => {
+  conRamaAtras(({ dir }) => {
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /\(20270121120000_vieja\.sql\)/);
+  });
+});
+
+test('rama atrás: una migración que la base renombró conservando la versión también se avisa', () => {
+  conRamaAtras(({ dir, git }) => {
+    // La base renombra `..._otra` a `..._otra_renombrada` sin cambiar la versión; el aviso cuenta ahora 2 archivos.
+    git('update-ref', '-d', 'refs/remotes/origin/dokploy');
+    git('checkout', '-q', 'main');
+    git('mv', 'supabase/migrations/20270308100000_otra.sql', 'supabase/migrations/20270308100000_otra_renombrada.sql');
+    git('commit', '-qm', 'renombrada');
+    git('update-ref', 'refs/remotes/origin/dokploy', 'HEAD');
+    git('checkout', '-q', 'rama');
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /renumeró o quitó 2 migración\(es\)/);
+    assert.match(r.stderr, /20270308100000_otra\.sql/);
+  });
+});
+
 test('rama atrás que agrega su propia migración con versión reusada: sigue fallando', () => {
   conRamaAtras(({ dir, escribir, git }) => {
     escribir('20270201000000_mia.sql');

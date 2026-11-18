@@ -27,9 +27,26 @@ describe('mensajeDeAnulacion', () => {
     expect(mensajeDeAnulacion({ code: '40001' })).toBe(MENSAJE_CONFLICTO_ANULAR)
   })
 
-  it('muestra tal cual los mensajes en castellano de la RPC', () => {
-    const mensaje = 'La factura ya está cobrada: anulá el cobro primero.'
-    expect(mensajeDeAnulacion({ code: '55000', message: mensaje })).toBe(mensaje)
+  it('traduce los mensajes en castellano de la RPC con un texto FIJO (nunca el message del servidor)', () => {
+    const mensaje = 'La factura ya está cobrada: corregila con una nota de crédito'
+    expect(mensajeDeAnulacion({ code: '55000', message: `${mensaje} (detalle interno del servidor)` })).toBe(mensaje)
+  })
+
+  // Guardas nuevas de `anular_comprobante` (migración 20270507180000, #1136): antes caían al error genérico.
+  it('factura con despacho entregado: corregí con nota de crédito o RMA (55000)', () => {
+    expect(mensajeDeAnulacion({ code: '55000', message: 'La factura ya fue entregada: corregí con nota de crédito o RMA' }))
+      .toBe('La factura ya fue entregada: corregí con nota de crédito o RMA')
+  })
+
+  it('factura con cobros registrados: revertí el cobro primero (55000)', () => {
+    expect(mensajeDeAnulacion({ code: '55000', message: 'La factura tiene cobros registrados: revertí el cobro o corregila con una nota de crédito' }))
+      .toBe('La factura tiene cobros registrados: revertí el cobro o corregila con una nota de crédito')
+  })
+
+  it('un texto con el prefijo conocido pero con datos añadidos devuelve la constante, no el mensaje', () => {
+    expect(mensajeDeAnulacion({ code: '55000', message: 'La factura ya fue entregada: corregí con nota de crédito o RMA — id interno 123' }))
+      .not.toContain('123')
+    expect(mensajeDeAnulacion({ code: '22023', message: 'El motivo «Venta de factura» existe pero está inactivo o no aplica a salidas: x' })).not.toContain('Venta de factura')
   })
 
   it('no expone el texto técnico de un 42501 de PostgREST', () => {

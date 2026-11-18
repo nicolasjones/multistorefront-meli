@@ -171,7 +171,7 @@ el saldo se recalcula con el bloqueo de fila sobre el comprobante.
 
 | RPC | Qué hace | Seguridad |
 |---|---|---|
-| `revertir_cobro(p_cobro_id uuid, p_motivo text)` → `uuid` | Agrega un **contra-asiento** al libro (importe negativo, `origen = 'reversion'`, `revierte_cobro_id`, `motivo_reversion`) y devuelve su id. Motivo obligatorio (≤ 300, `22023`). No revierte: un contra-asiento, un cobro ya revertido (índice único `cobros_comprobante_revierte_uq`), un cobro conciliado ni el de un contrarreembolso; tampoco sobre una factura borrador o anulada (`55000`). Con saldo neto > 0 y la factura en Cobrado, pasa a Deuda; con saldo 0, Cobrado. Deja `comprobante.cobro_revertido` en la Actividad. | `security definer`; solo administrador (`private.puede_escribir()`, `42501` si no) |
+| `revertir_cobro(p_cobro_id uuid, p_motivo text)` → `uuid` | Agrega un **contra-asiento** al libro (importe negativo, `origen = 'reversion'`, `revierte_cobro_id`, `motivo_reversion`) y devuelve su id. Motivo obligatorio (≤ 300, `22023`). No revierte: un contra-asiento, un cobro ya revertido (índice único `cobros_comprobante_revierte_uq`), un cobro conciliado ni el de un contrarreembolso; tampoco sobre una factura borrador o anulada (`55000`). Con saldo neto > 0 y la factura en Cobrado, pasa a Deuda; con saldo 0, Cobrado. Deja `comprobante.cobro_revertido` en la Actividad. | `security definer`; solo administrador activo **o superadmin con organización activa** (`private.puede_escribir()`, `42501` si no) |
 
 `private.aplicar_conciliacion` rechaza (`55000`) conciliar un contra-asiento o un cobro ya revertido, y `private.validar_cobro_comprobante` no revalida la forma de pago ni la cuenta del contra-asiento. La FK `(revierte_cobro_id, organizacion_id)` tiene índice propio (`20270507190600`). Todo en `20270507180100_revertir_cobro.sql`. **Aún no hay pantalla** que la llame (ninguna parte de `apps/web/src` usa `revertir_cobro`). Detalle en [cobros por comprobante](../cobros-por-comprobante.md).
 
@@ -292,7 +292,7 @@ CUIT): solo nombre de la cuenta, importe y guía.
 | Evento | Cuándo |
 |---|---|
 | `comprobante.cobro_registrado` | Se registra un cobro (actor, tienda, importe y forma). |
-| `comprobante.cobro_revertido` | Un administrador revierte un cobro con `revertir_cobro` (actor, tienda, importe, factura y motivo). |
+| `comprobante.cobro_revertido` | Un administrador (o superadmin con organización activa) revierte un cobro con `revertir_cobro` (actor, tienda, importe, factura y motivo). |
 | `pago.conciliado` | Se aprueba un pago contra el extracto. |
 | `pago.conciliacion_revertida` | Se revierte la aprobación. |
 | `contrarreembolso.abierto` | La guía de despacho abre un contrarreembolso (actor, tienda, guía). |

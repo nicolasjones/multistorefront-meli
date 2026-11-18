@@ -59,3 +59,16 @@ describe('formatearNumeroImporte', () => {
     expect(formatearPrecioTienda('ARS', 1500)).toBe('ARS 1.500,00')
   })
 })
+
+describe('importes enormes', () => {
+  it('1e21 o más se imprime con todos sus dígitos y puntos de miles, nunca en notación científica', () => {
+    expect(formatearNumeroImporte(1e21)).toBe('1.000.000.000.000.000.000.000')
+    expect(formatearImporte(-1e21)).toBe('-$ 1.000.000.000.000.000.000.000')
+    expect(formatearImporte(1e22, { centavos: 'siempre' })).toBe('$ 10.000.000.000.000.000.000.000,00')
+    expect(formatearNumeroImporte(1e21)).not.toMatch(/e/i)
+  })
+  it('los importes normales no cambian', () => {
+    expect(formatearNumeroImporte(1234.5)).toBe('1.234,50')
+    expect(formatearNumeroImporte(9e13)).toBe('90.000.000.000.000')
+  })
+})

@@ -167,9 +167,17 @@ describe("verificarDocumentacion", () => {
   it("una página hostil de 1 MB con miles de enlaces demasiado largos termina y limita la salida", (t) => {
     const root = crearRepo(t, "nav: []");
     escribir(root, "docs/guia/pagina.md", `[a](${"x".repeat(400)}) `.repeat(2600));
-    const t0 = Date.now();
-    const errs = verificarDocumentacion(root).errores.filter((e) => e.startsWith("docs/guia/pagina.md"));
-    assert.ok(Date.now() - t0 < 10000, `tardó ${Date.now() - t0} ms`);
+    // Criterio relativo: la misma página con 1/4 de los enlaces; el tope de 10 s es solo la red de seguridad contra el caso
+    // cuadrático (minutos). Se toma el mínimo de varias corridas para no depender de la carga del host.
+    const delPagina = () => verificarDocumentacion(root).errores.filter((e) => e.startsWith("docs/guia/pagina.md"));
+    const minimo = (n) => { let m = Infinity; let r; for (let i = 0; i < n; i++) { const u0 = process.cpuUsage(); r = delPagina(); const u = process.cpuUsage(u0); m = Math.min(m, (u.user + u.system) / 1000); } return { m, r }; };
+    escribir(root, "docs/guia/pagina.md", `[a](${"x".repeat(400)}) `.repeat(650));
+    delPagina(); // calentamiento
+    const chica = minimo(3).m;
+    escribir(root, "docs/guia/pagina.md", `[a](${"x".repeat(400)}) `.repeat(2600));
+    const { m: grande, r: errs } = minimo(2);
+    assert.ok(grande < 10000, `tardó ${grande.toFixed(0)} ms`);
+    assert.ok(grande <= 10 * Math.max(chica, 50), `escala superlineal: 1× ${chica.toFixed(0)} ms, 4× ${grande.toFixed(0)} ms`);
     assert.equal(errs.length, 51);
     assert.match(errs[50], /…y 2550 error\(es\) de enlaces más/);
   });

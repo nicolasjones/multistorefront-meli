@@ -5,7 +5,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
-import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno } from './consultas.ts'
+import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno, llamarInsertarFragmentosSiDueno } from './consultas.ts'
 import { escrituraFragmentos, type ClienteFragmentos } from './fragmentos.ts'
 import { puedeGestionarDocumentos } from './reglas.ts'
 
@@ -60,7 +60,7 @@ Deno.serve((req) => {
   const servicioFragmentos: ClienteFragmentos = {
     // Borrado condicional atómico (public.borrar_fragmentos_si_dueno): solo si la versión sigue en manos de este reclamo.
     borrar: (versionId, organizacionId, reclamo) => llamarBorrarFragmentosSiDueno(admin, versionId, organizacionId, reclamo),
-    insertar: (filas) => admin.from('fragmentos_indexados').insert(filas),
+    insertar: (versionId, organizacionId, reclamo, filas) => llamarInsertarFragmentosSiDueno(admin, versionId, organizacionId, reclamo, filas),
   }
 
   const deps: Deps = {
@@ -134,7 +134,7 @@ Deno.serve((req) => {
     ...escrituraFragmentos(servicioFragmentos, versionDelUsuario, LOTE_INSERCION),
     puedeGestionar: async (jwt) => {
       const { data, error } = await comoUsuario(jwt).rpc('contexto_panel_actual').single()
-      return !error && !!data && puedeGestionarDocumentos(data as { rol_efectivo: string | null; es_superadmin: boolean })
+      return !error && !!data && puedeGestionarDocumentos(data as { rol_efectivo: string | null; es_superadmin: boolean; organizacion_id: string | null })
     },
     activar: async (jwt, versionId) => {
       const cliente = comoUsuario(jwt)

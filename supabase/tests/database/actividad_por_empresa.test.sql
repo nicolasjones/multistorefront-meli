@@ -4,7 +4,7 @@
 -- y `exportar_actividad` (security definer: aplica el mismo predicado). El historial de una empresa pausada sigue visible.
 begin;
 
-select plan(18);
+select plan(20);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -104,10 +104,28 @@ select is((select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.
 --   * public.exportar_actividad: aplica el alcance por empresa en sus consultas (aserción de arriba).
 --   * public.historial_comprobante: solo eventos de la empresa del comprobante y con `ventas` en esa empresa.
 --   * public.regenerar_enlace_consulta: solo cuenta los eventos de la propia persona (tope por hora), no devuelve filas.
+-- Límites de la guardia (es una red de seguridad por texto, no un análisis de SQL): detecta `from`/`join`/`using` y la coma de un
+-- join implícito (`from x, registro_actividad`), con o sin esquema `public` y con identificadores entrecomillados. NO detecta SQL
+-- dinámico (`execute format('select … %I', 'registro_actividad')`: el nombre llega armado en tiempo de ejecución), un alias de vista
+-- ni una función que lea por otra función definer; ese caso se cubre con la revisión humana que pide el comentario de arriba.
+-- Los casos de abajo fijan lo que el patrón sí detecta y lo que no.
+select is((select array_agg(c.caso order by c.caso)
+             from (values ('from registro_actividad'), ('from public.registro_actividad r'), ('join "registro_actividad" r on true'),
+                          ('from public."registro_actividad"'), ('from dominio.empresas e, registro_actividad r'), ('using only registro_actividad r'))
+                  as c(caso)
+            where c.caso ~* '(\m(from|join|using)\s+|,\s*)(only\s+)?("?public"?\.)?"?registro_actividad"?(\M|")'),
+  array['from dominio.empresas e, registro_actividad r', 'from public."registro_actividad"', 'from public.registro_actividad r', 'from registro_actividad',
+        'join "registro_actividad" r on true', 'using only registro_actividad r'],
+  'la guardia detecta from, join, using, comma-join, esquema público e identificadores entrecomillados');
+select is((select count(*)::int
+             from (values ('execute format(''select * from %I'', ''registro_actividad'')'), ('from registro_actividad_historial h'), ('insert into registro_actividad values (1)')) as c(caso)
+            where c.caso ~* '(\m(from|join|using)\s+|,\s*)(only\s+)?("?public"?\.)?"?registro_actividad"?(\M|")'), 0,
+  'límite documentado: no detecta SQL dinámico, tablas de otro nombre ni inserciones (no leen el registro)');
+
 select is((select array_agg(n.nspname || '.' || p.proname order by n.nspname, p.proname)
              from pg_proc p join pg_namespace n on n.oid = p.pronamespace
             where p.prosecdef and p.prokind = 'f' and n.nspname in ('public', 'private', 'publico', 'dominio')
-              and p.prosrc ~* '(from|join|using)\s+(only\s+)?(public\.)?registro_actividad\M'),
+              and p.prosrc ~* '(\m(from|join|using)\s+|,\s*)(only\s+)?("?public"?\.)?"?registro_actividad"?(\M|")'),
   array['private.alertar_tope_confirmaciones_newsletter', 'private.depurar_registro_actividad', 'public.exportar_actividad', 'public.historial_comprobante', 'public.regenerar_enlace_consulta'],
   'solo cinco funciones security definer leen el registro de actividad, cada una con su propio control');
 

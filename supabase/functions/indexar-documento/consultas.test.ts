@@ -2,7 +2,7 @@
 // llamadas (tabla, operación y cada filtro): `node --test supabase/functions/indexar-documento/consultas.test.ts`.
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno, type Cliente } from './consultas.ts'
+import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno, llamarInsertarFragmentosSiDueno, type Cliente } from './consultas.ts'
 
 type Llamada = [string, ...unknown[]]
 
@@ -11,10 +11,10 @@ function clienteSimulado() {
   const llamadas: Llamada[] = []
   const cadena: Record<string, unknown> = {}
   for (const m of ['update', 'eq', 'is', 'select']) cadena[m] = (...args: unknown[]) => { llamadas.push([m, ...args]); return cadena }
-  const cliente: Cliente = {
+  const cliente = {
     from: (tabla: string) => { llamadas.push(['from', tabla]); return cadena },
     rpc: (nombre: string, args: Record<string, unknown>) => { llamadas.push(['rpc', nombre, args]); return { data: true, error: null } },
-  }
+  } as unknown as Cliente
   return { cliente, llamadas }
 }
 
@@ -72,5 +72,13 @@ describe('llamarBorrarFragmentosSiDueno', () => {
     const { cliente, llamadas } = clienteSimulado()
     llamarBorrarFragmentosSiDueno(cliente, 'v1', 'org-1', 'rec-4')
     assert.deepEqual(llamadas, [['rpc', 'borrar_fragmentos_si_dueno', { p_version_id: 'v1', p_organizacion_id: 'org-1', p_reclamo: 'rec-4' }]])
+  })
+})
+
+describe('llamarInsertarFragmentosSiDueno', () => {
+  it('llama a la RPC condicional con la versión, la organización, el reclamo y las filas (sin version_id ni organizacion_id propios)', () => {
+    const { cliente, llamadas } = clienteSimulado()
+    llamarInsertarFragmentosSiDueno(cliente, 'v1', 'org-1', 'rec-1', [{ texto: 't', embedding: '[0]', orden: 0 }])
+    assert.deepEqual(llamadas, [['rpc', 'insertar_fragmentos_si_dueno', { p_version_id: 'v1', p_organizacion_id: 'org-1', p_reclamo: 'rec-1', p_filas: [{ texto: 't', embedding: '[0]', orden: 0 }] }]])
   })
 })

@@ -6,6 +6,7 @@ sources:
   - supabase/migrations/20261213100500_productos_mas_vendidos.sql
   - supabase/migrations/20261212120500_facturado_neto_notas.sql
   - supabase/migrations/20270201200129_lineas_sin_stock.sql
+  - supabase/migrations/20270507230200_productos_mas_vendidos_resta_notas_credito.sql
 ---
 
 # Stock · Reporte de productos más vendidos (F-STK-18)
@@ -32,10 +33,11 @@ La RPC `public.productos_mas_vendidos(p_desde, p_hasta, p_empresa_id, p_pagina, 
 - El predicado es un único lugar: `private.comprobante_cuenta_como_facturado` (hoy, desde
   `20261212120500`: factura **o nota de crédito** que no está en borrador ni anulada). Por lo tanto **no suman** los
   presupuestos, los borradores ni las anuladas.
-- **Límite conocido (sin verificar contra datos reales)**: la RPC suma `l.cantidad` sin aplicar `private.signo_comprobante`, y las
-  líneas de una nota de crédito de «Devolución de productos» se guardan con `producto_id` y cantidad **positivas**
-  (`emitir_nota_credito`, `20270201200129`). Por lo que dice el código, esas unidades se **suman** al producto en lugar de restarse; el pgTAP
-  `productos_mas_vendidos.test.sql` no cubre notas de crédito. Pendiente de decisión.
+- Las **notas de crédito restan**: la RPC resta la cantidad devuelta de cada línea de una nota (`emitir_nota_credito`,
+  `20270201200129`, guarda `producto_id` y cantidad positivas) con `case when tipo = 'nota_credito' then -cantidad`; las unidades son
+  **netas** = facturas − notas, por la fecha de la nota, y una nota anulada no cuenta. Un producto con más devoluciones que ventas
+  en el período queda con unidades negativas, al final del ranking (migración `20270507230200`, lote 41: antes las sumaba; el pgTAP
+  `productos_mas_vendidos.test.sql` ahora cubre notas confirmada, anulada y de otro período).
 - Las líneas **«A pedido» sí suman**: se vendieron igual.
 - Cuenta la **fecha del comprobante** (`dominio.comprobantes_venta.fecha`), la de la venta.
 - El **orden** lo calcula la base: unidades descendente y, en empate, el nombre del producto (y el id como

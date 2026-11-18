@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect } from './fixture'
 import { clic, escribir } from './visible'
-import { altaUsuario, borrar, borrarUsuario, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, cabeceras, claveAnonima, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Los helpers de la API admin viven en `soporte/fixtures.ts` (con el guard de Supabase local); se re-exportan para los
 // archivos que ya importan todo de acá.
@@ -27,7 +27,8 @@ export async function ingresar(page: Page, correo: string) {
 export async function tokenDe(correo: string): Promise<string> {
   const r = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     method: 'POST',
-    headers: cabeceras(),
+    // El login de una persona va con la clave anónima, no con la service key del resto de los helpers.
+    headers: { apikey: claveAnonima(), 'content-type': 'application/json' },
     body: JSON.stringify({ email: correo, password }),
   })
   if (!r.ok) throw new Error(`sesión de ${correo}: ${r.status} ${await r.text()}`)

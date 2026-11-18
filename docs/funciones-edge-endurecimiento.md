@@ -88,6 +88,18 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   propiedad (la versión existe, no está `activa` y no fue retomada por otro reclamo) y borra en la misma transacción,
   con `for share` sobre la versión; así la ventana sin transacción queda cerrada (deuda m1). Devuelve `false` si no era
   dueña. Si `borrarFragmentos` lanza, el candado se suelta igual.
+- La inserción tiene el mismo cierre (lote 41): `public.insertar_fragmentos_si_dueno(version_id, organizacion_id, reclamo, filas)`
+  (envoltorio de `private.insertar_fragmentos_si_dueno`, `security definer`, `search_path=''`, solo `service_role`) inserta cada
+  lote de hasta 100 filas solo si la versión sigue `procesando` con el reclamo propio y es de la organización (`for share`);
+  la versión y la organización de cada fila las pone la función. Si devuelve `false` (otra invocación la retomó o la activó),
+  `insertarFragmentos` corta sin seguir con más lotes y el handler responde el 502 reintentable.
+- `activar_version_documento` exige además `private.puede_gestionar_documentos()` (42501 para Consulta), igual que el handler.
+- **Prueba manual del bloqueo `for share` (dos conexiones reales).** pgTAP corre en una sola transacción, así que el test solo
+  comprueba con `pgrowlocks` que el borrado toma «For Share» sobre la fila; la espera de una activación concurrente se prueba a
+  mano en un Postgres descartable con las migraciones aplicadas: con una versión `procesando` y reclamo `rec`, la sesión A corre
+  `begin; select public.borrar_fragmentos_si_dueno(<version>, <org>, 'rec'); select pg_sleep(4); commit;` y, 1 s después, la
+  sesión B corre `update public.versiones_documento set estado = 'activa' where id = <version>`: B espera hasta el `commit` de A
+  (verificado en el lote 41: ≈3,5 s). Lo mismo vale para `insertar_fragmentos_si_dueno`.
 - El 409 lleva un `codigo`: `ocupado` (candado vigente) o `no_procesable` (ya procesada o 22023). La pantalla muestra un
   mensaje propio por estado/código, nunca el texto del backend (salvo el 422, accionable), y tras `no_procesable` o 404
   deja de ofrecer «Reintentar».
@@ -122,7 +134,7 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   de modo que no se corta por longitud ni el tiempo revela el largo del token; sin token esperado o sin cabecera
   `x-aviso-token` responde 403 con un cuerpo uniforme («Falta autenticación.»). La usan los `handler.ts` de las cuatro
   funciones de aviso y el de `entregar-webhook`. En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
-  `supabase/functions/.env.example`) permite el valor de ejemplo; **no la definas en stg/prd**. En stg/prd generá
+  `supabase/functions/.env.example`) permite el valor de ejemplo; **no la definas en stg/prd**: si la función detecta un entorno no local (`ENVIRONMENT`/`APP_ENV`/`ENTORNO` en prod/stg/staging, o `SUPABASE_URL`, `API_EXTERNAL_URL` o `SUPABASE_PUBLIC_URL` con un host público; `kong` y `localhost` cuentan como local), IGNORA la variable, deja un `console.warn` sin datos y sigue exigiendo un token fuerte (`permitirTokenDebil`, `_shared/token.ts`). En stg/prd generá
   los tokens con `openssl rand -hex 32` (en Kestra van en base64 como `SECRET_*`).
 - Esas cuatro funciones, que solo llama Kestra, ya no responden `Access-Control-Allow-Origin: *`.
 

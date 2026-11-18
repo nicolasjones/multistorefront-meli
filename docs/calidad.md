@@ -86,4 +86,6 @@ F4 release/preview/flags · F5 mutation/a11y/perf.
 > vinieron de `main` en la integración (PR #929): `docs/javascripts/zoom-imagenes.js` lo carga MkDocs por `extra_javascript`
 > (no por un `import`); `@playwright/test` lo importa `scripts/armar-video-evidencia.mjs` desde el workspace web; y
 > `ffmpeg`, `tailscale`, `hostname` y `pkill` son herramientas del sistema que usan `scripts/armar-video-evidencia.mjs` y
-> `scripts/publicar-videos-e2e.mjs`. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.
+> `scripts/publicar-videos-e2e.mjs`. `hostname` (`hostname -I`) y `pkill` (`pkill -f 'http.server …'`) los llama `scripts/publicar-videos-e2e.mjs` dentro de
+> un `execSync`; knip los cuenta como binarios sin declarar si se quitan de `ignoreBinaries` (se probó: siguen siendo necesarios).
+> `knip.json` es JSON estricto (sin comentarios), por eso el motivo se documenta acá. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.
