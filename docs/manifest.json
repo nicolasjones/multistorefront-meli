@@ -635,14 +635,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "1e6825a0deddda12e03910d8abe0e434dd2ab950fd15146b25dd131fac4460e9",
+      "pageHash": "d57518fc6c122f9393fdd94c6ff0fd822488511022b9220709328879236ffc68",
       "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "264c54ac",
+      "sourceAt": "957bad9f",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "264c54ac"
+      "commit": "957bad9f"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
@@ -829,6 +829,28 @@
       "sources": [],
       "owner": "producto",
       "commit": "c7860a7c"
+    },
+    "docs/higiene-base-datos.md": {
+      "title": "Higiene y endurecimiento de la base de datos (lote 33)",
+      "pageHash": "512ccdeb70e08f466749d64eb99b832c20a2d8adde6253c3b93162fa9533c2b8",
+      "sourceHash": "07e22c3ad19dfc95327247d894990151b89b1c19555b9e66beaee612b35c04b9",
+      "sourceAt": "a24d4284",
+      "sources": [
+        "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
+        "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
+        "supabase/migrations/20270507190200_cotizaciones_clave_primaria_surrogada.sql",
+        "supabase/migrations/20270507190300_politicas_denegar_todo_tablas_sin_politica.sql",
+        "supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql",
+        "supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql",
+        "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
+        "supabase/tests/database/seguridad_global_higiene_base.test.sql",
+        "supabase/verificacion/higiene_base.sql",
+        "supabase/verificacion/higiene_base_migraciones.sql",
+        "scripts/verificar-higiene-base.mjs",
+        "scripts/analizar-definer-search-path.mjs"
+      ],
+      "owner": "plataforma",
+      "commit": "a24d4284"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",

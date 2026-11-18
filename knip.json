@@ -7,7 +7,8 @@
     "hostname",
     "pkill",
     "tailscale",
-    "gitleaks"
+    "gitleaks",
+    "psql"
   ],
   "ignore": [
     "commitlint.config.cjs",
