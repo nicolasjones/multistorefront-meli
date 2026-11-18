@@ -4,7 +4,7 @@
 -- y `exportar_actividad` (security definer: aplica el mismo predicado). El historial de una empresa pausada sigue visible.
 begin;
 
-select plan(18);
+select plan(20);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),

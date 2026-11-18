@@ -369,7 +369,7 @@ persona modificó este comprobante».
   contra-asiento (el saldo sigue siendo el neto); `listar_pagos` agrega `estado_reversion` (`revertido` / `reversion` / nulo) y la
   pantalla Pagos los muestra con una etiqueta en vez del interruptor; `cuentas_cobro_mas_usadas` no los cuenta como uso. El detalle
   del comprobante rotula el contra-asiento como «Reversión de cobro».
-- **Aún NO hay pantalla para `revertir_cobro`**: queda para el lote de UI (botón «Revertir cobro» solo para el administrador, con
+- **Aún NO hay pantalla para `revertir_cobro`**: queda para el lote de UI (botón «Revertir cobro» solo para quien pasa `private.puede_escribir()`: el administrador activo y el superadmin con organización activa, con
   motivo obligatorio, con el prototipo primero). Hoy se invoca solo por RPC. Pruebas: `supabase/tests/database/lote32_cobros_anulacion_y_reversion.test.sql`.
 
 ## Reversión

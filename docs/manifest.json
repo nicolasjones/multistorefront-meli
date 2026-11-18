@@ -146,8 +146,8 @@
     },
     "docs/adoptar-cicd-staging-produccion.md": {
       "title": "Adoptar CI/CD de staging a producción en un producto derivado",
-      "pageHash": "ff5da587c84cc153ef8c6d505851486828c461b9770a5ea22f228db0db295479",
-      "sourceHash": "572ae55ade8b82d5bd2ab1bbe537e9791a0d4801e3757d1c20a0bb0fda72f644",
+      "pageHash": "3e3488c35979068772cae14ed0243cb307d8bea82566b2d8159fd461cd3f908e",
+      "sourceHash": "0072fbb703ac80d89ca96b193a5ace6d3dc40ef6104518aa4487861b24f5ced5",
       "sourceAt": "6776fb4d",
       "sources": [
         "specs/20261003-105444-cicd-staging-produccion",
@@ -558,7 +558,7 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "65a8f652c881b936b6389db0facd262c3d3a477e82ee3c842d0780a8a08d9c19",
+      "pageHash": "d840f466038356214837b94749a53553596383f03fcd13f5f0bdd5fb262d541b",
       "sourceHash": "a210d1e4b9d285612552b5e1bec980ea244850fba57fc3b04e267e2506bb6399",
       "sourceAt": "63051148",
       "sources": [
@@ -606,8 +606,8 @@
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
-      "pageHash": "e9883edccc6a46b842e06dd074702fdcf090a2a274179bf5b3e9dc34c637d11c",
-      "sourceHash": "f347f544367b7ca26fbbe7e52348484ef03038e29d3e8fe5543926d084ed1f2c",
+      "pageHash": "16bca05cc6b39f08a1ee28ab59cbe244df473d99d8efdbe028a50ff22fb97334",
+      "sourceHash": "d91d3f9a5bb39b262772a61e384f61b98fd440cc0aa2f93907feb6724042c72d",
       "sourceAt": "5ac918aa",
       "sources": [
         "specs/20261024-150000-ventas-cobros-y-conciliacion",
@@ -709,8 +709,8 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "c6c673658b7a75c468e7d1171d3fc93dc692ef87f251cc9cf000e8e7b1db4d69",
-      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
+      "pageHash": "59644febe95290b7be42f94c82882b9ceb18ebe5f625bb3a917706657036b48a",
+      "sourceHash": "79b386973a4f062e2158b6f73237703bb7e4e746b920a997b221c9a11a99f0b9",
       "sourceAt": "2838b473",
       "sources": [
         "infra/runner",
@@ -889,8 +889,8 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "49f9084b388f780032449f3a8cdd29451d4e0c838586ce69068e39a56cc3371c",
-      "sourceHash": "ef29ea62575c133d6f82a6c6f68d9025d8eea33cfe0ea09657be406de75cbbfb",
+      "pageHash": "2ec5295a533d6d78d39ecb108c0e6d1031f2dab72864b19a1050f88d643bf40e",
+      "sourceHash": "754ea3ccacbd9e522ba5a95d1f59146cf4091501be2ed57cbfd08c4c7f2a2a76",
       "sourceAt": "6776fb4d",
       "sources": [
         "scripts/preflight-deploy-vps.mjs",
@@ -1065,7 +1065,7 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "9ed93225276ebf03177bbd19a439e3354558724106917f6c9b1ccfc5985c8130",
+      "pageHash": "1f189fabdab870082732640032803cf6b875427ecea38c09fac273558f4fda30",
       "sourceHash": "7a42ae9fac473b0142199cd95250b855be3e8ad35cdac5de0345f1671a764057",
       "sourceAt": "2838b473",
       "sources": [
@@ -4877,8 +4877,8 @@
     },
     "docs/tecnico/runbooks/deploy-fallido.md": {
       "title": "Deploy fallido",
-      "pageHash": "bbde3cc2a534922a5d420685b3c3cb19690521836016403d54fd0ecd41d048a4",
-      "sourceHash": "0f9977a8ae9e4ac088985b1984a2260be7bd8a978eb4e1144191b8c432a829cd",
+      "pageHash": "9a75164185fbe77739b20c610f47bc58eee45214693a224e2e5178bd88a8c71f",
+      "sourceHash": "790382d21e7d2f967a501409c24655780215bed50761f4627543cddfb6b5ef4f",
       "sourceAt": "6776fb4d3",
       "sources": [
         ".github/workflows/deploy-infraestructura-vps.yml",
@@ -5345,8 +5345,8 @@
     },
     "docs/tecnico/tienda-diseno-del-prototipo.md": {
       "title": "Tienda pública: diseño del prototipo (MSF-841)",
-      "pageHash": "205a8cff858780928a49efdcfeeb180248afe56e059a198524318a536c88efe0",
-      "sourceHash": "9a865d3592ea53db0774c9dde0fd97693abad39c79a77549d47cbc5714bb5cd6",
+      "pageHash": "8d8f4bb4ed0e7a8be9ed7e951fcc0c3bface6f29cb16f28711b8e95022ba0297",
+      "sourceHash": "d0bb8e5547e416f0be455d9209032668bd40aeb10809be6bd7e72cb931fd34fc",
       "sourceAt": "7d0de6cd",
       "sources": [
         "specs/20261112-200000-tiendas-diseno-del-prototipo",
@@ -5369,7 +5369,6 @@
         "supabase/migrations/20270305100100_tienda_vista_previa_categorias_imagen.sql",
         "supabase/migrations/20270306100000_tienda_vista_previa_categorias_paridad.sql",
         "supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql",
-        "supabase/migrations/20270302100000_api_seguimientos_msf233.sql",
         "supabase/migrations/20270303100000_tienda_tipografias_prototipo.sql",
         "supabase/migrations/20270303200000_tienda_color_barra.sql",
         "supabase/migrations/20270303300000_tienda_eslogan.sql",
@@ -5668,7 +5667,7 @@
     },
     "docs/tecnico/ventas-cobros-y-conciliacion.md": {
       "title": "Ventas · cobros y conciliación (técnico, MSF-195)",
-      "pageHash": "3372780417246cdd97673688d452265bdb2b38138924a10eb7b02a28d2a0f3af",
+      "pageHash": "7c95531f2112a8dcff2f08d94d4edd8f8d5386df4e4951b25fbff54f1d8cf303",
       "sourceHash": "750f6fd181eb0d05299c7ce0184614fc6fde5c833d56af84ec0ce7f7b8a6a8c8",
       "sourceAt": "5ac918aa",
       "sources": [
