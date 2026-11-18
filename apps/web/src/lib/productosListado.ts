@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
 import { normalizarBusqueda } from './busquedaTexto'
 import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
+import { formatearImporte, formatearNumeroImporte } from './formatoImporte'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -208,8 +209,9 @@ export async function consultarPrecios(
   return precios
 }
 
-const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const pesos = (valor: number) => `$ ${FORMATO_PRECIO.format(valor)}`
+// Siempre dos decimales (precio de lista) y punto de miles también en cuatro dígitos (`formatoImporte.ts`); el signo menos va después del `$`.
+const numeroPrecio = (valor: number) => formatearNumeroImporte(valor, { centavos: 'siempre' })
+const pesos = (valor: number) => formatearImporte(valor, { centavos: 'siempre', menos: 'despues' })
 
 // Precio para el listado, siempre en pesos: «$ 1.000,00» si el producto está en ARS;
 // «$ 1.570.000,00 (USD 1.000,00)» si está en USD (pesos = USD × última cotización);
@@ -217,7 +219,7 @@ const pesos = (valor: number) => `$ ${FORMATO_PRECIO.format(valor)}`
 export function formatearPrecioListado(precio: PrecioListado | undefined): string {
   if (!precio || !Number.isFinite(precio.precioLista)) return '—'
   if (precio.moneda === 'ARS') return pesos(precio.precioLista)
-  const usd = `USD ${FORMATO_PRECIO.format(precio.precioLista)}`
+  const usd = `USD ${numeroPrecio(precio.precioLista)}`
   return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
 }
 
@@ -235,11 +237,9 @@ export function margenListado(precio: PrecioListado | undefined, costo: number |
   return (precioArs - costoNumero * cotizacion) / precioArs
 }
 
-const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
 // Costo para mostrar en el listado; «—» si el producto no tiene costo cargado.
 export function formatearCosto(costo: number | string | null | undefined): string {
   if (costo === null || costo === undefined || costo === '') return '—'
   const numero = Number(costo)
-  return Number.isFinite(numero) ? FORMATO_COSTO.format(numero) : '—'
+  return Number.isFinite(numero) ? numeroPrecio(numero) : '—'
 }

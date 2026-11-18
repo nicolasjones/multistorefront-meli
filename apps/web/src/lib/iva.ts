@@ -27,28 +27,35 @@ export const NOTA_OPCIONES_IVA = 'Opciones: 21 %, 10,5 %, Exento. Cada producto 
 export const AYUDA_IVA_EMPRESA = 'El IVA sale de la categoría de cada producto (o del propio producto).'
 
 // Precio final = neto × (1 + alícuota), al centavo, redondeando la mitad ALEJÁNDOSE DEL CERO (igual que `round(numeric, 2)` de
-// Postgres, que usa `private.aplicar_iva` y el total del comprobante); Exento ⇒ final = neto (MSF-720). Aritmética decimal exacta con
-// BigInt (neto y alícuota a 10 decimales), sin errores de coma flotante: vale también para netos con 3 decimales y negativos.
-const ESCALA = 10n ** 10n
+// Postgres, que usa `private.aplicar_iva` y el total del comprobante); Exento ⇒ final = neto (MSF-720).
+// Aritmética entera exacta con BigInt: neto y alícuota se toman como los decimales con que se escribieron (la representación
+// más corta del número, la misma que se envía a la base) y se operan como fracciones, sin coma flotante ni escala fija:
+// coincide con `private.aplicar_iva` con cualquier cantidad de cifras (8 enteras y 3 decimales incluidos).
 
-function aDecimalEscalado(valor: number): bigint {
-  // `toFixed(10)` da los dígitos decimales «de lectura» del número (1.005 → «1.0050000000»), no su expansión binaria.
-  const texto = Math.abs(valor).toFixed(10)
-  const [entero, fraccion] = texto.split('.')
-  const escalado = BigInt(entero) * ESCALA + BigInt(fraccion ?? '0')
-  return valor < 0 ? -escalado : escalado
+// «12345678.905» → { signo: 1, mantisa: 12345678905n, decimales: 3 }; admite la notación exponencial de `String(número)`.
+function aDecimal(valor: number): { signo: 1n | -1n; mantisa: bigint; decimales: number } {
+  const texto = String(Math.abs(valor)).toLowerCase()
+  const [cuerpo, exponente = '0'] = texto.split('e')
+  const [entero, fraccion = ''] = cuerpo.split('.')
+  const decimales = fraccion.length - Number(exponente)
+  const digitos = BigInt(entero + fraccion)
+  return decimales >= 0
+    ? { signo: valor < 0 ? -1n : 1n, mantisa: digitos, decimales }
+    : { signo: valor < 0 ? -1n : 1n, mantisa: digitos * 10n ** BigInt(-decimales), decimales: 0 }
 }
 
 export function calcularFinal(neto: number, alicuota: Pick<Alicuota, 'porcentaje' | 'exento'>): number {
-  if (alicuota.exento) return neto
-  const n = aDecimalEscalado(neto)
-  const p = aDecimalEscalado(alicuota.porcentaje)
-  // final × 100 (centavos) = neto × (100 + alícuota) / 100 × 100 = n × (100·S + p) / S²  (con n, p escalados por S)
-  const numerador = (n < 0n ? -n : n) * (100n * ESCALA + p)
-  const divisor = ESCALA * ESCALA
-  const cociente = numerador / divisor
-  const centavos = (numerador % divisor) * 2n >= divisor ? cociente + 1n : cociente
-  return (n < 0n ? -Number(centavos) : Number(centavos)) / 100
+  if (alicuota.exento || !Number.isFinite(neto) || !Number.isFinite(alicuota.porcentaje)) return alicuota.exento ? neto : Number.NaN
+  const n = aDecimal(neto)
+  const p = aDecimal(alicuota.porcentaje)
+  // centavos = neto × (100 + alícuota) = nm/10^dn × (100·10^dp + pm)/10^dp, redondeado a entero (mitad lejos del cero).
+  const numerador = n.mantisa * (100n * 10n ** BigInt(p.decimales) + p.signo * p.mantisa)
+  const divisor = 10n ** BigInt(n.decimales + p.decimales)
+  const signoNumerador = numerador < 0n ? -1n : 1n
+  const absoluto = numerador * signoNumerador
+  const cociente = absoluto / divisor
+  const centavos = (absoluto % divisor) * 2n >= divisor ? cociente + 1n : cociente
+  return Number(n.signo * signoNumerador * centavos) / 100
 }
 
 export async function leerAlicuotas(cliente: Pick<SupabaseClient, 'schema'>): Promise<Alicuota[]> {

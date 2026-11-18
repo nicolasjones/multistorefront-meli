@@ -120,7 +120,7 @@ llegan por enlace; por eso `capturas-documentacion.md` se enlaza desde esta pág
 **Límites conocidos del validador de enlaces.** `docs-check` (`scripts/docs-enlaces.mjs`) valida, fuera de los bloques de
 código, los enlaces en línea (también anidados, como una imagen dentro de un enlace), los destinos entre `<…>` con
 espacios, las definiciones de referencia y las etiquetas HTML `a` (atributo `href`) e `img` (atributo `src`). Falla si un
-enlace excede un tope (texto 1500, destino 300, título 1000, blancos 1000 y etiqueta HTML 1000 caracteres) o si un bloque de
+enlace excede un tope (texto 1500, destino 300, título 1000 y blancos 1000 caracteres; una etiqueta HTML de más de 1000 no falla: simplemente no se analiza, ver abajo) o si un bloque de
 código queda sin cerrar. No valida, con ejemplo:
 
 ```text
@@ -130,7 +130,7 @@ Otras etiquetas HTML:         <source src=…>  <link href=…>  <video src=…>
 Destino con espacios sin <>:  [a](mi archivo.md)
 Corchete escapado en texto:   [a\]b](x.md)   (los escapes con barra no se interpretan, igual que antes; así
                               `\[c](y.md)` SÍ se valida aunque no se muestre como enlace)
-Etiqueta HTML > 1000 car.:    <img … 1000 caracteres de atributos … src=…>   (no se analiza)
+Etiqueta HTML > 1000 car.:    <img … 1000 caracteres de atributos … src=…>   (no se analiza y no da error)
 Destino entre <> en 2 líneas: [x](<a + salto de línea + b>)
 Texto y destino en 2 líneas:  [a] + salto de línea + (b.md)   (CommonMark tampoco lo trata como enlace)
 Fence con sangría 2-3 sin lista: un fence de nivel superior sangrado 2 o 3 espacios se trata como de un ítem de lista;

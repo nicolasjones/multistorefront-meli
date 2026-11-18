@@ -40,7 +40,8 @@ export const MENSAJE_PORCENTAJE_FUERA_DE_RANGO = 'El porcentaje debe estar entre
 export const MENSAJE_SIN_EMPRESA = 'Elegí al menos una empresa a la que aplica.'
 
 const FORMATO_VALOR = /^\d+(?:,\d{1,2})?$/
-const formatoNumero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 })
+// Sin separador de miles a propósito: el texto vuelve al campo de edición, que solo admite dígitos y coma (`FORMATO_VALOR`).
+const formatoNumero = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2, useGrouping: false })
 
 // El campo solo admite dígitos y coma decimal (como el resto de los campos numéricos del panel).
 export const soloCaracteresDeValor = (texto: string) => texto.replace(/[^0-9,]/g, '')
