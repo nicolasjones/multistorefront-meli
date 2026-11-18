@@ -321,3 +321,8 @@ La guarda `RequiereServiceTecnico` exige permiso en la sección y la funcionalid
 
 El texto distingue a quien ya es administrador (pedir la activación al soporte de la plataforma), a un superadmin (activarla en Plataforma · Funcionalidades) y al resto (pedirle a un administrador de su organización).
 
+## `obtener_reparacion` fuera del alcance (lote 32 · MSF-638)
+
+Una reparación inexistente, de otra organización o de una tienda a la que la persona no accede responde `PT404` (HTTP 404) con el
+mismo mensaje «La reparación no existe»: no hay oráculo de existencia entre organizaciones. Sin la sección `service_tecnico` la
+respuesta es `42501` (403) para cualquier id. Migración `20270507180500`; prueba `lote32_obtener_reparacion_404.test.sql`.

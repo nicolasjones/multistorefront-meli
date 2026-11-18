@@ -13,6 +13,11 @@ labels:
   dominio: plataforma
   componente: despachador-programado
 description: "Dispara las capacidades de ejecución con una programación recurrente vencida, sin lógica de ningún sistema."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: capacidades_debidas
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -21,6 +26,7 @@ tasks:
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
     sql: select * from private.capacidades_programadas_debidas();
+    timeout: PT1M
   - id: despachar_programadas
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.capacidades_debidas.rows }}"
@@ -36,6 +42,7 @@ tasks:
         sql: select private.conexion_en_curso(CAST(:conexion_id AS uuid)) as en_curso;
         parameters:
           conexion_id: "{{ fromJson(taskrun.value).conexion_id }}"
+        timeout: PT1M
       - id: iniciar_si_libre
         type: io.kestra.plugin.core.flow.If
         # Dos capacidades debidas de la misma conexión en el mismo ciclo:
@@ -53,6 +60,7 @@ tasks:
             parameters:
               conexion_id: "{{ fromJson(parent.taskrun.value).conexion_id }}"
               clave: "{{ fromJson(parent.taskrun.value).clave }}"
+            timeout: PT1M
           - id: marcar_disparada
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -61,6 +69,20 @@ tasks:
             sql: select private.marcar_programacion_disparada(CAST(:capacidad_id AS uuid));
             parameters:
               capacidad_id: "{{ fromJson(parent.taskrun.value).capacidad_id }}"
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: despachador-programado
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_despachador
     type: io.kestra.plugin.core.trigger.Schedule

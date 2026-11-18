@@ -57,6 +57,14 @@ async function limpiarSubidaIncompleta(docId: string | null, documentoCreado: bo
   }
 }
 
+const MENSAJE_SIN_PERMISO_SUBIR = 'No tenés permiso para subir documentos.'
+
+// Un rechazo de permiso (RLS, 403 o 42501) no es un problema de conexión: se dice con todas las letras.
+function esSinPermiso(error: unknown): boolean {
+  const e = error as { code?: string; status?: number; statusCode?: string | number; message?: string } | null
+  return e?.code === '42501' || e?.status === 403 || String(e?.statusCode) === '403' || /row-level security|not authorized|unauthorized/i.test(e?.message ?? '')
+}
+
 export function IaDocumentos() {
   const { contexto, isLoading: cargandoContexto } = useContextoPanel()
   const { data: identidad } = useGetIdentity<{ id: string }>()
@@ -151,6 +159,7 @@ export function IaDocumentos() {
     try {
       if (!docId) {
         const { data: nuevoDoc, error: docError } = await supabaseClient.from('documentos').insert({ nombre: archivo.name }).select('id').single()
+        if (docError && esSinPermiso(docError)) throw new Error(MENSAJE_SIN_PERMISO_SUBIR)
         if (docError || !nuevoDoc) throw new Error(docError?.message ?? 'No se pudo crear el documento.')
         docId = nuevoDoc.id
         documentoCreado = true
@@ -164,12 +173,12 @@ export function IaDocumentos() {
       })
       if (uploadError) {
         console.error('No pudimos subir el documento.', uploadError)
-        throw new Error('No pudimos subir el archivo. Revisá tu conexión e intentá de nuevo.')
+        throw new Error(esSinPermiso(uploadError) ? MENSAJE_SIN_PERMISO_SUBIR : 'No pudimos subir el archivo. Revisá tu conexión e intentá de nuevo.')
       }
       objetoSubido = true
 
       const { error: versionError } = await supabaseClient.from('versiones_documento').insert({ id: versionId, documento_id: docId, storage_path: storagePath, estado: 'procesando' })
-      if (versionError) throw new Error(versionError.message)
+      if (versionError) throw new Error(esSinPermiso(versionError) ? MENSAJE_SIN_PERMISO_SUBIR : versionError.message)
       versionRegistrada = true
 
       // El nombre del documento decide el parser del servidor (la extensión):

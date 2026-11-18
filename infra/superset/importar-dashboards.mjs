@@ -317,9 +317,16 @@ export async function ejecutar({ args, fetch = globalThis.fetch, env = process.e
   } else {
     console.warn('Sin --directorio no se puede derivar la allowlist de datasets (datasets_permitidos): se conserva la que ya tiene cada reporte.');
   }
-  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY || !env.SUPERSET_REPORTE_CREADO_POR) {
-    console.warn('reportes.json presente, pero faltan SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY o SUPERSET_REPORTE_CREADO_POR: no se registraron reportes.');
+  // MSF-713: si hay reportes.json y faltan las variables para registrarlos, el script FALLA (antes salía en verde con un aviso y
+  // el catálogo de reportes quedaba sin actualizar sin que nadie lo notara). Para importar solo los dashboards a propósito
+  // (p. ej. un Superset local sin Supabase) hay que pedirlo con `--omitir-reportes`.
+  if (args.includes('--omitir-reportes')) {
+    console.warn('--omitir-reportes: se importaron los dashboards pero NO se registraron reportes en la base.');
     return { registrados: [] };
+  }
+  const faltantes = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPERSET_REPORTE_CREADO_POR'].filter((nombre) => !env[nombre]?.trim());
+  if (faltantes.length > 0) {
+    throw new Error(`reportes.json presente, pero faltan ${faltantes.join(', ')}: los dashboards se importaron y los reportes NO se registraron. Configuralas o usá --omitir-reportes si es a propósito.`);
   }
   if (!UUID.test(env.SUPERSET_REPORTE_CREADO_POR)) {
     throw new Error('SUPERSET_REPORTE_CREADO_POR debe ser el UUID de un usuario existente.');

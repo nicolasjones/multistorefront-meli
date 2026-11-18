@@ -120,7 +120,7 @@ select is(
 select is(
   (select final_ars from public.precios_empresa_final
     where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  35315.00, 'final: 29.186 al 21 % = 35.315'
+  35315.06, 'final: 29.186 al 21 % = 35.315,06 (al centavo, MSF-720)'
 );
 select is(
   (select mostrar_con_iva from public.precios_empresa_final
@@ -147,7 +147,7 @@ select lives_ok(
 select is(
   (select visible_ars from public.precios_empresa_final
     where producto_id = 'a1000000-0000-0000-0000-000000000001' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  35315.00, 'Con IVA incluido: el cliente ve 35.315'
+  35315.06, 'Con IVA incluido: el cliente ve 35.315,06'
 );
 select is(
   (select visible_ars from public.precios_empresa_final
@@ -174,7 +174,7 @@ select throws_ok(
   '40001', null, 'cambiar el interruptor sin updated_at vigente: conflicto de edición'
 );
 
--- IVA propio manda sobre el de la categoría (US3-2): 29.186 × 1,105 = 32.250,53 → 32.251.
+-- IVA propio manda sobre el de la categoría (US3-2): 29.186 × 1,105 = 32.250,53 (al centavo, MSF-720).
 select lives_ok(
   $$select public.asignar_alicuota_producto('a1000000-0000-0000-0000-000000000002',
       (select id from dominio.alicuotas_iva where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = '10,5 %'))$$,
@@ -187,7 +187,7 @@ select is(
 select is(
   (select final_ars from public.precios_empresa_final
     where producto_id = 'a1000000-0000-0000-0000-000000000002' and empresa_id = 'e1000000-0000-0000-0000-000000000001'),
-  32251.00, 'final al 10,5 %: 29.186 → 32.251 (peso entero)'
+  32250.53, 'final al 10,5 %: 29.186 → 32.250,53 (al centavo)'
 );
 
 -- Exento (US3-4): final = neto.
@@ -211,7 +211,7 @@ select is(
 select is(
   (select final_ars from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central', 0, 20)
     where producto_id = 'a1000000-0000-0000-0000-000000000002'),
-  32251.00, 'vista previa: final de Cable al 10,5 %'
+  32250.53, 'vista previa: final de Cable al 10,5 %'
 );
 select is(
   (select final_ars from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'central', 0, 20)

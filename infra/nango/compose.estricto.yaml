@@ -1,0 +1,9 @@
+# MSF-705 / MSF-712 · modo ESTRICTO de nango: credenciales obligatorias sin valor por defecto. `scripts/deploy-vps.mjs` agrega este
+# archivo a `docker compose` en staging y producción (siempre) y en dev solo con VPS_ESTRICTO=1 (modo transicional: en dev el preflight
+# ADVIERTE y el despliegue continúa). Si falta una variable, `docker compose config` falla y el despliegue se corta ANTES de arrancar con
+# un valor por defecto conocido. Los valores van en `.env.<entorno>` (secret VPS_DEPLOY_ENV). Ver docs/deployment.md.
+x-variables-obligatorias:
+  nango_db_password: ${NANGO_DB_PASSWORD:?Definí NANGO_DB_PASSWORD en el .env del ambiente (contraseña de la base de Nango)}
+  nango_encryption_key: ${NANGO_ENCRYPTION_KEY:?Definí NANGO_ENCRYPTION_KEY en el .env del ambiente (clave de cifrado de las credenciales OAuth)}
+  nango_dashboard_password: ${NANGO_DASHBOARD_PASSWORD:?Definí NANGO_DASHBOARD_PASSWORD en el .env del ambiente (contraseña del dashboard de Nango)}
+  nango_secret_key_dev: ${NANGO_SECRET_KEY_DEV:?Definí NANGO_SECRET_KEY_DEV en el .env del ambiente (secreto de la API de Nango (UUID v4))}
