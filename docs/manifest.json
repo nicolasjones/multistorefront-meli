@@ -396,15 +396,15 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "387342e257628d10b862a50a2c325f5dcd57ad261e9b91e5321a477190ffd13c",
-      "sourceHash": "4495223187accba845e5469162a4483d5c58e88156d35ee876e69df8e542a153",
-      "sourceAt": "57614044",
+      "pageHash": "06293b8e43dd347cfba2826d14845303f9513dae7d78c477f620b9c4c5762c35",
+      "sourceHash": "2f9896c17b3781ffb63be883b17068ca4f846037f9282111a85823938b37fb25",
+      "sourceAt": "4c8781f6",
       "sources": [
         "specs",
         "apps/web/src"
       ],
       "owner": "producto",
-      "commit": "57614044"
+      "commit": "4c8781f6"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2464,14 +2464,14 @@
     },
     "docs/sistema-de-diseno.md": {
       "title": "Sistema de diseño — catálogo de componentes base (MSF-117)",
-      "pageHash": "583531141a951fce7cd6f918f4f59d1a2beee3b470dd5fd74083a88b093bb13d",
-      "sourceHash": "f4b991122f7c987c90e8e0a6bd58104f921320c25c4cf0a2b50ab70bd5290591",
-      "sourceAt": "c7860a7c",
+      "pageHash": "1ec41c33aca7f0732240a38d71f7c11147c50554918a53cf1e877e06bf305eab",
+      "sourceHash": "f17f48b7d31065a3db28f142fe0edd6490810b210b7c00311a1a7d6c9d72cdde",
+      "sourceAt": "4c8781f6",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "4c8781f6"
     },
     "docs/skills.md": {
       "title": "Cómo usar las skills del proyecto",
@@ -2568,9 +2568,9 @@
     },
     "docs/stock-faltantes.md": {
       "title": "Stock · Faltantes con aviso de reposición (F-STK-17)",
-      "pageHash": "88708b59928dbb22a5165c3c64a374bc15bb8122df0813210246e80071a36b4c",
-      "sourceHash": "2fe6081a442420b27ad98f12f6e1b06a5d5f7acca7b5bd42d55bb8636aeba398",
-      "sourceAt": "c7860a7c",
+      "pageHash": "8696b3d19bd4fc5ecb53561c082a3439b6c713d259685cc7b2aa7c6f0c9796ae",
+      "sourceHash": "037a3a214827c9437013d014064f35ecd5d6b5143eb78ac54c1679ea63092c31",
+      "sourceAt": "4c8781f6",
       "sources": [
         "specs/20261024-130000-stock-carga-exportacion-y-avisos",
         "infra/kestra",
@@ -2581,7 +2581,7 @@
         "supabase/migrations/20261213100400_avisar_faltantes.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "4c8781f6"
     },
     "docs/stock-lotes-e-inventario.md": {
       "title": "Stock · Lotes e inventario (épica MSF-131)",
@@ -2664,14 +2664,14 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "6f634cf051ce6a07f5ad1b56746629d2121e0c26262fb4ebe2ded779e02a6461",
-      "sourceHash": "470bd9a1febce6b846561b24479091950e7dfaa96fdb26916da171fd0aefa7b5",
-      "sourceAt": "8e36a98d0",
+      "pageHash": "17ed452555f425f8f5e0135c7e63c867c6a8deca3d1c8ec968f8003b0686fdf4",
+      "sourceHash": "f17f48b7d31065a3db28f142fe0edd6490810b210b7c00311a1a7d6c9d72cdde",
+      "sourceAt": "4c8781f6",
       "sources": [
         "specs"
       ],
       "owner": "producto",
-      "commit": "8e36a98d0"
+      "commit": "4c8781f6"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

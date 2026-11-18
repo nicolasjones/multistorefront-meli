@@ -345,6 +345,14 @@ describe('PagosList · la tabla de pagos (FR-026)', () => {
     ])
   })
 
+  it('un pago de las 23:30 de Argentina (ya es el día siguiente en UTC) se ve con el día local', async () => {
+    mocks.listarPagos.mockResolvedValue({ pagos: [{ ...PAGO, fecha: '2026-11-18T02:30:00+00:00' }], total: 1 })
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Pagos' })
+    expect(within(tabla).getByText('17/11/2026')).toBeInTheDocument()
+    expect(within(tabla).queryByText('18/11/2026')).not.toBeInTheDocument()
+  })
+
   it('muestra la fila con la fecha, la tienda, el comprobante enlazado, el cliente, la cuenta y el saldo', async () => {
     mocks.listarPagos.mockResolvedValue({ pagos: [PAGO], total: 1 })
     abrir()

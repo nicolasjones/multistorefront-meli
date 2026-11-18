@@ -319,6 +319,14 @@ describe('Contrarreembolsos: tarjetas y tabla (FR-045 y FR-047)', () => {
     expect(within(cobrados).getByText('Rendidos por los transportes')).toBeInTheDocument()
   })
 
+  it('una marca de las 23:30 de Argentina (ya es el día siguiente en UTC) se ve con el día local', async () => {
+    mocks.rpc.mockImplementation(rpcPorDefecto([fila({ fecha: '2026-11-18T02:30:00+00:00' })]))
+    renderPantalla()
+    const tabla = await screen.findByRole('table', { name: 'Contrarreembolsos' })
+    expect(within(tabla).getByText('17/11/2026')).toBeInTheDocument()
+    expect(within(tabla).queryByText('18/11/2026')).not.toBeInTheDocument()
+  })
+
   it('muestra las columnas del prototipo con el chip de Estado', async () => {
     renderPantalla()
     const tabla = await screen.findByRole('table', { name: 'Contrarreembolsos' })

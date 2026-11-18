@@ -1,3 +1,4 @@
+import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import { neutralizarFormula } from './exportarClientes'
 import { parametrosDeFiltros, type FiltrosComprobantes } from './ventasComprobantes'
@@ -160,5 +161,5 @@ export async function descargarExportacionDiferida(ejecucionId: string, nombre: 
 }
 
 export function nombreArchivoComprobantes(tipo: TipoExportacion, fecha: Date = new Date()): string {
-  return `${tipo}-${fecha.toISOString().slice(0, 10)}.csv`
+  return `${tipo}-${hoyEnOrganizacion(fecha)}.csv`
 }

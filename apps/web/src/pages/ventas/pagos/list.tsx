@@ -1,3 +1,4 @@
+import { fechaDeMarca } from '../../../lib/periodosRanking'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert, Box, Card, CardContent, Chip, FormControlLabel, Link, Snackbar, Stack, Switch,
@@ -164,7 +165,7 @@ export function PagosList() {
   }, [conciliando, cargar, pagina])
 
   const columnas = useMemo<ColumnaAdaptable<Pago>[]>(() => [
-    { clave: 'fecha', encabezado: 'Fecha', render: (pago) => formatearFecha(pago.fecha.slice(0, 10)) },
+    { clave: 'fecha', encabezado: 'Fecha', render: (pago) => formatearFecha(fechaDeMarca(pago.fecha)) },
     { clave: 'empresa', encabezado: 'Tienda', render: (pago) => pago.empresa },
     {
       clave: 'comprobante',

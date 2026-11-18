@@ -30,7 +30,7 @@
     "Movimientos",
     "Ingreso de mercadería",
     "Depósitos de mercadería",
-    "Faltantes",
+    "Faltantes de stock",
     "Actualizar por Excel",
     "Cancelar",
     "Aplicar · ajustes"
@@ -40,7 +40,7 @@
     "Movimientos",
     "Ingreso de mercadería",
     "Depósitos de mercadería",
-    "Faltantes",
+    "Faltantes de stock",
     "Actualizar por Excel"
   ],
   "dialogos": []

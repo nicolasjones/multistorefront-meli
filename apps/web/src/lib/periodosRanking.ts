@@ -103,3 +103,13 @@ export function periodoAnteriorIgualDuracion({ desde, hasta }: RangoFechas): Ran
 export function validarRangos(aplicado: RangoFechas, comparacion: RangoFechas): { aplicado: ErroresRango; comparacion: ErroresRango } {
   return { aplicado: validarRango(aplicado), comparacion: validarRango(comparacion) }
 }
+
+// Día de calendario (`YYYY-MM-DD`) de una marca de tiempo de la base, en la zona de la organización. Una marca `timestamptz`
+// llega en UTC: cortarle los diez primeros caracteres corre el día después de las 21:00 de Buenos Aires (un cobro de las 22:00
+// se vería del día siguiente). Un texto que ya es un día sin hora se devuelve tal cual, sin pasar por `Date`.
+export function fechaDeMarca(marca: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(marca)) return marca
+  const fecha = new Date(marca)
+  if (Number.isNaN(fecha.getTime())) return marca.slice(0, 10)
+  return hoyEnOrganizacion(fecha)
+}

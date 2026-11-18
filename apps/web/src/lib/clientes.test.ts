@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
 
+describe('documento del cliente', () => {
+  const con = (documento: string) => validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', documento }).documento
+  it('acepta DNI de 7 u 8 dígitos, CUIT con dígito verificador y vacío', () => {
+    for (const valido of ['', '1234567', '12.345.678', '30-71234567-1', '30712345671']) expect(con(valido)).toBeUndefined()
+  })
+  it('un documento viejo que no cumple el formato no bloquea si no se toca', () => {
+    const inicial = validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', documento: '30712345678' }, { documentoInicial: '30712345678' })
+    expect(inicial.documento).toBeUndefined()
+    expect(validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', documento: '30712345679' }, { documentoInicial: '30712345678' }).documento).toBeTruthy()
+  })
+  it('rechaza texto, DNI de otro largo y CUIT con dígito verificador mal', () => {
+    for (const invalido of ['abc-!!', '123456', '123456789', '30712345678']) expect(con(invalido)).toBeTruthy()
+  })
+})
+
 describe('clientes', () => {
   it('validarCliente exige nombre y respeta largos', () => {
     expect(validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: '  ' }).nombre).toBeTruthy()
