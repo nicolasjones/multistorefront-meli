@@ -564,6 +564,79 @@ comparten el marcador «sin-ip» (migración `20270347000300`).
 - Fusionar clientes (`fusionar_clientes`) descarta la lista de precios del cliente absorbido: es una decisión de diseño
   documentada en [clientes.md](clientes.md), no una pérdida a corregir.
 
+### Orden de la promoción STG → PRD y gate (MSF-674)
+
+**Decisión:** STG va **un paso adelante** de PRD. Antes de disparar «Promover todo a producción» hay que **sincronizar STG con
+`dokploy`** (el push a `main` que corre los jobs `staging` de migraciones, infraestructura y flows) y esperar a que terminen en verde.
+El gate de cada mecanismo (`scripts/verificar-staging-exitoso.mjs`) autoriza la promoción de un SHA si hay un run de `staging`
+exitoso para ese SHA **o** si el último run exitoso es ancestro y desde entonces no cambió ningún archivo de `on.push.paths` del
+workflow (un commit que no toca ese mecanismo nunca genera run de staging y no debe bloquear). Si hay cambios relevantes sin pasar por
+staging, el gate rechaza y nombra los archivos: volver a sincronizar STG. Detalle en `docs/control-ci.md`, «MSF-674».
+
+### Clave de host del VPS (MSF-706)
+
+El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKeyChecking=yes` contra una clave **fijada**; ya no se usa
+`ssh-keyscan`. Para dejarla lista (una vez por entorno, **acción de Nicolás**):
+
+1. Obtener la clave pública del host por un canal de confianza (consola del proveedor, o `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
+   en el propio VPS y comparar la huella). Con la clave ya verificada: `ssh-keyscan -t ed25519 <host>` desde una máquina de confianza
+   **y comparar la huella** con la del paso anterior.
+2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** versionarla en
+   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas).
+3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
+   deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
+
+### Credenciales obligatorias, imágenes inmutables y clave de host: modo transicional (MSF-705, MSF-706, MSF-712)
+
+Tres controles hacen que el despliegue **falle cerrado** si faltan valores que solo se cargan a mano:
+
+1. **Credenciales (MSF-705).** `infra/<producto>/compose.estricto.yaml` exige las 14 credenciales de Kestra, Superset y Nango (`${VAR:?}`).
+2. **Imágenes de workers inmutables (MSF-712).** Las 5 `*_IMAGEN` (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
+   `EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser `imagen@sha256:<64 hex>` o un tag igual al
+   SHA del commit (un tag mutable como `:latest` nunca se actualiza: el despacho hace `docker image inspect || docker pull`). `worker-images.yml`
+   deja las referencias en el resumen del job; cada flow de despacho rechaza una imagen mutable antes del pull (salvo `local/*`, desarrollo).
+3. **Clave de host (MSF-706).** Ver la sección anterior.
+
+**Qué dispara realmente staging y production (verificado en los workflows).** Los tres mecanismos con gate STG→PRD disparan **solo** por push a
+`main` (staging) o a mano (production); ninguno corre en push a `dokploy`:
+
+| Workflow | `on:` | job `staging` | job `production` |
+|---|---|---|---|
+| `deploy-infraestructura-vps.yml` | `push` a `main` con `paths` (`:51-62`), `workflow_dispatch`, `workflow_call` | `:71-72`, `if: github.event_name == 'push'` | `:159-160`, `workflow_dispatch` o `workflow_call` |
+| `migraciones-cloud.yml` | `push` a `main` (`:44`) | `:58-59` | `:83-84` |
+| `publicar-flows-kestra.yml` | `push` a `main` (`:40`) | `:53-54` | `:84-85` |
+| `promover-todo-a-produccion.yml` | solo `workflow_dispatch` (`:50-51`), llama a los tres | no tiene | los tres `production` |
+
+Consecuencia: el despliegue de DEV (Dokploy, rama `dokploy`) no pasa por estos jobs y no se rompe por faltantes de claves. Pero este PR toca
+`infra/*/compose*.yaml` y los scripts de deploy, que están en los `paths` del deploy de infraestructura: **el primer push a `main` que los
+incluya correrá `staging` y fallará (cerrado) hasta que se carguen las claves de host (`VPS_SSH_KNOWN_HOSTS`), las 14 credenciales y las 5
+`*_IMAGEN`** (pendiente de Nicolás; el mensaje del job lista cada una por nombre). No hay que esperar a un `production` para verlo.
+
+**Checklist del primer despliegue (cosas que no se pudieron ejecutar sin un Kestra/VPS reales):**
+
+- [ ] `purgar-almacenamiento-kestra`: ejecutarlo a mano una vez con `dias=7` y comprobar en la UI que el cálculo de fecha (`now() | dateAdd(...)`)
+  y la expresión `matches` funcionan; con `dias=0` o `08` debe fallar en la tarea `validar_plazo` sin purgar nada.
+- [ ] `verificar-restauracion`: ejecutarlo a mano con una copia real y confirmar que `gosu` arranca el Postgres descartable y que ningún error
+  esperado nuevo (propio de la base real) hace falsos rojos; si aparece, agregarlo a `PATRON_ESPERADOS`.
+- [ ] `alerta-ausencia-respaldos`: ejecutarlo a mano con copias recientes (debe pasar) y, en un entorno de prueba, con el destino vacío (debe avisar).
+
+**Modo por entorno.** `staging` y `production` son **siempre estrictos**: el preflight (`scripts/preflight-deploy-vps.mjs`) corta el despliegue
+antes de tocar Docker con la lista de variables que faltan (solo NOMBRES, nunca valores) y se usa `compose.estricto.yaml`. `VPS_ESTRICTO=0` no
+los relaja. `dev` es **transicional**: el preflight imprime una advertencia fuerte (`::warning::MODO TRANSICIONAL (dev)`) con la lista exacta de lo
+que falta y el despliegue **continúa** sin `compose.estricto.yaml` (con los valores por defecto locales y, para SSH, `StrictHostKeyChecking=accept-new`
+si no hay clave fijada). Siguen bloqueando siempre, también en dev, las variables que ya eran obligatorias antes (`CORREO_MASIVO_URL_BAJA`).
+El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
+
+**Pasar dev a modo estricto (acción de Nicolás, paso a paso):**
+
+1. Correr un deploy de dev y leer la advertencia: lista exactamente qué falta.
+2. Cargar en el `.env.dev` (secret `VPS_DEPLOY_ENV` del Environment de dev) las 14 credenciales (valores nuevos y aleatorios, nunca los
+   `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
+3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.dev` (ver «Clave de host del VPS»).
+4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
+5. Definir `VPS_ESTRICTO=1` como variable de entorno del job de deploy de dev **o** como línea `VPS_ESTRICTO=1` en el `.env.dev` (el preflight lee las dos; la del proceso manda; el paso de clave de host solo lee la del proceso) y repetir: ahora dev bloquea igual que staging.
+6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).
+
 ### Flujo
 
 ```text

@@ -9,9 +9,11 @@ for (const relative of flows) {
   const file = path.join('infra/kestra/flows', relative);
   const content = await readFile(file, 'utf8');
   if (!content.includes('docker run')) continue;
-  for (const required of ['. /opt/automation-platform/worker.env', '--read-only', '--tmpfs /tmp', '--cap-drop=ALL', '--security-opt=no-new-privileges:true', '--cpus', '--memory', '--network', 'timeout: PT30M', 'Red de egress no autorizada']) {
+  for (const required of ['. /opt/automation-platform/worker.env', '--read-only', '--tmpfs /tmp', '--cap-drop=ALL', '--security-opt=no-new-privileges:true', '--cpus', '--memory', '--network', '--init', '--pids-limit', 'Red de egress no autorizada']) {
     if (!content.includes(required)) throw new Error(`${file} no contiene ${required}.`);
   }
+  // MSF-736: `--init` (tini como PID 1) cosecha los procesos zombi de Chromium; el tope de tiempo del despacho es obligatorio.
+  if (!/timeout: PT\d+[MH]/.test(content)) throw new Error(`${file} no declara un timeout para el despacho.`);
 }
 
 if (!execute) {

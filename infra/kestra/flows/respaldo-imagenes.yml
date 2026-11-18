@@ -72,9 +72,12 @@ tasks:
     sql: select * from public.iniciar_respaldo_imagenes(:origen);
     parameters:
       origen: "{{ inputs.origen }}"
+    timeout: PT1M
 
   - id: copiar_imagenes
     type: io.kestra.plugin.scripts.shell.Commands
+    # Tope (MSF-709): una copia de Storage colgada no ocupa un hueco del worker indefinidamente.
+    timeout: PT3H
     commands:
       - set -eu
       - rclone copy storage: "{{ vars.destino }}" --create-empty-src-dirs --fast-list
@@ -100,6 +103,7 @@ tasks:
       cantidad: "{{ outputs.copiar_imagenes.vars.cantidad }}"
       bytes: "{{ outputs.copiar_imagenes.vars.bytes }}"
       ubicacion: "{{ vars.destino }}"
+    timeout: PT1M
 
 # Cualquier falla deja la fila en error con el motivo real, borra la carpeta
 # parcial (nunca queda una foto a medias que la retención cuente como válida)
@@ -120,11 +124,13 @@ errors:
         parameters:
           id: "{{ outputs.iniciar_respaldo_imagenes.row.id }}"
           motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+        timeout: PT1M
       - id: limpiar_copia_parcial
         type: io.kestra.plugin.scripts.shell.Commands
         allowFailure: true
         commands:
           - rclone purge "{{ vars.destino }}" || true
+        timeout: PT30M
   - id: avisar_fallo
     type: io.kestra.plugin.core.flow.Subflow
     namespace: platform.backups

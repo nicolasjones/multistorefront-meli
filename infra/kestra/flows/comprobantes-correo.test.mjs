@@ -33,7 +33,7 @@ test('tiene id, namespace del producto y corre cada minuto', async () => {
 
 test('reclama solo las órdenes enviar-presupuesto-correo-* con un límite y un reclamo acotados', async () => {
   const content = await leer();
-  assert.match(content, /private\.reclamar_despachos_capacidad\('enviar-presupuesto-correo-', 5, 900\)/);
+  assert.match(content, /private\.reclamar_despachos_capacidad\('enviar-presupuesto-correo-', 5, 3000\)/);
   assert.doesNotMatch(content, /reclamar_despachos_ejecucion/, 'el reclamo genérico tomaría órdenes de otros productos');
   assert.doesNotMatch(content, /generar-documento-venta-/, 'no reclama las órdenes de generación de PDF');
   assert.match(content, /detalle->>'envio_id' as envio_id/, 'el flow necesita el envío a despachar');
