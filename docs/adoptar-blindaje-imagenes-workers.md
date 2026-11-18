@@ -1,7 +1,15 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/017-blindaje-imagenes-workers
+  - workers/Dockerfile
+  - workers/egress-allowlists.json
+  - workers/CONTRATO.md
+  - .github/workflows/worker-images.yml
+  - .github/worker-vulnerability-exceptions.json
+  - scripts/validar-egress-workers.mjs
+  - scripts/validar-scan-worker.mjs
+  - scripts/preflight-deploy-vps.mjs
 ---
 
 # Adoptar el blindaje de imágenes de workers en un producto derivado
@@ -31,8 +39,10 @@ En el fork, relevar antes de mergear `git merge upstream/main`:
   vulnerabilidades y firma SBOM/provenance, o solo hace `docker build` +
   `push`? Si es lo segundo, el de esta spec lo reemplaza entero.
 - ¿`workers/egress-allowlists.json` ya existe con dominios reales? La
-  versión de esta spec trae `workers: {}` vacío — el fork **no debe perder
-  sus entradas reales** al mergear (ver regla de reconciliación abajo).
+  versión original de esta spec traía `workers: {}` vacío; en este producto ya
+  declara una red `worker-egress-<sistema>` por worker (con `solo_supabase` y
+  `domains`) — el fork **no debe perder sus entradas reales** al mergear (ver
+  regla de reconciliación abajo).
 - ¿`.github/worker-vulnerability-exceptions.json` ya tiene excepciones
   reales vigentes? Mismo cuidado que la allowlist.
 
@@ -121,6 +131,15 @@ bloqueó la publicación — correctamente. Triage:
   `Agenmatica` a `nicolasjones` (mismo error de repo canónico ya
   encontrado antes en `REPO_URL`, ver
   `feedback_canonico_nicolasjones_no_agenmatica` en memoria).
+
+## Referencia inmutable de la imagen al desplegar
+
+Al terminar la publicación, `worker-images.yml` verifica que `:latest` y `:<SHA>` apunten al mismo digest y escribe en el resumen del job cada
+imagen como `imagen@sha256:<digest>`. El servidor hace `docker image inspect || docker pull`, así que un tag mutable como `:latest` nunca
+se actualiza si la imagen ya está: las variables `*_IMAGEN` del `.env` del ambiente deben ser `imagen@sha256:<digest>` o un tag igual al SHA del
+commit, y los flows de despacho rechazan una imagen mutable antes del pull (salvo `local/*`, desarrollo). El preflight del deploy
+(`scripts/preflight-deploy-vps.mjs`) lo exige en staging y production. Detalle en `docs/deployment.md`, «Credenciales obligatorias, imágenes
+inmutables y clave de host: modo transicional».
 
 ## 4. Mapeo de este producto
 

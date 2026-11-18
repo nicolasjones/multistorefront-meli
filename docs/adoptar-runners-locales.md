@@ -1,7 +1,10 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/20260925-221701-optimizar-runners-locales
+  - infra/runner/compose.yaml
+  - infra/runner/Dockerfile
+  - template-capabilities.json
 ---
 
 # Adoptar los runners locales optimizados
@@ -20,8 +23,13 @@ beneficio de "una descarga por máquina" requiere que ambos adopten.
 
 ## Qué traer
 
-Solo `infra/runner/compose.yaml`; el `Dockerfile` y el `entrypoint.mjs` no
-cambian, y `validate.yml` tampoco.
+Para la capacidad original, solo `infra/runner/compose.yaml`; el `Dockerfile` y el `entrypoint.mjs` no
+cambian, y `validate.yml` tampoco. Con posterioridad, el `compose.yaml` del template sumó cuatro controles
+que conviene traer a la vez (verificados en `infra/runner/compose.yaml`): `init: true` (tini como PID 1, para cosechar zombies de
+Chromium/vite/playwright), el tope de CPU por réplica (`RUNNER_CPU_LIMIT`, 2 por defecto; `0` = sin tope), el
+tope de memoria (`RUNNER_MEMORY_LIMIT`, 3g) y `RUNNER_DISABLE_AUTO_UPDATE: "1"` (el runner no se autoactualiza dentro del
+contenedor: la versión la fija el `Dockerfile` y se actualiza reconstruyendo la imagen). Las réplicas por defecto son
+`${RUNNER_REPLICAS:-3}`. El detalle de la admisión y de los límites está en `docs/control-ci.md`.
 
 1. Integrar el `compose.yaml` del template (`git merge upstream/main` o a mano)
    **conservando lo propio del producto**: `name:` (línea 1), `RUNNER_REPO` y

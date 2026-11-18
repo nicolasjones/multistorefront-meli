@@ -1,7 +1,13 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/018-kit-panel-operable
+  - supabase/migrations/20260922120000_contexto_panel_operativo.sql
+  - supabase/tests/database/panel_operativo.test.sql
+  - apps/web/src/components/navegacion/destinosPanel.ts
+  - apps/web/src/context/ContextoPanel.tsx
+  - apps/web/src/hooks/useContextoPanel.ts
+  - apps/web/src/components/identidad/IdentidadVisible.tsx
 ---
 
 # Adoptar el kit de panel operable en un producto derivado
@@ -73,6 +79,10 @@ En el fork, relevar antes de mergear `git merge upstream/main`:
   `miembros`, `ia`); **no sirve para ningún fork real** — cada producto
   escribe el suyo con sus propios recursos y etiquetas de negocio, es
   trabajo de autoría, no de merge.
+  En este repositorio el array ya es el de un producto (secciones `inicio`,
+  `catalogo`, `stock`, `ventas`, `service`, `contactos`, `canales`,
+  `analisis`, `reportes`, `administracion` y `plataforma`), no el mínimo del
+  template.
 - **`apps/web/src/components/SiderConSeccionesSuperadmin.tsx`** (si el
   fork todavía lo tiene): retirarlo una vez que `App.tsx` ya no lo
   importe. No lo borra el merge solo.

@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - infra/superset/compose.yaml
+  - infra/superset/compose.estricto.yaml
+  - infra/superset/superset_config.py
+  - infra/superset/configurar_embebido.py
+  - infra/superset/importar-dashboards.mjs
+  - infra/superset/datasets-tablero.mjs
+  - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
 # Operar Superset local
@@ -101,6 +107,14 @@ login en Supabase, `emitir-acceso-reporte` por cada reporte visible,
 ```sh
 SUPABASE_URL=http://127.0.0.1:8100 SUPABASE_ANON_KEY=<anon> VERIFICAR_EMAIL=<usuario> VERIFICAR_PASSWORD=<password> WEB_ORIGIN=http://localhost:3100 pnpm test:superset:embebido
 ```
+
+## Despliegue en el VPS: credenciales obligatorias (modo estricto)
+
+`infra/superset/compose.estricto.yaml` exige, sin valor por defecto, `SUPERSET_DB_PASSWORD`, `SUPERSET_SECRET_KEY`, `SUPERSET_ADMIN_PASSWORD`,
+`SUPERSET_GUEST_TOKEN_JWT_SECRET` y `SUPERSET_GUEST_TOKEN_PASSWORD` (`${VAR:?}`). `scripts/deploy-vps.mjs` suma ese archivo a `docker compose` en
+staging y production siempre, y en dev solo con `VPS_ESTRICTO=1`: en dev el preflight advierte (modo transicional) y el despliegue continúa. Los
+valores van en el `.env.<entorno>` (secret `VPS_DEPLOY_ENV`); el detalle y el paso a modo estricto están en [deployment.md](deployment.md). El
+servicio `superset` corre con `init: true` (tini como PID 1) para no acumular procesos zombi (`infra/superset/compose.yaml:78`).
 
 ## Vencimiento y renovación del guest token (MSF-678)
 
