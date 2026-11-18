@@ -15,13 +15,13 @@ test.describe('Centro de notificaciones en el panel (MSF-378)', () => {
   test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })
 
   test('[MSF-378:T010] punto, lista, abrir un aviso, marcar todas y aislamiento entre personas', async ({ browser }, testInfo) => {
-    test.setTimeout(300_000)
+    test.setTimeout(180_000)
     const sufijo = randomUUID().slice(0, 8)
     const correos = { quien: `notif-${sufijo}@example.com`, otra: `notif-otra-${sufijo}@example.com` }
     const usuarios: string[] = []
     let orgId: string | undefined
     const sesion = await abrirContextoGrabado(browser, testInfo)
-    const sesionOtra = await abrirContextoGrabado(browser, testInfo, 'otra')
+    const sesionOtra = await abrirContextoGrabado(browser, testInfo, 'otra', { video: 'off' })
     try {
       ;[{ id: orgId }] = await rest<{ id: string }>('organizaciones', [{ nombre: `E2E notificaciones ${sufijo}` }])
       for (const correo of Object.values(correos)) {

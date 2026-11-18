@@ -394,6 +394,8 @@ jobs:
           # los videos locales los recorridos visibles agotan sus timeouts. Los defaults del modo local no cambian.
           E2E_SLOWMO_MS: '100'
           E2E_MOUSE_PASOS: '10'
+          # Video de los contextos en 1280x720 (el 1080p tardaba ~200 s en cerrar y adjuntar 2 contextos de `notificaciones` en el host saturado).
+          E2E_VIDEO_CONTEXTOS: baja
           E2E_GREP: ${{ inputs.e2e_grep }}
           E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json
@@ -410,6 +412,10 @@ jobs:
           else
             pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS
           fi
+      # Guarda de omitidos del job de sesión: solo se tolera 1 (SC-006 de `cuenta-web-cliente`, que se omite porque este stack se levanta
+      # sin Edge Runtime: ver docs/e2e-app.md). Imprime el motivo de cada omitido (el reporter de lista no lo muestra).
+      - name: Verificar que no haya omisiones inesperadas
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
       - name: cobertura:e2e (sesión)
         if: always()
         run: |

@@ -135,9 +135,18 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
     const sonda = await request.post(`${url}/functions/v1/recuperar-clave-cliente`, { data: {}, headers: { apikey: serviceKey ?? '' }, failOnStatusCode: false })
     // Servida, la función responde 400 («Datos inválidos») a un cuerpo vacío (`supabase/functions/recuperar-clave-cliente/handler.ts:72-74`).
     // El job de sesión arranca el stack con `-x …,edge-runtime,…` (`validate.yml`, paso «Levantar el stack de Supabase del CI»): sin Edge,
-    // Kong responde 500 «An unexpected error occurred» (evidencia: run 44185502449) y la pantalla muestra «No pudimos enviar el
-    // enlace ahora». Solo en ese caso (la sonda no es el 400 de la función) se omite, con el estado recibido en el motivo.
-    test.skip(sonda.status() !== 400, `La Edge Function recuperar-clave-cliente no está servida en este stack (la sonda devolvió ${sonda.status()} en vez del 400 de la función): hace falta \`supabase functions serve\`.`)
+    // Kong responde 404, o 500 con el cuerpo `{"message":"An unexpected error occurred"}` (run 44185502449). SOLO eso es «no servida» y omite;
+    // cualquier otro código distinto de 400 (401, 500 con otro cuerpo, 502…) es la función servida fallando y hace FALLAR el test.
+    const estado = sonda.status()
+    const cuerpo = (await sonda.json().catch(() => null)) as { message?: string } | null
+    const noServida = estado === 404 || (estado === 500 && cuerpo?.message === 'An unexpected error occurred')
+    if (noServida) {
+      const motivo = `La Edge Function recuperar-clave-cliente no está servida en este stack (la sonda devolvió ${estado}): hace falta \`supabase functions serve\`.`
+      console.log(`[omitido] SC-006: ${motivo}`)
+      test.info().annotations.push({ type: 'omitido', description: motivo })
+      test.skip(true, motivo)
+    }
+    expect(estado, 'la función recuperar-clave-cliente está servida y debe responder 400 «Datos inválidos» a un cuerpo vacío').toBe(400)
 
     const avisos: string[] = []
     for (const correo of [s.correo, `nadie-${randomUUID().slice(0, 8)}@example.com`]) {

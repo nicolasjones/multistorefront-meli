@@ -25,3 +25,9 @@ test('falla si no corrió nada o si todo se omitió', () => {
   assert.equal(evaluar({ suites: [] }, 1).ok, false);
   assert.equal(evaluar(reporte('skipped'), 1).ok, false);
 });
+
+test('recupera el motivo del omitido desde las anotaciones del reporte', () => {
+  const conMotivo = { suites: [{ file: 'a.e2e.ts', specs: [{ title: 't', tests: [{ status: 'skipped', annotations: [{ type: 'skip', description: 'sin Edge' }] }] }, { title: 'u', tests: [{ status: 'expected' }] }] }] };
+  const { omitidos } = resumir(conMotivo);
+  assert.equal(omitidos[0].motivo, 'sin Edge');
+});

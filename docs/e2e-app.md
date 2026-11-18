@@ -842,17 +842,25 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
     `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
     todavía en sesión.
-  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: `exportacion-total` + `importaciones-a11y` verdes (run
-    44188166361), `e2e/importaciones` + `productos-create-permisos` verdes (44191224534), `notificaciones` flake por timeout de 180 s que
-    pasó sin cambios al reintentar (44193675064 / 44195930872) y `cuenta-web-cliente` 2 de 4 (44185502449): 5 de 6 specs verdes. Falta:
-    `cuenta-web-cliente` (el test de ingresos agotaba 60 s: ahora `test.setTimeout(180_000)`, a validar; y SC-006, ver abajo).
+  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: verdes `exportacion-total` + `importaciones-a11y` (run 44188166361),
+    `e2e/importaciones` + `productos-create-permisos` (44191224534) y `cuenta-web-cliente` sola (44199070547: 3 pasan y SC-006 se
+    omite, ver abajo; el test de ingresos tarda ~1 min y necesita el `setTimeout(180_000)`). `notificaciones` sigue en ROJO: falló por timeout en
+    44193675064, 44205757225 (y el reintento previo 44195930872 pasó solo con reintentos, que el job ya no usa). Hasta que `notificaciones`
+    pase en sesión no se puede decir que los 6 specs estén verdes.
+  - **`notificaciones`: dónde se iba el tiempo (traza del run 44205757225).** El recorrido y las aserciones terminan a ~106 s; los ~200 s
+    restantes son `Close context` (40 s por contexto) y adjuntar el video 1080p de los 2 contextos en el host saturado: el cierre cuenta
+    contra el timeout del test. Subir el timeout no lo arregla. Cambios: `E2E_VIDEO_CONTEXTOS` (`completa` por defecto = 1920x1080 como
+    siempre, `baja` = 1280x720, `off`; valor inválido lanza error) en `abrirContextoGrabado`; el job de sesión usa `baja`; y la segunda
+    sesión de `notificaciones` («otra persona») no graba (`{ video: 'off' }`). El timeout del spec vuelve a 180 s. Sin validar todavía en sesión.
   - **SC-006 (recuperar) en el job de sesión: causa real y decisión.** La pantalla mostraba «No pudimos enviar el enlace ahora» porque
     `POST /functions/v1/recuperar-clave-cliente` devolvía 500 de Kong (`{"message":"An unexpected error occurred"}`, traza del run
     44185502449): el job levanta el stack con `-x studio,mailpit,imgproxy,logflare,vector,edge-runtime,…` (`validate.yml`, paso «Levantar
-    el stack de Supabase del CI»), o sea SIN Edge Runtime ni Mailpit; la función no existe en ese stack. La omisión previa solo cubría
-    404 y >=502, no ese 500. Servida, la función responde 400 a un cuerpo vacío (`handler.ts:72-74`), así que el test se omite con
-    `test.skip` y motivo explícito SOLO si la sonda no devuelve ese 400. No se habilitó Edge/SMTP en el job (cambia el stack compartido
-    del CI sin poder probarlo aquí): MSF-964 queda abierto para SC-006 hasta servir la función (`supabase functions serve` con
+    el stack de Supabase del CI»), o sea SIN Edge Runtime ni Mailpit. Servida, la función responde 400 a un cuerpo vacío (`handler.ts:72-74`).
+    El test omite SOLO si la sonda devuelve 404 o el 500 de Kong con ese cuerpo («no servida»); cualquier otro código distinto de 400
+    FALLA mostrando el status. El motivo se imprime en el log (`[omitido] SC-006…`), queda como anotación `omitido` del reporte y el
+    paso «Verificar que no haya omisiones inesperadas» del job (`verificar-e2e-omitidos.mjs --max=1`, que ahora imprime el motivo) tolera
+    como máximo ese único omitido. Evidencia del skip: run 44199070547. No se habilitó Edge/SMTP en el job (cambia el stack compartido
+    del CI sin poder probarlo): MSF-964 queda abierto para SC-006 hasta servir la función (`supabase functions serve` con
     `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`/`ALLOW_HTTP_REDIRECT=true`) y habilitar el correo local.
   - **Timeouts de 300 s en sesión visible (`exportacion-total`, `importaciones`, `importaciones-a11y`).** La hipótesis del
     `actionTimeout` quedó descartada: son del recorrido visible (slowMo 350 ms, cursor de 30 pasos hacia cada clic, rótulos de 2,2 s, video
@@ -861,9 +869,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     luego `"importaciones-a11y.e2e.ts cuenta-web-cliente.e2e.ts"` y `"notificaciones.e2e.ts productos-create-permisos.e2e.ts"`. Bajo carga
     se puede bajar la cámara lenta con las variables `E2E_SLOWMO_MS` (por defecto 350, `playwright.config.ts`) y `E2E_MOUSE_PASOS` (por
     defecto 30, `visible.ts`); el job `e2e-visible-sesion` las exporta en 100 y 10 (host compartido y saturado), y el modo local/video conserva
-    350 y 30. `notificaciones` pasó a `test.setTimeout(300_000)` (flake de 180 s).
-  - **`notificaciones`:** falló a los ~3 min en medio del recorrido visible, pero la traza quedó truncada por la cancelación del job:
-    causa NO confirmada.
+    350 y 30.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
