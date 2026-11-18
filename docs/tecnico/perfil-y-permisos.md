@@ -152,7 +152,7 @@ su SMTP. Por eso la función reutiliza **el mismo SMTP de Auth**, sin proveedor 
 | Self-hosted (STG/PROD) | El relay configurado para Auth (`GOTRUE_SMTP_*`): host, puerto, TLS y credenciales reales fuera de Git. Si no hay SMTP configurado, el correo no sale. |
 
 Variables de la función (nombres en `supabase/functions/.env.example`; los valores reales son secretos de
-la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT` (default 587), `SMTP_TLS`,
+la función, nunca llegan al navegador ni a Git): `SMTP_HOST`, `SMTP_PORT` (default 465, TLS implícito; 587/STARTTLS no funciona con `denomailer` 1.6.0), `SMTP_TLS`,
 `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM` (obligatorio junto con el host). El nombre del remitente y el asunto
 se limpian de saltos de línea antes de ir a las cabeceras.
 
@@ -165,17 +165,16 @@ que lo prueba sí corre en el CI: `pnpm test:correo:verificar-salida`).
 - **Servidor:** sin `MAILPIT_URL`; el administrador de la organización de prueba debe tener como correo
   `CORREO_PRUEBA` (obligatoria en ese modo) y se confirma a mano que el mensaje llegó a esa casilla.
   Requiere `AUTH_URL`, `FUNCTIONS_URL`, `SUPABASE_ANON_KEY`, `ACCESO_EMAIL`, `ACCESO_PASSWORD` y, opcionalmente, `SECCION`.
-- **Códigos de salida:** `0` verificado por Mailpit, `1` esta corrida no envió nada, `2` falta una variable
-  de entorno, `3` el aviso salió y la entrega queda por confirmar a mano. La definición completa y el registro
-  están en [Verificación de salida del correo](../verificacion-salida-correo.md) (única página que los
-  describe); en el servidor el guion **nunca** devuelve `0`: no puede dar un verde falso por una entrega que
+- **Códigos de salida:** la tabla de códigos y el registro de corridas están en
+  [Verificación de salida del correo](../verificacion-salida-correo.md) (única definición; acá no se
+  repiten); en el servidor el guion **nunca** devuelve `0`: no puede dar un verde falso por una entrega que
   nadie comprobó.
 - **Qué decide:** el campo `enviado` de la respuesta de `solicitar-acceso` (`{resultado, nuevo, enviado}`):
   sólo vale como evidencia si la corrida **envió** el aviso. Un `0` exige además el mensaje en Mailpit.
 - La entregabilidad (SPF/DKIM del remitente) es infraestructura; si el relay del servidor no está
   configurado, se documenta el hallazgo y se traza como seguimiento. Hoy esa corrida **no se ejecutó**:
-  está registrada (en «pendiente») en [Verificación de salida del correo](../verificacion-salida-correo.md)
-  y trazada como **MSF-532**.
+  está registrada (en «pendiente») en [Verificación de salida del correo](../verificacion-salida-correo.md).
+  **MSF-532** es la historia que entregó el guion (cerrada); la corrida real es una tarea hija aún sin clave.
 
 ## Pantallas
 

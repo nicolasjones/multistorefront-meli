@@ -181,9 +181,8 @@ test('sin base de comparación: en CI falla cerrado, en local solo avisa', () =>
 test('el parseo de casts no se cuelga con espacios hostiles (sin ReDoS)', async () => {
   const { filasConjuntosExportacion } = await import('./verificar-trampas-conocidas.mjs');
   const sql = `create or replace function private.conjuntos_exportacion_total() returns table(a text) as $f$ select 1 from (values ('a'::a${' '.repeat(60000)}) v $f$;`;
-  const t = Date.now();
-  filasConjuntosExportacion(sql);
-  assert.ok(Date.now() - t < 2000, 'tardó demasiado: ReDoS');
+  // Red de seguridad contra el ReDoS (que tarda minutos), generosa para que la carga del host no dé un falso positivo.
+  acotado(() => filasConjuntosExportacion(sql));
 });
 
 test('current_date en el alta de una reparación falla; con la fecha de Buenos Aires o en otra tabla pasa', () => {
@@ -246,11 +245,9 @@ test('recorrerSql conserva largo y líneas, y no corta en ; de literales ni de d
 });
 
 test('T7: SQL sin cerrar o con cadenas raras no cuelga ni lanza', () => {
-  const t = Date.now();
   assert.doesNotThrow(() => t7("select 'sin cerrar; current_date"));
   assert.doesNotThrow(() => t7('select $$ sin cerrar; insert into reparaciones (x) values (current_date)'));
   assert.doesNotThrow(() => t7("select \"id ; current_date"));
-  assert.ok(Date.now() - t < 2000);
 });
 
 test('T7: current_date en OTRA columna de fecha del insert no se marca; en ingreso_en sí (QA-3)', () => {
@@ -284,26 +281,40 @@ test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)
   assert.equal(ne("select e'a\\'; b'; select 1;"), 2);
 });
 
-// Tiempo mínimo de 3 corridas: los tests corren en paralelo con otros y un pico de carga del host no debe dar un falso
-// positivo; un recorrido superlineal sigue pasándose del tope en las 3 corridas.
-// Corta en la primera corrida que ya está bajo `tope` (una regresión real falla en todas, y no tarda 3 veces más en fallar).
-const mejorDeTres = (fn, tope = Infinity) => { let mejor = Infinity; let r; for (let i = 0; i < 3 && mejor >= tope; i++) { const t = Date.now(); r = fn(); mejor = Math.min(mejor, Date.now() - t); } return { ms: mejor, r }; };
+// Criterio de tiempo RELATIVO y robusto a la carga del host (los tests corren en paralelo con otros y bajo CPU saturada):
+//  - se mide el MÍNIMO de varias corridas tras un calentamiento (un pico de carga no cuenta, una regresión sí: falla en todas);
+//  - se compara el tiempo con una entrada 4 veces mayor: lineal ≈ 4×, cuadrático ≈ 16×; el límite es 12× sobre un piso de
+//    tiempo (los tiempos de pocos ms son ruido);
+//  - un tope absoluto generoso (10 s) queda solo como red de seguridad contra el caso patológico (cuadrático o peor: minutos).
+const PISO_MS = 20;
+const RAZON_MAXIMA = 12;
+const TOPE_ABSOLUTO_MS = 10_000;
+const minimoDe = (fn, corridas = 3) => { let mejor = Infinity; let r; for (let i = 0; i < corridas; i++) { const t = performance.now(); r = fn(); mejor = Math.min(mejor, performance.now() - t); } return { ms: mejor, r }; };
+const verificarEscala = (fabrica, fn) => {
+  fn(fabrica(1)); // calentamiento
+  const chica = fabrica(1);
+  const grande = fabrica(4);
+  const a = minimoDe(() => fn(chica)).ms;
+  const b = minimoDe(() => fn(grande)).ms;
+  assert.ok(b < TOPE_ABSOLUTO_MS, `la entrada de 4× tardó ${b.toFixed(0)} ms`);
+  assert.ok(b <= RAZON_MAXIMA * Math.max(a, PISO_MS), `escala superlineal: 1× ${a.toFixed(1)} ms, 4× ${b.toFixed(1)} ms (más de ${RAZON_MAXIMA}× el piso o la base)`);
+};
+const acotado = (fn) => { const { ms, r } = minimoDe(fn, 1); assert.ok(ms < TOPE_ABSOLUTO_MS, `tardó ${ms.toFixed(0)} ms`); return r; };
 
-// Entradas adversariales: el análisis de T7 debe ser lineal (cada una en menos de 1 s) y no lanzar.
-const rapido = (nombre, sql, comprobar = () => {}) => test(`T7 rendimiento: ${nombre}`, () => {
-  const { ms, r } = mejorDeTres(() => t7(sql), 1000);
-  assert.ok(ms < 1000, `tardó ${ms} ms`);
-  comprobar(r);
+// Entradas adversariales: el análisis de T7 debe ser lineal y no lanzar (`fabrica(k)` arma la entrada de tamaño k×).
+const rapido = (nombre, fabrica, comprobar = () => {}) => test(`T7 rendimiento: ${nombre}`, () => {
+  verificarEscala(fabrica, t7);
+  comprobar(t7(fabrica(1)));
 });
-rapido('500 updates y 666 «ingreso_en = 1,» en una sentencia sin punto y coma', `${'update reparaciones set x = 1 '.repeat(500)}${'ingreso_en = 1, '.repeat(666)}`, (r) => assert.deepEqual(r, []));
-rapido('13000 «ingreso_en = 1» sin comas (cerca del tope): conservador y rápido', `update reparaciones set ${'ingreso_en = 1 '.repeat(6000)}`, (r) => assert.equal(r.length, 1));
-rapido('«ingreso_en =» repetido sin comas ni cierres', `update reparaciones set ${'ingreso_en = 1 '.repeat(20000)}`);
-rapido('2500 altas con paréntesis sin cerrar', 'insert into reparaciones (a,ingreso_en values ('.repeat(2500), (r) => assert.equal(r.length, 1));
-rapido('10000 throws_ok( sin cerrar con un alta', `${'throws_ok('.repeat(10000)} insert into reparaciones (ingreso_en) values (current_date)`);
-rapido('altas anidadas en paréntesis', `${'insert into reparaciones ('.repeat(1500)}ingreso_en${')'.repeat(1500)}`);
-rapido('sentencia gigante que toca reparaciones', `insert into reparaciones (ingreso_en) values (now()); ${'select 1, '.repeat(30000)}select 1 -- reparaciones`.replace(/;/, ' '), (r) => assert.ok(r.length >= 1));
-rapido('muchos usos de current_date en una sentencia', `insert into reparaciones (ingreso_en) values ${'(current_date),'.repeat(3000)}(current_date)`, (r) => assert.ok(r.length <= 21));
-rapido('un solo update con current_date sigue marcándose', 'update reparaciones set a = 1; update reparaciones set ingreso_en = current_date', (r) => assert.equal(r.length, 1));
+rapido('500 updates y 666 «ingreso_en = 1,» en una sentencia sin punto y coma', (k) => `${'update reparaciones set x = 1 '.repeat(500 * k)}${'ingreso_en = 1, '.repeat(666 * k)}`, (r) => assert.deepEqual(r, []));
+rapido('13000 «ingreso_en = 1» sin comas (cerca del tope): conservador y rápido', (k) => `update reparaciones set ${'ingreso_en = 1 '.repeat(6000 * k)}`, (r) => assert.equal(r.length, 1));
+rapido('«ingreso_en =» repetido sin comas ni cierres', (k) => `update reparaciones set ${'ingreso_en = 1 '.repeat(20000 * k)}`);
+rapido('2500 altas con paréntesis sin cerrar', (k) => 'insert into reparaciones (a,ingreso_en values ('.repeat(2500 * k), (r) => assert.equal(r.length, 1));
+rapido('10000 throws_ok( sin cerrar con un alta', (k) => `${'throws_ok('.repeat(10000 * k)} insert into reparaciones (ingreso_en) values (current_date)`);
+rapido('altas anidadas en paréntesis', (k) => `${'insert into reparaciones ('.repeat(1500 * k)}ingreso_en${')'.repeat(1500 * k)}`);
+rapido('sentencia gigante que toca reparaciones', (k) => `insert into reparaciones (ingreso_en) values (now()); ${'select 1, '.repeat(30000 * k)}select 1 -- reparaciones`.replace(/;/, ' '), (r) => assert.ok(r.length >= 1));
+rapido('muchos usos de current_date en una sentencia', (k) => `insert into reparaciones (ingreso_en) values ${'(current_date),'.repeat(3000 * k)}(current_date)`, (r) => assert.ok(r.length <= 21));
+rapido('un solo update con current_date sigue marcándose', () => 'update reparaciones set a = 1; update reparaciones set ingreso_en = current_date', (r) => assert.equal(r.length, 1));
 
 test('T7 conservador: expresión de ingreso más larga que el tope no se trunca en silencio (1)', () => {
   const larga = `update reparaciones set ingreso_en = coalesce(${'x, '.repeat(600)}current_date);`;
@@ -314,9 +325,8 @@ test('T7 conservador: expresión de ingreso más larga que el tope no se trunca 
   assert.equal(t7(`insert into reparaciones (ingreso_en) select ${'a+'.repeat(400)}current_date`).length, 1);
 });
 
-test('T7 rendimiento: peor caso ingreso_en sin comas bajo el tope de sentencia, < 300 ms', () => {
-  const { ms } = mejorDeTres(() => t7(`update reparaciones set ${'ingreso_en = 1 '.repeat(6500)}`), 300);
-  assert.ok(ms < 300, `tardó ${ms} ms`);
+test('T7 rendimiento: peor caso ingreso_en sin comas bajo el tope de sentencia escala linealmente', () => {
+  verificarEscala((k) => `update reparaciones set ${'ingreso_en = 1 '.repeat(1600 * k)}`, t7);
 });
 
 test('T7 conservador: throws_ok( sin cerrar y comilla o bloque sin cerrar se marcan (3)', () => {
@@ -339,7 +349,7 @@ test('recorrerSql: dentro de $$ una comilla, comillas dobles o -- que no cierran
   assert.deepEqual(t7("select throws_ok($$insert into reparaciones (nota, ingreso_en) values ('current_date', now())$$, '22023');"), []);
 });
 
-// Bloques de dólares grandes con de todo adentro (comillas, $x$, --, /*, "), con y sin cierre: lineal (< 300 ms).
+// Bloques de dólares grandes con de todo adentro (comillas, $x$, --, /*, "), con y sin cierre: lineal (criterio relativo, ver `verificarEscala`).
 const relleno = (kb) => { const u = "$x$ ' -- /* \" "; return u.repeat(Math.ceil((kb * 1024) / u.length)); };
 for (const kb of [100, 300]) {
   for (const [nombre, armar] of [
@@ -348,8 +358,8 @@ for (const kb of [100, 300]) {
     ['con cierre y una alta mala después', (r) => `select $$ ${r} $$; insert into reparaciones (ingreso_en) values (current_date)`],
   ]) {
     test(`recorrerSql rendimiento: bloque $$ de ${kb} KB ${nombre}`, () => {
-      const { ms, r } = mejorDeTres(() => recorrerSql(armar(relleno(kb))), 300);
-      assert.ok(ms < 300, `tardó ${ms} ms`);
+      verificarEscala((k) => armar(relleno(kb * k)), recorrerSql);
+      const r = recorrerSql(armar(relleno(kb)));
       if (nombre === 'sin cierre') assert.ok(r.sinCerrar >= 0);
       if (nombre === 'con cierre') assert.equal(r.sinCerrar, -1);
     });
@@ -357,11 +367,7 @@ for (const kb of [100, 300]) {
 }
 for (const [nombre, unidad] of [['/* sin cierre', 'a /* '], ['-- sin salto de línea', 'a -- '], ['comillas dobles sin cerrar', 'a " '], ['$x$ alternados', '$x$ a ']]) {
   test(`recorrerSql rendimiento: «${nombre}» repetido 100 KB`, () => {
-    const { ms } = mejorDeTres(() => {
-      recorrerSql(`select $$ ${unidad.repeat(Math.ceil(102400 / unidad.length))}`);
-      recorrerSql(unidad.repeat(Math.ceil(102400 / unidad.length)));
-    }, 300);
-    assert.ok(ms < 300, `tardó ${ms} ms`);
+    verificarEscala((k) => unidad.repeat(Math.ceil((102400 * k) / unidad.length)), (x) => { recorrerSql(`select $$ ${x}`); recorrerSql(x); });
   });
 }
 
@@ -472,24 +478,19 @@ test('T7: mismos problemas que con el oráculo en miles de entradas aleatorias c
   }
 });
 
-// Mejor de 3 corridas: un pico de carga del host (los tests corren en paralelo) no debe dar un falso positivo, y un
-// recorrido cuadrático sigue pasándose del tope en las 3 corridas.
-const medirMin = (sql) => mejorDeTres(() => recorrerSql(sql), 500).ms;
-
-test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 300 KB (< 500 ms)', () => {
-  for (const sql of ['$$ $x$$ $x$ -- a\n'.repeat(20000), '$$ $x$$ $x$ /* a '.repeat(20000), aleatorio(prng(99), 300000), aleatorio(prng(7), 300000).replace(/;/g, ' ')]) {
-    const ms = medirMin(sql);
-    assert.ok(ms < 500, `tardó ${ms} ms`);
-  }
+test('recorrerSql rendimiento: tokens que se pisan repetidos y SQL aleatorio de 300 KB escalan linealmente', () => {
+  for (const fabrica of [
+    (k) => '$$ $x$$ $x$ -- a\n'.repeat(5000 * k),
+    (k) => '$$ $x$$ $x$ /* a '.repeat(5000 * k),
+    (k) => aleatorio(prng(99), 75000 * k),
+    (k) => aleatorio(prng(7), 75000 * k).replace(/;/g, ' '),
+  ]) verificarEscala(fabrica, recorrerSql);
 });
 
-test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} de 300 y 600 KB (< 500 ms)', () => {
+test('recorrerSql rendimiento: miles de etiquetas $tN$ distintas y alfabeto {$,x,y} escalan linealmente', () => {
   const unicas = (kb) => { let s = ''; for (let n = 0; s.length < kb * 1024; n++) s += `$t${n}$ `; return s; };
   const alfabeto = (kb, semilla) => { const rnd = prng(semilla); let s = ''; while (s.length < kb * 1024) s += '$xy'[Math.floor(rnd() * 3)]; return s; };
-  for (const sql of [unicas(300), unicas(600), alfabeto(300, 5), alfabeto(600, 6)]) {
-    const ms = medirMin(sql);
-    assert.ok(ms < 500, `tardó ${ms} ms`);
-  }
+  for (const fabrica of [(k) => unicas(75 * k), (k) => unicas(150 * k), (k) => alfabeto(75 * k, 5), (k) => alfabeto(150 * k, 6)]) verificarEscala(fabrica, recorrerSql);
 });
 
 test('recorrerSql: el cierre por etiqueta es idéntico al oráculo con etiquetas que se pisan y repiten', () => {

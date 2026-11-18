@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, cabeceras, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, claveAnonima, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { tokenDe } from './semillas'
 
 // Cierre de MSF-122 (SC-004, SC-008): una consulta enviada desde la tienda aparece en la bandeja en menos de
 // 5 s y la base emite el aviso al equipo; se abre su enlace, se asigna, anota y resuelve con tres roles
@@ -14,26 +15,15 @@ const LIMITE_BANDEJA_MS = 5_000
 
 type AvisoConsulta = { tipo_aviso: string; datos: Record<string, string> }
 
-const tokens = new Map<string, string>()
-
 // `public.avisos_pendientes` no se lee por la API (ni `service_role` ni `authenticated`): cada persona ve sus avisos con la RPC
-// de la campanita, `listar_notificaciones`, con su propia sesión. La RPC solo trae los de su organización y de las secciones
-// a las que tiene acceso.
-async function tokenDe(correo: string): Promise<string> {
-  const guardado = tokens.get(correo)
-  if (guardado) return guardado
-  const r = await fetch(`${url}/auth/v1/token?grant_type=password`, { method: 'POST', headers: cabeceras(), body: JSON.stringify({ email: correo, password }) })
-  if (!r.ok) throw new Error(`sesión de ${correo}: ${r.status} ${await r.text()}`)
-  const { access_token: token } = (await r.json()) as { access_token: string }
-  tokens.set(correo, token)
-  return token
-}
+// de la campanita, `listar_notificaciones`, con su propia sesión (`tokenDe`, de `semillas.ts`). La RPC solo trae los de su
+// organización y de las secciones a las que tiene acceso.
 
 // Avisos de nueva consulta de una persona para el visitante dado (los emite la base al crear la consulta).
 async function avisosSinEspera(correo: string, nombre: string): Promise<AvisoConsulta[]> {
   const r = await fetch(`${url}/rest/v1/rpc/listar_notificaciones`, {
     method: 'POST',
-    headers: cabeceras({ authorization: `Bearer ${await tokenDe(correo)}` }),
+    headers: { apikey: claveAnonima(), authorization: `Bearer ${await tokenDe(correo)}`, 'content-type': 'application/json' },
     body: JSON.stringify({ p_limite: 50 }),
   })
   if (!r.ok) throw new Error(`listar_notificaciones de ${correo}: ${r.status} ${await r.text()}`)
