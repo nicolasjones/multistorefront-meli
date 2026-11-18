@@ -7,6 +7,7 @@ sources:
   - supabase/migrations/20270507190300_politicas_denegar_todo_tablas_sin_politica.sql
   - supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql
   - supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql
+  - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
   - scripts/verificar-higiene-base.mjs
@@ -23,7 +24,7 @@ statements) son del DEV; las migraciones del repo, aplicadas desde cero, dan otr
 
 | Ítem | Qué se hizo | Dónde |
 |---|---|---|
-| MSF-918 FK sin índice | 153 índices `create index if not exists` (42 en `public`, 111 en `dominio`) | `20270507190000`, `…190100` |
+| MSF-918 FK sin índice | 154 índices `create index if not exists` (42 en `public`, 112 en `dominio`; el último, el de la FK del contra-asiento de cobros del lote 32) | `20270507190000`, `…190100`, `…190600` |
 | MSF-918 RLS sin política | 16 tablas con política explícita que **deniega todo** a `anon` y `authenticated` (mismo efecto que antes, ahora declarado) | `…190300` |
 | MSF-918 vista sin `security_invoker` | **No se cambia**: `public.proveedores_basico` es definer a propósito (ver abajo); una prueba fija que sea la única | pgTAP global |
 | MSF-922 tablas sin PK | `dominio.cotizacion_aplicada` y `dominio.cotizacion_pendiente`: PK sustituta `id uuid` | `…190200` |

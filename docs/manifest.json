@@ -810,7 +810,7 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "1658689cd58148fa5db81d298faacf45b7b0dd12072cb0ec921aa75769383ad2",
+      "pageHash": "1bcc3e2fa7a2679d4f956a0831b7aa7f985cf6506b877e0ce28ae66760a1854a",
       "sourceHash": "03cd8628d3bb5d6f2deef04d3af3a081df1ee1f2a71fccb78f85dc408a196c2c",
       "sourceAt": "eadcedcb",
       "sources": [
@@ -820,6 +820,7 @@
         "supabase/migrations/20270507190300_politicas_denegar_todo_tablas_sin_politica.sql",
         "supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql",
         "supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql",
+        "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
         "scripts/verificar-higiene-base.mjs",
