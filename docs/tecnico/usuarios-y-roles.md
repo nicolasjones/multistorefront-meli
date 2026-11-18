@@ -1,14 +1,21 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
+  - specs/20261013-120000-usuarios-y-roles
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20261013130002_roles_basicos_permisos.sql
+  - supabase/migrations/20261013140000_editar_matriz_permisos.sql
+  - supabase/migrations/20261013140001_invitaciones_usuarios.sql
+  - supabase/migrations/20261014120000_usuarios_suspension_y_roles.sql
   - supabase/functions/invitar-miembro
-  - supabase/tests/database
+  - supabase/tests/database/permisos_por_rol.test.sql
+  - supabase/tests/database/editar_matriz_permisos.test.sql
+  - supabase/tests/database/usuarios_suspension_y_roles.test.sql
   - apps/web/src/pages/usuarios
   - apps/web/src/pages/roles
   - apps/web/src/pages/acceso-restringido
   - apps/web/src/lib/permisos.ts
+  - apps/web/src/App.tsx
 ---
 
 # Usuarios y roles (MSF-125)
@@ -44,6 +51,7 @@ Reversión: documentada en la cabecera de cada migración; son aditivas y no se 
 - **RLS:** las tablas de dominio usan `private.nivel_seccion(seccion)` / `private.puede_accion(seccion, accion)`; `private.puede_escribir()` sigue para las tablas no migradas (regresión en `permisos_por_rol.test.sql`).
 - **Panel:** `PermisosPanelProvider` carga `public.permisos_actuales()`; hooks `useNivelSeccion` / `usePuedeAccion`; el menú oculta secciones `ninguno`; `accessControlProvider` usa `SECCION_POR_RECURSO` (`apps/web/src/lib/permisos.ts`).
 - **Acceso restringido:** guard `RequiereAccesoSeccion` sobre las rutas con `seccionPermiso`; `App.guard.test.ts` falla si una ruta queda sin guard.
+- **Rutas con guard extra (lote 34):** `/stock/motivos` y `/historial/importar` van dentro de `RequiereAdministrador` además de `RequiereAccesoSeccion` (`apps/web/src/App.tsx:345`, `:577`; la autorización real sigue siendo la RLS/RPC), y `/empresas` y `/empresas/edit/:id` exigen la sección `empresas`. El rol se muestra con su etiqueta (`ETIQUETAS_ROL`, `permisos.ts:126`) en el perfil.
 - **Invitar:** Edge Function `supabase/functions/invitar-miembro` (verifica con `puede_invitar()`); la membresía se crea al aceptar.
 - **Usuarios absorbe Miembros (FR-019):** `/miembros*` redirige a `/usuarios*`; `listar_miembros_organizacion` queda sin uso en la web y se retira en un PR posterior.
 - **Eventos (FR-012):** `eventos_membresia` hasta F-AUD-01 (`invitacion_enviada`, `rol_cambiado`, `suspendido`, `reactivado`); la matriz registra `permisos.matriz_guardada` / `permisos.matriz_restablecida` en `registro_actividad`.

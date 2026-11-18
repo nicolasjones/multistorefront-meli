@@ -142,7 +142,7 @@ Siempre tiene que quedar al menos un Administrador: si intentás suspender o qui
 
 | Columna | Qué es |
 |---|---|
-| **Usuario** | Foto y nombre. |
+| **Usuario** | Foto y nombre. Quien no cargó foto muestra la inicial de su nombre. |
 | **Rol** | Su rol. |
 | **Empresas** | A qué empresas accede y con qué rol («San Javucho: Operador»). El Administrador figura con «Todas las empresas». |
 | **Último acceso** | Cuándo entró por última vez («Nunca» si todavía no ingresó). |

@@ -1,8 +1,29 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - apps/web/src/pages/stock
+  - specs/20261022-180000-stock-depositos-y-reservas
+  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
+  - supabase/migrations/20261022120900_catalogo_disponibilidad.sql
+  - supabase/migrations/20261023120000_depositos_tablas.sql
+  - supabase/migrations/20261023120100_depositos_gestion.sql
+  - supabase/migrations/20261023120200_stock_movimiento_deposito.sql
+  - supabase/migrations/20261023120300_stock_evento_deposito.sql
+  - supabase/migrations/20261023120400_stock_lecturas_deposito.sql
+  - supabase/migrations/20261023120500_ingresos_anular_deposito_original.sql
+  - supabase/migrations/20261023130000_stock_traslado.sql
+  - supabase/migrations/20261023130100_stock_reservas.sql
+  - supabase/migrations/20261023130200_disponibilidad_con_reservas.sql
+  - supabase/migrations/20261023130300_stock_evento_reserva.sql
+  - supabase/migrations/20261023130400_stock_motivo_traslado_reservado.sql
+  - supabase/tests/database/stock_depositos.test.sql
+  - apps/web/src/pages/stock/PestanasStock.tsx
+  - apps/web/src/pages/stock/TrasladarDialog.tsx
+  - apps/web/src/pages/stock/depositos.tsx
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/stock/movimientos.tsx
+  - apps/web/src/lib/depositos.ts
+  - apps/web/src/lib/useExistenciasRealtime.ts
+  - apps/web/src/App.tsx
 ---
 
 # Stock · depósitos, traslados y reservas (MSF-292)
