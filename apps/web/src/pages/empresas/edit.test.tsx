@@ -23,14 +23,16 @@ vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     auth: { getUser: () => mocks.getUser() },
     // CUIT, correo y WhatsApp se leen por la RPC `empresa_datos` (la tabla los reserva a la sección `empresas`).
-    rpc: async (nombre: string) => {
+    rpc: async (nombre: string, args: { p_empresa?: string } = {}) => {
       if (nombre !== 'empresa_datos') return { data: null, error: null }
-      if (mocks.ultimaEscritura) return { data: [mocks.ultimaEscritura], error: null }
+      if (mocks.ultimaEscritura && (mocks.ultimaEscritura as { id?: string }).id === args.p_empresa) return { data: [mocks.ultimaEscritura], error: null }
       const { data, error } = (await mocks.lectura()) as { data: unknown; error: unknown }
       return { data: data ? [data] : [], error }
     },
     schema: () => ({
       from: () => ({
+        // Otras lecturas de la pantalla (p. ej. el aviso de consultas): sin configuración.
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
         update: (valores: unknown) => {
           mocks.update(valores)
           return {
