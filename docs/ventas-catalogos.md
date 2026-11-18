@@ -2,7 +2,18 @@
 owner: tecnico
 sources:
   - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
-  - apps/web/src
+  - apps/web/src/lib/ventas/cbu.ts
+  - apps/web/src/lib/ventas/cuentasCobro.ts
+  - apps/web/src/lib/ventas/formasEnvio.ts
+  - apps/web/src/lib/ventas/formasPago.ts
+  - apps/web/src/lib/ventas/transportes.ts
+  - apps/web/src/pages/ventas/cuentas-cobro/list.tsx
+  - apps/web/src/pages/ventas/transportes/list.tsx
+  - apps/web/src/pages/ventas/configuracion/index.tsx
+  - supabase/migrations/20261020100000_formas_pago.sql
+  - supabase/migrations/20261020110000_historial_listar_ventas_cobros.sql
+  - supabase/migrations/20261020120000_catalogo_listado_vista.sql
+  - supabase/migrations/20261020130000_catalogo_producto_empresa.sql
 ---
 
 # Ventas · Catálogos de cobro y envío (épica MSF-139)

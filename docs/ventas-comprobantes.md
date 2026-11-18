@@ -3,6 +3,9 @@ owner: tecnico
 sources:
   - specs/20261113-120000-precio-promocional-en-pos-y-comprobantes
   - apps/web/src/lib/ventas.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - supabase/migrations/20270507170000_clientes_condicion_iva_via_de_carga.sql
   - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
   - supabase/migrations/20261203100100_comprobantes_cabecera.sql
   - supabase/migrations/20261203100200_comprobantes_numeracion.sql
@@ -36,7 +39,7 @@ Alta y edición de una factura o un presupuesto: la **cabecera** (F-VTA-05, MSF-
 - **Canal de venta**: Mostrador, Tienda online y Teléfono/WhatsApp. Mercado Libre queda para la Etapa 2
   (no es un valor válido en la base).
 - **Cliente**: buscador de Clientes + «Consumidor final». CUIT / DNI y dirección de entrega se muestran en
-  lectura. La condición frente al IVA se muestra como «—»: todavía no se registra en la ficha del cliente.
+  lectura. La condición frente al IVA se muestra como «—»: todavía no se registra en la ficha del cliente. (La columna `dominio.clientes.condicion_iva` ya tiene vía de carga por API e importación desde `20270507170000`, pero ni la ficha ni esta pantalla la muestran todavía: `pages/ventas/comprobante.tsx`.)
 - Estados: factura `borrador` → `confirmada` (F-VTA-07); presupuesto `pendiente` → `aceptado` (F-VTA-08).
   Solo se editan `borrador` y `pendiente`.
 
@@ -138,8 +141,8 @@ confirmación, anulación) DEBE avanzarlo en su `update`, o el bloqueo optimista
 `a_pedido`, `subtotal_sin_iva` e `iva`. FKs compuestas al comprobante, al producto y al depósito por
 `organizacion_id`; índice único `(comprobante_id, orden)`.
 
-**Origen y líneas sin stock (F-SVC-13, `20270121120100_comprobantes_origen.sql` y
-`20270121120200_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
+**Origen y líneas sin stock (F-SVC-13, `20270201200128_comprobantes_origen.sql` y
+`20270201200129_lineas_sin_stock.sql`)**: `dominio.comprobantes_venta` suma `origen_tipo` (`reparacion`) y
 `origen_id` (solo los escribe la RPC `generar_comprobante_reparacion`; índice único parcial: un comprobante
 vigente por origen) y `dominio.comprobantes_venta_lineas` suma `sin_stock`: la línea **no mueve stock** (ni
 descuento, ni reserva, ni devolución al anular o emitir una nota de crédito) y por eso admite `producto_id`,
@@ -329,7 +332,7 @@ del cliente del comprobante, leído en el servidor: el payload no puede imponerl
 Un `precio_manual` no se descuenta. La línea guarda `dominio.comprobantes_venta_lineas.descuento_pct` (columna
 aditiva, `0` si no hubo descuento o el precio es manual) para mostrarlo y para que lo ya vendido no cambie si luego
 cambia la ficha; `obtener_comprobante` lo devuelve por línea y la tabla de líneas rotula
-«escala x10 · 5 % de descuento». Migración `20270115090100_lineas_descuento.sql` (reversión en su encabezado).
+«escala x10 · 5 % de descuento». Migración `20270201200103_lineas_descuento.sql` (reversión en su encabezado).
 «Lista propia» por cliente queda fuera de alcance (spec, *Decisiones abiertas* 1).
 
 ## Correcciones de UI funcional (épica MSF-585)
@@ -376,7 +379,7 @@ Lo que sigue está **decidido y probado**; no son defectos ocultos. Cada punto t
 
 - **Un cambio del precio normal que deja a la promoción guardada igual o por encima del normal SÍ se rechaza al confirmar (FR-009, S7 cerrado).** Antes la guarda solo recalculaba las líneas cuya promoción había cambiado y una baja de lista, escala, cotización o descuento del cliente por debajo de la promoción se cobraba a la promoción (lista 1000 → 700 bajo la promoción 800: 3 unidades a 2904 y no a 2541): un sobrecobro al cliente. Hoy la guarda recalcula toda línea con promoción y, si la promoción guardada sigue vigente pero ya no es estrictamente menor al precio normal, rechaza con `40001`, hint `precios_cambiaron` y `detail = 'promocion_no_menor_al_normal'`; al re-guardar, la línea se reprecia (a 700: 2100 sin IVA, 2541 con IVA). Si la promoción sigue ganando no se rechaza. Los tests «S7» de `ventas_precio_promocional_ciclo.test.sql` y el caso con lista de `ventas_lista_precios.test.sql` lo fijan (incluido el borde normal = promoción y el caso del descuento del cliente). La guarda no se aplica con la bandera `promociones_precio` apagada.
 - **Promoción bajo el costo (S3 = MSF-934):** la promoción no se valida contra el costo (ni `guardar_promocion_precio` ni esta épica). Se carga, se cobra y la rentabilidad realizada muestra el margen negativo (estado `negativo`). El margen «actual» por producto/canal (`analitica.margen_producto_canal`) sigue con el precio normal (Decisión 8). Los reportes y la API (`/v1/ventas`, `/v1/precios`), `venta.registrada`, la exportación total y las vistas de consulta de IA no cambiaron de forma: lo prueba `ventas_precio_promocional_reportes.test.sql`.
-- **Paridad tienda ↔ local (FR-020):** sin interruptor de IVA el neto del local es igual al precio de la tienda; con «Precios con IVA» la diferencia por unidad es menor a $1 (la tienda redondea al peso por unidad, el local redondea el subtotal de la línea). Lo prueba `ventas_precio_promocional_paridad.test.sql`.
+- **Paridad tienda ↔ local (FR-020):** sin interruptor de IVA el neto del local es igual al precio de la tienda; con «Precios con IVA» la diferencia por unidad es menor a $1 (la tienda redondea el precio final **al centavo** por unidad —antes, al peso: `20270507180200_aplicar_iva_al_centavo.sql`—, el local redondea el subtotal de la línea). Lo prueba `ventas_precio_promocional_paridad.test.sql`.
 
 | Seguimiento | Tema | ID |
 |---|---|---|

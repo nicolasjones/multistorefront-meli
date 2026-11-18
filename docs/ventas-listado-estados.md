@@ -4,6 +4,9 @@ sources:
   - specs/20261024-130000-ventas-listado-estados-y-anulacion
   - infra/kestra/flows/exportar-comprobantes.yml
   - workers/exportar-comprobantes
+  - supabase/migrations/20261212110000_listar_comprobantes.sql
+  - supabase/migrations/20261212120200_anular_comprobante.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
 ---
 
 # Ventas · Listado, estados y anulación (épica MSF-177)
@@ -28,7 +31,7 @@ operador (opciones de `operadores_de_comprobantes`) y rango de fechas. El filtro
 Hasta 10.000 filas el navegador arma el CSV (`exportar_comprobantes`); por encima, `solicitar_exportacion_comprobantes`
 encola una ejecución que toma Kestra (`infra/kestra/flows/exportar-comprobantes.yml`) y corre el worker
 `workers/exportar-comprobantes`, que deja el CSV en el bucket privado `exportaciones-ventas`. La descarga firma una
-URL de 60 s. Una exportación simultánea por usuario (`YA_EN_CURSO`). Detalle en la guía del listado.
+URL de 60 s. Una exportación simultánea por usuario (`YA_EN_CURSO`); el flow corre de a una ejecución y exige imagen del worker por digest o tag de commit. Detalle en la guía del listado.
 
 ## Matriz de estados y roles
 
@@ -41,7 +44,7 @@ es una migración de datos.
 
 | | Anular | Nota de crédito |
 |---|--------|-----------------|
-| Cuándo | Factura confirmada, sin notas y no cobrada | Sobre una factura emitida |
+| Cuándo | Factura confirmada, sin notas, no cobrada, no entregada y sin cobros registrados (con el cobro revertido sí se puede) | Sobre una factura emitida |
 | Efecto | La factura pasa a `anulada`, revierte stock y libera reservas, el número no se reutiliza | Emite un comprobante `nota_credito` con numeración propia; resta de lo facturado |
 | Stock | Vuelve todo, por depósito | Solo en «Devolución de productos» |
 | Permiso | acción `anular` (Administrador, Administración) | acción `emitir_nota_credito` (Administrador, Administración) |

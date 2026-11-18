@@ -4,6 +4,8 @@ sources:
   - specs/20261024-130000-stock-carga-exportacion-y-avisos
   - scripts/verificar-migraciones.mjs
   - supabase/migrations/20261213100500_productos_mas_vendidos.sql
+  - supabase/migrations/20261212120500_facturado_neto_notas.sql
+  - supabase/migrations/20270201200129_lineas_sin_stock.sql
 ---
 
 # Stock · Reporte de productos más vendidos (F-STK-18)
@@ -27,8 +29,13 @@ migración quedaba por debajo de la cola ya aplicada en dokploy y no se aplicaba
 La RPC `public.productos_mas_vendidos(p_desde, p_hasta, p_empresa_id, p_pagina, p_tamano)` suma las
 **unidades** (`cantidad`) de las líneas de comprobantes que **cuentan como facturados**:
 
-- El predicado es un único lugar: `private.comprobante_cuenta_como_facturado` (hoy: factura que no está
-  en borrador ni anulada). Por lo tanto **no suman** los presupuestos, los borradores ni las anuladas.
+- El predicado es un único lugar: `private.comprobante_cuenta_como_facturado` (hoy, desde
+  `20261212120500`: factura **o nota de crédito** que no está en borrador ni anulada). Por lo tanto **no suman** los
+  presupuestos, los borradores ni las anuladas.
+- **Límite conocido (sin verificar contra datos reales)**: la RPC suma `l.cantidad` sin aplicar `private.signo_comprobante`, y las
+  líneas de una nota de crédito de «Devolución de productos» se guardan con `producto_id` y cantidad **positivas**
+  (`emitir_nota_credito`, `20270201200129`). Por lo que dice el código, esas unidades se **suman** al producto en lugar de restarse; el pgTAP
+  `productos_mas_vendidos.test.sql` no cubre notas de crédito. Pendiente de decisión.
 - Las líneas **«A pedido» sí suman**: se vendieron igual.
 - Cuenta la **fecha del comprobante** (`dominio.comprobantes_venta.fecha`), la de la venta.
 - El **orden** lo calcula la base: unidades descendente y, en empate, el nombre del producto (y el id como

@@ -1,9 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261027-100000-ventas-mejoras
+  - apps/web/src/pages/ventas/mostrador.tsx
+  - apps/web/src/lib/ventasMostrador.ts
+  - apps/web/src/components/ventas/LectorCodigoBarras.tsx
+  - apps/web/src/components/ventas/AvisoBanderaPromociones.tsx
+  - apps/web/src/hooks/useBanderaPromociones.ts
+  - apps/web/src/lib/avisoBanderaPromociones.ts
+  - apps/web/src/lib/presupuestoDesdePedido.ts
+  - supabase/migrations/20270202200400_mostrador_buscar_producto.sql
+  - supabase/migrations/20261213100100_stock_carga_inicial_rpc.sql
 ---
 
 # Ventas · venta de mostrador (técnico, MSF-193)
