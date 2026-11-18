@@ -57,32 +57,54 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 ## Un rojo de calidad tiene que poder diagnosticarse
 
 Un `quality` rojo que no dice qué encontró obliga a reproducir la herramienta a mano para
-saber la causa. `scripts/calidad.mjs` lo evita con dos garantías, y las dos están fijadas por
-test (`pnpm test:ci` → `scripts/calidad.test.mjs`). A eso se suma cómo hay que leer el informe:
+saber la causa. `scripts/calidad.mjs` lo evita con tres garantías, y las tres están fijadas por
+test (`pnpm test:ci` → `scripts/calidad.test.mjs`):
 
-1. **El informe dice qué encontró el check que falló.** `reports/calidad.md` lleva una sección
-   `## <check>` por cada check con hallazgos, con su salida **completa** —recortarla volvería a
-   esconder el hallazgo, que es justo lo que se quiere evitar—; `reports/calidad.log` lleva la
-   salida completa de todas las herramientas. El artifact `calidad-reporte` sube los dos.
-   El log del paso del CI también lo dice: la salida **completa** del check que falló se imprime
-   en consola (los que pasan, sólo sus últimas 40 líneas). Es lo primero que se lee en el PR.
-2. **Las herramientas no heredan `GITHUB_ACTIONS`.** Con esa variable, knip y oxlint cambian a
-   su modo de anotaciones (`::warning`/`::error`): el runner las consume como anotaciones y el
-   texto del hallazgo desaparece del log, así que el rojo queda sin diagnóstico. `calidad.mjs`
-   la borra del entorno de los hijos y los corre con `NO_COLOR`/`FORCE_COLOR` apagados.
-3. **La copia versionada de `reports/calidad.md` es una foto de una corrida vieja.** El job
-   `quality` regenera el informe en el workspace y lo sube como artifact `calidad-reporte`; lo que
-   quedó versionado es la última corrida local que alguien commiteó, y por convención no se
-   commitea una regenerada (el diff no lleva reporte generado). Esa copia puede marcar
-   `hallazgos` de un problema que ya no existe: en MSF-843 seguía diciendo
-   `knip (código muerto) | hallazgos` cuando knip ya daba 0, y eso fue lo que apuntó al hallazgo
-   inexistente. El estado que vale es el del artifact del CI o el de `pnpm calidad` en el momento;
-   para el código, `pnpm dlx knip@6.44.1 --no-progress`.
+1. **El check que falló dice qué encontró, entero.** Su salida va completa en la consola del
+   paso del CI, en la sección `## <check>` de `reports/calidad.md` y en `reports/calidad.log`
+   (el artifact `calidad-reporte` sube los dos). Recortarla —a las últimas 40 líneas en la
+   consola o a las últimas 60 en el informe— volvería a esconder el hallazgo, que es justo lo
+   que se quiere evitar. Los checks que pasan no necesitan el detalle: se quedan con sus
+   últimas 40 líneas.
+2. **El script no pierde el final del log.** Sale con `process.exitCode = 1` y no con
+   `process.exit(1)`: en Linux, `process.exit(1)` descarta la cola de `stdout` que no entra en
+   el buffer del pipe (64 KiB), así que con suficiente salida el final del log —justo el bloque
+   del check que falló y el `---- RESUMEN ----`— se pierde y el rojo vuelve a quedar mudo.
+3. **La salida de las herramientas es texto, no anotaciones.** `GITHUB_ACTIONS` no explica por
+   qué se perdía texto: knip 6.44.1 no lee esa variable (0 referencias en el paquete publicado;
+   su reporter por defecto es `symbols` y el `github-actions` sólo se usa con `--reporter`), y
+   oxlint 1.79.0 corre con `--format=default` forzado, que no cambia con el entorno. El formato
+   `github` de oxlint sí escribe anotaciones `::warning` —el runner las consume como anotaciones y
+   del log sólo queda la anotación renderizada (`##[warning]…`), no la salida de la herramienta—,
+   y por eso `calidad.mjs` borra `GITHUB_ACTIONS` del entorno de los hijos: que ninguna
+   herramienta pueda cambiar a ese formato por el entorno.
 
-Esto es lo que pasó en MSF-843: el `quality` del PR #882 quedó rojo con un knip que en el log
-sólo aparecía como `apps/web/src/pages/conexiones/list.tsx:44:1`, sin el texto que explicaba el
-hallazgo. El hallazgo real era otro (una dependencia `pg` sin declarar en
-`apps/web/e2e/ventas-impresion.e2e.ts:88:130`) y no se pudo leer sin correr la herramienta.
+Y dónde está la verdad sobre el estado de los checks: en el artifact `calidad-reporte` de la
+corrida o en el `pnpm calidad` del momento. El informe es un archivo **generado** y no se
+versiona: una copia vieja en el repo puede marcar `hallazgos` de un problema que ya no existe.
+Para el código, `pnpm dlx knip@6.44.1 --no-progress`.
+
+### Qué pasó en MSF-843
+
+El `quality` del PR #882 quedó rojo y el log no decía qué encontró. La causa no fue el formato
+de las herramientas: fue que **la salida del check que falló no llegó ni al log del paso ni al
+informe**. En el log del job (run `43324206071`, job `131552415859`) se leen `== gitleaks
+(secretos): ok` y `== oxlint (SAST): ok`, y después ya vienen anotaciones `##[warning]` (el
+runner renderiza así las líneas `::warning` que escriben las herramientas) y, al final, el
+fallo: no están el encabezado `== knip (código muerto): hallazgos`, ni la salida de knip, ni el
+bloque `---- RESUMEN ----`. El artifact `calidad-reporte` de esa corrida (334 bytes) sí tiene la
+tabla de los siete checks —knip `hallazgos`— pero sin la salida del check que falló. O sea: el
+script terminó de correr los siete checks (la tabla lo prueba) y su salida se perdió después.
+
+La última línea del log (`##[warning]apps/web/src/pages/conexiones/list.tsx:44:1`) **no** era un
+hallazgo de knip: ese archivo es idéntico en la base, en el head del CI y en la base actual, y su
+línea 44 es el `useEffect` que dispara la carga (nunca una declaración exportada). El hallazgo
+real de knip era otro —una dependencia `pg` sin declarar en
+`apps/web/e2e/ventas-impresion.e2e.ts:88:130`— y no se pudo leer sin correr la herramienta.
+
+> Lo que no se pudo reconstruir es el mecanismo por el que esa salida no llegó al log: el log de
+> GitHub Actions no conserva lo que se perdió. El contrato de este script es que la salida del
+> check que falló se imprima completa y que el proceso termine sin descartar la cola de `stdout`.
 
 ## Tests web: timeouts
 

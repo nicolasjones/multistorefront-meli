@@ -12,11 +12,14 @@
 
 El hallazgo real del `quality` (knip) y el del `application` (`docs:check`) están resueltos en la base:
 knip da 0 hallazgos y `docs:check` pasa. Lo que este PR agrega es la cobertura que faltaba para que
-un rojo de calidad vuelva a decir **qué** encontró: dos tests que corren `scripts/calidad.mjs` con un
+un rojo de calidad vuelva a decir **qué** encontró: tres tests que corren `scripts/calidad.mjs` con un
 `pnpm` falso y exigen (a) que la salida del check que falló esté en `reports/calidad.md`, en
 `reports/calidad.log` **y en el log del propio paso del CI** (stdout, sin recortar en ninguno de los
-tres) y (b) que las herramientas no hereden `GITHUB_ACTIONS` (que las volaba a su modo de anotaciones
-y dejaba el log sin texto).
+tres), (b) que las herramientas no hereden `GITHUB_ACTIONS` (el script borra esa variable del entorno
+de los hijos para que ninguna herramienta escriba anotaciones `::warning`, que el runner consume como
+anotaciones y no copia al log) y (c) que el log **no pierda el final** de la salida (el script sale
+con `process.exitCode = 1`: con `process.exit(1)`, en Linux se descarta la cola de `stdout` que no
+entra en el buffer del pipe y el bloque del check que falló se pierde).
 
 ## Checks Performed
 
@@ -28,8 +31,11 @@ y dejaba el log sin texto).
 | Reproducción (post-fix) — `docs:check` | `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | pass | `Documentación de cambios: OK`; `Migraciones OK`; `Trampas conocidas: OK`. |
 | Reproducción (post-fix) — guardián | `pnpm e2e:escritura:check` | pass | `ningún spec escribe directo en tablas de solo lectura para service_role`. |
 | Documentación del tooling contra el código | `docs/calidad.md` vs `scripts/calidad.mjs` y `package.json` | pass | La tabla «Qué corre» dice lo que el script corre de verdad (gitleaks con binario nativo, docker sólo de respaldo; SAST con oxlint 1.79.0) y el bloque «Uso» cita `pnpm calidad:code` (el script que define `package.json`), no `pnpm calidad --code`, que no existe. El encabezado de `scripts/calidad.mjs` pasó a `--only=secrets,sast`, la forma que el parser acepta. |
-| Tests nuevos | `node --test scripts/calidad.test.mjs` | pass | 3/3 (1 previo de MSF-683 + 2 de MSF-843). |
+| Tests nuevos | `node --test scripts/calidad.test.mjs` | pass | 4/4 (1 previo de MSF-683 + 3 de MSF-843) + 1 skip (gitleaks no instalado). |
+| Causa real del rojo de MSF-843 | log del job `quality` (`gh api repos/{owner}/{repo}/actions/jobs/131552415859/logs`) + artifact `calidad-reporte` de esa corrida (id `13993035090`) | pass (reconstruida) | El log del paso tiene `== gitleaks (secretos): ok` y `== oxlint (SAST): ok` y después ya el fallo: **no** están el encabezado `== knip (código muerto): hallazgos`, ni la salida de knip, ni el `---- RESUMEN ----`. El artifact (334 bytes) sí tiene la tabla de los siete checks —knip `hallazgos`— pero **sin** la salida del check que falló. O sea: la salida del check que falló no llegó ni al log del paso ni al informe. |
+| ¿Era `GITHUB_ACTIONS` la causa? | inspección del paquete publicado de knip 6.44.1 (`grep -rn GITHUB_ACTIONS` → 0 resultados; `grep -rn "::warning"` → 0; reporter por defecto `symbols` en `dist/cli.js`) + corrida de oxlint 1.79.0 con y sin la variable | pass (descartado) | knip no lee la variable: su salida no cambia. oxlint 1.79.0 con `--format=default` (el que fuerza el script) da la misma salida con `GITHUB_ACTIONS=true` y sin ella; su formato `github` (el que escribe anotaciones `::warning`) sólo se usa si se lo pide con `--format=github`. La atribución del texto perdido a esa variable era falsa. |
 | Test que detecta la regla (FEAT-236) | se quitó `delete childEnv.GITHUB_ACTIONS;` de `scripts/calidad.mjs` y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «las herramientas no heredan GITHUB_ACTIONS». Se revirtió la mutación. |
+| Test que detecta la regla (FEAT-236) | el script volvió a salir con `process.exit(1)` en vez de `process.exitCode = 1` y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el log del CI no pierde el final de la salida del check que falló» (el hallazgo queda fuera del stdout: en Linux, `process.exit(1)` descarta la cola de `stdout` que no entra en el buffer del pipe, 64 KiB). Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | se quitó el `fallos.flatMap(...)` (la sección `## <check>`) de la plantilla del informe y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló». Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | el check con hallazgos volvió a imprimir sólo las últimas 40 líneas de su salida (`res.out.split("\n").slice(-40)`) y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló» (el hallazgo quedaba fuera del log del CI). Se revirtió la mutación. |
 | Test que detecta la regla (FEAT-236) | la sección del check que falló en `reports/calidad.md` volvió a recortarse a las últimas 60 líneas y se re-corrió el test | pass (detecta) | `ℹ fail 1`: falla «el informe de calidad dice qué encontró el check que falló» (el hallazgo quedaba fuera del informe). **Con el ruido de 42 líneas que había antes, esta mutación NO la detectaba** (42 < 60): por eso el shim ahora emite 70 líneas, más que los dos recortes que hay que vigilar. Se revirtió la mutación. |
@@ -50,30 +56,31 @@ y dejaba el log sin texto).
 $ node --test scripts/calidad.test.mjs
 ✔ [MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no corra ninguna herramienta
 ✔ [MSF-843] el informe de calidad dice qué encontró el check que falló
-✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
-ℹ tests 3  ℹ pass 3  ℹ fail 0
+✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (oxlint puede escribir anotaciones `::warning`, que el runner consume como anotaciones)
+✔ [MSF-843] el log del CI no pierde el final de la salida del check que falló
+ℹ tests 5  ℹ pass 4  ℹ fail 0  ℹ skipped 1
 ```
 
 ```text
 # con `delete childEnv.GITHUB_ACTIONS;` quitado de scripts/calidad.mjs:
-ℹ tests 3  ℹ pass 2  ℹ fail 1
-✖ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
+ℹ fail 1
+✖ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (oxlint puede escribir anotaciones `::warning`, que el runner consume como anotaciones)
 
 # con el `fallos.flatMap(...)` quitado de la plantilla de reports/calidad.md:
-ℹ tests 3  ℹ pass 2  ℹ fail 1
+ℹ fail 1
 ✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
 
 # con el stdout del check con hallazgos recortado a las últimas 40 líneas:
-ℹ tests 3  ℹ pass 2  ℹ fail 1
+ℹ fail 1
 ✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
 
 # con la sección del check que falló de reports/calidad.md recortada a las últimas 60 líneas:
-ℹ tests 3  ℹ pass 2  ℹ fail 1
+ℹ fail 1
 ✖ [MSF-843] el informe de calidad dice qué encontró el check que falló
 
-# con el `delete childEnv.GITHUB_ACTIONS;` quitado de scripts/calidad.mjs:
-ℹ tests 3  ℹ pass 2  ℹ fail 1
-✖ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
+# con el script volviendo a salir con `process.exit(1)`:
+ℹ fail 1
+✖ [MSF-843] el log del CI no pierde el final de la salida del check que falló
 ```
 
 ```text
@@ -125,7 +132,7 @@ EXIT=0
 # el CI del PR #1127 (run 44184387968, job infrastructure — pnpm test:ci):
 ✔ [MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no corra ninguna herramienta
 ✔ [MSF-843] el informe de calidad dice qué encontró el check que falló
-✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (si lo heredan, el log del CI no dice qué encontraron)
+✔ [MSF-843] las herramientas no heredan GITHUB_ACTIONS (oxlint puede escribir anotaciones `::warning`, que el runner consume como anotaciones)
 ℹ tests 35  ℹ pass 35  ℹ fail 0
 ```
 
@@ -149,24 +156,32 @@ EXIT=0
   exportada y no tiene código muerto (revisado a mano). El hallazgo real —`pg` sin declarar en
   `apps/web/e2e/ventas-impresion.e2e.ts`— **quedó reproducido** el 2026-11-17 restaurando ese único
   archivo desde `3892a22f`, y el texto que knip imprime coincide byte a byte con lo que el reporte
-  decía que no se podía leer. Por qué el log mostraba la ruta equivocada (el runner consumió la
-  salida de knip en modo anotaciones y el log conserva sólo el último texto renderizado) queda
-  anotado en el assessment; con este PR, `reports/calidad.log` lo vuelve innecesario como fuente de
-  verdad.
+  decía que no se podía leer. Por qué el log mostraba esa ruta (la salida del check que falló no llegó
+  al log del paso ni al informe: el log del job tiene `== oxlint (SAST): ok` y después ya el fallo, sin
+  el `== knip (código muerto): hallazgos` ni el `---- RESUMEN ----`, y el artifact de esa corrida tiene
+  la tabla de los siete checks sin la salida del check que falló) queda anotado en el assessment; con
+  este PR, `reports/calidad.log` lo vuelve innecesario como fuente de verdad.
+- El mecanismo exacto por el que esa salida no llegó al log no se puede reconstruir: el log de GitHub
+  Actions no conserva lo que se perdió. Lo que sí queda vigilado por test es que la salida del check
+  que falló se imprima completa y que el script termine sin descartar la cola de `stdout`
+  (`process.exitCode = 1`, no `process.exit(1)`).
 
-## Re-verificación de la devolución del 2026-11-18 (PR #1129)
+## Re-verificación de la devolución del 2026-11-18 (revisión de QA sobre el PR #1127)
 
-Sobre el HEAD `6b55e6d1f` (0 commits atrás de `origin/dokploy`), para el PR #1127:
+Sobre el HEAD de esta rama, después de corregir la atribución de la causa y sacar el informe generado
+del control de versiones:
 
 | Check | Resultado |
 |---|---|
-| `node --test scripts/calidad.test.mjs` | 3 pass, 0 fail (1 skip: gitleaks no instalado) |
+| `node --test scripts/calidad.test.mjs` | 4 pass, 0 fail (1 skip: gitleaks no instalado) |
+| Mutación `process.exit(1)` | el test «el log del CI no pierde el final de la salida del check que falló» falla (1 fail) |
 | `pnpm dlx knip@6.44.1 --no-progress` | 0 hallazgos, exit 0 |
-| `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | OK (6 archivos), migraciones y trampas OK |
+| `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | OK, migraciones y trampas OK |
 | `pnpm e2e:escritura:check` / `pnpm test:e2e:escritura` | OK / 16/16 |
 
 ## Recommendation
 
 Cerrar el bug — verificado sobre `dokploy` actual: los dos rojos del reporte no se reproducen, la causa
-por la que el `quality` era indiagnosticable queda fijada por test (con mutación comprobada) y el CI
-del PR #1127 deja `quality`, `application` y `validacion` en **verde** sobre la base actual.
+por la que el `quality` era indiagnosticable (la salida del check que falló no llegaba ni al log del
+paso ni al informe) queda documentada con su evidencia y fijada por test (con mutación comprobada), y
+el CI del PR #1127 deja `quality`, `application` y `validacion` en **verde** sobre la base actual.
