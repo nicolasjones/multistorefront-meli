@@ -83,9 +83,10 @@ describe('FaltantesStock (F-STK-17)', () => {
   it('muestra título, subtítulo, pestaña activa, texto de ayuda y las columnas del prototipo', async () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Faltantes', level: 1 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Faltantes de stock (A pedido)', level: 1 })).toBeInTheDocument()
     expect(screen.getByText('Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve.')).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Faltantes de stock', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Faltantes de despacho' })).toHaveAttribute('href', '/ventas/faltantes')
     expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
     expect(screen.getByText('Por defecto se ven todas; si elegís una empresa en la barra superior, se filtra por esa tienda.')).toBeInTheDocument()
     for (const nombre of ['Seleccionar todos', 'Tienda', 'Cliente', 'Producto', 'Pedido', 'Comprobante', 'Desde', 'Stock hoy', 'Aviso']) {
@@ -209,7 +210,7 @@ describe('FaltantesStock (F-STK-17)', () => {
     abrir()
     expect(await screen.findByText('Producto 1')).toBeInTheDocument()
     // La pestaña depende de Stock, no de Ventas: con solo lectura en Ventas sigue visible.
-    expect(screen.getByRole('tab', { name: 'Faltantes', selected: true })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Faltantes de stock', selected: true })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Avisar a los seleccionados/ })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Seleccionar Producto 1 de Cliente 1 del comprobante A-0001')).toBeDisabled()
     expect(screen.queryByLabelText('Seleccionar todos')).not.toBeInTheDocument()
@@ -304,9 +305,9 @@ describe('FaltantesStock (F-STK-17)', () => {
     await screen.findByText('Producto 1')
     const pestanas = screen.getAllByRole('tab')
     const indice = (nombre: string) => pestanas.findIndex((pestana) => pestana.textContent === nombre)
-    expect(indice('Faltantes')).toBeGreaterThan(-1)
-    expect(indice('Faltantes')).toBeLessThan(indice('Actualizar por Excel'))
-    expect(pestanas[indice('Faltantes')]).toHaveAttribute('href', '/stock/faltantes')
+    expect(indice('Faltantes de stock')).toBeGreaterThan(-1)
+    expect(indice('Faltantes de stock')).toBeLessThan(indice('Actualizar por Excel'))
+    expect(pestanas[indice('Faltantes de stock')]).toHaveAttribute('href', '/stock/faltantes')
   })
 
   it('muestra las filas de la más reciente a la más antigua (FR-303)', async () => {

@@ -1,7 +1,11 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - release-please-config.json
+  - .release-please-manifest.json
+  - .github/workflows/release-please.yml
+  - .github/workflows/quality.yml
+  - .specify/bugs/msf-784/fix.md
 ---
 
 # Release automático (F4)

@@ -1,7 +1,12 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - scripts/supabase-ci.mjs
+  - scripts/reset-db-ci.mjs
+  - scripts/reset-db-ci-sql.mjs
+  - .github/workflows/validate.yml
+  - template-capabilities.json
+  - .specify/bugs/ci-supabase-desarrollo-compartido
 ---
 
 # Adoptar la base de datos del CI aislada
@@ -34,8 +39,12 @@ puerto del CI al de desarrollo del producto: borraría sus datos.
 4. El job `database` de `.github/workflows/validate.yml`: `node
    scripts/supabase-ci.mjs reclamar` (reserva una ranura del stack) y su
    `liberar` con `if: always()`, `node --test scripts/supabase-ci.test.mjs`,
-   `pnpm db:ci:preparar`, `supabase start --workdir "$SUPABASE_CI_WORKDIR" -x …`,
-   `pnpm db:reset:ci` y `pnpm test:db:ci`. **Sin** `concurrency` (las corridas se
+   `pnpm db:ci:preparar`, `supabase start --workdir "$SUPABASE_CI_WORKDIR" -x …`
+   (en runner self-hosted, con `node scripts/supabase-ci.mjs puente` en segundo plano
+   mientras dura el `start`: el CLI se conecta a `127.0.0.1:<puerto>`, que dentro del
+   contenedor del runner es el propio contenedor), `pnpm db:reset:ci` y `pnpm test:db:ci`.
+   El job lleva `timeout-minutes: 40` y `SUPABASE_CI_LOCK_TTL_MIN: 75` (el TTL del lock
+   debe superar el mayor timeout de los jobs que comparten ranuras). **Sin** `concurrency` (las corridas se
    coordinan por ranura, no por el grupo del repo). Borrar cualquier
    `SUPABASE_DB_PORT` fijo del workflow.
 5. Registrar `isolated-ci-database` en `template-adoption.json`.

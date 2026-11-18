@@ -4,6 +4,8 @@ sources:
   - supabase/functions/chat-ia-responder/guardas.ts
   - supabase/functions/preguntar-documentos/index.ts
   - supabase/functions/indexar-documento/handler.ts
+  - supabase/functions/indexar-documento/consultas.ts
+  - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/functions/enviar-correo-proveedor/handler.ts
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
@@ -116,7 +118,10 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   (usuario, proveedor, resultado; sin asunto, cuerpo ni dirección).
 - Las funciones de aviso (`enviar-aviso-faltante`, `enviar-resumen-reposicion`, `enviar-resumen-semanal`,
   `recalcular-alertas-inicio`) rechazan con 503 «no configurada» un token de menos de 32 caracteres o que empiece con
-  `change-me` (`_shared/token.ts`). En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
+  `change-me` (`_shared/token.ts`). La petición se compara con `tokenValido` (`_shared/token.ts`): SHA-256 de ambos valores y `timingSafeEqual`,
+  de modo que no se corta por longitud ni el tiempo revela el largo del token; sin token esperado o sin cabecera
+  `x-aviso-token` responde 403 con un cuerpo uniforme («Falta autenticación.»). La usan los `handler.ts` de las cuatro
+  funciones de aviso y el de `entregar-webhook`. En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
   `supabase/functions/.env.example`) permite el valor de ejemplo; **no la definas en stg/prd**. En stg/prd generá
   los tokens con `openssl rand -hex 32` (en Kestra van en base64 como `SECRET_*`).
 - Esas cuatro funciones, que solo llama Kestra, ya no responden `Access-Control-Allow-Origin: *`.

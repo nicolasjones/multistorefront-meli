@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hoyEnOrganizacion, periodoAnteriorIgualDuracion, rangoDeAtajo, rangoEsValido, validarRango, validarRangos } from './periodosRanking'
+import { fechaDeMarca, hoyEnOrganizacion, periodoAnteriorIgualDuracion, rangoDeAtajo, rangoEsValido, validarRango, validarRangos } from './periodosRanking'
 
 // 15/10/2026 12:00 en Buenos Aires (UTC-3).
 const AHORA = new Date('2026-10-15T15:00:00Z')
@@ -77,5 +77,16 @@ describe('validarRangos', () => {
   it('acepta períodos superpuestos o idénticos', () => {
     const rango = { desde: '2026-10-01', hasta: '2026-10-31' }
     expect(validarRangos(rango, rango)).toEqual({ aplicado: {}, comparacion: {} })
+  })
+})
+
+describe('fechaDeMarca', () => {
+  it('un cobro de las 22:00 de Buenos Aires sigue en su día aunque en UTC ya sea el siguiente', () => {
+    expect(fechaDeMarca('2026-11-18T01:00:00+00:00')).toBe('2026-11-17')
+    expect(fechaDeMarca('2026-11-17T23:59:00-03:00')).toBe('2026-11-17')
+  })
+  it('un día sin hora se devuelve tal cual y una marca ilegible no rompe', () => {
+    expect(fechaDeMarca('2026-11-17')).toBe('2026-11-17')
+    expect(fechaDeMarca('no-es-fecha')).toBe('no-es-fech')
   })
 })

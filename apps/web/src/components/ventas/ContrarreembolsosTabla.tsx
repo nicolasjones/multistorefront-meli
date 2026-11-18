@@ -1,3 +1,4 @@
+import { fechaDeMarca } from '../../lib/periodosRanking'
 import { useState } from 'react'
 import {
   Alert, Box, Button, Card, CardContent, LinearProgress, Link, Snackbar, Stack, Typography,
@@ -23,7 +24,7 @@ const ALTO_BARRA_CARGA = 2
 // Columnas del prototipo `design/pantallas/VentasTransportes.dc.html` (FR-047): Fecha, Tienda,
 // Comprobante, Cliente, Empresa de transporte, Guía, Importe y Estado.
 const COLUMNAS: ColumnaAdaptable<Contrarreembolso>[] = [
-  { clave: 'fecha', encabezado: 'Fecha', render: (cr) => formatearFecha(cr.fecha.slice(0, 10)) },
+  { clave: 'fecha', encabezado: 'Fecha', render: (cr) => formatearFecha(fechaDeMarca(cr.fecha)) },
   { clave: 'empresa', encabezado: 'Tienda', render: (cr) => <EtiquetaEstado texto={cr.empresa} variante="contorno" /> },
   {
     clave: 'numero',

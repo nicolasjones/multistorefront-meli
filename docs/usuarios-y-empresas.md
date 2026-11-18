@@ -1,7 +1,14 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261016-140000-permisos-por-empresa
+  - supabase/migrations/20261016160100_asignar_empresas_usuario.sql
+  - supabase/migrations/20261017130000_cambiar_rol_miembro_lock_asignaciones.sql
+  - supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql
+  - apps/web/src/pages/usuarios/list.tsx
+  - apps/web/src/lib/asignacionesEmpresas.ts
+  - apps/web/src/lib/rolesUsuarios.ts
+  - supabase/functions/invitar-miembro/handler.ts
 ---
 
 # Usuarios y empresas (F-ROL-07)

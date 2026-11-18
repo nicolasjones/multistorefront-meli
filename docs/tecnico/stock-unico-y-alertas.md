@@ -1,9 +1,24 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src
+  - specs/20261018-180000-stock-unico-y-alertas
+  - supabase/migrations/20261018180000_stock_cola_eventos.sql
+  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
+  - supabase/migrations/20261018180200_cola_eventos_reclamo.sql
+  - supabase/migrations/20261018180300_cola_eventos_correcciones.sql
+  - supabase/migrations/20261018180400_cola_eventos_interno.sql
+  - supabase/migrations/20261018180500_cola_eventos_interno_revoke_service_role.sql
+  - supabase/migrations/20261018190000_stock_existencias_realtime.sql
+  - supabase/migrations/20261023120300_stock_evento_deposito.sql
+  - supabase/migrations/20261023130000_stock_traslado.sql
+  - supabase/migrations/20261023130300_stock_evento_reserva.sql
+  - supabase/migrations/20270220120400_catalogo_variantes_movimientos.sql
+  - supabase/tests/database/stock_cola_eventos.test.sql
+  - supabase/tests/database/stock_realtime.test.sql
+  - apps/web/src/lib/useExistenciasRealtime.ts
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/e2e/stock-actual-vivo.e2e.ts
+  - apps/web/e2e/stock-concurrencia.e2e.ts
 ---
 
 # Stock único y alertas: cola de eventos y Realtime (MSF-231)
@@ -64,7 +79,7 @@ productos y organizaciones.
 
 ## Contrato del evento `stock.actualizado`
 
-Se emite **un evento por cada movimiento aceptado** (entrada, salida o ajuste). Si la RPC revierte (por
+Se emite **un evento por cada movimiento aceptado** (entrada, salida o ajuste; con las excepciones de más abajo). Si la RPC revierte (por
 ejemplo, saldo negativo), el evento no existe. Definir el mínimo no inserta movimiento y no emite.
 
 | Campo de `carga` | Significado |
@@ -76,6 +91,12 @@ ejemplo, saldo negativo), el evento no existe. Definir el mínimo no inserta mov
 | `cantidad` | **Cantidad resultante** tras el movimiento (el saldo), no la cantidad informada. |
 | `diferencia` | Cambio con signo (`+5` en una entrada de 5, `-2` en una salida de 2; en un ajuste, contado − anterior). |
 | `ocurrido_en` | Instante de emisión bajo el lock del producto (`clock_timestamp()`, `timestamptz`): estrictamente creciente por producto, no el `now()` de la transacción. |
+
+Cambios posteriores del contrato (todos aditivos; la definición vigente de `private.emitir_stock_actualizado` está en `20270220120400_catalogo_variantes_movimientos.sql`):
+
+- La carga suma `deposito_id`, `reservado` y `disponible` (reservadas en total y cantidad menos reservado en total); `cantidad` sigue siendo el total único (`20261023120300_stock_evento_deposito.sql`).
+- **No se emite** para movimientos de traslado entre depósitos (`traslado_id` no nulo: el total no cambia) ni para movimientos de una variante (`variante_id` no nulo: el saldo de una variante no es el del producto).
+- Reservar y liberar también emiten `stock.actualizado` con `diferencia = 0` y `tipo_movimiento` `reserva` o `liberacion`, con `movimiento_id` nulo y `reserva_id` en la carga; la clave de idempotencia es `<reserva_id>:reserva` o `<reserva_id>:liberacion` (`20261023130300_stock_evento_reserva.sql`).
 
 Un consumidor debe tratar `cantidad` como el valor vigente para ese producto; ante eventos fuera de
 orden gana el de `ocurrido_en` más reciente.

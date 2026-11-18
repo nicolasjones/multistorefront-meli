@@ -1,11 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src/pages/organizacion
-  - apps/web/src/pages/usuarios
+  - specs/20261014-140000-administracion-de-usuarios-y-organizacion
+  - supabase/migrations/20261014160000_organizacion_datos_y_configuracion.sql
+  - supabase/migrations/20270324120300_baja_organizacion_reparaciones_y_error_diferido.sql
+  - supabase/migrations/20270347000200_confirmar_claves_diferidas_restaura_modo.sql
+  - supabase/tests/database/organizacion_datos_y_configuracion.test.sql
+  - supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql
+  - apps/web/src/pages/organizacion/edit.tsx
+  - apps/web/src/pages/organizacion/edit.test.tsx
+  - apps/web/src/pages/usuarios/list.tsx
+  - apps/web/src/pages/usuarios/list.test.tsx
 ---
 
 # Administración de usuarios y organización: técnico (MSF-132)

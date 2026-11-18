@@ -1,3 +1,4 @@
+import { formatearImporte } from '../../lib/formatoImporte'
 import { type FormEvent, useRef, useState } from 'react'
 import { Link as RouterLink, Navigate, useParams } from 'react-router'
 import {
@@ -195,7 +196,7 @@ function Contenido({ ficha, recargar }: { ficha: FichaContacto; recargar: () => 
                     formatearFecha(entrada.fecha),
                     entrada.empresa_nombre,
                     entrada.estado,
-                    entrada.total === null ? null : `$ ${entrada.total.toLocaleString('es-AR')}`,
+                    entrada.total === null ? null : formatearImporte(entrada.total),
                   ].filter(Boolean).join(' · ')}
                   slotProps={{ primary: { sx: { overflowWrap: 'anywhere' } } }}
                 />

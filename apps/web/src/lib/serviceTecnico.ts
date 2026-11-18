@@ -1,6 +1,7 @@
 // Service técnico · catálogos (F-SVC-01, FR-004…FR-008). El esquema, los límites y las RPC viven en las
 // migraciones 20261020100100…20261020100500; acá se espejan solo para validar el formulario antes de viajar
 // (la autoridad es la base) y para traducir los errores a mensajes claros.
+import { formatearImporte } from './formatoImporte'
 import { supabaseClient } from './supabase'
 
 export type ModeloEquipo = {
@@ -212,8 +213,6 @@ export async function moverEstado(id: string, direccion: 'subir' | 'bajar'): Pro
   lanzarSiHayError(error)
 }
 
-const FORMATO_ARS = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 })
-
 export function formatearARS(importe: number): string {
-  return FORMATO_ARS.format(importe)
+  return formatearImporte(importe, { centavos: 'siempre' })
 }

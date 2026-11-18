@@ -1,17 +1,27 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - infra/kestra
+  - supabase/migrations/20260913140000_backups_postgres.sql
+  - supabase/migrations/20261018120000_copias_imagenes_y_verificaciones.sql
+  - supabase/tests/database/backups_postgres.test.sql
+  - infra/kestra/flows/respaldo-postgres.yml
+  - infra/kestra/flows/respaldo-imagenes.yml
+  - infra/kestra/flows/retencion-copias.yml
+  - infra/kestra/flows/verificar-restauracion.yml
+  - infra/kestra/flows/purgar-almacenamiento-kestra.yml
+  - infra/kestra/flows/alerta-ausencia-respaldos.yml
   - specs/011-backups-postgres
+  - specs/20261018-120000-operacion-copias-y-documentacion
 ---
 
 # Operación, copias y documentación (MSF-457) · técnico
 
 Nota de producto: [Plataforma · Operación, copias y documentación](../producto/operacion-copias-y-documentacion.md).
 
-> **Estado al 2026-10-30:** la épica MSF-457 **no tiene spec ni migraciones propias** en el repo. Esta
-> página describe la base existente (spec 011) sobre la que se construye y lista lo pendiente.
+> **Estado al 2026-11-18:** la épica MSF-457 tiene spec propia (`specs/20261018-120000-operacion-copias-y-documentacion`) y
+> migración propia (`supabase/migrations/20261018120000_copias_imagenes_y_verificaciones.sql`). Esta página describe la base
+> original (spec 011); el detalle vigente de imágenes, retención, verificación de restauración y alertas está en
+> [Copias de seguridad y restauración](../copias-y-restauracion.md).
 
 ## Base existente: respaldo de Postgres (spec 011)
 
@@ -44,16 +54,17 @@ erDiagram
   }
 ```
 
-## Pendiente de la épica (sin implementar)
+## Lo que la épica agregó sobre la spec 011
 
-| Ítem | Dueño | Nota |
+| Ítem | Estado | Dónde |
 |---|---|---|
-| Retención 30 diarias + 12 mensuales | tecnico | Propuesta; spec 011 la excluyó. Definir con el cliente |
-| Copia de imágenes de Storage fuera del proyecto Supabase | tecnico | Roadmap #43 |
-| Verificación periódica de restauración y simulacro medido (RPO 24 h / RTO 4 h propuestos) | operacion | Roadmap #6; resultado firmado por la persona propietaria |
-| Aviso por correo ante fallo | producto | Bloqueado por elegir proveedor de correo |
-| Documentación funcional y técnica completa (F-OPS-05) | producto | Se cierra al estar las funciones de todos los componentes; `pnpm docs:check` ya exige docs por cambio |
-| Dependencia | — | Bloqueada por MSF-455 (ambientes de prueba y producción) |
+| Retención por días con tope (base: 30 días + 12 mensuales; fotos de imágenes: 7 días, 2 mensuales, tope 7) | Implementado | `infra/kestra/flows/retencion-copias.yml` (04:30) |
+| Copia de imágenes de Storage (tabla `public.respaldos_imagenes`) | Implementado; el destino es el mismo servidor (riesgo asumido), migrable a S3/B2/SFTP solo con variables | `infra/kestra/flows/respaldo-imagenes.yml` (03:15) |
+| Verificación periódica de restauración (tabla `public.verificaciones_restauracion`) en un Postgres descartable sin red; falla ante cualquier error no esperado | Implementado | `infra/kestra/flows/verificar-restauracion.yml` (lunes 05:00) |
+| Aviso por correo ante fallo y alerta de ausencia de copias (30 h) | Implementado; requiere configurar `KESTRA_SMTP_*` y `SOPORTE_CORREO` y probar el correo | `aviso-fallo-copias.yml`, `alerta-ausencia-respaldos.yml` (06:30) |
+| Purga del almacenamiento interno de Kestra (dump publicado como archivo de salida) | Implementado | `purgar-almacenamiento-kestra.yml` (04:45) y `PurgeCurrentExecutionFiles` en `finally` |
+| Simulacro de restauración medido (RPO 24 h / RTO 4 h propuestos) | **Pendiente de ejecución** en staging | [simulacro-restauracion.md](../simulacro-restauracion.md) |
+| Documentación funcional y técnica completa (F-OPS-05) | Se cierra al estar las funciones de todos los componentes; `pnpm docs:check` ya exige docs por cambio | — |
 
 Cualquier migración que cree esta épica debe ser aditiva o documentar su reversión, y ubicar cada tabla
 por Principio VII (plataforma → `public`).

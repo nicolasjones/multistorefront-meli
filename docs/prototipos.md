@@ -1,7 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/prototipo-inventario.mjs
+  - scripts/prototipo-inventario.test.mjs
+  - scripts/verificar-inventario-prototipo.mjs
+  - scripts/verificar-matriz-pantalla.mjs
+  - scripts/verificar-estilos-sueltos.mjs
+  - scripts/matriz-pantalla-exentas.txt
+  - scripts/matriz-pantalla-empresa-exentas.txt
+  - apps/web/src/tema/tokens.test.ts
+  - apps/web/scripts/capturar-pantallas.mjs
+  - package.json
 ---
 
 # Prototipos de UI y fidelidad de implementación

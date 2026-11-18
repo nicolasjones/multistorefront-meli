@@ -1,8 +1,20 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase
+  - specs/20270125-100000-catalogo-variantes
+  - supabase/migrations/20270220120100_catalogo_relacionados.sql
+  - supabase/migrations/20270220120200_catalogo_variantes_tablas.sql
+  - supabase/migrations/20270220120300_catalogo_variantes_stock.sql
+  - supabase/migrations/20270220120400_catalogo_variantes_movimientos.sql
+  - supabase/migrations/20270220120500_catalogo_variantes_disponibilidad.sql
+  - supabase/migrations/20270220120600_catalogo_variantes_rpc.sql
+  - supabase/migrations/20270220170000_exportacion_total_variantes_y_relacionados.sql
+  - supabase/tests/database/catalogo_relacionados.test.sql
+  - supabase/tests/database/catalogo_variantes_datos.test.sql
+  - apps/web/src/components/productos/BloqueVariantes.tsx
+  - apps/web/src/components/productos/BloqueRelacionados.tsx
+  - apps/web/src/lib/productos-variantes.ts
+  - apps/web/src/lib/productos-relacionados.ts
 ---
 
 # Catálogo: variantes y relacionados (MSF-229), construcción interna

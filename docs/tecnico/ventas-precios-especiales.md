@@ -1,9 +1,14 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261027-100000-ventas-mejoras
+  - apps/web/src/lib/ventasLineas.ts
+  - apps/web/src/lib/clientes.ts
+  - apps/web/src/components/clientes/FormularioCliente.tsx
+  - supabase/migrations/20270201200102_clientes_descuento.sql
+  - supabase/migrations/20270201200103_lineas_descuento.sql
+  - supabase/migrations/20261203200300_lineas_rpc.sql
+  - supabase/migrations/20270348000200_ventas_usan_lista_precios.sql
 ---
 
 # Ventas · precios especiales por cliente (técnico, MSF-193)
@@ -230,8 +235,10 @@ calculados: al revertir, `guardar_lineas_comprobante` vuelve al precio de escala
 ## Fuera de alcance
 
 - **Lista propia de precios**: la historia dice «descuento **o** lista propia», pero el requisito y el
-  escenario solo especifican descuento porcentual. La lista propia queda **FUERA DE ALCANCE** hasta que
-  se especifique (decisión abierta 1 de la spec).
+  escenario solo especifican descuento porcentual: esta historia (F-VTA-32) no la implementa (decisión abierta 1 de la spec). La
+  lista por cliente se entregó después como una función aparte, con su propia bandera (`listas_precios`) y su propio motor
+  (`precio_linea_venta` la recibe junto con el descuento; `20270348000200_ventas_usan_lista_precios.sql`): ver
+  [Listas de precios](../listas-de-precios.md) y la precedencia en [Precios](../precios.md).
 - **Descuento sobre el precio manual**: no se aplica (decisión abierta 2 de la spec). El manual es una
   decisión explícita del operador.
 - **Descuento por producto, por categoría o por fecha**: solo hay un descuento **por cliente**.

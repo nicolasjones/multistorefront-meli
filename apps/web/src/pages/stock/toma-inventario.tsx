@@ -13,7 +13,7 @@ import { listarDepositosActivos, type DepositoOpcion } from '../../lib/depositos
 import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../../lib/empresaActivaRevision'
 import { supabaseClient } from '../../lib/supabase'
 import {
-  MENSAJE_TOMA_CONFIRMADA, armarItemsToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
+  MENSAJE_TOMA_CONFIRMADA, SIN_CATEGORIA, armarItemsToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
   rotularDiferencia, validarToma, type AjusteToma, type FilaToma,
 } from '../../lib/tomaInventario'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
@@ -98,7 +98,7 @@ export function TomaInventario() {
     setErrorFilas(null)
     setContados({})
     setIntentoConfirmar(false)
-    cargarFilasToma(idsDeOpcion(categorias, categoriaId), depositoId)
+    cargarFilasToma(categoriaId === SIN_CATEGORIA ? [] : idsDeOpcion(categorias, categoriaId), categoriaId === SIN_CATEGORIA, depositoId)
       .then((lista) => { if (vigente) { setFilas(lista); setCargandoFilas(false) } })
       .catch((error) => {
         console.error('No pudimos cargar los productos de la toma.', error)
@@ -187,6 +187,7 @@ export function TomaInventario() {
                 onChange={(evento) => setCategoriaId(evento.target.value)}
               >
                 {opciones.map((opcion) => <MenuItem key={opcion.id} value={opcion.id}>{opcion.ruta}</MenuItem>)}
+                <MenuItem value={SIN_CATEGORIA}>Sin categoría</MenuItem>
               </Select>
             </FormControl>
             {depositos.length === 0 ? (
@@ -198,7 +199,7 @@ export function TomaInventario() {
             ) : errorFilas ? (
               <EstadoError titulo={errorFilas} reintentar={() => setRecargaFilas((valor) => valor + 1)} />
             ) : filas.length === 0 ? (
-              <EstadoVacio titulo="Esta categoría no tiene productos" descripcion="Elegí otra categoría para hacer la toma." />
+              <EstadoVacio titulo={categoriaId === SIN_CATEGORIA ? 'No hay productos sin categoría' : 'Esta categoría no tiene productos'} descripcion="Elegí otra categoría para hacer la toma." />
             ) : (
               <>
                 <TableContainer tabIndex={0} role="region" aria-label="Productos de la toma de inventario (se desplaza)">

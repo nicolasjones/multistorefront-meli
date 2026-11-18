@@ -1,9 +1,36 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261016-130000-clientes-alta-y-busqueda
+  - apps/web/src/lib/clientes.ts
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/show.tsx
+  - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/pages/clientes/edit.tsx
+  - apps/web/src/components/clientes/FormularioCliente.tsx
+  - apps/web/src/components/clientes/ExportarClientes.tsx
+  - apps/web/src/components/clientes/DialogoFusionarClientes.tsx
+  - apps/web/src/components/clientes/ReparacionesDeCliente.tsx
+  - apps/web/src/hooks/useBuscarClientes.ts
+  - apps/web/src/lib/exportarClientes.ts
+  - supabase/migrations/20261016130000_clientes_ficha_y_numeracion.sql
+  - supabase/migrations/20261016130200_clientes_rls_por_seccion_y_actividad.sql
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261016140000_clientes_buscar.sql
+  - supabase/migrations/20261016150000_clientes_exportar.sql
+  - supabase/migrations/20261017120001_clientes_expreso_preferido.sql
+  - supabase/migrations/20270201200102_clientes_descuento.sql
+  - supabase/migrations/20270205110201_fusion_clientes.sql
+  - supabase/migrations/20270222100000_cuenta_corriente_cliente.sql
+  - supabase/migrations/20270227110000_cuenta_corriente_notas_de_credito.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270347000000_exportar_clientes_evento_por_llamada.sql
+  - supabase/migrations/20270418000401_clientes_a_dominio.sql
+  - supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql
+  - supabase/migrations/20270507170000_clientes_condicion_iva_via_de_carga.sql
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
+  - supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql
+  - supabase/migrations/20270507200000_clientes_condicion_iva_largo_central.sql
 ---
 
 # Clientes: modelo, RPC y pantallas (MSF-180)
@@ -39,7 +66,7 @@ El panel y los scripts piden la tabla con el perfil de esquema `dominio` (PostgR
 | `dominio.clientes` | **alterada** | Gana `numero integer not null` (correlativo por organización), `documento`, `correo`, `telefono`, `celular`, `direccion`, `codigo_postal`, `localidad`, `provincia`, `archivado_en timestamptz`, `updated_at timestamptz not null default now()`, `tipo text not null default 'minorista'` y `es_consumidor_final boolean not null default false`. |
 | `public.organizaciones` | existente | Recibe el disparador `organizaciones_crear_consumidor_final`: cada organización nueva nace con su «Consumidor final». Sin cambios de esquema. |
 | `public.registro_actividad` | existente | Recibe `cliente.creado`, `cliente.editado`, `cliente.archivado` y `cliente.restaurado`. Sin cambios de esquema. |
-| `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`; sin cambios. El mapeo de identificadores sigue válido (la numeración se asigna sola). |
+| `public.clientes_identificadores_externos` | existente | FK a `clientes(id)`. Desde MSF-596 lleva `organizacion_id` y el identificador es único por `(organización, sistema, identificador)` (ver «Identificador externo por organización»). |
 
 ```mermaid
 erDiagram
@@ -307,7 +334,7 @@ suma dos capacidades sobre esta base:
   `grant insert/update (condicion_iva)` por columna (la RLS por organización y el nivel de la sección `clientes` siguen
   mandando), y hace que `aplicar_lote_clientes` tome la clave opcional `condicion_iva` de cada fila (una celda vacía
   no borra el dato: `coalesce(nullif(btrim(...), ''), c.condicion_iva)`) y que `validar_fila_cliente_migracion` la
-  limite a 60. La pantalla todavía no la muestra (detalle y pendiente de interfaz en [Clientes](../clientes.md)).
+  limite a 60 leyendo `private.largo_maximo_condicion_iva()` (`20270507200000_clientes_condicion_iva_largo_central.sql`; el check de la tabla `clientes_condicion_iva_largo_ck` no cambia y el pgTAP `clientes_condicion_iva_carga` verifica que ambos límites coincidan). La pantalla todavía no la muestra (detalle y pendiente de interfaz en [Clientes](../clientes.md)).
 - **Lista de precios en la ficha (F-CLI-21).** `pages/clientes/show.tsx` muestra «Lista de precios» (solo lectura,
   `useListaPrecioDeCliente`; se asigna en «Editar» con `asignar_lista_precios_cliente`) y avisa que la lista y el
   descuento personal no se acumulan. `lib/clientes.ts` suma `lista_precio_id` y `ErrorGuardadoParcial` (guardado que
@@ -515,18 +542,37 @@ Reversión por migración:
 - [Datos y DER](datos.md#clientes-msf-180) — el modelo dentro del panorama.
 - [API y RPC](api.md#clientes-msf-180) — los contratos resumidos.
 
-## Pendiente: unicidad del identificador externo por organización (MSF-596)
+## Identificador externo por organización (MSF-596)
 
-**Estado verificado en `origin/dokploy`:** `public.clientes_identificadores_externos` no tiene `organizacion_id` y su único es `(sistema, identificador_externo)` en toda la instancia. `vincular_identificador_externo` responde `23505` aunque el otro cliente sea de otra organización, y revela que el identificador existe en otro tenant.
+Antes, `public.clientes_identificadores_externos` no tenía `organizacion_id` y su único era `(sistema, identificador_externo)` en toda la
+instancia: `vincular_identificador_externo` respondía `23505` aunque el otro cliente fuera de otra organización y así revelaba que el
+identificador existía en otro tenant. Se resolvió con la migración `20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql`
+(aditiva salvo el reemplazo del único; la reversión está en su encabezado):
 
-**Por qué no se corrige en este lote:** los datos existentes no se rompen (ampliar el alcance de un único es seguro y `organizacion_id` se completa desde `clientes`), pero la corrección no es solo de esquema. Hay que reescribir con la misma regla todas las funciones que buscan por `(sistema, identificador_externo)` sin filtrar organización: `vincular_identificador_externo`, la carga de clientes de la migración inicial (`20261201100000`: hoy detecta «El identificador ya está en uso» justamente por el único global, y `panel_actual` usa ids correlativos que **sí chocarían** entre organizaciones), la verificación de `20261201130000` y la conciliación. Esas definiciones fueron reescritas en vivo por `20270418000401` (`public.clientes` a `dominio.clientes`), así que cada una hay que partirla de su definición vigente y no de la migración original. Además cambia comportamiento visible de la carga (un identificador de otra organización deja de ser error) y la tabla pasa a ser candidata de `conjuntos_exportacion_total()`.
+- **Columna y disparador.** `organizacion_id uuid not null` (rellenada desde `dominio.clientes`); el disparador
+  `clientes_identificadores_externos_organizacion` (`before insert or update of cliente_id`) la toma siempre del cliente, así que nadie
+  puede escribir otra organización distinta a la del cliente (`P0002` si el cliente no existe).
+- **Único por organización.** `clientes_identificadores_externos_org_sistema_identificador_key` = `(organizacion_id, sistema,
+  identificador_externo)` reemplaza al único global. Dos organizaciones pueden vincular el mismo `(sistema, identificador)`.
+- **Funciones reescritas desde su definición vigente** (`public.clientes` ya es `dominio.clientes`):
+  `vincular_identificador_externo` (el conflicto y la lectura se acotan a la organización del cliente; «ya está vinculado a otro cliente»
+  `23505` solo aplica dentro de la misma organización y no revela vínculos de otras), `aplicar_lote_clientes`,
+  `private.clasificar_fila_cliente` (busca el identificador solo en la organización de la carga) e `informe_conciliacion_migracion`.
+- **Exportación total.** La tabla entra en `private.conjuntos_exportacion_total()` (`20270507180700_exportacion_total_identificadores_externos.sql`),
+  porque la prueba de completitud exige que toda tabla con `organizacion_id` figure en la lista o en las exclusiones.
+- Prueba: `supabase/tests/database/lote32_clientes_id_externo_y_aceptacion_correo.test.sql`.
 
-**Propuesta concreta (migración aditiva, en su propio lote):**
+## Aceptación de correo masivo en la carga y acción masiva (MSF-666)
 
-1. `alter table public.clientes_identificadores_externos add column organizacion_id uuid references public.organizaciones (id) on delete cascade;` con relleno `update ... set organizacion_id = c.organizacion_id from dominio.clientes c where c.id = cliente_id`, luego `not null` y un trigger `before insert` que lo derive del cliente (para que no se desincronice).
-2. Crear `unique (organizacion_id, sistema, identificador_externo)` y recién después quitar `clientes_identificadores_externos_sistema_identificador_key`.
-3. Reemplazar las funciones nombradas arriba filtrando por `organizacion_id` (y `on conflict (organizacion_id, sistema, identificador_externo)`); el mensaje de «ya vinculado a otro cliente» solo aplica dentro de la misma organización.
-4. Política RLS de lectura por `organizacion_id` directo; sumar la tabla a `private.conjuntos_exportacion_total()` (check T6).
-5. pgTAP: dos organizaciones vinculan el mismo `(sistema, identificador)`; la carga de clientes en ambas no choca; el mismo identificador en la misma organización sigue dando `23505`; la reversión es `drop` de la columna y del único nuevo, y recrear el único global solo si no hay duplicados entre organizaciones.
+Misma migración `20270507180300`. `dominio.clientes` suma `acepta_correo_masivo_en` y `acepta_correo_masivo_por` (nulables, sin grants de
+escritura para `authenticated`): el disparador `clientes_consentimiento_correo` (`private.marcar_consentimiento_correo`) los llena cuando
+el interruptor pasa a verdadero (momento y usuario de la sesión; `por` nulo si lo apagó una baja por enlace) y los vacía al apagarse.
 
-**Decisión de negocio a confirmar:** si dos organizaciones pueden compartir el mismo identificador externo de un sistema (se asume que sí, cada organización es un tenant independiente).
+- **Importación.** `aplicar_lote_clientes` y `private.validar_fila_cliente_migracion` leen la clave `acepta_correo`
+  (`private.parsear_acepta_correo`: sí/no/s/n/true/false/1/0; otro valor es error de fila). Celda vacía no toca el dato existente y un
+  cliente nuevo sin valor queda en «no».
+- **Acción masiva.** `public.marcar_aceptacion_correo_clientes(p_cliente_ids uuid[], p_acepta boolean)`: `security definer`, solo
+  administrador (`42501`), indicar sí/no y al menos un cliente (`22023`), hasta 5000 por vez (`22023`); ignora los clientes de otras
+  organizaciones, deja el evento de Actividad `clientes.aceptacion_correo_marcada` con la cantidad y quién, y devuelve cuántos cambiaron.
+- **Pendiente de interfaz.** El código web no llama todavía a `marcar_aceptacion_correo_clientes` ni la plantilla de «Importar clientes»
+  trae la columna `acepta_correo` (el interruptor individual de la ficha y del formulario sí existe).

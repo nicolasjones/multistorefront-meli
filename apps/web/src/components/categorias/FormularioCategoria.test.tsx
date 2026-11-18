@@ -93,9 +93,9 @@ describe('FormularioCategoria (F-CAT-08, FR-020)', () => {
     expect(screen.getByText('Tiene subcategorías: solo puede ser una categoría raíz (máximo 2 niveles).')).toBeInTheDocument()
   })
 
-  it('sin ninguna tienda marcada avisa que no se verá en ninguna', () => {
+  it('la ayuda aclara que la tienda pública se elige en «Catálogo visible»', () => {
     abrir({ empresas: [] })
     expect(screen.getByText('Todavía no hay empresas cargadas.')).toBeInTheDocument()
-    expect(screen.getByText('Sin ninguna tienda marcada, la categoría no se ve en ninguna.')).toBeInTheDocument()
+    expect(screen.getByText(/Lo que muestra la tienda pública se elige en la pestaña «Catálogo visible»/)).toBeInTheDocument()
   })
 })

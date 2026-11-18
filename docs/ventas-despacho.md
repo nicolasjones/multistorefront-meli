@@ -44,6 +44,8 @@ listo_para_despachar --> entregado   Entregar
 entregado es terminal
 ```
 
+Una factura **entregada no se anula** (`anular_comprobante` responde `55000`: se corrige con nota de crédito o RMA; `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`).
+
 - **Inicial (FR-002):** al pasar una factura a `confirmada`, el disparador
   `comprobantes_venta_estado_despacho_inicial` (`AFTER UPDATE OF estado`) fija el `estado_despacho_inicial` de su
   forma de envío (`envio_id`, misma organización y empresa) o `sin_armar` si no resuelve. Corre **una sola vez** (si

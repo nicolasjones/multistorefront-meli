@@ -1,7 +1,8 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - template-capabilities.json
+  - scripts/verificar-versiones-capacidades.mjs
 ---
 
 # Adoptar capacidades del template
@@ -26,6 +27,10 @@ que publica el template. Cada producto derivado conserva su propio
   como pendiente.
 
 ## Verificación
+
+En este repositorio (el template) corre `pnpm template:capabilities:check` (`scripts/verificar-versiones-capacidades.mjs`) y su prueba
+`pnpm test:template:adoption`. `template-adoption.json`, `pnpm template:adoption:check` y el workflow `Verificar adopción del template`
+que describe el resto de la página son del producto derivado: no existen en este repositorio y no se pudieron verificar aquí.
 
 `pnpm template:adoption:check` compara identificadores y SemVer. No compara
 commits: una capacidad integrada por reconciliación cuenta como adoptada aunque

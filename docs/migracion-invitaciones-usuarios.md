@@ -1,7 +1,7 @@
 ---
 owner: producto
 sources:
-  - specs
+  - supabase/migrations/20261013140001_invitaciones_usuarios.sql
 ---
 
 # Migración: invitaciones de usuarios

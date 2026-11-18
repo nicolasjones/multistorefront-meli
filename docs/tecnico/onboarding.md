@@ -3,6 +3,12 @@ owner: tecnico
 sources:
   - package.json
   - apps/web/package.json
+  - apps/web/e2e/fixture.ts
+  - apps/web/e2e/evidencia.e2e.ts
+  - apps/web/playwright.capturas.config.ts
+  - scripts/docs-drift.mjs
+  - scripts/cobertura-e2e.mjs
+  - scripts/armar-video-evidencia.mjs
 ---
 
 # Onboarding técnico

@@ -1,9 +1,15 @@
 ---
 owner: tecnico
 sources:
-  - apps/web/src/components/navegacion
+  - apps/web/src/components/navegacion/CampanitaNotificaciones.tsx
+  - apps/web/src/components/navegacion/ListaNotificaciones.tsx
+  - apps/web/src/components/navegacion/useNotificaciones.ts
+  - apps/web/src/components/navegacion/notificaciones.ts
+  - apps/web/e2e/notificaciones.e2e.ts
+  - supabase/tests/database/notificaciones_panel.test.sql
   - supabase/migrations/20270217300001_notificaciones_leido.sql
   - supabase/migrations/20270217300002_notificaciones_funciones.sql
+  - supabase/migrations/20270217300005_notificaciones_contar_por_tipo.sql
 ---
 
 # Centro de notificaciones en el panel (MSF-378 · F-NOT-02)
@@ -19,7 +25,7 @@ para esa persona.
 | Pieza | Dónde |
 |---|---|
 | Columna `leido_en` + índice `(user_id, creado_en desc)` | `supabase/migrations/20270217300001_notificaciones_leido.sql` |
-| `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` | `supabase/migrations/20270217300002_notificaciones_funciones.sql` |
+| `listar_notificaciones`, `contar_notificaciones_sin_leer`, `marcar_notificaciones_leidas` | `supabase/migrations/20270217300002_notificaciones_funciones.sql`; `20270217300005_notificaciones_contar_por_tipo.sql` redefine el conteo para evaluar el permiso una vez por tipo de aviso (igual que la lista), con el mismo contrato |
 | pgTAP | `supabase/tests/database/notificaciones_panel.test.sql` |
 | Campanita, lista y hooks | `apps/web/src/components/navegacion/` (`CampanitaNotificaciones`, `ListaNotificaciones`, `useNotificaciones`) |
 | E2E | `apps/web/e2e/notificaciones.e2e.ts` |

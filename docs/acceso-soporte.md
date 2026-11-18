@@ -3,7 +3,14 @@ owner: plataforma
 sources:
   - specs/20261102-100000-auditoria-avanzada-y-soporte
   - infra/kestra/flows/cierre-accesos-soporte.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
+  - infra/kestra/validar-cierre-accesos-soporte.test.mjs
   - supabase/migrations/20270207100003_acceso_soporte_auditado.sql
+  - supabase/migrations/20270217900000_registro_actividad_triggers_always_y_bitacora_soporte.sql
+  - supabase/migrations/20270217900002_cerrar_accesos_soporte_vencidos.sql
+  - supabase/tests/database/acceso_soporte_vigencia.test.sql
+  - supabase/tests/database/cerrar_accesos_soporte.test.sql
+  - apps/web/src/components/OrganizacionActivaBanner.tsx
 ---
 
 # Acceso de soporte auditado (F-OPS-04)
@@ -16,7 +23,7 @@ Spec: `specs/20261102-100000-auditoria-avanzada-y-soporte/` (US3, FR-014…FR-01
 - Para **Ingresar** a una organización desde **Organizaciones** hay que escribir un **motivo** (obligatorio, hasta 500 caracteres).
 - El acceso **vence solo a las 4 horas**. El banner de la parte superior muestra «Acceso de soporte hasta HH:MM» (hora de Buenos Aires) y la acción **Salir**.
 - Al vencer, la app limpia el contexto y vuelve a Organizaciones con un aviso. Un acceso vencido no ve ninguna fila de la organización ni puede escribir.
-- Si la persona de soporte cierra el navegador sin salir, el vencimiento igual queda asentado: el flow de Kestra `cierre-accesos-soporte` corre cada 15 minutos y ejecuta `private.cerrar_accesos_soporte_vencidos()`.
+- Si la persona de soporte cierra el navegador sin salir, el vencimiento igual queda asentado: el flow de Kestra `cierre-accesos-soporte` corre cada 15 minutos y ejecuta `private.cerrar_accesos_soporte_vencidos()`. Corre de a una ejecución por vez (`concurrency` con límite 1: si la anterior sigue en curso, la nueva se descarta) y, si falla, avisa por correo al equipo de soporte mediante el subflow `aviso-fallo-flujo` (`infra/kestra/flows/cierre-accesos-soporte.yml`).
 - **Reingresar a la misma organización con el acceso vigente renueva el vencimiento a 4 horas desde ese momento, sin límite acumulado.** Es el comportamiento actual (`entrar_a_organizacion` hace `on conflict do update`). **Decisión aceptada por el dueño (2026-11-08):** se queda así y se cambia solo si el cliente lo pide. Cada reingreso queda igualmente registrado con su motivo.
 - Sigue siendo una organización a la vez: entrar a otra cierra la anterior.
 

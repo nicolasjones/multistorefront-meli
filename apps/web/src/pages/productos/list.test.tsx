@@ -382,7 +382,8 @@ describe('ProductoList', () => {
     for (const nombre of [/^Stock bajo/, /^Sin vincular a ML/]) {
       expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
     }
-    expect(screen.getByRole('button', { name: /^Stock bajo\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Stock bajo\. El listado de productos todavía no trae el estado de stock\. Usá el filtro «Stock bajo» de la pantalla Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Sin vincular a ML\. Sin datos todavía/ })).toBeInTheDocument()
   })
 
   it('la columna Stock muestra la etiqueta de disponibilidad de cada producto (F-CAT-17, FR-009)', async () => {

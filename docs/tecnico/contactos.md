@@ -1,9 +1,25 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261029-120000-contactos-y-respuestas-rapidas
+  - apps/web/src/pages/contactos/list.tsx
+  - apps/web/src/pages/contactos/ficha.tsx
+  - apps/web/src/pages/contactos/AnonimizarContactoDialog.tsx
+  - apps/web/src/pages/contactos/VincularComprobanteDialog.tsx
+  - apps/web/src/pages/consultas/ContactoConsulta.tsx
+  - apps/web/src/pages/consultas/CrearContactoDialog.tsx
+  - apps/web/src/pages/consultas/RespuestasRapidasDialog.tsx
+  - apps/web/src/lib/consentimientoContacto.ts
+  - apps/web/src/lib/respuestasRapidas.ts
+  - apps/web/src/lib/textoInicialConsulta.ts
+  - supabase/migrations/20270201100000_contactos.sql
+  - supabase/migrations/20270201100100_contactos_vinculos.sql
+  - supabase/migrations/20270201100200_contactos_crear_actualizar.sql
+  - supabase/migrations/20270201100300_contactos_vincular.sql
+  - supabase/migrations/20270201100400_contactos_lectura.sql
+  - supabase/migrations/20270201100500_anonimizar_contacto.sql
+  - supabase/migrations/20270201200000_respuestas_rapidas.sql
+  - supabase/migrations/20270201200100_respuestas_rapidas_rpc.sql
 ---
 
 # Contactos y respuestas rápidas: modelo, RPC y pantallas (MSF-144)

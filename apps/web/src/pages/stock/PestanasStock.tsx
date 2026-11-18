@@ -21,7 +21,7 @@ export function PestanasStock({ activa }: { activa: 'stock' | 'movimientos' | 'i
       <Tab value="depositos" label="Depósitos de mercadería" component={RouterLink} to="/stock/depositos" />
       <Tab value="lote" label="Carga en lote" component={RouterLink} to="/stock/lote" />
       <Tab value="toma" label="Toma de inventario" component={RouterLink} to="/stock/toma-inventario" />
-      <Tab value="faltantes" label="Faltantes" component={RouterLink} to="/stock/faltantes" />
+      <Tab value="faltantes" label="Faltantes de stock" component={RouterLink} to="/stock/faltantes" />
       {nivel === 'edicion' && <Tab value="excel" label="Actualizar por Excel" component={RouterLink} to="/stock/excel" />}
       <Tab value="mas-vendidos" label="Más vendidos" component={RouterLink} to="/stock/mas-vendidos" />
     </Tabs>

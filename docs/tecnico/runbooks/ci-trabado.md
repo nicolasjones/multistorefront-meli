@@ -1,8 +1,12 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - .github/workflows/validate.yml
+  - .github/workflows/ci-janitor.yml
+  - scripts/estado-ci.mjs
+  - scripts/limpiar-ci.mjs
+  - scripts/ci-lane.mjs
+  - infra/runner/compose.yaml
 ---
 
 # CI trabado
@@ -14,8 +18,12 @@ sources:
 ## Pasos
 
 1. `gh pr checks <PR>`: distinguir **pendiente**, **rojo** y **no disparado**.
-2. Si está pendiente: revisar runners online (`/api/salud` o GitHub Actions) y la cola del gateway.
-3. Si el runner está saturado: bajar `MAX_RUNNING` (runtime) o esperar; no cancelar jobs sanos.
+2. Si está pendiente: `pnpm ci:estado` (`scripts/estado-ci.mjs`) muestra carriles en uso, carga del host y runners ocupados; revisar también
+   los runners online en GitHub Actions y la cola del gateway (`/api/salud` del orquestador: sin verificar en este repositorio).
+   Si hay carriles o stacks de Supabase del CI tomados sin jobs: `pnpm ci:limpiar` (simulación) y luego `pnpm ci:limpiar --aplicar`; el workflow
+   `ci-janitor.yml` hace lo mismo cada 6 horas.
+3. Si el runner está saturado: bajar `RUNNER_REPLICAS` (recrear los runners corta jobs: verificar antes que ninguno esté `busy`) o esperar; para frenar lo pesado,
+   `gh variable set CI_PAUSED --body true` (se reactiva borrando la variable). Bajar `MAX_RUNNING` (runtime del orquestador) no se pudo verificar aquí. No cancelar jobs sanos. Detalle en [Control del CI](../../control-ci.md).
 4. Si el check no se dispara: verificar el workflow, permisos y el evento (push/PR).
 5. Si el merge falla por “rama atrás”: actualizar la rama, no re-despachar al Dev.
 6. Reintentar **una** vez el job; si vuelve a fallar por lo mismo, escalar con el log.
@@ -33,6 +41,6 @@ Si el runner no vuelve o el gate no responde: escalar a orquestación; no mergea
 
 > **CI (2026-10-27):** los `.md` de raíz (`CLAUDE.md`, `AGENTS.md`) ya no cuentan como cambio de la app web. Antes, un PR sólo de docs encendía el e2e sin `build` y moría con *"Falta apps/web/dist"*; ahora, si el e2e corre, el `build` corre antes.
 
-> **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
+> **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran. Hoy los chequeos estáticos y las suites de Node puro viven en el job `chequeos`, que corre en paralelo con `application`.
 
-> **CI (2026-11-16):** el job `application` de Validate corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.
+> **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.

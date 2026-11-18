@@ -1,9 +1,35 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261020-100000-service-alta-estados-y-permisos
+  - supabase/migrations/20261020100100_modelos_equipo.sql
+  - supabase/migrations/20261020100200_estados_reparacion.sql
+  - supabase/migrations/20261020100300_service_sembrado.sql
+  - supabase/migrations/20261020100400_modelos_equipo_rpc.sql
+  - supabase/migrations/20261020100500_estados_reparacion_rpc.sql
+  - supabase/migrations/20261020100700_service_funcionalidad.sql
+  - supabase/migrations/20261020110100_reparaciones.sql
+  - supabase/migrations/20261020110200_reparaciones_numeracion.sql
+  - supabase/migrations/20261020110300_reparacion_historial_crear.sql
+  - supabase/migrations/20261020110400_reparaciones_actualizar.sql
+  - supabase/migrations/20261020110500_reparaciones_leer.sql
+  - supabase/migrations/20261020110600_service_uso.sql
+  - supabase/migrations/20261020120100_reparaciones_estado.sql
+  - supabase/migrations/20261020120200_reparaciones_entrega.sql
+  - supabase/migrations/20261020120300_reparaciones_anular.sql
+  - supabase/migrations/20261020130100_rol_tecnico.sql
+  - supabase/migrations/20261020130200_tecnicos_sin_email.sql
+  - supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql
+  - supabase/migrations/20270201200111_reparaciones_anular_devolucion.sql
+  - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
+  - supabase/tests/database/service_catalogos.test.sql
+  - supabase/tests/database/service_reparaciones.test.sql
+  - supabase/tests/database/service_estado_entrega.test.sql
+  - supabase/tests/database/rol_tecnico.test.sql
+  - apps/web/src/lib/serviceTecnico.ts
+  - apps/web/src/lib/reparaciones.ts
+  - apps/web/src/App.tsx
+  - apps/web/e2e/service-tecnico.e2e.ts
 ---
 
 # Service técnico: alta, estados y permisos (MSF-182)
@@ -13,10 +39,13 @@ sources:
 `epic/MSF-182-service-tecnico-service-alta-estados-y-p`. Alcance de entrega: `refine` y `supabase`. Versión de
 producto: [Service técnico: alta, estados y permisos](../producto/service-alta-estados-y-permisos.md).
 
-> **Fidelidad.** Esta página se redactó desde la spec y las tareas de la rama de la épica. Las migraciones
-> `supabase/migrations/20261020*` y el código de `apps/web` **no están en este checkout** (`main`); los nombres de
-> archivo salen de `tasks.md`. TODO (dueño: quien mergee la épica): verificar nombres y firmas contra las
-> migraciones al mergear.
+> **Fidelidad.** Las migraciones `supabase/migrations/20261020*` y el código de `apps/web` ya están en el árbol; los nombres de
+> archivo y de RPC de esta página se verificaron contra ellos. Las RPC viven en `20261020100400_modelos_equipo_rpc.sql`,
+> `20261020100500_estados_reparacion_rpc.sql`, `20261020110300_reparacion_historial_crear.sql`,
+> `20261020110400_reparaciones_actualizar.sql`, `20261020110500_reparaciones_leer.sql`,
+> `20261020110600_service_uso.sql`, `20261020120100_reparaciones_estado.sql`, `20261020120200_reparaciones_entrega.sql` y
+> `20261020120300_reparaciones_anular.sql`; después se redefinieron `obtener_reparacion`, `anular_reparacion` y
+> `tecnicos_de_service` (ver «API»). TODO (dueño: Clientes): confirmar el nombre y la firma de la RPC de alta mínima de Clientes que consume el alta rápida.
 
 ## Datos
 
@@ -42,7 +71,7 @@ Cuatro tablas en `dominio` (Principio VII); roles y actividad siguen en `public`
 
 Todas con `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en
 `hint`), `42501` sin permiso, `40001` conflicto de edición, `55000` reparación anulada o cerrada, `P0002`
-inexistente, `23505` duplicado.
+inexistente, `23505` duplicado. `obtener_reparacion` responde `PT404` (HTTP 404) cuando la reparación no existe, es de otra organización o de una tienda no accesible, todas con la misma respuesta, y `42501` (403) sin la sección `service_tecnico` (`20270507180500_obtener_reparacion_responde_404.sql`; la pantalla trata `P0002` y `PT404` igual en `lib/reparaciones.ts`).
 
 | RPC | Seguridad | Para qué |
 |---|---|---|
@@ -51,10 +80,10 @@ inexistente, `23505` duplicado.
 | `uso_modelo_equipo`, `uso_estado_reparacion` | invoker | Cantidad de reparaciones que los usan (aviso al desactivar) |
 | `crear_reparacion` | definer, `search_path = ''` | Valida cliente, modelo activo y empresa; número, primer estado activo, ingreso de hoy, evento `alta` |
 | `actualizar_reparacion` | definer | Bloqueo optimista; no edita anuladas; no cambia número, empresa ni estado |
-| `obtener_reparacion`, `tecnicos_de_service` | definer | Lectura con máscara de costos; técnicos = usuarios con `service_tecnico` en `edicion` |
+| `obtener_reparacion`, `tecnicos_de_service` | definer | Lectura con máscara de costos y solo de las tiendas accesibles (`20261020140000_reparaciones_lectura_por_tienda.sql`); técnicos = usuarios con `service_tecnico` en `edicion`, con un texto neutro si no tienen nombre (`20261020130200_tecnicos_sin_email.sql`) |
 | `cambiar_estado_reparacion` | definer | `for update`, idempotente, rechaza anuladas y cerradas; evento `estado` |
 | `registrar_entrega_reparacion` | definer | Estado con `cierra`, fecha no anterior al ingreso ni futura, `entregado_por` obligatorio; evento `entrega` |
-| `anular_reparacion` | definer | Motivo obligatorio; `anulada_en`/`anulada_motivo`; irreversible; evento `anulacion` |
+| `anular_reparacion` | definer | Motivo obligatorio; `anulada_en`/`anulada_motivo`; irreversible; evento `anulacion`. La firma vigente es `(p_id, p_motivo, p_consumidos uuid[])`: devuelve al stock los repuestos descontados que no se marcan como consumidos (`20270201200111_reparaciones_anular_devolucion.sql`; detalle en [Service: repuestos y stock](service-repuestos-y-stock.md)) |
 
 La búsqueda de cliente usa `public.buscar_clientes`; el alta rápida consume la RPC de alta mínima de Clientes
 (MSF-180), sin duplicar su lógica (TODO dueño: Clientes, confirmar nombre y firma antes de implementar F-SVC-02).

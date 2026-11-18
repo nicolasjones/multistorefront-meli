@@ -3,6 +3,7 @@ owner: producto
 sources:
   - apps/web/src/pages/stock/lote.tsx
   - apps/web/src/pages/stock/toma-inventario.tsx
+  - apps/web/src/lib/tomaInventario.ts
 ---
 
 # Cargar mercadería en lote y hacer la toma de inventario
@@ -85,7 +86,7 @@ Un lote no se edita, no se anula ni se borra. Si algo quedó mal, corregilo con 
 
 ### Paso a paso
 
-1. Elegí una **Categoría**. Si elegís una categoría principal, entran también sus subcategorías.
+1. Elegí una **Categoría**. Si elegís una categoría principal, entran también sus subcategorías. Con **Sin categoría** contás los productos activos que no tienen categoría. Arriba ves, solo para lectura, el **Depósito** sobre el que opera la toma: «La toma corrige el stock del depósito principal.»
 2. La tabla muestra **Producto / SKU**, **Stock en el sistema** y una casilla **Contado** por producto.
 
     ![Toma de inventario con la categoría Accesorios videojuegos, Joysticks elegida y la tabla de productos con las casillas Contado vacías](img/stock-lotes-e-inventario/04-toma-categoria.png)
@@ -107,7 +108,7 @@ Un lote no se edita, no se anula ni se borra. Si algo quedó mal, corregilo con 
 - Por cada producto con diferencia se registra un **Ajuste** con el motivo «Toma de inventario», que deja el stock exactamente en lo que contaste.
 - Los productos cuyo contado coincide con el sistema no generan ningún movimiento. Si no había diferencias, el sistema avisa «No había diferencias: no se generó ningún ajuste.»
 - Los ajustes se ven también en **Movimientos**.
-- La toma se aplica sobre el depósito por defecto.
+- La toma se aplica siempre sobre el depósito por defecto; por ahora no se puede elegir otro depósito.
 
 ### Reglas y mensajes
 
@@ -115,7 +116,8 @@ Un lote no se edita, no se anula ni se borra. Si algo quedó mal, corregilo con 
 |---|---|
 | «Ingresá un entero de cero o más.» | El contado debe ser un número entero, sin decimales ni signo negativo |
 | «Cargá el contado de al menos un producto. Los que dejes vacíos no se tocan.» | Para confirmar necesitás contar al menos un producto |
-| «Esta categoría no tiene productos» | Elegí otra categoría |
+| «Esta categoría no tiene productos» / «No hay productos sin categoría» | Elegí otra categoría |
+| «No pudimos cargar el depósito sobre el que opera la toma.» | Tocá **Reintentar**; si no hay un depósito por defecto activo, la toma no se puede hacer |
 | «La categoría tiene más de 1000 productos…» | Elegí una subcategoría más chica |
 | «El motivo «Toma de inventario» no está disponible: activalo desde Motivos» | Pedile al Administrador que active ese motivo con el botón **Motivos de movimiento** de Stock actual |
 | «No pudimos confirmar la toma. No se guardó ningún ajuste: probá de nuevo.» | La toma es todo o nada: si falla, no queda nada guardado |

@@ -145,6 +145,14 @@ describe('Transportes · pestaña Motos', () => {
     expect(await screen.findByRole('table', { name: 'Envíos en moto' })).toBeInTheDocument()
   })
 
+  it('un envío de las 23:30 de Argentina (ya es el día siguiente en UTC) se ve con el día local', async () => {
+    mocks.rpc.mockImplementation(rpcMotos({ envios: [envio({ fecha: '2026-11-18T02:30:00+00:00' })], resumen: { monto: 0, entregas: 0 } }))
+    render(pantalla('/ventas/transportes?pestana=motos'))
+    const tabla = await screen.findByRole('table', { name: 'Envíos en moto' })
+    expect(within(tabla).getByText('17/11')).toBeInTheDocument()
+    expect(within(tabla).queryByText('18/11')).not.toBeInTheDocument()
+  })
+
   it('lista las columnas y formatos del prototipo (dd/mm, importes, «—», etiquetas y enlace al comprobante)', async () => {
     render(pantalla())
     const tabla = await screen.findByRole('table', { name: 'Envíos en moto' })

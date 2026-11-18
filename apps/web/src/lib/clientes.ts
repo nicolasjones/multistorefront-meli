@@ -2,8 +2,8 @@
 // largo viven en la migración 20261016130000_clientes_ficha_y_numeracion.sql;
 // acá se espejan solo para validar en el formulario antes de viajar.
 
+import { normalizarCuit, validarCuit } from './cuit'
 import type { EstadoCuentaWebFormulario } from './cuentasCliente'
-import { validarCuit } from './cuit'
 import { supabaseClient } from './supabase'
 
 export type Cliente = {
@@ -19,6 +19,8 @@ export type Cliente = {
   localidad: string | null
   provincia: string | null
   expreso_preferido: string | null
+  // Condición frente al IVA (texto libre ≤ 60 que imprime la factura interna). Opcional: filas leídas sin la columna.
+  condicion_iva?: string | null
   archivado_en: string | null
   tipo: TipoCliente
   es_consumidor_final: boolean
@@ -41,9 +43,13 @@ export type TipoCliente = 'minorista' | 'mayorista'
 // único en la organización; esta lista dice en qué tiendas puede comprar.
 export type EmpresaDeCliente = { id: string; nombre: string }
 
+// Condiciones habituales del selector de la ficha; «Otra» permite escribir cualquier texto (hasta 60 caracteres).
+export const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable'] as const
+export const CONDICION_IVA_OTRA = 'Otra'
+
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
-  'expreso_preferido',
+  'expreso_preferido', 'condicion_iva',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
 // `empresas` no es una columna de `clientes`: viaja aparte (tabla
@@ -73,7 +79,7 @@ export type OpcionesCuentaWeb = { estado: EstadoCuentaWebFormulario; invitar: bo
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
-  expreso_preferido: '',
+  expreso_preferido: '', condicion_iva: '',
   tipo: 'minorista',
   empresas: [],
   descuento: '',
@@ -95,26 +101,10 @@ export const AVISO_CAMBIO_TIPO =
 
 export const LARGO_MAXIMO: Readonly<Record<CampoFicha, number>> = {
   nombre: 200, documento: 40, correo: 200, telefono: 60, celular: 60, direccion: 200, codigo_postal: 20, localidad: 120, provincia: 120,
-  expreso_preferido: 120,
+  expreso_preferido: 120, condicion_iva: 60,
 }
 
 export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT'
-export const MENSAJE_DOCUMENTO_INVALIDO = 'Ingresá un DNI de 7 u 8 dígitos o un CUIT de 11 dígitos con su dígito verificador.'
-
-// DNI de 7 u 8 dígitos o CUIT de 11 con dígito verificador (sin puntos, guiones ni espacios); vacío es válido. Espeja
-// `private.documento_cliente_valido`: la autoridad es la base (disparador de clientes); acá solo se avisa antes de enviar.
-export function documentoClienteValido(texto: string): boolean {
-  const limpio = texto.replace(/[\s.-]/g, '')
-  if (texto.trim() === '') return true
-  if (/^\d{7,8}$/.test(limpio)) return true
-  return /^\d{11}$/.test(limpio) && validarCuit(limpio).valido
-}
-
-// La base responde 23514 «El DNI/CUIT no es válido…» si el documento no cumple (p. ej. otra pantalla o un API).
-export function esDocumentoInvalido(error: unknown): boolean {
-  const e = error as { code?: string; message?: string } | null
-  return e?.code === '23514' && (e.message ?? '').includes('DNI/CUIT no es válido')
-}
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -162,9 +152,18 @@ export function opcionesCuentaWeb(formulario: FormularioCliente): OpcionesCuenta
   }
 }
 
-// `documentoOriginal`: el documento ya guardado. Un valor viejo que no cumple la regla actual se tolera mientras no se
-// toque (la base tampoco lo rechaza si no cambia), para no bloquear la edición de otros datos del cliente.
-export function validarCliente(formulario: FormularioCliente, documentoOriginal: string | null = null): ErroresCliente {
+export const MENSAJE_DOCUMENTO = 'Ingresá un DNI de 7 u 8 dígitos o un CUIT válido (11 dígitos, con o sin guiones).'
+
+// DNI (7 u 8 dígitos, con o sin puntos) o CUIT/CUIL con dígito verificador. Vacío es válido: el documento es opcional.
+export function esDocumentoValido(texto: string): boolean {
+  const limpio = normalizarCuit(texto)
+  if (/^\d{7,8}$/.test(limpio)) return true
+  return validarCuit(texto).valido
+}
+
+// `documentoInicial`: el de la ficha al abrirla. Un documento viejo que no cumple el formato no bloquea guardar otros
+// cambios; solo se valida si la persona lo toca.
+export function validarCliente(formulario: FormularioCliente, { documentoInicial = '' }: { documentoInicial?: string } = {}): ErroresCliente {
   const errores: ErroresCliente = {}
   if (formulario.nombre.trim() === '') {
     errores.nombre = 'Ingresá el nombre o la razón social.'
@@ -177,8 +176,8 @@ export function validarCliente(formulario: FormularioCliente, documentoOriginal:
     errores.correo = 'Ingresá un correo con formato válido.'
   }
   const documento = formulario.documento.trim()
-  if (documento !== (documentoOriginal ?? '').trim() && !documentoClienteValido(documento)) {
-    errores.documento = MENSAJE_DOCUMENTO_INVALIDO
+  if (documento !== '' && documento !== documentoInicial.trim() && !esDocumentoValido(documento)) {
+    errores.documento = MENSAJE_DOCUMENTO
   }
   for (const campo of CAMPOS_FICHA) {
     if (!errores[campo] && formulario[campo].trim().length > LARGO_MAXIMO[campo]) {
@@ -186,6 +185,13 @@ export function validarCliente(formulario: FormularioCliente, documentoOriginal:
     }
   }
   return errores
+}
+
+// La base responde 23514 «El DNI/CUIT no es válido…» si el documento no cumple (disparador de clientes): el error se marca
+// en el campo, no como error general.
+export function esDocumentoInvalido(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23514' && (e.message ?? '').includes('DNI/CUIT no es válido')
 }
 
 // 23505 sobre el índice único de documento (FR-016). PostgREST informa el código

@@ -1,17 +1,42 @@
 ---
 owner: tecnico
 sources:
+  - specs/20261102-220000-importaciones-y-monitoreo
   - apps/web/src/pages/importaciones
   - apps/web/src/hooks/useProcesosMasivos.ts
   - apps/web/src/hooks/useErroresProceso.ts
   - apps/web/src/lib/procesosMasivos.ts
   - apps/web/src/lib/erroresWeb.ts
-  - apps/web/e2e
-  - supabase/migrations
-  - supabase/tests/database
-  - infra/kestra/flows
-  - infra/glitchtip
-  - workers
+  - apps/web/e2e/importaciones.e2e.ts
+  - apps/web/e2e/importaciones-a11y.e2e.ts
+  - supabase/migrations/20270211100001_procesos_masivos_tablas.sql
+  - supabase/migrations/20270211100002_procesos_masivos_inicio.sql
+  - supabase/migrations/20270211100003_procesos_masivos_worker.sql
+  - supabase/migrations/20270211100004_procesos_masivos_cancelacion.sql
+  - supabase/migrations/20270211100005_procesos_masivos_reconciliar.sql
+  - supabase/migrations/20270211100011_monitoreo_tablas.sql
+  - supabase/migrations/20270211100012_monitoreo_funciones.sql
+  - supabase/migrations/20270214100001_procesos_masivos_errores_columna.sql
+  - supabase/migrations/20270214100002_procesos_masivos_actividad.sql
+  - supabase/migrations/20270214200001_monitoreo_alerta_pendiente_ssrf_estado.sql
+  - supabase/migrations/20270218000000_monitoreo_retencion_indices.sql
+  - supabase/migrations/20270218000001_procesos_masivos_robustez.sql
+  - supabase/migrations/20270218000002_evaluar_monitoreo_tormenta.sql
+  - supabase/tests/database/monitoreo.test.sql
+  - supabase/tests/database/monitoreo_retencion.test.sql
+  - supabase/tests/database/monitoreo_tormenta.test.sql
+  - supabase/tests/database/procesos_masivos.test.sql
+  - supabase/tests/database/procesos_masivos_cancelacion.test.sql
+  - supabase/tests/database/procesos_masivos_reporte_actividad.test.sql
+  - supabase/tests/database/procesos_masivos_robustez.test.sql
+  - supabase/tests/database/procesos_masivos_worker.test.sql
+  - infra/kestra/flows/monitoreo-salud-tiendas.yml
+  - infra/kestra/flows/monitoreo-evaluar.yml
+  - infra/kestra/flows/monitoreo-errores-aplicacion.yml
+  - infra/kestra/flows/depuracion-monitoreo.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
+  - infra/glitchtip/compose.yaml
+  - workers/_comun/errores.mjs
 ---
 
 # Importaciones y monitoreo (MSF-206)
@@ -168,6 +193,8 @@ la cierra `timeout` con `private.cerrar_procesos_masivos_vencidos`.
 | `monitoreo-evaluar` | cada 2 min | Llama a `evaluar_monitoreo` con `ventana_min=10`, `fallos=5`, `cola_min=15`, notifica cada alerta pendiente por el subflow `alertas` y la marca con `marcar_alerta_notificada` |
 | `monitoreo-errores-aplicacion` | cada 2 min | Cuenta eventos de los últimos 10 min en GlitchTip (total real por el encabezado `X-Hits`, leído en las capitalizaciones `x-hits`, `X-Hits` y `X-HITS` —Pebble no tiene filtros con lambda, así que no es case-insensitive de verdad—, o una página de al menos el umbral; umbral 5) y registra `fallo`/`ok` de fuente `aplicacion`; sin `ERRORES_APP_URL` no hace nada |
 | `depuracion-monitoreo` | diario 04:30 | Llama a `private.depurar_monitoreo_y_procesos()` (retención de eventos de monitoreo a 30 días, alertas resueltas a 90 y procesos terminados a 180). La función solo la ejecuta `kestra_orquestacion` (se comprueba `session_user`, no la pertenencia a `workers_orquestacion`: cada `worker_<org>` es miembro de ese rol) |
+
+`monitoreo-salud-tiendas`, `monitoreo-evaluar` y `monitoreo-errores-aplicacion` corren de a una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso, la nueva se descarta; ver cada `.yml`). `monitoreo-evaluar` y `monitoreo-errores-aplicacion` además tienen `timeout: PT1M` en las consultas SQL. `monitoreo-evaluar`, `monitoreo-errores-aplicacion` y `depuracion-monitoreo` tienen un bloque `errors:` que avisa del fallo al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (correo SMTP; envía solo el nombre de la tarea que falló y el id de la ejecución, no el mensaje de error). `monitoreo-salud-tiendas` no usa ese subflow: registra su propio fallo `aplicacion` con clave `monitor:tiendas`.
 
 Todos los flows usan el rol `kestra_orquestacion`; las funciones de monitoreo tienen `revoke` para `public`,
 `anon` y `authenticated`. `postgres`/`supabase_admin` se admiten por nombre para el pgTAP y el mantenimiento.

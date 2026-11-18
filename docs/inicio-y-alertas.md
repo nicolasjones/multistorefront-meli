@@ -3,10 +3,17 @@ owner: tecnico
 sources:
   - specs/20261030-100000-inicio-y-alertas
   - specs/20270305-100000-inicio-tablero-completo
-  - infra/kestra
+  - infra/kestra/flows/alertas-inicio.yml
   - apps/web/src/lib/inicio.ts
   - apps/web/src/pages/inicio
-  - supabase/functions
+  - apps/web/e2e/inicio.e2e.ts
+  - supabase/functions/recalcular-alertas-inicio
+  - supabase/functions/_shared/token.ts
+  - supabase/migrations/20270201200138_alertas_inicio_recalculo.sql
+  - supabase/migrations/20270325000000_alertas_inicio_cobros_y_faltantes.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270324120200_resumen_inicio_bloques_seccion.sql
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
 ---
 
 # Inicio y alertas
@@ -411,7 +418,9 @@ Migraciones `20270121120000`, `20270121121100`, `20270121121200`. El enlace sale
 Flow de Kestra `infra/kestra/flows/alertas-inicio.yml` (cada 15 minutos, D-2) → Edge Function
 `recalcular-alertas-inicio` (`POST {"barrer": true}` con `x-aviso-token`) → `recalcular_alertas_inicio` por
 organización. Es idempotente: correrlo dos veces deja el mismo conjunto. Si una organización falla, la función
-sigue con las demás y responde 502 para que Kestra reintente. Cada cálculo queda en
+sigue con las demás y responde 502 para que Kestra reintente.
+
+**Autenticación de la función.** Compara `x-aviso-token` con `tokenValido` (`supabase/functions/_shared/token.ts`: SHA-256 de ambos valores y `timingSafeEqual`, de modo que no se corta por longitud ni el tiempo revela el largo del token). Sin token configurado, o con uno débil (menos de 32 caracteres o que empieza con `change-me`, salvo `AVISOS_PERMITIR_TOKEN_DEBIL=true`, que es solo para local), responde 503 «La función no está configurada» (`tokenDeEntorno` en `index.ts`); con un token que no coincide, 403. El flow `alertas-inicio` corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`) y, si falla, avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (solo el nombre de la tarea y el id de la ejecución). Cada cálculo queda en
 `dominio.alertas_inicio_calculos`; los errores, sin datos de negocio, en los registros de la función.
 
 Variables (solo ejemplos, valores reales en archivos ignorados por Git):

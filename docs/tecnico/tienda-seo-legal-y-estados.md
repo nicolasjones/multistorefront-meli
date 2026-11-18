@@ -1,12 +1,47 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/functions
-  - supabase/tests/database
-  - apps/web/src
   - openapi
+  - specs/20270125-100000-tienda-seo-legal-y-estados
+  - supabase/functions/tienda-seo/handler.ts
+  - supabase/functions/tienda-seo/nginx.test.ts
+  - apps/web/nginx.conf
+  - apps/web/Dockerfile
+  - openapi/tienda-seo.json
+  - scripts/probar-nginx-tienda-seo.sh
+  - apps/web/src/pages/tienda-publica/VolvemosPronto.tsx
+  - apps/web/src/pages/tienda-publica/PaginaNoEncontrada.tsx
+  - apps/web/src/pages/tienda-publica/PantallaError.tsx
+  - apps/web/src/pages/tienda-publica/EnrutadorTienda.tsx
+  - apps/web/src/pages/tienda-publica/index.tsx
+  - apps/web/src/pages/tienda-publica/rutas/producto.tsx
+  - apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx
+  - apps/web/src/pages/tienda-publica/seo/CabeceraSeo.tsx
+  - apps/web/src/pages/tienda-publica/seo/pilaCabecera.ts
+  - apps/web/src/pages/tienda-publica/layout/PieLegal.tsx
+  - apps/web/src/pages/tienda-publica/layout/AvisoCookies.tsx
+  - apps/web/src/lib/tiendaEstado.ts
+  - apps/web/src/lib/tiendaRelacionados.ts
+  - apps/web/src/lib/tiendaSeo.ts
+  - apps/web/src/lib/tiendaLegal.ts
+  - apps/web/src/lib/consentimientoCookies.ts
+  - apps/web/src/lib/urlHttpSegura.ts
+  - supabase/tests/database/tienda_estado_pausada.test.sql
+  - supabase/tests/database/tienda_relacionados.test.sql
+  - supabase/tests/database/tienda_seo.test.sql
+  - supabase/tests/database/tienda_legal.test.sql
+  - supabase/tests/database/tienda_legal_limites.test.sql
+  - apps/web/e2e/tienda-estados.e2e.ts
+  - apps/web/e2e/tienda-relacionados.e2e.ts
+  - apps/web/e2e/tienda-seo.e2e.ts
+  - apps/web/e2e/tienda-legal.e2e.ts
+  - supabase/migrations/20270305100200_tienda_relacionados_manuales.sql
+  - supabase/migrations/20270212100001_tienda_legal.sql
+  - supabase/migrations/20270212100002_tienda_estado_pausada.sql
+  - supabase/migrations/20270212100003_tienda_relacionados.sql
+  - supabase/migrations/20270212100004_tienda_seo.sql
+  - supabase/migrations/20270217400000_tienda_legal_enlaces_endurecer.sql
+  - supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql
 ---
 
 # Tienda online: estados, relacionados, SEO y legal (MSF-149)
@@ -37,9 +72,9 @@ punto de extensión.
 | F-TDA-19 | `supabase/migrations/20270212100002_tienda_estado_pausada.sql` | `publico.estado_tienda_por_dominio` | `drop function publico.estado_tienda_por_dominio(text);` |
 | F-TDA-20 | `supabase/migrations/20270212100003_tienda_relacionados.sql` | `publico.relacionados_por_dominio` | `drop function publico.relacionados_por_dominio(text, uuid);` |
 | F-TDA-21 | `supabase/migrations/20270212100004_tienda_seo.sql` | `publico.seo_tienda_por_dominio` y `publico.sitemap_por_dominio` | `drop function publico.seo_tienda_por_dominio(text); drop function publico.sitemap_por_dominio(text);` |
-
 | Revisión (F-TDA-22) | `supabase/migrations/20270217400000_tienda_legal_enlaces_endurecer.sql` | la URL de `dominio.tienda_legal_enlaces` no admite credenciales (`https://usuario@host`) y cada empresa admite hasta **10** enlaces (tope **defensivo**, no regla de negocio; trigger `private.limitar_tienda_legal_enlaces`) | `drop trigger if exists tienda_legal_enlaces_tope on dominio.tienda_legal_enlaces; drop function if exists private.limitar_tienda_legal_enlaces(); alter table dominio.tienda_legal_enlaces drop constraint if exists tienda_legal_enlaces_url_sin_credenciales_ck;` |
 | Revisión (F-TDA-21) | `supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql` | `publico.sitemap_por_dominio` (misma firma) delega en `private.sitemap_urls_tienda(empresa, organización, tope)`: tope parametrizable, páginas visibles y bandera `truncado` | restaurar la definición de `20270212100004` y `drop function private.sitemap_urls_tienda(uuid, uuid, integer);` |
+| Cambio posterior | `supabase/migrations/20270305100200_tienda_relacionados_manuales.sql` | `publico.relacionados_por_dominio` (misma firma y misma salida) pasa a tomar primero los relacionados manuales del panel (`dominio.producto_relacionados`, hasta 4, solo los efectivamente visibles en esa tienda) y completa con la regla de la misma categoría | restaurar el cuerpo de `20270212100003_tienda_relacionados.sql` |
 
 Orden de reversión: el inverso al de aplicación, en una migración posterior (no en el PR que las crea). Deshacer
 la épica entera: `git revert -m 1 <merge>`.
@@ -69,7 +104,7 @@ Nunca devuelven `organizacion_id`, costos ni existencias. Firmas completas en
 | Función | Devuelve |
 |---|---|
 | `publico.estado_tienda_por_dominio(host)` | `{ estado: 'pausada', nombre, colores, tipografías, logo_ruta }` o `null` |
-| `publico.relacionados_por_dominio(host, producto)` | `{ productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }` (hasta 4, misma categoría, sin el actual, destacados primero y luego `lower(nombre), id`) o `null` |
+| `publico.relacionados_por_dominio(host, producto)` | `{ productos: [{ id, nombre, precio, disponible, imagen, categoria_id }] }` (hasta 4; **primero los relacionados manuales** del producto, en su `orden` y solo los visibles en esa tienda, y si faltan se completa con la misma categoría, sin el actual, destacados primero y luego `lower(nombre), id`; ver abajo) o `null` |
 | `publico.seo_tienda_por_dominio(host)` | `{ dominio, nombre, descripcion, logo_ruta, indexable }` o `null` |
 | `publico.sitemap_por_dominio(host)` | `{ dominio, urls: [{ ruta, modificado }], truncado }` (hasta 50 000: inicio, catálogo, contacto, páginas visibles `/pagina/<slug>`, categorías y productos visibles) o `null` |
 | `publico.legal_por_dominio(host)` | `{ razon_social, cuit, direccion, enlaces: [{ titulo, url }] }` o `null` |
@@ -129,10 +164,11 @@ evento de ventana `tienda:consentimiento-cookies`. Ninguna analítica puede carg
 
 **Carga de enlaces legales (D5):** el equipo técnico inserta filas en `dominio.tienda_legal_enlaces` por SQL; no hay
 pantalla ni RPC de escritura.
+En el cliente, `PieLegal.tsx` pasa cada enlace por `urlHttpSegura` (`apps/web/src/lib/urlHttpSegura.ts`) y no muestra los que no sean `http:`/`https:` absolutos o una ruta propia de una sola `/` (defensa en profundidad: la base ya exige `https://`).
 
 ## Decisiones y supuestos
 
-D1 la marca de una tienda desactivada es pública · D2 relacionados: 4 de la misma categoría · D3 SEO básico sin
+D1 la marca de una tienda desactivada es pública · D2 relacionados: hasta 4, manuales primero y luego de la misma categoría (desde `20270305100200`; originalmente solo la misma categoría) · D3 SEO básico sin
 campos por producto ni hreflang · D4 sin prerender · D5 enlaces legales por SQL · D6 qué legal lleva cada marca
 se confirma con el cliente · D7 cookies mínimas (Aceptar / Rechazar) · D8 Lighthouse SEO sin fallas, sin puntaje
 inventado. Detalle en `docs/tiendas-online.md`.

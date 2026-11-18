@@ -1,10 +1,35 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
-  - infra/kestra
+  - specs/20261028-100000-service-cobro-y-avisos
+  - supabase/migrations/20270201200128_comprobantes_origen.sql
+  - supabase/migrations/20270201200129_lineas_sin_stock.sql
+  - supabase/migrations/20270201200130_generar_comprobante_reparacion.sql
+  - supabase/migrations/20270201200131_comprobante_de_reparacion.sql
+  - supabase/migrations/20270201200132_obtener_comprobante_origen.sql
+  - supabase/migrations/20270201200133_reparacion_avisos.sql
+  - supabase/migrations/20270201200134_avisar_cliente_reparacion.sql
+  - supabase/migrations/20270201200135_avisos_de_reparacion.sql
+  - supabase/migrations/20270201200136_avisos_reparacion_flow.sql
+  - supabase/migrations/20270201200137_reparaciones_de_cliente.sql
+  - supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/tests/database/service_cobro.test.sql
+  - supabase/tests/database/service_cobro_stock.test.sql
+  - supabase/tests/database/service_avisos.test.sql
+  - supabase/tests/database/service_cliente_reparaciones.test.sql
+  - infra/kestra/flows/reparaciones-aviso-correo.yml
+  - apps/web/src/components/service/AvisosReparacion.tsx
+  - apps/web/src/components/service/ComprobanteReparacion.tsx
+  - apps/web/src/components/clientes/ReparacionesDeCliente.tsx
+  - apps/web/src/hooks/useAvisosReparacion.ts
+  - apps/web/src/hooks/useComprobanteReparacion.ts
+  - apps/web/src/lib/reparacionAvisos.ts
+  - apps/web/src/lib/reparacionComprobante.ts
+  - apps/web/src/lib/reparacionesDeCliente.ts
+  - apps/web/src/lib/whatsapp.ts
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
+  - apps/web/e2e/service-cobro-avisos.e2e.ts
 ---
 
 # Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)
@@ -173,7 +198,7 @@ solo la RPC.
 - **Comprobante**: la reparación se toma `for update`, así dos personas que pulsan a la vez se serializan; la segunda
   ve el comprobante de la primera y recibe `{ creado: false }`. El **índice único parcial** por origen vigente es el
   respaldo en la base: si dos transacciones se escapan al bloqueo, la segunda recibe `unique_violation` y devuelve el
-  comprobante existente en lugar de crear otro. Con el comprobante **anulado** se puede generar uno nuevo.
+  comprobante existente en lugar de crear otro. Con el comprobante **anulado** se puede generar uno nuevo. La anulación de la factura (`public.anular_comprobante`) rechaza con `55000` una factura ya entregada o con cobros netos mayores a cero (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`): en ese caso se revierte el cobro o se corrige con una nota de crédito.
 - **Aviso**: `reparacion_avisos_pendiente_uq` garantiza **un solo aviso pendiente por reparación y estado**: el doble
   clic es un solo aviso. «Reenviar» es la misma RPC con el `estado_id` del aviso original y crea un aviso **nuevo**
   con el correo actual del cliente.
@@ -181,7 +206,7 @@ solo la RPC.
 ### `sin_stock` y el stock
 
 `sin_stock` **no es** `a_pedido` (que reserva stock): la línea marcada `sin_stock` ni descuenta, ni reserva, ni
-devuelve. La migración `20270115010100_lineas_sin_stock.sql` reemplaza (misma firma, mismos permisos) las funciones
+devuelve. La migración `20270201200129_lineas_sin_stock.sql` reemplaza (misma firma, mismos permisos) las funciones
 de stock para saltear esas líneas:
 
 | Función | Qué hace con las líneas `sin_stock` |
@@ -201,7 +226,7 @@ Las líneas de catálogo quedan **exactamente igual** (`sin_stock = false`): es 
 patrón de `comprobantes-correo`:
 
 1. **Reclama** solo las órdenes `enviar-aviso-reparacion-*` (`private.reclamar_despachos_capacidad`, 5 por vez,
-   900 s de reclamo).
+   1800 s de reclamo: cubre el peor caso de tres rondas de cinco avisos con dos en paralelo).
 2. **Resuelve los datos** con `private.datos_aviso_reparacion(aviso)`: destinatario, cliente, tienda, número `R-000N`,
    equipo (modelo), estado y su descripción. **Sin importes ni costos**; los textos del asunto van sin saltos de línea.
 3. **Envía** el correo por el SMTP existente (`KESTRA_SMTP_*`, **sin variables nuevas**) con **3 reintentos**
@@ -210,6 +235,10 @@ patrón de `comprobantes-correo`:
 4. **Si falla** tras los reintentos, lo cierra como `fallido` con el motivo fijo **«No se pudo enviar el correo»**
    (nunca el mensaje del SMTP, que puede traer hosts o credenciales) y **confirma** la orden para no reenviar en
    bucle.
+
+El flow corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso, la nueva se
+descarta), todas las consultas SQL y los pasos llevan `timeout` (1 minuto, 2 minutos el envío del correo) y un fallo del
+flow avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (solo el nombre de la tarea que falló).
 
 Las dos funciones `private` solo las ejecuta el rol de servicio `kestra_orquestacion` (mismo guardia que el envío de
 presupuestos, `private.exigir_llamante_kestra`); son **idempotentes** (un segundo cierre no cambia nada). La entrega
@@ -337,16 +366,16 @@ posterior, no en el mismo PR.
 
 | Migración | Contenido |
 |---|---|
-| `20270115010000_comprobantes_origen.sql` | `origen_tipo` / `origen_id`, checks e índice único parcial. |
-| `20270115010100_lineas_sin_stock.sql` | `sin_stock`, check y las funciones de stock que la saltean. |
-| `20270115010200_generar_comprobante_reparacion.sql` | RPC de generación + `private.alicuota_general`. |
-| `20270115010300_comprobante_de_reparacion.sql` | RPC de lectura del comprobante vigente. |
-| `20270115010400_obtener_comprobante_origen.sql` | `obtener_comprobante` expone el origen (aditivo). |
-| `20270115020100_reparacion_avisos.sql` | Tabla, índices y RLS. |
-| `20270115020200_avisar_cliente_reparacion.sql` | RPC que encola el aviso. |
-| `20270115020300_avisos_de_reparacion.sql` | RPC de lectura del historial. |
-| `20270115020400_avisos_reparacion_flow.sql` | `private.datos_aviso_reparacion`, `private.cerrar_aviso_reparacion`, `private.aplicar_cierre_aviso_reparacion`, `private.expirar_avisos_reparacion` y los `grant` a `kestra_orquestacion`. |
-| `20270115030000_reparaciones_de_cliente.sql` | RPC de la pestaña «Reparaciones». |
+| `20270201200128_comprobantes_origen.sql` | `origen_tipo` / `origen_id`, checks e índice único parcial. |
+| `20270201200129_lineas_sin_stock.sql` | `sin_stock`, check y las funciones de stock que la saltean. |
+| `20270201200130_generar_comprobante_reparacion.sql` | RPC de generación + `private.alicuota_general`. |
+| `20270201200131_comprobante_de_reparacion.sql` | RPC de lectura del comprobante vigente. |
+| `20270201200132_obtener_comprobante_origen.sql` | `obtener_comprobante` expone el origen (aditivo). |
+| `20270201200133_reparacion_avisos.sql` | Tabla, índices y RLS. |
+| `20270201200134_avisar_cliente_reparacion.sql` | RPC que encola el aviso. |
+| `20270201200135_avisos_de_reparacion.sql` | RPC de lectura del historial. |
+| `20270201200136_avisos_reparacion_flow.sql` | `private.datos_aviso_reparacion`, `private.cerrar_aviso_reparacion`, `private.aplicar_cierre_aviso_reparacion`, `private.expirar_avisos_reparacion` y los `grant` a `kestra_orquestacion`. |
+| `20270201200137_reparaciones_de_cliente.sql` | RPC de la pestaña «Reparaciones». |
 
 Reversión (migración posterior):
 

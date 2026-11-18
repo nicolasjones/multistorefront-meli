@@ -92,7 +92,11 @@ export function separarCompatibles(texto: string): string[] {
   return [...vistos]
 }
 
-export function validarProducto(formulario: FormularioProducto, { conCosto }: { conCosto: boolean }): ErroresProducto {
+// Con `costoInicial` (la ficha de un producto que ya tiene costo) un costo vaciado se rechaza: la RPC `actualizar_producto`
+// lee un costo vacío como «sin cambio», así que el costo viejo seguiría en la base aunque la pantalla dijera «Producto guardado».
+export const MENSAJE_COSTO_VACIADO = 'El costo no se puede borrar: ingresá 0 si el producto no tiene costo.'
+
+export function validarProducto(formulario: FormularioProducto, { conCosto, costoInicial = '' }: { conCosto: boolean; costoInicial?: string }): ErroresProducto {
   const errores: ErroresProducto = {}
   if (formulario.nombre.trim() === '') {
     errores.nombre = 'Ingresá el nombre del producto.'
@@ -105,6 +109,8 @@ export function validarProducto(formulario: FormularioProducto, { conCosto }: { 
   }
   if (conCosto && formulario.costo.trim() !== '' && parsearImporte(formulario.costo) === null) {
     errores.costo = 'Ingresá un costo de cero o más, con hasta 12 enteros y 2 decimales.'
+  } else if (conCosto && formulario.costo.trim() === '' && costoInicial.trim() !== '') {
+    errores.costo = MENSAJE_COSTO_VACIADO
   }
   for (const campo of ['nombre', 'descripcion', 'sku', 'codigo_proveedor'] as const) {
     const maximo = LARGO_MAXIMO[campo] ?? 0

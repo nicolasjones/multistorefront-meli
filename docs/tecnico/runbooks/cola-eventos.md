@@ -1,8 +1,10 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - infra/kestra/flows/entregar-webhooks-api.yml
+  - infra/kestra/flows/purgar-api-llamadas.yml
+  - supabase/migrations/20270224110204_api_suscripciones_entregas.sql
+  - supabase/migrations/20261018180100_stock_evento_actualizado.sql
 ---
 
 # Cola de eventos trabada
@@ -21,9 +23,14 @@ sources:
 
 ## Cola `stock.actualizado` (MSF-231)
 
-- En el Hito 2 **no hay consumidor**: es normal que los eventos queden `pendiente` y la cola crezca. No
-  bloquea la escritura de stock.
-- Revisar el estado: `select estado, count(*) from public.cola_eventos group by estado;`.
+- Hay consumidor para los eventos que la API avisa (`stock.actualizado`, `precio.actualizado`, `venta.registrada`): el flow
+  `entregar-webhooks-api` (cada minuto, namespace `platform.api`) los reclama con `private.api_reclamar_eventos_api`
+  (lease de 2700 s, 5 intentos), los reparte a las suscripciones activas en `public.api_entregas` y los confirma con
+  `private.resolver_evento`. Una cola `pendiente` que crece con ese flow apagado o en rojo es una alerta; el reintento de cada aviso vive en
+  `api_entregas` (5 intentos con espera de 60 s × 2^(intentos-1); estado final `agotada`), no en la cola de eventos. Un tipo de evento
+  que ese flow no reclama sigue sin consumidor y puede quedar `pendiente` sin bloquear la escritura de stock.
+- La purga de eventos terminados y sin entregas vivas la hace `purgar-api-llamadas` (04:30 diario).
+- Revisar el estado: `select estado, count(*) from public.cola_eventos group by estado;` y, para los avisos de la API, `select estado, count(*) from public.api_entregas group by estado;`.
 - Un evento `agotada` se revisa a mano; no se borra la cola a ciegas.
 - El reclamo y la resolución (`private.reclamar_eventos` / `private.resolver_evento`) solo los ejecuta
   `kestra_orquestacion` (o un superusuario). El flow debe pasar el mismo `p_max_intentos` a ambos.
@@ -45,4 +52,4 @@ Si el evento afecta datos de negocio: escalar a orquestación/Dev; no editar dat
 
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
 
-> **CI (2026-11-16):** el job `application` de Validate corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.
+> **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.

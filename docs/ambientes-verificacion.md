@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/20261016-120000-actividad-y-ambientes
+  - scripts/verificar-staging-exitoso.mjs
+  - scripts/preparar-known-hosts-vps.mjs
+  - .github/workflows/migraciones-cloud.yml
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - .github/workflows/publicar-flows-kestra.yml
+  - .github/workflows/promover-todo-a-produccion.yml
 ---
 
 # Ambientes y despliegue controlado — verificación (F-OPS-02)
@@ -20,7 +26,7 @@ nombres; los valores no son legibles):
 | Environment | Secretos |
 |---|---|
 | `migraciones-cloud-staging` / `-production` | `SUPABASE_DB_URL` |
-| `deploy-infraestructura-vps-staging` / `-production` | `VPS_DEPLOY_ENV`, `VPS_SSH_HOST`, `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_USER` |
+| `deploy-infraestructura-vps-staging` / `-production` | `VPS_DEPLOY_ENV`, `VPS_SSH_HOST`, `VPS_SSH_PRIVATE_KEY`, `VPS_SSH_USER` (al 2026-10-16; el deploy ahora también exige la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.<entorno>`, no consultado aquí) |
 | `publicar-flows-kestra-staging` / `-production` | `KESTRA_BASIC_AUTH_USERNAME`, `KESTRA_BASIC_AUTH_PASSWORD`, `KESTRA_PUBLIC_URL` |
 
 Los secretos son por Environment: staging y producción no comparten ninguno.
@@ -44,11 +50,14 @@ secretos debe confirmar que ambos apuntan al Postgres self-hosted del VPS
 ## T017 · Compuerta `verificar-staging-exitoso.mjs`
 
 `pnpm ci:verificar-staging-exitoso` consulta los runs exitosos de `push` del
-mismo workflow y rechaza (exit 1) si ninguno tiene el mismo `head_sha`. Los tres
-jobs `production` la ejecutan antes de tocar secretos.
+mismo workflow. En la verificación original rechazaba (exit 1) si ninguno tenía el mismo `head_sha`; hoy
+también autoriza si el último run exitoso es de un ancestro y ningún archivo de `on.push.paths` del workflow
+cambió desde entonces, y rechaza (nombrando los archivos) ante cambios relevantes posteriores, un run que no es
+ancestro o una comparación truncada (`scripts/verificar-staging-exitoso.mjs`, pruebas de ancestro y de cambios relevantes en su test; detalle en
+`docs/control-ci.md`). Los tres jobs `production` la ejecutan antes de tocar secretos.
 
 - Prueba automática: `node --test scripts/verificar-staging-exitoso.test.mjs`
-  → 6/6 verdes, incluidos «rechaza cuando staging nunca corrió exitosamente para
+  → incluye (verificación original: 6/6 verdes) «rechaza cuando staging nunca corrió exitosamente para
   ese head_sha» y «rechaza cuando no hay ningún run exitoso de staging».
 - Evidencia en vivo: el run de producción `38289027004` (commit `9e63409`, sin
   run de staging exitoso para ese commit) terminó en `failure` en los tres jobs

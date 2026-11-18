@@ -7,8 +7,8 @@ const mocks = vi.hoisted(() => ({
   categorias: vi.fn(),
   filas: vi.fn(),
   confirmar: vi.fn(),
-  from: vi.fn(),
   depositos: vi.fn(),
+  from: vi.fn(),
 }))
 
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { from: mocks.from } }))
@@ -18,14 +18,14 @@ vi.mock('../../lib/categorias', async (importarOriginal) => ({
   ...(await importarOriginal<typeof import('../../lib/categorias')>()),
   leerCategoriasSelector: mocks.categorias,
 }))
-vi.mock('../../lib/depositos', async (importarOriginal) => ({
-  ...(await importarOriginal<typeof import('../../lib/depositos')>()),
-  listarDepositosActivos: mocks.depositos,
-}))
 vi.mock('../../lib/tomaInventario', async (importarOriginal) => ({
   ...(await importarOriginal<typeof import('../../lib/tomaInventario')>()),
   cargarFilasToma: mocks.filas,
   confirmarToma: mocks.confirmar,
+}))
+vi.mock('../../lib/depositos', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/depositos')>()),
+  listarDepositosActivos: mocks.depositos,
 }))
 
 import { TomaInventario } from './toma-inventario'
@@ -79,7 +79,23 @@ describe('TomaInventario', () => {
     }
     expect(within(tabla).getAllByRole('row')).toHaveLength(5)
     expect(within(tabla).getByText('JOY-1')).toBeInTheDocument()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], 'd-1')
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false, 'd-1')
+  })
+
+  it('muestra el depósito de la toma y ofrece «Sin categoría»', async () => {
+    mocks.filas.mockResolvedValue(FILAS)
+    await abrir('Sin categoría')
+    expect(await screen.findByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Casa central (principal)')
+    expect(await screen.findByRole('table', { name: 'Productos de la toma de inventario' })).toBeInTheDocument()
+    expect(mocks.filas).toHaveBeenCalledWith([], true, 'd-1')
+  })
+
+  it('si falla la carga del depósito avisa con «Reintentar» y al reintentar lo muestra', async () => {
+    mocks.depositos.mockRejectedValueOnce(new Error('red caída'))
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    expect(await screen.findByText('No pudimos cargar esta información.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Reintentar/ }))
+    expect(await screen.findByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Casa central (principal)')
   })
 
   it('una categoría sin productos muestra el estado vacío', async () => {
@@ -165,7 +181,7 @@ describe('TomaInventario', () => {
     await abrir()
     await screen.findByRole('table')
     expect(mocks.from).not.toHaveBeenCalled()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], 'd-1')
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false, 'd-1')
   })
 
   it('ofrece el depósito principal elegido y lo lista junto a los demás', async () => {
@@ -183,7 +199,7 @@ describe('TomaInventario', () => {
     contar('Teclado', '2')
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito' }))
     fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Sucursal Norte' }))
-    await waitFor(() => expect(mocks.filas).toHaveBeenLastCalledWith(['c-1'], 'd-2'))
+    await waitFor(() => expect(mocks.filas).toHaveBeenLastCalledWith(['c-1'], false, 'd-2'))
     await screen.findByRole('table')
     expect(screen.getByLabelText('Contado de Teclado')).toHaveValue('')
   })

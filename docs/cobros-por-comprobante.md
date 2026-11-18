@@ -9,6 +9,10 @@ sources:
   - supabase/migrations/20261212100800_estado_cobro_comprobante.sql
   - supabase/migrations/20270114100000_cobros_comprobante.sql
   - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql
 ---
 
 # Ventas · Cobros por comprobante (F-VTA-12)
@@ -121,7 +125,7 @@ desactiva más tarde, el cobro ya registrado se conserva).
   «Contrarreembolso» activa de la tienda y sin cuenta de cobro. No duplica lógica: la validación del tope, el paso a Cobrado
   o Deuda y el evento `comprobante.cobro_registrado` son los de siempre. El envío guarda el `cobro_id`. La nota de crédito
   posterior baja el `abono` de los envíos sin rendir (`20270228110200`, mismo disparador y mismo `skip locked` que los
-  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). Detalle en `docs/ventas-motos.md`.
+  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). `revertir_cobro` no sirve para eso: rechaza los cobros de origen `contrarreembolso`. Detalle en `docs/ventas-motos.md`.
 - `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
   `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 

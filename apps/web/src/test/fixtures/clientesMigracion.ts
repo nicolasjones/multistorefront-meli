@@ -68,6 +68,9 @@ export const ENCABEZADOS_CLIENTES = [
   'Acepta correo',
 ] as const
 
+// La plantilla de la entidad suma «Condición de IVA» al final (columna opcional; los CSV sintéticos no la traen).
+export const ENCABEZADOS_PLANTILLA_CLIENTES = [...ENCABEZADOS_CLIENTES, 'Condición de IVA'] as const
+
 function celdaCsv(valor: string): string {
   return /[",\r\n]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor
 }
