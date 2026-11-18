@@ -1,10 +1,54 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
+  - apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts
+  - apps/web/e2e/rentabilidad-roles.e2e.ts
+  - apps/web/src/App.tsx
+  - apps/web/src/components/ReporteEmbebido.tsx
+  - apps/web/src/lib/costosAdicionales.ts
+  - apps/web/src/lib/rentabilidad.ts
   - apps/web/src/pages/rentabilidad
-  - infra/superset
-  - specs
+  - infra/superset/dashboards/rentabilidad
+  - infra/superset/importar-dashboards.mjs
+  - infra/superset/superset_config.py
+  - specs/20261023-170000-rentabilidad-margen
+  - specs/20261024-130000-rentabilidad-comparativos-e-historia
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - supabase/functions/emitir-acceso-reporte/handler.ts
+  - supabase/migrations/20261022121200_precios_actividad_producto.sql
+  - supabase/migrations/20261130100000_rentabilidad_umbral.sql
+  - supabase/migrations/20261130100100_rentabilidad_umbral_actividad.sql
+  - supabase/migrations/20261130100200_analitica_margen_producto_canal.sql
+  - supabase/migrations/20261130100300_analitica_rol_superset.sql
+  - supabase/migrations/20261130100400_reportes_seccion.sql
+  - supabase/migrations/20261130110000_analitica_rentabilidad_resumen.sql
+  - supabase/migrations/20261130110100_rentabilidad_conteo_margen.sql
+  - supabase/migrations/20270111100000_analitica_margen_comparativo.sql
+  - supabase/migrations/20270111100100_analitica_margen_comparativo_diferencia.sql
+  - supabase/migrations/20270111110000_dominio_producto_costos_historial.sql
+  - supabase/migrations/20270111110100_analitica_margen_historico.sql
+  - supabase/migrations/20270202201000_costos_adicionales_canal.sql
+  - supabase/migrations/20270202201001_costos_adicionales_rpc.sql
+  - supabase/migrations/20270202201002_analitica_margen_costos_adicionales.sql
+  - supabase/migrations/20270202201003_analitica_consultas_producto_mas_consultado.sql
+  - supabase/migrations/20270202201004_analitica_ventas_periodo_canal.sql
+  - supabase/migrations/20270202201005_comprobante_lineas_costo_cotizacion.sql
+  - supabase/migrations/20270202201006_confirmar_comprobante_costo_cotizacion.sql
+  - supabase/migrations/20270202201007_analitica_rentabilidad_ventas_real.sql
+  - supabase/tests/database/costos_adicionales_aislamiento.test.sql
+  - supabase/tests/database/costos_adicionales_canal.test.sql
+  - supabase/tests/database/rentabilidad_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_comparativo.test.sql
+  - supabase/tests/database/rentabilidad_comparativo_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_consolidado.test.sql
+  - supabase/tests/database/rentabilidad_historia.test.sql
+  - supabase/tests/database/rentabilidad_historia_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_margen.test.sql
+  - supabase/tests/database/rentabilidad_permisos.test.sql
+  - supabase/tests/database/rentabilidad_por_producto.test.sql
+  - supabase/tests/database/rentabilidad_superficie.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql
 ---
 
 # Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)
@@ -394,6 +438,8 @@ previa» de la épica queda resuelta por esta decisión.
 - Los dos tableros se registran en `infra/superset/dashboards/rentabilidad/reportes.json` con
   `seccion = 'rentabilidad'` y rol por defecto `administracion`; el importador es idempotente
   (`pnpm test:superset:importar-dashboards`).
+- El importador (`infra/superset/importar-dashboards.mjs`) **falla** si hay `reportes.json` y faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR`: los dashboards se importan pero los reportes no se registran. Para importar solo los dashboards a propósito (por ejemplo con un Superset local sin Supabase) se usa `--omitir-reportes`.
+- El guest token del tablero embebido vence a los 600 segundos por defecto (`GUEST_TOKEN_JWT_EXP_SECONDS`, configurable con `SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS` en `infra/superset/superset_config.py`). `apps/web/src/components/ReporteEmbebido.tsx` usa el token ya emitido en la primera llamada y, cuando el SDK renueva, pide uno nuevo a `emitir-acceso-reporte` (que vuelve a validar el acceso de la persona).
 - Detalle operativo: [Operar Superset](../operar-superset.md#tableros-de-rentabilidad-msf-120).
 
 ## Rentabilidad real y reportes (MSF-192)

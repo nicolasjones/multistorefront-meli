@@ -1,9 +1,30 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20270305-100000-inicio-tablero-completo
+  - apps/web/e2e/inicio.e2e.ts
+  - apps/web/src/pages/inicio/index.tsx
+  - apps/web/src/pages/inicio/TarjetaDolar.tsx
+  - apps/web/src/pages/inicio/useLecturaInicio.ts
+  - apps/web/src/pages/inicio/tablero
+  - apps/web/src/lib/inicioTablero.ts
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/ventas-reportes/index.tsx
+  - apps/web/src/lib/inicioBloques.ts
+  - apps/web/src/hooks/useMovimientosPorProducto.ts
+  - apps/web/src/hooks/usePrevisualizarImpactoDolar.ts
+  - apps/web/src/components/cotizacion/DialogoCargarDolarConImpacto.tsx
+  - apps/web/src/components/cotizacion/CampoDolar.tsx
+  - apps/web/src/components/cotizacion/AlertaVariacionInusual.tsx
+  - apps/web/src/components/cotizacion/LimiteDialogoDolar.tsx
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270305120000_movimientos_por_producto.sql
+  - supabase/migrations/20270305130000_previsualizar_impacto_dolar.sql
+  - supabase/migrations/20270305140000_aplicar_cotizacion.sql
+  - supabase/migrations/20270324120200_resumen_inicio_bloques_seccion.sql
+  - supabase/tests/database/inicio_tablero_bloques.test.sql
+  - supabase/tests/database/resumen_inicio_periodo.test.sql
 ---
 
 # Inicio: tablero de ventas y stock, listado por producto y carga del dólar (MSF-824)
@@ -50,7 +71,7 @@ declara **a confirmar por Nicolás**; D-8 y D-12 se apartan de la spec porque ma
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
-| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; no hay migración de alertas | Bloque «Qué hacer hoy» |
+| D-1 | «Qué hacer hoy» reusaba los cinco tipos de `alertas_inicio`; después se sumaron `cobros_pendientes` y `faltantes` (migración `20270325000000_alertas_inicio_cobros_y_faltantes.sql`, ver [Inicio y alertas](inicio-y-alertas.md)) | Bloque «Qué hacer hoy» |
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Ventas del período |
 | D-3 | «Entradas» de **Stock hoy** = movimientos `entrada` sin traslados, devoluciones de cliente ni anulaciones; «Ajustes» = solo `ajuste` | Stock hoy |
 | D-4 | Costo, valor y margen solo con `rentabilidad` ≥ lectura | Resumen por tienda |
