@@ -15,6 +15,7 @@
 -- Migración aditiva. Reversión (migración posterior, solo si no hay facturas con origen o tras exportarlas):
 --   drop index if exists dominio.comprobantes_venta_origen_presupuesto_uq;
 --   drop index if exists dominio.comprobantes_venta_origen_presupuesto_id_organizacion_id_fk_idx;
+--   revoke select (origen_presupuesto_id) on dominio.comprobantes_venta from authenticated;
 --   alter table dominio.comprobantes_venta drop constraint if exists comprobantes_venta_origen_presupuesto_fk,
 --     drop constraint if exists comprobantes_venta_origen_presupuesto_ck, drop column if exists origen_presupuesto_id;
 --   y restituir `private.lineas_con_promocion_desactualizada` con su definición de 20270507120000.
@@ -44,6 +45,10 @@ create unique index if not exists comprobantes_venta_origen_presupuesto_uq
 -- La prueba global de higiene exige un índice NO parcial que cubra la FK (un índice único parcial no cuenta).
 create index if not exists comprobantes_venta_origen_presupuesto_id_organizacion_id_fk_idx
   on dominio.comprobantes_venta (origen_presupuesto_id, organizacion_id);
+
+-- Lectura de la columna para `authenticated` (como `contacto_id`): la tabla concede `select` por columna y la RLS por organización y
+-- sección `ventas` sigue acotando las filas. La columna solo guarda un id.
+grant select (origen_presupuesto_id) on table dominio.comprobantes_venta to authenticated;
 
 comment on column dominio.comprobantes_venta.origen_presupuesto_id is
   'Presupuesto aceptado del que nació esta factura (Facturar presupuesto). Único: un presupuesto se convierte una sola vez.';

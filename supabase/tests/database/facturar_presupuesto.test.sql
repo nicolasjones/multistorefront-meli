@@ -80,6 +80,9 @@ select is(has_function_privilege('authenticated', 'public.obtener_vinculo_presup
 select is((select prosecdef and proconfig = array['search_path=""'] from pg_proc where oid = 'public.facturar_presupuesto(uuid)'::regprocedure),
   true, 'facturar_presupuesto es security definer con search_path vacío');
 
+select is(has_column_privilege('authenticated', 'dominio.comprobantes_venta', 'origen_presupuesto_id', 'select'), true, 'authenticated lee la columna del origen (grant por columna)');
+select is(has_column_privilege('anon', 'dominio.comprobantes_venta', 'origen_presupuesto_id', 'select'), false, 'anon no lee la columna del origen');
+
 -- ============================================================================
 -- Datos
 --   A: aceptado con dos líneas (una de precio manual) · P: pendiente · V: aceptado y vencido · S: aceptado sin líneas
