@@ -360,6 +360,7 @@ El estado real se lee por la API de rulesets:
 ```bash
 gh api repos/<owner>/<repo>/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
 gh api repos/<owner>/<repo>/rulesets/25358575 --jq '.rules[] | {type, parameters}'
+gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar el ruleset
 ```
 
 El repo trae el diagnóstico que ya consulta el endpoint correcto, avisa de la
@@ -385,10 +386,6 @@ el merge se rechaza mientras la rama esté atrás y actualizar la rama reinicia 
 CI: con la base avanzando más rápido que el CI, ese ciclo no termina. Las dos
 salidas son desactivar «rama al día» o activar la cola de merge (decisión de
 Nicolás, ver «Pendientes del lote 36 que necesitan acción de Nicolás»).
-
-```bash
-gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar
-```
 
 ## Navegadores huérfanos y zombies de los runners (AGE-1311)
 
