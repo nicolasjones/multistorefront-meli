@@ -57,25 +57,26 @@ function prefijoDeContenedor(linea) {
 }
 
 /**
- * ¿La línea continúa los contenedores de la pila de apertura? Se recorre la pila en orden: un ítem de lista pide sangría
+ * Consume exactamente los contenedores de la pila de apertura y devuelve el índice donde empieza el resto de la línea, o -1
+ * si la línea no los continúa. Se recorre la pila en orden: un ítem de lista pide sangría
  * hasta su columna de contenido (sin marcador nuevo: un ítem hermano NO es continuación) y una cita pide su `>`.
  */
-function continuaContenedores(linea, pilaAbierta) {
+function indiceTrasContenedores(linea, pilaAbierta) {
   let k = 0;
   let col = 0;
   for (const c of pilaAbierta) {
     if (c.tipo === "L") {
       while (k < linea.length && col < c.ind && (linea[k] === " " || linea[k] === "\t")) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; }
-      if (col < c.ind) return false;
+      if (col < c.ind) return -1;
     } else {
       let sp = 0;
       while (k < linea.length && (linea[k] === " " || linea[k] === "\t") && sp < 3) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; sp++; }
-      if (linea[k] !== ">") return false;
+      if (linea[k] !== ">") return -1;
       k++; col++;
       if (linea[k] === " ") { col++; k++; }
     }
   }
-  return true;
+  return k;
 }
 
 // Comienzo de un bloque HTML (CommonMark, tipos 1-7), de forma conservadora. Devuelve cómo termina: `"blanco"` (una línea
@@ -122,19 +123,26 @@ export function enmascararCodigo(txt, { html: conHtml = true } = {}) {
     const linea = txt.slice(pos, fin);
     pos = fin + 1;
     const p = prefijoDeContenedor(linea);
-    if (abierto && !p.vacia && !continuaContenedores(linea, abierto.pila)) {
-      sinCerrar.push(abierto.linea); // los contenedores terminaron sin cerrar el fence: esta línea ya no es código
-      abierto = null;
+    if (abierto) {
+      const ik = p.vacia ? 0 : indiceTrasContenedores(linea, abierto.pila);
+      if (ik < 0) {
+        sinCerrar.push(abierto.linea); // los contenedores terminaron sin cerrar el fence: esta línea ya no es código
+        abierto = null;
+      } else {
+        // Cierra solo una valla que aparece justo después de los MISMOS contenedores (sin otro `>` ni marcador de ítem antes).
+        let q = ik;
+        while (q < linea.length && (linea[q] === " " || linea[q] === "\t")) q++;
+        let r2 = q;
+        if (linea[q] === abierto.ch) while (r2 < linea.length && linea[r2] === abierto.ch) r2++;
+        if (!p.vacia && r2 - q >= abierto.run && linea.slice(r2).trim() === "") abierto = null;
+        salida.push("");
+        continue;
+      }
     }
     const ch = linea[p.k];
     let r = p.k;
     if (ch === "`" || ch === "~") while (r < linea.length && linea[r] === ch) r++;
     const run = r - p.k;
-    if (abierto) {
-      if (run >= abierto.run && ch === abierto.ch && linea.slice(r).trim() === "") abierto = null;
-      salida.push("");
-      continue;
-    }
     if (html !== null) {
       // Dentro de un bloque HTML no se abre ningún fence: la línea es texto y sus enlaces se validan.
       if (run >= 3) ambiguo = true;

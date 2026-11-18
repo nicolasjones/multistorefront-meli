@@ -145,6 +145,10 @@ Fence mal anidado:            «- > ```» cerrado por «> ```» (pila de contene
 No se extraen (dokploy tampoco): [x](<a + salto de línea + b>)   <a/href=roto.md>   y en <a href="x" href="roto.md"> solo
                               cuenta el primer href
 Tipos de fence:               ~~~ cuenta como fence; un fence de backticks con backtick en la info (``` a`b) no abre
+Sangría 4+ y fences en cita:  un fence con 4+ espacios de sangría combinado con fences dentro de citas o listas puede
+                              ocultar un enlace sin error (el extractor anterior también lo ocultaba)
+Destino con backticks:        [a](`x`.md) y similares: el extractor anterior lo leía con otro prefijo; ambos dan un
+                              destino roto, y se reporta el actual
 Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
 ```
 

@@ -304,6 +304,25 @@ describe("enlacesMarkdown", () => {
       else { assert.ok(r.enlaces.some((m) => m.destino === "roto.md"), s); assert.ok(r.sinCerrar.length >= 1, s); }
     }
   });
+  it("QA: el cierre de un fence exige los mismos contenedores (una línea de otro contenedor no cierra)", () => {
+    for (const marca of ["> ~~~", "- ~~~", "  - ~~~", "1. ~~~", "> - ~~~", "* ~~~"]) {
+      const s = `~~~\nx\n${marca}\n~~~\n[a](roto.md)\n~~~\n`;
+      const r = enlacesMarkdown(s);
+      assert.ok(r.enlaces.some((m) => m.destino === "roto.md"), s);
+      assert.ok(r.sinCerrar.length >= 1, s); // el último `~~~` abre un fence que no se cierra
+    }
+    // Mezcla de backticks y tildes: la línea de otro carácter tampoco cierra.
+    const mezcla = enlacesMarkdown("```\n> ```\n~~~\n```\n[a](roto.md)\n");
+    assert.deepEqual(mezcla.enlaces.map((m) => m.destino), ["roto.md"]);
+    // Caso inverso: apertura en cita; una valla sin `>` no cierra (el contenedor terminó) y se reporta.
+    const inverso = enlacesMarkdown("> ~~~\n> x\n~~~\n[a](roto.md)\n");
+    assert.ok(inverso.sinCerrar.includes(1) && inverso.sinCerrar.includes(3)); // la cita termina sin cierre y la nueva valla abre otro fence
+    assert.deepEqual(destinos("> ~~~\n> x\n~~~\n~~~\n[a](roto.md)\n"), ["roto.md"]);
+    // Cierres válidos siguen cerrando.
+    assert.deepEqual(destinos("> ~~~\n> [x](dentro.md)\n> ~~~\n[f](fuera.md)\n"), ["fuera.md"]);
+    assert.deepEqual(destinos("- a\n  ```\n  [x](dentro.md)\n  ```\n[f](fuera.md)\n"), ["fuera.md"]);
+    assert.deepEqual(destinos("```\n[x](dentro.md)\n   ```\n[f](fuera.md)\n"), ["fuera.md"]);
+  });
   it("QA: no se abre un fence dentro de un bloque HTML (se valida de más)", () => {
     for (const s of ["<div>\n~~~\n\n[a](roto.md)\n~~~\n", "<!-- x\n~~~\n\n[a](roto.md)\n-->\n", "<pre>\n```\n[a](roto.md)\n</pre>\n```\n", "<details>\n~~~\n[a](roto.md)\n"]) {
       assert.ok(destinos(s).includes("roto.md"), s);
