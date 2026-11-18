@@ -87,7 +87,7 @@ Desde la tienda, un visitante puede enviar una **lista de pedido** (productos y 
 
 ### Retención de los pedidos (D-20)
 
-**Los pedidos no se borran solos** (ni sus ítems): esta épica **no define una purga automática** y no inventa un plazo legal. Qué se guarda: nombre, contacto (correo o teléfono), nota e ítems;
+**Los pedidos no se borran solos** (ni sus ítems), pero sus datos personales **se anonimizan a los 24 meses sin actividad** (ver «[Retención](#retencion)»); esta épica no inventa otro plazo legal. Qué se guarda: nombre, contacto (correo o teléfono), nota e ítems;
 **nunca** dirección, DNI, CUIT ni la IP (el cupo de envíos guarda solo un hash por empresa y se poda a 24 h). Quién lo ve: quien tiene la sección `consultas` ≥ lectura en esa empresa; el aviso por correo llega
 a esas mismas personas.
 
@@ -95,7 +95,7 @@ Cómo borrar a mano (no hay una pantalla para borrar consultas): una persona con
 por la FK) o, para todo un visitante, borra las consultas con ese contacto. Si se borra un **cliente**, sus pedidos **no se borran**: `cliente_id` queda en `null` (`on delete set null`) pero el nombre y el contacto
 de la consulta siguen; hay que borrarlos aparte. La baja de la organización se lleva todo en cascada.
 
-**Seguimiento trazado**: definir el plazo de retención y la purga de consultas e ítems de pedido y la supresión a pedido del titular (**MSF-944**, que también cubre los presupuestos de la tienda y sus notas). El manual de usuario está en `docs/producto/` (`consultas.md`, `tiendas-online.md`, `ventas-comprobantes.md`, `actividad.md`).
+**Seguimiento trazado**: el plazo (24 meses) y la anonimización de consultas e ítems de pedido ya están («Retención»); queda la supresión a pedido del titular y los presupuestos de la tienda y sus notas (**MSF-944**). El manual de usuario está en `docs/producto/` (`consultas.md`, `tiendas-online.md`, `ventas-comprobantes.md`, `actividad.md`).
 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 
@@ -203,13 +203,35 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 - **Esquemas contra el Principio VII**: las dos tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
 - **Riesgos aceptados**: (1) `publico.registrar_interes_whatsapp` no tiene límite de frecuencia ni idempotencia, y por eso desde MSF-657 ya no es pública (solo `service_role`); las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) aplican la cuota anti-spam; (2) entrega «al menos una vez» (posible
-  duplicado); (3) los datos personales del visitante no tienen política de retención (abajo).
+  duplicado); (3) los datos personales del visitante se anonimizan a los 24 meses sin actividad (ver «Retención»).
 
-## Retención pendiente
+## Retención
 
-No hay política definida para las consultas ni para los datos personales que traen (Decisión abierta 5). Esta
-entrega **no borra ni expira nada**. Cuando se defina, será una spec aparte. Para los **pedidos de la tienda** (que
-suman los ítems y, con cuenta, el vínculo al cliente) ver «[Retención de los pedidos](#retencion-de-los-pedidos-d-20)»: tampoco se purgan solos y está dicho cómo borrar a mano.
+**Plazo: 24 meses desde la última actividad** de la consulta (`updated_at`: cada cambio de estado, responsable o nota la mueve). Pasado el plazo
+se **anonimizan** sus datos personales; no se borra la consulta.
+
+- **Qué se anonimiza**: `nombre` y `contacto` pasan a «[anonimizado]»; `mensaje` pasa a «[anonimizado]» en las de formulario (la base exige un
+  mensaje) y queda vacío en las de WhatsApp y de pedido. Además se borra la **nota interna** (puede traer datos de la persona) y se cortan los
+  vínculos `cliente_id` y `contacto_id`, porque con ellos la persona seguiría identificable.
+- **Qué se conserva**: id, organización, tienda, **origen**, **producto**, estado, responsable (personal del equipo), **fechas** (`created_at`) y los ítems
+  del pedido (`dominio.consulta_items`: producto y cantidad, sin datos de la persona). Los reportes y agregados (consultas por producto, por origen, por mes)
+  no cambian. El trigger de normalización mueve `updated_at` al anonimizar; `created_at` no se toca.
+- **Quién la ejecuta**: el flow mensual de Kestra `anonimizar-consultas` (`infra/kestra/flows/anonimizar-consultas.yml`, día 1 de cada mes a las 05:30,
+  con `timeout`, reintentos, `concurrency` en 1 y aviso si falla). Solo habla con la base (rol `kestra_orquestacion`); no usa workers ni salida a internet.
+- **La función**: `private.anonimizar_consultas_antiguas(p_meses int default 24)`: `security definer`, `search_path = ''`, sin acceso para `public`, `anon` ni
+  `authenticated` (`execute` solo para `service_role` y `kestra_orquestacion`). `p_meses` debe ser **12 o más** (`22023`; nulo también), para que un valor mal
+  puesto no anonimice de más. Anonimiza lo que supera el plazo estrictamente (24 meses justos no alcanzan) y todavía no está anonimizado, así que es **idempotente**:
+  una segunda corrida devuelve 0. Devuelve la cantidad y deja, por organización, un evento de Actividad `sistema.consultas_anonimizadas` («Anonimizó N consultas sin
+  actividad en los últimos 24 meses»), sin datos personales: es el log de la ejecución.
+- **Cómo ejecutarla a mano** (una persona con acceso administrativo a la base, con un rol de servicio): `select private.anonimizar_consultas_antiguas();` (24 meses) o
+  `select private.anonimizar_consultas_antiguas(36);`. Desde Kestra: ejecutar el flow `anonimizar-consultas` (entrada opcional `meses`).
+- **Pruebas**: pgTAP `anonimizar_consultas_antiguas.test.sql` (23, 24 y 25 meses, el límite de fecha, ya anonimizadas, parámetro inválido, privilegios, log sin datos
+  personales) y `pnpm test:kestra:anonimizar-consultas`.
+- **Reversión** (migración posterior; lo ya anonimizado **no se recupera**): `drop function private.anonimizar_consultas_antiguas(integer)`, borrar la fila
+  `sistema.consultas_anonimizadas` de `public.tipos_evento_actividad` y retirar el flow (`infra/kestra/flows-retirados.txt`).
+
+Los **pedidos de la tienda** (que suman los ítems y, con cuenta, el vínculo al cliente) están en esta misma tabla y siguen el mismo plazo; ver «[Retención de los pedidos](#retencion-de-los-pedidos-d-20)».
+Los presupuestos de la tienda y la supresión a pedido del titular siguen fuera de esta entrega (seguimiento MSF-944).
 
 ## Reversión
 

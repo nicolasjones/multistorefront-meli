@@ -1,0 +1,60 @@
+# Lote 39 · Retención de consultas (decisión de producto, seguimiento de MSF-944).
+#
+# Una vez por mes anonimiza las consultas de la tienda (formulario, WhatsApp y pedido) que llevan 24 meses sin actividad:
+# nombre, contacto y mensaje pasan a «[anonimizado]» (el mensaje queda vacío en WhatsApp y pedido), se borra la nota interna y se
+# cortan los vínculos con el cliente y el contacto. Se conservan producto, tienda, origen, estado y fechas, así que los reportes y los
+# agregados no cambian. La regla vive en la base (`private.anonimizar_consultas_antiguas`, mínimo 12 meses, idempotente, deja un
+# evento «Sistema» por organización con la cantidad y sin datos personales); el flow solo la dispara. Una segunda corrida no toca
+# nada, así que reintentar es seguro. Si la función falla la tarea falla y el fallo se avisa: no se traga el error.
+#
+# Solo habla con la base (Postgres de Supabase por el rol de servicio de Kestra): no hay worker ni salida a internet, así que no
+# aparece en `workers/egress-allowlists.json`. Rol de base: kestra_orquestacion, con EXECUTE solo sobre esta función.
+# A mano: ver «Retención» en docs/consultas.md.
+id: anonimizar-consultas
+namespace: producto.clientes
+labels:
+  capa: producto
+  dominio: clientes
+  componente: anonimizar-consultas
+description: "Cada mes anonimiza las consultas con más de 24 meses sin actividad (nombre, contacto y mensaje)."
+inputs:
+  - id: meses
+    type: STRING
+    required: false
+    defaults: "24"
+    description: "Meses sin actividad (por defecto 24; la base rechaza menos de 12)."
+# Una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta.
+concurrency:
+  limit: 1
+  behavior: CANCEL
+tasks:
+  - id: anonimizar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    fetchType: FETCH_ONE
+    sql: select private.anonimizar_consultas_antiguas(CAST(:meses AS integer)) as anonimizadas;
+    parameters:
+      meses: "{{ inputs.meses ?? 24 }}"
+    timeout: PT10M
+    retry:
+      type: constant
+      interval: PT5M
+      maxAttempts: 3
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: anonimizar-consultas
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
+triggers:
+  - id: mensual
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 5 1 * *"

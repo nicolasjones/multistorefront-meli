@@ -64,6 +64,16 @@ export type PaginaPresupuestos = { presupuestos: Presupuesto[]; total: number }
 // Aceptar y modificar (misma regla) solo valen mientras el presupuesto está pendiente (FR-050, FR-052, FR-055). Copiar vale
 // en cualquier estado: es la forma de renovar un presupuesto vencido o repetir uno aceptado.
 export const puedeAceptarOModificarPresupuesto = (p: Pick<Presupuesto, 'estado' | 'puede_editar'>) => p.puede_editar && p.estado === 'pendiente'
+// Facturar (decisión de producto): solo un presupuesto ACEPTADO y no vencido, con `ventas` en edición en su tienda. La base lo
+// exige igual (`facturar_presupuesto`); acá solo decide si se ofrece el botón. «Vencido» de un aceptado no lo deriva el listado
+// (solo vence el pendiente), por eso se compara `valido_hasta` con hoy en Buenos Aires, igual que la base.
+export function hoyEnArgentina(ahora: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora)
+}
+export const puedeFacturarPresupuesto = (
+  p: Pick<Presupuesto, 'estado' | 'puede_editar' | 'valido_hasta'>,
+  hoy: string = hoyEnArgentina(),
+) => p.puede_editar && p.estado === 'aceptado' && (p.valido_hasta === null || p.valido_hasta >= hoy)
 export const puedeCopiarPresupuesto = (p: Pick<Presupuesto, 'puede_editar'>) => p.puede_editar
 
 export type ParametrosListadoPresupuestos = {
@@ -135,4 +145,59 @@ export async function copiarPresupuesto(id: string): Promise<PresupuestoResultad
   const { data, error } = await supabaseClient.rpc('copiar_presupuesto', { p_id: id })
   if (error) throw error
   return aResultado(data)
+}
+
+// Facturar presupuesto: crea la factura en borrador con los precios del presupuesto (congelados) y lo marca convertido. Es
+// idempotente: facturar uno ya convertido devuelve la misma factura (doble clic, reintento).
+export async function facturarPresupuesto(id: string): Promise<PresupuestoResultado> {
+  const { data, error } = await supabaseClient.rpc('facturar_presupuesto', { p_presupuesto_id: id })
+  if (error) throw error
+  return aResultado(data)
+}
+
+// Textos de la RPC que se muestran tal cual: los fija la base y son accionables (nunca el `message` desconocido del servidor).
+const MENSAJES_FACTURAR_DE_LA_RPC = [
+  'Aceptá el presupuesto antes de facturarlo',
+  'El presupuesto está vencido y no se puede facturar',
+  'Este presupuesto ya no se puede facturar',
+  'El presupuesto no tiene líneas para facturar',
+  'El cliente del presupuesto ya no está disponible',
+  'La tienda del presupuesto está desactivada',
+  'Tu rol no puede facturar presupuestos de esta tienda',
+] as const
+const PRODUCTO_INACTIVO_FACTURAR = /^El producto «[^»\n]{1,200}» ya no está activo: reactivalo para facturar el presupuesto$/
+
+export function mensajeDeFacturarPresupuesto(error: unknown, porDefecto: string): string {
+  const e = error as { code?: string; message?: unknown } | null
+  const mensaje = typeof e?.message === 'string' ? e.message : ''
+  const esDeNegocio = e?.code === '55000' || e?.code === '22023' || e?.code === '42501'
+  if (esDeNegocio) {
+    const conocido = MENSAJES_FACTURAR_DE_LA_RPC.find((m) => mensaje === m)
+    if (conocido) {
+      console.error(porDefecto, e?.code)
+      return conocido
+    }
+    if (e?.code === '22023' && PRODUCTO_INACTIVO_FACTURAR.test(mensaje)) {
+      console.error(porDefecto, e.code)
+      return mensaje
+    }
+  }
+  return mensajeDeErrorComprobante(error, porDefecto)
+}
+
+export type VinculoPresupuesto = {
+  presupuesto_id: string
+  presupuesto_numero: string
+  factura_id: string
+  factura_numero: string
+  factura_estado: string
+}
+
+// Vínculo presupuesto <-> factura de un comprobante (la factura de un presupuesto convertido o el presupuesto de origen de una
+// factura). Sin vínculo (o sin acceso) devuelve null.
+export async function obtenerVinculoPresupuesto(id: string): Promise<VinculoPresupuesto | null> {
+  const { data, error } = await supabaseClient.rpc('obtener_vinculo_presupuesto', { p_id: id })
+  if (error) throw error
+  const filas = (data ?? []) as VinculoPresupuesto[]
+  return filas.length > 0 ? filas[0] : null
 }
