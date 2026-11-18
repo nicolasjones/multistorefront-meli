@@ -2,9 +2,28 @@
 owner: tecnico
 sources:
   - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src
+  - apps/web/src/lib/ventas/cbu.ts
+  - apps/web/src/lib/ventas/cuentasCobro.ts
+  - apps/web/src/lib/ventas/formasEnvio.ts
+  - apps/web/src/lib/ventas/formasPago.ts
+  - apps/web/src/lib/ventas/transportes.ts
+  - apps/web/src/pages/ventas/cuentas-cobro/list.tsx
+  - apps/web/src/pages/ventas/transportes/list.tsx
+  - apps/web/src/pages/ventas/configuracion/index.tsx
+  - supabase/tests/database/cuentas_cobro.test.sql
+  - supabase/tests/database/formas_envio.test.sql
+  - supabase/tests/database/formas_pago.test.sql
+  - supabase/tests/database/transportes.test.sql
+  - supabase/migrations/20261022120400_cuentas_cobro_validacion.sql
+  - supabase/migrations/20261020100000_formas_pago.sql
+  - supabase/migrations/20261022120000_formas_pago_rpc.sql
+  - supabase/migrations/20261022120100_formas_envio.sql
+  - supabase/migrations/20261022120200_formas_envio_rpc.sql
+  - supabase/migrations/20261022120300_cuentas_cobro.sql
+  - supabase/migrations/20261022120500_cuentas_cobro_rpc.sql
+  - supabase/migrations/20261022120600_cuentas_cobro_actividad.sql
+  - supabase/migrations/20261022120700_transportes.sql
+  - supabase/migrations/20261022120800_transportes_rpc.sql
 ---
 
 # Ventas · catálogos de cobro y envío (técnico, MSF-139)

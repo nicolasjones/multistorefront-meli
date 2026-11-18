@@ -1,9 +1,46 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/e2e/precios-masivos.e2e.ts
+  - apps/web/e2e/tienda-promocion.e2e.ts
+  - apps/web/src/App.tsx
+  - apps/web/src/ayuda/contenidos/catalogo.ts
+  - apps/web/src/components/navegacion/destinosPanel.ts
+  - apps/web/src/components/promociones/FormularioPromocion.tsx
+  - apps/web/src/hooks/useCapacidadesPrecios.ts
+  - apps/web/src/lib/capacidadesPrecios.ts
+  - apps/web/src/lib/migracionCsv.ts
+  - apps/web/src/lib/preciosMasivos.ts
+  - apps/web/src/lib/promociones.ts
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/precios-masivos.tsx
+  - apps/web/src/pages/productos/promociones.tsx
+  - apps/web/src/pages/tienda-publica/catalogo/PrecioTachado.tsx
+  - specs/20261104-103000-precios-masivos-y-promociones
+  - supabase/migrations/20270221100001_promociones_precio.sql
+  - supabase/migrations/20270221100002_promociones_precio_rpc.sql
+  - supabase/migrations/20270221100003_promociones_precio_vigente.sql
+  - supabase/migrations/20270221100004_tienda_precio_anterior.sql
+  - supabase/migrations/20270221100005_tienda_precio_anterior_home_busqueda.sql
+  - supabase/migrations/20270221100006_actualizaciones_precio.sql
+  - supabase/migrations/20270221100007_precios_masivos_previsualizar.sql
+  - supabase/migrations/20270221100008_precios_masivos_aplicar.sql
+  - supabase/migrations/20270221100009_exportacion_total_precios_masivos_y_promociones.sql
+  - supabase/migrations/20270223200000_promociones_precio_permisos_por_tienda.sql
+  - supabase/migrations/20270223200100_precios_masivos_previsualizar_costos.sql
+  - supabase/migrations/20270225100000_promociones_precio_permiso_antes_del_lock.sql
+  - supabase/migrations/20270228300000_banderas_plataforma.sql
+  - supabase/migrations/20270228300100_promociones_precio_bandera.sql
+  - supabase/migrations/20270228300200_precios_masivos_por_tienda_y_bandera.sql
+  - supabase/migrations/20270228300300_capacidades_precios.sql
+  - supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql
+  - supabase/migrations/20270431000000_guarda_promocion_sobre_precio_normal.sql
+  - supabase/migrations/20270433000000_promocion_precio_no_menor_al_normal.sql
+  - supabase/migrations/20270507000200_precios_cliente_promociones.sql
+  - supabase/migrations/20270507120000_promocion_aviso_bajo_el_costo.sql
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - supabase/tests/database/precios_masivos.test.sql
+  - supabase/tests/database/promociones_precio.test.sql
 ---
 
 # Precios masivos y promociones
@@ -99,7 +136,7 @@ Antes se pedía `productos` = edición **global** (el nivel más alto entre las 
 ## Reglas de cálculo
 
 1. **No se guarda ningún precio en pesos.** El precio de lista y el costo son los únicos importes que se escriben; el neto por empresa y el final se calculan al leer (modelo de MSF-114). Por eso, al cambiar lista y costo, **todas las empresas pasan al valor nuevo en la misma transacción**, sin tabla derivada que quede desactualizada.
-2. **La promoción se superpone al neto por empresa**, después de la regla de la empresa y antes del IVA: `precio_neto_empresa` → (si rige una promoción) precio promocional → alícuota → interruptor «Precios que ve el cliente» de la empresa. El precio promocional es un valor **fijo** en pesos sin IVA: no se mueve con el dólar ni con una actualización masiva posterior.
+2. **La promoción se superpone al neto por empresa**, después de la regla de la empresa y antes del IVA: `precio_neto_empresa` → (si rige una promoción) precio promocional → alícuota → interruptor «Precios que ve el cliente» de la empresa. El precio promocional es un valor **fijo** en pesos sin IVA: no se mueve con el dólar ni con una actualización masiva posterior. El IVA lo agrega `private.aplicar_iva` (ver `20270221100003_promociones_precio_vigente.sql`), que redondea al centavo desde `20270507180200_aplicar_iva_al_centavo.sql`.
 3. **El precio normal** (el que ve el cliente sin promoción) sale de `private.precio_final_publico` —el mismo que ya mostraba la tienda—, así que **sin promoción el resultado es idéntico al actual** y `precio_anterior` es lo que el cliente veía antes. Si el precio normal no es calculable (producto no asignado a la empresa, USD sin cotización), el resultado es `null`: no se inventa un precio.
 4. **Los estados no se guardan**: `programada`, `vigente` y `vencida` se derivan de `desde`/`hasta` y la hora actual al consultar (Decisión 1 de la spec). Solo `anulada_at` es un dato. No hay Kestra ni worker: **no hay ventana en la que un precio quede vencido por una tarea caída**.
 5. El porcentaje se aplica sobre el **precio de lista ya guardado** (en la moneda del producto) y se redondea a 2 decimales; el porcentaje tiene que ser mayor a −100 %. En modo planilla, el importe viene cargado y se acepta tal cual (con el redondeo de la base).

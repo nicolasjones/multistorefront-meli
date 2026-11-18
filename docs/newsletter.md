@@ -18,6 +18,7 @@ sources:
   - apps/web/src/lib/newsletter.ts
   - apps/web/src/pages/tienda-publica/rutas/newsletter.baja.tsx
   - infra/kestra/flows/newsletter-confirmaciones.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
   - apps/web/src/lib/tiendaNewsletter.ts
   - apps/web/src/pages/tienda-publica/newsletter
   - apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx
@@ -95,6 +96,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
   correo de confirmación, hasta 3 en 24 h) y el enlace anterior deja de valer; `baja_en` se **conserva** hasta que se confirme y, si nunca se confirma, la
   poda de 7 días la devuelve a `baja` en lugar de borrarla (lista de supresión). Limitación: cualquiera puede pedir una confirmación a una dirección en baja (hasta 3 en
   24 h); no se envía ningún newsletter hasta que la persona confirme.
+- **Robustez de los flows (`newsletter-confirmaciones.yml` y `correo-masivo.yml`)**: cada uno corre **una sola vez a la vez** (`concurrency: limit: 1`, `behavior: CANCEL`: si la corrida anterior sigue en curso, la nueva se descarta), el reclamo y los cierres tienen `timeout` de 1 minuto y el envío de 2, y un fallo del flow avisa al soporte por el subflow `aviso-fallo-flujo` (solo informa el nombre de la tarea que falló, no el mensaje del error). Con un solo flow en curso, el vencimiento del reclamo (900 s) es el plazo de recuperación ante una caída.
 - **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa sobre una suscripción `pendiente` con `confirmacion_hash` no nulo y con la confirmación por enviar (`confirmacion_enviada_en` nulo o anterior a `confirmacion_solicitada_en`); una re-suscripción que anuló el hash antes del cierre deja el cierre tardío sin efecto.
 - **El límite por visitante es compartido**: `confirmar_newsletter` también consume el cupo (5/h por visitante y tienda, el mismo de contacto, WhatsApp y suscripción).
   Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).

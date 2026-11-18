@@ -2,17 +2,32 @@
 owner: tecnico
 sources:
   - specs/20261012-140000-acceso-y-organizacion
-  - supabase/migrations
-  - supabase/tests/database
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20261012140200_intentos_acceso.sql
+  - supabase/migrations/20261012140300_suspendidos_sin_privilegios.sql
+  - supabase/migrations/20261012150000_cortar_sesiones_suspendido.sql
+  - supabase/migrations/20261013120001_anon_solo_rpc_de_acceso.sql
+  - supabase/migrations/20261013180000_intentos_acceso_purga_acotada.sql
+  - supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql
+  - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
+  - supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql
+  - supabase/tests/database/bloqueo_servidor.test.sql
+  - supabase/tests/database/estado_usuario.test.sql
+  - supabase/tests/database/cortar_sesiones_suspendido.test.sql
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/tests/database/aislamiento_organizaciones.test.sql
+  - supabase/tests/database/privilegios_anon_endurecidos.test.sql
   - supabase/config.toml
   - apps/web/src/providers/authProvider.ts
   - apps/web/src/pages/login.tsx
-  - apps/web/src/pages/acceso
+  - apps/web/src/pages/acceso/solicitar-recuperacion.tsx
+  - apps/web/src/pages/acceso/definir-contrasena.tsx
   - apps/web/src/lib/passwordPolicy.ts
   - apps/web/src/lib/vencimientoSesion.ts
   - apps/web/src/lib/supabase.ts
   - apps/web/src/components/navegacion/MenuCuenta.tsx
   - scripts/e2e-acceso.e2e.mjs
+  - scripts/verificar-hook-bloqueo.e2e.mjs
 ---
 
 # Acceso y organización: modelo, contratos y operación (MSF-119)

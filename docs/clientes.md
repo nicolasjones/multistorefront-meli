@@ -1,8 +1,44 @@
 ---
 owner: producto
 sources:
-  - specs
-  - apps/web/src
+  - specs/20261016-130000-clientes-alta-y-busqueda
+  - specs/20261023-120000-migracion-inicial-de-datos
+  - specs/20261029-100000-mejoras-de-clientes-y-proveedores
+  - specs/20261109-100000-cuenta-corriente-y-saldo-cliente
+  - design/pantallas/Clientes.dc.html
+  - design/pantallas/ClienteFicha.dc.html
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/show.tsx
+  - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/pages/clientes/edit.tsx
+  - apps/web/src/pages/migracion/entidades/clientes.ts
+  - apps/web/src/components/clientes/ImportarClientes.tsx
+  - apps/web/src/components/clientes/FormularioCliente.tsx
+  - apps/web/src/lib/clientes.ts
+  - apps/web/src/lib/cuentasCliente.ts
+  - supabase/migrations/20261016130000_clientes_ficha_y_numeracion.sql
+  - supabase/migrations/20261016130200_clientes_rls_por_seccion_y_actividad.sql
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261016140000_clientes_buscar.sql
+  - supabase/migrations/20261016150000_clientes_exportar.sql
+  - supabase/migrations/20261017120001_clientes_expreso_preferido.sql
+  - supabase/migrations/20270201200102_clientes_descuento.sql
+  - supabase/migrations/20270205110201_fusion_clientes.sql
+  - supabase/migrations/20270222100000_cuenta_corriente_cliente.sql
+  - supabase/migrations/20270227110000_cuenta_corriente_notas_de_credito.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270347000000_exportar_clientes_evento_por_llamada.sql
+  - supabase/migrations/20270418000401_clientes_a_dominio.sql
+  - supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql
+  - supabase/migrations/20270507170000_clientes_condicion_iva_via_de_carga.sql
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
+  - supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql
+  - supabase/migrations/20270507200000_clientes_condicion_iva_largo_central.sql
+  - supabase/migrations/20261201100000_migracion_cargas.sql
+  - supabase/migrations/20261211100000_cuentas_cliente.sql
+  - supabase/migrations/20270340000200_clientes_lista_precio.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
 ---
 
 # Clientes (MSF-180)
@@ -303,7 +339,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
 - **Límites declarados:** sin combinar con «Comparar con otro período» (al activarla los filtros no se ofrecen) y sin
   «Exportar a Excel» mientras haya un filtro de dimensión activo (la exportación es del ranking completo).
 - **Reversión (aditiva):** `drop function public.ranking_clientes_por_dimension(date, date, uuid, uuid, text, text, boolean, boolean, integer, integer, uuid)`.
-  La migración usa la versión `20270121100000` (el contrato nombraba `20270114110000`, por debajo de la cola aplicada).
+  La migración es `20270201200126` (ya renumerada al integrar; el contrato nombraba `20270114110000`, por debajo de la cola aplicada).
 - **Pruebas:** pgTAP `ranking_clientes_por_dimension.test.sql`; Vitest `hooks/useRankingPorDimension.test.tsx`,
   `hooks/useOpcionesDimension.test.tsx`, `components/clientes/FiltrosDimension.test.tsx` y
   `components/clientes/RankingClientes.test.tsx`. Spec: `specs/20261028-100000-ranking-avanzado-de-clientes/`.
@@ -402,7 +438,7 @@ Solapa «Ranking por facturación» dentro de `/clientes` (carga diferida; visib
   espacios) deja el dato existente como está; reimportar nunca borra documento, correo, teléfono ni dirección.
 - El mismo identificador en dos filas del mismo archivo es error de fila (la primera gana); para actualizar un
   cliente hay que reimportarlo en otra carga.
-- El mensaje «El identificador ya está en uso» no revela si el identificador pertenece a otra organización.
+- El identificador se compara solo dentro de la organización de la carga (MSF-596): uno que otra organización ya use no choca ni se revela; «El identificador ya está en uso» solo aparece por una colisión dentro de la propia organización.
 - El navegador rechaza archivos de más de 25 MB (`TAMANO_MAXIMO_BYTES`) antes de leerlos.
 
 ## Condición frente al IVA: vías de carga (MSF-594)
@@ -413,7 +449,8 @@ ninguna vía de carga. La migración `20270507170000_clientes_condicion_iva_via_
 - **API**: `authenticated` puede insertar y actualizar la columna (`grant` por columna; la RLS por organización y
   el nivel de la sección `clientes` siguen mandando; el check de 60 caracteres sigue vigente).
 - **Importación**: `aplicar_lote_clientes` toma la clave opcional `condicion_iva` de cada fila y
-  `validar_fila_cliente_migracion` la limita a 60 caracteres. Como las demás columnas, una celda vacía no borra el
+  `validar_fila_cliente_migracion` la limita a 60 con `private.largo_maximo_condicion_iva()` (migración
+  `20270507200000`; el check de la tabla se mantiene y la prueba verifica que ambos límites coincidan). Como las demás columnas, una celda vacía no borra el
   dato existente.
 - Prueba: `supabase/tests/database/clientes_condicion_iva_carga.test.sql`.
 
@@ -501,6 +538,11 @@ panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja d
   que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
   (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
   suma de los saldos listados.
+- **Cobros revertidos y anulación:** un administrador puede revertir un cobro mal cargado con `revertir_cobro`
+  (`20270507180100`): el libro de cobros no se edita, se agrega un contra-asiento de importe negativo, y como el saldo suma
+  todos los importes del libro, el cobro revertido deja de contar y la factura vuelve a figurar con su saldo. Una factura con
+  cobros (neto mayor a cero) o ya entregada no se puede anular (`anular_comprobante`, `20270507180000`): hay que revertir el
+  cobro o corregir con una nota de crédito.
 - **Alcance:** es la deuda del cliente en **todas las tiendas a las que la persona accede**
   (`private.empresas_accesibles()`, como `public.saldo_comprobante`; el administrador accede a todas): no ve deuda de
   tiendas ajenas. No depende de la empresa activa (Principio VIII). Lo que sí depende de la empresa activa en la ficha —el bloque «Cuenta web»— ya se reencuadra.
@@ -600,7 +642,7 @@ La ficha del cliente tiene una pestaña «Reparaciones» (visible con acceso a S
 
 ## Clientes inactivos (F-CLI-16, MSF-400 · épica MSF-171)
 
-Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270116120000_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
+Tercera solapa de Clientes (`Clientes inactivos`, carga diferida, visible con sección Clientes en `lectura`/`edicion`) sobre la RPC `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)`, migración `20270201200125_clientes_inactivos.sql` (aditiva, sin tablas; reversión: `drop function public.clientes_inactivos(integer, text, boolean, integer, integer, uuid)`).
 
 - **Inactivo**: tiene al menos una factura que cuenta (`private.comprobante_cuenta_como_facturado`) y su última factura es anterior a *hoy − N días* (hoy en `America/Argentina/Buenos_Aires`, N de 1 a 3650, por defecto 90). La nota de crédito no cuenta como compra. Sin compras y archivados no aparecen (la spec manda sobre el CA-CLI-16-2 del issue, que pedía listar «Sin compras»: un cliente que nunca compró no «dejó» de comprar).
 - **Columnas**: Cliente (enlace a la ficha), Tipo, Última compra, Días sin comprar, Comprobantes (solo facturas), Facturado histórico (neto sin IVA). Orden: última compra ascendente, nombre, número. Paginado en el servidor (25).
@@ -614,9 +656,9 @@ Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `spe
 
 | Capacidad | Historia | RPC (`public`, `security definer`, sección `clientes` en `lectura`/`edicion`, `anon` sin ejecución) | Migración |
 |-----------|----------|------|-----------|
-| Comparar dos períodos | F-CLI-14 (MSF-384) | `ranking_clientes_comparado` | `20270120100000_ranking_clientes_comparado.sql` |
-| Producto, categoría y provincia | F-CLI-15 (MSF-391) | `ranking_clientes_por_dimension` | `20270121100000_ranking_clientes_por_dimension.sql` |
-| Clientes inactivos | F-CLI-16 (MSF-400) | `clientes_inactivos` | `20270116120000_clientes_inactivos.sql` |
+| Comparar dos períodos | F-CLI-14 (MSF-384) | `ranking_clientes_comparado` | `20270201200124_ranking_clientes_comparado.sql` |
+| Producto, categoría y provincia | F-CLI-15 (MSF-391) | `ranking_clientes_por_dimension` | `20270201200126_ranking_clientes_por_dimension.sql` |
+| Clientes inactivos | F-CLI-16 (MSF-400) | `clientes_inactivos` | `20270201200125_clientes_inactivos.sql` |
 
 - **Límites declarados:** sin Excel para la comparación, las dimensiones ni los inactivos; la comparación y los filtros de
   dimensión no se combinan; la lista de inactivos no se envía a una campaña (eso es MSF-155). `public.ranking_clientes` no cambió.
@@ -631,7 +673,7 @@ Resumen de las tres capacidades (detalle en sus secciones de arriba). Spec: `spe
 permite y el disparador `clientes_descuento_solo_admin` rechaza con `42501` a cualquier otro rol (la UI solo
 oculta el campo). No se concede en `INSERT`: un cliente nace sin descuento. Cada cambio registra
 `cliente.descuento_editado` (actor y cliente). `Ventas` lo aplica en `guardar_lineas_comprobante`; ver
-`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270115090000_clientes_descuento.sql`
+`docs/ventas-comprobantes.md` § «Precios especiales por cliente». Migración `20270201200102_clientes_descuento.sql`
 (aditiva; reversión en su encabezado).
 
 ## Lista de precios del cliente (F-CLI-21, MSF-453 · épica MSF-450)

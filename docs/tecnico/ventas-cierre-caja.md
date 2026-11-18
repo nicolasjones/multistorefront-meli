@@ -1,9 +1,7 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261027-100000-ventas-mejoras
 ---
 
 # Ventas · cierre de caja (técnico, MSF-193)
@@ -20,7 +18,9 @@ MSF-340).
 
 !!! note "Estado"
     Implementado en la rama `epic/MSF-193-ventas-mejoras` (rama de la épica), **pendiente de merge a
-    `main`**. La historia llegó por la rama `feat/story-MSF-349` (PR #512, merge `3c748a0d`).
+    `main`**. Verificado el 2026-11-18: **ni las migraciones ni la pantalla ni la RPC de esta página están en el árbol** (no hay
+    `cerrar_caja`, `cierres_caja` ni `/ventas/cierre-caja` en `supabase/` ni en `apps/web/src`); lo que sigue describe la rama de la
+    épica, no lo desplegado. La historia llegó por la rama `feat/story-MSF-349` (PR #512, merge `3c748a0d`).
     Migraciones: `20270202201100_cierres_caja.sql`, `20270202201101_cierres_caja_rpc.sql` y
     `20270202201102_bloqueo_cobros_cerrados.sql`. Alcance de entrega: `refine` y `supabase`. Sin
     `kestra`, `superset` ni `workers`.

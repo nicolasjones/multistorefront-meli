@@ -1,7 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/preflight-deploy-vps.mjs
+  - scripts/deploy-vps.mjs
+  - scripts/preparar-known-hosts-vps.mjs
+  - scripts/verificar-staging-exitoso.mjs
+  - infra/kestra/compose.estricto.yaml
+  - infra/superset/compose.estricto.yaml
+  - infra/nango/compose.estricto.yaml
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - .github/workflows/migraciones-cloud.yml
+  - .github/workflows/publicar-flows-kestra.yml
+  - .github/workflows/promover-todo-a-produccion.yml
+  - .github/workflows/worker-images.yml
+  - .github/workflows/validate.yml
 ---
 
 # Entornos y despliegue

@@ -1,9 +1,21 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261028-100000-ranking-avanzado-de-clientes
+  - apps/web/src/components/clientes/ClientesInactivos.tsx
+  - apps/web/src/components/clientes/FiltrosDimension.tsx
+  - apps/web/src/components/clientes/RankingClientes.tsx
+  - apps/web/src/components/clientes/RankingComparado.tsx
+  - apps/web/src/hooks/useClientesInactivos.ts
+  - apps/web/src/hooks/useOpcionesDimension.ts
+  - apps/web/src/hooks/useRankingComparado.ts
+  - apps/web/src/hooks/useRankingPorDimension.ts
+  - apps/web/src/lib/diasInactivos.ts
+  - apps/web/src/lib/periodosRanking.ts
+  - apps/web/src/pages/clientes/list.tsx
+  - supabase/migrations/20270201200124_ranking_clientes_comparado.sql
+  - supabase/migrations/20270201200125_clientes_inactivos.sql
+  - supabase/migrations/20270201200126_ranking_clientes_por_dimension.sql
 ---
 
 # Ranking avanzado de clientes: RPC y pantallas (MSF-171)
@@ -40,9 +52,9 @@ Las tres son `security definer`, `search_path = ''`, organización de `private.o
 
 | RPC | Migración | Contrato |
 |---|---|---|
-| `public.ranking_clientes_comparado(p_desde, p_hasta, p_desde_comparacion, p_hasta_comparacion, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)` | `20270120100000_ranking_clientes_comparado.sql` | Devuelve `posicion`, `cliente_id`, `numero`, `nombre`, `tipo`, `comprobantes`, `facturado`, `comprobantes_comparacion`, `facturado_comparacion`, `variacion`, `variacion_porcentaje`, `total_filas`. Valida ambos rangos (completos, Desde ≤ Hasta, máx. 5 años). Orden: facturado, facturado de la comparación, nombre, número |
-| `public.ranking_clientes_por_dimension(p_desde, p_hasta, p_producto_id, p_categoria_id, p_provincia, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)` | `20270121100000_ranking_clientes_por_dimension.sql` | Mismas columnas que `ranking_clientes` (`participacion` sobre el conjunto filtrado completo). Con producto/categoría suma **líneas**; categoría raíz incluye subcategorías; provincia sin mayúsculas ni tildes vía `private.clave_texto`; `p_provincia` ≤ 100 caracteres; producto/categoría ajenos → vacío |
-| `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)` | `20270116120000_clientes_inactivos.sql` | Devuelve `cliente_id`, `numero`, `nombre`, `tipo`, `ultima_compra`, `dias_sin_comprar`, `comprobantes`, `facturado`, `total_filas`. `p_dias` 1–3650; última **factura** que cuenta `< hoy − N` (hoy en `America/Argentina/Buenos_Aires`); excluye sin compras y archivados; `facturado` neto sin IVA; orden última compra, nombre, número |
+| `public.ranking_clientes_comparado(p_desde, p_hasta, p_desde_comparacion, p_hasta_comparacion, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)` | `20270201200124_ranking_clientes_comparado.sql` | Devuelve `posicion`, `cliente_id`, `numero`, `nombre`, `tipo`, `comprobantes`, `facturado`, `comprobantes_comparacion`, `facturado_comparacion`, `variacion`, `variacion_porcentaje`, `total_filas`. Valida ambos rangos (completos, Desde ≤ Hasta, máx. 5 años). Orden: facturado, facturado de la comparación, nombre, número |
+| `public.ranking_clientes_por_dimension(p_desde, p_hasta, p_producto_id, p_categoria_id, p_provincia, p_tipo, p_incluir_consumidor_final, p_con_iva, p_pagina, p_tamano, p_empresa_id)` | `20270201200126_ranking_clientes_por_dimension.sql` | Mismas columnas que `ranking_clientes` (`participacion` sobre el conjunto filtrado completo). Con producto/categoría suma **líneas**; categoría raíz incluye subcategorías; provincia sin mayúsculas ni tildes vía `private.clave_texto`; `p_provincia` ≤ 100 caracteres; producto/categoría ajenos → vacío |
+| `public.clientes_inactivos(p_dias, p_tipo, p_incluir_consumidor_final, p_pagina, p_tamano, p_empresa_id)` | `20270201200125_clientes_inactivos.sql` | Devuelve `cliente_id`, `numero`, `nombre`, `tipo`, `ultima_compra`, `dias_sin_comprar`, `comprobantes`, `facturado`, `total_filas`. `p_dias` 1–3650; última **factura** que cuenta `< hoy − N` (hoy en `America/Argentina/Buenos_Aires`); excluye sin compras y archivados; `facturado` neto sin IVA; orden última compra, nombre, número |
 
 Nota de versión: el contrato de la spec nombraba `20270114110000`/`20270114120000`/`20270114100000`, pero esas
 versiones quedaban por debajo de la cola aplicada; se usaron versiones mayores (ver el encabezado de cada migración y

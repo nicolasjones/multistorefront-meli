@@ -1,11 +1,32 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/functions
-  - apps/web/src
+  - specs/20261024-051500-cuenta-web-del-cliente
+  - supabase/migrations/20261211100000_cuentas_cliente.sql
+  - supabase/migrations/20261211100100_cuentas_cliente_rpc.sql
+  - supabase/migrations/20261211100150_cuentas_cliente_actividad.sql
+  - supabase/migrations/20261211100200_acceso_cliente_por_dominio.sql
+  - supabase/migrations/20261211100250_buscar_clientes_cuenta_web.sql
+  - supabase/migrations/20261211100300_cuentas_cliente_select_por_tienda.sql
+  - supabase/migrations/20261211100400_cuenta_cliente_para_recuperar.sql
+  - supabase/migrations/20261211110000_precio_final_publico_escala.sql
+  - supabase/migrations/20261211110100_precios_cliente_por_dominio.sql
+  - supabase/functions/invitar-cliente
+  - supabase/functions/recuperar-clave-cliente
   - supabase/config.toml
+  - apps/web/src/lib/cuentasCliente.ts
+  - apps/web/src/lib/tiendaCuenta.ts
+  - apps/web/src/lib/tiendaPreciosCliente.ts
+  - apps/web/src/pages/clientes/create.tsx
+  - apps/web/src/pages/clientes/edit.tsx
+  - apps/web/src/hooks/useSesionCliente.ts
+  - apps/web/src/hooks/usePreciosCliente.ts
+  - apps/web/src/pages/tienda-publica/rutas/ingresar.tsx
+  - apps/web/src/pages/tienda-publica/rutas/definir-contrasena.tsx
+  - apps/web/src/pages/tienda-publica/rutas/recuperar-contrasena.tsx
+  - apps/web/src/pages/tienda-publica/rutas/mi-cuenta.tsx
+  - apps/web/src/pages/tienda-publica/ficha/PreciosCliente.tsx
+  - apps/web/e2e/cuenta-web-cliente.e2e.ts
 ---
 
 # Cuenta web del cliente (MSF-237)
@@ -26,19 +47,19 @@ Implementación en la rama `epic/MSF-237-clientes-y-proveedores-cuenta-web-del-c
 
 | Historia | Migración | Contenido | Reversión |
 |---|---|---|---|
-| F-CLI-05 | `supabase/migrations/20261206100000_cuentas_cliente.sql` | Tabla `public.cuentas_cliente`, índice único `(cliente_id, empresa_id)`, índices por organización/empresa/usuario, disparador de misma organización, RLS y grants. | `drop table public.cuentas_cliente` (pierde las cuentas; los usuarios de Auth quedan sin uso) |
-| F-CLI-05 | `20261206100100_cuentas_cliente_rpc.sql` | `preparar_cuenta_cliente`, `vincular_cuenta_cliente`, `cambiar_estado_cuenta_cliente`, `cuentas_web_de_cliente` y el auxiliar `private.exigir_gestion_cuenta_cliente`. | `drop function` de las cinco, en una migración posterior |
-| F-CLI-05 | `20261206100150_cuentas_cliente_actividad.sql` | Eventos `cliente.cuenta_creada/suspendida/reactivada/restablecida` y `registrar_restablecimiento_cuenta_cliente`. | `drop function` de las dos funciones |
-| F-CLI-05 | `20261206100200_acceso_cliente_por_dominio.sql` | `publico.acceso_cliente_por_dominio(host)`. | `drop function publico.acceso_cliente_por_dominio(text)` |
-| F-CLI-05 | `20261206100250_buscar_clientes_cuenta_web.sql` | Recrea `public.buscar_clientes` y `public.exportar_clientes` con `p_con_cuenta_web` y la columna `cuentas_web`. | Recrear ambas como en `20261018150000_clientes_filtro_por_tienda.sql` |
-| F-CLI-05 | `20261206100300_cuentas_cliente_select_por_tienda.sql` | Reemplaza la política `cuentas_cliente_select` para acotar la lectura a `private.empresas_accesibles()`. | Volver a la política sin el filtro de tiendas |
-| F-CLI-06 | `20261206100400_cuenta_cliente_para_recuperar.sql` | `public.cuenta_cliente_para_recuperar(host, correo)` (solo `service_role`). | `drop function public.cuenta_cliente_para_recuperar(text, text)` |
-| F-CLI-07 | `20261206110000_precio_final_publico_escala.sql` | `private.precio_final_publico_escala(producto, empresa, escala)`. | `drop function private.precio_final_publico_escala(uuid, uuid, text)` |
-| F-CLI-07 | `20261206110100_precios_cliente_por_dominio.sql` | `publico.precios_cliente_por_dominio(host, productos)`. | `drop function publico.precios_cliente_por_dominio(text, uuid[])` |
+| F-CLI-05 | `supabase/migrations/20261211100000_cuentas_cliente.sql` | Tabla `public.cuentas_cliente`, índice único `(cliente_id, empresa_id)`, índices por organización/empresa/usuario, disparador de misma organización, RLS y grants. | `drop table public.cuentas_cliente` (pierde las cuentas; los usuarios de Auth quedan sin uso) |
+| F-CLI-05 | `20261211100100_cuentas_cliente_rpc.sql` | `preparar_cuenta_cliente`, `vincular_cuenta_cliente`, `cambiar_estado_cuenta_cliente`, `cuentas_web_de_cliente` y el auxiliar `private.exigir_gestion_cuenta_cliente`. | `drop function` de las cinco, en una migración posterior |
+| F-CLI-05 | `20261211100150_cuentas_cliente_actividad.sql` | Eventos `cliente.cuenta_creada/suspendida/reactivada/restablecida` y `registrar_restablecimiento_cuenta_cliente`. | `drop function` de las dos funciones |
+| F-CLI-05 | `20261211100200_acceso_cliente_por_dominio.sql` | `publico.acceso_cliente_por_dominio(host)`. | `drop function publico.acceso_cliente_por_dominio(text)` |
+| F-CLI-05 | `20261211100250_buscar_clientes_cuenta_web.sql` | Recrea `public.buscar_clientes` y `public.exportar_clientes` con `p_con_cuenta_web` y la columna `cuentas_web`. | Recrear ambas como en `20261018150000_clientes_filtro_por_tienda.sql` |
+| F-CLI-05 | `20261211100300_cuentas_cliente_select_por_tienda.sql` | Reemplaza la política `cuentas_cliente_select` para acotar la lectura a `private.empresas_accesibles()`. | Volver a la política sin el filtro de tiendas |
+| F-CLI-06 | `20261211100400_cuenta_cliente_para_recuperar.sql` | `public.cuenta_cliente_para_recuperar(host, correo)` (solo `service_role`). | `drop function public.cuenta_cliente_para_recuperar(text, text)` |
+| F-CLI-07 | `20261211110000_precio_final_publico_escala.sql` | `private.precio_final_publico_escala(producto, empresa, escala)`. | `drop function private.precio_final_publico_escala(uuid, uuid, text)` |
+| F-CLI-07 | `20261211110100_precios_cliente_por_dominio.sql` | `publico.precios_cliente_por_dominio(host, productos)`. | `drop function publico.precios_cliente_por_dominio(text, uuid[])` |
 
 El orden importa: la tabla antes que las RPC; la actividad se crea después de las RPC que la llaman
 (plpgsql resuelve al ejecutar); `acceso_cliente_por_dominio` antes que `precios_cliente_por_dominio`, que
-reutiliza su estado. `20261206100250` y `20261206100300` son cambios de contrato/RLS sobre lo anterior.
+reutiliza su estado. `20261211100250` y `20261211100300` son cambios de contrato/RLS sobre lo anterior.
 
 ## Modelo de datos
 
@@ -174,6 +195,7 @@ datos.
 `private.precio_final_publico_escala(producto, empresa, escala)` compone las fórmulas únicas
 `private.a_pesos` → `private.aplicar_regla_precio` → `private.aplicar_iva`. Respeta el interruptor
 `precios_empresa.mostrar_con_iva`; una escala sin precio usa `precio_lista` (igual que `private.precio_para`).
+El IVA se redondea al centavo desde `20270507180200_aplicar_iva_al_centavo.sql` ([IVA y precio final](../iva-precio-final.md)).
 No tiene `grant` a `anon`/`authenticated`; el pgTAP de paridad exige que coincida con
 `private.precio_para(...).final`.
 
@@ -318,7 +340,7 @@ elegir la pestaña de la empresa activa y descartar la anterior.
 
 ## Operación
 
-1. Aplicar las migraciones en orden (`20261206100000` → `20261206110100`) en cada entorno. Son aditivas.
+1. Aplicar las migraciones en orden (`20261211100000` → `20261211110100`) en cada entorno. Son aditivas.
 2. Desplegar las Edge Functions `invitar-cliente` y `recuperar-clave-cliente`; configurar sus secretos en
    el entorno (nunca en Git).
 3. Sumar cada dominio de tienda a `GOTRUE_URI_ALLOW_LIST` y reiniciar Auth en STG/PROD (ver arriba).
@@ -361,9 +383,9 @@ pnpm --filter @platform/web test:e2e cuenta-web-cliente
 | **D4** | Agregado del listado: Activa > Suspendida > Sin cuenta. | `estadoCuentaWebListado` |
 | **D5** | Correo de usuario del panel ⇒ rechazo genérico; no se mezclan identidades. | `invitar-cliente`, `vincular_cuenta_cliente` |
 | **D6** | Pantallas públicas no dibujadas: se construyeron con el sistema de diseño. | `tienda-publica/rutas/` |
-| **Desvío** | `preparar_cuenta_cliente` es `security definer` (no `invoker`) porque `dominio.tiendas` exige la sección Empresas; valida los permisos explícitamente. | `20261206100100_cuentas_cliente_rpc.sql` |
-| **Desvío** | `vincular_cuenta_cliente` agrega `p_actor` opcional porque la llama service-role sin sesión; el actor viaja desde la Edge Function. | `20261206100100_cuentas_cliente_rpc.sql` |
-| **Desvío** | `20261206100300` acota la lectura directa de la tabla a las tiendas accesibles, además de la RPC. | `20261206100300_cuentas_cliente_select_por_tienda.sql` |
+| **Desvío** | `preparar_cuenta_cliente` es `security definer` (no `invoker`) porque `dominio.tiendas` exige la sección Empresas; valida los permisos explícitamente. | `20261211100100_cuentas_cliente_rpc.sql` |
+| **Desvío** | `vincular_cuenta_cliente` agrega `p_actor` opcional porque la llama service-role sin sesión; el actor viaja desde la Edge Function. | `20261211100100_cuentas_cliente_rpc.sql` |
+| **Desvío** | `20261211100300` acota la lectura directa de la tabla a las tiendas accesibles, además de la RPC. | `20261211100300_cuentas_cliente_select_por_tienda.sql` |
 
 ## Límites y deuda
 

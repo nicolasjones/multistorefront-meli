@@ -1,9 +1,26 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261027-100000-ventas-rma-devoluciones
+  - apps/web/src/pages/ventas/devoluciones.tsx
+  - apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx
+  - apps/web/src/components/ventas/DialogoResolverRma.tsx
+  - apps/web/src/hooks/useRma.ts
+  - apps/web/src/lib/rma.ts
+  - apps/web/src/lib/estadoRma.ts
+  - apps/web/src/lib/formasRma.ts
+  - apps/web/src/lib/facturasElegibles.ts
+  - supabase/migrations/20261213100000_stock_cargas_iniciales.sql
+  - supabase/migrations/20270112150000_despacho_listar.sql
+  - supabase/migrations/20270113100000_rma_tablas.sql
+  - supabase/migrations/20270113100100_registrar_rma.sql
+  - supabase/migrations/20270113100200_listar_rma.sql
+  - supabase/migrations/20270113110000_cambiar_estado_rma.sql
+  - supabase/migrations/20270113110100_listar_rma_actualizado_en.sql
+  - supabase/migrations/20270113120000_rma_nota_credito_id.sql
+  - supabase/migrations/20270113120100_vincular_nota_credito_rma.sql
+  - supabase/migrations/20270113120200_reingresar_stock_rma.sql
+  - supabase/migrations/20270113120300_listar_rma_vinculo.sql
 ---
 
 # Ventas · devoluciones (RMA), técnico (MSF-178)

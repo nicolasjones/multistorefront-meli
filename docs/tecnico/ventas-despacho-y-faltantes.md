@@ -1,9 +1,33 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261024-130000-ventas-despacho-y-faltantes
+  - apps/web/src/components/ventas/EnvioTransporte.tsx
+  - apps/web/src/components/ventas/ResponsablesDespacho.tsx
+  - apps/web/src/components/ventas/RegistrarFaltantesDialog.tsx
+  - apps/web/src/lib/ventasDespacho.ts
+  - apps/web/src/lib/ventasDespachoLista.ts
+  - apps/web/src/lib/ventasEnvio.ts
+  - apps/web/src/lib/ventasFaltantes.ts
+  - apps/web/src/pages/ventas/despacho.tsx
+  - apps/web/src/pages/ventas/faltantes.tsx
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270112100100_despacho_columnas.sql
+  - supabase/migrations/20270112100200_despacho_accion_permiso.sql
+  - supabase/migrations/20270112100300_despacho_estado_inicial.sql
+  - supabase/migrations/20270112100400_despacho_responsables.sql
+  - supabase/migrations/20270112100500_despacho_cambiar_estado.sql
+  - supabase/migrations/20270112100600_despacho_responsables_acceso_ventas.sql
+  - supabase/migrations/20270112100700_despacho_permiso_por_empresa.sql
+  - supabase/migrations/20270112130100_faltantes_tabla.sql
+  - supabase/migrations/20270112130200_faltantes_registrar.sql
+  - supabase/migrations/20270112130300_faltantes_listar.sql
+  - supabase/migrations/20270112140100_envio_columnas.sql
+  - supabase/migrations/20270112140200_envio_guardar.sql
+  - supabase/migrations/20270112140300_envio_exige_al_entregar.sql
+  - supabase/migrations/20270112140400_envio_leer.sql
+  - supabase/migrations/20270112140500_envio_aislamiento.sql
+  - supabase/migrations/20270112150000_despacho_listar.sql
 ---
 
 # Ventas · despacho y faltantes (técnico, MSF-135)
@@ -85,7 +109,7 @@ stateDiagram-v2
   factura anulada se rechazan (`22023` / `55000`). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
   sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (`40001`) y toma la fila
   `for update`, así dos cambios simultáneos no se pisan.
-- `entregado` es **terminal**. La anulación de una factura entregada es de MSF-177.
+- `entregado` es **terminal**. Una factura entregada **no se anula**: `anular_comprobante` responde `55000` («La factura ya fue entregada: corregí con nota de crédito o RMA», `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`). Ver [listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
 
 ### Responsables (FR-004, FR-005, FR-006, FR-009)
 

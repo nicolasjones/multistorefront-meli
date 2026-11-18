@@ -8,6 +8,7 @@ sources:
   - supabase/migrations/20270114120000_contrarreembolsos.sql
   - supabase/migrations/20270114120100_marcar_contrarreembolso_cobrado.sql
   - supabase/migrations/20270114120200_listar_contrarreembolsos.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
 ---
 
 # Ventas · Contrarreembolsos por transporte (F-VTA-14)
@@ -114,6 +115,7 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   `contrarreembolso`: es la única vía a Cobrado/Deuda, así que la factura pasa a Cobrado si el saldo
   llega a 0. La forma de pago es la de la factura y, si no tiene, la forma «Contrarreembolso» de la
   tienda.
+- **Ese cobro no se revierte con `revertir_cobro`**: la RPC responde `55000` «El cobro de un contrarreembolso se corrige desde el contrarreembolso» (`20270507180100_revertir_cobro.sql`; ver [cobros-por-comprobante.md](./cobros-por-comprobante.md)).
 - **Un comprobante anulado no se cobra** (FR-044): el contrarreembolso queda visible y pendiente,
   pero no cobrable, con un mensaje claro (`55000`).
 - Deja el evento `contrarreembolso.cobrado` en la misma transacción, con el actor, la tienda y la

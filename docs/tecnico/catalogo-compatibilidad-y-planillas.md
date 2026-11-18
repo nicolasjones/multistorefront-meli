@@ -1,12 +1,28 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/tests/database
-  - workers/importar-productos
-  - infra/kestra/flows
-  - apps/web/src
+  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
+  - supabase/migrations/20270205110210_exportar_productos.sql
+  - supabase/migrations/20270206100001_catalogo_importaciones.sql
+  - supabase/migrations/20270206100002_validar_importacion_productos.sql
+  - supabase/migrations/20270206100003_solicitar_importacion_productos.sql
+  - supabase/migrations/20270206100004_importacion_rpc_worker.sql
+  - supabase/migrations/20270206100005_importacion_cierre_fallida.sql
+  - supabase/migrations/20270206100101_catalogo_compatible_filtro.sql
+  - supabase/migrations/20270206100102_listar_compatibles.sql
+  - supabase/migrations/20270217200000_importacion_productos_robustez.sql
+  - supabase/migrations/20270217200001_exportar_productos_cursor.sql
+  - supabase/tests/database/catalogo_compatible_filtro.test.sql
+  - supabase/tests/database/catalogo_importacion.test.sql
+  - supabase/tests/database/catalogo_exportar.test.sql
+  - workers/importar-productos/src
+  - infra/kestra/flows/importar-productos.yml
+  - apps/web/src/pages/productos/carga.tsx
+  - apps/web/src/components/productos/FiltrosListado.tsx
+  - apps/web/src/components/productos/DialogoExportarProductos.tsx
+  - apps/web/src/lib/importacion-productos.ts
+  - apps/web/src/lib/exportarProductos.ts
+  - apps/web/src/hooks/useCompatibles.ts
 ---
 
 # Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)
@@ -223,7 +239,7 @@ Comportamiento de `solicitar_importacion_productos`:
 
 ### Flow de Kestra y worker
 
-- **Flow** `producto.catalogo.importar-productos` (`infra/kestra/flows/importar-productos.yml`): `private.reclamar_despachos_capacidad('importar-productos', 5, 3600)`; por cada despacho (concurrencia 2) resuelve la conexión (`private.datos_despacho_conexion`) y lanza por SSH la imagen `importar_productos_imagen` (`IMPORTAR_PRODUCTOS_IMAGEN`) con `timeout: PT30M` y reintentos exponenciales (3 intentos, 30 s a 2 min). Una falla con código 78 (no reintentable) se agota en el primer intento.
+- **Flow** `producto.catalogo.importar-productos` (`infra/kestra/flows/importar-productos.yml`): `private.reclamar_despachos_capacidad('importar-productos', 5, 3600)`; por cada despacho (concurrencia 2) resuelve la conexión (`private.datos_despacho_conexion`) y lanza por SSH la imagen `importar_productos_imagen` (`IMPORTAR_PRODUCTOS_IMAGEN`) con `timeout: PT30M` y reintentos exponenciales (3 intentos, 30 s a 2 min). Una falla con código 78 (no reintentable) se agota en el primer intento. El flow corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso, la nueva se descarta), las consultas SQL llevan `timeout: PT1M`, el comando SSH rechaza con código 64 una imagen que no vaya por digest (`@sha256:`) o tag de commit de 40 hexadecimales (salvo `local/*`), y un fallo del flow avisa al soporte mediante el subflow `platform.alertas/aviso-fallo-flujo` (solo con el nombre de la tarea que falló).
 - **Worker** `@workers/importar-productos` (`workers/importar-productos/src/{index,importar,infra,imagen}.ts`), contrato `workers/CONTRATO.md`. Variables: `ORGANIZACION_ID`, `EJECUCION_ID`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` y `PG*`; la clave de servicio **solo** vive en el servidor. Códigos de salida: `0` éxito, `78` no reintentable (p. ej. `EJECUCION_NO_EN_CURSO`), `1` falla técnica (el flow reintenta).
 - **Imágenes** (`imagen.ts`): se comprueban los **bytes** (firma JPG/PNG/WebP), no el tipo declarado por el navegador; la extensión debe coincidir con el contenido; máximo 2 MB. Una imagen que no pasa se omite y la fila se importa igual. La ruta final es determinista por nombre, así que reintentar reescribe el mismo objeto y no duplica.
 

@@ -1,8 +1,6 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
   - apps/web/src/main.tsx
   - apps/web/src/lib/tienda.ts
   - apps/web/src/lib/tiendaIdentidad.ts
@@ -10,7 +8,26 @@ sources:
   - apps/web/src/lib/tiendaCatalogo.ts
   - apps/web/src/hooks/useCatalogoTienda.ts
   - apps/web/src/pages/empresas/tienda
-  - apps/web/src/pages/tienda-publica
+  - specs/20261022-084830-tienda-dominio-e-identidad
+  - apps/web/src/lib/arranqueSesion.ts
+  - supabase/tests/database/tienda_dominio.test.sql
+  - supabase/tests/database/tienda_identidad.test.sql
+  - supabase/tests/database/tienda_contenido.test.sql
+  - supabase/tests/database/tienda_catalogo.test.sql
+  - supabase/migrations/20261023100000_tiendas_dominio.sql
+  - supabase/migrations/20261023100100_tienda_identidad.sql
+  - supabase/migrations/20261023100200_tienda_contenido.sql
+  - supabase/migrations/20261023100300_tienda_catalogo_visible.sql
+  - supabase/migrations/20270311100000_tienda_estilo_heroe_mayusculas.sql
+  - supabase/migrations/20270323100000_tienda_identidad_borrado_sin_referencias.sql
+  - apps/web/src/pages/empresas/tienda/GestionTienda.tsx
+  - apps/web/src/pages/empresas/tienda/EncabezadoTienda.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas.ts
+  - apps/web/src/pages/tienda-publica/PaginaTienda.tsx
+  - apps/web/src/pages/tienda-publica/VolvemosPronto.tsx
+  - apps/web/src/pages/tienda-publica/ErrorConReintento.tsx
+  - supabase/migrations/20270303100000_tienda_tipografias_prototipo.sql
+  - supabase/migrations/20270303400000_tienda_categorias_imagen.sql
 ---
 
 # Tienda online: dominio, identidad y catálogo visible (MSF-147)
@@ -150,6 +167,9 @@ página.
 - **Front público:** `main.tsx` decide por `Host` si sirve la tienda o el panel (`VITE_PANEL_HOSTS`); la
   entrada resuelve la tienda con `publico.tienda_por_dominio` sin sesión. Un error de red **no** se
   disfraza de «Volvemos pronto»: muestra reintento.
+- **Sesión en la tienda:** en un host de tienda no se instala el control de inactividad del panel (`instalarVencimientoDeSesion` en
+  `apps/web/src/lib/arranqueSesion.ts`, llamado desde `main.tsx`): la sesión de un cliente con cuenta web termina solo por «Salir» o por el tope
+  de 30 días del servidor.
 - **Catálogo y ficha:** las rutas de MSF-167 se suman a `PaginaTienda`/`EnrutadorTienda` por archivo; no
   son de esta épica y consumen otras funciones de `publico`.
 

@@ -1,9 +1,31 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261023-120000-tienda-catalogo-y-ficha
+  - supabase/migrations/20261023150000_tienda_categorias_publicas.sql
+  - supabase/migrations/20261023150100_tienda_disponibilidad_publica.sql
+  - supabase/migrations/20261023150200_tienda_catalogo_publico.sql
+  - supabase/migrations/20261023150300_tienda_ficha_publica.sql
+  - supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql
+  - supabase/migrations/20270303400000_tienda_categorias_imagen.sql
+  - supabase/migrations/20270218500600_precio_final_publico_sin_escala_x1.sql
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - apps/web/src/lib/tiendaListado.ts
+  - apps/web/src/lib/tiendaFicha.ts
+  - apps/web/src/lib/tiendaCategorias.ts
+  - apps/web/src/lib/imagenProducto.ts
+  - apps/web/src/hooks/useCatalogoPublico.ts
+  - apps/web/src/hooks/useFichaProducto.ts
+  - apps/web/src/hooks/useCategoriasTienda.ts
+  - apps/web/src/pages/tienda-publica/catalogo
+  - apps/web/src/pages/tienda-publica/ficha
+  - apps/web/src/pages/tienda-publica/rutas/catalogo.tsx
+  - apps/web/src/pages/tienda-publica/rutas/categoria.tsx
+  - apps/web/src/pages/tienda-publica/rutas/producto.tsx
+  - apps/web/src/components/pagina/CargaInfinita.tsx
+  - supabase/tests/database/tienda_catalogo_publico.test.sql
+  - supabase/tests/database/tienda_categorias_publicas.test.sql
+  - apps/web/e2e/tienda-catalogo.e2e.ts
 ---
 
 # Tienda pública: catálogo y ficha (MSF-167)
@@ -97,8 +119,9 @@ Cada una hace `revoke execute … from public` y `grant execute … to anon, aut
 
 `private.precio_final_publico(producto, empresa)` compone las fórmulas únicas de Precios:
 `private.a_pesos` → `private.aplicar_regla_precio` → `private.aplicar_iva`. Respeta el interruptor
-`dominio.precios_empresa.mostrar_con_iva`: con IVA devuelve el `final` de `private.precio_para`; sin IVA,
-el `neto`. La alícuota se resuelve **inline** (la propia del producto o, si no, la de su categoría) porque
+`dominio.precios_empresa.mostrar_con_iva`: con IVA devuelve el `final` de `private.precio_para`, redondeado
+**al centavo** (`round(…, 2)` en `private.aplicar_iva`, migración `20270507180200_aplicar_iva_al_centavo.sql`;
+antes era al peso entero, ver [IVA y precio final](../iva-precio-final.md)); sin IVA, el `neto`. La alícuota se resuelve **inline** (la propia del producto o, si no, la de su categoría) porque
 `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con
 `private.precio_para` evita la deriva. Si el precio no es calculable (USD sin cotización), devuelve
 `null`: la tarjeta y la ficha no muestran precio, el producto queda al final en los órdenes por precio y

@@ -1,7 +1,6 @@
 ---
 owner: tecnico
-sources:
-  - specs
+sources: []
 ---
 
 # Validación E2E 3: flujo con deploy real a DEV

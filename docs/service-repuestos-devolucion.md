@@ -3,6 +3,9 @@ owner: tecnico
 sources:
   - specs/20261028-100000-service-repuestos-y-stock
   - apps/web/src/lib/reparaciones.ts
+  - supabase/migrations/20270201200110_reparacion_item_quitar_devolucion.sql
+  - supabase/migrations/20270201200111_reparaciones_anular_devolucion.sql
+  - supabase/tests/database/service_repuestos_devolucion.test.sql
 ---
 
 # Devolución de repuestos al quitar o anular (F-SVC-11)
@@ -39,7 +42,7 @@ en Service técnico, respetan la tienda accesible y no las ejecuta `anon`. Sin t
 
 ## Reversión
 
-Migraciones `20270116100700_reparacion_item_quitar_devolucion.sql` y `20270116100800_reparaciones_anular_devolucion.sql`
-(aditivas en datos; renumeradas al integrar `dokploy` para no compartir versión con las migraciones de cobros). Para volver atrás, una migración posterior restaura `quitar_item_reparacion(uuid)` y
+Migraciones `20270201200110_reparacion_item_quitar_devolucion.sql` y `20270201200111_reparaciones_anular_devolucion.sql`
+(aditivas en datos; renumeradas al integrar `dokploy` para no compartir versión con otras migraciones). Para volver atrás, una migración posterior restaura `quitar_item_reparacion(uuid)` y
 `anular_reparacion(uuid, text)` de sus versiones previas y elimina `private.devolver_stock_item_reparacion`; las entradas
 ya registradas en el libro no se deshacen solas. Contrato que cambia: la firma de `anular_reparacion` (`apps/web/src/lib/reparaciones.ts`).

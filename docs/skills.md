@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - skills-lock.json
+  - AGENTS.md
+  - .agents/skills/skill-security/scripts/scan.py
+  - .agents/skills/crypto-secrets/scripts/scan.py
+  - .agents/skills/infra-security/scripts/scan.py
+  - .specify/extensions.yml
+  - .opencode/opencode.json
 ---
 
 # Cómo usar las skills del proyecto
