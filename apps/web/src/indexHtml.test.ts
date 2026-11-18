@@ -6,10 +6,11 @@ import { i18nProvider } from './providers/i18nProvider'
 const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
 
 describe('documento base y título por defecto', () => {
-  it('declara el idioma español, un título propio y una descripción', () => {
+  it('declara el idioma español y un título propio', () => {
     expect(html).toContain('<html lang="es">')
     expect(html).toMatch(/<title>Gestión comercial<\/title>/)
-    expect(html).toMatch(/<meta name="description" content="[^"]{20,}"/)
+    // La descripción la pone cada pantalla pública (tienda); un meta estático en el documento base chocaría con la suya.
+    expect(html).not.toMatch(/<meta name="description"/)
   })
   it('no muestra el nombre de la plantilla en la app', () => {
     expect(html).not.toMatch(/Automation Platform Template/i)
