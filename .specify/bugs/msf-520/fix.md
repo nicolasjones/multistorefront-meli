@@ -115,6 +115,11 @@ assert.ok(!bloqueRestore.includes('--no-privileges'), 'el restore tiene que apli
   `docs/entregar-sistema.md`.** Su texto («documentado pero no ejecutado») sigue siendo cierto: la
   ejecución y la firma siguen pendientes. El test de coherencia obliga a actualizarlos juntos cuando
   se firme.
+- **No se editó el encabezado de la migración `20270418000301`**, que sigue describiendo el
+  procedimiento anterior (`pg_restore --no-privileges`): su versión ya está aplicada en la base y el
+  guard de migraciones bloquea editar una migración existente. El rol actual de la función (red de
+  seguridad para cuando la copia es más vieja que la migración que cambió esos permisos) queda
+  escrito en la guía de copias y en el runbook.
 - **No se cambió el flow `verificar-restauracion`.** Su contrato es comprobar que el restore
   termina y que las tablas esperadas tienen datos, en un Postgres aislado sin los roles del app: los
   permisos no son parte de ese contrato (y los errores esperados del restore ya contemplan los roles
