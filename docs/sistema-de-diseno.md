@@ -225,3 +225,18 @@ Mecanismo en `apps/web/src/tema/temaTienda.ts` y `ProveedorTemaTienda.tsx`
   dominio e identidad): conectarlo y cargar las fuentes de cada tienda.
 - Cómo se comparten los tokens si el front público es otro repo: sin definir.
 - Modo oscuro, búsqueda global (⌘K) y branding por organización: no incluidos.
+
+## Importes, fechas y textos compartidos (lote 34)
+
+- **Importes** (`apps/web/src/lib/formatoImporte.ts`): `formatearImporte` es el único formateador de pesos del panel. Entero sin decimales («$ 64.200»), con centavos siempre dos decimales («$ 64.200,50», nunca «$ 64.200,5»), punto de miles también en cuatro dígitos (el `Intl` `es-AR` no agrupa «1500») y «—» si no es un número. Opciones: `centavos: 'siempre'` (comprobantes, gastos), `simbolo` (`US$`) y `menos` (`antes`/`despues`). Los formateadores de `precios`, `promociones`, `formatoHistorial`, `formatoRanking`, `gastos`, `serviceTecnico`, `tiendaCuentaDatos` y `listasPrecios` delegan en él; un formateador nuevo se agrega a este archivo.
+- **Fechas de calendario** (`periodosRanking.fechaDeMarca`): una marca `timestamptz` llega en UTC; cortarle los diez primeros caracteres corre un día después de las 21:00 de Buenos Aires. Cobros, pagos, contrarreembolsos y envíos en moto usan `fechaDeMarca`.
+- **Chat IA**: el botón flotante solo lo ve quien puede escribir (`puede_escribir`); la base revalida en `ejecutar_accion_chat_ia`. Si el envío falla, el texto vuelve al campo; «Confirmar» se deshabilita mientras corre.
+- **Rutas solo para administradores**: `/historial/importar` y `/stock/motivos` usan `RequiereAdministrador` (la autorización real es la RLS/RPC). `/empresas` y `/empresas/edit/:id` exigen la sección `empresas`.
+- **Documento base**: `apps/web/index.html` declara `lang="es"`, título «Gestión comercial» y meta description; el panel de marca del ingreso no nombra tiendas ni la plantilla.
+- **Textos que no prometen lo que no hacen (MSF-612)**: el campo «Dominio» de la ficha de empresa muestra el dominio vigente real y enlaza a «Dominio y publicación»; «Visible en» de Categorías aclara que la tienda pública se elige en «Catálogo visible»; las filas de «Empresas que lo venden» ya no muestran un «Precio: —» que nunca se completaba (el precio propio se carga al editar el producto).
+- **Un solo selector de empresa en la ficha (MSF-640)**: en `/empresas/edit/:id` el encabezado muestra solo el selector de la ruta; no suma el de la empresa activa.
+- **Errores de carga (MSF-686)**: `IaList` avisa con «Reintentar» en lugar de verse vacía; `useReportesAsignados` no queda «cargando» si la consulta cae; `vencimientoSesion` tolera `localStorage` bloqueado.
+- **Productos (MSF-611)**: «Stock bajo» sigue deshabilitado en el listado porque la vista de productos no trae el estado de stock (el filtro necesita una columna o vista en SQL; mientras tanto se usa el filtro «Stock bajo» de Stock); «Sin vincular a ML» no tiene datos (no hay integración de vinculación).
+- **MSF-609**: se mantiene el criterio actual: envío y responsables se ocultan hasta factura viva y Documentos explica por qué no se imprime; no se dibujan acciones deshabilitadas que el prototipo no tiene.
+- **MSF-616**: «Interés por WhatsApp» sigue sin entrada en pantalla y su diálogo dice que no recibe datos hasta que se lean las consultas de origen WhatsApp (MSF-993, lote de SQL). El contador de Consultas del menú sigue a la empresa activa de la barra superior; el «Nuevas (n)» de la bandeja sigue su filtro.
+- **MSF-619**: la fila «Nueva empresa / Crear» del listado se mantiene (la dibuja el prototipo `Stores`); qué pantallas de Ventas ve cada rol es una decisión de producto pendiente.

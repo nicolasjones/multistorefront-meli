@@ -213,6 +213,9 @@ export function ServicioReparacion() {
 
   const anulada = reparacion?.anulada_en != null
   const puedeEditar = nivel === 'edicion' && !anulada
+  // Entregada: ya no se anula ni se guarda desde esta pantalla; solo quedan las acciones de seguimiento y de documentos.
+  const entregada = reparacion !== null && reparacion.entrega_real !== null
+  const puedeAnularOGuardar = puedeEditar && !entregada
   const conCostos = esNueva ? puedeVerCostosEnPanel === true : reparacion?.puede_ver_costos === true
   const puedeAltaRapida = nivelClientes === 'edicion' && puedeEditar
   // Cerrada = estado que cierra o entrega registrada: ya no admite cambios de estado (FR-031).
@@ -432,12 +435,12 @@ export function ServicioReparacion() {
                 Reingresar por garantía
               </Button>
             ) : null}
-            {puedeEditar && reparacion ? (
+            {puedeAnularOGuardar && reparacion ? (
               <Button color="error" variant="outlined" onClick={() => setAnularAbierto(true)} disabled={guardando}>
                 Anular
               </Button>
             ) : null}
-            {puedeEditar ? (
+            {puedeAnularOGuardar ? (
               <Button type="submit" variant="contained" disabled={guardando}>
                 {guardando ? 'Guardando…' : 'Guardar'}
               </Button>

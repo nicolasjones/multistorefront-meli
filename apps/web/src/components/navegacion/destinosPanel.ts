@@ -136,7 +136,7 @@ export const SECCIONES_PANEL: SeccionPanel[] = [
       // F-VTA-17 (MSF-183): tablero de despacho de las facturas (solo lectura con `ventas`).
       { id: 'ventas-despacho', etiqueta: 'Despacho', ruta: '/ventas/despacho', icono: LocalShippingIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-18 (MSF-201): faltantes abiertos de las ventas (solo lectura con `ventas`).
-      { id: 'ventas-faltantes', etiqueta: 'Faltantes', ruta: '/ventas/faltantes', icono: ProductionQuantityLimitsIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
+      { id: 'ventas-faltantes', etiqueta: 'Faltantes de despacho', ruta: '/ventas/faltantes', icono: ProductionQuantityLimitsIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
       // F-VTA-38: consulta de solo lectura de lo registrado antes de la plataforma.
       { id: 'historial', etiqueta: 'Historial', ruta: '/historial', icono: ReceiptLongIcon, audiencia: 'organizacion', seccionPermiso: 'ventas' },
     ],

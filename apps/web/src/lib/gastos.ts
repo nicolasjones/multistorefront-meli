@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import { supabaseClient } from './supabase'
 import { armarCsv, type ColumnaCsv } from './exportarCsv'
 import { hoyEnOrganizacion } from './periodosRanking'
@@ -174,9 +175,8 @@ export function mensajeDeErrorGasto(error: { code?: string; message?: string } |
 
 // --- Formato ---------------------------------------------------------------------------------------------------------
 
-const formatoMoneda = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const formatearImporteGasto = (valor: number, moneda: MonedaGasto) =>
-  `${moneda === 'USD' ? 'US$' : '$'} ${formatoMoneda.format(valor)}`
+  formatearImporte(valor, { centavos: 'siempre', simbolo: moneda === 'USD' ? 'US$' : '$' })
 
 // --- RPC -------------------------------------------------------------------------------------------------------------
 

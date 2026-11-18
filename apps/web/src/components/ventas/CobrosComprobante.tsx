@@ -1,3 +1,4 @@
+import { fechaDeMarca } from '../../lib/periodosRanking'
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert, Box, Button, Card, CardContent, CardHeader, Dialog, DialogActions, DialogContent,
@@ -179,7 +180,7 @@ function ListaCobros({ cobros }: { cobros: Cobro[] }) {
             }}
           >
             <Box role="cell">
-              <Typography variant="body2">{formatearFecha(cobro.fecha.slice(0, 10))}</Typography>
+              <Typography variant="body2">{formatearFecha(fechaDeMarca(cobro.fecha))}</Typography>
             </Box>
             <Box role="cell" sx={{ minWidth: 0 }}>
               <Typography variant="body2">{cobro.forma_pago ?? '—'}</Typography>

@@ -76,7 +76,8 @@ recibe ningún privilegio.
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
-  carga diferida.
+  carga diferida. `/stock/motivos` está envuelta en `RequiereAdministrador`: quien no es administrador ve «Solo para
+  administradores» (la autorización real es la RLS de `dominio.motivos_movimiento`: escribe solo `puede_escribir()`).
 - `/stock`: producto, SKU y cantidad, con «Nuevo movimiento» (general y por fila) solo para quien edita. El diálogo
   muestra el stock resultante antes de confirmar, el responsable, deshabilita el doble envío y confirma «Movimiento
   registrado».
@@ -278,3 +279,9 @@ mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).
 ## Textos de Movimientos y Faltantes
 
 La nota de un movimiento de una reserva «A pedido» no muestra el identificador interno del comprobante (`comprobante:<uuid>`): se lee «el comprobante». Poner el número del comprobante exige cambiar la nota en la base. La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
+
+## Toma de inventario: depósito, «Sin categoría» y rol Depósito (lote 34)
+
+- La pestaña muestra el **depósito** sobre el que opera (el principal, solo lectura): la RPC `confirmar_toma_inventario` ajusta siempre el depósito por defecto. Elegir otro depósito necesita un parámetro nuevo en la RPC (pendiente del lote de SQL).
+- El selector ofrece **«Sin categoría»**: los productos activos sin categoría (`categoria_id is null`).
+- El rol **Depósito** (edita Stock, sin la sección `categorias`) ve las categorías en el selector gracias a la política de lectura adicional en `dominio.categorias` que trae el PR #1136 (lote 32, dependencia de base); este lote no toca SQL.
