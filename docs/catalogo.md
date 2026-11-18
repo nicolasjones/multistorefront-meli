@@ -1,7 +1,21 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-catalogo-alta-y-edicion
+  - specs/20261020-120000-catalogo-listado-y-categorias
+  - specs/20261022-120000-precios-e-iva
+  - specs/20261103-100000-catalogo-productividad
+  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
+  - specs/20270125-100000-catalogo-variantes
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
+  - apps/web/src/components/productos/DialogoProducto.tsx
+  - apps/web/src/lib/productosListado.ts
+  - apps/web/src/lib/productos.ts
+  - apps/web/e2e/productos-variantes.e2e.ts
+  - apps/web/e2e/productos-relacionados.e2e.ts
+  - supabase/tests/database/catalogo_edicion_masiva.test.sql
 ---
 
 # Catálogo de productos
@@ -69,7 +83,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
   `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
   inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
-  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
+  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`). «Nuevo producto» y «Editar» abren el formulario en un popup (`components/productos/DialogoProducto.tsx`, que reutiliza `AltaProducto` y `EdicionProducto`): no se cierra con Esc ni al hacer clic afuera, se sale con «Cancelar» (pide confirmar si hay datos) o «Cerrar» ya guardado, y el listado se recarga desde el principio; las rutas `/productos/create` y `/productos/:id/edit` siguen existiendo (`App.tsx`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
   «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.

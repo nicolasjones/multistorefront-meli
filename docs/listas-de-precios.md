@@ -2,8 +2,18 @@
 owner: tecnico
 sources:
   - specs/20270327-100000-listas-de-precios-por-cliente
-  - supabase/migrations
+  - supabase/migrations/20270340000000_listas_precios.sql
+  - supabase/migrations/20270340000100_exportacion_total_listas_precios.sql
+  - supabase/migrations/20270340000200_clientes_lista_precio.sql
+  - supabase/migrations/20270340000210_fusion_clientes_lista_precio.sql
+  - supabase/migrations/20270346000000_archivar_lista_precios_mensaje_plural.sql
+  - supabase/migrations/20270348000000_lineas_snapshot_lista_precios.sql
+  - supabase/migrations/20270348000100_motor_precio_lista_cliente.sql
+  - supabase/migrations/20270348000200_ventas_usan_lista_precios.sql
+  - supabase/migrations/20270348000300_tienda_precios_lista_cliente.sql
+  - supabase/migrations/20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql
   - apps/web/src/lib/listasPrecios.ts
+  - apps/web/src/pages/productos/listas-de-precios.tsx
   - apps/web/e2e/listas-de-precios-recorrido.e2e.ts
 ---
 
@@ -40,6 +50,8 @@ La bandera vive en `public.banderas_plataforma` y **nace apagada en todo entorno
 - La lista de pedido de la tienda («Enviar consulta») ya usa la lista del cliente con sesión (MSF-969, migración `20270507110000`): muestra y guarda el mismo precio que «Tu precio». Sin lista, sin sesión o con la bandera apagada no cambia.
 
 ## Contratos que quedaron
+
+- Campo de ajuste de la pantalla (`parsearAjuste`, `apps/web/src/lib/listasPrecios.ts`): acepta coma o punto, hasta 2 decimales y de -90 a +100; se recortan los espacios de los extremos y se admite uno antes del «%»; un espacio dentro del número («1 0», «- 20») no es válido.
 
 - RPC (`security definer`, `search_path` vacío, `grant execute … to authenticated`, `revoke … from public, anon`): `guardar_lista_precios`, `archivar_lista_precios`, `restaurar_lista_precios`, `asignar_lista_precios_cliente`; vista `public.listas_precios_resumen` (`security_invoker`).
 - Motor: `private.lista_precios_cliente(cliente, organización)` (sin acceso de API) decide si rige una lista; la usan `precio_para_calculo`, `precio_linea_venta(_calculo)`, `precio_final_publico_escala` y `motor_presupuesto_tienda`.

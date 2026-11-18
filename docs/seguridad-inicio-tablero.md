@@ -5,7 +5,16 @@ sources:
   - scripts/verificar-documentacion-cambios.mjs
   - scripts/verificar-migraciones.mjs
   - apps/web/src/pages/inicio
-  - supabase/tests/database
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270305120000_movimientos_por_producto.sql
+  - supabase/migrations/20270305130000_previsualizar_impacto_dolar.sql
+  - supabase/migrations/20270305140000_aplicar_cotizacion.sql
+  - supabase/migrations/20270306110000_inicio_tablero_hallazgos_finales.sql
+  - supabase/tests/database/resumen_inicio_periodo.test.sql
+  - supabase/tests/database/inicio_tablero_bloques.test.sql
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/tests/database/privilegios_anon_endurecidos.test.sql
 ---
 
 # Revisión de seguridad integral · Inicio, tablero completo (MSF-824)

@@ -1,7 +1,26 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-stock-movimientos
+  - specs/20261022-180000-stock-depositos-y-reservas
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - apps/web/src/pages/stock/movimientos.tsx
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/stock/motivos.tsx
+  - apps/web/src/pages/stock/NuevoMovimientoDialog.tsx
+  - apps/web/src/pages/stock/EditarMinimoDialog.tsx
+  - apps/web/src/lib/stock.ts
+  - apps/web/src/lib/useExistenciasRealtime.ts
+  - apps/web/e2e/stock-movimientos.e2e.ts
+  - supabase/migrations/20261017140100_stock_registrar_movimiento.sql
+  - supabase/migrations/20261017150000_stock_historial_inmutable.sql
+  - supabase/migrations/20261017160000_stock_minimo_y_estados.sql
+  - supabase/migrations/20261017170000_stock_sin_negativos.sql
+  - supabase/migrations/20261018190000_stock_existencias_realtime.sql
+  - supabase/migrations/20270220120400_catalogo_variantes_movimientos.sql
+  - supabase/migrations/20270220180000_registrar_movimiento_stock_sin_firmas_viejas.sql
+  - supabase/tests/database/stock_movimientos.test.sql
+  - supabase/tests/database/stock_historial.test.sql
 ---
 
 # Stock · movimientos, alertas e historial (MSF-136 y MSF-231)

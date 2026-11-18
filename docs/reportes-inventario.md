@@ -4,6 +4,8 @@ sources:
   - specs/20270201-100000-reportes-de-inventario-y-exportacion
   - infra/superset/dashboards/inventario
   - infra/superset/superset_config.py
+  - infra/superset/importar-dashboards.mjs
+  - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
 # Reportes de inventario (épica MSF-140)
@@ -131,7 +133,8 @@ stock pero sin `costo_ars` ni `valor_ars`, y no suma al total.
 ### Operación y reversión
 
 - El tablero se importa con `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <staging|production>`
-  (lo hace el workflow de despliegue del VPS, idempotente).
+  (lo hace el workflow de despliegue del VPS, idempotente). Si hay `reportes.json` y faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR`, el importador **falla** (importa los dashboards pero no registra los reportes); para importar solo los dashboards a propósito hay que pasar `--omitir-reportes` (`infra/superset/importar-dashboards.mjs`).
+- **Vencimiento del acceso**: el guest token vence a los 600 segundos por defecto (`GUEST_TOKEN_JWT_EXP_SECONDS` en `infra/superset/superset_config.py`, configurable con `SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS`). La pantalla (`ReporteEmbebido.tsx`) usa el token ya emitido la primera vez y, cuando el tablero lo renueva, pide uno **nuevo** a `emitir-acceso-reporte`, que vuelve a validar el acceso de la persona; si esa renovación falla, la pantalla muestra el estado de acceso restringido (`prohibido`) o de tablero no disponible (`no_disponible`).
 - Reversión: `drop view analitica.inventario_productos_stock;` (migración
   `20270202201200`; la exigencia por acción y la vista de cantidades son de `20270438000000`, ver su cabecera), desregistrar el reporte por `dashboard_slug` y quitar el directorio. Los tableros no
   guardan datos.

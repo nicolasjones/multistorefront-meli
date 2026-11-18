@@ -2,8 +2,13 @@
 owner: operacion
 sources:
   - specs/20261102-220000-importaciones-y-monitoreo
-  - infra/glitchtip
-  - infra/kestra
+  - infra/glitchtip/compose.yaml
+  - infra/kestra/flows/monitoreo-salud-tiendas.yml
+  - infra/kestra/flows/monitoreo-evaluar.yml
+  - infra/kestra/flows/monitoreo-errores-aplicacion.yml
+  - infra/kestra/flows/depuracion-monitoreo.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
+  - infra/kestra/sondeo-tiendas.test.mjs
   - workers/_comun/errores.mjs
   - workers/egress-allowlists.json
   - apps/web/src/lib/erroresWeb.ts
@@ -51,6 +56,8 @@ Un sondeo bloqueado registra un evento `no_sondeable` (motivo `NO_SONDEABLE_<RED
 - Cancelar un proceso masivo pendiente cierra su ejecución `fallida` con motivo `CANCELADA`; `evaluar_monitoreo` **no** la cuenta como fallo de sincronización.
 - Si el sondeo de tiendas falla por completo (el script cae o no deja resultados), el flow registra un fallo del propio monitor (`aplicacion`, clave `monitor:tiendas`) y alerta tras 5 seguidos; un barrido bueno registra el `ok` que la resuelve. Cada petición tiene un tope total de tiempo (señal de aborto), la respuesta se destruye al llegar el estado y la resolución DNS tiene su propio tope: una tienda lenta o un DNS colgado fallan solo esa tienda.
 - Además, `evaluar_monitoreo` cierra por tiempo máximo (`timeout`) las ejecuciones de procesos masivos abiertos que lo superaron, para que la pantalla de importaciones no quede sondeando para siempre.
+
+- **Un fallo de los propios flows de monitoreo avisa al soporte.** `monitoreo-evaluar`, `monitoreo-errores-aplicacion` y `depuracion-monitoreo` tienen un bloque `errors:` que invoca el subflow `platform.alertas/aviso-fallo-flujo` (correo SMTP al `SOPORTE_CORREO`; manda solo el nombre de la tarea que falló y el id de la ejecución, no el mensaje de error, que puede traer hosts o datos). `monitoreo-salud-tiendas` no lo usa: registra su propio fallo `monitor:tiendas`. Los tres flows de 2 minutos corren de a una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso se descarta la nueva) y sus consultas SQL tienen `timeout: PT1M`. El propio `aviso-fallo-flujo` deja a lo sumo un aviso a la vez para no inundar la casilla.
 
 ## Umbrales
 
