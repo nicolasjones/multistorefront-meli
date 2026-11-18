@@ -45,7 +45,10 @@ vi.mock('../../lib/supabase', () => ({
     }),
     // `guardar` usa `.single()`; la vista previa espera el resultado directo.
     rpc: (nombre: string, args: unknown) => {
-      const resultado = mocks.rpc(nombre, args)
+      // La ficha de la empresa sale de la RPC `empresa_datos` (la tabla reserva CUIT, correo y WhatsApp a la sección `empresas`).
+      const resultado = nombre === 'empresa_datos'
+        ? Promise.resolve(mocks.empresa((args as { p_empresa: string }).p_empresa)).then((r: { data: unknown; error: unknown }) => ({ data: r.data ? [r.data] : [], error: r.error }))
+        : mocks.rpc(nombre, args)
       return { single: () => resultado, then: (ok: (v: unknown) => unknown, ko: (e: unknown) => unknown) => Promise.resolve(resultado).then(ok, ko) }
     },
   },

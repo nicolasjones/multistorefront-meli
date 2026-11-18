@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
+import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoInvalido, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
 
 describe('documento del cliente', () => {
   const con = (documento: string) => validarCliente({ ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', documento }).documento
@@ -97,5 +97,13 @@ describe('relación con empresas (F-CLI-05)', () => {
   it('aFormulario conserva la aceptación guardada del cliente', () => {
     expect(aFormulario({ ...cliente, acepta_correo_masivo: false }).aceptaCorreoMasivo).toBe(false)
     expect(aFormulario({ ...cliente, acepta_correo_masivo: true }).aceptaCorreoMasivo).toBe(true)
+  })
+})
+
+describe('rechazo del servidor por documento inválido', () => {
+  it('reconoce el 23514 del disparador de clientes y no otros checks', () => {
+    expect(esDocumentoInvalido({ code: '23514', message: 'El DNI/CUIT no es válido: ingresá un DNI' })).toBe(true)
+    expect(esDocumentoInvalido({ code: '23514', message: 'otro check' })).toBe(false)
+    expect(esDocumentoInvalido({ code: '23505', message: 'El DNI/CUIT no es válido' })).toBe(false)
   })
 })

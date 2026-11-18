@@ -850,6 +850,11 @@ update public.avisos_pendientes ap set creado_en = c.ts + interval '1 second'
 update dominio.intereses_whatsapp i
    set created_at = pg_temp.en_jornada(pg_temp.sin_domingo(f.hoy - 2 - floor(pg_temp.u(i.id::text, 'iw') * 28)::int), pg_temp.u(i.id::text, 'iwh'))
   from _f f where i.organizacion_id = :'org_id'::uuid and i.created_at >= now() - interval '1 day';
+-- Las consultas de WhatsApp sembradas desde esos toques (90-consultas.sql) siguen la misma fecha que su toque.
+update dominio.consultas c
+   set created_at = i.created_at, updated_at = i.created_at
+  from dominio.intereses_whatsapp i
+ where c.organizacion_id = :'org_id'::uuid and c.id = md5(:'org_id' || '|consulta-wa|' || i.id::text)::uuid;
 
 -- Actividad
 update public.registro_actividad a set creado_en = t.ts from _ts t where t.id = a.id;

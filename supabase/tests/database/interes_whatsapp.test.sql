@@ -181,6 +181,12 @@ select throws_ok($$select * from public.interes_whatsapp_por_producto$$, '42501'
 
 reset role;
 
+-- MSF-993: la vista lee las CONSULTAS de origen WhatsApp (no esta tabla). Cada alta de arriba se refleja como la consulta
+-- que la ficha pública deja en la bandeja, para que las aserciones de la vista sigan midiendo lo mismo.
+insert into dominio.consultas (organizacion_id, empresa_id, origen, nombre, contacto, producto_id, created_at)
+select i.organizacion_id, i.empresa_id, 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', i.producto_id, i.created_at
+  from dominio.intereses_whatsapp i;
+
 select is((select count(*)::int from dominio.intereses_whatsapp), 5, 'los errores no guardaron nada: solo las 5 altas');
 select is(
   (select count(*)::int from dominio.intereses_whatsapp

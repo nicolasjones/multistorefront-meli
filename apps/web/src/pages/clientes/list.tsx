@@ -14,6 +14,8 @@ import { FiltroTienda } from '../../components/clientes/FiltroTienda'
 import type { TipoCliente } from '../../lib/clientes'
 import { rutaEtiquetas } from '../../lib/etiquetasCliente'
 import { DialogoCorreoSeleccionados } from '../../components/clientes/DialogoCorreoSeleccionados'
+import { DialogoMarcarAceptacion } from '../../components/clientes/DialogoMarcarAceptacion'
+import { textoAceptacionMarcada } from '../../lib/aceptacionCorreo'
 import { estadoCuentaWebListado, TEXTOS_ESTADO_CUENTA_WEB } from '../../lib/cuentasCliente'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -115,12 +117,15 @@ export function ClienteList() {
   const [seleccion, setSeleccion] = useState<ReadonlySet<string>>(new Set())
   const [avisoSeleccion, setAvisoSeleccion] = useState(false)
   const [dialogoCorreo, setDialogoCorreo] = useState(false)
+  const [dialogoAceptacion, setDialogoAceptacion] = useState(false)
   // undefined = cerrado, null = cliente nuevo, id = editar ese cliente.
   const [clienteEnDialogo, setClienteEnDialogo] = useState<string | null | undefined>(undefined)
   const [avisoGuardado, setAvisoGuardado] = useState<string | null>(null)
   const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
   const dialogoCorreoAbierto = useRef(false)
   dialogoCorreoAbierto.current = dialogoCorreo
+  const dialogoAceptacionAbierto = useRef(false)
+  dialogoAceptacionAbierto.current = dialogoAceptacion
 
   useEffect(() => {
     const espera = setTimeout(() => {
@@ -144,6 +149,10 @@ export function ClienteList() {
   useEffect(() => {
     setPagina(1)
     setSeleccion(new Set())
+    if (dialogoAceptacionAbierto.current) {
+      setDialogoAceptacion(false)
+      setAvisoCorreo('Cambiaste de empresa: se cerró «Marcar aceptación» y se descartó la selección.')
+    }
     if (dialogoCorreoAbierto.current) {
       setDialogoCorreo(false)
       setAvisoCorreo('Cambiaste de empresa: se cerró el envío de correo y se descartó la selección.')
@@ -297,6 +306,11 @@ export function ClienteList() {
                 {seleccion.size > 0 ? `Enviar correo a seleccionados (${seleccion.size})` : 'Enviar correo a seleccionados'}
               </Button>
             ) : null}
+            {puedeMigrar ? (
+              <Button variant="outlined" size="small" disabled={seleccion.size === 0} onClick={() => setDialogoAceptacion(true)}>
+                {seleccion.size > 0 ? `Marcar aceptación (${seleccion.size})` : 'Marcar aceptación'}
+              </Button>
+            ) : null}
           </BarraHerramientas>
 
           <Box role="status" aria-live="polite" sx={SOLO_LECTORES}>
@@ -350,6 +364,17 @@ export function ClienteList() {
         </Stack>
         )}
       </ContenedorSeccion>
+      <DialogoMarcarAceptacion
+        open={dialogoAceptacion}
+        clientes={[...seleccion]}
+        onCerrar={() => setDialogoAceptacion(false)}
+        onMarcado={(cambiados, acepta) => {
+          setDialogoAceptacion(false)
+          setAvisoCorreo(textoAceptacionMarcada(cambiados, seleccion.size, acepta))
+          setSeleccion(new Set())
+          void refetch()
+        }}
+      />
       <DialogoCorreoSeleccionados
         open={dialogoCorreo}
         clientes={[...seleccion]}
