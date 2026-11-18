@@ -126,6 +126,23 @@ comprobadas). Por eso el ruido tiene que ser **más largo que los dos recortes**
   archivo sigue sin código muerto. El `assessment.md` no se editó —es el contrato—; la corrección
   queda acá y en `test.md`.
 
+## Devolución del 2026-11-18 (PR #1129)
+
+La devolución apunta al PR #1129 (`fix/bug-MSF-843`), que su propio comentario declara reemplazado por
+este PR (#1127): la rama vieja quedó stale y su contenido útil ya está en `dokploy`. Rebasar esa rama
+volvería a aplicar los ~40 specs que evolucionaron con MSF-515, así que la respuesta se da sobre el
+HEAD de esta rama (`6b55e6d1f`, 0 commits atrás de `origin/dokploy`), con los tres hallazgos ya
+cubiertos:
+
+| Hallazgo | Estado | Evidencia (2026-11-18) |
+|---|---|---|
+| `quality` — knip en `apps/web/src/pages/conexiones/list.tsx:44:1` | no reproduce | `pnpm dlx knip@6.44.1 --no-progress` → 0 hallazgos, exit 0. La línea 44 es el `useEffect` de carga, nunca una declaración exportada. |
+| `application` — `docs:check` sin documentación del tooling | verde | El guardián llegó a `dokploy` con `docs/e2e-app.md:107-108` en el mismo commit `611957f3`; `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` → OK. |
+| `validacion` | consecuencia | Sin causa propia; verde en el CI de este PR. |
+
+La causa de fondo (que ese rojo fuera indiagnosticable) sigue fijada por los dos tests de
+`scripts/calidad.test.mjs` y por las garantías de `docs/calidad.md`.
+
 ## Follow-ups
 
 - El `HEAD` de `dokploy` (`0d75df2c`) no tiene ninguna corrida de CI registrada. La evidencia verde

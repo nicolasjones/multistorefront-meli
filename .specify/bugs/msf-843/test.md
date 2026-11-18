@@ -154,6 +154,17 @@ EXIT=0
   anotado en el assessment; con este PR, `reports/calidad.log` lo vuelve innecesario como fuente de
   verdad.
 
+## Re-verificación de la devolución del 2026-11-18 (PR #1129)
+
+Sobre el HEAD `6b55e6d1f` (0 commits atrás de `origin/dokploy`), para el PR #1127:
+
+| Check | Resultado |
+|---|---|
+| `node --test scripts/calidad.test.mjs` | 3 pass, 0 fail (1 skip: gitleaks no instalado) |
+| `pnpm dlx knip@6.44.1 --no-progress` | 0 hallazgos, exit 0 |
+| `DOCUMENTATION_CHECK_BASE=origin/dokploy pnpm docs:check` | OK (6 archivos), migraciones y trampas OK |
+| `pnpm e2e:escritura:check` / `pnpm test:e2e:escritura` | OK / 16/16 |
+
 ## Recommendation
 
 Cerrar el bug — verificado sobre `dokploy` actual: los dos rojos del reporte no se reproducen, la causa
