@@ -21,12 +21,52 @@ export function esBlanco(c) {
 }
 
 /**
+ * Prefijo de contenedor de una línea: marcas de cita (`>`), sangría y marcadores de lista (`- `, `1. `), también anidados.
+ * Devuelve la profundidad de cita, la columna donde empieza el contenido, el índice de ese contenido, la columna de contenido
+ * de la última lista (0 si no hubo marcador) y si la línea queda vacía.
+ */
+function prefijoDeContenedor(linea) {
+  const len = linea.length;
+  let k = 0;
+  let col = 0;
+  let depth = 0;
+  let listaCol = 0;
+  for (;;) {
+    while (k < len) {
+      const c = linea[k];
+      if (c === " ") { col++; k++; }
+      else if (c === "\t") { col += 4 - (col % 4); k++; }
+      else if (c === ">") { depth++; col++; k++; }
+      else break;
+    }
+    let m = 0;
+    const c = linea[k];
+    if ((c === "-" || c === "*" || c === "+") && (k + 1 >= len || linea[k + 1] === " " || linea[k + 1] === "\t")) m = 1;
+    else if (c >= "0" && c <= "9") {
+      let d = k;
+      while (d < len && d - k < 9 && linea[d] >= "0" && linea[d] <= "9") d++;
+      if ((linea[d] === "." || linea[d] === ")") && (d + 1 >= len || linea[d + 1] === " " || linea[d + 1] === "\t")) m = d + 1 - k;
+    }
+    if (!m) break;
+    k += m;
+    col += m;
+    while (k < len && (linea[k] === " " || linea[k] === "\t")) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; }
+    listaCol = col;
+    if (k >= len) break;
+  }
+  return { depth, col, k, listaCol, vacia: linea.slice(k).trim() === "" };
+}
+
+/**
  * Vacía los bloques de código conservando los saltos de línea (los números de línea siguen siendo los del archivo).
+ * Un fence se abre con ≥3 backticks o tildes y se cierra solo con el mismo carácter, longitud ≥ la de apertura y dentro del
+ * mismo contenedor (cita o ítem de lista) de la línea de apertura; si el contenedor termina antes, el bloque queda sin cerrar.
  * @returns {{texto: string, sinCerrar: number[]}} `sinCerrar`: líneas de los fences que no se cierran
  */
 export function enmascararCodigo(txt) {
   const n = txt.length;
   const salida = [];
+  const sinCerrar = [];
   let pos = 0;
   let nLinea = 0;
   let abierto = null;
@@ -35,22 +75,28 @@ export function enmascararCodigo(txt) {
     if (fin < 0) fin = n;
     nLinea++;
     const linea = txt.slice(pos, fin);
-    let k = 0;
-    while (k < linea.length && (linea[k] === " " || linea[k] === "\t" || linea[k] === ">")) k++;
-    const ch = linea[k];
-    let r = k;
+    pos = fin + 1;
+    const p = prefijoDeContenedor(linea);
+    if (abierto && !p.vacia && (p.depth < abierto.depth || (abierto.ind > 0 && p.col < abierto.ind))) {
+      sinCerrar.push(abierto.linea); // el contenedor terminó sin cerrar el fence: esta línea ya no es código
+      abierto = null;
+    }
+    const ch = linea[p.k];
+    let r = p.k;
     if (ch === "`" || ch === "~") while (r < linea.length && linea[r] === ch) r++;
-    const run = r - k;
+    const run = r - p.k;
     if (!abierto) {
-      if (run >= 3 && !(ch === "`" && linea.indexOf("`", r) >= 0)) { abierto = { ch, run, linea: nLinea }; salida.push(""); }
-      else salida.push(linea);
+      if (run >= 3 && !(ch === "`" && linea.indexOf("`", r) >= 0)) {
+        abierto = { ch, run, linea: nLinea, depth: p.depth, ind: p.listaCol > 0 ? p.listaCol : p.col >= 2 ? p.col : 0 };
+        salida.push("");
+      } else salida.push(linea);
     } else {
       if (run >= abierto.run && ch === abierto.ch && linea.slice(r).trim() === "") abierto = null;
       salida.push("");
     }
-    pos = fin + 1;
   }
-  return { texto: salida.join("\n"), sinCerrar: abierto ? [abierto.linea] : [] };
+  if (abierto) sinCerrar.push(abierto.linea);
+  return { texto: salida.join("\n"), sinCerrar };
 }
 
 const minus = (c) => c.charCodeAt(0) | 32;
@@ -86,14 +132,14 @@ export function enlacesMarkdown(original) {
     return j;
   };
   // Destino desde `j`: `<…>` (admite espacios) o hasta el primer blanco o `)`. Devuelve {destino, fin} o null (excedido: ya reportado).
-  const leerDestino = (j, linea, enDefinicion) => {
-    if (txt[j] === "<") {
+  const leerDestino = (j, linea, enDefinicion, plano = false) => {
+    if (txt[j] === "<" && !plano) {
       const ds = j + 1;
       let e = ds;
       while (e < n && e - ds <= MAX_DESTINO_ENLACE && txt[e] !== ">" && txt[e] !== "\n") e++;
       if (e - ds > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); return { fin: e, excedido: true }; }
-      if (txt[e] !== ">" || e === ds) return null;
-      return { destino: txt.slice(ds, e), fin: e + 1 };
+      if (txt[e] === ">" && e > ds) return { destino: txt.slice(ds, e), fin: e + 1 };
+      // `<` sin `>` de cierre: se lee como destino común (así no se pierde un enlace roto como `[a](<x.md)`).
     }
     const ds = j;
     while (j < n && j - ds <= MAX_DESTINO_ENLACE && txt[j] !== ")" && !esBlanco(txt[j])) j++;
@@ -102,8 +148,9 @@ export function enlacesMarkdown(original) {
     return { destino: txt.slice(ds, j), fin: j };
   };
   const leerTitulo = (k, linea) => {
-    const q = txt[k];
-    if (q !== '"' && q !== "'") return null;
+    const abre = txt[k];
+    if (abre !== '"' && abre !== "'" && abre !== "(") return null;
+    const q = abre === "(" ? ")" : abre;
     let f = k + 1;
     while (f < n && f - k - 1 <= MAX_TITULO_ENLACE && txt[f] !== q) f++;
     if (f - k - 1 > MAX_TITULO_ENLACE) { exceso(linea, "título"); return { excedido: true, fin: f }; }
@@ -111,90 +158,127 @@ export function enlacesMarkdown(original) {
     return { fin: f + 1 };
   };
 
+  const enlaceEnLinea = (desde, j0, linea, plano) => {
+    const d = leerDestino(j0, linea, false, plano);
+    if (!d || d.excedido) return false;
+    const j = d.fin;
+    const k = saltarBlancos(j, "título (blancos antes del título)", linea);
+    if (k < 0) return false;
+    if (txt[k] === ")") { enlaces.push({ crudo: txt.slice(desde, k + 1), destino: d.destino, linea }); return true; }
+    if (k === j) return false;
+    const tt = leerTitulo(k, linea);
+    if (!tt || tt.excedido) return false;
+    const f = saltarBlancos(tt.fin, "título (blancos después del título)", linea);
+    if (f < 0 || txt[f] !== ")") return false;
+    enlaces.push({ crudo: txt.slice(desde, f + 1), destino: d.destino, linea });
+    return true;
+  };
+
   const pilaPos = [];
   const pilaLinea = [];
   for (let i = 0; i < n; i++) {
     const c = txt[i];
-    if (c === "\\") { i++; continue; }
     if (c === "[") { pilaPos.push(i); pilaLinea.push(lineaEn(i)); continue; }
-    if (c === "<") { i = etiquetaHtml(i); continue; }
+    if (c === "<") { etiquetaHtml(i); continue; }
     if (c !== "]" || pilaPos.length === 0) continue;
     const desde = pilaPos.pop();
     const linea = pilaLinea.pop();
     const sig = txt[i + 1];
     if (sig === "(") {
       if (i - desde - 1 > MAX_TEXTO_ENLACE) { exceso(linea, "texto"); continue; }
-      let j = saltarBlancos(i + 2, "destino (blancos antes del destino)", linea);
-      if (j < 0) { continue; }
-      const d = leerDestino(j, linea, false);
-      if (!d) continue;
-      if (d.excedido) { i = d.fin - 1; continue; }
-      j = d.fin;
-      const k = saltarBlancos(j, "título (blancos antes del título)", linea);
-      if (k < 0) { i = j; continue; }
-      if (txt[k] === ")") { enlaces.push({ crudo: txt.slice(desde, k + 1), destino: d.destino, linea }); i = k; continue; }
-      if (k === j) continue;
-      const t = leerTitulo(k, linea);
-      if (!t) continue;
-      if (t.excedido) { i = t.fin - 1; continue; }
-      const f = saltarBlancos(t.fin, "título (blancos después del título)", linea);
-      if (f < 0 || txt[f] !== ")") continue;
-      enlaces.push({ crudo: txt.slice(desde, f + 1), destino: d.destino, linea });
-      i = f;
+      const j0 = saltarBlancos(i + 2, "destino (blancos antes del destino)", linea);
+      if (j0 < 0) continue;
+      // Destino entre `<…>` primero; si no forma un enlace, se reintenta como destino común (no se pierde `[a](<x.md)`).
+      if (!enlaceEnLinea(desde, j0, linea, false) && txt[j0] === "<") enlaceEnLinea(desde, j0, linea, true);
     } else if (sig === ":" && txt[desde + 1] !== "^") {
-      // Definición de referencia `[x]: destino "título"` (solo al inicio de línea y con nada más en la línea).
-      let b = desde - 1;
-      while (b >= 0 && txt[b] === " ") b--;
-      if (!(b < 0 || txt[b] === "\n") || desde - b - 1 > 3) continue;
-      let j = i + 2;
-      const ini = j;
-      while (j < n && (txt[j] === " " || txt[j] === "\t") && j - ini <= MAX_BLANCOS_ENLACE) j++;
+      // Definición de referencia `[x]: destino "título"`: al inicio de un bloque (también dentro de una cita o un ítem de
+      // lista), con el destino en la misma línea o en la siguiente y un título opcional (también en la línea siguiente).
+      if (!inicioDeBloque(desde)) continue;
+      const blancos = (j) => { const ini = j; while (j < n && (txt[j] === " " || txt[j] === "\t") && j - ini <= MAX_BLANCOS_ENLACE) j++; return j; };
+      const siguienteLinea = (j) => { j++; while (j < n && (txt[j] === " " || txt[j] === "\t" || txt[j] === ">") && j < i + 4 * MAX_BLANCOS_ENLACE) j++; return j; };
+      let j = blancos(i + 2);
+      if (j < n && txt[j] === "\n") j = blancos(siguienteLinea(j));
       const d = leerDestino(j, linea, true);
       if (!d) continue;
-      if (d.excedido) { i = d.fin - 1; continue; }
-      j = d.fin;
-      while (j < n && (txt[j] === " " || txt[j] === "\t") && j - d.fin <= MAX_BLANCOS_ENLACE) j++;
+      if (d.excedido) { continue; }
+      j = blancos(d.fin);
+      let fin = j;
       if (j < n && txt[j] !== "\n") {
-        const t = leerTitulo(j, linea);
-        if (!t) continue;
-        if (t.excedido) { i = t.fin - 1; continue; }
-        j = t.fin;
-        while (j < n && (txt[j] === " " || txt[j] === "\t") && j - t.fin <= MAX_BLANCOS_ENLACE) j++;
-        if (j < n && txt[j] !== "\n") continue;
+        const tt = leerTitulo(j, linea);
+        if (!tt) continue;
+        if (tt.excedido) { continue; }
+        fin = blancos(tt.fin);
+        if (fin < n && txt[fin] !== "\n") continue;
+      } else if (j < n) {
+        // Título opcional en la línea siguiente (solo cuenta si ocupa la línea entera).
+        const k = blancos(siguienteLinea(j));
+        const tt = k < n && txt[k] !== "\n" ? leerTitulo(k, linea) : null;
+        if (tt && !tt.excedido) {
+          const f2 = blancos(tt.fin);
+          if (f2 >= n || txt[f2] === "\n") fin = f2;
+        }
       }
-      enlaces.push({ crudo: txt.slice(desde, j), destino: d.destino, linea });
-      i = j;
+      enlaces.push({ crudo: txt.slice(desde, fin), destino: d.destino, linea });
     }
   }
 
-  // `<a href="…">` y `<img src="…">`: devuelve el índice del último carácter consumido.
+  // ¿`[` está al inicio de un bloque? Solo precedido por sangría, marcas de cita y marcadores de lista en su línea.
+  function inicioDeBloque(desde) {
+    let b = desde - 1;
+    const tope = Math.max(-1, desde - 200);
+    while (b > tope) {
+      const c = txt[b];
+      if (c === " " || c === "\t" || c === ">") { b--; continue; }
+      if (c === "\n") return true;
+      // marcador de lista: `-`, `*`, `+` o número seguido de `.` o `)`; debe tener un blanco o el inicio de línea antes
+      let m = b;
+      if (c === "-" || c === "*" || c === "+") m = b;
+      else if (c === "." || c === ")") { m = b - 1; if (!(txt[m] >= "0" && txt[m] <= "9")) return false; while (m > tope && txt[m - 1] >= "0" && txt[m - 1] <= "9") m--; }
+      else return false;
+      const antes = txt[m - 1];
+      if (m - 1 <= tope && m > 0) return false;
+      if (m === 0 || antes === " " || antes === "\t" || antes === ">" || antes === "\n") { b = m - 1; if (b < 0) return true; continue; }
+      return false;
+    }
+    return b < 0;
+  }
+
+  // `<a href="…">` y `<img src="…">`: registra el destino y NO consume nada (el resto de la etiqueta se sigue analizando como
+  // texto, así que un enlace en línea dentro de una etiqueta rara tampoco se oculta). Respeta las comillas de los atributos.
   function etiquetaHtml(i) {
-    let p = i + 1;
-    const esA = (txt[p] === "a" || txt[p] === "A") && p + 1 < n && (esBlanco(txt[p + 1]));
+    const p = i + 1;
+    const esA = (txt[p] === "a" || txt[p] === "A") && p + 1 < n && esBlanco(txt[p + 1]);
     const esImg = !esA && empiezaCI(txt, p, "img") && p + 3 < n && esBlanco(txt[p + 3]);
-    if (!esA && !esImg) return i;
+    if (!esA && !esImg) return;
     const attr = esA ? "href" : "src";
-    let e = i + 1;
-    while (e < n && e - i <= MAX_ETIQUETA_HTML && txt[e] !== ">") e++;
-    if (e - i > MAX_ETIQUETA_HTML) { exceso(lineaEn(i), "etiqueta HTML"); return e - 1; }
-    const linea = lineaEn(i);
-    for (p = i + 2; p < e; p++) {
-      if (!esBlanco(txt[p - 1]) || !empiezaCI(txt, p, attr)) continue;
-      let q = p + attr.length;
-      while (q < e && esBlanco(txt[q])) q++;
+    const limite = Math.min(n, i + MAX_ETIQUETA_HTML + 1);
+    let q = p + (esA ? 1 : 3);
+    while (q < limite) {
+      while (q < limite && esBlanco(txt[q])) q++;
+      if (q >= limite) return;
+      const c = txt[q];
+      if (c === ">" || c === "<") return;
+      const ini = q;
+      while (q < limite && !esBlanco(txt[q]) && "=>/\"'<".indexOf(txt[q]) < 0) q++;
+      if (q === ini) { q++; continue; }
+      const nombre = txt.slice(ini, q);
+      while (q < limite && esBlanco(txt[q])) q++;
       if (txt[q] !== "=") continue;
       q++;
-      while (q < e && esBlanco(txt[q])) q++;
+      while (q < limite && esBlanco(txt[q])) q++;
       const comilla = txt[q] === '"' || txt[q] === "'" ? txt[q] : "";
       if (comilla) q++;
-      let v = q;
-      while (v < e && txt[v] !== comilla && (comilla || !esBlanco(txt[v]))) v++;
-      if (comilla && txt[v] !== comilla) break;
-      if (v - q > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); break; }
-      if (v > q) enlaces.push({ crudo: txt.slice(i, e + 1), destino: txt.slice(q, v), linea });
-      break;
+      const vs = q;
+      while (q < limite && txt[q] !== comilla && (comilla || (!esBlanco(txt[q]) && txt[q] !== ">"))) q++;
+      if (comilla && txt[q] !== comilla) return;
+      const valor = txt.slice(vs, q);
+      if (comilla) q++;
+      if (nombre.length === attr.length && empiezaCI(nombre, 0, attr)) {
+        if (valor.length > MAX_DESTINO_ENLACE) exceso(lineaEn(i), "destino");
+        else if (valor) enlaces.push({ crudo: txt.slice(i, q), destino: valor, linea: lineaEn(i) });
+        return;
+      }
     }
-    return e;
   }
 
   return { enlaces, excesos, masExcesos, sinCerrar };

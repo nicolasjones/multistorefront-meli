@@ -128,8 +128,13 @@ Uso de una referencia:        [texto][x]  y  [x][]   (solo se valida el destino 
                                                        una referencia sin definición se muestra literal)
 Otras etiquetas HTML:         <source src=…>  <link href=…>  <video src=…>  srcset=…
 Destino con espacios sin <>:  [a](mi archivo.md)
-Título entre paréntesis:      [a](b.md (título))
+Corchete escapado en texto:   [a\]b](x.md)   (los escapes con barra no se interpretan, igual que antes; así
+                              `\[c](y.md)` SÍ se valida aunque no se muestre como enlace)
+Etiqueta HTML > 1000 car.:    <img … 1000 caracteres de atributos … src=…>   (no se analiza)
+Destino entre <> en 2 líneas: [x](<a + salto de línea + b>)
 Texto y destino en 2 líneas:  [a] + salto de línea + (b.md)   (CommonMark tampoco lo trata como enlace)
+Fence con sangría 2-3 sin lista: un fence de nivel superior sangrado 2 o 3 espacios se trata como de un ítem de lista;
+                              si su código tiene líneas con menos sangría, se reporta como sin cerrar
 Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
 ```
 

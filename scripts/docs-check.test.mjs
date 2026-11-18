@@ -173,4 +173,15 @@ describe("verificarDocumentacion", () => {
     assert.equal(errs.length, 51);
     assert.match(errs[50], /…y 2550 error\(es\) de enlaces más/);
   });
+
+  it("un enlace roto tras una etiqueta `<a` inválida o un fence que sale de su contenedor se detecta", (t) => {
+    const root = crearRepo(t, "nav: []");
+    escribir(root, "docs/guia/etiqueta.md", "<a x [x](roto-etiqueta.md) >\n");
+    escribir(root, "docs/guia/cita.md", "> ```\n[x](roto-cita.md)\n```\n");
+    escribir(root, "docs/guia/lista.md", "- a\n  ```\n  x\n[x](roto-lista.md)\n```\n");
+    const errs = verificarDocumentacion(root).errores.join("\n");
+    for (const f of ["roto-etiqueta.md", "roto-cita.md", "roto-lista.md"]) assert.match(errs, new RegExp(`${f} \\(no existe\\)`));
+    assert.match(errs, /cita\.md:1: bloque de código sin cerrar/);
+    assert.match(errs, /lista\.md:2: bloque de código sin cerrar/);
+  });
 });

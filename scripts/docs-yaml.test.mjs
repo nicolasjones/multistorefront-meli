@@ -130,6 +130,13 @@ const hostiles = {
   "CR repetidos": (n) => `---\r${"a: [\r".repeat(n / 5)}---\r`,
 };
 const enlaces = {
+  "<a sin cierre": (n) => "<a ".repeat(n / 3),
+  "<img sin cierre": (n) => "<img ".repeat(n / 5),
+  "<a href con comilla abierta": (n) => '<a href="'.repeat(n / 9),
+  "fences en cita": (n) => "> ```\n".repeat(n / 6),
+  "fences en lista": (n) => "- ```\n  x\n".repeat(n / 10),
+  "fences en lista sin cierre": (n) => "- a\n  ```\n[x](y)\n".repeat(n / 20),
+  "definiciones multilínea": (n) => "> - [x]: a\n   \"t\"\n".repeat(n / 16),
   "corchetes anidados": (n) => "[".repeat(n / 2) + "](x)".repeat(n / 8),
   "fences alternados": (n) => "```\n~~~\n".repeat(n / 8),
   "fences de longitud creciente": (n) => Array.from({ length: Math.floor(Math.sqrt(n)) }, (_, k) => "`".repeat(3 + (k % 50)) + "\n").join(""),
@@ -206,7 +213,8 @@ describe("enlacesMarkdown", () => {
     assert.deepEqual(destinos('[x]: roto.md "título"\n  [y]: <con espacios.md>\n[^1]: nota larga\n[Nota]: ver más\ntexto [x]: no.md'), ["roto.md", "con espacios.md"]);
     assert.deepEqual(destinos('<a href="a.md">x</a> <A HREF=b.md> <img alt=x src=\'i.png\'> <abbr title="t"> <https://x.org>'), ["a.md", "b.md", "i.png"]);
     assert.deepEqual(destinos("[a](<con espacios.md>) [b](<x.md> \"t\")"), ["con espacios.md", "x.md"]);
-    assert.deepEqual(destinos("[a\\]b](x.md) \\[c](y.md)"), ["x.md"]);
+    // Sin manejo de escapes (como el extractor anterior): `\\[c](y.md)` se valida y `[a\\]b](x.md)` es un límite documentado.
+    assert.deepEqual(destinos("[a\\]b](x.md) \\[c](y.md)"), ["y.md"]);
   });
   it("(D) esBlanco equivale a /\\s/ (NBSP y blancos Unicode separan el destino)", () => {
     for (let k = 0; k < 0x10000; k++) assert.equal(esBlanco(String.fromCharCode(k)), /\s/.test(String.fromCharCode(k)), k.toString(16));
@@ -231,10 +239,43 @@ describe("enlacesMarkdown", () => {
   caso("texto", `[${"t".repeat(MAX_TEXTO_ENLACE)}](a.md)`, `[${"t".repeat(MAX_TEXTO_ENLACE + 1)}](a.md)`, "texto");
   caso("título", `[a](b "${"t".repeat(MAX_TITULO_ENLACE)}")`, `[a](b "${"t".repeat(MAX_TITULO_ENLACE + 1)}")`, "título");
   caso("blancos antes del título", `[a](b${" ".repeat(MAX_BLANCOS_ENLACE)}"t")`, `[a](b${" ".repeat(MAX_BLANCOS_ENLACE + 1)}"t")`, "título");
-  it("una etiqueta HTML de más de 1000 caracteres se reporta", () => {
-    const r = enlacesMarkdown(`<a ${"x ".repeat(MAX_ETIQUETA_HTML)}href="a.md">`);
-    assert.equal(r.excesos.length, 1);
-    assert.match(r.excesos[0].motivo, /etiqueta HTML/);
+  it("una etiqueta HTML de más de 1000 caracteres no se analiza (límite documentado) y no oculta enlaces", () => {
+    const r = enlacesMarkdown(`<a ${"x ".repeat(MAX_ETIQUETA_HTML)}href="a.md"> [b](b.md)`);
+    assert.deepEqual(r.enlaces.map((m) => m.destino), ["b.md"]);
+    assert.deepEqual(r.excesos, []);
+  });
+  it("(1) una etiqueta `<a` o `<img` que no es válida no consume los enlaces que la siguen", () => {
+    assert.deepEqual(destinos("<a x [x](../../etc/passwd) >"), ["../../etc/passwd"]);
+    assert.deepEqual(destinos("<a x\n[x](roto.md)"), ["roto.md"]);
+    assert.deepEqual(destinos("<img [x](roto.md) alt=y>"), ["roto.md"]);
+    assert.deepEqual(destinos('<a href="a.md" [x](roto.md)>'), ["a.md", "roto.md"]);
+    assert.deepEqual(destinos('<img alt="[x](r.md)" src=i.png>'), ["i.png", "r.md"]);
+    assert.deepEqual(destinos("<a <a <a [x](roto.md)"), ["roto.md"]);
+  });
+  it("(4) el > entre comillas de un atributo no esconde el src", () => {
+    assert.deepEqual(destinos('<img alt="x>y" src="i.png">'), ["i.png"]);
+    assert.deepEqual(destinos("<a title='a>b' href=\"h.md\">"), ["h.md"]);
+  });
+  it("(2) un fence abierto dentro de una cita o lista cierra solo dentro de su contenedor", () => {
+    for (const s of ["- a\n  ```\n  x\n[x](roto.md)\n```\n", "> ```\n[x](roto.md)\n```\n", "1. a\n   ~~~\n   x\n[x](roto.md)\n~~~\n"]) {
+      const r = enlacesMarkdown(s);
+      assert.deepEqual(r.enlaces.map((m) => m.destino), ["roto.md"], s);
+      assert.equal(r.sinCerrar.length >= 1, true, s);
+    }
+    const ok = enlacesMarkdown("- a\n  ```\n  [x](dentro.md)\n\n  ```\n[f](fuera.md)\n> ```\n> [y](dentro2.md)\n> ```\n[g](fuera2.md)\n");
+    assert.deepEqual(ok.enlaces.map((m) => m.destino), ["fuera.md", "fuera2.md"]);
+    assert.deepEqual(ok.sinCerrar, []);
+  });
+  it("(5) un fence en la misma línea del marcador de lista se abre y se cierra bien", () => {
+    const r = enlacesMarkdown("- ```\n  [x](dentro.md)\n  ```\n- [y](fuera.md)\n");
+    assert.deepEqual(r.enlaces.map((m) => m.destino), ["fuera.md"]);
+    assert.deepEqual(r.sinCerrar, []);
+    assert.deepEqual(enlacesMarkdown("1. ```js\n   x\n   ```\n").sinCerrar, []);
+  });
+  it("(3) definiciones dentro de cita o lista, con destino o título en la línea siguiente o entre paréntesis", () => {
+    assert.deepEqual(destinos("> [a]: r1.md\n- [b]: r2.md (título)\n1. [c]:\n   r3.md\n[d]: r4.md\n  \"t\"\n[e]: r5.md 'x'"), ["r1.md", "r2.md", "r3.md", "r4.md", "r5.md"]);
+    assert.deepEqual(destinos("[a]: r.md texto de más\nprosa [b]: no.md"), []);
+    assert.deepEqual(destinos("[a](b.md (título))"), ["b.md"]);
   });
   it("limita los excesos guardados y cuenta el resto", () => {
     const r = enlacesMarkdown(`[a](${"x".repeat(MAX_DESTINO_ENLACE + 1)}) `.repeat(MAX_EXCESOS_ENLACE + 25));
