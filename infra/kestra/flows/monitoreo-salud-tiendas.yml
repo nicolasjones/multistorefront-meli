@@ -20,6 +20,11 @@ inputs:
   - id: timeout_seg
     type: INT
     defaults: 10
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: tiendas
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -28,6 +33,7 @@ tasks:
     password: "{{ envs.kestra_orquestacion_db_password }}"
     fetchType: FETCH
     sql: select dominio, organizacion_id from public.tiendas_a_sondear();
+    timeout: PT1M
   - id: sondear
     type: io.kestra.plugin.scripts.shell.Commands
     taskRunner:
@@ -210,6 +216,7 @@ tasks:
       from jsonb_to_recordset(CAST(:resultados AS jsonb)) as r(dominio text, organizacion_id uuid, resultado text, motivo text);
     parameters:
       resultados: "{{ read(outputs.sondear.outputFiles['resultados.json']) }}"
+    timeout: PT1M
   # El barrido terminó bien: el monitor está vivo (resuelve una alerta `monitor:tiendas` abierta).
   - id: monitor_ok
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -217,6 +224,7 @@ tasks:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     sql: select public.registrar_evento_monitoreo('aplicacion', 'monitor:tiendas', 'ok', null, null);
+    timeout: PT1M
 errors:
   # Si el script falla o no deja resultados.json no se registra ningún evento de tienda: el monitoreo quedaría ciego sin
   # alerta. Se registra un fallo del PROPIO monitor (clave monitor:tiendas); tras 5 seguidos monitoreo-evaluar abre la alerta.
@@ -226,6 +234,7 @@ errors:
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"
     sql: select public.registrar_evento_monitoreo('aplicacion', 'monitor:tiendas', 'fallo', 'MONITOR_SIN_BARRIDO', null);
+    timeout: PT1M
 triggers:
   - id: cada_2_minutos
     type: io.kestra.plugin.core.trigger.Schedule
