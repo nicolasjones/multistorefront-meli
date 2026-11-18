@@ -42,6 +42,7 @@ Sin Docker/Supabase, el panel arranca pero las pantallas con datos no funcionan.
 3. Implementá con tests; actualizá docs/DER si tocás datos o contratos.
 4. Abrí el PR con evidencia (tests, capturas, diagramas).
 5. El CI corre `docs:check`, lint, tests y e2e; el Revisor revisa QA + técnica. Para docs, `pnpm docs:wiki:check` valida inventario, `docs/manifest.json` y drift de fuentes antes de commitear. El drift compara contra `sourceAt` (el commit donde se calculó el hash de la página): sumar una spec nueva no marca como vieja a toda página que declara `specs` como fuente; editar o borrar un archivo que ya existía, sí. `sourceAt` es el último commit propio de la página (`git log --no-merges`), no HEAD: en el CI HEAD es el merge efímero del PR y haría cambiar el manifest sin que cambie nada (MSF-950).
+   Si el PR cambia una pantalla, rehacé también las capturas del manual de usuario con `pnpm docs:capturas` (`package.json:65`, que delega en `apps/web/package.json:13`: `playwright test -c playwright.capturas.config.ts`); `pnpm demo:dataset` (`package.json:66`) carga el dataset demo.
 
 ## 6. Evidencia E2E (video por historia)
 

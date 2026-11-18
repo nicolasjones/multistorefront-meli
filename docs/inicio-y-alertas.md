@@ -153,9 +153,9 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
 - **Actividad reciente**: los últimos 10 eventos del período y de la tienda elegida, con fecha, usuario y enlace
   (cada fila y «Ver todo» llevan a Actividad). No lleva depósito (el registro no lo guarda) ni columna «Cant.»
   (el registro guarda un texto de detalle, no una cantidad).
-- «Resumen por tienda» y «Salidas por depósito» salen de la **misma lectura**: si falla, fallan los dos con su
-  propio reintento; la actividad es independiente. **Desvío** de RF-INI-05-7 / CA-INI-05-8 (error independiente por
-  bloque): seguimiento en **MSF-850**.
+- «Resumen por tienda» y «Salidas por depósito» se leen **por separado** (MSF-850, RF-INI-05-7 / CA-INI-05-8): cada uno con
+  su carga, su error y su «Reintentar»; si falla uno, el otro sigue visible, y la actividad también es independiente
+  (`apps/web/src/pages/inicio/tablero/BloquesGestion.tsx`, componentes `ResumenTiendas` y `SalidasDepositos`; ver más abajo).
 - Si la base devuelve `null` en un bloque (por ejemplo, una tienda donde el rol no tiene `ventas`), el bloque dice
   «No tenés ventas habilitadas en esta tienda» (o «No tenés Stock habilitado») en vez de quedar en blanco. Una tienda
   sin ventas dice «Sin ventas en el período»; «sin costo cargado» queda para una tienda con ventas sin costo guardado.
@@ -356,7 +356,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Desvío | Seguimiento |
 |---|---|
 | El tema del panel no tiene modo oscuro: no hay modo oscuro que verificar en el gráfico (RF-INI-04-7) | **MSF-849** |
-| «Resumen por tienda» y «Salidas por depósito» comparten una lectura: si falla, fallan juntos (RF-INI-05-7 / CA-INI-05-8 pide error independiente por bloque) | **MSF-850** |
+| ~~«Resumen por tienda» y «Salidas por depósito» comparten una lectura~~ | Resuelto en MSF-850: lecturas independientes con `p_seccion` (migración `20270324120200`) |
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |

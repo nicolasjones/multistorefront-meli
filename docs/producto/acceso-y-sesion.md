@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/login.tsx
+  - apps/web/src/pages/acceso
+  - apps/web/src/pages/acceso-restringido
 ---
 
 # Ingresar, recuperar el acceso y pedir permisos

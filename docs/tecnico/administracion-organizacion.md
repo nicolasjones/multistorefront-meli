@@ -19,6 +19,7 @@ sources:
 - **Logo**: bucket privado `logos-organizacion` con cuatro políticas `logos_organizacion_*` en `storage.objects` (mismo archivo de migración). La pantalla firma la URL con `createSignedUrl(logoPath, 300)` y tope de 1 MB (`apps/web/src/pages/organizacion/edit.tsx`).
 - **Pantalla**: ruta `/organizacion` (`apps/web/src/App.tsx`, recurso `organizacion`, etiqueta «Mi organización») con `RequiereOrganizacionActiva`. Lista las empresas con `useEmpresas` y enlace a `/empresas/edit/:id`.
 - **Empresa activa**: no aplica; la pantalla es de la organización, no de una empresa (la lista de empresas es informativa).
+- **Edición de los datos de la organización**: quien no es administrador ve el componente compartido `AccesoRestringido` («Mi organización») en lugar del estado de error con texto fijo (`apps/web/src/pages/organizacion/edit.tsx:136`).
 
 ## F-USR-03: restablecer la contraseña de otro usuario
 

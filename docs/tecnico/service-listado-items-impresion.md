@@ -215,7 +215,10 @@ La tienda del listado es la **empresa activa** de la barra superior, no un filtr
 
 - `apps/web/src/pages/service-tecnico/orden-ingreso.tsx` y `remito-entrega.tsx` cargan de forma diferida y
   están dentro de `RequiereServiceTecnico`: exigen `lectura` en `service_tecnico`; sin permiso muestran «Acceso
-  restringido».
+  restringido». Si la persona tiene permiso pero la funcionalidad no está habilitada para la organización, la guarda
+  muestra «Servicio técnico no está habilitado para tu organización» sin hablar del rol (`FuncionalidadNoHabilitada`
+  en `components/service/RequiereServiceTecnico.tsx`): a un superadmin le indica Plataforma · Funcionalidades; a quien
+  puede escribir, que la activa el soporte de la plataforma; al resto, que se lo pida a un administrador.
 - `apps/web/src/lib/documentosReparacion.ts` arma ambos documentos con lo que devuelve `obtener_reparacion`,
   los datos de la tienda (`dominio.empresas`: nombre, dirección, WhatsApp y correo; lo no cargado se omite) y
   el nombre del técnico. No lee `costo_mano_obra`, `costo_repuestos` ni `ganancia_estimada`.
@@ -224,7 +227,8 @@ La tienda del listado es la **empresa activa** de la barra superior, no un filtr
 - Rótulos fijos: «Documento no fiscal» e «Importes sin IVA».
 - **No hay PDF de servidor** ni mecanismo compartido con Ventas (MSF-213): es una vista propia de Service.
 - **CUIT y domicilio fiscal** no existen hoy en `dominio.empresas`: no se imprimen. El **texto de condiciones**
-  es una constante provisoria (`CONDICIONES_PENDIENTES`), pendiente de confirmar con el negocio.
+  es hoy `CONDICIONES_SERVICIO = null` (`apps/web/src/lib/documentosReparacion.ts`, MSF-614): el negocio no lo definió y,
+  mientras sea `null`, la orden no imprime la línea (nunca se muestra un texto provisional al cliente).
 
 ## Actividad
 

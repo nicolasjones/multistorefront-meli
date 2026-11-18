@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/actividad/list.tsx
+  - apps/web/src/lib/actividad.ts
 ---
 
 # Consultar la actividad: quién hizo qué y cuándo

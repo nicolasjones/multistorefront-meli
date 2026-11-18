@@ -185,9 +185,15 @@ archivo (alcance acotado documentado en la migración).
 ## Pantallas
 
 - **Asistente:** `/migracion/importar/:entidad` (`apps/web/src/pages/migracion/importar.tsx`), con
-  las entidades `clientes`, `proveedores`, `vinculos-proveedor-producto` e `ingresos_archivo`
-  (`entidades/registro.ts`). Sin Administrador muestra «Sin permiso»; una entidad desconocida muestra
-  un error.
+  las entidades `clientes`, `proveedores`, `vinculos_proveedor_producto` e `ingresos_archivo`
+  (`entidades/registro.ts`; el registro todavía acepta la forma con guiones `vinculos-proveedor-producto`,
+  `registro.ts:17`). Las rutas se arman con `rutaImportacion(id)` (`entidades/rutas.ts`), una sola fuente para el
+  registro, el enlace «Seguir con…» de proveedores y las pestañas; la ruta canónica de vínculos es hoy
+  `/migracion/importar/vinculos_proveedor_producto`. Con el paso «subir» activo el asistente muestra pestañas
+  (Clientes, Proveedores, Vínculos proveedor ↔ producto, Ingresos anteriores; `PESTANAS_MIGRACION` en
+  `AsistenteImportacion.tsx`); durante una carga no se ofrecen para no perderla. Desde Importaciones
+  (`pages/importaciones/list.tsx`) hay accesos a «Importar historial de ventas» y «Migración de datos». Sin
+  Administrador muestra «Sin permiso»; una entidad desconocida muestra un error.
 - **Informes:** `/migracion/informes` y `/migracion/informes/:carga`
   (`apps/web/src/pages/migracion/informes.tsx`).
 - **Entradas:** «Importar» en Clientes y Proveedores (solo Administrador) y, al terminar proveedores,

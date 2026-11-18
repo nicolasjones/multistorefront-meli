@@ -35,6 +35,8 @@ Todas son de plataforma (acceso transversal), por eso `public`; con RLS por orga
 | RPC de usuarios | `20261014120000_usuarios_suspension_y_roles.sql` | `listar_usuarios_organizacion`, `cambiar_rol_miembro` (siete roles), `suspender_miembro`, `reactivar_miembro`, `remover_miembro` |
 | `usuarios_organizacion.estado` | `20261012140100` (MSF-119) | Lo administra F-USR-02; traída desde `epic/MSF-138` (`tasks.md`, T029) |
 
+El rol `tecnico` está en la matriz del cliente (`ROLES_MATRIZ`, `apps/web/src/lib/permisos.ts:119`) con columna fija sin edición (`ROLES_MATRIZ_FIJOS`, `permisos.ts:123`) y la Edge Function `invitar-miembro` lo acepta al invitar (`supabase/functions/invitar-miembro/handler.ts:6`, MSF-606). Detalle del rol en [Permisos por rol](../permisos-por-rol.md).
+
 Reversión: documentada en la cabecera de cada migración; son aditivas y no se ejecuta ninguna reversión en el mismo PR.
 
 ## Flujos

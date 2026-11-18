@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/stock/lote.tsx
+  - apps/web/src/pages/stock/toma-inventario.tsx
 ---
 
 # Cargar mercadería en lote y hacer la toma de inventario

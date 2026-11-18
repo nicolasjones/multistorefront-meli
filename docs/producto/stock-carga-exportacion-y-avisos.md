@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/stock/excel.tsx
+  - apps/web/src/pages/stock/faltantes.tsx
 ---
 
 # Cargar stock desde una planilla, exportar y recibir avisos

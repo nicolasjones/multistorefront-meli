@@ -295,6 +295,26 @@ suma dos capacidades sobre esta base:
   de venta (`dominio.comprobantes_venta`) y la cuenta web (`public.cuentas_cliente`) al conservado, da de
   baja la cuenta no elegida, **archiva** al descartado (`archivado_en`) y registra `cliente.fusionado`.
   `public.vista_previa_fusion_clientes` da la vista previa sin escribir.
+  El diálogo (`components/clientes/DialogoFusionarClientes.tsx`) avisa si las dos fichas tienen **listas de precios
+  distintas** (la que se conserva mantiene la suya, la del absorbido se descarta; `lista_precio_id`/`lista_nombre` en
+  la vista previa) y, cuando hay dos cuentas web activas y se eligió cuál conservar, pide marcar «Entiendo que la
+  cuenta web de … se da de baja para siempre» antes de habilitar «Fusionar» (`pideConfirmacion`/`entiendo`).
+
+## Condición de IVA y avisos por WhatsApp en el cliente
+
+- **Condición de IVA (MSF-594).** `dominio.clientes.condicion_iva` (texto libre, 60 caracteres, la imprime la factura
+  interna). La migración `20270507170000_clientes_condicion_iva_via_de_carga.sql` da a `authenticated`
+  `grant insert/update (condicion_iva)` por columna (la RLS por organización y el nivel de la sección `clientes` siguen
+  mandando), y hace que `aplicar_lote_clientes` tome la clave opcional `condicion_iva` de cada fila (una celda vacía
+  no borra el dato: `coalesce(nullif(btrim(...), ''), c.condicion_iva)`) y que `validar_fila_cliente_migracion` la
+  limite a 60. La pantalla todavía no la muestra (detalle y pendiente de interfaz en [Clientes](../clientes.md)).
+- **Lista de precios en la ficha (F-CLI-21).** `pages/clientes/show.tsx` muestra «Lista de precios» (solo lectura,
+  `useListaPrecioDeCliente`; se asigna en «Editar» con `asignar_lista_precios_cliente`) y avisa que la lista y el
+  descuento personal no se acumulan. `lib/clientes.ts` suma `lista_precio_id` y `ErrorGuardadoParcial` (guardado que
+  dejó la lista distinta de como estaba).
+- **Consentimiento de WhatsApp (MSF-952).** `clientes.acepta_whatsapp boolean not null default false` (migración
+  `20270418000403_reparacion_avisos_whatsapp_envio.sql:222`); la ficha tiene el interruptor «Acepta avisos por
+  WhatsApp» (`show.tsx`), habilitado solo con permiso de edición. Sin él encendido la base no encola ningún WhatsApp.
 
 ## Cuenta corriente y saldo del cliente (F-CLI-19, MSF-451 · épica MSF-450)
 

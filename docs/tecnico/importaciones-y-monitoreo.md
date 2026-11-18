@@ -105,6 +105,8 @@ la cierra `timeout` con `private.cerrar_procesos_masivos_vencidos`.
 - Implementación: `apps/web/src/pages/importaciones/list.tsx` (tabla), `DetalleImportacion.tsx` (diálogo),
   `CancelarProceso.tsx` (confirmación); datos en `hooks/useProcesosMasivos.ts` y `hooks/useErroresProceso.ts`;
   textos y formato en `lib/procesosMasivos.ts`.
+- El encabezado de la pantalla trae dos accesos: **Importar historial de ventas** (`/historial/importar`) y **Migración de datos**
+  (`/migracion/importar/clientes`) (`list.tsx:110-111`, MSF-613).
 - Columnas: fecha, origen (nombre legible + tipo + funcionalidad; nunca la clave técnica), estado, avance,
   resultado («N correctas y M con error») y duración. Carga infinita: 20 procesos por tanda y errores de a 20
   (columnas fila, columna, referencia y motivo, con «Cargar más»). «Descargar errores (CSV)» baja todos los
