@@ -44,6 +44,10 @@ dicen los nombres reales (`20270507200101`–`20270507200104`) y el máximo real
 más» de la carga infinita ya no queda muerto cuando el clic llega antes de que React vacíe los efectos pasivos (causa de la caída del
 job `web (2)`), con su test de regresión.
 
+**Devolución del Revisor (PR #1128, 2026-11-18T02:03):** el único hallazgo accionable es que la tabla decía «64 aserciones» cuando el
+pgTAP declara `plan(70)` (las 64 originales más las 6 del choque de `clave_envio`); queda corregido en la fila del archivo y coincide
+con `test.md`. No se toca nada más: el resto de la devolución anterior está resuelto y no se re-abre.
+
 ## Changes
 
 | File | Change | Notes |
@@ -52,7 +56,7 @@ job `web (2)`), con su test de regresión.
 | `supabase/migrations/20270507200102_fusionar_clientes_repunta_tienda.sql` | added | H-2 (parte 2): `public.fusionar_clientes` repunta `dominio.presupuestos_tienda.cliente_id` y `dominio.consultas.cliente_id` al cliente conservado. Cuerpo = el vigente (`20270419000200`, con el bloque de opiniones de MSF-467 y `dominio.clientes`) más ese cambio. |
 | `supabase/migrations/20270507200103_tienda_cupo_llamadas_cuenta.sql` | added | H-3: `private.limite_llamadas_cuenta_por_minuto()` (120) y cupo por cuenta en las cinco RPC de «Mi cuenta», tomado después de resolver la cuenta y antes de cualquier lectura, en un bloque anidado con su manejador (sobrevive a un error). Las cuatro que eran `stable` pasan a `volatile`. Cuerpos = los vigentes. |
 | `supabase/migrations/20270507200104_tienda_caracteres_invisibles.sql` | added | H-6: conjunto de caracteres bloqueados ampliado (U+00AD, U+180E, U+2061 a U+2064) en `enviar_lista_pedido` y `crear_presupuesto_tienda`. Cuerpos = los vigentes (idénticos carácter a carácter salvo las dos constantes). |
-| `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | added test | 64 aserciones: H-2 (baja de cuenta, fusión en los dos casos del diálogo y baja de organización), H-3 (cupo por cuenta en las cinco RPC, que sobrevive a un error), H-4 (el cupo de la lista y del envío sobrevive a una excepción) y H-6 (caracteres invisibles en B1 y B2). Adaptado a la base (`dominio.clientes`, firma de `precio_referencia_pedido`, `listar_presupuestos` con seis parámetros, cupo de 10 por minuto del presupuesto). |
+| `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | added test | 70 aserciones: H-2 (baja de cuenta, fusión en los dos casos del diálogo y baja de organización), H-3 (cupo por cuenta en las cinco RPC, que sobrevive a un error), H-4 (el cupo de la lista y del envío sobrevive a una excepción) y H-6 (caracteres invisibles en B1 y B2). Adaptado a la base (`dominio.clientes`, firma de `precio_referencia_pedido`, `listar_presupuestos` con seis parámetros, cupo de 10 por minuto del presupuesto). |
 | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | fixed | El fixture subía `dominio.existencias.cantidad` con un `insert` que chocaba con la fila que ya deja el trigger `productos_crear_existencias`: ahora `on conflict (producto_id) do update`. |
 | `supabase/tests/database/tienda_favoritos.test.sql` | fixed | La ráfaga de 203 favoritos (una sola transacción) chocaba con el cupo nuevo de 120 llamadas por minuto: el test sube el cupo **dentro de su transacción** (se deshace al final), igual que en el PR #965. El cupo real se prueba en `tienda_cierre_hallazgos.test.sql`. |
 | `supabase/migrations/20270507200103_tienda_cupo_llamadas_cuenta.sql` | fixed | Los comentarios de las cinco RPC se reproducen los de la base (con su documentación completa, incluida la «DEFENSA EN PROFUNDIDAD» que fija un pgTAP de catálogo) y suman la nota del cupo: un `create or replace` borra el comentario anterior. |
@@ -134,8 +138,8 @@ end if;
   - `pnpm --filter @platform/web lint` → **OK** (código 0; solo avisos preexistentes de `oxlint`, ninguno en los archivos tocados).
   - `pnpm build` (`tsc -b` + `vite build`) → **OK** (`✓ built in 5.34s`).
   - `vitest run src/lib/tiendaCuentaDatos.test.ts src/lib/tiendaPedido.test.ts src/lib/tiendaPedido.caracteres.test.ts
-    src/hooks/useListadoPorCursor.test.tsx src/hooks/useFavoritosEntre.test.tsx src/pages/tienda-publica/cuenta/` → **142 pruebas en
-    verde** (8 archivos).
+    src/hooks/useListadoPorCursor.test.tsx src/hooks/useFavoritosEntre.test.tsx src/pages/tienda-publica/cuenta/` → **144 pruebas en
+    verde** (8 archivos; re-ejecutado el 2026-11-18 al corregir la evidencia).
   - `vitest run src/lib/tiendaOpiniones.test.ts src/pages/tienda-publica/cuenta/favoritosSoloEnLaTienda.test.ts
     src/pages/tienda-publica/lista/ src/pages/tienda-publica/opiniones/ src/hooks/useComprasCliente.test.tsx
     src/components/consultas/` → **188 pruebas en verde** (12 archivos: los que dependen de `tiendaCuentaDatos`/`tiendaPedido`).
@@ -148,7 +152,7 @@ end if;
   - `node scripts/verificar-der.mjs specs/20270306-100000-tienda-compra-y-cuentas/spec.md` → **DER OK**.
   - `pnpm calidad:code` → `oxlint`, `knip`, `jscpd`, `dependency-cruiser` y `syncpack` en **OK**; `gitleaks` **saltado** (necesita
     Docker, sin permisos en este nodo: «permission denied … /var/run/docker.sock»).
-- Los tests **vigilan** la regla (FEAT-236): con `menseLimite` mutado para devolver siempre el texto genérico fallan 12 pruebas de 5
+- Los tests **vigilan** la regla (FEAT-236): con `mensajeLimite` mutado para devolver siempre el texto genérico fallan 12 pruebas de 5
   archivos; con `esLimite` mutado para devolver siempre `false` fallan los tests del cupo. Las dos mutaciones se revirtieron.
 - Manual checks:
   - Los cuerpos de `enviar_lista_pedido` y `crear_presupuesto_tienda` de `20270507200104` se compararon **carácter a carácter** con
