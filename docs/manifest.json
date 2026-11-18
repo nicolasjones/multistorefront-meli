@@ -657,14 +657,14 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "cba7e33b3518399b7f49d9a98d691caa071dec3ea76248e47c20380fe27d6e1d",
+      "pageHash": "abdb35005bd4849c6971ad906711fa7bd025dd07c90e5d91a2ae67e8154b4f91",
       "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "3a19d24c",
+      "sourceAt": "da3be42b",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "3a19d24c"
+      "commit": "da3be42b"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
