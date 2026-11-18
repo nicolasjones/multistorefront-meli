@@ -4,6 +4,7 @@ sources:
   - infra/runner
   - scripts/ci-lane.mjs
   - scripts/estado-ci.mjs
+  - scripts/gate-integracion.mjs
   - scripts/limpiar-ci.mjs
   - scripts/verificar-workflows.mjs
   - scripts/verificar-validacion.mjs
@@ -35,6 +36,7 @@ cantidad declarada.
 | **Timeouts** | Ningún job queda colgado para siempre | `timeout-minutes` en cada job |
 | **Límite de CPU** | Cada runner no se come la máquina | `RUNNER_CPU_LIMIT` (`infra/runner/compose.yaml`) |
 | **Integración protegida** | PR probado contra el `dokploy` actual | ruleset `dokploy-integracion-protegida` + `merge_group` |
+| **Estado del gate** | Lee el gate real de merge (rulesets) y da el veredicto | `scripts/gate-integracion.mjs` (`pnpm ci:gate`) |
 | **Janitor** | Limpia locks y stacks CI abandonados | `scripts/limpiar-ci.mjs` |
 | **Estado** | Foto de carriles, carga y runners | `scripts/estado-ci.mjs` |
 
@@ -154,6 +156,10 @@ archivo` sin pasos de código.
   dice «la base `origin/dokploy` renumeró N migración(es) que tu rama heredó», actualizá la
   rama (merge de la base en la rama del PR) antes de mergear: si no, la migración vieja y
   la renumerada conviven al integrar.
+- **Un PR quedó `BEHIND` y el merge falla con «head branch is not up to date»:** corré
+  `pnpm ci:gate -- --pr <n>` para ver el gate real de la base. Si «rama al día» está
+  desactivada (el estado actual), ese rechazo no viene del gate: no resincronices la
+  rama a ciegas (eso reinicia el CI y vuelve a dejar la rama atrás).
 
 ## Cambios de CI de la auditoría MSF-647 (lote 26)
 
@@ -281,6 +287,12 @@ para pasar dev a estricto: `docs/deployment.md`, «Pasar dev a modo estricto». 
 
 Propuestas exactas; ninguna se aplicó.
 
+- **MSF-755 · cola de merge del ruleset `dokploy-integracion-protegida`.** Activar la regla «Merge queue» del ruleset
+  (`dokploy-integracion-protegida`, id `25358575`): es la alternativa a exigir «rama al día» y la única que no deja la ventana de dos
+  PRs verdes por separado. GitHub no expone `merge_queue` por API para este repo, así que se activa desde la UI
+  (Settings → Rules → Rulesets → `dokploy-integracion-protegida` → «Merge queue»). El repo no se toca: `validate.yml` ya tiene el
+  trigger `merge_group`. Para ver el estado antes y después: `pnpm ci:gate`.
+
 - **MSF-648 · puertos publicados a Internet (Postgres, Studio, Kong, Inbucket, Dokploy).** Acción en el servidor: (1) en el firewall del
   VPS (`ufw`/grupo de seguridad) permitir entrada solo a 22, 80 y 443 y a la red de Tailscale; (2) en Dokploy, quitar los «Published
   Ports» de los servicios de Supabase y publicar solo por Traefik con TLS; (3) enlazar los puertos que deban quedar en el host a
@@ -315,7 +327,7 @@ Propuestas exactas; ninguna se aplicó.
 
 ## Integración protegida de `dokploy`
 
-`dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`) con:
+`dokploy` tiene un **ruleset activo** (`dokploy-integracion-protegida`, id `25358575`) con:
 
 - **Check requerido único: `validacion`** (job agregador que siempre corre y
   falla si `changes`, `application`, `web`, `infrastructure` o `database`
@@ -333,14 +345,50 @@ Esto reemplaza al merge queue: GitHub no expone `merge_queue` por API para este
 repo (el ruleset lo rechaza), pero el workflow ya soporta `merge_group`, así que
 si se habilita desde la UI/plan no hay que tocar nada.
 
+### El gate se lee por rulesets, no por `/branches/<rama>/protection` (MSF-755)
+
+`GET /repos/<owner>/<repo>/branches/dokploy/protection` devuelve **404 «Branch not
+protected»** aunque el ruleset esté activo: ese endpoint es el de la *branch
+protection* clásica y no ve los rulesets. Tomar ese 404 por «no hay protección»
+es lo que produce el ciclo infinito de `BEHIND`: se concluye que se puede
+mergear aunque la rama no esté al día, el merge falla con *«head branch is not up
+to date»*, se resincroniza la rama, el CI vuelve a arrancar y, si la base avanza
+más rápido que el CI, la rama queda atrás otra vez.
+
+El estado real se lee por la API de rulesets:
+
 ```bash
 gh api repos/<owner>/<repo>/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
-gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar
+gh api repos/<owner>/<repo>/rulesets/25358575 --jq '.rules[] | {type, parameters}'
 ```
 
-Consecuencia operativa: `gh pr merge --merge` puede fallar con *"head branch is
-not up to date"*; en ese caso, actualizar la rama y reintentar. Es intencional:
-evita el “verde en su rama, rojo al integrar”.
+El repo trae el diagnóstico que ya consulta el endpoint correcto, avisa de la
+trampa del 404 y da el veredicto (sólo lectura; sale con código 1 si el merge
+está bloqueado):
+
+```bash
+pnpm ci:gate                 # estado del gate de «dokploy»
+pnpm ci:gate -- --pr 1234    # además: cuántos commits está atrás la rama del PR
+```
+
+### Consecuencia operativa
+
+Con «rama al día» **desactivada** (el estado actual), `gh pr merge --merge` no
+se rechaza por desfasaje: un PR que quedó atrás mergea igual, con `validacion`
+en verde. Si el merge falla con *«head branch is not up to date»*, primero mirá
+el gate con `pnpm ci:gate`: si «rama al día» está desactivada, ese error no viene
+del gate y hay que buscar la causa real; **resincronizar la rama a ciegas
+reinicia el CI y vuelve a dejar la rama atrás**.
+
+Si «rama al día» vuelve a activarse (`strict_required_status_checks_policy: true`),
+el merge se rechaza mientras la rama esté atrás y actualizar la rama reinicia el
+CI: con la base avanzando más rápido que el CI, ese ciclo no termina. Las dos
+salidas son desactivar «rama al día» o activar la cola de merge (decisión de
+Nicolás, ver «Pendientes del lote 36 que necesitan acción de Nicolás»).
+
+```bash
+gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar
+```
 
 ## Navegadores huérfanos y zombies de los runners (AGE-1311)
 
@@ -491,7 +539,9 @@ Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, n
   `pnpm prepush`); `SKIP_PREPUSH=1` lo saltea. No se activa por `core.hooksPath` global porque lo compartirían todos los worktrees.
 - **Cola de merge:** el workflow ya reacciona a `merge_group`, pero el ruleset `dokploy-integracion-protegida` hoy solo exige el
   check `validacion` y no tiene regla de cola de merge. Activarla cambia el flujo de merge de todas las sesiones (cada PR corre el CI
-  completo al integrar), así que es una decisión aparte.
+  completo al integrar), así que es una decisión aparte: es la de Nicolás (MSF-755) y se activa desde la UI
+  (Settings → Rules → Rulesets → `dokploy-integracion-protegida` → «Merge queue»), porque GitHub no la expone por API para este repo.
+  El repo no se toca: `validate.yml` ya tiene el trigger `merge_group`.
 
 ## E2E con sesión (`e2e-visible-sesion`): arranque del stack
 
