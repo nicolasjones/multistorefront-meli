@@ -333,7 +333,7 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(screen.queryByRole('button', { name: 'Copiar' })).not.toBeInTheDocument()
   })
 
-  it('«Copiar» muestra el mensaje de la copia aunque la pantalla no se remonte al pasar de un comprobante a otro (MSF-515)', async () => {
+  it('«Copiar» muestra el mensaje de la copia aunque la pantalla no se remonte al pasar de un comprobante a otro', async () => {
     const original = { ...COMPROBANTE, id: 'k-1', tipo: 'presupuesto', numero: '00000002', estado: 'aceptado', editable: false }
     mocks.obtenerComprobante.mockImplementation(async (id: string) => (id === 'k-9' ? { ...original, id: 'k-9', numero: '00000007', estado: 'pendiente', editable: true } : original))
     mocks.copiarPresupuesto.mockResolvedValue({ id: 'k-9', numero: '00000007', estado: 'pendiente' })
