@@ -62,6 +62,7 @@ tasks:
     sql: select * from public.iniciar_respaldo(:origen);
     parameters:
       origen: "{{ inputs.origen }}"
+    timeout: PT1M
 
   # pg_dump corre en un contenedor Postgres aparte vía el Docker task
   # runner (research.md R3) — el socket ya estaba montado en
@@ -77,6 +78,8 @@ tasks:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       pullPolicy: IF_NOT_PRESENT
     containerImage: postgres:17-alpine
+    # Tope (MSF-709): un pg_dump colgado no puede ocupar un hueco del worker indefinidamente.
+    timeout: PT2H
     outputFiles:
       - respaldo.dump
     commands:
@@ -94,6 +97,7 @@ tasks:
       type: io.kestra.plugin.scripts.runner.docker.Docker
       pullPolicy: IF_NOT_PRESENT
     containerImage: postgres:17-alpine
+    timeout: PT15M
     inputFiles:
       respaldo.dump: "{{ outputs.pg_dump.outputFiles['respaldo.dump'] }}"
     commands:
@@ -127,6 +131,7 @@ tasks:
       volumes:
         - "{{ envs.respaldos_dir_host }}:/respaldos"
     containerImage: rclone/rclone:1.68.2
+    timeout: PT1H
     env:
       RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
       RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
@@ -165,6 +170,16 @@ tasks:
       id: "{{ outputs.iniciar_respaldo.row.id }}"
       tamano: "{{ outputs.verificar_respaldo.vars.tamano_bytes }}"
       ubicacion: "{{ outputs.copiar_a_destino.vars.ubicacion }}"
+    timeout: PT1M
+
+# MSF-707: el dump completo de la base NO debe quedar en el almacenamiento
+# interno de Kestra: la copia durable es la del destino de respaldos. `finally`
+# corre siempre (con éxito o con error) y borra los archivos de esta ejecución;
+# lo que ya salió de ahí (ejecuciones viejas) lo purga `purgar-almacenamiento-kestra`.
+finally:
+  - id: purgar_archivos_de_la_ejecucion
+    type: io.kestra.plugin.core.storage.PurgeCurrentExecutionFiles
+    allowFailure: true
 
 # Cualquier falla en pg_dump, la verificación o el propio
 # finalizar_respaldo_completado termina acá (FR-006, FR-008), con el
@@ -187,6 +202,7 @@ errors:
         parameters:
           id: "{{ outputs.iniciar_respaldo.row.id }}"
           motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+        timeout: PT1M
   # Épica MSF-457 (FR-005): todo fallo, incluso «ya hay un respaldo en
   # progreso», avisa por correo al soporte con el motivo.
   - id: avisar_fallo
