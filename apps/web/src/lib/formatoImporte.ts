@@ -12,6 +12,12 @@ type OpcionesImporte = {
   menos?: 'antes' | 'despues'
 }
 
+// Solo el número (sin símbolo): para columnas cuyo encabezado ya dice la moneda y para importes con otra moneda delante.
+export function formatearNumeroImporte(valor: number, opciones: Pick<OpcionesImporte, 'centavos'> = {}): string {
+  if (!Number.isFinite(valor)) return '—'
+  return formatearImporte(valor, { ...opciones, simbolo: '' }).replace(/^-?\s/, (m) => m.replace(' ', ''))
+}
+
 export function formatearImporte(valor: number, opciones: OpcionesImporte = {}): string {
   if (!Number.isFinite(valor)) return '—'
   const simbolo = opciones.simbolo ?? '$'

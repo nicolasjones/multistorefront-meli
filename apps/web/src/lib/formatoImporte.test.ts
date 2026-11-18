@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { formatearImporte } from './formatoImporte'
+import { formatearImporte, formatearNumeroImporte } from './formatoImporte'
+import { formatearPrecioTienda } from './tiendaCatalogo'
 import { formatearPesosPrecio } from './precios'
 import { formatearPesosPromocion } from './promociones'
 import { formatearImporteHistorial } from './formatoHistorial'
@@ -44,5 +45,17 @@ describe('los formateadores de cada pantalla usan el compartido', () => {
     expect(formatearARS(valor).replace(/\s/g, ' ')).toBe(esperado)
     expect(formatearImporteArs(valor)).toBe(esperado)
     expect(formatearImporteGasto(valor, 'ARS')).toBe(esperado)
+  })
+})
+
+describe('formatearNumeroImporte', () => {
+  it('da solo el número con miles también de cuatro dígitos y siempre dos decimales si se pide', () => {
+    expect(formatearNumeroImporte(1500, { centavos: 'siempre' })).toBe('1.500,00')
+    expect(formatearNumeroImporte(64200.5, { centavos: 'siempre' })).toBe('64.200,50')
+    expect(formatearNumeroImporte(-1500.5, { centavos: 'siempre' })).toBe('-1.500,50')
+    expect(formatearNumeroImporte(Number.NaN)).toBe('—')
+  })
+  it('el precio de la tienda agrupa cuatro dígitos', () => {
+    expect(formatearPrecioTienda('ARS', 1500)).toBe('ARS 1.500,00')
   })
 })

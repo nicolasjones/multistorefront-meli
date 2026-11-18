@@ -37,6 +37,8 @@ export function TomaInventario() {
   const [errorCategorias, setErrorCategorias] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
   const [deposito, setDeposito] = useState<string | null>(null)
+  const [errorDeposito, setErrorDeposito] = useState(false)
+  const [recargaDeposito, setRecargaDeposito] = useState(0)
   const [filas, setFilas] = useState<FilaToma[]>([])
   const [cargandoFilas, setCargandoFilas] = useState(false)
   const [errorFilas, setErrorFilas] = useState<string | null>(null)
@@ -63,11 +65,15 @@ export function TomaInventario() {
 
   useEffect(() => {
     let vigente = true
+    setErrorDeposito(false)
     cargarDepositoToma()
       .then((encontrado) => { if (vigente) setDeposito(encontrado.nombre) })
-      .catch((error) => { console.error('No pudimos cargar el depósito de la toma.', error) })
+      .catch((error) => {
+        console.error('No pudimos cargar el depósito de la toma.', error)
+        if (vigente) setErrorDeposito(true)
+      })
     return () => { vigente = false }
-  }, [])
+  }, [recargaDeposito])
 
   useEffect(() => {
     if (categoriaId === '') { setFilas([]); return }
@@ -150,6 +156,11 @@ export function TomaInventario() {
                 <MenuItem value={SIN_CATEGORIA}>Sin categoría</MenuItem>
               </Select>
             </FormControl>
+            {errorDeposito ? (
+              <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => setRecargaDeposito((valor) => valor + 1)}>Reintentar</Button>}>
+                No pudimos cargar el depósito sobre el que opera la toma.
+              </Alert>
+            ) : null}
             <TextField
               label="Depósito"
               value={deposito ?? ''}

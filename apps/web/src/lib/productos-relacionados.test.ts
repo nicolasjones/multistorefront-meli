@@ -122,3 +122,9 @@ describe('productos-relacionados', () => {
     silenciar.mockRestore()
   })
 })
+
+describe('detalleRelacionado · importe', () => {
+  it('agrupa miles de cuatro dígitos con dos decimales', () => {
+    expect(detalleRelacionado({ id: 'p-1', nombre: 'X', sku: 'S', categoria: null, precio: '1500', moneda: 'ARS' } as never)).toBe('S · — · $ 1.500,00')
+  })
+})

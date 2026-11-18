@@ -81,6 +81,15 @@ describe('TomaInventario', () => {
     expect(mocks.filas).toHaveBeenCalledWith([], true)
   })
 
+  it('si falla la carga del depósito avisa con «Reintentar» y al reintentar lo muestra', async () => {
+    mocks.deposito.mockRejectedValueOnce(new Error('red caída'))
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    expect(await screen.findByText('No pudimos cargar el depósito sobre el que opera la toma.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByDisplayValue('Depósito central')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el depósito sobre el que opera la toma.')).not.toBeInTheDocument()
+  })
+
   it('una categoría sin productos muestra el estado vacío', async () => {
     await abrir('Vacía')
     expect(await screen.findByText('Esta categoría no tiene productos')).toBeInTheDocument()
