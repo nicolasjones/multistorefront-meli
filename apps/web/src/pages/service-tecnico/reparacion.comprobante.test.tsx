@@ -213,7 +213,7 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
   it('una reparación que la base no encuentra se informa sin mostrar datos de otra', async () => {
     mocks.obtenerComprobanteDeReparacion.mockRejectedValueOnce({ code: 'P0002' })
     abrirDetalle()
-    expect(await screen.findByText('Esa reparación no existe o no tenés acceso a ella.', undefined, ESPERA)).toBeInTheDocument()
+    expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.', undefined, ESPERA)).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: 'Comprobante asociado' })).not.toBeInTheDocument()
   })
 
