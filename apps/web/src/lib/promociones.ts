@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parsearImporte } from './productos'
 
@@ -234,8 +235,7 @@ export function mensajeErrorPromocion(error: unknown, porDefecto: string): strin
   }
 }
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-export const formatearPesosPromocion = (valor: number | null) => (valor === null ? '—' : `$ ${formatoPesos.format(valor)}`)
+export const formatearPesosPromocion = (valor: number | null) => (valor === null ? '—' : formatearImporte(valor))
 
 const formatoFechaHora = new Intl.DateTimeFormat('es-AR', {
   day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,

@@ -421,6 +421,15 @@ beforeEach(() => {
 })
 
 describe('Detalle del comprobante · tarjeta Cobros (F-VTA-12, FR-007)', () => {
+  it('un cobro de las 23:30 de Argentina (ya es el día siguiente en UTC) se ve con el día local', async () => {
+    mocks.cobros = [{ ...COBRO, fecha: '2026-11-18T02:30:00Z' }]
+    mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }
+    render(arbol('/ventas/comprobantes/k-1'))
+    const tabla = await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(within(tabla).getByText('17/11/2026')).toBeInTheDocument()
+    expect(within(tabla).queryByText('18/11/2026')).not.toBeInTheDocument()
+  })
+
   it('muestra lo cobrado, lo que falta y el detalle de cada cobro', async () => {
     mocks.cobros = [COBRO]
     mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }

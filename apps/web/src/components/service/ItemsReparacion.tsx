@@ -196,7 +196,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
               titulo="Mano de obra"
               columnaConcepto="Concepto"
               items={manoDeObra}
-              vacio="Todavía no cargaste mano de obra."
+              vacio={puedeEditar ? 'Todavía no cargaste mano de obra.' : 'Sin mano de obra cargada.'}
               etiquetaSubtotal="Subtotal mano de obra"
               subtotal={reparacion.total_mano_obra}
               puedeEditar={puedeEditar}
@@ -217,7 +217,7 @@ export function ItemsReparacion({ reparacion, puedeEditar, onAgregarManoObra, on
               titulo="Repuestos"
               columnaConcepto="Producto"
               items={repuestos}
-              vacio="Todavía no cargaste repuestos."
+              vacio={puedeEditar ? 'Todavía no cargaste repuestos.' : 'Sin repuestos cargados.'}
               etiquetaSubtotal="Subtotal repuestos"
               subtotal={reparacion.total_repuestos}
               puedeEditar={puedeEditar}

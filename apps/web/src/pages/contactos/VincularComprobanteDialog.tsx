@@ -1,3 +1,4 @@
+import { formatearImporte } from '../../lib/formatoImporte'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material'
 import { AVISO_CAMBIO_EMPRESA, useEmpresaActivaCambio } from '../../hooks/useContactos'
@@ -90,7 +91,7 @@ export function VincularComprobanteDialog({ contactoId, empresaId, onCerrar, onV
                   key={c.id}
                   secondaryAction={<Button size="small" onClick={() => void vincular(c.id)} disabled={buscando}>Vincular</Button>}
                 >
-                  <ListItemText primary={c.numero} secondary={`${c.fecha} · $ ${c.total.toLocaleString('es-AR')}`} />
+                  <ListItemText primary={c.numero} secondary={`${c.fecha} · ${formatearImporte(c.total)}`} />
                 </ListItem>
               ))}
             </List>

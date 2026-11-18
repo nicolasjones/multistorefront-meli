@@ -1,3 +1,4 @@
+import { CampoDominioEmpresa } from '../../components/empresas/CampoDominioEmpresa'
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
@@ -11,7 +12,7 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
-import { normalizarCuit } from '../../lib/cuit'
+import { normalizarCuit, validarCuit } from '../../lib/cuit'
 import { avisoFormatoWhatsapp } from '../../lib/whatsapp'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
@@ -32,7 +33,6 @@ type Errores = Partial<Record<'nombre' | 'correo' | 'horarios' | 'cuit' | 'razon
 const MAX_HORARIOS = 200
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const CUIT_VALIDO = /^\d{11}$/
 
 const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   nombre: datos.nombre,
@@ -68,7 +68,10 @@ function validar(formulario: Formulario): Errores {
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
   if (formulario.horarios.trim().length > MAX_HORARIOS) errores.horarios = `Los horarios admiten hasta ${MAX_HORARIOS} caracteres.`
   const cuit = normalizarCuit(formulario.cuit)
-  if (cuit !== '' && !CUIT_VALIDO.test(cuit)) errores.cuit = 'El CUIT debe tener 11 dígitos.'
+  if (cuit !== '') {
+    const resultado = validarCuit(cuit)
+    if (!resultado.valido) errores.cuit = resultado.motivo
+  }
   if (formulario.razon_social.trim().length > 200) errores.razon_social = 'La razón social admite hasta 200 caracteres.'
   return errores
 }
@@ -231,7 +234,7 @@ export function EmpresaEdit() {
               </Button>
             )}
           </Box>
-          <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
+          <CampoDominioEmpresa empresaId={empresa.id} />
           <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
           <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
           <TextField

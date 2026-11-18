@@ -26,7 +26,7 @@
     "Movimientos",
     "Ingreso de mercadería",
     "Depósitos de mercadería",
-    "Faltantes",
+    "Faltantes de stock",
     "Actualizar por Excel",
     "Agregar producto",
     "Actualizar el costo del producto con este ingreso",
@@ -38,7 +38,7 @@
     "Movimientos",
     "Ingreso de mercadería",
     "Depósitos de mercadería",
-    "Faltantes",
+    "Faltantes de stock",
     "Actualizar por Excel"
   ],
   "dialogos": []

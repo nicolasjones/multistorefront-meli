@@ -1,3 +1,4 @@
+import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import type { TipoCliente } from './clientes'
 
@@ -157,7 +158,7 @@ export async function exportarClientes(
 }
 
 export function nombreArchivoExportacion(fecha: Date = new Date()): string {
-  return `clientes-${fecha.toISOString().slice(0, 10)}.xlsx`
+  return `clientes-${hoyEnOrganizacion(fecha)}.xlsx`
 }
 
 export function descargarArchivo(blob: Blob, nombre: string): void {

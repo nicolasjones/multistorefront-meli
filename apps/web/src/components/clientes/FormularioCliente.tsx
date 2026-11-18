@@ -6,6 +6,8 @@ import {
 import {
   type CampoFicha,
   AVISO_CAMBIO_TIPO,
+  CONDICIONES_IVA,
+  CONDICION_IVA_OTRA,
   type ErroresCliente,
   type FormularioCliente as DatosFormulario,
   type OpcionesCuentaWeb,
@@ -63,6 +65,7 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
   { campo: 'localidad', etiqueta: 'Localidad', autoComplete: 'off' },
   { campo: 'provincia', etiqueta: 'Provincia', autoComplete: 'off' },
   { campo: 'expreso_preferido', etiqueta: 'Expreso preferido', autoComplete: 'off' },
+  { campo: 'condicion_iva', etiqueta: 'Otra condición', autoComplete: 'off' },
 ]
 
 // Formulario compartido por el alta y la edición de clientes (FR-001, FR-014).
@@ -72,6 +75,9 @@ const CAMPOS: ReadonlyArray<{ campo: CampoFicha; etiqueta: string; autoComplete?
 // cada tienda tildada al guardar (FR-015).
 export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas = [], cargandoEmpresas = false, errorEmpresas = false, puedeEditarDescuento = false, listasPrecios, onGuardar, rutaCancelar, onCancelar }: Props) {
   const [formulario, setFormulario] = useState<DatosFormulario>(inicial)
+  // «Otra»: un texto cargado que no es una de las condiciones habituales, o la opción elegida y todavía sin texto.
+  const [otraCondicion, setOtraCondicion] = useState(inicial.condicion_iva.trim() !== '' && !(CONDICIONES_IVA as readonly string[]).includes(inicial.condicion_iva))
+  const esOtraCondicion = otraCondicion
   const [errores, setErrores] = useState<ErroresCliente>({})
   const [errorServidor, setErrorServidor] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -105,7 +111,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
       return
     }
     setErrorServidor(null)
-    const nuevos = validarCliente(formulario)
+    const nuevos = validarCliente(formulario, { documentoInicial: inicial.documento })
     setErrores(nuevos)
     if (Object.keys(nuevos).length > 0) {
       enfocarPrimerError(nuevos)
@@ -242,6 +248,27 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
           <TextField label="Código postal" value={formulario.codigo_postal} onChange={cambiar('codigo_postal')} error={Boolean(errores.codigo_postal)} helperText={errores.codigo_postal} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.codigo_postal = el }} fullWidth />
           <TextField label="Localidad" value={formulario.localidad} onChange={cambiar('localidad')} error={Boolean(errores.localidad)} helperText={errores.localidad} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.localidad = el }} fullWidth />
           <TextField label="Provincia" value={formulario.provincia} onChange={cambiar('provincia')} error={Boolean(errores.provincia)} helperText={errores.provincia} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.provincia = el }} fullWidth />
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: esOtraCondicion ? '1fr 1fr' : '1fr' }, gap: 2 }}>
+          <TextField
+            select
+            label="Condición de IVA"
+            value={esOtraCondicion ? CONDICION_IVA_OTRA : formulario.condicion_iva}
+            helperText="Se imprime en la factura."
+            onChange={(evento) => {
+              const elegida = evento.target.value
+              setOtraCondicion(elegida === CONDICION_IVA_OTRA)
+              setFormulario((actual) => ({ ...actual, condicion_iva: elegida === CONDICION_IVA_OTRA ? '' : elegida }))
+            }}
+            fullWidth
+          >
+            <MenuItem value="">Sin indicar</MenuItem>
+            {CONDICIONES_IVA.map((condicion) => <MenuItem key={condicion} value={condicion}>{condicion}</MenuItem>)}
+            <MenuItem value={CONDICION_IVA_OTRA}>{CONDICION_IVA_OTRA}</MenuItem>
+          </TextField>
+          {esOtraCondicion ? (
+            <TextField label="Otra condición" value={formulario.condicion_iva} onChange={cambiar('condicion_iva')} error={Boolean(errores.condicion_iva)} helperText={errores.condicion_iva} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.condicion_iva = el }} fullWidth />
+          ) : null}
         </Box>
         <TextField label="Expreso preferido" value={formulario.expreso_preferido} onChange={cambiar('expreso_preferido')} error={Boolean(errores.expreso_preferido)} helperText={errores.expreso_preferido} autoComplete="off" inputRef={(el: HTMLInputElement | null) => { refs.current.expreso_preferido = el }} fullWidth />
         {puedeEditarDescuento ? (

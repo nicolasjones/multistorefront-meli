@@ -116,7 +116,7 @@ export function ReglaPrecioEmpresa({
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary">
-            Los productos con <b>precio propio</b> en esta empresa ignoran el ajuste. Se definen desde la ficha del producto.
+            Los productos con <b>precio propio</b> en esta empresa ignoran el ajuste. Se cargan al editar el producto, en «Precio propio por empresa».
           </Typography>
         </Stack>
       </Box>
