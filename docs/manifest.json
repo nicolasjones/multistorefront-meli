@@ -709,20 +709,21 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "c6c673658b7a75c468e7d1171d3fc93dc692ef87f251cc9cf000e8e7b1db4d69",
-      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
-      "sourceAt": "2838b473",
+      "pageHash": "c72296c6e57a1c030a7eae71cd87111b897a2e9ced956db842e67f24e01c7c35",
+      "sourceHash": "fdd34866acc368f2a409ca71b5efb8950f09ee8c8047ab6ec2c2bb24b7581e56",
+      "sourceAt": "5d89f9777",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
         "scripts/estado-ci.mjs",
+        "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "2838b473"
+      "commit": "5d89f9777"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
