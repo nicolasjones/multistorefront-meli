@@ -38,8 +38,8 @@ estado vigente se copia en un efecto de layout).
 | New / updated tests (pgTAP) | `supabase/tests/database/tienda_cierre_hallazgos.test.sql` | not-run | No hay Postgres ni Docker en este nodo. Queda para el job `database` del CI (70 aserciones; 6 nuevas para el choque de `clave_envio`). |
 | Lint / type-check | `pnpm --filter @platform/web lint` | pass | Código 0; solo avisos preexistentes de `oxlint` y **ninguno** en los archivos que la historia toca. |
 | Build | `pnpm build` (`tsc -b` + `vite build`) | pass | Sin errores de tipos ni de build (`✓ built in 5.34s`). |
-| Guard de migraciones | `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` | pass | Código 0: 757 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507200101` a `20270507200104`, por encima del máximo real de la base al verificar (`20270507180800`, el último lote integrado en `dokploy`). |
-| Documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4047 archivos comparados); migraciones OK (757 archivos, 4 nuevos); trampas conocidas OK (4 migraciones y 2 pruebas pgTAP revisados). |
+| Guard de migraciones | `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` | pass | Código 0: 766 archivos, 4 nuevos contra `origin/dokploy`; versiones `20270507200101` a `20270507200104`, por encima del máximo real de la base al verificar (`20270507180800`, el último lote integrado en `dokploy`). |
+| Documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4097 archivos comparados); migraciones OK (766 archivos, 4 nuevos); trampas conocidas OK (4 migraciones y 2 pruebas pgTAP revisados). |
 | DER de la spec | `node scripts/verificar-der.mjs specs/20270306-100000-tienda-compra-y-cuentas/spec.md` | pass | DER OK (la columna alterada está marcada). |
 | Matriz pantalla↔criterios | `pnpm matriz:check` | pass | 0 specs nuevas revisadas (esta historia no agrega pantallas). |
 | Calidad | `pnpm calidad:code` | pass | `oxlint`, `knip`, `jscpd`, `dependency-cruiser` y `syncpack` en OK; `gitleaks` **saltado** (necesita Docker, que en este nodo da «permission denied»). |
@@ -61,12 +61,12 @@ Corrida focalizada de la devolución del 2026-11-18: `useListadoPorCursor.test.t
 pruebas en verde) siguen vigentes sobre este estado.
 
 ```
-Migraciones OK: 757 archivo(s), 4 nuevo(s) contra origin/dokploy.
+Migraciones OK: 766 archivo(s), 4 nuevo(s) contra origin/dokploy.
 Trampas conocidas: OK (4 migración(es), 2 prueba(s) pgTAP y 0 E2E revisados contra origin/dokploy).
 ```
 
 ```
-Documentación de cambios: OK (4047 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
+Documentación de cambios: OK (4097 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
 ```
 
 ```

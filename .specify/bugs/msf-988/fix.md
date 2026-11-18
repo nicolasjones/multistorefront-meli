@@ -27,9 +27,10 @@ segundos (no como una caída de red); un Vitest nuevo compara carácter por car�
 el del front; y el contrato, la guía de seguridad y la guía funcional dicen lo que corresponde (las cinco RPC cambian de volatility, y
 el camino de reversión de la migración del vínculo es el completo).
 
-La rama quedó **rebasada sobre `origin/dokploy` al día** (`e26696ba7`, el PR #1130 integrado): los 22 commits que avanzó la base no
-tocan ninguno de los archivos de esta historia, así que el rebase fue sin conflictos. El máximo real de las migraciones de `dokploy`
-avanzó después a `20270507180800` (lotes posteriores a #1124), así que las cuatro del cierre quedan en `20270507200101` a
+La rama quedó **rebasada sobre `origin/dokploy` al día** (`1568fa7d7`, el lote 32 integrado el 2026-11-18): los 41 commits que
+avanzó la base desde `e26696ba7` no tocan ninguno de los archivos de esta historia, así que el rebase fue sin conflictos. El máximo
+real de las migraciones de `dokploy` avanzó después a `20270507180800` (lotes posteriores a #1124), así que las cuatro del cierre
+quedan en `20270507200101` a
 `20270507200104`: por encima de ese máximo (para que el guard no las marque `REUSADA` y el aplicador no se salte las que ya están
 aplicadas) y por encima también de `20270507200100`, la última migración de la rama de la épica
 `epic/MSF-515-lote-35-menores-de-revision` (para que la integración de esta historia en la épica no choque con esa versión).
@@ -138,9 +139,9 @@ end if;
   - `vitest run src/lib/tiendaOpiniones.test.ts src/pages/tienda-publica/cuenta/favoritosSoloEnLaTienda.test.ts
     src/pages/tienda-publica/lista/ src/pages/tienda-publica/opiniones/ src/hooks/useComprasCliente.test.tsx
     src/components/consultas/` → **188 pruebas en verde** (12 archivos: los que dependen de `tiendaCuentaDatos`/`tiendaPedido`).
-  - `pnpm docs:check` → **OK** («Documentación de cambios: OK (4047 archivos comparados)», «Migraciones OK: 757 archivo(s), 4 nuevo(s)
+  - `pnpm docs:check` → **OK** («Documentación de cambios: OK (4097 archivos comparados)», «Migraciones OK: 766 archivo(s), 4 nuevo(s)
     contra origin/dokploy», «Trampas conocidas: OK (4 migración(es), 2 prueba(s) pgTAP y 0 E2E revisados contra origin/dokploy)»).
-  - `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` → **OK**, código 0 («Migraciones OK: 757 archivo(s), 4
+  - `node scripts/verificar-migraciones.mjs --base origin/dokploy --estricto` → **OK**, código 0 («Migraciones OK: 766 archivo(s), 4
     nuevo(s) contra origin/dokploy»): las cuatro versiones (`20270507200101`–`20270507200104`) están por encima del máximo real de la
     base (`20270507180800`) y ninguna está REUSADA.
   - `pnpm matriz:check` → **OK** (0 specs nuevas revisadas: esta historia no agrega pantallas).
