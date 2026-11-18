@@ -1,0 +1,93 @@
+# Alerta de AUSENCIA de respaldos (MSF-709). Los flows de copias avisan cuando FALLAN, pero no cuando NO CORREN
+# (Kestra caído, trigger deshabilitado, flow borrado, destino que dejó de recibir archivos): sin copia nueva no hay
+# error que avisar. Este flow revisa el destino de respaldos y falla (con aviso por correo al soporte) si no hay
+# una copia de la base ni una foto de imágenes dentro de la ventana esperada.
+#
+# Solo mira el destino (rclone lsf; la fecha sale del nombre de cada copia), no toca la base ni ninguna copia. Ventana: RESPALDOS_AUSENCIA_HORAS
+# (por defecto 30: las copias son diarias, con 6 h de margen). Corre a las 06:30, después de las copias (03:00 y
+# 03:15) y de la retención (04:30).
+id: alerta-ausencia-respaldos
+namespace: platform.backups
+labels:
+  capa: core
+  dominio: plataforma
+  componente: backups
+
+description: "Falla y avisa al soporte si el destino de respaldos no recibió una copia de la base y de las imágenes en las últimas horas."
+
+inputs:
+  - id: horas
+    type: STRING
+    required: false
+    description: "Reemplaza RESPALDOS_AUSENCIA_HORAS solo para esta corrida (entero >= 1)."
+
+concurrency:
+  limit: 1
+  behavior: CANCEL
+
+tasks:
+  - id: comprobar_copias_recientes
+    type: io.kestra.plugin.scripts.shell.Commands
+    containerImage: rclone/rclone:1.68.2
+    timeout: PT10M
+    taskRunner:
+      type: io.kestra.plugin.scripts.runner.docker.Docker
+      pullPolicy: IF_NOT_PRESENT
+      entryPoint: []
+      volumes:
+        - "{{ envs.respaldos_dir_host }}:/respaldos"
+    env:
+      RCLONE_CONFIG_RESPALDOS_TYPE: "{{ envs.respaldos_rclone_tipo }}"
+      RCLONE_CONFIG_RESPALDOS_PROVIDER: "{{ envs.respaldos_rclone_provider }}"
+      RCLONE_CONFIG_RESPALDOS_ENDPOINT: "{{ envs.respaldos_rclone_endpoint }}"
+      RCLONE_CONFIG_RESPALDOS_REGION: "{{ envs.respaldos_rclone_region }}"
+      RCLONE_CONFIG_RESPALDOS_ACCESS_KEY_ID: "{{ envs.respaldos_rclone_access_key_id }}"
+      RCLONE_CONFIG_RESPALDOS_SECRET_ACCESS_KEY: "{{ envs.respaldos_rclone_secret_access_key }}"
+      RCLONE_CONFIG_RESPALDOS_HOST: "{{ envs.respaldos_rclone_host }}"
+      RCLONE_CONFIG_RESPALDOS_USER: "{{ envs.respaldos_rclone_user }}"
+      RCLONE_CONFIG_RESPALDOS_PASS: "{{ envs.respaldos_rclone_pass }}"
+      HORAS: "{{ inputs.horas ?? envs.respaldos_ausencia_horas }}"
+      RAIZ: "respaldos:{{ envs.respaldos_ruta }}"
+    commands:
+      - set -eu
+      - |
+        case "$HORAS" in ''|0*|*[!0-9]*) echo "RESPALDOS_AUSENCIA_HORAS debe ser un entero >= 1 sin ceros a la izquierda (valor: '$HORAS')" >&2; exit 1 ;; esac
+      # $1 = carpeta (base|imagenes), $2 = opción de lsf. Cuenta las entradas AAAAMMDD-HHMMSS (UTC, como las nombran los flows de copias)
+      # cuya fecha es igual o posterior al corte (ahora - HORAS). Se compara por el NOMBRE y no con el filtro de edad de `rclone lsf` (`--max-age`), que NO filtra
+      # directorios (una carpeta de 2020 contaría como reciente y la alerta de imágenes nunca saltaría). Un destino inalcanzable falla la
+      # tarea; una carpeta que no existe (código 3) cuenta como vacía. AHORA (epoch) solo se fija en los tests.
+      - |
+        FALTAN=''
+        CORTE=$(date -u -d "@$(( ${AHORA:-$(date +%s)} - HORAS * 3600 ))" +%Y%m%d-%H%M%S)
+        recientes() {
+          RC=0
+          LISTA=$(rclone lsf "$RAIZ/$1" "$2") || RC=$?
+          if [ "$RC" -eq 3 ]; then LISTA=''; elif [ "$RC" -ne 0 ]; then echo "No se pudo listar $RAIZ/$1 (rclone código $RC)" >&2; exit "$RC"; fi
+          printf '%s\n' "$LISTA" | sed 's#/$##' | grep -E '^[0-9]{8}-[0-9]{6}' | cut -c1-15 | awk -v corte="$CORTE" '$0 >= corte { n++ } END { print n + 0 }'
+        }
+        BASE=$(recientes base --files-only)
+        IMAGENES=$(recientes imagenes --dirs-only)
+        [ "$BASE" -ge 1 ] || FALTAN="$FALTAN copia de la base;"
+        [ "$IMAGENES" -ge 1 ] || FALTAN="$FALTAN foto de imágenes;"
+        if [ -n "$FALTAN" ]; then
+          echo "Ausencia de respaldos: no hay$FALTAN en las últimas ${HORAS} h (base=$BASE, imágenes=$IMAGENES)" >&2
+          exit 1
+        fi
+        echo "Respaldos presentes en las últimas ${HORAS} h (base=$BASE, imágenes=$IMAGENES)"
+
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.backups
+    flowId: aviso-fallo-copias
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: alerta-ausencia-respaldos
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+
+triggers:
+  - id: schedule_diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "30 6 * * *"

@@ -1,0 +1,49 @@
+# Aviso por correo al equipo de soporte cuando falla un flow programado de Kestra (MSF-709). Subflow genérico: lo
+# invocan los bloques `errors:` de los flows que corren solos (reclamos de outbox, avisos, depuraciones, monitoreos),
+# que antes fallaban sin avisar a nadie. Mismo mecanismo que `aviso-fallo-copias` y `aviso-fallo-api` (SMTP por
+# variables KESTRA_SMTP_*, destinatario SOPORTE_CORREO; ver infra/kestra/.env.example).
+#
+# Un flow que corre cada minuto puede fallar cada minuto durante una caída: `concurrency` deja a lo sumo un aviso a la
+# vez y descarta el resto (behavior CANCEL) para no inundar la casilla ni apilar ejecuciones.
+id: aviso-fallo-flujo
+namespace: platform.alertas
+labels:
+  capa: core
+  dominio: plataforma
+  componente: alertas
+
+description: "Envía por correo SMTP al equipo de soporte el motivo del fallo de un flow programado."
+
+inputs:
+  - id: flujo
+    type: STRING
+    description: "Id del flow que falló."
+  - id: ejecucion
+    type: STRING
+    required: false
+    description: "Id de la ejecución de Kestra que falló, para encontrarla en la UI."
+  - id: motivo
+    type: STRING
+    description: "Tarea que falló y mensaje de error."
+
+concurrency:
+  limit: 1
+  behavior: CANCEL
+
+tasks:
+  # Los valores vienen de logs de tareas: se escapan para el cuerpo HTML.
+  - id: enviar_correo
+    type: io.kestra.plugin.notifications.mail.MailSend
+    timeout: PT2M
+    host: "{{ envs.kestra_smtp_host }}"
+    port: "{{ envs.kestra_smtp_port }}"
+    username: "{{ envs.kestra_smtp_username }}"
+    password: "{{ envs.kestra_smtp_password }}"
+    transportStrategy: "{{ envs.kestra_smtp_transporte }}"
+    from: "{{ envs.kestra_smtp_from }}"
+    to: "{{ envs.soporte_correo }}"
+    subject: "[Kestra] Falló {{ inputs.flujo }}"
+    htmlTextContent: |
+      <p>Falló el flow programado <strong>{{ inputs.flujo | escape }}</strong>.</p>
+      <p><strong>Motivo:</strong> {{ inputs.motivo | escape }}</p>
+      <p>Ejecución de Kestra: {{ (inputs.ejecucion ?? 'no informada') | escape }}</p>

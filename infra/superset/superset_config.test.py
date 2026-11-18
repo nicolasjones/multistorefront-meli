@@ -41,6 +41,15 @@ def cargar_config():
         sys.modules.pop("superset.config", None)
 
 
+class ConfiguracionGuestToken(unittest.TestCase):
+    def test_el_guest_token_vence_en_un_plazo_explicito_y_corto(self):
+        # MSF-678: el vencimiento es explícito; el front pide un token nuevo en cada renovación.
+        exp = cargar_config().GUEST_TOKEN_JWT_EXP_SECONDS
+        self.assertIsInstance(exp, int)
+        self.assertGreaterEqual(exp, 60)
+        self.assertLessEqual(exp, 3600)
+
+
 class ConfiguracionCsv(unittest.TestCase):
     def test_csv_export_formato_excel_es(self):
         csv = cargar_config().CSV_EXPORT
