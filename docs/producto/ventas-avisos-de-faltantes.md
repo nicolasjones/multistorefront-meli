@@ -17,20 +17,20 @@ haber.
 
 | Persona | Qué hace |
 |---|---|
-| **Administrador, Operador, Mostrador y Administración** | Ven la pantalla de Faltantes, pueden marcar pedidos y enviar los avisos |
-| **Depósito y Consulta** | Ven la pantalla de Faltantes, pero no pueden enviar avisos: las casillas y el botón no les aparecen |
+| **Administrador, Operador, Mostrador y Administración** | Ven la pantalla de Faltantes de despacho, pueden marcar pedidos y enviar los avisos |
+| **Depósito y Consulta** | Ven la pantalla de Faltantes de despacho, pero no pueden enviar avisos: las casillas y el botón no les aparecen |
 
 Los permisos iniciales los puede cambiar el Administrador.
 
 ## Dónde lo encontrás
 
-- **Ventas → Faltantes**: los pedidos que quedaron sin stock.
+- **Ventas → Faltantes de despacho**: los pedidos que quedaron sin stock.
 - **Stock → Ingreso de mercadería**: cuando registrás un ingreso, el sistema marca los pedidos que ese ingreso
   cubre (ver [Registrar un ingreso de mercadería](ingreso-de-mercaderia.md)).
 
 ## Ver qué pedidos ya se pueden avisar
 
-En la pantalla de Faltantes hay una columna **Aviso** con uno de estos tres estados:
+En la pantalla de Faltantes de despacho hay una columna **Aviso** con uno de estos tres estados:
 
 | Estado | Qué significa |
 |---|---|
@@ -53,7 +53,7 @@ Tres cosas que conviene saber:
 
 ## Avisar a los clientes
 
-1. Entrá a **Ventas → Faltantes**.
+1. Entrá a **Ventas → Faltantes de despacho**.
 2. Si querés ver solo una tienda, elegila en el filtro **Tienda** (o en la empresa activa de la barra superior).
 3. Marcá las casillas de los pedidos que querés avisar. La casilla del encabezado marca todos los que están a la
    vista.
@@ -109,6 +109,6 @@ Tres cosas que conviene saber:
 - [Clientes](clientes.md) — cargarle el correo a un cliente para poder avisarle.
 
 > **Dos criterios de cierre.** Los faltantes que se registran al armar un pedido se resuelven al reanudar el armado; los
-> de la pantalla Stock → Faltantes se cierran al entregar el pedido o al liberar la reserva. Hasta que se unifiquen en una
-> sola pantalla (decisión pendiente de implementar), conviven los dos criterios. Detalle técnico en
+> de la pantalla **Stock → Faltantes de stock (A pedido)** se cierran al entregar el pedido o al liberar la reserva. Se
+> mantienen las dos pantallas porque leen datos distintos, y cada una trae un enlace a la otra; conviven los dos criterios. Detalle técnico en
 > [Faltantes de ventas](../ventas-faltantes.md).

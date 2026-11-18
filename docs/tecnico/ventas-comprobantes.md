@@ -1,9 +1,26 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/src/lib/ventas.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
+  - apps/web/src/pages/ventas/comprobantes.tsx
+  - apps/web/src/pages/ventas/presupuestos.tsx
+  - apps/web/src/lib/ventasPresupuestos.ts
+  - supabase/migrations/20261203100100_comprobantes_cabecera.sql
+  - supabase/migrations/20261203100400_comprobantes_rpc.sql
+  - supabase/migrations/20261204150000_aceptar_presupuesto.sql
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261203100200_comprobantes_numeracion.sql
+  - supabase/migrations/20261203200100_comprobantes_lineas.sql
+  - supabase/migrations/20261203200200_accion_editar_precio.sql
+  - supabase/migrations/20261203200300_lineas_rpc.sql
+  - supabase/migrations/20261203200400_disponible_para_venta.sql
+  - supabase/migrations/20261204140000_confirmar_comprobante.sql
+  - supabase/migrations/20261204140100_facturado_sin_borradores.sql
+  - supabase/migrations/20261204150100_copiar_presupuesto.sql
+  - supabase/migrations/20261204150200_listar_presupuestos.sql
+  - supabase/migrations/20270201200103_lineas_descuento.sql
 ---
 
 # Ventas · comprobantes (técnico, MSF-159)
@@ -153,6 +170,8 @@ RLS vigente en el comprobante y en las líneas: `select` por organización y sec
 `security definer`. `anon` sin acceso.
 
 El modelo completo y el DER están en [Datos y DER](datos.md#ventas-comprobantes-msf-159).
+
+Nota de precios: el precio final con IVA que ve el cliente (lista, tienda, promociones) se redondea **al centavo** desde `20270507180200_aplicar_iva_al_centavo.sql`, igual que el total del comprobante; los comprobantes ya confirmados no se recalculan.
 
 ## Numeración
 

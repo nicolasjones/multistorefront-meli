@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // Listas de precios (F-PRE-14 y F-CLI-21, Fases 1 y 2). Una lista es un porcentaje de ajuste sobre el precio central.
@@ -151,12 +152,11 @@ export function formatearAjuste(ajuste: number): string {
   return `${signo}${formatoPorcentaje.format(Math.abs(ajuste))} %`
 }
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 export const PRECIO_EJEMPLO = 10000
 
 // Ejemplo ilustrativo del diálogo: no consulta la base ni calcula un precio real (el redondeo y la tienda los resuelve el motor).
 export function ejemploAjuste(ajuste: number): string {
-  return `$ ${formatoPesos.format(PRECIO_EJEMPLO * (1 + ajuste / 100))}`
+  return formatearImporte(PRECIO_EJEMPLO * (1 + ajuste / 100))
 }
 
 export async function guardarLista(cliente: SupabaseClient, datos: DatosLista): Promise<string> {

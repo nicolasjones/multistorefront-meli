@@ -1,7 +1,12 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/20261020-100000-ventas-catalogos-de-cobro-y-envio
+  - specs/20261023-100000-ventas-comprobantes
+  - specs/20261024-130000-ventas-despacho-y-faltantes
+  - specs/20261024-130000-ventas-listado-estados-y-anulacion
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - specs/20261027-100000-ventas-rma-devoluciones
 ---
 
 # Ventas y despacho
@@ -28,6 +33,11 @@ Los comprobantes son internos; no hay emisión fiscal en el MVP.
 **Cobrado** y **Deuda** no los cambia una persona: los dispara el cobro registrado sobre la factura
 (MSF-195). Detalle: [Ventas · cobros y conciliación (técnico)](../tecnico/ventas-cobros-y-conciliacion.md).
 
+El saldo de una factura resta **cobros** y **notas de crédito**. Un cobro mal cargado no se borra: se corrige con una **reversión**
+(contra-asiento de importe negativo, solo Administrador, que reabre Cobrado → Deuda si vuelve a haber saldo). La **anulación** de una
+factura no corre si ya fue entregada o tiene cobros registrados: se corrige con una nota de crédito (o se revierte el cobro y se anula).
+Detalle en [cobros por comprobante](../cobros-por-comprobante.md) y [listado, estados y anulación](../tecnico/ventas-listado-estados-y-anulacion.md).
+
 ## Catálogos de cobro y envío (MSF-139)
 
 Antes de vender, cada empresa define sus **formas de pago** (tipo, exige cuenta de cobro, genera deuda,
@@ -43,7 +53,7 @@ Detalle: [Ventas · catálogos](../producto/ventas-catalogos.md) · [Técnico](.
 
 El precio de cada línea sale de la **escala** (x1, x5, x10, x50) según la
 cantidad y el tipo de cliente. La escala se evalúa por línea o por total del
-comprobante (decisión pendiente del cliente).
+comprobante (decisión pendiente del cliente). El precio final con IVA se redondea **al centavo**, igual que el total del comprobante ([IVA y precio final](../iva-precio-final.md)).
 
 ## Despacho
 

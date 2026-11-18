@@ -1,7 +1,14 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-catalogo-alta-y-edicion
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/components/productos/DialogoProducto.tsx
+  - apps/web/src/components/productos/FormularioProducto.tsx
+  - apps/web/src/lib/productos.ts
+  - supabase/migrations/20261017120300_catalogo_sku_unico.sql
 ---
 
 # Catálogo: alta y edición (MSF-456)
@@ -40,6 +47,10 @@ sistema impide repetir un SKU y todo queda en Actividad (sin mostrar costo ni pr
 - **Estado:** Activar/Desactivar desde la fila de la grilla `/productos` (nombre, SKU y estado) o desde la ficha.
   Un producto inactivo conserva datos e imágenes y se muestra con la etiqueta «Inactivo». No hay borrado.
 - Avisos «Faltan datos obligatorios» y diálogo «Descartar cambios» en alta y edición.
+- **Desde el listado:** «Nuevo producto» y «Editar» (en la fila) abren el formulario en un popup, sin salir de
+  `/productos`. El popup no se cierra con Esc ni al hacer clic afuera: se sale con «Cancelar» (pide confirmar si hay
+  datos escritos) o con «Cerrar» una vez guardado, y el listado se recarga. Las rutas directas `/productos/create` y
+  `/productos/:id/edit` siguen disponibles.
 
 ## Empresa activa
 

@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from './formatoImporte'
 // Historial de actividad (F-AUD-01, MSF-463): tipos, períodos y formato de
 // fecha. Las fechas se calculan y muestran en America/Argentina/Buenos_Aires,
 // nunca en UTC ni en la zona del navegador (FR-004).
@@ -339,12 +340,11 @@ export function formatearCuando(iso: string): string {
 // Símbolo de cada moneda: el mismo que usa el resto del panel («$» pesos, «US$» dólares).
 const SIMBOLO_MONEDA: Readonly<Record<string, string>> = { ARS: '$', USD: 'US$' }
 
-const formatoImporteDetalle = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // «859100» o «90919.40» (punto decimal) / «90919,40» (coma) -> «859.100,00» / «90.919,40».
 function importeLegible(texto: string): string {
   const numero = Number(texto.replace(',', '.'))
-  return Number.isFinite(numero) ? formatoImporteDetalle.format(numero) : texto
+  return Number.isFinite(numero) ? formatearNumeroImporte(numero, { centavos: 'siempre' }) : texto
 }
 
 // Importe del detalle: «Cobro de [moneda] N», «[moneda] N» o «$ N». La moneda la trae el texto

@@ -1,9 +1,27 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261023-120000-migracion-inicial-de-datos
+  - supabase/migrations/20261201100000_migracion_cargas.sql
+  - supabase/migrations/20261201110000_proveedores_id_externo.sql
+  - supabase/migrations/20261201120000_archivo_ingresos_mercaderia.sql
+  - supabase/migrations/20261201130000_migracion_conciliacion.sql
+  - supabase/migrations/20270507170000_clientes_condicion_iva_via_de_carga.sql
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
+  - supabase/tests/database/migracion_clientes.test.sql
+  - supabase/tests/database/migracion_proveedores.test.sql
+  - supabase/tests/database/migracion_conciliacion.test.sql
+  - supabase/tests/database/migracion_ensayo.test.sql
+  - supabase/tests/database/archivo_ingresos.test.sql
+  - supabase/tests/database/lote32_clientes_id_externo_y_aceptacion_correo.test.sql
+  - apps/web/src/pages/migracion/importar.tsx
+  - apps/web/src/pages/migracion/informes.tsx
+  - apps/web/src/pages/migracion/AsistenteImportacion.tsx
+  - apps/web/src/pages/migracion/InformeConciliacion.tsx
+  - apps/web/src/hooks/useArchivoIngresos.ts
+  - apps/web/src/lib/migracion.ts
+  - apps/web/src/lib/migracionCsv.ts
+  - apps/web/src/components/stock/ArchivoIngresos.tsx
 ---
 
 # Migración inicial de datos: modelo, RPC y operación
@@ -97,9 +115,16 @@ Reglas de aplicación (migraciones `20261201100000`…`20261201120000`):
   anterior se limpia.
 - **Ingresos:** `fecha` acepta `AAAA-MM-DD` o `DD/MM/AAAA`; `cantidad` es un entero > 0; producto,
   proveedor y operador se guardan como texto.
-- **Unicidad global en clientes:** `clientes_identificadores_externos` es único por
-  `(sistema, identificador_externo)` en toda la base, no por organización. Si otra organización ya
-  usa ese identificador, la fila se rechaza con un mensaje genérico (no se revela de quién es).
+- **Unicidad por organización en clientes:** desde `20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql`,
+  `clientes_identificadores_externos` lleva `organizacion_id` (la fija un disparador desde el cliente) y es único por
+  `(organizacion_id, sistema, identificador_externo)`. Dos organizaciones pueden vincular el mismo identificador del mismo sistema;
+  `vincular_identificador_externo`, `aplicar_lote_clientes`, `private.clasificar_fila_cliente` e `informe_conciliacion_migracion` buscan
+  solo dentro de la organización de la sesión, así que un identificador de otra organización ni choca ni se revela. (Antes era único en toda la base.)
+- **Columnas opcionales de clientes en la carga:** `acepta_correo` (`sí`/`no`, también `s`/`n`/`true`/`false`/`1`/`0`; vacío no toca el dato
+  existente y un cliente nuevo queda en no; otro valor es error de fila; misma migración `20270507180300`) y `condicion_iva` (texto de
+  hasta 60; vacío no borra el dato; `20270507170000_clientes_condicion_iva_via_de_carga.sql`). Las dos se leen en
+  `aplicar_lote_clientes` y `private.validar_fila_cliente_migracion`; la plantilla de «Importar clientes» todavía no trae esas columnas
+  (pendiente de interfaz, ver [Clientes](../clientes.md)).
 
 ## RPC
 
@@ -262,8 +287,8 @@ corrieron localmente.
   clientes y proveedores se desactivan o corrigen por su pantalla; el archivo se corrige con un CSV
   nuevo. La copia de seguridad previa cubre la vuelta atrás del corte completo.
 - **Límites conocidos:** el informe muestra hasta 200 errores (la pantalla avisa «Mostrando X de N»);
-  el lote es de 500 filas; no se lee `.xlsx`; la unicidad del identificador de clientes es global por
-  sistema; el archivo no reemplaza la carga inicial de stock (F-STK-07).
+  el lote es de 500 filas; no se lee `.xlsx`; la unicidad del identificador de clientes es por
+  organización y sistema; el archivo no reemplaza la carga inicial de stock (F-STK-07).
 
 ## Reversión
 

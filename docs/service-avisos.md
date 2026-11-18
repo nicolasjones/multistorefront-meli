@@ -5,6 +5,11 @@ sources:
   - specs/20270323-100000-service-ideas-futuras-v2
   - infra/kestra/flows/reparaciones-aviso-correo.yml
   - infra/kestra/flows/reparaciones-aviso-whatsapp.yml
+  - supabase/migrations/20270201200133_reparacion_avisos.sql
+  - supabase/migrations/20270201200134_avisar_cliente_reparacion.sql
+  - supabase/migrations/20270201200135_avisos_de_reparacion.sql
+  - supabase/migrations/20270201200136_avisos_reparacion_flow.sql
+  - supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql
 ---
 
 # Service técnico · Avisos al cliente por cambio de estado
@@ -69,6 +74,8 @@ nada). La entrega es **al menos una vez**: si Kestra se corta entre enviar y cer
 salir dos veces. Un aviso pendiente de más de 15 minutos, o cuya orden quedó agotada o cancelada, se cierra como
 fallido («El correo tardó demasiado en enviarse. Probá de nuevo.») al consultar el historial o pedir otro aviso, para
 que «Reenviar» no quede bloqueado.
+
+**Robustez de los flows de aviso** (`reparaciones-aviso-correo.yml` y `reparaciones-aviso-whatsapp.yml`): corren de a una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso, la nueva se descarta), cada tarea tiene un `timeout` y el reclamo de las órdenes dura más que el peor caso de una corrida (1800 s en el de correo y 1200 s en el de WhatsApp, anotado en el propio flow como `reclamo-s`/`peor-caso-s`). Si el flow falla, un bloque `errors:` avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (solo el nombre de la tarea y el id de la ejecución, no el mensaje de error).
 
 ### Plantilla (provisoria, spec *Decisiones abiertas* 3)
 

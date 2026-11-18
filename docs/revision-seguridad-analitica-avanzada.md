@@ -2,8 +2,18 @@
 owner: tecnico
 sources:
   - specs/20261114-100000-analitica-avanzada-y-resumen-por-correo
-  - supabase/migrations
-  - apps/web/src
+  - supabase/migrations/20270324100000_analitica_tableros_avanzados.sql
+  - supabase/migrations/20270324100100_reportes_tableros_analiticos.sql
+  - supabase/migrations/20270324100200_resumen_semanal.sql
+  - supabase/migrations/20270324100300_exportacion_total_excluye_resumen_semanal.sql
+  - supabase/functions/enviar-resumen-semanal
+  - supabase/functions/_shared/token.ts
+  - infra/kestra/flows/resumen-semanal.yml
+  - infra/superset/dashboards/analitica-avanzada
+  - apps/web/src/pages/analitica/list.tsx
+  - apps/web/src/pages/organizacion/ResumenSemanal.tsx
+  - apps/web/src/lib/tablerosAnaliticos.ts
+  - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
 # Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)

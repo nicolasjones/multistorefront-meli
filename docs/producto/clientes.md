@@ -5,6 +5,9 @@ sources:
   - apps/web/src/pages/clientes/create.tsx
   - apps/web/src/pages/clientes/edit.tsx
   - apps/web/src/pages/clientes/show.tsx
+  - apps/web/src/components/clientes/FormularioCliente.tsx
+  - apps/web/src/lib/clientes.ts
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
 ---
 
 # Clientes
@@ -92,11 +95,12 @@ En cada fila tenés **Ver ficha** y, si podés editar, **Editar**. Los clientes 
 
 2. Completá el formulario:
    - **Número**: lo asigna el sistema solo («Se asigna solo»).
-   - **DNI/CUIT**: opcional, pero no puede repetirse entre clientes.
+   - **DNI/CUIT**: opcional, pero no puede repetirse entre clientes. Si lo cargás, tiene que ser un DNI de 7 u 8 dígitos o un CUIT válido (11 dígitos, con o sin guiones); si no, ves «Ingresá un DNI de 7 u 8 dígitos o un CUIT válido (11 dígitos, con o sin guiones).».
    - **Nombre o razón social** (obligatorio).
    - **Tipo de cliente**: **Minorista** (compra al precio de lista, escala x1) o **Mayorista** (compra con precio por cantidad). Ver [Precios e IVA](precios-e-iva.md).
    - **Habilitado en**: las tiendas donde el cliente puede comprar. El cliente es único para todo el negocio.
    - **Cuenta web**: **Sin cuenta**, **Activa** o **Suspendida** (ver [Cuenta web del cliente](cuenta-web-cliente.md)).
+   - **Condición de IVA**: opcional, se imprime en la factura. Elegí **Responsable Inscripto**, **Monotributista**, **Exento**, **Consumidor Final**, **No Responsable** o **Sin indicar**; con **Otra** se abre el campo **Otra condición** para escribirla (hasta 60 caracteres).
    - **Correo**, **Teléfono**, **Celular**, **Dirección**, **Código postal**, **Localidad**, **Provincia** y **Expreso preferido**.
 3. Guardá. Vas a ver «Cliente creado» y se abre la ficha del cliente.
 
@@ -107,13 +111,14 @@ En cada fila tenés **Ver ficha** y, si podés editar, **Editar**. Los clientes 
 ## Editar un cliente
 
 1. En el listado, hacé clic en **Editar** (o en **Editar** dentro de la ficha).
-2. Cambiá lo que necesites y guardá. Vas a ver «Cliente guardado».
+2. Cambiá lo que necesites y guardá. Vas a ver «Cliente guardado». Si el cliente ya tenía un DNI/CUIT que no cumple el formato, eso no impide guardar otros cambios: el documento solo se valida si lo modificás.
 3. Si cambiás el **Tipo**, el sistema te avisa: «Al cambiar el tipo, las próximas ventas usarán la escala de precios del nuevo tipo. Lo ya vendido no cambia.»
 
 ## La ficha del cliente
 
-Al hacer clic en **Ver ficha** ves el nombre, el número («Cliente Nº …»), el estado (Activo o Archivado), el tipo, y todos los datos de contacto y domicilio. Más abajo:
+Al hacer clic en **Ver ficha** ves el nombre, el número («Cliente Nº …»), el estado (Activo o Archivado), el tipo, y todos los datos de contacto, domicilio y la condición de IVA. Más abajo:
 
+- **Comunicaciones**: dos interruptores, **Incluir en el correo masivo** y **Acepta avisos por WhatsApp**. Solo los cambia quien puede editar clientes; al activar el correo masivo el sistema registra quién y cuándo lo aceptó.
 - **Tiendas** y **Cuenta web**: en qué tiendas puede comprar y el estado de su cuenta.
 - **Compras**: un **Resumen comercial** con lo facturado en el año (sin IVA) y el **Saldo deudor** (lo que el cliente te debe, con IVA), los **Últimos comprobantes** (con **Comprobante**, **Fecha**, **Estado** y **Total (sin IVA)**) y la **Cuenta corriente** (los comprobantes que el cliente tiene abiertos, con lo que se cobró y lo que falta).
 
@@ -316,7 +321,7 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 
 **¿Los clientes son de una tienda en particular?** No: el cliente es del negocio y lo habilitás en una o más tiendas con **Habilitado en**.
 
-**¿Dónde cargo la condición de IVA del cliente?** Por ahora la ficha solo guarda el DNI/CUIT; no hay un campo para la condición de IVA.
+**¿Dónde cargo la condición de IVA del cliente?** En el campo **Condición de IVA** del formulario de alta y edición (selector con las condiciones habituales, **Sin indicar** y **Otra**). La ficha la muestra como **Condición de IVA** y la importación de clientes acepta una columna con ese nombre.
 
 **¿Se puede deshacer una unión de dos clientes?** No. La ficha que se descarta queda archivada con todos sus datos, pero las compras ya están en la ficha que se conserva.
 

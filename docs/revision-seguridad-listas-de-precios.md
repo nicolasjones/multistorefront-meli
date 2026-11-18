@@ -2,8 +2,22 @@
 owner: tecnico
 sources:
   - specs/20270327-100000-listas-de-precios-por-cliente
-  - supabase/migrations
-  - supabase/tests/database
+  - supabase/migrations/20270340000000_listas_precios.sql
+  - supabase/migrations/20270340000100_exportacion_total_listas_precios.sql
+  - supabase/migrations/20270340000200_clientes_lista_precio.sql
+  - supabase/migrations/20270340000210_fusion_clientes_lista_precio.sql
+  - supabase/migrations/20270346000000_archivar_lista_precios_mensaje_plural.sql
+  - supabase/migrations/20270348000000_lineas_snapshot_lista_precios.sql
+  - supabase/migrations/20270348000100_motor_precio_lista_cliente.sql
+  - supabase/migrations/20270348000200_ventas_usan_lista_precios.sql
+  - supabase/migrations/20270348000300_tienda_precios_lista_cliente.sql
+  - supabase/migrations/20270507110000_lista_pedido_precio_de_la_lista_del_cliente.sql
+  - supabase/tests/database/listas_precios.test.sql
+  - supabase/tests/database/clientes_lista_precios.test.sql
+  - supabase/tests/database/precio_lista_cliente.test.sql
+  - supabase/tests/database/ventas_lista_precios.test.sql
+  - supabase/tests/database/precio_lista_tienda_paridad.test.sql
+  - supabase/tests/database/tienda_lista_pedido_lista_precios.test.sql
 ---
 
 # Revisión de seguridad integral: listas de precios por cliente (F-PRE-14 y F-CLI-21)
@@ -12,7 +26,7 @@ Alcance: spec `specs/20270327-100000-listas-de-precios-por-cliente/`, migracione
 
 ## Resultado
 
-Sin hallazgos críticos ni altos abiertos. Una limitación declarada de producto (MSF-969, no de seguridad) y tres observaciones de bajo riesgo en «Riesgos residuales».
+Sin hallazgos críticos ni altos abiertos. Tres observaciones de bajo riesgo en «Riesgos residuales»; la limitación de producto de la lista de pedido de la tienda (MSF-969) ya está resuelta.
 
 ## 1. RLS, esquemas y grants
 
@@ -51,7 +65,7 @@ La respuesta pública de la tienda **no agrega ninguna clave**: `precios_cliente
 
 ## 5. Riesgos residuales
 
-1. **MSF-969 (producto, no de seguridad):** la lista de pedido de la tienda («Enviar consulta») muestra el precio público y no cobra; no revela datos de la lista.
+1. **MSF-969 (resuelto, `20270507110000`):** la lista de pedido de la tienda («Enviar consulta») ahora usa la lista del cliente con sesión. El cliente nunca viene del llamador: sale de `private.cuenta_de_tienda(host)` (sesión y cuenta activa en esa tienda), así que el visitante anónimo no obtiene ninguna lista, y la respuesta pública conserva las mismas claves, sin revelar la lista ni su porcentaje (encabezado de la migración; pgTAP `tienda_lista_pedido_lista_precios.test.sql`).
 2. **`service_role` conserva privilegios de tabla** sobre `listas_precios` y las columnas de snapshot: es lo que exige el repo para tablas de `dominio` y nunca llega al navegador; el E2E del recorrido solo lo usa para sembrar.
 3. **Al encender la bandera**, los borradores guardados antes reciben un `40001` en su primera confirmación si el cliente tiene lista: es un rechazo seguro (no cobra), documentado en `docs/deployment.md`.
 4. La bandera la cambia solo el equipo técnico por SQL: ninguna RPC la modifica y `authenticated` no puede escribirla; solo `service_role`, que nunca llega al navegador. Es global (afecta a todas las organizaciones del entorno).

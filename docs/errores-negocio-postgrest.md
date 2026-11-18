@@ -5,6 +5,9 @@ sources:
   - apps/web/src/lib/ventasPresupuestos.ts
   - apps/web/src/lib/facturasElegibles.ts
   - apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx
+  - apps/web/src/lib/reparaciones.ts
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
 ---
 
 # Errores de negocio de las RPC y su respuesta HTTP
@@ -50,7 +53,7 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
    para cualquier otro mensaje, cae al catálogo general (nunca muestra el `message` desconocido del servidor).
 5. **MSF-638** (`obtener_reparacion`): una reparación de una tienda inaccesible se trata como inexistente a
    propósito (no revela que existe) y la ficha, la orden y el remito ya muestran «Esa reparación ya no existe»
-   (`mensajeDeErrorReparacion`, código `P0002`). Lo único pendiente es el estado HTTP.
+   (`mensajeDeErrorReparacion`, código `P0002`). El estado HTTP se corrigió solo para esta función (ver «MSF-638: `obtener_reparacion` fuera del alcance»); el resto sigue pendiente.
 
 ## Pendiente (y por qué)
 

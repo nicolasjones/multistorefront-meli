@@ -29,7 +29,7 @@ test.describe('Recorrido público', () => {
 
     await paso(page, 'Abre la recuperación de acceso', () => page.goto('/acceso/solicitar-recuperacion'))
     await paso(page, 'Escribe el correo (sin enviar)', () =>
-      page.getByLabel(/email/i).fill('demo@example.com'),
+      page.getByLabel(/correo electrónico/i).fill('demo@example.com'),
     )
     await paso(page, 'Verifica que puede pedir el enlace', async () => {
       await expect(page.getByRole('button', { name: 'Enviar enlace de recuperación' })).toBeEnabled()

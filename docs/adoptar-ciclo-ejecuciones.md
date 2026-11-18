@@ -1,7 +1,15 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/016-ciclo-ejecuciones-workers
+  - specs/019-outbox-ejecuciones
+  - specs/20260925-133820-observabilidad-workers-navegador
+  - supabase/migrations/20260920000000_ciclo_ejecuciones_workers.sql
+  - supabase/migrations/20260925200000_ejecucion_en_curso_worker.sql
+  - supabase/migrations/20260925210000_destrabar_conexion_invalida.sql
+  - infra/kestra/flows/plantilla-generico.yml
+  - infra/kestra/flows/plantilla-dedicado.yml
+  - workers/CONTRATO.md
 ---
 
 # Adoptar el Ciclo de Ejecuciones en un producto derivado
@@ -188,6 +196,18 @@ haber adoptado la 1.2.0 (fallas no reintentables): cada camino de abajo es un
    a mano para destrabar una conexión.
 4. **Validar** con una ejecución real equivalente a
    `pnpm test:kestra:conexion-trabada:e2e`.
+
+## 3.5 Endurecimiento posterior de los flows de despacho
+
+Al traer `plantilla-generico.yml` / `plantilla-dedicado.yml` a un flow concreto, conservar también estos controles de la plantilla vigente
+(verificados en `infra/kestra/flows/plantilla-generico.yml`):
+
+- **Imagen inmutable**: antes del `docker pull`, el flow rechaza (exit 64) una imagen que no sea `local/*`, `imagen@sha256:<64 hex>` o un tag
+  de 40 hex (el del commit). Un `:latest` nunca se actualiza con `docker image inspect || docker pull`.
+- **Red de egress exacta**: `WORKER_NETWORK` debe ser `worker-egress-<sistema_externo>` (o `bridge` para `fixture-*`); si no, exit 64
+  «Red de egress no autorizada».
+- **`docker run`** con `--init` (tini como PID 1) y `--pids-limit "${WORKER_PIDS:-1024}"` además de `--read-only`, `--cap-drop=ALL`,
+  `--cpus` y `--memory`.
 
 ## 4. Mapeo de este producto
 

@@ -2,7 +2,13 @@
 owner: tecnico
 sources:
   - specs/20261024-150000-ventas-cobros-y-conciliacion
-  - apps/web/src
+  - apps/web/src/lib/ventas/cobros.ts
+  - apps/web/src/lib/ventas/pagos.ts
+  - apps/web/src/lib/ventas/contrarreembolsos.ts
+  - apps/web/src/pages/ventas/pagos/list.tsx
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql
   - supabase/migrations/20270114130000_reconciliar_acciones_cobros_despacho.sql
 ---
 
@@ -60,8 +66,11 @@ Reglas comunes de las dos tablas nuevas:
 | `deuda` | `private.marcar_estado_cobro_comprobante` (MSF-177) | Queda saldo y la forma de pago «genera deuda». |
 | Cualquier otro | la matriz de estados de MSF-177 | El cambio de estado normal (borrador → confirmada, anulación, …). |
 
-El único camino a Cobrado/Deuda es `private.registrar_cobro_interno`, que usan
+El camino de ida a Cobrado/Deuda es `private.registrar_cobro_interno`, que usan
 `public.registrar_cobro` (una persona) y `public.marcar_contrarreembolso_cobrado` (un transporte).
+Hay dos caminos más, siempre por `private.marcar_estado_cobro_comprobante` (actor sistema): la nota de
+crédito que cubre el saldo y `public.revertir_cobro`, que reabre Cobrado → Deuda si tras el contra-asiento
+vuelve a haber saldo (ver [Revertir un cobro y anular](#revertir-un-cobro-y-anular-una-factura)).
 `cambiar_estado_comprobante` **rechaza** Cobrado y Deuda: nadie los pone desde la pantalla.
 
 > **MSF-177 es una dependencia de despliegue**: hasta que `private.marcar_estado_cobro_comprobante`
@@ -89,6 +98,21 @@ No es un estado del comprobante: es la **aprobación** del cobro (`aprobado_por`
 **Conciliar o revertir no cambia el estado del comprobante ni el saldo** (FR-022): el dinero se
 registra al cobrarlo (F-VTA-12) y la conciliación solo confirma, contra el extracto del banco, que
 ese pago llegó a la cuenta.
+
+## Revertir un cobro y anular una factura
+
+- El libro **sigue sin editarse ni borrarse**, pero admite correcciones: `public.revertir_cobro(p_cobro_id, p_motivo)` agrega un
+  **contra-asiento** (fila de importe negativo, `origen = 'reversion'`, con `revierte_cobro_id` y `motivo_reversion`). Solo el
+  **administrador** (`42501` para el resto), con motivo obligatorio de hasta 300 caracteres; un cobro se revierte una sola vez y no se
+  revierte uno conciliado ni el de un contrarreembolso (`20270507180100_revertir_cobro.sql`). Todavía **no hay pantalla**: se invoca
+  por RPC (ninguna parte de `apps/web/src` la llama).
+- Como el saldo, las alertas y la cuenta corriente suman `importe`, descuentan lo revertido solos. Pagos netea el cobro revertido y su
+  contra-asiento (no cuentan como «por conciliar») y los rotula «Revertido» / «Reversión» (`20270507180800`; detalle en
+  [pagos-conciliacion.md](pagos-conciliacion.md)).
+- `public.anular_comprobante` rechaza (`55000`) una factura **entregada** y una con **cobros registrados** (cobrado neto > 0): con el
+  cobro revertido (neto 0) se puede anular (`20270507180000`).
+- El **saldo** de un comprobante es `round(max(total − cobrado − notas de crédito, 0), 2)` y es único: lo calcula
+  `private.saldo_comprobante` (`20270227140000`). Detalle y reglas en [cobros-por-comprobante.md](cobros-por-comprobante.md).
 
 ## Roles: las tres acciones de Ventas
 

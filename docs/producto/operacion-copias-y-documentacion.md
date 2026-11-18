@@ -2,19 +2,25 @@
 owner: producto
 sources:
   - specs/011-backups-postgres
-  - infra/kestra/flows
+  - specs/20261018-120000-operacion-copias-y-documentacion
+  - infra/kestra/flows/respaldo-postgres.yml
+  - infra/kestra/flows/respaldo-imagenes.yml
+  - infra/kestra/flows/retencion-copias.yml
+  - infra/kestra/flows/verificar-restauracion.yml
+  - infra/kestra/flows/aviso-fallo-copias.yml
+  - infra/kestra/flows/alerta-ausencia-respaldos.yml
 ---
 
 # Plataforma · Operación, copias y documentación (MSF-457)
 
-**Épica:** MSF-457 · **Historias previstas:** F-OPS-01 «Copias de seguridad y restauración» y F-OPS-05
-«Documentación funcional y técnica» · **Spec prevista:** `operacion-copias-y-documentacion` (Hito 4,
+**Épica:** MSF-457 · **Historias:** F-OPS-01 «Copias de seguridad y restauración» y F-OPS-05
+«Documentación funcional y técnica» · **Spec:** `specs/20261018-120000-operacion-copias-y-documentacion` (Hito 4,
 P0). Detalle técnico: [Operación, copias y documentación (técnico)](../tecnico/operacion-copias-y-documentacion.md).
 
-> **Estado al 2026-10-30:** la épica **no tiene spec ni código propio en el repo**: no existe
-> `specs/*operacion-copias-y-documentacion*`. Esta página documenta (a) lo que **ya existe** y la
-> épica extiende (respaldo diario de Postgres, spec 011) y (b) lo que **falta** y se marca como pendiente.
-> Nada de lo pendiente se da por hecho.
+> **Estado al 2026-11-18:** las copias de la base y de las imágenes, la retención, la verificación semanal de
+> restauración y el aviso por correo ante fallos **ya existen** (spec `20261018-120000-operacion-copias-y-documentacion`).
+> Falta ejecutar y firmar el simulacro de restauración en staging. La referencia operativa vigente es
+> [Copias de seguridad y restauración](../copias-y-restauracion.md); esta página resume el estado para producto.
 
 ## Qué resuelve y para quién
 
@@ -29,23 +35,24 @@ en Kestra; F-OPS-05 en `docs/`).
 |---|---|---|
 | Respaldo diario de la base (03:00) y a demanda, con historial `respaldos` | **Existe** (spec 011) | `infra/kestra/flows/respaldo-postgres.yml` |
 | Verificación estructural del archivo (no vacío, cabecera `PGDMP`) | **Existe** | mismo flow, tarea `verificar_respaldo` |
-| Procedimiento manual de restauración | **Existe** (runbook) | [Restaurar base](../tecnico/runbooks/db-restore.md) |
-| Retención (30 diarias + 12 mensuales) | **Pendiente**: sólo es una propuesta de la épica | spec 011 la deja fuera de alcance |
-| Copia de imágenes fuera del proyecto Supabase que las aloja | **Pendiente** | roadmap #43 (Backup de Storage) |
-| Verificación periódica de restauración / simulacro firmado | **Pendiente** | roadmap #6 (Restauración) |
-| Aviso por correo al equipo de soporte ante fallo | **Pendiente**; depende del proveedor de correo | TODO dueño: producto |
-| Objetivo de recuperación (≤ 24 h de datos perdidos, volver a operar en ≤ 4 h) | **Propuesto**, a definir con el cliente | TODO dueño: producto |
+| Copia diaria de imágenes de Storage (03:15), con historial `respaldos_imagenes` | **Existe** | `infra/kestra/flows/respaldo-imagenes.yml` |
+| Retención por días con tope (por defecto 30 días y 12 mensuales para la base; 7 días, 2 mensuales y tope de 7 para las fotos de imágenes) y purga diaria (04:30) | **Existe** | `infra/kestra/flows/retencion-copias.yml` |
+| Verificación semanal de restauración (lunes 05:00) en una base descartable, con historial `verificaciones_restauracion` | **Existe** | `infra/kestra/flows/verificar-restauracion.yml` |
+| Aviso por correo al equipo de soporte ante un fallo y alerta si no corrió ninguna copia en las últimas 30 horas | **Existe** (requiere configurar el SMTP y `SOPORTE_CORREO`) | `aviso-fallo-copias.yml`, `alerta-ausencia-respaldos.yml` |
+| Procedimiento guiado de restauración | **Existe** | [Copias y restauración](../copias-y-restauracion.md), [Restaurar base](../tecnico/runbooks/db-restore.md) |
+| Las copias viven en el mismo servidor que la aplicación | **Riesgo asumido** por decisión del propietario; pasar a un destino externo se hace solo con variables | [Copias y restauración](../copias-y-restauracion.md) |
+| Simulacro de restauración en staging, medido y firmado | **Pendiente** de ejecución (falta autorización sobre staging) | [Simulacro de restauración](../simulacro-restauracion.md) |
+| Objetivo de recuperación (≤ 24 h de datos perdidos, volver a operar en ≤ 4 h) | **Propuesto**, a confirmar con el cliente | [Copias y restauración](../copias-y-restauracion.md) |
 
-## Límites / fuera de alcance de lo ya entregado
+## Límites
 
-El respaldo de la spec 011 **no** restaura, **no** borra copias viejas y **no** avisa ante fallos; sólo
-deja el estado auditable en la tabla `respaldos`. La documentación F-OPS-05 se cierra cuando estén las
+Mientras el simulacro no se ejecute, el objetivo de recuperación sigue sin medirse. La documentación F-OPS-05 se cierra cuando estén las
 funciones de todos los componentes (sin bloqueo formal).
 
 ## Cómo probarlo
 
-Prueba a mano **lo que existe hoy** (respaldo y su registro). El simulacro de restauración y el respaldo
-de imágenes aún no son probables: no hay implementación.
+Prueba a mano el respaldo de la base y su registro. La copia de imágenes y la verificación de restauración se prueban
+igual desde Kestra (ver [Copias y restauración](../copias-y-restauracion.md)); el simulacro firmado en staging sigue pendiente.
 
 ### Prerrequisitos
 
@@ -77,7 +84,7 @@ de imágenes aún no son probables: no hay implementación.
 
 ### Cómo automatizarlo
 
-- Respaldo: cubierto por pgTAP `supabase/tests/database/backups_postgres.test.sql` (modelo y RPC) y por los
-  scripts E2E de Kestra en `infra/kestra/`; **sin rótulo `[MSF-457:T0yy]` todavía**.
-- Simulacro de restauración, respaldo de imágenes y aviso por correo: **pendiente de automatizar** (sin spec
-  ni `tasks.md`; los rótulos se asignan al crear la spec). Sin video: no hay pantalla.
+- Respaldo: cubierto por pgTAP `supabase/tests/database/backups_postgres.test.sql` (modelo y RPC).
+- Imágenes y verificaciones de restauración: pgTAP `supabase/tests/database/copias_imagenes_verificaciones.test.sql`; el contrato de los
+  flows lo fija `pnpm test:kestra:copias`.
+- Simulacro de restauración en staging: **pendiente de ejecutar**. Sin video: no hay pantalla.

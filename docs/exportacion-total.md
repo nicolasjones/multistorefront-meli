@@ -9,6 +9,7 @@ sources:
   - supabase/migrations/20270217300007_exportacion_total_conjuntos_nuevos.sql
   - supabase/migrations/20270218500700_exportacion_total_precios_propios_historial.sql
   - supabase/migrations/20270219170000_exportacion_total_reparaciones_service.sql
+  - supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql
 ---
 
 # Exportar todos los datos (F-OPS-06, MSF-396)
@@ -39,6 +40,8 @@ El bloque no depende de la empresa activa (la exportación es de toda la organiz
 - `20270220170000_exportacion_total_variantes_y_relacionados.sql` (MSF-229): suma `dominio.producto_variantes` (las variantes de cada producto), `dominio.existencias_variante` (el stock por variante y depósito) y `dominio.producto_relacionados` (los productos relacionados) al conjunto exportado; son datos de negocio de la organización y ninguna columna parece un secreto.
 - `20270221100009_exportacion_total_precios_masivos_y_promociones.sql`: suma `dominio.actualizaciones_precio` (lotes de actualización masiva de costos y precios, MSF-436) y `dominio.promociones_precio` (MSF-439) al conjunto exportado; es la definición vigente sobre la que se apoya la siguiente.
 - `20270222300200_exportacion_total_envios_moto.sql` (MSF-145): suma `dominio.envios_moto` (mensajero, guía, costo, abono y rendición de los envíos en moto) al conjunto exportado, sobre la definición de `20270221100009`.
+- Incorporadas después, cada una con su migración aditiva que redefine `private.conjuntos_exportacion_total()` (todas dato de negocio de la organización): `20270321100500_exportacion_total_consulta_items.sql` (`dominio.consulta_items`, líneas de las consultas de pedido), `20270322100200_exportacion_total_presupuestos_tienda.sql` (`dominio.presupuestos_tienda`), `20270334000002_exportacion_total_ordenes_compra.sql` (`dominio.ordenes_compra` y `dominio.ordenes_compra_items`), `20270340000100_exportacion_total_listas_precios.sql` (`dominio.listas_precios`), `20270341000500_exportacion_total_opiniones.sql` (`dominio.opiniones_producto`), `20270342000300_exportacion_total_newsletter.sql` (`dominio.newsletter_configuracion` y `dominio.newsletter_suscriptores`, sin la columna `confirmacion_hash`), `20270349000200_gastos_exportacion_total.sql` (`dominio.gastos`) y `20270420000200_exportacion_total_newsletters.sql` (`dominio.newsletters`).
+- Excluidas por motivo, en `private.exclusiones_exportacion_total()`: las tablas de la API pública (claves, llamadas, suscripciones y entregas de webhooks; `20270224110206_exportacion_total_excluye_api.sql`), `dominio.favoritos_cliente` (preferencias privadas de la cuenta web del cliente; `20270320100500_exportacion_total_excluye_favoritos.sql`) y `public.resumen_semanal_config` y `public.resumen_semanal_envios` (interruptor y cola de envío, no datos de negocio; `20270324100300_exportacion_total_excluye_resumen_semanal.sql`).
 - `20270217300006_exportacion_total_solo_admin_propio.sql`: la solicitud y la descarga exigen la membresía propia de administrador (`private.es_administrador_propio_de`); un superadmin con acceso de soporte no exporta.
 
 ## Agregar un conjunto

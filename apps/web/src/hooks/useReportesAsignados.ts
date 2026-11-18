@@ -31,11 +31,15 @@ export function useReportesAsignados() {
 
     supabaseClient
       .rpc('reportes_visibles_para_mi')
-      .then(({ data }) => {
-        if (!cancelled) {
-          setChecked({ userId: identity.id, reportes: data ?? [] })
-        }
-      })
+      // Si la consulta se cae, no queda «cargando» para siempre: se resuelve sin reportes y el resto del panel sigue.
+      .then(
+        ({ data }) => {
+          if (!cancelled) setChecked({ userId: identity.id, reportes: data ?? [] })
+        },
+        () => {
+          if (!cancelled) setChecked({ userId: identity.id, reportes: [] })
+        },
+      )
 
     return () => {
       cancelled = true

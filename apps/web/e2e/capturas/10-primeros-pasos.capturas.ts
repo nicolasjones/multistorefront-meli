@@ -111,7 +111,7 @@ test('acceso', async ({ page }) => {
   await capturar(page, 'acceso-y-sesion', '02-error-ingreso')
   await page.goto('/acceso/solicitar-recuperacion')
   await expect(page.getByRole('button', { name: /Enviar enlace de recuperaci/ })).toBeVisible()
-  await page.getByLabel('Email').fill('nombre@ejemplo.com')
+  await page.getByLabel('Correo electrónico').fill('nombre@ejemplo.com')
   await capturar(page, 'acceso-y-sesion', '03-recuperar')
 })
 

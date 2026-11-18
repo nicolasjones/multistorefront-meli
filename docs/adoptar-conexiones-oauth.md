@@ -1,7 +1,14 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/20260930-153545-conexiones-oauth-nango
+  - infra/nango/compose.yaml
+  - infra/nango/compose.estricto.yaml
+  - supabase/migrations/20260930160000_conexiones_oauth.sql
+  - supabase/functions/iniciar-sesion-oauth/index.ts
+  - apps/web/src/pages/conexiones-oauth/list.tsx
+  - apps/web/src/pages/integraciones-oauth/administrar.tsx
+  - apps/web/src/providers/nango/index.ts
 ---
 
 # Adoptar Conexiones OAuth de plataforma en un producto derivado
@@ -33,7 +40,11 @@ técnicos en `specs/20260930-153545-conexiones-oauth-nango/contracts/`.
    apuntar al dominio HTTPS propio de ese entorno (reverse proxy ya
    existente, mismo patrón que Kestra/Superset — `docs/deployment.md`). El
    template no provee ni asume ese dominio.
-4. `NANGO_SECRET_KEY_<entorno>` es un secreto de plataforma nuevo por
+4. En staging y production el deploy es **estricto**: `infra/nango/compose.estricto.yaml` exige, sin valor por defecto,
+   `NANGO_DB_PASSWORD`, `NANGO_ENCRYPTION_KEY`, `NANGO_DASHBOARD_PASSWORD` y `NANGO_SECRET_KEY_DEV`, y el preflight del deploy corta antes
+   de tocar Docker si falta alguna (en dev solo advierte). Ver `docs/deployment.md`, «Credenciales obligatorias, imágenes inmutables y
+   clave de host: modo transicional».
+5. `NANGO_SECRET_KEY_<entorno>` es un secreto de plataforma nuevo por
    entorno: vive únicamente donde corra el backend/worker que va a pedir
    tokens (nunca en Supabase, nunca en el navegador, nunca en Git).
 

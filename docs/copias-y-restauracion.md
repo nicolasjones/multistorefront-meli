@@ -3,7 +3,15 @@ owner: operacion
 sources:
   - specs/011-backups-postgres
   - specs/20261018-120000-operacion-copias-y-documentacion
-  - infra/kestra
+  - infra/kestra/flows/respaldo-postgres.yml
+  - infra/kestra/flows/respaldo-imagenes.yml
+  - infra/kestra/flows/retencion-copias.yml
+  - infra/kestra/flows/verificar-restauracion.yml
+  - infra/kestra/flows/purgar-almacenamiento-kestra.yml
+  - infra/kestra/flows/alerta-ausencia-respaldos.yml
+  - infra/kestra/flows/aviso-fallo-copias.yml
+  - infra/kestra/compose.yaml
+  - supabase/migrations/20270418000301_reaplica_privilegios_copias.sql
 ---
 
 # Copias de seguridad y restauración (F-OPS-01)
@@ -54,7 +62,7 @@ durables están en el destino de respaldos, no en Kestra: purgar Kestra no pierd
 
 Los flows avisaban cuando **fallaban**, no cuando **no corrían** (Kestra caído, trigger apagado, destino que dejó de recibir archivos).
 `alerta-ausencia-respaldos` (diario 06:30) lista el destino y compara la fecha del **nombre** de cada copia (`AAAAMMDD-HHMMSS`, UTC) con el corte, porque `rclone lsf --max-age` no filtra carpetas, y falla, con aviso por correo a `SOPORTE_CORREO`, si no hay una
-copia de la base **y** una foto de imágenes de las últimas `RESPALDOS_AUSENCIA_HORAS` horas (30). Todos los plazos (días, meses, tope, horas) son enteros sin ceros a la izquierda: `08`, vacío o texto se rechazan con un mensaje claro y sin borrar nada. Toda tarea de copia tiene `timeout`
+copia de la base **y** una foto de imágenes de las últimas `RESPALDOS_AUSENCIA_HORAS` horas (30). Los plazos de `retencion-copias` (días, meses, tope) y las horas de la alerta son enteros sin ceros a la izquierda y de hasta 4 dígitos (máximo 9999): `08`, vacío, texto o un valor más largo se rechazan con un mensaje claro y sin borrar nada (`retencion-copias.yml:65-72`, `alerta-ausencia-respaldos.yml:54`). Toda tarea de copia tiene `timeout`
 (`pg_dump` 2 h, copia al destino 1 h, imágenes 3 h, retención 30 min). El resto de los flows programados ahora tienen bloque `errors:` con
 aviso (`aviso-fallo-flujo`, que solo informa la tarea que falló, no el mensaje del error), `timeout` en cada tarea de red/base/correo y,
 si corren cada 15 minutos o menos, `concurrency` (una corrida a la vez; el reclamo de cada outbox es mayor o igual que el peor caso, declarado en los

@@ -2,8 +2,10 @@
 owner: tecnico
 sources:
   - specs/20261024-130000-stock-carga-exportacion-y-avisos
-  - infra/kestra
+  - infra/kestra/flows/avisos-faltantes.yml
   - scripts/verificar-migraciones.mjs
+  - supabase/functions/_shared/token.ts
+  - supabase/functions/enviar-aviso-faltante/handler.ts
   - design/pantallas/VentasFaltantes.dc.html
   - supabase/migrations/20261213100200_faltantes_avisos.sql
   - supabase/migrations/20261213100300_faltantes_listado.sql
@@ -142,7 +144,14 @@ viajaba, lo que se recarga es lo que está a la vista, nunca la página anterior
 | Secretos de la función (`supabase/functions/.env.example`) | `AVISOS_FALTANTES_TOKEN` (decodificado, igual al de Kestra), `SMTP_*` |
 
 Generar el token de Kestra: `printf '%s' '<token>' | base64 -w0`. Sin `AVISOS_FALTANTES_TOKEN` la función
-responde 503 y rechaza todo.
+responde 503 y rechaza todo. El token tiene que tener **al menos 32 caracteres** y no ser `change-me…`: uno más corto o de ese
+estilo se descarta y la función responde 503 «no configurada» (salvo en local, con `AVISOS_PERMITIR_TOKEN_DEBIL=true`). El header
+`x-aviso-token` se compara en **tiempo constante sobre los SHA-256** de ambos valores (`tokenValido`,
+`supabase/functions/_shared/token.ts`), sin cortar por longitud; si no coincide, 403.
+
+El flow `infra/kestra/flows/avisos-faltantes.yml` corre **una sola ejecución a la vez** (`concurrency: limit 1, behavior CANCEL`: la nueva
+se descarta si la anterior sigue) y, si falla, avisa al soporte con el subflow `aviso-fallo-flujo` (con el nombre de la tarea que falló,
+sin el mensaje del error).
 
 En el stack local y de dev el runtime solo recibe los secretos que `supabase/config.toml` declara en
 `[edge_runtime.secrets]`: `SMTP_*`, `PANEL_URL` y los tokens `AVISOS_*` / `ALERTAS_INICIO_TOKEN` están declarados
@@ -189,3 +198,7 @@ reencuadre de la paginación, descarte de la selección, cierre del diálogo y r
 anterior).
 
 Nota MSF-161: la pantalla `/ventas/faltantes` (faltantes de despacho, `dominio.faltantes_venta`) también avisa a los clientes y marca «Para avisar», reutilizando la misma cola y el mismo correo. Ver [ventas-faltantes-avisos.md](ventas-faltantes-avisos.md).
+
+## Dos pantallas «Faltantes» con nombres distintos (lote 34, MSF-664)
+
+Se **mantienen las dos pantallas** porque leen datos distintos: **«Faltantes de stock (A pedido)»** (`/stock/faltantes`, esta página: líneas «A pedido» de facturas confirmadas con reserva activa) y **«Faltantes de despacho»** (`/ventas/faltantes`: lo que quedó sin armar en el despacho, con los avisos de MSF-161). Para que no se confundan, el menú, las pestañas de Stock y los títulos usan esos nombres, y cada pantalla trae un enlace a la otra. Los nombres también están en el prototipo (`AdminSider`, pestañas de Stock y Ventas, `VentasFaltantes`).

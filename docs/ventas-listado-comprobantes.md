@@ -3,6 +3,12 @@ owner: tecnico
 sources:
   - infra/kestra/flows/exportar-comprobantes.yml
   - workers/exportar-comprobantes
+  - apps/web/src/pages/ventas/comprobantes.tsx
+  - supabase/migrations/20261212110000_listar_comprobantes.sql
+  - supabase/migrations/20261212110200_solicitar_exportacion_comprobantes.sql
+  - supabase/migrations/20261212110300_archivo_exportacion_comprobantes.sql
+  - supabase/migrations/20261212110400_exportacion_comprobantes_endurecimiento.sql
+  - supabase/migrations/20270507140100_exportacion_comprobantes_filtro_origen.sql
 ---
 
 # Ventas · Listado de comprobantes y exportación
@@ -54,7 +60,7 @@ Reglas del listado:
 - Los filtros son Operador, Estado, Pago, Envío y tienda; `pendiente` y `confirmada` son equivalentes
   (`confirmada` se muestra «Pendiente»). El estado `vencido` de un presupuesto se deriva de `valido_hasta`.
 - Orden estable: fecha descendente y, luego, número descendente. El total de una nota de crédito resta
-  (signo negativo) cuando F-VTA-11 habilite `tipo = 'nota_credito'`.
+  (signo negativo).
 - Solo entran las empresas donde la persona tiene `ventas` en lectura o edición; una empresa ajena
   devuelve cero filas.
 
@@ -73,6 +79,10 @@ Reglas del listado:
   al reintentar) y cierra la ejecución con estado y error útil.
 - **Kestra** `infra/kestra/flows/exportar-comprobantes.yml`: consume el outbox y lanza el worker con los
   reintentos del contrato. `pnpm infra:config` valida el Compose.
+  El flow corre **una sola ejecución a la vez** (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue en curso, la nueva se
+  descarta), pone `timeout` a cada consulta (1 minuto; 30 minutos al despacho por SSH), **exige que la imagen del worker vaya por
+  digest (`@sha256:`) o por tag de commit de 40 hex** (un tag mutable como `:latest` aborta con código 64; las `local/*` quedan
+  para desarrollo) y lanza el contenedor con `--init` y `--pids-limit` (por defecto 1024) (`exportar-comprobantes.yml`).
 - El bucket es privado y solo lo lee quien pidió la exportación, de su organización y con `exportar`.
 
 ## Pruebas
@@ -95,8 +105,7 @@ Reglas del listado:
 - El prototipo muestra tarjetas KPI, impresión por fila y las pestañas Pagos/Faltantes/Devoluciones/
   Transportes. La matriz de la spec las declara fuera de alcance (MSF-195, MSF-213, MSF-135, MSF-178,
   MSF-139).
-- `nota_credito` todavía no existe en el `CHECK` de `tipo`: lo agrega F-VTA-11. El listado y la exportación
-  ya la contemplan (y restan su total) para no cambiar la pantalla al sumar esa historia.
+- `nota_credito` ya existe en el `CHECK` de `tipo` (F-VTA-11): el listado y la exportación la incluyen y restan su total.
 
 ## Endurecimiento de la exportación diferida (devolución PR #374)
 

@@ -5,6 +5,9 @@ sources:
   - scripts/ci-lane.mjs
   - scripts/estado-ci.mjs
   - scripts/limpiar-ci.mjs
+  - scripts/verificar-workflows.mjs
+  - scripts/verificar-validacion.mjs
+  - .github/workflows/validate.yml
 ---
 
 # Control de concurrencia del CI
@@ -144,7 +147,7 @@ archivo` sin pasos de código.
   `pnpm ci:limpiar --aplicar` dentro de un runner: borra locks/carriles vencidos
   y stacks `supabase_*_ci-*` **detenidos** (nunca los que están `Up` ni
   dev/stg/prd). Para verlo antes de limpiar: `pnpm ci:limpiar` (dry-run).
-- **Un PR quedó `BEHIND` y el job `application` falla por el guard de migraciones:** el
+- **Un PR quedó `BEHIND` y el job `chequeos` falla por el guard de migraciones:** el
   guard juzga sólo las migraciones que la rama agregó o modificó desde el punto de
   divergencia con la base (MSF-749), así que un rojo por «versión duplicada», «REUSADA» o
   «MODIFICADA» de una migración que la rama heredó ya no corresponde a ese PR. Si el log
