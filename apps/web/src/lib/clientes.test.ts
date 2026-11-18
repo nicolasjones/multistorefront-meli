@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type Cliente, FORMULARIO_CLIENTE_VACIO, aFormulario, aValores, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
+import { type Cliente, FORMULARIO_CLIENTE_VACIO, MENSAJE_DOCUMENTO_INVALIDO, aFormulario, aValores, documentoClienteValido, esDocumentoInvalido, esDocumentoRepetido, parsearDescuento, validarCliente } from './clientes'
 
 describe('clientes', () => {
   it('validarCliente exige nombre y respeta largos', () => {
@@ -82,5 +82,26 @@ describe('relación con empresas (F-CLI-05)', () => {
   it('aFormulario conserva la aceptación guardada del cliente', () => {
     expect(aFormulario({ ...cliente, acepta_correo_masivo: false }).aceptaCorreoMasivo).toBe(false)
     expect(aFormulario({ ...cliente, acepta_correo_masivo: true }).aceptaCorreoMasivo).toBe(true)
+  })
+})
+
+describe('documento del cliente (DNI o CUIT)', () => {
+  it.each([
+    ['', true], ['12345678', true], ['1234567', true], ['12.345.678', true], ['20-12345678-6', true], ['20123456786', true],
+    ['123456', false], ['123456789', false], ['20-12345678-9', false], ['AB1234567', false],
+  ])('«%s» → %s', (texto, valido) => {
+    expect(documentoClienteValido(texto)).toBe(valido)
+  })
+
+  it('validarCliente marca el documento inválido, pero tolera un valor viejo sin tocar', () => {
+    const base = { ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', documento: 'PASAPORTE-1' }
+    expect(validarCliente(base).documento).toBe(MENSAJE_DOCUMENTO_INVALIDO)
+    expect(validarCliente(base, 'PASAPORTE-1').documento).toBeUndefined()
+    expect(validarCliente({ ...base, documento: '20123456786' }, 'PASAPORTE-1').documento).toBeUndefined()
+  })
+
+  it('reconoce el rechazo del servidor por documento inválido', () => {
+    expect(esDocumentoInvalido({ code: '23514', message: 'El DNI/CUIT no es válido: ingresá un DNI' })).toBe(true)
+    expect(esDocumentoInvalido({ code: '23514', message: 'otro check' })).toBe(false)
   })
 })

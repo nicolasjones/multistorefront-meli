@@ -12,7 +12,9 @@ import {
   MENSAJE_DOCUMENTO_REPETIDO,
   TIPOS_CLIENTE,
   aValores,
+  esDocumentoInvalido,
   esDocumentoRepetido,
+  MENSAJE_DOCUMENTO_INVALIDO,
   mensajeDeError,
   opcionesCuentaWeb,
   parsearDescuento,
@@ -105,7 +107,7 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
       return
     }
     setErrorServidor(null)
-    const nuevos = validarCliente(formulario)
+    const nuevos = validarCliente(formulario, inicial.documento)
     setErrores(nuevos)
     if (Object.keys(nuevos).length > 0) {
       enfocarPrimerError(nuevos)
@@ -123,7 +125,11 @@ export function FormularioCliente({ inicial, etiquetaGuardar, numero, empresas =
         await onGuardar(valores, opcionesCuentaWeb(formulario))
       }
     } catch (error) {
-      if (esDocumentoRepetido(error)) {
+      if (esDocumentoInvalido(error)) {
+        const invalido = { documento: MENSAJE_DOCUMENTO_INVALIDO }
+        setErrores(invalido)
+        enfocarPrimerError(invalido)
+      } else if (esDocumentoRepetido(error)) {
         const repetido = { documento: MENSAJE_DOCUMENTO_REPETIDO }
         setErrores(repetido)
         enfocarPrimerError(repetido)

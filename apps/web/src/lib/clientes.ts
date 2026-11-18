@@ -3,6 +3,7 @@
 // acá se espejan solo para validar en el formulario antes de viajar.
 
 import type { EstadoCuentaWebFormulario } from './cuentasCliente'
+import { validarCuit } from './cuit'
 import { supabaseClient } from './supabase'
 
 export type Cliente = {
@@ -98,6 +99,22 @@ export const LARGO_MAXIMO: Readonly<Record<CampoFicha, number>> = {
 }
 
 export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT'
+export const MENSAJE_DOCUMENTO_INVALIDO = 'Ingresá un DNI de 7 u 8 dígitos o un CUIT de 11 dígitos con su dígito verificador.'
+
+// DNI de 7 u 8 dígitos o CUIT de 11 con dígito verificador (sin puntos, guiones ni espacios); vacío es válido. Espeja
+// `private.documento_cliente_valido`: la autoridad es la base (disparador de clientes); acá solo se avisa antes de enviar.
+export function documentoClienteValido(texto: string): boolean {
+  const limpio = texto.replace(/[\s.-]/g, '')
+  if (texto.trim() === '') return true
+  if (/^\d{7,8}$/.test(limpio)) return true
+  return /^\d{11}$/.test(limpio) && validarCuit(limpio).valido
+}
+
+// La base responde 23514 «El DNI/CUIT no es válido…» si el documento no cumple (p. ej. otra pantalla o un API).
+export function esDocumentoInvalido(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23514' && (e.message ?? '').includes('DNI/CUIT no es válido')
+}
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -145,7 +162,9 @@ export function opcionesCuentaWeb(formulario: FormularioCliente): OpcionesCuenta
   }
 }
 
-export function validarCliente(formulario: FormularioCliente): ErroresCliente {
+// `documentoOriginal`: el documento ya guardado. Un valor viejo que no cumple la regla actual se tolera mientras no se
+// toque (la base tampoco lo rechaza si no cambia), para no bloquear la edición de otros datos del cliente.
+export function validarCliente(formulario: FormularioCliente, documentoOriginal: string | null = null): ErroresCliente {
   const errores: ErroresCliente = {}
   if (formulario.nombre.trim() === '') {
     errores.nombre = 'Ingresá el nombre o la razón social.'
@@ -156,6 +175,10 @@ export function validarCliente(formulario: FormularioCliente): ErroresCliente {
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) {
     errores.correo = 'Ingresá un correo con formato válido.'
+  }
+  const documento = formulario.documento.trim()
+  if (documento !== (documentoOriginal ?? '').trim() && !documentoClienteValido(documento)) {
+    errores.documento = MENSAJE_DOCUMENTO_INVALIDO
   }
   for (const campo of CAMPOS_FICHA) {
     if (!errores[campo] && formulario[campo].trim().length > LARGO_MAXIMO[campo]) {

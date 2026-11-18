@@ -26,7 +26,7 @@ insert into dominio.empresas (id, organizacion_id, nombre) values
 -- 101 y 102: las dos fichas del mismo cliente (3 y 5 compras). 103 y 104: ambos con cuenta web activa.
 -- 105: sin cuentas. 201: otra organización.
 insert into dominio.clientes (id, organizacion_id, numero, nombre, documento) values
-  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', '20-11111111-1'),
+  ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 101, 'Alfa', '20-22222222-3'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 102, 'Alfa duplicado', '20-11111111-2'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 103, 'Beta', null),
   ('c1000000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 104, 'Beta duplicado', null),

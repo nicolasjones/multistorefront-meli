@@ -30,8 +30,10 @@ describe('definición de la entidad clientes', () => {
     const mapeo = mapeoAutomatico(ENTIDAD_CLIENTES, [...ENCABEZADOS_CLIENTES])
     expect(Object.values(mapeo)).toEqual(expect.arrayContaining([
       'id_externo', 'nombre', 'documento', 'tipo', 'correo', 'telefono', 'celular',
-      'direccion', 'codigo_postal', 'localidad', 'provincia', 'expreso_preferido',
+      'direccion', 'codigo_postal', 'localidad', 'provincia', 'expreso_preferido', 'acepta_correo',
     ]))
+    // `acepta_correo` es opcional: vacío = sin aceptación.
+    expect(ENTIDAD_CLIENTES.campos.find((campo) => campo.clave === 'acepta_correo')?.obligatorio).toBeFalsy()
     expect(camposObligatoriosFaltantes(ENTIDAD_CLIENTES, mapeo)).toEqual([])
   })
 
