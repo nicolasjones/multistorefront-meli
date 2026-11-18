@@ -66,7 +66,7 @@ retoma en el siguiente barrido cuando aparezca alguno.
   tiene Stock en `lectura` o `edicion`; **sin escritura desde la app**; `anon` sin privilegios.
 - Las tres RPC (`generar_resumen_reposicion`, `cerrar_resumen_reposicion`, `organizaciones_con_resumen_pendiente`)
   son **solo de `service_role`**: `authenticated` y `anon` no pueden ejecutarlas.
-- La Edge Function exige `x-aviso-token` (secreto compartido, comparación en tiempo constante). El destinatario
+- La Edge Function exige `x-aviso-token` (secreto compartido; comparación en tiempo constante sobre los SHA-256 de ambos valores, 403 si no coincide; un token de menos de 32 caracteres o `change-me*` se descarta y la función responde 503). El destinatario
   nunca viene del pedido, así que no es un relay abierto. La clave de servicio vive solo en la función.
 
 ## Variables

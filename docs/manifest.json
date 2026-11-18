@@ -2108,7 +2108,7 @@
     },
     "docs/resumen-semanal-correo.md": {
       "title": "Resumen semanal por correo (F-REP-08)",
-      "pageHash": "94f6a18cba4d5b28d41a794c446e1a4167cf3c898d6f800ea01173a1867ebcfa",
+      "pageHash": "996cd75ffc952a910e05cf8c12a8d058b3951074dadc89aa564bd45e5abb4e14",
       "sourceHash": "09127f4399ca9c7ef3612503286e0984800cd7f280bc2f391248f3e3d8659dcc",
       "sourceAt": "338b8ec8",
       "sources": [
@@ -2121,16 +2121,16 @@
     },
     "docs/revision-seguridad-analitica-avanzada.md": {
       "title": "Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)",
-      "pageHash": "3b8fb9862d430e46cd1fa4db0bf1b613e3df63f2ffdb59be73d7aa88574e172e",
-      "sourceHash": "a8ee64397fa196c0ff8a6dc1fe0ad18fece53c7c321c90f8fc7c0086c1a86e45",
-      "sourceAt": "e2ad6a41",
+      "pageHash": "f9494a86073adc994fe047a5346b6e39ffbc560e7e562075aa0eb467911131e4",
+      "sourceHash": "8c676919c666a79dfccf9f73b0616e93020ad4715ebb90feb1dd728395dce420",
+      "sourceAt": "e2ad6a412",
       "sources": [
         "specs/20261114-100000-analitica-avanzada-y-resumen-por-correo",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "e2ad6a41"
+      "commit": "e2ad6a412"
     },
     "docs/revision-seguridad-gastos.md": {
       "title": "Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)",
@@ -2477,15 +2477,15 @@
     },
     "docs/stock-avisos-reposicion.md": {
       "title": "Stock · Avisos de reposición (F-STK-09)",
-      "pageHash": "79c922adf2b0c74af3122e2071f5d5a12d762ab5f8885f588c9c22bb66b191c4",
-      "sourceHash": "ae6464148dfc5a265b9b3aac7b2946a6eb0e456eeca96b6d7b09275bf0105aea",
-      "sourceAt": "c7860a7c",
+      "pageHash": "454ac85b7b7515c3fed5e4ce44307e061038e9fea4d36e549aec5b44380c051d",
+      "sourceHash": "8c9e6d1bcf3c52e206ca6b944aa0c5cfd4d48747079bca35f4d0d74bcfc0530e",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261024-130000-stock-carga-exportacion-y-avisos",
         "infra/kestra"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/stock-carga-excel.md": {
       "title": "Stock · Carga inicial y masiva por planilla (F-STK-07, MSF-380)",

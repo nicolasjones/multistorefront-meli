@@ -49,14 +49,14 @@ Las secciones cuya fuente no existe se omiten sin error. Solo hay **agregados** 
 
 - **Pausa por organización**: «Mi organización» → «Resumen semanal por correo» (interruptor). Solo administradores (`configurar_resumen_semanal` exige `private.puede_escribir()`); un cambio real deja el evento `resumen_semanal.pausado` o `resumen_semanal.reanudado` en [Actividad](actividad.md).
 - **Interruptor y refresco**: el interruptor refleja de inmediato lo guardado; si el cambio se guardó pero el refresco posterior falla, la pantalla dice «Se guardó, pero no pudimos actualizar el estado» con «Reintentar», en lugar de «no se guardó» (`apps/web/src/pages/organizacion/ResumenSemanal.tsx:18`, `:95`).
-- **Endurecimiento de la función**: `enviar-resumen-semanal` es solo para Kestra: sin `Access-Control-Allow-Origin: *`, valida el destinatario como una única dirección y exige el token compartido (rechaza con 403 si falta o no coincide, comparando en tiempo constante; sin token configurado responde error y no procesa nada; no valida su fortaleza: `handler.ts:56-61,153-157`) (`supabase/functions/enviar-resumen-semanal/handler.ts`; ver [Endurecimiento de funciones Edge](funciones-edge-endurecimiento.md)).
+- **Endurecimiento de la función**: `enviar-resumen-semanal` es solo para Kestra: sin `Access-Control-Allow-Origin: *`, valida el destinatario como una única dirección y exige el token compartido. Fortaleza: `index.ts:27` pasa `RESUMEN_SEMANAL_TOKEN` por `tokenDeEntorno` (`_shared/token.ts`), que descarta un token de menos de 32 caracteres o que empiece con `change-me` (salvo `AVISOS_PERMITIR_TOKEN_DEBIL=true`, solo local) y la función responde 503 sin procesar nada (`handler.ts:147-150`). Comparación de la petición: `tokenValido` (SHA-256 de ambos valores + `timingSafeEqual`, sin cortar por longitud) y 403 uniforme si falta o no coincide (`handler.ts:151`) (`supabase/functions/enviar-resumen-semanal/handler.ts`; ver [Endurecimiento de funciones Edge](funciones-edge-endurecimiento.md)).
 - **Baja personal**: «Avisos por correo» (`/cuenta/avisos`) lista «Resumen semanal de la organización» para quien tiene la sección `usuarios_permisos` (por defecto, el administrador).
 
 ## Secretos y variables (solo por entorno)
 
 | Dónde | Variable | Nota |
 |---|---|---|
-| Función (`supabase secrets set`) | `RESUMEN_SEMANAL_TOKEN` | Secreto compartido con Kestra (`x-aviso-token`); sin él la función rechaza todo (503). Se compara en tiempo constante sobre los SHA-256 de ambos valores, sin cortar por longitud (helper `_shared/token.ts`) |
+| Función (`supabase secrets set`) | `RESUMEN_SEMANAL_TOKEN` | Secreto compartido con Kestra (`x-aviso-token`); sin él, o con uno de menos de 32 caracteres o `change-me*`, la función rechaza todo (503). Se compara en tiempo constante sobre los SHA-256 de ambos valores, sin cortar por longitud (helper `_shared/token.ts`) |
 | Función | `PANEL_URL`, `SMTP_*` | Los mismos de los demás correos |
 | `supabase/config.toml` (`[edge_runtime.secrets]`) | `RESUMEN_SEMANAL_TOKEN = "env(…)"` | Para el runtime de dev |
 | Kestra (`infra/kestra/.env`) | `RESUMEN_SEMANAL_URL`, `RESUMEN_SEMANAL_APIKEY`, `SECRET_RESUMEN_SEMANAL_TOKEN` | El token va **en base64** (`printf '%s' '<token>' | base64 -w0`); decodificado debe igualar al de la función |
