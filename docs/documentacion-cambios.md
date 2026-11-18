@@ -135,6 +135,9 @@ Destino entre <> en 2 líneas: [x](<a + salto de línea + b>)
 Texto y destino en 2 líneas:  [a] + salto de línea + (b.md)   (CommonMark tampoco lo trata como enlace)
 Fence con sangría 2-3 sin lista: un fence de nivel superior sangrado 2 o 3 espacios se trata como de un ítem de lista;
                               si su código tiene líneas con menos sangría, se reporta como sin cerrar
+Fence sangrado 4 o más:       un fence con 4+ espacios de sangría abre bloque igual (tolerancia para listas anidadas)
+Comentario HTML:              <!-- [a](roto.md) -->   SÍ se valida (un comentario no se enmascara)
+Paréntesis en el destino:     [a](x(1).md)   extrae «x(1» (el destino termina en el primer «)»)
 Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
 ```
 

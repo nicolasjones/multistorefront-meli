@@ -223,6 +223,27 @@ describe("enlacesMarkdown", () => {
       assert.deepEqual(destinos(`[a](x${b}"t")`), ["x"]);
     }
   });
+  it("CRLF, CR suelto y BOM se analizan igual que LF, con las mismas líneas", () => {
+    const lf = "# t\n\n[x]: roto.md\n[y]: otro.md \"t\"\n[a](b.md) <a href=\"h.md\"> <img src=i.png>\n```\n[c](dentro.md)\n```\n[f](fuera.md)\n";
+    const base = enlacesMarkdown(lf);
+    assert.deepEqual(base.enlaces.map((m) => [m.destino, m.linea]), [["roto.md", 3], ["otro.md", 4], ["b.md", 5], ["h.md", 5], ["i.png", 5], ["fuera.md", 9]]);
+    for (const variante of [lf.replace(/\n/g, "\r\n"), lf.replace(/\n/g, "\r"), "\uFEFF" + lf, "\uFEFF" + lf.replace(/\n/g, "\r\n")]) {
+      const r = enlacesMarkdown(variante);
+      assert.deepEqual(r.enlaces.map((m) => [m.destino, m.linea]), base.enlaces.map((m) => [m.destino, m.linea]));
+      assert.deepEqual(r.sinCerrar, []);
+    }
+    assert.deepEqual(destinos("[x]: roto.md\r\n"), ["roto.md"]);
+    assert.deepEqual(destinos("[x]: roto.md \"título\"\r\n[y]: <con espacios.md>\r\n"), ["roto.md", "con espacios.md"]);
+  });
+  it("un fence con BOM en la línea 1 se reconoce como apertura", () => {
+    assert.deepEqual(destinos("\uFEFF```\n[x](dentro.md)\n```\n[f](fuera.md)\n"), ["fuera.md"]);
+  });
+  it("mutantes: nota al pie, blanco antes de href/src y basura tras una definición", () => {
+    assert.deepEqual(destinos("[^1]: roto.md\n[^nota]: <roto2.md>"), []);
+    assert.deepEqual(destinos('<a data-href="x.md"> <img data-src=y.png> <abbr href="z.md"> <a  href="ok.md">'), ["ok.md"]);
+    assert.deepEqual(destinos('[a]: r.md "t" basura\n[b]: r2.md (t) x\n[c]: r3.md\n  "título aparte" más'), ["r3.md"]);
+    assert.deepEqual(destinos("[a]: r.md texto\n[d]: ok.md"), ["ok.md"]);
+  });
   const caso = (nombre, ok, mal, motivo) => it(`tope de ${nombre}: el límite se valida y uno más se reporta`, () => {
     const a = enlacesMarkdown(ok);
     assert.equal(a.enlaces.length, 1, "el límite exacto se procesa");

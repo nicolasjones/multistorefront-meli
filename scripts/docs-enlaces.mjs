@@ -109,7 +109,9 @@ const empiezaCI = (s, p, palabra) => {
  * @param {string} original contenido del archivo
  * @returns {{enlaces: Array<{crudo: string, destino: string, linea: number}>, excesos: Array<{linea: number, motivo: string}>, masExcesos: number, sinCerrar: number[]}}
  */
-export function enlacesMarkdown(original) {
+export function enlacesMarkdown(crudo) {
+  // BOM y finales de línea CRLF/CR normalizados a `\n` antes de analizar (las líneas se cuentan igual que en un editor).
+  const original = (crudo.charCodeAt(0) === 0xfeff ? crudo.slice(1) : crudo).replace(/\r\n?/g, "\n");
   const { texto: txt, sinCerrar } = enmascararCodigo(original);
   const n = txt.length;
   const enlaces = [];
@@ -189,7 +191,14 @@ export function enlacesMarkdown(original) {
       const j0 = saltarBlancos(i + 2, "destino (blancos antes del destino)", linea);
       if (j0 < 0) continue;
       // Destino entre `<…>` primero; si no forma un enlace, se reintenta como destino común (no se pierde `[a](<x.md)`).
-      if (!enlaceEnLinea(desde, j0, linea, false) && txt[j0] === "<") enlaceEnLinea(desde, j0, linea, true);
+      if (txt[j0] === "<") {
+        const antes = enlaces.length;
+        const ok = enlaceEnLinea(desde, j0, linea, false);
+        // Además, la lectura como destino común (la del extractor anterior), si forma otro enlace distinto.
+        const previo = ok ? enlaces[antes].destino : null;
+        const n0 = enlaces.length;
+        if (enlaceEnLinea(desde, j0, linea, true) && previo !== null && enlaces[n0].destino.replace(/^<|>$/g, "") === previo) enlaces.pop();
+      } else enlaceEnLinea(desde, j0, linea, false);
     } else if (sig === ":" && txt[desde + 1] !== "^") {
       // Definición de referencia `[x]: destino "título"`: al inicio de un bloque (también dentro de una cita o un ítem de
       // lista), con el destino en la misma línea o en la siguiente y un título opcional (también en la línea siguiente).
