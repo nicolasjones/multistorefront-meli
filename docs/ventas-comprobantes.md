@@ -344,7 +344,7 @@ Tanda de correcciones solo de frontend, un commit por defecto para poder reverti
 - **MSF-629** — las etiquetas de los selectores vacíos (Armó, Controló, Entregó, Transporte) quedan arriba del campo y
   las columnas Precio s/IVA y Subtotal de las líneas son más anchas para importes grandes.
 - **MSF-623** — el conteo de productos de una categoría raíz de la tienda (pública y «Catálogo visible») suma el de sus
-  subcategorías (`acumularConteoCategorias`); la base sigue contando solo los directos.
+  subcategorías (`acumularConteoCategorias`) solo en el panel (`listar_catalogo_tienda` cuenta los directos); la tienda pública NO lo suma de nuevo porque `publico.categorias_por_dominio` ya acumula (corregido en el lote 41: contaba el doble).
 
 Quedaron sin corregir, por necesitar una decisión o un cambio de base: **MSF-609** (las RPC de documentos, envío,
 responsables y faltantes exigen el estado `confirmada`) y **MSF-615** (la base permite anular y editar datos de una

@@ -4,6 +4,7 @@ sources:
   - specs/20261024-130000-stock-carga-exportacion-y-avisos
   - scripts/verificar-migraciones.mjs
   - supabase/migrations/20261213100500_productos_mas_vendidos.sql
+  - supabase/migrations/20270507230200_productos_mas_vendidos_resta_notas_credito.sql
 ---
 
 # Stock · Reporte de productos más vendidos (F-STK-18)
@@ -27,8 +28,11 @@ migración quedaba por debajo de la cola ya aplicada en dokploy y no se aplicaba
 La RPC `public.productos_mas_vendidos(p_desde, p_hasta, p_empresa_id, p_pagina, p_tamano)` suma las
 **unidades** (`cantidad`) de las líneas de comprobantes que **cuentan como facturados**:
 
-- El predicado es un único lugar: `private.comprobante_cuenta_como_facturado` (hoy: factura que no está
-  en borrador ni anulada). Por lo tanto **no suman** los presupuestos, los borradores ni las anuladas.
+- El predicado es un único lugar: `private.comprobante_cuenta_como_facturado` (hoy: factura o nota de crédito que
+  no está en borrador ni anulada). Por lo tanto **no suman** los presupuestos, los borradores ni las anuladas.
+- Las **notas de crédito restan**: el predicado las cuenta como facturadas y la RPC resta la cantidad devuelta de cada línea
+  (unidades **netas** = facturas − notas, por la fecha de la nota; una nota anulada no cuenta). Un producto con más devoluciones que
+  ventas en el período queda con unidades negativas, al final del ranking (corregido en el lote 41: antes las sumaba).
 - Las líneas **«A pedido» sí suman**: se vendieron igual.
 - Cuenta la **fecha del comprobante** (`dominio.comprobantes_venta.fecha`), la de la venta.
 - El **orden** lo calcula la base: unidades descendente y, en empate, el nombre del producto (y el id como

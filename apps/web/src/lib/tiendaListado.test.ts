@@ -51,15 +51,17 @@ describe('parsearFiltros / serializarFiltros', () => {
 })
 
 describe('mapearPagina', () => {
-  it('el conteo de una categoría raíz incluye el de sus subcategorías', () => {
+  // La base (`publico.categorias_por_dominio`) ya devuelve el conteo acumulado: una raíz con 2 hijas de 3 productos llega con 6.
+  it('no suma de nuevo las subcategorías: raíz con 2 hijas de 3 productos muestra 6, no 12', () => {
     const pagina = mapearPagina({
       total: 0, pagina: 1, tamano: 24, productos: [],
       categorias: [
-        { id: 'r', nombre: 'Consolas', padre_id: null, productos: 0 },
-        { id: 'h', nombre: 'Portátiles', padre_id: 'r', productos: 5 },
+        { id: 'r', nombre: 'Consolas', padre_id: null, productos: 6 },
+        { id: 'h1', nombre: 'Portátiles', padre_id: 'r', productos: 3 },
+        { id: 'h2', nombre: 'Sobremesa', padre_id: 'r', productos: 3 },
       ],
     })
-    expect(pagina.categorias.map((c) => c.productos)).toEqual([5, 5])
+    expect(pagina.categorias.map((c) => c.productos)).toEqual([6, 3, 3])
   })
 })
 
