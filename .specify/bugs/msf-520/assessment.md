@@ -228,3 +228,83 @@ de cerrar los huecos del procedimiento y con el registro documentado paso a paso
   periodicidad? Si es periódico, hace falta responsable y recordatorio, no sólo el registro.]
 - [NEEDS CLARIFICATION: ¿la restauración del simulacro se hace sobre el Postgres de staging (camino
   real) o primero sobre una base temporal, como sugiere `docs/tecnico/runbooks/db-restore.md:18`?]
+
+---
+
+# Segunda evaluación (segunda pasada de MSF-520, 2026-11-18)
+
+La entrega anterior (PR #1054, mergeada) cerró la mitad técnica de la historia: el protocolo del
+simulacro quedó completo (caída simulada, aviso por correo, verificación de roles/grants y cierre
+con staging sano), se arregló el agujero de seguridad del restore (`private.reaplicar_privilegios_copias()`)
+y se fijó todo con tests. **El simulacro en staging no se ejecutó ni se firmó** (gate de
+autorización del propietario): el registro de `docs/simulacro-restauracion.md` sigue vacío.
+
+Esta segunda pasada leyó el procedimiento de restauración **como lo ejecutaría el simulacro** (en
+vez de sólo completarlo) y encontró que, aun con autorización, el simulacro fallaría en el paso 7
+(el panel no muestra datos).
+
+## Symptom (segunda pasada)
+
+El restore documentado deja la base restaurada **sin los permisos del app**:
+
+```bash
+pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner --no-privileges \
+  --single-transaction respaldo.dump
+```
+
+- `--no-privileges` es justamente la opción que dice «no emitás los `GRANT`/`REVOKE` del dump»
+  (documentación de `pg_restore`). Los permisos del app **son explícitos por tabla**: la migración
+  fundacional lo dice («`auto_expose_new_tables = false`: hacen falta explícitos») y hay ~1.500
+  `grant … to authenticated/anon/service_role` en `supabase/migrations/`. Esos `GRANT` viajan en el
+  dump como ACL.
+- `--clean` **recrea** cada objeto: la tabla que vuelve a nacer tiene los permisos por defecto, no
+  los del dump. La evidencia está en el propio repo: el pgTAP de MSF-520 simula el restore y
+  comprueba que «tras el restore simulado el historial queda sin lectura para `authenticated»»
+  (`supabase/tests/database/copias_restauracion_privilegios_msf520.test.sql:68-76`); el mismo
+  mecanismo alcanza a todas las tablas del app.
+- Con la base así, `authenticated` no lee las tablas y, sin `USAGE` sobre el esquema `private`, fallan
+  hasta las políticas de RLS (el panel no muestra datos). El paso 7 del simulacro («el panel inicia
+  sesión, una organización conocida lista sus datos») falla.
+- `--single-transaction` **sólo es válido con `--exit-on-error`** (documentación de `pg_restore`): el
+  comando documentado no lo trae, así que el restore tampoco es atómico (el primer error deja la
+  base a medias).
+- La copia es de un día anterior y el procedimiento no aplicaba las migraciones pendientes sobre la
+  base restaurada: el panel de hoy puede usar columnas o RPC que la base restaurada no tiene.
+
+## Root Cause Hypothesis (segunda pasada)
+
+La entrega anterior arregló la mitad **segura** del problema (las funciones `security definer` del
+historial, ejecutables por `PUBLIC`) y dejó la mitad **funcional** sin tocar: los permisos que el app
+necesita para leer. La hipótesis de la evaluación anterior («los ACL del resto se dejan aplicando
+`supabase migration up` sobre la base restaurada») **era incorrecta**: `supabase db push` sólo aplica
+las migraciones *pendientes*; las que ya estaban aplicadas en la base restaurada no se vuelven a
+correr, así que sus `GRANT` no se vuelven a aplicar. El riesgo residual quedó anotado como «que lo
+arregle otro», sin dueño.
+
+Confianza: **alta** en el mecanismo (documentación de `pg_restore` + el pgTAP del repo que ya
+simula el estado sin permisos) y en que el simulacro fallaría en el paso 7; **media** en el detalle
+exacto de qué tablas quedan sin permisos (depende de los permisos por defecto del schema `public` en
+cada ambiente: en `dominio` no hay permisos por defecto, así que ahí el efecto es seguro).
+
+## Proposed Remediation (segunda pasada)
+
+1. El restore **aplica los permisos del dump**: sacar `--no-privileges` del comando documentado y
+   agregar `--exit-on-error` (para que `--single-transaction` sea válido y el restore sea atómico).
+2. Después del restore, **aplicar las migraciones pendientes** sobre la base restaurada
+   (`supabase db push --db-url "$DATABASE_URL"`): cierra la diferencia de esquema entre la copia y
+   el panel de hoy.
+3. `private.reaplicar_privilegios_copias()` sigue como red de seguridad del historial (idempotente):
+   hace falta cuando la copia es más vieja que la migración que cambió esos permisos.
+4. La verificación del simulacro tiene que mirar **lo que el app necesita para servir datos**
+   (`has_schema_privilege` sobre `private`, `has_table_privilege` sobre tablas de `public` y
+   `dominio`), no sólo las nueve funciones del historial: si no, el simulacro puede «terminar bien»
+   con el panel sin datos.
+5. Fijar todo con tests: el test estático del procedimiento (que falle si vuelve `--no-privileges`,
+   si saca `--exit-on-error`, si saca el paso de migraciones o si saca la verificación del app) y el
+   pgTAP que deja fijado el estado que el simulacro comprueba después del restore.
+
+## Lo que NO cambia (gate de autorización)
+
+El simulacro en staging **no se ejecuta ni se firma** en esta pasada: sigue faltando la
+autorización escrita del propietario (ventana, ejecutor, firmante). El registro de
+`docs/simulacro-restauracion.md` sigue vacío y sin firma: no se inventa ningún resultado.

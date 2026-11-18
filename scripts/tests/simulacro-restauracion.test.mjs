@@ -27,6 +27,11 @@ const runbook = leer('docs/tecnico/runbooks/db-restore.md')
 const indice = leer('docs/README.md')
 const roadmap = leer('docs/roadmap-template.md')
 const operar = leer('docs/operar-sistema.md')
+// El bloque bash del restore (sección A de la guía de copias).
+const bloqueRestore = (() => {
+  const bloques = [...copias.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1])
+  return bloques.find((b) => b.includes('pg_restore')) ?? ''
+})()
 
 test('el protocolo del simulacro tiene los pasos que miden los objetivos', () => {
   const pasos = [
@@ -65,6 +70,48 @@ test('la guía de restauración y el runbook incluyen el paso de reaplicar privi
     assert.ok(
       texto.includes('private.reaplicar_privilegios_copias()'),
       `${nombre} no manda reaplicar los privilegios después del restore (con --no-privileges las funciones security definer quedan ejecutables por PUBLIC)`,
+    )
+  }
+})
+
+// El restore tiene que aplicar los permisos del dump: con `--no-privileges` no los aplica y, como
+// `--clean` recrea cada objeto, la base restaurada queda con los permisos por defecto (`authenticated`
+// no lee las tablas y, sin USAGE sobre `private`, fallan hasta las políticas de RLS). El panel
+// abriría sin datos y el simulacro no cerraría. Y `--single-transaction` sólo es válido con
+// `--exit-on-error` (documentación de pg_restore): sin él el restore no corta en el primer error.
+test('el restore documentado aplica los permisos del dump y es atómico', () => {
+  assert.ok(bloqueRestore.includes('pg_restore'), 'la guía de copias no tiene el comando de restore')
+  assert.ok(
+    !bloqueRestore.includes('--no-privileges'),
+    'el restore tiene que aplicar los GRANT/REVOKE del dump: con --no-privileges la base restaurada queda sin los permisos del app y el panel no muestra datos',
+  )
+  assert.ok(bloqueRestore.includes('--single-transaction'), 'el restore tiene que ser atómico (--single-transaction)')
+  assert.ok(
+    bloqueRestore.includes('--exit-on-error'),
+    '--single-transaction sólo es válido con --exit-on-error (documentación de pg_restore): sin él el restore no aborta en el primer error',
+  )
+})
+
+// La copia es de un día anterior: sin aplicar las migraciones pendientes, el panel de hoy puede usar
+// columnas o RPC que la base restaurada todavía no tiene.
+test('el procedimiento aplica las migraciones pendientes sobre la base restaurada', () => {
+  assert.ok(
+    copias.includes('supabase db push'),
+    'la guía de copias no manda aplicar las migraciones pendientes sobre la base restaurada',
+  )
+  assert.ok(
+    protocolo.includes('supabase db push'),
+    'el protocolo del simulacro no aplica las migraciones pendientes sobre la base restaurada',
+  )
+})
+
+// Que el restore haya terminado no alcanza: la base puede haber quedado sin permisos. La verificación
+// tiene que mirar lo que el app necesita para servir datos, no sólo el historial de copias.
+test('la verificación comprueba que el app puede leer, no sólo el historial de copias', () => {
+  for (const marca of ['has_table_privilege', 'has_schema_privilege', 'dominio.empresas']) {
+    assert.ok(
+      protocolo.includes(marca),
+      `el protocolo del simulacro no comprueba ${marca}: sin verificar los permisos del app, el simulacro puede "terminar bien" con el panel sin datos`,
     )
   }
 })

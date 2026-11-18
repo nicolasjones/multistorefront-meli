@@ -1,14 +1,19 @@
--- MSF-520: los privilegios del historial de copias después de un restore.
+-- MSF-520: los privilegios después de un restore.
 --
--- El procedimiento de restauración usa `pg_restore --no-privileges` (sección A de
--- `docs/copias-y-restauracion.md`): con esa opción el restore NO aplica los ACL del dump. Las funciones
--- `security definer` del historial recuperan el permiso por defecto de Postgres (EXECUTE para PUBLIC) y
--- las tablas quedan sin `grant select` para `authenticated`. Este test simula ese estado (como lo deja el
--- restore) y comprueba que `private.reaplicar_privilegios_copias()` lo deja como corresponde: el
+-- El restore documentado (sección A de `docs/copias-y-restauracion.md`) aplica los permisos del
+-- dump: `pg_restore` sin `--no-privileges`. Con esa opción el restore NO aplicaría los ACL y, como
+-- `--clean` recrea cada objeto, la base quedaría con los permisos por defecto: las funciones
+-- `security definer` del historial recuperarían EXECUTE para PUBLIC y las tablas quedarían sin
+-- `grant select` para `authenticated`. Este test simula ese estado (como lo dejaría un restore sin
+-- permisos) y comprueba que `private.reaplicar_privilegios_copias()` lo deja como corresponde: el
 -- invariante de `copias_imagenes_verificaciones.test.sql` (líneas 29-50).
+--
+-- Al final fija el estado que el simulacro comprueba después del restore: el app con los permisos
+-- que necesita para servir datos y `anon` sin lectura. Si ese estado cambia, el simulacro se
+-- ejecuta contra una base que el panel no puede leer.
 begin;
 
-select plan(19);
+select plan(22);
 
 -- ============================================================================
 -- La reparación existe y no es de la app
@@ -211,6 +216,44 @@ select is(
   ],
   array[true, false, false],
   'tras la segunda reparación el invariante sigue igual'
+);
+
+-- ============================================================================
+-- El estado que el simulacro comprueba después del restore: el app con sus
+-- permisos y `anon` sin lectura. Si esto no se cumple, el panel abre pero no
+-- muestra datos y el simulacro no cierra (FR-011/SC-002).
+-- ============================================================================
+
+select is(
+  array[
+    has_schema_privilege('authenticated', 'private', 'USAGE'),
+    has_table_privilege('authenticated', 'public.organizaciones', 'SELECT'),
+    has_table_privilege('authenticated', 'dominio.empresas', 'SELECT')
+  ],
+  array[true, true, true],
+  'después del restore el app conserva lo que necesita para servir datos (USAGE sobre private y lectura de las tablas)'
+);
+
+-- Los permisos del app son explícitos por tabla (los grants de las migraciones, no un permiso por
+-- defecto): por eso un restore que no aplique los GRANT del dump deja al panel sin lectura.
+select is(
+  array[
+    has_table_privilege('authenticated', 'public.organizaciones', 'SELECT'),
+    has_table_privilege('authenticated', 'public.organizaciones', 'INSERT'),
+    has_table_privilege('authenticated', 'public.organizaciones', 'UPDATE'),
+    has_table_privilege('authenticated', 'public.organizaciones', 'DELETE')
+  ],
+  array[true, false, false, false],
+  'los permisos del app son explícitos por tabla: ningún permiso por defecto los amplía'
+);
+
+select is(
+  array[
+    has_table_privilege('anon', 'public.organizaciones', 'SELECT'),
+    has_table_privilege('anon', 'dominio.empresas', 'SELECT')
+  ],
+  array[false, false],
+  'anon no lee las tablas del app después del restore'
 );
 
 select * from finish();

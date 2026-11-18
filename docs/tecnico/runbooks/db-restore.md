@@ -23,10 +23,14 @@ sources:
 3. Restaurar en una base **temporal** primero; validar conteos y tablas críticas.
 4. Recién entonces restaurar la base real (o promover la temporal). El restore documentado en
    [copias-y-restauracion.md](../../copias-y-restauracion.md#procedimiento-guiado-de-restauracion)
-   usa `pg_restore --no-privileges`: el paso 5 de esa sección A (reaplicar privilegios) es obligatorio.
-5. **Reaplicar los privilegios**: `select private.reaplicar_privilegios_copias();` con la misma
-   conexión `postgres` del restore. Sin ese paso las funciones `security definer` del historial de
-   copias quedan ejecutables por `PUBLIC` (cualquiera podría escribir el historial) y las tablas
+   **aplica los permisos del dump** (no usa `--no-privileges`): con esa opción la base restaurada
+   queda sin los permisos del app y el panel no muestra datos. Después del restore son obligatorios
+   las migraciones pendientes (`supabase db push --db-url "$DATABASE_URL"`, la copia es de un día
+   anterior) y el paso 5 de esa sección A (reaplicar los privilegios del historial).
+5. **Reaplicar los privilegios del historial**: `select private.reaplicar_privilegios_copias();` con
+   la misma conexión `postgres` del restore. Sin ese paso, cuando la copia es más vieja que la
+   migración que cambió esos permisos, las funciones `security definer` del historial de copias
+   quedan ejecutables por `PUBLIC` (cualquiera podría escribir el historial) y las tablas
    `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion` quedan sin lectura para
    `authenticated`. Comprobarlo con `has_function_privilege`: sólo `kestra_backups` debe tener
    `EXECUTE`.
@@ -36,6 +40,8 @@ sources:
 
 - Conteos de tablas críticas y última actividad coherentes.
 - Login y una operación de lectura/escritura funcionan.
+- Que `authenticated` puede leer (`has_table_privilege`) y que `anon` no: sin esta comprobación el
+  panel abre pero no muestra datos (es lo que pasa si el restore no aplicó los permisos del dump).
 - `rls_en_toda_tabla` / pgTAP de aislamiento en verde.
 - `copias_imagenes_verificaciones.test.sql` en verde contra la base restaurada: es el invariante de
   privilegios del historial de copias.

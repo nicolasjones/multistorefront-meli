@@ -50,22 +50,31 @@ completo ni mide el tiempo de punta a punta.
    último dato que existía en vivo. La tabla testigo es la que tenga escritura reciente
    (`public.registro_actividad` es la de referencia; si está vacía en staging, se usa otra y se anota
    cuál se usó). Con esos dos valores la pérdida se mide como un número, no de memoria.
-4. Restaurar la base (sección A de la guía) y las imágenes (sección B).
-5. **Reaplicar y verificar los roles/grants.** `pg_restore --no-privileges` no aplica los ACL del
-   dump: las funciones `security definer` del historial quedarían ejecutables por `anon` y las tablas
-   sin lectura para `authenticated`. Ejecutar el paso 5 de la sección A
-   (`select private.reaplicar_privilegios_copias();`) y comprobar:
+4. Restaurar la base (sección A de la guía) y las imágenes (sección B). El restore **aplica los
+   permisos del dump** (la sección A no usa `--no-privileges`): con esa opción la base restaurada
+   queda sin permisos y el panel no muestra datos.
+5. **Cerrar la diferencia de esquema y verificar los roles/grants.**
+   1. Aplicar las migraciones pendientes sobre la base restaurada
+      (`supabase db push --db-url "$DATABASE_URL"`): la copia es de un día anterior y el panel de
+      hoy puede usar columnas o RPC que la base restaurada todavía no tiene.
+   2. Reaplicar los privilegios del historial de copias (paso 5 de la sección A:
+      `select private.reaplicar_privilegios_copias();`) y comprobar que el app quedó con lo que
+      necesita para servir datos:
 
-   ```sql
-   select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
-          has_function_privilege('authenticated', 'public.iniciar_respaldo(text)', 'EXECUTE') as autenticado,
-          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
-   ```
+      ```sql
+      select has_schema_privilege('authenticated', 'private', 'USAGE') as uso_private,
+             has_table_privilege('authenticated', 'public.organizaciones', 'SELECT') as lee_organizaciones,
+             has_table_privilege('authenticated', 'dominio.empresas', 'SELECT') as lee_dominio,
+             has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
+             has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
+      ```
 
-   Lo esperado es `true / false / false` para cada una de las nueve funciones del historial (las de
-   `supabase/tests/database/copias_imagenes_verificaciones.test.sql`) y `authenticated` con lectura
-   sobre `public.respaldos`, `public.respaldos_imagenes` y `public.verificaciones_restauracion`
-   (la RLS las filtra por superadmin).
+      Lo esperado es `true / true / true / true / false`: `authenticated` lee (la RLS filtra por
+      organización), `anon` no, y de las nueve funciones `security definer` del historial sólo
+      `kestra_backups` puede ejecutarlas (las de
+      `supabase/tests/database/copias_imagenes_verificaciones.test.sql`). `authenticated` también
+      tiene que leer `public.respaldos`, `public.respaldos_imagenes` y
+      `public.verificaciones_restauracion` (la RLS las filtra por superadmin).
 6. **Probar el aviso por correo.** Con la app levantada, ejecutar a mano `aviso-fallo-copias` desde la UI
    de Kestra y confirmar que el correo llega a `SOPORTE_CORREO`. Los flows avisan con
    `transmitFailed: false`: si el SMTP no está configurado (valores por defecto de ejemplo) el aviso se
