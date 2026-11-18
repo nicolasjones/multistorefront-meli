@@ -9,6 +9,9 @@ sources:
   - supabase/migrations/20261210120300_avisos_cola.sql
   - supabase/migrations/20261210120400_avisos_agrupacion.sql
   - supabase/migrations/20261210120500_avisos_reclamar.sql
+  - supabase/migrations/20261210120600_avisos_resultado.sql
+  - supabase/migrations/20261210130300_consultas_aviso_emitir.sql
+  - supabase/migrations/20270507130100_aviso_presupuesto_tienda.sql
 ---
 
 # Avisos por correo configurables
@@ -73,6 +76,8 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 - Toda RPC de `public` nueva: `revoke … from public, anon` y `grant … to authenticated`; las de `private` no se conceden a la app.
 - Las funciones `security definer` (`emitir_aviso`, reclamo, resultado) fijan `search_path = ''`.
 - Kestra (`kestra_orquestacion`) solo ejecuta reclamo y resultado; no toca tablas ni emite avisos.
+- El flow `enviar-avisos` corre una sola vez a la vez (`concurrency` límite 1, `CANCEL`), con `timeout` en cada tarea de base y
+  de correo, y un fallo del flow avisa al soporte por el subflow `aviso-fallo-flujo` (solo informa la tarea que falló).
 - El HTML del correo escapa los valores del detalle (`infra/kestra/flows/enviar-avisos.yml`, `pnpm test:kestra:copias`).
 - Recorrido SC-007 (apagado = sin correo, encendido = tres consultas en un correo): `avisos_recorrido_sc007.test.sql`.
 
