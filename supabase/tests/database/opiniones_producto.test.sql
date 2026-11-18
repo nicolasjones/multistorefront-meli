@@ -29,7 +29,7 @@ insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_u
 
 -- Estructura y seguridad
 select is((select relrowsecurity from pg_class where oid = 'dominio.opiniones_producto'::regclass), true, 'RLS activada');
-select is((select count(*)::int from pg_policy where polrelid = 'dominio.opiniones_producto'::regclass), 0, 'sin políticas');
+select is((select count(*)::int from pg_policy where polrelid = 'dominio.opiniones_producto'::regclass and polname <> 'opiniones_producto_denegar_todo'), 0, 'sin políticas de acceso (solo la que deniega todo, MSF-918)');
 select is(
   has_table_privilege('anon', 'dominio.opiniones_producto', 'select')
   or has_table_privilege('authenticated', 'dominio.opiniones_producto', 'select')

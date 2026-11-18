@@ -538,6 +538,10 @@ aplica las pendientes de la rama `dokploy` y las registra en
 - **Chequeo en CI**: `pnpm migraciones:check` (corre dentro de `docs:check`) bloquea
   versiones duplicadas, reusadas o editadas, y DDL no idempotente en migraciones nuevas.
 
+- **Higiene de la base viva**: `node scripts/verificar-higiene-base.mjs --docker <contenedor> --versiones` (solo lectura) detecta
+  deriva entre el repo y el DEV (migraciones huérfanas, FK sin índice, RLS sin política, `search_path` de funciones definer);
+  el runbook de reconciliación está en [higiene-base-datos.md](higiene-base-datos.md).
+
 ## Promoción simple
 
 ### Verificación previa de promoción: secreto `visitante_hmac` (DEV → STG → PRD)

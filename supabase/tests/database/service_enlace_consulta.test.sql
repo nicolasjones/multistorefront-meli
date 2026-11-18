@@ -68,7 +68,8 @@ select ok((select relrowsecurity from pg_class where oid = 'dominio.reparacion_e
 select ok((select relrowsecurity from pg_class where oid = 'public.consultas_publicas_intentos'::regclass),
   'RLS habilitada en consultas_publicas_intentos');
 select is((select count(*) from pg_policy where polrelid in
-    ('dominio.reparacion_enlaces_consulta'::regclass, 'public.consultas_publicas_intentos'::regclass))::int,
+    ('dominio.reparacion_enlaces_consulta'::regclass, 'public.consultas_publicas_intentos'::regclass)
+    and polname not like '%\_denegar\_todo')::int,
   0, 'ninguna de las dos tablas tiene políticas');
 select ok(not has_table_privilege('authenticated', 'dominio.reparacion_enlaces_consulta', 'select')
       and not has_table_privilege('authenticated', 'dominio.reparacion_enlaces_consulta', 'insert')
