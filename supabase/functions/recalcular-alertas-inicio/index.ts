@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { tokenDeEntorno } from '../_shared/token.ts'
+import { permitirTokenDebil, tokenDeEntorno } from '../_shared/token.ts'
 import { manejar, type Calculo, type Deps } from './handler.ts'
 
 // Adaptador explícito: cada llamada real se envuelve para cumplir `Deps`. La clave de servicio vive solo en
@@ -18,5 +18,5 @@ Deno.serve((req) => {
       return { data: data as Calculo | null, error }
     },
   }
-  return manejar(req, { token: tokenDeEntorno(Deno.env.get('ALERTAS_INICIO_TOKEN'), Deno.env.get('AVISOS_PERMITIR_TOKEN_DEBIL')), datos })
+  return manejar(req, { token: tokenDeEntorno(Deno.env.get('ALERTAS_INICIO_TOKEN'), permitirTokenDebil((clave) => Deno.env.get(clave))), datos })
 })

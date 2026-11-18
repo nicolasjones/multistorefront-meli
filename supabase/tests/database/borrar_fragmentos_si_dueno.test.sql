@@ -3,7 +3,7 @@
 -- Datos inventados.
 begin;
 
-select plan(21);
+select plan(22);
 
 insert into organizaciones (id, nombre) values ('d1111111-1111-1111-1111-111111111111', 'Org Fragmentos');
 insert into auth.users (id, email) values ('d1000000-0000-0000-0000-000000000001', 'subidor-frag@example.com');
@@ -30,7 +30,8 @@ select v, 'd1111111-1111-1111-1111-111111111111', 'texto ' || n, ('[' || array_t
 select is(has_function_privilege('service_role', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), true, 'service_role ejecuta la función pública');
 select is(has_function_privilege('authenticated', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'authenticated no ejecuta la función pública');
 select is(has_function_privilege('anon', 'public.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'anon no ejecuta la función pública');
-select is(has_function_privilege('service_role', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), true, 'service_role ejecuta la función privada');
+-- El grant a service_role sobre la función privada era superfluo (lote 41): el envoltorio público es security definer y la llama como dueño.
+select is(has_function_privilege('service_role', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'service_role no ejecuta la función privada directamente (el envoltorio la llama como dueño)');
 select is(has_function_privilege('authenticated', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'authenticated no ejecuta la función privada');
 select is(has_function_privilege('anon', 'private.borrar_fragmentos_si_dueno(uuid, uuid, text)', 'execute'), false, 'anon no ejecuta la función privada');
 
@@ -65,6 +66,26 @@ insert into fragmentos_indexados (version_id, organizacion_id, texto, embedding,
 select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'd2222222-2222-2222-2222-222222222222', 'reclamo-propio'), false, 'otra organización: no es dueña');
 select is((select count(*) from fragmentos_indexados where version_id = 'd4000000-0000-0000-0000-000000000004'), 1::bigint, 'los fragmentos no se borran con otra organización');
 select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000004', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'con la organización correcta sí');
+
+-- Bloqueo `for share` sobre la fila de la versión (lote 41): mientras el borrado está en curso, una activación o un reclamo
+-- concurrentes (un `update` de la versión) tienen que esperar. En pgTAP (una sola transacción) no se puede lanzar una segunda
+-- conexión sobre filas sin confirmar, así que se verifica el bloqueo con `pgrowlocks` (contrib de PostgreSQL): tras la llamada,
+-- la fila de la versión figura con «For Share» tomado por esta transacción. El caso de dos conexiones reales (el `update` espera
+-- y se libera al terminar) queda como prueba manual documentada en docs/funciones-edge-endurecimiento.md.
+do $$ begin
+  if exists (select 1 from pg_available_extensions where name = 'pgrowlocks') then
+    create extension if not exists pgrowlocks with schema public;
+    perform set_config('lote41.hay_pgrowlocks', 'si', true);
+  else
+    perform set_config('lote41.hay_pgrowlocks', 'no', true);
+  end if;
+end $$;
+select public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio');
+select case when current_setting('lote41.hay_pgrowlocks') = 'si'
+  then is((select bool_or(r.modes @> array['For Share']) from public.pgrowlocks('public.versiones_documento') r
+            join public.versiones_documento v on v.ctid = r.locked_row where v.id = 'd4000000-0000-0000-0000-000000000001'), true,
+    'el borrado toma «for share» sobre la fila de la versión (una activación concurrente espera)')
+  else skip('pgrowlocks no disponible en este Postgres: prueba manual en docs/funciones-edge-endurecimiento.md', 1) end;
 
 -- Sin fragmentos: sigue siendo dueña.
 select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'sin fragmentos: dueña igual (idempotente)');

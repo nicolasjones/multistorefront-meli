@@ -282,14 +282,16 @@ test('recorrerSql y T7: las cadenas E\'...\\\'...\' respetan el backslash (QA-5)
 });
 
 // Criterio de tiempo RELATIVO y robusto a la carga del host (los tests corren en paralelo con otros y bajo CPU saturada):
-//  - se mide el MÍNIMO de varias corridas tras un calentamiento (un pico de carga no cuenta, una regresión sí: falla en todas);
+//  - se mide tiempo de CPU del proceso y el MÍNIMO de varias corridas tras un calentamiento (un pico de carga no cuenta, una regresión sí: falla en todas);
 //  - se compara el tiempo con una entrada 4 veces mayor: lineal ≈ 4×, cuadrático ≈ 16×; el límite es 12× sobre un piso de
 //    tiempo (los tiempos de pocos ms son ruido);
 //  - un tope absoluto generoso (10 s) queda solo como red de seguridad contra el caso patológico (cuadrático o peor: minutos).
 const PISO_MS = 20;
 const RAZON_MAXIMA = 12;
 const TOPE_ABSOLUTO_MS = 10_000;
-const minimoDe = (fn, corridas = 3) => { let mejor = Infinity; let r; for (let i = 0; i < corridas; i++) { const t = performance.now(); r = fn(); mejor = Math.min(mejor, performance.now() - t); } return { ms: mejor, r }; };
+// Tiempo de CPU del proceso (no de pared): una CPU saturada por otros procesos no infla la medida, una regresión superlineal sí.
+const cpuMs = () => { const u = process.cpuUsage(); return (u.user + u.system) / 1000; };
+const minimoDe = (fn, corridas = 3) => { let mejor = Infinity; let r; for (let i = 0; i < corridas; i++) { const t = cpuMs(); r = fn(); mejor = Math.min(mejor, cpuMs() - t); } return { ms: mejor, r }; };
 const verificarEscala = (fabrica, fn) => {
   fn(fabrica(1)); // calentamiento
   const chica = fabrica(1);

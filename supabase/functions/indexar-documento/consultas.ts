@@ -3,8 +3,16 @@
 // cliente simulado que los registra. Sin imports: el cliente real de supabase-js lo cumple estructuralmente.
 
 // Lo mínimo del cliente que usan estas consultas (los métodos encadenables de supabase-js).
-// deno-lint-ignore no-explicit-any
-export type Cliente = { from(tabla: string): any; rpc(nombre: string, args: Record<string, unknown>): any }
+// Interfaz mínima (como `ClienteFragmentos`): el resultado de cada consulta es encadenable (`eq`, `is`, `select`) y esperable.
+export type ConsultaEncadenable = PromiseLike<{ data?: unknown; error: unknown }> & {
+  eq(columna: string, valor: unknown): ConsultaEncadenable
+  is(columna: string, valor: null): ConsultaEncadenable
+  select(columnas: string): PromiseLike<{ data?: unknown; error: unknown }>
+}
+export type Cliente = {
+  from(tabla: string): { update(valores: Record<string, unknown>): ConsultaEncadenable }
+  rpc(nombre: string, args: Record<string, unknown>): PromiseLike<{ data?: unknown; error: unknown }>
+}
 
 // Reclama la versión (compare-and-swap): solo si sigue `procesando` y con el motivo previo esperado.
 export function consultaReclamar(cliente: Cliente, id: string, motivoPrevio: string | null, reclamo: string) {
@@ -25,4 +33,9 @@ export function consultaMarcarFallida(cliente: Cliente, id: string, motivo: stri
 // Borrado de fragmentos condicional en SQL (cliente de servicio): solo si la versión (de esa organización) sigue en manos de este reclamo.
 export function llamarBorrarFragmentosSiDueno(cliente: Cliente, versionId: string, organizacionId: string, reclamo: string) {
   return cliente.rpc('borrar_fragmentos_si_dueno', { p_version_id: versionId, p_organizacion_id: organizacionId, p_reclamo: reclamo })
+}
+
+// Inserción de fragmentos condicional en SQL (cliente de servicio): solo si la versión (de esa organización) sigue `procesando` con este reclamo.
+export function llamarInsertarFragmentosSiDueno(cliente: Cliente, versionId: string, organizacionId: string, reclamo: string, filas: Array<{ texto: string; embedding: string; orden: number }>) {
+  return cliente.rpc('insertar_fragmentos_si_dueno', { p_version_id: versionId, p_organizacion_id: organizacionId, p_reclamo: reclamo, p_filas: filas })
 }

@@ -70,7 +70,6 @@ export type Deps = {
   ahora?: () => number
 }
 
-
 // El error del SMTP puede traer direcciones, hosts o usuarios (p. ej. «535 Authentication failed for user smtp-prod@host»).
 // `ultimo_error` lo lee el panel (cualquiera con `ventas` en la tienda): ahí solo va un código genérico y el
 // detalle, con las direcciones saneadas, queda únicamente en el log de la función.
