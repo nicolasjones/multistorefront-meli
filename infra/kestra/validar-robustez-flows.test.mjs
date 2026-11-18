@@ -122,7 +122,7 @@ test('purgar-almacenamiento-kestra purga ejecuciones, logs, métricas y archivos
 
 test('alerta-ausencia-respaldos falla si no hay copia reciente de la base ni de las imágenes (MSF-709)', () => {
   const t = leer('alerta-ausencia-respaldos');
-  assert.match(t, /--max-age/);
+  assert.doesNotMatch(t, /rclone lsf [^\n]*--max-age/, 'rclone lsf --max-age no filtra directorios: la fecha sale del nombre');
   assert.match(t, /exit 1/);
   assert.match(t, /flowId: aviso-fallo-copias/);
   assert.match(t, /cron: "30 6 \* \* \*"/);

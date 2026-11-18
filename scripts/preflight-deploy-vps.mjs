@@ -143,8 +143,11 @@ export function mensajeFaltantes(faltantes, entorno, archivo = `.env.${entorno}`
 // Modo transicional (MSF-705, MSF-706, MSF-712): staging y producción son SIEMPRE estrictos (fail-closed). En `dev` los controles nuevos
 // advierten y el despliegue continúa, hasta que se carguen los valores y se pase a estricto con VPS_ESTRICTO=1 (docs/deployment.md,
 // «Pasar dev a modo estricto»). VPS_ESTRICTO=0 NO relaja staging ni producción.
-export function modoEstricto(entorno, env = process.env) {
-  return entorno !== 'dev' || env.VPS_ESTRICTO === '1';
+export function modoEstricto(entorno, env = process.env, contenidoEnv = '') {
+  if (entorno !== 'dev') return true;
+  // La variable del proceso (Environment del job) manda; si no está, se lee del propio `.env.<entorno>`, igual que las demás.
+  const valor = env.VPS_ESTRICTO?.trim() || leerEnv(contenidoEnv).get('VPS_ESTRICTO') || '';
+  return valor === '1';
 }
 
 // Separa lo que corta el despliegue de lo que solo advierte. Solo se manejan NOMBRES: nunca el valor de una variable.

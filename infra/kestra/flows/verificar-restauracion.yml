@@ -83,8 +83,8 @@ tasks:
       - INICIO=$(date +%s)
       - DATOS=/tmp/pgdata
       - mkdir -p "$DATOS" && chown postgres:postgres "$DATOS" && chmod 700 "$DATOS"
-      - su-exec postgres initdb -D "$DATOS" -A trust -U postgres >/dev/null
-      - su-exec postgres pg_ctl -D "$DATOS" -o "-c listen_addresses= -c unix_socket_directories=/tmp" -w -l /tmp/pg.log start >/dev/null
+      - gosu postgres initdb -D "$DATOS" -A trust -U postgres >/dev/null
+      - gosu postgres pg_ctl -D "$DATOS" -o "-c listen_addresses= -c unix_socket_directories=/tmp" -w -l /tmp/pg.log start >/dev/null
       - PSQL="psql -h /tmp -U postgres -X -v ON_ERROR_STOP=1"
       - $PSQL -d postgres -c "create database verificacion" >/dev/null
       # MSF-708: la verificación ya no tolera cualquier error. pg_restore se
@@ -102,12 +102,20 @@ tasks:
         ENTRADAS=$(grep -c 'TABLE DATA' /tmp/toc.txt || true)
         if [ "$ENTRADAS" -lt 1 ]; then echo "El índice del respaldo no tiene ninguna tabla con datos" >&2; exit 1; fi
       - pg_restore -h /tmp -U postgres -d verificacion --no-owner --no-privileges "{{ workingDir }}/respaldo.dump" 2>/tmp/restore.err && RC_RESTORE=0 || RC_RESTORE=$?
-      - ERRORES=$(grep -c 'error:' /tmp/restore.err || true)
-      - INESPERADOS=$(grep 'error:' /tmp/restore.err | grep -Ev "$PATRON_ESPERADOS" || true)
+      # Clasificación (MSF-708): los errores de pg_restore pueden citar VALORES de los datos; no se imprime nunca su texto, solo el código de
+      # salida, un conteo y la categoría de los inesperados. ERR_FILE solo se cambia en los tests.
+      - ERR_FILE="${ERR_FILE:-/tmp/restore.err}"
+      - ERRORES=$(grep -c 'error:' "$ERR_FILE" || true)
+      - INESPERADOS=$(grep 'error:' "$ERR_FILE" | grep -Ev "$PATRON_ESPERADOS" || true)
       - |
         if [ -n "$INESPERADOS" ]; then
-          echo "pg_restore terminó con errores no esperados (código $RC_RESTORE):" >&2
-          echo "$INESPERADOS" | head -n 10 >&2
+          echo "pg_restore terminó con errores no esperados (código $RC_RESTORE). Cantidad por categoría (el texto no se muestra: puede citar datos; ver el log del contenedor de la ejecución en el servidor):" >&2
+          printf '%s\n' "$INESPERADOS" | awk '
+            /COPY failed|invalid input syntax|violates|duplicate key/ { c["datos_o_restricciones"]++; next }
+            /unexpected end of file|could not read|end of file/ { c["archivo_cortado_o_ilegible"]++; next }
+            /does not exist|already exists/ { c["objeto_ausente_o_duplicado"]++; next }
+            { c["otro"]++ }
+            END { for (k in c) print "  " k ": " c[k] }' >&2
           exit 1
         fi
       # Todas las tablas con datos del índice existen en la restauración.
@@ -138,7 +146,7 @@ tasks:
           fi
           DETALLE="$DETALLE; $TABLA=$FILAS"
         done
-      - su-exec postgres pg_ctl -D "$DATOS" -m immediate stop >/dev/null || true
+      - gosu postgres pg_ctl -D "$DATOS" -m immediate stop >/dev/null || true
       - DURACION=$(( $(date +%s) - INICIO ))
       - echo '::{"outputs":{"duracion":'$DURACION',"detalle":"'"$DETALLE"'"}}::'
 

@@ -199,3 +199,14 @@ test('el modo estricto depende del entorno y de VPS_ESTRICTO solo en dev', async
   const url = VARIABLES_OBLIGATORIAS.filter((v) => v.nombre === 'CORREO_MASIVO_URL_BAJA');
   assert.equal(clasificarFaltantes(url, false).bloqueantes.length, 1, 'la URL de baja bloquea siempre (compose.vps.yaml)');
 });
+
+test('VPS_ESTRICTO=1 también se lee del `.env.dev` (misma fuente que las demás variables) y el del proceso manda', async () => {
+  const { modoEstricto } = await import('./preflight-deploy-vps.mjs');
+  assert.equal(modoEstricto('dev', {}, 'VPS_ESTRICTO=1\n'), true);
+  assert.equal(modoEstricto('dev', {}, '# VPS_ESTRICTO=1\n'), false);
+  assert.equal(modoEstricto('dev', { VPS_ESTRICTO: '1' }, ''), true);
+  assert.equal(modoEstricto('staging', { VPS_ESTRICTO: '0' }, 'VPS_ESTRICTO=0'), true);
+  const r = await correrDeploy('dev', `${soloLaUrl()}VPS_ESTRICTO=1\n`);
+  assert.notEqual(r.code, 0);
+  assert.match(r.stderr, /Falta definir/);
+});

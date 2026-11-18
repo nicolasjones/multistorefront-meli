@@ -597,6 +597,29 @@ Tres controles hacen que el despliegue **falle cerrado** si faltan valores que s
    deja las referencias en el resumen del job; cada flow de despacho rechaza una imagen mutable antes del pull (salvo `local/*`, desarrollo).
 3. **Clave de host (MSF-706).** Ver la sección anterior.
 
+**Qué dispara realmente staging y production (verificado en los workflows).** Los tres mecanismos con gate STG→PRD disparan **solo** por push a
+`main` (staging) o a mano (production); ninguno corre en push a `dokploy`:
+
+| Workflow | `on:` | job `staging` | job `production` |
+|---|---|---|---|
+| `deploy-infraestructura-vps.yml` | `push` a `main` con `paths` (`:51-62`), `workflow_dispatch`, `workflow_call` | `:71-72`, `if: github.event_name == 'push'` | `:159-160`, `workflow_dispatch` o `workflow_call` |
+| `migraciones-cloud.yml` | `push` a `main` (`:44`) | `:58-59` | `:83-84` |
+| `publicar-flows-kestra.yml` | `push` a `main` (`:40`) | `:53-54` | `:84-85` |
+| `promover-todo-a-produccion.yml` | solo `workflow_dispatch` (`:50-51`), llama a los tres | no tiene | los tres `production` |
+
+Consecuencia: el despliegue de DEV (Dokploy, rama `dokploy`) no pasa por estos jobs y no se rompe por faltantes de claves. Pero este PR toca
+`infra/*/compose*.yaml` y los scripts de deploy, que están en los `paths` del deploy de infraestructura: **el primer push a `main` que los
+incluya correrá `staging` y fallará (cerrado) hasta que se carguen las claves de host (`VPS_SSH_KNOWN_HOSTS`), las 14 credenciales y las 5
+`*_IMAGEN`** (pendiente de Nicolás; el mensaje del job lista cada una por nombre). No hay que esperar a un `production` para verlo.
+
+**Checklist del primer despliegue (cosas que no se pudieron ejecutar sin un Kestra/VPS reales):**
+
+- [ ] `purgar-almacenamiento-kestra`: ejecutarlo a mano una vez con `dias=7` y comprobar en la UI que el cálculo de fecha (`now() | dateAdd(...)`)
+  y la expresión `matches` funcionan; con `dias=0` o `08` debe fallar en la tarea `validar_plazo` sin purgar nada.
+- [ ] `verificar-restauracion`: ejecutarlo a mano con una copia real y confirmar que `gosu` arranca el Postgres descartable y que ningún error
+  esperado nuevo (propio de la base real) hace falsos rojos; si aparece, agregarlo a `PATRON_ESPERADOS`.
+- [ ] `alerta-ausencia-respaldos`: ejecutarlo a mano con copias recientes (debe pasar) y, en un entorno de prueba, con el destino vacío (debe avisar).
+
 **Modo por entorno.** `staging` y `production` son **siempre estrictos**: el preflight (`scripts/preflight-deploy-vps.mjs`) corta el despliegue
 antes de tocar Docker con la lista de variables que faltan (solo NOMBRES, nunca valores) y se usa `compose.estricto.yaml`. `VPS_ESTRICTO=0` no
 los relaja. `dev` es **transicional**: el preflight imprime una advertencia fuerte (`::warning::MODO TRANSICIONAL (dev)`) con la lista exacta de lo
@@ -611,7 +634,7 @@ El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
    `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
 3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.dev` (ver «Clave de host del VPS»).
 4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
-5. Definir `VPS_ESTRICTO=1` en el entorno del deploy de dev (variable del Environment o del `.env`) y repetir: ahora dev bloquea igual que staging.
+5. Definir `VPS_ESTRICTO=1` como variable de entorno del job de deploy de dev **o** como línea `VPS_ESTRICTO=1` en el `.env.dev` (el preflight lee las dos; la del proceso manda; el paso de clave de host solo lee la del proceso) y repetir: ahora dev bloquea igual que staging.
 6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).
 
 ### Flujo

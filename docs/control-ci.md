@@ -234,7 +234,7 @@ Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo,
 - **MSF-925 · acciones pineadas por SHA.** Las acciones de GitHub (`checkout`, `setup-node`, `pnpm/action-setup`, `cache`,
   `upload-artifact`, `setup-python`, `supabase/setup-cli`, `release-please-action`) van por SHA completo de commit con el tag en un
   comentario (`@<sha> # v4`). Los SHA se resolvieron con `gh api repos/<owner>/<repo>/git/ref/tags/<tag>` (y, si el tag es anotado,
-  con `git/tags/<sha>`; `supabase/setup-cli@v1` es una rama y se resolvió a `v1.7.3`). Para subir una versión: resolver el SHA nuevo
+  con `git/tags/<sha>`; `supabase/setup-cli@v1` es una rama y se resolvió a `v1.7.3`, que es el comentario). Para subir una versión: resolver el SHA nuevo
   y cambiar los dos valores. `pnpm workflows:check` (`scripts/verificar-workflows.mjs`, en `chequeos` y en `test:ci`) falla si
   aparece una acción por tag o un SHA sin comentario.
 - **MSF-926 · `timeout-minutes` en todos los jobs.** Los 8 workflows que no lo tenían ahora lo declaran en cada job que corre pasos
@@ -264,8 +264,8 @@ Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo,
   de proceso (documentada en `docs/deployment.md`): **STG va un paso adelante de PRD y se sincroniza STG con `dokploy` ANTES de
   promover**. No se promovió nada ni se tocó ningún secret.
 - **MSF-916 · dependencias con avisos HIGH.** `pnpm audit --prod` bajó de 12 a 0 avisos de severidad alta con overrides en
-  `pnpm-workspace.yaml` (`axios` ≥ 1.20, `follow-redirects` ≥ 1.16.2, `body-parser` ≥ 2.4, `zod` ≥ 4.6.6; todas con más de dos semanas
-  de publicadas). Verificado: `pnpm test:ia` (incluye `@platform/mcp-server`) y `tsc -b` de `apps/web`. Quedan 3 bajos y 10 moderados.
+  `pnpm-workspace.yaml` con versiones EXACTAS (`axios` 1.20.0, `follow-redirects` 1.16.2, `body-parser` 2.4.0, `zod` 4.6.6; todas con más de dos semanas
+  de publicadas al 2026-11-17). Verificado: `pnpm test:ia` (incluye `@platform/mcp-server`), `tsc -b` y el build de `apps/web`; no existen tests de nango (su único consumidor es `providers/nango/index.ts`). Quedan 3 bajos y 10 moderados.
 
 **Modo transicional por entorno (MSF-705/706/712).** Los tres controles que fallan cerrado (credenciales obligatorias, imágenes de workers
 inmutables y clave de host fijada) bloquean siempre en `staging` y `production`; en `dev` solo **advierten** (mensaje con la lista exacta de lo que

@@ -62,8 +62,9 @@ try { await access(envFile); } catch { throw new Error(`No existe .env.${environ
 
 // Preflight: antes de tocar Docker, comprobar las variables que el Compose exige.
 // Staging y producción son estrictos siempre; dev solo con VPS_ESTRICTO=1 (modo transicional, MSF-705/706/712).
-const estricto = modoEstricto(environment);
-const { bloqueantes, advertencias } = clasificarFaltantes(variablesFaltantes(await readFile(envFile, 'utf8')), estricto);
+const contenidoEnv = await readFile(envFile, 'utf8');
+const estricto = modoEstricto(environment, process.env, contenidoEnv);
+const { bloqueantes, advertencias } = clasificarFaltantes(variablesFaltantes(contenidoEnv), estricto);
 if (bloqueantes.length > 0) throw new Error(mensajeFaltantes(bloqueantes, environment, path.basename(envFile)));
 if (advertencias.length > 0) console.warn(mensajeAdvertencia(advertencias, path.basename(envFile)));
 

@@ -43,6 +43,21 @@ export function esEstricto(entorno, env = process.env) {
   return entorno !== 'dev' || env.VPS_ESTRICTO === '1';
 }
 
+const MARCA = '# vps-deploy (MSF-706)';
+const FIN = '# fin vps-deploy\n';
+
+// SSH usa la PRIMERA coincidencia de cada opción: el bloque va AL PRINCIPIO de ~/.ssh/config, así un `Host *` previo (p. ej. en un runner
+// persistente, con `StrictHostKeyChecking no`) no lo anula.
+function bloqueSsh(host, modo, known) {
+  return `${MARCA}\nHost ${host}\n  StrictHostKeyChecking ${modo}\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n${FIN}`;
+}
+
+function quitarBloque(previo) {
+  const inicio = previo.indexOf(MARCA);
+  const fin = previo.indexOf(FIN);
+  return inicio !== -1 && fin > inicio ? previo.slice(0, inicio) + previo.slice(fin + FIN.length) : previo;
+}
+
 async function sinClaveFijada({ host, sshDir, entorno }) {
   await mkdir(sshDir, { recursive: true, mode: 0o700 });
   const known = path.join(sshDir, 'known_hosts_vps');
@@ -50,7 +65,7 @@ async function sinClaveFijada({ host, sshDir, entorno }) {
   const config = path.join(sshDir, 'config');
   let previo = '';
   try { previo = await readFile(config, 'utf8'); } catch { /* sin config previa */ }
-  await writeFile(config, `${previo}# vps-deploy (MSF-706)\nHost ${host}\n  StrictHostKeyChecking accept-new\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n# fin vps-deploy\n`, { mode: 0o600 });
+  await writeFile(config, `${bloqueSsh(host, 'accept-new', known)}${quitarBloque(previo)}`, { mode: 0o600 });
   return { origen: `ninguna (modo transicional ${entorno})`, lineas: 0, known, config, advertencia: `No hay clave de host fijada para ${entorno}: se usa StrictHostKeyChecking=accept-new (modo transicional). Cargá el secret VPS_SSH_KNOWN_HOSTS o infra/vps/known_hosts.${entorno} y activá VPS_ESTRICTO=1 (docs/deployment.md, «Pasar dev a modo estricto»).` };
 }
 
@@ -78,11 +93,7 @@ export async function preparar({ host, entorno, secreto, sshDir, raiz = process.
   const config = path.join(sshDir, 'config');
   let previo = '';
   try { previo = await readFile(config, 'utf8'); } catch { /* sin config previa */ }
-  const marca = '# vps-deploy (MSF-706)';
-  const inicio = previo.indexOf(marca);
-  const fin = previo.indexOf('# fin vps-deploy\n');
-  const sinPrevio = inicio !== -1 && fin > inicio ? previo.slice(0, inicio) + previo.slice(fin + '# fin vps-deploy\n'.length) : previo;
-  await writeFile(config, `${sinPrevio}${marca}\nHost ${host}\n  StrictHostKeyChecking yes\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n# fin vps-deploy\n`, { mode: 0o600 });
+  await writeFile(config, `${bloqueSsh(host, 'yes', known)}${quitarBloque(previo)}`, { mode: 0o600 });
   return { origen, lineas: lineas.length, known, config };
 }
 

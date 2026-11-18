@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { evaluar, evaluarRequeridos, resumenMarkdown, resumir } from './verificar-e2e-omitidos.mjs';
+import { evaluar, evaluarRequeridos, parsearRequeridos, resumenMarkdown, resumir } from './verificar-e2e-omitidos.mjs';
 
 const prueba = (status) => ({ title: 't', file: 'a.e2e.ts', tests: [{ status }] });
 const reporte = (...estados) => ({ suites: [{ file: 'a.e2e.ts', suites: [{ title: 'describe', specs: estados.map(prueba) }] }] });
@@ -44,4 +44,22 @@ test('el resumen cuenta los omitidos por archivo para el resumen del job', () =>
   assert.match(md, /2 corridos, 2 omitidos de 4/);
   assert.match(md, /`a\.e2e\.ts` \| 1 \| 2/);
   assert.doesNotMatch(md, /b\.e2e\.ts/);
+});
+
+test('--requeridos rechaza valores vacíos, comas de más y nombres con espacios; acepta una lista limpia', async () => {
+  assert.deepEqual(parsearRequeridos('a.e2e.ts,b.e2e.ts'), ['a.e2e.ts', 'b.e2e.ts']);
+  for (const malo of ['', 'a.e2e.ts,', ',a.e2e.ts', 'a.e2e.ts, b.e2e.ts', 'a b.e2e.ts']) {
+    assert.throws(() => parsearRequeridos(malo), /--requeridos inválido/, JSON.stringify(malo));
+  }
+  const { spawnSync } = await import('node:child_process');
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const archivo = join(mkdtempSync(join(tmpdir(), 'e2e-')), 'r.json');
+  writeFileSync(archivo, JSON.stringify(reporte('expected')));
+  for (const arg of ['--requeridos=', '--requeridos', '--requeridos=a.e2e.ts, b']) {
+    const r = spawnSync(process.execPath, ['scripts/verificar-e2e-omitidos.mjs', archivo, arg], { encoding: 'utf8' });
+    assert.equal(r.status, 2, arg);
+    assert.match(r.stderr, /--requeridos inválido/);
+  }
 });

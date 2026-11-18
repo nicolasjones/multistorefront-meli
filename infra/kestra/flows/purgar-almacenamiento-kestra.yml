@@ -25,10 +25,17 @@ concurrency:
   behavior: CANCEL
 
 tasks:
+  # MSF-707: un plazo de 0, vacío, negativo o con texto purgaría TODAS las ejecuciones terminadas (o fallaría de forma confusa): se exige un
+  # entero >= 1 sin ceros a la izquierda ('08' no es válido) antes de borrar nada. Con >= 1 día siempre queda lo de las últimas 24 h.
+  - id: validar_plazo
+    type: io.kestra.plugin.core.execution.Assert
+    errorMessage: "KESTRA_RETENCION_EJECUCIONES_DIAS (o el input dias) debe ser un entero >= 1 sin ceros a la izquierda."
+    conditions:
+      - "{{ (inputs.dias ?? envs.kestra_retencion_ejecuciones_dias ?? '7') matches '^[1-9][0-9]*$' }}"
   - id: purgar_ejecuciones_y_archivos
     type: io.kestra.plugin.core.execution.PurgeExecutions
     timeout: PT1H
-    endDate: "{{ now() | dateAdd((inputs.dias ?? envs.kestra_retencion_ejecuciones_dias ?? 7) | number * -1, 'DAYS') }}"
+    endDate: "{{ now() | dateAdd((inputs.dias ?? envs.kestra_retencion_ejecuciones_dias ?? '7') | number * -1, 'DAYS') }}"
     states:
       - SUCCESS
       - WARNING

@@ -57,6 +57,8 @@ on:
       - "infra/superset/dashboards/**"
       - "infra/nango/compose*.yaml"
       - "scripts/deploy-vps.mjs"
+      - "scripts/preflight-deploy-vps.mjs"
+      - "scripts/preparar-known-hosts-vps.mjs"
       - ".github/workflows/deploy-infraestructura-vps.yml"
   workflow_dispatch: {}
   workflow_call: {}

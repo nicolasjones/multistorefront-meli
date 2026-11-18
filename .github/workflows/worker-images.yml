@@ -30,6 +30,8 @@ on:
       - "scripts/smoke-imagenes-workers.mjs"
       - ".github/worker-vulnerability-exceptions.json"
       - ".github/workflows/worker-images.yml"
+      - "scripts/resumen-imagenes-workers.mjs"
+      - "scripts/preflight-deploy-vps.mjs"
       - ".github/worker-release-policy.yml"
 
 permissions:
@@ -140,12 +142,5 @@ jobs:
             rm -f "$report"
           done <<< "$workers"
 
-          {
-            echo "### Imágenes de workers publicadas (referencia inmutable, MSF-712)"
-            echo
-            echo "Copiá cada línea a la variable \`*_IMAGEN\` del \`.env\` del ambiente (secret VPS_DEPLOY_ENV); el despliegue rechaza \`:latest\`."
-            echo
-            echo '```'
-            cat "$RUNNER_TEMP/worker-imagenes.txt"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+          # Valida el formato (referencias inmutables) y arma el resumen; el formato se prueba en cada PR (scripts/resumen-imagenes-workers.test.mjs).
+          node scripts/resumen-imagenes-workers.mjs "$RUNNER_TEMP/worker-imagenes.txt" >> "$GITHUB_STEP_SUMMARY"

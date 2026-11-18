@@ -13,12 +13,12 @@ packages:
 overrides:
   playwright-core: "1.61.0"
   # MSF-916: dependencias transitivas con avisos de severidad ALTA (`pnpm audit --prod`): axios (vía @nangohq/frontend),
-  # follow-redirects, body-parser y zod (vía @modelcontextprotocol/sdk). Se fuerza la primera versión corregida; todas tienen más de
-  # dos semanas de publicadas (la política de edad mínima del repo). Se puede quitar cada una cuando el paquete padre la resuelva solo.
-  "axios@<1.20.0": ">=1.20.0"
-  "follow-redirects@<1.16.2": ">=1.16.2"
-  "body-parser@>=2.0.0 <2.4.0": ">=2.4.0"
-  "zod@>=4.0.0 <4.6.6": ">=4.6.6"
+  # follow-redirects, body-parser y zod (vía @modelcontextprotocol/sdk). Se fija la primera versión corregida EXACTA (axios 1.20.0 del 2026-08-26, zod 4.6.6 del 2026-10-11, body-parser 2.4.0 del 2026-10-22, follow-redirects 1.16.2 del 2026-10-25: todas con más de dos semanas
+  # de publicadas al 2026-11-17, política de edad mínima del repo). Se puede quitar cada una cuando el paquete padre la resuelva solo.
+  "axios@<1.20.0": "1.20.0"
+  "follow-redirects@<1.16.2": "1.16.2"
+  "body-parser@>=2.0.0 <2.4.0": "2.4.0"
+  "zod@>=4.0.0 <4.6.6": "4.6.6"
   # MSF-820 (@mui/x-charts): los 10 d3-* transitivos de @mui/x-charts-vendor tienen una versión publicada el
   # 2026-11-03 (menos de 2 semanas de antigüedad al incorporarse). Se fijan a la versión inmediata anterior, que
   # cumple el rango de x-charts-vendor y tiene meses (o años) de antigüedad. Se puede quitar este bloque cuando

@@ -49,6 +49,15 @@ export function evaluarRequeridos(reporte, requeridos) {
   return problemas;
 }
 
+// `--requeridos=a,b`: rechaza un valor vacío, una coma de más o un nombre con espacios (antes se ignoraban en silencio y el job pasaba sin exigir nada).
+export function parsearRequeridos(valor) {
+  const partes = String(valor).split(',');
+  if (partes.some((p) => p === '' || /\s/.test(p))) {
+    throw new Error(`--requeridos inválido ("${valor}"): lista de archivos separados por coma, sin vacíos ni espacios (p. ej. --requeridos=a.e2e.ts,b.e2e.ts).`);
+  }
+  return partes;
+}
+
 // Resumen en Markdown (para $GITHUB_STEP_SUMMARY): cuántos corrieron y cuántos se omitieron, por archivo.
 export function resumenMarkdown(reporte) {
   const pruebas = (reporte.suites ?? []).flatMap((suite) => recorrer(suite, []));
@@ -80,7 +89,16 @@ if (esCli) {
   const resultado = evaluar(reporte, maximo);
   for (const omitido of resultado.omitidos) console.log(` - omitido: ${omitido.archivo} › ${omitido.titulo}`);
   console[resultado.ok ? 'log' : 'error'](resultado.mensaje);
-  const requeridos = (resto.find((arg) => arg.startsWith('--requeridos='))?.slice(13) ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  const argRequeridos = resto.find((arg) => arg.startsWith('--requeridos'));
+  let requeridos = [];
+  if (argRequeridos !== undefined) {
+    try {
+      requeridos = parsearRequeridos(argRequeridos.startsWith('--requeridos=') ? argRequeridos.slice(13) : '');
+    } catch (error) {
+      console.error(error.message);
+      process.exit(2);
+    }
+  }
   const problemas = evaluarRequeridos(reporte, requeridos);
   for (const problema of problemas) console.error(`Spec requerido omitido: ${problema}`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, resumenMarkdown(reporte));

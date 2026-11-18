@@ -72,3 +72,22 @@ test('modo transicional: en dev sin clave fijada advierte y usa accept-new; stag
   const ok = await preparar({ host: 'vps.ejemplo.com', entorno: 'dev', secreto: LINEA, sshDir: dir, raiz, estricto: false });
   assert.equal(ok.advertencia, undefined);
 });
+
+test('MSF-706: el valor EFECTIVO de ssh es yes aunque haya un `Host *` previo con StrictHostKeyChecking no (ssh -G)', async (t) => {
+  const { spawnSync } = await import('node:child_process');
+  if (spawnSync('ssh', ['-V']).error) return t.skip('ssh no está instalado');
+  const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
+  await writeFile(path.join(dir, 'config'), 'Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n');
+  await preparar({ host: 'vps.ejemplo.com', entorno: 'staging', secreto: LINEA, sshDir: dir, raiz: dir });
+  const efectivo = (host) => Object.fromEntries(spawnSync('ssh', ['-G', '-F', path.join(dir, 'config'), host], { encoding: 'utf8' }).stdout.split('\n').map((l) => l.split(' ')).filter((p) => p.length >= 2).map(([k, ...v]) => [k, v.join(' ')]));
+  const r = efectivo('vps.ejemplo.com');
+  assert.equal(r.stricthostkeychecking, 'true', 'yes se informa como true');
+  assert.match(r.userknownhostsfile, /known_hosts_vps/);
+  assert.equal(efectivo('otro.host').stricthostkeychecking, 'false', 'el Host * previo sigue valiendo para otros hosts');
+  // Una segunda corrida no duplica el bloque ni lo manda al final.
+  await preparar({ host: 'vps.ejemplo.com', entorno: 'staging', secreto: LINEA, sshDir: dir, raiz: dir });
+  const config = await readFile(path.join(dir, 'config'), 'utf8');
+  assert.equal(config.match(/# vps-deploy/g).length, 1);
+  assert.ok(config.startsWith('# vps-deploy'));
+  assert.equal(efectivo('vps.ejemplo.com').stricthostkeychecking, 'true');
+});

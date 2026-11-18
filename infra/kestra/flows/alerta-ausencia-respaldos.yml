@@ -3,7 +3,7 @@
 # error que avisar. Este flow revisa el destino de respaldos y falla (con aviso por correo al soporte) si no hay
 # una copia de la base ni una foto de imágenes dentro de la ventana esperada.
 #
-# Solo mira el destino (rclone lsf --max-age), no toca la base ni ninguna copia. Ventana: RESPALDOS_AUSENCIA_HORAS
+# Solo mira el destino (rclone lsf; la fecha sale del nombre de cada copia), no toca la base ni ninguna copia. Ventana: RESPALDOS_AUSENCIA_HORAS
 # (por defecto 30: las copias son diarias, con 6 h de margen). Corre a las 06:30, después de las copias (03:00 y
 # 03:15) y de la retención (04:30).
 id: alerta-ausencia-respaldos
@@ -51,16 +51,19 @@ tasks:
     commands:
       - set -eu
       - |
-        case "$HORAS" in ''|*[!0-9]*|0) echo "RESPALDOS_AUSENCIA_HORAS debe ser un entero >= 1 (valor: '$HORAS')" >&2; exit 1 ;; esac
-      # $1 = carpeta (base|imagenes), $2 = opción de lsf. Cuenta las entradas con forma AAAAMMDD-HHMMSS más nuevas que
-      # la ventana. Un destino inalcanzable falla la tarea; una carpeta que no existe (código 3) cuenta como vacía.
+        case "$HORAS" in ''|0*|*[!0-9]*) echo "RESPALDOS_AUSENCIA_HORAS debe ser un entero >= 1 sin ceros a la izquierda (valor: '$HORAS')" >&2; exit 1 ;; esac
+      # $1 = carpeta (base|imagenes), $2 = opción de lsf. Cuenta las entradas AAAAMMDD-HHMMSS (UTC, como las nombran los flows de copias)
+      # cuya fecha es igual o posterior al corte (ahora - HORAS). Se compara por el NOMBRE y no con el filtro de edad de `rclone lsf` (`--max-age`), que NO filtra
+      # directorios (una carpeta de 2020 contaría como reciente y la alerta de imágenes nunca saltaría). Un destino inalcanzable falla la
+      # tarea; una carpeta que no existe (código 3) cuenta como vacía. AHORA (epoch) solo se fija en los tests.
       - |
         FALTAN=''
+        CORTE=$(date -u -d "@$(( ${AHORA:-$(date +%s)} - HORAS * 3600 ))" +%Y%m%d-%H%M%S)
         recientes() {
           RC=0
-          LISTA=$(rclone lsf "$RAIZ/$1" "$2" --max-age "${HORAS}h") || RC=$?
+          LISTA=$(rclone lsf "$RAIZ/$1" "$2") || RC=$?
           if [ "$RC" -eq 3 ]; then LISTA=''; elif [ "$RC" -ne 0 ]; then echo "No se pudo listar $RAIZ/$1 (rclone código $RC)" >&2; exit "$RC"; fi
-          printf '%s\n' "$LISTA" | grep -cE '^[0-9]{8}-[0-9]{6}' || true
+          printf '%s\n' "$LISTA" | sed 's#/$##' | grep -E '^[0-9]{8}-[0-9]{6}' | cut -c1-15 | awk -v corte="$CORTE" '$0 >= corte { n++ } END { print n + 0 }'
         }
         BASE=$(recientes base --files-only)
         IMAGENES=$(recientes imagenes --dirs-only)

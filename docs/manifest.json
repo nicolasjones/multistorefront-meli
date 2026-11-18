@@ -477,9 +477,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "cb548751eddd2ddac3ee3ba206d5b0ce434c5aef55e2dcfa406be3e970c8e6df",
+      "pageHash": "a645f10a00a9240f1e6b5408f3153c90aa583ba3ad4bcfb8a74d01f71bf82dcb",
       "sourceHash": "8822966e87b2ba8e9e14f35bcc8b4b8598d6a5aa6e2461016193aa7df00397e8",
-      "sourceAt": "7636e349",
+      "sourceAt": "264c54ac",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -487,20 +487,20 @@
         "scripts/limpiar-ci.mjs"
       ],
       "owner": "plataforma",
-      "commit": "7636e349"
+      "commit": "264c54ac"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
-      "pageHash": "8ee72e1e0bca77b4add5b7ea8949730ae3392304d8df4cf38f5e38ed447b4662",
-      "sourceHash": "13c02540238ea27a253c0da5fab9941b0fc5a5f9e1296c3232e221a18a5e3cae",
-      "sourceAt": "24f7fdb5a",
+      "pageHash": "439ab6c9257ffa5e56adbc6a37f8fd39867c0cb17c1ba132ea1740bdb763a68d",
+      "sourceHash": "c9acfb0cca1d3ccf0847bb135f946a0a475c1c6b02b3737757e33086c55cd07d",
+      "sourceAt": "7636e349",
       "sources": [
         "specs/011-backups-postgres",
         "specs/20261018-120000-operacion-copias-y-documentacion",
         "infra/kestra"
       ],
       "owner": "operacion",
-      "commit": "24f7fdb5a"
+      "commit": "7636e349"
     },
     "docs/correo-masivo.md": {
       "title": "Correo masivo a clientes (MSF-155)",
@@ -613,14 +613,14 @@
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
-      "pageHash": "6c4e44cc902a948f82056c61407a3eed2b87a68708c1a19672f8eb7b82ef0cf3",
+      "pageHash": "1e6825a0deddda12e03910d8abe0e434dd2ab950fd15146b25dd131fac4460e9",
       "sourceHash": "579ca96802b53d76b69bb4d5ad58484e169c4db69fee13860bf478e880dc8755",
-      "sourceAt": "7636e349",
+      "sourceAt": "264c54ac",
       "sources": [
         "specs"
       ],
       "owner": "tecnico",
-      "commit": "7636e349"
+      "commit": "264c54ac"
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",

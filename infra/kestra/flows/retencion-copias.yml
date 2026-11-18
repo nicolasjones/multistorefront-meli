@@ -3,8 +3,8 @@
 # Retención POR DÍAS (MSF-714), no por cantidad: conserva las copias de los
 # últimos N días y la primera copia de cada uno de los M últimos meses en
 # `base/` (archivos .dump, por defecto 30 días + 12 meses) e `imagenes/`
-# (carpetas de foto completas, por defecto 7 días + 2 meses y un TOPE de 7
-# fotos: cada una pesa todo Storage); purga el resto. Nunca borra la copia más reciente: es la última
+# (carpetas de foto completas, por defecto 7 días + 2 meses y un TOPE TOTAL de 7
+# fotos, mensuales incluidas: cada una pesa todo Storage); purga el resto. Nunca borra la copia más reciente: es la última
 # válida (solo se publica una copia al destino tras verificarla; las fotos
 # parciales de imágenes se limpian solas al fallar). Solo toca nombres con la
 # forma AAAAMMDD-HHMMSS…: cualquier otro archivo del destino se ignora.
@@ -62,16 +62,19 @@ tasks:
       - set -eu
       # Un plazo inválido falla antes de borrar nada.
       - |
-        numero() { case "$2" in ''|*[!0-9]*) echo "$1 debe ser un entero >= 0 (valor: '$2')" >&2; exit 1 ;; esac; }
-        numero RESPALDOS_RETENCION_DIAS "$DIAS"
-        numero RESPALDOS_RETENCION_MENSUALES "$MENSUALES"
-        numero RESPALDOS_IMAGENES_RETENCION_DIAS "$IMAGENES_DIAS"
-        numero RESPALDOS_IMAGENES_RETENCION_MENSUALES "$IMAGENES_MENSUALES"
-        numero RESPALDOS_IMAGENES_MAX_COPIAS "$IMAGENES_MAX"
-        if [ "$DIAS" -lt 1 ] || [ "$IMAGENES_DIAS" -lt 1 ]; then echo "La retención en días debe ser >= 1: con 0 se borraría la última copia válida" >&2; exit 1; fi
+        # Enteros sin ceros a la izquierda ('08' daría un error de aritmética poco claro). $3 = mínimo permitido (0 o 1).
+        numero() {
+          if [ "$3" -ge 1 ]; then ER='^[1-9][0-9]*$'; MSG='un entero >= 1'; else ER='^(0|[1-9][0-9]*)$'; MSG='un entero >= 0'; fi
+          printf '%s' "$2" | grep -Eq "$ER" || { echo "$1 debe ser $MSG sin ceros a la izquierda (valor: '$2')" >&2; exit 1; }
+        }
+        numero RESPALDOS_RETENCION_DIAS "$DIAS" 1
+        numero RESPALDOS_RETENCION_MENSUALES "$MENSUALES" 0
+        numero RESPALDOS_IMAGENES_RETENCION_DIAS "$IMAGENES_DIAS" 1
+        numero RESPALDOS_IMAGENES_RETENCION_MENSUALES "$IMAGENES_MENSUALES" 0
+        numero RESPALDOS_IMAGENES_MAX_COPIAS "$IMAGENES_MAX" 1
       # $1 = carpeta (base|imagenes), $2 = opción de lsf (--files-only|--dirs-only),
-      # $3 = días a conservar, $4 = meses (primera copia de cada mes), $5 = tope de
-      # copias por días (0 = sin tope). Purga lo que excede la retención: una copia
+      # $3 = días a conservar, $4 = meses (primera copia de cada mes), $5 = tope
+      # TOTAL de copias a conservar, mensuales incluidas (0 = sin tope; solo lo usa `base`, las imágenes exigen >= 1). Purga lo que excede la retención: una copia
       # se conserva si es de los últimos $3 días (y entra en el tope, contando desde
       # la más nueva) o es la primera de uno de los últimos $4 meses; la más
       # reciente siempre se conserva. Un destino inalcanzable falla la tarea (no se
@@ -90,8 +93,8 @@ tasks:
             END {
               if (NR == 0) exit
               keep[n[NR]] = 1
-              c = 0
-              for (i = NR; i >= 1; i--) {
+              c = 1
+              for (i = NR - 1; i >= 1; i--) {
                 if (substr(n[i], 1, 8) >= corte && (max == 0 || c < max)) { keep[n[i]] = 1; c++ }
               }
               nm = 0
@@ -99,7 +102,9 @@ tasks:
                 mes = substr(n[i], 1, 6)
                 if (!(mes in visto)) { visto[mes] = 1; primero[++nm] = n[i] }
               }
-              for (j = nm; j >= 1 && j > nm - m; j--) keep[primero[j]] = 1
+              for (j = nm; j >= 1 && j > nm - m; j--) {
+                if (!(primero[j] in keep) && (max == 0 || c < max)) { keep[primero[j]] = 1; c++ }
+              }
               for (i = 1; i <= NR; i++) if (!(n[i] in keep)) print n[i]
             }' > "$LISTA_TMP"
           while IFS= read -r NOMBRE; do
