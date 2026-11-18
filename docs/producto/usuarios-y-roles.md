@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/usuarios
+  - apps/web/src/pages/roles
 ---
 
 # Usuarios y roles: quién puede qué

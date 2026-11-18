@@ -136,5 +136,12 @@ Abierto:
 - **TODO (dueño: documentación/producto):** capturas del manual (`pnpm docs:capturas`, specs en
   `apps/web/e2e/capturas/`, datos de `pnpm demo:dataset`); no se generaron.
 - Decisiones provisorias de la spec a confirmar con el cliente: formatos distintos de imagen, garantía sin cargo o con
-  plazo, «Regenerar enlace»/vencimiento, `.xlsx` real y si los reportes se limitan a quien ve todas las tiendas.
+  plazo, vencimiento del enlace, `.xlsx` real. **Ya implementados** (migración
+  `20270437000000_service_regenerar_enlace_y_reportes_por_empresa.sql`): «Regenerar enlace» (RPC
+  `public.regenerar_enlace_consulta(p_reparacion)`: token nuevo, el anterior deja de resolver, exige `edicion` en
+  `service_tecnico` y una tienda accesible, registra `reparacion.enlace_regenerado`, tope de 10 por persona por hora con
+  `P0001` `DEMASIADAS_REGENERACIONES`; el cliente web la llama con `regenerarEnlaceConsulta` en `lib/enlaceConsulta.ts`
+  y `EnlaceSeguimientoDialog.tsx` pide confirmación antes) y el reporte «Service técnico» acotado a las empresas
+  accesibles de quien mira (`filtro_empresa = true`: `emitir-acceso-reporte` agrega `empresa_id IN (<empresas_accesibles>)`
+  al `rls` del guest token).
 - Las pantallas del tablero y la página pública no tienen prototipo: se armaron con el sistema de diseño.

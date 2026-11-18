@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/stock/ingresos.tsx
 ---
 
 # Registrar un ingreso de mercadería

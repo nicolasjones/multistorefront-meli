@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
 ---
 
 # Service técnico: registrar y seguir las reparaciones

@@ -166,8 +166,8 @@ export function ServicioReparacion() {
     } catch (error) {
       if (peticion !== ultimaPeticion.current) return
       setErrorCarga(
-        (error as { code?: string } | null)?.code === 'P0002'
-          ? 'Esa reparación no existe o no pertenece a tu organización.'
+        ['P0002', 'PT404'].includes((error as { code?: string } | null)?.code ?? '')
+          ? 'Esa reparación no existe o no tenés acceso a ella.'
           : mensajeDeErrorReparacion(error, 'No pudimos cargar la reparación.'),
       )
     }

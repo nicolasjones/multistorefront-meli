@@ -382,7 +382,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
   it('si la reparación no existe o es ajena, muestra error de carga', async () => {
     mocks.obtenerReparacion.mockRejectedValue({ code: 'P0002' })
     abrirDetalle()
-    expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.')).toBeInTheDocument()
+    expect(await screen.findByText('Esa reparación no existe o no tenés acceso a ella.')).toBeInTheDocument()
   })
 
   it('muestra la ganancia estimada junto al costo interno solo con ver_costos (FR-026, FR-027)', async () => {

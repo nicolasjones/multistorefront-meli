@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/promociones.tsx
 ---
 
 # Promociones de precio por empresa

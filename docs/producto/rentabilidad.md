@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/rentabilidad
 ---
 
 # Ver la rentabilidad: costos y márgenes

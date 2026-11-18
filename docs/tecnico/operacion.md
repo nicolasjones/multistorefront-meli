@@ -17,7 +17,8 @@ sources:
 ## CI
 
 - `Validate`: docs, lint, tests, pgTAP, build, e2e público; el job manual `e2e-visible-sesion` graba el recorrido con sesión y adjunta el video (ver [E2E de la app](../e2e-app.md)).
-- `quality`: secretos, SAST, dead code, duplicación, arquitectura, versiones, commitlint.
+- `quality`: secretos, SAST, dead code, duplicación, arquitectura, versiones, commitlint. El job falla ante hallazgos pero **no bloquea el merge por sí solo**: el ruleset exige únicamente `validacion` (`.github/workflows/quality.yml`, cabecera; ver [Calidad](../calidad.md)).
+- `docs` (publicación de la wiki): corre solo en PR hacia `main`, push a `main` o a mano (`.github/workflows/docs.yml:6-9`); no corre en PR a `dokploy` porque el drift de fuentes de directorio entero saltaría siempre.
 - `nightly`: regresiones y chequeos programados.
 - **Regla:** no se mergea con un check **requerido** en rojo; los no requeridos no frenan el merge pero se miran.
 

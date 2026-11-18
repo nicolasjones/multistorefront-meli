@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/reportes/Tableros.tsx
 ---
 
 # Tableros analíticos y resumen semanal

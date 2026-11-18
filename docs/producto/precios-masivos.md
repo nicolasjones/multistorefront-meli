@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/precios-masivos.tsx
 ---
 
 # Actualizar precios en bloque

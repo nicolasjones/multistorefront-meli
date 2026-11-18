@@ -318,6 +318,13 @@ Librerías: `apps/web/src/lib/formasRma.ts` (cinco formas con etiqueta, descripc
   `producto_id`, que `listar_rma` todavía **no** devuelve: lo agrega la migración
   `20270204100000_ventas_listados_producto_id.sql`, que está en la rama
   `origin/feat/ventas-faltantes-rma-producto-id` y todavía no está integrada.
+- **Facturas elegibles en «Nueva devolución»:** el selector usa `listarFacturasElegibles`
+  (`apps/web/src/lib/facturasElegibles.ts`), que recorre páginas de 50 (`TAMANO_PAGINA_ELEGIBLES`), hasta 10
+  (`PAGINAS_MAXIMAS_ELEGIBLES`), filtrando facturas que no estén `borrador` ni `anulada` (`ESTADOS_SIN_RMA`,
+  `DialogoNuevaDevolucion.tsx:42`), hasta juntar 20. Antes miraba solo la página 1 y decía «No hay facturas» aunque
+  existieran. Si se agota el tope, el diálogo avisa «Hay más resultados: refiná la búsqueda.»; si la carga falla, muestra
+  «No pudimos cargar los comprobantes.» con **Reintentar**; si la persona cierra o sigue tipeando, el bucle se corta
+  (`cancelado`) y el resultado se descarta.
 - **Solo lectura:** sin `ventas` en edición no se ofrece «Nueva devolución», ni avance, ni resolución
   (`puedeCrear`).
 - **Doble clic:** el registro, el avance y la resolución se deshabilitan mientras la petición está en

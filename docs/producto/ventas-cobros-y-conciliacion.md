@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/pagos/list.tsx
 ---
 
 # Registrar cobros y controlar los pagos

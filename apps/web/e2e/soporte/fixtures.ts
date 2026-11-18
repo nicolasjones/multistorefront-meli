@@ -10,6 +10,9 @@ import { derivarStackCi, leerConfigDesarrollo } from '../../../../scripts/supaba
 export const url = process.env.SUPABASE_URL
 export const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
+/** Tope de cada llamada HTTP de la siembra y la limpieza: sin él, un stack que no responde cuelga el test hasta su timeout de 5 min. */
+export const TOPE_FETCH_MS = 30_000
+
 export const HOSTS_LOCALES = ['localhost', '127.0.0.1', 'host.docker.internal']
 
 type Desarrollo = { projectId: string; puertos: Record<string, number> }
@@ -63,6 +66,7 @@ export const esquemaDe = (ruta: string, esquema: string) => (esquema === 'public
  */
 export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public', prefer = 'return=representation'): Promise<T[]> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, {
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
     headers: cabeceras({ prefer, 'content-profile': esquemaDe(ruta, esquema) }),
     body: JSON.stringify(cuerpo),
@@ -73,14 +77,14 @@ export async function rest<T>(ruta: string, cuerpo: unknown, esquema = 'public',
 
 /** SELECT por la API REST con la service-role (`ruta` lleva el filtro: `tabla?select=...&col=eq.x`). */
 export async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { headers: cabeceras({ 'accept-profile': esquemaDe(ruta, esquema) }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), headers: cabeceras({ 'accept-profile': esquemaDe(ruta, esquema) }) })
   if (!r.ok) throw new Error(`REST GET ${ruta}: ${r.status} ${await r.text()}`)
   return (await r.json()) as T[]
 }
 
 /** DELETE por la API REST (`ruta` lleva el filtro). Si falla avisa con `console.warn` y sigue: es limpieza. */
 export async function borrar(ruta: string, esquema = 'public') {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'DELETE', headers: cabeceras({ 'content-profile': esquemaDe(ruta, esquema) }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'DELETE', headers: cabeceras({ 'content-profile': esquemaDe(ruta, esquema) }) })
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
 }
 
@@ -91,11 +95,11 @@ export async function borrar(ruta: string, esquema = 'public') {
  */
 export async function fijarBanderaPlataforma(clave: string, activa: boolean): Promise<boolean | null> {
   const ruta = `banderas_plataforma?clave=eq.${encodeURIComponent(clave)}`
-  const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
+  const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), headers: cabeceras({ 'accept-profile': 'public' }) })
   if (!lectura.ok) throw new Error(`lectura de la bandera ${clave}: ${lectura.status} ${await lectura.text()}`)
   const filas = (await lectura.json()) as { activa: boolean }[]
   if (filas.length === 0) return null
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
+  const r = await fetch(`${url}/rest/v1/${ruta}`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
   if (!r.ok) throw new Error(`bandera ${clave}: ${r.status} ${await r.text()}`)
   return filas[0].activa
 }
@@ -103,12 +107,16 @@ export async function fijarBanderaPlataforma(clave: string, activa: boolean): Pr
 /** Contraseña con la que los specs dan de alta a sus personas de prueba. */
 export const CONTRASENA_E2E = 'Correcta-12345!'
 
-/** Alta de una persona por la API admin de Auth (correo confirmado). Devuelve su id. */
-export async function altaUsuario(correo: string, password = CONTRASENA_E2E): Promise<string> {
+/**
+ * Alta de una persona por la API admin de Auth (correo confirmado). Devuelve su id. Con `password = null` la persona nace SIN
+ * contraseña (la invitación pendiente de definirla).
+ */
+export async function altaUsuario(correo: string, password: string | null = CONTRASENA_E2E): Promise<string> {
   const r = await fetch(`${url}/auth/v1/admin/users`, {
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
     headers: cabeceras(),
-    body: JSON.stringify({ email: correo, password, email_confirm: true }),
+    body: JSON.stringify({ email: correo, email_confirm: true, ...(password === null ? {} : { password }) }),
   })
   if (!r.ok) throw new Error(`alta de ${correo}: ${r.status} ${await r.text()}`)
   return ((await r.json()) as { id: string }).id
@@ -116,7 +124,7 @@ export async function altaUsuario(correo: string, password = CONTRASENA_E2E): Pr
 
 /** Baja de una persona por la API admin de Auth. Si falla avisa con `console.warn` y sigue: es limpieza. */
 export async function borrarUsuario(id: string) {
-  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: cabeceras() })
+  const r = await fetch(`${url}/auth/v1/admin/users/${id}`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'DELETE', headers: cabeceras() })
   if (!r.ok) console.warn(`limpieza E2E: baja de usuario ${id} → ${r.status}`)
 }
 
@@ -135,6 +143,7 @@ export async function asignarEmpresasComoAdministrador(
   const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
   if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
   const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
     headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: correoAdmin, password }),
@@ -142,6 +151,7 @@ export async function asignarEmpresasComoAdministrador(
   if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
   const { access_token: token } = (await sesion.json()) as { access_token: string }
   const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
     headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
@@ -158,6 +168,7 @@ export async function crearConsulta(
   { nombre, contacto, mensaje = 'Hola, ¿tienen stock?', origen = 'formulario' }: { nombre: string; contacto: string; mensaje?: string | null; origen?: 'formulario' | 'whatsapp' },
 ): Promise<string> {
   const r = await fetch(`${url}/rest/v1/rpc/crear_consulta_publica`, {
+    signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
     headers: cabeceras({ 'content-profile': 'publico' }),
     body: JSON.stringify({ host, origen, nombre, contacto, mensaje }),
@@ -236,7 +247,9 @@ function cargarPg(): { Client: new (config: Record<string, unknown>) => ClienteP
 export async function sql<T = Record<string, unknown>>(consulta: string, valores: unknown[] = []): Promise<T[]> {
   const destino = validarDestinoSql(process.env)
   const { Client } = cargarPg()
-  const cliente = new Client(destino)
+  // Con tope de conexión y de consulta: sin él, un Postgres que no responde (puente caído, bloqueo) deja el test colgado hasta
+  // su timeout de 5 min en vez de fallar con un mensaje.
+  const cliente = new Client({ ...destino, connectionTimeoutMillis: 20_000, query_timeout: 60_000, statement_timeout: 60_000 })
   try {
     await cliente.connect()
     return (await cliente.query(consulta, valores)).rows as T[]

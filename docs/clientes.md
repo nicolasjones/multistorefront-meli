@@ -656,3 +656,18 @@ selección no cambian. Si falla una tanda posterior se conserva lo cargado y el 
 ## Lista de precios del cliente (F-CLI-21)
 
 La ficha tiene el campo **Lista de precios** (selector de las listas activas; solo lectura para quien no es Administrador). La asigna solo el rol Administrador con `asignar_lista_precios_cliente` (idempotente, registra `cliente.lista_precio_asignada` en Actividad); el **Consumidor final no admite lista**, archivar al cliente conserva su lista y fusionar clientes conserva la del cliente que queda. La lista **no se acumula** con el descuento personal. Con la bandera `listas_precios` apagada la asignación responde `55000` (quitar la lista sigue permitido) y el precio no cambia. La planilla de clientes todavía no exporta la lista (seguimiento MSF-974). Ver [Listas de precios](listas-de-precios.md).
+
+## Identificador externo por organización y aceptación de correo (lote 32 · MSF-596, MSF-666)
+
+- **MSF-596**: `public.clientes_identificadores_externos` gana `organizacion_id` (la mantiene un disparador desde el cliente) y el
+  único pasa a `(organizacion_id, sistema, identificador_externo)`. Dos organizaciones pueden vincular el mismo identificador y
+  `vincular_identificador_externo` ya no responde «ya está vinculado a otro cliente» por un cliente de otra organización (tampoco
+  revela que exista). Se reescribieron desde sus definiciones vigentes `vincular_identificador_externo`, `aplicar_lote_clientes`,
+  `private.clasificar_fila_cliente` e `informe_conciliacion_migracion` (migración `20270507180300`).
+- **MSF-666**: la importación de clientes acepta la columna opcional `acepta_correo` (sí/no; vacío = sin aceptación y no cambia el
+  dato existente; otro valor es error de fila) y existe la acción masiva `public.marcar_aceptacion_correo_clientes(uuid[],
+  boolean)` (solo administrador, hasta 5000, solo clientes de su organización, evento de Actividad
+  `clientes.aceptacion_correo_marcada`). Quién y cuándo quedan en `dominio.clientes.acepta_correo_masivo_por/_en`, que escribe un
+  disparador (no se pueden falsificar). **Pendiente de UI**: la columna en la plantilla de «Importar clientes»
+  (`pages/migracion/entidades/clientes.ts`) y el botón «Marcar aceptación» en el listado.
+- Pruebas: `lote32_clientes_id_externo_y_aceptacion_correo.test.sql`.

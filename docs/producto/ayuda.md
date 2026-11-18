@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/ayuda/manualPorDestino.ts
+  - apps/web/src/ayuda/manual.ts
 ---
 
 # La ayuda dentro del panel

@@ -212,7 +212,7 @@ export function mensajeDeErrorReparacion(error: unknown, porDefecto: string): st
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '40001') return MENSAJE_CONFLICTO_REPARACION
   if (e?.code === '55000') return MENSAJE_ANULADA
-  if (e?.code === 'P0002') return 'Esa reparación ya no existe. Volvé al listado.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa reparación ya no existe. Volvé al listado.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
