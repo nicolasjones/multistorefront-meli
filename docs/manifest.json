@@ -1821,14 +1821,18 @@
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
-      "pageHash": "4c0da77d42f2d1077c2415c7a9a4bad2fc8ac936b8cfd7ae5443aa2d374b0b97",
-      "sourceHash": "506807e77829ab54210278407b64feddf4848e9c8685a9e0e768ab4502f3440a",
-      "sourceAt": "336388d4",
+      "pageHash": "b86a6f5c45d5404f6f9ba6ee361356750a4498da85c73fdecec509accafa8281",
+      "sourceHash": "43f5798e8df78a9b4ff1f1bd69261bab6dd07578c15453c2325c93fbedd3a30e",
+      "sourceAt": "336388d4d",
       "sources": [
-        "specs"
+        "specs",
+        ".github/workflows/nightly.yml",
+        ".lighthouserc.json",
+        ".lighthouserc.tienda.json",
+        "scripts/medir-tienda-lighthouse.mjs"
       ],
       "owner": "producto",
-      "commit": "336388d4"
+      "commit": "336388d4d"
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
@@ -3496,16 +3500,16 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "43755abeeb162247ccea3769f5aac33744a39eec78125b84f432c18ecad7ad48",
-      "sourceHash": "1cb64c1a49cc7b6d77b188d6496c1a9be51ebe9d076407e55108f59e755aa9b7",
-      "sourceAt": "c7860a7c",
+      "pageHash": "f45c2466a75c854635eb0e49925d532308847a71b009d47a581c854f5abd85cb",
+      "sourceHash": "0abd054feb8483a3a68d819e173be0aaf05f14452a48e150b1c9f2dc1e4bb70b",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs",
         "supabase/migrations",
         "apps/web/src"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -3875,14 +3879,14 @@
     },
     "docs/tienda-movil.md": {
       "title": "Tienda pública · versión móvil (F-TDA-17)",
-      "pageHash": "e27e93940044edb5f3edd1c90b249a33fe491eece426296ed5ce32f5edac2ab4",
+      "pageHash": "f1c517f2bf293bc25259ba14d69686d455d4c0bfdcc005ee5dd1c3f27a2bbfd7",
       "sourceHash": "a41548adff49f50dbd580ee9293fc48676d148d432c1e3476dfa8d38cb298ccd",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261024-120000-tienda-inicio-busqueda-movil"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
@@ -3912,9 +3916,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "3263a827189a7118ff73d67472e8f4f7902738f54dd097fd5287df9be0284767",
-      "sourceHash": "2b048b4c6ca96cd12a2a64bc15a395bf503fde2928787f27ca547f452b5e290e",
-      "sourceAt": "452d7af14",
+      "pageHash": "6e346fa6b1fb9b405305d85d1cde4e56ac6c622b750ef8718ec6211aa4248b04",
+      "sourceHash": "060c325452fb80176db94bbeeca3c1ce8fd58d1c4d0439475a1421665d20aeb5",
+      "sourceAt": "65f1c7337",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -3926,7 +3930,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "452d7af14"
+      "commit": "65f1c7337"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
