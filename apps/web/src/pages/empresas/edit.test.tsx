@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   usePuedeEscribir: vi.fn(),
   setWarnWhen: vi.fn(),
   getUser: vi.fn(),
+  // Lo último que devolvió la escritura: la ficha se relee por la RPC `empresa_datos` y debe ver lo guardado.
+  ultimaEscritura: null as unknown,
 }))
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.setWarnWhen }) }))
@@ -18,9 +20,15 @@ vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoO
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
     auth: { getUser: () => mocks.getUser() },
+    // CUIT, correo y WhatsApp se leen por la RPC `empresa_datos` (la tabla los reserva a la sección `empresas`).
+    rpc: async (nombre: string) => {
+      if (nombre !== 'empresa_datos') return { data: null, error: null }
+      if (mocks.ultimaEscritura) return { data: [mocks.ultimaEscritura], error: null }
+      const { data, error } = (await mocks.lectura()) as { data: unknown; error: unknown }
+      return { data: data ? [data] : [], error }
+    },
     schema: () => ({
       from: () => ({
-        select: () => ({ eq: () => ({ maybeSingle: mocks.lectura }) }),
         update: (valores: unknown) => {
           mocks.update(valores)
           return {
@@ -31,7 +39,13 @@ vi.mock('../../lib/supabase', () => ({
                   mocks.eqUpdate(columna2, valor2)
                   return encadenado
                 },
-                select: () => ({ maybeSingle: mocks.escritura }),
+                select: () => ({
+                  maybeSingle: async () => {
+                    const respuesta = (await mocks.escritura()) as { data: unknown; error: unknown }
+                    if (respuesta.data) mocks.ultimaEscritura = respuesta.data
+                    return respuesta
+                  },
+                }),
               }
               return encadenado
             },
@@ -61,6 +75,7 @@ const abrir = () =>
 describe('EmpresaEdit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.ultimaEscritura = null
     registrarDestinoActividad(null)
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } } })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
