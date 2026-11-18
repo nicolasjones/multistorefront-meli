@@ -81,7 +81,7 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   versión; si la lectura falla, 503.
 - Los fragmentos solo se borran si la invocación sigue siendo la dueña de la versión (relee: `procesando` con su propio
   reclamo); nunca los de una versión `activa` ni los de otra invocación que la retomó. La relectura es solo un
-  atajo: el borrado real lo hace `public.borrar_fragmentos_si_dueno(version_id, reclamo)` (envoltorio de
+  atajo: el borrado real lo hace `public.borrar_fragmentos_si_dueno(version_id, organizacion_id, reclamo)` (envoltorio de
   `private.borrar_fragmentos_si_dueno`, `security definer`, `search_path=''`, solo `service_role`), que comprueba la
   propiedad (la versión existe, no está `activa` y no fue retomada por otro reclamo) y borra en la misma transacción,
   con `for share` sobre la versión; así la ventana sin transacción queda cerrada (deuda m1). Devuelve `false` si no era
