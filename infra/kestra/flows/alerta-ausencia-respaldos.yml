@@ -51,7 +51,7 @@ tasks:
     commands:
       - set -eu
       - |
-        case "$HORAS" in ''|0*|*[!0-9]*) echo "RESPALDOS_AUSENCIA_HORAS debe ser un entero >= 1 sin ceros a la izquierda (valor: '$HORAS')" >&2; exit 1 ;; esac
+        case "$HORAS" in ''|0*|*[!0-9]*|?????*) echo "RESPALDOS_AUSENCIA_HORAS debe ser un entero >= 1 sin ceros a la izquierda y de hasta 4 dígitos (valor: '$HORAS')" >&2; exit 1 ;; esac
       # $1 = carpeta (base|imagenes), $2 = opción de lsf. Cuenta las entradas AAAAMMDD-HHMMSS (UTC, como las nombran los flows de copias)
       # cuya fecha es igual o posterior al corte (ahora - HORAS). Se compara por el NOMBRE y no con el filtro de edad de `rclone lsf` (`--max-age`), que NO filtra
       # directorios (una carpeta de 2020 contaría como reciente y la alerta de imágenes nunca saltaría). Un destino inalcanzable falla la

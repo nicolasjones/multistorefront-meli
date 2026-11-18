@@ -7,11 +7,12 @@
 // Sin ninguna de las dos, el paso FALLA con instrucciones (no se cae a ssh-keyscan). Cómo obtener la línea correcta, fuera de
 // banda: docs/deployment.md, «Clave de host del VPS».
 //
-// Uso: node scripts/preparar-known-hosts-vps.mjs --host <host> --entorno staging|production [--ssh-dir ~/.ssh]
+// Uso: node scripts/preparar-known-hosts-vps.mjs --host <host> --entorno dev|staging|production [--ssh-dir ~/.ssh] [--env-file <.env del entorno>]
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { modoEstricto } from './preflight-deploy-vps.mjs';
 
 const TIPOS = /^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com)$/;
 
@@ -39,16 +40,24 @@ export function lineasValidas(contenido, host) {
 
 // Modo transicional (MSF-706): staging y producción son SIEMPRE estrictos; en `dev` la falta de clave fijada advierte y se usa
 // `StrictHostKeyChecking=accept-new` (confía en la primera clave y falla si luego cambia) hasta que VPS_ESTRICTO=1.
-export function esEstricto(entorno, env = process.env) {
-  return entorno !== 'dev' || env.VPS_ESTRICTO === '1';
+// Misma regla que el preflight (`modoEstricto`): la variable del proceso manda y, si no está, se lee VPS_ESTRICTO del `.env` del
+// entorno (`contenidoEnv`, opcional: la CLI lo toma de `--env-file`).
+export function esEstricto(entorno, env = process.env, contenidoEnv = '') {
+  return modoEstricto(entorno, env, contenidoEnv);
 }
 
 const MARCA = '# vps-deploy (MSF-706)';
 const FIN = '# fin vps-deploy\n';
 
+export function validarHost(host) {
+  if (typeof host !== 'string' || !/^[A-Za-z0-9.-]+$/.test(host)) throw new Error('--host solo admite letras, números, puntos y guiones (sin espacios ni saltos de línea).');
+}
+
 // SSH usa la PRIMERA coincidencia de cada opción: el bloque va AL PRINCIPIO de ~/.ssh/config, así un `Host *` previo (p. ej. en un runner
 // persistente, con `StrictHostKeyChecking no`) no lo anula.
 function bloqueSsh(host, modo, known) {
+  // `host` va a una línea `Host <host>` del config: solo un nombre o IP, nunca espacios, comodines ni saltos de línea.
+  validarHost(host);
   return `${MARCA}\nHost ${host}\n  StrictHostKeyChecking ${modo}\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n${FIN}`;
 }
 
@@ -66,11 +75,13 @@ async function sinClaveFijada({ host, sshDir, entorno }) {
   let previo = '';
   try { previo = await readFile(config, 'utf8'); } catch { /* sin config previa */ }
   await writeFile(config, `${bloqueSsh(host, 'accept-new', known)}${quitarBloque(previo)}`, { mode: 0o600 });
+  await chmod(config, 0o600); // `mode` solo aplica si el archivo no existía
   return { origen: `ninguna (modo transicional ${entorno})`, lineas: 0, known, config, advertencia: `No hay clave de host fijada para ${entorno}: se usa StrictHostKeyChecking=accept-new (modo transicional). Cargá el secret VPS_SSH_KNOWN_HOSTS o infra/vps/known_hosts.${entorno} y activá VPS_ESTRICTO=1 (docs/deployment.md, «Pasar dev a modo estricto»).` };
 }
 
 export async function preparar({ host, entorno, secreto, sshDir, raiz = process.cwd(), estricto = esEstricto(entorno) }) {
   if (!host) throw new Error('Falta --host (VPS_SSH_HOST).');
+  validarHost(host);
   if (!['dev', 'staging', 'production'].includes(entorno)) throw new Error('Uso: --entorno dev|staging|production');
   let contenido = secreto?.trim() ? secreto : '';
   let origen = 'el secret VPS_SSH_KNOWN_HOSTS';
@@ -94,13 +105,18 @@ export async function preparar({ host, entorno, secreto, sshDir, raiz = process.
   let previo = '';
   try { previo = await readFile(config, 'utf8'); } catch { /* sin config previa */ }
   await writeFile(config, `${bloqueSsh(host, 'yes', known)}${quitarBloque(previo)}`, { mode: 0o600 });
+  await chmod(config, 0o600); // `mode` solo aplica si el archivo no existía
   return { origen, lineas: lineas.length, known, config };
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
   const arg = (n) => { const i = process.argv.indexOf(n); return i === -1 ? undefined : process.argv[i + 1]; };
   try {
-    const r = await preparar({ host: arg('--host'), entorno: arg('--entorno'), secreto: process.env.VPS_SSH_KNOWN_HOSTS, sshDir: arg('--ssh-dir') ?? path.join(os.homedir(), '.ssh') });
+    const archivoEnv = arg('--env-file');
+    let contenidoEnv = '';
+    if (archivoEnv) { try { contenidoEnv = await readFile(archivoEnv, 'utf8'); } catch { /* sin .env: rige la variable del proceso */ } }
+    const entorno = arg('--entorno');
+    const r = await preparar({ host: arg('--host'), entorno, secreto: process.env.VPS_SSH_KNOWN_HOSTS, sshDir: arg('--ssh-dir') ?? path.join(os.homedir(), '.ssh'), estricto: esEstricto(entorno, process.env, contenidoEnv) });
     if (r.advertencia) console.warn(`::warning::${r.advertencia}`);
     else console.log(`Clave de host del VPS fijada desde ${r.origen} (${r.lineas} línea(s)); StrictHostKeyChecking=yes.`);
   } catch (error) {
