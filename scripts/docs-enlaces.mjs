@@ -22,21 +22,20 @@ export function esBlanco(c) {
 
 /**
  * Prefijo de contenedor de una línea: marcas de cita (`>`), sangría y marcadores de lista (`- `, `1. `), también anidados.
- * Devuelve la profundidad de cita, la columna donde empieza el contenido, el índice de ese contenido, la columna de contenido
- * de la última lista (0 si no hubo marcador) y si la línea queda vacía.
+ * Devuelve la pila de contenedores (`Q` cita, `L` ítem de lista con la columna `ind` donde empieza su contenido), la
+ * columna y el índice donde empieza el contenido, y si la línea queda vacía.
  */
 function prefijoDeContenedor(linea) {
   const len = linea.length;
   let k = 0;
   let col = 0;
-  let depth = 0;
-  let listaCol = 0;
+  const pila = [];
   for (;;) {
     while (k < len) {
       const c = linea[k];
       if (c === " ") { col++; k++; }
       else if (c === "\t") { col += 4 - (col % 4); k++; }
-      else if (c === ">") { depth++; col++; k++; }
+      else if (c === ">") { pila.push({ tipo: "Q" }); col++; k++; if (linea[k] === " ") { col++; k++; } }
       else break;
     }
     let m = 0;
@@ -51,25 +50,71 @@ function prefijoDeContenedor(linea) {
     k += m;
     col += m;
     while (k < len && (linea[k] === " " || linea[k] === "\t")) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; }
-    listaCol = col;
+    pila.push({ tipo: "L", ind: col });
     if (k >= len) break;
   }
-  return { depth, col, k, listaCol, vacia: linea.slice(k).trim() === "" };
+  return { pila, col, k, vacia: linea.slice(k).trim() === "" };
+}
+
+/**
+ * ¿La línea continúa los contenedores de la pila de apertura? Se recorre la pila en orden: un ítem de lista pide sangría
+ * hasta su columna de contenido (sin marcador nuevo: un ítem hermano NO es continuación) y una cita pide su `>`.
+ */
+function continuaContenedores(linea, pilaAbierta) {
+  let k = 0;
+  let col = 0;
+  for (const c of pilaAbierta) {
+    if (c.tipo === "L") {
+      while (k < linea.length && col < c.ind && (linea[k] === " " || linea[k] === "\t")) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; }
+      if (col < c.ind) return false;
+    } else {
+      let sp = 0;
+      while (k < linea.length && (linea[k] === " " || linea[k] === "\t") && sp < 3) { col += linea[k] === "\t" ? 4 - (col % 4) : 1; k++; sp++; }
+      if (linea[k] !== ">") return false;
+      k++; col++;
+      if (linea[k] === " ") { col++; k++; }
+    }
+  }
+  return true;
+}
+
+// Comienzo de un bloque HTML (CommonMark, tipos 1-7), de forma conservadora. Devuelve cómo termina: `"blanco"` (una línea
+// vacía) o la marca de cierre que se busca en una línea posterior, o `null` si la línea no abre un bloque HTML.
+function inicioHtml(resto) {
+  if (resto[0] !== "<") return null;
+  const c = resto[1];
+  if (!(c === "!" || c === "?" || c === "/" || (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"))) return null;
+  const bajo = resto.slice(0, 12).toLowerCase();
+  let fin = "blanco";
+  if (bajo.startsWith("<!--")) fin = "-->";
+  else if (bajo.startsWith("<![cdata[")) fin = "]]>";
+  else if (bajo.startsWith("<?")) fin = "?>";
+  else if (bajo.startsWith("<!")) fin = ">";
+  else {
+    for (const tag of ["script", "pre", "style", "textarea"]) {
+      if (bajo.startsWith("<" + tag) && (bajo.length === 1 + tag.length || " \t>".includes(bajo[1 + tag.length]))) fin = "</" + tag + ">";
+    }
+  }
+  return fin;
 }
 
 /**
  * Vacía los bloques de código conservando los saltos de línea (los números de línea siguen siendo los del archivo).
- * Un fence se abre con ≥3 backticks o tildes y se cierra solo con el mismo carácter, longitud ≥ la de apertura y dentro del
- * mismo contenedor (cita o ítem de lista) de la línea de apertura; si el contenedor termina antes, el bloque queda sin cerrar.
- * @returns {{texto: string, sinCerrar: number[]}} `sinCerrar`: líneas de los fences que no se cierran
+ * Un fence se abre con ≥3 backticks o tildes y se cierra solo con el mismo carácter, longitud ≥ la de apertura y dentro de
+ * los mismos contenedores (pila de citas e ítems de lista) que la línea de apertura; si los contenedores terminan antes, el
+ * bloque queda sin cerrar. Ante cualquier ambigüedad se valida de más: no se abre un fence dentro de un bloque HTML.
+ * @returns {{texto: string, sinCerrar: number[], ambiguo: boolean}} `sinCerrar`: líneas de los fences que no se cierran;
+ *   `ambiguo`: una línea con forma de fence cayó dentro de un bloque HTML (el llamador analiza también sin la regla del HTML)
  */
-export function enmascararCodigo(txt) {
+export function enmascararCodigo(txt, { html: conHtml = true } = {}) {
   const n = txt.length;
   const salida = [];
   const sinCerrar = [];
   let pos = 0;
   let nLinea = 0;
   let abierto = null;
+  let html = null; // fin esperado del bloque HTML en curso
+  let ambiguo = false; // hubo una línea con forma de fence dentro de un bloque HTML
   while (pos <= n) {
     let fin = txt.indexOf("\n", pos);
     if (fin < 0) fin = n;
@@ -77,26 +122,40 @@ export function enmascararCodigo(txt) {
     const linea = txt.slice(pos, fin);
     pos = fin + 1;
     const p = prefijoDeContenedor(linea);
-    if (abierto && !p.vacia && (p.depth < abierto.depth || (abierto.ind > 0 && p.col < abierto.ind))) {
-      sinCerrar.push(abierto.linea); // el contenedor terminó sin cerrar el fence: esta línea ya no es código
+    if (abierto && !p.vacia && !continuaContenedores(linea, abierto.pila)) {
+      sinCerrar.push(abierto.linea); // los contenedores terminaron sin cerrar el fence: esta línea ya no es código
       abierto = null;
     }
     const ch = linea[p.k];
     let r = p.k;
     if (ch === "`" || ch === "~") while (r < linea.length && linea[r] === ch) r++;
     const run = r - p.k;
-    if (!abierto) {
-      if (run >= 3 && !(ch === "`" && linea.indexOf("`", r) >= 0)) {
-        abierto = { ch, run, linea: nLinea, depth: p.depth, ind: p.listaCol > 0 ? p.listaCol : p.col >= 2 ? p.col : 0 };
-        salida.push("");
-      } else salida.push(linea);
-    } else {
+    if (abierto) {
       if (run >= abierto.run && ch === abierto.ch && linea.slice(r).trim() === "") abierto = null;
       salida.push("");
+      continue;
     }
+    if (html !== null) {
+      // Dentro de un bloque HTML no se abre ningún fence: la línea es texto y sus enlaces se validan.
+      if (run >= 3) ambiguo = true;
+      if (html === "blanco" ? p.vacia : linea.toLowerCase().includes(html)) html = null;
+      salida.push(linea);
+      continue;
+    }
+    if (run >= 3 && !(ch === "`" && linea.indexOf("`", r) >= 0)) {
+      abierto = { ch, run, linea: nLinea, pila: p.pila.length ? p.pila : p.col >= 2 ? [{ tipo: "L", ind: p.col }] : [] };
+      salida.push("");
+      continue;
+    }
+    const h = conHtml ? inicioHtml(linea.slice(p.k)) : null;
+    if (h !== null) {
+      const resto = linea.slice(p.k).toLowerCase();
+      html = h === "blanco" ? "blanco" : resto.indexOf(h, 2) >= 0 ? null : h;
+    }
+    salida.push(linea);
   }
   if (abierto) sinCerrar.push(abierto.linea);
-  return { texto: salida.join("\n"), sinCerrar };
+  return { texto: salida.join("\n"), sinCerrar, ambiguo };
 }
 
 const minus = (c) => c.charCodeAt(0) | 32;
@@ -112,7 +171,27 @@ const empiezaCI = (s, p, palabra) => {
 export function enlacesMarkdown(crudo) {
   // BOM y finales de línea CRLF/CR normalizados a `\n` antes de analizar (las líneas se cuentan igual que en un editor).
   const original = (crudo.charCodeAt(0) === 0xfeff ? crudo.slice(1) : crudo).replace(/\r\n?/g, "\n");
-  const { texto: txt, sinCerrar } = enmascararCodigo(original);
+  const a = enmascararCodigo(original);
+  const r = escanear(a.texto);
+  let sinCerrar = a.sinCerrar;
+  if (a.ambiguo) {
+    // Ambigüedad de fence dentro de HTML: se analiza también como si el HTML no existiera y se valida la unión de ambas
+    // lecturas (validar de más, nunca de menos); los fences sin cerrar de cualquiera de las dos se reportan.
+    const b = enmascararCodigo(original, { html: false });
+    const r2 = escanear(b.texto);
+    const clave = (e) => `${e.linea}:${e.crudo}`;
+    const vistos = new Set(r.enlaces.map(clave));
+    for (const e of r2.enlaces) if (!vistos.has(clave(e))) r.enlaces.push(e);
+    r.enlaces.sort((x, y) => x.linea - y.linea);
+    const ev = new Set(r.excesos.map((e) => `${e.linea}:${e.motivo}`));
+    for (const e of r2.excesos) if (!ev.has(`${e.linea}:${e.motivo}`)) { if (r.excesos.length < MAX_EXCESOS_ENLACE) r.excesos.push(e); else r.masExcesos++; }
+    r.masExcesos += r2.masExcesos;
+    sinCerrar = [...new Set([...a.sinCerrar, ...b.sinCerrar])].sort((x, y) => x - y);
+  }
+  return { enlaces: r.enlaces, excesos: r.excesos, masExcesos: r.masExcesos, sinCerrar };
+}
+
+function escanear(txt) {
   const n = txt.length;
   const enlaces = [];
   const excesos = [];
@@ -134,20 +213,35 @@ export function enlacesMarkdown(crudo) {
     return j;
   };
   // Destino desde `j`: `<…>` (admite espacios) o hasta el primer blanco o `)`. Devuelve {destino, fin} o null (excedido: ya reportado).
+  // Primer carácter terminador a partir de `j`, con caché: las búsquedas de un mismo tramo sin terminador se resuelven una
+  // sola vez (costo total lineal aunque haya miles de `](` seguidos).
+  const buscador = (esFin) => {
+    let desde = -1;
+    let hasta = -1;
+    return (j) => {
+      if (j >= desde && j <= hasta) return hasta;
+      let e = j;
+      while (e < n && !esFin(txt[e])) e++;
+      desde = j;
+      hasta = e;
+      return e;
+    };
+  };
+  const finAngulo = buscador((c) => c === ">" || c === "\n" || c === "<");
+  const finPlano = buscador((c) => c === ")" || esBlanco(c));
   const leerDestino = (j, linea, enDefinicion, plano = false) => {
     if (txt[j] === "<" && !plano) {
       const ds = j + 1;
-      let e = ds;
-      while (e < n && e - ds <= MAX_DESTINO_ENLACE && txt[e] !== ">" && txt[e] !== "\n") e++;
-      if (e - ds > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); return { fin: e, excedido: true }; }
+      const e = finAngulo(ds);
+      if (e - ds > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); return { fin: ds + MAX_DESTINO_ENLACE, excedido: true }; }
       if (txt[e] === ">" && e > ds) return { destino: txt.slice(ds, e), fin: e + 1 };
       // `<` sin `>` de cierre: se lee como destino común (así no se pierde un enlace roto como `[a](<x.md)`).
     }
     const ds = j;
-    while (j < n && j - ds <= MAX_DESTINO_ENLACE && txt[j] !== ")" && !esBlanco(txt[j])) j++;
-    if (j - ds > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); return { fin: j, excedido: true }; }
-    if (j === ds || (enDefinicion === false && j >= n)) return null;
-    return { destino: txt.slice(ds, j), fin: j };
+    const e = finPlano(ds);
+    if (e - ds > MAX_DESTINO_ENLACE) { exceso(linea, "destino"); return { fin: ds + MAX_DESTINO_ENLACE, excedido: true }; }
+    if (e === ds || (enDefinicion === false && e >= n)) return null;
+    return { destino: txt.slice(ds, e), fin: e };
   };
   const leerTitulo = (k, linea) => {
     const abre = txt[k];
@@ -290,5 +384,5 @@ export function enlacesMarkdown(crudo) {
     }
   }
 
-  return { enlaces, excesos, masExcesos, sinCerrar };
+  return { enlaces, excesos, masExcesos };
 }

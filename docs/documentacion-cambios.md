@@ -138,6 +138,13 @@ Fence con sangría 2-3 sin lista: un fence de nivel superior sangrado 2 o 3 espa
 Fence sangrado 4 o más:       un fence con 4+ espacios de sangría abre bloque igual (tolerancia para listas anidadas)
 Comentario HTML:              <!-- [a](roto.md) -->   SÍ se valida (un comentario no se enmascara)
 Paréntesis en el destino:     [a](x(1).md)   extrae «x(1» (el destino termina en el primer «)»)
+Fence en bloque HTML:         <div> + línea con ``` o ~~~ sin línea vacía entre medio: no abre fence (se valida de más);
+                              si es ambiguo se analiza de las dos formas y se validan los enlaces de ambas
+Fence mal anidado:            «- > ```» cerrado por «> ```» (pila de contenedores distinta) o un ítem hermano de la lista:
+                              el fence termina, se reporta «bloque de código sin cerrar» y se valida lo que sigue
+No se extraen (dokploy tampoco): [x](<a + salto de línea + b>)   <a/href=roto.md>   y en <a href="x" href="roto.md"> solo
+                              cuenta el primer href
+Tipos de fence:               ~~~ cuenta como fence; un fence de backticks con backtick en la info (``` a`b) no abre
 Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
 ```
 

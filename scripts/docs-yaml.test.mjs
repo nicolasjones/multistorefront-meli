@@ -131,6 +131,9 @@ const hostiles = {
 };
 const enlaces = {
   "<a sin cierre": (n) => "<a ".repeat(n / 3),
+  "fences dentro de HTML": (n) => "<div>\n```\n".repeat(n / 11),
+  "ítems hermanos con fence": (n) => "- ~~~\n- [a](b)\n".repeat(n / 17),
+  "citas en listas": (n) => "- > ```\n> x\n".repeat(n / 13),
   "<img sin cierre": (n) => "<img ".repeat(n / 5),
   "<a href con comilla abierta": (n) => '<a href="'.repeat(n / 9),
   "fences en cita": (n) => "> ```\n".repeat(n / 6),
@@ -286,6 +289,28 @@ describe("enlacesMarkdown", () => {
     const ok = enlacesMarkdown("- a\n  ```\n  [x](dentro.md)\n\n  ```\n[f](fuera.md)\n> ```\n> [y](dentro2.md)\n> ```\n[g](fuera2.md)\n");
     assert.deepEqual(ok.enlaces.map((m) => m.destino), ["fuera.md", "fuera2.md"]);
     assert.deepEqual(ok.sinCerrar, []);
+  });
+  it("QA: un ítem hermano de lista termina el fence (`-`, `*`, `+` y numerada)", () => {
+    for (const s of ["- ~~~\n- [a](roto.md)\n- ~~~\n", "* ~~~\n* [a](roto.md)\n* ~~~\n", "+ ~~~\n+ [a](roto.md)\n+ ~~~\n", "1. ~~~\n2. [a](roto.md)\n3. ~~~\n", "- a\n  - ```\n  - [a](roto.md)\n"]) {
+      const r = enlacesMarkdown(s);
+      assert.ok(r.enlaces.some((m) => m.destino === "roto.md"), s);
+      assert.ok(r.sinCerrar.length >= 1, s);
+    }
+  });
+  it("QA: una cita dentro de una lista no es continuación de una cita sola (pila de contenedores)", () => {
+    for (const s of ["- > ~~~\n> [a](roto.md)\n> ~~~\n", "> - ```\n> [a](roto.md)\n> ```\n", "- > ```\n  > [a](dentro.md)\n  > ```\n[f](fuera.md)\n"]) {
+      const r = enlacesMarkdown(s);
+      if (s.includes("dentro.md")) { assert.deepEqual(r.enlaces.map((m) => m.destino), ["fuera.md"]); assert.deepEqual(r.sinCerrar, []); }
+      else { assert.ok(r.enlaces.some((m) => m.destino === "roto.md"), s); assert.ok(r.sinCerrar.length >= 1, s); }
+    }
+  });
+  it("QA: no se abre un fence dentro de un bloque HTML (se valida de más)", () => {
+    for (const s of ["<div>\n~~~\n\n[a](roto.md)\n~~~\n", "<!-- x\n~~~\n\n[a](roto.md)\n-->\n", "<pre>\n```\n[a](roto.md)\n</pre>\n```\n", "<details>\n~~~\n[a](roto.md)\n"]) {
+      assert.ok(destinos(s).includes("roto.md"), s);
+    }
+    // Una línea vacía termina el bloque HTML y el fence siguiente se abre con normalidad.
+    assert.deepEqual(destinos("<div>\n\n```\n[x](dentro.md)\n```\n[f](fuera.md)\n"), ["fuera.md"]);
+    assert.deepEqual(destinos("<!-- c -->\n```\n[x](dentro.md)\n```\n[f](fuera.md)\n"), ["fuera.md"]);
   });
   it("(5) un fence en la misma línea del marcador de lista se abre y se cierra bien", () => {
     const r = enlacesMarkdown("- ```\n  [x](dentro.md)\n  ```\n- [y](fuera.md)\n");
