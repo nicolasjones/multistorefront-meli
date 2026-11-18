@@ -4,7 +4,7 @@ import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 // Toma de inventario (F-STK-11, MSF-415). La regla vive en la RPC `confirmar_toma_inventario`
-// (migración 20261202130100_stock_confirmar_toma.sql); acá se espejan solo la validación y el
+// (migraciones 20261202130100_stock_confirmar_toma.sql y 20270507210000_toma_inventario_elegir_deposito.sql); acá se espejan solo la validación y el
 // rotulado (la autoridad es la base: RLS, nivel de la sección Stock y el depósito por defecto).
 
 export const MAXIMO_PRODUCTOS_TOMA = 1000
@@ -14,7 +14,7 @@ export type FilaToma = {
   producto_id: string
   nombre: string
   sku: string | null
-  // Stock del depósito por defecto: sobre él opera la toma (D4c de la spec).
+  // Stock del depósito elegido para la toma (por defecto, el principal).
   sistema: number
 }
 
@@ -73,9 +73,9 @@ function unirProductos(productos: readonly FilaProducto[]): FilaProducto[] {
   )
 }
 
-// Productos activos de las categorías indicadas con su stock en el depósito por defecto. Lanza si la
-// categoría supera el máximo que admite una confirmación (la RPC rechaza más de 1000).
-export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<FilaToma[]> {
+// Productos activos de las categorías indicadas con su stock en el depósito elegido (sin elegir, el depósito por
+// defecto). Lanza si la categoría supera el máximo que admite una confirmación (la RPC rechaza más de 1000).
+export async function cargarFilasToma(categoriaIds: readonly string[], depositoId: string | null = null): Promise<FilaToma[]> {
   // Los ids de categoría también viajan en la URL (`in.(…)`): se reparten en lotes como los de
   // producto, así que un árbol de categorías grande no vuelve a romper la carga (MSF-716).
   const lotes = enLotes([...new Set(categoriaIds)], MAXIMO_IDS_POR_PETICION)
@@ -105,10 +105,14 @@ export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<
     ? respuestas[0].productos
     : unirProductos(respuestas.flatMap((respuesta) => respuesta.productos))
   if (productos.length === 0) return []
-  const depositos = await listarDepositosActivos()
-  const porDefecto = depositos.find((deposito) => deposito.por_defecto)
-  if (!porDefecto) throw new Error('No hay un depósito por defecto activo para contar.')
-  const stock = await listarStockPorDepositoDe(productos.map((producto) => producto.id), porDefecto.id)
+  let deposito = depositoId
+  if (deposito === null) {
+    const depositos = await listarDepositosActivos()
+    const porDefecto = depositos.find((candidato) => candidato.por_defecto)
+    if (!porDefecto) throw new Error('No hay un depósito por defecto activo para contar.')
+    deposito = porDefecto.id
+  }
+  const stock = await listarStockPorDepositoDe(productos.map((producto) => producto.id), deposito)
   return productos.map((producto) => ({
     producto_id: producto.id,
     nombre: producto.nombre,
@@ -117,10 +121,12 @@ export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<
   }))
 }
 
-export async function confirmarToma(items: readonly ItemToma[]): Promise<AjusteToma[]> {
+// `depositoId` null = depósito por defecto (la base lo resuelve); con id, la RPC exige que sea de la organización y esté activo.
+export async function confirmarToma(items: readonly ItemToma[], depositoId: string | null = null): Promise<AjusteToma[]> {
   const { data, error } = await supabaseClient.rpc('confirmar_toma_inventario', {
     p_items: items,
     p_fecha: fechaDeHoy(),
+    p_deposito_id: depositoId,
   })
   if (error) throw error
   return ((data ?? []) as AjusteToma[]).map((fila) => ({
@@ -136,6 +142,8 @@ const MENSAJES_DE_LA_BASE: ReadonlySet<string> = new Set([
   'El motivo «Toma de inventario» no está disponible: activalo desde Motivos',
   'No encontramos ese producto',
   'La toma admite hasta 1000 productos por confirmación',
+  'No encontramos ese depósito',
+  'El depósito está inactivo y no admite movimientos',
 ])
 
 export function mensajeDeErrorToma(error: unknown, porDefecto: string): string {
