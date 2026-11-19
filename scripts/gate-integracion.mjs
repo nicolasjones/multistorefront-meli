@@ -14,6 +14,7 @@
 //   --base <rama>  rama base cuyo gate se informa (por defecto: `dokploy`).
 //   --pr <n>       compara la rama del PR con la base y da el veredicto.
 //   --json         imprime el informe en JSON.
+// El repo sale de `--repo` o de `GITHUB_REPOSITORY` (por defecto, el del repo).
 //
 // Sólo lectura: no modifica el ruleset ni hace merge. La configuración de la
 // protección (activar la cola de merge) es acción de Nicolás.
