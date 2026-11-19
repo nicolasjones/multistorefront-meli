@@ -21,6 +21,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { codigoHistoria } from './historia-item.mjs'
 
 const SEG_TARJETA = 3
 const SEG_TARJETA_CRITERIOS = 6
@@ -53,10 +54,15 @@ export function planEpica(manifiesto, epica) {
   const porItem = new Map()
   for (const e of evs) {
     const item = e.items?.[0]
-    // Una tarea etiquetada `[F-STK-02][US1] …` cuelga de su historia; las de cierre, de su Txxx.
-    const deTarea = String(item?.texto ?? '').match(/^\[(F-[A-Z]+-\d+)\]/)?.[1]
-    const id = e.historia ?? deTarea ?? item?.id ?? 'sin-item'
-    if (!porItem.has(id)) porItem.set(id, { id, texto: e.historia ? e.historiaTitulo : textoItem(item?.texto), tests: [] })
+    // Una tarea etiquetada `[F-STK-02][US1] …` (aunque venga después de `[P]`) cuelga de su
+    // historia; las de cierre, de su Txxx.
+    const deTarea = codigoHistoria(item?.texto ?? '')
+    const id = e.historia || deTarea || item?.id || 'sin-item'
+    if (!porItem.has(id)) {
+      // Sin descripción no hay subtítulo: la tarjeta muestra el ítem, no una línea vacía.
+      const texto = e.historia ? e.historiaTitulo : textoItem(item?.texto)
+      porItem.set(id, { id, texto: texto || `Ítem ${item?.id ?? id} sin descripción`, tests: [] })
+    }
     porItem.get(id).tests.push(e)
   }
   const historias = [...porItem.values()].map((h) => ({ ...h, pasados: h.tests.filter((t) => t.estado === 'pasado').length }))
@@ -111,7 +117,7 @@ export function htmlTarjeta(tipo, plan, historia) {
     historia: `<div class="eyebrow">${esc(plan.epica)} · ${esc(historia.id)} · Funcionalidad ${esc(historia.n)} de ${esc(historia.de)}</div>
       <h1 class="m">${esc(historia.titulo)}</h1>
       <div class="sub">${esc(historia.texto)}</div>
-      ${historia.criterios?.length ? `<ul>${historia.criterios.slice(0, 6).map((c) => `<li>Escenario ${esc(c.n)} · ${esc(String(c.texto).replace(/^Given\s+/i, 'Dado ').replace(/,?\s*When\s+/i, ', cuando ').replace(/,?\s*Then\s+/i, ', entonces ').replace(/^(.{210}).+$/, '$1…'))}</li>`).join('')}</ul>` : ''}`,
+      ${historia.criterios?.length ? `<ul>${historia.criterios.slice(0, 6).map((c) => `<li>Escenario ${esc(c.n)} · ${esc(String(c.texto).replace(/^Given\s+/i, 'Dado ').replace(/,?\s*When\s+/i, ', cuando ').replace(/,?\s*Then\s+/i, ', entonces ').replace(/^(.{210}).+$/, '$1…'))}</li>`).join('')}</ul>` : '<div class="sub">Sin criterios de aceptación derivables.</div>'}`,
     cierre: `<div class="eyebrow">${esc(plan.epica)} · ${esc(historia.id)} · Resultado</div>
       <h1 class="m">${historia.estado === 'pasado' ? 'Probado, no prometido.' : 'La prueba falló.'}</h1>
       <div class="stats">
@@ -218,7 +224,9 @@ async function adjuntar(issueId, ruta) {
 }
 
 const icono = (estado) => (estado === 'pasado' ? '✅' : '❌')
-const lineaVideo = (f) => `- ${icono(f.estado)} ${f.titulo}${f.criterios?.length ? ` (escenarios ${f.criterios.join(', ')})` : ''} → [ver video](${f.url})`
+// Un video sin criterios se publica marcado como tal: si no, el runner no derive los
+// escenarios de aceptación y nadie lo nota.
+const lineaVideo = (f) => `- ${icono(f.estado)} ${f.titulo} (${f.criterios?.length ? `escenarios ${f.criterios.join(', ')}` : 'sin criterios'}) → [ver video](${f.url})`
 
 /** Comentario de una historia con los links de sus videos. */
 export function comentarioHistoria(id, filas) {

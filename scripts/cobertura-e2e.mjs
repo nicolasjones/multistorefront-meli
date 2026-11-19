@@ -11,12 +11,15 @@
 //     --specs <specs> --out <cobertura-e2e.json> --run-id <id> --modo <on|retain>
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import { leerItems } from './historia-item.mjs';
 import { argumentValue } from './operaciones.mjs';
 
 const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
 // Criterios de aceptación: `[F-STK-02#1-5,8]` = escenarios 1 a 5 y 8 de la historia F-STK-02 del spec.
 const ETIQUETA_CRITERIOS = /\[(F-[A-Z]+-\d+)\s*#\s*([\d,\s-]+)\]/g;
-const ITEM_TAREA = /^-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
+// Encabezado de historia: el repo usa los dos formatos (`### User Story N - …` y `### USN — …`).
+const ENCABEZADO_HISTORIA = /^###\s+(?:User\s+Story|US)\s*\d+\s*[-–—·]?\s*(.*)$/;
+const CODIGO_HISTORIA = /\b(F-[A-Z0-9]+-\d+)\b/;
 const JIRA_EPIC = /\*\*Jira Epic\*\*:\s*([A-Z]+-\d+)/;
 const COMPONENTE = /\*\*Componente\*\*:\s*(.+)/;
 const SIN_COMPONENTE = 'Sin clasificar';
@@ -45,16 +48,40 @@ export function extraerCriterios(titulo) {
   return [...titulo.matchAll(ETIQUETA_CRITERIOS)].map((m) => ({ historia: m[1], numeros: expandirRangos(m[2]) }));
 }
 
-/** Escenarios de aceptación por historia de un spec.md: Map<'F-STK-02', [{n, texto}]>. */
+/** Título de la historia: lo que va antes del paréntesis que abre el código. */
+function tituloDeHistoria(encabezado, codigo) {
+  const antes = encabezado.slice(0, encabezado.indexOf(codigo));
+  const corte = antes.lastIndexOf('(');
+  const limpio = (corte >= 0 ? antes.slice(0, corte) : antes).replace(/[\s([{·–—,:-]+$/, '').trim();
+  if (limpio) return limpio;
+  return encabezado.slice(encabezado.indexOf(codigo) + codigo.length).replace(/^[\s)\]}:,.-]+/, '').trim();
+}
+
+/**
+ * Escenarios de aceptación por historia de un spec.md: Map<'F-STK-02', [{n, texto}]>.
+ *
+ * El código de historia puede ir en cualquier posición del encabezado (el repo escribe
+ * `(F-STK-02, P0, talla M)` y también `(MSF-383 · F-PRV-04, P0, talla L)`). Si dos
+ * historias declaran el mismo código, se conserva la primera y la ambigüedad queda anotada
+ * en `titulos` para que el manifiesto la reporte en vez de elegir en silencio.
+ */
 export function leerCriterios(rutaSpec) {
   const mapa = new Map();
   if (!existsSync(rutaSpec)) return mapa;
   let actual = null;
   for (const linea of readFileSync(rutaSpec, 'utf8').split('\n')) {
-    const h = linea.match(/^###\s+User Story\s+\d+\s*-\s*(.*?)\s*\((F-[A-Z]+-\d+)\b/);
+    const h = linea.match(ENCABEZADO_HISTORIA);
     if (h) {
-      actual = h[2];
-      mapa.set(actual, Object.assign([], { titulo: h[1] }));
+      const codigo = h[1].match(CODIGO_HISTORIA)?.[1];
+      actual = codigo ?? null;
+      if (!codigo) continue;
+      const titulo = tituloDeHistoria(h[1], codigo);
+      if (!mapa.has(codigo)) {
+        mapa.set(codigo, Object.assign([], { titulo }));
+        continue;
+      }
+      const previa = mapa.get(codigo);
+      previa.titulos = [...(previa.titulos ?? [previa.titulo]), titulo];
       continue;
     }
     if (/^##\s/.test(linea) || /^###\s/.test(linea)) actual = null;
@@ -120,15 +147,6 @@ export function mapaEpicaSpec(dirSpecs) {
     mapa.get(m[1]).specs.push({ dir, titulo, componente });
   }
   return mapa;
-}
-
-export function leerItems(rutaTasks) {
-  if (!existsSync(rutaTasks)) return [];
-  return readFileSync(rutaTasks, 'utf8')
-    .split('\n')
-    .map((linea) => linea.match(ITEM_TAREA))
-    .filter(Boolean)
-    .map((m) => ({ id: m[2].toUpperCase(), hecho: m[1].toLowerCase() === 'x', texto: m[3].trim() }));
 }
 
 export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }) {
@@ -251,10 +269,25 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
     }
   }
   const sinCubrir = [];
+  const itemsSinDescripcion = [];
   for (const spec of specsInvolucradas) {
     for (const item of leerItems(join(spec, 'tasks.md'))) {
+      const comun = { spec, specTitulo: tituloDe.get(spec) ?? spec, componente: componenteDe.get(spec) ?? 'Sin clasificar' };
       const citado = citados.has(`${epicaDe.get(spec)}:${item.id}`);
-      if (!citado) sinCubrir.push({ spec, specTitulo: tituloDe.get(spec) ?? spec, componente: componenteDe.get(spec) ?? 'Sin clasificar', ...item });
+      if (!citado) sinCubrir.push({ ...comun, ...item });
+      // Ítems cuya descripción no alcanza: el runner no puede derivar sus criterios.
+      // Antes pasaban como «cubiertos» o como «sólo base de datos» sin que nadie lo viera.
+      if (item.motivo) itemsSinDescripcion.push({ ...comun, ...item });
+    }
+  }
+
+  // Un mismo código de historia declarado por dos historias del mismo spec: se conserva
+  // la primera, pero la ambigüedad se reporta en vez de elegir en silencio.
+  const historiasAmbiguas = [];
+  for (const spec of specsInvolucradas) {
+    for (const [historia, criterios] of criteriosDe(spec)) {
+      if (!criterios.titulos) continue;
+      historiasAmbiguas.push({ spec, historia, titulos: criterios.titulos });
     }
   }
 
@@ -268,7 +301,17 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
     }
   }
 
-  return { run_id: runId, fecha: new Date().toISOString(), modo, evidencias, huerfanos, sin_cubrir: sinCubrir, criterios_sin_cubrir: criteriosSinCubrir };
+  return {
+    run_id: runId,
+    fecha: new Date().toISOString(),
+    modo,
+    evidencias,
+    huerfanos,
+    sin_cubrir: sinCubrir,
+    criterios_sin_cubrir: criteriosSinCubrir,
+    items_sin_descripcion: itemsSinDescripcion,
+    historias_ambiguas: historiasAmbiguas,
+  };
 }
 
 const esEjecucionDirecta = process.argv[1] != null && resolve(process.argv[1]).endsWith('cobertura-e2e.mjs');
@@ -291,5 +334,5 @@ if (esEjecucionDirecta) {
   const manifiesto = generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo });
   mkdirSync(dirname(resolve(salida)), { recursive: true });
   writeFileSync(salida, `${JSON.stringify(manifiesto, null, 2)}\n`);
-  console.log(`evidencias: ${manifiesto.evidencias.length}, huérfanos: ${manifiesto.huerfanos.length}, sin cubrir: ${manifiesto.sin_cubrir.length} -> ${salida}`);
+  console.log(`evidencias: ${manifiesto.evidencias.length}, huérfanos: ${manifiesto.huerfanos.length}, sin cubrir: ${manifiesto.sin_cubrir.length}, ítems sin descripción: ${manifiesto.items_sin_descripcion.length}, historias ambiguas: ${manifiesto.historias_ambiguas.length} -> ${salida}`);
 }
