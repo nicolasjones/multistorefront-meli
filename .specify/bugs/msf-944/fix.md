@@ -46,7 +46,21 @@ el comprobante fiscal no se toca.
 - `pnpm docs:check` → OK (incluye `verificar-migraciones` contra `origin/dokploy`: 1 migración nueva).
 - `pnpm der:check` → OK.
 - `pnpm test:kestra:purgar-consultas-tienda` → 4/4.
-- `supabase test db` (pgTAP) → no corre en este entorno (sin acceso al socket de Docker ni CLI de Supabase); queda para el CI, job `database`.
+- `pnpm calidad:code` → OK (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado
+  por falta de Docker).
+- `node scripts/verificar-migraciones.mjs --base origin/dokploy` → 754 archivo(s), 1 nuevo(s), sin
+  reutilizadas.
+- `supabase test db` (pgTAP) → no corre en este entorno (sin acceso al socket de Docker ni CLI de
+  Supabase); la evidencia de base es la del CI.
+
+## Verificación en CI
+
+- Job `database` (corrida `44442683123`, commit `b59408ece`): `consultas_retencion.test.sql` **ok**
+  (72/72) y el resto de los 410 archivos de la base sin un solo `not ok` (15 171 pruebas).
+- Mutantes (FEAT-236): el commit `ccef18a1e` mutó el SQL a propósito (M1 `estado <> 'en_curso'` →
+  `estado is not null`; M2 FK de la cola de `on delete cascade` → `on delete set null`; M3 el evento
+  de la supresión copia el contacto) y el pgTAP mató los tres: 7 de 72 aserciones cayeron
+  (16, 18, 25, 38, 40, 44 y 62). El commit siguiente revierte la mutación. Detalle en `test.md`.
 
 ## Deviations from Assessment
 
@@ -58,6 +72,7 @@ el comprobante fiscal no se toca.
 
 ## Follow-ups
 
-- Ejecutar `supabase test db` en CI; si el job `database` falla, ajustar el pgTAP nuevo.
 - Nada que borrar a mano: la primera pasada de la purga limpia las copias de avisos sueltas
   anteriores a esta migración.
+- El plazo legal definitivo lo define el negocio (D-21): hoy el valor inicial es 180 días y se
+  cambia por `TIENDA_CONSULTAS_RETENCION_DIAS`.

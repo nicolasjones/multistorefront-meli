@@ -83,7 +83,7 @@ begin
   ) then
     alter table public.avisos_pendientes
       add constraint avisos_pendientes_consulta_id_fk
-      foreign key (consulta_id) references dominio.consultas (id) on delete set null;
+      foreign key (consulta_id) references dominio.consultas (id) on delete cascade;
   end if;
 end;
 $$;
@@ -332,7 +332,7 @@ begin
   for r in
     with borradas as (
       delete from dominio.consultas c
-       where c.estado is not null
+       where c.estado <> 'en_curso'
          and c.updated_at < v_corte
       returning c.organizacion_id
     ), notas as (
@@ -561,8 +561,8 @@ begin
       p_organizacion,
       null,
       'tienda.titular_suprimido',
-      format('Suprimió los datos personales de %s consulta(s) y %s presupuesto(s) de la tienda a pedido del titular (%s)',
-             v_total, v_presupuestos, v_contacto)
+      format('Suprimió los datos personales de %s consulta(s) y %s presupuesto(s) de la tienda a pedido del titular',
+             v_total, v_presupuestos)
     );
   end if;
 
