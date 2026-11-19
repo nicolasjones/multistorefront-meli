@@ -224,6 +224,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'tienda.dominio_verificado': 'Dominio de la tienda verificado',
   'tienda.identidad_actualizada': 'Identidad de la tienda actualizada',
   'tienda.publicada': 'Tienda publicada',
+  'tienda.titular_suprimido': 'Datos del titular de la tienda suprimidos',
   'tienda.version_restaurada': 'Versión de la tienda restaurada',
   'usuario.agregado': 'Usuario agregado',
   'usuario.empresa_activa_cambiada': 'Cambio de empresa activa',

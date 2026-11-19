@@ -92,8 +92,7 @@ comment on column public.avisos_pendientes.consulta_id is
   'MSF-944: consulta de la que este aviso es copia (FK con borrado en cascada). Con esta relación la purga se lleva la copia de los datos personales del aviso y la supresión sabe a qué consulta pertenece cada fila. Null en los avisos que no son de una consulta.';
 
 create index if not exists avisos_pendientes_consulta_id_idx
-  on public.avisos_pendientes (consulta_id)
-  where consulta_id is not null;
+  on public.avisos_pendientes (consulta_id);
 
 -- ============================================================================
 -- 2. Marcas de supresión

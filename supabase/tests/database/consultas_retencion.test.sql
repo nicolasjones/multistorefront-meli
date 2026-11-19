@@ -170,10 +170,8 @@ select is((select count(*)::int from public.avisos_pendientes
 -- Purga por retención (FR-001 a FR-006)
 -- ============================================================================
 -- Un plazo fuera de 1 a 3650 días se rechaza (FR-001).
-set local role workers_orquestacion;
 select throws_ok($$select private.purgar_consultas_tienda(0)$$, '22023', null, 'un plazo de cero días se rechaza');
 select throws_ok($$select private.purgar_consultas_tienda(3651)$$, '22023', null, 'un plazo de más de 3650 días se rechaza');
-reset role;
 select is((select count(*)::int from dominio.consultas), 10, 'un plazo inválido no borra nada');
 
 -- La purga borra lo vencido y no está en curso, y respeta el aislamiento por organización.
