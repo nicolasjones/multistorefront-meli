@@ -137,16 +137,28 @@ describe('ProductoList', () => {
     expect(screen.getByText('Inactivo')).toBeInTheDocument()
   })
 
-  it('muestra las columnas del prototipo con «—» donde todavía no hay dato', async () => {
+  it('muestra las columnas del prototipo con «—» donde no hay dato; sin Rentabilidad no hay Margen', async () => {
     abrir()
     await screen.findByText('Joystick')
     const tabla = screen.getByRole('table', { name: 'Productos' })
-    for (const encabezado of ['Producto', 'Precio', 'Margen', 'Stock', 'Categoría', 'Estado']) {
+    for (const encabezado of ['Producto', 'Precio', 'Stock', 'Categoría', 'Estado']) {
       expect(within(tabla).getByRole('columnheader', { name: new RegExp(encabezado) })).toBeInTheDocument()
     }
+    expect(within(tabla).queryByRole('columnheader', { name: /Margen/ })).not.toBeInTheDocument()
     const filaCable = within(tabla).getByText('Cable').closest('tr') as HTMLElement
-    // Margen, el SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
-    expect(within(filaCable).getAllByText('—')).toHaveLength(3)
+    // El SKU vacío y la categoría vacía de Cable (Stock ya muestra la disponibilidad).
+    expect(within(filaCable).getAllByText('—')).toHaveLength(2)
+  })
+
+  it('con acceso a Rentabilidad la columna Margen calcula (precio − costo) / precio en pesos y «—» sin costo', async () => {
+    niveles('lectura', 'lectura')
+    abrir()
+    await screen.findByText('Joystick')
+    const tabla = screen.getByRole('table', { name: 'Productos' })
+    expect(within(tabla).getByRole('columnheader', { name: /Margen/ })).toBeInTheDocument()
+    // Joystick: USD 100 a 157.000 pesos (dólar 1.570), costo USD 12,50 = 19.625 pesos → 87,5 %.
+    const filaJoystick = within(tabla).getByText('Joystick').closest('tr') as HTMLElement
+    expect(within(filaJoystick).getByText('87,5 %')).toBeInTheDocument()
   })
 
   it('Precio siempre en pesos: ARS tal cual y USD convertido con la última cotización y el USD entre paréntesis', async () => {
@@ -370,7 +382,8 @@ describe('ProductoList', () => {
     for (const nombre of [/^Stock bajo/, /^Sin vincular a ML/]) {
       expect(screen.getByRole('button', { name: nombre })).toHaveAttribute('aria-disabled', 'true')
     }
-    expect(screen.getByRole('button', { name: /^Stock bajo\. Disponible cuando llegue el módulo de Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Stock bajo\. El listado de productos todavía no trae el estado de stock\. Usá el filtro «Stock bajo» de la pantalla Stock\./ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Sin vincular a ML\. Sin datos todavía/ })).toBeInTheDocument()
   })
 
   it('la columna Stock muestra la etiqueta de disponibilidad de cada producto (F-CAT-17, FR-009)', async () => {
@@ -442,8 +455,23 @@ describe('ProductoList', () => {
     expect(screen.getByRole('button', { name: 'Editar Joystick' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activar Cable' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    // MSF-627: desactivar pide confirmación; cancelar no llama a la base.
+    const dialogo = await screen.findByRole('dialog', { name: '¿Desactivar el producto?' })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.rpc).not.toHaveBeenCalledWith('cambiar_estado_producto', expect.anything())
+    fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
     await waitFor(() => expect(mocks.consulta).toHaveBeenCalledTimes(2))
+  })
+
+  it('activar un producto inactivo no pide confirmación', async () => {
+    abrir()
+    await screen.findByText('Joystick')
+    fireEvent.click(screen.getByRole('button', { name: 'Activar Cable' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-2', p_activo: true }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('con solo lectura no ofrece editar, activar/desactivar ni «Nuevo producto»', async () => {
@@ -498,6 +526,7 @@ describe('ProductoList', () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { code: '42501', message: 'new row violates row-level security policy' } })
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     expect(await screen.findByText(/No tenés permiso para esta acción/)).toBeInTheDocument()
     expect(screen.queryByText(/row-level security/)).not.toBeInTheDocument()
     expect(mocks.consulta).toHaveBeenCalledTimes(1)

@@ -1,11 +1,27 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
   - workers/historial-importador
-  - infra/kestra
+  - infra/kestra/flows/historial-importador.yml
+  - workers/egress-allowlists.json
+  - apps/web/src/lib/historial.ts
+  - apps/web/src/lib/formatoHistorial.ts
+  - apps/web/src/pages/historial/list.tsx
+  - apps/web/src/pages/historial/importar.tsx
+  - apps/web/src/pages/historial/CotizacionesTab.tsx
+  - apps/web/src/hooks/useHistorialVentasCobros.ts
+  - apps/web/src/hooks/useHistorialCotizaciones.ts
+  - specs/20261020-100000-ventas-historial-de-consulta
+  - supabase/migrations/20261020100001_historial_tablas.sql
+  - supabase/migrations/20261020100010_historial_bucket.sql
+  - supabase/migrations/20261020100020_historial_solicitar_importacion.sql
+  - supabase/migrations/20261020100030_historial_ultimo_numero.sql
+  - supabase/migrations/20261020100040_historial_funciones_worker.sql
+  - supabase/migrations/20261020100050_historial_reclamo_despachos.sql
+  - supabase/migrations/20261020100100_modelos_equipo.sql
+  - supabase/migrations/20261020100500_estados_reparacion_rpc.sql
+  - supabase/migrations/20261020110000_historial_listar_ventas_cobros.sql
+  - supabase/migrations/20261022110201_historial_listar_cotizaciones.sql
 ---
 
 # Ventas · historial de consulta (técnico, MSF-275)
@@ -176,7 +192,7 @@ El detalle completo de la importación queda en `/ejecuciones/<id>`.
   (`--read-only`, `--cap-drop=ALL`, red de egress `worker-egress-historial-ventas`, CPU/memoria acotados). La orden
   se resuelve con `private.resolver_despacho_ejecucion` (`confirmar`, `liberar` o `agotar`). Un código `78` se
   agota en el primer intento: reintentar repetiría la validación sobre una planilla que no va a cambiar. Una
-  falla técnica libera la orden y se reintenta hasta 3 reclamos.
+  falla técnica libera la orden y se reintenta hasta 3 reclamos. El flow corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`), pone `timeout` a sus consultas, lanza el contenedor con `--init` y `--pids-limit` y, si falla, avisa al soporte con el subflow `aviso-fallo-flujo`.
 
 ### Flujo de una importación
 
@@ -245,11 +261,12 @@ es ficticia y solo habilita la conexión.
 3. En el host de despacho, `worker.env` debe definir, además de `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER` y
    `PGPASSWORD`: `SUPABASE_URL`; `SUPABASE_SERVICE_ROLE_KEY` (solo en el servidor, nunca en el navegador); y
    `WORKER_NETWORK=worker-egress-historial-ventas`. La red debe permitir la salida hacia Supabase. El flow
-   rechaza cualquier otra red con «Red de egress no autorizada». `workers/egress-allowlists.json` no declara este
-   worker: la red se crea a mano en el host (paso manual, igual que el resto de los workers hoy, cuyo `workers`
-   está vacío).
+   rechaza cualquier otra red con «Red de egress no autorizada». `workers/egress-allowlists.json` declara esa red
+   (`historial-ventas`, `solo_supabase: true`, compartida con `exportar-comprobantes` y `exportar-organizacion`) y un gate de CI la
+   contrasta con el flow; la red Docker se crea en el host de despacho (paso manual).
 4. Publicar la imagen del worker con el workflow de imágenes y fijar `HISTORIAL_IMPORTADOR_IMAGEN` (en local,
-   `local/worker-historial-importador:latest`) en `infra/kestra/.env`.
+   `local/worker-historial-importador:latest`) en `infra/kestra/.env`. Fuera de local tiene que ser una referencia inmutable (digest
+   `@sha256:…` o tag de commit de 40 hex): el flow aborta (código 64) con un tag mutable.
 5. Desplegar el flow `producto.ventas/historial-importador`. El `Schedule` reclama la outbox cada dos minutos; no
    hay webhook ni URL de despacho en la base.
 

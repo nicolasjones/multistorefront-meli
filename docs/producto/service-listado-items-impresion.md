@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
 ---
 
 # Service técnico: registrar y seguir las reparaciones
@@ -126,7 +129,7 @@ En la ficha, la sección **Mano de obra y repuestos** tiene dos tablas. Allí ar
 
 *El diálogo de repuesto con un producto del catálogo elegido.*
 
-Los importes se cargan en pesos, sin IVA. Abajo de las tablas ves **Mano de obra**, **Repuestos** y **Total al cliente**. Podés seleccionar ese total con un clic para copiarlo: el cobro de la reparación se registra a mano desde Ventas.
+Si todavía no hay ítems, cada tabla dice «Todavía no cargaste mano de obra.» o «Todavía no cargaste repuestos.»; si tu rol solo puede mirar, dice «Sin mano de obra cargada.» o «Sin repuestos cargados.». Los importes se cargan en pesos, sin IVA. Abajo de las tablas ves **Mano de obra**, **Repuestos** y **Total al cliente**. Podés seleccionar ese total con un clic para copiarlo: el cobro de la reparación se registra a mano desde Ventas.
 
 Si cargaste algo por error, hacé clic en el tachito de esa fila y confirmá en **Quitar**. Los totales se recalculan. Los ítems no se editan: se quitan y se vuelven a cargar. Para saber cómo se relacionan los repuestos con tu stock, mirá [Repuestos, stock y costos](service-repuestos-y-stock.md).
 
@@ -154,7 +157,7 @@ Los estados que vienen cargados son: Recibido, En diagnóstico, Esperando repues
 *El cuadro de entrega, antes de confirmar.*
 
 
-Una reparación entregada queda cerrada: ya no admite cambios de estado ni de ítems. En la ficha ves la **Entrega real**.
+Una reparación entregada queda cerrada: ya no admite cambios de estado ni de ítems, y en la ficha ya no aparecen los botones **Anular** ni **Guardar**. En la ficha ves la **Entrega real**.
 
 ![Ficha de una reparación entregada con el selector de estado bloqueado](img/service-tecnico/15-reparacion-entregada.png)
 
@@ -162,6 +165,8 @@ Una reparación entregada queda cerrada: ya no admite cambios de estado ni de í
 
 
 ## Anular una reparación
+
+Solo se puede anular una reparación que todavía no fue entregada: en una entregada el botón **Anular** no aparece.
 
 1. En la ficha, hacé clic en **Anular**.
 2. Escribí el **Motivo de la anulación** (es obligatorio).
@@ -190,6 +195,28 @@ Desde la ficha:
 *La orden de ingreso que se le da al cliente cuando deja el equipo.*
 
 Cada botón abre el documento en formato A4; hacé clic en **Imprimir** para mandarlo a la impresora. Con **← Volver a la reparación** regresás a la ficha.
+
+### Imprimir una etiqueta con código QR para pegar en el equipo
+
+Cuando hay muchos equipos en los estantes, buscar por número lleva tiempo. Con **Imprimir etiqueta** (en la ficha, al lado de «Imprimir orden») armás una etiqueta chica con un código QR para pegar en el equipo. Al escanearlo con la cámara del celular se abre esa reparación en el panel.
+
+1. En la ficha de la reparación, tocá **Imprimir etiqueta**. No aparece si la reparación está anulada: en ese caso la pantalla dice «La reparación está anulada: no se imprime etiqueta.».
+2. Elegí el **tamaño de la etiqueta**: Chica (40 × 25 mm), Mediana (50 × 30 mm, la que viene elegida), Grande (70 × 40 mm) o Personalizada (ancho de 25 a 100 mm y alto de 15 a 100 mm). El sistema se acuerda de tu elección en esta computadora.
+3. Indicá la **cantidad de etiquetas** (de 1 a 10). Salen todas iguales, una por página.
+4. Tocá **Imprimir**. En el cuadro de impresión del navegador elegí tu impresora de etiquetas, dejá la **escala en 100 %** y los **márgenes en «Ninguno»**.
+5. Pegá la etiqueta en el equipo.
+
+Usá **Chrome o Edge** para imprimir etiquetas: respetan el tamaño que elegiste. En Firefox o Safari el navegador puede ignorar el tamaño de la etiqueta; si pasa, elegí a mano el tamaño de papel de tu etiqueta en el cuadro de impresión y probá con una antes de imprimir varias.
+
+La etiqueta muestra el código de la reparación en letra grande (por ejemplo «R-0238»), la tienda, el equipo y la fecha de ingreso. **No lleva el nombre ni el teléfono del cliente, ni la falla, ni el número de serie, ni importes**: cualquiera que vea la etiqueta no accede a datos personales. Para abrir la reparación al escanear hay que **tener sesión en el panel** y permiso en Servicio técnico; si no tenés sesión, el sistema te pide iniciarla y después te lleva a la reparación.
+
+Avisos que te puede mostrar la pantalla:
+
+- «Con este tamaño el código QR queda demasiado chico para leerse. Probá con una etiqueta más grande.»: el botón Imprimir queda deshabilitado hasta que elijas un tamaño mayor.
+- «La dirección del panel es demasiado larga para el código QR.»: la dirección con la que abriste el panel no entra en el código. Avisale a quien administra el sistema.
+- «Estás en un entorno de prueba: el QR apunta a esta dirección y no va a funcionar en otros equipos.»: abriste el panel desde una dirección de prueba; no pegues esas etiquetas.
+
+**Antes de pegar una etiqueta, escaneala una vez y verificá que la dirección que muestra el celular empiece con el dominio de tu panel.** Si el panel cambia de dirección, las etiquetas ya pegadas siguen llevando la dirección vieja: hay que reimprimirlas (o pedir que se mantenga la redirección de la dirección anterior).
 
 ## Modelos y estados configurables
 

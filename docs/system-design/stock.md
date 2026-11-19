@@ -1,7 +1,10 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/20261022-180000-stock-depositos-y-reservas
+  - supabase/migrations/20261023130100_stock_reservas.sql
+  - supabase/migrations/20261023130000_stock_traslado.sql
+  - supabase/migrations/20261023120200_stock_movimiento_deposito.sql
 ---
 
 # Stock
@@ -10,7 +13,8 @@ sources:
 
 - Un producto tiene un único stock lógico para toda la organización, repartido en depósitos.
 - `disponible = cantidad − reservado`.
-- No se confirma una venta sin disponible, salvo producto **a pedido**.
+- Solo se reservan productos **a pedido**, y la reserva exige disponible suficiente en el depósito: si la cantidad
+  supera `cantidad − reservado` se rechaza con «No hay stock suficiente» (`23514`).
 - Todo cambio es un **movimiento** auditable (append-only).
 
 ## Flujo de reserva y descuento
@@ -29,7 +33,8 @@ sequenceDiagram
   S->>S: libera reserva
 ```
 
-Productos **a pedido**: reservan sin exigir disponible y descuentan en la entrega.
+Solo los productos **a pedido** se reservan (`reservar_stock` rechaza cualquier otro) y la reserva descuenta en la
+entrega (`descontar_reserva`, que registra una salida con el motivo «Entrega de producto a pedido»).
 
 ## Tipos de movimiento
 
@@ -51,8 +56,8 @@ y puede embeberse desde Superset.
 
 ## Concurrencia
 
-La reserva usa bloqueo de fila sobre `existencias_deposito` dentro de la RPC,
-para que dos ventas simultáneas no consuman el mismo disponible.
+Toda variación de reservado y cantidad se serializa por producto con un bloqueo de fila (`select … for update`) sobre
+`dominio.existencias` dentro de la RPC, para que dos reservas simultáneas no consuman el mismo disponible.
 
 ## Implementación
 

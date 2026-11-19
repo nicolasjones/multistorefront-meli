@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parsearImporte } from './productos'
 
@@ -17,10 +18,9 @@ export const AVISO_CARGAR_COTIZACION = 'Cargá la cotización'
 export const NOTA_SIN_IVA = 'El precio de lista se carga sin IVA.'
 export const NOTA_MARGEN = 'Margen = Precio − Costo − Comisión del canal. El precio es central para todas las stores.'
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 })
 const formatoMargen = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
 
-export const formatearPesosPrecio = (valor: number) => `$ ${formatoPesos.format(valor)}`
+export const formatearPesosPrecio = (valor: number) => formatearImporte(valor)
 
 // «vie 25/09» (hint del prototipo). Hora de Buenos Aires para no correr el día según el navegador.
 export function formatearFechaCotizacion(iso: string): string {

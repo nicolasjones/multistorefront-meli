@@ -1,8 +1,11 @@
 ---
 owner: producto
 sources:
-  - specs
-  - design/pantallas
+  - specs/20261018-100000-ranking-de-clientes
+  - design/pantallas/Clientes.dc.html
+  - apps/web/src/components/clientes/RankingClientes.tsx
+  - apps/web/src/components/clientes/ComprasCliente.tsx
+  - apps/web/src/lib/periodosRanking.ts
 ---
 
 # Clientes · ranking de clientes (MSF-126)

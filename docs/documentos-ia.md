@@ -3,7 +3,14 @@ owner: tecnico
 sources:
   - specs/20261005-document-rag-mechanism
   - apps/web/src/lib/documentosIa.ts
+  - apps/web/src/pages/ia/documentos.tsx
   - supabase/migrations/20261005000001_rag_busqueda_documental.sql
+  - supabase/migrations/20270507150000_activar_version_documento_valida_organizacion.sql
+  - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
+  - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
+  - supabase/functions/indexar-documento/handler.ts
+  - supabase/functions/indexar-documento/fragmentos.ts
+  - supabase/functions/indexar-documento/consultas.ts
 ---
 
 # Documentos IA (búsqueda documental)
@@ -40,6 +47,10 @@ Si algo falla en el medio, se deshace lo que **ese** intento creó:
 - Si falla la indexación, la versión ya quedó registrada: se conservan el documento, la versión
   y el objeto. La versión queda en `fallida` con su motivo (es el estado que deja la Edge
   Function `indexar-documento`).
+  Desde el lote de endurecimiento, solo los errores permanentes (documento sin texto o con más de 2000 fragmentos)
+  dejan la versión `fallida`; un fallo transitorio (proveedor, descarga) la deja `procesando`, y una invocación
+  duplicada recibe 409 sin pisar la versión activa. Pasados 15 minutos la pantalla muestra «Se interrumpió el procesamiento»
+  con el botón Reintentar (reintento manual; no hay barrido automático). Un 42501 al activar deja la versión `fallida`. Ver [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).
 
 La limpieza es *best effort*: si no se puede borrar, queda registrado en la consola y el mensaje
 que ve el usuario sigue siendo el de la causa real. Nunca se borra un documento que ya existía
@@ -81,3 +92,23 @@ antes del intento (solo el que creó esta misma subida).
   base, limpieza del documento y del objeto cuando falla la subida o la versión, versión nueva
   que actualiza el nombre, cancelación del selector de «Actualizar» y errores de la RPC de
   funcionalidad y de la lista.
+
+## Activación de una versión (MSF-652)
+
+`public.activar_version_documento(p_version_id)` (la llama `indexar-documento` con la sesión de quien subió el archivo) valida, desde `20270507150000`: que la versión pertenezca a la organización del llamador (versión inexistente, ya procesada o de otra organización dan el mismo error genérico `22023`), que la funcionalidad `busqueda-documental` esté habilitada y que el llamador sea quien subió la versión o un administrador de la organización (`42501` si no). `anon` no ejecuta la RPC. Prueba: `supabase/tests/database/activar_version_documento_valida_organizacion.test.sql`.
+
+## Escritura de documentos: Consulta no escribe (lote 32 · MSF-651)
+
+Regla: **el rol Consulta no sube, modifica ni borra documentos de la búsqueda documental**; los demás roles (Administrador, Operador,
+Mostrador, Depósito, Administración, Técnico) siguen operando como hasta ahora. Desde `20270507180400` las políticas de escritura de
+`public.fragmentos_indexados`, `public.documentos`, `public.versiones_documento` y las de insert/delete del bucket `documentos-rag`
+exigen `private.puede_gestionar_documentos()` (miembro activo con rol distinto de `consulta`, o superadmin con organización activa);
+`private.eliminar_documento` (la RPC `eliminar_documento`) rechaza con `42501` a Consulta. La lectura y la búsqueda no cambian.
+
+La función Edge `indexar-documento` escribe y borra los fragmentos con el **cliente de servicio**, pero solo después de la
+autorización que ya hace con el JWT del usuario (funcionalidad, RLS sobre la versión, permiso y reclamo propio) y acotada a esa
+versión: relee la versión por RLS y exige que los fragmentos sean de esa versión y de su organización (el handler no cambió de
+orden). `service_role` tiene grants explícitos sobre `fragmentos_indexados`. La pantalla distingue «No tenés permiso para subir
+documentos» (403/42501/RLS) del error de conexión. Pruebas: `lote32_documentos_escritura_consulta.test.sql`.
+
+**Límite de la pantalla** (MSF-651): el contexto del panel solo distingue `administrador` y `miembro`, no el rol fino (Consulta), así que el botón «Subir documento» sigue visible para Consulta; al intentar subir recibe «No tenés permiso para subir documentos» (probado en `documentos.test.tsx`). Ocultarlo exige exponer el rol fino al cliente (lote de UI). La base manda: la lista blanca de roles escritores (`administrador`, `operador`, `mostrador`, `deposito`, `administracion`, `tecnico`; `consulta` y el heredado `miembro` no escriben) y, en la función Edge, un reclamo que afecta 0 filas por falta de permiso responde el mismo 403 que una versión inexistente o ajena (no un 409 «ocupado»). El borrado de fragmentos con el cliente de servicio no es un `delete` directo: llama a la RPC `public.borrar_fragmentos_si_dueno(version_id, organizacion_id, reclamo)` (migración `20270507200100`; envoltorio de `private.borrar_fragmentos_si_dueno`, `security definer`, `search_path = ''`, solo `service_role`). Esa función comprueba y borra en **una sola transacción**: borra solo si la versión es de esa organización, no está `activa` y no fue retomada por otra invocación (`procesando` con un `motivo_error` distinto del reclamo propio); devuelve `true` si era dueña y `false` si no (no borra nada). El cliente la invoca desde `supabase/functions/indexar-documento/consultas.ts` y `fragmentos.ts` solo tras releer la versión por RLS. Prueba: `supabase/tests/database/borrar_fragmentos_si_dueno.test.sql`.

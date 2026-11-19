@@ -1,8 +1,22 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
+  - specs/20261024-100000-ventas-impresion
+  - apps/web/src/components/ventas/ImprimirComprobanteDialog.tsx
+  - apps/web/src/components/ventas/DocumentosComprobante.tsx
+  - apps/web/src/lib/ventasImpresion.ts
+  - apps/web/src/lib/ventasImpresiones.ts
+  - apps/web/src/lib/ventasPresupuestoCorreo.ts
+  - supabase/migrations/20261211120000_empresas_razon_social_cuit.sql
+  - supabase/migrations/20261211120050_clientes_condicion_iva.sql
+  - supabase/migrations/20261211120100_comprobante_documentos.sql
+  - supabase/migrations/20261211120200_documento_funciones_worker.sql
+  - supabase/migrations/20261211120300_documento_rpc.sql
+  - supabase/migrations/20261211130100_comprobante_impresiones.sql
+  - supabase/migrations/20261211130200_registrar_impresion.sql
+  - supabase/migrations/20261212100100_solicitar_documento_presupuesto.sql
+  - supabase/migrations/20261212100200_comprobante_envios_correo.sql
+  - supabase/migrations/20261212100300_enviar_presupuesto_correo.sql
 ---
 
 # Ventas impresión: datos, worker y flujos (MSF-213)
@@ -19,7 +33,7 @@ sources:
 | Objeto | Esquema | Migración |
 |---|---|---|
 | `dominio.empresas` + `razon_social`, `cuit` (11 dígitos) | `dominio` | `20261211120000_empresas_razon_social_cuit.sql` |
-| `public.clientes.condicion_iva` (texto, tope 60) | `public` | `20261211120050_clientes_condicion_iva.sql` |
+| `dominio.clientes.condicion_iva` (texto, tope 60; la tabla se trasladó a `dominio` en `20270418000401`) | `dominio` | `20261211120050_clientes_condicion_iva.sql` |
 | `dominio.comprobante_documentos` (`pendiente`/`generado`/`fallido`) + bucket privado `comprobantes-documentos` | `dominio` / Storage | `20261211120100_comprobante_documentos.sql` |
 | Funciones `private.*` del worker | `private` | `20261211120200_documento_funciones_worker.sql` |
 | RPC de documentos | `public` | `20261211120300_documento_rpc.sql` |
@@ -63,6 +77,13 @@ ejecutan `workers_orquestacion` / `kestra_orquestacion`.
    envía por el SMTP de Kestra (entrega «al menos una vez»); un pendiente pasa a `fallido` a los 15 min.
 
 ## Configuración y operación
+
+- **Operación de los dos flows**: cada uno corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`), pone `timeout` a sus
+  consultas y avisa al soporte si falla (subflow `aviso-fallo-flujo`). `comprobantes-documentos` reclama por 3600 s; `comprobantes-correo`,
+  por 3000 s (por encima del peor caso que el propio flow calcula, 2940 s). Fuera de local, `COMPROBANTES_PDF_IMAGEN` debe ser una
+  referencia inmutable (digest `@sha256:…` o tag de commit de 40 hex): el flow aborta con un tag mutable.
+- **Condición de IVA del cliente**: la factura imprime `dominio.clientes.condicion_iva`; desde `20270507170000` la columna tiene vía de carga
+  por API e importación (ver [clientes](../clientes.md)), todavía sin campo en la ficha.
 
 - Por organización: servidor SSH, conexión `comprobantes-pdf` (`public.crear_conexion`), `worker.env` y red
   `worker-egress-comprobantes-pdf`.

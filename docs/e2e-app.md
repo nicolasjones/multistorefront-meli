@@ -1,7 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - apps/web/playwright.config.ts
+  - apps/web/e2e/verificar-dist.mjs
+  - .github/workflows/validate.yml
+  - .github/workflows/e2e-nocturno.yml
+  - scripts/verificar-e2e-omitidos.mjs
+  - scripts/verificar-e2e-nocturno.mjs
+  - scripts/verificar-e2e-sin-escritura-directa.mjs
+  - scripts/armar-video-evidencia.mjs
+  - scripts/publicar-videos-e2e.mjs
+  - scripts/cobertura-e2e.mjs
 ---
 
 # Suite E2E de la app (Playwright)
@@ -121,8 +130,10 @@ en otros componentes lo corrige el PR #876, no este.
   una persona (`rpc`, `rpcComo`, `tokenDe`), `actualizar`/`modificar` (PATCH), `leer(consulta)` y `cabeceras` con perfil `dominio` por defecto
   en algunas tiendas, `cuenta-web-cliente` (`rest(metodo, ruta, cuerpo)`), `importaciones-soporte.ts`, `ventas-faltantes-soporte.ts`
   (`leer` con `dominio` por defecto, exportado a otros specs) y `ayuda`/`panel-sin-desborde` (`borrar` con la URL completa). `e2e/semillas.ts` (los helpers compartidos de `stock-historias`,
-  `exportacion-total`...) re-exporta los del fixture y conserva `password`, `ingresar` y `tokenDe`. Siguen con sus copias, a la espera de
-  que se mergee el PR que los modifica, `ordenes-compra` (#869) y `service-cobro-avisos` (#691).
+  `exportacion-total`...) re-exporta los del fixture y conserva `password`, `ingresar` y `tokenDe`. `avisos-acceso`, `ordenes-compra` y
+  `stock-toma-inventario-categorias` también lo usan (lote MSF-879): conservan solo lo propio (`ingresar`, y en `ordenes-compra` el
+  PATCH `actualizar`); el alta masiva de 250 productos pasa `prefer = 'return=minimal'` a `rest`. Los specs que siguen con helpers
+  propios y el motivo están en «Fixture compartido y corridas pendientes».
 - `service-seguimiento` necesita `SEGUIMIENTO_IP_SALT` en el runtime de **Edge**, no en Playwright: se exporta (o va en
   `supabase/.env`) antes de `supabase start`, porque `config.toml` lo declara en `[edge_runtime.secrets]`.
 - `ventas-impresion` corre el worker real: compilá `workers/comprobantes-pdf` (`pnpm build` en ese paquete) y exportá
@@ -200,14 +211,18 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Editar/suspender/reactivar usuarios | MSF-125 T036 | Pendiente |
 | Matriz de permisos | MSF-125 T043b | Pendiente |
 | Empresas (listar, editar, pausar/reactivar, cambiar) | MSF-138 T011/T017/T021/T025 | Pendiente |
+| Avisos de acceso: el Operador ve «No tenés acceso a esta sección» en `/empresas` y `/organizacion` (sin error rojo) y un aviso informativo de «Solo lectura» en el detalle de la empresa; el Administrador no ve ninguno de los dos | MSF-639 | Escrito: `e2e/avisos-acceso.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra una organización con una tienda y dos personas (Administrador y Operador) con la API admin y limpia al final. Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e avisos-acceso`. Guía: `docs/empresas.md` |
 | Permisos por empresa: asignar desde Usuarios, cambiar de empresa activa y nivel de edición resuelto | MSF-121 T022 | Escrito: `e2e/permisos-por-empresa.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). No hay pantalla de una sección por empresa (Ventas/Consultas) todavía: el nivel se comprueba sobre la respuesta de `permisos_actuales` que decide los botones de edición |
-| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker). Guía: `docs/inicio-y-alertas.md` |
+| Gastos: cargar un gasto, verlo en el total del mes, anularlo con motivo y verlo con «Mostrar anulados» | Gastos fase 2 | Escrito: `e2e/gastos.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`). Los gastos se cargan por la pantalla (RPC), no por REST |
+| Inicio con tres roles (Administrador ve todo, Consulta solo lee, Mostrador no ve la tarjeta de Consultas) y cambio de empresa activa que recarga las tarjetas sin datos de la anterior (SC-001, SC-002, SC-003) | MSF-578 T024 (MSF-156) | Escrito: `e2e/inicio.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra dos tiendas, productos sin stock y con stock bajo y consultas con la API admin, y limpia al final. Se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e inicio`. Ejecutado y en verde en el job `e2e-visible-sesion` del CI (corrida 43730923693, 2 tests, MSF-747): `service_role` no escribe `usuarios_empresas`, así que el Administrador sembrado asigna tiendas y roles con la RPC `asignar_empresas_usuario` con su propia sesión. Guía: `docs/inicio-y-alertas.md` |
 | Editar la organización | MSF-132 T010/T017 | Pendiente |
 | Actividad: ruta sin sesión → ingreso | MSF-463 T015 (parte pública) | Hecho: `e2e/acceso-publico.e2e.ts` |
-| Actividad: listado con filtros, búsqueda y paginación (administrador/operador) | MSF-463 T015 | Pendiente: fixtures por rol (seguimiento) |
+| Actividad: listado con filtros, búsqueda y total (Administrador): 12 eventos recientes, búsqueda por texto, filtro por tipo, período de 30 días y estado vacío con filtros | MSF-463 T015 (MSF-879) | Escrito: `e2e/actividad-filtros.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Siembra el registro de actividad de su propia organización por SQL directo (`sql()`: `service_role` no tiene INSERT sobre `registro_actividad`) y limpia al final (las filas se van con la baja de la organización). Sin corrida firmada todavía: se corre con `e2e_sesion=true` y `e2e_archivos=e2e/actividad-filtros.e2e.ts`. Pendiente: el recorrido del Operador y la carga de la segunda tanda. Vigilar el margen del `test.setTimeout(300_000)`: la corrida de CI midió 7,1 min en total contra esos 300 s (el tiempo por test es menor, pero el margen es corto); si el test empieza a cortarse por tiempo, medir antes de subir el límite |
+| Inicio · tablero de gestión con tres roles: el Administrador ve «Resumen por tienda» con ingresos, «Salidas por depósito», «Actividad reciente» y «Movimientos por producto» (búsqueda, vista «En alerta», orden y exportación `.csv`); Consulta lee sin «Exportar»; Operador no ve ingresos; si falla «Resumen por tienda» solo ese bloque muestra el error y se recupera con «Reintentar» (RF-INI-05-7) | MSF-851 (MSF-881) | Escrito: `e2e/inicio-tablero.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Siembra una sola vez (en serie, `beforeAll`) una organización con una tienda, tres personas y tres productos y limpia en `afterAll`: en paralelo y con una siembra por test agotaba los 5 min en el job de sesión. Corrida firmada: job `e2e-visible-sesion` en success (4 passed) en el run 44112057707; el run global falló por `web (1)` y `validacion`, ajenos al spec; se corre con `e2e_sesion=true` y `e2e_archivos=e2e/inicio-tablero.e2e.ts`. Pendiente: carga infinita con más de una tanda y exportación con depósito elegido |
+| Newsletter de la tienda: axe (WCAG 2 A y AA) y sin desborde del formulario del pie (vacío y con errores) y de `/newsletter/confirmar/:token` a 320, 768 y 1440 px (dos tests por viewport: el formulario del pie y la página de confirmación; cada uno resuelve antes el aviso de cookies si aparece, que a 320 px tapa el botón «Suscribirme»; en el stack de sesión no aparece) | MSF-961 (MSF-468 T009) | Escrito: `e2e/tienda-newsletter-a11y.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`). Usa la tienda `mundojc.localhost` del seed, enciende la bandera `newsletter` y el interruptor de la tienda para la corrida y los devuelve a su valor previo. Corre en el job `e2e-tienda` (filtro `e2e/tienda-`), no en `e2e-visible-sesion`, que no sirve la tienda pública: no se lanza con `e2e_archivos`. Sin corrida firmada todavía: cualquier violación que aparezca se corrige en el componente |
 | Actividad: detalle de un cambio de rol (Antes/Después) y de una baja con «—» del lado nuevo | MSF-170 (F-AUD-02) | Escrito: `e2e/actividad-detalle.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; el job `application` solo corre `acceso-publico`, así que no está verificado en el CI). Desvío: no se ejecutó (sin stack local). El E2E del acceso de soporte no se escribió: `service_role` no puede sembrar un superadmin |
 | Clientes: la ficha muestra el «Saldo deudor» y la tabla «Cuenta corriente» con los comprobantes con saldo (F-CLI-19) | MSF-451 T005 | Escrito: `e2e/cuenta-corriente-cliente.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; aborta si `SUPABASE_URL` no es local; el job `application` solo corre `acceso-publico`, así que **no está verificado en el CI**). Usa el cliente 9100 del seed. Cobertura en el CI: pgTAP `cuenta_corriente_cliente` y Vitest de `ComprasCliente` |
-| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Pendiente: fixtures por rol (seguimiento MSF-499); cubierto mientras tanto por Vitest (`pages/clientes`, `lib/exportarClientes`) y pgTAP |
+| Clientes: alta, búsqueda y exportación a Excel (SC-001) | MSF-180 T017 | Escrito: `e2e/clientes-recorrido.e2e.ts` (Administrador: alta desde la UI, búsqueda por texto, exportación `.xlsx` cuyo contenido trae al cliente y evento `clientes.exportados` visible en Actividad; solo siembra organización, persona y rol, sin escritura directa en `clientes`). Evidencia: corrida verde del job `e2e-visible-sesion` (run 43731567956, job 132864939315). El job reserva ahora la ranura del stack (antes chocaba con `e2e-tienda` por nombre de contenedor en uso: corridas 43728936547 y 43730878020) |
 | Ingreso de mercadería: dos productos con costo → stock sube → historial → anular → stock vuelve a 0 y el ingreso queda anulado (SC-001…003) | MSF-219 T019 | Escrito: `e2e/ingresos-mercaderia.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Aborta si `SUPABASE_URL` no es local. |
 | Catálogo del ingreso de mercadería: con 501 productos el selector avisa «Hay más de 500 productos» y, al escribir, deja elegir el que queda fuera del tope (MSF-693) | MSF-693 BUG | Escrito: `e2e/ingresos-mercaderia-catalogo.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Siembra 501 productos con la API admin y limpia al final. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local ni daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e ingresos-mercaderia-catalogo`. Guía: `docs/ingreso-de-mercaderia.md` |
 | Stock: entrada 10 → salida 4 → ajuste a 3 → stock 3 y tres filas en el historial; salida de 5 rechazada con «No hay stock suficiente» (SC-001) | MSF-136 T021 | Escrito: `e2e/stock-movimientos.e2e.ts` (con sesión; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público). Desvío: no se pudo correr en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre a mano con `pnpm dev:supabase` antes del merge (T024) y aborta si `SUPABASE_URL` no es local. Seguimiento: MSF-499 |
@@ -230,10 +245,11 @@ Sin `PANTALLAS_APP_URL`, graba el recorrido de los prototipos (`design/pantallas
 | Verificación manual 320/768/1440 px y lector de pantalla | MSF-125 T018 | Pendiente (manual) |
 | Contacto de la tienda: datos de cada tienda, consulta que llega a la bandeja de su empresa con origen formulario, ráfaga de 6 envíos (el sexto muestra la espera, la bandeja recibe 5) y HTML literal (SC-004, SC-005) | MSF-437 T013 | Escrito: `e2e/tienda-contacto.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-contacto`. Restaura los datos de las empresas del seed y limpia consultas y envíos de prueba. Guía: `docs/tienda-contacto.md` |
 | Consulta por WhatsApp desde la ficha: en las dos tiendas del seed, ficha → diálogo → «Abrir WhatsApp» (la URL de `wa.me` se verifica y la red no se toca) → la consulta llega a la bandeja de su empresa con origen whatsapp y el producto, y la empresa sin número no muestra el botón (SC-008) | MSF-433 T028 | Escrito: `e2e/tienda-whatsapp.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; corre en el job `e2e-tienda` del CI). Desvío: no se ejecutó en el entorno del Desarrollador (sin acceso al daemon de Docker ni al CLI de Supabase); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-whatsapp`. Siembra y limpia con la API admin y aborta si `SUPABASE_URL` no es local. Guía: `docs/tienda-contacto.md` |
-| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO lo manda a `/login` (404 en la tienda) ni revoca su sesión global (cierre local y vuelta a `/`, MSF-700) | MSF-673 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que no haya navegación a `/login` ni pedido a `/auth/v1/logout` (el cierre local no llama al servidor); en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el job `e2e-tienda` (`E2E_TIENDA_CI=1`) FALLA en vez de omitirse, para no dar un falso verde; en `application`, cuyo build no define `VITE_PANEL_HOSTS`, y en local se omite como antes). Verificado en local contra `vite preview` con `VITE_PANEL_HOSTS=localhost,127.0.0.1` |
+| Tienda pública: tras más de 12 h sin actividad, el primer clic del visitante NO cierra la sesión ni redirige a ninguna parte (la tienda no hereda la regla de inactividad del panel: su sesión termina por salida explícita o por el tope de 30 días del servidor) | MSF-740 | Escrito: `e2e/tienda-sesion-vencimiento.e2e.ts` (no necesita la base: adelanta la marca `sesion:ultima-actividad` 13 h con un init script y vigila que el visitante no salga de `/ingresar`, que no haya pedido a `/auth/v1/logout` (ni local ni global) y que no aparezca el 404 de `/login`; en local se omite si el build no define `VITE_PANEL_HOSTS`, porque entonces el host no se sirve como tienda; en el job `e2e-tienda` (`E2E_TIENDA_CI=1`) FALLA en vez de omitirse, para no dar un falso verde; en `application`, cuyo build no define `VITE_PANEL_HOSTS`, y en local se omite como antes). Antes (MSF-673, MSF-700) el caso afirmaba la vuelta a `/` de la tienda: esa expectativa quedó reemplazada por la decisión de MSF-740. La rama del panel (12 h → cierre y `/login`) la fija el Vitest `apps/web/src/lib/arranqueSesion.test.ts` |
 | Lista de pedido sin cobro (B1, MSF-176): un visitante agrega 3 productos desde sus fichas, abre «Mi lista», la envía sin pagar y el operador la ve en Consultas como «Pedido» con los 3 ítems; el sexto envío de la hora muestra el aviso de límite y conserva la lista; almacenamiento bloqueado; bandera apagada = nada y `/lista` 404 (SC-002) | MSF-176 T043 | Escrito y verificado: `e2e/tienda-lista-pedido.e2e.ts` (**corrió de verdad en el job `e2e-tienda` y pasó los 3 casos**; corre en serie con un solo worker; el spec enciende la bandera global `tienda_pedidos` en `beforeAll` y la restaura en `afterAll`; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de B1). Usa tienda, productos y persona del panel **propios de la corrida** (la baja de la organización se lleva todo), así el cupo de 5 envíos por hora no se comparte con otros specs. Las consultas entran solo por la RPC pública de la tienda (sin escritura directa en `dominio.consultas`). Guía: `docs/tienda-compra-y-cuentas.md` |
 | Presupuesto desde la tienda (B2, MSF-176): el mayorista con cuenta activa pide el presupuesto desde su lista (cotización del servidor con escala x10, descuento de la ficha e IVA, «lo que ves es lo que se crea»); el operador lo ve «Pendiente» con operador «Tienda online (cliente)», lo acepta con el flujo actual y no hay stock ni cobros; el sexto del día muestra el aviso y conserva la lista; misma clave = mismo número; **dos llamadas simultáneas con 4 creados crean una**; sin cuenta, otra tienda, anónimo y bandera apagada = nada (SC-003, SC-005, SC-006) | MSF-176 T061 | Escrito: `e2e/tienda-presupuesto.e2e.ts` (corre en serie con un solo worker; enciende la bandera global `tienda_pedidos` en `beforeAll` y la restaura en `afterAll`; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene la tabla de B2). Usa tiendas, productos, clientes y persona del panel **propios de la corrida** (la baja de la organización se lleva todo), así el cupo de 5 envíos por hora y los topes por cuenta no se comparten con otros specs. El presupuesto entra solo por la RPC pública de la tienda (sin escritura directa en `dominio.comprobantes_venta` ni en `presupuestos_tienda`). Guía: `docs/tienda-compra-y-cuentas.md` |
-| «Mi cuenta» de la tienda (F-CLI-20): sin sesión va a «Ingresar» con la ruta de vuelta, historial propio con estado público y total con IVA (nada de otro cliente), favoritos desde la ficha y desde «Mi cuenta», cuenta suspendida a mitad de la sesión y 200 comprobantes por tandas de 20 (SC-001, SC-006) | MSF-452 T022 | Escrito: `e2e/tienda-cuenta.e2e.ts` (corre en el job `e2e-tienda` con la bandera `tienda_pedidos` encendida por el propio spec; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de la épica; con el SQL de la épica en la rama (PR #955, ya mergeado) corre de verdad en `e2e-tienda` y pasa; antes de eso sus omisiones rompían `e2e:omitidos:check --max=1`). La bandera `tienda_pedidos` es global: el spec la restaura en `afterAll`, pero si el proceso muere antes queda encendida en la base local. El producto de Favoritos tiene una imagen real en el bucket y el spec verifica que la miniatura carga. Los clientes se siembran como una persona del panel porque `service_role` no tiene grants sobre `public.clientes` en el stack del CI. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack de Supabase local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-cuenta`. Guía: `docs/tienda-compra-y-cuentas.md` |
+| «Mi cuenta» de la tienda (F-CLI-20): sin sesión va a «Ingresar» con la ruta de vuelta, historial propio con estado público y total con IVA (nada de otro cliente), favoritos desde la ficha y desde «Mi cuenta», cuenta suspendida a mitad de la sesión y 200 comprobantes por tandas de 20 (SC-001, SC-006) | MSF-452 T022 | Escrito: `e2e/tienda-cuenta.e2e.ts` (corre en el job `e2e-tienda` con la bandera `tienda_pedidos` encendida por el propio spec; se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` o si la base aún no tiene las RPC de la épica; con el SQL de la épica en la rama (PR #955, ya mergeado) corre de verdad en `e2e-tienda` y pasa; antes de eso sus omisiones rompían `e2e:omitidos:check --max=1`). La bandera `tienda_pedidos` es global: el spec la restaura en `afterAll`, pero si el proceso muere antes queda encendida en la base local. El producto de Favoritos tiene una imagen real en el bucket y el spec verifica que la miniatura carga. Los clientes se siembran como una persona del panel porque `service_role` no tiene grants sobre `dominio.clientes` en el stack del CI. Desvío: no se ejecutó en el entorno del Desarrollador (sin stack de Supabase local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e tienda-cuenta`. Guía: `docs/tienda-compra-y-cuentas.md` |
+| Toma de inventario: una categoría con 250 productos carga la tabla completa (250 filas con su stock en el sistema) y no aparece «No pudimos cargar los productos de esta categoría» (la URL del `in (…)` se parte en lotes) | MSF-716 FIX (F-STK-11 T014) | Escrito: `e2e/stock-toma-inventario-categorias.e2e.ts` (se omite sin `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, no corre en el CI público; aborta si `SUPABASE_URL` no es local). Desvío: no se ejecutó en el entorno del Desarrollador (sin stack local); se corre con `pnpm dev:supabase` y `pnpm --filter @platform/web test:e2e stock-toma-inventario-categorias`. Siembra organización, administrador, categoría y 250 productos, y limpia al final. Guía: `docs/stock-toma-inventario.md` |
 
 ### Quién ejecuta el E2E con sesión (`permisos-por-empresa.e2e.ts`)
 
@@ -292,7 +308,7 @@ corren en el job aparte `e2e-tienda` (sección siguiente); el resto (`permisos-p
 
 ## E2E de la tienda pública en el CI (`e2e-tienda`)
 
-El job `e2e-tienda` de `validate.yml` corre los 20 `apps/web/e2e/tienda-*.e2e.ts` en cada PR que toca la web, con la
+El job `e2e-tienda` de `validate.yml` corre todos los `apps/web/e2e/tienda-*.e2e.ts` **y `apps/web/e2e/service-etiqueta-qr.e2e.ts`** (F-SVC-32, MSF-190: es el único E2E de Service que corre en el CI; el filtro de Playwright del paso es `e2e/tienda- e2e/service-etiqueta-qr`) en cada PR que toca la web, con la
 misma política que el resto del e2e: solo si `changes.web == 'true'` y `changes.e2e == 'true'` (un PR a `epic/*`, no) y
 no en borrador, ni con `CI_PAUSED`, ni con la variable de repo `CI_E2E_TIENDA=false` (kill switch), y no en PRs de forks (los
 jobs pesados no corren código de forks en los runners self-hosted; `validacion` falla en un PR de fork en vez de dar verde con todo
@@ -349,11 +365,11 @@ Límites a propósito:
   mismo motivo por el que `pg_prove` corre por `host.docker.internal`). Por eso `E2E_SIN_EDGE=1` omite el único caso que lo
   necesita, `robots.txt`/`sitemap.xml` de `tienda-seo` (su handler se cubre con `pnpm test:edge:tienda-seo` en el job `web`).
   Sigue corriéndose a mano con las funciones servidas (sección «Specs que necesitan algo más»).
-- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. 18 de los 20 specs se omiten solos a
+- **Omisiones silenciosas.** En el CI un spec que se omite es un hueco, no un verde. Casi todos los specs de este job se omiten solos a
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
-  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `application` con `pnpm test:e2e:omitidos`).
+  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `chequeos` con `pnpm test:e2e:omitidos`).
   Además `tienda-sesion-vencimiento` falla (no se omite) en el job `e2e-tienda` (variable explícita `E2E_TIENDA_CI=1`, que solo setea ese job: en `application` el build no define `VITE_PANEL_HOSTS` y el spec se sigue omitiendo) si el build no sirve el host como tienda, y
   `tienda-disponibilidad` no tiene `test.skip` dinámicos (omitía su verificación porque `locator.count()` no espera y la carga
   infinita dejaba el producto sembrado fuera de la primera tanda; ahora siembra una categoría propia y abre `/catalogo?categoria=<id>`).
@@ -700,23 +716,36 @@ scripts/e2e-evidencia.sh publicar                 # sólo manifiesto + MP4 + pub
 ## E2E nocturno (`e2e-nocturno.yml`)
 
 Decisión del gate MSF-852: la suite completa de Playwright (~100 tests, ~20 min en serie) corre en CI como un job
-**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. El gate MSF-852 queda resuelto con esta decisión.
-El workflow es `.github/workflows/e2e-nocturno.yml`.
+**nocturno** sobre `dokploy` y a pedido, y **NO bloquea PRs** ni merges. La decisión está implementada en
+`.github/workflows/e2e-nocturno.yml`; para que el cron y el disparo manual existan, el archivo tiene que estar en la
+rama por defecto (`main`), como se explica abajo.
 
-**Cómo se reparten los E2E en el CI** (las filas de `e2e-tienda` valen cuando #923 esté mergeado)
+**Cómo se reparten los E2E en el CI**
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, y los specs públicos sin base (`acceso-publico`) | Sí |
-| Cada PR que toca la web (`validate.yml`, job `e2e-tienda`; llega con el PR #923, todavía no mergeado) | Solo los E2E de la tienda pública (`tienda-*`) | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
+| Cada PR (`validate.yml`, job `chequeos`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`); el paso exige `changes.web` y `changes.e2e` en `true`, y `changes.e2e` es `false` en todo PR con base `epic/*` | Sí |
+| Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`; mismo requisito `changes.web` + `changes.e2e` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
 
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
 
+- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `chequeos`, en cada PR) falla si el workflow deja de cumplir el
+  contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
+  solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
+  omisiones masivas del resumen, `continue-on-error` (dejaría el run verde con la suite omitida), o la aparición de
+  `pull_request`/`pull_request_target` en cualquier forma YAML válida (bloque con cualquier indentación, lista o flujo).
+  Cada marca tiene su test de mutación (`pnpm test:e2e:nocturno`).
+
+- **Dónde tiene que vivir el archivo:** GitHub dispara `schedule` y resuelve `workflow_dispatch`/la API de Actions
+  sólo en la rama por defecto (`main`). El workflow ya aterrizó en `main` con el PR #928 (commit `57ad76da`), así que
+  el cron y el disparo manual existen; mientras vivía únicamente en `dokploy`, el cron no arrancaba y
+  `gh workflow run e2e-nocturno.yml --ref dokploy` respondía `404` (no era un bug del job). Cada corrida hace
+  `checkout` de `dokploy` (o de la rama del disparo manual), así que ejecuta el código y la suite de esa rama.
 - **Cuándo corre:** todos los días a las 05:00 UTC (02:00 en Buenos Aires; Argentina es UTC-3 sin horario de verano) y
-  por `workflow_dispatch`. GitHub solo dispara `schedule` desde la rama por defecto (`main`): el cron empieza a correr
-  cuando el archivo llega a `main`; el run siempre prueba `dokploy`.
+  por `workflow_dispatch`. El run siempre prueba `dokploy` cuando lo dispara el cron.
 - **Dispararlo a mano:** Actions > «E2E nocturno» > «Run workflow», o `gh workflow run e2e-nocturno.yml`. Inputs opcionales:
   `spec` (uno o más archivos, separados por espacio, p. ej. `tienda-seo precios-iva`) y `grep` (solo los tests cuyo título
   coincida). Vacíos corre toda la suite. Un disparo manual desde otra rama prueba esa rama. Ejemplo:
@@ -749,8 +778,123 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
   Docker del host fuera de ese tope. Si el run muere por memoria, bajar réplicas del runner o subir `RUNNER_MEMORY_LIMIT`.
 - **Apagarlo sin PR:** variable de repo `CI_E2E_NOCTURNO=false` (o `CI_PAUSED=true`, el kill switch de `validate.yml`): el job se
   saltea. Por ejemplo, `gh variable set CI_E2E_NOCTURNO --body false` y `gh variable delete CI_E2E_NOCTURNO` para volver a encenderlo.
-- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas, y hoy `database` usa el TTL por
-  defecto de `supabase-ci.mjs` (50 min). Si el nocturno retuviera la ranura más tiempo, un `database` podría reciclar una ranura
-  viva. Por eso el job dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La
-  suite entra holgada (setup ~6 min + ~21 min). Con #923 mergeado el TTL pasa a 75 min y el timeout se puede subir. La hora 05:00 UTC
-  evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`, TTL 90 min), que también limpia ranuras vencidas.
+- **Timeout 45 min y TTL de las ranuras:** quien reclama una ranura es quien recicla las vencidas. `e2e-tienda`,
+  `database` y este workflow fijan `SUPABASE_CI_LOCK_TTL_MIN=75`, por encima del timeout del job. Por eso el nocturno
+  dura como mucho 45 min desde que reclama y espera a lo sumo 5 min por una ranura (peor caso total 50). La suite entra
+  holgada (setup ~6 min + ~21 min). La hora 05:00 UTC evita las 04:17 UTC, cuando corre el ci-janitor (`limpiar-ci`,
+  TTL 90 min), que también limpia ranuras vencidas.
+
+## Fixture compartido y corridas pendientes (lote MSF-879 / MSF-515)
+
+- **Fixture compartido (MSF-856).** `apps/web/e2e/soporte/fixtures.ts` (`rest`, `leer`, `borrar`, `altaUsuario`,
+  `borrarUsuario`, `cabeceras`, `limpiarOrganizacion`, `sql`) es la única fuente de la siembra. `service-cobro-avisos` la adopta
+  (`tienda-publicacion` ya estaba en `dokploy`; este PR solo cambia el orden de lectura de la clave anónima) y **quedaron verificados con una corrida real del job `e2e-visible-sesion`**
+  (`validate.yml`, `workflow_dispatch` con `e2e_sesion=true` y `e2e_archivos="service-cobro-avisos.e2e.ts tienda-publicacion.e2e.ts"`):
+  run `43739671117`, job `132889822658`, **2 passed** (los dos tests se ejecutaron, ninguno omitido). Es una **corrida previa a la guarda de `sql()`**; la verificación con la guarda es el run `43746175251` (SHA `8295ee6`, job `132909861772`, **2 passed** en 53.8 s, ninguno omitido); un intento previo (`43743809263`) falló solo por pasar `e2e_archivos` separado por comas en vez de espacios.
+  - Hallazgos de la verificación: (1) el CI exporta la clave anónima como `VITE_SUPABASE_PUBLISHABLE_KEY` (se lee primero);
+    (2) `service_role` NO tiene grant sobre varias tablas de `public` (`features`, `organizaciones_features`, `conexiones`,
+    `clientes`, `capacidades_ejecucion`, `avisos_pendientes`, `procesos_masivos`...): la API REST responde 42501. Sin migración,
+    `service-cobro-avisos` siembra y lee esas tablas con `sql()` (Postgres directo, puerto EXPLÍCITO: `E2E_PGPORT` o el puente `SUPABASE_DB_PORT`, sin default;
+    `pg` se carga del paquete del worker, como `ventas-impresion`). Siguen con copia propia `cuenta-web-cliente`, `exportacion-total`
+    e `importaciones-soporte`, y `service-cobro-avisos` conserva un `leerDominio` local (su esquema por defecto es `dominio`).
+  - **Límites de `sql()`:** corre como superusuario `postgres`, así que salta grants y RLS. Sirve solo para SEMBRAR, nunca para
+    VERIFICAR (una lectura ahí no prueba lo que ve un rol real) y no sirve para tablas protegidas de solo lectura. La guarda
+    `validarDestinoSql` (probada en `e2e/soporte/fixtures.test.ts`) exige host local, puerto explícito dentro de rango, que
+    `E2E_PGPORT` y `SUPABASE_DB_PORT` coincidan si están ambos, que NO sea un puerto de `supabase/config.toml` (stacks de
+    desarrollo, también reenviados), que `SUPABASE_CI_PROJECT_ID` y el puerto sean los del stack del CI derivado
+    (`derivarStackCi`, como `verificarDestinoCi`), y base y usuario `postgres`. `validarUrlSupabase` aplica a `SUPABASE_URL`
+    host local, puerto que no sea de desarrollo y, si el job declara `SUPABASE_CI_PROJECT_ID`, el puerto de la API derivada.
+    Limitación: un stack local de `pnpm dev:supabase` (puertos de desarrollo) ya no sirve para `sql()`; hay que preparar el
+    stack efímero con `pnpm db:ci:preparar`. La comprobación es de configuración, no inspecciona Docker. Riesgo residual
+    conocido: cierra el error de escribir por descuido en el stack de desarrollo como superusuario, pero no impide escribir en
+    OTRO stack efímero (variables `SUPABASE_CI_RANURA` o `GITHUB_REPOSITORY` falsificadas) ni en un túnel que alguien abra a
+    propósito hacia un puerto derivado del CI (base 20000 más 6000 por ranura); eso exige intención activa. Endurecimiento posible, no aplicado:
+    exigir `CI=true` o repetir el `docker ps --filter publish` de `verificarDestinoCi`. `pg` llega por
+    `pnpm install --frozen-lockfile` de la raíz (el workspace incluye `workers/*`, que declara `pg` 8.23.1).
+  - **Adopción en el resto de los specs (MSF-856, lote MSF-879).** Con `avisos-acceso`, `ordenes-compra` y
+    `stock-toma-inventario-categorias` migrados, los specs con `rest` local son solo los de la lista siguiente; el resto de `e2e/`
+    importa `rest`/`borrar`/`altaUsuario`... de `soporte/fixtures` (la cifra «~44 specs» del seguimiento ya estaba superada). Quedan
+    con helpers propios, a propósito: `cabeceras` con perfil `dominio` por defecto y `actualizar`/`leer` de las tiendas (firma distinta:
+    `tabla, filtro, cuerpo` o ruta con `accept-profile` por defecto); `precios-iva`/`stock-actual-vivo`/`ordenes-compra` (`modificar`/
+    `actualizar`, PATCH que el fixture no ofrece); `ayuda`/`panel-sin-desborde` (`borrar` con URL completa); `ventas-faltantes-soporte`
+    (`leer` con `dominio` por defecto, exportado a otros specs). Estos E2E los valida el CI (`e2e-visible-sesion`), no el entorno local.
+  - **Migración de los que quedaban (lote 27).** `cuenta-web-cliente`, `exportacion-total`, `importaciones`, `importaciones-a11y`,
+    `productos-create-permisos` y `notificaciones` ya usan el fixture compartido (`importaciones-soporte.ts` lo envuelve). Decisión
+    sobre el grant de `service_role` (opción (b)): no se da por migración; lo que no tiene grant (`conexiones`, `capacidades_ejecucion`,
+    `sistemas_externos`, `procesos_masivos`, `procesos_masivos_errores`, `avisos_pendientes`, `clientes_empresas`, `cuentas_cliente`) se
+    siembra y se limpia con `sql()`. `cuenta-web-cliente` vincula la cuenta con la RPC `vincular_cuenta_cliente` (EXECUTE para
+    `service_role`, `rest('rpc/…', cuerpo, 'public', 'return=minimal')`) y suspende con `sql()`; `altaUsuario(correo, null)` da de alta
+    a la persona sin contraseña (invitación pendiente).
+  - **Timeouts de 5 min de `exportacion-total`/`importaciones`/`importaciones-a11y` (causa probable, sin corrida local).** El CI
+    no deja ninguna traza (el run `43736941987` no conserva artefactos) y el timeout no apunta a una línea: la config no fija
+    `actionTimeout`, así que un `click`, `fill` o `boundingBox` sobre un elemento que no aparece espera hasta el tope del test en vez
+    de fallar en segundos. Hipótesis adicional (sin medir): en modo visible cada tecla tipeada por `escribir` pagaría `delay` (90 ms) más el `slowMo` (350 ms),
+    lo que haría lento cada ingreso (`exportacion-total` ingresa tres veces). Cambios: `ingresar` de `importaciones-soporte` llena con `fill`;
+    los cinco specs fijan `test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })` (un fallo real sale en 30 s señalando la
+    acción); `sql()` fija `connectionTimeoutMillis`/`query_timeout`; todos los `fetch` del fixture (`rest`, `leer`, `borrar`, `altaUsuario`, `borrarUsuario`, RPC) y de `importaciones-soporte`/`cuenta-web-cliente` llevan `AbortSignal.timeout(TOPE_FETCH_MS)` (30 s).
+    Sin aserciones quitadas. Falta la corrida de sesión que lo confirme: si siguen agotando el tiempo, el mensaje ya dirá dónde.
+    Seguimiento: MSF-964, MSF-965 y MSF-966 pendientes solo de esa corrida.
+  - **Costos conocidos de este lote.** (1) `ingresar` de `importaciones-soporte` llena con `fill`: en los videos del modo visible ya no
+    se ve el tecleo del correo y la clave (sí el cursor sobre «Ingresar»). (2) La clave de `importaciones-soporte` (`CONTRASENA_E2E`)
+    es fija a propósito: `ayuda` y `panel-sin-desborde` dan de alta con ese literal y entran con su `ingresar`; son usuarios
+    efímeros de un stack efímero. `cuenta-web-cliente` sí genera una clave aleatoria por corrida. (3) `anonKey` de ese archivo
+    ahora lee primero `VITE_SUPABASE_PUBLISHABLE_KEY`, como el fixture: es intencional, porque el job `e2e-visible-sesion` solo exporta
+    esa variable (no `SUPABASE_ANON_KEY`) y antes el login de la siembra salía con `apikey` vacío (401).
+  - **Job de sesión con `--workers=2 --retries=0`.** `validate.yml` (`e2e-visible-sesion`) corre `playwright test --workers=2 --retries=0` y no un worker por
+    spec (los reintentos duplican el tiempo de cada rojo y con 5 min por spec visible y 40 min de tope del job agotan el job): con el runner cargado, seis specs visibles a la vez (cursor, rótulos, `slowMo`, video 1080p) agotaron los timeouts de 3-5 min.
+  - **`cuenta-web-cliente` en el job de sesión (4 de 4 en rojo).** Dos causas, ambas pre-existentes (el spec nunca se había corrido
+    en sesión). (1) `ERR_CONNECTION_REFUSED` en `127.0.0.1:<api>`: GoTrue arma el `action_link` de `generate_link` con su URL
+    externa y el navegador corre dentro del contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API
+    murió con su paso; `generarEnlace` reemplaza el origen del enlace por el de `SUPABASE_URL` (`host.docker.internal`). (2) Con eso
+    el `verify` redirige bien a `mundojc.localhost:4300/definir-contrasena`, pero se servía el PANEL y no la TIENDA: el build del job
+    de sesión no exportaba `VITE_PANEL_HOSTS` (sí `e2e-tienda`); ahora el paso «Exponer claves» exporta `VITE_PANEL_HOSTS=localhost,127.0.0.1`,
+    igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
+    `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
+    todavía en sesión.
+  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: verdes `exportacion-total` + `importaciones-a11y` (run 44188166361),
+    `e2e/importaciones` + `productos-create-permisos` (44191224534) y `cuenta-web-cliente` sola (44199070547: 3 pasan y SC-006 se
+    omite, ver abajo; el test de ingresos tarda ~1 min y necesita el `setTimeout(180_000)`). `notificaciones` sigue en ROJO: falló por timeout en
+    44193675064, 44205757225 (y el reintento previo 44195930872 pasó solo con reintentos, que el job ya no usa). Hasta que `notificaciones`
+    pase en sesión no se puede decir que los 6 specs estén verdes.
+  - **`notificaciones`: dónde se iba el tiempo (traza del run 44205757225).** El recorrido y las aserciones terminan a ~106 s; los ~200 s
+    restantes son `Close context` (40 s por contexto) y adjuntar el video 1080p de los 2 contextos en el host saturado: el cierre cuenta
+    contra el timeout del test. Subir el timeout no lo arregla. Cambios: `E2E_VIDEO_CONTEXTOS` (`completa` por defecto = 1920x1080 como
+    siempre, `baja` = 1280x720, `off`; valor inválido lanza error) en `abrirContextoGrabado`; el job de sesión usa `baja`; y la segunda
+    sesión de `notificaciones` («otra persona») no graba (`{ video: 'off' }`). El timeout del spec vuelve a 180 s. Sin validar todavía en sesión.
+  - **SC-006 (recuperar) en el job de sesión: causa real y decisión.** La pantalla mostraba «No pudimos enviar el enlace ahora» porque
+    `POST /functions/v1/recuperar-clave-cliente` devolvía 500 de Kong (`{"message":"An unexpected error occurred"}`, traza del run
+    44185502449): el job levanta el stack con `-x studio,mailpit,imgproxy,logflare,vector,edge-runtime,…` (`validate.yml`, paso «Levantar
+    el stack de Supabase del CI»), o sea SIN Edge Runtime ni Mailpit. Servida, la función responde 400 a un cuerpo vacío (`handler.ts:72-74`).
+    El test omite SOLO si la sonda devuelve 404 o el 500 de Kong con ese cuerpo («no servida»); cualquier otro código distinto de 400
+    FALLA mostrando el status. El motivo se imprime en el log (`[omitido] SC-006…`), queda como anotación `omitido` del reporte y el
+    paso «Verificar que no haya omisiones inesperadas» del job (`verificar-e2e-omitidos.mjs --max=1`, que ahora imprime el motivo) tolera
+    como máximo ese único omitido. Evidencia del skip: run 44199070547. No se habilitó Edge/SMTP en el job (cambia el stack compartido
+    del CI sin poder probarlo): MSF-964 queda abierto para SC-006 hasta servir la función (`supabase functions serve` con
+    `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`/`ALLOW_HTTP_REDIRECT=true`) y habilitar el correo local.
+  - **Timeouts de 300 s en sesión visible (`exportacion-total`, `importaciones`, `importaciones-a11y`).** La hipótesis del
+    `actionTimeout` quedó descartada: son del recorrido visible (slowMo 350 ms, cursor de 30 pasos hacia cada clic, rótulos de 2,2 s, video
+    1080p) con el runner cargado. No se suben los timeouts. Se corre en grupos de 2 specs como máximo (input `e2e_archivos`), uno por
+    corrida, p. ej. `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos="exportacion-total.e2e.ts importaciones.e2e.ts"`,
+    luego `"importaciones-a11y.e2e.ts cuenta-web-cliente.e2e.ts"` y `"notificaciones.e2e.ts productos-create-permisos.e2e.ts"`. Bajo carga
+    se puede bajar la cámara lenta con las variables `E2E_SLOWMO_MS` (por defecto 350, `playwright.config.ts`) y `E2E_MOUSE_PASOS` (por
+    defecto 30, `visible.ts`); el job `e2e-visible-sesion` las exporta en 100 y 10 (host compartido y saturado), y el modo local/video conserva
+    350 y 30.
+  - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
+    con otro run concurrente), no por los specs.
+- **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de
+  cobertura: usuarios (editar/suspender/reactivar), matriz de permisos, Empresas, editar la organización e ingreso con sesión y Catálogo (crear, editar, fotos y desactivar, SC-001/SC-006: no hay spec, falta el fixture por rol); Actividad con filtros ya tiene spec, MSF-879. Los de Inicio
+  (tres roles y cambio de empresa) y Clientes (alta, búsqueda y exportación, SC-001) ya tienen su spec con corrida en
+  verde. Los pendientes requieren specs nuevos y la corrida firmada por `e2e_sesion`.
+
+
+## Perfiles de prueba: los crea la propia persona, no `service_role`
+
+`service_role` tiene permisos mínimos por tabla y ninguna migración le concede `insert` sobre `public.perfiles_usuario`. Un spec que necesite un perfil (por ejemplo `permisos-por-empresa.e2e.ts`, que lo usa para que el listado de Usuarios muestre el nombre) inicia sesión como esa persona y lo inserta con su token, que es lo que permite la política `perfiles_usuario_insert_titular`. No se amplían permisos de `service_role` para los E2E. La clave anónima sale de `VITE_SUPABASE_PUBLISHABLE_KEY` (la que exporta el CI), con `SUPABASE_ANON_KEY` y `VITE_SUPABASE_ANON_KEY` como alternativas locales.
+
+Nota de CI: el filtro `e2e_archivos=inicio.e2e.ts` también coincide con `tienda-inicio.e2e.ts`; para correr solo el de Inicio se pasa `e2e/inicio.e2e.ts`. El stack de CI es único por ranura: dos corridas simultáneas se pisan el reset de la base (síntomas: `relation ... does not exist` o `permission denied for schema dominio`); se reintenta con una sola corrida activa.
+
+Confirmación de las esperas de «1 producto sin stock» en `e2e/inicio.e2e.ts` (Consulta, Mostrador y la persona de «empresa»): corrida 43745425878 de `validate.yml` (`e2e_sesion=true`, `e2e_archivos=e2e/inicio.e2e.ts`), job `e2e-visible-sesion` 132907556853, 2 passed (ninguno omitido). La corrida anterior con el filtro `inicio.e2e.ts` (43744514308, job 132904752661) también pasó los dos tests de Inicio y solo falló `tienda-inicio.e2e.ts`, que el filtro coincide por sufijo: usar siempre `e2e/inicio.e2e.ts`.
+
+Reparación de `avisos-acceso`, `ordenes-compra` y confirmación en el CI (lote 7 de la deuda técnica): los tres specs con sesión venían rojos o solo parcialmente verdes en `dokploy` por causas del spec, no del producto. (1) `avisos-acceso` escribía `usuarios_empresas` con la service-role (403: `service_role` ya no la escribe): ahora el Administrador sembrado asigna la empresa al Operador con la RPC `asignar_empresas_usuario` (helper compartido `asignarEmpresasComoAdministrador` en `soporte/fixtures.ts`), que además fija la empresa activa del Operador. (2) `ordenes-compra` no elegía «Empresa de la compra»: con «Todas mis empresas» activa el alta no trae empresa por omisión y el envío se frenaba con «Elegí la empresa de la compra» (el producto está bien; la captura del fallo lo muestra), por eso nunca aparecía «Orden de compra creada»; el spec ahora elige la empresa en el diálogo, acota «Recibida» con `exact` (el detalle dice también «Recibida: <fecha>») y fija un `test.setTimeout` mayor porque en modo visible (slowMo 350 ms) el recorrido pasa del minuto por omisión. (3) `avisos-acceso` comprobaba que no aparece «Acceso restringido» con `getByText` por subcadena, que en modo visible también cuenta el rótulo narrado `#__e2e_rotulo`; ahora usa `exact`. Corrida manual de `validate.yml` (`e2e_sesion=true`, `e2e_archivos="avisos-acceso.e2e.ts ordenes-compra.e2e.ts stock-toma-inventario-categorias.e2e.ts"`) sobre la rama del lote: run 44012599213, job `e2e-visible-sesion` 133802910141, 3 passed (sin reintentos). Corridas previas del lote: 44009297220 (2 rojos por los dos últimos puntos) y 44011149553 (verde con 1 flaky de `ordenes-compra` por el tiempo del test).
+
+E2E sin escritura directa con la service-role (lote 8 de la deuda técnica): `catalogo-productividad`, `consultas-recorrido` y `consultas-responder` también escribían `public.usuarios_empresas` con la service-role y fallaban con 403 (corrida base de `validate.yml` sobre `dokploy`, run 44015101592: los tres rojos con `REST usuarios_empresas: 403`; el otro test de `catalogo-productividad` pasó). Ahora cada uno siembra un Administrador de la organización y asigna las empresas con `asignarEmpresasComoAdministrador` del fixture (la RPC `asignar_empresas_usuario`); `inicio` deja de tener su copia del helper y usa la del fixture. Dos consecuencias de la RPC que el spec tiene que contemplar: (1) la RPC fija la empresa asignada como activa, y con una empresa activa el listado de Productos solo muestra los productos ya vinculados a ella; `catalogo-productividad` crea los 3 productos sin vínculo (lo que su última acción agrega) y por eso borra la fila de `usuario_empresa_activa` del Operador tras asignarle la empresa; (2) `public.avisos_pendientes` no se lee por la API (ni `service_role` ni `authenticated` tienen SELECT), así que `consultas-recorrido` ya no la consulta con la service-role: cada persona lee sus avisos con la RPC de la campanita, `listar_notificaciones`, desde su propia sesión (esa RPC además filtra por organización y por las secciones a las que la persona accede). Aserciones sin cambios. Corrida manual de `validate.yml` (`e2e_sesion=true`, `e2e_archivos="catalogo-productividad.e2e.ts consultas-recorrido.e2e.ts consultas-responder.e2e.ts"`) sobre la rama del lote: run 44020145323, job `e2e-visible-sesion` 133827430311, 3 passed y 1 flaky: `consultas-recorrido` falla en el primer intento por el tope de 5 s de la bandeja (SC-004: 10,9 s con los cuatro tests arrancando a la vez) y pasa en el reintento; el mismo primer intento lento se vio en las dos corridas previas del lote (44016435775 y 44017990513). Con `inicio` sumado (filtro `inicio.e2e.ts`, que además coincide con `tienda-inicio.e2e.ts`; mejor `e2e/inicio.e2e.ts`) la corrida 44017990513 corrió siete tests con seis workers y se saturó (reintentos y timeouts de 5 min también en `tienda-inicio` y en un test de `catalogo-productividad` que no se tocó); los dos tests de `inicio` pasaron en el reintento con el helper del fixture.

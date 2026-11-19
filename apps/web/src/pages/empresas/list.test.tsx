@@ -7,8 +7,10 @@ const mocks = vi.hoisted(() => ({
   schema: vi.fn(),
   usePuedeEscribir: vi.fn(),
   rpc: vi.fn(),
+  resumenes: vi.fn(),
 }))
 
+vi.mock('../../hooks/useResumenEmpresas', () => ({ useResumenEmpresas: mocks.resumenes }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
@@ -29,6 +31,7 @@ describe('EmpresaList', () => {
   beforeEach(() => {
     mocks.resultado.mockReset()
     mocks.rpc.mockReset()
+    mocks.resumenes.mockReturnValue({})
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
 
@@ -55,14 +58,35 @@ describe('EmpresaList', () => {
     expect(screen.queryByText(/e-\d/)).not.toBeInTheDocument()
   })
 
-  it('muestra «Sin configurar» donde no hay origen de datos y la moneda ARS', async () => {
-    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'Mundo JC')], error: null })
+  it('muestra los datos reales de tienda, precio y productos visibles; Mercado Libre queda «Sin configurar»', async () => {
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'Mundo JC'), empresa(2, 'San Javucho')], error: null })
+    mocks.resumenes.mockReturnValue({
+      'e-1': {
+        dominioTienda: 'mundojc.example.com',
+        regla: { base: 'central_ajuste', ajustePct: -5, mostrarConIva: false, actualizadoEn: null },
+        productosVisibles: 42,
+      },
+      'e-2': { dominioTienda: null, regla: { base: 'central', ajustePct: 0, mostrarConIva: false, actualizadoEn: null }, productosVisibles: 0 },
+    })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     await screen.findByText('Mundo JC')
-    // Tienda web, Mercado Libre, precio y productos visibles.
-    expect(screen.getAllByText('Sin configurar')).toHaveLength(4)
-    expect(screen.getByText('ARS')).toBeInTheDocument()
+    expect(screen.getByText('mundojc.example.com')).toBeInTheDocument()
+    expect(screen.getByText('Central −5 %')).toBeInTheDocument()
+    expect(screen.getByText('42')).toBeInTheDocument()
+    expect(screen.getByText('Igual al central')).toBeInTheDocument()
+    // Sin tienda: «Sin configurar»; más las dos celdas de Mercado Libre.
+    expect(screen.getAllByText('Sin configurar')).toHaveLength(3)
+    expect(screen.getAllByText('ARS')).toHaveLength(2)
+  })
+
+  it('si un dato no se pudo leer dice «No disponible» en vez de «Sin configurar»', async () => {
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'Mundo JC')], error: null })
+    mocks.resumenes.mockReturnValue({ 'e-1': { dominioTienda: undefined, regla: null, productosVisibles: null } })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    await screen.findByText('Mundo JC')
+    expect(screen.getAllByText('No disponible')).toHaveLength(3)
   })
 
   it('muestra el estado de carga mientras consulta', () => {
@@ -95,7 +119,11 @@ describe('EmpresaList', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
-    expect(screen.getByText('Acceso restringido')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeInTheDocument()
+    expect(screen.getByText('Tu rol (actual) no incluye Empresas. Pedile acceso a un administrador.')).toBeInTheDocument()
+    // El aviso no es un error rojo: se fue el «Acceso restringido» de otra pantalla (MSF-639).
+    expect(screen.queryByText('Acceso restringido')).not.toBeInTheDocument()
+    expect(document.querySelector('.MuiAlert-standardError')).toBeNull()
     await waitFor(() => expect(mocks.resultado).not.toHaveBeenCalled())
   })
 

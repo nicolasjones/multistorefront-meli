@@ -2,6 +2,10 @@ name: Validate
 
 on:
   pull_request:
+    # `ready_for_review`: un PR abierto como borrador deja los jobs pesados en `skipped` (ver el `if` de
+    # `application`); sin este tipo, al marcarlo Ready no habría corrida nueva y `validacion` daría verde
+    # sin tests, build ni base de datos (MSF-675).
+    types: [opened, synchronize, reopened, ready_for_review]
   # Merge queue: al encolar un PR, GitHub corre el workflow sobre el grupo de
   # merge (`merge_group`) con el base ya integrado. Sin este disparador, los
   # checks requeridos no reportan y el PR no sale de la cola. Ver docs/control-ci.md.
@@ -23,6 +27,10 @@ on:
         description: "Filtrar por título (p. ej. MSF-121); vacío = toda la suite con sesión"
         type: string
         default: ""
+      e2e_archivos:
+        description: "Specs del E2E con sesión, separados por espacio (nombre de archivo en apps/web/e2e)"
+        type: string
+        default: "permisos-por-empresa.e2e.ts"
 
 permissions:
   contents: read
@@ -60,7 +68,7 @@ jobs:
       e2e: ${{ steps.d.outputs.e2e }}
       lane: ${{ steps.carril.outputs.lane }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - id: d
@@ -109,36 +117,65 @@ jobs:
           CI_LOAD_MAX: ${{ vars.CI_LOAD_MAX }}
         run: node scripts/ci-lane.mjs reclamar
 
-  # Siempre corre lo liviano (docs:check + lint). Lo PESADO (build, tests, e2e) sólo si hay código.
+  # MSF-904: chequeos estáticos y suites de Node puro (docs, guards, tooling, lint). No necesitan el build, así que corren EN
+  # PARALELO con `application`. No se perdió ningún check: cada paso vive en exactamente uno de los dos jobs y los dos cuentan
+  # para `validacion`. Misma condición de disparo que `application` (kill switch, borrador, forks).
   # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
-  application:
+  chequeos:
     needs: changes
     if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
-    timeout-minutes: 30
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm docs:check
+      # Tests de los controles de documentación (docs-yaml, docs-check, trampas conocidas, documentación de cambios).
+      - name: test:docs:check
+        run: pnpm test:docs:check
+      # MSF-925/926: acciones pineadas por SHA y todos los jobs con timeout-minutes (scripts/verificar-workflows.mjs).
+      - name: workflows:check
+        run: pnpm workflows:check
       # Runbook de los pasos manuales de VPS2 (MSF-854): fija los comandos de los cuatro
       # pasos y exige que cada uno diga cómo se verifica y cómo se revierte.
       - name: test:docs:pasos-manuales
         run: pnpm test:docs:pasos-manuales
+      # Simulacro de restauración (MSF-520): el protocolo tiene que conservar los pasos que miden
+      # los objetivos y la documentación no puede contradecirse sobre si el simulacro corrió.
+      - name: test:docs:simulacro
+        run: pnpm test:docs:simulacro
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
+      # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
+      # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
+      # con un resumen. ~1,5 min. Los pesados o rotos quedan documentados
+      # en docs/control-ci.md («Decisiones pendientes del lote 26»).
+      - name: test:ci:scripts
+        run: pnpm test:ci:scripts
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.
       - name: test:tienda:pedidos-dev
         run: pnpm test:tienda:pedidos-dev
+      # Guion de verificación de salida del correo (MSF-532): Node puro, sin base y sin red. Detecta que el
+      # contrato `{resultado, nuevo, enviado}` de `solicitar-acceso` y el guion sigan de acuerdo: si no, el
+      # guion podría dar un verde falso (un `0` sin que la corrida haya enviado nada).
+      - name: test:correo:verificar-salida
+        run: pnpm test:correo:verificar-salida
+      # Script de la bandera tienda_opiniones (MSF-467, T030): igual, solo dev; Node puro, sin base.
+      - name: test:tienda:opiniones-dev
+        run: pnpm test:tienda:opiniones-dev
       - run: pnpm estilos:check
       - name: test:estilos:sueltos
         run: pnpm test:estilos:sueltos
@@ -148,6 +185,11 @@ jobs:
         run: pnpm test:e2e:escritura
       - name: test:e2e:omitidos (guarda contra omisiones masivas del e2e)
         run: pnpm test:e2e:omitidos
+      # Decisión MSF-852: la suite corre en un job nocturno sobre dokploy y no bloquea PRs. La guarda detecta
+      # si el workflow o su contrato desaparecen sin que nadie lo note (el E2E no puede volver a podrirse en silencio).
+      - run: pnpm e2e:nocturno:check
+      - name: test:e2e:nocturno
+        run: pnpm test:e2e:nocturno
       - name: ui:empresas:check (filtros y selectores de empresa con los componentes compartidos)
         run: pnpm ui:empresas:check
       - name: test:ui:empresas
@@ -161,12 +203,66 @@ jobs:
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
       - run: pnpm lint
+
+  # Lo PESADO: build, tests y e2e (sólo si hay código). Lo liviano (docs, guards, tooling y lint) corre en `chequeos`, en paralelo
+  # (MSF-904: antes eran ~14 pasos en serie en este job).
+  # Kill switch (`CI_PAUSED`) y draft: un PR en borrador no corre lo pesado, se corre al pasar a Ready.
+  application:
+    needs: changes
+    if: ${{ vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # El e2e sirve `apps/web/dist`. Además de cuando cambia código, se buildea si el
       # diff toca la app web sin ser "código" por extensión (p. ej. `apps/web/nginx.conf`):
       # si no, el build se saltea y el e2e falla por dist ausente.
+      # MSF-904: la instalación de Chromium (+ deps del SO) es de lo más lento y no depende del build: arranca en segundo plano
+      # mientras se compila y el paso `esperar playwright install` (antes del e2e) la espera y falla si falló. El caché de
+      # `~/.cache/ms-playwright` va antes y guarda el binario.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: playwright install (en segundo plano)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: |
+          rm -f "$RUNNER_TEMP/playwright-install.rc"
+          (
+            (
+              set -e
+              if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
+                # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin libglib-2.0 (el browser muere con
+                # "error while loading shared libraries") hay que instalar SIEMPRE las deps del SO, aun con cache hit.
+                echo "chromium en cache -> binario + deps del SO"
+                pnpm --filter @platform/web exec playwright install chromium
+                pnpm --filter @platform/web exec playwright install-deps chromium
+              else
+                pnpm --filter @platform/web exec playwright install --with-deps chromium
+              fi
+            )
+            echo $? > "$RUNNER_TEMP/playwright-install.rc"
+          ) > "$RUNNER_TEMP/playwright-install.log" 2>&1 < /dev/null &
       - name: build
         if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
         run: pnpm build
+      # El bundle que se sirve en dev tiene que traer la funcionalidad de opiniones (MSF-467, T030): con la bandera
+      # encendida, un bundle viejo dejaría la tienda sin bloque de opiniones sin que se note.
+      - name: bundle con opiniones (MSF-467, T030)
+        if: needs.changes.outputs.code == 'true' || needs.changes.outputs.web == 'true'
+        run: pnpm tienda:opiniones:bundle:check
       - name: test:ia
         if: needs.changes.outputs.code == 'true'
         run: pnpm test:ia
@@ -185,25 +281,15 @@ jobs:
       # E2E de la app (MSF-499): build + chromium (+ deps del SO) + specs públicos. Los browsers se cachean
       # (`~/.cache/ms-playwright`): el `install` es de lo más lento y el binario no cambia entre runs.
       # SÓLO al integrar la épica (`e2e`): ver docs/deployment.md.
-      - uses: actions/cache@v4
+      - name: esperar playwright install
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
-        with:
-          path: ~/.cache/ms-playwright
-          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - name: playwright install
-        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        timeout-minutes: 10
         run: |
-          if ls "$HOME"/.cache/ms-playwright/chromium-* >/dev/null 2>&1; then
-            # El cache guarda el BINARIO, no las libs del SO. En un runner self-hosted sin
-            # libglib-2.0 (el browser muere con "error while loading shared libraries") hay que
-            # instalar SIEMPRE las deps del SO, aun con cache hit. Antes se salteaban y el e2e
-            # fallaba en PRs que no tenían nada que ver (falso rojo).
-            echo "chromium en cache -> binario + deps del SO"
-            pnpm --filter @platform/web exec playwright install chromium
-            pnpm --filter @platform/web exec playwright install-deps chromium
-          else
-            pnpm --filter @platform/web exec playwright install --with-deps chromium
-          fi
+          # `wait` no sirve entre pasos (otro shell): se espera el archivo con el código de salida de la instalación.
+          while [ ! -f "$RUNNER_TEMP/playwright-install.rc" ]; do sleep 2; done
+          cat "$RUNNER_TEMP/playwright-install.log"
+          rc=$(cat "$RUNNER_TEMP/playwright-install.rc")
+          if [ "$rc" != "0" ]; then echo "playwright install terminó con código $rc"; exit 1; fi
       - name: test:e2e
         if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
         env:
@@ -219,6 +305,12 @@ jobs:
           # (no como filtro de archivo), así que antes corría los 103 specs. `exec playwright test <archivo>` filtra de verdad.
           pnpm --filter @platform/web exec playwright test acceso-publico.e2e.ts recorrido-publico.e2e.ts
           # El reporte JSON (`resultado-e2e.json`) sale de la config en CI.
+      # MSF-928: Playwright cuenta un test omitido como éxito. Los dos specs públicos de este job no deben omitirse nunca
+      # (no dependen de ningún stack): si uno se salta por un entorno incompleto, el job falla, y el resumen del job cuenta
+      # los corridos y omitidos por archivo.
+      - name: e2e omitidos (los specs requeridos de este job no se pueden omitir)
+        if: needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true'
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=0 --requeridos=acceso-publico.e2e.ts,recorrido-publico.e2e.ts
       # Manifiesto de cobertura E2E por historia (spec 022): viaja en el
       # artefacto y lo importa el panel SDLC, que sirve los videos.
       - name: cobertura:e2e
@@ -248,7 +340,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report
@@ -266,16 +358,20 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && inputs.e2e_sesion
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 40
+    env:
+      SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
         run: |
@@ -285,29 +381,52 @@ jobs:
             curl -fsSL https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz | tar -xz -C /usr/local/bin supabase
           fi
           supabase --version
+      # Reserva una ranura como `e2e-tienda` y `database`: sin ella el stack `ci-…` choca con el de otro job de la
+      # misma corrida (nombre de contenedor en uso).
+      - name: Reservar la ranura del stack de Supabase
+        env:
+          SUPABASE_CI_LOCK_MIN: 20
+        run: node scripts/supabase-ci.mjs reclamar
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI (con kong/postgrest para la app)
         run: |
           node scripts/supabase-ci.mjs puente &
           trap "kill \$!" EXIT
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
-          supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
           # El puente solo reenvía la base; la API REST (kong) también vive en el
           # Docker del host: reenviarla a 127.0.0.1 para Node y el navegador.
           API_PORT=$(node --input-type=module -e "import('./scripts/supabase-ci.mjs').then(async (m) => { const fs = await import('node:fs'); const stack = m.derivarStackCi(m.leerConfigDesarrollo(fs.readFileSync('supabase/config.toml', 'utf8')), process.env.GITHUB_REPOSITORY); console.log(stack.puertos['api.port']); })")
           API_PORT=$API_PORT node -e "const net = require('node:net'); const p = Number(process.env.API_PORT); net.createServer((c) => { const d = net.connect(p, 'host.docker.internal'); c.pipe(d).pipe(c); const t = () => { try { c.destroy(); } catch {} try { d.destroy(); } catch {} }; c.on('error', t); d.on('error', t); }).listen(p, '127.0.0.1', () => console.log('puente API listo en 127.0.0.1:' + p));" &
           for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$API_PORT") 2>/dev/null && break; sleep 0.2; done
       - run: pnpm db:reset:ci
+      # PostgREST arranca antes de que las migraciones creen `dominio` y no queda sano hasta que se las aplica
+      # (por eso `--ignore-health-check` arriba): se lo reinicia después de `db:reset:ci`, como en `e2e-tienda`.
+      - name: Reiniciar PostgREST
+        run: docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+      # Dentro del contenedor del runner `127.0.0.1` es el propio contenedor y el puente de arranque muere al
+      # terminar su paso: la API del stack (publicada en el Docker del host) se alcanza por `host.docker.internal`,
+      # tanto desde Node (specs) como desde Chromium (la web del build), igual que en `e2e-tienda`.
       - name: Exponer claves al build y a los specs
         run: |
           eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
-          echo "SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          URL="${API_URL/127.0.0.1/host.docker.internal}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          for intento in $(seq 60); do
+            [ "$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL/rest/v1/" || true)" = "200" ] && break
+            sleep 2
+          done
+          echo "SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY:-$SECRET_KEY}" >> "$GITHUB_ENV"
-          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_URL=$URL" >> "$GITHUB_ENV"
           echo "VITE_SUPABASE_PUBLISHABLE_KEY=${ANON_KEY:-$PUBLISHABLE_KEY}" >> "$GITHUB_ENV"
+          # Igual que `e2e-tienda`: sin esto el build sirve el PANEL en `mundojc.localhost` y las tiendas del seed no se resuelven
+          # (`cuenta-web-cliente` cargaba el panel en vez de la tienda en /definir-contrasena).
+          echo "VITE_PANEL_HOSTS=localhost,127.0.0.1" >> "$GITHUB_ENV"
       - name: build (con Supabase del CI)
         run: pnpm build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -324,20 +443,37 @@ jobs:
           E2E_VIDEO: 'on'
           E2E_TRACE: 'on'
           E2E_VISIBLE: '1'
+          # Cámara lenta reducida: el job es manual y corre en un host compartido y saturado; con los 350 ms / 30 pasos de
+          # los videos locales los recorridos visibles agotan sus timeouts. Los defaults del modo local no cambian.
+          E2E_SLOWMO_MS: '100'
+          E2E_MOUSE_PASOS: '10'
+          # Video de los contextos en 1280x720 (el 1080p tardaba ~200 s en cerrar y adjuntar 2 contextos de `notificaciones` en el host saturado).
+          E2E_VIDEO_CONTEXTOS: baja
           E2E_GREP: ${{ inputs.e2e_grep }}
+          E2E_ARCHIVOS: ${{ inputs.e2e_archivos }}
           PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/apps/web/resultado-e2e.json
         run: |
           echo "WEB_PORT=$((4500 + GITHUB_RUN_ID % 100))" >> "$GITHUB_ENV"
+          # Los nombres de archivo se pasan por entorno, nunca interpolados en el script.
+          ARCHIVOS="${E2E_ARCHIVOS:-permisos-por-empresa.e2e.ts}"
+          # `--workers=2`: el runner va cargado (load ~50) y con un worker por spec, el recorrido visible (cursor, rótulos, `slowMo`,
+          # video 1080p) agota los timeouts de 3-5 min de seis specs a la vez. Va antes de los filtros y SIN `--`.
+          # `--retries=0`: un reintento duplica el tiempo de cada rojo y, con 5 min por spec visible y 40 min de tope del job, agota el job
+          # entero. Esto NO da por resueltos MSF-964/965/966: siguen abiertos hasta que los 6 specs pasen en una corrida de sesión.
           if [ -n "$E2E_GREP" ]; then
-            pnpm test:e2e permisos-por-empresa.e2e.ts --grep "$E2E_GREP"
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS --grep "$E2E_GREP"
           else
-            pnpm test:e2e permisos-por-empresa.e2e.ts
+            pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS
           fi
+      # Guarda de omitidos del job de sesión: solo se tolera 1 (SC-006 de `cuenta-web-cliente`, que se omite porque este stack se levanta
+      # sin Edge Runtime: ver docs/e2e-app.md). Imprime el motivo de cada omitido (el reporter de lista no lo muestra).
+      - name: Verificar que no haya omisiones inesperadas
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
       - name: cobertura:e2e (sesión)
         if: always()
         run: |
           node scripts/cobertura-e2e.mjs --report apps/web/resultado-e2e.json --results apps/web/test-results --specs specs --out apps/web/playwright-report/cobertura-e2e.json --run-id "${GITHUB_RUN_ID}" --modo on
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: playwright-report-sesion
@@ -346,6 +482,13 @@ jobs:
             apps/web/test-results
           retention-days: 14
           if-no-files-found: ignore
+      - name: Bajar el stack y liberar la ranura
+        if: always()
+        run: |
+          if [ -n "$SUPABASE_CI_WORKDIR" ]; then
+            supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          fi
+          node scripts/supabase-ci.mjs liberar
 
   # #1 — La suite web (el 80% del tiempo) se corre SHARDEADA en paralelo. `invitar-miembro` sólo en el shard 1.
   # Sólo cuando el diff puede afectar a la app web (dirs de supabase/infra/scripts/api no la tocan) y SÓLO en el
@@ -353,26 +496,28 @@ jobs:
   web:
     needs: changes
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # MSF-237: los 3 shards llegaban a ~30 min y el timeout los mataba mientras seguían avanzando
     # (no había test rojo). La suite completa tarda ~30 min; con 3 shards reales cada job baja a
     # ~10-15 min. 45 min es sólo la red de seguridad (si un shard se cuelga, no espera una hora).
     # Más de 3 shards NO ayuda: la máquina (8 núcleos, load ~30) está limitada por CPU, no por tramos.
     timeout-minutes: 45
     strategy:
-      fail-fast: true
+      # MSF-901: con `fail-fast: true` un shard rojo CANCELABA a los otros dos y `validacion` veía jobs `cancelled` mezclados con el
+      # fallo real. Apagado: los tres shards terminan y cada uno informa su resultado (el costo es no cortar antes la corrida roja).
+      fail-fast: false
       matrix:
         shard: [1, 2, 3]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # En un PR hace falta el historial para calcular qué tests afecta el diff (`--changed`).
           # OJO: '0' va entre comillas. En una expresión `a && 0 || 1`, el 0 es falso y siempre daría 1 (clon superficial).
           fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           # Reusa el store de pnpm entre corridas: ahorra el costo fijo de `pnpm install` en cada tramo.
@@ -406,7 +551,8 @@ jobs:
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
 
-  # E2E de la TIENDA PÚBLICA (`apps/web/e2e/tienda-*.e2e.ts`, 20 specs). A diferencia de `acceso-publico` (que
+  # E2E de la TIENDA PÚBLICA (todos los `apps/web/e2e/tienda-*.e2e.ts`) y de la etiqueta con QR de Service
+  # (`service-etiqueta-qr.e2e.ts`, F-SVC-32: los demás E2E de Service no corren en el CI). A diferencia de `acceso-publico` (que
   # corre en `application` sin base), estos recorridos siembran con la service-role desde Node y la web lee de
   # PostgREST, así que necesitan un stack de Supabase con API (auth + kong + postgrest + storage). Es un job
   # APARTE (y no un paso de `application`) para correr en paralelo con la suite `web` y no alargar el camino
@@ -420,24 +566,40 @@ jobs:
     # y el job se ve rojo sin frenar el merge. Se pasa a requerido poniendo la variable en `true` tras ~10 corridas
     # verdes (seguimiento en specs/20261113-120000-ci-e2e-tienda/tasks.md). Sin PRs de forks: ver el filtro de `application`.
     if: ${{ needs.changes.outputs.web == 'true' && needs.changes.outputs.e2e == 'true' && vars.CI_PAUSED != 'true' && vars.CI_E2E_TIENDA != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}
-    # Stack (~2-3 min) + migraciones (~1-2 min) + 20 specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
+    # Stack (~2-3 min) + migraciones (~1-2 min) + los specs en serie (~10-15 min con la máquina cargada) + hasta 10 min
     # esperando ranura. El TTL de la ranura (`SUPABASE_CI_LOCK_TTL_MIN`, abajo y en `database`) va por encima del timeout
     # para que otro job no recicle esta ranura mientras el job sigue vivo; un job muerto sin `liberar` la suelta a los 75 min.
     timeout-minutes: 55
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -461,9 +623,11 @@ jobs:
       # stack de `database` (sin kong/postgrest): se lo baja antes para arrancar de cero.
       - name: Levantar el stack de Supabase del CI con API
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
           supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
       - run: pnpm db:reset:ci
@@ -511,7 +675,7 @@ jobs:
       # `VITE_PANEL_HOSTS`: sin él el panel se sirve en `mundojc.localhost` y las tiendas no se resuelven.
       - name: build de la web contra el stack del CI
         run: pnpm --filter @platform/web exec vite build
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.cache/ms-playwright
           key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -527,11 +691,12 @@ jobs:
           fi
       # Los specs de la tienda cambian el estado de las dos tiendas del seed (pausan una empresa, editan sus datos):
       # UN worker, en serie. `--workers=1` va antes de los filtros y SIN `--` (el `--` de pnpm llega literal a
-      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma sólo los 20 specs.
-      - name: test:e2e (tienda-*)
+      # Playwright y lo que sigue se toma como filtro posicional). El filtro `e2e/tienda-` toma los `tienda-*.e2e.ts`; se suma
+      # `e2e/service-etiqueta-qr` (F-SVC-32, MSF-190): los E2E de Service se omiten solos sin `SUPABASE_URL` y acá corre de verdad.
+      - name: test:e2e (tienda-* y service-etiqueta-qr)
         timeout-minutes: 30
-        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda-
-      # 18 specs se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
+        run: pnpm --filter @platform/web exec playwright test --workers=1 e2e/tienda- e2e/service-etiqueta-qr
+      # Los specs de la tienda y el de la etiqueta se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
       # el único omitido permitido es el de `tienda-seo` (`E2E_SIN_EDGE=1`). Lee `apps/web/resultado-e2e.json`.
       - name: Verificar que no haya omisiones inesperadas
         run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
@@ -545,7 +710,7 @@ jobs:
           pkill -9 -f "$patron" 2>/dev/null || true
           despues=$(pgrep -fc "$patron" || true)
           echo "Navegadores del job: antes=$antes despues=$despues"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure() || cancelled()
         with:
           name: playwright-report-tienda
@@ -574,13 +739,13 @@ jobs:
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - run: pnpm infra:config
@@ -598,7 +763,7 @@ jobs:
   database:
     needs: changes
     if: ${{ needs.changes.outputs.db == 'true' && vars.CI_PAUSED != 'true' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-    runs-on: [self-hosted, platform-local]
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
     # Sin `concurrency`: cada corrida reserva su RANURA del stack (scripts/supabase-ci.mjs reclamar) y
     # ESPERA si no hay libre, en vez de que GitHub cancele la corrida pendiente (BUG-179). El timeout
     # acota el job para que un lock huérfano (job que murió sin `liberar`) se recicle al TTL. El TTL va a 75 min (igual
@@ -608,17 +773,33 @@ jobs:
     env:
       SUPABASE_CI_LOCK_TTL_MIN: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 11.19.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
+          # Reusa el store de pnpm entre corridas (en runners hosted cada job parte de una VM limpia).
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): el Docker es el de la VM, así que `host.docker.internal`
+      # apunta a localhost, el directorio de locks es local y `pg_prove` se instala. En self-hosted no hace nada.
+      - name: Preparar runner hosted (supabase CLI, pg_prove, host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client libtap-parser-sourcehandler-pgtap-perl
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
       - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
         run: |
           if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
             echo "supabase 2.116.0 ya presente en el runner -> no descargo"
@@ -632,9 +813,11 @@ jobs:
       - run: pnpm db:ci:preparar
       - name: Levantar el stack de Supabase del CI
         run: |
-          node scripts/supabase-ci.mjs puente &
-          trap "kill \$!" EXIT
-          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
+            node scripts/supabase-ci.mjs puente &
+            trap "kill \$!" EXIT
+            for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          fi
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci
@@ -645,13 +828,13 @@ jobs:
   # Suelta el carril del PR (si la admisión está activa). Corre siempre, incluso
   # si lo pesado falló o se salteó; el TTL recicla el carril si el run se cancela.
   liberar:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: ${{ always() && vars.CI_LANES != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: Liberar carril de admisión
@@ -665,43 +848,34 @@ jobs:
   # docs, o `database` sin cambios de Supabase) cuentan como OK. Con `CI_PAUSED`
   # falla a propósito: mientras el CI está pausado no se mergea.
   validacion:
-    needs: [changes, application, web, e2e-tienda, infrastructure, database]
+    needs: [changes, application, chequeos, web, e2e-tienda, infrastructure, database]
     if: always()
     runs-on: [self-hosted, platform-local]
     timeout-minutes: 5
     steps:
+      # Un PR de un fork NUNCA ejecuta su código en el runner self-hosted: se rechaza con un paso inline, sin checkout.
+      - name: PR de un fork
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
+          exit 1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          sparse-checkout: scripts
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          node-version: 24
       - name: Verificar que nada haya fallado
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         env:
           EVENTO: ${{ github.event_name }}
           REPO_ORIGEN: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
-        run: |
-          # Los PRs de forks no corren en los runners self-hosted (los jobs pesados los saltean): sin esto
-          # `validacion` daría verde con todo `skipped`. Hay que re-publicar la rama dentro del repo.
-          if [ "$EVENTO" = "pull_request" ] && [ "$REPO_ORIGEN" != "$REPO" ]; then
-            echo "PR de un fork: no se valida en runners self-hosted; publicá la rama en este repo."
-            exit 1
-          fi
-          if [ "${{ vars.CI_PAUSED }}" = "true" ]; then
-            echo "CI_PAUSED=true: no se valida ni se mergea mientras el CI esté pausado."
-            exit 1
-          fi
-          fallo=0
-          for resultado in \
-            "changes=${{ needs.changes.result }}" \
-            "application=${{ needs.application.result }}" \
-            "web=${{ needs.web.result }}" \
-            "e2e-tienda=${{ needs.e2e-tienda.result }}" \
-            "infrastructure=${{ needs.infrastructure.result }}" \
-            "database=${{ needs.database.result }}"; do
-            echo "$resultado"
-            case "$resultado" in
-              *=success|*=skipped) ;;
-              *) fallo=1 ;;
-            esac
-          done
-          if [ "$fallo" = "1" ]; then
-            echo "Hay jobs fallidos o cancelados: no se valida."
-            exit 1
-          fi
-          echo "Validación OK (los jobs skipped cuentan como OK)."
+          CI_PAUSED: ${{ vars.CI_PAUSED }}
+          E2E_TIENDA_BLOQUEA: ${{ vars.E2E_TIENDA_BLOQUEA }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        # La lógica vive en scripts/verificar-validacion.mjs (con tests): `failure` y `cancelled` se distinguen y `e2e-tienda` no
+        # bloquea mientras E2E_TIENDA_BLOQUEA no sea `true` (MSF-901).
+        run: node scripts/verificar-validacion.mjs

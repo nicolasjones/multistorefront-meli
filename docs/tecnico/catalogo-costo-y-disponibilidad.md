@@ -155,6 +155,12 @@ Detalles de comportamiento:
   y la columna no existe; la autoridad sigue siendo RLS. Si la consulta falla, el listado se muestra con «—» y
   el aviso «No pudimos cargar los costos: la columna Costo puede no estar completa.». El costo se muestra con
   dos decimales y sin símbolo de moneda porque `producto_costos` no guarda moneda.
+- **Margen del listado.** Con el mismo acceso a `rentabilidad` el listado suma la columna **Margen**
+  (`columnaMargen` en `pages/productos/list.tsx`; antes eran columnas «—» pendientes de Rentabilidad). Es
+  `margenListado(precio, costo)` (`lib/productosListado.ts:227`): `(precio en pesos − costo × cotización) / precio en pesos`
+  con el precio de lista de cada producto de la página y la cotización implícita `precioArs / precioLista`; devuelve
+  `null` (se muestra «—») sin precio en pesos, sin costo o con precio cero. El tooltip aclara que es una estimación
+  («No incluye impuestos ni descuentos»). Sin acceso a Rentabilidad no se muestra, porque deja deducir el costo.
 - **Disponibilidad (FR-008, FR-009).** «Stock» y «Sin stock» se renderizan deshabilitados con el sufijo
   «(calculado)»; «A pedido» y «Stock entrante en breve» son las dos elegibles. El texto de ayuda dice «Sin
   elección manual: se calcula según las existencias.» o «Elegida a mano: manda sobre las existencias.» según

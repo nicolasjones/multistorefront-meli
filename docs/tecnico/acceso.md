@@ -2,17 +2,32 @@
 owner: tecnico
 sources:
   - specs/20261012-140000-acceso-y-organizacion
-  - supabase/migrations
-  - supabase/tests/database
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20261012140200_intentos_acceso.sql
+  - supabase/migrations/20261012140300_suspendidos_sin_privilegios.sql
+  - supabase/migrations/20261012150000_cortar_sesiones_suspendido.sql
+  - supabase/migrations/20261013120001_anon_solo_rpc_de_acceso.sql
+  - supabase/migrations/20261013180000_intentos_acceso_purga_acotada.sql
+  - supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql
+  - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
+  - supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql
+  - supabase/tests/database/bloqueo_servidor.test.sql
+  - supabase/tests/database/estado_usuario.test.sql
+  - supabase/tests/database/cortar_sesiones_suspendido.test.sql
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/tests/database/aislamiento_organizaciones.test.sql
+  - supabase/tests/database/privilegios_anon_endurecidos.test.sql
   - supabase/config.toml
   - apps/web/src/providers/authProvider.ts
   - apps/web/src/pages/login.tsx
-  - apps/web/src/pages/acceso
+  - apps/web/src/pages/acceso/solicitar-recuperacion.tsx
+  - apps/web/src/pages/acceso/definir-contrasena.tsx
   - apps/web/src/lib/passwordPolicy.ts
   - apps/web/src/lib/vencimientoSesion.ts
   - apps/web/src/lib/supabase.ts
   - apps/web/src/components/navegacion/MenuCuenta.tsx
   - scripts/e2e-acceso.e2e.mjs
+  - scripts/verificar-hook-bloqueo.e2e.mjs
 ---
 
 # Acceso y organización: modelo, contratos y operación (MSF-119)
@@ -106,9 +121,8 @@ Regla para el equipo: **toda RPC nueva lleva `grant execute ... to authenticated
 nueva en `public` nace con `revoke execute ... from public, anon` (ver `CLAUDE.md`). El test pgTAP
 `estado_usuario` falla si `anon` ejecuta algo fuera de las RPC de acceso.
 
-**MSF-130 (interés por WhatsApp)** suma una RPC pública de la tienda:
-`publico.registrar_interes_whatsapp(host text, producto_id uuid)` es ejecutable por `anon` y `authenticated`,
-pero vive en el esquema **`publico`** (no en `public`), así que **no** entra en la lista de RPC de `public`
+**MSF-130 (interés por WhatsApp)** sumó una RPC (hoy interna, solo `service_role`, MSF-657; la tienda no la llama):
+`publico.registrar_interes_whatsapp(host text, producto_id uuid)` fue ejecutable por `anon` y `authenticated`; **desde `20270507150100` (MSF-657) solo la ejecuta `service_role`** (no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Vive en el esquema **`publico`** (no en `public`), así que **no** entra en la lista de RPC de `public`
 permitidas a `anon`: esa lista sigue siendo `bloqueo_acceso_hasta`, `registrar_fallo_acceso` y
 `limpiar_intentos_acceso`. La empresa sale **solo del dominio** (`dominio.tiendas`), no guarda datos
 personales y responde el mismo `P0002` para dominio desconocido y empresa desactivada. `anon` no tiene
@@ -346,7 +360,7 @@ La regla ya existía en el template (spec 003). Lo que agrega esta épica:
   expuesta no tiene RLS. Enumera `pg_class` × `pg_namespace` con `n.nspname in ('public','dominio')`,
   `relkind in ('r','p')`, saltando particiones hijas (`not c.relispartition`) y tablas de extensiones
   (`d.deptype = 'e'`). No usa una lista fija: una tabla nueva sin RLS rompe `pnpm test:db` sin tocar la prueba.
-  Incluye un **control positivo** sobre `public.clientes` para que la prueba no pueda pasar en vacío.
+  Incluye un **control positivo** sobre `dominio.clientes` para que la prueba no pueda pasar en vacío.
 - `supabase/tests/database/aislamiento_organizaciones.test.sql` (plan 66) verifica con dos organizaciones que cada
   uno ve solo lo suyo y que un usuario sin membresía no ve nada.
 - `supabase/tests/database/estado_usuario.test.sql` (plan 40) cubre el estado de la membresía, el bloqueo por

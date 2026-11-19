@@ -1,0 +1,20 @@
+# MSF-705 / MSF-712 · modo ESTRICTO de kestra: credenciales obligatorias sin valor por defecto. `scripts/deploy-vps.mjs` agrega este
+# archivo a `docker compose` en staging y producción (siempre) y en dev solo con VPS_ESTRICTO=1 (modo transicional: en dev el preflight
+# ADVIERTE y el despliegue continúa). Si falta una variable, `docker compose config` falla y el despliegue se corta ANTES de arrancar con
+# un valor por defecto conocido. Los valores van en `.env.<entorno>` (secret VPS_DEPLOY_ENV). Ver docs/deployment.md.
+services:
+  kestra:
+    environment:
+      # MSF-712: imágenes de los workers por referencia INMUTABLE (digest o tag de commit); el Compose base trae `local/...:latest` solo para desarrollo.
+      ENV_HISTORIAL_IMPORTADOR_IMAGEN: ${HISTORIAL_IMPORTADOR_IMAGEN:?Definí HISTORIAL_IMPORTADOR_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_IMPORTAR_PRODUCTOS_IMAGEN: ${IMPORTAR_PRODUCTOS_IMAGEN:?Definí IMPORTAR_PRODUCTOS_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_EXPORTAR_COMPROBANTES_IMAGEN: ${EXPORTAR_COMPROBANTES_IMAGEN:?Definí EXPORTAR_COMPROBANTES_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_EXPORTAR_ORGANIZACION_IMAGEN: ${EXPORTAR_ORGANIZACION_IMAGEN:?Definí EXPORTAR_ORGANIZACION_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+      ENV_COMPROBANTES_PDF_IMAGEN: ${COMPROBANTES_PDF_IMAGEN:?Definí COMPROBANTES_PDF_IMAGEN con una referencia inmutable (imagen@sha256:... o tag de commit) en el .env del ambiente}
+
+x-variables-obligatorias:
+  kestra_db_password: ${KESTRA_DB_PASSWORD:?Definí KESTRA_DB_PASSWORD en el .env del ambiente (contraseña de la base de Kestra)}
+  kestra_basic_auth_username: ${KESTRA_BASIC_AUTH_USERNAME:?Definí KESTRA_BASIC_AUTH_USERNAME en el .env del ambiente (usuario de la UI/API de Kestra)}
+  kestra_basic_auth_password: ${KESTRA_BASIC_AUTH_PASSWORD:?Definí KESTRA_BASIC_AUTH_PASSWORD en el .env del ambiente (contraseña de la UI/API de Kestra)}
+  kestra_backups_db_password: ${KESTRA_BACKUPS_DB_PASSWORD:?Definí KESTRA_BACKUPS_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_backups)}
+  kestra_orquestacion_db_password: ${KESTRA_ORQUESTACION_DB_PASSWORD:?Definí KESTRA_ORQUESTACION_DB_PASSWORD en el .env del ambiente (contraseña del rol kestra_orquestacion)}

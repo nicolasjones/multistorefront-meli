@@ -55,7 +55,7 @@ test('el correo sale por el SMTP KESTRA_SMTP_* de MSF-189, sin proveedor nuevo (
   const correo = tarea(content, 'enviar_correo');
   assert.match(correo, /type: io\.kestra\.plugin\.notifications\.mail\.MailSend/);
   for (const campo of ['host', 'port', 'username', 'password', 'transportStrategy', 'from']) {
-    assert.match(correo, new RegExp(`${campo}: "\\{\\{ envs\\.kestra_smtp_`), `${campo} sale de KESTRA_SMTP_*`);
+    assert.match(correo, new RegExp(campo === 'from' ? 'from: "\\{\\{.*envs\\.kestra_smtp_from' : `${campo}: "\\{\\{ envs\\.kestra_smtp_`), `${campo} sale de KESTRA_SMTP_*`);
   }
   assert.match(correo, /to: "\{\{ fromJson\(parent\.taskrun\.value\)\.correo \}\}"/);
   assert.doesNotMatch(content, /sendgrid|mailgun|postmark|ses\.amazonaws|api\.resend/i, 'ningún proveedor de correo nuevo');
@@ -72,7 +72,18 @@ test('el cuerpo trae un pie con un enlace de baja propio de cada destinatario y 
   );
   assert.match(correo, /date de baja/, 'el pie ofrece la baja');
   assert.match(correo, /<hr>/, 'el pie va separado del mensaje');
-  assert.doesNotMatch(correo, /\| raw/, 'nada del mensaje se muestra sin escapar');
+  assert.doesNotMatch(correo.replace(/\{\{ fromJson\(parent\.taskrun\.value\)\.cuerpo_html \| raw \}\}/, ''), /\| raw/, 'solo el cuerpo del newsletter, ya escapado por la base, se muestra con raw: nada del mensaje de clientes');
+});
+
+// MSF-468 (RF-NL-20, RF-NL-21, D15): el newsletter usa el cuerpo armado por la base y el remitente de la tienda; el correo de clientes no cambia.
+test('el newsletter usa el cuerpo y el remitente de la tienda que arma la base, y el de clientes conserva su plantilla', async () => {
+  const correo = tarea(await leer(), 'enviar_correo');
+  assert.match(correo, /\{% if fromJson\(parent\.taskrun\.value\)\.tipo == 'newsletter' %\}\{\{ fromJson\(parent\.taskrun\.value\)\.cuerpo_html \| raw \}\}\{% else %\}/, 'cuerpo del newsletter');
+  assert.match(correo, /\{% endif %\}/);
+  assert.match(correo, /from: "\{\{ \(fromJson\(parent\.taskrun\.value\)\.tipo == 'newsletter' and fromJson\(parent\.taskrun\.value\)\.remitente != null\) \? fromJson\(parent\.taskrun\.value\)\.remitente ~ ' <' ~ envs\.kestra_smtp_from ~ '>' : envs\.kestra_smtp_from \}\}"/, 'remitente con el nombre de la tienda sobre la dirección técnica');
+  assert.match(correo, /mensaje \| escape/, 'la plantilla de clientes sigue escapando el mensaje');
+  assert.match(correo, /\/baja-correo\/\{\{ fromJson\(parent\.taskrun\.value\)\.token \?\? 'ejemplo' \}\}/, 'y su enlace de baja de siempre');
+  assert.doesNotMatch(correo, /\| raw[^}]*mensaje|mensaje[^}]*\| raw/, 'el mensaje del dueño nunca se muestra con raw');
 });
 
 test('un fallo del SMTP se reintenta con espera creciente (FR-017)', async () => {
@@ -93,4 +104,32 @@ test('agotados los reintentos el destinatario queda fallido con un motivo fijo, 
   assert.match(envio, /id: enviar_correo/);
   assert.match(envio, /id: cerrar_fallido/);
   assert.doesNotMatch(content.slice(content.indexOf('id: cerrar_enviado')), /id: cerrar_fallido/);
+});
+
+// El enlace de baja no puede salir roto: el flow se niega a enviar con una URL vacía, http o localhost (salvo desarrollo local).
+test('el flow valida la URL de baja antes de reclamar el lote y el VPS la exige definida', async () => {
+  const [contenido, compose, vps, ejemplo] = await Promise.all([
+    leer(),
+    readFile('infra/kestra/compose.yaml', 'utf8'),
+    readFile('infra/kestra/compose.vps.yaml', 'utf8'),
+    readFile('infra/kestra/.env.example', 'utf8'),
+  ]);
+  const posValidar = contenido.indexOf('- id: validar_url_baja');
+  assert.ok(posValidar > 0, 'hay una validación de la URL de baja');
+  assert.ok(posValidar < contenido.indexOf('- id: reclamar'), 'se valida ANTES de reclamar el lote');
+  const validar = tarea(contenido, 'validar_url_baja');
+  assert.match(validar, /type: io\.kestra\.plugin\.core\.execution\.Assert/);
+  assert.match(validar, /https:\/\//, 'exige https');
+  assert.match(validar, /localhost/, 'rechaza localhost');
+  assert.match(validar, /correo_masivo_permitir_local/, 'solo el desarrollo local lo puede relajar');
+  assert.match(compose, /ENV_CORREO_MASIVO_PERMITIR_LOCAL: \$\{CORREO_MASIVO_PERMITIR_LOCAL:-false\}/, 'por defecto NO se permite local');
+  assert.match(ejemplo, /^CORREO_MASIVO_PERMITIR_LOCAL=true$/m, 'el ejemplo local sí lo permite');
+  assert.match(vps, /ENV_CORREO_MASIVO_URL_BAJA: \$\{CORREO_MASIVO_URL_BAJA:\?/, 'el overlay del VPS falla si la variable no está definida');
+});
+
+test('la comprobación de https del Assert es por prefijo (startsWith), no por subcadena', async () => {
+  const validar = tarea(await leer(), 'validar_url_baja');
+  assert.match(validar, /startsWith\('https:\/\/'\)/, 'https se exige al inicio de la URL');
+  assert.doesNotMatch(validar, /replace\(\{'https:\/\/'/, 'ya no se acepta «https://» en cualquier parte de la URL');
+  assert.doesNotMatch(validar, /\bcontains\b/, 'ninguna comprobación por contains');
 });

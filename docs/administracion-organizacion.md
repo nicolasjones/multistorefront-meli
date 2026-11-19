@@ -1,7 +1,13 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261014-140000-administracion-de-usuarios-y-organizacion
+  - apps/web/src/pages/organizacion/edit.tsx
+  - apps/web/src/pages/organizacion/ResumenSemanal.tsx
+  - apps/web/src/pages/organizacion/edit.test.tsx
+  - supabase/migrations/20261014160000_organizacion_datos_y_configuracion.sql
+  - supabase/tests/database/organizacion_datos_y_configuracion.test.sql
+  - supabase/migrations/20270324100200_resumen_semanal.sql
 ---
 
 # Administración de la organización: datos y configuración
@@ -62,3 +68,7 @@ crea). Deshacer la spec completa: `git revert -m 1 <merge>`.
 - `actualizar_organizacion` valida el patrón de la ruta pero no que el objeto exista en `storage.objects`; la pantalla solo guarda rutas que ella misma subió.
 - Sin control de concurrencia: gana el último que guarda (aceptado).
 - La lista de zonas horarias usa `Intl.supportedValuesOf` con lista fija de respaldo; la base valida contra `pg_timezone_names`.
+
+## Resumen semanal por correo (F-REP-08, MSF-265)
+
+«Mi organización» suma la sección **Resumen semanal por correo** (`apps/web/src/pages/organizacion/ResumenSemanal.tsx`): un interruptor que activa o pausa el correo que reciben los administradores cada lunes a las 08:00 (hora de Buenos Aires), el próximo envío y el estado del último resumen. Lee con `estado_resumen_semanal()` y escribe con `configurar_resumen_semanal(p_activo)`; las dos exigen ser administrador de la organización de la sesión y un cambio real deja el evento `resumen_semanal.pausado` o `resumen_semanal.reanudado` en Actividad. Empresa activa: no aplica (es de toda la organización). Al cambiar el interruptor, la pantalla lo muestra ya con el valor guardado; si el cambio se guardó pero el refresco posterior falla, avisa «Se guardó, pero no pudimos actualizar el estado.» (con reintento), distinto de «No se guardó el cambio.» (`ResumenSemanal.tsx`). Ver [Resumen semanal por correo](resumen-semanal-correo.md).

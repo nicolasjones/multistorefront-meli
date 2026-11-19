@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/consultas
 ---
 
 # Consultas de las tiendas online
@@ -102,6 +103,8 @@ Un pedido **no es una compra**: la persona no pagó nada y no se reservó stock.
 Lo que la persona escribió se muestra **tal cual**, como texto. Los productos sin precio dicen «Sin precio». Si no se pueden cargar los productos del pedido aparece «No pudimos cargar los productos del pedido.» con el botón **Reintentar**.
 
 **Responder por correo** o **Responder por WhatsApp** abre tu aplicación con un mensaje que ya lista los productos y dice que vas a confirmar disponibilidad y precio. Como siempre, el sistema no envía nada por vos.
+
+**Crear presupuesto** (si tu rol puede editar Ventas): genera un presupuesto de Ventas con los productos del pedido y te lleva a él. Es un presupuesto normal: el precio **no** copia el de referencia, lo calcula el sistema para el cliente de la consulta (si la persona no tenía cuenta, para Consumidor final) y vos lo revisás antes de enviarlo. Los productos que ya no existen en el catálogo no se pasan y el aviso te dice cuántos fueron. El botón no cambia el estado de la consulta ni envía nada: seguís respondiendo por correo o WhatsApp y marcás la consulta como siempre.
 
 Cada persona puede mandar hasta 5 pedidos o consultas por hora; si manda más, la tienda le pide esperar. Los pedidos **no se borran solos**: quedan guardados con el nombre, el contacto, la nota y los productos de la persona. Si tenés que borrar uno, pedíselo al equipo técnico.
 

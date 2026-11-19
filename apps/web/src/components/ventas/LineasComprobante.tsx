@@ -20,6 +20,7 @@ import {
   TEXTO_AYUDA_LINEAS,
   parsearCantidadLinea,
   parsearPrecioLinea,
+  marcaListaLinea,
   rotuloEscalaLinea,
   type EntradaLinea,
   type LineaComprobante,
@@ -44,8 +45,9 @@ type Props = {
 }
 
 // Columnas del prototipo: Producto · Stock · Depósito de mercadería · Cantidad · Precio s/IVA · Subtotal.
-const COLUMNAS = 'minmax(0, 1fr) 84px 130px 130px 110px 100px'
-const ANCHO_MINIMO = 760
+// Precio y Subtotal son anchos para que importes grandes (cientos de unidades de un producto caro) no se pisen (MSF-629).
+export const COLUMNAS = 'minmax(0, 1fr) 84px 130px 130px 150px 170px'
+const ANCHO_MINIMO = 880
 
 const cabecera = { textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 } as const
 
@@ -300,6 +302,11 @@ function FilaLinea({ linea, indice, depositos, editable, puedeEditarPrecio, ocup
         <Typography variant="caption" color="text.secondary">
           {rotuloEscalaLinea(linea)}
         </Typography>
+        {marcaListaLinea(linea) ? (
+          <Typography variant="caption" color="text.secondary" component="p">
+            {marcaListaLinea(linea)}
+          </Typography>
+        ) : null}
       </Box>
       <Stack role="cell" direction="row" alignItems="center" justifyContent="flex-end" spacing={0.5}>
         <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>

@@ -38,6 +38,11 @@ const etiquetaSeccion = (clave: string) => {
   return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
+// Respuesta: `{resultado, nuevo, enviado}`.
+//   `nuevo`   → el pedido del día se creó en esta corrida.
+//   `enviado` → ESTA corrida envió el aviso y el SMTP lo aceptó. Si es `false`, el aviso ya había salido
+//               hoy o lo está enviando otra invocación: sin este campo el guion de verificación no puede
+//               distinguir «salió ahora» de «no salió nada» (MSF-532).
 export async function manejar(req: Request, { verificarJwt, caller, datos, enviar }: Deps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
@@ -54,16 +59,17 @@ export async function manejar(req: Request, { verificarJwt, caller, datos, envia
   const registro = data as ResultadoRpc
 
   // El correo del día ya salió: mismo resultado, sin reenviar (escenario 3).
-  if (registro.correo_enviado) return response({ resultado: 'solicitud_enviada', nuevo: false })
-  // Otra invocación concurrente ganó el envío: el pedido está registrado y ella lo avisa.
-  if (!(await datos.reclamarEnvio(registro.id))) return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo })
+  if (registro.correo_enviado) return response({ resultado: 'solicitud_enviada', nuevo: false, enviado: false })
+  // Otra invocación concurrente ganó el envío: el pedido está registrado y ella lo avisa. Esta corrida no
+  // envió nada, así que lo dice (`enviado: false`).
+  if (!(await datos.reclamarEnvio(registro.id))) return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado: false })
 
   try {
     const destinatarios = await datos.administradoresActivos(registro.organizacion_id)
     if (destinatarios.length === 0) {
       // El registro no se pierde; se libera para que un reintento avise cuando haya administrador.
       await datos.liberarEnvio(registro.id)
-      return response({ resultado: 'sin_administradores', nuevo: registro.nuevo })
+      return response({ resultado: 'sin_administradores', nuevo: registro.nuevo, enviado: false })
     }
     const nombre = (await datos.nombreVisible(usuario.id)) ?? usuario.email ?? 'Una persona de tu organización'
     const seccion = etiquetaSeccion(body.seccion)
@@ -77,5 +83,5 @@ export async function manejar(req: Request, { verificarJwt, caller, datos, envia
     await datos.liberarEnvio(registro.id).catch((err) => console.error('solicitar-acceso: no se pudo liberar el envío', registro.id, err))
     return response({ error: 'Tu solicitud quedó registrada, pero no pudimos avisar al administrador. Intentá de nuevo.' }, 502)
   }
-  return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo })
+  return response({ resultado: 'solicitud_enviada', nuevo: registro.nuevo, enviado: true })
 }

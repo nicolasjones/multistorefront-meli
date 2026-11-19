@@ -35,6 +35,38 @@ Los motivos son **la misma tabla** que edita `/stock/motivos`: el editor (`Panel
   del orden. Reordenar y borrar están fuera de alcance. El `orden` se calcula como `max(orden)+1` sin bloqueo: dos altas simultáneas pueden repetir `orden`; es
   cosmético (no hay reordenamiento ni se usa como clave) y se aceptó a propósito.
 
+- **Estados de sistema** (migración `20270507000400`, columna `es_sistema`): un estado que el flujo de la
+  consulta necesita (p. ej. el de la acción «Cerrar») no se desactiva, renombra ni borra. La guarda está en la
+  base (trigger `estados_consulta_proteger_sistema`, error `23514` con mensaje en castellano que la pantalla
+  muestra tal cual) y en la UI (botones deshabilitados con la explicación «Es un estado de sistema: lo
+  necesita el cierre de las consultas…»). Solo una migración marca un estado como de sistema: la guarda frena a quien usa la app
+  (`authenticated`/`anon`), pero `service_role` y las funciones `security definer` SÍ pueden marcar o desmarcar
+  `es_sistema` y deben hacerlo únicamente desde migraciones. Borrar una organización arrastra sus estados en
+  cascada, también los de sistema. **Hoy no hay ninguno marcado**: las consultas siguen con sus tres estados
+  fijos (Nueva, En curso, Resuelta) y la lista no se siembra; el primer estado de sistema lo marca la
+  migración de la funcionalidad que lo use. **Tarea para F-CFG-01:** esa migración deberá sembrar el estado de
+  cierre (con `es_sistema = true`) para cada organización y para las que se creen después. Pruebas: `listas_configurables.test.sql` y `listas.test.tsx`.
+
+## Estados configurables y `consultas.estado` (MSF-595, pendiente de decisión de producto)
+
+Hallazgo confirmado, **no es un defecto de código sino una decisión abierta**: `dominio.consultas.estado` tiene un
+check `('nueva', 'en_curso', 'resuelta')` y `public.actualizar_consulta` solo admite esos tres; `dominio.estados_consulta`
+(crear, renombrar, desactivar) **no está conectada** a la consulta, por lo que un estado nuevo como «Descartada» se
+puede crear pero ninguna consulta puede quedar en él. Es lo que dice la spec (Decisión abierta 4 y 7: «si los estados
+fueran fijos en código, se resuelve con el Administrador antes de seguir») y `docs/consultas.md` («tres estados fijos»);
+nadie confirmó el modelo definitivo.
+
+Conectarla no es una corrección menor: obliga a reemplazar el check por una referencia a la lista (FK compuesta
+`(estado_id, organizacion_id)`), sembrar los tres estados como de sistema por organización (`es_sistema`), migrar los
+datos, y adaptar la bandeja, sus filtros y badges, el resumen, los avisos y las exportaciones, todo contra un
+prototipo (`Consultas.dc.html`) que dibuja los tres estados fijos.
+
+**Decisión que falta**: ¿el Administrador puede agregar estados que una consulta efectivamente use? **Propuesta**:
+sí, con los tres actuales sembrados como estados de sistema (no desactivables ni renombrables), y los nuevos
+reciben un «grupo» (abierta / cerrada) para que filtros, contadores y el botón «Cerrar» sigan funcionando. Si la
+respuesta es no, se retira el panel «Estados de consulta» de Listas configurables para no ofrecer algo sin efecto.
+Hasta entonces no se toca código.
+
 ## Empresa activa
 
 No aplica: las listas son de la organización, no de una empresa. Un test de la pantalla verifica que

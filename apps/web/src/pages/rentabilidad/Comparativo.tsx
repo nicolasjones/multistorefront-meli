@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Alert, Stack } from '@mui/material'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
-import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
-import { NOMBRE_REPORTE_COMPARATIVO, PESTANAS_RENTABILIDAD, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
+import { NOMBRE_REPORTE_COMPARATIVO, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
+import { PestanasRentabilidad } from './PestanasRentabilidad'
 
 // «Rentabilidad · Comparativo» (F-REN-06; la pestaña no está en el prototipo, ver matriz de la spec).
 // La tabla producto × empresa, la diferencia en pp, mejor/peor, el buscador, el orden y el estado vacío
@@ -36,7 +36,7 @@ export function RentabilidadComparativo() {
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion="El tablero de Rentabilidad todavía no está disponible para tu organización." />
+    tablero = <EstadoTableroNoDisponible nombre="Rentabilidad" />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion="No pudimos cargar el tablero de Rentabilidad." reintentar={reintentar} />
   } else {
@@ -49,7 +49,7 @@ export function RentabilidadComparativo() {
         titulo="Rentabilidad"
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
-        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasRentabilidad />}
       />
       <Alert severity="info" role="status">
         Compará el margen del mismo producto en cada empresa. Solo aparecen los productos con margen calculado en dos o más empresas.

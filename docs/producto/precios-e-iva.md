@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/promociones.tsx
+  - apps/web/src/pages/productos/listas-de-precios.tsx
 ---
 
 # Cómo se calcula el precio final
@@ -135,6 +137,12 @@ Límites de hoy:
 - Se fija desde la ficha de un producto que ya existe; en el alta todavía no.
 - El listado de productos no muestra la marca «Precio propio».
 - Los precios propios no se envían a Mercado Libre: eso llega cuando esa integración esté activa.
+
+## Listas de precios (todavía no cambian el precio)
+
+En **Catálogo → Listas de precios** un administrador crea listas: cada una es un **porcentaje de ajuste sobre el precio central** (por ejemplo «Revendedores -20 %»; de -90 a +100, con hasta 2 decimales). Después, en «Editar cliente», elige la **Lista de precios** del cliente (una sola por cliente; el Consumidor final no admite lista).
+
+**Por ahora la lista solo se guarda y se asigna: no cambia ningún precio ni lo que se cobra.** La aplicación de la lista a las ventas y a la tienda llega en una etapa posterior y se enciende por separado. Una lista no se borra: se archiva, y no se puede archivar si tiene clientes asignados (primero reasignalos o quitales la lista). Si las listas están desactivadas en tu entorno, la pantalla lo avisa y solo deja archivar o restaurar.
 
 ## Probar un cambio antes de guardar: «Así quedan los precios»
 

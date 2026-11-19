@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link as EnlaceRuta, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { EstadoCargaPagina } from '../../../components/estados/EstadosPagina'
 import { useCapacidadesTienda } from '../../../hooks/useCapacidadesTienda'
+import { useCapacidadOpiniones } from '../../../hooks/useCapacidadOpiniones'
 import { useSesionClienteDetallada } from '../../../hooks/useSesionCliente'
 import { salirCliente } from '../../../lib/tiendaCuenta'
 import { enlaceIngresarConVolver } from '../../../lib/tiendaVolver'
@@ -12,12 +13,14 @@ import { HistorialMiCuenta } from '../cuenta/HistorialMiCuenta'
 import { ErrorConReintento } from '../ErrorConReintento'
 import { useContextoTienda } from '../layout/LayoutTienda'
 import { MigasTienda } from '../layout/MigasTienda'
+import { MisOpiniones } from '../opiniones/MisOpiniones'
 import { PaginaNoEncontrada } from '../PaginaNoEncontrada'
 import { CabeceraSeo } from '../seo/CabeceraSeo'
 
-type Seccion = 'compras' | 'favoritos'
-const SECCIONES: readonly Seccion[] = ['compras', 'favoritos']
-const seccionDe = (valor: string | null): Seccion => (valor === 'favoritos' ? 'favoritos' : 'compras')
+type Seccion = 'compras' | 'favoritos' | 'opiniones'
+// «Mis opiniones» (MSF-467) solo existe con la función encendida: con la bandera apagada la pantalla es la de siempre.
+const seccionesDisponibles = (conOpiniones: boolean): readonly Seccion[] => (conOpiniones ? ['compras', 'favoritos', 'opiniones'] : ['compras', 'favoritos'])
+const seccionDe = (valor: string | null, conOpiniones: boolean): Seccion => (valor === 'favoritos' ? 'favoritos' : valor === 'opiniones' && conOpiniones ? 'opiniones' : 'compras')
 
 // `/mi-cuenta` (F-CLI-20, FR-001/FR-002/FR-011/FR-014, P-3): las compras y presupuestos del cliente y sus favoritos, en pestañas
 // (`?seccion=compras|favoritos`; el detalle de un comprobante viaja en `?compra=<id>`). Sin sesión, o con una cuenta que no está
@@ -34,13 +37,15 @@ export default function RutaMiCuenta() {
   const navigate = useNavigate()
   const [sinAcceso, setSinAcceso] = useState(false)
   const [saliendo, setSaliendo] = useState(false)
-  const [visitadas, setVisitadas] = useState<ReadonlySet<Seccion>>(() => new Set([seccionDe(params.get('seccion'))]))
+  const [visitadas, setVisitadas] = useState<ReadonlySet<Seccion>>(() => new Set<Seccion>(['compras']))
   const titulo = useRef<HTMLHeadingElement | null>(null)
-  const seccion = seccionDe(params.get('seccion'))
+  const listaParaMostrar = capacidades.fase === 'lista' && capacidades.pedidos && sesion.estado === 'activa'
+  // Solo se pregunta con la cuenta ya mostrable: sin sesión o con la función de cuentas apagada no hay llamadas de más.
+  const conOpiniones = useCapacidadOpiniones(host, listaParaMostrar)
+  const seccion = seccionDe(params.get('seccion'), conOpiniones)
   const compra = params.get('compra')
   const alSinAcceso = useCallback(() => setSinAcceso(true), [])
 
-  const listaParaMostrar = capacidades.fase === 'lista' && capacidades.pedidos && sesion.estado === 'activa'
   // Al entrar (y al pasar de «cargando» a la pantalla, o al aviso de cuenta inactiva) el foco va al título de la página.
   useEffect(() => {
     if (listaParaMostrar) titulo.current?.focus()
@@ -113,13 +118,16 @@ export default function RutaMiCuenta() {
           >
             <Tab value="compras" label="Compras y presupuestos" id="mi-cuenta-tab-compras" aria-controls="mi-cuenta-panel-compras" />
             <Tab value="favoritos" label="Favoritos" id="mi-cuenta-tab-favoritos" aria-controls="mi-cuenta-panel-favoritos" />
+            {conOpiniones ? <Tab value="opiniones" label="Mis opiniones" id="mi-cuenta-tab-opiniones" aria-controls="mi-cuenta-panel-opiniones" /> : null}
           </Tabs>
-          {SECCIONES.map((nombre) => (
+          {seccionesDisponibles(conOpiniones).map((nombre) => (
             <Box key={nombre} role="tabpanel" id={`mi-cuenta-panel-${nombre}`} aria-labelledby={`mi-cuenta-tab-${nombre}`} hidden={seccion !== nombre} sx={{ pt: 2 }}>
               {visitadas.has(nombre) || seccion === nombre ? (
                 nombre === 'compras'
                   ? <HistorialMiCuenta host={host} alSinAcceso={alSinAcceso} />
-                  : <FavoritosMiCuenta host={host} alSinAcceso={alSinAcceso} />
+                  : nombre === 'favoritos'
+                    ? <FavoritosMiCuenta host={host} alSinAcceso={alSinAcceso} />
+                    : <MisOpiniones host={host} alSinAcceso={alSinAcceso} />
               ) : null}
             </Box>
           ))}

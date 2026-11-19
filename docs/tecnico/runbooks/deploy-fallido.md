@@ -1,8 +1,10 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - .github/workflows/validate.yml
+  - scripts/preflight-deploy-vps.mjs
+  - scripts/preparar-known-hosts-vps.mjs
 ---
 
 # Deploy fallido
@@ -15,6 +17,11 @@ sources:
 
 1. Identificar el entorno y el commit: `gh pr view <PR>`, `Deployment Status`, logs de Dokploy.
 2. Si el deploy falló **antes** de tocar datos: reintentar el deploy del mismo commit; no re-mergear.
+   En staging/production el deploy de infraestructura del VPS es estricto: si el job corta en el preflight (`scripts/preflight-deploy-vps.mjs`), el
+   mensaje lista **solo nombres** de las variables que faltan en el secret `VPS_DEPLOY_ENV` (credenciales de Kestra, Superset y Nango, o las
+   `*_IMAGEN` de los workers, que deben ir por `@sha256:<digest>` o tag de commit); si falla «Iniciar ssh-agent», falta la clave de host
+   (`VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.<entorno>`). Se corrige el secret o el archivo y se vuelve a disparar el job; no es un fallo de
+   la aplicación. Dev solo advierte (modo transicional). Detalle en [Deployment](../../deployment.md#credenciales-obligatorias-imagenes-inmutables-y-clave-de-host-modo-transicional-msf-705-msf-706-msf-712).
 3. Si falló **después** de una migración: no reintentar a ciegas; verificar `schema_migrations` y el estado de la base.
 4. Si el panel quedó en una versión rota: rollback al deploy anterior (Dokploy) o revert del merge en `main` (PR de revert).
 5. Confirmar que los jobs/workers no quedaron a mitad: revisar la cola y ejecuciones.
@@ -34,3 +41,5 @@ Si el rollback no aplica o hay datos inconsistentes: escalar a orquestación/CTO
 > **CI (2026-10-27):** los `.md` de raíz (`CLAUDE.md`, `AGENTS.md`) ya no cuentan como cambio de la app web. Antes, un PR sólo de docs encendía el e2e sin `build` y moría con *"Falta apps/web/dist"*; ahora, si el e2e corre, el `build` corre antes.
 
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
+
+> **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.

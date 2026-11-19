@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { armarMensaje, normalizarNumero, urlWhatsapp } from './whatsapp'
+import { armarMensaje, avisoFormatoWhatsapp, normalizarNumero, urlWhatsapp } from './whatsapp'
 
 // F-TDA-14 (FR-022, FR-023): número, mensaje y URL del enlace de WhatsApp desde la ficha.
 describe('normalizarNumero', () => {
@@ -106,5 +106,19 @@ describe('urlWhatsapp', () => {
     // `no-script-url` del gate de calidad, aunque acá solo sea una entrada de prueba.
     const esquemaEjecutable = ['java', 'script:alert(1)'].join('')
     expect(urlWhatsapp(esquemaEjecutable, 'Hola')).toBeNull()
+  })
+})
+
+describe('avisoFormatoWhatsapp', () => {
+  it('no avisa con vacío, correo o número normalizable', () => {
+    expect(avisoFormatoWhatsapp('')).toBeNull()
+    expect(avisoFormatoWhatsapp(null)).toBeNull()
+    expect(avisoFormatoWhatsapp('a@b.com')).toBeNull()
+    expect(avisoFormatoWhatsapp('+54 9 11 1234-5678')).toBeNull()
+    expect(avisoFormatoWhatsapp('11 1234 5678')).toBeNull()
+  })
+  it('avisa con un número que no se puede normalizar', () => {
+    expect(avisoFormatoWhatsapp('1234')).toMatch(/No reconocemos/)
+    expect(avisoFormatoWhatsapp('12345678')).toMatch(/No reconocemos/)
   })
 })

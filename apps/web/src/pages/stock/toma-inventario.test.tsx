@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   categorias: vi.fn(),
   filas: vi.fn(),
   confirmar: vi.fn(),
+  deposito: vi.fn(),
   from: vi.fn(),
 }))
 
@@ -21,6 +22,7 @@ vi.mock('../../lib/tomaInventario', async (importarOriginal) => ({
   ...(await importarOriginal<typeof import('../../lib/tomaInventario')>()),
   cargarFilasToma: mocks.filas,
   confirmarToma: mocks.confirmar,
+  cargarDepositoToma: mocks.deposito,
 }))
 
 import { TomaInventario } from './toma-inventario'
@@ -52,6 +54,7 @@ describe('TomaInventario', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.nivel.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.categorias.mockResolvedValue(CATEGORIAS)
+    mocks.deposito.mockResolvedValue({ id: 'dep-1', nombre: 'Depósito central' })
     mocks.filas.mockImplementation(async (ids: string[]) => (ids.includes('c-2') ? [] : FILAS))
     mocks.confirmar.mockResolvedValue([
       { producto: 'p-2', diferencia: -3, saldo: 2, movimiento_id: 'm-1' },
@@ -67,7 +70,24 @@ describe('TomaInventario', () => {
     }
     expect(within(tabla).getAllByRole('row')).toHaveLength(5)
     expect(within(tabla).getByText('JOY-1')).toBeInTheDocument()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'])
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false)
+  })
+
+  it('muestra el depósito de la toma y ofrece «Sin categoría»', async () => {
+    mocks.filas.mockResolvedValue(FILAS)
+    await abrir('Sin categoría')
+    expect(await screen.findByDisplayValue('Depósito central')).toBeDisabled()
+    expect(await screen.findByRole('table', { name: 'Productos de la toma de inventario' })).toBeInTheDocument()
+    expect(mocks.filas).toHaveBeenCalledWith([], true)
+  })
+
+  it('si falla la carga del depósito avisa con «Reintentar» y al reintentar lo muestra', async () => {
+    mocks.deposito.mockRejectedValueOnce(new Error('red caída'))
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    expect(await screen.findByText('No pudimos cargar el depósito sobre el que opera la toma.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+    expect(await screen.findByDisplayValue('Depósito central')).toBeInTheDocument()
+    expect(screen.queryByText('No pudimos cargar el depósito sobre el que opera la toma.')).not.toBeInTheDocument()
   })
 
   it('una categoría sin productos muestra el estado vacío', async () => {
@@ -153,6 +173,6 @@ describe('TomaInventario', () => {
     await abrir()
     await screen.findByRole('table')
     expect(mocks.from).not.toHaveBeenCalled()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'])
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false)
   })
 })

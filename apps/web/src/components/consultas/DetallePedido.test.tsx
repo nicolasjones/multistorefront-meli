@@ -1,15 +1,24 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ANCHOS_TIENDA, fijarAncho } from '../../test/ancho'
 import { violacionesAxe } from '../../test/axe'
 
-const mocks = vi.hoisted(() => ({ useItemsConsulta: vi.fn(), reintentar: vi.fn(), nivelClientes: 'ninguno' as string | null }))
+const mocks = vi.hoisted(() => ({
+  useItemsConsulta: vi.fn(), reintentar: vi.fn(), nivelClientes: 'ninguno' as string | null, nivelVentas: 'ninguno' as string | null,
+  crearPresupuesto: vi.fn(), navegar: vi.fn(),
+}))
 
 vi.mock('../../hooks/useRespuestasRapidas', () => ({ useRespuestasRapidas: () => ({ respuestas: [], isLoading: false, isError: false, refetch: vi.fn() }) }))
 vi.mock('../../hooks/useConsultas', () => ({ useResponsablesConsultas: () => ({ responsables: [], isLoading: false, isError: false }) }))
 vi.mock('../../hooks/useItemsConsulta', () => ({ useItemsConsulta: mocks.useItemsConsulta }))
-vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: mocks.nivelClientes, isLoading: false, error: false }) }))
+// Cada sección tiene su nivel: «clientes» y «ventas» no se confunden.
+vi.mock('../../hooks/useNivelSeccion', () => ({
+  useNivelSeccion: (seccion: string) => ({ nivel: seccion === 'ventas' ? mocks.nivelVentas : mocks.nivelClientes, isLoading: false, error: false }),
+}))
+vi.mock('../../hooks/useContextoPanel', () => ({ useContextoPanel: () => ({ contexto: { organizacion_id: 'org-1' } }) }))
+vi.mock('react-router', async (original) => ({ ...(await original<typeof import('react-router')>()), useNavigate: () => mocks.navegar }))
+vi.mock('../../lib/presupuestoDesdePedido', async (original) => ({ ...(await original<typeof import('../../lib/presupuestoDesdePedido')>()), crearPresupuestoDesdePedido: mocks.crearPresupuesto }))
 vi.mock('../../pages/consultas/ContactoConsulta', () => ({ ContactoConsulta: () => null }))
 
 import type { Consulta, ItemConsulta } from '../../lib/consultas'
@@ -36,6 +45,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   fijarAncho(1440)
   mocks.nivelClientes = 'ninguno'
+  mocks.nivelVentas = 'ninguno'
   mocks.useItemsConsulta.mockReturnValue(lista())
 })
 
@@ -182,4 +192,74 @@ describe.each(ANCHOS_TIENDA)('accesibilidad del detalle de un pedido a %i px', (
     const conError = montar()
     expect(await violacionesAxe(conError.baseElement)).toEqual([])
   }, 60000)
+})
+
+// MSF-941: «Crear presupuesto» desde el pedido.
+describe('DetalleConsulta · crear presupuesto desde el pedido', () => {
+  const boton = () => screen.getByRole('button', { name: 'Crear presupuesto' })
+
+  it('lo ofrece solo con edición de Ventas (la de otras secciones no cuenta)', () => {
+    mocks.nivelClientes = 'edicion'
+    mocks.nivelVentas = 'lectura'
+    const { unmount } = montar()
+    expect(screen.queryByRole('button', { name: 'Crear presupuesto' })).toBeNull()
+    unmount()
+    mocks.nivelClientes = 'ninguno'
+    mocks.nivelVentas = 'edicion'
+    montar()
+    expect(boton()).toBeEnabled()
+  })
+
+  it('con los ítems todavía cargando queda deshabilitado', () => {
+    mocks.nivelVentas = 'edicion'
+    mocks.useItemsConsulta.mockReturnValue({ fase: 'cargando', items: [], reintentar: mocks.reintentar })
+    montar()
+    expect(boton()).toBeDisabled()
+  })
+
+  it('al hacer clic crea el presupuesto con los ítems, queda deshabilitado mientras corre y navega a él', async () => {
+    mocks.nivelVentas = 'edicion'
+    let terminar: (valor: { id: string; numero: string; omitidas: number }) => void = () => undefined
+    mocks.crearPresupuesto.mockReturnValue(new Promise((resolver) => { terminar = resolver }))
+    montar()
+    fireEvent.click(boton())
+    expect(mocks.crearPresupuesto).toHaveBeenCalledWith(expect.objectContaining({ id: 'c1000000-0000-0000-0000-0000000000b1' }), ITEMS, 'org-1')
+    await waitFor(() => expect(boton()).toBeDisabled())
+    terminar({ id: 'pr-1', numero: '00000009', omitidas: 0 })
+    await waitFor(() => expect(mocks.navegar).toHaveBeenCalledWith('/ventas/comprobantes/pr-1', { state: expect.objectContaining({ mensaje: expect.stringContaining('00000009') }) }))
+  })
+
+  it('las líneas omitidas viajan como aviso en el estado de la ruta', async () => {
+    mocks.nivelVentas = 'edicion'
+    mocks.crearPresupuesto.mockResolvedValue({ id: 'pr-1', numero: '00000009', omitidas: 1 })
+    montar()
+    fireEvent.click(boton())
+    await waitFor(() => expect(mocks.navegar).toHaveBeenCalledWith('/ventas/comprobantes/pr-1', { state: { aviso: expect.stringContaining('1 línea') } }))
+  })
+
+  it('un error de negocio se muestra en el diálogo y no navega', async () => {
+    mocks.nivelVentas = 'edicion'
+    const { ErrorPresupuestoDesdePedido } = await import('../../lib/presupuestoDesdePedido')
+    mocks.crearPresupuesto.mockRejectedValue(new ErrorPresupuestoDesdePedido('El pedido no tiene productos que sigan en el catálogo.'))
+    montar()
+    fireEvent.click(boton())
+    expect(await screen.findByText('El pedido no tiene productos que sigan en el catálogo.')).toBeInTheDocument()
+    expect(mocks.navegar).not.toHaveBeenCalled()
+  })
+
+  it('si el presupuesto quedó creado pero vacío lleva a él con el aviso, sin invitar a reintentar', async () => {
+    mocks.nivelVentas = 'edicion'
+    const { ErrorPresupuestoDesdePedido } = await import('../../lib/presupuestoDesdePedido')
+    mocks.crearPresupuesto.mockRejectedValue(new ErrorPresupuestoDesdePedido('Se creó el presupuesto N° 00000009 pero no se pudieron cargar los productos: abrilo y agregalos a mano.', { id: 'pr-1', numero: '00000009' }))
+    montar()
+    fireEvent.click(boton())
+    await waitFor(() => expect(mocks.navegar).toHaveBeenCalledWith('/ventas/comprobantes/pr-1', { state: { aviso: expect.stringContaining('00000009') } }))
+    expect(screen.queryByText(/No pudimos crear/)).toBeNull()
+  })
+
+  it('con el botón visible no hay violaciones de accesibilidad (axe)', async () => {
+    mocks.nivelVentas = 'edicion'
+    montar()
+    expect(await violacionesAxe(document.body)).toEqual([])
+  })
 })

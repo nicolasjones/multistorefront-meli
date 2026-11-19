@@ -3,7 +3,7 @@
 -- request.jwt.claims. Dos organizaciones y dos roles (administrador y depósito).
 begin;
 
-select plan(24);
+select plan(26);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -43,7 +43,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-
 set local role authenticated;
 
 select is(
-  (select count(*)::int from public.tipos_aviso), 1,
+  (select count(*)::int from public.tipos_aviso where clave = 'consulta_nueva'), 1,
   'authenticated lee el catálogo'
 );
 select throws_ok(
@@ -51,7 +51,7 @@ select throws_ok(
   '42501', null, 'authenticated no escribe el catálogo'
 );
 select is(
-  (select count(*)::int from public.listar_preferencias_aviso()), 1,
+  (select count(*)::int from public.listar_preferencias_aviso() where tipo = 'consulta_nueva'), 1,
   'el administrador ve el tipo de la sección consultas'
 );
 select is(
@@ -93,7 +93,16 @@ select throws_ok(
 select set_config('request.jwt.claims', json_build_object('sub', 'a1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 
 select is(
-  (select count(*)::int from public.listar_preferencias_aviso()), 0,
+  (select coalesce(array_agg(tipo order by tipo), '{}'::text[]) from public.listar_preferencias_aviso()),
+  array['presupuesto_tienda_nuevo']::text[],
+  'el rol depósito ve exactamente los tipos de las secciones a las que accede'
+);
+select is(
+  (select count(*)::int from public.listar_preferencias_aviso() l join public.tipos_aviso t on t.clave = l.tipo where t.seccion = 'consultas'), 0,
+  'el rol depósito no ve ningún tipo de la sección consultas'
+);
+select is(
+  (select count(*)::int from public.listar_preferencias_aviso() where tipo = 'consulta_nueva'), 0,
   'un rol sin acceso a Consultas no ve el tipo consulta_nueva'
 );
 select throws_ok(

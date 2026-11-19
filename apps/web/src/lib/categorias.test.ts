@@ -175,18 +175,69 @@ describe('acceso a datos', () => {
     expect(rpc).toHaveBeenLastCalledWith('asignar_categoria_producto', { p_producto_id: 'p-1', p_categoria_id: 'joy' })
     await expect(reordenarCategorias({ rpc } as never, [])).rejects.toMatchObject({ code: '23514' })
   })
+  // Cliente falso que sirve `filas` por tandas respetando `.range(desde, hasta)`.
+  const tablaPaginada = (filas: unknown[], pedidos: Array<[number, number]> = []) => ({
+    select: () => {
+      const q = { order: () => q, range: (d: number, h: number) => { pedidos.push([d, h]); return { returns: () => Promise.resolve({ data: filas.slice(d, h + 1), error: null }) } } }
+      return q
+    },
+  })
   it('leerCategorias junta categorías, visibilidad por tienda y conteos', async () => {
-    const tablas: Record<string, unknown> = {
-      categorias: { data: [{ id: 'joy', nombre: 'Joysticks', padre_id: null, posicion: 0 }], error: null },
-      categorias_empresa: { data: [{ categoria_id: 'joy', empresa_id: 'e1' }, { categoria_id: 'joy', empresa_id: 'e2' }], error: null },
+    const tablas: Record<string, unknown[]> = {
+      categorias: [{ id: 'joy', nombre: 'Joysticks', padre_id: null, posicion: 0 }],
+      categorias_empresa: [{ categoria_id: 'joy', empresa_id: 'e1' }, { categoria_id: 'joy', empresa_id: 'e2' }],
     }
     const cliente = {
-      schema: () => ({ from: (tabla: string) => ({ select: () => ({ returns: () => Promise.resolve(tablas[tabla]) }) }) }),
-      from: () => ({ select: () => ({ returns: () => Promise.resolve({ data: [{ categoria_id: 'joy', productos: 4 }], error: null }) }) }),
+      schema: () => ({ from: (tabla: string) => tablaPaginada(tablas[tabla]) }),
+      from: () => tablaPaginada([{ categoria_id: 'joy', productos: 4 }]),
     }
     const { categorias, conteos } = await leerCategorias(cliente as never)
     expect(categorias).toEqual([{ id: 'joy', nombre: 'Joysticks', padre_id: null, posicion: 0, empresa_ids: ['e1', 'e2'] }])
     expect(conteos.get('joy')).toBe(4)
+  })
+  it('leerCategorias ordena los conteos por organización y categoría (la vista no tiene clave única)', async () => {
+    const ordenes: string[] = []
+    const vacia = (registrar: boolean) => ({
+      select: () => {
+        const q = {
+          order: (columna: string) => { if (registrar) ordenes.push(columna); return q },
+          range: () => ({ returns: () => Promise.resolve({ data: [], error: null }) }),
+        }
+        return q
+      },
+    })
+    const cliente = { schema: () => ({ from: () => vacia(false) }), from: () => vacia(true) }
+    await leerCategorias(cliente as never)
+    expect(ordenes).toEqual(['organizacion_id', 'categoria_id'])
+  })
+  it('leerCategorias pagina: no se queda en el tope de 1000 filas de PostgREST', async () => {
+    const muchas = Array.from({ length: 1200 }, (_, i) => ({ id: `c${i}`, nombre: `C${i}`, padre_id: null, posicion: i }))
+    const pedidos: Array<[number, number]> = []
+    const cliente = {
+      schema: () => ({ from: (tabla: string) => tablaPaginada(tabla === 'categorias' ? muchas : [], tabla === 'categorias' ? pedidos : []) }),
+      from: () => tablaPaginada([]),
+    }
+    const { categorias } = await leerCategorias(cliente as never)
+    expect(categorias).toHaveLength(1200)
+    expect(pedidos).toEqual([[0, 499], [500, 999], [1000, 1499]])
+  })
+  it('leerCategorias no cicla sin fin si el servidor ignora el rango', async () => {
+    const bloque = Array.from({ length: 500 }, (_, i) => ({ id: `c${i}`, nombre: `C${i}`, padre_id: null, posicion: i }))
+    let llamadas = 0
+    const sinRango = {
+      select: () => {
+        const q = { order: () => q, range: () => ({ returns: () => { llamadas += 1; return Promise.resolve({ data: bloque, error: null }) } }) }
+        return q
+      },
+    }
+    const cliente = { schema: () => ({ from: () => sinRango }), from: () => sinRango }
+    await expect(leerCategorias(cliente as never)).rejects.toThrow(/máximo de filas/)
+    expect(llamadas).toBeLessThanOrEqual(3 * 200)
+  })
+  it('leerCategorias propaga el error de una tanda', async () => {
+    const mala = { select: () => { const q = { order: () => q, range: () => ({ returns: () => Promise.resolve({ data: null, error: { code: '42501' } }) }) }; return q } }
+    const cliente = { schema: () => ({ from: () => mala }), from: () => mala }
+    await expect(leerCategorias(cliente as never)).rejects.toMatchObject({ code: '42501' })
   })
   it('mensajeErrorCategoria muestra el texto de la base solo para errores esperados', () => {
     expect(mensajeErrorCategoria({ code: '23505', message: 'Ya existe una categoría con ese nombre en ese nivel' }, 'x')).toBe('Ya existe una categoría con ese nombre en ese nivel')

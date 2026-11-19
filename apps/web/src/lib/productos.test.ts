@@ -16,6 +16,18 @@ import {
 
 const valido = { ...FORMULARIO_PRODUCTO_VACIO, nombre: 'Joystick Pro', precio_lista: '49,90' }
 
+describe('validarProducto con costo ya cargado', () => {
+  const base = { ...FORMULARIO_PRODUCTO_VACIO, nombre: 'Joystick', precio_lista: '100' }
+  it('rechaza vaciar el costo: la base lo leería como «sin cambio»', () => {
+    expect(validarProducto({ ...base, costo: '' }, { conCosto: true, costoInicial: '45.5' }).costo).toMatch(/ingresá 0/)
+  })
+  it('acepta 0, un costo nuevo y un producto que nunca tuvo costo', () => {
+    expect(validarProducto({ ...base, costo: '0' }, { conCosto: true, costoInicial: '45.5' }).costo).toBeUndefined()
+    expect(validarProducto({ ...base, costo: '' }, { conCosto: true, costoInicial: '' }).costo).toBeUndefined()
+    expect(validarProducto({ ...base, costo: '' }, { conCosto: false, costoInicial: '45.5' }).costo).toBeUndefined()
+  })
+})
+
 describe('validarProducto', () => {
   it('exige nombre y precio de lista', () => {
     const errores = validarProducto(FORMULARIO_PRODUCTO_VACIO, { conCosto: false })

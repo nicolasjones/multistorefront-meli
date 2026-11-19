@@ -3,10 +3,17 @@ owner: tecnico
 sources:
   - specs/20261030-100000-inicio-y-alertas
   - specs/20270305-100000-inicio-tablero-completo
-  - infra/kestra
+  - infra/kestra/flows/alertas-inicio.yml
   - apps/web/src/lib/inicio.ts
   - apps/web/src/pages/inicio
-  - supabase/functions
+  - apps/web/e2e/inicio.e2e.ts
+  - supabase/functions/recalcular-alertas-inicio
+  - supabase/functions/_shared/token.ts
+  - supabase/migrations/20270201200138_alertas_inicio_recalculo.sql
+  - supabase/migrations/20270325000000_alertas_inicio_cobros_y_faltantes.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270324120200_resumen_inicio_bloques_seccion.sql
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
 ---
 
 # Inicio y alertas
@@ -153,9 +160,9 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
 - **Actividad reciente**: los últimos 10 eventos del período y de la tienda elegida, con fecha, usuario y enlace
   (cada fila y «Ver todo» llevan a Actividad). No lleva depósito (el registro no lo guarda) ni columna «Cant.»
   (el registro guarda un texto de detalle, no una cantidad).
-- «Resumen por tienda» y «Salidas por depósito» salen de la **misma lectura**: si falla, fallan los dos con su
-  propio reintento; la actividad es independiente. **Desvío** de RF-INI-05-7 / CA-INI-05-8 (error independiente por
-  bloque): seguimiento en **MSF-850**.
+- «Resumen por tienda» y «Salidas por depósito» se leen **por separado** (MSF-850, RF-INI-05-7 / CA-INI-05-8): cada uno con
+  su carga, su error y su «Reintentar»; si falla uno, el otro sigue visible, y la actividad también es independiente
+  (`apps/web/src/pages/inicio/tablero/BloquesGestion.tsx`, componentes `ResumenTiendas` y `SalidasDepositos`; ver más abajo).
 - Si la base devuelve `null` en un bloque (por ejemplo, una tienda donde el rol no tiene `ventas`), el bloque dice
   «No tenés ventas habilitadas en esta tienda» (o «No tenés Stock habilitado») en vez de quedar en blanco. Una tienda
   sin ventas dice «Sin ventas en el período»; «sin costo cargado» queda para una tienda con ventas sin costo guardado.
@@ -338,7 +345,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
-| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; no hay migración de alertas | Bloque «Qué hacer hoy» |
+| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; MSF-930 sumó `cobros_pendientes` y `faltantes` (migración `20270325000000`) | Bloque «Qué hacer hoy» |
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Ventas del período |
 | D-3 | «Entradas» de **Stock hoy** = movimientos `entrada` sin traslados, devoluciones de cliente ni anulaciones; «Ajustes» = solo `ajuste` | Stock hoy |
 | D-4 | Costo, valor y margen solo con `rentabilidad` ≥ lectura (Administrador y Administración) | Resumen por tienda |
@@ -356,12 +363,12 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Desvío | Seguimiento |
 |---|---|
 | El tema del panel no tiene modo oscuro: no hay modo oscuro que verificar en el gráfico (RF-INI-04-7) | **MSF-849** |
-| «Resumen por tienda» y «Salidas por depósito» comparten una lectura: si falla, fallan juntos (RF-INI-05-7 / CA-INI-05-8 pide error independiente por bloque) | **MSF-850** |
+| ~~«Resumen por tienda» y «Salidas por depósito» comparten una lectura~~ | Resuelto en MSF-850: lecturas independientes con `p_seccion` (migración `20270324120200`) |
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
 | ~~`AlertasInicio` mostraba la alerta `dolar_sin_cargar` a quien solo tiene lectura~~ | **Resuelto** (2026-11-14): solo la ve quien edita `cotizacion_dolar` (CA-INI-07-7) |
-| «Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1) | **MSF-930** |
+| ~~«Qué hacer hoy» no suma cobros pendientes ni faltantes (D-1)~~ | **Resuelto** (MSF-930): tipos `cobros_pendientes` y `faltantes`, sin umbral; ver [Tipos y origen](#tipos-y-origen-fr-021) |
 | ~~Rentabilidad se evalúa por organización y ventas por tienda~~ | **Resuelto** en el PR #909 (migración `20270306110000`): ingresos y margen se evalúan con el rol del usuario en cada tienda (H-3 = S-4 de la revisión de seguridad) |
 | **Falta el manual de usuario de Inicio con sus capturas**: los manuales viven en la rama `main` y se publican aparte | Anotado en `tasks.md` (cierre) y en el PR; no se toca desde esta rama |
 
@@ -379,6 +386,15 @@ que la base calcula cada 15 minutos; cada una enlaza a la pantalla donde se resu
 | `consultas_sin_atender` | consultas en estado `nueva` | por empresa | `consultas` | `/consultas` |
 | `dolar_sin_cargar` | no hay carga confirmada hoy (hora de Buenos Aires) | organización | `cotizacion_dolar` | `/cotizacion` |
 | `margen_negativo` | productos con margen negativo (`analitica.margen_producto_canal`, solo si la vista existe) | por empresa | `rentabilidad` | `/rentabilidad/productos` |
+| `cobros_pendientes` | facturas confirmadas con saldo neto mayor a cero (total menos cobros y notas de crédito, el mismo saldo de `private.saldo_comprobante`), de empresas activas (MSF-930) | por empresa | `ventas` | `/ventas/comprobantes` |
+| `faltantes` | líneas faltantes (factura confirmada «A pedido» con reserva activa) con aviso de reposición `pendiente` o `enviado` y todavía abiertas, de empresas activas (circuito de MSF-161; MSF-930) | por empresa | `stock` | `/stock/faltantes` |
+
+Los dos tipos de MSF-930 **no tienen umbral**: aparecen si hay al menos uno. La migración
+`20270325000000_alertas_inicio_cobros_y_faltantes.sql` amplía los `check` de `dominio.alertas_inicio` y suma los dos
+bloques a `recalcular_alertas_inicio`; la visibilidad sigue siendo la de la RLS existente (sección ≥ lectura y empresa
+accesible). Un faltante deja de contarse cuando se resuelve (la reserva se descuenta o se libera) o su aviso queda
+`agotado`; una factura deja de contarse al cobrarse por completo o cubrirse con notas de crédito. Reversión: ver la
+cabecera de la migración. Prueba: `supabase/tests/database/alertas_inicio_cobros_faltantes.test.sql`.
 
 Las alertas de **Mercado Libre / precios en revisión no existen** (FR-027): el `check` de `tipo` no las admite,
 el cálculo no las genera y la pantalla ignora cualquier tipo que no esté en su lista cerrada. Se agregan
@@ -402,7 +418,9 @@ Migraciones `20270121120000`, `20270121121100`, `20270121121200`. El enlace sale
 Flow de Kestra `infra/kestra/flows/alertas-inicio.yml` (cada 15 minutos, D-2) → Edge Function
 `recalcular-alertas-inicio` (`POST {"barrer": true}` con `x-aviso-token`) → `recalcular_alertas_inicio` por
 organización. Es idempotente: correrlo dos veces deja el mismo conjunto. Si una organización falla, la función
-sigue con las demás y responde 502 para que Kestra reintente. Cada cálculo queda en
+sigue con las demás y responde 502 para que Kestra reintente.
+
+**Autenticación de la función.** Compara `x-aviso-token` con `tokenValido` (`supabase/functions/_shared/token.ts`: SHA-256 de ambos valores y `timingSafeEqual`, de modo que no se corta por longitud ni el tiempo revela el largo del token). Sin token configurado, o con uno débil (menos de 32 caracteres o que empieza con `change-me`, salvo `AVISOS_PERMITIR_TOKEN_DEBIL=true`, que es solo para local), responde 503 «La función no está configurada» (`tokenDeEntorno` en `index.ts`); con un token que no coincide, 403. El flow `alertas-inicio` corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`) y, si falla, avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (solo el nombre de la tarea y el id de la ejecución). Cada cálculo queda en
 `dominio.alertas_inicio_calculos`; los errores, sin datos de negocio, en los registros de la función.
 
 Variables (solo ejemplos, valores reales en archivos ignorados por Git):
@@ -456,3 +474,7 @@ web servida; se omite sin `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (ver [`do
 ## Alerta de dólar: se recalcula al cambiar la configuración (MSF-352)
 
 `guardar_configuracion_cotizacion` y `cambiar_alcance_cotizacion` llaman a `recalcular_alertas_inicio` en la misma transacción: apagar o encender «Aviso en Inicio» o cambiar el alcance actualiza `dolar_sin_cargar` de inmediato (antes quedaba desfasada hasta el siguiente barrido). Prueba: `cotizacion_revision_msf352.test.sql`.
+
+### «Resumen por tienda» y «Salidas por depósito» con error y reintento independientes (MSF-850)
+
+`resumen_inicio_bloques` recibe un parámetro `p_seccion` (`por_tienda`, `salidas_por_deposito` o nulo para ambas): la sección que no se pide no se calcula y vuelve nula, y un valor desconocido responde 22023. En la pantalla cada bloque hace su propia lectura, con carga, error y «Reintentar» propios: si uno falla el otro sigue visible y reintentar uno no vuelve a pedir el otro. La firma anterior de 4 parámetros se elimina. Migración `20270324120200`.

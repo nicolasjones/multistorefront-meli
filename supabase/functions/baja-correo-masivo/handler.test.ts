@@ -80,4 +80,45 @@ describe('baja-correo-masivo', () => {
     assert.equal((await manejar(pedido(null, 'GET'), deps)).status, 405)
     assert.equal((await manejar(pedido(null, 'OPTIONS'), deps)).status, 200)
   })
+
+  // CORS: la página de baja corre en el dominio de cada tienda y llama con `supabase.functions.invoke`.
+  it('el preflight permite cualquier origen de tienda, el método POST y los encabezados que manda el SDK', async () => {
+    const { deps, llamadas } = montar()
+    const res = await manejar(new Request('http://localhost/baja-correo-masivo', {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://tienda-ejemplo.com', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,apikey,x-client-info,content-type' },
+    }), deps)
+    assert.equal(res.status, 200)
+    assert.equal(res.headers.get('access-control-allow-origin'), '*')
+    const metodos = (res.headers.get('access-control-allow-methods') ?? '').split(',').map((m) => m.trim())
+    assert.ok(metodos.includes('POST') && metodos.includes('OPTIONS'))
+    const permitidos = (res.headers.get('access-control-allow-headers') ?? '').split(',').map((h) => h.trim().toLowerCase())
+    // Los cuatro que manda `functions.invoke` y los opcionales del SDK (`@supabase/supabase-js/cors`, versión del lockfile).
+    for (const h of ['authorization', 'apikey', 'x-client-info', 'content-type', 'x-retry-count', 'traceparent', 'tracestate', 'baggage']) {
+      assert.ok(permitidos.includes(h), `el preflight debe permitir ${h}`)
+    }
+    assert.equal(res.headers.get('access-control-max-age'), '86400')
+    assert.equal(res.headers.get('access-control-allow-credentials'), null, 'sin credenciales: es compatible con el origen *')
+    assert.equal(llamadas.length, 0, 'un preflight no toca la base')
+  })
+
+  it('toda respuesta (ok, datos inválidos, método no soportado y error de la base) lleva el origen permitido', async () => {
+    const { deps } = montar()
+    const { deps: depsConError } = montar({ rpcError: true })
+    const respuestas = [
+      await manejar(pedido({ token: TOKEN }), deps),
+      await manejar(pedido({ token: 'con espacios y ñ' }), deps),
+      await manejar(pedido(null, 'GET'), deps),
+      await manejar(pedido({ token: TOKEN }), depsConError),
+    ]
+    assert.deepEqual(respuestas.map((r) => r.status), [200, 400, 405, 500])
+    for (const r of respuestas) assert.equal(r.headers.get('access-control-allow-origin'), '*', `status ${r.status}`)
+  })
+
+  it('el contrato no cambia: { token } responde { ok: true } con JSON', async () => {
+    const { deps } = montar()
+    const res = await manejar(pedido({ token: TOKEN }), deps)
+    assert.match(res.headers.get('content-type') ?? '', /application\/json/)
+    assert.deepEqual(await res.json(), { ok: true })
+  })
 })

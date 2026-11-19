@@ -10,8 +10,8 @@
 --     unidad (el límite es por unidad, no por línea; el redondeo de la línea completa es de otra naturaleza y no se
 --     acota acá);
 --   · la tienda `precio_anterior` coincide con la `precio_referencia` del local cuando la promoción gana;
---   · EXCLUIDOS de la comparación y probados aparte como divergencia conocida: una promoción mayor o igual al precio
---     normal (la tienda la muestra, el local la ignora: seguimiento S5) y un producto no publicado en la tienda de la
+--   · EXCLUIDOS de la comparación general y probados aparte: una promoción mayor o igual al precio normal (desde S5 =
+--     MSF-936 la tienda y el local la ignoran por igual; se afirma abajo que coinciden) y un producto no publicado en la tienda de la
 --     empresa (`precio_final_publico` es null sin `producto_empresa`, el local sí tiene precio).
 -- Una aserción de cobertura impide que el conjunto comparado quede vacío o sin promociones ganadoras, y la bandera
 -- apagada comprueba que el local vuelve al precio normal (la tienda también).
@@ -271,10 +271,10 @@ select is((select count(*)::int from cmp
   'tienda B: el local aplica una promoción si y solo si la tienda muestra una');
 select is((select l_neto from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 850::numeric,
   'producto 1 en B: el local cobra 850 neto');
-select is((select t_precio from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 1029::numeric,
-  'producto 1 en B: la tienda muestra 850 × 1,21 = 1.028,50 → 1.029 (al peso entero)');
-select is((select t_precio from cmp where n = 11 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 149::numeric,
-  'producto 11 en B: 123,45 × 1,21 = 149,37 → 149');
+select is((select t_precio from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 1028.50::numeric,
+  'producto 1 en B: la tienda muestra 850 × 1,21 = 1.028,50 (al centavo)');
+select is((select t_precio from cmp where n = 11 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 149.37::numeric,
+  'producto 11 en B: 123,45 × 1,21 = 149,37 (al centavo)');
 select is((select t_precio from cmp where n = 6 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 300.5::numeric,
   'producto exento en B: sin IVA el final es el neto (300,50)');
 -- Producto 11: promoción solo en B; en A no hay promoción en ninguno de los dos lados.
@@ -286,13 +286,18 @@ select is((select l_promo is null and t_anterior is null from cmp where n = 11 a
 -- ============================================================================
 
 select is((select t_precio from cmp where n = 8 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), 950::numeric,
-  'promoción igual al normal (950): la tienda la muestra...');
+  'promoción igual al normal (950): la tienda muestra el precio normal...');
 select is((select l_promo is null and l_ref is null from cmp where n = 8 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), true,
-  '... y el local la ignora (sin promoción ni referencia): seguimiento S5');
-select is((select t_precio from cmp where n = 9 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), 5000::numeric,
-  'promoción mayor al normal (5000 contra 950): la tienda muestra 5000, un precio MÁS ALTO que el normal');
+  '... y el local la ignora (sin promoción ni referencia): tienda y local coinciden (S5, MSF-936)');
+select is((select t_precio from cmp where n = 9 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), 950::numeric,
+  'promoción mayor al normal (5000 contra 950): la tienda ya NO muestra 5000 (un precio más alto que el normal): muestra 950 (S5, MSF-936)');
 select is((select l_neto from cmp where n = 9 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), 950::numeric,
-  '... y el local cobra el precio normal 950 (nunca más que el normal): seguimiento S5');
+  '... y el local cobra el precio normal 950 (nunca más que el normal): tienda y local coinciden');
+select is((select count(*)::int from cmp where empresa = 'a1000000-0000-0000-0000-000000000001' and excl_promo_mayor
+              and (t_anterior is not null or l_promo is not null or t_precio is distinct from l_neto)), 0,
+  'tienda A: en TODO caso con promoción mayor o igual al normal la tienda y el local coinciden (sin tachado ni promoción; S5)');
+select cmp_ok((select count(*) from cmp where empresa = 'a1000000-0000-0000-0000-000000000001' and excl_promo_mayor)::int, '>=', 5,
+  'tienda A: hay al menos 5 combinaciones con promoción mayor o igual al normal (la afirmación anterior no es vacía)');
 select is((select t_precio from cmp where n = 10 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), null::numeric,
   'producto no publicado en la tienda A: la tienda no tiene precio (null)');
 select is((select l_neto from cmp where n = 10 and empresa = 'a1000000-0000-0000-0000-000000000001' and etiqueta = 'ahora'), 400::numeric,

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
-import { useReportesAsignados } from '../../hooks/useReportesAsignados'
+import { useReportesAsignados, type ReporteAsignado } from '../../hooks/useReportesAsignados'
 import { SECCION_INVENTARIO } from '../../lib/reportes-inventario'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 
@@ -18,8 +18,16 @@ type Props = {
 // que no hay filtro de empresa (Principio VIII, no aplica; ver matriz de la spec). La ruta va
 // envuelta en RequiereAccesoSeccion (`stock` ≥ lectura): sin la sección no se monta nada ni se pide
 // token. El estado vacío lo dibuja el propio tablero (tabla sin filas).
-export function TableroInventario({ nombreReporte, etiquetaReporte }: Props) {
+export function TableroInventario(props: Props) {
   const { reportes, isLoading } = useReportesAsignados()
+  return <TableroInventarioConReportes {...props} reportes={reportes} isLoading={isLoading} />
+}
+
+type PropsConReportes = Props & { reportes: readonly ReporteAsignado[]; isLoading: boolean }
+
+// Igual que TableroInventario pero con los reportes ya resueltos: lo usa la pantalla que necesita elegir el
+// tablero según lo que la base le lista, para no pedir la lista dos veces.
+export function TableroInventarioConReportes({ nombreReporte, etiquetaReporte, reportes, isLoading }: PropsConReportes) {
   // Cada intento remonta el tablero: repite la solicitud del token y el montaje.
   const [intento, setIntento] = useState(0)
   const [fallo, setFallo] = useState<MotivoFalloReporte | null>(null)
@@ -37,7 +45,7 @@ export function TableroInventario({ nombreReporte, etiquetaReporte }: Props) {
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion={`El tablero de «${etiquetaReporte}» todavía no está disponible para tu organización.`} />
+    tablero = <EstadoTableroNoDisponible nombre={`«${etiquetaReporte}»`} />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion={`No pudimos cargar el tablero de «${etiquetaReporte}».`} reintentar={reintentar} />
   } else {

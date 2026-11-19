@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
 }))
+vi.mock('../../hooks/useBanderaMargenCostosFijos', () => ({ useBanderaMargenCostosFijos: () => ({ activa: false, cargando: false }) }))
 vi.mock('../../hooks/useReportesAsignados', () => ({ useReportesAsignados: mocks.useReportesAsignados }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => <span>Organización: Uno</span> }))
 vi.mock('../acceso-restringido/AccesoRestringido', () => ({
@@ -99,7 +100,7 @@ describe('RentabilidadPorProducto', () => {
 
   it('si el tablero no está asignado a la organización lo dice sin detalle técnico', () => {
     montar({ reportes: [{ id: 'rep-resumen', nombre: 'Rentabilidad · Resumen' }] })
-    expect(screen.getByText('El tablero de Rentabilidad todavía no está disponible para tu organización.')).toBeInTheDocument()
+    expect(screen.getByText(/El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno\. Pedile al administrador de la plataforma que importe los tableros/)).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 

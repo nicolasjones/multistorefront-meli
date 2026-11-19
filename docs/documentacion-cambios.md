@@ -1,7 +1,15 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/verificar-documentacion-cambios.mjs
+  - scripts/docs-check.mjs
+  - scripts/docs-drift.mjs
+  - scripts/docs-enlaces.mjs
+  - scripts/docs-inventario.mjs
+  - scripts/docs-manifest.mjs
+  - .github/workflows/docs.yml
+  - .github/workflows/validate.yml
+  - apps/web/playwright.capturas.config.ts
 ---
 
 # Documentación obligatoria de cambios
@@ -17,7 +25,8 @@ el registro del flujo oficial en `.specify/bugs/<slug>/` (`assessment.md`,
 El control `pnpm docs:check` compara la rama con su base Git y falla si detecta
 código o infraestructura sin una actualización documental. En un pull request
 el workflow obtiene el historial completo y usa `GITHUB_BASE_REF`; en local se
-puede indicar otra base con `DOCUMENTATION_CHECK_BASE`.
+puede indicar otra base con `DOCUMENTATION_CHECK_BASE`. En `validate.yml` corre en el job `chequeos`
+(`pnpm docs:check` y `pnpm test:docs:check`, que prueba el verificador, las trampas conocidas y el YAML del front matter).
 
 La documentación debe registrar la decisión, el contrato afectado, los riesgos,
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
@@ -61,3 +70,96 @@ directorio entero (`specs`, `supabase/migrations`, `apps/web/src`), así que el 
 las páginas que lista el drift y regenerar con `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`
 en el PR `dokploy` → `main`. Acotar las fuentes de cada página a su spec o archivo concreto permitiría
 volver a correr el control en cada PR.
+
+## Capturas del manual: regla de proceso y estado (MSF-644, MSF-877)
+
+**Regla (MSF-644).** Todo PR que cambia una pantalla rehace las capturas del manual de usuario que esa pantalla
+ilustra. El comando es `pnpm docs:capturas` (raíz; delega en `pnpm --filter @platform/web docs:capturas`, que corre
+`playwright test -c playwright.capturas.config.ts`, definido en `apps/web/package.json`). Para un solo spec:
+`pnpm docs:capturas 20-ventas`. Los specs están en `apps/web/e2e/capturas/` (`10-primeros-pasos`, `20-ventas`,
+`30-stock`, `40-catalogo-tiendas`, `50-service-consultas`, `pantallas`) y escriben en `docs/producto/img/<página>/`
+(variable `CAPTURAS_DESTINO` para cambiar el destino). Si el PR no puede rehacerlas (p. ej. no hay stack), lo declara en
+su descripción y la página queda anotada como pendiente de recaptura.
+
+**Requisitos.** Stack local de Supabase con el dataset demo (`pnpm demo:dataset -- --reset`, ver `dataset-demo.md`) y la
+web servida (`E2E_BASE_URL`) o el build para `vite preview`; variables `SUPABASE_URL` y `SUPABASE_ANON_KEY`. Las
+capturas son de solo lectura (no confirman formularios). No corren con `pnpm test:e2e` ni en el CI público (config
+aparte a propósito, `apps/web/playwright.capturas.config.ts`).
+
+**Estado (MSF-877, 2026-11-17).** El repo tiene 262 imágenes versionadas bajo `docs/producto/img/`, en 44 carpetas.
+La guía de uso es [Capturas del manual de usuario](capturas-documentacion.md). Esta revisión de documentación **no regeneró imágenes**, porque hacerlo exige levantar el stack con el dataset demo.
+Las capturas de pantallas cambiadas hoy (Productos con Margen, Empresas, Migración de datos con pestañas, Actividad,
+Importaciones) quedan pendientes de recaptura con el comando de arriba. Además, el comentario de
+`playwright.capturas.config.ts` remite a `docs/capturas-documentacion.md`, que ahora existe.
+
+## Ramas `main` y `dokploy`: estado y reconciliación de la documentación (MSF-590)
+
+**Estado (medido el 2026-11-17 con `git rev-list --left-right --count origin/main...origin/dokploy`).** `main` tiene 16
+commits que `dokploy` no tiene y `dokploy` tiene 4186 que `main` no tiene (ancestro común `54ea7b1b`). Los 16 de `main`
+son de documentación salvo dos archivos de configuración: manual de Inicio con capturas (`docs/producto/img/inicio/`), alineación de avisos de
+faltantes (MSF-161), cierres documentales de MSF-176, MSF-265, MSF-467 y MSF-469, y el workflow
+`.github/workflows/e2e-nocturno.yml` (llevado a `main` para que dispare el cron) y un ajuste de `mkdocs.yml`. Entre
+las puntas actuales de ambas ramas difieren 272 archivos de `docs/` (`git diff --stat origin/main origin/dokploy -- docs`);
+de ellos, 51 son lo que `main` cambió desde el ancestro común (`git diff --stat 54ea7b1b origin/main -- docs`) y el resto
+es lo que `dokploy` agregó o cambió desde entonces. La documentación de usuario quedó escrita en `main` sin el código que la respalda, que vive solo en
+`dokploy`.
+
+**Procedimiento de reconciliación (sin tocar `main` desde `dokploy`).**
+
+1. La reconciliación ocurre en el PR `dokploy` → `main` (Release), no con cambios directos en `main`.
+2. Antes del Release, en una rama desde `dokploy`: `git merge origin/main`. Los conflictos de `docs/` se resuelven a favor
+   del contenido de `dokploy` (que refleja el código vigente) salvo los textos y capturas que solo existen en `main`
+   (manual de Inicio), que se revisan contra el código de `dokploy` antes de conservarlos.
+3. `docs/manifest.json` y `docs/_generated/` no se resuelven a mano: en ese `git merge origin/main` estás parado en la rama que integra (la de `dokploy`), así que
+   `--ours` es tu versión y `--theirs` la de `main` (el estado viejo): `git checkout --ours docs/manifest.json docs/_generated`
+   y regenerar con
+   `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`.
+4. Correr `node scripts/docs-drift.mjs` y `node scripts/docs-check.mjs`; revisar las páginas con deriva (MSF-858).
+5. Recién entonces abrir el PR a `main`; `docs.yml` corre en PR hacia `main`.
+
+Pendiente: este procedimiento no se ejecutó en este lote (no se tocó `main`); la integración de `origin/main` en `dokploy`
+queda para quien prepare el Release.
+
+**Páginas planas fuera del menú.** `mkdocs.yml` no lista todas las páginas planas de `docs/` (p. ej. `control-ci.md`,
+`deployment.md`, `documentacion-cambios.md`, `capturas-documentacion.md` y `decisiones-2026-11-17.md`): el menú solo
+muestra las guías de uso y las «Guías de referencia» elegidas, y `docs-check` valida que cada entrada del menú exista y
+que los enlaces internos resuelvan, pero no exige que toda página esté en el menú. Esas páginas se publican igual y se
+llegan por enlace; por eso `capturas-documentacion.md` se enlaza desde esta página y desde `dataset-demo.md`.
+
+**Límites conocidos del validador de enlaces.** `docs-check` (`scripts/docs-enlaces.mjs`) valida, fuera de los bloques de
+código, los enlaces en línea (también anidados, como una imagen dentro de un enlace), los destinos entre `<…>` con
+espacios, las definiciones de referencia y las etiquetas HTML `a` (atributo `href`) e `img` (atributo `src`). Falla si un
+enlace excede un tope (texto 1500, destino 300, título 1000, blancos 1000 y etiqueta HTML 1000 caracteres) o si un bloque de
+código queda sin cerrar. No valida, con ejemplo:
+
+```text
+Uso de una referencia:        [texto][x]  y  [x][]   (solo se valida el destino de su definición «[x]: destino»;
+                                                       una referencia sin definición se muestra literal)
+Otras etiquetas HTML:         <source src=…>  <link href=…>  <video src=…>  srcset=…
+Destino con espacios sin <>:  [a](mi archivo.md)
+Corchete escapado en texto:   [a\]b](x.md)   (los escapes con barra no se interpretan, igual que antes; así
+                              `\[c](y.md)` SÍ se valida aunque no se muestre como enlace)
+Etiqueta HTML > 1000 car.:    <img … 1000 caracteres de atributos … src=…>   (no se analiza)
+Destino entre <> en 2 líneas: [x](<a + salto de línea + b>)
+Texto y destino en 2 líneas:  [a] + salto de línea + (b.md)   (CommonMark tampoco lo trata como enlace)
+Fence con sangría 2-3 sin lista: un fence de nivel superior sangrado 2 o 3 espacios se trata como de un ítem de lista;
+                              si su código tiene líneas con menos sangría, se reporta como sin cerrar
+Fence sangrado 4 o más:       un fence con 4+ espacios de sangría abre bloque igual (tolerancia para listas anidadas)
+Comentario HTML:              <!-- [a](roto.md) -->   SÍ se valida (un comentario no se enmascara)
+Paréntesis en el destino:     [a](x(1).md)   extrae «x(1» (el destino termina en el primer «)»)
+Fence en bloque HTML:         <div> + línea con ``` o ~~~ sin línea vacía entre medio: no abre fence (se valida de más);
+                              si es ambiguo se analiza de las dos formas y se validan los enlaces de ambas
+Fence mal anidado:            «- > ```» cerrado por «> ```» (pila de contenedores distinta) o un ítem hermano de la lista:
+                              el fence termina, se reporta «bloque de código sin cerrar» y se valida lo que sigue
+No se extraen (dokploy tampoco): [x](<a + salto de línea + b>)   <a/href=roto.md>   y en <a href="x" href="roto.md"> solo
+                              cuenta el primer href
+Tipos de fence:               ~~~ cuenta como fence; un fence de backticks con backtick en la info (``` a`b) no abre
+Sangría 4+ y fences en cita:  un fence con 4+ espacios de sangría combinado con fences dentro de citas o listas puede
+                              ocultar un enlace sin error (el extractor anterior también lo ocultaba)
+Destino con backticks:        [a](`x`.md) y similares: el extractor anterior lo leía con otro prefijo; ambos dan un
+                              destino roto, y se reporta el actual
+Código con sangría de 4:      un enlace dentro de un bloque con sangría, o dentro de código en línea, SÍ se valida
+```
+
+Un bloque con fences mezclados se interpreta como CommonMark: cierra solo con el mismo carácter (backtick o tilde) y una
+longitud igual o mayor a la de apertura.

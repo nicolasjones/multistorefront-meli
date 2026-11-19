@@ -7,8 +7,8 @@ import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
-const FLOWS = ['respaldo-postgres', 'respaldo-imagenes', 'retencion-copias', 'verificar-restauracion', 'aviso-fallo-copias'];
-const CON_AVISO = ['respaldo-postgres', 'respaldo-imagenes', 'retencion-copias', 'verificar-restauracion'];
+const FLOWS = ['respaldo-postgres', 'respaldo-imagenes', 'retencion-copias', 'verificar-restauracion', 'aviso-fallo-copias', 'alerta-ausencia-respaldos', 'purgar-almacenamiento-kestra'];
+const CON_AVISO = ['respaldo-postgres', 'respaldo-imagenes', 'retencion-copias', 'verificar-restauracion', 'alerta-ausencia-respaldos', 'purgar-almacenamiento-kestra'];
 const leer = async (file) => (await readFile(file, 'utf8')).replace(/\r\n/g, '\n');
 const flow = (id) => leer(`infra/kestra/flows/${id}.yml`);
 
@@ -101,21 +101,24 @@ test('los .env.example no traen secretos reales', async () => {
   }
 });
 
-test('la retención conserva 30 diarias + 12 mensuales y nunca la última copia', async () => {
+test('la retención es por días (no por cantidad), con meses y tope, y nunca borra la última copia', async () => {
   const content = await flow('retencion-copias');
   const inicio = content.indexOf('purgar() {');
   assert.notEqual(inicio, -1, 'falta la función purgar');
   const fin = content.indexOf('\n        }\n', inicio);
   const funcion = content.slice(inicio, fin + '\n        }\n'.length).replace(/^ {8}/gm, '');
+  assert.match(content, /purgar imagenes --dirs-only "\$IMAGENES_DIAS" "\$IMAGENES_MENSUALES" "\$IMAGENES_MAX"/, 'las imágenes completas tienen plazo y tope propios');
+  assert.doesNotMatch(content, /retencion_diarias/i, 'la retención ya no es por cantidad');
 
+  const AHORA = String(Date.UTC(2026, 9, 18, 4, 30) / 1000);
   // rclone simulado: `lsf` lista los nombres (o falla con `codigo`); `deletefile` imprime el borrado.
-  const correr = (nombres, diarias, mensuales, codigo = 0) => {
+  const correr = (nombres, dias, mensuales, max = 0, codigo = 0) => {
     const rclone = `rclone() { if [ "$1" = lsf ]; then [ ${codigo} -eq 0 ] || return ${codigo}; printf '%s\\n' ${nombres.map((n) => `'${n}'`).join(' ')}; else echo "BORRA \${2##*/}"; fi; }`;
-    const script = `set -eu\nBORRADOS=0\nLISTA_TMP=$(mktemp)\n${funcion}\n${rclone}\npurgar base --files-only`;
-    return execFileSync('sh', ['-c', script], { env: { ...process.env, RAIZ: 'respaldos:/x', DIARIAS: String(diarias), MENSUALES: String(mensuales) }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    const script = `set -eu\nBORRADOS=0\nLISTA_TMP=$(mktemp)\n${funcion}\n${rclone}\npurgar base --files-only ${dias} ${mensuales} ${max}`;
+    return execFileSync('sh', ['-c', script], { env: { ...process.env, RAIZ: 'respaldos:/x', AHORA }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   };
-  const purgar = (nombres, diarias, mensuales) =>
-    correr(nombres, diarias, mensuales).split('\n').filter((l) => l.startsWith('BORRA ')).map((l) => l.slice(6));
+  const purgar = (nombres, dias, mensuales, max = 0) =>
+    correr(nombres, dias, mensuales, max).split('\n').filter((l) => l.startsWith('BORRA ')).map((l) => l.slice(6));
 
   // 400 días consecutivos hasta 2026-10-18, una copia por día.
   const dias = [];
@@ -125,24 +128,32 @@ test('la retención conserva 30 diarias + 12 mensuales y nunca la última copia'
   }
   const purgadas = new Set(purgar(dias, 30, 12));
   const conservadas = dias.filter((n) => !purgadas.has(n));
-
   assert.ok(!purgadas.has(dias.at(-1)), 'nunca se borra la copia más reciente');
-  for (const n of dias.slice(-30)) assert.ok(!purgadas.has(n), `las 30 diarias más recientes se conservan (${n})`);
+  // Corte: hoy (18/10) menos 30 días = 18/09; se conservan las copias de esa fecha en adelante.
+  for (const n of dias.filter((x) => x.slice(0, 8) >= '20260918')) assert.ok(!purgadas.has(n), `las copias de los últimos 30 días se conservan (${n})`);
   const meses = [...new Set(dias.map((n) => n.slice(0, 6)))].slice(-12);
-  for (const mes of meses) {
-    assert.ok(!purgadas.has(dias.find((n) => n.startsWith(mes))), `la primera copia de ${mes} se conserva`);
-  }
+  for (const mes of meses) assert.ok(!purgadas.has(dias.find((n) => n.startsWith(mes))), `la primera copia de ${mes} se conserva`);
   assert.ok(purgadas.has(dias[0]), 'lo más viejo que no es mensual reciente se purga');
-  assert.ok(conservadas.length <= 30 + 12, `se conserva a lo sumo 30 + 12 (quedaron ${conservadas.length})`);
+  assert.ok(conservadas.length <= 31 + 12, `se conserva a lo sumo 31 días + 12 meses (quedaron ${conservadas.length})`);
+
+  // La retención es por días: varias copias el mismo día se conservan todas; las viejas se purgan aunque sean pocas.
+  assert.deepEqual(purgar(['20261018-010000-1.dump', '20261018-020000-2.dump', '20261018-030000-3.dump'], 1, 0), []);
+  assert.deepEqual(purgar(['20260901-030000-1.dump', '20260902-030000-2.dump', '20261018-030000-3.dump'], 7, 0), ['20260901-030000-1.dump', '20260902-030000-2.dump']);
+  // Tope: de las fotos dentro del plazo se conservan solo las `max` más nuevas.
+  const fotos = ['20261012', '20261013', '20261014', '20261015', '20261016', '20261017', '20261018'].map((d) => `${d}-031500`);
+  assert.deepEqual(purgar(fotos, 7, 0, 3), fotos.slice(0, 4));
+  // Aunque todo esté fuera de plazo, la última copia se conserva.
+  assert.deepEqual(purgar(['20250101-030000-1.dump', '20250102-030000-2.dump'], 1, 0), ['20250101-030000-1.dump']);
 
   // Con una sola copia no se borra nada; archivos ajenos al patrón se ignoran.
   assert.deepEqual(purgar(['20261018-030000-1.dump'], 1, 0), []);
-  assert.deepEqual(purgar(['20261017-030000-1.dump', '20261018-030000-2.dump', 'lost+found', 'notas.txt'], 1, 0), ['20261017-030000-1.dump']);
+  assert.deepEqual(purgar(['20261017-030000-1.dump', '20261018-030000-2.dump', 'lost+found', 'notas.txt'], 1, 0), []);
+  assert.deepEqual(purgar(['20261001-030000-1.dump', '20261018-030000-2.dump', 'lost+found', 'notas.txt'], 1, 0), ['20261001-030000-1.dump']);
 
   // Un nombre con espacios no se parte: se borra entero, nunca un fragmento ajeno.
-  assert.deepEqual(purgar(['20261017-030000 foo', '20261018-030000-2.dump'], 1, 0), ['20261017-030000 foo']);
+  assert.deepEqual(purgar(['20261001-030000 foo', '20261018-030000-2.dump'], 1, 0), ['20261001-030000 foo']);
   // Un destino inalcanzable falla la tarea en vez de informar «0 purgadas».
-  assert.throws(() => correr(['20261018-030000-1.dump'], 1, 0, 1), /Command failed/);
+  assert.throws(() => correr(['20261018-030000-1.dump'], 1, 0, 0, 1), /Command failed/);
   // Una carpeta que aún no existe (código 3) es vacía, no un error.
-  assert.deepEqual(correr([], 1, 0, 3).split('\n').filter(Boolean), []);
+  assert.deepEqual(correr([], 1, 0, 0, 3).split('\n').filter(Boolean), []);
 });

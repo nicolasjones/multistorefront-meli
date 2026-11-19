@@ -6,7 +6,20 @@ sources:
   - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
   - infra/superset/dashboards/rentabilidad
   - apps/web/src/pages/rentabilidad
-  - supabase/tests/database
+  - supabase/tests/database/analitica_margen_cotizacion_vigente.test.sql
+  - supabase/tests/database/rentabilidad_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_comparativo.test.sql
+  - supabase/tests/database/rentabilidad_comparativo_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_consolidado.test.sql
+  - supabase/tests/database/rentabilidad_historia.test.sql
+  - supabase/tests/database/rentabilidad_historia_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_margen.test.sql
+  - supabase/tests/database/rentabilidad_permisos.test.sql
+  - supabase/tests/database/rentabilidad_por_producto.test.sql
+  - supabase/tests/database/rentabilidad_superficie.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql
+  - supabase/tests/database/margen_costos_fijos_paridad.test.sql
 ---
 
 # Rentabilidad (margen por producto y canal)
@@ -216,6 +229,20 @@ desde `reportes.json`, de forma idempotente. Variables (solo en `.env`/secrets, 
 crea la migración `20261130100300` como `nologin`: el operador le asigna login y contraseña por entorno.
 Detalle del tablero «Por producto» y sus límites en [`operar-superset.md`](./operar-superset.md).
 
+### «El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno» (MSF-625)
+
+No depende de una configuración por organización: el catálogo `public.reportes` es de la plataforma. La pantalla muestra
+ese mensaje cuando no hay una fila de `public.reportes` con el nombre del tablero (p. ej. `Rentabilidad · Comparativo`) en
+ese entorno, es decir, cuando no se corrió `pnpm superset:importar-dashboards` para Rentabilidad (o el registro falló). Se
+resuelve corriendo ese comando en el entorno; una organización nueva o la del dataset demo no necesita nada más. El aviso
+ya nombra la causa y la acción («falta importarlo en este entorno. Pedile al administrador de la plataforma que importe los
+tableros y volvé a intentar») y sale del componente compartido `EstadoTableroNoDisponible`, que usan las cinco pantallas de
+Rentabilidad, «Después de costos fijos» y los tableros de Ventas e Inventario.
+
+## Después de costos fijos (F-GAS-03, MSF-469)
+
+Pestaña **«Después de costos fijos»** (`/rentabilidad/costos-fijos`), detrás de la bandera `margen_costos_fijos` (apagada por defecto): reparte los gastos fijos de cada tienda (módulo [Gastos](gastos.md)) en proporción a las ventas netas del mes y muestra el margen que queda. **Lo existente no cambia**: las vistas, funciones, RPC, tableros y correos de Rentabilidad devuelven exactamente lo mismo con la bandera apagada y encendida (`margen_costos_fijos_paridad.test.sql`); la medida nueva se construye sobre `analitica.margen_real_categoria` sin redefinirla. Detalle, fórmula y reversión en [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
+
 ## Reversión
 
 Las migraciones son aditivas; el camino de vuelta va en el encabezado de cada una y se aplica en **una
@@ -237,8 +264,8 @@ pgTAP (`supabase/tests/database/rentabilidad_*.test.sql`), Vitest (`apps/web/src
 4. El Roadmap a diciembre manda «Rentabilidad y reportes avanzados» a enero; el doc del componente la deja P0
    en el Hito 4: Nicolás decide y alinea.
 5. El token filtra por organización, no por las empresas acotadas de una persona (permisos por empresa).
-6. Pendientes de F-REN-03 trazados en **MSF-556**: selector «Mayor/Menor margen primero» y buscador de texto
-   libre (hoy orden fijo por menor margen y lista con búsqueda).
+6. Selector «Mayor/Menor margen primero» y buscador de texto libre de F-REN-03: **límite permanente de Superset**
+   (decisión en **MSF-896**, antes MSF-555); hoy orden fijo por menor margen y lista con búsqueda.
 
 ## Costos adicionales del canal (F-REN-08, MSF-209)
 

@@ -1,4 +1,6 @@
+import { formatearNumeroImporte } from './formatoImporte'
 import { supabaseClient } from './supabase'
+import { acumularConteoCategorias } from './tiendaConteoCategorias'
 import { guardarBorrador, obtenerBorrador } from './tiendaBorrador'
 
 // F-TDA-04 (MSF-312): catálogo visible y destacados de la tienda. La visibilidad efectiva, el
@@ -61,9 +63,9 @@ export async function listarCatalogoTienda(empresaId: string): Promise<CatalogoT
   }
   const fila = data as FilaCatalogo
   return {
-    categorias: fila.categorias.map((c) => ({
+    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({
       id: c.id, nombre: c.nombre, padreId: c.padre_id, visible: c.visible, productos: c.productos,
-    })),
+    }))),
     productos: fila.productos.map((p) => ({
       id: p.id,
       nombre: p.nombre,
@@ -91,9 +93,8 @@ export async function guardarCatalogoTienda(empresaId: string, cambios: CambiosC
   await guardarBorrador(empresaId, 'catalogo', { categorias: [...categorias.values()], productos: [...productos.values()] })
 }
 
-const formatoPrecio = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Precio de lectura; «—» si no hay precio (FR-047).
 export function formatearPrecioTienda(moneda: string, precio: number | null): string {
-  return precio === null ? '—' : `${moneda} ${formatoPrecio.format(precio)}`
+  return precio === null ? '—' : `${moneda} ${formatearNumeroImporte(precio, { centavos: 'siempre' })}`
 }

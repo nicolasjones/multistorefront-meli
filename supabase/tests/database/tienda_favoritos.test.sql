@@ -69,7 +69,7 @@ insert into dominio.producto_imagenes (producto_id, organizacion_id, posicion, r
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 1, '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/alfa-1.jpg'),
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 2, '11111111-1111-1111-1111-111111111111/a1000000-0000-0000-0000-000000000001/alfa-2.jpg');
 
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista', 'my@example.com', 'mayorista'),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista', 'mn@example.com', 'minorista'),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista'),
@@ -107,8 +107,8 @@ select is(
   (select c.relrowsecurity from pg_class c where c.oid = 'dominio.favoritos_cliente'::regclass),
   true, 'dominio.favoritos_cliente tiene RLS activada');
 select is(
-  (select count(*)::int from pg_policy where polrelid = 'dominio.favoritos_cliente'::regclass),
-  0, 'sin políticas: solo se accede por RPC security definer');
+  (select count(*)::int from pg_policy where polrelid = 'dominio.favoritos_cliente'::regclass and polname <> 'favoritos_cliente_denegar_todo'),
+  0, 'sin políticas de acceso (solo la que deniega todo): solo se accede por RPC security definer');
 select is(
   (select count(*)::int from information_schema.role_table_grants
     where table_schema = 'dominio' and table_name = 'favoritos_cliente' and grantee in ('anon', 'authenticated', 'PUBLIC')),

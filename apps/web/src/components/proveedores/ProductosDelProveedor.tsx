@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from '../../lib/formatoImporte'
 import { useState } from 'react'
 import { Box, Button, LinearProgress, Stack, Typography } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -14,13 +15,12 @@ import { ContenidoAdaptable, type ColumnaAdaptable } from '../pagina/ContenidoAd
 
 const TAMANO_PAGINA = 10
 
-const formatoCosto = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const columnaCosto: ColumnaAdaptable<ProductoDeProveedor> = {
   clave: 'costo',
   encabezado: 'Costo',
   align: 'right',
-  render: (p) => (p.costo === null ? '—' : `${p.moneda} ${formatoCosto.format(p.costo)}`),
+  render: (p) => (p.costo === null ? '—' : `${p.moneda} ${formatearNumeroImporte(p.costo, { centavos: 'siempre' })}`),
 }
 
 // La imagen principal llega aparte (`useImagenesProductos`) y se pasa por id.

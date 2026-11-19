@@ -35,7 +35,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 10, 'Cliente de la Dos', 'minorista', null);
 
@@ -68,7 +68,8 @@ select ok((select relrowsecurity from pg_class where oid = 'dominio.reparacion_e
 select ok((select relrowsecurity from pg_class where oid = 'public.consultas_publicas_intentos'::regclass),
   'RLS habilitada en consultas_publicas_intentos');
 select is((select count(*) from pg_policy where polrelid in
-    ('dominio.reparacion_enlaces_consulta'::regclass, 'public.consultas_publicas_intentos'::regclass))::int,
+    ('dominio.reparacion_enlaces_consulta'::regclass, 'public.consultas_publicas_intentos'::regclass)
+    and polname not like '%\_denegar\_todo')::int,
   0, 'ninguna de las dos tablas tiene políticas');
 select ok(not has_table_privilege('authenticated', 'dominio.reparacion_enlaces_consulta', 'select')
       and not has_table_privilege('authenticated', 'dominio.reparacion_enlaces_consulta', 'insert')

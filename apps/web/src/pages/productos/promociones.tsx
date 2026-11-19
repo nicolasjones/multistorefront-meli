@@ -98,9 +98,11 @@ export function PromocionesList() {
   }, [cargar, organizacionId])
 
   const guardar = async (datos: DatosPromocion) => {
-    await guardarPromocion(supabaseClient, datos)
+    const resultado = await guardarPromocion(supabaseClient, datos)
     setEdicion(null)
-    setAviso({ severidad: 'success', texto: datos.id ? 'Promoción actualizada.' : 'Promoción programada.' })
+    const texto = datos.id ? 'Promoción actualizada.' : 'Promoción programada.'
+    // MSF-936: se guardó, pero no baja el precio normal: se avisa en vez de mostrar solo el éxito.
+    setAviso(resultado?.aviso ? { severidad: 'warning', texto: `${texto} ${resultado.aviso}` } : { severidad: 'success', texto })
     await cargar()
   }
 

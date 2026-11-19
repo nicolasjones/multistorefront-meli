@@ -24,6 +24,19 @@ tasks:
       type: constant
       interval: PT5M
       maxAttempts: 3
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: depuracion-monitoreo
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: diaria
     type: io.kestra.plugin.core.trigger.Schedule

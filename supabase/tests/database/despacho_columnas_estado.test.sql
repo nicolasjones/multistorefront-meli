@@ -48,7 +48,7 @@ insert into public.usuario_empresa_activa (user_id, empresa_id) values
   ('f1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001'),
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000001');
 
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Cliente Uno', 'minorista', null);
 
 -- Formas de envío de la organización Uno: cada una entra al despacho con un estado inicial distinto.
@@ -154,7 +154,7 @@ select is(
 -- La forma de envío de otra organización no se usa (aislamiento).
 insert into dominio.formas_envio (id, organizacion_id, empresa_id, nombre, tipo, estado_despacho_inicial) values
   ('f9000000-0000-0000-0000-000000000004', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-000000000001', 'Expreso', 'expreso', 'armando');
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en) values
   ('c5000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 20, 'Cliente Dos', 'minorista', null);
 insert into dominio.comprobantes_venta
   (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, envio_id) values

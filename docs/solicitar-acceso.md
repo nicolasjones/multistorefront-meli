@@ -1,9 +1,13 @@
 ---
 owner: producto
 sources:
-  - specs
-  - apps/web/src/pages/acceso-restringido
+  - specs/20261016-130000-perfil-y-permisos-avanzados
+  - apps/web/src/pages/acceso-restringido/AccesoRestringido.tsx
   - apps/web/src/lib/solicitarAcceso.ts
+  - supabase/functions/solicitar-acceso/handler.ts
+  - supabase/functions/.env.example
+  - supabase/migrations/20261017100000_solicitudes_acceso.sql
+  - supabase/tests/database/solicitudes_acceso.test.sql
 ---
 
 # Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)
@@ -76,6 +80,8 @@ Variables de la función (solo en `supabase/functions/.env.example`; los valores
 - **El envío depende del SMTP de Supabase.** Supabase no expone un correo transaccional libre: se reutiliza
   el mismo SMTP de Auth (Mailpit en local y el relay `GOTRUE_SMTP_*` en el servidor self-hosted). Si el
   servidor no tiene un SMTP real configurado, el correo no sale; es infraestructura a cargo de Nicolás.
+  La salida real hacia afuera todavía **no está verificada**: está registrada (en «pendiente») en
+  [Verificación de salida del correo](verificacion-salida-correo.md) y trazada como **MSF-532**.
 - **Reutilización futura:** si MSF-224 entrega antes un mecanismo propio de notificaciones, se reemplaza
   solo el transporte del correo, no el flujo del pedido.
 - **La regla de permisos no cambia acá.** Aprobar el pedido sigue siendo una acción de Administrador en la

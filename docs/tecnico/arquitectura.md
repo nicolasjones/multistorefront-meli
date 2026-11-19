@@ -1,8 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - apps/web/src
-  - supabase/migrations
+  - apps/web/package.json
+  - package.json
+  - supabase/config.toml
+  - infra/kestra/compose.yaml
+  - infra/superset/compose.yaml
+  - infra/glitchtip/compose.yaml
+  - workers/README.md
+  - .github/workflows/validate.yml
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - docs/monitoreo.md
 ---
 
 # Arquitectura
@@ -18,7 +26,7 @@ MSF es un **monorepo** con un panel Refine/React y un backend **Supabase self-ho
 | **Kestra** | Flows de importación/ETL y jobs | `infra/kestra` |
 | **Superset** | Dashboards y analítica | `infra/superset` |
 | **Workers** | Importadores y procesos aislados | `workers/` |
-| **Observabilidad** | Prometheus/Grafana/Loki (según producto) | `infra/` |
+| **Observabilidad** | GlitchTip (errores del panel y los workers) y flows de monitoreo en Kestra: ver [Monitoreo](../monitoreo.md) | `infra/glitchtip`, `infra/kestra` |
 | **CI/CD** | GitHub Actions self-hosted + Dokploy | `.github/workflows`, `infra/` |
 
 ## Límites y decisiones

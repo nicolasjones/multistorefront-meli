@@ -53,3 +53,40 @@ export function validarArchivoDocumento(archivo: File): string | null {
 export function mimeDeDocumento(archivo: File): string {
   return MIME_POR_EXTENSION[extensionDeDocumento(archivo) ?? 'txt']
 }
+
+/** Minutos tras los cuales una versión que sigue «procesando» se considera interrumpida (la indexación dura segundos). */
+export const MINUTOS_PROCESAMIENTO_INTERRUMPIDO = 15
+
+/** Una versión `procesando` más vieja que el plazo quedó sin terminar (fallo transitorio): se ofrece reintentar. */
+export function procesamientoInterrumpido(version: { estado: string; subida_en: string }, ahora: number = Date.now()): boolean {
+  if (version.estado !== 'procesando') return false
+  const subida = Date.parse(version.subida_en)
+  return Number.isFinite(subida) && ahora - subida > MINUTOS_PROCESAMIENTO_INTERRUMPIDO * 60_000
+}
+
+/** Error de la función de indexación con su estado HTTP y su `codigo` estables: la UI decide por ellos, no por el texto. */
+export class ErrorIndexacion extends Error {
+  status: number | null
+  codigo: string | null
+
+  constructor(mensaje: string, status: number | null, codigo: string | null = null) {
+    super(mensaje)
+    this.status = status
+    this.codigo = codigo
+  }
+}
+
+/** Mensaje para la persona según el estado HTTP; el texto del backend solo se muestra donde es accionable (422). */
+export function mensajeDeIndexacion(error: unknown): string {
+  if (!(error instanceof ErrorIndexacion)) return 'No pudimos procesar el documento. Probá de nuevo más tarde.'
+  if (error.status === 409) {
+    return error.codigo === 'no_procesable'
+      ? 'Esta versión ya no se puede procesar. Subí el documento de nuevo.'
+      : 'Ya se está procesando; esperá unos minutos y volvé a revisar.'
+  }
+  if (error.status === 403) return 'No tenés permiso para procesar este documento.'
+  if (error.status === 404) return 'Esta versión ya no existe.'
+  if (error.status === 422) return error.message
+  if (error.status === 429) return 'Hiciste demasiados intentos. Probá de nuevo más tarde.'
+  return 'No pudimos procesar el documento ahora. Probá de nuevo más tarde.'
+}

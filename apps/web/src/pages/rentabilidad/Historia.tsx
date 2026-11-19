@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Alert, Stack } from '@mui/material'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
-import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
-import { NOMBRE_REPORTE_HISTORIA, PESTANAS_RENTABILIDAD, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
+import { NOMBRE_REPORTE_HISTORIA, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
+import { PestanasRentabilidad } from './PestanasRentabilidad'
 
 // «Rentabilidad · Historia» (F-REN-07; la pestaña no está en el prototipo, ver matriz de la spec).
 // El selector de producto, la serie de margen % por empresa y fecha, la tabla de apoyo y el estado vacío
@@ -36,7 +36,7 @@ export function RentabilidadHistoria() {
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion="El tablero de Rentabilidad todavía no está disponible para tu organización." />
+    tablero = <EstadoTableroNoDisponible nombre="Rentabilidad" />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion="No pudimos cargar el tablero de Rentabilidad." reintentar={reintentar} />
   } else {
@@ -49,7 +49,7 @@ export function RentabilidadHistoria() {
         titulo="Rentabilidad"
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
-        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasRentabilidad />}
       />
       <Alert severity="info" role="status">
         Elegí un producto para ver cómo evolucionó su margen en cada empresa, con la cotización del dólar y el costo de cada fecha.

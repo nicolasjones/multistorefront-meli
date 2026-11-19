@@ -19,6 +19,8 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([])
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const confirmandoRef = useRef(false)
   const [error, setError] = useState<string | null>(null)
   const [habilitado, setHabilitado] = useState<boolean | null>(null)
   const finRef = useRef<HTMLDivElement>(null)
@@ -49,7 +51,13 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
     setEnviando(true)
     setError(null)
     setTexto('')
-    setMensajes((previos) => [...previos, { id: `local-${Date.now()}`, origen: 'usuario', contenido: mensaje, estado: null }])
+    const idLocal = `local-${Date.now()}`
+    setMensajes((previos) => [...previos, { id: idLocal, origen: 'usuario', contenido: mensaje, estado: null }])
+    // Ante un fallo el mensaje no llegó: se retira el mensaje local y se devuelve el texto al campo para reintentar.
+    const deshacer = () => {
+      setMensajes((previos) => previos.filter((m) => m.id !== idLocal))
+      setTexto((actual) => (actual === '' ? mensaje : actual))
+    }
 
     const { data, error: invokeError } = await supabaseClient.functions.invoke<{ conversacion_id: string; respuesta?: string; error?: string }>(
       'chat-ia-responder',
@@ -63,6 +71,7 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
         mensajeError = cuerpo?.error ?? mensajeError
       }
       setError(mensajeError)
+      deshacer()
       setEnviando(false)
       return
     }
@@ -75,14 +84,22 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
   }, [texto, enviando, conversacionId, cargarHistorial])
 
   const confirmar = useCallback(async (mensajeId: string) => {
+    if (confirmandoRef.current) return
+    confirmandoRef.current = true
+    setConfirmando(true)
     setError(null)
-    const { data, error: rpcError } = await supabaseClient.rpc('ejecutar_accion_chat_ia', { p_mensaje_id: mensajeId })
-    if (rpcError) {
-      setError(mensajeDeErrorBase(rpcError, 'No se pudo ejecutar la acción.'))
-      return
+    try {
+      const { data, error: rpcError } = await supabaseClient.rpc('ejecutar_accion_chat_ia', { p_mensaje_id: mensajeId })
+      if (rpcError) {
+        setError(mensajeDeErrorBase(rpcError, 'No se pudo ejecutar la acción.'))
+        return
+      }
+      if (data?.estado === 'fallida') setError(data.motivo ?? 'No se pudo ejecutar la acción.')
+      if (conversacionId) await cargarHistorial(conversacionId)
+    } finally {
+      confirmandoRef.current = false
+      setConfirmando(false)
     }
-    if (data?.estado === 'fallida') setError(data.motivo ?? 'No se pudo ejecutar la acción.')
-    if (conversacionId) await cargarHistorial(conversacionId)
   }, [conversacionId, cargarHistorial])
 
   if (cargandoContexto || habilitado === null) return <EstadoCargaPagina />
@@ -101,7 +118,7 @@ export function ChatIAPanel({ altura = '70vh' }: { altura?: string }) {
               key={mensaje.id}
               mensaje={mensaje}
               acciones={mensaje.estado === 'propuesta' ? (
-                <Button size="small" variant="outlined" sx={{ mt: 1 }} onClick={() => void confirmar(mensaje.id)}>
+                <Button size="small" variant="outlined" sx={{ mt: 1 }} disabled={confirmando} onClick={() => void confirmar(mensaje.id)}>
                   Confirmar
                 </Button>
               ) : undefined}

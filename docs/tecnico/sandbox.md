@@ -1,8 +1,11 @@
 ---
 owner: operacion
 sources:
-  - .github/workflows
-  - infra
+  - supabase/seed.sql
+  - scripts/demo-sandbox.mjs
+  - apps/web/vite.config.ts
+  - infra/refine/compose.yaml
+  - .github/workflows/validate.yml
 ---
 
 # Sandbox de onboarding
@@ -14,7 +17,7 @@ Un entorno local para aprender sin tocar datos reales.
 ```bash
 pnpm install
 pnpm dev:supabase   # Postgres/Auth/Storage local
-pnpm dev            # panel en http://localhost:5173
+pnpm dev            # panel en http://localhost:4300 (puerto `WEB_PORT`; `pnpm dev:refine:host` usa el mismo valor por defecto)
 ```
 
 El seed local crea un superadmin (solo local; ver `supabase/seed.sql`):
@@ -69,3 +72,5 @@ Solo corre contra un Supabase **local**; si la URL no es `localhost/127.0.0.1/ho
 > **CI (2026-10-27):** los `.md` de raíz (`CLAUDE.md`, `AGENTS.md`) ya no cuentan como cambio de la app web. Antes, un PR sólo de docs encendía el e2e sin `build` y moría con *"Falta apps/web/dist"*; ahora, si el e2e corre, el `build` corre antes.
 
 > **CI (2026-11-12):** el paso «avisar el link del visor en el PR» de `validate.yml` ya no falla si el runner no trae `gh` (la imagen de `infra/runner/Dockerfile` no lo instala): avisa en el log y sigue. Antes salía con 127 y dejaba rojo el job `application` aunque sus tests pasaran.
+
+> **CI (2026-11-16, actualizado 2026-11-18):** el job `chequeos` de Validate (antes `application`) corre `pnpm test:correo:verificar-salida` (MSF-532): la suite del guion de verificación de salida del correo. Es Node puro (sin base ni red): vigila que el contrato `{resultado, nuevo, enviado}` de la Edge Function `solicitar-acceso` y el guion sigan de acuerdo, para que el guion no pueda dar un verde falso.

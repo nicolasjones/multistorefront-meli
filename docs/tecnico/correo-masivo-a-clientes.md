@@ -1,10 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
-  - infra/kestra
+  - specs/20261028-100000-correo-masivo-a-clientes
+  - infra/kestra/flows/correo-masivo.yml
+  - supabase/functions/baja-correo-masivo
+  - apps/web/src/pages/baja-correo.tsx
+  - apps/web/src/pages/clientes/correo-masivo/nueva.tsx
+  - apps/web/src/pages/clientes/correo-masivo/vista-previa.tsx
+  - apps/web/src/pages/clientes/correo-masivo/historial.tsx
+  - apps/web/src/pages/clientes/correo-masivo/detalle.tsx
+  - supabase/migrations/20270201200119_clientes_acepta_correo_masivo.sql
+  - supabase/migrations/20270201200120_campanas_correo.sql
+  - supabase/migrations/20270201200121_campanas_correo_crear.sql
+  - supabase/migrations/20270201200122_campanas_correo_lote.sql
+  - supabase/migrations/20270201200123_campanas_correo_historial.sql
 ---
 
 # Correo masivo a clientes: datos, RPC, flow y baja (MSF-155)
@@ -15,10 +24,8 @@ ni `workers`). **Spec:** `specs/20261028-100000-correo-masivo-a-clientes/` (`spe
 `contracts/correo-masivo.md`). Guía de producto: [Correo masivo](../producto/correo-masivo-a-clientes.md).
 La guía de la rama de la épica es `docs/correo-masivo.md`.
 
-> **Estado:** verificado contra la rama `epic/MSF-155-clientes-y-proveedores-correo-masivo-a-c` (commits
-> `2e5001e9`, `3f3a73b1`, `20ac90fd`, `1e5e9280`, `0c12a720`), todavía **no en `main`** al 2026-10-31. Las
-> tareas de `tasks.md` nombran migraciones `20270114…`; las reales son `20270120…`/`20270121…` (abajo).
-> TODO (dueño: quien mergee la épica): re-verificar contra `main`.
+> **Estado:** la épica ya está integrada en la rama `dokploy`. Las tareas de `tasks.md` nombran migraciones
+> `20270114…`; las reales (renumeradas al unificar versiones de migración) son `20270201200119…20270201200123` (abajo).
 
 ## Datos
 
@@ -26,11 +33,11 @@ Migraciones aditivas, cada una con su reversión en el encabezado:
 
 | Migración | Objeto | Esquema | Justificación (Principio VII) |
 |---|---|---|---|
-| `20270120100000_clientes_acepta_correo_masivo` | `public.clientes.acepta_correo_masivo boolean not null default false` | `public` | Dato genérico del cliente; los existentes quedan sin consentimiento. |
-| `20270121110000_campanas_correo` | `dominio.campanas_correo` | `dominio` | Hecho del negocio: campaña, asunto y mensaje. |
+| `20270201200119_clientes_acepta_correo_masivo` | `dominio.clientes.acepta_correo_masivo boolean not null default false` | `public` | Dato genérico del cliente; los existentes quedan sin consentimiento. |
+| `20270201200120_campanas_correo` | `dominio.campanas_correo` | `dominio` | Hecho del negocio: campaña, asunto y mensaje. |
 | idem | `dominio.campana_correo_destinatarios` | `dominio` | Foto de destinatarios al crear y estado (`pendiente`, `enviado`, `fallido`, `omitido`). |
 | idem | `dominio.correo_masivo_pruebas` | `dominio` | Pedidos de prueba al autor; no son campaña; sin acceso por API. |
-| `20270121110300_campanas_correo_historial` | `campana_correo_destinatarios.baja_en` | `dominio` | Atribuye la baja a la campaña del enlace. |
+| `20270201200123_campanas_correo_historial` | `campana_correo_destinatarios.baja_en` | `dominio` | Atribuye la baja a la campaña del enlace. |
 
 ```mermaid
 erDiagram
@@ -66,7 +73,9 @@ organización desde las 00:00 hora de la base; reclamo con vencimiento (900 s) y
 destinatario (se acumulan los hashes). SMTP de Kestra `KESTRA_SMTP_*` (el de `enviar-avisos`). Fallos: 4
 reintentos con espera creciente, luego `fallido` con motivo fijo «No se pudo enviar el correo». Entrega **al menos
 una vez**. Variables en `infra/kestra/.env.example`: `CORREO_MASIVO_LOTE` (50), `CORREO_MASIVO_LIMITE_DIARIO`
-(500), `CORREO_MASIVO_URL_BAJA`.
+(500), `CORREO_MASIVO_URL_BAJA`. Una sola corrida a la vez (`concurrency` límite 1, `CANCEL`), `timeout` por tarea
+(`PT1M` reclamo y cierres, `PT2M` envío) y aviso al soporte si el flow falla (`errors` → subflow `aviso-fallo-flujo`, solo
+con la tarea que falló).
 
 ## Baja
 
@@ -100,4 +109,4 @@ porque la baja exige un POST de confirmación.
 
 Migraciones posteriores (nunca en el mismo PR): borrar las funciones de baja, historial, lote, creación y
 destinatarios; `drop table` de las tres tablas de `dominio` (exportar antes el historial si hace falta); luego
-`alter table public.clientes drop column acepta_correo_masivo`. El flow y la Edge Function se retiran aparte.
+`alter table dominio.clientes drop column acepta_correo_masivo`. El flow y la Edge Function se retiran aparte.

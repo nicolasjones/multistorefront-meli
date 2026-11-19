@@ -1,9 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20270104-100000-ventas-reportes-basicos
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - apps/web/src/pages/ventas-reportes
+  - supabase/migrations/20270201200114_analitica_ventas_producto_mas_vendido.sql
+  - supabase/migrations/20270201200115_reportes_filtro_empresa.sql
+  - supabase/migrations/20270201200116_ventas_reportes_conteo.sql
+  - supabase/migrations/20270201200117_analitica_ventas_ranking_clientes.sql
+  - supabase/migrations/20270201200118_lectura_ranking_excel.sql
+  - supabase/migrations/20270202201003_analitica_consultas_producto_mas_consultado.sql
+  - supabase/migrations/20270202201004_analitica_ventas_periodo_canal.sql
+  - supabase/migrations/20261013130002_roles_basicos_permisos.sql
+  - supabase/migrations/20270202201000_costos_adicionales_canal.sql
+  - supabase/migrations/20270202201007_analitica_rentabilidad_ventas_real.sql
 ---
 
 # Ventas · reportes (técnico, MSF-338, MSF-192)
@@ -19,7 +29,7 @@ está en [Reportes de ventas (producto)](../producto/ventas-reportes.md).
 !!! note "Estado"
     MSF-338 se implementó en la rama `epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` y MSF-192 en
     `epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, **ambas pendientes de merge a `main`**.
-    Migraciones de MSF-338: `20270104090000`–`20270104090200`. Migraciones de MSF-192:
+    Migraciones de MSF-338: `20270201200114`–`20270201200118` (renumeradas desde `20270104090000`–`20270104090200` al integrarse; están en el árbol). Migraciones de MSF-192:
     `20270202201000`–`20270202201007` (todas aditivas, con la reversión en el encabezado).
     Contratos: `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md` y
     `specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/rentabilidad-real-y-reportes.md`.
@@ -68,7 +78,7 @@ vuelve a montar.
 
 **No hay tablas nuevas.** MSF-338 agrega **vistas** en el esquema `analitica` (solo vistas y funciones),
 **dos RPC** en `public` y **una columna** en `public.reportes`. MSF-192 suma **dos vistas** más y **una RPC
-de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.intereses_whatsapp` y
+de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.intereses_whatsapp` —hoy solo la alimenta el sembrado demo, ver MSF-657— y
 `dominio.comprobantes_venta*`).
 
 | Objeto | Esquema | Estado | Cambio |
@@ -84,16 +94,16 @@ de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.interese
 | `analitica.ventas_periodo_canal` | `analitica` | **nueva (vista, MSF-192)** | Ventas por período y canal: grano empresa × fecha, con `comprobantes`, `unidades` y `facturado` con IVA. |
 | `public.consultas_reportes_conteo(date, date, uuid)` | `public` | **nueva (RPC, MSF-192)** | Toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). |
 | `dominio.intereses_whatsapp` | `dominio` | **existente** | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`). |
-| `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270104090050`). |
+| `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270201200115_reportes_filtro_empresa.sql`). |
 | `dominio.comprobantes_venta` / `dominio.comprobantes_venta_lineas` | `dominio` | **existentes** | Solo se leen. |
-| `public.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
+| `dominio.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
 | `public.stock_estados` | `public` | **existente** | Solo se lee (`cantidad`, `estado`). |
 
 El DER completo está en [Datos y DER](datos.md#ventas-reportes-basicos-msf-338).
 
 ### `analitica.ventas_producto_mas_vendido`
 
-Migración `20270104090000_analitica_ventas_producto_mas_vendido.sql`. Columnas: `organizacion_id`,
+Migración `20270201200114_analitica_ventas_producto_mas_vendido.sql`. Columnas: `organizacion_id`,
 `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `categoria`, `deposito_id`,
 `deposito_nombre`, `unidades bigint`, `facturado numeric`, `stock_hoy numeric`, `stock_estado text`,
 `fecha date`.
@@ -112,7 +122,7 @@ Migración `20270104090000_analitica_ventas_producto_mas_vendido.sql`. Columnas:
 
 ### `analitica.ventas_ranking_clientes`
 
-Migración `20270104090100_analitica_ventas_ranking_clientes.sql`. Columnas: `organizacion_id`,
+Migración `20270201200117_analitica_ventas_ranking_clientes.sql`. Columnas: `organizacion_id`,
 `empresa_id`, `empresa_nombre`, `posicion bigint`, `cliente_id`, `numero integer`, `nombre`, `tipo`,
 `consumidor_final boolean`, `fecha date`, `comprobantes bigint`, `facturado numeric`,
 `participacion numeric`, `ultimo_comprador date`.
@@ -126,7 +136,7 @@ Migración `20270104090100_analitica_ventas_ranking_clientes.sql`. Columnas: `or
   0.
 - `ultimo_comprador` = fecha del comprobante más reciente que cuenta del cliente **en esa tienda** (con
   varias tiendas, el tablero toma el máximo).
-- `consumidor_final` es la **marca** (`public.clientes.es_consumidor_final`): la vista **no excluye a
+- `consumidor_final` es la **marca** (`dominio.clientes.es_consumidor_final`): la vista **no excluye a
   nadie**, la exclusión se decide donde se aplica (filtro nativo del tablero y parámetro de la RPC).
 - **`posicion` y `participacion` se recalculan sobre el filtro**: en la vista son del cliente en todo el
   alcance visible; cuando la pantalla o la RPC filtran por período o tienda, el filtro se aplica **antes**
@@ -179,7 +189,7 @@ que reusan el marco, los filtros, `TableroReporte` y el patrón de estados de MS
 Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`,
 `fecha date`, `consultas bigint`, `ultima_consulta timestamptz`.
 
-- Lee `dominio.intereses_whatsapp` (F-CON-02): **un toque en «Consultar por WhatsApp» = una consulta**, no
+- Lee `dominio.intereses_whatsapp` (F-CON-02; hoy solo el sembrado demo la alimenta, ver MSF-657): **un toque en «Consultar por WhatsApp» = una consulta**, no
   una venta.
 - `fecha` es el día en `America/Argentina/Buenos_Aires` de `created_at`; `ultima_consulta` es el instante
   máximo del grupo.
@@ -202,7 +212,7 @@ Columnas: `organizacion_id`, `empresa_id`, `empresa_nombre`, `fecha date`, `comp
 
 | RPC | Qué hace | Seguridad / errores |
 |---|---|---|
-| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | Toques de WhatsApp del período; decide el vacío «No hay consultas por WhatsApp en ese período». | `security definer`, `search_path = ''`; exige `reportes` ≥ lectura (`42501`) y acota a `private.empresas_accesibles()`; `revoke … from public, anon` y `grant … to authenticated`. |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | Toques de WhatsApp del período (hoy solo del sembrado demo, ver MSF-657); decide el vacío «No hay consultas por WhatsApp en ese período». | `security definer`, `search_path = ''`; exige `reportes` ≥ lectura (`42501`) y acota a `private.empresas_accesibles()`; `revoke … from public, anon` y `grant … to authenticated`. |
 
 ### Frontend
 
@@ -309,7 +319,7 @@ en una fila. El SKU sí es único por organización (`productos_org_sku_uidx`).
 | Orden | Por facturación neta descendente (`timeseries_limit_metric: facturado_total` + `order_desc: true`). |
 | Filtros nativos | `NATIVE_FILTER-rango`, `NATIVE_FILTER-empresa` y `NATIVE_FILTER-consumidor-final` (`consumidor_final_texto`, valor inicial «No» = excluido). |
 
-El grupo es `nombre` + `numero` + `tipo_texto` por la misma razón que en «Más vendidos» (`public.clientes`
+El grupo es `nombre` + `numero` + `tipo_texto` por la misma razón que en «Más vendidos» (`dominio.clientes`
 no exige nombre único por organización); `numero` es el correlativo por organización y sí es único.
 
 `reportes.json` declara los dos tableros:
@@ -408,7 +418,7 @@ como fracción con formato `0.0%`; las dos pantallas muestran el mismo número.
 
 - **Entorno:** stack local con las ramas de las épicas (`pnpm dev:supabase` + `pnpm dev`; panel en
   `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él la pantalla muestra
-  «El tablero de «…» todavía no está disponible para tu organización»— o el ambiente **DEV** con las épicas
+  «El tablero de «…» todavía no está disponible: falta importarlo en este entorno»— o el ambiente **DEV** con las épicas
   desplegadas y los tableros importados:
 
   ```bash
@@ -425,7 +435,7 @@ como fracción con formato `0.0%`; las dos pantallas muestran el mismo número.
   - Dos **clientes** (uno minorista y otro minorista más) y el **«Consumidor final»** de la organización.
   - Una **factura confirmada** en la tienda A, otra en la tienda B y, en el mismo período, una **nota de
     crédito** (resta) y un **presupuesto** (no cuenta).
-  - Dos o tres **toques en «Consultar por WhatsApp»** sobre un producto (para «Productos más consultados»).
+  - Dos o tres **toques en «Consultar por WhatsApp»** sobre un producto (para «Productos más consultados»; esa tabla hoy solo la alimenta el sembrado demo, ver MSF-657).
 
 ### Pasos
 
@@ -536,7 +546,7 @@ historia. Resultado: **sin hallazgos bloqueantes**.
 |---|---|
 | `anon` | Sin `USAGE` sobre `analitica`, sin `SELECT` en las vistas y sin `EXECUTE` en las dos RPC. |
 | `authenticated` | Sin `USAGE` ni `SELECT` sobre `analitica`; lee solo por las RPC (autorizan adentro). |
-| Rol `superset_analitica` | Solo `SELECT` en las vistas y `execute` en los envoltorios; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `public.clientes`. |
+| Rol `superset_analitica` | Solo `SELECT` en las vistas y `execute` en los envoltorios; no es superusuario ni salta RLS; no lee `dominio.comprobantes_venta*` ni `dominio.clientes`. |
 | RPC `security definer` | `set search_path = ''`, `revoke … from public, anon`, `grant execute … to authenticated` y autorización explícita adentro. |
 | Token por empresa | `organizacion_id` + `empresa_id IN (…)` forzados en el servidor; UUIDs validados; `503` (no token) si no se puede resolver el alcance. |
 | Principio VII | Sin tablas nuevas; `analitica` sigue sin tablas; `rls_en_toda_tabla` sigue verde. |

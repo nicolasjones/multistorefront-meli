@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, cabeceras, rest, serviceKey, sql, TOPE_FETCH_MS, url } from './soporte/fixtures'
 
 // F-CLI-06 (MSF-428, SC-005 y SC-006) con las dos tiendas del seed (mundojc.localhost y sanjavucho.localhost):
 //  - invitación → definir contraseña → ingresar → «Salir» (SC-005);
@@ -16,56 +16,49 @@ const MUNDO = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-800
 const SAN = { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002' } as const
 type Tienda = typeof MUNDO | typeof SAN
 
-const CLAVE = 'Clave-Segura-123!'
+// Contraseña de prueba distinta en cada corrida (los usuarios se dan de baja al terminar).
+const CLAVE = `Cw-${randomUUID()}!`
 const GENERICO = 'Correo o contraseña incorrectos.'
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 const origen = (t: Tienda) => `http://${t.host}:${puerto}`
 
-const cabeceras = (perfil = 'public') => ({
-  apikey: serviceKey ?? '',
-  authorization: `Bearer ${serviceKey}`,
-  'content-type': 'application/json',
-  'content-profile': perfil,
-  'accept-profile': perfil,
-})
-
-async function rest<T>(metodo: string, ruta: string, cuerpo?: unknown): Promise<T> {
-  const r = await fetch(`${url}/rest/v1/${ruta}`, {
-    method: metodo,
-    headers: { ...cabeceras(), prefer: 'return=representation' },
-    body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
-  })
-  if (!r.ok) throw new Error(`REST ${metodo} ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json().catch(() => null)) as T
-}
-
-async function admin<T>(ruta: string, cuerpo: unknown): Promise<T> {
-  const r = await fetch(`${url}/auth/v1/admin/${ruta}`, { method: 'POST', headers: cabeceras(), body: JSON.stringify(cuerpo) })
-  if (!r.ok) throw new Error(`Auth admin ${ruta}: ${r.status} ${await r.text()}`)
-  return (await r.json()) as T
+// Enlace de invitación/recuperación de la API admin de Auth (la firma es propia de este spec: no es una siembra).
+async function generarEnlace(correo: string, redirectTo: string): Promise<string> {
+  const r = await fetch(`${url}/auth/v1/admin/generate_link`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'POST', headers: cabeceras(), body: JSON.stringify({ type: 'recovery', email: correo, redirect_to: redirectTo }) })
+  if (!r.ok) throw new Error(`Auth admin generate_link: ${r.status} ${await r.text()}`)
+  // GoTrue arma el enlace con SU url externa (`http://127.0.0.1:<api>`), pero en el job de sesión el navegador corre dentro del
+  // contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API murió con su paso: el `goto` daba
+  // ERR_CONNECTION_REFUSED. Se reemplaza el origen por el de `SUPABASE_URL` (`host.docker.internal`, el mismo que usan la web y los specs).
+  const enlace = new URL(((await r.json()) as { action_link: string }).action_link)
+  const base = new URL(url ?? enlace.origin)
+  enlace.protocol = base.protocol
+  enlace.host = base.host
+  return enlace.toString()
 }
 
 type Sembrado = { correo: string; authId: string; clienteId: string }
 const creados: Sembrado[] = []
 
 // Cliente habilitado en `habilitado`, usuario de Auth (con o sin contraseña) y cuenta web en `cuenta` (opcional).
+// `service_role` no escribe en `public.clientes_empresas` ni en `public.cuentas_cliente` (sin grant): la habilitación y la
+// suspensión se siembran con `sql()`; el cliente (dominio) y el vínculo (RPC con EXECUTE para `service_role`) van por la REST.
 async function sembrar(opciones: { habilitado: Tienda[]; cuenta?: { tienda: Tienda; estado: 'activa' | 'suspendida' }; conClave?: boolean }): Promise<Sembrado> {
   const sufijo = randomUUID().slice(0, 8)
   const correo = `cuenta-web-${sufijo}@example.com`
   const organizacion = (opciones.cuenta?.tienda ?? opciones.habilitado[0]).organizacion
-  const [cliente] = await rest<{ id: string }[]>('POST', 'clientes', {
+  const [cliente] = await rest<{ id: string }>('clientes', {
     organizacion_id: organizacion, numero: 900000 + Math.floor(Math.random() * 90000), nombre: `E2E ${sufijo}`, correo, tipo: 'minorista',
-  })
+  }, 'dominio')
   for (const t of opciones.habilitado) {
-    await rest('POST', 'clientes_empresas', { cliente_id: cliente.id, empresa_id: t.empresa, organizacion_id: t.organizacion })
+    await sql('insert into public.clientes_empresas (cliente_id, empresa_id, organizacion_id) values ($1, $2, $3)', [cliente.id, t.empresa, t.organizacion])
   }
-  const usuario = await admin<{ id: string }>('users', { email: correo, email_confirm: true, ...(opciones.conClave === false ? {} : { password: CLAVE }) })
-  const sembrado = { correo, authId: usuario.id, clienteId: cliente.id }
+  const authId = await altaUsuario(correo, opciones.conClave === false ? null : CLAVE)
+  const sembrado = { correo, authId, clienteId: cliente.id }
   creados.push(sembrado)
   if (opciones.cuenta) {
-    await rest('POST', 'rpc/vincular_cuenta_cliente', { p_cliente: cliente.id, p_empresa: opciones.cuenta.tienda.empresa, p_auth_user: usuario.id })
+    await rest('rpc/vincular_cuenta_cliente', { p_cliente: cliente.id, p_empresa: opciones.cuenta.tienda.empresa, p_auth_user: authId }, 'public', 'return=minimal')
     if (opciones.cuenta.estado === 'suspendida') {
-      await rest('PATCH', `cuentas_cliente?cliente_id=eq.${cliente.id}&empresa_id=eq.${opciones.cuenta.tienda.empresa}`, { estado: 'suspendida' })
+      await sql("update public.cuentas_cliente set estado = 'suspendida' where cliente_id = $1 and empresa_id = $2", [cliente.id, opciones.cuenta.tienda.empresa])
     }
   }
   return sembrado
@@ -83,16 +76,14 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
 
   test.afterAll(async () => {
     for (const s of creados) {
-      await fetch(`${url}/auth/v1/admin/users/${s.authId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
-      await fetch(`${url}/rest/v1/clientes?id=eq.${s.clienteId}`, { method: 'DELETE', headers: cabeceras() }).catch(() => undefined)
+      await borrarUsuario(s.authId)
+      await borrar(`clientes?id=eq.${s.clienteId}`, 'dominio')
     }
   })
 
   test('invitación → definir contraseña → ingresar → salir (SC-005)', async ({ page }) => {
     const s = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'activa' }, conClave: false })
-    const { action_link: enlace } = await admin<{ action_link: string }>('generate_link', {
-      type: 'recovery', email: s.correo, redirect_to: `${origen(MUNDO)}/definir-contrasena`,
-    })
+    const enlace = await generarEnlace(s.correo, `${origen(MUNDO)}/definir-contrasena`)
 
     await page.goto(enlace)
     await expect(page).toHaveURL(new RegExp(`^${origen(MUNDO)}/definir-contrasena`))
@@ -118,6 +109,8 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   })
 
   test('suspendida, sin cuenta en la tienda y no habilitada no entran, con el mismo mensaje que una clave errónea', async ({ page }) => {
+    // Seis ingresos con siembra de cuatro clientes y `slowMo` del modo visible: los 60 s del CI no alcanzan (medido en sesión).
+    test.setTimeout(180_000)
     const suspendida = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'suspendida' } })
     // Un cliente pertenece a una sola organización (las empresas habilitadas deben ser de ella): habilitado en Mundo JC, sin cuenta web.
     const sinCuenta = await sembrar({ habilitado: [MUNDO] })
@@ -140,7 +133,20 @@ test.describe('Cuenta web del cliente · ingreso y recuperación (SC-005, SC-006
   test('recuperar responde igual con y sin cuenta (SC-006)', async ({ page, request }) => {
     const s = await sembrar({ habilitado: [MUNDO], cuenta: { tienda: MUNDO, estado: 'activa' } })
     const sonda = await request.post(`${url}/functions/v1/recuperar-clave-cliente`, { data: {}, headers: { apikey: serviceKey ?? '' }, failOnStatusCode: false })
-    test.skip(sonda.status() === 404 || sonda.status() >= 502, 'La Edge Function recuperar-clave-cliente no está servida (`supabase functions serve`).')
+    // Servida, la función responde 400 («Datos inválidos») a un cuerpo vacío (`supabase/functions/recuperar-clave-cliente/handler.ts:72-74`).
+    // El job de sesión arranca el stack con `-x …,edge-runtime,…` (`validate.yml`, paso «Levantar el stack de Supabase del CI»): sin Edge,
+    // Kong responde 404, o 500 con el cuerpo `{"message":"An unexpected error occurred"}` (run 44185502449). SOLO eso es «no servida» y omite;
+    // cualquier otro código distinto de 400 (401, 500 con otro cuerpo, 502…) es la función servida fallando y hace FALLAR el test.
+    const estado = sonda.status()
+    const cuerpo = (await sonda.json().catch(() => null)) as { message?: string } | null
+    const noServida = estado === 404 || (estado === 500 && cuerpo?.message === 'An unexpected error occurred')
+    if (noServida) {
+      const motivo = `La Edge Function recuperar-clave-cliente no está servida en este stack (la sonda devolvió ${estado}): hace falta \`supabase functions serve\`.`
+      console.log(`[omitido] SC-006: ${motivo}`)
+      test.info().annotations.push({ type: 'omitido', description: motivo })
+      test.skip(true, motivo)
+    }
+    expect(estado, 'la función recuperar-clave-cliente está servida y debe responder 400 «Datos inválidos» a un cuerpo vacío').toBe(400)
 
     const avisos: string[] = []
     for (const correo of [s.correo, `nadie-${randomUUID().slice(0, 8)}@example.com`]) {

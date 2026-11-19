@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - infra/superset/compose.yaml
+  - infra/superset/compose.estricto.yaml
+  - infra/superset/superset_config.py
+  - infra/superset/configurar_embebido.py
+  - infra/superset/importar-dashboards.mjs
+  - infra/superset/datasets-tablero.mjs
+  - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
 # Operar Superset local
@@ -101,6 +107,30 @@ login en Supabase, `emitir-acceso-reporte` por cada reporte visible,
 ```sh
 SUPABASE_URL=http://127.0.0.1:8100 SUPABASE_ANON_KEY=<anon> VERIFICAR_EMAIL=<usuario> VERIFICAR_PASSWORD=<password> WEB_ORIGIN=http://localhost:3100 pnpm test:superset:embebido
 ```
+
+## Despliegue en el VPS: credenciales obligatorias (modo estricto)
+
+`infra/superset/compose.estricto.yaml` exige, sin valor por defecto, `SUPERSET_DB_PASSWORD`, `SUPERSET_SECRET_KEY`, `SUPERSET_ADMIN_PASSWORD`,
+`SUPERSET_GUEST_TOKEN_JWT_SECRET` y `SUPERSET_GUEST_TOKEN_PASSWORD` (`${VAR:?}`). `scripts/deploy-vps.mjs` suma ese archivo a `docker compose` en
+staging y production siempre, y en dev solo con `VPS_ESTRICTO=1`: en dev el preflight advierte (modo transicional) y el despliegue continúa. Los
+valores van en el `.env.<entorno>` (secret `VPS_DEPLOY_ENV`); el detalle y el paso a modo estricto están en [deployment.md](deployment.md). El
+servicio `superset` corre con `init: true` (tini como PID 1) para no acumular procesos zombi (`infra/superset/compose.yaml:78`).
+
+## Vencimiento y renovación del guest token (MSF-678)
+
+El tablero embebido ya no depende de un token estático. `superset_config.py` fija `GUEST_TOKEN_JWT_EXP_SECONDS` (600 s por defecto,
+`SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS` lo cambia por entorno). `ReporteEmbebido.tsx` entrega al SDK el token que la Edge Function
+`emitir-acceso-reporte` ya emitió **una sola vez** y, en cada renovación que pide el SDK antes del vencimiento, **pide un token nuevo** a
+la misma función: así cada renovación vuelve a validar el acceso de la persona (si perdió el permiso, la renovación falla con 403 y el
+componente avisa «prohibido» en vez de seguir mostrando datos con un token vencido). No hace falta infraestructura ni credenciales nuevas.
+
+## El importador de dashboards falla si faltan variables (MSF-713)
+
+`pnpm superset:importar-dashboards` importa los dashboards y registra los reportes en `public.reportes`. Si hay `reportes.json` y faltan
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR`, ahora **termina en rojo** y nombra las que faltan (antes
+salía en verde con un aviso y el catálogo quedaba sin actualizar). Para importar solo los dashboards a propósito (por ejemplo un Superset
+local sin Supabase) se pasa `--omitir-reportes`, que lo deja dicho en el log. El deploy ya omite el paso entero, con aviso, cuando
+`SUPERSET_URL` no está definida en el Environment.
 
 ## "Embed code" no se puede aislar solo con permisos de rol
 
@@ -235,8 +265,8 @@ Vive en `infra/superset/dashboards/rentabilidad/` junto al Resumen y se importa 
 - **Tabla**: gráfico Handlebars `Productos por canal` (columnas del prototipo, barra de margen %, chip de estado, contador «N filas», «Sin resultados / Cambiá el filtro o la búsqueda.», negativos en el rojo de error). Orden fijo por margen % ascendente (menor margen primero).
 - **Filtros nativos**: `Estado` (`estado_etiqueta`), `Canal` (`empresa_nombre`, solo tiendas) y `Buscar producto o SKU` (`producto_busqueda`).
 - **Filtro inicial desde el resumen**: la pantalla `/rentabilidad/productos?estado=bajo_o_negativo|negativo` pasa `native_filters` (rison) por `dashboardUiConfig.urlParams` del SDK de embebido, apuntando al filtro `NATIVE_FILTER-estado`. Los valores salen de una lista cerrada (`apps/web/src/lib/rentabilidad.ts`). **Verificar en un Superset real** tras importar que el filtro llega preseleccionado; si la versión no lo respeta, el tablero abre sin filtro (ordenado por menor margen, donde aparecen primero los negativos).
-- **Desvío (T025, selector «Mayor/Menor margen primero»)**: no existe como control; Superset no ofrece un orden como filtro nativo ni se pudo hacer con Handlebars sin scripts. El orden queda fijo por menor margen primero. Seguimiento propio: **MSF-556** (Tarea `seguimiento`).
-- **Límites conocidos**: `Buscar producto o SKU` es un `filter_select` (lista desplegable con búsqueda), no un campo de texto libre (desvío del prototipo, seguimiento **MSF-556**); la tabla Handlebars no pagina (`row_limit` 10000, `server_page_length` no aplica) — el volumen esperado (estimación sin medición) es de cientos de filas producto×tienda por organización; no se midió con 10.000 filas.
+- **Desvío (T025, selector «Mayor/Menor margen primero»)**: no existe como control; Superset no ofrece un orden como filtro nativo ni se pudo hacer con Handlebars sin scripts. El orden queda fijo por menor margen primero. Se acepta como límite definitivo de la vista Por producto (decisión del 2026-11-15, seguimientos **MSF-555** y **MSF-896**): es el orden más útil para detectar productos con problema; si se quiere un selector se abre un ítem propio con validación en Superset. La vista Comparativo sí ofrece el orden por la técnica de dataset repetido (ver más abajo), aplicable aquí si negocio lo pide.
+- **Límites conocidos**: `Buscar producto o SKU` es un `filter_select` (lista desplegable con búsqueda), no un campo de texto libre (desvío del prototipo, límite permanente decidido en **MSF-896**, antes MSF-555); la tabla Handlebars no pagina (`row_limit` 10000, `server_page_length` no aplica) — el volumen esperado (estimación sin medición) es de cientos de filas producto×tienda por organización; no se midió con 10.000 filas.
 - El contrato visible se fija en `apps/web/src/pages/rentabilidad/tableroPorProducto.contrato.test.ts` y las filas/filtros/orden contra Postgres en `supabase/tests/database/rentabilidad_por_producto.test.sql`.
 
 ## Tablero «Rentabilidad · Comparativo» (F-REN-06, MSF-261)
@@ -294,8 +324,22 @@ analitica» (rol `superset_analitica`, contraseña por `SUPERSET_ANALITICA_DB_PA
 
 Directorio `infra/superset/dashboards/inventario/` (sección `stock`, sin filtro por empresa). Se importa con
 `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/inventario --entorno <entorno>`, igual que
-Rentabilidad y Ventas. El directorio trae dos tableros: «Productos y stock» (MSF-297) y «Reposición» (MSF-311, slug
+Rentabilidad y Ventas. El directorio trae tres tableros: «Productos y stock» (MSF-297, con costos: el reporte exige la acción `ver_costos` vía `accion_requerida` en `reportes.json`), «Productos y stock (cantidades)» (sin costo ni valor, para quien no la tiene) y «Reposición» (MSF-311, slug
 `inventario-reposicion`, vista `analitica.inventario_reposicion`). Guía: [`reportes-inventario.md`](./reportes-inventario.md).
+
+### Aislamiento de datasets entre tableros
+
+El rol Guest es único y recibe `datasource_access` sobre todos los datasets embebidos. Para que el token de un tablero no
+lea los datasets de otro, el token de **cada** tablero lleva una regla `rls` `1 = 0` por cada dataset de Superset que no sea
+suyo (allowlist): `reportes.datasets_permitidos`, que el importador deriva de los YAML (gráficos y filtros nativos) y de
+`datasets_permitidos_extra` de `reportes.json`. Sin allowlist, o sin poder listar o resolver los datasets, no se emite token
+(503). Cuenta de servicio: `can_read Dataset` + `all_datasource_access` (riesgo y mitigación en `docs/reportes-inventario.md`).
+Verificación contra un Superset real: `pnpm test:superset:aislamiento-tokens` (ver la cabecera de
+`scripts/verificar-aislamiento-tokens-superset.mjs`: variables, qué prueba y qué solo se confirma con Superset real).
+**Advertencia**: la allowlist sale de los YAML versionados; un dataset o gráfico creado/agregado en la UI de Superset y
+no exportado queda vedado y se ve con filas vacías, sin error (flujo: exportar → commitear → actualizar
+`infra/superset/datasets-tablero.snapshot.json` → reimportar). Orden de despliegue y detalle de las vías de la API
+(`column/values`, `samples`): `docs/reportes-inventario.md`.
 
 ## Exportar reportes a CSV
 
@@ -338,3 +382,14 @@ Procedimiento manual de verificación (tras `pnpm dev:superset`):
 4. Con un cliente cuyo nombre sea `=1+1`, el CSV debe traerlo como `'=1+1` (texto,
    no fórmula). Si no, Superset no escapa en esta versión y hay que neutralizar
    en la vista/dataset.
+
+## Tableros analíticos de la galería (F-REP-07, MSF-265)
+
+Directorio `infra/superset/dashboards/analitica-avanzada/`: dos tableros nuevos —«Analítica · Ventas por tienda y categoría» (sección `reportes`, vista `analitica.ventas_empresa_categoria`) y «Analítica · Margen real por tienda, categoría y producto» (sección `rentabilidad`, vista `analitica.margen_real_categoria`)—, los dos con `filtro_empresa: true` y los filtros nativos `NATIVE_FILTER-rango`/`NATIVE_FILTER-empresa` que preselecciona la pantalla `/reportes/tableros`. Se importan con
+`pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/analitica-avanzada --entorno <entorno>` (el workflow de despliegue lo hace en staging y producción) y la migración `20270324100100` los asigna a todas las organizaciones (prefijo «Analítica · »). El administrador **elige** entre tableros ya armados: no entra a Superset ni los edita, así que no cambia nada de la regla de la spec 007. Ver [Analítica avanzada](analitica-avanzada.md).
+
+Pendiente de verificación manual tras el primer despliegue (los YAML se probaron contra un Superset simulado, no contra uno real): abrir cada tablero embebido y comprobar que los 6 gráficos rendericen y que los filtros de período y tienda respondan.
+
+## Importador: la cookie de sesión también va al habilitar el embebido
+
+`resolverEmbebidos` (`infra/superset/importar-dashboards.mjs`) pedía el token CSRF pero no reenviaba la cookie de sesión que llega con él, así que Superset respondía 400 («The CSRF token is missing») al habilitar el embebido de un dashboard nuevo y los reportes quedaban sin su UUID de embebido; `importarPaquete` ya lo hacía bien. Ahora ambas llamadas reenvían la cookie. Si un reporte quedó con el slug en lugar del UUID (verificalo con `select nombre, superset_dashboard_uuid from public.reportes`), basta con volver a correr el importador.

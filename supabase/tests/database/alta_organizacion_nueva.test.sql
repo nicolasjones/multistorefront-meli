@@ -24,7 +24,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('b1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-00000000000a', 'administrador'),
   ('b2000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-00000000000b', 'administrador');
 
-insert into clientes (id, organizacion_id, nombre) values
+insert into dominio.clientes (id, organizacion_id, nombre) values
   ('b1000000-0000-0000-0000-0000000000c1', 'b1000000-0000-0000-0000-00000000000a', 'Cliente de la existente');
 
 -- Un usuario, una organización (FR-002): el mismo usuario no puede tener otra membresía.
@@ -40,11 +40,11 @@ set local role authenticated;
 
 select is((select count(*) from organizaciones)::int, 1, 'el fundador ve solo la organización nueva');
 select is((select nombre from organizaciones), 'Organización Nueva', 'la organización que ve es la suya');
-select is((select count(*) from clientes where not es_consumidor_final)::int, 0, 'el fundador no ve datos de la organización existente');
+select is((select count(*) from dominio.clientes where not es_consumidor_final)::int, 0, 'el fundador no ve datos de la organización existente');
 select is((select count(*) from usuarios_organizacion)::int, 1, 'el fundador ve solo su propia membresía');
 
 select throws_ok(
-  $$insert into clientes (organizacion_id, nombre) values ('b1000000-0000-0000-0000-00000000000a', 'Intento cruzado')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre) values ('b1000000-0000-0000-0000-00000000000a', 'Intento cruzado')$$,
   '42501', null,
   'el fundador no puede escribir datos en la organización existente'
 );
@@ -61,7 +61,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'b1000000-0000-
 set local role authenticated;
 
 select is((select count(*) from organizaciones)::int, 1, 'la organización existente no ve la organización nueva');
-select is((select count(*) from clientes where not es_consumidor_final)::int, 1, 'la organización existente conserva sus datos');
+select is((select count(*) from dominio.clientes where not es_consumidor_final)::int, 1, 'la organización existente conserva sus datos');
 
 -- Superadmin: tampoco crea organizaciones por la API
 reset role;

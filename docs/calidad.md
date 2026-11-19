@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/calidad.mjs
+  - .github/workflows/quality.yml
+  - .gitleaks.toml
+  - .jscpd.json
+  - .dependency-cruiser.cjs
+  - knip.json
+  - apps/web/vite.config.ts
 ---
 
 # Calidad determinista (F1)
@@ -15,7 +21,7 @@ Checks que **no dependen del criterio** de una persona/agente. El objetivo es do
 
 ```bash
 pnpm calidad                 # todo
-pnpm calidad --code          # sin docker (sin secretos/SAST)
+pnpm calidad:code            # = node scripts/calidad.mjs --no-docker (sin Docker: gitleaks solo si hay binario nativo)
 pnpm calidad --only=secrets,sast
 node scripts/calidad.mjs --no-docker
 ```
@@ -27,8 +33,8 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 
 | Check | Herramienta | Qué detecta |
 |---|---|---|
-| Secretos | **gitleaks** (docker) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
-| SAST | **semgrep** (docker, reglas `p/secrets`, `p/typescript`, `p/react`) | patrones inseguros, XSS, secretos en código |
+| Secretos | **gitleaks** (binario nativo; Docker solo como alternativa local, `.gitleaks.toml`) | claves/tokens commiteados (con allowlist de ejemplos/tests y exclusión de `.pnpm-store/` y `node_modules/`) |
+| SAST | **oxlint** con reglas de seguridad (`no-eval`, `no-new-func`, `no-implied-eval`, `no-script-url`) sobre `apps`, `packages` y `supabase/functions`; no usa Docker ni PyPI | patrones inseguros (`eval`, `new Function`, `javascript:`) |
 | Código muerto | **knip** | archivos/exports/deps sin usar |
 | Duplicación | **jscpd** (`.jscpd.json`) | bloques copiados |
 | Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |
@@ -39,10 +45,20 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
 
 ## Estado
 
-- **No bloqueante** por ahora (`continue-on-error: true` en `.github/workflows/quality.yml`). Cuando el
-  baseline esté limpio, se quita y `quality` pasa a **check requerido** junto con `database`.
+- El job `quality` **falla** (rojo) ante hallazgos, pero **no bloquea el merge**: el ruleset de GitHub
+  (25358575) exige solo `validacion`. No existe `continue-on-error` en el workflow. Para volverlo
+  bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
+- `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
+  `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
+  `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
+- Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
+  exports ni tipos exportados sin uso en `apps/web/src` (antes: ~35 y 6; lotes anteriores los limpiaron), así
+  que no hubo nada que quitar. `oxlint` 1.79.0 sobre `apps/web/src` pasó de 287 a 286 warnings: se quitó el
+  único `no-unused-vars` (parámetro de `catch` sin uso). Quedan sin tocar 205 `set-state-in-effect`, 39 `refs`
+  y 16 `exhaustive-deps`: reinician formularios o recargan datos al abrir diálogos o cambiar de empresa, y
+  quitar el efecto o una dependencia cambia el comportamiento de la pantalla.
 
 ## Tests web: timeouts
 

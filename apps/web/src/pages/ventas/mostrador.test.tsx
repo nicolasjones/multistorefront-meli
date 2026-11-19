@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -11,9 +11,12 @@ const mocks = vi.hoisted(() => ({
   confirmar: vi.fn(),
   cobro: vi.fn(),
   repreciar: vi.fn(),
+  bandera: vi.fn(),
+  releerBandera: vi.fn(),
 }))
 
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.empresas }))
+vi.mock('../../hooks/useBanderaPromociones', () => ({ useBanderaPromociones: () => ({ valor: mocks.bandera(), releer: mocks.releerBandera }) }))
 vi.mock('../../hooks/useListarCuentasCobro', () => ({ useListarCuentasCobro: () => ({ cuentas: [] }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/ventas/formasPago', () => ({ listarFormasPago: mocks.formas }))
@@ -59,6 +62,8 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     mocks.consumidor.mockResolvedValue('cf-1')
     mocks.formas.mockResolvedValue([{ id: 'f-1', nombre: 'Efectivo', activo: true, exige_cuenta_cobro: false }])
     mocks.puede.mockResolvedValue(true)
+    mocks.bandera.mockReturnValue(false)
+    mocks.releerBandera.mockResolvedValue(false)
   })
 
   it('un código inexistente muestra «Producto no encontrado» y no crea la venta', async () => {
@@ -67,6 +72,141 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     await escanear('7790000000000')
     expect(await screen.findByText('Producto no encontrado')).toBeTruthy()
     expect(mocks.agregar).not.toHaveBeenCalled()
+  })
+
+  const preparar = () => {
+    mocks.buscar.mockResolvedValue({ producto_id: 'p-1', nombre: 'Joystick', sku: 'JOY', codigo_barras: CODIGO })
+    mocks.agregar.mockResolvedValue(venta())
+  }
+  const AVISO = /promociones de precio se (activaron|desactivaron)/
+
+  it('avisa cuando la bandera de promociones cambió con la venta abierta y se puede cerrar', async () => {
+    preparar()
+    const { rerender } = render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalled())
+    expect(screen.queryByText(AVISO)).toBeNull()
+    mocks.bandera.mockReturnValue(true)
+    rerender(<VentaMostrador />)
+    expect(await screen.findByText(/promociones de precio se activaron/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /close|cerrar/i }))
+    await waitFor(() => expect(screen.queryByText(AVISO)).toBeNull())
+  })
+
+  it('no avisa si la bandera ya estaba activa al abrir la venta', async () => {
+    mocks.bandera.mockReturnValue(true)
+    mocks.releerBandera.mockResolvedValue(true)
+    preparar()
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    expect(screen.queryByText(AVISO)).toBeNull()
+  })
+
+  it('si la bandera cambió con la pantalla abierta y sin venta, abrir una venta no avisa (la base sale de una lectura nueva)', async () => {
+    // El hook se montó con false; mientras no había venta pasó a true. Al abrir la venta la lectura nueva ya dice true.
+    mocks.bandera.mockReturnValue(true)
+    mocks.releerBandera.mockResolvedValue(true)
+    preparar()
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+    expect(screen.queryByText(AVISO)).toBeNull()
+  })
+
+  it('sin base (la lectura al abrir falló) no inventa un aviso', async () => {
+    mocks.bandera.mockReturnValue(true)
+    mocks.releerBandera.mockResolvedValue(null)
+    preparar()
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalled())
+    expect(screen.queryByText(AVISO)).toBeNull()
+  })
+
+  it('si la lectura al abrir falla, reintenta hasta tener base y después avisa del cambio', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValueOnce(null).mockResolvedValue(false)
+      preparar()
+      const { rerender } = render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(6_000)
+      })
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(2))
+      mocks.bandera.mockReturnValue(true)
+      rerender(<VentaMostrador />)
+      expect(await screen.findByText(/promociones de precio se activaron/)).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('el reintento de la lectura base tiene tope', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValue(null)
+      preparar()
+      render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000)
+      })
+      expect(mocks.releerBandera).toHaveBeenCalledTimes(4)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('al desmontar tras una lectura fallida se cancela el reintento pendiente', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mocks.releerBandera.mockResolvedValue(null)
+      preparar()
+      const { unmount } = render(<VentaMostrador />)
+      await escanear(CODIGO)
+      await screen.findByText('Joystick')
+      await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+      unmount()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(120_000)
+      })
+      expect(mocks.releerBandera).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('la base se reinicia con una venta nueva: tras cobrar, el cambio anterior no vuelve a avisar', async () => {
+    preparar()
+    mocks.confirmar.mockResolvedValue(undefined)
+    mocks.cobro.mockResolvedValue({})
+    const { rerender } = render(<VentaMostrador />)
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(1))
+    mocks.bandera.mockReturnValue(true)
+    rerender(<VentaMostrador />)
+    expect(await screen.findByText(AVISO)).toBeTruthy()
+    const boton = await screen.findByRole('button', { name: 'Cobrar' })
+    await waitFor(() => expect((boton as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(boton)
+    expect(await screen.findByText(/Venta cobrada/)).toBeTruthy()
+    expect(screen.queryByText(AVISO)).toBeNull()
+    // Venta nueva con la bandera ya en true: la base es la lectura nueva (true), sin aviso.
+    mocks.releerBandera.mockResolvedValue(true)
+    mocks.agregar.mockResolvedValue({ ...venta(), id: 'c-2' })
+    await escanear(CODIGO)
+    await screen.findByText('Joystick')
+    await waitFor(() => expect(mocks.releerBandera).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText(AVISO)).toBeNull()
   })
 
   it('un código que no es EAN-13 se rechaza sin llamar a la base', async () => {
@@ -287,6 +427,51 @@ describe('VentaMostrador (F-VTA-31, CA-VTA-31-1)', () => {
     expect(await screen.findByText(/Venta cobrada/)).toBeTruthy()
     expect(mocks.confirmar).toHaveBeenCalledTimes(2)
     expect(mocks.cobro).toHaveBeenCalledWith('c-1', expect.objectContaining({ importe: '1000' }))
+  })
+
+  it('si cambió la lista de precios el aviso del cobro lo dice y no cobra solo', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    mocks.agregar.mockResolvedValue(ventaCon([lineaDe('l-1', 'p-1', 'Joystick', 800, null)], 800))
+    mocks.repreciar.mockResolvedValue(ventaCon([lineaDe('l-9', 'p-1', 'Joystick', 750, null)], 750))
+    mocks.confirmar.mockRejectedValueOnce({ code: '40001', hint: 'precios_cambiaron', details: 'lista_precios', message: 'precios cambiaron' })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const boton = await screen.findByRole('button', { name: 'Cobrar' })
+    await waitFor(() => expect((boton as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(boton)
+    expect(await screen.findByText(/El precio de la lista cambió: revisá el total y cobrá de nuevo/)).toBeTruthy()
+    expect(mocks.cobro).not.toHaveBeenCalled()
+    expect(screen.queryByText(/Los precios cambiaron/)).toBeNull()
+  })
+
+  it('una línea que fijó una lista muestra «Lista: nombre ±n %»; con promoción ganadora aclara que rige la promoción; sin lista no aparece', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    const conLista = { lista_nombre: 'Revendedores', lista_ajuste_pct: -20 }
+    mocks.agregar.mockResolvedValue(ventaCon([
+      { ...lineaDe('l-1', 'p-1', 'Joystick', 800, null), ...conLista },
+      { ...lineaDe('l-2', 'p-2', 'Teclado', 500, 800), ...conLista },
+      lineaDe('l-3', 'p-3', 'Cable', 300, null),
+    ], 1600))
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    const filaJoystick = (await screen.findByText('Joystick')).closest('tr') as HTMLElement
+    expect(filaJoystick.textContent).toContain('Lista: Revendedores \u221220 %')
+    expect(filaJoystick.textContent).not.toContain('rige la promoción')
+    const filaTeclado = (await screen.findByText('Teclado')).closest('tr') as HTMLElement
+    expect(filaTeclado.textContent).toContain('Lista: Revendedores \u221220 % (rige la promoción)')
+    const filaCable = (await screen.findByText('Cable')).closest('tr') as HTMLElement
+    expect(filaCable.textContent).not.toContain('Lista:')
+  })
+
+  it('si la lista lleva una línea a cero muestra el mensaje de la base con el nombre del producto', async () => {
+    mocks.buscar.mockResolvedValue(producto('p-1'))
+    mocks.agregar.mockRejectedValueOnce({
+      code: '22023',
+      message: 'El producto «Tornillo» (línea 1) queda sin precio con la lista de precios del cliente (el descuento lo lleva a cero)',
+    })
+    render(<VentaMostrador />)
+    await escanear(CODIGO)
+    expect(await screen.findByText(/El producto «Tornillo» \(línea 1\) queda sin precio con la lista de precios del cliente/)).toBeTruthy()
   })
 
   it('un 40001 sin hint (conflicto de edición) NO se trata como precios cambiados', async () => {

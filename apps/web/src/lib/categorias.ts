@@ -187,20 +187,46 @@ export function soltarSobre(categorias: readonly Categoria[], arrastradoId: stri
 // Acceso a datos
 // ---------------------------------------------------------------------------------------------
 
+// PostgREST recorta cada respuesta a `max_rows` (1000) sin avisar. Se pide por tandas con `.range()` (menores a
+// ese tope) hasta que una vuelve corta; el orden estable evita repetir o saltear filas entre tandas (MSF-539).
+export const TAMANO_TANDA_CATEGORIAS = 500
+
+type Tanda<T> = (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: unknown }>
+
+// Tope de tandas: si el servidor ignorara `.range()` y devolviera siempre el mismo bloque, la lectura
+// no debe ciclar sin fin ni crecer sin límite en memoria (200 tandas = 100.000 filas por tabla).
+const MAX_TANDAS_CATEGORIAS = 200
+
+async function leerPorTandas<T>(pedir: Tanda<T>): Promise<T[]> {
+  const filas: T[] = []
+  for (let n = 0; n < MAX_TANDAS_CATEGORIAS; n++) {
+    const desde = n * TAMANO_TANDA_CATEGORIAS
+    const { data, error } = await pedir(desde, desde + TAMANO_TANDA_CATEGORIAS - 1)
+    if (error) throw error
+    const tanda = data ?? []
+    filas.push(...tanda)
+    if (tanda.length < TAMANO_TANDA_CATEGORIAS) return filas
+  }
+  throw new Error('La lectura de categorías superó el máximo de filas admitido')
+}
+
 export async function leerCategorias(cliente: Pick<SupabaseClient, 'schema' | 'from'>): Promise<{ categorias: Categoria[]; conteos: Map<string, number> }> {
   const [categorias, visibles, conteos] = await Promise.all([
-    cliente.schema('dominio').from('categorias').select('id, nombre, padre_id, posicion, alicuota_iva_id').returns<Array<Omit<Categoria, 'empresa_ids'>>>(),
-    cliente.schema('dominio').from('categorias_empresa').select('categoria_id, empresa_id').returns<Array<{ categoria_id: string; empresa_id: string }>>(),
-    cliente.from('v_categorias_productos').select('categoria_id, productos').returns<Array<{ categoria_id: string; productos: number }>>(),
+    leerPorTandas<Omit<Categoria, 'empresa_ids'>>((desde, hasta) =>
+      cliente.schema('dominio').from('categorias').select('id, nombre, padre_id, posicion, alicuota_iva_id').order('id').range(desde, hasta)
+        .returns<Array<Omit<Categoria, 'empresa_ids'>>>()),
+    leerPorTandas<{ categoria_id: string; empresa_id: string }>((desde, hasta) =>
+      cliente.schema('dominio').from('categorias_empresa').select('categoria_id, empresa_id').order('categoria_id').order('empresa_id').range(desde, hasta)
+        .returns<Array<{ categoria_id: string; empresa_id: string }>>()),
+    leerPorTandas<{ categoria_id: string; productos: number }>((desde, hasta) =>
+      cliente.from('v_categorias_productos').select('categoria_id, productos').order('organizacion_id').order('categoria_id').range(desde, hasta)
+        .returns<Array<{ categoria_id: string; productos: number }>>()),
   ])
-  if (categorias.error) throw categorias.error
-  if (visibles.error) throw visibles.error
-  if (conteos.error) throw conteos.error
   const empresasPor = new Map<string, string[]>()
-  for (const fila of visibles.data ?? []) empresasPor.set(fila.categoria_id, [...(empresasPor.get(fila.categoria_id) ?? []), fila.empresa_id])
+  for (const fila of visibles) empresasPor.set(fila.categoria_id, [...(empresasPor.get(fila.categoria_id) ?? []), fila.empresa_id])
   return {
-    categorias: (categorias.data ?? []).map((c) => ({ ...c, empresa_ids: empresasPor.get(c.id) ?? [] })),
-    conteos: new Map((conteos.data ?? []).map((fila) => [fila.categoria_id, fila.productos])),
+    categorias: categorias.map((c) => ({ ...c, empresa_ids: empresasPor.get(c.id) ?? [] })),
+    conteos: new Map(conteos.map((fila) => [fila.categoria_id, fila.productos])),
   }
 }
 

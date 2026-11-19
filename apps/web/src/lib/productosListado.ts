@@ -4,6 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Disponibilidad } from './productos'
 import { normalizarBusqueda } from './busquedaTexto'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 
 export const TAMANO_PAGINA_PRODUCTOS = 25
 export const LARGO_MAXIMO_BUSQUEDA = 80
@@ -156,21 +157,27 @@ export async function consultarProductos(
   return { filas: data ?? [], total: count ?? 0 }
 }
 
-// F-CAT-16 (FR-002): costo de los productos de la página, desde `dominio.producto_costos` (la vista no lo expone).
+// F-CAT-16 (FR-002): costo de los productos indicados, desde `dominio.producto_costos` (la vista no lo expone).
 // Solo se llama con acceso a Rentabilidad; la autoridad es RLS, que devuelve 0 filas a quien no corresponde.
+// Los ids viajan en el `in.(…)` de la URL GET: se reparten en lotes (`lib/repartoIds.ts`) como el stock
+// de la toma (MSF-716), así que un llamador con muchos ids no excede el límite del proxy.
 export async function consultarCostos(
   cliente: Pick<SupabaseClient, 'schema'>,
   productoIds: readonly string[],
 ): Promise<Map<string, number | string>> {
   if (productoIds.length === 0) return new Map()
-  const { data, error } = await cliente
-    .schema('dominio')
-    .from('producto_costos')
-    .select('producto_id, costo')
-    .in('producto_id', [...productoIds])
-    .returns<Array<{ producto_id: string; costo: number | string }>>()
-  if (error) throw error
-  return new Map((data ?? []).map((fila) => [fila.producto_id, fila.costo]))
+  const lotes = enLotes([...new Set(productoIds)], MAXIMO_IDS_POR_PETICION)
+  const filas = await pedirEnOlas(lotes, async (lote) => {
+    const { data, error } = await cliente
+      .schema('dominio')
+      .from('producto_costos')
+      .select('producto_id, costo')
+      .in('producto_id', lote)
+      .returns<Array<{ producto_id: string; costo: number | string }>>()
+    if (error) throw error
+    return data ?? []
+  })
+  return new Map(filas.map((fila) => [fila.producto_id, fila.costo]))
 }
 
 export type PrecioListado = { moneda: 'USD' | 'ARS'; precioLista: number; precioArs: number | null }
@@ -212,6 +219,20 @@ export function formatearPrecioListado(precio: PrecioListado | undefined): strin
   if (precio.moneda === 'ARS') return pesos(precio.precioLista)
   const usd = `USD ${FORMATO_PRECIO.format(precio.precioLista)}`
   return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
+}
+
+// Margen del listado = (precio − costo) / precio, en pesos. El costo está en la moneda del producto: en USD se pasa a
+// pesos con la misma cotización con que la base convirtió el precio (`precioArs / precioLista`). null sin precio en
+// pesos, sin costo o con precio cero (no se inventa un margen).
+export function margenListado(precio: PrecioListado | undefined, costo: number | string | null | undefined): number | null {
+  if (!precio || costo === null || costo === undefined || costo === '') return null
+  const costoNumero = Number(costo)
+  if (!Number.isFinite(costoNumero)) return null
+  const precioArs = precio.moneda === 'ARS' ? precio.precioLista : precio.precioArs
+  if (precioArs === null || !Number.isFinite(precioArs) || precioArs <= 0) return null
+  const cotizacion = precio.moneda === 'ARS' ? 1 : precio.precioLista > 0 ? precioArs / precio.precioLista : null
+  if (cotizacion === null) return null
+  return (precioArs - costoNumero * cotizacion) / precioArs
 }
 
 const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

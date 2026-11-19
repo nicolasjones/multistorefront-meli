@@ -1,9 +1,17 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261018-100000-ranking-de-clientes
+  - apps/web/src/components/clientes/RankingClientes.tsx
+  - apps/web/src/components/clientes/ComprasCliente.tsx
+  - apps/web/src/hooks/useRankingClientes.ts
+  - apps/web/src/hooks/useComprasCliente.ts
+  - apps/web/src/lib/exportarRanking.ts
+  - apps/web/src/lib/periodosRanking.ts
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/show.tsx
+  - supabase/migrations/20261018100100_clientes_ranking.sql
+  - supabase/migrations/20261018100200_clientes_compras.sql
 ---
 
 # Ranking de clientes: contrato, RPC y pantallas (MSF-126)
@@ -32,7 +40,7 @@ Esquema por Principio VII (spec, «Esquema de datos»):
 | Tabla | Esquema | Cambio | RLS |
 |---|---|---|---|
 | `comprobantes_venta` | **`dominio`** (documento de venta: dominio del producto) | **Nueva**, migración M1 `20261018100000_ventas_contrato_comprobantes.sql` (T001) | `organizacion_id = (select private.organizacion_id())` y `select` con `private.nivel_seccion('ventas')` en `lectura`/`edicion`; sin escritura para `authenticated` (escribe Ventas, MSF-159/177); `anon` sin acceso |
-| `clientes` | `public` (excepción de MSF-180) | **Sin cambios** (FR-016) | Vigente |
+| `clientes` | `dominio` (antes `public`, MSF-882) | **Sin cambios** (FR-016) | Vigente |
 
 ```mermaid
 erDiagram
@@ -58,7 +66,7 @@ erDiagram
 ```
 
 Contrato de `dominio.comprobantes_venta` (FR-001): FK compuesta `(cliente_id, organizacion_id)` →
-`public.clientes`, `organizacion_id` → `public.organizaciones` `on delete cascade`, `tipo` limitado a
+`dominio.clientes`, `organizacion_id` → `public.organizaciones` `on delete cascade`, `tipo` limitado a
 `factura`/`presupuesto`, totales `not null` y `>= 0`, índice `(organizacion_id, cliente_id, fecha desc)`.
 La tabla es el **mínimo para leer y probar**; Ventas la completa con migraciones aditivas. Datos de ejemplo:
 `supabase/seed.sql` y fixtures pgTAP (T005), nunca en producción.

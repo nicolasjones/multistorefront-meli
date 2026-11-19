@@ -465,7 +465,7 @@ describe('ProductoCreate', () => {
     expect(screen.getByText('El producto y su stock son únicos y compartidos. Cada tienda lo publica con su propio precio y estado.')).toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'San Javucho' })).not.toBeChecked()
     expect(screen.getByRole('switch', { name: 'Mundo JC' })).not.toBeChecked()
-    expect(screen.getAllByText('Precio: —')).toHaveLength(2)
+    expect(screen.queryByText('Precio: —')).not.toBeInTheDocument()
     expect(screen.getByText('No se muestra en ninguna store: el producto no aparece en el catálogo público.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('switch', { name: 'San Javucho' }))
     expect(screen.getByText('Visible en San Javucho.')).toBeInTheDocument()

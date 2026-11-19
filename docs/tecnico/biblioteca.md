@@ -1,7 +1,7 @@
 ---
 owner: tecnico
 sources:
-  - apps/web/src
+  - mkdocs.yml
 ---
 
 # Biblioteca
@@ -19,6 +19,13 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Empresas](../empresas.md)
 - [Usuarios y empresas](../usuarios-y-empresas.md)
 - [Aislamiento por organización](../aislamiento-por-organizacion.md)
+- [Administración de la organización](../administracion-organizacion.md) · [técnico](administracion-organizacion.md)
+- [Solicitar acceso desde la pantalla restringida](../solicitar-acceso.md)
+- [Perfil y permisos avanzados (técnico)](perfil-y-permisos.md)
+- [Permisos por empresa (técnico)](permisos-por-empresa.md)
+- [Actividad e historial](../actividad.md) · [Consultar la actividad (producto)](../producto/actividad.md)
+- [Acceso de soporte auditado](../acceso-soporte.md)
+- [Auditoría avanzada y soporte (técnico)](auditoria-y-soporte.md)
 
 ## Catálogo, stock y clientes
 - [Catálogo](../catalogo.md)
@@ -37,6 +44,7 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ingreso de mercadería: modelo, RPC y flujos (técnico)](ingreso-de-mercaderia.md)
 - [Clientes (producto)](../clientes.md)
 - [Clientes: modelo, RPC y pantallas (técnico)](clientes.md)
+- [Correo masivo a clientes](../correo-masivo.md)
 - [Tiendas online: catálogo y ficha (producto)](../producto/tiendas-online.md)
 - [Tienda pública: catálogo y ficha (técnico)](tienda-catalogo-y-ficha.md)
 - [Tienda pública: corrección de la demo frente al prototipo, MSF-825 (técnico)](tienda-demo-vs-prototipo.md)
@@ -57,6 +65,7 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md)
 - [Ventas · cobros y conciliación (producto)](../producto/ventas-cobros-y-conciliacion.md)
 - [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md)
+- [Ventas · cobros por comprobante](../cobros-por-comprobante.md)
 - [Ventas · precios especiales por cliente (técnico)](ventas-precios-especiales.md)
 - [Ventas · cierre de caja (producto)](../producto/ventas-cierre-caja.md)
 - [Ventas · cierre de caja (técnico)](ventas-cierre-caja.md)
@@ -79,6 +88,7 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Importaciones y monitoreo (técnico)](importaciones-y-monitoreo.md)
 - [Avisos por correo y listas configurables (producto)](../producto/avisos-y-listas.md)
 - [Avisos y listas: modelo, RPC y flujos (técnico)](avisos-y-listas.md)
+- [Documentos IA (búsqueda documental)](../documentos-ia.md)
 
 ## Service técnico
 - [Service técnico: listado, ítems e impresión (producto)](../producto/service-listado-items-impresion.md)
@@ -94,6 +104,8 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Inicio: tablero de ventas y stock, listado por producto y carga del dólar (técnico)](inicio-tablero.md)
 - [Rentabilidad: margen por producto y canal (producto)](../producto/rentabilidad.md)
 - [Rentabilidad: datos, RPC y tableros (técnico)](rentabilidad.md)
+- [Reportes de inventario (producto)](../producto/reportes-de-inventario.md)
+- [Reportes de inventario y exportación (técnico)](reportes-inventario.md)
 
 ## Operación y plataforma
 - [Deployment](../deployment.md)
@@ -102,6 +114,14 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 - [Release](../release.md)
 - [Calidad](../calidad.md)
 - [Operar Superset](../operar-superset.md)
+- [Analítica avanzada: galería de tableros](../analitica-avanzada.md)
+- [Guard de migraciones](../guard-migraciones.md)
+- [Higiene y endurecimiento de la base de datos](../higiene-base-datos.md)
+- [Funciones Edge: endurecimiento](../funciones-edge-endurecimiento.md)
+- [Errores de negocio de las RPC y su respuesta HTTP](../errores-negocio-postgrest.md)
+- [Arquitectura (técnico)](arquitectura.md) · [Arquitectura base](../architecture.md) · [Decisiones de arquitectura (ADR)](adr.md)
+- [Onboarding técnico](onboarding.md)
+- [Cómo usar las skills del proyecto](../skills.md)
 - [E2E de la app](../e2e-app.md)
 - [Prototipos](../prototipos.md)
 - [Sistema de diseño](../sistema-de-diseno.md)
@@ -109,6 +129,7 @@ Documentos existentes del repo, agrupados. Son la fuente de detalle; esta wiki l
 
 ## Adoptar el template
 - [Crear producto derivado](../crear-producto-derivado.md)
+- [Diseñar un conector de integración](../disenar-conector.md)
 - [Adoptar capacidades del template](../adoptar-capacidades-template.md)
 - [Adoptar CI/CD staging/producción](../adoptar-cicd-staging-produccion.md)
 - [Adoptar runners locales](../adoptar-runners-locales.md)

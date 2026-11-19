@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { listarDepositosActivos, listarStockPorDepositoDe } from './depositos'
+import { MAXIMO_IDS_POR_PETICION, enLotes, pedirEnOlas } from './repartoIds'
 import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 // Toma de inventario (F-STK-11, MSF-415). La regla vive en la RPC `confirmar_toma_inventario`
@@ -8,6 +9,9 @@ import { fechaDeHoy, mensajeDeErrorStock, parsearCantidad } from './stock'
 
 export const MAXIMO_PRODUCTOS_TOMA = 1000
 export const MENSAJE_TOMA_CONFIRMADA = 'Toma de inventario confirmada'
+
+// Valor del selector para los productos activos que no tienen categoría.
+export const SIN_CATEGORIA = 'sin-categoria'
 
 export type FilaToma = {
   producto_id: string
@@ -62,23 +66,47 @@ export function armarItemsToma(filas: readonly FilaToma[], contados: Readonly<Re
 
 type FilaProducto = { id: string; nombre: string; sku: string | null }
 
+// Une los productos de varios lotes sin repetir y en el mismo orden que muestra la tabla
+// (nombre y, a igual nombre, id).
+function unirProductos(productos: readonly FilaProducto[]): FilaProducto[] {
+  const porId = new Map<string, FilaProducto>()
+  for (const producto of productos) if (!porId.has(producto.id)) porId.set(producto.id, producto)
+  return [...porId.values()].sort(
+    (a, b) => a.nombre.localeCompare(b.nombre, 'es') || a.id.localeCompare(b.id),
+  )
+}
+
 // Productos activos de las categorías indicadas con su stock en el depósito por defecto. Lanza si la
 // categoría supera el máximo que admite una confirmación (la RPC rechaza más de 1000).
-export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<FilaToma[]> {
-  const { data, error } = await supabaseClient
-    .from('v_productos_listado')
-    .select('id, nombre, sku')
-    .eq('activo', true)
-    .in('categoria_id', [...categoriaIds])
-    .order('nombre', { ascending: true })
-    .order('id', { ascending: true })
-    .limit(MAXIMO_PRODUCTOS_TOMA + 1)
-    .returns<FilaProducto[]>()
-  if (error) throw error
-  const productos = data ?? []
-  if (productos.length > MAXIMO_PRODUCTOS_TOMA) {
+export async function cargarFilasToma(categoriaIds: readonly string[], sinCategoria = false): Promise<FilaToma[]> {
+  // Los ids de categoría también viajan en la URL (`in.(…)`): se reparten en lotes como los de
+  // producto, así que un árbol de categorías grande no vuelve a romper la carga (MSF-716).
+  const lotes = sinCategoria ? [[]] : enLotes([...new Set(categoriaIds)], MAXIMO_IDS_POR_PETICION)
+  const respuestas = await pedirEnOlas(lotes, async (lote) => {
+    const base = supabaseClient
+      .from('v_productos_listado')
+      .select('id, nombre, sku', { count: 'exact' })
+      .eq('activo', true)
+    const { data, error, count } = await (sinCategoria ? base.is('categoria_id', null) : base.in('categoria_id', lote))
+      .order('nombre', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(MAXIMO_PRODUCTOS_TOMA + 1)
+      .returns<FilaProducto[]>()
+    if (error) throw error
+    const productos = data ?? []
+    return [{ productos, total: count ?? productos.length }]
+  })
+  // `count` es el total de la categoría (PostgREST cuenta antes del `limit`): sin él, el tope de filas
+  // de la API truncaría en silencio y la toma dejaría productos sin contar (MSF-716).
+  const total = respuestas.reduce((suma, respuesta) => suma + respuesta.total, 0)
+  if (total > MAXIMO_PRODUCTOS_TOMA) {
     throw new Error(`La categoría tiene más de ${MAXIMO_PRODUCTOS_TOMA} productos: elegí una subcategoría.`)
   }
+  // Con un solo lote el orden es el que devolvió la base; con varios, se reordena para que la tabla
+  // no quede agrupada por categoría.
+  const productos = respuestas.length === 1
+    ? respuestas[0].productos
+    : unirProductos(respuestas.flatMap((respuesta) => respuesta.productos))
   if (productos.length === 0) return []
   const depositos = await listarDepositosActivos()
   const porDefecto = depositos.find((deposito) => deposito.por_defecto)
@@ -90,6 +118,15 @@ export async function cargarFilasToma(categoriaIds: readonly string[]): Promise<
     sku: producto.sku,
     sistema: stock[producto.id]?.cantidad ?? 0,
   }))
+}
+
+// Depósito sobre el que opera la toma: el principal (por defecto) activo. La RPC `confirmar_toma_inventario` aplica los
+// ajustes siempre sobre él; elegir otro depósito necesita un parámetro nuevo en la base (pendiente del lote de SQL).
+export async function cargarDepositoToma(): Promise<{ id: string; nombre: string }> {
+  const depositos = await listarDepositosActivos()
+  const porDefecto = depositos.find((deposito) => deposito.por_defecto)
+  if (!porDefecto) throw new Error('No hay un depósito por defecto activo para contar.')
+  return { id: porDefecto.id, nombre: porDefecto.nombre }
 }
 
 export async function confirmarToma(items: readonly ItemToma[]): Promise<AjusteToma[]> {

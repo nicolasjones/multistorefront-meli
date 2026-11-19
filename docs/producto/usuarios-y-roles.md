@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/usuarios
+  - apps/web/src/pages/roles
 ---
 
 # Usuarios y roles: quién puede qué
@@ -74,7 +76,7 @@ Estas son las acciones con permiso propio y quiénes las tienen al empezar (las 
 |---|---|
 | Eliminar | Administrador |
 | Exportar | Administrador, Operador, Administración |
-| Ver costos | Administrador, Administración |
+| Ver costos | Administrador, Administración (y Operador, solo en Stock) |
 | Modificar el precio de una línea de venta | Administrador, Operador |
 | Anular un comprobante | Administrador, Administración |
 | Emitir una nota de crédito | Administrador, Administración |
@@ -140,7 +142,7 @@ Siempre tiene que quedar al menos un Administrador: si intentás suspender o qui
 
 | Columna | Qué es |
 |---|---|
-| **Usuario** | Foto y nombre. |
+| **Usuario** | Foto y nombre. Quien no cargó foto muestra la inicial de su nombre. |
 | **Rol** | Su rol. |
 | **Empresas** | A qué empresas accede y con qué rol («San Javucho: Operador»). El Administrador figura con «Todas las empresas». |
 | **Último acceso** | Cuándo entró por última vez («Nunca» si todavía no ingresó). |

@@ -23,6 +23,8 @@ Historia F-VTA-10 de la épica MSF-177 (MSF-365). Spec: `specs/20261024-130000-v
   por pantalla es **Etapa 2** (fuera de esta historia).
 - Una factura confirmada se guarda como `confirmada` y el panel la muestra **«Pendiente»** (catálogo único en
   `apps/web/src/lib/estadosComprobante.ts`). «Entregado» es de MSF-135 y no se entrega acá.
+  Los textos de ayuda del catálogo dicen que el stock ya se descontó al confirmar la factura y que solo los productos «A pedido»
+  quedan reservados hasta la entrega (`estadosComprobante.ts`, claves `pendiente`/`confirmada`/`armando`).
 
 ### Matriz inicial (propuesta a confirmar con el cliente)
 

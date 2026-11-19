@@ -23,14 +23,14 @@ type DefinicionEstado = { etiqueta: string; tono: VarianteEtiqueta; ayuda: strin
 export const ESTADOS_COMPROBANTE: Record<EstadoComprobante, DefinicionEstado> = {
   borrador: { etiqueta: 'Borrador', tono: 'neutral', ayuda: 'Todavía no se confirmó: no descuenta ni reserva stock.' },
   // `confirmada` (MSF-159) se muestra «Pendiente»: evita cambiar lo ya entregado de `confirmar_comprobante`.
-  confirmada: { etiqueta: 'Pendiente', tono: 'neutral', ayuda: 'Creado: el stock queda reservado, todavía no se descuenta.' },
-  pendiente: { etiqueta: 'Pendiente', tono: 'neutral', ayuda: 'Creado: el stock queda reservado, todavía no se descuenta.' },
+  confirmada: { etiqueta: 'Pendiente', tono: 'neutral', ayuda: 'Creado: el stock ya se descontó al confirmar; solo los productos «A pedido» quedan reservados y se descuentan al entregarlos.' },
+  pendiente: { etiqueta: 'Pendiente', tono: 'neutral', ayuda: 'Creado: el stock ya se descontó al confirmar; solo los productos «A pedido» quedan reservados y se descuentan al entregarlos.' },
   aceptado: { etiqueta: 'Aceptado', tono: 'contorno', ayuda: 'El cliente aceptó el presupuesto.' },
   cobrado: { etiqueta: 'Cobrado', tono: 'exito', ayuda: 'Pago recibido y conciliado.' },
   en_proceso: { etiqueta: 'En proceso', tono: 'info', ayuda: 'En gestión: pago o envío en curso.' },
   deuda: { etiqueta: 'Deuda', tono: 'error', ayuda: 'Entregado o facturado sin cobrar.' },
-  armando: { etiqueta: 'Armando', tono: 'primario', ayuda: 'Se está armando el pedido en el depósito elegido. El stock sigue reservado.' },
-  incompleto: { etiqueta: 'Incompleto', tono: 'aviso', ayuda: 'Faltan productos: los faltantes quedan en Ventas · Faltantes.' },
+  armando: { etiqueta: 'Armando', tono: 'primario', ayuda: 'Se está armando el pedido en el depósito elegido. El stock ya se descontó al confirmar la factura.' },
+  incompleto: { etiqueta: 'Incompleto', tono: 'aviso', ayuda: 'Faltan productos: se registran con «Registrar faltantes» y son los mismos que ves en Ventas · Faltantes.' },
   anulada: { etiqueta: 'Anulada', tono: 'contorno', ayuda: 'El documento dejó de valer: no admite cambios.' },
 }
 
@@ -51,7 +51,9 @@ const ESTADOS_DE_COBRO: ReadonlyArray<string> = ['cobrado', 'deuda']
 export const esEstadoDeCobro = (estado: string): boolean => ESTADOS_DE_COBRO.includes(estado)
 
 export function definicionEstado(estado: string): DefinicionEstado {
-  return ESTADOS_COMPROBANTE[estado as EstadoComprobante] ?? { etiqueta: estado, tono: 'neutral', ayuda: '' }
+  return Object.hasOwn(ESTADOS_COMPROBANTE, estado)
+    ? ESTADOS_COMPROBANTE[estado as EstadoComprobante]
+    : { etiqueta: estado, tono: 'neutral', ayuda: '' }
 }
 
 export const etiquetaEstadoComprobante = (estado: string): string => definicionEstado(estado).etiqueta

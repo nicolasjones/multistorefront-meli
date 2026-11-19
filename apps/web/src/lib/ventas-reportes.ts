@@ -126,7 +126,7 @@ function filtroRango({ desde, hasta }: RangoFechas): string {
 }
 
 // Filtro nativo de empresa: el nombre de la tienda (el token del guest es el máximo alcanzable).
-function filtroEmpresa(empresa: string): string {
+export function filtroEmpresa(empresa: string): string {
   const valor = textoRison(empresa)
   return `(${FILTRO_EMPRESA_ID}:(extraFormData:(filters:!((col:${COLUMNA_EMPRESA},op:IN,val:!(${valor}))))),filterState:(label:!(${valor}),value:!(${valor})),id:${FILTRO_EMPRESA_ID},ownState:()))`
 }
@@ -189,7 +189,7 @@ export async function leerConteoVentas(
 
 // Conteo de toques en «Consultar por WhatsApp» del período (F-REP-04): estado vacío de la pestaña
 // «Productos más consultados». Misma forma y mismo alcance que `leerConteoVentas`, pero sobre
-// `dominio.intereses_whatsapp`; la RPC se rige por la sección `reportes`, no por `consultas`.
+// `dominio.intereses_whatsapp` (hoy solo la alimenta el sembrado demo, MSF-657); la RPC se rige por la sección `reportes`, no por `consultas`.
 export async function leerConteoConsultas(
   cliente: SupabaseClient,
   { rango, empresaId }: { rango: RangoFechas; empresaId: string | null },

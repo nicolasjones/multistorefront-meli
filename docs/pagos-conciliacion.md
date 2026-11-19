@@ -9,6 +9,10 @@ sources:
   - supabase/migrations/20270114110100_listar_pagos.sql
   - supabase/migrations/20270114110200_resumen_pagos.sql
   - supabase/migrations/20270114110300_puede_conciliar_pago_lectura.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql
+  - apps/web/src/lib/ventas/pagos.ts
 ---
 
 # Ventas · Pagos (conciliación) (F-VTA-13)
@@ -110,6 +114,7 @@ las RPC públicas.
 | Bloqueo optimista | `p_actualizado_en` es la versión que la pantalla leyó: si el pago cambió desde entonces, la RPC rechaza con `40001` sin pisar nada. |
 | Concurrencia | El pago se toma con `for update`: dos conciliaciones simultáneas del mismo pago se serializan y solo la primera mueve la aprobación. |
 | Estado y saldo | **No se tocan** el estado del comprobante ni el saldo (FR-022). |
+| Reversión de cobro | Un **contra-asiento** (`origen = 'reversion'`, importe negativo) o un **cobro ya revertido** no se concilian: `55000` («Este movimiento es una reversión de cobro…», «Este cobro fue revertido: no se puede conciliar»). Deshacer una conciliación sí sigue permitido. Ver [Cobros revertidos](#cobros-revertidos-y-los-lectores-de-pagos). |
 | Auditoría | Cada cambio deja un evento en `public.registro_actividad`: `pago.conciliado` o `pago.conciliacion_revertida`, con actor, tienda, importe, cuenta (por su nombre) y factura. Nunca con datos bancarios completos (ni CBU ni CUIT). |
 
 El **nombre de quien aprueba** es una foto (`aprobado_por_nombre`): el historial sobrevive a la
@@ -122,8 +127,12 @@ public.listar_pagos(p_empresa_id uuid default null, p_cuenta_cobro_id uuid defau
                      p_solo_con_saldo boolean default false, p_pagina integer default 1,
                      p_tamano integer default 10)
   → (id, fecha, empresa_id, empresa, comprobante_id, numero, cliente, cuenta_cobro_id, cuenta_cobro,
-     importe, aprobado_por, conciliado, saldo, actualizado_en, filas)
+     importe, aprobado_por, conciliado, estado_reversion, saldo, actualizado_en, filas)
 ```
+
+`estado_reversion` es `'revertido'` para un cobro que ya tiene su contra-asiento, `'reversion'` para el
+contra-asiento mismo y nulo para el resto (desde `20270507180800`; esa migración recrea la función con
+`drop` + `create` porque cambia la forma de la respuesta).
 
 Es de **lectura**: `security invoker` (manda la RLS de `dominio.cobros_comprobante`: organización,
 empresa accesible y `ventas` en lectura o edición) y `revoke … from public, anon` /
@@ -143,7 +152,7 @@ empresa accesible y `ventas` en lectura o edición) y `revoke … from public, a
 
 ### El nombre del cliente y la RLS de Clientes
 
-`public.clientes` tiene su propia RLS por sección (Clientes). Un rol con Ventas pero **sin**
+`dominio.clientes` tiene su propia RLS por sección (Clientes). Un rol con Ventas pero **sin**
 Clientes (Depósito) no ve esas filas: por eso el JOIN del cliente es `LEFT` y el nombre puede
 venir vacío. **El pago no se filtra por esto** (la fila del pago es de Ventas): lo que el rol no
 puede leer, no se muestra. La alternativa —leer el nombre con una función `security definer`— se
@@ -188,6 +197,18 @@ public.cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer
 - `usos` cuenta los pagos con esa cuenta **de las empresas a las que la persona tiene acceso**: no
   se revela el uso de tiendas ajenas.
 
+## Cobros revertidos y los lectores de pagos
+
+Desde `20270507180100` y `20270507180800`, el libro puede tener un cobro y su **contra-asiento** (la
+fila negativa que deja `public.revertir_cobro`, ver [cobros-por-comprobante.md](cobros-por-comprobante.md)).
+Los lectores de esta página los **netean** para no ofrecer a conciliar algo que la base rechazaría:
+
+- `resumen_pagos`: ni el cobro revertido ni su contra-asiento cuentan en «Por conciliar» ni en «Conciliado»
+  (importes y cantidades). El **saldo pendiente** sigue siendo el neto: la suma de importes con el
+  contra-asiento restando.
+- `cuentas_cobro_mas_usadas`: no cuentan como uso de la cuenta (`origen <> 'reversion'` y sin contra-asiento).
+- `listar_pagos`: **sí** lista los dos (el contra-asiento repite la cuenta del cobro) y los distingue con `estado_reversion`.
+
 ## La pantalla Pagos
 
 La pantalla (`apps/web/src/pages/ventas/pagos/list.tsx`) arma lo que la base entrega:
@@ -196,7 +217,7 @@ La pantalla (`apps/web/src/pages/ventas/pagos/list.tsx`) arma lo que la base ent
 |---|---|---|
 | Tres tarjetas | Por conciliar, Conciliado y Saldo pendiente de clientes | `resumen_pagos` |
 | Tabla | Fecha, Tienda, Comprobante (enlace al detalle), Cliente, Cuenta de cobro, Importe, Aprobado por, Cobrado y Saldo | `listar_pagos` |
-| Interruptor «Cobrado» | Concilia o revierte el pago de la fila | `conciliar_pago` / `revertir_conciliacion_pago` |
+| Interruptor «Cobrado» | Concilia o revierte el pago de la fila. En un cobro revertido o en su contra-asiento no hay interruptor: va una etiqueta «Revertido» o «Reversión» (`list.tsx`, `estado_reversion`) | `conciliar_pago` / `revertir_conciliacion_pago` |
 | Tarjeta Cuentas de cobro | Las cuentas más usadas, con la marca «No usar», y los enlaces a `/ventas/cuentas-cobro` | `cuentas_cobro_mas_usadas` |
 
 - **Avisos**: conciliar deja «Pago conciliado · N» y revertir deja «Conciliación revertida · N»

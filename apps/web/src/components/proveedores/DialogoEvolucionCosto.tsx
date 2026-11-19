@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from '../../lib/formatoImporte'
 import { Box, Button, Dialog, DialogActions, DialogContent, Stack, Typography } from '@mui/material'
 import { useHistorialCostos, type PuntoCosto } from '../../hooks/useHistorialCostos'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
@@ -13,13 +14,12 @@ type Props = {
   onCerrar: () => void
 }
 
-const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const formatoFecha = (iso: string) => iso.split('-').reverse().join('/')
 
 const columnas: ColumnaAdaptable<PuntoCosto>[] = [
   { clave: 'fecha', encabezado: 'Fecha', render: (p) => formatoFecha(p.fecha) },
   { clave: 'comprobante', encabezado: 'Comprobante', render: (p) => p.comprobante ?? '—' },
-  { clave: 'costo', encabezado: 'Costo unit. USD', align: 'right', render: (p) => `USD ${formatoUsd.format(p.costo_unitario_usd)}` },
+  { clave: 'costo', encabezado: 'Costo unit. USD', align: 'right', render: (p) => `USD ${formatearNumeroImporte(p.costo_unitario_usd, { centavos: 'siempre' })}` },
 ]
 
 // Una serie por proveedor, en el orden en que aparece cada uno (los puntos llegan por fecha).

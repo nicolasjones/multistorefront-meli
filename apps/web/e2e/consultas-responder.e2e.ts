@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, asignarEmpresasComoAdministrador, borrar, borrarUsuario, crearConsulta, rest, serviceKey, url } from './soporte/fixtures'
 
 // MSF-244 · F-CON-04 (SC-004, parte E2E): «Responder por…» desde el detalle de una consulta. Una consulta de
 // WhatsApp y una de correo abren el enlace correcto (wa.me / mailto, con el texto inicial), quedan En curso con
@@ -39,8 +39,9 @@ test.describe('Consultas · responder desde el panel (MSF-244, F-CON-04)', () =>
         const id = await altaUsuario(correo)
         usuarios.push(id)
         await rest('usuarios_organizacion', { user_id: id, organizacion_id: org.id, rol_id: rol })
-        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa).
-        if (rol !== 'administrador') await rest('usuarios_empresas', { user_id: id, empresa_id: empresaId, organizacion_id: org.id, rol_id: rol })
+        // Fuera del Administrador, cada persona ve solo las empresas que se le asignan (permisos por empresa). `service_role`
+        // no escribe en `usuarios_empresas`: el Administrador, sembrado primero, las asigna con la RPC.
+        if (rol !== 'administrador') await asignarEmpresasComoAdministrador(correos.admin, id, [{ empresa_id: empresaId, rol_id: rol }])
       }
       const idWa = await crearConsulta(host, { origen: 'whatsapp', nombre: visitanteWa, contacto: '+54 9 11 5555-1234', mensaje: null })
       const idMail = await crearConsulta(host, { nombre: visitanteMail, contacto: 'visitante@example.com' })

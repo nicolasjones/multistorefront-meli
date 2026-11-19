@@ -43,7 +43,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('e1000000-0000-0000-0000-000000000002', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'operador'),
   ('e1000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-0000000000e1', '11111111-1111-1111-1111-111111111111', 'consulta');
 
-insert into public.clientes (id, organizacion_id, nombre, tipo) values
+insert into dominio.clientes (id, organizacion_id, nombre, tipo) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Distribuidora Ñandú', 'mayorista'),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Cliente Número', 'minorista'),
   ('c6000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Cliente de la Dos', 'minorista');
@@ -113,7 +113,7 @@ select is(
   (select count(*)::int from unnest(array[
     'public.listar_comprobantes(text,text,uuid,uuid,uuid,uuid,integer,integer)',
     'public.operadores_de_comprobantes(uuid)',
-    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)',
+    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)',
     'public.solicitar_exportacion_comprobantes(text,jsonb)',
     'public.archivo_exportacion_comprobantes(uuid)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute')),
@@ -123,7 +123,7 @@ select is(
   (select count(*)::int from unnest(array[
     'public.listar_comprobantes(text,text,uuid,uuid,uuid,uuid,integer,integer)',
     'public.operadores_de_comprobantes(uuid)',
-    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)',
+    'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)',
     'public.solicitar_exportacion_comprobantes(text,jsonb)',
     'public.archivo_exportacion_comprobantes(uuid)'
   ]) as f where has_function_privilege('authenticated', f::regprocedure, 'execute')),
@@ -138,15 +138,15 @@ select is(
   false, 'operadores_de_comprobantes es security invoker'
 );
 select is(
-  (select prosecdef from pg_proc where oid = 'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid)'::regprocedure),
+  (select prosecdef from pg_proc where oid = 'public.exportar_comprobantes(text,text,text,uuid,uuid,uuid,uuid,text)'::regprocedure),
   false, 'exportar_comprobantes es security invoker'
 );
 select is(
-  has_function_privilege('authenticated', 'private.comprobantes_consulta(uuid,uuid[],text[],text,text,uuid,uuid,uuid,uuid,integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'private.comprobantes_consulta(uuid,uuid[],text[],text,text,uuid,uuid,uuid,uuid,integer,integer,text)', 'execute'),
   false, 'authenticated no ejecuta la consulta interna que recibe organización y empresas'
 );
 select is(
-  has_function_privilege('authenticated', 'private.comprobantes_consulta_sesion(text[],text,text,uuid,uuid,uuid,uuid,integer,integer)', 'execute'),
+  has_function_privilege('authenticated', 'private.comprobantes_consulta_sesion(text[],text,text,uuid,uuid,uuid,uuid,integer,integer,text)', 'execute'),
   true, 'el puente que deriva organización y empresas de la sesión sí es ejecutable'
 );
 select is(
@@ -419,6 +419,43 @@ select throws_ok(
     pg_temp.exec_id()),
   '22023', null, 'el lote del worker tiene un tope'
 );
+
+-- Canal (p_origen) en la exportación: inmediata y diferida. El presupuesto del fixture no tiene vínculo con la tienda: es «panel».
+-- Prueba positiva del canal «tienda»: se vincula el presupuesto del fixture con una cuenta web (como lo deja
+-- `publico.crear_presupuesto_tienda`), se exporta por canal y se quita el vínculo para que el resto siga igual.
+reset role;
+insert into auth.users (id, email) values ('f9000000-0000-0000-0000-000000000001', 'cuenta-web-exportacion@example.com');
+insert into public.cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
+  ('ca900000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-0000000000e1', 'f9000000-0000-0000-0000-000000000001', 'activa');
+insert into dominio.presupuestos_tienda (organizacion_id, empresa_id, cuenta_cliente_id, cliente_id, comprobante_id, clave_envio)
+select c.organizacion_id, c.empresa_id, 'ca900000-0000-0000-0000-000000000001', c.cliente_id, c.id, 'c9000000-0000-0000-0000-000000000001'
+  from dominio.comprobantes_venta c
+ where c.tipo = 'presupuesto' and c.organizacion_id = '11111111-1111-1111-1111-111111111111';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), 1, 'origen tienda: exporta el presupuesto vinculado con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), 0, 'origen panel: no exporta el presupuesto vinculado con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos')), 1, 'sin canal exporta el presupuesto vinculado');
+reset role;
+delete from dominio.presupuestos_tienda where comprobante_id in (select id from dominio.comprobantes_venta where tipo = 'presupuesto' and organizacion_id = '11111111-1111-1111-1111-111111111111');
+delete from public.cuentas_cliente where id = 'ca900000-0000-0000-0000-000000000001';
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), 1, 'origen panel: exporta el presupuesto sin vínculo con la tienda');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), 0, 'origen tienda: no exporta presupuestos sin vínculo');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => ' ')), 1, 'un origen vacío equivale a todos');
+select throws_ok($$select * from public.exportar_comprobantes('presupuestos', p_origen => 'inventado')$$, '22023', null, 'un origen desconocido se rechaza en la exportación');
+select throws_ok($$select public.solicitar_exportacion_comprobantes('presupuestos', '{"origen":"inventado"}'::jsonb)$$, '22023', null, 'la solicitud diferida rechaza un origen desconocido');
+select isnt(public.solicitar_exportacion_comprobantes('presupuestos', '{"origen":"panel"}'::jsonb), null, 'la solicitud diferida acepta el origen');
+reset role;
+select is(
+  (select e.detalle->'filtros'->>'origen' from public.ejecuciones_worker e
+    where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'presupuestos' limit 1),
+  'panel', 'el origen queda guardado en los filtros de la ejecución');
+select set_config('request.jwt.claims',
+  json_build_object('sub', 'e1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
+select is(
+  (select count(*)::int from private.filas_exportacion_comprobantes(
+    (select e.id from public.ejecuciones_worker e where e.organizacion_id = '11111111-1111-1111-1111-111111111111' and e.detalle->>'tipo' = 'presupuestos' limit 1), 0, 100)),
+  1, 'el worker recibe las filas del canal guardado');
 
 -- Descarga por quien la pidió (FR-010): estado propio, ruta solo si terminó, nada de ejecuciones ajenas.
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');

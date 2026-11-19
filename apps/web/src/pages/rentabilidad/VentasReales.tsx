@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Alert, Stack } from '@mui/material'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
-import { PestanasPagina } from '../../components/pagina/PestanasPagina'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
-import { NOMBRE_REPORTE_VENTAS_REALES, PESTANAS_RENTABILIDAD, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
+import { NOMBRE_REPORTE_VENTAS_REALES, SECCION_RENTABILIDAD } from '../../lib/rentabilidad'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
+import { PestanasRentabilidad } from './PestanasRentabilidad'
 
 // «Rentabilidad · Ventas reales» (F-REN-09; la pestaña no está en el prototipo, ver matriz de la spec).
 // El rango Desde/Hasta, los totales del período, el desglose por empresa y por producto, el margen % con su
@@ -36,7 +36,7 @@ export function RentabilidadVentasReales() {
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion="El tablero de Rentabilidad todavía no está disponible para tu organización." />
+    tablero = <EstadoTableroNoDisponible nombre="Rentabilidad" />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion="No pudimos cargar el tablero de Rentabilidad." reintentar={reintentar} />
   } else {
@@ -49,7 +49,7 @@ export function RentabilidadVentasReales() {
         titulo="Rentabilidad"
         descripcion="Margen estimado por canal, producto y publicación."
         contexto={<ContextoOrganizacionActiva />}
-        pestanas={<PestanasPagina pestanas={PESTANAS_RENTABILIDAD} etiqueta="Secciones de Rentabilidad" />}
+        pestanas={<PestanasRentabilidad />}
       />
       <Alert severity="info" role="status">
         Margen de lo efectivamente vendido en el período, con el costo guardado en cada venta. Las ventas confirmadas antes de que se guardara el costo no figuran.

@@ -151,6 +151,21 @@ describe('PresupuestosList', () => {
     expect(mocks.descargarArchivo).toHaveBeenCalledTimes(1)
   })
 
+  it('«Exportar» con un canal elegido manda el canal a la exportación; sin canal no manda ninguno', async () => {
+    abrir()
+    await screen.findByText('Cliente 1')
+    const grupo = screen.getByRole('group', { name: 'Filtrar por canal' })
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Tienda online' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'tienda' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.exportarInmediato).toHaveBeenCalledWith('presupuestos', expect.objectContaining({ origen: 'tienda' })))
+    mocks.exportarInmediato.mockClear()
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Todos los canales' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'todos' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+    await waitFor(() => expect(mocks.exportarInmediato).toHaveBeenCalledWith('presupuestos', expect.objectContaining({ origen: '' })))
+  })
+
   it('sin permiso de exportar el botón no se ofrece', async () => {
     mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     abrir()
@@ -318,7 +333,8 @@ describe('PresupuestosList', () => {
     abrir()
     await screen.findByText('Cliente 1')
     fireEvent.click(screen.getByRole('button', { name: 'Copiar 00000001' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent('El producto «Cable» ya no está activo')
+    expect(await screen.findByRole('alert')).toHaveTextContent('Hay un dato del comprobante que no es válido')
+    expect(screen.queryByText(/Cable/)).not.toBeInTheDocument()
     expect(screen.queryByTestId('ubicacion')).not.toBeInTheDocument()
   })
 
@@ -336,6 +352,20 @@ describe('PresupuestosList', () => {
     expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual(['Todos', 'Pendiente', 'Aceptado', 'Vencido', 'Convertido en factura'])
     fireEvent.click(within(grupo).getByRole('button', { name: 'Vencido' }))
     await waitFor(() => expect(ultimoPedido()).toMatchObject({ estado: 'vencido', pagina: 1 }))
+  })
+
+  it('filtra por canal: pide p_origen a la base y vuelve a la página 1; «Exportar» sigue habilitado', async () => {
+    abrir()
+    await screen.findByText('Cliente 1')
+    const grupo = screen.getByRole('group', { name: 'Filtrar por canal' })
+    expect(within(grupo).getAllByRole('button').map((b) => b.textContent)).toEqual(['Todos los canales', 'Panel', 'Tienda online'])
+    expect(ultimoPedido().origen).toBe('todos')
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Tienda online' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'tienda', pagina: 1 }))
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled()
+    fireEvent.click(within(grupo).getByRole('button', { name: 'Todos los canales' }))
+    await waitFor(() => expect(ultimoPedido()).toMatchObject({ origen: 'todos', pagina: 1 }))
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeEnabled()
   })
 
   it('«Cargar más» pide la tanda siguiente y la suma; el contador conserva el total', async () => {

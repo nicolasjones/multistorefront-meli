@@ -1,7 +1,27 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261013-120000-usuarios-y-roles
+  - specs/20261016-140000-permisos-por-empresa
+  - supabase/migrations/20261013130002_roles_basicos_permisos.sql
+  - supabase/migrations/20261013140000_editar_matriz_permisos.sql
+  - supabase/migrations/20261014120000_usuarios_suspension_y_roles.sql
+  - supabase/migrations/20261016140100_roles_por_empresa.sql
+  - supabase/migrations/20261020130100_rol_tecnico.sql
+  - supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
+  - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
+  - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
+  - supabase/tests/database/permisos_por_rol.test.sql
+  - supabase/tests/database/editar_matriz_permisos.test.sql
+  - supabase/tests/database/rol_tecnico.test.sql
+  - supabase/tests/database/rol_tecnico_por_empresa.test.sql
+  - supabase/tests/database/roles_por_empresa.test.sql
+  - supabase/tests/database/lote32_documentos_escritura_consulta.test.sql
+  - apps/web/src/lib/permisos.ts
+  - apps/web/src/lib/rolActual.ts
 ---
 
 # Permisos por rol: contrato `nivel_seccion` / `puede_accion`
@@ -41,6 +61,12 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
 - Exportar la actividad (F-AUD-03) exige la acción `exportar` **y** el nivel `edicion` en `actividad` (por defecto solo el
   Administrador); ver `docs/actividad.md`. Operador y Administración tienen la acción `exportar` por defecto pero solo
   lectura en Actividad, así que no exportan (el spec de MSF-170 se alineó con el código).
+- **Actividad por empresa accesible (MSF-968):** además de la organización y el nivel en `actividad`, la lectura del historial
+  (política `registro_actividad_select`, `listar_actividad`, `obtener_detalle_actividad`, `opciones_actividad` y
+  `exportar_actividad`) solo muestra los eventos sin empresa (de toda la organización) y los de las empresas a las que la persona
+  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el resto, las asignadas; las pausadas
+  cuentan para no perder su historial). Cambio visible: Operador y Administración con una sola tienda asignada ya no ven los eventos
+  de las demás; el Administrador sigue viendo todo. Ver `docs/actividad.md`.
 - Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización
   (`private.es_administrador_de`); ni el permiso `exportar` ni el nivel de la sección `productos` los habilitan.
 
@@ -128,6 +154,9 @@ relaciones por empresa) usan este contrato:
 - **`dominio.producto_empresa` (F-CAT-07, MSF-276)** usa `nivel_seccion('productos')`: edita quien edita productos; el resto lee.
   **`dominio.categorias` y `dominio.categorias_empresa` (F-CAT-08, MSF-298)** usan `nivel_seccion('categorias')`
   (`edicion` crea, edita, reordena y elimina; `lectura` solo ve el árbol). Ver `docs/catalogo.md`.
+  Desde la migración `20270507180600_categorias_lectura_para_stock.sql`, una política `select` adicional
+  (`categorias_select_stock`) deja leer las categorías de su organización a quien tiene `stock` en `edicion` (Depósito, que
+  tiene `categorias` en `ninguno`, las ve en «Toma de inventario»); quien solo lee stock no gana lectura y nadie gana escritura.
 - **`dominio.existencias`, `dominio.movimientos_stock` y `dominio.motivos_movimiento` (F-STK-02, MSF-153)** usan
   `nivel_seccion('stock')`: quien tiene `edicion` (Administrador, Operador, Depósito) registra movimientos con
   `public.registrar_movimiento_stock`; con `lectura` (Consulta, Mostrador, Administración) ve cantidades y movimientos sin
@@ -200,8 +229,12 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   exige además `rentabilidad` en `edicion` (hoy solo Administrador). Ver `docs/ingreso-de-mercaderia.md`.
 - **Acciones de ventas de la épica MSF-177**: `exportar` (Administrador, Operador, Administración) habilita la exportación
   del listado de comprobantes; `anular` y `emitir_nota_credito` (solo sección `ventas`: Administrador y Administración)
-  se verifican en `anular_comprobante` y `emitir_nota_credito` (`42501` si no), no solo en la UI. Las transiciones de estado
-  por rol viven en `dominio.transiciones_estado_comprobante`. Valores propuestos, pendientes de confirmar con el cliente.
+  se verifican en `anular_comprobante` y `emitir_nota_credito` (`42501` si no), no solo en la UI.
+  `anular_comprobante` además rechaza (55000) anular una factura ya entregada o con cobros registrados
+  (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`); el permiso `anular` no cambió.
+  `public.revertir_cobro` (reversión con contra-asiento, `20270507180100_revertir_cobro.sql`) no usa una acción de la matriz: exige
+  Administrador de la organización (`42501` a los demás roles). Ver [Cobros por comprobante](cobros-por-comprobante.md).
+  Las transiciones de estado por rol viven en `dominio.transiciones_estado_comprobante`. Valores propuestos, pendientes de confirmar con el cliente.
   Ver `docs/ventas-listado-estados.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
@@ -209,10 +242,12 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,
   `emitir_nota_credito`, `registrar_cobro`, `conciliar_pago`, `cobrar_contrarreembolso`, `despachar`) son una
-  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02.
-- **Pendiente MSF-119**: cuando exista `usuarios_organizacion.estado`, `private.nivel_seccion`
-  DEBE excluir `suspendido` (`and u.estado <> 'suspendido'`). La columna no existe todavía en esta
-  rama, así que hoy la función no puede filtrarlo; US4 (F-USR-02) queda bloqueada hasta entonces.
+  **extensión propuesta**, pendiente de confirmar con el cliente. Se editan con F-ROL-02. Excepción confirmada: `ver_costos`
+  en **Stock** también es del Operador (reportes de inventario, migración `20270438000000`); los demás roles sin ella ven solo cantidades.
+- **Suspendidos (resuelto):** `usuarios_organizacion.estado` existe (`20261012140100`) y la resolución de
+  permisos excluye a quien no está `activo`: `private.roles_de_referencia` (`20261016140100_roles_por_empresa.sql:241`) y
+  `private.empresas_accesibles` / `private.rol_en_empresa` exigen `estado = 'activo'`, así que `nivel_seccion` y
+  `puede_accion` no dan nivel a un suspendido. Ver [Acceso: ingreso, recuperación y sesión](acceso-ingreso.md).
 - Sin policies de escritura sobre las tablas de permisos: la edición (F-ROL-02, MSF-239) pasa solo por las
   RPC de abajo, que verifican en servidor que quien llama es Administrador de esa organización.
 
@@ -324,7 +359,7 @@ reparación quedan ocultos, ver `docs/service-tecnico.md`). Los valores de los d
 `usuarios_empresas` (`private.empresas_accesibles()`), así que `tecnico` es el sexto rol válido por empresa:
 el CHECK `usuarios_empresas_rol_por_empresa` y `private.validar_asignaciones` (usada por
 `asignar_empresas_usuario`, `guardar_asignaciones_invitacion` y `aceptar_invitacion`) lo admiten, y el selector
-de Usuarios lo ofrece. Migración aditiva `20270201200200_rol_tecnico_por_empresa.sql`; test
+de Usuarios lo ofrece. Migración aditiva `20270202202000_tecnico_invitable_y_por_empresa.sql`; test
 `supabase/tests/database/rol_tecnico_por_empresa.test.sql`. Los permisos de `mostrador` no cambian.
 
 - **Siembra**: la migración redefine `private.matriz_inicial()` con la columna `tecnico`
@@ -335,9 +370,10 @@ de Usuarios lo ofrece. Migración aditiva `20270201200200_rol_tecnico_por_empres
   deshabilitados, «no editable»). `public.guardar_matriz_permisos` rechaza con `22023` cualquier cambio
   sobre `tecnico`; la edición de los otros roles no cambia. La matriz editable del Técnico llega en enero.
 - **Asignación**: «Técnico» se elige en **Usuarios → Editar → Rol** (`cambiar_rol_miembro`, que valida
-  contra `roles_organizacion`). Límites vigentes: la **invitación** (`registrar_invitacion`) y el rol por
-  empresa (`usuarios_empresas`, check de cinco roles) siguen aceptando solo los roles previos; un Técnico se
-  invita con otro rol y se cambia a Técnico al sumarse.
+  contra `roles_organizacion`). Desde la migración `20270202202000_tecnico_invitable_y_por_empresa.sql` la
+  **invitación** (`registrar_invitacion`), `private.validar_asignaciones` y el check de `usuarios_empresas` también
+  aceptan `tecnico`: un Técnico se puede invitar y asignar por empresa directamente. La matriz del Técnico sigue sin
+  editarse (`guardar_matriz_permisos` no cambió).
 - **Reversión** (cabecera de la migración): borrar las filas `tecnico` de `permisos_rol_accion`,
   `permisos_rol` y `roles_organizacion` (solo si ningún usuario lo usa) y reaplicar
   `private.matriz_inicial()` y `public.guardar_matriz_permisos` de `20261013130002` / `20261016120000`.
@@ -417,7 +453,27 @@ permisos y contexto demorados).
 
 - `BotonVolver` (`components/pagina/BotonVolver.tsx`) reemplaza la flecha sin nombre que `@refinedev/mui` pone en
   `Create`/`Edit`/`Show` (se pasa como `goBack`); `EditButton hideText` lleva `aria-label`.
-- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; no `ContenidoAdaptable`, que pasa a tarjetas en pantallas chicas) lleva `tabIndex={0}`, `role="region"` y un nombre
+- Una tabla con ancho fijo que se desplaza dentro de su contenedor (los `TableContainer` y las cajas `overflowX: auto`; también la de `ContenidoAdaptable` cuando recibe `etiquetaTabla`, que en pantallas chicas pasa a tarjetas) lleva `tabIndex={0}`, `role="region"` y un nombre
   (axe `scrollable-region-focusable`): «Formato de la planilla» y «Diferencias a aplicar» en `/stock/excel`,
   «Precio y comisión por canal» en Rentabilidad.
 - La ayuda de un campo deshabilitado conserva el color secundario del tema (contraste AA).
+
+## Listas de precios (F-PRE-14 y F-CLI-21)
+
+Las listas de precios **no tienen sección propia** en la matriz: solo las escribe el rol **Administrador** (la RPC lo comprueba con `private.es_administrador_de`, como el descuento por cliente) y las leen quienes tienen `clientes` o `ventas` en `lectura` o `edicion` (política `listas_precios_select`). Detalle en [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21).
+
+Resumen del cierre: crear, editar, archivar, restaurar y asignar listas es **solo del rol Administrador**; leen las listas y la lista de cada cliente quienes tienen `clientes` o `ventas`; la tienda nunca expone el nombre ni el porcentaje de la lista. Revisión completa en [Revisión de seguridad de las listas de precios](revision-seguridad-listas-de-precios.md).
+
+## Documentos de la búsqueda documental: Consulta no escribe
+
+Los documentos de la búsqueda documental no tienen sección propia en la matriz: se rigen por la funcionalidad
+`busqueda-documental` y por un helper de rol. `private.puede_gestionar_documentos()`
+(`supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql`) es verdadero para un miembro **activo** con
+rol `administrador`, `operador`, `mostrador`, `deposito`, `administracion` o `tecnico` (lista blanca) y para el superadmin con
+una organización activa; **Consulta** y el rol heredado `miembro` no escriben. Las políticas de escritura de
+`fragmentos_indexados`, `documentos` y `versiones_documento` y las de insert y delete del bucket `documentos-rag` lo exigen, y
+`eliminar_documento` rechaza con `42501` a quien no puede gestionar documentos; la lectura y la búsqueda no cambian. La función
+Edge `indexar-documento` escribe los fragmentos con el cliente de servicio, pero solo después de autorizar con el JWT de la
+persona, y los borra con `public.borrar_fragmentos_si_dueno` (`20270507200100_borrar_fragmentos_si_dueno.sql`, solo
+`service_role`), que comprueba y borra en una sola transacción. Pantalla, límites y pruebas:
+[Documentos IA](documentos-ia.md); prueba pgTAP `lote32_documentos_escritura_consulta.test.sql`.

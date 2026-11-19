@@ -1,9 +1,14 @@
 ---
 owner: producto
 sources:
-  - specs
-  - design/pantallas
-  - apps/web/src
+  - specs/20261028-100000-correo-masivo-a-clientes
+  - design/pantallas/Clientes.dc.html
+  - apps/web/src/pages/clientes/correo-masivo/nueva.tsx
+  - apps/web/src/pages/clientes/correo-masivo/vista-previa.tsx
+  - apps/web/src/pages/clientes/correo-masivo/historial.tsx
+  - apps/web/src/pages/clientes/correo-masivo/detalle.tsx
+  - apps/web/src/pages/baja-correo.tsx
+  - apps/web/src/components/clientes/DialogoCorreoSeleccionados.tsx
 ---
 
 # Clientes · correo masivo a clientes (MSF-155)
@@ -13,10 +18,8 @@ del correo masivo» (MSF-357), F-CLI-12 «Redactar y enviar el correo masivo con
 «Historial de campañas de correo» (MSF-376). **Spec:** `specs/20261028-100000-correo-masivo-a-clientes/`. Detalle
 técnico: [Correo masivo a clientes (técnico)](../tecnico/correo-masivo-a-clientes.md).
 
-> **Estado:** el código de la épica (migraciones `20270120100000` y `20270121110000…110300`, páginas, flow y Edge
-> Function) está en la rama `epic/MSF-155-clientes-y-proveedores-correo-masivo-a-c` con las tres historias y el
-> cierre (T040–T043) marcados hechos; **no estaba en `main` al escribir esta página** (2026-10-31). La guía de
-> abajo aplica una vez mergeada la épica. TODO (dueño: quien mergee la épica): confirmar el merge y quitar esta nota.
+> **Estado:** el código de la épica (migraciones `20270201200119` y `20270201200120…20270201200123`, páginas, flow y Edge
+> Function) ya está integrado en la rama `dokploy`, con las tres historias. La guía de abajo describe lo que hay hoy.
 
 ## Qué resuelve
 
@@ -45,7 +48,8 @@ Para el **equipo que administra Clientes** (roles con edición en la sección Cl
 ## Fuera de alcance (no hecho en esta épica)
 
 - Reenviar o editar una campaña ya creada; el historial es solo lectura.
-- Newsletter con suscriptores por tienda (`Newsletter.dc.html`): no tiene historia en esta épica.
+- El newsletter de la tienda (suscriptores por tienda) es otra función, construida pero apagada por defecto: ver
+  [Newsletter de la tienda](newsletter.md).
 - Enviar la lista de «Clientes inactivos» (MSF-171) a una campaña: relación declarada, sin bloqueo; no se verificó
   en esta épica. TODO (dueño: MSF-171).
 - Límite de frecuencia propio de la Edge Function de baja: queda para el borde (riesgo bajo aceptado en el cierre).

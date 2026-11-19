@@ -282,6 +282,38 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
     expect(await screen.findByRole('link', { name: 'Imprimir remito' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/remito')
   })
 
+  it('ofrece «Imprimir etiqueta» con lectura o edición, la enlaza a /etiqueta y no la ofrece en una reparación anulada (F-SVC-32, FR-043)', async () => {
+    mocks.obtenerReparacion.mockResolvedValue(REPARACION)
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
+    const lectura = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    lectura.unmount()
+
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
+    const edicion = abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir etiqueta' })).toHaveAttribute('href', '/service-tecnico/reparaciones/r-1/etiqueta')
+    edicion.unmount()
+
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-21T10:00:00Z', anulada_motivo: 'Cliente desistió' })
+    abrirDetalle()
+    await screen.findByRole('heading', { name: 'Reparación R-0001' })
+    expect(screen.queryByRole('link', { name: 'Imprimir etiqueta' })).toBeNull()
+    // La orden sigue ofreciéndose como hasta ahora.
+    expect(screen.getByRole('link', { name: 'Imprimir orden' })).toBeInTheDocument()
+  })
+
+  it('el orden de tabulación de los botones del encabezado es orden, etiqueta, remito (P-3); entregada no ofrece guardar', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, entrega_real: '2026-10-24', entregado_por: 'Luis' })
+    abrirDetalle()
+    const orden = await screen.findByRole('link', { name: 'Imprimir orden' })
+    const etiqueta = screen.getByRole('link', { name: 'Imprimir etiqueta' })
+    const remito = screen.getByRole('link', { name: 'Imprimir remito' })
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+    const enOrden = (a: Element, b: Element) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(enOrden(orden, etiqueta)).toBe(true)
+    expect(enOrden(etiqueta, remito)).toBe(true)
+  })
+
   it('una edición con datos viejos avisa del conflicto y ofrece recargar (FR-017)', async () => {
     mocks.obtenerReparacion.mockResolvedValue(REPARACION)
     mocks.actualizarReparacion.mockRejectedValueOnce({ code: '40001' })
@@ -350,7 +382,7 @@ describe('Service técnico · Reparación (FR-016, FR-017, FR-021)', () => {
   it('si la reparación no existe o es ajena, muestra error de carga', async () => {
     mocks.obtenerReparacion.mockRejectedValue({ code: 'P0002' })
     abrirDetalle()
-    expect(await screen.findByText('Esa reparación no existe o no pertenece a tu organización.')).toBeInTheDocument()
+    expect(await screen.findByText('Esa reparación no existe o no tenés acceso a ella.')).toBeInTheDocument()
   })
 
   it('muestra la ganancia estimada junto al costo interno solo con ver_costos (FR-026, FR-027)', async () => {

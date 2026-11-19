@@ -1,10 +1,54 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
+  - apps/web/e2e/rentabilidad-real-reportes-roles.e2e.ts
+  - apps/web/e2e/rentabilidad-roles.e2e.ts
+  - apps/web/src/App.tsx
+  - apps/web/src/components/ReporteEmbebido.tsx
+  - apps/web/src/lib/costosAdicionales.ts
+  - apps/web/src/lib/rentabilidad.ts
   - apps/web/src/pages/rentabilidad
-  - infra/superset
-  - specs
+  - infra/superset/dashboards/rentabilidad
+  - infra/superset/importar-dashboards.mjs
+  - infra/superset/superset_config.py
+  - specs/20261023-170000-rentabilidad-margen
+  - specs/20261024-130000-rentabilidad-comparativos-e-historia
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - supabase/functions/emitir-acceso-reporte/handler.ts
+  - supabase/migrations/20261022121200_precios_actividad_producto.sql
+  - supabase/migrations/20261130100000_rentabilidad_umbral.sql
+  - supabase/migrations/20261130100100_rentabilidad_umbral_actividad.sql
+  - supabase/migrations/20261130100200_analitica_margen_producto_canal.sql
+  - supabase/migrations/20261130100300_analitica_rol_superset.sql
+  - supabase/migrations/20261130100400_reportes_seccion.sql
+  - supabase/migrations/20261130110000_analitica_rentabilidad_resumen.sql
+  - supabase/migrations/20261130110100_rentabilidad_conteo_margen.sql
+  - supabase/migrations/20270111100000_analitica_margen_comparativo.sql
+  - supabase/migrations/20270111100100_analitica_margen_comparativo_diferencia.sql
+  - supabase/migrations/20270111110000_dominio_producto_costos_historial.sql
+  - supabase/migrations/20270111110100_analitica_margen_historico.sql
+  - supabase/migrations/20270202201000_costos_adicionales_canal.sql
+  - supabase/migrations/20270202201001_costos_adicionales_rpc.sql
+  - supabase/migrations/20270202201002_analitica_margen_costos_adicionales.sql
+  - supabase/migrations/20270202201003_analitica_consultas_producto_mas_consultado.sql
+  - supabase/migrations/20270202201004_analitica_ventas_periodo_canal.sql
+  - supabase/migrations/20270202201005_comprobante_lineas_costo_cotizacion.sql
+  - supabase/migrations/20270202201006_confirmar_comprobante_costo_cotizacion.sql
+  - supabase/migrations/20270202201007_analitica_rentabilidad_ventas_real.sql
+  - supabase/tests/database/costos_adicionales_aislamiento.test.sql
+  - supabase/tests/database/costos_adicionales_canal.test.sql
+  - supabase/tests/database/rentabilidad_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_comparativo.test.sql
+  - supabase/tests/database/rentabilidad_comparativo_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_consolidado.test.sql
+  - supabase/tests/database/rentabilidad_historia.test.sql
+  - supabase/tests/database/rentabilidad_historia_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_margen.test.sql
+  - supabase/tests/database/rentabilidad_permisos.test.sql
+  - supabase/tests/database/rentabilidad_por_producto.test.sql
+  - supabase/tests/database/rentabilidad_superficie.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql
 ---
 
 # Rentabilidad: datos, RPC y tableros (MSF-120, MSF-127, MSF-192)
@@ -394,6 +438,8 @@ previa» de la épica queda resuelta por esta decisión.
 - Los dos tableros se registran en `infra/superset/dashboards/rentabilidad/reportes.json` con
   `seccion = 'rentabilidad'` y rol por defecto `administracion`; el importador es idempotente
   (`pnpm test:superset:importar-dashboards`).
+- El importador (`infra/superset/importar-dashboards.mjs`) **falla** si hay `reportes.json` y faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR`: los dashboards se importan pero los reportes no se registran. Para importar solo los dashboards a propósito (por ejemplo con un Superset local sin Supabase) se usa `--omitir-reportes`.
+- El guest token del tablero embebido vence a los 600 segundos por defecto (`GUEST_TOKEN_JWT_EXP_SECONDS`, configurable con `SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS` en `infra/superset/superset_config.py`). `apps/web/src/components/ReporteEmbebido.tsx` usa el token ya emitido en la primera llamada y, cuando el SDK renueva, pide uno nuevo a `emitir-acceso-reporte` (que vuelve a validar el acceso de la persona).
 - Detalle operativo: [Operar Superset](../operar-superset.md#tableros-de-rentabilidad-msf-120).
 
 ## Rentabilidad real y reportes (MSF-192)
@@ -521,7 +567,7 @@ margen_pct          = margen / vendido               -- null si vendido ≤ 0
 
 - **Entorno:** stack local con la rama de la épica (`pnpm dev:supabase` + `pnpm dev`; panel en
   `http://localhost:5173`) **con un Superset real** —los tableros no se simulan: sin él, la pantalla de
-  «Ventas reales» muestra «El tablero de Rentabilidad todavía no está disponible para tu organización»— o el
+  «Ventas reales» muestra «El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno»— o el
   ambiente **DEV** con la épica desplegada y los tableros importados:
 
   ```bash
@@ -655,7 +701,7 @@ capturas.
 - «Por producto» pasa el filtro inicial por `urlParams` al tablero: `?estado=bajo_o_negativo` o
   `?estado=negativo` se traducen a `native_filters` (rison) del filtro `NATIVE_FILTER-estado`
   (`apps/web/src/lib/rentabilidad.ts`). Cualquier otro valor se ignora.
-- **Desvíos de F-REN-03 (MSF-556):** el orden está fijo por menor margen (no hay selector
+- **Desvíos de F-REN-03 (MSF-555, límite permanente decidido en MSF-896):** el orden está fijo por menor margen (no hay selector
   «Mayor/Menor margen primero») y la búsqueda es un `filter_select` de Superset, no un campo de texto
   libre. La tabla no pagina en el cliente (`row_limit` 10000); el volumen esperado es de cientos de filas
   producto × tienda.
@@ -796,7 +842,7 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 |---|---|
 | Verificar en un Superset real la importación de los tableros y el filtro inicial desde el aviso. | Cierre de MSF-120 (SC-003/SC-009) |
 | Ejecutar el E2E de tres roles con el stack local. | MSF-499 / cierre de MSF-120 |
-| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. | MSF-556 |
+| Selector de orden «Mayor/Menor margen primero» y búsqueda de texto libre. Límite permanente de Superset (no se implementa). | MSF-555 / MSF-896 |
 | Ponderar el consolidado por stock o ventas reales. | MSF-192 |
 | Confirmar si Administración debe ver los tableros y si Consulta debe ver costos. | Cliente / producto |
 | Dónde viven los eventos de Actividad (F-AUD-01 no está cargada en Jira). | Plataforma / producto |
@@ -809,3 +855,6 @@ costos adicionales **guarda datos**: exportala antes de borrarla.
 | Capturas de **Ventas reales** y **Costos adicionales**: `pnpm docs:capturas` no existe en esta rama. | Cierre de MSF-192 |
 | Ejecutar el E2E `rentabilidad-real-reportes-roles.e2e.ts` (`[MSF-741:T041]`) con el stack local. | Cierre de MSF-192 |
 
+## Después de costos fijos (MSF-469, F-GAS-03)
+
+Cuatro vistas nuevas de `analitica` (`costos_fijos_empresa_mes`, `ventas_netas_empresa_mes`, `margen_despues_costos_fijos`, `margen_costos_fijos_empresa_mes`) y la función `analitica.bandera_activa(text)`, detrás de la bandera `margen_costos_fijos`. **No se redefinió** `analitica.margen_real_categoria` ni `analitica.rentabilidad_ventas_real`: la medida se apoya en ellas y suma `tasa_fija`, `cargo_costos_fijos`, `margen_despues_fijos` y `margen_despues_fijos_pct`. Pestaña `pages/rentabilidad/CostosFijos.tsx` (la ruta redirige a `/rentabilidad` con la bandera apagada), `PestanasRentabilidad` (suma la pestaña solo con la bandera) y tablero `Rentabilidad · Después de costos fijos` (`reportes.filtro_empresa = true`). Fórmula, seguridad y reversión: [Gastos de la empresa](../gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).

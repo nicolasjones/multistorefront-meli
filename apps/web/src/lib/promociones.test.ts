@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   aFechaHoraLocal,
   anularPromocion,
+  AVISO_PROMOCION_BAJO_COSTO,
+  AVISO_PROMOCION_NO_MENOR,
   guardarPromocion,
   leerPromociones,
   TAMANO_TANDA_PROMOCIONES,
@@ -150,6 +152,28 @@ describe('promociones · acceso a la base', () => {
     expect(args[0]).toBe('guardar_promocion_precio')
     expect(args[1]).toMatchObject({ p_id: 'p1', p_empresa: 'e1', p_producto: 'a1', p_precio: 800.5, p_actualizado: '2026-11-07T10:00:00.123456+00:00' })
     expect(args[1].p_desde).toBe(new Date('2026-11-10T09:00').toISOString())
+  })
+
+  it('guardar devuelve el aviso de la base cuando el precio no es menor al normal y null en los demás casos', async () => {
+    const datos = { id: null, empresaId: 'e1', productoId: 'a1', precioTexto: '1200', desdeTexto: '2026-11-10T09:00', hastaTexto: '2026-11-12T09:00', actualizadoEn: null }
+    const conAviso = vi.fn().mockResolvedValue({ data: { id: 'p1', aviso_codigo: 'promocion_no_menor_al_normal', aviso: 'texto del servidor' }, error: null })
+    await expect(guardarPromocion({ rpc: conAviso } as never, datos)).resolves.toEqual({ aviso: AVISO_PROMOCION_NO_MENOR })
+    const sinAviso = vi.fn().mockResolvedValue({ data: { id: 'p1' }, error: null })
+    await expect(guardarPromocion({ rpc: sinAviso } as never, datos)).resolves.toEqual({ aviso: null })
+    const otroCodigo = vi.fn().mockResolvedValue({ data: { id: 'p1', aviso_codigo: 'otro' }, error: null })
+    await expect(guardarPromocion({ rpc: otroCodigo } as never, datos)).resolves.toEqual({ aviso: null })
+    const sinDatos = vi.fn().mockResolvedValue({ data: null, error: null })
+    await expect(guardarPromocion({ rpc: sinDatos } as never, datos)).resolves.toEqual({ aviso: null })
+    // MSF-958: aviso de costo (solo llega a quien ve rentabilidad), solo o junto al de «no menor al normal».
+    const bajoCosto = vi.fn().mockResolvedValue({ data: { id: 'p1', aviso_costo_codigo: 'promocion_bajo_el_costo' }, error: null })
+    await expect(guardarPromocion({ rpc: bajoCosto } as never, datos)).resolves.toEqual({ aviso: AVISO_PROMOCION_BAJO_COSTO })
+    const ambos = vi.fn().mockResolvedValue({
+      data: { id: 'p1', aviso_codigo: 'promocion_no_menor_al_normal', aviso_costo_codigo: 'promocion_bajo_el_costo' },
+      error: null,
+    })
+    await expect(guardarPromocion({ rpc: ambos } as never, datos)).resolves.toEqual({
+      aviso: `${AVISO_PROMOCION_NO_MENOR} ${AVISO_PROMOCION_BAJO_COSTO}`,
+    })
   })
 
   it('anular envía el id y el updated_at; un error de la base se propaga', async () => {

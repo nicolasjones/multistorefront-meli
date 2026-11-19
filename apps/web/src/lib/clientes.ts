@@ -2,6 +2,7 @@
 // largo viven en la migración 20261016130000_clientes_ficha_y_numeracion.sql;
 // acá se espejan solo para validar en el formulario antes de viajar.
 
+import { normalizarCuit, validarCuit } from './cuit'
 import type { EstadoCuentaWebFormulario } from './cuentasCliente'
 import { supabaseClient } from './supabase'
 
@@ -18,13 +19,19 @@ export type Cliente = {
   localidad: string | null
   provincia: string | null
   expreso_preferido: string | null
+  // Condición frente al IVA (texto libre ≤ 60 que imprime la factura interna). Opcional: filas leídas sin la columna.
+  condicion_iva?: string | null
   archivado_en: string | null
   tipo: TipoCliente
   es_consumidor_final: boolean
   // Acepta el correo masivo (F-CLI-11): solo a quienes lo aceptan se les escribe.
   acepta_correo_masivo: boolean
+  // Acepta los avisos por WhatsApp (MSF-952): sin este consentimiento la base no encola ningún WhatsApp.
+  acepta_whatsapp: boolean
   // F-VTA-32: descuento porcentual (0..100) que Ventas aplica sobre la escala; null = sin descuento.
   descuento?: number | null
+  // F-CLI-21: lista de precios del cliente (a lo sumo una); null = sin lista. Solo la escribe la RPC `asignar_lista_precios_cliente`.
+  lista_precio_id?: string | null
   created_at: string
 }
 
@@ -36,9 +43,13 @@ export type TipoCliente = 'minorista' | 'mayorista'
 // único en la organización; esta lista dice en qué tiendas puede comprar.
 export type EmpresaDeCliente = { id: string; nombre: string }
 
+// Condiciones habituales del selector de la ficha; «Otra» permite escribir cualquier texto (hasta 60 caracteres).
+export const CONDICIONES_IVA = ['Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable'] as const
+export const CONDICION_IVA_OTRA = 'Otra'
+
 export const CAMPOS_FICHA = [
   'nombre', 'documento', 'correo', 'telefono', 'celular', 'direccion', 'codigo_postal', 'localidad', 'provincia',
-  'expreso_preferido',
+  'expreso_preferido', 'condicion_iva',
 ] as const
 export type CampoFicha = (typeof CAMPOS_FICHA)[number]
 // `empresas` no es una columna de `clientes`: viaja aparte (tabla
@@ -51,6 +62,9 @@ export type FormularioCliente = Record<CampoFicha, string> & {
   // F-VTA-32: porcentaje como texto; vacío = sin descuento. Solo lo envía un Administrador (`descuento`
   // no entra en `aValores`: la pantalla lo suma si corresponde).
   descuento: string
+  // F-CLI-21: id de la lista de precios del cliente; vacío = sin lista. No es una columna editable de `clientes`: la pantalla
+  // la asigna con `asignar_lista_precios_cliente` solo si el Administrador la cambió.
+  listaPrecioId: string
   // Campo «Cuenta web» del formulario (F-CLI-05, FR-015): crea o suspende la
   // cuenta en cada tienda tildada al guardar. No es una columna de `clientes`.
   cuentaWeb: EstadoCuentaWebFormulario
@@ -65,10 +79,11 @@ export type OpcionesCuentaWeb = { estado: EstadoCuentaWebFormulario; invitar: bo
 
 export const FORMULARIO_CLIENTE_VACIO: FormularioCliente = {
   nombre: '', documento: '', correo: '', telefono: '', celular: '', direccion: '', codigo_postal: '', localidad: '', provincia: '',
-  expreso_preferido: '',
+  expreso_preferido: '', condicion_iva: '',
   tipo: 'minorista',
   empresas: [],
   descuento: '',
+  listaPrecioId: '',
   cuentaWeb: 'sin_cuenta',
   invitarCuentaWeb: true,
   // El alta nace con el interruptor encendido, como el prototipo (F-CLI-11, FR-002).
@@ -86,7 +101,7 @@ export const AVISO_CAMBIO_TIPO =
 
 export const LARGO_MAXIMO: Readonly<Record<CampoFicha, number>> = {
   nombre: 200, documento: 40, correo: 200, telefono: 60, celular: 60, direccion: 200, codigo_postal: 20, localidad: 120, provincia: 120,
-  expreso_preferido: 120,
+  expreso_preferido: 120, condicion_iva: 60,
 }
 
 export const MENSAJE_DOCUMENTO_REPETIDO = 'Ya existe un cliente con ese DNI/CUIT'
@@ -101,7 +116,7 @@ export function aFormulario(
   const texto = Object.fromEntries(CAMPOS_FICHA.map((campo) => [campo, cliente[campo] ?? '']))
   const descuento = cliente.descuento == null ? '' : String(cliente.descuento)
   return {
-    ...texto, tipo: cliente.tipo, empresas, descuento, cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
+    ...texto, tipo: cliente.tipo, empresas, descuento, listaPrecioId: cliente.lista_precio_id ?? '', cuentaWeb, invitarCuentaWeb: true, aceptaCorreoMasivo: cliente.acepta_correo_masivo,
   } as FormularioCliente
 }
 
@@ -137,7 +152,18 @@ export function opcionesCuentaWeb(formulario: FormularioCliente): OpcionesCuenta
   }
 }
 
-export function validarCliente(formulario: FormularioCliente): ErroresCliente {
+export const MENSAJE_DOCUMENTO = 'Ingresá un DNI de 7 u 8 dígitos o un CUIT válido (11 dígitos, con o sin guiones).'
+
+// DNI (7 u 8 dígitos, con o sin puntos) o CUIT/CUIL con dígito verificador. Vacío es válido: el documento es opcional.
+export function esDocumentoValido(texto: string): boolean {
+  const limpio = normalizarCuit(texto)
+  if (/^\d{7,8}$/.test(limpio)) return true
+  return validarCuit(texto).valido
+}
+
+// `documentoInicial`: el de la ficha al abrirla. Un documento viejo que no cumple el formato no bloquea guardar otros
+// cambios; solo se valida si la persona lo toca.
+export function validarCliente(formulario: FormularioCliente, { documentoInicial = '' }: { documentoInicial?: string } = {}): ErroresCliente {
   const errores: ErroresCliente = {}
   if (formulario.nombre.trim() === '') {
     errores.nombre = 'Ingresá el nombre o la razón social.'
@@ -148,6 +174,10 @@ export function validarCliente(formulario: FormularioCliente): ErroresCliente {
   const correo = formulario.correo.trim()
   if (correo !== '' && !CORREO_VALIDO.test(correo)) {
     errores.correo = 'Ingresá un correo con formato válido.'
+  }
+  const documento = formulario.documento.trim()
+  if (documento !== '' && documento !== documentoInicial.trim() && !esDocumentoValido(documento)) {
+    errores.documento = MENSAJE_DOCUMENTO
   }
   for (const campo of CAMPOS_FICHA) {
     if (!errores[campo] && formulario[campo].trim().length > LARGO_MAXIMO[campo]) {
@@ -172,7 +202,17 @@ export function esDocumentoRepetido(error: unknown): boolean {
 // columnas: al usuario va solo el texto en castellano y el detalle queda en consola.
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
+  // Un guardado a medias lleva su propio texto (ya en castellano y sin detalles de la base).
+  if (error instanceof ErrorGuardadoParcial) return error.message
   return porDefecto
+}
+
+// El guardado falló y la lista de precios del cliente no quedó como estaba: la persona tiene que revisarla.
+export class ErrorGuardadoParcial extends Error {
+  constructor(mensaje: string) {
+    super(mensaje)
+    this.name = 'ErrorGuardadoParcial'
+  }
 }
 
 // Fusión de clientes duplicados (F-CLI-18). Las RPC son solo del Administrador (la base lo impone) y operan
@@ -184,6 +224,9 @@ export type VistaPreviaCliente = {
   documentos: number
   cuentas_web_activas: number
   cuentas_web_total: number
+  // F-CLI-21: lista de precios de cada ficha (null = sin lista). El que se conserva mantiene la suya; la del absorbido se descarta.
+  lista_precio_id?: string | null
+  lista_nombre?: string | null
 }
 
 export type ResumenFusion = {

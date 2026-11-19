@@ -7,7 +7,16 @@
 // (idempotente): no se puede enumerar qué tokens son válidos. Un fallo de la base responde 500 sin detalle, para que
 // quien quiere darse de baja pueda reintentar, y solo se registra en el log (sin el token).
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
+// CORS (MSF-963, RF-NL-9): la página de baja corre en el dominio de CADA tienda y llama a esta función con `supabase.functions.invoke`, así que el
+// origen no se puede fijar de antemano: `*` es correcto porque la función no usa cookies ni credenciales (la autenticación es el token del enlace) y el
+// navegador no manda credenciales a un origen `*`. Los encabezados permitidos son EXACTAMENTE los que declara el SDK de Supabase para sus llamadas
+// (`@supabase/supabase-js/cors`, versión del lockfile): los cuatro que manda `functions.invoke` (`authorization`, `apikey`, `x-client-info`,
+// `content-type`) más los opcionales de reintento y de trazas. Si el SDK suma uno, hay que sumarlo acá (lo fija handler.test.ts). POST es un método
+// «seguro» para CORS, pero se declara igual para que el preflight sea explícito.
+const permitidos = 'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage'
+const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Allow-Headers': permitidos }
+// El preflight se puede recordar un día: menos pedidos OPTIONS por cada visita a la página de baja.
+const preflightHeaders = { ...corsHeaders, 'Access-Control-Max-Age': '86400' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 type DbError = { message: string; code?: string }
@@ -28,7 +37,7 @@ async function sha256Hex(texto: string): Promise<string> {
 }
 
 export async function manejar(req: Request, { admin }: Deps): Promise<Response> {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: preflightHeaders })
   if (req.method !== 'POST') return response({ error: 'Método no soportado.' }, 405)
 
   const body = await req.json().catch(() => null) as { token?: unknown } | null

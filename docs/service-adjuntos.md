@@ -3,6 +3,16 @@ owner: tecnico
 sources:
   - specs/20261028-100000-service-seguimiento-y-reportes
   - apps/web/src/lib/reparacionAdjuntos.ts
+  - apps/web/src/components/service/AdjuntosReparacion.tsx
+  - apps/web/e2e/service-adjuntos.e2e.ts
+  - supabase/migrations/20270219140100_reparacion_adjuntos.sql
+  - supabase/migrations/20270219140200_reparacion_adjuntos_bucket.sql
+  - supabase/migrations/20270219140300_reparacion_adjunto_registrar.sql
+  - supabase/migrations/20270219140400_reparacion_adjunto_quitar.sql
+  - supabase/migrations/20270219140500_reparacion_adjuntos_listar.sql
+  - supabase/migrations/20270219140600_reparacion_adjuntos_bucket_endurecer.sql
+  - supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql
+  - supabase/tests/database/service_adjuntos.test.sql
 ---
 
 # Service técnico · Fotos y adjuntos del equipo (F-SVC-20)
@@ -36,6 +46,7 @@ Esquema (Constitución, Principio VII): `dominio.reparacion_adjuntos` es una ent
 |---|---|---|
 | `dominio.reparacion_adjuntos` | `20270219140100` | `id`, `organizacion_id`, `reparacion_id`, `ruta` (única), `nombre_original`, `mime`, `bytes`, `creado_por`, `creado_en`. FK compuesta `(reparacion_id, organizacion_id)`. RLS por organización + nivel `service_tecnico` + tienda accesible. Sin `insert/update/delete` directos; `anon` sin privilegios. |
 | Bucket `reparacion-adjuntos` | `20270219140200` | Privado, 5 MB, `image/jpeg`, `image/png`, `image/webp`. Políticas `select` (`lectura`/`edicion`), `insert` y `delete` (`edicion`) por prefijo; sin `update`. |
+| Índices de las claves foráneas | `20270507190100` | Higiene de base: `reparacion_adjuntos_organizacion_id_fk_idx` sobre `(organizacion_id)` y `reparacion_adjuntos_reparacion_id_organizacion_id_fk_idx` sobre `(reparacion_id, organizacion_id)`. |
 | Políticas del bucket (endurecidas) | `20270219140600` | `insert`: reparación no anulada y como máximo 20 objetos por carpeta. `delete`: solo objetos sin fila en `reparacion_adjuntos` (huérfanos) y reparación no anulada; un adjunto registrado solo se quita con `quitar_adjunto_reparacion`. |
 | `public.registrar_adjunto_reparacion` | `20270219140300` | `security definer`; `edicion`, tienda accesible, no anulada (`55000`), ruta con el prefijo, objeto existente, mime/bytes (que coincidan con los metadatos `mimetype` y `size` que Storage guardó del objeto subido; `22023`, `hint = archivo`), máximo 20 (`22023`, `hint = maximo`) bajo el `for update` de la reparación. Actividad `reparacion.adjunto_agregado`. |
 | `public.quitar_adjunto_reparacion` | `20270219140400` | Mismas reglas; borra la fila y devuelve la `ruta`. Actividad `reparacion.adjunto_quitado`. |

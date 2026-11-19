@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
 
   kestra:
+    # MSF-736: tini como PID 1 cosecha los procesos zombi (ver infra/runner/compose.yaml).
+    init: true
     image: kestra/kestra:v1.3.35
     user: root
     command: server standalone --worker-thread=32
@@ -29,6 +31,10 @@ services:
             username: kestra
             password: ${KESTRA_DB_PASSWORD:-kestra-local}
         kestra:
+          # Explícito (MSF-468): el HTML del newsletter se muestra con `| raw` y datos de personas pasan por `to`/`from`/`subject`; el
+          # renderizado recursivo volvería a evaluar como plantilla lo que ya salió de otra plantilla. Debe quedar en false.
+          templating:
+            recursive-rendering: false
           repository:
             type: postgres
           storage:
@@ -82,8 +88,15 @@ services:
       ENV_RESPALDOS_RCLONE_HOST: ${RESPALDOS_RCLONE_HOST:-}
       ENV_RESPALDOS_RCLONE_USER: ${RESPALDOS_RCLONE_USER:-}
       ENV_RESPALDOS_RCLONE_PASS: ${RESPALDOS_RCLONE_PASS:-}
-      ENV_RESPALDOS_RETENCION_DIARIAS: ${RESPALDOS_RETENCION_DIARIAS:-30}
+      # Retención por días (MSF-714); RESPALDOS_RETENCION_DIARIAS (nombre anterior, por cantidad) se acepta como respaldo.
+      ENV_RESPALDOS_RETENCION_DIAS: ${RESPALDOS_RETENCION_DIAS:-${RESPALDOS_RETENCION_DIARIAS:-30}}
       ENV_RESPALDOS_RETENCION_MENSUALES: ${RESPALDOS_RETENCION_MENSUALES:-12}
+      ENV_RESPALDOS_IMAGENES_RETENCION_DIAS: ${RESPALDOS_IMAGENES_RETENCION_DIAS:-7}
+      ENV_RESPALDOS_IMAGENES_RETENCION_MENSUALES: ${RESPALDOS_IMAGENES_RETENCION_MENSUALES:-2}
+      ENV_RESPALDOS_IMAGENES_MAX_COPIAS: ${RESPALDOS_IMAGENES_MAX_COPIAS:-7}
+      ENV_RESPALDOS_AUSENCIA_HORAS: ${RESPALDOS_AUSENCIA_HORAS:-30}
+      # Purga de ejecuciones y archivos internos de Kestra (MSF-707, flow purgar-almacenamiento-kestra).
+      ENV_KESTRA_RETENCION_EJECUCIONES_DIAS: ${KESTRA_RETENCION_EJECUCIONES_DIAS:-7}
       ENV_RESPALDOS_VERIFICAR_TABLAS: ${RESPALDOS_VERIFICAR_TABLAS:-public.respaldos,public.organizaciones}
       ENV_RESPALDOS_STORAGE_ENDPOINT: ${RESPALDOS_STORAGE_ENDPOINT:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/storage/v1/s3}
       ENV_RESPALDOS_STORAGE_REGION: ${RESPALDOS_STORAGE_REGION:-local}
@@ -128,6 +141,11 @@ services:
       ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
       ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
+      # Solo desarrollo local: permite que el enlace de baja sea http/localhost. En un ambiente real queda `false` y el flow
+      # `correo-masivo` se niega a enviar con un enlace de baja que apunte a localhost (MSF-711).
+      ENV_CORREO_MASIVO_PERMITIR_LOCAL: ${CORREO_MASIVO_PERMITIR_LOCAL:-false}
+      # Newsletter de la tienda (MSF-468, flow newsletter-confirmaciones): confirmaciones por ciclo.
+      ENV_NEWSLETTER_CONFIRMACION_LOTE: ${NEWSLETTER_CONFIRMACION_LOTE:-20}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual
       # deshabilitada por defecto, retención de capturas en días y base de la
       # carpeta transitoria en cada host de despacho. Las leen las plantillas
@@ -149,6 +167,11 @@ services:
       ENV_AVISOS_REPOSICION_URL: ${AVISOS_REPOSICION_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-reposicion}
       ENV_AVISOS_REPOSICION_APIKEY: ${AVISOS_REPOSICION_APIKEY:-change-me-local}
       SECRET_AVISOS_REPOSICION_TOKEN: ${SECRET_AVISOS_REPOSICION_TOKEN:-}
+      # Resumen semanal por correo (MSF-265, flow resumen-semanal.yml): misma mecánica, contra la Edge Function
+      # `enviar-resumen-semanal`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
+      ENV_RESUMEN_SEMANAL_URL: ${RESUMEN_SEMANAL_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/enviar-resumen-semanal}
+      ENV_RESUMEN_SEMANAL_APIKEY: ${RESUMEN_SEMANAL_APIKEY:-change-me-local}
+      SECRET_RESUMEN_SEMANAL_TOKEN: ${SECRET_RESUMEN_SEMANAL_TOKEN:-}
       # Alertas de Inicio (MSF-361, flow alertas-inicio.yml): misma mecánica, contra la Edge Function
       # `recalcular-alertas-inicio`. El token es un SECRET_* (base64) que solo vive en infra/kestra/.env.
       ENV_ALERTAS_INICIO_URL: ${ALERTAS_INICIO_URL:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/functions/v1/recalcular-alertas-inicio}
@@ -178,6 +201,12 @@ services:
       ENV_API_WEBHOOKS_LOTE: ${API_WEBHOOKS_LOTE:-20}
       # Retención (días) de la auditoría de llamadas de la API (flow purgar-api-llamadas.yml).
       ENV_API_AUDITORIA_RETENCION_DIAS: ${API_AUDITORIA_RETENCION_DIAS:-90}
+      # Envío de WhatsApp al cliente (MSF-952, flow reparaciones-aviso-whatsapp): URL del proveedor de mensajería,
+      # nombre de la plantilla aprobada y token del proveedor. El proveedor concreto lo elige y lo contrata el
+      # cliente (MSF-118, D-1): hasta entonces quedan vacíos y los avisos se cierran como fallidos.
+      ENV_WHATSAPP_API_URL: ${WHATSAPP_API_URL:-}
+      ENV_WHATSAPP_PLANTILLA: ${WHATSAPP_PLANTILLA:-}
+      SECRET_WHATSAPP_TOKEN: ${SECRET_WHATSAPP_TOKEN:-}
     ports:
       # Puerto host configurable (spec 015); el 8080 es el puerto interno fijo
       # de Kestra, no necesita variar.

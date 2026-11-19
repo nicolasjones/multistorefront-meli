@@ -1,7 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/preflight-deploy-vps.mjs
+  - scripts/deploy-vps.mjs
+  - scripts/preparar-known-hosts-vps.mjs
+  - scripts/verificar-staging-exitoso.mjs
+  - infra/kestra/compose.estricto.yaml
+  - infra/superset/compose.estricto.yaml
+  - infra/nango/compose.estricto.yaml
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - .github/workflows/migraciones-cloud.yml
+  - .github/workflows/publicar-flows-kestra.yml
+  - .github/workflows/promover-todo-a-produccion.yml
+  - .github/workflows/worker-images.yml
+  - .github/workflows/validate.yml
 ---
 
 # Entornos y despliegue
@@ -46,6 +58,10 @@ Rige al instante (sin redesplegar). Para apagar de nuevo: el mismo `update` con 
 
 **`tienda_pedidos` (MSF-176, tienda compra y cuentas).** La migración `20270320100000_tienda_capacidad.sql` suma la bandera `tienda_pedidos`, **apagada por defecto en todo entorno**. Gobierna «Mi cuenta», favoritos, lista de pedido y presupuesto desde la tienda; apagada, las RPC de la épica responden un error genérico sin tocar datos y la tienda no dibuja nada de eso. **Solo se enciende en dev** (D-24) y **con el script**, no a mano: `node scripts/tienda-pedidos-dev.mjs encender|apagar|estado --entorno dev`, que se niega (mensaje en castellano y salida distinta de 0) si no recibe `--entorno dev` o si la conexión no es la de dev (`SUPABASE_DB_URL` con host de dev, un host declarado en `TIENDA_PEDIDOS_DEV_DB_HOSTS` o el contenedor `supabase_db_multistorefront-meli-supabase-dev`). Defensas: de la URL solo acepta `sslmode` y `connect_timeout` (rechaza `host`, `hostaddr`, `service`, `port`, `dbname`, `options`, varios hosts, `%` y varias `@`); borra del entorno del proceso `PGHOST`, `PGHOSTADDR`, `PGSERVICE`, `PGSERVICEFILE`, `PGPASSFILE`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGOPTIONS`, `PGSSLMODE`, `PGTARGETSESSIONATTRS`, `PGSYSCONFDIR`, `DOCKER_HOST` y `DOCKER_CONTEXT`; y, por URL **y por contenedor**, comprueba antes de escribir (consulta de solo lectura) que la base es dev: existe una organización «… (demo)» con el id fijo del seed (`0f5eed00-0000-4000-8000-000000000001` o `…0002`) o con uno declarado en `TIENDA_PEDIDOS_DEV_ORG_IDS`. **Staging y producción no se encienden en esta épica**: hacerlo requiere una decisión nueva con demanda medida. Detalle en [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md).
 
+**`listas_precios` (F-PRE-14 y F-CLI-21).** La migración `20270340000000_listas_precios.sql` suma la bandera `listas_precios`, **apagada por defecto en todo entorno**. Apagada, «Guardar lista» y «Asignar» responden `55000`; archivar, restaurar y quitar la lista siguen permitidos. Desde las Fases 3 y 4 (`20270348000000` a `20270348000300`) la bandera también gobierna el **motor de precio**: **apagada, el precio es idéntico al de antes; encendida, un cliente con lista paga el precio de su lista** en el mostrador, los comprobantes y la tienda con cuenta web (precedencia en [Precios](precios.md#como-se-calcula-el-precio-con-una-lista-fases-3-y-4)). Apagarla es la reversión inmediata, sin migrar. **No se enciende hasta que Nicolás lo decida, entorno por entorno.** Nota de activación: los borradores guardados antes de encender la bandera reciben un `40001` («El precio de la lista cambió: revisá el total y confirmá de nuevo») en su primera confirmación **solo si el cliente tiene lista asignada**; volver a guardar las líneas lo resuelve. Lo mismo al apagarla con borradores que ya tenían lista. Encender: `update public.banderas_plataforma set activa = true where clave = 'listas_precios';` (por SQL, el equipo técnico, dev → stg → prd). Ver [Precios](precios.md#listas-de-precios-f-pre-14-y-f-cli-21) y la guía de cierre [Listas de precios](listas-de-precios.md) (procedimiento de encendido paso a paso; la Fase 5 no encendió la bandera en ningún entorno).
+
+**`margen_costos_fijos` (F-GAS-03).** Las migraciones `20270421000000` y `20270421000100` suman la bandera `margen_costos_fijos`, **apagada por defecto en todo entorno**, y las vistas de `analitica` de la medida «margen después de costos fijos». Apagada, la pestaña «Después de costos fijos» no se muestra y las vistas nuevas no devuelven filas; **ninguna cifra existente cambia** con la bandera apagada ni encendida. Antes de encender: aplicar las migraciones, importar el tablero (`pnpm superset:importar-dashboards`) y medir el `EXPLAIN` con datos reales. Encender: `update public.banderas_plataforma set activa = true where clave = 'margen_costos_fijos';` (por SQL, el equipo técnico, dev → stg → prd). Reversión inmediata, sin migrar: `activa = false`. Ver [Gastos](gastos.md#margen-despues-de-costos-fijos-fase-3-f-gas-03).
+
 **Gate de `promociones_precio` (MSF-816):** desde que el mostrador y los comprobantes cobran la promoción, encender la bandera cambia el precio cobrado además del mostrado. Orden **dev → stg → prd**, cada entorno verificado antes del siguiente. Estado al 2026-11-14: dev **encendida** (desde 2026-11-13), stg y prd **apagadas**. **No encender `promociones_precio` en PRD antes de que la épica esté en dev y verificada** (promoción cobrada en mostrador y comprobante, nota de crédito, vencimiento a mitad de venta, bandera apagada idéntica). Al encender o apagar con ventas abiertas, avisar a los cajeros (S6 = MSF-937).
 
 ### Avisos de faltantes (MSF-161)
@@ -65,6 +81,19 @@ Secretos por entorno (nunca en Git; plantillas en `supabase/functions/.env.examp
 | Kestra | `AVISOS_FALTANTES_URL`, `AVISOS_FALTANTES_APIKEY`, `SECRET_AVISOS_FALTANTES_TOKEN` | URL alcanzable desde Kestra, clave anon, token **en base64** (decodificado = `AVISOS_FALTANTES_TOKEN`) |
 
 El flow `infra/kestra/flows/avisos-faltantes.yml` se publica con el workflow de publicación de flows (staging por push, producción por `workflow_dispatch`, ver *Publicación de flows de Kestra*). Si un entorno no tiene el secreto o el flow, los avisos quedan «En cola» sin salir. Verificación posterior: avisar un faltante de prueba y comprobar que pasa a «Avisado» y que llega un solo correo con las tildes y el «·» bien. Si se toca `_shared/correo.ts` o `_shared/smtp.ts`, correr antes `smtp-real.deno.ts` (ver `docs/ventas-faltantes-avisos.md`).
+
+### Relay SMTP del servidor (MSF-532)
+
+El correo de negocio sale por el SMTP de Supabase Auth (`GOTRUE_SMTP_*`) y el de las Edge Functions
+(`SMTP_*`): sin relay configurado en el VPS **no sale correo**. Para que el mensaje llegue a una casilla
+externa hacen falta además los registros DNS **SPF** y **DKIM** del remitente (entregabilidad, no sólo
+salida).
+
+Estado al 2026-11-14: **pendiente** en stg y prd (el repo no registra un relay configurado y no hay
+entrega verificada).
+Dueño: infraestructura/Nicolás. La corrida de verificación y su registro están en
+[Verificación de salida del correo](verificacion-salida-correo.md) y quedan trazados como **MSF-532**
+(Tarea `seguimiento` a crear en el tracker).
 
 ## Producción
 
@@ -310,7 +339,7 @@ borraba en cada PR, también en los PR del producto que copió el workflow (ver
   réplicas del runner. Si no hay ranura libre (hasta 5; `SUPABASE_CI_RANURAS`), el
   job **espera** (`SUPABASE_CI_LOCK_MIN`, 20 min) en vez de que lo cancelen; al
   terminar (siempre), `liberar` la suelta. Un lock huérfano (job que murió sin
-  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (50 min; el job tiene
+  liberar) se recicla a los `SUPABASE_CI_LOCK_TTL_MIN` (75 min; el job tiene
   `timeout-minutes: 40`).
 - El stack del CI **se mantiene entre corridas** (por ranura) para que el arranque
   sea rápido. No guarda datos de nadie: cada corrida lo resetea. Como
@@ -521,7 +550,110 @@ aplica las pendientes de la rama `dokploy` y las registra en
 - **Chequeo en CI**: `pnpm migraciones:check` (corre dentro de `docs:check`) bloquea
   versiones duplicadas, reusadas o editadas, y DDL no idempotente en migraciones nuevas.
 
+- **Higiene de la base viva**: `node scripts/verificar-higiene-base.mjs --docker <contenedor> --versiones` (solo lectura) detecta
+  deriva entre el repo y el DEV (migraciones huérfanas, FK sin índice, RLS sin política, `search_path` de funciones definer);
+  el runbook de reconciliación está en [higiene-base-datos.md](higiene-base-datos.md).
+
 ## Promoción simple
+
+### Verificación previa de promoción: secreto `visitante_hmac` (DEV → STG → PRD)
+
+`private.hmac_visitante` (usado por `visitante_hash` y `visitante_publico`) exige el secreto `visitante_hmac` de Vault. Lo
+crea la migración `20270323100200` (`private.inicializar_visitante_hmac()`); si falta en el entorno destino (Vault sin
+habilitar, migración corrida con un rol que no ve Vault, secreto borrado), **toda la búsqueda y los pedidos públicos de la
+tienda fallan**. Antes de promover a STG o PRD, y después de aplicar las migraciones, verificar con un `SELECT` que no
+expone el valor:
+
+```sql
+select count(*) = 1 as secreto_visitante_hmac_presente
+  from vault.secrets
+ where name = 'visitante_hmac';
+```
+
+Debe devolver `true`. Si devuelve `false`, no promover: ejecutar `select private.inicializar_visitante_hmac();` con el rol
+`postgres` (crea el secreto si falta y es idempotente) y repetir la verificación. Nunca seleccionar `decrypted_secret`
+ni copiar el valor entre entornos: cada entorno tiene el suyo. Sin cabecera `x-forwarded-for`, la búsqueda y los envíos
+comparten el marcador «sin-ip» (migración `20270347000300`).
+
+### Reglas vigentes que no son defectos
+
+- Fusionar clientes (`fusionar_clientes`) descarta la lista de precios del cliente absorbido: es una decisión de diseño
+  documentada en [clientes.md](clientes.md), no una pérdida a corregir.
+
+### Orden de la promoción STG → PRD y gate (MSF-674)
+
+**Decisión:** STG va **un paso adelante** de PRD. Antes de disparar «Promover todo a producción» hay que **sincronizar STG con
+`dokploy`** (el push a `main` que corre los jobs `staging` de migraciones, infraestructura y flows) y esperar a que terminen en verde.
+El gate de cada mecanismo (`scripts/verificar-staging-exitoso.mjs`) autoriza la promoción de un SHA si hay un run de `staging`
+exitoso para ese SHA **o** si el último run exitoso es ancestro y desde entonces no cambió ningún archivo de `on.push.paths` del
+workflow (un commit que no toca ese mecanismo nunca genera run de staging y no debe bloquear). Si hay cambios relevantes sin pasar por
+staging, el gate rechaza y nombra los archivos: volver a sincronizar STG. Detalle en `docs/control-ci.md`, «MSF-674».
+
+### Clave de host del VPS (MSF-706)
+
+El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKeyChecking=yes` contra una clave **fijada**; ya no se usa
+`ssh-keyscan`. Para dejarla lista (una vez por entorno, **acción de Nicolás**):
+
+1. Obtener la clave pública del host por un canal de confianza (consola del proveedor, o `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
+   en el propio VPS y comparar la huella). Con la clave ya verificada: `ssh-keyscan -t ed25519 <host>` desde una máquina de confianza
+   **y comparar la huella** con la del paso anterior.
+2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** versionarla en
+   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas).
+3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
+   deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
+
+### Credenciales obligatorias, imágenes inmutables y clave de host: modo transicional (MSF-705, MSF-706, MSF-712)
+
+Tres controles hacen que el despliegue **falle cerrado** si faltan valores que solo se cargan a mano:
+
+1. **Credenciales (MSF-705).** `infra/<producto>/compose.estricto.yaml` exige las 14 credenciales de Kestra, Superset y Nango (`${VAR:?}`).
+2. **Imágenes de workers inmutables (MSF-712).** Las 5 `*_IMAGEN` (`HISTORIAL_IMPORTADOR_IMAGEN`, `IMPORTAR_PRODUCTOS_IMAGEN`,
+   `EXPORTAR_COMPROBANTES_IMAGEN`, `EXPORTAR_ORGANIZACION_IMAGEN`, `COMPROBANTES_PDF_IMAGEN`) deben ser `imagen@sha256:<64 hex>` o un tag igual al
+   SHA del commit (un tag mutable como `:latest` nunca se actualiza: el despacho hace `docker image inspect || docker pull`). `worker-images.yml`
+   deja las referencias en el resumen del job; cada flow de despacho rechaza una imagen mutable antes del pull (salvo `local/*`, desarrollo).
+3. **Clave de host (MSF-706).** Ver la sección anterior.
+
+**Qué dispara realmente staging y production (verificado en los workflows).** Los tres mecanismos con gate STG→PRD disparan **solo** por push a
+`main` (staging) o a mano (production); ninguno corre en push a `dokploy`:
+
+| Workflow | `on:` | job `staging` | job `production` |
+|---|---|---|---|
+| `deploy-infraestructura-vps.yml` | `push` a `main` con `paths` (`:51-62`), `workflow_dispatch`, `workflow_call` | `:71-72`, `if: github.event_name == 'push'` | `:159-160`, `workflow_dispatch` o `workflow_call` |
+| `migraciones-cloud.yml` | `push` a `main` (`:44`) | `:58-59` | `:83-84` |
+| `publicar-flows-kestra.yml` | `push` a `main` (`:40`) | `:53-54` | `:84-85` |
+| `promover-todo-a-produccion.yml` | solo `workflow_dispatch` (`:50-51`), llama a los tres | no tiene | los tres `production` |
+
+Consecuencia: el despliegue de DEV (Dokploy, rama `dokploy`) no pasa por estos jobs y no se rompe por faltantes de claves. Pero este PR toca
+`infra/*/compose*.yaml` y los scripts de deploy, que están en los `paths` del deploy de infraestructura: **el primer push a `main` que los
+incluya correrá `staging` y fallará (cerrado) hasta que se carguen las claves de host (`VPS_SSH_KNOWN_HOSTS`), las 14 credenciales y las 5
+`*_IMAGEN`** (pendiente de Nicolás; el mensaje del job lista cada una por nombre). No hay que esperar a un `production` para verlo.
+
+**Checklist del primer despliegue (cosas que no se pudieron ejecutar sin un Kestra/VPS reales):**
+
+- [ ] `purgar-almacenamiento-kestra`: ejecutarlo a mano una vez con `dias=7` y comprobar en la UI que el cálculo de fecha (`now() | dateAdd(...)`)
+  y la expresión `matches` funcionan; con `dias=0` o `08` debe fallar en la tarea `validar_plazo` sin purgar nada.
+- [ ] `verificar-restauracion`: ejecutarlo a mano con una copia real y confirmar que `gosu` arranca el Postgres descartable y que ningún error
+  esperado nuevo (propio de la base real) hace falsos rojos; si aparece, agregarlo a `PATRON_ESPERADOS`.
+- [ ] `alerta-ausencia-respaldos`: ejecutarlo a mano con copias recientes (debe pasar) y, en un entorno de prueba, con el destino vacío (debe avisar).
+
+**Modo por entorno.** `staging` y `production` son **siempre estrictos**: el preflight (`scripts/preflight-deploy-vps.mjs`) corta el despliegue
+antes de tocar Docker con la lista de variables que faltan (solo NOMBRES, nunca valores) y se usa `compose.estricto.yaml`. `VPS_ESTRICTO=0` no
+los relaja. `dev` es **transicional**: el preflight imprime una advertencia fuerte (`::warning::MODO TRANSICIONAL (dev)`) con la lista exacta de lo
+que falta y el despliegue **continúa** sin `compose.estricto.yaml` (con los valores por defecto locales y, para SSH, `StrictHostKeyChecking=accept-new`
+si no hay clave fijada). Siguen bloqueando siempre, también en dev, las variables que ya eran obligatorias antes (`CORREO_MASIVO_URL_BAJA`).
+El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
+
+**Pasar dev a modo estricto (acción de Nicolás, paso a paso):**
+
+1. Correr un deploy de dev y leer la advertencia: lista exactamente qué falta.
+2. Cargar en el `.env.dev` (secret `VPS_DEPLOY_ENV` del Environment de dev) las 14 credenciales (valores nuevos y aleatorios, nunca los
+   `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
+3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.dev` (ver «Clave de host del VPS»).
+4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
+5. Definir `VPS_ESTRICTO=1` como variable de entorno del job de deploy de dev **o** como línea `VPS_ESTRICTO=1` en el `.env.dev` (el preflight lee las dos; la del proceso manda; el paso de clave de host solo lee la del proceso) y repetir: ahora dev bloquea igual que staging.
+6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).
+
+### Flujo
 
 ```text
 rama de feature → Preview → staging (si hace falta) → main/producción
@@ -584,11 +716,11 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
 - **e2e y suite web SÓLO al integrar la épica** (`e2e`, output del job `changes`): un PR de **historia** o el
   **cierre** apuntan a la rama de la **épica** (`epic/<KEY>-…`), así que `e2e` es `false` y la **suite `web`**
   (job `web`) más el **Playwright e2e** se **saltean** — se validan al integrar la épica (PR `epic/* → dokploy`,
-  o un push a `dokploy`/`main`/`staging`, donde `e2e` es `true`). El `build` (type-check) **sí** sigue corriendo
+  o un push a `main`/`staging`, donde `e2e` es `true`; el push a `dokploy` **no** dispara `Validate`, ver «Decisión pendiente» en `docs/control-ci.md`). El `build` (type-check) **sí** sigue corriendo
   por historia. Cualquier base que **no** sea `epic/*` corre e2e (conservador). Motivo: la suite `web` es el
   **long pole** del CI (~10 min); correrla por historia consume runners y serializa el resto (era la espera
   dominante, ver `reports/ci-serie.md` del orquestador).
-- **E2E de la tienda pública** (job `e2e-tienda`): corre los 20 `apps/web/e2e/tienda-*.e2e.ts` con **el mismo disparo que
+- **E2E de la tienda pública** (job `e2e-tienda`): corre todos los `apps/web/e2e/tienda-*.e2e.ts` y `service-etiqueta-qr.e2e.ts` (F-SVC-32) con **el mismo disparo que
   el e2e** (`web == 'true'` y `e2e == 'true'`: un PR a `epic/*` no lo corre; sí un PR a `dokploy` o un push), en paralelo con
   `application` y `web`. Arranca **no bloqueante** (`continue-on-error: ${{ vars.E2E_TIENDA_BLOQUEA != 'true' }}`: el fallo
   llega como `success` a `validacion`/`liberar`) y se pasa a requerido poniendo `E2E_TIENDA_BLOQUEA=true` tras ~10 corridas verdes;
@@ -610,3 +742,16 @@ patrón, no bind-mount. Detalle completo y alternativas descartadas en
   `playwright install --with-deps` es de lo más lento y el binario no cambia entre runs.
 - **Store de pnpm**: **no** se configura `cache: pnpm` — los runners self-hosted comparten un store persistente en
   volumen Docker. Ver `docs/ci-self-hosted-storage.md`.
+
+## Newsletter de la tienda: bandera, flows de Kestra y encendido (MSF-468)
+
+La bandera `newsletter` (`public.banderas_plataforma`) nace **apagada**; se enciende por SQL dev → stg → prd, nunca por migración, y cada
+tienda lo activa con su propio interruptor (`dominio.newsletter_configuracion.activo`, apagado por defecto). El flow `newsletter-confirmaciones`
+solo envía el correo de confirmación de las suscripciones (no envía newsletters) y usa `NEWSLETTER_CONFIRMACION_LOTE` (20) en `infra/kestra/.env`.
+Detalle y reversión en `docs/newsletter.md`.
+
+**Pasos manuales (Fases 3 a 5, antes de encender la bandera en un entorno)**: (1) publicar los dos flows en ese Kestra con `infra/kestra/desplegar-flow.mjs`
+(`newsletter-confirmaciones` y el `correo-masivo` actualizado: sin el segundo, un newsletter saldría con la plantilla de clientes); (2) comprobar que el
+SMTP de Kestra (`KESTRA_SMTP_*`) está configurado; (3) encender: `update public.banderas_plataforma set activa = true where clave = 'newsletter';` y activar
+el interruptor de una tienda de prueba desde `Contactos → Newsletter`; (4) probar una suscripción, la confirmación, una prueba y un envío a un suscriptor
+propio; (5) verificar en ese Kestra que `kestra.templating.recursive-rendering` esté en `false` (queda fijado en `infra/kestra/compose.yaml`; no se pudo comprobar contra un Kestra real: pendiente explícito de T034). El reclamo del lote no entrega nada del newsletter con la bandera apagada, y el correo masivo a clientes no cambia.

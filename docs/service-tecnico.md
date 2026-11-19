@@ -5,6 +5,7 @@ sources:
   - specs/20261022-100000-service-listado-items-e-impresion
   - specs/20261028-100000-service-cobro-y-avisos
   - specs/20261028-100000-service-seguimiento-y-reportes
+  - specs/20270323-100000-service-ideas-futuras-v2
   - design/pantallas/ServicioModelos.dc.html
   - supabase/migrations/20261020100700_service_funcionalidad.sql
   - supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql
@@ -309,3 +310,19 @@ Antes de integrar la épica a `dokploy` se hicieron dos revisiones independiente
 **Aceptado a propósito** (decisiones de la spec o de producto, se cambian si el cliente lo pide): el token del enlace se guarda en claro, no vence ni se revoca (*Decisiones abiertas* 4); el tablero compara todas las tiendas de la organización (decisión 6); un reingreso por garantía deja dos eventos de actividad (`reparacion.creada` y `reparacion.reingreso_garantia`).
 
 **No se pudo verificar** (lo valida el CI o hay que hacerlo en STG): los pgTAP y los E2E con sesión; la concurrencia real de la numeración y del tope de 20 (el pgTAP es secuencial y solo comprueba el `for update`); el comportamiento de Traefik/Kong/Storage/Superset en STG/PROD; la revisión visual a 320/768/1440 px (FR-010, manual con `pnpm --filter @platform/web pantallas:capturar`).
+
+## Ideas futuras (épica MSF-118)
+
+Spec: `specs/20270323-100000-service-ideas-futuras-v2/`. Se implementa historia por historia (F-SVC-32, F-SVC-30, F-SVC-31). Guías: [Etiqueta con código QR](service-etiqueta-qr.md) (F-SVC-32, MSF-190: etiqueta imprimible con QR a la reparación, generador de QR propio y su verificación; sin migraciones ni dependencias).
+
+## Funcionalidad no habilitada
+
+La guarda `RequiereServiceTecnico` exige permiso en la sección y la funcionalidad `service-tecnico` habilitada para la organización. Cuando falta la funcionalidad se muestra «Servicio técnico no está habilitado para tu organización», sin hablar del rol ni mandar a pedir acceso a un administrador.
+
+El texto distingue a quien ya es administrador (pedir la activación al soporte de la plataforma), a un superadmin (activarla en Plataforma · Funcionalidades) y al resto (pedirle a un administrador de su organización).
+
+## `obtener_reparacion` fuera del alcance (lote 32 · MSF-638)
+
+Una reparación inexistente, de otra organización o de una tienda a la que la persona no accede responde `PT404` (HTTP 404) con el
+mismo mensaje «La reparación no existe»: no hay oráculo de existencia entre organizaciones. Sin la sección `service_tecnico` la
+respuesta es `42501` (403) para cualquier id. Migración `20270507180500`; prueba `lote32_obtener_reparacion_404.test.sql`.

@@ -1,7 +1,9 @@
 ---
 owner: producto
 sources:
-  - specs
+  - apps/web/src/pages/categorias
+  - apps/web/src/pages/productos/list.tsx
+  - specs/20261020-120000-catalogo-listado-y-categorias
 ---
 
 # Catálogo: listado y categorías (MSF-160)
@@ -56,7 +58,7 @@ con **lectura** solo se consulta. Categorías usa su propia sección (`categoria
 | Tema | Dónde queda |
 |---|---|
 | Exportar productos e importar CSV | Ya se puede (solo el Administrador): ver [filtrar por compatible, importar y exportar planillas](catalogo-compatibilidad-y-planillas.md) |
-| Destacado, newsletter | Sin historia en esta épica |
+| Destacado, newsletter | Sin historia en esta épica; el newsletter de la tienda es otra función: ver [Newsletter de la tienda](newsletter.md) |
 | Selección múltiple: «Mover de categoría», «Borrar» | Ya se puede mover, cambiar estado y empresas: ver [cambios masivos y duplicar](catalogo-productividad.md). «Borrar» no existe: el producto se desactiva |
 | IVA de la categoría | F-PRE-12 (MSF-114) |
 | Categorías de más de dos niveles | Decisión de la spec: dos niveles (el prototipo muestra «hasta 3») |

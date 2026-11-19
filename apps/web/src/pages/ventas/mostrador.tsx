@@ -7,19 +7,22 @@ import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import { formatearImporteHistorial } from '../../lib/formatoHistorial'
 import { mensajeDeErrorComprobante, type Comprobante } from '../../lib/ventas'
-import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_PRECIOS_CAMBIARON_COBRO, rotuloEscalaLinea } from '../../lib/ventasLineas'
+import { MENSAJE_ERROR_ACTUALIZAR_PRECIOS, MENSAJE_PRECIOS_CAMBIARON, MENSAJE_LISTA_CAMBIO_COBRO, MENSAJE_PRECIOS_CAMBIARON_COBRO, marcaListaLinea, rotuloEscalaLinea } from '../../lib/ventasLineas'
 import { etiquetaCuentaCobro } from '../../lib/ventas/cuentasCobro'
 import { puedeRegistrarCobro, registrarCobro } from '../../lib/ventas/cobros'
 import { confirmarComprobante } from '../../lib/ventasConfirmacion'
 import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import {
   MENSAJE_PRODUCTO_NO_ENCONTRADO, MENSAJE_SIN_CONSUMIDOR_FINAL, agregarProductoAVenta, buscarProductoPorCodigoBarras,
-  esEan13, esPreciosCambiaron, huboCambioDePrecios, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo,
+  esCambioDeLista, esEan13, esPreciosCambiaron, huboCambioDePrecios, mensajeDeCobroVenta, mensajeDeConfirmarVenta, mensajeDeEscaneo,
   mensajeDescarteVenta, obtenerConsumidorFinal, repreciarVenta,
   MENSAJE_CODIGO_INVALIDO,
 } from '../../lib/ventasMostrador'
 import { LectorCodigoBarras } from '../../components/ventas/LectorCodigoBarras'
 import { AvisoPreciosCambiaron } from '../../components/ventas/AvisoPreciosCambiaron'
+import { AvisoBanderaPromociones } from '../../components/ventas/AvisoBanderaPromociones'
+import { useBanderaPromociones } from '../../hooks/useBanderaPromociones'
+import { avisoCambioBandera } from '../../lib/avisoBanderaPromociones'
 import { PrecioLineaPromocion } from '../../components/ventas/PrecioLineaPromocion'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -30,6 +33,9 @@ export const TITULO_MOSTRADOR = 'Venta de mostrador'
 
 export const MENSAJE_SIN_TIENDA_ACTIVA = 'Elegí una tienda en la barra superior para escanear.'
 export const MENSAJE_ERROR_FORMAS_PAGO = 'No pudimos cargar las formas de pago de esta tienda. Probá de nuevo.'
+// Lectura base de la bandera al abrir la venta: si falla se reintenta (espera creciente) hasta este tope.
+const INTENTOS_BASE_BANDERA = 4
+const ESPERA_REINTENTO_BASE_BANDERA_MS = 5_000
 
 // Venta de mostrador con lector de código de barras (F-VTA-31, MSF-329; FR-002…FR-005). La venta en curso es una
 // factura `borrador` (canal Mostrador, Consumidor final, empresa activa) que se crea al primer escaneo. La base
@@ -75,6 +81,36 @@ export function VentaMostrador() {
   const descarte = avisoDescarte ?? (ventaDeOtraTienda ? mensajeDescarteVenta(ventaDeOtraTienda.empresa) : null)
   const exigeCuenta = formas.find((forma) => forma.id === formaId)?.exige_cuenta_cobro === true
   const cuentas = useListarCuentasCobro({ empresaId: empresaActivaId, estado: 'activas', pagina: 1, tamano: 200 })
+
+  // MSF-937: valor de la bandera de promociones visto al abrir la venta; si cambia con la venta abierta se avisa.
+  const { valor: banderaPromociones, releer: releerBandera } = useBanderaPromociones(ventaVigente !== null)
+  // Base asociada a la venta que la leyó: con otra venta (o sin venta) deja de valer, sin efecto que la reinicie.
+  const [base, setBase] = useState<{ ventaId: string; valor: boolean | null } | null>(null)
+  const ventaVigenteId = ventaVigente?.id ?? null
+  const banderaAlAbrir = base !== null && base.ventaId === ventaVigenteId ? base.valor : null
+  // La base sale de una lectura hecha al abrir la venta (no del valor del montaje: el mostrador queda abierto todo el día).
+  // Si esa lectura falla se reintenta con espera creciente hasta un tope; agotado, no hay base y no se avisa.
+  useEffect(() => {
+    if (ventaVigenteId === null) return
+    let vigente = true
+    let temporizador: number | undefined
+    const leerBase = (intento: number) => {
+      void releerBandera().then((leida) => {
+        if (!vigente) return
+        if (leida === null && intento < INTENTOS_BASE_BANDERA) {
+          temporizador = window.setTimeout(() => leerBase(intento + 1), ESPERA_REINTENTO_BASE_BANDERA_MS * intento)
+          return
+        }
+        setBase((previa) => (previa?.ventaId === ventaVigenteId && previa.valor !== null ? previa : { ventaId: ventaVigenteId, valor: leida }))
+      })
+    }
+    leerBase(1)
+    return () => {
+      vigente = false
+      window.clearTimeout(temporizador)
+    }
+  }, [ventaVigenteId, releerBandera])
+  const avisoBandera = ventaVigente ? avisoCambioBandera(banderaAlAbrir, banderaPromociones) : null
 
   useEffect(() => {
     if (!empresaActivaId) return
@@ -191,7 +227,7 @@ export function VentaMostrador() {
         // La base rechazó sin efectos: se re-guardan las mismas líneas, se muestra el total nuevo y NO se reintenta el cobro.
         try {
           setVenta(await repreciarVenta(ventaVigente))
-          setAvisoPrecios(MENSAJE_PRECIOS_CAMBIARON_COBRO)
+          setAvisoPrecios(esCambioDeLista(error) ? MENSAJE_LISTA_CAMBIO_COBRO : MENSAJE_PRECIOS_CAMBIARON_COBRO)
         } catch (falla) {
           setErrorVenta(mensajeDeErrorComprobante(falla, MENSAJE_ERROR_ACTUALIZAR_PRECIOS))
         }
@@ -246,6 +282,7 @@ export function VentaMostrador() {
           </Alert>
         )}
         <AvisoPreciosCambiaron mensaje={ventaVigente ? avisoPrecios : null} />
+        <AvisoBanderaPromociones mensaje={avisoBandera} onCerrar={() => ventaVigenteId !== null && setBase({ ventaId: ventaVigenteId, valor: banderaPromociones })} />
         {cobrada && (
           <Alert severity="success" role="status" onClose={() => setCobrada(null)}>
             Venta cobrada · {cobrada.numero} · {formatearImporteHistorial(cobrada.total)}
@@ -273,7 +310,7 @@ export function VentaMostrador() {
                       <TableCell>
                         <Typography component="span" sx={{ fontWeight: 600 }}>{linea.descripcion}</Typography>
                         <Typography component="span" variant="caption" color="text.secondary" display="block">
-                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}
+                          {linea.codigo ?? '—'} · {rotuloEscalaLinea(linea)}{marcaListaLinea(linea) ? ` · ${marcaListaLinea(linea)}` : ''}
                         </Typography>
                       </TableCell>
                       <TableCell align="right">{linea.cantidad}</TableCell>

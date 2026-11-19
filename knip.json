@@ -6,14 +6,16 @@
     "ffmpeg",
     "hostname",
     "pkill",
-    "tailscale"
+    "tailscale",
+    "gitleaks",
+    "psql"
   ],
   "ignore": [
-    "apps/web/src/test/renderPanel.tsx",
     "commitlint.config.cjs",
     "infra/ia/aprovisionar-proveedores.mjs",
     "infra/runner/entrypoint.mjs",
     "scripts/fixtures/**",
+    "scripts/demo-dataset/**",
     "supabase/functions/**",
     ".agents/**",
     ".claude/**",

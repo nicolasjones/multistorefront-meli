@@ -1039,6 +1039,43 @@ stateDiagram-v2
   end note
 ```
 
+## Newsletter de la tienda (MSF-468)
+
+Dos flujos distintos sobre el **mismo motor de envío** (el del correo masivo a clientes): el de
+**confirmaciones** (una suscripción por tienda) y el de **envíos** (una campaña del newsletter). El
+cupo diario por organización, el reclamo con vencimiento y la baja por hash son los del correo masivo: el
+newsletter no tiene un segundo motor ni un segundo proveedor.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant V as Visitante
+  participant DB as Supabase
+  participant K as Kestra (newsletter-confirmaciones)
+  participant S as SMTP
+  participant A as Administrador
+  V->>DB: suscribirse_newsletter (correo, consentimiento, clave, trampa)
+  DB-->>V: ok (idéntico exista o no la dirección)
+  DB->>DB: límite 5/h por visitante + 3 por dirección + 200 por tienda y hora
+  K->>DB: reclamar_confirmaciones_newsletter(lote, 900)
+  DB-->>K: token nuevo (solo su SHA-256), vence en 48 h
+  K->>S: correo de confirmación con el enlace
+  V->>DB: confirmar_newsletter(host, token)
+  DB-->>V: confirmado
+  A->>DB: enviar_newsletter(id, version, clave)
+  DB->>DB: foto del contenido + confirmados de la tienda
+  DB->>DB: campaña tipo newsletter (cupo diario compartido)
+  K->>DB: reclamar_lote_correo_masivo
+  DB-->>K: cuerpo_html, remitente, tienda, token de baja
+  K->>S: correo con el pie y el enlace de baja
+  V->>DB: dar de baja (un clic) → baja, conserva el correo
+```
+
+Los envíos salen **al menos una vez**: si Kestra se corta entre enviar y cerrar, el reclamo vence y el
+correo puede salir de nuevo. La función está **apagada por defecto** (bandera `newsletter` + interruptor
+por tienda): apagada, no sale ningún correo. Detalle de tablas, RPC, flags y pruebas:
+[Newsletter de la tienda](newsletter.md). Dueños: RF-NL-1…RF-NL-27 (MSF-468).
+
 ## Convención
 
 - **Mermaid** para lo que se lee en GitHub y en esta wiki.

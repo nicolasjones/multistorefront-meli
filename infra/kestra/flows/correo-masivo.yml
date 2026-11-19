@@ -14,6 +14,16 @@
 # reclamo vence y el correo puede salir de nuevo; el enlace del primer correo sigue valiendo para la baja.
 #
 # El mensaje es texto: se escapa y se muestra con sus saltos de línea (`white-space: pre-wrap`), sin HTML libre.
+#
+# Newsletter de la tienda (MSF-468, RF-NL-20/21, D15): el reclamo devuelve también `tipo`, `remitente` (nombre de la tienda ya saneado,
+# entre comillas) y `cuerpo_html`. Si `tipo = 'newsletter'` el cuerpo viene ARMADO y escapado por la base (`private.cuerpo_html_newsletter`, la
+# misma función de la vista previa: un solo renderizado) con el enlace de baja de ese destinatario en el dominio de la tienda, y el remitente
+# visible es el de la tienda sobre la dirección técnica compartida; el HTML solo se muestra con `| raw` porque ya está escapado. Un correo de
+# clientes sale exactamente igual que antes. El cuerpo del newsletter sale con las llaves como entidades (`&#123;`), el remitente y el correo no admiten llaves y
+# `compose.yaml` fija `kestra.templating.recursive-rendering: false` (verificar en cada entorno); `subject` y el mensaje de clientes siguen crudos. Con la bandera `newsletter` apagada el reclamo no entrega nada del newsletter.
+# Pendiente (T011a, MSF-962): el encabezado `List-Unsubscribe` no se agrega. VERIFICADO: `MailSend` no tiene ninguna propiedad de encabezados (documentación y fuente del plugin de correo,
+# 1.6.9). Para agregarlo hay que enviar por un relay SMTP que lo ponga o por una tarea de script con `smtplib`, y el un clic (RFC 8058) exige que `baja-correo-masivo` acepte el POST de
+# formulario con el token en la URL: propuesta y pendiente real (SMTP vivo) en docs/newsletter.md, «Seguimientos de seguridad y entregabilidad».
 # Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo EXECUTE sobre las dos funciones de este
 # flow. Variables: CORREO_MASIVO_LOTE (50), CORREO_MASIVO_LIMITE_DIARIO (500) y CORREO_MASIVO_URL_BAJA (origen
 # público del panel, donde vive `/baja-correo/:token`); ver infra/kestra/.env.example.
@@ -24,7 +34,25 @@ labels:
   dominio: clientes
   componente: correo-masivo
 description: "Envía por lotes, con cupo diario y enlace de baja, el correo masivo a clientes."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+# Con `concurrency` en 1 el reclamo (900 s) solo cumple de plazo de recuperación ante una caída: nadie más reclama mientras la corrida
+# sigue procesando su lote (lote 50 / 2 en paralelo: el peor caso supera el reclamo, pero una corrida no se solapa con otra).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
+  # El enlace de baja (opt-out) no puede salir roto: sin una URL pública https, o apuntando a localhost (el valor por
+  # defecto del Compose de desarrollo), el flow falla ANTES de reclamar el lote, así que no se manda ningún correo.
+  # Solo `CORREO_MASIVO_PERMITIR_LOCAL=true` (desarrollo local, `.env.example`) permite http o localhost. En el VPS el
+  # Compose (`compose.vps.yaml`) además exige que `CORREO_MASIVO_URL_BAJA` esté definida (MSF-711).
+  - id: validar_url_baja
+    type: io.kestra.plugin.core.execution.Assert
+    errorMessage: "CORREO_MASIVO_URL_BAJA debe ser el origen público https del panel (no localhost) y no puede quedar vacía."
+    conditions:
+      - "{{ ((envs.correo_masivo_url_baja ?? '') | length) > 0 }}"
+      - "{{ ((envs.correo_masivo_url_baja ?? '') | startsWith('https://')) or (envs.correo_masivo_permitir_local ?? 'false') == 'true' }}"
+      - "{{ (((envs.correo_masivo_url_baja ?? '') | replace({'localhost': '', '127.0.0.1': '', '0.0.0.0': ''}) | length) == ((envs.correo_masivo_url_baja ?? '') | length)) or (envs.correo_masivo_permitir_local ?? 'false') == 'true' }}"
   - id: reclamar
     type: io.kestra.plugin.jdbc.postgresql.Query
     url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -35,6 +63,7 @@ tasks:
     parameters:
       lote: "{{ envs.correo_masivo_lote ?? 50 }}"
       limite: "{{ envs.correo_masivo_limite_diario ?? 500 }}"
+    timeout: PT1M
   - id: enviar
     type: io.kestra.plugin.core.flow.ForEach
     values: "{{ outputs.reclamar.rows }}"
@@ -54,20 +83,21 @@ tasks:
                 username: "{{ envs.kestra_smtp_username }}"
                 password: "{{ envs.kestra_smtp_password }}"
                 transportStrategy: "{{ envs.kestra_smtp_transporte }}"
-                from: "{{ envs.kestra_smtp_from }}"
+                from: "{{ (fromJson(parent.taskrun.value).tipo == 'newsletter' and fromJson(parent.taskrun.value).remitente != null) ? fromJson(parent.taskrun.value).remitente ~ ' <' ~ envs.kestra_smtp_from ~ '>' : envs.kestra_smtp_from }}"
                 to: "{{ fromJson(parent.taskrun.value).correo }}"
                 subject: "{{ fromJson(parent.taskrun.value).campana_id == null ? '[Prueba] ' : '' }}{{ fromJson(parent.taskrun.value).asunto }}"
                 # El mensaje y el asunto vienen de datos de negocio: se escapan para el cuerpo HTML. El pie con el
                 # enlace de baja es fijo y propio de cada destinatario (en una prueba, un enlace de ejemplo).
                 htmlTextContent: |
-                  <div style="white-space: pre-wrap;">{{ fromJson(parent.taskrun.value).mensaje | escape }}</div>
+                  {% if fromJson(parent.taskrun.value).tipo == 'newsletter' %}{{ fromJson(parent.taskrun.value).cuerpo_html | raw }}{% else %}<div style="white-space: pre-wrap;">{{ fromJson(parent.taskrun.value).mensaje | escape }}</div>
                   <hr>
-                  <p style="font-size: 12px; color: #666666;">Recibís este correo porque aceptaste recibir novedades. Si no querés recibirlo más, <a href="{{ envs.correo_masivo_url_baja }}/baja-correo/{{ fromJson(parent.taskrun.value).token ?? 'ejemplo' }}">date de baja acá</a>.</p>
+                  <p style="font-size: 12px; color: #666666;">Recibís este correo porque aceptaste recibir novedades. Si no querés recibirlo más, <a href="{{ envs.correo_masivo_url_baja }}/baja-correo/{{ fromJson(parent.taskrun.value).token ?? 'ejemplo' }}">date de baja acá</a>.</p>{% endif %}
                 retry:
                   type: exponential
                   interval: PT30S
                   maxInterval: PT5M
                   maxAttempts: 4
+                timeout: PT2M
             errors:
               # El correo falló tras sus reintentos: el destinatario queda fallido con un motivo fijo (no el mensaje del
               # SMTP). Si el fallo fue al cerrar, el cierre es idempotente y no pisa a un enviado.
@@ -79,6 +109,7 @@ tasks:
                 sql: select private.cerrar_envio_correo_masivo(CAST(:destinatario AS uuid), 'fallido', 'No se pudo enviar el correo');
                 parameters:
                   destinatario: "{{ fromJson(parent.taskrun.value).destinatario_id }}"
+                timeout: PT1M
           - id: cerrar_enviado
             type: io.kestra.plugin.jdbc.postgresql.Query
             url: "{{ envs.kestra_orquestacion_db_url }}"
@@ -91,6 +122,20 @@ tasks:
               type: constant
               interval: PT5S
               maxAttempts: 3
+            timeout: PT1M
+# MSF-709: un fallo del flow avisa al soporte (antes quedaba solo en la UI de Kestra).
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.alertas
+    flowId: aviso-fallo-flujo
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: correo-masivo
+      ejecucion: "{{ execution.id }}"
+      # Solo la tarea que falló: el mensaje del error puede traer hosts, tokens o datos de personas (el detalle está en la ejecución).
+      motivo: "Falló la tarea {{ tasksWithState('FAILED')[0]['taskId'] }} (detalle en la ejecución de Kestra)"
 triggers:
   - id: schedule_correo_masivo
     type: io.kestra.plugin.core.trigger.Schedule

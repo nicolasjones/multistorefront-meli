@@ -1,9 +1,24 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - apps/web/src
-  - specs
+  - specs/20261018-190000-proveedores-y-productos
+  - apps/web/src/components/proveedores/ProductosDelProveedor.tsx
+  - apps/web/src/components/proveedores/ProveedorFormDialog.tsx
+  - apps/web/src/hooks/useListarProveedores.ts
+  - apps/web/src/hooks/useProductosDeProveedor.ts
+  - apps/web/src/hooks/useProveedoresBasico.ts
+  - apps/web/src/lib/cuit.ts
+  - apps/web/src/lib/proveedores.ts
+  - apps/web/src/pages/proveedores/list.tsx
+  - apps/web/src/pages/proveedores/show.tsx
+  - supabase/migrations/20261018190001_proveedores_tabla.sql
+  - supabase/migrations/20261018190100_proveedores_rpc.sql
+  - supabase/migrations/20261018190200_proveedores_actividad.sql
+  - supabase/migrations/20261018190300_proveedores_listar.sql
+  - supabase/migrations/20261018190400_productos_proveedor.sql
+  - supabase/migrations/20261018190500_proveedores_basico.sql
+  - supabase/migrations/20261018190600_productos_proveedor_rpc.sql
+  - supabase/migrations/20261018190700_productos_de_proveedor.sql
 ---
 
 # Proveedores: modelo, RPC y pantallas (MSF-205)

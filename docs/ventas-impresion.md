@@ -2,13 +2,16 @@
 owner: tecnico
 sources:
   - specs/20261024-100000-ventas-impresion
-  - infra/kestra
   - workers/comprobantes-pdf
   - supabase/migrations/20261211130100_comprobante_impresiones.sql
   - supabase/migrations/20261211130200_registrar_impresion.sql
   - supabase/migrations/20261212100100_solicitar_documento_presupuesto.sql
   - supabase/migrations/20261212100200_comprobante_envios_correo.sql
   - supabase/migrations/20261212100300_enviar_presupuesto_correo.sql
+  - infra/kestra/flows/comprobantes-documentos.yml
+  - infra/kestra/flows/comprobantes-correo.yml
+  - supabase/migrations/20261211120050_clientes_condicion_iva.sql
+  - supabase/migrations/20261211120300_documento_rpc.sql
 ---
 
 # Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)
@@ -70,7 +73,7 @@ subir; `cerrar_documento_comprobante(documento, ruta, error)` cierra
    lo hacen varias personas a la vez, a diferencia de la importación del
    historial).
 2. El flow `comprobantes-documentos` corre **cada minuto**, reclama hasta 5
-   órdenes con `private.reclamar_despachos_capacidad('generar-documento-venta-', 5, 600)`
+   órdenes con `private.reclamar_despachos_capacidad('generar-documento-venta-', 5, 3600)`
    y lanza el worker por SSH en el servidor de la organización con
    `DOCUMENTO_ID` y `EJECUCION_ID` (sin secretos en la línea de comandos).
 3. El worker comprueba que la ejecución siga en curso, lee los datos, arma el PDF
@@ -123,7 +126,9 @@ documento se genera igual.
    permitir la salida hacia Supabase; el flow rechaza cualquier otra.
 4. Publicar la imagen del worker con el workflow de imágenes y fijar
    `COMPROBANTES_PDF_IMAGEN` (en local, `local/worker-comprobantes-pdf:latest`)
-   en `infra/kestra/.env`.
+   en `infra/kestra/.env`. Fuera de local tiene que ser una referencia inmutable
+   (digest `@sha256:…` o tag de commit de 40 hex): el flow aborta con un tag
+   mutable como `:latest`.
 5. Desplegar el flow `producto.ventas/comprobantes-documentos`.
 6. Cargar razón social y CUIT en la ficha de cada empresa.
 
@@ -219,7 +224,12 @@ correo lo manda el flow `comprobantes-correo` de Kestra.
   SMTP). `private.cerrar_envio_correo` es idempotente y deja los eventos
   `presupuesto.enviado_por_correo` / `presupuesto.envio_fallido` con quien lo pidió.
   La entrega es «al menos una vez»: si Kestra se corta entre enviar y cerrar, el
-  reclamo vence y el correo puede salir dos veces.
+  reclamo vence y el correo puede salir dos veces. El reclamo dura 3000 s, por
+  encima del peor caso calculado en el propio flow (2940 s para 5 envíos con 2 en
+  paralelo), y cada consulta lleva `timeout`.
+- **Los dos flows** (`comprobantes-documentos` y `comprobantes-correo`) corren de a
+  una ejecución (`concurrency: limit 1, behavior CANCEL`: si la anterior sigue, la
+  nueva se descarta) y, si fallan, avisan al soporte con el subflow `aviso-fallo-flujo`.
 - **SMTP y remitente**: se usa el SMTP de Kestra existente (`KESTRA_SMTP_HOST`,
   `_PORT`, `_TRANSPORTE`, `_USERNAME`, `_PASSWORD`); el remitente es el global
   `KESTRA_SMTP_FROM` (no hay remitente por empresa en esta historia). Asunto y
@@ -321,7 +331,7 @@ a los 10 minutos y la pantalla muestra el error con «Reintentar».
   (`private.puede_leer_documento_empresa(uuid)` para la tabla y
   `private.puede_leer_documento_ruta(text)` para la carpeta del bucket, sobre `nivel_ventas_en_empresa`),
   igual que las RPC: tener `ventas` en una tienda no abre los PDF de otra.
-- La «condición frente al IVA» del cliente vive en `public.clientes.condicion_iva` (migración aditiva
+- La «condición frente al IVA» del cliente vive en `dominio.clientes.condicion_iva` (migración aditiva
   `20261211120050`; reversión: `drop constraint clientes_condicion_iva_largo_ck` y `drop column condicion_iva`).
   `private.datos_documento_comprobante` la emite en `datos.cliente.condicion_iva` y la factura imprime
   `Condición frente al IVA: …` solo si está cargada (regla «lo no cargado se omite»).

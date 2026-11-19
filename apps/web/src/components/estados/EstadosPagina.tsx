@@ -33,3 +33,12 @@ function EstadoInformativo({ severidad, titulo, descripcion, accion }: EstadoInf
     </Alert>
   )
 }
+
+// Aviso cuando falta la fila del tablero en `public.reportes` de este entorno (no se corrió la importación de
+// tableros de Superset): dice la causa y qué hacer, en vez de un «no disponible» sin salida.
+export const textoTableroNoDisponible = (nombre: string) =>
+  `El tablero de ${nombre} todavía no está disponible: falta importarlo en este entorno. Pedile al administrador de la plataforma que importe los tableros y volvé a intentar.`
+
+export function EstadoTableroNoDisponible({ nombre }: { nombre: string }) {
+  return <EstadoError descripcion={textoTableroNoDisponible(nombre)} />
+}

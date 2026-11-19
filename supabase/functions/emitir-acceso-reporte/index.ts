@@ -26,9 +26,12 @@ Deno.serve((req) => {
       return !error && !!data?.user
     },
     resolverOrganizacion: async (jwt, reporteId) => {
-      const { data } = await comoUsuario(jwt).rpc('resolver_organizacion_reporte', {
+      const { data, error } = await comoUsuario(jwt).rpc('resolver_organizacion_reporte', {
         p_reporte_id: reporteId,
       })
+      // Un error de la RPC es un fallo del servicio, no «sin acceso»: se propaga y el handler responde 503
+      // `analitica_no_disponible` (antes se ignoraba y todo daba 403, igual que ya se corrigió para `reporte`).
+      if (error) throw new Error(`No se pudo resolver la organización del reporte: ${error.message}`)
       return (data as string | null) ?? null
     },
     empresasAccesibles: async (jwt) => {
@@ -45,7 +48,7 @@ Deno.serve((req) => {
     reporte: async (jwt, reporteId) => {
       const { data, error } = await comoUsuario(jwt)
         .from('reportes')
-        .select('superset_dashboard_uuid, filtro_empresa')
+        .select('superset_dashboard_uuid, filtro_empresa, datasets_permitidos')
         .eq('id', reporteId)
         .maybeSingle()
       if (error) {
@@ -60,6 +63,8 @@ Deno.serve((req) => {
         dashboardUuid: data.superset_dashboard_uuid as string,
         // `filtro_empresa` (F-VTA-22): el tablero declara si su cláusula `rls` acota por empresa.
         filtroEmpresa: data.filtro_empresa === true,
+        // Allowlist de datasets del tablero (rol Guest compartido); ver `reglasDatasetsAjenos`.
+        datasetsPermitidos: Array.isArray(data.datasets_permitidos) ? (data.datasets_permitidos as string[]) : [],
       }
     },
     config: {

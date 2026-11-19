@@ -13,9 +13,11 @@
 --   (h) idempotencia (misma clave = mismo número, un solo comprobante, un solo cupo gastado); (i) un error provocado a mitad deja el contador de numeración sin cambio;
 --   (j) `anon` sin `execute`; (k) `anon` y `authenticated` sin escritura sobre las tablas; (l) ninguna respuesta con texto de Postgres; (m) bandera apagada = `sin_acceso`
 --   sin tocar datos; (n) el evento de actividad (actor nulo, número y cliente, sin correo ni teléfono).
+-- Cobertura de la LISTA DE PRECIOS del cliente en el presupuesto de la tienda (F-CLI-21, Fase 4): vive en `precio_lista_tienda_paridad.test.sql`
+-- (cotizar y crear con un cliente con lista, snapshot en las líneas, paridad con el panel y bandera apagada). Acá el motor sigue sin lista.
 begin;
 
-select plan(182);
+select plan(227);
 
 -- ============================================================================
 -- Fixture
@@ -119,7 +121,7 @@ select p.id, p.organizacion_id, 7 from dominio.productos p on conflict (producto
 
 -- Clientes: 1 mayorista con descuento 12,5 % · 2 minorista · 3 suspendida · 4 no habilitada en A (solo en B) · 6 con cuenta en B · 7 de la organización 2 con cuenta en X ·
 -- 9 y 10: cuentas para los topes y la concurrencia (mayoristas).
-insert into clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
   ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 910, 'Mayorista Cuenta', 'my@example.com', 'mayorista', 12.5),
   ('c1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 911, 'Minorista Cuenta', 'mn@example.com', 'minorista', 0),
   ('c1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 912, 'Suspendida', 'su@example.com', 'mayorista', 0),
@@ -296,11 +298,11 @@ select is(pg_temp.fila('antes_suspender') ->> 'estado', 'ok', '(b) la cuenta act
 select is(pg_temp.fila('despues_suspender'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: cotizar responde sin_acceso AL INSTANTE');
 select is(pg_temp.fila('despues_suspender_crear'), '{"estado":"sin_acceso"}'::jsonb, '(b) suspendida a mitad de la sesión: crear responde sin_acceso AL INSTANTE');
 -- Un cliente archivado y la baja de «Habilitado en» también cortan al instante.
-update public.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = now() where id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.10');
 insert into res values ('archivado', publico.cotizar_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1')));
 reset role;
-update public.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
+update dominio.clientes set archivado_en = null where id = 'c1000000-0000-0000-0000-000000000001';
 select is(pg_temp.fila('archivado'), '{"estado":"sin_acceso"}'::jsonb, '(b) cliente archivado: sin_acceso');
 delete from public.clientes_empresas where cliente_id = 'c1000000-0000-0000-0000-000000000001';
 select pg_temp.como('f3000000-0000-0000-0000-000000000001', '10.1.0.11');
@@ -857,6 +859,45 @@ select is((select c.operador from private.comprobantes_consulta('11111111-1111-1
             null, null, null, null, null, null, 200, 0) c where c.id = (select panel from ids)), 'Usuario sin nombre', 'M-2: y no rotula el de panel con canal tienda_online sin operador');
 
 -- ============================================================================
+-- MSF-942: filtro por canal (p_origen) en listar_presupuestos, con total y paginación correctos
+-- ============================================================================
+select pg_temp.como('f3000000-0000-0000-0000-000000000007', '10.90.0.1');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'MSF-942: origen tienda devuelve exactamente los presupuestos con vínculo de la tienda');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'panel')), (select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200)) - (select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'tienda')),
+  'MSF-942: origen panel devuelve el resto (panel + tienda = todos)');
+select cmp_ok((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'panel')), '>', 0, 'MSF-942: hay presupuestos de panel en el fixture (la prueba distingue de verdad)');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'tienda') l where l.id not in (select comprobante_id from dominio.presupuestos_tienda)), 0, 'MSF-942: ninguno del filtro tienda es de panel');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'panel') l where l.id in (select comprobante_id from dominio.presupuestos_tienda)), 0,
+  'MSF-942: ninguno del filtro panel es de la tienda (aunque su canal sea tienda_online y no tenga operador)');
+select is((select id from public.listar_presupuestos(null, null, null, 1, 200, 'panel') where id = (select panel from ids)), (select panel from ids), 'MSF-942: el de panel con canal tienda_online y operador borrado sigue en «panel»');
+select is((select max(filas)::int from public.listar_presupuestos(null, null, null, 1, 1, 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'MSF-942: con paginación de a 1, `filas` es el total del filtro (no de la página ni del total sin filtrar)');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 2, 1, 'tienda')), 1, 'MSF-942: la segunda página del filtro trae una fila');
+select is((select count(*)::int from public.listar_presupuestos(null, 'pendiente', null, 1, 200, 'tienda')), (select count(*)::int from public.listar_presupuestos(null, 'pendiente', null, 1, 200)) - (select count(*)::int from public.listar_presupuestos(null, 'pendiente', null, 1, 200, 'panel')),
+  'MSF-942: el filtro de canal se combina con el de estado');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, ' ')), (select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200)), 'MSF-942: un origen vacío equivale a todos');
+select throws_ok($$select * from public.listar_presupuestos(null, null, null, 1, 10, 'inventado')$$, '22023', null, 'MSF-942: un origen desconocido se rechaza');
+-- Exportación CSV por canal: misma regla del vínculo que el listado.
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'exportar_comprobantes: origen tienda exporta exactamente los presupuestos con vínculo');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), (select count(*)::int from public.exportar_comprobantes('presupuestos')) - (select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')),
+  'exportar_comprobantes: panel + tienda = todos');
+select cmp_ok((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel')), '>', 0, 'exportar_comprobantes: hay presupuestos de panel (la prueba distingue de verdad)');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda') e where e.id not in (select comprobante_id from dominio.presupuestos_tienda)), 0, 'exportar_comprobantes: ninguno del canal tienda es de panel');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', p_origen => 'panel') e where e.id in (select comprobante_id from dominio.presupuestos_tienda)), 0, 'exportar_comprobantes: ninguno del canal panel es de la tienda');
+select is((select max(filas)::int from public.exportar_comprobantes('presupuestos', p_origen => 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '11111111-1111-1111-1111-111111111111'),
+  'exportar_comprobantes: filas es el total del canal');
+select is((select count(*)::int from public.exportar_comprobantes('presupuestos', 'inexistente-xyz', null, null, null, null, null, 'tienda')), 0, 'exportar_comprobantes: el canal se combina con la búsqueda');
+select is((select count(*)::int from public.exportar_comprobantes('comprobantes', p_origen => 'tienda')), 0, 'exportar_comprobantes: las facturas nunca son del canal tienda');
+select throws_ok($$select * from public.exportar_comprobantes('presupuestos', p_origen => 'inventado')$$, '22023', null, 'exportar_comprobantes: un origen desconocido se rechaza');
+reset role;
+select pg_temp.como('f3000000-0000-0000-0000-000000000008', '10.90.0.2');
+select is((select count(*)::int from public.listar_presupuestos(null, null, null, 1, 200, 'tienda')), (select count(*)::int from dominio.presupuestos_tienda where organizacion_id = '22222222-2222-2222-2222-222222222222'),
+  'MSF-942: el administrador de otra organización solo ve los presupuestos de la tienda de la suya');
+reset role;
+
+-- ============================================================================
 -- M-4: la nota (recorte con saltos de línea y caracteres invisibles bloqueados)
 -- ============================================================================
 delete from public.limite_pedidos_publicos;
@@ -893,12 +934,81 @@ select is((select count(*)::int from res where k !~ '^panel_(cab|lineas)$' and v
   '(l) ninguna respuesta filtra identificadores internos, referencias, promociones ni descuentos');
 
 -- ============================================================================
+-- MSF-940: aviso por correo al equipo cuando un cliente pide presupuesto desde la tienda
+-- ============================================================================
+reset role;
+insert into auth.users (id, email) values ('f3000000-0000-0000-0000-00000000000c', 'aviso@example.com');
+insert into dominio.clientes (id, organizacion_id, numero, nombre, correo, tipo, descuento) values
+  ('c1000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 920, E'Cliente Aviso‮', 'aviso-cliente@example.com', 'minorista', 0);
+insert into clientes_empresas (cliente_id, empresa_id, organizacion_id) values
+  ('c1000000-0000-0000-0000-000000000011', 'e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111');
+insert into cuentas_cliente (id, organizacion_id, cliente_id, empresa_id, auth_user_id, estado) values
+  ('ca000000-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000011', 'e1000000-0000-0000-0000-000000000001', 'f3000000-0000-0000-0000-00000000000c', 'activa');
+delete from public.limite_pedidos_publicos;
+delete from public.avisos_pendientes;
+
+select is((select seccion from public.tipos_aviso where clave = 'presupuesto_tienda_nuevo'), 'ventas', 'MSF-940: el tipo de aviso existe y es de la sección ventas');
+select pg_temp.como('f3000000-0000-0000-0000-00000000000c', '10.80.0.1');
+insert into res values ('av_1', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), 'Nota privada del cliente', 'c0000000-0000-0000-0000-0000000007a1'));
+reset role;
+select is(pg_temp.fila('av_1') ->> 'estado', 'ok', 'MSF-940: el presupuesto de la tienda se crea');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo' and user_id = 'f3000000-0000-0000-0000-000000000007'), 1, 'MSF-940: el administrador de la organización con ventas recibe UN aviso');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 1, 'MSF-940: y nadie más (un solo destinatario con acceso en esta organización)');
+select is((select count(*)::int from public.avisos_pendientes where user_id = 'f3000000-0000-0000-0000-000000000008'), 0, 'MSF-940: el administrador de OTRA organización no recibe nada');
+select is((select count(*)::int from public.avisos_pendientes where organizacion_id <> '11111111-1111-1111-1111-111111111111'), 0, 'MSF-940: ningún aviso queda en otra organización');
+select is((select datos ->> 'Presupuesto' from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), pg_temp.fila('av_1') ->> 'numero', 'MSF-940: el aviso lleva el número del presupuesto');
+select is((select datos ->> 'Empresa' from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 'Tienda A', 'MSF-940: y la tienda');
+select is((select datos ->> 'Cliente' from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 'Nº 920 · Cliente Aviso', 'MSF-940: y el cliente (Nº y nombre, sin caracteres de dirección del texto)');
+select is((select datos ->> 'Total' from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), (pg_temp.fila('av_1') ->> 'total_con_iva')::numeric(14, 2)::text, 'MSF-940: y el total con IVA');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo' and (datos::text like '%@%' or datos::text like '%Nota privada%' or datos ? 'Mensaje' or datos ? 'Contacto')), 0, 'MSF-940: el aviso NO lleva correo, teléfono ni la nota del cliente');
+-- Repetir la misma clave idempotente no emite otro aviso.
+select pg_temp.como('f3000000-0000-0000-0000-00000000000c', '10.80.0.2');
+insert into res values ('av_rep', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '1'), 'Nota privada del cliente', 'c0000000-0000-0000-0000-0000000007a1'));
+reset role;
+select is(pg_temp.fila('av_rep') ->> 'numero', pg_temp.fila('av_1') ->> 'numero', 'MSF-940: repetir la clave devuelve el mismo presupuesto...');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 1, 'MSF-940: ...y NO emite otro aviso');
+-- Un comprobante que no es de la tienda (sin vínculo) no emite.
+select lives_ok($$select private.emitir_aviso_presupuesto_tienda((select panel from ids))$$, 'MSF-940: el emisor con un presupuesto de panel no falla');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 1, 'MSF-940: ...ni emite (solo vale con el vínculo real de la tienda)');
+select lives_ok($$select private.emitir_aviso_presupuesto_tienda(gen_random_uuid())$$, 'MSF-940: el emisor con un id inexistente no falla');
+-- Preferencia apagada: ese destinatario no recibe el siguiente.
+insert into public.preferencias_aviso (user_id, tipo_aviso, activo) values ('f3000000-0000-0000-0000-000000000007', 'presupuesto_tienda_nuevo', false);
+select pg_temp.como('f3000000-0000-0000-0000-00000000000c', '10.80.0.3');
+insert into res values ('av_2', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '2'), null, 'c0000000-0000-0000-0000-0000000007a2'));
+reset role;
+select is(pg_temp.fila('av_2') ->> 'estado', 'ok', 'MSF-940: con la preferencia apagada el presupuesto igual se crea');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 1, 'MSF-940: y el destinatario que apagó el aviso no recibe otro');
+select is(has_function_privilege('anon', 'private.emitir_aviso_presupuesto_tienda(uuid)', 'execute'), false, 'MSF-940: anon no ejecuta el emisor');
+select is(has_function_privilege('authenticated', 'private.emitir_aviso_presupuesto_tienda(uuid)', 'execute'), false, 'MSF-940: authenticated tampoco');
+
+-- ============================================================================
+-- MSF-940: un fallo del aviso NO deshace ni bloquea la creación del presupuesto
+-- ============================================================================
+delete from public.preferencias_aviso where tipo_aviso = 'presupuesto_tienda_nuevo';
+drop function private.emitir_aviso(text, uuid, jsonb, uuid);
+create function private.emitir_aviso(p_tipo text, p_organizacion uuid, p_datos jsonb, p_empresa uuid default null)
+returns integer language plpgsql security definer set search_path = '' as $$
+begin
+  raise exception 'falla provocada del aviso';
+end $$;
+delete from public.limite_pedidos_publicos;
+select pg_temp.como('f3000000-0000-0000-0000-00000000000c', '10.81.0.1');
+insert into res values ('av_roto', publico.crear_presupuesto_tienda('pres-a.ejemplo.com', pg_temp.items('a1000000-0000-0000-0000-000000000002', '3'), null, 'c0000000-0000-0000-0000-0000000007a3'));
+reset role;
+select is(pg_temp.fila('av_roto') ->> 'estado', 'ok', 'MSF-940: con el aviso roto el presupuesto igual se crea y responde ok');
+select is((select count(*)::int from dominio.presupuestos_tienda where clave_envio = 'c0000000-0000-0000-0000-0000000007a3'), 1, 'MSF-940: y queda guardado (vínculo)');
+select is((select count(*)::int from dominio.comprobantes_venta where numero = pg_temp.fila('av_roto') ->> 'numero' and tipo = 'presupuesto'), 1, 'MSF-940: y el comprobante');
+select is((select count(*)::int from public.avisos_pendientes where tipo_aviso = 'presupuesto_tienda_nuevo'), 1, 'MSF-940: sin aviso nuevo (el fallo no dejó filas a medias)');
+
+-- ============================================================================
 -- M-3: el cupo de llamadas SOBREVIVE a una excepción (no se revierte con el bloque que falla)
 -- ============================================================================
 -- Se reemplaza el motor por uno que falla (dentro de esta transacción, que se deshace al final) y se cuenta el contador de la cuenta antes y después.
-create or replace function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
+drop function private.motor_presupuesto_tienda(uuid, jsonb);
+create function private.motor_presupuesto_tienda(p_cuenta uuid, p_items jsonb)
 returns table (orden integer, producto_id uuid, estado text, descripcion text, codigo text, cantidad integer, precio_unitario numeric, escala text, alicuota_id uuid,
-  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean)
+  alicuota_porcentaje numeric, deposito_id uuid, a_pedido boolean, subtotal_sin_iva numeric, iva numeric, descuento_pct numeric, precio_referencia numeric, promocion_id uuid, disponible boolean,
+  lista_precio_id uuid, lista_ajuste_pct numeric)
 language plpgsql security definer set search_path = '' as $$
 begin
   raise exception 'falla provocada del motor';

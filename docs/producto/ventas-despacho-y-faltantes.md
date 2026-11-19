@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/despacho.tsx
 ---
 
 # Armar, controlar y entregar pedidos, y registrar faltantes
@@ -42,7 +43,7 @@ Los botones de arriba filtran por estado y muestran cuántas facturas hay en cad
 | Estado | Qué significa |
 |---|---|
 | **Sin armar** | La factura está confirmada y todavía no se empezó a armar. |
-| **Armando** | Se está armando el pedido en el depósito. El stock sigue reservado. |
+| **Armando** | Se está armando el pedido en el depósito. El stock ya se descontó al confirmar la factura (solo los productos «A pedido» siguen reservados hasta la entrega). |
 | **Incompleto** | Faltan productos: el armado quedó incompleto. |
 | **Listo para despachar** | El pedido está controlado y listo para salir. |
 | **Entregado** | El pedido salió. |

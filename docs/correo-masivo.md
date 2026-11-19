@@ -3,6 +3,17 @@ owner: tecnico
 sources:
   - specs/20261028-100000-correo-masivo-a-clientes
   - infra/kestra/flows/correo-masivo.yml
+  - infra/kestra/compose.vps.yaml
+  - scripts/deploy-vps.mjs
+  - apps/web/src/lib/correoMasivo.ts
+  - apps/web/src/pages/baja-correo.tsx
+  - apps/web/src/pages/clientes/correo-masivo/vista-previa.tsx
+  - supabase/migrations/20270201200119_clientes_acepta_correo_masivo.sql
+  - supabase/migrations/20270201200120_campanas_correo.sql
+  - supabase/migrations/20270201200121_campanas_correo_crear.sql
+  - supabase/migrations/20270201200122_campanas_correo_lote.sql
+  - supabase/migrations/20270201200123_campanas_correo_historial.sql
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
 ---
 
 # Correo masivo a clientes (MSF-155)
@@ -13,7 +24,7 @@ Spec: `specs/20261028-100000-correo-masivo-a-clientes/`. Esta guía crece con ca
 
 ## Aceptación del cliente
 
-- Columna `public.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
+- Columna `dominio.clientes.acepta_correo_masivo` (`boolean not null default false`). Los clientes existentes quedan
   **sin aceptación** hasta que se los marque (no hay consentimiento previo).
 - Se cambia con el interruptor **«Incluir en el correo masivo»**:
   - en el formulario de alta y edición (`FormularioCliente`); en el **alta nace encendido**, como el prototipo;
@@ -43,7 +54,7 @@ listado (`p_clientes`).
 
 ## Funciones de base (esquema `public`, `security invoker`)
 
-Migración `20270120100000_clientes_acepta_correo_masivo.sql`. No se crea ninguna tabla.
+Migración `20270201200119_clientes_acepta_correo_masivo.sql`. No se crea ninguna tabla.
 
 | Función | Devuelve |
 |---|---|
@@ -70,7 +81,7 @@ descarta la selección que venía del listado y no muestra filas de la empresa a
 ## Reversión
 
 Migración posterior (nunca en el mismo PR): borrar las dos funciones públicas y `private.clientes_para_correo_masivo`,
-y luego `alter table public.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
+y luego `alter table dominio.clientes drop column acepta_correo_masivo`. El detalle está en el encabezado de la migración.
 
 ---
 
@@ -104,7 +115,7 @@ Una confirmación de envío abierta en la pantalla y el diálogo abierto en el l
 de la barra superior (el diálogo avisa «Cambiaste de empresa: se cerró el envío de correo y se descartó la selección»):
 nunca se crea una campaña con datos de la empresa anterior.
 
-## Datos (migraciones `20270121110000`, `…110100` y `…110200`)
+## Datos (migraciones `20270201200120`, `20270201200121` y `20270201200122`)
 
 | Objeto | Esquema | Justificación |
 |---|---|---|
@@ -139,7 +150,20 @@ falla igual, no lo pisa a `fallido` aunque el correo ya haya salido. `private.ce
 «al menos una vez»: si Kestra se corta entre enviar y cerrar, el correo puede salir dos veces.
 
 Variables (`infra/kestra/.env.example`): `CORREO_MASIVO_LOTE`, `CORREO_MASIVO_LIMITE_DIARIO`, `CORREO_MASIVO_URL_BAJA`.
+`CORREO_MASIVO_URL_BAJA` es **obligatoria en el VPS** (`infra/kestra/compose.vps.yaml`): definila en el secret
+`VPS_DEPLOY_ENV` de staging **y** de production antes de llevar el cambio a `main`; si falta, el preflight de
+`scripts/deploy-vps.mjs` corta con un error que nombra la variable (sin él, `docker compose config` falla y se aborta
+el despliegue de Kestra, Superset y Nango en esa corrida; lo ya desplegado sigue corriendo). Debe ser el origen público
+https del panel de ese ambiente, sin barra final (por ejemplo `https://panel.ejemplo.com`). El flow empieza con la tarea `validar_url_baja`: con una URL
+vacía, http o a `localhost` falla antes de reclamar el lote y no manda ningún correo; solo `CORREO_MASIVO_PERMITIR_LOCAL=true`
+(desarrollo local; está en `infra/kestra/.env.example`, **nunca** en staging ni production) lo relaja. Detalle en [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).
 Las dos funciones `private.*` solo las ejecuta `kestra_orquestacion`.
+
+Robustez del flow (`correo-masivo.yml`): corre **una sola vez a la vez** (`concurrency: limit: 1`, `behavior: CANCEL`: si la corrida
+anterior sigue en curso, la nueva se descarta y no compite por los mismos reclamos), cada tarea de base y de correo tiene `timeout`
+(1 minuto el reclamo y los cierres, 2 minutos el envío) y un fallo del flow avisa al soporte por el subflow `aviso-fallo-flujo`, que
+informa solo la tarea que falló y no el mensaje del error (puede traer hosts o datos de personas). Con un solo flow en curso, el
+vencimiento del reclamo (900 s) funciona como plazo de recuperación ante una caída.
 
 ## Baja
 
@@ -172,7 +196,7 @@ pgTAP `correo_masivo_campanas.test.sql` y `correo_masivo_lote.test.sql` (`pnpm t
 
 # F-CLI-13 · Historial de campañas de correo (MSF-376)
 
-Solo lectura: no se edita, borra ni reenvía nada. Migración `20270121110300_campanas_correo_historial.sql`.
+Solo lectura: no se edita, borra ni reenvía nada. Migración `20270201200123_campanas_correo_historial.sql`.
 
 ## Pantallas y rutas
 
@@ -214,12 +238,12 @@ vuelve al historial al cambiar la empresa y no muestra una campaña de otra tien
 ## Reversión
 
 Migración posterior: `drop function public.detalle_campana_correo(uuid, integer, integer)`, `drop function
-public.listar_campanas_correo(uuid, integer, integer)`, restaurar `dar_de_baja_correo_masivo` de `20270121110200` y
+public.listar_campanas_correo(uuid, integer, integer)`, restaurar `dar_de_baja_correo_masivo` de `20270201200122` y
 `alter table dominio.campana_correo_destinatarios drop column baja_en`.
 
 # Cierre · Revisión de seguridad (T041)
 
-Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120100000` y `20270121110000…110300`, la Edge Function `baja-correo-masivo` y el flow `correo-masivo`. Sin hallazgos críticos ni altos.
+Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270201200119` y `20270201200120…20270201200123`, la Edge Function `baja-correo-masivo` y el flow `correo-masivo`. Sin hallazgos críticos ni altos.
 
 - RLS en las tres tablas nuevas; la organización sale siempre de la sesión (`private.organizacion_id()`), nunca de un parámetro.
 - `anon` sin ejecución de ninguna RPC del correo masivo y sin privilegios sobre las tablas; `dar_de_baja_correo_masivo` solo para `service_role`.
@@ -232,3 +256,19 @@ Revisión de `authz-security` y `crypto-secrets` sobre las migraciones `20270120
 «Nueva campaña» (destinatarios), «Historial» y el detalle de la campaña (destinatarios) cargan por tandas con
 `useListadoAcumulado` + `CargaInfinita` en vez de páginas numeradas. El resumen de elegibles y el envío usan los filtros
 y no lo que está cargado en pantalla, así que la selección masiva no depende de la tanda visible.
+
+## Newsletter de la tienda sobre este motor (MSF-468)
+
+El newsletter de cada tienda **reutiliza este motor** (`docs/newsletter.md`): sus envíos son campañas `tipo = 'newsletter'` cuyos destinatarios son
+**suscriptores** (`campana_correo_destinatarios.suscriptor_id`, con `cliente_id` nulable y `check (num_nonnulls(cliente_id, suscriptor_id) <= 1)`),
+con la foto del contenido en `campanas_correo.bloques`. El cupo diario por organización se **comparte** (en orden de creación de la campaña). El reclamo
+(`private.reclamar_lote_correo_masivo`) devuelve además `tipo`, `tienda`, `remitente`, `dominio_tienda` y `cuerpo_html` (columnas al final) y re-verifica a cada
+suscriptor (`confirmado`, tienda activa e interruptor encendido); los historiales de esta guía solo muestran las campañas `tipo = 'clientes'`.
+`dar_de_baja_correo_masivo` también resuelve suscriptores. **Los correos a clientes salen igual que antes** (pgTAP `correo_masivo_lote`, `correo_masivo_campanas`,
+`correo_masivo_destinatarios` y `correo_masivo_historial` sin cambios y verdes).
+
+## Aceptación en la migración de clientes (lote 32 · MSF-666)
+
+La base migrada ya no queda con cero elegibles: la importación lee `acepta_correo` y hay una acción masiva con registro de quién y
+cuándo (`acepta_correo_masivo_por` / `acepta_correo_masivo_en`). Sin valor por defecto: vacío = sin aceptación. Detalle en
+`docs/clientes.md`.

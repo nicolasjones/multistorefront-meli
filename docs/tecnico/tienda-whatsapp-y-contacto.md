@@ -1,9 +1,28 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261202-100000-tienda-whatsapp-y-contacto
+  - supabase/migrations/20261212120700_tienda_contacto.sql
+  - supabase/migrations/20261212120800_crear_consulta_publica_solo_interna.sql
+  - supabase/migrations/20261212121000_tienda_whatsapp.sql
+  - supabase/migrations/20261205100100_crear_consulta_publica.sql
+  - supabase/migrations/20270507150100_registrar_interes_whatsapp_solo_interna.sql
+  - supabase/tests/database/tienda_contacto.test.sql
+  - supabase/tests/database/tienda_whatsapp.test.sql
+  - apps/web/src/lib/tiendaContacto.ts
+  - apps/web/src/lib/whatsapp.ts
+  - apps/web/src/lib/registroWhatsapp.ts
+  - apps/web/src/hooks/useContactoTienda.ts
+  - apps/web/src/pages/tienda-publica/rutas/contacto.tsx
+  - apps/web/src/pages/tienda-publica/contacto/DatosContacto.tsx
+  - apps/web/src/pages/tienda-publica/contacto/FormularioContacto.tsx
+  - apps/web/src/pages/tienda-publica/contacto/validacion.ts
+  - apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp/useContactoWhatsapp.ts
+  - apps/web/src/pages/empresas/edit.tsx
+  - supabase/migrations/20261212120600_lectura_anulacion_notas.sql
+  - supabase/migrations/20270323100200_tienda_envios_visitante_hmac.sql
 ---
 
 # Tienda pública: WhatsApp y contacto (MSF-212)
@@ -33,8 +52,8 @@ El bloque «Retiro y envíos» y el aviso «Respondemos dentro de las 24 h» los
 
 | Historia | Migración | Contenido | Reversión (en una migración posterior) |
 |---|---|---|---|
-| F-TDA-16 | `supabase/migrations/20261212100000_tienda_contacto.sql` | columna `dominio.empresas.horarios` (+ check ≤ 200 y `grant update`); tabla `dominio.tienda_envios` + RLS + índices + `unique (empresa_id, clave_envio)`; `private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`, `private.validar_contacto_tienda`, `private.entregar_a_bandeja`; `publico.contacto_por_dominio` y `publico.enviar_consulta_contacto` con sus `grant`s | `drop function` de las siete funciones; `drop table dominio.tienda_envios` y `alter table dominio.empresas drop column horarios` |
-| F-TDA-16 | `supabase/migrations/20261212100100_crear_consulta_publica_solo_interna.sql` | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` (queda en `service_role` y el propietario) y `grant usage on schema publico to service_role` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
+| F-TDA-16 | `supabase/migrations/20261212120700_tienda_contacto.sql` | columna `dominio.empresas.horarios` (+ check ≤ 200 y `grant update`); tabla `dominio.tienda_envios` + RLS + índices + `unique (empresa_id, clave_envio)`; `private.visitante_hash`, `private.limite_envios_tienda`, `private.registrar_envio_tienda`, `private.validar_contacto_tienda`, `private.entregar_a_bandeja`; `publico.contacto_por_dominio` y `publico.enviar_consulta_contacto` con sus `grant`s | `drop function` de las siete funciones; `drop table dominio.tienda_envios` y `alter table dominio.empresas drop column horarios` |
+| F-TDA-16 | `supabase/migrations/20261212120800_crear_consulta_publica_solo_interna.sql` | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` (queda en `service_role` y el propietario) y `grant usage on schema publico to service_role` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
 | F-TDA-14 | `supabase/migrations/20261212121000_tienda_whatsapp.sql` | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
 
 **Orden de despliegue:** F-TDA-16 antes que F-TDA-14, que reutiliza
@@ -109,7 +128,7 @@ nunca `organizacion_id`, IP, hash del visitante ni columnas internas. Cada una h
 
 ### Validación (espejo cliente/servidor)
 
-`private.validar_contacto_tienda` (migración `20261212100000`) y
+`private.validar_contacto_tienda` (migración `20261212120700`) y
 `apps/web/src/pages/tienda-publica/contacto/validacion.ts` aplican **las mismas reglas**; el servidor
 vuelve a validar siempre:
 
@@ -118,6 +137,8 @@ vuelve a validar siempre:
 | Nombre | obligatorio, ≤ 100 caracteres | «Escribí tu nombre.» |
 | Correo o WhatsApp | obligatorio, ≤ 120; formato de correo o teléfono de **8 a 15 dígitos** | «Dejanos un correo o un WhatsApp para responderte.» / «Ingresá un correo válido o un teléfono de entre 8 y 15 dígitos.» |
 | Mensaje | obligatorio, ≤ 2000 caracteres | «Escribí tu mensaje.» |
+
+Aviso no bloqueante: si el visitante ya tocó «Correo o WhatsApp» y el texto no es un correo pero `avisoFormatoWhatsapp` (`apps/web/src/lib/whatsapp.ts`) no puede armar un número internacional, `FormularioContacto.tsx` muestra «Revisá el número: escribilo con código de área, por ejemplo +54 9 11 1234-5678.» sin impedir el envío.
 
 Todos los textos se recortan (`trim`) antes de validar y de enviar. El tope de 8 a 15 dígitos se elige
 para no superar el tope de 7 a 15 dígitos de la bandeja (F-CON-01).
@@ -140,7 +161,7 @@ para no superar el tope de 7 a 15 dígitos de la bandeja (F-CON-01).
 
 El visitante es anónimo: se identifica por el **HMAC-SHA256** de la **IP** del cliente (tomada según
 `private.saltos_proxy_confiables()`, de MSF-191) **más la empresa**
-(`private.visitante_hash`, `20261212100000_tienda_contacto.sql`; con secreto de Vault desde
+(`private.visitante_hash`, `20261212120700_tienda_contacto.sql`; con secreto de Vault desde
 `20270323100200_tienda_envios_visitante_hmac.sql`, MSF-945: antes era un `sha256` sin clave, enumerable). **La IP nunca se
 guarda**: en la tabla queda solo el HMAC. `tienda_envios` solo la lee quien edita Empresas y accede a la empresa. Si la cadena `x-forwarded-for` no llega a PostgREST, todos los visitantes
 caen en un único cupo «sin-ip»: **falla cerrada, no abierta**. El mismo patrón de saltos de proxy es
@@ -161,7 +182,7 @@ el mensaje `null`. **No se inventa un nombre ni un teléfono.**
 
 ### Privilegios de la RPC de la bandeja
 
-`20261212100100_crear_consulta_publica_solo_interna.sql` revoca la ejecución de
+`20261212120800_crear_consulta_publica_solo_interna.sql` revoca la ejecución de
 `publico.crear_consulta_publica` a `public`, `anon` y `authenticated` y la deja en `service_role` y el
 propietario: mientras estuvo abierta, `anon` podía llamarla por PostgREST y saltearse el límite de 5
 por hora. El único camino público del alta es ahora `publico.enviar_consulta_contacto`. Es el único
@@ -237,7 +258,7 @@ Rutas registradas por archivo en `apps/web/src/pages/tienda-publica/rutas/*.tsx`
 
 ## Operación
 
-- **Migraciones:** aplicar en orden (`20261212100000`, `20261212100100`, `20261212121000`). La de
+- **Migraciones:** aplicar en orden (`20261212120700`, `20261212120800`, `20261212121000`). La de
   F-TDA-14 tiene que ir después de las de F-TDA-16 porque reutiliza sus funciones.
 - **Host:** el front decide por `Host`; la empresa se resuelve en `dominio.tiendas` con
   `private.normalizar_host`. Es la misma operación de MSF-147.
@@ -297,14 +318,12 @@ pnpm --filter @platform/web test:e2e tienda-whatsapp
 - **El límite de 5 por hora es un supuesto** (D3 de la épica): se ajusta con pruebas reales.
 - **Sin seguimiento de la consulta por WhatsApp** (F-CON-02, MSF-130) y **sin eventos de analítica**
   del clic y del envío (MSF-164). MSF-130 ya construyó el registro del interés (tabla
-  `dominio.intereses_whatsapp`, RPC `publico.registrar_interes_whatsapp` y vista de lectura), pero **la
-  tienda todavía no lo llama**: esa llamada es F-TDA-14, de esta misma épica. Mientras tanto, el botón de
-  WhatsApp de la ficha solo registra la consulta en la bandeja (origen `whatsapp`, D1). Contrato de la RPC:
+  `dominio.intereses_whatsapp`, RPC `publico.registrar_interes_whatsapp` (hoy solo `service_role`, MSF-657) y vista de lectura), y la
+  tienda finalmente no lo llama: usa `registrar_consulta_whatsapp` (F-TDA-14) y la RPC del interés quedó interna (MSF-657). El botón de
+  WhatsApp de la ficha registra la consulta en la bandeja (origen `whatsapp`, D1). Contrato de la RPC:
   [Consultas: modelo, RPC y aviso](consultas.md#interes-por-whatsapp-f-con-02-msf-130).
-- **Las versiones de las dos migraciones de F-TDA-16** (`20261212100000` y `20261212100100`) están
-  **por debajo** de la máxima de `dokploy` (`20261212120600`): hay que devolverlas a números libres y
-  mayores **antes de aplicar la épica**, si no la segunda pisa la de `solicitar_documento_presupuesto`.
-  Dueño: release de la épica.
+- **Versiones de las dos migraciones de F-TDA-16**: quedaron en `20261212120700` y `20261212120800`, mayores que la máxima de
+  `dokploy` al momento de integrarlas (`20261212120600`), de modo que ya no chocan con `solicitar_documento_presupuesto`.
 - **Fuera de alcance:** captcha, compra y cuentas (MSF-176/237), «Productos relacionados», y la
   adaptación móvil de las pantallas (MSF-191), que solo aporta el enlace «Contacto» del menú móvil.
   El plazo de respuesta y el bloque «Retiro y envíos» **ya están** (MSF-825/MSF-831).

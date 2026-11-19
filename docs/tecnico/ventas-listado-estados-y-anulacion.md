@@ -1,9 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261024-130000-ventas-listado-estados-y-anulacion
+  - supabase/migrations/20261212120000_anulacion_nota_credito_base.sql
+  - supabase/migrations/20261212120200_anular_comprobante.sql
+  - supabase/migrations/20261212120600_lectura_anulacion_notas.sql
+  - supabase/migrations/20270201200129_lineas_sin_stock.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - apps/web/src/lib/notaCredito.ts
+  - apps/web/src/lib/anularComprobante.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
 ---
 
 # Ventas · listado, estados y anulación (técnico, MSF-177)
@@ -47,20 +54,20 @@ MSF-159, de la que se parte, en [Ventas · comprobantes (técnico)](ventas-compr
 | Estado | Etiqueta | Tono | Nota |
 |---|---|---|---|
 | `borrador` | Borrador | neutral | No descuenta ni reserva stock. |
-| `confirmada` | **Pendiente** | neutral | Traducción: no se altera `confirmar_comprobante` de MSF-159. |
-| `pendiente` | Pendiente | neutral | Estado de un presupuesto. |
+| `confirmada` | **Pendiente** | neutral | Traducción: no se altera `confirmar_comprobante` de MSF-159. La ayuda aclara que el stock ya se descontó al confirmar y que solo los productos «A pedido» quedan reservados y se descuentan al entregarlos (`estadosComprobante.ts`). |
+| `pendiente` | Pendiente | neutral | Estado de un presupuesto (misma ayuda de stock que `confirmada` en el catálogo). |
 | `aceptado` | Aceptado | contorno | |
 | `cobrado` | Cobrado | éxito | Estado de cobro (MSF-195). |
 | `en_proceso` | En proceso | info | |
 | `deuda` | Deuda | error | Estado de cobro (MSF-195). |
-| `armando` | Armando | primario | |
-| `incompleto` | Incompleto | aviso | |
+| `armando` | Armando | primario | Ayuda: el stock ya se descontó al confirmar la factura. |
+| `incompleto` | Incompleto | aviso | Ayuda: los faltantes se registran con «Registrar faltantes» y son los de Ventas · Faltantes. |
 | `anulada` | Anulada | contorno | El documento dejó de valer. |
 
 `ESTADOS_DE_LA_TARJETA` es el orden del prototipo (sin `borrador`, `pendiente` ni `anulada`).
 `motivoDeshabilitado()` calcula por qué un chip está deshabilitado: el estado actual, `borrador`, `anulada`,
 los estados de cobro («Se actualiza solo con el cobro del comprobante.») o «Tu rol no puede pasar de X a Y».
-«Entregado» (MSF-135) no existe en el catálogo.
+«Entregado» (MSF-135) no existe en el catálogo. `definicionEstado()` (`estadosComprobante.ts:53`) resuelve con `Object.hasOwn`: un estado desconocido (p. ej. `constructor`) cae a su etiqueta cruda con tono neutral, sin heredar propiedades del prototipo.
 
 ## Modelo de datos
 
@@ -187,6 +194,17 @@ Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` i
   borrador no se anula (no movió nada), y un presupuesto o una nota de crédito tampoco.
 - **Motivo obligatorio** (≤ 300 caracteres).
 - Con una **nota de crédito emitida** o **ya cobrada** se rechaza (`55000`): se corrige con nota de crédito.
+- Desde `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql` se rechaza (`55000`) también una factura **ya
+  entregada** (`estado_despacho = 'entregado'`: «La factura ya fue entregada: corregí con nota de crédito o RMA») y una con **cobros
+  registrados** (cobrado neto de reversiones mayor que 0, medido con `private.saldo_comprobante`: «La factura tiene cobros registrados:
+  revertí el cobro o corregila con una nota de crédito»). Una vez revertido el cobro (neto 0) la factura se puede anular. El orden de
+  las guardas es: anulada (idempotente) → motivo → borrador → cobrada → entregada → cobros → nota emitida → bloqueo optimista.
+- `detalle_anulacion_nota_credito.puede_anular` **no** incorpora las dos guardas nuevas (`20270201200129_lineas_sin_stock.sql` solo
+  mira estado operativo, no cobrada, sin notas y permiso): la pantalla puede ofrecer «Anular» y la base responder con ese mensaje.
+- El diálogo de anulación (`apps/web/src/lib/anularComprobante.ts`, `mensajeDeAnulacion`) solo muestra tal cual los mensajes de la RPC
+  cuyo prefijo está en `PREFIJOS_MENSAJE_DE_LA_RPC`; las dos guardas nuevas **no están en esa lista**, así que hoy la pantalla muestra el
+  genérico «No pudimos anular la factura. No se devolvió nada: probá de nuevo.» (el `55000` no se pierde en la base, solo en el texto).
+  Es una brecha de la capa web, pendiente.
 - **Idempotente**: una factura ya anulada devuelve el comprobante sin tocar el stock ni duplicar el evento.
 - **Todo o nada**: la reversión corre en la misma transacción; si algo falla, no queda ningún movimiento
   parcial. Dos anulaciones simultáneas no revierten dos veces (fila `for update`).

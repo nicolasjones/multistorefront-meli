@@ -282,7 +282,7 @@ reversión: [Clientes: modelo, RPC y pantallas](clientes.md).
 
 Además:
 
-- **Alta, edición, archivado y restauración** no usan RPC: el panel escribe directo en `public.clientes`
+- **Alta, edición, archivado y restauración** no usan RPC: el panel escribe directo en `dominio.clientes`
   (PostgREST) y la base aplica `private.nivel_seccion('clientes')`, los grants por columna y los
   disparadores. El **número correlativo** lo asigna `private.asignar_numero_cliente()`; el **DNI/CUIT
   único por organización** lo impone el índice `clientes_org_documento_uq` (`23505`).
@@ -309,7 +309,7 @@ Además:
 - `public.registrar_ingreso_mercaderia(...)` **mantiene la firma**; cambio de comportamiento: el
   `costo_unitario_usd` de cada línea pasa a ser opcional (`null` = sin costo, no cero) y una línea sin
   costo no actualiza `dominio.producto_costos` aunque venga `p_actualizar_costo = true`.
-- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `public.clientes` por PostgREST con las
+- **F-CLI-17 (etiqueta impresa) no agrega RPC**: la hoja lee `dominio.clientes` por PostgREST con las
   columnas `id, nombre, direccion, codigo_postal, localidad, provincia, telefono, expreso_preferido` y
   **no escribe nada**.
 - `dominio.proveedores_contactos` solo tiene `grant select` para `authenticated`: sin `INSERT`, `UPDATE`
@@ -331,7 +331,7 @@ proveedores](cuentas-y-compras-a-proveedores.md).
 Además:
 
 - **Sin tablas nuevas ni alteradas**: no hay RLS que agregar; la función solo lee
-  `dominio.comprobantes_venta`, `public.clientes` y `private.saldo_comprobante`.
+  `dominio.comprobantes_venta`, `dominio.clientes` y `private.saldo_comprobante`.
 - **Efecto cruzado:** el disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`) sincroniza la
   factura al emitir una nota de crédito (pasa a «Cobrado» si lo cobrado más las notas cubren el total y hay
   cobros; ajusta el importe de los contrarreembolsos pendientes al saldo neto). Detalle en
@@ -521,7 +521,7 @@ organización y el actor salen de la sesión.
 | RPC | Contrato | Seguridad |
 |---|---|---|
 | `buscar_producto_por_codigo_barras(p_codigo_barras text)` | Resuelve el producto **activo** de la organización por su EAN-13 (`productos_org_codigo_barras_uidx`). Valida 13 dígitos; sin coincidencia **no devuelve filas** (la pantalla muestra «Producto no encontrado»). Devuelve `(producto_id, nombre, sku, codigo_barras)`. | `security definer`; exige `ventas` en **edición** en la empresa activa |
-| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `public.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
+| `guardar_lineas_comprobante(p_id, p_lineas, p_actualizado_en)` | **Misma firma y mismo retorno** (sin `BREAKING`): el precio de cada línea sale de `private.precio_para` y, si el cliente tiene descuento, se le resta **sobre el neto de escala, antes del IVA**. El descuento se lee de `dominio.clientes` en el servidor: el `payload` **no** puede imponerlo. Un `precio_manual` no se toca. La línea guarda `descuento_pct`. | `security definer`; exige `ventas` en edición en la empresa del comprobante |
 | `obtener_comprobante(p_id)` | **Misma firma y mismo retorno**: la línea suma la clave `descuento_pct`. | `security definer`; exige `ventas` en lectura o edición |
 | `cerrar_caja(p_empresa_id, p_fecha)` | Cierra el día de una empresa: resume los cobros de esa fecha **por forma de pago y cuenta de cobro**, guarda cierre + detalle y marca `cerrada`. **Idempotente** (un segundo cierre devuelve el existente); si estaba `reabierta`, la vuelve a cerrar y rehace el detalle. No se cierra un día futuro. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
 | `reabrir_caja(p_cierre_id)` | `cerrada` → `reabierta`, con `reabierto_por`/`reabierto_en`. **Idempotente**. Devuelve la fila. | `security definer`; exige **Administrador** de la organización y empresa accesible |
@@ -640,7 +640,7 @@ organización activa y las empresas accesibles adentro (`security definer`, `set
 | `listar_costos_adicionales(p_empresa_id uuid default null)` | Costos activos de las empresas accesibles (o de una): `id`, `empresa_id`, `empresa_nombre`, `nombre`, `tipo`, `valor`, `creado_en`. | `42501` sin `rentabilidad` |
 | `guardar_costo_adicional(p_id uuid, p_empresa_id uuid, p_nombre text, p_tipo text, p_valor numeric)` | Alta (`p_id` null) o edición de un costo; un costo no cambia de empresa. Escribe Actividad. | `42501` sin edición o empresa no accesible · `23514` nombre/tipo/valor inválido · `23505` nombre repetido entre activos · `P0002` el costo no existe |
 | `dar_baja_costo_adicional(p_id uuid)` | Baja lógica (`activo = false`), idempotente. Escribe Actividad. | `42501` sin edición · `P0002` el costo no existe |
-| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (hoy solo los del sembrado demo, ver MSF-657; estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
 
 `public.confirmar_comprobante(uuid)` **conserva su firma** (F-REN-09): al confirmar guarda en cada línea
 `costo_unitario` (pesos por unidad) y `cotizacion` (dólar vigente), una sola vez e idempotente. Las notas de
@@ -872,7 +872,7 @@ Fuente: `supabase/migrations/20261206100000`–`20261206110100` y
 | `public.registrar_restablecimiento_cuenta_cliente(p_cliente, p_empresa)` | Evento de Actividad tras enviar el enlace de nueva clave. | `authenticated`; cuenta activa |
 | `public.cuenta_cliente_para_recuperar(host, correo)` | Decide si la recuperación envía el correo. | Solo `service_role`; sin filas si no corresponde |
 | `publico.acceso_cliente_por_dominio(host)` | Estado (`activa`/`suspendida`/`sin_cuenta`/`no_habilitado`) y tipo solo si activa. | `authenticated`; `null` uniforme |
-| `publico.precios_cliente_por_dominio(host, productos uuid[])` | Precios por escala del cliente activo (minorista x1; mayorista x1–x50). | `authenticated`; máximo 50 productos; lista blanca |
+| `publico.precios_cliente_por_dominio(host, productos uuid[])` | Precios por escala del cliente activo (minorista x1; mayorista x1–x50); con una promoción vigente menor a la escala, `final` es la promoción y la escala suma `precio_anterior` (MSF-932). | `authenticated`; máximo 50 productos; lista blanca |
 
 - **Edge Functions:** `invitar-cliente` (JWT del operador; crea/reutiliza el usuario de Auth y no escribe
   `usuarios_organizacion`) y `recuperar-clave-cliente` (anónima; respuesta uniforme). La service-role vive
@@ -946,6 +946,38 @@ Topes: `movimientos_por_producto` acota `p_tamano` a 1–100, `p_pagina` a 1–1
 caracteres. Índice nuevo: `dominio.movimientos_stock_org_fecha_dia_idx (organizacion_id, fecha) include
 (diferencia, deposito_id, producto_id, tipo)` en `20270305105000` (el índice previo de esa tabla es por
 `creado_en`). «Actividad reciente» no usa RPC nueva: lee `public.listar_actividad`.
+
+### Newsletter de la tienda (MSF-468)
+
+Fuente: `supabase/migrations/20270342000000`–`20270342000300` y `20270420000000`–`20270420000600` (rama de
+integración `dokploy`, PRs #1042 y #1057; aún no en `main`). Las RPC del panel son `security definer` con
+`set search_path = ''`, `revoke execute … from public, anon` y `grant execute … to authenticated`; las tres
+`publico` de la tienda son las **únicas** que `anon` puede ejecutar. Contratos, flujos, empresa activa y
+guía de prueba: [Newsletter de la tienda](newsletter.md).
+
+| RPC | Devuelve / hace | Errores |
+|---|---|---|
+| `publico.newsletter_por_dominio(p_host text)` | `{ activo: boolean, tienda: text \| null }`; `activo` solo con bandera, interruptor y tienda activos; en el resto de los casos, `{ activo: false }` sin distinguir el motivo | — |
+| `publico.suscribirse_newsletter(p_host text, p_correo text, p_consentimiento boolean, p_clave uuid, p_trampa text)` | `{ resultado: 'ok' }` \| `{ resultado: 'invalido', campos: [...] }` \| `{ resultado: 'limite', espera_segundos: n }` \| `{ resultado: 'error' }`. Crea o reactiva la suscripción `pendiente`; respuesta idéntica para dirección nueva, existente o en baja | `42501` sin `execute`; nunca devuelve ids, hash, IP ni el estado de la dirección |
+| `publico.confirmar_newsletter(p_host text, p_token text)` | `{ resultado: 'ok' \| 'vencido' \| 'invalido' \| 'limite' }`; idempotente | `42501` sin `execute` |
+| `public.resumen_newsletter(p_empresa uuid default null)` | `jsonb` `{ confirmados, pendientes, bajas, envios, bandera, tiendas }` | `42501` sin lectura en `clientes` o sin acceso a la tienda |
+| `public.listar_suscriptores_newsletter(p_empresa uuid default null, p_estado text default null, p_texto text default null, p_pagina integer default 1, p_tamano integer default 25)` | `jsonb` `{ total, filas }`; búsqueda literal por correo; `p_tamano` acotado a 1–100 | `42501`, `22023` estado o búsqueda inválidos |
+| `public.listar_newsletters(p_empresa uuid default null, p_estado text default null, p_pagina integer default 1, p_tamano integer default 25)` | `jsonb` `{ total, filas }` con estado (`borrador` \| `enviando` \| `enviada` \| `cancelada`) y totales | `42501`, `22023` |
+| `public.guardar_newsletter_configuracion(p_empresa uuid, p_activo boolean)` | `jsonb` `{ empresa_id, activo }`; Administrador | `42501` sin Administrador · `55000` bandera apagada |
+| `public.dar_de_baja_suscriptor_newsletter(p_suscriptor uuid)` | `jsonb` `{ ok }`; idempotente; omite lo pendiente; funciona con la bandera apagada | `42501` sin Administrador |
+| `public.borrar_datos_suscriptor_newsletter(p_suscriptor uuid)` | `jsonb` `{ ok }`; borra la fila y deja `[eliminado]` en los correos copiados | `42501` sin Administrador |
+| `public.guardar_newsletter(p_id uuid, p_version integer, p_empresa uuid, p_nombre text, p_asunto text, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ id, version }`; bloqueo optimista | `40001` el borrador cambió · `55000` ya se envió · `42501` |
+| `public.descartar_newsletter(p_id uuid)` | `jsonb` `{ ok }`; solo borradores | `42501`, `P0002` |
+| `public.detalle_newsletter(p_id uuid)` | Borrador o envío con la foto enviada y los totales | `42501`, `P0002` |
+| `public.vista_previa_newsletter(p_empresa uuid, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ cuerpo_html, confirmados, generado_en }`; el HTML ya viene escapado | `42501` |
+| `public.solicitar_prueba_newsletter(p_empresa uuid, p_asunto text, p_mensaje text, p_destacados boolean, p_promociones boolean)` | `jsonb` `{ ok }`; tope de 5 por hora; no cuenta contra el cupo diario | `42501` |
+| `public.enviar_newsletter(p_id uuid, p_version integer, p_clave uuid)` | `jsonb` `{ campana_id, destinatarios }`; idempotente por clave | `22023` sin confirmados (hint `sin_destinatarios`) o tienda apagada · `40001` versión vieja · `42501` |
+| `public.cancelar_envio_newsletter(p_id uuid)` | `jsonb` `{ cancelados }`; lo pendiente queda `omitido` | `42501` |
+| `public.dar_de_baja_correo_masivo(p_token_hash text)` | `boolean`; ahora resuelve también suscriptores (quedan en `baja` conservando el correo) | Solo `service_role` |
+
+`private.reclamar_confirmaciones_newsletter`, `private.cerrar_confirmacion_newsletter` y
+`private.reclamar_lote_correo_masivo` **no** se conceden a la app: solo el rol `kestra_orquestacion` las
+ejecuta. La Edge Function `baja-correo-masivo` conserva su contrato (`{ token }` → `{ ok: true }`).
 
 ## Cómo descubrir el contrato
 

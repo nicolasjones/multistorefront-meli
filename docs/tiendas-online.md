@@ -167,10 +167,15 @@ dominio existe (anti-enumeración). Nunca devuelve `organizacion_id` ni datos de
 renderiza la tienda pública sin sesión. Un error de red no se disfraza de «Volvemos pronto»: se
 ofrece reintentar.
 
-- **Vencimiento por inactividad (MSF-673, MSF-700)**: a las 12 h sin actividad (`lib/vencimientoSesion.ts`,
-  enganchado en `main.tsx`) en un host de tienda se cierra solo la sesión local (`salirCliente`) y se vuelve a `/`;
-  nunca se redirige a `/login` (la tienda no lo tiene; su ingreso es `/ingresar`) ni se revoca la sesión en otros
-  dispositivos. Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts`.
+- **Vencimiento por inactividad (MSF-740)**: la regla de las 12 h sin actividad es del **panel**
+  (`lib/vencimientoSesion.ts` + `lib/arranqueSesion.ts`, enganchado en `main.tsx`): en un host de tienda
+  **no** se aplica. La sesión de un cliente con cuenta web termina solo por salida explícita («Salir» de
+  la tienda, cierre local) o por el tope de 30 días del servidor (`[auth.sessions] timebox`); el visitante
+  anónimo no ve cierre de sesión ni redirección, y la tienda nunca manda a `/login` (no lo tiene; su
+  ingreso es `/ingresar`). Antes (MSF-673, MSF-700) la tienda heredaba la ventana de 12 h y el primer clic
+  del visitante que volvía al día siguiente lo mandaba a `/`. Si el producto quiere una regla propia para
+  la tienda (otra ventana, redirección a `/ingresar`), es funcionalidad nueva y va con spec de Spec Kit.
+  Prueba: E2E `apps/web/e2e/tienda-sesion-vencimiento.e2e.ts` y Vitest `apps/web/src/lib/arranqueSesion.test.ts`.
 - **Desarrollo**: sin la variable, el panel vive en `localhost,127.0.0.1`; un subdominio de
   `localhost` (p. ej. `mundojc.localhost:4300`) es una tienda de prueba.
 - **Producción**: `VITE_PANEL_HOSTS` se pasa como build arg (`apps/web/Dockerfile`) con el dominio
@@ -492,7 +497,7 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **Página del catálogo**: `{ total, pagina, tamano: 24, categorias[], productos[] }`; cada producto trae solo `id`, `nombre`, `precio`, `disponible`, `imagen`, `categoria_id` y `destacado`. El tamaño 24 es una constante de la función (D3). Host desconocido y empresa desactivada devuelven el mismo `null`.
 - **Filtros**: categoría (los productos de una categoría oculta o ajena no son «efectivos»: lista vacía, sin error), «Solo con stock» (por `private.disponible_publico`) y precio máximo sobre el precio final. **Orden**: relevancia (destacados, nombre, id), menor y mayor precio (desempate por nombre e id; los sin precio van al final).
 - **Normalización** (sin error): orden desconocido → relevancia; página < 1 o nula → 1; `precio_max` ≤ 0 o nulo → sin límite; página fuera de rango → lista vacía con el `total` real.
-- **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`; sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
+- **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`, al centavo desde `20270507180200_aplicar_iva_al_centavo.sql` (antes al peso entero), ver [IVA y precio final](iva-precio-final.md); sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
 - **Costo y techo esperado**: la RPC es pública y calcula `precio_final_publico` y `disponible_publico` para todo el catálogo efectivo de la tienda antes de filtrar y paginar, y lee las categorías en cada página. El diseño asume **hasta unos pocos cientos de productos visibles por tienda** (cifra de diseño, no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir con un benchmark. Seguimiento de rendimiento fuera de esta historia: no hay catálogo real que lo justifique todavía.
 - **`publico.imagen_publica` es invocable directo** por `anon` y `authenticated`: permite confirmar si una ruta de storage es imagen pública, algo que esas rutas ya permiten leer; riesgo bajo aceptado (anotado en el comentario de la función).
 - **`?pagina=` en la UI (MSF-845)**: el listado ya no pagina; los enlaces viejos con `?pagina=N` (también `0`, negativos o `999`) se ignoran sin redirigir y arrancan de la primera tanda. La RPC sigue devolviendo lista vacía con el `total` real para una página fuera de rango, y la UI ya no la pide.
@@ -698,7 +703,7 @@ Spec: `specs/20261024-051500-cuenta-web-del-cliente/`. La tienda suma el acceso 
 | Función `publico.*` | Quién la ejecuta | Devuelve | Historia |
 |---|---|---|---|
 | `acceso_cliente_por_dominio(host)` | `authenticated` | estado (`activa` · `suspendida` · `sin_cuenta` · `no_habilitado`) y tipo si es activa; `null` si el host no resuelve o la empresa está desactivada | F-CLI-05 |
-| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto; `null` sin cuenta activa habilitada | F-CLI-07 |
+| `precios_cliente_por_dominio(host, productos[])` | `authenticated` | escalas del tipo de cliente (x1; o x1–x50 con rango) por producto, con la promoción vigente si baja la escala (`precio_anterior`, MSF-932); `null` sin cuenta activa habilitada | F-CLI-07 |
 
 `anon` no ejecuta ninguna de las dos: el visitante ve exactamente el precio público de siempre. Ninguna devuelve `organizacion_id`, costos, margen ni existencias. Detalle del precio: [`precios-escalas.md`](./precios-escalas.md).
 
@@ -884,10 +889,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 **Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
 `private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
 
-**Pendiente para el despliegue de la épica (no de este cierre)**: las versiones de las dos migraciones de F-TDA-16
-(`20261212100000` y `20261212100100`) están por debajo de la máxima de `dokploy` (`20261212120600`) y la segunda pisa la de
-`solicitar_documento_presupuesto`: hay que devolverlas a números libres y mayores **antes** de aplicar la épica. Está
-detallado en [`docs/tienda-contacto.md`](./tienda-contacto.md) y lo resuelve el PR de release de la épica, no este cierre.
+**Migraciones de F-TDA-16**: ya están renumeradas a `20261212120700` (contacto) y `20261212120800` (`crear_consulta_publica_solo_interna`), por encima de la máxima previa de `dokploy`. Detalle en [`docs/tienda-contacto.md`](./tienda-contacto.md).
 
 ### Verificación
 
@@ -1298,6 +1300,7 @@ contacto de la empresa del host.
 - **«Mi cuenta» (F-CLI-20, MSF-452)**: con la bandera `tienda_pedidos` encendida, el encabezado suma «Mi cuenta» para la cuenta web activa, la ficha suma «Guardar en favoritos» y la ruta `/mi-cuenta` lista compras, presupuestos y favoritos. `rutas/ingresar` acepta `?volver=` solo con rutas internas. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Lista de pedido sin cobro (B1, MSF-176)**: con la bandera `tienda_pedidos` encendida, la ficha suma «Agregar a la lista» (y «Ya tenés n en tu lista · Ver lista»), el encabezado «Mi lista (n)», el menú móvil «Mi lista» (con cuenta activa) y «Mi cuenta › Favoritos» «Agregar a la lista»; la ruta `/lista` revalida la lista con el servidor (precio de referencia = el que se ve en la tienda; con cuenta, la escala por cantidad), pide nombre y contacto (con cuenta, no) y la envía **sin pagar**: llega a Consultas como «Pedido» con sus ítems. La lista vive en el navegador (solo `producto_id` y cantidad). Con la bandera apagada no se ve nada y `/lista` es la 404. Ver `docs/tienda-compra-y-cuentas.md`.
 - **Presupuesto desde la tienda (B2, MSF-176)**: con una cuenta activa, la lista suma «Pedir presupuesto»: un diálogo con la **cotización del servidor** (tu escala, tu descuento y las promociones vigentes, con IVA) y, al confirmar, un presupuesto **pendiente** en Ventas (canal tienda online) que el equipo acepta o modifica; **no reserva stock ni cobra nada**. Tope de 5 por día y 10 abiertos por cuenta; reintentar no duplica. Detalle y seguridad en `docs/tienda-compra-y-cuentas.md`.
+- **Opiniones de productos (MSF-467)**: con la bandera `tienda_opiniones` encendida (apagada por defecto, solo dev), la ficha suma el bloque «Opiniones» (promedio, cantidad y las opiniones aceptadas por tandas), un cliente con sesión deja, edita y borra la suya (siempre pasa por moderación previa) desde la ficha y desde la pestaña «Mis opiniones» de «Mi cuenta»; con la bandera apagada la ficha y «Mi cuenta» no cambian. Guía: [`docs/tienda-opiniones.md`](./tienda-opiniones.md).
 
 ## Lote 1 de deuda técnica: seguridad e integridad de la tienda pública (MSF-515)
 
@@ -1351,6 +1354,10 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 - **Fuera de este lote**: `private.visitante_publico` (límite de la búsqueda, `public.limite_pedidos_publicos`) sigue con `sha256(ip|host)`; esa tabla no la lee ningún rol de API
   y sus ventanas duran minutos, pero tiene el mismo defecto de fondo: queda como seguimiento.
 - Reversión: ver el encabezado de `20270323100200_tienda_envios_visitante_hmac.sql` (los hashes `legado` no se restauran).
+
+### Lote 3 de deuda técnica: visitante público con HMAC y poda global de envíos (MSF-946, MSF-947)
+
+`private.visitante_publico` (límite de búsquedas y de pedidos públicos de la tienda) deja de usar `sha256(ip|host)` sin clave, que se enumera probando las IPv4, y pasa a HMAC-SHA256 con el secreto `visitante_hmac` de Vault, el mismo de MSF-945. Misma firma y misma entrada; los cupos en curso se reinician una vez porque cambia la clave. Además `private.registrar_envio_tienda` poda en cada registro, hasta 500 filas por vez, lo vencido (más de 24 h) de cualquier empresa y no solo de la que envía, con el índice `tienda_envios_creado_idx`. Migración `20270324120000`; prueba pgTAP `tienda_visitante_publico_hmac_msf946.test.sql`.
 
 ### Ajustes de la revisión de seguridad del PR #1003 (MSF-560)
 

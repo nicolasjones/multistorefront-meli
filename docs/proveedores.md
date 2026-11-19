@@ -146,11 +146,14 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
   asunto hasta 200 y mensaje hasta 5000 caracteres) y confirma con «Correo enviado al proveedor».
 - Edge Function `supabase/functions/enviar-correo-proveedor`: exige sesión, nivel `edicion` en `proveedores`
   (`permisos_actuales()`) y lee el proveedor con la sesión de quien llama (RLS acota a su organización). El
-  destinatario **no viaja desde el navegador**: es siempre `dominio.proveedores.correo`, así no es un relay
-  abierto. Envía por el SMTP de `_shared/correo.ts` (`SMTP_*` solo en la función; sin service-role).
-  Pruebas: `pnpm test:edge:enviar-correo-proveedor`.
-- Sin tablas ni migraciones. Fuera de alcance (decisión provisoria, sin respuesta de negocio): historial de
-  envíos, remitente por organización y límite de frecuencia — a consultar si se necesitan.
+  destinatario **no viaja desde el navegador**: es siempre `dominio.proveedores.correo`. Aun así el asunto y el
+  mensaje son libres y el correo lo edita cualquier usuario con `edicion`, por lo que la función **no es un relay
+  cerrado**: valida que el proveedor esté activo y que el correo sea una única dirección válida, limita a 20 envíos
+  por hora y usuario (`CORREO_PROVEEDOR_LIMITE_HORA`, mejor esfuerzo por instancia) y deja una línea de log por envío
+  (usuario, proveedor y resultado). Envía por el SMTP de `_shared/correo.ts` (`SMTP_*` solo en la función; sin
+  service-role). Pruebas: `pnpm test:edge:enviar-correo-proveedor`.
+- Sin tablas ni migraciones. Pendiente (necesita migración, propuesta en `funciones-edge-endurecimiento.md`):
+  historial persistente de envíos y tope persistente por usuario. Fuera de alcance: remitente por organización.
 
 ## Relación con los productos (F-PRV-03, MSF-367)
 
@@ -182,7 +185,7 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 El listado suma «Importar» (solo Administrador) que abre el asistente de migración
 (`/migracion/importar/proveedores`). `dominio.proveedores.id_externo` guarda el identificador del
 panel actual (nullable, único por organización) y concilia la carga: reimportar actualiza, no duplica.
-Los vínculos con productos se cargan con `/migracion/importar/vinculos-proveedor-producto`.
+Los vínculos con productos se cargan con `/migracion/importar/vinculos_proveedor_producto`.
 Detalle y reglas en [migracion-datos.md](migracion-datos.md).
 
 ## Actividad

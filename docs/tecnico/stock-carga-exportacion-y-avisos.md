@@ -1,8 +1,32 @@
 ---
 owner: tecnico
 sources:
-  - supabase/migrations
-  - apps/web/src/pages/stock
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - supabase/migrations/20261212140000_stock_avisos_reposicion.sql
+  - supabase/migrations/20261212140100_stock_resumen_reposicion_rpc.sql
+  - supabase/migrations/20261213100000_stock_cargas_iniciales.sql
+  - supabase/migrations/20261213100100_stock_carga_inicial_rpc.sql
+  - supabase/migrations/20261213100200_faltantes_avisos.sql
+  - supabase/migrations/20261213100300_faltantes_listado.sql
+  - supabase/migrations/20261213100400_avisar_faltantes.sql
+  - supabase/migrations/20261213100500_productos_mas_vendidos.sql
+  - supabase/functions/enviar-aviso-faltante
+  - supabase/functions/enviar-resumen-reposicion
+  - supabase/tests/database/stock_carga_inicial.test.sql
+  - apps/web/src/pages/stock/PestanasStock.tsx
+  - apps/web/src/pages/stock/excel.tsx
+  - apps/web/src/pages/stock/faltantes.tsx
+  - apps/web/src/pages/stock/mas-vendidos.tsx
+  - apps/web/src/lib/cargaStock.ts
+  - apps/web/src/lib/exportarCsv.ts
+  - apps/web/src/lib/faltantes.ts
+  - apps/web/src/lib/masVendidos.ts
+  - apps/web/src/lib/periodosRanking.ts
+  - apps/web/src/lib/stock.ts
+  - apps/web/src/hooks/useExportarCsv.ts
+  - apps/web/src/hooks/useMasVendidos.ts
+  - apps/web/src/components/stock/ExportarCsvBoton.tsx
+  - apps/web/src/App.tsx
 ---
 
 # Stock · carga inicial, exportación y avisos (MSF-368)
@@ -48,9 +72,9 @@ contrato de pantalla en `public` (como `stock_estados`). Ninguna tabla nueva adm
 | `dominio.cargas_iniciales_stock` | **nueva** | Una fila por producto que ya tuvo su carga inicial: `organizacion_id`, `producto_id`, `deposito_id`, `movimiento_id`, `cantidad`, `clave_idempotencia`, `actor_id`, `actor_nombre`, `creado_en`. `unique (organizacion_id, producto_id)`: es lo que impide una segunda carga inicial, incluso simultánea. |
 | `dominio.stock_avisos_reposicion` | **nueva** | Un resumen por organización: `generado_en`, `estado` (`pendiente`/`enviado`/`fallido`/`sin_destinatario`), `intentos`, `ultimo_error` (≤ 500), `enviado_en`, `productos jsonb` (foto de los incluidos), `sin_stock`, `stock_bajo`, `updated_at` (reserva de 2 minutos). |
 | `dominio.stock_alertas_avisadas` | **nueva** | Marca por producto del estado con el que ya se avisó (`stock_bajo`/`sin_stock`), `avisado_en`. PK `(organizacion_id, producto_id)`. |
-| `dominio.faltantes_avisos` | **nueva** | Un aviso por línea faltante: `linea_id` (PK), `organizacion_id`, `empresa_id`, `cliente_id`, `estado` (`pendiente`/`enviado`/`agotado`), `intentos`, `ultimo_error` (≤ 500), `enviado_en`, `created_at`, `updated_at`. FK compuestas a `dominio.empresas` y `public.clientes`: el aviso no puede apuntar a otra organización. |
+| `dominio.faltantes_avisos` | **nueva** | Un aviso por línea faltante: `linea_id` (PK), `organizacion_id`, `empresa_id`, `cliente_id`, `estado` (`pendiente`/`enviado`/`agotado`), `intentos`, `ultimo_error` (≤ 500), `enviado_en`, `created_at`, `updated_at`. FK compuestas a `dominio.empresas` y `dominio.clientes`: el aviso no puede apuntar a otra organización. |
 | `public.faltantes_listado` (vista) | **nueva** | Lectura de los faltantes abiertos, `security_invoker`. |
-| `dominio.existencias`, `dominio.movimientos_stock`, `dominio.productos`, `dominio.depositos`, `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas`, `dominio.reservas_stock`, `dominio.empresas`, `public.clientes`, `public.organizaciones` | existentes | Se leen (o, en el caso de existencias/movimientos, los escribe `registrar_movimiento_stock` desde la RPC de carga). Sin cambios de esquema. |
+| `dominio.existencias`, `dominio.movimientos_stock`, `dominio.productos`, `dominio.depositos`, `dominio.comprobantes_venta`, `dominio.comprobantes_venta_lineas`, `dominio.reservas_stock`, `dominio.empresas`, `dominio.clientes`, `public.organizaciones` | existentes | Se leen (o, en el caso de existencias/movimientos, los escribe `registrar_movimiento_stock` desde la RPC de carga). Sin cambios de esquema. |
 | `dominio.motivos_movimiento` | existente | Se leen y se **siembra** el motivo de sistema «Carga inicial de stock» (`aplica_a = {ajuste}`) para las organizaciones existentes y para las nuevas (`private.sembrar_motivos_movimiento`). Sin cambios de esquema. |
 
 ### RLS
@@ -182,7 +206,7 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
 
 - **Rutas y pestañas.** `/stock/excel`, `/stock/faltantes` y `/stock/mas-vendidos` en `apps/web/src/App.tsx`, con
   carga diferida, `RequiereOrganizacionActiva` y `RequiereAccesoSeccion seccion="stock"`. La tira
-  `apps/web/src/pages/stock/PestanasStock.tsx` suma **«Faltantes»**, **«Actualizar por Excel»** (solo con `edicion`)
+  `apps/web/src/pages/stock/PestanasStock.tsx` suma **«Faltantes de stock»**, **«Actualizar por Excel»** (solo con `edicion`)
   y **«Más vendidos»** (con `lectura` o `edicion`). No hay recurso Refine propio: se llega desde la pestaña.
 - **Carga inicial.** `apps/web/src/pages/stock/excel.tsx` + `apps/web/src/lib/cargaStock.ts`: la planilla se lee en
   el navegador (import diferido de la librería de Excel), `MAXIMO_FILAS_CARGA = 2000` y
@@ -192,9 +216,13 @@ registra, y el flow es el «disparo». Los valores reales viven solo en los secr
   `apps/web/src/components/stock/ExportarCsvBoton.tsx` (botón). Las pantallas declaran sus columnas en **un solo
   arreglo** que usan la tabla y el CSV (`columnasStock` en `list.tsx`, `COLUMNAS` en `movimientos.tsx`), así que no
   se desfasan.
-- **Faltantes.** `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
+  En Movimientos, la nota (tabla y CSV) pasa por `notaLegibleDeMovimiento` (`apps/web/src/lib/stock.ts`), que reemplaza
+  la referencia interna `comprobante:<uuid>[:linea:N]` de las reservas «A pedido» por «el comprobante».
+- **Faltantes.** (título de la pantalla: «Faltantes de stock (A pedido)»; trae un enlace a «Faltantes de despacho», `/ventas/faltantes`, que es otra pantalla con otros datos) `apps/web/src/pages/stock/faltantes.tsx` + `apps/web/src/lib/faltantes.ts`: tabla con casilla por
   fila y «seleccionar todo» en el encabezado de la columna de casillas (como en el prototipo), filtro `FiltroEmpresa`,
   carga por tandas de 25 con «Cargar más» y **miniatura del producto**; pie «N seleccionados de M faltantes».
+  El texto de ayuda de la pantalla dice (`faltantes.tsx`) que un faltante se cierra al entregar el pedido o al liberar la
+  reserva y que ingresar mercadería **no** lo cierra solo (antes decía lo contrario, copiado del prototipo).
 - **Más vendidos.** `apps/web/src/pages/stock/mas-vendidos.tsx` + `apps/web/src/lib/masVendidos.ts` +
   `apps/web/src/hooks/useMasVendidos.ts`: carga por tandas de a 25 (con «Cargar más») y período con
   `apps/web/src/lib/periodosRanking.ts` (mismo rango máximo de 5 años y misma zona `America/Argentina/Buenos_Aires`

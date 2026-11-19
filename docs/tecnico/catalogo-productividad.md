@@ -129,5 +129,6 @@ Quedó fuera por decisión, no por olvido:
 - **Evento único `producto.edicion_masiva`** (RF-CAT-12-3): no existe. Cada producto con cambio real deja su propio
   evento de Actividad (el mismo de la edición individual). Un evento único exigiría silenciar los disparadores de
   actividad que ya existen, y no se pudo probar sin pgTAP local.
-- Destacado, newsletter, borrado, exportar/importar CSV, edición masiva de SKU, código de barras, precio o costo,
+- Destacado, newsletter (otra épica: [Newsletter de la tienda](newsletter.md)), borrado, exportar/importar CSV,
+  edición masiva de SKU, código de barras, precio o costo,
   selección más allá del tope, deshacer y duplicar desde la ficha.

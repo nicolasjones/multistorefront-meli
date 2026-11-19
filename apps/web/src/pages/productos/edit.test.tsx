@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -387,6 +387,7 @@ describe('ProductoEdit', () => {
     expect(screen.getByText('Activo')).toBeInTheDocument()
     mocks.producto.mockResolvedValue({ data: { ...PRODUCTO, activo: false, updated_at: '2026-01-02T10:00:00+00:00' }, error: null })
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_producto', { p_id: 'p-1', p_activo: false }))
     expect(await screen.findByText('Inactivo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Activar Joystick' })).toBeInTheDocument()
@@ -400,6 +401,7 @@ describe('ProductoEdit', () => {
     await screen.findByLabelText(/^Nombre/)
     mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'x' } })
     fireEvent.click(screen.getByRole('button', { name: 'Desactivar Joystick' }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Desactivar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(mensaje)
     expect(screen.getByText('Activo')).toBeInTheDocument()
   })

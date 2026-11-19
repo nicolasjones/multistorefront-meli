@@ -14,7 +14,7 @@
 --     `authenticated` no ejecutan las funciones `private`; `authenticated` no inserta ni actualiza líneas; las claves
 --     `precio_referencia`/`promocion_id` dentro de `p_lineas` se ignoran;
 --   · `obtener_comprobante` expone `precio_referencia` y NO `promocion_id`;
---   · `copiar_presupuesto` (sin descuento del cliente, igual que hoy) y notas de crédito que heredan las columnas;
+--   · `copiar_presupuesto` (con el descuento del cliente, como el mostrador: S2 = MSF-933; pgTAP propio `ventas_copiar_presupuesto_descuento_cliente.test.sql`) y notas de crédito que heredan las columnas;
 --   · medición de 200 líneas con la bandera apagada contra encendida (< 1,5×).
 -- El fixture corre como postgres (RLS no aplica); las verificaciones, con el rol que corresponda.
 begin;
@@ -52,7 +52,7 @@ insert into usuarios_empresas (user_id, empresa_id, organizacion_id, rol_id) val
   ('f1000000-0000-0000-0000-000000000004', 'a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador');
 
 -- c1 mayorista sin descuento; c2 minorista sin descuento; c3 minorista 5 %; c4 minorista 15 %; c5 de la org 2.
-insert into clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
+insert into dominio.clientes (id, organizacion_id, numero, nombre, tipo, archivado_en, descuento) values
   ('c5000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 10, 'Distribuidora Norte', 'mayorista', null, null),
   ('c5000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 11, 'Cliente minorista', 'minorista', null, null),
   ('c5000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 12, 'Cliente 5 %', 'minorista', null, 5),
@@ -237,7 +237,7 @@ declare
   v_ti numeric := 0;
 begin
   select * into v_c from dominio.comprobantes_venta where id = (select id from comps where clave = p_clave);
-  select cl.tipo, coalesce(cl.descuento, 0) into v_tipo, v_d from public.clientes cl where cl.id = v_c.cliente_id;
+  select cl.tipo, coalesce(cl.descuento, 0) into v_tipo, v_d from dominio.clientes cl where cl.id = v_c.cliente_id;
   for v_l in select * from dominio.comprobantes_venta_lineas where comprobante_id = v_c.id order by orden loop
     select * into v_p from private.precio_para(v_l.producto_id, v_c.empresa_id, private.escala_para_linea(v_tipo, v_l.cantidad));
     v_unit := coalesce(case when v_l.precio_manual then v_l.precio_unitario end, round(v_p.neto * (1 - v_d / 100), 2));
@@ -288,9 +288,9 @@ select is(has_table_privilege('authenticated', 'dominio.comprobantes_venta_linea
        or has_table_privilege('authenticated', 'dominio.comprobantes_venta_lineas', 'update'), false,
   'authenticated no inserta ni actualiza líneas (solo las escribe la RPC)');
 select is(has_table_privilege('anon', 'dominio.comprobantes_venta_lineas', 'select'), false, 'anon sin acceso a las líneas');
-select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('anon', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'anon no ejecuta precio_linea_venta');
-select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('authenticated', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'authenticated no ejecuta precio_linea_venta');
 select is(has_function_privilege('anon', 'private.promocion_vigente_fila(uuid,uuid,timestamptz)', 'execute'), false,
   'anon no ejecuta promocion_vigente_fila');
@@ -298,19 +298,19 @@ select is(has_function_privilege('authenticated', 'private.promocion_vigente_fil
   'authenticated no ejecuta promocion_vigente_fila');
 select is(has_function_privilege('authenticated', 'private.copiar_costo_linea_nota()', 'execute'), false,
   'authenticated no ejecuta el disparador de notas');
-select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)', 'execute'), false,
+select is(has_function_privilege('service_role', 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)', 'execute'), false,
   'service_role no ejecuta precio_linea_venta');
 select is(has_function_privilege('service_role', 'private.promocion_vigente_fila(uuid,uuid,timestamptz)', 'execute'), false,
   'service_role no ejecuta promocion_vigente_fila');
 select is(has_function_privilege('service_role', 'private.copiar_costo_linea_nota()', 'execute'), false,
   'service_role no ejecuta el disparador de notas');
-select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)'::regprocedure),
+select is((select p.prosecdef from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)'::regprocedure),
   false, 'precio_linea_venta es security invoker (hereda la compuerta de precio_para)');
 select is((select p.prosecdef from pg_proc p where p.oid = 'private.promocion_vigente_fila(uuid,uuid,timestamptz)'::regprocedure),
   true, 'promocion_vigente_fila es security definer (acceso acotado, FR-013)');
 select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.promocion_vigente_fila(uuid,uuid,timestamptz)'::regprocedure),
   'promocion_vigente_fila con search_path vacío');
-select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean)'::regprocedure),
+select ok((select p.proconfig::text like '%search_path=\\"\\"%' from pg_proc p where p.oid = 'private.precio_linea_venta(uuid,uuid,text,integer,numeric,timestamptz,boolean,uuid)'::regprocedure),
   'precio_linea_venta con search_path vacío');
 select is(has_function_privilege('authenticated', 'public.guardar_lineas_comprobante(uuid,jsonb,timestamptz)', 'execute'), true,
   'authenticated sigue ejecutando guardar_lineas_comprobante (firma intacta)');
@@ -323,8 +323,15 @@ select is(has_function_privilege('anon', 'public.copiar_presupuesto(uuid)', 'exe
 -- Bandera por defecto: apagada (T000 en una base local con el seed)
 -- ============================================================================
 
+-- La bandera nace apagada: se comprueba por el default de la columna (el valor sembrado de una base viva puede estar
+-- encendido a propósito) y el test fija él mismo el estado que necesita, sin depender del entorno (en dev suele estar encendida).
+select is(
+  (select column_default from information_schema.columns where table_schema = 'public' and table_name = 'banderas_plataforma' and column_name = 'activa'),
+  'false', 'T000: las banderas de plataforma nacen APAGADAS (default false)'
+);
+select pg_temp.bandera(false);
 select is((select activa from public.banderas_plataforma where clave = 'promociones_precio'), false,
-  'T000: en una base local con el seed la bandera promociones_precio nace APAGADA');
+  'T000: el test fija la bandera promociones_precio APAGADA para probar el comportamiento legado');
 
 -- ============================================================================
 -- Armado de los comprobantes (los vende el operador de la tienda A; B la vende «mixto»)
@@ -650,7 +657,7 @@ update dominio.promociones_precio set precio_promocional = 900, desde = now() - 
  where id = 'e1000000-0000-0000-0000-000000000001';
 
 -- ============================================================================
--- Copiar presupuesto (FR-010): misma función, SIN descuento del cliente, manual conservado
+-- Copiar presupuesto (FR-010, S2 = MSF-933): misma función y descuento del cliente (gana el más bajo), manual conservado
 -- ============================================================================
 
 select pg_temp.bandera(false);
@@ -664,13 +671,13 @@ grant select, insert on copias to public;
 insert into copias select 'apagada', c.id from public.copiar_presupuesto(pg_temp.id_de('pres')) c;
 select is((select string_agg(l.precio_unitario::text || ':' || l.descuento_pct::text || ':' || coalesce(l.precio_referencia::text, '-'), ' ' order by l.orden)
              from dominio.comprobantes_venta_lineas l where l.comprobante_id = (select id from copias where clave = 'apagada')),
-  '1000.00:0.00:- 640.00:0.00:-', 'copiar con bandera apagada: igual que hoy (lista sin descuento del cliente, manual conservado, sin referencia)');
+  '950.00:5.00:- 640.00:0.00:-', 'copiar con bandera apagada: cobra el descuento del cliente 5 % (950) como el mostrador, manual conservado, sin referencia');
 select pg_temp.bandera(true);
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 insert into copias select 'encendida', c.id from public.copiar_presupuesto(pg_temp.id_de('pres')) c;
 select is((select string_agg(l.precio_unitario::text || ':' || l.descuento_pct::text || ':' || coalesce(l.precio_referencia::text, '-'), ' ' order by l.orden)
              from dominio.comprobantes_venta_lineas l where l.comprobante_id = (select id from copias where clave = 'encendida')),
-  '900.00:0.00:1000.00 640.00:0.00:-', 'copiar con bandera encendida: promoción 900 (referencia 1000 sin descuento del cliente) y el manual conservado');
+  '900.00:0.00:950.00 640.00:0.00:-', 'copiar con bandera encendida: promoción 900 (gana al descuento 950, que queda de referencia; sin acumular) y el manual conservado');
 select is((select l.promocion_id from dominio.comprobantes_venta_lineas l
             where l.comprobante_id = (select id from copias where clave = 'encendida') order by l.orden limit 1),
   'e1000000-0000-0000-0000-000000000001'::uuid, 'la copia guarda la promoción aplicada');

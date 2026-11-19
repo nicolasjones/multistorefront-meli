@@ -19,6 +19,13 @@ export const AYUDA_CANAL_ML = 'Mercado Libre no está disponible todavía como c
 
 export const ETIQUETA_TIPO: Readonly<Record<TipoComprobante, string>> = { factura: 'Factura', presupuesto: 'Presupuesto' }
 
+// Título de un comprobante abierto. `obtener_comprobante` también devuelve notas de crédito (se abren desde el
+// listado) y su tipo no está en `ETIQUETA_TIPO`: sin esto el título decía «undefined 00000001» (MSF-628).
+export function tituloComprobante(tipo: string, numero: string): string {
+  const etiqueta = tipo === 'nota_credito' ? 'Nota de crédito' : (ETIQUETA_TIPO as Readonly<Record<string, string>>)[tipo] ?? 'Comprobante'
+  return `${etiqueta} ${numero}`
+}
+
 export type ClienteComprobante = {
   id: string
   nombre: string
@@ -152,15 +159,29 @@ export function errorDeCampo(error: unknown): { campo: CampoComprobante; mensaje
   return campo ? { campo, mensaje: e.message } : null
 }
 
+// Texto fijo para una validación de la base sin campo asociado: el `message` crudo del servidor no se muestra.
+export const MENSAJE_DATO_INVALIDO_COMPROBANTE = 'Hay un dato del comprobante que no es válido. Revisá lo cargado y probá de nuevo.'
+
+// Catálogo de validaciones de la base sin campo (`hint`) que sí se muestran tal cual, porque son accionables y llevan el
+// nombre del producto que armó la propia función: la línea que la lista de precios del cliente lleva a cero.
+const VALIDACIONES_CONOCIDAS: readonly RegExp[] = [
+  /^El producto «[^»\n]{1,200}»(?: \(línea \d{1,4}\))? queda sin precio con la lista de precios del cliente \(el descuento lo lleva a cero\)$/,
+]
+
 export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): string {
-  console.error(porDefecto, error)
   const e = error as ErrorDeBase
+  // Se registra solo el código: el objeto de error completo trae mensaje, detalle y pista del servidor.
+  console.error(porDefecto, e?.code ?? 'sin código')
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '40001') return MENSAJE_CONFLICTO_COMPROBANTE
   if (e?.code === '55000') return MENSAJE_CERRADO
   if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
-  // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
-  if (e?.code === '22023' && e.message) return e.message
+  // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario (el mismo que
+  // `errorDeCampo`) y las del catálogo `VALIDACIONES_CONOCIDAS` también; cualquier otro 22023 muestra un texto fijo.
+  if (e?.code === '22023') {
+    const mensaje = typeof e.message === 'string' ? e.message : ''
+    return mensaje && (CAMPOS.some((campo) => campo === e.hint) || VALIDACIONES_CONOCIDAS.some((patron) => patron.test(mensaje))) ? mensaje : MENSAJE_DATO_INVALIDO_COMPROBANTE
+  }
   return porDefecto
 }
 
@@ -191,7 +212,7 @@ function vacioANulo(texto: string): string | null {
 // `clientes` acota a la organización; sin acceso a Clientes devuelve null y la pantalla muestra «—».
 export async function obtenerClienteParaComprobante(id: string): Promise<ClienteComprobante | null> {
   const { data, error } = await supabaseClient
-    .from('clientes')
+    .schema('dominio').from('clientes')
     .select('id, nombre, documento, direccion, localidad, provincia, tipo, es_consumidor_final')
     .eq('id', id)
     .maybeSingle()

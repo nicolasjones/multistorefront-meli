@@ -46,3 +46,11 @@ export async function leerCapacidadesPrecios(cliente: Pick<SupabaseClient, 'rpc'
     nivelesProductos: niveles,
   }
 }
+
+// MSF-937: solo la bandera `promociones_precio` (una fila de `public.banderas_plataforma`, lectura para autenticados), sin
+// los niveles por tienda que calcula la RPC. Una clave inexistente cuenta como apagada.
+export async function leerBanderaPromociones(cliente: Pick<SupabaseClient, 'from'>): Promise<boolean> {
+  const { data, error } = await cliente.from('banderas_plataforma').select('activa').eq('clave', 'promociones_precio').maybeSingle<{ activa: boolean }>()
+  if (error) throw error
+  return data?.activa === true
+}

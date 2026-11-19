@@ -21,7 +21,7 @@ export const ETIQUETA_ESTADO_DESPACHO: Readonly<Record<EstadoDespacho, string>> 
 // confirmar la factura (MSF-159, FR-031) y al entregar solo se descuentan las reservas «A pedido».
 export const AYUDA_ESTADO_DESPACHO: Readonly<Record<EstadoDespacho, string>> = {
   sin_armar: 'La factura está confirmada y todavía no se armó.',
-  armando: 'Se está armando el pedido en el depósito. El stock sigue reservado.',
+  armando: 'Se está armando el pedido en el depósito. El stock ya se descontó al confirmar la factura.',
   incompleto: 'Faltan productos: el armado quedó incompleto.',
   listo_para_despachar: 'El pedido está controlado y listo para salir.',
   entregado: 'El pedido salió: el stock normal ya se descontó al confirmar y ahora se descontaron las reservas «A pedido».',

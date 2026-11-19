@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
 ---
 
 # Productos y categorías
@@ -60,9 +63,9 @@ Arriba a la derecha de los filtros ves cuántos productos hay (por ejemplo, «99
 | Columna | Qué muestra |
 |---|---|
 | **Producto** | Foto en miniatura, nombre y SKU (el código interno del producto). |
-| **Precio** | Por ahora se ve «—». El precio se carga y se consulta en la ficha del producto. |
+| **Precio** | El precio de lista siempre en pesos. Si el producto está en dólares, se muestra el equivalente en pesos con la última cotización y los dólares entre paréntesis; si falta la cotización dice «(sin cotización)». Si el producto no tiene precio, se ve «—». |
 | **Costo** | Lo que te cuesta el producto, en la moneda en que lo cargaste. Solo aparece si tu rol puede ver costos. |
-| **Margen** | Por ahora se ve «—». Para ver márgenes usá [Rentabilidad](rentabilidad.md). |
+| **Margen** | Margen estimado: (precio de lista − costo) / precio de lista, en pesos; no incluye impuestos ni descuentos (al pasar el cursor lo aclara). Se ve «—» si falta el precio o el costo. Solo aparece si tu rol tiene acceso a Rentabilidad, porque el margen permite deducir el costo. Para márgenes reales de ventas usá [Rentabilidad](rentabilidad.md). |
 | **Stock** | La disponibilidad del producto (ver más abajo). |
 | **Categoría** | La categoría y, si tiene, la subcategoría (por ejemplo, «Herramientas > Limpieza»). |
 | **Visible en** | Una etiqueta por tienda: **rellena** si el producto se vende ahí, **con contorno** si no. |

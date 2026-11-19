@@ -6,8 +6,8 @@ import type { I18nProvider } from '@refinedev/core'
 // textos fijos y no pasa por aquí.
 // No es una app multi-idioma: un solo locale ('es'), sin selector.
 const TRADUCCIONES: Record<string, string> = {
-  'documentTitle.default': 'Automation Platform Template',
-  'documentTitle.suffix': ' | Automation Platform Template',
+  'documentTitle.default': 'Gestión comercial',
+  'documentTitle.suffix': ' | Gestión comercial',
   // CreateButton/EditButton (@refinedev/mui) — únicos botones default de
   // Refine que este proyecto usa sin envoltorio propio (organizaciones,
   // servidores, clientes, conexiones, miembros).

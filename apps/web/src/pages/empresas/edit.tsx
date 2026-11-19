@@ -1,7 +1,8 @@
+import { CampoDominioEmpresa } from '../../components/empresas/CampoDominioEmpresa'
 import { type ChangeEvent, type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
-import { Box, Button, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { supabaseClient } from '../../lib/supabase'
@@ -11,7 +12,8 @@ import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
-import { normalizarCuit } from '../../lib/cuit'
+import { normalizarCuit, validarCuit } from '../../lib/cuit'
+import { avisoFormatoWhatsapp } from '../../lib/whatsapp'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
 
@@ -31,7 +33,6 @@ type Errores = Partial<Record<'nombre' | 'correo' | 'horarios' | 'cuit' | 'razon
 const MAX_HORARIOS = 200
 
 const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const CUIT_VALIDO = /^\d{11}$/
 
 const aFormulario = (datos: DatosGeneralesEmpresa): Formulario => ({
   nombre: datos.nombre,
@@ -67,7 +68,10 @@ function validar(formulario: Formulario): Errores {
   if (correo !== '' && !CORREO_VALIDO.test(correo)) errores.correo = 'Ingresá un correo con formato válido.'
   if (formulario.horarios.trim().length > MAX_HORARIOS) errores.horarios = `Los horarios admiten hasta ${MAX_HORARIOS} caracteres.`
   const cuit = normalizarCuit(formulario.cuit)
-  if (cuit !== '' && !CUIT_VALIDO.test(cuit)) errores.cuit = 'El CUIT debe tener 11 dígitos.'
+  if (cuit !== '') {
+    const resultado = validarCuit(cuit)
+    if (!resultado.valido) errores.cuit = resultado.motivo
+  }
   if (formulario.razon_social.trim().length > 200) errores.razon_social = 'La razón social admite hasta 200 caracteres.'
   return errores
 }
@@ -200,7 +204,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <EstadoError titulo="Solo lectura" descripcion="Solo los administradores pueden editar los datos de la empresa." /> : null}
+          {soloLectura ? <Alert severity="info" role="note">Solo lectura: únicamente los administradores pueden editar los datos de la empresa.</Alert> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField
@@ -230,10 +234,18 @@ export function EmpresaEdit() {
               </Button>
             )}
           </Box>
-          <TextField label="Dominio" value="Sin configurar" helperText="Se administra desde «Dominio y publicación»." disabled fullWidth />
+          <CampoDominioEmpresa empresaId={empresa.id} />
           <TextField label="Idioma" value="Español (Argentina)" disabled fullWidth />
           <TextField label="Moneda" value="ARS · Peso argentino" disabled fullWidth />
-          <TextField label="WhatsApp" value={formulario.whatsapp} onChange={cambiar('whatsapp')} disabled={soloLectura} fullWidth />
+          <TextField
+            label="WhatsApp"
+            value={formulario.whatsapp}
+            onChange={cambiar('whatsapp')}
+            helperText={avisoFormatoWhatsapp(formulario.whatsapp) ?? 'Con código de área, por ejemplo +54 9 11 1234-5678.'}
+            slotProps={{ formHelperText: { role: avisoFormatoWhatsapp(formulario.whatsapp) ? 'status' : undefined } }}
+            disabled={soloLectura}
+            fullWidth
+          />
           <TextField
             label="Correo"
             type="email"
