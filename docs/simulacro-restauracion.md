@@ -17,6 +17,11 @@ staging sano), pero **no se corrió**: esta entrega no tiene autorización para 
 firma nada sin ella. No se inventa ningún resultado: la tabla de abajo queda vacía hasta que el
 propietario autorice y firme.
 
+MSF-520 también corrigió el procedimiento de restauración que el simulacro usa: el restore perdía los
+permisos del dump (el panel no habría podido leer) y, por ser atómico, podía abortar sin dejar
+rastro —con el chequeo del paso 5, un restore que no se aplicó ya no se puede firmar como simulacro
+exitoso.
+
 `Desvío:` T018 se cierra sin simulacro por falta de autorización sobre staging. Seguimiento
 trazado: Tarea `seguimiento` en el tracker «Ejecutar y firmar el simulacro de restauración en staging»
 (**MSF-520**, dueño: propietario del producto). Mientras tanto, la restauración sí se comprueba cada semana de
@@ -28,7 +33,7 @@ completo ni mide el tiempo de punta a punta.
 
 | Objetivo | Valor | Cómo se mide |
 |---|---|---|
-| Pérdida máxima de datos | ≤ 24 h | La «caída simulada» (paso 3) menos la hora del último dato que quedó en la base restaurada |
+| Pérdida máxima de datos | ≤ 24 h | La «caída simulada» (paso 3) menos la hora del último dato que quedó en la base restaurada — sobre la base que se comprobó que es la de la copia (paso 5) |
 | Tiempo de recuperación | ≤ 4 h | Desde «se decide restaurar» hasta «el panel responde con datos» |
 
 ## Protocolo
@@ -38,7 +43,13 @@ completo ni mide el tiempo de punta a punta.
    Antes de restaurar, confirmar el destino: `select current_database(), inet_server_addr();` con
    `$DATABASE_URL` tiene que devolver la base y el host de staging; si no coinciden, parar.
 2. Elegir la última copia de base y de imágenes del historial (`public.respaldos`,
-   `public.respaldos_imagenes`) y anotar sus fechas y ubicaciones.
+   `public.respaldos_imagenes`) y anotar sus fechas y ubicaciones. De la copia de base anotar
+   además su `iniciado_en` (el instante de la foto): es el reloj del paso 5.
+
+   La copia tiene que ser **anterior al último dato de la tabla testigo** (el `ultimo_dato_vivo` del
+   paso 3). Si entre la copia y el simulacro no hubo escrituras, no hay pérdida que medir y el paso 5
+   no puede distinguir una base restaurada de una base sin restaurar: en ese caso, elegir una copia
+   más vieja.
 3. **Marcar la caída simulada** (antes de restaurar; después no queda la base viva para consultarla):
 
    ```sql
@@ -50,11 +61,26 @@ completo ni mide el tiempo de punta a punta.
    último dato que existía en vivo. La tabla testigo es la que tenga escritura reciente
    (`public.registro_actividad` es la de referencia; si está vacía en staging, se usa otra y se anota
    cuál se usó). Con esos dos valores la pérdida se mide como un número, no de memoria.
-4. Restaurar la base (sección A de la guía) y las imágenes (sección B).
-5. **Reaplicar y verificar los roles/grants.** `pg_restore --no-privileges` no aplica los ACL del
-   dump: las funciones `security definer` del historial quedarían ejecutables por `anon` y las tablas
-   sin lectura para `authenticated`. Ejecutar el paso 5 de la sección A
-   (`select private.reaplicar_privilegios_copias();`) y comprobar:
+4. Restaurar la base (sección A de la guía) y las imágenes (sección B). El restore aplica los
+   permisos del dump y es atómico: si aborta, **la base queda como estaba** y no se restauró nada.
+5. **Comprobar que la base restaurada es la de la copia.** Un restore que aborta deja la base viva:
+   el panel seguiría respondiendo con los datos de siempre y la pérdida mediría 0 — un simulacro
+   así se firmaría como verde mentiroso. Sobre la base restaurada, con la tabla testigo del paso 3
+   (si se usó otra, la consulta es sobre esa):
+
+   ```sql
+   select max(creado_en) as ultimo_dato_restaurado from public.registro_actividad;
+   ```
+
+   Lo esperado es `ultimo_dato_restaurado` **anterior o igual** al `iniciado_en` de la copia (paso
+   2): la base tiene los datos de la foto, no los que estaban vivos. Si es posterior, el restore no
+   se aplicó: **el simulacro se detiene**, el problema se anota en el registro y no se mide ni se
+   firma. La prueba principal de que el restore se aplicó es que `pg_restore` haya salido con código
+   0: con `--single-transaction` (que implica `--exit-on-error`), si sale con error no se restauró
+   nada.
+6. **Reaplicar y verificar los roles/grants.** El dump repone los permisos que la copia tenía; si
+   la copia es más vieja que la migración que los fijó, deja los viejos. Ejecutar el paso 6 de la
+   sección A (`select private.reaplicar_privilegios_copias();`) y comprobar:
 
    ```sql
    select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
@@ -65,18 +91,20 @@ completo ni mide el tiempo de punta a punta.
    Lo esperado es `true / false / false` para cada una de las nueve funciones del historial (las de
    `supabase/tests/database/copias_imagenes_verificaciones.test.sql`) y `authenticated` con lectura
    sobre `public.respaldos`, `public.respaldos_imagenes` y `public.verificaciones_restauracion`
-   (la RLS las filtra por superadmin).
-6. **Probar el aviso por correo.** Con la app levantada, ejecutar a mano `aviso-fallo-copias` desde la UI
+   (la RLS las filtra por superadmin). Además, lo que el panel necesita para servir datos: `USAGE`
+   de `authenticated` sobre `private` y lectura de `authenticated` sobre `public.organizaciones` y
+   `dominio.empresas`, sin lectura de `anon` (el paso 7 de la sección A).
+7. **Probar el aviso por correo.** Con la app levantada, ejecutar a mano `aviso-fallo-copias` desde la UI
    de Kestra y confirmar que el correo llega a `SOPORTE_CORREO`. Los flows avisan con
    `transmitFailed: false`: si el SMTP no está configurado (valores por defecto de ejemplo) el aviso se
    pierde en silencio y el simulacro no cierra.
-7. Comprobar: el panel inicia sesión, una organización conocida lista sus datos y una imagen del
+8. Comprobar: el panel inicia sesión, una organización conocida lista sus datos y una imagen del
    catálogo se ve.
-8. **Dejar staging sano** antes de cerrar: `respaldo-postgres` a mano (copia fresca post-restauración),
+9. **Dejar staging sano** antes de cerrar: `respaldo-postgres` a mano (copia fresca post-restauración),
    `verificar-restauracion` en verde, Kestra, workers y app levantados, y el panel respondiendo con
    datos. Si algo quedó a medias, se anota en el registro como problema encontrado.
-9. Anotar la hora de fin, medir la pérdida (la `caida_simulada` del paso 3 menos la hora del último
-   dato de la tabla testigo en la base restaurada) y completar el registro.
+10. Anotar la hora de fin, medir la pérdida (la `caida_simulada` del paso 3 menos la hora del último
+    dato de la tabla testigo en la base restaurada) y completar el registro.
 
 ## Registro del simulacro
 

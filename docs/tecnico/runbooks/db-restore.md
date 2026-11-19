@@ -23,17 +23,26 @@ sources:
 3. Restaurar en una base **temporal** primero; validar conteos y tablas críticas.
 4. Recién entonces restaurar la base real (o promover la temporal). El restore documentado en
    [copias-y-restauracion.md](../../copias-y-restauracion.md#procedimiento-guiado-de-restauracion)
-   usa `pg_restore --no-privileges`: el paso 5 de esa sección A (reaplicar privilegios) es obligatorio.
-5. **Reaplicar los privilegios**: `select private.reaplicar_privilegios_copias();` con la misma
-   conexión `postgres` del restore. Sin ese paso las funciones `security definer` del historial de
-   copias quedan ejecutables por `PUBLIC` (cualquiera podría escribir el historial) y las tablas
-   `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion` quedan sin lectura para
-   `authenticated`. Comprobarlo con `has_function_privilege`: sólo `kestra_backups` debe tener
-   `EXECUTE`.
-6. Verificar RLS/roles/grants y volver a habilitar escrituras.
+   aplica los permisos del dump (no usa `--no-privileges`: si los perdiera, el panel no leería) y
+   es atómico (`--single-transaction` implica `--exit-on-error`): si aborta, la base queda como
+   estaba. Si el comando sale con error, **no se restauró nada**.
+5. **Aplicar las migraciones pendientes** (`supabase db push --db-url`) y **reaplicar los
+   privilegios del historial de copias**: `select private.reaplicar_privilegios_copias();` con la
+   misma conexión `postgres` del restore. El dump repone los permisos que la copia tenía; si la
+   copia es más vieja que la migración que los fijó, quedan los viejos: las funciones `security
+   definer` del historial quedarían ejecutables por `PUBLIC` (cualquiera podría escribir el
+   historial) y las tablas `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion`
+   quedarían sin lectura para `authenticated`. Comprobarlo con `has_function_privilege`: sólo
+   `kestra_backups` debe tener `EXECUTE`.
+6. Verificar RLS/roles/grants —incluido lo que el panel necesita para servir datos: `USAGE` de
+   `authenticated` sobre `private` y lectura de `authenticated` sobre `public.organizaciones` y
+   `dominio.empresas`, sin lectura de `anon`— y volver a habilitar escrituras.
 
 ## Verificación
 
+- La base restaurada tiene los datos de la copia, no los que estaban vivos: el último dato de la
+  tabla testigo es anterior al `iniciado_en` de la copia. Un restore abortado deja la base viva y
+  el panel responde igual (verde mentiroso).
 - Conteos de tablas críticas y última actividad coherentes.
 - Login y una operación de lectura/escritura funcionan.
 - `rls_en_toda_tabla` / pgTAP de aislamiento en verde.

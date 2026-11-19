@@ -170,49 +170,89 @@ ejecución de Kestra.
 
 1. **Elegir la copia.** La última `completado` de `public.respaldos` (columna `ubicacion`, p. ej.
    `respaldos:/respaldos/base/20261018-030000-12.dump`) o la anterior si se sospecha corrupción.
-   Con destino local el archivo es `<RESPALDOS_DIR_HOST>/base/<nombre>.dump`.
+   Con destino local el archivo es `<RESPALDOS_DIR_HOST>/base/<nombre>.dump`. Anotar su
+   `iniciado_en` (el instante de la foto): es el reloj contra el que se comprueba, después del
+   restore, que la base restaurada es la de la copia y no la que estaba viva.
 2. **Traer el archivo** al host donde se restaura (si el destino es remoto:
    `rclone copyto respaldos:<ruta>/base/<nombre>.dump ./respaldo.dump` con las variables
    `RCLONE_CONFIG_RESPALDOS_*` equivalentes).
 3. **Detener la escritura**: apagar la app (`web`), los workers y Kestra para que nada escriba
    mientras se restaura.
-4. **Restaurar** sobre una base vacía (nueva instancia o base recreada del Supabase self-hosted):
+4. **Restaurar.** El destino del simulacro es la **misma** base de la que salió la copia (staging):
+   es el camino real y los roles y extensiones ya existen. En un incidente, una base nueva del
+   Supabase self-hosted sirve igual si tiene los mismos roles.
 
    ```bash
-   pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner --no-privileges \
+   pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner \
      --single-transaction respaldo.dump
    ```
 
-   Los roles y extensiones propios de Supabase deben existir ya en el destino (instancia nueva de
-   Supabase self-hosted). Revisar los errores que muestre `pg_restore`.
-5. **Reaplicar los privilegios del historial de copias.** `--no-privileges` no aplica los ACL del
-   dump: las nueve funciones `security definer` del historial (`iniciar_respaldo`,
-   `finalizar_respaldo_completado`, `finalizar_respaldo_error`, `iniciar_respaldo_imagenes`,
+   - **El restore aplica los permisos del dump.** No se usa `--no-privileges`: el dump los lleva
+     (`pg_dump --format=custom` los incluye salvo `--no-acl`, y así se hace en
+     `infra/kestra/flows/respaldo-postgres.yml:86`) y el restore los repone. Con `--no-privileges`,
+     el `--clean` recrearía cada objeto con los permisos por defecto y la base quedaría sin los
+     `grant` explícitos de las migraciones: en este proyecto los permisos son explícitos por tabla
+     (`auto_expose_new_tables = false`, `supabase/config.toml:26`) y el panel no leería nada.
+   - **El restore es atómico.** `--single-transaction` implica `--exit-on-error` (PostgreSQL 17,
+     `src/bin/pg_dump/pg_restore.c`): ante el primer error `pg_restore` aborta y **la base queda
+     como estaba** (no se restaura a medias). Si el comando sale con error, no se restauró nada:
+     hay que corregir la causa y reintentar. No es un aviso que se pueda ignorar.
+   - Los roles del dump deben existir en el destino (en staging, la misma base: ya están). Si
+     faltara alguno, el restore aborta con «role … does not exist».
+5. **Aplicar las migraciones pendientes** sobre la base restaurada: la copia es de un día anterior y
+   el panel de hoy puede usar columnas o RPC que la base restaurada no tiene. Es el mismo mecanismo
+   del deploy (`supabase db push --db-url`, `scripts/migrar-supabase-cloud.mjs:23`):
+
+   ```bash
+   supabase db push --db-url "$DATABASE_URL"
+   ```
+
+   La contraseña no debería viajar en `argv` (queda en `ps` y en `/proc`): el deploy del repo lo
+   resuelve quitándole la clave a la URL y pasándola por `PGPASSWORD`
+   (`scripts/migrar-supabase-cloud.mjs:14-24`).
+
+   Las migraciones que la copia ya tenía aplicadas no se vuelven a correr: sus permisos ya venían
+   en el dump.
+6. **Reaplicar los privilegios del historial de copias.** El dump repone los permisos que la copia
+   tenía; si la copia es más vieja que la migración que los fijó, deja los viejos. Las nueve
+   funciones `security definer` del historial (`iniciar_respaldo`, `finalizar_respaldo_completado`,
+   `finalizar_respaldo_error`, `iniciar_respaldo_imagenes`,
    `finalizar_respaldo_imagenes_completado`, `finalizar_respaldo_imagenes_error`,
    `iniciar_verificacion_restauracion`, `finalizar_verificacion_completado` y
-   `finalizar_verificacion_error`) quedan ejecutables por `PUBLIC` —`anon` podría escribir el
-   historial— y las tablas `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion` quedan sin
-   lectura para `authenticated`. Ejecutar, con la misma conexión `postgres` del restore:
+   `finalizar_verificacion_error`) volverían a quedar ejecutables por `PUBLIC` —`anon` podría
+   escribir el historial— y las tablas `respaldos`, `respaldos_imagenes` y
+   `verificaciones_restauracion` quedarían sin lectura para `authenticated`. Ejecutar, con la misma
+   conexión `postgres` del restore:
 
    ```bash
    psql "$DATABASE_URL" -c 'select private.reaplicar_privilegios_copias();'
    ```
 
-   Y comprobarlo (mismo criterio que el pgTAP
-   `supabase/tests/database/copias_imagenes_verificaciones.test.sql`):
+   Cubre el historial de copias; el resto de los permisos viene del dump y de las migraciones
+   pendientes. Si la base restaurada es más vieja que la migración que creó la función, aplicar
+   antes las migraciones pendientes (paso 5): el paso necesita que la función exista.
+   (El encabezado de la migración `20270418000301_reaplica_privilegios_copias.sql` describe el
+   procedimiento anterior, con `--no-privileges`: la migración ya está aplicada y no se edita.)
+7. **Verificar los permisos.** Lo que el panel necesita para servir datos y lo que el historial
+   necesita para ser auditable (mismo criterio que los pgTAP
+   `supabase/tests/database/copias_imagenes_verificaciones.test.sql` y
+   `copias_restauracion_privilegios_msf520.test.sql`):
 
    ```sql
-   select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
-          has_function_privilege('authenticated', 'public.iniciar_respaldo(text)', 'EXECUTE') as autenticado,
-          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
+   select has_schema_privilege('authenticated', 'private', 'USAGE') as private,
+          has_table_privilege('authenticated', 'public.organizaciones', 'SELECT') as organizaciones,
+          has_table_privilege('authenticated', 'dominio.empresas', 'SELECT') as empresas,
+          has_table_privilege('anon', 'public.organizaciones', 'SELECT') as anon_organizaciones,
+          has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
+          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon_historial;
    ```
 
-   Lo esperado es `true / false / false` en las nueve funciones. Si la base restaurada es más vieja que
-   la migración que creó la función, aplicar antes las migraciones pendientes
-   (`supabase migration up`): el paso necesita que la función exista.
-6. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
+   Lo esperado: `private`, `organizaciones`, `empresas` y `kestra` en `true`; `anon_organizaciones` y
+   `anon_historial` en `false`. Y `true / false / false` para cada una de las nueve funciones del
+   historial.
+8. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
    entrar a la app con un superadmin.
-7. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
+9. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
    una copia fresca post-restauración.
 
 ### B. Imágenes (Storage)

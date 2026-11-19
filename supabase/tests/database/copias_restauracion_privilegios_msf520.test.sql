@@ -1,11 +1,12 @@
 -- MSF-520: los privilegios del historial de copias después de un restore.
 --
--- El procedimiento de restauración usa `pg_restore --no-privileges` (sección A de
--- `docs/copias-y-restauracion.md`): con esa opción el restore NO aplica los ACL del dump. Las funciones
--- `security definer` del historial recuperan el permiso por defecto de Postgres (EXECUTE para PUBLIC) y
--- las tablas quedan sin `grant select` para `authenticated`. Este test simula ese estado (como lo deja el
--- restore) y comprueba que `private.reaplicar_privilegios_copias()` lo deja como corresponde: el
--- invariante de `copias_imagenes_verificaciones.test.sql` (líneas 29-50).
+-- El restore del simulacro aplica los permisos del dump (sección A de
+-- `docs/copias-y-restauracion.md`): el dump los lleva y el restore los repone. Pero si la copia es más
+-- vieja que la migración que fijó esos permisos, el dump trae los viejos: las funciones `security
+-- definer` del historial recuperan el permiso por defecto de Postgres (EXECUTE para PUBLIC) y las
+-- tablas quedan sin `grant select` para `authenticated`. Este test simula ese estado (como lo deja
+-- una copia vieja) y comprueba que `private.reaplicar_privilegios_copias()` lo deja como corresponde:
+-- el invariante de `copias_imagenes_verificaciones.test.sql` (líneas 29-50).
 begin;
 
 select plan(19);
@@ -32,7 +33,8 @@ select is(
 );
 
 -- ============================================================================
--- Restore simulado: sin `--no-privileges` no se aplicarían estos ACL
+-- Restore simulado: una copia más vieja que la migración de los permisos deja
+-- estos ACL (los viejos)
 -- ============================================================================
 
 grant execute on function public.iniciar_respaldo(text) to public;
