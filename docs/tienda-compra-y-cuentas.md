@@ -320,10 +320,17 @@ emitir se registra solo con `sqlstate` y no frena el alta.
   habilita el botón al cumplirse la espera (si el que da `limite` es la revisión previa al envío, el aviso es «No pudimos revisar tu lista.»); cada campo se valida también **al salir** de él, con `maxLength` igual al del servidor (nombre 100, contacto 120); la confirmación dice «Recibimos tu pedido… No se cobró nada.» y vacía la lista. Con la bandeja apagada es la 404 de la tienda.
 - `LISTA_DE_PEDIDO_DISPONIBLE = true` en `lib/tiendaCapacidades.ts`: aparecen «Mi lista» (menú móvil) y «Agregar a la lista» (Favoritos); cada control se dibuja solo con la función encendida.
 
-### Retención de los datos (D-20)
+### Retención de los datos (D-20, MSF-944)
 
-**No hay purga automática** de consultas ni de ítems de pedido en esta épica: no se inventa un plazo legal, y **la supresión por titular** (que un visitante pida borrar sus datos) tampoco existe como función: queda como seguimiento (T072). Se guarda lo mínimo (nombre, contacto, nota e ítems; sin dirección, DNI ni CUIT; la IP nunca), lo ve solo
-quien tiene la sección `consultas` ≥ lectura en esa empresa y no se borra solo. Cómo borrar a mano y el seguimiento trazado: [`consultas.md`](./consultas.md#pedidos-de-la-tienda-b1-msf-176).
+**La purga automática y la supresión por titular se hicieron en MSF-944**: el flow de Kestra
+`purgar-consultas-tienda` purga cada día, pasado el plazo de `TIENDA_CONSULTAS_RETENCION_DIAS` (180
+días por defecto), las consultas de la tienda que no están «En curso», con sus ítems y las copias de
+sus avisos, y vacía la nota de los presupuestos vencidos sin tocar el comprobante fiscal. La
+supresión a pedido del titular (`private.suprimir_titular_tienda`) anonimiza sus consultas, borra sus
+ítems y vacía la nota de sus presupuestos; es un procedimiento del equipo técnico. Se guarda lo mínimo
+(nombre, contacto, nota e ítems; sin dirección, DNI ni CUIT; la IP nunca) y lo ve solo quien tiene la
+sección `consultas` ≥ lectura en esa empresa. Detalle y cómo pedir la supresión:
+[`consultas.md`](./consultas.md#retencion-de-los-pedidos-d-20-msf-944).
 
 ### Pruebas de B1
 
@@ -395,7 +402,7 @@ Es el **único** lugar que arma las líneas: la cotización y la creación lo us
 - **Ventas › Presupuestos** (y el CSV de comprobantes y presupuestos): «Pendiente», la columna Operador dice «Tienda online (cliente)» (antes «Usuario sin nombre»). El origen se deriva del **vínculo real** (`dominio.presupuestos_tienda`), no del canal ni de un operador nulo: cambiar el canal no pierde la etiqueta y un presupuesto de panel con canal `tienda_online` y operador borrado **no** se rotula como de la tienda (`listar_presupuestos`, `private.comprobantes_consulta` y `obtener_comprobante`, migraciones `…100500` y `…100600`).
 - **Ficha del comprobante**: chip «Creado desde la tienda por el cliente», Operador «Tienda online (cliente)» y la «Nota del cliente» (texto literal). Se modifica, acepta y copia con los flujos de siempre. **Un presupuesto no se anula** (el flujo vigente solo anula facturas confirmadas): queda `pendiente` hasta que el operador lo acepta o lo convierte; el pgTAP lo fija igual para uno de la tienda que para uno de panel.
 - **Actividad**: el evento se rotula «Tienda online» en «Quién» (lista, detalle y exportación); los demás eventos sin actor siguen diciendo «Sistema».
-- «Crear presupuesto desde la consulta» (**MSF-941**): **hecho** sin migración, en el detalle de la consulta de origen «Pedido» (ver `consultas.md`, «Pedidos de la tienda»). Aviso al equipo por presupuesto nuevo (**MSF-940**) y filtro por canal (**MSF-942**): **hechos** (ver «Seguimientos hechos»). Siguen **fuera** (D-21, D-22): **MSF-943** (validez por defecto) y **MSF-944** (retención y supresión de consultas, ítems de pedido y presupuestos de la tienda).
+- «Crear presupuesto desde la consulta» (**MSF-941**): **hecho** sin migración, en el detalle de la consulta de origen «Pedido» (ver `consultas.md`, «Pedidos de la tienda»). Aviso al equipo por presupuesto nuevo (**MSF-940**) y filtro por canal (**MSF-942**): **hechos** (ver «Seguimientos hechos»). La retención y la supresión (**MSF-944**) también están **hechas** (ver «Retención de los datos»). Sigue **fuera** (D-22): **MSF-943** (validez por defecto).
 
 ### Seguimientos hechos: filtro por canal (MSF-942) y aviso al equipo (MSF-940)
 
@@ -416,7 +423,7 @@ Los dos exigían migración y se hicieron en el lote 19 (`20270507130000` y `202
 - **I-2 (costo del catálogo efectivo)**: medido con un catálogo de **5.000 productos** en una tienda (stack local de Postgres 17): `private.catalogo_tienda_efectivo` tarda **7 a 12 ms**; el motor completo (catálogo efectivo + precio de cada línea) tarda **14 ms con 1 línea y 43 a 48 ms con 50 líneas**. El cupo de llamadas por cuenta (10 y 20 por minuto) acota el costo máximo por cuenta a unos 2 s de CPU por minuto en el peor caso.
 - **I-3 (idempotencia)**: repetir una `clave_envio` devuelve el presupuesto **ya creado** con su total **actual** (si el operador lo modificó entre tanto, el total que ve el cliente en el reintento es el vigente, no el original) y no crea otro.
 - **I-4 (sin vencimiento automático)**: el presupuesto nace sin validez (D-13, D-21), nunca vence solo y el operador no puede anularlo: **10 abiertos bloquean a la cuenta hasta que el operador acepte o convierta alguno** (el cliente ve «Ya tenés presupuestos abiertos…»). Es una decisión de negocio; la validez por defecto es MSF-943.
-- **I-5 (retención y supresión)**: las consultas, los ítems de pedido, los presupuestos de la tienda y sus notas **no se purgan solos** y no hay supresión por titular automática: **MSF-944**. Mientras tanto se borra a mano (ver `docs/consultas.md`).
+- **I-5 (retención y supresión)**: **MSF-944** la implementó. El flow `purgar-consultas-tienda` purga a diario las consultas vencidas (salvo «En curso»), sus ítems y las copias de los avisos, y vacía la nota de los presupuestos vencidos; `private.suprimir_titular_tienda` hace la supresión a pedido del titular como procedimiento técnico. El comprobante fiscal no se borra. Ver `docs/consultas.md`.
 
 ### Cómo apagarlo
 

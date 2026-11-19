@@ -192,6 +192,8 @@ services:
       ENV_API_WEBHOOKS_LOTE: ${API_WEBHOOKS_LOTE:-20}
       # Retención (días) de la auditoría de llamadas de la API (flow purgar-api-llamadas.yml).
       ENV_API_AUDITORIA_RETENCION_DIAS: ${API_AUDITORIA_RETENCION_DIAS:-90}
+      # Retención (días) de las consultas y las notas de presupuestos de la tienda (flow purgar-consultas-tienda.yml).
+      ENV_TIENDA_CONSULTAS_RETENCION_DIAS: ${TIENDA_CONSULTAS_RETENCION_DIAS:-180}
       # Envío de WhatsApp al cliente (MSF-952, flow reparaciones-aviso-whatsapp): URL del proveedor de mensajería,
       # nombre de la plantilla aprobada y token del proveedor. El proveedor concreto lo elige y lo contrata el
       # cliente (MSF-118, D-1): hasta entonces quedan vacíos y los avisos se cierran como fallidos.

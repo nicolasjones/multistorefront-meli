@@ -1,0 +1,47 @@
+# MSF-944 · Seguimiento de MSF-176 (T063 y T072; D-20/D-21/D-22): retención de las consultas de la
+# tienda, sus ítems y las notas de los presupuestos.
+#
+# La base solo purga lo vencido (`private.purgar_consultas_tienda`, plazo de 180 días por defecto) y
+# la corrida es idempotente: una segunda pasada sin datos vencidos no borra nada. La dispara este flow
+# y no `pg_cron` (en el repo no hay pg_cron), como la retención de la auditoría de la API.
+#
+# Rol de base: kestra_orquestacion (único rol de servicio de Kestra), solo EXECUTE sobre
+# `private.purgar_consultas_tienda`.
+#
+# Variables: TIENDA_CONSULTAS_RETENCION_DIAS; ver infra/kestra/.env.example.
+id: purgar-consultas-tienda
+namespace: producto.ventas
+labels:
+  capa: producto
+  dominio: ventas
+  componente: consultas-retencion
+description: "Purga por retención las consultas y las notas de presupuestos de la tienda que vencieron."
+inputs:
+  - id: retencion_dias
+    type: STRING
+    required: false
+    description: "Días de retención de las consultas de la tienda (por defecto TIENDA_CONSULTAS_RETENCION_DIAS)."
+tasks:
+  - id: purgar
+    type: io.kestra.plugin.jdbc.postgresql.Query
+    url: "{{ envs.kestra_orquestacion_db_url }}"
+    username: kestra_orquestacion
+    password: "{{ envs.kestra_orquestacion_db_password }}"
+    sql: select private.purgar_consultas_tienda(CAST(:retencion AS integer));
+    parameters:
+      retencion: "{{ inputs.retencion_dias ?? envs.tienda_consultas_retencion_dias ?? 180 }}"
+errors:
+  - id: avisar_fallo
+    type: io.kestra.plugin.core.flow.Subflow
+    namespace: platform.api
+    flowId: aviso-fallo-api
+    wait: true
+    transmitFailed: false
+    inputs:
+      flujo: purgar-consultas-tienda
+      ejecucion: "{{ execution.id }}"
+      motivo: "{{ tasksWithState('FAILED')[0]['taskId'] }}: {{ errorLogs()[0]['message'] }}"
+triggers:
+  - id: diario
+    type: io.kestra.plugin.core.trigger.Schedule
+    cron: "45 4 * * *"

@@ -16,10 +16,11 @@
 -- Esquemas (Principio VII, re-verificado tabla por tabla):
 --   * `dominio.consultas` / `dominio.consulta_items` / `dominio.presupuestos_tienda`: `dominio`
 --     (ya lo eran; aquí solo se suma una marca y se leen). Son registros de negocio del producto.
+--   * `dominio.clientes` (la ficha del cliente: correo, teléfono y celular) y `public.cuentas_cliente`
+--     (la cuenta web): se leen SOLO para identificar al titular (su `cliente_id` y su contacto).
 --   * `public.avisos_pendientes`: `public` (cola/outbox de plataforma; ya lo era). La columna nueva
 --     es una referencia a la consulta de la que el aviso es copia.
---   * `public.cuentas_cliente` / `public.clientes` / `auth.users`: `public` (plataforma); SOLO se
---     leen, para identificar al titular (su `cliente_id` y el correo de su cuenta web).
+--   * `auth.users`: se leen SOLO el correo y el teléfono de la cuenta web del titular.
 --   * `private.*`: lógica interna, sin acceso de la API.
 --
 -- Política de retención (D-21 y D-22 de la spec):
@@ -29,6 +30,9 @@
 --   * La `nota` de los presupuestos de la tienda se vacía al superar el plazo. El comprobante de
 --     venta (registro fiscal: importes, estados, líneas, fechas) NO se toca, igual que en
 --     `public.anonimizar_contacto`.
+--   * La copia de los avisos tampoco sobrevive: los avisos de una consulta se van con ella (FK en
+--     cascada) y las copias sueltas que ya vencieron (las anteriores a esta migración, sin consulta
+--     atada) se borran en la misma purga.
 --   * Idempotente: una segunda pasada no borra nada ni suma eventos.
 --
 -- Política de supresión (D-23):
@@ -37,7 +41,7 @@
 --     copia de lo que pidió la persona). La nota de los presupuestos se vacía. El comprobante
 --     fiscal no se toca.
 --   * La cola de avisos: los avisos de esas consultas que aún no se enviaron se borran y los ya
---     enviados pierden las claves con datos personales.
+--     enviados (y las copias sueltas del titular) pierden las claves con datos personales.
 --   * La actividad registra las cantidades, nunca los datos del titular.
 --
 -- Permisos y superficie:
@@ -56,6 +60,7 @@
 --   alter table dominio.presupuestos_tienda drop column if exists suprimido_en;
 --   drop function if exists private.purgar_consultas_tienda(integer);
 --   drop function if exists private.suprimir_titular_tienda(uuid, text);
+--   drop function if exists private.coincide_contacto(text, text);
 --   (recrear `private.emitir_aviso(text, uuid, jsonb, uuid)` y `private.emitir_aviso_consulta(uuid)`
 --    con el cuerpo de 20261210130300 y 20270321100300, y borrar el flow `purgar-consultas-tienda`).
 -- Lo ya purgado o suprimido no se recupera (salvo desde un backup).
@@ -257,7 +262,7 @@ begin
     end if;
     if v_c.cliente_id is not null then
       select 'Nº ' || cl.numero::text || ' · ' || cl.nombre into v_cliente
-        from public.clientes cl
+        from dominio.clientes cl
        where cl.id = v_c.cliente_id and cl.organizacion_id = v_c.organizacion_id;
     end if;
   end if;
@@ -295,9 +300,8 @@ revoke execute on function private.emitir_aviso_consulta(uuid) from public, anon
 -- ============================================================================
 -- 4. Purga por retención
 -- ============================================================================
-insert into public.tipos_evento_actividad (tipo, sensible, descripcion)
-values ('tienda.datos_purgados', false, 'Purga por retención de consultas y notas de presupuestos de la tienda')
-on conflict (tipo) do nothing;
+-- El evento es `sistema.depurada`, el mismo que usa `private.depurar_registro_actividad`: el filtro
+-- de la actividad muestra así también las purgas de la tienda (el detalle las distingue).
 
 create or replace function private.purgar_consultas_tienda(p_retencion_dias integer default 180)
 returns integer
@@ -339,14 +343,25 @@ begin
        where p.nota is not null
          and p.creado_en < v_corte
       returning p.organizacion_id
+    ), avisos as (
+      -- Las copias sueltas de los avisos de consulta (las anteriores a esta migración, sin consulta
+      -- atada) también guardan nombre, contacto y mensaje: si vencieron el plazo, se borran.
+      delete from public.avisos_pendientes a
+       where a.tipo_aviso = 'consulta_nueva'
+         and a.consulta_id is null
+         and a.creado_en < v_corte
+      returning a.organizacion_id
     )
     select x.organizacion_id,
            sum(x.consultas)::integer as consultas,
-           sum(x.notas)::integer as notas
+           sum(x.notas)::integer as notas,
+           sum(x.avisos)::integer as avisos
       from (
-        select b.organizacion_id, 1 as consultas, 0 as notas from borradas b
+        select b.organizacion_id, 1 as consultas, 0 as notas, 0 as avisos from borradas b
         union all
-        select n.organizacion_id, 0 as consultas, 1 as notas from notas n
+        select n.organizacion_id, 0 as consultas, 1 as notas, 0 as avisos from notas n
+        union all
+        select a.organizacion_id, 0 as consultas, 0 as notas, 1 as avisos from avisos a
       ) x
      group by x.organizacion_id
   loop
@@ -354,12 +369,14 @@ begin
     perform private.insertar_actividad(
       r.organizacion_id,
       null,
-      'tienda.datos_purgados',
-      format('Depuró %s %s y %s %s de la tienda con más de %s días',
+      'sistema.depurada',
+      format('Depuró %s %s, %s %s y %s %s de la tienda con más de %s días',
              r.consultas,
              case when r.consultas = 1 then 'consulta' else 'consultas' end,
              r.notas,
              case when r.notas = 1 then 'nota de presupuesto' else 'notas de presupuestos' end,
+             r.avisos,
+             case when r.avisos = 1 then 'copia de aviso' else 'copias de aviso' end,
              p_retencion_dias)
     );
   end loop;
@@ -369,7 +386,7 @@ end;
 $$;
 
 comment on function private.purgar_consultas_tienda(integer) is
-  'MSF-944: purga por retención (180 días por defecto) las consultas de la tienda que no están «en_curso»: sus ítems y sus avisos se van en cascada. Vacía la nota de los presupuestos de la tienda que superaron el plazo (el comprobante de venta no se toca). Deja un evento tienda.datos_purgados por organización. Solo el rol de orquestación; idempotente. Devuelve la cantidad de consultas borradas.';
+  'MSF-944: purga por retención (180 días por defecto) las consultas de la tienda que no están «en_curso»: sus ítems y sus avisos se van en cascada. Vacía la nota de los presupuestos de la tienda que superaron el plazo (el comprobante de venta no se toca) y borra las copias sueltas de los avisos que ya vencieron. Deja un evento sistema.depurada por organización. Solo el rol de orquestación; idempotente. Devuelve la cantidad de consultas borradas.';
 
 revoke execute on function private.purgar_consultas_tienda(integer) from public, anon, authenticated;
 
@@ -380,6 +397,33 @@ insert into public.tipos_evento_actividad (tipo, sensible, descripcion)
 values ('tienda.titular_suprimido', false, 'Supresión a pedido del titular de los datos personales de consultas y presupuestos de la tienda')
 on conflict (tipo) do nothing;
 
+-- El contacto del titular puede ser un correo o un teléfono (FR-010). Correo: se comparan en
+-- minúsculas y sin espacios. Teléfono: se comparan por dígitos y, si los dos se pueden llevar a
+-- formato internacional (misma regla que `private.telefono_whatsapp`), por ese número.
+create or replace function private.coincide_contacto(p_valor text, p_contacto text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(case
+    when p_contacto is null or btrim(p_contacto) = '' then false
+    when position('@' in btrim(p_contacto)) > 0 then
+      lower(btrim(coalesce(p_valor, ''))) = lower(btrim(p_contacto))
+    else
+      (position('@' in coalesce(p_valor, '')) = 0
+       and nullif(regexp_replace(coalesce(p_valor, ''), '\D', '', 'g'), '')
+           = nullif(regexp_replace(btrim(p_contacto), '\D', '', 'g'), ''))
+      or (private.telefono_whatsapp(p_valor, null) is not null
+          and private.telefono_whatsapp(p_valor, null) = private.telefono_whatsapp(btrim(p_contacto), null))
+  end, false);
+$$;
+
+comment on function private.coincide_contacto(text, text) is
+  'MSF-944: el contacto del titular (correo o teléfono) coincide con un valor guardado. Correo: minúsculas y sin espacios. Teléfono: por dígitos o por su número internacional. Sin acceso de API.';
+
+revoke execute on function private.coincide_contacto(text, text) from public, anon, authenticated;
+
 create or replace function private.suprimir_titular_tienda(p_organizacion uuid, p_contacto text)
 returns integer
 language plpgsql
@@ -389,6 +433,7 @@ set search_path = ''
 as $$
 declare
   v_contacto text := lower(btrim(coalesce(p_contacto, '')));
+  v_contactos text[] := '{}'::text[];
   v_clientes uuid[] := '{}'::uuid[];
   v_consultas uuid[] := '{}'::uuid[];
   v_presupuestos integer := 0;
@@ -410,13 +455,49 @@ begin
     raise exception 'Runtime no autorizado para suprimir datos de titulares' using errcode = '42501';
   end if;
 
-  -- El titular puede tener cuenta web: de ahí salen su cliente, sus consultas y sus presupuestos.
-  select coalesce(array_agg(distinct cc.cliente_id), '{}'::uuid[])
+  -- El titular puede tener cuenta web (de ahí salen su cliente, sus consultas y sus presupuestos) o
+  -- no tenerla (entonces lo identifica la ficha del cliente). El contacto es un correo o un teléfono.
+  select coalesce(array_agg(distinct c.id), '{}'::uuid[])
     into v_clientes
-    from public.cuentas_cliente cc
-    join auth.users au on au.id = cc.auth_user_id
-   where cc.organizacion_id = p_organizacion
-     and lower(btrim(coalesce(au.email, ''))) = v_contacto;
+    from (
+      select cc.cliente_id as id
+        from public.cuentas_cliente cc
+        join auth.users au on au.id = cc.auth_user_id
+       where cc.organizacion_id = p_organizacion
+         and (private.coincide_contacto(au.email, v_contacto)
+              or private.coincide_contacto(au.phone, v_contacto))
+      union
+      select cl.id
+        from dominio.clientes cl
+       where cl.organizacion_id = p_organizacion
+         and (private.coincide_contacto(cl.correo, v_contacto)
+              or private.coincide_contacto(cl.telefono, v_contacto)
+              or private.coincide_contacto(cl.celular, v_contacto))
+    ) c;
+
+  -- Todos los contactos del titular: el que se pasó, más los que figuran en su ficha y en su cuenta
+  -- web (quien escribió por teléfono y por correo es la misma persona: se suprimen las dos consultas).
+  select coalesce(array_agg(distinct x.contacto) filter (where x.contacto is not null), '{}'::text[])
+    into v_contactos
+    from (
+      select v_contacto as contacto
+      union all
+      select cl.correo from dominio.clientes cl where cl.id = any(v_clientes)
+      union all
+      select cl.telefono from dominio.clientes cl where cl.id = any(v_clientes)
+      union all
+      select cl.celular from dominio.clientes cl where cl.id = any(v_clientes)
+      union all
+      select au.email
+        from public.cuentas_cliente cc
+        join auth.users au on au.id = cc.auth_user_id
+       where cc.organizacion_id = p_organizacion and cc.cliente_id = any(v_clientes)
+      union all
+      select au.phone
+        from public.cuentas_cliente cc
+        join auth.users au on au.id = cc.auth_user_id
+       where cc.organizacion_id = p_organizacion and cc.cliente_id = any(v_clientes)
+    ) x;
 
   select coalesce(array_agg(c.id), '{}'::uuid[])
     into v_consultas
@@ -424,7 +505,10 @@ begin
    where c.organizacion_id = p_organizacion
      and c.suprimido_en is null
      and (
-       lower(btrim(c.contacto)) = v_contacto
+       exists (
+         select 1 from unnest(v_contactos) v(contacto)
+         where private.coincide_contacto(c.contacto, v.contacto)
+       )
        or (c.cliente_id is not null and c.cliente_id = any(v_clientes))
      );
 
@@ -444,13 +528,21 @@ begin
    where i.consulta_id = any(v_consultas);
 
   -- La cola de avisos: los que todavía no se enviaron se borran; los ya enviados pierden los datos.
+  -- También las copias sueltas del titular (anteriores a la columna `consulta_id`), que se
+  -- reconocen por el contacto que guardan en el payload.
   delete from public.avisos_pendientes a
-   where a.consulta_id = any(v_consultas)
+   where (a.consulta_id = any(v_consultas)
+          or (a.consulta_id is null and exists (
+                select 1 from unnest(v_contactos) v(contacto)
+                where private.coincide_contacto(a.datos ->> 'Contacto', v.contacto))))
      and a.estado in ('pendiente', 'fallido');
 
   update public.avisos_pendientes a
      set datos = a.datos - 'Nombre' - 'Contacto' - 'Mensaje' - 'Pedido' - 'Cliente'
-   where a.consulta_id = any(v_consultas);
+   where a.consulta_id = any(v_consultas)
+      or (a.consulta_id is null and exists (
+            select 1 from unnest(v_contactos) v(contacto)
+            where private.coincide_contacto(a.datos ->> 'Contacto', v.contacto)));
 
   -- La nota del presupuesto es dato personal del cliente; el comprobante fiscal no se toca.
   update dominio.presupuestos_tienda p
@@ -463,14 +555,17 @@ begin
 
   get diagnostics v_presupuestos = row_count;
 
-  -- La actividad lleva cantidades, nunca datos del titular.
-  perform private.insertar_actividad(
-    p_organizacion,
-    null,
-    'tienda.titular_suprimido',
-    format('Suprimió los datos personales de %s consulta(s) y %s presupuesto(s) de la tienda a pedido del titular',
-           v_total, v_presupuestos)
-  );
+  -- La actividad lleva cantidades, nunca datos del titular. Solo si se suprimió algo: repetir la
+  -- supresión de un titular ya suprimido no deja un evento de mentira (como la purga).
+  if v_total > 0 or v_presupuestos > 0 then
+    perform private.insertar_actividad(
+      p_organizacion,
+      null,
+      'tienda.titular_suprimido',
+      format('Suprimió los datos personales de %s consulta(s) y %s presupuesto(s) de la tienda a pedido del titular',
+             v_total, v_presupuestos)
+    );
+  end if;
 
   return v_total;
 end;

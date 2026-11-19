@@ -39,7 +39,7 @@ Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20
 
 ### Seguimientos
 
-MSF-940 (aviso al equipo), MSF-941 (presupuesto desde una consulta de pedido), MSF-942 (filtro por canal), MSF-943 (validez por defecto) y MSF-944 (retención y supresión de consultas, ítems de pedido y presupuestos de la tienda).
+MSF-940 (aviso al equipo), MSF-941 (presupuesto desde una consulta de pedido), MSF-942 (filtro por canal) y MSF-944 (retención y supresión de consultas, ítems de pedido y presupuestos de la tienda) están **hechos**. Sigue abierto MSF-943 (validez por defecto).
 
 ## Menores retroactivos (2026-11-15)
 

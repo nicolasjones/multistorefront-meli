@@ -5,7 +5,7 @@
 
 ## Enfoque técnico
 
-Una sola migración aditiva (`20270507170001_retencion_y_supresion_consultas_tienda.sql`) con cuatro
+Una sola migración aditiva (`20270507200101_retencion_y_supresion_consultas_tienda.sql`) con cuatro
 piezas y un flow de Kestra que la dispara. Todo en el esquema `private` salvo la columna de la cola
 de avisos (`public`, que es plataforma).
 

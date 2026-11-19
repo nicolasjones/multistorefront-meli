@@ -423,7 +423,9 @@ select is((select jsonb_agg(l -> 'precio_unitario' order by o) from jsonb_array_
   'cotizar y crear informan los mismos precios unitarios');
 
 -- La nota y el vínculo (FR-054), y el estado fijo.
-select is((select to_jsonb(pt) - 'id' - 'creado_en' - 'comprobante_id' from dominio.presupuestos_tienda pt limit 1),
+-- MSF-944: `suprimido_en` (la marca de saneamiento de la nota) queda fuera de la comparación: la
+-- fila nueva tiene la columna en null y el resto de la fila es igual.
+select is((select to_jsonb(pt) - 'id' - 'creado_en' - 'comprobante_id' - 'suprimido_en' from dominio.presupuestos_tienda pt limit 1),
   jsonb_build_object('organizacion_id', '11111111-1111-1111-1111-111111111111', 'empresa_id', 'e1000000-0000-0000-0000-000000000001',
                      'cuenta_cliente_id', 'ca000000-0000-0000-0000-000000000001', 'cliente_id', 'c1000000-0000-0000-0000-000000000001',
                      'clave_envio', 'c0000000-0000-0000-0000-000000000010', 'nota', 'Entregar por la tarde'),

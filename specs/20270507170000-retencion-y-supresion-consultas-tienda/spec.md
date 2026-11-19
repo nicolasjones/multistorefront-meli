@@ -167,8 +167,9 @@ Sin tablas nuevas. Tablas del grafo afectado:
 | `dominio.presupuestos_tienda` | alterada | Columna `suprimido_en timestamptz` (nullable) que marca la fila como saneada; la `nota` se vacía. Sigue en `dominio` (vínculo de negocio). |
 | `dominio.comprobantes_venta` | existente | **No se toca**: es el registro fiscal (importes, estados, líneas). La supresión actúa sobre el vínculo, no sobre el comprobante. |
 | `public.avisos_pendientes` | alterada | Columna `consulta_id uuid` (nullable) con FK a `dominio.consultas (id) on delete cascade`: la cola pasa a saber de qué consulta es cada aviso y la copia del aviso se va con la consulta. Sigue en `public` (cola de plataforma). |
+| `dominio.clientes` | existente | Solo se lee: el correo, el teléfono y el celular de la ficha identifican al titular (y su `cliente_id`). |
 | `public.cuentas_cliente` | existente | Solo se lee: de la cuenta web del titular sale el `cliente_id` de sus consultas y presupuestos. |
-| `auth.users` | existente | Solo se lee: el correo de la cuenta web es una de las formas de identificar al titular. |
+| `auth.users` | existente | Solo se lee: el correo y el teléfono de la cuenta web identifican al titular. |
 | `public.tipos_evento_actividad` | existente | Se suma la fila `tienda.titular_suprimido` (catálogo transversal). |
 
 ```mermaid
@@ -180,7 +181,7 @@ erDiagram
   presupuestos_tienda }o--|| clientes : "cliente (identidad)"
   presupuestos_tienda }o--|| cuentas_cliente : "cuenta web que lo pidió"
   cuentas_cliente }o--|| clientes : "cuenta del cliente"
-  cuentas_cliente }o--|| auth_users : "correo de la cuenta"
+  cuentas_cliente }o--|| users : "correo de la cuenta"
 
   consultas {
     uuid id PK
@@ -231,12 +232,24 @@ erDiagram
     uuid id PK
     uuid organizacion_id FK
     text nombre
+    text correo "existente: identifica al titular"
+    text telefono "existente: identifica al titular"
+    text celular "existente: identifica al titular"
   }
   cuentas_cliente {
     uuid id PK
     uuid cliente_id FK
     uuid auth_user_id FK
     text estado
+  }
+  users {
+    uuid id PK
+    text email "existente: identifica al titular"
+    text phone "existente: identifica al titular"
+  }
+  tipos_evento_actividad {
+    text tipo PK
+    boolean sensible
   }
 ```
 
