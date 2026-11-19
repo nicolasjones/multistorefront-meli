@@ -24,6 +24,7 @@ inputs:
 tasks:
   - id: purgar
     type: io.kestra.plugin.jdbc.postgresql.Query
+    timeout: PT10M
     url: "{{ envs.kestra_orquestacion_db_url }}"
     username: kestra_orquestacion
     password: "{{ envs.kestra_orquestacion_db_password }}"

@@ -27,6 +27,7 @@ test('la purga llama a la función de retención con el rol de servicio', async 
   assert.match(content, /private\.purgar_consultas_tienda\(CAST\(:retencion AS integer\)\)/);
   assert.match(content, /retencion: "\{\{ inputs\.retencion_dias \?\? envs\.tienda_consultas_retencion_dias \?\? 180 \}\}"/);
   assert.match(content, /username: kestra_orquestacion/);
+  assert.match(content, /timeout: PT\d+M/, 'la tarea de base tiene timeout (MSF-709)');
   assert.doesNotMatch(content, /delete\s+from\s+dominio\./i, 'la base borra; el flow no borra');
 });
 
