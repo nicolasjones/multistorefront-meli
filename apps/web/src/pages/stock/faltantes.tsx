@@ -188,7 +188,7 @@ export function FaltantesStock() {
         />
         <Typography variant="xs" component="p" sx={{ mt: 1 }}>
           {`${cantidadElegidos} ${cantidadElegidos === 1 ? 'seleccionado' : 'seleccionados'} de ${total} ${total === 1 ? 'faltante' : 'faltantes'}. `}
-          Un faltante se cierra solo cuando se ingresa la mercadería.
+          Un faltante se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
         </Typography>
       </Box>
     )
@@ -197,7 +197,7 @@ export function FaltantesStock() {
   return (
     <Box>
       <EncabezadoPagina
-        titulo="Faltantes"
+        titulo="Faltantes de stock (A pedido)"
         descripcion="Líneas vendidas o pedidas sin stock. Se avisa al cliente cuando el producto vuelve."
         contexto={<ContextoOrganizacionActiva />}
         accion={puedeAvisar ? (
@@ -208,6 +208,9 @@ export function FaltantesStock() {
       />
       <ContenedorSeccion>
         <PestanasStock activa="faltantes" />
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+          ¿Buscás lo que quedó sin armar en un despacho? Eso está en <Link component={RouterLink} to="/ventas/faltantes">Faltantes de despacho</Link>.
+        </Typography>
         <Stack spacing={2}>
           {cargandoTiendas || errorTiendas || empresas.length > 0 ? (
             <FiltroEmpresa

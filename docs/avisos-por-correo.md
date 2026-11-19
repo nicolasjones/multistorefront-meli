@@ -9,6 +9,9 @@ sources:
   - supabase/migrations/20261210120300_avisos_cola.sql
   - supabase/migrations/20261210120400_avisos_agrupacion.sql
   - supabase/migrations/20261210120500_avisos_reclamar.sql
+  - supabase/migrations/20261210120600_avisos_resultado.sql
+  - supabase/migrations/20261210130300_consultas_aviso_emitir.sql
+  - supabase/migrations/20270507130100_aviso_presupuesto_tienda.sql
 ---
 
 # Avisos por correo configurables
@@ -36,6 +39,7 @@ Cada persona elige qué avisos recibe por correo; los avisos repetidos de un mis
 
 1. Un componente (p. ej. Consultas) llama `private.emitir_aviso(tipo, organizacion, datos, empresa?)` desde una función `security definer`. No es ejecutable por `authenticated` ni `anon`.
    Consultas lo hace desde `private.encolar_aviso_consulta()` (disparador de `dominio.consultas`, migración `20261210130300`) con el tipo `consulta_nueva`, datos legibles (Empresa, Origen, Nombre, Contacto, Producto, Mensaje) y la empresa de la consulta; si emitir falla, se registra y la consulta se guarda igual.
+   Ventas lo hace con el tipo `presupuesto_tienda_nuevo` (sección `ventas`, MSF-940, migración `20270507130100`): `publico.crear_presupuesto_tienda` llama a `private.emitir_aviso_presupuesto_tienda` al final del alta, con Empresa, Presupuesto, Cliente y Total (sin correo, teléfono ni nota) y la empresa del presupuesto; un fallo del aviso no frena el presupuesto (detalle en `tienda-compra-y-cuentas.md`).
 2. Los destinatarios son los usuarios activos de la organización, con correo, con acceso a la sección del tipo (`private.nivel_seccion_de_usuario`) y con la preferencia encendida (sin fila = encendido). Si el aviso trae `empresa`, además tiene que acceder a esa empresa (`private.empresas_accesibles_de_usuario`): una persona con la sección pero sin la empresa no recibe los datos del visitante.
 3. Se encola en `avisos_pendientes`. El primer aviso abre una ventana de 15 minutos (`private.ventana_agrupacion_aviso()`); los siguientes del mismo destinatario y tipo se suman al mismo grupo.
 4. El flow `enviar-avisos` corre cada minuto: `reclamar_avisos_listos` toma los grupos vencidos (`for update skip locked`, reclamo de 10 minutos), vuelve a verificar preferencia, actividad y acceso (si ya no corresponde, descarta) y envía un correo por grupo con SMTP genérico (`KESTRA_SMTP_*`).
@@ -72,6 +76,8 @@ Checklist de seguridad (FR-017, FR-019), cubierto por `supabase/tests/database/a
 - Toda RPC de `public` nueva: `revoke … from public, anon` y `grant … to authenticated`; las de `private` no se conceden a la app.
 - Las funciones `security definer` (`emitir_aviso`, reclamo, resultado) fijan `search_path = ''`.
 - Kestra (`kestra_orquestacion`) solo ejecuta reclamo y resultado; no toca tablas ni emite avisos.
+- El flow `enviar-avisos` corre una sola vez a la vez (`concurrency` límite 1, `CANCEL`), con `timeout` en cada tarea de base y
+  de correo, y un fallo del flow avisa al soporte por el subflow `aviso-fallo-flujo` (solo informa la tarea que falló).
 - El HTML del correo escapa los valores del detalle (`infra/kestra/flows/enviar-avisos.yml`, `pnpm test:kestra:copias`).
 - Recorrido SC-007 (apagado = sin correo, encendido = tres consultas en un correo): `avisos_recorrido_sc007.test.sql`.
 

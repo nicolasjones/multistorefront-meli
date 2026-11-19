@@ -1,7 +1,8 @@
 ---
 owner: producto
 sources:
-  - specs
+  - .github/workflows/nightly.yml
+  - .lighthouserc.json
 ---
 
 # F5 — Profundidad (no bloqueante)

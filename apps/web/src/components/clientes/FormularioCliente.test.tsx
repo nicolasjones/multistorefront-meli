@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { FORMULARIO_CLIENTE_VACIO, type FormularioCliente as FormularioDatos } from '../../lib/clientes'
@@ -101,11 +101,11 @@ describe('FormularioCliente', () => {
   it('guarda con el nombre recortado y los opcionales vacíos como null', async () => {
     const onGuardar = abrir()
     escribir(/nombre o razón social/i, '  Distribuidora Norte SRL  ')
-    escribir('DNI/CUIT', '30-71234567-8')
+    escribir('DNI/CUIT', '30-71234567-1')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
     await waitFor(() => expect(onGuardar).toHaveBeenCalledTimes(1))
     expect(onGuardar).toHaveBeenCalledWith(
-      expect.objectContaining({ nombre: 'Distribuidora Norte SRL', documento: '30-71234567-8', correo: null, provincia: null }),
+      expect.objectContaining({ nombre: 'Distribuidora Norte SRL', documento: '30-71234567-1', correo: null, provincia: null }),
       expect.anything(),
     )
   })
@@ -131,7 +131,7 @@ describe('FormularioCliente', () => {
     })
     abrir(onGuardar)
     escribir(/nombre o razón social/i, 'Otro cliente')
-    escribir('DNI/CUIT', '30712345678')
+    escribir('DNI/CUIT', '30712345671')
     fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
     expect(await screen.findByText('Ya existe un cliente con ese DNI/CUIT')).toBeInTheDocument()
     expect(screen.getByLabelText('DNI/CUIT')).toHaveAttribute('aria-invalid', 'true')
@@ -335,5 +335,47 @@ describe('FormularioCliente · lista de precios (F-CLI-21, RF-CLI-21-3)', () => 
     abrirConLista({ listaPrecioId: 'l-1', descuento: '5' })
     const { violacionesAxe } = await import('../../test/axe')
     expect(await violacionesAxe(document.body)).toEqual([])
+  })
+})
+
+describe('FormularioCliente · condición de IVA', () => {
+  const guardarCon = async (inicial: FormularioDatos, elegir: () => void) => {
+    cleanup()
+    const onGuardar = abrir(vi.fn().mockResolvedValue(undefined), { ...inicial, nombre: 'Ana' })
+    elegir()
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    await waitFor(() => expect(onGuardar).toHaveBeenCalled())
+    return onGuardar.mock.calls[0][0]
+  }
+
+  it('ofrece las condiciones habituales y «Otra»', () => {
+    abrir()
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Condición de IVA' }))
+    const opciones = screen.getAllByRole('option').map((opcion) => opcion.textContent)
+    expect(opciones).toEqual(['Sin indicar', 'Responsable Inscripto', 'Monotributista', 'Exento', 'Consumidor Final', 'No Responsable', 'Otra'])
+  })
+
+  it('guarda la condición elegida y null si no se indica', async () => {
+    const valores = await guardarCon(FORMULARIO_CLIENTE_VACIO, () => {
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Condición de IVA' }))
+      fireEvent.click(screen.getByRole('option', { name: 'Monotributista' }))
+    })
+    expect(valores).toMatchObject({ condicion_iva: 'Monotributista' })
+    const sinIndicar = await guardarCon(FORMULARIO_CLIENTE_VACIO, () => undefined)
+    expect(sinIndicar).toMatchObject({ condicion_iva: null })
+  })
+
+  it('«Otra» abre un campo para escribir el texto y un texto cargado se abre como «Otra»', async () => {
+    const valores = await guardarCon(FORMULARIO_CLIENTE_VACIO, () => {
+      fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Condición de IVA' }))
+      fireEvent.click(screen.getByRole('option', { name: 'Otra' }))
+      escribir('Otra condición', 'Sujeto no categorizado')
+    })
+    expect(valores).toMatchObject({ condicion_iva: 'Sujeto no categorizado' })
+  })
+
+  it('un texto guardado que no es habitual se ve en «Otra condición»', () => {
+    abrir(undefined, { ...FORMULARIO_CLIENTE_VACIO, nombre: 'Ana', condicion_iva: 'Sujeto no categorizado' })
+    expect(screen.getByLabelText('Otra condición')).toHaveValue('Sujeto no categorizado')
   })
 })

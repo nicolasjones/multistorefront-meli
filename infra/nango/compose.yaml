@@ -27,6 +27,8 @@ services:
     restart: unless-stopped
 
   nango-server:
+    # MSF-736: tini como PID 1 cosecha los procesos zombi (ver infra/runner/compose.yaml).
+    init: true
     # Recomendado pinear por hash de commit o tag en lugar de :hosted a
     # secas al pasar a producción (mismo criterio que kestra/kestra:v1.3.35).
     image: nangohq/nango-server:hosted

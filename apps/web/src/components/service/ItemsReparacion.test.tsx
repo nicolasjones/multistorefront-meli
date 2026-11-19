@@ -168,6 +168,18 @@ describe('ItemsReparacion (FR-027)', () => {
     expect(screen.queryByRole('button', { name: /Quitar/ })).not.toBeInTheDocument()
   })
 
+  it('sin ítems, solo lectura no dice «Todavía no cargaste» (quien no puede cargar no cargó nada)', () => {
+    montarSeccion({ items: [] }, false)
+    expect(screen.queryByText(/Todavía no cargaste/)).not.toBeInTheDocument()
+    expect(screen.getByText('Sin mano de obra cargada.')).toBeInTheDocument()
+    expect(screen.getByText('Sin repuestos cargados.')).toBeInTheDocument()
+  })
+
+  it('sin ítems, quien edita ve la invitación a cargar', () => {
+    montarSeccion({ items: [] }, true)
+    expect(screen.getByText('Todavía no cargaste mano de obra.')).toBeInTheDocument()
+  })
+
   it('quitar pide confirmación y entrega la reparación ya recalculada', async () => {
     const { onActualizada } = montarSeccion()
 

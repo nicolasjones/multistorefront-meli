@@ -1,7 +1,16 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - specs/20261003-105444-cicd-staging-produccion
+  - specs/20261005-140934-promover-todo-produccion
+  - .github/workflows/deploy-infraestructura-vps.yml
+  - .github/workflows/migraciones-cloud.yml
+  - .github/workflows/publicar-flows-kestra.yml
+  - .github/workflows/promover-todo-a-produccion.yml
+  - scripts/verificar-staging-exitoso.mjs
+  - scripts/preflight-deploy-vps.mjs
+  - scripts/preparar-known-hosts-vps.mjs
+  - infra/superset/importar-dashboards.mjs
 ---
 
 # Adoptar CI/CD de staging a producción en un producto derivado
@@ -33,7 +42,9 @@ protección. Crear estos seis Environments en **Settings → Environments**:
 barrera — causó un incidente real (81 migraciones promovidas de golpe en
 un producto derivado sin validación previa). `production` ahora verifica
 solo, antes de tocar cualquier secret, que `staging` corrió exitosamente
-para el mismo commit (`scripts/verificar-staging-exitoso.mjs`, usa el
+para el mismo commit o, si ese commit no generó un run de `staging` (el
+workflow dispara por `paths`), para un ancestro suyo sin cambios posteriores en esos `paths`
+(`scripts/verificar-staging-exitoso.mjs`, usa el
 `GITHUB_TOKEN` por defecto del job — no hace falta crear ningún secret
 nuevo, solo declarar `permissions: actions: read` en el workflow, ya
 incluido en los tres). No hay ningún paso manual adicional que configurar
@@ -80,7 +91,9 @@ archivo propio dentro del contenedor, horneálo en la imagen (`COPY` en el
 `research.md` §2 de esta spec para el detalle completo.
 
 - Secrets por Environment: `VPS_SSH_PRIVATE_KEY` (texto plano PEM, sin Base64), `VPS_SSH_USER`,
-  `VPS_SSH_HOST`, y `VPS_DEPLOY_ENV`.
+  `VPS_SSH_HOST`, `VPS_DEPLOY_ENV` y la clave pública del host: el secret `VPS_SSH_KNOWN_HOSTS` o el
+  archivo versionado `infra/vps/known_hosts.<entorno>`. El deploy ya no usa `ssh-keyscan`
+  (`scripts/preparar-known-hosts-vps.mjs`): sin clave fijada, el job falla en staging/production.
 - **`VPS_DEPLOY_ENV` NO es el nombre del entorno** (`staging`/`production`) —
   eso ya está hardcodeado en el workflow. Es el **contenido completo** de lo
   que hoy es el archivo `.env.<entorno>` en el filesystem del VPS: todas las
@@ -93,7 +106,13 @@ archivo propio dentro del contenedor, horneálo en la imagen (`COPY` en el
   confundir "faltan variables" con un error de Docker). Playwright **no**
   entra en esta lista — no es un producto de plataforma compartido, cada
   cliente corre su propia instancia dedicada (ver sección 3 más abajo).
-  Variables requeridas (ver `.env.example` para la descripción de cada una):
+  Variables requeridas (ver `.env.example` para la descripción de cada una). En staging y production el
+  despliegue es **estricto**: `scripts/preflight-deploy-vps.mjs` corta antes de tocar Docker, nombrando
+  (solo nombres, nunca valores) lo que falte, y `infra/<producto>/compose.estricto.yaml` exige sin valor por
+  defecto las 14 credenciales de Kestra, Superset y Nango; además las 5 imágenes de workers
+  (`*_IMAGEN`) deben ser `imagen@sha256:<digest>` o un tag igual al SHA del commit. Dev es transicional
+  (advierte y continúa). Detalle en `docs/deployment.md`, «Credenciales obligatorias, imágenes
+  inmutables y clave de host: modo transicional»:
 
   | Grupo | Variables |
   |---|---|
@@ -142,8 +161,9 @@ paquete exportado puntual.
   upsert idempotente en `public.reportes` (con `seccion`) leyendo
   `reportes.json` del directorio. Requiere `SUPABASE_URL`,
   `SUPABASE_SERVICE_ROLE_KEY` (solo server-side) y
-  `SUPERSET_REPORTE_CREADO_POR`; sin ellos importa los dashboards y avisa
-  que no registró reportes.
+  `SUPERSET_REPORTE_CREADO_POR`; si hay `reportes.json` y falta alguna, el script
+  termina en rojo y nombra las que faltan (para importar solo los dashboards
+  a propósito, `--omitir-reportes`).
 - Invocación manual: `pnpm superset:importar-dashboards -- --directorio infra/superset/dashboards/rentabilidad --entorno dev|staging|production`.
   Para un paquete ya exportado: `--source <paquete.zip>`.
 

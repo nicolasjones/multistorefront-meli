@@ -65,8 +65,8 @@ describe('InteresWhatsappDialog', () => {
   it('sin interés muestra el estado vacío con explicación', async () => {
     mocks.listar.mockResolvedValue([])
     abrir()
-    expect(await screen.findByText('Todavía no hay interés registrado.')).toBeInTheDocument()
-    expect(screen.getByText(/lo vas a ver acá/)).toBeInTheDocument()
+    expect(await screen.findByText('Todavía no hay interés para mostrar.')).toBeInTheDocument()
+    expect(screen.getByText(/no significa que nadie haya consultado/)).toBeInTheDocument()
   })
 
   it('ante un error ofrece Reintentar y vuelve a cargar', async () => {
@@ -102,7 +102,7 @@ describe('InteresWhatsappDialog', () => {
   it('sin empresas accesibles muestra el vacío, no el esqueleto para siempre', async () => {
     mocks.empresas.mockReturnValue({ ...accesibles('e1'), empresas: [] })
     abrir()
-    expect(await screen.findByText('Todavía no hay interés registrado.')).toBeInTheDocument()
+    expect(await screen.findByText('Todavía no hay interés para mostrar.')).toBeInTheDocument()
     expect(mocks.listar).not.toHaveBeenCalled()
   })
 

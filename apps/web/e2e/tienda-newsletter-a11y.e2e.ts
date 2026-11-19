@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
-import { UPSERT_FUSIONAR, borrar, cabeceras, leer, rest, serviceKey, url } from './soporte/fixtures'
+import { UPSERT_FUSIONAR, borrar, fijarBanderaPlataforma, leer, rest, serviceKey, url } from './soporte/fixtures'
 
 // Newsletter de la tienda (spec newsletter-de-la-tienda, T009): axe (WCAG 2 A y AA) del formulario del pie y de la página de
 // confirmación `/newsletter/confirmar/:token` a 320, 768 y 1440 px, sin desborde horizontal. Usa la tienda del seed
@@ -12,17 +12,7 @@ const TIENDA = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-80
 const ANCHOS = [320, 768, 1440] as const
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 
-async function fijarBandera(activa: boolean): Promise<boolean | null> {
-  const ruta = 'banderas_plataforma?clave=eq.newsletter'
-  const lectura = await fetch(`${url}/rest/v1/${ruta}&select=activa`, { headers: cabeceras({ 'accept-profile': 'public' }) })
-  // Un error HTTP no es «la bandera no existe»: falla fuerte para no seguir con un estado desconocido.
-  if (!lectura.ok) throw new Error(`lectura de la bandera newsletter: ${lectura.status} ${await lectura.text()}`)
-  const filas = (await lectura.json()) as { activa: boolean }[]
-  if (filas.length === 0) return null
-  const r = await fetch(`${url}/rest/v1/${ruta}`, { method: 'PATCH', headers: cabeceras({ 'content-profile': 'public' }), body: JSON.stringify({ activa }) })
-  if (!r.ok) throw new Error(`bandera newsletter: ${r.status} ${await r.text()}`)
-  return filas[0].activa
-}
+const fijarBandera = (activa: boolean) => fijarBanderaPlataforma('newsletter', activa)
 
 type ResultadoAxe = { violations: { id: string; nodes: { target: unknown[] }[] }[] }
 type AxeEnVentana = { axe: { run: (contexto: Document | { include: string[][] }, opciones: unknown) => Promise<ResultadoAxe> } }
@@ -34,6 +24,16 @@ async function violacionesAxe(page: Page, selector?: string): Promise<string[]> 
     const resultado = await axe.run(incluir ? { include: [[incluir]] } : document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })
     return resultado.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
   }, selector)
+}
+
+// El aviso de cookies puede tapar el pie a 320 px: si aparece, se decide («Rechazar», como en `tienda-legal`) antes de interactuar, sin
+// `force`. No en todos los stacks aparece (en el de sesión no estaba): se espera un instante y, si no hay aviso, se sigue.
+async function resolverAvisoCookies(page: Page) {
+  const aviso = page.getByRole('region', { name: 'Aviso de cookies' })
+  const aparecio = await aviso.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false)
+  if (!aparecio) return
+  await aviso.getByRole('button', { name: 'Rechazar' }).click()
+  await expect(aviso).toHaveCount(0)
 }
 
 const sinDesborde = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
@@ -72,13 +72,13 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
   })
 
   // Un test por viewport y por página: cada uno es corto (el job `e2e-tienda` tiene 60 s por test) y usa el `page` del fixture, que el
-  // propio runner cierra (sin contexto manual).
+  // propio runner cierra (sin contexto manual), con el aviso de cookies resuelto antes de interactuar.
   const origen = `http://${TIENDA.host}:${puerto}`
   for (const ancho of ANCHOS) {
     test(`el formulario del pie no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
-      test.setTimeout(120_000)
       await page.setViewportSize({ width: ancho, height: 900 })
       await page.goto(`${origen}/`)
+      await resolverAvisoCookies(page)
       const pie = page.getByTestId('pie-newsletter')
       await pie.scrollIntoViewIfNeeded()
       await expect(pie.getByRole('heading', { name: 'Newsletter' })).toBeVisible()
@@ -91,9 +91,9 @@ test.describe('Tienda · newsletter: accesibilidad a 320, 768 y 1440 px', () => 
 
     // Enlace inválido: no hace falta sembrar suscriptores.
     test(`la página de confirmación no tiene violaciones de axe ni desborde a ${ancho} px`, async ({ page }) => {
-      test.setTimeout(120_000)
       await page.setViewportSize({ width: ancho, height: 900 })
       await page.goto(`${origen}/newsletter/confirmar/${'x'.repeat(43)}`)
+      await resolverAvisoCookies(page)
       await expect(page.getByTestId('newsletter-confirmacion')).toBeVisible()
       expect(await violacionesAxe(page), 'confirmación').toEqual([])
       expect(await sinDesborde(page), 'la confirmación no desborda').toBe(true)

@@ -18,6 +18,7 @@ sources:
   - apps/web/src/lib/newsletter.ts
   - apps/web/src/pages/tienda-publica/rutas/newsletter.baja.tsx
   - infra/kestra/flows/newsletter-confirmaciones.yml
+  - infra/kestra/flows/aviso-fallo-flujo.yml
   - apps/web/src/lib/tiendaNewsletter.ts
   - apps/web/src/pages/tienda-publica/newsletter
   - apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx
@@ -95,6 +96,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
   correo de confirmación, hasta 3 en 24 h) y el enlace anterior deja de valer; `baja_en` se **conserva** hasta que se confirme y, si nunca se confirma, la
   poda de 7 días la devuelve a `baja` en lugar de borrarla (lista de supresión). Limitación: cualquiera puede pedir una confirmación a una dirección en baja (hasta 3 en
   24 h); no se envía ningún newsletter hasta que la persona confirme.
+- **Robustez de los flows (`newsletter-confirmaciones.yml` y `correo-masivo.yml`)**: cada uno corre **una sola vez a la vez** (`concurrency: limit: 1`, `behavior: CANCEL`: si la corrida anterior sigue en curso, la nueva se descarta), el reclamo y los cierres tienen `timeout` de 1 minuto y el envío de 2, y un fallo del flow avisa al soporte por el subflow `aviso-fallo-flujo` (solo informa el nombre de la tarea que falló, no el mensaje del error). Con un solo flow en curso, el vencimiento del reclamo (900 s) es el plazo de recuperación ante una caída.
 - **El cierre del flow no pisa un pedido nuevo**: `cerrar_confirmacion_newsletter` solo actúa sobre una suscripción `pendiente` con `confirmacion_hash` no nulo y con la confirmación por enviar (`confirmacion_enviada_en` nulo o anterior a `confirmacion_solicitada_en`); una re-suscripción que anuló el hash antes del cierre deja el cierre tardío sin efecto.
 - **El límite por visitante es compartido**: `confirmar_newsletter` también consume el cupo (5/h por visitante y tienda, el mismo de contacto, WhatsApp y suscripción).
   Quienes comparten IP, o el cupo único `sin-ip` cuando falta la cabecera, pueden quedar bloqueados por un rato (responde `limite` y la página ofrece reintentar).
@@ -136,7 +138,7 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 - `private.cerrar_envio_correo_masivo` no se redefine (no hace falta: cierra por id de destinatario o prueba).
 - El reclamo devuelve `cuerpo_html`, `remitente`, `tienda` y `dominio_tienda` en lugar de `bloques` y `dominio` (el HTML ya viene armado; `dominio_tienda` evita chocar con el esquema `dominio`).
 - `newsletter_lote.test.sql` es un archivo nuevo en lugar de extender `correo_masivo_lote.test.sql` (que sigue verde sin cambios: paridad de clientes).
-- axe: el entorno de Vitest (jsdom) no tiene diseño ni contraste y no cambia de ancho: se corrió axe sobre la pantalla en un solo tamaño; los tres anchos (320/768/1440 px) quedan para el E2E (MSF-961).
+- axe: el entorno de Vitest (jsdom) no tiene diseño ni contraste y no cambia de ancho: se corrió axe sobre la pantalla en un solo tamaño; los tres anchos (320/768/1440 px) los cubre `e2e/tienda-newsletter-a11y.e2e.ts` (MSF-961). Ese E2E encontró un `color-contrast` real: los mensajes de error del formulario salían en el rojo del tema (`.Mui-error` de `FormHelperText` le gana a un `color: inherit` suelto) sobre el pie oscuro; ahora heredan el color del pie (`ESTILO_ERROR_PIE`).
 
 ## Pendientes que requieren a Nicolás o a un entorno real
 
@@ -168,6 +170,8 @@ Revisión del lote de deuda técnica MSF-515 (2026-11-17). Qué se comprobó en 
 - **Pendiente real**: elegir el camino y probarlo con SMTP real (entregabilidad). Hasta entonces la baja depende del enlace del cuerpo.
 
 ### CORS de `baja-correo-masivo` (MSF-963)
+
+- **Verificado de nuevo en el lote 18 (2026-11-17)**: ya estaba resuelto en `dokploy` (commit `f53d71a10`); `node --test supabase/functions/baja-correo-masivo/handler.test.ts` da 9 de 9 y el contrato `{ token }` → `{ ok: true }` no cambió. No hubo cambios de código. Queda solo el pendiente por entorno de abajo.
 
 - **Lo que se comprobó.** La página `/newsletter/baja/:token` corre en el dominio de cada tienda y llama con `supabaseClient.functions.invoke('baja-correo-masivo', { body: { token } })` (`apps/web/src/lib/tiendaNewsletter.ts`). El SDK instalado (`@supabase/supabase-js` 2.115.0, lockfile) manda `authorization`, `apikey`, `x-client-info` y `content-type`, y opcionalmente `x-retry-count`, `traceparent`, `tracestate` y `baggage` (lista oficial de `@supabase/supabase-js/cors`). La función ya respondía `Access-Control-Allow-Origin: *` con los cuatro primeros y con CORS en todas sus respuestas (200, 400, 405 y 500). `*` es lo correcto: los dominios de las tiendas son abiertos, la función no usa cookies ni credenciales y la autenticación es el token del enlace.
 - **Lo que se cambió** (`supabase/functions/baja-correo-masivo/handler.ts`): se agregaron a los encabezados permitidos los opcionales del SDK (si alguna vez se activa la propagación de trazas, el preflight no rompería la baja), `Access-Control-Allow-Methods: POST, OPTIONS` y `Access-Control-Max-Age: 86400` solo en el preflight. Contrato intacto. `pnpm test:edge:baja-correo-masivo` (9 pruebas) cubre el preflight, CORS en todas las respuestas y el contrato.

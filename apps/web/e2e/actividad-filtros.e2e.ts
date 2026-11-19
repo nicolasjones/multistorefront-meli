@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Page } from '@playwright/test'
 import { expect, test } from './fixture'
 import { clic, escribir } from './visible'
-import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // Actividad con filtros (F-AUD-01, MSF-463 T015): listado del Administrador con total, búsqueda por texto, filtro por tipo, período y
 // estado vacío con filtros. Siembra 13 eventos en el registro de la organización de la corrida (12 de los últimos días y 1 de hace 20) y
@@ -24,6 +24,8 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
   test('el Administrador filtra por texto, tipo y período, y ve el estado vacío con filtros', async ({ page }) => {
+    // Cada `clic`/`escribir` del recorrido visible cuesta ~2 s (cursor y espera): con ~15 acciones y la siembra, 60 s no alcanzan.
+    test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-act-${sufijo}@example.com`
     const marca = `marca${sufijo}`
@@ -37,11 +39,17 @@ test.describe('Actividad · filtros y búsqueda (F-AUD-01)', () => {
       const evento = (tipo: string, detalle: string, dias: number) => ({
         organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo, detalle, creado_en: haceDias(dias), valor_anterior: {}, valor_nuevo: {},
       })
-      await rest('registro_actividad', [
+      // `service_role` no tiene INSERT sobre `registro_actividad` (la REST responde 42501): se siembra por SQL directo, solo para sembrar.
+      for (const e of [
         ...Array.from({ length: 11 }, (_, i) => evento('usuario.rol_cambiado', `Cambió el rol número ${i + 1} de ${sufijo}`, 1 + (i % 3))),
         evento('usuario.removido', `Quitó a ${marca} de la organización`, 2),
         evento('usuario.suspendido', `Suspendió a una persona antigua de ${sufijo}`, 20),
-      ])
+      ]) {
+        await sql(
+          'insert into public.registro_actividad (organizacion_id, actor_id, actor_nombre, tipo, detalle, creado_en, valor_anterior, valor_nuevo) values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)',
+          [e.organizacion_id, e.actor_id, e.actor_nombre, e.tipo, e.detalle, e.creado_en, '{}', '{}'],
+        )
+      }
 
       await ingresar(page, correo)
       await page.goto('/actividad')

@@ -1,6 +1,7 @@
+import { fechaDeMarca } from '../../../lib/periodosRanking'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Card, CardContent, FormControlLabel, Link, Snackbar, Stack, Switch,
+  Alert, Box, Card, CardContent, Chip, FormControlLabel, Link, Snackbar, Stack, Switch,
   ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material'
 import { Link as RouterLink } from 'react-router'
@@ -164,7 +165,7 @@ export function PagosList() {
   }, [conciliando, cargar, pagina])
 
   const columnas = useMemo<ColumnaAdaptable<Pago>[]>(() => [
-    { clave: 'fecha', encabezado: 'Fecha', render: (pago) => formatearFecha(pago.fecha.slice(0, 10)) },
+    { clave: 'fecha', encabezado: 'Fecha', render: (pago) => formatearFecha(fechaDeMarca(pago.fecha)) },
     { clave: 'empresa', encabezado: 'Tienda', render: (pago) => pago.empresa },
     {
       clave: 'comprobante',
@@ -207,6 +208,10 @@ export function PagosList() {
         // y no llama a la RPC: la base igual lo rechaza, pero la pantalla no ofrece lo que la
         // base va a rechazar.
         const puede = permisos[pago.empresa_id] === true
+        // Un cobro revertido (o su contra-asiento) ya no se concilia: se muestra como revertido.
+        if (pago.estado_reversion) {
+          return <Chip size="small" variant="outlined" label={pago.estado_reversion === 'revertido' ? 'Revertido' : 'Reversión'} />
+        }
         return (
           <Switch
             size="small"

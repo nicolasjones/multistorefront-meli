@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/contactos
 ---
 
 # Contactos: la libreta de personas

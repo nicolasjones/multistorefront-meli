@@ -1,9 +1,26 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/src/lib/ventas.ts
+  - apps/web/src/pages/ventas/comprobante.tsx
+  - apps/web/src/pages/ventas/comprobantes.tsx
+  - apps/web/src/pages/ventas/presupuestos.tsx
+  - apps/web/src/lib/ventasPresupuestos.ts
+  - supabase/migrations/20261203100100_comprobantes_cabecera.sql
+  - supabase/migrations/20261203100400_comprobantes_rpc.sql
+  - supabase/migrations/20261204150000_aceptar_presupuesto.sql
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - supabase/migrations/20261016130300_clientes_tipo_y_consumidor_final.sql
+  - supabase/migrations/20261203100200_comprobantes_numeracion.sql
+  - supabase/migrations/20261203200100_comprobantes_lineas.sql
+  - supabase/migrations/20261203200200_accion_editar_precio.sql
+  - supabase/migrations/20261203200300_lineas_rpc.sql
+  - supabase/migrations/20261203200400_disponible_para_venta.sql
+  - supabase/migrations/20261204140000_confirmar_comprobante.sql
+  - supabase/migrations/20261204140100_facturado_sin_borradores.sql
+  - supabase/migrations/20261204150100_copiar_presupuesto.sql
+  - supabase/migrations/20261204150200_listar_presupuestos.sql
+  - supabase/migrations/20270201200103_lineas_descuento.sql
 ---
 
 # Ventas · comprobantes (técnico, MSF-159)
@@ -139,6 +156,8 @@ RLS vigente en el comprobante y en las líneas: `select` por organización y sec
 
 El modelo completo y el DER están en [Datos y DER](datos.md#ventas-comprobantes-msf-159).
 
+Nota de precios: el precio final con IVA que ve el cliente (lista, tienda, promociones) se redondea **al centavo** desde `20270507180200_aplicar_iva_al_centavo.sql`, igual que el total del comprobante; los comprobantes ya confirmados no se recalculan.
+
 ## Numeración
 
 `dominio.comprobantes_venta_numeracion` guarda `(organizacion_id, empresa_id, tipo) → ultimo`. RLS activa y
@@ -168,7 +187,7 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `confirmar_comprobante(p_id)` | **F-VTA-07.** Confirma una `factura` en `borrador` con ≥ 1 línea (ver «Confirmación y stock»). Idempotente. Exige `ventas` en `edicion` en la empresa del comprobante. |
 | `aceptar_presupuesto(p_id)` | **F-VTA-08.** `pendiente` → `aceptado`, idempotente (reintentar no duplica el evento). Rechaza un vencido o un estado que no admite aceptar (`55000`). Exige `ventas` en `edicion` en la tienda. No toca stock. |
 | `copiar_presupuesto(p_id)` | **F-VTA-08.** Crea el presupuesto nuevo descrito arriba. Lee el original con `for share`. Exige `edicion` en la tienda. Las líneas de precio manual conservan su precio sin volver a exigir `editar_precio` a quien copia (decisión vigente; pendiente de confirmar con negocio). Si el cliente ya no existe falla con `22023` y un mensaje propio (la FK de `comprobantes_venta` hoy impide borrarlo; es una guarda defensiva). |
-| `listar_presupuestos(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano)` | **F-VTA-08.** Lectura paginada (tope 200 por página): id, número, empresa, fecha, cliente, operador, válido hasta, estado (con `vencido` derivado), total, `puede_editar` y `filas` (total del filtro). Solo tiendas con `ventas` en `lectura` o `edicion`; una tienda ajena devuelve cero filas. `p_estado` ∈ pendiente · aceptado · vencido · convertido (otro valor: `22023`). |
+| `listar_presupuestos(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano, p_origen)` | **F-VTA-08.** Lectura paginada (tope 200 por página): id, número, empresa, fecha, cliente, operador, válido hasta, estado (con `vencido` derivado), total, `puede_editar` y `filas` (total del filtro). Solo tiendas con `ventas` en `lectura` o `edicion`; una tienda ajena devuelve cero filas. `p_estado` ∈ pendiente · aceptado · vencido · convertido (otro valor: `22023`). `p_origen` (MSF-942, por defecto `null` = todos) ∈ `panel` · `tienda` (según el vínculo `dominio.presupuestos_tienda`; otro valor: `22023`): filtra antes de contar y paginar, así `filas` y las tandas son del canal elegido. |
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` no existe · `55000` documento

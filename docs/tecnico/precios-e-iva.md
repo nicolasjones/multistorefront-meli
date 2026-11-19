@@ -1,9 +1,46 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/e2e/precios-iva.e2e.ts
+  - apps/web/src/App.tsx
+  - apps/web/src/components/categorias/FormularioCategoria.tsx
+  - apps/web/src/components/precios/EscalasPrecio.tsx
+  - apps/web/src/components/precios/IvaProducto.tsx
+  - apps/web/src/components/precios/MargenEstimado.tsx
+  - apps/web/src/components/precios/PrecioCostoBloque.tsx
+  - apps/web/src/components/precios/ReglaPrecioEmpresa.tsx
+  - apps/web/src/components/precios/TablaAsiQuedan.tsx
+  - apps/web/src/components/productos/FormularioProducto.tsx
+  - apps/web/src/hooks/useAlicuotas.ts
+  - apps/web/src/hooks/useCotizacionInicial.ts
+  - apps/web/src/hooks/usePreciosEmpresa.ts
+  - apps/web/src/lib/escalas.ts
+  - apps/web/src/lib/iva.ts
+  - apps/web/src/lib/precios.ts
+  - apps/web/src/pages/categorias/list.tsx
+  - apps/web/src/pages/empresas/PestanasEmpresa.tsx
+  - apps/web/src/pages/empresas/precios.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - specs/20261022-120000-precios-e-iva
+  - supabase/migrations/20261022120901_precios_cotizacion_inicial.sql
+  - supabase/migrations/20261022121001_precios_conversion_central.sql
+  - supabase/migrations/20261022121100_precios_costo_margen.sql
+  - supabase/migrations/20261022121200_precios_actividad_producto.sql
+  - supabase/migrations/20261022130000_precios_empresa.sql
+  - supabase/migrations/20261022130100_precios_empresa_rpc.sql
+  - supabase/migrations/20261022130200_precios_empresa_calculo.sql
+  - supabase/migrations/20261022140000_alicuotas_iva.sql
+  - supabase/migrations/20261022140100_categorias_productos_alicuota.sql
+  - supabase/migrations/20261022140200_precios_empresa_iva.sql
+  - supabase/migrations/20261022150000_producto_precios_escala.sql
+  - supabase/migrations/20261022150100_precio_para.sql
+  - supabase/migrations/20261203200300_lineas_rpc.sql
+  - supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql
+  - supabase/tests/database/precios_cotizacion_conversion.test.sql
+  - supabase/tests/database/precios_empresa.test.sql
+  - supabase/tests/database/precios_escala.test.sql
+  - supabase/tests/database/precios_iva.test.sql
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
 ---
 
 # Precios e IVA: modelo, RPC y cálculo
@@ -20,8 +57,9 @@ IVA y precio final, F-PRE-15 (MSF-220) escalas. Resumen de producto:
 
 **El precio se calcula al leer.** No hay columna de precio en pesos en ninguna tabla: el precio central,
 el neto por empresa, el final con IVA y el visible salen de funciones y vistas de Postgres. La única
-conversión a pesos es `private.a_pesos`, que lee `dominio.cotizacion_inicial`; cuando MSF-116 llegue,
-cambia **esa** función y nada queda desactualizado.
+conversión a pesos es `private.a_pesos`; en esta épica leía `dominio.cotizacion_inicial` y desde la carga del dólar
+lee la cotización aplicada (con la inicial como respaldo; ver [Dólar y recálculo](dolar-y-recalculo.md)), de modo que
+cambió **esa** función y nada queda desactualizado.
 
 Por eso la épica **no usa worker ni Kestra** (alcance de entrega: `refine` + `supabase`) y no hay
 proceso de recálculo masivo propio: el recálculo del dólar es una transacción de base de MSF-116.
@@ -47,7 +85,7 @@ expuestas viven en `public` (superficie de lectura/ejecución, **no almacenan da
 | `empresas` | `dominio` | **Alterada**: `unique (id, organizacion_id)` (constraint `empresas_id_organizacion_key`), para que la FK compuesta de `precios_empresa` no pueda apuntar a otra organización. |
 | `productos_precio_costo` | `public` | **Vista** `security_invoker`: precio central en pesos, costo en pesos y margen. El costo entra por `LEFT JOIN` con `dominio.producto_costos`, cuya RLS exige la sección `rentabilidad`: sin ella `costo_ars` y `margen` llegan en `null`. |
 | `precios_empresa_neto` | `public` | **Vista** `security_invoker`: central y neto en pesos (sin IVA) por producto y empresa. Devuelve filas solo a quien tiene `empresas` ≥ lectura: sin ver la regla el cálculo parecería «Igual al central». |
-| `precios_empresa_final` | `public` | **Vista** `security_invoker` sobre la anterior: alícuota efectiva, **precio final** (neto + IVA, al peso entero) y **precio visible** según el interruptor de la empresa. |
+| `precios_empresa_final` | `public` | **Vista** `security_invoker` sobre la anterior: alícuota efectiva, **precio final** (neto + IVA, al centavo) y **precio visible** según el interruptor de la empresa. |
 | `a_pesos`, `precio_central_ars`, `aplicar_regla_precio`, `precio_neto_empresa`, `alicuota_producto`, `aplicar_iva`, `precio_para` | `private` | **Funciones de cálculo.** `a_pesos` es el **único** punto de lectura de la cotización. `alicuota_producto` es `security definer` (resuelve la categoría aunque quien llama no tenga `categorias`) y está acotada a la organización del llamador. |
 
 `anon` no tiene privilegios en ninguna de las cuatro tablas nuevas; cada RPC de `public` lleva
@@ -79,7 +117,7 @@ expuestas viven en `public` (superficie de lectura/ejecución, **no almacenan da
 2. **Neto de la empresa** (`private.aplicar_regla_precio`): base `central` (o empresa sin regla) →
    `central`; base `central_ajuste` → `round(central × (1 + ajuste/100) / 10) × 10` («Al $ 10 más
    cercano»).
-3. **Precio final** (`private.aplicar_iva`): `round(neto × (1 + porcentaje/100))` al peso entero;
+3. **Precio final** (`private.aplicar_iva`): `round(neto × (1 + porcentaje/100), 2)`, **al centavo** (desde `20270507180200_aplicar_iva_al_centavo.sql`, igual que el total con IVA del comprobante; antes era al peso entero y no se recalcularon los comprobantes ya emitidos);
    **Exento ⇒ final = neto**. La alícuota es la del producto o, si no tiene, la de su categoría
    (`private.alicuota_producto`). Sin alícuota resoluble el final es `null`.
 4. **Precio visible**: `mostrar_con_iva ? final : neto`.
@@ -88,7 +126,7 @@ expuestas viven en `public` (superficie de lectura/ejecución, **no almacenan da
 
 Ejemplo de verificación (E2E de cierre): lista USD 20, costo USD 12, dólar 1.465 → central $ 29.300,
 costo $ 17.580, margen 40 %; empresa con «Central con ajuste +10 %» → neto $ 32.230 y con 21 % de IVA
-$ 38.998.
+$ 38.998,30 (con la regla vigente al centavo; el ejemplo original, al peso entero, daba $ 38.998).
 
 ## RPC y vistas (`public`)
 
@@ -189,6 +227,7 @@ Guardar lo mismo **no** deja evento: los triggers comparan antes/después.
 | Tabla «Así quedan los precios» (muestra la **miniatura del producto** en su columna) | `apps/web/src/components/precios/TablaAsiQuedan.tsx` |
 | Bloque «Precio y costo» del formulario de producto | `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | «Margen estimado (escala x1)» | `apps/web/src/components/precios/MargenEstimado.tsx` |
+| Enlace «Cotización →» del bloque (solo con la sección `cotizacion_dolar` en lectura o edición; abre `/cotizacion` en pestaña nueva con `useHref`, respetando el basename del router) | `EnlaceCotizacion` en `apps/web/src/components/precios/PrecioCostoBloque.tsx` |
 | Bloque «Precios por escala · sin IVA» | `apps/web/src/components/precios/EscalasPrecio.tsx` |
 | Campo «IVA» del producto | `apps/web/src/components/precios/IvaProducto.tsx` |
 | Fórmulas espejadas, formato de importes y mensajes de error | `apps/web/src/lib/precios.ts`, `lib/iva.ts`, `lib/escalas.ts` |

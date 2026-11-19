@@ -23,6 +23,11 @@ type Fase =
   | { fase: 'espera'; esperaSegundos: number }
   | { fase: 'falla' }
 
+// Los mensajes de error van con el color del pie (texto sobre el fondo de la tienda, que ya cumple el contraste AA). FormHelperText pinta
+// `.Mui-error` con `error.main` (rojo) y esa regla le gana a un `color: inherit` suelto; el rojo sobre el pie oscuro no llega a 4,5:1
+// (axe `color-contrast`, MSF-961). El error se distingue por el borde, `aria-invalid` y el texto, no solo por el color.
+const ESTILO_ERROR_PIE = { color: 'inherit', fontWeight: 600, '&.Mui-error': { color: 'inherit' } } as const
+
 const minutos = (segundos: number) => Math.max(1, Math.ceil(segundos / 60))
 
 // Formulario de suscripción del pie de la tienda (MSF-468, RF-NL-2, CA-NL-1). Se muestra SOLO si la base dice `activo` (bandera
@@ -130,7 +135,7 @@ export function FormularioSuscripcion({ host }: { host: string }) {
               '& input::placeholder': { color: 'text.secondary', opacity: 1 },
             }}
           />
-          {errores.correo ? <FormHelperText id="newsletter-correo-error" error sx={{ color: 'inherit', fontWeight: 600 }}>{errores.correo}</FormHelperText> : null}
+          {errores.correo ? <FormHelperText id="newsletter-correo-error" error sx={ESTILO_ERROR_PIE}>{errores.correo}</FormHelperText> : null}
           <FormControlLabel
             sx={{ alignItems: 'flex-start', mx: 0, mt: 1, '& .MuiFormControlLabel-label': { fontSize: 13 } /* estilos-sueltos: ok */ }}
             control={
@@ -145,7 +150,7 @@ export function FormularioSuscripcion({ host }: { host: string }) {
             }
             label={<>Acepto recibir novedades de {tienda} por correo.{urlPolitica ? <> <Box component="a" href={urlPolitica} target="_blank" rel="noopener noreferrer" sx={{ color: 'inherit' }}>Política de privacidad</Box></> : null}</>}
           />
-          {errores.consentimiento ? <FormHelperText id="newsletter-consentimiento-error" error sx={{ color: 'inherit', fontWeight: 600 }}>{errores.consentimiento}</FormHelperText> : null}
+          {errores.consentimiento ? <FormHelperText id="newsletter-consentimiento-error" error sx={ESTILO_ERROR_PIE}>{errores.consentimiento}</FormHelperText> : null}
           {estado.fase === 'espera' ? (
             <Typography role="alert" data-testid="newsletter-espera" sx={{ fontSize: 13, mt: 1 /* estilos-sueltos: ok */ }}>
               Probá de nuevo en {minutos(estado.esperaSegundos)} {minutos(estado.esperaSegundos) === 1 ? 'minuto' : 'minutos'}.

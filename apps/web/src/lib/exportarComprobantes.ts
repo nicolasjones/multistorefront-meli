@@ -1,3 +1,4 @@
+import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import { neutralizarFormula } from './exportarClientes'
 import { parametrosDeFiltros, type FiltrosComprobantes } from './ventasComprobantes'
@@ -86,6 +87,12 @@ export function construirCsv(filas: ReadonlyArray<FilaExportacionComprobante>): 
   return BOM + lineas.join(FIN_DE_LINEA) + FIN_DE_LINEA
 }
 
+// Filtros de la exportación: los del listado más el canal (`p_origen`), que solo se envía cuando hay uno elegido.
+function parametrosDeExportacion(filtros: FiltrosComprobantes) {
+  const base = parametrosDeFiltros(filtros)
+  return filtros.origen ? { ...base, p_origen: filtros.origen } : base
+}
+
 function errorDeExportacion(error: unknown, porDefecto: string): ErrorExportacionComprobantes {
   const { code, message } = (error ?? {}) as { code?: string; message?: string }
   if (code === '42501') return new ErrorExportacionComprobantes('No tenés permiso para exportar ventas.', code)
@@ -104,7 +111,7 @@ export type ResultadoInmediato = { archivo: Blob; filas: number; truncado: boole
 
 // Vía inmediata: trae TODAS las filas del filtro (no la página) y arma el CSV en el navegador.
 export async function exportarInmediato(tipo: TipoExportacion, filtros: FiltrosComprobantes): Promise<ResultadoInmediato> {
-  const { data, error } = await supabaseClient.rpc('exportar_comprobantes', { p_tipo: tipo, ...parametrosDeFiltros(filtros) })
+  const { data, error } = await supabaseClient.rpc('exportar_comprobantes', { p_tipo: tipo, ...parametrosDeExportacion(filtros) })
   if (error) throw errorDeExportacion(error, 'No pudimos exportar los comprobantes. Intentá de nuevo.')
   const filas = (data ?? []) as FilaExportacionComprobante[]
   const totalReal = filas.length > 0 ? Number(filas[0].filas) : 0
@@ -117,7 +124,7 @@ export async function exportarInmediato(tipo: TipoExportacion, filtros: FiltrosC
 
 // Vía diferida: la base registra la ejecución del worker con estos filtros y devuelve su id.
 export async function solicitarExportacionDiferida(tipo: TipoExportacion, filtros: FiltrosComprobantes): Promise<string> {
-  const p = parametrosDeFiltros(filtros)
+  const p = parametrosDeExportacion(filtros)
   const { data, error } = await supabaseClient.rpc('solicitar_exportacion_comprobantes', {
     p_tipo: tipo,
     p_filtros: {
@@ -127,6 +134,7 @@ export async function solicitarExportacionDiferida(tipo: TipoExportacion, filtro
       envio_id: p.p_envio_id,
       operador_id: p.p_operador_id,
       empresa_id: p.p_empresa_id,
+      ...(filtros.origen ? { origen: filtros.origen } : {}),
     },
   })
   if (error) throw errorDeExportacion(error, 'No pudimos pedir la exportación. Intentá de nuevo.')
@@ -153,5 +161,5 @@ export async function descargarExportacionDiferida(ejecucionId: string, nombre: 
 }
 
 export function nombreArchivoComprobantes(tipo: TipoExportacion, fecha: Date = new Date()): string {
-  return `${tipo}-${fecha.toISOString().slice(0, 10)}.csv`
+  return `${tipo}-${hoyEnOrganizacion(fecha)}.csv`
 }

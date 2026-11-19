@@ -28,6 +28,8 @@ export type Deps = {
       getUser(jwt: string): Resultado<{ user: { id: string } | null } | null>
       admin: {
         inviteUserByEmail(email: string): Resultado<{ user: { id: string } | null } | null>
+        // Reversión: quita al usuario invitado si no se pudo vincular a la organización.
+        deleteUser?(id: string): Promise<{ error: DbError }>
       }
     }
     // deno-lint-ignore no-explicit-any
@@ -66,15 +68,16 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
     return jsonResponse({ error: 'Solo un superadmin puede crear organizaciones.' }, 403)
   }
 
-  let body: { nombre?: string; email_fundador?: string }
+  let body: { nombre?: unknown; email_fundador?: unknown } | null
   try {
     body = await req.json()
   } catch {
     return jsonResponse({ error: 'Cuerpo inválido: se esperaba JSON.' }, 400)
   }
 
-  const nombre = body.nombre?.trim()
-  const emailFundador = body.email_fundador?.trim()
+  // Un cuerpo `null` o con tipos que no son texto (`{"nombre":5}`) es un dato inválido (400), no un TypeError (500).
+  const nombre = typeof body?.nombre === 'string' ? body.nombre.trim() : ''
+  const emailFundador = typeof body?.email_fundador === 'string' ? body.email_fundador.trim() : ''
 
   if (!nombre || !emailFundador) {
     return jsonResponse({ error: 'Faltan "nombre" o "email_fundador".' }, 400)
@@ -87,10 +90,15 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
     .single()
 
   if (organizacionError || !organizacion) {
-    return jsonResponse(
-      { error: `No se pudo crear la organización: ${organizacionError?.message}` },
-      400,
-    )
+    // El detalle de la base (nombres de restricciones, columnas) queda en el log, no en la respuesta.
+    console.error('crear-organizacion: no se pudo crear la organización', organizacionError?.message)
+    return jsonResponse({ error: 'No se pudo crear la organización. Revisá el nombre e intentá de nuevo.' }, 400)
+  }
+
+  // La reversión no puede ser silenciosa: si falla, queda una organización huérfana y hay que poder verlo.
+  const revertirOrganizacion = async () => {
+    const { error } = await admin.from('organizaciones').delete().eq('id', organizacion.id)
+    if (error) console.error('crear-organizacion: no se pudo revertir la organización', organizacion.id, error.message)
   }
 
   const { data: invitado, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
@@ -98,7 +106,8 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
   )
 
   if (inviteError || !invitado?.user) {
-    await admin.from('organizaciones').delete().eq('id', organizacion.id)
+    await revertirOrganizacion()
+    console.error('crear-organizacion: falló la invitación', inviteError?.status, inviteError?.message)
 
     // GoTrue responde 422 cuando el email ya tiene cuenta — probablemente
     // con membresía activa en otra organización (FR-002, único-usuario-
@@ -107,14 +116,14 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
     if (inviteError?.status === 422) {
       return jsonResponse(
         {
-          error: `${emailFundador} ya tiene una cuenta registrada (FR-002: un usuario, una sola organización): ${inviteError.message}`,
+          error: `${emailFundador} ya tiene una cuenta registrada (FR-002: un usuario, una sola organización).`,
         },
         400,
       )
     }
 
     return jsonResponse(
-      { error: `No se pudo invitar a ${emailFundador}: ${inviteError?.message}` },
+      { error: `No se pudo invitar a ${emailFundador}. Intentá de nuevo más tarde.` },
       502,
     )
   }
@@ -126,11 +135,14 @@ export async function manejar(req: Request, { admin }: Deps): Promise<Response> 
   })
 
   if (membresiaError) {
-    await admin.from('organizaciones').delete().eq('id', organizacion.id)
-    return jsonResponse(
-      { error: `No se pudo vincular al fundador como administrador: ${membresiaError.message}` },
-      400,
-    )
+    console.error('crear-organizacion: no se pudo vincular al fundador', membresiaError.message)
+    await revertirOrganizacion()
+    // El usuario ya se creó (y el correo salió): se borra para que un reintento con el mismo correo no dé 422.
+    if (admin.auth.admin.deleteUser) {
+      const { error } = await admin.auth.admin.deleteUser(invitado.user.id)
+      if (error) console.error('crear-organizacion: no se pudo borrar al usuario invitado', invitado.user.id, error.message)
+    }
+    return jsonResponse({ error: 'No se pudo vincular al fundador como administrador.' }, 400)
   }
 
   return jsonResponse({ organizacion_id: organizacion.id, invitado: emailFundador }, 201)

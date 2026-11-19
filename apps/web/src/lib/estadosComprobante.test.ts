@@ -5,6 +5,16 @@ import {
   type EstadoComprobante,
 } from './estadosComprobante'
 
+describe('ayudas de stock coherentes con la confirmación', () => {
+  it('ningún estado dice que el stock se descuenta recién al entregar: la confirmación ya descuenta', () => {
+    for (const estado of Object.values(ESTADOS_COMPROBANTE)) {
+      expect(estado.ayuda).not.toMatch(/todavía no se descuenta|sigue reservado/)
+    }
+    expect(ESTADOS_COMPROBANTE.confirmada.ayuda).toMatch(/ya se descontó al confirmar/)
+    expect(ESTADOS_COMPROBANTE.confirmada.ayuda).toMatch(/«A pedido»/)
+  })
+})
+
 describe('catálogo de estados del comprobante', () => {
   it('«confirmada» se muestra como «Pendiente», igual que el estado «pendiente»', () => {
     expect(etiquetaEstadoComprobante('confirmada')).toBe('Pendiente')

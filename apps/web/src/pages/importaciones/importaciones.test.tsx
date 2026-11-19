@@ -22,6 +22,13 @@ describe('Centro de importaciones: tabla de procesos (FR-011, FR-016)', () => {
     mocks.puedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
   })
 
+  it('ofrece los accesos a importar el historial de ventas y a la migración de datos', async () => {
+    responderProcesos([])
+    abrir()
+    expect(await screen.findByRole('link', { name: 'Importar historial de ventas' })).toHaveAttribute('href', '/historial/importar')
+    expect(screen.getByRole('link', { name: 'Migración de datos' })).toHaveAttribute('href', '/migracion/importar/clientes')
+  })
+
   it('muestra fecha, origen legible, estado, avance, errores y duración de cada proceso', async () => {
     responderProcesos([
       proceso(1, { funcionalidad: 'mercado-libre', estado: 'con_errores', con_errores: 3, total: 120, procesados: 120 }),

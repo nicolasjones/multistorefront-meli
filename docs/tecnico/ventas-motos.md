@@ -1,9 +1,22 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261024-130000-ventas-motos
+  - apps/web/src/components/ventas/EnvioMotoDialog.tsx
+  - apps/web/src/components/ventas/RendicionMotosDialog.tsx
+  - apps/web/src/lib/ventas/enviosMoto.ts
+  - apps/web/src/lib/ventas/enviosMotoRendicion.ts
+  - apps/web/src/pages/ventas/transportes/TransportesMotos.tsx
+  - supabase/migrations/20270222200100_envios_moto.sql
+  - supabase/migrations/20270222300100_rendir_envios_moto.sql
+  - supabase/migrations/20270222200200_envios_moto_rpc.sql
+  - supabase/migrations/20270222300200_exportacion_total_envios_moto.sql
+  - supabase/migrations/20270223100000_envios_moto_lectura_por_empresa.sql
+  - supabase/migrations/20270227150000_notas_credito_sincronizan_estado_y_contrarreembolso.sql
+  - supabase/migrations/20270228110000_envios_moto_factura_anulada_y_borrador.sql
+  - supabase/migrations/20270228110100_rendir_envios_moto_registra_cobro.sql
+  - supabase/migrations/20270228110200_notas_credito_ajustan_abono_envios_moto.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
 ---
 
 # Ventas en moto: registro y rendición de envíos (técnico, MSF-145)
@@ -55,7 +68,7 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 - Un envío sobre una **factura en borrador con abono** aparece con `puede_rendir = false` y el motivo «Confirmá la factura antes de rendir» (sigue editable; con abono 0 sigue rendible); rendirlo igual falla con `55000`.
 - Si la forma de pago del cobro genera deuda (la de la factura o la «Contrarreembolso» de la tienda) y queda saldo, la factura puede pasar a **Deuda**, igual que con un contrarreembolso.
 - Un superadmin con organización activa pero sin membresía no puede rendir con abono: se le avisa antes de empezar con un `42501` claro («tenés que ser miembro de la organización…»). Las facturas en borrador con abono se listan todas en el `55000`.
-- **Revertir una rendición exige un contra-asiento**: el libro de cobros no se borra ni se edita, así que deshacer una rendición tendría que registrar un asiento de signo contrario (hoy no existe ese camino) y el estado de la factura no retrocede solo; `cobro_id` es la única traza de qué envío originó cada cobro.
+- **Revertir una rendición exige un contra-asiento**: el libro de cobros no se borra ni se edita, así que deshacer una rendición tendría que registrar un asiento de signo contrario (`public.revertir_cobro` existe desde `20270507180100`, pero rechaza el cobro de origen `contrarreembolso`, que es el de una rendición: sigue sin haber camino para deshacerla) y el estado de la factura no retrocede solo; `cobro_id` es la única traza de qué envío originó cada cobro.
 - **Nota de crédito posterior**: el disparador de notas (`20270228110200`, mismo patrón que los contrarreembolsos de `20270227150000`) baja el `abono` de los envíos **sin rendir** hasta el saldo neto (puede quedar en 0), con `skip locked` y el evento `envio_moto.abono_ajustado`. No toca los envíos ya rendidos. Si se anula la nota el abono no vuelve a subir.
 - La pantalla avisa «cobro registrado» con el monto y el diálogo de lote lo explica.
 

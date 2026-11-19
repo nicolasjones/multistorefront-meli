@@ -32,6 +32,7 @@ import { ConexionEdit } from './pages/conexiones/edit'
 import { ConexionList } from './pages/conexiones/list'
 import { ConexionOAuthList } from './pages/conexiones-oauth/list'
 import { IntegracionOAuthAdministrar } from './pages/integraciones-oauth/administrar'
+import { RequiereAdministrador } from './components/RequiereAdministrador'
 import { EjecucionList } from './pages/ejecuciones/list'
 import { EjecucionShow } from './pages/ejecuciones/show'
 import { ClienteCreate } from './pages/clientes/create'
@@ -223,7 +224,7 @@ function App() {
               { name: 'ventas-devoluciones', list: '/ventas/devoluciones', meta: { label: 'Devoluciones (RMA)' } },
               { name: 'ventas-comprobantes', list: '/ventas/comprobantes', create: '/ventas/comprobantes/nuevo', show: '/ventas/comprobantes/:id', meta: { label: 'Comprobantes' } },
               { name: 'ventas-despacho', list: '/ventas/despacho', meta: { label: 'Despacho' } },
-              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes' } },
+              { name: 'ventas-faltantes', list: '/ventas/faltantes', meta: { label: 'Faltantes de despacho' } },
               { name: 'ventas-mostrador', list: '/ventas/mostrador', meta: { label: 'Venta de mostrador' } },
               { name: 'organizacion', list: '/organizacion', meta: { label: 'Mi organización' } },
               // MSF-467: moderación de opiniones de productos (solo Administrador).
@@ -341,7 +342,9 @@ function App() {
                   element={
                     <RequiereOrganizacionActiva>
                       <RequiereAccesoSeccion seccion="ventas">
-                        <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                        <RequiereAdministrador seccion="Importar historial">
+                          <Suspense fallback={<EstadoCargaPagina />}><HistorialImportar /></Suspense>
+                        </RequiereAdministrador>
                       </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
@@ -387,12 +390,12 @@ function App() {
                   }
                 />
                 <Route path="/organizacion" element={<RequiereOrganizacionActiva><OrganizacionEdit /></RequiereOrganizacionActiva>} />
-                <Route path="/empresas" element={<RequiereOrganizacionActiva><EmpresaList /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaList /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/opiniones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><OpinionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/importaciones" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ImportacionesList /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/configuracion/listas" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ListasConfigurables /></Suspense></RequiereOrganizacionActiva>} />
                 <Route path="/api" element={<RequiereOrganizacionActiva><Suspense fallback={<EstadoCargaPagina />}><ApiList /></Suspense></RequiereOrganizacionActiva>} />
-                <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><EmpresaEdit /></RequiereOrganizacionActiva>} />
+                <Route path="/empresas/edit/:id" element={<RequiereOrganizacionActiva><RequiereAccesoSeccion seccion="empresas"><EmpresaEdit /></RequiereAccesoSeccion></RequiereOrganizacionActiva>} />
                 <Route path="/empresas/:id/tienda" element={<Navigate to="identidad" replace />} />
                 <Route
                   path="/empresas/:id/tienda/vista-previa"
@@ -570,7 +573,11 @@ function App() {
                   path="/stock/motivos"
                   element={
                     <RequiereOrganizacionActiva>
-                      <RequiereAccesoSeccion seccion="stock"><Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense></RequiereAccesoSeccion>
+                      <RequiereAccesoSeccion seccion="stock">
+                        <RequiereAdministrador seccion="Motivos de movimiento">
+                          <Suspense fallback={<EstadoCargaPagina />}><MotivosMovimiento /></Suspense>
+                        </RequiereAdministrador>
+                      </RequiereAccesoSeccion>
                     </RequiereOrganizacionActiva>
                   }
                 />

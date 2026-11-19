@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/comprobantes.tsx
+  - apps/web/src/pages/ventas/comprobante.tsx
+  - apps/web/src/pages/ventas/presupuestos.tsx
 ---
 
 # Crear un presupuesto o una factura

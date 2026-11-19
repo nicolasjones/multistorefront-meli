@@ -1,7 +1,23 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261012-140000-empresas
+  - specs/20261015-100000-alta-de-empresas
+  - apps/web/src/pages/empresas/list.tsx
+  - apps/web/src/pages/empresas/edit.tsx
+  - apps/web/src/hooks/useResumenEmpresas.ts
+  - apps/web/src/lib/eventosActividad.ts
+  - apps/web/src/lib/destinoActividad.ts
+  - apps/web/src/lib/whatsapp.ts
+  - supabase/migrations/20261013120000_empresas.sql
+  - supabase/migrations/20261013130001_empresas_updated_at.sql
+  - supabase/migrations/20261015110000_alta_de_empresas.sql
+  - supabase/migrations/20270507000500_crear_empresa_registra_actividad.sql
+  - supabase/migrations/20270324120300_baja_organizacion_reparaciones_y_error_diferido.sql
+  - supabase/tests/database/empresas.test.sql
+  - supabase/tests/database/alta_de_empresas.test.sql
+  - supabase/tests/database/baja_organizacion_ingresos.test.sql
+  - apps/web/e2e/avisos-acceso.e2e.ts
 ---
 
 # Empresas: datos generales y estado de la tienda
@@ -105,8 +121,10 @@ Las pruebas insertan sus propias filas (1, 2 y 3 por organización) para no asum
 
 ## Actividad hacia F-AUD-01 (FR-010)
 
-`apps/web/src/lib/eventosActividad.ts` define el contrato y el punto de emisión; F-AUD-01 todavía no
-existe, así que sin destino registrado no hace nada. Eventos emitidos desde la pantalla:
+`apps/web/src/lib/eventosActividad.ts` define el contrato y el punto de emisión; el destino real
+(`apps/web/src/lib/destinoActividad.ts`, instalado al arrancar la app en `main.tsx`) los lleva a
+`public.registrar_actividad`, así que aparecen en [Actividad](actividad.md). Sin destino registrado el
+emisor no hace nada. Eventos emitidos desde la pantalla:
 
 | Evento | Cuándo | Cambios |
 |---|---|---|
@@ -115,8 +133,9 @@ existe, así que sin destino registrado no hace nada. Eventos emitidos desde la 
 | `empresa.reactivada` | Reactivar la tienda | `activa` `false` → `true`. |
 
 La actividad es secundaria al guardado: un destino que falle **no** revierte la edición ya
-persistida (queda `console.warn`). Cuando F-AUD-01 llegue, registra su destino con
-`registrarDestinoActividad` y no hay que tocar a quien emite.
+persistida (queda `console.warn`). El alta es distinta: `public.crear_empresa` registra `empresa.creada` en la misma
+transacción del alta (migración `20270507000500_crear_empresa_registra_actividad.sql`), así que si el alta revierte, el
+evento también.
 
 ## Reversión
 
@@ -190,3 +209,11 @@ La clave `dominio.reparaciones.empresa_id → empresas` pasa a `deferrable initi
 ### Aviso de formato del número de WhatsApp (MSF-743)
 
 En la ficha de empresa y en el formulario público de contacto, el campo WhatsApp avisa, sin bloquear, cuando el número no se puede normalizar para `wa.me` (`avisoFormatoWhatsapp` en `apps/web/src/lib/whatsapp.ts`): no avisa con el campo vacío, con un correo ni con un número válido. El formulario público no impide el envío con un número raro; la validación del servidor (8 a 15 dígitos) no cambia. Además, en Documentos IA, si falla la actualización del nombre de una versión, esta se marca `fallida` antes de abortar y no se invoca la indexación (MSF-750), para que no quede en `procesando`.
+
+## Listado de Empresas: datos reales por fila
+
+Las columnas «Tienda web», «Precio» y «Productos visibles» leen el estado real de cada empresa (dominio de la tienda, regla de precio y productos visibles del catálogo de la tienda) en `useResumenEmpresas`. Cada dato falla por separado y se ve «No disponible». «Mercado Libre» sigue diciendo «Sin configurar» porque todavía no hay integración que consultar.
+
+El resumen se lee con una consulta por dato para todas las empresas (tiendas y reglas de precio); los productos visibles se piden a `listar_catalogo_tienda` solo para las empresas con tienda, porque la visibilidad efectiva la resuelve la base. Una versión agregada (un solo conteo para todas) requiere SQL y queda pendiente. Se vuelve a leer al cambiar la empresa activa.
+
+Límite conocido: las lecturas de tiendas y precios usan `.in('empresa_id', ids)` con todos los ids en la URL; una organización con más de ~100 empresas superaría el tope de URL y habría que partirlas en lotes. Con más de una tienda por empresa se toma la más antigua.

@@ -115,8 +115,8 @@ select is(
   0, 'authenticated tampoco lee ni escribe las tablas directo (solo por las RPC)'
 );
 select is(
-  (select count(*)::int from pg_policies where schemaname = 'public' and tablename in ('resumen_semanal_config', 'resumen_semanal_envios')),
-  0, 'sin políticas: nadie llega a las filas fuera del código security definer'
+  (select count(*)::int from pg_policies where schemaname = 'public' and tablename in ('resumen_semanal_config', 'resumen_semanal_envios') and policyname not like '%\_denegar\_todo'),
+  0, 'sin políticas de acceso (solo la que deniega todo): nadie llega a las filas fuera del código security definer'
 );
 select is(
   (select count(*)::int from unnest(array[

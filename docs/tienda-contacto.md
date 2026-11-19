@@ -3,12 +3,26 @@ owner: tecnico
 sources:
   - specs/20261202-100000-tienda-whatsapp-y-contacto
   - scripts/verificar-migraciones.mjs
+  - supabase/migrations/20261212110000_listar_comprobantes.sql
   - apps/web/src/lib/registroWhatsapp.ts
   - apps/web/src/lib/whatsapp.ts
   - apps/web/src/pages/tienda-publica/rutas/contacto.tsx
   - apps/web/src/pages/tienda-publica/whatsapp
   - design/pantallas/MJC_Producto.dc.html
   - supabase/migrations/20261212110000_listar_comprobantes.sql
+  - supabase/migrations/20261212120700_tienda_contacto.sql
+  - supabase/migrations/20261212120800_crear_consulta_publica_solo_interna.sql
+  - supabase/migrations/20261212121000_tienda_whatsapp.sql
+  - apps/web/src/lib/tiendaContacto.ts
+  - apps/web/src/hooks/useContactoTienda.ts
+  - apps/web/src/pages/tienda-publica/contacto/DatosContacto.tsx
+  - apps/web/src/pages/tienda-publica/contacto/FormularioContacto.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp/BotonWhatsApp.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp/DialogoWhatsApp.tsx
+  - apps/web/src/pages/tienda-publica/whatsapp/useContactoWhatsapp.ts
+  - apps/web/src/pages/empresas/edit.tsx
+  - supabase/migrations/20261205100100_crear_consulta_publica.sql
+  - supabase/migrations/20261212120600_lectura_anulacion_notas.sql
 ---
 
 # Tienda online · Contacto con formulario (F-TDA-16, MSF-437)
@@ -33,7 +47,7 @@ bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
   privilegio para `anon`; escribe solo `private.registrar_envio_tienda` (`security definer`).
 - **Interfaz de entrada de Consultas (F-CON-01, firma real)**: `publico.crear_consulta_publica(host, origen, nombre, contacto, mensaje,
   producto_id) → uuid` (migración `20261205100100`). `private.entregar_a_bandeja(empresa, origen, nombre, contacto, mensaje, producto)` es el
-  único punto que la conoce: resuelve el dominio de la empresa en `dominio.tiendas` (orden determinista por dominio) y la invoca. Desde la migración `20261212100100` la RPC ya no es ejecutable por `anon` ni `authenticated` (solo `service_role` y el propietario), para que el único camino público sea `enviar_consulta_contacto` con su límite. Si la entrega falla, `enviar_consulta_contacto` deja un `raise warning` (sqlstate + sqlerrm) en el log del servidor y devuelve `error` genérico al cliente. Si esa firma cambia, solo cambia el adaptador.
+  único punto que la conoce: resuelve el dominio de la empresa en `dominio.tiendas` (orden determinista por dominio) y la invoca. Desde la migración `20261212120800` la RPC ya no es ejecutable por `anon` ni `authenticated` (solo `service_role` y el propietario), para que el único camino público sea `enviar_consulta_contacto` con su límite. Si la entrega falla, `enviar_consulta_contacto` deja un `raise warning` (sqlstate + sqlerrm) en el log del servidor y devuelve `error` genérico al cliente. Si esa firma cambia, solo cambia el adaptador.
 - **Límite**: 5 envíos por hora por visitante y empresa (`private.limite_envios_tienda()`, una sola constante). Atómico con
   `pg_advisory_xact_lock` por (empresa, visitante); las filas de más de 24 h se podan en la misma función. Formulario y WhatsApp (F-TDA-14)
   comparten el cupo.
@@ -46,6 +60,9 @@ bandeja de Consultas y ventas (MSF-122) de esa empresa con origen `formulario`.
 - **Validación (D7)**: nombre ≤ 100; «Correo o WhatsApp» ≤ 120 con formato de correo o teléfono; mensaje ≤ 2000; todos obligatorios y recortados.
   El teléfono admite **8 a 15 dígitos** (el tope de 15 es el de la bandeja, que admite 7 a 15: así nunca rechaza lo que la tienda aceptó). Servidor
   (`private.validar_contacto_tienda`) y cliente (`contacto/validacion.ts`) son espejo; cambian juntos.
+  Además, el formulario muestra un **aviso no bloqueante** («Revisá el número: escribilo con código de área, por ejemplo +54 9 11 1234-5678.») cuando,
+  tras tocar el campo, el texto no es un correo y `avisoFormatoWhatsapp` (`apps/web/src/lib/whatsapp.ts`) no logra armar un número internacional;
+  el envío no se bloquea (`pages/tienda-publica/contacto/FormularioContacto.tsx`). La ficha de la empresa usa el mismo aviso para quien administra.
 - **Respuestas**: `ok | invalido (campos) | limite (espera_segundos) | error`. `error` es idéntico para host desconocido, empresa desactivada y
   falla de entrega. Las respuestas no incluyen ids de organización, IP ni hash.
 - **Texto**: todo se guarda y se muestra literal (nodos de React); un `<script>` escrito en el formulario no se interpreta.
@@ -117,7 +134,7 @@ interés queda registrado en la bandeja de Consultas y ventas de **esa** empresa
 - **Esquemas (Principio VII)**: sin tablas nuevas; la función vive en `publico` (superficie de `anon`) y reusa, sin
   modificarlas, `private.catalogo_tienda_efectivo` (visibilidad efectiva), `private.registrar_envio_tienda` (límite e
   idempotencia) y `private.entregar_a_bandeja` (único adaptador hacia MSF-122).
-- **Versión de la migración**: el plan y `tasks.md` nombran `20261202110000_tienda_whatsapp.sql`, pero la migración real
+- **Versión de la migración**: el plan y `tasks.md` nombran `20261212121000_tienda_whatsapp.sql`, pero la migración real
   de F-TDA-16 quedó en `20261212120700_tienda_contacto.sql`; esta usa `20261212121000` para aplicarse **después** de las
   funciones que reutiliza (con el nombre del plan, una base desde cero fallaría porque `registrar_envio_tienda` todavía
   no existiría). La versión `20261212110000` que tenía antes **chocaba** con `20261212110000_listar_comprobantes.sql`

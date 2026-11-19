@@ -1,7 +1,23 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261016-120000-actividad-y-ambientes
+  - specs/20261102-100000-auditoria-avanzada-y-soporte
+  - apps/web/src/pages/actividad/list.tsx
+  - apps/web/src/lib/actividad.ts
+  - apps/web/src/lib/actividad.tipos.test.ts
+  - apps/web/e2e/actividad-detalle.e2e.ts
+  - infra/kestra/flows/depuracion-actividad.yml
+  - supabase/migrations/20261016120000_registro_actividad.sql
+  - supabase/migrations/20270207100001_registro_inalterable_antes_despues.sql
+  - supabase/migrations/20270207100002_depurar_registro_actividad.sql
+  - supabase/migrations/20270210110000_exportar_actividad.sql
+  - supabase/migrations/20270214300001_exportar_actividad_cursor.sql
+  - supabase/migrations/20270217900001_exportar_actividad_constancia_servidor.sql
+  - supabase/migrations/20270218300000_exportar_actividad_limites.sql
+  - supabase/migrations/20270421000200_actividad_por_empresa_accesible.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql
 ---
 
 # Actividad e historial (F-AUD-01)
@@ -375,6 +391,14 @@ La columna **Tipo** (y el filtro por tipo) muestran la etiqueta de cada tipo de 
   `20270432000000_cobro_actividad_con_moneda.sql`) y la pantalla muestra la moneda que trae el texto: no la supone.
   La cuenta de cobro dice dónde entra el dinero, no en qué unidad se cobra: una cuenta en dólares no convierte el
   importe. Cuando el comprobante tenga moneda, se lee de ahí y es el único lugar que hay que cambiar.
+- **Tipos de la última tanda**: `comprobante.cobro_revertido` («Cobro revertido», lo escribe `revertir_cobro`, migración
+  `20270507180100_revertir_cobro.sql`; ver [Cobros por comprobante](cobros-por-comprobante.md)) y
+  `clientes.aceptacion_correo_marcada` («Aceptación de correo marcada», lo escribe `marcar_aceptacion_correo_clientes`,
+  migración `20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql`; ver
+  [Correo masivo](correo-masivo.md)). Ambos tienen etiqueta en `ETIQUETA_TIPO_ACTIVIDAD`.
+- **Excepciones del formato de importe**: `total_clientes` y `saldo_stock` son conteos o unidades y se muestran crudos
+  (`CAMPOS_QUE_NO_SON_IMPORTE`); en `costos_adicionales_canal`, `valor` solo se formatea como moneda cuando el `tipo` del
+  mismo registro es `monto` (con `porcentaje` queda crudo).
 - **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985).
 
 ## Registro inalterable con antes y después (F-AUD-02)
@@ -435,3 +459,10 @@ Reversión: ver el encabezado de cada migración (los eventos escritos se conser
 `importacion.iniciada`, `importacion.finalizada` e `importacion.cancelada` (no sensibles) los escriben las funciones del proceso masivo en la misma transacción: iniciar, cancelar (una vez por pedido) y cerrar o reconciliar. El detalle trae el nombre del proceso y, al finalizar, las cifras «N correctas y M con error»; nunca referencias, motivos de error ni parámetros. Reversión: `delete from public.tipos_evento_actividad where tipo like 'importacion.%';`.
 
 Las listas de precios (F-PRE-14 y F-CLI-21) registran cinco eventos, todos no sensibles y sin datos de contacto: `lista_precios.creada`, `lista_precios.editada` (porcentaje anterior y nuevo), `lista_precios.archivada`, `lista_precios.restaurada` y `cliente.lista_precio_asignada` (lista anterior y nueva). No figuran entre los seis tipos sensibles del seed de `registro_inalterable.test.sql`, así que no hizo falta tocarlo. Ver [Listas de precios](listas-de-precios.md).
+
+## Importes del antes y después
+
+Los campos de importe (total, importe, monto, precio, costo, saldo, etc.) del detalle de un evento se muestran con formato de moneda. Pendiente: ocultar o agrupar las filas «Cambio de empresa activa» requiere cambiar `listar_actividad`.
+
+Los campos con formato de moneda salen de una lista explícita de nombres de columna (importe, monto, total, subtotal, precio, precio_lista, costo, saldo, valor, cobrado, deuda); un campo que solo contiene la palabra (p. ej. `total_items`) no se toca.
+

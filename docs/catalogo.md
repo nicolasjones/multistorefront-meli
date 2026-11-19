@@ -1,7 +1,21 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-catalogo-alta-y-edicion
+  - specs/20261020-120000-catalogo-listado-y-categorias
+  - specs/20261022-120000-precios-e-iva
+  - specs/20261103-100000-catalogo-productividad
+  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
+  - specs/20270125-100000-catalogo-variantes
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
+  - apps/web/src/components/productos/DialogoProducto.tsx
+  - apps/web/src/lib/productosListado.ts
+  - apps/web/src/lib/productos.ts
+  - apps/web/e2e/productos-variantes.e2e.ts
+  - apps/web/e2e/productos-relacionados.e2e.ts
+  - supabase/tests/database/catalogo_edicion_masiva.test.sql
 ---
 
 # Catálogo de productos
@@ -69,7 +83,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
   `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
   inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
-  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
+  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`). «Nuevo producto» y «Editar» abren el formulario en un popup (`components/productos/DialogoProducto.tsx`, que reutiliza `AltaProducto` y `EdicionProducto`): no se cierra con Esc ni al hacer clic afuera, se sale con «Cancelar» (pide confirmar si hay datos) o «Cerrar» ya guardado, y el listado se recarga desde el principio; las rutas `/productos/create` y `/productos/:id/edit` siguen existiendo (`App.tsx`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
   «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
@@ -239,7 +253,7 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la carga por tandas (25 por tanda, `range` + `count`; **carga infinita**, sin paginación numerada: ver «Carga infinita del listado»). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen («—» hasta Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen (solo con acceso a Rentabilidad; Margen = (precio − costo) / precio en pesos, «—» si falta precio o costo; con un tooltip que lo aclara como estimación: `apps/web/src/pages/productos/list.tsx:119-131`, `apps/web/src/lib/productosListado.ts:224-236`), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
@@ -330,7 +344,7 @@ Catálogo → Categorías (`/categorias`, sección `categorias`, ruta con `Requi
 - **Producto**: `SelectorCategoria` opcional en alta y edición, con «Sin categoría», raíces y subcategorías en ruta «Padre > Hija». Si la categoría actual no está en la lista (p. ej. sin permiso de lectura en Categorías) se conserva y se avisa, sin mostrar el id técnico.
 - **Listado**: `v_productos_listado` suma **al final** `categoria_id`, `categoria_ruta` («Padre > Hija») y `categoria_ids` (`[hija, padre]` o `[raíz]`). La columna «Categoría» muestra la ruta o «—»; el filtro por categoría se resuelve en el servidor y elegir una raíz incluye sus subcategorías (`categoria_ids` contiene el id elegido). El contrato previo de columnas no cambia. Rendimiento: `categoria_ids` es una columna calculada de la vista, así que `contains` sobre ella no usa `productos_categoria_idx` (recorre los productos de la organización, ya acotados por RLS); es aceptable con los catálogos actuales y no se midió con volúmenes grandes — si el listado se vuelve lento, filtrar por `categoria_id in (raíz + hijas)` para aprovechar el índice. Si la categoría filtrada se elimina, el listado descarta el filtro. Con la vista filtrada por tienda, Subir/Bajar intercambia con la hermana visible más cercana.
 - **Pruebas**: pgTAP `catalogo_categorias.test.sql` (2 niveles, nombre único por nivel, RLS por sección y organización, reordenado y concurrencia con el candado asesor, eliminar, asignación, eventos, `rls_en_toda_tabla`; SC-004/SC-005) y Vitest (`lib/categorias`, `ArbolCategorias`, `FormularioCategoria`, `EliminarCategoriaDialogo`, `SelectorCategoria`, `pages/categorias/list`, `productos/list|create|edit`). Los pgTAP corren en el CI (job `database`); localmente hace falta `pnpm dev:supabase`.
-- **Límites conocidos** (aceptados): las lecturas de la pantalla (`categorias`, `categorias_empresa`, `v_categorias_productos`) se piden por tandas de 500 con `.range()` y orden estable (MSF-539), así que el tope de `max-rows` (1000) de PostgREST ya no recorta el árbol. `reordenar_categorias` recibe el árbol completo calculado en el cliente: con dos editores simultáneos **gana el último** y puede revertir un movimiento ajeno (el candado asesor solo serializa, no fusiona). El `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (RLS acota por organización, sin fuga entre organizaciones), pero no toma el candado ni ordena las subcategorías como `eliminar_categoria`: la app solo usa la RPC. Al cambiar de **organización** la pantalla vacía el árbol, reinicia la expansión, cierra los diálogos y recarga (Principio VIII). En la vista filtrada por tienda, el conteo de la raíz suma solo sus productos directos y los de las subcategorías visibles.
+- **Límites conocidos** (aceptados): las lecturas de la pantalla (`categorias`, `categorias_empresa`, `v_categorias_productos`) se piden por tandas de 500 con `.range()` y orden estable (MSF-539), así que el tope de `max-rows` (1000) de PostgREST ya no recorta el árbol. `reordenar_categorias` recibe el árbol completo calculado en el cliente (máximo 5000 categorías por llamada, `22023`; migración `20270507140000`): con dos editores simultáneos **gana el último** y puede revertir un movimiento ajeno (el candado asesor solo serializa, no fusiona). El `DELETE` directo sobre `dominio.categorias` sigue concedido a quien edita la sección (RLS acota por organización, sin fuga entre organizaciones) y desde `20270507140000` un disparador `before delete` toma el mismo candado asesor por organización que el insert/update (reentrante con `eliminar_categoria`); sigue sin ordenar las subcategorías como la RPC: la app solo usa la RPC. `asignar_categoria_producto` responde `42501` («Tu rol no puede ver categorías…») a quien edita productos pero no lee categorías, en vez de «La categoría no existe». Al cambiar de **organización** la pantalla vacía el árbol, reinicia la expansión, cierra los diálogos y recarga (Principio VIII). En la vista filtrada por tienda, el conteo de la raíz suma solo sus productos directos y los de las subcategorías visibles.
 - **Reversión** (migración posterior, no en el mismo PR): `drop trigger productos_actividad_categoria on dominio.productos;` `drop function private.registrar_actividad_producto_categoria(), public.asignar_categoria_producto(uuid, uuid);` `drop view public.v_categorias_productos;` `alter table dominio.productos drop column categoria_id;` `create or replace view public.v_productos_listado` con la definición de `20261020130201` (sin categoría); `drop trigger categorias_actividad_alta/cambio/baja on dominio.categorias;` `drop function private.registrar_actividad_categoria_alta(), private.registrar_actividad_categoria_cambio(), private.registrar_actividad_categoria_baja(), private.ruta_categoria(uuid), public.guardar_categoria(uuid, text, uuid, uuid[]), public.reordenar_categorias(jsonb), public.eliminar_categoria(uuid);` `drop table dominio.categorias_empresa, dominio.categorias;` y `drop function private.normalizar_categoria(), private.validar_categorias_dos_niveles();`.
 - **Sin cambios** en las rutas ni en los permisos existentes: la sección `categorias` ya existía en la matriz de permisos.
 
@@ -423,7 +437,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Acciones masivas**: solo las de «Productividad» (mover de categoría, estado y empresas; ver la sección homónima).
-- **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo y Margen** ya muestran datos reales (ver «Columnas»): «—» solo si falta el dato o el rol no ve Costo y Margen (la columna Stock muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

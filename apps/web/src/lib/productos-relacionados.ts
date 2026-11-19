@@ -2,6 +2,7 @@
 // `guardar_relacionados` (migración 20270220120100) exige edición en Productos y rechaza el propio
 // producto, repetidos y productos de otra organización; `v_producto_relacionados` es el contrato de
 // lectura. Acá solo se arma la consulta del buscador, el payload y los mensajes.
+import { formatearNumeroImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { LARGO_MAXIMO_BUSQUEDA } from './productosListado'
 
@@ -16,12 +17,11 @@ export type Relacionado = {
   moneda: string | null
 }
 
-const FORMATO_PRECIO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // «SKU · categoría · precio»; lo que falta se muestra como «—».
 export function detalleRelacionado(item: Relacionado): string {
   const numero = item.precio === null || item.precio === '' ? Number.NaN : Number(item.precio)
-  const precio = Number.isFinite(numero) ? `${item.moneda === 'USD' ? 'USD' : '$'} ${FORMATO_PRECIO.format(numero)}` : '—'
+  const precio = Number.isFinite(numero) ? `${item.moneda === 'USD' ? 'USD' : '$'} ${formatearNumeroImporte(numero, { centavos: 'siempre' })}` : '—'
   return `${item.sku ?? '—'} · ${item.categoria ?? '—'} · ${precio}`
 }
 

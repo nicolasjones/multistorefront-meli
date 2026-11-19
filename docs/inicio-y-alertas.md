@@ -3,10 +3,17 @@ owner: tecnico
 sources:
   - specs/20261030-100000-inicio-y-alertas
   - specs/20270305-100000-inicio-tablero-completo
-  - infra/kestra
+  - infra/kestra/flows/alertas-inicio.yml
   - apps/web/src/lib/inicio.ts
   - apps/web/src/pages/inicio
-  - supabase/functions
+  - apps/web/e2e/inicio.e2e.ts
+  - supabase/functions/recalcular-alertas-inicio
+  - supabase/functions/_shared/token.ts
+  - supabase/migrations/20270201200138_alertas_inicio_recalculo.sql
+  - supabase/migrations/20270325000000_alertas_inicio_cobros_y_faltantes.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270324120200_resumen_inicio_bloques_seccion.sql
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
 ---
 
 # Inicio y alertas
@@ -153,9 +160,9 @@ Debajo del tablero, Inicio suma cuatro bloques que **respetan los filtros** Per�
 - **Actividad reciente**: los últimos 10 eventos del período y de la tienda elegida, con fecha, usuario y enlace
   (cada fila y «Ver todo» llevan a Actividad). No lleva depósito (el registro no lo guarda) ni columna «Cant.»
   (el registro guarda un texto de detalle, no una cantidad).
-- «Resumen por tienda» y «Salidas por depósito» salen de la **misma lectura**: si falla, fallan los dos con su
-  propio reintento; la actividad es independiente. **Desvío** de RF-INI-05-7 / CA-INI-05-8 (error independiente por
-  bloque): seguimiento en **MSF-850**.
+- «Resumen por tienda» y «Salidas por depósito» se leen **por separado** (MSF-850, RF-INI-05-7 / CA-INI-05-8): cada uno con
+  su carga, su error y su «Reintentar»; si falla uno, el otro sigue visible, y la actividad también es independiente
+  (`apps/web/src/pages/inicio/tablero/BloquesGestion.tsx`, componentes `ResumenTiendas` y `SalidasDepositos`; ver más abajo).
 - Si la base devuelve `null` en un bloque (por ejemplo, una tienda donde el rol no tiene `ventas`), el bloque dice
   «No tenés ventas habilitadas en esta tienda» (o «No tenés Stock habilitado») en vez de quedar en blanco. Una tienda
   sin ventas dice «Sin ventas en el período»; «sin costo cargado» queda para una tienda con ventas sin costo guardado.
@@ -356,7 +363,7 @@ Numeradas **D-1 a D-12 de la spec del tablero** (no confundir con D-1 a D-4 de l
 | Desvío | Seguimiento |
 |---|---|
 | El tema del panel no tiene modo oscuro: no hay modo oscuro que verificar en el gráfico (RF-INI-04-7) | **MSF-849** |
-| «Resumen por tienda» y «Salidas por depósito» comparten una lectura: si falla, fallan juntos (RF-INI-05-7 / CA-INI-05-8 pide error independiente por bloque) | **MSF-850** |
+| ~~«Resumen por tienda» y «Salidas por depósito» comparten una lectura~~ | Resuelto en MSF-850: lecturas independientes con `p_seccion` (migración `20270324120200`) |
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado arriba (Enlaces); sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |
@@ -411,7 +418,9 @@ Migraciones `20270121120000`, `20270121121100`, `20270121121200`. El enlace sale
 Flow de Kestra `infra/kestra/flows/alertas-inicio.yml` (cada 15 minutos, D-2) → Edge Function
 `recalcular-alertas-inicio` (`POST {"barrer": true}` con `x-aviso-token`) → `recalcular_alertas_inicio` por
 organización. Es idempotente: correrlo dos veces deja el mismo conjunto. Si una organización falla, la función
-sigue con las demás y responde 502 para que Kestra reintente. Cada cálculo queda en
+sigue con las demás y responde 502 para que Kestra reintente.
+
+**Autenticación de la función.** Compara `x-aviso-token` con `tokenValido` (`supabase/functions/_shared/token.ts`: SHA-256 de ambos valores y `timingSafeEqual`, de modo que no se corta por longitud ni el tiempo revela el largo del token). Sin token configurado, o con uno débil (menos de 32 caracteres o que empieza con `change-me`, salvo `AVISOS_PERMITIR_TOKEN_DEBIL=true`, que es solo para local), responde 503 «La función no está configurada» (`tokenDeEntorno` en `index.ts`); con un token que no coincide, 403. El flow `alertas-inicio` corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`) y, si falla, avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo` (solo el nombre de la tarea y el id de la ejecución). Cada cálculo queda en
 `dominio.alertas_inicio_calculos`; los errores, sin datos de negocio, en los registros de la función.
 
 Variables (solo ejemplos, valores reales en archivos ignorados por Git):

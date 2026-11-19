@@ -1,9 +1,18 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261110-100000-ventas-avisos-de-faltantes
+  - infra/kestra/flows/avisos-faltantes.yml
+  - supabase/functions/enviar-aviso-faltante/handler.ts
+  - supabase/functions/_shared/token.ts
+  - supabase/migrations/20270112130100_faltantes_tabla.sql
+  - supabase/migrations/20270226100100_faltantes_aviso_cola.sql
+  - supabase/migrations/20270226110300_listar_faltantes_para_avisar.sql
+  - supabase/migrations/20270306120000_faltantes_avisos_hallazgos_revision.sql
+  - supabase/migrations/20270306130000_faltantes_avisos_revision_pr915.sql
+  - apps/web/src/lib/ventasFaltantes.ts
+  - apps/web/src/pages/ventas/faltantes.tsx
+  - apps/web/src/hooks/useListarFaltantes.ts
 ---
 
 # Ventas · avisos de faltantes (técnico, MSF-161)
@@ -52,7 +61,7 @@ F-VTA-27 se construyen sobre `dominio.faltantes_venta` y `/ventas/faltantes`**. 
   (`_shared/correo.ts`), el reintento (tope 5, reserva de 2 minutos), «un correo por cliente», el saneamiento de
   errores y las tres RPC de `service_role` (`faltantes_avisos_pendientes`, `tomar_aviso_faltante`,
   `cerrar_aviso_faltante`).
-- El **flow `infra/kestra/flows/avisos-faltantes.yml`**: sin cambios (barrido cada minuto).
+- El **flow `infra/kestra/flows/avisos-faltantes.yml`**: sin cambios (barrido cada minuto). Con posterioridad a esta historia el flow ganó una sola ejecución a la vez (`concurrency: limit 1, behavior CANCEL`) y un aviso al soporte si falla (subflow `aviso-fallo-flujo`); y el token `x-aviso-token` se compara por SHA-256 en tiempo constante, con un mínimo de 32 caracteres (`supabase/functions/_shared/token.ts`, `tokenValido`).
 - `private.nivel_ventas_en_empresa`, `private.puede_leer_faltantes_empresa`, `private.registrar_actividad`,
   `FiltroEmpresa`, `useFiltroPorEmpresaActiva`, `useListadoAcumulado`, `CargaInfinita`, `ContenidoAdaptable`,
   `EtiquetaEstado` y el patrón de diálogo de `pages/stock/faltantes.tsx`.

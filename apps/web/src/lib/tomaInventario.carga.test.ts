@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   // Depósito con el que cada lote de stock filtró (`eq('deposito_id', …)`).
   filtrosDeposito: [] as string[],
   peticionesCategoria: [] as string[][],
+  sinCategoria: 0,
 }))
 
 vi.mock('./supabase', () => ({
@@ -34,6 +35,7 @@ vi.mock('./supabase', () => ({
           }
           return consulta
         },
+        is: (col: string, valor: null) => { if (col === 'categoria_id' && valor === null) mocks.sinCategoria += 1; return consulta },
         in: (col: string, valores: string[]) => { columna = col; ids = valores; return consulta },
         order: () => consulta,
         limit: () => consulta,
@@ -99,6 +101,7 @@ describe('cargarFilasToma', () => {
     mocks.peticionesStock = []
     mocks.filtrosDeposito = []
     mocks.peticionesCategoria = []
+    mocks.sinCategoria = 0
   })
 
   it('una categoría de 1000 productos carga todas las filas con su stock en el sistema', async () => {
@@ -132,6 +135,14 @@ describe('cargarFilasToma', () => {
     // Las cifras del sistema salen del depósito filtrado: sin el filtro serían de otro.
     expect(filas).toHaveLength(250)
     expect(filas.every((fila) => fila.sistema === 3)).toBe(true)
+  })
+
+  it('«Sin categoría» pide los productos con categoría nula, sin filtrar por ids de categoría', async () => {
+    mocks.productos = productos(3)
+    const filas = await cargarFilasToma([], true)
+    expect(filas).toHaveLength(3)
+    expect(mocks.sinCategoria).toBe(1)
+    expect(mocks.peticionesCategoria).toEqual([[]])
   })
 
   it('sin stock en el depósito, la fila muestra 0 (no queda indefinido)', async () => {

@@ -110,7 +110,7 @@ export const ayudaVentas: AyudaPorDestino = {
     ],
   },
   'ventas-faltantes': {
-    titulo: 'Faltantes',
+    titulo: 'Faltantes de despacho',
     resumen:
       'Lista los productos de ventas que no se pudieron despachar por falta de stock y siguen abiertos, con el estado del aviso al cliente: Sin avisar, Para avisar (ingresó mercadería), En cola (el correo todavía no salió) y Avisado (con la fecha de envío). Si un aviso falló aparece «Aviso fallido» con el motivo. Por defecto se ven todas las tiendas; si elegís una empresa en la barra superior, se filtra por esa tienda.',
     pasos: [

@@ -1,9 +1,34 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261024-120000-tienda-inicio-busqueda-movil
+  - apps/web/src/lib/tiendaInicio.ts
+  - apps/web/src/lib/tiendaCategorias.ts
+  - apps/web/src/lib/tiendaConteoCategorias.ts
+  - apps/web/src/lib/imagenProducto.ts
+  - apps/web/src/lib/tiendaBusqueda.ts
+  - apps/web/src/pages/tienda-publica/layout/BuscadorTienda.tsx
+  - apps/web/src/pages/tienda-publica/layout/MenuMovil.tsx
+  - apps/web/src/pages/tienda-publica/catalogo/PanelFiltrosMovil.tsx
+  - apps/web/src/pages/tienda-publica/ErrorConReintento.tsx
+  - apps/web/src/pages/tienda-publica/secciones/CategoriasInicio.tsx
+  - apps/web/src/pages/tienda-publica/secciones/DestacadosInicio.tsx
+  - apps/web/src/pages/tienda-publica/secciones/EstadoPreparacion.tsx
+  - apps/web/src/pages/tienda-publica/rutas/catalogo.tsx
+  - apps/web/src/pages/tienda-publica/secciones-catalogo/ListadoProductos.tsx
+  - apps/web/src/pages/tienda-publica/useAnchoCelular.ts
+  - apps/web/e2e/tienda-inicio.e2e.ts
+  - apps/web/e2e/tienda-busqueda.e2e.ts
+  - apps/web/e2e/tienda-movil.e2e.ts
+  - supabase/tests/database/tienda_busqueda_publica.test.sql
+  - supabase/tests/database/tienda_destacados_publicos.test.sql
+  - supabase/migrations/20270324120000_tienda_visitante_publico_hmac_y_poda_global.sql
+  - supabase/migrations/20270347000300_visitante_publico_sin_ip_alineado.sql
+  - supabase/migrations/20261203100000_tienda_destacados_publicos.sql
+  - supabase/migrations/20261203110000_tienda_busqueda_base.sql
+  - supabase/migrations/20261203110100_tienda_busqueda_sugerencias.sql
+  - supabase/migrations/20261203110200_tienda_busqueda_resultados.sql
+  - supabase/migrations/20261203110300_tienda_busqueda_visitante_saltos.sql
 ---
 
 # Tienda pública: inicio, búsqueda y versión móvil (MSF-191)
@@ -44,7 +69,7 @@ puede reutilizarse.
 ## Modelo de datos (DER)
 
 La única tabla nueva es `public.limite_pedidos_publicos`: control de abuso **transversal**, no una entidad
-del negocio de la tienda. Va en `public`, no en `dominio`, y **no guarda la IP**: solo un hash `sha256` del
+del negocio de la tienda. Va en `public`, no en `dominio`, y **no guarda la IP**: solo el HMAC del
 visitante y la ventana del minuto. `publico` sigue siendo un esquema **solo de funciones** (sin tablas).
 
 | Tabla | Estado | Cambio |
@@ -80,7 +105,7 @@ erDiagram
   PRODUCTOS ||--o{ PRODUCTO_PRECIOS_ESCALA : "escala"
   ALICUOTAS_IVA ||--o{ PRODUCTOS : "alícuota"
 
-  LIMITE_PEDIDOS_PUBLICOS { text visitante PK "nueva: hash sha256, nunca la IP"
+  LIMITE_PEDIDOS_PUBLICOS { text visitante PK "nueva: HMAC, nunca la IP"
     timestamptz ventana PK "nueva: minuto en curso"
     integer pedidos "nueva" }
   PRODUCTOS { uuid id PK
@@ -165,7 +190,7 @@ publico.destacados_por_dominio(host: string): {
 - Las imágenes se firman en lote (`lib/imagenProducto.ts`); sin imagen o con error se muestra «Sin imagen».
 - **Categorías de la home (MSF-825):** `secciones/CategoriasInicio.tsx` muestra solo las **categorías
   principales** (`categoriasPrincipales` de `lib/tiendaCategorias.ts`: las raíces visibles con más
-  productos, hasta 6 y sin nombres repetidos) con su conteo real, y agrega el enlace «Ver todas las
+  productos, hasta 6 y sin nombres repetidos) con su conteo real (la categoría más todas sus descendientes: `acumularConteoCategorias` en `lib/tiendaConteoCategorias.ts`, que se aplica al leer las categorías en `lib/tiendaCategorias.ts`), y agrega el enlace «Ver todas las
   categorías →» hacia `/catalogo` cuando hay más. La base ya no devuelve categorías sin productos
   visibles, así que no hay tarjetas con «0 productos».
 
@@ -205,11 +230,12 @@ desconocido y empresa desactivada devuelven `null`. No modifican `catalogo_pagin
   **10 minutos** (índice `limite_pedidos_publicos_ventana_idx`).
 - **Número:** `private.limite_busquedas_por_minuto()` = **30** (supuesto D1; Nicolás fija el definitivo).
   Cada sugerencia y cada tanda de resultados cuenta uno; el texto vacío o corto no cuenta.
-- **Visitante:** `private.visitante_publico(host)` es el hash `sha256` de la IP del cliente en
+- **Visitante:** `private.visitante_publico(host)` es el HMAC-SHA256 (secreto `visitante_hmac` de Vault,
+  `private.hmac_visitante`; migración `20270324120000_tienda_visitante_publico_hmac_y_poda_global.sql`) de la IP del cliente en
   `x-forwarded-for` más el host. Nunca se guarda la IP. El valor se toma
   `private.saltos_proxy_confiables()` lugares antes del último (hoy **0** = el último); si la cadena real
   agrega un proxy más, se cambia esa función en una migración nueva. Sin cabecera, todos caen en el grupo
-  «desconocido» y comparten el límite.
+  «sin-ip» y comparten el límite (marcador alineado con el de contacto por `20270347000300_visitante_publico_sin_ip_alineado.sql`).
 
 ### Front
 
@@ -240,6 +266,10 @@ ampliación de imagen ocupa toda la pantalla.
 | `catalogo/PanelFiltrosMovil.tsx` (carga diferida) | Botón «Filtrar · N», panel «Filtros» con «Limpiar», Categoría, «Solo con stock», «Precio máximo» (D5) y Ordenar; «Ver N productos» cierra sobre el resultado ya aplicado. El estado vive en la URL, igual que en escritorio. |
 | `ErrorConReintento.tsx` | «No pudimos cargar esta página.» + «Reintentar»; repite el pedido sin tocar URL ni filtros. Lo usan home, catálogo, categoría, resultados, ficha y los menús. |
 | Ficha | Una columna, «← Todos los productos», miniaturas táctiles y ampliación usable en pantalla chica; con MSF-212, botón «Consultar por WhatsApp» a ancho completo. |
+
+Con la cuenta del cliente activa y el módulo de pedidos encendido, `MenuMovil.tsx` suma al final, bajo una línea suave, «Mi cuenta»
+(`/mi-cuenta`), «Mi lista» (`/lista`, solo si `LISTA_DE_PEDIDO_DISPONIBLE` de `lib/tiendaCapacidades.ts` es `true`; hoy lo es) y «Salir»
+(cierra la sesión del cliente y vuelve al inicio). Detalle de cuentas: [Cuenta web del cliente](cuenta-web-cliente.md).
 
 Los tamaños verificados por el E2E son **360, 390, 412 y 430 px** y tabletas de **768 y 1024 px**: sin
 scroll horizontal en home, catálogo, categoría, resultados, ficha, 404 y «Volvemos pronto». El buscador y

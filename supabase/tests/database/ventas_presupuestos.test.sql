@@ -70,7 +70,7 @@ select is(
   (select count(*) from unnest(array[
     'public.aceptar_presupuesto(uuid)',
     'public.copiar_presupuesto(uuid)',
-    'public.listar_presupuestos(text,text,uuid,integer,integer)'
+    'public.listar_presupuestos(text,text,uuid,integer,integer,text)'
   ]) as f where has_function_privilege('anon', f::regprocedure, 'execute'))::int,
   0, 'anon no ejecuta las RPC de presupuestos'
 );
@@ -78,7 +78,7 @@ select is(
   (select count(*) from unnest(array[
     'public.aceptar_presupuesto(uuid)',
     'public.copiar_presupuesto(uuid)',
-    'public.listar_presupuestos(text,text,uuid,integer,integer)'
+    'public.listar_presupuestos(text,text,uuid,integer,integer,text)'
   ]) as f where has_function_privilege('authenticated', f::regprocedure, 'execute'))::int,
   3, 'authenticated ejecuta las RPC de presupuestos'
 );

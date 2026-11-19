@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from './formatoImporte'
 import { supabaseClient } from './supabase'
 import { acumularConteoCategorias } from './tiendaConteoCategorias'
 import { guardarBorrador, obtenerBorrador } from './tiendaBorrador'
@@ -92,9 +93,8 @@ export async function guardarCatalogoTienda(empresaId: string, cambios: CambiosC
   await guardarBorrador(empresaId, 'catalogo', { categorias: [...categorias.values()], productos: [...productos.values()] })
 }
 
-const formatoPrecio = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Precio de lectura; «—» si no hay precio (FR-047).
 export function formatearPrecioTienda(moneda: string, precio: number | null): string {
-  return precio === null ? '—' : `${moneda} ${formatoPrecio.format(precio)}`
+  return precio === null ? '—' : `${moneda} ${formatearNumeroImporte(precio, { centavos: 'siempre' })}`
 }

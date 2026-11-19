@@ -40,3 +40,68 @@ describe('rutas heredadas de Miembros (FR-019)', () => {
     expect(app).toContain(`<Route path="${origen}" element={<Navigate to="${destino}" replace />} />`)
   })
 })
+
+// La importación del historial es solo de administradores: la ruta lo exige antes de montar la pantalla.
+// Quita comentarios de bloque (`/* */`, `{/* */}`) y de línea para que el texto de un comentario no cuente como código.
+// Recorre el texto carácter a carácter y respeta las cadenas ('...', "...", `...`): un `//` dentro de una cadena (una URL,
+// un path) NO es un comentario. El texto JSX suelto no se trata como cadena (un apóstrofo en un párrafo no abre una).
+function sinComentarios(texto: string): string {
+  let salida = ''
+  let i = 0
+  while (i < texto.length) {
+    const c = texto[i]
+    const siguiente = texto[i + 1]
+    if (c === '/' && siguiente === '*') {
+      const fin = texto.indexOf('*/', i + 2)
+      i = fin === -1 ? texto.length : fin + 2
+    } else if (c === '/' && siguiente === '/') {
+      const fin = texto.indexOf('\n', i)
+      i = fin === -1 ? texto.length : fin
+    } else if (c === '"' || c === "'" || c === '`') {
+      let j = i + 1
+      while (j < texto.length && texto[j] !== c && !(c !== '`' && texto[j] === '\n')) j += texto[j] === '\\' ? 2 : 1
+      salida += texto.slice(i, j + 1)
+      i = j + 1
+    } else {
+      salida += c
+      i++
+    }
+  }
+  return salida
+}
+
+describe('rutas solo de administradores', () => {
+  it('/historial/importar se envuelve en RequiereAdministrador', () => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => /^\s+path="\/historial\/importar"/.test(trozo))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAdministrador')
+  })
+
+  it.each(['/empresas', '/empresas/edit/:id'])('%s se envuelve en RequiereAccesoSeccion de «empresas»', (ruta) => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => trozo.trimStart().startsWith(`path="${ruta}"`))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAccesoSeccion seccion="empresas">')
+  })
+
+  it('/stock/motivos se envuelve en RequiereAdministrador', () => {
+    const bloque = sinComentarios(app).split(/<Route\b/).find((trozo) => /^\s+path="\/stock\/motivos"/.test(trozo))
+    expect(bloque).toBeDefined()
+    expect(bloque).toContain('<RequiereAdministrador')
+  })
+
+  it('un comentario con el nombre del guard no engaña al chequeo', () => {
+    const falso = '<Route path="/x" element={<A />} />{/* <RequiereAdministrador> */}\n  // <RequiereAdministrador>'
+    expect(sinComentarios(falso)).not.toContain('RequiereAdministrador')
+  })
+
+  it('un // dentro de una cadena no se toma por comentario y lo que sigue se conserva', () => {
+    const codigo = '<Route path="/x" element={<A href="https://example.com/a" />}>\n<RequiereAdministrador />\n</Route> // nota'
+    const limpio = sinComentarios(codigo)
+    expect(limpio).toContain('https://example.com/a')
+    expect(limpio).toContain('<RequiereAdministrador />')
+    expect(limpio).not.toContain('nota')
+    // Un guard después de una cadena con // en la misma línea sigue contando.
+    expect(sinComentarios("const u = 'a //b'; <RequiereAdministrador>")).toContain('RequiereAdministrador')
+    expect(sinComentarios('/* <RequiereAdministrador> */ ok')).not.toContain('RequiereAdministrador')
+  })
+})

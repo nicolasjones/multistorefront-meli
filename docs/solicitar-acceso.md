@@ -1,9 +1,13 @@
 ---
 owner: producto
 sources:
-  - specs
-  - apps/web/src/pages/acceso-restringido
+  - specs/20261016-130000-perfil-y-permisos-avanzados
+  - apps/web/src/pages/acceso-restringido/AccesoRestringido.tsx
   - apps/web/src/lib/solicitarAcceso.ts
+  - supabase/functions/solicitar-acceso/handler.ts
+  - supabase/functions/.env.example
+  - supabase/migrations/20261017100000_solicitudes_acceso.sql
+  - supabase/tests/database/solicitudes_acceso.test.sql
 ---
 
 # Solicitar acceso desde la pantalla restringida (MSF-148 · F-ROL-05)

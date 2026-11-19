@@ -39,6 +39,7 @@ export const ENTIDAD_CLIENTES: DefinicionEntidad = {
     { clave: 'localidad', etiqueta: 'Localidad', alias: ['localidad', 'ciudad'] },
     { clave: 'provincia', etiqueta: 'Provincia', alias: ['provincia', 'estado'] },
     { clave: 'expreso_preferido', etiqueta: 'Expreso preferido', alias: ['expreso', 'transporte', 'expreso preferido'] },
+    { clave: 'condicion_iva', etiqueta: 'Condición de IVA', alias: ['condicion iva', 'condicion de iva', 'situacion iva', 'situacion frente al iva'] },
   ],
   rpcPrevisualizar: 'previsualizar_lote_clientes',
   rpcAplicar: 'aplicar_lote_clientes',

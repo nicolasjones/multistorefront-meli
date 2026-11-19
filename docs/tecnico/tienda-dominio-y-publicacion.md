@@ -1,11 +1,35 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/functions
-  - supabase/tests/database
-  - apps/web/src
+  - specs/20270125-100000-tienda-dominio-y-publicacion
+  - supabase/functions/verificar-dominio-tienda/index.ts
+  - supabase/functions/verificar-dominio-tienda/handler.ts
+  - supabase/functions/verificar-dominio-tienda/tls.ts
+  - openapi/verificar-dominio-tienda.json
+  - supabase/tests/database/tienda_borrador.test.sql
+  - supabase/tests/database/tienda_dominio_verificacion.test.sql
+  - supabase/tests/database/tienda_versiones.test.sql
+  - supabase/migrations/20270323100000_tienda_identidad_borrado_sin_referencias.sql
+  - supabase/migrations/20270323100100_tienda_dns_ip_publica_publica.sql
+  - supabase/migrations/20270323100300_rutas_tienda_sin_referencia_usa_funcion.sql
+  - supabase/migrations/20270311100000_tienda_estilo_heroe_mayusculas.sql
+  - apps/web/src/pages/empresas/tienda/pestanas.ts
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Dominio.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Publicacion.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/Versiones.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/publicacion/VistaPrevia.tsx
+  - apps/web/src/pages/empresas/tienda/VistaPreviaTienda.tsx
+  - apps/web/src/lib/tiendaDominio.ts
+  - apps/web/src/lib/tiendaBorrador.ts
+  - apps/web/src/lib/fuenteTienda.tsx
+  - apps/web/src/hooks/useDominioTienda.ts
+  - apps/web/src/hooks/useVersionesTienda.ts
+  - apps/web/src/hooks/useBorradorTienda.ts
+  - apps/web/src/pages/tienda-publica/index.tsx
+  - apps/web/e2e/tienda-publicacion.e2e.ts
+  - supabase/migrations/20270205110000_tienda_dominio_verificacion.sql
+  - supabase/migrations/20270205110100_tienda_borrador_publicacion.sql
+  - supabase/migrations/20270205110200_tienda_versiones.sql
 ---
 
 # Tienda online: dominio, publicación y versiones (MSF-133)
@@ -32,9 +56,9 @@ Resumen de producto y límites: [Dominio, publicación y versiones de la tienda]
 
 | Historia | Issue | Migración | Contenido | Reversión |
 |---|---|---|---|---|
-| F-TDA-05 | MSF-198 | `supabase/migrations/20270203130000_tienda_dominio_verificacion.sql` | Columnas nuevas de `dominio.tiendas`, `dominio.tienda_registros_dns`, `public.tienda_dns_plataforma`, `configurar_dominio_tienda`, `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`, `private.promover_dominio_pendiente`, `publico.redireccion_por_dominio` | `drop` de funciones y tablas nuevas; `alter table dominio.tiendas drop column …` de las nueve columnas nuevas |
-| F-TDA-06 | MSF-216 | `supabase/migrations/20270203130100_tienda_borrador_publicacion.sql` | `dominio.tienda_borrador`, `dominio.tienda_versiones` (con backfill de la versión 1), `private.validar_tienda_*`, `guardar_borrador_tienda`, `obtener_borrador_tienda`, `descartar_borrador_tienda`, `publicar_tienda`, `vista_previa_tienda`, `rutas_tienda_sin_referencia` y `revoke` de las tres `guardar_*` | reponer el `grant execute` de las tres `guardar_*` a `authenticated`; `drop` de funciones y las dos tablas |
-| F-TDA-07 | MSF-235 | `supabase/migrations/20270203130200_tienda_versiones.sql` | `listar_versiones_tienda` y `restaurar_version_tienda` (**sin tablas nuevas**) | `drop function public.restaurar_version_tienda(uuid, integer); drop function public.listar_versiones_tienda(uuid);` |
+| F-TDA-05 | MSF-198 | `supabase/migrations/20270205110000_tienda_dominio_verificacion.sql` | Columnas nuevas de `dominio.tiendas`, `dominio.tienda_registros_dns`, `public.tienda_dns_plataforma`, `configurar_dominio_tienda`, `obtener_dominio_tienda`, `preparar_verificacion_tienda`, `registrar_verificacion_dns`, `private.promover_dominio_pendiente`, `publico.redireccion_por_dominio` | `drop` de funciones y tablas nuevas; `alter table dominio.tiendas drop column …` de las nueve columnas nuevas |
+| F-TDA-06 | MSF-216 | `supabase/migrations/20270205110100_tienda_borrador_publicacion.sql` | `dominio.tienda_borrador`, `dominio.tienda_versiones` (con backfill de la versión 1), `private.validar_tienda_*`, `guardar_borrador_tienda`, `obtener_borrador_tienda`, `descartar_borrador_tienda`, `publicar_tienda`, `vista_previa_tienda`, `rutas_tienda_sin_referencia` y `revoke` de las tres `guardar_*` | reponer el `grant execute` de las tres `guardar_*` a `authenticated`; `drop` de funciones y las dos tablas |
+| F-TDA-07 | MSF-235 | `supabase/migrations/20270205110200_tienda_versiones.sql` | `listar_versiones_tienda` y `restaurar_version_tienda` (**sin tablas nuevas**) | `drop function public.restaurar_version_tienda(uuid, integer); drop function public.listar_versiones_tienda(uuid);` |
 
 La reversión completa está en el encabezado de cada migración. **Orden de reversión:** versiones → borrador y
 publicación → dominio.
@@ -216,9 +240,12 @@ nunca valores): `tienda.dominio_configurado` (ya existía; también al guardar e
 - **Edge Function.** Requiere `Deno.resolveDns`, `Deno.connect` y `Deno.startTls` en el runtime de Edge
   Functions self-hosted. Validarlo al desplegar; si no estuvieran, la verificación debe moverse a un worker en
   `workers/` con el mismo contrato.
+  Limitación conocida de la comprobación TLS (`supabase/functions/verificar-dominio-tienda/tls.ts`, sin verificar en un Deno real): `Deno.startTls` consume la conexión TCP,
+  de modo que si el handshake queda colgado el cierre es de mejor esfuerzo; el impacto está acotado a una conexión a la IP de la plataforma
+  y a una verificación cada 10 s por tienda.
 - **`publico` expuesto en la API.** La redirección nueva está en el mismo esquema que el resto: si `publico` no
   está en `PGRST_DB_SCHEMAS` / `SUPABASE_API_SCHEMAS` (ni en `supabase/config.toml` en local), no resuelve.
-- **Migraciones.** Aplicar en orden (`20270203130000`, `…130100`, `…130200`). Son aditivas; la reversión está
+- **Migraciones.** Aplicar en orden (`20270205110000`, `…110100`, `…110200`). Son aditivas; la reversión está
   en el encabezado de cada archivo.
 - **Sin caché** de las respuestas públicas.
 

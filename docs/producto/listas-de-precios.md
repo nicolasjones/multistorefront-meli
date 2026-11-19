@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/productos/listas-de-precios.tsx
 ---
 
 # Listas de precios por cliente

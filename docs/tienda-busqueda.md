@@ -2,13 +2,22 @@
 owner: tecnico
 sources:
   - specs/20261024-120000-tienda-inicio-busqueda-movil
-  - apps/web/src/pages/tienda-publica
   - supabase/migrations/20261203110000_tienda_busqueda_base.sql
   - supabase/migrations/20261203110100_tienda_busqueda_sugerencias.sql
   - supabase/migrations/20261203110200_tienda_busqueda_resultados.sql
   - supabase/migrations/20270221100005_tienda_precio_anterior_home_busqueda.sql
   - supabase/migrations/20270305100000_tienda_busqueda_pagina_rapida.sql
   - supabase/migrations/20270305100300_precio_vigente_empresa_plpgsql.sql
+  - apps/web/src/lib/tiendaBusqueda.ts
+  - apps/web/src/pages/tienda-publica/layout/BuscadorTienda.tsx
+  - apps/web/src/pages/tienda-publica/rutas/catalogo.tsx
+  - apps/web/src/pages/tienda-publica/secciones-catalogo/ListadoProductos.tsx
+  - apps/web/e2e/tienda-busqueda.e2e.ts
+  - supabase/tests/database/tienda_busqueda_publica.test.sql
+  - supabase/migrations/20261203110300_tienda_busqueda_visitante_saltos.sql
+  - supabase/migrations/20270324120000_tienda_visitante_publico_hmac_y_poda_global.sql
+  - supabase/migrations/20270347000300_visitante_publico_sin_ip_alineado.sql
+  - supabase/migrations/20270323100200_tienda_envios_visitante_hmac.sql
 ---
 
 # Búsqueda de productos de la tienda online (F-TDA-15)
@@ -74,16 +83,16 @@ que no lee datos. Sin ese permiso, el alta/edición de productos falla con «per
 - **Número (D1)**: supuesto de **30 pedidos por visitante por minuto**; cada sugerencia y cada página de
   resultados cuenta uno. Vive en **un solo lugar**: `private.limite_busquedas_por_minuto()`. Cambiarlo es
   reemplazar esa función en una migración nueva (Nicolás fija el valor definitivo).
-- **Quién es el visitante (D3)**: hash `sha256` de la IP del cliente en `x-forwarded-for` más el host. **Nunca
-  se guarda la IP**, solo el hash. Los valores a la izquierda del cliente los puede inventar el visitante; los
+- **Quién es el visitante (D3)**: HMAC-SHA256 (con el secreto `visitante_hmac` de Vault; antes un `sha256` sin clave) de la IP del cliente en `x-forwarded-for` más el host. **Nunca
+  se guarda la IP**, solo el HMAC. Los valores a la izquierda del cliente los puede inventar el visitante; los
   proxies de confianza agregan su IP a la derecha. Por eso se toma el valor que está
   `private.saltos_proxy_confiables()` lugares antes del último (migración `20261203110300`; hoy **0** = el
   último valor). Si la cadena real es Traefik → Kong y Kong agrega la IP de Traefik, el valor pasa a **1**
   (penúltimo) en una migración nueva. Cubierto por pgTAP (sin cabecera, una IP, un salto de proxy).
   **Pendiente de evidencia en DEV**: no hay entorno DEV accesible desde esta corrida, así que la cadena real
   no está confirmada; al desplegar, correr `select current_setting('request.headers', true)` dentro de una RPC
-  pública y anotar acá el resultado. Sin cabecera todos caen en el grupo «desconocido» (el límite pega a todos
-  juntos). Como el hash de una IPv4 se puede deshacer por fuerza bruta, las ventanas se purgan a los 10 minutos
+  pública y anotar acá el resultado. Sin cabecera todos caen en el grupo «sin-ip» (el límite pega a todos
+  juntos). Aunque desde el HMAC ya no se puede deshacer por fuerza bruta sin el secreto, las ventanas se purgan igualmente a los 10 minutos
   (con índice por `ventana`, `limite_pedidos_publicos_ventana_idx`).
 - **Qué no cuenta**: texto vacío o de menos de 2 caracteres, y dominios desconocidos.
 - **Qué pasa al superarlo**: `{limitado: true, espera_segundos}`, sin ejecutar la búsqueda; el front muestra

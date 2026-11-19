@@ -1,10 +1,39 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
-  - design/pantallas
+  - apps/web/e2e/service-recorrido.e2e.ts
+  - apps/web/src/App.tsx
+  - apps/web/src/components/service/AgregarItemDialog.tsx
+  - apps/web/src/components/service/AgregarManoObraDialog.tsx
+  - apps/web/src/components/service/AgregarRepuestoDialog.tsx
+  - apps/web/src/components/service/DocumentoA4.tsx
+  - apps/web/src/components/service/EtiquetaReparacion.tsx
+  - apps/web/src/components/service/FiltrosReparaciones.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
+  - apps/web/src/components/service/RequiereServiceTecnico.tsx
+  - apps/web/src/lib/documentosReparacion.ts
+  - apps/web/src/lib/etiquetaReparacion.ts
+  - apps/web/src/lib/qr/qr.ts
+  - apps/web/src/lib/qr/svg.ts
+  - apps/web/src/lib/reparacionItems.ts
+  - apps/web/src/lib/reparacionesListado.ts
+  - apps/web/src/pages/service-tecnico/etiqueta.tsx
+  - apps/web/src/pages/service-tecnico/orden-ingreso.tsx
+  - apps/web/src/pages/service-tecnico/remito-entrega.tsx
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - design/pantallas/AdminHeader.dc.html
+  - specs/20261022-100000-service-listado-items-e-impresion
+  - supabase/migrations/20261022100100_reparacion_items.sql
+  - supabase/migrations/20261022100200_reparaciones_totales.sql
+  - supabase/migrations/20261022100300_reparacion_item_agregar.sql
+  - supabase/migrations/20261022100400_reparacion_item_quitar.sql
+  - supabase/migrations/20261022100500_reparaciones_leer_items.sql
+  - supabase/migrations/20261022100600_reparacion_items_actividad.sql
+  - supabase/migrations/20261022110100_reparaciones_listado_indices.sql
+  - supabase/migrations/20261022110200_reparaciones_listar.sql
+  - supabase/tests/database/service_items.test.sql
+  - supabase/tests/database/service_listado.test.sql
+  - supabase/tests/database/service_listado_volumen.test.sql
 ---
 
 # Service técnico: listado, ítems e impresión (MSF-199)
@@ -212,10 +241,15 @@ La tienda del listado es la **empresa activa** de la barra superior, no un filtr
 |---|---|---|
 | Orden de ingreso | `/service-tecnico/reparaciones/:id/orden` | Toda reparación. |
 | Remito de entrega | `/service-tecnico/reparaciones/:id/remito` | Solo reparaciones **entregadas** y no anuladas; si no, «Remito no disponible». |
+| Etiqueta con código QR | `/service-tecnico/reparaciones/:id/etiqueta` | Toda reparación no anulada (con anulada, la pantalla avisa que no se imprime etiqueta). |
 
 - `apps/web/src/pages/service-tecnico/orden-ingreso.tsx` y `remito-entrega.tsx` cargan de forma diferida y
   están dentro de `RequiereServiceTecnico`: exigen `lectura` en `service_tecnico`; sin permiso muestran «Acceso
-  restringido».
+  restringido». Si la persona tiene permiso pero la funcionalidad no está habilitada para la organización, la guarda
+  muestra «Servicio técnico no está habilitado para tu organización» sin hablar del rol (`FuncionalidadNoHabilitada`
+  en `components/service/RequiereServiceTecnico.tsx`): a un superadmin le indica Plataforma · Funcionalidades; a quien
+  puede escribir, que la activa el soporte de la plataforma; al resto, que se lo pida a un administrador.
+- **Etiqueta con QR** (`pages/service-tecnico/etiqueta.tsx`, `components/service/EtiquetaReparacion.tsx`, `lib/etiquetaReparacion.ts`, `lib/qr/`): solo lee con `obtener_reparacion`, sin rutas ni RPC nuevas. El QR apunta a `<origen del panel>/service-tecnico/reparaciones/<id>`: la URL se arma con una lista blanca de forma y nunca lleva datos del cliente, serie, falla ni el token público de seguimiento. Tamaños Chica 40 × 25 mm, Mediana 50 × 30 mm (por defecto), Grande 70 × 40 mm y Personalizada (ancho 25 a 100 mm, alto 15 a 100 mm); de 1 a 10 copias; la impresión es la del navegador con `@page` del tamaño de la etiqueta y sin márgenes; el tamaño elegido se recuerda en el navegador (`msf.service.etiqueta`). En `localhost` o loopback la pantalla advierte que es un entorno de prueba, porque otros equipos no alcanzarían ese QR.
 - `apps/web/src/lib/documentosReparacion.ts` arma ambos documentos con lo que devuelve `obtener_reparacion`,
   los datos de la tienda (`dominio.empresas`: nombre, dirección, WhatsApp y correo; lo no cargado se omite) y
   el nombre del técnico. No lee `costo_mano_obra`, `costo_repuestos` ni `ganancia_estimada`.
@@ -224,7 +258,8 @@ La tienda del listado es la **empresa activa** de la barra superior, no un filtr
 - Rótulos fijos: «Documento no fiscal» e «Importes sin IVA».
 - **No hay PDF de servidor** ni mecanismo compartido con Ventas (MSF-213): es una vista propia de Service.
 - **CUIT y domicilio fiscal** no existen hoy en `dominio.empresas`: no se imprimen. El **texto de condiciones**
-  es una constante provisoria (`CONDICIONES_PENDIENTES`), pendiente de confirmar con el negocio.
+  es hoy `CONDICIONES_SERVICIO = null` (`apps/web/src/lib/documentosReparacion.ts`, MSF-614): el negocio no lo definió y,
+  mientras sea `null`, la orden no imprime la línea (nunca se muestra un texto provisional al cliente).
 
 ## Actividad
 

@@ -175,3 +175,12 @@ export function mensajeDeErrorMovimiento(error: unknown, porDefecto: string): st
   }
   return mensajeDeErrorStock(error, porDefecto)
 }
+
+// Las notas de las reservas «A pedido» traen la referencia interna del comprobante (`comprobante:<uuid>[:linea:N]`).
+// Una persona no puede usar ese identificador: se reemplaza por «el comprobante». El resto de la nota queda igual.
+const REFERENCIA_INTERNA_COMPROBANTE = /\bcomprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:\d+)?/gi
+
+export function notaLegibleDeMovimiento(nota: string | null): string | null {
+  if (nota === null) return null
+  return nota.replace(REFERENCIA_INTERNA_COMPROBANTE, 'el comprobante')
+}

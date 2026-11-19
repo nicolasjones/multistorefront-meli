@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/actividad/list.tsx
+  - apps/web/src/lib/actividad.ts
 ---
 
 # Consultar la actividad: quién hizo qué y cuándo
@@ -111,9 +113,9 @@ El archivo se puede abrir con una planilla de cálculo.
 
 - **Usuarios y permisos:** usuario agregado, cambio de rol, usuario suspendido, reactivado o removido, empresas asignadas, invitaciones enviadas, reenviadas o canceladas, permisos modificados o restablecidos, cambio de empresa activa.
 - **Empresas:** empresa actualizada, pausada o reactivada.
-- **Clientes:** cliente creado, editado, archivado o restaurado.
+- **Clientes:** cliente creado, editado, archivado o restaurado, y marca masiva de la aceptación de correo (hoy solo por la API: la pantalla todavía no tiene el botón).
 - **Productos, proveedores y stock:** altas, cambios, activaciones e ingresos o anulaciones de mercadería.
-- **Ventas y cobros:** comprobantes, presupuestos copiados, cobros registrados y cambios de estado.
+- **Ventas y cobros:** comprobantes, presupuestos copiados, cobros registrados, cobros revertidos y cambios de estado.
 - **Service técnico:** reparaciones creadas o editadas, y repuestos o mano de obra agregados o quitados.
 - **Soporte:** ingreso, salida y vencimiento del acceso del equipo de soporte a tu organización, con el motivo y hasta cuándo valía. Estos eventos los ve solo el Administrador.
 

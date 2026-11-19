@@ -1,0 +1,10 @@
+# MSF-705 / MSF-712 · modo ESTRICTO de superset: credenciales obligatorias sin valor por defecto. `scripts/deploy-vps.mjs` agrega este
+# archivo a `docker compose` en staging y producción (siempre) y en dev solo con VPS_ESTRICTO=1 (modo transicional: en dev el preflight
+# ADVIERTE y el despliegue continúa). Si falta una variable, `docker compose config` falla y el despliegue se corta ANTES de arrancar con
+# un valor por defecto conocido. Los valores van en `.env.<entorno>` (secret VPS_DEPLOY_ENV). Ver docs/deployment.md.
+x-variables-obligatorias:
+  superset_db_password: ${SUPERSET_DB_PASSWORD:?Definí SUPERSET_DB_PASSWORD en el .env del ambiente (contraseña de la base de Superset)}
+  superset_secret_key: ${SUPERSET_SECRET_KEY:?Definí SUPERSET_SECRET_KEY en el .env del ambiente (clave de sesión de Superset, 42 caracteres o más)}
+  superset_admin_password: ${SUPERSET_ADMIN_PASSWORD:?Definí SUPERSET_ADMIN_PASSWORD en el .env del ambiente (contraseña del administrador de Superset)}
+  superset_guest_token_jwt_secret: ${SUPERSET_GUEST_TOKEN_JWT_SECRET:?Definí SUPERSET_GUEST_TOKEN_JWT_SECRET en el .env del ambiente (secreto que firma los guest tokens)}
+  superset_guest_token_password: ${SUPERSET_GUEST_TOKEN_PASSWORD:?Definí SUPERSET_GUEST_TOKEN_PASSWORD en el .env del ambiente (contraseña de la cuenta de servicio de guest tokens)}

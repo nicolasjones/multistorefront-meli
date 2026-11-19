@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from './formatoImporte'
 // Historial de actividad (F-AUD-01, MSF-463): tipos, períodos y formato de
 // fecha. Las fechas se calculan y muestran en America/Argentina/Buenos_Aires,
 // nunca en UTC ni en la zona del navegador (FR-004).
@@ -63,9 +64,11 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'cliente.fusionado': 'Clientes fusionados',
   'cliente.lista_precio_asignada': 'Lista de precios del cliente',
   'cliente.restaurado': 'Cliente restaurado',
+  'clientes.aceptacion_correo_marcada': 'Aceptación de correo marcada',
   'clientes.exportados': 'Clientes exportados',
   'comprobante.anulado': 'Comprobante anulado',
   'comprobante.cobro_registrado': 'Cobro registrado',
+  'comprobante.cobro_revertido': 'Cobro revertido',
   'comprobante.confirmado': 'Comprobante confirmado',
   'comprobante.creado': 'Comprobante creado',
   'comprobante.documento_solicitado': 'Documento solicitado',
@@ -335,12 +338,11 @@ export function formatearCuando(iso: string): string {
 // Símbolo de cada moneda: el mismo que usa el resto del panel («$» pesos, «US$» dólares).
 const SIMBOLO_MONEDA: Readonly<Record<string, string>> = { ARS: '$', USD: 'US$' }
 
-const formatoImporteDetalle = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // «859100» o «90919.40» (punto decimal) / «90919,40» (coma) -> «859.100,00» / «90.919,40».
 function importeLegible(texto: string): string {
   const numero = Number(texto.replace(',', '.'))
-  return Number.isFinite(numero) ? formatoImporteDetalle.format(numero) : texto
+  return Number.isFinite(numero) ? formatearNumeroImporte(numero, { centavos: 'siempre' }) : texto
 }
 
 // Importe del detalle: «Cobro de [moneda] N», «[moneda] N» o «$ N». La moneda la trae el texto
@@ -378,6 +380,34 @@ function textoDelValor(valor: unknown): string {
   return String(valor)
 }
 
+// Campos de importe del antes → después. Criterio acotado por nombre de columna: la columna es (o empieza con) una palabra
+// de importe (`total`, `precio_unitario`, `monto_pagado`, `costo_unitario_usd`…), salvo que termine en una palabra de
+// conteo, porcentaje o identificador (`total_items`, `total_filas`, `descuento_pct`). Un nombre nuevo fuera de este
+// criterio se ve sin formato de moneda: se agrega acá.
+const RE_CAMPO_IMPORTE = /^(importe|monto|costo|precio|saldo|subtotal|total|descuento|recargo|valor|cobrado|deuda)(_[a-z0-9_]+)?$/
+const RE_CAMPO_NO_IMPORTE = /_(pct|porcentaje|items|filas|cuentas|cantidad|id|dias|orden|recalculados)$/
+
+// Excepciones explícitas: columnas que el criterio por prefijo tomaría por importe y no lo son (`total_clientes` es un
+// conteo, `saldo_stock` son unidades). Se muestran crudas. Una columna nueva con prefijo de importe que no sea dinero
+// se agrega acá.
+const CAMPOS_QUE_NO_SON_IMPORTE: ReadonlySet<string> = new Set(['total_clientes', 'saldo_stock'])
+
+// `valor` de `costos_adicionales_canal` es un porcentaje o un monto según su `tipo` (el mismo registro). Solo se formatea
+// como moneda cuando el `tipo` de ese lado es `monto`; con `porcentaje` se deja crudo. Sin `tipo` (otras entidades con un
+// `valor` de importe, p. ej. la cotización) rige el criterio por nombre.
+const esCampoImporte = (clave: string, tipoDelRegistro?: unknown) => {
+  if (CAMPOS_QUE_NO_SON_IMPORTE.has(clave)) return false
+  if (clave === 'valor' && tipoDelRegistro === 'porcentaje') return false
+  return RE_CAMPO_IMPORTE.test(clave) && !RE_CAMPO_NO_IMPORTE.test(clave)
+}
+
+function textoDelCampo(clave: string, valor: unknown, tipoDelRegistro?: unknown): string {
+  const crudo = textoDelValor(valor)
+  if (crudo === SIN_VALOR || !esCampoImporte(clave, tipoDelRegistro) || typeof valor === 'boolean' || typeof valor === 'object') return crudo
+  const texto = String(valor).trim()
+  return /^-?\d+(?:[.,]\d+)?$/.test(texto) ? importeLegible(texto) : crudo
+}
+
 function etiquetaDelCampo(clave: string): string {
   return clave.charAt(0).toUpperCase() + clave.slice(1).replace(/_/g, ' ')
 }
@@ -390,7 +420,7 @@ export function camposDelCambio(anterior: ValoresActividad | null, nuevo: Valore
   const claves = [...Object.keys(antes), ...Object.keys(despues).filter((clave) => !(clave in antes))]
   return claves.map((clave) => ({
     campo: etiquetaDelCampo(clave),
-    anterior: textoDelValor(antes[clave]),
-    nuevo: textoDelValor(despues[clave]),
+    anterior: textoDelCampo(clave, antes[clave], antes.tipo),
+    nuevo: textoDelCampo(clave, despues[clave], despues.tipo),
   }))
 }

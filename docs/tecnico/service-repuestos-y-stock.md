@@ -1,10 +1,34 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
-  - design/pantallas
+  - specs/20261028-100000-service-repuestos-y-stock
+  - supabase/migrations/20261023120200_stock_movimiento_deposito.sql
+  - supabase/migrations/20270201200104_stock_movimientos_origen_service.sql
+  - supabase/migrations/20270201200105_reparacion_items_deposito.sql
+  - supabase/migrations/20270201200106_service_mover_stock.sql
+  - supabase/migrations/20270201200107_reparacion_item_agregar_stock.sql
+  - supabase/migrations/20270201200108_depositos_para_repuesto.sql
+  - supabase/migrations/20270201200109_reparaciones_leer_stock.sql
+  - supabase/migrations/20270201200110_reparacion_item_quitar_devolucion.sql
+  - supabase/migrations/20270201200111_reparaciones_anular_devolucion.sql
+  - supabase/migrations/20270201200112_reparacion_item_agregar_pendiente.sql
+  - supabase/migrations/20270201200113_reparaciones_listar_pendientes.sql
+  - supabase/tests/database/service_repuestos_stock.test.sql
+  - supabase/tests/database/service_repuestos_concurrencia.test.sql
+  - supabase/tests/database/service_repuestos_devolucion.test.sql
+  - supabase/tests/database/service_repuestos_anulacion.test.sql
+  - supabase/tests/database/service_repuestos_pendiente.test.sql
+  - apps/web/src/lib/reparacionItems.ts
+  - apps/web/src/lib/reparaciones.ts
+  - apps/web/src/lib/reparacionesListado.ts
+  - apps/web/src/components/service/SelectorDepositoRepuesto.tsx
+  - apps/web/src/components/service/AgregarRepuestoDialog.tsx
+  - apps/web/src/components/service/AvisoSinStock.tsx
+  - apps/web/src/components/service/MarcaStockItem.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
+  - apps/web/src/components/service/AnularDialog.tsx
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - apps/web/e2e/service-repuestos-stock.e2e.ts
 ---
 
 # Service técnico: repuestos y stock (MSF-217)
@@ -91,7 +115,7 @@ erDiagram
 
 ### `dominio.reparacion_items`: `deposito_id` y `stock_estado`
 
-Migración `20270114100200_reparacion_items_deposito.sql`.
+Migración `20270201200105_reparacion_items_deposito.sql`.
 
 - `deposito_id uuid` con **FK compuesta** `(deposito_id, organizacion_id)` a `dominio.depositos`: un ítem no puede
   apuntar a un depósito de otra organización. Se completa **solo** en un repuesto con producto del catálogo que
@@ -104,7 +128,7 @@ Migración `20270114100200_reparacion_items_deposito.sql`.
 
 ### `dominio.movimientos_stock`: `origen`, `reparacion_id` y `referencia`
 
-Migración `20270114100100_stock_movimientos_origen_service.sql` (el ajuste a Stock que pide la épica).
+Migración `20270201200104_stock_movimientos_origen_service.sql` (el ajuste a Stock que pide la épica).
 
 - `origen text` con `check (origen in ('service'))`; **nulo** en todos los movimientos que no vienen de una
   reparación.
@@ -125,19 +149,19 @@ reparación entregada/anulada o cerrada, `23514` «No hay stock suficiente».
 
 | RPC | Qué hace |
 |---|---|
-| `public.depositos_para_repuesto(p_producto_id uuid)` | Devuelve `jsonb` con los **depósitos activos** de la organización y, por cada uno, `cantidad`, `reservado` y `disponible` (cantidad − reservado) del producto; el **por defecto primero**. Gate `service_tecnico` en `lectura`/`edicion`: el técnico **no** necesita Stock. Producto de otra organización o inexistente → `P0002`. Migración `20270114100500`. |
-| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descricao, p_producto_id, p_cantidad, p_precio, p_deposito_id uuid default null, p_dejar_pendiente boolean default false)` | Inserta el ítem y, si es un repuesto del catálogo que **no** es «a pedido», **descuenta del depósito elegido** y recalcula los totales **en la misma transacción**. `p_deposito_id` nulo = depósito por defecto; el depósito debe ser **activo** y de la organización (`22023`, hint `deposito_id`). Sin stock → `23514` «No hay stock suficiente» y **no queda ítem, movimiento ni cambio de totales**; con `p_dejar_pendiente` el ítem se carga `pendiente` **sin movimiento**. Gate `edicion` en `service_tecnico`. Migraciones `20270114100400` y `20270114140100`. |
-| `public.quitar_item_reparacion(p_item_id uuid)` | Si el ítem estaba `descontado`, registra la **entrada** al depósito original, lo borra y recalcula los totales en la misma transacción. Firma y gate sin cambios respecto de MSF-199. Migración `20270114110100`. |
-| `public.anular_reparacion(p_id uuid, p_motivo text, p_consumidos uuid[] default '{}')` | Anula con motivo obligatorio y, en la misma transacción, **devuelve al depósito original** cada repuesto `descontado` **no** consumido (queda `devuelto`) y marca los consumidos (`consumido`). Un id de `p_consumidos` que no sea un repuesto `descontado` de esa reparación → `22023` (hint `consumidos`) y **no se anula nada**. Migración `20270114110200`. |
-| `public.listar_reparaciones(p_empresa, p_periodo, p_serie, p_tecnico, p_pagina, p_tamano)` | **Firma sin cambios**; suma por fila `pendientes_stock` = repuestos `pendiente` de reparaciones **no anuladas ni entregadas** (`0` si la reparación está anulada o entregada). Migración `20270114140200`. |
-| `public.obtener_reparacion(id)` | Contrato aditivo: por ítem suma `deposito_id`, `deposito_nombre` y `stock_estado`. Lo implementa `private.reparacion_json`, que comparten `obtener_reparacion` y las RPC de escritura. Migración `20270114100600`. |
+| `public.depositos_para_repuesto(p_producto_id uuid)` | Devuelve `jsonb` con los **depósitos activos** de la organización y, por cada uno, `cantidad`, `reservado` y `disponible` (cantidad − reservado) del producto; el **por defecto primero**. Gate `service_tecnico` en `lectura`/`edicion`: el técnico **no** necesita Stock. Producto de otra organización o inexistente → `P0002`. Migración `20270201200108`. |
+| `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descricao, p_producto_id, p_cantidad, p_precio, p_deposito_id uuid default null, p_dejar_pendiente boolean default false)` | Inserta el ítem y, si es un repuesto del catálogo que **no** es «a pedido», **descuenta del depósito elegido** y recalcula los totales **en la misma transacción**. `p_deposito_id` nulo = depósito por defecto; el depósito debe ser **activo** y de la organización (`22023`, hint `deposito_id`). Sin stock → `23514` «No hay stock suficiente» y **no queda ítem, movimiento ni cambio de totales**; con `p_dejar_pendiente` el ítem se carga `pendiente` **sin movimiento**. Gate `edicion` en `service_tecnico`. Migraciones `20270201200107` y `20270201200112`. |
+| `public.quitar_item_reparacion(p_item_id uuid)` | Si el ítem estaba `descontado`, registra la **entrada** al depósito original, lo borra y recalcula los totales en la misma transacción. Firma y gate sin cambios respecto de MSF-199. Migración `20270201200110`. |
+| `public.anular_reparacion(p_id uuid, p_motivo text, p_consumidos uuid[] default '{}')` | Anula con motivo obligatorio y, en la misma transacción, **devuelve al depósito original** cada repuesto `descontado` **no** consumido (queda `devuelto`) y marca los consumidos (`consumido`). Un id de `p_consumidos` que no sea un repuesto `descontado` de esa reparación → `22023` (hint `consumidos`) y **no se anula nada**. Migración `20270201200111`. |
+| `public.listar_reparaciones(p_empresa, p_periodo, p_serie, p_tecnico, p_pagina, p_tamano)` | **Firma sin cambios**; suma por fila `pendientes_stock` = repuestos `pendiente` de reparaciones **no anuladas ni entregadas** (`0` si la reparación está anulada o entregada). Migración `20270201200113`. |
+| `public.obtener_reparacion(id)` | Contrato aditivo: por ítem suma `deposito_id`, `deposito_nombre` y `stock_estado`. Lo implementa `private.reparacion_json`, que comparten `obtener_reparacion` y las RPC de escritura. Migración `20270201200109`. |
 
 ### Funciones internas (sin `grant`)
 
 | Función | Qué hace |
 |---|---|
-| `private.mover_stock_reparacion(p_organizacion, p_reparacion, p_item, p_producto, p_deposito, p_cantidad, p_sentido text)` | **Única** rutina que mueve stock por un repuesto. `p_sentido` es `salida` o `entrada` (`22023` si no). Usa `private.aplicar_movimiento_deposito` (la barrera de Stock) y el motivo de sistema «Repuesto de reparación» (salida) o «Devolución de repuesto de reparación» (entrada). Inserta el movimiento con `origen = 'service'`, `reparacion_id`, `deposito_id`, actor, fecha y `referencia` única. Si la `referencia` ya existe **no mueve nada** y devuelve `false` (idempotencia). `security definer`, `search_path = ''`, **sin `grant`** a `authenticated`. Migración `20270114100300`. |
-| `private.devolver_stock_item_reparacion(p_organizacion, p_item)` | Si el ítem está `descontado`, llama a `mover_stock_reparacion(..., 'entrada')` y lo marca `devuelto`; en cualquier otro estado (`pendiente`, `sin_movimiento`, `consumido`, `devuelto`) **no mueve stock**. Lee el ítem con `for update`. Migración `20270114110100`. |
+| `private.mover_stock_reparacion(p_organizacion, p_reparacion, p_item, p_producto, p_deposito, p_cantidad, p_sentido text)` | **Única** rutina que mueve stock por un repuesto. `p_sentido` es `salida` o `entrada` (`22023` si no). Usa `private.aplicar_movimiento_deposito` (la barrera de Stock) y el motivo de sistema «Repuesto de reparación» (salida) o «Devolución de repuesto de reparación» (entrada). Inserta el movimiento con `origen = 'service'`, `reparacion_id`, `deposito_id`, actor, fecha y `referencia` única. Si la `referencia` ya existe **no mueve nada** y devuelve `false` (idempotencia). `security definer`, `search_path = ''`, **sin `grant`** a `authenticated`. Migración `20270201200106`. |
+| `private.devolver_stock_item_reparacion(p_organizacion, p_item)` | Si el ítem está `descontado`, llama a `mover_stock_reparacion(..., 'entrada')` y lo marca `devuelto`; en cualquier otro estado (`pendiente`, `sin_movimiento`, `consumido`, `devuelto`) **no mueve stock**. Lee el ítem con `for update`. Migración `20270201200110`. |
 
 **Por qué no `public.registrar_movimiento_stock`:** esa RPC exige `edicion` en **Stock** y un motivo elegido; el
 técnico de Service no tiene Stock. El camino es el mismo que usan las notas de crédito y el despacho: la barrera
@@ -147,8 +171,8 @@ es `private.aplicar_movimiento_deposito` (F-STK-14).
 
 | RPC | Antes | Ahora | Consecuencia |
 |---|---|---|---|
-| `public.agregar_item_reparacion` | 6 parámetros (MSF-199, `20261022100300`) | 7 (`20270114100400`) y luego **8** (`20270114140100`) | Se **eliminan** las firmas anteriores (`drop function`) porque dos sobrecargas con `default` serían ambiguas para PostgREST. El cliente (`apps/web/src/lib/reparacionItems.ts`) se actualiza en el mismo cambio. |
-| `public.anular_reparacion` | `(uuid, text)` (MSF-182, `20261020120300`) | `(uuid, text, uuid[])` (`20270114110200`) | Se elimina la firma de 2 parámetros. El cliente (`apps/web/src/lib/reparaciones.ts`) cambia en el mismo commit. |
+| `public.agregar_item_reparacion` | 6 parámetros (MSF-199, `20261022100300`) | 7 (`20270201200107`) y luego **8** (`20270201200112`) | Se **eliminan** las firmas anteriores (`drop function`) porque dos sobrecargas con `default` serían ambiguas para PostgREST. El cliente (`apps/web/src/lib/reparacionItems.ts`) se actualiza en el mismo cambio. |
+| `public.anular_reparacion` | `(uuid, text)` (MSF-182, `20261020120300`) | `(uuid, text, uuid[])` (`20270201200111`) | Se elimina la firma de 2 parámetros. El cliente (`apps/web/src/lib/reparaciones.ts`) cambia en el mismo commit. |
 
 Los dos cambios son **alto riesgo** y llevan *gate* humano (los deja la historia, con el contrato en
 `specs/20261028-100000-service-repuestos-y-stock/contracts/service-repuestos-stock.md`).
@@ -262,22 +286,22 @@ asentados **no se deshacen solos** (el libro es de solo agregado): hay que expor
 
 | Migración | Contenido |
 |---|---|
-| `20270114100100_stock_movimientos_origen_service.sql` | `origen`, `reparacion_id` y `referencia` en `dominio.movimientos_stock`, con checks, FK compuesta e índice único parcial. |
-| `20270114100200_reparacion_items_deposito.sql` | `deposito_id` y `stock_estado` en `dominio.reparacion_items`, con checks, FK compuesta e índice parcial. |
-| `20270114100300_service_mover_stock.sql` | `private.mover_stock_reparacion` (sin `grant` a `authenticated`). |
-| `20270114100400_reparacion_item_agregar_stock.sql` | `agregar_item_reparacion` con `p_deposito_id` (reemplaza la firma de 6 parámetros). |
-| `20270114100500_depositos_para_repuesto.sql` | `public.depositos_para_repuesto`. |
-| `20270114100600_reparaciones_leer_stock.sql` | `private.reparacion_json` con `deposito_id`, `deposito_nombre` y `stock_estado`. |
-| `20270114110100_reparacion_item_quitar_devolucion.sql` | `private.devolver_stock_item_reparacion` y `quitar_item_reparacion` que devuelve antes de borrar. |
-| `20270114110200_reparaciones_anular_devolucion.sql` | `anular_reparacion` con `p_consumidos` (reemplaza la firma de 2 parámetros). |
-| `20270114140100_reparacion_item_agregar_pendiente.sql` | `agregar_item_reparacion` con `p_dejar_pendiente` (reemplaza la firma de 7 parámetros). |
-| `20270114140200_reparaciones_listar_pendientes.sql` | `listar_reparaciones` con `pendientes_stock` (misma firma). |
+| `20270201200104_stock_movimientos_origen_service.sql` | `origen`, `reparacion_id` y `referencia` en `dominio.movimientos_stock`, con checks, FK compuesta e índice único parcial. |
+| `20270201200105_reparacion_items_deposito.sql` | `deposito_id` y `stock_estado` en `dominio.reparacion_items`, con checks, FK compuesta e índice parcial. |
+| `20270201200106_service_mover_stock.sql` | `private.mover_stock_reparacion` (sin `grant` a `authenticated`). |
+| `20270201200107_reparacion_item_agregar_stock.sql` | `agregar_item_reparacion` con `p_deposito_id` (reemplaza la firma de 6 parámetros). |
+| `20270201200108_depositos_para_repuesto.sql` | `public.depositos_para_repuesto`. |
+| `20270201200109_reparaciones_leer_stock.sql` | `private.reparacion_json` con `deposito_id`, `deposito_nombre` y `stock_estado`. |
+| `20270201200110_reparacion_item_quitar_devolucion.sql` | `private.devolver_stock_item_reparacion` y `quitar_item_reparacion` que devuelve antes de borrar. |
+| `20270201200111_reparaciones_anular_devolucion.sql` | `anular_reparacion` con `p_consumidos` (reemplaza la firma de 2 parámetros). |
+| `20270201200112_reparacion_item_agregar_pendiente.sql` | `agregar_item_reparacion` con `p_dejar_pendiente` (reemplaza la firma de 7 parámetros). |
+| `20270201200113_reparaciones_listar_pendientes.sql` | `listar_reparaciones` con `pendientes_stock` (misma firma). |
 
 Orden inverso: listar pendientes → agregar pendiente → anular devolución → quitar devolución → leer stock →
 depósitos para repuesto → agregar stock → mover stock → ítems con depósito → libro con origen.
 
 > **Nota de versiones**: las tareas de la spec (`tasks.md`) nombraban estas migraciones con los números
-> `20270113100100`–`20270113120200`; la implementación las renumeró a `20270114100100`–`20270114140200` (versiones
+> `20270113100100`–`20270113120200`; la implementación las renumeró a `20270201200104`–`20270201200113` (versiones
 > libres) para no chocar con otras épicas.
 
 ## Decisiones provisionales que quedan abiertas

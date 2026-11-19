@@ -5,7 +5,16 @@ sources:
   - scripts/verificar-documentacion-cambios.mjs
   - scripts/verificar-migraciones.mjs
   - apps/web/src/pages/inicio
-  - supabase/tests/database
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270305120000_movimientos_por_producto.sql
+  - supabase/migrations/20270305130000_previsualizar_impacto_dolar.sql
+  - supabase/migrations/20270305140000_aplicar_cotizacion.sql
+  - supabase/migrations/20270306110000_inicio_tablero_hallazgos_finales.sql
+  - supabase/tests/database/resumen_inicio_periodo.test.sql
+  - supabase/tests/database/inicio_tablero_bloques.test.sql
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/tests/database/privilegios_anon_endurecidos.test.sql
 ---
 
 # Revisión de seguridad integral · Inicio, tablero completo (MSF-824)
@@ -280,7 +289,7 @@ decida las actualizaciones o los `overrides`.
 ## Riesgo residual
 
 Con lo anterior, el riesgo residual de la épica es **bajo**: lo que queda es (a) el permiso del dólar por tienda (H-4, heredado de `cargar_cotizacion`, seguimiento) y la decisión sobre quién ve los ingresos totales (H-2), ya tomada: se mantiene y (b) la ausencia de un límite por usuario y de un `statement_timeout` versionado (H-5, lo restante). La validación de tienda del listado (H-1), el margen por tienda (H-3), el costo del último movimiento (H-5), el orden de locks (S-2) y las fechas infinitas (S-5) quedaron corregidos en el PR #909. Ninguno bloquea el merge. Los seguimientos están en `specs/20270305-100000-inicio-tablero-completo/tasks.md`; los de la épica de producto siguen siendo **MSF-849**
-(modo oscuro), **MSF-850** (error independiente por bloque) y **MSF-851** (E2E de bloques, listado y dólar).
+(modo oscuro), **MSF-850** (error independiente por bloque; resuelto después de esta revisión: ver `inicio-y-alertas.md`) y **MSF-851** (E2E de bloques, listado y dólar).
 
 ## Lo que no se verificó
 

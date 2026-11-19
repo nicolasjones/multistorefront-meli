@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // MSF-278 (F-AUD-03): exportar la actividad a CSV. Cubre CA-AUD-03-1 (solo las filas del filtro y sus columnas),
 // CA-AUD-03-3 (más de 50.000 filas: se pide acotar y NO se descarga) y CA-AUD-03-4 (escape de comas, comillas y
@@ -39,13 +39,21 @@ test.describe('Exportar la actividad (F-AUD-03)', () => {
       orgId = org.id
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      await rest('registro_actividad', [
-        { organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'producto.creado', detalle: `Creó ${marca} uno`, creado_en: haceDias(1) },
-        { organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'producto.creado', detalle: `Dijo "hola", ${marca}; chau\nfin`, creado_en: haceDias(2) },
+      // `service_role` no tiene INSERT sobre `registro_actividad` (la REST responde 42501): se siembra por SQL directo, solo para sembrar.
+      // La baja de la organización borra estas filas por cascada.
+      const eventos = [
+        { detalle: `Creó ${marca} uno`, creado_en: haceDias(1) },
+        { detalle: `Dijo "hola", ${marca}; chau\nfin`, creado_en: haceDias(2) },
         // Fuera del período (7 días) y sin la marca: no deben aparecer.
-        { organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'producto.creado', detalle: `Viejo ${marca}`, creado_en: haceDias(40) },
-        { organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'producto.creado', detalle: 'Otra cosa sin la marca', creado_en: haceDias(1) },
-      ])
+        { detalle: `Viejo ${marca}`, creado_en: haceDias(40) },
+        { detalle: 'Otra cosa sin la marca', creado_en: haceDias(1) },
+      ]
+      for (const e of eventos) {
+        await sql(
+          'insert into public.registro_actividad (organizacion_id, actor_id, actor_nombre, tipo, detalle, creado_en) values ($1, $2, $3, $4, $5, $6)',
+          [org.id, userId, 'Ana Admin', 'producto.creado', e.detalle, e.creado_en],
+        )
+      }
 
       await ingresar(page, correo)
       await page.goto('/actividad')
@@ -88,16 +96,11 @@ test.describe('Exportar la actividad (F-AUD-03)', () => {
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
       const total = 50_001
-      const lote = 5_000
-      for (let desde = 0; desde < total; desde += lote) {
-        const filas = Array.from({ length: Math.min(lote, total - desde) }, (_, i) => ({
-          organizacion_id: org.id,
-          tipo: 'carga.masiva',
-          detalle: `Evento ${desde + i}`,
-          creado_en: new Date(Date.now() - (desde + i + 1) * 1000).toISOString(),
-        }))
-        await rest('registro_actividad', filas)
-      }
+      // Una sola sentencia parametrizada (service_role no tiene INSERT sobre `registro_actividad`: la REST responde 42501).
+      await sql(
+        "insert into public.registro_actividad (organizacion_id, tipo, detalle, creado_en) select $1::uuid, 'carga.masiva', 'Evento ' || g, now() - (g + 1) * interval '1 second' from generate_series(0, $2::int - 1) as g",
+        [org.id, total],
+      )
 
       await ingresar(page, correo)
       await page.goto('/actividad')

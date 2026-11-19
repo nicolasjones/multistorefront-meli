@@ -1,9 +1,11 @@
 ---
 owner: producto
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/src/pages/service-tecnico/reportes.tsx
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
+  - specs/20261028-100000-service-seguimiento-y-reportes
+  - supabase/migrations/20270437000000_service_regenerar_enlace_y_reportes_por_empresa.sql
+  - supabase/migrations/20270219160100_reparacion_enlaces_consulta.sql
 ---
 
 # Service técnico: fotos, garantía, seguimiento del cliente y reportes

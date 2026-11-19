@@ -1,7 +1,12 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20270125-100000-catalogo-variantes
+  - apps/web/src/components/productos/BloqueVariantes.tsx
+  - apps/web/src/components/productos/BloqueRelacionados.tsx
+  - apps/web/src/lib/productos-variantes.ts
+  - apps/web/src/lib/productos-relacionados.ts
+  - supabase/migrations/20270220120600_catalogo_variantes_rpc.sql
 ---
 
 # Variantes y productos relacionados

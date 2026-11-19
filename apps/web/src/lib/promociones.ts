@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parsearImporte } from './productos'
 
@@ -171,6 +172,12 @@ export const CODIGO_AVISO_NO_MENOR = 'promocion_no_menor_al_normal'
 export const AVISO_PROMOCION_NO_MENOR =
   'El precio promocional no es menor al precio normal de la tienda: se guardó, pero no se aplicará mientras no lo baje.'
 
+// MSF-958: la RPC también avisa (sin bloquear) cuando el precio promocional queda por debajo del costo, y SOLO a quien tiene la
+// sección `rentabilidad` (a los demás no les llega la clave: la pantalla no revela el costo).
+export const CODIGO_AVISO_BAJO_COSTO = 'promocion_bajo_el_costo'
+export const AVISO_PROMOCION_BAJO_COSTO =
+  'El precio promocional está por debajo del costo del producto: se guardó igual (no se bloquea).'
+
 export type ResultadoGuardarPromocion = { aviso: string | null }
 
 // Guarda la promoción y devuelve el aviso de la base, si hubo. Lanza el error de la base (usar `mensajeErrorPromocion`).
@@ -189,8 +196,12 @@ export async function guardarPromocion(cliente: SupabaseClient, datos: DatosProm
     p_actualizado: datos.actualizadoEn,
   })
   if (error) throw error
-  const codigo = (data as { aviso_codigo?: unknown } | null)?.aviso_codigo
-  return { aviso: codigo === CODIGO_AVISO_NO_MENOR ? AVISO_PROMOCION_NO_MENOR : null }
+  const respuesta = data as { aviso_codigo?: unknown; aviso_costo_codigo?: unknown } | null
+  const avisos = [
+    respuesta?.aviso_codigo === CODIGO_AVISO_NO_MENOR ? AVISO_PROMOCION_NO_MENOR : null,
+    respuesta?.aviso_costo_codigo === CODIGO_AVISO_BAJO_COSTO ? AVISO_PROMOCION_BAJO_COSTO : null,
+  ].filter((a): a is string => a !== null)
+  return { aviso: avisos.length > 0 ? avisos.join(' ') : null }
 }
 
 export async function anularPromocion(cliente: SupabaseClient, promocion: Pick<Promocion, 'id' | 'actualizadoEn'>): Promise<void> {
@@ -224,8 +235,7 @@ export function mensajeErrorPromocion(error: unknown, porDefecto: string): strin
   }
 }
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-export const formatearPesosPromocion = (valor: number | null) => (valor === null ? '—' : `$ ${formatoPesos.format(valor)}`)
+export const formatearPesosPromocion = (valor: number | null) => (valor === null ? '—' : formatearImporte(valor))
 
 const formatoFechaHora = new Intl.DateTimeFormat('es-AR', {
   day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,

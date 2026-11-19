@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/configuracion/listas.tsx
 ---
 
 # Avisos por correo y listas configurables

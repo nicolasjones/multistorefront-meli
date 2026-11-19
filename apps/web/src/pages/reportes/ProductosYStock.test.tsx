@@ -92,7 +92,7 @@ describe('ProductosYStock (F-REP-01)', () => {
 
   it('si la base no lista ni el tablero con costos ni el de cantidades avisa que no está disponible (nunca elige otro)', () => {
     montar({ reportes: [{ id: 'rep-otro', nombre: 'Inventario · Reposición' }] })
-    expect(screen.getByText(/«Productos y stock» todavía no está disponible|todavía no está disponible para tu organización/)).toBeTruthy()
+    expect(screen.getByText(/«Productos y stock» todavía no está disponible/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
     expect(mocks.montajes).not.toHaveBeenCalled()
   })
@@ -121,7 +121,7 @@ describe('ProductosYStock (F-REP-01)', () => {
 
   it('avisa cuando el tablero no está asignado a la organización', () => {
     montar({ reportes: [] })
-    expect(screen.getByText(/todavía no está disponible para tu organización/)).toBeTruthy()
+    expect(screen.getByText(/falta importarlo en este entorno\. Pedile al administrador de la plataforma/)).toBeTruthy()
     expect(screen.queryByTestId('tablero')).toBeNull()
   })
 
