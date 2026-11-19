@@ -111,7 +111,7 @@ El archivo se puede abrir con una planilla de cálculo.
 
 ## Qué tipos de eventos hay
 
-- **Usuarios y permisos:** usuario agregado, cambio de rol, usuario suspendido, reactivado o removido, empresas asignadas, invitaciones enviadas, reenviadas o canceladas, permisos modificados o restablecidos, cambio de empresa activa.
+- **Usuarios y permisos:** usuario agregado, cambio de rol, usuario suspendido, reactivado o removido, empresas asignadas, invitaciones enviadas, reenviadas o canceladas, permisos modificados o restablecidos, cambio de empresa activa. El cambio de empresa activa **queda registrado**, pero no aparece en la lista: no es un cambio de negocio y llenaba el historial. Si lo necesitás, elegí **Tipo → Cambio de empresa activa**.
 - **Empresas:** empresa actualizada, pausada o reactivada.
 - **Clientes:** cliente creado, editado, archivado o restaurado, y marca masiva de la aceptación de correo (hoy solo por la API: la pantalla todavía no tiene el botón).
 - **Productos, proveedores y stock:** altas, cambios, activaciones e ingresos o anulaciones de mercadería.
@@ -124,6 +124,8 @@ El detalle de los eventos nunca incluye costos ni importes de los productos ni d
 ## Preguntas frecuentes
 
 **¿Por qué no veo un cambio que hice hace meses?** Elegí **Todo el historial** en **Período**. El registro empieza cuando se activó el sistema.
+
+**¿Por qué no veo los cambios de empresa activa?** No son un cambio de negocio: quedan registrados, pero no ocupan la lista. Elegí **Tipo → Cambio de empresa activa** para verlos.
 
 **¿Los datos del panel anterior aparecen acá?** No. Esos datos se consultan en **Ventas → Historial**.
 

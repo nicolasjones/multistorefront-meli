@@ -279,6 +279,10 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   texto acotado a 100 caracteres. Devuelve la página y el `total` del filtro.
 - `public.opciones_actividad()`: tipos y usuarios presentes, para los filtros (hasta 200 de cada uno).
 
+**Eventos de contexto (MSF-985)**: los tipos que no son un cambio de negocio (`private.tipos_de_contexto_actividad()`,
+hoy `usuario.empresa_activa_cambiada`) no ocupan la lista: se filtran en `listar_actividad` y en `exportar_actividad`
+salvo que se pidan por tipo. Ver «Eventos de contexto» más abajo.
+
 **Alcance por empresa (MSF-968)**: además de la organización y la sección `actividad`, la lectura exige que el evento no tenga empresa (evento de toda la organización) o que la persona acceda a esa empresa (`private.empresas_de_actividad()`: como `empresas_accesibles()` pero incluyendo las pausadas). Aplica a la política `registro_actividad_select` y a `exportar_actividad`. Quien tiene una sola tienda asignada ya no ve el historial de las demás (Operador y Administración); el Administrador accede a todas las empresas de su organización y sigue viendo todo. Los filtros, el contador `total` y la exportación salen de la misma política, así que conteos y cursor son coherentes con lo que se ve; el filtro por tienda de una empresa ajena devuelve cero filas. El pgTAP `actividad_por_empresa.test.sql` cubre el aislamiento y fija con una guardia estructural que solo cinco funciones `security definer` leen el registro (`alertar_tope_confirmaciones_newsletter`, `depurar_registro_actividad`, `exportar_actividad`, `historial_comprobante` y `regenerar_enlace_consulta`); una sexta debe aplicar el mismo alcance o justificarse y sumarse a esa lista.
 
 ## Datos de ejemplo
@@ -399,7 +403,32 @@ La columna **Tipo** (y el filtro por tipo) muestran la etiqueta de cada tipo de 
 - **Excepciones del formato de importe**: `total_clientes` y `saldo_stock` son conteos o unidades y se muestran crudos
   (`CAMPOS_QUE_NO_SON_IMPORTE`); en `costos_adicionales_canal`, `valor` solo se formatea como moneda cuando el `tipo` del
   mismo registro es `monto` (con `porcentaje` queda crudo).
-- **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985).
+- **Fuera de alcance**: la descripción de la pantalla (MSF-604) y las filas «Cambio de empresa activa» (MSF-985, que se
+  resolvieron en historias propias: ver «Eventos de contexto» más abajo).
+
+## Eventos de contexto: no ocupan la lista (MSF-985)
+
+Seguimiento de MSF-618 (épica MSF-585): cambiar de empresa activa escribía una fila «Cambio de empresa activa» en cada
+cambio, y con varias personas alternando entre tiendas el historial se llenaba de filas que no cuentan un cambio de
+negocio.
+
+**Decisión**: el evento `usuario.empresa_activa_cambiada` **se sigue registrando** —lo escriben
+`public.cambiar_empresa_activa` y `public.usar_todas_las_empresas` en la misma transacción del cambio, y el registro es
+inalterable— pero **no aparece en la lista ni en el CSV**, salvo que se pida ese tipo explícitamente (filtro **Tipo**).
+La razón de no borrar el evento: la empresa activa decide el rol con el que la persona opera en las secciones por
+empresa (ventas, consultas, reportes), así que el cambio es trazabilidad de contexto.
+
+- **Dónde se aplica**: `private.tipos_de_contexto_actividad()` (migración
+  `20270507200101_actividad_eventos_de_contexto.sql`) es la única fuente de verdad. `public.listar_actividad` y
+  `public.exportar_actividad` filtran con `r.tipo <> all (private.tipos_de_contexto_actividad()) or p_tipo = r.tipo`: el
+  contador `total`, el bloque «Actividad reciente» del inicio y el CSV salen con la misma regla que la lista, así que
+  pantalla y archivo cuentan lo mismo.
+- **Cómo se ven**: con el filtro **Tipo** en «Cambio de empresa activa» (el tipo sigue en las opciones, que se derivan
+  del historial) aparecen todas esas filas, con los demás filtros combinados.
+- **Lo que no cambia**: el evento se sigue escribiendo en la misma transacción que el cambio de empresa activa, el
+  registro sigue siendo inalterable y el detalle del evento se puede abrir como el de cualquier otro.
+- **Prueba**: pgTAP `actividad_eventos_contexto.test.sql` (el evento se registra, la lista no lo muestra, se ve si se
+  pide por tipo, y el CSV sale con las mismas filas que la pantalla).
 
 ## Registro inalterable con antes y después (F-AUD-02)
 
