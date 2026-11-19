@@ -2,18 +2,35 @@ import { Alert, Box, Button, Chip, IconButton, List as MuiList, ListItem, ListIt
 import DeleteIcon from '@mui/icons-material/Delete'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { useGetIdentity } from '@refinedev/core'
 import { List } from '@refinedev/mui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useContextoPanel } from '../../context/ContextoPanel'
-import { BUCKET_DOCUMENTOS, mimeDeDocumento, validarArchivoDocumento } from '../../lib/documentosIa'
+import { BUCKET_DOCUMENTOS, ErrorIndexacion, mensajeDeIndexacion, mimeDeDocumento, procesamientoInterrumpido, validarArchivoDocumento } from '../../lib/documentosIa'
 import { supabaseClient } from '../../lib/supabase'
 
 type Documento = { id: string; nombre: string; creado_en: string }
-type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_error: string | null }
+type VersionDocumento = { id: string; estado: string; subida_en: string; motivo_error: string | null; subida_por: string | null }
 
 const MENSAJE_FUNCIONALIDAD = 'No pudimos verificar si la búsqueda documental está habilitada para tu organización. Revisá la conexión e intentá de nuevo.'
 const MENSAJE_CARGA = 'No pudimos cargar los documentos. Revisá la conexión e intentá de nuevo.'
+
+/** Invoca la indexación de una versión; ante un error de la función devuelve su mensaje real (403, 422, 502…). */
+async function invocarIndexacion(versionId: string): Promise<void> {
+  const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
+  if (!invokeError) return
+  let mensajeError = invokeError.message
+  let status: number | null = null
+  let codigo: string | null = null
+  if (invokeError instanceof FunctionsHttpError) {
+    status = invokeError.context.status
+    const cuerpo = await invokeError.context.json().catch(() => null)
+    mensajeError = cuerpo?.error ?? mensajeError
+    codigo = typeof cuerpo?.codigo === 'string' ? cuerpo.codigo : null
+  }
+  throw new ErrorIndexacion(mensajeError, status, codigo)
+}
 
 /**
  * Limpieza compensatoria (MSF-699): si la subida falla antes de registrar la
@@ -40,14 +57,25 @@ async function limpiarSubidaIncompleta(docId: string | null, documentoCreado: bo
   }
 }
 
+const MENSAJE_SIN_PERMISO_SUBIR = 'No tenés permiso para subir documentos.'
+
+// Un rechazo de permiso (RLS, 403 o 42501) no es un problema de conexión: se dice con todas las letras.
+function esSinPermiso(error: unknown): boolean {
+  const e = error as { code?: string; status?: number; statusCode?: string | number; message?: string } | null
+  return e?.code === '42501' || e?.status === 403 || String(e?.statusCode) === '403' || /row-level security|not authorized|unauthorized/i.test(e?.message ?? '')
+}
+
 export function IaDocumentos() {
   const { contexto, isLoading: cargandoContexto } = useContextoPanel()
+  const { data: identidad } = useGetIdentity<{ id: string }>()
   const [habilitado, setHabilitado] = useState<boolean | null>(null)
   const [errorHabilitado, setErrorHabilitado] = useState<string | null>(null)
   const [documentos, setDocumentos] = useState<Documento[] | null>(null)
   const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [versionesPorDocumento, setVersionesPorDocumento] = useState<Record<string, VersionDocumento[]>>({})
   const [subiendo, setSubiendo] = useState(false)
+  const [reintentando, setReintentando] = useState<string | null>(null)
+  const [noProcesables, setNoProcesables] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [pregunta, setPregunta] = useState('')
   const [preguntando, setPreguntando] = useState(false)
@@ -99,7 +127,7 @@ export function IaDocumentos() {
   const verHistorial = useCallback(async (documentoId: string) => {
     const { data } = await supabaseClient
       .from('versiones_documento')
-      .select('id, estado, subida_en, motivo_error')
+      .select('id, estado, subida_en, motivo_error, subida_por')
       .eq('documento_id', documentoId)
       .order('subida_en', { ascending: false })
     setVersionesPorDocumento((previo) => ({ ...previo, [documentoId]: (data ?? []) as VersionDocumento[] }))
@@ -131,6 +159,7 @@ export function IaDocumentos() {
     try {
       if (!docId) {
         const { data: nuevoDoc, error: docError } = await supabaseClient.from('documentos').insert({ nombre: archivo.name }).select('id').single()
+        if (docError && esSinPermiso(docError)) throw new Error(MENSAJE_SIN_PERMISO_SUBIR)
         if (docError || !nuevoDoc) throw new Error(docError?.message ?? 'No se pudo crear el documento.')
         docId = nuevoDoc.id
         documentoCreado = true
@@ -144,12 +173,12 @@ export function IaDocumentos() {
       })
       if (uploadError) {
         console.error('No pudimos subir el documento.', uploadError)
-        throw new Error('No pudimos subir el archivo. Revisá tu conexión e intentá de nuevo.')
+        throw new Error(esSinPermiso(uploadError) ? MENSAJE_SIN_PERMISO_SUBIR : 'No pudimos subir el archivo. Revisá tu conexión e intentá de nuevo.')
       }
       objetoSubido = true
 
       const { error: versionError } = await supabaseClient.from('versiones_documento').insert({ id: versionId, documento_id: docId, storage_path: storagePath, estado: 'procesando' })
-      if (versionError) throw new Error(versionError.message)
+      if (versionError) throw new Error(esSinPermiso(versionError) ? MENSAJE_SIN_PERMISO_SUBIR : versionError.message)
       versionRegistrada = true
 
       // El nombre del documento decide el parser del servidor (la extensión):
@@ -163,15 +192,7 @@ export function IaDocumentos() {
         }
       }
 
-      const { error: invokeError } = await supabaseClient.functions.invoke('indexar-documento', { body: { version_id: versionId } })
-      if (invokeError) {
-        let mensajeError = invokeError.message
-        if (invokeError instanceof FunctionsHttpError) {
-          const cuerpo = await invokeError.context.json().catch(() => null)
-          mensajeError = cuerpo?.error ?? mensajeError
-        }
-        throw new Error(mensajeError)
-      }
+      await invocarIndexacion(versionId)
 
       await cargarDocumentos()
       if (docId) await verHistorial(docId)
@@ -181,11 +202,32 @@ export function IaDocumentos() {
       if (!versionRegistrada) {
         await limpiarSubidaIncompleta(docId, documentoCreado, objetoSubido ? storagePath : null)
       }
-      setError(subidaError instanceof Error ? subidaError.message : 'No se pudo subir el documento.')
+      setError(subidaError instanceof ErrorIndexacion ? mensajeDeIndexacion(subidaError) : subidaError instanceof Error ? subidaError.message : 'No se pudo subir el documento.')
     } finally {
       setSubiendo(false)
     }
   }, [contexto?.organizacion_id, cargarDocumentos, verHistorial])
+
+  // Reintento manual de una versión que quedó «procesando» (fallo transitorio): invoca de nuevo la indexación de ESA
+  // versión. El backend valida quién puede (quien subió o administrador) y su error real se muestra en pantalla.
+  const reintentarIndexacion = useCallback(async (documentoId: string, versionId: string) => {
+    setError(null)
+    setReintentando(versionId)
+    try {
+      await invocarIndexacion(versionId)
+    } catch (reintentoError) {
+      // El mensaje sale del estado HTTP y del `codigo` (no del texto del backend, que puede nombrar al proveedor).
+      setError(mensajeDeIndexacion(reintentoError))
+      // Una versión que ya no se puede procesar no vuelve a ofrecer «Reintentar»: repetiría el mismo 409.
+      if (reintentoError instanceof ErrorIndexacion && ((reintentoError.status === 409 && reintentoError.codigo === 'no_procesable') || reintentoError.status === 404)) {
+        setNoProcesables((previo) => new Set(previo).add(versionId))
+      }
+    } finally {
+      setReintentando(null)
+      await cargarDocumentos()
+      await verHistorial(documentoId)
+    }
+  }, [cargarDocumentos, verHistorial])
 
   const eliminar = useCallback(async (documentoId: string) => {
     if (!window.confirm('¿Eliminar este documento? Esta acción borra el archivo y todo su contenido indexado, no se puede deshacer.')) return
@@ -293,9 +335,32 @@ export function IaDocumentos() {
               >
                 <ListItemText
                   primary={documento.nombre}
+                  slotProps={{ secondary: { component: 'div' } }}
                   secondary={
                     versionesPorDocumento[documento.id]
-                      ? versionesPorDocumento[documento.id].map((v) => `${v.estado}${v.motivo_error ? ` (${v.motivo_error})` : ''}`).join(' · ')
+                      ? (
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                          {versionesPorDocumento[documento.id].map((v) => procesamientoInterrumpido(v) ? (
+                            // Reintentar solo para quien subió la versión o un administrador: es la regla del backend.
+                            // Los demás ven el estado sin el botón (si no, recibirían un 403).
+                            <Stack key={v.id} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                              <span>procesando · Se interrumpió el procesamiento</span>
+                              {!noProcesables.has(v.id) && (v.subida_por === identidad?.id || (contexto?.rol_efectivo === 'administrador' && !contexto.es_superadmin)) && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={reintentando === v.id}
+                                onClick={(evento) => { evento.stopPropagation(); void reintentarIndexacion(documento.id, v.id) }}
+                              >
+                                {reintentando === v.id ? 'Reintentando...' : 'Reintentar'}
+                              </Button>
+                              )}
+                            </Stack>
+                          ) : (
+                            <span key={v.id}>{`${v.estado}${v.motivo_error && !v.motivo_error.startsWith('indexando:') ? ` (${v.motivo_error})` : ''}`}</span>
+                          ))}
+                        </Stack>
+                      )
                       : 'Click para ver historial de versiones'
                   }
                 />

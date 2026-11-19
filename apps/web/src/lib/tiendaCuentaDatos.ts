@@ -1,3 +1,4 @@
+import { formatearImporte } from './formatoImporte'
 import { supabaseClient } from './supabase'
 import { esIdValido } from './tiendaListado'
 import { limpiarTextoPublico } from './tiendaTextos'
@@ -239,9 +240,7 @@ export async function leerFavoritosEntre(host: string, productos: readonly strin
 // «$ 12.500,00»: importes de comprobantes con centavos (es-AR), con signo menos delante en una nota de crédito. Se agrupa a
 // mano por lo mismo que `formatearPrecioArs`: Intl `es-AR` no agrupa los números de 4 dígitos.
 export function formatearImporteArs(importe: number): string {
-  const [entero, decimales] = Math.abs(importe).toFixed(2).split('.')
-  const miles = entero.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
-  return `${importe < 0 && Math.abs(importe) >= 0.005 ? '-' : ''}$ ${miles},${decimales}`
+  return formatearImporte(importe, { centavos: 'siempre' })
 }
 
 // Cantidad de una línea con coma decimal (es-AR): «1,5», no «1.5»; las enteras quedan como están.

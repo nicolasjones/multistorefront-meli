@@ -1,13 +1,24 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - infra/playwright/compose.yaml
+  - infra/playwright/Dockerfile
+  - infra/kestra/compose.yaml
+  - infra/superset/compose.yaml
+  - infra/runner/compose.yaml
+  - infra/nango/compose.yaml
+  - infra/glitchtip/compose.yaml
+  - infra/mcp-server/compose.yaml
+  - infra/refine/compose.yaml
+  - workers/README.md
+  - scripts/generar-doc-schema.mjs
+  - package.json
 ---
 
 # Arquitectura
 
 ```text
-Usuario → Refine (Dokploy/Traefik) → Supabase Cloud
+Usuario → Refine (Dokploy/Traefik) → Supabase (self-hosted)
                           ↑        ↓
                     workers ← Kestra/VPS
                           ↓
@@ -25,9 +36,13 @@ vistas de lectura preparadas para analítica; no es la interfaz transaccional.
 apps/web/                  Refine y configuración de despliegue (Dokploy)
 supabase/                  configuración, migraciones, seed y funciones
 infra/refine/              Docker local de Refine
-infra/kestra/              Compose local y VPS de Kestra
-infra/superset/            Compose local y VPS de Superset
-workers/                   procesos aislados futuros
+infra/kestra/              Compose local y VPS de Kestra, y sus flows
+infra/superset/            Compose local y VPS de Superset, y sus tableros
+infra/nango/, glitchtip/, mcp-server/, runner/, playwright/, docs/   otros servicios y herramientas
+packages/                  paquetes compartidos (ia, ia-navegacion, mcp-server)
+workers/                   procesos aislados (importadores, exportaciones, comprobantes PDF)
+design/                    prototipos de pantalla
+scripts/                   utilidades de CI, despliegue y verificación
 specs/                     especificaciones por funcionalidad
 .specify/                  reglas y plantillas de Spec Kit
 ```
@@ -53,18 +68,22 @@ multistorefront-meli-kestra-dev      infra/kestra/compose.yaml
 multistorefront-meli-superset-dev    infra/superset/compose.yaml
 multistorefront-meli-playwright-dev  infra/playwright/compose.yaml
 multistorefront-meli-runner-dev      infra/runner/compose.yaml
+multistorefront-meli-nango-dev       infra/nango/compose.yaml
+multistorefront-meli-glitchtip-dev   infra/glitchtip/compose.yaml
+multistorefront-meli-mcp-server-dev  infra/mcp-server/compose.yaml
 ```
 
 Cada proyecto tiene red, contenedores y volúmenes propios. Se comunican por
 interfaces explícitas (API, URL o credenciales configuradas), no porque Docker
-los incluya dentro de un mismo Compose. Docker Desktop los muestra como seis
-grupos planos; esa es la representación más granular que admite Compose.
+los incluya dentro de un mismo Compose. Docker Desktop los muestra como grupos
+planos, uno por proyecto; esa es la representación más granular que admite Compose.
 
 ## Playwright: servicio propio para automatización de navegador
 
-`infra/playwright/compose.yaml` levanta un `playwright run-server` (imagen
+`infra/playwright/compose.yaml` levanta un `patchright-core run-server` (imagen
+propia de `infra/playwright/Dockerfile`, basada en
 `mcr.microsoft.com/playwright:v1.61.0-noble`), que expone un endpoint
-WebSocket en `127.0.0.1:3103`. Se prende y apaga igual que cualquier otro
+WebSocket en `127.0.0.1:${PLAYWRIGHT_PORT:-4303}`. Se prende y apaga igual que cualquier otro
 producto (`pnpm dev:playwright` / `pnpm dev:down:playwright`) — no corre
 salvo que lo hayas levantado.
 

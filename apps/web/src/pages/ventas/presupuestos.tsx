@@ -12,6 +12,7 @@ import {
   FILTROS_ESTADO,
   FILTROS_ORIGEN,
   aceptarPresupuesto,
+  mensajeDeAceptarPresupuesto,
   copiarPresupuesto,
   etiquetaEstadoPresupuesto,
   listarPresupuestos,
@@ -168,7 +169,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
   // Exportar (F-VTA-09, FR-006/FR-010): mismos filtros que el listado y la vía según el total. Los filtros de
   // cobro y envío no aplican a presupuestos; se envían vacíos.
   const filtrosExportacion: FiltrosComprobantes = {
-    busqueda: textoAplicado, estado: estado === 'todos' ? '' : estado, pagoId: '', envioId: '', operadorId: '', empresaId,
+    busqueda: textoAplicado, estado: estado === 'todos' ? '' : estado, pagoId: '', envioId: '', operadorId: '', empresaId, origen: origen === 'todos' ? '' : origen,
   }
   const puedeExportar = usePuedeAccion('ventas', 'exportar').puede === true
   const { exportando, exportar, aviso, cerrarAviso } = useExportarComprobantes('presupuestos', filtrosExportacion, total)
@@ -182,7 +183,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
       setExito(`Presupuesto ${aceptado.numero} aceptado`)
       await recargarDesdeInicio()
     } catch (error) {
-      setErrorAccion(mensajeDeErrorComprobante(error, 'No pudimos aceptar el presupuesto.'))
+      setErrorAccion(mensajeDeAceptarPresupuesto(error, 'No pudimos aceptar el presupuesto.'))
     } finally {
       setAccion(null)
     }
@@ -293,7 +294,7 @@ function ListadoPresupuestos({ tiendas, empresaId, onEmpresa }: { tiendas: Reado
     : undefined
   const exportarBoton = puedeExportar
     ? (
-      <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => void exportar()} disabled={exportando || primeraCarga || hayError || origen !== 'todos'} title={origen !== 'todos' ? 'La exportación todavía no filtra por canal: elegí «Todos los canales».' : undefined}>
+      <Button variant="outlined" startIcon={<FileDownloadIcon />} onClick={() => void exportar()} disabled={exportando || primeraCarga || hayError}>
         {exportando ? 'Exportando…' : 'Exportar'}
       </Button>
     )

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   fechaDeHoy, formularioMovimientoVacio, mensajeDeErrorStock, motivosDelTipo, parsearCantidad, stockResultante,
   filtroBusquedaStock, validarMinimo, validarMovimiento, type FormularioMovimiento, type MotivoMovimiento,
+  notaLegibleDeMovimiento,
 } from './stock'
 
 const valido: FormularioMovimiento = {
@@ -75,5 +76,17 @@ describe('stock mínimo y estados (F-STK-05)', () => {
     expect(filtroBusquedaStock('CÁMARA')).toBe('nombre_norm.ilike.%camara%,sku.ilike.%camara%')
     expect(filtroBusquedaStock('joy')).toBe('nombre_norm.ilike.%joy%,sku.ilike.%joy%')
     expect(filtroBusquedaStock('a,b)(c"\\%_')).toBe('nombre_norm.ilike.%a b  c  \\%\\_%,sku.ilike.%a b  c  \\%\\_%')
+  })
+})
+
+describe('notaLegibleDeMovimiento', () => {
+  it('reemplaza el identificador interno del comprobante por «el comprobante»', () => {
+    expect(notaLegibleDeMovimiento('Reserva comprobante:eda80120-c168-4d68-9a1b-0123456789ab:linea:2')).toBe('Reserva el comprobante')
+    expect(notaLegibleDeMovimiento('Reserva comprobante:eda80120-c168-4d68-9a1b-0123456789ab · entregada')).toBe('Reserva el comprobante · entregada')
+  })
+
+  it('deja igual las notas legibles y el valor nulo', () => {
+    expect(notaLegibleDeMovimiento('Reserva PEDIDO-0005·entregada por envío')).toBe('Reserva PEDIDO-0005·entregada por envío')
+    expect(notaLegibleDeMovimiento(null)).toBeNull()
   })
 })

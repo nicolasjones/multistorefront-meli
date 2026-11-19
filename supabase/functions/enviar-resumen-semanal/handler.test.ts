@@ -228,6 +228,8 @@ describe('manejar (autenticación y barrido)', () => {
     const { deps } = montar()
     assert.equal((await manejar(pedido({ barrer: true }, {}), deps)).status, 403)
     assert.equal((await manejar(pedido({ barrer: true }, { 'x-aviso-token': 'otro' }), deps)).status, 403)
+    // Token corto, largo, vacío o con el prefijo correcto: 403 uniforme (no se corta por longitud).
+    for (const t of ['a', `${TOKEN}x`, TOKEN.slice(1), '']) assert.equal((await manejar(pedido({ barrer: true }, { 'x-aviso-token': t }), deps)).status, 403, t)
     assert.equal((await manejar(pedido({ barrer: true }), { ...deps, token: undefined })).status, 503)
     assert.equal((await manejar(pedido({ barrer: true }), { ...deps, panelUrl: '  ' })).status, 503)
     assert.equal((await manejar(pedido({}, {}, 'GET'), deps)).status, 405)

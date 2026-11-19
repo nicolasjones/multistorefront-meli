@@ -52,7 +52,6 @@ export function EmpresasProducto({ empresas, seleccion, onCambiar, cargando = fa
               <Stack component="li" key={empresa.id} direction="row" alignItems="center" justifyContent="space-between" sx={{ py: 1 }}>
                 <Box>
                   <Typography variant="b" sx={{ fontWeight: 600 }} component="p">{etiqueta}</Typography>
-                  <Typography variant="xs" component="p">Precio: —</Typography>
                 </Box>
                 <Switch
                   checked={elegidas.has(empresa.id)}

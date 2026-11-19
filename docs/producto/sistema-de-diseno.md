@@ -1,7 +1,13 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261012-130000-sistema-de-diseno
+  - apps/web/src/tema/tokens.ts
+  - apps/web/src/tema/temaPanel.ts
+  - apps/web/src/tema/temaTienda.ts
+  - apps/web/src/tema/ProveedorTemaTienda.tsx
+  - apps/web/src/components/navegacion/SelectorEmpresa.tsx
+  - scripts/verificar-estilos-sueltos.mjs
 ---
 
 # Sistema de diseño (MSF-117)
@@ -27,7 +33,7 @@ tipografías o tamaños. Se adaptó el tema y el kit de panel del template (no s
 | DS-01 Tokens y tema del panel | MSF-420 | Hecha (`tasks.md` T001–T005, T022) |
 | DS-02 Componentes base y estados | MSF-426 | Hecha (T006–T012, T023) |
 | DS-03 Estructura del panel: encabezado, menú y selector de empresa | MSF-431 | Hecha (T013–T017) |
-| DS-04 Temas de las tiendas públicas por empresa | MSF-435 | Mecanismo hecho (T018–T021); no está montado en pantallas |
+| DS-04 Temas de las tiendas públicas por empresa | MSF-435 | Mecanismo hecho (T018–T021); ya se usa en la tienda pública, en «Volvemos pronto» y en la vista previa del panel |
 
 ## Límites (fuera de alcance)
 
@@ -45,7 +51,7 @@ tipografías o tamaños. Se adaptó el tema y el kit de panel del template (no s
 
 - Entorno local (`pnpm dev:supabase` + `pnpm dev:refine:host`) o DEV, con un usuario del panel que pueda ver
   Empresas, de una organización con al menos dos empresas.
-- Para la parte de tienda no hay pantalla: se prueba con tests (ver pasos 6–7).
+- El tema de tienda se ve en la tienda pública de cada empresa y en la vista previa de Empresas → Tienda; la lógica del tema también se prueba con tests (pasos 6–7).
 
 ### Pasos
 

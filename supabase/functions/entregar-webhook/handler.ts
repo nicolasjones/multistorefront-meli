@@ -15,7 +15,8 @@
 //     navegador);
 //   · el error que se guarda está saneado: sin secretos ni credenciales.
 
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac } from 'node:crypto'
+import { tokenValido } from '../_shared/token.ts'
 
 /** Timeout de la entrega (D-6). */
 export const TIMEOUT_ENTREGA_MS = 10_000
@@ -64,13 +65,6 @@ function respuesta(cuerpo: unknown, estado: number): Response {
   })
 }
 
-/** Comparación en tiempo constante del secreto de servicio. */
-function tokenValido(esperado: string | undefined, recibido: string | null): boolean {
-  if (!esperado || !recibido) return false
-  const a = new TextEncoder().encode(esperado)
-  const b = new TextEncoder().encode(recibido)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 /** El error que se guarda nunca lleva el secreto ni credenciales. */
 export function sanearError(mensaje: string, secreto: string, secretoAnterior?: string | null): string {

@@ -1,6 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { enviarPorSmtp } from '../_shared/correo.ts'
+import { crearLimitador, enteroPositivo } from '../_shared/limite-memoria.ts'
 import { manejar, type Deps } from './handler.ts'
+
+// Mejor esfuerzo por isolate: corta un bucle de envíos; la cuota persistente por usuario y hora queda pendiente.
+const limitador = crearLimitador({ max: enteroPositivo(Deno.env.get('CORREO_PROVEEDOR_LIMITE_HORA'), 20), ventanaMs: 60 * 60 * 1000 })
 
 // Adaptador explícito: cada método real se envuelve para cumplir `Deps`. Solo se usa la clave anónima
 // con el JWT de quien llama (RLS manda); no hay service-role.
@@ -25,5 +29,12 @@ Deno.serve((req) => {
       },
     }
   }
-  return manejar(req, { getUser, caller, enviar: enviarPorSmtp })
+  return manejar(req, {
+    getUser,
+    caller,
+    enviar: enviarPorSmtp,
+    limitar: (usuarioId) => limitador.consumir(usuarioId),
+    // Rastro mínimo en los logs de la función: sin asunto ni cuerpo, sin dirección de destino.
+    registrar: (evento) => console.info('enviar-correo-proveedor: envío', JSON.stringify({ ...evento, en: new Date().toISOString() })),
+  })
 })

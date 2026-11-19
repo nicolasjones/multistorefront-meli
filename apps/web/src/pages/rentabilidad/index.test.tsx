@@ -154,7 +154,7 @@ describe('RentabilidadResumen', () => {
 
   it('si el tablero no está asignado a la organización lo dice sin detalle técnico', () => {
     montar({ reportes: [{ id: 'otro', nombre: 'Ventas mensuales' }] })
-    expect(screen.getByText('El tablero de Rentabilidad todavía no está disponible para tu organización.')).toBeInTheDocument()
+    expect(screen.getByText(/El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno\. Pedile al administrador de la plataforma que importe los tableros/)).toBeInTheDocument()
     expect(screen.queryByTestId('tablero')).not.toBeInTheDocument()
   })
 

@@ -333,6 +333,16 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
     expect(screen.queryByRole('button', { name: 'Copiar' })).not.toBeInTheDocument()
   })
 
+  it('«Copiar» muestra el mensaje de la copia aunque la pantalla no se remonte al pasar de un comprobante a otro', async () => {
+    const original = { ...COMPROBANTE, id: 'k-1', tipo: 'presupuesto', numero: '00000002', estado: 'aceptado', editable: false }
+    mocks.obtenerComprobante.mockImplementation(async (id: string) => (id === 'k-9' ? { ...original, id: 'k-9', numero: '00000007', estado: 'pendiente', editable: true } : original))
+    mocks.copiarPresupuesto.mockResolvedValue({ id: 'k-9', numero: '00000007', estado: 'pendiente' })
+    render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Copiar' }))
+    await waitFor(() => expect(mocks.obtenerComprobante).toHaveBeenCalledWith('k-9'))
+    expect(await screen.findByText('Copiaste el presupuesto 00000002: creamos el 00000007, listo para editar')).toBeInTheDocument()
+  })
+
   it('con ventas en lectura oculta los controles de edición', async () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'lectura', isLoading: false })
     mocks.obtenerComprobante.mockResolvedValue({ ...COMPROBANTE, puede_editar: false })
@@ -568,5 +578,26 @@ describe('Comprobante de venta · precio promocional (F-2, FR-014, FR-016, FR-01
     expect(screen.queryByText(/Total ahora/)).not.toBeInTheDocument()
     expect(within(screen.getByRole('dialog')).getByTestId('aviso-precios')).toBeEmptyDOMElement()
     expect(mocks.confirmarComprobante).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('Comprobante de venta · aviso que llega por la ruta', () => {
+  function EstadoDeLaRuta() {
+    const ubicacion = useLocation()
+    return <output data-testid="estado-ruta">{JSON.stringify(ubicacion.state)}</output>
+  }
+
+  it('muestra el aviso y lo limpia del historial para que no reaparezca al recargar', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/ventas/comprobantes/k-1', state: { aviso: '2 líneas del pedido no se pasaron: revisalas.' } }]}>
+        <EstadoDeLaRuta />
+        <Routes>
+          <Route path="/ventas/comprobantes/:id" element={<ComprobanteVenta />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('2 líneas del pedido no se pasaron: revisalas.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('estado-ruta')).toHaveTextContent('null'))
+    expect(screen.getByText('2 líneas del pedido no se pasaron: revisalas.')).toBeInTheDocument()
   })
 })

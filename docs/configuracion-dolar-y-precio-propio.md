@@ -2,13 +2,28 @@
 owner: tecnico
 sources:
   - specs/20270105-100000-configuracion-dolar-y-precio-propio
-  - apps/web/src
   - supabase/migrations/20270213100001_cotizacion_configuracion.sql
   - supabase/migrations/20270213100002_cotizacion_alcance_empresa.sql
   - supabase/migrations/20270213100003_cotizacion_cambio_alcance.sql
   - supabase/migrations/20270213100004_cotizacion_usa_configuracion.sql
   - supabase/migrations/20270213100005_precios_propios_empresa.sql
   - supabase/migrations/20270213100006_precios_propios_calculo.sql
+  - supabase/migrations/20270213100007_alertas_inicio_respeta_aviso.sql
+  - supabase/migrations/20270213200001_simulador_precio_propio.sql
+  - supabase/migrations/20270213200002_precio_propio_tienda_y_lineas.sql
+  - supabase/migrations/20270213200003_margen_respeta_precio_propio.sql
+  - supabase/migrations/20270216400000_confirmar_comprobante_cotizacion_por_empresa.sql
+  - supabase/migrations/20270218500100_cotizacion_alcance_independiente_de_sesion.sql
+  - supabase/migrations/20270218500200_cotizacion_medida_contra_aplicada_y_confirmacion.sql
+  - supabase/migrations/20270218500300_cotizacion_configuracion_y_alcance_revision.sql
+  - supabase/migrations/20270218500400_precios_propios_historial.sql
+  - supabase/migrations/20270218500500_analitica_cotizacion_vigente.sql
+  - supabase/migrations/20270218500600_precio_final_publico_sin_escala_x1.sql
+  - supabase/migrations/20270218500700_exportacion_total_precios_propios_historial.sql
+  - apps/web/src/components/cotizacion/BloqueQueVaACambiar.tsx
+  - apps/web/src/components/precios/ReglaPrecioEmpresa.tsx
+  - apps/web/src/components/precios/PrecioPropioEmpresas.tsx
+  - apps/web/src/lib/formatoImporte.ts
 ---
 
 # Configuración del dólar y precio propio (épica MSF-352)
@@ -71,6 +86,8 @@ Todas son aditivas. Las versiones se asignaron al integrar la épica con `dokplo
 | `private.a_pesos` de 3 argumentos y sus usuarios (`productos_precio_costo`, `analitica.a_pesos`, inventario valorizado) | No fallan (leen solo la fila general, `empresa_id is null`, una por organización): valorizan con la cotización general. Limitación declarada: con alcance «empresa» ignoran la cotización propia, porque no tienen empresa. |
 | Joins a `cotizacion_inicial` (vistas de margen y `productos_precio_costo`) | No aplica: es una fila por organización, no duplica filas. |
 | Workers, funciones de borde y `apps/web/src` | No leen `cotizacion_aplicada`: la web solo lee `cotizacion_inicial` (una fila). |
+
+**Textos e importes en pantalla (lote 34).** Los importes en dólares de «Qué va a cambiar» (`BloqueQueVaACambiar.tsx`) se escriben con `formatearNumeroImporte(..., { centavos: 'siempre' })`, el formateador único de importes del panel (`apps/web/src/lib/formatoImporte.ts`: punto de miles, coma decimal, dos decimales). El texto de la regla de precio de empresa aclara que los productos con precio propio ignoran el ajuste y que ese precio se carga al editar el producto, en «Precio propio por empresa» (`ReglaPrecioEmpresa.tsx`).
 ## Correcciones de la revisión independiente (QA y Code/Security)
 
 La revisión de la épica (PR #774) encontró lo siguiente; todo está corregido en migraciones nuevas (nunca se editó una ya aplicada) con pgTAP y Vitest.

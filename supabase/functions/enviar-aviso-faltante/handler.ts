@@ -6,14 +6,16 @@
 // Un correo por cliente con todos sus faltantes. Garantía: al menos una vez. Si el correo salió pero la
 // base no pudo cerrar el aviso, se reintenta pasada la reserva y puede llegar un duplicado (se prefiere
 // eso a perder el aviso). Un fallo de envío nunca toca la venta ni el stock.
-import { timingSafeEqual } from 'node:crypto'
+import { tokenValido } from '../_shared/token.ts'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import type { CodigoError } from './codigos.ts'
 import { ConfiguracionSmtpError } from '../_shared/smtp.ts'
 import { asuntoAviso, cuerpoAviso, type LineaFaltante } from './contenido.ts'
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
+// Función servidor a servidor (la llama Kestra con x-aviso-token): sin `Access-Control-Allow-Origin: *`, ningún navegador
+// de otro origen puede invocarla.
+const corsHeaders = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 export const MAX_INTENTOS = 5
@@ -68,12 +70,6 @@ export type Deps = {
   ahora?: () => number
 }
 
-const tokenValido = (esperado: string | undefined, recibido: string | null) => {
-  if (!esperado || !recibido) return false
-  const a = new TextEncoder().encode(esperado)
-  const b = new TextEncoder().encode(recibido)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 // El error del SMTP puede traer direcciones, hosts o usuarios (p. ej. «535 Authentication failed for user smtp-prod@host»).
 // `ultimo_error` lo lee el panel (cualquiera con `ventas` en la tienda): ahí solo va un código genérico y el

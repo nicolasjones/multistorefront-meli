@@ -1,7 +1,20 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261012-140000-acceso-y-organizacion
+  - apps/web/src/pages/login.tsx
+  - apps/web/src/providers/authProvider.ts
+  - apps/web/src/lib/passwordPolicy.ts
+  - apps/web/src/lib/vencimientoSesion.ts
+  - apps/web/src/lib/supabase.ts
+  - apps/web/src/lib/tiendaCuenta.ts
+  - supabase/config.toml
+  - supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql
+  - supabase/migrations/20261012140200_intentos_acceso.sql
+  - supabase/migrations/20261012140100_usuarios_organizacion_estado.sql
+  - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
+  - scripts/verificar-hook-bloqueo.e2e.mjs
+  - scripts/e2e-acceso.e2e.mjs
 ---
 
 # Acceso: ingreso, recuperación y sesión (MSF-119)
@@ -142,7 +155,7 @@ La regla para escribir una tabla nueva está en [Aislamiento por organización](
 - **Privilegios de tabla de `anon` y `authenticated` (endurecimiento de 2026-11-13)**: la migración `20270304100000_endurecer_privilegios_anon_y_plataforma_ia` quita a `anon` TODO privilegio sobre las tablas y secuencias de `public` y `dominio` (las tablas anteriores a `20261013130000` conservaban `TRUNCATE`, `REFERENCES` y `TRIGGER`, que Supabase otorga por defecto y las migraciones posteriores no habían retirado: no se explotan por la API, pero `TRUNCATE` no pasa por RLS), deja los privilegios por defecto del rol de las migraciones sin nada para `anon`, y quita a `authenticated` `TRUNCATE`, `REFERENCES` y `TRIGGER` y la escritura directa de `fuentes_chat_ia`, `fuentes_mcp`, `capacidades_mcp` y `acciones_mcp` (las pantallas solo las leen; las escriben las RPC `security definer` y el service_role). El pgTAP `privilegios_anon_endurecidos` falla si reaparece algo.
 - **Grants de `20261013120001`**: se limitan a `authenticated`, `service_role` y los roles administrativos de Supabase (`supabase_auth_admin`, `supabase_storage_admin`, `supabase_functions_admin`, `dashboard_user`); un rol de login propio de la instalación que dependiera de `PUBLIC` necesita un grant explícito. Regla para el equipo: toda RPC nueva lleva `grant execute ... to authenticated` explícito (ver `CLAUDE.md`).
 - **Sesión previa al deploy**: `migrarSesionLegacy` (`lib/supabase.ts`) fija la marca «mantener sesión» si hay una sesión de Supabase en `localStorage` sin marca, para que el refresh no la mueva a `sessionStorage`.
-- **RPC pública del interés por WhatsApp (MSF-226, F-CON-02)**: `publico.registrar_interes_whatsapp(host, producto_id)` es ejecutable por `anon` y `authenticated`, pero vive en el esquema `publico` (no en `public`), así que **no** entra a la lista de RPC de `public` permitidas a `anon` de arriba: esa lista sigue siendo `bloqueo_acceso_hasta` y `registrar_fallo_acceso`. La empresa sale solo del dominio (`dominio.tiendas`), no guarda datos personales y responde el mismo `P0002` para dominio desconocido y empresa desactivada. `anon` no tiene privilegios sobre `dominio.intereses_whatsapp` ni sobre la vista `public.interes_whatsapp_por_producto` (RLS por organización y empresa accesible, sección `consultas` ≥ lectura; sin insert, update ni delete desde la app). Reversión: migración posterior que elimine la vista, la función y la tabla, en ese orden (exportar antes los datos). Contrato completo en `specs/20261024-140000-consultas-seguimiento-y-whatsapp/contracts/consultas-seguimiento.md`; la guía `docs/consultas.md` documenta el interés por WhatsApp. La migración `20261214100000` es re-aplicable: `create table if not exists` y `drop policy if exists` antes de `create policy`.
+- **RPC del interés por WhatsApp (MSF-226, F-CON-02; interna desde MSF-657)**: `publico.registrar_interes_whatsapp(host, producto_id)` fue ejecutable por `anon` y `authenticated`; **desde `20270507150100` (MSF-657) solo la ejecuta `service_role`**, porque insertaba sin cuota ni idempotencia y la app no la usa (la tienda llama `registrar_consulta_whatsapp`). Vive en el esquema `publico` (no en `public`), así que **no** entra a la lista de RPC de `public` permitidas a `anon` de arriba: esa lista sigue siendo `bloqueo_acceso_hasta` y `registrar_fallo_acceso`. La empresa sale solo del dominio (`dominio.tiendas`), no guarda datos personales y responde el mismo `P0002` para dominio desconocido y empresa desactivada. `anon` no tiene privilegios sobre `dominio.intereses_whatsapp` ni sobre la vista `public.interes_whatsapp_por_producto` (RLS por organización y empresa accesible, sección `consultas` ≥ lectura; sin insert, update ni delete desde la app). Reversión: migración posterior que elimine la vista, la función y la tabla, en ese orden (exportar antes los datos). Contrato completo en `specs/20261024-140000-consultas-seguimiento-y-whatsapp/contracts/consultas-seguimiento.md`; la guía `docs/consultas.md` documenta el interés por WhatsApp. La migración `20261214100000` es re-aplicable: `create table if not exists` y `drop policy if exists` antes de `create policy`.
 - **E2E de acceso (MSF-119, T020)**: `scripts/e2e-acceso.e2e.mjs` (`pnpm test:acceso:e2e`) maneja la web real con Playwright (`playwright-core` 1.61.0, misma versión que el servidor de `infra/playwright`) contra el stack local: ingreso con contraseña errónea (no entra), ingreso correcto, «Cerrar sesión» (vuelve a `/login` y una ruta protegida redirige), recuperación (aviso neutro, enlace de recuperación generado por la Admin API para no depender de un correo real, redefinición de contraseña, la anterior deja de servir y el enlace no se reutiliza). Requiere `pnpm dev:supabase`, `pnpm dev:refine` y `pnpm dev:playwright` (o `PLAYWRIGHT_WS_ENDPOINT=local` para un Chromium propio); falla si algo no responde y NO forma parte de `pnpm test` ni corre en el CI.
 
 ## Cuenta web del cliente en la tienda (F-CLI-06, MSF-428)

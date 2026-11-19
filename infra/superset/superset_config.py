@@ -53,6 +53,11 @@ FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True, "EMBEDDABLE_CHARTS": False}
 # otro.
 GUEST_TOKEN_JWT_SECRET = os.environ["SUPERSET_GUEST_TOKEN_JWT_SECRET"]
 
+# Vencimiento del guest token (MSF-678). Explícito (no el default implícito de Superset) y corto: el token vive lo mínimo y
+# el front (`ReporteEmbebido.tsx`) pide uno NUEVO a `emitir-acceso-reporte` cada vez que el SDK renueva, así cada renovación
+# vuelve a validar el acceso de la persona. Configurable por entorno (segundos).
+GUEST_TOKEN_JWT_EXP_SECONDS = int(os.environ.get("SUPERSET_GUEST_TOKEN_JWT_EXP_SECONDS", "600"))
+
 # Rol asignado a cualquier guest token. El acceso a LOS DATOS del
 # dashboard (qué filas ve, vía `rls`) lo resuelve el propio guest token,
 # no este rol — pero el rol SÍ necesita permisos de LECTURA de metadata

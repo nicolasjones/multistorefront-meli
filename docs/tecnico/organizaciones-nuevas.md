@@ -21,6 +21,7 @@ pgTAP).
 | Pieza | Rol | Archivo |
 |---|---|---|
 | Listado `/organizaciones` | Lista las organizaciones y permite «Ingresar» como superadmin | `apps/web/src/pages/organizaciones/list.tsx` |
+| «Ingresar» pide el motivo | Antes de entrar abre `DialogoMotivoSoporte` y envía `p_motivo` (F-OPS-04, FR-014/FR-018): sin motivo no se entra. Con `?acceso=vencido` muestra el aviso «El acceso de soporte venció…» | `list.tsx:12`, `list.tsx:33`, `list.tsx:108` |
 | Alta `/organizaciones/create` | Formulario nombre + correo del fundador; invoca la Edge Function | `apps/web/src/pages/organizaciones/create.tsx` |
 | Gate de UI | Oculta las pantallas a quien no es superadmin (la seguridad real está en la función/RPC) | `apps/web/src/hooks/useIsSuperadmin.ts` |
 | Edge Function `crear-organizacion` | Única vía de alta; usa la service-role key del lado servidor | `supabase/functions/crear-organizacion/index.ts` |

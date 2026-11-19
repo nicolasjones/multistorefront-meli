@@ -31,6 +31,11 @@ inputs:
     type: INT
     defaults: 5
     description: "Entregas agotadas en la ventana desde las que se avisa."
+# MSF-710: una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta (no se apilan ni
+# compiten por los mismos reclamos).
+concurrency:
+  limit: 1
+  behavior: CANCEL
 tasks:
   - id: salud
     type: io.kestra.plugin.jdbc.postgresql.Query
@@ -42,6 +47,7 @@ tasks:
     parameters:
       ventana: "{{ inputs.ventana_min }}"
       atraso: "{{ inputs.atraso_min }}"
+    timeout: PT1M
   - id: hay_problema
     type: io.kestra.plugin.core.flow.If
     condition: "{{ (outputs.salud.row.agotadas | number) >= inputs.umbral_agotadas or (outputs.salud.row.entregas_atrasadas | number) > 0 or (outputs.salud.row.eventos_atrasados | number) > 0 or (outputs.salud.row.eventos_agotados | number) > 0 }}"

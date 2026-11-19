@@ -4,6 +4,8 @@ sources:
   - specs/20261102-220000-importaciones-y-monitoreo
   - workers/CONTRATO.md
   - apps/web/src/lib/procesosMasivos.ts
+  - supabase/migrations/20270211100002_procesos_masivos_inicio.sql
+  - supabase/migrations/20270218000001_procesos_masivos_robustez.sql
 ---
 
 # Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)
@@ -51,8 +53,11 @@ existentes. Spec: `specs/20261102-220000-importaciones-y-monitoreo/`.
 
 Esta épica entrega **la infraestructura y la pantalla**: el registro genérico, el contrato para workers y el
 centro. **No migra cargas existentes** (`historial-importador`, `importar-productos`, `exportar-comprobantes`,
-Stock Excel, Mercado Libre): hoy ningún worker llama a `iniciar_proceso_masivo` ni a las funciones del protocolo,
-y hasta que cada épica las conecte el centro puede estar vacío en producción. Es una decisión de la spec
+Stock Excel, Mercado Libre): esos workers no llaman a `iniciar_proceso_masivo` ni a las funciones del protocolo
+(verificado en `workers/` y `supabase/functions`). La única carga conectada hoy es la **exportación total** de la
+organización: `solicitar_exportacion_total()` llama a `iniciar_proceso_masivo` y el worker `workers/exportar-organizacion`
+usa `actualizar_progreso_proceso_masivo` y `cerrar_proceso_masivo` (ver [Exportar todos los datos](exportacion-total.md));
+hasta que cada épica conecte las demás, el centro solo muestra esas exportaciones. Es una decisión de la spec
 `importaciones-y-monitoreo`: FR-017 («esta épica **no** migra cargas existentes») y D-5 («conectar Stock Excel,
 Productos, Mercado Libre y el importador del historial (MSF-275) es trabajo de sus épicas, sin bloqueo»).
 

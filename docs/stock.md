@@ -1,7 +1,26 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-stock-movimientos
+  - specs/20261022-180000-stock-depositos-y-reservas
+  - specs/20261024-130000-stock-carga-exportacion-y-avisos
+  - apps/web/src/pages/stock/movimientos.tsx
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/stock/motivos.tsx
+  - apps/web/src/pages/stock/NuevoMovimientoDialog.tsx
+  - apps/web/src/pages/stock/EditarMinimoDialog.tsx
+  - apps/web/src/lib/stock.ts
+  - apps/web/src/lib/useExistenciasRealtime.ts
+  - apps/web/e2e/stock-movimientos.e2e.ts
+  - supabase/migrations/20261017140100_stock_registrar_movimiento.sql
+  - supabase/migrations/20261017150000_stock_historial_inmutable.sql
+  - supabase/migrations/20261017160000_stock_minimo_y_estados.sql
+  - supabase/migrations/20261017170000_stock_sin_negativos.sql
+  - supabase/migrations/20261018190000_stock_existencias_realtime.sql
+  - supabase/migrations/20270220120400_catalogo_variantes_movimientos.sql
+  - supabase/migrations/20270220180000_registrar_movimiento_stock_sin_firmas_viejas.sql
+  - supabase/tests/database/stock_movimientos.test.sql
+  - supabase/tests/database/stock_historial.test.sql
 ---
 
 # Stock · movimientos, alertas e historial (MSF-136 y MSF-231)
@@ -76,7 +95,8 @@ recibe ningún privilegio.
 ## Interfaz (`apps/web`)
 
 - Ítem **Stock** en la navegación (sección `stock`) y recurso `stock`; rutas `/stock` y `/stock/motivos`, ambas con
-  carga diferida.
+  carga diferida. `/stock/motivos` está envuelta en `RequiereAdministrador`: quien no es administrador ve «Solo para
+  administradores» (la autorización real es la RLS de `dominio.motivos_movimiento`: escribe solo `puede_escribir()`).
 - `/stock`: producto, SKU y cantidad, con «Nuevo movimiento» (general y por fila) solo para quien edita. El diálogo
   muestra el stock resultante antes de confirmar, el responsable, deshabilita el doble envío y confirma «Movimiento
   registrado».
@@ -274,3 +294,13 @@ Pestaña «Órdenes de compra» (`/stock/ordenes-compra`): el pedido de mercader
 hace a un proveedor, armado desde el listado de reposición (los productos en alerta de ese proveedor).
 Estados `emitida` / `recibida` / `anulada`; recibir no mueve stock (la mercadería entra por «Ingreso de
 mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).
+
+## Textos de Movimientos y Faltantes
+
+La nota de un movimiento de una reserva «A pedido» no muestra el identificador interno del comprobante (`comprobante:<uuid>`): se lee «el comprobante». Poner el número del comprobante exige cambiar la nota en la base. La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
+
+## Toma de inventario: depósito, «Sin categoría» y rol Depósito (lote 34)
+
+- La pestaña muestra el **depósito** sobre el que opera (el principal, solo lectura): la RPC `confirmar_toma_inventario` ajusta siempre el depósito por defecto. Elegir otro depósito necesita un parámetro nuevo en la RPC (pendiente del lote de SQL).
+- El selector ofrece **«Sin categoría»**: los productos activos sin categoría (`categoria_id is null`).
+- El rol **Depósito** (edita Stock, sin la sección `categorias`) ve las categorías en el selector gracias a la política de lectura adicional en `dominio.categorias` que trae el PR #1136 (lote 32, dependencia de base); este lote no toca SQL.

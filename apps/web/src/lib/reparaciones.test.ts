@@ -183,6 +183,7 @@ describe('errores de la base', () => {
     expect(mensajeDeErrorReparacion({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO_REPARACION)
     expect(mensajeDeErrorReparacion({ code: '55000' }, 'x')).toBe(MENSAJE_ANULADA)
     expect(mensajeDeErrorReparacion({ code: 'P0002' }, 'x')).toContain('ya no existe')
+    expect(mensajeDeErrorReparacion({ code: 'PT404' }, 'x')).toContain('ya no existe')
     expect(mensajeDeErrorReparacion({ code: '22023', message: 'Elegí el modelo' }, 'x')).toBe('Elegí el modelo')
     expect(mensajeDeErrorReparacion(new Error('boom'), 'Por defecto')).toBe('Por defecto')
   })

@@ -75,3 +75,10 @@ cierra) y error de la base.
 > Verificación con un cliente MCP real contra un Supabase vivo queda fuera de
 > las pruebas automáticas: el test local usa un cliente Supabase falso
 > (admin inyectado) y un servidor HTTP real en un puerto efímero.
+
+## Robustez (lote de funciones edge)
+
+El handler HTTP responde 500 genérico ante cualquier excepción (el proceso no muere), las herramientas tienen nombres
+únicos aunque una funcionalidad registre varias vistas o acciones, las ejecuciones `en_curso` abandonadas vencen a los
+10 minutos y el cliente externo nunca recibe mensajes de la base. Ver `packages/mcp-server/CONTRATO.md` y
+[funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md).

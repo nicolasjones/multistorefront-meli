@@ -1,7 +1,6 @@
 ---
 owner: producto
 sources:
-  - specs
   - .github/workflows/nightly.yml
   - .lighthouserc.json
   - .lighthouserc.tienda.json

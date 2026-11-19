@@ -271,10 +271,10 @@ select is((select count(*)::int from cmp
   'tienda B: el local aplica una promoción si y solo si la tienda muestra una');
 select is((select l_neto from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 850::numeric,
   'producto 1 en B: el local cobra 850 neto');
-select is((select t_precio from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 1029::numeric,
-  'producto 1 en B: la tienda muestra 850 × 1,21 = 1.028,50 → 1.029 (al peso entero)');
-select is((select t_precio from cmp where n = 11 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 149::numeric,
-  'producto 11 en B: 123,45 × 1,21 = 149,37 → 149');
+select is((select t_precio from cmp where n = 1 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 1028.50::numeric,
+  'producto 1 en B: la tienda muestra 850 × 1,21 = 1.028,50 (al centavo)');
+select is((select t_precio from cmp where n = 11 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 149.37::numeric,
+  'producto 11 en B: 123,45 × 1,21 = 149,37 (al centavo)');
 select is((select t_precio from cmp where n = 6 and empresa = 'a1000000-0000-0000-0000-000000000002' and etiqueta = 'ahora'), 300.5::numeric,
   'producto exento en B: sin IVA el final es el neto (300,50)');
 -- Producto 11: promoción solo en B; en A no hay promoción en ninguno de los dos lados.

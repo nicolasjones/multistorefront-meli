@@ -1,9 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261027-100000-ventas-mejoras
+  - apps/web/src/pages/ventas/mostrador.tsx
+  - apps/web/src/lib/ventasMostrador.ts
+  - apps/web/src/components/ventas/LectorCodigoBarras.tsx
+  - apps/web/src/components/ventas/AvisoBanderaPromociones.tsx
+  - apps/web/src/hooks/useBanderaPromociones.ts
+  - apps/web/src/lib/avisoBanderaPromociones.ts
+  - apps/web/src/lib/presupuestoDesdePedido.ts
+  - supabase/migrations/20270202200400_mostrador_buscar_producto.sql
+  - supabase/migrations/20261213100100_stock_carga_inicial_rpc.sql
 ---
 
 # Ventas · venta de mostrador (técnico, MSF-193)
@@ -254,6 +261,24 @@ drop function public.buscar_producto_por_codigo_barras(text);
 No hay tablas ni datos que respaldar: la RPC no altera ninguna. La venta de mostrador no crea
 comprobantes propios (usa los de MSF-159), así que revertir la historia no deshace ventas ya cargadas.
 
+## Aviso de cambio de la bandera de promociones (MSF-937)
+
+Con una venta abierta, el mostrador avisa si la bandera `promociones_precio` cambió desde que se abrió la
+venta. Es solo de interfaz: la base ya rechaza una vez con `precios_cambiaron` al confirmar (detalle en
+[Ventas · comprobantes](../ventas-comprobantes.md)).
+
+- `apps/web/src/hooks/useBanderaPromociones.ts`: lee la bandera al montar y, mientras hay venta abierta, al volver
+  a la pestaña y cada 60 s (`INTERVALO_RELECTURA_BANDERA_MS`); dos eventos de «volver» dentro de 1 s cuentan
+  como una sola lectura. Si una lectura falla conserva la última conocida.
+- `apps/web/src/pages/ventas/mostrador.tsx` (`INTENTOS_BASE_BANDERA = 4`): la base de comparación sale de una
+  lectura nueva hecha al abrir la venta; si falla, reintenta con espera creciente hasta 4 veces y, agotado, no hay
+  base y no se avisa.
+- `apps/web/src/lib/avisoBanderaPromociones.ts`: `avisoCambioBandera(alAbrir, actual)` devuelve el texto de
+  «activadas» o «desactivadas», o `null` si no hay cambio o falta alguna lectura (ante la duda no inventa un cambio).
+  El aviso se muestra con `components/ventas/AvisoBanderaPromociones.tsx`.
+- `obtenerConsumidorFinal(organizacionId?)` (`apps/web/src/lib/ventasMostrador.ts`) filtra explícitamente por la
+  organización cuando se le pasa (la usa `presupuestoDesdePedido.ts`); sin argumento depende solo de la RLS.
+
 ## Fuera de alcance
 
 - **Editar el cliente de la venta**: la venta de mostrador es a «Consumidor final»; no hay pantalla para
@@ -270,10 +295,11 @@ comprobantes propios (usa los de MSF-159), así que revertir la historia no desh
 ## Pendientes
 
 - **TODO (Documentación · Owner: agente Documentador)**: faltan las **capturas** de la pantalla
-  `/ventas/mostrador` en `docs/producto/img/ventas-mostrador/`. El repositorio no trae hoy un comando
-  `pnpm docs:capturas` ni una carpeta `apps/web/e2e/capturas/` (las capturas existentes se versionaron a
-  mano), y esta máquina no tiene acceso al daemon de Docker, así que no se pudo levantar el stack local
-  para tomarlas. **No se inventaron imágenes.** Para generarlas: levantar `pnpm dev:supabase` + `pnpm dev`,
-  sembrar un producto con EAN-13 y una forma de pago, y capturar (1) la pantalla vacía, (2) la pantalla
+  `/ventas/mostrador` en `docs/producto/img/ventas-mostrador/` (no existe esa carpeta). El comando para
+  regenerar las capturas del manual **existe**: `pnpm docs:capturas` (`package.json` raíz, que delega en
+  `apps/web/package.json:13`, `playwright test -c playwright.capturas.config.ts`; guiones en
+  `apps/web/e2e/capturas/`), pero ninguno de esos guiones cubre `/ventas/mostrador`, y requiere el stack
+  local levantado (`pnpm dev:supabase` + `pnpm dev`). **No se inventaron imágenes.** Para completarlas:
+  sembrar un producto con EAN-13 y una forma de pago y capturar (1) la pantalla vacía, (2) la pantalla
   con líneas y totales, (3) el mensaje «Producto no encontrado», (4) el aviso de descarte por cambio de
   tienda.

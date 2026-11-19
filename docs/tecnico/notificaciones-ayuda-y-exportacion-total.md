@@ -2,16 +2,36 @@
 owner: tecnico
 sources:
   - specs/20270215-100000-notificaciones-ayuda-y-exportacion-total
-  - apps/web/src/components/navegacion
-  - apps/web/src/ayuda
-  - apps/web/src/pages/importaciones
+  - apps/web/e2e/notificaciones.e2e.ts
+  - apps/web/e2e/ayuda.e2e.ts
+  - apps/web/e2e/exportacion-total.e2e.ts
+  - apps/web/src/components/navegacion/CampanitaNotificaciones.tsx
+  - apps/web/src/components/navegacion/ListaNotificaciones.tsx
+  - apps/web/src/components/navegacion/PanelAyuda.tsx
+  - apps/web/src/components/navegacion/EncabezadoPanel.tsx
+  - apps/web/src/components/navegacion/notificaciones.ts
+  - apps/web/src/components/navegacion/useNotificaciones.ts
+  - apps/web/src/components/navegacion/destinosPanel.ts
+  - apps/web/src/ayuda/manual.ts
+  - apps/web/src/ayuda/manualPorDestino.ts
+  - apps/web/src/ayuda/resolverAyuda.ts
+  - apps/web/src/ayuda/tipos.ts
+  - apps/web/src/pages/importaciones/ExportacionTotal.tsx
   - apps/web/src/hooks/useExportacionTotal.ts
   - apps/web/src/lib/exportacionTotal.ts
-  - workers/exportar-organizacion
+  - workers/exportar-organizacion/src
+  - workers/exportar-organizacion/test/exportar.test.ts
   - infra/kestra/flows/exportar-organizacion.yml
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/e2e
+  - supabase/migrations/20270217300001_notificaciones_leido.sql
+  - supabase/migrations/20270217300002_notificaciones_funciones.sql
+  - supabase/migrations/20270217300003_exportacion_total_conjuntos.sql
+  - supabase/migrations/20270217300004_exportacion_total_solicitud.sql
+  - supabase/migrations/20270217300005_notificaciones_contar_por_tipo.sql
+  - supabase/migrations/20270217300006_exportacion_total_solo_admin_propio.sql
+  - supabase/migrations/20270217300007_exportacion_total_conjuntos_nuevos.sql
+  - supabase/migrations/20270507180700_exportacion_total_identificadores_externos.sql
+  - supabase/tests/database/exportacion_total.test.sql
+  - supabase/tests/database/notificaciones_panel.test.sql
 ---
 
 # Notificaciones, ayuda y exportación total (MSF-224)
@@ -171,9 +191,10 @@ authenticated`) devuelve `proceso_id, ejecucion_id, estado, reutilizado`:
     (`TOPE_BYTES`), que es una falla no reintentable (`TOPE_EXCEDIDO`, código 78).
   - Sube el ZIP a `exportaciones-organizacion/<organizacion_id>/<ejecucion_id>.zip` (idempotente, con `upsert`) y
     **borra el archivo anterior** de la organización: queda solo el último.
-  - Un `LEEME` dentro del ZIP lista los conjuntos y cuántas filas trae cada uno.
+  - Un `LEEME` dentro del ZIP lista los conjuntos y cuántas filas trae cada uno. También avisa que los textos que empiezan con `=`, `+`, `-` o `@` llevan un apóstrofo delante, para quitarlo al reimportar.
   - Cierra el proceso `completado` o `con_errores` (un error por conjunto fallido); una cancelación o una falla no
     publica un ZIP parcial.
+  - Revisa la cancelación otra vez **después de subir** el ZIP: si la persona canceló mientras se subía, borra el archivo del bucket (si no puede borrarlo falla con `BORRADO_CANCELADA_FALLIDO` para que el flow reintente) y cierra el proceso como `cancelado` (`workers/exportar-organizacion/src/exportar.ts`, `infra.ts`).
 - **Aislamiento**: las funciones de lectura solo las ejecuta un rol `worker_<org>` (miembro de
   `workers_orquestacion`) sobre una ejecución **en curso** de la capacidad `exportar-organizacion-*`; la organización
   sale de la ejecución, nunca de un parámetro, y el conjunto pedido se valida contra la lista permitida.
@@ -183,6 +204,7 @@ authenticated`) devuelve `proceso_id, ejecucion_id, estado, reutilizado`:
   `authenticated`: el worker escribe con la clave de servicio del servidor.
 - **Configuración**: `EXPORTAR_ORGANIZACION_IMAGEN` (`.env.example`; en Kestra, `ENV_EXPORTAR_ORGANIZACION_IMAGEN`
   por `infra/kestra/compose.yaml`).
+- **Robustez del flow**: corre de a una ejecución (`concurrency: limit 1, behavior CANCEL`), las consultas SQL llevan `timeout: PT1M` y un fallo avisa al soporte por el subflow `platform.alertas/aviso-fallo-flujo`; el comando SSH exige una imagen por digest o tag de commit (ver el flow).
 
 ### Qué entra y qué no
 
@@ -193,7 +215,7 @@ authenticated`) devuelve `proceso_id, ejecucion_id, estado, reutilizado`:
   correo, registros operativos y de monitoreo, procesos masivos, credenciales y conexiones, datos derivados).
 - **Completitud**: el pgTAP `exportacion_total.test.sql` falla si una tabla con `organizacion_id` de `public` o
   `dominio` no está en la lista permitida ni en las exclusiones. Por eso `20270217300007` suma
-  `dominio.cotizacion_configuracion` y `dominio.precios_propios_empresa`.
+  `dominio.cotizacion_configuracion` y `dominio.precios_propios_empresa`. Las épicas posteriores siguen el mismo patrón con migraciones propias que redefinen `private.conjuntos_exportacion_total()` o `private.exclusiones_exportacion_total()` (por ejemplo `20270320100500_exportacion_total_excluye_favoritos.sql`, `20270321100500_exportacion_total_consulta_items.sql` y `20270507180700_exportacion_total_identificadores_externos.sql`, que suma `public.clientes_identificadores_externos`).
 
 ### Empresa activa: no aplica
 
@@ -299,8 +321,8 @@ se citan por su tarea (T0xx).
 
 - **Deuda trazada** en la historia **MSF-817** («Endurecer la exportación total y cerrar huecos de pruebas»): lista
   negra de columnas secretas en vez de lista blanca por tabla; casos negativos del aislamiento del worker con un
-  worker real de otra organización; paginación por *keyset* en vez de `offset` sin snapshot; reintentos y candados del
-  flow de Kestra; caducidad del ZIP en el bucket; neutralización de fórmulas que altera teléfonos (`+549…`);
+  worker real de otra organización; paginación por *keyset* en vez de `offset` sin snapshot; reintentos del
+  flow de Kestra (el candado de ejecución en curso ya está: `concurrency` con límite 1); caducidad del ZIP en el bucket; neutralización de fórmulas que altera teléfonos (`+549…`);
   `marcar_notificaciones_leidas` con `p_ids` ausente equivale a «marcar todas»; desempate por `id` del cursor sin probar.
 - **Sin captura de pantalla** de la campanita, del panel de ayuda ni del bloque de exportación.
   `TODO (Documentación · Owner: agente Documentador)`: generarlas con `pnpm --filter @platform/web pantallas:capturar`

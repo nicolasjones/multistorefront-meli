@@ -7,10 +7,10 @@ export const nombre = 'Tiendas online y consultas'
 // Camino anónimo, tal como lo usa el sitio: RPC del esquema `publico` con la anon key (sin sesión).
 // El visitante se identifica por la IP de `x-forwarded-for` (hash en la base) y el límite es de 5 envíos por hora
 // por visitante y empresa; por eso cada consulta sale con una IP de documentación (TEST-NET) distinta.
-async function rpcPublica(cfg, funcion, args, ip) {
+async function rpcPublica(cfg, funcion, args, ip, clave = cfg.anon) {
   const r = await fetch(`${cfg.url}/rest/v1/rpc/${funcion}`, {
     method: 'POST',
-    headers: { apikey: cfg.anon, authorization: `Bearer ${cfg.anon}`, 'content-type': 'application/json', 'content-profile': 'publico', 'x-forwarded-for': ip },
+    headers: { apikey: clave, authorization: `Bearer ${clave}`, 'content-type': 'application/json', 'content-profile': 'publico', 'x-forwarded-for': ip },
     body: JSON.stringify(args),
   })
   const texto = await r.text()
@@ -140,11 +140,13 @@ export async function sembrar(ctx) {
   }
   log(`${enviadas} consultas por el camino público (formulario y WhatsApp)`)
 
-  // — 7. Interés de WhatsApp por la RPC pública —
+  // — 7. Interés de WhatsApp —
+  // `registrar_interes_whatsapp` ya no es pública (la ejecuta solo la service-role, sin cuota anti-spam), por eso va con la clave
+  // de servicio y no con la anon key; la tienda real usa `registrar_consulta_whatsapp` (paso 6).
   let toques = 0
   for (const [clave, skus] of Object.entries(INTERES_PUBLICO)) {
     for (const sku of skus) {
-      await rpcPublica(cfg, 'registrar_interes_whatsapp', { host: conTienda[clave], producto_id: ctx.productos[sku].id }, ipNueva())
+      await rpcPublica(cfg, 'registrar_interes_whatsapp', { host: conTienda[clave], producto_id: ctx.productos[sku].id }, ipNueva(), cfg.servicio)
       toques += 1
     }
   }

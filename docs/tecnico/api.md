@@ -640,7 +640,7 @@ organización activa y las empresas accesibles adentro (`security definer`, `set
 | `listar_costos_adicionales(p_empresa_id uuid default null)` | Costos activos de las empresas accesibles (o de una): `id`, `empresa_id`, `empresa_nombre`, `nombre`, `tipo`, `valor`, `creado_en`. | `42501` sin `rentabilidad` |
 | `guardar_costo_adicional(p_id uuid, p_empresa_id uuid, p_nombre text, p_tipo text, p_valor numeric)` | Alta (`p_id` null) o edición de un costo; un costo no cambia de empresa. Escribe Actividad. | `42501` sin edición o empresa no accesible · `23514` nombre/tipo/valor inválido · `23505` nombre repetido entre activos · `P0002` el costo no existe |
 | `dar_baja_costo_adicional(p_id uuid)` | Baja lógica (`activo = false`), idempotente. Escribe Actividad. | `42501` sin edición · `P0002` el costo no existe |
-| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
+| `consultas_reportes_conteo(p_desde date, p_hasta date, p_empresa_id uuid default null)` | `integer`: toques en «Consultar por WhatsApp» del período (hoy solo los del sembrado demo, ver MSF-657; estado vacío de «Productos más consultados»). | `42501` sin `reportes` · `22023` rango inválido |
 
 `public.confirmar_comprobante(uuid)` **conserva su firma** (F-REN-09): al confirmar guarda en cada línea
 `costo_unitario` (pesos por unidad) y `cotizacion` (dólar vigente), una sola vez e idempotente. Las notas de

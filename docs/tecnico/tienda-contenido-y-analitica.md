@@ -1,10 +1,29 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src
+  - specs/20270210-100000-tienda-contenido-y-analitica
+  - supabase/migrations/20270212200001_tienda_paginas.sql
+  - supabase/migrations/20270212200002_tienda_analitica.sql
+  - supabase/migrations/20270218400000_tienda_paginas_tope.sql
+  - supabase/tests/database/tienda_paginas.test.sql
+  - supabase/tests/database/tienda_analitica.test.sql
+  - apps/web/src/lib/analiticaTienda.ts
+  - apps/web/src/lib/tiendaAnalitica.ts
+  - apps/web/src/lib/tiendaPaginas.ts
+  - apps/web/src/lib/consentimientoCookies.ts
+  - apps/web/src/lib/enlaceProducto.ts
+  - apps/web/src/hooks/usePaginaTienda.ts
+  - apps/web/src/hooks/useEnlacesPaginas.ts
+  - apps/web/src/pages/empresas/tienda/pestanas/analitica.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/paginas.tsx
+  - apps/web/src/pages/tienda-publica/layout/MedicionTienda.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieInformacion.tsx
+  - apps/web/src/pages/tienda-publica/ficha/BotonCompartir.tsx
+  - apps/web/src/pages/tienda-publica/rutas/pagina.tsx
+  - apps/web/nginx.conf
+  - apps/web/e2e/tienda-analitica.e2e.ts
+  - apps/web/e2e/tienda-compartir.e2e.ts
+  - apps/web/e2e/tienda-paginas.e2e.ts
 ---
 
 # Tienda pública: contenido, analítica y compartir (MSF-164)

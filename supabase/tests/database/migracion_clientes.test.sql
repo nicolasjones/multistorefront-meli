@@ -301,15 +301,17 @@ select lives_ok(
      '[{"fila":2,"id_externo":"P-001","nombre":"Intruso"}]'::jsonb)$$,
   'la otra organización aplica su lote'
 );
+-- MSF-596: el identificador externo es único por organización, no en toda la instancia: la otra organización crea su propio
+-- cliente con el mismo identificador, sin choque ni revelar que existe en la primera.
 select is(
   (select v -> 'errores' from t_res where k = 'dos'),
-  '[{"fila": 2, "motivo": "El identificador ya está en uso"}]'::jsonb,
-  'un identificador de otra organización no se pisa ni se revela que existe'
+  '[]'::jsonb,
+  'el mismo identificador en otra organización crea su propio cliente (sin «ya está en uso»)'
 );
 select is(
-  (select count(*) from dominio.clientes where nombre in ('Intruso', 'Cliente Uno Renombrado')),
-  0::bigint,
-  'la otra organización no crea ni ve clientes de la primera'
+  (select array_agg(nombre order by nombre) from dominio.clientes where nombre in ('Intruso', 'Cliente Uno Renombrado')),
+  array['Intruso']::text[],
+  'la otra organización ve el cliente que creó y no ve ni pisa el de la primera'
 );
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000002');

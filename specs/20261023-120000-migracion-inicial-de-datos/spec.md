@@ -195,6 +195,7 @@ Inventario corrido sobre `Clientes.inventory.json` e `IngresoMercaderia.inventor
 | Clientes · Etiquetas, Exportar, Nuevo cliente, Ver ficha, Exportar a Excel, Aplicar, Desde/Hasta | — | Fuera de alcance (otras épicas) |
 | Clientes · diálogos «Enviar correo a seleccionados» (Asunto, Mensaje, Enviar correo), ficha de cliente (Guardar cliente), «Eliminar cliente» | — | Fuera de alcance (otras épicas) |
 | Clientes · campo de búsqueda «Buscar por nombre, CUIT o número» | — | Fuera de alcance (MSF-180) |
+| Migración de datos · pestañas Clientes, Proveedores, Vínculos proveedor ↔ producto, Ingresos anteriores (`PestanasPagina`) | FR-010 (una pantalla por entidad), acceso desde el menú | En alcance; sin prototipo (no hay pantalla dibujada de la migración); solo con la carga en el paso «Subir archivo». Empresa activa: no aplica (la importación es de toda la organización) |
 | Ingreso de mercadería · pestaña nueva «Archivo anterior al sistema» (no dibujada) | FR-033 | En alcance; sin prototipo, se anota en el PR |
 | Ingreso de mercadería · columnas Fecha, Producto, Cantidad, Proveedor, Operador | FR-030, FR-033 | En alcance |
 | Ingreso de mercadería · columnas Destino, Tienda | FR-032, FR-034 | Fuera de alcance: el archivo no mueve stock ni tiene depósito/tienda |

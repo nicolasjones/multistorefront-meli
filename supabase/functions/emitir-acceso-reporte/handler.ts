@@ -167,7 +167,12 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // La organización la resuelve la RPC (respeta la organización activa del superadmin y, para los
   // reportes con `seccion`, exige lectura o edición en ella). Ni siquiera se revela si el reporte
   // existe (FR-007): sin organización → 403 y no se pide nada a Superset.
-  const organizacionId = await deps.resolverOrganizacion(jwt, reporteId)
+  let organizacionId: string | null
+  try {
+    organizacionId = await deps.resolverOrganizacion(jwt, reporteId)
+  } catch {
+    return jsonResponse({ error: 'analitica_no_disponible' }, 503)
+  }
   // Se interpola en la cláusula `rls`: debe ser un UUID, nunca texto libre.
   if (!organizacionId || !UUID.test(organizacionId)) {
     return jsonResponse({ error: 'No autorizado' }, 403)

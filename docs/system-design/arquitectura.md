@@ -1,7 +1,11 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - supabase/migrations/20261204140000_confirmar_comprobante.sql
+  - supabase/migrations/20261023130100_stock_reservas.sql
+  - supabase/migrations/20260923171400_crear_outbox_ejecuciones.sql
+  - infra/kestra/compose.yaml
+  - infra/superset/compose.yaml
 ---
 
 # Arquitectura
@@ -44,7 +48,7 @@ flowchart TB
 | Capa | Responsabilidad | No hace |
 |---|---|---|
 | Panel (Refine) | UI, formularios, tablas, selector de tienda activa | Reglas de negocio críticas |
-| RPC / funciones SQL | Operaciones atómicas: confirmar venta, reservar, mover stock | Presentación |
+| RPC / funciones SQL | Operaciones atómicas: confirmar comprobante, reservar, mover stock | Presentación |
 | Postgres + RLS | Verdad de los datos y aislamiento | Lógica de UI |
 | Workers + outbox | Efectos asíncronos: sincronizar canales, notificaciones | Decidir permisos |
 | Superset | Reportes y tableros sobre vistas de lectura | Escribir datos |
@@ -55,18 +59,16 @@ flowchart TB
 sequenceDiagram
   participant U as Mostrador
   participant P as Panel
-  participant R as RPC confirmar_venta
+  participant R as RPC confirmar_comprobante
   participant D as Postgres
-  participant O as Outbox
   U->>P: Confirmar comprobante
-  P->>R: venta_id
-  R->>D: validar rol en la tienda (RLS)
-  R->>D: reservar stock por línea
+  P->>R: comprobante_id
+  R->>D: validar rol en la tienda (nivel de Ventas en la empresa)
+  R->>D: descontar o reservar stock por línea
   alt sin disponible y no es a pedido
     R-->>P: error de stock
   else ok
-    R->>D: estado = Pendiente, movimientos de reserva
-    R->>O: evento venta_confirmada
+    R->>D: estado = confirmada, movimientos o reservas, evento de Actividad
     R-->>P: ok
   end
 ```
@@ -74,7 +76,7 @@ sequenceDiagram
 ## Principios
 
 - **Transacción en la base**: toda operación que toca stock o dinero corre en una RPC atómica.
-- **Idempotencia**: los eventos del outbox llevan clave única; reintentar no duplica.
+- **Idempotencia**: confirmar dos veces la misma factura no duplica movimientos (la segunda llamada devuelve la ya confirmada), y los eventos del outbox llevan clave única.
 - **Un solo origen de verdad**: nada de copias del stock por tienda o canal.
 - **Lectura analítica separada**: Superset consulta vistas, no tablas operativas.
 - **Entornos separados**: staging y producción con proyectos y secretos distintos.

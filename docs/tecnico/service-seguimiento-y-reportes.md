@@ -1,11 +1,41 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/functions
-  - infra/superset
-  - apps/web/src
+  - apps/web/e2e/service-adjuntos.e2e.ts
+  - apps/web/e2e/service-exportacion.e2e.ts
+  - apps/web/e2e/service-garantia.e2e.ts
+  - apps/web/e2e/service-seguimiento.e2e.ts
+  - apps/web/src/components/service/AdjuntosReparacion.tsx
+  - apps/web/src/components/service/EnlaceSeguimientoDialog.tsx
+  - apps/web/src/components/service/ReingresoGarantiaDialog.tsx
+  - apps/web/src/components/service/VinculosGarantia.tsx
+  - apps/web/src/lib/enlaceConsulta.ts
+  - apps/web/src/lib/exportarReparaciones.ts
+  - apps/web/src/pages/seguimiento/index.tsx
+  - infra/superset/dashboards/service
+  - specs/20261028-100000-service-seguimiento-y-reportes
+  - supabase/functions/consultar-estado-reparacion/handler.ts
+  - supabase/functions/consultar-estado-reparacion/index.ts
+  - supabase/migrations/20270219130100_analitica_service_reparaciones.sql
+  - supabase/migrations/20270219130200_analitica_service_reparacion_items.sql
+  - supabase/migrations/20270219130300_reportes_service.sql
+  - supabase/migrations/20270219140100_reparacion_adjuntos.sql
+  - supabase/migrations/20270219140200_reparacion_adjuntos_bucket.sql
+  - supabase/migrations/20270219140300_reparacion_adjunto_registrar.sql
+  - supabase/migrations/20270219140600_reparacion_adjuntos_bucket_endurecer.sql
+  - supabase/migrations/20270219150100_reparaciones_origen_garantia.sql
+  - supabase/migrations/20270219150200_reparacion_reingresar_garantia.sql
+  - supabase/migrations/20270219160100_reparacion_enlaces_consulta.sql
+  - supabase/migrations/20270219160200_enlace_consulta_obtener.sql
+  - supabase/migrations/20270219160300_consultas_publicas_limite.sql
+  - supabase/migrations/20270219160400_estado_publico_reparacion.sql
+  - supabase/migrations/20270219170000_exportacion_total_reparaciones_service.sql
+  - supabase/migrations/20270437000000_service_regenerar_enlace_y_reportes_por_empresa.sql
+  - supabase/tests/database/service_adjuntos.test.sql
+  - supabase/tests/database/service_analitica.test.sql
+  - supabase/tests/database/service_enlace_consulta.test.sql
+  - supabase/tests/database/service_garantia.test.sql
+  - supabase/tests/database/service_reportes_acceso.test.sql
 ---
 
 # Service técnico: seguimiento y reportes (técnico, MSF-124)
@@ -84,7 +114,7 @@ Todas las migraciones son aditivas, con reversión en el encabezado de cada guí
   `docs/service-seguimiento.md`.
 - **Exportación**: `apps/web/src/lib/exportarReparaciones.ts` sobre `listar_reparaciones` por lotes de 200, tope
   100.000 filas, sin RPC nueva ni costos.
-- **Reportes**: tablero YAML en `infra/superset/dashboards/service/`, importado con `pnpm superset:importar-dashboards`;
+- **Reportes**: tablero YAML en `infra/superset/dashboards/service/`, importado con `pnpm superset:importar-dashboards`. El importador falla si faltan `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` o `SUPERSET_REPORTE_CREADO_POR` (salvo `--omitir-reportes`), y el tablero embebido pide un token nuevo a `emitir-acceso-reporte` cada vez que el SDK renueva el vencido (`apps/web/src/components/ReporteEmbebido.tsx`).
   pestaña `/service-tecnico/reportes` con `ReporteEmbebido` (y su entrada «Reportes» en la ayuda del panel); token de invitado con cláusula
   `organizacion_id = '<org>'` y acceso con `lectura`/`edicion` en `service_tecnico`. Quien no tiene el reporte asignado a su rol ve «No tenés acceso
   al tablero de Service técnico: tu organización todavía no lo tiene asignado o tu rol no lo incluye. Pedile acceso a
@@ -136,5 +166,12 @@ Abierto:
 - **TODO (dueño: documentación/producto):** capturas del manual (`pnpm docs:capturas`, specs en
   `apps/web/e2e/capturas/`, datos de `pnpm demo:dataset`); no se generaron.
 - Decisiones provisorias de la spec a confirmar con el cliente: formatos distintos de imagen, garantía sin cargo o con
-  plazo, «Regenerar enlace»/vencimiento, `.xlsx` real y si los reportes se limitan a quien ve todas las tiendas.
+  plazo, vencimiento del enlace, `.xlsx` real. **Ya implementados** (migración
+  `20270437000000_service_regenerar_enlace_y_reportes_por_empresa.sql`): «Regenerar enlace» (RPC
+  `public.regenerar_enlace_consulta(p_reparacion)`: token nuevo, el anterior deja de resolver, exige `edicion` en
+  `service_tecnico` y una tienda accesible, registra `reparacion.enlace_regenerado`, tope de 10 por persona por hora con
+  `P0001` `DEMASIADAS_REGENERACIONES`; el cliente web la llama con `regenerarEnlaceConsulta` en `lib/enlaceConsulta.ts`
+  y `EnlaceSeguimientoDialog.tsx` pide confirmación antes) y el reporte «Service técnico» acotado a las empresas
+  accesibles de quien mira (`filtro_empresa = true`: `emitir-acceso-reporte` agrega `empresa_id IN (<empresas_accesibles>)`
+  al `rls` del guest token).
 - Las pantallas del tablero y la página pública no tienen prototipo: se armaron con el sistema de diseño.

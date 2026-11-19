@@ -1,8 +1,18 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase
+  - specs/20261017-120000-catalogo-alta-y-edicion
+  - supabase/migrations/20261017120100_catalogo_productos_y_costos.sql
+  - supabase/migrations/20261017120200_catalogo_crear_producto.sql
+  - supabase/migrations/20261017120300_catalogo_sku_unico.sql
+  - supabase/migrations/20261017120400_catalogo_actualizar_producto.sql
+  - supabase/migrations/20261017120500_catalogo_producto_imagenes.sql
+  - supabase/migrations/20261017120600_catalogo_cambiar_estado.sql
+  - apps/web/src/lib/productoImagenes.ts
+  - apps/web/src/components/productos/FormularioProducto.tsx
+  - apps/web/src/components/productos/DialogoProducto.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
 ---
 
 # Catálogo: alta y edición (MSF-456), construcción interna
@@ -73,7 +83,9 @@ Los detalles nunca llevan costo, precio ni ruta.
 
 Rutas en `apps/web/src/App.tsx`: `/productos` (`pages/productos/list.tsx`), `/productos/create` (`create.tsx`) y
 `/productos/:id/edit` (`edit.tsx`), con guard de sección `productos`; formulario común
-`components/productos/FormularioProducto.tsx`; mensajes de error en `lib/productos.ts` (`mensajeDeError`).
+`components/productos/FormularioProducto.tsx`. Desde el listado, «Nuevo producto» y «Editar» se abren en un popup
+(`components/productos/DialogoProducto.tsx`, que monta `AltaProducto` y `EdicionProducto`); las rutas siguen
+disponibles para el acceso directo; mensajes de error en `lib/productos.ts` (`mensajeDeError`).
 
 ## Pruebas
 

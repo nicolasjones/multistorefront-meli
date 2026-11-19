@@ -3,8 +3,6 @@ import { tokens } from '../../tema/tokens'
 
 const { color, tipografia, forma } = tokens
 
-const TIENDAS = ['San Javucho', 'Mundo JC', '+ futuras stores']
-
 // Panel de marca del prototipo (Login / DefinirContrasena / RecuperarContrasena):
 // oscuro, a la izquierda y oculto en pantallas angostas. Sólo presentación.
 export function PanelMarca() {
@@ -53,34 +51,13 @@ export function PanelMarca() {
             maxWidth: 420,
           }}
         >
-          Un catálogo. Varias tiendas. Un solo panel.
+          Ingresá a tu panel
         </Typography>
         <Typography sx={{ mt: 2, fontSize: tipografia.escala.bl.tamano, lineHeight: 1.55, color: color.sider.itemTexto, maxWidth: 400 }}>
           Productos, stock, stores, Mercado Libre y rentabilidad, en un mismo lugar.
         </Typography>
-        <Stack direction="row" spacing={1.25} useFlexGap flexWrap="wrap" sx={{ mt: 3.5 }}>
-          {TIENDAS.map((nombre) => (
-            <Box
-              key={nombre}
-              component="span"
-              sx={{
-                bgcolor: color.sider.itemHover,
-                color: color.sider.itemTextoActivo,
-                borderRadius: `${forma.radioEtiqueta}px`,
-                px: 1.75,
-                py: 0.75,
-                display: 'inline-flex',
-                alignItems: 'center',
-                fontSize: tipografia.escala.s.tamano,
-                fontWeight: 600,
-              }}
-            >
-              {nombre}
-            </Box>
-          ))}
-        </Stack>
       </Box>
-      <Typography sx={{ color: color.sider.label, fontSize: tipografia.escala.xs.tamano }}>© 2026 · Panel interno</Typography>
+      <Typography sx={{ color: color.sider.label, fontSize: tipografia.escala.xs.tamano }}>© 2026 · Gestión comercial</Typography>
     </Box>
   )
 }

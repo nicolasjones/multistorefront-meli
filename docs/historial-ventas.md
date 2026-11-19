@@ -1,7 +1,7 @@
 ---
 owner: tecnico
 sources:
-  - infra/kestra
+  - infra/kestra/flows/historial-importador.yml
   - workers/egress-allowlists.json
   - workers/historial-importador
 ---
@@ -69,12 +69,16 @@ habilita la conexión.
    - `WORKER_NETWORK=worker-egress-historial-ventas`.
    La red debe permitir la salida hacia Supabase. El flow rechaza cualquier
    otra red con «Red de egress no autorizada». `workers/egress-allowlists.json`
-   no declara este worker: la red se crea a mano en el host (paso manual,
-   igual que el resto de los workers hoy, cuyo `workers` está vacío).
+   **declara** esa red (`historial-ventas`, `solo_supabase: true`, compartida con
+   `exportar-comprobantes` y `exportar-organizacion`) y un gate de CI la contrasta con el
+   flow; la red Docker en sí se crea en el host de despacho (ver
+   [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md)).
 4. Publicar la imagen del worker con el workflow de imágenes y fijar
    `HISTORIAL_IMPORTADOR_IMAGEN` (en local,
-   `local/worker-historial-importador:latest`) en `infra/kestra/.env`.
-5. Desplegar el flow `producto.ventas/historial-importador`. El `Schedule`
+   `local/worker-historial-importador:latest`) en `infra/kestra/.env`. Fuera de local
+   tiene que ser una referencia inmutable, por digest (`@sha256:…`) o por tag de
+   commit de 40 hex: el flow aborta (código 64) con un tag mutable como `:latest`.
+5. Desplegar el flow `producto.ventas/historial-importador` (corre de a una ejecución —`concurrency: limit 1, behavior CANCEL`— y si falla avisa al soporte con el subflow `aviso-fallo-flujo`; el contenedor lleva `--init` y `--pids-limit`). El `Schedule`
    reclama la outbox cada dos minutos; no hay webhook ni URL de despacho en la
    base.
 
@@ -320,3 +324,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
 ## Carga infinita
 
 Las pestañas Ventas, Cobros y Cotizaciones del dólar cargan por tandas de 25 al llegar al final del scroll («Cargar más» para teclado), sin paginación numerada. La búsqueda y la tienda reinician desde la primera tanda y el contador «N registros mostrados» se conserva. No mencionan productos: sin miniatura. Ver [`listados.md`](./listados.md).
+
+## Acceso y textos de la importación
+
+La ruta `/historial/importar` exige ser administrador (`RequiereAdministrador`) además de acceso a Ventas; se llega desde «Importaciones». El resumen de una importación fallida sin filas rechazadas ya no menciona al «worker». La ayuda del filtro de tienda no habla de las cotizaciones del dólar, que no usan ese filtro. Pendientes: tienda con nombre repetido (lo resuelve el worker) y plantilla descargable (falta el contrato de columnas).

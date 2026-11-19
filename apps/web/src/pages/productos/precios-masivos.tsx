@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from '../../lib/formatoImporte'
 import { useMemo, useRef, useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import {
@@ -29,7 +30,7 @@ const FILAS_POR_PAGINA = 25
 
 function dinero(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return '—'
-  return valor.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return formatearNumeroImporte(valor, { centavos: 'siempre' })
 }
 
 function antesDespues(antes: number | null | undefined, despues: number | null | undefined, moneda: string | null): string {

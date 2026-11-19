@@ -17,6 +17,8 @@ services:
     restart: unless-stopped
 
   kestra:
+    # MSF-736: tini como PID 1 cosecha los procesos zombi (ver infra/runner/compose.yaml).
+    init: true
     image: kestra/kestra:v1.3.35
     user: root
     command: server standalone --worker-thread=32
@@ -86,8 +88,15 @@ services:
       ENV_RESPALDOS_RCLONE_HOST: ${RESPALDOS_RCLONE_HOST:-}
       ENV_RESPALDOS_RCLONE_USER: ${RESPALDOS_RCLONE_USER:-}
       ENV_RESPALDOS_RCLONE_PASS: ${RESPALDOS_RCLONE_PASS:-}
-      ENV_RESPALDOS_RETENCION_DIARIAS: ${RESPALDOS_RETENCION_DIARIAS:-30}
+      # Retención por días (MSF-714); RESPALDOS_RETENCION_DIARIAS (nombre anterior, por cantidad) se acepta como respaldo.
+      ENV_RESPALDOS_RETENCION_DIAS: ${RESPALDOS_RETENCION_DIAS:-${RESPALDOS_RETENCION_DIARIAS:-30}}
       ENV_RESPALDOS_RETENCION_MENSUALES: ${RESPALDOS_RETENCION_MENSUALES:-12}
+      ENV_RESPALDOS_IMAGENES_RETENCION_DIAS: ${RESPALDOS_IMAGENES_RETENCION_DIAS:-7}
+      ENV_RESPALDOS_IMAGENES_RETENCION_MENSUALES: ${RESPALDOS_IMAGENES_RETENCION_MENSUALES:-2}
+      ENV_RESPALDOS_IMAGENES_MAX_COPIAS: ${RESPALDOS_IMAGENES_MAX_COPIAS:-7}
+      ENV_RESPALDOS_AUSENCIA_HORAS: ${RESPALDOS_AUSENCIA_HORAS:-30}
+      # Purga de ejecuciones y archivos internos de Kestra (MSF-707, flow purgar-almacenamiento-kestra).
+      ENV_KESTRA_RETENCION_EJECUCIONES_DIAS: ${KESTRA_RETENCION_EJECUCIONES_DIAS:-7}
       ENV_RESPALDOS_VERIFICAR_TABLAS: ${RESPALDOS_VERIFICAR_TABLAS:-public.respaldos,public.organizaciones}
       ENV_RESPALDOS_STORAGE_ENDPOINT: ${RESPALDOS_STORAGE_ENDPOINT:-http://host.docker.internal:${SUPABASE_API_PORT:-9300}/storage/v1/s3}
       ENV_RESPALDOS_STORAGE_REGION: ${RESPALDOS_STORAGE_REGION:-local}
@@ -132,6 +141,9 @@ services:
       ENV_CORREO_MASIVO_LOTE: ${CORREO_MASIVO_LOTE:-50}
       ENV_CORREO_MASIVO_LIMITE_DIARIO: ${CORREO_MASIVO_LIMITE_DIARIO:-500}
       ENV_CORREO_MASIVO_URL_BAJA: ${CORREO_MASIVO_URL_BAJA:-http://localhost:5173}
+      # Solo desarrollo local: permite que el enlace de baja sea http/localhost. En un ambiente real queda `false` y el flow
+      # `correo-masivo` se niega a enviar con un enlace de baja que apunte a localhost (MSF-711).
+      ENV_CORREO_MASIVO_PERMITIR_LOCAL: ${CORREO_MASIVO_PERMITIR_LOCAL:-false}
       # Newsletter de la tienda (MSF-468, flow newsletter-confirmaciones): confirmaciones por ciclo.
       ENV_NEWSLETTER_CONFIRMACION_LOTE: ${NEWSLETTER_CONFIRMACION_LOTE:-20}
       # Observabilidad de workers (spec 20260925-133820): evidencia visual

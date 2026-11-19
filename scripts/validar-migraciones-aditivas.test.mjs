@@ -62,3 +62,144 @@ test('no confunde ALTER TABLE ... DROP CONSTRAINT con una migración destructiva
     assert.equal(result.code, 0, result.stderr);
   });
 });
+
+test('rechaza DROP SCHEMA, DROP FUNCTION y DELETE FROM sin WHERE sin reversión', async () => {
+  for (const sql of ['drop schema viejo cascade;', 'drop function public.f();', 'delete from demo;']) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, sql);
+    });
+  }
+});
+
+test('acepta DELETE FROM con WHERE y DROP FUNCTION con reversión comentada', async () => {
+  await withMigrations({
+    '001.sql': "delete from demo where id = 1;\ndelete from demo\n where creado < now();",
+    '002.sql': '-- Reversión: recrear public.f() con la migración 001.\ndrop function public.f();',
+  }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});
+
+test('la palabra reversión fuera de un comentario no cuenta como camino de reversión', async () => {
+  await withMigrations({ '001.sql': "drop table demo;\ninsert into notas values ('reversible');" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});
+
+test('un -- dentro de un literal no anula el resto de la línea', async () => {
+  await withMigrations({ '001.sql': "select '--'; drop table x;" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});
+
+test('un comentario negado («sin reversión») no cuenta como camino de reversión', async () => {
+  await withMigrations({ '001.sql': '-- sin reversión\ndrop table x;' }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+  await withMigrations({ '001.sql': '/* Camino de reversión: recrear x */\ndrop table x;' }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});
+
+test('dollar-quoting, E\'…\\\'…\' y comentarios de bloque anidados', async () => {
+  const malas = [
+    "select $$it's$$; drop table t;",
+    "select $tag$ -- no es comentario $tag$; drop table t;",
+    "select E'it\\'s'; drop table t;",
+    "do $$ begin drop table t; end $$;",
+    "/* a /* b */ c */ drop table t;",
+  ];
+  for (const sql of malas) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, sql);
+    });
+  }
+  const buenas = [
+    '/* a /* drop table t; */ drop table t; */ select 1;',
+    '-- drop table t;\nselect 1;',
+  ];
+  for (const sql of buenas) {
+    await withMigrations({ '001.sql': sql }, async (dir) => {
+      assert.equal((await run(dir)).code, 0, sql);
+    });
+  }
+});
+
+test('rechaza Reversión vacía, ninguna, n/a y no aplica; acepta pasos en la línea siguiente', async () => {
+  for (const marcador of ['-- Reversión: ninguna', '-- Reversión: ninguno', '-- Reversión: ninguno.', '-- Reversión: Ninguno', '-- Reversion: n/a', '-- Reversión: no aplica.', '-- Reversión:\nselect 1;', '-- Reversión: no hay reversión automática']) {
+    await withMigrations({ '001.sql': `${marcador}\ndrop table t;` }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, marcador);
+    });
+  }
+  await withMigrations({ '001.sql': '-- Reversión:\n--   create table t (id int);\ndrop table t;' }, async (dir) => {
+    assert.equal((await run(dir)).code, 0);
+  });
+});
+
+test('tag de dollar-quote Unicode y marcadores en inglés', async () => {
+  await withMigrations({ '001.sql': '$é$ -- $é$; drop table t;' }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+  for (const marcador of ['-- Reversion: none', '-- Reversion: n.a.', '-- Reversion: na', '-- Reversion: nothing']) {
+    await withMigrations({ '001.sql': `${marcador}\ndrop table t;` }, async (dir) => {
+      assert.notEqual((await run(dir)).code, 0, marcador);
+    });
+  }
+});
+
+// Entrada hostil: tags de dollar-quote repetidos o anidados. El análisis debe ser (casi) lineal; tope de 5 s
+// por caso (en un host sin carga tardan menos de 1 s) con ~0,5 MB para dejar margen en hosts cargados.
+const CASOS_HOSTILES = {
+  'tags únicos sin cierre': () => Array.from({ length: 55000 }, (_, k) => `$t${k}$ `).join(''),
+  '$a$ $b$ repetidos': () => '$a$ $b$ '.repeat(62500),
+  '$a$ $a$ repetidos': () => '$a$ $a$ '.repeat(62500),
+  '$a$ x $b$ y repetidos': () => '$a$ x $b$ y '.repeat(42000),
+  'anidados profundos': () => Array.from({ length: 10000 }, (_, k) => `$t${k}$ `).join('') + Array.from({ length: 10000 }, (_, k) => `$t${9999 - k}$ `).join(''),
+};
+for (const [nombre, generar] of Object.entries(CASOS_HOSTILES)) {
+  test(`rendimiento con entrada hostil (${nombre}): menos de 5 s y mismo veredicto`, async () => {
+    await withMigrations({ '001.sql': `${generar()}\n-- Reversión: x\nselect 1;`, '002.sql': `${generar()};\ndrop table x;` }, async (dir) => {
+      const t = Date.now();
+      const r = await run(dir);
+      assert.ok(Date.now() - t < 5000, `tardó ${Date.now() - t} ms`);
+      assert.notEqual(r.code, 0);
+      assert.match(r.stderr, /002\.sql/);
+      assert.doesNotMatch(r.stderr, /001\.sql/);
+    });
+  });
+}
+
+test('un $b$ pegado a $a$ al inicio del cuerpo sigue anidándose', async () => {
+  await withMigrations({ '001.sql': "DO $a$$$ ' $$; drop table t; $a$;" }, async (dir) => {
+    assert.notEqual((await run(dir)).code, 0);
+  });
+});
+
+test('ReDoS: una línea de marcador con 1 MB de espacios se analiza en menos de 2 s', async () => {
+  const relleno = ' '.repeat(1000000);
+  await withMigrations({
+    '001.sql': `-- Reversion: none${relleno}\ndrop table t;`,
+    '002.sql': `-- Reversión:${relleno}\n-- paso\ndrop table t;`,
+  }, async (dir) => {
+    const t = Date.now();
+    const r = await run(dir);
+    assert.ok(Date.now() - t < 2000, `tardó ${Date.now() - t} ms`);
+    assert.match(r.stderr, /001\.sql/);
+    assert.doesNotMatch(r.stderr, /002\.sql/);
+  });
+});
+
+// Estos casos SÍ disparan las regex cuadráticas si se quita el colapso de espacios (sin él: 2 s con 50k y
+// ~11 s con 100k espacios); con el colapso tardan milisegundos.
+test('ReDoS: marcadores con 100k espacios seguidos de texto (MARKER_VACIO y SOLO_MARCADOR) tardan menos de 1 s', async () => {
+  const relleno = ' '.repeat(100000);
+  await withMigrations({
+    '001.sql': `-- Reversión: none${relleno}x\ndrop table t;`,
+    '002.sql': `-- Reversión${relleno}x\ndrop table t;`,
+  }, async (dir) => {
+    const t = Date.now();
+    const r = await run(dir);
+    assert.ok(Date.now() - t < 1000, `tardó ${Date.now() - t} ms`);
+    assert.equal(r.code, 0);
+  });
+});

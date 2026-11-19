@@ -60,7 +60,7 @@ con su RLS por organización.
 
 ## Pestaña «Productos más consultados» (F-REP-04, MSF-236)
 
-Tercera pestaña de la pantalla: qué productos tocaron más «Consultar por WhatsApp» (F-CON-02) en un período,
+Tercera pestaña de la pantalla: qué productos tocaron más «Consultar por WhatsApp» (F-CON-02) en un período (hoy solo el sembrado demo alimenta `dominio.intereses_whatsapp`; ver MSF-657),
 aunque todavía no los compren. Solo cantidades: **nunca costo ni margen** (decisión 3 de la épica MSF-192).
 
 - **Datos**: vista `analitica.consultas_producto_mas_consultado` (empresa × producto × fecha, desde

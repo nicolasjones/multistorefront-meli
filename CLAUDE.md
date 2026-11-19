@@ -50,6 +50,11 @@ incluir en el mismo cambio una actualización de `specs/`, `docs/`, `AGENTS.md`,
 `CLAUDE.md` o la constitución. El workflow ejecuta `pnpm docs:check`; una
 implementación sin documentación equivalente debe fallar.
 
+**Capturas del manual (MSF-644).** Todo PR que cambia una pantalla del panel rehace las capturas del manual de
+usuario que esa pantalla ilustra (`docs/producto/img/<página>/`) con `pnpm docs:capturas` (acepta el nombre de un spec,
+p. ej. `pnpm docs:capturas 20-ventas`), o declara en la descripción del PR por qué no corresponde. Necesita el stack
+local con el dataset demo; ver `docs/dataset-demo.md` y `docs/documentacion-cambios.md`.
+
 - En `mkdocs.yml`, entrecomillá sólo la etiqueta del nav cuando lleve `:`
   (`- "Stock: lotes": producto/stock.md`), nunca la entrada entera
   (`- "Stock: lotes: producto/stock.md"`): MkDocs lee esta última como título y

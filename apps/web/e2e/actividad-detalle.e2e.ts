@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Page } from '@playwright/test'
-import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, url } from './soporte/fixtures'
+import { altaUsuario, borrar, borrarUsuario, rest, serviceKey, sql, url } from './soporte/fixtures'
 
 // MSF-170 (F-AUD-02, FR-006/FR-007): detalle de un evento de Actividad con el valor anterior y el nuevo. Cubre un
 // cambio de rol (Antes/Después) y una baja real (rol y estado antes, nuevo vacío: «—» en cada fila del lado nuevo). Requiere el stack local (`pnpm dev:supabase`) y la web servida; siembra con la API admin
@@ -32,18 +32,24 @@ test.describe('Detalle de la actividad (F-AUD-02)', () => {
       orgId = org.id
       userId = await altaUsuario(correo)
       await rest('usuarios_organizacion', { user_id: userId, organizacion_id: org.id, rol_id: 'administrador' })
-      await rest('registro_actividad', [
+      // `service_role` no tiene INSERT sobre `registro_actividad` (la REST responde 42501): se siembra por SQL directo, solo para sembrar.
+      // La baja de la organización borra estas filas por cascada.
+      const eventos = [
         {
-          organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'usuario.rol_cambiado',
-          detalle: `Cambió el rol de ${marca}: Consulta → Mostrador`, creado_en: haceDias(1),
+          tipo: 'usuario.rol_cambiado', detalle: `Cambió el rol de ${marca}: Consulta → Mostrador`, creado_en: haceDias(1),
           valor_anterior: { rol: 'Consulta' }, valor_nuevo: { rol: 'Mostrador' },
         },
         {
-          organizacion_id: org.id, actor_id: userId, actor_nombre: 'Ana Admin', tipo: 'usuario.removido',
-          detalle: `Quitó a ${marca} de la organización`, creado_en: haceDias(2),
+          tipo: 'usuario.removido', detalle: `Quitó a ${marca} de la organización`, creado_en: haceDias(2),
           valor_anterior: { rol: 'Consulta', estado: 'Miembro' }, valor_nuevo: {},
         },
-      ])
+      ]
+      for (const e of eventos) {
+        await sql(
+          'insert into public.registro_actividad (organizacion_id, actor_id, actor_nombre, tipo, detalle, creado_en, valor_anterior, valor_nuevo) values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb)',
+          [org.id, userId, 'Ana Admin', e.tipo, e.detalle, e.creado_en, JSON.stringify(e.valor_anterior), JSON.stringify(e.valor_nuevo)],
+        )
+      }
 
       await ingresar(page, correo)
       await page.goto('/actividad')

@@ -131,8 +131,8 @@ select is(
   true, 'public.limite_pedidos_publicos tiene RLS activada'
 );
 select is(
-  (select count(*)::int from pg_policies where schemaname = 'public' and tablename = 'limite_pedidos_publicos'),
-  0, 'public.limite_pedidos_publicos no tiene políticas'
+  (select count(*)::int from pg_policies where schemaname = 'public' and tablename = 'limite_pedidos_publicos' and policyname <> 'limite_pedidos_publicos_denegar_todo'),
+  0, 'public.limite_pedidos_publicos no tiene políticas de acceso (solo la que deniega todo)'
 );
 select is(
   (select bool_or(has_table_privilege(rol, 'public.limite_pedidos_publicos', privilegio))

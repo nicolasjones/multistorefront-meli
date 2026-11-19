@@ -1,7 +1,11 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - supabase/migrations/20261016140100_roles_por_empresa.sql
+  - supabase/migrations/20261020130100_rol_tecnico.sql
+  - supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql
+  - supabase/migrations/20261013130002_roles_basicos_permisos.sql
+  - docs/tecnico/permisos-por-empresa.md
 ---
 
 # Permisos y acceso
@@ -30,10 +34,11 @@ flowchart LR
 | Mostrador | Ventas, clientes, consulta de stock y precios |
 | Depósito | Stock, armado y despacho, recepciones |
 | Operador | Operaciones acotadas (service, tareas asignadas) |
+| Técnico | Solo Servicio técnico (edita); lee Inicio, Clientes, Productos y Stock; sin costos internos |
 | Consulta | Solo lectura |
 
-El Administrador de la organización no lleva asignaciones por tienda: accede a todas. Los otros cinco
-roles se asignan por tienda en `public.usuarios_empresas`. El superadmin de la plantilla pertenece a la
+El Administrador de la organización no lleva asignaciones por tienda: accede a todas. Los demás
+roles (incluido Técnico) se asignan por tienda en `public.usuarios_empresas`. El superadmin de la plantilla pertenece a la
 agencia y queda fuera de los roles del cliente.
 
 ## Cómo se hace cumplir
@@ -58,7 +63,7 @@ flowchart TD
 
 ## Evolución
 
-Implementado: seis roles fijos, matriz de permisos editable por organización (MSF-125), rol por empresa
+Implementado: siete roles fijos (los seis anteriores más Técnico), matriz de permisos editable por organización (MSF-125), rol por empresa
 y empresa activa persistida (MSF-121), y asignación de empresas desde Usuarios. Reglas ampliadas:
 [Permisos por rol](../permisos-por-rol.md) · [Empresa activa](../empresa-activa.md) ·
 [Permisos por empresa (técnico)](../tecnico/permisos-por-empresa.md).

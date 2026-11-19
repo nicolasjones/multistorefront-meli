@@ -23,7 +23,7 @@ describe('IvaProducto (F-PRE-12, FR-021)', () => {
   it('hereda la alícuota de la categoría y muestra «Con IVA 21 %» con el IVA aparte', () => {
     render(<IvaProducto {...props()} />)
     expect(screen.getByRole('combobox', { name: 'IVA' })).toHaveTextContent('Heredar de la categoría (21 %)')
-    expect(screen.getByText('Con IVA 21 %: $ 35.315 (IVA $ 6.129)')).toBeInTheDocument()
+    expect(screen.getByText('Con IVA 21 %: $ 35.315,06 (IVA $ 6.129,06)')).toBeInTheDocument()
   })
 
   it('con alícuota propia manda sobre la de la categoría', () => {

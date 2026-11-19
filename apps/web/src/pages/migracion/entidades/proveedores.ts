@@ -6,6 +6,7 @@
 // por organización) las impone la base en la vista previa y al aplicar.
 
 import type { DefinicionEntidad } from '../../../lib/migracion'
+import { ID_ENTIDAD_VINCULOS, rutaImportacion } from './rutas'
 
 export const ENTIDAD_PROVEEDORES: DefinicionEntidad = {
   id: 'proveedores',
@@ -41,7 +42,7 @@ export const ENTIDAD_PROVEEDORES: DefinicionEntidad = {
   rpcAplicar: 'aplicar_lote_proveedores',
   archivoPlantilla: 'proveedores.csv',
   siguiente: {
-    ruta: '/migracion/importar/vinculos-proveedor-producto',
+    ruta: rutaImportacion(ID_ENTIDAD_VINCULOS),
     etiqueta: 'Seguir con los vínculos proveedor ↔ producto',
   },
 }

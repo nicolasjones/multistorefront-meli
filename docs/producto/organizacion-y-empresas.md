@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/empresas
+  - apps/web/src/pages/organizacion
+  - apps/web/src/components/empresas/CampoDominioEmpresa.tsx
 ---
 
 # Tu organización y tus empresas
@@ -11,7 +14,7 @@ La **organización** es el negocio completo; las **empresas** son sus tiendas (p
 
 ## Quién puede hacerlo
 
-- **Editar la organización y las empresas:** solo el **Administrador**. Los demás no ven **Mi organización** ni **Empresas** en el menú.
+- **Editar la organización y las empresas:** solo el **Administrador**. Los demás no ven **Mi organización** ni **Empresas** en el menú, y las pantallas de Empresas exigen además acceso a esa sección en el rol.
 - **Elegir la empresa activa:** cualquier persona, entre las empresas a las que tiene acceso.
 
 ## Datos de la organización
@@ -21,7 +24,7 @@ Entrá a **Administración → Mi organización**.
 | Campo | Qué se carga |
 |---|---|
 | **Nombre de la organización** | Obligatorio. |
-| **Zona horaria** | La de tu negocio (por defecto, Buenos Aires). |
+| **Zona horaria** | La de tu negocio (por defecto, Buenos Aires). En la lista cada zona se lee con su ciudad, por ejemplo «Buenos Aires (América/Argentina)». |
 | **Logo** | Imagen PNG, JPG o WebP de hasta 1 MB. Botones **Subir logo** / **Cambiar logo** y **Quitar logo**. |
 
 ![Pantalla Mi organización con nombre, zona horaria, logo y la lista de empresas de la organización](img/organizacion-y-empresas/01-mi-organizacion.png)
@@ -56,9 +59,9 @@ En **Empresas**, hacé clic en **Editar** en la fila. Podés cargar:
 | **Nombre comercial** | Obligatorio. |
 | **WhatsApp**, **Correo**, **Instagram**, **Dirección (opcional)** | Datos de contacto de la tienda. |
 | **Horarios de atención** | Se muestran en la página de Contacto de la tienda. |
-| **Razón social** y **CUIT** | Se imprimen en la factura y el remito. |
+| **Razón social** y **CUIT** | Se imprimen en la factura y el remito. El CUIT se valida: tiene que tener 11 dígitos y un dígito verificador correcto («El CUIT debe tener 11 dígitos.» / «El CUIT no es válido: revisá el dígito verificador.»). |
 
-**Dominio**, **Idioma** (Español, Argentina) y **Moneda** (pesos) se muestran solo para lectura. Guardá con **Guardar cambios**.
+**Dominio**, **Idioma** (Español, Argentina) y **Moneda** (pesos) se muestran solo para lectura. **Dominio** muestra el dominio vigente de la tienda (o «Sin configurar» si no hay ninguno, y «… (pendiente de verificar)» si todavía falta verificarlo) y enlaza a **Dominio y publicación**, que es donde se administra. En esta ficha la barra superior no suma el selector de empresa activa: la empresa es la que estás editando. Guardá con **Guardar cambios**.
 
 ![Pantalla de edición de una empresa con Nombre comercial, Estado de la tienda, Dominio, Idioma, Moneda y datos de contacto](img/organizacion-y-empresas/03-editar-empresa.png)
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Alert, Stack } from '@mui/material'
 import { useSearchParams } from 'react-router'
 import { ReporteEmbebido, type MotivoFalloReporte } from '../../components/ReporteEmbebido'
-import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
+import { EstadoCargaPagina, EstadoError, EstadoTableroNoDisponible } from '../../components/estados/EstadosPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { useReportesAsignados } from '../../hooks/useReportesAsignados'
@@ -45,7 +45,7 @@ export function RentabilidadPorProducto() {
   let tablero
   if (isLoading) tablero = <EstadoCargaPagina />
   else if (!reporte) {
-    tablero = <EstadoError descripcion="El tablero de Rentabilidad todavía no está disponible para tu organización." />
+    tablero = <EstadoTableroNoDisponible nombre="Rentabilidad" />
   } else if (fallo === 'no_disponible') {
     tablero = <EstadoError descripcion="No pudimos cargar el tablero de Rentabilidad." reintentar={reintentar} />
   } else {

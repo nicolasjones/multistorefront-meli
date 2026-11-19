@@ -1,7 +1,10 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/009-panel-de-funcionalidades
+  - supabase/migrations/20260910130000_panel_de_funcionalidades.sql
+  - supabase/migrations/20260908172920_fundacion_multitenant.sql
+  - supabase/seed.sql
 ---
 
 # Registrar una funcionalidad desde una migración

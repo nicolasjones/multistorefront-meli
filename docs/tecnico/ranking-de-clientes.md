@@ -1,9 +1,17 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261018-100000-ranking-de-clientes
+  - apps/web/src/components/clientes/RankingClientes.tsx
+  - apps/web/src/components/clientes/ComprasCliente.tsx
+  - apps/web/src/hooks/useRankingClientes.ts
+  - apps/web/src/hooks/useComprasCliente.ts
+  - apps/web/src/lib/exportarRanking.ts
+  - apps/web/src/lib/periodosRanking.ts
+  - apps/web/src/pages/clientes/list.tsx
+  - apps/web/src/pages/clientes/show.tsx
+  - supabase/migrations/20261018100100_clientes_ranking.sql
+  - supabase/migrations/20261018100200_clientes_compras.sql
 ---
 
 # Ranking de clientes: contrato, RPC y pantallas (MSF-126)

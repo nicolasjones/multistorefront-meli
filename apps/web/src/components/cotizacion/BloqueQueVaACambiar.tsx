@@ -1,3 +1,4 @@
+import { formatearNumeroImporte } from '../../lib/formatoImporte'
 import { Box, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import { type Previsualizacion, formatearPrecioPrevio, notaRedondeo, textoPrecios } from '../../lib/cotizacion'
 
@@ -7,7 +8,6 @@ type Props = {
   leyendaPrecios?: string
 }
 
-const formatoUsd = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Bloque «Qué va a cambiar» (F-PRE-03, FR-014; Cotizacion.dc.html): un mosaico por empresa con la
 // cantidad de precios en USD visibles y la tabla «Producto (muestra)» con «<Empresa> hoy» / «Nuevo».
@@ -45,7 +45,7 @@ export function BloqueQueVaACambiar({ previa, leyendaPrecios = 'productos en USD
                   <TableCell>
                     <Typography component="span" sx={{ fontWeight: 600 }}>{fila.producto}</Typography>
                     <Typography variant="xs" component="span" sx={{ display: 'block' }}>
-                      {[fila.sku, fila.usd === null ? null : `US$ ${formatoUsd.format(fila.usd)}`].filter(Boolean).join(' · ')}
+                      {[fila.sku, fila.usd === null ? null : `US$ ${formatearNumeroImporte(fila.usd, { centavos: 'siempre' })}`].filter(Boolean).join(' · ')}
                     </Typography>
                   </TableCell>
                   {previa.empresas.flatMap((empresa) => {

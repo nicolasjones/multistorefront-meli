@@ -221,6 +221,20 @@ export function formatearPrecioListado(precio: PrecioListado | undefined): strin
   return precio.precioArs === null || !Number.isFinite(precio.precioArs) ? `${usd} (sin cotización)` : `${pesos(precio.precioArs)} (${usd})`
 }
 
+// Margen del listado = (precio − costo) / precio, en pesos. El costo está en la moneda del producto: en USD se pasa a
+// pesos con la misma cotización con que la base convirtió el precio (`precioArs / precioLista`). null sin precio en
+// pesos, sin costo o con precio cero (no se inventa un margen).
+export function margenListado(precio: PrecioListado | undefined, costo: number | string | null | undefined): number | null {
+  if (!precio || costo === null || costo === undefined || costo === '') return null
+  const costoNumero = Number(costo)
+  if (!Number.isFinite(costoNumero)) return null
+  const precioArs = precio.moneda === 'ARS' ? precio.precioLista : precio.precioArs
+  if (precioArs === null || !Number.isFinite(precioArs) || precioArs <= 0) return null
+  const cotizacion = precio.moneda === 'ARS' ? 1 : precio.precioLista > 0 ? precioArs / precio.precioLista : null
+  if (cotizacion === null) return null
+  return (precioArs - costoNumero * cotizacion) / precioArs
+}
+
 const FORMATO_COSTO = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // Costo para mostrar en el listado; «—» si el producto no tiene costo cargado.

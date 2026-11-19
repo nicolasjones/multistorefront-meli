@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/rentabilidad
 ---
 
 # Ver la rentabilidad: costos y márgenes
@@ -167,7 +168,7 @@ Administración puede ver la lista, pero los botones de edición son solo del Ad
 | Mensaje | Qué significa y qué hacer |
 |---|---|
 | **No pudimos cargar esta información.** | Usá el botón **Reintentar**, si aparece. Si sigue fallando, avisá al equipo de soporte. |
-| **El tablero de Rentabilidad todavía no está disponible para tu organización.** | Pedíselo al equipo de soporte. |
+| **El tablero de Rentabilidad todavía no está disponible: falta importarlo en este entorno.** | Pedile al administrador de la plataforma que importe los tableros y volvé a intentar. |
 | **Ingresá un porcentaje mayor a 0 y hasta 100, por ejemplo 10 o 12,5.** | Corregí el umbral. |
 | **Otra persona cambió el umbral mientras lo editabas.** | Cerrá el cuadro y volvé a abrirlo. |
 | **Tu rol no puede cambiar el umbral de margen bajo.** | Solo lo cambia el Administrador. |
@@ -180,6 +181,6 @@ Administración puede ver la lista, pero los botones de edición son solo del Ad
 
 ![Pantalla Rentabilidad con el aviso No pudimos cargar esta información y la tarjeta Cómo se calcula](img/rentabilidad/01-resumen.png)
 
-*Si el tablero todavía no está disponible para tu organización, ves este aviso; la tarjeta «Cómo se calcula» se muestra igual.*
+*Si el tablero todavía no está importado en este entorno, ves este aviso; la tarjeta «Cómo se calcula» se muestra igual.*
 
 Por ahora no se incluyen las publicaciones de Mercado Libre.

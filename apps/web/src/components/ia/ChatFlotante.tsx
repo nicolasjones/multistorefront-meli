@@ -18,21 +18,25 @@ export function ChatFlotante() {
   const [habilitado, setHabilitado] = useState(false)
   const [abierto, setAbierto] = useState(false)
 
+  // Solo quien puede escribir (administrador, o superadmin con organización activa) ve el chat: confirmar una acción lo
+  // exige la base (`ejecutar_accion_chat_ia` revalida `puede_escribir`); acá se evita ofrecerlo a quien no puede usarlo.
+  const puedeEscribir = Boolean(contexto?.puede_escribir)
+
   useEffect(() => {
-    if (!contexto?.organizacion_id) {
+    if (!contexto?.organizacion_id || !puedeEscribir) {
       setHabilitado(false)
       return
     }
     void supabaseClient
       .rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
       .then(({ data }) => setHabilitado(Boolean(data)), () => setHabilitado(false))
-  }, [contexto?.organizacion_id])
+  }, [contexto?.organizacion_id, puedeEscribir])
 
   // Sin organización activa o sin el feature habilitado, ni el botón
   // aparece — ChatIAPanel ya maneja esos casos con su propio mensaje
   // cuando se entra por /ia/chat directo, pero acá preferimos no mostrar
   // ni el disparador.
-  if (!habilitado) return null
+  if (!habilitado || !puedeEscribir) return null
 
   return (
     <>

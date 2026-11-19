@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas-reportes
 ---
 
 # Reportes de ventas
@@ -92,7 +93,7 @@ Muestra los productos que más veces se consultaron por WhatsApp en el período:
 | **Última consulta** | Fecha y hora de la consulta más reciente. |
 
 - Los productos aparecen ordenados por cantidad de consultas, de mayor a menor.
-- Cuenta cada toque en «Consultar por WhatsApp», no cada venta.
+- Cuenta cada toque en «Consultar por WhatsApp», no cada venta. Hoy solo el sembrado demo registra esos toques (MSF-657): la tienda real no los carga por ahora.
 - Se toman el período y la tienda de los filtros de arriba.
 - No muestra costo ni margen: son solo cantidades y fechas.
 - Si no hubo consultas en el período, ves «No hay consultas por WhatsApp en ese período».
@@ -135,7 +136,7 @@ El filtro **Tienda** sigue a la **empresa activa** de la barra superior:
 | **No hay ventas en ese período.** | Probá con otro período o con otra tienda. |
 | **No hay consultas por WhatsApp en ese período.** | Probá con otro período o con otra tienda. |
 | **No pudimos cargar el tablero de «…».** | Usá **Reintentar**. Si sigue fallando, avisá al equipo de soporte. |
-| **El tablero de «…» todavía no está disponible para tu organización.** | Pedíselo al equipo de soporte. |
+| **El tablero de «…» todavía no está disponible: falta importarlo en este entorno.** | Pedile al administrador de la plataforma que importe los tableros y volvé a intentar. |
 | **No tenés acceso a esta sección.** | Tu rol no incluye Reportes. Usá **Solicitar acceso** o pedile acceso al Administrador. |
 | **No hay clientes en el ranking con esos filtros.** | Probá con otro período o activá el **Consumidor final**. |
 

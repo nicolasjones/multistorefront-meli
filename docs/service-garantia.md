@@ -2,6 +2,14 @@
 owner: tecnico
 sources:
   - specs/20261028-100000-service-seguimiento-y-reportes
+  - apps/web/src/components/service/ReingresoGarantiaDialog.tsx
+  - apps/web/src/components/service/VinculosGarantia.tsx
+  - apps/web/src/lib/reparacionGarantia.ts
+  - apps/web/e2e/service-garantia.e2e.ts
+  - supabase/migrations/20270219150100_reparaciones_origen_garantia.sql
+  - supabase/migrations/20270219150200_reparacion_reingresar_garantia.sql
+  - supabase/migrations/20270219150300_reparacion_vinculos_garantia.sql
+  - supabase/tests/database/service_garantia.test.sql
 ---
 
 # Service técnico · Reingreso por garantía (F-SVC-21)

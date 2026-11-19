@@ -1,7 +1,12 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261016-130000-organizaciones-nuevas
+  - supabase/functions/crear-organizacion/handler.ts
+  - supabase/functions/crear-organizacion/handler.test.ts
+  - apps/web/src/pages/organizaciones/create.tsx
+  - apps/web/src/pages/organizaciones/create.test.tsx
+  - supabase/tests/database/alta_organizacion_nueva.test.sql
 ---
 
 # Alta de nuevas organizaciones (superadmin)
@@ -35,7 +40,10 @@ Solo un **superadmin** crea organizaciones, desde `/organizaciones` → «Crear 
 3. Crea la fila en `organizaciones`, invita por correo al fundador y lo vincula en
    `usuarios_organizacion` con rol `administrador`.
 4. Si la invitación o la membresía fallan, **borra la organización creada** y devuelve el motivo
-   (p. ej. el correo ya tiene cuenta → 400; falla de envío → 502).
+   (p. ej. el correo ya tiene cuenta → 400; falla de envío → 502). Si falla la membresía también se borra el usuario
+   invitado de Auth, para que un reintento con el mismo correo no dé «ya tiene cuenta». Un cuerpo sin `nombre` o
+   `email_fundador` de texto es 400, y el detalle de los errores de la base o de Auth queda en el registro del servidor,
+   no en la respuesta (`handler.ts`; ver [Endurecimiento de funciones Edge](funciones-edge-endurecimiento.md)).
 
 No hay policy ni privilegio de `INSERT` en `organizaciones` para `authenticated` ni `anon`: la única
 vía de alta es la función con la service-role key (que nunca llega al navegador).

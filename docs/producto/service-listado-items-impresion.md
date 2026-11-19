@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/service-tecnico/reparaciones.tsx
+  - apps/web/src/pages/service-tecnico/reparacion.tsx
+  - apps/web/src/components/service/ItemsReparacion.tsx
 ---
 
 # Service técnico: registrar y seguir las reparaciones
@@ -126,7 +129,7 @@ En la ficha, la sección **Mano de obra y repuestos** tiene dos tablas. Allí ar
 
 *El diálogo de repuesto con un producto del catálogo elegido.*
 
-Los importes se cargan en pesos, sin IVA. Abajo de las tablas ves **Mano de obra**, **Repuestos** y **Total al cliente**. Podés seleccionar ese total con un clic para copiarlo: el cobro de la reparación se registra a mano desde Ventas.
+Si todavía no hay ítems, cada tabla dice «Todavía no cargaste mano de obra.» o «Todavía no cargaste repuestos.»; si tu rol solo puede mirar, dice «Sin mano de obra cargada.» o «Sin repuestos cargados.». Los importes se cargan en pesos, sin IVA. Abajo de las tablas ves **Mano de obra**, **Repuestos** y **Total al cliente**. Podés seleccionar ese total con un clic para copiarlo: el cobro de la reparación se registra a mano desde Ventas.
 
 Si cargaste algo por error, hacé clic en el tachito de esa fila y confirmá en **Quitar**. Los totales se recalculan. Los ítems no se editan: se quitan y se vuelven a cargar. Para saber cómo se relacionan los repuestos con tu stock, mirá [Repuestos, stock y costos](service-repuestos-y-stock.md).
 
@@ -154,7 +157,7 @@ Los estados que vienen cargados son: Recibido, En diagnóstico, Esperando repues
 *El cuadro de entrega, antes de confirmar.*
 
 
-Una reparación entregada queda cerrada: ya no admite cambios de estado ni de ítems. En la ficha ves la **Entrega real**.
+Una reparación entregada queda cerrada: ya no admite cambios de estado ni de ítems, y en la ficha ya no aparecen los botones **Anular** ni **Guardar**. En la ficha ves la **Entrega real**.
 
 ![Ficha de una reparación entregada con el selector de estado bloqueado](img/service-tecnico/15-reparacion-entregada.png)
 
@@ -162,6 +165,8 @@ Una reparación entregada queda cerrada: ya no admite cambios de estado ni de í
 
 
 ## Anular una reparación
+
+Solo se puede anular una reparación que todavía no fue entregada: en una entregada el botón **Anular** no aparece.
 
 1. En la ficha, hacé clic en **Anular**.
 2. Escribí el **Motivo de la anulación** (es obligatorio).

@@ -1547,7 +1547,7 @@ erDiagram
 
 ## Consultas: interés por WhatsApp y respuesta desde el panel (MSF-130)
 
-Una tabla nueva en `dominio` y dos superficies de lectura: la RPC en `publico` (la llama la tienda) y la
+Una tabla nueva en `dominio` y dos superficies de lectura: la RPC en `publico` (originalmente la llamaba la tienda; desde MSF-657 es solo `service_role`) y la
 vista en `public`. Migraciones aditivas `20261214100000_intereses_whatsapp.sql`,
 `20261214100100_registrar_interes_whatsapp.sql` y `20261214100200_interes_whatsapp_por_producto.sql` (rama
 `epic/MSF-130-consultas-y-ventas-consultas-seguimiento`, pendiente de merge a `main`; reversión en el
@@ -1557,7 +1557,7 @@ nada**: reusa `public.actualizar_consulta` de MSF-122.
 
 | Tabla | Estado | Cambio |
 |---|---|---|
-| `dominio.intereses_whatsapp` | **nueva** | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda: `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). **Sin datos personales**: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. RLS por organización, empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura** (el alta es solo la RPC) y `anon` sin privilegios. |
+| `dominio.intereses_whatsapp` | **nueva** | Un registro por cada toque en «Consultar por WhatsApp» de un producto de una tienda (hoy solo el sembrado demo la alimenta; ver MSF-657): `id`, `organizacion_id`, `empresa_id`, `producto_id`, `created_at`. FK compuestas a `dominio.empresas` y `dominio.productos` (`on delete cascade`). **Sin datos personales**: ni nombre, ni teléfono, ni correo, ni IP, ni mensaje. RLS por organización, empresa accesible y `consultas` ≥ lectura; **sin políticas de escritura** (el alta es solo la RPC, interna desde MSF-657: solo `service_role`; hoy solo el sembrado demo la usa) y `anon` sin privilegios. |
 | `public.interes_whatsapp_por_producto` (vista) | **nueva** | Lectura agrupada por empresa y producto: `organizacion_id`, `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `total`, `ultimo_interes_at`. `security_invoker`: aplica la RLS de la tabla, de `dominio.empresas` y de `dominio.productos`. No almacena datos. |
 | `dominio.empresas` | existente | Solo se referencia con FK compuesta; no cambia. |
 | `dominio.productos` | existente | Solo se referencia con FK compuesta; no cambia. |
@@ -1609,10 +1609,10 @@ erDiagram
     text sku }
 ```
 
-- **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)`
+- **La tabla no tiene columnas personales:** la RPC `publico.registrar_interes_whatsapp(host, producto_id)` (solo `service_role` desde MSF-657)
   recibe solo el host y el producto; la empresa sale del dominio (`dominio.tiendas`).
-- Cada toque es una fila: **no hay deduplicación** (identificar al visitante exigiría guardar datos) y el
-  anti-spam es de la tienda (MSF-212).
+- Cada toque es una fila (hoy solo el sembrado demo la alimenta; ver MSF-657): **no hay deduplicación** (identificar al visitante exigiría guardar datos) y la
+  función no tiene límite propio (por eso desde MSF-657 ya no es pública; las RPC públicas de la tienda sí aplican cuota).
 - La vista es el **contrato de lectura** de la pantalla de Consultas y del reporte de productos más
   consultados (F-REP-04).
 - **[ERD interactivo (Archify)](../diagrams/msf-130-erd.html)** — columnas, PK/FK y cardinalidad.
@@ -2401,11 +2401,11 @@ cada una y consolidada en [Rentabilidad (técnico)](rentabilidad.md#reversion) y
 | `dominio.comprobantes_venta_lineas` | **alterada** | Columnas `costo_unitario numeric(14,2)` y `cotizacion numeric(14,4)`, nullable, guardadas al confirmar; ocultas para `authenticated`. |
 | `analitica.margen_producto_canal` | **alterada (vista)** | Suma `costos_adicionales` y los descuenta de `margen` y `margen_pct`. Sin costos activos conserva los valores de MSF-120. |
 | `analitica.rentabilidad_ventas_real` | **nueva (vista)** | Margen de lo efectivamente vendido: costo y cotización guardados en la línea; grano empresa × producto × fecha. |
-| `analitica.consultas_producto_mas_consultado` | **nueva (vista)** | Toques en «Consultar por WhatsApp»: grano empresa × producto × fecha, con `consultas` y `ultima_consulta`. |
+| `analitica.consultas_producto_mas_consultado` | **nueva (vista)** | Toques en «Consultar por WhatsApp» (hoy solo del sembrado demo, ver MSF-657): grano empresa × producto × fecha, con `consultas` y `ultima_consulta`. |
 | `analitica.ventas_periodo_canal` | **nueva (vista)** | Comprobantes, unidades y facturado con IVA: grano empresa × fecha (la tienda es el canal). |
 | `public.consultas_reportes_conteo` | **nueva (RPC)** | Conteo de consultas del período para el estado vacío de «Productos más consultados». |
 | `dominio.comprobantes_venta` | existente | Solo se lee (`tipo`, `estado`, `fecha`, `empresa_id`, `total_con_iva`). |
-| `dominio.intereses_whatsapp` | existente | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`): un registro = un toque. |
+| `dominio.intereses_whatsapp` | existente | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`): un registro = un toque (hoy solo el sembrado demo los carga, ver MSF-657). |
 | `dominio.empresas`, `dominio.productos`, `dominio.producto_costos` | existentes | Nombre/SKU/estado, costo del producto y tienda de cada fila. |
 | `dominio.rentabilidad_config` | existente | Umbral de margen bajo usado por `estado` en las dos vistas de rentabilidad. |
 | `public.organizaciones` | existente | Dueña de los datos y del aislamiento. |

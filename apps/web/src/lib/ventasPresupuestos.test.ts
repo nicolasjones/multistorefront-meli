@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.hoisted(() => vi.fn())
 vi.mock('./supabase', () => ({ supabaseClient: { rpc } }))
 
-import { listarPresupuestos } from './ventasPresupuestos'
+import { listarPresupuestos, mensajeDeAceptarPresupuesto } from './ventasPresupuestos'
 
 const base = { busqueda: '', estado: 'todos' as const, empresaId: null, pagina: 1, tamano: 10 }
 
@@ -27,5 +27,20 @@ describe('listarPresupuestos', () => {
     const pagina = await listarPresupuestos({ ...base, origen: 'tienda', pagina: 2 })
     expect(pagina.total).toBe(37)
     expect(pagina.presupuestos[0].total).toBe(10)
+  })
+})
+
+describe('mensajeDeAceptarPresupuesto', () => {
+  it('muestra el texto de la RPC cuando el presupuesto está vencido o ya no se acepta', () => {
+    const vencido = { code: '55000', message: 'El presupuesto está vencido y no se puede aceptar' }
+    expect(mensajeDeAceptarPresupuesto(vencido, 'x')).toBe('El presupuesto está vencido y no se puede aceptar')
+    // Texto con cola del servidor: se devuelve la constante, no el mensaje crudo.
+    expect(mensajeDeAceptarPresupuesto({ ...vencido, message: `${vencido.message} (id 123)` }, 'x')).toBe(vencido.message)
+    const otro = { code: '55000', message: 'Este presupuesto ya no se puede aceptar' }
+    expect(mensajeDeAceptarPresupuesto(otro, 'x')).toBe(otro.message)
+  })
+
+  it('un 55000 con texto desconocido no filtra el mensaje crudo y cae al genérico de comprobantes', () => {
+    expect(mensajeDeAceptarPresupuesto({ code: '55000', message: 'relation x' }, 'x')).toMatch(/cerrado/)
   })
 })

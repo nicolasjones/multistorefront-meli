@@ -1,7 +1,20 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261013-120000-usuarios-y-roles
+  - supabase/functions/invitar-miembro/handler.ts
+  - supabase/functions/invitar-miembro/handler.test.ts
+  - apps/web/src/lib/rolesUsuarios.ts
+  - apps/web/src/pages/usuarios/list.tsx
+  - apps/web/src/pages/usuarios/list.test.tsx
+  - supabase/migrations/20261013150000_invitaciones_endurecer.sql
+  - supabase/migrations/20261013210000_puede_invitar.sql
+  - supabase/migrations/20261013170001_cambiar_rol_miembro_seis_roles.sql
+  - supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql
+  - supabase/migrations/20261016120000_registro_actividad.sql
+  - supabase/tests/database/invitaciones_usuarios.test.sql
+  - supabase/tests/database/invitaciones_usuarios_endurecimiento.test.sql
+  - supabase/config.toml
 ---
 
 # Invitar usuarios (F-USR-01, MSF-211)
@@ -19,7 +32,7 @@ Contrato del flujo de invitación de la épica MSF-125 (spec `20261013-120000-us
 
 | Función | Quién | Qué hace |
 |---|---|---|
-| `registrar_invitacion(email, rol)` | Administrador | Valida rol (los seis), correo, que la persona no pertenezca a otra organización; crea o renueva la pendiente. |
+| `registrar_invitacion(email, rol)` | Administrador | Valida rol (los siete de negocio, incluido Técnico: `20270202202000_tecnico_invitable_y_por_empresa.sql`), correo, que la persona no pertenezca a otra organización; crea o renueva la pendiente. |
 | `vincular_invitacion(id, user_id, accion)` | Administrador (vía Edge Function) | Asocia la cuenta de Auth y emite el evento en `eventos_membresia`. |
 | `cancelar_invitacion(id)` | Administrador | Marca `cancelada`; devuelve la cuenta de Auth sin uso para que la Edge Function la borre y el enlace deje de servir. |
 | `mi_invitacion()` | Persona invitada | Rol y vigencia para «Fuiste invitado como <rol>». |
@@ -35,7 +48,7 @@ Antes de resolver la cuenta de Auth (service-role), la función llama al RPC `pu
 
 ## Eventos (FR-012)
 
-Hasta F-AUD-01 se reutiliza `eventos_membresia`: `usuario.invitado` = `invitacion_enviada` (y `invitacion_reenviada`); además `invitacion_cancelada` y `miembro_agregado` (solo al aceptar la invitación). La migración `20261013150000_invitaciones_endurecer.sql` cambia `target_user_id` a `on delete set null` y agrega `target_email`: al cancelar o reemplazar la cuenta de Auth los eventos **se conservan**, con el correo como identidad.
+Se registran en `eventos_membresia` y, además, el trigger `private.registrar_actividad_membresia` (`20261016120000_registro_actividad.sql`) los copia a [Actividad](actividad.md) como `invitacion.enviada`, `invitacion.reenviada`, `invitacion.cancelada` y `usuario.agregado`. En `eventos_membresia`: `usuario.invitado` = `invitacion_enviada` (y `invitacion_reenviada`); además `invitacion_cancelada` y `miembro_agregado` (solo al aceptar la invitación). La migración `20261013150000_invitaciones_endurecer.sql` cambia `target_user_id` a `on delete set null` y agrega `target_email`: al cancelar o reemplazar la cuenta de Auth los eventos **se conservan**, con el correo como identidad.
 
 ## Seguridad de la vinculación
 
@@ -76,7 +89,7 @@ Migración posterior: eliminar las cinco RPC y la tabla `invitaciones_organizaci
 
 ## Pendiente
 
-- «Ver permisos de este rol →» está oculto (`PERMISOS_POR_ROL_DISPONIBLE` en `lib/rolesUsuarios.ts`) porque `/roles` no existe; se activa con F-ROL-02.
+- «Ver permisos de este rol →» ya está disponible (`PERMISOS_POR_ROL_DISPONIBLE = true` en `lib/rolesUsuarios.ts`) y lleva a la matriz de `/roles` (F-ROL-02).
 - E2E de invitar y definir contraseña (T028) requiere el stack local con Docker.
 
 ## Renombre de migraciones por colisión de versión (merge de `dokploy`)

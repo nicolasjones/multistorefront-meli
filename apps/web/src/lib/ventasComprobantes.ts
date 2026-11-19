@@ -36,6 +36,8 @@ export type FiltrosComprobantes = {
   operadorId: string
   /** Tienda: '' = todas. */
   empresaId: string
+  /** Canal (solo Presupuestos): ausente o '' = todos; 'panel' o 'tienda' filtran por el vínculo con la tienda. Solo lo usa la exportación. */
+  origen?: 'panel' | 'tienda' | ''
 }
 
 export const FILTROS_VACIOS: FiltrosComprobantes = { busqueda: '', estado: '', pagoId: '', envioId: '', operadorId: '', empresaId: '' }

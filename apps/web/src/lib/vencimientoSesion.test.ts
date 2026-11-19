@@ -57,3 +57,19 @@ describe('vencimientoSesion', () => {
     expect(Date.now() - Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))).toBeLessThan(5000)
   })
 })
+
+describe('sin acceso a localStorage', () => {
+  it('no lanza: no registra, no vence y no limpia nada', async () => {
+    const { registrarActividad, sesionVencidaPorInactividad, limpiarRastroDeSesion } = await import('./vencimientoSesion')
+    const bloqueado = () => { throw new DOMException('bloqueado', 'SecurityError') }
+    const espias = [
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(bloqueado),
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(bloqueado),
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(bloqueado),
+    ]
+    expect(() => registrarActividad()).not.toThrow()
+    expect(sesionVencidaPorInactividad()).toBe(false)
+    expect(() => limpiarRastroDeSesion()).not.toThrow()
+    espias.forEach((espia) => espia.mockRestore())
+  })
+})

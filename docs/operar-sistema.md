@@ -1,8 +1,17 @@
 ---
 owner: operacion
 sources:
-  - infra/kestra/flows
+  - infra/kestra/flows/alertas.yml
+  - infra/kestra/flows/limpieza-evidencia.yml
+  - infra/kestra/flows/depuracion-actividad.yml
+  - infra/kestra/flows/depuracion-monitoreo.yml
+  - infra/kestra/flows/purgar-api-llamadas.yml
+  - infra/kestra/flows/purgar-almacenamiento-kestra.yml
+  - infra/kestra/flows/retencion-copias.yml
+  - infra/kestra/flows/alerta-ausencia-respaldos.yml
+  - infra/kestra/compose.yaml
   - workers/CONTRATO.md
+  - package.json
 ---
 
 # Operar el sistema
@@ -20,7 +29,7 @@ Detalle de URLs, flujo de promoción y GitHub Environments:
 Cada producto tiene su Compose (`infra/<producto>/compose.yaml`; nunca un Compose raíz) y se
 levanta con `pnpm dev:<producto>` / se baja con `pnpm dev:down:<producto>`:
 `refine` (o `dev:refine:host` fuera de Docker), `supabase`, `kestra`, `superset`, `nango`,
-`playwright`, `runner`, `mcp-server`. Validar la configuración: `pnpm infra:config`.
+`playwright`, `runner`, `mcp-server`, `glitchtip`. Validar la configuración: `pnpm infra:config`.
 
 Los pasos de infraestructura que solo puede hacer Nicolás en el VPS2 (publicar el sitio de
 docs, el orden de arranque de `tailnet-forwards`, recrear el stack Edge de dev, revocar la
@@ -31,7 +40,7 @@ verificación y su reversión.
 
 - Es self-hosted en nuestro VPS; **no se usa Supabase Cloud** (constitución, sección de calidad).
 - Todo cambio de base es una migración en `supabase/migrations`, aditiva o con reversión documentada.
-- Antes de promover, `pnpm db:validar-aditivas`; los tests de base (`pnpm test:db`) requieren `pnpm dev:supabase`.
+- Antes de promover, `pnpm db:validar:aditivas`; los tests de base (`pnpm test:db`) requieren `pnpm dev:supabase`.
 - Aislamiento por organización y RLS: [aislamiento-por-organizacion.md](aislamiento-por-organizacion.md).
 
 ## Kestra
@@ -52,6 +61,21 @@ Analítica embebida; los dashboards se exportan a YAML y se commitean. Operació
 Procesos aislados en `workers/` (contrato en `workers/CONTRATO.md`). Imágenes blindadas y
 sus listas de salida permitida: [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md).
 
+## Purgas, retenciones y alertas programadas
+
+Flows diarios de Kestra que mantienen acotado lo que crece solo (horario del servidor, verificado en `infra/kestra/flows/*.yml`; cada uno
+es idempotente y falla en rojo si no puede borrar):
+
+| Flow | Hora | Qué purga o vigila |
+|---|---|---|
+| `limpieza-evidencia` | 03:30 | almacenamiento interno de Kestra (capturas y logs publicados) de ejecuciones de despacho con más de `EVIDENCIA_RETENCION_DIAS` (30) |
+| `depuracion-actividad` | 04:00 | eventos del registro de actividad con más de 24 meses (deja un evento «Sistema» por organización) |
+| `retencion-copias` | 04:30 | copias de base e imágenes fuera de retención (ver [copias-y-restauracion.md](copias-y-restauracion.md)) |
+| `depuracion-monitoreo` | 04:30 | eventos de monitoreo con más de 30 días, alertas resueltas con más de 90 y procesos masivos terminados con más de 180 |
+| `purgar-api-llamadas` | 04:30 | llamadas de la API con más de `API_AUDITORIA_RETENCION_DIAS` (90), claves revocadas o vencidas y eventos de cola ya terminados |
+| `purgar-almacenamiento-kestra` | 04:45 | ejecuciones de Kestra terminadas con más de `KESTRA_RETENCION_EJECUCIONES_DIAS` (7), con sus archivos |
+| `alerta-ausencia-respaldos` | 06:30 | avisa por correo si no hay copia de base **y** foto de imágenes de las últimas `RESPALDOS_AUSENCIA_HORAS` (30) |
+
 ## Alertas
 
 El subflow `platform.alertas` (`infra/kestra/flows/alertas.yml`) enruta avisos técnicos y de
@@ -66,6 +90,6 @@ guiado de restauración están en [copias-y-restauracion.md](copias-y-restauraci
 
 ## CI
 
-Corre en runners self-hosted ([adoptar-runners-locales.md](adoptar-runners-locales.md),
+Corre por defecto en runners self-hosted (los jobs pesados pueden ir a runners hosted con la variable `CI_RUNS_ON_PESADO`, ver [control-ci.md](control-ci.md)) ([adoptar-runners-locales.md](adoptar-runners-locales.md),
 [ci-self-hosted-storage.md](ci-self-hosted-storage.md)). Validaciones locales: `pnpm lint`,
 `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`.

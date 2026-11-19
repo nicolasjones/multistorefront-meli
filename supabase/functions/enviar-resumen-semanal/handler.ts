@@ -5,12 +5,14 @@
 // pedido: los resuelve la base (`generar_resumen_semanal`), así la función no es un relay abierto. Garantía: al menos una
 // vez. Si el correo salió pero la base no pudo cerrar el resumen, el reintento lo reenvía (se prefiere un duplicado a
 // perder el resumen); el registro de la base conserva el estado y los intentos.
-import { timingSafeEqual } from 'node:crypto'
+import { tokenValido } from '../_shared/token.ts'
 import type { EnviarCorreo } from '../_shared/correo.ts'
 import { CARACTERES_NO_PERMITIDOS } from '../_shared/texto.ts'
 import { asuntoResumenSemanal, cuerpoResumenSemanal, type ContenidoResumen } from './contenido.ts'
 
-const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
+// Función servidor a servidor (la llama Kestra con x-aviso-token): sin `Access-Control-Allow-Origin: *`, ningún navegador
+// de otro origen puede invocarla.
+const corsHeaders = { 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-aviso-token' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
 export const MAX_INTENTOS = 5
@@ -51,12 +53,6 @@ export type Deps = {
   enviar: EnviarCorreo
 }
 
-const tokenValido = (esperado: string | undefined, recibido: string | null) => {
-  if (!esperado || !recibido) return false
-  const a = new TextEncoder().encode(esperado)
-  const b = new TextEncoder().encode(recibido)
-  return a.length === b.length && timingSafeEqual(a, b)
-}
 
 // Al registro va el error sin host, IP ni correo: la librería SMTP puede incluir el servidor o el usuario.
 export const mensajeDeError = (error: unknown) =>

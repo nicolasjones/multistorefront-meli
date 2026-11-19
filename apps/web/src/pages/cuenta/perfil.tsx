@@ -1,3 +1,4 @@
+import { ETIQUETAS_ROL, type RolMatriz } from '../../lib/permisos'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Alert, Avatar, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, TextField, Typography } from '@mui/material'
 import { Link as RouterLink, Navigate } from 'react-router'
@@ -66,8 +67,10 @@ export function PerfilPage() {
         setApellido(perfil.apellido ?? '')
         setTieneFoto(Boolean(perfil.foto_path))
         if (perfil.foto_path) {
-          const { data } = await supabaseClient.storage.from('fotos-perfil').createSignedUrl(perfil.foto_path, 60)
-          if (activa) setFotoUrl(data?.signedUrl ?? null)
+          // Una foto que ya no existe en el almacenamiento (NoSuchKey) se ve como «sin foto»: no es un error de la pantalla.
+          const firmada = await supabaseClient.storage.from('fotos-perfil').createSignedUrl(perfil.foto_path, 60)
+            .then(({ data }) => data, () => null)
+          if (activa) setFotoUrl(firmada?.signedUrl ?? null)
         }
       }
       if (errorEventos) setError('No pudimos cargar tus avisos de seguridad. Intentá nuevamente.')
@@ -176,7 +179,7 @@ export function PerfilPage() {
     { etiqueta: 'Correo', valor: correoActual ?? 'No disponible' },
     { etiqueta: 'Fecha de creación', valor: cuenta.creadoEn ? new Date(cuenta.creadoEn).toLocaleDateString() : 'No disponible' },
     { etiqueta: 'Organización', valor: cuenta.organizacion ?? 'Sin organización activa' },
-    { etiqueta: 'Rol', valor: cuenta.rol ?? 'Sin rol asignado' },
+    { etiqueta: 'Rol', valor: cuenta.rol ? (ETIQUETAS_ROL[cuenta.rol as RolMatriz] ?? cuenta.rol) : 'Sin rol asignado' },
   ]
 
   return (
