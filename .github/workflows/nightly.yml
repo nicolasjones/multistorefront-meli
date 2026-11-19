@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       productos:
-        description: 'Cantidad de productos sintéticos para medir `publico.catalogo_pagina_por_dominio` (job `medir-tienda`).'
+        description: 'Cantidad de productos sintéticos para medir `publico.catalogo_pagina_por_dominio` (job `medir`).'
         required: false
         default: '500'
         type: string
