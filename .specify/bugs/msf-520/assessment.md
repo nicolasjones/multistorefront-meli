@@ -212,6 +212,51 @@ de cerrar los huecos del procedimiento y con el registro documentado paso a paso
 - Si no se obtiene autorización, el resultado honesto es el estado actual (documento «pendiente»,
   deuda trazada): **no completar el registro con valores inventados**.
 
+## Segunda evaluación (2026-11-19)
+
+La primera pasada (PR #1054, mergeada) arregló el privilegio del historial de copias y completó el
+protocolo, pero **el procedimiento de restauración que el simulacro usa tenía dos defectos que lo
+harían fallar aun con autorización** (revisión sobre la base actual, `origin/dokploy`):
+
+1. **El restore perdía los permisos del dump.** El procedimiento usaba `pg_restore --no-privileges`,
+   que es justamente la opción que NO aplica los ACL del dump; como `--clean` recrea cada objeto, la
+   base restaurada quedaba con los permisos por defecto. En este proyecto los permisos son
+   explícitos por tabla (`auto_expose_new_tables = false`, `supabase/config.toml:26`), así que
+   `authenticated` no leía y el paso 7 del simulacro («el panel inicia sesión, una organización
+   conocida lista sus datos») fallaba. El dump sí los lleva: `pg_dump --format=custom` los incluye
+   salvo `--no-acl`, y así se hace en `infra/kestra/flows/respaldo-postgres.yml:86`.
+2. **El restore es atómico y no dejaba rastro si abortaba.** `--single-transaction` implica
+   `--exit-on-error` (PostgreSQL 17, `src/bin/pg_dump/pg_restore.c:274-277`): ante el primer error
+   `pg_restore` aborta y **la base queda como estaba**. El simulacro, tal como estaba, no comprobaba
+   que la base restaurada fuera la de la copia: con un restore abortado el panel seguiría
+   respondiendo con los datos vivos, la «pérdida» medida daría 0 y el simulacro se podía firmar
+   como un verde mentiroso.
+3. La guía decía «revisar los errores que muestre `pg_restore`», lo que sugiere que el restore
+   sigue adelante; con `--single-transaction` no es así: el primer error aborta todo.
+
+Remediación de esta pasada (sin migración: es procedimiento y tests):
+
+- el restore aplica los permisos del dump (saca `--no-privileges`) y la guía dice por qué;
+- la guía dice que el restore es atómico y qué hacer si aborta;
+- paso nuevo: aplicar las migraciones pendientes sobre la base restaurada (la copia es de un día
+  anterior y el panel de hoy puede usar columnas o RPC que la base restaurada no tiene);
+- la verificación mira lo que el panel necesita para servir datos (`USAGE` de `authenticated` sobre
+  `private`, lectura de `public.organizaciones` y `dominio.empresas`, `anon` sin lectura), no sólo el
+  historial de copias;
+- el simulacro comprueba, antes de medir, que la base restaurada es la de la copia (el último dato
+  de la tabla testigo tiene que ser anterior al `iniciado_en` de la copia): si no, se detiene sin
+  medir ni firmar.
+
+Por qué se quitó `--no-privileges` (el assessment original lo descartaba): su motivo era que «el
+destino puede no tener los roles/extensiones de Supabase» y que los `GRANT` fallarían «a medias». En
+el simulacro el destino es la **misma** base de la que salió la copia (los roles y las extensiones ya
+existen) y el riesgo real era el contrario: perder los `grant` explícitos del app y dejar el panel sin
+poder leer la base restaurada. La guía exige que el destino tenga los roles del dump; si faltara
+alguno, el restore aborta (es atómico) y no deja nada restaurado.
+
+Lo que **no** se puede hacer desde el agente sigue igual: correr el simulacro sobre staging y
+firmarlo (falta la autorización del propietario del producto).
+
 ## Open Questions
 
 - [NEEDS CLARIFICATION: ¿quién autoriza, quién ejecuta y quién firma? El documento dice «dueño:
@@ -228,3 +273,7 @@ de cerrar los huecos del procedimiento y con el registro documentado paso a paso
   periodicidad? Si es periódico, hace falta responsable y recordatorio, no sólo el registro.]
 - [NEEDS CLARIFICATION: ¿la restauración del simulacro se hace sobre el Postgres de staging (camino
   real) o primero sobre una base temporal, como sugiere `docs/tecnico/runbooks/db-restore.md:18`?]
+- [NEEDS CLARIFICATION: el protocolo de esta pasada asume que el simulacro restaura sobre la **misma**
+  base de staging (los roles y extensiones del dump ya existen y el restore no aborta). Si el
+  propietario quiere restaurar sobre una base nueva, hay que garantizar antes los roles del dump o
+  el restore aborta sin dejar nada restaurado.]
