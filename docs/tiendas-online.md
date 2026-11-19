@@ -879,7 +879,7 @@ cerrada, no abierta. **Pendiente de confirmar en DEV**: que la cabecera llega (s
 | `20261212120800_crear_consulta_publica_solo_interna.sql` (F-TDA-16) | solo privilegios: `publico.crear_consulta_publica` deja de ser ejecutable por `anon` y `authenticated` | `grant execute on function publico.crear_consulta_publica(text, text, text, text, text, uuid) to anon, authenticated` |
 | `20261212121000_tienda_whatsapp.sql` (F-TDA-14) | `publico.registrar_consulta_whatsapp` + `grant`s; no crea ni altera tablas | `drop function publico.registrar_consulta_whatsapp(text, uuid, uuid)` |
 | `20270323100200_tienda_envios_visitante_hmac.sql` (MSF-945) | secreto `visitante_hmac` en Vault; `private.hmac_visitante`, `private.inicializar_visitante_hmac`; `private.visitante_hash` con HMAC; política `tienda_envios_select` por sección; hashes viejos a `legado` | ver el encabezado de la migración y «Lote 1 de deuda técnica» |
-| `20270419000201_tienda_identidad_referencia_y_visitante_hmac.sql` (MSF-560, revisión del PR #1003) | `private.ruta_identidad_referenciada` acotada a la organización de quien pregunta (fin del oráculo cross-tenant); `private.hmac_visitante` con el prefijo `hmac:` y las filas existentes pasadas al formato nuevo (el reemplazo a `legado` ya no alcanza a los HMAC vivos); sin tablas nuevas ni alteradas | ver el encabezado de la migración |
+| `20270507200101_tienda_identidad_referencia_y_visitante_hmac.sql` (MSF-560, revisión del PR #1003) | `private.ruta_identidad_referenciada` acotada a la organización de quien pregunta (fin del oráculo cross-tenant); `private.hmac_visitante` con el prefijo `hmac:` y las filas existentes pasadas al formato nuevo (el reemplazo a `legado` ya no alcanza a los HMAC vivos); sin tablas nuevas ni alteradas | ver el encabezado de la migración |
 
 **Orden de despliegue**: F-TDA-16 antes que F-TDA-14 (la segunda reusa `private.registrar_envio_tienda`,
 `private.entregar_a_bandeja` y `publico.contacto_por_dominio`).
@@ -1355,7 +1355,7 @@ de las épicas MSF-133 (MSF-796, MSF-797) y MSF-176 (MSF-945). Sin pantallas nue
 ### Ajustes de la revisión de seguridad del PR #1003 (MSF-560)
 
 Tres hallazgos de la revisión del PR #1003, resueltos sin tocar las migraciones ya aplicadas (una versión aplicada es
-inmutable): el arreglo va en la migración aditiva `20270419000201_tienda_identidad_referencia_y_visitante_hmac.sql`.
+inmutable): el arreglo va en la migración aditiva `20270507200101_tienda_identidad_referencia_y_visitante_hmac.sql`.
 
 - **La versión `20270323100100` quedó distinta de la aplicada** (el `grant` de `private.ip_publica_valida` no incluía a
   `service_role`): el guard de migraciones la marcaba MODIFICADA y la migración no se volvía a aplicar, con repo y base
@@ -1372,4 +1372,4 @@ inmutable): el arreglo va en la migración aditiva `20270419000201_tienda_identi
   HMAC vivos caían a `legado` (el límite por visitante se reiniciaba). Ahora el HMAC se guarda con el prefijo `hmac:` (su
   forma no la alcanza ese patrón) y las filas que ya existían se pasan al formato nuevo **conservando el valor**: el cupo de
   cada visitante sigue igual.
-- Reversión: ver el encabezado de `20270419000201_tienda_identidad_referencia_y_visitante_hmac.sql`.
+- Reversión: ver el encabezado de `20270507200101_tienda_identidad_referencia_y_visitante_hmac.sql`.
