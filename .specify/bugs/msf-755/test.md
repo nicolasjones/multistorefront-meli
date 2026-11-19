@@ -24,14 +24,14 @@ ya no manda a resincronizar la rama. No se encontraron regresiones.
 | Estado real del gate (API) | `gh api repos/nicolasjones/multistorefront-meli/rulesets/25358575` | pass | `enforcement: active`, target `refs/heads/dokploy`, check único `validacion`, `strict_required_status_checks_policy: false`, `bypass_actors` `RepositoryRole 5` (`bypass_mode: always`). |
 | La trampa (API) | `gh api repos/nicolasjones/multistorefront-meli/branches/dokploy/protection` | pass | Sigue dando 404 «Branch not protected»: el 404 es real y el que ahora está documentado y neutralizado, no la fuente de la verdad. |
 | Cola de merge por API | `gh api repos/nicolasjones/multistorefront-meli/rulesets/25358575/merge-queue` | pass | 404: GitHub no expone `merge_queue` para este repo ⇒ queda como acción de Nicolás (documentada, no ejecutada). |
-| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | 11 tests, 11 pass, 0 fail. |
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | 10 tests, 10 pass, 0 fail. |
 | Suite de CI (área tocada) | `pnpm test:ci` | pass | 65 tests, 64 pass, 1 skipped, 0 fail (incluye la suite nueva). |
 | Suite de docs | `pnpm test:docs:check` | pass | 171 tests, 171 pass, 0 fail. |
 | Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
 | Links y nav de la documentación | `node scripts/docs-check.mjs` | pass | nav 219 páginas, links internos 2003, inventario y diagramas OK. |
 | Lint | `pnpm lint` | pass | exit 0. Los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca. |
 | Build | `pnpm build` | pass | `✓ built in 5.96s`, exit 0. |
-| El test vigila la regla (FEAT-236) | se cambió `strict_required_status_checks_policy === true` por `=== false` | pass | Fallaron 4 tests (decisión y trampa); se revirtió y los 11 volvieron a verde. |
+| El test vigila la regla (FEAT-236) | se cambió `strict_required_status_checks_policy === true` por `=== false` | pass | Fallaron 4 tests (decisión y trampa); se revirtió y los 10 volvieron a verde. |
 
 ## Output Excerpts
 
@@ -49,8 +49,8 @@ Gate de integración de «dokploy»
 
 ```
 $ node --test scripts/gate-integracion.test.mjs
-ℹ tests 11
-ℹ pass 11
+ℹ tests 10
+ℹ pass 10
 ℹ fail 0
 ```
 
@@ -61,6 +61,22 @@ $ pnpm test:ci
 ℹ fail 0
 ℹ skipped 1
 ```
+
+## Segunda vuelta (2026-11-19)
+
+Se revalidó el arreglo sobre el HEAD real (`320706c01`), sin cambiar el código (sólo se
+corrigió la cifra de tests de esta bitácora: la suite tiene 10 `it`, no 11).
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | 10 tests, 10 pass, 0 fail. |
+| Suite de CI (área tocada) | `pnpm test:ci` | pass | 65 tests, 64 pass, 1 skipped, 0 fail. |
+| Suite de docs | `pnpm test:docs:check` | pass | 171 tests: 170 pass + 1 **flake de línea base** (`recorrerSql rendimiento: miles de etiquetas $tN$…`, umbral de 500 ms). `scripts/verificar-trampas-conocidas.test.mjs` es **idéntico a `origin/dokploy`** (`git diff origin/dokploy` vacío) y al correrlo solo pasa. No lo causa este cambio. |
+| Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
+| Lint / Build | `pnpm lint` · `pnpm build` | pass | exit 0 en los dos. |
+| Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; **gitleaks no corrió** (sin permisos del socket de Docker en este entorno). El job `quality` del CI lo corrió y salió verde. |
+| Estado real del gate | `node scripts/gate-integracion.mjs --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
+| El test vigila la regla (FEAT-236) | `strict_required_status_checks_policy === false` en el script | pass | Fallan **4** tests; revertido, los 10 vuelven a verde. |
 
 ## Residual Risks
 

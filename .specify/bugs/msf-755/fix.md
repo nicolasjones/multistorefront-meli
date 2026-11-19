@@ -20,7 +20,7 @@ que mandaba a actualizar la rama y reintentar ante un «head branch is not up to
 | File | Change | Notes |
 |------|--------|-------|
 | `scripts/gate-integracion.mjs` | added | Diagnóstico de sólo lectura del gate por rulesets. La decisión (`gateDe`, `informe`, `aplicaA`) es pura y testeable; la lectura de la API (`leerGate`, `atrasDe`) queda aparte. Salida: estado (`sin-gate` / `no-bloqueado` / `bloqueado`), checks requeridos, si exige «rama al día», bypass, cola de merge y la advertencia de la trampa del 404. Con `--pr <n>` compara la rama con la base y avisa cuántos commits está atrás. |
-| `scripts/gate-integracion.test.mjs` | added test | 11 tests: gate efectivo (rulesets activos / de otra rama / `include`/`exclude` de `ref_name`), la decisión (con «rama al día» exigida ⇒ bloqueado; sin ella ⇒ no pide resincronizar), la trampa del 404 (ruleset activo + 404 ⇒ NO dice que no hay protección; sin ruleset + 404 ⇒ sí lo dice) y el guard del runbook. |
+| `scripts/gate-integracion.test.mjs` | added test | 10 tests: gate efectivo (rulesets activos / de otra rama / `include`/`exclude` de `ref_name`), la decisión (con «rama al día» exigida ⇒ bloqueado; sin ella ⇒ no pide resincronizar), la trampa del 404 (ruleset activo + 404 ⇒ NO dice que no hay protección; sin ruleset + 404 ⇒ sí lo dice) y el guard del runbook. |
 | `package.json` | modified | `ci:gate` (el diagnóstico) y el test nuevo en la suite `test:ci`. |
 | `docs/control-ci.md` | modified | Sección «El gate se lee por rulesets…» con la trampa del 404 y el comando correcto; se borra la «Consecuencia operativa» que mandaba a resincronizar la rama; bullet de runbook para el PR `BEHIND`; la cola de merge queda como acción de Nicolás. |
 | `docs/manifest.json` | modified | Regenerado (`pnpm docs:manifest`): cambia sólo la página `docs/control-ci.md`. |
@@ -57,7 +57,7 @@ if (proteccionClasica404) {
 
 ## Local Verification
 
-- `node --test scripts/gate-integracion.test.mjs` → 11 tests, 11 pass, 0 fail.
+- `node --test scripts/gate-integracion.test.mjs` → 10 tests, 10 pass, 0 fail.
 - `pnpm test:ci` → 65 tests, 64 pass, 1 skipped, 0 fail (incluye la suite nueva).
 - `pnpm test:docs:check` → 171 tests, 171 pass, 0 fail.
 - `pnpm docs:check` → Documentación de cambios OK (4251 archivos contra `origin/main`) · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK.
@@ -66,7 +66,19 @@ if (proteccionClasica404) {
 - `pnpm build` → `✓ built in 5.96s`, exit 0.
 - `node scripts/gate-integracion.mjs` → estado real del ruleset `25358575` + la advertencia del 404, exit 0.
 - `node scripts/gate-integracion.mjs --pr 1146` → «La rama está al día con la base» + veredicto, exit 0.
-- **El test vigila la regla (FEAT-236):** se cambió a propósito `strict_required_status_checks_policy === true` por `=== false` en el script y fallaron 4 tests (los que fijan la decisión y la trampa); se revirtió y los 11 volvieron a verde.
+- **El test vigila la regla (FEAT-236):** se cambió a propósito `strict_required_status_checks_policy === true` por `=== false` en el script y fallaron 4 tests (los que fijan la decisión y la trampa); se revirtió y los 10 volvieron a verde.
+
+### Segunda vuelta (2026-11-19)
+
+Revalidé el arreglo sobre el HEAD real (`320706c01`) sin tocar el código: el árbol queda igual salvo la corrección de las cifras de esta bitácora.
+
+- `node --test scripts/gate-integracion.test.mjs` → **10 tests, 10 pass, 0 fail** (la suite tiene 10 `it`; la cifra «11» de la primera vuelta estaba mal y se corrigió acá y en `test.md`).
+- `pnpm test:ci` → 65 tests, 64 pass, 1 skipped, 0 fail.
+- `pnpm test:docs:check` → 171 tests: 170 pass y 1 falla **flake de línea base** (`recorrerSql rendimiento: miles de etiquetas $tN$…`, umbral de 500 ms; `scripts/verificar-trampas-conocidas.test.mjs` es **idéntico a `origin/dokploy`**). Al correrlo solo, pasa.
+- `pnpm docs:check` → Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK.
+- `pnpm lint` → exit 0 · `pnpm build` → exit 0 · `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack **ok** (gitleaks no corrió: sin permisos del socket de Docker en este entorno; el job `quality` del CI lo corrió y salió verde).
+- `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
+- FEAT-236 repetido en esta vuelta: con `strict_required_status_checks_policy === false` en el script fallan **4** tests; revertido, los 10 vuelven a verde.
 
 ## Deviations from Assessment
 
