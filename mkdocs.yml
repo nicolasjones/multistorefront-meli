@@ -310,6 +310,7 @@ nav:
           - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación:
           - Operación: tecnico/operacion.md
+          - "Gates del tracker: la fecha de vencimiento": tecnico/gates-vitalidad.md
           - Importaciones y monitoreo: tecnico/importaciones-y-monitoreo.md
           - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
           - Runbooks: tecnico/runbooks/README.md

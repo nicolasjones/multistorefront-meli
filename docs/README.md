@@ -61,6 +61,7 @@ Tres entradas según lo que necesites:
 | Funciones edge de IA y correo: endurecimiento y pendientes (MSF-647) | [funciones-edge-endurecimiento.md](funciones-edge-endurecimiento.md) |
 | Workers | [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md) |
 | CI y runners | [adoptar-runners-locales.md](adoptar-runners-locales.md), [ci-self-hosted-storage.md](ci-self-hosted-storage.md), [adoptar-ci-base-aislada.md](adoptar-ci-base-aislada.md) |
+| Gates del tracker: la fecha de vencimiento (MSF-909) | [tecnico/gates-vitalidad.md](tecnico/gates-vitalidad.md) |
 | Prototipos y sistema de diseño | [prototipos.md](prototipos.md), [sistema-de-diseno.md](sistema-de-diseno.md), [adoptar-kit-panel-operable.md](adoptar-kit-panel-operable.md) |
 | Pruebas E2E | [e2e-app.md](e2e-app.md), [validacion-e2e3.md](validacion-e2e3.md) |
 | Producto derivado / template | [crear-producto-derivado.md](crear-producto-derivado.md), [adoptar-capacidades-template.md](adoptar-capacidades-template.md), [adoptar-tooling-typescript.md](adoptar-tooling-typescript.md), [registrar-funcionalidad-desde-migracion.md](registrar-funcionalidad-desde-migracion.md) |
