@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/faltantes.tsx
 ---
 
 # Avisar a los clientes cuando vuelve a haber stock
@@ -16,20 +17,20 @@ haber.
 
 | Persona | Qué hace |
 |---|---|
-| **Administrador, Operador, Mostrador y Administración** | Ven la pantalla de Faltantes, pueden marcar pedidos y enviar los avisos |
-| **Depósito y Consulta** | Ven la pantalla de Faltantes, pero no pueden enviar avisos: las casillas y el botón no les aparecen |
+| **Administrador, Operador, Mostrador y Administración** | Ven la pantalla de Faltantes de despacho, pueden marcar pedidos y enviar los avisos |
+| **Depósito y Consulta** | Ven la pantalla de Faltantes de despacho, pero no pueden enviar avisos: las casillas y el botón no les aparecen |
 
 Los permisos iniciales los puede cambiar el Administrador.
 
 ## Dónde lo encontrás
 
-- **Ventas → Faltantes**: los pedidos que quedaron sin stock.
+- **Ventas → Faltantes de despacho**: los pedidos que quedaron sin stock.
 - **Stock → Ingreso de mercadería**: cuando registrás un ingreso, el sistema marca los pedidos que ese ingreso
   cubre (ver [Registrar un ingreso de mercadería](ingreso-de-mercaderia.md)).
 
 ## Ver qué pedidos ya se pueden avisar
 
-En la pantalla de Faltantes hay una columna **Aviso** con uno de estos tres estados:
+En la pantalla de Faltantes de despacho hay una columna **Aviso** con uno de estos tres estados:
 
 | Estado | Qué significa |
 |---|---|
@@ -52,7 +53,7 @@ Tres cosas que conviene saber:
 
 ## Avisar a los clientes
 
-1. Entrá a **Ventas → Faltantes**.
+1. Entrá a **Ventas → Faltantes de despacho**.
 2. Si querés ver solo una tienda, elegila en el filtro **Tienda** (o en la empresa activa de la barra superior).
 3. Marcá las casillas de los pedidos que querés avisar. La casilla del encabezado marca todos los que están a la
    vista.
@@ -77,7 +78,7 @@ Tres cosas que conviene saber:
 ## Límites
 
 - **El sistema no manda ningún correo por su cuenta.** El aviso lo enviás vos.
-- **Avisar no cierra el pedido.** El faltante se sigue verindo hasta que retomes el armado de la factura.
+- **Avisar no cierra el pedido.** El faltante se sigue viendo hasta que retomes el armado de la factura.
 - **No se avisa dos veces el mismo pedido** sin que lo confirmes con la casilla de reaviso.
 - **Se avisa de a 200 pedidos por vez**: si marcaste más, el sistema te avisa cuántos desmarcar.
 - Solo se avisan los pedidos **abiertos** de las tiendas a las que tenés acceso.
@@ -106,3 +107,8 @@ Tres cosas que conviene saber:
 - [Cargar stock desde una planilla, exportar y recibir avisos](stock-carga-exportacion-y-avisos.md) — los avisos de
   los pedidos «a pedido» de Stock.
 - [Clientes](clientes.md) — cargarle el correo a un cliente para poder avisarle.
+
+> **Dos criterios de cierre.** Los faltantes que se registran al armar un pedido se resuelven al reanudar el armado; los
+> de la pantalla **Stock → Faltantes de stock (A pedido)** se cierran al entregar el pedido o al liberar la reserva. Se
+> mantienen las dos pantallas porque leen datos distintos, y cada una trae un enlace a la otra; conviven los dos criterios. Detalle técnico en
+> [Faltantes de ventas](../ventas-faltantes.md).

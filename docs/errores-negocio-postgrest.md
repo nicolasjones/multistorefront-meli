@@ -5,6 +5,9 @@ sources:
   - apps/web/src/lib/ventasPresupuestos.ts
   - apps/web/src/lib/facturasElegibles.ts
   - apps/web/src/components/ventas/DialogoNuevaDevolucion.tsx
+  - apps/web/src/lib/reparaciones.ts
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
 ---
 
 # Errores de negocio de las RPC y su respuesta HTTP
@@ -46,7 +49,7 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
    texto fijo del catálogo que coincide con el de la RPC (nunca el `message` del servidor).
 4. **MSF-638** (`obtener_reparacion`): una reparación de una tienda inaccesible se trata como inexistente a
    propósito (no revela que existe) y la ficha, la orden y el remito ya muestran «Esa reparación ya no existe»
-   (`mensajeDeErrorReparacion`, código `P0002`). Lo único pendiente es el estado HTTP.
+   (`mensajeDeErrorReparacion`, código `P0002`). El estado HTTP se corrigió solo para esta función (ver «MSF-638: `obtener_reparacion` fuera del alcance»); el resto sigue pendiente.
 
 ## Pendiente (y por qué)
 
@@ -65,12 +68,17 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
 
 ## MSF-600: anular una factura con cobros parciales
 
-**No se corrige: requiere decisión de negocio.** `anular_comprobante` bloquea las facturas Cobradas pero permite
-anular una en `deuda` con cobros registrados; el cobro queda en el libro de una factura anulada. Bloquear la
-anulación dejaría a la persona sin salida porque **no existe el reverso de cobro** (MSF-667, en el registro de
-decisiones MSF-733, junto con MSF-661 «factura ya entregada al anularla»). Decisión que falta: ¿se exige reversar
-los cobros antes de anular (requiere construir el reverso), se reversan automáticamente con un contra-asiento
-auditado, o se permite anular dejando el cobro como saldo a favor? Hasta decidirlo no se cambia la base.
+**Resuelto en el lote 32.** Con la decisión de negocio tomada (MSF-667: contra-asiento auditado), `anular_comprobante` rechaza
+una factura con cobros registrados (`55000`, «revertí el cobro o corregila con una nota de crédito») y la persona sale con
+`revertir_cobro` (solo administrador). También rechaza la factura ya entregada (MSF-661). Detalle en
+`docs/cobros-por-comprobante.md`.
+
+## MSF-638: `obtener_reparacion` fuera del alcance
+
+**Primera ola de la convención `PT404`** (lote 32): `obtener_reparacion` responde `PT404` (HTTP 404) con el mismo mensaje cuando la
+reparación no existe, es de otra organización o de una tienda inaccesible (sin oráculo de existencia), y `42501` (403) sin la
+sección `service_tecnico`. El cliente acepta `P0002` y `PT404`. Sigue pendiente la verificación con un JWT real contra el
+PostgREST instalado y el resto de las olas (propuesta de arriba).
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

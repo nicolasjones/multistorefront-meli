@@ -1,9 +1,18 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261029-100000-cuentas-y-compras-a-proveedores
+  - specs/20261109-100000-cuenta-corriente-y-saldo-cliente
+  - apps/web/src/components/clientes/ComprasCliente.tsx
+  - apps/web/src/hooks/useCuentaCorrienteCliente.ts
+  - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
+  - supabase/migrations/20270222100000_cuenta_corriente_cliente.sql
+  - supabase/migrations/20270227110000_cuenta_corriente_notas_de_credito.sql
+  - supabase/migrations/20270227130000_cuenta_corriente_estados_nc_compartidos.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270227150000_notas_credito_sincronizan_estado_y_contrarreembolso.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
 ---
 
 # Cuentas y compras a proveedores (MSF-450)
@@ -62,6 +71,11 @@ Migración: `supabase/migrations/20270222100000_cuenta_corriente_cliente.sql`, r
 3. **Entran solo las facturas** que no están en `borrador`, `anulada` ni `cobrado` y con saldo neto > 0: un borrador no se debe, una anulada no le debe nada a nadie y una «Cobrada» **no es deuda** aunque su cobro no esté en el libro (cobrada en mostrador o anterior al libro de cobros). Cuentan los siete estados vivos restantes (`confirmada`, `pendiente`, `aceptado`, `en_proceso`, `deuda`, `armando`, `incompleto`).
 4. **Los presupuestos no son deuda** y no entran. Las **notas de crédito restan** de la factura de la que cuelgan (`comprobante_origen_id`, mismo cliente y organización; cuentan las que no están en `borrador` ni `anulada`, regla de `private.comprobante_cuenta_como_facturado`). El disparador `comprobantes_venta_nota_credito_efectos` (`20270227150000`) pasa la factura a «Cobrado» si lo cobrado más las notas la cubren y tiene cobros, y ajusta los contrarreembolsos pendientes al saldo neto.
 5. **`saldo_total` es la suma de los saldos listados** y `comprobantes`, la cantidad de ellos.
+   Un cobro revertido (`public.revertir_cobro`, `20270507180100`) deja en el libro de cobros una fila de importe negativo
+   (contra-asiento): como `private.saldo_comprobante` suma el importe de todas las filas de `dominio.cobros_comprobante`
+   (`20270227140000:58`), el cobro revertido deja de contar como cobrado y la factura vuelve a figurar con su saldo.
+   Una factura con cobro neto mayor a cero no se puede anular (`anular_comprobante`, `20270507180000`: «revertí el cobro o
+   corregila con una nota de crédito»), así que esa factura no desaparece de la cuenta corriente por anulación.
 6. **Alcance por tienda**: solo las tiendas activas a las que la persona accede (`private.empresas_accesibles()`, como `public.saldo_comprobante`); el administrador accede a todas. No ve deuda de tiendas ajenas ni de una tienda desactivada.
 
 Índices: los que ya existen bastan (`comprobantes_venta_cliente_fecha_idx` por organización/cliente/fecha, la clave primaria de `dominio.comprobantes_venta` y `cobros_comprobante_comprobante_idx` por comprobante, que es lo que usa `private.saldo_comprobante`).

@@ -9,6 +9,10 @@ sources:
   - supabase/migrations/20261212100800_estado_cobro_comprobante.sql
   - supabase/migrations/20270114100000_cobros_comprobante.sql
   - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql
 ---
 
 # Ventas · Cobros por comprobante (F-VTA-12)
@@ -121,7 +125,7 @@ desactiva más tarde, el cobro ya registrado se conserva).
   «Contrarreembolso» activa de la tienda y sin cuenta de cobro. No duplica lógica: la validación del tope, el paso a Cobrado
   o Deuda y el evento `comprobante.cobro_registrado` son los de siempre. El envío guarda el `cobro_id`. La nota de crédito
   posterior baja el `abono` de los envíos sin rendir (`20270228110200`, mismo disparador y mismo `skip locked` que los
-  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). Detalle en `docs/ventas-motos.md`.
+  contrarreembolsos); los rendidos no se tocan. Una factura ya en estado `cobrado` no recibe cobro de la rendición (el estado queda intacto). Como con un contrarreembolso, si la forma de pago genera deuda y queda saldo la factura puede quedar en Deuda. Revertir una rendición exige un contra-asiento (el libro no se borra; `envios_moto.cobro_id` es la única traza del origen). `revertir_cobro` no sirve para eso: rechaza los cobros de origen `contrarreembolso`. Detalle en `docs/ventas-motos.md`.
 - `private.comprobante_cuenta_como_facturado(text, text)` es ejecutable por `authenticated` (grant de la migración
   `20270227140000`): es un predicado puro, sin acceso a datos, que necesita la RPC `security invoker`.
 
@@ -337,6 +341,36 @@ persona modificó este comprobante».
 - **el lector de pantalla**: la lista es una tabla con encabezados, los totales son un grupo con
   nombre, el diálogo y sus campos tienen nombre accesible, los errores quedan asociados al campo
   (`aria-invalid` y `aria-describedby`) y la tarjeta y el diálogo no tienen violaciones de axe.
+
+## Revertir un cobro y anular facturas (lote 32 · MSF-667, MSF-600, MSF-661, MSF-660)
+
+- **`public.revertir_cobro(p_cobro_id, p_motivo)`** (MSF-667) revierte un cobro mal cargado con un **contra-asiento**: el libro
+  `dominio.cobros_comprobante` nunca se edita ni se borra; se agrega una fila de importe **negativo**, `origen = 'reversion'`,
+  que repite la empresa, la forma de pago y la cuenta del cobro y guarda `revierte_cobro_id` y `motivo_reversion`. Como
+  `sum(importe)` ya alimenta el saldo, la cuenta corriente, las alertas y los pagos, todo descuenta lo revertido sin tocar a los
+  lectores. Devuelve el id del contra-asiento.
+- **Quién y qué**: solo el **administrador** (`private.puede_escribir()`, `42501` para los demás roles, también Administración y
+  Mostrador); **motivo obligatorio** (hasta 300, `22023`). Quién y cuándo quedan en `registrado_por`/`registrado_en` y en la
+  Actividad (`comprobante.cobro_revertido`: «Revirtió el cobro de ARS … de la factura …: motivo»). Un cobro se revierte **una sola
+  vez** (índice único) y no se revierte un contra-asiento, un cobro **conciliado** (primero se revierte la conciliación), el cobro
+  de un **contrarreembolso** (se corrige desde el contrarreembolso) ni el de una factura borrador o anulada (`55000`).
+- **Estado**: si el saldo neto vuelve a ser mayor que 0 y la factura estaba en «Cobrado», pasa a «Deuda» (transición `cobrado → deuda`
+  del actor sistema); con saldo 0 sigue la regla vigente (saldo 0 ⇒ Cobrado). Se puede volver a cobrar normalmente.
+- **Conciliación**: el contra-asiento no se concilia ni deja conciliar el cobro revertido (`aplicar_conciliacion` responde `55000`).
+  El validador del libro no revalida la forma de pago ni la cuenta del contra-asiento (pudieron desactivarse después). La pantalla
+  Pagos lista el cobro original y su contra-asiento (importe negativo) y el saldo es el neto.
+- **`anular_comprobante`** (desde `20270507180000`) rechaza (`55000`): una factura **entregada** (`estado_despacho = 'entregado'`,
+  MSF-661: «La factura ya fue entregada: corregí con nota de crédito o RMA») y una con **cobros registrados** (MSF-600: cobrado neto
+  mayor que 0; «revertí el cobro o corregila con una nota de crédito»). Con el cobro revertido (neto 0) se puede anular.
+- **MSF-660 (ya estaba)**: `saldo = total_con_iva − notas de crédito emitidas − cobros` (mínimo 0, sin estado nuevo, sin recalcular
+  comprobantes viejos) está desde `20270227140000_saldo_comprobante_resta_notas_credito.sql` y lo usan el tope de `registrar_cobro`,
+  la cuenta corriente, `listar_pagos`/`resumen_pagos` y los contrarreembolsos.
+- **Lectores de pagos** (`20270507180800`): `resumen_pagos` no cuenta como «por conciliar» ni «conciliado» el cobro revertido ni su
+  contra-asiento (el saldo sigue siendo el neto); `listar_pagos` agrega `estado_reversion` (`revertido` / `reversion` / nulo) y la
+  pantalla Pagos los muestra con una etiqueta en vez del interruptor; `cuentas_cobro_mas_usadas` no los cuenta como uso. El detalle
+  del comprobante rotula el contra-asiento como «Reversión de cobro».
+- **Aún NO hay pantalla para `revertir_cobro`**: queda para el lote de UI (botón «Revertir cobro» solo para el administrador, con
+  motivo obligatorio, con el prototipo primero). Hoy se invoca solo por RPC. Pruebas: `supabase/tests/database/lote32_cobros_anulacion_y_reversion.test.sql`.
 
 ## Reversión
 

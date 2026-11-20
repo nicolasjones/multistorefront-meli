@@ -1,9 +1,30 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20270305-100000-inicio-tablero-completo
+  - apps/web/e2e/inicio.e2e.ts
+  - apps/web/src/pages/inicio/index.tsx
+  - apps/web/src/pages/inicio/TarjetaDolar.tsx
+  - apps/web/src/pages/inicio/useLecturaInicio.ts
+  - apps/web/src/pages/inicio/tablero
+  - apps/web/src/lib/inicioTablero.ts
+  - apps/web/src/pages/stock/list.tsx
+  - apps/web/src/pages/ventas-reportes/index.tsx
+  - apps/web/src/lib/inicioBloques.ts
+  - apps/web/src/hooks/useMovimientosPorProducto.ts
+  - apps/web/src/hooks/usePrevisualizarImpactoDolar.ts
+  - apps/web/src/components/cotizacion/DialogoCargarDolarConImpacto.tsx
+  - apps/web/src/components/cotizacion/CampoDolar.tsx
+  - apps/web/src/components/cotizacion/AlertaVariacionInusual.tsx
+  - apps/web/src/components/cotizacion/LimiteDialogoDolar.tsx
+  - supabase/migrations/20270305105000_resumen_inicio_periodo.sql
+  - supabase/migrations/20270305110000_resumen_inicio_bloques.sql
+  - supabase/migrations/20270305120000_movimientos_por_producto.sql
+  - supabase/migrations/20270305130000_previsualizar_impacto_dolar.sql
+  - supabase/migrations/20270305140000_aplicar_cotizacion.sql
+  - supabase/migrations/20270324120200_resumen_inicio_bloques_seccion.sql
+  - supabase/tests/database/inicio_tablero_bloques.test.sql
+  - supabase/tests/database/resumen_inicio_periodo.test.sql
 ---
 
 # Inicio: tablero de ventas y stock, listado por producto y carga del dólar (MSF-824)
@@ -50,7 +71,7 @@ declara **a confirmar por Nicolás**; D-8 y D-12 se apartan de la spec porque ma
 
 | # | Decisión | Dónde se ve |
 |---|---|---|
-| D-1 | «Qué hacer hoy» reusa los cinco tipos de `alertas_inicio`; no hay migración de alertas | Bloque «Qué hacer hoy» |
+| D-1 | «Qué hacer hoy» reusaba los cinco tipos de `alertas_inicio`; después se sumaron `cobros_pendientes` y `faltantes` (migración `20270325000000_alertas_inicio_cobros_y_faltantes.sql`, ver [Inicio y alertas](inicio-y-alertas.md)) | Bloque «Qué hacer hoy» |
 | D-2 | Ingresos **con IVA** (`total_con_iva`), rotulado; devoluciones = notas de crédito de las tres clases | Ventas del período |
 | D-3 | «Entradas» de **Stock hoy** = movimientos `entrada` sin traslados, devoluciones de cliente ni anulaciones; «Ajustes» = solo `ajuste` | Stock hoy |
 | D-4 | Costo, valor y margen solo con `rentabilidad` ≥ lectura | Resumen por tienda |
@@ -88,8 +109,9 @@ Puntos de diseño que importan para operar:
   que no es accesible se ignora; un depósito que no existe en la organización cae a «Todos los depósitos».
 - **Un bloque sin permiso ni se muestra ni se consulta**: la base devuelve `null` y la pantalla distingue
   «sin permiso» de «cero».
-- **«Resumen por tienda» y «Salidas por depósito» salen de la misma lectura** (`resumen_inicio_bloques`): si
-  falla, fallan los dos con su propio reintento. «Actividad reciente» es independiente.
+- **«Resumen por tienda» y «Salidas por depósito» se leen por separado** (`resumen_inicio_bloques(..., p_seccion)`,
+  MSF-850, migración `20270324120200_resumen_inicio_bloques_seccion.sql`): cada bloque tiene su carga, error y reintento
+  (`BloquesGestion.tsx`: `ResumenTiendas` pide `'por_tienda'`). «Actividad reciente» también es independiente.
 - **El gráfico y el diálogo del dólar se bajan con `lazy`**: ninguno de los dos entra en el chunk inicial de
   Inicio. El gráfico se baja al montar el tablero (con un esqueleto de carga) y el diálogo, solo al abrirlo;
   si ese chunk falla, `LimiteDialogoDolar` avisa en la tarjeta sin romper la pantalla.
@@ -101,7 +123,7 @@ Puntos de diseño que importan para operar:
 | Función | Devuelve | Errores |
 |---|---|---|
 | `public.resumen_inicio_periodo(p_desde date, p_hasta date, p_empresa uuid = null, p_deposito uuid = null)` | `jsonb` `{ desde, hasta, anterior_desde, anterior_hasta, ventas \| null, stock \| null, serie[] }` | `42501` sin organización; `22023` rango inválido o de más de 366 días |
-| `public.resumen_inicio_bloques(p_desde, p_hasta, p_empresa = null, p_deposito = null)` | `jsonb` `{ por_tienda \| null, salidas_por_deposito \| null }` | igual que la anterior |
+| `public.resumen_inicio_bloques(p_desde, p_hasta, p_empresa = null, p_deposito = null, p_seccion = null)` | `jsonb` `{ por_tienda \| null, salidas_por_deposito \| null }`; `p_seccion` = `por_tienda`, `salidas_por_deposito` o nulo (ambas); la no pedida vuelve nula | igual que la anterior; `22023` con `p_seccion` desconocida |
 | `public.movimientos_por_producto(p_desde, p_hasta, p_empresa, p_deposito, p_busqueda, p_categoria, p_vista, p_orden, p_direccion, p_pagina, p_tamano)` | tabla de 14 columnas (las 12 visibles más `producto_id` y `total`) | `42501` sin `stock`; `22023` rango, vista, orden o dirección inválidos |
 | `public.previsualizar_impacto_dolar(p_valor numeric, p_empresa uuid = null)` | `jsonb` `{ variacion_pct, recalcula, empresas[], muestra[], umbral_pct, confirmacion_pct, redondeo_pesos }`; **no escribe** | `42501` sin edición de `cotizacion_dolar`; `22023` valor nulo, ≤ 0, NaN, infinito, con más de 4 decimales o ≥ 1e10 |
 | `public.aplicar_cotizacion(p_valor numeric, p_empresa uuid = null, p_variacion_vista numeric = null)` | el `jsonb` de `confirmar_cotizacion` `{ id, recalculo_aplicado, precios_recalculados }` | los de `cargar_cotizacion` (`42501`, `23514`) y `confirmar_cotizacion` (`22023` con `variacion_inusual` o `variacion_cambio`) |
@@ -273,7 +295,7 @@ pnpm --filter @platform/web test:e2e inicio
 | Tema | Estado / dueño |
 |---|---|
 | El tema del panel no tiene modo oscuro: hoy no hay modo oscuro que verificar en el gráfico (RF-INI-04-7) | **MSF-849** |
-| «Resumen por tienda» y «Salidas por depósito» comparten una lectura: si falla, fallan juntos (RF-INI-05-7 / CA-INI-05-8 pide error independiente por bloque) | **MSF-850** |
+| ~~«Resumen por tienda» y «Salidas por depósito» comparten una lectura~~ | Resuelto en MSF-850 (lecturas independientes con `p_seccion`); falta solo el E2E del error por bloque |
 | Sin E2E de Playwright de los bloques, el listado y el diálogo del dólar: no se pudo correr Supabase local en las sesiones de desarrollo | **MSF-851** |
 | Los indicadores de stock sin filtro propio y «Ajustes de stock» enlazan sin filtrar; el enlace a Reportes lleva solo el período (Reportes no admite tienda ni depósito) | Documentado en `docs/inicio-y-alertas.md` de `dokploy`; sin seguimiento: es alcance de esas pantallas |
 | Sin acceso directo del dólar en `AccesosDirectos` (la spec base fija tres): el acceso es el aviso y su botón | Documentado en F-INI-07 |

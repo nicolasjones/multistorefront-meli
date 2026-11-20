@@ -108,7 +108,7 @@ reales en git, en tests ni en el PR.
 
 1. **Clientes** — `/migracion/importar/clientes`.
 2. **Proveedores** — `/migracion/importar/proveedores`.
-3. **Vínculos proveedor↔producto** — `/migracion/importar/vinculos-proveedor-producto`.
+3. **Vínculos proveedor↔producto** — `/migracion/importar/vinculos_proveedor_producto`.
 4. **Archivo de ingresos** — `/migracion/importar/ingresos_archivo`.
 
 Por cada paso: subir → mapear → vista previa (corregir el CSV si hay errores que no deberían

@@ -2,8 +2,15 @@
 owner: tecnico
 sources:
   - specs/20261028-100000-service-repuestos-y-stock
+  - supabase/migrations/20270201200107_reparacion_item_agregar_stock.sql
+  - supabase/migrations/20270201200112_reparacion_item_agregar_pendiente.sql
+  - supabase/migrations/20270201200113_reparaciones_listar_pendientes.sql
   - apps/web/src/lib/reparacionItems.ts
-  - design/pantallas
+  - apps/web/src/components/service/AgregarItemDialog.tsx
+  - apps/web/src/components/service/MarcaStockItem.tsx
+  - apps/web/src/components/service/AvisoSinStock.tsx
+  - design/pantallas/ServicioReparacion.dc.html
+  - design/pantallas/ServicioReparaciones.dc.html
 ---
 
 # Repuesto pendiente de stock (F-SVC-12)
@@ -45,7 +52,7 @@ abierta; `anon` sin ejecución (`revoke ... from public, anon`, `grant ... to au
 
 ## Reversión
 
-Migraciones `20270116100900_reparacion_item_agregar_pendiente.sql` y `20270116101000_reparaciones_listar_pendientes.sql` (aditivas en
+Migraciones `20270201200112_reparacion_item_agregar_pendiente.sql` y `20270201200113_reparaciones_listar_pendientes.sql` (aditivas en
 datos). Para volver atrás, una migración posterior elimina `agregar_item_reparacion` de 8 parámetros y restaura la de 7
-(`20270116100400`) y la versión previa de `listar_reparaciones` (`20261022110200`). Los ítems ya `pendiente` quedan como están.
+(`20270201200107`) y la versión previa de `listar_reparaciones` (`20261022110200`). Los ítems ya `pendiente` quedan como están.
 Contrato que cambia: la firma de `agregar_item_reparacion` (`apps/web/src/lib/reparacionItems.ts`).

@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - scripts/calidad.mjs
+  - .github/workflows/quality.yml
+  - .gitleaks.toml
+  - .jscpd.json
+  - .dependency-cruiser.cjs
+  - knip.json
+  - apps/web/vite.config.ts
 ---
 
 # Calidad determinista (F1)
@@ -15,7 +21,7 @@ Checks que **no dependen del criterio** de una persona/agente. El objetivo es do
 
 ```bash
 pnpm calidad                 # todo
-pnpm calidad --code          # sin docker (sin secretos/SAST)
+pnpm calidad:code            # = node scripts/calidad.mjs --no-docker (sin Docker: gitleaks solo si hay binario nativo)
 pnpm calidad --only=secrets,sast
 node scripts/calidad.mjs --no-docker
 ```
@@ -27,8 +33,8 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 
 | Check | Herramienta | Qué detecta |
 |---|---|---|
-| Secretos | **gitleaks** (docker) | claves/tokens commiteados (con allowlist de ejemplos/tests) |
-| SAST | **semgrep** (docker, reglas `p/secrets`, `p/typescript`, `p/react`) | patrones inseguros, XSS, secretos en código |
+| Secretos | **gitleaks** (binario nativo; Docker solo como alternativa local, `.gitleaks.toml`) | claves/tokens commiteados (con allowlist de ejemplos/tests y exclusión de `.pnpm-store/` y `node_modules/`) |
+| SAST | **oxlint** con reglas de seguridad (`no-eval`, `no-new-func`, `no-implied-eval`, `no-script-url`) sobre `apps`, `packages` y `supabase/functions`; no usa Docker ni PyPI | patrones inseguros (`eval`, `new Function`, `javascript:`) |
 | Código muerto | **knip** | archivos/exports/deps sin usar |
 | Duplicación | **jscpd** (`.jscpd.json`) | bloques copiados |
 | Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |

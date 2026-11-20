@@ -29,6 +29,8 @@ export type Deps = {
   getUser(jwt: string): Promise<{ id: string } | null>
   /** `tiene_feature_publica('busqueda-documental')` con el JWT del usuario. */
   feature(jwt: string): Promise<{ data: unknown; error: unknown }>
+  /** ¿El usuario tiene un rol escritor de documentos (lista blanca)? Se consulta antes de cualquier otra rama de permiso. */
+  puedeGestionar(jwt: string): Promise<boolean>
   /** `contexto_panel_actual()` con el JWT del usuario (organización activa y rol efectivo); null si no se pudo leer. */
   contexto(jwt: string): Promise<{ organizacion_id: string | null; rol_efectivo: string | null; es_superadmin: boolean } | null>
   // Todo lo que sigue corre con la sesión del usuario (RLS), salvo `politica` y `credencial` (service-role, solo lectura de gobernanza).
@@ -44,7 +46,7 @@ export type Deps = {
   credencial(perfilId: string): Promise<Credencial | null>
   validarEntrada(politica: Politica, texto: string): void
   embeddings(textos: string[], clave: string): Promise<number[][]>
-  borrarFragmentos(jwt: string, versionId: string): Promise<boolean>
+  borrarFragmentos(jwt: string, versionId: string, reclamo: string): Promise<boolean>
   insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>): Promise<boolean>
   /** `permiso` = la base rechazó con 42501 (funcionalidad apagada, o no es quien subió ni administrador). */
   /** `invalida` = 22023 (versión ya procesada, ajena o inexistente para la base): no se reintenta. */
@@ -75,6 +77,9 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const version = await deps.version(jwt, versionId)
   // Versión inexistente, de otra organización o sin permiso: el MISMO 403, sin revelar si existe.
   if (!version) return respuesta({ error: SIN_PERMISO }, 403)
+  // El rol va PRIMERO: un rol de solo lectura (p. ej. Consulta, aunque figure como autor de una versión heredada) recibe el
+  // mismo 403 que una versión ajena, antes de la rama «quien subió» y sin llegar a reclamar.
+  if (!(await deps.puedeGestionar(jwt))) return respuesta({ error: SIN_PERMISO }, 403)
   const esQuienSubio = version.subida_por !== null && version.subida_por === usuario.id
   // El contexto (rol) solo hace falta si NO es quien subió la versión; un fallo al leerlo cuenta como «sin contexto».
   let contexto: Awaited<ReturnType<Deps['contexto']>> = null
@@ -107,8 +112,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
 
   // Los fragmentos solo se borran si esta invocación SIGUE siendo la dueña de la versión: relee la versión y exige
   // `procesando` con su propio reclamo. Así nunca se borran los de una versión ya `activa` ni los de otra invocación
-  // que retomó la versión tras vencer el reclamo propio. Límite: entre la relectura y el borrado hay una ventana
-  // mínima (sin transacción, sin marca de intento por fragmento: requeriría una migración, ver docs).
+  // que retomó la versión tras vencer el reclamo propio. La relectura evita el viaje en el caso común; el borrado real
+  // (`borrar_fragmentos_si_dueno`) vuelve a comprobar la propiedad y borra en la MISMA transacción (cierra la ventana).
   type Propiedad = 'dueno' | 'activa' | 'ajena' | 'inexistente'
   const propiedad = async (): Promise<Propiedad> => {
     const actual = await deps.version(jwt, versionId)
@@ -119,7 +124,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   const borrarSiDueno = async (): Promise<boolean> => {
     try {
       if ((await propiedad()) !== 'dueno') return false
-      return await deps.borrarFragmentos(jwt, versionId)
+      return await deps.borrarFragmentos(jwt, versionId, reclamo)
     } catch (error) {
       console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error)
       return false
@@ -136,7 +141,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (dueno === 'ajena') return ocupada()
     if (await deps.marcarFallida(jwt, versionId, motivo, reclamo)) {
       // Ya `fallida`: sus fragmentos no sirven. Mejor esfuerzo; si falla queda rastro en el log.
-      try { await deps.borrarFragmentos(jwt, versionId) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
+      try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
       return null
     }
     if (await yaActiva()) return respuestaIdempotente()
@@ -192,7 +197,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (preparados === 'activa') return respuestaIdempotente()
     if (preparados === 'inexistente') return noExiste()
     if (preparados === 'ajena') return ocupada()
-    if (!(await deps.borrarFragmentos(jwt, versionId))) return await reintentable('No se pudieron preparar los fragmentos indexados, probá de nuevo.', 502)
+    if (!(await deps.borrarFragmentos(jwt, versionId, reclamo))) return await reintentable('No se pudieron preparar los fragmentos indexados, probá de nuevo.', 502)
     const filas = fragmentos.map((t, i) => ({ version_id: versionId, organizacion_id: version.organizacion_id, texto: t, embedding: `[${embeddings[i].join(',')}]`, orden: i }))
     if (!(await deps.insertarFragmentos(jwt, filas))) return await reintentable('No se pudieron guardar los fragmentos indexados, probá de nuevo.', 502)
 
@@ -210,7 +215,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         if (actual.estado === 'activa') return respuestaIdempotente()
         // Solo se borra si la versión sigue siendo nuestra o ya no está en juego (no `activa`, no retomada por otra).
         if (!(actual.estado === 'procesando' && actual.motivo_error !== reclamo)) {
-          try { await deps.borrarFragmentos(jwt, versionId) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
+          try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
         }
         await soltarSeguro()
         return respuesta({ error: 'Esta versión ya no se puede procesar.', codigo: 'no_procesable' }, 409)

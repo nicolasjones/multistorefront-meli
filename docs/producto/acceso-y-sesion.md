@@ -1,6 +1,9 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/login.tsx
+  - apps/web/src/pages/acceso
+  - apps/web/src/pages/acceso-restringido
 ---
 
 # Ingresar, recuperar el acceso y pedir permisos
@@ -51,7 +54,7 @@ Sin esa casilla, la sesión se cierra al cerrar la pestaña y también después 
 ## Recuperar la contraseña
 
 1. En la pantalla de ingreso, hacé clic en **¿Olvidaste tu contraseña?**.
-2. Escribí tu correo y hacé clic en **Enviar enlace de recuperación**.
+2. Escribí tu **Correo electrónico** y hacé clic en **Enviar enlace de recuperación**.
 ![Pantalla Recuperar acceso con el campo de correo y el botón para enviar el enlace](img/acceso-y-sesion/03-recuperar.png)
 
 *Recuperar acceso: escribí tu correo y pedí el enlace.*

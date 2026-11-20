@@ -69,7 +69,7 @@ describe('HistorialList', () => {
     expect(screen.getByText('Solo lectura')).toBeInTheDocument()
     expect(screen.getByText('Consulta de lo registrado antes de la plataforma. No se puede editar ni borrar.')).toBeInTheDocument()
     expect(screen.getByText(/Datos del sistema anterior, importados una sola vez al migrar/)).toBeInTheDocument()
-    expect(screen.getByText('Cada venta y cobro quedó asignado a la tienda que lo emitió. Las cotizaciones del dólar son globales.')).toBeInTheDocument()
+    expect(screen.getByText('Cada venta y cobro quedó asignado a la tienda que lo emitió.')).toBeInTheDocument()
     expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Ventas', 'Cobros', 'Cotizaciones del dólar'])
     expect(screen.getByRole('tab', { name: 'Ventas' })).toHaveAttribute('aria-selected', 'true')
   })

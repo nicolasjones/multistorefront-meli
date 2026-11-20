@@ -1,9 +1,28 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261024-150000-ventas-cobros-y-conciliacion
+  - supabase/migrations/20270114100000_cobros_comprobante.sql
+  - supabase/migrations/20270114100100_saldo_y_lectura_cobros.sql
+  - supabase/migrations/20270114100200_registrar_cobro_interno.sql
+  - supabase/migrations/20270114100300_registrar_cobro.sql
+  - supabase/migrations/20270114110000_conciliar_pago.sql
+  - supabase/migrations/20270114110100_listar_pagos.sql
+  - supabase/migrations/20270114110200_resumen_pagos.sql
+  - supabase/migrations/20270114120000_contrarreembolsos.sql
+  - supabase/migrations/20270114120100_marcar_contrarreembolso_cobrado.sql
+  - supabase/migrations/20270227140000_saldo_comprobante_resta_notas_credito.sql
+  - supabase/migrations/20270228200000_listar_pagos_saldo_neto.sql
+  - supabase/migrations/20270228200100_resumen_pagos_saldo_neto.sql
+  - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
+  - supabase/migrations/20270507180100_revertir_cobro.sql
+  - supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql
+  - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
+  - apps/web/src/pages/ventas/pagos/list.tsx
+  - apps/web/src/components/ventas/CobrosComprobante.tsx
+  - apps/web/src/lib/ventas/cobros.ts
+  - apps/web/src/lib/ventas/pagos.ts
+  - apps/web/src/lib/ventas/contrarreembolsos.ts
 ---
 
 # Ventas · cobros y conciliación (técnico, MSF-195)
@@ -18,15 +37,14 @@ los estados del comprobante, de MSF-177, en
 [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md).
 
 !!! note "Estado"
-    Implementado en la rama `epic/MSF-195-ventas-y-despacho-ventas-cobros-y-concil`, **pendiente de merge a
-    `main`**. Migraciones: `20261215100000`…`20261215100400` (F-VTA-12), `20261216100000`…`20261216100300`
-    (F-VTA-13) y `20261217100000`…`20261217100200` (F-VTA-14). Sin `kestra`, `superset` ni `workers`: el
+    Implementado en la rama `epic/MSF-195-ventas-y-despacho-ventas-cobros-y-concil`. Migraciones: `20270114100000`…`20270114100400` (F-VTA-12), `20270114110000`…`20270114110300`
+    (F-VTA-13) y `20270114120000`…`20270114120200` (F-VTA-14). Sin `kestra`, `superset` ni `workers`: el
     alcance de entrega es `refine` y `supabase`.
 
 !!! warning "Banda de versiones de las migraciones"
     Las tres historias usan bandas **nuevas y mayores** a propósito. Con los números que nombra
     `tasks.md` (`20261209*`) las migraciones quedaban por debajo de la cola ya aplicada en `dokploy`
-    (`20261212120600`) y `supabase db push` las rechaza (*«found local migration files to be inserted
+    (`20270112150000`) y `supabase db push` las rechaza (*«found local migration files to be inserted
     before the last migration on remote database»*); el guard `scripts/verificar-migraciones.mjs` lo
     marca como «versión REUSADA» y `pnpm docs:check` falla.
 
@@ -63,7 +81,7 @@ El modelo completo y el DER están en
 [ERD interactivo (Archify)](../diagrams/msf-195-erd.html) muestra el libro de cobros, los
 contrarreembolsos, las tablas de donde salen sus datos y las de plataforma, con PK/FK y cardinalidad.
 
-### `dominio.cobros_comprobante` (`20261215100000_cobros_comprobante.sql`)
+### `dominio.cobros_comprobante` (`20270114100000_cobros_comprobante.sql`)
 
 Es un **libro de dinero**: un cobro no se borra ni se edita (lo único que se mueve después es la
 aprobación de la conciliación).
@@ -92,7 +110,7 @@ aprobación de la conciliación).
   cuenta de cobro sean los de la empresa del cobro, que la forma esté activa y que la cuenta esté
   activa y habilitada en esa empresa. Solo en el `insert`: después el cobro es inmutable.
 
-### `dominio.contrarreembolsos` (`20261217100000_contrarreembolsos.sql`)
+### `dominio.contrarreembolsos` (`20270114120000_contrarreembolsos.sql`)
 
 | Columna | Qué es |
 |---|---|
@@ -142,12 +160,22 @@ el saldo se recalcula con el bloqueo de fila sobre el comprobante.
 |---|---|---|
 | `conciliar_pago(p_id uuid, p_actualizado_en timestamptz)` → `dominio.cobros_comprobante` | Aprueba un pago **con cuenta de cobro**: guarda `aprobado_por`/`aprobado_por_nombre`/`aprobado_en`. Idempotente y con bloqueo optimista (`40001`). | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
 | `revertir_conciliacion_pago(p_id uuid, p_actualizado_en timestamptz)` → `dominio.cobros_comprobante` | Ídem, quita la aprobación. | `security definer`; exige `ventas` en edición y la acción `conciliar_pago` |
-| `listar_pagos(p_empresa_id uuid default null, p_cuenta_cobro_id uuid default null, p_solo_con_saldo boolean default false, p_pagina integer default 1, p_tamano integer default 10)` → `(id, fecha, empresa_id, empresa, comprobante_id, numero, cliente, cuenta_cobro_id, cuenta_cobro, importe, aprobado_por, conciliado, saldo, actualizado_en, filas)` | Listado paginado de los cobros **con cuenta de cobro**, con filtro por empresa, por cuenta y «Solo con saldo». `filas` es el total del filtro (`count(*) over ()`). Tope de 200 por página; orden `registrado_en desc, id desc`. El saldo es el **neto** del comprobante (`total con IVA − todos sus cobros − sus notas de crédito`, mínimo 0; `20270228200000`), resuelto con un `left join lateral` sobre el índice `cobros_comprobante_comprobante_idx`. | `security invoker` |
-| `resumen_pagos(p_empresa_id uuid default null)` → `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)` | Totales de las tarjetas de Pagos. El **saldo pendiente** suma los saldos de los comprobantes con **pago parcial**, mirando **todos** sus cobros (no solo los que tienen cuenta: lo que el cliente debe no depende de cómo pagó) y excluyendo los comprobantes en `borrador` o `anulada`; usa el mismo saldo neto de notas de crédito (`20270228200100`; solo incluye facturas con al menos un cobro). | `security invoker` |
-| `cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer default 8)` → `(id, nombre, banco, activa, usos, total_cuentas)` | Alimenta la tarjeta Cuentas de cobro. `usos` cuenta solo los pagos de empresas accesibles. | `security invoker` |
+| `listar_pagos(p_empresa_id uuid default null, p_cuenta_cobro_id uuid default null, p_solo_con_saldo boolean default false, p_pagina integer default 1, p_tamano integer default 10)` → `(id, fecha, empresa_id, empresa, comprobante_id, numero, cliente, cuenta_cobro_id, cuenta_cobro, importe, aprobado_por, conciliado, estado_reversion, saldo, actualizado_en, filas)` | Listado paginado de los cobros **con cuenta de cobro** (incluye cobros revertidos y contra-asientos: `estado_reversion` vale `revertido`, `reversion` o nulo; `20270507180800`), con filtro por empresa, por cuenta y «Solo con saldo». `filas` es el total del filtro (`count(*) over ()`). Tope de 200 por página; orden `registrado_en desc, id desc`. El saldo es el **neto** del comprobante (`total con IVA − todos sus cobros − sus notas de crédito`, mínimo 0; `20270228200000`), resuelto con un `left join lateral` sobre el índice `cobros_comprobante_comprobante_idx`. | `security invoker` |
+| `resumen_pagos(p_empresa_id uuid default null)` → `(por_conciliar_importe, por_conciliar_cantidad, conciliado_importe, conciliado_cantidad, saldo_pendiente)` | Totales de las tarjetas de Pagos. El cobro revertido y su contra-asiento no cuentan como «por conciliar» ni «conciliado» (`20270507180800`). El **saldo pendiente** suma los saldos de los comprobantes con **pago parcial**, mirando **todos** sus cobros (no solo los que tienen cuenta: lo que el cliente debe no depende de cómo pagó) y excluyendo los comprobantes en `borrador` o `anulada`; usa el mismo saldo neto de notas de crédito (`20270228200100`; solo incluye facturas con al menos un cobro). | `security invoker` |
+| `cuentas_cobro_mas_usadas(p_empresa_id uuid default null, p_limite integer default 8)` → `(id, nombre, banco, activa, usos, total_cuentas)` | Alimenta la tarjeta Cuentas de cobro. `usos` cuenta solo los pagos de empresas accesibles, sin el cobro revertido ni su contra-asiento. | `security invoker` |
 | `puede_conciliar_pago(p_empresa_id uuid)` → `boolean` | Lectura del permiso por empresa para habilitar (o no) el interruptor «Cobrado». No autoriza nada. | `security definer` |
 | `private.aplicar_conciliacion(p_id uuid, p_actualizado_en timestamptz, p_conciliado boolean)` | Camino único que mueve la aprobación: las dos RPC públicas son envoltorios y no pueden divergir. | `security definer`, **sin grant** |
 | `private.puede_conciliar_pago_en_empresa(p_empresa_id uuid)` | Permiso por empresa (la del pago). | `security definer`, sin grant |
+
+### Reversión de cobros (lote 32)
+
+| RPC | Qué hace | Seguridad |
+|---|---|---|
+| `revertir_cobro(p_cobro_id uuid, p_motivo text)` → `uuid` | Agrega un **contra-asiento** al libro (importe negativo, `origen = 'reversion'`, `revierte_cobro_id`, `motivo_reversion`) y devuelve su id. Motivo obligatorio (≤ 300, `22023`). No revierte: un contra-asiento, un cobro ya revertido (índice único `cobros_comprobante_revierte_uq`), un cobro conciliado ni el de un contrarreembolso; tampoco sobre una factura borrador o anulada (`55000`). Con saldo neto > 0 y la factura en Cobrado, pasa a Deuda; con saldo 0, Cobrado. Deja `comprobante.cobro_revertido` en la Actividad. | `security definer`; solo administrador (`private.puede_escribir()`, `42501` si no) |
+
+`private.aplicar_conciliacion` rechaza (`55000`) conciliar un contra-asiento o un cobro ya revertido, y `private.validar_cobro_comprobante` no revalida la forma de pago ni la cuenta del contra-asiento. La FK `(revierte_cobro_id, organizacion_id)` tiene índice propio (`20270507190600`). Todo en `20270507180100_revertir_cobro.sql`. **Aún no hay pantalla** que la llame (ninguna parte de `apps/web/src` usa `revertir_cobro`). Detalle en [cobros por comprobante](../cobros-por-comprobante.md).
+
+Además, `anular_comprobante` rechaza (`55000`) la factura **entregada** y la que tiene **cobros registrados** (cobrado neto > 0; `20270507180000`): con el cobro revertido sí se puede anular.
 
 ### F-VTA-14 · Contrarreembolsos
 
@@ -181,7 +209,7 @@ castellano.
 - **Errores por campo**: cada error de validación lleva `hint` con el nombre del campo (`importe`,
   `forma_pago_id`, `cuenta_cobro_id`), también el tope (`P0001` con `hint = 'importe'`). Es lo que
   permite que la pantalla marque **el campo** en vez de mostrar un error general.
-- **Caja cerrada** (épica **MSF-193**, F-VTA-33 / MSF-349): el disparador
+- **Caja cerrada** (épica **MSF-193**, F-VTA-33 / MSF-349; **solo en la rama de la épica, todavía no está en el árbol**): el disparador
   `cobros_comprobante_caja_cerrada` (`before insert or update` sobre `dominio.cobros_comprobante`)
   rechaza con `55000` («La caja de ese día está cerrada; reabrila para registrar o modificar cobros»)
   toda escritura de un cobro de un día cerrado. Bloquea **toda** escritura, venga de la RPC que venga:
@@ -264,6 +292,7 @@ CUIT): solo nombre de la cuenta, importe y guía.
 | Evento | Cuándo |
 |---|---|
 | `comprobante.cobro_registrado` | Se registra un cobro (actor, tienda, importe y forma). |
+| `comprobante.cobro_revertido` | Un administrador revierte un cobro con `revertir_cobro` (actor, tienda, importe, factura y motivo). |
 | `pago.conciliado` | Se aprueba un pago contra el extracto. |
 | `pago.conciliacion_revertida` | Se revierte la aprobación. |
 | `contrarreembolso.abierto` | La guía de despacho abre un contrarreembolso (actor, tienda, guía). |
@@ -318,18 +347,18 @@ código (`codigoDeErrorCobro` de `apps/web/src/lib/ventas/cobros.ts`). El test e
 
 Las doce migraciones son **aditivas** y documentan su reversión en el encabezado de cada una:
 
-1. `20261215100000`–`20261215100400`: `drop trigger cobros_comprobante_validar`, `drop function` de
+1. `20270114100000`–`20270114100400`: `drop trigger cobros_comprobante_validar`, `drop function` de
    `private.validar_cobro_comprobante`, `private.saldo_comprobante`, `private.registrar_cobro_interno`,
    `private.puede_registrar_cobro_en_empresa`, `public.registrar_cobro`, `public.saldo_comprobante`,
    `public.cobros_de_comprobante` y `public.puede_registrar_cobro`; `drop table
    dominio.cobros_comprobante`; `drop index dominio.formas_pago_id_organizacion_uq`; borrar la fila
    `registrar_cobro` de `public.permisos_rol_accion` y restaurar el `check` de acciones.
-2. `20261216100000`–`20261216100300`: `drop function` de `public.conciliar_pago`,
+2. `20270114110000`–`20270114110300`: `drop function` de `public.conciliar_pago`,
    `public.revertir_conciliacion_pago`, `public.listar_pagos`, `public.resumen_pagos`,
    `public.cuentas_cobro_mas_usadas`, `public.puede_conciliar_pago`, `private.aplicar_conciliacion` y
    `private.puede_conciliar_pago_en_empresa`; borrar la fila `conciliar_pago` y restaurar el `check` de
    acciones.
-3. `20261217100000`–`20261217100200`: `drop function` de `private.abrir_contrarreembolso`,
+3. `20270114120000`–`20270114120200`: `drop function` de `private.abrir_contrarreembolso`,
    `public.marcar_contrarreembolso_cobrado`, `public.listar_contrarreembolsos`,
    `public.resumen_contrarreembolsos` y `public.puede_cobrar_contrarreembolso`; `drop table
    dominio.contrarreembolsos`; borrar la fila `cobrar_contrarreembolso` y restaurar el `check` de
@@ -343,6 +372,6 @@ revierte con `git revert -m 1` de su merge; la épica entera, con el revert de s
 
 El botón **«Exportar»** de Pagos y de Transportes (la sub-pestaña **«Motos»**, mensajería propia, es de MSF-145 y se documenta en [Ventas en moto](ventas-motos.md));
 **vencimiento por plazo de rendición** y **comisión del transporte**; el **cobro sobre presupuestos**;
-la **importación de extractos bancarios**; el **reverso de un cobro mal cargado**; las pestañas
+la **importación de extractos bancarios**; la **pantalla** para revertir un cobro mal cargado (la RPC `revertir_cobro` ya existe); las pestañas
 **Faltantes** y **Devoluciones (RMA)**; y los campos de despacho (Guía, Fecha de envío, Armó,
 Controló, Entregó), que son de MSF-135.

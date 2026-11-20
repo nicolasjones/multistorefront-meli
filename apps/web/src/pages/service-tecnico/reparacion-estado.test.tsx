@@ -235,6 +235,14 @@ describe('Service técnico · Estado, historial, entrega y anulación (FR-030 a 
     expect(await screen.findByRole('list', { name: 'Historial de estados' })).toBeInTheDocument()
   })
 
+  it('una reparación entregada no ofrece «Anular» ni «Guardar»', async () => {
+    mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, estado_id: 's-3', estado: 'Entregado', estado_cierra: true, entrega_real: '2026-10-20', entregado_por: 'Ana' })
+    abrirDetalle()
+    expect(await screen.findByRole('link', { name: 'Imprimir remito' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Guardar' })).not.toBeInTheDocument()
+  })
+
   it('una reparación anulada se abre de solo lectura, con el motivo', async () => {
     mocks.obtenerReparacion.mockResolvedValue({ ...REPARACION, anulada_en: '2026-10-20T12:00:00Z', anulada_motivo: 'Duplicada' })
     abrirDetalle()

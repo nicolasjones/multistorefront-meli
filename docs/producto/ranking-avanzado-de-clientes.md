@@ -1,8 +1,12 @@
 ---
 owner: producto
 sources:
-  - specs
-  - design/pantallas
+  - specs/20261028-100000-ranking-avanzado-de-clientes
+  - design/pantallas/Clientes.dc.html
+  - apps/web/src/components/clientes/RankingComparado.tsx
+  - apps/web/src/components/clientes/FiltrosDimension.tsx
+  - apps/web/src/components/clientes/ClientesInactivos.tsx
+  - apps/web/src/components/clientes/RankingClientes.tsx
 ---
 
 # Clientes · ranking avanzado de clientes (MSF-171)

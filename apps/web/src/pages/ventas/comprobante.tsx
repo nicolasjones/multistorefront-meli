@@ -152,13 +152,20 @@ export function ComprobanteVenta() {
   const [exito, setExito] = useState<string | null>((ubicacion.state as { mensaje?: string } | null)?.mensaje ?? null)
   // `aviso` en el estado de la ruta: lo deja «Crear presupuesto» desde un pedido (MSF-941) para líneas omitidas o un presupuesto que quedó vacío.
   const [aviso, setAviso] = useState<string | null>((ubicacion.state as { aviso?: string } | null)?.aviso ?? null)
-  // El aviso y el mensaje de éxito ya se copiaron al estado de la pantalla: se limpian del historial para que no reaparezcan al recargar.
+  // El aviso y el mensaje de éxito del estado de la ruta se copian al estado de la pantalla y se limpian del historial para
+  // que no reaparezcan al recargar. Se hace en un efecto (y no solo en el valor inicial del estado) porque al pasar de un
+  // comprobante a otro (p. ej. «Copiar» un presupuesto) la ruta es la misma y la pantalla NO se remonta: sin esto el mensaje
+  // de la copia se perdía.
   const estadoRuta = ubicacion.state as { aviso?: string; mensaje?: string } | null
-  const hayAvisoEnRuta = Boolean(estadoRuta?.aviso || estadoRuta?.mensaje)
+  const avisoEnRuta = estadoRuta?.aviso
+  const mensajeEnRuta = estadoRuta?.mensaje
   const rutaActual = `${ubicacion.pathname}${ubicacion.search}${ubicacion.hash}`
   useEffect(() => {
-    if (hayAvisoEnRuta) navigate(rutaActual, { replace: true, state: null })
-  }, [hayAvisoEnRuta, rutaActual, navigate])
+    if (!avisoEnRuta && !mensajeEnRuta) return
+    if (mensajeEnRuta) setExito(mensajeEnRuta)
+    if (avisoEnRuta) setAviso(avisoEnRuta)
+    navigate(rutaActual, { replace: true, state: null })
+  }, [avisoEnRuta, mensajeEnRuta, rutaActual, navigate])
   const [clienteConsultado, setClienteConsultado] = useState<ClienteComprobante | null>(null)
   // Cobros (F-VTA-12, FR-007…FR-009): lista, saldo y permiso de la acción `registrar_cobro`.
   const [cobros, setCobros] = useState<Cobro[]>([])

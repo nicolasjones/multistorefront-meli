@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { AppBar, Box, Toolbar, Typography } from '@mui/material'
 import { HamburgerMenu } from '@refinedev/mui'
-import { useLocation } from 'react-router'
+import { useLocation, useMatch } from 'react-router'
 import { BusquedaGlobal } from './BusquedaGlobal'
 import { CampanitaNotificaciones } from './CampanitaNotificaciones'
 import { MenuCuenta } from './MenuCuenta'
@@ -43,12 +43,15 @@ export function EncabezadoPanel() {
   useEffect(() => {
     etiquetarHamburguesa()
   }, [])
+  // En la ficha de una empresa (`/empresas/edit/:id`) la empresa la define la ruta y ya la muestra `SelectorEmpresa`: no se suma
+  // el selector de la empresa activa, que mostraría otro contexto a la vez y confunde sobre qué empresa se está viendo.
+  const enFichaDeEmpresa = useMatch('/empresas/edit/:id') !== null
   return (
     <AppBar position="sticky" color="inherit" elevation={0} sx={{ bgcolor: 'background.paper', color: 'text.primary', borderBottom: `1px solid ${tokens.color.bordeSuave}` }}>
       <Toolbar sx={{ gap: 2, flexWrap: 'wrap', minHeight: { xs: 56, sm: tokens.forma.altoHeader } }}>
         <HamburgerMenu />
         <SelectorEmpresa />
-        <SelectorEmpresaActiva />
+        {enFichaDeEmpresa ? null : <SelectorEmpresaActiva />}
         <MigasPanel />
         <Box sx={{ flexGrow: 1 }} />
         <BusquedaGlobal />

@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/inicio
 ---
 
 # Inicio: el tablero, las alertas y la búsqueda de productos

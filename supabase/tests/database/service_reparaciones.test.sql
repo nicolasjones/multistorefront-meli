@@ -428,7 +428,7 @@ select is((select count(*)::int from dominio.reparaciones), 0, 'la organización
 select is((select count(*)::int from dominio.reparacion_historial), 0, 'la organización Dos no ve el historial de la Uno');
 select throws_ok(
   $$select public.obtener_reparacion((select id from reps where clave = 'r1'))$$,
-  'P0002', null, 'obtener una reparación ajena no revela que existe');
+  'PT404', 'La reparación no existe', 'obtener una reparación ajena no revela que existe (MSF-638: 404)');
 select throws_ok(
   $$select public.actualizar_reparacion((select id from reps where clave = 'r1'), now(), 'c6000000-0000-0000-0000-000000000001', (select modelo_dos from datos))$$,
   'P0002', null, 'editar una reparación ajena no encuentra nada');
@@ -478,7 +478,7 @@ select is(
   0::bigint, 'el operador no lee por select una reparación de una tienda a la que no accede');
 select throws_ok(
   $$select public.obtener_reparacion((select id from reps where clave = 'otra'))$$,
-  'P0002', null, 'el operador no obtiene por id una reparación de otra tienda');
+  'PT404', 'La reparación no existe', 'el operador no obtiene por id una reparación de otra tienda (MSF-638: 404)');
 select is(
   (select count(*) from dominio.reparacion_historial where reparacion_id = (select id from reps where clave = 'otra')),
   0::bigint, 'el operador no lee la bitácora de otra tienda');

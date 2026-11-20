@@ -2,8 +2,19 @@
 owner: tecnico
 sources:
   - specs/20270328-100000-gastos-de-la-empresa
-  - supabase/migrations
-  - apps/web/src/pages/rentabilidad
+  - supabase/migrations/20270349000000_gastos.sql
+  - supabase/migrations/20270349000100_gastos_rpc.sql
+  - supabase/migrations/20270349000200_gastos_exportacion_total.sql
+  - supabase/migrations/20270349000300_gastos_consulta.sql
+  - supabase/migrations/20270421000000_costos_fijos_bandera_y_vistas.sql
+  - supabase/migrations/20270421000100_margen_despues_costos_fijos.sql
+  - supabase/migrations/20270421000200_actividad_por_empresa_accesible.sql
+  - apps/web/src/pages/rentabilidad/CostosFijos.tsx
+  - supabase/tests/database/gastos_rpc.test.sql
+  - supabase/tests/database/gastos_superficies.test.sql
+  - supabase/tests/database/gastos_bandera.test.sql
+  - supabase/tests/database/margen_costos_fijos.test.sql
+  - supabase/tests/database/actividad_por_empresa.test.sql
 ---
 
 # Revisión de seguridad integral: Gastos de la empresa y margen después de costos fijos (MSF-469)

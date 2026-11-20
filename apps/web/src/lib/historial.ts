@@ -261,7 +261,7 @@ export function resumenDeEjecucion(ejecucion: EjecucionHistorial): ResumenEjecuc
     titulo: 'La importación no se aplicó',
     descripcion: totalRechazos > 0
       ? `${formatoNumero.format(totalRechazos)} filas rechazadas. No se importó ningún registro: corregí la planilla y volvé a intentar.`
-      : 'El worker rechazó la planilla. Revisá el detalle en Ejecuciones.',
+      : 'No se pudo leer la planilla y no se importó ningún registro. Revisá que sea un .csv o .xlsx con las columnas esperadas y volvé a intentar; el detalle está en Ejecuciones.',
     rechazos,
     rechazosTruncados: truncados,
     totalRechazos,

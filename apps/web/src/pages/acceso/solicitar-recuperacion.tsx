@@ -45,7 +45,7 @@ export function SolicitarRecuperacionPage() {
         {linkExpired && <Alert severity="warning">{expiredLinkNotice}</Alert>}
         {error && <Alert severity="error">{error}</Alert>}
         {notice && <Alert severity="success">{notice}</Alert>}
-        <TextField label="Email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required fullWidth />
+        <TextField label="Correo electrónico" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required fullWidth />
         <Button type="submit" variant="contained" size="large" disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar enlace de recuperación'}
         </Button>

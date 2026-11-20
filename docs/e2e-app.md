@@ -1,7 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - apps/web/playwright.config.ts
+  - apps/web/e2e/verificar-dist.mjs
+  - .github/workflows/validate.yml
+  - .github/workflows/e2e-nocturno.yml
+  - scripts/verificar-e2e-omitidos.mjs
+  - scripts/verificar-e2e-nocturno.mjs
+  - scripts/verificar-e2e-sin-escritura-directa.mjs
+  - scripts/armar-video-evidencia.mjs
+  - scripts/publicar-videos-e2e.mjs
+  - scripts/cobertura-e2e.mjs
 ---
 
 # Suite E2E de la app (Playwright)
@@ -360,7 +369,7 @@ Límites a propósito:
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
-  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `application` con `pnpm test:e2e:omitidos`).
+  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `chequeos` con `pnpm test:e2e:omitidos`).
   Además `tienda-sesion-vencimiento` falla (no se omite) en el job `e2e-tienda` (variable explícita `E2E_TIENDA_CI=1`, que solo setea ese job: en `application` el build no define `VITE_PANEL_HOSTS` y el spec se sigue omitiendo) si el build no sirve el host como tienda, y
   `tienda-disponibilidad` no tiene `test.skip` dinámicos (omitía su verificación porque `locator.count()` no espera y la carga
   infinita dejaba el producto sembrado fuera de la primera tanda; ahora siembra una categoría propia y abre `/catalogo?categoria=<id>`).
@@ -715,7 +724,7 @@ rama por defecto (`main`), como se explica abajo.
 
 | Dónde | Qué corre | Bloquea |
 |---|---|---|
-| Cada PR (`validate.yml`, job `application`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
+| Cada PR (`validate.yml`, job `chequeos`) | Guardianes baratos: `pnpm e2e:escritura:check` y `pnpm test:e2e:escritura`, `pnpm test:e2e:omitidos` (el test de la guarda de omisiones; la guarda sobre el reporte JSON corre en `e2e-tienda`), `pnpm e2e:nocturno:check` y `pnpm test:e2e:nocturno` | Sí |
 | Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `application`) | Los specs públicos sin base (`acceso-publico`, `recorrido-publico`); el paso exige `changes.web` y `changes.e2e` en `true`, y `changes.e2e` es `false` en todo PR con base `epic/*` | Sí |
 | Cada PR a `dokploy`/`main` que toca la web y no apunta a `epic/*` (`validate.yml`, job `e2e-tienda`) | Solo los E2E de la tienda pública (`tienda-*`) y, al final del job, `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`; mismo requisito `changes.web` + `changes.e2e` | No, hasta que `E2E_TIENDA_BLOQUEA=true` |
 | Todas las noches y a pedido (`e2e-nocturno.yml`) | La suite completa (`apps/web/e2e`, todos los specs) sobre `dokploy` | No: nunca bloquea; si falla, el run queda en rojo |
@@ -723,7 +732,7 @@ rama por defecto (`main`), como se explica abajo.
 El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scripts/supabase-ci.mjs`, API por
 `host.docker.internal`, sin Edge Runtime), así que lo que se aprende en uno vale para el otro.
 
-- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `application`, en cada PR) falla si el workflow deja de cumplir el
+- **Guarda del contrato:** `pnpm e2e:nocturno:check` (en `chequeos`, en cada PR) falla si el workflow deja de cumplir el
   contrato: el cron, el disparo manual, el kill switch del job (`vars.CI_PAUSED` y `vars.CI_E2E_NOCTURNO`), los permisos de
   solo lectura, el checkout de `dokploy`, Playwright en serie, el stack real de Supabase con sus migraciones, la guarda contra
   omisiones masivas del resumen, `continue-on-error` (dejaría el run verde con la suite omitida), o la aparición de
@@ -809,13 +818,67 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     `tabla, filtro, cuerpo` o ruta con `accept-profile` por defecto); `precios-iva`/`stock-actual-vivo`/`ordenes-compra` (`modificar`/
     `actualizar`, PATCH que el fixture no ofrece); `ayuda`/`panel-sin-desborde` (`borrar` con URL completa); `ventas-faltantes-soporte`
     (`leer` con `dominio` por defecto, exportado a otros specs). Estos E2E los valida el CI (`e2e-visible-sesion`), no el entorno local.
-  - **No migrados** (siguen con `rest` local): `cuenta-web-cliente` (firma con método explícito, PATCH y RPC), `exportacion-total` y
-    `importaciones-soporte`. Se intentó migrar los dos últimos y sembrar sus tablas por `sql()`: la siembra pasó, pero los
-    tests (`exportacion-total`, `importaciones`, `importaciones-a11y`) agotan el timeout de 5 min en la interfaz (run `43736941987`,
-    job `132881521943`), causa sin diagnosticar; no están verdes, así que se revirtió la migración. `productos-create-permisos` y
-    `notificaciones` fallan en CI por el mismo grant ausente (`conexiones`, `avisos_pendientes`; run `43735017948`), ya antes de este cambio.
-    Seguimiento: MSF-964 (`cuenta-web-cliente`), MSF-965 (`exportacion-total`/`importaciones`/`importaciones-a11y`), MSF-966
-    (grants de `service_role`: migración vs `sql()`, decisión de Nicolás).
+  - **Migración de los que quedaban (lote 27).** `cuenta-web-cliente`, `exportacion-total`, `importaciones`, `importaciones-a11y`,
+    `productos-create-permisos` y `notificaciones` ya usan el fixture compartido (`importaciones-soporte.ts` lo envuelve). Decisión
+    sobre el grant de `service_role` (opción (b)): no se da por migración; lo que no tiene grant (`conexiones`, `capacidades_ejecucion`,
+    `sistemas_externos`, `procesos_masivos`, `procesos_masivos_errores`, `avisos_pendientes`, `clientes_empresas`, `cuentas_cliente`) se
+    siembra y se limpia con `sql()`. `cuenta-web-cliente` vincula la cuenta con la RPC `vincular_cuenta_cliente` (EXECUTE para
+    `service_role`, `rest('rpc/…', cuerpo, 'public', 'return=minimal')`) y suspende con `sql()`; `altaUsuario(correo, null)` da de alta
+    a la persona sin contraseña (invitación pendiente).
+  - **Timeouts de 5 min de `exportacion-total`/`importaciones`/`importaciones-a11y` (causa probable, sin corrida local).** El CI
+    no deja ninguna traza (el run `43736941987` no conserva artefactos) y el timeout no apunta a una línea: la config no fija
+    `actionTimeout`, así que un `click`, `fill` o `boundingBox` sobre un elemento que no aparece espera hasta el tope del test en vez
+    de fallar en segundos. Hipótesis adicional (sin medir): en modo visible cada tecla tipeada por `escribir` pagaría `delay` (90 ms) más el `slowMo` (350 ms),
+    lo que haría lento cada ingreso (`exportacion-total` ingresa tres veces). Cambios: `ingresar` de `importaciones-soporte` llena con `fill`;
+    los cinco specs fijan `test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })` (un fallo real sale en 30 s señalando la
+    acción); `sql()` fija `connectionTimeoutMillis`/`query_timeout`; todos los `fetch` del fixture (`rest`, `leer`, `borrar`, `altaUsuario`, `borrarUsuario`, RPC) y de `importaciones-soporte`/`cuenta-web-cliente` llevan `AbortSignal.timeout(TOPE_FETCH_MS)` (30 s).
+    Sin aserciones quitadas. Falta la corrida de sesión que lo confirme: si siguen agotando el tiempo, el mensaje ya dirá dónde.
+    Seguimiento: MSF-964, MSF-965 y MSF-966 pendientes solo de esa corrida.
+  - **Costos conocidos de este lote.** (1) `ingresar` de `importaciones-soporte` llena con `fill`: en los videos del modo visible ya no
+    se ve el tecleo del correo y la clave (sí el cursor sobre «Ingresar»). (2) La clave de `importaciones-soporte` (`CONTRASENA_E2E`)
+    es fija a propósito: `ayuda` y `panel-sin-desborde` dan de alta con ese literal y entran con su `ingresar`; son usuarios
+    efímeros de un stack efímero. `cuenta-web-cliente` sí genera una clave aleatoria por corrida. (3) `anonKey` de ese archivo
+    ahora lee primero `VITE_SUPABASE_PUBLISHABLE_KEY`, como el fixture: es intencional, porque el job `e2e-visible-sesion` solo exporta
+    esa variable (no `SUPABASE_ANON_KEY`) y antes el login de la siembra salía con `apikey` vacío (401).
+  - **Job de sesión con `--workers=2 --retries=0`.** `validate.yml` (`e2e-visible-sesion`) corre `playwright test --workers=2 --retries=0` y no un worker por
+    spec (los reintentos duplican el tiempo de cada rojo y con 5 min por spec visible y 40 min de tope del job agotan el job): con el runner cargado, seis specs visibles a la vez (cursor, rótulos, `slowMo`, video 1080p) agotaron los timeouts de 3-5 min.
+  - **`cuenta-web-cliente` en el job de sesión (4 de 4 en rojo).** Dos causas, ambas pre-existentes (el spec nunca se había corrido
+    en sesión). (1) `ERR_CONNECTION_REFUSED` en `127.0.0.1:<api>`: GoTrue arma el `action_link` de `generate_link` con su URL
+    externa y el navegador corre dentro del contenedor del runner, donde 127.0.0.1 es el propio contenedor y el puente de la API
+    murió con su paso; `generarEnlace` reemplaza el origen del enlace por el de `SUPABASE_URL` (`host.docker.internal`). (2) Con eso
+    el `verify` redirige bien a `mundojc.localhost:4300/definir-contrasena`, pero se servía el PANEL y no la TIENDA: el build del job
+    de sesión no exportaba `VITE_PANEL_HOSTS` (sí `e2e-tienda`); ahora el paso «Exponer claves» exporta `VITE_PANEL_HOSTS=localhost,127.0.0.1`,
+    igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
+    `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
+    todavía en sesión.
+  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: verdes `exportacion-total` + `importaciones-a11y` (run 44188166361),
+    `e2e/importaciones` + `productos-create-permisos` (44191224534) y `cuenta-web-cliente` sola (44199070547: 3 pasan y SC-006 se
+    omite, ver abajo; el test de ingresos tarda ~1 min y necesita el `setTimeout(180_000)`). `notificaciones` sigue en ROJO: falló por timeout en
+    44193675064, 44205757225 (y el reintento previo 44195930872 pasó solo con reintentos, que el job ya no usa). Hasta que `notificaciones`
+    pase en sesión no se puede decir que los 6 specs estén verdes.
+  - **`notificaciones`: dónde se iba el tiempo (traza del run 44205757225).** El recorrido y las aserciones terminan a ~106 s; los ~200 s
+    restantes son `Close context` (40 s por contexto) y adjuntar el video 1080p de los 2 contextos en el host saturado: el cierre cuenta
+    contra el timeout del test. Subir el timeout no lo arregla. Cambios: `E2E_VIDEO_CONTEXTOS` (`completa` por defecto = 1920x1080 como
+    siempre, `baja` = 1280x720, `off`; valor inválido lanza error) en `abrirContextoGrabado`; el job de sesión usa `baja`; y la segunda
+    sesión de `notificaciones` («otra persona») no graba (`{ video: 'off' }`). El timeout del spec vuelve a 180 s. Sin validar todavía en sesión.
+  - **SC-006 (recuperar) en el job de sesión: causa real y decisión.** La pantalla mostraba «No pudimos enviar el enlace ahora» porque
+    `POST /functions/v1/recuperar-clave-cliente` devolvía 500 de Kong (`{"message":"An unexpected error occurred"}`, traza del run
+    44185502449): el job levanta el stack con `-x studio,mailpit,imgproxy,logflare,vector,edge-runtime,…` (`validate.yml`, paso «Levantar
+    el stack de Supabase del CI»), o sea SIN Edge Runtime ni Mailpit. Servida, la función responde 400 a un cuerpo vacío (`handler.ts:72-74`).
+    El test omite SOLO si la sonda devuelve 404 o el 500 de Kong con ese cuerpo («no servida»); cualquier otro código distinto de 400
+    FALLA mostrando el status. El motivo se imprime en el log (`[omitido] SC-006…`), queda como anotación `omitido` del reporte y el
+    paso «Verificar que no haya omisiones inesperadas» del job (`verificar-e2e-omitidos.mjs --max=1`, que ahora imprime el motivo) tolera
+    como máximo ese único omitido. Evidencia del skip: run 44199070547. No se habilitó Edge/SMTP en el job (cambia el stack compartido
+    del CI sin poder probarlo): MSF-964 queda abierto para SC-006 hasta servir la función (`supabase functions serve` con
+    `SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_ANON_KEY`/`ALLOW_HTTP_REDIRECT=true`) y habilitar el correo local.
+  - **Timeouts de 300 s en sesión visible (`exportacion-total`, `importaciones`, `importaciones-a11y`).** La hipótesis del
+    `actionTimeout` quedó descartada: son del recorrido visible (slowMo 350 ms, cursor de 30 pasos hacia cada clic, rótulos de 2,2 s, video
+    1080p) con el runner cargado. No se suben los timeouts. Se corre en grupos de 2 specs como máximo (input `e2e_archivos`), uno por
+    corrida, p. ej. `gh workflow run validate.yml --ref <rama> -f e2e_sesion=true -f e2e_archivos="exportacion-total.e2e.ts importaciones.e2e.ts"`,
+    luego `"importaciones-a11y.e2e.ts cuenta-web-cliente.e2e.ts"` y `"notificaciones.e2e.ts productos-create-permisos.e2e.ts"`. Bajo carga
+    se puede bajar la cámara lenta con las variables `E2E_SLOWMO_MS` (por defecto 350, `playwright.config.ts`) y `E2E_MOUSE_PASOS` (por
+    defecto 30, `visible.ts`); el job `e2e-visible-sesion` las exporta en 100 y 10 (host compartido y saturado), y el modo local/video conserva
+    350 y 30.
   - Dos corridas previas (`43728936584`, `43730883232`) fallaron por infraestructura (el stack de la ranura compartida se pisó
     con otro run concurrente), no por los specs.
 - **Pendientes sin ejecutar (MSF-665).** Siguen sin corrida con evidencia los recorridos «Pendiente» de la tabla de

@@ -1,9 +1,28 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20261029-100000-mejoras-de-clientes-y-proveedores
+  - apps/web/src/components/clientes/DialogoFusionarClientes.tsx
+  - apps/web/src/components/clientes/HojaEtiquetas.tsx
+  - apps/web/src/components/proveedores/DialogoEvolucionCosto.tsx
+  - apps/web/src/components/proveedores/ListaContactos.tsx
+  - apps/web/src/components/stock/IngresoMercaderiaForm.tsx
+  - apps/web/src/hooks/useContactosProveedor.ts
+  - apps/web/src/hooks/useHistorialCostos.ts
+  - apps/web/src/lib/etiquetasCliente.ts
+  - apps/web/src/lib/ingresos.ts
+  - apps/web/src/pages/proveedores/show.tsx
+  - apps/web/src/pages/clientes/show.tsx
+  - apps/web/src/pages/clientes/list.tsx
+  - supabase/migrations/20270205110201_fusion_clientes.sql
+  - supabase/migrations/20270205110202_fusion_clientes_cuenta_web.sql
+  - supabase/migrations/20270205110203_fusion_clientes_actividad.sql
+  - supabase/migrations/20270205110204_vista_previa_fusion_clientes.sql
+  - supabase/migrations/20270205110205_costo_ingreso_opcional.sql
+  - supabase/migrations/20270205110206_historial_costos_producto.sql
+  - supabase/migrations/20270205110207_proveedores_contactos.sql
+  - supabase/migrations/20270205110208_proveedores_contactos_rpc.sql
+  - supabase/migrations/20270205110209_proveedores_contactos_actividad.sql
 ---
 
 # Mejoras de clientes y proveedores: modelo, RPC y pantallas (MSF-445)
@@ -20,14 +39,14 @@ sources:
 
 ## Estado de entrega
 
-La épica está integrada en la rama `epic/MSF-445-clientes-y-proveedores-mejoras-de-client` (**PR #695**),
-**no en `main`** a la fecha de esta página: `main` todavía no tiene las migraciones `20270204…` ni los
-componentes de la etiqueta, la fusión, la evolución del costo y los contactos. Las cuatro historias se
+La épica se integró por la rama `epic/MSF-445-clientes-y-proveedores-mejoras-de-client` (**PR #695**) y hoy está en la rama
+`dokploy`: las migraciones (`20270205110201…20270205110209`) y los componentes de la etiqueta, la fusión, la evolución del
+costo y los contactos ya están en el código. Las cuatro historias se
 cerraron por PR separados (`#671` F-CLI-17/MSF-446, `#676` F-CLI-18/MSF-447, `#678` F-PRV-07/MSF-448,
 `#683` F-PRV-08/MSF-449) y el cierre (T026–T028) en `#692` (MSF-766).
 
-Las migraciones se escribieron primero como `20270115…` y se **renumeraron a `20270204…`** al integrar la
-base `dokploy` (su máximo era `20270203120000`): la versión vieja quedó bajo la cola aplicada y el
+Las migraciones se escribieron primero como `20270115…`, se renumeraron a `20270204…` al integrar la
+base `dokploy` (su máximo era `20270203120000`) y quedaron en `20270205110201…20270205110209` al unificar versiones: la versión vieja quedó bajo la cola aplicada y el
 aplicador la salteaba. Cada archivo renumerado lo dice en su primera línea.
 
 Todo lo de abajo está verificado contra esas migraciones y contra el código de `apps/web` de la rama.
@@ -123,15 +142,15 @@ Restricciones e índices nuevos:
 
 | Migración | Qué agrega |
 |---|---|
-| `20270204100000_fusion_clientes.sql` | `public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`: permiso de Administrador, bloqueo de ambas filas, validaciones, reasignación de documentos de venta y cuenta web, archivo del descartado. |
-| `20270204100100_fusion_clientes_cuenta_web.sql` | `create or replace` de la misma firma: `p_cuenta_web_de` resuelve la cuenta web activa y da de baja la no elegida. |
-| `20270204100200_fusion_clientes_actividad.sql` | `private.registrar_actividad_fusion_clientes(...)` y el evento `cliente.fusionado` dentro de la misma transacción. |
-| `20270204100300_vista_previa_fusion_clientes.sql` | `public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`: solo lectura. |
-| `20270204110000_costo_ingreso_opcional.sql` | `alter column costo_unitario_usd drop not null` y `registrar_ingreso_mercaderia` con la misma firma y el costo de línea opcional. |
-| `20270204110100_historial_costos_producto.sql` | `public.historial_costos_producto(p_producto_id, p_proveedor_id)`. |
-| `20270204120000_proveedores_contactos.sql` | Tabla `dominio.proveedores_contactos`, RLS, índices y grants (solo `select`). |
-| `20270204120100_proveedores_contactos_rpc.sql` | `listar_contactos_proveedor`, `agregar_contacto_proveedor`, `marcar_contacto_principal` y el auxiliar `private.aplicar_contacto_principal`. |
-| `20270204120200_proveedores_contactos_actividad.sql` | `private.registrar_actividad_contacto_proveedor(...)`: `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado`. |
+| `20270205110201_fusion_clientes.sql` | `public.fusionar_clientes(p_conservar_id, p_descartar_id, p_cuenta_web_de)`: permiso de Administrador, bloqueo de ambas filas, validaciones, reasignación de documentos de venta y cuenta web, archivo del descartado. |
+| `20270205110202_fusion_clientes_cuenta_web.sql` | `create or replace` de la misma firma: `p_cuenta_web_de` resuelve la cuenta web activa y da de baja la no elegida. |
+| `20270205110203_fusion_clientes_actividad.sql` | `private.registrar_actividad_fusion_clientes(...)` y el evento `cliente.fusionado` dentro de la misma transacción. |
+| `20270205110204_vista_previa_fusion_clientes.sql` | `public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`: solo lectura. |
+| `20270205110205_costo_ingreso_opcional.sql` | `alter column costo_unitario_usd drop not null` y `registrar_ingreso_mercaderia` con la misma firma y el costo de línea opcional. |
+| `20270205110206_historial_costos_producto.sql` | `public.historial_costos_producto(p_producto_id, p_proveedor_id)`. |
+| `20270205110207_proveedores_contactos.sql` | Tabla `dominio.proveedores_contactos`, RLS, índices y grants (solo `select`). |
+| `20270205110208_proveedores_contactos_rpc.sql` | `listar_contactos_proveedor`, `agregar_contacto_proveedor`, `marcar_contacto_principal` y el auxiliar `private.aplicar_contacto_principal`. |
+| `20270205110209_proveedores_contactos_actividad.sql` | `private.registrar_actividad_contacto_proveedor(...)`: `proveedor.contacto_agregado` y `proveedor.contacto_principal_cambiado`. |
 
 Todas son **aditivas** y traen la reversión escrita en el encabezado (ver [Reversión](#reversion)).
 
@@ -218,7 +237,7 @@ Frontend (`apps/web/src/components/clientes/DialogoFusionarClientes.tsx` y `apps
 
 ## F-PRV-07 · Costo por línea y evolución del costo
 
-- `20270204110000_costo_ingreso_opcional.sql` relaja la columna:
+- `20270205110205_costo_ingreso_opcional.sql` relaja la columna:
   `alter table dominio.ingresos_mercaderia_lineas alter column costo_unitario_usd drop not null`.
   El comentario de la columna lo deja explícito: «nulo si el ingreso se cargó sin costo (no es cero). Se
   copia a `dominio.producto_costos` solo si se pidió actualizar el costo y la línea trae costo».
@@ -426,15 +445,15 @@ con dirección → etiqueta) a 320, 768 y 1440 px, con teclado, y verifica que l
 Todas las migraciones son **aditivas** y traen la reversión escrita en el encabezado. Ninguna borra datos
 en el mismo PR que las crea.
 
-- `20270204100000` / `…100` / `…200` / `…300`: `drop function public.fusionar_clientes(uuid, uuid, uuid)`,
+- `20270205110201` / `…202` / `…203` / `…204`: `drop function public.fusionar_clientes(uuid, uuid, uuid)`,
   `public.vista_previa_fusion_clientes(uuid, uuid)` y
   `private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid)`.
-- `20270204110000`: restaurar la versión previa de `public.registrar_ingreso_mercaderia` **y**
+- `20270205110205`: restaurar la versión previa de `public.registrar_ingreso_mercaderia` **y**
   `alter table dominio.ingresos_mercaderia_lineas alter column costo_unitario_usd set not null`, solo si
   no quedan filas con costo nulo (si las hay, hay que cargarles un costo antes).
-- `20270204110100`: `drop function public.historial_costos_producto(uuid, uuid)`.
-- `20270204120000`: `drop table dominio.proveedores_contactos` (exportar los datos antes).
-- `20270204120100` / `…20200`: `drop function public.marcar_contacto_principal(uuid)`,
+- `20270205110206`: `drop function public.historial_costos_producto(uuid, uuid)`.
+- `20270205110207`: `drop table dominio.proveedores_contactos` (exportar los datos antes).
+- `20270205110208` / `…209`: `drop function public.marcar_contacto_principal(uuid)`,
   `public.agregar_contacto_proveedor(uuid, text, text, text, text, boolean)`,
   `public.listar_contactos_proveedor(uuid)`, `private.aplicar_contacto_principal(uuid, uuid)` y
   `private.registrar_actividad_contacto_proveedor(uuid, uuid, text, uuid)`.

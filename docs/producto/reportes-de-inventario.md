@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/reportes/TableroInventario.tsx
 ---
 
 # Reportes de inventario: cuánto vale tu stock y qué reponer

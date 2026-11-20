@@ -4,6 +4,8 @@ sources:
   - supabase/functions/chat-ia-responder/guardas.ts
   - supabase/functions/preguntar-documentos/index.ts
   - supabase/functions/indexar-documento/handler.ts
+  - supabase/functions/indexar-documento/consultas.ts
+  - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/functions/enviar-correo-proveedor/handler.ts
   - supabase/functions/_shared/embeddings.ts
   - supabase/functions/_shared/fetch-ia.ts
@@ -80,20 +82,23 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   queda una línea en el log («no se pudo soltar el candado»). El contexto (rol) solo se lee si quien invoca no subió la
   versión; si la lectura falla, 503.
 - Los fragmentos solo se borran si la invocación sigue siendo la dueña de la versión (relee: `procesando` con su propio
-  reclamo); nunca los de una versión `activa` ni los de otra invocación que la retomó. Límite: entre la relectura y el
-  borrado hay una ventana mínima sin transacción; cerrarla del todo exige una marca de intento en `fragmentos_indexados`
-  o un borrado condicional en SQL (migración). Si `borrarFragmentos` lanza, el candado se suelta igual.
+  reclamo); nunca los de una versión `activa` ni los de otra invocación que la retomó. La relectura es solo un
+  atajo: el borrado real lo hace `public.borrar_fragmentos_si_dueno(version_id, organizacion_id, reclamo)` (envoltorio de
+  `private.borrar_fragmentos_si_dueno`, `security definer`, `search_path=''`, solo `service_role`), que comprueba la
+  propiedad (la versión existe, no está `activa` y no fue retomada por otro reclamo) y borra en la misma transacción,
+  con `for share` sobre la versión; así la ventana sin transacción queda cerrada (deuda m1). Devuelve `false` si no era
+  dueña. Si `borrarFragmentos` lanza, el candado se suelta igual.
 - El 409 lleva un `codigo`: `ocupado` (candado vigente) o `no_procesable` (ya procesada o 22023). La pantalla muestra un
   mensaje propio por estado/código, nunca el texto del backend (salvo el 422, accionable), y tras `no_procesable` o 404
   deja de ofrecer «Reintentar».
 - En la rama 22023 con la versión `procesando` de OTRA invocación se responde `no_procesable` (no `ocupado`): no se borra
   nada, se suelta solo el reclamo propio y la pantalla no vuelve a ofrecer «Reintentar». Si entre la relectura de
   propiedad y `marcarFallida` otra invocación retoma la versión, el update condicional por reclamo no aplica y se responde
-  502 sin marcar ni borrar. Deuda de pruebas: la consulta real de `marcarFallida` en `index.ts` (`.eq('estado','procesando')`
-  y `.eq('motivo_error', reclamo)`) no tiene test propio porque `index.ts` corre en Deno con `npm:` y no se importa desde
-  `node --test`; se cubre con el mock del handler y con la revisión de código.
+  502 sin marcar ni borrar. Las consultas reales de `reclamar`, `soltar` y `marcarFallida` (`.eq('estado','procesando')` y
+  `.eq('motivo_error', reclamo)`) se construyen en `consultas.ts` (sin imports de Deno) y `consultas.test.ts` las prueba
+  con un cliente simulado que registra cada filtro.
 - La pantalla decide el mensaje por el estado HTTP y el `codigo` (`ErrorIndexacion.status` y `.codigo`), no por el texto del backend.
-- El rechazo de la política de IA (p. ej. `POLITICA_IA_INACTIVA`) va al log; al usuario y a `motivo_error` solo llega un texto fijo. `marcarFallida` solo aplica si el reclamo en la base sigue siendo el propio. Deuda (junto con el borrado de fragmentos): un borrado condicional por reclamo y estado en SQL cerraría la ventana restante sin transacción.
+- El rechazo de la política de IA (p. ej. `POLITICA_IA_INACTIVA`) va al log; al usuario y a `motivo_error` solo llega un texto fijo. `marcarFallida` solo aplica si el reclamo en la base sigue siendo el propio.
 - Un reintento con el candado vigente muestra «Ya se está procesando; esperá unos minutos» en vez del error crudo.
 - Errores permanentes (sin texto legible, más de 2000 fragmentos) dejan la versión `fallida` con un mensaje claro.
 - **Rechazo de permisos al activar (42501)** (carrera o regla distinta de la base): no es transitorio. La función
@@ -113,7 +118,10 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   (usuario, proveedor, resultado; sin asunto, cuerpo ni dirección).
 - Las funciones de aviso (`enviar-aviso-faltante`, `enviar-resumen-reposicion`, `enviar-resumen-semanal`,
   `recalcular-alertas-inicio`) rechazan con 503 «no configurada» un token de menos de 32 caracteres o que empiece con
-  `change-me` (`_shared/token.ts`). En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
+  `change-me` (`_shared/token.ts`). La petición se compara con `tokenValido` (`_shared/token.ts`): SHA-256 de ambos valores y `timingSafeEqual`,
+  de modo que no se corta por longitud ni el tiempo revela el largo del token; sin token esperado o sin cabecera
+  `x-aviso-token` responde 403 con un cuerpo uniforme («Falta autenticación.»). La usan los `handler.ts` de las cuatro
+  funciones de aviso y el de `entregar-webhook`. En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
   `supabase/functions/.env.example`) permite el valor de ejemplo; **no la definas en stg/prd**. En stg/prd generá
   los tokens con `openssl rand -hex 32` (en Kestra van en base64 como `SECRET_*`).
 - Esas cuatro funciones, que solo llama Kestra, ya no responden `Access-Control-Allow-Origin: *`.

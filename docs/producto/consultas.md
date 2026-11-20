@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/consultas
 ---
 
 # Consultas de las tiendas online

@@ -97,11 +97,33 @@ export function ReporteEmbebido({ reporteId, alFallar, urlParams }: ReporteEmbeb
       }
 
       try {
+        // MSF-678: el token vence (GUEST_TOKEN_JWT_EXP_SECONDS en Superset) y el SDK vuelve a llamar a
+        // `fetchGuestToken` poco antes de que venza. La primera llamada usa el token que ya se emitió; las
+        // siguientes piden uno NUEVO a la Edge Function (que re-valida el acceso de la persona), en vez de
+        // devolver siempre el mismo token ya vencido.
+        let tokenInicial: string | undefined = data.guest_token
+        const fetchGuestToken = async (): Promise<string> => {
+          if (tokenInicial) {
+            const token = tokenInicial
+            tokenInicial = undefined
+            return token
+          }
+          const { data: nuevo, error: errorRenovar } = await supabaseClient.functions.invoke(
+            'emitir-acceso-reporte',
+            { body: { reporte_id: reporteId } },
+          )
+          if (errorRenovar || !nuevo?.guest_token) {
+            fallar(esProhibido(errorRenovar) ? 'prohibido' : 'no_disponible')
+            throw new Error('No se pudo renovar el acceso al reporte')
+          }
+          return nuevo.guest_token as string
+        }
+
         const dashboard = await embedDashboard({
           id: data.dashboard_uuid,
           supersetDomain: data.superset_url,
           mountPoint: mountPointRef.current,
-          fetchGuestToken: () => Promise.resolve(data.guest_token),
+          fetchGuestToken,
           dashboardUiConfig: { hideTitle: true, urlParams: urlParamsRef.current },
         })
 

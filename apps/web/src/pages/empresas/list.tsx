@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link as RouterLink } from 'react-router'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useEmpresas, type Empresa } from '../../hooks/useEmpresas'
+import { useResumenEmpresas, type ResumenEmpresa } from '../../hooks/useResumenEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -21,10 +22,23 @@ const SIN_CONFIGURAR = 'Sin configurar'
 const iniciales = (nombre: string) =>
   nombre.split(/\s+/).filter(Boolean).slice(0, 2).map((parte) => parte.charAt(0).toUpperCase()).join('')
 
-// Tienda web, Mercado Libre, precio y productos visibles los alimentan otras
-// épicas; hasta entonces el listado dice «Sin configurar». La moneda es
-// constante del producto (ARS), no una columna.
-const columnas: ColumnaAdaptable<Empresa>[] = [
+const NO_DISPONIBLE = 'No disponible'
+const CARGANDO = '…'
+
+type FilaEmpresa = Empresa & { resumen?: ResumenEmpresa }
+
+const textoPrecio = (resumen?: ResumenEmpresa) => {
+  if (!resumen) return CARGANDO
+  if (!resumen.regla) return NO_DISPONIBLE
+  const { base, ajustePct } = resumen.regla
+  if (base === 'central' || ajustePct === 0) return 'Igual al central'
+  return `Central ${ajustePct > 0 ? '+' : '−'}${Math.abs(ajustePct)} %`
+}
+
+// Tienda web, precio y productos visibles salen de los datos reales de cada empresa. Mercado Libre todavía no tiene
+// integración que consultar (llega con sus épicas): ahí «Sin configurar» es el estado real. La moneda es constante
+// del producto (ARS), no una columna.
+const columnas: ColumnaAdaptable<FilaEmpresa>[] = [
   {
     clave: 'nombre',
     encabezado: 'Empresa',
@@ -55,11 +69,19 @@ const columnas: ColumnaAdaptable<Empresa>[] = [
       </Stack>
     ),
   },
-  { clave: 'tienda-web', encabezado: 'Tienda web', render: () => SIN_CONFIGURAR },
+  {
+    clave: 'tienda-web',
+    encabezado: 'Tienda web',
+    render: ({ resumen }) => (!resumen ? CARGANDO : resumen.dominioTienda === undefined ? NO_DISPONIBLE : resumen.dominioTienda ?? SIN_CONFIGURAR),
+  },
   { clave: 'mercado-libre', encabezado: 'Mercado Libre', render: () => SIN_CONFIGURAR },
-  { clave: 'precio', encabezado: 'Precio', render: () => SIN_CONFIGURAR },
+  { clave: 'precio', encabezado: 'Precio', render: ({ resumen }) => textoPrecio(resumen) },
   { clave: 'moneda', encabezado: 'Moneda', render: () => 'ARS' },
-  { clave: 'productos-visibles', encabezado: 'Productos visibles', render: () => SIN_CONFIGURAR },
+  {
+    clave: 'productos-visibles',
+    encabezado: 'Productos visibles',
+    render: ({ resumen }) => (!resumen ? CARGANDO : resumen.productosVisibles === null ? NO_DISPONIBLE : String(resumen.productosVisibles)),
+  },
 ]
 
 // Solo administrador (FR-004): el destino del sider ya se oculta al miembro;
@@ -71,6 +93,9 @@ const columnas: ColumnaAdaptable<Empresa>[] = [
 export function EmpresaList() {
   const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
   const { empresas, isLoading, isError, refetch } = useEmpresas({ habilitado: puedeEscribir === true })
+
+  const resumenes = useResumenEmpresas(empresas.map((empresa) => empresa.id))
+  const filas: FilaEmpresa[] = empresas.map((empresa) => ({ ...empresa, resumen: resumenes[empresa.id] }))
 
   const [dialogoAbierto, setDialogoAbierto] = useState(false)
   const [creada, setCreada] = useState(false)
@@ -125,7 +150,7 @@ export function EmpresaList() {
             ayuda="El catálogo es compartido: cada empresa tiene su precio, su tienda web y sus cuentas de Mercado Libre."
           />
           <ContenidoAdaptable
-            items={empresas}
+            items={filas}
             columnas={columnas}
             obtenerClave={(empresa) => empresa.id}
             etiquetaTabla="Empresas"

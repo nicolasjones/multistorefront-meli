@@ -2,8 +2,18 @@
 owner: tecnico
 sources:
   - specs/20261114-100000-analitica-avanzada-y-resumen-por-correo
-  - supabase/migrations
-  - apps/web/src
+  - supabase/migrations/20270324100000_analitica_tableros_avanzados.sql
+  - supabase/migrations/20270324100100_reportes_tableros_analiticos.sql
+  - supabase/migrations/20270324100200_resumen_semanal.sql
+  - supabase/migrations/20270324100300_exportacion_total_excluye_resumen_semanal.sql
+  - supabase/functions/enviar-resumen-semanal
+  - supabase/functions/_shared/token.ts
+  - infra/kestra/flows/resumen-semanal.yml
+  - infra/superset/dashboards/analitica-avanzada
+  - apps/web/src/pages/analitica/list.tsx
+  - apps/web/src/pages/organizacion/ResumenSemanal.tsx
+  - apps/web/src/lib/tablerosAnaliticos.ts
+  - apps/web/src/components/ReporteEmbebido.tsx
 ---
 
 # Revisión de seguridad integral: analítica avanzada y resumen por correo (MSF-265)
@@ -40,7 +50,7 @@ Las 12 funciones nuevas (9 del resumen —5 en `public` y 4 en `private`— y 3 
 ## 4. Secretos
 
 - `RESUMEN_SEMANAL_TOKEN` (función) y `SECRET_RESUMEN_SEMANAL_TOKEN` (Kestra, base64) solo por entorno; en Git solo `change-me-local` en los `.env.example`. El flow usa `{{ secret('RESUMEN_SEMANAL_TOKEN') }}` y no escribe ningún valor (`validar-resumen-semanal.test.mjs`).
-- La función compara el token en tiempo constante (`timingSafeEqual`), falla cerrada sin token configurado (503) y no hace de relay: los destinatarios los resuelve la base.
+- La función compara el token en tiempo constante (SHA-256 de ambos valores + `timingSafeEqual`, sin cortar por longitud), falla cerrada sin token configurado o con uno de menos de 32 caracteres o `change-me*` (503) y no hace de relay: los destinatarios los resuelve la base.
 - La clave de servicio vive solo en la función; el navegador nunca la ve. El SMTP usa los `SMTP_*` existentes.
 - Los errores que van a la tabla son un texto fijo; el detalle del SMTP (host, IP, correo) se sanea y solo va a los registros de la función. El registro del correo no incluye direcciones.
 - Contraseña de la base de Superset: sigue enmascarada (`XXXXXXXXXX`) en los YAML nuevos y por entorno al importar (`analitica-avanzada.test.mjs` verifica que no viaja).

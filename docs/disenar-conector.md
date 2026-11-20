@@ -1,7 +1,8 @@
 ---
 owner: plataforma
 sources:
-  - specs
+  - workers/README.md
+  - workers/CONTRATO.md
 ---
 
 # Diseñar un conector de integración

@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/opiniones
 ---
 
 # Opiniones: moderar lo que dicen los clientes

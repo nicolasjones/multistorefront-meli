@@ -1,7 +1,13 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/021-documentacion-obligatoria
+  - mkdocs.yml
+  - scripts/docs-check.mjs
+  - scripts/guard-migraciones-ddl.mjs
+  - supabase/tests/database/rls_en_toda_tabla.test.sql
+  - supabase/migrations/20261020100001_historial_tablas.sql
+  - specs/20261020-100000-ventas-historial-de-consulta
 ---
 
 # Decisiones de arquitectura (ADR)

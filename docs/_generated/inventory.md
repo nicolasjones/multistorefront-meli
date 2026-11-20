@@ -4,9 +4,9 @@
 
 - Rutas del panel: **276**
 - Tablas en migraciones: **207**
-- Variables de entorno: **106**
-- Specs: **157**
-- Páginas de documentación: **342**
+- Variables de entorno: **111**
+- Specs: **158**
+- Páginas de documentación: **345**
 
 ## Rutas del panel
 
@@ -528,6 +528,7 @@
 - `KESTRA_ORQUESTACION_DB_URL`
 - `KESTRA_PORT`
 - `KESTRA_PUBLIC_URL`
+- `KESTRA_RETENCION_EJECUCIONES_DIAS`
 - `KESTRA_SMTP_FROM`
 - `KESTRA_SMTP_HOST`
 - `KESTRA_SMTP_PASSWORD`
@@ -545,7 +546,11 @@
 - `NANGO_SERVER_URL`
 - `PLAYWRIGHT_PORT`
 - `REFINE_ORIGIN`
+- `RESPALDOS_AUSENCIA_HORAS`
 - `RESPALDOS_DIR_HOST`
+- `RESPALDOS_IMAGENES_MAX_COPIAS`
+- `RESPALDOS_IMAGENES_RETENCION_DIAS`
+- `RESPALDOS_IMAGENES_RETENCION_MENSUALES`
 - `RESPALDOS_RCLONE_ACCESS_KEY_ID`
 - `RESPALDOS_RCLONE_ENDPOINT`
 - `RESPALDOS_RCLONE_HOST`
@@ -555,7 +560,7 @@
 - `RESPALDOS_RCLONE_SECRET_ACCESS_KEY`
 - `RESPALDOS_RCLONE_TIPO`
 - `RESPALDOS_RCLONE_USER`
-- `RESPALDOS_RETENCION_DIARIAS`
+- `RESPALDOS_RETENCION_DIAS`
 - `RESPALDOS_RETENCION_MENSUALES`
 - `RESPALDOS_RUTA`
 - `RESPALDOS_STORAGE_ACCESS_KEY_ID`
@@ -765,3 +770,4 @@
 - `20270328-100000-gastos-de-la-empresa` — Feature Specification: Gastos de la empresa y margen después de costos fijos (F-GAS-01…03)
 - `20270328-100000-newsletter-de-la-tienda` — Feature Specification: Tiendas online · Newsletter (suscripción, composición y envío)
 - `20270328-100000-opiniones-de-productos` — Feature Specification: Opiniones de productos en la tienda (MSF-467)
+- `20271117-100000-lote-34-interfaz-textos-y-roles` — Feature Specification: Lote 34 · interfaz, textos, roles y estados de pantalla

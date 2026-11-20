@@ -11,15 +11,27 @@ import { test as base, expect, type Browser, type BrowserContext, type Page, typ
 
 const baseURL = () => process.env.E2E_BASE_URL || `http://localhost:${Number(process.env.WEB_PORT) || 4300}`
 
+// `E2E_VIDEO_CONTEXTOS` (completa | baja | off; por defecto completa = 1920x1080, como siempre) baja el costo de grabar los contextos
+// propios de un test: en un host saturado, cerrar y adjuntar el video 1080p cuenta contra el timeout del test.
+export type ModoVideo = 'completa' | 'baja' | 'off'
+export function modoVideo(valor = process.env.E2E_VIDEO_CONTEXTOS): ModoVideo {
+  if (valor === undefined || valor === '') return 'completa'
+  if (valor === 'completa' || valor === 'baja' || valor === 'off') return valor
+  throw new Error(`E2E_VIDEO_CONTEXTOS inválido (${valor}): use completa, baja u off.`)
+}
+
 export async function abrirContextoGrabado(
   browser: Browser,
   testInfo: TestInfo,
   sufijo = '',
+  { video = modoVideo() }: { video?: ModoVideo } = {},
 ): Promise<{ contexto: BrowserContext; page: Page }> {
   const contexto = await browser.newContext({
     baseURL: baseURL(),
     viewport: { width: 1920, height: 1080 },
-    recordVideo: { dir: sufijo ? testInfo.outputPath(sufijo) : testInfo.outputDir, size: { width: 1920, height: 1080 } },
+    ...(video === 'off'
+      ? {}
+      : { recordVideo: { dir: sufijo ? testInfo.outputPath(sufijo) : testInfo.outputDir, size: video === 'baja' ? { width: 1280, height: 720 } : { width: 1920, height: 1080 } } }),
     ignoreHTTPSErrors: true,
     locale: 'es-AR',
     reducedMotion: 'reduce',

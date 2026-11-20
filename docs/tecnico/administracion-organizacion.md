@@ -1,11 +1,16 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src/pages/organizacion
-  - apps/web/src/pages/usuarios
+  - specs/20261014-140000-administracion-de-usuarios-y-organizacion
+  - supabase/migrations/20261014160000_organizacion_datos_y_configuracion.sql
+  - supabase/migrations/20270324120300_baja_organizacion_reparaciones_y_error_diferido.sql
+  - supabase/migrations/20270347000200_confirmar_claves_diferidas_restaura_modo.sql
+  - supabase/tests/database/organizacion_datos_y_configuracion.test.sql
+  - supabase/tests/database/baja_organizacion_requisitos_catalogo.test.sql
+  - apps/web/src/pages/organizacion/edit.tsx
+  - apps/web/src/pages/organizacion/edit.test.tsx
+  - apps/web/src/pages/usuarios/list.tsx
+  - apps/web/src/pages/usuarios/list.test.tsx
 ---
 
 # Administración de usuarios y organización: técnico (MSF-132)
@@ -19,6 +24,7 @@ sources:
 - **Logo**: bucket privado `logos-organizacion` con cuatro políticas `logos_organizacion_*` en `storage.objects` (mismo archivo de migración). La pantalla firma la URL con `createSignedUrl(logoPath, 300)` y tope de 1 MB (`apps/web/src/pages/organizacion/edit.tsx`).
 - **Pantalla**: ruta `/organizacion` (`apps/web/src/App.tsx`, recurso `organizacion`, etiqueta «Mi organización») con `RequiereOrganizacionActiva`. Lista las empresas con `useEmpresas` y enlace a `/empresas/edit/:id`.
 - **Empresa activa**: no aplica; la pantalla es de la organización, no de una empresa (la lista de empresas es informativa).
+- **Edición de los datos de la organización**: quien no es administrador ve el componente compartido `AccesoRestringido` («Mi organización») en lugar del estado de error con texto fijo (`apps/web/src/pages/organizacion/edit.tsx:136`).
 
 ## F-USR-03: restablecer la contraseña de otro usuario
 

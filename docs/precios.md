@@ -30,7 +30,7 @@ Todas las tablas tienen RLS por organización (`private.organizacion_id()`), sin
 
 1. **Precio central en pesos** = `precio_lista` si la moneda es ARS; si es USD, `round(precio_lista × cotización, 2)`. USD sin cotización cargada da `null` (no se inventa un valor).
 2. **Neto de la empresa** = central, o central × (1 + ajuste %) redondeado al **$ 10 más cercano** (base `central_ajuste`).
-3. **Final** = neto × (1 + alícuota) al peso entero; Exento ⇒ final = neto. La alícuota es la del producto o, si no tiene, la de su categoría.
+3. **Final** = neto × (1 + alícuota) al centavo (redondeo a 2 decimales, desde la migración `20270507180200_aplicar_iva_al_centavo.sql`); Exento ⇒ final = neto. La alícuota es la del producto o, si no tiene, la de su categoría.
 4. **Margen** = (neto − costo en pesos) / neto, siempre sobre el neto (sin IVA). El interruptor de IVA no lo cambia.
 
 El front solo espeja las fórmulas para textos de ejemplo (`lib/precios.ts`, `lib/iva.ts`); la autoridad es la base.
@@ -213,3 +213,10 @@ Sobre ese precio normal:
 - **Actividad:** `lista_precios.creada`, `lista_precios.editada` (porcentaje anterior y nuevo), `lista_precios.archivada`, `lista_precios.restaurada` y `cliente.lista_precio_asignada` (lista anterior y nueva, sin datos de contacto).
 - **Pruebas:** pgTAP `listas_precios.test.sql`, `listas_precios_bandera.test.sql` y `clientes_lista_precios.test.sql`; `exportacion_total.test.sql` extendido; Vitest `listas-de-precios.test.tsx` y `FormularioCliente.test.tsx`. Fases 3 y 4: pgTAP `precio_lista_cliente.test.sql` (paridad con la bandera apagada y con clientes sin lista contra una copia del cálculo anterior, y cada regla de precedencia), `ventas_lista_precios.test.sql` (guardar líneas, copiar presupuesto, notas de crédito, snapshot, validación de la confirmación) y `precio_lista_tienda_paridad.test.sql` (mostrador↔tienda, estados de cuenta, lista blanca); Vitest `LineasComprobante.test.tsx`, `ventasLineas.test.ts`, `ficha-precios-cliente.test.tsx` y `TarjetaProducto.test.tsx`.
 - **Reversión inmediata, sin migrar:** apagar la bandera. De cada fase: `git revert -m 1` de su merge; la tabla y la columna quedan inertes (aditivas).
+
+## Listado de Productos: Margen y Cotización
+
+La columna «Margen» del listado de Productos ((precio − costo) / precio, en pesos) solo existe con acceso a Rentabilidad, igual que «Costo». El botón «Cotización →» del bloque de precio abre la pantalla de Cotización en una pestaña nueva. «Stock bajo» y «Sin vincular a ML» siguen deshabilitados hasta que existan sus datos.
+
+El margen del listado es una **estimación**: (precio de lista − costo) / precio de lista, en pesos, con el costo en la moneda del producto (en USD se convierte con la misma cotización con que la base convirtió el precio). No incluye impuestos ni descuentos y puede diferir del margen de Rentabilidad; la celda lo aclara en un tooltip. El enlace «Cotización →» solo se ofrece a quien tiene la sección `cotizacion_dolar`, respeta el basename del router y abre en pestaña nueva.
+

@@ -9,12 +9,13 @@ import { discoverWorkers } from './descubrir-workers.mjs';
 const DOMINIO = /^(?:\*\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/i;
 const RED_CONVENCIONAL = /worker-egress-([a-z0-9][a-z0-9-]*)/gi;
 // `--network x`, `--network=x`, `--net x`, `--net=x` (alias de docker) y `network_mode: x` / `networkMode: x`.
-const NETWORK_LITERAL = /(?:--net(?:work)?(?:=\s*|\s+)|network_?mode["']?\s*[:=]\s*)["']?([^"'\s,}]+)/gi;
-// `none` = sin red (más estricto que cualquier allowlist). Una variable se lee hasta el primer espacio, por eso no se exige el `}`.
+const NETWORK_LITERAL = /(?:--net(?:work)?(?:=\s*|\s+)|network_?mode["']?\s*[:=]\s*)["']?((?:\$\{[^}"'\n]*\}|[^"'\s,}])+)/gi;
+// `none` = sin red (más estricto que cualquier allowlist). El valor captura una `${…}` completa (con espacios dentro) y lo que
+// siga pegado: `${NET:- host}` y `${A}${B}` se leen enteros y se rechazan (el `}` de cierre es obligatorio y nada va detrás).
 function redValida(valor) {
   if (/^worker-egress-[a-z0-9][a-z0-9-]*$/i.test(valor) || /^none$/i.test(valor)) return true;
   if (/^\$[A-Za-z_]\w*$/.test(valor)) return true;
-  const exp = /^\$\{[A-Za-z_]\w*(?::?([-=+?])(.*?))?\}?$/.exec(valor);
+  const exp = /^\$\{[A-Za-z_]\w*(?::?([-=+?])([^}]*))?\}$/.exec(valor);
   if (!exp) return false;
   // `${VAR:-host}`: un valor por defecto literal debe ser una red válida (o ninguno). `:?msg` y `${VAR}` valen.
   return exp[1] === undefined || exp[1] === '?' || exp[2] === '' || /^(?:worker-egress-[a-z0-9][a-z0-9-]*|none|\$[A-Za-z_]\w*)$/i.test(exp[2]);

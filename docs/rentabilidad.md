@@ -6,7 +6,20 @@ sources:
   - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
   - infra/superset/dashboards/rentabilidad
   - apps/web/src/pages/rentabilidad
-  - supabase/tests/database
+  - supabase/tests/database/analitica_margen_cotizacion_vigente.test.sql
+  - supabase/tests/database/rentabilidad_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_comparativo.test.sql
+  - supabase/tests/database/rentabilidad_comparativo_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_consolidado.test.sql
+  - supabase/tests/database/rentabilidad_historia.test.sql
+  - supabase/tests/database/rentabilidad_historia_aislamiento.test.sql
+  - supabase/tests/database/rentabilidad_margen.test.sql
+  - supabase/tests/database/rentabilidad_permisos.test.sql
+  - supabase/tests/database/rentabilidad_por_producto.test.sql
+  - supabase/tests/database/rentabilidad_superficie.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real.test.sql
+  - supabase/tests/database/rentabilidad_ventas_real_aislamiento.test.sql
+  - supabase/tests/database/margen_costos_fijos_paridad.test.sql
 ---
 
 # Rentabilidad (margen por producto y canal)

@@ -4,7 +4,7 @@
 -- vía request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(40);
+select plan(43);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -50,6 +50,19 @@ exception when others then
   insert into t_res values (p_k, to_jsonb(sqlerrm));
 end $$;
 
+-- Ejecuta una sentencia y devuelve «SQLSTATE|constraint»: se compara el código y el nombre del constraint en vez del
+-- texto del mensaje, que cambia con el idioma y la versión de Postgres.
+create function pg_temp.error_de(p_sql text) returns text language plpgsql as $$
+declare v_estado text; v_constraint text;
+begin
+  execute p_sql;
+  return 'sin error';
+exception when others then
+  get stacked diagnostics v_constraint = constraint_name;
+  v_estado := sqlstate;
+  return v_estado || '|' || coalesce(v_constraint, '');
+end $$;
+
 -- ============================================================================
 -- Privilegios de columna
 -- ============================================================================
@@ -58,6 +71,7 @@ select is(has_column_privilege('authenticated', 'dominio.clientes', 'condicion_i
   'authenticated puede insertar condicion_iva');
 select is(has_column_privilege('authenticated', 'dominio.clientes', 'condicion_iva', 'UPDATE'), true,
   'authenticated puede actualizar condicion_iva');
+select is(has_schema_privilege('anon', 'dominio', 'USAGE'), false, 'anon no tiene USAGE sobre el esquema dominio');
 select is(has_column_privilege('anon', 'dominio.clientes', 'condicion_iva', 'INSERT')
        or has_column_privilege('anon', 'dominio.clientes', 'condicion_iva', 'UPDATE'), false,
   'anon no escribe condicion_iva');
@@ -85,10 +99,21 @@ select is(
   (select condicion_iva from dominio.clientes where nombre = 'Cliente API'),
   'Monotributo', 'la condición de IVA editada queda guardada'
 );
-select throws_ok(
-  format($$update dominio.clientes set condicion_iva = %L where nombre = 'Cliente API'$$, repeat('x', 61)),
-  '23514', 'new row for relation "clientes" violates check constraint "clientes_condicion_iva_largo_ck"', 'más de 60 caracteres lo rechaza el check de la tabla'
+select is(
+  pg_temp.error_de(format($$update dominio.clientes set condicion_iva = %L where nombre = 'Cliente API'$$, repeat('x', 61))),
+  '23514|clientes_condicion_iva_largo_ck', 'más de 60 caracteres lo rechaza el check de la tabla (SQLSTATE y constraint)'
 );
+
+-- El límite de 60 está en el check de la tabla y en la validación de la importación (private.largo_maximo_condicion_iva):
+-- si alguien cambia uno sin el otro, este caso falla.
+reset role;
+select is(
+  (select (regexp_match(pg_get_constraintdef(oid), 'length\(condicion_iva\) <= (\d+)'))[1]::integer
+     from pg_constraint where conname = 'clientes_condicion_iva_largo_ck' and conrelid = 'dominio.clientes'::regclass),
+  private.largo_maximo_condicion_iva(), 'el límite del check de la tabla coincide con el de la validación de la importación'
+);
+select is(private.largo_maximo_condicion_iva(), 60, 'el límite de condicion_iva es de 60 caracteres');
+select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 
 -- ============================================================================
 -- Negativos de seguridad
@@ -110,7 +135,7 @@ select is(
 select throws_ok(
   $$insert into dominio.clientes (organizacion_id, nombre, condicion_iva)
     values ('11111111-1111-1111-1111-111111111111', 'Cliente sin permiso', 'Exento')$$,
-  '42501', 'new row violates row-level security policy for table "clientes"', 'un rol sin edición no inserta clientes con condicion_iva (RLS)'
+  '42501', null, 'un rol sin edición no inserta clientes con condicion_iva (RLS)'
 );
 select pg_temp.actualizar_iva('u1');
 select is((select v from t_res where k = 'u1'), '0'::jsonb, 'un rol sin edición no actualiza condicion_iva (0 filas)');
@@ -126,20 +151,22 @@ select is((select v from t_res where k = 'u2'), '0'::jsonb, 'otra organización 
 select throws_ok(
   $$insert into dominio.clientes (organizacion_id, nombre, condicion_iva)
     values ('11111111-1111-1111-1111-111111111111', 'Cliente ajeno', 'Exento')$$,
-  '42501', 'new row violates row-level security policy for table "clientes"', 'otra organización no inserta con organizacion_id ajeno (RLS)'
+  '42501', null, 'otra organización no inserta con organizacion_id ajeno (RLS)'
 );
 
--- anon: insert y update reales se rechazan por privilegios (ni siquiera tiene USAGE sobre el esquema dominio).
+-- anon: insert y update reales se rechazan por privilegios. Fallan con «permission denied for schema dominio»
+-- (42501) porque anon no tiene USAGE sobre el esquema dominio (aserción explícita al inicio), no por RLS ni por
+-- el grant de columna: el esquema se niega antes de llegar a la tabla.
 reset role;
 set local role anon;
 select throws_ok(
   $$insert into dominio.clientes (organizacion_id, nombre, condicion_iva)
     values ('11111111-1111-1111-1111-111111111111', 'Cliente anon', 'Exento')$$,
-  '42501', 'permission denied for schema dominio', 'anon no inserta clientes con condicion_iva'
+  '42501', null, 'anon no inserta clientes con condicion_iva'
 );
 select throws_ok(
   $$update dominio.clientes set condicion_iva = 'Exento' where nombre = 'Cliente API'$$,
-  '42501', 'permission denied for schema dominio', 'anon no actualiza condicion_iva'
+  '42501', null, 'anon no actualiza condicion_iva'
 );
 
 reset role;

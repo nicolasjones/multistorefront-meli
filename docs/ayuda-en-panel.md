@@ -9,6 +9,8 @@ sources:
   - apps/web/src/ayuda/resolverAyuda.ts
   - apps/web/src/ayuda/tipos.ts
   - apps/web/src/components/navegacion/destinosPanel.ts
+  - apps/web/src/components/navegacion/PanelAyuda.tsx
+  - apps/web/e2e/ayuda.e2e.ts
 ---
 
 # Ayuda dentro del panel (MSF-385 · F-CFG-02)
@@ -66,10 +68,9 @@ la plataforma, reporte de inventario) o la ruta no coincide con ningún destino,
 qué *página* les corresponde (`manualPorDestino.ts`, con nombres sin extensión como `catalogo-productos`). La dirección es una
 **plantilla con `{pagina}`**; el índice del manual es todo lo que va antes de `{pagina}` (la carpeta del manual), sin configurarlo aparte:
 
-- Por defecto: `https://docs.212-90-120-53.sslip.io/producto/{pagina}/`, el sitio de documentación publicado hoy (MkDocs Material, `infra/docs`;
-  lo sirve Traefik con autenticación básica). El índice es `https://docs.212-90-120-53.sslip.io/producto/`. **El sitio se publica aparte**:
-  una página nueva del manual no aparece ahí hasta que se vuelve a publicar el sitio (al 2026-11-09 el publicado es del 2026-11-01 y le faltan
-  `contactos`, `importaciones`, `inicio-y-alertas` y `ventas-mostrador`, que dan 404 hasta entonces).
+- Por defecto: la plantilla `MANUAL_URL_POR_DEFECTO` de `manual.ts` (termina en `/producto/{pagina}/`), que apunta al sitio de documentación publicado
+  (MkDocs Material, `infra/docs`; lo sirve Traefik con autenticación básica). El índice es esa misma dirección sin `{pagina}`. **El sitio se publica aparte**:
+  una página nueva del manual no aparece ahí hasta que se vuelve a publicar el sitio y, mientras tanto, el enlace da 404.
 - **Si el manual cambia de lugar** (dominio propio, otro sitio, o los archivos de GitHub: `…/docs/producto/{pagina}.md`), se define
   `VITE_MANUAL_URL` al construir la imagen (build-arg de `apps/web/Dockerfile`; documentada en `.env.example`), p. ej.
   `https://manual.ejemplo.com/ayuda/{pagina}/`, y todos los enlaces la siguen sin tocar ninguna pantalla. También se puede cambiar
@@ -109,5 +110,5 @@ Quitar `<PanelAyuda />` de `EncabezadoPanel` oculta la función. No hay migracio
 
 ## Verificación de los textos
 
-Los 44 textos se contrastaron contra el código de cada pantalla (botones, pestañas, filtros, permisos) con una verificación
+Los textos de ayuda se contrastaron contra el código de cada pantalla (botones, pestañas, filtros, permisos) con una verificación
 independiente; las afirmaciones no respaldadas se corrigieron antes del PR. Si cambia una pantalla, revisá su ayuda.

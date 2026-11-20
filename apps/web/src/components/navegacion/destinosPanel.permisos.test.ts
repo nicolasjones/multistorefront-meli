@@ -190,7 +190,7 @@ describe('destino «Faltantes» (F-VTA-18, FR-045)', () => {
   it('está en el grupo Ventas, apunta a /ventas/faltantes y usa el icono de producción', () => {
     const faltantes = destino('ventas-faltantes')
     expect(faltantes.ruta).toBe('/ventas/faltantes')
-    expect(faltantes.etiqueta).toBe('Faltantes')
+    expect(faltantes.etiqueta).toBe('Faltantes de despacho')
     expect(faltantes.seccionPermiso).toBe('ventas')
     expect(faltantes.icono).toBe(ProductionQuantityLimitsIcon)
     const ventas = SECCIONES_PANEL.find((seccion) => seccion.id === 'ventas')

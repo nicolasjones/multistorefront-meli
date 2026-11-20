@@ -185,7 +185,7 @@ mercadería (si algún día debe hacerlo, es otra historia en MSF-219).
 El listado suma «Importar» (solo Administrador) que abre el asistente de migración
 (`/migracion/importar/proveedores`). `dominio.proveedores.id_externo` guarda el identificador del
 panel actual (nullable, único por organización) y concilia la carga: reimportar actualiza, no duplica.
-Los vínculos con productos se cargan con `/migracion/importar/vinculos-proveedor-producto`.
+Los vínculos con productos se cargan con `/migracion/importar/vinculos_proveedor_producto`.
 Detalle y reglas en [migracion-datos.md](migracion-datos.md).
 
 ## Actividad

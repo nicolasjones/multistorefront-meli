@@ -76,6 +76,8 @@ async function asegurarOverlay(page: Page): Promise<void> {
 
 // Pausa para leer el rótulo antes de actuar (solo modo visible): el video
 // queda a ritmo de persona mirando, no de máquina.
+// `E2E_MOUSE_PASOS` (por defecto 30) = pasos intermedios del cursor hacia cada clic; menos pasos, recorrido más corto.
+const PASOS_MOUSE = Number(process.env.E2E_MOUSE_PASOS ?? 30)
 const PAUSA_LECTURA_MS = 2200
 const PAUSA_RESULTADO_MS = 900
 
@@ -122,7 +124,7 @@ export async function clic(page: Page, destino: Locator): Promise<void> {
   if (VISIBLE) {
     const caja = await destino.boundingBox()
     if (caja) {
-      await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2, { steps: 30 })
+      await page.mouse.move(caja.x + caja.width / 2, caja.y + caja.height / 2, { steps: PASOS_MOUSE })
       await page.waitForTimeout(350)
     }
   }

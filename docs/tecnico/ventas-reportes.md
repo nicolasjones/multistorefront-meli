@@ -1,9 +1,19 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - specs/20270104-100000-ventas-reportes-basicos
+  - specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas
+  - apps/web/src/pages/ventas-reportes
+  - supabase/migrations/20270201200114_analitica_ventas_producto_mas_vendido.sql
+  - supabase/migrations/20270201200115_reportes_filtro_empresa.sql
+  - supabase/migrations/20270201200116_ventas_reportes_conteo.sql
+  - supabase/migrations/20270201200117_analitica_ventas_ranking_clientes.sql
+  - supabase/migrations/20270201200118_lectura_ranking_excel.sql
+  - supabase/migrations/20270202201003_analitica_consultas_producto_mas_consultado.sql
+  - supabase/migrations/20270202201004_analitica_ventas_periodo_canal.sql
+  - supabase/migrations/20261013130002_roles_basicos_permisos.sql
+  - supabase/migrations/20270202201000_costos_adicionales_canal.sql
+  - supabase/migrations/20270202201007_analitica_rentabilidad_ventas_real.sql
 ---
 
 # Ventas · reportes (técnico, MSF-338, MSF-192)
@@ -19,7 +29,7 @@ está en [Reportes de ventas (producto)](../producto/ventas-reportes.md).
 !!! note "Estado"
     MSF-338 se implementó en la rama `epic/MSF-338-ventas-y-despacho-ventas-reportes-basico` y MSF-192 en
     `epic/MSF-192-inicio-rentabilidad-y-reportes-rentabili`, **ambas pendientes de merge a `main`**.
-    Migraciones de MSF-338: `20270104090000`–`20270104090200`. Migraciones de MSF-192:
+    Migraciones de MSF-338: `20270201200114`–`20270201200118` (renumeradas desde `20270104090000`–`20270104090200` al integrarse; están en el árbol). Migraciones de MSF-192:
     `20270202201000`–`20270202201007` (todas aditivas, con la reversión en el encabezado).
     Contratos: `specs/20270104-100000-ventas-reportes-basicos/contracts/analitica-ventas-reportes.md` y
     `specs/20270201-100000-rentabilidad-real-y-reportes-de-ventas/contracts/rentabilidad-real-y-reportes.md`.
@@ -84,7 +94,7 @@ de conteo** para las pestañas nuevas, sin tablas propias (lee `dominio.interese
 | `analitica.ventas_periodo_canal` | `analitica` | **nueva (vista, MSF-192)** | Ventas por período y canal: grano empresa × fecha, con `comprobantes`, `unidades` y `facturado` con IVA. |
 | `public.consultas_reportes_conteo(date, date, uuid)` | `public` | **nueva (RPC, MSF-192)** | Toques en «Consultar por WhatsApp» del período (estado vacío de «Productos más consultados»). |
 | `dominio.intereses_whatsapp` | `dominio` | **existente** | Solo se lee (`organizacion_id`, `empresa_id`, `producto_id`, `created_at`). |
-| `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270104090050`). |
+| `public.reportes` | `public` | **alterada** | Columna `filtro_empresa boolean not null default false` (migración `20270201200115_reportes_filtro_empresa.sql`). |
 | `dominio.comprobantes_venta` / `dominio.comprobantes_venta_lineas` | `dominio` | **existentes** | Solo se leen. |
 | `dominio.clientes` | `public` | **existente** | Solo se lee (`numero`, `nombre`, `tipo`, `es_consumidor_final`). |
 | `public.stock_estados` | `public` | **existente** | Solo se lee (`cantidad`, `estado`). |
@@ -93,7 +103,7 @@ El DER completo está en [Datos y DER](datos.md#ventas-reportes-basicos-msf-338)
 
 ### `analitica.ventas_producto_mas_vendido`
 
-Migración `20270104090000_analitica_ventas_producto_mas_vendido.sql`. Columnas: `organizacion_id`,
+Migración `20270201200114_analitica_ventas_producto_mas_vendido.sql`. Columnas: `organizacion_id`,
 `empresa_id`, `empresa_nombre`, `producto_id`, `producto_nombre`, `sku`, `categoria`, `deposito_id`,
 `deposito_nombre`, `unidades bigint`, `facturado numeric`, `stock_hoy numeric`, `stock_estado text`,
 `fecha date`.
@@ -112,7 +122,7 @@ Migración `20270104090000_analitica_ventas_producto_mas_vendido.sql`. Columnas:
 
 ### `analitica.ventas_ranking_clientes`
 
-Migración `20270104090100_analitica_ventas_ranking_clientes.sql`. Columnas: `organizacion_id`,
+Migración `20270201200117_analitica_ventas_ranking_clientes.sql`. Columnas: `organizacion_id`,
 `empresa_id`, `empresa_nombre`, `posicion bigint`, `cliente_id`, `numero integer`, `nombre`, `tipo`,
 `consumidor_final boolean`, `fecha date`, `comprobantes bigint`, `facturado numeric`,
 `participacion numeric`, `ultimo_comprador date`.

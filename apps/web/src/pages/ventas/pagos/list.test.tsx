@@ -171,6 +171,22 @@ describe('PagosList (F-VTA-13, FR-025)', () => {
     await waitFor(() => expect(mocks.listarPagos).toHaveBeenCalled())
   })
 
+  it('muestra «Revertido» y «Reversión» en vez del interruptor de conciliación', async () => {
+    mocks.listarPagos.mockResolvedValue({
+      pagos: [
+        { ...PAGO, estado_reversion: 'revertido' },
+        { ...PAGO, id: 'p-3', importe: -400, numero: '0001-00000003', estado_reversion: 'reversion' },
+        { ...PAGO_APROBADO, estado_reversion: null },
+      ],
+      total: 3,
+    })
+    abrir()
+
+    expect(await screen.findByText('Revertido')).toBeInTheDocument()
+    expect(screen.getByText('Reversión')).toBeInTheDocument()
+    expect(screen.getAllByRole('switch')).toHaveLength(1)
+  })
+
   it('muestra las tres tarjetas con el importe y la bajada', async () => {
     abrir()
 
@@ -327,6 +343,14 @@ describe('PagosList · la tabla de pagos (FR-026)', () => {
     expect(encabezados).toEqual([
       'Fecha', 'Tienda', 'Comprobante', 'Cliente', 'Cuenta de cobro', 'Importe', 'Aprobado por', 'Cobrado', 'Saldo',
     ])
+  })
+
+  it('un pago de las 23:30 de Argentina (ya es el día siguiente en UTC) se ve con el día local', async () => {
+    mocks.listarPagos.mockResolvedValue({ pagos: [{ ...PAGO, fecha: '2026-11-18T02:30:00+00:00' }], total: 1 })
+    abrir()
+    const tabla = await screen.findByRole('table', { name: 'Pagos' })
+    expect(within(tabla).getByText('17/11/2026')).toBeInTheDocument()
+    expect(within(tabla).queryByText('18/11/2026')).not.toBeInTheDocument()
   })
 
   it('muestra la fila con la fecha, la tienda, el comprobante enlazado, el cliente, la cuenta y el saldo', async () => {

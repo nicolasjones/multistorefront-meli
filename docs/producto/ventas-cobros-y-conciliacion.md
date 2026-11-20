@@ -1,6 +1,8 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/ventas/pagos/list.tsx
+  - apps/web/src/components/ventas/CobrosComprobante.tsx
 ---
 
 # Registrar cobros y controlar los pagos
@@ -61,6 +63,10 @@ El **Operador** puede cargar comprobantes pero, con la configuración inicial, n
 *Una factura con un cobro parcial: arriba se ve lo cobrado y lo que falta, y abajo cada cobro con su forma de pago.*
 
 Solo se pueden registrar cobros en una factura **confirmada**. Un borrador, un presupuesto, una nota de crédito o una factura anulada no admiten cobros.
+
+### Si un cobro se cargó mal
+
+Un cobro no se edita ni se borra: se corrige con una **reversión**, que deja el cobro original y, al lado, un movimiento de importe negativo con el motivo, quién lo hizo y cuándo. El saldo de la factura vuelve a subir y, si estaba en **Cobrado**, pasa a **Deuda**. Solo la puede hacer el **Administrador**, y no se revierte un cobro ya conciliado (primero se deshace la conciliación) ni el de un contrarreembolso. **Todavía no hay un botón en pantalla** para hacerlo: hoy la reversión existe solo como operación del sistema, no como pantalla. Una factura con cobros registrados, o ya entregada, no se puede anular: corregila con una nota de crédito (o, si no se entregó, revertí primero los cobros).
 
 ### Cuenta de cobro en el detalle
 
@@ -129,6 +135,8 @@ Al crear una forma de pago completás **Nombre**, **Tipo de forma de pago**, **E
 3. Aparece «Pago conciliado · número» y la fila pasa a mostrar quién lo aprobó.
 
 Para deshacerlo, apagá el interruptor: «Conciliación revertida · número». Si tu rol no puede conciliar, el interruptor aparece deshabilitado.
+
+Los cobros que se corrigieron con una reversión no llevan interruptor: el cobro original aparece con la etiqueta **Revertido** y su contraparte negativa con **Reversión**, y ninguno de los dos suma en «Por conciliar».
 
 ![Pantalla Pagos con el interruptor Cobrado de la primera fila señalado](img/ventas-cobros-y-conciliacion/04-pagos-conciliar.png)
 

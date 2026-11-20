@@ -42,6 +42,13 @@ de cada una vive en su guía.
 
 Las dos pantallas no consultan por empresa: el stock es único por organización (Principio VIII: no aplica).
 
+## Categorías para el rol Depósito (lote 32 · MSF-620)
+
+El selector de «Toma de inventario» lee `dominio.categorias`, cuya política exigía la sección `categorias`; Depósito la tiene en
+`ninguno` (y `stock` en edición), así que el selector llegaba vacío. Era un problema de RLS, no de interfaz: `20270507180600` agrega
+la política de **solo lectura** `categorias_select_stock` (organización + `stock` en **edición**: quien solo lee stock, como Mostrador, no gana lectura de categorías). No da escritura sobre
+categorías. Prueba: `lote32_categorias_lectura_para_stock.test.sql`.
+
 ## Reversión
 
 Todo es aditivo. Para volver atrás, siga el orden de las secciones «Reversión» de cada guía: primero las funciones

@@ -2,9 +2,26 @@
 owner: tecnico
 sources:
   - specs/20261016-140000-permisos-por-empresa
-  - supabase/migrations
-  - supabase/tests/database
-  - apps/web/src
+  - supabase/migrations/20261016140100_roles_por_empresa.sql
+  - supabase/migrations/20261016150100_cambiar_empresa_activa.sql
+  - supabase/migrations/20261017120000_cambiar_empresa_activa_serializada.sql
+  - supabase/migrations/20261016160100_asignar_empresas_usuario.sql
+  - supabase/migrations/20261017130000_cambiar_rol_miembro_lock_asignaciones.sql
+  - supabase/migrations/20261018170000_empresa_activa_todas.sql
+  - supabase/migrations/20270202202000_tecnico_invitable_y_por_empresa.sql
+  - supabase/tests/database/roles_por_empresa.test.sql
+  - supabase/tests/database/cambiar_empresa_activa.test.sql
+  - supabase/tests/database/asignar_empresas_usuario.test.sql
+  - apps/web/src/lib/empresaActiva.ts
+  - apps/web/src/hooks/useEmpresaActiva.ts
+  - apps/web/src/hooks/useVersionEmpresaActiva.ts
+  - apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx
+  - apps/web/src/components/navegacion/EncabezadoPanel.tsx
+  - apps/web/src/components/pagina/ContenidoPorEmpresa.tsx
+  - apps/web/src/components/usuarios/SelectorAsignacionesEmpresa.tsx
+  - apps/web/src/pages/usuarios/list.tsx
+  - apps/web/src/lib/asignacionesEmpresas.ts
+  - apps/web/e2e/permisos-por-empresa.e2e.ts
 ---
 
 # Permisos por empresa: construcción interna (MSF-121)
@@ -28,11 +45,11 @@ Tablas de plataforma (acceso transversal) en `public`; `dominio.empresas` solo s
 
 | Objeto | Migración | Cambio |
 |---|---|---|
-| `public.usuarios_empresas` | `20261016140100_roles_por_empresa.sql` | **Nueva.** Rol por empresa: `user_id`, `empresa_id`, `organizacion_id`, `rol_id`, `created_at`; PK `(user_id, empresa_id)`. `check` limita `rol_id` a `operador`, `consulta`, `mostrador`, `deposito`, `administracion`; el trigger `usuarios_empresas_validar` exige que usuario y empresa sean de la organización de la fila. RLS: `select` para el propio usuario o quien gestiona membresías; sin escritura directa. |
+| `public.usuarios_empresas` | `20261016140100_roles_por_empresa.sql` | **Nueva.** Rol por empresa: `user_id`, `empresa_id`, `organizacion_id`, `rol_id`, `created_at`; PK `(user_id, empresa_id)`. `check` (`usuarios_empresas_rol_por_empresa`) limita `rol_id` a `operador`, `consulta`, `mostrador`, `deposito`, `administracion` y, desde `20270202202000_tecnico_invitable_y_por_empresa.sql`, `tecnico`; el trigger `usuarios_empresas_validar` exige que usuario y empresa sean de la organización de la fila. RLS: `select` para el propio usuario o quien gestiona membresías; sin escritura directa. |
 | `public.usuario_empresa_activa` | ídem | **Nueva.** Una fila por usuario (`user_id` PK → `auth.users`, `empresa_id` → `dominio.empresas`, `updated_at`). RLS: lectura propia; sin escritura directa (solo la RPC de F-ROL-06). |
 | `public.invitaciones_organizacion.asignaciones` | `20261016160100_asignar_empresas_usuario.sql` | **Alterada.** Columna `jsonb not null default '[]'` con `check` de arreglo; guarda `[{"empresa_id": uuid, "rol_id": text}]` para aplicar al aceptar la invitación. |
 | `public.usuarios_organizacion` | existente | Solo se lee (membresía, rol de organización y `estado`); sin cambios. |
-| `public.roles_organizacion` | existente | FK de `rol_id`; sin cambios (los cinco roles por empresa ya existen desde MSF-125). |
+| `public.roles_organizacion` | existente | FK de `rol_id`; sin cambios (los cinco roles por empresa existen desde MSF-125; `tecnico` se suma como sexto con `20261020130100_rol_tecnico.sql` y se habilita por empresa en `20270202202000`). |
 | `public.organizaciones` | existente | FK de `organizacion_id`; sin cambios. |
 | `dominio.empresas` | existente | FK de ambas tablas nuevas; solo se lee (`id`, `nombre`, `activa`). |
 | `auth.users` | existente | FK `usuario_empresa_activa.user_id`; sin cambios. |

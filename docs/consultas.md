@@ -7,6 +7,7 @@ sources:
   - apps/web/src/lib/responderConsulta.ts
   - apps/web/src/lib/respuestasRapidas.ts
   - apps/web/src/lib/textoInicialConsulta.ts
+  - apps/web/src/lib/presupuestoDesdePedido.ts
 ---
 
 # Consultas: bandeja y aviso (MSF-122)

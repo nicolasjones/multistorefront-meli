@@ -1,9 +1,33 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/e2e/configuracion-dolar-precio-propio.e2e.ts
+  - specs/20270105-100000-configuracion-dolar-y-precio-propio
+  - supabase/migrations/20270213100001_cotizacion_configuracion.sql
+  - supabase/migrations/20270213100002_cotizacion_alcance_empresa.sql
+  - supabase/migrations/20270213100003_cotizacion_cambio_alcance.sql
+  - supabase/migrations/20270213100004_cotizacion_usa_configuracion.sql
+  - supabase/migrations/20270213100005_precios_propios_empresa.sql
+  - supabase/migrations/20270213100006_precios_propios_calculo.sql
+  - supabase/migrations/20270213100007_alertas_inicio_respeta_aviso.sql
+  - supabase/migrations/20270213200001_simulador_precio_propio.sql
+  - supabase/migrations/20270213200002_precio_propio_tienda_y_lineas.sql
+  - supabase/migrations/20270213200003_margen_respeta_precio_propio.sql
+  - supabase/migrations/20270216400000_confirmar_comprobante_cotizacion_por_empresa.sql
+  - supabase/migrations/20270218500100_cotizacion_alcance_independiente_de_sesion.sql
+  - supabase/migrations/20270218500700_exportacion_total_precios_propios_historial.sql
+  - supabase/tests/database/cotizacion_alcance.test.sql
+  - supabase/tests/database/cotizacion_configuracion.test.sql
+  - supabase/tests/database/precios_propios_empresa.test.sql
+  - supabase/tests/database/simulador_precio_propio.test.sql
+  - apps/web/src/components/cotizacion/TarjetaConfiguracion.tsx
+  - apps/web/src/components/precios/PrecioPropioEmpresas.tsx
+  - apps/web/src/components/precios/TablaAsiQuedan.tsx
+  - apps/web/src/hooks/useConfiguracionCotizacion.ts
+  - apps/web/src/hooks/usePreciosPropios.ts
+  - apps/web/src/lib/preciosPropios.ts
+  - apps/web/src/pages/cotizacion/index.tsx
+  - apps/web/src/pages/empresas/precios.tsx
 ---
 
 # Configuración del dólar y precio propio

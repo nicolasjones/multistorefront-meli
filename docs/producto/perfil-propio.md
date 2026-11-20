@@ -1,6 +1,7 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/pages/cuenta
 ---
 
 # Tu perfil: nombre, foto, contraseña y correo
@@ -37,7 +38,7 @@ Arriba a la derecha, hacé clic en tu nombre. Se abre un menú con:
 
 *Mi perfil: editás tu nombre y tu foto; los datos de cuenta son de solo lectura.*
 
-En la misma pantalla ves, solo para lectura, tu correo, la fecha de creación de tu cuenta, tu organización y tu rol, y una lista con tus últimas acciones de seguridad (inicios de sesión, cambios de contraseña o de correo).
+En la misma pantalla ves, solo para lectura, tu correo, la fecha de creación de tu cuenta, tu organización y tu rol (con su nombre habitual, por ejemplo «Administrador» u «Operador»; «Sin rol asignado» si no tenés), y una lista con tus últimas acciones de seguridad (inicios de sesión, cambios de contraseña o de correo).
 
 ## Cambiar tu contraseña
 

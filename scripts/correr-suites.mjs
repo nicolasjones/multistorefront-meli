@@ -10,7 +10,10 @@ import path from 'node:path';
 export const TIMEOUT_POR_DEFECTO_S = 600;
 export const TIMEOUT_MAXIMO_S = 86400;
 // Cada suite corre en su propio grupo de procesos (`detached`): al vencer el timeout se mata el GRUPO entero
-// (shell, pnpm, node y nietos), no solo el shell. `detached` implica setsid: un Ctrl-C o SIGTERM al runner NO llega a la suite en curso (queda corriendo hasta su timeout).
+// (shell, pnpm, node y nietos), no solo el shell. LÍMITE CONOCIDO: `detached` implica setsid, así que un Ctrl-C (SIGINT) o un
+// SIGTERM al runner NO llega a la suite en curso: el runner muere pero la suite sigue hasta terminar o hasta su timeout. Para
+// cortarla antes hay que matar su grupo a mano (`kill -- -<pgid>`). Es una decisión: el runner está pensado para CI, donde el
+// timeout por suite es el único corte.
 
 // Valida un timeout en segundos (finito, > 0 y <= TIMEOUT_MAXIMO_S). Lanza un Error con mensaje claro.
 export function parsearTimeoutS(crudo, origen) {
@@ -40,11 +43,12 @@ export function debeMatarGrupo(pid) {
   return Number.isInteger(pid) && pid > 1;
 }
 
-function defecto(comando, timeoutMs) {
-  const r = spawnSync(comando, { shell: true, stdio: 'inherit', timeout: timeoutMs, killSignal: 'SIGKILL', detached: true });
+// `spawn` y `kill` se inyectan solo en los tests (para fijar que el `kill(-pid)` real pasa por `debeMatarGrupo`).
+export function defecto(comando, timeoutMs, { spawn = spawnSync, kill = process.kill.bind(process) } = {}) {
+  const r = spawn(comando, { shell: true, stdio: 'inherit', timeout: timeoutMs, killSignal: 'SIGKILL', detached: true });
   // Guarda: `process.kill(-pid)` con pid 0 o 1 mataría el grupo del propio runner (-0) o TODOS los procesos (-1).
   if ((r.signal || r.error?.code === 'ETIMEDOUT') && debeMatarGrupo(r.pid)) {
-    try { process.kill(-r.pid, 'SIGKILL'); } catch { /* el grupo ya terminó */ }
+    try { kill(-r.pid, 'SIGKILL'); } catch { /* el grupo ya terminó */ }
   }
   if (r.signal) return { estado: 1, senal: r.signal };
   if (r.error?.code === 'ETIMEDOUT') return { estado: 1, senal: 'SIGKILL' };

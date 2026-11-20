@@ -2,8 +2,23 @@
 owner: datos
 sources:
   - specs/20270328-100000-gastos-de-la-empresa
-  - apps/web/src/pages/gastos
-  - supabase/tests/database
+  - apps/web/src/pages/gastos/index.tsx
+  - apps/web/src/pages/gastos/DialogoGasto.tsx
+  - apps/web/src/pages/gastos/DialogoAnularGasto.tsx
+  - apps/web/src/lib/gastos.ts
+  - apps/web/src/hooks/useGastos.ts
+  - apps/web/src/pages/rentabilidad/CostosFijos.tsx
+  - apps/web/e2e/gastos.e2e.ts
+  - supabase/migrations/20270349000000_gastos.sql
+  - supabase/migrations/20270349000100_gastos_rpc.sql
+  - supabase/migrations/20270349000200_gastos_exportacion_total.sql
+  - supabase/migrations/20270349000300_gastos_consulta.sql
+  - supabase/migrations/20270421000000_costos_fijos_bandera_y_vistas.sql
+  - supabase/migrations/20270421000100_margen_despues_costos_fijos.sql
+  - supabase/migrations/20270421000200_actividad_por_empresa_accesible.sql
+  - supabase/tests/database/gastos_rpc.test.sql
+  - supabase/tests/database/gastos_superficies.test.sql
+  - supabase/tests/database/margen_costos_fijos.test.sql
 ---
 
 # Gastos de la empresa y margen después de costos fijos

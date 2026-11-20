@@ -1,7 +1,21 @@
 ---
 owner: producto
 sources:
-  - specs
+  - specs/20261017-120000-catalogo-alta-y-edicion
+  - specs/20261020-120000-catalogo-listado-y-categorias
+  - specs/20261022-120000-precios-e-iva
+  - specs/20261103-100000-catalogo-productividad
+  - specs/20270125-100000-catalogo-compatibilidad-y-planillas
+  - specs/20270125-100000-catalogo-variantes
+  - apps/web/src/pages/productos/list.tsx
+  - apps/web/src/pages/productos/create.tsx
+  - apps/web/src/pages/productos/edit.tsx
+  - apps/web/src/components/productos/DialogoProducto.tsx
+  - apps/web/src/lib/productosListado.ts
+  - apps/web/src/lib/productos.ts
+  - apps/web/e2e/productos-variantes.e2e.ts
+  - apps/web/e2e/productos-relacionados.e2e.ts
+  - supabase/tests/database/catalogo_edicion_masiva.test.sql
 ---
 
 # Catálogo de productos
@@ -69,7 +83,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - Menú **Catálogo → Productos** (`/productos`, ícono Inventory2, sección `productos`, audiencia organización).
   `/productos` es el listado con búsqueda, filtros, orden y paginación en servidor (ver «Listado»); los productos
   inactivos se listan con la etiqueta «Inactivo». Con permiso de edición suma «Nuevo producto», «Editar» y Activar/Desactivar
-  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`).
+  por fila; con solo lectura no hay acciones. El alta, la ficha y la grilla se descargan bajo demanda (`lazy`). «Nuevo producto» y «Editar» abren el formulario en un popup (`components/productos/DialogoProducto.tsx`, que reutiliza `AltaProducto` y `EdicionProducto`): no se cierra con Esc ni al hacer clic afuera, se sale con «Cancelar» (pide confirmar si hay datos) o «Cerrar» ya guardado, y el listado se recarga desde el principio; las rutas `/productos/create` y `/productos/:id/edit` siguen existiendo (`App.tsx`).
 - Formulario: aviso «Faltan datos obligatorios», diálogo «Descartar cambios», bloque «Precio y costo» (ver
   «Precio y costo en pesos o dólares» más abajo), ayuda del SKU «Se genera solo si lo dejás vacío», costo solo con edición en
   Rentabilidad. Sin stock inicial.
@@ -239,7 +253,7 @@ El buscador del listado acepta también un **código de barras EAN-13** (lector 
 
 `/productos` (Catálogo → Productos) lee `public.v_productos_listado` y resuelve **en el servidor** la búsqueda, el filtro, el orden y la carga por tandas (25 por tanda, `range` + `count`; **carga infinita**, sin paginación numerada: ver «Carga infinita del listado»). La vista es de **`public`** (es una vista, no una tabla; no se crea ninguna tabla), `security_invoker = true` —rige la RLS de `dominio.productos` y `dominio.producto_imagenes`—, sin acceso de `anon` y **sin costo ni precio** (Decisión 5). Columnas del contrato: `id, organizacion_id, nombre, sku, activo, imagen_ruta, updated_at, empresa_ids` (esta última desde F-CAT-07); las historias F-CAT-07 y F-CAT-08 (y MSF-179/202) solo agregan columnas **al final**. `imagen_ruta` es la de menor posición del bucket privado; la app la firma por página.
 
-- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen («—» hasta Costo y Rentabilidad), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
+- **Columnas**: Producto (miniatura, nombre, SKU), Precio (en pesos: ver «Precio en el listado»), Costo y Margen (solo con acceso a Rentabilidad; Margen = (precio − costo) / precio en pesos, «—» si falta precio o costo; con un tooltip que lo aclara como estimación: `apps/web/src/pages/productos/list.tsx:119-131`, `apps/web/src/lib/productosListado.ts:224-236`), Stock (etiqueta de disponibilidad, F-CAT-17), Estado y acciones (Editar, Activar/Desactivar, solo con edición en Productos).
 - **Búsqueda**: por nombre o SKU (y, desde F-CAT-14, por código de barras: ver su sección), parcial y sin distinguir mayúsculas (`ilike`), con espera de tipeo de 300 ms, 80 caracteres como máximo, comodines `%`/`_` escapados y `, ( ) " \` descartados (`filtroBusquedaProductos`). Vuelve a la página 1.
 - **Filtros**: Todos e Inactivos (y, desde F-CAT-17, «Disponibilidad»: ver su sección). «Stock bajo» y «Sin vincular a ML» se ven deshabilitados con su explicación hasta que lleguen Stock y Mercado Libre. «Limpiar filtros» aparece cuando hay alguno activo.
 - **Orden**: por encabezado Producto y Estado (tabla ancha) y, en cualquier ancho —incluidas las tarjetas de <600 px—, con el selector «Ordenar por» (Producto, SKU, Estado) y el botón Ascendente/Descendente; desempate estable por `id`. La búsqueda quita también el comodín `*` de PostgREST.
@@ -423,7 +437,7 @@ Al integrar la base de deploy a DEV coincidieron cuatro versiones con migracione
 - **Categorías de 2 niveles** (raíz y subcategoría); el prototipo dice «hasta 3.er nivel» (Decisión 1 de la spec).
 - **Sin IVA** en el listado ni en el precio mostrado; el listado no expone costo ni precio.
 - **Acciones masivas**: solo las de «Productividad» (mover de categoría, estado y empresas; ver la sección homónima).
-- **Precio, Costo y Margen se muestran «—»** hasta que lleguen Precios, Costo y Rentabilidad (la columna Stock ya muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
+- **Precio, Costo y Margen** ya muestran datos reales (ver «Columnas»): «—» solo si falta el dato o el rol no ve Costo y Margen (la columna Stock muestra la disponibilidad, F-CAT-17); los filtros Stock bajo y Sin vincular a ML se ven deshabilitados con su explicación.
 - El dominio web de cada tienda no se muestra en «Empresas que lo venden»: `dominio.empresas` todavía no lo guarda.
 
 ## Revisión de seguridad de MSF-160 (T030, SC-006)

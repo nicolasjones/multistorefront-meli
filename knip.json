@@ -6,7 +6,9 @@
     "ffmpeg",
     "hostname",
     "pkill",
-    "tailscale"
+    "tailscale",
+    "gitleaks",
+    "psql"
   ],
   "ignore": [
     "commitlint.config.cjs",

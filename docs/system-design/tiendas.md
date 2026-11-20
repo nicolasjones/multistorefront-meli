@@ -1,7 +1,12 @@
 ---
 owner: tecnico
 sources:
-  - specs
+  - specs/20261022-084830-tienda-dominio-e-identidad
+  - specs/20270125-100000-tienda-dominio-y-publicacion
+  - supabase/migrations/20261023100000_tiendas_dominio.sql
+  - apps/web/src/main.tsx
+  - supabase/functions/tienda-seo/handler.ts
+  - apps/web/nginx.conf
 ---
 
 # Tiendas y vitrinas
@@ -34,8 +39,13 @@ flowchart TB
 
 ## Vitrinas online
 
-Cada tienda tiene vitrina propia sobre el mismo catálogo y stock. Cloudflare
-cachea el contenido público; el panel, dinámico, no se cachea.
+Cada tienda tiene vitrina propia sobre el mismo catálogo y stock: la misma
+aplicación decide por el `Host` si sirve el panel o la tienda de esa empresa
+(`dominio.tiendas`). Cloudflare como caché del contenido público es un diseño
+previsto (el repo no lo configura; ver [Infraestructura](infra.md)); hoy las
+respuestas públicas de la tienda no se cachean y solo `robots.txt` y
+`sitemap.xml` pasan por una caché de nginx de 5 minutos. El panel, dinámico, no
+se cachea.
 
 ```mermaid
 flowchart LR
@@ -45,8 +55,9 @@ flowchart LR
   CF --> C
 ```
 
-El stock visible en la vitrina es el **disponible** con una caché corta; la
-reserva definitiva ocurre al confirmar el pedido.
+La vitrina muestra solo si el producto está **disponible** o sin stock (un
+booleano, nunca la cantidad). La tienda no cobra online: el visitante
+consulta, arma una lista de pedido o pide un presupuesto.
 
 ## Canales externos (Etapa 2)
 

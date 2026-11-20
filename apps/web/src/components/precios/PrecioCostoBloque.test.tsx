@@ -1,5 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+const mocks = vi.hoisted(() => ({ nivel: vi.fn() }))
+vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: () => ({ nivel: mocks.nivel(), isLoading: false, error: false }) }))
+
+import { MemoryRouter } from 'react-router'
 import { PrecioCostoBloque } from './PrecioCostoBloque'
 
 const COTIZACION = { valor: 1465, fecha: '2026-09-25T15:00:00Z' }
@@ -38,6 +42,33 @@ describe('PrecioCostoBloque', () => {
     expect(screen.getByText('40 %')).toBeInTheDocument()
     expect(screen.getByText(/Margen = Precio − Costo − Comisión del canal/)).toBeInTheDocument()
     expect(screen.getByText('El precio de lista se carga sin IVA.')).toBeInTheDocument()
+  })
+
+  it('«Cotización →» es un enlace a la pantalla de Cotización, en pestaña nueva, para quien tiene la sección', () => {
+    mocks.nivel.mockReturnValue('lectura')
+    montar()
+    const enlace = screen.getByRole('link', { name: /Cotización/ })
+    expect(enlace).toHaveAttribute('href', '/cotizacion')
+    expect(enlace).toHaveAttribute('target', '_blank')
+  })
+
+  it('sin la sección de cotización no ofrece el enlace', () => {
+    mocks.nivel.mockReturnValue('ninguno')
+    montar()
+    expect(screen.queryByRole('link', { name: /Cotización/ })).not.toBeInTheDocument()
+  })
+
+  it('dentro del router la dirección respeta el basename', () => {
+    mocks.nivel.mockReturnValue('edicion')
+    render(
+      <MemoryRouter basename="/panel" initialEntries={["/panel"]}>
+        <PrecioCostoBloque
+          moneda="ARS" precioLista="10" costo="5" onMoneda={() => undefined} onPrecio={() => undefined} onCosto={() => undefined}
+          conCosto={false} costoEditable={false} soloLectura={false} cotizacion={null} cargandoCotizacion={false} errorCotizacion={false}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole('link', { name: /Cotización/ })).toHaveAttribute('href', '/panel/cotizacion')
   })
 
   it('ARS: el precio y el costo se muestran tal cual, sin conversión ni dólar', () => {

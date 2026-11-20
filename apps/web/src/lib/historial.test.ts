@@ -156,6 +156,9 @@ describe('leerDetalle y resumenDeEjecucion', () => {
   it('distingue en curso, timeout y una falla sin detalle', () => {
     expect(resumenDeEjecucion(ejecucion({ estado: 'en_curso', finalizada_en: null })).titulo).toBe('Importación en curso')
     expect(resumenDeEjecucion(ejecucion({ estado: 'timeout' })).titulo).toBe('La importación no terminó a tiempo')
-    expect(resumenDeEjecucion(ejecucion({ estado: 'fallida', detalle: {} })).descripcion).toContain('Revisá el detalle en Ejecuciones')
+    const sinDetalle = resumenDeEjecucion(ejecucion({ estado: 'fallida', detalle: {} })).descripcion
+    expect(sinDetalle).toContain('el detalle está en Ejecuciones')
+    // Sin jerga interna: la persona no tiene por qué saber qué es un «worker».
+    expect(sinDetalle).not.toMatch(/worker/i)
   })
 })

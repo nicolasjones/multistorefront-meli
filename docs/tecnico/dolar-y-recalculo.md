@@ -1,9 +1,30 @@
 ---
 owner: tecnico
 sources:
-  - specs
-  - supabase/migrations
-  - apps/web/src
+  - apps/web/e2e/cotizacion-recalculo.e2e.ts
+  - specs/20261023-120000-dolar-y-recalculo
+  - supabase/migrations/20261022110201_historial_listar_cotizaciones.sql
+  - supabase/migrations/20261022121001_precios_conversion_central.sql
+  - supabase/migrations/20261023140000_cotizacion_tablas.sql
+  - supabase/migrations/20261023140100_cotizacion_cargar_estado.sql
+  - supabase/migrations/20261023140200_cotizacion_previsualizar.sql
+  - supabase/migrations/20261023140300_cotizacion_confirmar_recalculo.sql
+  - supabase/migrations/20261023140400_cotizacion_historial.sql
+  - supabase/migrations/20261023140500_cotizacion_aviso.sql
+  - supabase/tests/database/cotizacion_aviso.test.sql
+  - supabase/tests/database/cotizacion_carga.test.sql
+  - supabase/tests/database/cotizacion_historial.test.sql
+  - supabase/tests/database/cotizacion_recalculo.test.sql
+  - apps/web/src/pages/cotizacion/index.tsx
+  - apps/web/src/components/cotizacion/DialogoCargarDolar.tsx
+  - apps/web/src/components/cotizacion/BloqueQueVaACambiar.tsx
+  - apps/web/src/components/cotizacion/AvisoCotizacion.tsx
+  - apps/web/src/components/cotizacion/TablaHistorial.tsx
+  - apps/web/src/components/cotizacion/TarjetaVigente.tsx
+  - apps/web/src/hooks/useCotizacion.ts
+  - apps/web/src/hooks/useCotizacionDelDia.ts
+  - apps/web/src/hooks/useHistorialCargasCotizacion.ts
+  - apps/web/src/hooks/usePrevisualizarCotizacion.ts
 ---
 
 # Dólar y recálculo: modelo, RPC y operación
@@ -72,6 +93,8 @@ No confundir `listar_cotizaciones` (historial de esta épica) con
 ## Umbral, recálculo y atomicidad
 
 > MSF-352: umbral, confirmación, redondeo, aviso y alcance (sistema o empresa) pasan a ser configurables; ver [Configuración del dólar y precio propio](configuracion-dolar-y-precio-propio.md). Lo que sigue describe los valores por defecto.
+
+> Inicio también permite cargar el dólar con un diálogo que muestra el impacto antes de guardar (`previsualizar_impacto_dolar`, solo lectura) y aplica la carga y la confirmación en una sola transacción (`aplicar_cotizacion`); el detalle está en [Inicio: tablero completo](inicio-tablero.md).
 
 - **Umbral fijo de 1 %**, en valor absoluto, medido contra la **cotización vigente** (última confirmada o,
   sin ninguna, `cotizacion_inicial`). Con |variación| ≥ 1 % se recalcula; con menos, **solo se registra**
