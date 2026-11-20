@@ -71,11 +71,16 @@ export function paginaRun(manifiesto) {
     return `<section><h2>${titulo}</h2>${bloques}</section>`;
   }).join('\n');
   const huerfanos = (manifiesto.huerfanos ?? []).map((h) => `<li>${h.test} — ${h.motivo}</li>`).join('');
+  // MSF-907: los ítems cuya descripción no alcanza salen a la vista, con su motivo.
+  const sinDescripcion = (manifiesto.items_sin_descripcion ?? [])
+    .map((i) => `<li>[${i.id}] ${i.specTitulo ?? i.spec} — ${i.motivo}</li>`)
+    .join('');
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cobertura E2E ${manifiesto.run_id}</title></head><body>
 <h1>Cobertura E2E — corrida ${manifiesto.run_id}</h1>
 <p>Fecha: ${manifiesto.fecha} · modo: ${manifiesto.modo}</p>
 ${secciones}
 ${huerfanos ? `<h2>Sin etiqueta válida</h2><ul>${huerfanos}</ul>` : ''}
+${sinDescripcion ? `<h2>Ítems sin descripción utilizable</h2><ul>${sinDescripcion}</ul>` : ''}
 </body></html>`;
 }
 

@@ -11,6 +11,8 @@ sources:
   - scripts/armar-video-evidencia.mjs
   - scripts/publicar-videos-e2e.mjs
   - scripts/cobertura-e2e.mjs
+  - scripts/historia-item.mjs
+  - scripts/e2e-cobertura-epicas.py
 ---
 
 # Suite E2E de la app (Playwright)
@@ -458,6 +460,47 @@ Pipeline:
    fallar. Los videos se firman bajo demanda (URL firmada de 5 minutos); la
    ficha nunca descarga videos hasta pedirlos.
 
+## La regla de un ítem: la descripción tiene que alcanzar (MSF-907)
+
+El runner deriva de cada ítem de `tasks.md` tres cosas: **a qué historia pertenece**, **qué
+criterios de aceptación** tiene y **cómo se describe** en la tarjeta del video. Las tres salen
+del texto del ítem, y por eso el texto es un contrato: si no alcanza, el runner degrada en
+silencio (evidencia sin criterios, ítem agrupado por tarea en vez de por historia, o un ítem
+contado como «sólo base de datos» con lo cual nadie escribe el test).
+
+La regla vive en un solo lugar —`scripts/historia-item.mjs`, que usan el manifiesto, el
+ensamblador de videos y el reporte por épica— y dice:
+
+- **El texto del ítem es completo**: incluye las líneas indentadas que siguen (notas, desvíos,
+  un enunciado partido en dos).
+- **El código de historia `F-XX-NN` se lee en cualquier posición**: `[P] [F-EMP-03][US1] …`
+  cuenta igual que `[F-EMP-03][US1] …`.
+- **Una descripción es utilizable** cuando tiene texto (para describirla) **y** código de
+  historia (para unirla a sus escenarios). Si no, el runner lo dice:
+  - el manifiesto publica la lista nueva `items_sin_descripcion` (con el motivo: `sin texto` o
+    `sin historia`) y la línea de resumen la cuenta;
+  - el reporte por épica (`scripts/e2e-cobertura-epicas.py`) tiene su propia columna «Ítems
+    sin descripción» y **no** cuenta esos ítems como «sólo base de datos»;
+  - el video de un ítem sin criterios se publica marcado «sin criterios» y su tarjeta
+    muestra el id del ítem en vez de un subtítulo vacío.
+
+Las dos claves del manifiesto son **aditivas**: el visor del panel SDLC las ignora hasta que
+las consuma.
+
+El encabezado de la historia en el `spec.md` se lee en los dos formatos que usa el repo
+(`### User Story N - … (F-XXX-NN, …)` y `### USN — … (F-XXX-NN, …)`) y el código puede ir
+dentro del paréntesis con otros datos (`(MSF-383 · F-PRV-04, P0, talla L)`). Si dos historias
+del mismo spec declaran el mismo código, el manifiesto lo publica en `historias_ambiguas` en
+vez de elegir en silencio.
+
+Para ver la cola de ítems que el runner **no** puede derivar, y correr las pruebas de la regla:
+
+```bash
+pnpm test:historia:item        # la regla compartida
+pnpm test:e2e:cobertura:epicas # el reporte por épica (lee los ítems con esa misma regla)
+python3 scripts/e2e-cobertura-epicas.py --epicas MSF-136   # o --md para markdown
+```
+
 ## Estándar: toda prueba deja su video
 
 Todo test E2E que pruebe una historia sigue tres reglas:
@@ -491,7 +534,8 @@ test('[F-STK-02#5] [F-STK-05#4] Consulta ve el stock sin poder registrar …', �
 test('[MSF-136:T025] el Administrador agrega un motivo …', …)                  // sin escenario en el spec: por tarea
 ```
 
-- `[F-XXX-NN#n]` apunta a los escenarios numerados de la historia en `spec.md` (`### User Story N - … (F-XXX-NN`).
+- `[F-XXX-NN#n]` apunta a los escenarios numerados de la historia en `spec.md` (`### User Story N - … (F-XXX-NN`
+  o `### USN — … (F-XXX-NN`).
   `pnpm cobertura:e2e` los resuelve (`historia`, `criterios`) y lista en `criterios_sin_cubrir` los que ningún test cita.
 - Lo que no tiene pantalla (RLS, concurrencia, escritura directa) queda en pgTAP y no necesita video.
 - `pnpm armar-video:e2e` arma, **sin IA**, un MP4 1920×1080 por test: tarjeta de entrada con los escenarios que

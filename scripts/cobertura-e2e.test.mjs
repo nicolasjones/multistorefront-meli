@@ -4,7 +4,8 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { expandirRangos, extraerCriterios, extraerEtiquetas, generarManifiesto, leerCriterios, leerItems, mapaEpicaSpec } from './cobertura-e2e.mjs';
+import { leerItems } from './historia-item.mjs';
+import { expandirRangos, extraerCriterios, extraerEtiquetas, generarManifiesto, leerCriterios, mapaEpicaSpec } from './cobertura-e2e.mjs';
 
 function armarFixture() {
   const base = mkdtempSync(join(tmpdir(), 'cobertura-'));
@@ -58,8 +59,8 @@ describe('cobertura-e2e', () => {
       { dir: join(dirSpecs, 'spec-acceso'), titulo: 'spec-acceso', componente: 'Acceso' },
     ]);
     assert.deepEqual(leerItems(join(dirSpecs, 'spec-acceso', 'tasks.md')), [
-      { id: 'T020', hecho: true, texto: 'E2E de ingreso y recuperación' },
-      { id: 'T021', hecho: false, texto: 'Pendiente sin E2E' },
+      { id: 'T020', hecho: true, texto: 'E2E de ingreso y recuperación', historia: '', motivo: 'sin historia' },
+      { id: 'T021', hecho: false, texto: 'Pendiente sin E2E', historia: '', motivo: 'sin historia' },
     ]);
   });
 
@@ -111,6 +112,41 @@ describe('cobertura-e2e', () => {
     assert.deepEqual(mapa.get('F-STK-03').map((c) => c.n), [1]);
   });
 
+  // MSF-907: el repo escribe las historias en dos formatos y el código puede ir dentro del
+  // paréntesis con otros datos. Con la regla vieja esas historias no eran derivables.
+  it('lee los dos formatos de encabezado de historia del repo', () => {
+    const base = mkdtempSync(join(tmpdir(), 'encabezados-'));
+    const spec = join(base, 'spec.md');
+    writeFileSync(spec, [
+      '### US1 — Datos de la organización (F-ORG-03, P1, talla S)', '',
+      '1. **Given** un administrador, **When** abre, **Then** ve los datos.', '',
+      '### User Story 2 - Registrar ingreso (MSF-383 · F-PRV-04, P0, talla L)', '',
+      '1. **Given** un producto, **When** registra, **Then** sube el stock.', '',
+      '### Flujo 1 — Importación del historial (F-VTA-37)', '', '1. **Given** un archivo, **When** importa, **Then** carga.',
+    ].join('\n'));
+    const mapa = leerCriterios(spec);
+    assert.equal(mapa.get('F-ORG-03').titulo, 'Datos de la organización');
+    assert.deepEqual(mapa.get('F-ORG-03').map((c) => c.n), [1]);
+    assert.equal(mapa.get('F-PRV-04').titulo, 'Registrar ingreso');
+    assert.deepEqual(mapa.get('F-PRV-04').map((c) => c.n), [1]);
+    // Un encabezado que no es de historia (un «Flujo») no genera criterios.
+    assert.equal(mapa.has('F-VTA-37'), false);
+  });
+
+  it('reporta la ambigüedad cuando dos historias declaran el mismo código', () => {
+    const base = mkdtempSync(join(tmpdir(), 'ambigua-'));
+    const spec = join(base, 'spec.md');
+    writeFileSync(spec, [
+      '### User Story 1 - Pedir lo que falta (F-PRV-09, P3, talla L)', '',
+      '1. **Given** un producto, **When** pide, **Then** se emite la orden.', '',
+      '### User Story 2 - Seguir la orden (F-PRV-09)', '',
+      '1. **Given** una orden, **When** llega, **Then** se marca recibida.',
+    ].join('\n'));
+    const mapa = leerCriterios(spec);
+    assert.equal(mapa.get('F-PRV-09').titulo, 'Pedir lo que falta');
+    assert.deepEqual(mapa.get('F-PRV-09').titulos, ['Pedir lo que falta', 'Seguir la orden']);
+  });
+
   it('un test con criterios genera evidencia por historia y avisa los escenarios sin cubrir', () => {
     const { base, dirSpecs, dirResults } = armarFixture();
     writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), [
@@ -130,6 +166,35 @@ describe('cobertura-e2e', () => {
     assert.deepEqual(m.evidencias[0].criterios.map((c) => c.n), [1, 2]);
     assert.deepEqual(m.criterios_sin_cubrir.map((c) => [c.historia, c.n]), [['F-STK-02', 3]]);
     assert.ok(m.huerfanos.some((h) => /F-STK-99/.test(h.motivo)));
+  });
+
+  // MSF-907: lo que el runner no puede derivar queda explícito, con su motivo.
+  it('publica los ítems sin descripción utilizable y las historias ambiguas', () => {
+    const { base, dirSpecs, dirResults } = armarFixture();
+    writeFileSync(join(dirSpecs, 'spec-acceso', 'tasks.md'), [
+      '- [x] T020 [F-ACC-01][US1] E2E de ingreso y recuperación',
+      '- [ ] T021 [P] [US1]',
+      '- [ ] T022 Documentación de la historia',
+    ].join('\n'));
+    writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), [
+      '**Componente**: Acceso', '', '**Jira Epic**: MSF-119 — Acceso', '',
+      '### User Story 1 - Ingreso (F-ACC-01, P0)', '',
+      '1. **Given** a, **When** b, **Then** c.', '',
+      '### User Story 2 - Recuperación (F-ACC-01, P0)', '',
+      '1. **Given** d, **When** e, **Then** f.',
+    ].join('\n'));
+    const reporte = join(base, 'descripcion.json');
+    writeFileSync(reporte, JSON.stringify({ suites: [{ title: 's', specs: [{ title: 't', file: 'e2e/s.e2e.ts', tests: [
+      { title: '[MSF-119:T020] ingreso', results: [{ status: 'passed', attachments: [] }] },
+    ] }] }] }));
+    const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r4', modo: 'on' });
+    assert.deepEqual(m.items_sin_descripcion.map((i) => [i.id, i.motivo]), [
+      ['T021', 'sin texto'],
+      ['T022', 'sin historia'],
+    ]);
+    assert.deepEqual(m.historias_ambiguas.map((h) => [h.historia, h.titulos]), [
+      ['F-ACC-01', ['Ingreso', 'Recuperación']],
+    ]);
   });
 });
 
