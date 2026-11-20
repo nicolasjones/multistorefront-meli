@@ -10,6 +10,7 @@ sources:
   - infra/kestra/compose.yaml
   - supabase/functions/_shared/smtp.ts
   - scripts/verificar-salida-correo.mjs
+  - scripts/auditar-duplicados-tracker.mjs
 ---
 
 # Operación
@@ -122,6 +123,33 @@ listas»). Detalle: [Consultas](consultas.md#aviso-por-correo).
   (Tarea `seguimiento` a crear en el tracker) y registrada en
   [Verificación de salida del correo](../verificacion-salida-correo.md).
   Detalle: [Perfil y permisos avanzados](perfil-y-permisos.md) · [Solicitar acceso](../solicitar-acceso.md).
+
+## Higiene del board: duplicados y cierre administrativo (MSF-908)
+
+El board (tracker *It's a Plan*) es la fuente de verdad del trabajo. Si un hallazgo se abre dos
+veces, el trabajo se duplica y los conteos se inflan.
+
+**Cierre administrativo.** Un ítem que se cierra **sin entrega propia** —no tiene rama ni PR, o su
+entrega vive en otro ítem— se marca con el label **`cierre-administrativo`** y apunta al ítem que
+conserva la evidencia con la relación **`duplicates`** (del duplicado al original) más un comentario.
+**No se borra**: el puntero queda en el board.
+
+**Barrido.** `pnpm tracker:duplicados` recorre el board (usa `ITSAPLAN_API_KEY` y
+`ITSAPLAN_API_URL`) e informa:
+
+| Sección | Qué mira | Qué hacer |
+|---|---|---|
+| A | Títulos idénticos | Mismo padre = duplicado real; padres distintos = ítems de cierre de cada épica (falsos positivos) |
+| B | Familias que comparten referencia y padre (`[Seg. MSF-470]`) | **Informativo**: compartir referencia no es ser duplicado (bajo `[Seguimiento MSF-205]` hay 8 seguimientos distintos) |
+| C | Cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia | Cerrar el duplicado con el puntero al gemelo |
+| D | Marcado como `duplicates` pero sin `cierre-administrativo` | Falta el mecanismo de cierre |
+
+- La **etiqueta inicial del título es parte de la identidad** del ítem: `[Cierre MSF-212]` y
+  `[Cierre MSF-191]` no son el mismo texto. Borrarla al normalizar funde ítems legítimos de épicas
+  distintas: el barrido del 2026-11-13 reportó «12 grupos con el mismo título» cuando, con la
+  normalización correcta, hay 1 (el resto eran cierres de épica).
+- Sin `ITSAPLAN_API_KEY` el barrido avisa y sale con 0: no rompe el CI.
+- Tests: `pnpm test:tracker:duplicados` (`scripts/auditar-duplicados-tracker.test.mjs`).
 
 ## E2E y evidencia
 
