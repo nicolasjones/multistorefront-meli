@@ -23,6 +23,7 @@ TASKS = """- [ ] T001 [F-DEMO-01][US1] Migración aditiva `dominio.clientes` y p
 - [ ] T005 [F-DEMO-03][US1]
 - [ ] T006 [P] Crear el hook `useClientes` en
   `apps/web/src/hooks/useClientes.ts`.
+- [ ] T007 [P] [F-DEMO-04][US1] Pantalla de stock con filtro por deposito
 """
 
 
@@ -62,6 +63,8 @@ class ReporteCoberturaPorEpica(unittest.TestCase):
         por_id = {i["id"]: i for i in items}
         self.assertEqual(por_id["T001"]["historia"], "F-DEMO-01")
         self.assertEqual(por_id["T002"]["historia"], "F-DEMO-02")
+        # El código de historia detrás de `[P]` también cuenta.
+        self.assertEqual(por_id["T007"]["historia"], "F-DEMO-04")
         # El texto del ítem incluye las líneas de continuación.
         self.assertIn("useClientes.ts", por_id["T006"]["texto"])
 
@@ -74,8 +77,8 @@ class ReporteCoberturaPorEpica(unittest.TestCase):
 
     def test_el_reporte_cuenta_las_historias_del_working_tree(self):
         salida = self.correr("--epicas", "MSF-999")
-        self.assertIn("historias=  3", salida)
-        self.assertIn("SIN E2E=  1", salida)
+        self.assertIn("historias=  4", salida)
+        self.assertIn("SIN E2E=  2", salida)
 
     def test_un_item_sin_descripcion_no_cuenta_como_solo_base_de_datos(self):
         salida = self.correr("--epicas", "MSF-999")

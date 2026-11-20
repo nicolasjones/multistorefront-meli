@@ -19,7 +19,7 @@ const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
 const ETIQUETA_CRITERIOS = /\[(F-[A-Z]+-\d+)\s*#\s*([\d,\s-]+)\]/g;
 // Encabezado de historia: el repo usa los dos formatos (`### User Story N - …` y `### USN — …`).
 const ENCABEZADO_HISTORIA = /^###\s+(?:User\s+Story|US)\s*\d+\s*[-–—·]?\s*(.*)$/;
-const CODIGO_HISTORIA = /\b(F-[A-Z0-9]+-\d+)\b/;
+const CODIGO_HISTORIA_EN_ENCABEZADO = /\b(F-[A-Z0-9]+-\d+)\b/;
 const JIRA_EPIC = /\*\*Jira Epic\*\*:\s*([A-Z]+-\d+)/;
 const COMPONENTE = /\*\*Componente\*\*:\s*(.+)/;
 const SIN_COMPONENTE = 'Sin clasificar';
@@ -72,7 +72,7 @@ export function leerCriterios(rutaSpec) {
   for (const linea of readFileSync(rutaSpec, 'utf8').split('\n')) {
     const h = linea.match(ENCABEZADO_HISTORIA);
     if (h) {
-      const codigo = h[1].match(CODIGO_HISTORIA)?.[1];
+      const codigo = h[1].match(CODIGO_HISTORIA_EN_ENCABEZADO)?.[1];
       actual = codigo ?? null;
       if (!codigo) continue;
       const titulo = tituloDeHistoria(h[1], codigo);

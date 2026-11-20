@@ -15,9 +15,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 /** Línea de ítem de `tasks.md`: `- [ ] T001 …`. */
-export const ITEM_TAREA = /^\s*-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
+const ITEM_TAREA = /^\s*-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
 /** Código de historia `F-XXX-NN` (en corchetes, en cualquier posición del texto). */
-export const CODIGO_HISTORIA = /\[(F-[A-Z0-9]+-\d+)\]/;
+const CODIGO_HISTORIA = /\[(F-[A-Z0-9]+-\d+)\]/;
 
 /** El texto del ítem sin las etiquetas estructurales (`[P]`, `[F-XXX-NN]`, `[US1]`…). */
 export function textoSinEtiquetas(texto) {

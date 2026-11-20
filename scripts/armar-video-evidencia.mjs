@@ -224,8 +224,8 @@ async function adjuntar(issueId, ruta) {
 }
 
 const icono = (estado) => (estado === 'pasado' ? '✅' : '❌')
-// Un video sin criterios se publica marcado como tal: si no, el runner no derive los
-// escenarios de aceptación y nadie lo nota.
+// Un video sin criterios se publica marcado como tal: si no, nadie nota que el runner
+// no derivó los escenarios de aceptación.
 const lineaVideo = (f) => `- ${icono(f.estado)} ${f.titulo} (${f.criterios?.length ? `escenarios ${f.criterios.join(', ')}` : 'sin criterios'}) → [ver video](${f.url})`
 
 /** Comentario de una historia con los links de sus videos. */
