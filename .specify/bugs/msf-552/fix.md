@@ -19,7 +19,7 @@ por una causa que no es de la base: la tienda pública carga el *bundle* del pan
 
 | File | Change | Notes |
 |------|--------|-------|
-| `docs/tiendas-online.md` | modified | Sección «Rendimiento en celular (T071, SC-010)»: se reemplaza «No medido todavía» por las cuatro rutas medidas (LCP/FCP/CLS/TBT), el costo de `publico.catalogo_pagina_por_dominio` con 500 productos, el veredicto, el ajuste de D3 y la fuente (run + artifact) |
+| `docs/tiendas-online.md` | modified | Sección «Rendimiento en celular (T071, SC-010)»: se reemplaza «No medido todavía» por las cuatro rutas medidas (LCP/FCP/CLS/TBT), el costo de `publico.catalogo_pagina_por_dominio` con 500 productos, el veredicto, el ajuste de D3 y la fuente (run + artifact). En la re-verificación del 20/11/2026 tres cifras que eran de una sola corrida pasan a ser los rangos de las 12 (ver «Re-verificación» en `test.md`) |
 | `docs/tecnico/tienda-catalogo-y-ficha.md` | modified | «Límites y deuda»: la deuda «Rendimiento móvil no medido» pasa a «medido y NO cumple el objetivo», con las cifras y el enlace a la guía |
 | `docs/tienda-movil.md` | modified | Tabla de LCP: catálogo y ficha con los valores medidos (MSF-552); la home sigue pendiente (MSF-560, que mide otra pantalla) |
 | `.specify/bugs/msf-552/fix.md` | added | Este informe |
@@ -52,6 +52,7 @@ mediana y el veredicto.
   fuente).»
 - `pnpm test:medir:tienda` → verde (guarda documental, perfil de Lighthouse, script SQL y siembra).
 - `pnpm docs:check` → verde.
+- `pnpm lint` → 0 errores; `pnpm build` → compila.
 - **La medición NO se pudo correr en este entorno**: no hay acceso al demonio de Docker
   (`permission denied while trying to connect to the Docker daemon socket`), así que no hay stack local de
   Supabase con el seed. Las cifras de esta corrida salen del **CI**: run del nightly `44118543460` (job `medir`,
@@ -60,6 +61,10 @@ mediana y el veredicto.
   (`vite build`): el *entry* `index-*.js` pesa 911 KB sin comprimir y contiene los textos del panel
   («Organizaciones», «Reparaciones», «Ventas») y no los de la tienda («Todos los productos», «Solo con stock»),
   lo que confirma que la tienda pública descarga el bundle del panel.
+- **Re-verificación del 20/11/2026**: se bajó el artifact y se contrastó cada cifra con los 12 reportes de
+  Lighthouse. Tres estaban anotadas como generales cuando eran de una sola corrida (el primer byte, el «element
+  render delay» y el tiempo de descarga del *entry*): se corrigieron por los rangos que salen del artifact. Ver
+  «Re-verificación» en `test.md`.
 
 ## Deviations from Assessment
 
