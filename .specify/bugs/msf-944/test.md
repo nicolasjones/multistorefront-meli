@@ -121,13 +121,14 @@ Cada regla nueva tiene una aserción que cae si la regla se cambia (mutación de
 
 | Check | Comando / Acción | Resultado |
 |-------|------------------|-----------|
-| Aislamiento de la cola | pgTAP `consultas_retencion.test.sql` (`plan(79)`) | El CI (job `database`) lo corre; local no hay Docker ni CLI de Supabase |
-| D-25 sobre la emisión real | pgTAP `consultas_retencion.test.sql` | ídem |
+| Aislamiento de la cola | job `database` del CI (corrida `44674523588`, `98eaa75b`) | pass — `consultas_retencion.test.sql ... ok` (79/79) y `Files=410, Tests=15178 … Result: PASS` (los 7 tests nuevos del archivo) |
+| D-25 sobre la emisión real | el mismo pgTAP | pass (mismo archivo) |
 | Flow (sin cambios) | `pnpm test:kestra:purgar-consultas-tienda` | pass (4/4) |
 | Lint / build | `pnpm lint`, `pnpm build` | pass (solo warnings preexistentes de React) |
 | Docs / migraciones | `pnpm docs:check` | pass (1 migración nueva contra `origin/dokploy`) |
 | DER de la spec | `node scripts/verificar-der.mjs specs/…-retencion-y-supresion-consultas-tienda/spec.md` | pass (`DER OK (1 spec/s)`) |
 | Calidad | `pnpm calidad:code` | pass (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado: sin Docker) |
+| Rama al día con la base | `git merge origin/dokploy` (conflicto único en `docs/tecnico/consultas.md`, resuelto a favor de la base y reaplicando los cambios de MSF-944) | pass — el PR volvió a `MERGEABLE` (estaba `CONFLICTING`, 133 commits atrás) |
 
 ## Residual Risks
 
@@ -141,9 +142,8 @@ Cada regla nueva tiene una aserción que cae si la regla se cambia (mutación de
 
 ## Recommendation
 
-Volver a revisión: los cinco hallazgos de la devolución tienen arreglo y prueba, y los guards locales
-están en verde. Falta que el job `database` del CI confirme el pgTAP de 79 aserciones (aquí no hay
-Docker ni CLI de Supabase para correrlo). Cuando esté verde, cerrar el bug: la purga por retención y
-la supresión por titular existen, están probadas y están documentadas. Queda en manos del negocio el
-plazo legal definitivo (D-21) y la exportación previa a la primera corrida de la purga, si quiere
-conservar el histórico.
+Cerrar el bug: el job `database` del CI (corrida `44674523588`) dio verde con el pgTAP de 79
+aserciones, los mutantes de la regla mueren, los guards locales están en verde y la rama volvió a
+estar al día con `origin/dokploy` (el PR está `MERGEABLE`). Queda en manos del negocio el plazo legal
+definitivo (D-21) y la exportación previa a la primera corrida de la purga, si quiere conservar el
+histórico.

@@ -88,12 +88,14 @@ La revisión pidió cinco correcciones sobre lo entregado. Todas están en este 
 
 ## Verificación en CI
 
-- Job `database` (corrida `44442683123`, commit `b59408ece`): `consultas_retencion.test.sql` **ok**
-  (72/72) y el resto de los 410 archivos de la base sin un solo `not ok` (15 171 pruebas).
+- Job `database` (corrida `44674523588`, commit `98eaa75bd`): `consultas_retencion.test.sql` **ok**
+  (79/79) y el resto de los 410 archivos de la base sin un solo `not ok` (15 178 pruebas).
 - Mutantes (FEAT-236): el commit `ccef18a1e` mutó el SQL a propósito (M1 `estado <> 'en_curso'` →
   `estado is not null`; M2 FK de la cola de `on delete cascade` → `on delete set null`; M3 el evento
   de la supresión copia el contacto) y el pgTAP mató los tres: 7 de 72 aserciones cayeron
   (16, 18, 25, 38, 40, 44 y 62). El commit siguiente revierte la mutación. Detalle en `test.md`.
+- Segunda vuelta: los mutantes M4 a M7 (el filtro por organización de la cola y la clave interna
+  `ConsultaId`) los matan las aserciones nuevas, una por regla; la tabla está en `test.md`.
 
 ## Deviations from Assessment
 
