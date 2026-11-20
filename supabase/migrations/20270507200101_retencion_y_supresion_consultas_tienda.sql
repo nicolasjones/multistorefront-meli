@@ -41,7 +41,9 @@
 --     copia de lo que pidió la persona). La nota de los presupuestos se vacía. El comprobante
 --     fiscal no se toca.
 --   * La cola de avisos: los avisos de esas consultas que aún no se enviaron se borran y los ya
---     enviados (y las copias sueltas del titular) pierden las claves con datos personales.
+--     enviados (y las copias sueltas del titular) pierden las claves con datos personales. La
+--     limpieza se filtra por organización: la supresión de una organización nunca toca la cola de
+--     otra (la misma persona puede ser cliente de dos).
 --   * La actividad registra las cantidades, nunca los datos del titular.
 --
 -- Permisos y superficie:
@@ -529,8 +531,11 @@ begin
   -- La cola de avisos: los que todavía no se enviaron se borran; los ya enviados pierden los datos.
   -- También las copias sueltas del titular (anteriores a la columna `consulta_id`), que se
   -- reconocen por el contacto que guardan en el payload.
+  -- El filtro por organización es obligatorio (FR-015): la misma persona puede ser cliente de dos
+  -- organizaciones y la supresión de una no puede borrar ni sanear la cola de la otra.
   delete from public.avisos_pendientes a
-   where (a.consulta_id = any(v_consultas)
+   where a.organizacion_id = p_organizacion
+     and (a.consulta_id = any(v_consultas)
           or (a.consulta_id is null and exists (
                 select 1 from unnest(v_contactos) v(contacto)
                 where private.coincide_contacto(a.datos ->> 'Contacto', v.contacto))))
@@ -538,10 +543,11 @@ begin
 
   update public.avisos_pendientes a
      set datos = a.datos - 'Nombre' - 'Contacto' - 'Mensaje' - 'Pedido' - 'Cliente'
-   where a.consulta_id = any(v_consultas)
-      or (a.consulta_id is null and exists (
-            select 1 from unnest(v_contactos) v(contacto)
-            where private.coincide_contacto(a.datos ->> 'Contacto', v.contacto)));
+   where a.organizacion_id = p_organizacion
+     and (a.consulta_id = any(v_consultas)
+          or (a.consulta_id is null and exists (
+                select 1 from unnest(v_contactos) v(contacto)
+                where private.coincide_contacto(a.datos ->> 'Contacto', v.contacto))));
 
   -- La nota del presupuesto es dato personal del cliente; el comprobante fiscal no se toca.
   update dominio.presupuestos_tienda p
@@ -571,7 +577,7 @@ end;
 $$;
 
 comment on function private.suprimir_titular_tienda(uuid, text) is
-  'MSF-944: suprime a pedido del titular los datos personales de una organización (consultas, ítems, notas de presupuestos de la tienda y copias de avisos): anonimiza las consultas, borra sus ítems, vacía las notas y deja un evento tienda.titular_suprimido con las cantidades. El comprobante de venta no se toca. Solo el rol técnico; devuelve la cantidad de consultas suprimidas.';
+  'MSF-944: suprime a pedido del titular los datos personales de una organización (consultas, ítems, notas de presupuestos de la tienda y copias de avisos): anonimiza las consultas, borra sus ítems, vacía las notas y deja un evento tienda.titular_suprimido con las cantidades. El comprobante de venta no se toca. La cola de avisos se filtra por organización: nunca toca los datos de otra. Solo el rol técnico; devuelve la cantidad de consultas suprimidas.';
 
 revoke execute on function private.suprimir_titular_tienda(uuid, text) from public, anon, authenticated;
 

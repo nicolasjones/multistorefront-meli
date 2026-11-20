@@ -8,13 +8,16 @@
 --     plazo inválido, los privilegios, el 42501 y el aislamiento por organización;
 --   * la supresión a pedido del titular (FR-010 a FR-015), por correo o por teléfono: consultas,
 --     ítems, notas de presupuesto y copias de los avisos; el comprobante fiscal intacto; la
---     actividad con cantidades y sin datos personales; el 42501 y el aislamiento por organización;
---   * el aviso de la consulta atado a su consulta (la clave interna `ConsultaId` sale del correo).
+--     actividad con cantidades y sin datos personales; el 42501 y el aislamiento por organización
+--     (la cola de avisos de otra organización con el mismo contacto no se toca);
+--   * el aviso de la consulta atado a su consulta (la clave interna `ConsultaId` sale del correo),
+--     comprobado sobre la emisión real de `private.emitir_aviso_consulta` y no sobre filas
+--     insertadas a mano.
 --
 -- Las fechas son relativas al reloj de la base (sin fechas absolutas).
 begin;
 
-select plan(72);
+select plan(79);
 
 -- ============================================================================
 -- Datos: dos organizaciones, dos tiendas, una titular con cuenta web
@@ -136,6 +139,14 @@ insert into public.avisos_pendientes (id, organizacion_id, user_id, tipo_aviso, 
   -- Copia suelta de la titular (anterior a la columna `consulta_id`): también se limpia.
   ('c1000000-0000-0000-0000-000000000007', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-000000000001',
    'consulta_nueva', gen_random_uuid(), '{"Nombre":"Titular Cuenta","Contacto":"titular@example.com","Mensaje":"Quiero info"}'::jsonb,
+   'enviado', now() - interval '10 days', null),
+  -- La MISMA titular en la otra organización: su cola no se toca (la supresión es por
+  -- organización, FR-015). Uno pendiente (no se borra) y uno ya enviado (no pierde las claves).
+  ('c2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-000000000001',
+   'consulta_nueva', gen_random_uuid(), '{"Nombre":"Titular Otra Org","Contacto":"titular@example.com","Mensaje":"Hola"}'::jsonb,
+   'pendiente', now() - interval '10 days', null),
+  ('c2000000-0000-0000-0000-000000000002', '22222222-2222-2222-2222-222222222222', 'a2000000-0000-0000-0000-000000000001',
+   'consulta_nueva', gen_random_uuid(), '{"Nombre":"Titular Otra Org","Contacto":"titular@example.com","Mensaje":"Hola"}'::jsonb,
    'enviado', now() - interval '10 days', null);
 
 -- El rol de Sistema no ve las funciones de pgTAP: sus resultados se guardan en una tabla temporal.
@@ -223,7 +234,35 @@ select is((select count(*)::int from public.registro_actividad where tipo = 'sis
 select is((select count(*)::int from public.avisos_pendientes where id = 'c1000000-0000-0000-0000-000000000005'), 1, 'el aviso de la titular sigue en la cola');
 select is((select consulta_id from public.avisos_pendientes where id = 'c1000000-0000-0000-0000-000000000005'), 'b1000000-0000-0000-0000-000000000005'::uuid, 'el aviso sabe de qué consulta es');
 select is((select count(*)::int from public.avisos_pendientes where datos ? 'ConsultaId'), 0, 'la clave interna de la consulta no viaja en el correo');
-select is((select count(*)::int from public.avisos_pendientes where consulta_id is null and tipo_aviso = 'consulta_nueva'), 2, 'solo las copias anteriores a la columna quedan sin atar');
+select is((select count(*)::int from public.avisos_pendientes where consulta_id is null and tipo_aviso = 'consulta_nueva'), 4, 'solo las copias anteriores a la columna quedan sin atar');
+
+-- La regla la vigila la emisión real, no una fila insertada a mano: el aviso que encola la función
+-- queda atado a su consulta y la clave interna no viaja en el payload del correo (D-25, FR-005).
+-- Se usa el pedido de la titular: el disparador no emite los pedidos, así que el aviso que sale
+-- acá es el de la llamada.
+create temp table aviso_consulta_antes as
+  select count(*)::int as n from public.avisos_pendientes
+   where consulta_id = 'b1000000-0000-0000-0000-000000000006';
+
+select lives_ok($$select private.emitir_aviso_consulta('b1000000-0000-0000-0000-000000000006')$$,
+  'la función emite el aviso de la consulta');
+
+select is((select count(*)::int from public.avisos_pendientes
+            where consulta_id = 'b1000000-0000-0000-0000-000000000006'),
+          (select n + 1 from aviso_consulta_antes),
+  'el aviso que emite la función queda atado a su consulta');
+
+select ok((select bool_and(not (datos ? 'ConsultaId'))
+             from public.avisos_pendientes
+            where consulta_id = 'b1000000-0000-0000-0000-000000000006'),
+  'el aviso emitido no lleva la clave interna en el correo');
+
+-- Los avisos de otros tipos no se ven afectados: no quedan atados a ninguna consulta.
+select lives_ok($$select private.emitir_aviso('presupuesto_tienda_nuevo', '11111111-1111-1111-1111-111111111111', '{"Nombre":"Otro"}'::jsonb)$$,
+  'la función sigue emitiendo los avisos de otros tipos');
+select is((select count(*)::int from public.avisos_pendientes
+            where tipo_aviso = 'presupuesto_tienda_nuevo' and consulta_id is not null), 0,
+  'un aviso que no es de una consulta no queda atado a ninguna');
 
 -- ============================================================================
 -- Supresión a pedido del titular (FR-010 a FR-015)
@@ -271,6 +310,12 @@ select is((select contacto from dominio.consultas where id = 'b2000000-0000-0000
 select is((select count(*)::int from public.avisos_pendientes where id = 'c1000000-0000-0000-0000-000000000003'), 1, 'la copia de otro contacto sigue en la cola');
 select is((select nota from dominio.presupuestos_tienda where clave_envio = 'a0000000-0000-0000-0000-000000000003'), 'Nota de la otra organización', 'la nota del presupuesto de la otra organización no se vacía');
 select ok((select suprimido_en is null from dominio.presupuestos_tienda where clave_envio = 'a0000000-0000-0000-0000-000000000003'), 'y ese presupuesto no queda marcado');
+
+-- La cola de avisos también es de una sola organización: la misma titular en la otra no se toca.
+select is((select count(*)::int from public.avisos_pendientes where id = 'c2000000-0000-0000-0000-000000000001'), 1,
+  'la copia pendiente de la titular en la otra organización no se borra');
+select ok((select datos ? 'Contacto' from public.avisos_pendientes where id = 'c2000000-0000-0000-0000-000000000002'),
+  'la copia ya enviada de la titular en la otra organización no pierde sus datos');
 
 -- Una supresión repetida no cambia nada (idempotente).
 set local role workers_orquestacion;
