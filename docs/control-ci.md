@@ -372,6 +372,22 @@ pnpm ci:gate                 # estado del gate de «dokploy»
 pnpm ci:gate -- --pr 1234    # además: cuántos commits está atrás la rama del PR
 ```
 
+Opciones: `--base <rama>` informa el gate de otra rama (por defecto `dokploy`, la
+rama de integración; `GITHUB_BASE_REF` **no** se usa a propósito, porque en un
+job de CI de un PR a `main` apuntaría al gate de `main`, que no es el de
+integración), `--repo <owner/nombre>` elige el repo (por defecto
+`GITHUB_REPOSITORY` o el del repo) y `--json` imprime el informe en JSON.
+
+El diagnóstico lee **las dos** capas del gate: los rulesets y la protección
+clásica de la rama (`/branches/<rama>/protection`). Según GitHub, ambas se
+acumulan y se exigen todas las reglas aplicables, así que un **200** en el
+endpoint clásico también es un gate; un 404 sólo dice «no hay protección
+clásica», no «no hay gate». Los `include`/`exclude` de `conditions.ref_name` se
+interpretan como patrones fnmatch (`refs/heads/*`, `refs/heads/release/**`,
+`~ALL`), no como nombres exactos. Y si algo no se puede leer (el detalle de un
+ruleset, la protección clásica), el script **falla** en vez de informar «no hay
+gate»: un falso verde en el diagnóstico es peor que no tener diagnóstico.
+
 ### Consecuencia operativa
 
 Con «rama al día» **desactivada** (el estado actual), `gh pr merge --merge` no

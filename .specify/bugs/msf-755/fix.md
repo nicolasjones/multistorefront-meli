@@ -80,10 +80,46 @@ Revalidé el arreglo sobre el HEAD real (`320706c01`) sin tocar el código: el �
 - `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
 - FEAT-236 repetido en esta vuelta: con `strict_required_status_checks_policy === false` en el script fallan **4** tests; revertido, los 10 vuelven a verde.
 
+### Tercera vuelta (2026-11-20) — devolución de la revisión (PR #1147)
+
+El revisor pidió cambios sobre el HEAD `570f0ed2bc0b`. Se atendieron los ocho
+hallazgos accionables de la revisión más los dos de seguridad, todos de esta
+historia:
+
+| Hallazgo | Corrección | Dónde está |
+|---|---|---|
+| `docs/tecnico/runbooks/ci-trabado.md:28` ordenaba «actualizar la rama» ante un merge por «rama atrás» (justo la instrucción que genera el ciclo) | el paso 5 del runbook manda a mirar el gate con `pnpm ci:gate -- --pr <n>` y a no resincronizar a ciegas; el guard de docs ahora mira **esa** página | `scripts/gate-integracion.test.mjs`, describe «runbooks» |
+| `scripts/gate-integracion.mjs`: si el detalle de un ruleset no se podía leer, el ruleset se descartaba en silencio y el informe caía en «sin gate» (falso verde) | la lectura de la API pasa por una función **pura** `gateDesdeRespuestas` que **falla** si un detalle no se pudo leer (o si la protección clásica no se pudo leer) | `gateDesdeRespuestas` |
+| `aplicaA` comparaba `ref_name` exacto y no veía los patrones fnmatch (`refs/heads/*` daba «sin gate» con un ruleset activo) | `coincidePatron` implementa el fnmatch de GitHub (`*` no cruza `/`, `**` sí, `**/` = cero o más directorios) y los tokens `~ALL` / `~DEFAULT_BRANCH` | `coincidePatron`, `aplicaA` |
+| la capa de lectura de la API no tenía ningún test (una regresión al endpoint clásico no la detectaba nadie) | `gateDesdeRespuestas` es pura y se testea con el **payload real** del ruleset `25358575` (lista + detalle + 404) y con la protección clásica | `scripts/gate-integracion.test.mjs`, describe «gateDesdeRespuestas» |
+| `docs/manifest.json` quedó con la deriva de `docs/control-ci.md` (el HEAD cambió una fuente declarada sin tocar la página) | la página se actualizó y el manifest se regeneró (`pnpm docs:manifest`): esa página salió de la lista de deriva | `node scripts/docs-drift.mjs` → 18 páginas (las 18 preexistentes), sin `docs/control-ci.md` |
+| `GITHUB_BASE_REF` pisaba la base documentada (`dokploy`) y no figuraba en la cabecera de uso (en un job de CI de un PR a `main` el informe hablaba del gate de `main`) | la base por defecto es **siempre** `dokploy`; `--base <rama>` la cambia a propósito y `GITHUB_BASE_REF` dejó de usarse. La cabecera de uso documenta `--repo`, `--base`, `--pr` y `--json` | cabecera de uso del script |
+| sin `--pr`, con «rama al día» exigida el informe no daba veredicto y salía con 0 | el informe da el veredicto, avisa del ciclo y dice cómo ver el desfasaje (`pnpm ci:gate -- --pr <n>`) | test «sin PR y con «rama al día» exigida…» |
+| `docs/decisiones-2026-11-17.md` («no se cambian las reglas de GitHub», premisa «la protección de rama es de pago en repos privados») contradecía el bullet de la cola de merge de `docs/control-ci.md` | la decisión de MSF-755 se corrige: el gate es un ruleset activo (la premisa era falsa) y activar la «Merge queue» queda explícitamente como decisión de Nicolás | `docs/decisiones-2026-11-17.md` |
+| **Seguridad**: `spawnSync('gh')` sin timeout (un `gh` colgado dejaba el proceso esperando) | `timeout` de 60 s y `killSignal` | `gh()` |
+| **Seguridad**: «sin gate» con la protección clásica activa (200) | el script lee **también** `/branches/<rama>/protection`: un 200 **es** un gate (GitHub acumula rulesets y protección clásica) y se informa como tal | `agregaProteccionClasica` + test |
+
+Sin cambios de alcance: no se tocó el workflow, ni las reglas de GitHub, ni el
+ruleset (la cola de merge sigue siendo acción de Nicolás).
+
+Verificación de esta vuelta:
+
+- `node --test scripts/gate-integracion.test.mjs` → **19 tests, 19 pass, 0 fail** (la suite pasó de 10 a 19 con los casos de la capa de API, los patrones fnmatch, la protección clásica, el veredicto sin `--pr` y el guard del runbook).
+- `pnpm test:ci` → **74 tests, 73 pass, 1 skipped, 0 fail**.
+- `pnpm test:docs:check` → 171 tests, 171 pass, 0 fail.
+- `pnpm docs:check` → Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK.
+- `pnpm lint` → exit 0 (los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca) · `pnpm build` → exit 0.
+- `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; gitleaks no corrió (sin permisos del socket de Docker en este entorno; el job `quality` del CI lo corre).
+- `node scripts/docs-drift.mjs` → 18 páginas con deriva (las 18 preexistentes de la base): `docs/control-ci.md` ya no está en la lista.
+- `node scripts/gate-integracion.mjs` → el gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida) + el aviso del 404 + veredicto, exit 0.
+- `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
+- **FEAT-236 (6 mutaciones, 6 detectadas):** `strict_required_status_checks_policy === true` → `=== false`; el fallo ruidoso del detalle → silencioso; el fnmatch → nombre exacto; la protección clásica → ignorada; el veredicto sin `--pr` → eliminado; y el runbook → la instrucción vieja. En los seis casos falla la suite; revertido, los 19 vuelven a verde.
+
 ## Deviations from Assessment
 
 - La assessment proponía, como alternativa, «sólo corregir el texto de `docs/control-ci.md`». Se hizo **además** el script porque el texto solo no alcanza: la API devuelve el 404 y es la respuesta más obvia de cualquiera que diagnostique el gate. El script no modifica nada: es de sólo lectura.
-- El assessment mencionaba «un guard de documentación» como parte del remediation; se implementó dentro del archivo de tests del script (describe «runbook») en vez de un script aparte, para no sumar un archivo más al repo.
+- El assessment mencionaba «un guard de documentación» como parte del remediation; se implementó dentro del archivo de tests del script (describe «runbook») en vez de un script aparte, para no sumar un archivo más al repo. En la tercera vuelta ese guard pasó a mirar las **dos** páginas que mandaban a resincronizar la rama (`docs/control-ci.md` y el runbook `docs/tecnico/runbooks/ci-trabado.md`).
+- La assessment pedía «una función pura que reciba lista+detalle+404»: se implementó `gateDesdeRespuestas` con esa forma exacta (lista de rulesets + mapa de detalles + respuesta de la protección clásica). Además se le agregaron la protección clásica como gate y el fallo ruidoso, que pidió la revisión.
 
 ## Follow-ups
 

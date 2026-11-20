@@ -9,21 +9,39 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { aplicaA, gateDe, informe } from './gate-integracion.mjs';
+import { aplicaA, gateDe, gateDesdeRespuestas, informe } from './gate-integracion.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-// Ruleset real del repo (GET /repos/nicolasjones/multistorefront-meli/rulesets/25358575).
+// Payload real de la lista de rulesets (GET /repos/<owner>/<repo>/rulesets):
+// la lista NO trae `conditions` ni `rules`, hay que leer el detalle de cada uno.
+const LISTA = [
+  {
+    id: 25358575,
+    name: 'dokploy-integracion-protegida',
+    target: 'branch',
+    source_type: 'Repository',
+    source: 'nicolasjones/multistorefront-meli',
+    enforcement: 'active',
+    bypass_actors: [{ actor_id: 5, actor_type: 'RepositoryRole', bypass_mode: 'always' }],
+    node_id: 'RRS_lACgUmVtZW',
+  },
+];
+
+// Ruleset real del repo (GET /repos/<owner>/<repo>/rulesets/25358575).
 const RULESET = {
   id: 25358575,
   name: 'dokploy-integracion-protegida',
   target: 'branch',
+  source_type: 'Repository',
+  source: 'nicolasjones/multistorefront-meli',
   enforcement: 'active',
   conditions: { ref_name: { include: ['refs/heads/dokploy'], exclude: [] } },
   rules: [
     {
       type: 'required_status_checks',
       parameters: {
+        do_not_enforce_on_create: false,
         strict_required_status_checks_policy: false,
         required_status_checks: [{ context: 'validacion' }],
       },
@@ -33,6 +51,13 @@ const RULESET = {
 };
 
 const rulesetCon = (cambios) => ({ ...RULESET, ...cambios });
+
+// Respuesta de la API con el detalle ya leído (lo que devuelve `gh api`).
+const detalleOk = (data) => ({ ok: true, http: 200, data });
+const detalleFallido = (http) => ({ ok: false, http, data: null });
+
+// La protección clásica de `dokploy` devuelve 404 «Branch not protected».
+const SIN_PROTECCION_CLASICA = { http: 404, data: { message: 'Branch not protected', status: '404' } };
 
 describe('gateDe (gate efectivo por rulesets)', () => {
   it('lee el check requerido, el bypass y que «rama al día» NO está exigida', () => {
@@ -84,6 +109,92 @@ describe('gateDe (gate efectivo por rulesets)', () => {
     const sinInclude = rulesetCon({ conditions: { ref_name: { include: [], exclude: [] } } });
     assert.equal(aplicaA(sinInclude, 'cualquiera'), true);
   });
+
+  it('aplica los include/exclude que son patrones fnmatch, no nombres exactos', () => {
+    const porPatron = (include, exclude = []) => rulesetCon({ conditions: { ref_name: { include, exclude } } });
+    // `refs/heads/*` cubre cualquier rama de primer nivel.
+    assert.equal(aplicaA(porPatron(['refs/heads/*']), 'dokploy'), true);
+    // `**` cruza `/`: `refs/heads/release/**` cubre `release/2026/01`.
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'release/2026/01'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'dokploy'), false);
+    // El exclude también es patrón.
+    assert.equal(aplicaA(porPatron(['refs/heads/*'], ['refs/heads/dokploy']), 'dokploy'), false);
+    assert.equal(aplicaA(porPatron(['refs/heads/*'], ['refs/heads/dok*']), 'dokploy'), false);
+    // Los tokens de la API: `~ALL` incluye todas las ramas.
+    assert.equal(aplicaA(porPatron(['~ALL']), 'cualquiera/una'), true);
+    // `~DEFAULT_BRANCH` incluye la rama por defecto del repo.
+    assert.equal(aplicaA(porPatron(['~DEFAULT_BRANCH']), 'main', 'main'), true);
+    assert.equal(aplicaA(porPatron(['~DEFAULT_BRANCH']), 'dokploy', 'main'), false);
+  });
+});
+
+describe('gateDesdeRespuestas (lectura de la API)', () => {
+  it('arma el gate con el payload real del ruleset y el 404 de la protección clásica', () => {
+    const { gate, proteccionClasica404 } = gateDesdeRespuestas({
+      lista: LISTA,
+      detalles: new Map([[25358575, detalleOk(RULESET)]]),
+      proteccionClasica: SIN_PROTECCION_CLASICA,
+      rama: 'dokploy',
+    });
+    assert.equal(gate.hayGate, true);
+    assert.equal(gate.ramaAlDia, false);
+    assert.deepEqual(gate.checks, ['validacion']);
+    assert.equal(proteccionClasica404, true);
+  });
+
+  it('falla ruidosamente si no se pudo leer el detalle de un ruleset (no dice «sin gate»)', () => {
+    assert.throws(
+      () =>
+        gateDesdeRespuestas({
+          lista: LISTA,
+          detalles: new Map([[25358575, detalleFallido(500)]]),
+          proteccionClasica: SIN_PROTECCION_CLASICA,
+          rama: 'dokploy',
+        }),
+      /No se pudo leer el detalle de 1 ruleset/,
+    );
+  });
+
+  it('la protección clásica con 200 ES un gate: no se informa «sin gate»', () => {
+    const { gate, proteccionClasica404 } = gateDesdeRespuestas({
+      lista: [],
+      detalles: new Map(),
+      proteccionClasica: {
+        http: 200,
+        data: { required_status_checks: { strict: false, contexts: ['validacion'], checks: [] } },
+      },
+      rama: 'dokploy',
+    });
+    assert.equal(gate.hayGate, true);
+    assert.equal(proteccionClasica404, false);
+    assert.deepEqual(gate.checks, ['validacion']);
+    const { estado, lineas } = informe({ gate });
+    assert.notEqual(estado, 'sin-gate');
+    assert.match(lineas.join('\n'), /protección clásica/);
+  });
+
+  it('la protección clásica con «strict» exige «rama al día»', () => {
+    const { gate } = gateDesdeRespuestas({
+      lista: [],
+      detalles: new Map(),
+      proteccionClasica: { http: 200, data: { required_status_checks: { strict: true, contexts: [] } } },
+      rama: 'dokploy',
+    });
+    assert.equal(gate.ramaAlDia, true);
+  });
+
+  it('falla ruidosamente si no se pudo leer la protección clásica', () => {
+    assert.throws(
+      () =>
+        gateDesdeRespuestas({
+          lista: LISTA,
+          detalles: new Map([[25358575, detalleOk(RULESET)]]),
+          proteccionClasica: { http: 0, data: null },
+          rama: 'dokploy',
+        }),
+      /protección clásica/,
+    );
+  });
 });
 
 describe('informe (veredicto del gate)', () => {
@@ -109,6 +220,22 @@ describe('informe (veredicto del gate)', () => {
     assert.doesNotMatch(texto, /BLOQUEADO/);
   });
 
+  it('sin PR y con «rama al día» desactivada, el veredicto dice que no hay que actualizar la rama', () => {
+    const gate = gateDe([RULESET], 'dokploy');
+    const { estado, lineas } = informe({ gate });
+    assert.equal(estado, 'no-bloqueado');
+    assert.match(lineas.join('\n'), /NO se rechaza por desfasaje/);
+  });
+
+  it('sin PR y con «rama al día» exigida, el veredicto avisa del ciclo y de cómo mirarlo', () => {
+    const gate = gateDe([rulesetCon({ rules: [{ type: 'required_status_checks', parameters: { strict_required_status_checks_policy: true, required_status_checks: [{ context: 'validacion' }] } }] })], 'dokploy');
+    const { lineas } = informe({ gate });
+    const texto = lineas.join('\n');
+    assert.match(texto, /Veredicto:/);
+    assert.match(texto, /head branch is not up to date/);
+    assert.match(texto, /--pr <n>/);
+  });
+
   it('la trampa del 404: con ruleset activo el informe NO dice que no hay protección', () => {
     const gate = gateDe([RULESET], 'dokploy');
     const { lineas } = informe({ gate, proteccionClasica404: true });
@@ -129,17 +256,24 @@ describe('informe (veredicto del gate)', () => {
   });
 });
 
-describe('runbook (docs/control-ci.md)', () => {
-  const doc = readFileSync(path.join(RAIZ, 'docs/control-ci.md'), 'utf8');
+describe('runbooks (docs/control-ci.md y docs/tecnico/runbooks/ci-trabado.md)', () => {
+  const controlCi = readFileSync(path.join(RAIZ, 'docs/control-ci.md'), 'utf8');
+  const ciTrabado = readFileSync(path.join(RAIZ, 'docs/tecnico/runbooks/ci-trabado.md'), 'utf8');
   // El texto del manual se envuelve a lo ancho: se comparan los espacios normalizados.
-  const plano = doc.replace(/\s+/g, ' ');
+  const planoControlCi = controlCi.replace(/\s+/g, ' ');
+  const planoCiTrabado = ciTrabado.replace(/\s+/g, ' ');
 
-  it('documenta el endpoint correcto (rulesets) y la trampa del 404', () => {
-    assert.match(plano, /rulesets/);
-    assert.match(plano, /Branch not protected/);
+  it('control-ci.md documenta el endpoint correcto (rulesets) y la trampa del 404', () => {
+    assert.match(planoControlCi, /rulesets/);
+    assert.match(planoControlCi, /Branch not protected/);
   });
 
-  it('no manda a resincronizar la rama cuando el merge falla por desfasaje', () => {
-    assert.doesNotMatch(plano, /actualizar la rama y reintentar/);
+  it('control-ci.md no manda a resincronizar la rama cuando el merge falla por desfasaje', () => {
+    assert.doesNotMatch(planoControlCi, /actualizar la rama y reintentar/);
+  });
+
+  it('el runbook de CI trabado manda a mirar el gate, no a actualizar la rama', () => {
+    assert.match(planoCiTrabado, /pnpm ci:gate/);
+    assert.doesNotMatch(planoCiTrabado, /actualizar la rama/i);
   });
 });
