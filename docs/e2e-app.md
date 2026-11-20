@@ -493,6 +493,14 @@ dentro del paréntesis con otros datos (`(MSF-383 · F-PRV-04, P0, talla L)`). S
 del mismo spec declaran el mismo código, el manifiesto lo publica en `historias_ambiguas` en
 vez de elegir en silencio.
 
+Para ver la cola de ítems que el runner **no** puede derivar, y correr las pruebas de la regla:
+
+```bash
+pnpm test:historia:item        # la regla compartida
+pnpm test:e2e:cobertura:epicas # el reporte por épica (lee los ítems con esa misma regla)
+python3 scripts/e2e-cobertura-epicas.py --epicas MSF-136   # o --md para markdown
+```
+
 ## Estándar: toda prueba deja su video
 
 Todo test E2E que pruebe una historia sigue tres reglas:
