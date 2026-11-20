@@ -9,7 +9,7 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { aplicaA, gateDe, gateDesdeRespuestas, informe } from './gate-integracion.mjs';
+import { aplicaA, estadoDeGh, gateDe, gateDesdeRespuestas, informe } from './gate-integracion.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -128,6 +128,23 @@ describe('gateDe (gate efectivo por rulesets)', () => {
   });
 });
 
+describe('estadoDeGh (código de salida y cuerpo → estado HTTP)', () => {
+  it('una llamada exitosa es 200 (no 0): es lo que hace posible leer la protección clásica', () => {
+    assert.deepEqual(estadoDeGh(0, { required_status_checks: { strict: true } }), { ok: true, http: 200 });
+    assert.deepEqual(estadoDeGh(0, []), { ok: true, http: 200 });
+  });
+
+  it('un error de la API toma el estado HTTP del cuerpo', () => {
+    assert.deepEqual(estadoDeGh(1, { message: 'Branch not protected', status: '404' }), { ok: false, http: 404 });
+    assert.deepEqual(estadoDeGh(1, { status: '403' }), { ok: false, http: 403 });
+  });
+
+  it('un fallo sin cuerpo HTTP queda en 0 (no se puede afirmar nada)', () => {
+    assert.deepEqual(estadoDeGh(1, null), { ok: false, http: 0 });
+    assert.deepEqual(estadoDeGh(1, { message: 'sin estado' }), { ok: false, http: 0 });
+  });
+});
+
 describe('gateDesdeRespuestas (lectura de la API)', () => {
   it('arma el gate con el payload real del ruleset y el 404 de la protección clásica', () => {
     const { gate, proteccionClasica404 } = gateDesdeRespuestas({
@@ -193,6 +210,19 @@ describe('gateDesdeRespuestas (lectura de la API)', () => {
           rama: 'dokploy',
         }),
       /protección clásica/,
+    );
+  });
+
+  it('falla ruidosamente si la protección clásica responde 200 sin cuerpo', () => {
+    assert.throws(
+      () =>
+        gateDesdeRespuestas({
+          lista: LISTA,
+          detalles: new Map([[25358575, detalleOk(RULESET)]]),
+          proteccionClasica: { http: 200, data: null },
+          rama: 'dokploy',
+        }),
+      /respondió 200 sin cuerpo/,
     );
   });
 });

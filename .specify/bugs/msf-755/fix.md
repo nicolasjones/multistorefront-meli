@@ -99,13 +99,19 @@ historia:
 | **Seguridad**: `spawnSync('gh')` sin timeout (un `gh` colgado dejaba el proceso esperando) | `timeout` de 60 s y `killSignal` | `gh()` |
 | **Seguridad**: «sin gate» con la protección clásica activa (200) | el script lee **también** `/branches/<rama>/protection`: un 200 **es** un gate (GitHub acumula rulesets y protección clásica) y se informa como tal | `agregaProteccionClasica` + test |
 
+Además, al revisar el propio diff apareció un bug del round anterior: el estado
+HTTP se sacaba del **código de salida** de `gh`, así que una llamada exitosa
+(exit 0) quedaba en «HTTP 0» y la rama de la protección clásica (un 200) era
+inalcanzable. El mapeo quedó en la función pura `estadoDeGh` (exit 0 = 200; si
+no, el estado HTTP del cuerpo del error) con sus tests.
+
 Sin cambios de alcance: no se tocó el workflow, ni las reglas de GitHub, ni el
 ruleset (la cola de merge sigue siendo acción de Nicolás).
 
 Verificación de esta vuelta:
 
-- `node --test scripts/gate-integracion.test.mjs` → **19 tests, 19 pass, 0 fail** (la suite pasó de 10 a 19 con los casos de la capa de API, los patrones fnmatch, la protección clásica, el veredicto sin `--pr` y el guard del runbook).
-- `pnpm test:ci` → **74 tests, 73 pass, 1 skipped, 0 fail**.
+- `node --test scripts/gate-integracion.test.mjs` → **23 tests, 23 pass, 0 fail** (la suite pasó de 10 a 23 con los casos de la capa de API, los patrones fnmatch, la protección clásica, el veredicto sin `--pr`, el guard del runbook y el mapeo del código de salida de `gh`).
+- `pnpm test:ci` → **78 tests, 77 pass, 1 skipped, 0 fail**.
 - `pnpm test:docs:check` → 171 tests, 171 pass, 0 fail.
 - `pnpm docs:check` → Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK.
 - `pnpm lint` → exit 0 (los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca) · `pnpm build` → exit 0.
@@ -113,7 +119,7 @@ Verificación de esta vuelta:
 - `node scripts/docs-drift.mjs` → 18 páginas con deriva (las 18 preexistentes de la base): `docs/control-ci.md` ya no está en la lista.
 - `node scripts/gate-integracion.mjs` → el gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida) + el aviso del 404 + veredicto, exit 0.
 - `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
-- **FEAT-236 (6 mutaciones, 6 detectadas):** `strict_required_status_checks_policy === true` → `=== false`; el fallo ruidoso del detalle → silencioso; el fnmatch → nombre exacto; la protección clásica → ignorada; el veredicto sin `--pr` → eliminado; y el runbook → la instrucción vieja. En los seis casos falla la suite; revertido, los 19 vuelven a verde.
+- **FEAT-236 (8 mutaciones, 8 detectadas):** `strict_required_status_checks_policy === true` → `=== false`; el fallo ruidoso del detalle → silencioso; el fnmatch → nombre exacto; la protección clásica → ignorada; el veredicto sin `--pr` → eliminado; el runbook → la instrucción vieja; la salida 0 de `gh` → HTTP 0 en vez de 200; y la protección clásica 200 sin cuerpo → silenciosa. En los ocho casos falla la suite; revertido, los 23 vuelven a verde.
 
 ## Deviations from Assessment
 

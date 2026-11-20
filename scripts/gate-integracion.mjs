@@ -32,6 +32,14 @@ const RAMA_POR_DEFECTO = 'dokploy';
 // esperando para siempre.
 const TIMEOUT_MS = 60 * 1000;
 
+// Gh sale con 1 y el cuerpo del error en stdout cuando la API falla; ese
+// cuerpo trae el estado HTTP como texto (`"status":"404"`). Salida 0 = 200.
+export function estadoDeGh(codigo, cuerpo) {
+  if (codigo === 0) return { ok: true, http: 200 };
+  const httpDelCuerpo = Number(cuerpo?.status);
+  return { ok: false, http: Number.isFinite(httpDelCuerpo) && httpDelCuerpo > 0 ? httpDelCuerpo : 0 };
+}
+
 // Gh devuelve el cuerpo del error en stdout y sale con código 1, así que el
 // estado HTTP sale del propio JSON (`status`), no del código de salida.
 function gh(args) {
@@ -43,10 +51,8 @@ function gh(args) {
   } catch {
     data = null;
   }
-  // El cuerpo del error trae el estado HTTP como texto (`"status":"404"`).
-  const httpDelCuerpo = Number(data?.status);
-  const http = Number.isFinite(httpDelCuerpo) && httpDelCuerpo > 0 ? httpDelCuerpo : r.status ?? 0;
-  return { ok: r.status === 0, http, data, error: (r.stderr || '').trim() };
+  const { ok, http } = estadoDeGh(r.status, data);
+  return { ok, http, data, error: (r.stderr || '').trim() };
 }
 
 // fnmatch de GitHub para los patrones de `conditions.ref_name`: `*` no cruza
@@ -203,6 +209,9 @@ export function gateDesdeRespuestas({ lista, detalles, proteccionClasica, rama, 
   const http = proteccionClasica?.http ?? 0;
   if (http !== 200 && http !== 404) {
     throw new Error(`No se pudo leer la protección clásica de «${rama}» (HTTP ${http}): sin ese dato no se puede afirmar que no hay gate.`);
+  }
+  if (http === 200 && !proteccionClasica.data) {
+    throw new Error(`La protección clásica de «${rama}» respondió 200 sin cuerpo: sin ese dato no se puede afirmar que no hay gate.`);
   }
 
   const gate = agregaProteccionClasica(gateDe(payloads, rama, ramaPorDefecto), http === 200 ? proteccionClasica.data : null);

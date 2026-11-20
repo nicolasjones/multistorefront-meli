@@ -90,8 +90,8 @@ reejecutó todo lo verificable del repo.
 
 | Check | Result | Notes |
 |-------|--------|-------|
-| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | **19 tests, 19 pass, 0 fail** (10 antes + 9 nuevos: capa de API con el payload real, fnmatch, protección clásica, veredicto sin `--pr`, guard del runbook). |
-| Suite de CI (área tocada) | `pnpm test:ci` | pass | **74 tests, 73 pass, 1 skipped, 0 fail**. |
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | **23 tests, 23 pass, 0 fail** (10 antes + 13 nuevos: capa de API con el payload real, fnmatch, protección clásica, veredicto sin `--pr`, guard del runbook y mapeo del código de salida de `gh`). |
+| Suite de CI (área tocada) | `pnpm test:ci` | pass | **78 tests, 77 pass, 1 skipped, 0 fail**. |
 | Suite de docs | `pnpm test:docs:check` | pass | 171 tests, 171 pass, 0 fail (el flake de `recorrerSql` de la vuelta anterior no se repitió). |
 | Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
 | Deriva de documentación | `node scripts/docs-drift.mjs` | pass | 18 páginas con deriva: **las 18 preexistentes de la base**. `docs/control-ci.md` salió de la lista (la deriva que había dejado el HEAD anterior). |
@@ -99,7 +99,7 @@ reejecutó todo lo verificable del repo.
 | Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; **gitleaks no corrió** (sin permisos del socket de Docker en este entorno). El job `quality` del CI lo corre. |
 | Estado real del gate | `node scripts/gate-integracion.mjs` | pass | Gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida, cola de merge no, bypass admin) + el aviso del 404 + veredicto, exit 0. |
 | Estado real del gate con PR | `node scripts/gate-integracion.mjs --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
-| El test vigila la regla (FEAT-236) | 6 mutaciones | pass | Falla la suite en las 6: `strict_required_status_checks_policy === false`; el detalle ilegible en silencio; el fnmatch reducido a nombre exacto; la protección clásica ignorada; el veredicto sin `--pr` eliminado; y el runbook con la instrucción vieja. Revertido, los 19 vuelven a verde. |
+| El test vigila la regla (FEAT-236) | 8 mutaciones | pass | Falla la suite en las 8: `strict_required_status_checks_policy === false`; el detalle ilegible en silencio; el fnmatch reducido a nombre exacto; la protección clásica ignorada; el veredicto sin `--pr` eliminado; el runbook con la instrucción vieja; la salida 0 de `gh` como HTTP 0; y la protección clásica 200 sin cuerpo. Revertido, los 23 vuelven a verde. |
 
 ## Residual Risks
 
