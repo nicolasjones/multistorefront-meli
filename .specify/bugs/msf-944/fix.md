@@ -32,6 +32,7 @@ el comprobante fiscal no se toca.
 | `docs/producto/consultas.md` | modified | el manual ya no dice que los pedidos no se borran solos |
 | `docs/tienda-compra-y-cuentas.md` | modified | retención, I-5 y seguimientos alineados con lo hecho |
 | `docs/seguridad-tienda-compra-y-cuentas.md` | modified | MSF-944 pasa a «hecho» |
+| `docs/tiendas-online.md` | modified | la tienda pública documenta la retención y la supresión (MSF-944) junto a la lista de pedido y el presupuesto |
 
 ## Tests Added or Updated
 
