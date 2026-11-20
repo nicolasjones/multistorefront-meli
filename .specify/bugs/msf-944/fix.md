@@ -33,6 +33,13 @@ el comprobante fiscal no se toca.
 | `docs/tienda-compra-y-cuentas.md` | modified | retención, I-5 y seguimientos alineados con lo hecho |
 | `docs/seguridad-tienda-compra-y-cuentas.md` | modified | MSF-944 pasa a «hecho» |
 | `docs/tiendas-online.md` | modified | la tienda pública documenta la retención y la supresión (MSF-944) junto a la lista de pedido y el presupuesto |
+| `supabase/migrations/20270507200101_retencion_y_supresion_consultas_tienda.sql` | modified (2ª vuelta) | la supresión filtra la cola de avisos **por organización**: antes, la rama de «copia suelta» (aviso sin consulta atada) alcanzaba avisos de otra organización con el mismo contacto y los borraba o les sacaba las claves personales (FR-015, Principio I) |
+| `supabase/tests/database/consultas_retencion.test.sql` | modified (2ª vuelta) | `plan(79)`: avisos de la organización dos con el mismo contacto de la titular (no se borran ni pierden datos) y la regla D-25 vigilada sobre la **emisión real** (`private.emitir_aviso_consulta`), no sobre filas insertadas a mano |
+| `docs/tecnico/consultas.md` | modified (2ª vuelta) | §Retención con la política de MSF-944 (purga y supresión), §Verificación con el pgTAP nuevo y el flow, y §Reversión con la migración de la historia |
+| `docs/consultas.md` | modified (2ª vuelta) | «Riesgos aceptados» (3) ya no dice que los datos personales no tienen política de retención |
+| `specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md` | modified (2ª vuelta) | alcance de entrega: `refine` (la etiqueta del evento nuevo en la actividad del panel) |
+| `specs/20270507170000-retencion-y-supresion-consultas-tienda/plan.md` | modified (2ª vuelta) | lo mismo: el alcance ya no dice «Sin `refine`» |
+| `specs/20270507170000-retencion-y-supresion-consultas-tienda/tasks/MSF-944.md` | added (2ª vuelta) | marcas `[x]` de T001 a T009 (las de `tasks.md` las escribe el runner: es la spec compartida de la épica) |
 
 ## Tests Added or Updated
 
@@ -40,12 +47,37 @@ el comprobante fiscal no se toca.
 - `supabase/tests/database/tienda_presupuesto_cliente.test.sql` — la comparación excluye `suprimido_en`.
 - `infra/kestra/validar-purgar-consultas-tienda.test.mjs` — flow y variable de entorno.
 
+## Segunda vuelta (revisión de QA y de seguridad del PR #1132)
+
+La revisión pidió cinco correcciones sobre lo entregado. Todas están en este commit:
+
+1. **Aislamiento de la cola de avisos en la supresión** (`supabase/migrations/20270507200101…sql`):
+   las dos sentencias que limpian `public.avisos_pendientes` ahora filtran por
+   `a.organizacion_id = p_organizacion`. Antes, la rama de «copia suelta» (aviso sin consulta atada,
+   reconocido por el contacto del payload) alcanzaba los avisos de otra organización: una persona que
+   es cliente de dos organizaciones veía cómo la supresión de una borraba los avisos `pendiente`/
+   `fallido` de la otra y le sacaba `Nombre`, `Contacto` y `Mensaje` a los `enviado`. Contradecía
+   FR-015 («nunca toca datos de otra») y el aislamiento multi-tenant.
+2. **La regla D-25/FR-005 vigilada de verdad**: el pgTAP ahora llama a `private.emitir_aviso_consulta`
+   y comprueba sobre el aviso **realmente emitido** que queda atado a su consulta y que la clave
+   interna `ConsultaId` no viaja en el payload del correo; además comprueba que los avisos de otros
+   tipos no quedan atados. Antes la regla solo se miraba sobre filas insertadas a mano.
+3. **Las marcas de las tareas**: `specs/…/tasks/MSF-944.md` con T001 a T009 en `[x]` y su evidencia.
+   `tasks.md` no se toca (es la spec compartida de la épica: sus marcas las escribe el runner).
+4. **`docs/tecnico/consultas.md`**: su §Retención seguía diciendo que no hay política definida y que no
+   se borra ni expira nada, y su §Verificación no listaba el pgTAP nuevo ni el flow.
+5. **`docs/consultas.md`**: «Riesgos aceptados» (3) seguía diciendo que los datos personales del
+   visitante no tienen política de retención, en el mismo archivo que ya la tiene.
+
 ## Local Verification
 
 - `pnpm lint` → OK (solo warnings preexistentes de React en pantallas).
 - `pnpm build` → OK.
-- `pnpm docs:check` → OK (incluye `verificar-migraciones` contra `origin/dokploy`: 1 migración nueva).
-- `pnpm der:check` → OK.
+- `pnpm docs:check` → OK (`Documentación de cambios: OK`, `Migraciones OK: 754 archivo(s), 1 nuevo(s)`
+  y `Trampas conocidas: OK (1 migración, 2 pruebas pgTAP revisados)`).
+- `node scripts/verificar-der.mjs specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md`
+  → `DER OK (1 spec/s)`. (`pnpm der:check` sin base de CI revisa las 140 specs del repo que ya no
+  tienen DER válido: falla igual en `bf2894dc3`, sin estos cambios.)
 - `pnpm test:kestra:purgar-consultas-tienda` → 4/4.
 - `pnpm calidad:code` → OK (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado
   por falta de Docker).

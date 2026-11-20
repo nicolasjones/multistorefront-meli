@@ -1,7 +1,8 @@
 # Implementation Plan: Retención y supresión de consultas, ítems y presupuestos de la tienda (MSF-944)
 
-**Spec**: [`spec.md`](./spec.md) · **Alcance de entrega**: `supabase` (migración + pgTAP) y
-`kestra` (flow programado). Sin `refine`: no hay pantallas (D-24).
+**Spec**: [`spec.md`](./spec.md) · **Alcance de entrega**: `supabase` (migración + pgTAP), `kestra`
+(flow programado) y `refine` (solo la etiqueta del evento nuevo en la actividad del panel,
+`apps/web/src/lib/actividad.ts`; no hay pantallas, D-24).
 
 ## Enfoque técnico
 

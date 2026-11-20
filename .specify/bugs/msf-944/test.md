@@ -1,7 +1,7 @@
 # Bug Verification: Retención y supresión de consultas, ítems y presupuestos de la tienda (MSF-944)
 
 - **Slug**: msf-944
-- **Tested**: 2026-11-19
+- **Tested**: 2026-11-20 (segunda vuelta, tras la devolución del Revisor)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified
@@ -14,6 +14,10 @@ tres mutantes de la regla los mata: cada cambio deliberado de la regla dejó cae
 vigila. El bug (consultas, ítems y notas de presupuestos de la tienda guardados para siempre, sin
 plazo ni supresión) queda cerrado: la purga por retención y la supresión por titular existen, están
 probadas y están documentadas.
+
+En la **segunda vuelta** (devolución de QA y de seguridad) se corrigió el aislamiento por
+organización de la limpieza de la cola de avisos y se pasó a vigilar la regla D-25 sobre la emisión
+real de los avisos; el pgTAP pasó a 79 aserciones (ver «Segunda vuelta»).
 
 ## Checks Performed
 
@@ -90,6 +94,41 @@ Migraciones OK: 754 archivo(s), 1 nuevo(s) contra origin/dokploy.
 DER OK (1 spec/s).
 ```
 
+## Segunda vuelta (revisión de QA y de seguridad del PR #1132)
+
+La revisión devolvió el PR con cinco hallazgos. Los cinco tienen prueba y arreglo:
+
+| Hallazgo | Qué se hizo | Qué lo vigila |
+|---|---|---|
+| La supresión tocaba la cola de avisos de otra organización (`20270507200101…sql`, «copia suelta» sin filtro por organización) | Las dos sentencias que limpian `public.avisos_pendientes` filtran por `a.organizacion_id = p_organizacion` | pgTAP: dos avisos de la organización dos con el **mismo contacto** de la titular (`titular@example.com`), uno `pendiente` y uno `enviado`: el primero no se borra y el segundo no pierde `Contacto` |
+| La regla D-25/FR-005 no la vigilaba ningún test (las filas se insertaban a mano) | El pgTAP llama a `private.emitir_aviso_consulta` y mira el aviso **realmente emitido** | pgTAP: el aviso emitido queda atado a su consulta, su payload no lleva la clave interna `ConsultaId` y los avisos de otros tipos no quedan atados |
+| Las nueve tareas seguían con `[ ]` | Marcas de T001 a T009 en `specs/…/tasks/MSF-944.md` (las de `tasks.md` las escribe el runner: es la spec compartida de la épica) | — |
+| `docs/tecnico/consultas.md` decía que no hay política de retención y no listaba el pgTAP ni el flow | §Retención, §Verificación y §Reversión actualizados | `pnpm docs:check` |
+| `docs/consultas.md` («Riesgos aceptados» 3) contradecía su propia §Retención | Corregido | `pnpm docs:check` |
+
+### Mutantes de la segunda vuelta (FEAT-236)
+
+Cada regla nueva tiene una aserción que cae si la regla se cambia (mutación deliberada y revertida):
+
+| Mutante | Cambio en el SQL | Aserción que cae |
+|---|---|---|
+| **M4** | Sacar `and a.organizacion_id = p_organizacion` del `delete` de la cola | «la copia pendiente de la titular en la otra organización no se borra» (la fila de la organización dos se borra) |
+| **M5** | Sacar `and a.organizacion_id = p_organizacion` del `update` de la cola | «la copia ya enviada de la titular en la otra organización no pierde sus datos» (le sacan `Nombre`, `Contacto` y `Mensaje`) |
+| **M6** | Sacar `'ConsultaId', v_c.id` del payload de `private.emitir_aviso_consulta` | «el aviso que emite la función queda atado a su consulta» (el aviso emitido queda sin atar) |
+| **M7** | Sacar `- 'ConsultaId'` del `insert` de `private.emitir_aviso` | «el aviso emitido no lleva la clave interna en el correo» (la clave viaja al correo) |
+
+### Checks de la segunda vuelta
+
+| Check | Comando / Acción | Resultado |
+|-------|------------------|-----------|
+| Aislamiento de la cola | pgTAP `consultas_retencion.test.sql` (`plan(79)`) | El CI (job `database`) lo corre; local no hay Docker ni CLI de Supabase |
+| D-25 sobre la emisión real | pgTAP `consultas_retencion.test.sql` | ídem |
+| Flow (sin cambios) | `pnpm test:kestra:purgar-consultas-tienda` | pass (4/4) |
+| Lint / build | `pnpm lint`, `pnpm build` | pass (solo warnings preexistentes de React) |
+| Docs / migraciones | `pnpm docs:check` | pass (1 migración nueva contra `origin/dokploy`) |
+| DER de la spec | `node scripts/verificar-der.mjs specs/…-retencion-y-supresion-consultas-tienda/spec.md` | pass (`DER OK (1 spec/s)`) |
+| Calidad | `pnpm calidad:code` | pass (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado: sin Docker) |
+
 ## Residual Risks
 
 - **La primera corrida real borra** todo lo que ya venció desde que existe la tienda: los datos
@@ -102,6 +141,9 @@ DER OK (1 spec/s).
 
 ## Recommendation
 
-Cerrar el bug: los jobs `database` y `validacion` están verdes, el pgTAP de la historia corre y los
-mutantes de la regla mueren. Queda en manos del negocio el plazo legal definitivo (D-21) y la
-exportación previa a la primera corrida de la purga, si quiere conservar el histórico.
+Volver a revisión: los cinco hallazgos de la devolución tienen arreglo y prueba, y los guards locales
+están en verde. Falta que el job `database` del CI confirme el pgTAP de 79 aserciones (aquí no hay
+Docker ni CLI de Supabase para correrlo). Cuando esté verde, cerrar el bug: la purga por retención y
+la supresión por titular existen, están probadas y están documentadas. Queda en manos del negocio el
+plazo legal definitivo (D-21) y la exportación previa a la primera corrida de la purga, si quiere
+conservar el histórico.

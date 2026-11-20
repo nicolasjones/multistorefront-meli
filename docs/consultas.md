@@ -223,7 +223,7 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 - **Esquemas contra el Principio VII**: las dos tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
 - **Riesgos aceptados**: (1) `publico.registrar_interes_whatsapp` no tiene límite de frecuencia ni idempotencia, y por eso desde MSF-657 ya no es pública (solo `service_role`); las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) aplican la cuota anti-spam; (2) entrega «al menos una vez» (posible
-  duplicado); (3) los datos personales del visitante no tienen política de retención (abajo).
+  duplicado); (3) los datos personales del visitante tienen política de retención y supresión desde MSF-944 (ver «[Retención](#retención)»): lo que queda abierto es el plazo legal definitivo, que define el negocio (D-21), y el correo ya enviado, que no se puede deshacer.
 
 ## Retención
 

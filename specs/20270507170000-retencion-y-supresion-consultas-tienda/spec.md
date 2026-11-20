@@ -2,7 +2,8 @@
 
 - **Slug**: `20270507170000-retencion-y-supresion-consultas-tienda`
 - **Historia**: MSF-944 (seguimiento de MSF-176, T063 y T072; decisión D-20 de la épica MSF-176)
-- **Alcance de entrega**: `supabase`, `kestra`
+- **Alcance de entrega**: `supabase`, `kestra`, `refine` (`refine` solo por la etiqueta del evento
+  nuevo en la actividad del panel: `apps/web/src/lib/actividad.ts`; no hay pantallas nuevas, D-24)
 - **Modo**: bug (seguimiento de deuda trazada). Assessment: `.specify/bugs/msf-944/assessment.md`
 
 ## Objetivo
