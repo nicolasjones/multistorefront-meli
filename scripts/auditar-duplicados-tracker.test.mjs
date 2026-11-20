@@ -3,6 +3,7 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   barrido,
   estaCerrado,
@@ -259,11 +260,8 @@ describe('sin credencial', () => {
   it('el barrido avisa y sale con 0 (no rompe el CI)', () => {
     const entorno = { ...process.env };
     delete entorno.ITSAPLAN_API_KEY;
-    const r = spawnSync(process.execPath, ['scripts/auditar-duplicados-tracker.mjs'], {
-      encoding: 'utf8',
-      env: entorno,
-      cwd: process.cwd(),
-    });
+    const script = fileURLToPath(new URL('./auditar-duplicados-tracker.mjs', import.meta.url));
+    const r = spawnSync(process.execPath, [script], { encoding: 'utf8', env: entorno });
     assert.equal(r.status, 0);
     assert.match(r.stdout, /Sin ITSAPLAN_API_KEY/);
   });
