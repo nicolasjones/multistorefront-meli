@@ -23,6 +23,7 @@ reportaba 1 ítem por unificar; ahora el board da 0 y el reporte es reproducible
 | Reproducción (después del fix) | el mismo comando | pass | `C) (ninguno)`, `D) (ninguno)`; `1 duplicado(s) real(es) (0 sin unificar)`; el par aparece como `ya unificado (MSF-476 → MSF-477)` |
 | Unificación en el board | `GET /issues/{643,641,642}` y `GET /issues/{644,639,640}` | pass | MSF-476 labels `[649, 585]` → MSF-477 · MSF-473 labels `[645, 649, 585]` → MSF-471 · MSF-474 labels `[649, 585]` → MSF-472. Ningún ítem borrado, ninguno movido de columna, MSF-472 sigue archivado |
 | New / updated tests | `node --test scripts/auditar-duplicados-tracker.test.mjs` | pass | 21/21 |
+| New / updated tests (suite que corre el CI) | `pnpm test:tooling` | pass | 77 casos: el archivo nuevo está en la lista explícita de `test:tooling`, que es la que corre el job `chequeos` |
 | Los tests detectan la regla | mutación deliberada del script (4 cambios) y reversión | pass | 2 tests fallan al borrar la etiqueta inicial al normalizar; 1 falla al quitar la exclusión del gemelo ya cerrado; 1 falla al tratar las familias como duplicados; 1 falla al dejar de contar la relación `duplicates` |
 | Regression suite (tooling) | `node --test scripts/*.test.mjs` | pass | 619 casos: 618 pasan, 0 fallan, 1 omitido (skip previo de la base). El glob toma el archivo nuevo |
 | Lint | `pnpm lint` (oxlint sobre `apps/web`) | pass | exit 0; sólo los warnings preexistentes de `apps/web`, que esta historia no toca |

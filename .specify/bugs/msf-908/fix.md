@@ -26,7 +26,7 @@ próxima auditoría dé el mismo número y no vuelva a reportar los falsos posit
 |------|--------|-------|
 | `scripts/auditar-duplicados-tracker.mjs` | added | Barrido del board: normaliza **conservando la etiqueta inicial**; reporta A) títulos idénticos (duplicado real vs falsos positivos), B) familias por referencia (informativo), C) cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia, D) marcado `duplicates` pero sin el mecanismo. Sin `ITSAPLAN_API_KEY` avisa y sale con 0. |
 | `scripts/auditar-duplicados-tracker.test.mjs` | added tests | 21 casos: la normalización conserva la etiqueta; el gemelo de otro padre no es duplicado; compartir referencia no es motivo para cerrar; el cierre administrativo se detecta y se deja de reportar con el label puesto; la relación `duplicates`; sin credencial el barrido sale con 0. |
-| `package.json` | modified | `tracker:duplicados` y `test:tracker:duplicados`; el suite entra en `pnpm test`. |
+| `package.json` | modified | `tracker:duplicados` y `test:tracker:duplicados`; el suite entra en `pnpm test` y en `test:tooling` (la lista explícita que corre el job `chequeos`: sin eso el CI no habría corrido el test nuevo). |
 | `docs/tecnico/operacion.md` | modified | Sección «Higiene del board: duplicados y cierre administrativo (MSF-908)»: la regla de cierre administrativo y qué mira el barrido. |
 | `docs/manifest.json` | regenerated | `node scripts/docs-manifest.mjs` (sólo cambia la entrada de `operacion.md`). |
 | `.specify/bugs/msf-908/fix.md`, `.specify/bugs/msf-908/test.md` | added | Este reporte y la verificación. |
