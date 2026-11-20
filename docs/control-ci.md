@@ -305,6 +305,15 @@ Propuestas exactas; ninguna se aplicó.
 - **MSF-705 · variables obligatorias en el VPS.** Antes de mergear a `main` o promover, comprobar que `VPS_DEPLOY_ENV` de staging y
   producción trae las 14 credenciales nuevas (`KESTRA_*`, `SUPERSET_*`, `NANGO_*`) y las 5 `*_IMAGEN` de workers por digest (MSF-712);
   el preflight del deploy lo reclama con un mensaje que nombra cada una.
+- **MSF-903 · tope de ramas con CI en vuelo del orquestador (`CI_RANAS_MAXIMAS`).** El `.env` de VPS2 no define
+  `CI_RANAS_MAXIMAS`, así que el poller del orquestador usa el default **2** (`RAMAS_CI_MAXIMAS_POR_DEFECTO` en
+  `packages/core/ci.js` del repo `ai-dev-orchestrator`) aunque el repo tiene `CI_LANES=5` y **6** runners self-hosted online:
+  el tope efectivo es `min(2, 6) = 2` y los ítems nuevos esperan con «el CI del repo está saturado: N rama(s) con CI en
+  vuelo (límite 2)». Acción en el servidor: agregar `CI_RANAS_MAXIMAS=4` al `/opt/ai-dev-orchestrator/.env` (el
+  cortacircuitos de carga sigue en `CI_LOAD_MAX=2.5`; el nodo está en load ratio 0,76 sobre 12 cores) y **reiniciar**
+  `systemctl restart ai-dev-gateway` (el `.env` se lee al arrancar); el tope efectivo pasa a `min(4, 6) = 4`. No se toca
+  `CI_LANES` ni `CI_LOAD_MAX`. Verificación: `grep CI_RANAS_MAXIMAS /opt/ai-dev-orchestrator/.env` y, tras el reinicio, que
+  el poller admita hasta 4 ramas en vuelo (deja de frenar con «límite 2»).
 - **MSF-902 · PRs abiertos en conflicto: procedimiento (no se cerró ningún PR).** (1) Listar: `gh pr list --state open --json
   number,title,headRefName,mergeable,updatedAt --jq '.[] | select(.mergeable=="CONFLICTING")'`. (2) Por cada uno: avisar al
   responsable y, si la rama es de un agente/SDLC, correr `git fetch origin && git merge origin/dokploy` en un worktree propio (en
