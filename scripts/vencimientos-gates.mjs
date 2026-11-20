@@ -21,7 +21,7 @@ const ETIQUETAS_GATE = ['gate', 'decision', 'escala-humano']
 /** Plazo del gate humano según el contrato de vitalidad. */
 const HORAS_PLAZO = 24
 /** Zona del board: la fecha de vencimiento se expresa en esta zona (UTC-3, sin horario de verano). */
-const ZONA = 'America/Buenos_Aires'
+const ZONA = 'America/Argentina/Buenos_Aires'
 const PROYECTO_POR_DEFECTO = 'MSF'
 const URL_POR_DEFECTO = 'https://api.plan.agenmatica.com'
 
@@ -171,7 +171,7 @@ async function main() {
   )
   for (const p of plan) {
     console.log(
-      `  ${p.identifier}  ${columnas.get(p.column)?.name ?? '?'}  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
+      `  ${p.identifier} (id ${p.id})  ${columnas.get(p.column)?.name ?? '?'}  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
     )
   }
   console.log(

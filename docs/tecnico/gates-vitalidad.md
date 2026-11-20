@@ -30,8 +30,8 @@ no la tienen:
   espera nada.
 - **Qué fecha se pone:** la **fecha en que vence el gate**, es decir las **24 h del
   contrato** contadas desde que el ítem empezó a esperar en su columna
-  (`statusSince`), expresadas como fecha en `America/Argentina`. El tracker guarda
-  fecha y no hora, así que el plazo se redondea al día: un gate abierto hoy vence
+  (`statusSince`), expresadas como fecha en `America/Argentina/Buenos_Aires`. El
+  tracker guarda fecha y no hora, así que el plazo se redondea al día: un gate abierto hoy vence
   mañana.
 - **Qué no se toca:** los ítems que ya tienen `dueDate` (la corrida es idempotente) y
   los que no son gates.
@@ -84,7 +84,8 @@ El flujo que **abre** un gate vive en el orquestador (`ai-dev-orchestrator`), no
 repo: sigue creando ítems sin `dueDate`. Esta herramienta es un **barrido
 idempotente** y se puede volver a correr para completar los gates que aparezcan
 después; que el gate nazca con la fecha puesta es un cambio del flujo del orquestador
-(queda anotado como seguimiento en MSF-909, no como tarea de esta historia).
+(quedó trazado como **MSF-995** en el tracker: Tarea, etiqueta `seguimiento`, en
+`Backlog`, bajo la épica MSF-515, con `dueDate` 2026-12-04).
 
 La regla está fijada por tests (`pnpm test:vencimientos:gates`): qué es un gate, qué es
 «esperar decisión», el cálculo de la fecha con su borde de medianoche, que la corrida

@@ -1,7 +1,7 @@
 # Bug Verification: fecha de vencimiento de los gates del tracker
 
 - **Slug**: msf-909
-- **Tested**: 2026-11-19
+- **Tested**: 2026-11-19 (re-verificado el 2026-11-20)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified
@@ -10,8 +10,8 @@
 
 El síntoma ya no se reproduce: el barrido detecta los gates que esperan decisión,
 les pone la fecha de vencimiento del contrato (24 h desde `statusSince` en
-`America/Argentina`) y una segunda simulación da **0** gates sin fecha. La regla queda
-fijada por tests y la documentación explica cómo aplicarla y revertirla.
+`America/Argentina/Buenos_Aires`) y una segunda simulación da **0** gates sin fecha.
+La regla queda fijada por tests y la documentación explica cómo aplicarla y revertirla.
 
 ## Checks Performed
 
@@ -21,17 +21,18 @@ fijada por tests y la documentación explica cómo aplicarla y revertirla.
 | Corrección (aplicar) | `node scripts/vencimientos-gates.mjs --aplicar` | pass | `Fecha puesta en 19 ítem(s).` |
 | Reproducción (después) | `node scripts/vencimientos-gates.mjs` | pass (0) | `Gates sin fecha de vencimiento en MSF: 0 de 830 ítems del board.` |
 | Ítem puntual | `GET /issues/1145` | pass | MSF-909: `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"`. |
+| Re-verificación (2026-11-20) | `node scripts/vencimientos-gates.mjs` | pass (0) | 0 gates sin fecha de 830 ítems; MSF-909 sigue con `dueDate: "2026-11-15"`. |
 | New / updated tests | `pnpm test:vencimientos:gates` | pass | 8 tests, 8 pass, 0 fail. |
-| Documentación | `node scripts/docs-check.mjs` | pass | `Documentación OK.` |
+| Documentación | `node scripts/docs-check.mjs` y `pnpm docs:check` | pass | `Documentación OK.`; cambios, migraciones y trampas OK. |
 | package.json | `node -e "JSON.parse(...)"` | pass | `package.json OK`. |
 | Regression suite | `pnpm test` (suite completo) | not-run | Se corre en el PR/CI; local sólo las suites del área (Node puro, sin base). |
-| Lint / type-check | `pnpm lint` / build | not-run | El cambio no toca `apps/web`; CI corre lint y build. |
+| Lint / type-check | `pnpm lint` / build | pass | 0 errores (los warnings de `apps/web` son preexistentes) y build OK. |
 
 ## Output Excerpts
 
 ```
 Gates sin fecha de vencimiento en MSF: 19 de 830 ítems del board.
-  MSF-909  En curso  vence 2026-11-15  [Auditoría] 23 gates esperando decisión sin fecha de vencimi
+  MSF-909 (id 1145)  En curso  vence 2026-11-15  [Auditoría] 23 gates esperando decisión sin fecha de vencimi
 ...
 Fecha puesta en 19 ítem(s).
 ```
@@ -49,7 +50,8 @@ Gates sin fecha de vencimiento en MSF: 0 de 830 ítems del board.
 ## Residual Risks
 
 - Los gates que nacen después siguen sin fecha: la prevención en la creación vive en
-  el orquestador (otro repo). La herramienta es idempotente y se puede re-correr.
+  el orquestador (otro repo), y quedó trazado como **MSF-995** (Tarea `seguimiento`, en
+  `Backlog`, con `dueDate` 2026-12-04). La herramienta es idempotente y se puede re-correr.
 - La fecha que se escribe es la de vencimiento del contrato (puede quedar en el pasado
   para gates ya vencidos): es lo que el reporte pide para que el board muestre que la
   decisión está vencida.
