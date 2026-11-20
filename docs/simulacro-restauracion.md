@@ -2,6 +2,8 @@
 owner: operacion
 sources:
   - specs/20261018-120000-operacion-copias-y-documentacion
+  - supabase/migrations/20270507200101_verificacion_restore_simulacro.sql
+  - supabase/tests/database/simulacro_verificacion_restore_msf520.test.sql
 ---
 
 # Simulacro de restauración (cierre de MSF-457)
@@ -38,7 +40,8 @@ completo ni mide el tiempo de punta a punta.
    Antes de restaurar, confirmar el destino: `select current_database(), inet_server_addr();` con
    `$DATABASE_URL` tiene que devolver la base y el host de staging; si no coinciden, parar.
 2. Elegir la última copia de base y de imágenes del historial (`public.respaldos`,
-   `public.respaldos_imagenes`) y anotar sus fechas y ubicaciones.
+   `public.respaldos_imagenes`) y anotar sus **id**, fechas y ubicaciones. El `id` de la copia de
+   base es el que se pasa al gate del paso 5.
 3. **Marcar la caída simulada** (antes de restaurar; después no queda la base viva para consultarla):
 
    ```sql
@@ -51,21 +54,29 @@ completo ni mide el tiempo de punta a punta.
    (`public.registro_actividad` es la de referencia; si está vacía en staging, se usa otra y se anota
    cuál se usó). Con esos dos valores la pérdida se mide como un número, no de memoria.
 4. Restaurar la base (sección A de la guía) y las imágenes (sección B).
-5. **Reaplicar y verificar los roles/grants.** `pg_restore --no-privileges` no aplica los ACL del
-   dump: las funciones `security definer` del historial quedarían ejecutables por `anon` y las tablas
-   sin lectura para `authenticated`. Ejecutar el paso 5 de la sección A
-   (`select private.reaplicar_privilegios_copias();`) y comprobar:
+5. **Reaplicar los privilegios del historial de copias** (paso 5 de la sección A:
+   `select private.reaplicar_privilegios_copias();`) y **correr el gate del restore**:
 
    ```sql
-   select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
-          has_function_privilege('authenticated', 'public.iniciar_respaldo(text)', 'EXECUTE') as autenticado,
-          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
+   select * from private.verificar_restore_simulacro(<id de la copia restaurada>);
    ```
 
-   Lo esperado es `true / false / false` para cada una de las nueve funciones del historial (las de
-   `supabase/tests/database/copias_imagenes_verificaciones.test.sql`) y `authenticated` con lectura
-   sobre `public.respaldos`, `public.respaldos_imagenes` y `public.verificaciones_restauracion`
-   (la RLS las filtra por superadmin).
+   Devuelve las ocho comprobaciones del restore (`restore_aplicado`, `app_usa_private`,
+   `app_lee_organizaciones`, `app_lee_empresas`, `anon_no_lee_organizaciones`,
+   `historial_solo_kestra`, `historial_legible`, `anon_no_lee_historial`). **Si alguna viene con
+   `cumple = false`, el simulacro se detiene**: no se mide, no se firma y el motivo va al registro
+   («Problemas encontrados»).
+
+   Las dos primeras son las que evitan un **verde mentiroso**:
+   - `restore_aplicado` = false: la base tiene respaldos posteriores a la copia → el restore no se
+     aplicó (la base viva siguió ahí y la «pérdida» mediría 0 h).
+   - `app_lee_organizaciones` / `app_lee_empresas` = false: el restore no dejó los permisos que la
+     app necesita (el `pg_restore --no-privileges` del paso 4 no aplica los ACL del dump) → el
+     panel no puede servir datos. En ese caso hay que **restaurar otra vez sin `--no-privileges`**
+     (el dump `pg_dump --format=custom` lleva los ACL) y volver a correr este paso.
+
+   Para el detalle de cada comprobación, `private.verificar_restore_simulacro(bigint)` y el
+   runbook [db-restore.md](tecnico/runbooks/db-restore.md).
 6. **Probar el aviso por correo.** Con la app levantada, ejecutar a mano `aviso-fallo-copias` desde la UI
    de Kestra y confirmar que el correo llega a `SOPORTE_CORREO`. Los flows avisan con
    `transmitFailed: false`: si el SMTP no está configurado (valores por defecto de ejemplo) el aviso se
@@ -84,8 +95,9 @@ completo ni mide el tiempo de punta a punta.
 |---|---|
 | Fecha | _pendiente_ |
 | Ejecutó | _pendiente_ |
-| Copia de base usada (fecha) | _pendiente_ |
+| Copia de base usada (id y fecha) | _pendiente_ |
 | Copia de imágenes usada (fecha) | _pendiente_ |
+| Comprobaciones post-restore (gate) | _pendiente_ (las ocho de `private.verificar_restore_simulacro`) |
 | Pérdida de datos medida | _pendiente_ (objetivo ≤ 24 h) |
 | Tiempo total medido | _pendiente_ (objetivo ≤ 4 h) |
 | Problemas encontrados | _pendiente_ |

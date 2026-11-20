@@ -3,9 +3,10 @@
 // protege son dos reglas de documentación.
 //
 //  1. El protocolo tiene que seguir teniendo los pasos que miden los objetivos (FR-011/SC-002):
-//     caída simulada (para medir la pérdida), reaplicación y verificación de los roles/grants
-//     (el restore los pierde), prueba del aviso por correo y cierre con staging sano. Si se
-//     pierde uno de esos pasos, el simulacro deja de cerrar el criterio y nadie lo nota.
+//     caída simulada (para medir la pérdida), el gate posterior al restore (que comprueba que la
+//     base restaurada es la de la copia y que la app puede servir), prueba del aviso por correo y
+//     cierre con staging sano. Si se pierde uno de esos pasos, el simulacro deja de cerrar el
+//     criterio y nadie lo nota.
 //
 //  2. La documentación no puede contradecirse sobre si el simulacro corrió: un "Done" que no
 //     miente (AGENTS.md). Hoy está pendiente; cuando el propietario lo ejecute y firme, los
@@ -31,14 +32,24 @@ const operar = leer('docs/operar-sistema.md')
 test('el protocolo del simulacro tiene los pasos que miden los objetivos', () => {
   const pasos = [
     ['caída simulada (mide la pérdida)', 'caida_simulada'],
+    ['gate posterior al restore (los ocho invariantes)', 'private.verificar_restore_simulacro('],
     ['reaplicación de privilegios tras el restore', 'private.reaplicar_privilegios_copias()'],
-    ['verificación de roles/grants', 'has_function_privilege'],
     ['prueba del aviso por correo', 'SOPORTE_CORREO'],
     ['cierre con staging sano (copia fresca)', 'respaldo-postgres'],
   ]
   for (const [que, marca] of pasos) {
     assert.ok(protocolo.includes(marca), `la sección Protocolo de docs/simulacro-restauracion.md no tiene el paso de ${que} (falta "${marca}")`)
   }
+})
+
+// El gate es lo que evita un simulacro verde mentiroso: si el restore no se aplicó o dejó la base
+// sin permisos, el simulacro se detiene (no se mide, no se firma). Sin este paso el registro se
+// puede llenar con tiempos de una base que nunca se restauró.
+test('el protocolo dice que si el gate falla el simulacro se detiene sin medir ni firmar', () => {
+  assert.ok(
+    /cumple\s*=\s*false[\s\S]{0,400}no se mide[\s\S]{0,80}no se firma/.test(protocolo),
+    'la sección Protocolo de docs/simulacro-restauracion.md no dice que un gate en rojo detiene el simulacro sin medir ni firmar',
+  )
 })
 
 // Fija el CONTRATO DOCUMENTAL de la guía (que el texto lo pida y en el orden correcto), no el comportamiento: nada en el
@@ -65,6 +76,20 @@ test('la guía de restauración y el runbook incluyen el paso de reaplicar privi
     assert.ok(
       texto.includes('private.reaplicar_privilegios_copias()'),
       `${nombre} no manda reaplicar los privilegios después del restore (con --no-privileges las funciones security definer quedan ejecutables por PUBLIC)`,
+    )
+  }
+})
+
+// El gate es el paso que hace objetivo el resultado: sin él, el simulacro se puede medir sobre una
+// base que no se restauró o que no puede servir datos (un verde mentiroso).
+test('la guía de restauración y el runbook incluyen el gate posterior al restore', () => {
+  for (const [nombre, texto] of [
+    ['docs/copias-y-restauracion.md', copias],
+    ['docs/tecnico/runbooks/db-restore.md', runbook],
+  ]) {
+    assert.ok(
+      texto.includes('private.verificar_restore_simulacro('),
+      `${nombre} no manda correr el gate del restore (private.verificar_restore_simulacro): sin él no se comprueba que la base restaurada sea la de la copia ni que la app pueda leer`,
     )
   }
 })

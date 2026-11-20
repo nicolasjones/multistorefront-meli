@@ -12,6 +12,8 @@ sources:
   - infra/kestra/flows/aviso-fallo-copias.yml
   - infra/kestra/compose.yaml
   - supabase/migrations/20270418000301_reaplica_privilegios_copias.sql
+  - supabase/migrations/20270507200101_verificacion_restore_simulacro.sql
+  - supabase/tests/database/simulacro_verificacion_restore_msf520.test.sql
 ---
 
 # Copias de seguridad y restauración (F-OPS-01)
@@ -198,21 +200,31 @@ ejecución de Kestra.
    psql "$DATABASE_URL" -c 'select private.reaplicar_privilegios_copias();'
    ```
 
-   Y comprobarlo (mismo criterio que el pgTAP
-   `supabase/tests/database/copias_imagenes_verificaciones.test.sql`):
+   Si la base restaurada es más vieja que la migración que creó la función, aplicar antes las
+   migraciones pendientes (`supabase migration up`): el paso necesita que la función exista.
+6. **Correr el gate del restore** (MSF-520): comprueba de una vez que el restore se aplicó, que la
+   app puede servir datos y que el invariante del historial de copias sigue en pie:
 
    ```sql
-   select has_function_privilege('kestra_backups', 'public.iniciar_respaldo(text)', 'EXECUTE') as kestra,
-          has_function_privilege('authenticated', 'public.iniciar_respaldo(text)', 'EXECUTE') as autenticado,
-          has_function_privilege('anon', 'public.iniciar_respaldo(text)', 'EXECUTE') as anon;
+   select * from private.verificar_restore_simulacro(<id de la copia restaurada>);
    ```
 
-   Lo esperado es `true / false / false` en las nueve funciones. Si la base restaurada es más vieja que
-   la migración que creó la función, aplicar antes las migraciones pendientes
-   (`supabase migration up`): el paso necesita que la función exista.
-6. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
+   Devuelve las ocho comprobaciones (`restore_aplicado`, `app_usa_private`,
+   `app_lee_organizaciones`, `app_lee_empresas`, `anon_no_lee_organizaciones`,
+   `historial_solo_kestra`, `historial_legible`, `anon_no_lee_historial`). **Si alguna viene con
+   `cumple = false`, el restore no sirve**: no se sigue (ni se mide ni se firma nada).
+
+   - `restore_aplicado` = false: la base tiene respaldos posteriores a la copia → el restore no se
+     aplicó (la base viva siguió ahí).
+   - `app_lee_organizaciones` / `app_lee_empresas` = false: el restore no dejó los permisos que la
+     app necesita (este procedimiento usa `--no-privileges`, que no aplica los ACL del dump) →
+     **restaurar otra vez sin `--no-privileges`**: el dump `pg_dump --format=custom` lleva los ACL
+     (`infra/kestra/flows/respaldo-postgres.yml:86`).
+   - `historial_solo_kestra` / `historial_legible` = false: repetir el paso 5
+     (`private.reaplicar_privilegios_copias()`).
+7. **Comprobar**: `select count(*) from public.organizaciones;` y `public.respaldos` con datos;
    entrar a la app con un superadmin.
-7. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
+8. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
    una copia fresca post-restauración.
 
 ### B. Imágenes (Storage)

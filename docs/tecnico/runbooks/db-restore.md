@@ -2,6 +2,7 @@
 owner: operacion
 sources:
   - supabase/migrations/20270418000301_reaplica_privilegios_copias.sql
+  - supabase/migrations/20270507200101_verificacion_restore_simulacro.sql
   - supabase/tests/database/copias_imagenes_verificaciones.test.sql
   - infra/kestra/flows/respaldo-postgres.yml
   - infra/kestra/flows/respaldo-imagenes.yml
@@ -30,7 +31,15 @@ sources:
    `respaldos`, `respaldos_imagenes` y `verificaciones_restauracion` quedan sin lectura para
    `authenticated`. Comprobarlo con `has_function_privilege`: sólo `kestra_backups` debe tener
    `EXECUTE`.
-6. Verificar RLS/roles/grants y volver a habilitar escrituras.
+6. **Correr el gate del restore** (MSF-520):
+   `select * from private.verificar_restore_simulacro(<id de la copia restaurada>);` — comprueba que
+   el restore se aplicó, que la app puede leer (`authenticated` sobre `private`,
+   `public.organizaciones` y `dominio.empresas`), que `anon` no lee y que el invariante del
+   historial de copias sigue en pie. **Si alguna comprobación viene con `cumple = false`, el restore
+   no sirve**: no se sigue. Si falla `app_lee_organizaciones`/`app_lee_empresas`, es que el dump se
+   restauró con `--no-privileges` (que no aplica los ACL): hay que restaurar otra vez sin esa
+   opción.
+7. Verificar RLS/roles/grants y volver a habilitar escrituras.
 
 ## Verificación
 
