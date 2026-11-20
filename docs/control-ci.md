@@ -378,6 +378,12 @@ job de CI de un PR a `main` apuntaría al gate de `main`, que no es el de
 integración), `--repo <owner/nombre>` elige el repo (por defecto
 `GITHUB_REPOSITORY` o el del repo) y `--json` imprime el informe en JSON.
 
+Códigos de salida: `0` = el merge no se rechaza por desfasaje · `1` =
+**BLOQUEADO** (el gate exige «rama al día» y la rama del PR está atrás) · `2` =
+no se pudo leer el gate. En el `2` el script **falla en voz alta** en vez de
+informar «no hay gate»: un diagnóstico a medias es peor que no tener
+diagnóstico.
+
 El diagnóstico lee **las dos** capas del gate: los rulesets y la protección
 clásica de la rama (`/branches/<rama>/protection`). Según GitHub, ambas se
 acumulan y se exigen todas las reglas aplicables, así que un **200** en el
