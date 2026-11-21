@@ -23,8 +23,8 @@ RPC. La causa del LCP alto se reprodujo además con un build local del front.
 | La guarda detecta la regresión | `git stash push -- docs/tiendas-online.md` + la misma guarda | pass (detecta) | Con la sección sin cifras la guarda sale con código 1 y enumera los cuatro requisitos que faltan: no se puede volver a cerrar el criterio «sin medir» |
 | New / updated tests | `pnpm test:medir:tienda` | pass | 27 tests, 0 fallos (perfil móvil de Lighthouse, cuatro rutas medidas, mediana y veredicto, script SQL con `ROLLBACK`, siembra idempotente y la guarda documental) |
 | Medición de verdad (en CI) | run `44118543460`, job `medir` (17/11/2026) | pass | Stack local de Supabase con el seed + 500 productos por tienda; 4 rutas × 3 corridas de Lighthouse en perfil móvil; artifact `medir-tienda` con `resumen.md`, `resumen.json`, los 12 reportes de Lighthouse y `rpc-catalogo.txt`. El job sale con código 1 porque el LCP no llega al objetivo (comportamiento esperado) |
-| Las cifras del artifact | lectura de `resumen.json` y de los 12 reportes de Lighthouse | pass | LCP 17.378–18.511 ms (medianas por ruta); «element render delay» 16,6–21,6 s; «time to first byte» del recurso que pinta el LCP 11–67 ms; 126 scripts (1.986 KB sin comprimir, 675 KB comprimidos) en la primera carga; el *entry* tarda ~2,9 s en descargarse (738 ms → 3.603 s) y el FCP llega a los 16,9 s; CLS 0,627 (catálogo de Mundo JC) |
-| Causa del LCP (build local) | `VITE_PANEL_HOSTS=localhost,127.0.0.1 pnpm --filter @platform/web exec vite build` | pass | El *entry* `index-*.js` pesa 911 KB sin comprimir y trae los textos del panel («Organizaciones», «Reparaciones», «Ventas») y no los de la tienda («Todos los productos», «Solo con stock»): la tienda pública carga el bundle del panel |
+| Las cifras del artifact | lectura de `resumen.json` y de los 12 reportes de Lighthouse | pass | LCP 17.378–18.511 ms (medianas por ruta); «element render delay» 16,6–21,6 s; «time to first byte» del recurso que pinta el LCP 11–67 ms; 126 scripts en el catálogo y 132 en la ficha (1.986 KB sin comprimir / 675 KB comprimidos en el catálogo; 2.011 KB / 688 KB en la ficha) en la primera carga; el *entry* tarda ~2,9 s en descargarse (738 ms → 3.603 s) y el FCP llega a los 16,9 s; CLS 0,627 (catálogo de Mundo JC) |
+| Causa del LCP (build local) | `VITE_PANEL_HOSTS=localhost,127.0.0.1 pnpm --filter @platform/web exec vite build` | pass | El *entry* `index-*.js` trae los textos del panel («Organizaciones», «Reparaciones», «Ventas») y no los de la tienda («Todos los productos», «Solo con stock»): la tienda pública carga el bundle del panel. El peso de 911 KB que figura en la guía es el del artifact del CI |
 | Regression suite (docs) | `pnpm docs:check` | pass | Documentación de cambios OK, migraciones OK (0 nuevas), trampas conocidas OK y la guarda de la medición OK |
 | Regression suite (front) | `pnpm lint` | pass | 0 errores (309 warnings preexistentes en archivos que este cambio no toca) |
 | Build | `pnpm build` | pass | Compila (el warning de «chunks > 500 kB» es el del *entry* de 932 KB, que es justamente la causa medida del LCP) |
@@ -48,6 +48,21 @@ Las tres quedaron corregidas en `docs/tiendas-online.md` (y en las dos guías qu
 rangos que salen del artifact. Gates de esta corrida: `pnpm lint` (0 errores), `pnpm build` (ok),
 `pnpm test:medir:tienda` (27/27) y `pnpm docs:check` (ok). La medición en vivo no se pudo repetir (sin demonio
 de Docker): las cifras siguen viniendo del run del CI.
+
+## Re-verificación (2026-11-21)
+
+Se volvió a contrastar la guía con los 12 reportes de Lighthouse del artifact `medir-tienda` (run `44118543460`).
+Siguen coincidiendo las medianas por ruta, el desglose del LCP, los pesos en bytes, los culpables del CLS y los
+milisegundos de la RPC. El contraste destapó una cuarta generalización que la guía daba por válida en las 12
+carridas y solo valía en 6:
+
+- «la primera carga pide 126 scripts (1.986 KB sin comprimir, 675 KB comprimidos)» → en el **catálogo** son 126
+  scripts (1.986 KB sin comprimir / 675 KB comprimidos) y en la **ficha** 132 (2.011 KB / 688 KB). La guía y las
+  dos guías que repiten la cifra ahora distinguen las dos rutas.
+
+Y un matiz sobre el peso del *entry*: los 911 KB sin comprimir que cita la guía son los que midió el CI (el
+`resourceSize` del artifact). El front cambió después (merge con `dokploy`) y el build local de hoy da 948,88 kB:
+lo reproducible es la **composición** del *entry* (los textos del panel están, los de la tienda no), no su peso.
 
 ## Output Excerpts
 

@@ -5250,9 +5250,9 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "cebadb41fee277f97e84cec7e9551c1d63bee293f738be40746ac5a4f206dd73",
-      "sourceHash": "4194fec6e2bcb63a9039f003d3f6b2206a21fa91595f8f59e6017a7047207cd4",
-      "sourceAt": "3c42f8889",
+      "pageHash": "c2f35f709832e2e9ec8b60f14e6da2c746321abfc4c7bdca192fb3a592d3d1da",
+      "sourceHash": "b04a8d1776257e0bc7c13511f095352cb325a221acfa414dfa99ccefb301b59b",
+      "sourceAt": "e5d5f409c",
       "sources": [
         "specs/20261023-120000-tienda-catalogo-y-ficha",
         "supabase/migrations/20261023150000_tienda_categorias_publicas.sql",
@@ -5281,7 +5281,7 @@
         "apps/web/e2e/tienda-catalogo.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "3c42f8889"
+      "commit": "e5d5f409c"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -6030,14 +6030,14 @@
     },
     "docs/tienda-movil.md": {
       "title": "Tienda pública · versión móvil (F-TDA-17)",
-      "pageHash": "6807c4ce714aaf8cc4c5742ece6a6fced319978497a25c7ee9d1f93de53cedbf",
+      "pageHash": "7aab76f930b77354f19e1e2eefd475c43ab9bc64a1a194208abca824dace1a43",
       "sourceHash": "a41548adff49f50dbd580ee9293fc48676d148d432c1e3476dfa8d38cb298ccd",
-      "sourceAt": "3c42f8889",
+      "sourceAt": "e5d5f409c",
       "sources": [
         "specs/20261024-120000-tienda-inicio-busqueda-movil"
       ],
       "owner": "tecnico",
-      "commit": "3c42f8889"
+      "commit": "e5d5f409c"
     },
     "docs/tienda-opiniones.md": {
       "title": "Opiniones de productos: moderación y tienda (MSF-467)",
@@ -6067,9 +6067,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "239e33a8e9210a6af49cb287339f334d57a90ee781120846a48cc2560bb3b5fb",
-      "sourceHash": "1d7aff6daeed236a7cd5088aa695711f1e9e32626b6d9fbe13e5abb9ddd1b055",
-      "sourceAt": "3c42f8889",
+      "pageHash": "d1387e47ceacf46b981eaa7a21b395b3f640918d1ad94092a7331788f3cae095",
+      "sourceHash": "74b828d983f57141e9815fdcfa210040d00f692f27e93bab26e37c95e8e7d820",
+      "sourceAt": "e5d5f409c",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6081,7 +6081,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "3c42f8889"
+      "commit": "e5d5f409c"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

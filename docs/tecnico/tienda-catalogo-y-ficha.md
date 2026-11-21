@@ -368,8 +368,9 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   (seed + 500 productos por tienda) y Lighthouse en perfil móvil (390×844, CPU ×4, «4G lento», 3 corridas),
   el LCP del catálogo y de la ficha de las dos tiendas queda entre **17,4 s y 18,5 s** contra el objetivo de
   3 s; el CLS del catálogo llega a 0,63. La causa medida no es la base: el servidor responde en menos de 50 ms y
-  el tiempo se va en descargar y ejecutar el JavaScript, porque la primera carga pide 126 scripts y el *entry* es
-  el bundle del **panel** (`apps/web/src/main.tsx` importa `App` y `TiendaPublicaApp` en el mismo *entry*).
+  el tiempo se va en descargar y ejecutar el JavaScript, porque la primera carga pide 126 scripts en el
+  catálogo (132 en la ficha) y el *entry* es el bundle del **panel** (`apps/web/src/main.tsx` importa `App` y
+  `TiendaPublicaApp` en el mismo *entry*).
   La RPC, en cambio, cumple: `publico.catalogo_pagina_por_dominio` tarda 39 ms con orden por relevancia y
   205–215 ms ordenando por precio, con 24 productos por página y una tienda de 500 productos visibles (D3 no se
   ajusta). Cifras, entorno y fuente:
