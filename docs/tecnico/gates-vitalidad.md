@@ -42,6 +42,25 @@ como fecha de compromiso: re-armaría el reloj y el tablero terminaría diciendo
 mañana» de ítems que el watchdog ya marca como vencidos (además no distinguiría un
 ítem de un día de otro de cuarenta).
 
+## Cómo lee el board (y por qué lee dos veces)
+
+La API del tracker **no pagina**: ignora `offset` y `page` y cada lectura corta en 500
+ítems. Una lectura truncada es el peor fallo posible acá: el barrido declararía «0 gates
+sin fecha» con gates sin fecha (un **falso verde**). Por eso el barrido lee el board de
+**dos maneras independientes** y las contrasta:
+
+| Lectura | Qué trae | Para qué |
+|---------|----------|-----------|
+| **Por etiqueta** (`?labelIds=…`, una por etiqueta de gate) | sólo los gates | es la fuente del barrido: chico y completo |
+| **Por tipo** (`?typeId=…`, una por tipo de ítem) | todos los ítems del tipo | es el contraste: grande e independiente |
+
+El contraste corta con error si las dos lecturas no ven los mismos gates: un gate que
+falta en una de las dos delata la lectura truncada. Los **archivados no se leen**: la
+regla ya los descarta y sólo consumirían el tope de la lectura.
+
+Si el proyecto no tiene ninguna etiqueta de gate, el barrido también corta: sin ellas
+no puede leer el board y un «0 gates» sería mentira.
+
 ## Cómo se aplica
 
 Necesita la clave personal del tracker en el entorno (`ITSAPLAN_API_KEY`; nunca en el
@@ -56,7 +75,7 @@ node scripts/vencimientos-gates.mjs --aplicar
 ```
 
 La simulación es el paso obligatorio: imprime el ítem, la columna, la fecha que le
-corresponde y cuánto ítems del board se leyeron.
+corresponde y cuántos gates del board se leyeron.
 
 **Verificación.** Después de aplicar, la simulación tiene que dar **0** ítems (todos
 tienen fecha) y el detalle de cada ítem tiene que mostrar la fecha:
@@ -67,12 +86,26 @@ curl -s -H "x-api-key: $ITSAPLAN_API_KEY" \
   https://api.plan.agenmatica.com/issues/<id> | jq '{identifier, dueDate}'
 ```
 
-El board se lee por tipo de ítem y la API del tracker **no pagina** (ignora `offset` y
-`page`): si un tipo llegara al tope de 500 ítems, el barrido corta con error en vez de
-darse por completo. Ese error hay que tomarlo en serio: significa que el «0 gates»
-todavía no se puede afirmar.
+### Si el barrido corta con error
 
-**Reversión.** La herramienta sólo **agrega** un dato que estaba vacío: para deshacer
+El corte es deliberado: es preferible no escribir nada a escribir un «0 gates» falso.
+El error dice qué se truncó y **la corrida no escribió nada** (el corte ocurre en la
+lectura, antes del primer `PATCH`), así que no hay nada que revertir. Para destrabarlo:
+
+- **Un tipo llegó a 500 ítems** (o una etiqueta de gate): reducilo. La regla ya ignora
+  los archivados, así que archivar los ítems viejos del tipo es la salida más directa;
+  si el tipo es grande de verdad, dividí el proyecto. La API no pagina: no hay forma de
+  leer más de 500 ítems por consulta.
+- **Las dos lecturas no ven los mismos gates**: una de las dos volvió truncada. Volvé a
+  correr la simulación: si el error sigue, el board tiene un tipo (o una etiqueta) en el
+  tope de la lectura y hay que aplicar el punto anterior.
+
+Mientras no se destrabe, los gates de los tipos que no se pudieron leer **quedan sin
+fecha**: es preferible a fecharlos con una lectura incompleta.
+
+### Reversión
+
+La herramienta sólo **agrega** un dato que estaba vacío: para deshacer
 basta con borrar la fecha de los ítems que tocó la corrida (`dueDate` acepta `null`):
 
 ```sh
@@ -80,8 +113,10 @@ curl -s -X PATCH -H "x-api-key: $ITSAPLAN_API_KEY" -H 'content-type: application
   -d '{"dueDate": null}' https://api.plan.agenmatica.com/issues/<id>
 ```
 
-Los ids y las fechas que puso la corrida quedan en la salida de `--aplicar` (y en el
-informe de la historia MSF-909).
+Los ids y las fechas que puso la corrida quedan en la salida de `--aplicar`: cada ítem
+se anota **apenas se escribe** (no al final de la corrida), así que si un `PATCH` falla
+a mitad, la salida dice exactamente qué ítems quedaron con fecha y la reversión se
+puede aplicar sin tocar los que ya tenían fecha.
 
 ## Lo que esta herramienta no arregla
 
@@ -96,4 +131,5 @@ La regla está fijada por tests (`pnpm test:vencimientos:gates`): qué es un gat
 «esperar decisión», el cálculo de la fecha con su borde de medianoche, que la corrida
 no toque lo que ya tiene fecha, que el `PATCH` mande **sólo** `dueDate` (mandar
 `labelIds` en el mismo `PATCH` reemplazaría las etiquetas del ítem) y que el barrido
-corte con error si el board no se puede leer entero.
+corte con error si el board no se puede leer entero (por tope de lectura o por
+contraste entre las dos lecturas).

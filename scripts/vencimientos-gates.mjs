@@ -24,9 +24,10 @@ const HORAS_PLAZO = 24
 const ZONA = 'America/Argentina/Buenos_Aires'
 const PROYECTO_POR_DEFECTO = 'MSF'
 const URL_POR_DEFECTO = 'https://api.plan.agenmatica.com'
-/** Máximo de ítems por consulta: la API no pagina (ignora `offset`/`page`), así que a partir
- * de este límite el barrido quedaría incompleto y hay que avisar en vez de callar. */
-const LIMITE_POR_TIPO = 500
+/** Máximo de ítems por lectura: la API no pagina (ignora `offset`/`page`) y corta en 500,
+ *  así que a partir de este límite la lectura quedaría incompleta y hay que avisar en vez
+ *  de callar. */
+const LIMITE_POR_LECTURA = 500
 
 /** Fecha (YYYY-MM-DD) de un instante, en la zona del board. */
 function fechaEnZona(instante, zona = ZONA) {
@@ -99,6 +100,44 @@ export async function calcularPlan(candidatos, detalle) {
   return plan
 }
 
+/**
+ * Contrasta las dos lecturas del board: cada gate tiene que aparecer en la lectura de
+ * su tipo y ningún gate de la lectura por tipo puede faltar en la lectura por etiqueta.
+ *
+ * La API no pagina: si una lectura vuelve truncada (el tope real de página está por
+ * debajo del `limit` pedido) el barrido no se puede dar por completo y no se puede
+ * afirmar que no quedan gates sin fecha. Con el contraste, un gate que falta en una de
+ * las dos lecturas delata la lectura truncada y el barrido corta antes de escribir.
+ *
+ * @param {Map<number,object>} gates ítems con etiqueta de gate (lectura por etiqueta)
+ * @param {Map<number,object[]>} porTipo ítems por tipo (lectura por tipo)
+ * @param {{etiquetas: Map<number,string>}} tablero
+ */
+export function contrastarBoard(gates, porTipo, { etiquetas }) {
+  for (const item of gates.values()) {
+    const lote = porTipo.get(item.typeId)
+    if (!lote) continue // ítem sin tipo conocido: no hay lectura con la que contrastarlo
+    if (!lote.some((otro) => otro.id === item.id)) {
+      throw new Error(
+        `El gate ${item.identifier} (id ${item.id}) no aparece en la lectura de su tipo ` +
+          `${item.typeId}: el board se leyó incompleto y el barrido no puede afirmar ` +
+          `que no quedan gates sin fecha.`,
+      )
+    }
+  }
+  for (const [tipoId, lote] of porTipo) {
+    const delTipo = lote.filter((otro) => esGate(otro, etiquetas))
+    const faltan = delTipo.filter((otro) => !gates.has(otro.id))
+    if (faltan.length) {
+      throw new Error(
+        `La lectura del tipo ${tipoId} tiene ${delTipo.length} gates y ${faltan.length} no ` +
+          `están en la lectura por etiqueta (por ejemplo ${faltan[0].identifier}): el board ` +
+          `se leyó incompleto y el barrido no puede afirmar que no quedan gates sin fecha.`,
+      )
+    }
+  }
+}
+
 /** Cliente mínimo de la API del tracker. */
 export function crearCliente(fetchImpl, { url = URL_POR_DEFECTO, clave = '' } = {}) {
   const base = url.replace(/\/+$/, '')
@@ -127,13 +166,61 @@ export function crearCliente(fetchImpl, { url = URL_POR_DEFECTO, clave = '' } = 
 }
 
 /**
+ * Lee el board de dos maneras independientes: por etiqueta de gate (lectura chica: sólo
+ * los gates) y por tipo de ítem (lectura grande: todo el tipo). Los archivados no se
+ * leen: la regla ya los descarta y sólo consumen el tope de la lectura.
+ * @param {{listar: (ruta:string)=>Promise<object[]>}} api
+ * @param {{proyecto: string, meta: object}} contexto
+ */
+async function leerBoard(api, { proyecto, meta }) {
+  const etiquetasGate = meta.labels.filter((l) => ETIQUETAS_GATE.includes(l.name))
+  if (!etiquetasGate.length) {
+    throw new Error(
+      `El proyecto ${proyecto} no tiene ninguna etiqueta de gate (${ETIQUETAS_GATE.join(', ')}): ` +
+        `no se puede leer el board.`,
+    )
+  }
+  const gates = new Map()
+  for (const etiqueta of etiquetasGate) {
+    const lote = await api.listar(
+      `/projects/${proyecto}/issues?labelIds=${etiqueta.id}&limit=${LIMITE_POR_LECTURA}`,
+    )
+    if (lote.length >= LIMITE_POR_LECTURA) {
+      throw new Error(
+        `La etiqueta "${etiqueta.name}" tiene ${lote.length} ítems y la API no pagina más: ` +
+          `no se puede saber si quedan gates sin fecha.`,
+      )
+    }
+    for (const item of lote) gates.set(item.id, item)
+  }
+  const porTipo = new Map()
+  let leidos = 0
+  for (const tipo of meta.issueTypes) {
+    const lote = await api.listar(
+      `/projects/${proyecto}/issues?typeId=${tipo.id}&limit=${LIMITE_POR_LECTURA}`,
+    )
+    if (lote.length >= LIMITE_POR_LECTURA) {
+      throw new Error(
+        `El tipo ${tipo.name} (id ${tipo.id}) tiene ${lote.length} ítems y la API no pagina ` +
+          `más: el barrido quedaría incompleto.`,
+      )
+    }
+    porTipo.set(tipo.id, lote)
+    leidos += lote.length
+  }
+  return { gates, porTipo, leidos }
+}
+
+/**
  * Corre el barrido sobre el board.
- * @param {{fetchImpl?: typeof fetch, proyecto?: string, aplicar?: boolean, url?: string, clave?: string}} opciones
+ * @param {{fetchImpl?: typeof fetch, proyecto?: string, aplicar?: boolean,
+ *   alAplicar?: (item:object)=>void, url?: string, clave?: string}} opciones
  */
 export async function ejecutar({
   fetchImpl = fetch,
   proyecto = PROYECTO_POR_DEFECTO,
   aplicar = false,
+  alAplicar,
   url = URL_POR_DEFECTO,
   clave = process.env.ITSAPLAN_API_KEY ?? '',
 } = {}) {
@@ -141,24 +228,19 @@ export async function ejecutar({
   const meta = await api.get(`/projects/${proyecto}`)
   const etiquetas = new Map(meta.labels.map((l) => [l.id, l.name]))
   const columnas = new Map(meta.columns.map((c) => [c.id, c]))
-  const items = []
-  for (const tipo of meta.issueTypes) {
-    const lote = await api.listar(
-      `/projects/${proyecto}/issues?typeId=${tipo.id}&limit=${LIMITE_POR_TIPO}&includeArchived=true`,
-    )
-    if (lote.length >= LIMITE_POR_TIPO) {
-      throw new Error(
-        `El tipo ${tipo.name} tiene ${lote.length} ítems y la API no pagina más: el barrido quedaría incompleto.`,
-      )
-    }
-    for (const item of lote) items.push(item)
-  }
-  const candidatos = seleccionarGates(items, { etiquetas, columnas })
+  const { gates, porTipo, leidos } = await leerBoard(api, { proyecto, meta })
+  contrastarBoard(gates, porTipo, { etiquetas })
+  const candidatos = seleccionarGates([...gates.values()], { etiquetas, columnas })
   const plan = await calcularPlan(candidatos, (id) => api.get(`/issues/${id}`))
   if (aplicar) {
-    for (const p of plan) await api.patch(`/issues/${p.id}`, { dueDate: p.dueDate })
+    for (const p of plan) {
+      await api.patch(`/issues/${p.id}`, { dueDate: p.dueDate })
+      // Se anota cada ítem apenas se escribe: si un PATCH posterior falla, la salida
+      // dice qué quedó puesto y la reversión se puede aplicar con precisión.
+      alAplicar?.(p)
+    }
   }
-  return { plan, total: items.length, columnas }
+  return { plan, gates: gates.size, leidos, columnas }
 }
 
 function arg(nombre) {
@@ -173,14 +255,25 @@ async function main() {
     console.error('Falta ITSAPLAN_API_KEY (clave personal del tracker; nunca va en el repo).')
     process.exit(1)
   }
-  const { plan, total, columnas } = await ejecutar({ proyecto, aplicar })
+  console.log(`Leyendo el board de ${proyecto}...`)
+  const { plan, gates, leidos, columnas } = await ejecutar({
+    proyecto,
+    aplicar,
+    alAplicar: (p) =>
+      console.log(
+        `  aplicado ${p.identifier} (id ${p.id})  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
+      ),
+  })
   console.log(
-    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${total} ítems del board.`,
+    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${gates} gates del board ` +
+      `(${leidos} ítems leídos para el contraste).`,
   )
-  for (const p of plan) {
-    console.log(
-      `  ${p.identifier} (id ${p.id})  ${columnas.get(p.column)?.name ?? '?'}  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
-    )
+  if (!aplicar) {
+    for (const p of plan) {
+      console.log(
+        `  ${p.identifier} (id ${p.id})  ${columnas.get(p.column)?.name ?? '?'}  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
+      )
+    }
   }
   console.log(
     aplicar
