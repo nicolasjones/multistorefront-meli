@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "9e85699b4359838c7362d05f25bd46cda5924d487b10b6545b33107f93dccf1e",
+      "pageHash": "7ab4070f30064168f6d62da5fb4e49059ca8431e701e4ca8cb9f27abaf0e9074",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "46c0e5de"
+      "commit": "46c0e5de0"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -3791,6 +3791,19 @@
       ],
       "owner": "tecnico",
       "commit": "408da936"
+    },
+    "docs/tecnico/cierre-de-tareas.md": {
+      "title": "Cierre de tareas de las specs (MSF-914)",
+      "pageHash": "34945d4718c38c18a6a7b537fd77a01dab448208dbe2feb75f534df926b184e1",
+      "sourceHash": "0b0a3e0364e19b92e5a23dd3ab1e13a7c816e8b51ba40126f35cff5455089805",
+      "sourceAt": null,
+      "sources": [
+        "scripts/consolidar-marcas-tasks.mjs",
+        "scripts/verificar-tareas-cerradas.mjs",
+        ".github/workflows/validate.yml"
+      ],
+      "owner": "tecnico",
+      "commit": null
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",

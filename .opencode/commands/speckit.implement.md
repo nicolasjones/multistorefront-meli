@@ -162,7 +162,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - For parallel tasks [P], continue with successful tasks, report failed ones
    - Provide clear error messages with context for debugging
    - Suggest next steps if implementation cannot proceed
-   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file. The mark has to be verifiable, not only intended: a task of a story the orchestrator closes is marked in its side-car `specs/<slug>/tasks/<HISTORIA>.md`, `pnpm tareas:consolidar` projects it into `tasks.md`, and the `pnpm tareas:check` gate fails when a closed story left a `[ ]` behind.
 
 9. Completion validation:
    - Verify all required tasks are completed
@@ -213,6 +213,7 @@ Report final status with summary of completed work.
 ## Done When
 
 - [ ] All tasks in tasks.md completed and marked `[X]`
+- [ ] `pnpm tareas:check` is green: no task of a closed story was left `[ ]` in tasks.md
 - [ ] Implementation validated against specification, plan, and test coverage
 - [ ] Extension hooks dispatched or skipped according to the rules in Mandatory Post-Execution Hooks above
 - [ ] Completion reported to user with summary of completed work
