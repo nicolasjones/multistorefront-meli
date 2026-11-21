@@ -11,9 +11,11 @@
 // REGLAS (por cada tarea `[ ]` de un `tasks.md`):
 //   1. Si un side-car la marca `[x]` → FALLA: la proyección quedó desactualizada (corré
 //      `pnpm tareas:consolidar`).
-//   2. Si la historia que la posee (la etiqueta `[F-XXX-NN]`, `[CIERRE]`, `[MSF-NNN]`) tiene un
-//      side-car y esa historia no la marcó → FALLA: la historia se cerró y la tarea quedó atrás.
-//   3. Si la línea tiene `Desvío:` → pasa: es deuda trazada, no una tarea olvidada.
+//   2. Si la línea tiene una nota `Desvío:` → FALLA: la deuda trazada se cierra como `[x]` (con
+//      su nota y el seguimiento), nunca se deja abierta.
+//   3. Si la historia que la posee (la etiqueta con side-car homónimo, p. ej. `[F-XXX-NN]`,
+//      `[F-1]`, `[US-A]`, `[CIERRE]`, `[MSF-NNN]`) tiene un side-car y esa historia no la marcó
+//      → FALLA: la historia se cerró y la tarea quedó atrás.
 //   4. En cualquier otro caso → pasa: la historia todavía no se cerró, la tarea está en curso.
 //
 // Uso:
@@ -26,10 +28,16 @@ import { leerTareas, marcasDeSideCars, sideCarsDe } from './consolidar-marcas-ta
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 
 // Código de historia que puede tener un side-car homónimo.
-const HISTORIA = /^(?:F-[A-Z]+-\d+|CIERRE|MSF-\d+)$/;
-// Etiquetas de historia que menciona la línea de la tarea.
-export function historiaDe(linea) {
+const HISTORIA = /^(?:F-[A-Z0-9]+(?:-\d+)?|CIERRE|MSF-\d+|US-[A-Z0-9]+)$/;
+// Etiquetas de historia que menciona la línea de la tarea. Si se conocen los side-car de la spec,
+// manda el archivo real: cualquier etiqueta con side-car homónimo es una historia (cubre las
+// convenciones en vuelo `[F-1]`, `[US-A]`, `[US-B1]`, `[US-1]`).
+export function historiaDe(linea, sideCars = null) {
   const etiquetas = [...linea.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1]);
+  if (sideCars) {
+    const conSideCar = etiquetas.find((etiqueta) => sideCars.has(etiqueta));
+    if (conSideCar) return conSideCar;
+  }
   return etiquetas.find((etiqueta) => HISTORIA.test(etiqueta)) ?? null;
 }
 
@@ -44,7 +52,7 @@ export function tieneDesvio(entrada) {
 
 /**
  * Revisa un spec: devuelve las tareas abiertas que NO deberían estar abiertas.
- * @returns {{slug: string, faltantes: {id: string, motivo: string}[], abiertas: number}}
+ * @returns {{slug: string, faltantes: {id: string, motivo: string, accion: string}[], abiertas: number}}
  */
 export function revisarSpec(dirSpec) {
   const tasksMd = join(dirSpec, 'tasks.md');
@@ -57,14 +65,29 @@ export function revisarSpec(dirSpec) {
   for (const tarea of leerTareas(readFileSync(tasksMd, 'utf8'))) {
     if (tarea.hecha) continue;
     abiertas += 1;
-    if (tieneDesvio(tarea.entrada)) continue;
     if (marcas.has(tarea.id)) {
-      faltantes.push({ id: tarea.id, motivo: `la historia ya la marcó [x] en \`tasks/${marcas.get(tarea.id)[0]}\`: falta consolidar` });
+      faltantes.push({
+        id: tarea.id,
+        motivo: `la historia ya la marcó [x] en \`tasks/${marcas.get(tarea.id)[0]}\`: falta consolidar`,
+        accion: 'Corré `pnpm tareas:consolidar` y commiteá el `tasks.md`.',
+      });
       continue;
     }
-    const historia = historiaDe(tarea.linea);
+    if (tieneDesvio(tarea.entrada)) {
+      faltantes.push({
+        id: tarea.id,
+        motivo: 'tiene una nota `Desvío:` pero sigue `[ ]`: la deuda trazada se cierra, no se deja abierta',
+        accion: 'Cambiá la casilla a `[x]` y citá en el `Desvío:` el seguimiento trazado.',
+      });
+      continue;
+    }
+    const historia = historiaDe(tarea.linea, sideCars);
     if (historia && sideCars.has(historia)) {
-      faltantes.push({ id: tarea.id, motivo: `la historia ${historia} se cerró (hay \`tasks/${historia}.md\`) y esta tarea quedó sin marcar` });
+      faltantes.push({
+        id: tarea.id,
+        motivo: `la historia ${historia} se cerró (hay \`tasks/${historia}.md\`) y esta tarea quedó sin marcar`,
+        accion: `Cerrá la tarea en \`tasks.md\` como \`[x]\` con su evidencia, o \`[x]\` + \`Desvío: <motivo>\` + seguimiento trazado.`,
+      });
     }
   }
   return { slug, faltantes, abiertas };
@@ -91,11 +114,11 @@ if (esEjecucionDirecta) {
   const abiertas = specs.reduce((total, spec) => total + spec.abiertas, 0);
   for (const spec of conFaltantes) {
     console.log(`${spec.slug}:`);
-    for (const falta of spec.faltantes) console.log(`  - ${falta.id}: ${falta.motivo}`);
+    for (const falta of spec.faltantes) console.log(`  - ${falta.id}: ${falta.motivo}\n    → ${falta.accion}`);
   }
   if (conFaltantes.length > 0) {
     console.error(
-      `\nFallo de cierre de tareas: ${conFaltantes.reduce((t, s) => t + s.faltantes.length, 0)} tareas de ${conFaltantes.length} specs. Corré \`pnpm tareas:consolidar\` y commiteá el \`tasks.md\`.`,
+      `\nFallo de cierre de tareas: ${conFaltantes.reduce((t, s) => t + s.faltantes.length, 0)} tareas de ${conFaltantes.length} specs. Seguí la acción indicada en cada una.`,
     );
     process.exit(1);
   }

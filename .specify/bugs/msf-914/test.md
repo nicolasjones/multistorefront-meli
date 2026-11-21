@@ -21,7 +21,7 @@ pertenecen a historias que no se cerraron: no hay respaldo para marcarlas.
 |-------|------------------|--------|-------|
 | Reproduction (post-fix) | `node scripts/verificar-tareas-cerradas.mjs --specs <origin/dokploy>` | fail (esperado) | Sobre el árbol de la base el gate falla: `1037 tareas de 36 specs` — el bug es detectable. |
 | Reproduction (post-fix, rama) | `node scripts/verificar-tareas-cerradas.mjs` | pass | `Cierre de tareas: OK (87 tareas abiertas de historias en curso, 0 sin cerrar).` |
-| New / updated tests | `node --test scripts/consolidar-marcas-tasks.test.mjs scripts/verificar-tareas-cerradas.test.mjs` | pass | 18 tests, 18 pass, 0 fail. |
+| New / updated tests | `node --test scripts/consolidar-marcas-tasks.test.mjs scripts/verificar-tareas-cerradas.test.mjs` | pass | 26 tests, 26 pass, 0 fail. |
 | Idempotencia | `node scripts/consolidar-marcas-tasks.mjs --dry-run` | pass | `0 tareas cerradas en 0 specs` — la proyección está completa y no vuelve a tocar nada. |
 | Alcance del cierre | `grep -E '^\s*[-*]\s*\[ \]' specs/*/tasks.md` | pass | Antes (base): 45 specs / 1125 tareas. Después: 10 specs / 87 tareas (todas de historias en curso). |
 | Regression suite | `pnpm lint` | pass | exit 0 (los warnings de `apps/web` son preexistentes y ajenos al cambio). |
@@ -36,7 +36,7 @@ pertenecen a historias que no se cerraron: no hay respaldo para marcarlas.
 ```
 $ node scripts/verificar-tareas-cerradas.mjs --specs <árbol de origin/dokploy>
 …
-Fallo de cierre de tareas: 1037 tareas de 36 specs. Corré `pnpm tareas:consolidar` y commiteá el `tasks.md`.
+Fallo de cierre de tareas: 1037 tareas de 36 specs. Seguí la acción indicada en cada una.
 (exit 1)
 
 $ node scripts/verificar-tareas-cerradas.mjs
@@ -47,8 +47,8 @@ $ node scripts/consolidar-marcas-tasks.mjs --dry-run
 Consolidación (simulada): 0 tareas cerradas en 0 specs · 87 sin respaldo (historias abiertas).
 
 $ node --test scripts/consolidar-marcas-tasks.test.mjs scripts/verificar-tareas-cerradas.test.mjs
-ℹ tests 18
-ℹ pass 18
+ℹ tests 26
+ℹ pass 26
 ℹ fail 0
 ```
 
@@ -65,11 +65,11 @@ $ node --test scripts/consolidar-marcas-tasks.test.mjs scripts/verificar-tareas-
   se cerraron (`F-TDA-26`, `F-TDA-27`, `F-VTA-33`, `F-CLI-20`, `F-CLI-21`, `F-PRV-09`,
   `F-PRE-14`, `F-GAS-01`–`F-GAS-03`, `F-OPI-01`–`F-OPI-03`, `US-*` y las fases `[CIERRE]`
   de esas specs). Se cierran cuando su historia se cierre; el gate no las marca.
-- **El `docs:wiki:check` (drift) falla en la base y también con este cambio**: el drift
-  de fuentes ya venía roto en `origin/dokploy` (las páginas declaran `specs/` entero como
-  fuente) y el workflow de docs corre sólo en PRs hacia `main`, no hacia `dokploy`
-  (`.github/workflows/docs.yml:1-8`). El manifest y el inventario se regeneraron y se
-  commitean en este cambio.
+- **El drift de docs puede seguir marcando páginas de la base**: las páginas que declaran
+  `specs/` entero como fuente ya venían con drift en `origin/dokploy`, y el workflow de
+  docs corre sólo en PRs hacia `main`, no hacia `dokploy`
+  (`.github/workflows/docs.yml:1-8`). Para esta página, el manifest y el inventario se
+  regeneran y se commitean sobre el árbol final, así que su `sourceAt` ya no queda `null`.
 - **El corte «21 specs / 630 tareas» del tracker no se reprodujo**: depende del estado
   «Finalizada» de It's a Plan (sin `ITSAPLAN_API_KEY`). El alcance medido en el
   repositorio es mayor (45 specs / 1125 tareas antes de este cambio).

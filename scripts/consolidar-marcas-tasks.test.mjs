@@ -42,6 +42,15 @@ describe('consolidar-marcas-tasks', () => {
     assert.match(tasks, /Evidencia: marca de cierre en `tasks\/F-DEM-01\.md`\./);
   });
 
+  it('vuelca la marca también cuando el id va en negrita (`- [ ] **T001**`)', () => {
+    const dirSpec = spec('demo', '- [ ] **T001** Migración.\n', { 'F-DEM-01.md': '- [x] T001\n' });
+    const resultado = consolidarSpec(dirSpec);
+    assert.equal(resultado.cerradas.length, 1);
+    const tasks = fs.readFileSync(path.join(dirSpec, 'tasks.md'), 'utf8');
+    assert.match(tasks, /^- \[x\] \*\*T001\*\* Migración\./);
+    assert.match(tasks, /Evidencia: marca de cierre en `tasks\/F-DEM-01\.md`\./);
+  });
+
   it('no cierra una tarea que ningún side-car marcó', () => {
     const dirSpec = spec('demo', '- [ ] T001 Pendiente.\n', { 'F-DEM-01.md': '- [x] T002\n' });
     const resultado = consolidarSpec(dirSpec);

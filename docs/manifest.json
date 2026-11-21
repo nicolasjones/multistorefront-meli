@@ -3794,16 +3794,16 @@
     },
     "docs/tecnico/cierre-de-tareas.md": {
       "title": "Cierre de tareas de las specs (MSF-914)",
-      "pageHash": "34945d4718c38c18a6a7b537fd77a01dab448208dbe2feb75f534df926b184e1",
-      "sourceHash": "0b0a3e0364e19b92e5a23dd3ab1e13a7c816e8b51ba40126f35cff5455089805",
-      "sourceAt": null,
+      "pageHash": "14e7b8f6c647478dad2ea855c533226ee6088f2a29ff8d66325fc4e3672353c0",
+      "sourceHash": "7ee6929fd5f84c12387c1028b837b066886f4d1682a087b46c78a6fedd75856b",
+      "sourceAt": "c98d07a9c",
       "sources": [
         "scripts/consolidar-marcas-tasks.mjs",
         "scripts/verificar-tareas-cerradas.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "c98d07a9c"
     },
     "docs/tecnico/clientes.md": {
       "title": "Clientes: modelo, RPC y pantallas (MSF-180)",

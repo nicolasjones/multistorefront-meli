@@ -21,8 +21,8 @@ import { fileURLToPath } from 'node:url';
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 
-// Una línea de tarea: `- [ ] T001 [P] [F-X-01][US1] texto`.
-export const TAREA = /^(\s*[-*]\s*\[)([ xX])(\]\s*)(T\d+)(.*)$/;
+// Una línea de tarea: `- [ ] T001 [P] [F-X-01][US1] texto` o `- [ ] **T001** texto`.
+export const TAREA = /^(\s*[-*]\s*\[)([ xX])(\]\s*(?:\*\*)?)(T\d+)((?:\*\*)?.*)$/;
 // Marca de provenance que deja el volcado (permite auditar de dónde salió cada `[x]`).
 export const EVIDENCIA = /Evidencia: marca de cierre en `tasks\/[^`]+`\./;
 

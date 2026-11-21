@@ -45,13 +45,18 @@ Por cada tarea `[ ]` de un `tasks.md`:
 
 1. Si un side-car la marcó `[x]` → **falla**: la proyección quedó desactualizada.
    Se resuelve con `pnpm tareas:consolidar`.
-2. Si la historia que la posee (la etiqueta `[F-XXX-NN]`, `[CIERRE]` o `[MSF-NNN]`)
-   tiene un side-car y esa historia no la marcó → **falla**: la historia se cerró y
-   la tarea quedó atrás.
-3. Si la línea (o su línea de continuación) tiene una nota `Desvío:` **fuera de un
-   fragmento de código** → pasa: es deuda trazada, no una tarea olvidada.
+2. Si la línea (o su línea de continuación) tiene una nota `Desvío:` **fuera de un
+   fragmento de código** → **falla**: la deuda trazada se cierra como `[x]`, no se deja
+   abierta (ver abajo).
+3. Si la historia que la posee tiene un side-car homónimo y esa historia no la marcó →
+   **falla**: la historia se cerró y la tarea quedó atrás. Vale cualquier etiqueta con
+   side-car: `[F-XXX-NN]`, `[F-1]`, `[US-A]`, `[US-B1]`, `[US-1]`, `[CIERRE]`, `[MSF-NNN]`.
 4. En cualquier otro caso → pasa: la historia todavía no se cerró, la tarea está en
    curso.
+
+El gate lee las tareas con o sin negrita en el id (`- [ ] T001 …` y `- [ ] **T001** …`).
+Cuando falla, cada tarea muestra su acción: consolidar (regla 1) o cerrarla como `[x]`
+con evidencia o con `Desvío:` + seguimiento (reglas 2 y 3).
 
 ## Cuando una tarea no se puede hacer
 
@@ -72,7 +77,8 @@ historias que todavía no se cerraron (no tienen side-car): `F-TDA-26`, `F-TDA-2
 esas specs. No es deuda consolidable: son historias en curso, y cada una tiene su
 excepción documentada en el `tasks.md` de su spec.
 
-El gate no las marca: sólo falla cuando una historia **cerrada** dejó una tarea atrás.
+El gate no las marca: sólo falla cuando una historia **cerrada** dejó una tarea atrás o
+cuando una tarea con nota real de `Desvío:` sigue `[ ]`.
 
 ## Referencias
 
