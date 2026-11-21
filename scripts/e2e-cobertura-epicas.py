@@ -26,6 +26,13 @@ KEY = os.environ.get("ITSAPLAN_API_KEY", "")
 PROY = os.environ.get("ITSAPLAN_PROYECTO", "MSF")
 ESTADOS = ("Review In DEV", "Approved In Dev", "Review In STG", "Approved In STG")
 
+# Formato de la línea de tarea: el MISMO que leen el gate de cierre y el manifiesto de
+# cobertura (`scripts/consolidar-marcas-tasks.mjs`): id con o sin negrita (`- [ ] T001`,
+# `- [ ] **T001**`), tareas indentadas y viñeta `*`. Si este lector acepta menos formatos que
+# el gate, las tareas que no ve quedan invisibles para la cobertura (historia cerrada reportada
+# como no entregada).
+TAREA = re.compile(r"^\s*[-*]\s*\[([ xX])\]\s*\*{0,2}(T\d+[A-Za-z]*)\b\*{0,2}(.*)$")
+
 # Una tarea es de PANTALLA si el texto habla de UI (ruta, pantalla, componente, modal, botón…).
 PANTALLA = re.compile(
     r"(pantalla|ruta|formulario|modal|bot[oó]n|men[uú]|panel|p[aá]gina|componente|UI|frontend|vista|"
@@ -119,7 +126,7 @@ def tareas_de_epica(epica):
         d = Path(spec_path).parent
         out = []
         for ln in tt.splitlines():
-            m = re.match(r"^\s*-\s*\[([ xX])\]\s*(T\d+)\b(.*)$", ln)
+            m = TAREA.match(ln)
             if m:
                 txt = m.group(3)[:300]
                 cod = re.search(r"\[(F-[A-Z0-9]+-\d+)\]", txt)
@@ -148,7 +155,7 @@ def tareas_de(spec_dir):
         return []
     out = []
     for ln in tasks.read_text(errors="ignore").splitlines():
-        m = re.match(r"^\s*-\s*\[([ xX])\]\s*(T\d+)\b(.*)$", ln)
+        m = TAREA.match(ln)
         if m:
             out.append({"id": m.group(2), "hecha": m.group(1).lower() == "x", "texto": m.group(3)[:300]})
     return out

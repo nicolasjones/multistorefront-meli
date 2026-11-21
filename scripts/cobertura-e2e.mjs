@@ -12,11 +12,11 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { argumentValue } from './operaciones.mjs';
+import { leerTareas } from './consolidar-marcas-tasks.mjs';
 
 const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
 // Criterios de aceptación: `[F-STK-02#1-5,8]` = escenarios 1 a 5 y 8 de la historia F-STK-02 del spec.
 const ETIQUETA_CRITERIOS = /\[(F-[A-Z]+-\d+)\s*#\s*([\d,\s-]+)\]/g;
-const ITEM_TAREA = /^-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
 const JIRA_EPIC = /\*\*Jira Epic\*\*:\s*([A-Z]+-\d+)/;
 const COMPONENTE = /\*\*Componente\*\*:\s*(.+)/;
 const SIN_COMPONENTE = 'Sin clasificar';
@@ -122,13 +122,19 @@ export function mapaEpicaSpec(dirSpecs) {
   return mapa;
 }
 
+/**
+ * Ítems de un `tasks.md`. Usa el MISMO parser que el gate de cierre (un solo dueño del formato
+ * de la línea de tarea): si no, las specs que escriben el id en negrita (`- [ ] **T001**`) o
+ * las tareas indentadas quedan invisibles para el consumidor y el manifiesto reporta como no
+ * entregada una historia ya cerrada.
+ */
 export function leerItems(rutaTasks) {
   if (!existsSync(rutaTasks)) return [];
-  return readFileSync(rutaTasks, 'utf8')
-    .split('\n')
-    .map((linea) => linea.match(ITEM_TAREA))
-    .filter(Boolean)
-    .map((m) => ({ id: m[2].toUpperCase(), hecho: m[1].toLowerCase() === 'x', texto: m[3].trim() }));
+  return leerTareas(readFileSync(rutaTasks, 'utf8')).map((tarea) => ({
+    id: tarea.id,
+    hecho: tarea.hecha,
+    texto: tarea.texto,
+  }));
 }
 
 export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }) {
