@@ -121,7 +121,48 @@ Verificación de esta vuelta:
 - `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
 - **FEAT-236 (8 mutaciones, 8 detectadas):** `strict_required_status_checks_policy === true` → `=== false`; el fallo ruidoso del detalle → silencioso; el fnmatch → nombre exacto; la protección clásica → ignorada; el veredicto sin `--pr` → eliminado; el runbook → la instrucción vieja; la salida 0 de `gh` → HTTP 0 en vez de 200; y la protección clásica 200 sin cuerpo → silenciosa. En los ocho casos falla la suite; revertido, los 23 vuelven a verde.
 
+### Cuarta vuelta (2026-11-21) — devolución de la revisión (PR #1147, SHA `84ca53fab8c`)
+
+El revisor pidió cambios sobre el HEAD `84ca53fab80c`. Se atendieron los seis
+hallazgos técnicos y los cuatro de seguridad, todos de esta historia:
+
+| Hallazgo | Corrección | Dónde está |
+|---|---|---|
+| **Media** · `regexDePatron` no era el fnmatch de GitHub (escapaba `[]` como literales y compilaba un `**` suelto a `.*`) | `regexDePatron` reimplementa el fnmatch de GitHub: `File.fnmatch` de Ruby con `File::FNM_PATHNAME`. `*` no cruza `/`, `?` matchea un carácter (nunca `/`), `[]` es un juego de caracteres (con negación `!`), `**/` matchea cero o más niveles de directorio y un `**` **suelto** equivale a `*`. Un patrón que no se puede interpretar (una `[` sin cerrar) **falla en voz alta** en vez de ignorarse | `scripts/gate-integracion.mjs`, `regexDePatron` |
+| **Media** · `~DEFAULT_BRANCH` se resolvía sólo desde `include`: con el token en `exclude` el script abortaba con exit 2 y no había veredicto | la rama por defecto se pide si el token está en `include` **o** en `exclude` | `necesitaRamaPorDefecto` + `ramaPorDefectoDe` |
+| **Baja** · el comodín `?` sin test | caso `?` en la suite de patrones | `scripts/gate-integracion.test.mjs` |
+| **Baja** · el código de salida `2` documentado como «no se pudo leer el gate», pero el script también devuelve `2` si no se puede leer el PR o la comparación | la documentación dice «no se pudo determinar el veredicto (no se pudo leer el gate, el PR ni la comparación)» | `docs/control-ci.md` |
+| **Baja** · la misma acción pendiente (activar la «Merge queue») escrita en tres lugares, que se desincronizarían | queda **un solo** lugar, «Pendientes del lote 36 que necesitan acción de Nicolás» (`docs/control-ci.md`); los otros dos (§ «Cola de merge» y `docs/decisiones-2026-11-17.md`) apuntan ahí | `docs/control-ci.md`, `docs/decisiones-2026-11-17.md` |
+| **Baja** · el ejemplo de la API mostraba `DELETE` etiquetado como «desactivar» (DELETE **borra** el ruleset) | el ejemplo es `PUT … -f enforcement=disabled` | `docs/control-ci.md` |
+| **Baja (seguridad)** · `--repo`/`--base` se interpolaban en la ruta de la API sin validar | `--repo` tiene que ser `owner/nombre` y `--base` un nombre de rama; si no, el script sale con `2` **antes** de consultar la API | `esRepoValido`, `esRamaValida` + `main()` |
+
+La evidencia de la semántica del matcher no es una suposición: la API de rulesets
+de GitHub usa `File.fnmatch` de Ruby con `File::FNM_PATHNAME` (la documentación
+de GitHub lo dice y enlaza la doc de Ruby 2.5.1). Del código de Ruby
+(`dir.c`, `fnmatch`) sale que `**/` es la forma recursiva (detecta `*`,`*`,`/` y
+reintenta en cada nivel) y que un `**` que no va seguido de `/` cae en la rama
+de `*`, que con `FNM_PATHNAME` no cruza `/`. Por eso `refs/heads/release/**`
+cubre **un** nivel y `refs/heads/release/**/*` los cubre todos.
+
+Los tests que fijan el comportamiento nuevo: `[]` (incluida la clase negada),
+`?`, `**` suelto, `**/` recursivo, el patrón inválido que falla en voz alta,
+`~DEFAULT_BRANCH` en `exclude` y el rechazo de `--repo`/`--base` inválidos desde
+la línea de comandos.
+
+Verificación de esta vuelta:
+
+- `node --test scripts/gate-integracion.test.mjs` → **34 tests, 34 pass, 0 fail** (23 antes + 11 nuevos).
+- `pnpm test:ci` → **89 tests, 88 pass, 1 skipped, 0 fail**.
+- `pnpm test:docs:check` → **171 tests, 171 pass, 0 fail**.
+- `pnpm docs:check` → Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK.
+- `pnpm lint` → exit 0 · `pnpm build` → exit 0.
+- `node scripts/docs-drift.mjs` → 18 páginas con deriva (las 18 preexistentes de la base): `docs/control-ci.md` no está en la lista.
+- `node scripts/gate-integracion.mjs` → el gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida) + el aviso del 404 + veredicto, exit 0.
+- `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
+- **FEAT-236 (8 mutaciones, 8 detectadas):** `**/` sin recursión; `[]` como literal; `~DEFAULT_BRANCH` sólo desde `include`; el comodín `?` eliminado; `--repo`/`--base` sin validar; el patrón inválido ignorado en silencio; una clase que matchea la `/`; y `*` cruzando la `/`. En los ocho casos falla la suite; revertido, los 34 vuelven a verde.
+
 ## Deviations from Assessment
+
 
 - La assessment proponía, como alternativa, «sólo corregir el texto de `docs/control-ci.md`». Se hizo **además** el script porque el texto solo no alcanza: la API devuelve el 404 y es la respuesta más obvia de cualquiera que diagnostique el gate. El script no modifica nada: es de sólo lectura.
 - El assessment mencionaba «un guard de documentación» como parte del remediation; se implementó dentro del archivo de tests del script (describe «runbook») en vez de un script aparte, para no sumar un archivo más al repo. En la tercera vuelta ese guard pasó a mirar las **dos** páginas que mandaban a resincronizar la rama (`docs/control-ci.md` y el runbook `docs/tecnico/runbooks/ci-trabado.md`).

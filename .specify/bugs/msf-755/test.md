@@ -126,6 +126,40 @@ runbooks y la bitácora del bug).
 | El test vigila la regla (FEAT-236) | 3 mutaciones | pass | Fallan 7, 1 y 2 tests respectivamente: `strict_required_status_checks_policy === false`; el detalle ilegible descartado en silencio; y la protección clásica ignorada. Revertido, los 23 vuelven a verde. |
 | CI del PR | `gh run list --branch fix/bug-MSF-755` | pass | `Validate` y `quality` en **success** sobre el HEAD `fdbf6741ef`; PR #1147 `MERGEABLE`/`CLEAN`. |
 
+## Quinta vuelta (2026-11-21) — devolución de la revisión (SHA `84ca53fab8c`)
+
+Se atendieron los seis hallazgos técnicos y los cuatro de seguridad de la
+devolución (fnmatch de GitHub, `~DEFAULT_BRANCH` en `exclude`, test del `?`,
+código de salida `2`, la acción de la cola de merge escrita en tres lugares, el
+ejemplo de `DELETE`, y la validación de `--repo`/`--base`) y se reejecutó todo
+lo verificable del repo.
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | **34 tests, 34 pass, 0 fail** (23 antes + 11 nuevos: `[]` y su clase negada, `?`, `**` suelto, `**/` recursivo, patrón inválido, `~DEFAULT_BRANCH` en `exclude` y el rechazo de `--repo`/`--base` inválidos). |
+| Suite de CI (área tocada) | `pnpm test:ci` | pass | **89 tests, 88 pass, 1 skipped, 0 fail**. |
+| Suite de docs | `pnpm test:docs:check` | pass | **171 tests, 171 pass, 0 fail**. |
+| Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
+| Deriva de documentación | `node scripts/docs-drift.mjs` | pass | 18 páginas con deriva: **las 18 preexistentes de la base**. `docs/control-ci.md` no está en la lista. |
+| Links y nav de la documentación | `node scripts/docs-check.mjs` | pass | nav 219 páginas, links internos 2004, inventario y diagramas OK. |
+| Lint / Build | `pnpm lint` · `pnpm build` | pass | exit 0 en los dos (los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca). |
+| Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; **gitleaks no corrió** (sin permisos del socket de Docker en este entorno). El job `quality` del CI lo corre. |
+| Estado real del gate | `node scripts/gate-integracion.mjs` | pass | Gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida, cola de merge no, bypass admin) + el aviso del 404 + veredicto, exit 0. |
+| Estado real del gate con PR | `node scripts/gate-integracion.mjs --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
+| Argumentos inválidos | `node scripts/gate-integracion.mjs --repo 'owner/nombre/../otro'` · `--base 'main..otra'` | pass | exit 2 con el mensaje del argumento, **antes** de cualquier consulta a la API. |
+| La trampa (API) | `gh api repos/nicolasjones/multistorefront-meli/branches/dokploy/protection` | pass | Sigue dando 404 «Branch not protected»: la trampa es real y el diagnóstico la neutraliza. |
+| Cola de merge por API | `gh api repos/nicolasjones/multistorefront-meli/rulesets/25358575/merge-queue` | pass | 404: GitHub no expone `merge_queue` para este repo ⇒ queda como acción de Nicolás (documentada en un solo lugar, no ejecutada). |
+| El test vigila la regla (FEAT-236) | 8 mutaciones | pass | Falla la suite en las 8: `**/` sin recursión; `[]` como literal; `~DEFAULT_BRANCH` sólo desde `include`; el comodín `?` eliminado; `--repo`/`--base` sin validar; el patrón inválido ignorado en silencio; una clase que matchea la `/`; y `*` cruzando la `/`. Revertido, los 34 vuelven a verde. |
+
+### La semántica del matcher, con la fuente
+
+El `fnmatch` de GitHub no es una suposición: la documentación de la API de
+rulesets dice que GitHub usa `File.fnmatch` de Ruby con el flag
+`File::FNM_PATHNAME` y enlaza la doc de Ruby 2.5.1. De ahí sale que `*` no
+cruza `/`, que `?` y las clases de caracteres tampoco matchean una `/`, que `**/`
+es la forma recursiva (cero o más niveles de directorio) y que un `**` que no
+va seguido de `/` equivale a `*`. Los tests fijan esas cuatro reglas.
+
 ## Residual Risks
 
 - **El diagnóstico es una foto del ruleset**: entre la consulta y el merge el ruleset puede cambiar. El informe dice cómo volver a mirarlo (`pnpm ci:gate`), pero no lo bloquea.
