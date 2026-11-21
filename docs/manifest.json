@@ -453,9 +453,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "1005b235743b7887d609fa96a9258002d07510d5188e29c95313d530a191ad24",
-      "sourceHash": "d951e3fa26a4f76c525c3ef542dc435ee27de6b12a545c22558bb6e941bc3716",
-      "sourceAt": "6776fb4d",
+      "pageHash": "e1ae3c03aee3f4be698465b46dfbeb182034a42fb7c0133ef0da67422a6f63c3",
+      "sourceHash": "1ceb50a39b9695affbea8d0e95510bee85e258221689c26ddac74ff7a8e24e5d",
+      "sourceAt": "f437fbc86",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -466,7 +466,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "f437fbc86"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -2751,12 +2751,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "4b83e8d20af15d077b3215e0c1aa9c42c9ade1f6c4454f068aabcbcc468edb46",
+      "pageHash": "742bce831ca74b215a4c6a6c48cca4d8e96345ed81cb47b2937ec4716c6075f1",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5846921d7"
+      "commit": "f437fbc86"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
