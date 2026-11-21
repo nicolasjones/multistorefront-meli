@@ -97,7 +97,7 @@ verde» unos guards que no lo están. Las tres están en este commit:
 - `pnpm lint` → OK (solo warnings preexistentes de React en pantallas).
 - `pnpm build` → OK.
 - `pnpm docs:check` → OK (`Documentación de cambios: OK`, `Migraciones OK: 772 archivo(s), 1 nuevo(s)`
-  y `Trampas conocidas: OK (1 migración, 2 pruebas pgTAP revisados)`).
+  y `Trampas conocidas: OK (1 migración(es), 2 prueba(s) pgTAP y 0 E2E revisados contra origin/dokploy)`).
 - `node scripts/verificar-der.mjs specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md`
   → `DER OK (1 spec/s)`. El `pnpm der:check` **sin argumentos** revisa todo el repo y sale con **1**:
   `141 spec(s) sin DER válido`, y ninguna es de MSF-944 (las 141 existen igual en `origin/dokploy`: es
@@ -140,3 +140,6 @@ verde» unos guards que no lo están. Las tres están en este commit:
   anteriores a esta migración.
 - El plazo legal definitivo lo define el negocio (D-21): hoy el valor inicial es 180 días y se
   cambia por `TIENDA_CONSULTAS_RETENCION_DIAS`.
+- **Deuda del repo, no de MSF-944**: el `pnpm der:check` de todo el repo sale con 1 por 141 specs sin
+  DER válido (las 141 existen igual en `origin/dokploy`; esta historia no las toca y la spec de MSF-944
+  sí tiene DER y pasa). Corregirlo es una historia de higiene de specs aparte, no de esta.
