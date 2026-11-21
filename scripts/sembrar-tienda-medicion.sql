@@ -13,6 +13,11 @@
 -- pesos. A diferencia de `scripts/medir-tienda-catalogo.sql` (que mide la RPC y revierte), esto DEJA datos:
 -- la medición por HTTP (Lighthouse) necesita que el catálogo exista mientras se mide. Es idempotente (ids
 -- fijos): volver a correrlo no duplica nada.
+--
+-- Guarda de entorno: esta siembra deja datos, así que sólo corre en una base descartable (el stack local con
+-- el seed o el del CI, que se tira después). Si la base tiene organizaciones que NO son del seed, es dev,
+-- staging o producción: el script se niega a sembrar. Para borrar lo que ya se sembró:
+-- `scripts/limpiar-tienda-medicion.sql`.
 
 -- Las dos tiendas del seed (supabase/seed.sql · MSF-241).
 -- Tabla temporal (la sesión de psql): `on commit preserve rows` a propósito, porque psql corre cada
@@ -41,6 +46,22 @@ begin
    where ti.dominio is null;
   if faltantes is not null then
     raise exception 'Faltan las tiendas del seed en esta base (prefijo %): se corre solo sobre una base con supabase/seed.sql', faltantes;
+  end if;
+end $$;
+
+-- Guarda de entorno: esta siembra DEJA datos, así que sólo puede correr en una base descartable (el stack
+-- local con el seed o el del CI). Si hay organizaciones que no son del seed, es dev, staging o producción:
+-- no se siembra nada (ni se avisa con un simple comentario).
+do $$
+declare
+  ajenas text;
+begin
+  select string_agg(o.nombre, ', ')
+    into ajenas
+    from public.organizaciones o
+   where o.id not in ('0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002');
+  if ajenas is not null then
+    raise exception 'Esta base tiene organizaciones que no son del seed (%%): no es una base de medición. La siembra deja datos: usá scripts/limpiar-tienda-medicion.sql si ya la corriste.', ajenas;
   end if;
 end $$;
 

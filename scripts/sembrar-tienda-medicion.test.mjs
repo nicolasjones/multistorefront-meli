@@ -7,6 +7,7 @@ import { describe, it } from 'node:test';
 
 const raiz = path.resolve(import.meta.dirname, '..');
 const sql = readFileSync(path.join(raiz, 'scripts', 'sembrar-tienda-medicion.sql'), 'utf8');
+const limpieza = readFileSync(path.join(raiz, 'scripts', 'limpiar-tienda-medicion.sql'), 'utf8');
 
 describe('sembrar-tienda-medicion.sql', () => {
   it('siembra las dos tiendas del seed (organización, empresa y dominio)', () => {

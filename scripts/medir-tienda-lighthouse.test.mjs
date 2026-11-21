@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
-  OBJETIVO_LCP_MS, TIENDAS, configLighthouse, resumenMarkdown, resumirReportes, rutasDeMedicion,
+  LCP_BASE_MS, OBJETIVO_LCP_MS, TIENDAS, configLighthouse, resumenMarkdown, resumirReportes, rutasDeMedicion,
 } from './medir-tienda-lighthouse.mjs';
 
 const raiz = path.resolve(import.meta.dirname, '..');
@@ -81,18 +81,43 @@ describe('resumen de las corridas', () => {
     assert.ok(fuera.lcpMaximo > OBJETIVO_LCP_MS);
   });
 
-  it('sin reportes no hay veredicto (no se puede decir que cumple lo que no se midió)', () => {
-    const resumen = resumirReportes([]);
-    assert.deepEqual(resumen.filas, []);
-    assert.equal(resumen.cumple, false);
+  it('una ruta sin la auditoría del LCP no se midió: no es que supere el objetivo', () => {
+    // Reporte de LHCI con error de navegación: viene sin la auditoría del LCP.
+    const sinLcp = { finalUrl: 'http://mundojc.localhost:4300/catalogo', audits: { 'first-contentful-paint': { numericValue: 1000 } } };
+    const resumen = resumirReportes([sinLcp]);
+    assert.equal(resumen.filas[0].lcp, null, 'no puede quedar NaN: no hay LCP medido');
+    assert.deepEqual(resumen.sinMedir, ['http://mundojc.localhost:4300/catalogo']);
+    assert.equal(resumen.lcpMaximo, null);
+    assert.doesNotMatch(resumenMarkdown(resumen), /NaN/);
+    assert.match(resumenMarkdown(resumen), /Sin medir/);
   });
 
-  it('el resumen en markdown deja la cifra y el objetivo a la vista', () => {
+  it('no cumplir el objetivo no es una regresión: sólo lo es superar la línea base', () => {
+    const url = 'http://mundojc.localhost:4300/catalogo';
+    // La degradación conocida (18.511 ms): no cumple el objetivo, pero está dentro de la línea base.
+    const conocido = resumirReportes([reporte(url, 18511)]);
+    assert.equal(conocido.cumple, false);
+    assert.equal(conocido.regresion, false);
+    // Una regresión: supera la línea base.
+    const regresion = resumirReportes([reporte(url, LCP_BASE_MS + 1)]);
+    assert.equal(regresion.regresion, true);
+    assert.ok(regresion.lcpMaximo > LCP_BASE_MS);
+  });
+
+  it('el resumen en markdown deja la cifra, el objetivo y la línea base a la vista', () => {
     const url = 'http://mundojc.localhost:4300/catalogo';
     const markdown = resumenMarkdown(resumirReportes([reporte(url, 2100)]));
     assert.match(markdown, /2100 ms/);
     assert.match(markdown, new RegExp(`${OBJETIVO_LCP_MS} ms`));
+    assert.match(markdown, new RegExp(`${LCP_BASE_MS} ms`));
     assert.match(markdown, /cumple/);
+  });
+
+  it('sin reportes no hay veredicto (no se puede decir que cumple lo que no se midió)', () => {
+    const resumen = resumirReportes([]);
+    assert.deepEqual(resumen.filas, []);
+    assert.equal(resumen.cumple, false);
+    assert.equal(resumen.regresion, false);
   });
 
   it('las tiendas medidas son las dos del seed', () => {
