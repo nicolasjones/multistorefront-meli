@@ -67,6 +67,11 @@ curl -s -H "x-api-key: $ITSAPLAN_API_KEY" \
   https://api.plan.agenmatica.com/issues/<id> | jq '{identifier, dueDate}'
 ```
 
+El board se lee por tipo de ítem y la API del tracker **no pagina** (ignora `offset` y
+`page`): si un tipo llegara al tope de 500 ítems, el barrido corta con error en vez de
+darse por completo. Ese error hay que tomarlo en serio: significa que el «0 gates»
+todavía no se puede afirmar.
+
 **Reversión.** La herramienta sólo **agrega** un dato que estaba vacío: para deshacer
 basta con borrar la fecha de los ítems que tocó la corrida (`dueDate` acepta `null`):
 
@@ -89,5 +94,6 @@ después; que el gate nazca con la fecha puesta es un cambio del flujo del orque
 
 La regla está fijada por tests (`pnpm test:vencimientos:gates`): qué es un gate, qué es
 «esperar decisión», el cálculo de la fecha con su borde de medianoche, que la corrida
-no toque lo que ya tiene fecha y que el `PATCH` mande **sólo** `dueDate` (mandar
-`labelIds` en el mismo `PATCH` reemplazaría las etiquetas del ítem).
+no toque lo que ya tiene fecha, que el `PATCH` mande **sólo** `dueDate` (mandar
+`labelIds` en el mismo `PATCH` reemplazaría las etiquetas del ítem) y que el barrido
+corte con error si el board no se puede leer entero.

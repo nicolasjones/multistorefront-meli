@@ -19,8 +19,8 @@ No se decidió el contenido de ningún gate: sólo la fecha.
 
 | File | Change | Notes |
 |------|--------|-------|
-| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula `statusSince + 24 h` en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. |
-| `scripts/vencimientos-gates.test.mjs` | added | Fija la regla: qué es un gate, qué es esperar, el cálculo con borde de medianoche, idempotencia, PATCH sólo con `dueDate`, simulación sin escritura y error del board no silenciado. |
+| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula `statusSince + 24 h` en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. Corta el barrido si un tipo llega al tope de 500 ítems (la API no pagina). |
+| `scripts/vencimientos-gates.test.mjs` | added | Fija la regla: qué es un gate, qué es esperar, el cálculo con borde de medianoche, idempotencia, PATCH sólo con `dueDate`, simulación sin escritura, tope de ítems por tipo y error del board no silenciado. |
 | `package.json` | modified | Nuevo `test:vencimientos:gates`, encadenado en `pnpm test`. |
 | `.github/workflows/validate.yml` | modified | El job `chequeos` corre `test:vencimientos:gates` (Node puro, sin base ni red). |
 | `docs/tecnico/gates-vitalidad.md` | added | La regla, cómo se aplica, cómo se verifica y cómo se revierte. |
@@ -55,21 +55,24 @@ El cliente PATCH manda sólo el campo `dueDate`; el test lo verifica porque mand
 - `…::el plan usa desde cuándo espera el ítem y, si falta, cuándo se creó` — fallback a `createdAt`.
 - `…::el PATCH manda sólo la fecha: mandar etiquetas las reemplazaría` — cuerpo del PATCH.
 - `…::el barrido simula sin escribir y aplica con un PATCH por ítem` — simulación vs `--aplicar`.
+- `…::un tipo con el tope de ítems corta el barrido: la API no pagina y el resultado sería incompleto` — con 500 ítems en un tipo el barrido se corta en vez de reportar un "0 gates" falso.
 - `…::un error del board no se silencia` — el fallo se propaga con contexto.
 
 ## Local Verification
 
-- Commands run: `pnpm test:vencimientos:gates` → 8 tests, 8 pass, 0 fail.
+- Commands run: `pnpm test:vencimientos:gates` → 9 tests, 9 pass, 0 fail.
 - Commands run: `node scripts/docs-check.mjs` → `Documentación OK.` (220 páginas, 2003 links, JSON de inventario y 15 diagramas).
 - Commands run: `node -e "JSON.parse(...package.json...)"` → `package.json OK`.
 - Board (sólo lectura, simulación): `node scripts/vencimientos-gates.mjs` → 19 gates sin fecha de 830 ítems.
 - Board (aplicación): `node scripts/vencimientos-gates.mjs --aplicar` → `Fecha puesta en 19 ítem(s).`
 - Board (verificación): `node scripts/vencimientos-gates.mjs` → **0 gates sin fecha**; `GET /issues/1145` (MSF-909) → `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"` (24 h en `America/Argentina/Buenos_Aires`, 2026-11-15).
 - Re-verificación (2026-11-20): `node scripts/vencimientos-gates.mjs` → **0 gates sin fecha** de 830 ítems; `GET /issues/1145` → `dueDate: "2026-11-15"`.
+- Re-verificación (2026-11-21): `node scripts/vencimientos-gates.mjs` → **1 gate sin fecha** de 831 ítems (MSF-988, escalado a humano después del barrido del 2026-11-19); `--aplicar` → `Fecha puesta en 1 ítem(s).`; simulación → **0 gates sin fecha** de 831 ítems; `GET /issues/1224` (MSF-988) → `dueDate: "2026-11-18"`.
+- Tope por tipo (2026-11-21): la API del tracker honra `limit` pero **ignora** `offset`/`page`/`skip` (medido: `limit=10` → 10 ítems, `limit=500` → los 350 que hay). Si un tipo llegara a 500 ítems el barrido quedaría incompleto en silencio, así que ahora **corta con error** en vez de reportar un «0 gates» falso.
 - Commands run: `pnpm docs:check` → OK (documentación de cambios, migraciones y trampas conocidas).
 - Commands run: `pnpm lint` → 0 errores (warnings preexistentes de `apps/web`); `pnpm build` → OK.
 - Commands run: `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack OK (gitleaks no corrió: sin permisos de Docker en el entorno).
-- Mutación (revertida) para ver que los tests vigilan la regla: plazo 24 h → 48 h rompe 3 tests; sacar el filtro `!dueDate` rompe 2; mandar `labelIds` en el PATCH rompe 1; invertir `stateType !== 'completed'` rompe 3.
+- Mutación (revertida) para ver que los tests vigilan la regla: plazo 24 h → 48 h rompe 3 tests; sacar el filtro `!dueDate` rompe 2; mandar `labelIds` en el PATCH rompe 1; el tope de ítems `>=` → `>` rompe 1.
 
 ## Deviations from Assessment
 
@@ -89,4 +92,6 @@ rechaza. La fecha calculada es la misma.
   puede volver a correr. Quedó trazado como **MSF-995** (Tarea `seguimiento`, en
   `Backlog`, bajo MSF-515) y anotado en `docs/tecnico/gates-vitalidad.md`.
 - Barrido aplicado el 2026-11-19 (`--aplicar`: 19 ítems) y verificado el 2026-11-20: la
-  simulación da 0 gates sin fecha; se vuelve a correr cuando entren gates nuevos.
+  simulación da 0 gates sin fecha. El 2026-11-21 entró un gate nuevo (MSF-988, escalado a
+  humano después del barrido) y se completó con otra corrida (`--aplicar`: 1 ítem): la
+  simulación vuelve a dar 0. Se corre cada vez que entren gates nuevos.

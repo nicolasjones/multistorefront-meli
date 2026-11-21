@@ -1,7 +1,7 @@
 # Bug Verification: fecha de vencimiento de los gates del tracker
 
 - **Slug**: msf-909
-- **Tested**: 2026-11-19 (re-verificado el 2026-11-20)
+- **Tested**: 2026-11-19 (re-verificado el 2026-11-20 y el 2026-11-21)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified
@@ -22,7 +22,8 @@ La regla queda fijada por tests y la documentación explica cómo aplicarla y re
 | Reproducción (después) | `node scripts/vencimientos-gates.mjs` | pass (0) | `Gates sin fecha de vencimiento en MSF: 0 de 830 ítems del board.` |
 | Ítem puntual | `GET /issues/1145` | pass | MSF-909: `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"`. |
 | Re-verificación (2026-11-20) | `node scripts/vencimientos-gates.mjs` | pass (0) | 0 gates sin fecha de 830 ítems; MSF-909 sigue con `dueDate: "2026-11-15"`. |
-| New / updated tests | `pnpm test:vencimientos:gates` | pass | 8 tests, 8 pass, 0 fail. |
+| Gate nuevo (2026-11-21) | `node scripts/vencimientos-gates.mjs` → `--aplicar` → simulación | pass | 1 gate sin fecha de 831 ítems (MSF-988, escalado a humano después del barrido); `Fecha puesta en 1 ítem(s).`; la simulación vuelve a dar 0. `GET /issues/1224` → `dueDate: "2026-11-18"`. |
+| New / updated tests | `pnpm test:vencimientos:gates` | pass | 9 tests, 9 pass, 0 fail. |
 | Documentación | `node scripts/docs-check.mjs` y `pnpm docs:check` | pass | `Documentación OK.`; cambios, migraciones y trampas OK. |
 | package.json | `node -e "JSON.parse(...)"` | pass | `package.json OK`. |
 | Regression suite | `pnpm test` (suite completo) | not-run | Se corre en el PR/CI; local sólo las suites del área (Node puro, sin base). |
@@ -42,8 +43,16 @@ Gates sin fecha de vencimiento en MSF: 0 de 830 ítems del board.
 ```
 
 ```
-ℹ tests 8
-ℹ pass 8
+Gates sin fecha de vencimiento en MSF: 1 de 831 ítems del board.
+  MSF-988 (id 1224)  En curso  vence 2026-11-18  [seguimiento MSF-176] PR #965 con hallazgos de la revisión d
+Fecha puesta en 1 ítem(s).
+
+Gates sin fecha de vencimiento en MSF: 0 de 831 ítems del board.
+```
+
+```
+ℹ tests 9
+ℹ pass 9
 ℹ fail 0
 ```
 
@@ -57,7 +66,10 @@ Gates sin fecha de vencimiento en MSF: 0 de 830 ítems del board.
   decisión está vencida.
 - La aplicación se hizo con la clave del entorno; la reversión documentada es
   `PATCH /issues/{id}` con `{"dueDate": null}`.
+- La API del tracker no pagina (ignora `offset`/`page`): si un tipo llegara al tope de
+  500 ítems el barrido cortaría con error antes de dar un resultado incompleto.
 
 ## Recommendation
 
-Cerrar el bug: verificado sobre el board real (19 → 0) y con tests que fijan la regla.
+Cerrar el bug: verificado sobre el board real (19 → 0 el 2026-11-19, y el gate que
+entró después, MSF-988 → 0 el 2026-11-21) y con tests que fijan la regla.

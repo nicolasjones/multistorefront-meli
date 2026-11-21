@@ -24,6 +24,9 @@ const HORAS_PLAZO = 24
 const ZONA = 'America/Argentina/Buenos_Aires'
 const PROYECTO_POR_DEFECTO = 'MSF'
 const URL_POR_DEFECTO = 'https://api.plan.agenmatica.com'
+/** Máximo de ítems por consulta: la API no pagina (ignora `offset`/`page`), así que a partir
+ * de este límite el barrido quedaría incompleto y hay que avisar en vez de callar. */
+const LIMITE_POR_TIPO = 500
 
 /** Fecha (YYYY-MM-DD) de un instante, en la zona del board. */
 function fechaEnZona(instante, zona = ZONA) {
@@ -141,8 +144,13 @@ export async function ejecutar({
   const items = []
   for (const tipo of meta.issueTypes) {
     const lote = await api.listar(
-      `/projects/${proyecto}/issues?typeId=${tipo.id}&limit=500&includeArchived=true`,
+      `/projects/${proyecto}/issues?typeId=${tipo.id}&limit=${LIMITE_POR_TIPO}&includeArchived=true`,
     )
+    if (lote.length >= LIMITE_POR_TIPO) {
+      throw new Error(
+        `El tipo ${tipo.name} tiene ${lote.length} ítems y la API no pagina más: el barrido quedaría incompleto.`,
+      )
+    }
     for (const item of lote) items.push(item)
   }
   const candidatos = seleccionarGates(items, { etiquetas, columnas })

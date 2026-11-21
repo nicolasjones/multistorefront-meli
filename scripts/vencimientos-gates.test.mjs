@@ -156,6 +156,30 @@ test('el barrido simula sin escribir y aplica con un PATCH por ítem', async () 
   assert.equal(aplicado.plan.length, 1)
 })
 
+test('un tipo con el tope de ítems corta el barrido: la API no pagina y el resultado sería incompleto', async () => {
+  const board = {
+    '/projects/MSF': {
+      labels: [...ETIQUETAS].map(([id, name]) => ({ id, name })),
+      columns: [...COLUMNAS.values()],
+      issueTypes: [{ id: 12, name: 'Historia' }],
+    },
+    '/projects/MSF/issues?typeId=12&limit=500&includeArchived=true': Array.from(
+      { length: 500 },
+      (_, i) => item({ id: i + 1, identifier: `MSF-${i + 1}` }),
+    ),
+  }
+  const fetchStub = async (url) => {
+    const { pathname, search } = new URL(url)
+    const datos = board[pathname + search]
+    if (datos === undefined) throw new Error(`URL sin stub: ${url}`)
+    return { ok: true, status: 200, json: async () => datos }
+  }
+  await assert.rejects(
+    () => ejecutar({ fetchImpl: fetchStub, url: 'https://tracker.test', clave: 'x' }),
+    /no pagina más/,
+  )
+})
+
 test('un error del board no se silencia', async () => {
   const fetchStub = async () => ({
     ok: false,
