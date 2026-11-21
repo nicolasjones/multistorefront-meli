@@ -150,6 +150,38 @@ describe('gateDe (gate efectivo por rulesets)', () => {
     assert.equal(aplicaA(porPatron(['refs/heads/f[!0-9]']), 'f^'), true);
   });
 
+  it('dentro de [] el ^ es un miembro más: GitHub no complementa con ^', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    // El juego es {^, 0-9}: el `^` NO niega el conjunto.
+    assert.equal(aplicaA(porPatron(['refs/heads/[^0-9]*']), '^abc'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/[^0-9]*']), '5abc'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/[^0-9]*']), 'abc'), false);
+    // El ejemplo de la doc de GitHub («you cannot currently complement a set
+    // with the ^ operator», p. ej. «[^charset]»): los miembros son los
+    // caracteres literales, así que `abc` SÍ está protegida y el script no
+    // puede responder «no hay gate» de una rama que GitHub protege.
+    assert.equal(aplicaA(porPatron(['refs/heads/[^charset]*']), 'abc'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/[^charset]*']), 'xyz'), false);
+  });
+
+  it('el \\ es literal: GitHub no lo usa como carácter de citación', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    // `[\*]` es el juego {\ , *}, no el escape de `*`.
+    assert.equal(aplicaA(porPatron(['refs/heads/x[\\*]']), 'x\\'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/x[\\*]']), 'x*'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/x[\\*]']), 'xd'), false);
+    // Fuera de `[]` tampoco es un escape: la `\` se matchea literal y el `*`
+    // que sigue sigue siendo comodín.
+    assert.equal(aplicaA(porPatron(['refs/heads/x\\*']), 'x\\'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/x\\*']), 'x\\abc'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/x\\*']), 'x'), false);
+    // Un patrón terminado en `\` es válido en GitHub: no aborta y matchea `\`.
+    assert.equal(aplicaA(porPatron(['refs/heads/x\\']), 'x\\'), true);
+    // También dentro de un juego: la `\` no necesita un carácter después, así
+    // que el juego se cierra con el fin del patrón.
+    assert.equal(aplicaA(porPatron(['refs/heads/x[\\']), 'x\\'), true);
+  });
+
   it('el comodín ? matchea exactamente un carácter, sin cruzar /', () => {
     const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
     assert.equal(aplicaA(porPatron(['refs/heads/f?']), 'f3'), true);
@@ -207,9 +239,15 @@ describe('validación de argumentos (se interpolan en la ruta de la API)', () =>
   it('rechaza valores que podrían apuntar la consulta a otra ruta', () => {
     assert.equal(esRepoValido('owner/nombre/../otro'), false);
     assert.equal(esRepoValido('sin-slash'), false);
+    // El cliente HTTP normaliza `.`/`..`: hay que rechazarlos antes de la API.
+    assert.equal(esRepoValido('owner/..'), false);
+    assert.equal(esRepoValido('../otro'), false);
+    assert.equal(esRepoValido('owner/.'), false);
     assert.equal(esRamaValida('dokploy?x=1'), false);
     assert.equal(esRamaValida('../main'), false);
     assert.equal(esRamaValida('main..otra'), false);
+    assert.equal(esRamaValida('a/./b'), false);
+    assert.equal(esRamaValida('a/../b'), false);
   });
 
   // Con `PATH` vacío el script no puede hablar con la API: si la validación
@@ -224,12 +262,18 @@ describe('validación de argumentos (se interpolan en la ruta de la API)', () =>
     const r = correr('--repo', 'owner/nombre/../otro');
     assert.equal(r.status, 2);
     assert.match(r.stderr, /--repo inválido/);
+    const r2 = correr('--repo', 'owner/..');
+    assert.equal(r2.status, 2);
+    assert.match(r2.stderr, /--repo inválido/);
   });
 
   it('un --base inválido se rechaza antes de consultar la API', () => {
     const r = correr('--base', 'main..otra');
     assert.equal(r.status, 2);
     assert.match(r.stderr, /--base inválido/);
+    const r2 = correr('--base', 'a/./b');
+    assert.equal(r2.status, 2);
+    assert.match(r2.stderr, /--base inválido/);
   });
 });
 

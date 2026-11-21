@@ -392,7 +392,10 @@ clásica», no «no hay gate». Los `include`/`exclude` de `conditions.ref_name`
 interpretan como patrones fnmatch —los de GitHub (`File.fnmatch` con
 `FNM_PATHNAME`): `*` no cruza `/`, `?` matchea un carácter, `[]` es un juego de
 caracteres, `**/` matchea cero o más niveles de directorio y un `**` suelto
-equivale a `*`— y no como nombres exactos. Y si algo no se puede leer (el
+equivale a `*`— y no como nombres exactos. Respetan los dos límites que GitHub
+documenta: `^` no complementa un juego (sólo `!`; en `[^0-9]` el `^` es un
+miembro más) y `\` no es carácter de citación (es literal dentro y fuera de
+`[]`, y un patrón terminado en `\` no aborta). Y si algo no se puede leer (el
 detalle de un ruleset, la protección clásica) o si un patrón no se puede
 interpretar, el script **falla** en vez de informar «no hay gate»: un falso
 verde en el diagnóstico es peor que no tener diagnóstico.

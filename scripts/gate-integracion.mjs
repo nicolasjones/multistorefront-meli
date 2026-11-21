@@ -59,7 +59,12 @@ function gh(args) {
 // rulesets usa `File.fnmatch` de Ruby con `File::FNM_PATHNAME`, así que `*` no
 // cruza `/`, `?` matchea un carácter (que nunca es `/`), `[]` es un juego de
 // caracteres (que tampoco matchea `/`), `**/` matchea cero o más niveles de
-// directorio y un `**` que NO va seguido de `/` equivale a `*`. Un patrón que
+// directorio y un `**` que NO va seguido de `/` equivale a `*`.
+//
+// Dos límites documentados por GitHub: el `^` NO complementa un juego (sólo
+// `!`), así que en `[^0-9]` el `^` es un miembro más; y el `\` no es carácter
+// de citación (no hay escapes), así que dentro y fuera de `[]` es literal y un
+// patrón terminado en `\` no necesita nada después (no aborta). Un patrón que
 // no se puede interpretar falla en voz alta: ignorar el ruleset daría un «no
 // hay gate» falso.
 function regexDePatron(patron) {
@@ -83,7 +88,8 @@ function regexDePatron(patron) {
     if (c === '[') {
       let j = i + 1;
       let negado = false;
-      if (patron[j] === '!' || patron[j] === '^') {
+      // Sólo `!` niega el juego: GitHub no complementa con `^`.
+      if (patron[j] === '!') {
         negado = true;
         j += 1;
       }
@@ -92,17 +98,19 @@ function regexDePatron(patron) {
         contenido += '\\]';
         j += 1;
       }
+      let ultimoEsBarra = false;
       while (j < patron.length && patron[j] !== ']') {
-        if (patron[j] === '\\') {
-          if (j + 1 >= patron.length) throw new Error(`Patrón inválido «${patron}»: escape sin carácter.`);
-          contenido += `\\${patron[j + 1]}`;
-          j += 2;
-        } else {
-          contenido += patron[j] === '[' ? '\\[' : patron[j];
-          j += 1;
-        }
+        const miembro = patron[j];
+        // `\`, `[` y `^` son literales dentro del juego: se escapan para JS.
+        ultimoEsBarra = miembro === '\\';
+        contenido += miembro === '\\' || miembro === '[' || miembro === '^' ? `\\${miembro}` : miembro;
+        j += 1;
       }
-      if (j >= patron.length) throw new Error(`Patrón inválido «${patron}»: falta cerrar «]».`);
+      // Un patrón que termina en `\` es válido en GitHub: como la `\` no es
+      // carácter de citación, no necesita un carácter después y el juego se
+      // cierra con el fin del patrón. Un juego sin cerrar por otra causa sí
+      // es un patrón que no se puede interpretar: falla en voz alta.
+      if (j >= patron.length && !ultimoEsBarra) throw new Error(`Patrón inválido «${patron}»: falta cerrar «]».`);
       // El lookahead es el `ISEND` de Ruby: con `FNM_PATHNAME` un comodín
       // (ni siquiera una clase de caracteres) matchea una `/`.
       fuente += `(?!/)[${negado ? '^' : ''}${contenido}]`;
@@ -369,8 +377,13 @@ function atrasDe({ repo = REPO_POR_DEFECTO, base, head }) {
 const REPO_VALIDO = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
 const RAMA_VALIDA = /^[A-Za-z0-9._/-]+$/;
 
+// Un segmento `.` o `..` haría que el cliente HTTP normalice la ruta (p. ej.
+// `compare/a/./b` → `compare/a/b`) y el script consultaría otra rama.
+const esSegmentoNormal = (segmento) => segmento !== '.' && segmento !== '..';
+
 export function esRepoValido(repo) {
-  return typeof repo === 'string' && REPO_VALIDO.test(repo);
+  if (typeof repo !== 'string' || !REPO_VALIDO.test(repo)) return false;
+  return repo.split('/').every(esSegmentoNormal);
 }
 
 export function esRamaValida(rama) {
@@ -379,6 +392,7 @@ export function esRamaValida(rama) {
     rama.length > 0 &&
     RAMA_VALIDA.test(rama) &&
     !rama.includes('..') &&
+    rama.split('/').every(esSegmentoNormal) &&
     !rama.startsWith('/') &&
     !rama.endsWith('/') &&
     !rama.startsWith('-')
