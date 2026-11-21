@@ -25,7 +25,8 @@ El job `medir` del nightly (MSF-552) mide la **tienda pública**, no el panel: l
 seed, siembra 500 productos por tienda, compila el front con `VITE_PANEL_HOSTS` y mide `/catalogo` y `/producto/:id`
 de `mundojc.localhost` y `sanjavucho.localhost` con el perfil móvil (390×844, CPU ×4, «4G lento», 3 corridas). Su
 config es aparte (`.lighthouserc.tienda.json`) porque `.lighthouserc.json` mide el panel sobre el dist estático y
-sus aserciones son `error`. Falla si alguna ruta supera el objetivo de LCP (3 s). Comando local:
+sus aserciones son `error`. Falla si alguna ruta no se midió, si el LCP no llega al objetivo (3 s) o si supera
+la línea base (22.000 ms). Comando local:
 `pnpm medir:tienda` (con el stack con el seed y la web servida). Reportes: `reports/lighthouse-tienda/` y
 `reports/medir-tienda/` (artefacto `medir-tienda`). Las cifras y el diagnóstico están en
 [Tiendas online](tiendas-online.md#rendimiento-en-celular-t071-sc-010).

@@ -6,17 +6,48 @@
 -- la mediana. Sirve para contrastar el tamaño de página 24 (D3) y el costo de la consulta por precio.
 --
 -- Uso (SOLO en una base LOCAL o de pruebas con todas las migraciones aplicadas; NUNCA contra dev, staging ni producción):
---   psql -X -q -v N=500 -f scripts/medir-tienda-catalogo.sql <base-local>
+--   psql -X -q -v ON_ERROR_STOP=1 -v N=500 -f scripts/medir-tienda-catalogo.sql <base-local>
 -- Crea una organización, una tienda con N productos y mide la RPC; todo va en una transacción que termina en
 -- ROLLBACK: no deja datos. La medición es local (sin carga concurrente ni red): sirve para comparar órdenes de
 -- magnitud, no como SLA. Las cifras de referencia están en `docs/tiendas-online.md` («Rendimiento en celular»).
 begin;
 
+-- Guarda de entorno: la medición crea una organización y una tienda (y las revierte al final), así que sólo
+-- puede correr en una base descartable: el stack local con el seed o el del CI. Si la base tiene
+-- organizaciones que NO son del seed, es dev, staging o producción: el script se niega y no mide nada.
+do $$
+declare
+  ajenas text;
+begin
+  select string_agg(o.nombre, ', ')
+    into ajenas
+    from public.organizaciones o
+   where o.id not in ('0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002');
+  if ajenas is not null then
+    raise exception 'Esta base tiene organizaciones que no son del seed (%): no es una base de medición.', ajenas;
+  end if;
+end $$;
+
+-- La cantidad de productos (`-v N=500`) tiene que ser un entero. psql sustituye la variable TEXTUALMENTE, así
+-- que no se interpola en el SQL: se pasa como literal (`:'N'`, que psql entrecomilla y escapa) y de ahí se lee
+-- con `current_setting`. Si el valor no es un entero, el `::integer` falla y la transacción se da vuelta.
+select set_config('medir_tienda.productos', :'N', false);
+
+do $$
+declare
+  n integer;
+begin
+  n := current_setting('medir_tienda.productos')::integer;
+  if n < 1 or n > 10000 then
+    raise exception 'La cantidad de productos tiene que estar entre 1 y 10000 (recibido: %)', current_setting('medir_tienda.productos');
+  end if;
+end $$;
+
 insert into organizaciones (id, nombre) values ('99999999-9999-9999-9999-999999999999','Medicion');
 insert into dominio.empresas (id, organizacion_id, nombre, activa) values ('e9000000-0000-0000-0000-000000000001','99999999-9999-9999-9999-999999999999','T',true);
 insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values ('99999999-9999-9999-9999-999999999999','e9000000-0000-0000-0000-000000000001','med.ejemplo.com');
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista, moneda, activo)
- select ('b9000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'99999999-9999-9999-9999-999999999999','P'||n,'S'||n,100+n,'ARS',true from generate_series(1,:N) n;
+ select ('b9000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'99999999-9999-9999-9999-999999999999','P'||n,'S'||n,100+n,'ARS',true from generate_series(1, current_setting('medir_tienda.productos')::integer) n;
 insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id)
  select id,'e9000000-0000-0000-0000-000000000001',organizacion_id from dominio.productos where organizacion_id='99999999-9999-9999-9999-999999999999';
 -- La fila de existencias nace con el producto (trigger) en 0: la mitad queda con stock para el filtro «solo con stock».

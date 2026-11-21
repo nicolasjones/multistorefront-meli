@@ -7,7 +7,10 @@
 -- («Rendimiento en celular»).
 --
 -- Uso (SOLO en una base LOCAL o de pruebas; NUNCA contra dev, staging ni producción):
---   psql -X -q -v N=300 -f scripts/sembrar-tienda-medicion.sql <base-local>
+--   psql -X -q -v ON_ERROR_STOP=1 --single-transaction -v N=300 -f scripts/sembrar-tienda-medicion.sql <base-local>
+-- `ON_ERROR_STOP=1` y `--single-transaction` NO son opcionales: si la guarda de entorno falla, psql tiene que
+-- abortar y dar vuelta toda la transacción. Sin ellos, psql seguiría después del error y sembraría el
+-- catálogo en una base que no es del seed.
 --
 -- Qué deja: por tienda, una categoría «Medición» con N productos (la mitad con existencias) y precio en
 -- pesos. A diferencia de `scripts/medir-tienda-catalogo.sql` (que mide la RPC y revierte), esto DEJA datos:
@@ -32,6 +35,22 @@ create temporary table tiendas_medicion (
 insert into tiendas_medicion (organizacion_id, empresa_id, prefijo, categoria_id) values
   ('0f5eed00-0000-4000-8000-000000000001', '0f5eed01-0000-4000-8000-000000000001', 'a', 'ca900000-0000-4000-8000-000000000001'),
   ('0f5eed00-0000-4000-8000-000000000002', '0f5eed01-0000-4000-8000-000000000002', 'b', 'ca900000-0000-4000-8000-000000000002');
+
+-- La cantidad de productos (`-v N=300`) tiene que ser un entero. psql sustituye la variable TEXTUALMENTE, así
+-- que no se interpola en el SQL: se pasa como literal (`:'N'`, que psql entrecomilla y escapa) y de ahí se lee
+-- con `current_setting`. Si el valor no es un entero, el `::integer` falla y (con `ON_ERROR_STOP=1` y
+-- `--single-transaction`) la siembra entera se da vuelta.
+select set_config('medir_tienda.productos', :'N', false);
+
+do $$
+declare
+  n integer;
+begin
+  n := current_setting('medir_tienda.productos')::integer;
+  if n < 1 or n > 10000 then
+    raise exception 'La cantidad de productos tiene que estar entre 1 y 10000 (recibido: %)', current_setting('medir_tienda.productos');
+  end if;
+end $$;
 
 -- Si las tiendas del seed no están, esta no es la base del seed: no se siembra nada y se avisa.
 do $$
@@ -61,7 +80,7 @@ begin
     from public.organizaciones o
    where o.id not in ('0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002');
   if ajenas is not null then
-    raise exception 'Esta base tiene organizaciones que no son del seed (%%): no es una base de medición. La siembra deja datos: usá scripts/limpiar-tienda-medicion.sql si ya la corriste.', ajenas;
+    raise exception 'Esta base tiene organizaciones que no son del seed (%): no es una base de medición. La siembra deja datos: usá scripts/limpiar-tienda-medicion.sql si ya la corriste.', ajenas;
   end if;
 end $$;
 
@@ -81,7 +100,7 @@ select ('b' || tm.prefijo || '900000-0000-4000-8000-' || lpad(n::text, 12, '0'))
        true,
        tm.categoria_id
   from tiendas_medicion tm
-  cross join generate_series(1, :N) n
+  cross join generate_series(1, current_setting('medir_tienda.productos')::integer) n
 on conflict (id) do nothing;
 
 -- Sin esta fila el producto no es visible en la tienda (es lo que join en `private.catalogo_tienda_efectivo`).

@@ -376,10 +376,11 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   ajusta). Cifras, entorno y fuente:
   [Rendimiento en celular (T071, SC-010)](../tiendas-online.md#rendimiento-en-celular-t071-sc-010) y el artifact
   `medir-tienda` del job `medir` del nightly.
-- **Techo de diseño (resuelto por MSF-825):** la RPC calculaba precio y disponibilidad para todo el
+- **Techo de diseño (resuelto por MSF-825):** la RPC calculaba el precio y la disponibilidad para todo el
   catálogo efectivo antes de filtrar y paginar. Con el volumen real de la demo (2.204 productos por
   tienda) eso daba 44 s y un *timeout* bajo `anon`: la función ahora calcula el precio solo para la
-  página salvo que el orden o el tope de precio lo necesiten. Ver
+  página salvo que el orden o el tope de precio lo necesiten (la disponibilidad se sigue calculando para
+  todo el catálogo efectivo). Ver
   [MSF-825](tienda-demo-vs-prototipo.md#causa-raiz).
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
 - **Carga infinita sin virtualización (MSF-845):** se acumulan las tarjetas en el DOM; el diseño asume

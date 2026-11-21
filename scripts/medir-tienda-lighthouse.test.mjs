@@ -4,8 +4,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import {
-  LCP_BASE_MS, OBJETIVO_LCP_MS, TIENDAS, configLighthouse, resumenMarkdown, resumirReportes, rutasDeMedicion,
+  LCP_BASE_MS, OBJETIVO_LCP_MS, TIENDAS, configLighthouse, motivoDeFallo, resumenMarkdown, resumirReportes,
+  rutasDeMedicion,
 } from './medir-tienda-lighthouse.mjs';
+import { extraerSeccion } from './verificar-medicion-tienda.mjs';
 
 const raiz = path.resolve(import.meta.dirname, '..');
 const perfil = JSON.parse(readFileSync(path.join(raiz, '.lighthouserc.tienda.json'), 'utf8'));
@@ -26,8 +28,9 @@ describe('perfil de Lighthouse de la tienda', () => {
   });
 });
 
+const productos = { 'mundojc.localhost': '11111111-1111-1111-1111-111111111111', 'sanjavucho.localhost': '22222222-2222-2222-2222-222222222222' };
+
 describe('rutas medidas', () => {
-  const productos = { 'mundojc.localhost': '11111111-1111-1111-1111-111111111111', 'sanjavucho.localhost': '22222222-2222-2222-2222-222222222222' };
 
   it('mide el catálogo y la ficha de las dos tiendas del seed', () => {
     const rutas = rutasDeMedicion({ puerto: 4300, productosPorTienda: productos });
@@ -50,6 +53,14 @@ describe('rutas medidas', () => {
     assert.equal(config.ci.collect.settings.formFactor, 'mobile');
     assert.equal(config.ci.collect.numberOfRuns, perfil.ci.collect.numberOfRuns);
     assert.deepEqual(config.ci.collect.url, rutas.map((r) => r.url));
+  });
+
+  it('los reportes se leen del directorio que pide `--salida` (si no, LHCI escribe en otro lado)', () => {
+    const rutas = rutasDeMedicion({ puerto: 4300, productosPorTienda: productos });
+    const config = configLighthouse(perfil, rutas, { directorioReportes: '/tmp/otra-salida/lighthouse' });
+    assert.equal(config.ci.upload.outputDir, '/tmp/otra-salida/lighthouse');
+    // Sin directorio explícito queda el del perfil (el valor por defecto).
+    assert.equal(configLighthouse(perfil, rutas).ci.upload.outputDir, perfil.ci.upload.outputDir);
   });
 });
 
@@ -92,16 +103,38 @@ describe('resumen de las corridas', () => {
     assert.match(resumenMarkdown(resumen), /Sin medir/);
   });
 
-  it('no cumplir el objetivo no es una regresión: sólo lo es superar la línea base', () => {
+  it('no cumplir el objetivo hace fallar la medición (el job no queda verde con el LCP 6× arriba)', () => {
     const url = 'http://mundojc.localhost:4300/catalogo';
     // La degradación conocida (18.511 ms): no cumple el objetivo, pero está dentro de la línea base.
     const conocido = resumirReportes([reporte(url, 18511)]);
     assert.equal(conocido.cumple, false);
     assert.equal(conocido.regresion, false);
+    assert.match(motivoDeFallo(conocido), /objetivo/);
     // Una regresión: supera la línea base.
     const regresion = resumirReportes([reporte(url, LCP_BASE_MS + 1)]);
     assert.equal(regresion.regresion, true);
     assert.ok(regresion.lcpMaximo > LCP_BASE_MS);
+    assert.match(motivoDeFallo(regresion), /línea base/);
+    // Dentro del objetivo: se puede publicar.
+    assert.equal(motivoDeFallo(resumirReportes([reporte(url, OBJETIVO_LCP_MS - 1)])), null);
+  });
+
+  it('una ruta sin reporte NO se midió: la medición parcial no se publica como exitosa', () => {
+    const rutas = rutasDeMedicion({ puerto: 4300, productosPorTienda: productos });
+    const resumen = resumirReportes([reporte(rutas[0].url, 2000)], rutas);
+    assert.equal(resumen.filas.length, 4, 'la fila de la ruta sin reporte tiene que estar: si no, no se ve que falta');
+    assert.equal(resumen.sinMedir.length, 3);
+    for (const r of rutas.slice(1)) assert.ok(resumen.sinMedir.includes(r.etiqueta), `falta ${r.etiqueta} en sinMedir`);
+    assert.match(motivoDeFallo(resumen), /no se midió/i);
+  });
+
+  it('el LCP de una ruta se mide aunque el reporte venga con otra forma de la URL', () => {
+    const rutas = rutasDeMedicion({ puerto: 4300, productosPorTienda: productos });
+    const conBarra = [{ ...reporte(rutas[0].url, 2000), finalUrl: `${rutas[0].url}/` }];
+    const resumen = resumirReportes(conBarra, rutas);
+    assert.equal(resumen.filas[0].lcp, 2000, 'la ruta reportada tiene que quedar medida');
+    assert.ok(!resumen.sinMedir.includes(rutas[0].etiqueta), 'la ruta reportada no es «sin medir»');
+    assert.equal(resumen.sinMedir.length, 3);
   });
 
   it('el resumen en markdown deja la cifra, el objetivo y la línea base a la vista', () => {
@@ -122,5 +155,16 @@ describe('resumen de las corridas', () => {
 
   it('las tiendas medidas son las dos del seed', () => {
     assert.deepEqual(TIENDAS.map((t) => t.host), ['mundojc.localhost', 'sanjavucho.localhost']);
+  });
+});
+
+describe('la guía y el script cuentan lo mismo', () => {
+  it('la guía declara la misma línea base que el script', () => {
+    const guia = readFileSync(path.join(raiz, 'docs', 'tiendas-online.md'), 'utf8');
+    const seccion = extraerSeccion(guia);
+    assert.ok(seccion, 'no se encontró la sección «Rendimiento en celular» en la guía');
+    const declarado = seccion.match(/línea base del job `medir`:\s*([\d.]+)\s*ms/i);
+    assert.ok(declarado, 'la guía no declara la línea base del job `medir`');
+    assert.equal(Number(declarado[1].replace(/\./g, '')), LCP_BASE_MS);
   });
 });

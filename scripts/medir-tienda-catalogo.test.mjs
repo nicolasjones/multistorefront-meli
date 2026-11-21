@@ -15,9 +15,19 @@ describe('medir-tienda-catalogo.sql', () => {
   });
 
   it('siembra N productos (cientos) y con existencias para el filtro de stock', () => {
-    assert.match(sql, /generate_series\(1,:N\)/);
+    assert.match(sql, /generate_series\(1, current_setting\('medir_tienda\.productos'\)::integer\)/);
     assert.match(sql, /dominio\.existencias set cantidad = 5/);
     assert.match(sql, /dominio\.producto_empresa/);
+  });
+
+  it('la cantidad de productos se valida: psql sustituye textualmente y no entra cruda al SQL', () => {
+    assert.match(sql, /set_config\('medir_tienda\.productos', :'N', false\)/);
+    assert.deepEqual(sql.match(/(?<!')[:]N\b/g) ?? [], [], 'la cantidad de productos no se interpola cruda en el SQL');
+  });
+
+  it('se niega a medir en una base que no es del seed (es dev, staging o producción)', () => {
+    assert.match(sql, /raise exception 'Esta base tiene organizaciones que no son del seed/);
+    assert.doesNotMatch(sql, /\(%%\)/);
   });
 
   it('mide los modos que usa la pantalla: relevancia, orden por precio, precio máximo y solo con stock', () => {

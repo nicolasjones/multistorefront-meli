@@ -19,6 +19,7 @@ const seccionConCifras = `
 
 Medición de \`publico.catalogo_pagina_por_dominio\` con 500 productos sembrados en Postgres local (seed).
 Cifras del workflow \`medir-tienda\` (artifact con el reporte).
+Línea base del job \`medir\`: 22.000 ms.
 `;
 
 describe('sección «Rendimiento en celular» de la guía', () => {
@@ -41,6 +42,15 @@ describe('sección «Rendimiento en celular» de la guía', () => {
     assert.ok(problemas.some((p) => /cuatro rutas/.test(p)), JSON.stringify(problemas));
   });
 
+  it('falla si falta una ruta y otra está repetida (no cuenta filas: cuenta rutas)', () => {
+    const repetida = seccionConCifras.replace(
+      '| San Javucho · ficha | `http://sanjavucho.localhost:4300/producto/def` · 1 500 ms |',
+      '| Mundo JC · catálogo | `http://mundojc.localhost:4300/catalogo` · 1 200 ms |',
+    );
+    const problemas = revisarSeccion(repetida);
+    assert.ok(problemas.some((p) => /cuatro rutas/.test(p)), JSON.stringify(problemas));
+  });
+
   it('falla si no está la medición de la RPC con el tamaño del catálogo', () => {
     const sinRpc = seccionConCifras.replace(/`publico\.catalogo_pagina_por_dominio`/g, 'la RPC').replace(/500 productos/g, 'muchos');
     const problemas = revisarSeccion(sinRpc);
@@ -52,6 +62,12 @@ describe('sección «Rendimiento en celular» de la guía', () => {
     const sinFuente = seccionConCifras.replace(/Cifras del workflow[\s\S]*/, '');
     const problemas = revisarSeccion(sinFuente);
     assert.ok(problemas.some((p) => /fuente de las cifras/.test(p)), JSON.stringify(problemas));
+  });
+
+  it('falla si no declara la línea base del job `medir`', () => {
+    const sinBase = seccionConCifras.replace(/Línea base[^\n]*/, '');
+    const problemas = revisarSeccion(sinBase);
+    assert.ok(problemas.some((p) => /línea base/.test(p)), JSON.stringify(problemas));
   });
 
   it('la guía del repo pasa la guarda (las cifras registradas están completas)', () => {

@@ -64,6 +64,26 @@ Y un matiz sobre el peso del *entry*: los 911 KB sin comprimir que cita la guía
 `resourceSize` del artifact). El front cambió después (merge con `dokploy`) y el build local de hoy da 948,88 kB:
 lo reproducible es la **composición** del *entry* (los textos del panel están, los de la tienda no), no su peso.
 
+## Segunda vuelta: revisión QA y de seguridad (2026-11-21)
+
+La devolución del Revisor señalaba que las reglas que el job y las guardas decian no eran las que el código
+cumplía. Esta corrida las alinea y las cubre con tests. **No cambia ninguna cifra registrada**: el LCP sigue
+sin llegar al objetivo y el veredicto sigue siendo «NO cumple».
+
+| Check | Command / Action | Result | Notes |
+|-------|------------------|--------|-------|
+| Suite de la medición | `pnpm test:medir:tienda` | pass | 42 tests, 0 fallos (antes 27): rutas sin reporte, objetivo que no se cumple, línea base de la guía contra la del script, `--salida`, rutas repetidas, guardas de entorno y `:N` sin interpolar crudo |
+| La suite corre en el CI | `pnpm test:ci:scripts` incluye `test:medir:tienda` | pass | Antes los tests de la medición no corrían en ningún workflow: cambiar el perfil de Lighthouse o romper la siembra no fallaba nada |
+| Reglas que vigilan (mutación) | se cambió el código a propósito y se comprobó que algún test falla | pass | Cinco mutaciones, cinco detecciones: `%%` en el `RAISE` de la guarda; el `motivoDeFallo` que deja de fallar sin cumplir el objetivo; las filas que se arman sólo desde los reportes (vuelve el «sin medir» incompleto); la línea base del script apartada de la de la guía; la guarda que vuelve a contar filas en vez de rutas. Las cinco se revirtieron |
+| Guarda documental | `node scripts/verificar-medicion-tienda.mjs` | pass | «Medición de rendimiento de la tienda: OK (cifras con entorno y fuente).» Ahora además exige las cuatro rutas **distintas** y la línea base declarada |
+| Contrato del job | `pnpm test:medir:tienda` + lectura de `scripts/medir-tienda-lighthouse.mjs` | pass | El job sale con 1 si alguna ruta no se midió, si el LCP no llega al objetivo (3.000 ms) o si supera la línea base (22.000 ms). Antes salía con 0 con el LCP 6× arriba del objetivo |
+| Documentación | `pnpm docs:check` | pass | Cambian `docs/tiendas-online.md`, `docs/profundidad.md` y `docs/tecnico/tienda-catalogo-y-ficha.md`: el contrato del job, el modelo de costo de D3 y el «Costo y techo esperado» |
+| Workflows | `pnpm workflows:check` | pass | Acciones pineadas por SHA y `timeout-minutes` en todos los jobs |
+| Validación del input | `[[ "$PRODUCTOS" =~ ^[0-9]{1,6}$ ]]` (probado con 500, 0, 10.000, 10.001, «5; drop», «abc» y vacío) | pass | Sólo pasan los enteros del rango; el input del `workflow_dispatch` ya no llega crudo al `psql -v N` |
+| Lint y build | `pnpm lint` y `pnpm build` | pass | 0 errores; compila |
+| Medición en vivo | job `medir` del nightly | not-run | Sin demonio de Docker en este entorno: no hay stack local con el seed. La repite el nightly (y ahora el job falla si el objetivo no se cumple, que es lo que debe pasar) |
+| pgTAP / pruebas de base | `pnpm test:db` | not-run | Sin demonio de Docker no hay Postgres local. Esta historia no cambia el esquema ni las RPC |
+
 ## Output Excerpts
 
 ```
@@ -71,7 +91,7 @@ $ node scripts/verificar-medicion-tienda.mjs
 Medición de rendimiento de la tienda: OK (cifras con entorno y fuente).
 
 $ pnpm test:medir:tienda
-ℹ tests 27 · ℹ pass 27 · ℹ fail 0
+ℹ tests 42 · ℹ pass 42 · ℹ fail 0
 
 $ pnpm docs:check
 Documentación de cambios: OK (3945 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
@@ -110,7 +130,8 @@ NOTICE:  catalogo solo_stock -> mediana 49 ms  · corridas {73,65,49,39,38}     
 - **El objetivo de LCP no se cumple** y eso no es un fallo de esta historia: es el resultado que T071 debía
   registrar. Queda como deuda con dueño (front) y necesita su propia spec.
 - **El job `medir` del nightly queda en rojo** mientras el LCP no llegue al objetivo: es intencional (el script
-  sale con código 1 si alguna ruta lo supera, para que la regresión se vea en el run).
+  sale con código 1 si alguna ruta no se midió, si el LCP no llega al objetivo o si supera la línea base, para
+  que la regresión se vea en el run).
 
 ## Recommendation
 

@@ -2505,8 +2505,8 @@
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
-      "pageHash": "51af872eb0db3a9cb96a837665a7abf2b863126f06f7747aa176a1a00585523b",
-      "sourceHash": "50e10a86298aa12acffa4a519c507b63999632ccf3d8a3e953d10354b926e41a",
+      "pageHash": "24a7ce99bf4dd02c9bda88d1c697af287d03be7dfb817983e9fe6480f1de0314",
+      "sourceHash": "c772206206ad394f57e7df6214ce0e9298351247d86e87238870e97e3a408bf7",
       "sourceAt": "3c42f8889",
       "sources": [
         ".github/workflows/nightly.yml",
@@ -5250,9 +5250,9 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "c2f35f709832e2e9ec8b60f14e6da2c746321abfc4c7bdca192fb3a592d3d1da",
+      "pageHash": "dffd07b349ab461a552a46d514fdcf5a593121168947e68b0b9964fe5592530e",
       "sourceHash": "b04a8d1776257e0bc7c13511f095352cb325a221acfa414dfa99ccefb301b59b",
-      "sourceAt": "e5d5f409c",
+      "sourceAt": "06be100ae",
       "sources": [
         "specs/20261023-120000-tienda-catalogo-y-ficha",
         "supabase/migrations/20261023150000_tienda_categorias_publicas.sql",
@@ -5281,7 +5281,7 @@
         "apps/web/e2e/tienda-catalogo.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "e5d5f409c"
+      "commit": "06be100ae"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",
@@ -6067,9 +6067,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "d1387e47ceacf46b981eaa7a21b395b3f640918d1ad94092a7331788f3cae095",
+      "pageHash": "db73cc586796dd89b163153c66b4e88e5de6325b749f929a8b0c705b1e0d7372",
       "sourceHash": "74b828d983f57141e9815fdcfa210040d00f692f27e93bab26e37c95e8e7d820",
-      "sourceAt": "e5d5f409c",
+      "sourceAt": "06be100ae",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6081,7 +6081,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "e5d5f409c"
+      "commit": "06be100ae"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

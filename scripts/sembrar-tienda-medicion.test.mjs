@@ -27,8 +27,23 @@ describe('sembrar-tienda-medicion.sql', () => {
     assert.match(sql, /Faltan las tiendas del seed/);
   });
 
+  it('el mensaje de la guarda de entorno se muestra: un solo % por argumento (con %% el RAISE aborta)', () => {
+    assert.match(sql, /raise exception 'Esta base tiene organizaciones que no son del seed \(%\)/);
+    assert.doesNotMatch(sql, /\(%%\)/);
+  });
+
+  it('el uso documentado aborta si la guarda falla (si no, psql sigue y siembra en la base equivocada)', () => {
+    assert.match(sql, /ON_ERROR_STOP=1/);
+    assert.match(sql, /--single-transaction/);
+  });
+
+  it('la cantidad de productos se valida: psql sustituye textualmente y no entra cruda al SQL', () => {
+    assert.match(sql, /set_config\('medir_tienda\.productos', :'N', false\)/);
+    assert.deepEqual(sql.match(/(?<!')[:]N\b/g) ?? [], [], 'la cantidad de productos no se interpola cruda en el SQL');
+  });
+
   it('siembra N productos por tienda con precio y los deja visibles en la tienda', () => {
-    assert.match(sql, /generate_series\(1, :N\)/);
+    assert.match(sql, /generate_series\(1, current_setting\('medir_tienda\.productos'\)::integer\)/);
     assert.match(sql, /insert into dominio\.productos/);
     // Sin la fila en `producto_empresa` el producto no aparece en el catálogo de la tienda.
     assert.match(sql, /insert into dominio\.producto_empresa/);
@@ -43,5 +58,17 @@ describe('sembrar-tienda-medicion.sql', () => {
   it('es idempotente (ids fijos) y deja datos: la medición es por HTTP', () => {
     assert.match(sql, /on conflict \(id\) do nothing/);
     assert.doesNotMatch(sql, /rollback;/i);
+  });
+});
+
+describe('limpiar-tienda-medicion.sql', () => {
+  it('no borra en una base que no es del seed (es dev, staging o producción)', () => {
+    assert.match(limpieza, /raise exception 'Esta base tiene organizaciones que no son del seed/);
+    assert.doesNotMatch(limpieza, /\(%%\)/);
+  });
+
+  it('borra sólo los productos de la siembra en las dos tiendas del seed', () => {
+    assert.match(limpieza, /p\.organizacion_id in \('0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002'\)/);
+    assert.match(limpieza, /delete from dominio\.productos/);
   });
 });
