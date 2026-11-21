@@ -85,17 +85,38 @@ Desde la tienda, un visitante puede enviar una **lista de pedido** (productos y 
 - **Crear presupuesto (MSF-941, D-14)**: botón en el detalle de un pedido (solo con edición de `ventas`; la base valida de nuevo). Sin migración: `apps/web/src/lib/presupuestoDesdePedido.ts` llama a `crear_comprobante` (tipo `presupuesto`, cliente de la consulta o Consumidor final, canal `tienda_online`, sin validez; el cliente «Consumidor final» se busca filtrando por la organización) y a `guardar_lineas_comprobante` con `producto_id` y `cantidad` de cada ítem, **sin `precio_manual` ni depósito**: el precio, la escala, el IVA y el depósito los resuelve la base como en cualquier presupuesto (el precio de referencia del pedido no se copia). Los ítems sin producto (borrado después) se omiten y se avisa cuántos. Limitación conocida: son dos llamadas, no una transacción; si falla la segunda, el presupuesto ya existe vacío y la pantalla lo dice («Se creó el presupuesto N° X pero no se pudieron cargar los productos…») y lleva a su ficha para completarlo a mano, sin invitar a reintentar. Las líneas omitidas se avisan en la ficha del presupuesto (estado de la ruta). No cambia el estado de la consulta ni envía nada.
 - **Permisos**: igual que cualquier consulta (sección `consultas`, empresa accesible); las líneas tienen la misma RLS. `anon` no lee ni escribe nada.
 
-### Retención de los pedidos (D-20)
+### Retención de los pedidos (D-20, MSF-944)
 
-**Los pedidos no se borran solos** (ni sus ítems): esta épica **no define una purga automática** y no inventa un plazo legal. Qué se guarda: nombre, contacto (correo o teléfono), nota e ítems;
-**nunca** dirección, DNI, CUIT ni la IP (el cupo de envíos guarda solo un hash por empresa y se poda a 24 h). Quién lo ve: quien tiene la sección `consultas` ≥ lectura en esa empresa; el aviso por correo llega
-a esas mismas personas.
+**La purga automática existe desde MSF-944.** El flow de Kestra `purgar-consultas-tienda` llama cada
+día a `private.purgar_consultas_tienda` con el plazo de `TIENDA_CONSULTAS_RETENCION_DIAS` (180 días por
+defecto; acepta de 1 a 3650). Borra las consultas que superaron el plazo **salvo las que están «En
+curso»** (un compromiso comercial vivo no se borra solo), con sus ítems y las copias de sus avisos en
+la cola; vacía la `nota` de los presupuestos de la tienda que vencieron y borra las copias sueltas de
+los avisos que ya vencieron. **No toca `dominio.comprobantes_venta`**: el comprobante fiscal no se
+borra, se anula. La corrida es idempotente y deja un evento `sistema.depurada` por organización, con
+las cantidades y sin datos personales. La migración es aditiva y su reversión está en la spec
+`specs/20270507170000-retencion-y-supresion-consultas-tienda/`.
 
-Cómo borrar a mano (no hay una pantalla para borrar consultas): una persona con acceso administrativo a la base ejecuta `delete from dominio.consultas where id = '<consulta>'` (los ítems se van en cascada
-por la FK) o, para todo un visitante, borra las consultas con ese contacto. Si se borra un **cliente**, sus pedidos **no se borran**: `cliente_id` queda en `null` (`on delete set null`) pero el nombre y el contacto
-de la consulta siguen; hay que borrarlos aparte. La baja de la organización se lleva todo en cascada.
+Qué se guarda: nombre, contacto (correo o teléfono), nota e ítems; **nunca** dirección, DNI, CUIT ni
+la IP (el cupo de envíos guarda solo un hash por empresa y se poda a 24 h). Quién lo ve: quien tiene
+la sección `consultas` ≥ lectura en esa empresa; el aviso por correo llega a esas mismas personas.
 
-**Seguimiento trazado**: definir el plazo de retención y la purga de consultas e ítems de pedido y la supresión a pedido del titular (**MSF-944**, que también cubre los presupuestos de la tienda y sus notas). El manual de usuario está en `docs/producto/` (`consultas.md`, `tiendas-online.md`, `ventas-comprobantes.md`, `actividad.md`).
+**Supresión a pedido del titular** (D-23, D-24): es un procedimiento del equipo técnico, no una
+pantalla del panel. Una persona con acceso administrativo a la base ejecuta
+`select private.suprimir_titular_tienda('<organización>', '<correo o teléfono>')`: anonimiza las
+consultas de ese titular (nombre y contacto «Anonimizado», mensaje neutro, sin nota interna), borra
+sus ítems, vacía la nota de sus presupuestos y limpia las copias de los avisos; **el comprobante
+fiscal no se toca** y queda un evento `tienda.titular_suprimido` con las cantidades. La función exige
+el rol técnico (Kestra, workers o `service_role`) y no es una RPC de la API.
+
+Para borrar una sola consulta antes del plazo (no hay una pantalla para borrar consultas): una persona
+con acceso administrativo a la base ejecuta `delete from dominio.consultas where id = '<consulta>'`
+(los ítems se van en cascada por la FK). Si se borra un **cliente**, sus pedidos **no se borran**:
+`cliente_id` queda en `null` (`on delete set null`) pero el nombre y el contacto de la consulta siguen
+hasta la purga o la supresión. La baja de la organización se lleva todo en cascada.
+
+El manual de usuario está en `docs/producto/` (`consultas.md`, `tiendas-online.md`,
+`ventas-comprobantes.md`, `actividad.md`).
 
 ## Interés por WhatsApp (F-CON-02, MSF-226)
 
@@ -203,13 +224,14 @@ Hecha sobre las migraciones `20261205100000`…`20261205200200` y `2027030614000
 - **Esquemas contra el Principio VII**: las dos tablas son entidades de negocio y viven en `dominio`; ninguna
   tabla en `public`.
 - **Riesgos aceptados**: (1) `publico.registrar_interes_whatsapp` no tiene límite de frecuencia ni idempotencia, y por eso desde MSF-657 ya no es pública (solo `service_role`); las RPC públicas de la tienda (`enviar_consulta_contacto`, `registrar_consulta_whatsapp`) aplican la cuota anti-spam; (2) entrega «al menos una vez» (posible
-  duplicado); (3) los datos personales del visitante no tienen política de retención (abajo).
+  duplicado); (3) los datos personales del visitante tienen política de retención y supresión desde MSF-944 (ver «[Retención](#retención)»): lo que queda abierto es el plazo legal definitivo, que define el negocio (D-21), y el correo ya enviado, que no se puede deshacer.
 
-## Retención pendiente
+## Retención
 
-No hay política definida para las consultas ni para los datos personales que traen (Decisión abierta 5). Esta
-entrega **no borra ni expira nada**. Cuando se defina, será una spec aparte. Para los **pedidos de la tienda** (que
-suman los ítems y, con cuenta, el vínculo al cliente) ver «[Retención de los pedidos](#retencion-de-los-pedidos-d-20)»: tampoco se purgan solos y está dicho cómo borrar a mano.
+Desde MSF-944 hay política de retención y supresión para las consultas y los datos personales que
+traen (D-21 a D-24): ver «[Retención de los pedidos](#retencion-de-los-pedidos-d-20-msf-944)». La
+purga corre a diario por Kestra y la supresión a pedido del titular es un procedimiento del equipo
+técnico.
 
 ## Reversión
 

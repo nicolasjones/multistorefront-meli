@@ -464,8 +464,29 @@ Las variables de la Edge Function retirada (`AVISOS_CONSULTAS_TOKEN` y el barrid
 
 ## Retención
 
-No hay política definida para las consultas ni para los datos personales que traen (decisión abierta de la
-spec). Esta entrega **no borra ni expira nada**. Cuando se defina, será una spec aparte.
+Desde MSF-944 hay política de retención para las consultas y los datos personales que traen (spec
+`specs/20270507170000-retencion-y-supresion-consultas-tienda/`):
+
+- **Purga por retención**: el flow de Kestra `purgar-consultas-tienda` llama cada día a
+  `private.purgar_consultas_tienda` con el plazo de `TIENDA_CONSULTAS_RETENCION_DIAS` (180 días por
+  defecto; la base rechaza un plazo fuera de 1 a 3650 con `22023` y solo el rol de orquestación la
+  ejecuta, `42501` para los demás). Borra las consultas que superaron el plazo **salvo las «En
+  curso»** (un compromiso comercial vivo no se borra solo), con sus ítems y con las copias de sus
+  avisos en la cola (`public.avisos_pendientes.consulta_id`, FK en cascada); vacía la `nota` de los
+  presupuestos de la tienda vencidos y borra las copias sueltas de los avisos que ya vencieron.
+  **No toca `dominio.comprobantes_venta`**: el comprobante fiscal se anula, no se borra. La corrida
+  es idempotente y deja un evento `sistema.depurada` por organización, con cantidades y sin datos
+  personales.
+- **Supresión a pedido del titular**: `private.suprimir_titular_tienda(<organización>, <correo o
+  teléfono>)` anonimiza las consultas del titular (nombre y contacto «Anonimizado», mensaje neutro,
+  sin nota interna), borra sus ítems, vacía la nota de sus presupuestos y limpia la cola de avisos
+  (borra los pendientes y les saca las claves con datos personales a los ya enviados), sin tocar el
+  comprobante fiscal. Es **por organización**: la limpieza de la cola se filtra por organización y
+  nunca toca los datos de otra (la misma persona puede ser cliente de dos). Deja un evento
+  `tienda.titular_suprimido` con las cantidades, sin datos del titular.
+
+El plazo legal definitivo lo define el negocio (D-21); 180 días es el valor inicial y se cambia por
+`TIENDA_CONSULTAS_RETENCION_DIAS`.
 
 Los intereses por WhatsApp (MSF-130) **no guardan datos personales**, pero sus filas tampoco tienen política
 de vencimiento: cada toque queda para siempre hasta que se defina la retención.
@@ -490,6 +511,13 @@ Las migraciones son aditivas; la reversión va en una migración posterior, de l
    `responsables_consultas`, `actualizar_consulta`, `private.responsables_posibles` y los auxiliares de
    nombres, `drop function publico.crear_consulta_publica(text, text, text, text, text, uuid)` y, al final,
    `drop table dominio.consultas` (borra las consultas registradas: exportar antes si importan).
+5. Retención y supresión (MSF-944): `drop function` de `private.purgar_consultas_tienda(integer)`,
+   `private.suprimir_titular_tienda(uuid, text)` y `private.coincide_contacto(text, text)`; recrear
+   `private.emitir_aviso(text, uuid, jsonb, uuid)` y `private.emitir_aviso_consulta(uuid)` con su cuerpo
+   anterior (`20261210130300` y `20270321100300`); sacar la FK y la columna `consulta_id` de
+   `public.avisos_pendientes` y las marcas `suprimido_en` de `dominio.consultas` y
+   `dominio.presupuestos_tienda`; apagar el flow de Kestra `purgar-consultas-tienda`. Lo ya purgado o
+   suprimido no se recupera (salvo desde un backup).
 
 La respuesta desde el panel (F-CON-04) **no tiene migración ni datos propios**: para deshacerla basta
 revertir el merge de la historia.
@@ -499,12 +527,15 @@ Para deshacer el cierre completo en Git: `git revert -m 1 <merge del PR>`.
 ## Verificación
 
 - pgTAP: `supabase/tests/database/consultas.test.sql`, `consultas_aviso.test.sql`,
-  `interes_whatsapp.test.sql` (41 aserciones), `consultas_responder.test.sql` (13 aserciones) y
-  `rls_en_toda_tabla` (aislamiento entre dos organizaciones, tres niveles de permiso, alta solo por RPC,
+  `interes_whatsapp.test.sql` (41 aserciones), `consultas_responder.test.sql` (13 aserciones),
+  `consultas_retencion.test.sql` (79 aserciones: purga por plazo, cascadas, supresión a pedido del
+  titular, el aviso atado a su consulta y el aislamiento por organización) y `rls_en_toda_tabla`
+  (aislamiento entre dos organizaciones, tres niveles de permiso, alta solo por RPC,
   validaciones, conflicto de edición, actividad y `anon`).
 - Vitest: `apps/web/src/pages/consultas/list.test.tsx`, `components/consultas/DetalleConsulta.test.tsx`,
   `hooks/useConsultas.test.tsx`, `pages/consultas/InteresWhatsappDialog.test.tsx`,
-  `pages/consultas/responder.test.tsx`, `pages/empresas/CorreoAvisosConsultas.test.tsx`.
+  `pages/consultas/responder.test.tsx`, `pages/empresas/CorreoAvisosConsultas.test.tsx` e
+  `infra/kestra/validar-purgar-consultas-tienda.test.mjs`.
 - E2E: `apps/web/e2e/consultas-recorrido.e2e.ts` — envía una consulta como `anon`, comprueba que
   aparece en la bandeja en menos de 5 s, comprueba que la base emitió el aviso (lo lee con
   `listar_notificaciones`, no por correo), abre el enlace, asigna, anota y resuelve con los tres roles, y verifica que otra organización no la ve. Se omite sin
