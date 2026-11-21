@@ -101,6 +101,31 @@ reejecutó todo lo verificable del repo.
 | Estado real del gate con PR | `node scripts/gate-integracion.mjs --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
 | El test vigila la regla (FEAT-236) | 8 mutaciones | pass | Falla la suite en las 8: `strict_required_status_checks_policy === false`; el detalle ilegible en silencio; el fnmatch reducido a nombre exacto; la protección clásica ignorada; el veredicto sin `--pr` eliminado; el runbook con la instrucción vieja; la salida 0 de `gh` como HTTP 0; y la protección clásica 200 sin cuerpo. Revertido, los 23 vuelven a verde. |
 
+## Cuarta vuelta (2026-11-21) — revalidación del HEAD `fdbf6741ef`
+
+Se revalidó el HEAD real de la rama (`fdbf6741efcd2960967cda52951cb3ba7d30acf2`,
+que es el que abrió el PR #1147) sin cambiar el código: el diff contra
+`origin/dokploy` sigue siendo el de esta historia (script, tests, `package.json`,
+runbooks y la bitácora del bug).
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | **23 tests, 23 pass, 0 fail**. |
+| Suite de CI (área tocada) | `pnpm test:ci` | pass | **78 tests, 77 pass, 1 skipped, 0 fail**. |
+| Suite de docs | `pnpm test:docs:check` | pass | **171 tests, 171 pass, 0 fail**. |
+| Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
+| Deriva de documentación | `node scripts/docs-drift.mjs` | pass | 18 páginas con deriva: **las 18 preexistentes de la base**. `docs/control-ci.md` no está en la lista. |
+| Links y nav de la documentación | `node scripts/docs-check.mjs` | pass | nav 219 páginas, links internos 2004, inventario y diagramas OK. |
+| Lint / Build | `pnpm lint` · `pnpm build` | pass | exit 0 en los dos (los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca). |
+| Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; **gitleaks no corrió** (sin permisos del socket de Docker en este entorno). El job `quality` del CI lo corrió y salió verde. |
+| Estado real del gate | `node scripts/gate-integracion.mjs` | pass | Gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida, cola de merge no, bypass admin) + el aviso del 404 + veredicto, exit 0. |
+| Estado real del gate con PR | `pnpm ci:gate -- --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
+| Estado real del gate por la API | `gh api repos/nicolasjones/multistorefront-meli/rulesets/25358575` | pass | `enforcement: active`, target `branch`, `include: [refs/heads/dokploy]`, `strict: false`, check `validacion`, bypass `RepositoryRole 5`/`always`: los datos que el informe y la documentación citan siguen siendo los del repo. |
+| La trampa (API) | `gh api repos/nicolasjones/multistorefront-meli/branches/dokploy/protection` | pass | Sigue dando 404 «Branch not protected»: la trampa es real y el diagnóstico la neutraliza. |
+| Cola de merge por API | `gh api repos/nicolasjones/multistorefront-meli/rulesets/25358575/merge-queue` | pass | 404: GitHub no expone `merge_queue` para este repo ⇒ queda como acción de Nicolás (documentada, no ejecutada). |
+| El test vigila la regla (FEAT-236) | 3 mutaciones | pass | Fallan 7, 1 y 2 tests respectivamente: `strict_required_status_checks_policy === false`; el detalle ilegible descartado en silencio; y la protección clásica ignorada. Revertido, los 23 vuelven a verde. |
+| CI del PR | `gh run list --branch fix/bug-MSF-755` | pass | `Validate` y `quality` en **success** sobre el HEAD `fdbf6741ef`; PR #1147 `MERGEABLE`/`CLEAN`. |
+
 ## Residual Risks
 
 - **El diagnóstico es una foto del ruleset**: entre la consulta y el merge el ruleset puede cambiar. El informe dice cómo volver a mirarlo (`pnpm ci:gate`), pero no lo bloquea.
