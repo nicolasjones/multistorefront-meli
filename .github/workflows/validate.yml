@@ -154,6 +154,11 @@ jobs:
       # los objetivos y la documentación no puede contradecirse sobre si el simulacro corrió.
       - name: test:docs:simulacro
         run: pnpm test:docs:simulacro
+      # Guion del simulacro de restauración (MSF-520): Node puro, sin base y sin red. Vigila que el
+      # guion no pueda dar un verde falso (que no mida fuera de los objetivos, que no se niegue a
+      # correr sin autorización o fuera de staging y que nunca firme el registro).
+      - name: test:simulacro:restauracion
+        run: pnpm test:simulacro:restauracion
       # Guard de migraciones (MSF-682): el test del detector de DDL sin guard corre siempre
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones

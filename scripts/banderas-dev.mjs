@@ -19,17 +19,14 @@
 //     `<prefijo>_DEV_ORG_IDS`;
 //   * el SQL viaja por stdin (nunca por argv) y la contraseña por PGPASSWORD.
 
-import { spawn } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { separarContrasena } from './operaciones.mjs';
+import { VARIABLES_PG_PELIGROSAS, entornoLimpio, ejecutarProceso, separarContrasena } from './operaciones.mjs';
 
 export const CONTENEDOR_DEV = 'supabase_db_multistorefront-meli-supabase-dev';
 export const ACCIONES = ['encender', 'apagar', 'estado'];
-// Variables de libpq que cambian el destino o la autenticación de psql: se quitan del entorno hijo.
-export const VARIABLES_PG_PELIGROSAS = [
-  'PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGOPTIONS',
-  'PGSSLMODE', 'PGTARGETSESSIONATTRS', 'PGSYSCONFDIR', 'DOCKER_HOST', 'DOCKER_CONTEXT',
-];
+// Las variables de libpq y el entorno del proceso hijo viven en `scripts/operaciones.mjs`: ya los
+// usan dos scripts (este y el guion del simulacro de restauración).
+export { VARIABLES_PG_PELIGROSAS, entornoLimpio, ejecutarProceso };
 // Organizaciones de demostración con id fijo del seed (supabase/seed.sql). Marcador POSITIVO de dev, sin escribir nada.
 export const ORGS_DEMO_SEED = ['0f5eed00-0000-4000-8000-000000000001', '0f5eed00-0000-4000-8000-000000000002'];
 // Parámetros de la query de la URL que se aceptan (lista blanca) y sus valores válidos.
@@ -98,11 +95,7 @@ export function redactar(texto, env = {}) {
 }
 
 // Entorno del proceso hijo sin las variables de libpq que podrían cambiar el destino ya validado.
-export function entornoLimpio(base = process.env, extra = {}) {
-  const env = { ...base, ...extra };
-  for (const k of VARIABLES_PG_PELIGROSAS) delete env[k];
-  return env;
-}
+// ( vive en `scripts/operaciones.mjs` )
 
 // Lee los argumentos en cualquier orden: una acción y `--entorno <valor>` (o `--entorno=<valor>`).
 export function leerArgumentos(argv, uso = '') {
@@ -196,19 +189,6 @@ export function comandoPara(destino) {
   }
   const { urlSinContrasena, env } = separarContrasena(destino.url);
   return { comando: 'psql', args: [urlSinContrasena, ...base], env };
-}
-
-export function ejecutarProceso(comando, args, { input, env = {} } = {}) {
-  return new Promise((resolve, reject) => {
-    const hijo = spawn(comando, args, { env: entornoLimpio(process.env, env), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
-    let salida = '';
-    let error = '';
-    hijo.stdout.on('data', (d) => { salida += d; });
-    hijo.stderr.on('data', (d) => { error += d; });
-    hijo.on('error', reject);
-    hijo.on('close', (codigo) => resolve({ codigo, salida, error }));
-    hijo.stdin.end(input ?? '');
-  });
 }
 
 async function contenedorDevExiste(ejecutar) {

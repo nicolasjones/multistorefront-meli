@@ -1,5 +1,34 @@
 import { spawn } from 'node:child_process';
 
+// Variables de libpq que cambian el destino o la autenticación de psql: se quitan del entorno hijo.
+// Viven acá (y no en el script que las usó primero) porque ya los usan dos scripts.
+export const VARIABLES_PG_PELIGROSAS = [
+  'PGHOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGPASSFILE', 'PGPORT', 'PGDATABASE', 'PGUSER', 'PGOPTIONS',
+  'PGSSLMODE', 'PGTARGETSESSIONATTRS', 'PGSYSCONFDIR', 'DOCKER_HOST', 'DOCKER_CONTEXT',
+];
+
+// Entorno del proceso hijo sin las variables de libpq que podrían cambiar el destino ya validado.
+export function entornoLimpio(base = process.env, extra = {}) {
+  const env = { ...base, ...extra };
+  for (const k of VARIABLES_PG_PELIGROSAS) delete env[k];
+  return env;
+}
+
+// Corre un proceso y devuelve su código y sus dos salidas: para los scripts que LEEN la salida de
+// psql (no sólo su código de salida).
+export function ejecutarProceso(comando, args, { input, env = {} } = {}) {
+  return new Promise((resolve, reject) => {
+    const hijo = spawn(comando, args, { env: entornoLimpio(process.env, env), stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+    let salida = '';
+    let error = '';
+    hijo.stdout.on('data', (d) => { salida += d; });
+    hijo.stderr.on('data', (d) => { error += d; });
+    hijo.on('error', reject);
+    hijo.on('close', (codigo) => resolve({ codigo, salida, error }));
+    hijo.stdin.end(input ?? '');
+  });
+}
+
 export function requireEnvironment(name) {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Falta la variable de entorno requerida ${name}.`);

@@ -85,9 +85,11 @@ esperado nuevo e inocuo, se agrega explícitamente al patrón (un falso rojo es 
 
 El simulacro de restauración en staging (guía `docs/simulacro-restauracion.md`) mide el tiempo real
 contra este objetivo; hoy está **documentado pero pendiente de ejecución** (falta la autorización del
-propietario sobre staging, ver el estado en esa guía). Mientras tanto, los pasos y tiempos de la
-sección de restauración de este documento son la referencia. El simulacro debe incluir un envío de
-prueba del aviso por correo (ver «Puesta en marcha»).
+propietario sobre staging, ver el estado en esa guía). La medición la hace el guion
+`pnpm simulacro:restauracion` (`scripts/simulacro-restauracion.mjs`): toma el marcador de la «caída
+simulada», mide la pérdida y el tiempo de recuperación sobre la base restaurada y arma las filas del
+registro. Mientras tanto, los pasos y tiempos de la sección de restauración de este documento son la
+referencia. El simulacro debe incluir un envío de prueba del aviso por correo (ver «Puesta en marcha»).
 
 ## ⚠️ Riesgo asumido: todo queda en el mismo servidor
 
@@ -214,6 +216,9 @@ ejecución de Kestra.
    entrar a la app con un superadmin.
 7. **Volver a levantar** Kestra, workers y la app. Dejar corriendo `respaldo-postgres` a mano para
    una copia fresca post-restauración.
+8. **Medir la corrida** (sólo en el simulacro): `pnpm simulacro:restauracion cerrar --entorno staging`
+   verifica los privilegios del historial de copias sobre la base restaurada, mide la pérdida y el
+   tiempo de recuperación y devuelve las filas del registro. Ver `docs/simulacro-restauracion.md`.
 
 ### B. Imágenes (Storage)
 
@@ -233,4 +238,5 @@ ejecución de Kestra.
 ### Tiempos a registrar
 
 Anotar hora de inicio y fin de cada paso: son el dato del simulacro y de la confirmación del
-objetivo de recuperación con el cliente.
+objetivo de recuperación con el cliente. El guion `pnpm simulacro:restauracion` los mide solo (el
+tiempo de recuperación y la pérdida) y los deja en las filas del registro.
