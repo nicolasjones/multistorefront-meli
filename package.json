@@ -200,7 +200,9 @@
     "docs:drift": "node scripts/docs-drift.mjs"
   },
   "devDependencies": {
+    "dependency-cruiser": "18.7.2",
     "playwright-core": "1.61.0",
-    "supabase": "^2.57.2"
+    "supabase": "^2.57.2",
+    "typescript": "~6.0.2"
   }
 }

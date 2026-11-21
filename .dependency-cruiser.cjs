@@ -42,7 +42,10 @@ module.exports = {
   ],
   options: {
     doNotFollow: { path: "node_modules" },
-    exclude: { path: "(node_modules|dist|\\.test\\.|\\.e2e\\.|graphify-out)" },
+    // Los tests NO se excluyen del cruce: si se excluyen, sus archivos de apoyo (los que sólo
+    // importan los tests) quedan sin ninguna arista y `no-orphans` los marca como código muerto
+    // aunque los usen (MSF-895). La regla `no-orphans` sigue excluidos a los tests por `pathNot`.
+    exclude: { path: "(node_modules|dist|graphify-out)" },
     tsPreCompilationDeps: true,
   },
 };

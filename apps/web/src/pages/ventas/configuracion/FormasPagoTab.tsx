@@ -10,7 +10,7 @@ import {
   listarFormasPago,
   mensajeDeError,
 } from '../../../lib/ventas/formasPago'
-import type { PropsPestanaCatalogo } from './index'
+import type { PropsPestanaCatalogo } from './tipos'
 
 const AYUDA =
   'Qué formas de cobro ofrece el comprobante. Transferencia o depósito bancario pide una cuenta de cobro.'
