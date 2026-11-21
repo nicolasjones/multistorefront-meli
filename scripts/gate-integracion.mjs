@@ -55,20 +55,21 @@ function gh(args) {
   return { ok, http, data, error: (r.stderr || '').trim() };
 }
 
-// fnmatch de GitHub para los patrones de `conditions.ref_name`: `*` no cruza
-// `/`, `**` sí y `**/` matchea cero o más directorios.
+// fnmatch de GitHub para los patrones de `conditions.ref_name`: la API de
+// rulesets usa `File.fnmatch` de Ruby con `File::FNM_PATHNAME`, así que `*` no
+// cruza `/`, `?` matchea un carácter (que nunca es `/`), `[]` es un juego de
+// caracteres (que tampoco matchea `/`), `**/` matchea cero o más niveles de
+// directorio y un `**` que NO va seguido de `/` equivale a `*`. Un patrón que
+// no se puede interpretar falla en voz alta: ignorar el ruleset daría un «no
+// hay gate» falso.
 function regexDePatron(patron) {
   let fuente = '';
   for (let i = 0; i < patron.length; i += 1) {
     const c = patron[i];
-    if (c === '*' && patron[i + 1] === '*') {
-      if (patron[i + 2] === '/') {
-        fuente += '(?:.*/)?';
-        i += 2;
-      } else {
-        fuente += '.*';
-        i += 1;
-      }
+    if (c === '*' && patron[i + 1] === '*' && patron[i + 2] === '/') {
+      // `**/`: cero o más niveles de directorio.
+      fuente += '(?:[^/]*/)*';
+      i += 2;
       continue;
     }
     if (c === '*') {
@@ -77,6 +78,35 @@ function regexDePatron(patron) {
     }
     if (c === '?') {
       fuente += '[^/]';
+      continue;
+    }
+    if (c === '[') {
+      let j = i + 1;
+      let negado = false;
+      if (patron[j] === '!' || patron[j] === '^') {
+        negado = true;
+        j += 1;
+      }
+      let contenido = '';
+      if (patron[j] === ']') {
+        contenido += '\\]';
+        j += 1;
+      }
+      while (j < patron.length && patron[j] !== ']') {
+        if (patron[j] === '\\') {
+          if (j + 1 >= patron.length) throw new Error(`Patrón inválido «${patron}»: escape sin carácter.`);
+          contenido += `\\${patron[j + 1]}`;
+          j += 2;
+        } else {
+          contenido += patron[j] === '[' ? '\\[' : patron[j];
+          j += 1;
+        }
+      }
+      if (j >= patron.length) throw new Error(`Patrón inválido «${patron}»: falta cerrar «]».`);
+      // El lookahead es el `ISEND` de Ruby: con `FNM_PATHNAME` un comodín
+      // (ni siquiera una clase de caracteres) matchea una `/`.
+      fuente += `(?!/)[${negado ? '^' : ''}${contenido}]`;
+      i = j;
       continue;
     }
     fuente += c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -305,10 +335,18 @@ function leerGate({ repo = REPO_POR_DEFECTO, rama = RAMA_POR_DEFECTO } = {}) {
   });
 }
 
+// El token `~DEFAULT_BRANCH` puede estar en `include` o en `exclude`; en los
+// dos casos hace falta resolver la rama por defecto antes de evaluar.
+export function necesitaRamaPorDefecto(detalles) {
+  return [...(detalles?.values?.() || [])].some((detalle) => {
+    const ref = detalle?.data?.conditions?.ref_name;
+    return [...(ref?.include || []), ...(ref?.exclude || [])].includes('~DEFAULT_BRANCH');
+  });
+}
+
 // La rama por defecto del repo, sólo si algún ruleset usa `~DEFAULT_BRANCH`.
 function ramaPorDefectoDe({ repo, detalles }) {
-  const usa = [...detalles.values()].some((detalle) => (detalle?.data?.conditions?.ref_name?.include || []).includes('~DEFAULT_BRANCH'));
-  if (!usa) return null;
+  if (!necesitaRamaPorDefecto(detalles)) return null;
   const r = gh(['repo', 'view', repo, '--json', 'defaultBranchRef']);
   const nombre = r.data?.defaultBranchRef?.name;
   if (!r.ok || !nombre) {
@@ -326,6 +364,27 @@ function atrasDe({ repo = REPO_POR_DEFECTO, base, head }) {
   return comparacion.data.behind_by ?? 0;
 }
 
+// `--repo` y `--base` se interpolan en la ruta de la API: se validan para que
+// no puedan apuntar la consulta a otra ruta.
+const REPO_VALIDO = /^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+const RAMA_VALIDA = /^[A-Za-z0-9._/-]+$/;
+
+export function esRepoValido(repo) {
+  return typeof repo === 'string' && REPO_VALIDO.test(repo);
+}
+
+export function esRamaValida(rama) {
+  return (
+    typeof rama === 'string' &&
+    rama.length > 0 &&
+    RAMA_VALIDA.test(rama) &&
+    !rama.includes('..') &&
+    !rama.startsWith('/') &&
+    !rama.endsWith('/') &&
+    !rama.startsWith('-')
+  );
+}
+
 function main() {
   const args = process.argv.slice(2);
   const valorDe = (flag, def) => {
@@ -335,6 +394,15 @@ function main() {
   const repo = valorDe('--repo', process.env.GITHUB_REPOSITORY || REPO_POR_DEFECTO);
   const base = valorDe('--base', RAMA_POR_DEFECTO);
   const pr = valorDe('--pr', null);
+
+  if (!esRepoValido(repo)) {
+    console.error(`--repo inválido: «${repo}». Se espera owner/nombre.`);
+    return 2;
+  }
+  if (!esRamaValida(base)) {
+    console.error(`--base inválido: «${base}». Se espera un nombre de rama.`);
+    return 2;
+  }
 
   let head = null;
   if (pr) {

@@ -4,12 +4,13 @@
 // día exigida o no) y la trampa del 404, para que el ciclo infinito de
 // «not up to date» → resincronizar → BEHIND no vuelva.
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { aplicaA, estadoDeGh, gateDe, gateDesdeRespuestas, informe } from './gate-integracion.mjs';
+import { aplicaA, esRamaValida, esRepoValido, estadoDeGh, gateDe, gateDesdeRespuestas, informe, necesitaRamaPorDefecto } from './gate-integracion.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -114,9 +115,14 @@ describe('gateDe (gate efectivo por rulesets)', () => {
     const porPatron = (include, exclude = []) => rulesetCon({ conditions: { ref_name: { include, exclude } } });
     // `refs/heads/*` cubre cualquier rama de primer nivel.
     assert.equal(aplicaA(porPatron(['refs/heads/*']), 'dokploy'), true);
-    // `**` cruza `/`: `refs/heads/release/**` cubre `release/2026/01`.
-    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'release/2026/01'), true);
-    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'dokploy'), false);
+    // `*` no cruza `/`: `refs/heads/release/*` no alcanza `release/2026/01`.
+    assert.equal(aplicaA(porPatron(['refs/heads/release/*']), 'release/2026'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/*']), 'release/2026/01'), false);
+    // `**/` sí cruza: cero o más niveles de directorio.
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'release/2026/01'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'release/2026'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'release/2026/01/02'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'dokploy'), false);
     // El exclude también es patrón.
     assert.equal(aplicaA(porPatron(['refs/heads/*'], ['refs/heads/dokploy']), 'dokploy'), false);
     assert.equal(aplicaA(porPatron(['refs/heads/*'], ['refs/heads/dok*']), 'dokploy'), false);
@@ -125,6 +131,105 @@ describe('gateDe (gate efectivo por rulesets)', () => {
     // `~DEFAULT_BRANCH` incluye la rama por defecto del repo.
     assert.equal(aplicaA(porPatron(['~DEFAULT_BRANCH']), 'main', 'main'), true);
     assert.equal(aplicaA(porPatron(['~DEFAULT_BRANCH']), 'dokploy', 'main'), false);
+  });
+
+  it('interpreta los juegos de caracteres [] como fnmatch, no como literales', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    assert.equal(aplicaA(porPatron(['refs/heads/f[0-9]']), 'f3'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/f[0-9]']), 'f10'), false);
+    // La clase no cruza `/`.
+    assert.equal(aplicaA(porPatron(['refs/heads/f[0-9]']), 'f3/x'), false);
+    // Clase negada.
+    assert.equal(aplicaA(porPatron(['refs/heads/f[!0-9]']), 'fx'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/f[!0-9]']), 'f3'), false);
+    // Con `FNM_PATHNAME` ni una clase matchea la `/` (ni siquiera una que la
+    // incluye explícitamente).
+    assert.equal(aplicaA(porPatron(['refs/heads/f[/]']), 'f/'), false);
+    assert.equal(aplicaA(porPatron(['refs/heads/f[!0-9]']), 'f/'), false);
+    // La clase negada nega el conjunto y nada más: no excluye otros caracteres.
+    assert.equal(aplicaA(porPatron(['refs/heads/f[!0-9]']), 'f^'), true);
+  });
+
+  it('el comodín ? matchea exactamente un carácter, sin cruzar /', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    assert.equal(aplicaA(porPatron(['refs/heads/f?']), 'f3'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/f?']), 'f34'), false);
+    assert.equal(aplicaA(porPatron(['refs/heads/f?']), 'f/a'), false);
+  });
+
+  it('un ** suelto equivale a *: no cruza / (sólo la forma **/ cruza)', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    assert.equal(aplicaA(porPatron(['refs/heads/qa**']), 'qa'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/qa**']), 'qa2'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/qa**']), 'qa/a/b'), false);
+    // `**` al final del patrón también equivale a `*`: un solo segmento.
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'release/2026'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**']), 'release/2026/01'), false);
+    // `**/` sí cruza.
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'release/2026/01'), true);
+    assert.equal(aplicaA(porPatron(['refs/heads/release/**/*']), 'release/2026/01/02'), true);
+  });
+
+  it('falla en voz alta si un patrón no se puede interpretar', () => {
+    const porPatron = (include) => rulesetCon({ conditions: { ref_name: { include, exclude: [] } } });
+    assert.throws(() => aplicaA(porPatron(['refs/heads/f[0-9']), 'f3'), /Patrón inválido/);
+  });
+
+  it('~DEFAULT_BRANCH en exclude también aplica sobre la rama por defecto', () => {
+    const porPatron = (include, exclude) => rulesetCon({ conditions: { ref_name: { include, exclude } } });
+    assert.equal(aplicaA(porPatron(['refs/heads/*'], ['~DEFAULT_BRANCH']), 'main', 'main'), false);
+    assert.equal(aplicaA(porPatron(['refs/heads/*'], ['~DEFAULT_BRANCH']), 'dokploy', 'main'), true);
+  });
+});
+
+describe('necesitaRamaPorDefecto (~DEFAULT_BRANCH en include o exclude)', () => {
+  const conRef = (include, exclude) =>
+    new Map([[1, detalleOk(rulesetCon({ conditions: { ref_name: { include, exclude } } }))]]);
+
+  it('pide la rama por defecto si el token está en include o en exclude', () => {
+    assert.equal(necesitaRamaPorDefecto(conRef(['~DEFAULT_BRANCH'], [])), true);
+    assert.equal(necesitaRamaPorDefecto(conRef(['refs/heads/*'], ['~DEFAULT_BRANCH'])), true);
+  });
+
+  it('no la pide si ningún ruleset usa el token', () => {
+    assert.equal(necesitaRamaPorDefecto(conRef(['refs/heads/*'], ['refs/heads/main'])), false);
+    assert.equal(necesitaRamaPorDefecto(new Map()), false);
+  });
+});
+
+describe('validación de argumentos (se interpolan en la ruta de la API)', () => {
+  it('acepta owner/nombre y nombres de rama normales', () => {
+    assert.equal(esRepoValido('nicolasjones/multistorefront-meli'), true);
+    assert.equal(esRamaValida('dokploy'), true);
+    assert.equal(esRamaValida('release/2026-01'), true);
+  });
+
+  it('rechaza valores que podrían apuntar la consulta a otra ruta', () => {
+    assert.equal(esRepoValido('owner/nombre/../otro'), false);
+    assert.equal(esRepoValido('sin-slash'), false);
+    assert.equal(esRamaValida('dokploy?x=1'), false);
+    assert.equal(esRamaValida('../main'), false);
+    assert.equal(esRamaValida('main..otra'), false);
+  });
+
+  // Con `PATH` vacío el script no puede hablar con la API: si la validación
+  // no estuviera, el fallo sería otro (el de la API) y no el del argumento.
+  const correr = (...args) =>
+    spawnSync(process.execPath, [path.join(RAIZ, 'scripts/gate-integracion.mjs'), ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: '/nonexistent' },
+    });
+
+  it('un --repo inválido se rechaza antes de consultar la API', () => {
+    const r = correr('--repo', 'owner/nombre/../otro');
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /--repo inválido/);
+  });
+
+  it('un --base inválido se rechaza antes de consultar la API', () => {
+    const r = correr('--base', 'main..otra');
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /--base inválido/);
   });
 });
 
