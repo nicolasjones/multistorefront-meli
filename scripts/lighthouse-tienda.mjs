@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 // Arnés de Lighthouse para el front público de la tienda (MSF-560 · T050 de F-TDA-17).
 //
-// Mide el LCP de home, catálogo y ficha con la emulación que fija D9 de la spec
+// Mide el LCP de home, catálogo y ficha de cada tienda con la emulación que fija D9 de la spec
 // `tienda-inicio-busqueda-movil` (DevTools «4G lento»: RTT 150 ms, 1,6 Mbps, CPU ×4) y falla
 // si la mediana de las corridas supera 3 s (FR-047 / SC-009). Los valores se publican en
 // `docs/tienda-movil.md`.
 //
 // Uso:
 //   node scripts/lighthouse-tienda.mjs --url https://tienda.ejemplo.com --producto <id>
-//   node scripts/lighthouse-tienda.mjs --url http://tienda.localhost:4300 --servir apps/web/dist
+//   node scripts/lighthouse-tienda.mjs --url https://tienda.localhost:4300 --servir apps/web/dist
 //
 // Opciones (o su variable de entorno equivalente):
-//   --url <base>        host público de la tienda (obligatorio)
+//   --url <base>        host público de la tienda (obligatorio; se repite: uno por tienda)
 //   --pantallas <lista> rutas a medir separadas por coma (por defecto «/», «/catalogo»)
-//   --producto <id>     id de producto: agrega «/producto/<id>» a las pantallas
+//   --producto <id>     id de producto: agrega «/producto/<id>» a las pantallas (uno, o uno por tienda)
 //   --corridas <n>      corridas por pantalla; se publica la mediana (por defecto 3)
 //   --umbral <ms>       LCP máximo aceptable (por defecto 3000)
 //   --salida <dir>      carpeta de los reportes (por defecto «reports/lighthouse-tienda»)
@@ -23,12 +23,14 @@
 //
 // La versión de Lighthouse va fijada (precedente del repo: `@lhci/cli@0.16.0` en el nightly).
 
-import { spawn } from 'node:child_process'
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { spawn, execFileSync } from 'node:child_process'
+import { createReadStream, existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
+import { createSecureServer } from 'node:http2'
+import { tmpdir } from 'node:os'
 import { extname, join, normalize, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { createBrotliCompress, createGzip } from 'node:zlib'
+import { createGzip } from 'node:zlib'
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url))
 const VERSION_LIGHTHOUSE = '12.8.2'
@@ -75,12 +77,20 @@ const TIPOS = {
 // Tipos que el servidor de producción comprime (el texto del bundle y las fuentes).
 const COMPRIMIBLES = /\.(html|js|css|svg|json|woff2?)$/i
 
+// Lista separada por comas (o repetida en la línea de comandos).
+function separar(valor) {
+  return String(valor ?? '')
+    .split(',')
+    .map((parte) => parte.trim())
+    .filter(Boolean)
+}
+
 // Lee las opciones de la línea de comandos y del entorno.
 export function leerOpciones(argv = [], env = {}) {
   const opciones = {
-    url: env.TIENDA_LIGHTHOUSE_URL ?? '',
+    urls: separar(env.TIENDA_LIGHTHOUSE_URL),
+    productos: separar(env.TIENDA_LIGHTHOUSE_PRODUCTO),
     pantallas: env.TIENDA_LIGHTHOUSE_PANTALLAS ?? PANTALLAS_POR_DEFECTO.join(','),
-    producto: env.TIENDA_LIGHTHOUSE_PRODUCTO ?? '',
     corridas: Number(env.TIENDA_LIGHTHOUSE_CORRIDAS ?? 3),
     umbral: Number(env.TIENDA_LIGHTHOUSE_UMBRAL ?? UMBRAL_LCP_MS),
     salida: env.TIENDA_LIGHTHOUSE_SALIDA ?? 'reports/lighthouse-tienda',
@@ -94,9 +104,9 @@ export function leerOpciones(argv = [], env = {}) {
     const argumento = argv[i]
     const valor = argv[i + 1]
     switch (argumento) {
-      case '--url': opciones.url = valor; i += 1; break
+      case '--url': opciones.urls.push(...separar(valor)); i += 1; break
       case '--pantallas': opciones.pantallas = valor; i += 1; break
-      case '--producto': opciones.producto = valor; i += 1; break
+      case '--producto': opciones.productos.push(...separar(valor)); i += 1; break
       case '--corridas': opciones.corridas = Number(valor); i += 1; break
       case '--umbral': opciones.umbral = Number(valor); i += 1; break
       case '--salida': opciones.salida = valor; i += 1; break
@@ -109,11 +119,57 @@ export function leerOpciones(argv = [], env = {}) {
   return opciones
 }
 
-// Rutas a medir: las de la lista más la ficha del producto, si viene.
-export function pantallasAMedir(opciones) {
-  const rutas = opciones.pantallas.split(',').map((ruta) => ruta.trim()).filter(Boolean)
-  if (opciones.producto) rutas.push(`/producto/${opciones.producto}`)
+// Errores de uso: sin ellos el arnés mediría cualquier cosa (por ejemplo, cero corridas) y el
+// veredicto saldría verde sin medir nada.
+export function validarOpciones(opciones) {
+  const errores = []
+  if (opciones.urls.length === 0) errores.push('falta --url (el host público de la tienda)')
+  if (!Number.isInteger(opciones.corridas) || opciones.corridas < 1) {
+    errores.push(`--corridas tiene que ser un entero mayor a 0 (viene ${opciones.corridas})`)
+  }
+  if (!Number.isFinite(opciones.umbral) || opciones.umbral <= 0) {
+    errores.push(`--umbral tiene que ser un número mayor a 0 (viene ${opciones.umbral})`)
+  }
+  if (opciones.productos.length > 1 && opciones.productos.length !== opciones.urls.length) {
+    errores.push('--producto tiene que ser uno o uno por tienda (mismo número que --url)')
+  }
+  if (opciones.servir) {
+    for (const url of opciones.urls) {
+      const host = new URL(url)
+      if (host.protocol !== 'https:' || host.port !== String(opciones.puerto)) {
+        errores.push(
+          `con --servir la URL tiene que ser https://<host>:${opciones.puerto}/ (la que se midió: ${url})`,
+        )
+      }
+    }
+  }
+  return errores
+}
+
+// Rutas a medir de una tienda: las de la lista más la ficha del producto de esa tienda.
+export function pantallasDeTienda(pantallas, producto) {
+  const rutas = separar(pantallas)
+  if (producto) rutas.push(`/producto/${producto}`)
   return rutas
+}
+
+// Las mediciones completas: una por tienda y por ruta.
+export function planDeMedicion(opciones) {
+  const plan = []
+  for (const [indice, url] of opciones.urls.entries()) {
+    const producto = opciones.productos.length === 1 ? opciones.productos[0] : opciones.productos[indice]
+    const base = url.replace(/\/$/, '')
+    for (const ruta of pantallasDeTienda(opciones.pantallas, producto)) {
+      plan.push({
+        base,
+        ruta,
+        url: `${base}${ruta}`,
+        host: new URL(url).hostname,
+        nombre: `${new URL(url).hostname}-${nombrePantalla(ruta)}`,
+      })
+    }
+  }
+  return plan
 }
 
 // Mediana (el repo usa la mediana porque una sola corrida es ruido).
@@ -138,6 +194,15 @@ export function comandoLighthouse({ url, salida, chromeFlags = '' }) {
   return argumentos
 }
 
+// La regla de resolución de Chrome mapea el host de la tienda a 127.0.0.1. Lighthouse parsea
+// `--chrome-flags` con yargs (`cli/run.js:parseChromeFlags`): el valor tiene que ir entre comillas
+// para que «MAP host 127.0.0.1» llegue a Chrome como UN argumento; sin comillas, yargs lo parte y
+// descarta el resto (Chrome recibiría «--host-resolver-rules=MAP», que no mapea nada).
+export function reglaDeResolucion(hosts) {
+  const reglas = hosts.map((host) => `MAP ${host} 127.0.0.1`).join(',')
+  return `--host-resolver-rules="${reglas}"`
+}
+
 // LCP (ms) y elemento responsable de un reporte de Lighthouse.
 export function leerLcp(reporte) {
   const auditoria = reporte?.audits?.['largest-contentful-paint']
@@ -152,33 +217,71 @@ export function leerLcp(reporte) {
   }
 }
 
-// Veredicto: falla si alguna pantalla quedó por encima del umbral.
+// Veredicto: falla si alguna pantalla quedó por encima del umbral (o sin medir).
 export function evaluar(medianas, umbralMs = UMBRAL_LCP_MS) {
-  const flojas = medianas.filter((mediana) => mediana !== null && mediana > umbralMs)
-  return { ok: flojas.length === 0, superadas: flojas }
+  const superadas = medianas.filter((mediana) => mediana === null || mediana > umbralMs)
+  return { ok: superadas.length === 0, superadas }
+}
+
+// El log de red de Lighthouse trae las URLs firmadas de Storage (con su token) y las cabeceras de
+// sesión. Antes de escribir el reporte se sanEAN: el repo no versiona credenciales.
+export function sanearReporte(valor) {
+  if (Array.isArray(valor)) return valor.map(sanearReporte)
+  if (valor && typeof valor === 'object') {
+    const salida = {}
+    for (const [clave, dato] of Object.entries(valor)) {
+      salida[clave] = /^(authorization|cookie|set-cookie)$/i.test(clave) ? 'REDACTADO' : sanearReporte(dato)
+    }
+    return salida
+  }
+  if (typeof valor === 'string') return sanearUrl(valor)
+  return valor
+}
+
+// Saca de una URL los tokens de acceso (los de las URLs firmadas de Storage).
+export function sanearUrl(url) {
+  return url.replace(/([?&](?:token|access_token|refresh_token|signature|apikey|api_key)=)[^&#]*/gi, '$1REDACTADO')
 }
 
 // Servidor estático mínimo para medir el build local sin Docker: sirve `dist` y cae en
 // `index.html` (routing del cliente) para cualquier ruta que no sea un archivo.
 //
-// Comprime como lo hace el servidor de producción (nginx/Caddy sirven el front con gzip o
-// brotli): sin compresión, el chunk de entrada pesa 833 kB en vez de 242 kB y la medición
-// «4G lento» carga con una penalización que en la vida real no existe.
-export function servirBuild(dir, puerto) {
+// Va por HTTPS con HTTP/2, como el proxy de producción (Traefik sirve el front con HTTP/2 y
+// HTTP/3): el navegador manda los ~50 requests del bundle por una sola conexión. Con HTTP/1.1
+// abriría 6 conexiones por host y, con la latencia emulada (562 ms por request), la cola
+// sumaría varios segundos al LCP que en producción no existen.
+//
+// Comprime como lo hace el servidor de producción (nginx:alpine sirve el front con gzip; no
+// trae brotli): sin compresión, el chunk de entrada pesa el triple y la medición «4G lento»
+// carga con una penalización que en la vida real no existe. Con brotli (calidad 11) el servidor
+// tarda ~350 ms en comprimir un chunk de 180 kB y, como es de un solo hilo, retrasa el resto de
+// las respuestas: la medición salía penalizada por el servidor, no por la red.
+export function servirBuild(dir, puerto, { tls = false } = {}) {
   const raiz = resolve(dir)
-  const servidor = createServer((peticion, respuesta) => {
-    const ruta = decodeURIComponent((peticion.url ?? '/').split('?')[0])
+  const servidor = tls ? createSecureServer(certificadoAutofirmado()) : createServer()
+  servidor.on('request', (peticion, respuesta) => {
+    let ruta
+    try {
+      ruta = decodeURIComponent((peticion.url ?? '/').split('?')[0])
+    } catch {
+      respuesta.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
+      respuesta.end('URL inválida')
+      return
+    }
     const destino = join(raiz, normalize(ruta).replace(/^(\.\.[/\\])+/, ''))
     const archivo = existsSync(destino) && statSync(destino).isFile() ? destino : join(raiz, 'index.html')
     const tipo = TIPOS[extname(archivo)] ?? 'application/octet-stream'
     const aceptados = String(peticion.headers['accept-encoding'] ?? '')
-    const compresion = COMPRIMIBLES.test(archivo)
-      ? aceptados.includes('br') ? { codificacion: 'br', flujo: createBrotliCompress() }
-        : aceptados.includes('gzip') ? { codificacion: 'gzip', flujo: createGzip() }
-        : null
+    const compresion = COMPRIMIBLES.test(archivo) && aceptados.includes('gzip')
+      ? { codificacion: 'gzip', flujo: createGzip() }
       : null
     const cabeceras = { 'content-type': tipo, vary: 'accept-encoding' }
     if (compresion) cabeceras['content-encoding'] = compresion.codificacion
+    // Mismas cabeceras de caché que el nginx de producción (`apps/web/nginx.conf`): el HTML no se
+    // cachea y los assets (que llevan hash) son inmutables.
+    cabeceras['cache-control'] = extname(archivo) === '.html'
+      ? 'no-cache'
+      : 'public, max-age=31536000, immutable'
     respuesta.writeHead(200, cabeceras)
     if (compresion) {
       compresion.flujo.pipe(respuesta)
@@ -190,6 +293,21 @@ export function servirBuild(dir, puerto) {
   return new Promise((resolver) => {
     servidor.listen(puerto, '127.0.0.1', () => resolver(servidor))
   })
+}
+
+// Certificado autofirmado para el servidor local: solo sirve para que el navegador acepte el
+// TLS del build medido (Chrome corre con `--ignore-certificate-errors`). Vive en el directorio
+// temporal y no se versiona.
+export function certificadoAutofirmado() {
+  const dir = mkdtempSync(join(tmpdir(), 'lighthouse-tienda-'))
+  const clave = join(dir, 'clave.pem')
+  const cert = join(dir, 'cert.pem')
+  execFileSync(
+    'openssl',
+    ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', clave, '-out', cert, '-days', '1', '-subj', '/CN=tienda.local'],
+    { stdio: 'ignore' },
+  )
+  return { key: readFileSync(clave), cert: readFileSync(cert) }
 }
 
 function ejecutarLighthouse(url, salida, chromeFlags) {
@@ -206,15 +324,18 @@ function ejecutarLighthouse(url, salida, chromeFlags) {
         rechazar(new Error(`Lighthouse terminó con código ${codigo}: ${error.trim().split('\n').slice(-5).join(' ')}`))
         return
       }
-      resolver(JSON.parse(readFileSync(salida, 'utf8')))
+      const reporte = sanearReporte(JSON.parse(readFileSync(salida, 'utf8')))
+      writeFileSync(salida, JSON.stringify(reporte))
+      resolver(reporte)
     })
   })
 }
 
 async function main() {
   const opciones = leerOpciones(process.argv.slice(2), process.env)
-  if (!opciones.url) {
-    console.error('lighthouse-tienda: falta --url (el host público de la tienda).')
+  const errores = validarOpciones(opciones)
+  if (errores.length > 0) {
+    console.error(`lighthouse-tienda: ${errores.join(' · ')}`)
     process.exitCode = 1
     return
   }
@@ -227,35 +348,29 @@ async function main() {
   if (opciones.servir) {
     // La regla de resolución de Chrome mapea el host a 127.0.0.1; el puerto lo pone la URL. Por eso la URL
     // tiene que traer el puerto del servidor local: si no, el navegador se iría al host real de Internet y
-    // mediría otra cosa (el build local no se mediría).
-    const url = new URL(opciones.url)
-    if (url.protocol !== 'http:' || url.port !== String(opciones.puerto)) {
-      throw new Error(
-        `Con --servir la URL tiene que ser http://<host>:${opciones.puerto}/ (la que se midió: ${opciones.url}). ` +
-          'El navegador resuelve ese host a 127.0.0.1 y usa el puerto de la URL.',
-      )
-    }
-    servidor = await servirBuild(opciones.servir, opciones.puerto)
-    const regla = `--host-resolver-rules=MAP ${url.hostname} 127.0.0.1`
-    chromeFlags = `${chromeFlags} ${regla}`.trim()
-    console.log(`lighthouse-tienda: build local servido en 127.0.0.1:${opciones.puerto} para el host ${url.hostname}`)
+    // mediría otra cosa (el build local no se mediría). El certificado es autofirmado (el del build medido
+    // no lo es): Chrome lo acepta con `--ignore-certificate-errors`.
+    servidor = await servirBuild(opciones.servir, opciones.puerto, { tls: true })
+    chromeFlags = `${chromeFlags} --ignore-certificate-errors ${reglaDeResolucion(opciones.urls.map((url) => new URL(url).hostname))}`.trim()
+    console.log(
+      `lighthouse-tienda: build local servido en 127.0.0.1:${opciones.puerto} para ${opciones.urls.join(', ')}`,
+    )
   }
 
-  const rutas = pantallasAMedir(opciones)
   const resultados = []
   try {
-    for (const ruta of rutas) {
+    for (const medicion of planDeMedicion(opciones)) {
       const muestras = []
       let elemento = 'desconocido'
       for (let corrida = 1; corrida <= opciones.corridas; corrida += 1) {
-        const archivo = join(salida, `${nombrePantalla(ruta)}-${corrida}.json`)
-        const reporte = await ejecutarLighthouse(`${opciones.url.replace(/\/$/, '')}${ruta}`, archivo, chromeFlags)
+        const archivo = join(salida, `${medicion.nombre}-${corrida}.json`)
+        const reporte = await ejecutarLighthouse(medicion.url, archivo, chromeFlags)
         const { lcpMs, elemento: nodo } = leerLcp(reporte)
         muestras.push(lcpMs)
         elemento = nodo
-        console.log(`lighthouse-tienda: ${ruta} corrida ${corrida}: LCP ${Math.round(lcpMs)} ms`)
+        console.log(`lighthouse-tienda: ${medicion.url} corrida ${corrida}: LCP ${Math.round(lcpMs)} ms`)
       }
-      resultados.push({ ruta, muestras, mediana: mediana(muestras), elemento })
+      resultados.push({ ...medicion, muestras, mediana: mediana(muestras), elemento })
     }
   } finally {
     servidor?.close()
@@ -265,13 +380,16 @@ async function main() {
   const resumen = [
     '# Lighthouse de la tienda · LCP móvil («4G lento», CPU ×4)',
     '',
-    `Host: ${opciones.url} · corridas por pantalla: ${opciones.corridas} · umbral: ${opciones.umbral} ms (mediana).`,
+    `Host: ${opciones.urls.join(', ')} · corridas por pantalla: ${opciones.corridas} · umbral: ${opciones.umbral} ms (mediana).`,
+    `Build: ${opciones.servir ? `servido en local desde ${opciones.servir}` : 'el del host medido'}.`,
     '',
-    '| Pantalla | Corridas (ms) | Mediana (ms) | Elemento del LCP |',
-    '|---|---|---|---|',
-    ...resultados.map((r) => `| ${r.ruta} | ${r.muestras.map((m) => Math.round(m)).join(', ')} | ${Math.round(r.mediana)} | ${r.elemento} |`),
+    '| Tienda | Pantalla | Corridas (ms) | Mediana (ms) | Elemento del LCP |',
+    '|---|---|---|---|---|',
+    ...resultados.map((r) => `| ${r.host} | ${r.ruta} | ${r.muestras.map((m) => Math.round(m)).join(', ')} | ${Math.round(r.mediana)} | ${r.elemento} |`),
     '',
-    veredicto.ok ? 'Veredicto: todas las pantallas por debajo del umbral.' : `Veredicto: FALLA — ${veredicto.superadas.length} pantalla(s) por encima del umbral.`,
+    veredicto.ok
+      ? 'Veredicto: todas las pantallas por debajo del umbral.'
+      : `Veredicto: FALLA — ${veredicto.superadas.length} pantalla(s) sin cumplir el umbral.`,
     '',
   ].join('\n')
   writeFileSync(join(salida, 'resumen.md'), resumen)

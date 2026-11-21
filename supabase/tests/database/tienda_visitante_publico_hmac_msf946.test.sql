@@ -17,9 +17,9 @@ select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true)
 
 select is(
   private.visitante_publico('tienda.example.com'),
-  encode(extensions.hmac('203.0.113.7|' || private.normalizar_host('tienda.example.com'),
+  'hmac:' || encode(extensions.hmac('203.0.113.7|' || private.normalizar_host('tienda.example.com'),
                          (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
-  'visitante_publico = HMAC-SHA256(ip|host) con el secreto de Vault');
+  'visitante_publico = HMAC-SHA256(ip|host) con el secreto de Vault (con el prefijo «hmac:»)');
 select isnt(
   private.visitante_publico('tienda.example.com'),
   encode(sha256(convert_to('203.0.113.7|' || private.normalizar_host('tienda.example.com'), 'UTF8')), 'hex'),
@@ -32,7 +32,7 @@ select isnt(private.visitante_publico('tienda.example.com'), private.visitante_p
 select set_config('request.headers', '{}', true);
 select is(
   private.visitante_publico('tienda.example.com'),
-  encode(extensions.hmac('sin-ip|' || private.normalizar_host('tienda.example.com'),
+  'hmac:' || encode(extensions.hmac('sin-ip|' || private.normalizar_host('tienda.example.com'),
                          (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'sin x-forwarded-for todos caen en un único cupo «sin-ip» (falla cerrada)');
 select is(

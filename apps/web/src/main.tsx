@@ -1,14 +1,19 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource-variable/sora'
 import '@fontsource-variable/instrument-sans'
 import './index.css'
-import App from './App.tsx'
+import { EstadoCargaPagina } from './components/estados/EstadosPagina'
 import { instalarVencimientoDeSesion } from './lib/arranqueSesion'
 import { instalarDestinoActividad } from './lib/destinoActividad'
 import { iniciarErrores } from './lib/erroresWeb'
 import { esHostDeTienda } from './lib/tienda'
 import { TiendaPublicaApp } from './pages/tienda-publica'
+
+// El panel administrativo va en su propio chunk (FR-047 / SC-009): el visitante de la tienda no
+// descarga Refine ni las pantallas del panel. Antes el import era estático y el chunk de entrada
+// (el que descarga todo visitante) lo traía entero: en «4G lento» el LCP de la home rondaba los 17 s.
+const App = lazy(() => import('./App.tsx'))
 
 // Registro central de errores (F-OPS-03): sin VITE_ERRORES_DSN no envía nada.
 iniciarErrores({
@@ -33,6 +38,6 @@ instalarVencimientoDeSesion(esTiendaPublica)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {esTiendaPublica ? <TiendaPublicaApp host={host} /> : <App />}
+    {esTiendaPublica ? <TiendaPublicaApp host={host} /> : <Suspense fallback={<EstadoCargaPagina />}><App /></Suspense>}
   </StrictMode>,
 )

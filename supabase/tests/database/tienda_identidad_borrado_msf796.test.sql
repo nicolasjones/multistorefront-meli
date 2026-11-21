@@ -9,7 +9,7 @@
 -- para que lo único que decida sea la política de filas.
 begin;
 
-select plan(34);
+select plan(33);
 
 -- ============================================================================
 -- Fixture (como postgres: RLS no aplica)

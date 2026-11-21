@@ -362,14 +362,15 @@ select is(
   'las ventanas de más de 10 minutos se purgan'
 );
 
--- La IP del proxy nunca se guarda: solo su hash (sha256 de la última IP de x-forwarded-for + host).
+-- La IP del proxy nunca se guarda: solo su HMAC (de la última IP de x-forwarded-for + host, con el prefijo «hmac:»
+-- que lo distingue del hash sin clave; ver la migración 20270507200101).
 select pg_temp.reiniciar();
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7, 198.51.100.9"}', true);
 select pg_temp.sugerir('bq-a.ejemplo.com', 'cargador');
 select set_config('request.headers', '', true);
 select is(
   (select visitante from public.limite_pedidos_publicos),
-  encode(extensions.hmac('198.51.100.9|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'hmac:' || encode(extensions.hmac('198.51.100.9|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'el visitante es el HMAC de la última IP del proxy + host'
 );
 select is(
@@ -380,22 +381,22 @@ select is(
 select set_config('request.headers', '', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(extensions.hmac('sin-ip|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'hmac:' || encode(extensions.hmac('sin-ip|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'sin x-forwarded-for el visitante es «sin-ip»'
 );
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
-  'con una sola IP en x-forwarded-for, esa es el visitante'
+  'hmac:' || encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'con una sola IP en x-forwarded-for, esa es la visitante'
 );
 -- Con un proxy de confianza que agrega su IP al final, el visitante es el penúltimo valor.
 create or replace function private.saltos_proxy_confiables() returns integer language sql immutable set search_path = '' as $f$ select 1; $f$;
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7, 198.51.100.9"}', true);
 select is(
   private.visitante_publico('bq-a.ejemplo.com'),
-  encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
-  'con un salto de proxy de confianza, el visitante es el penúltimo valor'
+  'hmac:' || encode(extensions.hmac('203.0.113.7|bq-a.ejemplo.com', (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
+  'con un salto de proxy de confianza, la visitante es el penúltimo valor'
 );
 create or replace function private.saltos_proxy_confiables() returns integer language sql immutable set search_path = '' as $f$ select 0; $f$;
 select set_config('request.headers', '', true);
