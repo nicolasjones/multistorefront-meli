@@ -8,6 +8,8 @@ import {
   esperaDecision,
   ejecutar,
   fechaVencimiento,
+  lineaAplicado,
+  lineaResumen,
   seleccionarGates,
 } from './vencimientos-gates.mjs'
 
@@ -40,12 +42,16 @@ const item = (extra) => ({
 /**
  * Stub del tracker: responde la lectura por etiqueta, la lectura por tipo y el detalle,
  * y registra las escrituras. `topeTipo`/`topeEtiqueta` recortan la respuesta para
- * simular que la API truncó una lectura.
+ * simular que la API truncó una lectura. `etiquetasMeta` reemplaza las etiquetas del
+ * proyecto (para simular uno sin etiquetas de gate).
  */
-function crearStub(items, { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null } = {}) {
+function crearStub(
+  items,
+  { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null, etiquetasMeta = null } = {},
+) {
   const llamadas = []
   const meta = {
-    labels: [...ETIQUETAS].map(([id, name]) => ({ id, name })),
+    labels: etiquetasMeta ?? [...ETIQUETAS].map(([id, name]) => ({ id, name })),
     columns: [...COLUMNAS.values()],
     issueTypes: [{ id: 12, name: 'Historia' }],
   }
@@ -270,6 +276,30 @@ test('una etiqueta de gate en el tope corta el barrido: no se puede saber si fal
   )
 })
 
+test('una lectura vacía corta el barrido: no se puede afirmar que no quedan gates sin fecha', async () => {
+  // La API cambió la forma de la respuesta (`datos?.data ?? []` → `[]`) o el filtro dejó
+  // de matchear: las dos lecturas vienen vacías. Sin la guarda, el barrido terminaría
+  // con «0 de 0 gates esperando decisión» y salida 0: el mismo falso verde que esta
+  // herramienta vino a cerrar.
+  const { fetchStub, llamadas } = crearStub([])
+  await assert.rejects(
+    () => ejecutar({ fetchImpl: fetchStub, url: 'https://tracker.test', clave: 'x' }),
+    /no devolvió ningún ítem/,
+  )
+  assert.equal(llamadas.filter((c) => c.init.method === 'PATCH').length, 0)
+})
+
+test('un proyecto sin etiquetas de gate corta el barrido: sin ellas no se puede leer el board', async () => {
+  const { fetchStub, llamadas } = crearStub([item({ id: 1, identifier: 'MSF-1' })], {
+    etiquetasMeta: [{ id: 601, name: 'espera-dependencia' }],
+  })
+  await assert.rejects(
+    () => ejecutar({ fetchImpl: fetchStub, url: 'https://tracker.test', clave: 'x' }),
+    /no tiene ninguna etiqueta de gate/,
+  )
+  assert.equal(llamadas.filter((c) => c.init.method === 'PATCH').length, 0)
+})
+
 test('un PATCH que falla deja registrado qué ítems escribió la corrida', async () => {
   const items = [
     item({ id: 1, identifier: 'MSF-1' }),
@@ -306,6 +336,32 @@ test('el contraste corta si un gate de una lectura no está en la otra', () => {
     () => contrastarBoard(new Map(), porTipo, { etiquetas: ETIQUETAS }),
     /no están en la lectura por etiqueta/,
   )
+})
+
+test('la salida deja el id numérico de cada ítem aplicado y el denominador del barrido', () => {
+  // La reversión documentada es `PATCH /issues/<id>` con `{"dueDate": null}`: el id
+  // numérico tiene que quedar en la salida, o el operador no sabe qué ítems tocaron la
+  // corrida.
+  const linea = lineaAplicado({
+    identifier: 'MSF-909',
+    id: 1145,
+    dueDate: '2026-11-15',
+    title: '[Auditoría] 23 gates esperando decisión sin fecha de vencimiento',
+  })
+  assert.match(linea, /aplicado MSF-909 \(id 1145\)/)
+  assert.match(linea, /vence 2026-11-15/)
+
+  // El denominador es la población de la regla (los gates que esperan decisión), no los
+  // ítems del board: un «de N ítems del board» sería engañoso.
+  const resumen = lineaResumen({
+    proyecto: 'MSF',
+    plan: [{ identifier: 'MSF-909' }],
+    gates: 71,
+    esperando: 20,
+    leidos: 781,
+  })
+  assert.match(resumen, /Gates sin fecha de vencimiento en MSF: 1 de 20 gates esperando decisión/)
+  assert.doesNotMatch(resumen, /de 781 ítems del board/)
 })
 
 test('un error del board no se silencia', async () => {

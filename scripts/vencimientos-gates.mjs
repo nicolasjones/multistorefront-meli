@@ -208,6 +208,17 @@ async function leerBoard(api, { proyecto, meta }) {
     porTipo.set(tipo.id, lote)
     leidos += lote.length
   }
+  // Falso verde: si las dos lecturas vienen vacías (la API cambió la forma de la
+  // respuesta, el filtro dejó de matchear o el board no tiene ítems), el barrido
+  // terminaría con «0 de 0 gates esperando decisión» y salida 0, sin poder afirmar
+  // que no quedan gates sin fecha. Se corta antes de calcular el plan.
+  if (leidos === 0 && gates.size === 0) {
+    throw new Error(
+      `El board de ${proyecto} no devolvió ningún ítem (la lectura por etiqueta y la ` +
+        `lectura por tipo vinieron vacías): la API cambió la forma de la respuesta o el ` +
+        `filtro dejó de matchear, y el barrido no puede afirmar que no quedan gates sin fecha.`,
+    )
+  }
   return { gates, porTipo, leidos }
 }
 
@@ -252,6 +263,27 @@ function arg(nombre) {
   return i >= 0 ? process.argv[i + 1] : undefined
 }
 
+/**
+ * Línea de salida de un ítem aplicado: trae el **id numérico**, que es lo que usa la
+ * reversión documentada (`PATCH /issues/<id>` con `{"dueDate": null}`).
+ * @param {{identifier:string, id:number, dueDate:string, title:string}} item
+ */
+export function lineaAplicado(item) {
+  return `  aplicado ${item.identifier} (id ${item.id})  vence ${item.dueDate}  ${item.title.slice(0, 60)}`
+}
+
+/**
+ * Línea de salida del barrido: el denominador son los gates que **esperan decisión**
+ * (no los ítems del board, que no son la población de la regla).
+ * @param {{proyecto:string, plan:object[], gates:number, esperando:number, leidos:number}} datos
+ */
+export function lineaResumen({ proyecto, plan, gates, esperando, leidos }) {
+  return (
+    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${esperando} gates ` +
+    `esperando decisión (${gates} gates del board, ${leidos} ítems leídos para el contraste).`
+  )
+}
+
 async function main() {
   const aplicar = process.argv.includes('--aplicar')
   const proyecto = arg('proyecto') ?? process.env.ITSAPLAN_PROYECTO ?? PROYECTO_POR_DEFECTO
@@ -263,15 +295,9 @@ async function main() {
   const { plan, gates, esperando, leidos, columnas } = await ejecutar({
     proyecto,
     aplicar,
-    alAplicar: (p) =>
-      console.log(
-        `  aplicado ${p.identifier} (id ${p.id})  vence ${p.dueDate}  ${p.title.slice(0, 60)}`,
-      ),
+    alAplicar: (p) => console.log(lineaAplicado(p)),
   })
-  console.log(
-    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${esperando} gates ` +
-      `esperando decisión (${gates} gates del board, ${leidos} ítems leídos para el contraste).`,
-  )
+  console.log(lineaResumen({ proyecto, plan, gates, esperando, leidos }))
   if (!aplicar) {
     for (const p of plan) {
       console.log(

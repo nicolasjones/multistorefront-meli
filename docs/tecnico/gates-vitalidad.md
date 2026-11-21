@@ -58,8 +58,17 @@ El contraste corta con error si las dos lecturas no ven los mismos gates: un gat
 falta en una de las dos delata la lectura truncada. Los **archivados no se leen**: la
 regla ya los descarta y sólo consumirían el tope de la lectura.
 
+Los gates **sin tipo** no se pueden contrastar (no hay lectura por tipo que los
+contenga): se fechan igual, pero si la lectura por etiqueta viniera truncada no habría
+forma de detectarlo.
+
 Si el proyecto no tiene ninguna etiqueta de gate, el barrido también corta: sin ellas
 no puede leer el board y un «0 gates» sería mentira.
+
+Si las dos lecturas vienen **vacías** (la API cambió la forma de la respuesta, el
+filtro dejó de matchear o el board no tiene ítems), el barrido también corta: un
+«0 de 0 gates esperando decisión» con salida 0 sería el mismo falso verde que esta
+herramienta vino a cerrar.
 
 ## Cómo se aplica
 
@@ -102,6 +111,10 @@ lectura, antes del primer `PATCH`), así que no hay nada que revertir. Para dest
 - **Las dos lecturas no ven los mismos gates**: una de las dos volvió truncada. Volvé a
   correr la simulación: si el error sigue, el board tiene un tipo (o una etiqueta) en el
   tope de la lectura y hay que aplicar el punto anterior.
+- **El board no devolvió ningún ítem**: la API cambió la forma de la respuesta (o el
+  filtro dejó de matchear). No hay nada que leer en el board: esperá a que la API
+  vuelva a la forma conocida (`GET /projects/MSF/issues` devuelve el array de ítems) y
+  volvé a correr la simulación.
 
 Mientras no se destrabe, los gates de los tipos que no se pudieron leer **quedan sin
 fecha**: es preferible a fecharlos con una lectura incompleta.
@@ -134,5 +147,7 @@ La regla está fijada por tests (`pnpm test:vencimientos:gates`): qué es un gat
 «esperar decisión», el cálculo de la fecha con su borde de medianoche, que la corrida
 no toque lo que ya tiene fecha, que el `PATCH` mande **sólo** `dueDate` (mandar
 `labelIds` en el mismo `PATCH` reemplazaría las etiquetas del ítem) y que el barrido
-corte con error si el board no se puede leer entero (por tope de lectura o por
-contraste entre las dos lecturas).
+corte con error si el board no se puede leer entero (por tope de lectura, por contraste
+entre las dos lecturas, por proyecto sin etiquetas de gate o por lectura vacía). También
+que la salida deje el **id numérico** de cada ítem aplicado (la reversión lo usa) y que
+el denominador del resumen sean los gates que esperan decisión.
