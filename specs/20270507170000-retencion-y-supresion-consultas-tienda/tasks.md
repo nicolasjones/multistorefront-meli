@@ -2,18 +2,22 @@
 
 **Input**: `specs/20270507170000-retencion-y-supresion-consultas-tienda/` (spec.md, plan.md)
 
-**Alcance de entrega**: `supabase`, `kestra`
+**Alcance de entrega**: `supabase`, `kestra`, `refine` (`refine` solo por la etiqueta del evento nuevo
+  en la actividad del panel, `apps/web/src/lib/actividad.ts`; no hay pantallas nuevas, D-24)
 
 **Origen**: seguimiento de MSF-176 (T063 y T072; decisión D-20 de esa épica). Assessment de bug:
 `.specify/bugs/msf-944/assessment.md`.
 
 ## Fase 1 — Base de datos
 
-- [ ] T001 Migración `supabase/migrations/20270507170001_retencion_y_supresion_consultas_tienda.sql`
+- [ ] T001 Migración `supabase/migrations/20270507200101_retencion_y_supresion_consultas_tienda.sql`
   (aditiva, con reversión documentada en el encabezado):
   `dominio.consultas.suprimido_en` y `dominio.presupuestos_tienda.suprimido_en` (nullable);
   `public.avisos_pendientes.consulta_id` (FK a `dominio.consultas (id) on delete cascade`) e índices
-  de apoyo. — **Evidencia**: la migración aplica y `pnpm der:check` da OK.
+  de apoyo. — **Evidencia**: la migración aplica en el CI (job `database`) y el DER de la spec da OK
+  (`node scripts/verificar-der.mjs specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md`
+  → `DER OK (1 spec/s)`; `pnpm der:check` sin argumentos revisa todo el repo y sale con 1 por 141 specs
+  sin DER válido, todas preexistentes y ajenas a MSF-944).
 - [ ] T002 [P] `private.emitir_aviso(text, uuid, jsonb, uuid)` (misma firma): lee la clave interna
   `ConsultaId` del payload, la valida con regex, la guarda en `avisos_pendientes.consulta_id` y la
   saca del payload (el correo no cambia); `private.emitir_aviso_consulta(uuid)` suma la clave.

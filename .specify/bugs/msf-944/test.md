@@ -1,7 +1,7 @@
 # Bug Verification: Retención y supresión de consultas, ítems y presupuestos de la tienda (MSF-944)
 
 - **Slug**: msf-944
-- **Tested**: 2026-11-20 (segunda vuelta, tras la devolución del Revisor)
+- **Tested**: 2026-11-21 (tercera vuelta, tras la devolución del Revisor sobre el SHA `578048c5a9`)
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
 - **Result**: verified
@@ -19,6 +19,12 @@ En la **segunda vuelta** (devolución de QA y de seguridad) se corrigió el aisl
 organización de la limpieza de la cola de avisos y se pasó a vigilar la regla D-25 sobre la emisión
 real de los avisos; el pgTAP pasó a 79 aserciones (ver «Segunda vuelta»).
 
+En la **tercera vuelta** (devolución del Revisor sobre el SHA `578048c5a9`) no cambió el código de la
+capacidad: se corrigieron las dos desincronizaciones del `tasks.md` de la spec (el alcance de entrega y
+el nombre de la migración que nombra T001) y se corrigió la evidencia que se daba por «en verde»
+(`pnpm der:check` y `pnpm calidad:code`): los dos comandos se miden y se documenta qué sale, por qué y
+que es ajeno a MSF-944 (ver «Checks de la tercera vuelta»).
+
 ## Checks Performed
 
 | Check | Command / Action | Result | Notes |
@@ -30,9 +36,9 @@ real de los avisos; el pgTAP pasó a 79 aserciones (ver «Segunda vuelta»).
 | Regression suite | `pnpm lint` | pass | solo warnings preexistentes de React |
 | Build | `pnpm build` | pass | bundle OK |
 | Docs / migraciones | `pnpm docs:check` | pass | 1 migración nueva contra `origin/dokploy` |
-| Migraciones (guard) | `node scripts/verificar-migraciones.mjs --base origin/dokploy` | pass | 754 archivo(s), 1 nuevo(s), ninguna reutilizada |
-| DER | `pnpm der:check` | pass | `specs/…-retencion-y-supresion-consultas-tienda/spec.md: DER OK` |
-| Calidad | `pnpm calidad:code` | pass | oxlint, knip, jscpd, dependency-cruiser y syncpack OK (gitleaks saltado: sin Docker) |
+| Migraciones (guard) | `node scripts/verificar-migraciones.mjs --base origin/dokploy` | pass | 772 archivo(s), 1 nuevo(s), ninguna reutilizada |
+| DER de la spec | `node scripts/verificar-der.mjs specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md` | pass | `DER OK (1 spec/s)`. El `pnpm der:check` **sin argumentos** revisa el repo entero y sale con **1** por 141 specs sin DER válido: ninguna es de MSF-944 y las 141 están igual en `origin/dokploy` (condición previa del repo) |
+| Calidad | `pnpm calidad:code` | pass (exit 0) | oxlint, knip, jscpd, dependency-cruiser y syncpack OK (gitleaks saltado: sin Docker), **con las dependencias del workspace instaladas**. Sin ellas knip no resuelve `@playwright/test` y reporta como exports sin uso los de `apps/web/e2e/soporte/fixtures.ts` (exit 1): artefacto del entorno, esos archivos y `knip.json` no los toca esta historia |
 
 ## Output Excerpts
 
@@ -90,7 +96,7 @@ con el SQL mutado: los mutantes no rompieron nada fuera de la regla que vigilan.
 ```
 
 ```
-Migraciones OK: 754 archivo(s), 1 nuevo(s) contra origin/dokploy.
+Migraciones OK: 772 archivo(s), 1 nuevo(s) contra origin/dokploy.
 DER OK (1 spec/s).
 ```
 
@@ -126,9 +132,20 @@ Cada regla nueva tiene una aserción que cae si la regla se cambia (mutación de
 | Flow (sin cambios) | `pnpm test:kestra:purgar-consultas-tienda` | pass (4/4) |
 | Lint / build | `pnpm lint`, `pnpm build` | pass (solo warnings preexistentes de React) |
 | Docs / migraciones | `pnpm docs:check` | pass (1 migración nueva contra `origin/dokploy`) |
-| DER de la spec | `node scripts/verificar-der.mjs specs/…-retencion-y-supresion-consultas-tienda/spec.md` | pass (`DER OK (1 spec/s)`) |
-| Calidad | `pnpm calidad:code` | pass (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado: sin Docker) |
+| DER de la spec | `node scripts/verificar-der.mjs specs/…-retencion-y-supresion-consultas-tienda/spec.md` | pass (`DER OK (1 spec/s)`; el `pnpm der:check` sin argumentos sale con 1 por 141 specs sin DER válido, preexistentes y ajenas a MSF-944) |
+| Calidad | `pnpm calidad:code` | pass, exit 0 con las dependencias del workspace instaladas (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado: sin Docker); sin ellas knip marca los exports de `apps/web/e2e/soporte/fixtures.ts` como sin uso (exit 1), artefacto del entorno |
 | Rama al día con la base | `git merge origin/dokploy` (conflicto único en `docs/tecnico/consultas.md`, resuelto a favor de la base y reaplicando los cambios de MSF-944) | pass — el PR volvió a `MERGEABLE` (estaba `CONFLICTING`, 133 commits atrás) |
+
+### Checks de la tercera vuelta
+
+| Check | Comando / Acción | Resultado |
+|-------|------------------|-----------|
+| Alcance de entrega de la spec | `**Alcance de entrega**` en `spec.md`, `plan.md` y `tasks.md` | pass — los tres declaran `supabase`, `kestra`, `refine` |
+| Migración que nombra T001 | `ls supabase/migrations/20270507200101_retencion_y_supresion_consultas_tienda.sql` | pass — el archivo existe con ese nombre (renumerado con `git mv` en `f7b4ce978`) |
+| DER del repo | `node scripts/verificar-der.mjs` (sin argumentos) | **fail por condición previa**: exit 1 y `141 spec(s) sin DER válido`; ninguna es de MSF-944 (las 141 están igual en `origin/dokploy`). Acotado a la spec: `DER OK (1 spec/s)` |
+| Calidad | `pnpm calidad:code` | pass, exit 0 con las dependencias del workspace instaladas; sin ellas exit 1 porque knip no resuelve `@playwright/test` y marca los exports de `apps/web/e2e/soporte/fixtures.ts` (archivo que esta historia no toca). El job `quality` del CI de este SHA corre `pnpm calidad` (con gitleaks) y da verde |
+| Flow (sin cambios) | `pnpm test:kestra:purgar-consultas-tienda` | pass (4/4) |
+| Docs / migraciones | `pnpm docs:check` | pass (1 migración nueva contra `origin/dokploy`) |
 
 ## Residual Risks
 
@@ -143,7 +160,9 @@ Cada regla nueva tiene una aserción que cae si la regla se cambia (mutación de
 ## Recommendation
 
 Cerrar el bug: el job `database` del CI (corrida `44674523588`) dio verde con el pgTAP de 79
-aserciones, los mutantes de la regla mueren, los guards locales están en verde y la rama volvió a
-estar al día con `origin/dokploy` (el PR está `MERGEABLE`). Queda en manos del negocio el plazo legal
-definitivo (D-21) y la exportación previa a la primera corrida de la purga, si quiere conservar el
-histórico.
+aserciones, los mutantes de la regla mueren, los guards locales que aplican a esta historia están en
+verde (lint, build, flow, docs, migraciones, calidad y el DER acotado a la spec: el `pnpm der:check`
+de todo el repo sale con 1 por 141 specs sin DER válido, todas preexistentes y ajenas a MSF-944) y la
+rama volvió a estar al día con `origin/dokploy` (el PR está `MERGEABLE`). Queda en manos del negocio el
+plazo legal definitivo (D-21) y la exportación previa a la primera corrida de la purga, si quiere
+conservar el histórico.

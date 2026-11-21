@@ -26,7 +26,7 @@ el comprobante fiscal no se toca.
 | `infra/kestra/compose.yaml` | modified | `ENV_TIENDA_CONSULTAS_RETENCION_DIAS` (180 por defecto) para Kestra |
 | `infra/kestra/.env.example` | modified | `TIENDA_CONSULTAS_RETENCION_DIAS=180` |
 | `package.json` | modified | `test:kestra:purgar-consultas-tienda` y entrada en la cadena `test` |
-| `specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md` | modified | DER completo del grafo afectado (leyenda + `erDiagram`, `pnpm der:check` OK) |
+| `specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md` | modified | DER completo del grafo afectado (leyenda + `erDiagram`; el DER de la spec da OK) |
 | `specs/20270507170000-retencion-y-supresion-consultas-tienda/plan.md` | modified | referencia al nombre nuevo de la migración |
 | `docs/consultas.md` | modified | sección de retención con purga y supresión, sin «seguimiento trazado» |
 | `docs/producto/consultas.md` | modified | el manual ya no dice que los pedidos no se borran solos |
@@ -63,25 +63,54 @@ La revisión pidió cinco correcciones sobre lo entregado. Todas están en este 
    interna `ConsultaId` no viaja en el payload del correo; además comprueba que los avisos de otros
    tipos no quedan atados. Antes la regla solo se miraba sobre filas insertadas a mano.
 3. **Las marcas de las tareas**: `specs/…/tasks/MSF-944.md` con T001 a T009 en `[x]` y su evidencia.
-   `tasks.md` no se toca (es la spec compartida de la épica: sus marcas las escribe el runner).
+   `tasks.md` no lleva las marcas (es la spec compartida de la épica: sus marcas las escribe el runner).
 4. **`docs/tecnico/consultas.md`**: su §Retención seguía diciendo que no hay política definida y que no
    se borra ni expira nada, y su §Verificación no listaba el pgTAP nuevo ni el flow.
 5. **`docs/consultas.md`**: «Riesgos aceptados» (3) seguía diciendo que los datos personales del
    visitante no tienen política de retención, en el mismo archivo que ya la tiene.
 
+## Tercera vuelta (devolución del Revisor del PR #1132, SHA `578048c5a9`)
+
+La devolución pidió tres correcciones, las tres sobre la documentación (el código de la capacidad no
+cambia): sincronizar el `tasks.md` de la spec con el `spec.md` y el `plan.md`, y no afirmar como «en
+verde» unos guards que no lo están. Las tres están en este commit:
+
+1. **Alcance de entrega desincronizado** (`specs/…/tasks.md`): el encabezado seguía declarando
+   `supabase`, `kestra` mientras `spec.md` y `plan.md` ya declaran `supabase`, `kestra`, `refine` (la
+   etiqueta del evento nuevo en la actividad del panel). Los tres archivos ahora declaran lo mismo.
+2. **T001 nombraba una migración que no existe** (`specs/…/tasks.md`): seguía diciendo
+   `supabase/migrations/20270507170001_retencion_y_supresion_consultas_tienda.sql`; el archivo real es
+   `20270507200101_retencion_y_supresion_consultas_tienda.sql` (el renumerado con `git mv` del commit
+   `f7b4ce978`). La tarea cita ahora el archivo que existe.
+3. **Evidencia que no era cierta**: `pnpm der:check` y `pnpm calidad:code` se daban por «en verde».
+   Medidos en este commit: `pnpm der:check` (que revisa el repo entero) sale con **1** por 141 specs sin
+   DER válido, y ninguna es de MSF-944 —las 141 están igual en `origin/dokploy`—; el DER de esta spec
+   da `DER OK (1 spec/s)` con el comando acotado a la spec. `pnpm calidad:code` sale con **0** con las
+   dependencias del workspace instaladas; sin ellas, knip no resuelve `@playwright/test` y reporta como
+   exports sin uso los de `apps/web/e2e/soporte/fixtures.ts` (exit 1): es un artefacto del entorno,
+   porque esta historia no toca `apps/web/e2e/` ni `knip.json` (solo agrega una etiqueta en
+   `apps/web/src/lib/actividad.ts`). Los archivos de la spec y del informe (`tasks.md`,
+   `tasks/MSF-944.md`, `fix.md`, `test.md`) dicen ahora exactamente qué comando se corrió y qué salió.
+
 ## Local Verification
 
 - `pnpm lint` → OK (solo warnings preexistentes de React en pantallas).
 - `pnpm build` → OK.
-- `pnpm docs:check` → OK (`Documentación de cambios: OK`, `Migraciones OK: 754 archivo(s), 1 nuevo(s)`
+- `pnpm docs:check` → OK (`Documentación de cambios: OK`, `Migraciones OK: 772 archivo(s), 1 nuevo(s)`
   y `Trampas conocidas: OK (1 migración, 2 pruebas pgTAP revisados)`).
 - `node scripts/verificar-der.mjs specs/20270507170000-retencion-y-supresion-consultas-tienda/spec.md`
-  → `DER OK (1 spec/s)`. (`pnpm der:check` sin base de CI revisa las 140 specs del repo que ya no
-  tienen DER válido: falla igual en `bf2894dc3`, sin estos cambios.)
+  → `DER OK (1 spec/s)`. El `pnpm der:check` **sin argumentos** revisa todo el repo y sale con **1**:
+  `141 spec(s) sin DER válido`, y ninguna es de MSF-944 (las 141 existen igual en `origin/dokploy`: es
+  una condición previa del repo, no de esta historia).
 - `pnpm test:kestra:purgar-consultas-tienda` → 4/4.
-- `pnpm calidad:code` → OK (oxlint, knip, jscpd, dependency-cruiser, syncpack; gitleaks saltado
-  por falta de Docker).
-- `node scripts/verificar-migraciones.mjs --base origin/dokploy` → 754 archivo(s), 1 nuevo(s), sin
+- `pnpm calidad:code` → **exit 0** con las dependencias del workspace instaladas (oxlint, knip, jscpd,
+  dependency-cruiser, syncpack; gitleaks saltado por falta de Docker). Sin esas dependencias, knip no
+  resuelve `@playwright/test` y reporta como exports sin uso los de `apps/web/e2e/soporte/fixtures.ts`
+  (exit 1): es un artefacto del entorno —esta historia no toca `apps/web/e2e/` ni `knip.json`, solo
+  agrega una etiqueta en `apps/web/src/lib/actividad.ts`—, y con las dependencias instaladas el mismo
+  comando da verde. Lo confirma el job `quality` del CI de este SHA: corre `pnpm calidad` (con
+  gitleaks) y da verde.
+- `node scripts/verificar-migraciones.mjs --base origin/dokploy` → 772 archivo(s), 1 nuevo(s), sin
   reutilizadas.
 - `supabase test db` (pgTAP) → no corre en este entorno (sin acceso al socket de Docker ni CLI de
   Supabase); la evidencia de base es la del CI.
