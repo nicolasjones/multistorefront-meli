@@ -453,9 +453,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "e1ae3c03aee3f4be698465b46dfbeb182034a42fb7c0133ef0da67422a6f63c3",
+      "pageHash": "6719218880378cab01a363d54d05e8fce6eeee41f7a970b13f09c571025ec82d",
       "sourceHash": "1ceb50a39b9695affbea8d0e95510bee85e258221689c26ddac74ff7a8e24e5d",
-      "sourceAt": "f437fbc86",
+      "sourceAt": "659f1ccce",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -466,7 +466,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "f437fbc86"
+      "commit": "659f1ccce"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
