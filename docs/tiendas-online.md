@@ -681,14 +681,38 @@ La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el
 
 ### Rendimiento en celular (T071, SC-010)
 
-**No medido todavía.** El entorno donde se cerró la épica no tenía acceso a Docker, así que no hubo stack local con el seed y no hay cifras que registrar (no se inventan). La medición queda trazada en **MSF-552** (seguimiento). Protocolo a seguir:
+**Medido (MSF-552) el 17/11/2026 en el CI.** Entorno: runner self-hosted con el stack local de Supabase (Postgres del CI), el seed de `supabase/seed.sql` y **500 productos** por tienda encima (`scripts/sembrar-tienda-medicion.sql`); front compilado con `VITE_PANEL_HOSTS=localhost,127.0.0.1` y servido con `vite preview`. Perfil: Lighthouse 13.6 en emulación móvil 390×844, CPU ×4 y «4G lento» (`throttlingMethod: devtools`), 3 corridas por ruta; objetivo **LCP ≤ 3.000 ms**. Config `.lighthouserc.tienda.json`, comando local `pnpm medir:tienda`, job `medir` de `.github/workflows/nightly.yml`.
 
-1. `pnpm dev:supabase`, build del front y preview con las dos tiendas del seed.
-2. Lighthouse en perfil móvil (`.lighthouserc.json`) sobre `/catalogo` y `/producto/:id` de ambas tiendas.
-3. Medir `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos (techo de diseño, ver «Costo y techo esperado» arriba).
-4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
+| Pantalla | URL | Corridas | LCP (mediana) | FCP | CLS | TBT | Perf. | A11y |
+|---|---|---|---|---|---|---|---|---|
+| Mundo JC · catálogo | `http://mundojc.localhost:4312/catalogo` | 3 | 18.511 ms | 16.911 ms | 0,627 | 1.173 ms | 14 | 100 |
+| Mundo JC · ficha | `http://mundojc.localhost:4312/producto/ba900000-0000-4000-8000-000000000001` | 3 | 17.783 ms | 16.662 ms | 0,105 | 631 ms | 38 | 100 |
+| San Javucho · catálogo | `http://sanjavucho.localhost:4312/catalogo` | 3 | 18.206 ms | 16.443 ms | 0,229 | 873 ms | 23 | 100 |
+| San Javucho · ficha | `http://sanjavucho.localhost:4312/producto/bb900000-0000-4000-8000-000000000001` | 3 | 17.378 ms | 16.757 ms | 0,105 | 481 ms | 42 | 100 |
+
+**Veredicto: NO cumple el objetivo de LCP** (las cuatro rutas entre 17,4 s y 18,5 s contra los 3 s). No es el catálogo ni la base: en las 12 corridas el servidor responde en menos de 50 ms y el LCP tarda entre **16,6 s y 21,6 s** en *pintarse* («element render delay»), o sea que el tiempo se va en descargar y ejecutar el JavaScript. Medido en las mismas 12 corridas: la primera carga pide **126 scripts en el catálogo y 132 en la ficha** (1.986 KB sin comprimir / 675 KB comprimidos en el catálogo; 2.011 KB / 688 KB en la ficha) y el primero es el *entry* del front (911 KB sin comprimir / 260 KB comprimidos), que es el **bundle del panel**: `apps/web/src/main.tsx` importa `App` (panel) y `TiendaPublicaApp` (tienda) en el mismo *entry*, así que la tienda pública descarga el panel entero (ese chunk trae «Organizaciones», «Reparaciones» y «Ventas», y no los textos de la tienda). El *entry* tarda ~2,9 s en descargarse (738 ms → 3.603 s) y el FCP llega a los 16,9 s (mediana del catálogo de Mundo JC): el cuello de botella es ejecutar el JavaScript con la CPU ×4, no la red. El elemento que pinta el LCP es el aviso de cookies, no una foto de producto: cuando por fin aparece, el catálogo todavía está vacío. Además el catálogo acumula **CLS 0,63** (Mundo JC) y 0,23 (San Javucho): las 24 tarjetas se corren al entrar, y el elemento que más se mueve es la sección de productos («Productos», `secciones-catalogo/ListadoProductos.tsx`), con 0,59 de los 0,63.
+
+Esto **no lo arregla D3** (ni el tamaño de página ni la consulta por precio: ver abajo) y excede T071, que mide y anota. El arreglo es de front (que la tienda pública no cargue el panel) y necesita su propia spec; queda anotado como deuda al final de esta sección.
+
+**Costo de `publico.catalogo_pagina_por_dominio`** con una tienda de 500 productos (sintética, `med.ejemplo.com`, 5 corridas por caso, `scripts/medir-tienda-catalogo.sql`; todo va en una transacción que se revierte y no deja datos):
+
+| Caso | Mediana | Corridas | Total de la tienda |
+|---|---|---|---|
+| `relevancia` | 39 ms | 60, 37, 40, 39, 36 ms | 500 |
+| `precio_asc` | 215 ms | 202, 199, 234, 215, 228 ms | 500 |
+| `precio_desc` | 205 ms | 218, 191, 205, 205, 186 ms | 500 |
+| `precio_max` | 192 ms | 206, 182, 192, 179, 236 ms | 200 |
+| `solo_con_stock` | 49 ms | 73, 65, 49, 39, 38 ms | 250 |
+
+**D3 (tamaño de página 24): no hay que ajustarlo.** La página trae 24 productos y la RPC tarda 39 ms con orden por relevancia. El costo no depende del tamaño de página: desde **MSF-825** la función calcula precio y disponibilidad de toda la tienda solo cuando el orden o el tope de precio lo necesitan, y para la página sola en el resto de los casos. Bajar las 24 no abarataría la llamada.
+
+**La consulta por precio cumple, con un techo a vigilar.** Ordenar por precio cuesta 215 ms (`precio_asc`) y 205 ms (`precio_desc`) con 500 productos visibles: unas cinco veces el orden por relevancia, porque hay que calcular el precio de todo el catálogo para ordenarlo. Es el orden de magnitud del «techo de diseño» (unos pocos cientos de productos visibles por tienda, ver «Costo y techo esperado» arriba), y MSF-825 ya lo resolvió para el catálogo real de la demo (2.204 productos por tienda) calculando el precio solo para lo que se ordena. Si una tienda pasa de ~1.000 productos visibles, hay que volver a medir antes de tocar D3.
+
+**Fuente de las cifras:** run del nightly `44118543460` (job `medir`), artifact `medir-tienda` con `reports/lighthouse-tienda/resumen.md` (la mediana por ruta) y los 12 reportes de Lighthouse que la respaldan (4 rutas × 3 corridas), y `reports/medir-tienda/rpc-catalogo.txt` (los `NOTICE` de la RPC). El job falla si alguna ruta supera el objetivo de LCP: la regresión se ve en el run, no se esconde en el resumen. Para repetirlo: `pnpm dev:supabase` con el seed, `scripts/sembrar-tienda-medicion.sql`, la web servida y `pnpm medir:tienda`. En el CI el job `medir` busca el Chromium de Playwright para Lighthouse (`CHROME_PATH`); Playwright cambió la carpeta del binario de `chrome-linux/` a `chrome-linux64/` y el paso «Instalar Chromium» acepta las dos disposiciones.
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+**Deuda que deja esta medición** (no es de T071 y esta historia no la cierra): la tienda pública carga el bundle del panel. La corrección (que la tienda pública no cargue el panel: *entry* propio o carga diferida de `App`) es un cambio de front y **necesita su propia spec**; queda como tarea de seguimiento con dueño Frontend.
 
 ## Cuenta del cliente en la tienda (épica MSF-237)
 
