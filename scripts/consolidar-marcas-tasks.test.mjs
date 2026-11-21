@@ -51,6 +51,22 @@ describe('consolidar-marcas-tasks', () => {
     assert.match(tasks, /Evidencia: marca de cierre en `tasks\/F-DEM-01\.md`\./);
   });
 
+  it('no confunde una sub-tarea con su tarea madre (T022a no es T022)', () => {
+    const dirSpec = spec('demo', '- [ ] T022 Madre.\n- [ ] T022a Sub-tarea.\n', {
+      'F-DEM-01.md': '- [x] T022\n',
+    });
+    const resultado = consolidarSpec(dirSpec);
+    assert.deepEqual(resultado.cerradas.map((c) => c.id), ['T022']);
+    const tasks = fs.readFileSync(path.join(dirSpec, 'tasks.md'), 'utf8');
+    assert.match(tasks, /^- \[x\] T022 Madre\./);
+    assert.match(tasks, /^- \[ \] T022a Sub-tarea\./m);
+  });
+
+  it('lee el id de una sub-tarea completo (T022a ≠ T022)', () => {
+    const tareas = leerTareas('- [ ] T022 Madre.\n- [ ] T022a Sub-tarea.\n');
+    assert.deepEqual(tareas.map((t) => t.id), ['T022', 'T022A']);
+  });
+
   it('no cierra una tarea que ningún side-car marcó', () => {
     const dirSpec = spec('demo', '- [ ] T001 Pendiente.\n', { 'F-DEM-01.md': '- [x] T002\n' });
     const resultado = consolidarSpec(dirSpec);

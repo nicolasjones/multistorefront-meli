@@ -51,6 +51,17 @@ describe('verificar-tareas-cerradas', () => {
     assert.match(resultado.faltantes[0].motivo, /Desvío/);
   });
 
+  it('reporta «falta consolidar» si el side-car marcó la tarea y la línea además tiene nota Desvío', () => {
+    // La regla 1 va antes que la regla 2: la deuda trazada no tapa que la marca no llegó al tasks.md.
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración. Desvío: lo hace MSF-999.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T001');
+    assert.match(resultado.faltantes[0].motivo, /falta consolidar/);
+  });
+
   it('falla si una tarea con nota de desvío sigue [ ] aunque no haya side-car', () => {
     const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración. Desvío: lo hace MSF-999.\n');
     assert.equal(revisarSpec(dirSpec).faltantes.length, 1);

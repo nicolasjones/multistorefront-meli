@@ -22,12 +22,15 @@ import { fileURLToPath } from 'node:url';
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 
 // Una línea de tarea: `- [ ] T001 [P] [F-X-01][US1] texto` o `- [ ] **T001** texto`.
-export const TAREA = /^(\s*[-*]\s*\[)([ xX])(\]\s*(?:\*\*)?)(T\d+)((?:\*\*)?.*)$/;
+// El id es un token completo: `T001`, `T022a`. El límite de palabra evita que una sub-tarea
+// (`T022a`) se lea como su tarea madre (`T022`): una marca de `T022` cerraría la sub-tarea
+// con evidencia ajena (falsa auditoría) y el gate contaría dos veces la misma tarea.
+export const TAREA = /^(\s*[-*]\s*\[)([ xX])(\]\s*)(\*\*)?(T\d+[A-Za-z]*)(?![A-Za-z0-9])(\*\*)?(.*)$/;
 // Marca de provenance que deja el volcado (permite auditar de dónde salió cada `[x]`).
 export const EVIDENCIA = /Evidencia: marca de cierre en `tasks\/[^`]+`\./;
 
 /**
- * Tareas de un `tasks.md` o de un side-car: id, marca, línea original y entrada completa.
+ * Tareas de un `tasks.md` o de un side-car: id, marca, texto, línea original y entrada completa.
  * La entrada incluye las líneas de continuación (sangradas) de la tarea: la nota de desvío a
  * veces queda en la línea siguiente y no en la de la tarea.
  */
@@ -40,8 +43,9 @@ export function leerTareas(contenido) {
     let fin = i;
     while (fin + 1 < lineas.length && /^[ \t]/.test(lineas[fin + 1]) && !lineas[fin + 1].match(TAREA)) fin += 1;
     tareas.push({
-      id: m[4].toUpperCase(),
+      id: m[5].toUpperCase(),
       hecha: m[2].toLowerCase() === 'x',
+      texto: m[7].trim(),
       linea: lineas[i],
       entrada: lineas.slice(i, fin + 1).join('\n'),
     });
@@ -87,14 +91,14 @@ export function consolidarContenido(contenido, marcas) {
   for (let i = 0; i < lineas.length; i++) {
     const m = lineas[i].match(TAREA);
     if (!m) continue;
-    const [, pre, marca, sep, id, resto] = m;
+    const [, pre, marca, sep, abre = '', id, cierra = '', texto] = m;
     if (marca.toLowerCase() === 'x') continue; // ya cerrada: nunca se toca
     const origen = marcas.get(id.toUpperCase());
     if (!origen) {
       sinRespaldo.push(id.toUpperCase());
       continue;
     }
-    const linea = `${pre}x${sep}${id}${resto}`;
+    const linea = `${pre}x${sep}${abre}${id}${cierra}${texto}`;
     lineas[i] = EVIDENCIA.test(linea) ? linea : `${linea} Evidencia: marca de cierre en \`tasks/${origen[0]}\`.`;
     cerradas.push({ id: id.toUpperCase(), origen: `tasks/${origen[0]}` });
   }

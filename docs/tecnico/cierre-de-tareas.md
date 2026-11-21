@@ -28,7 +28,7 @@ mergeada.
 |---|---|
 | Side-car `specs/<slug>/tasks/<HISTORIA>.md` | Las marcas `[x]` de una historia, cuando el orquestador la da por terminada. Es la fuente de verdad. |
 | `pnpm tareas:consolidar` | Vuelca al `tasks.md` **sólo** las marcas que ya existen en un side-car. No inventa marcas, nunca vuelve `[x]` a `[ ]`, deja intacto el texto de la línea y es idempotente. |
-| `pnpm tareas:check` | Gate (corre en el job `chequeos` de `validate.yml` y como parte de `pnpm test`): falla si una historia cerrada dejó una tarea `[ ]` en el `tasks.md`. |
+| `pnpm tareas:check` | Gate (corre en el job `chequeos` de `validate.yml` y como parte de `pnpm test`): falla si una historia cerrada dejó una tarea `[ ]` en el `tasks.md` **o** si una tarea `[ ]` conserva una nota `Desvío:` (la deuda trazada se cierra como `[x]`). |
 
 ```bash
 pnpm tareas:consolidar          # vuelca las marcas al tasks.md (idempotente)
@@ -54,9 +54,16 @@ Por cada tarea `[ ]` de un `tasks.md`:
 4. En cualquier otro caso → pasa: la historia todavía no se cerró, la tarea está en
    curso.
 
-El gate lee las tareas con o sin negrita en el id (`- [ ] T001 …` y `- [ ] **T001** …`).
-Cuando falla, cada tarea muestra su acción: consolidar (regla 1) o cerrarla como `[x]`
+El gate lee las tareas con o sin negrita en el id (`- [ ] T001 …` y `- [ ] **T001** …`) y
+también las que están indentadas. El id es un token completo: una sub-tarea (`T022a`) es su
+propia tarea y no la madre (`T022`), así que una marca de `T022` no la cierra con evidencia
+ajena. Cuando falla, cada tarea muestra su acción: consolidar (regla 1) o cerrarla como `[x]`
 con evidencia o con `Desvío:` + seguimiento (reglas 2 y 3).
+
+El manifiesto de cobertura E2E (`scripts/cobertura-e2e.mjs`) y el reporte de cobertura de
+épicas (`scripts/e2e-cobertura-epicas.py`) leen el `tasks.md` con el mismo formato: hay un solo
+dueño del formato de la línea de tarea (`scripts/consolidar-marcas-tasks.mjs`), así que una
+tarea que el gate ve también la ven esos consumidores.
 
 ## Cuando una tarea no se puede hacer
 
