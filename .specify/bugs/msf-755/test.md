@@ -101,7 +101,7 @@ reejecutó todo lo verificable del repo.
 | Estado real del gate con PR | `node scripts/gate-integracion.mjs --pr 1147` | pass | «La rama está al día con la base» + veredicto, exit 0. |
 | El test vigila la regla (FEAT-236) | 8 mutaciones | pass | Falla la suite en las 8: `strict_required_status_checks_policy === false`; el detalle ilegible en silencio; el fnmatch reducido a nombre exacto; la protección clásica ignorada; el veredicto sin `--pr` eliminado; el runbook con la instrucción vieja; la salida 0 de `gh` como HTTP 0; y la protección clásica 200 sin cuerpo. Revertido, los 23 vuelven a verde. |
 
-## Cuarta vuelta (2026-11-21) — revalidación del HEAD `fdbf6741ef`
+## Revalidación del HEAD `fdbf6741ef` (2026-11-21)
 
 Se revalidó el HEAD real de la rama (`fdbf6741efcd2960967cda52951cb3ba7d30acf2`,
 que es el que abrió el PR #1147) sin cambiar el código: el diff contra
@@ -126,9 +126,9 @@ runbooks y la bitácora del bug).
 | El test vigila la regla (FEAT-236) | 3 mutaciones | pass | Fallan 7, 1 y 2 tests respectivamente: `strict_required_status_checks_policy === false`; el detalle ilegible descartado en silencio; y la protección clásica ignorada. Revertido, los 23 vuelven a verde. |
 | CI del PR | `gh run list --branch fix/bug-MSF-755` | pass | `Validate` y `quality` en **success** sobre el HEAD `fdbf6741ef`; PR #1147 `MERGEABLE`/`CLEAN`. |
 
-## Quinta vuelta (2026-11-21) — devolución de la revisión (SHA `84ca53fab8c`)
+## Cuarta vuelta (2026-11-21) — devolución de la revisión (SHA `84ca53fab8c`)
 
-Se atendieron los seis hallazgos técnicos y los cuatro de seguridad de la
+Se atendieron los seis hallazgos técnicos y el de seguridad de la
 devolución (fnmatch de GitHub, `~DEFAULT_BRANCH` en `exclude`, test del `?`,
 código de salida `2`, la acción de la cola de merge escrita en tres lugares, el
 ejemplo de `DELETE`, y la validación de `--repo`/`--base`) y se reejecutó todo
@@ -158,7 +158,46 @@ rulesets dice que GitHub usa `File.fnmatch` de Ruby con el flag
 `File::FNM_PATHNAME` y enlaza la doc de Ruby 2.5.1. De ahí sale que `*` no
 cruza `/`, que `?` y las clases de caracteres tampoco matchean una `/`, que `**/`
 es la forma recursiva (cero o más niveles de directorio) y que un `**` que no
-va seguido de `/` equivale a `*`. Los tests fijan esas cuatro reglas.
+va seguido de `/` equivale a `*`. Los tests fijan esas cuatro reglas. La misma
+página advierte dos límites que el matcher respeta: `^` no complementa un juego
+(sólo `!`) y `\` no es carácter de citación.
+
+## Quinta vuelta (2026-11-21) — devolución de la revisión (SHA `6d18175e1d`)
+
+Se atendieron los seis hallazgos técnicos y el de seguridad de la devolución (el
+`^` literal, el `\` literal, los tests de esas ramas, el rechazo de `.`/`..`,
+la numeración y el conteo de la bitácora, y la frase de `**`) y se reejecutó lo
+verificable del repo.
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| New / updated tests | `node --test scripts/gate-integracion.test.mjs` | pass | **36 tests, 36 pass, 0 fail** (34 antes + 2: el `^` literal dentro de `[]` y el `\` literal dentro/fuera de `[]`; además se ampliaron los de validación de `.`/`..`). |
+| Suite de CI (área tocada) | `pnpm test:ci` | pass | **91 tests, 90 pass, 1 skipped, 0 fail**. |
+| Suite de docs | `pnpm test:docs:check` | pass | **171 tests, 171 pass, 0 fail**. |
+| Guardas de documentación | `pnpm docs:check` | pass | Documentación de cambios OK (4256 archivos contra la base) · Migraciones OK (771 archivos, 0 nuevos contra `origin/dokploy`) · Trampas conocidas OK. |
+| Deriva de documentación | `node scripts/docs-drift.mjs` | pass | 18 páginas con deriva: **las 18 preexistentes de la base**. `docs/control-ci.md` salió de la lista (el manifest se regeneró con `pnpm docs:manifest`). |
+| Links y nav de la documentación | `node scripts/docs-check.mjs` | pass | nav 219 páginas, links internos 2004, inventario y diagramas OK. |
+| Lint / Build | `pnpm lint` · `pnpm build` | pass | exit 0 en los dos (los warnings de `set-state-in-effect` son preexistentes, en archivos que este cambio no toca). |
+| Calidad determinista | `pnpm calidad` | partial | oxlint, knip, jscpd, dependency-cruiser y syncpack **ok**; **gitleaks no corrió** (sin permisos del socket de Docker en este entorno). El job `quality` del CI lo corre. |
+| El test vigila la regla (FEAT-236) | 6 mutaciones | pass | Falla la suite en las 6: volver `^` a complemento (1 test); volver el escape de `\` dentro de `[]` (2); dejar de escapar la `\` fuera de `[]` (1); quitar el cierre implícito del juego terminado en `\` (1); y sacar el rechazo de `.`/`..` en `--repo` (2) y en `--base` (2). Revertido, los 36 vuelven a verde. |
+
+### El escenario exacto del revisor, verificado
+
+El revisor mostró el caso que produce el falso verde: con `include:
+['refs/heads/[^charset]*']` (el ejemplo de la propia documentación de GitHub)
+GitHub protege `refs/heads/abc` y el script la rechazaba. El estado real del
+script antes y después del arreglo, sobre los patrones del hallazgo:
+
+| Patrón | Rama | Antes (`6d18175e1d`) | Después |
+|---|---|---|---|
+| `refs/heads/[^charset]*` | `abc` | **no matchea** («no hay gate» falso) | matchea (como GitHub) |
+| `refs/heads/[^0-9]*` | `abc` | matchea (GitHub no complementa con `^`) | no matchea (el `^` es un miembro más) |
+| `refs/heads/x[\*]` | `x\` | **no matchea** | matchea (el `\` es miembro del juego) |
+| `refs/heads/x[\*]` | `x*` | matchea | matchea |
+| `refs/heads/x[\` | `x\` | **aborta (exit 2)** | matchea (no aborta) |
+| `refs/heads/x\` | `x\` | matchea | matchea |
+| `refs/heads/x[` | `x[` | **aborta (exit 2)** | **aborta (exit 2)**: un juego sin cerrar es un patrón que no se puede interpretar y falla en voz alta (comportamiento de la cuarta vuelta, que no se toca) |
+
 
 ## Residual Risks
 

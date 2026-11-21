@@ -90,7 +90,7 @@ historia:
 |---|---|---|
 | `docs/tecnico/runbooks/ci-trabado.md:28` ordenaba «actualizar la rama» ante un merge por «rama atrás» (justo la instrucción que genera el ciclo) | el paso 5 del runbook manda a mirar el gate con `pnpm ci:gate -- --pr <n>` y a no resincronizar a ciegas; el guard de docs ahora mira **esa** página | `scripts/gate-integracion.test.mjs`, describe «runbooks» |
 | `scripts/gate-integracion.mjs`: si el detalle de un ruleset no se podía leer, el ruleset se descartaba en silencio y el informe caía en «sin gate» (falso verde) | la lectura de la API pasa por una función **pura** `gateDesdeRespuestas` que **falla** si un detalle no se pudo leer (o si la protección clásica no se pudo leer) | `gateDesdeRespuestas` |
-| `aplicaA` comparaba `ref_name` exacto y no veía los patrones fnmatch (`refs/heads/*` daba «sin gate» con un ruleset activo) | `coincidePatron` implementa el fnmatch de GitHub (`*` no cruza `/`, `**` sí, `**/` = cero o más directorios) y los tokens `~ALL` / `~DEFAULT_BRANCH` | `coincidePatron`, `aplicaA` |
+| `aplicaA` comparaba `ref_name` exacto y no veía los patrones fnmatch (`refs/heads/*` daba «sin gate» con un ruleset activo) | `coincidePatron` implementa el fnmatch de GitHub (`*` no cruza `/`, `**/` = cero o más directorios y un `**` suelto equivale a `*`) y los tokens `~ALL` / `~DEFAULT_BRANCH` | `coincidePatron`, `aplicaA` |
 | la capa de lectura de la API no tenía ningún test (una regresión al endpoint clásico no la detectaba nadie) | `gateDesdeRespuestas` es pura y se testea con el **payload real** del ruleset `25358575` (lista + detalle + 404) y con la protección clásica | `scripts/gate-integracion.test.mjs`, describe «gateDesdeRespuestas» |
 | `docs/manifest.json` quedó con la deriva de `docs/control-ci.md` (el HEAD cambió una fuente declarada sin tocar la página) | la página se actualizó y el manifest se regeneró (`pnpm docs:manifest`): esa página salió de la lista de deriva | `node scripts/docs-drift.mjs` → 18 páginas (las 18 preexistentes), sin `docs/control-ci.md` |
 | `GITHUB_BASE_REF` pisaba la base documentada (`dokploy`) y no figuraba en la cabecera de uso (en un job de CI de un PR a `main` el informe hablaba del gate de `main`) | la base por defecto es **siempre** `dokploy`; `--base <rama>` la cambia a propósito y `GITHUB_BASE_REF` dejó de usarse. La cabecera de uso documenta `--repo`, `--base`, `--pr` y `--json` | cabecera de uso del script |
@@ -124,7 +124,7 @@ Verificación de esta vuelta:
 ### Cuarta vuelta (2026-11-21) — devolución de la revisión (PR #1147, SHA `84ca53fab8c`)
 
 El revisor pidió cambios sobre el HEAD `84ca53fab80c`. Se atendieron los seis
-hallazgos técnicos y los cuatro de seguridad, todos de esta historia:
+hallazgos técnicos y el de seguridad, todos de esta historia:
 
 | Hallazgo | Corrección | Dónde está |
 |---|---|---|
@@ -160,6 +160,41 @@ Verificación de esta vuelta:
 - `node scripts/gate-integracion.mjs` → el gate real (ruleset `25358575`, check `validacion`, «rama al día» NO exigida) + el aviso del 404 + veredicto, exit 0.
 - `node scripts/gate-integracion.mjs --pr 1147` → «La rama está al día con la base» + veredicto, exit 0.
 - **FEAT-236 (8 mutaciones, 8 detectadas):** `**/` sin recursión; `[]` como literal; `~DEFAULT_BRANCH` sólo desde `include`; el comodín `?` eliminado; `--repo`/`--base` sin validar; el patrón inválido ignorado en silencio; una clase que matchea la `/`; y `*` cruzando la `/`. En los ocho casos falla la suite; revertido, los 34 vuelven a verde.
+
+### Quinta vuelta (2026-11-21) — devolución de la revisión (SHA `6d18175e1d`)
+
+El revisor pidió cambios sobre el HEAD `6d18175e1d`. Se atendieron los seis
+hallazgos técnicos y el de seguridad de esta vuelta (siete correcciones: el
+hallazgo de `--repo`/`--base` y el de `\` aparecen en las dos listas), todos del
+matcher fnmatch y de la validación de argumentos de esta historia:
+
+| Hallazgo | Corrección | Dónde está |
+|---|---|---|
+| **Media** · `regexDePatron` trataba `^` como complemento del juego, pero GitHub documenta que no se complementa con `^`: daba falso «no hay gate» sobre ramas que GitHub sí protege | sólo `!` niega; el `^` es un miembro literal más del juego | `scripts/gate-integracion.mjs`, `regexDePatron` |
+| **Baja** · `\` se interpretaba como escape dentro de `[]` (y se copiaba crudo a la regex de JS: `[\d]` matcheaba dígitos) y un patrón terminado en `\` abortaba con exit 2; GitHub no soporta `\` como carácter de citación | `\` es literal dentro y fuera de `[]` (se escapa para JS) y un patrón terminado en `\` no aborta: el juego se cierra con el fin del patrón | `regexDePatron` |
+| **Baja** · ningún test cubría `[^...]` ni `\` dentro de `[]` (borrar esas ramas dejaba la suite verde) | casos nuevos: `[^charset]` (el ejemplo de la doc) protege `refs/heads/abc` como en GitHub; `[\*]` matchea `\` y `*`; un patrón terminado en `\` no aborta | `scripts/gate-integracion.test.mjs` |
+| **Baja/Media (seguridad)** · `esRepoValido`/`esRamaValida` aceptaban segmentos `.`/`..` (`owner/..`, `../otro`, `a/./b`): el cliente HTTP normaliza la ruta y consulta otra rama | se rechaza cualquier segmento `.`/`..` antes de la API | `esRepoValido`, `esRamaValida` + tests de CLI |
+| **Baja** · la vuelta del SHA `84ca53fab8c` se titulaba «Cuarta» en `fix.md` y «Quinta» en `test.md` | numeración alineada (la revalidación de `fdbf6741ef` deja de numerarse como vuelta) | `fix.md`, `test.md` |
+| **Baja** · el conteo «seis técnicos y cuatro de seguridad» (10) no cerraba con las 7 filas de la tabla | conteo corregido a «seis técnicos y el de seguridad» (7) | `fix.md`, `test.md` |
+| **Baja (seguridad)** · `fix.md` decía que «`**` sí» cruza `/`, contradiciendo la semántica corregida | queda «`**/` cruza y un `**` suelto equivale a `*`» | `fix.md` |
+
+Evidencia de la fuente: GitHub documenta, en «Unsupported `fnmatch` syntax», que
+«you cannot currently complement a set with the `^` operator» y que «you cannot
+use the backslash (`\`) character as a quoting character»
+(`creating-rulesets-for-a-repository#unsupported-fnmatch-syntax`); el matcher
+respeta las dos restricciones. El escenario del revisor —el ejemplo `[^charset]`
+de la propia documentación— queda cubierto por un test: con ese patrón GitHub
+protege `refs/heads/abc` y el script también, así que ya no puede responder
+«no hay gate» de una rama que GitHub protege.
+
+Verificación de esta vuelta:
+
+- `node --test scripts/gate-integracion.test.mjs` → **36 tests, 36 pass, 0 fail**.
+- `pnpm test:ci` → **91 tests, 90 pass, 1 skipped, 0 fail**.
+- `pnpm test:docs:check` → 171 tests, 171 pass, 0 fail.
+- `pnpm docs:check` → Documentación de cambios OK · Migraciones OK (0 nuevos) · Trampas conocidas OK.
+- `pnpm lint` → exit 0 · `pnpm build` → exit 0.
+- **FEAT-236 (6 mutaciones, 6 detectadas):** volver `^` a complemento; volver el escape de `\` dentro de `[]`; dejar de escapar la `\` fuera de `[]`; quitar el cierre implícito del juego terminado en `\`; y sacar el rechazo de `.`/`..` en `--repo` y en `--base`. En los seis casos falla la suite; revertido, los 36 vuelven a verde.
 
 ## Deviations from Assessment
 
