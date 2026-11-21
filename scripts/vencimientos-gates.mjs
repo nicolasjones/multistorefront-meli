@@ -230,7 +230,11 @@ export async function ejecutar({
   const columnas = new Map(meta.columns.map((c) => [c.id, c]))
   const { gates, porTipo, leidos } = await leerBoard(api, { proyecto, meta })
   contrastarBoard(gates, porTipo, { etiquetas })
-  const candidatos = seleccionarGates([...gates.values()], { etiquetas, columnas })
+  const gatesDelBoard = [...gates.values()]
+  // La población de la regla son los gates que **esperan decisión**: los que ya se
+  // entregaron (columna terminal) no esperan y no se fechan.
+  const esperando = gatesDelBoard.filter((item) => esperaDecision(item, columnas))
+  const candidatos = seleccionarGates(esperando, { etiquetas, columnas })
   const plan = await calcularPlan(candidatos, (id) => api.get(`/issues/${id}`))
   if (aplicar) {
     for (const p of plan) {
@@ -240,7 +244,7 @@ export async function ejecutar({
       alAplicar?.(p)
     }
   }
-  return { plan, gates: gates.size, leidos, columnas }
+  return { plan, gates: gatesDelBoard.length, esperando: esperando.length, leidos, columnas }
 }
 
 function arg(nombre) {
@@ -256,7 +260,7 @@ async function main() {
     process.exit(1)
   }
   console.log(`Leyendo el board de ${proyecto}...`)
-  const { plan, gates, leidos, columnas } = await ejecutar({
+  const { plan, gates, esperando, leidos, columnas } = await ejecutar({
     proyecto,
     aplicar,
     alAplicar: (p) =>
@@ -265,8 +269,8 @@ async function main() {
       ),
   })
   console.log(
-    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${gates} gates del board ` +
-      `(${leidos} ítems leídos para el contraste).`,
+    `Gates sin fecha de vencimiento en ${proyecto}: ${plan.length} de ${esperando} gates ` +
+      `esperando decisión (${gates} gates del board, ${leidos} ítems leídos para el contraste).`,
   )
   if (!aplicar) {
     for (const p of plan) {

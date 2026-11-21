@@ -183,6 +183,7 @@ test('el barrido simula sin escribir y aplica con un PATCH por ítem', async () 
     [['MSF-1', '2026-11-15']],
   )
   assert.equal(simulado.gates, 3)
+  assert.equal(simulado.esperando, 2)
   assert.equal(simulado.leidos, 4)
   assert.equal(llamadas.filter((c) => c.init.method === 'PATCH').length, 0)
 

@@ -75,7 +75,7 @@ node scripts/vencimientos-gates.mjs --aplicar
 ```
 
 La simulación es el paso obligatorio: imprime el ítem, la columna, la fecha que le
-corresponde y cuántos gates del board se leyeron.
+corresponde y cuántos gates del board esperan decisión.
 
 **Verificación.** Después de aplicar, la simulación tiene que dar **0** ítems (todos
 tienen fecha) y el detalle de cada ítem tiene que mostrar la fecha:
@@ -85,6 +85,9 @@ node scripts/vencimientos-gates.mjs          # 0 gates sin fecha
 curl -s -H "x-api-key: $ITSAPLAN_API_KEY" \
   https://api.plan.agenmatica.com/issues/<id> | jq '{identifier, dueDate}'
 ```
+
+El «0» es sobre los gates que **esperan decisión**: los que ya se entregaron (columna
+terminal) no esperan y no se fechan, así que no cuentan.
 
 ### Si el barrido corta con error
 

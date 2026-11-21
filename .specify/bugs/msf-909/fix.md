@@ -110,7 +110,7 @@ igual y sólo consumían el tope de la lectura.
 - Commands run: `pnpm docs:check` → OK (documentación de cambios, migraciones y trampas conocidas).
 - Commands run: `pnpm lint` → 0 errores (warnings preexistentes de `apps/web`); `pnpm build` → OK.
 - Commands run: `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack OK (gitleaks no corrió: el entorno no tiene permisos de Docker, que es como corre ese check).
-- Board (sólo lectura, simulación, 2026-11-21): `node scripts/vencimientos-gates.mjs` → `Gates sin fecha de vencimiento en MSF: 0 de 71 gates del board (781 ítems leídos para el contraste).`
+- Board (sólo lectura, simulación, 2026-11-21): `node scripts/vencimientos-gates.mjs` → `Gates sin fecha de vencimiento en MSF: 0 de 20 gates esperando decisión (71 gates del board, 781 ítems leídos para el contraste).`
 - Board (medición de la API para el diseño del contraste, 2026-11-21): `GET /projects/MSF/issues?labelIds={735,736,738}&limit=500` → 10 + 25 + 50 = **71** gates, los mismos ids que el board; `?typeId={12,20,21,22}&limit=500` → 100 + 302 + 259 + 120 = **781** ítems; los mismos 71 gates. La lectura global sin filtro de tipo (`?limit=5000`) devuelve **exactamente 500**: el tope real de la API.
 - Board (aplicación, 2026-11-19): `node scripts/vencimientos-gates.mjs --aplicar` → `Fecha puesta en 19 ítem(s).`
 - Board (verificación): `node scripts/vencimientos-gates.mjs` → **0 gates sin fecha**; `GET /issues/1145` (MSF-909) → `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"` (24 h en `America/Argentina/Buenos_Aires`, 2026-11-15).

@@ -29,7 +29,7 @@ también las correcciones.
 | Ítem puntual | `GET /issues/1145` | pass | MSF-909: `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"`. |
 | Re-verificación (2026-11-20) | `node scripts/vencimientos-gates.mjs` | pass (0) | 0 gates sin fecha de 830 ítems; MSF-909 sigue con `dueDate: "2026-11-15"`. |
 | Gate nuevo (2026-11-21) | `node scripts/vencimientos-gates.mjs` → `--aplicar` → simulación | pass | 1 gate sin fecha de 831 ítems (MSF-988, escalado a humano después del barrido); `Fecha puesta en 1 ítem(s).`; la simulación vuelve a dar 0. `GET /issues/1224` → `dueDate: "2026-11-18"`. |
-| Simulación con la lectura doble (2026-11-21) | `node scripts/vencimientos-gates.mjs` | pass (0) | `Gates sin fecha de vencimiento en MSF: 0 de 71 gates del board (781 ítems leídos para el contraste).` Las dos lecturas (por etiqueta y por tipo) ven los mismos 71 gates: el contraste pasa. |
+| Simulación con la lectura doble (2026-11-21, después de las correcciones) | `node scripts/vencimientos-gates.mjs` | pass (0) | `Gates sin fecha de vencimiento en MSF: 0 de 20 gates esperando decisión (71 gates del board, 781 ítems leídos para el contraste).` Las dos lecturas (por etiqueta y por tipo) ven los mismos 71 gates: el contraste pasa. El «0» es sobre los gates que esperan decisión: los que ya se entregaron no cuentan. |
 | Lecturas de la API (2026-11-21) | `GET /projects/MSF/issues?labelIds={735,736,738}&limit=500` y `?typeId={12,20,21,22}&limit=500` | pass | 10 + 25 + 50 = 71 gates por etiqueta; 100 + 302 + 259 + 120 = 781 ítems por tipo; los mismos 71 gates en las dos lecturas. La lectura sin filtro de tipo devuelve exactamente 500: el tope real de la API. |
 | New / updated tests | `pnpm test:vencimientos:gates` | pass | 15 tests, 15 pass, 0 fail (antes: 9). Incluye el caso del revisor (lectura truncada) y el del `PATCH` que falla a mitad. |
 | Mutaciones (tests que vigilan la regla) | quitar `contrastarBoard` / quitar el registro por ítem / tope `>=` → `>` | pass | 2, 1 y 2 tests fallan respectivamente; las mutaciones se revirtieron. |
@@ -61,7 +61,7 @@ Gates sin fecha de vencimiento en MSF: 0 de 831 ítems del board.
 
 ```
 Leyendo el board de MSF...
-Gates sin fecha de vencimiento en MSF: 0 de 71 gates del board (781 ítems leídos para el contraste).
+Gates sin fecha de vencimiento en MSF: 0 de 20 gates esperando decisión (71 gates del board, 781 ítems leídos para el contraste).
 Simulación: no se escribió nada. Repetí con --aplicar para poner la fecha.
 ```
 
