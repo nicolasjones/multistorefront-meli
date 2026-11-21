@@ -360,7 +360,7 @@ El estado real se lee por la API de rulesets:
 ```bash
 gh api repos/<owner>/<repo>/rulesets --jq '.[] | "\(.id) \(.name) \(.enforcement)"'
 gh api repos/<owner>/<repo>/rulesets/25358575 --jq '.rules[] | {type, parameters}'
-gh api --method DELETE repos/<owner>/<repo>/rulesets/<id>   # desactivar el ruleset
+gh api --method PUT repos/<owner>/<repo>/rulesets/<id> -f enforcement=disabled   # desactivar (DELETE lo borra)
 ```
 
 El repo trae el diagnóstico que ya consulta el endpoint correcto, avisa de la
@@ -380,19 +380,22 @@ integración), `--repo <owner/nombre>` elige el repo (por defecto
 
 Códigos de salida: `0` = el merge no se rechaza por desfasaje · `1` =
 **BLOQUEADO** (el gate exige «rama al día» y la rama del PR está atrás) · `2` =
-no se pudo leer el gate. En el `2` el script **falla en voz alta** en vez de
-informar «no hay gate»: un diagnóstico a medias es peor que no tener
-diagnóstico.
+no se pudo determinar el veredicto (no se pudo leer el gate, el PR ni la
+comparación). En el `2` el script **falla en voz alta** en vez de informar «no
+hay gate»: un diagnóstico a medias es peor que no tener diagnóstico.
 
 El diagnóstico lee **las dos** capas del gate: los rulesets y la protección
 clásica de la rama (`/branches/<rama>/protection`). Según GitHub, ambas se
 acumulan y se exigen todas las reglas aplicables, así que un **200** en el
 endpoint clásico también es un gate; un 404 sólo dice «no hay protección
 clásica», no «no hay gate». Los `include`/`exclude` de `conditions.ref_name` se
-interpretan como patrones fnmatch (`refs/heads/*`, `refs/heads/release/**`,
-`~ALL`), no como nombres exactos. Y si algo no se puede leer (el detalle de un
-ruleset, la protección clásica), el script **falla** en vez de informar «no hay
-gate»: un falso verde en el diagnóstico es peor que no tener diagnóstico.
+interpretan como patrones fnmatch —los de GitHub (`File.fnmatch` con
+`FNM_PATHNAME`): `*` no cruza `/`, `?` matchea un carácter, `[]` es un juego de
+caracteres, `**/` matchea cero o más niveles de directorio y un `**` suelto
+equivale a `*`— y no como nombres exactos. Y si algo no se puede leer (el
+detalle de un ruleset, la protección clásica) o si un patrón no se puede
+interpretar, el script **falla** en vez de informar «no hay gate»: un falso
+verde en el diagnóstico es peor que no tener diagnóstico.
 
 ### Consecuencia operativa
 
@@ -558,9 +561,8 @@ Cuando una corrida hosted necesita secretos o acceso a la red privada de VPS2, n
   `pnpm prepush`); `SKIP_PREPUSH=1` lo saltea. No se activa por `core.hooksPath` global porque lo compartirían todos los worktrees.
 - **Cola de merge:** el workflow ya reacciona a `merge_group`, pero el ruleset `dokploy-integracion-protegida` hoy solo exige el
   check `validacion` y no tiene regla de cola de merge. Activarla cambia el flujo de merge de todas las sesiones (cada PR corre el CI
-  completo al integrar), así que es una decisión aparte: es la de Nicolás (MSF-755) y se activa desde la UI
-  (Settings → Rules → Rulesets → `dokploy-integracion-protegida` → «Merge queue»), porque GitHub no la expone por API para este repo.
-  El repo no se toca: `validate.yml` ya tiene el trigger `merge_group`.
+  completo al integrar), así que sigue siendo decisión de Nicolás (MSF-755): el procedimiento exacto y el estado están en
+  «Pendientes del lote 36 que necesitan acción de Nicolás», arriba. El repo no se toca: `validate.yml` ya tiene el trigger `merge_group`.
 
 ## E2E con sesión (`e2e-visible-sesion`): arranque del stack
 

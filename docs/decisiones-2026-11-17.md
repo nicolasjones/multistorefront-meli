@@ -211,4 +211,5 @@ Estas acciones no las hace ningún lote de código; quedan a cargo de Nicolás:
 - **Promoción DEV → STG → PRD:** ejecutarla. Recordá la regla de MSF-924: STG tiene que ir un paso adelante de PRD (se
   sincroniza con `dokploy` y se valida allí antes de promover a PRD).
 - **Reglas de GitHub, runners y servidores:** los cambios de configuración fuera del repo (MSF-648, MSF-649, MSF-703,
-  MSF-704, MSF-755 — activar la «Merge queue» del ruleset `dokploy-integracion-protegida`).
+  MSF-704, MSF-755 — la «Merge queue» del ruleset `dokploy-integracion-protegida`, con el procedimiento y el estado en
+  «Pendientes del lote 36 que necesitan acción de Nicolás» de `docs/control-ci.md`).
