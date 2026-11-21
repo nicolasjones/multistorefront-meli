@@ -75,7 +75,7 @@ compartidos a módulos propios. Lo que queda y está documentado como excepción
   `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
-- Revisión 2026-11-20 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
+- Revisión 2026-11-21 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
   (1575 módulos, 5066 dependencias) aparecieron **3 ciclos de imports** que nadie veía; los 3 se corrigieron
   en el mismo lote y el guard cierra en verde. `not-to-dev-dep` queda documentada como excepción (no puede
   disparar con el layout de pnpm).
