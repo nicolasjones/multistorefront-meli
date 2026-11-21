@@ -21,7 +21,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { leerTareas, marcasDeSideCars } from './consolidar-marcas-tasks.mjs';
+import { leerTareas, marcasDeSideCars, sideCarsDe } from './consolidar-marcas-tasks.mjs';
 
 const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 
@@ -51,11 +51,7 @@ export function revisarSpec(dirSpec) {
   const slug = basename(dirSpec);
   if (!existsSync(tasksMd)) return { slug, faltantes: [], abiertas: 0 };
   const marcas = marcasDeSideCars(join(dirSpec, 'tasks'));
-  const sideCars = new Set(
-    existsSync(join(dirSpec, 'tasks'))
-      ? readdirSync(join(dirSpec, 'tasks')).filter((n) => n.endsWith('.md')).map((n) => n.replace(/\.md$/, ''))
-      : [],
-  );
+  const sideCars = new Set(sideCarsDe(join(dirSpec, 'tasks')).map((n) => n.replace(/\.md$/, '')));
   const faltantes = [];
   let abiertas = 0;
   for (const tarea of leerTareas(readFileSync(tasksMd, 'utf8'))) {

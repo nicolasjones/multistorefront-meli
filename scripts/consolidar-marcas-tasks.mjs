@@ -51,14 +51,22 @@ export function leerTareas(contenido) {
 }
 
 /**
+ * Nombres de los side-car de una spec (los `.md` de `specs/<slug>/tasks/`), ordenados.
+ */
+export function sideCarsDe(dirTasks) {
+  if (!existsSync(dirTasks)) return [];
+  return readdirSync(dirTasks)
+    .filter((nombre) => nombre.endsWith('.md'))
+    .sort();
+}
+
+/**
  * Marcas de cierre por id de tarea, con el side-car que las aportó.
  * @returns {Map<string, string[]>} id -> nombres de archivo (ordenados).
  */
 export function marcasDeSideCars(dirTasks) {
   const marcas = new Map();
-  if (!existsSync(dirTasks)) return marcas;
-  for (const nombre of readdirSync(dirTasks).sort()) {
-    if (!nombre.endsWith('.md')) continue;
+  for (const nombre of sideCarsDe(dirTasks)) {
     for (const tarea of leerTareas(readFileSync(join(dirTasks, nombre), 'utf8'))) {
       if (!tarea.hecha) continue;
       if (!marcas.has(tarea.id)) marcas.set(tarea.id, []);
