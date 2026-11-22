@@ -28,13 +28,22 @@ sección D no veía el resto de las relaciones `duplicates`. Con esa cobertura c
 **MSF-859 → MSF-931** (mismo título, el re-reporte sin padre: el duplicado que el reporte pedía
 eliminar) y **MSF-606** (ya marcado `duplicates` → MSF-597 pero sin el label del mecanismo).
 
+**2.ª devolución del Revisor (2026-11-22).** La cobertura ya era completa, pero el barrido **se
+mentía de tres formas**: unía los dos endpoints del board por `id` y no por identidad (un ítem que
+viene en los dos entraba dos veces y se citaba como duplicado de sí mismo), había perdido el
+**fallo ruidoso** (si la lectura devolvía 0 ítems o una forma inesperada imprimía un «limpio» falso y
+salía con 0), y la sección C sólo miraba los pares **de mismo padre** (un par duplicado sin padre en
+los dos dejaba de reportarse). Con esos tres arreglos más el detalle reintentado ante un 429, la
+unificación ya existente en el board no se toca: el barrido queda en «C) (ninguno) · D) (ninguno)».
+
 ## Changes
 
 | File | Change | Notes |
 |------|--------|-------|
 | `scripts/auditar-duplicados-tracker.mjs` | added | Barrido del board: normaliza **conservando la etiqueta inicial**; reporta A) títulos idénticos (duplicado real vs. re-reporte sin padre vs. falsos positivos), B) familias por referencia (informativo), C) cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia, D) marcado `duplicates` pero sin el mecanismo. Sin `ITSAPLAN_API_KEY` avisa y sale con 0. |
-| `scripts/auditar-duplicados-tracker.mjs` | modified (devolución) | Lee el board **completo** (`/issues/board` + `/issues/archived`, sin filtro por tipo: los ítems sin tipo se cuelan en el `typeId`) y pide el detalle de **todos** los ítems (la sección D necesita las relaciones `duplicates` de cualquiera). El encabezado informa cuántos leyó de cada tipo. La evidencia se define por el **estado del título** del Implementation Report («— PR listo» / «— correcciones aplicadas» sí; «— terminó sin PR» / «— falló el Desarrollador» no). |
-| `scripts/auditar-duplicados-tracker.test.mjs` | added tests | 30 casos (ver abajo). |
+| `scripts/auditar-duplicados-tracker.mjs` | modified (devolución) | Lee el board **completo** (`/issues/board` + `/issues/archived`, sin filtro por tipo: los ítems sin tipo se cuelan en el `typeId`) y pide el detalle de **todos** los ítems (la sección D necesita las relaciones `duplicates` de cualquiera). El encabezado informa el total leído y su reparto en activos y archivados. La evidencia se define por el **estado del título** del Implementation Report («— PR listo» / «— correcciones aplicadas» sí; «— terminó sin PR» / «— falló el Desarrollador» no). |
+| `scripts/auditar-duplicados-tracker.mjs` | modified (2.ª devolución) | Los dos endpoints del board se unen por **identidad** (`identifier`): un ítem que aparece en los dos ya no se cuenta dos veces (el barrido lo citaba como duplicado de sí mismo). La lectura **falla ruidosamente** si el board viene vacío o con una forma inesperada (antes imprimía «0 ítems leídos» y salía con 0: un falso limpio). La sección C cubre **todo par duplicado** (mismo padre **o** re-reporte sin padre). La línea de candidato nombra al que no tiene padre y contra cuál puede duplicar; el resumen distingue el candidato pendiente del ya unificado. Los detalles se **reintentan** ante un fallo transitorio (429/5xx/red) con espera creciente. |
+| `scripts/auditar-duplicados-tracker.test.mjs` | added tests | 42 casos (ver abajo). |
 | `package.json` | modified | `tracker:duplicados` y `test:tracker:duplicados`; el suite entra en `pnpm test` y en `test:tooling` (la lista explícita que corre el job `chequeos`: sin eso el CI no habría corrido el test nuevo). |
 | `docs/tecnico/operacion.md` | modified | Sección «Higiene del board: duplicados y cierre administrativo (MSF-908)»: la regla de cierre administrativo, qué mira el barrido, la cobertura (board completo) y qué es «evidencia». |
 | `docs/manifest.json` | regenerated | `node scripts/docs-manifest.mjs` (sólo cambia la entrada de `operacion.md`). |
@@ -84,6 +93,28 @@ export async function leerBoard({ pedir, proyecto = PROYECTO_POR_DEFECTO }) {
 const ESTADOS_SIN_ENTREGA = ['terminó sin PR', 'falló el Desarrollador'];
 ```
 
+```js
+// (2.ª devolución) Los dos endpoints se unen por IDENTIDAD: el mismo ítem llega con `id`
+// distinto en cada uno y, unido por `id`, el barrido lo citaba como duplicado de sí mismo.
+function claveIdentidad(item) {
+  return item.identifier ?? `id:${item.id}`;
+}
+```
+
+```js
+// (2.ª devolución) Un board vacío es una lectura rota, no un board limpio: se falla en vez
+// de imprimir «0 ítems leídos» y salir con 0.
+if (items.length === 0) throw new Error('No se puede barrer el board: 0 ítems leídos');
+```
+
+```js
+// (2.ª devolución) La sección C cubre todo par duplicado: mismo padre o re-reporte sin
+// padre (los dos sin padre también son un par).
+export function esParDuplicado(a, b) {
+  return a.parentId == null || b.parentId == null || a.parentId === b.parentId;
+}
+```
+
 ## Tests Added or Updated
 
 - `scripts/auditar-duplicados-tracker.test.mjs::conserva la etiqueta inicial: dos épicas con el mismo texto NO se funden` — si la normalización vuelve a borrar `[...]`, el test falla.
@@ -99,12 +130,23 @@ const ESTADOS_SIN_ENTREGA = ['terminó sin PR', 'falló el Desarrollador'];
 - *(devolución)* `…::el Implementation Report sólo es evidencia si no declara que no entregó` / `…::el estado se lee del título del informe, no del cuerpo` — un informe «terminó sin PR» no hace pasar a un ítem por el que conserva la entrega.
 - *(devolución)* `…::un mismo título con un ítem sin padre se reporta como candidato a duplicado` / `…::mismo título con padres distintos y con padre en los dos NO es candidato` — el re-reporte sin padre (MSF-859/MSF-931) se ve; los ítems de cada épica no se marcan.
 - *(devolución)* `…::no cuenta un Implementation Report «terminó sin PR» como evidencia del gemelo` — la sección C no propone cerrar un ítem cuyo gemelo no entregó.
+- *(2.ª devolución)* `…::un ítem que aparece en el board y en el archivado se cuenta una sola vez (por identifier)` — el ítem que vuelve en los dos endpoints no puede volver a citarse como duplicado de sí mismo.
+- *(2.ª devolución)* `…::falla ruidosamente si el board viene vacío (no es un board limpio)` / `…::falla si la respuesta del board tiene otra forma (no inventa un board vacío)` — no puede volver a salir un «limpio» falso con exit 0.
+- *(2.ª devolución)* `…::un par duplicado sin padre en los dos se reporta en C (no sólo el de mismo padre)` / `…::un re-reporte sin padre y su par con padre se reportan en C` / `…::dos ítems con padres distintos NO son par duplicado: no se reportan en C` — la sección C cubre todo par duplicado y no funde los ítems de cada épica.
+- *(2.ª devolución)* `…::la línea de candidato nombra al que no tiene padre y contra cuál puede duplicar` / `…::el resumen distingue el candidato pendiente del ya unificado` — el candidato se ve con su contraparte y el resumen no dice «0 sin unificar» cuando falta unificar.
+- *(2.ª devolución)* `…::reintenta un fallo transitorio y sigue` / `…::un fallo permanente (404) no se reintenta` / `…::cargarDetalles sobrevive a un 429 y trae el detalle de todos los ítems` — un pico de rate limit no aborta la corrida.
 
 **Los tests detectan la regla** (mutación deliberada, revertida): borrar la etiqueta inicial al
 normalizar → 2 tests fallan; quitar la exclusión del gemelo ya cerrado → 1 test falla; tratar las
 familias como duplicados → 1 test falla; dejar de contar la relación `duplicates` → 1 test falla;
 volver a filtrar el board por `typeId` → 1 test falla; pedir el detalle de un subconjunto → 1 test
-falla; volver a contar todo Implementation Report como evidencia → 2 tests fallan.
+falla; volver a contar todo Implementation Report como evidencia → 2 tests fallan; unir los dos
+endpoints por `id` en vez de por identidad → 1 test falla; sacar el fallo ruidoso del board vacío →
+1 test falla; volver a tolerar una forma inesperada de la respuesta → 1 test falla; dejar la sección C
+sólo para los pares de mismo padre → 2 tests fallan; fundir en la sección C los ítems de épicas
+distintas (quitar `esParDuplicado`) → 1 test falla; sacar el reintento de la carga de detalles → 1 test
+falla y quitarlo dentro de `conReintentos` → 2 tests fallan; volver a esconder el candidato pendiente
+en el resumen → 1 test falla; quitar las contrapartes de la línea de candidato → 2 tests fallan.
 
 ## Local Verification
 
@@ -130,11 +172,25 @@ falla; volver a contar todo Implementation Report como evidencia → 2 tests fal
   D) (ninguno)
   Resumen: 2 grupo(s) con título idéntico · 1 duplicado(s) real(es) (0 sin unificar) · 1 candidato(s) sin padre · 7 familia(s) por referencia · 0 por unificar · 0 sin cierre administrativo.
   ```
-- `node --test scripts/auditar-duplicados-tracker.test.mjs` → 30/30.
+- *(2.ª devolución)* Barrido sobre el board real **con la lectura honesta** (unión por identidad,
+  fallo ruidoso y sección C para todo par duplicado):
+  ```
+  Barrido de duplicados · proyecto MSF · 840 ítems leídos (789 activos + 51 archivados)
+  A) · Seguimiento CI: pasar el job e2e-tienda a requerido
+       CANDIDATO A DUPLICADO: MSF-931 (mismo título, sin padre) — ya unificado (MSF-859 → MSF-931)
+  B) · [seg. msf-470] + MSF-119: MSF-471, MSF-473 (duplica a MSF-471), MSF-474 (duplica a MSF-472), MSF-472
+  C) (ninguno)
+  D) (ninguno)
+  Resumen: 2 grupo(s) con título idéntico · 1 duplicado(s) real(es) (0 sin unificar) · 1 candidato(s) sin padre (0 sin unificar) · 7 familia(s) por referencia · 0 por unificar · 0 sin cierre administrativo.
+  ```
+  En la sección B **MSF-472 aparece una sola vez**: antes entraba dos veces (el ítem venía por los dos
+  endpoints y la unión por `id` no lo unía).
+- `node --test scripts/auditar-duplicados-tracker.test.mjs` → 42/42.
 - `pnpm lint` → exit 0 (sólo los warnings preexistentes de `apps/web`, que esta historia no toca).
-- `pnpm build` → `✓ built in 1.49s`.
+- `pnpm build` → `✓ built in 3.03s`.
 - `pnpm docs:check` → `Documentación de cambios: OK` + `Migraciones OK: 771 archivo(s), 0 nuevo(s)` + `Documentación OK.`
 - `node scripts/docs-drift.mjs` → mi página no aparece entre las 18 con fuente cambiada (son deuda previa de la base).
+- `pnpm calidad:code` → `Todo OK` (el check de gitleaks va en Docker y no corre en este entorno: se saltea, no es un hallazgo del código).
 
 ## Deviations from Assessment
 
@@ -166,6 +222,18 @@ falla; volver a contar todo Implementation Report como evidencia → 2 tests fal
   ajeno (MSF-115 menciona el PR #266 de otro ítem; MSF-645, el #519). Con la regla anterior (cualquier
   informe con contenido) el barrido señalaba como «el que conserva la evidencia» a ítems que no
   entregaron nada —el defecto que reportó el Revisor—.
+- *(2.ª devolución)* **La sección C cubre todo par duplicado, no sólo el de mismo padre.** La regla del
+  barrido es «mismo padre **o** re-reporte sin padre»; el recorrido anterior sólo miraba los pares de
+  mismo padre y dejaba afuera el par sin padre en los dos. Se cambia el recorrido y se dice en el
+  encabezado de la sección y en `docs/tecnico/operacion.md` (los dos ítems de una épica distinta
+  siguen **sin** ser par: no se funden).
+- *(2.ª devolución)* **La doc decía una cosa que el script no hacía.** `docs/tecnico/operacion.md` y
+  este reporte afirmaban que «el encabezado informa cuántos ítems leyó de cada tipo»: el encabezado
+  informa el total leído y su reparto en activos y archivados, y el aviso de tope por tipo
+  (`LIMITE_POR_TIPO`) había desaparecido con la lectura por tipo. Se corrige la frase (no se inventa
+  un desglose por tipo que nadie pidió) y se documenta lo que el barrido ahora garantiza: unir por
+  identidad, fallar ruidosamente si la lectura viene vacía o con forma inesperada, y reintentar los
+  fallos transitorios.
 - *(devolución)* **Los ítems sin tipo se leen, pero los «re-reportes» se distinguen por no tener
   padre**, no por el título pelado: un mismo título con padres distintos y con padre en los dos sigue
   siendo un ítem por épica (falso positivo), y por eso la sección A no los marca.

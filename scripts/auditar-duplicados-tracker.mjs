@@ -17,6 +17,9 @@
 // Cobertura: el barrido lee el board COMPLETO (`/issues/board` + `/issues/archived`, sin filtro por
 // tipo: los ítems sin tipo se cuelan en ese filtro) y pide el detalle de TODOS los ítems (las
 // relaciones `duplicates` de la sección D pueden estar en cualquier ítem, no sólo en un grupo).
+// Los dos endpoints se unen por IDENTIDAD (`identifier`): un ítem que aparece en los dos se cuenta
+// una sola vez (si no, el barrido lo cita como duplicado de sí mismo). Si la lectura no trae ítems o
+// trae una forma inesperada, el barrido FALLA: un board vacío es una lectura rota, no un board limpio.
 //
 // Uso: `pnpm tracker:duplicados` (sin ITSAPLAN_API_KEY avisa y sale con 0: no rompe el CI).
 const CAMPOS_EVIDENCIA = ['QA Report', 'Code Report', 'Security Report', 'Implementation Report'];
@@ -25,6 +28,8 @@ const ESTADOS_SIN_ENTREGA = ['terminó sin PR', 'falló el Desarrollador'];
 const LABEL_CIERRE_ADMINISTRATIVO = 'cierre-administrativo';
 // Cuántos detalles se piden a la vez: el board tiene ~840 ítems y en serie tarda minutos.
 const CONCURRENCIA_DETALLE = 8;
+const REINTENTOS_DETALLE = 3;
+const ESPERA_REINTENTO_MS = 500;
 const API_POR_DEFECTO = 'https://api.plan.agenmatica.com';
 const PROYECTO_POR_DEFECTO = 'MSF';
 
@@ -94,6 +99,15 @@ export function tieneEvidencia(item) {
     const titulo = valor.split('\n')[0];
     return !ESTADOS_SIN_ENTREGA.some((estado) => titulo.includes(estado));
   });
+}
+
+/**
+ * Dos ítems con el mismo título son un par duplicado si comparten padre, o si al menos uno de los
+ * dos no tiene padre (re-reporte). Dos ítems de épicas distintas (padres distintos, ambos con padre)
+ * no son duplicados.
+ */
+export function esParDuplicado(a, b) {
+  return a.parentId == null || b.parentId == null || a.parentId === b.parentId;
 }
 
 /** El ítem está en una columna cerrada (stateType `completed`). */
@@ -170,20 +184,21 @@ export function barrido(items, { columnasCerradas, idLabelCierre, evidencia = ()
 
   // C) Cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia. Se excluye el gemelo
   // que ya se cerró administrativamente: ése es el duplicado, el otro es el que conserva la entrega.
+  // Se miran todos los pares plausibles del grupo, no sólo los de mismo padre: un par con los dos
+  // ítems sin padre también es un duplicado y antes quedaba afuera de C.
   const sinCierre = [];
   for (const grupo of titulos) {
-    for (const par of grupo.mismosPadres) {
-      for (const item of par) {
-        if (!estaCerrado(item, columnasCerradas)) continue;
-        if (!sinCierreAdministrativo(item, idLabelCierre)) continue;
-        const gemelos = par.filter(
-          (otro) =>
-            otro.id !== item.id &&
-            evidencia(otro) &&
-            sinCierreAdministrativo(otro, idLabelCierre),
-        );
-        if (gemelos.length > 0) sinCierre.push({ item, gemelos });
-      }
+    for (const item of grupo.miembros) {
+      if (!estaCerrado(item, columnasCerradas)) continue;
+      if (!sinCierreAdministrativo(item, idLabelCierre)) continue;
+      const gemelos = grupo.miembros.filter(
+        (otro) =>
+          otro.id !== item.id &&
+          esParDuplicado(item, otro) &&
+          evidencia(otro) &&
+          sinCierreAdministrativo(otro, idLabelCierre),
+      );
+      if (gemelos.length > 0) sinCierre.push({ item, gemelos });
     }
   }
 
@@ -228,16 +243,22 @@ export function formatearInforme(informe, contexto = {}) {
       );
     }
     if (grupo.sinPadre.length > 0) {
-      // Un ítem sin padre con el título de otro es un re-reporte: candidato a duplicado.
-      const ids = grupo.miembros
-        .filter((item) => grupo.sinPadre.includes(item) || grupo.otros.includes(item))
+      // Un ítem sin padre con el título de otro es un re-reporte: candidato a duplicado. Se nombran
+      // el re-reporte y sus posibles originales por separado (los de mismo padre y los sueltos).
+      const sinPadre = grupo.sinPadre.map((item) => item.identifier);
+      const contrapartes = grupo.miembros
+        .filter((item) => !grupo.sinPadre.includes(item))
         .map((item) => item.identifier);
-      const sinPadre = grupo.sinPadre.map((item) => item.identifier).join(', ');
-      const unificado = grupo.punteros.filter((p) => ids.includes(p.desde) && ids.includes(p.hacia));
+      const unificado = grupo.punteros.filter(
+        (p) => sinPadre.includes(p.desde) || sinPadre.includes(p.hacia),
+      );
       const detalle = unificado.map((p) => `${p.desde} → ${p.hacia}`).join(', ');
+      const destino = contrapartes.length
+        ? ` — revisar si duplica a ${contrapartes.join(', ')}`
+        : ' — revisar si son duplicados entre sí';
       lineas.push(
-        `     CANDIDATO A DUPLICADO (mismo título; ${sinPadre} sin padre): ${ids.join(', ')}` +
-          (detalle ? ` — ya unificado (${detalle})` : ' — revisar si es duplicado'),
+        `     CANDIDATO A DUPLICADO: ${sinPadre.join(', ')} (mismo título, sin padre)` +
+          (detalle ? ` — ya unificado (${detalle})` : destino),
       );
     } else if (grupo.otros.length > 0) {
       lineas.push('     falsos positivos: padres distintos (un ítem por épica)');
@@ -258,7 +279,9 @@ export function formatearInforme(informe, contexto = {}) {
   }
 
   lineas.push('');
-  lineas.push('C) Cerrados sin `cierre-administrativo` con un gemelo que sí tiene evidencia');
+  lineas.push(
+    'C) Cerrados sin `cierre-administrativo` con un gemelo que sí tiene evidencia (par duplicado: mismo padre o re-reporte sin padre)',
+  );
   if (informe.sinCierre.length === 0) lineas.push('   (ninguno)');
   for (const caso of informe.sinCierre) {
     lineas.push(
@@ -284,10 +307,15 @@ export function formatearInforme(informe, contexto = {}) {
     return total + pares.length;
   }, 0);
   const candidatos = informe.titulos.filter((grupo) => grupo.sinPadre.length > 0).length;
+  const candidatosPendientes = informe.titulos.filter(
+    (grupo) =>
+      grupo.sinPadre.length > 0 &&
+      !grupo.punteros.some((p) => grupo.sinPadre.some((item) => item.identifier === p.desde || item.identifier === p.hacia)),
+  ).length;
   lineas.push(
     `Resumen: ${informe.titulos.length} grupo(s) con título idéntico · ` +
       `${reales} duplicado(s) real(es) (${sinUnificar} sin unificar) · ` +
-      `${candidatos} candidato(s) sin padre · ` +
+      `${candidatos} candidato(s) sin padre (${candidatosPendientes} sin unificar) · ` +
       `${informe.familias.length} familia(s) por referencia · ${informe.sinCierre.length} por unificar · ` +
       `${informe.sinMecanismo.length} sin cierre administrativo.`,
   );
@@ -298,9 +326,26 @@ export function formatearInforme(informe, contexto = {}) {
 function crearPedir({ api, key }) {
   return async (ruta) => {
     const r = await fetch(`${api}${ruta}`, { headers: { 'x-api-key': key } });
-    if (!r.ok) throw new Error(`ItsAPlan ${ruta}: ${r.status}`);
+    if (!r.ok) {
+      const error = new Error(`ItsAPlan ${ruta}: ${r.status}`);
+      error.status = r.status;
+      throw error;
+    }
     return r.json();
   };
+}
+
+/** Lista de ítems de una respuesta del tracker, aceptando las formas conocidas. */
+function listaDe(respuesta, ruta) {
+  if (Array.isArray(respuesta)) return respuesta;
+  if (Array.isArray(respuesta?.issues)) return respuesta.issues;
+  if (Array.isArray(respuesta?.data)) return respuesta.data;
+  throw new Error(`No se pudo leer ${ruta}: respuesta inesperada`);
+}
+
+/** Identidad del ítem en el board: el `identifier` manda; el `id` es sólo el respaldo. */
+function claveIdentidad(item) {
+  return item.identifier ?? `id:${item.id}`;
 }
 
 /**
@@ -312,17 +357,49 @@ export async function leerBoard({ pedir, proyecto = PROYECTO_POR_DEFECTO }) {
   const setup = await pedir(`/projects/${proyecto}`);
   const board = await pedir(`/projects/${proyecto}/issues/board`);
   const archivados = await pedir(`/projects/${proyecto}/issues/archived`);
-  const activos = board.issues ?? [];
-  const listaArchivados = Array.isArray(archivados) ? archivados : (archivados.data ?? []);
+  const activos = listaDe(board, '/issues/board');
+  const listaArchivados = listaDe(archivados, '/issues/archived');
 
-  const porId = new Map();
-  for (const item of [...activos, ...listaArchivados]) porId.set(item.id, item);
-  return { setup, items: [...porId.values()], activos: activos.length, archivados: listaArchivados.length };
+  // Se deduplica por identidad: un ítem puede venir en los dos endpoints (activo y archivado) y
+  // entrar dos veces; sin esto el barrido lo reporta como duplicado de sí mismo.
+  const porIdentidad = new Map();
+  for (const item of activos) {
+    const clave = claveIdentidad(item);
+    if (!porIdentidad.has(clave)) porIdentidad.set(clave, item);
+  }
+  let archivadosNuevos = 0;
+  for (const item of listaArchivados) {
+    const clave = claveIdentidad(item);
+    if (porIdentidad.has(clave)) continue;
+    porIdentidad.set(clave, item);
+    archivadosNuevos += 1;
+  }
+
+  const items = [...porIdentidad.values()];
+  // Un board vacío no es un board limpio: es una lectura rota. Falla fuerte en vez de mentir.
+  if (items.length === 0) throw new Error('No se puede barrer el board: 0 ítems leídos');
+  return { setup, items, activos: items.length - archivadosNuevos, archivados: archivadosNuevos };
 }
 
 /** Detalle de un ítem (los campos de evidencia y los links sólo vienen en el detalle). */
 async function leerDetalle(pedir, id) {
   return pedir(`/issues/${id}`);
+}
+
+/**
+ * Reintenta una lectura transitoria (429/5xx o fallo de red) con espera exponencial. El barrido
+ * pide ~840 detalles y un solo 429 no debe abortar la corrida.
+ */
+export async function conReintentos(fn, { intentos = REINTENTOS_DETALLE, espera = ESPERA_REINTENTO_MS } = {}) {
+  for (let intento = 1; ; intento += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      const transitorio = !error.status || error.status === 429 || error.status >= 500;
+      if (!transitorio || intento >= intentos) throw error;
+      await new Promise((listo) => setTimeout(listo, espera * 2 ** (intento - 1)));
+    }
+  }
 }
 
 /**
@@ -334,7 +411,7 @@ export async function cargarDetalles(items, leer) {
   const detalles = new Map();
   for (let i = 0; i < items.length; i += CONCURRENCIA_DETALLE) {
     const lote = items.slice(i, i + CONCURRENCIA_DETALLE);
-    const leidos = await Promise.all(lote.map((item) => leer(item.id)));
+    const leidos = await Promise.all(lote.map((item) => conReintentos(() => leer(item.id))));
     lote.forEach((item, indice) => detalles.set(item.id, leidos[indice]));
   }
   return detalles;

@@ -141,7 +141,7 @@ conserva la evidencia con la relación **`duplicates`** (del duplicado al origin
 |---|---|---|
 | A | Títulos idénticos | Mismo padre = duplicado real; un ítem **sin padre** con el título de otro = re-reporte (candidato a duplicado); padres distintos y ambos con padre = ítems de cierre de cada épica (falsos positivos) |
 | B | Familias que comparten referencia y padre (`[Seg. MSF-470]`) | **Informativo**: compartir referencia no es ser duplicado (bajo `[Seguimiento MSF-205]` hay 8 seguimientos distintos) |
-| C | Cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia | Cerrar el duplicado con el puntero al gemelo |
+| C | Cerrados sin `cierre-administrativo` de un **par duplicado** (mismo padre o re-reporte sin padre) cuyo gemelo conserva la evidencia | Cerrar el duplicado con el puntero al gemelo |
 | D | Marcado como `duplicates` pero sin `cierre-administrativo` | Falta el mecanismo de cierre |
 
 - La **etiqueta inicial del título es parte de la identidad** del ítem: `[Cierre MSF-212]` y
@@ -150,8 +150,13 @@ conserva la evidencia con la relación **`duplicates`** (del duplicado al origin
   normalización correcta, hay 1 (el resto eran cierres de épica).
 - El barrido lee el board **completo** (`/issues/board` + `/issues/archived`, sin filtro por tipo: los
   ítems sin tipo se cuelan en ese filtro) y pide el detalle de **todos** los ítems (la sección D
-  necesita las relaciones `duplicates` de cualquiera). El encabezado informa cuántos ítems leyó de
-  cada tipo, para que una cobertura parcial se vea.
+  necesita las relaciones `duplicates` de cualquiera). El encabezado informa el **total leído** y
+  cómo se reparte en activos y archivados: los dos endpoints se unen por **identidad**
+  (`identifier`), así que un ítem que aparece en los dos se cuenta una sola vez (si no, el barrido
+  lo cita como duplicado de sí mismo). Si la lectura no trae ítems o trae una forma inesperada, el
+  barrido **falla**: un board vacío es una lectura rota, no un board limpio.
+- La lectura de los detalles **reintenta** los fallos transitorios (429, 5xx o corte de red) con
+  espera creciente: un pico de rate limit no aborta la corrida.
 - **Qué es «evidencia»**: un informe de revisión (QA/Code/Security) con contenido, o un
   Implementation Report que **no** declara que no entregó. El flujo titula el informe con el estado
   («— PR listo», «— correcciones aplicadas», «— terminó sin PR», «— falló el Desarrollador»): un
