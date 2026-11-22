@@ -983,9 +983,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "d840fff4def1f424c60b7fd85c3f947980f306d4b31a4b10074b0da07630a853",
-      "sourceHash": "95c1c1b0274b19cbcb7db7a862649221cb704dbeccd696b5a552ac167ec772b4",
-      "sourceAt": "c33f53bdc",
+      "pageHash": "320d54319c6a0d2b0d0007cf8445c2bcdbcd7ef872d5e9103c0b0c0b8f59525b",
+      "sourceHash": "f10e712c6c49744988ae93d4e42a0bace01712f1839289900a2dcf10cecdc1be",
+      "sourceAt": "e6d4fc52f",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1001,7 +1001,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "c33f53bdc"
+      "commit": "e6d4fc52f"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
