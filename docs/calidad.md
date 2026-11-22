@@ -52,7 +52,8 @@ TypeScript: la herramienta descartaba los `.ts/.tsx` y devolvía «0 módulos, 0
 falso** sobre `apps/web/src` (`no-circular`, `no-orphans` y `not-to-dev-dep` nunca se evaluaron). Ahora:
 
 - corre el **binario local** (`node_modules/.bin/depcruise`, con `dependency-cruiser` y `typescript` como
-  `devDependencies` del root) y cruza el front de verdad: **1674 módulos y 6220 dependencias**;
+  `devDependencies` del root) y cruza el front de verdad: **1674 módulos y 6220 dependencias** (medición del
+  2026-11-22; el guard dice las suyas en la salida, no son un número fijo);
 - **falla** si no cruzó ningún módulo, y también si falta el binario local;
 - los **tests forman parte del cruce**: si se excluyeran, los archivos de apoyo que sólo importan los tests
   quedarían sin ninguna arista y `no-orphans` los marcaría como código muerto (falso positivo);
@@ -78,7 +79,7 @@ en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de ap
   `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
-- Revisión 2026-11-21 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
+- Revisión 2026-11-22 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
   (1674 módulos, 6220 dependencias) aparecieron **3 ciclos de imports** que nadie veía y **1 `devDependency`
   usada en runtime** (`fflate`); los 4 se corrigieron en el mismo lote y el guard cierra en verde.
 - Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
