@@ -6,17 +6,25 @@
 // título» cuando, con la normalización correcta, hay 1 (el resto eran cierres de épica).
 //
 // Qué reporta:
-//   A. Títulos idénticos: mismo padre = duplicado real; padres distintos = falsos positivos.
+//   A. Títulos idénticos: mismo padre = duplicado real; un ítem sin padre = re-reporte de otro
+//      (candidato a duplicado); padres distintos y ambos con padre = ítems de cada épica.
 //   B. Familias por referencia (`[Seg. MSF-470]`) + mismo padre: mismo hallazgo con otra redacción.
 //      Es informativo: compartir referencia NO es ser duplicado (bajo `[Seguimiento MSF-205]` hay
 //      8 seguimientos distintos) y por eso no se propone cerrar nada por el solo hecho de compartirla.
 //   C. Cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia: falta unificar.
 //   D. Ya unificado con la relación `duplicates` pero sin `cierre-administrativo`: falta el mecanismo.
 //
+// Cobertura: el barrido lee el board COMPLETO (`/issues/board` + `/issues/archived`, sin filtro por
+// tipo: los ítems sin tipo se cuelan en ese filtro) y pide el detalle de TODOS los ítems (las
+// relaciones `duplicates` de la sección D pueden estar en cualquier ítem, no sólo en un grupo).
+//
 // Uso: `pnpm tracker:duplicados` (sin ITSAPLAN_API_KEY avisa y sale con 0: no rompe el CI).
-const LIMITE_POR_TIPO = 500; // tope de la API en la lectura de issues
 const CAMPOS_EVIDENCIA = ['QA Report', 'Code Report', 'Security Report', 'Implementation Report'];
+// Estados que el flujo escribe en el título del Implementation Report cuando NO hubo entrega.
+const ESTADOS_SIN_ENTREGA = ['terminó sin PR', 'falló el Desarrollador'];
 const LABEL_CIERRE_ADMINISTRATIVO = 'cierre-administrativo';
+// Cuántos detalles se piden a la vez: el board tiene ~840 ítems y en serie tarda minutos.
+const CONCURRENCIA_DETALLE = 8;
 const API_POR_DEFECTO = 'https://api.plan.agenmatica.com';
 const PROYECTO_POR_DEFECTO = 'MSF';
 
@@ -70,11 +78,22 @@ export function familiasPorReferencia(items) {
   return familias;
 }
 
-/** Un ítem tiene evidencia si tiene alguno de los campos de informe del tracker con contenido. */
+/**
+ * Un ítem tiene evidencia si tiene un informe de revisión con contenido. El Implementation Report
+ * sólo cuenta si NO declara que no entregó: el flujo titula el informe con el estado
+ * («— PR listo», «— correcciones aplicadas», «— terminó sin PR», «— falló el Desarrollador»).
+ * Un informe que dice «terminó sin PR» no es una entrega: si el barrido lo tomara por evidencia,
+ * señalaría como «el que conserva la evidencia» a un ítem que no entregó nada.
+ */
 export function tieneEvidencia(item) {
-  return (item?.fields ?? []).some(
-    (campo) => CAMPOS_EVIDENCIA.includes(campo.name) && campo.value && String(campo.value).trim(),
-  );
+  return (item?.fields ?? []).some((campo) => {
+    if (!CAMPOS_EVIDENCIA.includes(campo.name)) return false;
+    const valor = String(campo.value ?? '').trim();
+    if (!valor) return false;
+    if (campo.name !== 'Implementation Report') return true;
+    const titulo = valor.split('\n')[0];
+    return !ESTADOS_SIN_ENTREGA.some((estado) => titulo.includes(estado));
+  });
 }
 
 /** El ítem está en una columna cerrada (stateType `completed`). */
@@ -127,13 +146,14 @@ export function barrido(items, { columnasCerradas, idLabelCierre, evidencia = ()
         if (identificadores.has(destino)) punteros.push({ desde: item.identifier, hacia: destino });
       }
     }
-    titulos.push({
-      clave,
-      titulo: miembros[0].title,
-      miembros,
-      mismosPadres: [...porPadre.values()].filter((grupo) => grupo.length > 1),
-      punteros,
-    });
+    // Mismo padre (y con padre) = duplicado real. Sin padre = re-reporte de otro ítem: candidato.
+    const mismosPadres = [...porPadre.entries()]
+      .filter(([padre, grupo]) => padre !== '' && grupo.length > 1)
+      .map(([, grupo]) => grupo);
+    const sinPadre = porPadre.get('') ?? [];
+    const enPar = new Set(mismosPadres.flat().map((item) => item.id));
+    const otros = miembros.filter((item) => !enPar.has(item.id) && !sinPadre.includes(item));
+    titulos.push({ clave, titulo: miembros[0].title, miembros, mismosPadres, sinPadre, otros, punteros });
   }
 
   const familias = [];
@@ -186,7 +206,9 @@ export function formatearInforme(informe, contexto = {}) {
   const columna = (id) => contexto.nombresColumna?.get(id) ?? `id ${id}`;
   const etiqueta = (id) => contexto.nombresEtiqueta?.get(id) ?? `id ${id}`;
 
-  lineas.push(`Barrido de duplicados · proyecto ${contexto.proyecto ?? PROYECTO_POR_DEFECTO} · ${contexto.leidos ?? 0} ítems leídos`);
+  const cobertura =
+    contexto.activos != null ? ` (${contexto.activos} activos + ${contexto.archivados ?? 0} archivados)` : '';
+  lineas.push(`Barrido de duplicados · proyecto ${contexto.proyecto ?? PROYECTO_POR_DEFECTO} · ${contexto.leidos ?? 0} ítems leídos${cobertura}`);
   lineas.push('');
   lineas.push('A) Títulos idénticos (la etiqueta inicial se conserva)');
   if (informe.titulos.length === 0) lineas.push('   (ninguno)');
@@ -196,17 +218,28 @@ export function formatearInforme(informe, contexto = {}) {
       .join(' · ');
     lineas.push(`   · ${grupo.titulo}`);
     lineas.push(`     ${detail}`);
-    if (grupo.mismosPadres.length > 0) {
-      for (const mismo of grupo.mismosPadres) {
-        const ids = mismo.map((item) => item.identifier);
-        const unificado = grupo.punteros.filter((p) => ids.includes(p.desde) && ids.includes(p.hacia));
-        const detalle = unificado.map((p) => `${p.desde} → ${p.hacia}`).join(', ');
-        lineas.push(
-          `     DUPLICADO REAL (mismo padre): ${ids.join(', ')}` +
-            (detalle ? ` — ya unificado (${detalle})` : ''),
-        );
-      }
-    } else {
+    for (const mismo of grupo.mismosPadres) {
+      const ids = mismo.map((item) => item.identifier);
+      const unificado = grupo.punteros.filter((p) => ids.includes(p.desde) && ids.includes(p.hacia));
+      const detalle = unificado.map((p) => `${p.desde} → ${p.hacia}`).join(', ');
+      lineas.push(
+        `     DUPLICADO REAL (mismo padre): ${ids.join(', ')}` +
+          (detalle ? ` — ya unificado (${detalle})` : ''),
+      );
+    }
+    if (grupo.sinPadre.length > 0) {
+      // Un ítem sin padre con el título de otro es un re-reporte: candidato a duplicado.
+      const ids = grupo.miembros
+        .filter((item) => grupo.sinPadre.includes(item) || grupo.otros.includes(item))
+        .map((item) => item.identifier);
+      const sinPadre = grupo.sinPadre.map((item) => item.identifier).join(', ');
+      const unificado = grupo.punteros.filter((p) => ids.includes(p.desde) && ids.includes(p.hacia));
+      const detalle = unificado.map((p) => `${p.desde} → ${p.hacia}`).join(', ');
+      lineas.push(
+        `     CANDIDATO A DUPLICADO (mismo título; ${sinPadre} sin padre): ${ids.join(', ')}` +
+          (detalle ? ` — ya unificado (${detalle})` : ' — revisar si es duplicado'),
+      );
+    } else if (grupo.otros.length > 0) {
       lineas.push('     falsos positivos: padres distintos (un ítem por épica)');
     }
   }
@@ -250,47 +283,61 @@ export function formatearInforme(informe, contexto = {}) {
     });
     return total + pares.length;
   }, 0);
+  const candidatos = informe.titulos.filter((grupo) => grupo.sinPadre.length > 0).length;
   lineas.push(
     `Resumen: ${informe.titulos.length} grupo(s) con título idéntico · ` +
       `${reales} duplicado(s) real(es) (${sinUnificar} sin unificar) · ` +
+      `${candidatos} candidato(s) sin padre · ` +
       `${informe.familias.length} familia(s) por referencia · ${informe.sinCierre.length} por unificar · ` +
       `${informe.sinMecanismo.length} sin cierre administrativo.`,
   );
   return lineas.join('\n');
 }
 
-/** Lee el board: proyecto (columnas y labels) + ítems de los tipos que puede crear el flujo. */
-async function leerBoard({ api, key, proyecto = PROYECTO_POR_DEFECTO }) {
-  const pedir = async (ruta) => {
+/** Cliente HTTP del tracker (la clave nunca se imprime ni va en la URL). */
+function crearPedir({ api, key }) {
+  return async (ruta) => {
     const r = await fetch(`${api}${ruta}`, { headers: { 'x-api-key': key } });
     if (!r.ok) throw new Error(`ItsAPlan ${ruta}: ${r.status}`);
     return r.json();
   };
+}
 
+/**
+ * Lee el board completo: proyecto (columnas y labels) + ítems activos y archivados.
+ * Se usa `/issues/board` y no el filtro por `typeId` porque ese filtro deja afuera los ítems
+ * sin tipo, y la lectura por tipo además corta en el tope de la API.
+ */
+export async function leerBoard({ pedir, proyecto = PROYECTO_POR_DEFECTO }) {
   const setup = await pedir(`/projects/${proyecto}`);
-  const columnas = setup.columns ?? [];
-  const labels = setup.labels ?? [];
-  const tipos = setup.issueTypes ?? [];
-  if (tipos.length === 0) throw new Error('El proyecto no devolvió issueTypes: no se puede barrer el board.');
+  const board = await pedir(`/projects/${proyecto}/issues/board`);
+  const archivados = await pedir(`/projects/${proyecto}/issues/archived`);
+  const activos = board.issues ?? [];
+  const listaArchivados = Array.isArray(archivados) ? archivados : (archivados.data ?? []);
 
   const porId = new Map();
-  for (const tipo of tipos) {
-    const respuesta = await pedir(
-      `/projects/${proyecto}/issues?typeId=${tipo.id}&limit=${LIMITE_POR_TIPO}&includeArchived=true`,
-    );
-    const lista = Array.isArray(respuesta) ? respuesta : (respuesta.data ?? []);
-    // La API corta en `limit`: si el tipo llega al tope, el barrido no ve todo el board y hay que avisarlo.
-    if (lista.length >= LIMITE_POR_TIPO) {
-      console.warn(`aviso: el tipo ${tipo.id} (${tipo.name}) devolvió ${LIMITE_POR_TIPO} ítems (tope de la API): el barrido puede no ver todo el board.`);
-    }
-    for (const item of lista) porId.set(item.id, item);
-  }
-  return { setup, items: [...porId.values()], pedir };
+  for (const item of [...activos, ...listaArchivados]) porId.set(item.id, item);
+  return { setup, items: [...porId.values()], activos: activos.length, archivados: listaArchivados.length };
 }
 
 /** Detalle de un ítem (los campos de evidencia y los links sólo vienen en el detalle). */
 async function leerDetalle(pedir, id) {
   return pedir(`/issues/${id}`);
+}
+
+/**
+ * Pide el detalle de todos los ítems: la relación `duplicates` puede estar en cualquier ítem,
+ * no sólo en los que caen en un grupo por título o en una familia por referencia. Va por tandas
+ * (en serie son ~840 pedidos y tarda minutos).
+ */
+export async function cargarDetalles(items, leer) {
+  const detalles = new Map();
+  for (let i = 0; i < items.length; i += CONCURRENCIA_DETALLE) {
+    const lote = items.slice(i, i + CONCURRENCIA_DETALLE);
+    const leidos = await Promise.all(lote.map((item) => leer(item.id)));
+    lote.forEach((item, indice) => detalles.set(item.id, leidos[indice]));
+  }
+  return detalles;
 }
 
 async function main() {
@@ -302,20 +349,15 @@ async function main() {
   const api = (process.env.ITSAPLAN_API_URL || API_POR_DEFECTO).replace(/\/+$/, '');
   const proyecto = process.env.ITSAPLAN_PROYECTO || PROYECTO_POR_DEFECTO;
 
-  const { setup, items, pedir } = await leerBoard({ api, key, proyecto });
+  const pedir = crearPedir({ api, key });
+  const { setup, items, activos, archivados } = await leerBoard({ pedir, proyecto });
 
   const columnasCerradas = new Set(
     (setup.columns ?? []).filter((columna) => columna.stateType === 'completed').map((columna) => columna.id),
   );
   const idLabelCierre = (setup.labels ?? []).find((label) => label.name === LABEL_CIERRE_ADMINISTRATIVO)?.id ?? null;
 
-  const informePreliminar = barrido(items, { columnasCerradas, idLabelCierre });
-  const aDetalle = new Set();
-  for (const grupo of informePreliminar.titulos) for (const item of grupo.miembros) aDetalle.add(item.id);
-  for (const familia of informePreliminar.familias) for (const item of familia.miembros) aDetalle.add(item.id);
-
-  const detalles = new Map();
-  for (const id of aDetalle) detalles.set(id, await leerDetalle(pedir, id));
+  const detalles = await cargarDetalles(items, (id) => leerDetalle(pedir, id));
   const evidencia = (item) => tieneEvidencia(detalles.get(item.id) ?? item);
   const relaciones = (item) => detalles.get(item.id)?.links ?? [];
 
@@ -330,6 +372,8 @@ async function main() {
   const contexto = {
     proyecto,
     leidos: items.length,
+    activos,
+    archivados,
     nombresPorId,
     nombresColumna: new Map((setup.columns ?? []).map((c) => [c.id, c.name])),
     nombresEtiqueta: new Map((setup.labels ?? []).map((l) => [l.id, l.name])),

@@ -6,11 +6,13 @@ import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
   barrido,
+  cargarDetalles,
   estaCerrado,
   duplicadosDe,
   familiasPorReferencia,
   formatearInforme,
   gruposPorTitulo,
+  leerBoard,
   normalizarTitulo,
   referenciaTitulo,
   sinCierreAdministrativo,
@@ -117,6 +119,40 @@ describe('duplicados por título', () => {
   });
 });
 
+describe('lectura del board y detalle', () => {
+  it('lee el board completo, incluidos los ítems sin tipo, y suma los archivados', async () => {
+    const rutas = [];
+    const pedir = async (ruta) => {
+      rutas.push(ruta);
+      if (ruta === '/projects/MSF') return { columns: [], labels: [], issueTypes: [] };
+      if (ruta === '/projects/MSF/issues/board') {
+        return { issues: [item({ id: 1, typeId: 22 }), item({ id: 2, identifier: 'MSF-931', typeId: null })] };
+      }
+      if (ruta === '/projects/MSF/issues/archived') return [item({ id: 3, typeId: null })];
+      throw new Error(`ruta inesperada: ${ruta}`);
+    };
+    const { items, activos, archivados } = await leerBoard({ pedir, proyecto: 'MSF' });
+    assert.deepEqual(items.map((i) => i.id).sort((a, b) => a - b), [1, 2, 3]);
+    assert.equal(activos, 2);
+    assert.equal(archivados, 1);
+    assert.ok(items.some((i) => i.typeId === null));
+    assert.ok(rutas.includes('/projects/MSF/issues/board'));
+    assert.ok(rutas.includes('/projects/MSF/issues/archived'));
+    assert.ok(!rutas.some((ruta) => ruta.includes('typeId=')));
+  });
+
+  it('pide el detalle de todos los ítems, no sólo de los que caen en un grupo', async () => {
+    const items = [item({ id: 1, title: 'Uno' }), item({ id: 2, title: 'Dos' }), item({ id: 3, title: 'Tres' })];
+    const pedidos = [];
+    const detalles = await cargarDetalles(items, async (id) => {
+      pedidos.push(id);
+      return { id };
+    });
+    assert.deepEqual(pedidos.sort((a, b) => a - b), [1, 2, 3]);
+    assert.equal(detalles.size, 3);
+  });
+});
+
 describe('cierre administrativo', () => {
   const cerrados = [
     item({ id: 1, identifier: 'MSF-476', title: '[MSF-470] Bloqueo', columnId: 51, labelIds: [649] }),
@@ -132,6 +168,16 @@ describe('cierre administrativo', () => {
     assert.equal(informe.sinCierre.length, 1);
     assert.equal(informe.sinCierre[0].item.identifier, 'MSF-476');
     assert.deepEqual(informe.sinCierre[0].gemelos.map((g) => g.identifier), ['MSF-477']);
+  });
+
+  it('no cuenta un Implementation Report «terminó sin PR» como evidencia del gemelo', () => {
+    const informe = barrido(cerrados, {
+      columnasCerradas: COLUMNAS_CERRADAS,
+      idLabelCierre: ID_CIERRE_ADMINISTRATIVO,
+      evidencia: (i) =>
+        tieneEvidencia({ fields: [{ name: 'Implementation Report', value: `## Fix ${i.identifier} — terminó sin PR` }] }),
+    });
+    assert.equal(informe.sinCierre.length, 0);
   });
 
   it('con el label aplicado ya no se reporta', () => {
@@ -207,14 +253,54 @@ describe('unificación con la relación `duplicates`', () => {
     assert.deepEqual(duplicadosDe({ identifier: 'MSF-477' }, () => inbound), []);
     assert.deepEqual(duplicadosDe({ identifier: 'MSF-477' }, () => inbound.concat(inbound)), []);
   });
+
+  it('la sección D cubre cualquier ítem con `duplicates`, aunque no comparta título', () => {
+    const items = [item({ id: 1, identifier: 'MSF-606', title: 'Un título único', labelIds: [] })];
+    const relaciones = (i) =>
+      i.identifier === 'MSF-606'
+        ? [{ kind: 'duplicates', direction: 'outward', issue: { identifier: 'MSF-597' } }]
+        : [];
+    const informe = barrido(items, {
+      columnasCerradas: COLUMNAS_CERRADAS,
+      idLabelCierre: ID_CIERRE_ADMINISTRATIVO,
+      relaciones,
+    });
+    assert.equal(informe.sinMecanismo.length, 1);
+    assert.equal(informe.sinMecanismo[0].item.identifier, 'MSF-606');
+  });
 });
 
 describe('evidencia', () => {
-  it('un informe de QA/Code/Security/Implementation con contenido es evidencia', () => {
+  it('un informe de QA/Code/Security con contenido es evidencia', () => {
     assert.equal(tieneEvidencia({ fields: [{ name: 'QA Report', value: '## Revisión' }] }), true);
     assert.equal(tieneEvidencia({ fields: [{ name: 'QA Report', value: '   ' }] }), false);
     assert.equal(tieneEvidencia({ fields: [{ name: 'Spec URL', value: 'https://x' }] }), false);
     assert.equal(tieneEvidencia({}), false);
+  });
+
+  it('el Implementation Report sólo es evidencia si no declara que no entregó', () => {
+    assert.equal(
+      tieneEvidencia({ fields: [{ name: 'Implementation Report', value: '## 🧱 Implementación MSF-835 — PR listo' }] }),
+      true,
+    );
+    assert.equal(
+      tieneEvidencia({ fields: [{ name: 'Implementation Report', value: '## ♻️ Fix MSF-802 — correcciones aplicadas' }] }),
+      true,
+    );
+    assert.equal(
+      tieneEvidencia({ fields: [{ name: 'Implementation Report', value: '## ⚠️ Fix MSF-471 — terminó sin PR' }] }),
+      false,
+    );
+    assert.equal(
+      tieneEvidencia({ fields: [{ name: 'Implementation Report', value: '## ⛔ Fix MSF-860 — falló el Desarrollador' }] }),
+      false,
+    );
+  });
+
+  it('el estado se lee del título del informe, no del cuerpo', () => {
+    // El cuerpo puede hablar de otro PR: lo que decide es el estado que escribió el flujo.
+    const valor = '## ⚠️ Implementación MSF-115 — terminó sin PR\n\nEl PR https://github.com/x/y/pull/266 ya estaba mergeado.';
+    assert.equal(tieneEvidencia({ fields: [{ name: 'Implementation Report', value: valor }] }), false);
   });
 });
 
@@ -253,6 +339,49 @@ describe('informe', () => {
     const texto = formatearInforme(informe, { leidos: items.length });
     assert.match(texto, /DUPLICADO REAL \(mismo padre\): MSF-476, MSF-477 — ya unificado \(MSF-476 → MSF-477\)/);
     assert.match(texto, /1 duplicado\(s\) real\(es\) \(0 sin unificar\)/);
+  });
+
+  it('un mismo título con un ítem sin padre se reporta como candidato a duplicado', () => {
+    const items = [
+      item({ id: 1, identifier: 'MSF-859', title: 'Seguimiento CI', parentId: 881, columnId: 51 }),
+      item({ id: 2, identifier: 'MSF-931', title: 'Seguimiento CI', parentId: null, columnId: 51 }),
+    ];
+    const informe = barrido(items, { columnasCerradas: COLUMNAS_CERRADAS, idLabelCierre: ID_CIERRE_ADMINISTRATIVO });
+    const texto = formatearInforme(informe, { leidos: 2, activos: 2, archivados: 0 });
+    assert.match(texto, /CANDIDATO A DUPLICADO \(mismo título; MSF-931 sin padre\): MSF-859, MSF-931 — revisar si es duplicado/);
+    assert.match(texto, /1 candidato\(s\) sin padre/);
+    assert.doesNotMatch(texto, /falsos positivos/);
+    assert.match(texto, /2 ítems leídos \(2 activos \+ 0 archivados\)/);
+  });
+
+  it('mismo título con padres distintos y con padre en los dos NO es candidato (es un ítem por épica)', () => {
+    const items = [
+      item({ id: 1, identifier: 'MSF-557', title: 'Última fase', parentId: 212, columnId: 11 }),
+      item({ id: 2, identifier: 'MSF-558', title: 'Última fase', parentId: 191, columnId: 11 }),
+    ];
+    const informe = barrido(items, { columnasCerradas: COLUMNAS_CERRADAS, idLabelCierre: ID_CIERRE_ADMINISTRATIVO });
+    const texto = formatearInforme(informe, { leidos: 2 });
+    assert.match(texto, /falsos positivos: padres distintos \(un ítem por épica\)/);
+    assert.doesNotMatch(texto, /CANDIDATO A DUPLICADO/);
+    assert.match(texto, /0 candidato\(s\) sin padre/);
+  });
+
+  it('marca el candidato como ya unificado cuando el ítem sin padre duplica al otro', () => {
+    const items = [
+      item({ id: 1, identifier: 'MSF-859', title: 'Seguimiento CI', parentId: 881, columnId: 51 }),
+      item({ id: 2, identifier: 'MSF-931', title: 'Seguimiento CI', parentId: null, columnId: 51 }),
+    ];
+    const relaciones = (i) =>
+      i.identifier === 'MSF-859'
+        ? [{ kind: 'duplicates', direction: 'outward', issue: { identifier: 'MSF-931' } }]
+        : [];
+    const informe = barrido(items, {
+      columnasCerradas: COLUMNAS_CERRADAS,
+      idLabelCierre: ID_CIERRE_ADMINISTRATIVO,
+      relaciones,
+    });
+    const texto = formatearInforme(informe, { leidos: 2 });
+    assert.match(texto, /CANDIDATO A DUPLICADO \(mismo título; MSF-931 sin padre\): MSF-859, MSF-931 — ya unificado \(MSF-859 → MSF-931\)/);
   });
 });
 
