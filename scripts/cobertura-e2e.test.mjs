@@ -175,6 +175,7 @@ describe('cobertura-e2e', () => {
       '- [x] T020 [F-ACC-01][US1] E2E de ingreso y recuperación',
       '- [ ] T021 [P] [US1]',
       '- [ ] T022 Documentación de la historia',
+      '- [x] T023 [CIERRE] Revisión de seguridad',
     ].join('\n'));
     writeFileSync(join(dirSpecs, 'spec-acceso', 'spec.md'), [
       '**Componente**: Acceso', '', '**Jira Epic**: MSF-119 — Acceso', '',
@@ -188,9 +189,12 @@ describe('cobertura-e2e', () => {
       { title: '[MSF-119:T020] ingreso', results: [{ status: 'passed', attachments: [] }] },
     ] }] }] }));
     const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r4', modo: 'on' });
+    // El manifiesto es un registro: lista TODOS los ítems sin descripción utilizable,
+    // hechos o no (igual que `sin_cubrir`). El reporte por épica cuenta sólo los pendientes.
     assert.deepEqual(m.items_sin_descripcion.map((i) => [i.id, i.motivo]), [
       ['T021', 'sin texto'],
       ['T022', 'sin historia'],
+      ['T023', 'sin historia'],
     ]);
     assert.deepEqual(m.historias_ambiguas.map((h) => [h.historia, h.titulos]), [
       ['F-ACC-01', ['Ingreso', 'Recuperación']],

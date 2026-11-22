@@ -24,6 +24,7 @@ TASKS = """- [ ] T001 [F-DEMO-01][US1] Migración aditiva `dominio.clientes` y p
 - [ ] T006 [P] Crear el hook `useClientes` en
   `apps/web/src/hooks/useClientes.ts`.
 - [ ] T007 [P] [F-DEMO-04][US1] Pantalla de stock con filtro por deposito
+- [x] T008 [CIERRE] Revisión de seguridad (`authz-security`, `database-migrations`)
 """
 
 
@@ -85,6 +86,13 @@ class ReporteCoberturaPorEpica(unittest.TestCase):
         # F-DEMO-01 es de base de datos; F-DEMO-03 no tiene descripción y NO entra ahí.
         self.assertIn("base   1", salida)
         # T003 (sin texto), T004 y T006 (sin historia) y T005 (sin texto) van en su columna.
+        self.assertIn("sin descr.=  4", salida)
+
+    def test_un_item_ya_hecho_sin_descripcion_no_cuenta(self):
+        # T008 (`[CIERRE]`, sin código de historia) ya está hecho: no hay nada que escribirle.
+        por_id = {i["id"]: i for i in self.mod.tareas_de(self.spec_dir)}
+        self.assertEqual(por_id["T008"]["motivo"], "sin historia")
+        salida = self.correr("--epicas", "MSF-999")
         self.assertIn("sin descr.=  4", salida)
 
 

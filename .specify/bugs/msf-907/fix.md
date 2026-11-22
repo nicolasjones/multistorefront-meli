@@ -21,7 +21,7 @@ el reporte por épica, y video publicado marcado «sin criterios».
 |------|--------|-------|
 | `scripts/historia-item.mjs` | added | Regla única: texto completo del ítem (incluye las líneas de continuación), código de historia en cualquier posición y **motivo** por el que la descripción no alcanza (`sin texto` / `sin historia`). Modo CLI (`--tasks` / `--stdin`) para que el script de Python no tenga su propia copia de la regla. |
 | `scripts/cobertura-e2e.mjs` | modified | `leerItems` sale del módulo (vive en el helper compartido); el encabezado de historia se lee en los dos formatos del repo y con el código dentro del paréntesis (`(MSF-383 · F-PRV-04, P0, talla L)`); el manifiesto publica las dos claves aditivas `items_sin_descripcion` y `historias_ambiguas` y las cuenta en el resumen. |
-| `scripts/e2e-cobertura-epicas.py` | modified | Lee los ítems con la regla compartida (de ahí sale la historia y el motivo), une las líneas de continuación y **deja de contar los ítems sin descripción como «sólo base de datos»**: van a su columna «Ítems sin descripción». |
+| `scripts/e2e-cobertura-epicas.py` | modified | Lee los ítems con la regla compartida (de ahí sale la historia y el motivo), une las líneas de continuación y **deja de contar los ítems sin descripción como «sólo base de datos»**: van a su columna «Ítems pendientes sin descripción» (sólo los pendientes: a un ítem ya hecho no hay que escribirle nada). |
 | `scripts/armar-video-evidencia.mjs` | modified | El ítem se une a su historia con la misma regla (el código puede venir detrás de `[P]`); si no hay descripción, la tarjeta muestra el id del ítem en vez de un subtítulo vacío; el video sin criterios se publica marcado «sin criterios». |
 | `scripts/publicar-videos-e2e.mjs` | modified | La página del run lista los ítems sin descripción utilizable, con su motivo. |
 | `scripts/historia-item.test.mjs` | added test | Fija la regla compartida: código en cualquier posición, texto con líneas de continuación, motivo de cada ítem, texto sin etiquetas. |
@@ -51,7 +51,7 @@ base_hist = [c for c, ts_h in historias.items()
              and c not in faltan_hist
              and not all(t["motivo"] for t in ts_h)          # ← ya no degrada a «sólo base»
              and not any((e, t["id"]) in rotulados for t in ts_h)]
-sin_descripcion = [t for t in ts if t["motivo"]]
+sin_descripcion = [t for t in ts if t["motivo"] and not t["hecha"]]   # ← sólo lo pendiente
 ```
 
 ## Tests Added or Updated
@@ -68,19 +68,20 @@ sin_descripcion = [t for t in ts if t["motivo"]]
 - `scripts/e2e-cobertura-epicas.test.py::test_calcula_la_historia_de_cada_item_aunque_el_codigo_no_venga_primero`.
 - `scripts/e2e-cobertura-epicas.test.py::test_cada_item_sabe_si_su_descripcion_alcanza_y_por_que_no`.
 - `scripts/e2e-cobertura-epicas.test.py::test_un_item_sin_descripcion_no_cuenta_como_solo_base_de_datos`.
+- `scripts/e2e-cobertura-epicas.test.py::test_un_item_ya_hecho_sin_descripcion_no_cuenta` — un `[CIERRE]` ya hecho no infla la cola.
 
 ## Local Verification
 
 - `pnpm test:cobertura:e2e` → 11/11 en verde.
 - `pnpm test:historia:item` → 5/5 en verde.
-- `pnpm test:e2e:cobertura:epicas` → 4/4 en verde (`python3 scripts/e2e-cobertura-epicas.test.py`).
+- `pnpm test:e2e:cobertura:epicas` → 5/5 en verde (`python3 scripts/e2e-cobertura-epicas.test.py`).
 - `pnpm test:armar-video:e2e` → 10/10 en verde.
 - `pnpm test:publicar-videos:e2e` → 2/2 en verde.
 - `pnpm lint` → exit 0 (los avisos de `set-state-in-effect` son preexistentes de `apps/web`, que esta historia no toca).
 - `pnpm build` → exit 0.
 - `pnpm docs:check` → OK (documentación de cambios, migraciones y trampas conocidas).
-- Reproducción contra el código previo (base `28ee63831`): 3 de 11 tests de `cobertura-e2e` fallan, 4 de 10 de `armar-video-evidencia`, 1 de 2 de `publicar-videos-e2e` y 4 de 4 de `e2e-cobertura-epicas` (el reporte salen `historias= 0 … base 0`). Ver `test.md`.
-- Contraste de la regla sobre el repo: 221 encabezados de historia con código (la regla vieja derivaba 155) y 1953 ítems con historia (la regla vieja veía 1313): +66 historias y +640 ítems que el runner ya puede derivar. Los 1549 ítems que siguen sin código de historia quedan listados con su motivo, ya no como «sólo base de datos».
+- Reproducción contra el código previo (base `28ee63831`): 3 de 11 tests de `cobertura-e2e` fallan, 4 de 10 de `armar-video-evidencia`, 1 de 2 de `publicar-videos-e2e` y 5 de 5 de `e2e-cobertura-epicas` (el reporte salen `historias= 0 … base 0`). Ver `test.md`.
+- Contraste de la regla sobre el repo: 221 encabezados de historia con código (la regla vieja derivaba 155) y 1953 ítems con historia (la regla vieja veía 1313): +66 historias y +640 ítems que el runner ya puede derivar. Los 1549 ítems que siguen sin código de historia quedan listados con su motivo, ya no como «sólo base de datos»: de ellos, **194 están pendientes** (la cola de trabajo que el reporte por épica cuenta) y 1355 ya están hechos (en su mayoría ítems de specs de plantilla o de cierre, que por diseño no llevan código de historia).
 
 ## Deviations from Assessment
 

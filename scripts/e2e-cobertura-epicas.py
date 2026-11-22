@@ -10,7 +10,8 @@ mira el `tasks.md` de su spec y cuenta:
 Los ítems se leen con la MISMA regla que los runners de Node (`scripts/historia-item.mjs`):
 de ahí sale la historia de cada ítem y si su descripción alcanza. Un ítem cuya descripción
 no alcanza no se cuenta como «sólo base de datos» (que era degradar en silencio: nadie
-escribía el test y el reporte no marcaba nada raro): va en su propia columna.
+escribía el test y el reporte no marcaba nada raro): va en su propia columna, que cuenta
+sólo los ítems PENDIENTES (los ya hechos no hay que escribirles nada).
 
 Uso:
   ITSAPLAN_API_KEY=… node scripts/e2e-cobertura-epicas.mjs?   # (node)
@@ -204,16 +205,18 @@ def main():
                      and c not in faltan_hist
                      and not all(t["motivo"] for t in ts_h)
                      and not any((e, t["id"]) in rotulados for t in ts_h)]
-        # Ítems cuya descripción no alcanza: el runner no puede derivar sus criterios, así que
-        # no se cuentan como «sólo base de datos» ( degradar en silencio) sino aparte.
-        sin_descripcion = [t for t in ts if t["motivo"]]
+        # Ítems PENDIENTES cuya descripción no alcanza: el runner no puede derivar sus criterios,
+        # así que no se cuentan como «sólo base de datos» (degradar en silencio) sino aparte.
+        # Los ya hechos no cuentan: no hay nada que escribir (los de cierre o de specs de
+        # plantilla no llevan código de historia por diseño).
+        sin_descripcion = [t for t in ts if t["motivo"] and not t["hecha"]]
         filas.append({"epica": e, "spec": d.name, "historias": len(historias),
                       "sin_e2e": len(faltan_hist), "solo_base": len(base_hist),
                       "sin_descripcion": len(sin_descripcion),
                       "codigos": faltan_hist[:8], "hechas": sum(1 for t in ts if t["hecha"])})
     filas.sort(key=lambda f: -(f.get("sin_e2e", 0)))
     if md:
-        print("| Épica | Spec | Historias | Tareas hechas | **Historias SIN E2E (con video)** | Solo base de datos | Ítems sin descripción |")
+        print("| Épica | Spec | Historias | Tareas hechas | **Historias SIN E2E (con video)** | Solo base de datos | Ítems pendientes sin descripción |")
         print("|---|---|---|---|---|---|---|")
         for f in filas:
             if f.get("sin_spec"):
@@ -223,7 +226,7 @@ def main():
         tot_p = sum(f.get("sin_e2e", 0) for f in filas)
         tot_b = sum(f.get("solo_base", 0) for f in filas)
         tot_d = sum(f.get("sin_descripcion", 0) for f in filas)
-        print(f"\n**Total: {tot_p} historias necesitan un E2E (con video), {tot_b} son sólo base de datos (pgTAP, sin video) y {tot_d} ítems no tienen descripción utilizable.**")
+        print(f"\n**Total: {tot_p} historias necesitan un E2E (con video), {tot_b} son sólo base de datos (pgTAP, sin video) y {tot_d} ítems pendientes no tienen descripción utilizable.**")
     else:
         for f in filas:
             if f.get("sin_spec"):
@@ -234,7 +237,7 @@ def main():
         tot_p = sum(f.get("sin_e2e", 0) for f in filas)
         tot_b = sum(f.get("solo_base", 0) for f in filas)
         tot_d = sum(f.get("sin_descripcion", 0) for f in filas)
-        print(f"\nTOTAL: {tot_p} historias necesitan E2E (con video) + {tot_b} sólo base de datos (pgTAP, sin video) + {tot_d} ítems sin descripción utilizable")
+        print(f"\nTOTAL: {tot_p} historias necesitan E2E (con video) + {tot_b} sólo base de datos (pgTAP, sin video) + {tot_d} ítems pendientes sin descripción utilizable")
 
 
 if __name__ == "__main__":

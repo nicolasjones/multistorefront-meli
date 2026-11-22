@@ -480,12 +480,17 @@ ensamblador de videos y el reporte por épica— y dice:
   - el manifiesto publica la lista nueva `items_sin_descripcion` (con el motivo: `sin texto` o
     `sin historia`) y la línea de resumen la cuenta;
   - el reporte por épica (`scripts/e2e-cobertura-epicas.py`) tiene su propia columna «Ítems
-    sin descripción» y **no** cuenta esos ítems como «sólo base de datos»;
+    pendientes sin descripción» y **no** cuenta esos ítems como «sólo base de datos»;
   - el video de un ítem sin criterios se publica marcado «sin criterios» y su tarjeta
     muestra el id del ítem en vez de un subtítulo vacío.
 
 Las dos claves del manifiesto son **aditivas**: el visor del panel SDLC las ignora hasta que
 las consuma.
+
+El manifiesto es un **registro**: lista todos los ítems sin descripción utilizable, hechos o
+no (igual que `sin_cubrir`). El reporte por épica es una **cola de trabajo**: su columna
+cuenta sólo los ítems **pendientes** (a un ítem ya hecho no hay que escribirle nada; los de
+cierre y los de specs de plantilla no llevan código de historia por diseño).
 
 El encabezado de la historia en el `spec.md` se lee en los dos formatos que usa el repo
 (`### User Story N - … (F-XXX-NN, …)` y `### USN — … (F-XXX-NN, …)`) y el código puede ir

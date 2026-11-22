@@ -20,18 +20,19 @@ el código previo**; contra el código arreglado pasan, sin regresiones en los m
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproduction (pre-fix) | tests nuevos contra `28ee63831` en un worktree aparte | fail | 3/11 `cobertura-e2e`, 4/10 `armar-video-evidencia`, 1/2 `publicar-videos-e2e` y 4/4 `e2e-cobertura-epicas` fallan: el manifiesto no publica `items_sin_descripcion`, el código de historia detrás de `[P]` no une el ítem y el reporte por épica sale `historias= 0 … base 0`. |
-| Reproduction (post-fix) | `python3 scripts/e2e-cobertura-epicas.py --epicas MSF-136` | pass | Antes `historias=  0 hechas= 26 SIN E2E=  0 (base   0)`; ahora `historias=  4 hechas= 26 SIN E2E=  0 (base   0)  sin descr.=  5`. |
+| Reproduction (pre-fix) | tests nuevos contra `28ee63831` en un worktree aparte | fail | 3/11 `cobertura-e2e`, 4/10 `armar-video-evidencia`, 1/2 `publicar-videos-e2e` y 5/5 `e2e-cobertura-epicas` fallan: el manifiesto no publica `items_sin_descripcion`, el código de historia detrás de `[P]` no une el ítem y el reporte por épica sale `historias= 0 … base 0`. |
+| Reproduction (post-fix) | `python3 scripts/e2e-cobertura-epicas.py --epicas MSF-136` | pass | Antes `historias=  0 hechas= 26 SIN E2E=  0 (base   0)`; ahora `historias=  4 hechas= 26 SIN E2E=  0 (base   0)  sin descr.=  0` (los 5 ítems sin historia de esa spec ya están hechos: son de cierre, así que no hay nada que escribirles). |
+| Regla: la cola cuenta lo pendiente | test nuevo con un `[CIERRE]` ya hecho | pass | `test_un_item_ya_hecho_sin_descripcion_no_cuenta`: con el filtro de «pendiente» el reporte da `sin descr.=  4`; sin él (código previo de esta revisión) da `sin descr.=  5` y el test falla. |
 | New / updated tests | `pnpm test:cobertura:e2e` | pass | 11/11. |
 | New / updated tests | `pnpm test:historia:item` | pass | 5/5. |
-| New / updated tests | `pnpm test:e2e:cobertura:epicas` | pass | 4/4 (`unittest`, salida `OK`). |
+| New / updated tests | `pnpm test:e2e:cobertura:epicas` | pass | 5/5 (`unittest`, salida `OK`). |
 | New / updated tests | `pnpm test:armar-video:e2e` | pass | 10/10. |
 | New / updated tests | `pnpm test:publicar-videos:e2e` | pass | 2/2. |
 | Regression suite | `pnpm lint` | pass | exit 0 (los avisos de `set-state-in-effect` son preexistentes de `apps/web`, sin tocar). |
 | Regression suite | `pnpm build` | pass | exit 0 (`✓ built in 2.63s`). |
 | Regression suite | `pnpm docs:check` | pass | Documentación de cambios OK · Migraciones OK (771 archivos, 0 nuevos) · Trampas conocidas OK. |
 | Regression suite | `pnpm calidad` | pass | oxlint, knip (código muerto), jscpd, dependency-cruiser y syncpack en verde. `gitleaks` no corrió: el sandbox no tiene acceso al socket de Docker (limitación del entorno, no del código). |
-| Alcance de la regla sobre el repo | conteo con la regla nueva y con la regla vieja | pass | Encabezados de historia con código: 221 (la regla vieja derivaba 155). Ítems con historia: 1953 (la regla vieja veía 1313). Ítems sin descripción utilizable: 1549, todos «sin historia» (ninguno «sin texto»): antes pasaban como «sólo base de datos». |
+| Alcance de la regla sobre el repo | conteo con la regla nueva y con la regla vieja | pass | Encabezados de historia con código: 221 (la regla vieja derivaba 155). Ítems con historia: 1953 (la regla vieja veía 1313). Ítems sin descripción utilizable: 1549, todos «sin historia» (ninguno «sin texto»): antes pasaban como «sólo base de datos». De esos, **194 pendientes** (la cola que cuenta el reporte) y 1355 ya hechos (en su mayoría ítems de specs de plantilla o de cierre, que no llevan código de historia). |
 
 ## Output Excerpts
 
@@ -53,7 +54,7 @@ AssertionError: 'historias=  4' not found in 'MSF-999   spec-demo   historias=  
 # con el código arreglado
 ℹ tests 11  ℹ pass 11  ℹ fail 0     # pnpm test:cobertura:e2e
 ℹ tests  5  ℹ pass  5  ℹ fail 0     # pnpm test:historia:item
-Ran 4 tests in 0.380s  OK            # pnpm test:e2e:cobertura:epicas
+Ran 5 tests in 0.461s  OK            # pnpm test:e2e:cobertura:epicas
 ℹ tests 10  ℹ pass 10  ℹ fail 0     # pnpm test:armar-video:e2e
 ℹ tests  2  ℹ pass  2  ℹ fail 0     # pnpm test:publicar-videos:e2e
 Documentación de cambios: OK · Migraciones OK · Trampas conocidas: OK
