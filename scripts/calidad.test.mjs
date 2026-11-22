@@ -82,3 +82,28 @@ test("[MSF-895] el guard de arquitectura da ok sólo si cruzó módulos y no enc
   assert.equal(conCiclo.status, 1, conCiclo.stdout);
   assert.match(conCiclo.stdout, /no-circular: a\.ts → b\.ts/);
 });
+
+// MSF-895: la regla `not-to-dev-dep` sólo vigila algo si la herramienta CLASIFICA las dependencias npm.
+// Con `node_modules` en `exclude` la arista hacia el paquete se borra y la regla nunca dispara: otro
+// verde falso. Este caso corre el binario real sobre un fixture con la forma del front.
+test("[MSF-895] la regla not-to-dev-dep marca un devDependency usado por código de runtime y lo deja pasar en los tests", (t) => {
+  const binario = path.resolve("node_modules/.bin/depcruise");
+  if (!fs.existsSync(binario)) return t.skip("dependency-cruiser no está instalado");
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "depcruise-regla-"));
+  const escribir = (rel, contenido) => {
+    fs.mkdirSync(path.join(cwd, path.dirname(rel)), { recursive: true });
+    fs.writeFileSync(path.join(cwd, rel), contenido);
+  };
+  escribir("apps/web/package.json", JSON.stringify({ name: "web", devDependencies: { "paquete-de-prueba": "1.0.0" } }));
+  escribir("apps/web/node_modules/paquete-de-prueba/package.json", JSON.stringify({ name: "paquete-de-prueba", version: "1.0.0", main: "index.js" }));
+  escribir("apps/web/node_modules/paquete-de-prueba/index.js", "module.exports = 1;\n");
+  escribir("apps/web/src/arranque.ts", "import { x } from 'paquete-de-prueba'\nexport const y = x\n");
+  escribir("apps/web/src/arranque.test.ts", "import { x } from 'paquete-de-prueba'\nexport const y = x\n");
+
+  const r = spawnSync(binario, ["--config", path.resolve(".dependency-cruiser.cjs"), "--output-type", "json", "apps/web/src"], { cwd, encoding: "utf8" });
+  const salida = JSON.parse(r.stdout || "{}");
+  const violaciones = (salida.summary?.violations || []).filter((v) => v.rule?.name === "not-to-dev-dep");
+  assert.equal(violaciones.length, 1, `esperaba 1 violación de not-to-dev-dep y hubo ${violaciones.length}: ${JSON.stringify(salida.summary?.violations)}`);
+  assert.match(violaciones[0].from, /arranque\.ts$/, "la violación tiene que señalar el archivo de runtime");
+  assert.doesNotMatch(violaciones[0].from, /\.test\.ts$/, "un test puede usar devDependencies: no es una violación");
+});

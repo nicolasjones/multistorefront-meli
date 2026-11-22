@@ -52,18 +52,21 @@ TypeScript: la herramienta descartaba los `.ts/.tsx` y devolvía «0 módulos, 0
 falso** sobre `apps/web/src` (`no-circular`, `no-orphans` y `not-to-dev-dep` nunca se evaluaron). Ahora:
 
 - corre el **binario local** (`node_modules/.bin/depcruise`, con `dependency-cruiser` y `typescript` como
-  `devDependencies` del root) y cruza el front de verdad: **1575 módulos y 5066 dependencias**;
+  `devDependencies` del root) y cruza el front de verdad: **1674 módulos y 6220 dependencias**;
 - **falla** si no cruzó ningún módulo, y también si falta el binario local;
 - los **tests forman parte del cruce**: si se excluyeran, los archivos de apoyo que sólo importan los tests
-  quedarían sin ninguna arista y `no-orphans` los marcaría como código muerto (falso positivo).
+  quedarían sin ninguna arista y `no-orphans` los marcaría como código muerto (falso positivo);
+- `node_modules` **no** va en `exclude`: excluirlo borra la arista hacia el paquete y con ella la
+  clasificación `npm`/`npm-dev`. Con `doNotFollow` el paquete no se cruza, pero la arista queda y las
+  reglas que lo necesitan (`not-to-dev-dep`) sí pueden dispararse.
 
 Al habilitarlo aparecieron los hallazgos que nadie veía: **3 ciclos de imports** (`fuenteTienda.tsx` ↔
 `tiendaInicio.ts` y `configuracion/index.tsx` ↔ sus dos pestañas), corregidos en MSF-895 moviendo los tipos
-compartidos a módulos propios. Lo que queda y está documentado como excepción:
-
-- `not-to-dev-dep` **no puede disparar** con el layout de pnpm: con `tsPreCompilationDeps` las aristas a
-  `node_modules` no se registran y la herramienta no llega a clasificar la dependencia como `npm-dev`. La
-  regla queda inerte hasta que se resuelva (seguimiento propio); no se la da por cumplida.
+compartidos a módulos propios, y **1 dependencia de desarrollo usada en runtime**:
+`apps/web/src/lib/importacion-productos.ts` importaba `fflate` (declarado como `devDependency`) para
+descomprimir los ZIP importados. `fflate` pasó a `dependencies` del front porque se usa en runtime, no sólo
+en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de apoyo (`*.test.*` y
+`apps/web/src/test/`), que sí pueden usar `devDependencies` (`vitest`, `axe-core`, ...).
 
 ## Estado
 
@@ -76,9 +79,8 @@ compartidos a módulos propios. Lo que queda y está documentado como excepción
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 - Revisión 2026-11-21 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
-  (1575 módulos, 5066 dependencias) aparecieron **3 ciclos de imports** que nadie veía; los 3 se corrigieron
-  en el mismo lote y el guard cierra en verde. `not-to-dev-dep` queda documentada como excepción (no puede
-  disparar con el layout de pnpm).
+  (1674 módulos, 6220 dependencias) aparecieron **3 ciclos de imports** que nadie veía y **1 `devDependency`
+  usada en runtime** (`fflate`); los 4 se corrigieron en el mismo lote y el guard cierra en verde.
 - Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
   exports ni tipos exportados sin uso en `apps/web/src` (antes: ~35 y 6; lotes anteriores los limpiaron), así
   que no hubo nada que quitar. `oxlint` 1.79.0 sobre `apps/web/src` pasó de 287 a 286 warnings: se quitó el

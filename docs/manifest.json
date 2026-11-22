@@ -453,8 +453,8 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "6719218880378cab01a363d54d05e8fce6eeee41f7a970b13f09c571025ec82d",
-      "sourceHash": "1ceb50a39b9695affbea8d0e95510bee85e258221689c26ddac74ff7a8e24e5d",
+      "pageHash": "355ee4add2a1fc2f13c48385bbda2c2e18ef93c065c1df4528917ce6352b6562",
+      "sourceHash": "bce715508b632e718c2d3ac2b6d35bad305967e623cc3df59d14e079b8de8d87",
       "sourceAt": "659f1ccce",
       "sources": [
         "scripts/calidad.mjs",
@@ -2751,7 +2751,7 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "742bce831ca74b215a4c6a6c48cca4d8e96345ed81cb47b2937ec4716c6075f1",
+      "pageHash": "95802b5d53621c1fd8dfc68d87a35f02a4ee87b661fa0b401bab30e8296a5bd5",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
