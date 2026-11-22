@@ -4475,9 +4475,9 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "01522a09b71bd76faea11a01d14fe55fb1a1640c974bb1d31b3ad309094ede58",
-      "sourceHash": "526c4b4e389a568ee54dd7e3c01b6228908bc2c3cc58b540204a271d92267191",
-      "sourceAt": "6776fb4d3",
+      "pageHash": "6b36d74a9bf2debf4e8b91ef1446daeafda1988d536769db76c00e7a7f93eb72",
+      "sourceHash": "b0253180717278d749f9a3f4c8c654d76fa85c8e63cfac266fbd79759da803eb",
+      "sourceAt": "7fb60ac1a",
       "sources": [
         ".github/workflows/validate.yml",
         ".github/workflows/quality.yml",
@@ -4491,7 +4491,7 @@
         "scripts/auditar-duplicados-tracker.mjs"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d3"
+      "commit": "7fb60ac1a"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",

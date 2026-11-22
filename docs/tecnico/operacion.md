@@ -139,7 +139,7 @@ conserva la evidencia con la relación **`duplicates`** (del duplicado al origin
 
 | Sección | Qué mira | Qué hacer |
 |---|---|---|
-| A | Títulos idénticos | Mismo padre = duplicado real; padres distintos = ítems de cierre de cada épica (falsos positivos) |
+| A | Títulos idénticos | Mismo padre = duplicado real; un ítem **sin padre** con el título de otro = re-reporte (candidato a duplicado); padres distintos y ambos con padre = ítems de cierre de cada épica (falsos positivos) |
 | B | Familias que comparten referencia y padre (`[Seg. MSF-470]`) | **Informativo**: compartir referencia no es ser duplicado (bajo `[Seguimiento MSF-205]` hay 8 seguimientos distintos) |
 | C | Cerrados sin `cierre-administrativo` cuyo gemelo conserva la evidencia | Cerrar el duplicado con el puntero al gemelo |
 | D | Marcado como `duplicates` pero sin `cierre-administrativo` | Falta el mecanismo de cierre |
@@ -148,6 +148,15 @@ conserva la evidencia con la relación **`duplicates`** (del duplicado al origin
   `[Cierre MSF-191]` no son el mismo texto. Borrarla al normalizar funde ítems legítimos de épicas
   distintas: el barrido del 2026-11-13 reportó «12 grupos con el mismo título» cuando, con la
   normalización correcta, hay 1 (el resto eran cierres de épica).
+- El barrido lee el board **completo** (`/issues/board` + `/issues/archived`, sin filtro por tipo: los
+  ítems sin tipo se cuelan en ese filtro) y pide el detalle de **todos** los ítems (la sección D
+  necesita las relaciones `duplicates` de cualquiera). El encabezado informa cuántos ítems leyó de
+  cada tipo, para que una cobertura parcial se vea.
+- **Qué es «evidencia»**: un informe de revisión (QA/Code/Security) con contenido, o un
+  Implementation Report que **no** declara que no entregó. El flujo titula el informe con el estado
+  («— PR listo», «— correcciones aplicadas», «— terminó sin PR», «— falló el Desarrollador»): un
+  informe que dice «terminó sin PR» no es una entrega y no puede hacer pasar a un ítem por el que
+  conserva el trabajo.
 - Sin `ITSAPLAN_API_KEY` el barrido avisa y sale con 0: no rompe el CI.
 - Tests: `pnpm test:tracker:duplicados` (`scripts/auditar-duplicados-tracker.test.mjs`).
 
