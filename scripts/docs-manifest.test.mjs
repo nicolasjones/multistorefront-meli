@@ -33,6 +33,13 @@ function manifest(dir) {
   return JSON.parse(readFileSync(path.join(dir, 'docs/manifest.json'), 'utf8')).pages['docs/a.md'];
 }
 
+// Regenera el manifest conservando el anterior: así se ejercita el camino de reuso (la página no cambió).
+function regenerar(dir) {
+  const r = spawnSync('node', [script], { cwd: dir, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  return JSON.parse(readFileSync(path.join(dir, 'docs/manifest.json'), 'utf8')).pages['docs/a.md'];
+}
+
 test('sourceAt es el último commit propio de la página y no HEAD (con commits posteriores ajenos)', () => {
   const dir = repo();
   try {
@@ -80,5 +87,22 @@ test('dos HEAD distintos con el mismo contenido de la página dan el mismo sourc
     assert.equal(despues.sourceAt, antes.sourceAt);
     assert.equal(despues.sourceHash, antes.sourceHash);
     assert.equal(despues.commit, antes.commit);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('una página sin cambios no queda con `commit` en null (MSF-895)', () => {
+  const dir = repo();
+  try {
+    const primera = regenerar(dir);
+    assert.equal(primera.commit, primera.sourceAt);
+    // Manifest previo sin `commit` (campo que se agregó después): la página no cambió, pero el campo vacío
+    // no puede quedar: `docs-drift.mjs` imprimiría «última: ?» en vez del commit real.
+    const archivo = path.join(dir, 'docs/manifest.json');
+    const previo = JSON.parse(readFileSync(archivo, 'utf8'));
+    previo.pages['docs/a.md'].commit = null;
+    writeFileSync(archivo, JSON.stringify(previo, null, 2) + '\n');
+    const despues = regenerar(dir);
+    assert.notEqual(despues.commit, null);
+    assert.equal(despues.commit, despues.sourceAt);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
