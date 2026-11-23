@@ -109,6 +109,11 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
    `.github/workflows/docs.yml` y este cambio no la introduce.
 6. **Hallazgos adyacentes A1 (nombres viejos de migraciones en `docs/`).** Quedan fuera: son referencias de
    documentación a migraciones renumeradas por otros lotes, ajenas a este guard.
+7. **Vigencia del assessment (hallazgo Baja de la revisión).** Sus referencias de línea
+   (`scripts/docs-manifest.mjs:67`/`:12`, `scripts/calidad.mjs:76`) y sus commits/runs (`f5d8f4a5`,
+   `1ad0fd2e`, run `43625243985`) describen el árbol donde se diagnosticó, no el HEAD de la rama. El flujo
+   del bug prohíbe editar `assessment.md` (guardrail de `speckit.bug.fix.md`): la fuente vigente es este
+   `fix.md` y los commits de la rama. B1 y B2 ya están mergeados aguas arriba; el defecto vivo era B3.
 
 ## Follow-ups
 
