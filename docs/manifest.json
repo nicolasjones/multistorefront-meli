@@ -924,9 +924,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "ff31de152f5ba2f68a5938c705d5b151631c80e825abbc108f5b349c5e966ee0",
-      "sourceHash": "7153bdfcbc57e386ae81ce2bc822bf135ab4a0a3e96e37c6f2365a5b0d669de2",
-      "sourceAt": "6776fb4d",
+      "pageHash": "d0240affe76d69486cfc5b80f684e8fa71a94fa8e7a91be61af7ab8b184fbeb0",
+      "sourceHash": "a08625dc747d3695ef14b7abd2164366fed1844f7310ddfebba0b7fa99239894",
+      "sourceAt": "3cf784afb",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/docs-check.mjs",
@@ -939,7 +939,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "3cf784afb"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -2525,7 +2525,7 @@
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "859901ff"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -2814,7 +2814,7 @@
         "apps/web/src/lib/estadoOpinion.ts"
       ],
       "owner": "plataforma",
-      "commit": null
+      "commit": "12b4527a"
     },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
@@ -6298,7 +6298,7 @@
         "supabase/migrations/20270202200400_mostrador_buscar_producto.sql"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "48b70df5"
     },
     "docs/ventas-motos.md": {
       "title": "Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)",
