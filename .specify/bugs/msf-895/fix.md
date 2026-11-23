@@ -1,7 +1,7 @@
 # Bug Fix: [Lote L36] Higiene de código y referencias internas (MSF-895)
 
 - **Slug**: msf-895
-- **Fixed**: 2026-11-22
+- **Fixed**: 2026-11-23
 - **Assessment**: ./assessment.md
 - **Status**: applied (sobre `origin/dokploy@bf4ee7455`, rama `fix/bug-MSF-895`)
 
@@ -25,6 +25,12 @@ verdad y encontró **1 hallazgo real**: `apps/web/src/lib/importacion-productos.
 front. Los tests y sus archivos de apoyo (`*.test.*`, `apps/web/src/test/`) quedan fuera de la regla: sí
 pueden usar `devDependencies` (`vitest`, `axe-core`, ...).
 
+Y el manifest de docs dejaba el campo `commit` en `null` en 3 páginas que sí tienen `sourceAt`: la invariante
+`sourceAt == commit` se rompía y `docs-drift.mjs` imprimía «última: ?» en vez del commit real. La causa era
+que `commit` no tenía respaldo cuando el manifest previo no lo traía (a diferencia de `sourceAt`), así que el
+hueco quedaba pegado para siempre. Ahora `commit` se completa con `sourceAt` (el mismo commit propio de la
+página) y, si tampoco hay fuentes, con el último commit propio.
+
 ## Changes
 
 | File | Change | Notes |
@@ -45,7 +51,10 @@ pueden usar `devDependencies` (`vitest`, `axe-core`, ...).
 | `apps/web/src/pages/ventas/configuracion/FormasPagoTab.tsx` | modified | ídem |
 | `docs/calidad.md` | modified | qué revisa el guard ahora, el hallazgo de `fflate` y la excepción de los tests |
 | `docs/roadmap-template.md` | modified | fila del Lote 36 (MSF-515) en la hoja de ruta |
+| `docs/documentacion-cambios.md` | modified | qué son los campos del manifest (`pageHash`, `sourceHash`, `sourceAt`, `commit`), que `commit` no queda vacío (MSF-895) y que el manifest se regenera después del commit de los archivos que toca |
 | `docs/manifest.json` | modified | regenerado (`sourceAt`/`sourceHash`/`pageHash` de las páginas tocadas) |
+| `scripts/docs-manifest.mjs` | modified | `commit` ya no queda en `null`: si el manifest previo no lo traía, se completa con `sourceAt` y, si la página no tiene fuentes, con el último commit propio de la página |
+| `scripts/docs-manifest.test.mjs` | modified | test de regresión del `commit` vacío (el que quedaba pegado) |
 
 Sin migraciones: la historia no cambia el esquema ni los datos (la versión que reservó el runner,
 `20270507200101`, no se usa). Sin cambios de comportamiento: `fflate` sigue en la misma versión y el front
@@ -64,6 +73,9 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
   (`apps/web/package.json` + `apps/web/node_modules`). Se comprobó que **falla** si `node_modules` vuelve a
   `exclude` (la arista se borra y la regla queda muda) y si se saca la excepción de los tests (el test pasa a
   ser una violación).
+- `scripts/docs-manifest.test.mjs` — «[MSF-895] una página sin cambios no queda con `commit` en null»:
+  regenera el manifest conservando el anterior (con `commit: null`) y exige que `commit` se complete y sea
+  igual a `sourceAt`. Con el código anterior el test falla (`commit` queda en `null`).
 
 ## Local Verification
 
@@ -76,6 +88,18 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
 - Hallazgo de `not-to-dev-dep` reproducido: con `fflate` como `devDependency` la regla marca
   `apps/web/src/lib/importacion-productos.ts` (severidad `error`); con `fflate` en `dependencies`: 0.
 - `node --test scripts/calidad.test.mjs` → 5 pasan (1 salteado: gitleaks no está instalado).
+- `node --test scripts/docs-manifest.test.mjs` → 4 pasan (el nuevo falla con el código anterior).
+- `node scripts/docs-manifest.mjs` → 344 páginas · 311 con fuentes · 33 estáticas; el diff son 7 líneas
+  (el `commit` de `docs/promociones-precio.md`, `docs/seguridad-tienda-opiniones.md` y `docs/ventas-mostrador.md`,
+  y la entrada de `docs/documentacion-cambios.md`, cuya fuente cambió). Correrlo de nuevo no cambia nada: el
+  manifest es reproducible.
+- Invariante del manifest: 0 páginas con fuentes donde `sourceAt != commit` y 0 páginas con `commit: null`
+  (antes: 3 y 3).
+- El manifest commiteado es el que reproduce el CI: en un clon **shallow** (`--depth 1`, como el checkout del
+  workflow `docs`) `node scripts/docs-manifest.mjs` no deja diff (`git diff --exit-code docs/manifest.json`),
+  porque el manifest commiteado ya está en sync con las páginas y el script reusa sus valores.
+- Drift: 25 páginas con la fuente cambiada (antes 26): `docs/documentacion-cambios.md` deja de estar vieja
+  porque la página se actualizó con el cambio del script.
 - `pnpm --filter @platform/web exec vitest run src/pages/ventas/configuracion src/lib/tiendaInicio
   src/lib/categorias src/higieneReferenciasInternas.test.ts` → 5 archivos, 97 tests OK.
 - `pnpm --filter @platform/web build` (`tsc -b` + `vite build`) → OK.
@@ -83,6 +107,16 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
 - `pnpm dlx knip@6.44.1 --no-progress` → exit 0, 0 hallazgos.
 - `pnpm docs:check` → OK (documentación de cambios, migraciones y trampas conocidas).
 - `pnpm install --frozen-lockfile --offline` → «Already up to date» (el lockfile está consistente).
+
+## Alcance del lote: qué quedó resuelto de MSF-539, MSF-580 y MSF-777
+
+Verificado contra `origin/dokploy` (la base del PR), no de memoria:
+
+| Consolidado | Ítem | Estado | Evidencia en la base |
+|---|---|---|---|
+| MSF-895 | 539 | **resuelto en la base** (no en este PR) | 1) lectura por tandas con `.range()`: `apps/web/src/lib/categorias.ts` (`leerPorTandas`, `TAMANO_TANDA_CATEGORIAS`), commit `3fb2aaf1a`; 2) candado en la baja directa: `supabase/migrations/20270507140000_categorias_baja_candado_orden_y_permiso.sql` (disparador `categorias_baja_candado`), commit `b08b9e63f`; 3) límite de `p_orden` (5000) y concurrencia documentada en esa migración; 4) recálculo del conteo de la raíz al filtrar por tienda: `filtrarArbolPorTienda` en `apps/web/src/lib/categorias.ts`; 5) mensaje de permiso al asignar categoría (`asignar_categoria_producto`), en la misma migración. pgTAP: `supabase/tests/database/catalogo_categorias_hallazgos_baja.test.sql` (11 asserts, hallazgos 2, 3 y 5). Vitest: `apps/web/src/lib/categorias.test.ts` (paginación y recálculo del conteo, hallazgos 1 y 4). |
+| MSF-895 | 580 | **resuelto en la base** | `scripts/verificar-migraciones.mjs` existe y `pnpm docs:check` lo corre. |
+| MSF-895 | 777 | **parcial por decisión de la épica** | El Lote 2 (MSF-878) cerró los títulos de test y los «Etapa N» (`apps/web/src/higieneReferenciasInternas.test.ts` los vigila). Los **comentarios** con código de ticket (~450 líneas) quedan abiertos por D-1 de `specs/20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs/spec.md`: es una decisión de convención que espera a Nicolás. Ver «Follow-ups». |
 
 ## Deviations from Assessment
 
@@ -92,7 +126,9 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
    `scripts/verificar-migraciones.mjs`); de MSF-777, el Lote 2 (MSF-878) ya cerró los títulos de test y los
    «Etapa N», y dejó abiertos los comentarios con código de ticket por decisión suya (D-1). El defecto vivo
    era, entonces, **B3**: el guard de arquitectura que no revisaba nada. Por eso este fix no toca
-   `scripts/docs-manifest.mjs` ni `scripts/docs-check.mjs`: B1 ya lo corrigió MSF-950 (Lote 2) y B2, MSF-862.
+   `scripts/docs-check.mjs`: B2 ya lo corrigió MSF-862. Sí toca `scripts/docs-manifest.mjs`, pero por otra
+   razón: B1 (`sourceAt` estable) ya lo corrigió MSF-950 y lo que quedaba vivo era el campo `commit`
+   (devolución Media de la revisión: `commit: null` con `sourceAt` puesto). Ver la tabla de alcance más arriba.
 2. **Base `dokploy` (pregunta abierta del assessment).** La rama contra `origin/dokploy@bf4ee7455`, que es la
    base del PR.
 3. **El guard falla cuando cruza 0 módulos (pregunta abierta del assessment).** Se adoptó la alternativa
@@ -119,5 +155,8 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
 
 - **MSF-777 (comentarios con código de ticket, ~450 líneas)**: sigue abierto por decisión del Lote 2 (D-1 de
   `specs/20270324-100000-deuda-tecnica-lote-2-higiene-codigo-y-docs/spec.md`): reescribirlos en bloque es
-  una decisión de convención más amplia que este lote. No se implementa acá.
+  una decisión de convención más amplia que este lote, que espera la decisión de Nicolás. **Seguimiento
+  propio: MSF-777** (clave del ítem consolidado; la tarea `seguimiento` en It's a Plan la abre el flujo con
+  Nicolás como dueño de la decisión de convención). No se reasigna a otra historia ni se da por hecho: el
+  Lote 2 ya cerró los títulos de test y los «Etapa N», que es la parte que el seguimiento nombraba.
 - **A2 (drift de documentación)**: deuda ya anotada en `.github/workflows/docs.yml`.
