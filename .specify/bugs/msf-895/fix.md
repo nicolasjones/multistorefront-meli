@@ -89,10 +89,10 @@ lo sigue empaquetando igual; lo que cambia es en qué sección del manifiesto de
   `apps/web/src/lib/importacion-productos.ts` (severidad `error`); con `fflate` en `dependencies`: 0.
 - `node --test scripts/calidad.test.mjs` → 5 pasan (1 salteado: gitleaks no está instalado).
 - `node --test scripts/docs-manifest.test.mjs` → 4 pasan (el nuevo falla con el código anterior).
-- `node scripts/docs-manifest.mjs` → 344 páginas · 311 con fuentes · 33 estáticas; el diff son 7 líneas
+- `node scripts/docs-manifest.mjs` → 344 páginas · 311 con fuentes · 33 estáticas; el diff son 9 líneas
   (el `commit` de `docs/promociones-precio.md`, `docs/seguridad-tienda-opiniones.md` y `docs/ventas-mostrador.md`,
-  y la entrada de `docs/documentacion-cambios.md`, cuya fuente cambió). Correrlo de nuevo no cambia nada: el
-  manifest es reproducible.
+  y las entradas de `docs/documentacion-cambios.md` y `docs/roadmap-template.md`, cuyas fuentes o textos
+  cambiaron). Correrlo de nuevo no cambia nada: el manifest es reproducible.
 - Invariante del manifest: 0 páginas con fuentes donde `sourceAt != commit` y 0 páginas con `commit: null`
   (antes: 3 y 3).
 - El manifest commiteado es el que reproduce el CI: en un clon **shallow** (`--depth 1`, como el checkout del
