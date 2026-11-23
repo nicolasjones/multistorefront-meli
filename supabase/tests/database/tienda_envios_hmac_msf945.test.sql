@@ -1,10 +1,11 @@
 -- MSF-945 (épica MSF-515, Lote 1; hallazgo H-1 de T070 de MSF-176): el visitante de `dominio.tienda_envios` es un HMAC con
 -- un secreto del servidor (Vault `visitante_hmac`) y no un sha256 enumerable; la lectura de la tabla exige edición en
 -- Empresas y empresa accesible; los hashes viejos se reemplazan por `legado`; el límite por visitante sigue funcionando y
--- ni presupuestos ni consultas guardan IP ni visitante.
+-- ni presupuestos ni consultas guardan IP ni visitante. Desde la revisión del PR #1003 el HMAC lleva el prefijo «hmac:»
+-- (su forma no la alcanza el reemplazo a «legado»: si el secreto se borra y se re-crea, los HMAC vivos sobreviven).
 begin;
 
-select plan(43);
+select plan(46);
 
 -- ============================================================================
 -- Fixture (como postgres)
@@ -83,21 +84,21 @@ select set_config('request.headers', '{"x-forwarded-for": "203.0.113.7"}', true)
 
 select is(
   private.visitante_hash('e1000000-0000-0000-0000-000000000001'),
-  encode(extensions.hmac('203.0.113.7|e1000000-0000-0000-0000-000000000001',
+  'hmac:' || encode(extensions.hmac('203.0.113.7|e1000000-0000-0000-0000-000000000001',
                          (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'visitante_hash = HMAC-SHA256(ip|empresa) con el secreto de Vault');
 select isnt(
   private.visitante_hash('e1000000-0000-0000-0000-000000000001'),
   encode(sha256(convert_to('203.0.113.7|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex'),
   'ya no es el sha256 sin clave: enumerar IPv4 no recupera la IP');
-select matches(private.visitante_hash('e1000000-0000-0000-0000-000000000001'), '^[0-9a-f]{64}$', 'sigue siendo hex de 64 caracteres');
+select matches(private.visitante_hash('e1000000-0000-0000-0000-000000000001'), '^hmac:[0-9a-f]{64}$', 'lleva el prefijo «hmac:» y el hex de 64 caracteres: su forma no la alcanza el reemplazo a «legado»');
 select is(private.visitante_hash('e1000000-0000-0000-0000-000000000001'), private.visitante_hash('e1000000-0000-0000-0000-000000000001'),
   'es determinista (el límite por visitante depende de eso)');
 select isnt(private.visitante_hash('e1000000-0000-0000-0000-000000000001'), private.visitante_hash('e1000000-0000-0000-0000-000000000002'),
   'cambia con la empresa');
 select set_config('request.headers', '{"x-forwarded-for": "203.0.113.8"}', true);
 select isnt(private.visitante_hash('e1000000-0000-0000-0000-000000000001'),
-            encode(extensions.hmac('203.0.113.7|e1000000-0000-0000-0000-000000000001',
+            'hmac:' || encode(extensions.hmac('203.0.113.7|e1000000-0000-0000-0000-000000000001',
                                    (select decrypted_secret from vault.decrypted_secrets where name = 'visitante_hmac'), 'sha256'), 'hex'),
   'cambia con la IP');
 select set_config('request.headers', '', true);
@@ -128,7 +129,7 @@ select is(private.registrar_envio_tienda('e1000000-0000-0000-0000-000000000002',
 select is(
   (select count(*)::int from dominio.tienda_envios where empresa_id = 'e1000000-0000-0000-0000-000000000001' and visitante = private.visitante_hash('e1000000-0000-0000-0000-000000000001')),
   5, 'se guardaron 5 filas con el HMAC del visitante');
-select is((select count(*)::int from dominio.tienda_envios where clave_envio::text like '00000000-0000-0000-0000-0000000000%' and visitante !~ '^[0-9a-f]{64}$'), 0, 'ninguna fila guarda la IP en claro');
+select is((select count(*)::int from dominio.tienda_envios where clave_envio::text like '00000000-0000-0000-0000-0000000000%' and visitante ~ '203\.0\.113\.'), 0, 'ninguna fila guarda la IP en claro');
 select is((select count(*)::int from dominio.tienda_envios where visitante = encode(sha256(convert_to('203.0.113.50|e1000000-0000-0000-0000-000000000001', 'UTF8')), 'hex')), 0,
   'ninguna fila coincide con el sha256 sin clave de la IP');
 
@@ -232,6 +233,16 @@ select is(private.inicializar_visitante_hmac(), false, 'repetirla no crea otro s
 select is((select count(*)::int from dominio.tienda_envios where visitante = private.visitante_hash('e1000000-0000-0000-0000-000000000001')), 1,
   'repetirla tampoco pisa los HMAC nuevos');
 select is((select count(*)::int from vault.secrets where name = 'visitante_hmac'), 1, 'sigue habiendo un único secreto');
+
+-- ----------------------------------------------------------------------------
+-- El secreto se borra y se re-crea (revisión PR #1003): el reemplazo a «legado» ya no alcanza a los HMAC vivos
+-- ----------------------------------------------------------------------------
+delete from vault.secrets where name = 'visitante_hmac';
+select is(private.inicializar_visitante_hmac(), true, 'al recrear el secreto, la inicialización vuelve a correr');
+select is((select count(*)::int from dominio.tienda_envios where visitante = 'legado'), 6,
+  'el reemplazo a «legado» solo alcanza a los hashes viejos: los HMAC vivos no caen a «legado»');
+select is((select count(*)::int from dominio.tienda_envios where visitante like 'hmac:%'), 1,
+  'el HMAC vivo conserva su prefijo (y su cupo): el límite por visitante no se reinicia');
 
 select * from finish();
 rollback;
