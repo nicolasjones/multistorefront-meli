@@ -2751,12 +2751,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "95802b5d53621c1fd8dfc68d87a35f02a4ee87b661fa0b401bab30e8296a5bd5",
+      "pageHash": "19824b584bec1b5d7cbb7c8f575538905d9be75ba9b7fc7a80d6a899df3a5a2a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "f437fbc86"
+      "commit": "295d700c5"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
