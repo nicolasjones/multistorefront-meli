@@ -8,6 +8,13 @@
 // lógica no importa nada de Deno ni de Supabase para poder probarla con `node --test`
 // (handler.test.ts); index.ts cablea los clientes reales.
 
+// Deja en el log del runtime en qué paso falló un 503 (sin tokens, claves ni datos del usuario): sin esto
+// todos los fallos devuelven el mismo `analitica_no_disponible` y no se pueden diagnosticar.
+function registrarFallo(paso: string, causa: unknown): void {
+  const detalle = causa instanceof Error ? causa.message : String(causa)
+  console.error(`emitir-acceso-reporte: falló el paso «${paso}»: ${detalle.slice(0, 200)}`)
+}
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -170,7 +177,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   let organizacionId: string | null
   try {
     organizacionId = await deps.resolverOrganizacion(jwt, reporteId)
-  } catch {
+  } catch (error) {
+    registrarFallo('resolver_organizacion', error)
     return jsonResponse({ error: 'analitica_no_disponible' }, 503)
   }
   // Se interpola en la cláusula `rls`: debe ser un UUID, nunca texto libre.
@@ -186,7 +194,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   let reporte: Awaited<ReturnType<Deps['reporte']>>
   try {
     reporte = await deps.reporte(jwt, reporteId)
-  } catch {
+  } catch (error) {
+    registrarFallo('leer_reporte', error)
     return jsonResponse({ error: 'analitica_no_disponible' }, 503)
   }
   if (!reporte?.dashboardUuid) {
@@ -204,7 +213,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     let empresas: string[]
     try {
       empresas = await deps.empresasAccesibles(jwt)
-    } catch {
+    } catch (error) {
+      registrarFallo('empresas_accesibles', error)
       return jsonResponse({ error: 'alcance_no_resuelto' }, 503)
     }
     clause = clausulaRls(organizacionId, empresas)
@@ -228,6 +238,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       body: JSON.stringify({ username, password, provider: 'db', refresh: false }),
     })
     if (!loginRes.ok) {
+      registrarFallo('login_superset', `HTTP ${loginRes.status}`)
       return jsonResponse({ error: 'analitica_no_disponible' }, 503)
     }
     const { access_token: accessToken } = await loginRes.json()
@@ -239,6 +250,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       signal: timeout,
     })
     if (!vedados) {
+      registrarFallo('datasets_vedados', 'sin allowlist o no se pudieron listar/resolver los datasets')
       // Sin allowlist o sin poder listar/resolver los datasets: emitir el token sin las reglas dejaría leer los de otros tableros.
       return jsonResponse({ error: 'analitica_no_disponible' }, 503)
     }
@@ -254,6 +266,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       }),
     })
     if (!guestTokenRes.ok) {
+      registrarFallo('guest_token', `HTTP ${guestTokenRes.status}`)
       return jsonResponse({ error: 'analitica_no_disponible' }, 503)
     }
     const { token: guestToken } = await guestTokenRes.json()
@@ -262,7 +275,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       { guest_token: guestToken, superset_url: supersetPublicUrl, dashboard_uuid: dashboardUuid },
       200,
     )
-  } catch {
+  } catch (error) {
+    registrarFallo('superset_red', error)
     // Superset caído, timeout o cualquier fallo de red — FR-015: mensaje puntual, sin reintento.
     return jsonResponse({ error: 'analitica_no_disponible' }, 503)
   }
