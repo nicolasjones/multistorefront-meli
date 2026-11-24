@@ -63,3 +63,42 @@ test('las migraciones reales del repo siguen dando válido', () => {
   const malas = readdirSync(dir).filter((f) => f.endsWith('.sql') && violaFrontera(readFileSync(new URL(f, dir), 'utf8')));
   assert.deepEqual(malas, []);
 });
+
+test('el recorrido es lineal: muchos literales, comentarios y dollar-quotes terminan en tiempo acotado', () => {
+  const casos = {
+    literales: "'' ".repeat(100_000),
+    lineas: '-- c\n'.repeat(100_000),
+    bloques: '/* c */ '.repeat(100_000),
+    dollar: '$$ x $$ '.repeat(100_000),
+    sentencias: 'select 1; '.repeat(100_000),
+  };
+  for (const [nombre, sql] of Object.entries(casos)) {
+    const t0 = performance.now();
+    assert.equal(violaFrontera(sql), false, nombre);
+    assert.ok(performance.now() - t0 < 3000, `${nombre} tardó demasiado (cuadrático)`);
+  }
+});
+
+test('sin estado oculto: la misma entrada da el mismo resultado, sola o alternada con otras', () => {
+  const entradas = [
+    "comment on table t is 'webhook';",
+    'select net.http_post(1);',
+    "select 'a'; -- x",
+    "select 'abierto;",
+    '/* a */ select http_get(1);',
+  ];
+  const base = entradas.map((e) => violaFrontera(e));
+  for (let vuelta = 0; vuelta < 3; vuelta++) {
+    assert.deepEqual(entradas.map((e) => violaFrontera(e)), base);
+    assert.deepEqual([...entradas].reverse().map((e) => violaFrontera(e)).reverse(), base);
+  }
+});
+
+test('el resultado por migración no depende del orden en que se lean los archivos', () => {
+  const dir = new URL('../supabase/migrations/', import.meta.url);
+  const archivos = readdirSync(dir).filter((f) => f.endsWith('.sql'));
+  const evaluar = (lista) => Object.fromEntries(lista.map((f) => [f, violaFrontera(readFileSync(new URL(f, dir), 'utf8'))]));
+  const normal = evaluar(archivos);
+  const invertido = evaluar([...archivos].reverse());
+  assert.deepEqual(invertido, normal);
+});

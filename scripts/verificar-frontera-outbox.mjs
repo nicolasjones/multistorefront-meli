@@ -10,22 +10,32 @@ const prohibited = /\b(pg_net|net\.http|http_(get|post)|webhook)\b/i;
 // literal de una sentencia que EMPIEZA con `comment on ... is '<literal>'` (texto descriptivo, puede nombrar un
 // webhook). Literal o comentario sin cerrar: falla cerrado (devuelve null).
 export function sqlEjecutable(sql) {
-  let salida = ''
+  // Se acumulan trozos y se unen una sola vez; los dos últimos caracteres emitidos se guardan aparte para no
+  // releer la salida (sería cuadrático con muchos literales cortos).
+  const trozos = []
+  let ultimo = ''
+  let penultimo = ''
+  const emitir = (texto) => {
+    if (texto.length === 0) return
+    trozos.push(texto)
+    penultimo = texto.length > 1 ? texto[texto.length - 2] : ultimo
+    ultimo = texto[texto.length - 1]
+  }
   let i = 0
   let cabeza = [] // palabras de la sentencia en curso, hasta el primer literal
   let ultimaSignificativa = ''
   const n = sql.length
   const significativo = (texto, palabra) => {
-    salida += texto
+    emitir(texto)
     ultimaSignificativa = palabra
     if (cabeza.length < 64 && palabra) cabeza.push(palabra)
   }
   while (i < n) {
     const c = sql[i]
-    if (/\s/.test(c)) { salida += c; i++; continue }
+    if (/\s/.test(c)) { emitir(c); i++; continue }
     if (c === '-' && sql[i + 1] === '-') {
       while (i < n && sql[i] !== '\n') i++
-      salida += ' '
+      emitir(' ')
       continue
     }
     if (c === '/' && sql[i + 1] === '*') {
@@ -35,12 +45,12 @@ export function sqlEjecutable(sql) {
         if (sql[i] === '/' && sql[i + 1] === '*') { nivel++; i += 2 } else if (sql[i] === '*' && sql[i + 1] === '/') { nivel--; i += 2 } else i++
       }
       if (nivel > 0) return null
-      salida += ' '
+      emitir(' ')
       continue
     }
     if (c === "'") {
-      const previo = salida.slice(-1) === 'E' || salida.slice(-1) === 'e'
-      const esEscape = previo && !/[\w$]/.test(salida.slice(-2, -1) || ' ')
+      const previo = ultimo === 'E' || ultimo === 'e'
+      const esEscape = previo && !/[\w$]/.test(penultimo || ' ')
       let j = i + 1
       let cerrado = false
       while (j < n) {
@@ -54,7 +64,7 @@ export function sqlEjecutable(sql) {
       }
       if (!cerrado) return null
       const esDescripcion = cabeza[0] === 'comment' && cabeza[1] === 'on' && ultimaSignificativa === 'is' && !esEscape
-      salida += esDescripcion ? "''" : sql.slice(i, j + 1)
+      emitir(esDescripcion ? "''" : sql.slice(i, j + 1))
       ultimaSignificativa = "'"
       i = j + 1
       continue
@@ -78,7 +88,7 @@ export function sqlEjecutable(sql) {
       }
     }
     if (c === ';') {
-      salida += c
+      emitir(c)
       cabeza = []
       ultimaSignificativa = ';'
       i++
@@ -93,7 +103,7 @@ export function sqlEjecutable(sql) {
     significativo(c, c)
     i++
   }
-  return salida
+  return trozos.join('')
 }
 
 export function violaFrontera(contents) {

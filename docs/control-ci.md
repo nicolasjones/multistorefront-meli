@@ -209,7 +209,7 @@ archivo` sin pasos de código.
   puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
   El guard ahora recorre el SQL de una pasada (literales `'...'`, identificadores, dollar-quoting, comentarios `--` y
   `/* */` anidables): descarta comentarios, evalúa todo lo demás (incluido SQL dinámico y `do $$`) e ignora únicamente el
-  literal de una sentencia que empieza con `comment on ... is`. Un literal o comentario sin cerrar falla cerrado. Un
+  literal de una sentencia que empieza con `comment on ... is`. Un literal o comentario sin cerrar falla cerrado. El recorrido es lineal (un archivo adversarial con cientos de miles de literales no cuelga el job) y no guarda estado entre llamadas. Un
   regex sobre texto crudo no sirve: un comentario o un literal puede simular el inicio de un `comment on` y esconder una
   llamada saliente real. Quedan fuera a propósito: `template:capabilities:check`
   (compara contra `origin/main`, que el job no garantiza), `test:ia:aprovisionamiento` (usa `docker`, que no hay en el job),
