@@ -11,6 +11,7 @@ import {
 } from '../../lib/precios'
 import { useHref, useInRouterContext } from 'react-router'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { formatearCotizacion } from '../../lib/cotizacion'
 import { MargenEstimado } from './MargenEstimado'
 
 type Props = {
@@ -48,12 +49,12 @@ export function PrecioCostoBloque({
   let ayudaPesos: string
   if (errorCotizacion) ayudaPesos = 'No pudimos cargar la cotización. Recargá la página.'
   else if (faltaCotizacion) ayudaPesos = AVISO_CARGAR_COTIZACION
-  else if (moneda === 'USD' && valorDolar !== null) ayudaPesos = `Con dólar ${formatearPesosPrecio(valorDolar)}${fecha ? ` (${fecha})` : ''}.`
+  else if (moneda === 'USD' && valorDolar !== null) ayudaPesos = `Con dólar ${formatearCotizacion(valorDolar)}${fecha ? ` (${fecha})` : ''}.`
   else ayudaPesos = 'El precio ya está en pesos.'
 
   const hintCosto =
     conCosto && moneda === 'USD' && resumen.costoArs !== null && valorDolar !== null
-      ? `costo ${formatearPesosPrecio(resumen.costoArs)} · con dólar ${formatearPesosPrecio(valorDolar)}${fecha ? ` (${fecha})` : ''}`
+      ? `costo ${formatearPesosPrecio(resumen.costoArs)} · con dólar ${formatearCotizacion(valorDolar)}${fecha ? ` (${fecha})` : ''}`
       : null
 
   return (
