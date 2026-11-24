@@ -51,7 +51,7 @@ const ESTADOS_PRESUPUESTO_IMPRIMIBLE: ReadonlyArray<string> = ['pendiente', 'ace
 
 // Estados vivos de una factura: confirmada y los que le siguen (aceptado, armado, cobro). Imprimir, despachar, registrar
 // faltantes y guardar el envío valen en todos ellos; deben coincidir con los de las RPC (migraciones 20270202202101 y
-// 20270507330000). Quedan fuera borrador, anulada y convertido.
+// 20270507330000). Quedan fuera borrador y anulada.
 export const ESTADOS_FACTURA_VIVA: ReadonlyArray<string> = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
 
 export function documentosElegibles(comprobante: Pick<Comprobante, 'tipo' | 'estado'>): TipoDocumento[] {

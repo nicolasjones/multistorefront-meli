@@ -52,7 +52,7 @@ begin
       raise exception 'Solo se imprimen la factura y el remito de una factura' using errcode = '22023', hint = 'tipo_documento';
     end if;
     -- Una factura se imprime mientras esté viva: confirmada y todos los estados que le siguen (cobro, armado,
-    -- despacho). Quedan fuera el borrador, la anulada y la que ya se convirtió. Es el mismo conjunto con el que
+    -- despacho). Quedan fuera el borrador y la anulada. Es el mismo conjunto con el que
     -- despachan, registran faltantes y guardan el envío (20270202202100 y 20270202202101).
     if v_c.estado not in ('confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda') then
       raise exception 'La factura tiene que estar confirmada para imprimirla' using errcode = '22023', hint = 'estado';

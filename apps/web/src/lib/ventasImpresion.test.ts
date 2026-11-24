@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), createSignedUrl: vi.fn() }))
@@ -8,6 +10,7 @@ vi.mock('./supabase', () => ({
 
 import {
   ErrorDocumento,
+  ESTADOS_FACTURA_VIVA,
   MENSAJE_ERROR_IMPRESION,
   MENSAJE_NO_CONFIRMADA,
   MENSAJE_TARDA,
@@ -57,6 +60,23 @@ describe('elegibilidad (FR-002, FR-011, FR-012)', () => {
 
   it('un presupuesto convertido en factura no ofrece nada', () => {
     expect(documentosElegibles({ tipo: 'presupuesto', estado: 'convertido' })).toEqual([])
+  })
+})
+
+describe('estados vivos de la factura frente a la base', () => {
+  it('ESTADOS_FACTURA_VIVA es exactamente el conjunto del predicado de la última migración de solicitar_documento_comprobante', () => {
+    const carpeta = fileURLToPath(new URL('../../../../supabase/migrations/', import.meta.url))
+    const definen = readdirSync(carpeta)
+      .filter((f) => f.endsWith('.sql'))
+      .sort()
+      .filter((f) => readFileSync(`${carpeta}${f}`, 'utf8').includes('function public.solicitar_documento_comprobante'))
+    const sql = readFileSync(`${carpeta}${definen[definen.length - 1]}`, 'utf8')
+    // El predicado de la factura es el que nombra `confirmada` (el del presupuesto es otro).
+    const predicado = [...sql.matchAll(/v_c\.estado not in \(([^)]*)\)/g)].find((m) => m[1]?.includes("'confirmada'"))
+    expect(predicado).toBeDefined()
+    const enSql = [...(predicado?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
+    expect(enSql.length).toBeGreaterThan(0)
+    expect(enSql).toEqual([...ESTADOS_FACTURA_VIVA].sort())
   })
 })
 

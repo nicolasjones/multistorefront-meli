@@ -1,6 +1,6 @@
 -- Imprimir factura y remito de una factura ya cobrada o en curso: `solicitar_documento_comprobante` aceptaba solo
 -- `confirmada` y rechazaba con 22023 a la que el cobro dejó en `cobrado` o `deuda`. Cubre cada estado vivo, y que el
--- borrador, la anulada y la convertida sigan sin imprimirse.
+-- borrador y la anulada sigan sin imprimirse.
 -- Mismo fixture mínimo que ventas_impresion_documentos.test.sql: un operador de San Javucho con ventas en edición.
 begin;
 
