@@ -89,6 +89,33 @@ left join lateral (
 ) cv on true
 order by m.creado_en desc, m.id desc limit 25;
 
+-- Variante descartada: pagina primero pero busca el comprobante con un join común, con RLS y `buffers`.
+-- Observado por el autor en una corrida (pg15 descartable, máquina cargada): el plan hace un `Hash Left Join` con
+-- `Seq Scan on comprobantes_venta` de las 5.000 filas de la organización sembrada (la estimación del plan era de 50
+-- filas); con 300.000 comprobantes el seq scan fue de 300.000 filas. La función entregada, con la subconsulta por
+-- fila, usó `Index Scan using comprobantes_venta_id_organizacion_id_key` en esa prueba.
+-- Observado también con el cruce antes de paginar y join común: un nested loop con `Rows Removed by Join Filter:
+-- 187475000` y unos 17 s; el mismo script sin `analyze` de `comprobantes_venta` dio planes muy distintos entre corridas.
+explain (analyze, buffers, timing off)
+with pagina as (
+  select m.*
+  from dominio.movimientos_stock m
+  order by m.creado_en desc, m.id desc
+  limit 25
+)
+select m.id,
+       case when cv.numero is not null then regexp_replace(
+         m.nota,
+         '(^|[^a-zA-Z0-9_])comprobante:' || cv.id::text || '(?::linea:[0-9]+)?',
+         '\1' || replace(cv.numero, '\', '\\'),
+         'gi')
+       else m.nota end
+from pagina m
+left join lateral (
+  select (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
+) ref on true
+left join dominio.comprobantes_venta cv on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id;
+
 reset role;
 
 rollback;
