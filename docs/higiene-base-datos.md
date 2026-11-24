@@ -10,6 +10,7 @@ sources:
   - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
   - supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql
   - supabase/migrations/20270507270100_documentar_definer_validacion_dni_cuit.sql
+  - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
   - supabase/verificacion/higiene_base_migraciones.sql
@@ -239,6 +240,8 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
   la corrección del comentario de `240200` (`nivel_ventas_en_empresa` sí es ejecutable por `authenticated` desde `20261213100200`) y la
   explicación de por qué `validar_documento_cliente` y `validar_cuit_empresa` son `security definer` (`validar_documento_cliente`
   llama a `documento_cliente_valido`, que usa `cuit_valido`, y `validar_cuit_empresa` llama a `cuit_valido`; ambas auxiliares están revocadas a `authenticated`) quedan como `comment on function` en migraciones nuevas.
+- **Actividad de empresa por sección (`280000`, lote 44):** `public.registrar_actividad` acepta `puede_escribir()` o `nivel_seccion('empresas') = 'edicion'`
+  (como `empresas_update`); antes un rol personalizado con Empresas en edición editaba la empresa y su evento se rechazaba. Mismos tipos cerrados y grants.
 - **Prueba global (`lote42_superficie_global_seguridad`):** toda `security definer` de los esquemas propios fija
   `search_path = ''`; `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda (agregar una exige editar el
   test a propósito); `anon` no tiene `USAGE` sobre `private`, `dominio` ni `analitica`.

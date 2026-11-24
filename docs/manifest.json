@@ -55,12 +55,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "9347477a941a542ca5b1f73572267952bb61a904624fa23e0cb56e32987e09db",
+      "pageHash": "d9dd3bd219c4829e0a2371f0305d7fe8af5df4e0bdc49012c5dd4bc706140c43",
       "sourceHash": "41a7978fbde3a6f0cf6da06541336f5659b7a658a25f081125ab492dba2820ce",
-      "sourceAt": "d647ae864",
+      "sourceAt": "07661f192",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
+        "supabase/tests/database/lote44_registrar_actividad_por_seccion.test.sql",
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts",
         "apps/web/src/lib/actividad.tipos.test.ts",
@@ -78,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "d647ae864"
+      "commit": "07661f192"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -1032,9 +1034,9 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "21a6aa5ea4699a47f3bcec1cfcb3b2add7bcb0b9f1140d3706e05562fada7f00",
-      "sourceHash": "ecc12dd52fcf44d50285836f2a7211e81a89762ca53a8da63a3202adae06f25e",
-      "sourceAt": "af8f40fa8",
+      "pageHash": "c0c243a23b1a626c2fe712bf2f02c73da6b86d821593a67023d6502c612a916c",
+      "sourceHash": "ef4d2a3aba3cdab790fff2c172e8e6022644414cd26eae593dc710f27e154eaa",
+      "sourceAt": "0a437c771",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
@@ -1042,6 +1044,7 @@
         "apps/web/src/pages/empresas/edit.tsx",
         "apps/web/src/hooks/useResumenEmpresas.ts",
         "apps/web/src/hooks/usePuedeEditarEmpresas.ts",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
         "apps/web/src/lib/eventosActividad.ts",
         "apps/web/src/lib/destinoActividad.ts",
         "apps/web/src/lib/whatsapp.ts",
@@ -1056,7 +1059,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "af8f40fa8"
+      "commit": "0a437c771"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1182,9 +1185,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "6b415654d4e69f6f52b7356815ea652e5cc35e9f0498f515c298dd72111e95e3",
-      "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
-      "sourceAt": "66415c2af",
+      "pageHash": "9a47e800ac5d19c5d7b0d17292120db152b0d0eb9982bbb5c52651424fa9a6e3",
+      "sourceHash": "8d6eb404183c925d50b5a864c10cfc25d75747104f6572c63656ac6c4fc5968b",
+      "sourceAt": "49f522d7f",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1195,6 +1198,7 @@
         "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
         "supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql",
         "supabase/migrations/20270507270100_documentar_definer_validacion_dni_cuit.sql",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
         "supabase/verificacion/higiene_base_migraciones.sql",
@@ -1202,7 +1206,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "66415c2af"
+      "commit": "49f522d7f"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",

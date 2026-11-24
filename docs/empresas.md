@@ -7,6 +7,7 @@ sources:
   - apps/web/src/pages/empresas/edit.tsx
   - apps/web/src/hooks/useResumenEmpresas.ts
   - apps/web/src/hooks/usePuedeEditarEmpresas.ts
+  - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
   - apps/web/src/lib/eventosActividad.ts
   - apps/web/src/lib/destinoActividad.ts
   - apps/web/src/lib/whatsapp.ts
@@ -89,6 +90,9 @@ Políticas (migración `20261013120000`):
 - Criterio de la pantalla (lote 44): el listado y la edición se gatean por `usePuedeEditarEmpresas()` (nivel de la sección `empresas` igual a
   `edicion`, el mismo criterio de la política `empresas_update`), así que un rol personalizado con Empresas en edición puede guardar; el botón «Nueva empresa»
   sigue a `usePuedeEscribir()` porque la RPC de alta exige `private.puede_escribir()`.
+- La Actividad sigue la misma regla (lote 44, `20270507280000`): `public.registrar_actividad` acepta `puede_escribir()` o la sección Empresas en
+  edición. El frontend la registra como mejor esfuerzo (`emitirEventoActividad` atrapa el error y deja un `console.warn`), por eso antes un rol
+  personalizado pausaba la tienda y el evento se perdía en silencio; el pgTAP `lote44_registrar_actividad_por_seccion` lo fija.
 - No cambia el permiso: las políticas de RLS siguen
   siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
 ## Gestión de la tienda (MSF-147)
