@@ -167,8 +167,8 @@ una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no un
 **Piso de espera.** `apps/web/src/test/setup.ts` fija `configure({ asyncUtilTimeout: 5000 })` para `findBy*`/`waitFor` de Testing Library y envuelve
 `vi.waitFor` (que en vitest tiene su propio default de 1 s y al que `configure` no llega) con `conPisoDeEspera` (`test/pisoEspera.ts`):
 `timeout: propias.timeout ?? 5000`. Un `timeout` propio (número u objeto) se respeta, y un `{ timeout: undefined }` explícito **no** vuelve al 1 s
-(lo cubre `pisoEspera.test.ts`). Un test que pasa no espera más; la espera larga se paga cuando falla. Un `timeout` propio
-menor de 5 s en un test no tiene sentido (es más corto que el piso): se sube a 5000 o se justifica en un comentario del propio test. Al restaurar un
+(lo cubre `pisoEspera.test.ts`). El piso de 5 s agrega espera cuando un test espera algo que tarda. Un `timeout` propio
+menor de 5 s queda por debajo del piso: se sube a 5000 o se justifica en un comentario del propio test. Al restaurar un
 `configure` temporal (`show.reparaciones.test.tsx`) se vuelve a 5000, no al 1000 de Testing Library.
 
 **Causa raíz del flake de «Cargar más».** Con el piso de 5 s el test de `OpinionesProducto` («Cargar más» suma la tanda siguiente con el cursor)
@@ -178,22 +178,23 @@ si el click llegaba justo tras el primer render con datos y antes de que corrier
 podía pasar igual a un usuario rápido).
 
 **Regla:** una ref que se lee desde un handler (click, callback de una promesa, observer) y se mantiene al día con el último valor se sincroniza
-en `useLayoutEffect` (corre dentro del commit, sin ventana entre el render visible y la ref), o se asigna durante el render si es seguro. Aplicado en
+en `useLayoutEffect` (corre sincrónicamente al final del commit, antes de que el navegador pinte), o se asigna durante el render si es seguro. Aplicado en
 `useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `useListarFaltantes`, `useExistenciasRealtime`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
 `CargaInfinita` y `ReporteEmbebido`.
 
 **Qué puede seguir en `useEffect`.** La ventana duele cuando la ref es una copia del **último valor** (estado, props o callback) y un handler la lee
-antes de que corra el efecto: encuentra `null` o un valor viejo y actúa mal. En los demás casos la lectura anterior al efecto ve un valor vigente
-inofensivo y no hace falta `useLayoutEffect`. P. ej.:
+antes de que corra el efecto: encuentra `null` o un valor viejo y actúa mal. Una ref que no es esa copia puede quedar en `useEffect` si lo que lee
+un handler antes del efecto no causa daño; cada caso se justifica por su propia razón. Ejemplos revisados:
 
-- contadores y banderas que el efecto invalida o reinicia al cambiar la consulta y que un callback consulta: `generacion` (el efecto la incrementa) y `enCurso` (el efecto la pone en `false`) de `useListadoPorCursor`, que `cargarMas` lee;
-- el valor previo que el propio efecto compara con el actual (`empresaPrevia` en `pages/stock/depositos.tsx`);
-- flags de «montado» inicializados en `true` (`montado` de `useExportarCsv`, que el cleanup del efecto pone en `false`);
-- marcas que activa un handler y que un efecto consulta (`focoEnBoton` de `CargaInfinita`).
+- `generacion` y `enCurso` de `useListadoPorCursor` (el efecto incrementa `generacion` y pone `enCurso` en `false` al cambiar la consulta; `cargarMas`
+  lee ambas y asigna `enCurso`): antes de ese efecto, `cargarMas` no hace nada porque el render ya dejó `estado` en `null` (`setEstado(null)` al
+  cambiar la clave) y `ultimo` queda en `null`; y `generacion` hace que `vigente()` descarte las respuestas de la consulta anterior;
+- `empresaPrevia` en `pages/stock/depositos.tsx`: el propio efecto la compara con la empresa activa y la asigna;
+- `montado` de `useExportarCsv`: se inicializa en `true` y el cleanup del efecto la pone en `false`;
+- `focoEnBoton` de `CargaInfinita`: la activan handlers de foco y la consulta (y apaga) un efecto.
 
-Se barrió `apps/web/src` (hooks, lib, pages, components) con un script que lista cada `useEffect(() => {` que asigna a un `.current` y cuántas veces
-se lee fuera del efecto. Si una ref nueva «último valor» se lee desde un handler, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
-cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un fallo dentro de la serie lo deja abierto.
+Si una ref nueva guarda el «último valor» y un handler la lee, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces
+con la máquina cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un fallo dentro de la serie lo deja abierto.
 
 ## Cliente de Supabase simulado en los tests de la web
 
