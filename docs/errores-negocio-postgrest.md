@@ -8,12 +8,14 @@ sources:
   - apps/web/src/lib/reparaciones.ts
   - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
   - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
+  - supabase/migrations/20270507310000_aceptar_presupuesto_responde_4xx.sql
+  - apps/web/src/lib/ventas.ts
 ---
 
 # Errores de negocio de las RPC y su respuesta HTTP
 
 Lote de la auditoría MSF-647: errores de negocio que PostgREST contesta como 5xx o 4xx inconsistente
-(MSF-599, MSF-654, MSF-655, MSF-638), la anulación con cobros parciales (MSF-600) y «Nueva devolución»
+(MSF-599, MSF-654, MSF-655, MSF-638; el servidor sigue por olas), la anulación con cobros parciales (MSF-600) y «Nueva devolución»
 (MSF-721).
 
 ## Qué pasa hoy
@@ -83,6 +85,17 @@ una factura con cobros registrados (`55000`, «revertí el cobro o corregila con
 reparación no existe, es de otra organización o de una tienda inaccesible (sin oráculo de existencia), y `42501` (403) sin la
 sección `service_tecnico`. El cliente acepta `P0002` y `PT404`. Sigue pendiente la verificación con un JWT real contra el
 PostgREST instalado y el resto de las olas (propuesta de arriba).
+
+## Segunda ola: `aceptar_presupuesto` (MSF-599)
+
+`aceptar_presupuesto` responde `PT409` (HTTP 409) cuando el presupuesto está vencido o ya no se puede aceptar y `PT404`
+(HTTP 404) cuando no existe o es de otra organización (mismo código y mensaje: sin oráculo). Se eligió esta función porque
+es el caso del hallazgo y tiene una sola definición vigente, así que el cambio es un `create or replace` aditivo sin tocar
+grants. Regla: el cliente tiene que aceptar el código viejo **y** el nuevo (`mensajeDeErrorBase`, `mensajeDeErrorComprobante`
+y `mensajeDeAceptarPresupuesto` los tratan igual), porque la migración y el despliegue de la web no son simultáneos. Siguen
+con `55000`: `confirmar_comprobante`, `cambiar_estado_despacho` y el resto; los respaldos (`55006`) los consume Kestra por
+código y no una pantalla, así que no se tocan. Cada ola nueva repite el patrón: migración con la definición vigente, pgTAP que
+afirma código y mensaje, y el mapeo del cliente en el mismo cambio.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

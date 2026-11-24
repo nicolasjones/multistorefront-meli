@@ -149,13 +149,13 @@ select throws_ok(
 select is((public.obtener_comprobante((select id from comps where clave = 'C')) ->> 'editable')::boolean,
   false, 'un presupuesto aceptado no figura como editable');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, (select id from comps where clave = 'B')),
-  '55000', null, 'un presupuesto vencido no se acepta');
+  'PT409', 'El presupuesto está vencido y no se puede aceptar', 'un presupuesto vencido no se acepta (HTTP 409)');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, (select id from comps where clave = 'F')),
-  'P0002', null, 'una factura no es un presupuesto: no se acepta');
+  'PT404', 'El presupuesto no existe', 'una factura no es un presupuesto: no se acepta (HTTP 404)');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, (select id from comps where clave = 'D')),
   '42501', null, 'sin acceso a la tienda no se acepta');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, (select id from comps where clave = 'X')),
-  'P0002', null, 'un presupuesto de otra organización no existe');
+  'PT404', 'El presupuesto no existe', 'un presupuesto de otra organización no existe (HTTP 404)');
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, (select id from comps where clave = 'A')),
   '42501', null, 'con lectura no se acepta');

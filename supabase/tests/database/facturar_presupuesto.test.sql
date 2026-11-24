@@ -258,7 +258,7 @@ select throws_ok(
 
 -- Un presupuesto convertido ya no se edita, ni se acepta, ni se factura con otro estado
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, pg_temp.id_de('A')), '55000', null, 'un presupuesto convertido no se acepta');
+select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, pg_temp.id_de('A')), 'PT409', null, 'un presupuesto convertido no se acepta (HTTP 409)');
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, now())$$, pg_temp.id_de('A')),
   '55000', null, 'un presupuesto convertido no se modifica');
