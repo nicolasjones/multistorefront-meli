@@ -182,21 +182,17 @@ en `useLayoutEffect` (corre dentro del commit, sin ventana entre el render visib
 `useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `useListarFaltantes`, `useExistenciasRealtime`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
 `CargaInfinita` y `ReporteEmbebido`.
 
-**Qué puede seguir en `useEffect`.** La razón de fondo: la ventana solo duele cuando la ref es una copia del **último valor** (estado, props o
-callback; `ultimo` y `funciones` de `useListadoPorCursor`) y un handler la lee antes de que corra el efecto: encuentra `null` o un valor viejo y
-actúa mal. Una ref que el efecto solo **reinicia o marca**, o que se lee **solo dentro de efectos**, no tiene ese problema. Quedan como `useEffect`:
+**Qué puede seguir en `useEffect`.** La ventana duele cuando la ref es una copia del **último valor** (estado, props o callback) y un handler la lee
+antes de que corra el efecto: encuentra `null` o un valor viejo y actúa mal. En los demás casos la lectura anterior al efecto ve un valor vigente
+inofensivo y no hace falta `useLayoutEffect`. P. ej.:
 
-- refs que el efecto solo reinicia o invalida y que un callback lee después: una lectura anterior al efecto ve el valor vigente previo, que es inofensivo
-  (contadores de petición/generación `enCurso` y `generacion` de `useListadoPorCursor` y `useCatalogoPublico`, `ultimaPeticion` de `InteresWhatsappDialog`,
-  `primeraCarga` de `categorias/list.tsx`, la `clave` de envío de `DialogoCorreoSeleccionados`, `empresaAlAbrir` de `ResponsablesDespacho`);
-- flags de «montado» que arrancan en `true` en `useRef(true)` (`useBanderaPromociones`, `useExportarCsv`);
-- refs que solo **lee** un efecto (o el temporizador de un efecto), aunque a veces las escriba un handler (`debeFocalizarNombre` de `FormularioContacto` y
-  `focoEnBoton` de `CargaInfinita` las activa un handler y las lee y apaga el efecto): `sincronizado` de `CorreoAvisosConsultas`, `empresaPrevia` de
-  `depositos.tsx`, `ultimaEmpresa` de `consultas/list.tsx`, `consultaAnterior` de `ListadoProductos` (secciones del catálogo), `textoAplicado` de
-  `actividad/list.tsx`, `empresaAlAbrir` de `InteresWhatsappDialog`, `revisionAlAbrir` de `AgregarRepuestoDialog`, `cargadosAntes` de `CargaInfinita`.
+- contadores y banderas que se reinician al cambiar la consulta y que un callback consulta (`generacion` y `enCurso` de `useListadoPorCursor`);
+- el valor previo que el propio efecto compara con el actual (`empresaPrevia` en `pages/stock/depositos.tsx`);
+- flags de «montado» inicializados en `true` (`montado` de `useExportarCsv`);
+- marcas que activa un handler y consulta un efecto (`focoEnBoton` de `CargaInfinita`).
 
-Se barrió todo `apps/web/src` (hooks, lib, pages, components) con un script que lista cada `useEffect(() => {` que asigna a un `.current` y cuántas veces
-se lee fuera del efecto; las que quedan son de estos tipos. Si una ref nueva «último valor» se lee desde un handler, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
+Se barrió `apps/web/src` (hooks, lib, pages, components) con un script que lista cada `useEffect(() => {` que asigna a un `.current` y cuántas veces
+se lee fuera del efecto. Si una ref nueva «último valor» se lee desde un handler, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
 cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un solo fallo de la serie lo deja abierto.
 
 ## Cliente de Supabase simulado en los tests de la web
