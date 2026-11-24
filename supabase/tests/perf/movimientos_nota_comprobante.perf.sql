@@ -24,18 +24,23 @@ select '77777777-7777-7777-7777-777777777777', 'a7000000-0000-0000-0000-00000000
 from generate_series(1, 50000) g;
 analyze dominio.movimientos_stock;
 
--- La función: pagina primero y cruza después.
+-- La función entregada: pagina primero y cruza después.
 explain (analyze, costs off, timing off) select * from public.listar_movimientos_stock(null, 25, 0);
 
--- Comparación: el mismo cruce antes de paginar (la forma que se descartó).
+-- Comparación: la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
+-- regexp_replace con el escape de la barra) aplicada a todas las filas antes de paginar, que es la forma descartada.
 explain (analyze, costs off, timing off)
 select m.id,
-       case when ref.texto is not null and cv.numero is not null then replace(m.nota, ref.texto, cv.numero) else m.nota end,
+       case when cv.numero is not null then regexp_replace(
+         m.nota,
+         '(^|[^a-zA-Z0-9_])comprobante:' || cv.id::text || '(?::linea:[0-9]+)?',
+         '\1' || replace(cv.numero, '\', '\\'),
+         'gi')
+       else m.nota end,
        count(*) over ()
 from dominio.movimientos_stock m
 left join lateral (
-  select (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])(comprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?)', 'i'))[1] as texto,
-         (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
+  select (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
 ) ref on true
 left join dominio.comprobantes_venta cv on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id
 order by m.creado_en desc, m.id desc limit 25;

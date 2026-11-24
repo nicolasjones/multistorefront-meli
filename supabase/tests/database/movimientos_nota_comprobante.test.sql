@@ -80,11 +80,11 @@ select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000006'),
   'Reserva FAC-0005', 'un UUID en mayúsculas también se reemplaza');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000007'),
-  'Reserva precomprobante:e1000000-0000-0000-0000-000000000001', '«comprobante:» pegado a otra palabra no se toca');
+  'Reserva precomprobante:e1000000-0000-0000-0000-000000000001', '«comprobante:» pegado a una letra ASCII, dígito o guion bajo (p. ej. precomprobante:) no se toca');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000008'),
-  'ReservaéFAC-0005', 'una letra acentuada pegada antes de la referencia no depende del idioma de la base');
+  'ReservaéFAC-0005', 'una letra acentuada (no ASCII) pegada antes de la referencia no depende del idioma de la base');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000009'),
-  'precomprobante:e1000000-0000-0000-0000-000000000001 y FAC-0005', 'solo se reemplaza la referencia válida, no la pegada a otra palabra');
+  'precomprobante:e1000000-0000-0000-0000-000000000001 y FAC-0005', 'solo se reemplaza la referencia válida, no la pegada a una letra ASCII, dígito o guion bajo');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-00000000000a'),
   'Reserva F\1&.9', 'un número con barra, & y punto se copia tal cual');
 select is((select count(*) from leidos), 10::bigint, 'aparecen los diez movimientos');

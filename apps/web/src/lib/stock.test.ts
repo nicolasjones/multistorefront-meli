@@ -85,17 +85,17 @@ describe('notaLegibleDeMovimiento', () => {
     expect(notaLegibleDeMovimiento('Reserva comprobante:eda80120-c168-4d68-9a1b-0123456789ab · entregada')).toBe('Reserva el comprobante · entregada')
   })
 
-  it('reconoce el identificador en mayúsculas y no toca «comprobante:» pegado a otra palabra', () => {
+  it('reconoce el identificador en mayúsculas y no toca «comprobante:» pegado a una letra ASCII, dígito o guion bajo', () => {
     expect(notaLegibleDeMovimiento('Reserva comprobante:EDA80120-C168-4D68-9A1B-0123456789AB:linea:2')).toBe('Reserva el comprobante')
     expect(notaLegibleDeMovimiento('Reserva precomprobante:eda80120-c168-4d68-9a1b-0123456789ab')).toBe('Reserva precomprobante:eda80120-c168-4d68-9a1b-0123456789ab')
   })
 
-  it('con la misma referencia pegada a otra palabra y suelta, solo cambia la suelta', () => {
+  it('con la misma referencia pegada a una letra ASCII y suelta, solo cambia la suelta', () => {
     const id = 'eda80120-c168-4d68-9a1b-0123456789ab'
     expect(notaLegibleDeMovimiento(`precomprobante:${id} y comprobante:${id}`)).toBe(`precomprobante:${id} y el comprobante`)
   })
 
-  it('una letra acentuada pegada antes de la referencia no impide reemplazarla', () => {
+  it('una letra acentuada (no ASCII) pegada antes de la referencia no impide reemplazarla', () => {
     expect(notaLegibleDeMovimiento('Reservaécomprobante:eda80120-c168-4d68-9a1b-0123456789ab:linea:1')).toBe('Reservaéel comprobante')
   })
 
