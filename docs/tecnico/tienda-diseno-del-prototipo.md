@@ -21,7 +21,6 @@ sources:
   - supabase/migrations/20270305100100_tienda_vista_previa_categorias_imagen.sql
   - supabase/migrations/20270306100000_tienda_vista_previa_categorias_paridad.sql
   - supabase/migrations/20270228300400_tienda_publica_rendimiento_y_categorias.sql
-  - supabase/migrations/20270302100000_api_seguimientos_msf233.sql
   - supabase/migrations/20270303100000_tienda_tipografias_prototipo.sql
   - supabase/migrations/20270303200000_tienda_color_barra.sql
   - supabase/migrations/20270303300000_tienda_eslogan.sql

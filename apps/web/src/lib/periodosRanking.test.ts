@@ -10,6 +10,12 @@ describe('periodosRanking', () => {
     expect(hoyEnOrganizacion(new Date('2026-10-16T01:00:00Z'))).toBe('2026-10-15')
   })
 
+  it('con un Date inválido no lanza: usa el momento actual', () => {
+    expect(() => hoyEnOrganizacion(new Date('no es una fecha'))).not.toThrow()
+    expect(hoyEnOrganizacion(new Date('no es una fecha'))).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(() => rangoDeAtajo('este-mes', new Date(Number.NaN))).not.toThrow()
+  })
+
   it('resuelve los cuatro atajos', () => {
     expect(rangoDeAtajo('este-mes', AHORA)).toEqual({ desde: '2026-10-01', hasta: '2026-10-15' })
     expect(rangoDeAtajo('mes-anterior', AHORA)).toEqual({ desde: '2026-09-01', hasta: '2026-09-30' })
