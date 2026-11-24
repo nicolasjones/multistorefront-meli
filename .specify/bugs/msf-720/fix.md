@@ -38,8 +38,7 @@ margen y el dólar con 4 decimales con el PR #1171, «lote 48b»). Este PR deja 
 | `.specify/bugs/msf-720/test.md` | nuevo | Verificación: qué se reprodujo, qué test vigila cada regla y qué no se pudo correr localmente. |
 | `design/pantallas/ProductoAlta.dc.html`, `design/pantallas/ProductoEditar.dc.html`, `design/pantallas/ProductoEditar/ProductoEditar.dc.html`, `design/precios-e-iva/ProductoAlta.dc.html` | modified | El prototipo muestra la nota del margen vigente («(Precio − Costo) / Precio; no incluye la comisión del canal»), igual que la app: el prototipo manda la UI. |
 | `specs/20261022-120000-precios-e-iva/spec.md` | modified | Nota sobre FR-006: el texto vigente del margen y por qué (decisión del 2026-11-17). |
-| `apps/web/e2e/precios-visibles.e2e.ts` | modified | Rótulo `[MSF-720:BUG]` en el título del test (el pipeline ata el video a la historia por la etiqueta). |
-| `apps/web/e2e/msf-720-precios-visibles.e2e.ts` | removed | Copia del mismo recorrido que ya estaba en `dokploy` con otro nombre: queda un solo test, con el rótulo en el que ya existe. |
+| `apps/web/e2e/precios-visibles.e2e.ts` | modified | Solo cambian el título del test (rótulo `[MSF-720:BUG]`: el pipeline ata el video a la historia por la etiqueta) y un comentario; no se crea ni se borra ningún E2E. |
 
 ## Lo que ya estaba resuelto en la base (no se re-implementa)
 
@@ -74,12 +73,12 @@ alineación del prototipo.
 
 ## Local Verification
 
-- `pnpm --filter @platform/web exec vitest run src/lib/formatoImporte.test.ts src/lib/cotizacion.test.ts src/lib/precios.test.ts src/lib/iva.test.ts src/components/precios src/pages/empresas/precios.test.tsx src/pages/historial/CotizacionesTab.test.tsx` → 12 archivos, 205 tests, OK.
-- `pnpm build` → OK (`✓ built in 2.12s`).
+- `pnpm --filter @platform/web exec vitest run src/lib/formatoImporte.test.ts src/lib/cotizacion.test.ts src/lib/precios.test.ts src/lib/iva.test.ts src/components/precios src/pages/empresas/precios.test.tsx src/pages/historial/CotizacionesTab.test.tsx` → OK (corrida local del autor; el resultado vigente es el del CI).
+- `pnpm build` → OK (corrida local del autor).
 - `pnpm lint` → OK (0 errores; solo warnings previos de `react(set-state-in-effect)` ajenos a este cambio).
-- `pnpm docs:check` → OK (documentación, migraciones — 0 nuevas contra `origin/dokploy`— y trampas conocidas).
-- `pnpm prototipo:check` → OK (120 pantallas al día).
-- `pnpm matriz:check` → OK (0 specs nuevas revisadas).
+- `pnpm docs:check` → OK (documentación, migraciones sin nuevas contra `origin/dokploy` y trampas conocidas).
+- `pnpm prototipo:check` → OK.
+- `pnpm matriz:check` → OK.
 - `pnpm calidad` → oxlint, knip, jscpd, dependency-cruiser y syncpack OK; **gitleaks no corrió** (la herramienta
   va en Docker y este entorno no tiene acceso al daemon).
 - `pnpm der:check` → falla en dos specs que este PR no toca (`20261012-140000-empresas`,

@@ -25,15 +25,15 @@ No se toca lo ya emitido: los comprobantes guardan sus importes.
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproducción 1 (precio final al centavo, lado front) | `vitest run src/lib/iva.test.ts` | pass | `calcularFinal` al centavo (29.186 → 35.315,06) y tabla de 18 casos comparada contra `private.aplicar_iva` de un Postgres real. |
+| Reproducción 1 (precio final al centavo, lado front) | `vitest run src/lib/iva.test.ts` | pass | `calcularFinal` al centavo (29.186 → 35.315,06) y 18 casos puntuales más una tabla generada (≥700 filas) contra `private.aplicar_iva` de un Postgres real. |
 | Reproducción 1 (lado base) | pgTAP `supabase/tests/database/lote32_iva_al_centavo.test.sql` | not-run | Requiere `pnpm dev:supabase`; la migración `20270507180200` ya está en `dokploy` y la corre el CI de base. |
 | Reproducción 2 y 3 (dólar y texto del margen) | tests de `lib/cotizacion.ts`, `lib/formatoImporte.ts`, `lib/precios.ts` y de los componentes | pass | El dólar se ve con 4 decimales y el texto aclara que no incluye la comisión. |
-| Tests del área (precios, cotización, IVA, empresa, historial) | `pnpm --filter @platform/web exec vitest run src/lib/formatoImporte.test.ts src/lib/cotizacion.test.ts src/lib/precios.test.ts src/lib/iva.test.ts src/components/precios src/pages/empresas/precios.test.tsx src/pages/historial/CotizacionesTab.test.tsx` | pass | 12 archivos, 205 tests. |
-| Build | `pnpm build` | pass | `✓ built in 2.12s`. |
+| Tests del área (precios, cotización, IVA, empresa, historial) | `pnpm --filter @platform/web exec vitest run src/lib/formatoImporte.test.ts src/lib/cotizacion.test.ts src/lib/precios.test.ts src/lib/iva.test.ts src/components/precios src/pages/empresas/precios.test.tsx src/pages/historial/CotizacionesTab.test.tsx` | pass | Corrida local del autor; el resultado vigente es el del CI. |
+| Build | `pnpm build` | pass | Corrida local del autor. |
 | Lint | `pnpm lint` | pass | 0 errores; warnings previos ajenos al cambio. |
-| Documentación | `pnpm docs:check` | pass | Documentación OK (4385 archivos), migraciones OK (798 archivos, **0 nuevas** contra `origin/dokploy`), trampas OK. |
-| Prototipo | `pnpm prototipo:check` | pass | 120 pantallas al día (los 4 `.dc.html` con la nota del margen no cambian el inventario). |
-| Matriz | `pnpm matriz:check` | pass | 0 specs nuevas revisadas. |
+| Documentación | `pnpm docs:check` | pass | Documentación, migraciones (**0 nuevas** contra `origin/dokploy`) y trampas OK. |
+| Prototipo | `pnpm prototipo:check` | pass | Inventario al día (los 4 `.dc.html` con la nota del margen no cambian el inventario). |
+| Matriz | `pnpm matriz:check` | pass | Sin specs nuevas por revisar. |
 | Calidad | `pnpm calidad` | pass | oxlint, knip, jscpd, dependency-cruiser y syncpack OK; gitleaks no pudo correr (Docker no disponible). |
 | DER | `pnpm der:check` | fail (ajeno) | Falla en `20261012-140000-empresas` y `20261013-120000-usuarios-y-roles`: specs que este PR no toca (deuda de la base). La spec de esta historia (`20261022-120000-precios-e-iva`) está bien. |
 | Reglas vigiladas | Se cambió la regla a propósito y se comprobó que algún test falla | pass | Ver «Los tests vigilan la regla». |
@@ -42,25 +42,7 @@ No se toca lo ya emitido: los comprobantes guardan sus importes.
 
 ## Output Excerpts
 
-```
- Test Files  12 passed (12)
-      Tests  205 passed (205)
-```
-
-```
-✓ built in 2.12s
-```
-
-```
-Documentación de cambios: OK (4385 archivos comparados contra 54ea7b1bad793d5968ffe2d1f629128c40f3bee3).
-Migraciones OK: 798 archivo(s), 0 nuevo(s) contra origin/dokploy.
-Trampas conocidas: OK (0 migración(es), 0 prueba(s) pgTAP y 1 E2E revisados contra origin/dokploy).
-```
-
-```
-Inventario del prototipo: OK (120 pantallas al día).
-Matriz pantalla↔criterios: OK (0 specs nuevas revisadas, 0 exentas).
-```
+Sin salidas pegadas: las cifras de una corrida local no se pueden reproducir desde el PR; el resultado vigente es el del CI.
 
 ## Los tests vigilan la regla (FEAT-236)
 
@@ -71,17 +53,8 @@ Se cambió la regla a propósito, se corrieron los tests y se revirtió el cambi
 | `formatearCotizacion` con 2 decimales en vez de 4 | `lib/cotizacion.test.ts`, `components/precios/PrecioCostoBloque.test.tsx`, `pages/empresas/precios.test.tsx`, `pages/historial/CotizacionesTab.test.tsx` → **4 tests fallan** |
 | `NOTA_MARGEN` con el texto viejo («Precio − Costo − Comisión del canal») | `lib/precios.test.ts`, `components/precios/PrecioCostoBloque.test.tsx` → **2 tests fallan** |
 
-```
- Test Files  4 failed (4)
-      Tests  4 failed | 77 passed (81)
-```
+Corrida local del autor, revertida después; el resultado vigente es el del CI.
 
-```
- Test Files  2 failed (2)
-      Tests  2 failed | 35 passed (37)
-```
-
-Con el código restaurado: `Test Files 3 passed (3) · Tests 77 passed (77)`.
 
 ## Residual Risks
 

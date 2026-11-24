@@ -166,8 +166,8 @@ Dueños: FR-001…FR-003 (producto), FR-009/FR-012 (regla), FR-018/FR-022 (inter
 - **FR-003**: El costo en pesos sale de `producto_costos` con la misma conversión y el **margen** = (precio neto − costo en pesos) / precio neto; ambos solo con la sección `rentabilidad` (sin ella no se devuelven filas, como hoy).
 - **FR-004**: Guardar un cambio de moneda, precio de lista o costo registra `producto.precio_actualizado` en `registro_actividad` (actor, producto, antes/después), sin evento si no cambió nada.
 - **FR-005**: El formulario de producto (alta y edición) muestra el bloque «Precio y costo» del prototipo: `Moneda`, `Precio de lista`, `Costo`, el texto «El precio de lista se carga sin IVA…», el hint «costo $ … · con dólar $ … (fecha)» y el enlace `Cotización →`; valida lista > 0 y costo ≥ 0 con error en el campo.
-- **FR-006**: El bloque muestra «Margen estimado (escala x1)» y el texto «Margen = Precio − Costo − Comisión del canal. El precio es central para todas las stores.»; costo y margen se ocultan sin `rentabilidad`.
-  > **Actualizado por MSF-720** (decisión de negocio del 2026-11-17): el cálculo muestra `(Precio − Costo) / Precio` y el texto vigente aclara que **no incluye la comisión del canal**: «Margen = (Precio − Costo) / Precio; no incluye la comisión del canal…».
+- **FR-006**: El bloque muestra «Margen estimado (escala x1)» y el texto «Margen = (Precio − Costo) / Precio; no incluye la comisión del canal. El precio es central para todas las stores.»; costo y margen se ocultan sin `rentabilidad`.
+  > Texto corregido (decisión del 2026-11-17): el formulario no tiene canal, así que el margen no descuenta la comisión; la que sí la incluye es la vista de Rentabilidad.
 - **SC-001**: pgTAP: aislamiento entre dos organizaciones en `cotizacion_inicial`, permisos por rol, conversión USD/ARS, sin cotización → sin precio, evento de actividad y `anon` sin ejecución.
 - **SC-002**: Vitest del bloque «Precio y costo» (validación, hint, margen, ocultamiento sin `rentabilidad`, teclado/lector).
 

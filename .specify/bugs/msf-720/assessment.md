@@ -32,20 +32,22 @@ Tres desalineaciones entre lo que ve la persona y lo que calcula el sistema:
 3. En la ficha de producto, el texto del margen debe decir de forma explícita que **no** incluye la
    comisión del canal.
 
-[NEEDS CLARIFICATION: la reproducción 1 ya está cubierta por pgTAP (`lote32_iva_al_centavo.test.sql`) y
-Vitest (`iva.test.ts`): el arreglo de base y del espejo se hizo en el lote 32 (`20270507180200`). Para
-este ticket quedan la 2 y la 3, que se reproducen con tests de `lib/cotizacion.ts` y `lib/precios.ts`.]
+Las tres reproducciones constan en el código y en las decisiones ya mergeadas: la 1 la cubren pgTAP
+(`lote32_iva_al_centavo.test.sql`) y Vitest (`iva.test.ts`), arreglo del lote 32 (`20270507180200`); la 2 y la 3
+las cubren los tests de `lib/precios.ts` y `lib/cotizacion.ts` (arreglo de #1171). Queda **pendiente de decisión
+de Nicolás**, fuera de este bug, si la comisión debe entrar en el margen o el total del checkout de la tienda online.
 
 ## Suspected Code Paths
 
-- `supabase/migrations/20261022140200_precios_empresa_iva.sql:272` — `round(neto * (1 + pct/100))` al peso.
-- `supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql` — ya lo lleva a `round(…, 2)`; está en
-  `dokploy` desde el lote 32. No se recalcula lo emitido.
-- `apps/web/src/lib/iva.ts:30-49` — espejo del cálculo; ya redondea al centavo.
-- `apps/web/src/lib/precios.ts:19` — `NOTA_MARGEN` afirma que se descuenta la comisión.
-- `apps/web/src/lib/precios.ts:57-68` — `resumirPrecios` no descuenta comisión (correcto: el formulario no
-  tiene canal; solo hay que aclararlo en el texto).
-- `apps/web/src/lib/cotizacion.ts:113` — `formatearCotizacion = formatearPesosPrecio` (2 decimales).
+Estado antes del arreglo (hoy ya corregido en `dokploy`):
+
+- La migración `20261022140200_precios_empresa_iva.sql` redondeaba `private.aplicar_iva` al peso entero.
+  Lo llevó al centavo `20270507180200_aplicar_iva_al_centavo.sql` (lote 32); no se recalcula lo emitido.
+- `apps/web/src/lib/iva.ts` es el espejo del cálculo y ya redondea al centavo.
+- Antes de #1171, `NOTA_MARGEN` (`apps/web/src/lib/precios.ts`) afirmaba que se descontaba la comisión.
+  `resumirPrecios` (mismo archivo) nunca la descontó, y es lo correcto: el formulario no tiene canal.
+- Antes de #1171, `formatearCotizacion` (`apps/web/src/lib/cotizacion.ts`) era igual a `formatearPesosPrecio`
+  (2 decimales).
 
 ## Root Cause Hypothesis
 
