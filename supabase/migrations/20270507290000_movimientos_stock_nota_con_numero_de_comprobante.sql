@@ -10,8 +10,9 @@
 --
 -- La referencia se reconoce igual que en `notaLegibleDeMovimiento` (apps/web/src/lib/stock.ts): sin distinguir
 -- mayúsculas y sin letra ASCII, dígito ni guion bajo pegado antes de «comprobante:» (clase explícita: no depende del
--- idioma de la base). Acá se reemplaza la primera aparición; el front
--- reemplaza todas.
+-- idioma de la base). Se reemplazan todas las apariciones válidas de la referencia del primer comprobante de la
+-- nota; una aparición pegada a otra palabra («precomprobante:<uuid>») no se toca. La pantalla, además, cambia por
+-- «el comprobante» las referencias a otros comprobantes que la nota pudiera traer.
 --
 -- Reversión: recrear `public.listar_movimientos_stock` con la definición de
 -- `20261023130000_stock_traslado.sql` (con `create or replace`, misma firma).
@@ -65,7 +66,11 @@ as $$
     m.tipo,
     mo.nombre,
     case
-      when ref.texto is not null and cv.numero is not null then replace(m.nota, ref.texto, cv.numero)
+      when cv.numero is not null then regexp_replace(
+        m.nota,
+        '(^|[^a-zA-Z0-9_])comprobante:' || cv.id::text || '(?::linea:[0-9]+)?',
+        '\1' || replace(cv.numero, '\', '\\'),
+        'gi')
       else m.nota
     end,
     m.cantidad,
@@ -85,7 +90,6 @@ as $$
     on dep.id = m.deposito_id and dep.organizacion_id = m.organizacion_id
   left join lateral (
     select
-      (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])(comprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?)', 'i'))[1] as texto,
       (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
   ) ref on true
   left join dominio.comprobantes_venta cv

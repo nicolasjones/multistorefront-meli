@@ -3,7 +3,7 @@
 -- sin referencia y que el resto de la nota se conserva.
 begin;
 
-select plan(15);
+select plan(17);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -28,6 +28,7 @@ insert into dominio.comprobantes_venta
   (id, organizacion_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva)
 values
   ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', 'FAC-0005', current_date, 'emitida', 100, 121),
+  ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'c1000000-0000-0000-0000-000000000001', 'factura', 'F\1&.9', current_date, 'emitida', 100, 121),
   ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'c2000000-0000-0000-0000-000000000001', 'factura', 'FAC-9999', current_date, 'emitida', 100, 121);
 
 insert into dominio.movimientos_stock
@@ -43,7 +44,9 @@ from (values
   ('b0000000-0000-0000-0000-000000000005', interval '1 hour', 'Conteo de cierre'),
   ('b0000000-0000-0000-0000-000000000006', interval '30 minutes', 'Reserva comprobante:E1000000-0000-0000-0000-000000000001:linea:2'),
   ('b0000000-0000-0000-0000-000000000007', interval '20 minutes', 'Reserva precomprobante:e1000000-0000-0000-0000-000000000001'),
-  ('b0000000-0000-0000-0000-000000000008', interval '10 minutes', 'Reservaécomprobante:e1000000-0000-0000-0000-000000000001:linea:1')
+  ('b0000000-0000-0000-0000-000000000008', interval '10 minutes', 'Reservaécomprobante:e1000000-0000-0000-0000-000000000001:linea:1'),
+  ('b0000000-0000-0000-0000-000000000009', interval '5 minutes', 'precomprobante:e1000000-0000-0000-0000-000000000001 y comprobante:e1000000-0000-0000-0000-000000000001'),
+  ('b0000000-0000-0000-0000-00000000000a', interval '4 minutes', 'Reserva comprobante:e1000000-0000-0000-0000-000000000002:linea:1')
 ) as v(id, hace, nota);
 
 -- Sin RLS (propietario) el cruce igual se limita a la organización del movimiento.
@@ -80,12 +83,16 @@ select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000
   'Reserva precomprobante:e1000000-0000-0000-0000-000000000001', '«comprobante:» pegado a otra palabra no se toca');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000008'),
   'ReservaéFAC-0005', 'una letra acentuada pegada antes de la referencia no depende del idioma de la base');
-select is((select count(*) from leidos), 8::bigint, 'aparecen los ocho movimientos');
+select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000009'),
+  'precomprobante:e1000000-0000-0000-0000-000000000001 y FAC-0005', 'solo se reemplaza la referencia válida, no la pegada a otra palabra');
+select is((select nota from leidos where id = 'b0000000-0000-0000-0000-00000000000a'),
+  'Reserva F\1&.9', 'un número con barra, & y punto se copia tal cual');
+select is((select count(*) from leidos), 10::bigint, 'aparecen los diez movimientos');
 
 -- Paginación y total: el total es el de todo el filtro, no el de la página.
 select is((select array_agg(l.id order by l.creado_en desc, l.id desc) from public.listar_movimientos_stock(null, 2, 2) l),
-  array['b0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000005']::uuid[], 'la segunda página trae las filas 3 y 4 en orden');
-select is((select min(l.total) from public.listar_movimientos_stock(null, 2, 2) l), 8::bigint, 'el total es el de todo el filtro');
+  array['b0000000-0000-0000-0000-000000000008', 'b0000000-0000-0000-0000-000000000007']::uuid[], 'la segunda página trae las filas 3 y 4 en orden');
+select is((select min(l.total) from public.listar_movimientos_stock(null, 2, 2) l), 10::bigint, 'el total es el de todo el filtro');
 select is((select count(*) from public.listar_movimientos_stock(null, 2, 20) l), 0::bigint, 'una página fuera de rango no trae filas');
 
 -- Rol Depósito de la misma organización: con Ventas en lectura (matriz inicial) ve el número; sin Ventas, la
