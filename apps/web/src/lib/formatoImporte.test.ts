@@ -93,6 +93,40 @@ describe('formatearImporteHasta', () => {
     expect(formatearImporteHasta(1e-7, 10)).toBe('$ 0,0000001')
   })
 
+  it('redondea exacto los valores que String escribe con exponente', () => {
+    expect(formatearImporteHasta(1.5e-8, 8)).toBe('$ 0,00000002')
+    expect(formatearImporteHasta(5e-7, 6)).toBe('$ 0,000001')
+    expect(formatearImporteHasta(4.5e-7, 6)).toBe('$ 0')
+    expect(formatearImporteHasta(1.45e-7, 8)).toBe('$ 0,00000015')
+    expect(formatearImporteHasta(7.5e-9, 9)).toBe('$ 0,000000008')
+    expect(formatearImporteHasta(-1.5e-8, 8)).toBe('-$ 0,00000002')
+    expect(formatearImporteHasta(-5e-7, 6)).toBe('-$ 0,000001')
+    expect(formatearImporteHasta(4.4e-7, 6)).toBe('$ 0')
+    expect(formatearImporteHasta(-4.4e-7, 6)).toBe('$ 0')
+    expect(formatearImporteHasta(1e-12, 4)).toBe('$ 0')
+  })
+
+  it('coincide con una referencia exacta por BigInt, con y sin exponente', () => {
+    // valor = N / 10^escala (N entero de la cadena más corta de `String`); se redondea con el resto, la mitad sube.
+    const referencia = (valor: number, decimales: number): bigint => {
+      const [mantisa, exp = '0'] = String(valor).split('e')
+      const [entera, decimal = ''] = mantisa.split('.')
+      const n = BigInt(entera + decimal)
+      const k = decimal.length - Number(exp) - decimales
+      if (k <= 0) return n * 10n ** BigInt(-k)
+      const divisor = 10n ** BigInt(k)
+      return n / divisor + (2n * (n % divisor) >= divisor ? 1n : 0n)
+    }
+    const casos: Array<[number, number]> = [
+      [1.00005, 4], [1465.12345, 4], [2.675, 2], [0.5, 0], [1.5, 0], [1.5e-8, 8], [4.5e-7, 6], [5e-7, 6],
+      [1.45e-7, 8], [7.5e-9, 9], [9.5e-7, 6], [1e-7, 10], [123456.78905, 4], [0.00005, 4], [0.00004, 4], [1e-12, 4],
+    ]
+    for (const [valor, decimales] of casos) {
+      const [entera, decimal = ''] = formatearImporteHasta(valor, decimales).replace(/[^\d,]/g, '').split(',')
+      expect(BigInt(entera + decimal.padEnd(decimales, '0'))).toBe(referencia(valor, decimales))
+    }
+  })
+
   it('rechaza una cantidad de decimales inválida', () => {
     expect(() => formatearImporteHasta(1, -1)).toThrow(RangeError)
     expect(() => formatearImporteHasta(1, 1.5)).toThrow(RangeError)
