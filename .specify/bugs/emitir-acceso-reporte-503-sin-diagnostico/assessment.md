@@ -24,3 +24,10 @@ login de Superset, datasets vedados, guest token, red) y no registra cuál fall�
 
 Primer paso: cada 503 deja en el log del runtime el paso que falló y su causa (sin tokens ni datos del usuario).
 El arreglo de fondo sigue en cuanto el log muestre el paso.
+
+## Actualización (2026-11-23)
+
+Con el log del primer paso, en dev falla `datasets_vedados`: `listarDatasets` devuelve `null` para todos los tableros
+aunque los datasets de la allowlist (p. ej. `margen_real_categoria`) existen en Superset. Segundo paso: `listarDatasets`
+registra el motivo exacto (HTTP, forma de la respuesta o paginación). Además, `inventario_productos_stock_cantidades`
+y `service_reparaciones` están en la allowlist de dos reportes pero no existen como dataset en el Superset de dev.

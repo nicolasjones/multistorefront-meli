@@ -103,18 +103,31 @@ export async function listarDatasets(superset: {
       signal: superset.signal(),
       headers: { Authorization: `Bearer ${superset.accessToken}` },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      registrarFallo('listar_datasets', `HTTP ${res.status} en la página ${pagina}`)
+      return null
+    }
     const { result, count } = (await res.json()) as { result?: { id?: unknown; table_name?: unknown }[]; count?: unknown }
-    if (!Array.isArray(result) || typeof count !== 'number') return null
+    if (!Array.isArray(result) || typeof count !== 'number') {
+      registrarFallo('listar_datasets', `respuesta sin result/count (página ${pagina})`)
+      return null
+    }
     for (const fila of result) {
-      if (!Number.isInteger(fila.id) || typeof fila.table_name !== 'string') return null
+      if (!Number.isInteger(fila.id) || typeof fila.table_name !== 'string') {
+        registrarFallo('listar_datasets', 'fila sin id numérico o table_name')
+        return null
+      }
       porId.set(fila.id as number, { id: fila.id as number, table_name: fila.table_name })
     }
     // Completo cuando se recibieron tantos ids distintos como declara el total; una página vacía antes de eso es un
     // listado inconsistente (no se emite token).
     if (porId.size >= count) return [...porId.values()]
-    if (result.length === 0) return null
+    if (result.length === 0) {
+      registrarFallo('listar_datasets', `página vacía con ${porId.size} de ${count} datasets`)
+      return null
+    }
   }
+  registrarFallo('listar_datasets', 'se superó el máximo de páginas')
   return null
 }
 
