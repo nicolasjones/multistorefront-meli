@@ -22,7 +22,7 @@ lectura. No toca el stock ni los comprobantes vivos.
   `public.historial_ultimo_numero(p_tipo, p_empresa_id)`.
 - Worker `workers/historial-importador` y flow
   `infra/kestra/flows/historial-importador.yml`.
-- Pantalla `/historial/importar` en `apps/web`.
+- Pantalla `/historial/importar` en `apps/web`. «Descargar plantilla CSV» baja un CSV con los encabezados del tipo elegido (`ENCABEZADOS_PLANTILLA_HISTORIAL`); un test los compara con `workers/historial-importador/src/campos.ts` para que no se desalineen.
 
 ## Permisos y RLS
 
