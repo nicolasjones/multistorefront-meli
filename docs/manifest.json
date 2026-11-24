@@ -2570,9 +2570,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "8a8d031cf0f71eb6d96a9ef176fd7163a642787d2ad14c022585d5855fcf5d4b",
-      "sourceHash": "93543579ce28247c8bc8b2da4cbe40c289818c3104134a1d7755468a33a65667",
-      "sourceAt": "6776fb4d",
+      "pageHash": "f322c1487614b59fc4502cbf0567894338912b74b4232d745797b258e6bcd135",
+      "sourceHash": "b6e72d3021d454ad1f24be36ae81f76095bd6124b58badf41cd36d049e5563b6",
+      "sourceAt": "2fe931287",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2586,7 +2586,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "6776fb4d"
+      "commit": "2fe931287"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",

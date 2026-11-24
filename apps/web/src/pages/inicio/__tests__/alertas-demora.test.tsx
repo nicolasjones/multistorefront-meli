@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ alertas: vi.fn(), calculo: vi.fn() }))
 vi.mock('../../../lib/inicio', async (importOriginal) => ({
@@ -18,9 +18,13 @@ const hace = (ms: number) => new Date(Date.now() - ms).toISOString()
 
 describe('Aviso de demora de las alertas (FR-024)', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
     vi.clearAllMocks()
     mocks.alertas.mockResolvedValue([])
   })
+
+  afterEach(() => vi.useRealTimers())
 
   it('el umbral es de 1 hora', () => {
     const ahora = new Date()

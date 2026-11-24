@@ -1,7 +1,7 @@
 import { configure, render, screen, waitFor, within } from '@testing-library/react'
 import { useTheme } from '@mui/material'
 import { createMemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { violacionesAxe } from '../../../test/axe'
 import { celular } from '../../../test/matchMedia'
 import { CONTENIDO_VACIO } from '../../../lib/tiendaContenido'
@@ -47,13 +47,20 @@ function montar(url = '/') {
   return render(<EnrutadorTienda tienda={tienda} host={HOST} cargadores={CARGADORES} crearRouter={(rutas) => createMemoryRouter(rutas, { initialEntries: [url] })} />)
 }
 
+// Fecha fija (solo Date): el año del pie no cambia a mitad de una corrida en Nochevieja.
+const FECHA_FIJA = new Date('2026-11-23T12:00:00Z')
+const anioActual = FECHA_FIJA.getFullYear()
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(FECHA_FIJA)
   vi.clearAllMocks()
   mocks.identidad.mockResolvedValue(IDENTIDAD)
   mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos para tu consola.' })
   mocks.contacto.mockResolvedValue(CONTACTO)
   mocks.categorias.mockResolvedValue(CATEGORIAS)
 })
+
+afterEach(() => vi.useRealTimers())
 
 describe('identidad aplicada a toda la tienda', () => {
   it('el tema de la tienda llega también a /catalogo, no solo a la portada, y la identidad se lee una sola vez', async () => {
@@ -278,7 +285,7 @@ describe('pie oscuro', () => {
     expect(await within(contacto).findByRole('link', { name: '+54 9 11 7365-2596' })).toHaveAttribute('href', 'https://wa.me/5491173652596')
     expect(within(contacto).getByRole('link', { name: 'mundojc377@gmail.com' })).toBeInTheDocument()
     expect(within(contacto).getByRole('link', { name: 'Escribinos' })).toHaveAttribute('href', '/contacto')
-    expect(within(pie).getByText(`© ${new Date().getFullYear()} Mundo JC. Todos los derechos reservados.`)).toBeInTheDocument()
+    expect(within(pie).getByText(`© ${anioActual} Mundo JC. Todos los derechos reservados.`)).toBeInTheDocument()
   })
 
   it('sin logo muestra el nombre; sin datos de contacto queda solo «Escribinos»', async () => {
