@@ -103,15 +103,13 @@ export function armarRemitoEntrega(reparacion: Reparacion, tienda: DatosTienda, 
 
 type FilaEmpresa = { nombre: string; direccion: string | null; whatsapp: string | null; correo: string | null }
 
-// Datos de la tienda desde `dominio.empresas` (FR-045). Sin CUIT ni domicilio fiscal: no existen hoy.
+// Datos de la tienda (FR-045). Sin CUIT ni domicilio fiscal: no existen hoy.
 export async function obtenerDatosTienda(empresaId: string): Promise<DatosTienda> {
-  const { data, error } = await supabaseClient
-    .schema('dominio')
-    .from('empresas')
-    .select('nombre, direccion, whatsapp, correo')
-    .eq('id', empresaId)
-    .maybeSingle<FilaEmpresa>()
+  // El correo y el WhatsApp ya no se leen de la tabla (la base los reserva a la sección `empresas`): la RPC
+  // `empresa_contacto_documentos` los entrega a quien tiene `empresas` o `service_tecnico`, sin el CUIT.
+  const { data, error } = await supabaseClient.rpc('empresa_contacto_documentos', { p_empresa: empresaId })
   if (error) throw error
-  if (!data) throw new Error('No se encontró la tienda de la reparación.')
-  return data
+  const fila = ((data ?? []) as FilaEmpresa[])[0]
+  if (!fila) throw new Error('No se encontró la tienda de la reparación.')
+  return fila
 }

@@ -187,3 +187,7 @@ mano con `pnpm dev:supabase` (ver [Suite E2E](../e2e-app.md)).
 - [Stock: movimientos, historial, mínimo y sin negativos](../stock.md)
 - [Permisos por rol](../permisos-por-rol.md)
 - [Proveedores](../proveedores.md)
+
+## Vaciar el costo (lote 38)
+
+Si dejás el campo **Costo** vacío en la ficha y tenés edición en Rentabilidad, el costo se **borra** (antes quedaba el anterior y el mensaje decía igual «Producto guardado»). Borrar el costo no toca la historia de costos ni lo ya vendido. Sin permiso de costo, el campo no se ve y el costo nunca se toca. Técnico: `actualizar_producto(..., p_borrar_costo)`.

@@ -38,11 +38,11 @@ insert into dominio.productos (id, organizacion_id, nombre, sku, moneda, precio_
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Alfa', 'PC-1', 'ARS', 100),
   ('b2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Alfa de la Dos', 'PD-1', 'ARS', 100);
 
-insert into dominio.intereses_whatsapp (organizacion_id, empresa_id, producto_id, created_at) values
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-000000000001', now() - interval '1 day'),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'a1000000-0000-0000-0000-000000000001', now() - interval '1 day'),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'a1000000-0000-0000-0000-000000000001', now() - interval '2 days'),
-  ('22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-00000000000d', 'b2000000-0000-0000-0000-000000000001', now() - interval '1 day');
+insert into dominio.consultas (organizacion_id, empresa_id, origen, nombre, contacto, producto_id, created_at) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', now() - interval '1 day'),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', now() - interval '1 day'),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', now() - interval '2 days'),
+  ('22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-00000000000d', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'b2000000-0000-0000-0000-000000000001', now() - interval '1 day');
 
 create function pg_temp.como(p_user uuid) returns void language plpgsql as $$
 begin

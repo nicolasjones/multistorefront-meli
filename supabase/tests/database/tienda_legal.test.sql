@@ -22,10 +22,10 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('d2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador');
 
 insert into dominio.empresas (id, organizacion_id, nombre, razon_social, cuit, direccion, whatsapp) values
-  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Uno A', 'Uno A S.A.', '30711111114', 'Calle 1 100', '+5491100000001'),
+  ('e1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Uno A', 'Uno A S.A.', '30711111111', 'Calle 1 100', '+5491100000001'),
   ('e1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Uno B', null, null, null, null),
   ('e1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Uno C', 'Uno C S.R.L.', null, null, null),
-  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Dos A', 'Dos A S.A.', '30722222223', 'Calle 2 200', null);
+  ('e2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Dos A', 'Dos A S.A.', '30722222225', 'Calle 2 200', null);
 
 insert into dominio.tiendas (organizacion_id, empresa_id, dominio) values
   ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'legal-uno-a.ejemplo.com'),
@@ -94,7 +94,7 @@ select is(
   publico.legal_por_dominio('legal-uno-a.ejemplo.com'),
   jsonb_build_object(
     'razon_social', 'Uno A S.A.',
-    'cuit', '30711111114',
+    'cuit', '30711111111',
     'direccion', 'Calle 1 100',
     'enlaces', jsonb_build_array(
       jsonb_build_object('titulo', 'Arrepentimiento', 'url', 'https://uno.ejemplo.com/arrepentimiento'),
