@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: {} }))
 vi.mock('../../lib/depositos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/depositos')>()),
