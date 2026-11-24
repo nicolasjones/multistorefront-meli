@@ -49,8 +49,7 @@ set search_path = ''
 as $$
   -- Se pagina primero y recién después se cruza con productos, motivos, depósitos y comprobantes: el cruce
   -- del número corre solo para las filas de la página, no para todo el libro de la organización. El comprobante se
-  -- busca con una subconsulta por fila de la página (índice único por (id, organizacion_id), que da a lo sumo una fila): con un join común el planificador, bajo RLS,
-  -- recorría entera la tabla de comprobantes.
+  -- busca con una subconsulta por fila de la página (ver el encabezado de supabase/tests/perf/movimientos_nota_comprobante.perf.sql).
   with pagina as (
     select m.*, count(*) over () as total_filas
     from dominio.movimientos_stock m
