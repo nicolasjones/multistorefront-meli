@@ -4,7 +4,7 @@ import { abrirContextoGrabado, cerrarContextoGrabado, expect, test } from './fix
 import { altaUsuario, borrar, borrarUsuario, CONTRASENA_E2E, rest, serviceKey, url } from './soporte/fixtures'
 import { clic, escribir, paso, prepararPaginaVisible, rotulo } from './visible'
 
-// MSF-720: lo que la persona ve del precio tiene que ser el que el sistema cobra.
+// Lo que la persona ve del precio tiene que ser el que el sistema cobra.
 // 1) El precio final con IVA se redondea al centavo, igual que el total del comprobante (lo dejó la
 //    migración `20270507180200_aplicar_iva_al_centavo.sql`, ya en `dokploy`).
 // 2) El texto del margen aclara que NO descuenta la comisión del canal: el formulario de producto
@@ -29,10 +29,10 @@ async function ingresar(page: Page, correo: string) {
   await expect(page).not.toHaveURL(/\/login/)
 }
 
-test.describe('Precios visibles (MSF-720)', () => {
+test.describe('Precios visibles', () => {
   test.skip(!url || !serviceKey, 'Requiere el stack local de Supabase (SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY).')
 
-  test('[MSF-720:BUG] el margen aclara que no incluye la comisión del canal y el dólar se muestra con sus 4 decimales', async ({ browser }, testInfo) => {
+  test('el margen aclara que no incluye la comisión del canal y el dólar se muestra con sus 4 decimales', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
     const correo = `admin-msf720-${sufijo}@example.com`
@@ -42,7 +42,7 @@ test.describe('Precios visibles (MSF-720)', () => {
     let idUsuario: string | undefined
     const contexto = await abrirContextoGrabado(browser, testInfo, 'admin')
     try {
-      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E MSF-720 ${sufijo}` })
+      const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E precios visibles ${sufijo}` })
       orgId = org.id
       idUsuario = await altaUsuario(correo)
       await rest('usuarios_organizacion', [{ user_id: idUsuario, organizacion_id: org.id, rol_id: 'administrador' }])

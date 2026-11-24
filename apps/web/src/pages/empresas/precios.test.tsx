@@ -127,7 +127,7 @@ describe('EmpresaPrecios', () => {
     expect(screen.getByRole('link', { name: 'Cotización →' })).toHaveAttribute('href', '/cotizacion')
   })
 
-  it('el dólar vigente se muestra con los 4 decimales que guarda la base, sin truncarlos (MSF-720)', async () => {
+  it('el dólar vigente se muestra con los 4 decimales que guarda la base, sin truncarlos', async () => {
     mocks.estadoCotizacion.mockReturnValue({
       estado: { alcance: 'empresa', vigente: { valor: 1465.1234, cargadaEn: '2026-09-26T15:00:00Z', cargadaPor: null } },
       cargando: false, hayError: false, recargar: vi.fn(),

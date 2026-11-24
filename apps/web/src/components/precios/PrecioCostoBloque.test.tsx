@@ -44,7 +44,7 @@ describe('PrecioCostoBloque', () => {
     expect(screen.getByText('El precio de lista se carga sin IVA.')).toBeInTheDocument()
   })
 
-  it('el dólar se muestra con los 4 decimales que guarda la base, sin truncarlos (MSF-720)', () => {
+  it('el dólar se muestra con los 4 decimales que guarda la base, sin truncarlos', () => {
     montar({ cotizacion: { valor: 1465.1234, fecha: '2026-09-25T15:00:00Z' } })
     expect(screen.getByText(/Con dólar \$ 1\.465,1234/)).toBeInTheDocument()
     expect(screen.getByText(/con dólar \$ 1\.465,1234/)).toBeInTheDocument()
