@@ -332,6 +332,8 @@ describe('listarDatasets: registra el motivo del fallo', () => {
         }) as typeof fetch,
         signal: () => new AbortController().signal,
       })
+      // En TODOS los caminos (fallo o no) el log no trae el token de Superset ni la URL con la consulta.
+      for (const linea of registros) assert.ok(!linea.includes('secreto-no-loguear'), `el log no debe traer el token: ${linea}`)
       return { resultado, registros }
     } finally {
       espia.mock.restore()
@@ -343,7 +345,6 @@ describe('listarDatasets: registra el motivo del fallo', () => {
     assert.equal(resultado, null)
     assert.equal(registros.length, 1)
     assert.match(registros[0], /listar_datasets.*HTTP 403 en la página 0/)
-    assert.ok(!registros[0].includes('secreto-no-loguear'), 'el log no trae el token')
   })
 
   it('respuesta sin result o sin count', async () => {

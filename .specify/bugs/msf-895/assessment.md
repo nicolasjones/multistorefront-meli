@@ -1,6 +1,6 @@
 # Bug Assessment: [Lote L36] Higiene de código y referencias internas (3 bugs consolidados)
 
-> **Informe histórico, congelado (nota del lote 44, 2026-11-24).** Describe el estado del árbol del 2026-11-14 y NO se reescribe: las referencias de
+> **Informe histórico, congelado (nota del lote 44, 2026-11-23).** Describe el estado del árbol del 2026-11-14 y NO se reescribe: las referencias de
 > línea, los commits (`f5d8f4a5`, `1ad0fd2e`) y el run `43625243985` son de esa base y ya no coinciden con este árbol; no lo uses como guía para
 > «re-arreglar» código ya corregido. Equivalencias actuales: `scripts/docs-manifest.mjs:67`/`:12` → `:93`/`:16` (`sourceAt` estable, MSF-950) y
 > `scripts/calidad.mjs:76` → `:111-118` (binario local de `dependency-cruiser`). El plan propuesto para B3 («agregar `typescript` al sandbox de

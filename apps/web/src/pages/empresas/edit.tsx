@@ -76,7 +76,7 @@ function validar(formulario: Formulario): Errores {
   return errores
 }
 
-// General de la empresa (F-EMP-02). Solo administrador: para quien llega por
+// General de la empresa (F-EMP-02). Edita quien tiene la sección Empresas en edición: para quien llega por
 // URL directa se muestra solo lectura; RLS (empresas_update ->
 // puede_escribir) rechaza igual cualquier guardado. Idioma y moneda son
 // constantes del producto; el dominio se administra desde Tiendas online.
@@ -204,7 +204,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <Alert severity="info" role="note">Solo lectura: únicamente los administradores pueden editar los datos de la empresa.</Alert> : null}
+          {soloLectura ? <Alert severity="info" role="note">Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.</Alert> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField

@@ -29,10 +29,15 @@ describe('usePuedeEditarEmpresas', () => {
     expect(leer().puedeEditar).toBe(false)
   })
 
-  it('es null mientras carga o si no hay nivel', () => {
+  it('es null solo mientras carga', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: true, error: false })
     expect(leer().puedeEditar).toBeNull()
+  })
+
+  it('si falla la carga de permisos (o no hay nivel) cae a false: nunca a edición ni queda cargando', () => {
     mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: true })
-    expect(leer().puedeEditar).toBeNull()
+    expect(leer().puedeEditar).toBe(false)
+    mocks.useNivelSeccion.mockReturnValue({ nivel: null, isLoading: false, error: false })
+    expect(leer().puedeEditar).toBe(false)
   })
 })

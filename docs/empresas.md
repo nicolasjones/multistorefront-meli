@@ -83,7 +83,7 @@ Políticas (migración `20261013120000`):
   motivo «Tu rol (…) no incluye Empresas / Mi organización. Pedile acceso a un administrador.» — el mismo patrón que
   Rentabilidad, Listas y Motivos de movimiento. No se consulta ni se muestra ningún dato de la sección.
 - `/empresas/edit/:id`: quien no tiene la sección Empresas en edición ve la pantalla con el formulario deshabilitado y un aviso
-  **informativo** «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (tono info,
+  **informativo** «Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.» (tono info,
   `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
 - Criterio de la pantalla (lote 44): el listado y la edición se gatean por `usePuedeEditarEmpresas()` (nivel de la sección `empresas` igual a
   `edicion`, el mismo criterio de la política `empresas_update`), así que un rol personalizado con Empresas en edición puede guardar; el botón «Nueva empresa»
