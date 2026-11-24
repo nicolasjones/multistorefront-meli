@@ -709,9 +709,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "d6035e5fa510c443cd9daaa6aa235a72a7ed377e087c9f45a0a57fab96b56066",
+      "pageHash": "431e230f859b64a7fe690cdfac0ac193ae43f82c459ddfa65a5cc8017c63f0bc",
       "sourceHash": "d618674745d3fceca04576dfeb867cc1419a399c3addec4f27ba5ca5e962c6af",
-      "sourceAt": "20997c41d",
+      "sourceAt": "66415c2af",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -723,7 +723,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "20997c41d"
+      "commit": "66415c2af"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1182,9 +1182,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "4684e9c960dcf709ffe917d3f57e307dcdc5286b38255621775ea61134b9e1b6",
-      "sourceHash": "762a0585c34fd10acd4a9dc3d84931255c11fd0ab935959f7b755d1b5da6879c",
-      "sourceAt": "7f985fdd6",
+      "pageHash": "4b11c6575f66474ac2b912359b03b6e1065d7ba221001401a55ecf2e90bc4bfd",
+      "sourceHash": "7d3c1ebe776009d0ed502ca3d7220b84822529921d89bbe94d97343fcba16c24",
+      "sourceAt": "66415c2af",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1202,7 +1202,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "7f985fdd6"
+      "commit": "66415c2af"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
