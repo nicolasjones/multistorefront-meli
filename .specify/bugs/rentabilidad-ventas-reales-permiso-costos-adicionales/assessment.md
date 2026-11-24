@@ -17,4 +17,4 @@ La función se creó (20270202201002) sin `grant execute` para `superset_analiti
 
 ## Fix
 
-Migración `20270507200300_analitica_grant_costos_adicionales_superset`: `grant execute ... to superset_analitica`.
+Migración `20270507210600_analitica_grant_costos_adicionales_superset`: `grant execute ... to superset_analitica`.
