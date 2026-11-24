@@ -115,6 +115,14 @@ describe('validarPedido (espejo de enviar_lista_pedido)', () => {
     expect(validarPedido({ ...bien, nota: 'hola\u200e' }, false).nota).toBe(MENSAJE_CARACTERES)
   })
 
+  it('H-6: el guion blando, U+180E y los operadores invisibles U+2061 a U+2064 se rechazan en nombre, contacto y nota, igual que en el servidor', () => {
+    for (const invisible of ['\u00ad', '\u180e', '\u2061', '\u2062', '\u2063', '\u2064']) {
+      expect(validarPedido({ ...bien, nota: `hola${invisible}chau` }, false).nota).toBe(MENSAJE_CARACTERES)
+      expect(validarPedido({ ...bien, nombre: `Ana${invisible}Pérez` }, false).nombre).toBe(MENSAJE_CARACTERES)
+      expect(validarPedido({ ...bien, contacto: `ana${invisible}@mail.com` }, false).contacto).toBe(MENSAJE_CARACTERES)
+    }
+  })
+
   it('M-4: una nota solo de espacios y saltos de línea es «sin nota» (válida)', () => {
     expect(validarPedido({ ...bien, nota: ' \n\r\n \t ' }, false)).toEqual({})
   })

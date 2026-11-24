@@ -131,7 +131,7 @@ ni se cuenta, pero **no se borra** y reaparece al volver a publicarse. Muestra s
 - `siguiente` de `mis_favoritos_por_dominio` es `{creado, id}` (el `id` es el de la fila de favorito) y se devuelve tal cual en `desde_creado` y `desde_id`.
 - Con host desconocido, empresa desactivada o tienda pausada las RPC de cuenta responden `sin_acceso` (igual que cualquier falta de cuenta), no `error`.
 - Notas de crédito: totales y subtotales de línea negativos (precio unitario positivo); las líneas suman el total con signo solo en las notas por **devolución de productos** (las de importe o descuento no tienen líneas).
-- **Rendimiento de guardar un favorito**: una sola evaluación de `private.catalogo_tienda_efectivo` por llamada (visibilidad y conteo del tope). Medición local con `scripts/medir-tienda-favoritos.sql` (estimación, no SLA): ~12 ms con 2.000 productos y ~35–50 ms con 10.000 en una tienda; límite aceptado ~10.000 productos visibles por tienda (ver el contrato). El total visible puede superar 200 si se republican productos ocultos; las filas están acotadas por la cantidad de productos de la tienda.
+- **Rendimiento de guardar un favorito**: una sola evaluación de `private.catalogo_tienda_efectivo` por llamada (visibilidad y conteo del tope). Medición local con `scripts/medir-tienda-favoritos.sql` (estimación, no SLA; exige `-v BASE_DESCARTABLE=si`, superusuario y una base cuyo nombre tenga `descartable`, `test` o `local` delimitado por `_` o `-`): ~12 ms con 2.000 productos y ~35–50 ms con 10.000 en una tienda; límite aceptado ~10.000 productos visibles por tienda (ver el contrato). El total visible puede superar 200 si se republican productos ocultos; las filas están acotadas por la cantidad de productos de la tienda.
 
 ### Pruebas (pgTAP)
 

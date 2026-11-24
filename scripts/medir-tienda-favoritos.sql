@@ -3,11 +3,49 @@
 -- «Rendimiento (medido)»): guardar un favorito evalúa `private.catalogo_tienda_efectivo` una sola vez por llamada.
 --
 -- Uso (SOLO en una base LOCAL o de pruebas con todas las migraciones aplicadas; NUNCA contra dev, staging ni producción):
---   psql -X -q -v N=10000 -f scripts/medir-tienda-favoritos.sql <base-local>
+--   psql -X -q -v N=10000 -v BASE_DESCARTABLE=si -f scripts/medir-tienda-favoritos.sql <base-local>
 -- Crea una organización, una tienda con N productos, un cliente y su cuenta, llama a las RPC y hace ROLLBACK de todo: no deja datos.
 -- Imprime un NOTICE con los milisegundos de cada llamada. La medición del contrato se hizo en Postgres 17 (imagen de Supabase) local:
 -- N = 2000 → guardar ~12 ms; N = 10000 → guardar ~35-50 ms; `precios_cliente_por_dominio` de 1 producto ~12 ms y ~35 ms.
 -- Es una estimación local (sin carga concurrente ni red): sirve para comparar órdenes de magnitud, no como SLA.
+-- GUARD DE ENTORNO (H-6 de la revisión de seguridad integral): es una protección contra accidentes, no un control de seguridad (quien tiene acceso a la base puede
+-- saltearlo editando el script). El script escribe y llama a funciones con efectos (consume secuencias, toma locks, toca `banderas_plataforma`) aunque haga rollback.
+-- Se niega a correr salvo que se cumplan las cuatro condiciones:
+--   1. `-v BASE_DESCARTABLE=si`;
+--   2. la sesión es superusuario (`is_superuser` en `on`): así el conteo de organizaciones no depende de RLS;
+--   3. el nombre de la base tiene `descartable`, `test` o `local` como palabra delimitada por `_` o `-` o por los extremos (`medicion_descartable`, `test`; no `latest`). Una copia
+--      propia: `createdb -T <base-migrada> medicion_descartable`. Limitación: un nombre que contenga esas palabras delimitadas, aunque también diga `prod` (`local_prod`, `test_prod`, `local-prod`), cumple la condición;
+--   4. la base tiene 5 organizaciones o menos (una base de pruebas tiene las del seed o ninguna).
+-- Prueba automática: `scripts/medir-tienda-favoritos.guard.test.mjs`.
+\set ON_ERROR_STOP on
+\if :{?BASE_DESCARTABLE}
+\else
+  \echo 'ABORTADO: falta -v BASE_DESCARTABLE=si (base local o de pruebas descartable).'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (:'BASE_DESCARTABLE' = 'si') as confirmada \gset
+\if :confirmada
+\else
+  \echo 'ABORTADO: BASE_DESCARTABLE debe valer si.'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (current_setting('is_superuser') = 'on') as es_super \gset
+\if :es_super
+\else
+  \echo 'ABORTADO: la sesión no es superusuario (el conteo de organizaciones dependería de RLS).'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (current_database() ~* '(^|[_-])(descartable|test|local)([_-]|$)') as nombre_ok \gset
+\if :nombre_ok
+\else
+  \echo 'ABORTADO: el nombre de la base no tiene descartable, test ni local como palabra delimitada.'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (select count(*) from public.organizaciones) > 5 as demasiadas \gset
+\if :demasiadas
+  \echo 'ABORTADO: la base tiene más de 5 organizaciones; no parece una base de pruebas.'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
 begin;
 insert into organizaciones (id, nombre) values ('99999999-9999-9999-9999-999999999999','Medicion');
 insert into auth.users (id,email) values ('f9000000-0000-0000-0000-000000000001','m@example.com');

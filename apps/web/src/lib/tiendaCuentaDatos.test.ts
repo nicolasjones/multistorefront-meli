@@ -74,6 +74,14 @@ describe('leerMisCompras', () => {
     expect((error as Error).message).toBe('Tu cuenta no está activa en esta tienda')
   })
 
+  it('H-3: el cupo de llamadas agotado (`limite`) es un error con reintento, no una lista vacía ni «cuenta no activa»', async () => {
+    mocks.rpc.mockResolvedValue({ data: { estado: 'limite', espera_segundos: 30 }, error: null })
+    const error = await leerMisCompras(HOST).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(ErrorCuentaTienda)
+    expect(esSinAcceso(error)).toBe(false)
+    expect((error as ErrorCuentaTienda).codigo).toBe('error')
+  })
+
   it('un error de red o de la base es un error genérico en castellano, sin texto de Postgres', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'relation "x" does not exist' } })
     const error = await leerMisCompras(HOST).catch((e: unknown) => e)

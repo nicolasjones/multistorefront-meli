@@ -831,6 +831,22 @@ jobs:
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci
+      # Prueba del guard de `scripts/medir-tienda-favoritos.sql`: crea dos bases vacías en el mismo servidor (sin tocar la base de las pruebas) y las limpia al final.
+      - name: Prueba del guard de medición
+        env:
+          PGPASSWORD: postgres
+          PGSSLMODE: disable
+        run: |
+          export PGHOST=host.docker.internal PGPORT="$SUPABASE_DB_PORT"
+          scripts/probar-guard-medicion.sh probar
+      - name: Limpiar las bases de la prueba del guard
+        if: always()
+        env:
+          PGPASSWORD: postgres
+          PGSSLMODE: disable
+        run: |
+          export PGHOST=host.docker.internal PGPORT="$SUPABASE_DB_PORT"
+          scripts/probar-guard-medicion.sh limpiar || true
       - name: Liberar la ranura del stack de Supabase
         if: always()
         run: node scripts/supabase-ci.mjs liberar
