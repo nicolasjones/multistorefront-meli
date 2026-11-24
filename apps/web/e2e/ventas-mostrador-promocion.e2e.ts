@@ -61,7 +61,7 @@ async function sembrar(sufijo: string, codigos: { promo: string; normal: string 
   const [org] = await rest<{ id: string }>('organizaciones', { nombre: `E2E mostrador promo ${sufijo}` })
   const [empresa] = await rest<{ id: string }>(
     'empresas',
-    { organizacion_id: org.id, nombre: `Tienda Promo ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345678' },
+    { organizacion_id: org.id, nombre: `Tienda Promo ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345671' },
     'dominio',
   )
   const usuarioId = await altaUsuario(correo)

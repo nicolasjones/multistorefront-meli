@@ -10,8 +10,8 @@ import { borrar, rest, serviceKey, url } from './soporte/fixtures'
 
 // Ids fijos de supabase/seed.sql (MSF-241).
 const TIENDAS = [
-  { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', cuit: '30711111114', cuitFormato: '30-71111111-4' },
-  { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', cuit: '30722222223', cuitFormato: '30-72222222-3' },
+  { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000001', empresa: '0f5eed01-0000-4000-8000-000000000001', cuit: '30711111111', cuitFormato: '30-71111111-1' },
+  { host: 'sanjavucho.localhost', organizacion: '0f5eed00-0000-4000-8000-000000000002', empresa: '0f5eed01-0000-4000-8000-000000000002', cuit: '30722222225', cuitFormato: '30-72222222-5' },
 ] as const
 
 const cabeceras = (extra: Record<string, string> = {}) => ({

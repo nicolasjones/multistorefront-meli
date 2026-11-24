@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
-  Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableContainer,
+  Alert, Box, Button, FormControl, FormHelperText, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TextField, Typography,
 } from '@mui/material'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -9,16 +9,18 @@ import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrga
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { armarArbol, leerCategoriasSelector, opcionesCategoriaProducto, type Categoria } from '../../lib/categorias'
+import { listarDepositosActivos, type DepositoOpcion } from '../../lib/depositos'
+import { revisionEmpresaActiva, suscribirEmpresaActiva } from '../../lib/empresaActivaRevision'
 import { supabaseClient } from '../../lib/supabase'
 import {
-  MENSAJE_TOMA_CONFIRMADA, SIN_CATEGORIA, armarItemsToma, cargarDepositoToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
+  MENSAJE_TOMA_CONFIRMADA, SIN_CATEGORIA, armarItemsToma, cargarFilasToma, confirmarToma, diferenciaToma, mensajeDeErrorToma,
   rotularDiferencia, validarToma, type AjusteToma, type FilaToma,
 } from '../../lib/tomaInventario'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
 import { useImagenesProductos } from '../../hooks/useImagenesProductos'
 import { PestanasStock } from './PestanasStock'
 
-type Resultado = { ajustes: AjusteToma[]; nombres: Record<string, string> }
+type Resultado = { ajustes: AjusteToma[]; nombres: Record<string, string>; deposito: string | null }
 
 // Ids que cubre una opción del selector: una categoría raíz incluye sus subcategorías.
 function idsDeOpcion(categorias: readonly Categoria[], categoriaId: string): string[] {
@@ -28,17 +30,22 @@ function idsDeOpcion(categorias: readonly Categoria[], categoriaId: string): str
 
 // F-STK-11: pestaña «Toma de inventario» dentro de Stock. Se elige una categoría, se carga lo contado
 // y «Confirmar» corrige las diferencias con ajustes (RPC `confirmar_toma_inventario`, todo o nada).
-// La pantalla no está en el prototipo (se construye con el sistema de diseño); no consulta por empresa:
-// el stock es único por organización. «Confirmar» se oculta sin edición; la autoridad es la base.
+// La pantalla no está en el prototipo (se construye con el sistema de diseño). El depósito se elige acá (por defecto, el
+// principal) y la toma opera sobre ese depósito. Los depósitos son de la organización (no de una empresa), pero al cambiar
+// la empresa activa se recargan los depósitos y los productos y se descartan los contados (nunca se confirma un conteo
+// armado con otro contexto). «Confirmar» se oculta sin edición; la autoridad es la base.
 export function TomaInventario() {
   const { nivel, isLoading: cargandoNivel } = useNivelSeccion('stock')
   const [categorias, setCategorias] = useState<Categoria[]>([])
   const [categoriasListas, setCategoriasListas] = useState(false)
   const [errorCategorias, setErrorCategorias] = useState(false)
   const [categoriaId, setCategoriaId] = useState('')
-  const [deposito, setDeposito] = useState<string | null>(null)
-  const [errorDeposito, setErrorDeposito] = useState(false)
-  const [recargaDeposito, setRecargaDeposito] = useState(0)
+  const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
+  const [depositosListos, setDepositosListos] = useState(false)
+  const [errorDepositos, setErrorDepositos] = useState(false)
+  const [depositoId, setDepositoId] = useState('')
+  const [recargaDepositos, setRecargaDepositos] = useState(0)
+  const revisionEmpresa = useSyncExternalStore(suscribirEmpresaActiva, revisionEmpresaActiva, revisionEmpresaActiva)
   const [filas, setFilas] = useState<FilaToma[]>([])
   const [cargandoFilas, setCargandoFilas] = useState(false)
   const [errorFilas, setErrorFilas] = useState<string | null>(null)
@@ -63,26 +70,35 @@ export function TomaInventario() {
     return () => { vigente = false }
   }, [recargaCategorias])
 
+  // Depósitos activos: se recargan al reintentar y al cambiar la empresa activa; se conserva el elegido si sigue
+  // existiendo y, si no, se vuelve al principal.
   useEffect(() => {
     let vigente = true
-    setErrorDeposito(false)
-    cargarDepositoToma()
-      .then((encontrado) => { if (vigente) setDeposito(encontrado.nombre) })
+    setErrorDepositos(false)
+    listarDepositosActivos()
+      .then((lista) => {
+        if (!vigente) return
+        setDepositos(lista)
+        setDepositosListos(true)
+        setDepositoId((actual) => (lista.some((deposito) => deposito.id === actual)
+          ? actual
+          : (lista.find((deposito) => deposito.por_defecto) ?? lista[0])?.id ?? ''))
+      })
       .catch((error) => {
-        console.error('No pudimos cargar el depósito de la toma.', error)
-        if (vigente) setErrorDeposito(true)
+        console.error('No pudimos cargar los depósitos.', error)
+        if (vigente) setErrorDepositos(true)
       })
     return () => { vigente = false }
-  }, [recargaDeposito])
+  }, [recargaDepositos, revisionEmpresa])
 
   useEffect(() => {
-    if (categoriaId === '') { setFilas([]); return }
+    if (categoriaId === '' || depositoId === '') { setFilas([]); return }
     let vigente = true
     setCargandoFilas(true)
     setErrorFilas(null)
     setContados({})
     setIntentoConfirmar(false)
-    cargarFilasToma(categoriaId === SIN_CATEGORIA ? [] : idsDeOpcion(categorias, categoriaId), categoriaId === SIN_CATEGORIA)
+    cargarFilasToma(categoriaId === SIN_CATEGORIA ? [] : idsDeOpcion(categorias, categoriaId), categoriaId === SIN_CATEGORIA, depositoId)
       .then((lista) => { if (vigente) { setFilas(lista); setCargandoFilas(false) } })
       .catch((error) => {
         console.error('No pudimos cargar los productos de la toma.', error)
@@ -93,9 +109,9 @@ export function TomaInventario() {
         }
       })
     return () => { vigente = false }
-  // `categorias` solo se lee para resolver las subcategorías; cambiar de categoría o reintentar recarga.
+  // `categorias` solo se lee para resolver las subcategorías; cambiar de categoría, de depósito o de empresa, o reintentar, recarga.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriaId, recargaFilas])
+  }, [categoriaId, depositoId, recargaFilas, revisionEmpresa])
 
   const opciones = useMemo(() => opcionesCategoriaProducto(categorias), [categorias])
   const erroresContado = validarToma(contados)
@@ -111,14 +127,18 @@ export function TomaInventario() {
     setEnviando(true)
     setErrorEnvio(null)
     try {
-      const ajustes = await confirmarToma(items)
-      setResultado({ ajustes, nombres: Object.fromEntries(filas.map((fila) => [fila.producto_id, fila.nombre])) })
+      const ajustes = await confirmarToma(items, depositoId)
+      setResultado({
+        ajustes,
+        nombres: Object.fromEntries(filas.map((fila) => [fila.producto_id, fila.nombre])),
+        deposito: depositos.find((deposito) => deposito.id === depositoId)?.nombre ?? null,
+      })
     } catch (error) {
       setErrorEnvio(mensajeDeErrorToma(error, 'No pudimos confirmar la toma. No se guardó ningún ajuste: probá de nuevo.'))
     } finally {
       setEnviando(false)
     }
-  }, [contados, enviando, filas])
+  }, [contados, depositoId, depositos, enviando, filas])
 
   const nuevaToma = () => {
     setResultado(null)
@@ -135,15 +155,29 @@ export function TomaInventario() {
         <PestanasStock activa="toma" />
         {resultado ? (
           <ResultadoToma resultado={resultado} onNueva={nuevaToma} />
-        ) : errorCategorias ? (
-          <EstadoError reintentar={() => setRecargaCategorias((valor) => valor + 1)} />
-        ) : !categoriasListas || cargandoNivel ? (
+        ) : errorCategorias || errorDepositos ? (
+          <EstadoError reintentar={() => { setRecargaCategorias((valor) => valor + 1); setRecargaDepositos((valor) => valor + 1) }} />
+        ) : !categoriasListas || !depositosListos || cargandoNivel ? (
           <EstadoCargaPagina />
         ) : (
           <Stack spacing={2}>
             {!puedeConfirmar && (
               <Alert severity="info">Tu rol puede ver la toma, pero no confirmarla.</Alert>
             )}
+            <FormControl sx={{ maxWidth: 420 }}>
+              <InputLabel id="toma-deposito-etiqueta">Depósito</InputLabel>
+              <Select
+                labelId="toma-deposito-etiqueta"
+                label="Depósito"
+                value={depositoId}
+                onChange={(evento) => setDepositoId(evento.target.value)}
+              >
+                {depositos.map((deposito) => (
+                  <MenuItem key={deposito.id} value={deposito.id}>{deposito.por_defecto ? `${deposito.nombre} (principal)` : deposito.nombre}</MenuItem>
+                ))}
+              </Select>
+              <FormHelperText>La toma corrige el stock de este depósito.</FormHelperText>
+            </FormControl>
             <FormControl sx={{ maxWidth: 420 }}>
               <InputLabel id="toma-categoria-etiqueta">Categoría</InputLabel>
               <Select
@@ -156,19 +190,9 @@ export function TomaInventario() {
                 <MenuItem value={SIN_CATEGORIA}>Sin categoría</MenuItem>
               </Select>
             </FormControl>
-            {errorDeposito ? (
-              <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => setRecargaDeposito((valor) => valor + 1)}>Reintentar</Button>}>
-                No pudimos cargar el depósito sobre el que opera la toma.
-              </Alert>
-            ) : null}
-            <TextField
-              label="Depósito"
-              value={deposito ?? ''}
-              disabled
-              helperText="La toma corrige el stock del depósito principal."
-              sx={{ maxWidth: 420 }}
-            />
-            {categoriaId === '' ? (
+            {depositos.length === 0 ? (
+              <EstadoVacio titulo="No hay depósitos activos" descripcion="Activá un depósito desde Stock · Depósitos para hacer la toma." />
+            ) : categoriaId === '' ? (
               <EstadoVacio titulo="Elegí una categoría" descripcion="Vas a contar sus productos y corregir las diferencias con ajustes." />
             ) : cargandoFilas ? (
               <EstadoCargaPagina />
@@ -253,7 +277,7 @@ function ResultadoToma({ resultado, onNueva }: { resultado: Resultado; onNueva: 
         titulo={MENSAJE_TOMA_CONFIRMADA}
         descripcion={ajustes.length === 0
           ? 'No había diferencias: no se generó ningún ajuste.'
-          : `Se generaron ${ajustes.length} ${ajustes.length === 1 ? 'ajuste' : 'ajustes'}. Los ves también en Movimientos.`}
+          : `Se generaron ${ajustes.length} ${ajustes.length === 1 ? 'ajuste' : 'ajustes'}${resultado.deposito ? ` en ${resultado.deposito}` : ''}. Los ves también en Movimientos.`}
       />
       {ajustes.length > 0 && (
         <TableContainer tabIndex={0} role="region" aria-label="Ajustes generados por la toma (se desplaza)">

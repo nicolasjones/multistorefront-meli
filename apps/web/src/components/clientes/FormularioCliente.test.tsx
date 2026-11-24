@@ -138,6 +138,26 @@ describe('FormularioCliente', () => {
     expect(screen.queryByText('No se guardó el cliente.')).not.toBeInTheDocument()
   })
 
+  it('un DNI/CUIT inválido se marca en el campo y no se envía', async () => {
+    const onGuardar = abrir()
+    escribir(/nombre o razón social/i, 'Otro cliente')
+    escribir('DNI/CUIT', '30-71234567-8')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    expect(await screen.findByText(/DNI de 7 u 8 dígitos o un CUIT válido/)).toBeInTheDocument()
+    expect(screen.getByLabelText('DNI/CUIT')).toHaveAttribute('aria-invalid', 'true')
+    expect(onGuardar).not.toHaveBeenCalled()
+  })
+
+  it('si el servidor rechaza el documento (23514) el error queda en el campo, no como error general', async () => {
+    const onGuardar = vi.fn().mockRejectedValue({ code: '23514', message: 'El DNI/CUIT no es válido: ingresá un DNI de 7 u 8 dígitos' })
+    abrir(onGuardar)
+    escribir(/nombre o razón social/i, 'Otro cliente')
+    escribir('DNI/CUIT', '30712345671')
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cliente' }))
+    expect(await screen.findByText(/DNI de 7 u 8 dígitos o un CUIT válido/)).toBeInTheDocument()
+    expect(screen.queryByText('No se guardó el cliente.')).not.toBeInTheDocument()
+  })
+
   it('nombre repetido: se guarda sin aviso', async () => {
     const onGuardar = abrir()
     escribir(/nombre o razón social/i, 'Distribuidora Norte SRL')

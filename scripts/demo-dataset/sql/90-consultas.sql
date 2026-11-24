@@ -146,6 +146,15 @@ select md5(:'org_id' || '|interes|' || i.emp || i.sku || g)::uuid, :'org_id'::uu
   cross join lateral generate_series(1, i.veces) g
 on conflict (id) do nothing;
 
+-- MSF-993: la app lee el interés por WhatsApp de las CONSULTAS de origen WhatsApp (no de `intereses_whatsapp`, que queda solo
+-- para este sembrado hasta retirarla). Cada toque sembrado también entra como consulta, con las marcas de «sin datos».
+insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto, mensaje, producto_id, estado, created_at, updated_at)
+select md5(:'org_id' || '|consulta-wa|' || i.id::text)::uuid, i.organizacion_id, i.empresa_id, 'whatsapp', 'Visitante de WhatsApp',
+       'visitante@sin-datos.invalid', null, i.producto_id, 'resuelta', i.created_at, i.created_at
+  from dominio.intereses_whatsapp i
+ where i.organizacion_id = :'org_id'::uuid
+on conflict (id) do nothing;
+
 commit;
 
 select e.nombre as empresa, c.origen, c.estado, count(*) from dominio.consultas c join dominio.empresas e on e.id = c.empresa_id
