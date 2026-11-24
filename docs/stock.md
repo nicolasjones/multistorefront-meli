@@ -297,7 +297,7 @@ mercadería»). Guía: [`ordenes-compra.md`](./ordenes-compra.md).
 
 ## Textos de Movimientos y Faltantes
 
-La nota de un movimiento de una reserva «A pedido» no muestra el identificador interno del comprobante (`comprobante:<uuid>`): se lee «el comprobante». Poner el número del comprobante exige cambiar la nota en la base. La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
+La nota de un movimiento de una reserva «A pedido» muestra el número del comprobante («Reserva FAC-0005») en lugar de su referencia interna: `public.listar_movimientos_stock` lo busca con los permisos de quien consulta y en la misma organización (MSF-621, migración `20270507290000`). Si la persona no ve el comprobante o ya no existe, la pantalla muestra «el comprobante». La ayuda de Faltantes dice que se cierra al entregar el pedido o al liberar la reserva; ingresar mercadería no lo cierra solo.
 
 ## Toma de inventario: depósito, «Sin categoría» y rol Depósito (lote 34)
 

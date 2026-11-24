@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "d9dd3bd219c4829e0a2371f0305d7fe8af5df4e0bdc49012c5dd4bc706140c43",
-      "sourceHash": "41a7978fbde3a6f0cf6da06541336f5659b7a658a25f081125ab492dba2820ce",
-      "sourceAt": "07661f192",
+      "pageHash": "bee5c58428c5c4ba093bcd38f2a276e5b6382e03c2f89dda0c00c3a112a7870e",
+      "sourceHash": "5936d0b75a94bca241f67d916e1330a6e97055b21848a2e64d22edca21d9e7b1",
+      "sourceAt": "89ddd2c77",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -80,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "07661f192"
+      "commit": "89ddd2c77"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -1210,16 +1210,16 @@
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
-      "pageHash": "25093e64191901d2e700387aa056c8e5e0eb036970ab45477d5a0de98fcd898e",
+      "pageHash": "a512c0a815f07540539de438eef018e9266532a0b3cb65f39ac88616407411a6",
       "sourceHash": "8de1d85acef7eebfa1c41affe71c125ab7560fd137c8546150678a4ab3686eba",
-      "sourceAt": "5ac918aa",
+      "sourceAt": "89ddd2c77",
       "sources": [
         "infra/kestra/flows/historial-importador.yml",
         "workers/egress-allowlists.json",
         "workers/historial-importador"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "89ddd2c77"
     },
     "docs/importaciones.md": {
       "title": "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)",
@@ -3319,9 +3319,9 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "e72d4fa40e38987531f3c04c07aecb1edcfec6cc8dad7d6f84234e7dba27c787",
-      "sourceHash": "315364c38438f0d947eb9f85d5eb480596d153a337d394f486418518f0500a19",
-      "sourceAt": "da68ec33",
+      "pageHash": "a2b33308b5091f5c819034cc3578fe4e6d7d809bb7fc3c65b148b6b2fd7462f6",
+      "sourceHash": "48ba1770f6c36f50b9c25019dc22f359ebebbc2dc3e4d9d13b1117db13f6da51",
+      "sourceAt": "89ddd2c77",
       "sources": [
         "specs/20261017-120000-stock-movimientos",
         "specs/20261022-180000-stock-depositos-y-reservas",
@@ -3345,7 +3345,7 @@
         "supabase/tests/database/stock_historial.test.sql"
       ],
       "owner": "producto",
-      "commit": "da68ec33"
+      "commit": "89ddd2c77"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",

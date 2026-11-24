@@ -1,6 +1,11 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  ENCABEZADOS_PLANTILLA_HISTORIAL,
   MAX_BYTES_HISTORIAL,
+  TIPOS_HISTORIAL,
+  contenidoPlantillaHistorial,
   type ClienteHistorial,
   type EjecucionHistorial,
   leerDetalle,
@@ -160,5 +165,20 @@ describe('leerDetalle y resumenDeEjecucion', () => {
     expect(sinDetalle).toContain('el detalle está en Ejecuciones')
     // Sin jerga interna: la persona no tiene por qué saber qué es un «worker».
     expect(sinDetalle).not.toMatch(/worker/i)
+  })
+})
+
+describe('plantilla de importación del historial', () => {
+  it('es un CSV con los encabezados del tipo y sin filas', () => {
+    expect(contenidoPlantillaHistorial('cobros')).toBe('Tienda,Fecha,Comprobante,Cliente,Número de cliente,Cuenta de cobro,Aprobado por,Importe\n')
+  })
+
+  it('cada encabezado existe como columna del importador', () => {
+    const fuente = readFileSync(resolve(process.cwd(), '../../workers/historial-importador/src/campos.ts'), 'utf8')
+    const conocidas = new Set([...fuente.matchAll(/etiqueta: '([^']+)'/g)].map((m) => m[1]))
+    expect(TIPOS_HISTORIAL.map((t) => t.valor)).toEqual(Object.keys(ENCABEZADOS_PLANTILLA_HISTORIAL))
+    for (const encabezados of Object.values(ENCABEZADOS_PLANTILLA_HISTORIAL)) {
+      for (const encabezado of encabezados) expect(conocidas, encabezado).toContain(encabezado)
+    }
   })
 })

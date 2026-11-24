@@ -493,7 +493,7 @@ Las listas de precios (F-PRE-14 y F-CLI-21) registran cinco eventos, todos no se
 
 ## Importes del antes y después
 
-Los campos de importe (total, importe, monto, precio, costo, saldo, etc.) del detalle de un evento se muestran con formato de moneda. Pendiente: ocultar o agrupar las filas «Cambio de empresa activa» requiere cambiar `listar_actividad`.
+Los campos de importe (total, importe, monto, precio, costo, saldo, etc.) del detalle de un evento se muestran con formato de moneda. Las filas «Cambio de empresa activa» no ocupan la lista (ver «Eventos de contexto» más abajo).
 
 Los campos con formato de moneda salen de una lista explícita de nombres de columna (importe, monto, total, subtotal, precio, precio_lista, costo, saldo, valor, cobrado, deuda); un campo que solo contiene la palabra (p. ej. `total_items`) no se toca.
 

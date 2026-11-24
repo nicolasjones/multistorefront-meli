@@ -1,0 +1,88 @@
+-- MSF-621 (épica MSF-585): la nota de un movimiento de stock nacido de una reserva «a pedido» traía la
+-- referencia interna del comprobante («Reserva comprobante:<uuid>:linea:1»). `public.listar_movimientos_stock`
+-- ahora devuelve en la nota el número del comprobante («Reserva FAC-0005»), para el historial y su CSV.
+--
+-- Qué cambia: solo la columna `nota`. Firma, columnas, orden, paginación y `security invoker` son los de
+-- `20261023130000_stock_traslado.sql` (la definición vigente; no hubo otra redefinición). El número se busca en
+-- `dominio.comprobantes_venta` de la misma organización con los permisos de quien consulta (RLS): si la
+-- persona no puede ver el comprobante, o ya no existe, la nota queda como estaba y la pantalla muestra
+-- «el comprobante». El libro `dominio.movimientos_stock` no se toca (es inmutable).
+--
+-- Reversión: recrear `public.listar_movimientos_stock` con la definición de
+-- `20261023130000_stock_traslado.sql` (con `create or replace`, misma firma).
+
+create or replace function public.listar_movimientos_stock(
+  p_producto uuid default null,
+  p_limite integer default 25,
+  p_desplazamiento integer default 0
+)
+returns table (
+  id uuid,
+  fecha date,
+  creado_en timestamptz,
+  producto_id uuid,
+  producto_nombre text,
+  producto_sku text,
+  tipo text,
+  motivo text,
+  nota text,
+  cantidad integer,
+  diferencia integer,
+  saldo integer,
+  responsable text,
+  total bigint,
+  deposito_id uuid,
+  deposito_nombre text,
+  traslado_id uuid
+)
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select
+    m.id,
+    m.fecha,
+    m.creado_en,
+    m.producto_id,
+    p.nombre,
+    p.sku,
+    m.tipo,
+    mo.nombre,
+    case
+      when ref.texto is not null and cv.numero is not null then replace(m.nota, ref.texto, cv.numero)
+      else m.nota
+    end,
+    m.cantidad,
+    m.diferencia,
+    m.saldo,
+    m.actor_nombre,
+    count(*) over (),
+    m.deposito_id,
+    dep.nombre,
+    m.traslado_id
+  from dominio.movimientos_stock m
+  left join dominio.productos p
+    on p.id = m.producto_id and p.organizacion_id = m.organizacion_id
+  left join dominio.motivos_movimiento mo
+    on mo.id = m.motivo_id and mo.organizacion_id = m.organizacion_id
+  left join dominio.depositos dep
+    on dep.id = m.deposito_id and dep.organizacion_id = m.organizacion_id
+  left join lateral (
+    select
+      (regexp_match(m.nota, 'comprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?'))[1] as texto,
+      (regexp_match(m.nota, 'comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'))[1]::uuid as comprobante_id
+  ) ref on true
+  left join dominio.comprobantes_venta cv
+    on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id
+  where (p_producto is null or m.producto_id = p_producto)
+  order by m.creado_en desc, m.id desc
+  limit greatest(1, least(coalesce(p_limite, 25), 100))
+  offset greatest(0, coalesce(p_desplazamiento, 0));
+$$;
+
+comment on function public.listar_movimientos_stock(uuid, integer, integer) is
+  'Historial de movimientos de stock (F-STK-03, + depósito en F-STK-14, + traslado_id en F-STK-15). Solo lectura, security invoker (RLS), paginado con tope 100 y total. La nota de una reserva a pedido trae el número del comprobante en lugar de su referencia interna.';
+
+revoke execute on function public.listar_movimientos_stock(uuid, integer, integer) from public, anon;
+grant execute on function public.listar_movimientos_stock(uuid, integer, integer) to authenticated;
