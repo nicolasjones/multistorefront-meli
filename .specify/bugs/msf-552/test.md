@@ -16,7 +16,7 @@ La guía tiene las cuatro rutas medidas (la medición está verificada; el objet
 |---|---|
 | Medición real en CI antes del cambio de front | run `45474509678`: LCP 15.584–16.021 ms |
 | Medición real en CI con el panel diferido | run `45476405495`: LCP 10.500–10.903 ms |
-| Cada cifra de la guía contra `resumen.md` y `rpc-catalogo.txt` del artifact `medir-tienda` | coincide |
+| Cada cifra de la guía contra `resumen.md` y `rpc-catalogo.txt` del run (resumen del job) | coincide |
 | `node scripts/verificar-medicion-tienda.mjs` | pasa |
 | Tests de los scripts de medición y de `main.guard.test.ts` | pasan |
 

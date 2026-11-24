@@ -28,7 +28,7 @@ config es aparte (`.lighthouserc.tienda.json`) porque `.lighthouserc.json` mide 
 sus aserciones son `error`. Falla si alguna ruta no se midió, si el LCP no llega al objetivo (3 s) o si supera
 la línea base (14.000 ms). Comando local:
 `pnpm medir:tienda` (con el stack con el seed y la web servida). Reportes: `reports/lighthouse-tienda/` y
-`reports/medir-tienda/` (artefacto `medir-tienda`, sólo con los resúmenes: los reportes crudos de Lighthouse no se suben). Las cifras y el diagnóstico están en
+`reports/medir-tienda/` (quedan en el runner: el resultado va al resumen del job y los reportes crudos no se suben como artefacto, porque pueden traer URL con tokens firmados). Las cifras y el diagnóstico están en
 [Tiendas online](tiendas-online.md#rendimiento-en-celular-t071-sc-010).
 
 ## Pendiente (necesita devDependencies)

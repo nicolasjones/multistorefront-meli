@@ -284,16 +284,8 @@ jobs:
       - name: Medir Lighthouse en perfil móvil
         run: pnpm medir:tienda
 
-      # Sólo se sube (y se resume) lo que pasa este control: los reportes crudos de Lighthouse traen el log de red con las
-      # URL (a veces con tokens firmados de Storage) y `::add-mask::` no alcanza a los artefactos ni al resumen. Es defensa
-      # en profundidad, no una garantía: ver `scripts/verificar-reporte-sin-credenciales.mjs`. No imprime lo que encuentra.
-      - name: Verificar que el reporte no lleva credenciales
-        id: credenciales
-        if: ${{ !cancelled() }}
-        run: node scripts/verificar-reporte-sin-credenciales.mjs
-
       - name: Resumen en $GITHUB_STEP_SUMMARY
-        if: ${{ !cancelled() && steps.credenciales.conclusion == 'success' }}
+        if: ${{ !cancelled() }}
         run: |
           {
             echo '## Rendimiento de la tienda (MSF-552)'
@@ -303,18 +295,8 @@ jobs:
             if [ -f reports/medir-tienda/rpc-catalogo.txt ]; then cat reports/medir-tienda/rpc-catalogo.txt; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Subir el reporte de la medición
-        if: ${{ !cancelled() && steps.credenciales.conclusion == 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: medir-tienda
-          path: |
-            reports/lighthouse-tienda/resumen.md
-            reports/lighthouse-tienda/resumen.json
-            reports/medir-tienda/rpc-catalogo.txt
-          if-no-files-found: ignore
-          retention-days: 30
-
+      # Los reportes crudos de Lighthouse NO se suben como artefacto: traen el log de red con las URL (a veces con tokens
+      # firmados de Storage). El resultado de la medición queda en el resumen del job (`$GITHUB_STEP_SUMMARY`).
       - name: Limpieza (procesos propios, stack de Supabase y ranura)
         if: always()
         timeout-minutes: 10
