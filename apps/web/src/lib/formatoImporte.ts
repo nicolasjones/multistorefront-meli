@@ -20,12 +20,29 @@ export function formatearNumeroImporte(valor: number, opciones: Pick<OpcionesImp
 
 // Importe con hasta `decimales` decimales (la cotización del dólar guarda 4): 1465,1234 → «$ 1.465,1234».
 // Un entero no lleva decimales; una única décima conserva su cero («$ 1.465,50»), como `formatearImporte`.
+// `decimales` es un entero entre 0 y 10; fuera de ese rango lanza RangeError.
+// La base acota el valor (`numeric(14,4)`), así que los enormes no ocurren; igual, como en `formatearImporte`,
+// por encima de lo que un double escalado representa de forma exacta se muestra el entero por BigInt, sin decimales.
+const MAX_DECIMALES_IMPORTE = 10
+
+// `abs` por 10^decimales sin el error de coma flotante del producto; la notación científica de `String` se multiplica.
+function escalarExacto(abs: number, decimales: number): number {
+  const texto = String(abs)
+  return texto.includes('e') ? abs * 10 ** decimales : Number(`${texto}e${decimales}`)
+}
+
 export function formatearImporteHasta(valor: number, decimales: number): string {
+  if (!Number.isInteger(decimales) || decimales < 0 || decimales > MAX_DECIMALES_IMPORTE) {
+    throw new RangeError(`decimales debe ser un entero entre 0 y ${MAX_DECIMALES_IMPORTE}`)
+  }
   if (!Number.isFinite(valor)) return '—'
   const factor = 10 ** decimales
-  const escalado = Math.round(Math.abs(valor) * factor)
-  const entero = Math.floor(escalado / factor)
-  const resto = String(escalado % factor).padStart(decimales, '0').replace(/0+$/, '')
+  const grande = Math.abs(valor) * factor > Number.MAX_SAFE_INTEGER
+  // El redondeo parte de la representación decimal («1.00005e4» = 10000,5) y no de `valor * factor`
+  // (1,00005 * 10⁴ da 10000,4999…): así los medios exactos suben, como en `formatearImporte`.
+  const escalado = grande ? 1 : Math.round(escalarExacto(Math.abs(valor), decimales))
+  const entero = grande ? BigInt(Math.round(Math.abs(valor))) : Math.floor(escalado / factor)
+  const resto = grande ? '' : String(escalado % factor).padStart(decimales, '0').replace(/0+$/, '')
   const miles = String(entero).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   const signo = valor < 0 && escalado > 0 ? '-' : ''
   const conDecimales = resto === '' ? '' : `,${resto.length === 1 ? `${resto}0` : resto}`

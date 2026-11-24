@@ -35,7 +35,7 @@ test.describe('Precios visibles', () => {
   test('el margen aclara que no incluye la comisión del canal y el dólar se muestra con sus 4 decimales', async ({ browser }, testInfo) => {
     test.setTimeout(300_000)
     const sufijo = randomUUID().slice(0, 8)
-    const correo = `admin-msf720-${sufijo}@example.com`
+    const correo = `admin-precios-${sufijo}@example.com`
     const nombre = `Producto USD ${sufijo}`
 
     let orgId: string | undefined

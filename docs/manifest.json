@@ -1305,16 +1305,16 @@
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "c4849610576beefffa9b131ea799ea5fbd5041652d87f92e794549f3c1e50abf",
-      "sourceHash": "f6ee8aa8b63d4ef4aa6a31017f35e880ea52ea7ff84fa043519e82de0037759b",
-      "sourceAt": "13af51004",
+      "pageHash": "3f7a6ca4d90c9080ade1a0020219de8ee89b879d0822d2363e9537f0a568e49c",
+      "sourceHash": "4f562883367b9dc8eabfb0ee3d452877658103892c06908ace1b95f1154b582c",
+      "sourceAt": "5cdce6386",
       "sources": [
         "apps/web/src/lib/iva.ts",
         "supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql",
         "supabase/migrations/20261022140200_precios_empresa_iva.sql"
       ],
       "owner": "tecnico",
-      "commit": "13af51004"
+      "commit": "5cdce6386"
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
@@ -1617,9 +1617,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "e0db525e24d695593fc5980b765b3cb3d81c150fad82deca39cc756540ac5934",
+      "pageHash": "97dc4100849283e4c1379e357a835cf44b04688374704b8014aa05aa1b5f480b",
       "sourceHash": "286328b493a163e96e6f00293ad6c6b35f36b9ae02def53b852d29073cf119b4",
-      "sourceAt": "13af51004",
+      "sourceAt": "5cdce6386",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1628,7 +1628,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "13af51004"
+      "commit": "5cdce6386"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",

@@ -27,7 +27,7 @@ export const NOTA_OPCIONES_IVA = 'Opciones: 21 %, 10,5 %, Exento. Cada producto 
 export const AYUDA_IVA_EMPRESA = 'El IVA sale de la categoría de cada producto (o del propio producto).'
 
 // Precio final = neto × (1 + alícuota), al centavo, redondeando la mitad ALEJÁNDOSE DEL CERO (igual que `round(numeric, 2)` de
-// Postgres, que usa `private.aplicar_iva` y el total del comprobante); Exento ⇒ final = neto (MSF-720).
+// Postgres, que usa `private.aplicar_iva` y el total del comprobante); Exento ⇒ final = neto.
 // Aritmética entera exacta con BigInt: neto y alícuota se toman como los decimales con que se escribieron (la representación
 // más corta del número, la misma que se envía a la base) y se operan como fracciones, sin coma flotante ni escala fija:
 // coincide con `private.aplicar_iva` con cualquier cantidad de cifras (8 enteras y 3 decimales incluidos).

@@ -62,6 +62,44 @@ describe('formatearImporteHasta', () => {
     expect(formatearImporteHasta(0, 4)).toBe('$ 0')
     expect(formatearImporteHasta(Number.NaN, 4)).toBe('—')
   })
+
+  it('formatea negativos, con ceros finales y sin menos para el cero', () => {
+    expect(formatearImporteHasta(-1465.1234, 4)).toBe('-$ 1.465,1234')
+    expect(formatearImporteHasta(-1465.5, 4)).toBe('-$ 1.465,50')
+    expect(formatearImporteHasta(-1465, 4)).toBe('-$ 1.465')
+    expect(formatearImporteHasta(-0, 4)).toBe('$ 0')
+    expect(formatearImporteHasta(-0.00001, 4)).toBe('$ 0')
+  })
+
+  it('muestra «—» ante infinitos y NaN', () => {
+    expect(formatearImporteHasta(Infinity, 4)).toBe('—')
+    expect(formatearImporteHasta(-Infinity, 4)).toBe('—')
+    expect(formatearImporteHasta(Number.NaN, 0)).toBe('—')
+  })
+
+  it('no usa notación científica ni pierde dígitos en valores enormes', () => {
+    expect(formatearImporteHasta(1e21, 4)).toBe('$ 1.000.000.000.000.000.000.000')
+    expect(formatearImporteHasta(-1e21, 4)).toBe('-$ 1.000.000.000.000.000.000.000')
+    expect(formatearImporteHasta(2 ** 53, 4)).toBe('$ 9.007.199.254.740.992')
+    expect(formatearImporteHasta(2 ** 60, 2)).toBe('$ 1.152.921.504.606.846.976')
+  })
+
+  it('redondea los medios exactos hacia arriba en el último decimal', () => {
+    expect(formatearImporteHasta(1.00005, 4)).toBe('$ 1,0001')
+    expect(formatearImporteHasta(1465.12345, 4)).toBe('$ 1.465,1235')
+    expect(formatearImporteHasta(1465.99995, 4)).toBe('$ 1.466')
+    expect(formatearImporteHasta(2.675, 2)).toBe('$ 2,68')
+    expect(formatearImporteHasta(-1.00005, 4)).toBe('-$ 1,0001')
+    expect(formatearImporteHasta(1e-7, 10)).toBe('$ 0,0000001')
+  })
+
+  it('rechaza una cantidad de decimales inválida', () => {
+    expect(() => formatearImporteHasta(1, -1)).toThrow(RangeError)
+    expect(() => formatearImporteHasta(1, 1.5)).toThrow(RangeError)
+    expect(() => formatearImporteHasta(1, 11)).toThrow(RangeError)
+    expect(() => formatearImporteHasta(1, Number.NaN)).toThrow(RangeError)
+    expect(formatearImporteHasta(1.5, 0)).toBe('$ 2')
+  })
 })
 
 describe('formatearNumeroImporte', () => {
