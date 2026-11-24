@@ -62,6 +62,13 @@ describe('consolidar-marcas-tasks', () => {
     assert.match(tasks, /^- \[ \] T022a Sub-tarea\./m);
   });
 
+  it('el id se normaliza a mayúsculas: una marca T022A cierra la línea T022a y el texto original se conserva', () => {
+    const dirSpec = spec('demo', '- [ ] T022a Sub-tarea.\n', { 'F-DEM-01.md': '- [x] T022A\n' });
+    const resultado = consolidarSpec(dirSpec);
+    assert.deepEqual(resultado.cerradas.map((c) => c.id), ['T022A']);
+    assert.match(fs.readFileSync(path.join(dirSpec, 'tasks.md'), 'utf8'), /^- \[x\] T022a Sub-tarea\./);
+  });
+
   it('lee el id de una sub-tarea completo (T022a ≠ T022)', () => {
     const tareas = leerTareas('- [ ] T022 Madre.\n- [ ] T022a Sub-tarea.\n');
     assert.deepEqual(tareas.map((t) => t.id), ['T022', 'T022A']);
