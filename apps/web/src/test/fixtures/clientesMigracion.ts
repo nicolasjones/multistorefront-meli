@@ -16,6 +16,7 @@ export type ClienteSintetico = {
   localidad: string
   provincia: string
   expreso_preferido: string
+  acepta_correo: string
 }
 
 export const CLIENTES_SINTETICOS: readonly ClienteSintetico[] = [
@@ -32,6 +33,7 @@ export const CLIENTES_SINTETICOS: readonly ClienteSintetico[] = [
     localidad: 'Ciudad Ficticia',
     provincia: 'Santa Fe',
     expreso_preferido: 'Expreso de Prueba',
+    acepta_correo: 'sí',
   },
   {
     id_externo: 'SINT-002',
@@ -46,6 +48,7 @@ export const CLIENTES_SINTETICOS: readonly ClienteSintetico[] = [
     localidad: 'Localidad de Ejemplo',
     provincia: 'Buenos Aires',
     expreso_preferido: '',
+    acepta_correo: '',
   },
 ]
 
@@ -62,6 +65,7 @@ export const ENCABEZADOS_CLIENTES = [
   'Localidad',
   'Provincia',
   'Expreso preferido',
+  'Acepta correo',
 ] as const
 
 // La plantilla de la entidad suma «Condición de IVA» al final (columna opcional; los CSV sintéticos no la traen).
@@ -86,5 +90,6 @@ export const CSV_CLIENTES_SINTETICOS = [
     cliente.localidad,
     cliente.provincia,
     cliente.expreso_preferido,
+    cliente.acepta_correo,
   ].map(celdaCsv).join(',')),
 ].join('\n') + '\n'

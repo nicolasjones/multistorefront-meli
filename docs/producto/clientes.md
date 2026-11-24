@@ -347,3 +347,8 @@ Si no hubo facturación en esas fechas, ves «Sin facturación en el período».
 | **No hay clientes para imprimir.** | Volvé al listado y marcá al menos un cliente con dirección. |
 | **No pudimos fusionar los clientes. No se cambió nada; probá de nuevo.** | No se movió nada: reintentá. |
 | **No pudimos cargar la cuenta corriente del cliente.** | No se pudo leer la deuda del cliente. Tocá **Reintentar**: el resto de la ficha sigue visible y el **Saldo deudor** queda en «—». |
+
+## Aceptación de correo masivo y DNI/CUIT (lote 38)
+
+- **Marcar aceptación:** en el listado de Clientes, el administrador marca clientes con las casillas y usa **Marcar aceptación (N)** para indicar que aceptan o no el correo masivo; queda registrado quién lo hizo y cuándo. La plantilla de **Importar clientes** tiene la columna opcional **Acepta correo** (sí/no; vacía = no cambia).
+- **DNI/CUIT:** debe ser un DNI de 7 u 8 dígitos o un CUIT de 11 dígitos válido (con o sin puntos y guiones), o quedar vacío. El sistema lo controla al guardar y al importar; un documento viejo que no cumple sigue editable mientras no lo toques.

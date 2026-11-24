@@ -25,8 +25,10 @@ const mocks = vi.hoisted(() => ({
   cobros: [] as unknown[],
   saldo: { total: 1000, cobrado: 0, saldo: 1000 } as { total: number; cobrado: number; notas_credito?: number; saldo: number },
   puedeRegistrar: true,
+  esAdmin: false,
 }))
 
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: mocks.esAdmin, isLoading: false }) }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
@@ -326,6 +328,8 @@ const COBRO = {
   conciliado: false,
   aprobado_por: null,
   registrado_por: 'mostrador-uno@example.com',
+  estado_reversion: null,
+  motivo_reversion: null,
 }
 
 const CUENTAS = [
@@ -398,6 +402,7 @@ beforeEach(() => {
   mocks.cobros = []
   mocks.saldo = { total: 1000, cobrado: 0, saldo: 1000 }
   mocks.puedeRegistrar = true
+  mocks.esAdmin = false
   // La pantalla lee las RPC por nombre: cada una responde con lo que el caso necesita.
   mocks.rpc.mockImplementation(async (nombre: string) => {
     switch (nombre) {
@@ -409,6 +414,8 @@ beforeEach(() => {
         return { data: mocks.puedeRegistrar, error: null }
       case 'registrar_cobro':
         return { data: { id: 'b-9', importe: 400 }, error: null }
+      case 'revertir_cobro':
+        return { data: 'b-contra', error: null }
       // Las transiciones del estado y el cambio: la base los decide (MSF-715).
       case 'transiciones_permitidas_comprobante':
         return { data: ['en_proceso'], error: null }
@@ -1308,6 +1315,7 @@ describe('Detalle del comprobante · lector de pantalla (F-VTA-12, SC-002)', () 
       'Cuenta de cobro',
       'Importe',
       'Registró',
+      'Estado',
     ])
     expect(within(tabla).getAllByRole('row')).toHaveLength(2)
 
@@ -1365,6 +1373,86 @@ describe('Detalle del comprobante · lector de pantalla (F-VTA-12, SC-002)', () 
     fireEvent.click(await screen.findByRole('button', { name: 'Registrar cobro' }))
 
     const dialogo = await screen.findByRole('dialog', { name: 'Registrar cobro' })
+    expect(await violacionesAxe(dialogo)).toEqual([])
+  })
+})
+
+describe('Detalle del comprobante · «Revertir cobro»', () => {
+  const abrirReversion = async () => {
+    mocks.esAdmin = true
+    mocks.cobros = [COBRO]
+    mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }
+    const vista = render(arbol('/ventas/comprobantes/k-1'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Revertir el cobro de $ 400' }))
+    return { vista, dialogo: await screen.findByRole('dialog', { name: 'Revertir cobro' }) }
+  }
+
+  it('solo el administrador ve el botón de revertir', async () => {
+    mocks.cobros = [COBRO]
+    mocks.saldo = { total: 1000, cobrado: 400, saldo: 600 }
+    render(arbol('/ventas/comprobantes/k-1'))
+    await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(screen.queryByRole('button', { name: /Revertir el cobro/ })).not.toBeInTheDocument()
+  })
+
+  it('no ofrece revertir un cobro ya revertido, un contra-asiento, un contrarreembolso ni uno conciliado', async () => {
+    mocks.esAdmin = true
+    mocks.cobros = [
+      { ...COBRO, id: 'b-1', estado_reversion: 'revertido' },
+      { ...COBRO, id: 'b-2', importe: -400, origen: 'reversion', estado_reversion: 'reversion', motivo_reversion: 'Error de carga' },
+      { ...COBRO, id: 'b-3', origen: 'contrarreembolso' },
+      { ...COBRO, id: 'b-4', conciliado: true },
+    ]
+    mocks.saldo = { total: 1000, cobrado: 0, saldo: 1000 }
+    render(arbol('/ventas/comprobantes/k-1'))
+    const tabla = await screen.findByRole('table', { name: 'Cobros del comprobante' })
+    expect(screen.queryByRole('button', { name: /Revertir el cobro/ })).not.toBeInTheDocument()
+    expect(within(tabla).getByText('Revertido')).toBeInTheDocument()
+    expect(within(tabla).getByText('Reversión')).toBeInTheDocument()
+  })
+
+  it('exige el motivo y no llama a la base sin él', async () => {
+    const { dialogo } = await abrirReversion()
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Revertir cobro' }))
+    expect(await within(dialogo).findByText('Escribí el motivo de la reversión.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalledWith('revertir_cobro', expect.anything())
+  })
+
+  it('revierte con el motivo, avisa, relee el comprobante y recarga los cobros', async () => {
+    const { dialogo } = await abrirReversion()
+    const antes = mocks.obtenerComprobante.mock.calls.length
+    fireEvent.change(within(dialogo).getByLabelText(/^Motivo/), { target: { value: '  Importe mal cargado  ' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Revertir cobro' }))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('revertir_cobro', { p_cobro_id: 'b-1', p_motivo: 'Importe mal cargado' }))
+    expect(await screen.findByText('Cobro revertido · $ 400')).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(mocks.obtenerComprobante.mock.calls.length).toBeGreaterThan(antes))
+  })
+
+  it('si la base rechaza, muestra el motivo en castellano y deja el diálogo abierto', async () => {
+    const { dialogo } = await abrirReversion()
+    mocks.rpc.mockImplementation(async (nombre: string) => {
+      if (nombre === 'revertir_cobro') return { data: null, error: { code: '55000', message: 'El cobro ya fue revertido' } }
+      if (nombre === 'cobros_de_comprobante') return { data: mocks.cobros, error: null }
+      if (nombre === 'saldo_comprobante') return { data: [mocks.saldo], error: null }
+      return { data: null, error: null }
+    })
+    fireEvent.change(within(dialogo).getByLabelText(/^Motivo/), { target: { value: 'Duplicado' } })
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Revertir cobro' }))
+    expect(await within(dialogo).findByText('El cobro ya fue revertido')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Revertir cobro' })).toBeInTheDocument()
+  })
+
+  it('cierra el diálogo sin enviar nada al cambiar de tienda', async () => {
+    const { vista } = await abrirReversion()
+    mocks.useEmpresasAccesibles.mockReturnValue(accesibles(null))
+    vista.rerender(arbol('/ventas/comprobantes/k-1'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(mocks.rpc).not.toHaveBeenCalledWith('revertir_cobro', expect.anything())
+  })
+
+  it('el diálogo no tiene violaciones de accesibilidad', async () => {
+    const { dialogo } = await abrirReversion()
     expect(await violacionesAxe(dialogo)).toEqual([])
   })
 })
