@@ -884,7 +884,9 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     los cinco specs fijan `test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })` (un fallo real sale en 30 s señalando la
     acción); `sql()` fija `connectionTimeoutMillis`/`query_timeout`; todos los `fetch` del fixture (`rest`, `leer`, `borrar`, `altaUsuario`, `borrarUsuario`, RPC) y de `importaciones-soporte`/`cuenta-web-cliente` llevan `AbortSignal.timeout(TOPE_FETCH_MS)` (30 s).
     Sin aserciones quitadas. Falta la corrida de sesión que lo confirme: si siguen agotando el tiempo, el mensaje ya dirá dónde.
-    Seguimiento: MSF-964, MSF-965 y MSF-966 pendientes solo de esa corrida.
+    **Verificado en sesión:** los seis specs pasan con el fixture compartido en una corrida `e2e_sesion` (run `45501580902`, 9 pasaron en
+    3,4 min; el único omitido es el de recuperar contraseña de `cuenta-web-cliente`, permitido porque ese stack no sirve la Edge Function).
+    Los topes de acción y de red de arriba se dejan: convierten un cuelgue futuro en un fallo de 30 s que señala la acción.
   - **Costos conocidos de este lote.** (1) `ingresar` de `importaciones-soporte` llena con `fill`: en los videos del modo visible ya no
     se ve el tecleo del correo y la clave (sí el cursor sobre «Ingresar»). (2) La clave de `importaciones-soporte` (`CONTRASENA_E2E`)
     es fija a propósito: `ayuda` y `panel-sin-desborde` dan de alta con ese literal y entran con su `ingresar`; son usuarios
