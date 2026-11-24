@@ -15,7 +15,7 @@ sources:
   - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
   - supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql
-  - supabase/migrations/20270507250000_ventas_lectura_por_empresa_una_vez.sql
+  - supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql
   - supabase/tests/database/permisos_por_rol.test.sql
   - supabase/tests/database/editar_matriz_permisos.test.sql
   - supabase/tests/database/rol_tecnico.test.sql
