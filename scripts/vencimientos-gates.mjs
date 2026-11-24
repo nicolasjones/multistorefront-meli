@@ -48,6 +48,13 @@ function fechaEnZona(instante, zona = ZONA) {
  * @param {string} zona
  * @returns {string} YYYY-MM-DD
  */
+// El proyecto se interpola en la ruta de la API (`/projects/${proyecto}`): sólo su clave.
+const PROYECTO_VALIDO = /^[A-Za-z0-9_-]+$/
+
+export function esProyectoValido(proyecto) {
+  return typeof proyecto === 'string' && PROYECTO_VALIDO.test(proyecto)
+}
+
 export function fechaVencimiento(desde, horas = HORAS_PLAZO, zona = ZONA) {
   const instante = new Date(desde)
   if (Number.isNaN(instante.getTime())) throw new Error(`Fecha inválida: ${desde}`)
@@ -235,6 +242,9 @@ export async function ejecutar({
   url = URL_POR_DEFECTO,
   clave = process.env.ITSAPLAN_API_KEY ?? '',
 } = {}) {
+  if (!esProyectoValido(proyecto)) {
+    throw new Error(`Proyecto inválido: «${proyecto}». Se espera la clave (letras, números, «_» o «-»).`)
+  }
   const api = crearCliente(fetchImpl, { url, clave })
   const meta = await api.get(`/projects/${proyecto}`)
   const etiquetas = new Map(meta.labels.map((l) => [l.id, l.name]))
@@ -287,6 +297,10 @@ export function lineaResumen({ proyecto, plan, gates, esperando, leidos }) {
 async function main() {
   const aplicar = process.argv.includes('--aplicar')
   const proyecto = arg('proyecto') ?? process.env.ITSAPLAN_PROYECTO ?? PROYECTO_POR_DEFECTO
+  if (!esProyectoValido(proyecto)) {
+    console.error(`--proyecto / ITSAPLAN_PROYECTO inválido: «${proyecto}». Se espera la clave (^[A-Za-z0-9_-]+$).`)
+    process.exit(2)
+  }
   if (!process.env.ITSAPLAN_API_KEY) {
     console.error('Falta ITSAPLAN_API_KEY (clave personal del tracker; nunca va en el repo).')
     process.exit(1)

@@ -5,6 +5,7 @@ import {
   contrastarBoard,
   crearCliente,
   esGate,
+  esProyectoValido,
   esperaDecision,
   ejecutar,
   fechaVencimiento,
@@ -374,4 +375,18 @@ test('un error del board no se silencia', async () => {
     () => ejecutar({ fetchImpl: fetchStub, url: 'https://tracker.test', clave: 'x' }),
     /ItsAPlan .*: 500 boom/,
   )
+})
+
+test('el proyecto se valida (^[A-Za-z0-9_-]+$) antes de armar la ruta de la API', async () => {
+  assert.equal(esProyectoValido('MSF'), true)
+  assert.equal(esProyectoValido('MSF_2-b'), true)
+  for (const malo of ['', '../otro', 'MSF/issues', 'MSF?x=1', 'MSF X', undefined]) {
+    assert.equal(esProyectoValido(malo), false, String(malo))
+  }
+  let llamadas = 0
+  await assert.rejects(
+    () => ejecutar({ proyecto: '../otro', fetchImpl: async () => { llamadas++ }, url: 'https://tracker.test', clave: 'x' }),
+    /Proyecto inválido/,
+  )
+  assert.equal(llamadas, 0)
 })
