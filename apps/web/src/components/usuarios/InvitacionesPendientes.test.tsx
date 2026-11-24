@@ -9,11 +9,15 @@ vi.mock('../../lib/supabase', () => ({
 
 import { InvitacionesPendientes } from './InvitacionesPendientes'
 
-const futura = new Date(Date.now() + 3 * 86_400_000).toISOString()
-const pasada = new Date(Date.now() - 86_400_000).toISOString()
+// Reloj fijo (solo Date): las fechas relativas no dependen de cuándo corre el test.
+const AHORA = new Date('2026-11-23T12:00:00Z')
+const futura = new Date(AHORA.getTime() + 3 * 86_400_000).toISOString()
+const pasada = new Date(AHORA.getTime() - 86_400_000).toISOString()
 
 describe('InvitacionesPendientes', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(AHORA)
     vi.clearAllMocks()
     invoke.mockResolvedValue({ data: {}, error: null })
     order.mockResolvedValue({
@@ -25,7 +29,10 @@ describe('InvitacionesPendientes', () => {
     })
   })
 
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.useRealTimers()
+  })
 
   it('no renderiza ni consulta nada para quien no gestiona usuarios', () => {
     const { container } = render(<InvitacionesPendientes puedeGestionar={false} />)
