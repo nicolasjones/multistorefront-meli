@@ -18,7 +18,7 @@ sources:
 
 > **Guía de referencia de ingeniería.** Existe una versión reorganizada: [versión técnica](tecnico/ventas-impresion.md) · [guía de uso](producto/ventas-impresion.md). Esta página conserva el detalle de contratos, RPC, migraciones y decisiones que las otras versiones pueden no repetir; ante una diferencia, verificá contra el código y la spec.
 
-Desde el comprobante de una **factura confirmada** se imprime la factura interna
+Desde el comprobante de una **factura viva** (confirmada, cobrada o en curso) se imprime la factura interna
 o el remito. El PDF A4 lo genera un worker, no el navegador. Spec:
 `specs/20261024-100000-ventas-impresion/` (esta historia cubre FR-001…FR-016 de
 F-VTA-19; la marca de impreso es F-VTA-21 y el presupuesto con correo, F-VTA-20).
@@ -44,7 +44,7 @@ y `grant execute … to authenticated`.
 
 | RPC | Qué hace |
 |---|---|
-| `solicitar_documento_comprobante(p_comprobante_id, p_tipo_documento)` | `factura` o `remito` de una factura `confirmada`; exige `ventas` en `lectura` como mínimo en la empresa. Idempotente: devuelve el `generado` vigente (si el archivo sigue en Storage) o el `pendiente`; si no, crea el pedido, su orden de despacho y el evento `comprobante.documento_solicitado`. |
+| `solicitar_documento_comprobante(p_comprobante_id, p_tipo_documento)` | `factura` o `remito` de una factura viva (`confirmada` y los estados que le siguen: `aceptado`, `en_proceso`, `armando`, `incompleto`, `cobrado`, `deuda`; no el borrador ni la anulada, el mismo conjunto que despacho, faltantes y envío, migración `20270507330000`); exige `ventas` en `lectura` como mínimo en la empresa. Idempotente: devuelve el `generado` vigente (si el archivo sigue en Storage) o el `pendiente`; si no, crea el pedido, su orden de despacho y el evento `comprobante.documento_solicitado`. |
 | `obtener_documento_comprobante(p_documento_id)` | Estado y ruta del pedido. Un `pendiente` que ya no puede completarse (orden agotada, ejecución cerrada o más de 10 minutos) pasa a `fallido`. |
 | `listar_documentos_comprobante(p_comprobante_id)` | Pedidos del comprobante, del más reciente al más viejo (la usa F-VTA-21). |
 

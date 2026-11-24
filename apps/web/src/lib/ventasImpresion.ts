@@ -43,14 +43,19 @@ export const ETIQUETA_DOCUMENTO: Readonly<Record<TipoDocumento, { etiqueta: stri
   presupuesto: { etiqueta: 'Presupuesto', subtitulo: 'Cotización para el cliente' },
 }
 
-// Los documentos que aplican al comprobante abierto (FR-011, FR-002, FR-026): una factura confirmada ofrece factura
+// Los documentos que aplican al comprobante abierto (FR-011, FR-002, FR-026): una factura viva ofrece factura
 // y remito; un presupuesto (pendiente, aceptado o vencido) ofrece el presupuesto. La opción «Presupuesto» dentro de
 // una factura queda fuera de alcance: la factura no tiene presupuesto origen.
 // Estados en que se imprime y se envía un presupuesto (FR-021). `vencido` lo deriva la base de `valido_hasta`.
 const ESTADOS_PRESUPUESTO_IMPRIMIBLE: ReadonlyArray<string> = ['pendiente', 'aceptado', 'vencido']
 
+// Estados vivos de una factura: confirmada y los que le siguen (aceptado, armado, cobro). Imprimir, despachar, registrar
+// faltantes y guardar el envío valen en todos ellos; deben coincidir con los de las RPC (migraciones 20270202202101 y
+// 20270507330000). Quedan fuera borrador y anulada.
+export const ESTADOS_FACTURA_VIVA: ReadonlyArray<string> = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
+
 export function documentosElegibles(comprobante: Pick<Comprobante, 'tipo' | 'estado'>): TipoDocumento[] {
-  if (comprobante.tipo === 'factura' && comprobante.estado === 'confirmada') return ['factura', 'remito']
+  if (comprobante.tipo === 'factura' && ESTADOS_FACTURA_VIVA.includes(comprobante.estado)) return ['factura', 'remito']
   if (comprobante.tipo === 'presupuesto' && ESTADOS_PRESUPUESTO_IMPRIMIBLE.includes(comprobante.estado)) return ['presupuesto']
   return []
 }
@@ -58,7 +63,7 @@ export function documentosElegibles(comprobante: Pick<Comprobante, 'tipo' | 'est
 // Por qué no se ofrece imprimir (FR-012). Solo la factura sin confirmar tiene un motivo que mostrar.
 export function motivoNoImprimible(comprobante: Pick<Comprobante, 'tipo' | 'estado'>): string | null {
   if (comprobante.tipo !== 'factura') return null
-  return comprobante.estado === 'confirmada' ? null : MENSAJE_NO_CONFIRMADA
+  return ESTADOS_FACTURA_VIVA.includes(comprobante.estado) ? null : MENSAJE_NO_CONFIRMADA
 }
 
 type ErrorDeBase = { code?: string; message?: string; hint?: string } | null

@@ -266,6 +266,10 @@ comprobante (FR-008).
   Roles lo exponga; mientras tanto solo se cambia en `permisos_rol_accion`.
 - El Administrador de la organización accede a todas sus empresas; los demás, a las asignadas
   (`usuarios_empresas`).
+- Abrir por URL un comprobante de una tienda a la que la persona no accede: `obtener_comprobante` responde `42501`
+  con «Tu rol no puede ver comprobantes de esta tienda» y la pantalla muestra ese texto, no el genérico de «tu rol
+  puede haber cambiado» (despista: el rol no cambió, la tienda no es suya). La lectura directa de la tabla ya filtra
+  por empresa con la política de lectura por tienda.
 - Los clientes son de **toda la organización**: `crear_comprobante` y `guardar_comprobante` validan que el
   cliente sea de la organización (y no esté archivado), no que esté habilitado en la tienda del comprobante
   (`clientes_empresas` solo filtra el listado de Clientes y no restringe la venta). Decisión de esta historia.

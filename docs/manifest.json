@@ -2193,16 +2193,16 @@
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
-      "pageHash": "d38c1ff13db161b0c48852dc58ceb2d268ad91785d177c7ed0fe3f3f9ad916fb",
-      "sourceHash": "1ced0ed38ec86240d69547ceeab29ffc2df88b96762bb9c81b0e16ab62632069",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "a824fd6854282c3090e0f6bf4aacff28dde9a2cad0ed70ac506bdacf2c34ee1c",
+      "sourceHash": "7939d769c7a6565f35ca04306293c85431ed671d82704622a9fbe8a88f0cc503",
+      "sourceAt": "75517ced4",
       "sources": [
         "apps/web/src/pages/service-tecnico/reparaciones.tsx",
         "apps/web/src/pages/service-tecnico/reparacion.tsx",
         "apps/web/src/components/service/ItemsReparacion.tsx"
       ],
       "owner": "producto",
-      "commit": "07a6ae4a"
+      "commit": "75517ced4"
     },
     "docs/producto/service-repuestos-y-stock.md": {
       "title": "Service técnico: repuestos, stock y costos",
@@ -2461,12 +2461,12 @@
     },
     "docs/producto/ventas-impresion.md": {
       "title": "Imprimir facturas, remitos y presupuestos",
-      "pageHash": "2fa2aa4d8f2e62ac0e0f621a9a0b182dc3024a6b6e9f0573e3c965c408396d1d",
+      "pageHash": "1a20e680441e43bfc400e0e1298ef924ac864dedeb9cd531ce6291014dad3c6f",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "75517ced4"
     },
     "docs/producto/ventas-listado-estados-y-anulacion.md": {
       "title": "Ver los comprobantes, cambiar su estado y anularlos",
@@ -6197,9 +6197,9 @@
     },
     "docs/ventas-comprobantes.md": {
       "title": "Ventas · Comprobantes",
-      "pageHash": "5a5f79d4cdd1d20b7da06563952ddf4f9930b8da29785e3c25bf56f3475e16a9",
-      "sourceHash": "aa00bc38578ba84b1e2ae8f29e776ae984505a8acad33f23967ac0a03ee42835",
-      "sourceAt": "a9f4faf69",
+      "pageHash": "21eb581bf660a9fd4bb0d7eb37e34d73f016c07715f536013d32bb36ab3e2c30",
+      "sourceHash": "27c0c6ce62528837ae870d78bcdeeff7965549e9d5ee0b8436716a992b30b465",
+      "sourceAt": "75517ced4",
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -6214,7 +6214,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "a9f4faf69"
+      "commit": "75517ced4"
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
@@ -6278,9 +6278,9 @@
     },
     "docs/ventas-impresion.md": {
       "title": "Ventas: impresión de factura, remito y presupuesto (F-VTA-19 / MSF-230, F-VTA-21, F-VTA-20)",
-      "pageHash": "262acb81cd095891973469221dc1a77680ea4507a15a37e7955aaff5ce6e3ae8",
-      "sourceHash": "7da1ade832fa2a9a6d3bf8f1e6d90b917317a222907c801f9cc6e7008bdfacda",
-      "sourceAt": "5ac918aa",
+      "pageHash": "5853fdaa192f29f3ab95c5a51e655eaa24b92268b875d6407dbaf5cfddcb2ca1",
+      "sourceHash": "18a41d8a2f5c7d2d9596e28922694f6988eb7d8a555f8134f38547246be7aa1a",
+      "sourceAt": "75517ced4",
       "sources": [
         "specs/20261024-100000-ventas-impresion",
         "workers/comprobantes-pdf",
@@ -6295,7 +6295,7 @@
         "supabase/migrations/20261211120300_documento_rpc.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "75517ced4"
     },
     "docs/ventas-listado-comprobantes.md": {
       "title": "Ventas · Listado de comprobantes y exportación",

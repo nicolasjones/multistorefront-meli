@@ -24,12 +24,12 @@ Todos los documentos llevan la leyenda «Documento no válido como factura»: so
 
 | Comprobante | Qué se imprime |
 |---|---|
-| **Factura confirmada** | La **Factura** (original para el cliente) y el **Remito** (para el armado y la entrega). |
+| **Factura confirmada, cobrada o en curso** (Pendiente, Aceptado, En proceso, Armando, Incompleto, Cobrado, Deuda) | La **Factura** (original para el cliente) y el **Remito** (para el armado y la entrega). |
 | **Presupuesto** Pendiente, Aceptado o Vencido | El **Presupuesto** (cotización para el cliente). |
-| **Factura en borrador** | Nada: «La factura tiene que estar confirmada para imprimirla.» |
+| **Factura en borrador o anulada** | Nada: «La factura tiene que estar confirmada para imprimirla.» |
 | **Presupuesto convertido en factura** | Nada. |
 
-Los botones de impresión del detalle de una factura están disponibles mientras la factura está en estado **Pendiente** (recién confirmada).
+Los botones de impresión del detalle de una factura siguen disponibles después de cobrarla o de pasarla por el armado: cobrar no quita la impresión.
 
 ## Dónde lo encontrás
 
