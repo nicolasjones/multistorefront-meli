@@ -11,7 +11,8 @@
 -- La referencia se reconoce igual que en `notaLegibleDeMovimiento` (apps/web/src/lib/stock.ts): sin distinguir
 -- mayúsculas y sin letra ASCII, dígito ni guion bajo pegado antes de «comprobante:» (clase explícita: no depende del
 -- idioma de la base). Se reemplazan todas las apariciones válidas de la referencia del primer comprobante de la
--- nota; una aparición pegada a otra palabra («precomprobante:<uuid>») no se toca. La pantalla, además, cambia por
+-- nota; una aparición pegada a una letra ASCII, un dígito o un guion bajo
+-- («precomprobante:<uuid>») no se toca, y una letra acentuada u otro carácter no ASCII delante cuenta como separador. La pantalla, además, cambia por
 -- «el comprobante» las referencias a otros comprobantes que la nota pudiera traer.
 --
 -- Reversión: recrear `public.listar_movimientos_stock` con la definición de
