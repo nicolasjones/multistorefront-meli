@@ -4,7 +4,7 @@ import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
-import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { usePuedeEditarEmpresas } from '../../hooks/usePuedeEditarEmpresas'
 import { supabaseClient } from '../../lib/supabase'
 import { calcularCambios, emitirEventoActividad, type EventoActividad } from '../../lib/eventosActividad'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -82,7 +82,7 @@ function validar(formulario: Formulario): Errores {
 // constantes del producto; el dominio se administra desde Tiendas online.
 export function EmpresaEdit() {
   const { id } = useParams()
-  const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
+  const { puedeEditar, isLoading: verificandoPermiso } = usePuedeEditarEmpresas()
   const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado, esVigente } = useEmpresa(id)
   const { setWarnWhen } = useWarnAboutChange()
 
@@ -129,13 +129,13 @@ export function EmpresaEdit() {
     </Box>
   )
 
-  if (verificandoPermiso || puedeEscribir === null || isLoading) return envolver(<EstadoCargaPagina />)
+  if (verificandoPermiso || puedeEditar === null || isLoading) return envolver(<EstadoCargaPagina />)
   if (isError) return envolver(<EstadoError descripcion="No pudimos cargar la empresa." reintentar={() => void refetch()} />)
   if (noEncontrada || !empresa || !formulario) {
     return envolver(<EstadoError titulo="Empresa no encontrada" descripcion="No existe o no pertenece a tu organización." />)
   }
 
-  const soloLectura = !puedeEscribir
+  const soloLectura = !puedeEditar
   const cambiar = (campo: keyof Formulario) => (event: ChangeEvent<HTMLInputElement>) => {
     setFormulario({ ...formulario, [campo]: event.target.value })
     setExito(false)

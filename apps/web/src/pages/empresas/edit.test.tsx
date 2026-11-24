@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   escritura: vi.fn(),
   update: vi.fn(),
   eqUpdate: vi.fn(),
-  usePuedeEscribir: vi.fn(),
+  usePuedeEditar: vi.fn(),
   setWarnWhen: vi.fn(),
   getUser: vi.fn(),
   // Lo último que devolvió la escritura: la ficha se relee por la RPC `empresa_datos` y debe ver lo guardado.
@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@refinedev/core', () => ({ useWarnAboutChange: () => ({ setWarnWhen: mocks.setWarnWhen }) }))
 vi.mock('../../hooks/useDominioTienda', () => ({ useDominioTienda: () => mocks.dominio() }))
-vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
+vi.mock('../../hooks/usePuedeEditarEmpresas', () => ({ usePuedeEditarEmpresas: mocks.usePuedeEditar }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: {
@@ -82,7 +82,7 @@ describe('EmpresaEdit', () => {
     mocks.ultimaEscritura = null
     registrarDestinoActividad(null)
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'u-1' } } })
-    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
     mocks.lectura.mockResolvedValue({ data: mundoJc, error: null })
     mocks.dominio.mockReturnValue({ dominio: { dominioVigente: null, dominioPendiente: null }, isLoading: false, isError: false })
   })
@@ -330,8 +330,16 @@ describe('EmpresaEdit', () => {
     expect(destino).not.toHaveBeenCalled()
   })
 
+  it('un rol personalizado con Empresas en edición puede editar aunque no sea administrador', async () => {
+    // La pantalla consulta el nivel de la sección empresas (como la RLS), no «es administrador».
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
+    abrir()
+    expect(await screen.findByLabelText(/nombre comercial/i)).toBeEnabled()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
   it('queda en solo lectura sin permiso de escritura', async () => {
-    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: false, isLoading: false })
     abrir()
     expect(await screen.findByLabelText(/nombre comercial/i)).toBeDisabled()
     expect(screen.getByRole('note')).toHaveTextContent('Solo lectura: únicamente los administradores pueden editar los datos de la empresa.')
@@ -489,7 +497,7 @@ describe('EmpresaEdit', () => {
     })
 
     it('no ofrece pausar ni reactivar sin permiso de escritura', async () => {
-      mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+      mocks.usePuedeEditar.mockReturnValue({ puedeEditar: false, isLoading: false })
       abrir()
       expect(await screen.findByText('Activa')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /pausar tienda|reactivar tienda/i })).not.toBeInTheDocument()

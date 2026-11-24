@@ -6,6 +6,7 @@ sources:
   - apps/web/src/pages/empresas/list.tsx
   - apps/web/src/pages/empresas/edit.tsx
   - apps/web/src/hooks/useResumenEmpresas.ts
+  - apps/web/src/hooks/usePuedeEditarEmpresas.ts
   - apps/web/src/lib/eventosActividad.ts
   - apps/web/src/lib/destinoActividad.ts
   - apps/web/src/lib/whatsapp.ts
@@ -77,14 +78,17 @@ Políticas (migración `20261013120000`):
 
 ### Avisos de acceso (MSF-639)
 
-- `/empresas` (listado) y `/organizacion`: quien llega sin permiso de escritura ve la pantalla común de acceso
+- `/empresas` (listado) y `/organizacion`: quien llega sin la sección Empresas en edición (`/organizacion`: sin permiso de escritura) ve la pantalla común de acceso
   restringido (`pages/acceso-restringido/AccesoRestringido.tsx`): encabezado «No tenés acceso a esta sección» y el
   motivo «Tu rol (…) no incluye Empresas / Mi organización. Pedile acceso a un administrador.» — el mismo patrón que
   Rentabilidad, Listas y Motivos de movimiento. No se consulta ni se muestra ningún dato de la sección.
-- `/empresas/edit/:id`: quien no puede escribir ve la pantalla con el formulario deshabilitado y un aviso
+- `/empresas/edit/:id`: quien no tiene la sección Empresas en edición ve la pantalla con el formulario deshabilitado y un aviso
   **informativo** «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (tono info,
   `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
-- No cambia el permiso: `usePuedeEscribir()` (espejo de `private.puede_escribir()`) y las políticas de RLS siguen
+- Criterio de la pantalla (lote 44): el listado y la edición se gatean por `usePuedeEditarEmpresas()` (nivel de la sección `empresas` igual a
+  `edicion`, el mismo criterio de la política `empresas_update`), así que un rol personalizado con Empresas en edición puede guardar; el botón «Nueva empresa»
+  sigue a `usePuedeEscribir()` porque la RPC de alta exige `private.puede_escribir()`.
+- No cambia el permiso: las políticas de RLS siguen
   siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
 ## Gestión de la tienda (MSF-147)
 
