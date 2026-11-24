@@ -3,6 +3,7 @@
 - **Slug**: msf-909
 - **Fixed**: 2026-11-19
 - **Corregido (revisión del 2026-11-21)**: 2026-11-21
+- **Barrido re-aplicado (2026-11-24)**: 2026-11-24
 - **Assessment**: ./assessment.md
 - **Status**: applied
 
@@ -48,6 +49,25 @@ SHA `c68634bcf`):
    las dos lecturas no vean los mismos gates; ahora aclara que los gates **sin tipo** no
    se pueden contrastar (no hay lectura por tipo que los contenga) y que sí se fechan.
 
+**Ronda 5 (2026-11-24)** — el barrido, de nuevo, y este artefacto al día:
+
+1. **El barrido se volvió a correr** — el board se movió desde el 2026-11-21: entraron
+   dos gates nuevos que esperan decisión **sin `dueDate`** (MSF-999, escalado a humano
+   y parado en *Backlog*; MSF-720, en *Needs Info*). El síntoma de la historia estaba
+   otra vez presente en el board: `--aplicar` puso la fecha en los 2 y la simulación
+   volvió a dar **0**.
+2. **El cambio de `f19fe4589` quedó sin registrar acá** — la validación de la clave del
+   proyecto (`esProyectoValido`, para no interpolar `../otro` en la ruta de la API) se
+   había aprobado en la revisión pero no se había anotado ni en la tabla de cambios ni en
+   la lista de tests de este artefacto, y el conteo de tests quedó en 18 cuando la suite
+   tiene 20. Corregido acá.
+3. **Test de la escritura única por ítem** — la regla «la aplicación escribe una vez por
+   ítem» estaba cubierta sólo para el caso de un ítem con una etiqueta de gate. En el
+   board real hay **12 ítems con dos de las tres etiquetas de gate** (`decision` +
+   `escala-humano`, `escala-humano` + `gate`): cada uno aparece en **dos** de las
+   lecturas por etiqueta. El plan tiene que tenerlos una vez: ahora hay un test con esa
+   forma real.
+
 Hallazgos que **no** se tocaron en esta ronda, por decisión del CTO (herramienta interna
 de bajo riesgo; los Baja pasan a merge sin escalada):
 
@@ -62,8 +82,8 @@ de bajo riesgo; los Baja pasan a merge sin escalada):
 
 | File | Change | Notes |
 |------|--------|-------|
-| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula `statusSince + 24 h` en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. Lee el board por etiqueta de gate **y** por tipo de ítem y los contrasta (`contrastarBoard`): si las dos lecturas no ven los mismos gates, si una lectura llega al tope de 500 ítems (la API no pagina) o si las dos lecturas vienen vacías, el barrido corta con error antes de escribir. Anota cada ítem aplicado apenas lo escribe; el formato de esa línea y el del resumen viven en `lineaAplicado` y `lineaResumen`. |
-| `scripts/vencimientos-gates.test.mjs` | added | Fija la regla: qué es un gate, qué es esperar, el cálculo con borde de medianoche, idempotencia, PATCH sólo con `dueDate`, simulación sin escritura, topes de lectura, contraste entre las dos lecturas, lectura vacía, proyecto sin etiquetas de gate, registro de lo aplicado ante un fallo parcial y formato de la salida. |
+| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula `statusSince + 24 h` en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. Lee el board por etiqueta de gate **y** por tipo de ítem y los contrasta (`contrastarBoard`): si las dos lecturas no ven los mismos gates, si una lectura llega al tope de 500 ítems (la API no pagina) o si las dos lecturas vienen vacías, el barrido corta con error antes de escribir. Anota cada ítem aplicado apenas lo escribe; el formato de esa línea y el del resumen viven en `lineaAplicado` y `lineaResumen`. Valida la clave del proyecto (`esProyectoValido`: `^[A-Za-z0-9_-]+$`) antes de interpolarla en la ruta de la API. |
+| `scripts/vencimientos-gates.test.mjs` | added | Fija la regla: qué es un gate, qué es esperar, el cálculo con borde de medianoche, idempotencia, PATCH sólo con `dueDate`, simulación sin escritura, topes de lectura, contraste entre las dos lecturas, lectura vacía, proyecto sin etiquetas de gate, registro de lo aplicado ante un fallo parcial, formato de la salida y validación de la clave del proyecto. |
 | `package.json` | modified | Nuevo `test:vencimientos:gates`, encadenado en `pnpm test`. |
 | `.github/workflows/validate.yml` | modified | El job `chequeos` corre `test:vencimientos:gates` (Node puro, sin base ni red). |
 | `docs/tecnico/gates-vitalidad.md` | added | La regla, cómo se aplica, cómo se verifica, cómo se revierte y qué hacer si el barrido corta. |
@@ -121,6 +141,7 @@ igual y sólo consumían el tope de la lectura.
 - `…::el plan usa desde cuándo espera el ítem y, si falta, cuándo se creó` — fallback a `createdAt`.
 - `…::el PATCH manda sólo la fecha: mandar etiquetas las reemplazaría` — cuerpo del PATCH.
 - `…::el barrido simula sin escribir y aplica con un PATCH por ítem` — simulación vs `--aplicar`.
+- `…::un gate con dos etiquetas de gate se fecha una sola vez` — la escritura es una por ítem, no una por etiqueta: en el board real hay 12 ítems con dos de las tres etiquetas de gate y cada uno aparece en dos lecturas por etiqueta.
 - `…::un gate sin tipo también entra en el barrido` — un gate que no tiene tipo asignado no queda fuera (antes sólo se leían los tipos).
 - `…::una lectura por tipo truncada corta el barrido antes de escribir` — **el falso verde del revisor**: 450 ítems en el tipo, la API devuelve 400 y 20 gates quedan fuera; el barrido corta y no escribe nada.
 - `…::una lectura por etiqueta truncada corta el barrido antes de escribir` — el otro sentido del contraste.
@@ -132,10 +153,11 @@ igual y sólo consumían el tope de la lectura.
 - `…::un proyecto sin etiquetas de gate corta el barrido: sin ellas no se puede leer el board` — la guarda que ya existía, ahora con test (por mutación, quitarla dejaba la suite en verde).
 - `…::la salida deja el id numérico de cada ítem aplicado y el denominador del barrido` — el formato de `lineaAplicado` (de donde sale el id que usa la reversión) y de `lineaResumen` (denominador: gates que esperan decisión, no ítems del board).
 - `…::un error del board no se silencia` — el fallo se propaga con contexto.
+- `…::el proyecto se valida (^[A-Za-z0-9_-]+$) antes de armar la ruta de la API` — la clave del proyecto va interpolada en `/projects/${proyecto}`: una clave inválida (`../otro`, `MSF/issues`) corta **antes** de cualquier llamada de red.
 
 ## Local Verification
 
-- Commands run: `pnpm test:vencimientos:gates` → 18 tests, 18 pass, 0 fail (4.ª ronda: 15 → 18).
+- Commands run: `pnpm test:vencimientos:gates` → 20 tests, 20 pass, 0 fail (4.ª ronda: 15 → 18 → 20 con la validación de la clave del proyecto y la escritura única por ítem).
 - Commands run: `node scripts/docs-check.mjs` → `Documentación OK.` (220 páginas, 2003 links, JSON de inventario y 15 diagramas).
 - Commands run: `node -e "JSON.parse(...package.json...)"` → `package.json OK`.
 - Commands run: `pnpm docs:check` → OK (documentación de cambios, migraciones y trampas conocidas).
@@ -147,9 +169,12 @@ igual y sólo consumían el tope de la lectura.
 - Board (verificación): `node scripts/vencimientos-gates.mjs` → **0 gates sin fecha**; `GET /issues/1145` (MSF-909) → `dueDate: "2026-11-15"`, `statusSince: "2026-11-14T18:52:03.189Z"` (24 h en `America/Argentina/Buenos_Aires`, 2026-11-15).
 - Re-verificación (2026-11-20): `node scripts/vencimientos-gates.mjs` → **0 gates sin fecha** de 830 ítems; `GET /issues/1145` → `dueDate: "2026-11-15"`.
 - Re-verificación (2026-11-21): `node scripts/vencimientos-gates.mjs` → **1 gate sin fecha** de 831 ítems (MSF-988, escalado a humano después del barrido del 2026-11-19); `--aplicar` → `Fecha puesta en 1 ítem(s).`; simulación → **0 gates sin fecha** de 831 ítems; `GET /issues/1224` (MSF-988) → `dueDate: "2026-11-18"`.
+- Re-verificación (2026-11-24): `node scripts/vencimientos-gates.mjs` → **2 gates sin fecha** de 14 que esperan decisión (72 gates del board, 785 ítems leídos): MSF-999 (id 1236, `escala-humano`, *Backlog*) y MSF-720 (id 954, `gate`, *Needs Info*), los dos entrados al board después del barrido del 2026-11-21; `--aplicar` → `Fecha puesta en 2 ítem(s).`; simulación → **0 gates sin fecha** de 14; `GET /issues/1236` → `dueDate: "2026-11-23"` (`statusSince: "2026-11-23T02:12:23.820Z"`), `GET /issues/954` → `dueDate: "2026-11-24"` (`statusSince: "2026-11-24T02:21:16.753Z"`).
+- Board (conteo por tipo y por columna, 2026-11-24): ítems sin archivar por tipo → 100 (Epic) + 303 (Historia) + 259 (Error) + 123 (Tarea): ninguno en el tope de 500, así que ninguna lectura del barrido se trunca. Por columna, *Review In DEV* tiene **exactamente 500** ítems (el tope de la API): el barrido no lee por columna, pero es la columna que más crece y la que hay que ir archivando si el corte por tope empieza a aparecer.
 - Tope por tipo (2026-11-21): la API del tracker honra `limit` pero **ignora** `offset`/`page`/`skip` (medido: `limit=10` → 10 ítems, `limit=500` → los 350 que hay). El tope de 500 está documentado en el contrato de la API (`GET /docs/json`: `limit`, «Max results (1-500)»).
 - Mutación (revertida) para ver que los tests vigilan las reglas: quitar el `contrastarBoard` rompe 2 tests; sacar el `alAplicar` rompe 1; el tope de ítems `>=` → `>` rompe 2.
 - Mutación (revertida, 4.ª ronda): quitar la guarda de lectura vacía rompe 1 test (el de la lectura vacía); quitar la guarda «el proyecto no tiene ninguna etiqueta de gate» rompe 1 test (el del proyecto sin etiquetas); cambiar el denominador del resumen por «de N ítems del board» rompe 1 test (el de la salida); sacar el id numérico de la línea de aplicado rompe 1 test (el de la salida).
+- Mutación (revertida, 5.ª ronda): cambiar la clave del `Map` de gates (`gates.set(item.id, item)` → `gates.set(`${item.id}:${etiqueta.id}`, item)`, que ya no deduplica por id) rompe 3 tests, entre ellos el de la escritura única por ítem: la mutación se revirtió.
 
 ## Deviations from Assessment
 
@@ -180,7 +205,12 @@ Cuatro precisiones:
 - Barrido aplicado el 2026-11-19 (`--aplicar`: 19 ítems) y verificado el 2026-11-20: la
   simulación da 0 gates sin fecha. El 2026-11-21 entró un gate nuevo (MSF-988, escalado a
   humano después del barrido) y se completó con otra corrida (`--aplicar`: 1 ítem): la
-  simulación vuelve a dar 0. Se corre cada vez que entren gates nuevos.
+  simulación vuelve a dar 0. El 2026-11-24 entraron dos gates más (MSF-999 y MSF-720) y
+  se completó con otra corrida (`--aplicar`: 2 ítems): la simulación vuelve a dar 0. Se
+  corre cada vez que entren gates nuevos.
 - La API del tracker no pagina: si un tipo (o una etiqueta de gate) llega a 500 ítems, el
   barrido corta a propósito. La salida documentada está en
-  `docs/tecnico/gates-vitalidad.md` («Si el barrido corta con error»).
+  `docs/tecnico/gates-vitalidad.md` («Si el barrido corta con error»). Al 2026-11-24 los
+  tipos estaban en 100/303/259/123 (ninguno en el tope), pero la columna *Review In DEV*
+  ya tiene 500 ítems: es la que hay que ir archivando si algún día el corte por tope
+  aparece.

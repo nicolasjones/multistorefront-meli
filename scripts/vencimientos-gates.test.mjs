@@ -207,6 +207,25 @@ test('el barrido simula sin escribir y aplica con un PATCH por ítem', async () 
   assert.equal(aplicado.plan.length, 1)
 })
 
+test('un gate con dos etiquetas de gate se fecha una sola vez', async () => {
+  // El ítem aparece en la lectura de cada una de sus etiquetas: el plan tiene que
+  // tenerlo una vez (una escritura por ítem, no una por etiqueta).
+  const { fetchStub, llamadas } = crearStub([
+    item({ id: 1, identifier: 'MSF-1', labelIds: [738, 736] }),
+  ])
+  const { plan } = await ejecutar({
+    fetchImpl: fetchStub,
+    url: 'https://tracker.test',
+    clave: 'x',
+    aplicar: true,
+  })
+  assert.deepEqual(
+    plan.map((p) => p.identifier),
+    ['MSF-1'],
+  )
+  assert.equal(llamadas.filter((c) => c.init.method === 'PATCH').length, 1)
+})
+
 test('un gate sin tipo también entra en el barrido', async () => {
   const { fetchStub, llamadas } = crearStub([item({ id: 9, identifier: 'MSF-9', typeId: null })])
   const { plan } = await ejecutar({
