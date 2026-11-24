@@ -53,7 +53,8 @@ Políticas (migración `20261013120000`):
 
 - `empresas_select`: `for select to authenticated` con `organizacion_id = private.organizacion_id()`.
 - `empresas_update`: `for update to authenticated` con `organizacion_id = private.organizacion_id()
-  and private.puede_escribir()`, en `using` y `with check`.
+  and private.puede_escribir()`, en `using` y `with check` (en origen). **Vigente desde `20270507240000` (lote 42):** exige
+  `private.nivel_seccion('empresas') = 'edicion'` en lugar de `puede_escribir()`; el filtro por organización se conserva.
 - **Sin política INSERT/DELETE**: el alta es solo por la RPC `public.crear_empresa` (ver «Alta de empresas»); borrar no está en la spec.
 - Grants: `usage` de `dominio` y `select` a `authenticated`; `update` **solo** sobre las columnas
   editables (`nombre`, `whatsapp`, `correo`, `instagram`, `direccion`, `activa`) — `id`,

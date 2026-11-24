@@ -78,7 +78,7 @@ function validar(formulario: Formulario): Errores {
 
 // General de la empresa (F-EMP-02). Edita quien tiene la sección Empresas en edición: para quien llega por
 // URL directa se muestra solo lectura; RLS (empresas_update ->
-// puede_escribir) rechaza igual cualquier guardado. Idioma y moneda son
+// nivel_seccion('empresas') = 'edicion', desde 20270507240000) rechaza igual cualquier guardado. Idioma y moneda son
 // constantes del producto; el dominio se administra desde Tiendas online.
 export function EmpresaEdit() {
   const { id } = useParams()

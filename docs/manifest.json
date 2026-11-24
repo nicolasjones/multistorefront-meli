@@ -1032,8 +1032,8 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "141d0cf041bba695598a54c0cda7aff1f939b1f53c04ab856da828d5c46e0fbe",
-      "sourceHash": "9d3b7db986d8b7c6648a9080f378822d0a6690aee3ab729441a2407e13f84554",
+      "pageHash": "53a78a25c01f0a6c5526eeb4f5ee44952520901f4d2553bf4a3d4b27b23e430f",
+      "sourceHash": "ecc12dd52fcf44d50285836f2a7211e81a89762ca53a8da63a3202adae06f25e",
       "sourceAt": "b2ba90a79",
       "sources": [
         "specs/20261012-140000-empresas",
@@ -6102,9 +6102,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "0d8bbe82b0952a60c1b52e6af088a58c3811f3471fd2369f2f67d57722ab011c",
-      "sourceHash": "74b828d983f57141e9815fdcfa210040d00f692f27e93bab26e37c95e8e7d820",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "c0102c083f215bdcfb69bf83941ad923e623a5208b2f5343e1f6340c4399c149",
+      "sourceHash": "cbcfe502853fa4d7f6d739e55ddcaab66ad536329dfc83603d45793df98af383",
+      "sourceAt": "7d0de6cda",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6116,7 +6116,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "7d0de6cda"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

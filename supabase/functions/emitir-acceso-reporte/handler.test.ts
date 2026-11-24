@@ -318,25 +318,34 @@ describe('emitir-acceso-reporte', () => {
 
 // MSF-897 (menor de #1159): cada razón por la que `listarDatasets` devuelve null deja su motivo en el log del runtime, sin
 // datos del usuario, para poder diagnosticar el 503.
+const TOKEN_SECRETO = 'secreto-no-loguear'
+
 describe('listarDatasets: registra el motivo del fallo', () => {
   const listar = async (responder: (pagina: number) => Response) => {
     const registros: string[] = []
-    const espia = mock.method(console, 'error', (...args: unknown[]) => { registros.push(args.join(' ')) })
+    // Se espían TODOS los canales de log y se guarda cada argumento serializado: un token en cualquiera quedaría a la vista.
+    const espias = (['error', 'warn', 'log', 'info', 'debug'] as const).map((metodo) =>
+      mock.method(console, metodo, (...args: unknown[]) => { registros.push(JSON.stringify(args)) }))
+    let tokenRecibido = false
     try {
       const resultado = await listarDatasets({
         url: 'http://superset',
-        accessToken: 'secreto-no-loguear',
-        fetch: (async (url: string) => {
+        accessToken: TOKEN_SECRETO,
+        fetch: (async (url: string, init?: RequestInit) => {
+          // Prueba de que el token está realmente en juego: el handler lo manda a Superset en el encabezado Authorization.
+          tokenRecibido ||= JSON.stringify(init?.headers ?? {}).includes(TOKEN_SECRETO)
           const q = decodeURIComponent(url.split('?q=')[1])
           return responder(Number(q.match(/page:(\d+)/)?.[1] ?? 0))
         }) as typeof fetch,
         signal: () => new AbortController().signal,
       })
-      // En TODOS los caminos (fallo o no) el log no trae el token de Superset ni la URL con la consulta.
-      for (const linea of registros) assert.ok(!linea.includes('secreto-no-loguear'), `el log no debe traer el token: ${linea}`)
+      assert.ok(tokenRecibido, 'el mock tiene que recibir el token (si no, la aserción siguiente no probaría nada)')
+      // En TODOS los caminos (fallo o no) lo registrado no contiene el token. Mutación comprobada: hacer que
+      // `registrarFallo`/`listarDatasets` incluya `superset.accessToken` en el mensaje pone este test en rojo.
+      for (const linea of registros) assert.ok(!linea.includes(TOKEN_SECRETO), `el log no debe traer el token: ${linea}`)
       return { resultado, registros }
     } finally {
-      espia.mock.restore()
+      espias.forEach((e) => e.mock.restore())
     }
   }
 
