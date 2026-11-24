@@ -1,9 +1,15 @@
 -- Medición de `public.listar_movimientos_stock` con volumen (MSF-621). No es una prueba pgTAP: no corre en CI.
 -- Cómo correrla, en una base descartable con las migraciones aplicadas y como superusuario:
 --   psql -U postgres -d <base> -At -f supabase/tests/perf/movimientos_nota_comprobante.perf.sql
--- Siembra 50.000 movimientos de una organización (la mitad con referencia a uno de 5.000 comprobantes), mide una
--- página de 25 con la función y, para comparar, el cruce hecho antes de paginar. Todo queda dentro de una
--- transacción que termina en `rollback`. Se mira «Execution Time» de cada plan.
+-- Siembra 50.000 movimientos de una organización (la mitad con referencia a uno de 5.000 comprobantes) y analiza
+-- las tablas sembradas. Todo queda dentro de una transacción que termina en `rollback`. Se mira «Execution Time»
+-- de cada plan. Mide tres cosas, sobre una página de 25:
+--   1. La función entregada (pagina primero y cruza después), como superusuario y como `authenticated`.
+--   2. Una comparación que mide solo el cruce del comprobante (no la función completa: no incluye los joins a
+--      productos, motivos y depósitos) aplicado a todas las filas antes de paginar, en los dos roles.
+--   3. Una variante descartada (pagina primero, pero busca el comprobante con un join común), solo con RLS y con
+--      `EXPLAIN (ANALYZE, BUFFERS)`.
+-- Los tiempos son mediciones del autor y varían con la máquina y la carga.
 begin;
 set search_path = public, extensions;
 
@@ -36,7 +42,7 @@ analyze dominio.clientes;
 -- La función entregada: pagina primero y cruza después.
 explain (analyze, costs off, timing off) select * from public.listar_movimientos_stock(null, 25, 0);
 
--- Comparación: la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
+-- Comparación (mide el cruce del comprobante, no la función completa): la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
 -- regexp_replace con el escape de la barra) aplicada a todas las filas antes de paginar, que es la forma descartada.
 -- Las tablas sembradas se analizan antes de medir: sin estadísticas el planificador elige planes muy distintos entre corridas.
 explain (analyze, costs off, timing off)
@@ -66,7 +72,7 @@ set local role authenticated;
 -- La función entregada, con RLS: pagina primero y cruza después.
 explain (analyze, costs off, timing off) select * from public.listar_movimientos_stock(null, 25, 0);
 
--- Comparación, con RLS: la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
+-- Comparación, con RLS (mide el cruce del comprobante, no la función completa): la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
 -- regexp_replace con el escape de la barra) aplicada a todas las filas antes de paginar, que es la forma descartada.
 -- Las tablas sembradas se analizan antes de medir: sin estadísticas el planificador elige planes muy distintos entre corridas.
 explain (analyze, costs off, timing off)
@@ -94,8 +100,10 @@ order by m.creado_en desc, m.id desc limit 25;
 -- `Seq Scan on comprobantes_venta` de las 5.000 filas de la organización sembrada (la estimación del plan era de 50
 -- filas); con 300.000 comprobantes el seq scan fue de 300.000 filas. La función entregada, con la subconsulta por
 -- fila, usó `Index Scan using comprobantes_venta_id_organizacion_id_key` en esa prueba.
--- Observado también con el cruce antes de paginar y join común: un nested loop con `Rows Removed by Join Filter:
--- 187475000` y unos 17 s; el mismo script sin `analyze` de `comprobantes_venta` dio planes muy distintos entre corridas.
+-- Observado también, con una versión anterior de este script en la que el cruce antes de paginar usaba un join
+-- común: corridas atípicas de 13 a 17 s; la de unos 17 s mostró un nested loop con `Rows Removed by Join Filter:
+-- 187475000`. Con esa versión, sin `analyze` de `comprobantes_venta`, los planes variaron mucho entre corridas.
+-- Causa observada en esas corridas; no se probaron otras.
 explain (analyze, buffers, timing off)
 with pagina as (
   select m.*
