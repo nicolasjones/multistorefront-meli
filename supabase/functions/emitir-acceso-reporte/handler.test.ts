@@ -4,8 +4,8 @@
 // empresas accesibles del usuario; Superset caído → 503. Corre con `node --test`
 // (`pnpm test:edge:emitir-acceso-reporte`); el handler no importa nada de Deno ni de Supabase.
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
-import { manejar, type Deps } from './handler.ts'
+import { describe, it, mock } from 'node:test'
+import { listarDatasets, manejar, type Deps } from './handler.ts'
 
 const ORG_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 const EMPRESA_A = '11111111-1111-1111-1111-111111111111'
@@ -313,5 +313,68 @@ describe('emitir-acceso-reporte', () => {
     const noJson = new Request('http://localhost/x', { method: 'POST', headers: { Authorization: 'Bearer jwt' }, body: 'no-json' })
     assert.equal((await manejar(noJson, deps)).status, 400)
     assert.equal((await manejar(pedir({}), deps)).status, 400)
+  })
+})
+
+// MSF-897 (menor de #1159): cada razón por la que `listarDatasets` devuelve null deja su motivo en el log del runtime, sin
+// datos del usuario, para poder diagnosticar el 503.
+describe('listarDatasets: registra el motivo del fallo', () => {
+  const listar = async (responder: (pagina: number) => Response) => {
+    const registros: string[] = []
+    const espia = mock.method(console, 'error', (...args: unknown[]) => { registros.push(args.join(' ')) })
+    try {
+      const resultado = await listarDatasets({
+        url: 'http://superset',
+        accessToken: 'secreto-no-loguear',
+        fetch: (async (url: string) => {
+          const q = decodeURIComponent(url.split('?q=')[1])
+          return responder(Number(q.match(/page:(\d+)/)?.[1] ?? 0))
+        }) as typeof fetch,
+        signal: () => new AbortController().signal,
+      })
+      return { resultado, registros }
+    } finally {
+      espia.mock.restore()
+    }
+  }
+
+  it('HTTP distinto de 200: null y el código y la página en el log', async () => {
+    const { resultado, registros } = await listar(() => Response.json({}, { status: 403 }))
+    assert.equal(resultado, null)
+    assert.equal(registros.length, 1)
+    assert.match(registros[0], /listar_datasets.*HTTP 403 en la página 0/)
+    assert.ok(!registros[0].includes('secreto-no-loguear'), 'el log no trae el token')
+  })
+
+  it('respuesta sin result o sin count', async () => {
+    const { resultado, registros } = await listar(() => Response.json({ result: [] }))
+    assert.equal(resultado, null)
+    assert.match(registros[0], /respuesta sin result\/count \(página 0\)/)
+  })
+
+  it('fila sin id numérico o sin table_name', async () => {
+    const { resultado, registros } = await listar(() => Response.json({ count: 1, result: [{ id: 'x', table_name: 'a' }] }))
+    assert.equal(resultado, null)
+    assert.match(registros[0], /fila sin id numérico o table_name/)
+  })
+
+  it('página vacía antes de completar el total', async () => {
+    const { resultado, registros } = await listar((pagina) =>
+      Response.json({ count: 3, result: pagina === 0 ? [{ id: 1, table_name: 'a' }] : [] }))
+    assert.equal(resultado, null)
+    assert.match(registros[0], /página vacía con 1 de 3 datasets/)
+  })
+
+  it('se supera el máximo de páginas', async () => {
+    const { resultado, registros } = await listar((pagina) =>
+      Response.json({ count: 100000, result: [{ id: pagina, table_name: `t${pagina}` }] }))
+    assert.equal(resultado, null)
+    assert.match(registros[0], /se superó el máximo de páginas/)
+  })
+
+  it('listado completo: devuelve los datasets y no deja nada en el log', async () => {
+    const { resultado, registros } = await listar(() => Response.json({ count: 1, result: [{ id: 1, table_name: 'a' }] }))
+    assert.deepEqual(resultado, [{ id: 1, table_name: 'a' }])
+    assert.deepEqual(registros, [])
   })
 })
