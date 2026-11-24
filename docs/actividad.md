@@ -419,7 +419,7 @@ La razón de no borrar el evento: la empresa activa decide el rol con el que la 
 empresa (ventas, consultas, reportes), así que el cambio es trazabilidad de contexto.
 
 - **Dónde se aplica**: `private.tipos_de_contexto_actividad()` (migración
-  `20270507200101_actividad_eventos_de_contexto.sql`) es la única fuente de verdad. `public.listar_actividad` y
+  `20270507200300_actividad_eventos_de_contexto.sql`) es la única fuente de verdad. `public.listar_actividad` y
   `public.exportar_actividad` filtran con `r.tipo <> all (private.tipos_de_contexto_actividad()) or p_tipo = r.tipo`: el
   contador `total`, el bloque «Actividad reciente» del inicio y el CSV salen con la misma regla que la lista, así que
   pantalla y archivo cuentan lo mismo.

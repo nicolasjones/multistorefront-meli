@@ -18,7 +18,7 @@ lista.
 
 | Archivo | Cambio | Notas |
 |---------|--------|-------|
-| `supabase/migrations/20270507200101_actividad_eventos_de_contexto.sql` | added | Helper `private.tipos_de_contexto_actividad()` y redefinición de `public.listar_actividad` y `public.exportar_actividad` (misma firma) con el filtro de los eventos de contexto. |
+| `supabase/migrations/20270507200300_actividad_eventos_de_contexto.sql` | added | Helper `private.tipos_de_contexto_actividad()` y redefinición de `public.listar_actividad` y `public.exportar_actividad` (misma firma) con el filtro de los eventos de contexto. |
 | `supabase/tests/database/actividad_eventos_contexto.test.sql` | added | El evento se registra, la lista no lo muestra, se ve si se pide por tipo, y el CSV sale con las mismas filas que la pantalla. |
 | `docs/actividad.md` | modified | Sección «Eventos de contexto: no ocupan la lista (MSF-985)», nota en «Lectura» y ajuste del «Fuera de alcance» de MSF-618. |
 | `docs/producto/actividad.md` | modified | El manual (guía de uso) dice que el cambio de empresa activa queda registrado pero no aparece en la lista, y cómo verlo. |
@@ -54,7 +54,7 @@ and (r.tipo <> all (private.tipos_de_contexto_actividad()) or p_tipo = r.tipo)
 
 ## Verificación local
 
-- Postgres 17 local con las migraciones del repo aplicadas (`20270507200101_actividad_eventos_de_contexto.sql` incluida)
+- Postgres 17 local con las migraciones del repo aplicadas (`20270507200300_actividad_eventos_de_contexto.sql` incluida)
   y pgTAP: `node /tmp/opencode/pgtest/pgtap.mjs supabase/tests/database/actividad_eventos_contexto` → 13 pruebas en
   verde.
 - **Prueba que vigila la regla**: se recrearon `listar_actividad` y `exportar_actividad` como estaban antes (sin la línea

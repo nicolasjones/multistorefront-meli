@@ -67,7 +67,7 @@ aplican `public.listar_actividad` y `public.exportar_actividad`.
 - Dejarlo como está: el ruido que motivó el reporte sigue ahí.
 
 **Archivos que probablemente cambian**:
-- `supabase/migrations/20270507200101_actividad_eventos_de_contexto.sql` (nuevo)
+- `supabase/migrations/20270507200300_actividad_eventos_de_contexto.sql` (nuevo)
 - `supabase/tests/database/actividad_eventos_contexto.test.sql` (nuevo)
 - `docs/actividad.md`, `docs/producto/actividad.md`, `docs/empresa-activa.md`, `docs/tecnico/permisos-por-empresa.md`
 
