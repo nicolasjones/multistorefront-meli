@@ -8,7 +8,7 @@
 // Requisitos: el stack de Supabase CON el seed (`pnpm dev:supabase` o el stack del CI), la web ya servida
 // (`vite preview`) y `SUPABASE_URL` + `SUPABASE_ANON_KEY` de ese stack. Para el producto de la ficha se usa
 // la RPC pública del catálogo (sin service-role). Si no hay Chrome instalado, `CHROME_PATH` puede apuntar al
-// Chromium de Playwright (lo hace el workflow `medir-tienda`).
+// Chromium de Playwright (lo hace el job `medir` de `.github/workflows/nightly.yml`).
 //
 // Uso:
 //   node scripts/medir-tienda-lighthouse.mjs [--puerto 4300] [--salida reports/lighthouse-tienda]
@@ -19,8 +19,8 @@
 // Cuándo falla (código 1): si no se midió alguna ruta (no hay reporte o el reporte no trae la auditoría del
 // LCP: eso NO es «supera el objetivo», es que no se midió), si el LCP de alguna ruta NO llega al objetivo de
 // 3 s o si supera la LÍNEA BASE (`LCP_BASE_MS`): eso sí es una regresión del front. El job queda rojo mientras
-// el objetivo no se cumpla: la degradación conocida (la tienda pública carga el bundle del panel) está
-// anotada en `docs/tiendas-online.md` y no puede quedar escondida en un resumen verde.
+// el objetivo no se cumpla: el LCP medido (10,5–10,9 s contra 3 s) está anotado en `docs/tiendas-online.md` y no
+// puede quedar escondido en un resumen verde.
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -33,11 +33,11 @@ export const TIENDAS = [
 // Objetivo de LCP en celular de `docs/tienda-movil.md` («4G lento», CPU ×4): por debajo de 3 s.
 export const OBJETIVO_LCP_MS = 3000;
 
-// Línea base del LCP: el máximo de las 12 corridas del 17/11/2026 (run 44118543460) fue 21,6 s, así que la
-// línea base queda por encima para que la variación normal no se lea como regresión. Superarla es una
-// regresión del front (la degradación conocida ya está por encima del objetivo, no de la línea base).
-// La guía (`docs/tiendas-online.md`, «Rendimiento en celular») declara este mismo número y el test compara
-// los dos: si cambia uno sin el otro, la guía miente.
+// Línea base del LCP: un tope de REGRESIÓN, no un cumplimiento del objetivo. Es el valor propuesto por el
+// autor sobre el máximo medido hoy (10,9 s, run 45476405495), con margen para la variación entre corridas del
+// runner; superarlo es una regresión del front. El LCP sigue por encima de los 3 s del objetivo y el job queda
+// rojo por eso. La guía (`docs/tiendas-online.md`, «Rendimiento en celular») declara este mismo número y el
+// test compara los dos: si cambia uno sin el otro, la guía miente.
 export const LCP_BASE_MS = 14000;
 
 const rutaPorDefecto = (archivo) => path.resolve(import.meta.dirname, '..', archivo);
