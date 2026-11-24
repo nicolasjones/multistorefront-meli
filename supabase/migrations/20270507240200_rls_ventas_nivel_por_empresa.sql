@@ -3,9 +3,10 @@
 -- Una persona con Ventas en la tienda A y un rol sin Ventas en la B leía los comprobantes y RMA de la B por /rest/v1/.
 -- Ahora se exige el nivel de Ventas EN ESA empresa.
 --
---   · `private.puede_leer_ventas_empresa(uuid)`: envoltorio `security definer` de `private.nivel_ventas_en_empresa`
---     (que tiene EXECUTE revocado a `authenticated` y por eso no se puede usar directo en una política), como
---     `puede_leer_faltantes_empresa`. `true` si el nivel es lectura o edición.
+--   · `private.puede_leer_ventas_empresa(uuid)`: envoltorio `security definer` de `private.nivel_ventas_en_empresa`, como
+--     `puede_leer_faltantes_empresa`. `true` si el nivel es lectura o edición. (`20261203100400` le revocó el EXECUTE a
+--     `authenticated` a `nivel_ventas_en_empresa`, pero `20261213100200` se lo volvió a conceder: el envoltorio no es
+--     imprescindible para poder llamarla, mantiene la función auxiliar fuera de la API.)
 --   · Comprobante sin empresa (`empresa_id` nulo, anterior a F-VTA-04): conserva la regla vigente (Ventas de la
 --     organización); no pertenece a ninguna tienda.
 --

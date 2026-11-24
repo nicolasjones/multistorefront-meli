@@ -8,6 +8,7 @@ sources:
   - supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql
   - supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql
   - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
+  - supabase/migrations/20270507250000_ventas_lectura_por_empresa_una_vez.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
   - supabase/verificacion/higiene_base_migraciones.sql
@@ -229,6 +230,10 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
 - **Comprobantes y RMA (`240200`, MSF-737):** las cuatro políticas `SELECT` (`comprobantes_venta`, `comprobantes_venta_lineas`,
   `rma`, `rma_items`) exigen el nivel de Ventas en la empresa del registro mediante `private.puede_leer_ventas_empresa(uuid)`
   (envoltorio de `nivel_ventas_en_empresa`); el comprobante sin empresa conserva la regla de la organización.
+- **Una evaluación por consulta (`250000`, lote 44):** las cuatro políticas dejaron de llamar a `puede_leer_ventas_empresa(empresa_id)`
+  por fila (dependía de la fila: no era InitPlan) y comparan `empresa_id in (select private.empresas_con_ventas_lectura())`, una
+  subconsulta no correlacionada que Postgres evalúa una vez. La semántica es la misma (usa `nivel_ventas_en_empresa`). El pgTAP
+  `lote42_rls_ventas_nivel_por_empresa` suma el superadmin con y sin contexto y fija que las políticas usan el conjunto.
 - **Prueba global (`lote42_superficie_global_seguridad`):** toda `security definer` de los esquemas propios fija
   `search_path = ''`; `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda (agregar una exige editar el
   test a propósito); `anon` no tiene `USAGE` sobre `private`, `dominio` ni `analitica`.
