@@ -2,10 +2,15 @@
 # Corre `scripts/medir-tienda-favoritos.guard.test.mjs` contra dos bases VACÍAS que crea este script (sin migraciones: los casos que leen `organizaciones` se omiten con
 # MEDIR_SIN_ESQUEMA=1). Lo usa el job `database` de validate.yml; se puede correr local.
 # Uso: probar-guard-medicion.sh probar | limpiar
-#   probar   aborta sin tocar nada si alguna de las dos bases ya existe (puede ser ajena); si no, las crea y, al terminar por cualquier camino que el shell pueda atrapar
-#            (éxito, fallo, señal), borra con un `trap` SOLO las que creó esta corrida (variables del propio proceso; no hay archivos ni entradas externas).
-#   limpiar  es el paso final del job (`if: always()`, por si el proceso murió sin poder atrapar la señal): actúa solo en el CI (GITHUB_ACTIONS=true y CI definida, stack
-#            efímero) y borra EXCLUSIVAMENTE las dos bases de nombre fijo; fuera del CI no hace nada.
+#   probar   en el CI primero llama a `limpiar` (auto-recuperación, ver abajo). Aborta sin tocar nada si alguna de las dos bases ya existe (puede ser ajena); si no, las crea
+#            y, al terminar por cualquier camino que el shell pueda atrapar (éxito, fallo, señal), borra con un `trap` las bases cuyo `create database` salió con éxito en esta
+#            corrida (`create database` falla si la base existe, así que lo que se anota lo creó esta corrida; las anota después de crear). Variables del propio proceso: no
+#            hay archivos ni entradas externas. Limitación: si el proceso muere entre el `create` y la anotación, o por una señal que no se atrapa (SIGKILL), la base queda.
+#   limpiar  actúa solo en el CI (GITHUB_ACTIONS=true y CI definida) y borra EXCLUSIVAMENTE las dos bases de nombre fijo; fuera del CI no hace nada. Es el paso final del job
+#            (`if: always()`) y se llama también al inicio de `probar` en el CI.
+# El stack de Supabase del CI NO es efímero: es por ranura y se reutiliza entre corridas (`scripts/supabase-ci.mjs`, `liberar` solo suelta el lock) y `scripts/reset-db-ci.mjs`
+# recrea los esquemas pero no borra otras bases. Por eso una corrida que muriera sin poder limpiar dejaría las dos bases a la siguiente de la ranura; el `limpiar` del inicio
+# de `probar` en el CI la deja recuperarse sin fallar.
 # Conexión por el entorno de psql: PGHOST, PGPORT, PGPASSWORD (y PGSSLMODE). El usuario es `postgres` si es superusuario y, si no (Supabase), `supabase_admin`.
 set -euo pipefail
 
@@ -42,9 +47,14 @@ limpiar() {
 }
 
 probar() {
-  local base
+  local base existe
+  if [ "${GITHUB_ACTIONS:-}" = "true" ] && [ -n "${CI:-}" ]; then limpiar; fi   # auto-recuperación: solo en el CI
   for base in "$DESCARTABLE" "$OTRA"; do
-    if [ "$(admin -c "select count(*) from pg_database where datname = '$base'")" != 0 ]; then
+    if ! existe=$(admin -c "select count(*) from pg_database where datname = '$base'"); then
+      echo "no se pudo consultar la existencia de la base $base: revisá la conexión" >&2
+      exit 1
+    fi
+    if [ "$existe" != 0 ]; then
       echo "ya existe la base $base: borrala a mano si es tuya" >&2
       exit 1
     fi
@@ -52,8 +62,8 @@ probar() {
   trap limpiar_propias EXIT
   trap 'exit 143' TERM INT
   for base in "$DESCARTABLE" "$OTRA"; do
-    creadas+=("$base")   # se anota ANTES de crear: si el create muere a medias, el trap igual la borra
-    admin -c "create database \"$base\" template template0"
+    admin -c "create database \"$base\" template template0"   # falla si la base existe: no se toma una ajena
+    creadas+=("$base")
   done
   local cmd="psql -h ${PGHOST:-localhost} -p ${PGPORT:-5432} -U $usuario"
   MEDIR_PSQL="$cmd -d $DESCARTABLE" MEDIR_PSQL_OTRA_BASE="$cmd -d $OTRA" MEDIR_SIN_ESQUEMA=1 \
