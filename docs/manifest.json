@@ -2798,14 +2798,14 @@
     },
     "docs/seguridad-tienda-compra-y-cuentas.md": {
       "title": "Revisión de seguridad · Tienda: compra y cuentas (MSF-176)",
-      "pageHash": "4ed29fb513f57b4dfc626e53be4a27ef5626281ee95e3751cb33ed4e1b3df1c7",
+      "pageHash": "8af2d62aaf7cc7b51fe56e17fc966f5ce6859ba20ed89f565400ae3016146939",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
-      "sourceAt": "3bad2b542",
+      "sourceAt": "0a52f7933",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "plataforma",
-      "commit": "3bad2b542"
+      "commit": "0a52f7933"
     },
     "docs/seguridad-tienda-opiniones.md": {
       "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",

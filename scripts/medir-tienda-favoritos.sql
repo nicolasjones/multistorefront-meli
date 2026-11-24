@@ -14,7 +14,7 @@
 --   1. `-v BASE_DESCARTABLE=si`;
 --   2. la sesión es superusuario (`is_superuser` en `on`): así el conteo de organizaciones no depende de RLS;
 --   3. el nombre de la base tiene `descartable`, `test` o `local` como palabra delimitada por `_` o `-` o por los extremos (`medicion_descartable`, `test`; no `latest`). Una copia
---      propia: `createdb -T <base-migrada> medicion_descartable`. Limitación: un nombre como `local_prod` también cumple la condición;
+--      propia: `createdb -T <base-migrada> medicion_descartable`. Limitación: un nombre que contenga esas palabras delimitadas, aunque también diga `prod` (`local_prod`, `test_prod`, `local-prod`), cumple la condición;
 --   4. la base tiene 5 organizaciones o menos (una base de pruebas tiene las del seed o ninguna).
 -- Prueba automática: `scripts/medir-tienda-favoritos.guard.test.mjs`.
 \set ON_ERROR_STOP on
