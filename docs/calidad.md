@@ -79,6 +79,8 @@ en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de ap
   Un check con hallazgos imprime su salida completa en el log del CI y en `reports/calidad.md`.
   La salida completa de cada herramienta va a `reports/calidad.log`.
   Los dos archivos se suben como artifact `calidad-reporte`, se generan en cada corrida y no se versionan (MSF-843).
+  Los registros históricos de `specs/` y `.specify/bugs/` citan un `reports/calidad.md` versionado.
+  Desde MSF-843 ese archivo se genera con `pnpm calidad` (`scripts/calidad.mjs`) y se sube como artifact `calidad-reporte` del job `quality`.
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 - Revisión 2026-11-22 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
