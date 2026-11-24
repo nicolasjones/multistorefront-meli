@@ -109,6 +109,8 @@ async function llamar(funcion: string, argumentos: Record<string, unknown>): Pro
   const respuesta = comoObjeto(data)
   if (!respuesta) throw new ErrorCuentaTienda('error')
   if (respuesta.estado === 'sin_acceso') throw new ErrorCuentaTienda('sin_acceso')
+  // `limite` = cupo de llamadas por cuenta agotado (H-3): se trata como un error con reintento, no como una lista vacía.
+  if (respuesta.estado === 'limite') throw new ErrorCuentaTienda('error')
   return respuesta
 }
 
