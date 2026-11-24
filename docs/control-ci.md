@@ -333,7 +333,7 @@ Propuestas exactas; ninguna se aplicó.
   Criterio del 4 (no 5): deja un runner self-hosted de holgura para `liberar`, que también necesita runner, sin volver
   al cuello de 2. No se toca `CI_LANES` (15) ni `CI_LOAD_MAX` (2.5, variable de repo del producto). Como
   `CI_RANAS_MAXIMAS` no está en el `.env.example` del repo `ai-dev-orchestrator`, un nodo nuevo vuelve al default 2:
-  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: **pendiente** en el orquestador) para que el valor no dependa de este servidor. El modelo
+  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: propuesto en el PR nicolasjones/ai-dev-orchestrator#876, lote 44, a la espera de su merge) para que el valor no dependa de este servidor. El modelo
   de capacidad del orquestador sigue contando sólo runners self-hosted cuando los jobs pesados ya corren en hosted:
   revisarlo es deuda aparte, no de este cambio. Verificación: `grep CI_RANAS_MAXIMAS /opt/ai-dev-orchestrator/.env` y,
   tras el reinicio, que el poller admita hasta 4 ramas en vuelo (deja de frenar con «límite 2»).
