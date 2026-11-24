@@ -709,20 +709,21 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "c6c673658b7a75c468e7d1171d3fc93dc692ef87f251cc9cf000e8e7b1db4d69",
-      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
-      "sourceAt": "2838b473",
+      "pageHash": "06b47f269993beb3ac207e48178f7fa9577ee02afbd4ddb1e030fea55d961b54",
+      "sourceHash": "831e496a6923d228cfd1e47826e37c1acbf0f6389ec613ca8f9d7dd373822abf",
+      "sourceAt": "5717df04d",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
         "scripts/estado-ci.mjs",
+        "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "2838b473"
+      "commit": "5717df04d"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -880,12 +881,12 @@
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
-      "pageHash": "2357d76133d068dc49fe665c6c1d78e762af75736a07002eb442b2fae9c25ec6",
+      "pageHash": "a277349552cc09956ff6a27be1cf98e28ef3d7554734fd74655150cfb2121368",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "882abece"
+      "commit": "d4721f58c"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -4829,7 +4830,7 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "be5457e764db3a3f8b2a926aa9adcd1429c6c7b1ff4f94bcdbb565a7587018ab",
+      "pageHash": "905b306de65e431b9347d9d9c522ffeb5e85a1780d1ce678b4490a19324bb1bd",
       "sourceHash": "b382e92f9db6f49c4f4b5e9a6ff8eaa29b2a60547714cd5cf70eea19b12f0039",
       "sourceAt": "6776fb4d3",
       "sources": [
