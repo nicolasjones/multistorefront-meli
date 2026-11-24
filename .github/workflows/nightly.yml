@@ -284,8 +284,16 @@ jobs:
       - name: Medir Lighthouse en perfil móvil
         run: pnpm medir:tienda
 
+      # Sólo se sube (y se resume) lo que pasa este control: los reportes crudos de Lighthouse traen el log de red con las
+      # URL (a veces con tokens firmados de Storage) y `::add-mask::` no alcanza a los artefactos ni al resumen. Es defensa
+      # en profundidad, no una garantía: ver `scripts/verificar-reporte-sin-credenciales.mjs`. No imprime lo que encuentra.
+      - name: Verificar que el reporte no lleva credenciales
+        id: credenciales
+        if: ${{ !cancelled() }}
+        run: node scripts/verificar-reporte-sin-credenciales.mjs
+
       - name: Resumen en $GITHUB_STEP_SUMMARY
-        if: always()
+        if: ${{ !cancelled() && steps.credenciales.conclusion == 'success' }}
         run: |
           {
             echo '## Rendimiento de la tienda (MSF-552)'
@@ -295,22 +303,8 @@ jobs:
             if [ -f reports/medir-tienda/rpc-catalogo.txt ]; then cat reports/medir-tienda/rpc-catalogo.txt; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Sólo se sube lo que resume la medición: los reportes crudos de Lighthouse traen el log de red con las URL
-      # (a veces con tokens firmados de Storage) y `::add-mask::` no alcanza a los artefactos. Antes de subir, el
-      # paso falla si en esos archivos aparece algo con forma de credencial.
-      - name: Verificar que el reporte no lleva credenciales
-        if: always()
-        run: |
-          set -euo pipefail
-          for f in reports/lighthouse-tienda/resumen.md reports/lighthouse-tienda/resumen.json reports/medir-tienda/rpc-catalogo.txt; do
-            [ -f "$f" ] || continue
-            if grep -nE 'eyJ[A-Za-z0-9_-]{10,}|apikey|access_token|Bearer ' "$f"; then
-              echo "::error::$f parece llevar una credencial: no se sube"
-              exit 1
-            fi
-          done
       - name: Subir el reporte de la medición
-        if: always()
+        if: ${{ !cancelled() && steps.credenciales.conclusion == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: medir-tienda
