@@ -65,7 +65,6 @@ function respuesta(cuerpo: unknown, estado: number): Response {
   })
 }
 
-
 /** El error que se guarda nunca lleva el secreto ni credenciales. */
 export function sanearError(mensaje: string, secreto: string, secretoAnterior?: string | null): string {
   let sinSecreto = secreto ? mensaje.split(secreto).join('[REDACTADO]') : mensaje

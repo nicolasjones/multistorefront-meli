@@ -20,7 +20,7 @@ sources:
    En staging/production el deploy de infraestructura del VPS es estricto: si el job corta en el preflight (`scripts/preflight-deploy-vps.mjs`), el
    mensaje lista **solo nombres** de las variables que faltan en el secret `VPS_DEPLOY_ENV` (credenciales de Kestra, Superset y Nango, o las
    `*_IMAGEN` de los workers, que deben ir por `@sha256:<digest>` o tag de commit); si falla «Iniciar ssh-agent», falta la clave de host
-   (`VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.<entorno>`). Se corrige el secret o el archivo y se vuelve a disparar el job; no es un fallo de
+   (`VPS_SSH_KNOWN_HOSTS`; `infra/vps/known_hosts.<entorno>` solo si se crea esa carpeta, que hoy no existe). Se corrige el secret y se vuelve a disparar el job; no es un fallo de
    la aplicación. Dev solo advierte (modo transicional). Detalle en [Deployment](../../deployment.md#credenciales-obligatorias-imagenes-inmutables-y-clave-de-host-modo-transicional-msf-705-msf-706-msf-712).
 3. Si falló **después** de una migración: no reintentar a ciegas; verificar `schema_migrations` y el estado de la base.
 4. Si el panel quedó en una versión rota: rollback al deploy anterior (Dokploy) o revert del merge en `main` (PR de revert).

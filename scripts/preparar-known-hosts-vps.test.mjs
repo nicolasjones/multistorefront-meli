@@ -112,8 +112,22 @@ test('~/.ssh/config queda en 0600 aunque ya existiera con otros permisos', async
 
 test('el host se valida antes de escribir nada: sin espacios, comodines ni saltos de línea', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
-  for (const malo of ['vps.ejemplo.com\n  ProxyCommand x', 'vps ejemplo', '*', 'a;b', 'vps.ejemplo.com\n']) {
+  for (const malo of ['vps.ejemplo.com\n  ProxyCommand x', 'vps ejemplo', '*', 'a;b', 'vps.ejemplo.com\n', '-oProxyCommand=x', '.oculto', 'a,b', 'a!b', 'a?b', '[vps.ejemplo.com]', '[::1', '[::1]x', '[fe80::1%eth0]', '[1:2:3]', '[::1]\nHost *', 'a\tb']) {
     await assert.rejects(() => preparar({ host: malo, entorno: 'staging', secreto: LINEA, sshDir: dir, raiz: dir }), /--host solo admite/, JSON.stringify(malo));
   }
   await assert.rejects(() => readFile(path.join(dir, 'config'), 'utf8'), /ENOENT/, 'no se escribió el config');
+});
+
+test('el host acepta IPv6 (con o sin corchetes) y guiones bajos, y escribe el host sin corchetes', async () => {
+  const { validarHost } = await import('./preparar-known-hosts-vps.mjs');
+  assert.equal(validarHost('[2001:db8::1]'), '2001:db8::1');
+  assert.equal(validarHost('::1'), '::1');
+  assert.equal(validarHost('mi_servidor.ejemplo.com'), 'mi_servidor.ejemplo.com');
+  assert.equal(validarHost('10.0.0.5'), '10.0.0.5');
+  const dir = await mkdtemp(path.join(tmpdir(), 'ssh-'));
+  const linea = 'mi_servidor.ejemplo.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPL';
+  const r = await preparar({ host: 'mi_servidor.ejemplo.com', entorno: 'staging', secreto: linea, sshDir: dir, raiz: dir });
+  assert.match(await readFile(r.config, 'utf8'), /Host mi_servidor\.ejemplo\.com\n/);
+  const v6 = await preparar({ host: '[2001:db8::1]', entorno: 'staging', secreto: '2001:db8::1 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPLEEXAMPL', sshDir: dir, raiz: dir });
+  assert.match(await readFile(v6.config, 'utf8'), /Host 2001:db8::1\n/);
 });

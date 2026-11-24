@@ -74,7 +74,7 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
 
 **Resuelto en el lote 32.** Con la decisión de negocio tomada (MSF-667: contra-asiento auditado), `anular_comprobante` rechaza
 una factura con cobros registrados (`55000`, «revertí el cobro o corregila con una nota de crédito») y la persona sale con
-`revertir_cobro` (solo administrador). También rechaza la factura ya entregada (MSF-661). Detalle en
+`revertir_cobro` (solo administrador activo o superadmin con organización activa: `private.puede_escribir()`). También rechaza la factura ya entregada (MSF-661). Detalle en
 `docs/cobros-por-comprobante.md`.
 
 ## MSF-638: `obtener_reparacion` fuera del alcance

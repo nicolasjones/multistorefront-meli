@@ -1,5 +1,4 @@
 import { supabaseClient } from './supabase'
-import { acumularConteoCategorias } from './tiendaConteoCategorias'
 import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-11 (MSF-386): categorías visibles de la tienda pública. La visibilidad (la categoría y su
@@ -30,13 +29,14 @@ export async function leerCategoriasPublicas(host: string): Promise<CategoriaPub
   if (!data) {
     return []
   }
-  return acumularConteoCategorias((data as FilaCategorias).categorias.map((c) => ({
+  // `publico.categorias_por_dominio` YA devuelve el conteo acumulado (la raíz incluye el de sus subcategorías): no se vuelve a sumar.
+  return (data as FilaCategorias).categorias.map((c) => ({
     id: c.id,
     nombre: limpiarTextoPublico(c.nombre),
     padreId: c.padre_id,
     productos: c.productos,
     imagen: c.imagen ?? null,
-  })))
+  }))
 }
 
 // MSF-825 (MSF-826/MSF-827): cuántas categorías principales muestran el menú, la home y el pie (el prototipo

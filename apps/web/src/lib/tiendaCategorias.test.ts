@@ -76,6 +76,18 @@ describe('leerCategoriasPublicas · imagen', () => {
     expect(categorias.map((c) => c.imagen)).toEqual(['org/prod/frente.png', null, null])
   })
 
+  it('no suma de nuevo las subcategorías: la base ya acumula (raíz con 2 hijas de 3 productos muestra 6, no 12)', async () => {
+    mocks.rpc.mockResolvedValue({
+      data: { categorias: [
+        { id: 'r', nombre: 'Consolas', padre_id: null, productos: 6 },
+        { id: 'h1', nombre: 'Portátiles', padre_id: 'r', productos: 3 },
+        { id: 'h2', nombre: 'Sobremesa', padre_id: 'r', productos: 3 },
+      ] },
+      error: null,
+    })
+    expect((await leerCategoriasPublicas('mundojc.test')).map((c) => c.productos)).toEqual([6, 3, 3])
+  })
+
   it('sin tienda (null) devuelve una lista vacía', async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: null })
     expect(await leerCategoriasPublicas('no-existe.test')).toEqual([])

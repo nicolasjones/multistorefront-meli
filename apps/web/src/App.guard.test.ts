@@ -57,9 +57,16 @@ function sinComentarios(texto: string): string {
     } else if (c === '/' && siguiente === '/') {
       const fin = texto.indexOf('\n', i)
       i = fin === -1 ? texto.length : fin
-    } else if (c === '"' || c === "'" || c === '`') {
+    } else if ((c === '"' || c === "'" || c === '`') && !/\w/.test(texto[i - 1] ?? '')) {
+      // Una comilla pegada a una letra («l'x», «don't») es texto JSX (un apóstrofo), no abre una cadena.
       let j = i + 1
       while (j < texto.length && texto[j] !== c && !(c !== '`' && texto[j] === '\n')) j += texto[j] === '\\' ? 2 : 1
+      if (texto[j] !== c && c !== '`') {
+        // Sin cierre en la misma línea no es una cadena: la comilla es un carácter común y el resto de la línea se sigue analizando.
+        salida += c
+        i++
+        continue
+      }
       salida += texto.slice(i, j + 1)
       i = j + 1
     } else {
@@ -69,6 +76,18 @@ function sinComentarios(texto: string): string {
   }
   return salida
 }
+
+describe('sinComentarios (helper de esta guarda)', () => {
+  it('un apóstrofo en texto JSX no oculta un comentario posterior de la misma línea', () => {
+    expect(sinComentarios("<p>No hay l'x</p> // <Route path=\"/oculta\" />")).toBe('<p>No hay l\'x</p> ')
+    expect(sinComentarios("<p>Don't</p> {/* <Route /> */}")).toBe('<p>Don\'t</p> {}')
+    expect(sinComentarios("<p>Hay un ' suelto</p> // comentario\n<b/>")).toBe("<p>Hay un ' suelto</p> \n<b/>")
+  })
+  it('una URL dentro de una cadena no es un comentario', () => {
+    expect(sinComentarios("const u = 'https://x.test/a' // nota")).toBe("const u = 'https://x.test/a' ")
+    expect(sinComentarios('const u = "http://x" /* c */ + `//y`')).toBe('const u = "http://x"  + `//y`')
+  })
+})
 
 describe('rutas solo de administradores', () => {
   it('/historial/importar se envuelve en RequiereAdministrador', () => {

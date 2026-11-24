@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import tabla from './iva.tabla.json'
 import { calcularFinal, formatearAlicuota, mensajeErrorIva } from './iva'
 
 const IVA_21 = { porcentaje: 21, exento: false }
@@ -34,6 +35,25 @@ describe('calcularFinal (F-PRE-12, FR-021)', () => {
     [333.33, 10.5, 368.33],
   ])('coincide con la base: %s con %s %% = %s', (neto, porcentaje, esperado) => {
     expect(calcularFinal(neto, { porcentaje, exento: false })).toBe(esperado)
+  })
+
+  // Tabla generada contra `private.aplicar_iva` en un Postgres descartable (`scripts/generar-tabla-iva.mjs`): netos de hasta 8 cifras
+  // enteras y 3 decimales, negativos, bordes de medio centavo y alícuotas 0, 2,5, 5, 10, 10,5, 21, 27 y 100.
+  it('coincide con la base en toda la tabla generada contra Postgres', () => {
+    expect(tabla.length).toBeGreaterThanOrEqual(700)
+    const distintos = (tabla as Array<[string, number, string]>).filter(([neto, porcentaje, final]) => calcularFinal(Number(neto), { porcentaje, exento: false }) !== Number(final))
+    expect(distintos).toEqual([])
+  })
+
+  it('un neto de 8 cifras enteras y 3 decimales coincide con SQL (antes toFixed(10) lo corría por la expansión binaria)', () => {
+    expect(calcularFinal(12345678.905, { porcentaje: 0, exento: false })).toBe(12345678.91)
+    expect(calcularFinal(99999999.995, { porcentaje: 0, exento: false })).toBe(100000000)
+  })
+
+  it('un valor no finito no lanza: Exento lo devuelve y con alícuota da NaN', () => {
+    expect(calcularFinal(Number.NaN, IVA_21)).toBeNaN()
+    expect(calcularFinal(Number.POSITIVE_INFINITY, IVA_21)).toBeNaN()
+    expect(() => calcularFinal(1e21, IVA_21)).not.toThrow()
   })
 
   it('Exento deja el final igual al neto', () => {

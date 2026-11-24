@@ -91,8 +91,7 @@ archivo propio dentro del contenedor, horneálo en la imagen (`COPY` en el
 `research.md` §2 de esta spec para el detalle completo.
 
 - Secrets por Environment: `VPS_SSH_PRIVATE_KEY` (texto plano PEM, sin Base64), `VPS_SSH_USER`,
-  `VPS_SSH_HOST`, `VPS_DEPLOY_ENV` y la clave pública del host: el secret `VPS_SSH_KNOWN_HOSTS` o el
-  archivo versionado `infra/vps/known_hosts.<entorno>`. El deploy ya no usa `ssh-keyscan`
+  `VPS_SSH_HOST`, `VPS_DEPLOY_ENV` y la clave pública del host: el secret `VPS_SSH_KNOWN_HOSTS` (hoy es la única vía que sirve: `infra/vps/` no existe aún; el archivo `infra/vps/known_hosts.<entorno>` que el script también lee es una opción futura, hay que crearlo). El deploy ya no usa `ssh-keyscan`
   (`scripts/preparar-known-hosts-vps.mjs`): sin clave fijada, el job falla en staging/production.
 - **`VPS_DEPLOY_ENV` NO es el nombre del entorno** (`staging`/`production`) —
   eso ya está hardcodeado en el workflow. Es el **contenido completo** de lo

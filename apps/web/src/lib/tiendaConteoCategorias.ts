@@ -1,4 +1,5 @@
-// MSF-623: la base cuenta por categoría solo los productos asignados directamente a ella (un producto tiene una sola
+// MSF-623: el panel (`listar_catalogo_tienda`) cuenta por categoría solo los productos asignados directamente a ella (un producto tiene una sola
+// (La tienda PÚBLICA no lo usa: `publico.categorias_por_dominio` ya devuelve el conteo acumulado y sumarlo otra vez lo duplicaba.)
 // categoría), así que una categoría raíz con productos solo en sus subcategorías decía «0 productos». El conteo que
 // ve la persona es el de la categoría más el de todas sus descendientes; no se cuenta dos veces porque cada
 // producto pertenece a una única categoría.

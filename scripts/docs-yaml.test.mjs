@@ -118,7 +118,9 @@ describe("erroresFrontMatter", () => {
 });
 
 // Entradas hostiles: el tiempo tiene que escalar de forma lineal (no cuadrática) con el tamaño.
-const medir = (fn, s) => { const t = performance.now(); fn(s); return performance.now() - t; };
+// Tiempo de CPU del proceso (no de pared): una CPU saturada por otros procesos no infla la medida, una regresión superlineal sí.
+const cpuMs = () => { const u = process.cpuUsage(); return (u.user + u.system) / 1000; };
+const medir = (fn, s) => { const t = cpuMs(); fn(s); return cpuMs() - t; };
 const hostiles = {
   "comilla con escapes sin cierre": (n) => `---\nt: [ "${'\\"'.repeat(n / 2)}\n---\n`,
   "comilla simple sin cerrar": (n) => `---\nt: [ '${"a".repeat(n)}\n---\n`,
@@ -164,6 +166,16 @@ const enlacesLargos = {
   "blancos de 1001": (n) => `[a](b${" ".repeat(MAX_BLANCOS_ENLACE + 1)}"t") `.repeat(n / (MAX_BLANCOS_ENLACE + 12)),
 };
 
+// Criterio RELATIVO y robusto a la carga del host: calentamiento, MÍNIMO de varias muestras por tamaño (un pico de CPU de otro
+// proceso no cuenta, una regresión real sí: afecta a todas las muestras), piso de tiempo y razón de crecimiento por 4× de
+// tamaño (lineal ≈ 4×, cuadrático ≈ 16×; el límite es 10×). El tope absoluto de 10 s es solo una red de seguridad contra el
+// caso cuadrático real (que tarda minutos): no es el criterio de linealidad.
+const MUESTRAS = 3;
+const PISO_MS = 20;
+const RAZON_MAXIMA = 10;
+const TOPE_ABSOLUTO_MS = 10000;
+const minimo = (fn, s, muestras) => { let m = Infinity; for (let i = 0; i < muestras; i++) m = Math.min(m, medir(fn, s)); return m; };
+
 describe("rendimiento con entradas hostiles (escala lineal)", () => {
   for (const [titulo, fabrica, fn] of [
     ...Object.entries(hostiles).map(([k, f]) => [`front matter: ${k}`, f, (s) => erroresFrontMatter(s, "h.md")]),
@@ -173,11 +185,13 @@ describe("rendimiento con entradas hostiles (escala lineal)", () => {
     it(titulo, () => {
       const t = {};
       fn(fabrica(20 * 1024)); // calentamiento
-      for (const kb of [20, 80, 320, 1024]) t[kb] = medir(fn, fabrica(kb * 1024));
-      assert.ok(t[1024] < 10000, `1 MB tardó ${t[1024].toFixed(0)} ms`);
-      // 4× el tamaño debería costar ≈4×; una regex cuadrática da ≈16×. Piso de 100 ms contra el ruido.
-      assert.ok(t[320] < 10 * Math.max(t[80], 100), `80 KB ${t[80].toFixed(0)} ms, 320 KB ${t[320].toFixed(0)} ms`);
-      assert.ok(t[1024] < 10 * Math.max(t[320], 100), `320 KB ${t[320].toFixed(0)} ms, 1 MB ${t[1024].toFixed(0)} ms`);
+      for (const kb of [80, 320, 1024]) {
+        const entrada = fabrica(kb * 1024);
+        t[kb] = minimo(fn, entrada, kb >= 1024 ? 2 : MUESTRAS);
+      }
+      assert.ok(t[1024] < TOPE_ABSOLUTO_MS, `1 MB tardó ${t[1024].toFixed(0)} ms`);
+      assert.ok(t[320] <= RAZON_MAXIMA * Math.max(t[80], PISO_MS), `80 KB ${t[80].toFixed(0)} ms, 320 KB ${t[320].toFixed(0)} ms`);
+      assert.ok(t[1024] <= RAZON_MAXIMA * Math.max(t[320], PISO_MS), `320 KB ${t[320].toFixed(0)} ms, 1 MB ${t[1024].toFixed(0)} ms`);
     });
   }
 });

@@ -5,8 +5,10 @@ sources:
   - supabase/migrations/20270342000000_newsletter_suscripcion.sql
   - supabase/migrations/20270342000100_newsletter_publico.sql
   - supabase/migrations/20270342000200_newsletter_confirmaciones.sql
+  - supabase/migrations/20270342000300_exportacion_total_newsletter.sql
   - supabase/migrations/20270420000000_newsletter_baja_y_gestion.sql
   - supabase/migrations/20270420000100_newsletters.sql
+  - supabase/migrations/20270420000200_exportacion_total_newsletters.sql
   - supabase/migrations/20270420000300_newsletter_bloques_y_prueba.sql
   - supabase/migrations/20270420000400_newsletter_envio.sql
   - supabase/migrations/20270420000500_newsletter_lote.sql
@@ -253,7 +255,7 @@ del volcado y con él no se puede confirmar ninguna suscripción.
 
 ## Contratos
 
-### RPC públicas de la tienda (esquema `publico`; las únicas ejecutables por `anon`)
+### RPC públicas de la tienda (esquema `publico`; accesibles a `anon` y a `authenticated`)
 
 | Función | Entrada | Respuesta |
 |---|---|---|
@@ -373,8 +375,8 @@ stateDiagram-v2
 - `revoke all` a `public`, `anon` y `authenticated`; `grant select` **por columna** a `authenticated`,
   **sin `confirmacion_hash`** ni el estado interno del reclamo. `anon` sin privilegios sobre tablas.
 - Toda escritura pasa por RPC `security definer` con `search_path = ''`; `revoke … from public, anon` y
-  `grant execute … to authenticated` explícitos en cada RPC nueva (salvo las `publico`, que solo ejecutan
-  `anon`).
+  `grant execute … to authenticated` explícitos en cada RPC nueva (salvo las `publico`, que se conceden a
+  `anon` y `authenticated`).
 - El acceso a la tienda elegida se comprueba **dentro de la RPC** (`42501`; otra organización, `P0002`).
   La UI solo oculta: componer, guardar, enviar, cancelar, dar de baja y borrar datos exigen rol
   Administrador con edición en `clientes`.

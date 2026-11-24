@@ -9,6 +9,7 @@
 //
 // Uso: node scripts/preparar-known-hosts-vps.mjs --host <host> --entorno dev|staging|production [--ssh-dir ~/.ssh] [--env-file <.env del entorno>]
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { isIPv6 } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -49,15 +50,23 @@ export function esEstricto(entorno, env = process.env, contenidoEnv = '') {
 const MARCA = '# vps-deploy (MSF-706)';
 const FIN = '# fin vps-deploy\n';
 
+// Lista segura: un nombre DNS o IPv4 (letras, números, puntos, guiones y guiones bajos; no empieza con `-` ni `.`: sería una opción de
+// ssh) o una IPv6 válida, con o sin corchetes (`[2001:db8::1]`). Devuelve el host SIN corchetes (así lo escribe known_hosts y así lo
+// compara `Host` en el config). Nunca espacios, saltos de línea, comodines (`* ? !`), comas ni otros caracteres de configuración SSH.
 export function validarHost(host) {
-  if (typeof host !== 'string' || !/^[A-Za-z0-9.-]+$/.test(host)) throw new Error('--host solo admite letras, números, puntos y guiones (sin espacios ni saltos de línea).');
+  const error = () => new Error('--host solo admite un nombre (letras, números, puntos, guiones y guiones bajos) o una IPv6, con o sin corchetes (sin espacios ni saltos de línea).');
+  if (typeof host !== 'string') throw error();
+  const sinCorchetes = /^\[[^\]]*\]$/.test(host) ? host.slice(1, -1) : host;
+  if (isIPv6(sinCorchetes) && !sinCorchetes.includes('%')) return sinCorchetes;
+  if (sinCorchetes !== host || !/^[A-Za-z0-9_][A-Za-z0-9._-]*$/.test(host)) throw error();
+  return host;
 }
 
 // SSH usa la PRIMERA coincidencia de cada opción: el bloque va AL PRINCIPIO de ~/.ssh/config, así un `Host *` previo (p. ej. en un runner
 // persistente, con `StrictHostKeyChecking no`) no lo anula.
 function bloqueSsh(host, modo, known) {
   // `host` va a una línea `Host <host>` del config: solo un nombre o IP, nunca espacios, comodines ni saltos de línea.
-  validarHost(host);
+  host = validarHost(host);
   return `${MARCA}\nHost ${host}\n  StrictHostKeyChecking ${modo}\n  UserKnownHostsFile ${known}\n  GlobalKnownHostsFile /dev/null\n${FIN}`;
 }
 
@@ -81,7 +90,7 @@ async function sinClaveFijada({ host, sshDir, entorno }) {
 
 export async function preparar({ host, entorno, secreto, sshDir, raiz = process.cwd(), estricto = esEstricto(entorno) }) {
   if (!host) throw new Error('Falta --host (VPS_SSH_HOST).');
-  validarHost(host);
+  host = validarHost(host);
   if (!['dev', 'staging', 'production'].includes(entorno)) throw new Error('Uso: --entorno dev|staging|production');
   let contenido = secreto?.trim() ? secreto : '';
   let origen = 'el secret VPS_SSH_KNOWN_HOSTS';

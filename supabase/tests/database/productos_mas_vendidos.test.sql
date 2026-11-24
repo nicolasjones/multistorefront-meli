@@ -10,7 +10,7 @@
 -- como los ve PostgREST.
 begin;
 
-select plan(35);
+select plan(38);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -265,6 +265,37 @@ reset role;
 set local role anon;
 select throws_ok($$select * from public.productos_mas_vendidos('2026-10-01', '2026-10-31')$$, '42501', null, '«anon» no puede ejecutar productos_mas_vendidos');
 reset role;
+
+-- ============================================================================
+-- Notas de crédito (lote 41): restan la cantidad devuelta (unidades netas); las anuladas y las de otro período no cuentan
+-- ============================================================================
+
+reset role;
+insert into dominio.comprobantes_venta
+  (id, organizacion_id, empresa_id, cliente_id, tipo, numero, fecha, estado, total_sin_iva, total_con_iva, comprobante_origen_id, nc_tipo)
+select v.id::uuid, '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001',
+       'nota_credito', v.numero, v.fecha::date, v.estado, 200, 242, 'f1000000-0000-0000-0000-000000000001', 'devolucion_productos'
+  from (values
+    ('f1000000-0000-0000-0000-0000000000a1', '0001-00000091', '2026-10-18', 'confirmada'),
+    ('f1000000-0000-0000-0000-0000000000a2', '0001-00000092', '2026-10-19', 'anulada'),
+    ('f1000000-0000-0000-0000-0000000000a3', '0001-00000093', '2026-09-20', 'confirmada')
+  ) as v(id, numero, fecha, estado);
+insert into dominio.comprobantes_venta_lineas
+  (organizacion_id, comprobante_id, orden, producto_id, descripcion, cantidad, precio_unitario, escala, deposito_id, a_pedido, subtotal_sin_iva, iva)
+select '11111111-1111-1111-1111-111111111111', v.comprobante::uuid, 1, 'b1000000-0000-0000-0000-000000000001', 'Auricular', v.cantidad, 100, 'x1', d.id, false, v.cantidad * 100, 0
+  from (values ('f1000000-0000-0000-0000-0000000000a1', 2), ('f1000000-0000-0000-0000-0000000000a2', 50), ('f1000000-0000-0000-0000-0000000000a3', 40)) as v(comprobante, cantidad)
+  join dominio.depositos d on d.organizacion_id = '11111111-1111-1111-1111-111111111111' and d.por_defecto;
+
+select pg_temp.como('a1000000-0000-0000-0000-000000000001');
+select is((select unidades::int from public.productos_mas_vendidos('2026-10-01', '2026-10-31') where nombre = 'Auricular'), 3,
+  'una nota de crédito resta su cantidad: Auricular 5 vendidas − 2 devueltas = 3 (antes sumaba 7)');
+select is((select unidades::int from public.productos_mas_vendidos('2026-10-01', '2026-10-31') where nombre = 'Auricular'), 3,
+  'la nota anulada y la de septiembre no cuentan');
+select results_eq(
+  $$select nombre, unidades::int from public.productos_mas_vendidos('2026-10-01', '2026-10-31')$$,
+  $$values ('Alfombra', 4), ('Auricular', 3), ('Cable', 3), ('Mouse', 3)$$,
+  'el ranking se reordena con las unidades netas'
+);
 
 select * from finish();
 rollback;

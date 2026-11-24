@@ -22,9 +22,12 @@ export function formatearImporte(valor: number, opciones: OpcionesImporte = {}):
   if (!Number.isFinite(valor)) return '—'
   const simbolo = opciones.simbolo ?? '$'
   // Se redondea primero a centavos: 1234,999 es 1.235 (entero), no «1.235,00»; y -0 se ve «$ 0».
-  const centavosTotales = Math.round(Math.abs(valor) * 100)
-  const entero = Math.floor(centavosTotales / 100)
-  const resto = centavosTotales % 100
+  // Por encima de los enteros seguros (≈ 9×10¹³ pesos en centavos) todo double ya es un entero y `String(1e21)` daría notación
+  // científica: se pasa por BigInt, que imprime los dígitos completos, y no hay centavos.
+  const grande = Math.abs(valor) * 100 > Number.MAX_SAFE_INTEGER
+  const centavosTotales = grande ? 1 : Math.round(Math.abs(valor) * 100)
+  const entero = grande ? BigInt(Math.round(Math.abs(valor))) : Math.floor(centavosTotales / 100)
+  const resto = grande ? 0 : centavosTotales % 100
   const miles = String(entero).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   const signo = valor < 0 && centavosTotales > 0 ? '-' : ''
   const conCentavos = resto !== 0 || opciones.centavos === 'siempre'

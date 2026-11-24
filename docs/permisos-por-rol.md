@@ -68,7 +68,7 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
 - **Actividad por empresa accesible (MSF-968):** además de la organización y el nivel en `actividad`, la lectura del historial
   (política `registro_actividad_select`, `listar_actividad`, `obtener_detalle_actividad`, `opciones_actividad` y
   `exportar_actividad`) solo muestra los eventos sin empresa (de toda la organización) y los de las empresas a las que la persona
-  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el resto, las asignadas; las pausadas
+  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el Superadmin, todas las de su organización activa; el resto, las asignadas; las pausadas
   cuentan para no perder su historial). Cambio visible: Operador y Administración con una sola tienda asignada ya no ven los eventos
   de las demás; el Administrador sigue viendo todo. Ver `docs/actividad.md`.
 - Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización

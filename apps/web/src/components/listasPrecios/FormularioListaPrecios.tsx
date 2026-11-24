@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { Alert, Button, Dialog, DialogActions, DialogContent, Stack, TextField, Typography } from '@mui/material'
 import { TituloDialogo } from '../base/TituloDialogo'
+import { formatearImporte } from '../../lib/formatoImporte'
 import {
   LARGO_DESCRIPCION,
   LARGO_NOMBRE,
@@ -23,7 +24,6 @@ type Props = {
   onGuardar: (datos: DatosLista) => Promise<void>
 }
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
 
 // Diálogo «Nueva lista» / «Editar lista» (F-PRE-14, RF-PRE-14-5). Las listas son de toda la organización: el diálogo no usa la
 // empresa activa. El ejemplo es ilustrativo (no consulta la base). La base valida rol, bandera, nombre único y rango.
@@ -111,7 +111,7 @@ export function FormularioListaPrecios({ lista, onCancelar, onGuardar }: Props) 
             <Typography variant="body2" color="text.secondary" aria-live="polite">
               {ajusteNumerico === null
                 ? 'Escribí el porcentaje para ver un ejemplo.'
-                : `Ejemplo ilustrativo: un producto de $ ${formatoPesos.format(PRECIO_EJEMPLO)} queda en ${ejemploAjuste(ajusteNumerico)}.`}
+                : `Ejemplo ilustrativo: un producto de ${formatearImporte(PRECIO_EJEMPLO)} queda en ${ejemploAjuste(ajusteNumerico)}.`}
             </Typography>
             <Alert severity="info" role="note">{NOTA_LISTA_REEMPLAZA_AJUSTE}</Alert>
           </Stack>
