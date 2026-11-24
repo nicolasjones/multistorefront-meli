@@ -455,9 +455,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "ee845e610999037a92f9234af56e399ec83b33c4d274d0ec677478bdf3ffdbcd",
-      "sourceHash": "bce715508b632e718c2d3ac2b6d35bad305967e623cc3df59d14e079b8de8d87",
-      "sourceAt": "6776fb4d3",
+      "pageHash": "7aee778212256ea470bf2a60ba0d2152b7a808eb45cf6e95077e7ddd6beeaa11",
+      "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
+      "sourceAt": "10fa9457c",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -468,7 +468,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d3"
+      "commit": "10fa9457c"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -1210,16 +1210,16 @@
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
-      "pageHash": "a512c0a815f07540539de438eef018e9266532a0b3cb65f39ac88616407411a6",
+      "pageHash": "8bd3fe36d4f040d3f12c4b344f81af3f5a0ce7d3aba83e0e0f34388e2b35e9b1",
       "sourceHash": "8de1d85acef7eebfa1c41affe71c125ab7560fd137c8546150678a4ab3686eba",
-      "sourceAt": "89ddd2c77",
+      "sourceAt": "302309155",
       "sources": [
         "infra/kestra/flows/historial-importador.yml",
         "workers/egress-allowlists.json",
         "workers/historial-importador"
       ],
       "owner": "tecnico",
-      "commit": "89ddd2c77"
+      "commit": "302309155"
     },
     "docs/importaciones.md": {
       "title": "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)",
@@ -2581,9 +2581,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "6b58e1990bd73ff0930b2df88d3576dc4336269463c0caeecf5ab35a3f30dd38",
-      "sourceHash": "c197e82d61b0b5c21b2ded9bcc371356cea106da6d3e1691c0fb6015f28abee3",
-      "sourceAt": "ea0598038",
+      "pageHash": "831926f0b94b114809b59861ffba7ed65593553f83b430076fead73df62a0175",
+      "sourceHash": "487989b60d6b3882ae049c552d6d7bb32018154955d56eebb8c91833d7a669f4",
+      "sourceAt": "d70a00f62",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2597,7 +2597,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "ea0598038"
+      "commit": "d70a00f62"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",

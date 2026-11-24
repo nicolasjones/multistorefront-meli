@@ -16,6 +16,37 @@ test("[MSF-683] calidad llega al RESUMEN y deja reports/calidad.log aunque no co
   assert.ok(fs.existsSync(path.join(cwd, "reports", "calidad.md")));
 });
 
+// MSF-843: el hallazgo de un check que falla tiene que llegar completo al log del CI y al informe,
+// aun con salida larga (mayor que los recortes de 40 y 60 líneas y que el buffer del pipe).
+function correrConPnpmFalso(ruidoKb) {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-"));
+  const bin = path.join(cwd, "bin");
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, "pnpm"), `#!/usr/bin/env node
+if (process.argv.includes("--version")) { console.log("11.19.0"); process.exit(0); }
+console.log("HALLAZGO-INICIAL");
+for (let i = 0; i < ${ruidoKb}; i++) console.log("x".repeat(1024));
+for (let i = 0; i < 70; i++) console.log("ruido " + i);
+console.log("HALLAZGO-FINAL");
+process.exitCode = 1;
+`, { mode: 0o755 });
+  const r = spawnSync(process.execPath, [script, "--only=deadcode"], {
+    cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, PATH: `${bin}${path.delimiter}${process.env.PATH}` },
+  });
+  return { r, md: fs.readFileSync(path.join(cwd, "reports", "calidad.md"), "utf8") };
+}
+
+test("[MSF-843] el log del CI y el informe traen la salida completa del check que falló", () => {
+  const { r, md } = correrConPnpmFalso(200);
+  assert.equal(r.status, 1);
+  for (const marca of ["HALLAZGO-INICIAL", "HALLAZGO-FINAL"]) {
+    assert.ok(r.stdout.includes(marca), `stdout sin ${marca}`);
+    assert.ok(md.includes(marca), `calidad.md sin ${marca}`);
+  }
+  assert.match(r.stdout, /---- RESUMEN ----/);
+});
+
 // MSF-929: el store local de pnpm no pone rojo el escaneo de secretos, pero el código del repo se sigue escaneando completo.
 test("[MSF-929] .gitleaks.toml excluye el store/cachés de dependencias y no debilita el escaneo del código", (t) => {
   if (spawnSync("gitleaks", ["version"], { encoding: "utf8" }).status !== 0) return t.skip("gitleaks no está instalado");
