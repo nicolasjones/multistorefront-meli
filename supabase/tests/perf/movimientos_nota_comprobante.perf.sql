@@ -19,23 +19,25 @@
 --       `limit 25`, sin `count(*) over ()` ni joins a productos, motivos o depósitos). Solo con RLS y con
 --       `EXPLAIN (ANALYZE, BUFFERS)`.
 --
--- Observado por el autor (pg15 descartable, máquina cargada, load 12-17; los tiempos varían con la carga). «Migración
--- vigente» es `20270507290000` tal como estaba en `08a4ebced4f2` (desde entonces solo cambiaron comentarios) y
--- «script vigente» es este archivo con las variantes V1 a V3:
---   - V1, migración vigente: seis corridas, entre 109 y 189 ms con RLS y entre 168 y 380 ms sin RLS.
---   - V2, migración vigente y script vigente: seis corridas, entre 1,2 y 1,9 s con RLS y entre 3,6 y 5,4 s sin RLS.
---   - Sin RLS salió más lento que con RLS en V1 y en V2; no se investigó la causa.
---   - V3, migración vigente: una corrida con RLS y 5.000 comprobantes: `Hash Left Join` con `Seq Scan on
---     comprobantes_venta` de 5.000 filas (el plan estimaba 50).
+-- El script imprime el plan y el «Execution Time» de cada variante. Los tiempos y la relación entre roles y
+-- variantes varían entre corridas y máquinas; el script imprime los tiempos de cada una.
+--
+-- Cifra de referencia (observada por el autor en pg15 descartable, máquina cargada; otras corridas varían): V1 con
+-- RLS, entre 109 y 189 ms.
+--
+-- Observaciones cualitativas puntuales, observadas por el autor. «Migración vigente» es `20270507290000` tal como
+-- estaba en `08a4ebced4f2` (desde entonces solo cambiaron comentarios):
+--   - V3, migración vigente: en una corrida con RLS y 5.000 comprobantes, el plan fue un `Hash Left Join` con
+--     `Seq Scan on comprobantes_venta` de 5.000 filas (el plan estimaba 50).
 --   - Una corrida con RLS y 300.000 comprobantes (se cambió `generate_series(1, 5000)` por 300000 para esa prueba),
 --     con una versión intermedia de la migración, sin commitear, sobre `b46d47c6044e`, que usaba un join lateral en
---     lugar de la subconsulta: `Seq Scan` de 300.000 filas, 152 ms. La migración vigente (V1) en esa misma siembra
---     usó `Index Scan using comprobantes_venta_id_organizacion_id_key`, 110 ms.
+--     lugar de la subconsulta: `Seq Scan` de 300.000 filas. La migración vigente (V1) en esa misma siembra usó
+--     `Index Scan using comprobantes_venta_id_organizacion_id_key`.
 --   - Con versiones del script anteriores a `08a4ebced4f2` (la de `ee70034e76dd` y la edición posterior que agregó
---     `authenticated`), cuya comparación hacía el cruce antes de paginar con join común: sin RLS, dos de tres
---     corridas de 14 a 15 s (esa versión analizaba solo `movimientos_stock`); con RLS, cuatro corridas de 13 a 17 s,
---     y en la de 16,8 s el plan fue un nested loop con `Rows Removed by Join Filter: 187475000`. Causa no
---     verificada; no se probó si influyó que no se analizara `comprobantes_venta`.
+--     `authenticated`), cuya comparación hacía el cruce antes de paginar con join común y que analizaban solo
+--     `movimientos_stock`: una corrida con RLS, de unos 17 s, mostró un plan nested loop con
+--     `Rows Removed by Join Filter: 187475000`. Causa no verificada; no se probó si influyó que no se analizara
+--     `comprobantes_venta`.
 begin;
 set search_path = public, extensions;
 
