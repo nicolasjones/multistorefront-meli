@@ -237,8 +237,8 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
   `lote42_rls_ventas_nivel_por_empresa` suma el superadmin con y sin contexto y fija que las políticas usan el conjunto.
 - **Comentarios corregidos sin editar migraciones aplicadas (`250000`, `250100`, lote 44):** una migración aplicada es inmutable, así que
   la corrección del comentario de `240200` (`nivel_ventas_en_empresa` sí es ejecutable por `authenticated` desde `20261213100200`) y la
-  explicación de por qué `validar_documento_cliente` y `validar_cuit_empresa` son `security definer` (las funciones auxiliares
-  `cuit_valido` y `documento_cliente_valido` están revocadas a `authenticated`) quedan como `comment on function` en migraciones nuevas.
+  explicación de por qué `validar_documento_cliente` y `validar_cuit_empresa` son `security definer` (`validar_documento_cliente`
+  llama a `documento_cliente_valido`, que usa `cuit_valido`, y `validar_cuit_empresa` llama a `cuit_valido`; ambas auxiliares están revocadas a `authenticated`) quedan como `comment on function` en migraciones nuevas.
 - **Prueba global (`lote42_superficie_global_seguridad`):** toda `security definer` de los esquemas propios fija
   `search_path = ''`; `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda (agregar una exige editar el
   test a propósito); `anon` no tiene `USAGE` sobre `private`, `dominio` ni `analitica`.

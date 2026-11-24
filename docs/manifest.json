@@ -1032,9 +1032,9 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "0c1251a1707a4d80b960ced975c606223eebd5ea1f61db4aa5349feb7312fdf2",
-      "sourceHash": "ac71c3a7ac7bcfc29e7942cb82410c1ee38347de714d8a18269a3a2987ea06a7",
-      "sourceAt": "63e5a8670",
+      "pageHash": "141d0cf041bba695598a54c0cda7aff1f939b1f53c04ab856da828d5c46e0fbe",
+      "sourceHash": "9d3b7db986d8b7c6648a9080f378822d0a6690aee3ab729441a2407e13f84554",
+      "sourceAt": "b2ba90a79",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
@@ -1056,7 +1056,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "63e5a8670"
+      "commit": "b2ba90a79"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",

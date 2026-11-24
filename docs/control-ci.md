@@ -361,9 +361,8 @@ Propuestas exactas; ninguna se aplicó.
 - **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
   falla a propósito: mientras el CI está pausado no se mergea.
 
-Esto reemplaza al merge queue: GitHub no expone `merge_queue` por API para este
-repo (el ruleset lo rechaza), pero el workflow ya soporta `merge_group`, así que
-si se habilita desde la UI/plan no hay que tocar nada.
+Esto reemplaza a la cola de merge; si se activa más adelante, el procedimiento y el motivo están una sola vez en «Pendientes del lote 36 que
+necesitan acción de Nicolás» (MSF-755), arriba.
 
 ### El gate se lee por rulesets, no por `/branches/<rama>/protection` (MSF-755)
 
