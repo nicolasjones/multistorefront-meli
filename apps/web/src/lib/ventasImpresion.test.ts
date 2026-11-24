@@ -37,7 +37,15 @@ describe('elegibilidad (FR-002, FR-011, FR-012)', () => {
     expect(documentosElegibles({ tipo: 'factura', estado: 'confirmada' })).toEqual(['factura', 'remito'])
   })
 
-  it.each(['borrador', 'pendiente'])('una factura en %s no ofrece nada y explica el motivo', (estado) => {
+  it.each(['aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda'])(
+    'una factura %s se imprime igual que una confirmada: cobrar no quita la impresión',
+    (estado) => {
+      expect(documentosElegibles({ tipo: 'factura', estado })).toEqual(['factura', 'remito'])
+      expect(motivoNoImprimible({ tipo: 'factura', estado })).toBeNull()
+    },
+  )
+
+  it.each(['borrador', 'pendiente', 'anulada'])('una factura en %s no ofrece nada y explica el motivo', (estado) => {
     expect(documentosElegibles({ tipo: 'factura', estado })).toEqual([])
     expect(motivoNoImprimible({ tipo: 'factura', estado })).toBe(MENSAJE_NO_CONFIRMADA)
   })

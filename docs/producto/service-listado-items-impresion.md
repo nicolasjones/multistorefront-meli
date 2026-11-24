@@ -183,7 +183,7 @@ La anulación no se puede deshacer: la reparación queda marcada como anulada y 
 
 Desde la ficha:
 
-- **Imprimir orden**: la orden de ingreso, para darle al cliente cuando deja el equipo. Lleva la tienda, el número, la fecha de ingreso, el cliente, el equipo, el número de serie, los accesorios, la falla informada, el técnico, la entrega prevista y las condiciones. No muestra importes. Está disponible siempre. Si todavía no se cargaron las condiciones del servicio, el documento dice «Condiciones del servicio: pendiente de confirmar.».
+- **Imprimir orden**: la orden de ingreso, para darle al cliente cuando deja el equipo. Lleva la tienda, el número, la fecha de ingreso, el cliente, el equipo, el número de serie, los accesorios, la falla informada, el técnico y la entrega prevista. No muestra importes ni texto provisional: las condiciones del servicio no se imprimen hasta que el cliente las defina. Está disponible siempre.
 - **Imprimir remito**: el remito de entrega. Aparece solo cuando la reparación ya fue entregada y no está anulada. Muestra la mano de obra y los repuestos con sus subtotales, el total sin IVA y los datos de la entrega. Nunca muestra costos internos ni ganancia.
 
 ![Remito de entrega con mano de obra, repuestos y total sin IVA](img/service-tecnico/16-remito-de-entrega.png)

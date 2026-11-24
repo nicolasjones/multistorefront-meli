@@ -31,6 +31,8 @@ import {
   formularioVacio,
   guardarComprobante,
   mensajeDeErrorComprobante,
+  esSinAccesoATienda,
+  MENSAJE_SIN_ACCESO_A_TIENDA,
   obtenerClienteParaComprobante,
   obtenerComprobante,
   obtenerNotaDePresupuestoDeTienda,
@@ -91,7 +93,7 @@ import {
 } from '../../lib/notaCredito'
 import { ETIQUETA_ANULAR } from '../../lib/anularComprobante'
 import { DocumentosComprobante } from '../../components/ventas/DocumentosComprobante'
-import { documentosElegibles, type TipoDocumento } from '../../lib/ventasImpresion'
+import { documentosElegibles, ESTADOS_FACTURA_VIVA, type TipoDocumento } from '../../lib/ventasImpresion'
 import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ventasConfirmacion'
 import {
   cambiarEstadoComprobante,
@@ -118,9 +120,8 @@ const RUTA_COMPROBANTES = '/ventas/comprobantes'
 const RUTA_PAGOS = '/ventas/pagos'
 const SIN_DATO = '—'
 // MSF-598: el despacho, el envío y los faltantes viven en cualquier estado vivo de la factura (no solo «confirmada»).
-// Debe coincidir con la lista de estados vivos de `cambiar_estado_despacho`, `registrar_faltantes_despacho` y
-// `guardar_envio_comprobante` (migración 20270202202101).
-const ESTADOS_DESPACHABLES: readonly string[] = ['confirmada', 'aceptado', 'en_proceso', 'armando', 'incompleto', 'cobrado', 'deuda']
+// Es la lista compartida de estados vivos (`ESTADOS_FACTURA_VIVA`), la de las RPC de despacho, faltantes, envío e impresión.
+const ESTADOS_DESPACHABLES: readonly string[] = ESTADOS_FACTURA_VIVA
 // La relectura posterior al cobro falló: el cobro YA está en la base, así que la pantalla no cae
 // en el error general (parecería que el cobro falló). Se avisa y se recurre a recargar la página.
 const MENSAJE_RELECTURA_TRAS_COBRO =
@@ -235,7 +236,9 @@ export function ComprobanteVenta() {
       setErrorCarga(
         esComprobanteInexistente(error)
           ? 'Ese comprobante no existe o no pertenece a tu organización.'
-          : mensajeDeErrorComprobante(error, 'No pudimos cargar el comprobante.'),
+          : esSinAccesoATienda(error)
+            ? `${MENSAJE_SIN_ACCESO_A_TIENDA}.`
+            : mensajeDeErrorComprobante(error, 'No pudimos cargar el comprobante.'),
       )
     }
   }, [id])

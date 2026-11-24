@@ -361,6 +361,15 @@ describe('Comprobante de venta · edición (F-VTA-05)', () => {
   })
 })
 
+describe('Comprobante de venta · comprobante de otra tienda', () => {
+  it('dice que el rol no ve esa tienda, sin el texto genérico de rol cambiado', async () => {
+    mocks.obtenerComprobante.mockRejectedValue({ code: '42501', message: 'Tu rol no puede ver comprobantes de esta tienda' })
+    render(arbol('/ventas/comprobantes/k-otra-tienda'))
+    expect(await screen.findByText('Tu rol no puede ver comprobantes de esta tienda.')).toBeInTheDocument()
+    expect(screen.queryByText(/Puede que tu rol haya cambiado/)).not.toBeInTheDocument()
+  })
+})
+
 describe('Comprobante de venta · empresa activa (Principio VIII, FR-007)', () => {
   it('en un alta, cambiar la empresa activa reencuadra la Tienda a la nueva', async () => {
     const vista = render(arbol('/ventas/comprobantes/nuevo'))

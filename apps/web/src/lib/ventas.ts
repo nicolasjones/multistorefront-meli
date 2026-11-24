@@ -151,6 +151,14 @@ export function esComprobanteInexistente(error: unknown): boolean {
   return (error as ErrorDeBase)?.code === 'P0002'
 }
 
+// El comprobante existe pero es de una tienda a la que la persona no tiene acceso (`obtener_comprobante`, 42501). La base ya
+// lo dice en castellano; el texto genérico de 42501 («tu rol puede haber cambiado, recargá») despista en este caso.
+export const MENSAJE_SIN_ACCESO_A_TIENDA = 'Tu rol no puede ver comprobantes de esta tienda'
+export function esSinAccesoATienda(error: unknown): boolean {
+  const e = error as ErrorDeBase
+  return e?.code === '42501' && e.message === MENSAJE_SIN_ACCESO_A_TIENDA
+}
+
 // Campo al que apunta un error de validación de la base (`hint`), con el mensaje en castellano que ella arma.
 export function errorDeCampo(error: unknown): { campo: CampoComprobante; mensaje: string } | null {
   const e = error as ErrorDeBase
