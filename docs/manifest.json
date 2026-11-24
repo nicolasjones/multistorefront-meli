@@ -661,9 +661,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "a2178fc30899db520b0e4a07ae8774d3c83197024f3c261189fa473534aa4298",
+      "pageHash": "3b0010c59b4d5f08611dfca9cf80d03fd0e1b0b3226752b020b273eb78fc866d",
       "sourceHash": "1fca73533acc64bb309f9e49b999abaed9eee7afb7fc94705dcae52377a240bc",
-      "sourceAt": "eedac66a",
+      "sourceAt": "c95e6c87e",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -674,7 +674,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "eedac66a"
+      "commit": "c95e6c87e"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -709,9 +709,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "77a7b8f47129e6c8a97ed13c44b4a2cd716cad5e4c01541b95d17836751e5432",
-      "sourceHash": "6fa723774b318560d8130a9e4265a2ae905a24911900f900807f13b9669fd91f",
-      "sourceAt": "2838b473",
+      "pageHash": "d6035e5fa510c443cd9daaa6aa235a72a7ed377e087c9f45a0a57fab96b56066",
+      "sourceHash": "d618674745d3fceca04576dfeb867cc1419a399c3addec4f27ba5ca5e962c6af",
+      "sourceAt": "20997c41d",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -723,7 +723,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "2838b473"
+      "commit": "20997c41d"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1032,15 +1032,16 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "ac5270fa91c2fbc93aa1fbcb9257caeafe71c1af79d73d20a7bf4a63cdea292c",
-      "sourceHash": "d4f5c42043b87b4ff4fb1f0f25d8798260f83a32752392db3008d70974c8b57f",
-      "sourceAt": "eedac66a",
+      "pageHash": "0c1251a1707a4d80b960ced975c606223eebd5ea1f61db4aa5349feb7312fdf2",
+      "sourceHash": "ac71c3a7ac7bcfc29e7942cb82410c1ee38347de714d8a18269a3a2987ea06a7",
+      "sourceAt": "63e5a8670",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
         "apps/web/src/pages/empresas/list.tsx",
         "apps/web/src/pages/empresas/edit.tsx",
         "apps/web/src/hooks/useResumenEmpresas.ts",
+        "apps/web/src/hooks/usePuedeEditarEmpresas.ts",
         "apps/web/src/lib/eventosActividad.ts",
         "apps/web/src/lib/destinoActividad.ts",
         "apps/web/src/lib/whatsapp.ts",
@@ -1055,7 +1056,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "eedac66a"
+      "commit": "63e5a8670"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1181,9 +1182,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "92933c77e20af8e50a284c46c34114afd86bf9217f5217f2ffb1b718c3babe41",
-      "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
-      "sourceAt": "871bcff8",
+      "pageHash": "7e707c3f9f08b833837c3aac14d94ab9b00aa6f8ab36999ba67f0324b4907f4e",
+      "sourceHash": "53ea3ac6f756e53778527fb381aefc0c56801daf76a8c4ca5a1f727a3262407d",
+      "sourceAt": "c27dd8bbe",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1192,6 +1193,7 @@
         "supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql",
         "supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql",
         "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
+        "supabase/migrations/20270507250000_ventas_lectura_por_empresa_una_vez.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
         "supabase/verificacion/higiene_base_migraciones.sql",
@@ -1199,7 +1201,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "871bcff8"
+      "commit": "c27dd8bbe"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1552,9 +1554,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "05f25c320a12da8b5d64c71bc270f30f3aff6cddd92088a77e043bc6fafe182e",
-      "sourceHash": "3b78b29781cb3ea53337ba1f69761c1d55302f93477c6ac5f9ae6bdaa3360d15",
-      "sourceAt": "871bcff8",
+      "pageHash": "3b17c716a2efc2979b443572b72ddaeca2bf34f2ac5f6bc7cde18fa4aee8a90f",
+      "sourceHash": "28c9e3134da57757c1c07a5c542f3c79fc8ca61bfa134c15566046e54fd0fa00",
+      "sourceAt": "c27dd8bbe",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1569,17 +1571,21 @@
         "supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql",
         "supabase/migrations/20270507180600_categorias_lectura_para_stock.sql",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
+        "supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql",
+        "supabase/migrations/20270507250000_ventas_lectura_por_empresa_una_vez.sql",
         "supabase/tests/database/permisos_por_rol.test.sql",
         "supabase/tests/database/editar_matriz_permisos.test.sql",
         "supabase/tests/database/rol_tecnico.test.sql",
         "supabase/tests/database/rol_tecnico_por_empresa.test.sql",
         "supabase/tests/database/roles_por_empresa.test.sql",
         "supabase/tests/database/lote32_documentos_escritura_consulta.test.sql",
+        "supabase/tests/database/lote42_rls_ventas_nivel_por_empresa.test.sql",
+        "apps/web/src/hooks/usePuedeEditarEmpresas.ts",
         "apps/web/src/lib/permisos.ts",
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "871bcff8"
+      "commit": "c27dd8bbe"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",

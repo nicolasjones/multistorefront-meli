@@ -85,3 +85,9 @@ create policy rma_items_select on dominio.rma_items
         and r.empresa_id in (select private.empresas_con_ventas_lectura())
     )
   );
+
+-- Corrección de un comentario impreciso de 20270507240200 (esa migración ya está aplicada y no se edita): `nivel_ventas_en_empresa`
+-- NO tiene hoy el EXECUTE revocado a `authenticated`: `20261203100400` se lo revocó y `20261213100200` se lo volvió a conceder.
+-- El envoltorio `puede_leer_ventas_empresa` sigue siendo válido (mantiene la función auxiliar fuera de la API), pero no es imprescindible.
+comment on function private.puede_leer_ventas_empresa(uuid) is
+  'true si la persona actual tiene Ventas al menos en lectura en esa empresa concreta (no en la organización). Envoltorio security definer de nivel_ventas_en_empresa (que authenticated puede ejecutar desde 20261213100200). Las políticas SELECT de comprobantes y RMA usan ahora private.empresas_con_ventas_lectura().';

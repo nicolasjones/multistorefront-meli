@@ -3,7 +3,7 @@
 -- dígito verificador. Importación: la fila inválida se rechaza con su motivo.
 begin;
 
-select plan(23);
+select plan(24);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into dominio.empresas (id, organizacion_id, nombre) values ('e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Tienda A');
@@ -55,6 +55,10 @@ select is((select bool_or(has_function_privilege('anon', f, 'execute')) from unn
   'anon tampoco');
 select is((select count(*)::int from pg_trigger where tgname in ('clientes_validar_documento', 'empresas_validar_cuit') and not tgisinternal), 2,
   'los dos disparadores existen');
+
+select ok(obj_description('private.validar_documento_cliente()'::regprocedure, 'pg_proc') ~ 'SECURITY DEFINER a propósito'
+  and obj_description('private.validar_cuit_empresa()'::regprocedure, 'pg_proc') ~ 'SECURITY DEFINER a propósito',
+  'el catálogo explica por qué los disparadores son security definer');
 
 select * from finish();
 rollback;

@@ -9,6 +9,7 @@ sources:
   - supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql
   - supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql
   - supabase/migrations/20270507250000_ventas_lectura_por_empresa_una_vez.sql
+  - supabase/migrations/20270507250100_documentar_definer_validacion_dni_cuit.sql
   - supabase/tests/database/seguridad_global_higiene_base.test.sql
   - supabase/verificacion/higiene_base.sql
   - supabase/verificacion/higiene_base_migraciones.sql
@@ -234,6 +235,10 @@ Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno 
   por fila (dependía de la fila: no era InitPlan) y comparan `empresa_id in (select private.empresas_con_ventas_lectura())`, una
   subconsulta no correlacionada que Postgres evalúa una vez. La semántica es la misma (usa `nivel_ventas_en_empresa`). El pgTAP
   `lote42_rls_ventas_nivel_por_empresa` suma el superadmin con y sin contexto y fija que las políticas usan el conjunto.
+- **Comentarios corregidos sin editar migraciones aplicadas (`250000`, `250100`, lote 44):** una migración aplicada es inmutable, así que
+  la corrección del comentario de `240200` (`nivel_ventas_en_empresa` sí es ejecutable por `authenticated` desde `20261213100200`) y la
+  explicación de por qué `validar_documento_cliente` y `validar_cuit_empresa` son `security definer` (las funciones auxiliares
+  `cuit_valido` y `documento_cliente_valido` están revocadas a `authenticated`) quedan como `comment on function` en migraciones nuevas.
 - **Prueba global (`lote42_superficie_global_seguridad`):** toda `security definer` de los esquemas propios fija
   `search_path = ''`; `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda (agregar una exige editar el
   test a propósito); `anon` no tiene `USAGE` sobre `private`, `dominio` ni `analitica`.
