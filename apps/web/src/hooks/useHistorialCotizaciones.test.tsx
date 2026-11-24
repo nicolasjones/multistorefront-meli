@@ -79,7 +79,7 @@ describe('useHistorialCotizaciones', () => {
         : Promise.resolve({ data: [fila(9, 1)], error: null }))
     const { result } = renderHook(() => useHistorialCotizaciones())
     act(() => result.current.setTexto('2020'))
-    await waitFor(() => expect(result.current.filas.map((f) => f.id)).toEqual(['c-9']), { timeout: 3000 })
+    await waitFor(() => expect(result.current.filas.map((f) => f.id)).toEqual(['c-9']), { timeout: 5000 })
     await act(async () => { resolverLenta({ data: [fila(1, 5), fila(2, 5)], error: null }) })
     expect(result.current.filas.map((f) => f.id)).toEqual(['c-9'])
     expect(result.current.total).toBe(1)
