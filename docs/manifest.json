@@ -560,9 +560,9 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "931d9167a80344c462254c2b4c78b7b0760176fe7a36f579eb4561509b25792d",
+      "pageHash": "e5ddc8a8840f36269587be4dfc9ea21f9087ea8f914ed689ccd87fc87515ba17",
       "sourceHash": "178c6e30dc36b96af0c20218ffe8aa51e02e75aa8f47815fa4f9d0f06962c175",
-      "sourceAt": "47f03f09a",
+      "sourceAt": "07661f192",
       "sources": [
         "specs/20261016-130000-clientes-alta-y-busqueda",
         "specs/20261023-120000-migracion-inicial-de-datos",
@@ -604,7 +604,7 @@
         "supabase/migrations/20270507180100_revertir_cobro.sql"
       ],
       "owner": "producto",
-      "commit": "47f03f09a"
+      "commit": "07661f192"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
@@ -2798,14 +2798,14 @@
     },
     "docs/seguridad-tienda-compra-y-cuentas.md": {
       "title": "Revisión de seguridad · Tienda: compra y cuentas (MSF-176)",
-      "pageHash": "e98eef9126bcc26531a3414c20a1da2ecfe780c7b572f98eac202d051abaa1ad",
+      "pageHash": "02ffe00f1ae992c4691c26b656fe1af5bd628a17f3d61a611081e3549f161ea4",
       "sourceHash": "497829d80fd844a3c82f4dfc93548eddd07708793c201e469d772981f99d175a",
-      "sourceAt": "12525f33",
+      "sourceAt": "12525f333",
       "sources": [
         "specs/20270306-100000-tienda-compra-y-cuentas"
       ],
       "owner": "plataforma",
-      "commit": "12525f33"
+      "commit": "12525f333"
     },
     "docs/seguridad-tienda-opiniones.md": {
       "title": "Revisión de seguridad · Opiniones de productos (MSF-467)",
