@@ -3319,9 +3319,9 @@
     },
     "docs/stock.md": {
       "title": "Stock · movimientos, alertas e historial (MSF-136 y MSF-231)",
-      "pageHash": "37ad30337f174139c38f1d78736cf61c89615cc5297b06c35ff41547ed835769",
+      "pageHash": "36da026375754c645cd03da055bc4540e03f0f46f60967b4d658f244f1e54e74",
       "sourceHash": "48ba1770f6c36f50b9c25019dc22f359ebebbc2dc3e4d9d13b1117db13f6da51",
-      "sourceAt": "2e6bed66f",
+      "sourceAt": "7b3669fa8",
       "sources": [
         "specs/20261017-120000-stock-movimientos",
         "specs/20261022-180000-stock-depositos-y-reservas",
@@ -3345,7 +3345,7 @@
         "supabase/tests/database/stock_historial.test.sql"
       ],
       "owner": "producto",
-      "commit": "2e6bed66f"
+      "commit": "7b3669fa8"
     },
     "docs/system-design/README.md": {
       "title": "System design · San Javucho / Mundo JC",
