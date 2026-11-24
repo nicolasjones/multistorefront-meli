@@ -1,3 +1,4 @@
+import { NoIndexarPanel } from './components/base/NoIndexarPanel'
 import { Authenticated, Refine } from '@refinedev/core'
 import { RefineSnackbarProvider, ThemedLayout, useNotificationProvider } from '@refinedev/mui'
 import { dataProvider as supabaseDataProvider } from '@refinedev/supabase'
@@ -955,6 +956,7 @@ function App() {
             </ContextoPanelProvider>
             <UnsavedChangesNotifier />
             <DocumentTitleHandler />
+            <NoIndexarPanel />
           </Refine>
         </RefineSnackbarProvider>
       </ThemeProvider>

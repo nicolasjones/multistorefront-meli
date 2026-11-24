@@ -159,6 +159,8 @@ servidor (`hooks/useBuscadorCatalogo`):
 - **Aviso de truncado:** se pide una fila de más para detectar el corte. Si hay más de 500
   coincidencias se muestra «Hay más de 500 productos: escribí para buscar el que necesitás.» y el
   aviso sigue visible después de elegir (no lo tapa el texto del producto elegido).
+- **Filtro de tiendas del historial:** trae hasta 500 tiendas (se pide una de más para detectar el corte). Si hay más,
+  muestra «Se muestran las primeras 500 tiendas; hay más.» bajo las píldoras, para que nadie crea que la lista está completa.
 - **Lo elegido se conserva:** el proveedor o producto elegido se guarda aparte de la lista
   visible, así sigue en el campo aunque cambie la búsqueda o el registro no esté en la página
   actual. Al elegir se vuelve a la lista completa.

@@ -158,6 +158,8 @@ desmontar. La caché de `seoDeTienda` vence a los 5 minutos y `recortar()` cuent
 ficha es el logo público de la tienda (el bucket de imágenes es privado y su URL firmada vence) y el JSON-LD de la ficha no lleva
 `image`.
 
+**Panel y buscadores.** `App.tsx` (solo en los hosts del panel) monta `NoIndexarPanel`, que agrega `robots` `noindex,nofollow` mientras el panel está montado. Cubre a quien ejecuta JavaScript; un buscador que no lo ejecuta ve `index.html` sin `noindex`, porque ese archivo es el mismo del panel y de la tienda. La solución completa es un `map` por host del panel en `apps/web/nginx.conf` que emita `X-Robots-Tag` (como el que ya hay para `/seguimiento/`); está en el seguimiento MSF-1003.
+
 **Contrato de cookies para F-TDA-24:** `leerConsentimiento()` (`'aceptadas' | 'rechazadas' | null`, `null` cuenta
 como rechazadas), `guardarConsentimiento(valor)` (persiste en `localStorage`), `useConsentimientoCookies()` y el
 evento de ventana `tienda:consentimiento-cookies`. Ninguna analítica puede cargarse sin `'aceptadas'`.
