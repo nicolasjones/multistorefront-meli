@@ -711,9 +711,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "b47627dca90260f32726da5183a5516e6e61eaf3b51d4d788f7b4739852b5329",
+      "pageHash": "41c4d556629d02dcc20a1b8e05e61136edff24012a53c879a95dde12f414be21",
       "sourceHash": "38ea44581132e64de6b8ecc9e21fd3fd2facde66e515734d16a3110efdf8799b",
-      "sourceAt": "9e94da6b5",
+      "sourceAt": "d865706b3",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -725,7 +725,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "9e94da6b5"
+      "commit": "d865706b3"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
