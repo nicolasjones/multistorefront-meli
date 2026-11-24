@@ -22,7 +22,7 @@ lectura. No toca el stock ni los comprobantes vivos.
   `public.historial_ultimo_numero(p_tipo, p_empresa_id)`.
 - Worker `workers/historial-importador` y flow
   `infra/kestra/flows/historial-importador.yml`.
-- Pantalla `/historial/importar` en `apps/web`.
+- Pantalla `/historial/importar` en `apps/web`. «Descargar plantilla CSV» baja un CSV con los encabezados del tipo elegido (`ENCABEZADOS_PLANTILLA_HISTORIAL`); un test los compara con `workers/historial-importador/src/campos.ts` para que no se desalineen.
 
 ## Permisos y RLS
 
@@ -299,7 +299,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
 - **`visuallyHidden`**: `pages/historial/list.tsx` replica la constante local
   que ya usan Clientes, Proveedores y Ranking (no existe un helper compartido);
   el comentario `estilos-sueltos: ok` documenta la excepción a la regla de lint.
-- **gitleaks en `reports/calidad.md`**: el escáner no corre en este entorno
+- **gitleaks**: el escáner no corre en este entorno
   (sin binario y sin permiso sobre el socket de Docker), así que no hay salida
   reproducible. `gitleaks detect --no-git` escanea todo el árbol, no solo esta
   historia. Evidencia concreta:
@@ -307,7 +307,7 @@ Storage. Nunca en el mismo PR que crea las tablas.
     búsqueda de `password|secret|token|api_key|service_role|eyJ…|BEGIN … PRIVATE`
     solo da `docs/historial-ventas.md:58,60` (nombres de variables
     `PGPASSWORD` y `SUPABASE_SERVICE_ROLE_KEY`, sin valores) y
-    `reports/calidad.md:5` (la palabra «gitleaks»). Cero credenciales.
+    el informe que genera `pnpm calidad` (la palabra «gitleaks»). Cero credenciales.
   - Hits probables del árbol completo, todos falsos positivos: contraseñas de
     fixtures de test (`apps/web/e2e/permisos-por-empresa.e2e.ts:12`,
     `stock-actual-vivo.e2e.ts:12`, `stock-concurrencia.e2e.ts:14`,

@@ -7,11 +7,16 @@ const mocks = vi.hoisted(() => ({
   useOrganizacionDeTrabajo: vi.fn(),
   solicitar: vi.fn(),
   consultar: vi.fn(),
+  descargarCsv: vi.fn(),
 }))
 
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../hooks/useOrganizacionDeTrabajo', () => ({ useOrganizacionDeTrabajo: mocks.useOrganizacionDeTrabajo }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
+vi.mock('../../lib/migracionCsv', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/migracionCsv')>()),
+  descargarCsv: mocks.descargarCsv,
+}))
 vi.mock('../../lib/historial', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/historial')>()
   return {
@@ -100,6 +105,16 @@ describe('HistorialImportar', () => {
     expect(boton).toHaveAttribute('aria-describedby', 'ayuda-planilla')
     expect(screen.getByLabelText('Planilla del historial')).toHaveAttribute('aria-describedby', 'ayuda-planilla')
     expect(screen.getByText('Hasta 50 MB. Formato .csv o .xlsx, con una fila por registro.')).toHaveAttribute('id', 'ayuda-planilla')
+  })
+
+  it('descarga la plantilla CSV del tipo elegido', () => {
+    abrir()
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar plantilla CSV' }))
+    expect(mocks.descargarCsv).toHaveBeenLastCalledWith('plantilla-historial-comprobantes.csv', expect.stringMatching(/^Tienda,Tipo,Comprobante,/))
+    fireEvent.mouseDown(screen.getByLabelText('Tipo de importación'))
+    fireEvent.click(screen.getByRole('option', { name: 'Cotizaciones del dólar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar plantilla CSV' }))
+    expect(mocks.descargarCsv).toHaveBeenLastCalledWith('plantilla-historial-cotizaciones.csv', 'Fecha,Dólar comprador,Dólar vendedor,Cargó\n')
   })
 
   it('no permite importar sin archivo', () => {

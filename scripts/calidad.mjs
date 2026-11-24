@@ -63,7 +63,11 @@ function add(name, res, { hint = "" } = {}) {
   const status = res.missing ? "saltado" : res.code === 0 ? "ok" : "hallazgos";
   rows.push({ name, status, out: res.out, hint });
   console.log(`\n== ${name}: ${status}${res.missing ? " (herramienta no disponible)" : ""}`);
-  if (!res.missing && res.out) console.log(res.out.split("\n").slice(-40).join("\n"));
+  // Un check con hallazgos imprime su salida completa: el log del paso del CI es lo primero que se
+  // lee en el PR y, si se recorta, el hallazgo puede quedar afuera (MSF-843).
+  if (!res.missing && res.out) {
+    console.log(status === "hallazgos" ? res.out : res.out.split("\n").slice(-40).join("\n"));
+  }
 }
 
 // Red de seguridad: cualquier error inesperado se informa con su causa y sale por el mismo camino (exit 1).
@@ -154,7 +158,7 @@ const md = [
   `|---|---|`,
   ...rows.map((r) => `| ${r.name} | ${r.status} |`),
   ``,
-  ...fallos.flatMap((r) => [`## ${r.name}`, "", "```", r.out.split("\n").slice(-60).join("\n"), "```", ""]),
+  ...fallos.flatMap((r) => [`## ${r.name}`, "", "```", r.out, "```", ""]),
   `Salida completa de cada herramienta: \`reports/calidad.log\` (artifact \`calidad-reporte\`).`,
   ``,
 ].join("\n");
@@ -162,5 +166,11 @@ try { fs.writeFileSync(path.join(dir, "calidad.md"), md); } catch { /* best-effo
 
 console.log(`\n---- RESUMEN ----`);
 for (const r of rows) console.log(`  ${r.status.padEnd(10)} ${r.name}`);
-if (fallos.length) { console.log(`\n${fallos.length} check(s) con hallazgos.`); process.exit(1); }
-console.log(`\nTodo OK.`);
+if (fallos.length) {
+  console.log(`\n${fallos.length} check(s) con hallazgos.`);
+  // `exitCode` y no `process.exit(1)`: con stdout a un pipe, `process.exit` puede descartar la cola
+  // que no entró en el buffer, justo el final del log (MSF-843).
+  process.exitCode = 1;
+} else {
+  console.log(`\nTodo OK.`);
+}
