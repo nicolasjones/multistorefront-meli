@@ -86,6 +86,8 @@ test('--permitidos: solo pasa si el omitido es EXACTAMENTE el esperado (mutació
   assert.match(r.mensaje, /no son los permitidos/);
   // Mismo archivo pero otro test de ese archivo omitido: tampoco.
   assert.equal(evaluar(reporteDe(corrido, conTitulo('apps/web/e2e/cuenta-web-cliente.e2e.ts', 'ingreso (SC-005)', 'skipped')), 1, PERMITIDOS).ok, false);
+  // Un archivo que solo TERMINA igual (xcuenta-web-cliente.e2e.ts) no es el permitido.
+  assert.equal(evaluar(reporteDe(corrido, conTitulo('apps/web/e2e/xcuenta-web-cliente.e2e.ts', 'recuperar (SC-006)', 'skipped')), 1, PERMITIDOS).ok, false);
   // Sin omitidos con --permitidos: pasa (el omitido es opcional; --max y --requeridos regulan lo demás).
   assert.equal(evaluar(reporteDe(corrido), 1, PERMITIDOS).ok, true);
   // Se siguen respetando el tope y el caso de nada corrido.

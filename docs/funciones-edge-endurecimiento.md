@@ -133,8 +133,8 @@ La lógica pasó a `handler.ts` (con pruebas) y los embeddings se piden **en lot
   `change-me` (`_shared/token.ts`). La petición se compara con `tokenValido` (`_shared/token.ts`): SHA-256 de ambos valores y `timingSafeEqual`,
   de modo que no se corta por longitud ni el tiempo revela el largo del token; sin token esperado o sin cabecera
   `x-aviso-token` responde 403 con un cuerpo uniforme («Falta autenticación.»). La usan los `handler.ts` de las cuatro
-  funciones de aviso y el de `entregar-webhook`. En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` (viene en
-  `supabase/functions/.env.example`) permite el valor de ejemplo; **no la definas en stg/prd**: si la función detecta un entorno no local (`ENVIRONMENT`/`APP_ENV`/`ENTORNO` en prod/stg/staging, o `SUPABASE_URL`, `API_EXTERNAL_URL` o `SUPABASE_PUBLIC_URL` con un host público; `kong` y `localhost` cuentan como local), IGNORA la variable, deja un `console.warn` sin datos y sigue exigiendo un token fuerte (`permitirTokenDebil`, `_shared/token.ts`). En stg/prd generá
+  funciones de aviso y el de `entregar-webhook`. En local, `AVISOS_PERMITIR_TOKEN_DEBIL=true` junto con la marca `ENTORNO_LOCAL=1` (o `ENVIRONMENT=local`; ambas vienen en
+  `supabase/functions/.env.example`) permite el valor de ejemplo; **no las definas en stg/prd**. La bandera falla cerrado (lista blanca): solo se aplica con esa marca local positiva y sin señal productiva (`ENVIRONMENT`/`APP_ENV`/`ENTORNO` en prod/stg/staging, o `SUPABASE_URL`, `API_EXTERNAL_URL` o `SUPABASE_PUBLIC_URL` con un host público, que ganan aunque la marca esté puesta). `kong` ya no cuenta como indicio de local (es el gateway interno también en stg/prd). Sin la marca, la función IGNORA la variable, deja un `console.warn` sin datos y sigue exigiendo un token fuerte (`permitirTokenDebil`, `_shared/token.ts`). En stg/prd generá
   los tokens con `openssl rand -hex 32` (en Kestra van en base64 como `SECRET_*`).
 - Esas cuatro funciones, que solo llama Kestra, ya no responden `Access-Control-Allow-Origin: *`.
 

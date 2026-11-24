@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { esEntornoProductivo, permitirTokenDebil, tokenDeEntorno, tokenValido } from './token.ts'
+import { esEntornoLocalExplicito, esEntornoProductivo, permitirTokenDebil, tokenDeEntorno, tokenValido } from './token.ts'
 
 const fuerte = 'a'.repeat(40)
 
@@ -21,18 +21,34 @@ describe('tokenDeEntorno', () => {
 
 const entorno = (vars: Record<string, string>) => (clave: string) => vars[clave]
 
-describe('AVISOS_PERMITIR_TOKEN_DEBIL solo vale en local', () => {
-  it('en local (kong, localhost, sin marca) la bandera se aplica', () => {
-    for (const url of ['http://kong:8000', 'http://127.0.0.1:54321', 'http://localhost:54321', undefined]) {
-      const vars: Record<string, string> = { AVISOS_PERMITIR_TOKEN_DEBIL: 'true' }
-      if (url) vars.SUPABASE_URL = url
-      assert.equal(permitirTokenDebil(entorno(vars), () => assert.fail('no debe avisar en local')), 'true', String(url))
+describe('AVISOS_PERMITIR_TOKEN_DEBIL solo vale con marca local explícita', () => {
+  it('con ENTORNO_LOCAL=1 (o ENVIRONMENT=local) y host local la bandera se aplica', () => {
+    for (const marca of [{ ENTORNO_LOCAL: '1' }, { ENTORNO_LOCAL: 'true' }, { ENVIRONMENT: 'local' }]) {
+      for (const url of ['http://kong:8000', 'http://127.0.0.1:54321', 'http://localhost:54321', undefined]) {
+        const vars: Record<string, string> = { AVISOS_PERMITIR_TOKEN_DEBIL: 'true', ...marca }
+        if (url) vars.SUPABASE_URL = url
+        assert.equal(permitirTokenDebil(entorno(vars), () => assert.fail('no debe avisar en local')), 'true', `${JSON.stringify(marca)} ${url}`)
+      }
     }
   })
-  it('con una URL pública o una marca de entorno productivo se IGNORA y avisa sin datos', () => {
-    for (const extra of [{ SUPABASE_URL: 'https://api.ejemplo.com' }, { API_EXTERNAL_URL: 'https://api.ejemplo.com' }, { ENVIRONMENT: 'production' }, { APP_ENV: 'STG' }]) {
+  it('sin marca local (kong, localhost o nada) se IGNORA y avisa', () => {
+    for (const url of ['http://kong:8000', 'http://localhost:54321', undefined]) {
       const avisos: string[] = []
-      const vars = { AVISOS_PERMITIR_TOKEN_DEBIL: 'true', ...extra }
+      const vars: Record<string, string> = { AVISOS_PERMITIR_TOKEN_DEBIL: 'true' }
+      if (url) vars.SUPABASE_URL = url
+      assert.equal(permitirTokenDebil(entorno(vars), (t) => avisos.push(t)), undefined, String(url))
+      assert.equal(avisos.length, 1)
+    }
+  })
+  it('con otros valores de la marca se IGNORA', () => {
+    for (const marca of [{ ENTORNO_LOCAL: '0' }, { ENTORNO_LOCAL: 'si' }, { ENTORNO_LOCAL: '' }, { ENVIRONMENT: 'dev' }]) {
+      assert.equal(permitirTokenDebil(entorno({ AVISOS_PERMITIR_TOKEN_DEBIL: 'true', ...marca }), () => {}), undefined, JSON.stringify(marca))
+    }
+  })
+  it('una señal productiva gana aunque la marca local esté puesta, y avisa sin datos', () => {
+    for (const extra of [{ SUPABASE_URL: 'https://api.ejemplo.com' }, { API_EXTERNAL_URL: 'https://api.ejemplo.com' }, { APP_ENV: 'STG' }, { ENTORNO: 'production' }]) {
+      const avisos: string[] = []
+      const vars = { AVISOS_PERMITIR_TOKEN_DEBIL: 'true', ENTORNO_LOCAL: '1', ...extra }
       assert.equal(permitirTokenDebil(entorno(vars), (t) => avisos.push(t)), undefined, JSON.stringify(extra))
       assert.equal(avisos.length, 1)
       assert.doesNotMatch(avisos[0], /ejemplo\.com|production|STG|change-me/)
@@ -43,6 +59,8 @@ describe('AVISOS_PERMITIR_TOKEN_DEBIL solo vale en local', () => {
   it('sin la bandera no avisa ni cambia nada', () => {
     assert.equal(permitirTokenDebil(entorno({ SUPABASE_URL: 'https://api.ejemplo.com' }), () => assert.fail('sin bandera')), undefined)
     assert.equal(esEntornoProductivo(entorno({ SUPABASE_URL: 'no es una url' })), false)
+    assert.equal(esEntornoProductivo(entorno({ SUPABASE_URL: 'http://kong:8000' })), false)
+    assert.equal(esEntornoLocalExplicito(entorno({})), false)
   })
 })
 

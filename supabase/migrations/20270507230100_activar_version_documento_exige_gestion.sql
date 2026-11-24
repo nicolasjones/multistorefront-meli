@@ -6,8 +6,10 @@
 -- control de funcionalidad, la exigencia de `puede_gestionar_documentos()` (42501). Sin cambios de firma ni de privilegios
 -- (`security definer`, `search_path = ''`; `public.activar_version_documento`: `revoke ... from public, anon`, `grant ... to authenticated`).
 --
--- Migración aditiva (solo redefine la función). Reversión (migración posterior): volver a la definición de
--- `20270507150000_activar_version_documento_valida_organizacion.sql`.
+-- Migración aditiva (solo redefine la función). Reversión (migración posterior): `create or replace function
+-- private.activar_version_documento(p_version_id uuid)` con la definición de
+-- `20270507150000_activar_version_documento_valida_organizacion.sql` (la misma sin el bloque de `puede_gestionar_documentos()`);
+-- firma y privilegios no cambian.
 
 create or replace function private.activar_version_documento(p_version_id uuid)
 returns void

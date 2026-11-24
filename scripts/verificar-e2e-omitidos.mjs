@@ -24,8 +24,8 @@ export function resumir(reporte) {
   return { total: pruebas.length, omitidos, corridos: pruebas.length - omitidos.length };
 }
 
-// `--permitidos=archivo.e2e.ts::fragmento del título,otro.e2e.ts::otro`: cada omitido tiene que ser EXACTAMENTE uno de esos (el archivo
-// termina en el nombre dado y el título contiene el fragmento). Sin esto, `--max=1` toleraba cualquier omitido, no solo el esperado.
+// `--permitidos=archivo.e2e.ts::fragmento del título,otro.e2e.ts::otro`: cada omitido tiene que ser EXACTAMENTE uno de esos (el nombre del
+// archivo es IGUAL al dado y el título contiene el fragmento; un título con coma no se puede listar). Sin esto, `--max=1` toleraba cualquier omitido, no solo el esperado.
 export function parsearPermitidos(valor) {
   const partes = String(valor).split(',');
   const permitidos = partes.map((p) => { const [archivo, ...titulo] = p.split('::'); return { archivo, titulo: titulo.join('::') }; });
@@ -36,7 +36,7 @@ export function parsearPermitidos(valor) {
 }
 
 export const omitidoPermitido = (omitido, permitidos) =>
-  permitidos.some((p) => String(omitido.archivo ?? '').endsWith(p.archivo) && String(omitido.titulo ?? '').includes(p.titulo));
+  permitidos.some((p) => String(omitido.archivo ?? '').split(/[\\/]/).pop() === p.archivo && String(omitido.titulo ?? '').includes(p.titulo));
 
 export function evaluar(reporte, maximoOmitidos, permitidos = null) {
   const { total, omitidos, corridos } = resumir(reporte);

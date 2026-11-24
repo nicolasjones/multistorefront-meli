@@ -15,8 +15,9 @@ export function tokenDeEntorno(valor: string | undefined, permitirDebil: string 
   return valor
 }
 
-// Hosts del stack local (CLI de Supabase / Docker). `kong` es el gateway interno también en STG y PRD (ver `protocolo.ts`), así
-// que NO delata un entorno productivo: solo un host público (o una marca explícita de entorno) lo hace.
+// Hosts internos o locales: NO delatan un entorno productivo. Es solo la señal NEGATIVA (un host público sí lo delata); NINGÚN host
+// de esta lista prueba que el entorno sea local (`kong` es el gateway interno también en STG y PRD, ver `protocolo.ts`): para
+// eso hace falta la marca positiva de `esEntornoLocalExplicito`.
 const HOSTS_LOCALES = /^(localhost|127(\.\d{1,3}){3}|\[?::1\]?|0\.0\.0\.0|kong|host\.docker\.internal|supabase_kong_.*|.*\.local|.*\.localhost)$/i
 const ENTORNOS_PRODUCTIVOS = /^(prod|prd|production|produccion|producción|stg|stage|staging)$/i
 
@@ -36,13 +37,21 @@ export function esEntornoProductivo(leer: (clave: string) => string | undefined)
   return false
 }
 
-// Valor de `AVISOS_PERMITIR_TOKEN_DEBIL` que realmente se aplica: la bandera solo vale en local. Si el entorno es productivo
-// se IGNORA (y se avisa sin datos: ni el token ni la URL salen en el log).
+// Marca POSITIVA de entorno local: `ENTORNO_LOCAL=1|true` o `ENVIRONMENT=local`, puesta solo en `supabase/functions/.env.example`
+// (stack local). Sin ella, o con cualquier otro valor, no hay prueba de que el entorno sea local.
+export function esEntornoLocalExplicito(leer: (clave: string) => string | undefined): boolean {
+  const marca = (leer('ENTORNO_LOCAL') ?? '').trim().toLowerCase()
+  return marca === '1' || marca === 'true' || (leer('ENVIRONMENT') ?? '').trim().toLowerCase() === 'local'
+}
+
+// Valor de `AVISOS_PERMITIR_TOKEN_DEBIL` que realmente se aplica (falla cerrado): la bandera solo vale con una marca local propia
+// y positiva Y sin señal de entorno productivo (ENV prod/stg o host público, que ganan aunque la marca esté puesta). En cualquier
+// otro caso se IGNORA y se avisa sin datos: ni el token ni la URL salen en el log.
 export function permitirTokenDebil(leer: (clave: string) => string | undefined, avisar: (texto: string) => void = console.warn): string | undefined {
   const pedido = leer('AVISOS_PERMITIR_TOKEN_DEBIL')
   if (pedido?.trim().toLowerCase() !== 'true') return pedido
-  if (!esEntornoProductivo(leer)) return pedido
-  avisar('AVISOS_PERMITIR_TOKEN_DEBIL ignorada: el entorno no es local, se exige un token fuerte.')
+  if (esEntornoLocalExplicito(leer) && !esEntornoProductivo(leer)) return pedido
+  avisar('AVISOS_PERMITIR_TOKEN_DEBIL ignorada: el entorno no está marcado como local (ENTORNO_LOCAL=1), se exige un token fuerte.')
   return undefined
 }
 
