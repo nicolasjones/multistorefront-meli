@@ -154,6 +154,14 @@ No se duplican: versiones de migración menores o iguales a la máxima de la bas
 
 El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.
 
+## Tests con fecha relativa: se fija `Date`
+
+Un test que arma fechas «hace 1 hora», «dentro de 3 días» o compara con el año actual no usa el reloj real: en `beforeEach` llama a
+`vi.useFakeTimers({ toFake: ['Date'] })` y `vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))`, y en `afterEach` a `vi.useRealTimers()`.
+Se simula **solo** `Date` (no `setTimeout`) para no frenar `findBy*`/`waitFor`. Así el resultado no depende de la hora de corrida ni de
+la medianoche o Nochevieja. Aplicado en `vencimientoSesion`, `InvitacionesPendientes`, `alertas-demora` y el pie de `tiendaDiseno`. Los tests que miden
+una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no una fecha.
+
 ## Cliente de Supabase simulado en los tests de la web
 
 `apps/web/src/test/supabaseSimulado.ts` (`clienteSupabaseSimulado`) implementa `.schema(nombre)`, `from`/`rpc` y

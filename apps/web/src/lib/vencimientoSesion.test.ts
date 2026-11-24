@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   CLAVE_MANTENER_SESION,
   INACTIVIDAD_MAXIMA_MS,
@@ -10,7 +10,12 @@ import {
 } from './vencimientoSesion'
 
 describe('vencimientoSesion', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
+  })
+  afterEach(() => vi.useRealTimers())
 
   it('no vence sin actividad registrada ni dentro de las 12 h', () => {
     expect(sesionVencidaPorInactividad()).toBe(false)
@@ -54,7 +59,7 @@ describe('vencimientoSesion', () => {
     window.dispatchEvent(new Event('keydown'))
     detener()
     expect(alVencer).not.toHaveBeenCalled()
-    expect(Date.now() - Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))).toBeLessThan(5000)
+    expect(Date.now() - Number(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD))).toBe(0)
   })
 })
 
