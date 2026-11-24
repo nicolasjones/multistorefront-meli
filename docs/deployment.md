@@ -597,8 +597,8 @@ El deploy por `DOCKER_HOST=ssh://` verifica la clave del host con `StrictHostKey
 1. Obtener la clave pública del host por un canal de confianza (consola del proveedor, o `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
    en el propio VPS y comparar la huella). Con la clave ya verificada: `ssh-keyscan -t ed25519 <host>` desde una máquina de confianza
    **y comparar la huella** con la del paso anterior.
-2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** versionarla en
-   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas).
+2. Guardar la línea (`<host> ssh-ed25519 AAAA…`) en el secret `VPS_SSH_KNOWN_HOSTS` del Environment, **o** (opción futura: `infra/vps/` NO existe todavía, hay que crear la carpeta y el archivo) versionarla en
+   `infra/vps/known_hosts.staging` / `infra/vps/known_hosts.production` (las claves públicas de host no son secretas). Hoy solo sirve el secret.
 3. Sin clave fijada el paso «Iniciar ssh-agent» falla con el mensaje de instrucciones. Si el VPS se reinstala y cambia la clave, el
    deploy falla a propósito: actualizar el secret/archivo tras verificar el cambio.
 
@@ -648,7 +648,7 @@ El arranque local documentado (`pnpm dev:kestra`, etc.) no cambia.
 1. Correr un deploy de dev y leer la advertencia: lista exactamente qué falta.
 2. Cargar en el `.env.dev` (secret `VPS_DEPLOY_ENV` del Environment de dev) las 14 credenciales (valores nuevos y aleatorios, nunca los
    `change-me-local`) y las 5 `*_IMAGEN` con las referencias del resumen del último `worker-images.yml`.
-3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` o `infra/vps/known_hosts.dev` (ver «Clave de host del VPS»).
+3. Cargar la clave de host: secret `VPS_SSH_KNOWN_HOSTS` (o, cuando se cree `infra/vps/`, `infra/vps/known_hosts.dev`; hoy no existe) (ver «Clave de host del VPS»).
 4. Volver a correr el deploy de dev: no debe quedar ninguna advertencia.
 5. Definir `VPS_ESTRICTO=1` como variable de entorno del job de deploy de dev **o** como línea `VPS_ESTRICTO=1` en el `.env.dev` (el preflight lee las dos; la del proceso manda; el paso de clave de host solo lee la del proceso) y repetir: ahora dev bloquea igual que staging.
 6. Antes de promover a staging/production, comprobar que sus `VPS_DEPLOY_ENV` ya traen lo mismo (ahí el bloqueo es inmediato).

@@ -33,7 +33,9 @@ function leerFecha(texto: string): Date | null {
 }
 
 // Hoy en la zona de la organización, como `YYYY-MM-DD`.
+// Un `Date` inválido (`new Date('x')`) haría lanzar un RangeError a `Intl`: se usa el momento actual.
 export function hoyEnOrganizacion(ahora: Date = new Date()): string {
+  if (Number.isNaN(ahora.getTime())) ahora = new Date()
   const partes = new Intl.DateTimeFormat('en-CA', {
     timeZone: ZONA_ORGANIZACION, year: 'numeric', month: '2-digit', day: '2-digit',
   }).formatToParts(ahora)

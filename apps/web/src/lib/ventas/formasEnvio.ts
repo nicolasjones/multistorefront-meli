@@ -2,6 +2,7 @@
 // y las RPC viven en las migraciones 20261020110000_formas_envio.sql y 20261020110100_formas_envio_rpc.sql;
 // acá se espejan para validar antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
+import { formatearImporte } from '../formatoImporte'
 
 export const TIPOS_FORMA_ENVIO = ['retiro_local', 'correo', 'expreso', 'moto', 'terminal'] as const
 export type TipoFormaEnvio = (typeof TIPOS_FORMA_ENVIO)[number]
@@ -134,11 +135,9 @@ export function validarFormaEnvio(formulario: FormularioFormaEnvio, { alta }: { 
   return errores
 }
 
-const formatoImporte = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
 // Lista: «—» sin costo; con valor, el importe en pesos.
 export function formatearCosto(costo: number | null): string {
-  return costo === null ? '—' : `$ ${formatoImporte.format(costo)}`
+  return costo === null ? '—' : formatearImporte(costo, { centavos: 'siempre', menos: 'despues' })
 }
 
 type ErrorBase = { code?: string } | null

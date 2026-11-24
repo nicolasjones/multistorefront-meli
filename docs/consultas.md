@@ -216,6 +216,15 @@ se **anonimizan** sus datos personales; no se borra la consulta.
 - **Qué se conserva**: id, organización, tienda, **origen**, **producto**, estado, responsable (personal del equipo), **fechas** (`created_at`) y los ítems
   del pedido (`dominio.consulta_items`: producto y cantidad, sin datos de la persona). Los reportes y agregados (consultas por producto, por origen, por mes)
   no cambian. El trigger de normalización mueve `updated_at` al anonimizar; `created_at` no se toca.
+- **Decisión de producto: se pierde el historial en la ficha del cliente.** Cortar `cliente_id` hace que la ficha de un cliente que sigue activo deje de
+  mostrar la consulta anonimizada, y la nota interna (que puede traer información de negocio además de datos de la persona) se borra entera. Es
+  deliberado: es la forma conservadora de que la persona no quede identificable; los agregados no cambian. Si producto quiere otra cosa, es un cambio de la función, no de la interfaz.
+- **El plazo mide la última actividad, no el alta.** Se cuenta desde `updated_at`, que solo avanza con un cambio real de estado, responsable o nota: una
+  consulta de hace 40 meses que se editó hace 2 se conserva entera hasta pasados otros 24 meses sin cambios (lo fija el pgTAP). Una consulta que el equipo
+  sigue tocando no se anonimiza. Es decisión de producto (lote 39); medir desde `created_at` sería otra política (más corta) y no está decidida.
+- **Columnas personales revisadas** (lote 44): `dominio.consultas` guarda como dato personal solo `nombre`, `contacto`, `mensaje`, `nota_interna`, `cliente_id` y
+  `contacto_id`, y las seis se tratan arriba; `responsable_id` es personal del equipo y `empresa_id`/`producto_id` no identifican a la persona. Las tablas
+  hijas no guardan datos de la persona: `consulta_items` (producto y cantidad) y `consultas_avisos` (estado y error del envío al equipo).
 - **Quién la ejecuta**: el flow mensual de Kestra `anonimizar-consultas` (`infra/kestra/flows/anonimizar-consultas.yml`, día 1 de cada mes a las 05:30,
   con `timeout`, reintentos, `concurrency` en 1 y aviso si falla). Solo habla con la base (rol `kestra_orquestacion`); no usa workers ni salida a internet.
 - **La función**: `private.anonimizar_consultas_antiguas(p_meses int default 24)`: `security definer`, `search_path = ''`, sin acceso para `public`, `anon` ni

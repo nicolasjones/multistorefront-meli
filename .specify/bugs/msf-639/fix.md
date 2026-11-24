@@ -14,7 +14,7 @@
 - La rama se actualizó contra `dokploy` (`f53106bf`, sin conflictos) antes de mergear.
 - Ajustes de esta devolución, todos acotados a la historia:
   - Los asserts ahora fijan el **patrón** completo, no solo una cadena: encabezado de nivel 1 «No tenés acceso a esta sección» y el motivo «Tu rol (actual) no incluye …» en `/empresas` y `/organizacion`.
-  - El aviso «Solo lectura» evita la repetición de «solo» del texto anterior: «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.»
+  - El aviso «Solo lectura» evita la repetición de «solo» del texto anterior: «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (Nota lote 44: el texto vigente es «Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.»)
   - `fix.md`/`test.md` corregidos: el aviso informativo de las empresas toma el patrón `al i`/`role="note"` del prototipo, no el chip «Solo lectura» del Historial.
 
 ## Segunda devolución (PR #620, 2026-11-01)

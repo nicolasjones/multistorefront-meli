@@ -22,7 +22,8 @@
 //   MAILPIT_TIMEOUT_MS  opcional: tope de cada consulta a Mailpit (por omisión 5000 ms, máximo 60000 ms; un valor no
 //                   finito o no positivo cae al por omisión y uno mayor al máximo se acota); una consulta que no
 //                   responde cuenta como «el aviso aún no apareció» en vez de dejar el guion colgado
-//   CORREO_PRUEBA   obligatoria sin MAILPIT_URL: es la casilla externa donde se confirma la recepción
+//   CORREO_PRUEBA   obligatoria sin MAILPIT_URL: es la casilla externa donde se confirma la recepción; con MAILPIT_URL, si
+//                   se define, el mensaje de Mailpit tiene que estar dirigido a esa casilla (si no, no hay verde)
 const requerida = (nombre) => {
   const valor = process.env[nombre]
   if (!valor) {
@@ -109,7 +110,9 @@ if (mailpit) {
   // Mailpit puede tardar un instante en indexar el mensaje.
   for (let intento = 0; intento < 10; intento += 1) {
     const lista = await fetch(`${mailpit}/api/v1/messages`, { signal: AbortSignal.timeout(topeMailpitMs) }).then((r) => r.json()).catch(() => null)
-    const mensaje = (lista?.messages ?? []).find((m) => /Solicitud de acceso/.test(m.Subject ?? '') && Date.parse(m.Created) >= inicio - 5000)
+    // Si hay CORREO_PRUEBA, el aviso tiene que ir a esa casilla: un «Solicitud de acceso» para otra persona no es evidencia.
+    const paraLaCasilla = (m) => !correoPrueba || (m.To ?? []).some((t) => (t.Address ?? '').toLowerCase() === correoPrueba.toLowerCase())
+    const mensaje = (lista?.messages ?? []).find((m) => /Solicitud de acceso/.test(m.Subject ?? '') && Date.parse(m.Created) >= inicio - 5000 && paraLaCasilla(m))
     if (mensaje) {
       console.log(`OK: el correo «${mensaje.Subject}» llegó a Mailpit para ${(mensaje.To ?? []).map((t) => t.Address).join(', ')}.`)
       process.exit(0)

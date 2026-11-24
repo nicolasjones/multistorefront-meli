@@ -2,10 +2,10 @@
 -- Plazo de 24 meses desde la última actividad (`updated_at`); se anonimizan nombre, contacto y mensaje (y se cortan los vínculos y
 -- la nota interna) y se conservan producto, origen, estado, fechas e ítems del pedido. Casos borde: 23/24/25 meses, el límite exacto,
 -- ya anonimizadas (idempotencia), parámetro inválido (menos de 12 meses, nulo), privilegios (anon, authenticated) y un log por
--- organización sin datos personales.
+-- organización sin datos personales, y que una edición real reinicia el plazo (el plazo mide `updated_at`).
 begin;
 
-select plan(36);
+select plan(38);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -35,6 +35,12 @@ insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, 
   ('e0000000-0000-0000-0000-000000000009', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'formulario', 'Hugo', 'hugo@example.com', 'Hola', null, 'nueva', null, null, now(), now());
 insert into dominio.consulta_items (organizacion_id, empresa_id, consulta_id, orden, producto_id, descripcion, cantidad) values
   ('11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'e0000000-0000-0000-0000-000000000005', 1, 'b1000000-0000-0000-0000-000000000001', 'Joystick', 2);
+
+-- e10: creada hace 40 meses y sin actividad hace 30, pero alguien la EDITA hoy: la edición real reinicia el plazo
+-- (el plazo mide `updated_at`, la última actividad, y no `created_at`).
+insert into dominio.consultas (id, organizacion_id, empresa_id, origen, nombre, contacto, mensaje, estado, created_at, updated_at) values
+  ('e0000000-0000-0000-0000-000000000010', '11111111-1111-1111-1111-111111111111', 'a1000000-0000-0000-0000-00000000000a', 'formulario', 'Irene', 'irene@example.com', 'Hola', 'nueva', now() - interval '40 months', now() - interval '30 months');
+update dominio.consultas set estado = 'en_curso' where id = 'e0000000-0000-0000-0000-000000000010';
 
 create temp table antes_agregados as
   select count(*) as total, count(*) filter (where producto_id is not null) as con_producto,
@@ -67,6 +73,10 @@ select is((select mensaje is null from dominio.consultas where id = 'e0000000-00
 select is((select mensaje is null and contacto = '[anonimizado]' from dominio.consultas where id = 'e0000000-0000-0000-0000-000000000006'), true, 'WhatsApp: sin mensaje y contacto anonimizado');
 select is((select nombre from dominio.consultas where id = 'e0000000-0000-0000-0000-000000000009'), 'Hugo', 'una consulta reciente no se toca');
 select is((select nombre from dominio.consultas where id = 'e0000000-0000-0000-0000-000000000008'), '[anonimizado]', 'rige para todas las organizaciones');
+
+-- El plazo mide la última actividad (`updated_at`), no la fecha de alta: una consulta vieja editada hace poco no se anonimiza
+select is((select nombre from dominio.consultas where id = 'e0000000-0000-0000-0000-000000000010'), 'Irene', 'una edición real reinicia el plazo: no se anonimiza');
+select is((select created_at < now() - interval '36 months' from dominio.consultas where id = 'e0000000-0000-0000-0000-000000000010'), true, 'aunque su fecha de alta es de hace más de 36 meses');
 
 -- Se conserva lo que sirve a los reportes
 select is((select count(*) from dominio.consultas), (select total from antes_agregados), 'no se borra ninguna consulta');

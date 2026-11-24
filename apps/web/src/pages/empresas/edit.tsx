@@ -4,7 +4,7 @@ import { Link as RouterLink, useParams } from 'react-router'
 import { useWarnAboutChange } from '@refinedev/core'
 import { Alert, Box, Button, Stack, TextField, Typography } from '@mui/material'
 import { useEmpresa, type DatosGeneralesEmpresa } from '../../hooks/useEmpresa'
-import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { usePuedeEditarEmpresas } from '../../hooks/usePuedeEditarEmpresas'
 import { supabaseClient } from '../../lib/supabase'
 import { calcularCambios, emitirEventoActividad, type EventoActividad } from '../../lib/eventosActividad'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../../components/estados/EstadosPagina'
@@ -76,13 +76,13 @@ function validar(formulario: Formulario): Errores {
   return errores
 }
 
-// General de la empresa (F-EMP-02). Solo administrador: para quien llega por
-// URL directa se muestra solo lectura; RLS (empresas_update ->
-// puede_escribir) rechaza igual cualquier guardado. Idioma y moneda son
-// constantes del producto; el dominio se administra desde Tiendas online.
+// General de la empresa (F-EMP-02). Edita quien tiene la sección Empresas en edición; quien llega por URL
+// directa sin ese nivel ve la pantalla en solo lectura. La RLS es la autoridad: desde 20270507240000 la política
+// `empresas_update` exige `nivel_seccion('empresas') = 'edicion'` y rechaza igual cualquier guardado. Idioma y
+// moneda son constantes del producto; el dominio se administra desde Tiendas online.
 export function EmpresaEdit() {
   const { id } = useParams()
-  const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
+  const { puedeEditar, isLoading: verificandoPermiso } = usePuedeEditarEmpresas()
   const { empresa, isLoading, isError, noEncontrada, refetch, actualizar, cambiarEstado, esVigente } = useEmpresa(id)
   const { setWarnWhen } = useWarnAboutChange()
 
@@ -129,13 +129,13 @@ export function EmpresaEdit() {
     </Box>
   )
 
-  if (verificandoPermiso || puedeEscribir === null || isLoading) return envolver(<EstadoCargaPagina />)
+  if (verificandoPermiso || puedeEditar === null || isLoading) return envolver(<EstadoCargaPagina />)
   if (isError) return envolver(<EstadoError descripcion="No pudimos cargar la empresa." reintentar={() => void refetch()} />)
   if (noEncontrada || !empresa || !formulario) {
     return envolver(<EstadoError titulo="Empresa no encontrada" descripcion="No existe o no pertenece a tu organización." />)
   }
 
-  const soloLectura = !puedeEscribir
+  const soloLectura = !puedeEditar
   const cambiar = (campo: keyof Formulario) => (event: ChangeEvent<HTMLInputElement>) => {
     setFormulario({ ...formulario, [campo]: event.target.value })
     setExito(false)
@@ -204,7 +204,7 @@ export function EmpresaEdit() {
     <>
       <Box component="form" onSubmit={guardar} noValidate sx={{ maxWidth: 560 }}>
         <Stack spacing={2}>
-          {soloLectura ? <Alert severity="info" role="note">Solo lectura: únicamente los administradores pueden editar los datos de la empresa.</Alert> : null}
+          {soloLectura ? <Alert severity="info" role="note">Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.</Alert> : null}
           {exito ? <EstadoExito titulo="Cambios guardados." /> : null}
           {errorGuardado ? <EstadoError titulo="No se guardaron los cambios." descripcion={errorGuardado} /> : null}
           <TextField

@@ -145,7 +145,7 @@ viajaba, lo que se recarga es lo que está a la vista, nunca la página anterior
 
 Generar el token de Kestra: `printf '%s' '<token>' | base64 -w0`. Sin `AVISOS_FALTANTES_TOKEN` la función
 responde 503 y rechaza todo. El token tiene que tener **al menos 32 caracteres** y no ser `change-me…`: uno más corto o de ese
-estilo se descarta y la función responde 503 «no configurada» (salvo en local, con `AVISOS_PERMITIR_TOKEN_DEBIL=true`). El header
+estilo se descarta y la función responde 503 «no configurada» (salvo en local, con `AVISOS_PERMITIR_TOKEN_DEBIL=true` y `ENTORNO_LOCAL=1`). El header
 `x-aviso-token` se compara en **tiempo constante sobre los SHA-256** de ambos valores (`tokenValido`,
 `supabase/functions/_shared/token.ts`), sin cortar por longitud; si no coincide, 403.
 

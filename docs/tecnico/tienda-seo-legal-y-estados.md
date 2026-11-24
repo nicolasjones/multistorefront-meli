@@ -174,9 +174,9 @@ se confirma con el cliente · D7 cookies mínimas (Aceptar / Rechazar) · D8 Lig
 inventado. Detalle en `docs/tiendas-online.md`.
 
 **Quién puede pausar (verificado contra el RBAC real):** «Pausar tienda» actualiza `dominio.empresas.activa`; la política
-`empresas_update` exige `private.puede_escribir()`, que hoy es el rol **Administrador** de la organización (o un superadmin
-con organización activa). Por eso «Pausar tienda es del Administrador» es correcto; no depende del nivel de la sección
-Empresas de un rol personalizado.
+`empresas_update` exige `private.nivel_seccion('empresas') = 'edicion'` (desde `20270507240000`, lote 42; antes exigía
+`puede_escribir()`). Lo cumplen el **Administrador** (siempre tiene edición), un superadmin con organización activa y cualquier rol
+personalizado con la sección Empresas en edición; un rol en lectura o sin la sección no puede pausar.
 
 ## Decisiones aceptadas por el dueño (2026-11-08)
 

@@ -25,6 +25,9 @@ const RAIZ = fileURLToPath(new URL('..', import.meta.url));
 // El id es un token completo: `T001`, `T022a`. El límite de palabra evita que una sub-tarea
 // (`T022a`) se lea como su tarea madre (`T022`): una marca de `T022` cerraría la sub-tarea
 // con evidencia ajena (falsa auditoría) y el gate contaría dos veces la misma tarea.
+// El id se normaliza a MAYÚSCULAS al leerlo (`T022a` → `T022A`), tanto en el `tasks.md` como en el
+// side-car: así `T022a` y `T022A` son la misma tarea y la marca no depende de cómo se escribió. En los
+// resultados (`cerradas`, `sinRespaldo`) el id sale en mayúsculas; el `tasks.md` conserva su texto original.
 export const TAREA = /^(\s*[-*]\s*\[)([ xX])(\]\s*)(\*\*)?(T\d+[A-Za-z]*)(?![A-Za-z0-9])(\*\*)?(.*)$/;
 // Marca de provenance que deja el volcado (permite auditar de dónde salió cada `[x]`).
 export const EVIDENCIA = /Evidencia: marca de cierre en `tasks\/[^`]+`\./;

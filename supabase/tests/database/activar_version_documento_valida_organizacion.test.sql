@@ -4,7 +4,7 @@
 -- funcionalidad apagada, y anon sin EXECUTE.
 begin;
 
-select plan(17);
+select plan(19);
 
 insert into organizaciones (id, nombre) values
   ('c1111111-1111-1111-1111-111111111111', 'Org A'),
@@ -14,6 +14,7 @@ insert into auth.users (id, email) values
   ('c1000000-0000-0000-0000-000000000001', 'admin-a-av@example.com'),
   ('c1000000-0000-0000-0000-000000000002', 'subidor-a-av@example.com'),
   ('c1000000-0000-0000-0000-000000000003', 'otro-a-av@example.com'),
+  ('c1000000-0000-0000-0000-000000000004', 'consulta-a-av@example.com'),
   ('c2000000-0000-0000-0000-000000000001', 'admin-b-av@example.com'),
   ('c5000000-0000-0000-0000-000000000005', 'superadmin-av@example.com');
 
@@ -21,8 +22,9 @@ insert into superadmins (user_id) values ('c5000000-0000-0000-0000-000000000005'
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('c1000000-0000-0000-0000-000000000001', 'c1111111-1111-1111-1111-111111111111', 'administrador'),
-  ('c1000000-0000-0000-0000-000000000002', 'c1111111-1111-1111-1111-111111111111', 'miembro'),
-  ('c1000000-0000-0000-0000-000000000003', 'c1111111-1111-1111-1111-111111111111', 'miembro'),
+  ('c1000000-0000-0000-0000-000000000002', 'c1111111-1111-1111-1111-111111111111', 'operador'),
+  ('c1000000-0000-0000-0000-000000000003', 'c1111111-1111-1111-1111-111111111111', 'operador'),
+  ('c1000000-0000-0000-0000-000000000004', 'c1111111-1111-1111-1111-111111111111', 'consulta'),
   ('c2000000-0000-0000-0000-000000000001', 'c2222222-2222-2222-2222-222222222222', 'administrador');
 
 select set_config('request.jwt.claims', json_build_object('sub', 'c5000000-0000-0000-0000-000000000005', 'role', 'authenticated')::text, true);
@@ -67,7 +69,19 @@ select throws_ok(
   '42501', null, 'miembro que no subió la versión ni es administrador: rechazado');
 reset role;
 
--- Quien subió la versión (miembro) puede
+-- Lote 41: el rol Consulta no gestiona documentos (`puede_gestionar_documentos`): aunque haya subido la versión, no la activa.
+-- (La función no lo exigía: el handler de `indexar-documento` lo bloqueaba, pero la RPC es invocable directamente.)
+insert into versiones_documento (id, documento_id, storage_path, estado, subida_por) values
+  ('c4000000-0000-0000-0000-000000000006', 'c3000000-0000-0000-0000-000000000001', 'ruta-consulta', 'procesando', 'c1000000-0000-0000-0000-000000000004');
+select set_config('request.jwt.claims', json_build_object('sub', 'c1000000-0000-0000-0000-000000000004', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select throws_ok(
+  $$select public.activar_version_documento('c4000000-0000-0000-0000-000000000006')$$,
+  '42501', 'Tu rol no puede gestionar documentos', 'Consulta, aunque haya subido la versión, recibe 42501');
+reset role;
+select is((select estado from versiones_documento where id = 'c4000000-0000-0000-0000-000000000006'), 'procesando', 'la versión subida por Consulta sigue procesando');
+
+-- Quien subió la versión (operador) puede
 select set_config('request.jwt.claims', json_build_object('sub', 'c1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select lives_ok(

@@ -538,7 +538,7 @@ panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja d
   que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
   (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
   suma de los saldos listados.
-- **Cobros revertidos y anulación:** un administrador puede revertir un cobro mal cargado con `revertir_cobro`
+- **Cobros revertidos y anulación:** un administrador (o un superadmin con organización activa: guarda `private.puede_escribir()`) puede revertir un cobro mal cargado con `revertir_cobro`
   (`20270507180100`): el libro de cobros no se edita, se agrega un contra-asiento de importe negativo, y como el saldo suma
   todos los importes del libro, el cobro revertido deja de contar y la factura vuelve a figurar con su saldo. Una factura con
   cobros (neto mayor a cero) o ya entregada no se puede anular (`anular_comprobante`, `20270507180000`): hay que revertir el

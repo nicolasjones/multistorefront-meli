@@ -17,6 +17,7 @@
 - Bloquea a: MSF-121 (Permisos por empresa; parte de `roles_organizacion`, `permisos_rol`, `private.nivel_seccion` y de los diálogos Invitar y Editar usuario), MSF-132 (Administración de usuarios y organización; F-USR-03 se agrega a la pantalla Usuarios) y MSF-148 (Perfil y permisos avanzados; F-ROL-05 extiende la pantalla de F-ROL-03).
 - Entre historias: F-ROL-01 bloquea a F-ROL-03, F-USR-01, F-USR-02 y F-ROL-02.
 - Ya no bloquea a MSF-138 (Empresas): se apoya en la audiencia administrador y `private.puede_escribir()` del template. El caso «un Operador abre Empresas por URL» (CA-EMP-01-4) se verifica cuando F-ROL-01 y F-ROL-03 estén mergeadas.
+  Nota (lote 44, sin reescribir lo anterior): vigente desde 20270507240000: `empresas_update` exige `nivel_seccion('empresas')='edicion'` (ver docs/empresas.md).
 - Relacionada, sin bloqueo: registro de actividad transversal (F-AUD-01, Plataforma).
 
 **Input**: Epic MSF-125. Objetivo: "Al terminar, un administrador invita, edita y suspende personas, y cada rol ve y puede hacer solo lo que le corresponde, tanto en pantalla como en la base de datos; el Administrador de cada organización ajusta qué puede y qué no puede hacer cada rol sin tocar código."
@@ -150,6 +151,7 @@ Como Administrador de mi organización, quiero ajustar qué puede y qué no pued
 - Superadmin de plataforma: conserva su comportamiento actual del template (opera la organización activa como Administrador).
 - Cambio de rol de un `miembro` del template existente: sus permisos iniciales se definen en el plan (ver Assumptions).
 - Tablas de dominio que aún no usan `private.nivel_seccion`: siguen con `private.puede_escribir()` hasta que su épica las migre.
+  Nota (lote 44, sin reescribir lo anterior): vigente desde 20270507240000: `empresas_update` exige `nivel_seccion('empresas')='edicion'` (ver docs/empresas.md).
 
 ## Requirements *(mandatory)*
 

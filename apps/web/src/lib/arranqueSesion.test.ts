@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({ logout: vi.fn(), assign: vi.fn() }))
 vi.mock('../providers/authProvider', () => ({ authProvider: { logout: mocks.logout } }))
 
 import { instalarVencimientoDeSesion } from './arranqueSesion'
-import { CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from './vencimientoSesion'
+import { CLAVE_MANTENER_SESION, CLAVE_ULTIMA_ACTIVIDAD, INACTIVIDAD_MAXIMA_MS } from './vencimientoSesion'
 
 describe('instalarVencimientoDeSesion', () => {
   beforeEach(() => {
@@ -29,11 +29,31 @@ describe('instalarVencimientoDeSesion', () => {
 
     const detener = instalarVencimientoDeSesion(true)
     window.dispatchEvent(new Event('pointerdown'))
-    await Promise.resolve()
+    // Mismo espacio de espera que el caso del panel (que sí termina en `assign`): se espera la condición, no un tick fijo.
+    await vi.waitFor(() => {
+      expect(mocks.logout).not.toHaveBeenCalled()
+      expect(mocks.assign).not.toHaveBeenCalled()
+    })
     detener?.()
+  })
 
-    expect(mocks.logout).not.toHaveBeenCalled()
-    expect(mocks.assign).not.toHaveBeenCalled()
+  it('en la tienda, con «Mantener la sesión iniciada» o con la sesión viva, tampoco instala el control', async () => {
+    for (const mantener of [true, false]) {
+      localStorage.clear()
+      if (mantener) localStorage.setItem(CLAVE_MANTENER_SESION, 'true')
+      // Sesión viva: actividad reciente, como la de un cliente que acaba de comprar.
+      localStorage.setItem(CLAVE_ULTIMA_ACTIVIDAD, String(Date.now() - 1000))
+      const marca = localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD)
+
+      const detener = instalarVencimientoDeSesion(true)
+      window.dispatchEvent(new Event('keydown'))
+      await vi.waitFor(() => expect(mocks.logout).not.toHaveBeenCalled())
+      detener?.()
+
+      expect(detener, `mantener=${mantener}`).toBeUndefined()
+      expect(localStorage.getItem(CLAVE_ULTIMA_ACTIVIDAD), `mantener=${mantener}`).toBe(marca)
+      expect(mocks.assign).not.toHaveBeenCalled()
+    }
   })
 
   it('en la tienda no escribe la marca de actividad', () => {

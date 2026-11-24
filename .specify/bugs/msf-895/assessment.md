@@ -1,5 +1,16 @@
 # Bug Assessment: [Lote L36] Higiene de código y referencias internas (3 bugs consolidados)
 
+> **Informe histórico, congelado (nota del lote 44, 2026-11-23).** Describe el estado del árbol del 2026-11-14 y NO se reescribe: las referencias de
+> línea, los commits (`f5d8f4a5`, `1ad0fd2e`) y el run `43625243985` son de esa base y ya no coinciden con este árbol; no lo uses como guía para
+> «re-arreglar» código ya corregido. Equivalencias actuales: `scripts/docs-manifest.mjs:67`/`:12` → `:93`/`:16` (`sourceAt` estable, MSF-950) y
+> `scripts/calidad.mjs:76` → `:111-118` (binario local de `dependency-cruiser`). El plan propuesto para B3 («agregar `typescript` al sandbox de
+> `pnpm dlx`») quedó **descartado tras probarlo**: sigue cruzando 0 módulos; lo que se aplicó fue `dependency-cruiser` + `typescript` como
+> `devDependencies` del root, con falla explícita si cruza 0 módulos o falta el binario (ver `fix.md` y `test.md`).
+> Sobre el *drift* de `scripts/docs-drift.mjs` (hoy 146 páginas, 168 cuando se escribió el informe): no se corrige con un script. Las fuentes de esas
+> páginas son directorios enteros (`specs`, `supabase/migrations`, `apps/web/src`), así que cualquier PR a `dokploy` lo dispara; regenerar el manifest
+> sin revisar cada página lo taparía sin verificar que el texto siga vigente. Por diseño se rebasea una vez, revisando las páginas listadas, en el PR del
+> Release (`docs/documentacion-cambios.md`, MSF-858); por eso el workflow `docs` corre solo en PR hacia `main`.
+
 - **Slug**: msf-895
 - **Created**: 2026-11-14
 - **Source**: pasted text (tracker MSF-895) — sólo el título del lote; el cuerpo del plan no vino en el payload. Sin URL ⇒ no aplica la URL Trust Policy (no hubo fetch).

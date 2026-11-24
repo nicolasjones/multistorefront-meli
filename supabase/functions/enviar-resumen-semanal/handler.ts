@@ -53,7 +53,6 @@ export type Deps = {
   enviar: EnviarCorreo
 }
 
-
 // Al registro va el error sin host, IP ni correo: la librería SMTP puede incluir el servidor o el usuario.
 export const mensajeDeError = (error: unknown) =>
   (error instanceof Error ? error.message : String(error))
