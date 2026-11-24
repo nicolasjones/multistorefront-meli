@@ -984,9 +984,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "25aee996abe5ec1e9fa75b02c6b3a42e01f26fc8de0bf6719a2afc8790cc691e",
-      "sourceHash": "9dedb8304bfe123da42c85c7b93f02354f380df7a13623a2d9fb97032444fdcc",
-      "sourceAt": "6776fb4d",
+      "pageHash": "320d54319c6a0d2b0d0007cf8445c2bcdbcd7ef872d5e9103c0b0c0b8f59525b",
+      "sourceHash": "f10e712c6c49744988ae93d4e42a0bace01712f1839289900a2dcf10cecdc1be",
+      "sourceAt": "e6d4fc52f",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -997,10 +997,12 @@
         "scripts/verificar-e2e-sin-escritura-directa.mjs",
         "scripts/armar-video-evidencia.mjs",
         "scripts/publicar-videos-e2e.mjs",
-        "scripts/cobertura-e2e.mjs"
+        "scripts/cobertura-e2e.mjs",
+        "scripts/historia-item.mjs",
+        "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "e6d4fc52f"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -1179,9 +1181,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "9149a319763159acefa77ce22743250ec15065f787178ffcb12172e21f46cc4e",
+      "pageHash": "92933c77e20af8e50a284c46c34114afd86bf9217f5217f2ffb1b718c3babe41",
       "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
-      "sourceAt": "eedac66a",
+      "sourceAt": "871bcff8",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1197,7 +1199,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "eedac66a"
+      "commit": "871bcff8"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1550,9 +1552,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "a4b5c900ec6dafa2e8ef92b1d7102223fecb3b6537e400430213d606946b537d",
+      "pageHash": "05f25c320a12da8b5d64c71bc270f30f3aff6cddd92088a77e043bc6fafe182e",
       "sourceHash": "3b78b29781cb3ea53337ba1f69761c1d55302f93477c6ac5f9ae6bdaa3360d15",
-      "sourceAt": "e55825f7",
+      "sourceAt": "871bcff8",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1577,7 +1579,7 @@
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "871bcff8"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
