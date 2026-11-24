@@ -6110,9 +6110,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "64c5ee92dbea9a886eb13c78e5b9f3f162a91e026eedad1c7c96bf9126463fc1",
+      "pageHash": "8de588a1e96a2fabfda9a4c78c9081ccc8c6b84321fa33c3ce409dd022c6c342",
       "sourceHash": "ee4fa6a92ee8385187f14da74e6143ef124d5bd7f314b40adca40a4669401761",
-      "sourceAt": "8cbabedda",
+      "sourceAt": "d18c36931",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6124,7 +6124,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "8cbabedda"
+      "commit": "d18c36931"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
