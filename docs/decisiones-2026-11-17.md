@@ -9,10 +9,10 @@ Resumen de las decisiones de negocio que se tomaron el 2026-11-17 (por delegaci�
 hallazgos de auditoría y errores que esperaban una definición antes de programarse. Cada una quedó registrada como
 comentario «Decisión tomada» en su ticket.
 
-> **Estado de todas las decisiones de esta página: decidida, pendiente de implementar.** Las implementan otros
-> lotes de trabajo; esta página no afirma que ya existan en el sistema. Mientras no se tome cada ticket en un lote,
-> el comportamiento vigente sigue siendo el de hoy. Cada decisión se puede revertir si el dueño del producto no está
-> de acuerdo.
+> **Estado de las decisiones de esta página: decidida.** La mayoría sigue pendiente de implementar (las implementan
+> otros lotes de trabajo); cada ítem dice en su línea si ya está aplicada. Esta página no afirma por sí sola que ya
+> existan en el sistema. Mientras no se tome cada ticket en un lote, el comportamiento vigente sigue siendo el de
+> hoy. Cada decisión se puede revertir si el dueño del producto no está de acuerdo.
 
 ## Dinero y comprobantes
 
@@ -41,7 +41,10 @@ comentario «Decisión tomada» en su ticket.
 
 ### MSF-720 · Redondeo del precio final, margen y cotización
 
-- **Estado:** Decidida, pendiente de implementar.
+- **Estado:** Decidida, **aplicada el 2026-11-24** (MSF-720): el precio final con IVA redondea al centavo en la
+  base (`private.aplicar_iva`, migración `20270507180200_aplicar_iva_al_centavo.sql`), la cotización se muestra con
+  hasta 4 decimales y el texto del margen aclara que no incluye la comisión del canal. No se recalculan los
+  comprobantes ya emitidos.
 - **Decisión:** criterio único: el precio final con IVA se redondea **al centavo**, igual que el total del
   comprobante. Se hace con una migración nueva de `private.aplicar_iva`, sin recalcular comprobantes ya emitidos. La
   cotización se muestra con hasta 4 decimales y el texto del margen aclara si incluye la comisión.
