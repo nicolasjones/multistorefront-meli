@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   guardarEnvioComprobante: vi.fn(),
 }))
 
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../lib/supabase', () => ({ supabaseClient: { rpc: vi.fn() } }))

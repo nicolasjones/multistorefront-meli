@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   maybeSingle: vi.fn(),
 }))
 
+vi.mock('../../hooks/useEsAdministrador', () => ({ useEsAdministrador: () => ({ esAdministrador: false, isLoading: false }) }))
 vi.mock('../../lib/ventasComprobantes', async (importar) => ({
   ...(await importar<typeof import('../../lib/ventasComprobantes')>()),
   listarComprobantes: mocks.listarComprobantes,
