@@ -57,7 +57,7 @@
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "7d0963133b6619b83550a03d6552c492bb24720753c7bb5222aa31dcea2bdf12",
       "sourceHash": "837af6c2d48b503ee09afd13071af25df68482fc9b53a9cd1cbdfc7c36ca4e9e",
-      "sourceAt": null,
+      "sourceAt": "d647ae864",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -78,7 +78,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "d647ae864"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -710,8 +710,8 @@
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
       "pageHash": "77a7b8f47129e6c8a97ed13c44b4a2cd716cad5e4c01541b95d17836751e5432",
-      "sourceHash": "9d6dc260f4e13b8fe72fca5043c3596b887bf626975872726af81fb992774e0d",
-      "sourceAt": null,
+      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
+      "sourceAt": "16c699850",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -723,7 +723,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": null
+      "commit": "16c699850"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -771,9 +771,9 @@
     },
     "docs/cotizacion-carga-diaria.md": {
       "title": "Carga diaria de la cotización del dólar (F-PRE-02)",
-      "pageHash": "ddad19f55cdb22b211e0c2d1543360de32b142252c2d999d6a7b41b793389419",
+      "pageHash": "e53295f94b5b4434aa6159ec10a6f81e016351114617ec11e289bea1bb6c1a31",
       "sourceHash": "6f774921c5c8dea4f89ff1b34f77b8596d694c4650c5f116182c0e6135f75aa5",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "49d595f34",
       "sources": [
         "specs/20261023-120000-dolar-y-recalculo",
         "supabase/migrations/20261023140000_cotizacion_tablas.sql",
@@ -781,7 +781,7 @@
         "supabase/migrations/20261023140500_cotizacion_aviso.sql"
       ],
       "owner": "tecnico",
-      "commit": "c7860a7c"
+      "commit": "49d595f34"
     },
     "docs/cotizacion-configuracion.md": {
       "title": "Configuración de la cotización (F-PRE-06)",
@@ -1006,7 +1006,7 @@
       "title": "Empresa activa (F-ROL-06)",
       "pageHash": "0df8ef3b0ab2cd2ea505bc8328a51542d29242f3a9593c32969206d151514be9",
       "sourceHash": "e67d70d021e7e37dabc779571cb12ec3b3554d6069a72ff005e79383bef9c83d",
-      "sourceAt": null,
+      "sourceAt": "7c49050f1",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx",
@@ -1026,7 +1026,7 @@
         "supabase/tests/database/consultas.test.sql"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "7c49050f1"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -1296,16 +1296,16 @@
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "1f22b145336b62d9c501b8fcbf434aff59e6b6a16670ee0b7649a71d5a83b007",
+      "pageHash": "93a36f1ec992c3caeeebcdb6fbabe048938a3f78126adb08e46d63cf497c2f11",
       "sourceHash": "3dd9149606197999f494b4492abedaf0c89d61955715474bd2bfcb525012bcbb",
-      "sourceAt": "eedac66a",
+      "sourceAt": "49d595f34",
       "sources": [
         "apps/web/src/lib/iva.ts",
         "supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql",
         "supabase/migrations/20261022140200_precios_empresa_iva.sql"
       ],
       "owner": "tecnico",
-      "commit": "eedac66a"
+      "commit": "49d595f34"
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
@@ -1604,9 +1604,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "df25d27985be0cc97beb3f9ff8ca7bf00298bc53d634b2659bb89bf581c830e6",
-      "sourceHash": "a6808d367ddc5cb158a9c4f0866bc2082fa8c2d6c5d77fb7988d257f023f2842",
-      "sourceAt": "2838b473",
+      "pageHash": "2173d57166139f78fa9c510ca54a644fc578b89050d8a7e3db9100d3a2cbe0e1",
+      "sourceHash": "5af78a4f8a41c480cc91cccffe58ed02c21f7dec188f18ba37ef22e8dc1c047b",
+      "sourceAt": "49d595f34",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1615,7 +1615,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "2838b473"
+      "commit": "49d595f34"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
@@ -1643,13 +1643,13 @@
       "title": "Consultar la actividad: quién hizo qué y cuándo",
       "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
       "sourceHash": "127bc177a540916df231fae0330bbac9ebb73ad1fd5557139c8b4c4eb4cc0ffa",
-      "sourceAt": null,
+      "sourceAt": "7c49050f1",
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": null
+      "commit": "7c49050f1"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -4538,7 +4538,7 @@
       "title": "Permisos por empresa: construcción interna (MSF-121)",
       "pageHash": "1c5612d5a716176a2e6085631c615cd0f514266c8a7fd1672dc5b77e4704ecbc",
       "sourceHash": "c3952bbfbcfd49f055e92afd2e5743c27a21ffbe2062803cb1d7100153950403",
-      "sourceAt": null,
+      "sourceAt": "7c49050f1",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations/20261016140100_roles_por_empresa.sql",
@@ -4563,13 +4563,13 @@
         "apps/web/e2e/permisos-por-empresa.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "7c49050f1"
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
-      "pageHash": "d2e9f71f2af5845df97db694157be840a1d3d4dc5d0fe4eb07c9c0c7b5bb0957",
-      "sourceHash": "21fce439d6468076c574b8e554b2463ad588755b642519a84601285649a3850e",
-      "sourceAt": "408da936",
+      "pageHash": "b881487aeeba42ae75ed2bfdd446da88240f2f225e1674f4be798bbdd72de3f4",
+      "sourceHash": "d8d4c46925a41bbf9dbc0671b445e1de0f470dcbe1c9e24a4f6e67f8f2aecfb0",
+      "sourceAt": "49d595f34",
       "sources": [
         "apps/web/e2e/precios-iva.e2e.ts",
         "apps/web/src/App.tsx",
@@ -4613,7 +4613,7 @@
         "supabase/tests/database/rls_en_toda_tabla.test.sql"
       ],
       "owner": "tecnico",
-      "commit": "408da936"
+      "commit": "49d595f34"
     },
     "docs/tecnico/precios-masivos-y-promociones.md": {
       "title": "Precios masivos y promociones",
