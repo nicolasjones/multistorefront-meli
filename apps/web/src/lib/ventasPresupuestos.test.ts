@@ -48,6 +48,13 @@ describe('mensajeDeAceptarPresupuesto', () => {
     expect(mensajeDeAceptarPresupuesto(otro, 'x')).toBe(otro.message)
   })
 
+  it('acepta también PT409, el código con que la RPC responde HTTP 409', () => {
+    const vencido = { code: 'PT409', message: 'El presupuesto está vencido y no se puede aceptar' }
+    expect(mensajeDeAceptarPresupuesto(vencido, 'x')).toBe(vencido.message)
+    expect(mensajeDeAceptarPresupuesto({ code: 'PT409', message: 'relation x' }, 'x')).toMatch(/cerrado/)
+    expect(mensajeDeAceptarPresupuesto({ code: 'PT404', message: 'El presupuesto no existe' }, 'x')).toMatch(/no existe/)
+  })
+
   it('un 55000 con texto desconocido no filtra el mensaje crudo y cae al genérico de comprobantes', () => {
     expect(mensajeDeAceptarPresupuesto({ code: '55000', message: 'relation x' }, 'x')).toMatch(/cerrado/)
   })

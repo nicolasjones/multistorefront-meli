@@ -3,6 +3,9 @@ type ErrorConCodigo = { code?: unknown } | null | undefined
 const MENSAJES_POR_CODIGO: Readonly<Record<string, string>> = {
   '42501': 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.',
   P0002: 'El dato que buscás ya no existe o no pertenece a tu organización.',
+  // Mismos textos con el código que PostgREST traduce a 4xx (404 y 409): las RPC migradas dejan de contestar 500.
+  PT404: 'El dato que buscás ya no existe o no pertenece a tu organización.',
+  PT409: 'Esta acción no se puede hacer en el estado actual. Recargá la página para ver cómo está.',
   '40001': 'Otra persona modificó este dato. Recargá la página e intentá de nuevo.',
   // Errores de negocio que la base lanza a propósito (clase 55 y 54): se explican a la persona. Ver docs/errores-negocio-postgrest.md.
   '55000': 'Esta acción no se puede hacer en el estado actual. Recargá la página para ver cómo está.',

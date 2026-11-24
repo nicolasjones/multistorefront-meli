@@ -15,6 +15,12 @@ describe('mensajeDeErrorBase', () => {
     expect(mensajeDeErrorBase({ code: '23514' }, 'x', { '23514': 'Propio.' })).toBe('Propio.')
   })
 
+  it('traduce PT404 y PT409 (los códigos que PostgREST contesta como 404 y 409) como P0002 y 55000', () => {
+    expect(mensajeDeErrorBase({ code: 'PT404' }, 'x')).toBe(mensajeDeErrorBase({ code: 'P0002' }, 'x'))
+    expect(mensajeDeErrorBase({ code: 'PT409' }, 'x')).toBe(mensajeDeErrorBase({ code: '55000' }, 'x'))
+    expect(mensajeDeErrorBase({ code: 'PT409' }, 'x')).not.toBe('x')
+  })
+
   it('traduce los errores de negocio 55000, 55006 y 54000 sin tratarlos como falla', () => {
     expect(mensajeDeErrorBase({ code: '55000' }, 'x')).toMatch(/estado actual/)
     expect(mensajeDeErrorBase({ code: '55006' }, 'x')).toMatch(/en curso/)

@@ -174,8 +174,8 @@ export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): s
   console.error(porDefecto, e?.code ?? 'sin código')
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '40001') return MENSAJE_CONFLICTO_COMPROBANTE
-  if (e?.code === '55000') return MENSAJE_CERRADO
-  if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
+  if (e?.code === '55000' || e?.code === 'PT409') return MENSAJE_CERRADO
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario (el mismo que
   // `errorDeCampo`) y las del catálogo `VALIDACIONES_CONOCIDAS` también; cualquier otro 22023 muestra un texto fijo.
   if (e?.code === '22023') {

@@ -115,7 +115,7 @@ function aResultado(dato: unknown): PresupuestoResultado {
   return { id: fila.id, numero: fila.numero, estado: String(fila.estado ?? '') }
 }
 
-// `aceptar_presupuesto` rechaza con 55000 y un texto propio. Se devuelve SIEMPRE la constante del catálogo que coincide
+// `aceptar_presupuesto` rechaza con PT409 (antes 55000) y un texto propio. Se devuelve SIEMPRE la constante del catálogo que coincide
 // con el texto de la RPC (nunca el `message` del servidor); cualquier otro 55000 cae al genérico de comprobantes.
 const MENSAJES_ACEPTAR_DE_LA_RPC = [
   'El presupuesto está vencido y no se puede aceptar',
@@ -125,7 +125,7 @@ const MENSAJES_ACEPTAR_DE_LA_RPC = [
 export function mensajeDeAceptarPresupuesto(error: unknown, porDefecto: string): string {
   const e = error as { code?: string; message?: unknown } | null
   const conocido =
-    e?.code === '55000' && typeof e.message === 'string'
+    (e?.code === '55000' || e?.code === 'PT409') && typeof e.message === 'string'
       ? MENSAJES_ACEPTAR_DE_LA_RPC.find((m) => (e.message as string).startsWith(m))
       : undefined
   if (conocido) {
