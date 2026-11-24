@@ -883,7 +883,7 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     lo que haría lento cada ingreso (`exportacion-total` ingresa tres veces). Cambios: `ingresar` de `importaciones-soporte` llena con `fill`;
     los cinco specs fijan `test.use({ actionTimeout: 30_000, navigationTimeout: 60_000 })` (un fallo real sale en 30 s señalando la
     acción); `sql()` fija `connectionTimeoutMillis`/`query_timeout`; todos los `fetch` del fixture (`rest`, `leer`, `borrar`, `altaUsuario`, `borrarUsuario`, RPC) y de `importaciones-soporte`/`cuenta-web-cliente` llevan `AbortSignal.timeout(TOPE_FETCH_MS)` (30 s).
-    Sin aserciones quitadas. Falta la corrida de sesión que lo confirme: si siguen agotando el tiempo, el mensaje ya dirá dónde.
+    Sin aserciones quitadas. Si algún spec vuelve a agotar el tiempo, el mensaje ya dice en qué acción.
     **Verificado en sesión:** los seis specs pasan con el fixture compartido en una corrida `e2e_sesion` (run `45501580902`, 9 pasaron en
     3,4 min; el único omitido es el de recuperar contraseña de `cuenta-web-cliente`, permitido porque ese stack no sirve la Edge Function).
     Los topes de acción y de red de arriba se dejan: convierten un cuelgue futuro en un fallo de 30 s que señala la acción.
@@ -902,18 +902,18 @@ El nocturno usa la misma receta de stack que `e2e-tienda` (ranura del CI de `scr
     el `verify` redirige bien a `mundojc.localhost:4300/definir-contrasena`, pero se servía el PANEL y no la TIENDA: el build del job
     de sesión no exportaba `VITE_PANEL_HOSTS` (sí `e2e-tienda`); ahora el paso «Exponer claves» exporta `VITE_PANEL_HOSTS=localhost,127.0.0.1`,
     igual que `e2e-tienda`. El redirect sigue necesitando el puerto 4300 de `site_url`/`additional_redirect_urls` de
-    `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Sin validar
-    todavía en sesión.
-  - **Estado de MSF-964/965/966: ABIERTOS.** Corridas de sesión del lote: verdes `exportacion-total` + `importaciones-a11y` (run 44188166361),
+    `supabase/config.toml` (el `WEB_PORT` que el job escribe en `GITHUB_ENV` no llega al proceso de ese mismo paso). Validado en
+    sesión después (run `45501580902`, ver arriba).
+  - **Estado de MSF-964/965/966 (histórico de ese lote; los seis specs pasaron juntos después en el run `45501580902`, con SC-006 omitido).** Corridas de sesión del lote: verdes `exportacion-total` + `importaciones-a11y` (run 44188166361),
     `e2e/importaciones` + `productos-create-permisos` (44191224534) y `cuenta-web-cliente` sola (44199070547: 3 pasan y SC-006 se
     omite, ver abajo; el test de ingresos tarda ~1 min y necesita el `setTimeout(180_000)`). `notificaciones` sigue en ROJO: falló por timeout en
-    44193675064, 44205757225 (y el reintento previo 44195930872 pasó solo con reintentos, que el job ya no usa). Hasta que `notificaciones`
-    pase en sesión no se puede decir que los 6 specs estén verdes.
+    44193675064, 44205757225 (y el reintento previo 44195930872 pasó solo con reintentos, que el job ya no usa). Esa corrida es anterior a las correcciones
+    de abajo, que la dejaron verde.
   - **`notificaciones`: dónde se iba el tiempo (traza del run 44205757225).** El recorrido y las aserciones terminan a ~106 s; los ~200 s
     restantes son `Close context` (40 s por contexto) y adjuntar el video 1080p de los 2 contextos en el host saturado: el cierre cuenta
     contra el timeout del test. Subir el timeout no lo arregla. Cambios: `E2E_VIDEO_CONTEXTOS` (`completa` por defecto = 1920x1080 como
     siempre, `baja` = 1280x720, `off`; valor inválido lanza error) en `abrirContextoGrabado`; el job de sesión usa `baja`; y la segunda
-    sesión de `notificaciones` («otra persona») no graba (`{ video: 'off' }`). El timeout del spec vuelve a 180 s. Sin validar todavía en sesión.
+    sesión de `notificaciones` («otra persona») no graba (`{ video: 'off' }`). El timeout del spec vuelve a 180 s. Después pasó en sesión (run `45501580902`).
   - **SC-006 (recuperar) en el job de sesión: causa real y decisión.** La pantalla mostraba «No pudimos enviar el enlace ahora» porque
     `POST /functions/v1/recuperar-clave-cliente` devolvía 500 de Kong (`{"message":"An unexpected error occurred"}`, traza del run
     44185502449): el job levanta el stack con `-x studio,mailpit,imgproxy,logflare,vector,edge-runtime,…` (`validate.yml`, paso «Levantar
