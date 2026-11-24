@@ -1,6 +1,10 @@
+import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  ENCABEZADOS_PLANTILLA_HISTORIAL,
   MAX_BYTES_HISTORIAL,
+  TIPOS_HISTORIAL,
+  contenidoPlantillaHistorial,
   type ClienteHistorial,
   type EjecucionHistorial,
   leerDetalle,
@@ -160,5 +164,20 @@ describe('leerDetalle y resumenDeEjecucion', () => {
     expect(sinDetalle).toContain('el detalle está en Ejecuciones')
     // Sin jerga interna: la persona no tiene por qué saber qué es un «worker».
     expect(sinDetalle).not.toMatch(/worker/i)
+  })
+})
+
+describe('plantilla de importación del historial', () => {
+  it('es un CSV con los encabezados del tipo y sin filas', () => {
+    expect(contenidoPlantillaHistorial('cobros')).toBe('Tienda,Fecha,Comprobante,Cliente,Número de cliente,Cuenta de cobro,Aprobado por,Importe\n')
+  })
+
+  it('cada tipo tiene los mismos encabezados que el importador, en el mismo orden', async () => {
+    const ruta = resolve(process.cwd(), '../../workers/historial-importador/src/campos.ts')
+    const { CAMPOS } = (await import(/* @vite-ignore */ ruta)) as { CAMPOS: Record<string, Array<{ etiqueta: string }>> }
+    expect(TIPOS_HISTORIAL.map((t) => t.valor).sort()).toEqual(Object.keys(CAMPOS).sort())
+    for (const tipo of TIPOS_HISTORIAL.map((t) => t.valor)) {
+      expect(ENCABEZADOS_PLANTILLA_HISTORIAL[tipo], tipo).toEqual(CAMPOS[tipo].map((campo) => campo.etiqueta))
+    }
   })
 })

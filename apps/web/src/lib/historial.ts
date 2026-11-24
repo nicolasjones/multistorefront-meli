@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { generarCsv } from './migracionCsv'
 
 // Importación del historial de ventas (MSF-293, F-VTA-37/FR-002 y FR-010). La
 // base repite las reglas (bucket privado, prefijo por organización, 50 MB,
@@ -16,6 +17,23 @@ export const TIPOS_HISTORIAL = [
 ] as const
 
 export type TipoHistorial = (typeof TIPOS_HISTORIAL)[number]['valor']
+
+// Encabezados de la plantilla por tipo: los de `CAMPOS` del importador (workers/historial-importador/src/campos.ts),
+// que reconoce cada uno sin importar mayúsculas ni tildes. Un test compara ambas listas.
+export const ENCABEZADOS_PLANTILLA_HISTORIAL: Readonly<Record<TipoHistorial, readonly string[]>> = {
+  comprobantes: ['Tienda', 'Tipo', 'Comprobante', 'Fecha', 'Cliente', 'Número de cliente', 'Operador', 'Estado final', 'Total'],
+  cobros: ['Tienda', 'Fecha', 'Comprobante', 'Cliente', 'Número de cliente', 'Cuenta de cobro', 'Aprobado por', 'Importe'],
+  cotizaciones: ['Fecha', 'Dólar comprador', 'Dólar vendedor', 'Cargó'],
+}
+
+export function nombreArchivoPlantillaHistorial(tipo: TipoHistorial): string {
+  return `plantilla-historial-${tipo}.csv`
+}
+
+/** CSV con solo los encabezados del tipo elegido: es la plantilla descargable. */
+export function contenidoPlantillaHistorial(tipo: TipoHistorial): string {
+  return generarCsv(ENCABEZADOS_PLANTILLA_HISTORIAL[tipo])
+}
 
 const EXTENSIONES = ['csv', 'xlsx'] as const
 type ExtensionHistorial = (typeof EXTENSIONES)[number]
