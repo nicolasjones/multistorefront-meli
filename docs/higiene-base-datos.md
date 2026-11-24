@@ -209,3 +209,7 @@ select c.relname from pg_class c where c.relnamespace = 'public'::regnamespace a
 Clasificar cada una (plataforma legítima en `public` vs negocio que debe vivir en `dominio`); las de negocio se mueven de a
 una en lotes propios (`alter table … set schema dominio` + vista de compatibilidad en `public` mientras la app y los workers
 migran, grants, RLS, exportación total y pgTAP). **No se migra ninguna en este lote**: cambia el contrato (PostgREST, RPC, exportaciones, workers).
+
+## Lote 38: lecturas por columna en `dominio.empresas`
+
+`dominio.empresas` es la primera tabla con `SELECT` por columna para `authenticated` (id, organización, nombre, Instagram, dirección, horarios, razón social, activa, fechas): CUIT, correo y WhatsApp solo salen por las RPC `empresa_datos` y `empresa_contacto_documentos`. Una vista o función `security invoker` nueva que lea esas tres columnas debe pasar por esas RPC; las funciones `security definer` no se ven afectadas.

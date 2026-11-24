@@ -1,7 +1,7 @@
 import { fechaDeMarca } from '../../lib/periodosRanking'
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  Alert, Box, Button, Card, CardContent, CardHeader, Dialog, DialogActions, DialogContent,
+  Alert, Box, Button, Card, CardContent, CardHeader, Chip, Dialog, DialogActions, DialogContent,
   MenuItem, Stack, TextField, Typography,
 } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../estados/EstadosPagina'
@@ -13,8 +13,13 @@ import { listarFormasPago, type FormaPago } from '../../lib/ventas/formasPago'
 import { useListarCuentasCobro } from '../../hooks/useListarCuentasCobro'
 import {
   FORMULARIO_COBRO_VACIO,
+  cobroRevertible,
   codigoDeErrorCobro,
   errorDeCampoCobro,
+  LARGO_MAXIMO_MOTIVO_REVERSION,
+  mensajeDeErrorReversion,
+  revertirCobro,
+  validarMotivoReversion,
   mensajeDeErrorCobro,
   registrarCobro,
   textoCuentaCobro,
@@ -26,11 +31,12 @@ import {
 } from '../../lib/ventas/cobros'
 
 export const TITULO_REGISTRAR_COBRO = 'Registrar cobro'
+export const TITULO_REVERTIR_COBRO = 'Revertir cobro'
 
 // La lista de cobros es una grilla (como las líneas del comprobante): con `role="table"` el
 // lector de pantalla anuncia las celdas y los encabezados.
-const COLUMNAS = '104px minmax(140px, 1fr) minmax(160px, 1.2fr) 140px minmax(140px, 1fr)'
-const ANCHO_MINIMO = 760
+const COLUMNAS = '104px minmax(140px, 1fr) minmax(160px, 1.2fr) 140px minmax(140px, 1fr) 150px'
+const ANCHO_MINIMO = 910
 
 export type Props = {
   comprobanteId: string
@@ -42,6 +48,10 @@ export type Props = {
   // Acción `registrar_cobro` de Ventas en la empresa del comprobante (FR-007): sin la acción
   // el botón no aparece (la base igual rechaza el registro).
   puedeRegistrarCobro: boolean
+  // «Revertir cobro»: solo el administrador (la base igual lo exige). Sin él no aparece el botón de cada fila.
+  puedeRevertirCobro: boolean
+  // Empresa activa del panel: al cambiarla se cierra el diálogo de reversión sin enviar nada (Principio VIII).
+  empresaActivaId: string | null
   // El diálogo lo abre y cierra la página: al cambiar de tienda se cierra con aviso (FR-009).
   dialogoAbierto: boolean
   onAbrirDialogo: () => void
@@ -62,11 +72,17 @@ export type Props = {
 // registrar uno parcial o total. La base es la autoridad: los importes, el saldo y el estado los
 // recalcula ella; acá solo se ofrece y se muestra.
 export function CobrosComprobante({
-  comprobanteId, empresaId, cobros, saldo, cargando, error, puedeRegistrarCobro,
+  comprobanteId, empresaId, cobros, saldo, cargando, error, puedeRegistrarCobro, puedeRevertirCobro, empresaActivaId,
   dialogoAbierto, onAbrirDialogo, onCerrarDialogo, onRecargar, onRegistrado, onCobroRegistrado,
 }: Props) {
   const pendiente = saldo?.saldo ?? null
   const sinSaldo = pendiente !== null && pendiente <= 0
+  const [cobroARevertir, setCobroARevertir] = useState<Cobro | null>(null)
+
+  // Cambiar de tienda o de comprobante cierra el diálogo de reversión: nunca revierte un cobro de la selección anterior.
+  useEffect(() => {
+    setCobroARevertir(null)
+  }, [empresaActivaId, comprobanteId])
 
   return (
     <Card variant="outlined">
@@ -110,7 +126,7 @@ export function CobrosComprobante({
                 descripcion="Cuando se registre un cobro, aparece acá con su forma de pago, su importe y quién lo registró."
               />
             ) : (
-              <ListaCobros cobros={cobros} />
+              <ListaCobros cobros={cobros} puedeRevertir={puedeRevertirCobro} onRevertir={setCobroARevertir} />
             )}
           </Stack>
         ) : null}
@@ -122,6 +138,13 @@ export function CobrosComprobante({
         saldo={pendiente ?? 0}
         onCerrar={onCerrarDialogo}
         onRegistrado={onRegistrado}
+        onRecargar={onRecargar}
+        onCobroRegistrado={onCobroRegistrado}
+      />
+      <DialogoRevertirCobro
+        cobro={cobroARevertir}
+        onCerrar={() => setCobroARevertir(null)}
+        onRevertido={onRegistrado}
         onRecargar={onRecargar}
         onCobroRegistrado={onCobroRegistrado}
       />
@@ -142,7 +165,7 @@ function Dato({ titulo, valor }: { titulo: string; valor: string }) {
   )
 }
 
-function ListaCobros({ cobros }: { cobros: Cobro[] }) {
+function ListaCobros({ cobros, puedeRevertir, onRevertir }: { cobros: Cobro[]; puedeRevertir: boolean; onRevertir: (cobro: Cobro) => void }) {
   return (
     <Box sx={{ overflowX: 'auto' }} tabIndex={0} role="region" aria-label="Cobros del comprobante (se desplaza)">
       <Box role="table" aria-label="Cobros del comprobante" sx={{ minWidth: ANCHO_MINIMO }}>
@@ -164,6 +187,7 @@ function ListaCobros({ cobros }: { cobros: Cobro[] }) {
           <Typography role="columnheader" variant="caption" color="text.secondary">Cuenta de cobro</Typography>
           <Typography role="columnheader" variant="caption" color="text.secondary" sx={{ textAlign: 'right' }}>Importe</Typography>
           <Typography role="columnheader" variant="caption" color="text.secondary">Registró</Typography>
+          <Typography role="columnheader" variant="caption" color="text.secondary">Estado</Typography>
         </Box>
         {cobros.map((cobro) => (
           <Box
@@ -195,6 +219,17 @@ function ListaCobros({ cobros }: { cobros: Cobro[] }) {
             </Box>
             <Box role="cell" sx={{ minWidth: 0 }}>
               <Typography variant="body2">{cobro.registrado_por ?? '—'}</Typography>
+            </Box>
+            <Box role="cell" sx={{ minWidth: 0 }}>
+              {cobro.estado_reversion ? (
+                <Chip size="small" variant="outlined" label={cobro.estado_reversion === 'revertido' ? 'Revertido' : 'Reversión'} />
+              ) : puedeRevertir && cobroRevertible(cobro) ? (
+                <Button size="small" variant="outlined" onClick={() => onRevertir(cobro)} aria-label={`Revertir el cobro de ${formatearImporteHistorial(cobro.importe)}`}>
+                  {TITULO_REVERTIR_COBRO}
+                </Button>
+              ) : (
+                <Typography variant="body2" color="text.secondary">—</Typography>
+              )}
             </Box>
           </Box>
         ))}
@@ -395,6 +430,96 @@ function Contenido({ comprobanteId, empresaId, saldo, onCerrar, onRegistrado, on
         <Button onClick={onCerrar} disabled={guardando}>Cancelar</Button>
         <Button type="submit" variant="contained" disabled={guardando || cargandoFormas || sinFormas}>
           {guardando ? 'Registrando…' : 'Registrar cobro'}
+        </Button>
+      </DialogActions>
+    </Box>
+  )
+}
+
+type DialogoReversionProps = {
+  cobro: Cobro | null
+  onCerrar: () => void
+  onRevertido: (mensaje: string) => void
+  onRecargar: () => void
+  onCobroRegistrado: () => void
+}
+
+// Diálogo «Revertir cobro» (MSF-667): el cobro queda en el libro y se le agrega un contra-asiento auditado (quién, cuándo y
+// por qué). El motivo es obligatorio; la base exige administrador y rechaza lo que no corresponda. El contenido se monta al
+// abrir: cada apertura parte sin motivo ni errores previos.
+function DialogoRevertirCobro({ cobro, onCerrar, onRevertido, onRecargar, onCobroRegistrado }: DialogoReversionProps) {
+  return (
+    <Dialog open={cobro !== null} onClose={onCerrar} fullWidth maxWidth="sm" aria-labelledby="titulo-revertir-cobro">
+      {cobro ? (
+        <ContenidoReversion cobro={cobro} onCerrar={onCerrar} onRevertido={onRevertido} onRecargar={onRecargar} onCobroRegistrado={onCobroRegistrado} />
+      ) : null}
+    </Dialog>
+  )
+}
+
+function ContenidoReversion({ cobro, onCerrar, onRevertido, onRecargar, onCobroRegistrado }: Omit<DialogoReversionProps, 'cobro'> & { cobro: Cobro }) {
+  const [motivo, setMotivo] = useState('')
+  const [errorMotivo, setErrorMotivo] = useState<string | null>(null)
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const enVuelo = useRef(false)
+
+  const enviar = async (evento: FormEvent) => {
+    evento.preventDefault()
+    if (enVuelo.current) return
+    setErrorGeneral(null)
+    const invalido = validarMotivoReversion(motivo)
+    setErrorMotivo(invalido)
+    if (invalido) return
+    enVuelo.current = true
+    setEnviando(true)
+    try {
+      await revertirCobro(cobro.id, motivo)
+      onRevertido(`Cobro revertido · ${formatearImporteHistorial(cobro.importe)}`)
+      // La reversión puede reabrir la factura (Cobrado → Deuda): se relee el comprobante y la lista de cobros.
+      onCobroRegistrado()
+      onRecargar()
+      onCerrar()
+    } catch (error) {
+      console.error('No pudimos revertir el cobro.', codigoDeErrorCobro(error))
+      setErrorGeneral(mensajeDeErrorReversion(error, 'No pudimos revertir el cobro. Intentá de nuevo.'))
+    } finally {
+      enVuelo.current = false
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <Box component="form" onSubmit={(evento) => void enviar(evento)} noValidate>
+      <TituloDialogo id="titulo-revertir-cobro" onCerrar={enviando ? undefined : onCerrar}>
+        {TITULO_REVERTIR_COBRO}
+      </TituloDialogo>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          {errorGeneral ? <EstadoError titulo="No se revirtió el cobro." descripcion={errorGeneral} /> : null}
+          <Typography variant="body2">
+            Vas a revertir el cobro de {formatearImporteHistorial(cobro.importe)} ({cobro.forma_pago ?? '—'}, {formatearFecha(cobro.fecha.slice(0, 10))}).
+            El cobro no se borra: se registra un contra-asiento con tu nombre, la fecha y el motivo, y la factura vuelve a tener saldo.
+          </Typography>
+          <TextField
+            label="Motivo"
+            fullWidth
+            required
+            multiline
+            minRows={2}
+            value={motivo}
+            onChange={(evento) => { setMotivo(evento.target.value); setErrorMotivo(null) }}
+            disabled={enviando}
+            error={Boolean(errorMotivo)}
+            helperText={errorMotivo ?? `Obligatorio, hasta ${LARGO_MAXIMO_MOTIVO_REVERSION} caracteres.`}
+            slotProps={{ htmlInput: { maxLength: LARGO_MAXIMO_MOTIVO_REVERSION + 50 } }}
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onCerrar} disabled={enviando}>Cancelar</Button>
+        <Button type="submit" variant="contained" color="error" disabled={enviando}>
+          {enviando ? 'Revirtiendo…' : TITULO_REVERTIR_COBRO}
         </Button>
       </DialogActions>
     </Box>

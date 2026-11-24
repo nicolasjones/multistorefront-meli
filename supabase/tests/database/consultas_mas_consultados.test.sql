@@ -1,7 +1,7 @@
 -- F-REP-04 (MSF-236, épica MSF-192, SC-007): `analitica.consultas_producto_mas_consultado` y
 -- `public.consultas_reportes_conteo`.
 --
--- Cuenta los toques de `dominio.intereses_whatsapp` por empresa × producto × fecha: orden por
+-- Cuenta las consultas de origen WhatsApp de `dominio.consultas` por empresa × producto × fecha: orden por
 -- consultas, conteo por rango, última consulta, filtro por empresa, período vacío, sin costo ni margen
 -- y sin acceso para `anon` ni `authenticated` (solo el rol de Superset lee la vista).
 --
@@ -43,15 +43,16 @@ $$;
 -- Org Uno: Alfa en Tienda A = 3 toques (dos hace 3 días —uno a las 23:30, que en UTC ya es el día
 -- siguiente— y uno ayer); Beta en Tienda A = 1 (hace 3 días); Alfa en Tienda B = 2 (ayer).
 -- Org Dos: Dos en Tienda D = 5 (ayer).
-insert into dominio.intereses_whatsapp (organizacion_id, empresa_id, producto_id, created_at) values
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(3, interval '15 hours')),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(3, interval '23 hours 30 minutes')),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '10 hours')),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'a1000000-0000-0000-0000-000000000002', pg_temp.instante(3, interval '12 hours')),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '9 hours')),
-  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '11 hours'));
-insert into dominio.intereses_whatsapp (organizacion_id, empresa_id, producto_id, created_at)
+insert into dominio.consultas (organizacion_id, empresa_id, origen, nombre, contacto, producto_id, created_at) values
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(3, interval '15 hours')),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(3, interval '23 hours 30 minutes')),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '10 hours')),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000a', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000002', pg_temp.instante(3, interval '12 hours')),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '9 hours')),
+  ('11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-00000000000b', 'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid', 'a1000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '11 hours'));
+insert into dominio.consultas (organizacion_id, empresa_id, origen, nombre, contacto, producto_id, created_at)
 select '22222222-2222-2222-2222-222222222222', 'e2000000-0000-0000-0000-00000000000d',
+       'whatsapp', 'Visitante de WhatsApp', 'visitante@sin-datos.invalid',
        'b2000000-0000-0000-0000-000000000001', pg_temp.instante(1, interval '13 hours')
   from generate_series(1, 5);
 

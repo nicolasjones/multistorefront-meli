@@ -1,8 +1,10 @@
 import { supabaseClient } from './supabase'
 
 // Interés por WhatsApp (F-CON-02, FR-004/FR-005). La lectura sale de la vista
-// `public.interes_whatsapp_por_producto` (security_invoker): la RLS de la base decide qué ve cada
-// persona (sección `consultas` ≥ lectura y empresa accesible); acá solo se filtra por la empresa activa.
+// `public.interes_whatsapp_por_producto` (security_invoker), que cuenta las CONSULTAS de origen WhatsApp de
+// `dominio.consultas` (cada toque en «Consultar por WhatsApp» entra a la bandeja con su producto; ya no se lee
+// `dominio.intereses_whatsapp`). La RLS de la base decide qué ve cada persona (sección `consultas` ≥ lectura y empresa
+// accesible); acá solo se filtra por la empresa activa.
 
 export type InteresPorProducto = {
   organizacion_id: string

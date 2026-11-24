@@ -109,6 +109,19 @@ describe('mensajeDeError', () => {
   })
 })
 
+describe('costo vaciado en la edición', () => {
+  it('con permiso de costo, un costo vacío viaja como borrado explícito', () => {
+    const p = aParametrosActualizar({ ...valido, costo: '  ' }, { conCosto: true, id: 'p', actualizadoEn: 't' })
+    expect(p.p_costo).toBeNull()
+    expect(p.p_borrar_costo).toBe(true)
+  })
+
+  it('con un costo cargado o sin permiso de costo nunca borra', () => {
+    expect(aParametrosActualizar({ ...valido, costo: '10' }, { conCosto: true, id: 'p', actualizadoEn: 't' }).p_borrar_costo).toBe(false)
+    expect(aParametrosActualizar({ ...valido, costo: '' }, { conCosto: false, id: 'p', actualizadoEn: 't' }).p_borrar_costo).toBe(false)
+  })
+})
+
 describe('proveedor del producto (F-PRV-03)', () => {
   it('la edición pide cambiar el proveedor explícitamente', () => {
     const p = aParametrosActualizar(valido, { conCosto: false, id: 'p1', actualizadoEn: 't' })

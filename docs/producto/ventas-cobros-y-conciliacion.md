@@ -214,3 +214,7 @@ Las tarjetas de arriba son **Contrarreembolsos pendientes** (cuántos envíos fa
 | «Tu rol no puede conciliar pagos en esta tienda.» | Solo Administración y Administrador concilian. |
 | «No pudimos marcar el contrarreembolso como cobrado. Intentá de nuevo.» | No se guardó. Reintentá. |
 | «Otra persona modificó esta cuenta mientras la editabas. Recargá para ver sus cambios; no se guardó nada tuyo.» | Dos personas editaron la misma cuenta. Recargá y repetí. |
+
+## Revertir un cobro mal cargado
+
+El **administrador** puede revertir un cobro desde la tarjeta **Cobros** del detalle de la factura: botón **Revertir cobro** en la fila, motivo obligatorio. El cobro no se borra: se registra un contra-asiento con tu nombre, la fecha y el motivo, y la factura vuelve a tener saldo («Cobrado» pasa a «Deuda»). En la columna **Estado** el cobro figura «Revertido» y el contra-asiento «Reversión». No se revierte un cobro conciliado (primero revertí la conciliación), el de un contrarreembolso ni uno que ya se revirtió. Si cambiás de tienda con el diálogo abierto, se cierra sin guardar nada.
