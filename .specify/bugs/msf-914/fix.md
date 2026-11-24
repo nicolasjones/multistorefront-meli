@@ -27,7 +27,7 @@ consolida la deuda acumulada: **1038 tareas de 36 specs**.
 | `scripts/cobertura-e2e.mjs` | modified | `leerItems` usa el parser del gate (`leerTareas`): un solo dueño del formato de la línea de tarea. Antes leía sólo `- [ ] T001` a nivel 0 y dejaba invisibles 4 specs con 55 tareas ya cerradas. |
 | `scripts/cobertura-e2e.test.mjs` | added test | Caso nuevo: el manifiesto lee los ítems con el mismo formato que el gate (id en negrita y tarea indentada). |
 | `scripts/e2e-cobertura-epicas.py` | modified | Replica el mismo formato de línea de tarea (id con o sin negrita, tareas indentadas, sub-tareas con sufijo): los dos consumidores leen las mismas 3566 tareas del repo. |
-| `package.json` | modified | `tareas:consolidar`, `tareas:check`, `test:tareas:cerradas`; `pnpm test` corre el gate y sus tests. |
+| `package.json` | modified | `tareas:consolidar`, `tareas:check`, `test:tareas:cerradas`; `pnpm test` corre los tests del gate; el gate (`tareas:check`) corre una sola vez, en `validate.yml`. |
 | `.github/workflows/validate.yml` | modified | El job `chequeos` corre `pnpm tareas:check` y `pnpm test:tareas:cerradas`. |
 | `specs/*/tasks.md` (36 specs) | modified | Consolidación: 1038 tareas `[ ]` → `[x]` con su procedencia. No se editó a mano ninguna marca: todas salen de un side-car. |
 | `AGENTS.md`, `CLAUDE.md` | modified | La regla absoluta deja de afirmar «el sistema lo garantiza» y dice **cómo se verifica** (side-car → `pnpm tareas:consolidar` → gate `pnpm tareas:check`), con las **cuatro** reglas del gate: una `[ ]` de una historia ya cerrada **o** una `[ ]` con nota `Desvío:` (la deuda trazada se cierra como `[x]`) fallan. |
