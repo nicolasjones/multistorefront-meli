@@ -54,6 +54,8 @@ El cierre de la épica (`docs/dolar-y-recalculo.md`) integra este documento.
 - Botón **Cargar cotización** solo con `edicion`. El diálogo también se carga de forma diferida.
 - El campo solo admite dígitos, `.` y `,`. Formatos válidos: `1490`, `1490,50`, `1.490,5`; `1490.50` se
   rechaza por ambiguo. Variación inusual (> 15 %) solo avisa.
+- El valor se muestra con **hasta 4 decimales**, los que guarda la base (`numeric(14,4)`): `$ 1.465`,
+  `$ 1.465,50`, `$ 1.465,1234` (`formatearCotizacion`).
 - Tras cargar, el diálogo pasa a la vista previa y la confirmación (ver [cotizacion-recalculo.md](cotizacion-recalculo.md), F-PRE-03).
 - Si cambia la organización de trabajo (superadmin) el estado se descarta y se vuelve a leer.
 

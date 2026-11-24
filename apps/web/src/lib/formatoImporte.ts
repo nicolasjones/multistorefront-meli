@@ -18,6 +18,45 @@ export function formatearNumeroImporte(valor: number, opciones: Pick<OpcionesImp
   return formatearImporte(valor, { ...opciones, simbolo: '' }).replace(/^-?\s/, (m) => m.replace(' ', ''))
 }
 
+// Importe con hasta `decimales` decimales (la cotización del dólar guarda 4): 1465,1234 → «$ 1.465,1234».
+// Un entero no lleva decimales; una única décima conserva su cero («$ 1.465,50»), como `formatearImporte`.
+// `decimales` es un entero entre 0 y 10; fuera de ese rango lanza RangeError.
+// La base acota el valor (`numeric(14,4)`), así que los enormes no ocurren; igual, como en `formatearImporte`,
+// por encima de lo que un double escalado representa de forma exacta se muestra el entero por BigInt, sin decimales.
+const MAX_DECIMALES_IMPORTE = 10
+
+// `abs` por 10^decimales, redondeado al entero (la mitad sube), sin multiplicar números de coma flotante:
+// se desplaza el punto decimal sobre los dígitos de `String(abs)` (su representación decimal más corta,
+// con o sin exponente) y se mira solo el primer dígito descartado.
+function escalarExacto(abs: number, decimales: number): number {
+  const [mantisa, exp = '0'] = String(abs).split('e')
+  const [parteEntera, parteDecimal = ''] = mantisa.split('.')
+  const digitos = parteEntera + parteDecimal
+  const punto = parteEntera.length + Number(exp) + decimales
+  if (punto < 0) return 0
+  if (punto >= digitos.length) return Number(BigInt(digitos + '0'.repeat(punto - digitos.length)))
+  const base = punto === 0 ? 0n : BigInt(digitos.slice(0, punto))
+  return Number(digitos[punto] >= '5' ? base + 1n : base)
+}
+
+export function formatearImporteHasta(valor: number, decimales: number): string {
+  if (!Number.isInteger(decimales) || decimales < 0 || decimales > MAX_DECIMALES_IMPORTE) {
+    throw new RangeError(`decimales debe ser un entero entre 0 y ${MAX_DECIMALES_IMPORTE}`)
+  }
+  if (!Number.isFinite(valor)) return '—'
+  const factor = 10 ** decimales
+  const grande = Math.abs(valor) * factor > Number.MAX_SAFE_INTEGER
+  // El redondeo parte de la representación decimal y no de `valor * factor` (1,00005 * 10⁴ da 10000,4999…):
+  // así los medios exactos suben, también con exponente (1,5e-8 con 8 decimales da 0,00000002).
+  const escalado = grande ? 1 : escalarExacto(Math.abs(valor), decimales)
+  const entero = grande ? BigInt(Math.round(Math.abs(valor))) : Math.floor(escalado / factor)
+  const resto = grande ? '' : String(escalado % factor).padStart(decimales, '0').replace(/0+$/, '')
+  const miles = String(entero).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const signo = valor < 0 && escalado > 0 ? '-' : ''
+  const conDecimales = resto === '' ? '' : `,${resto.length === 1 ? `${resto}0` : resto}`
+  return `${signo}$ ${miles}${conDecimales}`
+}
+
 export function formatearImporte(valor: number, opciones: OpcionesImporte = {}): string {
   if (!Number.isFinite(valor)) return '—'
   const simbolo = opciones.simbolo ?? '$'

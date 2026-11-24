@@ -57,6 +57,14 @@ describe('Pestaña Cotizaciones del dólar', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
+  it('muestra el dólar con los 4 decimales que guarda la base', () => {
+    mocks.useHistorialCotizaciones.mockReturnValue(respuesta([cotizacion(1, { dolar_comprador: 1465.1234, dolar_vendedor: 1490.5 })]))
+    abrirCotizaciones()
+    const fila = within(screen.getByRole('table', { name: 'Cotizaciones del dólar históricas' })).getAllByRole('row')[1]
+    expect(within(fila).getByText('$ 1.465,1234')).toBeInTheDocument()
+    expect(within(fila).getByText('$ 1.490,50')).toBeInTheDocument()
+  })
+
   it('muestra las columnas Fecha, Dólar comprador, Dólar vendedor y Cargó con sus valores', () => {
     abrirCotizaciones()
     const tabla = screen.getByRole('table', { name: 'Cotizaciones del dólar históricas' })

@@ -31,7 +31,7 @@ Todas las tablas tienen RLS por organización (`private.organizacion_id()`), sin
 1. **Precio central en pesos** = `precio_lista` si la moneda es ARS; si es USD, `round(precio_lista × cotización, 2)`. USD sin cotización cargada da `null` (no se inventa un valor).
 2. **Neto de la empresa** = central, o central × (1 + ajuste %) redondeado al **$ 10 más cercano** (base `central_ajuste`).
 3. **Final** = neto × (1 + alícuota) al centavo (redondeo a 2 decimales, desde la migración `20270507180200_aplicar_iva_al_centavo.sql`); Exento ⇒ final = neto. La alícuota es la del producto o, si no tiene, la de su categoría.
-4. **Margen** = (neto − costo en pesos) / neto, siempre sobre el neto (sin IVA). El interruptor de IVA no lo cambia.
+4. **Margen** = (neto − costo en pesos) / neto, siempre sobre el neto (sin IVA). El interruptor de IVA no lo cambia. El formulario de producto lo aclara: **no incluye la comisión del canal** (la vista de Rentabilidad la resta, hoy con comisión 0).
 
 El front solo espeja las fórmulas para textos de ejemplo (`lib/precios.ts`, `lib/iva.ts`); la autoridad es la base.
 
@@ -218,5 +218,5 @@ Sobre ese precio normal:
 
 La columna «Margen» del listado de Productos ((precio − costo) / precio, en pesos) solo existe con acceso a Rentabilidad, igual que «Costo». El botón «Cotización →» del bloque de precio abre la pantalla de Cotización en una pestaña nueva. «Stock bajo» y «Sin vincular a ML» siguen deshabilitados hasta que existan sus datos.
 
-El margen del listado es una **estimación**: (precio de lista − costo) / precio de lista, en pesos, con el costo en la moneda del producto (en USD se convierte con la misma cotización con que la base convirtió el precio). No incluye impuestos ni descuentos y puede diferir del margen de Rentabilidad; la celda lo aclara en un tooltip. El enlace «Cotización →» solo se ofrece a quien tiene la sección `cotizacion_dolar`, respeta el basename del router y abre en pestaña nueva.
+El margen del listado es una **estimación**: (precio de lista − costo) / precio de lista, en pesos, con el costo en la moneda del producto (en USD se convierte con la misma cotización con que la base convirtió el precio). No incluye impuestos, descuentos ni la comisión del canal, y puede diferir del margen de Rentabilidad; la celda lo aclara en un tooltip. El enlace «Cotización →» solo se ofrece a quien tiene la sección `cotizacion_dolar`, respeta el basename del router y abre en pestaña nueva. La cotización se muestra con **hasta 4 decimales** (los que guarda `numeric(14,4)`; `formatearCotizacion` en `lib/cotizacion.ts`): en las pantallas de Cotización y de Inicio, en la pestaña «Cotizaciones» del Historial de ventas, en el bloque de precio del formulario de producto («Con dólar …») y en «Dólar vigente» de la pestaña «Precios y moneda».
 

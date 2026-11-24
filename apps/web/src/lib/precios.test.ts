@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  NOTA_MARGEN,
   REGLA_SIN_GUARDAR,
   aPesos,
   ajusteATexto,
@@ -72,6 +73,11 @@ describe('formato', () => {
     expect(formatearPesosPrecio(17580)).toBe('$ 17.580')
     expect(formatearMargen(0.4)).toBe('40 %')
     expect(formatearMargen(null)).toBe('—')
+  })
+
+  it('la nota del margen aclara que no incluye la comisión del canal', () => {
+    expect(NOTA_MARGEN).toContain('(Precio − Costo) / Precio')
+    expect(NOTA_MARGEN).toContain('no incluye la comisión del canal')
   })
 
   it('fecha corta de la cotización en hora de Buenos Aires', () => {

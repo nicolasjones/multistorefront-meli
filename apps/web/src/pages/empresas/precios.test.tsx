@@ -127,6 +127,15 @@ describe('EmpresaPrecios', () => {
     expect(screen.getByRole('link', { name: 'Cotización →' })).toHaveAttribute('href', '/cotizacion')
   })
 
+  it('el dólar vigente se muestra con los 4 decimales que guarda la base, sin truncarlos', async () => {
+    mocks.estadoCotizacion.mockReturnValue({
+      estado: { alcance: 'empresa', vigente: { valor: 1465.1234, cargadaEn: '2026-09-26T15:00:00Z', cargadaPor: null } },
+      cargando: false, hayError: false, recargar: vi.fn(),
+    })
+    abrir()
+    expect(await screen.findByText(/Dólar vigente \$ 1\.465,1234/)).toBeInTheDocument()
+  })
+
   it('sin acceso a la cotización no la pide y «Cotización →» queda deshabilitado (FR-010)', async () => {
     mocks.nivel.mockReturnValue('ninguno')
     abrir()
