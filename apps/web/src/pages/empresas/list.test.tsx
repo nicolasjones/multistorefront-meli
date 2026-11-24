@@ -178,6 +178,7 @@ describe('EmpresaList', () => {
   it('un rol con Empresas en edición pero sin permiso de alta ve la lista y no «Nueva empresa»', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(await screen.findByText('San Javucho')).toBeInTheDocument()
