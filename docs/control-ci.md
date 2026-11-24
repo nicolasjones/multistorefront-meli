@@ -314,12 +314,14 @@ Propuestas exactas; ninguna se aplicó.
   runners self-hosted online (`gh variable list` y `gh api .../actions/runners`, 2026-11-20). El tope efectivo es
   `min(CI_RANAS_MAXIMAS, runners online)`; con los jobs pesados en `ubuntu-latest` (`CI_RUNS_ON_PESADO`), los
   self-hosted sólo atienden los livianos (`changes`, `liberar`, `validacion`, `infrastructure`).
+  **Este cambio NO resuelve `CI_RANAS_MAXIMAS`**: sólo documenta el diagnóstico. **Acción de Nicolás (pendiente, fuera del
+  repo):** editar `/opt/ai-dev-orchestrator/.env` y reiniciar el gateway. Hasta que lo haga, el tope sigue en 2.
   Acción en el servidor: agregar `CI_RANAS_MAXIMAS=4` al `/opt/ai-dev-orchestrator/.env` y **reiniciar**
   `systemctl restart ai-dev-gateway` (el `.env` se lee al arrancar); el tope efectivo pasa a `min(4, 5) = 4`.
   Criterio del 4 (no 5): deja un runner self-hosted de holgura para `liberar`, que también necesita runner, sin volver
   al cuello de 2. No se toca `CI_LANES` (15) ni `CI_LOAD_MAX` (2.5, variable de repo del producto). Como
   `CI_RANAS_MAXIMAS` no está en el `.env.example` del repo `ai-dev-orchestrator`, un nodo nuevo vuelve al default 2:
-  hay que agregarla a ese `.env.example` (cambio en ese repo) para que el valor no dependa de este servidor. El modelo
+  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: **pendiente** en el orquestador) para que el valor no dependa de este servidor. El modelo
   de capacidad del orquestador sigue contando sólo runners self-hosted cuando los jobs pesados ya corren en hosted:
   revisarlo es deuda aparte, no de este cambio. Verificación: `grep CI_RANAS_MAXIMAS /opt/ai-dev-orchestrator/.env` y,
   tras el reinicio, que el poller admita hasta 4 ramas en vuelo (deja de frenar con «límite 2»).

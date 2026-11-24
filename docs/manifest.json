@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "fe206379780bf173812761572fceea0c52623b34b2ad9bbab37382bd9d2934d5",
+      "pageHash": "7d0963133b6619b83550a03d6552c492bb24720753c7bb5222aa31dcea2bdf12",
       "sourceHash": "837af6c2d48b503ee09afd13071af25df68482fc9b53a9cd1cbdfc7c36ca4e9e",
-      "sourceAt": "e55825f7",
+      "sourceAt": "d647ae86",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -78,7 +78,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "d647ae86"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -709,9 +709,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "83333cf9dfcb0d16b9981c46bfbb4601a4c0bdeaf7990fb97e0eb4dcc7655dff",
+      "pageHash": "40eecafb053f11cef8237913b376de7ea94debebf7978d376bb7da9ad1f72fb1",
       "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
-      "sourceAt": "f6d80e936",
+      "sourceAt": "f6d80e93",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -722,7 +722,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "f6d80e936"
+      "commit": "f6d80e93"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1003,9 +1003,9 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "f5c75c6daf5caade63a20f28123e7b00ad1020ec9cde7c61a84dd33fbd4cc940",
+      "pageHash": "0df8ef3b0ab2cd2ea505bc8328a51542d29242f3a9593c32969206d151514be9",
       "sourceHash": "e67d70d021e7e37dabc779571cb12ec3b3554d6069a72ff005e79383bef9c83d",
-      "sourceAt": "e55825f7",
+      "sourceAt": "7c49050f",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx",
@@ -1025,7 +1025,7 @@
         "supabase/tests/database/consultas.test.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "7c49050f"
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -1640,15 +1640,15 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "b4f46da17d8001cd75fa4eebc98b05f6e9796f3bd4a567c9eafabd7a162d0588",
+      "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
       "sourceHash": "127bc177a540916df231fae0330bbac9ebb73ad1fd5557139c8b4c4eb4cc0ffa",
-      "sourceAt": "e55825f7",
+      "sourceAt": "7c49050f",
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "7c49050f"
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -4534,9 +4534,9 @@
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "de90507c452457dde362c20b9c3a34b9a7241658a9f79bca6187c0d64a756cba",
+      "pageHash": "1c5612d5a716176a2e6085631c615cd0f514266c8a7fd1672dc5b77e4704ecbc",
       "sourceHash": "c3952bbfbcfd49f055e92afd2e5743c27a21ffbe2062803cb1d7100153950403",
-      "sourceAt": "e55825f7",
+      "sourceAt": "7c49050f",
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations/20261016140100_roles_por_empresa.sql",
@@ -4561,7 +4561,7 @@
         "apps/web/e2e/permisos-por-empresa.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7"
+      "commit": "7c49050f"
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
