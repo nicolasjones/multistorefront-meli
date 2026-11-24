@@ -83,7 +83,7 @@ test('una subtarea sangrada pegada a un ítem no desaparece ni se funde en el pa
     '  - [ ] T010a [F-A-01] Subtarea',
     '  - [x] T010b Otra subtarea',
   ].join('\n'));
-  assert.deepEqual(items.map((i) => i.id), ['T010', 'T010a', 'T010b']);
+  assert.deepEqual(items.map((i) => i.id), ['T010', 'T010A', 'T010B']);
   assert.equal(items[0].texto, '[F-A-01] Madre continuación de la madre');
 });
 
@@ -94,9 +94,9 @@ test('requiereDescripcion excluye hechos y cierres sin historia (paridad con el 
     '- [ ] T003 [CIERRE]',
     '- [ ] T004 Sin código',
   ].join('\n'));
-  assert.equal(hecho.requiereDescripcion, false);
-  assert.equal(cierre.requiereDescripcion, false);
-  assert.equal(cierreConHistoria.requiereDescripcion, false);
-  assert.equal(pendiente.requiereDescripcion, true);
+  assert.equal(requiereDescripcion(hecho), false);
+  assert.equal(requiereDescripcion(cierre), false);
+  assert.equal(requiereDescripcion(cierreConHistoria), false);
+  assert.equal(requiereDescripcion(pendiente), true);
   assert.equal(requiereDescripcion({ hecho: false, texto: '[CIERRE] [F-A-01]', motivo: 'sin texto' }), true);
 });

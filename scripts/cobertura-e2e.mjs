@@ -11,7 +11,7 @@
 //     --specs <specs> --out <cobertura-e2e.json> --run-id <id> --modo <on|retain>
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { leerItems } from './historia-item.mjs';
+import { leerItems, requiereDescripcion } from './historia-item.mjs';
 import { argumentValue } from './operaciones.mjs';
 
 const ETIQUETA = /\[([A-Z]+-\d+)\s*:\s*([\w,\s]+)\]/g;
@@ -277,7 +277,7 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       if (!citado) sinCubrir.push({ ...comun, ...item });
       // Ítems cuya descripción no alcanza: el runner no puede derivar sus criterios.
       // Antes pasaban como «cubiertos» o como «sólo base de datos» sin que nadie lo viera.
-      if (item.requiereDescripcion) itemsSinDescripcion.push({ ...comun, ...item });
+      if (requiereDescripcion(item)) itemsSinDescripcion.push({ ...comun, ...item });
     }
   }
 

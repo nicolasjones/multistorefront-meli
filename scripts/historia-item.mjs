@@ -83,14 +83,13 @@ export function leerItemsDesdeTexto(contenido) {
     }
     i = j - 1;
     const texto = partes.join(' ').trim();
-    const item = {
+    items.push({
       id: m[5].toUpperCase(),
       hecho: m[2].toLowerCase() === 'x',
       texto,
       historia: codigoHistoria(texto),
       motivo: motivoDescripcion(texto),
-    };
-    items.push({ ...item, requiereDescripcion: requiereDescripcion(item) });
+    });
   }
   return items;
 }
@@ -112,5 +111,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     process.exit(2);
   }
   const contenido = desdeStdin ? readFileSync(0, 'utf8') : readFileSync(ruta, 'utf8');
-  console.log(JSON.stringify(leerItemsDesdeTexto(contenido)));
+  const items = leerItemsDesdeTexto(contenido).map((i) => ({ ...i, requiereDescripcion: requiereDescripcion(i) }));
+  console.log(JSON.stringify(items));
 }

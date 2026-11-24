@@ -69,9 +69,9 @@ describe('cobertura-e2e', () => {
     const tasks = join(base, 'tasks.md');
     writeFileSync(tasks, '- [x] **T001** Con negrita.\n  - [ ] T002 Indentada.\n- [ ] T003 Sencilla.\n');
     assert.deepEqual(leerItems(tasks), [
-      { id: 'T001', hecho: true, texto: 'Con negrita.' },
-      { id: 'T002', hecho: false, texto: 'Indentada.' },
-      { id: 'T003', hecho: false, texto: 'Sencilla.' },
+      { id: 'T001', hecho: true, texto: 'Con negrita.', historia: '', motivo: 'sin historia' },
+      { id: 'T002', hecho: false, texto: 'Indentada.', historia: '', motivo: 'sin historia' },
+      { id: 'T003', hecho: false, texto: 'Sencilla.', historia: '', motivo: 'sin historia' },
     ]);
   });
 
@@ -200,12 +200,10 @@ describe('cobertura-e2e', () => {
       { title: '[MSF-119:T020] ingreso', results: [{ status: 'passed', attachments: [] }] },
     ] }] }] }));
     const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r4', modo: 'on' });
-    // El manifiesto es un registro: lista TODOS los ítems sin descripción utilizable,
-    // hechos o no (igual que `sin_cubrir`). El reporte por épica cuenta sólo los pendientes.
+    // Misma regla que el reporte por épica: sólo los pendientes (ni hechos ni cierres sin historia).
     assert.deepEqual(m.items_sin_descripcion.map((i) => [i.id, i.motivo]), [
       ['T021', 'sin texto'],
       ['T022', 'sin historia'],
-      ['T023', 'sin historia'],
     ]);
     assert.deepEqual(m.historias_ambiguas.map((h) => [h.historia, h.titulos]), [
       ['F-ACC-01', ['Ingreso', 'Recuperación']],
