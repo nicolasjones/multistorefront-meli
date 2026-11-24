@@ -164,7 +164,7 @@ En **Ventas → Presupuestos** ves todos los presupuestos con **Comprobante**, *
 | **Pendiente** | Todavía no lo aceptó el cliente. |
 | **Aceptado** | El cliente lo aceptó. No reserva ni descuenta stock. |
 | **Vencido** | Estaba pendiente y pasó la fecha de «Válido hasta». Se marca solo. |
-| **Convertido en factura** | Existe como filtro de la lista, pero por ahora ningún botón convierte un presupuesto en factura. |
+| **Convertido en factura** | Ya se facturó: con **Facturar** se creó la factura y el presupuesto quedó vinculado a ella. Ya no se modifica ni se factura de nuevo; sí se puede copiar. |
 
 En cada fila tenés estos botones (según tu rol y el estado):
 
@@ -175,9 +175,9 @@ En cada fila tenés estos botones (según tu rol y el estado):
 
 ![Lista de presupuestos con el botón Copiar de la primera fila señalado](img/ventas-comprobantes/10-presupuesto-copiar.png)
 
-*Cada fila trae sus botones: Imprimir, Enviar por correo, Aceptar, Copiar y Modificar. «Copiar» hace un presupuesto nuevo a partir de este.*
+*Cada fila trae sus botones: Imprimir, Enviar por correo, Aceptar, Facturar, Copiar y Modificar. «Copiar» hace un presupuesto nuevo a partir de este.*
 
-Por ahora no hay un botón que convierta un presupuesto en factura. Para cobrar, cargá una factura nueva con los mismos productos (podés usar **Copiar** para tener los datos a mano).
+**Facturar**: en un presupuesto **Aceptado** y que no esté vencido, el botón **Facturar** (en la fila o dentro del presupuesto) crea la factura en **Borrador** con el mismo cliente, tienda y líneas, **al precio del presupuesto aceptado** (aunque la lista de precios haya cambiado después). El presupuesto pasa a **Convertido en factura** y se abre la factura, que confirmás como cualquier otra (ahí se controla el stock). Si hacés doble clic o reintentás, se abre la misma factura: un presupuesto se factura una sola vez. En la factura ves «Esta factura nació del presupuesto N» con el enlace, y en el presupuesto convertido ves la factura y un botón **Ver factura**. Si el presupuesto está pendiente, vencido, o un producto ya no está activo, el aviso te dice qué hacer. Para facturar con precios nuevos, **Copiá** el presupuesto.
 
 ## Cambiar de tienda con un comprobante abierto
 

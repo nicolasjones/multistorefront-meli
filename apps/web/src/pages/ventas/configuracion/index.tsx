@@ -1,4 +1,4 @@
-import { type ComponentType, useState } from 'react'
+import { useState } from 'react'
 import { Box, Stack, Tab, Tabs, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { useEmpresasAccesibles } from '../../../hooks/useEmpresasAccesibles'
 import { useNivelSeccion } from '../../../hooks/useNivelSeccion'
@@ -7,19 +7,9 @@ import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../../components
 import { ContenedorSeccion } from '../../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../../components/pagina/ContextoOrganizacionActiva'
 import { EncabezadoPagina } from '../../../components/pagina/EncabezadoPagina'
-import type { EmpresaOpcion } from '../../../components/ventas/FormaPagoDialog'
 import { FormasEnvioTab } from './FormasEnvioTab'
 import { FormasPagoTab } from './FormasPagoTab'
-
-// Lo que recibe cada pestaña de catálogo: la empresa elegida arriba, las demás empresas entre
-// las que puede repartirse un alta y si la persona puede escribir (Administrador con edición).
-export type PropsPestanaCatalogo = {
-  empresa: EmpresaOpcion
-  empresas: EmpresaOpcion[]
-  puedeEditar: boolean
-}
-
-type PestanaCatalogo = { id: string; etiqueta: string; Componente: ComponentType<PropsPestanaCatalogo> }
+import { type EmpresaOpcion, type PestanaCatalogo } from './tipos'
 
 // Un catálogo por pestaña. Cada historia de la épica registra la suya acá.
 const PESTANAS_CATALOGO: PestanaCatalogo[] = [

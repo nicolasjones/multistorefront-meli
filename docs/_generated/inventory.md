@@ -5,7 +5,7 @@
 - Rutas del panel: **276**
 - Tablas en migraciones: **207**
 - Variables de entorno: **111**
-- Specs: **159**
+- Specs: **160**
 - Páginas de documentación: **346**
 
 ## Rutas del panel
@@ -772,3 +772,4 @@
 - `20270328-100000-opiniones-de-productos` — Feature Specification: Opiniones de productos en la tienda (MSF-467)
 - `20271117-100000-lote-34-interfaz-textos-y-roles` — Feature Specification: Lote 34 · interfaz, textos, roles y estados de pantalla
 - `20271118-100000-lote-38-parciales` — Lote 38: ítems parciales con decisión tomada (SQL + interfaz)
+- `20271118-110000-lote-39-facturar-presupuesto` — Feature Specification: Facturar presupuesto y retención de consultas
