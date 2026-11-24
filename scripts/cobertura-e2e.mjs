@@ -277,7 +277,7 @@ export function generarManifiesto({ reporte, dirResults, dirSpecs, runId, modo }
       if (!citado) sinCubrir.push({ ...comun, ...item });
       // Ítems cuya descripción no alcanza: el runner no puede derivar sus criterios.
       // Antes pasaban como «cubiertos» o como «sólo base de datos» sin que nadie lo viera.
-      if (item.motivo) itemsSinDescripcion.push({ ...comun, ...item });
+      if (item.requiereDescripcion) itemsSinDescripcion.push({ ...comun, ...item });
     }
   }
 

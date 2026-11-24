@@ -310,6 +310,7 @@ nav:
           - Avisos y listas: tecnico/avisos-y-listas.md
       - Operación:
           - Operación: tecnico/operacion.md
+          - Cierre de tareas de specs (MSF-914): tecnico/cierre-de-tareas.md
           - Importaciones y monitoreo: tecnico/importaciones-y-monitoreo.md
           - Operación, copias y documentación: tecnico/operacion-copias-y-documentacion.md
           - Runbooks: tecnico/runbooks/README.md

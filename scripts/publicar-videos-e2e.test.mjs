@@ -34,6 +34,17 @@ describe('publicar-videos-e2e', () => {
     assert.match(html, /\[T021\] Acceso y organización — sin texto/);
   });
 
+  it('escapa el HTML de specTitulo y motivo (vienen de specs y del manifiesto)', () => {
+    const html = paginaRun({
+      ...manifiesto,
+      evidencias: [{ ...manifiesto.evidencias[0], specTitulo: '<script>alert(1)</script>' }],
+      items_sin_descripcion: [{ id: 'T9', specTitulo: '<b>x</b>', motivo: '<img src=x onerror=1>' }],
+    });
+    assert.doesNotMatch(html, /<script>alert|<b>x<|<img src=x/);
+    assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
+    assert.match(html, /&lt;img src=x onerror=1&gt;/);
+  });
+
   it('copia solo webm preservando rutas relativas', () => {
     const base = mkdtempSync(join(tmpdir(), 'pub-'));
     mkdirSync(join(base, 'origen', 't1'), { recursive: true });

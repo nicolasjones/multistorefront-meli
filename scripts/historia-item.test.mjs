@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { codigoHistoria, leerItems, leerItemsDesdeTexto, motivoDescripcion, textoSinEtiquetas } from './historia-item.mjs';
+import { codigoHistoria, leerItems, requiereDescripcion, leerItemsDesdeTexto, motivoDescripcion, textoSinEtiquetas } from './historia-item.mjs';
 
 const TASKS = [
   '- [x] T001 [F-EMP-03][US1] Migración aditiva `dominio.empresas` (FR-001)',
@@ -61,4 +61,42 @@ test('leerItems lee el tasks.md del disco con la misma regla', () => {
     ['T005', false, '', 'sin historia'],
   ]);
   assert.deepEqual(leerItems(join(base, 'no-existe.md')), []);
+});
+
+test('lee el formato del gate de cierre: id en negrita, indentado y viñeta `*`', () => {
+  const items = leerItemsDesdeTexto([
+    '- [ ] **T001** [F-A-01] En negrita',
+    '  - [x] T002 [F-A-01] Indentada',
+    '* [ ] T003 [F-A-02] Con asterisco',
+  ].join('\n'));
+  assert.deepEqual(items.map((i) => [i.id, i.hecho, i.historia]), [
+    ['T001', false, 'F-A-01'],
+    ['T002', true, 'F-A-01'],
+    ['T003', false, 'F-A-02'],
+  ]);
+});
+
+test('una subtarea sangrada pegada a un ítem no desaparece ni se funde en el padre', () => {
+  const items = leerItemsDesdeTexto([
+    '- [ ] T010 [F-A-01] Madre',
+    '  continuación de la madre',
+    '  - [ ] T010a [F-A-01] Subtarea',
+    '  - [x] T010b Otra subtarea',
+  ].join('\n'));
+  assert.deepEqual(items.map((i) => i.id), ['T010', 'T010a', 'T010b']);
+  assert.equal(items[0].texto, '[F-A-01] Madre continuación de la madre');
+});
+
+test('requiereDescripcion excluye hechos y cierres sin historia (paridad con el reporte por épica)', () => {
+  const [hecho, cierre, cierreConHistoria, pendiente] = leerItemsDesdeTexto([
+    '- [x] T001 [F-A-01]',
+    '- [ ] T002 [CIERRE] Revisión',
+    '- [ ] T003 [CIERRE]',
+    '- [ ] T004 Sin código',
+  ].join('\n'));
+  assert.equal(hecho.requiereDescripcion, false);
+  assert.equal(cierre.requiereDescripcion, false);
+  assert.equal(cierreConHistoria.requiereDescripcion, false);
+  assert.equal(pendiente.requiereDescripcion, true);
+  assert.equal(requiereDescripcion({ hecho: false, texto: '[CIERRE] [F-A-01]', motivo: 'sin texto' }), true);
 });

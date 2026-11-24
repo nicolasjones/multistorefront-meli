@@ -13,9 +13,12 @@
 // escenarios de aceptación).
 import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+// Línea de tarea: la MISMA regex que usa el gate de cierre de tareas (MSF-914): id en negrita
+// (`**T001**`), tareas indentadas y viñeta `*`. Una sola fuente del formato de la línea.
+import { TAREA } from './consolidar-marcas-tasks.mjs';
 
-/** Línea de ítem de `tasks.md`: `- [ ] T001 …`. */
-const ITEM_TAREA = /^\s*-\s*\[(x| )\]\s*(T\d+)\b\s*(.*)$/i;
+/** Marca de las tareas de cierre de una spec (`[CIERRE]`). */
+const MARCA_CIERRE = /\[CIERRE\]/i;
 /** Código de historia `F-XXX-NN` (en corchetes, en cualquier posición del texto). */
 const CODIGO_HISTORIA = /\[(F-[A-Z0-9]+-\d+)\]/;
 
@@ -45,6 +48,16 @@ export function motivoDescripcion(texto) {
 }
 
 /**
+ * ¿Hay que exigirle descripción a este ítem? No: a los hechos (ya no hay nada que escribir) ni
+ * a las tareas de cierre sin código de historia (no tienen escenarios a los que unirse).
+ * Misma regla en JS y en Python (el reporte por épica la lee de acá).
+ */
+export function requiereDescripcion({ hecho, texto, motivo }) {
+  if (!motivo || hecho) return false;
+  return !(MARCA_CIERRE.test(texto) && !codigoHistoria(texto));
+}
+
+/**
  * Ítems de un `tasks.md` con su texto COMPLETO: las líneas indentadas que siguen al
  * ítem son parte de él (notas, desvíos, un enunciado partido en dos) y sin ellas el texto
  * se cortaba en la primera línea.
@@ -53,9 +66,9 @@ export function leerItemsDesdeTexto(contenido) {
   const lineas = String(contenido ?? '').split('\n');
   const items = [];
   for (let i = 0; i < lineas.length; i++) {
-    const m = lineas[i].match(ITEM_TAREA);
+    const m = lineas[i].match(TAREA);
     if (!m) continue;
-    const partes = [m[3].trim()];
+    const partes = [m[7].trim()];
     let j = i + 1;
     while (j < lineas.length) {
       const linea = lineas[j];
@@ -64,18 +77,20 @@ export function leerItemsDesdeTexto(contenido) {
         continue;
       }
       if (!/^\s/.test(linea)) break; // sin sangría ya no es del ítem
+      if (TAREA.test(linea)) break; // una subtarea sangrada es su propio ítem: no se la traga el padre
       partes.push(linea.trim());
       j++;
     }
     i = j - 1;
     const texto = partes.join(' ').trim();
-    items.push({
-      id: m[2].toUpperCase(),
-      hecho: m[1].toLowerCase() === 'x',
+    const item = {
+      id: m[5].toUpperCase(),
+      hecho: m[2].toLowerCase() === 'x',
       texto,
       historia: codigoHistoria(texto),
       motivo: motivoDescripcion(texto),
-    });
+    };
+    items.push({ ...item, requiereDescripcion: requiereDescripcion(item) });
   }
   return items;
 }

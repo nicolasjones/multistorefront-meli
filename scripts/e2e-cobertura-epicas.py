@@ -36,6 +36,7 @@ ESTADOS = ("Review In DEV", "Approved In Dev", "Review In STG", "Approved In STG
 # Regla compartida con los runners de Node (una sola implementación de la regla).
 HELPER = RAIZ / "scripts" / "historia-item.mjs"
 
+
 # Una tarea es de PANTALLA si el texto habla de UI (ruta, pantalla, componente, modal, botón…).
 PANTALLA = re.compile(
     r"(pantalla|ruta|formulario|modal|bot[oó]n|men[uú]|panel|p[aá]gina|componente|UI|frontend|vista|"
@@ -108,7 +109,8 @@ def items_de(contenido):
     if r.returncode != 0:
         raise RuntimeError(f"historia-item.mjs falló: {r.stderr.strip()[:200]}")
     return [{"id": i["id"], "hecha": i["hecho"], "texto": i["texto"][:300],
-             "historia": i["historia"], "motivo": i["motivo"]}
+             "historia": i["historia"], "motivo": i["motivo"],
+             "requiere_descripcion": i["requiereDescripcion"]}
             for i in json.loads(r.stdout)]
 
 
@@ -209,7 +211,7 @@ def main():
         # así que no se cuentan como «sólo base de datos» (degradar en silencio) sino aparte.
         # Los ya hechos no cuentan: no hay nada que escribir (los de cierre o de specs de
         # plantilla no llevan código de historia por diseño).
-        sin_descripcion = [t for t in ts if t["motivo"] and not t["hecha"]]
+        sin_descripcion = [t for t in ts if t["requiere_descripcion"]]
         filas.append({"epica": e, "spec": d.name, "historias": len(historias),
                       "sin_e2e": len(faltan_hist), "solo_base": len(base_hist),
                       "sin_descripcion": len(sin_descripcion),
