@@ -3,7 +3,7 @@
 -- dígito verificador. Importación: la fila inválida se rechaza con su motivo.
 begin;
 
-select plan(19);
+select plan(23);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into dominio.empresas (id, organizacion_id, nombre) values ('e1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Tienda A');
@@ -40,6 +40,21 @@ select is(private.validar_fila_cliente_migracion('{"id_externo":"1","nombre":"Z"
 select lives_ok($$update dominio.empresas set cuit = '30712345671' where id = 'e1000000-0000-0000-0000-00000000000a'$$, 'CUIT de empresa válido (30-71234567-1)');
 select throws_ok($$update dominio.empresas set cuit = '30712345678' where id = 'e1000000-0000-0000-0000-00000000000a'$$, '23514', 'El CUIT no es válido: revisá el dígito verificador', 'CUIT de empresa con dígito verificador malo rechazado');
 select lives_ok($$update dominio.empresas set cuit = null where id = 'e1000000-0000-0000-0000-00000000000a'$$, 'CUIT de empresa nulo permitido');
+
+-- Los disparadores son security definer a propósito: las funciones auxiliares que llaman no las puede ejecutar `authenticated`.
+select is((select bool_and(prosecdef and proconfig = array['search_path=""']) from pg_proc
+  where oid in ('private.validar_documento_cliente()'::regprocedure, 'private.validar_cuit_empresa()'::regprocedure)), true,
+  'los disparadores de validación son security definer con search_path vacío');
+select is((select bool_or(has_function_privilege('authenticated', f, 'execute')) from unnest(array[
+  'private.cuit_valido(text)', 'private.documento_cliente_valido(text)',
+  'private.validar_documento_cliente()', 'private.validar_cuit_empresa()']::regprocedure[]) f), false,
+  'authenticated no ejecuta ni las funciones auxiliares ni los disparadores (por eso deben ser definer)');
+select is((select bool_or(has_function_privilege('anon', f, 'execute')) from unnest(array[
+  'private.cuit_valido(text)', 'private.documento_cliente_valido(text)',
+  'private.validar_documento_cliente()', 'private.validar_cuit_empresa()']::regprocedure[]) f), false,
+  'anon tampoco');
+select is((select count(*)::int from pg_trigger where tgname in ('clientes_validar_documento', 'empresas_validar_cuit') and not tgisinternal), 2,
+  'los dos disparadores existen');
 
 select * from finish();
 rollback;
