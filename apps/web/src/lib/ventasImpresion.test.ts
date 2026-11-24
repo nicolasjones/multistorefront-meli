@@ -63,20 +63,34 @@ describe('elegibilidad (FR-002, FR-011, FR-012)', () => {
   })
 })
 
+// Estados que el predicado `v_c.estado not in (...)` de la factura (el que nombra `confirmada`) deja pasar. Tolera
+// saltos de línea, sangrías y espacios múltiples entre las palabras, y mayúsculas.
+function estadosDelPredicadoDeFactura(sql: string): string[] | null {
+  const predicado = [...sql.matchAll(/v_c\.estado\s+not\s+in\s*\(([^)]*)\)/gi)].find((m) => m[1]?.includes("'confirmada'"))
+  if (!predicado) return null
+  return [...(predicado[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1] as string).sort()
+}
+
 describe('estados vivos de la factura frente a la base', () => {
+  it('el parseo del predicado tolera líneas partidas y espacios múltiples', () => {
+    const partido = "if v_c.estado\n    not   in\n  ('confirmada',\n 'cobrado') then"
+    expect(estadosDelPredicadoDeFactura(partido)).toEqual(['cobrado', 'confirmada'])
+    expect(estadosDelPredicadoDeFactura("IF V_C.ESTADO  NOT IN ('confirmada','deuda')")).toEqual(['confirmada', 'deuda'])
+    // El predicado del presupuesto no es el de la factura.
+    expect(estadosDelPredicadoDeFactura("if v_c.estado not in ('pendiente', 'aceptado') then")).toBeNull()
+  })
+
   it('ESTADOS_FACTURA_VIVA es exactamente el conjunto del predicado de la última migración de solicitar_documento_comprobante', () => {
-    // Vitest corre desde apps/web.
-    const carpeta = `${path.resolve(process.cwd(), '../../supabase/migrations')}/`
+    // Desde la ubicación del archivo, no del directorio desde el que se lanza Vitest.
+    const carpeta = path.resolve(__dirname, '../../../../supabase/migrations')
     const definen = readdirSync(carpeta)
       .filter((f) => f.endsWith('.sql'))
       .sort()
-      .filter((f) => readFileSync(`${carpeta}${f}`, 'utf8').includes('function public.solicitar_documento_comprobante'))
-    const sql = readFileSync(`${carpeta}${definen[definen.length - 1]}`, 'utf8')
-    // El predicado de la factura es el que nombra `confirmada` (el del presupuesto es otro).
-    const predicado = [...sql.matchAll(/v_c\.estado not in \(([^)]*)\)/g)].find((m) => m[1]?.includes("'confirmada'"))
-    expect(predicado).toBeDefined()
-    const enSql = [...(predicado?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
-    expect(enSql.length).toBeGreaterThan(0)
+      .filter((f) => readFileSync(path.join(carpeta, f), 'utf8').includes('function public.solicitar_documento_comprobante'))
+    const migracion = definen[definen.length - 1] as string
+    const enSql = estadosDelPredicadoDeFactura(readFileSync(path.join(carpeta, migracion), 'utf8'))
+    expect(enSql, `no se encontró el predicado \`v_c.estado not in (...)\` de la factura en ${migracion}`).not.toBeNull()
+    expect(enSql?.length, `el predicado de la factura en ${migracion} no tiene estados`).toBeGreaterThan(0)
     expect(enSql).toEqual([...ESTADOS_FACTURA_VIVA].sort())
   })
 })
