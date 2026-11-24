@@ -1032,9 +1032,9 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "53a78a25c01f0a6c5526eeb4f5ee44952520901f4d2553bf4a3d4b27b23e430f",
+      "pageHash": "21a6aa5ea4699a47f3bcec1cfcb3b2add7bcb0b9f1140d3706e05562fada7f00",
       "sourceHash": "ecc12dd52fcf44d50285836f2a7211e81a89762ca53a8da63a3202adae06f25e",
-      "sourceAt": "b2ba90a79",
+      "sourceAt": "af8f40fa8",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
@@ -1056,7 +1056,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "b2ba90a79"
+      "commit": "af8f40fa8"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -5528,9 +5528,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "1f13bceab03fb9f14c0bc325ee1ea6747e841c756a13e5415cec9b63532ba400",
-      "sourceHash": "8d01c065aade763f9bda0ac02f7e7d7f4214e702268d322326c9f83135b83a1c",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "e4831316c0f0b6d1acb5d99455f5a879c0caf35ff164b695cc6ab6ceaa57216f",
+      "sourceHash": "3a5bafc1db1fff4fee349965b588cf7754454b262cf244c81ede65d4edde7ce5",
+      "sourceAt": "7d0de6cda",
       "sources": [
         "openapi",
         "specs/20270125-100000-tienda-seo-legal-y-estados",
@@ -5575,7 +5575,7 @@
         "supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "7d0de6cda"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
