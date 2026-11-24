@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useContextoPanel } from '../hooks/useContextoPanel'
 import { supabaseClient } from './supabase'
 
@@ -14,7 +14,8 @@ export function useExistenciasRealtime(alCambiar: () => void, esperaMs = ESPERA_
   const organizacionId = contexto?.organizacion_id ?? null
   const alCambiarRef = useRef(alCambiar)
 
-  useEffect(() => {
+  // Layout (no passive): ver `useListadoPorCursor`; la ref la lee el temporizador de Realtime y no debe quedar con el callback viejo.
+  useLayoutEffect(() => {
     alCambiarRef.current = alCambiar
   }, [alCambiar])
 

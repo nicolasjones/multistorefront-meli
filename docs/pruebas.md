@@ -179,9 +179,10 @@ podía pasar igual a un usuario rápido).
 
 **Regla:** una ref que se lee desde un handler (click, callback de una promesa, observer) y se mantiene al día con el último valor se sincroniza
 en `useLayoutEffect` (corre dentro del commit, sin ventana entre el render visible y la ref), o se asigna durante el render si es seguro. Aplicado en
-`useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
-`CargaInfinita` y `ReporteEmbebido`. Los efectos que solo marcan «montado» o recuerdan el valor previo para la próxima vez (no se leen en un handler
-antes de que el efecto corra) pueden seguir siendo `useEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
+`useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `useListarFaltantes`, `useExistenciasRealtime`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
+`CargaInfinita` y `ReporteEmbebido`. Los efectos que solo marcan «montado», recuerdan el valor previo o fijan un valor «al abrir» el diálogo (empresa/clave/revisión de apertura:
+se fijan antes de que la persona pueda actuar) pueden seguir siendo `useEffect`. Se barrió todo `apps/web/src` con un script que lista cada
+`useEffect(() => {` que asigna a un `.current` y cuántas veces se lee fuera del efecto; las que quedan son de esos tres tipos. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
 cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un solo fallo de la serie lo deja abierto.
 
 ## Cliente de Supabase simulado en los tests de la web
