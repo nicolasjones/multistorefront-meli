@@ -338,7 +338,7 @@ describe('ProductoEdit', () => {
     expect(mocks.costo).not.toHaveBeenCalled()
     fireEvent.change(screen.getByLabelText(/^Nombre/), { target: { value: 'Nuevo' } })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
-    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_costo: null })))
+    await waitFor(() => expect(mocks.rpc).toHaveBeenCalledWith('actualizar_producto', expect.objectContaining({ p_costo: null, p_borrar_costo: false })))
   })
 
   it('con lectura en Rentabilidad muestra el costo de solo lectura', async () => {

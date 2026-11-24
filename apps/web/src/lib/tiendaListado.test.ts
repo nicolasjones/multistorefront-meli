@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FILTROS_INICIALES, conCambio, formatearPrecioArs, mapearPagina, parsearFiltros, serializarFiltros } from './tiendaListado'
+import { FILTROS_INICIALES, conCambio, formatearPrecioArs, mapearPagina, parsearFiltros, serializarFiltros, subtotalLinea, totalLista } from './tiendaListado'
 
 const ID = 'ca000000-0000-4000-8000-000000000001'
 
@@ -71,12 +71,29 @@ describe('formatearPrecioArs', () => {
     [999, '$ 999'],
     [1234, '$ 1.234'],
     [1234567, '$ 1.234.567'],
-    [18455.4, '$ 18.455'],
+    [18455.4, '$ 18.455,40'],
+    [18455.5, '$ 18.455,50'],
+    [18455.99, '$ 18.455,99'],
+    [1234.05, '$ 1.234,05'],
+    [0.99, '$ 0,99'],
+    [4775.1 + 0.2, '$ 4.775,30'],
   ])('%s → %s', (precio, esperado) => {
     expect(formatearPrecioArs(precio)).toBe(esperado)
   })
 
   it('sin precio calculable no inventa texto', () => {
     expect(formatearPrecioArs(null)).toBeNull()
+  })
+})
+
+describe('importes de la lista al centavo', () => {
+  it('el subtotal de una línea es precio al centavo por cantidad, sin errores de coma flotante', () => {
+    expect(subtotalLinea(1.1, 3)).toBe(3.3)
+    expect(subtotalLinea(4775.35, 7)).toBe(33427.45)
+  })
+
+  it('el total suma los subtotales en centavos y no redondea al peso', () => {
+    expect(totalLista([{ precioUnitario: 10.1, cantidad: 3 }, { precioUnitario: 0.2, cantidad: 1 }])).toBe(30.5)
+    expect(formatearPrecioArs(totalLista([{ precioUnitario: 4775.35, cantidad: 2 }]))).toBe('$ 9.550,70')
   })
 })

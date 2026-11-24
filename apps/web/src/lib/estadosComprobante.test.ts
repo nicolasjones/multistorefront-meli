@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  definicionEstado, esConflictoDeEstado, esEstadoDeCobro, ESTADOS_COMPROBANTE, ESTADOS_DE_LA_TARJETA, etiquetaEstadoComprobante, MENSAJE_CONFLICTO_ESTADO,
+  definicionEstado, definicionEstadoMostrado, hoyEnArgentina, esConflictoDeEstado, esEstadoDeCobro, ESTADOS_COMPROBANTE, ESTADOS_DE_LA_TARJETA, etiquetaEstadoComprobante, MENSAJE_CONFLICTO_ESTADO,
   MENSAJE_ERROR_CAMBIO_ESTADO, mensajeDeCambioEstado, MOTIVO_ESTADO_ANULADA, MOTIVO_ESTADO_BORRADOR, MOTIVO_ESTADO_DE_COBRO, motivoDeshabilitado,
   type EstadoComprobante,
 } from './estadosComprobante'
@@ -127,5 +127,24 @@ describe('errores al cambiar el estado', () => {
     const error = { code: 'XX000', message: 'interno' }
     mensajeDeCambioEstado(error)
     expect(console.error).toHaveBeenCalledWith(MENSAJE_ERROR_CAMBIO_ESTADO, error)
+  })
+})
+
+describe('estado mostrado de un presupuesto vencido', () => {
+  const hoy = '2027-03-10'
+  it('un presupuesto pendiente con la validez pasada figura «Vencido», como en el listado', () => {
+    expect(definicionEstadoMostrado({ tipo: 'presupuesto', estado: 'pendiente', valido_hasta: '2027-03-09' }, hoy).etiqueta).toBe('Vencido')
+  })
+  it('vigente el día de la validez y sin fecha sigue «Pendiente»', () => {
+    expect(definicionEstadoMostrado({ tipo: 'presupuesto', estado: 'pendiente', valido_hasta: '2027-03-10' }, hoy).etiqueta).toBe('Pendiente')
+    expect(definicionEstadoMostrado({ tipo: 'presupuesto', estado: 'pendiente', valido_hasta: null }, hoy).etiqueta).toBe('Pendiente')
+  })
+  it('solo deriva en presupuestos pendientes: un aceptado o una factura no cambian', () => {
+    expect(definicionEstadoMostrado({ tipo: 'presupuesto', estado: 'aceptado', valido_hasta: '2020-01-01' }, hoy).etiqueta).toBe('Aceptado')
+    expect(definicionEstadoMostrado({ tipo: 'factura', estado: 'pendiente', valido_hasta: '2020-01-01' }, hoy).etiqueta).toBe('Pendiente')
+  })
+  it('hoy se calcula en la zona de Buenos Aires', () => {
+    expect(hoyEnArgentina(new Date('2027-03-10T01:30:00Z'))).toBe('2027-03-09')
+    expect(hoyEnArgentina(new Date('2027-03-10T12:00:00Z'))).toBe('2027-03-10')
   })
 })

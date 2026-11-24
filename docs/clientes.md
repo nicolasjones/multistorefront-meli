@@ -710,6 +710,10 @@ La ficha tiene el campo **Lista de precios** (selector de las listas activas; so
   dato existente; otro valor es error de fila) y existe la acción masiva `public.marcar_aceptacion_correo_clientes(uuid[],
   boolean)` (solo administrador, hasta 5000, solo clientes de su organización, evento de Actividad
   `clientes.aceptacion_correo_marcada`). Quién y cuándo quedan en `dominio.clientes.acepta_correo_masivo_por/_en`, que escribe un
-  disparador (no se pueden falsificar). **Pendiente de UI**: la columna en la plantilla de «Importar clientes»
-  (`pages/migracion/entidades/clientes.ts`) y el botón «Marcar aceptación» en el listado.
+  disparador (no se pueden falsificar). La columna **Acepta correo** está en la plantilla de «Importar clientes»
+  (`pages/migracion/entidades/clientes.ts`; vacío = sin aceptación) y el botón **Marcar aceptación** está en el listado de Clientes (solo administrador, sobre los clientes seleccionados; lote 38).
 - Pruebas: `lote32_clientes_id_externo_y_aceptacion_correo.test.sql`.
+
+## DNI/CUIT validado en el servidor (lote 38)
+
+`documento` acepta vacío, un DNI de 7 u 8 dígitos o un CUIT de 11 dígitos con dígito verificador (con o sin puntos y guiones). El servidor lo valida al **insertar** o cuando el campo **cambia** (`private.validar_documento_cliente`, error 23514): un valor viejo que no cumple sigue editable en las demás columnas. La importación de clientes rechaza la fila con el motivo «El DNI/CUIT no es válido…». El formulario avisa antes de enviar.

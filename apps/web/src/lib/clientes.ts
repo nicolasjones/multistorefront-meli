@@ -187,6 +187,13 @@ export function validarCliente(formulario: FormularioCliente, { documentoInicial
   return errores
 }
 
+// La base responde 23514 «El DNI/CUIT no es válido…» si el documento no cumple (disparador de clientes): el error se marca
+// en el campo, no como error general.
+export function esDocumentoInvalido(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return e?.code === '23514' && (e.message ?? '').includes('DNI/CUIT no es válido')
+}
+
 // 23505 sobre el índice único de documento (FR-016). PostgREST informa el código
 // y el nombre de la restricción en el mensaje.
 export function esDocumentoRepetido(error: unknown): boolean {
