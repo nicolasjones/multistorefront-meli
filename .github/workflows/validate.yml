@@ -158,6 +158,10 @@ jobs:
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Fecha de vencimiento de los gates del tracker (MSF-909): fija la regla (24 h del
+      # contrato de vitalidad) y que el PATCH mande sólo la fecha.
+      - name: test:vencimientos:gates
+        run: pnpm test:vencimientos:gates
       # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
       # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
       # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
@@ -202,6 +206,12 @@ jobs:
         run: pnpm matriz:check
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
+      # Cierre de tareas (MSF-914): el `tasks.md` tiene que reflejar las marcas que el orquestador
+      # dejó en los side-car. Sin este gate la regla «ninguna tarea queda `[ ]`» no es verificable.
+      - name: tareas:check (ninguna tarea de una historia cerrada quedó `[ ]`)
+        run: pnpm tareas:check
+      - name: test:tareas:cerradas
+        run: pnpm test:tareas:cerradas
       - run: pnpm lint
 
   # Lo PESADO: build, tests y e2e (sólo si hay código). Lo liviano (docs, guards, tooling y lint) corre en `chequeos`, en paralelo
