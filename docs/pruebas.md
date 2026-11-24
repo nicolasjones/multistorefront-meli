@@ -168,11 +168,11 @@ una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no un
 `vi.waitFor` (que en vitest tiene su propio default de 1 s y al que `configure` no llega) con `conPisoDeEspera` (`test/pisoEspera.ts`):
 `timeout: propias.timeout ?? 5000`. Un `timeout` propio (número u objeto) se respeta, y un `{ timeout: undefined }` explícito **no** vuelve al 1 s
 (lo cubre `pisoEspera.test.ts`). El piso de 5 s agrega espera cuando un test espera algo que tarda. Un `timeout` propio
-menor de 5 s queda por debajo del piso: se sube a 5000 o se justifica en un comentario del propio test. Al restaurar un
+menor de 5 s queda por debajo del piso: se sube a 5000 o se justifica en un comentario del propio test (p. ej. el `timeout: 300` de `pisoEspera.test.ts`, que es el dato de entrada del test del wrapper y no una espera real, lleva ese comentario). Al restaurar un
 `configure` temporal (`show.reparaciones.test.tsx`) se vuelve a 5000, no al 1000 de Testing Library.
 
 **Causa raíz del flake de «Cargar más».** Con el piso de 5 s el test de `OpinionesProducto` («Cargar más» suma la tanda siguiente con el cursor)
-seguía fallando 2 de cada 19 corridas bajo carga: no era la espera, era un click perdido. `useListadoPorCursor` y `useCatalogoPublico` guardaban en
+siguió fallando bajo carga (en una serie de 19 corridas hubo 2 fallos; medición del autor, no reproducible desde el diff): no era la espera, era un click perdido. `useListadoPorCursor` y `useCatalogoPublico` guardaban en
 una ref (`ultimo`, `funciones`) el último estado y `cargarMas` la leía desde el click, pero la ref se sincronizaba en un `useEffect` **pasivo**:
 si el click llegaba justo tras el primer render con datos y antes de que corriera el efecto, `cargarMas` veía `null` y salía sin hacer nada (le
 podía pasar igual a un usuario rápido).

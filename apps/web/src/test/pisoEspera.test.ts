@@ -12,7 +12,7 @@ describe('conPisoDeEspera (piso de vi.waitFor)', () => {
     expect(llamar({ interval: 20 })).toEqual({ interval: 20, timeout: 5000 })
   })
   it('con timeout propio (objeto o número) lo respeta', () => {
-    expect(llamar({ timeout: 300 })).toEqual({ timeout: 300 })
+    expect(llamar({ timeout: 300 })).toEqual({ timeout: 300 }) // 300 es el dato de entrada del test del wrapper, no una espera real
     expect(llamar(15000)).toEqual({ timeout: 15000 })
   })
   it('un timeout undefined explícito no pisa el piso (volvería al 1 s de vitest)', () => {
