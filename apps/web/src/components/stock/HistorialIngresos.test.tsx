@@ -68,6 +68,20 @@ describe('HistorialIngresos', () => {
     mocks.useIngresos.mockReturnValue({ filas: FILAS, total: 2, hayError: false, cargando: false, recargar: vi.fn() })
   })
 
+  it('avisa cuando el filtro de tiendas se corta en el tope y no muestra la fila de más', async () => {
+    mocks.empresas.mockResolvedValue({ data: Array.from({ length: 501 }, (_, i) => ({ id: `e-${i}`, nombre: `Tienda ${i}` })), error: null })
+    abrir()
+    expect(await screen.findByText('Se muestran las primeras 500 tiendas; hay más.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tienda 499' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tienda 500' })).not.toBeInTheDocument()
+  })
+
+  it('no avisa del tope cuando todas las tiendas entran', async () => {
+    abrir()
+    await screen.findByText('Producto Uno')
+    expect(screen.queryByText(/Se muestran las primeras/)).not.toBeInTheDocument()
+  })
+
   it('ofrece anular solo los ingresos registrados', async () => {
     abrir()
     await screen.findByText('Producto Uno')

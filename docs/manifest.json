@@ -1249,14 +1249,14 @@
     },
     "docs/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor",
-      "pageHash": "f019b28e7ca9edd5d6d6ac5a96e5a2be27d04ef09d1760227fa66f24c1a8ce56",
+      "pageHash": "48938a3925ee6e70fac8badac357b2e341f0528bdc4366729780c648865f70f5",
       "sourceHash": "1a66f4e99a78bad99ecaa3a04247bee0bd211b1d20129db52c59cb7245b7dc50",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261021-183246-ingreso-de-mercaderia-por-proveedor"
       ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/inicio-y-alertas.md": {
       "title": "Inicio y alertas",
@@ -5536,9 +5536,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "e4831316c0f0b6d1acb5d99455f5a879c0caf35ff164b695cc6ab6ceaa57216f",
+      "pageHash": "c503cecc97b32842f7d9b4c83404602243f9c5b834dc9422d830b169f14715fb",
       "sourceHash": "3a5bafc1db1fff4fee349965b588cf7754454b262cf244c81ede65d4edde7ce5",
-      "sourceAt": "7d0de6cda",
+      "sourceAt": "0a437c771",
       "sources": [
         "openapi",
         "specs/20270125-100000-tienda-seo-legal-y-estados",
@@ -5583,7 +5583,7 @@
         "supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cda"
+      "commit": "0a437c771"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",

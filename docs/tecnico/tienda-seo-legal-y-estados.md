@@ -154,7 +154,8 @@ La tienda es una SPA: los metadatos se escriben en el cliente, sin prerender (D4
 «Volvemos pronto», resultados de búsqueda del catálogo, ingresar, recuperar y definir contraseña, y en los errores de carga de
 página (ficha, página de contenido, categoría, contacto y listado del catálogo). Cuando una `CabeceraSeo` `noindex` convive con la
 indexable de la página, la pila `seo/pilaCabecera.ts` deja una sola meta `robots` (gana `noindex`) y restaura el título al
-desmontar. La caché de `seoDeTienda` vence a los 5 minutos y `recortar()` cuenta puntos de código. La imagen de Open Graph de la
+desmontar. El panel (`App.tsx`, solo en los hosts del panel) monta `NoIndexarPanel`, que agrega `robots` `noindex,nofollow` mientras está
+montado: `index.html` es el mismo del panel y de la tienda, y nginx no distingue host, así que la señal sale de JS. La caché de `seoDeTienda` vence a los 5 minutos y `recortar()` cuenta puntos de código. La imagen de Open Graph de la
 ficha es el logo público de la tienda (el bucket de imágenes es privado y su URL firmada vence) y el JSON-LD de la ficha no lleva
 `image`.
 
