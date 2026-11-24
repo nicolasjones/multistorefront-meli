@@ -3248,7 +3248,7 @@
     },
     "docs/stock-mas-vendidos.md": {
       "title": "Stock · Reporte de productos más vendidos (F-STK-18)",
-      "pageHash": "6c68a4f217a53f60a485c3bcb3de84412ef067fe0f1d8e08894b3c927f046ac8",
+      "pageHash": "4f4b710c42ade89dba408830230153ca12a4cb8ab1bc9156d3a675db6c517a82",
       "sourceHash": "c25015f81adf1a545075df2ceaf094234c49d0a288bc9fff48594d84f8c7967e",
       "sourceAt": "fbe6df5af",
       "sources": [
@@ -3257,7 +3257,7 @@
         "supabase/migrations/20261213100500_productos_mas_vendidos.sql",
         "supabase/migrations/20261212120500_facturado_neto_notas.sql",
         "supabase/migrations/20270201200129_lineas_sin_stock.sql",
-        "supabase/migrations/20270507250200_productos_mas_vendidos_resta_notas_credito.sql"
+        "supabase/migrations/20270507260200_productos_mas_vendidos_resta_notas_credito.sql"
       ],
       "owner": "tecnico",
       "commit": "fbe6df5af"
