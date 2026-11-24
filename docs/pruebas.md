@@ -191,7 +191,7 @@ un handler antes del efecto no causa daño; cada caso se justifica por su propia
   cambiar la clave) y `ultimo` queda en `null`; y `generacion` hace que `vigente()` descarte las respuestas de la consulta anterior;
 - `empresaPrevia` en `pages/stock/depositos.tsx`: el propio efecto la compara con la empresa activa y la asigna;
 - `montado` de `useExportarCsv`: se inicializa en `true` y el cleanup del efecto la pone en `false`;
-- `focoEnBoton` de `CargaInfinita`: la activan handlers de foco y la consulta (y apaga) un efecto.
+- `focoEnBoton` de `CargaInfinita`: la asignan handlers (`onFocus`/`onBlur` y `onClick`) y la consulta (y apaga) un efecto.
 
 Si una ref nueva guarda el «último valor» y un handler la lee, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces
 con la máquina cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un fallo dentro de la serie lo deja abierto.
