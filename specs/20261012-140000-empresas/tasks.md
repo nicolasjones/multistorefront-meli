@@ -24,6 +24,7 @@
 - [x] T001 [F-EMP-01][US1] Verificar cómo accede el data provider/cliente Supabase al esquema `dominio` y decidir esquema por consulta o vista/RPC con RLS efectiva; anotarlo en plan.md (FR-001)
 - [x] T002 [F-EMP-01][US1] Migración aditiva `supabase/migrations/<ts>_empresas.sql`: `dominio.empresas`, índice, RLS (select por organización; update con `puede_escribir()`), grants mínimos; sin insert/delete (FR-001, FR-002)
 - [x] T003 [F-EMP-01][US1] pgTAP `supabase/tests/database/empresas.test.sql`: aislamiento entre organizaciones, escritura solo con `puede_escribir()`, sin insert/delete para `authenticated`, y 1/2/3 empresas por organización (FR-002, FR-003, SC-005) — escrito; pgTAP no ejecutado localmente (sin Docker/Supabase CLI), corre en CI
+  Nota (lote 44, sin reescribir lo anterior): vigente desde 20270507240000: `empresas_update` exige `nivel_seccion('empresas')='edicion'` (ver docs/empresas.md).
 - [x] T004 [F-EMP-01][US1] Confirmar que la prueba de aislamiento (`aislamiento_organizaciones`) recorre `public` + `dominio` y falla sin RLS; ajustarla si no cubre `dominio` (FR-002)
 
 **Checkpoint**: `pnpm test` (pgTAP) verde sobre `empresas`.

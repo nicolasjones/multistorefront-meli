@@ -39,6 +39,13 @@ function fechaEnZona(instante, zona = ZONA) {
   }).format(instante)
 }
 
+// El proyecto se interpola en la ruta de la API (`/projects/${proyecto}`): sólo su clave.
+const PROYECTO_VALIDO = /^[A-Za-z0-9_-]+$/
+
+export function esProyectoValido(proyecto) {
+  return typeof proyecto === 'string' && PROYECTO_VALIDO.test(proyecto)
+}
+
 /**
  * Fecha de vencimiento del gate: el plazo del contrato (24 h) contado desde que el
  * ítem empezó a esperar en su columna. El tracker guarda fecha y no hora, así que el
@@ -48,13 +55,6 @@ function fechaEnZona(instante, zona = ZONA) {
  * @param {string} zona
  * @returns {string} YYYY-MM-DD
  */
-// El proyecto se interpola en la ruta de la API (`/projects/${proyecto}`): sólo su clave.
-const PROYECTO_VALIDO = /^[A-Za-z0-9_-]+$/
-
-export function esProyectoValido(proyecto) {
-  return typeof proyecto === 'string' && PROYECTO_VALIDO.test(proyecto)
-}
-
 export function fechaVencimiento(desde, horas = HORAS_PLAZO, zona = ZONA) {
   const instante = new Date(desde)
   if (Number.isNaN(instante.getTime())) throw new Error(`Fecha inválida: ${desde}`)

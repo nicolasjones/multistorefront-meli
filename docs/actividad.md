@@ -3,6 +3,8 @@ owner: producto
 sources:
   - specs/20261016-120000-actividad-y-ambientes
   - specs/20261102-100000-auditoria-avanzada-y-soporte
+  - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
+  - supabase/tests/database/lote44_registrar_actividad_por_seccion.test.sql
   - apps/web/src/pages/actividad/list.tsx
   - apps/web/src/lib/actividad.ts
   - apps/web/src/lib/actividad.tipos.test.ts
@@ -98,7 +100,7 @@ perform private.registrar_actividad('producto.creado', 'Creó el producto Lámpa
 - Si la RPC de origen revierte, el evento también (un reintento no pierde ni duplica el evento).
 
 Desde el frontend se usa `public.registrar_actividad(p_tipo, p_detalle, p_empresa_id)`, que exige
-`private.puede_escribir()` y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
+`private.puede_escribir()` **o** la sección Empresas en edición (la misma condición que `empresas_update`, desde `20270507280000`; antes solo `puede_escribir()` y un rol personalizado con Empresas en edición pausaba la tienda sin dejar rastro) y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
 (`42501` para cualquier otro tipo; los `usuario.*`, `invitacion.*` y `permisos.*` los registra solo el
 servidor; `22023` sin empresa). `private.registrar_actividad` no es ejecutable por `authenticated`. Límite
 conocido: `p_detalle` es texto libre del cliente (no está atado al tipo: un Administrador puede registrar un `empresa.*` sin haber editado nada, solo en su organización; el actor lo fija el servidor) y se arma en servidor recién cuando la edición pase a RPC; no hay tope de frecuencia, y mover el registro de `empresa.*` a la misma transacción que la edición

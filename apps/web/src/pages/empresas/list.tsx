@@ -3,6 +3,7 @@ import { Link as RouterLink } from 'react-router'
 import { Box, Button, Stack, Typography } from '@mui/material'
 import { useEmpresas, type Empresa } from '../../hooks/useEmpresas'
 import { useResumenEmpresas, type ResumenEmpresa } from '../../hooks/useResumenEmpresas'
+import { usePuedeEditarEmpresas } from '../../hooks/usePuedeEditarEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
@@ -84,15 +85,18 @@ const columnas: ColumnaAdaptable<FilaEmpresa>[] = [
   },
 ]
 
-// Solo administrador (FR-004): el destino del sider ya se oculta al miembro;
+// Solo con la sección Empresas en edición (FR-004): el destino del sider ya se oculta al miembro;
 // acá, para quien llega por URL directa, no se consulta nada y se muestra
 // acceso restringido. Es una restricción de UI: `empresas_select` deja leer a
 // todo miembro de la organización por diseño (el selector de empresa lo
 // necesitará); RLS garantiza el aislamiento por organización y la escritura
-// solo de administradores. «Editar» lleva a General (F-EMP-02).
+// de quien tiene la sección Empresas en edición. «Editar» lleva a General (F-EMP-02).
 export function EmpresaList() {
-  const { puedeEscribir, isLoading: verificandoPermiso } = usePuedeEscribir()
-  const { empresas, isLoading, isError, refetch } = useEmpresas({ habilitado: puedeEscribir === true })
+  // La pantalla se gatea por la sección Empresas en edición (el criterio de la RLS de `dominio.empresas`); el alta, en cambio,
+  // es de quien `puede_escribir` (la RPC `crear_empresa` lo exige), así que el botón sigue ese permiso.
+  const { puedeEditar, isLoading: verificandoPermiso } = usePuedeEditarEmpresas()
+  const { puedeEscribir } = usePuedeEscribir()
+  const { empresas, isLoading, isError, refetch } = useEmpresas({ habilitado: puedeEditar === true })
 
   const resumenes = useResumenEmpresas(empresas.map((empresa) => empresa.id))
   const filas: FilaEmpresa[] = empresas.map((empresa) => ({ ...empresa, resumen: resumenes[empresa.id] }))
@@ -106,9 +110,9 @@ export function EmpresaList() {
     void refetch()
   }
 
-  // El alta (F-EMP-03) solo se ofrece a quien puede escribir; esta pantalla ya
-  // es solo de administradores, y la RPC rechaza igual a cualquier otro.
-  const botonNueva = puedeEscribir === true ? (
+  // El alta (F-EMP-03) solo se ofrece a quien además `puede_escribir` (administrador activo): la RPC `crear_empresa` exige
+  // ese permiso y no el nivel de la sección, así que un rol con Empresas en edición ve la lista pero no este botón.
+  const botonNueva = puedeEditar === true && puedeEscribir === true ? (
     <Button variant="contained" disabled={isLoading || isError} onClick={() => { setCreada(false); setDialogoAbierto(true) }}>Nueva empresa</Button>
   ) : undefined
   const encabezado = <EncabezadoPagina
@@ -119,7 +123,7 @@ export function EmpresaList() {
   />
 
 
-  if (verificandoPermiso || puedeEscribir === null) {
+  if (verificandoPermiso || puedeEditar === null) {
     return (
       <Box>
         {encabezado}
@@ -128,7 +132,7 @@ export function EmpresaList() {
     )
   }
 
-  if (!puedeEscribir) {
+  if (!puedeEditar) {
     return <AccesoRestringido rol="actual" seccion="Empresas" />
   }
 

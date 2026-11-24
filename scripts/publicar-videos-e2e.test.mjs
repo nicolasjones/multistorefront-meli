@@ -23,6 +23,19 @@ const manifiesto = {
 };
 
 describe('publicar-videos-e2e', () => {
+  it('escapa run_id, fecha y modo en el título y la cabecera', () => {
+    const html = paginaRun({
+      ...manifiesto,
+      run_id: '</title><script>alert(1)</script>',
+      fecha: '<img src=x onerror=1>',
+      modo: '"><b>',
+    });
+    assert.ok(!html.includes('<script>alert(1)'));
+    assert.ok(!html.includes('<img src=x'));
+    assert.ok(!html.includes('<b>'));
+    assert.match(html, /<title>Cobertura E2E &lt;\/title&gt;&lt;script&gt;/);
+  });
+
   it('la página agrupa por historia con reproductor y huérfanos', () => {
     const html = paginaRun(manifiesto);
     assert.match(html, /Acceso y organización/);

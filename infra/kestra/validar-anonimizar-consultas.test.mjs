@@ -27,6 +27,12 @@ test('anonimizar-consultas invoca la función con el plazo de 24 meses y el rol 
   assert.doesNotMatch(content, /update\s+dominio\.consultas|delete\s+from/i, 'la base anonimiza; el flow no escribe SQL propio');
 });
 
+test('anonimizar-consultas advierte que cambiar los meses es solo para uso excepcional e irreversible', async () => {
+  const content = await leer();
+  assert.match(content, /SOLO PARA USO EXCEPCIONAL/);
+  assert.match(content, /IRREVERSIBLE/);
+});
+
 test('anonimizar-consultas no escribe credenciales, falla visible y avisa', async () => {
   const content = await leer();
   assert.match(content, /password: "\{\{ envs\.kestra_orquestacion_db_password \}\}"/);

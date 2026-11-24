@@ -3,12 +3,14 @@
 -- por /rest/v1/. El comprobante heredado sin empresa sigue la regla de la organización. Sin ejecución para anon.
 begin;
 
-select plan(12);
+select plan(20);
 
 insert into organizaciones (id, nombre) values ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
 insert into auth.users (id, email) values
   ('f1000000-0000-0000-0000-000000000001', 'admin@example.com'),
-  ('f1000000-0000-0000-0000-000000000002', 'mixto@example.com');
+  ('f1000000-0000-0000-0000-000000000002', 'mixto@example.com'),
+  ('f1000000-0000-0000-0000-000000000003', 'soporte@example.com');
+insert into superadmins (user_id) values ('f1000000-0000-0000-0000-000000000003');
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) values
   ('f1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador', 'activo'),
   ('f1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'operador', 'activo');
@@ -68,12 +70,31 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.comprobantes_venta), 3, 'administrador: ve los tres comprobantes');
 select is((select count(*)::int from dominio.rma), 2, 'administrador: ve los RMA de ambas tiendas');
 
+-- Superadmin: sin contexto de organización no ve nada; con contexto vigente ve todas las tiendas de esa organización.
+select pg_temp.como('f1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from dominio.comprobantes_venta), 0, 'superadmin sin contexto: no ve comprobantes');
+select is((select count(*)::int from dominio.rma), 0, 'superadmin sin contexto: no ve RMA');
+reset role;
+insert into superadmin_organizacion_activa (user_id, organizacion_id)
+values ('f1000000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111');
+select pg_temp.como('f1000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from dominio.comprobantes_venta), 3, 'superadmin con contexto: ve los tres comprobantes');
+select is((select count(*)::int from dominio.comprobantes_venta_lineas), 2, 'superadmin con contexto: ve las líneas de ambas tiendas');
+select is((select count(*)::int from dominio.rma), 2, 'superadmin con contexto: ve los RMA de ambas tiendas');
+select is((select count(*)::int from dominio.rma_items), 2, 'superadmin con contexto: ve los ítems de RMA de ambas tiendas');
+
+-- Conjunto de empresas con Ventas que evalúan las políticas (una vez por consulta, no por fila).
+select pg_temp.como('f1000000-0000-0000-0000-000000000002');
+select is((select array_agg(x order by x) from private.empresas_con_ventas_lectura() x), array['a1000000-0000-0000-0000-00000000000a'::uuid], 'el conjunto trae solo la empresa con Ventas');
+
 -- Superficie de la función nueva.
 reset role;
 select ok(not has_function_privilege('anon', 'private.puede_leer_ventas_empresa(uuid)', 'execute'), 'anon no ejecuta puede_leer_ventas_empresa');
 select ok(has_function_privilege('authenticated', 'private.puede_leer_ventas_empresa(uuid)', 'execute'), 'authenticated la ejecuta (las políticas la evalúan con su rol)');
+select ok(not has_function_privilege('anon', 'private.empresas_con_ventas_lectura()', 'execute'), 'anon no ejecuta empresas_con_ventas_lectura');
 select is((select count(*)::int from pg_policies where schemaname = 'dominio' and tablename in ('comprobantes_venta','comprobantes_venta_lineas','rma','rma_items')
-  and policyname like '%\_select' and qual like '%puede_leer_ventas_empresa%'), 4, 'las cuatro políticas usan el nivel de Ventas por empresa');
+  and policyname like '%\_select' and qual like '%empresas_con_ventas_lectura%' and qual not like '%puede_leer_ventas_empresa%'), 4,
+  'las cuatro políticas usan el conjunto de empresas con Ventas (subconsulta no correlacionada, una vez por consulta)');
 
 select * from finish();
 rollback;

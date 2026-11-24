@@ -118,7 +118,7 @@ test.describe('Avisos de acceso (MSF-639)', () => {
         await paso(operador.page, 'En el detalle de la empresa, «Solo lectura» es un aviso informativo', async () => {
           await operador.page.goto(`/empresas/edit/${siembra.empresaId}`)
           await expect(operador.page.getByRole('note')).toHaveText(
-            'Solo lectura: únicamente los administradores pueden editar los datos de la empresa.',
+            'Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.',
           )
           await expect(operador.page.getByLabel('Nombre comercial')).toBeDisabled()
         })

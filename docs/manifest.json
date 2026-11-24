@@ -55,12 +55,14 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "9347477a941a542ca5b1f73572267952bb61a904624fa23e0cb56e32987e09db",
+      "pageHash": "d9dd3bd219c4829e0a2371f0305d7fe8af5df4e0bdc49012c5dd4bc706140c43",
       "sourceHash": "41a7978fbde3a6f0cf6da06541336f5659b7a658a25f081125ab492dba2820ce",
-      "sourceAt": "d647ae864",
+      "sourceAt": "07661f192",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
+        "supabase/tests/database/lote44_registrar_actividad_por_seccion.test.sql",
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts",
         "apps/web/src/lib/actividad.tipos.test.ts",
@@ -78,7 +80,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "d647ae864"
+      "commit": "07661f192"
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -661,9 +663,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "a2178fc30899db520b0e4a07ae8774d3c83197024f3c261189fa473534aa4298",
+      "pageHash": "3b0010c59b4d5f08611dfca9cf80d03fd0e1b0b3226752b020b273eb78fc866d",
       "sourceHash": "1fca73533acc64bb309f9e49b999abaed9eee7afb7fc94705dcae52377a240bc",
-      "sourceAt": "eedac66a",
+      "sourceAt": "c95e6c87e",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -674,7 +676,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "eedac66a"
+      "commit": "c95e6c87e"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -709,9 +711,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "2ab6b68866e4a40e4977f113be5f1bf1d433166c911e8077656f19f6f9e3b5c9",
+      "pageHash": "c08fff958858ef0f851ff33585a1aaf168683eb97d729d6029ad3f400107c92e",
       "sourceHash": "56fafaf589a31489b5bc757ae406cc1b46ae093f53e6b8c71f4d5694829b46d3",
-      "sourceAt": "33f2e3462",
+      "sourceAt": "66415c2af",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -723,7 +725,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "33f2e3462"
+      "commit": "66415c2af"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -1032,15 +1034,17 @@
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "ac5270fa91c2fbc93aa1fbcb9257caeafe71c1af79d73d20a7bf4a63cdea292c",
-      "sourceHash": "d4f5c42043b87b4ff4fb1f0f25d8798260f83a32752392db3008d70974c8b57f",
-      "sourceAt": "eedac66a",
+      "pageHash": "c0c243a23b1a626c2fe712bf2f02c73da6b86d821593a67023d6502c612a916c",
+      "sourceHash": "ef4d2a3aba3cdab790fff2c172e8e6022644414cd26eae593dc710f27e154eaa",
+      "sourceAt": "0a437c771",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
         "apps/web/src/pages/empresas/list.tsx",
         "apps/web/src/pages/empresas/edit.tsx",
         "apps/web/src/hooks/useResumenEmpresas.ts",
+        "apps/web/src/hooks/usePuedeEditarEmpresas.ts",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
         "apps/web/src/lib/eventosActividad.ts",
         "apps/web/src/lib/destinoActividad.ts",
         "apps/web/src/lib/whatsapp.ts",
@@ -1055,7 +1059,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "eedac66a"
+      "commit": "0a437c771"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1181,9 +1185,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "eba33c0bb0a07d52f103b1ecfde8a63c7f2b9b245687a7903c36d3d1a729e67d",
-      "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
-      "sourceAt": "eedac66aa",
+      "pageHash": "9a47e800ac5d19c5d7b0d17292120db152b0d0eb9982bbb5c52651424fa9a6e3",
+      "sourceHash": "8d6eb404183c925d50b5a864c10cfc25d75747104f6572c63656ac6c4fc5968b",
+      "sourceAt": "49f522d7f",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1192,6 +1196,9 @@
         "supabase/migrations/20270507190400_validar_fk_conexiones_sistema_externo.sql",
         "supabase/migrations/20270507190500_definer_search_path_vacio_funciones_seguras.sql",
         "supabase/migrations/20270507190600_indice_fk_cobros_comprobante_revierte.sql",
+        "supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql",
+        "supabase/migrations/20270507270100_documentar_definer_validacion_dni_cuit.sql",
+        "supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql",
         "supabase/tests/database/seguridad_global_higiene_base.test.sql",
         "supabase/verificacion/higiene_base.sql",
         "supabase/verificacion/higiene_base_migraciones.sql",
@@ -1199,7 +1206,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "eedac66aa"
+      "commit": "49f522d7f"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1552,9 +1559,9 @@
     },
     "docs/permisos-por-rol.md": {
       "title": "Permisos por rol: contrato `nivel_seccion` / `puede_accion`",
-      "pageHash": "d3da7ea43c317e0afc116532f9ea3d9865864e20594612815bdb536cc04513e1",
-      "sourceHash": "3b78b29781cb3ea53337ba1f69761c1d55302f93477c6ac5f9ae6bdaa3360d15",
-      "sourceAt": "e55825f7e",
+      "pageHash": "e57dec6f67cdad41e2232762566c3340a7779058a0347ce5d71d00709a415f7d",
+      "sourceHash": "0351de1390417ff8ea57e0b9a3f43777930dc484af9fa8ee80e8a6501b4852b4",
+      "sourceAt": "07661f192",
       "sources": [
         "specs/20261013-120000-usuarios-y-roles",
         "specs/20261016-140000-permisos-por-empresa",
@@ -1569,17 +1576,21 @@
         "supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql",
         "supabase/migrations/20270507180600_categorias_lectura_para_stock.sql",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
+        "supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql",
+        "supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql",
         "supabase/tests/database/permisos_por_rol.test.sql",
         "supabase/tests/database/editar_matriz_permisos.test.sql",
         "supabase/tests/database/rol_tecnico.test.sql",
         "supabase/tests/database/rol_tecnico_por_empresa.test.sql",
         "supabase/tests/database/roles_por_empresa.test.sql",
         "supabase/tests/database/lote32_documentos_escritura_consulta.test.sql",
+        "supabase/tests/database/lote42_rls_ventas_nivel_por_empresa.test.sql",
+        "apps/web/src/hooks/usePuedeEditarEmpresas.ts",
         "apps/web/src/lib/permisos.ts",
         "apps/web/src/lib/rolActual.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7e"
+      "commit": "07661f192"
     },
     "docs/precios-escalas.md": {
       "title": "Escalas de precio por cantidad y tipo de cliente (F-PRE-15 · MSF-220)",
@@ -5521,9 +5532,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "1f13bceab03fb9f14c0bc325ee1ea6747e841c756a13e5415cec9b63532ba400",
-      "sourceHash": "8d01c065aade763f9bda0ac02f7e7d7f4214e702268d322326c9f83135b83a1c",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "e4831316c0f0b6d1acb5d99455f5a879c0caf35ff164b695cc6ab6ceaa57216f",
+      "sourceHash": "3a5bafc1db1fff4fee349965b588cf7754454b262cf244c81ede65d4edde7ce5",
+      "sourceAt": "7d0de6cda",
       "sources": [
         "openapi",
         "specs/20270125-100000-tienda-seo-legal-y-estados",
@@ -5568,7 +5579,7 @@
         "supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "7d0de6cda"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
@@ -6095,9 +6106,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "0d8bbe82b0952a60c1b52e6af088a58c3811f3471fd2369f2f67d57722ab011c",
-      "sourceHash": "74b828d983f57141e9815fdcfa210040d00f692f27e93bab26e37c95e8e7d820",
-      "sourceAt": "7d0de6cd",
+      "pageHash": "c0102c083f215bdcfb69bf83941ad923e623a5208b2f5343e1f6340c4399c149",
+      "sourceHash": "cbcfe502853fa4d7f6d739e55ddcaab66ad536329dfc83603d45793df98af383",
+      "sourceAt": "7d0de6cda",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6109,7 +6120,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cd"
+      "commit": "7d0de6cda"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

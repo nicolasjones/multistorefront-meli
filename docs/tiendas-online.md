@@ -1115,8 +1115,8 @@ que distinguen una empresa desactivada son `estado_tienda_por_dominio` (D1) y, c
 - **`legal_por_dominio` publica razón social, CUIT y dirección** de toda empresa con tienda activa, sin opt-in por tienda. Decisión
   aceptada por el dueño (2026-11-08): se mantiene así y se cambia si el cliente lo pide.
 - **Pausar la tienda**: el botón «Pausar tienda» actualiza `dominio.empresas.activa`; la política `empresas_update` exige
-  `private.puede_escribir()`, que hoy es el rol **Administrador** de la organización (o un superadmin con organización activa). No depende
-  del nivel de la sección Empresas de un rol personalizado.
+  `private.nivel_seccion('empresas') = 'edicion'` (desde `20270507240000`): lo cumple el **Administrador** (siempre tiene edición), un superadmin con
+  organización activa y cualquier rol personalizado con la sección Empresas en edición.
 
 ### Decisiones y supuestos (D1…D8)
 
