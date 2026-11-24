@@ -1,31 +1,41 @@
 -- Medición de `public.listar_movimientos_stock` con volumen (MSF-621). No es una prueba pgTAP: no corre en CI.
 -- Cómo correrla, en una base descartable con las migraciones aplicadas y como superusuario:
 --   psql -U postgres -d <base> -At -f supabase/tests/perf/movimientos_nota_comprobante.perf.sql
--- Siembra 50.000 movimientos de una organización (la mitad con referencia a uno de 5.000 comprobantes), analiza
--- todas las tablas sembradas y mide una página de 25 con `EXPLAIN ANALYZE`; se mira «Execution Time». Todo queda
--- dentro de una transacción que termina en `rollback`.
+-- Siembra, en una organización nueva con un administrador, 5.000 comprobantes y 50.000 movimientos (la mitad con
+-- referencia a un comprobante); analiza `movimientos_stock`, `comprobantes_venta`, `productos` y `clientes` y
+-- mide con `EXPLAIN ANALYZE` (se mira «Execution Time»). Todo queda dentro de una transacción que termina en
+-- `rollback`. En todas las variantes la consulta es la primera página: orden `creado_en desc, id desc`, límite 25,
+-- sin filtro de producto.
 --
 -- Variantes (cada una con su nombre en el resto del script):
---   V1  función entregada: pagina primero y cruza solo la página (subconsulta por fila). Se mide como
---       superusuario (sin RLS) y como `authenticated` con un administrador de la organización (con RLS).
---   V2  comparación: el cruce del comprobante con subconsulta por fila SIN paginar (todas las filas, antes del
---       límite). Mide solo el cruce, no la función completa: no incluye los joins a productos, motivos y
---       depósitos. Sin RLS y con RLS.
---   V3  join común contra `comprobantes_venta`, paginando primero. Solo con RLS y con `EXPLAIN (ANALYZE, BUFFERS)`.
+--   V1  función entregada `listar_movimientos_stock(null, 25, 0)`: pagina primero (con `count(*) over ()` y
+--       `limit 25`) y recién después cruza productos, motivos, depósitos y el comprobante (subconsulta por fila de
+--       la página). Se mide como superusuario (sin RLS) y como `authenticated` con el administrador (con RLS).
+--   V2  comparación: aplica el cruce del comprobante (el mismo regexp_match, la subconsulta por fila y el
+--       regexp_replace de la función) ANTES del `limit 25`, así que corre sobre todas las filas de la organización
+--       (el `count(*) over ()` las recorre de todos modos). Mide solo el cruce, no la función completa: no hace
+--       los joins a productos, motivos ni depósitos. Sin RLS y con RLS.
+--   V3  join común contra `comprobantes_venta` en lugar de la subconsulta por fila, paginando primero (CTE con
+--       `limit 25`, sin `count(*) over ()` ni joins a productos, motivos o depósitos). Solo con RLS y con
+--       `EXPLAIN (ANALYZE, BUFFERS)`.
 --
--- Observado por el autor (pg15 descartable, máquina cargada, load 12-17; los tiempos varían con la carga):
---   - V1, versión actual: seis corridas, entre 109 y 189 ms con RLS y entre 168 y 380 ms sin RLS.
---   - V2, versión actual: seis corridas, entre 1,2 y 1,9 s con RLS y entre 3,6 y 5,4 s sin RLS.
+-- Observado por el autor (pg15 descartable, máquina cargada, load 12-17; los tiempos varían con la carga). «Migración
+-- vigente» es `20270507290000` tal como estaba en `08a4ebced4f2` (desde entonces solo cambiaron comentarios) y
+-- «script vigente» es este archivo con las variantes V1 a V3:
+--   - V1, migración vigente: seis corridas, entre 109 y 189 ms con RLS y entre 168 y 380 ms sin RLS.
+--   - V2, migración vigente y script vigente: seis corridas, entre 1,2 y 1,9 s con RLS y entre 3,6 y 5,4 s sin RLS.
 --   - Sin RLS salió más lento que con RLS en V1 y en V2; no se investigó la causa.
---   - V3, versión actual, una corrida con RLS y 5.000 comprobantes: `Hash Left Join` con `Seq Scan on
+--   - V3, migración vigente: una corrida con RLS y 5.000 comprobantes: `Hash Left Join` con `Seq Scan on
 --     comprobantes_venta` de 5.000 filas (el plan estimaba 50).
---   - Una corrida con RLS y 300.000 comprobantes, con una versión intermedia de la migración que usaba un join
---     lateral en lugar de la subconsulta: `Seq Scan` de 300.000 filas, 152 ms. La versión actual (V1) en esa misma
---     siembra usó `Index Scan using comprobantes_venta_id_organizacion_id_key`, 110 ms.
---   - Con una versión anterior de este script (V2 con join común, y `analyze` solo de `movimientos_stock`):
---     sin RLS, dos de tres corridas de 14 a 15 s; con RLS, cuatro corridas de 13 a 17 s; en la de 16,8 s el plan fue
---     un nested loop con `Rows Removed by Join Filter: 187475000`. Causa no verificada; no se probó si influyó
---     que no se analizara `comprobantes_venta`.
+--   - Una corrida con RLS y 300.000 comprobantes (se cambió `generate_series(1, 5000)` por 300000 para esa prueba),
+--     con una versión intermedia de la migración, sin commitear, sobre `b46d47c6044e`, que usaba un join lateral en
+--     lugar de la subconsulta: `Seq Scan` de 300.000 filas, 152 ms. La migración vigente (V1) en esa misma siembra
+--     usó `Index Scan using comprobantes_venta_id_organizacion_id_key`, 110 ms.
+--   - Con versiones del script anteriores a `08a4ebced4f2` (la de `ee70034e76dd` y la edición posterior que agregó
+--     `authenticated`), cuya comparación hacía el cruce antes de paginar con join común: sin RLS, dos de tres
+--     corridas de 14 a 15 s (esa versión analizaba solo `movimientos_stock`); con RLS, cuatro corridas de 13 a 17 s,
+--     y en la de 16,8 s el plan fue un nested loop con `Rows Removed by Join Filter: 187475000`. Causa no
+--     verificada; no se probó si influyó que no se analizara `comprobantes_venta`.
 begin;
 set search_path = public, extensions;
 
