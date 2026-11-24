@@ -56,3 +56,7 @@ cobertura-e2e.json
 
 # Reportes de Playwright de corridas locales (el CI los regenera)
 apps/web/e2e-report.json
+
+# Informe de la calidad determinista: lo genera `pnpm calidad` y el CI lo sube como artifact
+# `calidad-reporte`; no se versiona (MSF-843).
+reports/

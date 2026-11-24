@@ -76,7 +76,7 @@ en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de ap
   bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
 - `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
   `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
-  `calidad-reporte`, junto con `reports/calidad.md`).
+  `calidad-reporte`, junto con `reports/calidad.md`). Un check con hallazgos imprime su salida completa en el log del CI y en `reports/calidad.md`. `reports/` es generado y no se versiona (MSF-843).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 - Revisión 2026-11-22 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`

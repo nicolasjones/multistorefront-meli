@@ -455,9 +455,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "ee845e610999037a92f9234af56e399ec83b33c4d274d0ec677478bdf3ffdbcd",
-      "sourceHash": "bce715508b632e718c2d3ac2b6d35bad305967e623cc3df59d14e079b8de8d87",
-      "sourceAt": "6776fb4d3",
+      "pageHash": "fdd03050c475aabc8a329beac6034343f7d2e347b7b295c592168b5eb27cb9f2",
+      "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
+      "sourceAt": "d70a00f62",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -468,7 +468,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d3"
+      "commit": "d70a00f62"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -2581,9 +2581,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "6b58e1990bd73ff0930b2df88d3576dc4336269463c0caeecf5ab35a3f30dd38",
-      "sourceHash": "c197e82d61b0b5c21b2ded9bcc371356cea106da6d3e1691c0fb6015f28abee3",
-      "sourceAt": "ea0598038",
+      "pageHash": "831926f0b94b114809b59861ffba7ed65593553f83b430076fead73df62a0175",
+      "sourceHash": "487989b60d6b3882ae049c552d6d7bb32018154955d56eebb8c91833d7a669f4",
+      "sourceAt": "d70a00f62",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2597,7 +2597,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "ea0598038"
+      "commit": "d70a00f62"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",
