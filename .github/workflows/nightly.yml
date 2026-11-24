@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: ignore
 
   # Medición en perfil MÓVIL del catálogo y la ficha de las dos tiendas del seed (MSF-552 · T071/SC-010 de la
-  # épica MSF-167). NO bloquea ningún PR: deja el reporte como artifact. El protocolo está en
+  # épica MSF-167). NO bloquea ningún PR: deja el resultado en el resumen del job (`$GITHUB_STEP_SUMMARY`); los reportes crudos de Lighthouse no se suben. El protocolo está en
   # `docs/tiendas-online.md` («Rendimiento en celular»), el comando en `pnpm medir:tienda` y el perfil de
   # Lighthouse en `.lighthouserc.tienda.json`.
   #

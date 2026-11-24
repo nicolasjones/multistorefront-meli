@@ -5294,9 +5294,9 @@
     },
     "docs/tecnico/tienda-catalogo-y-ficha.md": {
       "title": "Tienda pública: catálogo y ficha (MSF-167)",
-      "pageHash": "2471a25e32966149e98813128b916c8edb84c0471af720e6eff9ae5ba2433da1",
+      "pageHash": "236ca8853c3dc6cecf62479f8f3381b1eb436158f286050bcc9be52c7f1b5fa2",
       "sourceHash": "153fdb17a6cc028be6c16edb0d45855ddeacee72b2284559d95f75ceace490af",
-      "sourceAt": "c7881777c",
+      "sourceAt": "17870b7ad",
       "sources": [
         "specs/20261023-120000-tienda-catalogo-y-ficha",
         "supabase/migrations/20261023150000_tienda_categorias_publicas.sql",
@@ -5325,7 +5325,7 @@
         "apps/web/e2e/tienda-catalogo.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "c7881777c"
+      "commit": "17870b7ad"
     },
     "docs/tecnico/tienda-contenido-y-analitica.md": {
       "title": "Tienda pública: contenido, analítica y compartir (MSF-164)",

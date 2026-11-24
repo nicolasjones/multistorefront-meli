@@ -372,8 +372,8 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
   estática. La causa del resto no es la base (el servidor responde en 8 ms) sino el JavaScript del primer pintado.
   La RPC cumple: `publico.catalogo_pagina_por_dominio` tarda 19 ms con orden por relevancia y 121 ms ordenando
   por precio, con 24 productos por página y 500 productos visibles (D3 no se ajusta). Cifras, entorno y fuente:
-  [Rendimiento en celular (T071, SC-010)](../tiendas-online.md#rendimiento-en-celular-t071-sc-010) y el artifact
-  `medir-tienda` del job `medir` del nightly.
+  [Rendimiento en celular (T071, SC-010)](../tiendas-online.md#rendimiento-en-celular-t071-sc-010) y el resumen
+  del job `medir` del nightly.
 - **Techo de diseño (resuelto por MSF-825):** la RPC calculaba el precio y la disponibilidad para todo el
   catálogo efectivo antes de filtrar y paginar. Con el volumen real de la demo (2.204 productos por
   tienda) eso daba 44 s y un *timeout* bajo `anon`: la función ahora calcula el precio solo para la

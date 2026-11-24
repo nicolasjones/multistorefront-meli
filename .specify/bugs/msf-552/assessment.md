@@ -102,7 +102,7 @@ Confianza: **alta** en «no se midió» (documentado en dos guías, en el commit
 
 2. **Repetibilidad (para que no se repita el hueco)**
    - Config LHCI propia de la tienda (p. ej. `.lighthouserc.tienda.json`) con `url` para las 4 rutas (2 tiendas × 2 rutas), `settings.formFactor: mobile`, `screenEmulation` y `throttlingMethod: devtools`, `numberOfRuns: 3` y el arranque del build. **No** tocar `.lighthouserc.json`: hoy el `nightly` falla (assert `error`) si baja del umbral y el panel se vería afectado.
-   - Enganchar la medición al job `e2e-tienda` de `.github/workflows/validate.yml` (ya tiene stack con seed + build con `VITE_PANEL_HOSTS` + web servida) o al `nightly` (que ya instala `@lhci/cli`), guardando el reporte en `reports/lighthouse/` como artefacto. El paso de build **debe** definir `VITE_PANEL_HOSTS`, si no mide el panel.
+   - Enganchar la medición al job `e2e-tienda` de `.github/workflows/validate.yml` (ya tiene stack con seed + build con `VITE_PANEL_HOSTS` + web servida) o al `nightly` (que ya instala `@lhci/cli`), guardando el reporte en `reports/lighthouse/` (queda en el runner; no se sube como artefacto). El paso de build **debe** definir `VITE_PANEL_HOSTS`, si no mide el panel.
    - Un script npm nuevo (`medir:tienda` / `test:medir:tienda`) para que el protocolo sea un comando y no una receta prosea.
 
 **Alternatives**
@@ -118,7 +118,7 @@ Confianza: **alta** en «no se midió» (documentado en dos guías, en el commit
 - `specs/20261023-120000-tienda-catalogo-y-ficha/tasks.md:121` — cerrar T071 con la evidencia (commit, reporte) o con la nota de desvío que corresponda; y `specs/20261023-120000-tienda-catalogo-y-ficha/tasks/CIERRE.md:7` — reconciliar la marca `[x]` sin evidencia.
 - `scripts/medir-tienda-catalogo.sql` (nuevo) — medición de `publico.catalogo_pagina_por_dominio` con catálogo grande, siguiendo el patrón de `scripts/medir-tienda-favoritos.sql`.
 - `.lighthouserc.tienda.json` (nuevo) — medición Lighthouse móvil de la tienda; `.lighthouserc.json` intacto.
-- `.github/workflows/validate.yml` (job `e2e-tienda`) o `.github/workflows/nightly.yml` — paso de medición + artefacto.
+- `.github/workflows/validate.yml` (job `e2e-tienda`) o `.github/workflows/nightly.yml` — paso de medición + resumen del job (no se sube artefacto).
 - `package.json` — script `medir:tienda` (y su test).
 
 **Tests to add or update**
