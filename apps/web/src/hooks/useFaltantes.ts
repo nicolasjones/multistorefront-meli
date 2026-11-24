@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   avisarFaltantes, listarFaltantes, type Faltante, type FiltrosFaltantes, type ResultadoAviso,
 } from '../lib/faltantes'
@@ -56,7 +56,7 @@ export function useFaltantes(filtros: FiltrosFaltantes, { habilitado = true }: {
   // recarga tiene que pedir lo que está a la vista. Con el cierre viejo se pedía una página (o una
   // empresa) anterior y sus filas podían quedar en pantalla bajo la nueva (FR-311).
   const cargarVigente = useRef(cargar)
-  useEffect(() => {
+  useLayoutEffect(() => {
     cargarVigente.current = cargar
   }, [cargar])
 

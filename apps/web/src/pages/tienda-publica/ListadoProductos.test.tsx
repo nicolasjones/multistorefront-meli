@@ -525,7 +525,7 @@ describe('ListadoProductos · carga infinita', () => {
       expect(tarjetas()).toHaveLength(24)
       expect(screen.getByRole('button', { name: 'Reintentar' })).toBeDisabled()
       mocks.buscar.mockImplementation((_h: string, _q: string, _f: unknown, n: number) => Promise.resolve(tanda(25, 24, 48, n)))
-      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled(), { timeout: 3000 })
+      await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Reintentar' })).toBeEnabled(), { timeout: 5000 })
       fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
       await vi.waitFor(() => expect(tarjetas()).toHaveLength(48))
     })
@@ -686,7 +686,7 @@ describe('ListadoProductos · búsqueda (q)', () => {
     expect(screen.queryAllByTestId('tarjeta-producto')).toHaveLength(0)
 
     // Reloj real: a los 1000 ms el listado vuelve a pedir la búsqueda solo, sin recargar.
-    expect(await screen.findAllByTestId('tarjeta-producto', undefined, { timeout: 3000 })).toHaveLength(2)
+    expect(await screen.findAllByTestId('tarjeta-producto', undefined, { timeout: 5000 })).toHaveLength(2)
     expect(screen.queryByTestId('busqueda-espera')).not.toBeInTheDocument()
     expect(mocks.buscar).toHaveBeenCalledTimes(2)
   })

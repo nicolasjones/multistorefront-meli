@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Box, Button, CircularProgress, Typography } from '@mui/material'
 import { EstadoError } from '../estados/EstadosPagina'
 
@@ -56,7 +56,7 @@ export function CargaInfinita({ hayMas, cargando, hayError = false, onCargarMas,
   const botonVisible = (hayMas || cargando) && !hayError
   const terminado = !hayMas && !cargando && !hayError
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     alCargarMas.current = onCargarMas
   }, [onCargarMas])
 

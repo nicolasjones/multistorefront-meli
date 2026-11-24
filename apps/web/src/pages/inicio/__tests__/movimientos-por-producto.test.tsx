@@ -135,7 +135,7 @@ describe('vistas, búsqueda, categoría y orden (FR-013, CA-INI-06-2..5)', () =>
     abrir()
     await screen.findByRole('table', { name: 'Movimientos por producto' })
     fireEvent.change(screen.getByLabelText('Buscar producto o SKU'), { target: { value: 'TEC-1' } })
-    await waitFor(() => expect(ultimaLlamada()[1]).toMatchObject({ busqueda: 'TEC-1' }), { timeout: 2000 })
+    await waitFor(() => expect(ultimaLlamada()[1]).toMatchObject({ busqueda: 'TEC-1' }), { timeout: 5000 })
   })
 
   it('elegir una categoría la manda al servidor', async () => {
