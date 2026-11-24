@@ -696,21 +696,29 @@ Antes de ese cambio (la tienda descargaba el panel en el chunk de entrada; run `
 
 **Veredicto: NO cumple el objetivo de LCP** (las cuatro rutas entre 10,5 s y 10,9 s contra los 3 s), aunque la carga diferida del panel lo bajó unos 5 s. No es el catálogo ni la base: en los reportes el LCP es casi todo «element render delay» (10.846 ms de 10.855 ms en una corrida de Mundo JC catálogo) y el servidor responde en 8 ms. Lo que cambió: la primera carga del catálogo pasó de 127 scripts (2.009 KB sin comprimir, 683 KB transferidos) a 80 (822 KB, 307 KB). El tiempo que queda se va en descargar y ejecutar el JavaScript restante con la CPU ×4 y «4G lento»; la causa de ese resto no está medida todavía y es el siguiente paso (reducir el JavaScript del primer pintado de la tienda), con su propia medición.
 
-**Costo de `publico.catalogo_pagina_por_dominio`** con una tienda de 500 productos (sintética, 5 corridas por caso, `scripts/medir-tienda-catalogo.sql`; todo va en una transacción que se revierte y no deja datos), run `45476405495`:
+**Costo de `publico.catalogo_pagina_por_dominio`** con una tienda de 500 productos (sintética, 5 corridas por caso, `scripts/medir-tienda-catalogo.sql`; todo va en una transacción que se revierte y no deja datos). Medianas de los dos runs, con la RPC sin cambios entre uno y otro:
 
-| Caso | Mediana | Corridas | Total de la tienda |
+| Caso | Run `45474509678` | Run `45476405495` | Total de la tienda |
 |---|---|---|---|
-| `relevancia` | 19 ms | 26, 19, 19, 20, 19 ms | 500 |
-| `precio_asc` | 121 ms | 123, 121, 121, 122, 120 ms | 500 |
-| `precio_desc` | 121 ms | 120, 121, 123, 120, 123 ms | 500 |
-| `precio_max` | 113 ms | 115, 115, 113, 113, 112 ms | 200 |
-| `solo_con_stock` | 22 ms | 22, 22, 22, 22, 22 ms | 250 |
+| `relevancia` | 12 ms | 19 ms | 500 |
+| `precio_asc` | 59 ms | 121 ms | 500 |
+| `precio_desc` | 60 ms | 121 ms | 500 |
+| `precio_max` | 56 ms | 113 ms | 200 |
+| `solo_con_stock` | 14 ms | 22 ms | 250 |
 
-**D3 (tamaño de página 24): no hay que ajustarlo.** La RPC tarda 19 ms con orden por relevancia. El costo no depende **del todo** del tamaño de página: desde **MSF-825** la función calcula el **precio** de toda la tienda sólo cuando el orden o el tope de precio lo necesitan (y para los 24 de la página en el resto de los casos), pero la **disponibilidad** (`private.disponible_publico`) sí se calcula para todos los productos efectivos del catálogo. Bajar las 24 ahorraría sólo la primera parte.
+Entre un run y otro la misma consulta varió hasta ~2×: es ruido del runner hosted, no un cambio de la RPC. Las cifras valen como orden de magnitud, no como medida fina; las corridas de un mismo run (5 por caso) son estables entre sí.
 
-**La consulta por precio cumple, con un techo a vigilar.** Ordenar por precio cuesta 121 ms con 500 productos visibles: unas seis veces el orden por relevancia, porque hay que calcular el precio de todo el catálogo para ordenarlo. Es el orden de magnitud del «techo de diseño» (unos pocos cientos de productos visibles por tienda, ver «Costo y techo esperado» arriba); si una tienda pasa de ~1.000 productos visibles, hay que volver a medir antes de tocar D3.
+**D3 (tamaño de página 24): no hay que ajustarlo.** La RPC tarda entre 12 y 19 ms con orden por relevancia. El costo no depende **del todo** del tamaño de página: desde **MSF-825** la función calcula el **precio** de toda la tienda sólo cuando el orden o el tope de precio lo necesitan (y para los 24 de la página en el resto de los casos), pero la **disponibilidad** (`private.disponible_publico`) sí se calcula para todos los productos efectivos del catálogo. Bajar las 24 ahorraría sólo la primera parte.
 
-**Fuente de las cifras:** workflow `nightly`, job `medir`, run `45476405495` (artifact `medir-tienda` con `reports/lighthouse-tienda/resumen.md`, los reportes de Lighthouse y `reports/medir-tienda/rpc-catalogo.txt`). El job `medir` **falla** si alguna ruta no se midió, si el LCP no llega al objetivo (3.000 ms) o si supera la línea base: **Línea base del job `medir`: 14.000 ms** (por encima del máximo medido, 10,9 s, con margen para la variación entre corridas del runner; el número lo declara esta guía y lo compara el test con el del script). Mientras el LCP no llegue a 3 s el job queda rojo a propósito: la regresión se ve en el run, no se esconde en el resumen. Para repetirlo: `gh workflow run nightly.yml --ref <rama>` o, en local, `pnpm dev:supabase` con el seed, `scripts/sembrar-tienda-medicion.sql`, la web servida y `pnpm medir:tienda`. El job corre donde diga `CI_RUNS_ON_PESADO` y, en el runner hosted, instala Chromium con `playwright install` (Lighthouse usa el de Playwright: `CHROME_PATH`).
+**La consulta por precio cumple, con un techo a vigilar.** Ordenar por precio cuesta entre 59 y 121 ms con 500 productos visibles (según el run): varias veces el orden por relevancia, porque hay que calcular el precio de todo el catálogo para ordenarlo. Es el orden de magnitud del «techo de diseño» (unos pocos cientos de productos visibles por tienda, ver «Costo y techo esperado» arriba); si una tienda pasa de ~1.000 productos visibles, hay que volver a medir antes de tocar D3.
+
+**Fuente de las cifras:** workflow `nightly`, job `medir`, run `45476405495` (las de LCP y RPC «después») y run `45474509678` («antes»). El artifact `medir-tienda` lleva sólo `resumen.md`, `resumen.json` y `rpc-catalogo.txt`: los reportes crudos de Lighthouse traen el log de red con las URL (a veces con tokens firmados de Storage) y no se suben; un paso previo falla si esos archivos parecen llevar una credencial.
+
+**Línea base del job `medir`: 14.000 ms.** Es un valor propuesto por el autor (por encima del máximo medido, 10,9 s, con margen para la variación entre corridas del runner) y **requiere validación de Nicolás**. Los dos runs de arriba corrieron con la base anterior de 22.000 ms; la de 14.000 ms la usó el run `45480028805` (commit `e371800bbf45`, LCP máximo 10.829 ms), que la evaluó y no marcó regresión; ese mismo run confirmó que el artifact sube sólo los tres resúmenes. Ningún run midió todavía un LCP por encima de 14.000 ms: ese caso lo cubre sólo el test del script. El número lo declara esta guía y lo compara el test con el del script.
+
+**Qué significa el rojo de `medir`.** El job **falla** si alguna ruta no se midió, si el LCP no llega al objetivo (3.000 ms) o si supera la línea base. Mientras el LCP esté en 10,5–10,9 s contra 3 s queda rojo **a propósito**: es la medición diciendo que el objetivo no se cumple, no una falla de infraestructura. Para distinguirlo en el `nightly`: si `medir` falla en el paso «Medir Lighthouse en perfil móvil» con el veredicto «NO cumple», es el esperado; si falla antes (stack, Chromium, preview), es de infraestructura. El job `deep` es otro: no lo toca este cambio y en los runs manuales de esta rama falló en «Lighthouse CI» con «Chrome installation not found» (el runner self-hosted no tiene Chrome); los nightly programados anteriores estaban en verde, así que ese rojo no es el de la medición. `medir` no bloquea ningún PR (sólo corre en el nightly o a mano). Para apagarlo sin PR: variable de repositorio `CI_MEDIR_TIENDA=false` (o `CI_PAUSED=true`, que apaga el CI entero).
+
+Para repetirlo: `gh workflow run nightly.yml --ref <rama>` o, en local, `pnpm dev:supabase` con el seed, `scripts/sembrar-tienda-medicion.sql`, la web servida y `pnpm medir:tienda`. El job corre donde diga `CI_RUNS_ON_PESADO` y, en el runner hosted, instala Chromium con `playwright install` (Lighthouse usa el de Playwright: `CHROME_PATH`).
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
 

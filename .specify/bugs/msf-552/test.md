@@ -4,11 +4,11 @@
 - **Tested**: 2026-11-24
 - **Assessment**: ./assessment.md
 - **Fix**: ./fix.md
-- **Result**: verified
+- **Result**: partial (medición verificada; SC-010 NO se cumple: LCP medido 10,5–10,9 s contra 3 s)
 
 ## Summary
 
-La guía tiene las cuatro rutas medidas con su entorno y su fuente, y el costo de la RPC con 500 productos.
+La guía tiene las cuatro rutas medidas (la medición está verificada; el objetivo de LCP no se cumple) con su entorno y su fuente, y el costo de la RPC con 500 productos.
 
 ## Checks
 

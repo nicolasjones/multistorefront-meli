@@ -2521,9 +2521,9 @@
     },
     "docs/profundidad.md": {
       "title": "F5 — Profundidad (no bloqueante)",
-      "pageHash": "b094f6dfbf335b731fbd31e52361fef7457aeac1090b83f377ead57df2d1d15c",
-      "sourceHash": "becd5ee8a2f2df900543fbca293eddb442b41b2123a89efd211eb4069d64903a",
-      "sourceAt": "c7881777c",
+      "pageHash": "6cc7df71b2fbf97bc84dc87ca0c2753afea9628fd10d80387b92c7ad6d8c60c8",
+      "sourceHash": "287e2849057a0c7b47c20d4c6ae7b09ae457533abddd98267adb4f7286803883",
+      "sourceAt": "70e162b9d",
       "sources": [
         ".github/workflows/nightly.yml",
         ".lighthouserc.json",
@@ -2531,7 +2531,7 @@
         "scripts/medir-tienda-lighthouse.mjs"
       ],
       "owner": "producto",
-      "commit": "c7881777c"
+      "commit": "70e162b9d"
     },
     "docs/promociones-precio.md": {
       "title": "Promociones de precio por empresa (F-PRE-11, MSF-439)",
@@ -6110,9 +6110,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "cd5466e401f986ae01cd35785d5f8464b7fad2d3dd3b707ff6d5e2dac6dcdad3",
+      "pageHash": "f13b315a6ae73f9220928a9f33b00bde04d85bf2b949742701f609b8907e1cf5",
       "sourceHash": "ee4fa6a92ee8385187f14da74e6143ef124d5bd7f314b40adca40a4669401761",
-      "sourceAt": "c7881777c",
+      "sourceAt": "70e162b9d",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6124,7 +6124,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "c7881777c"
+      "commit": "70e162b9d"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",

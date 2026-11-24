@@ -3,7 +3,7 @@
 - **Slug**: msf-552
 - **Fixed**: 2026-11-24
 - **Assessment**: ./assessment.md
-- **Status**: applied
+- **Status**: applied partially (la medición y la corrección de la carga del panel están hechas; SC-010 no se cumple: LCP medido 10,5–10,9 s contra 3 s)
 
 ## Summary
 
