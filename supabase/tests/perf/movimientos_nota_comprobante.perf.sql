@@ -44,7 +44,7 @@ explain (analyze, costs off, timing off) select * from public.listar_movimientos
 
 -- Comparación (mide el cruce del comprobante, no la función completa): la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
 -- regexp_replace con el escape de la barra) aplicada a todas las filas antes de paginar, que es la forma descartada.
--- Las tablas sembradas se analizan antes de medir: sin estadísticas el planificador elige planes muy distintos entre corridas.
+-- Las tablas sembradas se analizan antes de medir: observado por el autor: sin estadísticas el planificador eligió planes muy distintos entre corridas.
 explain (analyze, costs off, timing off)
 select m.id,
        case when cv.numero is not null then regexp_replace(
@@ -74,7 +74,7 @@ explain (analyze, costs off, timing off) select * from public.listar_movimientos
 
 -- Comparación, con RLS (mide el cruce del comprobante, no la función completa): la misma expresión de la función (regexp_match del UUID, búsqueda del comprobante y
 -- regexp_replace con el escape de la barra) aplicada a todas las filas antes de paginar, que es la forma descartada.
--- Las tablas sembradas se analizan antes de medir: sin estadísticas el planificador elige planes muy distintos entre corridas.
+-- Las tablas sembradas se analizan antes de medir: observado por el autor: sin estadísticas el planificador eligió planes muy distintos entre corridas.
 explain (analyze, costs off, timing off)
 select m.id,
        case when cv.numero is not null then regexp_replace(
