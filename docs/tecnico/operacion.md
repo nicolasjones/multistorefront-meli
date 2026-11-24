@@ -10,6 +10,7 @@ sources:
   - infra/kestra/compose.yaml
   - supabase/functions/_shared/smtp.ts
   - scripts/verificar-salida-correo.mjs
+  - scripts/auditar-duplicados-tracker.mjs
 ---
 
 # Operación
@@ -122,6 +123,47 @@ listas»). Detalle: [Consultas](consultas.md#aviso-por-correo).
   (Tarea `seguimiento` a crear en el tracker) y registrada en
   [Verificación de salida del correo](../verificacion-salida-correo.md).
   Detalle: [Perfil y permisos avanzados](perfil-y-permisos.md) · [Solicitar acceso](../solicitar-acceso.md).
+
+## Higiene del board: duplicados y cierre administrativo (MSF-908)
+
+El board (tracker *It's a Plan*) es la fuente de verdad del trabajo. Si un hallazgo se abre dos
+veces, el trabajo se duplica y los conteos se inflan.
+
+**Cierre administrativo.** Un ítem que se cierra **sin entrega propia** —no tiene rama ni PR, o su
+entrega vive en otro ítem— se marca con el label **`cierre-administrativo`** y apunta al ítem que
+conserva la evidencia con la relación **`duplicates`** (del duplicado al original) más un comentario.
+**No se borra**: el puntero queda en el board.
+
+**Barrido.** `pnpm tracker:duplicados` recorre el board (usa `ITSAPLAN_API_KEY` y
+`ITSAPLAN_API_URL`) e informa:
+
+| Sección | Qué mira | Qué hacer |
+|---|---|---|
+| A | Títulos idénticos | Mismo padre = duplicado real; un ítem **sin padre** con el título de otro = re-reporte (candidato a duplicado); padres distintos y ambos con padre = ítems de cierre de cada épica (falsos positivos) |
+| B | Familias que comparten referencia y padre (`[Seg. MSF-470]`) | **Informativo**: compartir referencia no es ser duplicado (bajo `[Seguimiento MSF-205]` hay 8 seguimientos distintos) |
+| C | Cerrados sin `cierre-administrativo` de un **par duplicado** (mismo padre o re-reporte sin padre) cuyo gemelo conserva la evidencia | Cerrar el duplicado con el puntero al gemelo |
+| D | Marcado como `duplicates` pero sin `cierre-administrativo` | Falta el mecanismo de cierre |
+
+- La **etiqueta inicial del título es parte de la identidad** del ítem: `[Cierre MSF-212]` y
+  `[Cierre MSF-191]` no son el mismo texto. Borrarla al normalizar funde ítems legítimos de épicas
+  distintas: el barrido del 2026-11-13 reportó «12 grupos con el mismo título» cuando, con la
+  normalización correcta, hay 1 (el resto eran cierres de épica).
+- El barrido lee el board **completo** (`/issues/board` + `/issues/archived`, sin filtro por tipo: los
+  ítems sin tipo se cuelan en ese filtro) y pide el detalle de **todos** los ítems (la sección D
+  necesita las relaciones `duplicates` de cualquiera). El encabezado informa el **total leído** y
+  cómo se reparte en activos y archivados: los dos endpoints se unen por **identidad**
+  (`identifier`), así que un ítem que aparece en los dos se cuenta una sola vez (si no, el barrido
+  lo cita como duplicado de sí mismo). Si la lectura no trae ítems o trae una forma inesperada, el
+  barrido **falla**: un board vacío es una lectura rota, no un board limpio.
+- La lectura de los detalles **reintenta** los fallos transitorios (429, 5xx o corte de red) con
+  espera creciente: un pico de rate limit no aborta la corrida.
+- **Qué es «evidencia»**: un informe de revisión (QA/Code/Security) con contenido, o un
+  Implementation Report que **no** declara que no entregó. El flujo titula el informe con el estado
+  («— PR listo», «— correcciones aplicadas», «— terminó sin PR», «— falló el Desarrollador»): un
+  informe que dice «terminó sin PR» no es una entrega y no puede hacer pasar a un ítem por el que
+  conserva el trabajo.
+- Sin `ITSAPLAN_API_KEY` el barrido avisa y sale con 0: no rompe el CI.
+- Tests: `pnpm test:tracker:duplicados` (`scripts/auditar-duplicados-tracker.test.mjs`).
 
 ## E2E y evidencia
 
