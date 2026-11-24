@@ -33,8 +33,8 @@ vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaAct
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 // El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
 vi.mock('./ContactoConsulta', () => ({ ContactoConsulta: () => null }))
-// El diálogo real tiene su propio test; acá solo importa que la pantalla lo ofrezca.
-vi.mock('./InteresWhatsappDialog', () => ({ BotonInteresWhatsapp: () => <button type="button">Interés por WhatsApp</button> }))
+// El diálogo real tiene su propio test; acá se usa el botón real (con su gate de permiso) y se aíslan sus datos.
+vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: () => ({ empresas: [], empresaActivaId: null, isLoading: false }) }))
 
 import type { Consulta } from '../../lib/consultas'
 import { ConsultaList } from './list'
@@ -319,6 +319,12 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     abrir()
     expect(screen.getByRole('button', { name: 'Interés por WhatsApp' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Respuestas rápidas' })).toBeInTheDocument()
+  })
+
+  it('«Interés por WhatsApp» respeta el permiso: sin nivel de lectura ni edición no aparece', () => {
+    mocks.useNivelSeccion.mockReturnValue({ nivel: 'ninguno', isLoading: false })
+    abrir()
+    expect(screen.queryByRole('button', { name: 'Interés por WhatsApp' })).not.toBeInTheDocument()
   })
 
   it('Respuestas rápidas: el botón abre el diálogo de la empresa activa y al cambiar de empresa se cierra con aviso (FR-018)', () => {

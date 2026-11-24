@@ -206,9 +206,12 @@ archivo` sin pasos de código.
   la API de rulesets). **Resuelto en el lote 36:** decisión de Nicolás = no encenderlo en cada push; corrida diaria (ver abajo, MSF-685).
 - **Tests que el CI sigue sin correr (MSF-679).** `test:ci:scripts` suma los de workers (`discover`, `scan`, `idempotency`,
   `audit`), el contrato estático de Kestra (`test:kestra:runtime`), el despachador programado y la frontera de outbox: son Node
-  puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo (la palabra «webhook» dentro de un `comment on …
-  is '…'`); ahora ese texto descriptivo no cuenta como SQL ejecutable, pero una llamada saliente real (`net.http_*`, `pg_net`,
-  `http_get/post` o «webhook» fuera de un comentario) sigue fallando. Quedan fuera a propósito: `template:capabilities:check`
+  puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
+  El guard ahora recorre el SQL de una pasada (literales `'...'`, identificadores, dollar-quoting, comentarios `--` y
+  `/* */` anidables): descarta comentarios, evalúa todo lo demás (incluido SQL dinámico y `do $$`) e ignora únicamente el
+  literal de una sentencia que empieza con `comment on ... is`. Un literal o comentario sin cerrar falla cerrado. Un
+  regex sobre texto crudo no sirve: un comentario o un literal puede simular el inicio de un `comment on` y esconder una
+  llamada saliente real. Quedan fuera a propósito: `template:capabilities:check`
   (compara contra `origin/main`, que el job no garantiza), `test:ia:aprovisionamiento` (usa `docker`, que no hay en el job),
   `test:superset:embebido` y `test:superset:aislamiento-tokens` (exigen un Superset y credenciales vivas), los `test:*:e2e`,
   `test:db`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e` y demás de runtime que necesitan stack.

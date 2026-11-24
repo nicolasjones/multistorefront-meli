@@ -186,7 +186,7 @@ export function ConsultaList() {
         descripcion="Mensajes del formulario de contacto de las tiendas e interés por WhatsApp desde las fichas de producto."
         contexto={<ContextoOrganizacionActiva />}
         accion={(
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <BotonInteresWhatsapp />
             <Button variant="outlined" onClick={() => setRespuestasAbierto(true)}>Respuestas rápidas</Button>
           </Stack>
