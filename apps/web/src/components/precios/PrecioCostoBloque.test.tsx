@@ -40,7 +40,7 @@ describe('PrecioCostoBloque', () => {
     expect(screen.getByText('costo $ 17.580 · con dólar $ 1.465 (vie 25/09)')).toBeInTheDocument()
     expect(screen.getByText('Margen estimado (escala x1):')).toBeInTheDocument()
     expect(screen.getByText('40 %')).toBeInTheDocument()
-    expect(screen.getByText(/Margen = Precio − Costo − Comisión del canal/)).toBeInTheDocument()
+    expect(screen.getByText(/Margen = \(Precio − Costo\) \/ Precio; no incluye la comisión del canal/)).toBeInTheDocument()
     expect(screen.getByText('El precio de lista se carga sin IVA.')).toBeInTheDocument()
   })
 

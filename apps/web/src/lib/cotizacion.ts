@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { formatearFechaCotizacion, formatearPesosPrecio } from './precios'
+import { formatearImporteHasta } from './formatoImporte'
+import { formatearFechaCotizacion } from './precios'
 
 // Carga diaria de la cotización del dólar (F-PRE-02, MSF-246) y su confirmación (F-PRE-03, MSF-267).
 // La autoridad es la base (migraciones 20261023140000, 20261023140100, 20261023140200 y 20261023140300:
@@ -110,7 +111,8 @@ export function formatearVariacion(pct: number | null): string {
 
 export const esVariacionInusual = (pct: number | null, umbralPct: number = UMBRAL_VARIACION_INUSUAL_PCT) => pct !== null && Math.abs(pct) > umbralPct
 
-export const formatearCotizacion = (valor: number) => formatearPesosPrecio(valor)
+// El dólar se guarda con 4 decimales (`numeric(14,4)`): se muestran todos los que tenga.
+export const formatearCotizacion = (valor: number) => formatearImporteHasta(valor, 4)
 
 // «Última carga: vie 25/09 por Javier»; sin quién (cotización inicial) → «Última carga: vie 25/09».
 export function subtituloVigente(vigente: CotizacionVigente): string {
