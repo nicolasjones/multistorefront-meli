@@ -3,7 +3,7 @@
 -- sin referencia y que el resto de la nota se conserva.
 begin;
 
-select plan(14);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -42,7 +42,8 @@ from (values
   ('b0000000-0000-0000-0000-000000000004', interval '2 hours', 'Reserva comprobante:e2000000-0000-0000-0000-000000000001:linea:1'),
   ('b0000000-0000-0000-0000-000000000005', interval '1 hour', 'Conteo de cierre'),
   ('b0000000-0000-0000-0000-000000000006', interval '30 minutes', 'Reserva comprobante:E1000000-0000-0000-0000-000000000001:linea:2'),
-  ('b0000000-0000-0000-0000-000000000007', interval '20 minutes', 'Reserva precomprobante:e1000000-0000-0000-0000-000000000001')
+  ('b0000000-0000-0000-0000-000000000007', interval '20 minutes', 'Reserva precomprobante:e1000000-0000-0000-0000-000000000001'),
+  ('b0000000-0000-0000-0000-000000000008', interval '10 minutes', 'Reservaécomprobante:e1000000-0000-0000-0000-000000000001:linea:1')
 ) as v(id, hace, nota);
 
 -- Sin RLS (propietario) el cruce igual se limita a la organización del movimiento.
@@ -77,12 +78,14 @@ select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000
   'Reserva FAC-0005', 'un UUID en mayúsculas también se reemplaza');
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000007'),
   'Reserva precomprobante:e1000000-0000-0000-0000-000000000001', '«comprobante:» pegado a otra palabra no se toca');
-select is((select count(*) from leidos), 7::bigint, 'aparecen los siete movimientos');
+select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000008'),
+  'ReservaéFAC-0005', 'una letra acentuada pegada antes de la referencia no depende del idioma de la base');
+select is((select count(*) from leidos), 8::bigint, 'aparecen los ocho movimientos');
 
 -- Paginación y total: el total es el de todo el filtro, no el de la página.
 select is((select array_agg(l.id order by l.creado_en desc, l.id desc) from public.listar_movimientos_stock(null, 2, 2) l),
-  array['b0000000-0000-0000-0000-000000000005', 'b0000000-0000-0000-0000-000000000004']::uuid[], 'la segunda página trae las filas 3 y 4 en orden');
-select is((select min(l.total) from public.listar_movimientos_stock(null, 2, 2) l), 7::bigint, 'el total es el de todo el filtro');
+  array['b0000000-0000-0000-0000-000000000006', 'b0000000-0000-0000-0000-000000000005']::uuid[], 'la segunda página trae las filas 3 y 4 en orden');
+select is((select min(l.total) from public.listar_movimientos_stock(null, 2, 2) l), 8::bigint, 'el total es el de todo el filtro');
 select is((select count(*) from public.listar_movimientos_stock(null, 2, 20) l), 0::bigint, 'una página fuera de rango no trae filas');
 
 -- Rol Depósito de la misma organización: con Ventas en lectura (matriz inicial) ve el número; sin Ventas, la

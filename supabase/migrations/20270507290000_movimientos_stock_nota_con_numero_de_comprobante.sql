@@ -9,7 +9,8 @@
 -- «el comprobante». El libro `dominio.movimientos_stock` no se toca (es inmutable).
 --
 -- La referencia se reconoce igual que en `notaLegibleDeMovimiento` (apps/web/src/lib/stock.ts): sin distinguir
--- mayúsculas y con límite de palabra antes de «comprobante:». Acá se reemplaza la primera aparición; el front
+-- mayúsculas y sin letra ASCII, dígito ni guion bajo pegado antes de «comprobante:» (clase explícita: no depende del
+-- idioma de la base). Acá se reemplaza la primera aparición; el front
 -- reemplaza todas.
 --
 -- Reversión: recrear `public.listar_movimientos_stock` con la definición de
@@ -84,8 +85,8 @@ as $$
     on dep.id = m.deposito_id and dep.organizacion_id = m.organizacion_id
   left join lateral (
     select
-      (regexp_match(m.nota, '\ycomprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?', 'i'))[1] as texto,
-      (regexp_match(m.nota, '\ycomprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
+      (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])(comprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?)', 'i'))[1] as texto,
+      (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
   ) ref on true
   left join dominio.comprobantes_venta cv
     on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id

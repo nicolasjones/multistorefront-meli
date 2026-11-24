@@ -34,8 +34,8 @@ select m.id,
        count(*) over ()
 from dominio.movimientos_stock m
 left join lateral (
-  select (regexp_match(m.nota, '\ycomprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?', 'i'))[1] as texto,
-         (regexp_match(m.nota, '\ycomprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
+  select (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])(comprobante:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?::linea:[0-9]+)?)', 'i'))[1] as texto,
+         (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
 ) ref on true
 left join dominio.comprobantes_venta cv on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id
 order by m.creado_en desc, m.id desc limit 25;

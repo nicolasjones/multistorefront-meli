@@ -90,6 +90,10 @@ describe('notaLegibleDeMovimiento', () => {
     expect(notaLegibleDeMovimiento('Reserva precomprobante:eda80120-c168-4d68-9a1b-0123456789ab')).toBe('Reserva precomprobante:eda80120-c168-4d68-9a1b-0123456789ab')
   })
 
+  it('una letra acentuada pegada antes de la referencia no impide reemplazarla', () => {
+    expect(notaLegibleDeMovimiento('Reservaécomprobante:eda80120-c168-4d68-9a1b-0123456789ab:linea:1')).toBe('Reservaéel comprobante')
+  })
+
   it('deja igual las notas legibles y el valor nulo', () => {
     expect(notaLegibleDeMovimiento('Reserva PEDIDO-0005·entregada por envío')).toBe('Reserva PEDIDO-0005·entregada por envío')
     expect(notaLegibleDeMovimiento(null)).toBeNull()
