@@ -3,6 +3,8 @@ owner: producto
 sources:
   - specs/20261016-120000-actividad-y-ambientes
   - specs/20261102-100000-auditoria-avanzada-y-soporte
+  - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
+  - supabase/tests/database/lote44_registrar_actividad_por_seccion.test.sql
   - apps/web/src/pages/actividad/list.tsx
   - apps/web/src/lib/actividad.ts
   - apps/web/src/lib/actividad.tipos.test.ts
@@ -98,7 +100,7 @@ perform private.registrar_actividad('producto.creado', 'Creó el producto Lámpa
 - Si la RPC de origen revierte, el evento también (un reintento no pierde ni duplica el evento).
 
 Desde el frontend se usa `public.registrar_actividad(p_tipo, p_detalle, p_empresa_id)`, que exige
-`private.puede_escribir()` y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
+`private.puede_escribir()` **o** la sección Empresas en edición (la misma condición que `empresas_update`, desde `20270507280000`; antes solo `puede_escribir()` y un rol personalizado con Empresas en edición pausaba la tienda sin dejar rastro) y acepta solo `empresa.pausada`, `empresa.reactivada` y `empresa.actualizada`
 (`42501` para cualquier otro tipo; los `usuario.*`, `invitacion.*` y `permisos.*` los registra solo el
 servidor; `22023` sin empresa). `private.registrar_actividad` no es ejecutable por `authenticated`. Límite
 conocido: `p_detalle` es texto libre del cliente (no está atado al tipo: un Administrador puede registrar un `empresa.*` sin haber editado nada, solo en su organización; el actor lo fija el servidor) y se arma en servidor recién cuando la edición pase a RPC; no hay tope de frecuencia, y mover el registro de `empresa.*` a la misma transacción que la edición
@@ -283,7 +285,7 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
 hoy `usuario.empresa_activa_cambiada`) no ocupan la lista: se filtran en `listar_actividad` y en `exportar_actividad`
 salvo que se pidan por tipo. Ver «Eventos de contexto» más abajo.
 
-**Alcance por empresa (MSF-968)**: además de la organización y la sección `actividad`, la lectura exige que el evento no tenga empresa (evento de toda la organización) o que la persona acceda a esa empresa (`private.empresas_de_actividad()`: como `empresas_accesibles()` pero incluyendo las pausadas). Aplica a la política `registro_actividad_select` y a `exportar_actividad`. Quien tiene una sola tienda asignada ya no ve el historial de las demás (Operador y Administración); el Administrador accede a todas las empresas de su organización y sigue viendo todo. Los filtros, el contador `total` y la exportación salen de la misma política, así que conteos y cursor son coherentes con lo que se ve; el filtro por tienda de una empresa ajena devuelve cero filas. El pgTAP `actividad_por_empresa.test.sql` cubre el aislamiento y fija con una guardia estructural que solo cinco funciones `security definer` leen el registro (`alertar_tope_confirmaciones_newsletter`, `depurar_registro_actividad`, `exportar_actividad`, `historial_comprobante` y `regenerar_enlace_consulta`); una sexta debe aplicar el mismo alcance o justificarse y sumarse a esa lista.
+**Alcance por empresa (MSF-968)**: además de la organización y la sección `actividad`, la lectura exige que el evento no tenga empresa (evento de toda la organización) o que la persona acceda a esa empresa (`private.empresas_de_actividad()`: como `empresas_accesibles()` pero incluyendo las pausadas). Aplica a la política `registro_actividad_select` y a `exportar_actividad`. Quien tiene una sola tienda asignada ya no ve el historial de las demás (Operador y Administración); el Administrador accede a todas las empresas de su organización y sigue viendo todo; el Superadmin ve las empresas de su organización activa (la que tiene seleccionada), no las de otras organizaciones. Los filtros, el contador `total` y la exportación salen del mismo predicado (repetido en la política y en `exportar_actividad`, que no pasa por ella), así que conteos y cursor son coherentes con lo que se ve; el filtro por tienda de una empresa ajena devuelve cero filas. El pgTAP `actividad_por_empresa.test.sql` cubre el aislamiento y fija con una guardia estructural que solo cinco funciones `security definer` leen el registro (`alertar_tope_confirmaciones_newsletter`, `depurar_registro_actividad`, `exportar_actividad`, `historial_comprobante` y `regenerar_enlace_consulta`); una sexta debe aplicar el mismo alcance o justificarse y sumarse a esa lista.
 
 ## Datos de ejemplo
 
@@ -491,7 +493,7 @@ Las listas de precios (F-PRE-14 y F-CLI-21) registran cinco eventos, todos no se
 
 ## Importes del antes y después
 
-Los campos de importe (total, importe, monto, precio, costo, saldo, etc.) del detalle de un evento se muestran con formato de moneda. Pendiente: ocultar o agrupar las filas «Cambio de empresa activa» requiere cambiar `listar_actividad`.
+Los campos de importe (total, importe, monto, precio, costo, saldo, etc.) del detalle de un evento se muestran con formato de moneda. Las filas «Cambio de empresa activa» no ocupan la lista (ver la sección «Eventos de contexto: no ocupan la lista (MSF-985)»).
 
 Los campos con formato de moneda salen de una lista explícita de nombres de columna (importe, monto, total, subtotal, precio, precio_lista, costo, saldo, valor, cobrado, deuda); un campo que solo contiene la palabra (p. ej. `total_items`) no se toca.
 

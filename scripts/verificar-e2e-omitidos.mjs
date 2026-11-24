@@ -24,9 +24,29 @@ export function resumir(reporte) {
   return { total: pruebas.length, omitidos, corridos: pruebas.length - omitidos.length };
 }
 
-export function evaluar(reporte, maximoOmitidos) {
+// `--permitidos=archivo.e2e.ts::fragmento del título,otro.e2e.ts::otro`: cada omitido tiene que ser EXACTAMENTE uno de esos (el nombre del
+// archivo es IGUAL al dado y el título contiene el fragmento; un título con coma no se puede listar). Sin esto, `--max=1` toleraba cualquier omitido, no solo el esperado.
+export function parsearPermitidos(valor) {
+  const partes = String(valor).split(',');
+  const permitidos = partes.map((p) => { const [archivo, ...titulo] = p.split('::'); return { archivo, titulo: titulo.join('::') }; });
+  if (permitidos.some((p) => !p.archivo || !p.titulo || /\s/.test(p.archivo))) {
+    throw new Error(`--permitidos inválido ("${valor}"): lista de «archivo.e2e.ts::fragmento del título» separada por comas, sin vacíos (p. ej. --permitidos=a.e2e.ts::SC-006).`);
+  }
+  return permitidos;
+}
+
+export const omitidoPermitido = (omitido, permitidos) =>
+  permitidos.some((p) => String(omitido.archivo ?? '').split(/[\\/]/).pop() === p.archivo && String(omitido.titulo ?? '').includes(p.titulo));
+
+export function evaluar(reporte, maximoOmitidos, permitidos = null) {
   const { total, omitidos, corridos } = resumir(reporte);
   if (total === 0 || corridos === 0) return { ok: false, mensaje: 'No corrió ningún test del E2E.', omitidos };
+  if (permitidos) {
+    const ajenos = omitidos.filter((o) => !omitidoPermitido(o, permitidos));
+    if (ajenos.length > 0) {
+      return { ok: false, mensaje: `Hay ${ajenos.length} omitido(s) que no son los permitidos (${permitidos.map((p) => `${p.archivo} › ${p.titulo}`).join('; ')}): ${ajenos.slice(0, 3).map((o) => `${o.archivo} › ${o.titulo}`).join('; ')}.`, omitidos };
+    }
+  }
   if (omitidos.length > maximoOmitidos) {
     return { ok: false, mensaje: `Hay ${omitidos.length} tests omitidos y se permiten ${maximoOmitidos}: el entorno del job no está completo.`, omitidos };
   }
@@ -83,11 +103,21 @@ if (esCli) {
   const [archivo, ...resto] = process.argv.slice(2);
   const maximo = Number(resto.find((arg) => arg.startsWith('--max='))?.slice(6) ?? 0);
   if (!archivo || !Number.isInteger(maximo) || maximo < 0) {
-    console.error('Uso: node scripts/verificar-e2e-omitidos.mjs <reporte.json> [--max=N]');
+    console.error('Uso: node scripts/verificar-e2e-omitidos.mjs <reporte.json> [--max=N] [--permitidos=archivo::título,…] [--requeridos=a,b]');
     process.exit(2);
   }
   const reporte = JSON.parse(readFileSync(archivo, 'utf8'));
-  const resultado = evaluar(reporte, maximo);
+  const argPermitidos = resto.find((arg) => arg.startsWith('--permitidos'));
+  let permitidos = null;
+  if (argPermitidos !== undefined) {
+    try {
+      permitidos = parsearPermitidos(argPermitidos.startsWith('--permitidos=') ? argPermitidos.slice(13) : '');
+    } catch (error) {
+      console.error(error.message);
+      process.exit(2);
+    }
+  }
+  const resultado = evaluar(reporte, maximo, permitidos);
   for (const omitido of resultado.omitidos) console.log(` - omitido: ${omitido.archivo} › ${omitido.titulo}${omitido.motivo ? ` (motivo: ${omitido.motivo})` : ''}`);
   console[resultado.ok ? 'log' : 'error'](resultado.mensaje);
   const argRequeridos = resto.find((arg) => arg.startsWith('--requeridos'));

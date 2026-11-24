@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Alert, Box } from '@mui/material'
 import { embedDashboard } from '@superset-ui/embedded-sdk'
 import { supabaseClient } from '../lib/supabase'
@@ -49,7 +49,7 @@ export function ReporteEmbebido({ reporteId, alFallar, urlParams }: ReporteEmbeb
   // Último callback sin re-disparar el efecto de montaje cuando el padre lo recrea en cada render.
   const alFallarRef = useRef(alFallar)
   const urlParamsRef = useRef(urlParams)
-  useEffect(() => {
+  useLayoutEffect(() => {
     alFallarRef.current = alFallar
     urlParamsRef.current = urlParams
   })

@@ -13,6 +13,7 @@
 **Prioridad / Hito**: P0 · Hito 1 (6 al 30 de octubre de 2026) · ~12 h (las 4 historias S suman 16 h nominales; se mantienen 12 porque el patrón CRUD de clientes del template cubre la mecánica).
 
 **Dependencias**: Bloqueada por ninguna épica (se apoya en la audiencia administrador, `private.puede_escribir()` y el patrón CRUD de clientes del template). Bloquea a MSF-121 (Permisos por empresa, F-ROL-04 usa la tabla `empresas`) y MSF-132 (Administración de usuarios y organización: F-ORG-03 lista empresas, F-EMP-03 crea sobre ellas). Otras épicas (Precios, Tiendas online, Mercado Libre, Ventas) consumen la tabla. Relacionada, sin bloqueo, con MSF-125 y con el registro de actividad F-AUD-01 (Plataforma). Entre historias: F-EMP-01 bloquea a F-EMP-02, F-EMP-04 y F-EMP-05.
+  Nota (lote 44, sin reescribir lo anterior): vigente desde 20270507240000: `empresas_update` exige `nivel_seccion('empresas')='edicion'` (ver docs/empresas.md).
 
 **Input**: Epic MSF-138. Objetivo: "Al terminar, el administrador ve las dos empresas (San Javucho y Mundo JC), edita sus datos, pausa o reactiva su tienda y salta de una a otra sin perder lo que estaba haciendo."
 
@@ -133,6 +134,7 @@ Como administrador, quiero saltar de una empresa a otra desde cualquier pantalla
 
 - **FR-001**: El sistema DEBE tener una tabla `empresas` en el esquema `dominio`, con `organizacion_id` obligatorio, que admite **N empresas por organización** (sin constraint ni lógica que limite a dos).
 - **FR-002**: `empresas` DEBE tener RLS: lectura limitada a la organización resuelta por `private.organizacion_id()`; modificación solo con `private.puede_escribir()`; la prueba pgTAP de aislamiento DEBE cubrir la tabla y fallar si no tuviera RLS.
+  Nota (lote 44, sin reescribir lo anterior): vigente desde 20270507240000: `empresas_update` exige `nivel_seccion('empresas')='edicion'` (ver docs/empresas.md).
 - **FR-003**: Ningún código, dato semilla de prueba ni texto de UI DEBE asumir exactamente dos empresas; San Javucho y Mundo JC son datos, no constantes de código.
 - **FR-004**: El panel DEBE ofrecer el destino «Empresas» (listado) y la ruta de datos generales por empresa, visibles solo para la audiencia administrador (CA-EMP-01-4: el rol Operador/miembro no accede y ve acceso restringido).
 - **FR-005**: El listado DEBE mostrar por empresa: nombre, tienda web, Mercado Libre, precio, moneda (ARS) y productos visibles, con «Sin configurar» donde no hay origen de datos todavía, y adaptarse a 320/768/1440 px (`ContenidoAdaptable`).

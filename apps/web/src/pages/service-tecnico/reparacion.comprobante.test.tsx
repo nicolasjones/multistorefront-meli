@@ -210,6 +210,8 @@ describe('Service técnico · Cobro con comprobante de Ventas (F-SVC-13)', () =>
     expect(mocks.obtenerComprobanteDeReparacion).toHaveBeenCalledTimes(2)
   })
 
+  // Texto de la tarjeta del comprobante asociado (`MENSAJE_REPARACION_INEXISTENTE`, lib/reparacionComprobante.ts), distinto del de la
+  // carga de la reparación (`reparacion.tsx`, PT404: «…no tenés acceso a ella.», cubierto en reparacion.test.tsx).
   it('una reparación que la base no encuentra se informa sin mostrar datos de otra', async () => {
     mocks.obtenerComprobanteDeReparacion.mockRejectedValueOnce({ code: 'P0002' })
     abrirDetalle()

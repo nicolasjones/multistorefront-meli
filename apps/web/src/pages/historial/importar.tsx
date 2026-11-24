@@ -4,11 +4,14 @@ import { Alert, Box, Button, CircularProgress, MenuItem, Stack, TextField, Typog
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useOrganizacionDeTrabajo } from '../../hooks/useOrganizacionDeTrabajo'
 import { supabaseClient } from '../../lib/supabase'
+import { descargarCsv } from '../../lib/migracionCsv'
 import {
   AYUDA_PLANILLA,
   TIPOS_HISTORIAL,
   type EjecucionHistorial,
   type TipoHistorial,
+  contenidoPlantillaHistorial,
+  nombreArchivoPlantillaHistorial,
   consultarEjecucionHistorial,
   resumenDeEjecucion,
   solicitarImportacionHistorial,
@@ -188,6 +191,9 @@ export function HistorialImportar() {
                     aria-describedby="ayuda-planilla"
                     onChange={(evento) => elegirArchivo(evento.target.files?.[0] ?? null)}
                   />
+                  <Button variant="outlined" onClick={() => descargarCsv(nombreArchivoPlantillaHistorial(tipo), contenidoPlantillaHistorial(tipo))} disabled={enviando}>
+                    Descargar plantilla CSV
+                  </Button>
                   {archivo ? <Button variant="text" onClick={quitarArchivo} disabled={enviando}>Quitar</Button> : null}
                 </Stack>
                 <Typography id="ayuda-planilla" variant="body2" color="text.secondary">

@@ -6,12 +6,14 @@ const mocks = vi.hoisted(() => ({
   resultado: vi.fn(),
   schema: vi.fn(),
   usePuedeEscribir: vi.fn(),
+  usePuedeEditar: vi.fn(),
   rpc: vi.fn(),
   resumenes: vi.fn(),
 }))
 
 vi.mock('../../hooks/useResumenEmpresas', () => ({ useResumenEmpresas: mocks.resumenes }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
+vi.mock('../../hooks/usePuedeEditarEmpresas', () => ({ usePuedeEditarEmpresas: mocks.usePuedeEditar }))
 vi.mock('../../hooks/useOrganizacionActiva', () => ({ useOrganizacionActiva: () => ({ organizacionActiva: null, isLoading: false }) }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../lib/supabase', () => ({
@@ -33,6 +35,7 @@ describe('EmpresaList', () => {
     mocks.rpc.mockReset()
     mocks.resumenes.mockReturnValue({})
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
   })
 
   it('ofrece editar cada empresa hacia su pantalla General (F-EMP-02)', async () => {
@@ -117,6 +120,7 @@ describe('EmpresaList', () => {
 
   it('muestra acceso restringido y no consulta datos a un miembro', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: false, isLoading: false })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.getByRole('heading', { level: 1, name: 'No tenés acceso a esta sección' })).toBeInTheDocument()
@@ -129,6 +133,7 @@ describe('EmpresaList', () => {
 
   it('no consulta datos mientras todavía verifica el permiso', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: null, isLoading: true })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.getByRole('status', { name: 'Cargando contenido' })).toBeInTheDocument()
@@ -137,10 +142,12 @@ describe('EmpresaList', () => {
 
   it('no muestra el estado vacío al resolverse el permiso (null → true)', async () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: null, isLoading: true })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: null, isLoading: true })
     mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho'), empresa(2, 'Mundo JC')], error: null })
     const { rerender } = render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
     rerender(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.queryByText('Todavía no hay empresas cargadas.')).not.toBeInTheDocument()
@@ -168,8 +175,19 @@ describe('EmpresaList', () => {
     expect(screen.getByRole('button', { name: 'Crear nueva empresa' })).toBeInTheDocument()
   })
 
+  it('un rol con Empresas en edición pero sin permiso de alta ve la lista y no «Nueva empresa»', async () => {
+    mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: true, isLoading: false })
+    mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
+    render(<MemoryRouter><EmpresaList /></MemoryRouter>)
+
+    expect(await screen.findByText('San Javucho')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nueva empresa' })).not.toBeInTheDocument()
+  })
+
   it('un miembro no ve «Nueva empresa» ni «Crear»', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
+    mocks.usePuedeEditar.mockReturnValue({ puedeEditar: false, isLoading: false })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     expect(screen.queryByRole('button', { name: 'Nueva empresa' })).not.toBeInTheDocument()

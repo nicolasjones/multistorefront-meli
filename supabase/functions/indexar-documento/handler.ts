@@ -47,7 +47,7 @@ export type Deps = {
   validarEntrada(politica: Politica, texto: string): void
   embeddings(textos: string[], clave: string): Promise<number[][]>
   borrarFragmentos(jwt: string, versionId: string, reclamo: string): Promise<boolean>
-  insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>): Promise<boolean>
+  insertarFragmentos(jwt: string, filas: Array<{ version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }>, reclamo: string): Promise<boolean>
   /** `permiso` = la base rechazó con 42501 (funcionalidad apagada, o no es quien subió ni administrador). */
   /** `invalida` = 22023 (versión ya procesada, ajena o inexistente para la base): no se reintenta. */
   activar(jwt: string, versionId: string): Promise<'ok' | 'permiso' | 'invalida' | 'error'>
@@ -199,7 +199,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (preparados === 'ajena') return ocupada()
     if (!(await deps.borrarFragmentos(jwt, versionId, reclamo))) return await reintentable('No se pudieron preparar los fragmentos indexados, probá de nuevo.', 502)
     const filas = fragmentos.map((t, i) => ({ version_id: versionId, organizacion_id: version.organizacion_id, texto: t, embedding: `[${embeddings[i].join(',')}]`, orden: i }))
-    if (!(await deps.insertarFragmentos(jwt, filas))) return await reintentable('No se pudieron guardar los fragmentos indexados, probá de nuevo.', 502)
+    if (!(await deps.insertarFragmentos(jwt, filas, reclamo))) return await reintentable('No se pudieron guardar los fragmentos indexados, probá de nuevo.', 502)
 
     // Activación atómica (RPC): reemplaza la versión activa anterior y activa esta en una sola transacción.
     const activacion = await deps.activar(jwt, versionId)

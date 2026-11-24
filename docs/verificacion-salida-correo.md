@@ -88,7 +88,7 @@ Variables (los valores reales nunca se commitean):
 | `SUPABASE_ANON_KEY` | Clave anónima del proyecto |
 | `ACCESO_EMAIL`, `ACCESO_PASSWORD` | Credenciales de una persona **sin** acceso a la sección |
 | `SECCION` | Sección sin acceso para esa persona (por omisión `rentabilidad`) |
-| `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`): `nicolas.m.jones@gmail.com` |
+| `CORREO_PRUEBA` | Casilla externa donde se confirma la recepción (**obligatoria** sin `MAILPIT_URL`; con `MAILPIT_URL`, si se define, el mensaje de Mailpit tiene que estar dirigido a esa casilla o no hay `0`): `nicolas.m.jones@gmail.com` |
 | `MAILPIT_URL` | Sólo local, p. ej. `http://127.0.0.1:4302` |
 | `MAILPIT_TIMEOUT_MS` | Opcional: tope de cada consulta a Mailpit (por omisión 5000 ms, máximo 60000 ms: un valor no finito como `Infinity`, vacío o no positivo cae al por omisión y uno mayor al máximo se acota). Si Mailpit no responde, la consulta cuenta como «el aviso aún no apareció» y el guion termina con `1`, no queda colgado |
 

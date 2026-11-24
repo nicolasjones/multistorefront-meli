@@ -106,7 +106,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   dependency-cruiser, syncpack, commitlint). `pnpm calidad:code` omite los que usan Docker.
 - En CI corre el workflow **`quality`**: falla ante hallazgos pero **no bloquea el merge** (el ruleset 25358575, que aplica a `dokploy`,
   exige solo `validacion`, verificado con `gh api repos/{owner}/{repo}/rulesets/25358575`; no hay `continue-on-error`). Ver `docs/calidad.md`.
-- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`).
+- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`). Los dos son generados y no se versionan: el estado vigente es el del artifact del CI o el del `pnpm calidad` del momento.
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
   `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
@@ -153,6 +153,48 @@ Lección de #1053 (clientes pasó de `public` a `dominio`): un PR en vuelo que t
 No se duplican: versiones de migración menores o iguales a la máxima de la base (`verificar-migraciones.mjs --estricto`) y nombres de test con códigos MSF (guardián `higieneReferenciasInternas.test.ts`, sección anterior).
 
 El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.
+
+## Tests con fecha relativa: se fija `Date`
+
+Un test que arma fechas «hace 1 hora», «dentro de 3 días» o compara con el año actual no usa el reloj real: en `beforeEach` llama a
+`vi.useFakeTimers({ toFake: ['Date'] })` y `vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))`, y en `afterEach` a `vi.useRealTimers()`.
+Se simula **solo** `Date` (no `setTimeout`) para no frenar `findBy*`/`waitFor`. Así el resultado no depende de la hora de corrida ni de
+la medianoche o Nochevieja. Aplicado en `vencimientoSesion`, `InvitacionesPendientes`, `alertas-demora` y el pie de `tiendaDiseno`. Los tests que miden
+una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no una fecha.
+
+## Esperas asincrónicas y «Cargar más»: piso de 5 s y refs en `useLayoutEffect`
+
+**Piso de espera.** `apps/web/src/test/setup.ts` fija `configure({ asyncUtilTimeout: 5000 })` para `findBy*`/`waitFor` de Testing Library y envuelve
+`vi.waitFor` (que en vitest tiene su propio default de 1 s y al que `configure` no llega) con `conPisoDeEspera` (`test/pisoEspera.ts`):
+`timeout: propias.timeout ?? 5000`. Un `timeout` propio (número u objeto) se respeta, y un `{ timeout: undefined }` explícito **no** vuelve al 1 s
+(lo cubre `pisoEspera.test.ts`). El piso de 5 s agrega espera cuando un test espera algo que tarda. Un `timeout` propio
+menor de 5 s queda por debajo del piso: se sube a 5000 o se justifica en un comentario del propio test (p. ej. el `timeout: 300` de `pisoEspera.test.ts`, que es el dato de entrada del test del wrapper y no una espera real, lleva ese comentario). Al restaurar un
+`configure` temporal (`show.reparaciones.test.tsx`) se vuelve a 5000, no al 1000 de Testing Library.
+
+**Causa raíz del flake de «Cargar más».** Con el piso de 5 s el test de `OpinionesProducto` («Cargar más» suma la tanda siguiente con el cursor)
+siguió fallando bajo carga (en una serie de 19 corridas hubo 2 fallos; medición del autor, no reproducible desde el diff): no era la espera, era un click perdido. `useListadoPorCursor` y `useCatalogoPublico` guardaban en
+una ref (`ultimo`, `funciones`) el último estado y `cargarMas` la leía desde el click, pero la ref se sincronizaba en un `useEffect` **pasivo**:
+si el click llegaba justo tras el primer render con datos y antes de que corriera el efecto, `cargarMas` veía `null` y salía sin hacer nada (le
+podía pasar igual a un usuario rápido).
+
+**Regla:** una ref que se lee desde un handler (click, callback de una promesa, observer) y se mantiene al día con el último valor se sincroniza
+en `useLayoutEffect` (corre sincrónicamente al final del commit, antes de que el navegador pinte), o se asigna durante el render si es seguro. Aplicado en
+`useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `useListarFaltantes`, `useExistenciasRealtime`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
+`CargaInfinita` y `ReporteEmbebido`.
+
+**Qué puede seguir en `useEffect`.** La ventana duele cuando la ref es una copia del **último valor** (estado, props o callback) y un handler la lee
+antes de que corra el efecto: encuentra `null` o un valor viejo y actúa mal. Una ref que no es esa copia puede quedar en `useEffect` si lo que lee
+un handler antes del efecto no causa daño; cada caso se justifica por su propia razón. Ejemplos revisados:
+
+- `generacion` y `enCurso` de `useListadoPorCursor` (el efecto incrementa `generacion` y pone `enCurso` en `false` al cambiar la consulta; `cargarMas`
+  lee ambas y asigna `enCurso`): antes de ese efecto, `cargarMas` no hace nada porque el render ya dejó `estado` en `null` (`setEstado(null)` al
+  cambiar la clave) y `ultimo` queda en `null`; y `generacion` hace que `vigente()` descarte las respuestas de la consulta anterior;
+- `empresaPrevia` en `pages/stock/depositos.tsx`: el propio efecto la compara con la empresa activa y la asigna;
+- `montado` de `useExportarCsv`: se inicializa en `true` y el cleanup del efecto la pone en `false`;
+- `focoEnBoton` de `CargaInfinita`: la asignan handlers (`onFocus`/`onBlur` y `onClick`) y la consulta (y apaga) un efecto.
+
+Si una ref nueva guarda el «último valor» y un handler la lee, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces
+con la máquina cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un fallo dentro de la serie lo deja abierto.
 
 ## Cliente de Supabase simulado en los tests de la web
 

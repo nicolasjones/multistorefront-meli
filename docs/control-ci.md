@@ -261,7 +261,7 @@ Lote 36 (infraestructura como código, CI y Kestra). Cada ítem dice si se hizo,
   ninguna carpeta del repo: un secreto en `apps/`, `packages/`, `supabase/`, etc. se sigue detectando (test en
   `scripts/calidad.test.mjs`, necesita el binario `gitleaks`; se saltea si no está).
 - **MSF-706 · clave de host del VPS fijada.** El deploy ya no usa `ssh-keyscan`; `scripts/preparar-known-hosts-vps.mjs` toma la
-  clave pública del host del secret `VPS_SSH_KNOWN_HOSTS` o de `infra/vps/known_hosts.<entorno>`, la valida (un solo host, sin
+  clave pública del host del secret `VPS_SSH_KNOWN_HOSTS` (o de `infra/vps/known_hosts.<entorno>`, que hoy no existe: `infra/vps/` no se creó), la valida (un solo host, sin
   comodines ni marcadores) y configura SSH con `StrictHostKeyChecking=yes` y ese único archivo. **Sin clave fijada el job falla** con
   instrucciones. En `dev` solo advierte (modo transicional); en staging/production necesita acción de Nicolás antes del próximo deploy: ver `docs/deployment.md`, «Clave de host del VPS».
 - **MSF-674 · gate de promoción `stg → prd`.** `scripts/verificar-staging-exitoso.mjs` exigía un run exitoso de `staging` **para el
@@ -312,7 +312,7 @@ Propuestas exactas; ninguna se aplicó.
   GitHub Actions to create and approve pull requests» o pasar `token:` de un PAT/GitHub App a `release-please-action`; revisar el
   secret `SUPABASE_DB_URL` del Environment `staging`; alerta cuando falle el job `staging`). Con el gate de MSF-674 ya no hace falta
   un run de staging por cada SHA para promover.
-- **MSF-706 · secret `VPS_SSH_KNOWN_HOSTS`** (o versionar `infra/vps/known_hosts.<entorno>`): obtener la línea del host por un canal
+- **MSF-706 · secret `VPS_SSH_KNOWN_HOSTS`** (o, creando `infra/vps/`, versionar `known_hosts.<entorno>`: hoy no existe): obtener la línea del host por un canal
   de confianza (consola del proveedor o `ssh-keygen -lf` contra la huella publicada) y cargarla; ver `docs/deployment.md`.
 - **MSF-705 · variables obligatorias en el VPS.** Antes de mergear a `main` o promover, comprobar que `VPS_DEPLOY_ENV` de staging y
   producción trae las 14 credenciales nuevas (`KESTRA_*`, `SUPERSET_*`, `NANGO_*`) y las 5 `*_IMAGEN` de workers por digest (MSF-712);
@@ -333,7 +333,7 @@ Propuestas exactas; ninguna se aplicó.
   Criterio del 4 (no 5): deja un runner self-hosted de holgura para `liberar`, que también necesita runner, sin volver
   al cuello de 2. No se toca `CI_LANES` (15) ni `CI_LOAD_MAX` (2.5, variable de repo del producto). Como
   `CI_RANAS_MAXIMAS` no está en el `.env.example` del repo `ai-dev-orchestrator`, un nodo nuevo vuelve al default 2:
-  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: **pendiente** en el orquestador) para que el valor no dependa de este servidor. El modelo
+  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: propuesto en el PR nicolasjones/ai-dev-orchestrator#876, lote 44, a la espera de su merge) para que el valor no dependa de este servidor. El modelo
   de capacidad del orquestador sigue contando sólo runners self-hosted cuando los jobs pesados ya corren en hosted:
   revisarlo es deuda aparte, no de este cambio. Verificación: `grep CI_RANAS_MAXIMAS /opt/ai-dev-orchestrator/.env` y,
   tras el reinicio, que el poller admita hasta 4 ramas en vuelo (deja de frenar con «límite 2»).
@@ -361,9 +361,8 @@ Propuestas exactas; ninguna se aplicó.
 - **Bypass de admin** para emergencias. Con `CI_PAUSED=true`, `validacion`
   falla a propósito: mientras el CI está pausado no se mergea.
 
-Esto reemplaza al merge queue: GitHub no expone `merge_queue` por API para este
-repo (el ruleset lo rechaza), pero el workflow ya soporta `merge_group`, así que
-si se habilita desde la UI/plan no hay que tocar nada.
+Esto reemplaza a la cola de merge; si se activa más adelante, el procedimiento y el motivo están una sola vez en «Pendientes del lote 36 que
+necesitan acción de Nicolás» (MSF-755), arriba.
 
 ### El gate se lee por rulesets, no por `/branches/<rama>/protection` (MSF-755)
 

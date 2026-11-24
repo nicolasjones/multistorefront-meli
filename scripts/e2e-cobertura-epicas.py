@@ -32,6 +32,19 @@ RAIZ = Path(__file__).resolve().parent.parent
 API = os.environ.get("ITSAPLAN_API_URL", "https://api.plan.agenmatica.com").rstrip("/")
 KEY = os.environ.get("ITSAPLAN_API_KEY", "")
 PROY = os.environ.get("ITSAPLAN_PROYECTO", "MSF")
+# Largo máximo del texto de un ítem en el reporte. Si lo supera se corta y se marca con «…» al final
+# (nunca en silencio): el texto completo sigue en el tasks.md.
+MAX_TEXTO_ITEM = 300
+MARCA_TRUNCADO = "…"
+
+
+def acortar_texto(texto, maximo=MAX_TEXTO_ITEM):
+    """Corta `texto` a `maximo` caracteres (marca incluida) y deja «…» para que se note el recorte."""
+    if len(texto) <= maximo:
+        return texto
+    return texto[: maximo - len(MARCA_TRUNCADO)].rstrip() + MARCA_TRUNCADO
+
+
 ESTADOS = ("Review In DEV", "Approved In Dev", "Review In STG", "Approved In STG")
 # Regla compartida con los runners de Node (una sola implementación de la regla).
 HELPER = RAIZ / "scripts" / "historia-item.mjs"
@@ -108,7 +121,7 @@ def items_de(contenido):
                        capture_output=True, text=True, timeout=120)
     if r.returncode != 0:
         raise RuntimeError(f"historia-item.mjs falló: {r.stderr.strip()[:200]}")
-    return [{"id": i["id"], "hecha": i["hecho"], "texto": i["texto"][:300],
+    return [{"id": i["id"], "hecha": i["hecho"], "texto": acortar_texto(i["texto"]),
              "historia": i["historia"], "motivo": i["motivo"],
              "requiere_descripcion": i["requiereDescripcion"]}
             for i in json.loads(r.stdout)]

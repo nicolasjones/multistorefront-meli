@@ -46,6 +46,16 @@ export function validarUrlSupabase(urlTexto: string, env: Record<string, string 
 }
 if (url) validarUrlSupabase(url, process.env)
 
+/**
+ * Clave anónima (publishable) del stack local. Orden documentado en `docs/e2e-app.md`: la que exporta el CI
+ * (`VITE_SUPABASE_PUBLISHABLE_KEY`) primero, con `SUPABASE_ANON_KEY` y `VITE_SUPABASE_ANON_KEY` como alternativas locales.
+ */
+export function claveAnonima(): string {
+  const clave = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY
+  if (!clave) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  return clave
+}
+
 export const cabeceras = (extra: Record<string, string> = {}) => ({
   apikey: serviceKey ?? '',
   authorization: `Bearer ${serviceKey}`,
@@ -140,12 +150,11 @@ export async function asignarEmpresasComoAdministrador(
   asignaciones: { empresa_id: string; rol_id: string }[],
   password = CONTRASENA_E2E,
 ) {
-  const claveAnonima = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
-  if (!claveAnonima) throw new Error('Falta la clave anónima (VITE_SUPABASE_PUBLISHABLE_KEY)')
+  const anonima = claveAnonima()
   const sesion = await fetch(`${url}/auth/v1/token?grant_type=password`, {
     signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
-    headers: { apikey: claveAnonima, 'Content-Type': 'application/json' },
+    headers: { apikey: anonima, 'Content-Type': 'application/json' },
     body: JSON.stringify({ email: correoAdmin, password }),
   })
   if (!sesion.ok) throw new Error(`Login de ${correoAdmin}: ${sesion.status} ${await sesion.text()}`)
@@ -153,7 +162,7 @@ export async function asignarEmpresasComoAdministrador(
   const r = await fetch(`${url}/rest/v1/rpc/asignar_empresas_usuario`, {
     signal: AbortSignal.timeout(TOPE_FETCH_MS),
     method: 'POST',
-    headers: { apikey: claveAnonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    headers: { apikey: anonima, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ p_target_user_id: usuarioId, p_asignaciones: asignaciones }),
   })
   if (!r.ok) throw new Error(`RPC asignar_empresas_usuario: ${r.status} ${await r.text()}`)

@@ -158,6 +158,10 @@ jobs:
       # (es Node puro, sin base) para que la regresión no vuelva a colarse.
       - name: test:db:guard-migraciones
         run: pnpm test:db:guard-migraciones
+      # Fecha de vencimiento de los gates del tracker (MSF-909): fija la regla (24 h del
+      # contrato de vitalidad) y que el PATCH mande sólo la fecha.
+      - name: test:vencimientos:gates
+        run: pnpm test:vencimientos:gates
       # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
       # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
       # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
@@ -471,10 +475,10 @@ jobs:
           else
             pnpm --filter @platform/web exec playwright test --workers=2 --retries=0 $ARCHIVOS
           fi
-      # Guarda de omitidos del job de sesión: solo se tolera 1 (SC-006 de `cuenta-web-cliente`, que se omite porque este stack se levanta
+      # Guarda de omitidos del job de sesión: solo se tolera 1 y tiene que SER el SC-006 de `cuenta-web-cliente` (`--permitidos`), que se omite porque este stack se levanta
       # sin Edge Runtime: ver docs/e2e-app.md). Imprime el motivo de cada omitido (el reporter de lista no lo muestra).
       - name: Verificar que no haya omisiones inesperadas
-        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1 --permitidos=cuenta-web-cliente.e2e.ts::SC-006
       - name: cobertura:e2e (sesión)
         if: always()
         run: |
@@ -705,7 +709,7 @@ jobs:
       # Los specs de la tienda y el de la etiqueta se omiten solos si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` y Playwright lo cuenta como éxito:
       # el único omitido permitido es el de `tienda-seo` (`E2E_SIN_EDGE=1`). Lee `apps/web/resultado-e2e.json`.
       - name: Verificar que no haya omisiones inesperadas
-        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1
+        run: pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1 --permitidos=tienda-seo.e2e.ts::robots.txt
       # Mismo motivo que en `application`: Chromium huérfano si el job se cancela o agota el timeout.
       - name: Limpiar navegadores del job
         if: always()
@@ -827,6 +831,22 @@ jobs:
           supabase start --workdir "$SUPABASE_CI_WORKDIR" -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta,kong,postgrest
       - run: pnpm db:reset:ci
       - run: pnpm test:db:ci
+      # Prueba del guard de `scripts/medir-tienda-favoritos.sql`: crea dos bases vacías en el mismo servidor (sin tocar la base de las pruebas) y las limpia al final.
+      - name: Prueba del guard de medición
+        env:
+          PGPASSWORD: postgres
+          PGSSLMODE: disable
+        run: |
+          export PGHOST=host.docker.internal PGPORT="$SUPABASE_DB_PORT"
+          scripts/probar-guard-medicion.sh probar
+      - name: Limpiar las bases de la prueba del guard
+        if: always()
+        env:
+          PGPASSWORD: postgres
+          PGSSLMODE: disable
+        run: |
+          export PGHOST=host.docker.internal PGPORT="$SUPABASE_DB_PORT"
+          scripts/probar-guard-medicion.sh limpiar || true
       - name: Liberar la ranura del stack de Supabase
         if: always()
         run: node scripts/supabase-ci.mjs liberar

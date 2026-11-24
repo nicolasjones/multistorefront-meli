@@ -74,9 +74,13 @@ en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de ap
 - El job `quality` **falla** (rojo) ante hallazgos, pero **no bloquea el merge**: el ruleset de GitHub
   (25358575) exige solo `validacion`. No existe `continue-on-error` en el workflow. Para volverlo
   bloqueante hay que agregar `quality` a los checks requeridos del ruleset (acción de administración).
-- `pnpm calidad` siempre termina en su bloque `---- RESUMEN ----`; si una herramienta se cae, queda como
-  `hallazgos` con la causa. La salida completa de cada una va a `reports/calidad.log` (artifact
-  `calidad-reporte`, junto con `reports/calidad.md`).
+- `pnpm calidad` termina en su bloque `---- RESUMEN ----`.
+  Si una herramienta se cae, queda como `hallazgos` con la causa.
+  Un check con hallazgos imprime su salida completa en el log del CI y en `reports/calidad.md`.
+  La salida completa de cada herramienta va a `reports/calidad.log`.
+  Los dos archivos se suben como artifact `calidad-reporte`, se generan en cada corrida y no se versionan (MSF-843).
+  Los registros históricos de `specs/` y `.specify/bugs/` citan un `reports/calidad.md` versionado.
+  Desde MSF-843 ese archivo se genera con `pnpm calidad` (`scripts/calidad.mjs`) y se sube como artifact `calidad-reporte` del job `quality`.
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
 - Revisión 2026-11-22 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
@@ -115,4 +119,6 @@ F4 release/preview/flags · F5 mutation/a11y/perf.
 > vinieron de `main` en la integración (PR #929): `docs/javascripts/zoom-imagenes.js` lo carga MkDocs por `extra_javascript`
 > (no por un `import`); `@playwright/test` lo importa `scripts/armar-video-evidencia.mjs` desde el workspace web; y
 > `ffmpeg`, `tailscale`, `hostname` y `pkill` son herramientas del sistema que usan `scripts/armar-video-evidencia.mjs` y
-> `scripts/publicar-videos-e2e.mjs`. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.
+> `scripts/publicar-videos-e2e.mjs`. `hostname` (`hostname -I`) y `pkill` (`pkill -f 'http.server …'`) los llama `scripts/publicar-videos-e2e.mjs` dentro de
+> un `execSync`; knip los cuenta como binarios sin declarar si se quitan de `ignoreBinaries` (se probó: siguen siendo necesarios).
+> `knip.json` es JSON estricto (sin comentarios), por eso el motivo se documenta acá. Un script nuevo que dependa de un binario del sistema lo suma a `ignoreBinaries`.

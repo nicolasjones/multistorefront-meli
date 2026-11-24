@@ -95,7 +95,7 @@ predicado `empresa_id is null or empresa_id in (select private.empresas_de_activ
 `obtener_detalle_actividad` y `opciones_actividad` son `security invoker`, heredan el filtro (lista, `total` y opciones de
 tipo y usuario salen de las filas visibles); `exportar_actividad` es `security definer`, no pasa por la política y repite el
 predicado en sus cuatro consultas. El historial de una empresa pausada se conserva visible (`empresas_de_actividad` no filtra
-por `activa`). El índice `registro_actividad_org_empresa_fecha_idx` ya cubre `(organizacion_id, empresa_id, creado_en)`; el
+por `activa`). Quién ve qué empresas: el Administrador, todas las de su organización; el Superadmin, todas las de su organización activa (`private.is_superadmin()` y `organizacion_id()`); el resto, las asignadas. El índice `registro_actividad_org_empresa_fecha_idx` ya cubre `(organizacion_id, empresa_id, creado_en)`; el
 subselect de empresas es un subselect no correlacionado (se evalúa una vez por consulta). La escritura no cambia: los eventos se insertan solo desde
 las funciones `security definer` y el registro sigue inalterable. Reversión: migración posterior que recree la política sin el
 último predicado y restaure `exportar_actividad` de `20270218300000`. Guardia: el pgTAP `actividad_por_empresa.test.sql` fija

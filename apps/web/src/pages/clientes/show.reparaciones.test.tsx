@@ -71,8 +71,8 @@ const abrirPestana = async () => {
 }
 
 // La pestaña se carga con lazy(): con el shard cargado el import dinámico supera el 1 s por defecto de findBy*
-// (MSF-754: «2 reparaciones» no aparecía a tiempo). El tope de cada test sigue siendo testTimeout.
-const ESPERA_ASYNC_PREVIA = 1000
+// (MSF-754: «2 reparaciones» no aparecía a tiempo). El tope de cada test sigue siendo testTimeout. Al terminar se vuelve al piso global de test/setup.ts (5 s), no al default de 1 s.
+const ESPERA_ASYNC_PREVIA = 5000
 
 describe('Ficha del cliente · pestaña Reparaciones', () => {
   beforeAll(() => { configure({ asyncUtilTimeout: 10000 }) })

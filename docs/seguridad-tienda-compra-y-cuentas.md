@@ -6,7 +6,7 @@ sources:
 
 # Revisión de seguridad · Tienda: compra y cuentas (MSF-176)
 
-Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20270306-100000-tienda-compra-y-cuentas/`). La guía funcional es [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md); acá solo va lo que importa para seguridad. La revisión de seguridad **integral** de las tres historias (tarea T070 de `tasks.md`) la hace una sesión que no implementó y se agrega a este documento antes del cierre de la épica.
+Registro de las revisiones de seguridad de la épica **MSF-176** (spec `specs/20270306-100000-tienda-compra-y-cuentas/`). La guía funcional es [`tienda-compra-y-cuentas.md`](./tienda-compra-y-cuentas.md); acá solo va lo que importa para seguridad. La revisión de seguridad **integral** de las tres historias (tarea T070 de `tasks.md`) la hizo una sesión que no implementó; el cierre de sus hallazgos H-2 a H-6 (MSF-988) está al final de este documento.
 
 ## B2 · Presupuesto desde la tienda (tarea T062)
 
@@ -46,3 +46,27 @@ MSF-940 (aviso al equipo), MSF-941 (presupuesto desde una consulta de pedido), M
 - `private.precio_para` es `security definer` con `execute` para `authenticated`: la compuerta `private.precio_sesion_alcanza` (sin `execute` de API) y la ACL quedan fijadas por el pgTAP `precio_para_compuerta`.
 - `enviar_lista_pedido` sin captcha es un **riesgo aceptado** (mitigaciones: 5 envíos por hora y por IP, 20 llamadas por minuto, idempotencia, aviso agrupado); ver 1.11 en la spec y `tienda-compra-y-cuentas.md`.
 - El cupo de llamadas de la lista y del envío sobrevive a un fallo posterior (sub-bloque con manejador propio).
+
+## Cierre de la revisión integral (MSF-988)
+
+| # | Hallazgo | Estado |
+|---|---|---|
+| H-1 | El hash de IP de los cupos es reversible por fuerza bruta. | Fuera de este cambio: seguimiento MSF-945. |
+| H-2 | La baja de la cuenta web borraba el vínculo del presupuesto de la tienda (FK `on delete cascade`), y `fusionar_clientes` dejaba cliente de presupuestos y consultas apuntando al cliente archivado. | `20270507300000`: `cuenta_cliente_id` admite nulo y la FK pasa a `on delete set null (cuenta_cliente_id)`; las FK de cliente y comprobante pasan a `on delete cascade` para que la baja de la organización no se bloquee. `20270507300100`: la fusión repunta `cliente_id` de `presupuestos_tienda` y `consultas`, y pasa los presupuestos de la cuenta que se da de baja a la cuenta que sobrevive de la misma empresa (si la `clave_envio` choca, ese vínculo queda sin cuenta). El repunte de consultas hace avanzar su `updated_at`. |
+| H-3 | Las cinco RPC de «Mi cuenta» no tenían cupo de llamadas. | `20270507300200`: 120 llamadas por minuto y cuenta (`private.limite_llamadas_cuenta_por_minuto()`), tomadas después de resolver la cuenta y antes de leer, fuera del bloque con `exception when others`. Superado, responde `{estado: limite, espera_segundos}`; el front lo trata como error con reintento. Las cuatro que eran `stable` pasan a `volatile`. Quedan fuera de este cierre `acceso_cliente_por_dominio` y `precios_cliente_por_dominio` (sin cupo por cuenta, `stable`) y `mis_opiniones_por_dominio` (cupo por visitante, no por cuenta); decisión de diseño pendiente de Nicolás; seguimiento MSF-1001. |
+| H-4 | El cupo de la lista de pedido y del envío se revertía con una excepción. | Ya estaba corregido en `20270430000000_tienda_menores_revision.sql`; `tienda_cierre_hallazgos.test.sql` lo vuelve a probar. |
+| H-5 | Funciones de `private` con `execute` para `authenticated`. | Documentado abajo; sin cambio de código. |
+| H-6 | El script de medición escribía sin guard de entorno y faltaban caracteres invisibles en las listas bloqueadas. | `20270507300300`: se suman U+00AD, U+180E y U+2061 a U+2064 en `enviar_lista_pedido` y `crear_presupuesto_tienda`; `tiendaPedido.ts` usa el mismo conjunto. `scripts/medir-tienda-favoritos.sql` aborta salvo que se pase `-v BASE_DESCARTABLE=si`, la sesión sea superusuario (el conteo no depende de RLS), el nombre de la base tenga `descartable`, `test` o `local` como palabra delimitada por `_` o `-` (`medicion_descartable` cumple, `latest` no; un nombre que contenga esas palabras delimitadas, aunque también diga `prod`, pasa el guard) y la base tenga 5 organizaciones o menos. Es una protección contra accidentes, no un control de seguridad: quien accede a la base puede saltearla. Prueba: `scripts/medir-tienda-favoritos.guard.test.mjs` (se omite sin `MEDIR_PSQL` y `MEDIR_PSQL_OTRA_BASE`; el job `database` del CI la corre con dos bases vacías que crea y borra `scripts/probar-guard-medicion.sh`, sin los dos casos que leen `organizaciones`; local, con el esquema completo, corren los siete). |
+
+Las migraciones se derivan de las definiciones vigentes al momento del cambio (no de las del PR #1128, anterior a varios cambios de la base). Las funciones nuevas o reemplazadas siguen con `security definer` y `search_path` vacío.
+
+### H-5: funciones de `private` con `execute` para `authenticated`
+
+`private.precio_para`, `private.numero_cliente_consulta` y `private.nombre_cliente_consulta` son `security definer` y tienen `execute` para `authenticated`, igual que otras funciones de `private`. Es aceptable mientras PostgREST no exponga el esquema `private`: la lista de esquemas de `supabase/config.toml` (`[api] schemas`) y de `.env.example` (`SUPABASE_API_SCHEMAS`) no lo incluye. En los entornos self-hosted esa lista es `PGRST_DB_SCHEMAS` (ver `tiendas-online.md`): al desplegar y cada vez que se toque la configuración de PostgREST hay que comprobar que no incluya `private`.
+
+- `precio_para` se apoya en `private.precio_sesion_alcanza`, que valida la organización de la sesión y que tenga `empresas` o `ventas`, pero no el acceso a la empresa concreta. Quien agregue un llamador nuevo debe validar la empresa.
+- Una función nueva de `private` debe revocar `execute` de `public` y `anon`, y conceder `authenticated` si una política o una RPC de la sesión la necesita.
+
+### `statement_timeout` (57014)
+
+`exception when others` no atrapa `query_canceled` (57014). Si una llamada excede el `statement_timeout` de su rol (el comentario de `20270321100200` anota `anon` 3 s y `authenticated` 8 s), la llamada falla entera y su transacción se revierte, con el incremento del cupo incluido; el cliente recibe el error de PostgREST.

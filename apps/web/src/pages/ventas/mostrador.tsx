@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   Alert, Button, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TextField, Typography,
@@ -66,7 +66,7 @@ export function VentaMostrador() {
   const enVuelo = useRef(false)
   // Empresa vigente para descartar respuestas que llegan después de cambiar de tienda.
   const empresaVigente = useRef<string | null>(null)
-  useEffect(() => {
+  useLayoutEffect(() => {
     empresaVigente.current = empresaActivaId
   }, [empresaActivaId])
 

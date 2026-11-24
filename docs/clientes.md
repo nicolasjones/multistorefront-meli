@@ -538,7 +538,7 @@ panel no ve los favoritos** del cliente. La suspensión de la cuenta o la baja d
   que no están en `borrador`, `anulada` ni `cobrado`: una «Cobrada» está saldada aunque su cobro no esté en el libro
   (cobrada en mostrador o anterior al libro de cobros de MSF-195); los presupuestos no son deuda. El saldo total es la
   suma de los saldos listados.
-- **Cobros revertidos y anulación:** un administrador puede revertir un cobro mal cargado con `revertir_cobro`
+- **Cobros revertidos y anulación:** un administrador (o un superadmin con organización activa: guarda `private.puede_escribir()`) puede revertir un cobro mal cargado con `revertir_cobro`
   (`20270507180100`): el libro de cobros no se edita, se agrega un contra-asiento de importe negativo, y como el saldo suma
   todos los importes del libro, el cobro revertido deja de contar y la factura vuelve a figurar con su saldo. Una factura con
   cobros (neto mayor a cero) o ya entregada no se puede anular (`anular_comprobante`, `20270507180000`): hay que revertir el
@@ -633,6 +633,7 @@ Une dos fichas del mismo cliente. **Solo el Administrador**; la base lo impone y
 - **Fuera de alcance:** otras tablas con `cliente_id` (p. ej. reparaciones) no se reasignan; no hay deshacer ni detección automática de duplicados.
 - **`public.vista_previa_fusion_clientes(p_conservar_id, p_descartar_id)`**: solo lectura, mismas validaciones; devuelve Nº, nombre, documentos, cuentas web (activas/total) y, desde F-CLI-21, la lista de precios (`lista_precio_id`, `lista_nombre`) de cada cliente: el diálogo avisa si difieren. La ficha que se conserva mantiene su lista y la del absorbido se descarta: es una **regla vigente por decisión de diseño** (la lista del cliente descartado se pierde al fusionar), no un defecto pendiente; el diálogo avisa si las listas difieren.
 - **UI:** «Fusionar con otro cliente…» en el encabezado de la ficha (`DialogoFusionarClientes`): buscar el otro cliente, elegir la ficha que se conserva, vista previa («3 compras y 5 compras…»), elegir la cuenta web si hace falta y confirmar. Si los dos clientes tienen cuenta web activa, antes de habilitar el botón aparece un **paso de confirmación en castellano llano**: qué ficha se conserva y cuál se archiva, qué cuenta web se conserva y cuál **se da de baja sin posibilidad de recuperarla**, con una casilla que hay que marcar (cambiar la ficha que se conserva, la cuenta web elegida o el otro cliente la desmarca). La lógica de datos no cambió. Al terminar recarga la ficha (con la suma de compras) o navega a la que se conservó.
+- **Lo que la tienda guarda por cliente (MSF-176 H-2, `20270507300100`):** los presupuestos pedidos desde la tienda y las consultas de pedido del cliente descartado se repuntan al conservado, y los presupuestos de la cuenta web que se da de baja pasan a la cuenta que sobrevive de la misma empresa. Las consultas repuntadas avanzan su `updated_at`.
 - **Reversión:** `drop function public.fusionar_clientes(uuid, uuid, uuid); drop function public.vista_previa_fusion_clientes(uuid, uuid); drop function private.registrar_actividad_fusion_clientes(uuid, uuid, uuid, uuid);`. Los datos ya fusionados no se restauran sin respaldo.
 - Pruebas: `supabase/tests/database/fusion_clientes.test.sql`, `DialogoFusionarClientes.test.tsx` y `show.fusion.test.tsx`.
 

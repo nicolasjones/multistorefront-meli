@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { urlsImagenesProducto } from '../lib/imagenProducto'
 import { leerPaginaBusqueda } from '../lib/tiendaBusqueda'
 import { leerPaginaCatalogo, type FiltrosCatalogo, type PaginaCatalogo } from '../lib/tiendaListado'
@@ -57,7 +57,8 @@ export function useCatalogoPublico(host: string, filtros: FiltrosCatalogo, q: st
   const generacion = useRef(0)
   const ultimo = useRef<Acumulado | null>(null)
   const enCurso = useRef(false)
-  useEffect(() => {
+  // Layout (no passive): ver `useListadoPorCursor`; un click justo tras el primer render con datos no debe perderse.
+  useLayoutEffect(() => {
     ultimo.current = acumulado
   }, [acumulado])
 

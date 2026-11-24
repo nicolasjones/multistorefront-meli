@@ -75,6 +75,17 @@ select is((public.resumen_newsletter(null) ->> 'confirmados')::int, 1, 'el KPI d
 select is((public.resumen_newsletter(null) ->> 'pendientes')::int, 2, 'los dos pendientes (con y sin baja_en) se cuentan aparte, no como activos');
 select is((public.listar_suscriptores_newsletter(null, 'confirmado', null, 1, 25) ->> 'total')::int, 1, 'el listado de confirmados no incluye al pendiente con baja_en');
 
+select is((select array_agg(f ->> 'correo' order by f ->> 'correo')
+             from jsonb_array_elements(public.listar_suscriptores_newsletter(null, 'confirmado', null, 1, 25) -> 'filas') f),
+  array['ana@ejemplo.com'], 'el listado de confirmados devuelve solo a la persona confirmada (no solo el total)');
+select is((select count(*)::int
+             from jsonb_array_elements(public.listar_suscriptores_newsletter(null, 'confirmado', null, 1, 25) -> 'filas') f
+            where (f ->> 'id')::uuid in ('51000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000003', '51000000-0000-0000-0000-000000000004')
+               or f ->> 'correo' in ('pendiente@ejemplo.com', 'vuelta@ejemplo.com', 'baja@ejemplo.com')), 0,
+  'el pendiente con baja_en no aparece por id ni por correo en el listado de confirmados');
+select is((select f ->> 'estado' from jsonb_array_elements(public.listar_suscriptores_newsletter(null, null, 'vuelta@', 1, 25) -> 'filas') f), 'pendiente',
+  'control: sin filtro de estado el pendiente con baja_en sí está y figura como pendiente, nunca como confirmado');
+
 -- ---- 3. Vista previa ----
 select is((public.vista_previa_newsletter('e1000000-0000-0000-0000-000000000001', 'Hola', false, false) ->> 'confirmados')::int, 1,
   'la vista previa anuncia solo a los confirmados');

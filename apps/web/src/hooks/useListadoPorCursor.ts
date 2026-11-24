@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { esSinAcceso } from '../lib/tiendaCuentaDatos'
 
 // Carga infinita de un listado paginado por cursor (Constitución, Principio VI): la primera tanda se pide al cambiar
@@ -58,7 +58,9 @@ export function useListadoPorCursor<T, C>({ clave, leer, idDe, alSinAcceso }: Op
   const enCurso = useRef(false)
   const ultimo = useRef<Estado<T, C> | null>(null)
   const funciones = useRef({ leer, idDe, alSinAcceso })
-  useEffect(() => {
+  // Layout y no passive: `cargarMas` lee estas refs desde un click, y un efecto pasivo puede no haber corrido todavía cuando el
+  // usuario (o un test bajo carga) hace click justo tras el primer render con datos: el click se perdía en silencio (flake de «Cargar más»).
+  useLayoutEffect(() => {
     ultimo.current = estado
     funciones.current = { leer, idDe, alSinAcceso }
   })

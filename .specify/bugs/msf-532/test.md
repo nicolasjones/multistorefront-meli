@@ -20,7 +20,7 @@ cerrado como si hubiera pasado.
 
 | Check | Command / Action | Result | Notes |
 |-------|------------------|--------|-------|
-| Reproduction (post-fix) | `node --test scripts/verificar-salida-correo.test.mjs` | pass | 14/14; el guion sale con `1`/`2`/`3` en los casos que antes salían con `0`. |
+| Reproduction (post-fix) | `node --test scripts/verificar-salida-correo.test.mjs` | pass | 15/15 en esa ronda; el guion sale con `1`/`2`/`3` en los casos que antes salían con `0`. |
 | New / updated tests | `node --test supabase/functions/solicitar-acceso/handler.test.ts` | pass | 11/11; el contrato `{resultado, nuevo, enviado}` queda fijado en los cuatro caminos. |
 | Test que vigila la regla (mutación) | el guion ignora `enviado` | pass (detecta) | Fallan 3 tests: idempotencia, invocación concurrente y «un aviso en Mailpit que no salió de esta corrida no da verde». |
 | Test que vigila la regla (mutación) | el guion acepta un contrato viejo (sin `enviado`) | pass (detecta) | Falla el test «una función vieja que no informa `enviado` no se toma como verificación». |
@@ -44,8 +44,8 @@ cerrado como si hubiera pasado.
 ✔ en local, con el aviso en Mailpit, la salida queda verificada
 ✔ en local, un aviso en Mailpit que no salió de esta corrida no da verde
 ✔ en local, sin aviso en Mailpit, no hay verde
-ℹ tests 14
-ℹ pass 14
+ℹ tests 15
+ℹ pass 15
 ℹ fail 0
 ```
 

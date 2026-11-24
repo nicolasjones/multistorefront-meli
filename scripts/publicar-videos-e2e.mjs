@@ -79,9 +79,9 @@ export function paginaRun(manifiesto) {
   const sinDescripcion = (manifiesto.items_sin_descripcion ?? [])
     .map((i) => `<li>[${esc(i.id)}] ${esc(i.specTitulo ?? i.spec)} — ${esc(i.motivo)}</li>`)
     .join('');
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cobertura E2E ${manifiesto.run_id}</title></head><body>
-<h1>Cobertura E2E — corrida ${manifiesto.run_id}</h1>
-<p>Fecha: ${manifiesto.fecha} · modo: ${manifiesto.modo}</p>
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cobertura E2E ${esc(manifiesto.run_id)}</title></head><body>
+<h1>Cobertura E2E — corrida ${esc(manifiesto.run_id)}</h1>
+<p>Fecha: ${esc(manifiesto.fecha)} · modo: ${esc(manifiesto.modo)}</p>
 ${secciones}
 ${huerfanos ? `<h2>Sin etiqueta válida</h2><ul>${huerfanos}</ul>` : ''}
 ${sinDescripcion ? `<h2>Ítems sin descripción utilizable</h2><ul>${sinDescripcion}</ul>` : ''}

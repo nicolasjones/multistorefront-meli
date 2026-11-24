@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   avisarFaltantesVenta,
   listarFaltantes,
@@ -70,8 +70,9 @@ export function useListarFaltantes({ empresaId, pagina, tamano, aviso = null }: 
 
   // La recarga que sigue a un aviso usa los filtros VIGENTES, no los del momento del clic: si la persona
   // cambió de página o de empresa mientras el aviso viajaba, pide lo que está a la vista.
+  // Layout (no passive): ver `useFaltantes`; el handler que sigue al aviso no debe leer una ref todavía sin sincronizar.
   const cargarVigente = useRef(cargar)
-  useEffect(() => {
+  useLayoutEffect(() => {
     cargarVigente.current = cargar
   }, [cargar])
 

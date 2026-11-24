@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { Box, LinearProgress, Stack, TextField } from '@mui/material'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useHistorialCotizaciones, type CotizacionHistorica } from '../../hooks/useHistorialCotizaciones'
-import { formatearFecha, formatearImporteHistorial } from '../../lib/formatoHistorial'
+import { formatearFecha } from '../../lib/formatoHistorial'
+import { formatearCotizacion } from '../../lib/cotizacion'
 import { EstadoCargaPagina, EstadoError, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { CargaInfinita } from '../../components/pagina/CargaInfinita'
 import { BarraHerramientas } from '../../components/pagina/BarraHerramientas'
@@ -14,8 +15,8 @@ const ALTO_BARRA_CARGA = 2
 
 const columnas: ColumnaAdaptable<CotizacionHistorica>[] = [
   { clave: 'fecha', encabezado: 'Fecha', render: (c) => formatearFecha(c.fecha) },
-  { clave: 'comprador', encabezado: 'Dólar comprador', align: 'right', render: (c) => <b>{formatearImporteHistorial(c.dolar_comprador)}</b> },
-  { clave: 'vendedor', encabezado: 'Dólar vendedor', align: 'right', render: (c) => <b>{formatearImporteHistorial(c.dolar_vendedor)}</b> },
+  { clave: 'comprador', encabezado: 'Dólar comprador', align: 'right', render: (c) => <b>{formatearCotizacion(c.dolar_comprador)}</b> },
+  { clave: 'vendedor', encabezado: 'Dólar vendedor', align: 'right', render: (c) => <b>{formatearCotizacion(c.dolar_vendedor)}</b> },
   { clave: 'cargo', encabezado: 'Cargó', render: (c) => (c.cargado_por && c.cargado_por.trim() !== '' ? c.cargado_por : '—') },
 ]
 

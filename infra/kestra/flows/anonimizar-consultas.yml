@@ -22,7 +22,7 @@ inputs:
     type: STRING
     required: false
     defaults: "24"
-    description: "Meses sin actividad (por defecto 24; la base rechaza menos de 12)."
+    description: "Meses sin actividad (por defecto 24; la base rechaza menos de 12). SOLO PARA USO EXCEPCIONAL: un valor menor que 24 anonimiza de forma IRREVERSIBLE consultas que todavía están dentro del plazo de retención vigente; no lo cambies sin una decisión de producto."
 # Una sola corrida a la vez; si la anterior sigue en curso, la nueva se descarta.
 concurrency:
   limit: 1

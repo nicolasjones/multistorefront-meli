@@ -14,12 +14,16 @@ sources:
   - supabase/migrations/20270507180400_documentos_escritura_excluye_consulta.sql
   - supabase/migrations/20270507180600_categorias_lectura_para_stock.sql
   - supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql
+  - supabase/migrations/20270507240200_rls_ventas_nivel_por_empresa.sql
+  - supabase/migrations/20270507270000_ventas_lectura_por_empresa_una_vez.sql
   - supabase/tests/database/permisos_por_rol.test.sql
   - supabase/tests/database/editar_matriz_permisos.test.sql
   - supabase/tests/database/rol_tecnico.test.sql
   - supabase/tests/database/rol_tecnico_por_empresa.test.sql
   - supabase/tests/database/roles_por_empresa.test.sql
   - supabase/tests/database/lote32_documentos_escritura_consulta.test.sql
+  - supabase/tests/database/lote42_rls_ventas_nivel_por_empresa.test.sql
+  - apps/web/src/hooks/usePuedeEditarEmpresas.ts
   - apps/web/src/lib/permisos.ts
   - apps/web/src/lib/rolActual.ts
 ---
@@ -64,7 +68,7 @@ Secciones (clave → nombre): `inicio`, `productos`, `categorias`, `stock`, `cot
 - **Actividad por empresa accesible (MSF-968):** además de la organización y el nivel en `actividad`, la lectura del historial
   (política `registro_actividad_select`, `listar_actividad`, `obtener_detalle_actividad`, `opciones_actividad` y
   `exportar_actividad`) solo muestra los eventos sin empresa (de toda la organización) y los de las empresas a las que la persona
-  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el resto, las asignadas; las pausadas
+  accede (`private.empresas_de_actividad()`: el Administrador, todas las de su organización; el Superadmin, todas las de su organización activa; el resto, las asignadas; las pausadas
   cuentan para no perder su historial). Cambio visible: Operador y Administración con una sola tienda asignada ya no ven los eventos
   de las demás; el Administrador sigue viendo todo. Ver `docs/actividad.md`.
 - Importar y exportar productos (F-CAT-10 / F-CAT-11) **no** usan `puede_accion`: exigen Administrador de la organización
@@ -483,5 +487,6 @@ persona, y los borra con `public.borrar_fragmentos_si_dueno` (`20270507200100_bo
 - `dominio.empresas`: el `UPDATE` exige la sección `empresas` en `edicion` (`private.nivel_seccion('empresas')`), no el rol
   Administrador; por defecto solo el Administrador la tiene, pero un rol con la sección en edición también edita.
 - `comprobantes_venta`, `comprobantes_venta_lineas`, `rma` y `rma_items` (lectura): Ventas en `lectura` o `edicion` **en la
-  empresa del registro** (`private.puede_leer_ventas_empresa`); una persona con Ventas en la tienda A y sin Ventas en la B no lee
+  empresa del registro** (políticas con `empresa_id in (select private.empresas_con_ventas_lectura())`, que se evalúa una vez por
+  consulta y no por fila; `private.puede_leer_ventas_empresa` es el envoltorio por empresa de la misma regla); una persona con Ventas en la tienda A y sin Ventas en la B no lee
   la B por la API. Los comprobantes sin empresa siguen la regla de la organización. Detalle en `docs/higiene-base-datos.md`.

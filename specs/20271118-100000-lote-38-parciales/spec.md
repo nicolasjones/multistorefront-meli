@@ -17,7 +17,7 @@ Completa nueve ítems que habían quedado parciales y cuyas decisiones ya están
 | 8 | DNI/CUIT en el servidor | Disparadores que validan al insertar o cuando cambia el campo (sin `CHECK`, para no bloquear datos viejos): cliente = DNI de 7 u 8 dígitos o CUIT de 11 con dígito verificador; empresa = CUIT con dígito verificador. NULL o vacío se permite. La importación rechaza la fila con su motivo. |
 | 9 | Seguridad de `dominio.empresas` | CUIT, correo y WhatsApp salen del `SELECT` de `authenticated` (grant por columna). Se leen por `public.empresa_datos` (sección `empresas`) y `public.empresa_contacto_documentos` (sección `empresas` o `service_tecnico`, sin CUIT). El selector de empresas, los filtros y las funciones `security definer` no cambian. |
 
-**Límites documentados.** (6) El costo borrado no se refleja como «sin costo» en la historia de costos (es de solo agregado). (9) La política de UPDATE de `dominio.empresas` sigue siendo la existente (`puede_escribir`); endurecerla por sección queda como seguimiento.
+**Límites documentados.** (6) El costo borrado no se refleja como «sin costo» en la historia de costos (es de solo agregado). (9) La política de UPDATE de `dominio.empresas` era la existente (`puede_escribir`); el seguimiento de endurecerla por sección se resolvió en el lote 42 (`20270507240000`: exige `nivel_seccion('empresas') = 'edicion'`).
 
 ## Matriz pantalla↔criterios
 

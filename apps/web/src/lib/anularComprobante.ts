@@ -25,32 +25,41 @@ export function validarMotivoAnulacion(motivo: string): string | null {
   return null
 }
 
-// Solo los mensajes que levanta nuestra RPC llegan en castellano y se muestran tal cual. Un 42501 de PostgREST
-// («permission denied for function …») también trae `message`, así que se filtra por prefijo conocido para no
-// exponer detalle técnico en inglés.
-const PREFIJOS_MENSAJE_DE_LA_RPC = [
-  'Necesitás una sesión con organización para anular',
-  'Tu rol no puede anular',
-  'Una nota de crédito no se anula',
-  'Un presupuesto no se anula',
-  'Escribí el motivo de la anulación',
-  'El motivo de la anulación',
-  'La factura está en borrador',
-  'La factura ya está cobrada',
-  'La factura ya tiene una nota de crédito',
-  'El motivo «',
-] as const
+// Solo los mensajes que levanta nuestra RPC `anular_comprobante` (migraciones 20261212120200 y 20270507180000) se traducen, y
+// SIEMPRE con un texto fijo de este catálogo (como `mensajeDeAceptarPresupuesto`): se compara el prefijo del mensaje del servidor
+// y se devuelve la constante, nunca `e.message`. Un 42501 de PostgREST («permission denied for function …») también trae `message`
+// en inglés: no coincide con ningún prefijo y cae al genérico.
+const MENSAJES_DE_LA_RPC: ReadonlyArray<readonly [prefijo: string, texto: string]> = [
+  ['Necesitás una sesión con organización para anular', 'Necesitás una sesión con organización para anular comprobantes'],
+  ['Tu rol no puede anular', 'Tu rol no puede anular comprobantes de esta tienda'],
+  ['Una nota de crédito no se anula', 'Una nota de crédito no se anula'],
+  ['Un presupuesto no se anula', 'Un presupuesto no se anula: solo las facturas confirmadas'],
+  ['Escribí el motivo de la anulación', MENSAJE_MOTIVO_OBLIGATORIO],
+  ['El motivo de la anulación', MENSAJE_MOTIVO_LARGO],
+  ['La factura está en borrador', 'La factura está en borrador: no movió stock, no hace falta anularla'],
+  ['La factura ya está cobrada', 'La factura ya está cobrada: corregila con una nota de crédito'],
+  // Guardas de 20270507180000 (#1136): factura con despacho entregado y factura con cobros registrados.
+  ['La factura ya fue entregada', 'La factura ya fue entregada: corregí con nota de crédito o RMA'],
+  ['La factura tiene cobros registrados', 'La factura tiene cobros registrados: revertí el cobro o corregila con una nota de crédito'],
+  ['La factura ya tiene una nota de crédito', 'La factura ya tiene una nota de crédito: corregila con otra nota de crédito'],
+  // El texto de la RPC nombra el motivo de stock (variable): se muestra uno fijo.
+  ['El motivo «', 'El motivo de movimiento de stock de la venta está inactivo o no aplica: activalo o corregilo en Motivos de movimiento'],
+]
 
-function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
+function textoDeLaRpc(error: ErrorDeBase): string | undefined {
   const mensaje = error?.message
-  return typeof mensaje === 'string' && PREFIJOS_MENSAJE_DE_LA_RPC.some((prefijo) => mensaje.startsWith(prefijo))
+  if (typeof mensaje !== 'string') return undefined
+  return MENSAJES_DE_LA_RPC.find(([prefijo]) => mensaje.startsWith(prefijo))?.[1]
 }
 
 export function mensajeDeAnulacion(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_ANULAR, error)
   if (e?.code === '40001') return MENSAJE_CONFLICTO_ANULAR
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
+  if (e?.code === '42501' || e?.code === '55000' || e?.code === '22023') {
+    const texto = textoDeLaRpc(e)
+    if (texto) return texto
+  }
   if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_ANULAR
 }

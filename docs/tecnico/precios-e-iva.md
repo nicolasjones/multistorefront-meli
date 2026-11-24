@@ -123,7 +123,7 @@ expuestas viven en `public` (superficie de lectura/ejecución, **no almacenan da
 4. **Precio visible**: `mostrar_con_iva ? final : neto`.
 5. **Margen**: `(neto − costo en pesos) / neto`, redondeado a 4 decimales. **Siempre sobre el neto**: el
    interruptor de IVA no lo cambia. El formulario de producto muestra el texto `Margen = (Precio − Costo) / Precio;
-   no incluye la comisión del canal.`: la comisión solo entra en el margen de Rentabilidad (`analitica.margen_producto_canal`).
+   no incluye la comisión del canal.`: la vista de Rentabilidad resta la comisión (`analitica.margen_producto_canal`, hoy con comisión 0).
 
 Ejemplo de verificación (E2E de cierre): lista USD 20, costo USD 12, dólar 1.465 → central $ 29.300,
 costo $ 17.580, margen 40 %; empresa con «Central con ajuste +10 %» → neto $ 32.230 y con 21 % de IVA

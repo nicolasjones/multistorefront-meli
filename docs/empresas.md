@@ -6,6 +6,8 @@ sources:
   - apps/web/src/pages/empresas/list.tsx
   - apps/web/src/pages/empresas/edit.tsx
   - apps/web/src/hooks/useResumenEmpresas.ts
+  - apps/web/src/hooks/usePuedeEditarEmpresas.ts
+  - supabase/migrations/20270507280000_registrar_actividad_empresa_por_seccion.sql
   - apps/web/src/lib/eventosActividad.ts
   - apps/web/src/lib/destinoActividad.ts
   - apps/web/src/lib/whatsapp.ts
@@ -52,7 +54,8 @@ Políticas (migración `20261013120000`):
 
 - `empresas_select`: `for select to authenticated` con `organizacion_id = private.organizacion_id()`.
 - `empresas_update`: `for update to authenticated` con `organizacion_id = private.organizacion_id()
-  and private.puede_escribir()`, en `using` y `with check`.
+  and private.puede_escribir()`, en `using` y `with check` (en origen). **Vigente desde `20270507240000` (lote 42):** exige
+  `private.nivel_seccion('empresas') = 'edicion'` en lugar de `puede_escribir()`; el filtro por organización se conserva.
 - **Sin política INSERT/DELETE**: el alta es solo por la RPC `public.crear_empresa` (ver «Alta de empresas»); borrar no está en la spec.
 - Grants: `usage` de `dominio` y `select` a `authenticated`; `update` **solo** sobre las columnas
   editables (`nombre`, `whatsapp`, `correo`, `instagram`, `direccion`, `activa`) — `id`,
@@ -77,14 +80,20 @@ Políticas (migración `20261013120000`):
 
 ### Avisos de acceso (MSF-639)
 
-- `/empresas` (listado) y `/organizacion`: quien llega sin permiso de escritura ve la pantalla común de acceso
+- `/empresas` (listado) y `/organizacion`: quien llega sin la sección Empresas en edición (`/organizacion`: sin permiso de escritura) ve la pantalla común de acceso
   restringido (`pages/acceso-restringido/AccesoRestringido.tsx`): encabezado «No tenés acceso a esta sección» y el
   motivo «Tu rol (…) no incluye Empresas / Mi organización. Pedile acceso a un administrador.» — el mismo patrón que
   Rentabilidad, Listas y Motivos de movimiento. No se consulta ni se muestra ningún dato de la sección.
-- `/empresas/edit/:id`: quien no puede escribir ve la pantalla con el formulario deshabilitado y un aviso
-  **informativo** «Solo lectura: únicamente los administradores pueden editar los datos de la empresa.» (tono info,
+- `/empresas/edit/:id`: quien no tiene la sección Empresas en edición ve la pantalla con el formulario deshabilitado y un aviso
+  **informativo** «Solo lectura: necesitás la sección Empresas en edición para modificar los datos de la empresa.» (tono info,
   `role="note"`, como el bloque `al i` del prototipo y el criterio de `DetalleConsulta`), no un error rojo.
-- No cambia el permiso: `usePuedeEscribir()` (espejo de `private.puede_escribir()`) y las políticas de RLS siguen
+- Criterio de la pantalla (lote 44): el listado y la edición se gatean por `usePuedeEditarEmpresas()` (nivel de la sección `empresas` igual a
+  `edicion`, el mismo criterio de la política `empresas_update`), así que un rol personalizado con Empresas en edición puede guardar; el botón «Nueva empresa»
+  sigue a `usePuedeEscribir()` porque la RPC de alta exige `private.puede_escribir()`.
+- La Actividad sigue la misma regla (lote 44, `20270507280000`): `public.registrar_actividad` acepta `puede_escribir()` o la sección Empresas en
+  edición. El frontend la registra como mejor esfuerzo (`emitirEventoActividad` atrapa el error y deja un `console.warn`), por eso antes un rol
+  personalizado pausaba la tienda y el evento se perdía en silencio; el pgTAP `lote44_registrar_actividad_por_seccion` lo fija.
+- No cambia el permiso: las políticas de RLS siguen
   siendo la autoridad; solo cambia la presentación del aviso. E2E: `apps/web/e2e/avisos-acceso.e2e.ts`.
 ## Gestión de la tienda (MSF-147)
 
@@ -220,4 +229,4 @@ Límite conocido: las lecturas de tiendas y precios usan `.in('empresa_id', ids)
 
 ## Datos sensibles de la empresa (lote 38)
 
-El CUIT, el correo y el WhatsApp de `dominio.empresas` ya no se pueden leer de la tabla con el rol de la aplicación (privilegio `SELECT` por columna): el selector de empresas y los filtros siguen funcionando con las columnas básicas. La pantalla **Empresas** lee la ficha completa con `public.empresa_datos` (exige la sección `empresas` en lectura o edición) y los documentos de una reparación leen dirección, WhatsApp y correo de la tienda con `public.empresa_contacto_documentos` (sección `empresas` o `service_tecnico`; sin CUIT). El CUIT de una empresa se valida en el servidor con su dígito verificador al cargarlo o cambiarlo. Pendiente: endurecer por sección la política de escritura (`puede_escribir`).
+El CUIT, el correo y el WhatsApp de `dominio.empresas` ya no se pueden leer de la tabla con el rol de la aplicación (privilegio `SELECT` por columna): el selector de empresas y los filtros siguen funcionando con las columnas básicas. La pantalla **Empresas** lee la ficha completa con `public.empresa_datos` (exige la sección `empresas` en lectura o edición) y los documentos de una reparación leen dirección, WhatsApp y correo de la tienda con `public.empresa_contacto_documentos` (sección `empresas` o `service_tecnico`; sin CUIT). El CUIT de una empresa se valida en el servidor con su dígito verificador al cargarlo o cambiarlo. La política de escritura (`empresas_update`) ya se endureció por sección: desde `20270507240000` exige `private.nivel_seccion('empresas') = 'edicion'` en vez de `puede_escribir()`.
