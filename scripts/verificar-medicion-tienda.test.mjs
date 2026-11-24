@@ -19,7 +19,7 @@ const seccionConCifras = `
 
 Medición de \`publico.catalogo_pagina_por_dominio\` con 500 productos sembrados en Postgres local (seed).
 Cifras del workflow \`medir-tienda\` (artifact con el reporte).
-Línea base del job \`medir\`: 22.000 ms.
+Línea base del job \`medir\`: 14.000 ms.
 `;
 
 describe('sección «Rendimiento en celular» de la guía', () => {

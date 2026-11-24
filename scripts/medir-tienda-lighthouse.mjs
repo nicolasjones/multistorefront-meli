@@ -38,7 +38,7 @@ export const OBJETIVO_LCP_MS = 3000;
 // regresión del front (la degradación conocida ya está por encima del objetivo, no de la línea base).
 // La guía (`docs/tiendas-online.md`, «Rendimiento en celular») declara este mismo número y el test compara
 // los dos: si cambia uno sin el otro, la guía miente.
-export const LCP_BASE_MS = 22000;
+export const LCP_BASE_MS = 14000;
 
 const rutaPorDefecto = (archivo) => path.resolve(import.meta.dirname, '..', archivo);
 

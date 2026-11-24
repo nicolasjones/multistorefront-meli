@@ -103,10 +103,10 @@ describe('resumen de las corridas', () => {
     assert.match(resumenMarkdown(resumen), /Sin medir/);
   });
 
-  it('no cumplir el objetivo hace fallar la medición (el job no queda verde con el LCP 6× arriba)', () => {
+  it('no cumplir el objetivo hace fallar la medición (el job no queda verde con el LCP por encima del objetivo)', () => {
     const url = 'http://mundojc.localhost:4300/catalogo';
-    // La degradación conocida (18.511 ms): no cumple el objetivo, pero está dentro de la línea base.
-    const conocido = resumirReportes([reporte(url, 18511)]);
+    // Un LCP por encima del objetivo pero dentro de la línea base: no cumple, y no es una regresión.
+    const conocido = resumirReportes([reporte(url, LCP_BASE_MS - 1000)]);
     assert.equal(conocido.cumple, false);
     assert.equal(conocido.regresion, false);
     assert.match(motivoDeFallo(conocido), /objetivo/);

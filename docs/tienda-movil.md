@@ -35,25 +35,22 @@ La comprobación móvil de Contacto queda como verificación pendiente de esa é
 Hecho: menú y panel móviles con carga diferida, `loading="lazy"` en tarjetas y miniaturas (la imagen principal de la
 ficha no, es el LCP), sin pedidos extra por pantalla.
 
-**LCP: el catálogo y la ficha ya están medidos (MSF-552); la home sigue pendiente (MSF-560).** Medición del
-17/11/2026 en el CI: stack local de Supabase con el seed y 500 productos por tienda, Lighthouse 13.6 en perfil
-móvil (390×844, CPU ×4, «4G lento», `throttlingMethod: devtools`), 3 corridas por ruta, objetivo LCP < 3 s.
+**LCP: el catálogo y la ficha están medidos y NO cumplen el objetivo; la home sigue sin medir.** Medición del
+24/11/2026 en el CI (job `medir` del nightly, run `45476405495`): stack local de Supabase con el seed y 500
+productos por tienda, Lighthouse 13.6 en perfil móvil (390×844, CPU ×4, «4G lento», `throttlingMethod: devtools`),
+3 corridas por ruta, objetivo LCP < 3 s.
 
 | Pantalla | LCP (mediana) | Nota |
 |---|---|---|
-| Home | pendiente (MSF-560) | La home no entra en la medición de MSF-552 |
-| Catálogo | 18.511 ms (Mundo JC) · 18.206 ms (San Javucho) | No cumple el objetivo de 3 s |
-| Ficha | 17.783 ms (Mundo JC) · 17.378 ms (San Javucho) | No cumple el objetivo de 3 s |
+| Home | sin medir | No entra en la medición del job `medir` |
+| Catálogo | 10.866 ms (Mundo JC) · 10.903 ms (San Javucho) | No cumple el objetivo de 3 s |
+| Ficha | 10.503 ms (Mundo JC) · 10.500 ms (San Javucho) | No cumple el objetivo de 3 s |
 
-El detalle (cifras por corrida, FCP, CLS, TBT, entorno y fuente) está en
-[Rendimiento en celular (T071, SC-010)](./tiendas-online.md#rendimiento-en-celular-t071-sc-010). La causa medida
-no es la base: el servidor responde en menos de 50 ms y el tiempo se va en descargar y ejecutar el JavaScript,
-porque la primera carga pide 126 scripts en el catálogo (132 en la ficha) y el *entry* del front es el bundle
-del panel (la tienda pública y el panel se importan en el mismo *entry*, en `apps/web/src/main.tsx`). Corregirlo
-es un cambio de front con su propia spec.
-
-MSF-560 mide lo mismo sobre la demo (con el catálogo real); si sus valores difieren, la diferencia es el
-entorno (demo con 2.204 productos por tienda contra el stack del CI con 500), no el objetivo.
+Antes de cargar el panel de forma diferida el LCP era de 15,6 a 16,0 s (run `45474509678`). El detalle (cifras
+por ruta, FCP, CLS, TBT, entorno y fuente) está en
+[Rendimiento en celular (T071, SC-010)](./tiendas-online.md#rendimiento-en-celular-t071-sc-010). La causa no es la
+base: el servidor responde en 8 ms y el tiempo se va en descargar y ejecutar JavaScript. Bajar el resto es un
+cambio de front que necesita su propia medición.
 
 ## Notas de contradicciones para el PR
 
