@@ -48,10 +48,11 @@ function montar(url = '/') {
 }
 
 // Fecha fija (solo Date): el año del pie no cambia a mitad de una corrida en Nochevieja.
-const anioActual = 2026
+const FECHA_FIJA = new Date('2026-11-23T12:00:00Z')
+const anioActual = FECHA_FIJA.getFullYear()
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))
+  vi.setSystemTime(FECHA_FIJA)
   vi.clearAllMocks()
   mocks.identidad.mockResolvedValue(IDENTIDAD)
   mocks.contenido.mockResolvedValue({ ...CONTENIDO_VACIO, eslogan: 'Accesorios y repuestos para tu consola.' })

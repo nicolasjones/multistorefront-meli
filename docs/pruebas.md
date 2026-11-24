@@ -154,14 +154,6 @@ No se duplican: versiones de migración menores o iguales a la máxima de la bas
 
 El test de contrato del ranking de clientes (`rankingClientes.contrato.test.ts`) ubica la migración por patrón de nombre y no por versión fija, así que renumerar la migración no lo rompe.
 
-## Cliente de Supabase simulado en los tests de la web
-
-`apps/web/src/test/supabaseSimulado.ts` (`clienteSupabaseSimulado`) implementa `.schema(nombre)`, `from`/`rpc` y
-`storage.from().createSignedUrls`. Los mocks que declaran `supabaseClient: {}` o esparcen el cliente real (`{ ...actual.supabaseClient }`,
-que pierde `schema` por ser método del prototipo) hacían caer a `imagenesPrincipales` y a Inicio en «cliente.schema is not a function»: el
-error se atrapa y el test pasaba por el camino del `catch`, no por el feliz. Usalo (`tablas`, `rpc`, `firmadas`) en los mocks nuevos; su test
-cubre el camino feliz de las imágenes principales. Límite: solo aplica `eq`, `in`, `order` y `limit`; el resto de los métodos se acepta y se ignora, así que no sirve para probar filtrado complejo; `createSignedUrls` devuelve una entrada por ruta (con `error` si la ruta no está declarada en `firmadas`). Corregidos: `busqueda-global`, `AgregarProductoDialog` y `feature-ml`.
-
 ## Tests con fecha relativa: se fija `Date`
 
 Un test que arma fechas «hace 1 hora», «dentro de 3 días» o compara con el año actual no usa el reloj real: en `beforeEach` llama a
@@ -169,6 +161,14 @@ Un test que arma fechas «hace 1 hora», «dentro de 3 días» o compara con el 
 Se simula **solo** `Date` (no `setTimeout`) para no frenar `findBy*`/`waitFor`. Así el resultado no depende de la hora de corrida ni de
 la medianoche o Nochevieja. Aplicado en `vencimientoSesion`, `InvitacionesPendientes`, `alertas-demora` y el pie de `tiendaDiseno`. Los tests que miden
 una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no una fecha.
+
+## Cliente de Supabase simulado en los tests de la web
+
+`apps/web/src/test/supabaseSimulado.ts` (`clienteSupabaseSimulado`) implementa `.schema(nombre)`, `from`/`rpc` y
+`storage.from().createSignedUrls`. Los mocks que declaran `supabaseClient: {}` o esparcen el cliente real (`{ ...actual.supabaseClient }`,
+que pierde `schema` por ser método del prototipo) hacían caer a `imagenesPrincipales` y a Inicio en «cliente.schema is not a function»: el
+error se atrapa y el test pasaba por el camino del `catch`, no por el feliz. Usalo (`tablas`, `rpc`, `firmadas`) en los mocks nuevos; su test
+cubre el camino feliz de las imágenes principales. Límite: solo aplica `eq`, `in`, `order` y `limit`; el resto de los métodos se acepta y se ignora, así que no sirve para probar filtrado complejo; `createSignedUrls` devuelve una entrada por ruta (con `error` si la ruta no está declarada en `firmadas`). Corregidos: `busqueda-global`, `AgregarProductoDialog` y `feature-ml`.
 
 ### Versiones de migración y la fecha del calendario (MSF-589)
 
