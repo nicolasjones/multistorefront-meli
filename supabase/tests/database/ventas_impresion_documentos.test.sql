@@ -29,7 +29,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id, estado) val
   ('f2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'administrador', 'activo');
 
 insert into dominio.empresas (id, organizacion_id, nombre, razon_social, cuit, direccion) values
-  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho', 'San Javucho SRL', '30712345678', 'Calle 1 123'),
+  ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'San Javucho', 'San Javucho SRL', '30712345671', 'Calle 1 123'),
   ('a1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Mundo JC', null, null, null),
   ('a2000000-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'Empresa Dos', null, null, null);
 
@@ -115,11 +115,11 @@ select throws_ok(
   '23514', null, 'el CUIT de la empresa exige 11 dígitos'
 );
 select throws_ok(
-  $$ update dominio.empresas set cuit = '30-71234567-8' where id = 'a1000000-0000-0000-0000-000000000002' $$,
+  $$ update dominio.empresas set cuit = '30-71234567-1' where id = 'a1000000-0000-0000-0000-000000000002' $$,
   '23514', null, 'el CUIT de la empresa se guarda sin guiones'
 );
 select lives_ok(
-  $$ update dominio.empresas set cuit = '30712345678', razon_social = 'Mundo JC SA' where id = 'a1000000-0000-0000-0000-000000000002' $$,
+  $$ update dominio.empresas set cuit = '30712345671', razon_social = 'Mundo JC SA' where id = 'a1000000-0000-0000-0000-000000000002' $$,
   'un CUIT de 11 dígitos y una razón social válidos se guardan'
 );
 select is(
@@ -379,7 +379,7 @@ select is(
 );
 select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'empresa'->>'cuit'),
-  '30712345678', 'el worker lee el CUIT de la ficha'
+  '30712345671', 'el worker lee el CUIT de la ficha'
 );
 select is(
   (select private.datos_documento_comprobante(pg_temp.id_doc('f1'))->'cliente'->>'condicion_iva'),

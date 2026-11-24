@@ -25,6 +25,9 @@ export type Cobro = {
   conciliado: boolean
   aprobado_por: string | null
   registrado_por: string | null
+  // MSF-667: «revertido» = el cobro tiene un contra-asiento; «reversion» = es el contra-asiento; null = cobro normal.
+  estado_reversion: 'revertido' | 'reversion' | null
+  motivo_reversion: string | null
 }
 
 // Fila que devuelve `public.registrar_cobro`: la del libro de cobros (`dominio.cobros_comprobante`).
@@ -184,6 +187,40 @@ export async function cobrosDeComprobante(comprobanteId: string): Promise<Cobro[
   if (error) throw error
   const filas = (data ?? []) as Array<Omit<Cobro, 'importe'> & { importe: number | string }>
   return filas.map((fila) => ({ ...fila, importe: Number(fila.importe) }))
+}
+
+export const LARGO_MAXIMO_MOTIVO_REVERSION = 300
+export const MENSAJE_MOTIVO_REVERSION = 'Escribí el motivo de la reversión.'
+
+// ¿Se puede ofrecer «Revertir» sobre este cobro? Solo el libro normal: ni el contra-asiento, ni un cobro ya revertido, ni
+// el de un contrarreembolso (se corrige desde el contrarreembolso), ni uno conciliado contra el banco (primero se
+// revierte la conciliación). La base es la autoridad: rechaza lo mismo aunque la pantalla lo ofreciera.
+export function cobroRevertible(cobro: Cobro): boolean {
+  return cobro.origen === 'manual' && cobro.estado_reversion === null && !cobro.conciliado
+}
+
+// Motivo validado como la base: obligatorio, recortado y de hasta 300 caracteres. Devuelve el error o null.
+export function validarMotivoReversion(motivo: string): string | null {
+  const limpio = motivo.trim()
+  if (limpio === '') return MENSAJE_MOTIVO_REVERSION
+  if (limpio.length > LARGO_MAXIMO_MOTIVO_REVERSION) return `El motivo admite hasta ${LARGO_MAXIMO_MOTIVO_REVERSION} caracteres.`
+  return null
+}
+
+// `public.revertir_cobro`: contra-asiento auditado (solo administrador, motivo obligatorio). Devuelve el id del contra-asiento.
+export async function revertirCobro(cobroId: string, motivo: string): Promise<string> {
+  const { data, error } = await supabaseClient.rpc('revertir_cobro', { p_cobro_id: cobroId, p_motivo: motivo.trim() })
+  if (error) throw error
+  return data as string
+}
+
+export function mensajeDeErrorReversion(error: unknown, porDefecto: string): string {
+  const e = error as ErrorDeBase
+  if (e?.code === '42501') return 'Solo el administrador puede revertir un cobro. Puede que tu rol haya cambiado: recargá la página.'
+  if (e?.code === 'P0002') return 'Ese cobro ya no existe o no pertenece a tu organización. Recargá la lista.'
+  // 22023 (dato inválido) y 55000 (estado no válido: ya revertido, conciliado, contrarreembolso, factura anulada) ya vienen en castellano.
+  if ((e?.code === '22023' || e?.code === '55000') && e.message) return e.message
+  return porDefecto
 }
 
 export async function saldoComprobante(comprobanteId: string): Promise<SaldoComprobante> {

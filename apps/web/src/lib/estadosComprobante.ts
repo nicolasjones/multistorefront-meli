@@ -58,6 +58,24 @@ export function definicionEstado(estado: string): DefinicionEstado {
     : { etiqueta: estado, tono: 'neutral', ayuda: '' }
 }
 
+const ESTADO_VENCIDO: DefinicionEstado = { etiqueta: 'Vencido', tono: 'aviso', ayuda: 'El presupuesto pasó su fecha de validez: ya no se puede aceptar.' }
+
+// Hoy en Buenos Aires (aaaa-mm-dd): la misma zona con la que la base deriva «vencido» en el listado de presupuestos.
+export function hoyEnArgentina(ahora: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora)
+}
+
+// Estado que se MUESTRA en el detalle: un presupuesto «pendiente» con fecha de validez pasada figura «Vencido», igual que
+// en el listado (`listar_presupuestos` lo deriva; `obtener_comprobante` devuelve el estado crudo).
+export function definicionEstadoMostrado(
+  comprobante: { tipo: string; estado: string; valido_hasta?: string | null },
+  hoy: string = hoyEnArgentina(),
+): DefinicionEstado {
+  const vencido = comprobante.tipo === 'presupuesto' && comprobante.estado === 'pendiente'
+    && Boolean(comprobante.valido_hasta) && (comprobante.valido_hasta as string).slice(0, 10) < hoy
+  return vencido ? ESTADO_VENCIDO : definicionEstado(comprobante.estado)
+}
+
 export const etiquetaEstadoComprobante = (estado: string): string => definicionEstado(estado).etiqueta
 
 export const MOTIVO_ESTADO_DE_COBRO = 'Se actualiza solo con el cobro del comprobante.'

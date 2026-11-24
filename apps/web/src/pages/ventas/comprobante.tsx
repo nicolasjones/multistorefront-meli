@@ -61,6 +61,7 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
 import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { CobrosComprobante } from '../../components/ventas/CobrosComprobante'
 import {
   cobrosDeComprobante,
@@ -95,6 +96,7 @@ import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ven
 import {
   cambiarEstadoComprobante,
   definicionEstado,
+  definicionEstadoMostrado,
   esConflictoDeEstado,
   mensajeDeCambioEstado,
   transicionesPermitidas,
@@ -185,6 +187,8 @@ export function ComprobanteVenta() {
   const [cargandoCobros, setCargandoCobros] = useState(true)
   const [errorCobros, setErrorCobros] = useState<string | null>(null)
   const [puedeCobrar, setPuedeCobrar] = useState(false)
+  // «Revertir cobro» (MSF-667): solo el administrador ve el botón; la base lo exige igual.
+  const { esAdministrador } = useEsAdministrador()
   const [dialogoCobro, setDialogoCobro] = useState(false)
   const [permitidos, setPermitidos] = useState<string[]>([])
   // El comprobante se está releyendo después de un cobro (MSF-715): mientras tanto las acciones que
@@ -691,7 +695,7 @@ export function ComprobanteVenta() {
     : formulario.tipo === 'presupuesto'
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
-  const estado = comprobante ? definicionEstado(comprobante.estado) : null
+  const estado = comprobante ? definicionEstadoMostrado(comprobante) : null
   // Origen (F-SVC-13, FR-007): «Reparación R-000N» con enlace al detalle de Service solo con acceso a esa sección.
   const origenNumero = comprobante?.origen_tipo === 'reparacion' ? comprobante.origen_numero : null
   const enlaceOrigen = nivelService === 'lectura' || nivelService === 'edicion'
@@ -1021,6 +1025,8 @@ export function ComprobanteVenta() {
               cargando={cargandoCobros}
               error={errorCobros}
               puedeRegistrarCobro={puedeCobrar && admiteCobros}
+              puedeRevertirCobro={esAdministrador && admiteCobros}
+              empresaActivaId={empresaActivaId}
               dialogoAbierto={dialogoCobro}
               onAbrirDialogo={() => setDialogoCobro(true)}
               onCerrarDialogo={() => setDialogoCobro(false)}
