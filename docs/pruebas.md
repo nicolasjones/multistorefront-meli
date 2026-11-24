@@ -106,7 +106,7 @@ Además de **`lint`** y **`docs:check`** (siempre), según los archivos tocados:
   dependency-cruiser, syncpack, commitlint). `pnpm calidad:code` omite los que usan Docker.
 - En CI corre el workflow **`quality`**: falla ante hallazgos pero **no bloquea el merge** (el ruleset 25358575, que aplica a `dokploy`,
   exige solo `validacion`, verificado con `gh api repos/{owner}/{repo}/rulesets/25358575`; no hay `continue-on-error`). Ver `docs/calidad.md`.
-- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`).
+- El reporte queda en `reports/calidad.md` y la salida completa en `reports/calidad.log` (artifact `calidad-reporte`). Los dos son generados y no se versionan: el estado vigente es el del artifact del CI o el del `pnpm calidad` del momento.
 - **Baseline**: `knip` corre con `ignoreExportsUsedInFile`; `syncpack` ignora los paquetes locales
   `@platform/*` y `@types/node`; el **SAST** usa **oxlint** con reglas de seguridad (`no-eval`,
   `no-new-func`, `no-implied-eval`, `no-script-url`), sin depender de docker ni PyPI.
