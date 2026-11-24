@@ -48,7 +48,9 @@ security invoker
 set search_path = ''
 as $$
   -- Se pagina primero y recién después se cruza con productos, motivos, depósitos y comprobantes: el cruce
-  -- del número corre solo para las filas de la página, no para todo el libro de la organización.
+  -- del número corre solo para las filas de la página, no para todo el libro de la organización. El comprobante se
+  -- busca con una subconsulta por fila de la página (clave primaria): con un join común el planificador, bajo RLS,
+  -- recorría entera la tabla de comprobantes.
   with pagina as (
     select m.*, count(*) over () as total_filas
     from dominio.movimientos_stock m
@@ -93,8 +95,13 @@ as $$
     select
       (regexp_match(m.nota, '(?:^|[^a-zA-Z0-9_])comprobante:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})', 'i'))[1]::uuid as comprobante_id
   ) ref on true
-  left join dominio.comprobantes_venta cv
-    on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id
+  left join lateral (
+    select
+      ref.comprobante_id as id,
+      (select c.numero
+         from dominio.comprobantes_venta c
+        where c.id = ref.comprobante_id and c.organizacion_id = m.organizacion_id) as numero
+  ) cv on true
   order by m.creado_en desc, m.id desc;
 $$;
 
