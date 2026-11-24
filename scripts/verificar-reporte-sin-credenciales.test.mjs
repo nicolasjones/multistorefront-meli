@@ -3,11 +3,12 @@
 // de abajo son los del run 45480028805 del job `medir`.
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import { ARCHIVOS_DEL_ARTEFACTO, MAX_BYTES, motivos, revisar } from './verificar-reporte-sin-credenciales.mjs';
+import { rutasDeMedicion, TIENDAS, VISTAS } from './medir-tienda-lighthouse.mjs';
+import { ARCHIVOS_DEL_ARTEFACTO, ETIQUETAS_VALIDAS, HOSTS_VALIDOS, MAX_BYTES, MODOS_RPC, motivos, revisar } from './verificar-reporte-sin-credenciales.mjs';
 
 const raiz = path.resolve(import.meta.dirname, '..');
 const script = path.join(import.meta.dirname, 'verificar-reporte-sin-credenciales.mjs');
@@ -136,5 +137,79 @@ describe('lista negra (segunda barrera)', () => {
     const h = revisarUno('rpc-catalogo.txt', `${REAL_TXT}${JWT}\n`);
     assert.equal(h.length, 1);
     assert.match(h[0], /JWT/);
+  });
+});
+
+describe('ronda final: clases de evasión cerradas', () => {
+  it('(1) decodifica en bucle: la doble y triple codificación también se detecta', () => {
+    assert.ok(motivos('%2565yJhbGciOiJIUzI1NiJ9.AAAA').length > 0);
+    assert.ok(motivos('%252565yJhbGciOiJIUzI1NiJ9.AAAA').length > 0);
+    assert.ok(motivos('token%253Dabcdefghijklmnopqrstu').length > 0);
+  });
+
+  it('(2) resumen.json: un JWT escapado dentro de un valor o de una clave se detecta', () => {
+    const j = JSON.parse(REAL_JSON);
+    const escapado = '\\u0065yJhbGciOiJIUzI1NiJ9.AAAA';
+    const enValor = REAL_JSON.replace('"Mundo JC · catálogo"', `"${escapado}"`);
+    assert.ok(!enValor.includes('eyJhbG'), 'el texto crudo no lo muestra');
+    const h = revisarUno('resumen.json', enValor);
+    assert.equal(h.length, 1);
+    assert.match(h[0], /JWT/);
+    const enClave = JSON.stringify({ ...j, [JSON.parse(`"${escapado}"`)]: 1 });
+    assert.match(revisarUno('resumen.json', enClave)[0], /JWT|claves/);
+  });
+
+  it('(3) archivos vacíos o sin el contenido mínimo fallan', () => {
+    assert.equal(revisarUno('resumen.md', '').length, 1);
+    assert.equal(revisarUno('resumen.md', '\n\n\n').length, 1);
+    assert.equal(revisarUno('rpc-catalogo.txt', '').length, 1);
+    assert.equal(revisarUno('rpc-catalogo.txt', '\n\n').length, 1);
+    assert.equal(revisarUno('resumen.json', '').length, 1);
+    assert.equal(revisarUno('resumen.md', 'Objetivo: x\n').length > 0, true);
+  });
+
+  it('(4) texto libre no cabe: un fragmento sólo de letras falla en etiquetas, hosts y modos', () => {
+    const libre = 'ZXlKaGJHYlPaUpJ';
+    assert.equal(revisarUno('resumen.md', REAL_MD.replace('Mundo JC · catálogo', `Mundo JC · ${libre}`)).length, 1);
+    assert.equal(revisarUno('resumen.md', REAL_MD.replace('mundojc.localhost', `${libre}.localhost`)).length, 1);
+    assert.equal(revisarUno('rpc-catalogo.txt', REAL_TXT.replace('catalogo relevancia', `catalogo ${libre}`)).length, 1);
+    const j = JSON.parse(REAL_JSON);
+    j.filas[0].etiqueta = `Mundo JC · ${libre}`;
+    assert.equal(revisarUno('resumen.json', JSON.stringify(j)).length, 1);
+  });
+
+  it('(4) las listas cerradas coinciden con sus generadores', () => {
+    const rutas = rutasDeMedicion({ puerto: 4312, productosPorTienda: Object.fromEntries(TIENDAS.map((t) => [t.host, '00000000-0000-4000-8000-000000000000'])) });
+    assert.deepEqual(rutas.map((r) => r.etiqueta).sort(), [...ETIQUETAS_VALIDAS].sort());
+    assert.deepEqual(HOSTS_VALIDOS, TIENDAS.map((t) => t.host));
+    assert.equal(ETIQUETAS_VALIDAS.length, TIENDAS.length * VISTAS.length);
+    const sql = readFileSync(path.join(raiz, 'scripts', 'medir-tienda-catalogo.sql'), 'utf8');
+    const modos = sql.match(/foreach modo in array array\[([^\]]+)\]/)[1].split(',').map((m) => m.trim().replaceAll("'", ''));
+    assert.deepEqual(modos, MODOS_RPC);
+  });
+
+  it('(5) un enlace simbólico no se sigue: es un hallazgo aunque apunte a un archivo válido', () => {
+    const { rutas, dir } = carpeta({ 'real.md': REAL_MD });
+    const enlace = path.join(dir, 'resumen.md');
+    symlinkSync(rutas['real.md'], enlace);
+    const h = revisar([enlace]);
+    assert.equal(h.length, 1);
+    assert.match(h[0], /no es un archivo regular/);
+  });
+
+  it('(6) cada hallazgo de formato dice qué constante actualizar, sin imprimir el contenido', () => {
+    const casos = [['resumen.md', `${REAL_MD}${JWT}\n`, /LINEAS_MD.*ETIQUETAS_VALIDAS.*HOSTS_VALIDOS/], ['rpc-catalogo.txt', `${REAL_TXT}x\n`, /LINEAS_TXT.*MODOS_RPC/], ['resumen.json', 'x', /CLAVES_RAIZ.*CLAVES_FILA/]];
+    for (const [nombre, contenido, constantes] of casos) {
+      const [h] = revisarUno(nombre, contenido);
+      assert.match(h, /Si el generador cambió legítimamente, actualizá/);
+      assert.match(h, constantes);
+      assert.ok(!h.includes(JWT));
+    }
+  });
+
+  it('(7) un nombre de archivo no esperado falla cerrado aunque el contenido sea válido', () => {
+    assert.match(revisarUno('z.log', REAL_TXT)[0], /nombre de archivo no esperado/);
+    assert.match(revisarUno('resumen.txt', REAL_TXT)[0], /nombre de archivo no esperado/);
+    assert.match(revisarUno('resumen.md.bak', REAL_MD)[0], /nombre de archivo no esperado/);
   });
 });

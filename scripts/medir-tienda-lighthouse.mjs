@@ -30,6 +30,10 @@ export const TIENDAS = [
   { host: 'sanjavucho.localhost', nombre: 'San Javucho' },
 ];
 
+// Las vistas que se miden de cada tienda (en la etiqueta de cada ruta). La guarda
+// `verificar-reporte-sin-credenciales.mjs` valida el resumen contra estas constantes.
+export const VISTAS = ['catálogo', 'ficha'];
+
 // Objetivo de LCP en celular de `docs/tienda-movil.md` («4G lento», CPU ×4): por debajo de 3 s.
 export const OBJETIVO_LCP_MS = 3000;
 
@@ -49,8 +53,8 @@ export function rutasDeMedicion({ puerto, productosPorTienda }) {
     if (!producto) throw new Error(`No se resolvió el producto visible de la tienda ${tienda.host}.`);
     const base = `http://${tienda.host}:${puerto}`;
     return [
-      { etiqueta: `${tienda.nombre} · catálogo`, tienda: tienda.nombre, ruta: '/catalogo', url: `${base}/catalogo` },
-      { etiqueta: `${tienda.nombre} · ficha`, tienda: tienda.nombre, ruta: '/producto/:id', url: `${base}/producto/${producto}` },
+      { etiqueta: `${tienda.nombre} · ${VISTAS[0]}`, tienda: tienda.nombre, ruta: '/catalogo', url: `${base}/catalogo` },
+      { etiqueta: `${tienda.nombre} · ${VISTAS[1]}`, tienda: tienda.nombre, ruta: '/producto/:id', url: `${base}/producto/${producto}` },
     ];
   });
 }
