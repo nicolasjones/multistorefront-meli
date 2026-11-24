@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, Stack, Tooltip, Typography } from '@mui/material'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
 import { useEmpresasAccesibles } from '../../hooks/useEmpresasAccesibles'
@@ -62,7 +62,7 @@ export function PromocionesList() {
   const [anulando, setAnulando] = useState<Promocion | null>(null)
   const ultimaPeticion = useRef(0)
   const dialogoAbierto = useRef(false)
-  useEffect(() => {
+  useLayoutEffect(() => {
     dialogoAbierto.current = edicion !== null || anulando !== null
   }, [edicion, anulando])
 

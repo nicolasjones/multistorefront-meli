@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   type BaseRegla,
   type FilaPrevia,
@@ -20,7 +20,7 @@ export function usePreciosEmpresa(empresaId: string | undefined) {
   const [hayError, setHayError] = useState(false)
   const ultimaPeticion = useRef(0)
   const empresaVigente = useRef(empresaId)
-  useEffect(() => {
+  useLayoutEffect(() => {
     empresaVigente.current = empresaId
   }, [empresaId])
   const esVigente = useCallback((id: string) => empresaVigente.current === id, [])

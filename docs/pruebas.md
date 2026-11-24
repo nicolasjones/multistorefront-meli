@@ -162,6 +162,28 @@ Se simula **solo** `Date` (no `setTimeout`) para no frenar `findBy*`/`waitFor`. 
 la medianoche o Nochevieja. Aplicado en `vencimientoSesion`, `InvitacionesPendientes`, `alertas-demora` y el pie de `tiendaDiseno`. Los tests que miden
 una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no una fecha.
 
+## Esperas asincrónicas y «Cargar más»: piso de 5 s y refs en `useLayoutEffect`
+
+**Piso de espera.** `apps/web/src/test/setup.ts` fija `configure({ asyncUtilTimeout: 5000 })` para `findBy*`/`waitFor` de Testing Library y envuelve
+`vi.waitFor` (que en vitest tiene su propio default de 1 s y al que `configure` no llega) con `conPisoDeEspera` (`test/pisoEspera.ts`):
+`timeout: propias.timeout ?? 5000`. Un `timeout` propio (número u objeto) se respeta, y un `{ timeout: undefined }` explícito **no** vuelve al 1 s
+(lo cubre `pisoEspera.test.ts`). Ningún test pasa a esperar más cuando anda bien; solo tardan en fallar los que fallan de verdad. Un `timeout` propio
+menor de 5 s en un test no tiene sentido (es más corto que el piso): se sube a 5000 o se justifica en un comentario del propio test. Al restaurar un
+`configure` temporal (`show.reparaciones.test.tsx`) se vuelve a 5000, no al 1000 de Testing Library.
+
+**Causa raíz del flake de «Cargar más».** Con el piso de 5 s el test de `OpinionesProducto` («Cargar más» suma la tanda siguiente con el cursor)
+seguía fallando 2 de cada 19 corridas bajo carga: no era la espera, era un click perdido. `useListadoPorCursor` y `useCatalogoPublico` guardaban en
+una ref (`ultimo`, `funciones`) el último estado y `cargarMas` la leía desde el click, pero la ref se sincronizaba en un `useEffect` **pasivo**:
+si el click llegaba justo tras el primer render con datos y antes de que corriera el efecto, `cargarMas` veía `null` y salía sin hacer nada (le
+podía pasar igual a un usuario rápido).
+
+**Regla:** una ref que se lee desde un handler (click, callback de una promesa, observer) y se mantiene al día con el último valor se sincroniza
+en `useLayoutEffect` (corre dentro del commit, sin ventana entre el render visible y la ref), o se asigna durante el render si es seguro. Aplicado en
+`useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
+`CargaInfinita` y `ReporteEmbebido`. Los efectos que solo marcan «montado» o recuerdan el valor previo para la próxima vez (no se leen en un handler
+antes de que el efecto corra) pueden seguir siendo `useEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
+cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un solo fallo de la serie lo deja abierto.
+
 ## Cliente de Supabase simulado en los tests de la web
 
 `apps/web/src/test/supabaseSimulado.ts` (`clienteSupabaseSimulado`) implementa `.schema(nombre)`, `from`/`rpc` y

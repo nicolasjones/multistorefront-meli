@@ -1,4 +1,4 @@
-import { type FormEvent, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, type FormEvent, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import {
   Alert,
@@ -143,7 +143,7 @@ export function ServicioReparacion() {
   // Estado vigente para `aplicarOperacion`: la RPC está en vuelo y la clausura del render ya quedó vieja.
   const reparacionVigente = useRef<Reparacion | null>(null)
   const formularioVigente = useRef(formulario)
-  useEffect(() => {
+  useLayoutEffect(() => {
     reparacionVigente.current = reparacion
     formularioVigente.current = formulario
   }, [reparacion, formulario])

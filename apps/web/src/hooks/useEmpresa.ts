@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
 
 export type DatosGeneralesEmpresa = {
@@ -33,7 +33,7 @@ export function useEmpresa(id: string | undefined) {
   const [hayError, setHayError] = useState(false)
   const ultimaPeticion = useRef(0)
   const idVigente = useRef(id)
-  useEffect(() => {
+  useLayoutEffect(() => {
     idVigente.current = id
   }, [id])
   const esVigente = useCallback((otroId: string | undefined) => idVigente.current === otroId, [])
