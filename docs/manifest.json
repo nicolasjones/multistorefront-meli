@@ -986,9 +986,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "43857abaecf84b41116bfe03bea2e6aed9f46ec729a10fd59a4dc4b9c57b5c16",
-      "sourceHash": "b9c1d63bce4fea4fbd5de39e281d3bf13d2a1d6ef6450b851ea072f8235011b5",
-      "sourceAt": "ef93aab68",
+      "pageHash": "55f9ccef9d457f02c49e15cc53449af582549d6e211d40e891e72cdb41175a05",
+      "sourceHash": "cd6b5c5dcaf349be809a6bab3ec2ff4a534f5a7848039d4e8fce3c6b2710f4c0",
+      "sourceAt": "9e48aa646",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1004,7 +1004,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "ef93aab68"
+      "commit": "9e48aa646"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -1249,14 +1249,14 @@
     },
     "docs/ingreso-de-mercaderia.md": {
       "title": "Ingreso de mercadería por proveedor",
-      "pageHash": "f019b28e7ca9edd5d6d6ac5a96e5a2be27d04ef09d1760227fa66f24c1a8ce56",
+      "pageHash": "48938a3925ee6e70fac8badac357b2e341f0528bdc4366729780c648865f70f5",
       "sourceHash": "1a66f4e99a78bad99ecaa3a04247bee0bd211b1d20129db52c59cb7245b7dc50",
-      "sourceAt": "c7860a7c",
+      "sourceAt": "c7860a7c9",
       "sources": [
         "specs/20261021-183246-ingreso-de-mercaderia-por-proveedor"
       ],
       "owner": "producto",
-      "commit": "c7860a7c"
+      "commit": "c7860a7c9"
     },
     "docs/inicio-y-alertas.md": {
       "title": "Inicio y alertas",
@@ -5536,9 +5536,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "e4831316c0f0b6d1acb5d99455f5a879c0caf35ff164b695cc6ab6ceaa57216f",
+      "pageHash": "2c10481d5d21736c9b23cf6f573e975520d2959763f033fe60f52a586fb730df",
       "sourceHash": "3a5bafc1db1fff4fee349965b588cf7754454b262cf244c81ede65d4edde7ce5",
-      "sourceAt": "7d0de6cda",
+      "sourceAt": "9e48aa646",
       "sources": [
         "openapi",
         "specs/20270125-100000-tienda-seo-legal-y-estados",
@@ -5583,7 +5583,7 @@
         "supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql"
       ],
       "owner": "tecnico",
-      "commit": "7d0de6cda"
+      "commit": "9e48aa646"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",

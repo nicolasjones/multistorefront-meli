@@ -56,6 +56,7 @@ export function HistorialIngresos({ revision }: Props) {
     tabla: 'productos', columnas: 'id, nombre, sku', columnasBusqueda: 'nombre,sku', orden: 'nombre', habilitado: productoAbierto,
   })
   const [empresas, setEmpresas] = useState<EmpresaOpcion[]>([])
+  const [empresasTruncadas, setEmpresasTruncadas] = useState(false)
   const [operadores, setOperadores] = useState<OperadorOpcion[]>([])
   const [errorFiltros, setErrorFiltros] = useState(false)
   const [ingresoAAnular, setIngresoAAnular] = useState<IngresoAAnular | null>(null)
@@ -78,7 +79,7 @@ export function HistorialIngresos({ revision }: Props) {
     let vigente = true
     void (async () => {
       const [respuestaEmpresas, respuestaOperadores] = await Promise.all([
-        supabaseClient.schema('dominio').from('empresas').select('id, nombre').order('nombre', { ascending: true }).limit(MAXIMO_OPCIONES).returns<EmpresaOpcion[]>(),
+        supabaseClient.schema('dominio').from('empresas').select('id, nombre').order('nombre', { ascending: true }).limit(MAXIMO_OPCIONES + 1).returns<EmpresaOpcion[]>(),
         supabaseClient.rpc('operadores_ingresos_mercaderia'),
       ])
       if (!vigente) return
@@ -90,7 +91,10 @@ export function HistorialIngresos({ revision }: Props) {
         setErrorFiltros(true)
         return
       }
-      setEmpresas(respuestaEmpresas.data ?? [])
+      // Se pide una fila de más para saber si el tope cortó la lista (mismo criterio que proveedores y productos).
+      const filasEmpresas = respuestaEmpresas.data ?? []
+      setEmpresasTruncadas(filasEmpresas.length > MAXIMO_OPCIONES)
+      setEmpresas(filasEmpresas.slice(0, MAXIMO_OPCIONES))
       setOperadores((respuestaOperadores.data ?? []) as unknown as OperadorOpcion[])
     })()
     return () => { vigente = false }
@@ -219,6 +223,7 @@ export function HistorialIngresos({ revision }: Props) {
         />
         <FiltroEmpresa
           empresas={empresas}
+          textoAyuda={empresasTruncadas ? `Se muestran las primeras ${MAXIMO_OPCIONES} tiendas; hay más.` : undefined}
           valor={empresaId === '' ? null : empresaId}
           onCambiar={(nuevo) => cambiarFiltro(() => setEmpresaId(nuevo ?? ''))}
         />
