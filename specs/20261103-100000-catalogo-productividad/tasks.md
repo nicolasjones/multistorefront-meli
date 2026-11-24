@@ -31,19 +31,19 @@
 
 ## Phase 2: Duplicar producto (F-CAT-13 · refine)
 
-- [ ] T011 [P] [F-CAT-13][US2] Acción «Duplicar» en la columna de acciones de `pages/productos/list.tsx`, solo con `edicion`, hacia `/productos/create?duplicar_de=<id>` (FR-009)
-- [ ] T012 [P] [F-CAT-13][US2] `lib/duplicarProducto.ts` y precarga en `pages/productos/create.tsx`: copia lo de la Decisión 4, SKU y código de barras vacíos, sin imágenes; origen inexistente o ajeno avisa y deja el alta vacía (FR-010, FR-012)
-- [ ] T013 [F-CAT-13][US2] Guardado con las validaciones del alta (obligatorios, «Descartar cambios», SKU y código de barras únicos sin perder lo cargado, SKU autogenerado) sin que `duplicar_de` llegue al servidor (FR-011)
-- [ ] T014 [F-CAT-13][US2] Vitest `create.test.tsx` y E2E `catalogo-productividad.e2e.ts` del duplicado (verifican FR-009…FR-012): precarga sin SKU ni barras, SKU repetido informado, producto nuevo activo con `producto.creado` (SC-003)
+- [x] T011 [P] [F-CAT-13][US2] Acción «Duplicar» en la columna de acciones de `pages/productos/list.tsx`, solo con `edicion`, hacia `/productos/create?duplicar_de=<id>` (FR-009) Evidencia: marca de cierre en `tasks/F-CAT-13.md`.
+- [x] T012 [P] [F-CAT-13][US2] `lib/duplicarProducto.ts` y precarga en `pages/productos/create.tsx`: copia lo de la Decisión 4, SKU y código de barras vacíos, sin imágenes; origen inexistente o ajeno avisa y deja el alta vacía (FR-010, FR-012) Evidencia: marca de cierre en `tasks/F-CAT-13.md`.
+- [x] T013 [F-CAT-13][US2] Guardado con las validaciones del alta (obligatorios, «Descartar cambios», SKU y código de barras únicos sin perder lo cargado, SKU autogenerado) sin que `duplicar_de` llegue al servidor (FR-011) Evidencia: marca de cierre en `tasks/F-CAT-13.md`.
+- [x] T014 [F-CAT-13][US2] Vitest `create.test.tsx` y E2E `catalogo-productividad.e2e.ts` del duplicado (verifican FR-009…FR-012): precarga sin SKU ni barras, SKU repetido informado, producto nuevo activo con `producto.creado` (SC-003) Evidencia: marca de cierre en `tasks/F-CAT-13.md`.
 
 **Checkpoint**: se duplica un producto y se guarda como nuevo; `pnpm lint`, `pnpm build`, `pnpm test` verdes.
 
 ## Phase 3: Cierre (Tarea de cierre, label `cierre`)
 
-- [ ] T015 [P] [CIERRE] Revisión de seguridad (`authz-security`): RLS, grants, `anon` sin RPC, ids de otra organización, tope de ids, ninguna tabla en `public` (Principio VII) (SC-004; verificación: informe adjunto al PR + `pnpm test:db`)
-- [ ] T016 [P] [CIERRE] Sección «Productividad» en `docs/catalogo.md` (acciones masivas, duplicado, diferencias con el prototipo) y `docs/permisos-por-rol.md` si corresponde (FR-013; verificación: `pnpm docs:check`)
-- [ ] T017 [P] [CIERRE] Actualizar la fila de MSF-218 en `docs/roadmap-template.md` (estado, link a la spec) como paso manual (FR-014; verificación: `pnpm docs:check` + `grep MSF-218 docs/roadmap-template.md`)
-- [ ] T018 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check` (SC-005)
+- [x] T015 [P] [CIERRE] Revisión de seguridad (`authz-security`): RLS, grants, `anon` sin RPC, ids de otra organización, tope de ids, ninguna tabla en `public` (Principio VII) (SC-004; verificación: informe adjunto al PR + `pnpm test:db`) Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T016 [P] [CIERRE] Sección «Productividad» en `docs/catalogo.md` (acciones masivas, duplicado, diferencias con el prototipo) y `docs/permisos-por-rol.md` si corresponde (FR-013; verificación: `pnpm docs:check`) Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T017 [P] [CIERRE] Actualizar la fila de MSF-218 en `docs/roadmap-template.md` (estado, link a la spec) como paso manual (FR-014; verificación: `pnpm docs:check` + `grep MSF-218 docs/roadmap-template.md`) Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T018 [CIERRE] Verificación final: `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm docs:check`, `pnpm prototipo:check`, `pnpm matriz:check` (SC-005) Evidencia: marca de cierre en `tasks/CIERRE.md`.
 
 ## Plan de ejecución (historias)
 

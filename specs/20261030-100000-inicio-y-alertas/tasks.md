@@ -13,47 +13,47 @@
 
 ## Phase 1: F-INI-01 · Pantalla de inicio (US1)
 
-- [ ] T001 [F-INI-01][US1] Ruta `index` → `pages/inicio/index.tsx` en lugar de `Home`: saludo, fecha, subtítulo, ítem «Inicio» en `destinosPanel.ts`, responsive 320/768/1440 y teclado (FR-001, FR-011). Verifica: `inicio.test.tsx`, `navegacion-inicio.test.ts`
-- [ ] T002 [P] [F-INI-01][US1] Accesos directos `Nuevo comprobante`, `Registrar movimiento`, `Nuevo producto` con edición por sección (FR-002). Verifica: `accesos-directos.test.tsx`
-- [ ] T003 [P] [F-INI-01][US1] Tarjeta de estado de empresas accesibles (D-1) (FR-003). Verifica: `tarjeta-empresas.test.tsx`
-- [ ] T004 [P] [F-INI-01][US1] Tarjeta de stock desde `stock_estados` con enlace (FR-004). Verifica: `tarjeta-stock.test.tsx`
-- [ ] T005 [P] [F-INI-01][US1] Tarjeta de consultas nuevas desde `consultas_bandeja` con enlace (FR-005). Verifica: `tarjeta-consultas.test.tsx`
-- [ ] T006 [P] [F-INI-01][US1] Tarjeta de dólar: cotización vigente, aviso «Todavía no se cargó el dólar de hoy» y `Cargar ahora` (FR-006). Verifica: `tarjeta-dolar.test.tsx`
-- [ ] T007 [F-INI-01][US1] Regla única de permisos, estados de carga/vacío/error por tarjeta, ocultamiento por `tiene_feature` y recarga por empresa activa, con Vitest por rol y cambio de empresa (FR-007, FR-008, FR-009, FR-010, SC-005). Verifica: `permisos-inicio`, `estados-inicio`, `feature-ml`, `empresa-activa-inicio` (Vitest)
+- [x] T001 [F-INI-01][US1] Ruta `index` → `pages/inicio/index.tsx` en lugar de `Home`: saludo, fecha, subtítulo, ítem «Inicio» en `destinosPanel.ts`, responsive 320/768/1440 y teclado (FR-001, FR-011). Verifica: `inicio.test.tsx`, `navegacion-inicio.test.ts` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T002 [P] [F-INI-01][US1] Accesos directos `Nuevo comprobante`, `Registrar movimiento`, `Nuevo producto` con edición por sección (FR-002). Verifica: `accesos-directos.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T003 [P] [F-INI-01][US1] Tarjeta de estado de empresas accesibles (D-1) (FR-003). Verifica: `tarjeta-empresas.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T004 [P] [F-INI-01][US1] Tarjeta de stock desde `stock_estados` con enlace (FR-004). Verifica: `tarjeta-stock.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T005 [P] [F-INI-01][US1] Tarjeta de consultas nuevas desde `consultas_bandeja` con enlace (FR-005). Verifica: `tarjeta-consultas.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T006 [P] [F-INI-01][US1] Tarjeta de dólar: cotización vigente, aviso «Todavía no se cargó el dólar de hoy» y `Cargar ahora` (FR-006). Verifica: `tarjeta-dolar.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-01.md`.
+- [x] T007 [F-INI-01][US1] Regla única de permisos, estados de carga/vacío/error por tarjeta, ocultamiento por `tiene_feature` y recarga por empresa activa, con Vitest por rol y cambio de empresa (FR-007, FR-008, FR-009, FR-010, SC-005). Verifica: `permisos-inicio`, `estados-inicio`, `feature-ml`, `empresa-activa-inicio` (Vitest) Evidencia: marca de cierre en `tasks/F-INI-01.md`.
 
 **Checkpoint F-INI-01**: Inicio renderiza por rol sin migraciones nuevas.
 
 ## Phase 2: F-INI-02 · Alertas accionables (US2)
 
-- [ ] T008 [F-INI-02][US2] Migración `dominio.alertas_inicio` con RLS, sin escritura desde la app, y reversión documentada (FR-020)
-- [ ] T009 [F-INI-02][US2] `recalcular_alertas_inicio` con los cinco tipos, enlaces de lista cerrada y `pg_advisory_xact_lock` (FR-021)
-- [ ] T010 [F-INI-02][US2] Vista `alertas_inicio_visibles` (`security_invoker`, sección ≥ lectura, empresas accesibles) y grants (FR-023)
-- [ ] T011 [P] [F-INI-02][US2] pgTAP: RLS, idempotencia, filtrado por rol, `anon` sin acceso, feature ML ausente, y «recalcular dos veces = mismo conjunto» en `alertas_inicio.test.sql`; `rls_en_toda_tabla` verde (FR-022, SC-004)
-- [ ] T012 [F-INI-02][US2] Edge Function `recalcular-alertas-inicio` con token y registro de ejecución por organización (FR-022)
-- [ ] T013 [P] [F-INI-02][US2] Flow `infra/kestra/flows/alertas-inicio.yml`, variables en `.env.example` y `pnpm infra:config` (FR-022; verifica el flow válido)
-- [ ] T014 [F-INI-02][US2] Lista de alertas en Inicio con enlace y estado vacío (FR-025, FR-026). Verifica: `alertas-lista.test.tsx`
-- [ ] T015 [F-INI-02][US2] Aviso de demora según `calculada_en` (FR-024). Verifica: `alertas-demora.test.tsx`
-- [ ] T016 [F-INI-02][US2] Alertas de Mercado Libre / precios en revisión ausentes sin la funcionalidad (FR-027). Verifica: `feature-ml.test.tsx` + pgTAP
+- [x] T008 [F-INI-02][US2] Migración `dominio.alertas_inicio` con RLS, sin escritura desde la app, y reversión documentada (FR-020) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T009 [F-INI-02][US2] `recalcular_alertas_inicio` con los cinco tipos, enlaces de lista cerrada y `pg_advisory_xact_lock` (FR-021) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T010 [F-INI-02][US2] Vista `alertas_inicio_visibles` (`security_invoker`, sección ≥ lectura, empresas accesibles) y grants (FR-023) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T011 [P] [F-INI-02][US2] pgTAP: RLS, idempotencia, filtrado por rol, `anon` sin acceso, feature ML ausente, y «recalcular dos veces = mismo conjunto» en `alertas_inicio.test.sql`; `rls_en_toda_tabla` verde (FR-022, SC-004) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T012 [F-INI-02][US2] Edge Function `recalcular-alertas-inicio` con token y registro de ejecución por organización (FR-022) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T013 [P] [F-INI-02][US2] Flow `infra/kestra/flows/alertas-inicio.yml`, variables en `.env.example` y `pnpm infra:config` (FR-022; verifica el flow válido) Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T014 [F-INI-02][US2] Lista de alertas en Inicio con enlace y estado vacío (FR-025, FR-026). Verifica: `alertas-lista.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T015 [F-INI-02][US2] Aviso de demora según `calculada_en` (FR-024). Verifica: `alertas-demora.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-02.md`.
+- [x] T016 [F-INI-02][US2] Alertas de Mercado Libre / precios en revisión ausentes sin la funcionalidad (FR-027). Verifica: `feature-ml.test.tsx` + pgTAP Evidencia: marca de cierre en `tasks/F-INI-02.md`.
 
 **Checkpoint F-INI-02**: las alertas se recalculan y cada rol ve solo las suyas.
 
 ## Phase 3: F-INI-03 · Búsqueda global (US3)
 
-- [ ] T017 [F-INI-03][US3] Migración `buscar_productos_global` con `pg_trgm`/`normalizar_busqueda`, mínimo 2 caracteres, tope y grants (FR-031, FR-034). Verifica: `busqueda_global.test.sql`
-- [ ] T018 [P] [F-INI-03][US3] pgTAP de la búsqueda por rol y `anon` sin ejecución en `busqueda_global.test.sql` (FR-034)
-- [ ] T019 [F-INI-03][US3] Campo de búsqueda en `EncabezadoPanel` con debounce y lista de resultados (FR-030, FR-031). Verifica: `busqueda-global.test.tsx`
-- [ ] T020 [F-INI-03][US3] Elegir resultado abre el producto (FR-032). Verifica: `busqueda-global.test.tsx`
-- [ ] T021 [F-INI-03][US3] Estados «No encontramos productos» y error compartido (FR-033, FR-035). Verifica: `busqueda-global.test.tsx`
-- [ ] T022 [F-INI-03][US3] Accesibilidad: flechas, Enter, Escape y anuncio de resultados (FR-036). Verifica: `busqueda-global.test.tsx` + axe
+- [x] T017 [F-INI-03][US3] Migración `buscar_productos_global` con `pg_trgm`/`normalizar_busqueda`, mínimo 2 caracteres, tope y grants (FR-031, FR-034). Verifica: `busqueda_global.test.sql` Evidencia: marca de cierre en `tasks/F-INI-03.md`.
+- [x] T018 [P] [F-INI-03][US3] pgTAP de la búsqueda por rol y `anon` sin ejecución en `busqueda_global.test.sql` (FR-034) Evidencia: marca de cierre en `tasks/F-INI-03.md`.
+- [x] T019 [F-INI-03][US3] Campo de búsqueda en `EncabezadoPanel` con debounce y lista de resultados (FR-030, FR-031). Verifica: `busqueda-global.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-03.md`.
+- [x] T020 [F-INI-03][US3] Elegir resultado abre el producto (FR-032). Verifica: `busqueda-global.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-03.md`.
+- [x] T021 [F-INI-03][US3] Estados «No encontramos productos» y error compartido (FR-033, FR-035). Verifica: `busqueda-global.test.tsx` Evidencia: marca de cierre en `tasks/F-INI-03.md`.
+- [x] T022 [F-INI-03][US3] Accesibilidad: flechas, Enter, Escape y anuncio de resultados (FR-036). Verifica: `busqueda-global.test.tsx` + axe Evidencia: marca de cierre en `tasks/F-INI-03.md`.
 
 **Checkpoint F-INI-03**: la búsqueda responde por rol.
 
 ## Phase 4: Cierre
 
-- [ ] T023 [P] [CIERRE] Doc `docs/inicio-y-alertas.md` (tarjetas, alertas, búsqueda, flow, variables) y `pnpm docs:check`
-- [ ] T024 [P] [CIERRE] E2E de Inicio con los tres roles y cambio de empresa en `apps/web/e2e/inicio.e2e.ts` (SC-001, SC-002, SC-003)
-- [ ] T025 [CIERRE] `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` verdes (SC-006)
-- [ ] T026 [CIERRE] Actualizar `docs/roadmap-template.md` (estado, link a la spec, alinear D-3)
+- [x] T023 [P] [CIERRE] Doc `docs/inicio-y-alertas.md` (tarjetas, alertas, búsqueda, flow, variables) y `pnpm docs:check` Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T024 [P] [CIERRE] E2E de Inicio con los tres roles y cambio de empresa en `apps/web/e2e/inicio.e2e.ts` (SC-001, SC-002, SC-003) Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T025 [CIERRE] `pnpm lint`, `pnpm build`, `pnpm infra:config`, `pnpm test`, `pnpm prototipo:check`, `pnpm matriz:check` verdes (SC-006) Evidencia: marca de cierre en `tasks/CIERRE.md`.
+- [x] T026 [CIERRE] Actualizar `docs/roadmap-template.md` (estado, link a la spec, alinear D-3) Evidencia: marca de cierre en `tasks/CIERRE.md`.
 
 **Checkpoint Cierre**: ninguna tarea queda `[ ]` sin hacerse o cerrarse con `Desvío:` y seguimiento trazado.
 
