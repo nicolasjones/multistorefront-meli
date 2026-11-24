@@ -41,7 +41,7 @@ function montar(opciones: { texto?: string | null; embeddingsFalla?: boolean; ac
     validarEntrada: () => undefined,
     embeddings: async (textos) => { if (opciones.embeddingsFalla) throw new Error('openai caído'); return textos.map(() => [0.1]) },
     borrarFragmentos: async () => { fragmentos = 0; return true },
-    insertarFragmentos: async (_j, filas) => { fragmentos += filas.length; insertados += filas.length; return true },
+    insertarFragmentos: async (_j, filas, reclamo) => { if (!reclamo) throw new Error('falta el reclamo propio'); fragmentos += filas.length; insertados += filas.length; return true },
     activar: async () => {
       if (opciones.activarInvalida) return 'invalida'
       if (opciones.activarPermiso) return 'permiso'

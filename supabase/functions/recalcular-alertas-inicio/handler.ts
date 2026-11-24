@@ -27,7 +27,6 @@ export type Deps = {
   }
 }
 
-
 const mensajeDeError = (error: unknown) =>
   (error instanceof Error ? error.message : String(error)).replace(/\s+/g, ' ').trim().slice(0, ERROR_MAX) || 'Error sin detalle'
 

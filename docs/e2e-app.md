@@ -371,7 +371,9 @@ Límites a propósito:
   nivel `describe` si faltan `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` (y Playwright lo cuenta como éxito), así que el job
   corre al final `pnpm e2e:omitidos:check apps/web/resultado-e2e.json --max=1`: lee el reporte JSON de Playwright (reporter
   `json` con `CI`) y falla si hay más de un omitido (el único permitido es el de `tienda-seo` con `E2E_SIN_EDGE=1`) o si no
-  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `chequeos` con `pnpm test:e2e:omitidos`).
+  corrió nada (`scripts/verificar-e2e-omitidos.mjs`; su test corre en `chequeos` con `pnpm test:e2e:omitidos`). Con
+  `--permitidos=archivo.e2e.ts::fragmento del título` cada omitido tiene que SER el esperado (el archivo y el título coinciden): en `e2e-tienda`
+  `tienda-seo.e2e.ts::robots.txt` y en `e2e-visible-sesion` `cuenta-web-cliente.e2e.ts::SC-006`; antes `--max=1` toleraba cualquier omitido.
   Además `tienda-sesion-vencimiento` falla (no se omite) en el job `e2e-tienda` (variable explícita `E2E_TIENDA_CI=1`, que solo setea ese job: en `application` el build no define `VITE_PANEL_HOSTS` y el spec se sigue omitiendo) si el build no sirve el host como tienda, y
   `tienda-disponibilidad` no tiene `test.skip` dinámicos (omitía su verificación porque `locator.count()` no espera y la carga
   infinita dejaba el producto sembrado fuera de la primera tanda; ahora siembra una categoría propia y abre `/catalogo?categoria=<id>`).

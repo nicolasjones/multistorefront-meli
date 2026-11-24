@@ -34,5 +34,6 @@ export function reclamoVigente(motivoError: string | null | undefined, ahora: nu
 
 // Roles que pueden gestionar documentos RAG (los mismos que `private.puede_gestionar_documentos()`; lista blanca).
 export const ROLES_ESCRITORES_DOCUMENTOS = ['administrador', 'operador', 'mostrador', 'deposito', 'administracion', 'tecnico'] as const
-export const puedeGestionarDocumentos = (contexto: { rol_efectivo: string | null; es_superadmin: boolean } | null): boolean =>
-  !!contexto && (contexto.es_superadmin || (ROLES_ESCRITORES_DOCUMENTOS as readonly string[]).includes(contexto.rol_efectivo ?? ''))
+// Igual que el SQL: un superadmin solo gestiona con una organización activa (`organizacion_id` no nulo en el contexto).
+export const puedeGestionarDocumentos = (contexto: { rol_efectivo: string | null; es_superadmin: boolean; organizacion_id?: string | null } | null): boolean =>
+  !!contexto && (contexto.es_superadmin ? !!contexto.organizacion_id : (ROLES_ESCRITORES_DOCUMENTOS as readonly string[]).includes(contexto.rol_efectivo ?? ''))

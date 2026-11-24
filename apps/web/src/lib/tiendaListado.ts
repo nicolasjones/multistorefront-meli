@@ -1,5 +1,4 @@
 import { supabaseClient } from './supabase'
-import { acumularConteoCategorias } from './tiendaConteoCategorias'
 import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-12 (MSF-355): página del catálogo público. El filtrado, el orden, el precio final y la
@@ -144,7 +143,8 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
     total: fila.total,
     pagina: fila.pagina,
     tamano: fila.tamano,
-    categorias: acumularConteoCategorias(fila.categorias.map((c) => ({ id: c.id, nombre: limpiarTextoPublico(c.nombre), padreId: c.padre_id, productos: c.productos }))),
+    // El conteo ya viene acumulado de `publico.categorias_por_dominio` (raíz = suma de sus subcategorías): no se vuelve a sumar.
+    categorias: fila.categorias.map((c) => ({ id: c.id, nombre: limpiarTextoPublico(c.nombre), padreId: c.padre_id, productos: c.productos })),
     productos: fila.productos.map((p) => ({
       id: p.id,
       nombre: limpiarTextoPublico(p.nombre),

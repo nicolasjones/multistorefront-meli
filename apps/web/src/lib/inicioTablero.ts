@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { formatearImporte, formatearNumeroImporte } from './formatoImporte'
 
 // Tablero de Inicio (F-INI-04, MSF-820): lectura agregada de ventas, stock y serie diaria por la RPC
 // `public.resumen_inicio_periodo`. La base decide qué ve cada rol: `ventas` o `stock` vuelven null sin permiso
@@ -56,11 +57,10 @@ export function variacionPorcentual(actual: number, anterior: number): number | 
   return ((actual - anterior) / Math.abs(anterior)) * 100
 }
 
-const pesos = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 })
-const enteros = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
 const porcentaje = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1, signDisplay: 'exceptZero' })
 
-export const formatoPesos = (valor: number) => pesos.format(valor)
-export const formatoEntero = (valor: number) => enteros.format(valor)
+// Pesos sin centavos y enteros con punto de miles también en cuatro dígitos (`formatoImporte.ts`): el tablero redondea al peso.
+export const formatoPesos = (valor: number) => formatearImporte(Math.round(valor))
+export const formatoEntero = (valor: number) => formatearNumeroImporte(Math.round(valor))
 export const formatoVariacion = (valor: number) => `${porcentaje.format(valor)} %`
 

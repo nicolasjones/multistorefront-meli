@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { tokenDeEntorno } from '../_shared/token.ts'
+import { permitirTokenDebil, tokenDeEntorno } from '../_shared/token.ts'
 import { enviarPorSmtp } from '../_shared/correo.ts'
 import { manejar, type Deps, type Generado } from './handler.ts'
 
@@ -24,7 +24,7 @@ Deno.serve((req) => {
     },
   }
   return manejar(req, {
-    token: tokenDeEntorno(Deno.env.get('AVISOS_REPOSICION_TOKEN'), Deno.env.get('AVISOS_PERMITIR_TOKEN_DEBIL')),
+    token: tokenDeEntorno(Deno.env.get('AVISOS_REPOSICION_TOKEN'), permitirTokenDebil((clave) => Deno.env.get(clave))),
     panelUrl: Deno.env.get('PANEL_URL'),
     datos,
     enviar: enviarPorSmtp,

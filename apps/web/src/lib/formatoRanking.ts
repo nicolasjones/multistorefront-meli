@@ -2,11 +2,11 @@
 
 import { formatearImporte } from './formatoImporte'
 
-const formatoPesos = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 })
 const formatoPorcentaje = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 
-export const formatearPesos = (valor: number) => `$ ${formatoPesos.format(valor)}`
+// Pesos enteros (el ranking redondea al peso) con punto de miles también en cuatro dígitos; el menos va después del `$`.
+export const formatearPesos = (valor: number) => formatearImporte(Math.round(valor), { menos: 'despues' })
 
 // Importes de la cuenta corriente (F-CLI-19): un saldo de 1.210,50 no puede verse como «$ 1.211» ni uno de
 // 0,40 como «$ 0». Con centavos muestra siempre dos decimales; sin centavos, el entero (`$ 220.000`).
