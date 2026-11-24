@@ -498,7 +498,7 @@ Pruebas: pgTAP `tienda_catalogo_publico`, Vitest + axe (`ListadoProductos.test.t
 - **Filtros**: categoría (los productos de una categoría oculta o ajena no son «efectivos»: lista vacía, sin error), «Solo con stock» (por `private.disponible_publico`) y precio máximo sobre el precio final. **Orden**: relevancia (destacados, nombre, id), menor y mayor precio (desempate por nombre e id; los sin precio van al final).
 - **Normalización** (sin error): orden desconocido → relevancia; página < 1 o nula → 1; `precio_max` ≤ 0 o nulo → sin límite; página fuera de rango → lista vacía con el `total` real.
 - **Precio público**: regla de la empresa (`a_pesos` → `aplicar_regla_precio`) y, **según el interruptor «Precios que ve el cliente»** de la empresa, `aplicar_iva` (con IVA = `precio_para(...).final`, al centavo desde `20270507180200_aplicar_iva_al_centavo.sql` (antes al peso entero), ver [IVA y precio final](iva-precio-final.md); sin IVA = `precio_para(...).neto`). Resuelve la alícuota inline (la propia del producto o la de su categoría) porque `private.alicuota_producto` se acota a la sesión y bajo `anon` no devolvería nada; el pgTAP de paridad con `private.precio_para` evita la deriva. Sin precio calculable (USD sin cotización) el precio es `null`: la tarjeta no muestra precio, queda al final de los órdenes por precio y no pasa el filtro de precio máximo (D9).
-- **Costo y techo esperado**: la RPC es pública y calcula `precio_final_publico` y `disponible_publico` para todo el catálogo efectivo de la tienda antes de filtrar y paginar, y lee las categorías en cada página. El diseño asume **hasta unos pocos cientos de productos visibles por tienda** (cifra de diseño, no medida); por encima conviene calcular el precio solo al filtrar u ordenar por precio y medir con un benchmark. Seguimiento de rendimiento fuera de esta historia: no hay catálogo real que lo justifique todavía.
+- **Costo y techo esperado**: la RPC es pública y calcula `disponible_publico` para todo el catálogo efectivo de la tienda antes de filtrar y paginar, y lee las categorías en cada página. El **precio**, en cambio, desde **MSF-825** se calcula para toda la tienda sólo cuando el orden por precio o el tope de precio lo necesitan, y para los 24 de la página en el resto de los casos. El diseño asume **hasta unos pocos cientos de productos visibles por tienda**; medido (500 productos visibles) el catálogo tarda 19 ms por relevancia y 121 ms ordenando por precio, o sea que el techo sigue siendo el de unos cientos de productos: por encima de ~1.000 visibles hay que volver a medir antes de tocar D3. Cifras y método: «[Rendimiento en celular (T071, SC-010)](#rendimiento-en-celular-t071-sc-010)».
 - **`publico.imagen_publica` es invocable directo** por `anon` y `authenticated`: permite confirmar si una ruta de storage es imagen pública, algo que esas rutas ya permiten leer; riesgo bajo aceptado (anotado en el comentario de la función).
 - **`?pagina=` en la UI (MSF-845)**: el listado ya no pagina; los enlaces viejos con `?pagina=N` (también `0`, negativos o `999`) se ignoran sin redirigir y arrancan de la primera tanda. La RPC sigue devolviendo lista vacía con el `total` real para una página fuera de rango, y la UI ya no la pide.
 - **Imágenes (D1, supuesto)**: el bucket `productos-imagenes` sigue privado. `anon` lee solo las imágenes que `private.imagen_publica` acepta (producto activo, no oculto, categoría visible, en una tienda activa). Como un `<img>` no manda cabeceras, `lib/imagenProducto.ts` pide **URLs firmadas** de una hora con la clave pública, en una sola llamada por página; se piden al cargar, así que en una pestaña abierta más de una hora vencen y la tarjeta cae a «Sin imagen» (`onError`) hasta recargar. Si D1 se resuelve distinto (URL pública o firmada por el servidor), cambia solo ese archivo y la política. La ruta (`<organización>/<producto>/<archivo>`) viaja en `imagen`: el id de organización no es un secreto (es un UUID sin valor de acceso) y el contrato de la épica la define así.
@@ -681,14 +681,48 @@ La carga infinita («Cargar más») no está dibujada en el prototipo (se usa el
 
 ### Rendimiento en celular (T071, SC-010)
 
-**No medido todavía.** El entorno donde se cerró la épica no tenía acceso a Docker, así que no hubo stack local con el seed y no hay cifras que registrar (no se inventan). La medición queda trazada en **MSF-552** (seguimiento). Protocolo a seguir:
+**Medido en el CI el 24/11/2026.** Entorno: runner hosted de GitHub (`ubuntu-latest`, `CI_RUNS_ON_PESADO`) con el stack local de Supabase, el seed de `supabase/seed.sql` y **500 productos** por tienda encima (`scripts/sembrar-tienda-medicion.sql`); front compilado con `VITE_PANEL_HOSTS=localhost,127.0.0.1` y servido con `vite preview`. Perfil: Lighthouse 13.6 en emulación móvil 390×844, CPU ×4 y «4G lento» (`throttlingMethod: devtools`), 3 corridas por ruta, mediana; objetivo **LCP ≤ 3.000 ms**. Config `.lighthouserc.tienda.json`, comando local `pnpm medir:tienda`, job `medir` de `.github/workflows/nightly.yml`.
 
-1. `pnpm dev:supabase`, build del front y preview con las dos tiendas del seed.
-2. Lighthouse en perfil móvil (`.lighthouserc.json`) sobre `/catalogo` y `/producto/:id` de ambas tiendas.
-3. Medir `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos (techo de diseño, ver «Costo y techo esperado» arriba).
-4. Si el tamaño 24 (D3) o la consulta por precio no cumplen, anotar acá el ajuste.
+Medición vigente (con el panel en su propio chunk, run `45476405495`, commit `cc286a22bbcc`):
+
+| Pantalla | URL | Corridas | LCP (mediana) | FCP | CLS | TBT | Perf. | A11y |
+|---|---|---|---|---|---|---|---|---|
+| Mundo JC · catálogo | `http://mundojc.localhost:4312/catalogo` | 3 | 10.866 ms | 9.304 ms | 0,215 | 223 ms | 42 | 100 |
+| Mundo JC · ficha | `http://mundojc.localhost:4312/producto/ba900000-0000-4000-8000-000000000001` | 3 | 10.503 ms | 9.406 ms | 0,098 | 56 ms | 53 | 100 |
+| San Javucho · catálogo | `http://sanjavucho.localhost:4312/catalogo` | 3 | 10.903 ms | 9.325 ms | 0,215 | 192 ms | 43 | 100 |
+| San Javucho · ficha | `http://sanjavucho.localhost:4312/producto/bb900000-0000-4000-8000-000000000001` | 3 | 10.500 ms | 9.425 ms | 0,098 | 54 ms | 53 | 100 |
+
+Antes de ese cambio (la tienda descargaba el panel en el chunk de entrada; run `45474509678`, commit `c7881777ceab`): LCP de 15.995 ms (Mundo JC catálogo), 15.623 ms (Mundo JC ficha), 16.021 ms (San Javucho catálogo) y 15.584 ms (San Javucho ficha).
+
+**Veredicto: NO cumple el objetivo de LCP** (las cuatro rutas entre 10,5 s y 10,9 s contra los 3 s), aunque la carga diferida del panel lo bajó unos 5 s. No es el catálogo ni la base: en los reportes el LCP es casi todo «element render delay» (10.846 ms de 10.855 ms en una corrida de Mundo JC catálogo) y el servidor responde en 8 ms. Lo que cambió: la primera carga del catálogo pasó de 127 scripts (2.009 KB sin comprimir, 683 KB transferidos) a 80 (822 KB, 307 KB). El tiempo que queda se va en descargar y ejecutar el JavaScript restante con la CPU ×4 y «4G lento»; la causa de ese resto no está medida todavía y es el siguiente paso (reducir el JavaScript del primer pintado de la tienda), con su propia medición.
+
+**Costo de `publico.catalogo_pagina_por_dominio`** con una tienda de 500 productos (sintética, 5 corridas por caso, `scripts/medir-tienda-catalogo.sql`; todo va en una transacción que se revierte y no deja datos). Medianas de los dos runs, con la RPC sin cambios entre uno y otro:
+
+| Caso | Run `45474509678` | Run `45476405495` | Total de la tienda |
+|---|---|---|---|
+| `relevancia` | 12 ms | 19 ms | 500 |
+| `precio_asc` | 59 ms | 121 ms | 500 |
+| `precio_desc` | 60 ms | 121 ms | 500 |
+| `precio_max` | 56 ms | 113 ms | 200 |
+| `solo_con_stock` | 14 ms | 22 ms | 250 |
+
+Entre un run y otro la misma consulta varió hasta ~2×: es ruido del runner hosted, no un cambio de la RPC. Las cifras valen como orden de magnitud, no como medida fina; las corridas de un mismo run (5 por caso) son estables entre sí.
+
+**D3 (tamaño de página 24): no hay que ajustarlo.** La RPC tarda entre 12 y 19 ms con orden por relevancia. El costo no depende **del todo** del tamaño de página: desde **MSF-825** la función calcula el **precio** de toda la tienda sólo cuando el orden o el tope de precio lo necesitan (y para los 24 de la página en el resto de los casos), pero la **disponibilidad** (`private.disponible_publico`) sí se calcula para todos los productos efectivos del catálogo. Bajar las 24 ahorraría sólo la primera parte.
+
+**La consulta por precio cumple, con un techo a vigilar.** Ordenar por precio cuesta entre 59 y 121 ms con 500 productos visibles (según el run): varias veces el orden por relevancia, porque hay que calcular el precio de todo el catálogo para ordenarlo. Es el orden de magnitud del «techo de diseño» (unos pocos cientos de productos visibles por tienda, ver «Costo y techo esperado» arriba); si una tienda pasa de ~1.000 productos visibles, hay que volver a medir antes de tocar D3.
+
+**Fuente de las cifras:** workflow `nightly`, job `medir`, run `45476405495` (las de LCP y RPC «después») y run `45474509678` («antes»). El resultado de cada medición queda en el resumen del job (`$GITHUB_STEP_SUMMARY`) y en las cifras versionadas de esta guía. Los reportes crudos de Lighthouse **no se suben como artefacto** (traen el log de red con las URL, a veces con tokens firmados de Storage) y nunca salen del runner.
+
+**Línea base del job `medir`: 14.000 ms.** Es un valor propuesto por el autor (por encima del máximo medido, 10,9 s, con margen para la variación entre corridas del runner) y **requiere validación de Nicolás**. Los dos runs de arriba corrieron con la base anterior de 22.000 ms; la de 14.000 ms la usó el run `45480028805` (commit `e371800bbf45`, LCP máximo 10.829 ms), que la evaluó y no marcó regresión. Ningún run midió todavía un LCP por encima de 14.000 ms: ese caso lo cubre sólo el test del script. El número lo declara esta guía y lo compara el test con el del script.
+
+**Qué significa el rojo de `medir`.** El job **falla** si alguna ruta no se midió, si el LCP no llega al objetivo (3.000 ms) o si supera la línea base. Mientras el LCP esté en 10,5–10,9 s contra 3 s queda rojo **a propósito**: es la medición diciendo que el objetivo no se cumple, no una falla de infraestructura. Para distinguirlo en el `nightly`: si `medir` falla en el paso «Medir Lighthouse en perfil móvil» con el veredicto «NO cumple», es el esperado; si falla antes (stack, Chromium, preview), es de infraestructura. El job `deep` es otro: no lo toca este cambio y en los runs manuales de esta rama falló en «Lighthouse CI» con «Chrome installation not found» (el runner self-hosted no tiene Chrome); los nightly programados en `main` (por ejemplo los runs `45442482483` del 24/11 y `45225462941` del 23/11) terminaron en verde, así que ese rojo no es el de la medición. `medir` no bloquea ningún PR (sólo corre en el nightly o a mano). Para apagarlo sin PR: variable de repositorio `CI_MEDIR_TIENDA=false` (o `CI_PAUSED=true`, que apaga el CI entero).
+
+Para repetirlo: `gh workflow run nightly.yml --ref <rama>` o, en local, `pnpm dev:supabase` con el seed, `scripts/sembrar-tienda-medicion.sql`, la web servida y `pnpm medir:tienda`. El job corre donde diga `CI_RUNS_ON_PESADO` y, en el runner hosted, instala Chromium con `playwright install` (Lighthouse usa el de Playwright: `CHROME_PATH`).
 
 Lo que ya mitiga: rutas con carga diferida, imágenes con `loading="lazy"`, una llamada RPC por página y un firmado en lote de imágenes.
+
+**Deuda que deja esta medición**: el LCP sigue en ~10,5–10,9 s. Falta localizar qué JavaScript del primer pintado de la tienda sigue pesando (ver el veredicto) y la home no está en esta medición: se mide con la misma config agregando la ruta.
 
 ## Cuenta del cliente en la tienda (épica MSF-237)
 

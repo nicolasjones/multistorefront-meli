@@ -35,15 +35,22 @@ La comprobación móvil de Contacto queda como verificación pendiente de esa é
 Hecho: menú y panel móviles con carga diferida, `loading="lazy"` en tarjetas y miniaturas (la imagen principal de la
 ficha no, es el LCP), sin pedidos extra por pantalla.
 
-**LCP medido: pendiente.** El entorno de la historia no tenía Docker (sin stack local) ni Lighthouse. La medición
-(Lighthouse móvil, `--throttling-method=devtools`, CPU ×4, «4G lento», LCP < 3 s en home, catálogo y ficha) queda
-trazada en el seguimiento MSF-560; al medirla se anotan acá los valores.
+**LCP: el catálogo y la ficha están medidos y NO cumplen el objetivo; la home sigue sin medir.** Medición del
+24/11/2026 en el CI (job `medir` del nightly, run `45476405495`): stack local de Supabase con el seed y 500
+productos por tienda, Lighthouse 13.6 en perfil móvil (390×844, CPU ×4, «4G lento», `throttlingMethod: devtools`),
+3 corridas por ruta, objetivo LCP < 3 s.
 
-| Pantalla | LCP |
-|---|---|
-| Home | sin medir (MSF-560) |
-| Catálogo | sin medir (MSF-560) |
-| Ficha | sin medir (MSF-560) |
+| Pantalla | LCP (mediana) | Nota |
+|---|---|---|
+| Home | sin medir | No entra en la medición del job `medir` |
+| Catálogo | 10.866 ms (Mundo JC) · 10.903 ms (San Javucho) | No cumple el objetivo de 3 s |
+| Ficha | 10.503 ms (Mundo JC) · 10.500 ms (San Javucho) | No cumple el objetivo de 3 s |
+
+Antes de cargar el panel de forma diferida el LCP era de 15,6 a 16,0 s (run `45474509678`). El detalle (cifras
+por ruta, FCP, CLS, TBT, entorno y fuente) está en
+[Rendimiento en celular (T071, SC-010)](./tiendas-online.md#rendimiento-en-celular-t071-sc-010). La causa no es la
+base: el servidor responde en 8 ms y el tiempo se va en descargar y ejecutar JavaScript. Bajar el resto es un
+cambio de front que necesita su propia medición.
 
 ## Notas de contradicciones para el PR
 
