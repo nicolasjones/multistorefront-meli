@@ -13,7 +13,8 @@
 -- Se niega a correr salvo que se cumplan las cuatro condiciones:
 --   1. `-v BASE_DESCARTABLE=si`;
 --   2. la sesión es superusuario (`is_superuser` en `on`): así el conteo de organizaciones no depende de RLS;
---   3. el nombre de la base contiene `descartable`, `test` o `local` (una copia propia: `createdb -T <base-migrada> medicion_descartable`);
+--   3. el nombre de la base tiene `descartable`, `test` o `local` como palabra delimitada por `_` o `-` o por los extremos (`medicion_descartable`, `test`; no `latest`). Una copia
+--      propia: `createdb -T <base-migrada> medicion_descartable`. Limitación: un nombre como `local_prod` también cumple la condición;
 --   4. la base tiene 5 organizaciones o menos (una base de pruebas tiene las del seed o ninguna).
 -- Prueba automática: `scripts/medir-tienda-favoritos.guard.test.mjs`.
 \set ON_ERROR_STOP on
@@ -34,10 +35,10 @@ select (current_setting('is_superuser') = 'on') as es_super \gset
   \echo 'ABORTADO: la sesión no es superusuario (el conteo de organizaciones dependería de RLS).'
   do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
 \endif
-select (current_database() ~* '(descartable|test|local)') as nombre_ok \gset
+select (current_database() ~* '(^|[_-])(descartable|test|local)([_-]|$)') as nombre_ok \gset
 \if :nombre_ok
 \else
-  \echo 'ABORTADO: el nombre de la base no contiene descartable, test ni local.'
+  \echo 'ABORTADO: el nombre de la base no tiene descartable, test ni local como palabra delimitada.'
   do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
 \endif
 select (select count(*) from public.organizaciones) > 5 as demasiadas \gset
