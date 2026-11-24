@@ -7,6 +7,12 @@ mira el `tasks.md` de su spec y cuenta:
   - cuántas NO lo tienen (hay que escribirlas),
   - y de esas, cuántas son de PANTALLA (video) vs de BASE DE DATOS (pgTAP: no llevan video).
 
+Los ítems se leen con la MISMA regla que los runners de Node (`scripts/historia-item.mjs`):
+de ahí sale la historia de cada ítem y si su descripción alcanza. Un ítem cuya descripción
+no alcanza no se cuenta como «sólo base de datos» (que era degradar en silencio: nadie
+escribía el test y el reporte no marcaba nada raro): va en su propia columna, que cuenta
+sólo los ítems PENDIENTES (los ya hechos no hay que escribirles nada).
+
 Uso:
   ITSAPLAN_API_KEY=… node scripts/e2e-cobertura-epicas.mjs?   # (node)
   ITSAPLAN_API_KEY=… python3 scripts/e2e-cobertura-epicas.py            # (python)
@@ -16,6 +22,8 @@ Uso:
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -25,13 +33,9 @@ API = os.environ.get("ITSAPLAN_API_URL", "https://api.plan.agenmatica.com").rstr
 KEY = os.environ.get("ITSAPLAN_API_KEY", "")
 PROY = os.environ.get("ITSAPLAN_PROYECTO", "MSF")
 ESTADOS = ("Review In DEV", "Approved In Dev", "Review In STG", "Approved In STG")
+# Regla compartida con los runners de Node (una sola implementación de la regla).
+HELPER = RAIZ / "scripts" / "historia-item.mjs"
 
-# Formato de la línea de tarea: el MISMO que leen el gate de cierre y el manifiesto de
-# cobertura (`scripts/consolidar-marcas-tasks.mjs`): id con o sin negrita (`- [ ] T001`,
-# `- [ ] **T001**`), tareas indentadas y viñeta `*`. Si este lector acepta menos formatos que
-# el gate, las tareas que no ve quedan invisibles para la cobertura (historia cerrada reportada
-# como no entregada).
-TAREA = re.compile(r"^\s*[-*]\s*\[([ xX])\]\s*\*{0,2}(T\d+[A-Za-z]*)\b\*{0,2}(.*)$")
 
 # Una tarea es de PANTALLA si el texto habla de UI (ruta, pantalla, componente, modal, botón…).
 PANTALLA = re.compile(
@@ -78,7 +82,6 @@ def _menciona(epica, texto):
 
 def _rama_de_epica(epica):
     """Rama de la épica (`epic/MSF-xxx-...`) si existe en el remoto."""
-    import subprocess
     try:
         out = subprocess.run(["git", "ls-remote", "--heads", "origin", f"epic/{epica}-*"],
                              capture_output=True, text=True, timeout=30).stdout
@@ -89,6 +92,26 @@ def _rama_de_epica(epica):
         if ref:
             return ref
     return None
+
+
+def items_de(contenido):
+    """Ítems de un tasks.md con la MISMA regla que los runners de Node.
+
+    Delega en `scripts/historia-item.mjs` para no tener dos copias de la regla: de ahí
+    sale la historia de cada ítem (su código `F-XX-NN`) y el motivo por el que su
+    descripción no alcanza.
+    """
+    node = shutil.which("node")
+    if not node:
+        raise RuntimeError("hace falta `node` en el PATH para leer los ítems con la regla compartida")
+    r = subprocess.run([node, str(HELPER), "--stdin"], input=contenido,
+                       capture_output=True, text=True, timeout=120)
+    if r.returncode != 0:
+        raise RuntimeError(f"historia-item.mjs falló: {r.stderr.strip()[:200]}")
+    return [{"id": i["id"], "hecha": i["hecho"], "texto": i["texto"][:300],
+             "historia": i["historia"], "motivo": i["motivo"],
+             "requiere_descripcion": i["requiereDescripcion"]}
+            for i in json.loads(r.stdout)]
 
 
 def tareas_de_epica(epica):
@@ -103,7 +126,6 @@ def tareas_de_epica(epica):
     rama = _rama_de_epica(epica)
     if not rama:
         return None, []
-    import subprocess
     try:
         files = subprocess.run(["git", "ls-tree", "-r", "--name-only", f"origin/{rama}"],
                                capture_output=True, text=True, timeout=40).stdout.splitlines()
@@ -123,16 +145,7 @@ def tareas_de_epica(epica):
                                 capture_output=True, text=True, timeout=40).stdout
         except Exception:
             tt = ""
-        d = Path(spec_path).parent
-        out = []
-        for ln in tt.splitlines():
-            m = TAREA.match(ln)
-            if m:
-                txt = m.group(3)[:300]
-                cod = re.search(r"\[(F-[A-Z0-9]+-\d+)\]", txt)
-                out.append({"id": m.group(2), "hecha": m.group(1).lower() == "x", "texto": txt,
-                            "historia": cod.group(1) if cod else ""})
-        return d, out
+        return Path(spec_path).parent, items_de(tt)
     return None, []
 
 
@@ -153,12 +166,7 @@ def tareas_de(spec_dir):
     tasks = spec_dir / "tasks.md"
     if not tasks.exists():
         return []
-    out = []
-    for ln in tasks.read_text(errors="ignore").splitlines():
-        m = TAREA.match(ln)
-        if m:
-            out.append({"id": m.group(2), "hecha": m.group(1).lower() == "x", "texto": m.group(3)[:300]})
-    return out
+    return items_de(tasks.read_text(errors="ignore"))
 
 
 def main():
@@ -197,33 +205,41 @@ def main():
         base_hist = [c for c, ts_h in historias.items()
                      if not all(t["hecha"] for t in ts_h)
                      and c not in faltan_hist
+                     and not all(t["motivo"] for t in ts_h)
                      and not any((e, t["id"]) in rotulados for t in ts_h)]
+        # Ítems PENDIENTES cuya descripción no alcanza: el runner no puede derivar sus criterios,
+        # así que no se cuentan como «sólo base de datos» (degradar en silencio) sino aparte.
+        # Los ya hechos no cuentan: no hay nada que escribir (los de cierre o de specs de
+        # plantilla no llevan código de historia por diseño).
+        sin_descripcion = [t for t in ts if t["requiere_descripcion"]]
         filas.append({"epica": e, "spec": d.name, "historias": len(historias),
                       "sin_e2e": len(faltan_hist), "solo_base": len(base_hist),
+                      "sin_descripcion": len(sin_descripcion),
                       "codigos": faltan_hist[:8], "hechas": sum(1 for t in ts if t["hecha"])})
-        pass
     filas.sort(key=lambda f: -(f.get("sin_e2e", 0)))
     if md:
-        print("| Épica | Spec | Historias | Tareas hechas | **Historias SIN E2E (con video)** | Solo base de datos |")
-        print("|---|---|---|---|---|---|")
+        print("| Épica | Spec | Historias | Tareas hechas | **Historias SIN E2E (con video)** | Solo base de datos | Ítems pendientes sin descripción |")
+        print("|---|---|---|---|---|---|---|")
         for f in filas:
             if f.get("sin_spec"):
-                print(f"| {f['epica']} | — (sin spec en el repo) | — | — | — | — |")
+                print(f"| {f['epica']} | — (sin spec en el repo) | — | — | — | — | — |")
             else:
-                print(f"| {f['epica']} | {f['spec']} | {f['historias']} | {f['hechas']} | **{f['sin_e2e']}** | {f['solo_base']} |")
+                print(f"| {f['epica']} | {f['spec']} | {f['historias']} | {f['hechas']} | **{f['sin_e2e']}** | {f['solo_base']} | {f['sin_descripcion']} |")
         tot_p = sum(f.get("sin_e2e", 0) for f in filas)
         tot_b = sum(f.get("solo_base", 0) for f in filas)
-        print(f"\n**Total: {tot_p} historias necesitan un E2E (con video) y {tot_b} son sólo base de datos (pgTAP, sin video).**")
+        tot_d = sum(f.get("sin_descripcion", 0) for f in filas)
+        print(f"\n**Total: {tot_p} historias necesitan un E2E (con video), {tot_b} son sólo base de datos (pgTAP, sin video) y {tot_d} ítems pendientes no tienen descripción utilizable.**")
     else:
         for f in filas:
             if f.get("sin_spec"):
                 print(f"{f['epica']}  — sin spec en el repo")
                 continue
             print(f"{f['epica']:9s} {f['spec'][:32]:32s} historias={f['historias']:3d} hechas={f['hechas']:3d} "
-                  f"SIN E2E={f['sin_e2e']:3d} (base {f['solo_base']:3d})  {','.join(f['codigos'][:5])}")
+                  f"SIN E2E={f['sin_e2e']:3d} (base {f['solo_base']:3d})  sin descr.={f['sin_descripcion']:3d}  {','.join(f['codigos'][:5])}")
         tot_p = sum(f.get("sin_e2e", 0) for f in filas)
         tot_b = sum(f.get("solo_base", 0) for f in filas)
-        print(f"\nTOTAL: {tot_p} historias necesitan E2E (con video) + {tot_b} sólo base de datos (pgTAP, sin video)")
+        tot_d = sum(f.get("sin_descripcion", 0) for f in filas)
+        print(f"\nTOTAL: {tot_p} historias necesitan E2E (con video) + {tot_b} sólo base de datos (pgTAP, sin video) + {tot_d} ítems pendientes sin descripción utilizable")
 
 
 if __name__ == "__main__":
