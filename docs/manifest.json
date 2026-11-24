@@ -883,12 +883,12 @@
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
-      "pageHash": "13674897fbc3fd283adc7a67dd043103614cd49e832214d790319d5682860958",
+      "pageHash": "e8c16e911702ff3cae7f666ac9ce1882b49e83d66f590c70baa68e138ea229b3",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "882abece"
+      "commit": "4b582aa76"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
