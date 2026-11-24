@@ -2,7 +2,7 @@
 # tienda y el consolidado. Sin filas con la bandera `margen_costos_fijos` apagada. Solo totales: nunca el detalle de un gasto (CA-GAS-22).
 table_name: margen_costos_fijos_empresa_mes
 main_dttm_col: mes
-description: Por empresa y mes: ventas netas, costos fijos, margen vigente, margen después de fijos y «Sin atribuir» (F-GAS-03).
+description: "Por empresa y mes: ventas netas, costos fijos, margen vigente, margen después de fijos y «Sin atribuir» (F-GAS-03)."
 default_endpoint: null
 offset: 0
 cache_timeout: null
