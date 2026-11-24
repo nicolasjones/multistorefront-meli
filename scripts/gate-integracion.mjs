@@ -365,6 +365,9 @@ function ramaPorDefectoDe({ repo, detalles }) {
 
 // Commits que la rama head tiene de menos contra la base (0 si no está atrás).
 function atrasDe({ repo = REPO_POR_DEFECTO, base, head }) {
+  if (!esRamaValida(base) || !esRamaValida(head)) {
+    throw new Error(`Rama inválida para comparar: ${base}...${head}.`);
+  }
   const comparacion = gh(['api', `repos/${repo}/compare/${base}...${head}`]);
   if (!comparacion.ok || !comparacion.data) {
     throw new Error(`No se pudo comparar ${base}...${head}: ${comparacion.error || `HTTP ${comparacion.http}`}.`);
@@ -403,7 +406,7 @@ function main() {
   const args = process.argv.slice(2);
   const valorDe = (flag, def) => {
     const i = args.indexOf(flag);
-    return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : def;
+    return i >= 0 && args[i + 1] && !args[i + 1].startsWith('-') ? args[i + 1] : def;
   };
   const repo = valorDe('--repo', process.env.GITHUB_REPOSITORY || REPO_POR_DEFECTO);
   const base = valorDe('--base', RAMA_POR_DEFECTO);
@@ -418,6 +421,11 @@ function main() {
     return 2;
   }
 
+  if (args.includes('--pr') && !pr) {
+    console.error('--pr inválido: se espera un número o URL de PR (no un valor que empiece con «-»).');
+    return 2;
+  }
+
   let head = null;
   if (pr) {
     const vista = gh(['pr', 'view', pr, '--repo', repo, '--json', 'headRefName']);
@@ -426,6 +434,11 @@ function main() {
       return 2;
     }
     head = vista.data.headRefName;
+    // El nombre de la rama viene de la API y se interpola en `compare/${base}...${head}`.
+    if (!esRamaValida(head)) {
+      console.error(`La rama del PR no es un nombre de rama válido: «${head}».`);
+      return 2;
+    }
   }
 
   let gate;

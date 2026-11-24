@@ -275,6 +275,14 @@ describe('validación de argumentos (se interpolan en la ruta de la API)', () =>
     assert.equal(r2.status, 2);
     assert.match(r2.stderr, /--base inválido/);
   });
+
+  it('un --pr que empieza con «-» se rechaza (no se pasa a `gh` como opción)', () => {
+    for (const valor of ['-R', '--web', '-1']) {
+      const r = correr('--pr', valor);
+      assert.equal(r.status, 2, valor);
+      assert.match(r.stderr, /--pr inválido/);
+    }
+  });
 });
 
 describe('estadoDeGh (código de salida y cuerpo → estado HTTP)', () => {
