@@ -158,9 +158,31 @@ export function mapearPagina(fila: FilaPagina): PaginaCatalogo {
   }
 }
 
-// «$ 18.455»: pesos enteros con punto de miles (es-AR). Se agrupa a mano porque Intl `es-AR` no agrupa
-// los números de 4 dígitos. Sin precio calculable no se muestra nada (D9).
+// Política de precios de la tienda: se muestran AL CENTAVO, igual que el comprobante (la base redondea cada precio final a
+// dos decimales con `private.aplicar_iva`). Un precio en pesos justos se muestra sin decimales («$ 18.455», como el
+// prototipo) y uno con centavos los muestra siempre con dos («$ 18.455,50»): nunca se redondea al peso. Se agrupa a mano
+// porque Intl `es-AR` no agrupa los números de 4 dígitos. Sin precio calculable no se muestra nada (D9).
 export function formatearPrecioArs(precio: number | null): string | null {
   if (precio === null) return null
-  return `$ ${Math.round(precio).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
+  const centavos = centavosDe(precio)
+  const negativo = centavos < 0
+  const absoluto = Math.abs(centavos)
+  const enteros = Math.trunc(absoluto / 100).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const resto = absoluto % 100
+  return `${negativo ? '-' : ''}$ ${enteros}${resto === 0 ? '' : `,${String(resto).padStart(2, '0')}`}`
+}
+
+// Un importe en pesos con hasta dos decimales, en centavos enteros (evita acumular errores de coma flotante).
+export function centavosDe(importe: number): number {
+  return Math.round(importe * 100)
+}
+
+// Subtotal de una línea al centavo: precio unitario (ya al centavo) por una cantidad entera.
+export function subtotalLinea(precioUnitario: number, cantidad: number): number {
+  return (centavosDe(precioUnitario) * cantidad) / 100
+}
+
+// Total de referencia de la lista: suma de subtotales de línea en centavos enteros, igual que el presupuesto.
+export function totalLista(lineas: ReadonlyArray<{ precioUnitario: number; cantidad: number }>): number {
+  return lineas.reduce((suma, linea) => suma + centavosDe(linea.precioUnitario) * linea.cantidad, 0) / 100
 }

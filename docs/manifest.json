@@ -55,9 +55,9 @@
     },
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
-      "pageHash": "fe206379780bf173812761572fceea0c52623b34b2ad9bbab37382bd9d2934d5",
+      "pageHash": "7d0963133b6619b83550a03d6552c492bb24720753c7bb5222aa31dcea2bdf12",
       "sourceHash": "837af6c2d48b503ee09afd13071af25df68482fc9b53a9cd1cbdfc7c36ca4e9e",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -78,7 +78,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -558,9 +558,9 @@
     },
     "docs/clientes.md": {
       "title": "Clientes (MSF-180)",
-      "pageHash": "65a8f652c881b936b6389db0facd262c3d3a477e82ee3c842d0780a8a08d9c19",
-      "sourceHash": "a210d1e4b9d285612552b5e1bec980ea244850fba57fc3b04e267e2506bb6399",
-      "sourceAt": "63051148",
+      "pageHash": "b6dce67a70a26a2bf88a730da8ae9923f439dba0bcf21607854a50d2589a8c5e",
+      "sourceHash": "ff2b14e3f889c952e2bb5ece54ff59be07a356c375936741083d82e0214a1518",
+      "sourceAt": "eedac66a",
       "sources": [
         "specs/20261016-130000-clientes-alta-y-busqueda",
         "specs/20261023-120000-migracion-inicial-de-datos",
@@ -602,13 +602,13 @@
         "supabase/migrations/20270507180100_revertir_cobro.sql"
       ],
       "owner": "producto",
-      "commit": "63051148"
+      "commit": "eedac66a"
     },
     "docs/cobros-por-comprobante.md": {
       "title": "Ventas · Cobros por comprobante (F-VTA-12)",
-      "pageHash": "e9883edccc6a46b842e06dd074702fdcf090a2a274179bf5b3e9dc34c637d11c",
-      "sourceHash": "f347f544367b7ca26fbbe7e52348484ef03038e29d3e8fe5543926d084ed1f2c",
-      "sourceAt": "5ac918aa",
+      "pageHash": "7530902c0682060f95bb8c5dc943162c7f90375b6fa80246c4305f650cd5cb1e",
+      "sourceHash": "115ed3173a2b19cb5dc31a4118b83331b6aa82bca4e113e6ef563232aaa07916",
+      "sourceAt": "eedac66a",
       "sources": [
         "specs/20261024-150000-ventas-cobros-y-conciliacion",
         "scripts/verificar-migraciones.mjs",
@@ -624,7 +624,7 @@
         "supabase/migrations/20270507180800_pagos_netean_cobros_revertidos.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "eedac66a"
     },
     "docs/configuracion-dolar-y-precio-propio.md": {
       "title": "Configuración del dólar y precio propio (épica MSF-352)",
@@ -661,9 +661,9 @@
     },
     "docs/consultas.md": {
       "title": "Consultas: bandeja y aviso (MSF-122)",
-      "pageHash": "ad7508b6f4ed600a947f322793e91ebd3bb8ba769402bbab52a4b2bf443f8568",
+      "pageHash": "60da9bcb4a26081e36065543ed679f90a8f2381c966b67002a5cf261ad1895a7",
       "sourceHash": "71a6e52387abf98131f59de4fa92df755b8aea082430934f1636bd9f6af2f22d",
-      "sourceAt": "da68ec33",
+      "sourceAt": "eedac66a",
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -674,7 +674,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33"
+      "commit": "eedac66a"
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -1003,9 +1003,9 @@
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
-      "pageHash": "f5c75c6daf5caade63a20f28123e7b00ad1020ec9cde7c61a84dd33fbd4cc940",
+      "pageHash": "0df8ef3b0ab2cd2ea505bc8328a51542d29242f3a9593c32969206d151514be9",
       "sourceHash": "e67d70d021e7e37dabc779571cb12ec3b3554d6069a72ff005e79383bef9c83d",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx",
@@ -1025,13 +1025,13 @@
         "supabase/tests/database/consultas.test.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
-      "pageHash": "b4c43ed7ed53c7ca7128280e7b42fcb2629b6c372b2f9141a6380046c64ef8e3",
+      "pageHash": "ac5270fa91c2fbc93aa1fbcb9257caeafe71c1af79d73d20a7bf4a63cdea292c",
       "sourceHash": "d4f5c42043b87b4ff4fb1f0f25d8798260f83a32752392db3008d70974c8b57f",
-      "sourceAt": "e55825f7",
+      "sourceAt": "eedac66a",
       "sources": [
         "specs/20261012-140000-empresas",
         "specs/20261015-100000-alta-de-empresas",
@@ -1052,7 +1052,7 @@
         "apps/web/e2e/avisos-acceso.e2e.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "eedac66a"
     },
     "docs/entregar-sistema.md": {
       "title": "Entregar el sistema: checklist",
@@ -1178,9 +1178,9 @@
     },
     "docs/higiene-base-datos.md": {
       "title": "Higiene y endurecimiento de la base de datos (lote 33)",
-      "pageHash": "04ff5214ab618911c5a049a23a4acb39b6027106bd38ae16dd99d42143606480",
+      "pageHash": "9149a319763159acefa77ce22743250ec15065f787178ffcb12172e21f46cc4e",
       "sourceHash": "e5f33fd1781e902e02d030504a38abe0169020c49684eeb4606dd3f7e2d63446",
-      "sourceAt": "2838b473",
+      "sourceAt": "eedac66a",
       "sources": [
         "supabase/migrations/20270507190000_indices_en_claves_foraneas_public.sql",
         "supabase/migrations/20270507190100_indices_en_claves_foraneas_dominio.sql",
@@ -1196,7 +1196,7 @@
         "scripts/analizar-definer-search-path.mjs"
       ],
       "owner": "plataforma",
-      "commit": "2838b473"
+      "commit": "eedac66a"
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
@@ -1295,16 +1295,16 @@
     },
     "docs/iva-precio-final.md": {
       "title": "IVA por categoría y precio final (F-PRE-12 · MSF-200)",
-      "pageHash": "f7d9966a78ecd7a4cc7f1219f914aa1d10f22006da98376f34ad21c99fc5bd9f",
+      "pageHash": "1f22b145336b62d9c501b8fcbf434aff59e6b6a16670ee0b7649a71d5a83b007",
       "sourceHash": "3dd9149606197999f494b4492abedaf0c89d61955715474bd2bfcb525012bcbb",
-      "sourceAt": "5ac918aa",
+      "sourceAt": "eedac66a",
       "sources": [
         "apps/web/src/lib/iva.ts",
         "supabase/migrations/20270507180200_aplicar_iva_al_centavo.sql",
         "supabase/migrations/20261022140200_precios_empresa_iva.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "eedac66a"
     },
     "docs/listados.md": {
       "title": "Listados: carga infinita e imagen de producto",
@@ -1640,15 +1640,15 @@
     },
     "docs/producto/actividad.md": {
       "title": "Consultar la actividad: quién hizo qué y cuándo",
-      "pageHash": "b4f46da17d8001cd75fa4eebc98b05f6e9796f3bd4a567c9eafabd7a162d0588",
+      "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
       "sourceHash": "127bc177a540916df231fae0330bbac9ebb73ad1fd5557139c8b4c4eb4cc0ffa",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -1731,9 +1731,9 @@
     },
     "docs/producto/catalogo-costo-y-disponibilidad.md": {
       "title": "Catálogo: costo y disponibilidad (MSF-179)",
-      "pageHash": "9b3d42caef84bdedfea3842877c92149adf0ee316e01be793f5beb6e33412e82",
+      "pageHash": "6a816ac75adc00163b53a981d267a27ed89af089fe7955ad3bbdeac1d1bd49b0",
       "sourceHash": "049927f9755ed69d055a115efd2d9eb8013f472a100dcbb80ee9388d1b8aaf79",
-      "sourceAt": "da68ec33",
+      "sourceAt": "eedac66a",
       "sources": [
         "specs/20261022-120000-catalogo-costo-y-disponibilidad",
         "apps/web/e2e/catalogo-costo-disponibilidad.e2e.ts",
@@ -1742,7 +1742,7 @@
         "apps/web/src/components/productos/FormularioProducto.tsx"
       ],
       "owner": "producto",
-      "commit": "da68ec33"
+      "commit": "eedac66a"
     },
     "docs/producto/catalogo-listado-y-categorias.md": {
       "title": "Catálogo: listado y categorías (MSF-160)",
@@ -1799,9 +1799,9 @@
     },
     "docs/producto/clientes.md": {
       "title": "Clientes",
-      "pageHash": "f9814efb1bfbd5fc551d59ff11cbace3755c0abaa2ce8abb8d8bbac6a8df9d69",
-      "sourceHash": "ea658f9412a1f8724b1072f5cfb60e22bb1c0187064b86c315b6aefd38bb6e74",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "f8e4c1b11afcdb648a9329c27a5c9f2c5127785fc8c8ddc150cec8512dd97dd5",
+      "sourceHash": "1f8b742204114109578eb3e14b8a3bbdd5bac24be71354eb805bcb1213cdaac3",
+      "sourceAt": "eedac66a",
       "sources": [
         "apps/web/src/pages/clientes/list.tsx",
         "apps/web/src/pages/clientes/create.tsx",
@@ -1812,7 +1812,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "07a6ae4a"
+      "commit": "eedac66a"
     },
     "docs/producto/consultas.md": {
       "title": "Consultas de las tiendas online",
@@ -2256,16 +2256,16 @@
     },
     "docs/producto/stock-lotes-e-inventario.md": {
       "title": "Cargar mercadería en lote y hacer la toma de inventario",
-      "pageHash": "144af5b93d31df49a7f555e9ea92985349a28b33d9ccb63f3e8c553db060a055",
-      "sourceHash": "539864edc87811ca16ea5fd4eda0f763e911bc9c00a79e7bc6da191380bc74c8",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "3e7d1f0dbebb7b3c3163c0588e7a161f6770a0b88fc494293c6001ee777caee9",
+      "sourceHash": "199785731d4512919083d35466560897240ee83d3081a9a53f3748ec3bf9d302",
+      "sourceAt": "eedac66a",
       "sources": [
         "apps/web/src/pages/stock/lote.tsx",
         "apps/web/src/pages/stock/toma-inventario.tsx",
         "apps/web/src/lib/tomaInventario.ts"
       ],
       "owner": "producto",
-      "commit": "07a6ae4a"
+      "commit": "eedac66a"
     },
     "docs/producto/stock-movimientos.md": {
       "title": "Stock: ver, mover y controlar",
@@ -2397,15 +2397,15 @@
     },
     "docs/producto/ventas-cobros-y-conciliacion.md": {
       "title": "Registrar cobros y controlar los pagos",
-      "pageHash": "56a768ff35b6a972c57046881166e8a489000d170a3c43d9c166012850a615f3",
-      "sourceHash": "46ec28d7c671932a44fc07a70d95a54757aac7675b68e132c1af9695c96cd46d",
-      "sourceAt": "5ac918aa",
+      "pageHash": "46a3b8bb5ab945e0e95295e02eae202b3b9c1f5743eab83b4ae80f3a95abbf91",
+      "sourceHash": "aadbbe8c015b4e4ba298ae33cb0b9b0153bb5c8cbee15362d8df5d356b614b22",
+      "sourceAt": "eedac66a",
       "sources": [
         "apps/web/src/pages/ventas/pagos/list.tsx",
         "apps/web/src/components/ventas/CobrosComprobante.tsx"
       ],
       "owner": "producto",
-      "commit": "5ac918aa"
+      "commit": "eedac66a"
     },
     "docs/producto/ventas-comprobantes.md": {
       "title": "Crear un presupuesto o una factura",
@@ -4547,9 +4547,9 @@
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
-      "pageHash": "de90507c452457dde362c20b9c3a34b9a7241658a9f79bca6187c0d64a756cba",
+      "pageHash": "1c5612d5a716176a2e6085631c615cd0f514266c8a7fd1672dc5b77e4704ecbc",
       "sourceHash": "c3952bbfbcfd49f055e92afd2e5743c27a21ffbe2062803cb1d7100153950403",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations/20261016140100_roles_por_empresa.sql",
@@ -4574,7 +4574,7 @@
         "apps/web/e2e/permisos-por-empresa.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",

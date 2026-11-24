@@ -32,7 +32,7 @@ test.describe('Ventas · venta de mostrador con lector (MSF-329, SC-001)', () =>
       organizacionId = org.id
       const [empresa] = await rest<{ id: string }>(
         'empresas',
-        { organizacion_id: org.id, nombre: `Tienda Mostrador ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345678' },
+        { organizacion_id: org.id, nombre: `Tienda Mostrador ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345671' },
         'dominio',
       )
       usuarioId = await altaUsuario(correo)

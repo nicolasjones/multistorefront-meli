@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   categorias: vi.fn(),
   filas: vi.fn(),
   confirmar: vi.fn(),
-  deposito: vi.fn(),
+  depositos: vi.fn(),
   from: vi.fn(),
 }))
 
@@ -22,14 +22,23 @@ vi.mock('../../lib/tomaInventario', async (importarOriginal) => ({
   ...(await importarOriginal<typeof import('../../lib/tomaInventario')>()),
   cargarFilasToma: mocks.filas,
   confirmarToma: mocks.confirmar,
-  cargarDepositoToma: mocks.deposito,
+}))
+vi.mock('../../lib/depositos', async (importarOriginal) => ({
+  ...(await importarOriginal<typeof import('../../lib/depositos')>()),
+  listarDepositosActivos: mocks.depositos,
 }))
 
 import { TomaInventario } from './toma-inventario'
+import { notificarEmpresaActivaCambiada } from '../../lib/empresaActivaRevision'
 
 const CATEGORIAS = [
   { id: 'c-1', nombre: 'Periféricos', padre_id: null, posicion: 0, empresa_ids: [] },
   { id: 'c-2', nombre: 'Vacía', padre_id: null, posicion: 1, empresa_ids: [] },
+]
+
+const DEPOSITOS = [
+  { id: 'd-1', nombre: 'Casa central', por_defecto: true },
+  { id: 'd-2', nombre: 'Sucursal Norte', por_defecto: false },
 ]
 
 const FILAS = [
@@ -54,7 +63,7 @@ describe('TomaInventario', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mocks.nivel.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.categorias.mockResolvedValue(CATEGORIAS)
-    mocks.deposito.mockResolvedValue({ id: 'dep-1', nombre: 'Depósito central' })
+    mocks.depositos.mockResolvedValue(DEPOSITOS)
     mocks.filas.mockImplementation(async (ids: string[]) => (ids.includes('c-2') ? [] : FILAS))
     mocks.confirmar.mockResolvedValue([
       { producto: 'p-2', diferencia: -3, saldo: 2, movimiento_id: 'm-1' },
@@ -70,24 +79,23 @@ describe('TomaInventario', () => {
     }
     expect(within(tabla).getAllByRole('row')).toHaveLength(5)
     expect(within(tabla).getByText('JOY-1')).toBeInTheDocument()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false)
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false, 'd-1')
   })
 
   it('muestra el depósito de la toma y ofrece «Sin categoría»', async () => {
     mocks.filas.mockResolvedValue(FILAS)
     await abrir('Sin categoría')
-    expect(await screen.findByDisplayValue('Depósito central')).toBeDisabled()
+    expect(await screen.findByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Casa central (principal)')
     expect(await screen.findByRole('table', { name: 'Productos de la toma de inventario' })).toBeInTheDocument()
-    expect(mocks.filas).toHaveBeenCalledWith([], true)
+    expect(mocks.filas).toHaveBeenCalledWith([], true, 'd-1')
   })
 
   it('si falla la carga del depósito avisa con «Reintentar» y al reintentar lo muestra', async () => {
-    mocks.deposito.mockRejectedValueOnce(new Error('red caída'))
+    mocks.depositos.mockRejectedValueOnce(new Error('red caída'))
     render(<MemoryRouter><TomaInventario /></MemoryRouter>)
-    expect(await screen.findByText('No pudimos cargar el depósito sobre el que opera la toma.')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findByDisplayValue('Depósito central')).toBeInTheDocument()
-    expect(screen.queryByText('No pudimos cargar el depósito sobre el que opera la toma.')).not.toBeInTheDocument()
+    expect(await screen.findByText('No pudimos cargar esta información.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Reintentar/ }))
+    expect(await screen.findByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Casa central (principal)')
   })
 
   it('una categoría sin productos muestra el estado vacío', async () => {
@@ -130,7 +138,7 @@ describe('TomaInventario', () => {
     expect(mocks.confirmar).toHaveBeenCalledWith([
       { producto: 'p-2', contado: 2 },
       { producto: 'p-4', contado: 4 },
-    ])
+    ], 'd-1')
   })
 
   it('muestra el resultado con los ajustes generados (producto, diferencia, saldo)', async () => {
@@ -173,6 +181,66 @@ describe('TomaInventario', () => {
     await abrir()
     await screen.findByRole('table')
     expect(mocks.from).not.toHaveBeenCalled()
-    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false)
+    expect(mocks.filas).toHaveBeenCalledWith(['c-1'], false, 'd-1')
+  })
+
+  it('ofrece el depósito principal elegido y lo lista junto a los demás', async () => {
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    const selector = await screen.findByRole('combobox', { name: 'Depósito' })
+    expect(selector).toHaveTextContent('Casa central (principal)')
+    fireEvent.mouseDown(selector)
+    const opciones = within(screen.getByRole('listbox')).getAllByRole('option').map((opcion) => opcion.textContent)
+    expect(opciones).toEqual(['Casa central (principal)', 'Sucursal Norte'])
+  })
+
+  it('cambiar de depósito recarga los productos con el stock de ese depósito y descarta lo contado', async () => {
+    await abrir()
+    await screen.findByRole('table')
+    contar('Teclado', '2')
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito' }))
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Sucursal Norte' }))
+    await waitFor(() => expect(mocks.filas).toHaveBeenLastCalledWith(['c-1'], false, 'd-2'))
+    await screen.findByRole('table')
+    expect(screen.getByLabelText('Contado de Teclado')).toHaveValue('')
+  })
+
+  it('confirma la toma sobre el depósito elegido', async () => {
+    await abrir()
+    await screen.findByRole('table')
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Depósito' }))
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Sucursal Norte' }))
+    await screen.findByRole('table')
+    contar('Teclado', '2')
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar' }))
+    await waitFor(() => expect(mocks.confirmar).toHaveBeenCalledTimes(1))
+    expect(mocks.confirmar).toHaveBeenCalledWith([{ producto: 'p-2', contado: 2 }], 'd-2')
+    expect(await screen.findByText(/en Sucursal Norte/)).toBeInTheDocument()
+  })
+
+  it('al cambiar la empresa activa recarga los depósitos y los productos y descarta lo contado', async () => {
+    await abrir()
+    await screen.findByRole('table')
+    contar('Teclado', '2')
+    const llamadasDepositos = mocks.depositos.mock.calls.length
+    const llamadasFilas = mocks.filas.mock.calls.length
+    act(() => notificarEmpresaActivaCambiada())
+    await waitFor(() => expect(mocks.depositos.mock.calls.length).toBeGreaterThan(llamadasDepositos))
+    await waitFor(() => expect(mocks.filas.mock.calls.length).toBeGreaterThan(llamadasFilas))
+    await waitFor(() => expect(screen.getByLabelText('Contado de Teclado')).toHaveValue(''))
+  })
+
+  it('si el depósito elegido ya no existe tras recargar, vuelve al principal', async () => {
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    fireEvent.mouseDown(await screen.findByRole('combobox', { name: 'Depósito' }))
+    fireEvent.click(within(screen.getByRole('listbox')).getByRole('option', { name: 'Sucursal Norte' }))
+    mocks.depositos.mockResolvedValue([DEPOSITOS[0]])
+    act(() => notificarEmpresaActivaCambiada())
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Depósito' })).toHaveTextContent('Casa central (principal)'))
+  })
+
+  it('sin depósitos activos avisa y no ofrece contar', async () => {
+    mocks.depositos.mockResolvedValue([])
+    render(<MemoryRouter><TomaInventario /></MemoryRouter>)
+    expect(await screen.findByText('No hay depósitos activos')).toBeInTheDocument()
   })
 })
