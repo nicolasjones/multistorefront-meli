@@ -2,12 +2,12 @@
   "pages": {
     "docs/README.md": {
       "title": "Documentación",
-      "pageHash": "7ab4070f30064168f6d62da5fb4e49059ca8431e701e4ca8cb9f27abaf0e9074",
+      "pageHash": "bf3c3785495503960aeebeb269ccfbca6264cf695bb1e9904103094d8a921460",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "c98d07a9"
+      "commit": "f6bcc67d"
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
@@ -4109,6 +4109,17 @@
       ],
       "owner": "tecnico",
       "commit": "53cb4c30"
+    },
+    "docs/tecnico/gates-vitalidad.md": {
+      "title": "Gates del tracker: la fecha de vencimiento",
+      "pageHash": "92360b1e3af97f84c141c240caef5cd4028bf4196a00689f210baa7bd41f3968",
+      "sourceHash": "c3ea4bcfac36937534c83d23e967fc5c9790d62fc988d07e9b67bc20f0240b56",
+      "sourceAt": "2f467182",
+      "sources": [
+        "scripts/vencimientos-gates.mjs"
+      ],
+      "owner": "operacion",
+      "commit": "2f467182"
     },
     "docs/tecnico/importaciones-y-monitoreo.md": {
       "title": "Importaciones y monitoreo (MSF-206)",
