@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import path from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn(), createSignedUrl: vi.fn() }))
@@ -65,7 +65,8 @@ describe('elegibilidad (FR-002, FR-011, FR-012)', () => {
 
 describe('estados vivos de la factura frente a la base', () => {
   it('ESTADOS_FACTURA_VIVA es exactamente el conjunto del predicado de la última migración de solicitar_documento_comprobante', () => {
-    const carpeta = fileURLToPath(new URL('../../../../supabase/migrations/', import.meta.url))
+    // Vitest corre desde apps/web.
+    const carpeta = `${path.resolve(process.cwd(), '../../supabase/migrations')}/`
     const definen = readdirSync(carpeta)
       .filter((f) => f.endsWith('.sql'))
       .sort()
