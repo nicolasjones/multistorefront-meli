@@ -76,6 +76,18 @@ class ReporteCoberturaPorEpica(unittest.TestCase):
         self.assertEqual(por_id["T004"]["motivo"], "sin historia")
         self.assertEqual(por_id["T005"]["motivo"], "sin texto")
 
+    def test_el_texto_largo_se_corta_de_forma_explicita(self):
+        corto = "a" * self.mod.MAX_TEXTO_ITEM
+        self.assertEqual(self.mod.acortar_texto(corto), corto)
+        largo = self.mod.acortar_texto("b" * (self.mod.MAX_TEXTO_ITEM + 50))
+        self.assertEqual(len(largo), self.mod.MAX_TEXTO_ITEM)
+        self.assertTrue(largo.endswith(self.mod.MARCA_TRUNCADO))
+        (self.spec_dir / "tasks.md").write_text(
+            "- [ ] T001 [F-DEMO-01][US1] Pantalla de clientes " + "x" * 400 + "\n")
+        item = self.mod.tareas_de(self.spec_dir)[0]
+        self.assertEqual(len(item["texto"]), self.mod.MAX_TEXTO_ITEM)
+        self.assertTrue(item["texto"].endswith("…"))
+
     def test_el_reporte_cuenta_las_historias_del_working_tree(self):
         salida = self.correr("--epicas", "MSF-999")
         self.assertIn("historias=  4", salida)
