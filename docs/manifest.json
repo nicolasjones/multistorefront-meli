@@ -57,7 +57,7 @@
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "7d0963133b6619b83550a03d6552c492bb24720753c7bb5222aa31dcea2bdf12",
       "sourceHash": "837af6c2d48b503ee09afd13071af25df68482fc9b53a9cd1cbdfc7c36ca4e9e",
-      "sourceAt": "d647ae86",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -78,7 +78,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "d647ae86"
+      "commit": null
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -709,20 +709,21 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "40eecafb053f11cef8237913b376de7ea94debebf7978d376bb7da9ad1f72fb1",
-      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
-      "sourceAt": "f6d80e93",
+      "pageHash": "77a7b8f47129e6c8a97ed13c44b4a2cd716cad5e4c01541b95d17836751e5432",
+      "sourceHash": "9d6dc260f4e13b8fe72fca5043c3596b887bf626975872726af81fb992774e0d",
+      "sourceAt": null,
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
         "scripts/estado-ci.mjs",
+        "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "f6d80e93"
+      "commit": null
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -880,12 +881,12 @@
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
-      "pageHash": "2357d76133d068dc49fe665c6c1d78e762af75736a07002eb442b2fae9c25ec6",
+      "pageHash": "a277349552cc09956ff6a27be1cf98e28ef3d7554734fd74655150cfb2121368",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "882abece"
+      "commit": "d4721f58c"
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -1005,7 +1006,7 @@
       "title": "Empresa activa (F-ROL-06)",
       "pageHash": "0df8ef3b0ab2cd2ea505bc8328a51542d29242f3a9593c32969206d151514be9",
       "sourceHash": "e67d70d021e7e37dabc779571cb12ec3b3554d6069a72ff005e79383bef9c83d",
-      "sourceAt": "7c49050f",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx",
@@ -1025,7 +1026,7 @@
         "supabase/tests/database/consultas.test.sql"
       ],
       "owner": "producto",
-      "commit": "7c49050f"
+      "commit": null
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -1642,13 +1643,13 @@
       "title": "Consultar la actividad: quién hizo qué y cuándo",
       "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
       "sourceHash": "127bc177a540916df231fae0330bbac9ebb73ad1fd5557139c8b4c4eb4cc0ffa",
-      "sourceAt": "7c49050f",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "7c49050f"
+      "commit": null
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -4536,7 +4537,7 @@
       "title": "Permisos por empresa: construcción interna (MSF-121)",
       "pageHash": "1c5612d5a716176a2e6085631c615cd0f514266c8a7fd1672dc5b77e4704ecbc",
       "sourceHash": "c3952bbfbcfd49f055e92afd2e5743c27a21ffbe2062803cb1d7100153950403",
-      "sourceAt": "7c49050f",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations/20261016140100_roles_por_empresa.sql",
@@ -4561,7 +4562,7 @@
         "apps/web/e2e/permisos-por-empresa.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "7c49050f"
+      "commit": null
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
@@ -4829,7 +4830,7 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "be5457e764db3a3f8b2a926aa9adcd1429c6c7b1ff4f94bcdbb565a7587018ab",
+      "pageHash": "905b306de65e431b9347d9d9c522ffeb5e85a1780d1ce678b4490a19324bb1bd",
       "sourceHash": "b382e92f9db6f49c4f4b5e9a6ff8eaa29b2a60547714cd5cf70eea19b12f0039",
       "sourceAt": "6776fb4d3",
       "sources": [
