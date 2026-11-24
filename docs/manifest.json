@@ -57,7 +57,7 @@
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "7d0963133b6619b83550a03d6552c492bb24720753c7bb5222aa31dcea2bdf12",
       "sourceHash": "41a7978fbde3a6f0cf6da06541336f5659b7a658a25f081125ab492dba2820ce",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
         "specs/20261102-100000-auditoria-avanzada-y-soporte",
@@ -78,7 +78,7 @@
         "supabase/migrations/20270507180300_clientes_id_externo_por_organizacion_y_aceptacion_correo.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/administracion-organizacion.md": {
       "title": "Administración de la organización: datos y configuración",
@@ -663,7 +663,7 @@
       "title": "Consultas: bandeja y aviso (MSF-122)",
       "pageHash": "a2178fc30899db520b0e4a07ae8774d3c83197024f3c261189fa473534aa4298",
       "sourceHash": "71a6e52387abf98131f59de4fa92df755b8aea082430934f1636bd9f6af2f22d",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "specs/20261023-120000-consultas-bandeja-y-aviso",
         "specs/20261024-140000-consultas-seguimiento-y-whatsapp",
@@ -674,7 +674,7 @@
         "apps/web/src/lib/presupuestoDesdePedido.ts"
       ],
       "owner": "tecnico",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/contactos.md": {
       "title": "Contactos y respuestas rápidas (MSF-144 · F-CON-05 y F-CON-06)",
@@ -709,20 +709,21 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "c6c673658b7a75c468e7d1171d3fc93dc692ef87f251cc9cf000e8e7b1db4d69",
-      "sourceHash": "150e7aad79d374d2fe5f3a64c27dadd81cff7cb7ce9b4a15b20ff57f35a2f27f",
-      "sourceAt": "2838b473",
+      "pageHash": "06b47f269993beb3ac207e48178f7fa9577ee02afbd4ddb1e030fea55d961b54",
+      "sourceHash": "831e496a6923d228cfd1e47826e37c1acbf0f6389ec613ca8f9d7dd373822abf",
+      "sourceAt": "5717df04d",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
         "scripts/estado-ci.mjs",
+        "scripts/gate-integracion.mjs",
         "scripts/limpiar-ci.mjs",
         "scripts/verificar-workflows.mjs",
         "scripts/verificar-validacion.mjs",
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "2838b473"
+      "commit": "5717df04d"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -880,12 +881,12 @@
     },
     "docs/decisiones-2026-11-17.md": {
       "title": "Decisiones de negocio del 2026-11-17",
-      "pageHash": "48abcbd7c4dc0d4b8b06e9cd7478f9dab606abbb772d69fd839133fae8af217b",
+      "pageHash": "13674897fbc3fd283adc7a67dd043103614cd49e832214d790319d5682860958",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "4b582aa7"
+      "commit": null
     },
     "docs/deployment.md": {
       "title": "Entornos y despliegue",
@@ -1005,7 +1006,7 @@
       "title": "Empresa activa (F-ROL-06)",
       "pageHash": "0df8ef3b0ab2cd2ea505bc8328a51542d29242f3a9593c32969206d151514be9",
       "sourceHash": "e67d70d021e7e37dabc779571cb12ec3b3554d6069a72ff005e79383bef9c83d",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "apps/web/src/components/navegacion/SelectorEmpresaActiva.tsx",
@@ -1025,7 +1026,7 @@
         "supabase/tests/database/consultas.test.sql"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/empresas.md": {
       "title": "Empresas: datos generales y estado de la tienda",
@@ -1067,7 +1068,7 @@
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
       "pageHash": "a98223e242eb7afa254a48fcafdedcd9db4e386b02a1500effb056ef6cd817bb",
       "sourceHash": "b6d258a2728d14311272465a7f655f044cb9ec5b4f76f985387cf3a158ea87bc",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -1078,7 +1079,7 @@
         "supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -1642,13 +1643,13 @@
       "title": "Consultar la actividad: quién hizo qué y cuándo",
       "pageHash": "ebc1a0f55d1a317aa41cd9671806aec73e0ea86e7309f3ffc38306f835884586",
       "sourceHash": "4908f1f9936e16519ce69f07f7385acf8f9c3ca0468fcc419d319562d2ff47a1",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/pages/actividad/list.tsx",
         "apps/web/src/lib/actividad.ts"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/producto/api-y-avisos.md": {
       "title": "API y avisos para conectar otros sistemas",
@@ -1818,12 +1819,12 @@
       "title": "Consultas de las tiendas online",
       "pageHash": "a4b085b5d0453ae76468ea1557dc1c67d969fe4e5ffc1e3b26616aa6554c9435",
       "sourceHash": "96c8d8b1ed80ab84c8a9da714890c4e7b8b151aea5ee5c283dbb5166ad6dfb22",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/pages/consultas"
       ],
       "owner": "producto",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/producto/contactos.md": {
       "title": "Contactos: la libreta de personas",
@@ -2411,14 +2412,14 @@
       "title": "Crear un presupuesto o una factura",
       "pageHash": "de148c5baf0e0217f33b1e410bb45614751d195e5af4d17001f26207eabcb5e7",
       "sourceHash": "a48a9e90057b72a36d1a6fb6f0339f527e51d810a88251563bb7a22ff3d924d8",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/pages/ventas/comprobantes.tsx",
         "apps/web/src/pages/ventas/comprobante.tsx",
         "apps/web/src/pages/ventas/presupuestos.tsx"
       ],
       "owner": "producto",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/producto/ventas-despacho-y-faltantes.md": {
       "title": "Armar, controlar y entregar pedidos, y registrar faltantes",
@@ -4475,9 +4476,9 @@
     },
     "docs/tecnico/operacion.md": {
       "title": "Operación",
-      "pageHash": "154e530b8bd2b345e03de838f273ef4e476c6ca6ca01be58f3d7612b83916b45",
-      "sourceHash": "526c4b4e389a568ee54dd7e3c01b6228908bc2c3cc58b540204a271d92267191",
-      "sourceAt": "6776fb4d",
+      "pageHash": "0ae57847287676b95cb3aa3e0358b7b1939521afe56d8f2d6107ef293ec3bbe2",
+      "sourceHash": "1812a88021664088b90cf785d1566010bc896323bd8b546d3208f80319f95aa4",
+      "sourceAt": "6c8a6bb41",
       "sources": [
         ".github/workflows/validate.yml",
         ".github/workflows/quality.yml",
@@ -4487,10 +4488,11 @@
         "infra/kestra/flows-retirados.txt",
         "infra/kestra/compose.yaml",
         "supabase/functions/_shared/smtp.ts",
-        "scripts/verificar-salida-correo.mjs"
+        "scripts/verificar-salida-correo.mjs",
+        "scripts/auditar-duplicados-tracker.mjs"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "6c8a6bb41"
     },
     "docs/tecnico/organizaciones-nuevas.md": {
       "title": "Organizaciones nuevas: alta, contrato y pruebas (MSF-162)",
@@ -4536,7 +4538,7 @@
       "title": "Permisos por empresa: construcción interna (MSF-121)",
       "pageHash": "1c5612d5a716176a2e6085631c615cd0f514266c8a7fd1672dc5b77e4704ecbc",
       "sourceHash": "c3952bbfbcfd49f055e92afd2e5743c27a21ffbe2062803cb1d7100153950403",
-      "sourceAt": "e55825f7",
+      "sourceAt": null,
       "sources": [
         "specs/20261016-140000-permisos-por-empresa",
         "supabase/migrations/20261016140100_roles_por_empresa.sql",
@@ -4561,7 +4563,7 @@
         "apps/web/e2e/permisos-por-empresa.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7"
+      "commit": null
     },
     "docs/tecnico/precios-e-iva.md": {
       "title": "Precios e IVA: modelo, RPC y cálculo",
@@ -4829,7 +4831,7 @@
     },
     "docs/tecnico/runbooks/ci-trabado.md": {
       "title": "CI trabado",
-      "pageHash": "be5457e764db3a3f8b2a926aa9adcd1429c6c7b1ff4f94bcdbb565a7587018ab",
+      "pageHash": "905b306de65e431b9347d9d9c522ffeb5e85a1780d1ce678b4490a19324bb1bd",
       "sourceHash": "b382e92f9db6f49c4f4b5e9a6ff8eaa29b2a60547714cd5cf70eea19b12f0039",
       "sourceAt": "6776fb4d3",
       "sources": [
@@ -5699,7 +5701,7 @@
       "title": "Ventas · comprobantes (técnico, MSF-159)",
       "pageHash": "ffdf4ed17e94d0651312f90197252c7c96bb0c87579a4bbdfd6b62eec6f78484",
       "sourceHash": "3e2c163b7e9ee57c11b05c282477f6c8d9b38bd8c6fac4f5e73dd3b7f64a2013",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "apps/web/src/lib/ventas.ts",
         "apps/web/src/pages/ventas/comprobante.tsx",
@@ -5723,7 +5725,7 @@
         "supabase/migrations/20270201200103_lineas_descuento.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/tecnico/ventas-despacho-y-faltantes.md": {
       "title": "Ventas · despacho y faltantes (técnico, MSF-135)",
@@ -6154,7 +6156,7 @@
       "title": "Ventas · Comprobantes",
       "pageHash": "d2369fd8b327beca54cf3ca7073da5049e6cf128a1dbf0aa37dad5814388d878",
       "sourceHash": "36c4b8f140d1e483c05a2223af0d95df4b74b350acb2cd8c9c4a154febfa0468",
-      "sourceAt": "5ddc5516",
+      "sourceAt": null,
       "sources": [
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes",
         "apps/web/src/lib/ventas.ts",
@@ -6169,7 +6171,7 @@
         "supabase/migrations/20261203200200_accion_editar_precio.sql"
       ],
       "owner": "tecnico",
-      "commit": "5ddc5516"
+      "commit": null
     },
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
