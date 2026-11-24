@@ -3,17 +3,19 @@
 -- sin referencia y que el resto de la nota se conserva.
 begin;
 
-select plan(7);
+select plan(9);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
   ('22222222-2222-2222-2222-222222222222', 'Organización Dos');
 
 insert into auth.users (id, email) values
-  ('d1000000-0000-0000-0000-000000000001', 'administrador@example.com');
+  ('d1000000-0000-0000-0000-000000000001', 'administrador@example.com'),
+  ('d1000000-0000-0000-0000-000000000002', 'deposito@example.com');
 
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
-  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador');
+  ('d1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'administrador'),
+  ('d1000000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'deposito');
 
 insert into dominio.productos (id, organizacion_id, nombre, sku, precio_lista) values
   ('a1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Joystick Pro', 'JOY-1', 50);
@@ -45,6 +47,13 @@ from (values
 select is((select l.nota from public.listar_movimientos_stock(null, 25, 0) l where l.id = 'b0000000-0000-0000-0000-000000000004'),
   'Reserva comprobante:e2000000-0000-0000-0000-000000000001:linea:1', 'aun sin RLS, el cruce no usa comprobantes de otra organización');
 
+create function pg_temp.como_deposito() returns void language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-0000-0000-000000000002', 'role', 'authenticated')::text, true);
+  set local role authenticated;
+end $$;
+grant execute on function pg_temp.como_deposito() to public;
+
 select set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-0000-0000-000000000001', 'role', 'authenticated')::text, true);
 set local role authenticated;
 
@@ -63,6 +72,20 @@ select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000
 select is((select nota from leidos where id = 'b0000000-0000-0000-0000-000000000005'),
   'Conteo de cierre', 'una nota sin referencia no cambia');
 select is((select count(*) from leidos), 5::bigint, 'siguen apareciendo los cinco movimientos');
+
+-- Rol Depósito de la misma organización: con Ventas en lectura (matriz inicial) ve el número; sin Ventas, la
+-- nota queda como estaba.
+reset role;
+select pg_temp.como_deposito();
+select is((select l.nota from public.listar_movimientos_stock(null, 25, 0) l where l.id = 'b0000000-0000-0000-0000-000000000001'),
+  'Reserva FAC-0005', 'Depósito con Ventas en lectura ve el número del comprobante');
+
+reset role;
+update public.permisos_rol set nivel = 'ninguno'
+ where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'deposito' and seccion = 'ventas';
+select pg_temp.como_deposito();
+select is((select l.nota from public.listar_movimientos_stock(null, 25, 0) l where l.id = 'b0000000-0000-0000-0000-000000000001'),
+  'Reserva comprobante:e1000000-0000-0000-0000-000000000001:linea:1', 'Depósito sin Ventas ve la nota como estaba');
 
 select * from finish();
 rollback;

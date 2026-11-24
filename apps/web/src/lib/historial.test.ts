@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import {
@@ -173,12 +172,12 @@ describe('plantilla de importación del historial', () => {
     expect(contenidoPlantillaHistorial('cobros')).toBe('Tienda,Fecha,Comprobante,Cliente,Número de cliente,Cuenta de cobro,Aprobado por,Importe\n')
   })
 
-  it('cada encabezado existe como columna del importador', () => {
-    const fuente = readFileSync(resolve(process.cwd(), '../../workers/historial-importador/src/campos.ts'), 'utf8')
-    const conocidas = new Set([...fuente.matchAll(/etiqueta: '([^']+)'/g)].map((m) => m[1]))
-    expect(TIPOS_HISTORIAL.map((t) => t.valor)).toEqual(Object.keys(ENCABEZADOS_PLANTILLA_HISTORIAL))
-    for (const encabezados of Object.values(ENCABEZADOS_PLANTILLA_HISTORIAL)) {
-      for (const encabezado of encabezados) expect(conocidas, encabezado).toContain(encabezado)
+  it('cada tipo tiene los mismos encabezados que el importador, en el mismo orden', async () => {
+    const ruta = resolve(process.cwd(), '../../workers/historial-importador/src/campos.ts')
+    const { CAMPOS } = (await import(/* @vite-ignore */ ruta)) as { CAMPOS: Record<string, Array<{ etiqueta: string }>> }
+    expect(TIPOS_HISTORIAL.map((t) => t.valor).sort()).toEqual(Object.keys(CAMPOS).sort())
+    for (const tipo of TIPOS_HISTORIAL.map((t) => t.valor)) {
+      expect(ENCABEZADOS_PLANTILLA_HISTORIAL[tipo], tipo).toEqual(CAMPOS[tipo].map((campo) => campo.etiqueta))
     }
   })
 })

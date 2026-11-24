@@ -2,7 +2,7 @@
 -- referencia interna del comprobante («Reserva comprobante:<uuid>:linea:1»). `public.listar_movimientos_stock`
 -- ahora devuelve en la nota el número del comprobante («Reserva FAC-0005»), para el historial y su CSV.
 --
--- Qué cambia: solo la columna `nota`. Firma, columnas, orden, paginación y `security invoker` son los de
+-- Qué cambia: la columna `nota` y el orden de las operaciones (pagina primero, cruza después). Firma, columnas, orden, paginación y `security invoker` son los de
 -- `20261023130000_stock_traslado.sql` (la definición vigente; no hubo otra redefinición). El número se busca en
 -- `dominio.comprobantes_venta` de la misma organización con los permisos de quien consulta (RLS): si la
 -- persona no puede ver el comprobante, o ya no existe, la nota queda como estaba y la pantalla muestra
@@ -40,6 +40,16 @@ stable
 security invoker
 set search_path = ''
 as $$
+  -- Se pagina primero y recién después se cruza con productos, motivos, depósitos y comprobantes: el cruce
+  -- del número corre solo para las filas de la página, no para todo el libro de la organización.
+  with pagina as (
+    select m.*, count(*) over () as total_filas
+    from dominio.movimientos_stock m
+    where (p_producto is null or m.producto_id = p_producto)
+    order by m.creado_en desc, m.id desc
+    limit greatest(1, least(coalesce(p_limite, 25), 100))
+    offset greatest(0, coalesce(p_desplazamiento, 0))
+  )
   select
     m.id,
     m.fecha,
@@ -57,11 +67,11 @@ as $$
     m.diferencia,
     m.saldo,
     m.actor_nombre,
-    count(*) over (),
+    m.total_filas,
     m.deposito_id,
     dep.nombre,
     m.traslado_id
-  from dominio.movimientos_stock m
+  from pagina m
   left join dominio.productos p
     on p.id = m.producto_id and p.organizacion_id = m.organizacion_id
   left join dominio.motivos_movimiento mo
@@ -75,10 +85,7 @@ as $$
   ) ref on true
   left join dominio.comprobantes_venta cv
     on cv.id = ref.comprobante_id and cv.organizacion_id = m.organizacion_id
-  where (p_producto is null or m.producto_id = p_producto)
-  order by m.creado_en desc, m.id desc
-  limit greatest(1, least(coalesce(p_limite, 25), 100))
-  offset greatest(0, coalesce(p_desplazamiento, 0));
+  order by m.creado_en desc, m.id desc;
 $$;
 
 comment on function public.listar_movimientos_stock(uuid, integer, integer) is
