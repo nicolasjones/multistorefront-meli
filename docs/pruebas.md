@@ -162,6 +162,14 @@ que pierde `schema` por ser método del prototipo) hacían caer a `imagenesPrinc
 error se atrapa y el test pasaba por el camino del `catch`, no por el feliz. Usalo (`tablas`, `rpc`, `firmadas`) en los mocks nuevos; su test
 cubre el camino feliz de las imágenes principales. Límite: solo aplica `eq`, `in`, `order` y `limit`; el resto de los métodos se acepta y se ignora, así que no sirve para probar filtrado complejo; `createSignedUrls` devuelve una entrada por ruta (con `error` si la ruta no está declarada en `firmadas`). Corregidos: `busqueda-global`, `AgregarProductoDialog` y `feature-ml`.
 
+## Tests con fecha relativa: se fija `Date`
+
+Un test que arma fechas «hace 1 hora», «dentro de 3 días» o compara con el año actual no usa el reloj real: en `beforeEach` llama a
+`vi.useFakeTimers({ toFake: ['Date'] })` y `vi.setSystemTime(new Date('2026-11-23T12:00:00Z'))`, y en `afterEach` a `vi.useRealTimers()`.
+Se simula **solo** `Date` (no `setTimeout`) para no frenar `findBy*`/`waitFor`. Así el resultado no depende de la hora de corrida ni de
+la medianoche o Nochevieja. Aplicado en `vencimientoSesion`, `InvitacionesPendientes`, `alertas-demora` y el pie de `tiendaDiseno`. Los tests que miden
+una duración real (`Date.now() - inicio < tope`) no entran: miden tiempo, no una fecha.
+
 ### Versiones de migración y la fecha del calendario (MSF-589)
 
 Las versiones de `supabase/migrations/` **no son la fecha del día**: la regla es «siempre mayor que la máxima de `origin/dokploy`» (`verificar-migraciones.mjs --estricto`, regla 3). Al 2026-11-18 hay 524 de 771 migraciones con versión posterior a hoy (la última es `20270507200100`, de la ventana de lotes) porque cada lote reserva una ventana por delante de la anterior. El riesgo que describía el hallazgo (una migración con fecha real, anterior a la máxima, que `supabase migration up` / `db push` trate como «insertada antes de la última» y exija `--include-all`) **ya lo previene el guard**: una versión menor o igual a la máxima falla el job `chequeos`. No se renumeran las migraciones ya aplicadas en DEV (cambiaría su registro: ver «VERSIÓN INMUTABLE» en el encabezado del script). Criterio vigente: usar la ventana libre que indique el lote o, si no la hay, una versión mayor que la máxima, aunque sea futura.
