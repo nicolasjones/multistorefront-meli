@@ -1606,9 +1606,9 @@
     },
     "docs/precios.md": {
       "title": "Precios, dólar e IVA (épica MSF-114 · spec `20261022-120000-precios-e-iva`)",
-      "pageHash": "2173d57166139f78fa9c510ca54a644fc578b89050d8a7e3db9100d3a2cbe0e1",
-      "sourceHash": "5af78a4f8a41c480cc91cccffe58ed02c21f7dec188f18ba37ef22e8dc1c047b",
-      "sourceAt": "49d595f34",
+      "pageHash": "ce068e130f1d79de7ad1902028d7880befb7ebf1b4064948b38054e2a7a1f6d0",
+      "sourceHash": "7a7f406446d448bbb28a0e271f73dcfb045a5a1b9cdcf5c9559213a6fae97260",
+      "sourceAt": "7d56d3756",
       "sources": [
         "specs/20261022-120000-precios-e-iva",
         "specs/20261104-103000-precios-masivos-y-promociones",
@@ -1617,7 +1617,7 @@
         "supabase/functions/cotizacion-sugerida"
       ],
       "owner": "tecnico",
-      "commit": "49d595f34"
+      "commit": "7d56d3756"
     },
     "docs/producto/README.md": {
       "title": "Bienvenida: qué es MSF y por dónde empezar",
