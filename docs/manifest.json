@@ -986,9 +986,9 @@
     },
     "docs/e2e-app.md": {
       "title": "Suite E2E de la app (Playwright)",
-      "pageHash": "5e021ef79b25c41eee36040d11e1c06706e04cb41c85fdf46ebf464439c518a4",
+      "pageHash": "55f9ccef9d457f02c49e15cc53449af582549d6e211d40e891e72cdb41175a05",
       "sourceHash": "cd6b5c5dcaf349be809a6bab3ec2ff4a534f5a7848039d4e8fce3c6b2710f4c0",
-      "sourceAt": "07661f192",
+      "sourceAt": "9e48aa646",
       "sources": [
         "apps/web/playwright.config.ts",
         "apps/web/e2e/verificar-dist.mjs",
@@ -1004,7 +1004,7 @@
         "scripts/e2e-cobertura-epicas.py"
       ],
       "owner": "tecnico",
-      "commit": "07661f192"
+      "commit": "9e48aa646"
     },
     "docs/empresa-activa.md": {
       "title": "Empresa activa (F-ROL-06)",
@@ -5536,9 +5536,9 @@
     },
     "docs/tecnico/tienda-seo-legal-y-estados.md": {
       "title": "Tienda online: estados, relacionados, SEO y legal (MSF-149)",
-      "pageHash": "c503cecc97b32842f7d9b4c83404602243f9c5b834dc9422d830b169f14715fb",
+      "pageHash": "2c10481d5d21736c9b23cf6f573e975520d2959763f033fe60f52a586fb730df",
       "sourceHash": "3a5bafc1db1fff4fee349965b588cf7754454b262cf244c81ede65d4edde7ce5",
-      "sourceAt": "0a437c771",
+      "sourceAt": "9e48aa646",
       "sources": [
         "openapi",
         "specs/20270125-100000-tienda-seo-legal-y-estados",
@@ -5583,7 +5583,7 @@
         "supabase/migrations/20270217400100_sitemap_tope_parametrizable_y_paginas.sql"
       ],
       "owner": "tecnico",
-      "commit": "0a437c771"
+      "commit": "9e48aa646"
     },
     "docs/tecnico/tienda-whatsapp-y-contacto.md": {
       "title": "Tienda pública: WhatsApp y contacto (MSF-212)",
