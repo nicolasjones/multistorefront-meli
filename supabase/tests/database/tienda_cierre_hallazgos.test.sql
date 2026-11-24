@@ -7,7 +7,7 @@
 --   H-6  U+00AD, U+180E y U+2061 a U+2064 (además de lo anterior) se rechazan en las notas y los nombres de B1 y B2.
 begin;
 
-select plan(69);
+select plan(73);
 
 -- ============================================================================
 -- Fixture
@@ -236,6 +236,23 @@ select is(pg_temp.fila('compras_3') ->> 'estado', 'ok', 'H-3: mis_compras: la te
 select is(pg_temp.fila('compra_4') ->> 'estado', 'limite', 'H-3: mi_compra: la cuarta responde limite');
 select is(pg_temp.fila('compra_3') ->> 'estado', 'no_encontrada', 'H-3: mi_compra: la tercera se evalúa (id inexistente: no_encontrada)');
 select is((select count(*)::int from res where k ~ '^(fav|misfav|entre|compras|compra)_' and v::text ~* '(sqlstate|violates|relation )'), 0, 'H-3: ninguna respuesta lleva texto de Postgres');
+
+-- El cupo es POR CUENTA: la cuenta «cupo» ya agotó el suyo y otra cuenta de la misma tienda sigue pasando.
+select pg_temp.como('f5000000-0000-0000-0000-000000000010', '10.2.0.9');   -- otra cuenta activa (la de «Clave uno»)
+insert into res values ('otra_cuenta', publico.mis_compras_por_dominio('cierre-a.ejemplo.com'));
+select pg_temp.como('f5000000-0000-0000-0000-000000000004', '10.2.0.1');
+insert into res values ('cupo_sigue', publico.mis_compras_por_dominio('cierre-a.ejemplo.com'));
+reset role;
+select is(pg_temp.fila('otra_cuenta') ->> 'estado', 'ok', 'H-3: el cupo es por cuenta: otra cuenta sigue pasando cuando la primera agotó el suyo');
+select is(pg_temp.fila('cupo_sigue') ->> 'estado', 'limite', 'H-3: y la cuenta que lo agotó sigue limitada');
+-- La ventana es de un minuto: se simula el minuto siguiente corriendo las filas del contador un minuto hacia atrás (dentro de la transacción `now()` no avanza).
+update public.limite_pedidos_publicos set ventana = ventana - interval '1 minute';
+select pg_temp.como('f5000000-0000-0000-0000-000000000004', '10.2.0.1');
+insert into res values ('minuto_siguiente', publico.mis_compras_por_dominio('cierre-a.ejemplo.com'));
+reset role;
+select is(pg_temp.fila('minuto_siguiente') ->> 'estado', 'ok', 'H-3: en el minuto siguiente la cuenta vuelve a pasar (la ventana se reinicia)');
+select is((select pedidos from public.limite_pedidos_publicos where visitante = 'cuenta|ca500000-0000-0000-0000-000000000004' and ventana = date_trunc('minute', now())), 1,
+  'H-3: y su contador de la ventana nueva arranca en 1');
 
 -- Quien no tiene cuenta activa recibe sin_acceso idéntico y NO gasta el cupo de nadie (el cupo viene después de resolver la cuenta).
 delete from public.limite_pedidos_publicos;

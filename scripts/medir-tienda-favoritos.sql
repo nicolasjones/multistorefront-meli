@@ -8,8 +8,14 @@
 -- Imprime un NOTICE con los milisegundos de cada llamada. La medición del contrato se hizo en Postgres 17 (imagen de Supabase) local:
 -- N = 2000 → guardar ~12 ms; N = 10000 → guardar ~35-50 ms; `precios_cliente_por_dominio` de 1 producto ~12 ms y ~35 ms.
 -- Es una estimación local (sin carga concurrente ni red): sirve para comparar órdenes de magnitud, no como SLA.
--- GUARD DE ENTORNO (H-6 de la revisión de seguridad integral): el script escribe (aunque lo deshace con ROLLBACK) y llama a funciones con efectos. Se niega a correr si
--- no se declara `-v BASE_DESCARTABLE=si` o si la base tiene más de 5 organizaciones (una base de pruebas tiene las del seed o ninguna).
+-- GUARD DE ENTORNO (H-6 de la revisión de seguridad integral): es una protección contra accidentes, no un control de seguridad (quien tiene acceso a la base puede
+-- saltearlo editando el script). El script escribe y llama a funciones con efectos (consume secuencias, toma locks, toca `banderas_plataforma`) aunque haga rollback.
+-- Se niega a correr salvo que se cumplan las cuatro condiciones:
+--   1. `-v BASE_DESCARTABLE=si`;
+--   2. la sesión es superusuario (`is_superuser` en `on`): así el conteo de organizaciones no depende de RLS;
+--   3. el nombre de la base contiene `descartable`, `test` o `local` (una copia propia: `createdb -T <base-migrada> medicion_descartable`);
+--   4. la base tiene 5 organizaciones o menos (una base de pruebas tiene las del seed o ninguna).
+-- Prueba automática: `scripts/medir-tienda-favoritos.guard.test.mjs`.
 \set ON_ERROR_STOP on
 \if :{?BASE_DESCARTABLE}
 \else
@@ -20,6 +26,18 @@ select (:'BASE_DESCARTABLE' = 'si') as confirmada \gset
 \if :confirmada
 \else
   \echo 'ABORTADO: BASE_DESCARTABLE debe valer si.'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (current_setting('is_superuser') = 'on') as es_super \gset
+\if :es_super
+\else
+  \echo 'ABORTADO: la sesión no es superusuario (el conteo de organizaciones dependería de RLS).'
+  do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
+\endif
+select (current_database() ~* '(descartable|test|local)') as nombre_ok \gset
+\if :nombre_ok
+\else
+  \echo 'ABORTADO: el nombre de la base no contiene descartable, test ni local.'
   do $$ begin raise exception 'medir-tienda-favoritos: abortado por el guard de entorno'; end $$;
 \endif
 select (select count(*) from public.organizaciones) > 5 as demasiadas \gset
