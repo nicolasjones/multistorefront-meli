@@ -46,7 +46,14 @@ import {
   type FormularioComprobante,
   type TipoComprobante,
 } from '../../lib/ventas'
-import { copiarPresupuesto } from '../../lib/ventasPresupuestos'
+import {
+  copiarPresupuesto,
+  facturarPresupuesto,
+  mensajeDeFacturarPresupuesto,
+  obtenerVinculoPresupuesto,
+  puedeFacturarPresupuesto,
+  type VinculoPresupuesto,
+} from '../../lib/ventasPresupuestos'
 import { EstadoCargaPagina, EstadoError } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
@@ -54,6 +61,7 @@ import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { ClienteSelector } from '../../components/service/ClienteSelector'
 import { LineasComprobante } from '../../components/ventas/LineasComprobante'
 import { ConfirmarFacturaDialog } from '../../components/ventas/ConfirmarFacturaDialog'
+import { useEsAdministrador } from '../../hooks/useEsAdministrador'
 import { CobrosComprobante } from '../../components/ventas/CobrosComprobante'
 import {
   cobrosDeComprobante,
@@ -88,6 +96,7 @@ import { ETIQUETA_CONFIRMAR_FACTURA, puedeConfirmarFactura } from '../../lib/ven
 import {
   cambiarEstadoComprobante,
   definicionEstado,
+  definicionEstadoMostrado,
   esConflictoDeEstado,
   mensajeDeCambioEstado,
   transicionesPermitidas,
@@ -146,6 +155,9 @@ export function ComprobanteVenta() {
   const [guardandoLineas, setGuardandoLineas] = useState(false)
   const [confirmandoFactura, setConfirmandoFactura] = useState(false)
   const [copiando, setCopiando] = useState(false)
+  const [facturando, setFacturando] = useState(false)
+  // Vínculo presupuesto <-> factura (Facturar presupuesto): el comprobante al que pertenece (`para`) evita mostrar el de otro al navegar.
+  const [vinculo, setVinculo] = useState<{ para: string; datos: VinculoPresupuesto | null } | null>(null)
   const [impresion, setImpresion] = useState<TipoDocumento | null>(null)
   const [errorLineas, setErrorLineas] = useState<string | null>(null)
   const [depositos, setDepositos] = useState<DepositoOpcion[]>([])
@@ -175,6 +187,8 @@ export function ComprobanteVenta() {
   const [cargandoCobros, setCargandoCobros] = useState(true)
   const [errorCobros, setErrorCobros] = useState<string | null>(null)
   const [puedeCobrar, setPuedeCobrar] = useState(false)
+  // «Revertir cobro» (MSF-667): solo el administrador ve el botón; la base lo exige igual.
+  const { esAdministrador } = useEsAdministrador()
   const [dialogoCobro, setDialogoCobro] = useState(false)
   const [permitidos, setPermitidos] = useState<string[]>([])
   // El comprobante se está releyendo después de un cobro (MSF-715): mientras tanto las acciones que
@@ -453,6 +467,47 @@ export function ComprobanteVenta() {
     }
   }
 
+  // «Facturar» (decisión de producto): solo en un presupuesto aceptado y vigente. Crea la factura en borrador con los precios del
+  // presupuesto y la abre; un segundo clic o un reintento devuelve la misma factura (la base es idempotente).
+  const puedeFacturar = comprobante !== null && comprobante.tipo === 'presupuesto' && nivel === 'edicion' && puedeFacturarPresupuesto(comprobante)
+  const facturandoAhora = useRef(false)
+  async function facturar() {
+    // La marca en una referencia corta el doble clic del mismo instante (el estado recién se actualiza al volver a dibujar).
+    if (!comprobante || facturandoAhora.current) return
+    facturandoAhora.current = true
+    setFacturando(true)
+    setErrorGeneral(null)
+    try {
+      const factura = await facturarPresupuesto(comprobante.id)
+      navigate(`/ventas/comprobantes/${factura.id}`, {
+        state: { mensaje: `Facturaste el presupuesto ${comprobante.numero}: creamos la factura ${factura.numero} en borrador, con los precios del presupuesto` },
+      })
+    } catch (error) {
+      setErrorGeneral(mensajeDeFacturarPresupuesto(error, 'No pudimos facturar el presupuesto.'))
+      void cargar()
+    } finally {
+      facturandoAhora.current = false
+      setFacturando(false)
+    }
+  }
+
+  // Vínculo con el presupuesto de origen o con la factura generada. Se relee al cambiar el comprobante (su `updated_at` avanza al
+  // convertirse) y la empresa activa; un fallo deja el enlace oculto (la base sigue siendo la autoridad).
+  const vinculoId = comprobante && (comprobante.tipo === 'presupuesto' || comprobante.tipo === 'factura') ? comprobante.id : null
+  const vinculoActualizadoEn = comprobante?.updated_at ?? null
+  useEffect(() => {
+    if (!vinculoId) return
+    let vigente = true
+    obtenerVinculoPresupuesto(vinculoId)
+      .then((datos) => { if (vigente) setVinculo({ para: vinculoId, datos }) })
+      .catch((error) => {
+        console.error('No pudimos leer el vínculo del comprobante.', (error as { code?: string } | null)?.code ?? 'sin código')
+        if (vigente) setVinculo({ para: vinculoId, datos: null })
+      })
+    return () => { vigente = false }
+  }, [vinculoId, vinculoActualizadoEn, empresaActivaId])
+  const vinculoVisible = vinculoId !== null && vinculo?.para === vinculoId ? vinculo.datos : null
+
   // Estados que el rol puede elegir (F-VTA-10, FR-024). Se relee cuando cambia el comprobante o la empresa activa
   // (Principio VIII): nunca quedan chips habilitados con datos de otra tienda. Un fallo deja todo deshabilitado.
   const comprobanteId = comprobante?.id ?? null
@@ -640,7 +695,7 @@ export function ComprobanteVenta() {
     : formulario.tipo === 'presupuesto'
       ? 'Nuevo presupuesto'
       : 'Nuevo comprobante'
-  const estado = comprobante ? definicionEstado(comprobante.estado) : null
+  const estado = comprobante ? definicionEstadoMostrado(comprobante) : null
   // Origen (F-SVC-13, FR-007): «Reparación R-000N» con enlace al detalle de Service solo con acceso a esa sección.
   const origenNumero = comprobante?.origen_tipo === 'reparacion' ? comprobante.origen_numero : null
   const enlaceOrigen = nivelService === 'lectura' || nivelService === 'edicion'
@@ -710,8 +765,13 @@ export function ComprobanteVenta() {
                   {ETIQUETA_NOTA_CREDITO}
                 </Button>
               ) : null}
+              {puedeFacturar ? (
+                <Button type="button" variant="outlined" onClick={() => void facturar()} disabled={facturando || copiando || guardando}>
+                  {facturando ? 'Facturando…' : 'Facturar'}
+                </Button>
+              ) : null}
               {puedeCopiar ? (
-                <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || guardando}>
+                <Button type="button" variant="outlined" onClick={() => void copiar()} disabled={copiando || facturando || guardando}>
                   {copiando ? 'Copiando…' : 'Copiar'}
                 </Button>
               ) : null}
@@ -739,6 +799,19 @@ export function ComprobanteVenta() {
               action={conflicto ? <Button color="inherit" size="small" onClick={() => void cargar()}>Recargar</Button> : undefined}
             >
               {errorGeneral}
+            </Alert>
+          ) : null}
+          {/* Facturar presupuesto: el enlace entre el presupuesto convertido y su factura, en los dos sentidos. */}
+          {vinculoVisible && comprobante?.tipo === 'presupuesto' ? (
+            <Alert severity="info">
+              Este presupuesto se convirtió en la factura{' '}
+              <RouterLink to={`/ventas/comprobantes/${vinculoVisible.factura_id}`}>{vinculoVisible.factura_numero}</RouterLink>. Ya no se puede modificar ni facturar de nuevo; se puede copiar.
+            </Alert>
+          ) : null}
+          {vinculoVisible && comprobante?.tipo === 'factura' ? (
+            <Alert severity="info">
+              Esta factura nació del presupuesto{' '}
+              <RouterLink to={`/ventas/comprobantes/${vinculoVisible.presupuesto_id}`}>{vinculoVisible.presupuesto_numero}</RouterLink>. Las líneas y los precios son los del presupuesto aceptado.
             </Alert>
           ) : null}
           {/* Anulación (FR-042): la factura anulada queda de solo lectura con su chip, el motivo y quién la anuló. */}
@@ -952,6 +1025,8 @@ export function ComprobanteVenta() {
               cargando={cargandoCobros}
               error={errorCobros}
               puedeRegistrarCobro={puedeCobrar && admiteCobros}
+              puedeRevertirCobro={esAdministrador && admiteCobros}
+              empresaActivaId={empresaActivaId}
               dialogoAbierto={dialogoCobro}
               onAbrirDialogo={() => setDialogoCobro(true)}
               onCerrarDialogo={() => setDialogoCobro(false)}

@@ -17,6 +17,7 @@ export type EstadoComprobante =
   | 'armando'
   | 'incompleto'
   | 'anulada'
+  | 'convertido'
 
 type DefinicionEstado = { etiqueta: string; tono: VarianteEtiqueta; ayuda: string }
 
@@ -31,6 +32,7 @@ export const ESTADOS_COMPROBANTE: Record<EstadoComprobante, DefinicionEstado> = 
   deuda: { etiqueta: 'Deuda', tono: 'error', ayuda: 'Entregado o facturado sin cobrar.' },
   armando: { etiqueta: 'Armando', tono: 'primario', ayuda: 'Se está armando el pedido en el depósito elegido. El stock ya se descontó al confirmar la factura.' },
   incompleto: { etiqueta: 'Incompleto', tono: 'aviso', ayuda: 'Faltan productos: se registran con «Registrar faltantes» y son los mismos que ves en Ventas · Faltantes.' },
+  convertido: { etiqueta: 'Convertido en factura', tono: 'primario', ayuda: 'El presupuesto se convirtió en una factura: ya no se modifica ni se vuelve a facturar.' },
   anulada: { etiqueta: 'Anulada', tono: 'contorno', ayuda: 'El documento dejó de valer: no admite cambios.' },
 }
 
@@ -54,6 +56,24 @@ export function definicionEstado(estado: string): DefinicionEstado {
   return Object.hasOwn(ESTADOS_COMPROBANTE, estado)
     ? ESTADOS_COMPROBANTE[estado as EstadoComprobante]
     : { etiqueta: estado, tono: 'neutral', ayuda: '' }
+}
+
+const ESTADO_VENCIDO: DefinicionEstado = { etiqueta: 'Vencido', tono: 'aviso', ayuda: 'El presupuesto pasó su fecha de validez: ya no se puede aceptar.' }
+
+// Hoy en Buenos Aires (aaaa-mm-dd): la misma zona con la que la base deriva «vencido» en el listado de presupuestos.
+export function hoyEnArgentina(ahora: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ahora)
+}
+
+// Estado que se MUESTRA en el detalle: un presupuesto «pendiente» con fecha de validez pasada figura «Vencido», igual que
+// en el listado (`listar_presupuestos` lo deriva; `obtener_comprobante` devuelve el estado crudo).
+export function definicionEstadoMostrado(
+  comprobante: { tipo: string; estado: string; valido_hasta?: string | null },
+  hoy: string = hoyEnArgentina(),
+): DefinicionEstado {
+  const vencido = comprobante.tipo === 'presupuesto' && comprobante.estado === 'pendiente'
+    && Boolean(comprobante.valido_hasta) && (comprobante.valido_hasta as string).slice(0, 10) < hoy
+  return vencido ? ESTADO_VENCIDO : definicionEstado(comprobante.estado)
 }
 
 export const etiquetaEstadoComprobante = (estado: string): string => definicionEstado(estado).etiqueta

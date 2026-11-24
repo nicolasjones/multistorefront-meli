@@ -31,7 +31,7 @@ test.describe('Ventas · precios especiales por cliente (MSF-340, SC-002)', () =
       organizacionId = org.id
       const [empresa] = await rest<{ id: string }>(
         'empresas',
-        { organizacion_id: org.id, nombre: `Tienda Descuento ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345678' },
+        { organizacion_id: org.id, nombre: `Tienda Descuento ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345671' },
         'dominio',
       )
       usuarioId = await altaUsuario(correo)

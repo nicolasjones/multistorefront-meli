@@ -46,7 +46,7 @@ end $$;
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
 select lives_ok(
   $$insert into dominio.clientes (id, organizacion_id, nombre, documento, correo)
-    values ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '  Distribuidora Norte SRL  ', '30-71234567-8', 'norte@example.com')$$,
+    values ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', '  Distribuidora Norte SRL  ', '30-71234567-1', 'norte@example.com')$$,
   'operador: crea un cliente'
 );
 select is(
@@ -144,7 +144,7 @@ select is(
 );
 select is(
   (select count(*)::int from registro_actividad
-    where tipo like 'cliente.%' and (detalle like '%norte@example.com%' or detalle like '%30-71234567-8%' or detalle like '%Rosario%')),
+    where tipo like 'cliente.%' and (detalle like '%norte@example.com%' or detalle like '%30-71234567-1%' or detalle like '%Rosario%')),
   0, 'el detalle de la actividad no incluye datos de contacto'
 );
 
@@ -214,15 +214,15 @@ select is(
 
 select pg_temp.como('b1000000-0000-0000-0000-000000000002');
 select throws_ok(
-  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('11111111-1111-1111-1111-111111111111', 'Otro', '30712345678')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('11111111-1111-1111-1111-111111111111', 'Otro', '30712345671')$$,
   '23505', null, 'mismo CUIT con otro formato (sin guiones): rechazado'
 );
 select throws_ok(
-  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('11111111-1111-1111-1111-111111111111', 'Otro', ' 30.71234567.8 ')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('11111111-1111-1111-1111-111111111111', 'Otro', ' 30.71234567.1 ')$$,
   '23505', null, 'mismo CUIT con puntos y espacios: rechazado'
 );
 select throws_ok(
-  $$update dominio.clientes set documento = '30-71234567-8' where id = 'c1000000-0000-0000-0000-000000000002'$$,
+  $$update dominio.clientes set documento = '30-71234567-1' where id = 'c1000000-0000-0000-0000-000000000002'$$,
   '23505', null, 'editar un cliente con el documento de otro: rechazado'
 );
 select lives_ok(
@@ -247,7 +247,7 @@ reset role;
 -- Otra organización puede usar el mismo documento
 select pg_temp.como('b2000000-0000-0000-0000-000000000001');
 select lives_ok(
-  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('22222222-2222-2222-2222-222222222222', 'Misma persona, otra organización', '30-71234567-8')$$,
+  $$insert into dominio.clientes (organizacion_id, nombre, documento) values ('22222222-2222-2222-2222-222222222222', 'Misma persona, otra organización', '30-71234567-1')$$,
   'el mismo documento en otra organización: aceptado'
 );
 reset role;

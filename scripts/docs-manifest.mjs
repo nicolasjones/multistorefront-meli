@@ -96,7 +96,10 @@ for (const file of walk(docs).filter((f) => f.endsWith(".md")).sort()) {
   // en el checkout de merge del CI `git log` devuelve el commit efímero de
   // auto-merge (imposible de pre-commitear) y el check nunca puede dar verde
   // en un PR que toque una página con sources.
-  const commit = old && old.pageHash === pageHash ? old.commit || null : ultimoCommit(key);
+  // `commit` no puede quedar en null: si el manifest previo no lo traía, se completa con `sourceAt`
+  // (el mismo commit propio de la página) y, si tampoco hay fuentes, con el último commit propio.
+  // Sin esto, `docs-drift.mjs` imprime «última: ?» en vez del commit real (MSF-895).
+  const commit = old && old.pageHash === pageHash ? old.commit || old.sourceAt || ultimoCommit(key) : ultimoCommit(key);
   pages[key] = {
     title: (body.match(/^#\s+(.+)$/m)?.[1] || path.basename(file)).trim(),
     pageHash,

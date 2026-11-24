@@ -15,7 +15,14 @@ export type DatosGeneralesEmpresa = {
 
 export type EmpresaDetalle = DatosGeneralesEmpresa & { id: string; activa: boolean }
 
-const COLUMNAS = 'id, nombre, whatsapp, correo, instagram, direccion, horarios, razon_social, cuit, activa'
+// CUIT, correo y WhatsApp ya no se leen de la tabla (la base los reserva a la sección `empresas`): el detalle sale de la
+// RPC `empresa_datos`, que exige esa sección. Las escrituras siguen siendo UPDATE por columnas; su respuesta solo
+// confirma la fila (`id`) y los datos se releen por la RPC.
+async function leerDetalle(id: string): Promise<{ data: EmpresaDetalle | null; error: unknown }> {
+  const { data, error } = await supabaseClient.rpc('empresa_datos', { p_empresa: id })
+  if (error) return { data: null, error }
+  return { data: ((data ?? []) as EmpresaDetalle[])[0] ?? null, error: null }
+}
 
 // Una empresa por id en `dominio` (esquema por consulta, ver decisión T001).
 // RLS decide: una empresa de otra organización devuelve cero filas y se
@@ -43,12 +50,7 @@ export function useEmpresa(id: string | undefined) {
     setCargando(true)
     let resultado: { data: EmpresaDetalle | null; error: unknown }
     try {
-      resultado = await supabaseClient
-        .schema('dominio')
-        .from('empresas')
-        .select(COLUMNAS)
-        .eq('id', id)
-        .maybeSingle<EmpresaDetalle>()
+      resultado = await leerDetalle(id)
     } catch (excepcion) {
       resultado = { data: null, error: excepcion }
     }
@@ -65,16 +67,19 @@ export function useEmpresa(id: string | undefined) {
   const actualizar = useCallback(
     async (valores: DatosGeneralesEmpresa) => {
       if (!id) throw new Error('La empresa todavía no se cargó.')
-      const { data, error } = await supabaseClient
+      const { data: tocada, error } = await supabaseClient
         .schema('dominio')
         .from('empresas')
         .update(valores)
         .eq('id', id)
-        .select(COLUMNAS)
-        .maybeSingle<EmpresaDetalle>()
+        .select('id')
+        .maybeSingle<{ id: string }>()
       if (error) throw error
       // RLS rechaza sin error visible: cero filas afectadas.
-      if (!data) throw new Error('No tenés permiso para guardar los cambios de esta empresa.')
+      if (!tocada) throw new Error('No tenés permiso para guardar los cambios de esta empresa.')
+      const { data, error: errorLectura } = await leerDetalle(id)
+      if (errorLectura) throw errorLectura
+      if (!data) throw new Error('No pudimos leer la empresa guardada. Recargá la página.')
       // Una respuesta tardía de otra empresa no pisa a la que se ve ahora.
       if (idVigente.current === id) setEmpresa(data)
       return data
@@ -89,15 +94,17 @@ export function useEmpresa(id: string | undefined) {
   const cambiarEstado = useCallback(
     async (activa: boolean) => {
       if (!id) throw new Error('La empresa todavía no se cargó.')
-      const { data, error } = await supabaseClient
+      const { data: tocada, error } = await supabaseClient
         .schema('dominio')
         .from('empresas')
         .update({ activa })
         .eq('id', id)
         .eq('activa', !activa)
-        .select(COLUMNAS)
-        .maybeSingle<EmpresaDetalle>()
+        .select('id')
+        .maybeSingle<{ id: string }>()
       if (error) throw error
+      const { data, error: errorLectura } = tocada ? await leerDetalle(id) : { data: null, error: null }
+      if (errorLectura) throw errorLectura
       // Cero filas: estado ya cambiado por otro administrador, sin permiso o
       // empresa inexistente (RLS no distingue). Se recarga para mostrar la real.
       if (!data) {

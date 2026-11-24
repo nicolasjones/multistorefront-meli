@@ -47,7 +47,7 @@ describe('normalizarNumero', () => {
 describe('armarMensaje', () => {
   it('con precio, con el formato de la ficha', () => {
     expect(armarMensaje('Mundo JC', 'Joystick Pro', 18455.4)).toBe(
-      'Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455). ¿Está disponible?',
+      'Hola Mundo JC, quiero consultar por Joystick Pro ($ 18.455,40). ¿Está disponible?',
     )
   })
 

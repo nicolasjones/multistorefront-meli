@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Link as EnlaceRuta } from 'react-router'
 import { MiniaturaProducto } from '../../../components/base/MiniaturaProducto'
 import { MAX_UNIDADES_LINEA } from '../../../lib/listaPedido'
-import { formatearPrecioArs } from '../../../lib/tiendaListado'
+import { formatearPrecioArs, subtotalLinea } from '../../../lib/tiendaListado'
 import type { LineaRevalidada } from '../../../lib/tiendaPedido'
 import { PrecioTachado } from '../catalogo/PrecioTachado'
 import EtiquetaDisponibilidad from '../disponibilidad/EtiquetaDisponibilidad'
@@ -28,7 +28,7 @@ export function LineaLista({ linea, cantidad, imagenUrl, alRenovarImagen, mostra
   alQuitar: () => void
 }) {
   const [texto, setTexto] = useState<string | null>(null)
-  const subtotal = linea.precioUnitario === null ? null : Math.round(linea.precioUnitario * cantidad * 100) / 100
+  const subtotal = linea.precioUnitario === null ? null : subtotalLinea(linea.precioUnitario, cantidad)
   const formateado = subtotal === null ? null : formatearPrecioArs(subtotal)
   const confirmarTexto = () => {
     setTexto(null)
