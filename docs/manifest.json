@@ -455,9 +455,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "fdd03050c475aabc8a329beac6034343f7d2e347b7b295c592168b5eb27cb9f2",
+      "pageHash": "f2aed504ac8f4e8a6dfc9458ebab0e8be2179bd7475aa90428a745e8398530b3",
       "sourceHash": "a8c77e7f6f75901b5a4a885db541deb5eb316ff41736ea270d12c2d4c9520444",
-      "sourceAt": "d70a00f62",
+      "sourceAt": "2fdedfa21",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -468,7 +468,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "d70a00f62"
+      "commit": "2fdedfa21"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -1210,16 +1210,16 @@
     },
     "docs/historial-ventas.md": {
       "title": "Historial de ventas importado (F-VTA-37 / MSF-293)",
-      "pageHash": "25093e64191901d2e700387aa056c8e5e0eb036970ab45477d5a0de98fcd898e",
+      "pageHash": "b8218209ac7c078486aaa2be80332b31a7d229c22805cdc3a46d7167f34c5a27",
       "sourceHash": "8de1d85acef7eebfa1c41affe71c125ab7560fd137c8546150678a4ab3686eba",
-      "sourceAt": "5ac918aa",
+      "sourceAt": "5ac918aa0",
       "sources": [
         "infra/kestra/flows/historial-importador.yml",
         "workers/egress-allowlists.json",
         "workers/historial-importador"
       ],
       "owner": "tecnico",
-      "commit": "5ac918aa"
+      "commit": "5ac918aa0"
     },
     "docs/importaciones.md": {
       "title": "Centro de importaciones y exportaciones (F-IMP-01 / MSF-354)",
