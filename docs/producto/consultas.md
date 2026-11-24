@@ -144,6 +144,10 @@ En la bandeja se usan tres estados:
 
 El Administrador también tiene una lista de estados de consulta en **Administración → Listas configurables**. Por ahora los cambios que hagas ahí no modifican estos tres estados de la bandeja.
 
+## Cuánto tiempo se guardan los datos
+
+Cuando una consulta lleva **24 meses sin actividad** (sin cambios de estado, responsable ni nota), el sistema la **anonimiza** solo, una vez por mes: el nombre, el contacto y el mensaje pasan a decir «[anonimizado]» y se borra la nota interna. La consulta no desaparece: siguen el producto, la tienda, el origen, el estado y las fechas, así que los reportes no cambian. Lo anonimizado no se puede recuperar.
+
 ## Si algo no sale
 
 | Mensaje | Qué hacer |
