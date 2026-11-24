@@ -204,9 +204,17 @@ archivo` sin pasos de código.
   (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
   si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
   la API de rulesets). **Resuelto en el lote 36:** decisión de Nicolás = no encenderlo en cada push; corrida diaria (ver abajo, MSF-685).
-- **Tests que el CI sigue sin correr (MSF-679).** Quedan fuera por pesados o por fallar hoy (ver la tabla en
-  «Verificación» del PR): `template:capabilities:check`, `test:outbox:frontera` y `test:ia:aprovisionamiento` fallan en `dokploy`
-  actual y hay que arreglarlos antes de encenderlos; los `test:*:e2e`, `test:db` y los de runtime necesitan stack.
+- **Tests que el CI sigue sin correr (MSF-679).** `test:ci:scripts` suma los de workers (`discover`, `scan`, `idempotency`,
+  `audit`), el contrato estático de Kestra (`test:kestra:runtime`), el despachador programado y la frontera de outbox: son Node
+  puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
+  El guard ahora recorre el SQL de una pasada (literales `'...'`, identificadores, dollar-quoting, comentarios `--` y
+  `/* */` anidables): descarta comentarios, evalúa todo lo demás (incluido SQL dinámico y `do $$`) e ignora únicamente el
+  literal de una sentencia que empieza con `comment on ... is`. Un literal o comentario sin cerrar falla cerrado. El recorrido es lineal (un archivo adversarial con cientos de miles de literales no cuelga el job) y no guarda estado entre llamadas. Un
+  regex sobre texto crudo no sirve: un comentario o un literal puede simular el inicio de un `comment on` y esconder una
+  llamada saliente real. Quedan fuera a propósito: `template:capabilities:check`
+  (compara contra `origin/main`, que el job no garantiza), `test:ia:aprovisionamiento` (usa `docker`, que no hay en el job),
+  `test:superset:embebido` y `test:superset:aislamiento-tokens` (exigen un Superset y credenciales vivas), los `test:*:e2e`,
+  `test:db`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e` y demás de runtime que necesitan stack.
 - **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
   tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
   habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar `token:` de un PAT/GitHub App
