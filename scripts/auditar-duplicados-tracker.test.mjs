@@ -14,6 +14,8 @@ import {
   formatearInforme,
   gruposPorTitulo,
   leerBoard,
+  resolverApi,
+  TOPE_LECTURA,
   normalizarTitulo,
   referenciaTitulo,
   sinCierreAdministrativo,
@@ -190,6 +192,21 @@ describe('unión de los dos endpoints del board', () => {
       () => leerBoard({ pedir: pedir({ issues: [] }, []), proyecto: 'MSF' }),
       /0 ítems leídos/,
     );
+  });
+
+  it('falla si /issues/board o /issues/archived llegan al tope (lectura posiblemente truncada)', async () => {
+    const lleno = (desde) => Array.from({ length: TOPE_LECTURA }, (_, i) => item({ id: desde + i, identifier: `MSF-${desde + i}` }));
+    await assert.rejects(() => leerBoard({ pedir: pedir({ issues: lleno(1) }, []), proyecto: 'MSF' }), /\/issues\/board.*truncada/);
+    await assert.rejects(() => leerBoard({ pedir: pedir({ issues: [item({ id: 9 })] }, lleno(1000)), proyecto: 'MSF' }), /\/issues\/archived.*truncada/);
+  });
+
+  it('ITSAPLAN_API_URL sólo acepta el host por defecto, salvo --permitir-otra-api', () => {
+    assert.equal(resolverApi({ valor: undefined }), 'https://api.plan.agenmatica.com');
+    assert.equal(resolverApi({ valor: 'https://api.plan.agenmatica.com/' }), 'https://api.plan.agenmatica.com');
+    assert.throws(() => resolverApi({ valor: 'https://evil.test' }), /otro host/);
+    const avisos = [];
+    assert.equal(resolverApi({ valor: 'https://otro.test/', args: ['--permitir-otra-api'], aviso: (m) => avisos.push(m) }), 'https://otro.test');
+    assert.equal(avisos.length, 1);
   });
 
   it('falla si la respuesta del board tiene otra forma (no inventa un board vacío)', async () => {

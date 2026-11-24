@@ -31,6 +31,26 @@ const CONCURRENCIA_DETALLE = 8;
 const REINTENTOS_DETALLE = 3;
 const ESPERA_REINTENTO_MS = 500;
 const API_POR_DEFECTO = 'https://api.plan.agenmatica.com';
+// Tope de una lectura del tracker: una lista que llega justo al tope puede estar truncada.
+export const TOPE_LECTURA = 500;
+const FLAG_OTRA_API = '--permitir-otra-api';
+
+/**
+ * URL del tracker: sólo el host por defecto. `ITSAPLAN_API_URL` con otro host manda la clave
+ * personal a un tercero: se exige `--permitir-otra-api` y se avisa.
+ */
+export function resolverApi({ valor, args = [], aviso = () => {} }) {
+  const api = String(valor || API_POR_DEFECTO).replace(/\/+$/, '');
+  if (api === API_POR_DEFECTO) return api;
+  if (!args.includes(FLAG_OTRA_API)) {
+    throw new Error(
+      `ITSAPLAN_API_URL apunta a otro host (${api}): la clave personal se enviaría ahí. ` +
+        `Sólo se acepta ${API_POR_DEFECTO}; para otro host pasá ${FLAG_OTRA_API}.`,
+    );
+  }
+  aviso(`Aviso: se usa un host distinto del tracker por defecto (${api}) por ${FLAG_OTRA_API}.`);
+  return api;
+}
 const PROYECTO_POR_DEFECTO = 'MSF';
 
 /**
@@ -360,6 +380,13 @@ export async function leerBoard({ pedir, proyecto = PROYECTO_POR_DEFECTO }) {
   const activos = listaDe(board, '/issues/board');
   const listaArchivados = listaDe(archivados, '/issues/archived');
 
+  // Una lista que llega al tope puede estar truncada: el barrido diría «limpio» sobre un board parcial.
+  for (const [ruta, lista] of [['/issues/board', activos], ['/issues/archived', listaArchivados]]) {
+    if (lista.length >= TOPE_LECTURA) {
+      throw new Error(`${ruta} devolvió ${lista.length} ítems (tope ${TOPE_LECTURA}): la lectura puede estar truncada`);
+    }
+  }
+
   // Se deduplica por identidad: un ítem puede venir en los dos endpoints (activo y archivado) y
   // entrar dos veces; sin esto el barrido lo reporta como duplicado de sí mismo.
   const porIdentidad = new Map();
@@ -423,7 +450,7 @@ async function main() {
     console.log('Sin ITSAPLAN_API_KEY: no se puede leer el board; el barrido queda sin correr (no es un error).');
     return 0;
   }
-  const api = (process.env.ITSAPLAN_API_URL || API_POR_DEFECTO).replace(/\/+$/, '');
+  const api = resolverApi({ valor: process.env.ITSAPLAN_API_URL, args: process.argv.slice(2), aviso: (m) => console.error(m) });
   const proyecto = process.env.ITSAPLAN_PROYECTO || PROYECTO_POR_DEFECTO;
 
   const pedir = crearPedir({ api, key });
