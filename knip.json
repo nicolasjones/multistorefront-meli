@@ -20,10 +20,10 @@
     ".agents/**",
     ".claude/**",
     ".opencode/**",
-    ".dependency-cruiser.cjs",
     "docs/javascripts/zoom-imagenes.js"
   ],
   "ignoreDependencies": [
-    "@playwright/test"
+    "@playwright/test",
+    "dependency-cruiser"
   ]
 }

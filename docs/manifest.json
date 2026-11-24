@@ -453,9 +453,9 @@
     },
     "docs/calidad.md": {
       "title": "Calidad determinista (F1)",
-      "pageHash": "1005b235743b7887d609fa96a9258002d07510d5188e29c95313d530a191ad24",
-      "sourceHash": "d951e3fa26a4f76c525c3ef542dc435ee27de6b12a545c22558bb6e941bc3716",
-      "sourceAt": "6776fb4d",
+      "pageHash": "9578bb1b95db49b83ce9a676ddfeb36273bafa17909487fff6b8fc27d20a3636",
+      "sourceHash": "bce715508b632e718c2d3ac2b6d35bad305967e623cc3df59d14e079b8de8d87",
+      "sourceAt": "bf2a91e37",
       "sources": [
         "scripts/calidad.mjs",
         ".github/workflows/quality.yml",
@@ -466,7 +466,7 @@
         "apps/web/vite.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "bf2a91e37"
     },
     "docs/capturas-documentacion.md": {
       "title": "Capturas del manual de usuario",
@@ -925,9 +925,9 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "ff31de152f5ba2f68a5938c705d5b151631c80e825abbc108f5b349c5e966ee0",
-      "sourceHash": "7153bdfcbc57e386ae81ce2bc822bf135ab4a0a3e96e37c6f2365a5b0d669de2",
-      "sourceAt": "6776fb4d",
+      "pageHash": "d0240affe76d69486cfc5b80f684e8fa71a94fa8e7a91be61af7ab8b184fbeb0",
+      "sourceHash": "a08625dc747d3695ef14b7abd2164366fed1844f7310ddfebba0b7fa99239894",
+      "sourceAt": "3cf784afb",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
         "scripts/docs-check.mjs",
@@ -940,7 +940,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "6776fb4d"
+      "commit": "3cf784afb"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
@@ -2526,7 +2526,7 @@
         "specs/20261113-120000-precio-promocional-en-pos-y-comprobantes"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "859901ff"
     },
     "docs/prototipos.md": {
       "title": "Prototipos de UI y fidelidad de implementación",
@@ -2752,12 +2752,12 @@
     },
     "docs/roadmap-template.md": {
       "title": "Estrategia de producto técnico del template",
-      "pageHash": "4b83e8d20af15d077b3215e0c1aa9c42c9ade1f6c4454f068aabcbcc468edb46",
+      "pageHash": "19824b584bec1b5d7cbb7c8f575538905d9be75ba9b7fc7a80d6a899df3a5a2a",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "5846921d7"
+      "commit": "295d700c5"
     },
     "docs/seguridad-inicio-tablero.md": {
       "title": "Revisión de seguridad integral · Inicio, tablero completo (MSF-824)",
@@ -2815,7 +2815,7 @@
         "apps/web/src/lib/estadoOpinion.ts"
       ],
       "owner": "plataforma",
-      "commit": null
+      "commit": "12b4527a"
     },
     "docs/service-adjuntos.md": {
       "title": "Service técnico · Fotos y adjuntos del equipo (F-SVC-20)",
@@ -6300,7 +6300,7 @@
         "supabase/migrations/20270202200400_mostrador_buscar_producto.sql"
       ],
       "owner": "tecnico",
-      "commit": null
+      "commit": "48b70df5"
     },
     "docs/ventas-motos.md": {
       "title": "Ventas · Motos: registro y rendición de envíos (F-VTA-24 y F-VTA-25)",

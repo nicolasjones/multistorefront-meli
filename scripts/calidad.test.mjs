@@ -33,3 +33,77 @@ test("[MSF-929] .gitleaks.toml excluye el store/cachés de dependencias y no deb
   assert.equal(hallazgos.length >= 1, true, "un secreto en el código del repo sigue detectándose");
   assert.ok(hallazgos.every((f) => f.includes("apps/web/src/secreto.ts")), `solo el código del repo: ${hallazgos.join(", ")}`);
 });
+
+// MSF-895: el guard de arquitectura cruzaba 0 módulos y daba «ok» (verde falso). Estos casos fijan
+// que el check FALLA cuando la herramienta no revisó nada, y que sólo da «ok» si realmente cruzó el front.
+const guardarDepcruiseFalso = (cwd, { modulos, violaciones = [], codigo = 0 }) => {
+  const dir = path.join(cwd, "node_modules", ".bin");
+  fs.mkdirSync(dir, { recursive: true });
+  const salida = JSON.stringify({
+    summary: {
+      violations: violaciones,
+      error: violaciones.filter((v) => v.rule?.severity === "error").length,
+      warn: violaciones.filter((v) => v.rule?.severity === "warn").length,
+      totalCruised: modulos,
+      totalDependenciesCruised: 0,
+    },
+  });
+  fs.writeFileSync(path.join(dir, "depcruise"), `#!/bin/sh\nprintf '%s' '${salida}'\nexit ${codigo}\n`, { mode: 0o755 });
+};
+
+test("[MSF-895] el guard de arquitectura falla si dependency-cruiser no cruzó ningún módulo", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-arch-"));
+  guardarDepcruiseFalso(cwd, { modulos: 0 });
+  const r = spawnSync(process.execPath, [script, "--only=arch"], { cwd, encoding: "utf8" });
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stdout, /no cruzó ningún módulo/);
+});
+
+test("[MSF-895] el guard de arquitectura falla si falta el binario local (no se revisó nada)", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-arch-"));
+  const r = spawnSync(process.execPath, [script, "--only=arch"], { cwd, encoding: "utf8" });
+  assert.equal(r.status, 1, r.stdout);
+  assert.match(r.stdout, /falta el binario local de dependency-cruiser/);
+});
+
+test("[MSF-895] el guard de arquitectura da ok sólo si cruzó módulos y no encontró violaciones", () => {
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "calidad-arch-"));
+  guardarDepcruiseFalso(cwd, { modulos: 885 });
+  const ok = spawnSync(process.execPath, [script, "--only=arch"], { cwd, encoding: "utf8" });
+  assert.equal(ok.status, 0, ok.stdout);
+  assert.match(ok.stdout, /dependency-cruiser \(arquitectura\): ok/);
+
+  guardarDepcruiseFalso(cwd, {
+    modulos: 885,
+    codigo: 1,
+    violaciones: [{ type: "cycle", from: "a.ts", to: "b.ts", rule: { severity: "error", name: "no-circular" } }],
+  });
+  const conCiclo = spawnSync(process.execPath, [script, "--only=arch"], { cwd, encoding: "utf8" });
+  assert.equal(conCiclo.status, 1, conCiclo.stdout);
+  assert.match(conCiclo.stdout, /no-circular: a\.ts → b\.ts/);
+});
+
+// MSF-895: la regla `not-to-dev-dep` sólo vigila algo si la herramienta CLASIFICA las dependencias npm.
+// Con `node_modules` en `exclude` la arista hacia el paquete se borra y la regla nunca dispara: otro
+// verde falso. Este caso corre el binario real sobre un fixture con la forma del front.
+test("[MSF-895] la regla not-to-dev-dep marca un devDependency usado por código de runtime y lo deja pasar en los tests", (t) => {
+  const binario = path.resolve("node_modules/.bin/depcruise");
+  if (!fs.existsSync(binario)) return t.skip("dependency-cruiser no está instalado");
+  const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "depcruise-regla-"));
+  const escribir = (rel, contenido) => {
+    fs.mkdirSync(path.join(cwd, path.dirname(rel)), { recursive: true });
+    fs.writeFileSync(path.join(cwd, rel), contenido);
+  };
+  escribir("apps/web/package.json", JSON.stringify({ name: "web", devDependencies: { "paquete-de-prueba": "1.0.0" } }));
+  escribir("apps/web/node_modules/paquete-de-prueba/package.json", JSON.stringify({ name: "paquete-de-prueba", version: "1.0.0", main: "index.js" }));
+  escribir("apps/web/node_modules/paquete-de-prueba/index.js", "module.exports = 1;\n");
+  escribir("apps/web/src/arranque.ts", "import { x } from 'paquete-de-prueba'\nexport const y = x\n");
+  escribir("apps/web/src/arranque.test.ts", "import { x } from 'paquete-de-prueba'\nexport const y = x\n");
+
+  const r = spawnSync(binario, ["--config", path.resolve(".dependency-cruiser.cjs"), "--output-type", "json", "apps/web/src"], { cwd, encoding: "utf8" });
+  const salida = JSON.parse(r.stdout || "{}");
+  const violaciones = (salida.summary?.violations || []).filter((v) => v.rule?.name === "not-to-dev-dep");
+  assert.equal(violaciones.length, 1, `esperaba 1 violación de not-to-dev-dep y hubo ${violaciones.length}: ${JSON.stringify(salida.summary?.violations)}`);
+  assert.match(violaciones[0].from, /arranque\.ts$/, "la violación tiene que señalar el archivo de runtime");
+  assert.doesNotMatch(violaciones[0].from, /\.test\.ts$/, "un test puede usar devDependencies: no es una violación");
+});
