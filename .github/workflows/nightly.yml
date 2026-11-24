@@ -7,6 +7,12 @@ on:
   schedule:
     - cron: "0 6 * * *"
   workflow_dispatch:
+    inputs:
+      productos:
+        description: 'Cantidad de productos sintéticos para medir `publico.catalogo_pagina_por_dominio` (job `medir`).'
+        required: false
+        default: '500'
+        type: string
 
 permissions:
   contents: read
@@ -55,3 +61,277 @@ jobs:
           name: nightly-reportes
           path: reports/
           if-no-files-found: ignore
+
+  # Medición en perfil MÓVIL del catálogo y la ficha de las dos tiendas del seed (MSF-552 · T071/SC-010 de la
+  # épica MSF-167). NO bloquea ningún PR: deja el reporte como artifact. El protocolo está en
+  # `docs/tiendas-online.md` («Rendimiento en celular»), el comando en `pnpm medir:tienda` y el perfil de
+  # Lighthouse en `.lighthouserc.tienda.json`.
+  #
+  # Reusa el stack de Supabase del CI (una RANURA, con el seed de `supabase/seed.sql`) igual que el job
+  # `e2e-tienda` de validate.yml y el `E2E nocturno`: ver `scripts/supabase-ci.mjs` y `docs/deployment.md`.
+  medir:
+    # Kill switch sin PR: `CI_PAUSED=true` (el mismo de validate.yml) o `CI_MEDIR_TIENDA=false` apagan el job.
+    if: ${{ vars.CI_PAUSED != 'true' && vars.CI_MEDIR_TIENDA != 'false' }}
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON_PESADO || '["self-hosted","platform-local"]') }}
+    timeout-minutes: 45
+    env:
+      # El que reclama una ranura es quien recicla las vencidas: el TTL va por encima del timeout del job.
+      SUPABASE_CI_LOCK_TTL_MIN: 75
+      MEDIR_TIENDA_PUERTO: '4312'
+    steps:
+      # El run programado prueba `dokploy` (el workflow vive en la rama por defecto); uno manual, la rama del run.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'dokploy' || github.ref }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          # En runners hosted cada job parte de una VM limpia: se reusa el store de pnpm.
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Runner hosted (`CI_RUNS_ON_PESADO=["ubuntu-latest"]`): igual que el job `e2e-tienda` de validate.yml, el Docker es
+      # el de la VM (`host.docker.internal` apunta a localhost) y el directorio de locks es local. En self-hosted no hace nada.
+      - name: Preparar runner hosted (host.docker.internal, locks)
+        if: runner.environment == 'github-hosted'
+        run: |
+          echo "SUPABASE_CI_LOCK_DIR=$RUNNER_TEMP/ci-locks" >> "$GITHUB_ENV"
+          echo "127.0.0.1 host.docker.internal" | sudo tee -a /etc/hosts
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        if: runner.environment == 'github-hosted'
+        with:
+          version: 2.116.0
+      - name: Supabase CLI (2.116.0; reusa el del runner si ya está)
+        if: runner.environment == 'self-hosted'
+        run: |
+          set -euo pipefail
+          if command -v supabase >/dev/null 2>&1 && supabase --version 2>/dev/null | grep -q '2.116.0'; then
+            echo "supabase 2.116.0 ya presente en el runner -> no descargo"
+          else
+            # El binario se verifica contra el SHA256 publicado del release (el que dice `checksums.txt`):
+            # un release alterado no se ejecuta en el runner self-hosted.
+            TAR="$(mktemp)/supabase_2.116.0_linux_amd64.tar.gz"
+            curl -fsSL -o "$TAR" https://github.com/supabase/cli/releases/download/v2.116.0/supabase_2.116.0_linux_amd64.tar.gz
+            echo "5b3031cb297d51b25be4c284e4c852254460ec722ec221d3b81b07d55acfd158  $TAR" | sha256sum -c -
+            tar -xz -C /usr/local/bin supabase
+          fi
+          supabase --version
+
+      # La cantidad de productos viene de un input del workflow: se valida antes de tocar la base (el valor
+      # se interpola en `psql -v N`, así que tiene que ser un entero y nada más).
+      - name: Validar la cantidad de productos (input del workflow)
+        env:
+          PRODUCTOS: ${{ inputs.productos || '500' }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$PRODUCTOS" =~ ^[0-9]{1,6}$ ]] || [ "$PRODUCTOS" -lt 1 ] || [ "$PRODUCTOS" -gt 10000 ]; then
+            # No se imprime el valor crudo: un salto de línea en él metería otro comando de workflow (`::...::`).
+            echo "::error::productos tiene que ser un entero entre 1 y 10000"
+            exit 1
+          fi
+          echo "PRODUCTOS_MEDICION=$PRODUCTOS" >> "$GITHUB_ENV"
+          echo "productos=$PRODUCTOS"
+
+      - name: Preparar entorno del job (work dir y anfitrión del Docker)
+        run: |
+          set -euo pipefail
+          WORK="${RUNNER_TEMP:-/tmp}/medir-tienda-$GITHUB_RUN_ID"
+          mkdir -p "$WORK"
+          # Dentro del contenedor del runner, 127.0.0.1 es el contenedor y NO el Docker del host donde se publican
+          # los puertos del stack (docker-fuera-de-docker): se alcanzan por `host.docker.internal`.
+          if [ -f /.dockerenv ]; then HOST_DOCKER=host.docker.internal; else HOST_DOCKER=127.0.0.1; fi
+          { echo "MEDIR_WORK=$WORK"; echo "HOST_DOCKER=$HOST_DOCKER"; } >> "$GITHUB_ENV"
+          echo "work=$WORK host=$HOST_DOCKER"
+
+      - name: Reservar la ranura del stack de Supabase
+        env:
+          SUPABASE_CI_LOCK_MIN: 5
+        run: node scripts/supabase-ci.mjs reclamar
+      - name: Preparar el stack del CI (config en copia temporal, sin tocar supabase/config.toml)
+        run: |
+          printf 'SEGUIMIENTO_IP_SALT=%s\n' "sal-medir-tienda-$GITHUB_RUN_ID" > supabase/.env
+          pnpm db:ci:preparar
+      - name: Puente al Docker del host (sólo en el contenedor del runner)
+        if: env.HOST_DOCKER == 'host.docker.internal'
+        run: |
+          nohup node scripts/supabase-ci.mjs puente > "$MEDIR_WORK/puente.log" 2>&1 &
+          echo $! > "$MEDIR_WORK/puente.pid"
+          for intento in $(seq 50); do (: > "/dev/tcp/127.0.0.1/$SUPABASE_DB_PORT") 2>/dev/null && break; sleep 0.2; done
+          kill -0 "$(cat "$MEDIR_WORK/puente.pid")" || { cat "$MEDIR_WORK/puente.log"; exit 1; }
+          echo "puente activo (pid $(cat "$MEDIR_WORK/puente.pid"))"
+      - name: Levantar el stack de Supabase del CI con API
+        run: |
+          supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup || true
+          supabase start --workdir "$SUPABASE_CI_WORKDIR" --ignore-health-check -x studio,mailpit,imgproxy,logflare,vector,edge-runtime,supavisor,realtime,postgres-meta
+      # Sin `pnpm db:reset:ci`: recrea el esquema `public` y con él se pierden los privilegios por defecto de
+      # `service_role`. Se migra con `migration up` y se siembra con el psql de la propia imagen de la base.
+      - name: Migrar y sembrar (las dos tiendas del seed)
+        run: |
+          supabase migration up --local --workdir "$SUPABASE_CI_WORKDIR"
+          docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/seed.sql
+
+      # El seed deja las dos tiendas SIN productos visibles (no crea filas en `dominio.producto_empresa`): el
+      # catálogo saldría vacío y no habría ficha que medir. Se siembra el catálogo de medición (cientos de
+      # productos por tienda) para medir sobre un catálogo real. A diferencia del script que mide la RPC
+      # (que revierte), este DEJA datos: la medición es por HTTP y el catálogo tiene que existir mientras mide.
+      - name: Sembrar el catálogo de medición en las dos tiendas del seed
+        run: |
+          set -euo pipefail
+          # `ON_ERROR_STOP=1` y `--single-transaction`: si la guarda de entorno de la siembra falla, no se
+          # sigue y no queda nada sembrado (si no, psql seguiría después del error).
+          docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 --single-transaction -v N="$PRODUCTOS_MEDICION" -f - < scripts/sembrar-tienda-medicion.sql
+
+      - name: Reiniciar PostgREST, esperar la API y exponer el entorno
+        run: |
+          docker restart "supabase_rest_${SUPABASE_CI_PROJECT_ID}"
+          eval "$(supabase status -o env --workdir "$SUPABASE_CI_WORKDIR" | sed 's/^/export /')"
+          URL="${API_URL/127.0.0.1/$HOST_DOCKER}"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "::add-mask::$ANON_KEY"
+          esperar() {
+            codigo=000
+            for intento in $(seq 60); do
+              codigo=$(curl -s -o /dev/null -w '%{http_code}' -H "apikey: $ANON_KEY" "$URL$2" || true)
+              [ "$codigo" = "200" ] && return 0
+              sleep 2
+            done
+            echo "$1 no respondió 200 en $URL$2 (último: $codigo)"
+            return 1
+          }
+          esperar PostgREST /rest/v1/ || { docker logs --tail 40 "supabase_rest_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
+          esperar Auth /auth/v1/health || { docker logs --tail 40 "supabase_auth_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
+          esperar Storage /storage/v1/status || { docker logs --tail 40 "supabase_storage_${SUPABASE_CI_PROJECT_ID}" || true; exit 1; }
+          tiendas=$(curl -fsS -H "apikey: $SERVICE_ROLE_KEY" -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "Accept-Profile: dominio" "$URL/rest/v1/tiendas?select=dominio")
+          echo "tiendas sembradas: $tiendas"
+          case "$tiendas" in *mundojc.localhost*sanjavucho.localhost*|*sanjavucho.localhost*mundojc.localhost*) ;; *) echo "Faltan las tiendas del seed"; exit 1 ;; esac
+          {
+            echo "SUPABASE_URL=$URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "VITE_SUPABASE_URL=$URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "VITE_PANEL_HOSTS=localhost,127.0.0.1"
+            echo "TIENDA_PUERTO=$MEDIR_TIENDA_PUERTO"
+          } >> "$GITHUB_ENV"
+
+      # Sólo `vite build` (el type-check lo corre `pnpm build` en el job `application`). `VITE_PANEL_HOSTS`: sin él
+      # el panel se sirve en `mundojc.localhost` y las tiendas no se resuelven.
+      - name: Compilar la web contra el stack
+        run: pnpm --filter @platform/web exec vite build
+
+      # `--host 0.0.0.0`: las tiendas se entran por `*.localhost` (Chromium los resuelve a loopback) y la medición
+      # los pide por host, no por `localhost`.
+      - name: Servir la web (vite preview)
+        run: |
+          set -euo pipefail
+          setsid nohup pnpm --dir apps/web exec vite preview --port "$MEDIR_TIENDA_PUERTO" --strictPort --host 0.0.0.0 > "$MEDIR_WORK/vite.log" 2>&1 &
+          echo $! > "$MEDIR_WORK/vite.pid"
+          for i in $(seq 60); do
+            curl -fsS -o /dev/null "http://127.0.0.1:$MEDIR_TIENDA_PUERTO/" && web=1 && break
+            kill -0 "$(cat "$MEDIR_WORK/vite.pid")" 2>/dev/null || { echo "::error::vite preview murió"; cat "$MEDIR_WORK/vite.log"; exit 1; }
+            sleep 1
+          done
+          [ "${web:-0}" = 1 ] || { echo "::error::la web no respondió en $MEDIR_TIENDA_PUERTO"; cat "$MEDIR_WORK/vite.log"; exit 1; }
+          echo "web sirviendo en $MEDIR_TIENDA_PUERTO"
+
+      # Lighthouse necesita un Chrome: se usa el de Playwright (el mismo del e2e). El binario llega por el
+      # caché de `actions/cache` (la misma clave que usa el job `e2e-tienda` de validate.yml): sin él, el
+      # runner no tiene navegador y LHCI aborta con «Chrome installation not found».
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: "Instalar Chromium (Lighthouse usa el de Playwright: CHROME_PATH)"
+        run: |
+          set -euo pipefail
+          # Dónde lo deja Playwright: `PLAYWRIGHT_BROWSERS_PATH` si el runner lo define; si no, el caché de HOME.
+          BASE="${PLAYWRIGHT_BROWSERS_PATH:-$HOME/.cache/ms-playwright}"
+          echo "PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-<sin definir>} · base=$BASE"
+          # El runner puede venir con `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` (no descargar el navegador en cada
+          # `pnpm install`): con esa variable, `playwright install` no hace nada y no hay binario. Se quita
+          # sólo para esta llamada, que es la que lo baja.
+          env -u PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD pnpm --filter @platform/web exec playwright install chromium
+          # El caché guarda el binario, no las libs del SO (mismo motivo que en validate.yml).
+          pnpm --filter @platform/web exec playwright install-deps chromium
+          CHROME=""
+          for base in "$BASE" "$HOME/.cache/ms-playwright" /ms-playwright; do
+            [ -d "$base" ] || continue
+            # Playwright cambió la carpeta del binario (`chrome-linux` → `chrome-linux64`): se aceptan las dos.
+            cand=$(ls -d "$base"/chromium-*/chrome-linux*/chrome "$base"/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell "$base"/chromium_headless_shell-*/chrome-linux*/headless_shell 2>/dev/null | head -1 || true)
+            if [ -n "$cand" ]; then CHROME="$cand"; break; fi
+          done
+          if [ -z "$CHROME" ]; then
+            echo "::error::no hay binario de Chromium en $BASE (LHCI abortaría sin Chrome)"
+            ls -la "$BASE" 2>/dev/null || true
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          echo "CHROME_PATH=$CHROME"
+
+      # Lighthouse móvil (celular 390×844, CPU ×4, «4G lento») sobre `/catalogo` y `/producto/:id` de las dos
+      # tiendas del seed. El script deja el resumen en `reports/lighthouse-tienda/`.
+      # La RPC del catálogo con un catálogo grande: N productos sintéticos en una transacción que se revierte
+      # (no deja datos). Los NOTICE con los milisegundos salen por stderr. Va ANTES de Lighthouse: si el
+      # veredicto de LCP no cumple el objetivo, el paso de Lighthouse sale con código 1 y las cifras de la RPC
+      # tienen que haber salido igual.
+      - name: Medir `publico.catalogo_pagina_por_dominio` con catálogo grande
+        run: |
+          set -euo pipefail
+          mkdir -p reports/medir-tienda
+          docker exec -i "supabase_db_${SUPABASE_CI_PROJECT_ID}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -v N="$PRODUCTOS_MEDICION" -f - < scripts/medir-tienda-catalogo.sql 2>&1 | tee reports/medir-tienda/rpc-catalogo.txt
+
+      - name: Medir Lighthouse en perfil móvil
+        run: pnpm medir:tienda
+
+      - name: Resumen en $GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          {
+            echo '## Rendimiento de la tienda (MSF-552)'
+            echo
+            if [ -f reports/lighthouse-tienda/resumen.md ]; then cat reports/lighthouse-tienda/resumen.md; fi
+            echo
+            if [ -f reports/medir-tienda/rpc-catalogo.txt ]; then cat reports/medir-tienda/rpc-catalogo.txt; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Subir el reporte de la medición
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: medir-tienda
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: Limpieza (procesos propios, stack de Supabase y ranura)
+        if: always()
+        timeout-minutes: 10
+        run: |
+          set +e
+          for n in vite puente; do
+            p="$MEDIR_WORK/$n.pid"
+            [ -f "$p" ] || continue
+            pid=$(cat "$p")
+            if [ "$n" = vite ]; then kill -TERM -- "-$pid" 2>/dev/null; else kill -TERM "$pid" 2>/dev/null; fi
+            echo "PID $pid ($n) terminado"
+          done
+          sleep 2
+          for n in vite puente; do
+            p="$MEDIR_WORK/$n.pid"
+            [ -f "$p" ] || continue
+            pid=$(cat "$p")
+            if [ "$n" = vite ]; then kill -KILL -- "-$pid" 2>/dev/null; else kill -KILL "$pid" 2>/dev/null; fi
+          done
+          if [ -n "$SUPABASE_CI_WORKDIR" ]; then
+            supabase stop --workdir "$SUPABASE_CI_WORKDIR" --no-backup
+            L="com.supabase.cli.project=$SUPABASE_CI_PROJECT_ID"
+            ids=$(docker ps -aq --filter "label=$L")
+            [ -n "$ids" ] && { echo "quedaban contenedores; docker rm -f"; docker rm -f $ids >/dev/null; }
+            vols=$(docker volume ls -q --filter "label=$L")
+            [ -n "$vols" ] && docker volume rm -f $vols >/dev/null
+            docker network rm "supabase_network_$SUPABASE_CI_PROJECT_ID" >/dev/null 2>&1
+          fi
+          rm -f supabase/.env
+          node scripts/supabase-ci.mjs liberar
+          exit 0

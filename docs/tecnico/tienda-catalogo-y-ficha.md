@@ -364,14 +364,23 @@ pnpm --filter @platform/web test:e2e tienda-disponibilidad
 
 ## Límites y deuda
 
-- **Rendimiento móvil no medido.** El entorno de cierre no tenía Docker, así que no hubo stack local con
-  el seed ni cifras. Queda trazado en **MSF-552** (seguimiento). Protocolo: build y preview con las dos
-  tiendas del seed, Lighthouse móvil sobre `/catalogo` y `/producto/:id`, y medición de
-  `publico.catalogo_pagina_por_dominio` con un catálogo de cientos de productos.
-- **Techo de diseño (resuelto por MSF-825):** la RPC calculaba precio y disponibilidad para todo el
+- **Rendimiento móvil: medido y NO cumple el objetivo (MSF-552, 17/11/2026).** Con el stack local del CI
+  (seed + 500 productos por tienda) y Lighthouse en perfil móvil (390×844, CPU ×4, «4G lento», 3 corridas),
+  el LCP del catálogo y de la ficha de las dos tiendas queda entre **17,4 s y 18,5 s** contra el objetivo de
+  3 s; el CLS del catálogo llega a 0,63. La causa medida no es la base: el servidor responde en menos de 50 ms y
+  el tiempo se va en descargar y ejecutar el JavaScript, porque la primera carga pide 126 scripts en el
+  catálogo (132 en la ficha) y el *entry* es el bundle del **panel** (`apps/web/src/main.tsx` importa `App` y
+  `TiendaPublicaApp` en el mismo *entry*).
+  La RPC, en cambio, cumple: `publico.catalogo_pagina_por_dominio` tarda 39 ms con orden por relevancia y
+  205–215 ms ordenando por precio, con 24 productos por página y una tienda de 500 productos visibles (D3 no se
+  ajusta). Cifras, entorno y fuente:
+  [Rendimiento en celular (T071, SC-010)](../tiendas-online.md#rendimiento-en-celular-t071-sc-010) y el artifact
+  `medir-tienda` del job `medir` del nightly.
+- **Techo de diseño (resuelto por MSF-825):** la RPC calculaba el precio y la disponibilidad para todo el
   catálogo efectivo antes de filtrar y paginar. Con el volumen real de la demo (2.204 productos por
   tienda) eso daba 44 s y un *timeout* bajo `anon`: la función ahora calcula el precio solo para la
-  página salvo que el orden o el tope de precio lo necesiten. Ver
+  página salvo que el orden o el tope de precio lo necesiten (la disponibilidad se sigue calculando para
+  todo el catálogo efectivo). Ver
   [MSF-825](tienda-demo-vs-prototipo.md#causa-raiz).
 - **URLs firmadas de una hora:** una pestaña abierta más de una hora ve «Sin imagen» hasta recargar.
 - **Carga infinita sin virtualización (MSF-845):** se acumulan las tarjetas en el DOM; el diseño asume
