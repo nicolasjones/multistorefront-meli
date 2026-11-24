@@ -180,9 +180,20 @@ podía pasar igual a un usuario rápido).
 **Regla:** una ref que se lee desde un handler (click, callback de una promesa, observer) y se mantiene al día con el último valor se sincroniza
 en `useLayoutEffect` (corre dentro del commit, sin ventana entre el render visible y la ref), o se asigna durante el render si es seguro. Aplicado en
 `useListadoPorCursor`, `useCatalogoPublico`, `usePreciosEmpresa`, `useEmpresa`, `useFaltantes`, `useListarFaltantes`, `useExistenciasRealtime`, `reparacion.tsx`, `mostrador.tsx`, `promociones.tsx`,
-`CargaInfinita` y `ReporteEmbebido`. Los efectos que solo marcan «montado», recuerdan el valor previo o fijan un valor «al abrir» el diálogo (empresa/clave/revisión de apertura:
-se fijan antes de que la persona pueda actuar) pueden seguir siendo `useEffect`. Se barrió todo `apps/web/src` con un script que lista cada
-`useEffect(() => {` que asigna a un `.current` y cuántas veces se lee fuera del efecto; las que quedan son de esos tres tipos. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
+`CargaInfinita` y `ReporteEmbebido`.
+
+**Qué puede seguir en `useEffect`.** El criterio general: la ref NO se lee desde un handler (click, callback de promesa, observer, temporizador)
+antes de que corra el efecto que la escribe, o se lee solo dentro del propio efecto. Cumplen eso, y por eso quedan como `useEffect`:
+
+- flags de «montado» o de una sola vez (`montado`, `sincronizado`, `primeraCarga`, `debeFocalizarNombre`);
+- el valor previo que se compara en la próxima ejecución del efecto (`empresaPrevia`, `ultimaEmpresa`, `consultaAnterior`, `textoAplicado` de `actividad/list.tsx`);
+- valores fijados «al abrir» un diálogo (empresa, clave o revisión de apertura): se escriben antes de que la persona pueda actuar;
+- contadores de invalidación de petición o generación (`enCurso`, `generacion`, `ultimaPeticion`, la clave de envío de `InteresWhatsappDialog`): se reinician al cambiar la consulta y los lee la propia respuesta, no un click anterior al efecto;
+- `AbortController` y similares (`control` de `ExportarRankingVentas`): se aborta/limpia en el propio efecto o en su cleanup;
+- marcas de foco (`focoEnBoton`, `cargadosAntes` de `CargaInfinita`): se leen en el efecto que las usa.
+
+Se barrió todo `apps/web/src` (hooks, lib, pages, components) con un script que lista cada `useEffect(() => {` que asigna a un `.current` y cuántas veces
+se lee fuera del efecto; las que quedan son de esos tipos. Si una ref nueva «último valor» se lee desde un handler, va en `useLayoutEffect`. Para comprobar un flake de este tipo se repite el archivo 20 veces con la máquina
 cargada (`vitest run <archivo>` en bucle con otro proceso pesado); un solo fallo de la serie lo deja abierto.
 
 ## Cliente de Supabase simulado en los tests de la web
