@@ -1,0 +1,144 @@
+import { afterEach, beforeEach, describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { historiaDe, revisarSpec, revisarTodo, tieneDesvio } from './verificar-tareas-cerradas.mjs';
+
+let dir;
+
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verificar-tareas-'));
+});
+
+afterEach(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+const spec = (nombre, tasksMd, sideCars = {}) => {
+  const dirSpec = path.join(dir, nombre);
+  fs.mkdirSync(path.join(dirSpec, 'tasks'), { recursive: true });
+  fs.writeFileSync(path.join(dirSpec, 'tasks.md'), tasksMd);
+  for (const [archivo, contenido] of Object.entries(sideCars)) {
+    fs.writeFileSync(path.join(dirSpec, 'tasks', archivo), contenido);
+  }
+  return dirSpec;
+};
+
+describe('verificar-tareas-cerradas', () => {
+  it('falla cuando el side-car ya marcó la tarea y el tasks.md quedó atrás', () => {
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T001');
+    assert.match(resultado.faltantes[0].motivo, /falta consolidar/);
+  });
+
+  it('pasa cuando el tasks.md ya está consolidado', () => {
+    const dirSpec = spec('demo', '- [x] T001 [F-DEM-01][US1] Migración.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    assert.deepEqual(revisarSpec(dirSpec).faltantes, []);
+  });
+
+  it('falla si una tarea con nota de desvío sigue [ ] (la deuda trazada se cierra)', () => {
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración. Desvío: lo hace MSF-999.\n', {
+      'F-DEM-01.md': '- [x] T002\n',
+    });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T001');
+    assert.match(resultado.faltantes[0].motivo, /Desvío/);
+  });
+
+  it('reporta «falta consolidar» si el side-car marcó la tarea y la línea además tiene nota Desvío', () => {
+    // La regla 1 va antes que la regla 2: la deuda trazada no tapa que la marca no llegó al tasks.md.
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración. Desvío: lo hace MSF-999.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T001');
+    assert.match(resultado.faltantes[0].motivo, /falta consolidar/);
+  });
+
+  it('falla si una tarea con nota de desvío sigue [ ] aunque no haya side-car', () => {
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración. Desvío: lo hace MSF-999.\n');
+    assert.equal(revisarSpec(dirSpec).faltantes.length, 1);
+  });
+
+  it('no confunde una desviación citada dentro del texto con una nota de desvío', () => {
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Cerrar con `Desvío: <motivo>` si no hay tiempo.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    assert.equal(revisarSpec(dirSpec).faltantes.length, 1);
+  });
+
+  it('falla si la nota de desvío de la línea de continuación sigue [ ]', () => {
+    const dirSpec = spec(
+      'demo',
+      '- [ ] T001 [F-DEM-01][US1] Migración.\n  Hecho en local. Desvío: el CI lo valida.\n',
+      { 'F-DEM-01.md': '- [x] T002\n' },
+    );
+    assert.equal(revisarSpec(dirSpec).faltantes.length, 1);
+  });
+
+  it('pasa con una spec cuya historia todavía no se cerró', () => {
+    const dirSpec = spec('demo', '- [ ] T001 [F-DEM-01][US1] Migración.\n');
+    const resultado = revisarSpec(dirSpec);
+    assert.deepEqual(resultado.faltantes, []);
+    assert.equal(resultado.abiertas, 1);
+  });
+
+  it('falla cuando la historia se cerró y dejó una tarea sin marcar', () => {
+    const dirSpec = spec('demo', '- [x] T001 [F-DEM-01][US1] Migración.\n- [ ] T002 [F-DEM-01][US1] Otra.\n', {
+      'F-DEM-01.md': '- [x] T001\n',
+    });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T002');
+    assert.match(resultado.faltantes[0].motivo, /F-DEM-01/);
+    assert.match(resultado.faltantes[0].accion, /\[x\]/);
+  });
+
+  for (const etiqueta of ['F-1', 'F-2', 'US-A', 'US-B1', 'US-1']) {
+    it(`reconoce la historia [${etiqueta}] por su side-car homónimo`, () => {
+      const dirSpec = spec('demo', `- [ ] T001 [${etiqueta}] Migración.\n`, {
+        [`${etiqueta}.md`]: '- [x] T002\n',
+      });
+      const resultado = revisarSpec(dirSpec);
+      assert.equal(resultado.faltantes.length, 1);
+      assert.match(resultado.faltantes[0].motivo, new RegExp(etiqueta.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    });
+  }
+
+  it('ve las tareas con id en negrita (`- [ ] **T001**`)', () => {
+    const dirSpec = spec('demo', '- [ ] **T001** Migración.\n', { 'F-DEM-01.md': '- [x] T001\n' });
+    const resultado = revisarSpec(dirSpec);
+    assert.equal(resultado.faltantes.length, 1);
+    assert.equal(resultado.faltantes[0].id, 'T001');
+  });
+
+  it('revisarTodo recorre todos los specs del directorio', () => {
+    spec('a', '- [ ] T001 [F-A-01][US1] Una.\n', { 'F-A-01.md': '- [x] T001\n' });
+    spec('b', '- [ ] T001 [F-B-01][US1] Una.\n');
+    const specs = revisarTodo(dir);
+    assert.equal(specs.length, 2);
+    assert.equal(specs.filter((s) => s.faltantes.length > 0).length, 1);
+  });
+
+  it('reconoce la historia que posee la tarea', () => {
+    assert.equal(historiaDe('- [ ] T001 [P] [F-DEM-01][US1] Migración.'), 'F-DEM-01');
+    assert.equal(historiaDe('- [ ] T001 [F-1] Migración.'), 'F-1');
+    assert.equal(historiaDe('- [ ] T001 [US-A] Migración.'), 'US-A');
+    assert.equal(historiaDe('- [ ] T001 [US-B1] Migración.'), 'US-B1');
+    assert.equal(historiaDe('- [ ] T001 [US-1] Migración.'), 'US-1');
+    assert.equal(historiaDe('- [ ] T070 [CIERRE] Documentación.'), 'CIERRE');
+    assert.equal(historiaDe('- [ ] T001 [US1] Sin historia.'), null);
+  });
+
+  it('detecta la nota de desvío fuera del código', () => {
+    assert.equal(tieneDesvio('Hecho. Desvío: otra historia lo hizo.'), true);
+    assert.equal(tieneDesvio('Cerrar con `Desvío: <motivo>` si no hay tiempo.'), false);
+  });
+});

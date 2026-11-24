@@ -477,3 +477,11 @@ Edge `indexar-documento` escribe los fragmentos con el cliente de servicio, pero
 persona, y los borra con `public.borrar_fragmentos_si_dueno` (`20270507200100_borrar_fragmentos_si_dueno.sql`, solo
 `service_role`), que comprueba y borra en una sola transacción. Pantalla, límites y pruebas:
 [Documentos IA](documentos-ia.md); prueba pgTAP `lote32_documentos_escritura_consulta.test.sql`.
+
+## Lote 42: `empresas` (escritura) y comprobantes/RMA por empresa
+
+- `dominio.empresas`: el `UPDATE` exige la sección `empresas` en `edicion` (`private.nivel_seccion('empresas')`), no el rol
+  Administrador; por defecto solo el Administrador la tiene, pero un rol con la sección en edición también edita.
+- `comprobantes_venta`, `comprobantes_venta_lineas`, `rma` y `rma_items` (lectura): Ventas en `lectura` o `edicion` **en la
+  empresa del registro** (`private.puede_leer_ventas_empresa`); una persona con Ventas en la tienda A y sin Ventas en la B no lee
+  la B por la API. Los comprobantes sin empresa siguen la regla de la organización. Detalle en `docs/higiene-base-datos.md`.

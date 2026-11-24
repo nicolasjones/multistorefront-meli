@@ -17,6 +17,7 @@ export type EstadoComprobante =
   | 'armando'
   | 'incompleto'
   | 'anulada'
+  | 'convertido'
 
 type DefinicionEstado = { etiqueta: string; tono: VarianteEtiqueta; ayuda: string }
 
@@ -31,6 +32,7 @@ export const ESTADOS_COMPROBANTE: Record<EstadoComprobante, DefinicionEstado> = 
   deuda: { etiqueta: 'Deuda', tono: 'error', ayuda: 'Entregado o facturado sin cobrar.' },
   armando: { etiqueta: 'Armando', tono: 'primario', ayuda: 'Se está armando el pedido en el depósito elegido. El stock ya se descontó al confirmar la factura.' },
   incompleto: { etiqueta: 'Incompleto', tono: 'aviso', ayuda: 'Faltan productos: se registran con «Registrar faltantes» y son los mismos que ves en Ventas · Faltantes.' },
+  convertido: { etiqueta: 'Convertido en factura', tono: 'primario', ayuda: 'El presupuesto se convirtió en una factura: ya no se modifica ni se vuelve a facturar.' },
   anulada: { etiqueta: 'Anulada', tono: 'contorno', ayuda: 'El documento dejó de valer: no admite cambios.' },
 }
 

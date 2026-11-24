@@ -29,6 +29,24 @@ test('planEpica agrupa por ítem, cuenta pasados y ignora lo sin video', () => {
   assert.equal(planEpica(manifiesto, 'MSF-999'), null);
 });
 
+// MSF-907: el código de historia se lee con la misma regla que el runner de cobertura.
+test('un ítem con el código de historia detrás de [P] cuelga de su historia', () => {
+  const conHistoria = {
+    evidencias: [{ epica: 'MSF-136', items: [{ id: 'T022', texto: '[P] [F-STK-02][US1] pgTAP de stock' }], test: 'a', estado: 'pasado', video: '1/a.webm' }],
+  };
+  assert.deepEqual(planEpica(conHistoria, 'MSF-136').historias.map((h) => h.id), ['F-STK-02']);
+});
+
+test('un ítem sin descripción muestra su id en vez de un subtítulo vacío', () => {
+  const sinDescripcion = {
+    evidencias: [{ epica: 'MSF-136', items: [{ id: 'T023', texto: '[P] [US1]' }], test: 'a', estado: 'pasado', video: '1/a.webm' }],
+  };
+  const plan = planEpica(sinDescripcion, 'MSF-136');
+  assert.equal(plan.historias[0].texto, 'Ítem T023 sin descripción');
+  const datos = { id: 'T023', texto: plan.historias[0].texto, titulo: 'x', estado: 'pasado', n: 1, de: 1, criterios: [] };
+  assert.match(htmlTarjeta('historia', plan, datos), /Sin criterios de aceptación derivables/);
+});
+
 test('tituloTest saca archivo y etiqueta', () => {
   assert.equal(tituloTest('stock.e2e.ts Stock [MSF-136:T021] entrada 10 y salida 4'), 'Entrada 10 y salida 4');
   assert.equal(tituloTest('sin etiqueta'), 'Sin etiqueta');
@@ -62,10 +80,18 @@ test('los comentarios listan un link por video, la épica agrupada por historia'
     { id: 'T021', texto: 'E2E', titulo: 'salida 5', estado: 'fallido', url: 'http://x/2.mp4', issue: 'MSF-516' },
   ];
   const historia = comentarioHistoria('T021', filas);
-  assert.match(historia, /✅ entrada 10 → \[ver video\]\(http:\/\/x\/1\.mp4\)/);
+  assert.match(historia, /✅ entrada 10 \(sin criterios\) → \[ver video\]\(http:\/\/x\/1\.mp4\)/);
   assert.match(historia, /❌ salida 5/);
   const epica = comentarioEpica('MSF-136', filas, '2026-10-25');
   assert.equal(epica.match(/\*\*T021\*\*/g).length, 1);
   assert.match(epica, /MSF-516/);
   assert.match(epica, /ver video\]\(http:\/\/x\/2\.mp4\)/);
+});
+
+// MSF-907: un video al que el runner no le pudo derivar criterios se publica marcado.
+test('un video sin criterios se publica marcado como tal', () => {
+  const sinCriterios = [{ id: 'T021', texto: 'E2E', titulo: 'entrada 10', estado: 'pasado', url: 'http://x/1.mp4' }];
+  assert.match(comentarioHistoria('T021', sinCriterios), /\(sin criterios\)/);
+  const conCriterios = [{ ...sinCriterios[0], criterios: [1, 2] }];
+  assert.match(comentarioHistoria('T021', conCriterios), /\(escenarios 1, 2\)/);
 });

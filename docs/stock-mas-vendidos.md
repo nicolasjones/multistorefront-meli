@@ -6,7 +6,7 @@ sources:
   - supabase/migrations/20261213100500_productos_mas_vendidos.sql
   - supabase/migrations/20261212120500_facturado_neto_notas.sql
   - supabase/migrations/20270201200129_lineas_sin_stock.sql
-  - supabase/migrations/20270507230200_productos_mas_vendidos_resta_notas_credito.sql
+  - supabase/migrations/20270507250200_productos_mas_vendidos_resta_notas_credito.sql
 ---
 
 # Stock · Reporte de productos más vendidos (F-STK-18)
@@ -36,7 +36,7 @@ La RPC `public.productos_mas_vendidos(p_desde, p_hasta, p_empresa_id, p_pagina, 
 - Las **notas de crédito restan**: la RPC resta la cantidad devuelta de cada línea de una nota (`emitir_nota_credito`,
   `20270201200129`, guarda `producto_id` y cantidad positivas) con `case when tipo = 'nota_credito' then -cantidad`; las unidades son
   **netas** = facturas − notas, por la fecha de la nota, y una nota anulada no cuenta. Un producto con más devoluciones que ventas
-  en el período queda con unidades negativas, al final del ranking (migración `20270507230200`, lote 41: antes las sumaba; el pgTAP
+  en el período queda con unidades negativas, al final del ranking (migración `20270507250200`, lote 41: antes las sumaba; el pgTAP
   `productos_mas_vendidos.test.sql` ahora cubre notas confirmada, anulada y de otro período).
 - Las líneas **«A pedido» sí suman**: se vendieron igual.
 - Cuenta la **fecha del comprobante** (`dominio.comprobantes_venta.fecha`), la de la venta.

@@ -47,7 +47,11 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
 3. **Brecha concreta cerrada**: `aceptar_presupuesto` responde `55000` con «El presupuesto está vencido…» y la
    pantalla mostraba el genérico «Este comprobante ya está cerrado». `mensajeDeAceptarPresupuesto` muestra el
    texto fijo del catálogo que coincide con el de la RPC (nunca el `message` del servidor).
-4. **MSF-638** (`obtener_reparacion`): una reparación de una tienda inaccesible se trata como inexistente a
+4. **Facturar presupuesto** (lote 39): `facturar_presupuesto` responde `55000` («Aceptá el presupuesto antes de facturarlo»,
+   vencido, otro estado), `22023` (sin líneas, cliente no disponible, producto inactivo con su nombre) y `42501`.
+   `mensajeDeFacturarPresupuesto` (`lib/ventasPresupuestos.ts`) muestra el texto fijo del catálogo que coincide con el de la RPC y,
+   para cualquier otro mensaje, cae al catálogo general (nunca muestra el `message` desconocido del servidor).
+5. **MSF-638** (`obtener_reparacion`): una reparación de una tienda inaccesible se trata como inexistente a
    propósito (no revela que existe) y la ficha, la orden y el remito ya muestran «Esa reparación ya no existe»
    (`mensajeDeErrorReparacion`, código `P0002`). El estado HTTP se corrigió solo para esta función (ver «MSF-638: `obtener_reparacion` fuera del alcance»); el resto sigue pendiente.
 

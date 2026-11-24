@@ -213,3 +213,26 @@ migran, grants, RLS, exportación total y pgTAP). **No se migra ninguna en este 
 ## Lote 38: lecturas por columna en `dominio.empresas`
 
 `dominio.empresas` es la primera tabla con `SELECT` por columna para `authenticated` (id, organización, nombre, Instagram, dirección, horarios, razón social, activa, fechas): CUIT, correo y WhatsApp solo salen por las RPC `empresa_datos` y `empresa_contacto_documentos`. Una vista o función `security invoker` nueva que lea esas tres columnas debe pasar por esas RPC; las funciones `security definer` no se ven afectadas.
+
+## Lote 42: seguridad SQL pendiente de la auditoría MSF-647
+
+Migraciones `20270507240000` a `20270507240200`, con pgTAP `lote42_*` (cada uno probado con una mutación a mano).
+
+- **`dominio.empresas`, lectura (verificado, sin cambio):** `empresas_select` sigue mostrando las filas de la organización, pero
+  desde el lote 38 `authenticated` no tiene `SELECT` sobre `cuit`, `correo` ni `whatsapp`: ni con `select *`, ni filtrando por
+  esas columnas, ni con `returning`. No quedaba fuga; el pgTAP lo deja cubierto.
+- **`dominio.empresas`, escritura (`240000`):** `empresas_update` exige `private.nivel_seccion('empresas') = 'edicion'` en lugar
+  de `private.puede_escribir()` (administrador). Sigue la matriz de roles, igual que la pantalla `/empresas`. La identidad
+  visual de la tienda vive en `dominio.tienda_identidad` y no depende de esta política.
+- **Helpers de RLS (`240100`):** `private.organizacion_id()`, `private.is_superadmin()` y `private.puede_escribir()` pasan a
+  `search_path = ''` con nombres calificados (eran las últimas `security definer` con `search_path = public`).
+- **Comprobantes y RMA (`240200`, MSF-737):** las cuatro políticas `SELECT` (`comprobantes_venta`, `comprobantes_venta_lineas`,
+  `rma`, `rma_items`) exigen el nivel de Ventas en la empresa del registro mediante `private.puede_leer_ventas_empresa(uuid)`
+  (envoltorio de `nivel_ventas_en_empresa`); el comprobante sin empresa conserva la regla de la organización.
+- **Prueba global (`lote42_superficie_global_seguridad`):** toda `security definer` de los esquemas propios fija
+  `search_path = ''`; `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda (agregar una exige editar el
+  test a propósito); `anon` no tiene `USAGE` sobre `private`, `dominio` ni `analitica`.
+- **Fuera del lote:** `public.proveedores_basico` sigue siendo `security_invoker = false` a propósito (el Operador sin la
+  sección `proveedores` ve solo nombre y estado; ver `20261018190500`); las 137 claves foráneas sin índice y la revisión de las
+  tablas con RLS sin política (MSF-918) piden decisión caso por caso; la deriva del ACL de `publico.crear_consulta_publica` en
+  la base DEV (MSF-653) es operativa, no de repo.

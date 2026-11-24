@@ -71,6 +71,21 @@ las páginas que lista el drift y regenerar con `node scripts/docs-inventario.mj
 en el PR `dokploy` → `main`. Acotar las fuentes de cada página a su spec o archivo concreto permitiría
 volver a correr el control en cada PR.
 
+## Campos del manifest (`docs/manifest.json`) y qué hacer cuando cambia una fuente
+
+Cada página del manifest lleva `pageHash` (el texto de la página), `sourceHash` (las fuentes que la
+página declara), `sourceAt` (el commit propio contra el que se calculó ese `sourceHash`) y `commit` (el
+commit propio de la página). `sourceAt` y `commit` se calculan con `git log -1 --no-merges`: nunca HEAD,
+porque en el CI HEAD es el merge efímero del PR (MSF-950).
+
+- **Si cambia una fuente de una página**, esa página queda vieja (el drift la lista) y hay que
+  actualizarla y regenerar el manifest: `node scripts/docs-inventario.mjs && node scripts/docs-manifest.mjs`.
+- **`commit` nunca queda vacío** (MSF-895): si el manifest previo no lo traía, se completa con `sourceAt`
+  y, si la página no declara fuentes, con el último commit propio de la página. Con eso, en toda página
+  con fuentes se cumple `sourceAt == commit` y el drift puede mostrar el commit real en vez de «última: ?».
+- **El manifest se regenera después del commit** de los archivos que toca: `sourceAt` es el commit de la
+  página, así que regenerarlo antes de commitear dejaría el manifest apuntando al commit anterior.
+
 ## Capturas del manual: regla de proceso y estado (MSF-644, MSF-877)
 
 **Regla (MSF-644).** Todo PR que cambia una pantalla rehace las capturas del manual de usuario que esa pantalla

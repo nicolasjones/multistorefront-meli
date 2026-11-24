@@ -317,6 +317,26 @@ Propuestas exactas; ninguna se aplicó.
 - **MSF-705 · variables obligatorias en el VPS.** Antes de mergear a `main` o promover, comprobar que `VPS_DEPLOY_ENV` de staging y
   producción trae las 14 credenciales nuevas (`KESTRA_*`, `SUPERSET_*`, `NANGO_*`) y las 5 `*_IMAGEN` de workers por digest (MSF-712);
   el preflight del deploy lo reclama con un mensaje que nombra cada una.
+- **MSF-903 · tope de ramas con CI en vuelo del orquestador (`CI_RANAS_MAXIMAS`).** Son dos ámbitos distintos:
+  `CI_LANES` y `CI_LOAD_MAX` son **variables de repo** de este producto que lee `scripts/ci-lane.mjs` (admisión por
+  carriles y cortacircuitos por carga del CI); `CI_RANAS_MAXIMAS` es una variable de entorno del **orquestador**
+  (`/opt/ai-dev-orchestrator/.env`, `packages/core/ci.js`) que sólo cuenta sus runners self-hosted. El `.env` de VPS2 no
+  la define, así que el poller usa el default **2** (`RAMAS_CI_MAXIMAS_POR_DEFECTO`) y frena ítems nuevos con
+  «el CI del repo está saturado: N rama(s) con CI en vuelo (límite 2)» aunque hoy el repo tiene `CI_LANES=15` y **5**
+  runners self-hosted online (`gh variable list` y `gh api .../actions/runners`, 2026-11-20). El tope efectivo es
+  `min(CI_RANAS_MAXIMAS, runners online)`; con los jobs pesados en `ubuntu-latest` (`CI_RUNS_ON_PESADO`), los
+  self-hosted sólo atienden los livianos (`changes`, `liberar`, `validacion`, `infrastructure`).
+  **Este cambio NO resuelve `CI_RANAS_MAXIMAS`**: sólo documenta el diagnóstico. **Acción de Nicolás (pendiente, fuera del
+  repo):** editar `/opt/ai-dev-orchestrator/.env` y reiniciar el gateway. Hasta que lo haga, el tope sigue en 2.
+  Acción en el servidor: agregar `CI_RANAS_MAXIMAS=4` al `/opt/ai-dev-orchestrator/.env` y **reiniciar**
+  `systemctl restart ai-dev-gateway` (el `.env` se lee al arrancar); el tope efectivo pasa a `min(4, 5) = 4`.
+  Criterio del 4 (no 5): deja un runner self-hosted de holgura para `liberar`, que también necesita runner, sin volver
+  al cuello de 2. No se toca `CI_LANES` (15) ni `CI_LOAD_MAX` (2.5, variable de repo del producto). Como
+  `CI_RANAS_MAXIMAS` no está en el `.env.example` del repo `ai-dev-orchestrator`, un nodo nuevo vuelve al default 2:
+  hay que agregarla a ese `.env.example` (cambio en ese repo; el `.env.example` de este repo es el de la app y no lleva la variable: **pendiente** en el orquestador) para que el valor no dependa de este servidor. El modelo
+  de capacidad del orquestador sigue contando sólo runners self-hosted cuando los jobs pesados ya corren en hosted:
+  revisarlo es deuda aparte, no de este cambio. Verificación: `grep CI_RANAS_MAXIMAS /opt/ai-dev-orchestrator/.env` y,
+  tras el reinicio, que el poller admita hasta 4 ramas en vuelo (deja de frenar con «límite 2»).
 - **MSF-902 · PRs abiertos en conflicto: procedimiento (no se cerró ningún PR).** (1) Listar: `gh pr list --state open --json
   number,title,headRefName,mergeable,updatedAt --jq '.[] | select(.mergeable=="CONFLICTING")'`. (2) Por cada uno: avisar al
   responsable y, si la rama es de un agente/SDLC, correr `git fetch origin && git merge origin/dokploy` en un worktree propio (en

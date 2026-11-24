@@ -85,7 +85,8 @@ select case when current_setting('lote41.hay_pgrowlocks') = 'si'
   then is((select bool_or(r.modes @> array['For Share']) from public.pgrowlocks('public.versiones_documento') r
             join public.versiones_documento v on v.ctid = r.locked_row where v.id = 'd4000000-0000-0000-0000-000000000001'), true,
     'el borrado toma «for share» sobre la fila de la versión (una activación concurrente espera)')
-  else fail('pgrowlocks no disponible en este Postgres: sin él el bloqueo for share queda sin cobertura (prueba manual en docs/funciones-edge-endurecimiento.md)') end;
+  else is(position('for share of v' in lower(pg_get_functiondef('private.borrar_fragmentos_si_dueno(uuid,uuid,text)'::regprocedure))) > 0, true,
+    'sin pgrowlocks (Postgres sin contrib): el cuerpo de la función conserva «for share of v» (el bloqueo real: prueba manual en docs/funciones-edge-endurecimiento.md)') end;
 
 -- Sin fragmentos: sigue siendo dueña.
 select is(public.borrar_fragmentos_si_dueno('d4000000-0000-0000-0000-000000000001', 'd1111111-1111-1111-1111-111111111111', 'reclamo-propio'), true, 'sin fragmentos: dueña igual (idempotente)');

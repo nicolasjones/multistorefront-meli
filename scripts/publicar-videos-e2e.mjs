@@ -54,6 +54,10 @@ export function copiarVideos(dirVideos, destino) {
   return copiados;
 }
 
+const ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+/** Escapa texto que viene de specs/manifiesto antes de ponerlo en el HTML. */
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESCAPES[c]);
+
 export function paginaRun(manifiesto) {
   const porHistoria = new Map();
   for (const e of manifiesto.evidencias) {
@@ -62,20 +66,25 @@ export function paginaRun(manifiesto) {
   }
   const secciones = [...porHistoria.entries()].map(([titulo, evs]) => {
     const bloques = evs.map((e) => {
-      const items = e.items.map((i) => `<li>[${i.id}] ${i.texto}${i.hecho ? ' ✓' : ' (pendiente)'}</li>`).join('');
+      const items = e.items.map((i) => `<li>[${esc(i.id)}] ${esc(i.texto)}${i.hecho ? ' ✓' : ' (pendiente)'}</li>`).join('');
       const video = e.video
-        ? `<video controls preload="none" src="${e.video}" style="width:100%;max-width:960px"></video>`
+        ? `<video controls preload="none" src="${esc(e.video)}" style="width:100%;max-width:960px"></video>`
         : '<p><em>Sin video en esta corrida.</em></p>';
-      return `<h3>${e.test}</h3><ul>${items}</ul>${video}`;
+      return `<h3>${esc(e.test)}</h3><ul>${items}</ul>${video}`;
     }).join('\n');
-    return `<section><h2>${titulo}</h2>${bloques}</section>`;
+    return `<section><h2>${esc(titulo)}</h2>${bloques}</section>`;
   }).join('\n');
-  const huerfanos = (manifiesto.huerfanos ?? []).map((h) => `<li>${h.test} — ${h.motivo}</li>`).join('');
+  const huerfanos = (manifiesto.huerfanos ?? []).map((h) => `<li>${esc(h.test)} — ${esc(h.motivo)}</li>`).join('');
+  // MSF-907: los ítems cuya descripción no alcanza salen a la vista, con su motivo.
+  const sinDescripcion = (manifiesto.items_sin_descripcion ?? [])
+    .map((i) => `<li>[${esc(i.id)}] ${esc(i.specTitulo ?? i.spec)} — ${esc(i.motivo)}</li>`)
+    .join('');
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cobertura E2E ${manifiesto.run_id}</title></head><body>
 <h1>Cobertura E2E — corrida ${manifiesto.run_id}</h1>
 <p>Fecha: ${manifiesto.fecha} · modo: ${manifiesto.modo}</p>
 ${secciones}
 ${huerfanos ? `<h2>Sin etiqueta válida</h2><ul>${huerfanos}</ul>` : ''}
+${sinDescripcion ? `<h2>Ítems sin descripción utilizable</h2><ul>${sinDescripcion}</ul>` : ''}
 </body></html>`;
 }
 
