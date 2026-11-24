@@ -5,7 +5,7 @@
 //   - SAST ............. semgrep  (docker)
 //   - código muerto .... knip     (pnpm dlx)
 //   - duplicación ...... jscpd    (pnpm dlx)
-//   - ciclos/arquitectura dependency-cruiser (pnpm dlx)
+//   - ciclos/arquitectura dependency-cruiser (binario local del root)
 //   - deps coherentes .. syncpack (pnpm dlx)
 // Objetivo: que el DESARROLLADOR los corra ANTES de pedir review y que el REVISOR cita esta evidencia
 // (menos ida y vuelta). Si una herramienta no está disponible, se SALTE A con aviso (no rompe el flujo).
@@ -37,11 +37,11 @@ const TIMEOUT_MS = 10 * 60 * 1000;
 
 function run(cmd, args) {
   const r = spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: childEnv, timeout: TIMEOUT_MS });
-  if (r.error && r.error.code === "ENOENT") return { missing: true, code: 127, out: "" };
+  if (r.error && r.error.code === "ENOENT") return { missing: true, code: 127, out: "", stdout: "", stderr: "" };
   let out = `${r.stdout || ""}${r.stderr || ""}`.trim();
   if (r.error) out += `\n[calidad] error del proceso hijo: ${r.error.code || ""} ${r.error.message}`;
   if (r.signal) out += `\n[calidad] terminado por señal ${r.signal}`;
-  return { missing: false, code: r.status ?? 1, out: out.trim() };
+  return { missing: false, code: r.status ?? 1, out: out.trim(), stdout: r.stdout || "", stderr: r.stderr || "" };
 }
 const have = (cmd) => !run(cmd, ["--version"]).missing;
 
@@ -107,8 +107,34 @@ if (wants("deadcode") && pnpm) check("knip (código muerto)", () => run("pnpm", 
 // 4) duplicación
 if (wants("dup") && pnpm) check("jscpd (duplicación)", () => run("pnpm", ["dlx", "jscpd@5.4.2", "--config", ".jscpd.json"]));
 
-// 5) arquitectura / ciclos
-if (wants("arch") && pnpm) check("dependency-cruiser (arquitectura)", () => run("pnpm", ["dlx", "--package=dependency-cruiser@18.7.2", "depcruise", "--config", ".dependency-cruiser.cjs", "apps/web/src", "packages"]));
+// 5) arquitectura / ciclos — binario LOCAL (MSF-895): con el sandbox `pnpm dlx` la herramienta
+// no encontraba el compilador de TypeScript y devolvía «0 módulos, 0 dependencias»: un verde
+// falso sobre `apps/web/src`. Con `dependency-cruiser` + `typescript` como devDeps del root el
+// binario local sí cruza el front, y el check FALLA si no cruzó ningún módulo (no se revisó nada).
+if (wants("arch")) {
+  const binario = path.join(cwd, "node_modules", ".bin", "depcruise");
+  check("dependency-cruiser (arquitectura)", () => {
+    if (!fs.existsSync(binario)) {
+      return { missing: false, code: 1, out: "[calidad] falta el binario local de dependency-cruiser: corré `pnpm install` (es una devDependency del root). Sin él NO se revisa nada." };
+    }
+    const r = run(binario, ["--config", ".dependency-cruiser.cjs", "--output-type", "json", "apps/web/src", "packages"]);
+    let resumen;
+    try {
+      resumen = JSON.parse(r.stdout).summary;
+    } catch {
+      return { missing: false, code: 1, out: `${r.out}\n[calidad] no se pudo leer la salida JSON de dependency-cruiser` };
+    }
+    const lineas = [
+      `módulos: ${resumen.totalCruised} · dependencias: ${resumen.totalDependenciesCruised} · errores: ${resumen.error} · avisos: ${resumen.warn}`,
+      ...resumen.violations.map((v) => `- ${v.rule?.severity ?? ""} ${v.rule?.name ?? v.type}: ${v.from} → ${v.to}`),
+    ];
+    if (!resumen.totalCruised) {
+      lineas.push("[calidad] dependency-cruiser no cruzó ningún módulo: el guard no revisó nada (verde falso).");
+      return { missing: false, code: 1, out: lineas.join("\n") };
+    }
+    return { missing: false, code: r.code, out: lineas.join("\n") };
+  }, { hint: "binario local (dependency-cruiser + typescript como devDeps del root)" });
+}
 
 // 6) deps coherentes entre workspaces
 if (wants("deps") && pnpm) check("syncpack (versiones)", () => run("pnpm", ["dlx", "syncpack@13", "list-mismatches"]));

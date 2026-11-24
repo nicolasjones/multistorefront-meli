@@ -5,7 +5,7 @@ import { aContenido, type ContenidoTienda } from './tiendaContenido'
 import { identidadDesdeFila, type FilaIdentidad, type IdentidadTienda } from './tiendaIdentidad'
 import type { VistaPreviaTienda } from './tiendaBorrador'
 import type { CategoriaPublica } from './tiendaCategorias'
-import type { InicioTienda } from './tiendaInicio'
+import type { InicioTienda } from './tiendaInicioTipos'
 
 // F-TDA-06 (FR-060): fuente de datos inyectable de las secciones de la home pública. Por defecto (sin proveedor)
 // cada sección lee `publico.*` por host; la vista previa de la gestión la reemplaza con lo que devuelve

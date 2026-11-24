@@ -11,7 +11,7 @@ import {
   listarFormasEnvio,
   mensajeDeError,
 } from '../../../lib/ventas/formasEnvio'
-import type { PropsPestanaCatalogo } from './index'
+import type { PropsPestanaCatalogo } from './tipos'
 
 const AYUDA = 'Cómo sale el pedido. Las que requieren transporte piden empresa, guía y fecha de envío.'
 

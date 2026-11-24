@@ -37,11 +37,37 @@ Complementa (no reemplaza) el CI existente (`docs:check`, `estilos:check`, `prot
 | SAST | **oxlint** con reglas de seguridad (`no-eval`, `no-new-func`, `no-implied-eval`, `no-script-url`) sobre `apps`, `packages` y `supabase/functions`; no usa Docker ni PyPI | patrones inseguros (`eval`, `new Function`, `javascript:`) |
 | Código muerto | **knip** | archivos/exports/deps sin usar |
 | Duplicación | **jscpd** (`.jscpd.json`) | bloques copiados |
-| Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`) | ciclos, huérfanos, deps de dev en runtime |
+| Arquitectura | **dependency-cruiser** (`.dependency-cruiser.cjs`), binario local del root | ciclos, huérfanos, deps de dev en runtime |
 | Versiones | **syncpack** | versiones divergentes entre workspaces |
 | Mensajes | **commitlint** (sólo en PR, con rango) | commits en formato conventional (evita mensajes basura; habilita release/changelog); se exceptúan los merge commits (incluido `Merge base de la épica en <rama>`, MSF-804) y los commits del runner de historias (`MSF-123: F-XXX-01 · título`, formato exacto del runner) |
 
-Si una herramienta no está disponible, el check se **saltea** con aviso (no rompe).
+Si una herramienta no está disponible, el check se **saltea** con aviso (no rompe). La excepción es el
+check de **arquitectura**: `dependency-cruiser` es una `devDependency` del root, así que si falta el binario
+local (`pnpm install` sin correr) el check **falla** — sin él no se revisó nada y el «ok» sería falso.
+
+## Arquitectura: qué revisa de verdad
+
+Hasta MSF-895 el check corría la herramienta en el sandbox de `pnpm dlx`, que no encuentra el compilador de
+TypeScript: la herramienta descartaba los `.ts/.tsx` y devolvía «0 módulos, 0 dependencias» — un **verde
+falso** sobre `apps/web/src` (`no-circular`, `no-orphans` y `not-to-dev-dep` nunca se evaluaron). Ahora:
+
+- corre el **binario local** (`node_modules/.bin/depcruise`, con `dependency-cruiser` y `typescript` como
+  `devDependencies` del root) y cruza el front de verdad: **1674 módulos y 6220 dependencias** (medición del
+  2026-11-22; el guard dice las suyas en la salida, no son un número fijo);
+- **falla** si no cruzó ningún módulo, y también si falta el binario local;
+- los **tests forman parte del cruce**: si se excluyeran, los archivos de apoyo que sólo importan los tests
+  quedarían sin ninguna arista y `no-orphans` los marcaría como código muerto (falso positivo);
+- `node_modules` **no** va en `exclude`: excluirlo borra la arista hacia el paquete y con ella la
+  clasificación `npm`/`npm-dev`. Con `doNotFollow` el paquete no se cruza, pero la arista queda y las
+  reglas que lo necesitan (`not-to-dev-dep`) sí pueden dispararse.
+
+Al habilitarlo aparecieron los hallazgos que nadie veía: **3 ciclos de imports** (`fuenteTienda.tsx` ↔
+`tiendaInicio.ts` y `configuracion/index.tsx` ↔ sus dos pestañas), corregidos en MSF-895 moviendo los tipos
+compartidos a módulos propios, y **1 dependencia de desarrollo usada en runtime**:
+`apps/web/src/lib/importacion-productos.ts` importaba `fflate` (declarado como `devDependency`) para
+descomprimir los ZIP importados. `fflate` pasó a `dependencies` del front porque se usa en runtime, no sólo
+en las pruebas. La regla `not-to-dev-dep` excluye los tests y sus archivos de apoyo (`*.test.*` y
+`apps/web/src/test/`), que sí pueden usar `devDependencies` (`vitest`, `axe-core`, ...).
 
 ## Estado
 
@@ -53,6 +79,9 @@ Si una herramienta no está disponible, el check se **saltea** con aviso (no rom
   `calidad-reporte`, junto con `reports/calidad.md`).
 - Baseline medido (2026-10-18, `origin/main`): gitleaks **22 hallazgos, todos ejemplos/placeholders**
   (0 reales); jscpd **0,44%**; knip **1** (`useFeatureHabilitada`); sin ciclos.
+- Revisión 2026-11-22 (MSF-895): con el guard de arquitectura **de verdad** activo sobre `apps/web/src`
+  (1674 módulos, 6220 dependencias) aparecieron **3 ciclos de imports** que nadie veía y **1 `devDependency`
+  usada en runtime** (`fflate`); los 4 se corrigieron en el mismo lote y el guard cierra en verde.
 - Revisión 2026-11-15 (seguimiento de los hallazgos menores de la revisión semanal): `knip` ya no marca
   exports ni tipos exportados sin uso en `apps/web/src` (antes: ~35 y 6; lotes anteriores los limpiaron), así
   que no hubo nada que quitar. `oxlint` 1.79.0 sobre `apps/web/src` pasó de 287 a 286 warnings: se quitó el
@@ -80,7 +109,7 @@ límite por defecto, el shard daba rojo intermitente en el runner self-hosted (M
 F1 (esto) · F2 fitness functions + observabilidad (Grafana/Prometheus) · F3 errores/backups/secretos ·
 F4 release/preview/flags · F5 mutation/a11y/perf.
 
-> MSF-687: `knip`, `jscpd`, `dependency-cruiser` y `@commitlint/cli` corren con `pnpm dlx` a versión fija en `scripts/calidad.mjs`; al subirlas, cambiar ahí la versión.
+> MSF-687: `knip`, `jscpd` y `@commitlint/cli` corren con `pnpm dlx` a versión fija en `scripts/calidad.mjs`; al subirlas, cambiar ahí la versión. `dependency-cruiser` ya no usa `pnpm dlx` (MSF-895): corre el binario local del root y su versión se sube en `package.json` (`devDependencies`).
 
 > `knip.json` declara a propósito lo que knip no puede inferir de los scripts de evidencia de E2E y del sitio de docs que
 > vinieron de `main` en la integración (PR #929): `docs/javascripts/zoom-imagenes.js` lo carga MkDocs por `extra_javascript`
