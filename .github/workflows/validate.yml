@@ -206,6 +206,12 @@ jobs:
         run: pnpm matriz:check
       - name: test:matriz:pantalla
         run: pnpm test:matriz:pantalla
+      # Cierre de tareas (MSF-914): el `tasks.md` tiene que reflejar las marcas que el orquestador
+      # dejó en los side-car. Sin este gate la regla «ninguna tarea queda `[ ]`» no es verificable.
+      - name: tareas:check (ninguna tarea de una historia cerrada quedó `[ ]`)
+        run: pnpm tareas:check
+      - name: test:tareas:cerradas
+        run: pnpm test:tareas:cerradas
       - run: pnpm lint
 
   # Lo PESADO: build, tests y e2e (sólo si hay código). Lo liviano (docs, guards, tooling y lint) corre en `chequeos`, en paralelo

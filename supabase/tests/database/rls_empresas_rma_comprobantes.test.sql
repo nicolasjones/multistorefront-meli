@@ -79,9 +79,9 @@ select is(
     where schemaname = 'dominio'
       and tablename in ('comprobantes_venta', 'comprobantes_venta_lineas', 'rma', 'rma_items')
       and policyname like '%\_select'
-      and qual like '%empresas\_accesibles%'),
+      and (qual like '%empresas\_accesibles%' or qual like '%puede\_leer\_ventas\_empresa%')),
   4,
-  'las cuatro políticas SELECT filtran por private.empresas_accesibles()'
+  'las cuatro políticas SELECT filtran por empresa (accesible o con Ventas en ella)'
 );
 
 -- ============================================================================

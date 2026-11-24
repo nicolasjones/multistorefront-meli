@@ -54,6 +54,9 @@ comentario «Decisión tomada» en su ticket.
 - **Decisión:** (a) «Facturar presupuesto» se hará: historia nueva con `origen_presupuesto_id`, vínculo y estado
   «Convertido». (b) Retención de consultas: 24 meses desde la última actividad; después se anonimizan nombre, contacto y
   mensaje (se conservan los agregados), con una purga mensual a cargo de un flujo de Kestra.
+- **Precisiones (lote 39):** si la factura derivada se anula, el presupuesto **sigue convertido** (se convierte una sola
+  vez) y, para volver a facturar, se **copia**. La retención mide `updated_at` de la consulta (24 meses desde su última
+  actividad): se anonimiza lo que lo supera estrictamente.
 - **Fundamento:** quitar la fricción de rehacer el presupuesto a mano y reducir el riesgo legal de acumular datos
   personales sin límite.
 
@@ -191,10 +194,16 @@ comentario «Decisión tomada» en su ticket.
 
 ### MSF-755 · Regla de merge protegida
 
-- **Estado:** Decidida, pendiente de implementar (decisión de mantener el esquema actual).
-- **Decisión:** se mantiene el merge protegido por `merge-con-revisiones.sh` y `merge-seguro.sh` (dos revisiones sobre
-  el SHA final más CI verde); no se cambian las reglas de GitHub (la protección de rama es de pago en repos privados).
-- **Fundamento:** ya funciona y está probado.
+- **Estado:** Decidida; **corregida el 2026-11-20** (MSF-755), porque la premisa era falsa.
+- **Decisión:** el merge sigue protegido por el flujo del repo —`merge-con-revisiones.sh` y `merge-seguro.sh` (dos
+  revisiones sobre el SHA final más CI verde)— y el gate de `dokploy` es el **ruleset** `dokploy-integracion-protegida`
+  (id `25358575`), activo, que exige el check `validacion` con «rama al día» desactivada
+  (`strict_required_status_checks_policy: false`, desde el 2026-11-04).
+- **Fundamento:** la decisión original («no se cambian las reglas de GitHub» porque «la protección de rama es de pago en
+  repos privados») partía de una premisa que el repo mismo refuta: el gate existe y funciona como **ruleset**, sin
+  depender de ese plan. Activar la «Merge queue» del ruleset **sí** cambiaría las reglas de GitHub, así que queda como
+  decisión de Nicolás (ver «Pendientes del lote 36 que necesitan acción de Nicolás» en `docs/control-ci.md`); hasta
+  entonces el estado es el de arriba.
 
 ## Acciones que siguen siendo de Nicolás
 
@@ -205,4 +214,5 @@ Estas acciones no las hace ningún lote de código; quedan a cargo de Nicolás:
 - **Promoción DEV → STG → PRD:** ejecutarla. Recordá la regla de MSF-924: STG tiene que ir un paso adelante de PRD (se
   sincroniza con `dokploy` y se valida allí antes de promover a PRD).
 - **Reglas de GitHub, runners y servidores:** los cambios de configuración fuera del repo (MSF-648, MSF-649, MSF-703,
-  MSF-704).
+  MSF-704, MSF-755 — la «Merge queue» del ruleset `dokploy-integracion-protegida`, con el procedimiento y el estado en
+  «Pendientes del lote 36 que necesitan acción de Nicolás» de `docs/control-ci.md`).

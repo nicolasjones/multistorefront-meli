@@ -66,6 +66,7 @@ Tres entradas según lo que necesites:
 | Pruebas E2E | [e2e-app.md](e2e-app.md), [validacion-e2e3.md](validacion-e2e3.md) |
 | Producto derivado / template | [crear-producto-derivado.md](crear-producto-derivado.md), [adoptar-capacidades-template.md](adoptar-capacidades-template.md), [adoptar-tooling-typescript.md](adoptar-tooling-typescript.md), [registrar-funcionalidad-desde-migracion.md](registrar-funcionalidad-desde-migracion.md) |
 | Documentación obligatoria y skills | [documentacion-cambios.md](documentacion-cambios.md), [skills.md](skills.md) |
+| Cierre de tareas de las specs (regla «ninguna tarea queda `[ ]`») | [tecnico/cierre-de-tareas.md](tecnico/cierre-de-tareas.md) |
 | Arquitectura y roadmap | [architecture.md](architecture.md), [roadmap-template.md](roadmap-template.md) |
 | Copias y restauración | [copias-y-restauracion.md](copias-y-restauracion.md), [simulacro-restauracion.md](simulacro-restauracion.md) |
 | Verificación de salida del correo de «Solicitar acceso» | [verificacion-salida-correo.md](verificacion-salida-correo.md) |

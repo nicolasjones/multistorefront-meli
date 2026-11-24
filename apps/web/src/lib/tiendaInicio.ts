@@ -1,21 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useFuenteTienda } from './fuenteTienda'
 import { urlsImagenesProducto } from './imagenProducto'
-import type { ProductoListado } from './tiendaListado'
+import type { InicioTienda } from './tiendaInicioTipos'
 import { supabaseClient } from './supabase'
 import { limpiarTextoPublico } from './tiendaTextos'
 
 // F-TDA-10 (MSF-399): destacados de la home con el precio final de la empresa. La visibilidad efectiva,
 // el tope de 8, el precio y la disponibilidad los resuelve la base
 // (migración 20261203100000_tienda_destacados_publicos.sql); acá solo se lee.
-
-export type InicioTienda = {
-  // La tienda tiene al menos un producto efectivamente visible (distingue «Catálogo en preparación»).
-  hayProductos: boolean
-  destacados: ProductoListado[]
-  // Rutas de imagen → URL firmada (una sola llamada para todos los destacados).
-  imagenes: Record<string, string>
-}
 
 type FilaInicio = {
   hay_productos: boolean

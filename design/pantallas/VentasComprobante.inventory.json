@@ -37,10 +37,13 @@
   ],
   "botones": [
     "Comprobantes",
+    "Facturar",
     "Copiar",
     "Imprimir",
     "Nota de crédito",
     "Guardar cambios",
+    "00000012",
+    "00001252",
     "Agregar flete",
     "Agregar producto",
     "Local",
