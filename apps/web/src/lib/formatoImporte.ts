@@ -18,6 +18,20 @@ export function formatearNumeroImporte(valor: number, opciones: Pick<OpcionesImp
   return formatearImporte(valor, { ...opciones, simbolo: '' }).replace(/^-?\s/, (m) => m.replace(' ', ''))
 }
 
+// Importe con hasta `decimales` decimales (la cotización del dólar guarda 4): 1465,1234 → «$ 1.465,1234».
+// Un entero no lleva decimales; una única décima conserva su cero («$ 1.465,50»), como `formatearImporte`.
+export function formatearImporteHasta(valor: number, decimales: number): string {
+  if (!Number.isFinite(valor)) return '—'
+  const factor = 10 ** decimales
+  const escalado = Math.round(Math.abs(valor) * factor)
+  const entero = Math.floor(escalado / factor)
+  const resto = String(escalado % factor).padStart(decimales, '0').replace(/0+$/, '')
+  const miles = String(entero).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const signo = valor < 0 && escalado > 0 ? '-' : ''
+  const conDecimales = resto === '' ? '' : `,${resto.length === 1 ? `${resto}0` : resto}`
+  return `${signo}$ ${miles}${conDecimales}`
+}
+
 export function formatearImporte(valor: number, opciones: OpcionesImporte = {}): string {
   if (!Number.isFinite(valor)) return '—'
   const simbolo = opciones.simbolo ?? '$'

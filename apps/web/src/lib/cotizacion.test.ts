@@ -85,6 +85,12 @@ describe('textos de la tarjeta y el diálogo', () => {
     expect(formatearCotizacion(1465)).toBe('$ 1.465')
   })
 
+  it('muestra hasta 4 decimales del dólar, sin truncar los que la base guarda', () => {
+    expect(formatearCotizacion(1465.5)).toBe('$ 1.465,50')
+    expect(formatearCotizacion(1465.125)).toBe('$ 1.465,125')
+    expect(formatearCotizacion(1465.1234)).toBe('$ 1.465,1234')
+  })
+
   it('arma «Última carga» con fecha y quién', () => {
     expect(subtituloVigente(vigente)).toBe('Última carga: vie 25/09 por Javier')
     expect(subtituloVigente({ ...vigente, cargadaPor: null })).toBe('Última carga: vie 25/09')

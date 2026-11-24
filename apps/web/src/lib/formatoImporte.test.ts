@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatearImporte, formatearNumeroImporte } from './formatoImporte'
+import { formatearImporte, formatearImporteHasta, formatearNumeroImporte } from './formatoImporte'
 import { formatearPrecioTienda } from './tiendaCatalogo'
 import { formatearPesosPrecio } from './precios'
 import { formatearPesosPromocion } from './promociones'
@@ -45,6 +45,22 @@ describe('los formateadores de cada pantalla usan el compartido', () => {
     expect(formatearARS(valor).replace(/\s/g, ' ')).toBe(esperado)
     expect(formatearImporteArs(valor)).toBe(esperado)
     expect(formatearImporteGasto(valor, 'ARS')).toBe(esperado)
+  })
+})
+
+describe('formatearImporteHasta', () => {
+  it('conserva hasta 4 decimales y agrupa los miles', () => {
+    expect(formatearImporteHasta(1465, 4)).toBe('$ 1.465')
+    expect(formatearImporteHasta(1465.5, 4)).toBe('$ 1.465,50')
+    expect(formatearImporteHasta(1465.125, 4)).toBe('$ 1.465,125')
+    expect(formatearImporteHasta(1465.1234, 4)).toBe('$ 1.465,1234')
+  })
+
+  it('no muestra ceros de más y conserva el centavo mínimo', () => {
+    expect(formatearImporteHasta(0.01, 4)).toBe('$ 0,01')
+    expect(formatearImporteHasta(0.005, 4)).toBe('$ 0,005')
+    expect(formatearImporteHasta(0, 4)).toBe('$ 0')
+    expect(formatearImporteHasta(Number.NaN, 4)).toBe('—')
   })
 })
 

@@ -10,6 +10,7 @@ import {
   formatearFechaCotizacion,
   formatearPesosPrecio,
 } from '../../lib/precios'
+import { formatearCotizacion } from '../../lib/cotizacion'
 import { AYUDA_IVA_EMPRESA } from '../../lib/iva'
 import { SOLO_LECTORES } from '../base/solo-lectores'
 
@@ -48,7 +49,7 @@ export function ReglaPrecioEmpresa({
   if (errorCotizacion) textoDolar = 'No pudimos cargar la cotización. Recargá la página.'
   else if (cargandoCotizacion) textoDolar = 'Cargando la cotización…'
   else if (cotizacion) {
-    textoDolar = `Dólar vigente ${formatearPesosPrecio(cotizacion.valor)}${fecha ? ` (${fecha})` : ''}. Los productos en USD se convierten con este valor.`
+    textoDolar = `Dólar vigente ${formatearCotizacion(cotizacion.valor)}${fecha ? ` (${fecha})` : ''}. Los productos en USD se convierten con este valor.`
   } else textoDolar = 'Cargá la cotización: sin ella los productos en USD no tienen precio en pesos.'
 
   return (

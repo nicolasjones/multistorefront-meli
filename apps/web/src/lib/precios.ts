@@ -16,7 +16,7 @@ export type Cotizacion = {
 
 export const AVISO_CARGAR_COTIZACION = 'Cargá la cotización'
 export const NOTA_SIN_IVA = 'El precio de lista se carga sin IVA.'
-export const NOTA_MARGEN = 'Margen = Precio − Costo − Comisión del canal. El precio es central para todas las stores.'
+export const NOTA_MARGEN = 'Margen = (Precio − Costo) / Precio; no incluye la comisión del canal. El precio es central para todas las stores.'
 
 const formatoMargen = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
 

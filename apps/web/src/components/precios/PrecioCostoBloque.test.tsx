@@ -40,8 +40,14 @@ describe('PrecioCostoBloque', () => {
     expect(screen.getByText('costo $ 17.580 · con dólar $ 1.465 (vie 25/09)')).toBeInTheDocument()
     expect(screen.getByText('Margen estimado (escala x1):')).toBeInTheDocument()
     expect(screen.getByText('40 %')).toBeInTheDocument()
-    expect(screen.getByText(/Margen = Precio − Costo − Comisión del canal/)).toBeInTheDocument()
+    expect(screen.getByText(/Margen = \(Precio − Costo\) \/ Precio; no incluye la comisión del canal/)).toBeInTheDocument()
     expect(screen.getByText('El precio de lista se carga sin IVA.')).toBeInTheDocument()
+  })
+
+  it('el dólar se muestra con los 4 decimales que guarda la base, sin truncarlos (MSF-720)', () => {
+    montar({ cotizacion: { valor: 1465.1234, fecha: '2026-09-25T15:00:00Z' } })
+    expect(screen.getByText(/Con dólar \$ 1\.465,1234/)).toBeInTheDocument()
+    expect(screen.getByText(/con dólar \$ 1\.465,1234/)).toBeInTheDocument()
   })
 
   it('«Cotización →» es un enlace a la pantalla de Cotización, en pestaña nueva, para quien tiene la sección', () => {
