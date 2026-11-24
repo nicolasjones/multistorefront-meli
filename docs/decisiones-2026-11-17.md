@@ -54,6 +54,9 @@ comentario «Decisión tomada» en su ticket.
 - **Decisión:** (a) «Facturar presupuesto» se hará: historia nueva con `origen_presupuesto_id`, vínculo y estado
   «Convertido». (b) Retención de consultas: 24 meses desde la última actividad; después se anonimizan nombre, contacto y
   mensaje (se conservan los agregados), con una purga mensual a cargo de un flujo de Kestra.
+- **Precisiones (lote 39):** si la factura derivada se anula, el presupuesto **sigue convertido** (se convierte una sola
+  vez) y, para volver a facturar, se **copia**. La retención mide `updated_at` de la consulta (24 meses desde su última
+  actividad): se anonimiza lo que lo supera estrictamente.
 - **Fundamento:** quitar la fricción de rehacer el presupuesto a mano y reducir el riesgo legal de acumular datos
   personales sin límite.
 
