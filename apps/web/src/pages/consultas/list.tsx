@@ -22,6 +22,7 @@ import {
   type Consulta,
   type EstadoConsulta,
 } from '../../lib/consultas'
+import { BotonInteresWhatsapp } from './InteresWhatsappDialog'
 import { RespuestasRapidasDialog } from './RespuestasRapidasDialog'
 import { DetalleConsulta } from '../../components/consultas/DetalleConsulta'
 import { MiniaturaProducto } from '../../components/base/MiniaturaProducto'
@@ -184,7 +185,12 @@ export function ConsultaList() {
         titulo="Consultas"
         descripcion="Mensajes del formulario de contacto de las tiendas e interés por WhatsApp desde las fichas de producto."
         contexto={<ContextoOrganizacionActiva />}
-        accion={<Button variant="outlined" onClick={() => setRespuestasAbierto(true)}>Respuestas rápidas</Button>}
+        accion={(
+          <Stack direction="row" spacing={1}>
+            <BotonInteresWhatsapp />
+            <Button variant="outlined" onClick={() => setRespuestasAbierto(true)}>Respuestas rápidas</Button>
+          </Stack>
+        )}
       />
       <Alert severity="info" sx={{ mb: 2 }}>
         Cada consulta nueva envía un aviso por correo a la dirección de avisos de la empresa. La respuesta se da por correo o WhatsApp, fuera del sistema; acá se registra si ya fue atendida.

@@ -711,9 +711,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "c08fff958858ef0f851ff33585a1aaf168683eb97d729d6029ad3f400107c92e",
-      "sourceHash": "56fafaf589a31489b5bc757ae406cc1b46ae093f53e6b8c71f4d5694829b46d3",
-      "sourceAt": "66415c2af",
+      "pageHash": "b47627dca90260f32726da5183a5516e6e61eaf3b51d4d788f7b4739852b5329",
+      "sourceHash": "38ea44581132e64de6b8ecc9e21fd3fd2facde66e515734d16a3110efdf8799b",
+      "sourceAt": "9e94da6b5",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -725,7 +725,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "66415c2af"
+      "commit": "9e94da6b5"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -2581,9 +2581,9 @@
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",
-      "pageHash": "831926f0b94b114809b59861ffba7ed65593553f83b430076fead73df62a0175",
-      "sourceHash": "487989b60d6b3882ae049c552d6d7bb32018154955d56eebb8c91833d7a669f4",
-      "sourceAt": "d70a00f62",
+      "pageHash": "a69ef6830005157e7b1f124784ebda03412f8588cefc4979e64e15b3a1ba2ad0",
+      "sourceHash": "bd84ab2fe82e22392fa4116aefe759501cb98392ca8635450e0722be87cf9d9d",
+      "sourceAt": "9e94da6b5",
       "sources": [
         "scripts/tests-afectados.mjs",
         "scripts/tests-afectados.test.mjs",
@@ -2597,7 +2597,7 @@
         ".github/workflows/quality.yml"
       ],
       "owner": "plataforma",
-      "commit": "d70a00f62"
+      "commit": "9e94da6b5"
     },
     "docs/registrar-funcionalidad-desde-migracion.md": {
       "title": "Registrar una funcionalidad desde una migración",

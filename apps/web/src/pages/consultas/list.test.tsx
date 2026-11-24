@@ -33,6 +33,8 @@ vi.mock('../../hooks/useFiltroPorEmpresaActiva', () => ({ useFiltroPorEmpresaAct
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 // El contacto de la libreta (F-CON-05) tiene su propio test: acá no se monta.
 vi.mock('./ContactoConsulta', () => ({ ContactoConsulta: () => null }))
+// El diálogo real tiene su propio test; acá solo importa que la pantalla lo ofrezca.
+vi.mock('./InteresWhatsappDialog', () => ({ BotonInteresWhatsapp: () => <button type="button">Interés por WhatsApp</button> }))
 
 import type { Consulta } from '../../lib/consultas'
 import { ConsultaList } from './list'
@@ -311,6 +313,12 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     )
     expect(screen.queryByText('Consulta de Ana Pérez')).not.toBeInTheDocument()
     expect(ultimosFiltros()).toMatchObject({ empresaId: 'e-2', pagina: 1 })
+  })
+
+  it('el encabezado ofrece el botón «Interés por WhatsApp» junto a «Respuestas rápidas»', () => {
+    abrir()
+    expect(screen.getByRole('button', { name: 'Interés por WhatsApp' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Respuestas rápidas' })).toBeInTheDocument()
   })
 
   it('Respuestas rápidas: el botón abre el diálogo de la empresa activa y al cambiar de empresa se cierra con aviso (FR-018)', () => {
