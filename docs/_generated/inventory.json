@@ -1235,6 +1235,10 @@
     {
       "slug": "20271118-100000-lote-38-parciales",
       "titulo": "Lote 38: ítems parciales con decisión tomada (SQL + interfaz)"
+    },
+    {
+      "slug": "20271118-110000-lote-39-facturar-presupuesto",
+      "titulo": "Feature Specification: Facturar presupuesto y retención de consultas"
     }
   ],
   "paginas": 345

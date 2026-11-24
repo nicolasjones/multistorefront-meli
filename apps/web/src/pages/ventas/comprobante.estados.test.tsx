@@ -149,6 +149,7 @@ describe('Catálogo de estados (FR-023)', () => {
       armando: ['Armando', 'primario'],
       incompleto: ['Incompleto', 'aviso'],
       anulada: ['Anulada', 'contorno'],
+      convertido: ['Convertido en factura', 'primario'],
     }
     for (const [estado, [etiqueta, tono]] of Object.entries(esperado)) {
       expect(definicionEstado(estado)).toMatchObject({ etiqueta, tono })
