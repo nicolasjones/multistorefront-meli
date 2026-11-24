@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BorradorConservadoContext } from '../context/BorradorConservado'
 import type { PermisoSeccion } from '../lib/permisos'
 
-// Con el `useNivelSeccion` REAL (solo se simula el proveedor de permisos): cómo se ve cada estado del panel desde las pantallas de
-// Empresas. Cargando → null (spinner); error de carga, sin proveedor o sin nivel → false (restringido/solo lectura, nunca edición,
-// nunca colgado); solo `edicion` → true.
+// Con el `useNivelSeccion` REAL (solo se simula el proveedor de permisos): cómo se ve cada estado
+// del panel desde las pantallas de Empresas. Cargando → null (spinner); error de carga, sin
+// proveedor o sin nivel → false (restringido/solo lectura, nunca edición, nunca colgado); solo
+// `edicion` → true.
 const mocks = vi.hoisted(() => ({ usePermisosPanel: vi.fn() }))
 vi.mock('../context/PermisosPanel', () => ({ usePermisosPanel: mocks.usePermisosPanel }))
 
@@ -54,10 +55,12 @@ describe('usePuedeEditarEmpresas con los permisos reales del panel', () => {
   it('falla el repedido CON permisos previos (último nivel edición): false, con o sin borrador conservado', () => {
     const valor = { permisos: null, isLoading: false, error: true, clave: 'u1:o1', recargar: vi.fn(),
       ultimosConfirmados: { clave: 'u1:o1', permisos: [fila('edicion')] } }
-    // Sin pantalla que conserve borrador, el hook no usa los permisos anteriores: sin nivel → false.
+    // Sin pantalla que conserve borrador, el hook no usa los permisos anteriores: sin nivel →
+    // false.
     mocks.usePermisosPanel.mockReturnValue(valor)
     expect(leer(null).puedeEditar).toBe(false)
-    // Con borrador conservado el hook devuelve el último nivel como `sinConfirmar`: la pantalla es inerte, no edita.
+    // Con borrador conservado el hook devuelve el último nivel como `sinConfirmar`: la pantalla
+    // es inerte, no edita.
     expect(leer({ clave: 'u1:o1' }).puedeEditar).toBe(false)
   })
 })
