@@ -29,7 +29,7 @@ insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
 
 -- Cada organización ya trae su Consumidor final (Nº 1, minorista, activo).
 insert into dominio.clientes (organizacion_id, numero, nombre, documento, correo, telefono, localidad, tipo) values
-  ('11111111-1111-1111-1111-111111111111', 777, 'Norte Distribuidora', '30-71234567-8', 'norte@example.com', '341-4421', 'Rosario', 'mayorista'),
+  ('11111111-1111-1111-1111-111111111111', 777, 'Norte Distribuidora', '30-71234567-1', 'norte@example.com', '341-4421', 'Rosario', 'mayorista'),
   ('11111111-1111-1111-1111-111111111111', 11, 'Descuento 50%', null, null, null, null, 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 12, 'Descuento 500', null, null, null, null, 'minorista'),
   ('11111111-1111-1111-1111-111111111111', 13, 'a_b taller', null, null, null, null, 'minorista'),

@@ -10,9 +10,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../lib/supabase', () => ({
   supabaseClient: {
+    // CUIT, correo y WhatsApp se leen por la RPC `empresa_datos` (la tabla los reserva a la sección `empresas`).
+    rpc: (nombre: string, parametros: unknown) => mocks.lectura(nombre, parametros),
     schema: () => ({
       from: () => ({
-        select: () => ({ eq: () => ({ maybeSingle: mocks.lectura }) }),
         update: (valores: unknown) => {
           mocks.update(valores)
           const encadenado = {
@@ -37,7 +38,7 @@ const datos = { nombre: 'Nuevo', whatsapp: null, correo: null, instagram: null, 
 describe('useEmpresa', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.lectura.mockResolvedValue({ data: base, error: null })
+    mocks.lectura.mockResolvedValue({ data: [base], error: null })
   })
 
   it('sin id no consulta ni reporta «no encontrada»; al resolver el id consulta una vez', async () => {
@@ -56,12 +57,14 @@ describe('useEmpresa', () => {
   })
 
   it('cambiarEstado filtra por id y por el estado previo, y actualiza la empresa', async () => {
-    mocks.escritura.mockResolvedValue({ data: { ...base, activa: false }, error: null })
+    mocks.escritura.mockResolvedValue({ data: { id: 'e-1' }, error: null })
     const { result } = renderHook(() => useEmpresa('e-1'))
     await waitFor(() => expect(result.current.empresa).not.toBeNull())
+    mocks.lectura.mockResolvedValue({ data: [{ ...base, activa: false }], error: null })
 
     await act(() => result.current.cambiarEstado(false))
 
+    expect(mocks.lectura).toHaveBeenLastCalledWith('empresa_datos', { p_empresa: 'e-1' })
     expect(mocks.update).toHaveBeenCalledWith({ activa: false })
     expect(mocks.eqUpdate).toHaveBeenCalledWith('id', 'e-1')
     expect(mocks.eqUpdate).toHaveBeenCalledWith('activa', true)
@@ -93,11 +96,11 @@ describe('useEmpresa', () => {
     await waitFor(() => expect(result.current.empresa?.id).toBe('e-1'))
     const pendiente = result.current.cambiarEstado(false)
 
-    mocks.lectura.mockResolvedValue({ data: { ...base, id: 'e-2', nombre: 'Dos' }, error: null })
+    mocks.lectura.mockResolvedValue({ data: [{ ...base, id: 'e-2', nombre: 'Dos' }], error: null })
     rerender({ id: 'e-2' })
     await waitFor(() => expect(result.current.empresa?.id).toBe('e-2'))
     await act(async () => {
-      resolver({ data: { ...base, activa: false }, error: null })
+      resolver({ data: { id: 'e-1' }, error: null })
       await pendiente
     })
 
@@ -112,14 +115,33 @@ describe('useEmpresa', () => {
     await waitFor(() => expect(result.current.empresa?.id).toBe('e-1'))
     const pendiente = result.current.actualizar(datos)
 
-    mocks.lectura.mockResolvedValue({ data: { ...base, id: 'e-2', nombre: 'Dos' }, error: null })
+    mocks.lectura.mockResolvedValue({ data: [{ ...base, id: 'e-2', nombre: 'Dos' }], error: null })
     rerender({ id: 'e-2' })
     await waitFor(() => expect(result.current.empresa?.id).toBe('e-2'))
     await act(async () => {
-      resolver({ data: { ...base, nombre: 'Nuevo' }, error: null })
+      resolver({ data: { id: 'e-1' }, error: null })
       await pendiente
     })
 
     expect(result.current.empresa).toMatchObject({ id: 'e-2', nombre: 'Dos' })
+  })
+
+  it('actualizar escribe por columnas y relee los datos completos por la RPC', async () => {
+    mocks.escritura.mockResolvedValue({ data: { id: 'e-1' }, error: null })
+    const { result } = renderHook(() => useEmpresa('e-1'))
+    await waitFor(() => expect(result.current.empresa).not.toBeNull())
+    mocks.lectura.mockResolvedValue({ data: [{ ...base, nombre: 'Nuevo', cuit: '30712345671' }], error: null })
+
+    await act(() => result.current.actualizar({ ...datos, cuit: '30712345671' }))
+
+    expect(mocks.update).toHaveBeenCalledWith({ ...datos, cuit: '30712345671' })
+    expect(result.current.empresa).toMatchObject({ nombre: 'Nuevo', cuit: '30712345671' })
+  })
+
+  it('un rol sin la sección empresas (la RPC responde 42501) ve un error, no datos', async () => {
+    mocks.lectura.mockResolvedValue({ data: null, error: { code: '42501', message: 'Tu rol no puede ver los datos de las empresas' } })
+    const { result } = renderHook(() => useEmpresa('e-1'))
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.empresa).toBeNull()
   })
 })

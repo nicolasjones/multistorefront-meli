@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
+vi.mock('../supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
+
 import {
-  aParametrosRegistrar, codigoDeErrorCobro, comprobanteAdmiteCobros, errorDeCampoCobro, esContrarreembolso, FORMULARIO_COBRO_VACIO,
-  mensajeDeErrorCobro, parsearImporteCobro, textoCuentaCobro, validarCobro, type Cobro, type FormularioCobro,
+  aParametrosRegistrar, cobroRevertible, codigoDeErrorCobro, comprobanteAdmiteCobros, errorDeCampoCobro, esContrarreembolso, FORMULARIO_COBRO_VACIO,
+  MENSAJE_MOTIVO_REVERSION, mensajeDeErrorCobro, mensajeDeErrorReversion, parsearImporteCobro, revertirCobro, textoCuentaCobro, validarCobro, validarMotivoReversion, type Cobro, type FormularioCobro,
 } from './cobros'
 
 const formulario = (extra: Partial<FormularioCobro> = {}): FormularioCobro => ({ ...FORMULARIO_COBRO_VACIO, forma_pago_id: 'fp1', importe: '100', ...extra })
@@ -157,7 +161,7 @@ describe('qué comprobantes admiten cobros', () => {
 describe('cómo se muestra un cobro', () => {
   const cobro = (extra: Partial<Cobro> = {}): Cobro => ({
     id: 'c', fecha: '2027-01-01', forma_pago: 'Efectivo', forma_pago_tipo: 'efectivo', cuenta_cobro: null, cuenta_cobro_banco: null,
-    cuenta_cobro_titular: null, importe: 10, origen: 'manual', conciliado: false, aprobado_por: null, registrado_por: null, ...extra,
+    cuenta_cobro_titular: null, importe: 10, origen: 'manual', conciliado: false, aprobado_por: null, registrado_por: null, estado_reversion: null, motivo_reversion: null, ...extra,
   })
 
   it('sin cuenta de cobro el campo queda vacío', () => {
@@ -179,5 +183,40 @@ describe('cómo se muestra un cobro', () => {
     expect(esContrarreembolso(cobro({ forma_pago: 'Contrarreembolso', forma_pago_tipo: 'efectivo' }))).toBe(false)
     expect(esContrarreembolso(cobro({ forma_pago: 'Pago en destino', forma_pago_tipo: 'contrarreembolso' }))).toBe(true)
     expect(esContrarreembolso(cobro({ forma_pago_tipo: null }))).toBe(false)
+  })
+})
+
+describe('revertir un cobro', () => {
+  const base: Cobro = {
+    id: 'c', fecha: '2027-01-01', forma_pago: 'Efectivo', forma_pago_tipo: 'efectivo', cuenta_cobro: null, cuenta_cobro_banco: null,
+    cuenta_cobro_titular: null, importe: 10, origen: 'manual', conciliado: false, aprobado_por: null, registrado_por: null,
+    estado_reversion: null, motivo_reversion: null,
+  }
+
+  it('solo un cobro manual, sin reversión y sin conciliar es revertible', () => {
+    expect(cobroRevertible(base)).toBe(true)
+    expect(cobroRevertible({ ...base, estado_reversion: 'revertido' })).toBe(false)
+    expect(cobroRevertible({ ...base, origen: 'reversion', estado_reversion: 'reversion' })).toBe(false)
+    expect(cobroRevertible({ ...base, origen: 'contrarreembolso' })).toBe(false)
+    expect(cobroRevertible({ ...base, conciliado: true })).toBe(false)
+  })
+
+  it('el motivo es obligatorio, se recorta y admite hasta 300 caracteres', () => {
+    expect(validarMotivoReversion('   ')).toBe(MENSAJE_MOTIVO_REVERSION)
+    expect(validarMotivoReversion('Error de carga')).toBeNull()
+    expect(validarMotivoReversion('x'.repeat(300))).toBeNull()
+    expect(validarMotivoReversion('x'.repeat(301))).toMatch(/hasta 300/)
+  })
+
+  it('manda el motivo recortado a la RPC y devuelve el id del contra-asiento', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: 'b-contra', error: null })
+    await expect(revertirCobro('c-1', '  Duplicado  ')).resolves.toBe('b-contra')
+    expect(mocks.rpc).toHaveBeenCalledWith('revertir_cobro', { p_cobro_id: 'c-1', p_motivo: 'Duplicado' })
+  })
+
+  it('traduce los códigos de la base sin filtrar mensajes técnicos', () => {
+    expect(mensajeDeErrorReversion({ code: '42501', message: 'x' }, 'por defecto')).toMatch(/Solo el administrador/)
+    expect(mensajeDeErrorReversion({ code: '55000', message: 'El cobro ya fue revertido' }, 'por defecto')).toBe('El cobro ya fue revertido')
+    expect(mensajeDeErrorReversion({ code: 'XX000', message: 'relation x' }, 'por defecto')).toBe('por defecto')
   })
 })

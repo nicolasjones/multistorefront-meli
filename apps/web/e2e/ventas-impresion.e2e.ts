@@ -195,7 +195,7 @@ test.describe('Ventas · impresión de punta a punta (MSF-213, SC-009)', () => {
       organizacionId = org.id
       const [empresa] = await rest<{ id: string }>(
         'empresas',
-        { organizacion_id: org.id, nombre: `Tienda Impresión ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345678' },
+        { organizacion_id: org.id, nombre: `Tienda Impresión ${sufijo}`, razon_social: `Tienda ${sufijo} SRL`, cuit: '30712345671' },
         'dominio',
       )
       usuarioId = await altaUsuario(correoAdmin)

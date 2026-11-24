@@ -88,7 +88,7 @@ select isnt(
 select is(
   (select jsonb_agg(x ->> 'estado' order by x ->> 'fila')
      from jsonb_array_elements(public.previsualizar_lote_clientes(
-       '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-1"},
+       '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-2"},
          {"fila":3,"id_externo":"P-002","nombre":"Cliente Dos Sintético"},
          {"fila":4,"id_externo":"P-003","nombre":""}]'::jsonb
      )) as x),
@@ -125,7 +125,7 @@ select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 
 select lives_ok(
   $$insert into t_res select 'l1', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga'), 1,
-     '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-1","correo":"uno@example.com","tipo":"Mayorista","localidad":"Rosario"},
+     '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-2","correo":"uno@example.com","tipo":"Mayorista","localidad":"Rosario"},
        {"fila":3,"id_externo":"P-002","nombre":"Cliente Dos Sintético","documento":""},
        {"fila":4,"id_externo":"P-003","nombre":""},
        {"fila":5,"id_externo":"P-004","nombre":"Correo malo","correo":"noesmail"},
@@ -166,7 +166,7 @@ select is(
 
 select lives_ok(
   $$insert into t_res select 'l1b', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga'), 1,
-     '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-1","correo":"uno@example.com","tipo":"Mayorista","localidad":"Rosario"},
+     '[{"fila":2,"id_externo":"P-001","nombre":"Cliente Uno Sintético","documento":"20-11111111-2","correo":"uno@example.com","tipo":"Mayorista","localidad":"Rosario"},
        {"fila":3,"id_externo":"P-002","nombre":"Cliente Dos Sintético","documento":""},
        {"fila":4,"id_externo":"P-003","nombre":""},
        {"fila":5,"id_externo":"P-004","nombre":"Correo malo","correo":"noesmail"},
@@ -195,7 +195,7 @@ select is(
 
 select lives_ok(
   $$insert into t_res select 'l2', public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga'), 2,
-     '[{"fila":9,"id_externo":"P-009","nombre":"Documento repetido","documento":"20111111111"},
+     '[{"fila":9,"id_externo":"P-009","nombre":"Documento repetido","documento":"20111111112"},
        {"fila":10,"id_externo":"P-002","nombre":"Identificador repetido"},
        {"fila":11,"id_externo":"P-003","nombre":"Tras una fila inválida"}]'::jsonb)$$,
   'se aplica el lote 2'
@@ -226,7 +226,7 @@ select is(
 );
 select is(
   (select documento || ' / ' || telefono from dominio.clientes where nombre = 'Cliente Uno Renombrado'),
-  '20-11111111-1 / 341-555-0001',
+  '20-11111111-2 / 341-555-0001',
   'la actualización solo pisa las columnas que trae el archivo (el documento no mapeado queda)'
 );
 select is(

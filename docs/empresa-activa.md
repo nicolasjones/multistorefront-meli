@@ -86,7 +86,9 @@ técnico con MSF-182. Detalle: [Ventas · catálogos](producto/ventas-catalogos.
    organización, inexistente o el usuario está suspendido), hace upsert en `public.usuario_empresa_activa`
    y registra `usuario.empresa_activa_cambiada` en la misma transacción. Elegir la que ya es la activa no
    escribe ni registra. `public.usar_todas_las_empresas()` hace lo propio para la vista combinada: borra
-   la fila (sin empresa activa) y registra el evento; es idempotente.
+   la fila (sin empresa activa) y registra el evento; es idempotente. El evento queda registrado pero no
+   ocupa la lista de Actividad: es un cambio de contexto, no de negocio (MSF-985; ver
+   [Actividad e historial](actividad.md#eventos-de-contexto-no-ocupan-la-lista-msf-985)).
 3. `private.roles_de_referencia(p_seccion)` resuelve las secciones **por empresa** (ventas, consultas,
    reportes) con el rol de la empresa activa o, sin activa, con el **mejor rol** entre las empresas
    activas del usuario (`20261018170000_empresa_activa_todas.sql`). Las compartidas (productos,
