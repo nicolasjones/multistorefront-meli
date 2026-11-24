@@ -63,6 +63,17 @@ describe('cobertura-e2e', () => {
     ]);
   });
 
+  it('lee los ítems con el mismo formato que el gate (id en negrita y tarea indentada)', () => {
+    const base = mkdtempSync(join(tmpdir(), 'cobertura-'));
+    const tasks = join(base, 'tasks.md');
+    writeFileSync(tasks, '- [x] **T001** Con negrita.\n  - [ ] T002 Indentada.\n- [ ] T003 Sencilla.\n');
+    assert.deepEqual(leerItems(tasks), [
+      { id: 'T001', hecho: true, texto: 'Con negrita.' },
+      { id: 'T002', hecho: false, texto: 'Indentada.' },
+      { id: 'T003', hecho: false, texto: 'Sencilla.' },
+    ]);
+  });
+
   it('genera evidencias con video, huérfanos y sin cubrir', () => {
     const { dirSpecs, dirResults, reporte } = armarFixture();
     const m = generarManifiesto({ reporte, dirResults, dirSpecs, runId: 'r1', modo: 'on' });
