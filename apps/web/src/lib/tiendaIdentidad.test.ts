@@ -1,10 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
 import {
   contrasteBlancoSobre, esColorValido, evaluarContraste, familiasACargar, formatearContraste, normalizarColor,
-  IDENTIDAD_BASE, TIPOGRAFIAS, identidadDesdeFila, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen,
+  IDENTIDAD_BASE, TIPOGRAFIAS, identidadDesdeFila, rutaArchivo, svgEsSeguro, tiposAceptados, urlFuentes, validarImagen, prepararImagenTienda,
 } from './tiendaIdentidad'
 
 const archivo = (nombre: string, tipo: string, bytes: number | string) =>
@@ -173,5 +173,58 @@ describe('tipografías (FR-024)', () => {
     expect(TIPOGRAFIAS).toContain('DM Sans')
     expect(familiasACargar({ tipografiaTitulos: 'Bricolage Grotesque', tipografiaTexto: 'DM Sans' })).toEqual(['Bricolage Grotesque', 'DM Sans'])
     expect(urlFuentes(['Bricolage Grotesque', 'DM Sans'])).toBe('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap')
+  })
+})
+
+describe('prepararImagenTienda', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  function simular(bytesSalida: number) {
+    const lienzos: Array<{ ancho: number; alto: number }> = []
+    class LienzoFalso {
+      constructor(ancho: number, alto: number) { lienzos.push({ ancho, alto }) }
+      getContext() { return { drawImage: () => undefined } }
+      async convertToBlob() {
+        return new Blob([new Uint8Array(bytesSalida)], { type: 'image/webp' })
+      }
+    }
+    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue({ width: 5000, height: 2000, close: () => undefined }))
+    vi.stubGlobal('OffscreenCanvas', LienzoFalso)
+    return lienzos
+  }
+  const grande = (nombre: string, tipo: string, bytes: number) => {
+    const f = archivo(nombre, tipo, 1)
+    Object.defineProperty(f, 'size', { value: bytes })
+    return f
+  }
+
+  it('el banner se optimiza a WebP de 1920 px y el tope de 3 MB se valida sobre el resultado', async () => {
+    const lienzos = simular(500_000)
+    const r = await prepararImagenTienda('banner', grande('b.jpg', 'image/jpeg', 8 * 1024 * 1024))
+    expect(r).toEqual({ archivo: expect.objectContaining({ type: 'image/webp', name: 'b.webp' }) })
+    expect(lienzos).toEqual([{ ancho: 1920, alto: 768 }])
+  })
+
+  it('el banner móvil usa 1200 px', async () => {
+    const lienzos = simular(100_000)
+    await prepararImagenTienda('bannerMovil', grande('m.png', 'image/png', 2_000_000))
+    expect(lienzos).toEqual([{ ancho: 1200, alto: 480 }])
+  })
+
+  it('rechaza el banner que sigue pesando más de 3 MB optimizado, o de más de 15 MB de origen', async () => {
+    simular(4 * 1024 * 1024)
+    expect(await prepararImagenTienda('banner', grande('b.jpg', 'image/jpeg', 8 * 1024 * 1024))).toEqual({ error: expect.stringContaining('3 MB') })
+    expect(await prepararImagenTienda('banner', grande('b.jpg', 'image/jpeg', 16 * 1024 * 1024))).toEqual({ error: expect.stringContaining('15 MB') })
+    expect(await prepararImagenTienda('banner', archivo('b.gif', 'image/gif', 10))).toEqual({ error: expect.stringContaining('no es un formato admitido') })
+  })
+
+  it('el logo (PNG o SVG) no se optimiza: se devuelve el mismo archivo y se conserva su tope de 1 MB', async () => {
+    const lienzos = simular(10)
+    const png = grande('l.png', 'image/png', 900_000)
+    const r = await prepararImagenTienda('logo', png)
+    expect(r).toEqual({ archivo: png })
+    expect((r as { archivo: File }).archivo).toBe(png)
+    expect(lienzos).toEqual([])
+    expect(await prepararImagenTienda('logo', grande('l.png', 'image/png', 1024 * 1024 + 1))).toEqual({ error: expect.stringContaining('1 MB') })
   })
 })

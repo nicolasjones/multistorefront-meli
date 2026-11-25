@@ -59,7 +59,7 @@ Bloquea a: MSF-167 (tienda-catalogo-y-ficha), MSF-133 (tienda-dominio-y-publicac
 - **D2 · Precio y destacados por tienda**: el modelo (`productos_tienda`) permite destacados distintos por tienda; en esta épica el **precio** se lee del producto y no se edita por tienda. Falta confirmarlo con el cliente.
 - **D3 · Quién gestiona**: se asume Administrador (edición en Empresas). Si el Operador debe elegir qué productos se muestran, otorgarle edición sobre esa parte.
 - **D4 · «El botón lleva a»**: el prototipo solo muestra «Catálogo completo». Supuesto: la lista de destinos es cerrada y por ahora tiene esa única opción; MSF-167 puede ampliarla.
-- **D5 · Límites de archivos y textos** (la épica no los fija): logo ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP), títulos ≤ 120 caracteres, textos largos ≤ 300. Son valores técnicos por defecto, ajustables en una sola constante/migración.
+- **D5 · Límites de archivos y textos** (la épica no los fija): logo ≤ 1 MB (PNG/SVG), banners ≤ 3 MB (PNG/JPG/WebP; medidos sobre el archivo ya optimizado en el navegador, origen hasta 15 MB), títulos ≤ 120 caracteres, textos largos ≤ 300. Son valores técnicos por defecto, ajustables en una sola constante/migración.
 - **D6 · Categorías ya existentes en MSF-160**: MSF-160 trae `dominio.categorias_empresa` (en qué empresas se ve una categoría, F-CAT-08). Esta épica crea `categorias_tienda` como pide la épica (visibilidad **dentro de la tienda**). Supuesto: la tienda solo considera `categorias_tienda`; coordinar con MSF-160 si deben unificarse.
 - **D7 · Horas**: el roadmap asigna menos horas a Tiendas online que la suma de las épicas; el recorte queda pendiente (no cambia el alcance de esta spec).
 

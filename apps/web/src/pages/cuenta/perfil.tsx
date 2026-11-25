@@ -1,8 +1,9 @@
 import { ETIQUETAS_ROL, type RolMatriz } from '../../lib/permisos'
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Alert, Avatar, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, TextField, Typography } from '@mui/material'
 import { Link as RouterLink, Navigate } from 'react-router'
 import { supabaseClient } from '../../lib/supabase'
+import { optimizarImagen } from '../../lib/optimizarImagen'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 
 type Perfil = { nombre: string | null; apellido: string | null; foto_path: string | null }
@@ -10,6 +11,9 @@ type Membresia = { rol_id: string; organizaciones: { nombre: string } | null }
 type EventoSeguridad = { id: number; tipo: 'inicio_sesion' | 'contrasena_modificada' | 'correo_modificado'; created_at: string }
 type EstadoSesion = 'verificando' | 'lista' | 'ausente'
 const FOTO_MAX_BYTES = 2 * 1024 * 1024
+// La foto se optimiza en el navegador (WebP, lado largo 512 px) antes de validar el tope del bucket.
+const FOTO_MAX_ORIGEN_BYTES = 15 * 1024 * 1024
+const FOTO_LADO_MAXIMO_PX = 512
 const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp']
 
 export function PerfilPage() {
@@ -24,6 +28,7 @@ export function PerfilPage() {
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [tieneFoto, setTieneFoto] = useState(false)
   const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const enProceso = useRef(false)
   const [cuenta, setCuenta] = useState<{ creadoEn: string | null; rol: string | null; organizacion: string | null }>({ creadoEn: null, rol: null, organizacion: null })
   const [eventosSeguridad, setEventosSeguridad] = useState<EventoSeguridad[]>([])
 
@@ -86,13 +91,38 @@ export function PerfilPage() {
       setError('La foto debe ser JPG, PNG o WebP.')
       return
     }
-    if (archivo.size > FOTO_MAX_BYTES) {
-      setError('La foto no puede superar 2 MiB.')
+    if (archivo.size > FOTO_MAX_ORIGEN_BYTES) {
+      setError('La foto no puede superar 15 MB.')
       return
     }
+    // El botón queda bloqueado (subiendoFoto) desde acá: no se puede elegir otra foto mientras se optimiza.
+    if (enProceso.current) return
+    enProceso.current = true
     setSubiendoFoto(true)
     setError(null)
     setMensaje(null)
+    try {
+      await subirFoto(archivo)
+    } finally {
+      enProceso.current = false
+      setSubiendoFoto(false)
+    }
+  }
+
+  const subirFoto = async (original: File) => {
+    let archivo: File
+    try {
+      archivo = await optimizarImagen(original, FOTO_LADO_MAXIMO_PX)
+    } catch (error) {
+      setError((error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError'
+        ? 'La foto tiene demasiados píxeles: usá una imagen de menor resolución.'
+        : 'No pudimos optimizar la foto. Intentá nuevamente.')
+      return
+    }
+    if (archivo.size > FOTO_MAX_BYTES) {
+      setError('La foto no puede superar 2 MiB aun optimizada.')
+      return
+    }
     const path = `${userId}/avatar`
     // Si ya hay una foto, se respalda antes de sobrescribirla para poder
     // restaurarla si el upsert de perfil falla después de la carga.
@@ -113,7 +143,6 @@ export function PerfilPage() {
         setMensaje('Tu foto de perfil fue actualizada.')
       }
     }
-    setSubiendoFoto(false)
   }
 
   const eliminarFoto = async () => {
@@ -213,7 +242,7 @@ export function PerfilPage() {
                   <input hidden type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void cargarFoto(event.target.files?.[0])} />
                 </Button>
                 {tieneFoto && <Button color="error" size="small" onClick={() => void eliminarFoto()} disabled={subiendoFoto} aria-busy={subiendoFoto}>Quitar foto</Button>}
-                <Typography variant="xs" color="text.secondary" textAlign="center">JPG, PNG o WebP de hasta 2 MiB.</Typography>
+                <Typography variant="xs" color="text.secondary" textAlign="center">JPG, PNG o WebP de hasta 15 MB; se optimiza automáticamente.</Typography>
               </Stack>
               <Stack component="form" spacing={2} onSubmit={guardarPerfil} noValidate sx={{ flex: 1 }}>
                 <TextField label="Nombre" value={nombre} onChange={(event) => setNombre(event.target.value)} autoComplete="given-name" required fullWidth />

@@ -19,7 +19,7 @@ La pantalla carga en paralelo el usuario autenticado, su \`perfiles_usuario\`, s
 |---|---|
 | \`nombre\` | Obligatorio al guardar; sin contenido tras quitar espacios. |
 | \`apellido\` | Obligatorio al guardar; sin contenido tras quitar espacios. |
-| \`foto\` | Opcional; JPG, PNG o WebP de hasta 2 MiB. |
+| \`foto\` | Opcional; JPG, PNG o WebP de hasta 15 MB de origen; el navegador la optimiza (WebP, lado largo 512 px) y los 2 MiB aplican al archivo ya optimizado. |
 
 **Resultado**: se actualiza solo la fila cuyo \`user_id\` coincide con la sesión. Una foto se sube primero a la ruta del titular y se persiste en el perfil solo si la carga es correcta. Al quitarla, se elimina el objeto y se limpia la ruta.
 

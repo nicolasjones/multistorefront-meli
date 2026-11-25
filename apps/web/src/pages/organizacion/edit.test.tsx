@@ -29,6 +29,8 @@ vi.mock('../../lib/supabase', () => ({
   },
 }))
 
+const optimizar = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/optimizarImagen', () => ({ optimizarImagen: optimizar }))
 vi.mock('./ResumenSemanal', () => ({ ResumenSemanalOrganizacion: () => null }))
 
 import { OrganizacionEdit } from './edit'
@@ -41,6 +43,8 @@ const abrir = () => render(<MemoryRouter><OrganizacionEdit /></MemoryRouter>)
 describe('OrganizacionEdit', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset())
+    optimizar.mockReset()
+    optimizar.mockImplementation(async (archivo: File) => archivo)
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
     mocks.useEmpresas.mockReturnValue(sinEmpresas)
     mocks.maybeSingle.mockResolvedValue({ data: organizacion, error: null })
@@ -103,7 +107,11 @@ describe('OrganizacionEdit', () => {
 
     const grande = new File([new Uint8Array(1024 * 1024 + 1)], 'logo.png', { type: 'image/png' })
     fireEvent.change(entrada, { target: { files: [grande] } })
-    expect(await screen.findByText('El logo no puede superar 1 MB.')).toBeInTheDocument()
+    expect(await screen.findByText('El logo supera 1 MB aun optimizado: usá una imagen más chica.')).toBeInTheDocument()
+    const enorme = new File(['x'], 'logo.png', { type: 'image/png' })
+    Object.defineProperty(enorme, 'size', { value: 15 * 1024 * 1024 + 1 })
+    fireEvent.change(entrada, { target: { files: [enorme] } })
+    expect(await screen.findByText('El logo no puede superar 15 MB.')).toBeInTheDocument()
     expect(mocks.upload).not.toHaveBeenCalled()
   })
 
@@ -116,11 +124,42 @@ describe('OrganizacionEdit', () => {
     abrir()
 
     fireEvent.change(await screen.findByTestId('archivo-logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    await screen.findByText('Logo nuevo: logo.png')
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
     expect(mocks.upload.mock.calls[0][0]).toMatch(/^org-1\/[\w-]+\.png$/)
     expect(mocks.rpc.mock.calls[0][1].p_logo_path).toBe(mocks.upload.mock.calls[0][0])
+  })
+
+  it('optimiza el logo a 1024 px, sube el archivo optimizado y bloquea guardar mientras tanto', async () => {
+    mocks.upload.mockResolvedValue({ error: null })
+    mocks.rpc.mockImplementation(async (_nombre: string, args: { p_logo_path: string }) => ({ data: { ...organizacion, logo_path: args.p_logo_path }, error: null }))
+    let terminar: (f: File) => void = () => undefined
+    optimizar.mockReturnValue(new Promise<File>((resolver) => { terminar = resolver }))
+    abrir()
+    const original = new File(['x'], 'logo.jpg', { type: 'image/jpeg' })
+    fireEvent.change(await screen.findByTestId('archivo-logo'), { target: { files: [original] } })
+    expect(await screen.findByRole('button', { name: 'Guardar cambios' })).toBeDisabled()
+    expect(optimizar).toHaveBeenCalledWith(original, 1024)
+    const webp = new File(['y'], 'logo.webp', { type: 'image/webp' })
+    terminar(webp)
+    await screen.findByText('Logo nuevo: logo.webp')
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument()
+    expect(mocks.upload).toHaveBeenCalledWith(expect.stringMatching(/^org-1\/.+\.webp$/), webp, { contentType: 'image/webp' })
+  })
+
+  it('distingue «demasiados píxeles» de un error de optimización cualquiera en el logo', async () => {
+    abrir()
+    const entrada = await screen.findByTestId('archivo-logo')
+    optimizar.mockRejectedValueOnce(Object.assign(new Error('x'), { name: 'ImagenDemasiadoGrandeError' }))
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    expect(await screen.findByText('El logo tiene demasiados píxeles: usá una imagen de menor resolución.')).toBeInTheDocument()
+    optimizar.mockRejectedValueOnce(new Error('falló'))
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    expect(await screen.findByText('No pudimos optimizar el logo. Probá de nuevo.')).toBeInTheDocument()
+    expect(mocks.upload).not.toHaveBeenCalled()
   })
 
   it('borra el logo subido si la RPC rechaza el guardado', async () => {
@@ -129,6 +168,7 @@ describe('OrganizacionEdit', () => {
     abrir()
 
     fireEvent.change(await screen.findByTestId('archivo-logo'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    await screen.findByText('Logo nuevo: logo.png')
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
 
     expect(await screen.findByText('El logo no es válido')).toBeInTheDocument()
