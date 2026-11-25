@@ -221,7 +221,7 @@ pnpm --filter @platform/web test:e2e tienda-dos-dominios
 | **D2** precio y destacados por tienda | Destacados por tienda; precio por producto/empresa, sin edición por tienda | Agregar columna y RPC; hoy no existe |
 | **D3** quién gestiona | Administrador con edición en Empresas; el Operador no ve Empresas | Dar edición acotada al Operador |
 | **D4** destinos del botón | Lista cerrada con `catalogo` («Catálogo completo») | Una fila de `DESTINOS_BOTON` y el check de la base |
-| **D5** límites | Logo 1 MB; banners 3 MB; títulos/botones 120; textos largos 300 | `REGLAS_IMAGEN`/`CAMPOS_CONTENIDO` y los checks de la migración |
+| **D5** límites | Logo 1 MB (sin optimizar); banners 3 MB sobre el archivo optimizado (origen 15 MB); títulos/botones 120; textos largos 300 | `REGLAS_IMAGEN`/`CAMPOS_CONTENIDO` y los checks de la migración |
 | **D6** categorías | `categorias_tienda` manda en la tienda; no se unifica con `categorias_empresa` (MSF-160) | Cambiar la consulta y la migración |
 | **D7** horas | No cambia el alcance funcional | Planificación |
 
