@@ -1,7 +1,7 @@
 -- F-PRE-10 (MSF-436, épica MSF-363): actualización masiva de costos y precios.
 -- Cubre FR-002, FR-004…FR-009 / SC-001: vista previa que no escribe, porcentaje sube/baja con
 -- alcance todos/categoría, redondeo a 2 decimales, −100 % rechazado, planilla con errores por fila,
--- atomicidad con falla provocada, idempotencia por clave, conflicto 40001 por updated_at, 42501 sin
+-- atomicidad con falla provocada, idempotencia por clave, conflicto 40001 (PT412) por updated_at, 42501 sin
 -- permiso, costo solo con `rentabilidad`, lote y evento sin importes de costo, aislamiento entre
 -- organizaciones y `anon` sin ejecución.
 begin;

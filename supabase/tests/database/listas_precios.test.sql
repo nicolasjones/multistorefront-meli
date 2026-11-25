@@ -150,7 +150,7 @@ select throws_ok(
   '23505', null, 'renombrar a un nombre existente se rechaza');
 select throws_ok(
   $$select public.guardar_lista_precios('99999999-9999-9999-9999-999999999999', 'X', null, 1, now())$$,
-  'PT404', null, 'editar una lista inexistente da P0002');
+  'PT404', null, 'editar una lista inexistente da PT404');
 
 -- ============================================================================
 -- Archivar y restaurar (RF-PRE-14-3, CA-PRE-14-4)

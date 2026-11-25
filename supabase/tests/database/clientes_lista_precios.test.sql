@@ -165,13 +165,13 @@ select throws_ok(
   '22023', null, 'un cliente archivado no se asigna');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001')$$,
-  'PT404', null, 'una lista de otra organización da P0002');
+  'PT404', null, 'una lista de otra organización da PT404');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001')$$,
-  'PT404', null, 'un cliente de otra organización da P0002');
+  'PT404', null, 'un cliente de otra organización da PT404');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', '99999999-9999-9999-9999-999999999999')$$,
-  'PT404', null, 'una lista inexistente da P0002');
+  'PT404', null, 'una lista inexistente da PT404');
 
 -- ============================================================================
 -- Permisos (CA-CLI-21-11) y aislamiento
