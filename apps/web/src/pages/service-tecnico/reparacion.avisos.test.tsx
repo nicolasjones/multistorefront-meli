@@ -133,6 +133,25 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
   })
 
+  it('si el estado destino tiene «Avisa al cliente», avisa sin tocar la casilla', async () => {
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.avisarClienteDeReparacion).toHaveBeenCalledWith('r-1', undefined))
+  })
+
+  it('si el estado destino tiene «Avisa al cliente», destildar la casilla evita el aviso', async () => {
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    fireEvent.click(casilla)
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+  })
+
   it('con la casilla tildada cambia primero el estado y después pide el aviso', async () => {
     abrirDetalle()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Avisar al cliente' }))

@@ -1,6 +1,18 @@
 ---
 owner: producto
-sources: []
+sources:
+  - supabase/functions/tienda-seo/handler.ts
+  - apps/web/src/pages/tienda-publica/VolvemosPronto.tsx
+  - apps/web/src/pages/tienda-publica/PaginaNoEncontrada.tsx
+  - apps/web/src/pages/tienda-publica/PantallaError.tsx
+  - apps/web/src/pages/tienda-publica/EnrutadorTienda.tsx
+  - apps/web/src/pages/tienda-publica/index.tsx
+  - apps/web/src/pages/tienda-publica/rutas/producto.tsx
+  - apps/web/src/pages/tienda-publica/ficha/Relacionados.tsx
+  - apps/web/src/pages/tienda-publica/seo/CabeceraSeo.tsx
+  - apps/web/src/pages/tienda-publica/seo/pilaCabecera.ts
+  - apps/web/src/pages/tienda-publica/layout/PieLegal.tsx
+  - apps/web/src/pages/tienda-publica/layout/AvisoCookies.tsx
 ---
 
 # Páginas de estado, productos relacionados, Google y datos legales de la tienda

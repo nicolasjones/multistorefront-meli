@@ -59,6 +59,26 @@ describe('MenuCuenta', () => {
     expect(eq).toHaveBeenCalledWith('user_id', 'user-1')
   })
 
+  it('no firma la foto cuando el perfil no tiene foto_path (evita 400 NoSuchKey)', async () => {
+    maybeSingle.mockResolvedValue({ data: { nombre: 'Ada', apellido: 'Lovelace', foto_path: null }, error: null })
+    useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
+
+    render(<MemoryRouter><MenuCuenta /></MemoryRouter>)
+
+    expect(await screen.findByRole('button', { name: /Ada Lovelace/ })).toBeInTheDocument()
+    expect(createSignedUrl).not.toHaveBeenCalled()
+  })
+
+  it('firma la foto con foto_path cuando existe', async () => {
+    maybeSingle.mockResolvedValue({ data: { nombre: 'Ada', apellido: 'Lovelace', foto_path: 'user-1/avatar' }, error: null })
+    useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
+
+    render(<MemoryRouter><MenuCuenta /></MemoryRouter>)
+
+    await screen.findByRole('button', { name: /Ada Lovelace/ })
+    expect(createSignedUrl).toHaveBeenCalledWith('user-1/avatar', 60)
+  })
+
   it('ofrece Perfil, Cambiar contraseña, Cambiar correo y Cerrar sesión en un único menú', () => {
     useGetIdentity.mockReturnValue({ data: { id: 'user-1', email: 'persona@example.com' }, isLoading: false })
 

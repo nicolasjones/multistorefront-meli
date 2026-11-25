@@ -1,6 +1,18 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/main.tsx
+  - apps/web/src/lib/tienda.ts
+  - apps/web/src/lib/tiendaIdentidad.ts
+  - apps/web/src/lib/tiendaContenido.ts
+  - apps/web/src/lib/tiendaCatalogo.ts
+  - apps/web/src/hooks/useCatalogoTienda.ts
+  - apps/web/src/pages/empresas/tienda
+  - apps/web/src/lib/arranqueSesion.ts
+  - apps/web/src/pages/empresas/tienda/GestionTienda.tsx
+  - apps/web/src/pages/empresas/tienda/EncabezadoTienda.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas.ts
+  - apps/web/src/pages/tienda-publica/PaginaTienda.tsx
 ---
 
 # Identidad, textos y dirección de la tienda

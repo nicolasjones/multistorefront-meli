@@ -122,7 +122,7 @@ organización y por relleno de las existentes. No pisa lo que la organización y
 | `mover_estado_reparacion(id, 'subir' \| 'bajar')` | Intercambia `orden` con el vecino en una sola sentencia; en un extremo no hace nada. |
 | `cambiar_estado_estado_reparacion(id, activo)` | Activa/desactiva; idempotente. |
 
-`avisa_cliente` y `cierra` **solo se guardan y se muestran**: esta épica no envía ningún aviso al cliente (FR-006).
+`avisa_cliente` y `cierra` se guardan y se muestran; además, al cambiar una reparación a un estado con `avisa_cliente`, la casilla «Avisar al cliente» queda marcada por defecto (se puede destildar; el envío es el de F-SVC-14).
 
 En ambas pantallas, con `edicion`, el botón «Editar» de cada fila abre el mismo diálogo precargado (equipo/modelo/mano de obra; nombre/«Qué significa»/aviso) y guarda con `actualizar_*` y bloqueo optimista por `updated_at`. Límite conocido: desactivar un estado que cierra (p. ej. «Entregado») no tiene guarda en esta épica; el aviso por uso es FR-019 (F-SVC-02).
 

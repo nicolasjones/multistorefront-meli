@@ -1,6 +1,18 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/lib/analiticaTienda.ts
+  - apps/web/src/lib/tiendaAnalitica.ts
+  - apps/web/src/lib/tiendaPaginas.ts
+  - apps/web/src/lib/consentimientoCookies.ts
+  - apps/web/src/lib/enlaceProducto.ts
+  - apps/web/src/hooks/usePaginaTienda.ts
+  - apps/web/src/hooks/useEnlacesPaginas.ts
+  - apps/web/src/pages/empresas/tienda/pestanas/analitica.tsx
+  - apps/web/src/pages/empresas/tienda/pestanas/paginas.tsx
+  - apps/web/src/pages/tienda-publica/layout/MedicionTienda.tsx
+  - apps/web/src/pages/tienda-publica/layout/PieInformacion.tsx
+  - apps/web/src/pages/tienda-publica/ficha/BotonCompartir.tsx
 ---
 
 # Páginas propias, medición de visitas y botón Compartir

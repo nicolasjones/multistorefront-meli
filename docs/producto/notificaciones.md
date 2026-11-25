@@ -1,6 +1,10 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/navegacion/CampanitaNotificaciones.tsx
+  - apps/web/src/components/navegacion/ListaNotificaciones.tsx
+  - apps/web/src/components/navegacion/notificaciones.ts
+  - apps/web/src/components/navegacion/useNotificaciones.ts
 ---
 
 # La campanita de notificaciones

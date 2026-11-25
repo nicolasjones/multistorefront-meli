@@ -180,7 +180,7 @@ Pruebas: `supabase/tests/database/alta_de_empresas.test.sql`, `apps/web/src/comp
   proveedores de la organización.
 - **Punto de extensión (FR-010)**: cada épica que agregue una tabla por empresa la suma a esa función y a su prueba
   pgTAP, excluyendo dominio y cuentas, y declara su esquema (`dominio`) y RLS.
-- **«Borrador»**: es un término de la interfaz («Empresa creada como borrador»); no hay un estado nuevo en base: la
+- **«Sin configurar»**: ya no se usa el término «borrador» en la interfaz («Empresa creada. Todavía está sin configurar.»); no hay un estado nuevo en base: la
   empresa nace `activa` por defecto y se la distingue por estar «Sin configurar».
 - **Interfaz**: el diálogo «Nueva empresa» (Nombre, «Copiar configuración de», Cancelar / «Crear empresa») conserva lo
   escrito ante un error de servidor y deshabilita el envío mientras guarda. Sin empresas de origen, el selector queda

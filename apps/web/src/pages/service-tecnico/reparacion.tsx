@@ -92,8 +92,10 @@ const AgregarRepuestoDialog = lazy(() =>
   import('../../components/service/AgregarRepuestoDialog').then((modulo) => ({ default: modulo.AgregarRepuestoDialog })),
 )
 
-// «Avisar al cliente» arranca destildada: no se manda un correo sin querer (spec, Decisiones abiertas 4).
-const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO = false
+// «Avisar al cliente» al cambiar de estado: sin tocar la casilla (null) se avisa solo si el estado DESTINO tiene
+// marcado «Avisa al cliente» (estados_reparacion.avisa_cliente); la persona puede tildarla o destildarla para
+// decidir ella (true / false). Tras cada cambio de estado vuelve a «según el estado».
+const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO: boolean | null = null
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
 
@@ -133,7 +135,7 @@ export function ServicioReparacion() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [errorHistorial, setErrorHistorial] = useState<string | null>(null)
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
-  const [avisarAlCambiar, setAvisarAlCambiar] = useState(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
+  const [avisarAlCambiar, setAvisarAlCambiar] = useState<boolean | null>(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
   const [garantiaAbierta, setGarantiaAbierta] = useState(false)
@@ -314,7 +316,9 @@ export function ServicioReparacion() {
       return
     }
     // El aviso va DESPUÉS del cambio y nunca lo revierte (FR-025): si falla, el estado queda y se informa el error.
-    if (avisarAlCambiar && puedeAvisar) await avisosCliente.avisar()
+    const avisar = avisarAlCambiar ?? elegido.avisa_cliente
+    setAvisarAlCambiar(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
+    if (avisar && puedeAvisar) await avisosCliente.avisar()
     setCambiandoEstado(false)
   }
 
@@ -503,7 +507,8 @@ export function ServicioReparacion() {
                     <FormControlLabel
                       control={
                         <Checkbox
-                          checked={avisarAlCambiar && !clienteSinCorreo}
+                          checked={avisarAlCambiar === true && !clienteSinCorreo}
+                          indeterminate={avisarAlCambiar === null && !clienteSinCorreo}
                           onChange={(evento) => setAvisarAlCambiar(evento.target.checked)}
                           disabled={!puedeCambiarEstado || clienteSinCorreo}
                         />

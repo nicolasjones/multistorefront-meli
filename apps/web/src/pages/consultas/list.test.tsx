@@ -131,7 +131,7 @@ describe('ConsultaList (F-CON-01, FR-006)', () => {
     abrir()
     expect(screen.getByRole('heading', { name: 'Consultas', level: 1 })).toBeInTheDocument()
     expect(screen.getByText(/Mensajes del formulario de contacto de las tiendas/)).toBeInTheDocument()
-    expect(screen.getByText(/envía un aviso por correo a la dirección de avisos de la empresa/)).toBeInTheDocument()
+    expect(screen.getByText(/avisa por correo a cada persona según sus preferencias en «Avisos por correo»/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Todas las tiendas' })).toBeInTheDocument()
     expect(screen.getByText(/Si elegís una empresa en la barra superior, se filtra por esa tienda/)).toBeInTheDocument()
     for (const nombre of ['Estado', 'Cuándo', 'Empresa', 'Contacto', 'Producto', 'Origen']) {

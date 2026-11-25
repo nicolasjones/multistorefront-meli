@@ -140,7 +140,7 @@ export function EmpresaList() {
     <Box>
       {encabezado}
       <ContenedorSeccion>
-        {creada ? <Box sx={{ mb: 2 }}><EstadoExito titulo="Empresa creada como borrador" /></Box> : null}
+        {creada ? <Box sx={{ mb: 2 }}><EstadoExito titulo="Empresa creada. Todavía está sin configurar." /></Box> : null}
         {isLoading ? (
           <EstadoCargaPagina />
         ) : isError ? (
