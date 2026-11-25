@@ -25,7 +25,7 @@ Entrá a **Administración → Mi organización**.
 |---|---|
 | **Nombre de la organización** | Obligatorio. |
 | **Zona horaria** | La de tu negocio (por defecto, Buenos Aires). En la lista cada zona se lee con su ciudad, por ejemplo «Buenos Aires (América/Argentina)». |
-| **Logo** | Imagen PNG, JPG o WebP de hasta 1 MB. Botones **Subir logo** / **Cambiar logo** y **Quitar logo**. |
+| **Logo** | Imagen PNG, JPG o WebP de hasta 15 MB; se optimiza sola (WebP, lado largo de 1024 px) y el resultado no puede superar 1 MB. Botones **Subir logo** / **Cambiar logo** y **Quitar logo**. |
 
 ![Pantalla Mi organización con nombre, zona horaria, logo y la lista de empresas de la organización](img/organizacion-y-empresas/01-mi-organizacion.png)
 

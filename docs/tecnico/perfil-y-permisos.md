@@ -208,7 +208,7 @@ de la sección denegada; sin clave, la pantalla mantiene sólo «Volver al inici
 - `apps/web/src/pages/cuenta/perfil.tsx` lee `usuarios_organizacion` (organización y rol),
   `perfiles_usuario` (nombre, apellido y `foto_path`) y las últimas 20 filas de
   `eventos_seguridad_usuario`; muestra la foto con una URL firmada del bucket `fotos-perfil`. Nombre y
-  apellido son obligatorios; la foto acepta JPG, PNG o WebP de hasta 2 MiB. Antes de reemplazar o borrar la
+  apellido son obligatorios; la foto acepta JPG, PNG o WebP de hasta 15 MB de origen; el navegador la optimiza (`optimizarImagen`, WebP, lado largo 512 px; ruta fija `<user_id>/avatar` sin extensión, el bucket admite webp) y el tope de 2 MiB del bucket se valida sobre el archivo ya optimizado. El botón queda bloqueado mientras se optimiza. Antes de reemplazar o borrar la
   foto se descarga la anterior y se restaura si falla el upsert del perfil.
 - `apps/web/src/pages/cuenta/cambiar-contrasena.tsx` valida la contraseña nueva con
   `apps/web/src/lib/passwordPolicy.ts` (mínimo 12 caracteres, mayúscula, minúscula, número y símbolo) y la

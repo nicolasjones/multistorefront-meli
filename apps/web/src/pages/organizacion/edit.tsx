@@ -6,6 +6,7 @@ import { Box, Button, Link, List, ListItem, ListItemText, Stack, TextField, Typo
 import { useContextoPanel } from '../../hooks/useContextoPanel'
 import { useEmpresas } from '../../hooks/useEmpresas'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
+import { optimizarImagen } from '../../lib/optimizarImagen'
 import { supabaseClient } from '../../lib/supabase'
 import { AccesoRestringido } from '../acceso-restringido/AccesoRestringido'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
@@ -17,6 +18,9 @@ import { ResumenSemanalOrganizacion } from './ResumenSemanal'
 
 const BUCKET_LOGOS = 'logos-organizacion'
 const TAMANO_MAXIMO_LOGO = 1024 * 1024
+// El logo se optimiza en el navegador (WebP, lado largo 1024 px) y el tope de 1 MB se valida sobre el resultado.
+const TAMANO_MAXIMO_ORIGEN_LOGO = 15 * 1024 * 1024
+const LADO_MAXIMO_LOGO_PX = 1024
 const EXTENSION_POR_TIPO: Record<string, string> = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }
 const ZONA_POR_DEFECTO = 'America/Argentina/Buenos_Aires'
 
@@ -73,6 +77,9 @@ export function OrganizacionEdit() {
   const [nombre, setNombre] = useState('')
   const [zona, setZona] = useState(ZONA_POR_DEFECTO)
   const entradaLogo = useRef<HTMLInputElement>(null)
+  // Mientras se optimiza el logo elegido no se guarda ni se vuelve a elegir (el guardado lo dejaría afuera).
+  const optimizandoLogo = useRef(false)
+  const [optimizando, setOptimizando] = useState(false)
   const [logoPath, setLogoPath] = useState<string | null>(null)
   const [archivo, setArchivo] = useState<File | null>(null)
   const [urlLogo, setUrlLogo] = useState<string | null>(null)
@@ -140,10 +147,11 @@ export function OrganizacionEdit() {
     return envolver(<EstadoError descripcion="No pudimos cargar los datos de la organización." reintentar={() => void cargar()} />)
   }
 
-  const elegirArchivo = (event: ChangeEvent<HTMLInputElement>) => {
+  const elegirArchivo = async (event: ChangeEvent<HTMLInputElement>) => {
     const elegido = event.target.files?.[0] ?? null
     // Permite volver a elegir el mismo archivo (si no, el navegador no dispara onChange).
     event.target.value = ''
+    if (optimizandoLogo.current) return
     setExito(false)
     if (!elegido) {
       setArchivo(null)
@@ -155,13 +163,34 @@ export function OrganizacionEdit() {
       setErrores((previos) => ({ ...previos, logo: 'El logo debe ser una imagen PNG, JPG o WebP.' }))
       return
     }
-    if (elegido.size > TAMANO_MAXIMO_LOGO) {
+    if (elegido.size > TAMANO_MAXIMO_ORIGEN_LOGO) {
       setArchivo(null)
-      setErrores((previos) => ({ ...previos, logo: 'El logo no puede superar 1 MB.' }))
+      setErrores((previos) => ({ ...previos, logo: 'El logo no puede superar 15 MB.' }))
       return
     }
-    setArchivo(elegido)
-    setErrores((previos) => ({ ...previos, logo: undefined }))
+    optimizandoLogo.current = true
+    setOptimizando(true)
+    try {
+      let optimizado: File
+      try {
+        optimizado = await optimizarImagen(elegido, LADO_MAXIMO_LOGO_PX)
+      } catch (error) {
+        setArchivo(null)
+        const demasiado = (error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError'
+        setErrores((previos) => ({ ...previos, logo: demasiado ? 'El logo tiene demasiados píxeles: usá una imagen de menor resolución.' : 'No pudimos optimizar el logo. Probá de nuevo.' }))
+        return
+      }
+      if (optimizado.size > TAMANO_MAXIMO_LOGO) {
+        setArchivo(null)
+        setErrores((previos) => ({ ...previos, logo: 'El logo supera 1 MB aun optimizado: usá una imagen más chica.' }))
+        return
+      }
+      setArchivo(optimizado)
+      setErrores((previos) => ({ ...previos, logo: undefined }))
+    } finally {
+      optimizandoLogo.current = false
+      setOptimizando(false)
+    }
   }
 
   const quitarLogo = () => {
@@ -173,7 +202,7 @@ export function OrganizacionEdit() {
 
   const guardar = async (event: FormEvent) => {
     event.preventDefault()
-    if (guardando || !organizacionId) return
+    if (guardando || optimizandoLogo.current || !organizacionId) return
     setExito(false)
     setErrorGuardado(null)
     const erroresNuevos: Errores = { ...errores }
@@ -256,8 +285,8 @@ export function OrganizacionEdit() {
             {!logoPath && !archivo ? <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Todavía no cargaste un logo.</Typography> : null}
             {archivo ? <Typography variant="body2" sx={{ mb: 1 }}>Logo nuevo: {archivo.name}</Typography> : null}
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }}>
-              <Button variant="outlined" onClick={() => entradaLogo.current?.click()}>
-                {logoPath || archivo ? 'Cambiar logo' : 'Subir logo'}
+              <Button variant="outlined" onClick={() => entradaLogo.current?.click()} disabled={optimizando}>
+                {optimizando ? 'Optimizando logo…' : logoPath || archivo ? 'Cambiar logo' : 'Subir logo'}
               </Button>
               <input
                 ref={entradaLogo}
@@ -266,17 +295,17 @@ export function OrganizacionEdit() {
                 data-testid="archivo-logo"
                 aria-hidden="true"
                 tabIndex={-1}
-                onChange={elegirArchivo}
+                onChange={(event) => void elegirArchivo(event)}
                 style={{ ...SOLO_LECTORES, margin: -1, padding: 0, border: 0 }}
               />
-              {logoPath || archivo ? <Button color="inherit" onClick={quitarLogo}>Quitar logo</Button> : null}
+              {logoPath || archivo ? <Button color="inherit" onClick={quitarLogo} disabled={optimizando}>Quitar logo</Button> : null}
             </Stack>
             <Typography variant="caption" color={errores.logo ? 'error' : 'text.secondary'} role={errores.logo ? 'alert' : undefined} sx={{ display: 'block', mt: 0.5 }}>
-              {errores.logo ?? 'PNG, JPG o WebP, hasta 1 MB.'}
+              {errores.logo ?? 'PNG, JPG o WebP, hasta 15 MB; se optimiza automáticamente.'}
             </Typography>
           </Box>
           <Box>
-            <Button type="submit" variant="contained" disabled={guardando}>
+            <Button type="submit" variant="contained" disabled={guardando || optimizando}>
               {guardando ? 'Guardando…' : 'Guardar cambios'}
             </Button>
           </Box>

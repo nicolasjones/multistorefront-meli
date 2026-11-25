@@ -23,7 +23,7 @@
 |---|---|
 | Visibilidad | Bucket privado; nunca usar URL pública. |
 | Nombre de objeto | \`<user_id>/avatar\`, una única foto reemplazable por titular. |
-| Contenido | JPG, PNG o WebP; hasta 2 MiB. |
+| Contenido | JPG, PNG o WebP; hasta 2 MiB el objeto guardado (el bucket lo impone). El origen admite hasta 15 MB y se optimiza en el navegador antes de subir. |
 | Escritura | Solo el titular en su carpeta: INSERT, SELECT y UPDATE para reemplazo; DELETE para quitarla. |
 | Lectura | Titular o integrante de la misma organización que el titular; prohibida entre organizaciones. |
 

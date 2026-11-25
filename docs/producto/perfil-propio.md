@@ -32,7 +32,7 @@ Arriba a la derecha, hacé clic en tu nombre. Se abre un menú con:
 
 1. Abrí el menú con tu nombre y elegí **Perfil**.
 2. Para el nombre, editá **Nombre** y **Apellido** (los dos son obligatorios) y hacé clic en **Guardar datos personales**. Vas a ver «Tus datos personales fueron guardados».
-3. Para la foto, hacé clic en **Cargar o reemplazar foto** y elegí una imagen JPG, PNG o WebP de hasta 2 MiB. Si no querés foto, usá **Quitar foto**: se muestra la inicial de tu nombre.
+3. Para la foto, hacé clic en **Cargar o reemplazar foto** y elegí una imagen JPG, PNG o WebP de hasta 15 MB; se optimiza sola (WebP, lado largo de 512 px) antes de subirla y el resultado no puede superar 2 MiB. Si no querés foto, usá **Quitar foto**: se muestra la inicial de tu nombre.
 
 ![Pantalla Mi perfil con nombre, apellido, foto, datos de cuenta y botones de seguridad](img/perfil-propio/02-perfil.png)
 

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Alert, Box, Button, Stack, Typography } from '@mui/material'
-import { REGLAS_IMAGEN, tiposAceptados, urlPublica, validarImagen, type ClaveImagen } from '../../../../../lib/tiendaIdentidad'
+import { REGLAS_IMAGEN, LADO_MAXIMO_BANNER_PX, prepararImagenTienda, tiposAceptados, urlPublica, type ClaveImagen } from '../../../../../lib/tiendaIdentidad'
 
 // F-TDA-02 (FR-021, FR-025, FR-026): campo de logo o banner. Valida formato y tamaño ANTES de aceptar el
 // archivo (el SVG con script o eventos se rechaza); un archivo inválido no reemplaza al actual. El
@@ -35,6 +35,7 @@ export function ImagenTienda({
   estado,
   onElegir,
   onQuitar,
+  onOptimizando,
   urlLocal: urlLocalCompartida,
 }: {
   clave: ClaveImagen
@@ -42,6 +43,8 @@ export function ImagenTienda({
   estado: EstadoImagen
   onElegir: (archivo: File) => void
   onQuitar: () => void
+  // Avisa al formulario si hay una optimización en curso (para no guardar sin esa imagen).
+  onOptimizando?: (optimizando: boolean) => void
   // Vista previa ya creada por el padre (evita un segundo blob URL del mismo archivo).
   urlLocal?: string | null
 }) {
@@ -49,6 +52,8 @@ export function ImagenTienda({
   const entrada = useRef<HTMLInputElement>(null)
   const idAyuda = useId()
   const [error, setError] = useState<string | null>(null)
+  const [optimizando, setOptimizando] = useState(false)
+  const enProceso = useRef(false)
   const propia = useUrlLocal(urlLocalCompartida === undefined ? estado.archivo : null)
   const urlLocal = urlLocalCompartida === undefined ? propia : urlLocalCompartida
   const url = urlLocal ?? urlPublica(estado.ruta)
@@ -56,14 +61,28 @@ export function ImagenTienda({
   const etiqueta = reglas.medidas ? `${TITULO[clave]} (${reglas.medidas})` : TITULO[clave]
 
   const elegir = async (archivo: File | undefined) => {
-    if (!archivo) return
-    const motivo = await validarImagen(clave, archivo)
-    if (motivo) {
-      setError(hayImagen ? `${motivo} Se conserva la imagen actual.` : motivo)
-      return
+    if (!archivo || enProceso.current) return
+    const optimiza = LADO_MAXIMO_BANNER_PX[clave] !== undefined
+    if (optimiza) {
+      enProceso.current = true
+      setOptimizando(true)
+      onOptimizando?.(true)
     }
-    setError(null)
-    onElegir(archivo)
+    try {
+      const resultado = await prepararImagenTienda(clave, archivo)
+      if ('error' in resultado) {
+        setError(hayImagen ? `${resultado.error} Se conserva la imagen actual.` : resultado.error)
+        return
+      }
+      setError(null)
+      onElegir(resultado.archivo)
+    } finally {
+      if (optimiza) {
+        enProceso.current = false
+        setOptimizando(false)
+        onOptimizando?.(false)
+      }
+    }
   }
 
   return (
@@ -101,14 +120,14 @@ export function ImagenTienda({
             {clave === 'logo'
               ? 'Usá PNG o SVG, de preferencia con fondo transparente. Se usa en el encabezado, en las redes y, con sus colores sobre un recuadro blanco redondeado, en el pie oscuro: sirve con fondo transparente u opaco, pero los colores deben verse sobre blanco: un logo blanco o muy claro no se vería en el pie.'
               : `${reglas.formatos}. Medidas sugeridas: ${reglas.medidas} px.`}
-            {` Hasta ${reglas.maxEtiqueta}.`}
+            {LADO_MAXIMO_BANNER_PX[clave] !== undefined ? ' Hasta 15 MB; se optimiza automáticamente.' : ` Hasta ${reglas.maxEtiqueta}.`}
           </Typography>
           <Stack direction="row" spacing={1}>
-            <Button variant="outlined" size="small" onClick={() => entrada.current?.click()} aria-describedby={idAyuda} aria-label={`${hayImagen ? 'Reemplazar' : 'Subir'} ${etiqueta.toLowerCase()}`}>
+            <Button variant="outlined" size="small" onClick={() => entrada.current?.click()} disabled={optimizando} aria-describedby={idAyuda} aria-label={`${hayImagen ? 'Reemplazar' : 'Subir'} ${etiqueta.toLowerCase()}`}>
               {hayImagen ? 'Reemplazar' : 'Subir'}
             </Button>
             {hayImagen ? (
-              <Button size="small" color="inherit" onClick={() => { setError(null); onQuitar() }} aria-label={`Quitar ${etiqueta.toLowerCase()}`}>
+              <Button size="small" color="inherit" onClick={() => { setError(null); onQuitar() }} disabled={optimizando} aria-label={`Quitar ${etiqueta.toLowerCase()}`}>
                 Quitar
               </Button>
             ) : null}
