@@ -916,15 +916,15 @@
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
-      "pageHash": "d652137773a1c1e337d434754771103ba0e5c6ea54160d50d1fc7d43bd5d6c20",
-      "sourceHash": "c68c4238ac23564e44e8b8955ee7ca3d9e852b380b6fdb3b937b118629048091",
-      "sourceAt": "e55825f7",
+      "pageHash": "3f92f0b3b06ec68592c02262b85fdf9d0d099533b3730ac28a6e303b23ba36a5",
+      "sourceHash": "5b0f8a084e50705a992bcb50c38314f8606d0bba48cded3134545984748e7494",
+      "sourceAt": "c05e8102b",
       "sources": [
         "workers/README.md",
         "workers/CONTRATO.md"
       ],
       "owner": "plataforma",
-      "commit": "e55825f7"
+      "commit": "c05e8102b"
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
@@ -1073,9 +1073,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "4adabf91fc83428262869abf4d8e59c4263a2b0396352b88ac860ada1b899955",
+      "pageHash": "aa19ccaa7001b7d4a9e66b58ee0706a39c5fdb87b78077c106c0d7e777fa53f6",
       "sourceHash": "7c1ee1ade8d456bdaa52940b91d5182c490b630605df3620593b7516f4b92143",
-      "sourceAt": "46f833ec2",
+      "sourceAt": "6127218ac",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -1123,7 +1123,7 @@
         "apps/web/src/lib/opiniones.ts"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "6127218ac"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -3665,9 +3665,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "67f5900d156114e260d6ca37d675bac5c4132ba12a5b0427304625cf4dd979ce",
-      "sourceHash": "251e54e35100643136b1acea8622a4bbcafdaea7d848842631b7d03d097be5e5",
-      "sourceAt": "f6d79ffda",
+      "pageHash": "a7d0e942939cf670041eca2db985ec600f23a4ca83188379445b3db9dfccb1ce",
+      "sourceHash": "ace7a14a75d949edfbb0967930f39f5f50a7ac093b18e0e5a18f0e259317ebec",
+      "sourceAt": "2b7b9b4db",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations/20261012140100_usuarios_organizacion_estado.sql",
@@ -3680,6 +3680,7 @@
         "supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql",
         "supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql",
         "supabase/migrations/20270507600000_acl_por_defecto_authenticated_sin_truncate_references_trigger.sql",
+        "supabase/migrations/20270507700000_conexiones_sin_fuga_de_existencia_y_acl_supabase_admin.sql",
         "supabase/tests/database/bloqueo_servidor.test.sql",
         "supabase/tests/database/estado_usuario.test.sql",
         "supabase/tests/database/cortar_sesiones_suspendido.test.sql",
@@ -3701,7 +3702,7 @@
         "scripts/verificar-hook-bloqueo.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "f6d79ffda"
+      "commit": "2b7b9b4db"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
