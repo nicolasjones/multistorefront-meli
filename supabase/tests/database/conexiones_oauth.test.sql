@@ -184,7 +184,7 @@ select throws_ok(
 
 select throws_ok(
   $$select public.iniciar_conexion_oauth('e1111111-1111-1111-1111-111111111111', '00000000-0000-0000-0000-000000000000')$$,
-  'P0002',
+  'PT404',
   null,
   'iniciar_conexion_oauth rechaza una integración que no existe'
 );
@@ -195,7 +195,7 @@ select throws_ok(
 
 select throws_ok(
   $$select public.confirmar_conexion_oauth('00000000-0000-0000-0000-000000000000', 'nango-conn-1')$$,
-  'P0002',
+  'PT404',
   null,
   'confirmar_conexion_oauth rechaza una conexión que no existe'
 );

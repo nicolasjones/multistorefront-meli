@@ -156,7 +156,7 @@ palabra, no prefijo). En `comprobante.estado_cambiado` se quita el sufijo « in 
 | `operadores_de_comprobantes(p_empresa_id uuid)` | `(id, nombre)` con las opciones del filtro Operador, acotadas por tienda. | `security invoker` |
 | `exportar_comprobantes(p_tipo text, p_busqueda, p_estado, p_pago_id, p_envio_id, p_operador_id, p_empresa_id)` | Todas las filas del filtro (no la página), hasta **10.000**; `p_tipo` ∈ `comprobantes` | `presupuestos`. Exige la acción `exportar` de Ventas. | `security invoker` |
 | `solicitar_exportacion_comprobantes(p_tipo text, p_filtros jsonb)` | Registra la exportación **diferida** (más de 10.000 filas) en el ciclo de ejecuciones y devuelve el id de la ejecución. Idempotente con los mismos filtros; bloquea otra simultánea del mismo usuario (`YA_EN_CURSO`). | `security definer` |
-| `archivo_exportacion_comprobantes(p_ejecucion_id uuid)` | `(estado text, archivo text)`: el estado de la ejecución y la ruta del CSV **solo si** terminó `exitosa`. Solo el solicitante, con `exportar` (`42501`/`P0002` si no). | `security definer` |
+| `archivo_exportacion_comprobantes(p_ejecucion_id uuid)` | `(estado text, archivo text)`: el estado de la ejecución y la ruta del CSV **solo si** terminó `exitosa`. Solo el solicitante, con `exportar` (`42501`/`PT404` si no). | `security definer` |
 | `private.comprobantes_consulta(...)` / `private.comprobantes_consulta_sesion(...)` | Consulta **única** compartida por el listado, la exportación y el worker, para que lo que se ve y lo que se exporta nunca difieran. La sesión deriva organización y empresas del JWT; `private.comprobantes_consulta` no tiene grant a `authenticated`. | `security definer` |
 
 Reglas del listado:

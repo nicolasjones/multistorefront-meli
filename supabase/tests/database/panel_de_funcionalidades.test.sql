@@ -117,14 +117,14 @@ set local role authenticated;
 
 select throws_ok(
   $$select public.habilitar_feature('feature-que-no-existe', 'c1111111-1111-1111-1111-111111111111')$$,
-  'P0002',
+  'PT404',
   null,
   'habilitar_feature rechaza una funcionalidad que no existe en el catálogo'
 );
 
 select throws_ok(
   $$select public.habilitar_feature('feature-uno', '00000000-0000-0000-0000-000000000000')$$,
-  'P0002',
+  'PT404',
   null,
   'habilitar_feature rechaza una organización que no existe'
 );

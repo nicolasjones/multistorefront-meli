@@ -47,7 +47,7 @@ solo funciones, un índice y el bucket de Storage.
 | `public.operadores_de_comprobantes(uuid)` | `public` | `security invoker`; opciones del filtro Operador acotadas por tienda. |
 | `public.exportar_comprobantes(text, ...)` | `public` | `security invoker`; todas las filas del filtro (incluido `p_origen`, canal panel/tienda de Presupuestos), tope 10.000; exige `ventas/exportar`. |
 | `public.solicitar_exportacion_comprobantes(text, jsonb)` | `public` | `security definer`; registra la ejecución diferida y su orden de despacho. |
-| `public.archivo_exportacion_comprobantes(uuid)` | `public` | `security definer`; solo el solicitante con `ventas/exportar` (si no, `42501`/`P0002`); ruta del CSV únicamente si la ejecución terminó `exitosa`. |
+| `public.archivo_exportacion_comprobantes(uuid)` | `public` | `security definer`; solo el solicitante con `ventas/exportar` (si no, `42501`/`PT404`); ruta del CSV únicamente si la ejecución terminó `exitosa`. |
 | `private.comprobantes_consulta(...)` | `private` | Consulta única compartida por listado, exportación y worker. Sin grant a `authenticated`. |
 | `private.comprobantes_consulta_sesion(...)` | `private` | Puente de las RPC invoker: deriva organización y empresas del JWT, nunca de un argumento. |
 | Bucket `exportaciones-ventas` | Storage | Privado; lectura solo para quien pidió, por prefijo `<organización>/<usuario>/`. Los CSV llevan nombres de clientes: al terminar una exportación el worker borra los CSV anteriores de ese usuario (queda solo el último; mejor esfuerzo, se reintenta en la próxima). Si el usuario no vuelve a exportar, su último archivo queda hasta que operación lo borre desde la API de Storage. |

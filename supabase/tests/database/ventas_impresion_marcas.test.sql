@@ -208,15 +208,15 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.registrar_impresion('d9999999-9999-9999-9999-999999999999') $$,
-  'P0002', null, 'un documento inexistente se rechaza'
+  'PT404', null, 'un documento inexistente se rechaza'
 );
 select throws_ok(
   $$ select public.registrar_impresion(null) $$,
-  'P0002', null, 'sin documento se rechaza'
+  'PT404', null, 'sin documento se rechaza'
 );
 select throws_ok(
   $$ select public.registrar_impresion('d2000000-0000-0000-0000-000000000006') $$,
-  'P0002', null, 'el documento de otra organización no existe para esta sesión (aislamiento)'
+  'PT404', null, 'el documento de otra organización no existe para esta sesión (aislamiento)'
 );
 select throws_ok(
   $$ select public.registrar_impresion('d1000000-0000-0000-0000-000000000005') $$,
@@ -314,7 +314,7 @@ select is(
 );
 select throws_ok(
   $$ select public.registrar_impresion('d1000000-0000-0000-0000-000000000001') $$,
-  'P0002', null, 'la organización Dos no registra impresiones de documentos ajenos'
+  'PT404', null, 'la organización Dos no registra impresiones de documentos ajenos'
 );
 
 -- ============================================================================

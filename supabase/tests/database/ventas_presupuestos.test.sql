@@ -213,11 +213,11 @@ select is(
   'el original no cambia: estado, totales, líneas ni precios'
 );
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'F')),
-  'P0002', null, 'una factura no se copia como presupuesto');
+  'PT404', null, 'una factura no se copia como presupuesto');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'D')),
   '42501', null, 'sin acceso a la tienda no se copia');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'X')),
-  'P0002', null, 'un presupuesto de otra organización no se copia');
+  'PT404', null, 'un presupuesto de otra organización no se copia');
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, (select id from comps where clave = 'A')),
   '42501', null, 'con lectura no se copia');

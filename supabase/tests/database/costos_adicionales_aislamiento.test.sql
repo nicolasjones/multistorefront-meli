@@ -72,7 +72,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.dar_baja_costo_adicional((select id from t_ids where clave = 'costo_a'))$$,
-  'P0002', null, 'B no puede dar de baja un costo de A'
+  'PT404', null, 'B no puede dar de baja un costo de A'
 );
 reset role;
 
