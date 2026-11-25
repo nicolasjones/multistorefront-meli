@@ -3013,8 +3013,9 @@ cliente (F-VTA-32 / MSF-340) y el cierre de caja diario (F-VTA-33 / MSF-349). Do
 `dominio` (el cierre de caja), **dos columnas nuevas** (el descuento del cliente y el descuento aplicado
 a la línea) y **sin cambios** en las tablas que ya existían, salvo el disparador de bloqueo que se le
 agrega al libro de cobros. Migraciones aditivas `20270201200102`–`20270201200103` (F-VTA-32),
-`20270202200400` (F-VTA-31) y `20270202201100`–`20270202201102` (F-VTA-33), en las ramas
-`epic/MSF-193-ventas-mejoras` y `dokploy`, pendientes de merge a `main`; reversión en el encabezado de
+`20270202200400` (F-VTA-31), en las ramas `epic/MSF-193-ventas-mejoras` y `dokploy`, y
+`20270202201100`–`20270202201102` (F-VTA-33), solo en `epic/MSF-193-ventas-mejoras` (no están en `dokploy`),
+pendientes de merge a `main`; reversión en el encabezado de
 cada una y consolidada en
 [Venta de mostrador (técnico)](ventas-mostrador.md#reversion),
 [Precios especiales por cliente (técnico)](ventas-precios-especiales.md#reversion) y
