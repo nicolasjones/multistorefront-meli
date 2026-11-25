@@ -113,8 +113,10 @@ export function PerfilPage() {
     let archivo: File
     try {
       archivo = await optimizarImagen(original, FOTO_LADO_MAXIMO_PX)
-    } catch {
-      setError('La foto tiene demasiados píxeles: usá una imagen de menor resolución.')
+    } catch (error) {
+      setError((error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError'
+        ? 'La foto tiene demasiados píxeles: usá una imagen de menor resolución.'
+        : 'No pudimos optimizar la foto. Intentá nuevamente.')
       return
     }
     if (archivo.size > FOTO_MAX_BYTES) {

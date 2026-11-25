@@ -15,7 +15,7 @@
 
 **Decision**: usar un bucket privado \`fotos-perfil\`, con una ruta estable por titular (\`<user_id>/avatar\`) y una referencia opcional desde el perfil.
 
-**Rationale**: Storage no permite subidas sin policies. La ruta estable evita objetos huérfanos al reemplazar una foto; un bucket privado y policies sobre \`storage.objects\` permiten que solo el titular escriba y que solo personas en la misma organización lean. La carga acepta imágenes JPG, PNG o WebP de hasta 2 MiB; la interfaz valida antes de enviar y el bucket impone el límite real.
+**Rationale**: Storage no permite subidas sin policies. La ruta estable evita objetos huérfanos al reemplazar una foto; un bucket privado y policies sobre \`storage.objects\` permiten que solo el titular escriba y que solo personas en la misma organización lean. La carga acepta imágenes JPG, PNG o WebP (hasta 15 MB de origen, optimizada en el navegador a un resultado de hasta 2 MiB); la interfaz valida antes de enviar y el bucket impone el límite real.
 
 **Alternatives considered**:
 

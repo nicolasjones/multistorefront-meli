@@ -133,7 +133,14 @@ function FormularioIdentidad({
   const [imagenes, setImagenes] = useState<Imagenes>(imagenesDe(inicial))
   const [guardando, setGuardando] = useState(false)
   // Imágenes en optimización: mientras haya alguna no se guarda ni se descarta (el guardado la dejaría afuera).
-  const [optimizando, setOptimizando] = useState(false)
+  // Contador (no booleano): con dos imágenes optimizándose a la vez, la que termina primero no habilita el guardado.
+  const [enOptimizacion, setEnOptimizacion] = useState(0)
+  const optimizando = enOptimizacion > 0
+  const optimizandoRef = useRef(0)
+  const contarOptimizacion = (empieza: boolean) => {
+    optimizandoRef.current += empieza ? 1 : -1
+    setEnOptimizacion((n) => n + (empieza ? 1 : -1))
+  }
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
   const [exito, setExito] = useState(false)
   const enCurso = useRef(false)
@@ -184,7 +191,7 @@ function FormularioIdentidad({
   }
 
   const guardar = useCallback(async () => {
-    if (enCurso.current || optimizando) return
+    if (enCurso.current || optimizandoRef.current > 0) return
     if (!COLORES.every(({ clave }) => esColorValido(campos[clave]))) {
       setErrorGuardar('Revisá los colores marcados: usá el formato #RRGGBB.')
       return
@@ -254,13 +261,13 @@ function FormularioIdentidad({
       enCurso.current = false
       setGuardando(false)
     }
-  }, [campos, imagenes, guardado, empresaId, organizacionId, optimizando])
+  }, [campos, imagenes, guardado, empresaId, organizacionId])
 
   return (
     <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 360px' }, alignItems: 'start' }}>
       <Stack spacing={2} sx={{ minWidth: 0 }}>
         <Tarjeta titulo="Logo">
-          <ImagenTienda clave="logo" urlLocal={urlLocalLogo} empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => elegirImagen('logo', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
+          <ImagenTienda clave="logo" urlLocal={urlLocalLogo} empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => elegirImagen('logo', archivo)} onOptimizando={contarOptimizacion} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
         </Tarjeta>
         <Tarjeta titulo="Colores">
           <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
@@ -290,8 +297,8 @@ function FormularioIdentidad({
         </Tarjeta>
         <Tarjeta titulo="Banner e imágenes principales">
           <Stack spacing={2.5}>
-            <ImagenTienda clave="banner" urlLocal={urlLocalBanner} empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => elegirImagen('banner', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
-            <ImagenTienda clave="bannerMovil" empresaNombre={empresaNombre} estado={imagenes.bannerMovil} onElegir={(archivo) => elegirImagen('bannerMovil', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('bannerMovil', { ruta: null, archivo: null })} />
+            <ImagenTienda clave="banner" urlLocal={urlLocalBanner} empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => elegirImagen('banner', archivo)} onOptimizando={contarOptimizacion} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
+            <ImagenTienda clave="bannerMovil" empresaNombre={empresaNombre} estado={imagenes.bannerMovil} onElegir={(archivo) => elegirImagen('bannerMovil', archivo)} onOptimizando={contarOptimizacion} onQuitar={() => cambiarImagen('bannerMovil', { ruta: null, archivo: null })} />
           </Stack>
         </Tarjeta>
       </Stack>

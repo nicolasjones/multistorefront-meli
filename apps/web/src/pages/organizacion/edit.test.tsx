@@ -150,6 +150,18 @@ describe('OrganizacionEdit', () => {
     expect(mocks.upload).toHaveBeenCalledWith(expect.stringMatching(/^org-1\/.+\.webp$/), webp, { contentType: 'image/webp' })
   })
 
+  it('distingue «demasiados píxeles» de un error de optimización cualquiera en el logo', async () => {
+    abrir()
+    const entrada = await screen.findByTestId('archivo-logo')
+    optimizar.mockRejectedValueOnce(Object.assign(new Error('x'), { name: 'ImagenDemasiadoGrandeError' }))
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    expect(await screen.findByText('El logo tiene demasiados píxeles: usá una imagen de menor resolución.')).toBeInTheDocument()
+    optimizar.mockRejectedValueOnce(new Error('falló'))
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } })
+    expect(await screen.findByText('No pudimos optimizar el logo. Probá de nuevo.')).toBeInTheDocument()
+    expect(mocks.upload).not.toHaveBeenCalled()
+  })
+
   it('borra el logo subido si la RPC rechaza el guardado', async () => {
     mocks.upload.mockResolvedValue({ error: null })
     mocks.rpc.mockResolvedValue({ data: null, error: { message: 'El logo no es válido' } })

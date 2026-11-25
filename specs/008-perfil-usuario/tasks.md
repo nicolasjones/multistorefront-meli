@@ -85,7 +85,7 @@
 **Independent Test**: cargar, reemplazar y quitar una foto; verla en el listado de miembros desde otra cuenta de la misma organización y rechazarla desde otra; comprobar correo, fecha, rol y organización de solo lectura.
 
 - [X] T020 [P] [US4] Agregar pruebas de carga válida/inválida, reemplazo, eliminación, fallback neutro y resumen de cuenta en apps/web/src/pages/cuenta/perfil.test.tsx.
-- [X] T021 [US4] Implementar carga, reemplazo y eliminación en el bucket fotos-perfil, validando JPG/PNG/WebP y 2 MiB antes de enviar, en apps/web/src/pages/cuenta/perfil.tsx.
+- [X] T021 [US4] Implementar carga, reemplazo y eliminación en el bucket fotos-perfil, validando JPG/PNG/WebP y 15 MB de origen, optimizando (WebP, 512 px) y validando 2 MiB sobre el resultado antes de enviar, en apps/web/src/pages/cuenta/perfil.tsx.
 - [X] T022 [US4] Implementar la obtención y presentación de correo, fecha de creación, organización y rol como datos de solo lectura en apps/web/src/pages/cuenta/perfil.tsx.
 - [X] T023 [US4] Incorporar foto o representación neutra en el indicador de sesión de apps/web/src/App.tsx sin abrir fotos de otra organización.
 - [X] T024 [US4] Resolver desde Storage y presentar la foto autorizada o representación neutra de cada integrante en apps/web/src/pages/miembros/list.tsx, sin consultar perfiles_usuario ajenos ni datos personales adicionales.

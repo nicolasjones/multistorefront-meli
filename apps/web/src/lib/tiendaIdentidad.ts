@@ -205,8 +205,9 @@ export async function prepararImagenTienda(clave: ClaveImagen, archivo: File): P
   let optimizado: File
   try {
     optimizado = await optimizarImagen(archivo, lado)
-  } catch {
-    return { error: `«${archivo.name}» tiene demasiados píxeles: usá una imagen de menor resolución.` }
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError') return { error: `«${archivo.name}» tiene demasiados píxeles: usá una imagen de menor resolución.` }
+    return { error: `No pudimos optimizar «${archivo.name}». Probá de nuevo.` }
   }
   if (optimizado.size > reglas.maxBytes) return { error: `«${archivo.name}» sigue superando ${reglas.maxEtiqueta} aun optimizada: usá una imagen más chica.` }
   return { archivo: optimizado }

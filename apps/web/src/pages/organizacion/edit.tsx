@@ -174,9 +174,10 @@ export function OrganizacionEdit() {
       let optimizado: File
       try {
         optimizado = await optimizarImagen(elegido, LADO_MAXIMO_LOGO_PX)
-      } catch {
+      } catch (error) {
         setArchivo(null)
-        setErrores((previos) => ({ ...previos, logo: 'El logo tiene demasiados píxeles: usá una imagen de menor resolución.' }))
+        const demasiado = (error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError'
+        setErrores((previos) => ({ ...previos, logo: demasiado ? 'El logo tiene demasiados píxeles: usá una imagen de menor resolución.' : 'No pudimos optimizar el logo. Probá de nuevo.' }))
         return
       }
       if (optimizado.size > TAMANO_MAXIMO_LOGO) {

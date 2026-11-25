@@ -20,7 +20,7 @@
 ### 2. Foto y aislamiento de organización
 
 1. Cargar una imagen válida, comprobar la foto en el perfil y en la identidad de sesión; reemplazarla y luego quitarla.
-2. Intentar cargar un tipo inválido o más de 2 MiB; confirmar que la foto anterior se conserva.
+2. Intentar cargar un tipo inválido o más de 15 MB (o que aun optimizada supere 2 MiB); confirmar que la foto anterior se conserva.
 3. Con otro usuario de A, abrir el listado de miembros y comprobar que puede ver solo la foto; confirmar que no puede leer el perfil ajeno. Con uno de B, comprobar que no puede obtener la foto por la aplicación ni mediante Storage.
 4. Ejecutar el test pgTAP de esta feature para validar el mismo aislamiento sin depender de la interfaz.
 

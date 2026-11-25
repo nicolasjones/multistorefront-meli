@@ -175,6 +175,25 @@ describe('optimizarImagen: lado máximo por uso', () => {
     expect(sim.lienzos).toEqual([{ ancho, alto }])
   })
 
+  it.each([0, -5, Number.NaN, Infinity, -Infinity])('un lado máximo inválido (%s) se ignora y se usa 1600', async (lado) => {
+    const sim = simular({ ancho: 4000, alto: 3000, bytesSalida: 10_000 })
+    await optimizarImagen(archivo('a.jpg', 'image/jpeg', 4_000_000), lado)
+    expect(sim.lienzos).toEqual([{ ancho: 1600, alto: 1200 }])
+  })
+
+  it('un lado máximo entero positivo se respeta', async () => {
+    const sim = simular({ ancho: 4000, alto: 3000, bytesSalida: 10_000 })
+    await optimizarImagen(archivo('a.jpg', 'image/jpeg', 4_000_000), 800)
+    expect(sim.lienzos).toEqual([{ ancho: 800, alto: 600 }])
+  })
+
+  it('un lado máximo decimal positivo se respeta (sin caer a 1×1 ni al valor por defecto)', async () => {
+    const sim = simular({ ancho: 4000, alto: 3000, bytesSalida: 10_000 })
+    await optimizarImagen(archivo('a.jpg', 'image/jpeg', 4_000_000), 1000.5)
+    expect(sim.lienzos[0].ancho).toBeGreaterThanOrEqual(1000)
+    expect(sim.lienzos[0].ancho).toBeLessThanOrEqual(1001)
+  })
+
   it('sin parámetro mantiene el lado de 1600 de las fotos de producto', async () => {
     const sim = simular({ ancho: 4000, alto: 3000, bytesSalida: 10_000 })
     await optimizarImagen(archivo('a.jpg', 'image/jpeg', 4_000_000))

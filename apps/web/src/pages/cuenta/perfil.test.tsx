@@ -190,6 +190,34 @@ describe('PerfilPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Tu foto de perfil fue actualizada.')
   })
 
+  it('una segunda elección mientras se optimiza se ignora: solo se optimiza y sube la primera', async () => {
+    let terminar: (f: File) => void = () => undefined
+    optimizar.mockReturnValue(new Promise<File>((resolver) => { terminar = resolver }))
+    renderPage()
+    const entrada = await screen.findByLabelText('Cargar o reemplazar foto')
+    const primera = new File(['1'], 'a.jpg', { type: 'image/jpeg' })
+    fireEvent.change(entrada, { target: { files: [primera] } })
+    await screen.findByText('Actualizando foto...')
+    fireEvent.change(entrada, { target: { files: [new File(['2'], 'b.jpg', { type: 'image/jpeg' })] } })
+    terminar(primera)
+    expect(await screen.findByRole('status')).toHaveTextContent('Tu foto de perfil fue actualizada.')
+    expect(optimizar).toHaveBeenCalledTimes(1)
+    expect(upload).toHaveBeenCalledTimes(1)
+    expect(upload).toHaveBeenCalledWith('user-1/avatar', primera, expect.anything())
+  })
+
+  it('distingue «demasiados píxeles» de un error de optimización cualquiera', async () => {
+    optimizar.mockRejectedValueOnce(Object.assign(new Error('x'), { name: 'ImagenDemasiadoGrandeError' }))
+    renderPage()
+    const entrada = await screen.findByLabelText('Cargar o reemplazar foto')
+    fireEvent.change(entrada, { target: { files: [new File(['1'], 'a.jpg', { type: 'image/jpeg' })] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('demasiados píxeles')
+    optimizar.mockRejectedValueOnce(new Error('falló'))
+    fireEvent.change(entrada, { target: { files: [new File(['1'], 'a.jpg', { type: 'image/jpeg' })] } })
+    await screen.findByText('No pudimos optimizar la foto. Intentá nuevamente.')
+    expect(upload).not.toHaveBeenCalled()
+  })
+
   it('conserva la foto anterior si falla la persistencia del perfil tras cargar una nueva', async () => {
     maybeSingle.mockResolvedValue({ data: { nombre: 'Ada', apellido: 'Lovelace', foto_path: 'user-1/avatar' }, error: null })
     const respaldo = new Blob(['anterior'], { type: 'image/png' })

@@ -170,6 +170,40 @@ describe('Identidad visual · archivos (FR-021, FR-025, FR-026)', () => {
     }
   })
 
+  describe('dos banners optimizándose a la vez', () => {
+    const pendientes: Array<(b: unknown) => void> = []
+    const preparar = () => {
+      pendientes.length = 0
+      vi.stubGlobal('createImageBitmap', vi.fn().mockImplementation(() => new Promise((resolver) => { pendientes.push(resolver) })))
+    }
+    const terminar = (i: number) => pendientes[i]({ width: 100, height: 100, close: () => undefined })
+
+    it.each([
+      ['banner primero', 0, 1],
+      ['banner móvil primero', 1, 0],
+    ])('Guardar sigue deshabilitado hasta que terminan las dos (%s)', async (_nombre, primero, segundo) => {
+      preparar()
+      try {
+        await abrir()
+        fireEvent.change(screen.getByLabelText('Acento'), { target: { value: '#112233' } })
+        elegir('banner', archivo('b.png', 'image/png'))
+        elegir('bannerMovil', archivo('m.png', 'image/png'))
+        await waitFor(() => expect(pendientes).toHaveLength(2))
+        expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+        terminar(primero)
+        // La primera terminó pero la otra sigue: no se puede guardar ni descartar.
+        await waitFor(() => expect(screen.getByText('Hay cambios sin guardar.')).toBeInTheDocument())
+        await new Promise((resolver) => setTimeout(resolver, 20))
+        expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Descartar' })).toBeDisabled()
+        terminar(segundo)
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+  })
+
   it('un SVG con script o eventos se rechaza (SC-005)', async () => {
     await abrir()
     elegir('logo', archivo('malo.svg', 'image/svg+xml', '<svg onload="alert(1)"></svg>'))
