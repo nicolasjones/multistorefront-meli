@@ -42,8 +42,8 @@ export type FiltrosComprobantes = {
 
 export const FILTROS_VACIOS: FiltrosComprobantes = { busqueda: '', estado: '', pagoId: '', envioId: '', operadorId: '', empresaId: '' }
 
-// Opciones del filtro Estado, en el orden del prototipo. «Entregado» no se ofrece: la factura entregada sigue
-// `confirmada`. «Borrador» y «Anulada» sí, para encontrar lo abandonado o dado de baja. «Pendiente» es `pendiente`
+// Opciones del filtro Estado, en el orden del prototipo. «Entregado» es de MSF-135 y no se ofrece.
+// «Borrador» y «Anulada» sí, para encontrar lo abandonado o dado de baja. «Pendiente» es `pendiente`
 // (la base lo iguala a `confirmada`).
 export const OPCIONES_FILTRO_ESTADO: ReadonlyArray<{ valor: string; etiqueta: string }> = (
   ['pendiente', 'aceptado', 'cobrado', 'en_proceso', 'deuda', 'armando', 'incompleto', 'borrador', 'anulada'] as EstadoComprobante[]
