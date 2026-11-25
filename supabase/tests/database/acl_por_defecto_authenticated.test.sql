@@ -3,7 +3,7 @@
 -- ni nada a `anon`; los DML por defecto no se tocan.
 begin;
 
-select plan(10);
+select plan(12);
 
 create table public.zz_tabla_acl_defecto (id int);
 create table dominio.zz_tabla_acl_defecto (id int);
@@ -17,16 +17,13 @@ select ok(not has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto'
 select ok(not has_table_privilege('anon', 'public.zz_tabla_acl_defecto', 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'),
   'tabla nueva en public: anon sin ningún privilegio');
 
--- Los DML por defecto no se tocaron: una tabla nueva recibe exactamente los SELECT/INSERT/UPDATE/DELETE que el default de postgres
--- otorga a authenticated (en Supabase son los cuatro; si el entorno no otorga ninguno, ambos lados están vacíos).
-select is(
-  (select coalesce(array_agg(p order by p), '{}') from unnest(array['DELETE', 'INSERT', 'SELECT', 'UPDATE']) p
-    where has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', p)),
-  (select coalesce(array_agg(distinct a.privilege_type order by a.privilege_type), '{}')
+-- Sin sobre-revocar: si el entorno otorga algo por defecto a authenticated (Supabase otorga todo), siguen los cuatro DML.
+select ok(
+  (select count(*) filter (where a.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')) in (0, 4) and count(*) = count(*) filter (where a.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE'))
      from pg_default_acl d, aclexplode(d.defaclacl) a
     where d.defaclrole = 'postgres'::regrole and d.defaclnamespace = 'public'::regnamespace and d.defaclobjtype = 'r'
-      and a.grantee = 'authenticated'::regrole and a.privilege_type in ('DELETE', 'INSERT', 'SELECT', 'UPDATE')),
-  'los DML otorgados por defecto a authenticated en public siguen otorgándose a las tablas nuevas');
+      and a.grantee = 'authenticated'::regrole),
+  'el default de postgres en public otorga a authenticated los cuatro DML o nada: la migración no revoca de más');
 
 select is(
   (select count(*)::int from pg_default_acl d, aclexplode(d.defaclacl) a
@@ -61,5 +58,27 @@ select case
   else skip(1, 'el rol que migra no es miembro de supabase_admin: sus privilegios por defecto no se tocan')
 end;
 
+-- Los DML por defecto no se tocaron (al final: modifica el default de postgres dentro de la transacción). El escenario se arma acá, sin depender del entorno: se simula el default de Supabase
+-- (todo para authenticated), se aplica la MISMA sentencia que la migración 20270507600000 y se mira una tabla nueva.
+alter default privileges for role postgres in schema public grant all on tables to authenticated;
+do $$
+declare
+  v_privilegios text := 'truncate, references, trigger';
+begin
+  if current_setting('server_version_num')::int >= 170000 then
+    v_privilegios := v_privilegios || ', maintain';
+  end if;
+  execute format('alter default privileges for role postgres in schema public revoke %s on tables from authenticated', v_privilegios);
+end $$;
+create table public.zz_tabla_acl_simulada (id int);
+select ok(has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'SELECT')
+  and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'INSERT')
+  and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'UPDATE')
+  and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'DELETE'),
+  'con el default de Supabase y el revoke de la migración, una tabla nueva conserva select/insert/update/delete');
+select ok(not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'TRUNCATE')
+  and not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'REFERENCES')
+  and not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'TRIGGER'),
+  'con el default de Supabase y el revoke de la migración, una tabla nueva no recibe truncate/references/trigger');
 select * from finish();
 rollback;

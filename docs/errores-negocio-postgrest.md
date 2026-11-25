@@ -221,8 +221,8 @@ bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`
 | 15 | `20270507500000` | `cerrar_carga_migracion`, `aplicar_lote_archivo_ingresos`, `aplicar_lote_clientes`, `aplicar_lote_proveedores`, `aplicar_lote_vinculos_proveedor_producto`, `informe_conciliacion_migracion`, `vincular_identificador_externo`, `aprovisionar_servidor_organizacion`, `entrar_a_organizacion` (la de dos argumentos), `cambiar_estado_cuenta_cliente`, `depositos_para_repuesto`, `guardar_empresas_de_cliente`, `asignar_empresas_usuario`, `detalle_campana_correo` (todas solo `PT404`), `guardar_umbral_margen_bajo`, `exportar_proveedores`, `moderar_opinion` (solo `PT412`; el `55000` de bandera apagada no cambia) |
 
 **Ajena e inexistente responden igual (`20270507700000`).** `actualizar_credencial_conexion` y `confirmar_conexion_oauth` (la de dos argumentos) solo
-ven las conexiones de una organización de la que la persona es miembro (o todas, si es superadmin): una conexión ajena responde `PT404`, con el mismo
-mensaje que una inexistente, y así un UUID ajeno no revela que existe. Un miembro que no administra su propia organización sigue recibiendo `42501`.
+ven las conexiones de una organización de la que la persona es miembro activo (o todas, si es superadmin; un miembro suspendido no ve ninguna): una conexión ajena responde `PT404`, con el mismo
+mensaje que una inexistente, y así un UUID ajeno no revela que existe. Un miembro activo que no administra su propia organización sigue recibiendo `42501`.
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los `comment on function` previos (los de la última migración anterior que los fijó, no los de la migración de la ola). Las migraciones ya aplicadas no se editan.
 

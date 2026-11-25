@@ -2,7 +2,7 @@
 -- (PT404 «La conexión <id> no existe»), así que un UUID ajeno no revela que existe (migración 20270507700000).
 begin;
 
-select plan(13);
+select plan(17);
 
 insert into organizaciones (id, nombre) values
   ('a1111111-1111-1111-1111-111111111179', 'Organización X79'),
@@ -12,7 +12,9 @@ insert into auth.users (id, email) values
   ('a5000000-0000-0000-0000-000000000079', 'superadmin-79@example.com'),
   ('a1000000-0000-0000-0000-000000000079', 'admin-x-79@example.com'),
   ('a2000000-0000-0000-0000-000000000079', 'admin-y-79@example.com'),
-  ('a3000000-0000-0000-0000-000000000079', 'miembro-x-79@example.com');
+  ('a3000000-0000-0000-0000-000000000079', 'miembro-x-79@example.com'),
+  ('a4000000-0000-0000-0000-000000000079', 'admin-suspendido-x-79@example.com'),
+  ('a6000000-0000-0000-0000-000000000079', 'miembro-suspendido-x-79@example.com');
 
 insert into sistemas_externos (id, descripcion) values ('sistema-lote79', 'Sistema de prueba (fixture, sin valor de negocio)');
 
@@ -21,7 +23,11 @@ insert into superadmins (user_id) values ('a5000000-0000-0000-0000-000000000079'
 insert into usuarios_organizacion (user_id, organizacion_id, rol_id) values
   ('a1000000-0000-0000-0000-000000000079', 'a1111111-1111-1111-1111-111111111179', 'administrador'),
   ('a2000000-0000-0000-0000-000000000079', 'a2222222-2222-2222-2222-222222222279', 'administrador'),
-  ('a3000000-0000-0000-0000-000000000079', 'a1111111-1111-1111-1111-111111111179', 'miembro');
+  ('a3000000-0000-0000-0000-000000000079', 'a1111111-1111-1111-1111-111111111179', 'miembro'),
+  ('a4000000-0000-0000-0000-000000000079', 'a1111111-1111-1111-1111-111111111179', 'administrador'),
+  ('a6000000-0000-0000-0000-000000000079', 'a1111111-1111-1111-1111-111111111179', 'miembro');
+update usuarios_organizacion set estado = 'suspendido'
+ where user_id in ('a4000000-0000-0000-0000-000000000079', 'a6000000-0000-0000-0000-000000000079');
 
 create temporary table t_ids (key text primary key, val uuid);
 grant all on t_ids to authenticated, service_role;
@@ -77,6 +83,27 @@ select throws_ok(
   format($$select public.confirmar_conexion_oauth('%s', 'x')$$, (select val from t_ids where key = 'oauth')),
   '42501', 'No puede gestionar conexiones de esta organización',
   'confirmar_conexion_oauth: un miembro no administrador de su organización sigue recibiendo 42501');
+
+-- Suspendidos de la organización X (administrador y miembro): ya no pertenecen a efectos de autorización
+-- (20261012140300), así que ven la conexión de X como inexistente: mismo PT404 que un UUID inexistente.
+select pg_temp.como('a4000000-0000-0000-0000-000000000079');
+select throws_ok(
+  format($$select public.actualizar_credencial_conexion('%s', 'x')$$, (select val from t_ids where key = 'conexion')),
+  'PT404', format('La conexión %s no existe', (select val from t_ids where key = 'conexion')),
+  'actualizar_credencial_conexion: un administrador suspendido recibe PT404, no 42501');
+select throws_ok(
+  format($$select public.confirmar_conexion_oauth('%s', 'x')$$, (select val from t_ids where key = 'oauth')),
+  'PT404', format('La conexión %s no existe', (select val from t_ids where key = 'oauth')),
+  'confirmar_conexion_oauth: un administrador suspendido recibe PT404, no 42501');
+select pg_temp.como('a6000000-0000-0000-0000-000000000079');
+select throws_ok(
+  format($$select public.actualizar_credencial_conexion('%s', 'x')$$, (select val from t_ids where key = 'conexion')),
+  'PT404', format('La conexión %s no existe', (select val from t_ids where key = 'conexion')),
+  'actualizar_credencial_conexion: un miembro suspendido recibe PT404, no 42501');
+select throws_ok(
+  format($$select public.confirmar_conexion_oauth('%s', 'x')$$, (select val from t_ids where key = 'oauth')),
+  'PT404', format('La conexión %s no existe', (select val from t_ids where key = 'oauth')),
+  'confirmar_conexion_oauth: un miembro suspendido recibe PT404, no 42501');
 
 -- La propia sigue funcionando.
 select pg_temp.como('a1000000-0000-0000-0000-000000000079');

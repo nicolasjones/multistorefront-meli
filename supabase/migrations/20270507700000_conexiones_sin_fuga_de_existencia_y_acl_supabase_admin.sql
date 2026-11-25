@@ -10,9 +10,9 @@
 --
 -- (2) `actualizar_credencial_conexion(uuid, text)` y `confirmar_conexion_oauth(uuid, text)` (public) buscaban la conexión
 --     SIN filtrar por organización y distinguían «no existe» (PT404) de «ajena» (42501): con un UUID ajeno se podía saber que
---     la conexión existe. Ahora el lookup solo ve conexiones de una organización de la que la persona es miembro (o si es
---     superadmin): una ajena y una inexistente responden lo mismo, PT404 con el mensaje «La conexión <id> no existe». Los
---     demás errores no cambian: un miembro sin rol de administrador de su propia organización sigue recibiendo 42501 con el
+--     la conexión existe. Ahora el lookup solo ve conexiones de una organización de la que la persona es miembro ACTIVO (o si es
+--     superadmin; un miembro suspendido no ve nada, como en 20261012140300): una ajena y una inexistente responden lo mismo, PT404 con el mensaje «La conexión <id> no existe». Los
+--     demás errores no cambian: un miembro activo sin rol de administrador de su propia organización sigue recibiendo 42501 con el
 --     mismo mensaje. Se conservan `security definer`, `set search_path = ''` y el ACL (`create or replace` no lo toca).
 --
 -- Reaplicable (`create or replace` y `revoke`). Cubierto por `lote79_conexiones_sin_fuga_de_existencia.test.sql` y por
@@ -69,7 +69,8 @@ begin
   where c.id = p_conexion_id
     and ((select private.is_superadmin())
          or exists (select 1 from public.usuarios_organizacion u
-                    where u.user_id = (select auth.uid()) and u.organizacion_id = c.organizacion_id));
+                    where u.user_id = (select auth.uid()) and u.organizacion_id = c.organizacion_id
+                      and u.estado = 'activo'));
 
   if v_organizacion_id is null then
     raise exception 'La conexión % no existe', p_conexion_id using errcode = 'PT404';
@@ -105,7 +106,8 @@ begin
   where c.id = p_conexion_id
     and ((select private.is_superadmin())
          or exists (select 1 from public.usuarios_organizacion u
-                    where u.user_id = (select auth.uid()) and u.organizacion_id = c.organizacion_id));
+                    where u.user_id = (select auth.uid()) and u.organizacion_id = c.organizacion_id
+                      and u.estado = 'activo'));
 
   if v_organizacion_id is null then
     raise exception 'La conexión % no existe', p_conexion_id using errcode = 'PT404';
