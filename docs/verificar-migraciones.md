@@ -56,6 +56,8 @@ puro compartido con `validar-migraciones-aditivas.mjs`): una línea de comentari
 ```
 
 No hay otro escape: una migración sin reversión posible escribe `-- Reversión: restaurar desde el backup de <motivo>`.
+Para probarlo en local, la migración nueva tiene que estar en el índice de git (`git add`): la regla lee su contenido con
+`git show :archivo`, igual que en el CI.
 Las históricas que la rama no tocó quedan fuera. Las migraciones existentes son **inmutables** y no se reescriben para
 agregarles el comentario.
 
