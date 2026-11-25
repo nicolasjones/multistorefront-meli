@@ -2223,9 +2223,9 @@
     },
     "docs/producto/service-alta-estados-y-permisos.md": {
       "title": "Service técnico: alta, estados y permisos (MSF-182)",
-      "pageHash": "1194c04d25e72e3e06a2b4659e760cf1272cfc8554f29c1df42e9153bbc9abdd",
-      "sourceHash": "f823cd8391e71771ae25d60a968252be7cf3b4a621692d0624f297a810b297b9",
-      "sourceAt": "0c49705a0",
+      "pageHash": "84da425dcec89c5b55eb3936d59173d183654fc36fd6e96774e8f768df2343ff",
+      "sourceHash": "4695f22d3e7630fb35cc6561dfe1f3f4b7bd5f09e42a4144ff1d5f4e7134ed68",
+      "sourceAt": "13a71003a",
       "sources": [
         "apps/web/src/pages/service-tecnico/modelos.tsx",
         "apps/web/src/pages/service-tecnico/estados.tsx",
@@ -2234,13 +2234,13 @@
         "design/pantallas/ServicioEstados.dc.html"
       ],
       "owner": "producto",
-      "commit": "0c49705a0"
+      "commit": "13a71003a"
     },
     "docs/producto/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
-      "pageHash": "e9d074d0f6c32caa2a574a257485c6204a74539a923a00bcc1076afb5b4121b0",
-      "sourceHash": "629de8623f4f005e1d61a1bff4c5905818ba9a458cfba6046047dd268c438615",
-      "sourceAt": "da68ec33",
+      "pageHash": "1e796cf5c2e69a0ead1e146ea92f1548bdbd400c3b35d5fe4ee4b8136a3c481e",
+      "sourceHash": "9294857c6d01680ebe1e3e341943ee23aaa52b00ab217d5b26393baeae59de06",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "design/pantallas/ServicioReparacion.dc.html",
@@ -2262,20 +2262,20 @@
         "supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql"
       ],
       "owner": "producto",
-      "commit": "da68ec33"
+      "commit": "13a71003a"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
-      "pageHash": "57294eb9aca559cf399bd4c07ce83dabcae9822b200b3a618ccb787ebe031e8a",
-      "sourceHash": "ff6729f44f228955ac7b7cecf259c2a6b78db4739af831dd392198b9031a2286",
-      "sourceAt": "0c49705a0",
+      "pageHash": "84a3b0a52f5f09099c73ee2849731801e6e0378db86d7523a950d87a15b9e77a",
+      "sourceHash": "406a528ceceed65d238b56a79c2dca3b988cc266aed7e947c66145c76714fc1b",
+      "sourceAt": "13a71003a",
       "sources": [
         "apps/web/src/pages/service-tecnico/reparaciones.tsx",
         "apps/web/src/pages/service-tecnico/reparacion.tsx",
         "apps/web/src/components/service/ItemsReparacion.tsx"
       ],
       "owner": "producto",
-      "commit": "0c49705a0"
+      "commit": "13a71003a"
     },
     "docs/producto/service-repuestos-y-stock.md": {
       "title": "Service técnico: repuestos, stock y costos",
@@ -3015,9 +3015,9 @@
     },
     "docs/service-avisos.md": {
       "title": "Service técnico · Avisos al cliente por cambio de estado",
-      "pageHash": "946b9728e97d766e11b909bab09e93c8e9ea5ca3d43bbbc3f497ffa259ee9de0",
-      "sourceHash": "c9f890b5044fb638620084d3824025cd8661dadb33f23aebf0e01169e4f6272e",
-      "sourceAt": "da68ec33",
+      "pageHash": "e283c24b1a052dfff50cc7cb66084292685dca766e36eef2f026f440972251b2",
+      "sourceHash": "0c6de98d891062bb83878140a1827227f7a998c93d92016938cc0278827ce8d3",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "specs/20270323-100000-service-ideas-futuras-v2",
@@ -3030,7 +3030,7 @@
         "supabase/migrations/20270418000403_reparacion_avisos_whatsapp_envio.sql"
       ],
       "owner": "tecnico",
-      "commit": "da68ec33"
+      "commit": "13a71003a"
     },
     "docs/service-cliente-reparaciones.md": {
       "title": "Service técnico · Reparaciones en la ficha del cliente (F-SVC-15, MSF-429)",
@@ -3211,9 +3211,9 @@
     },
     "docs/service-tecnico.md": {
       "title": "Service técnico",
-      "pageHash": "437ef4b00a6ae686b9d9a448cf764d5a5170cf9ba807dcdaf2003bac8cef3398",
-      "sourceHash": "8d53b431e8232f9e51a353f0a805b6129907c5179a40a36529e6be97be89ca6f",
-      "sourceAt": "0c49705a0",
+      "pageHash": "49446405ee4bfe717c3ffbc6b82c475edcafd103bf4db7a5cef7f58dbc8f2b25",
+      "sourceHash": "c594f729605ef8cd5fe9575c45af292cfcf54ff928f58cc860d9b324c2adef99",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261020-100000-service-alta-estados-y-permisos",
         "specs/20261022-100000-service-listado-items-e-impresion",
@@ -3225,7 +3225,7 @@
         "supabase/migrations/20261020140000_reparaciones_lectura_por_tienda.sql"
       ],
       "owner": "tecnico",
-      "commit": "0c49705a0"
+      "commit": "13a71003a"
     },
     "docs/servidor-mcp.md": {
       "title": "Servidor MCP: credenciales, sesiones y revocación",
@@ -5158,9 +5158,9 @@
     },
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
-      "pageHash": "374bcaebc09c9b0d0b3cd3f8b680542f56f8951c983b476cdd40f51edae70ddc",
-      "sourceHash": "49cc6c403b095fd036573d298d65a4cb2b67c9c96854e3802eb458eae3463507",
-      "sourceAt": "2807e6acc",
+      "pageHash": "237fc54f73af281861798928106e99ac4f5bc9d102c30e8c15d51eadf99ca0c2",
+      "sourceHash": "06a7a4351378dee9147a6c237e6e7c86629192516b22f479e7f209e167997703",
+      "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "supabase/migrations/20270201200128_comprobantes_origen.sql",
@@ -5193,7 +5193,7 @@
         "apps/web/e2e/service-cobro-avisos.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "2807e6acc"
+      "commit": "13a71003a"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
