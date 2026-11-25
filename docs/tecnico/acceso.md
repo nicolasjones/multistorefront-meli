@@ -12,6 +12,7 @@ sources:
   - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
   - supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql
   - supabase/migrations/20270507600000_acl_por_defecto_authenticated_sin_truncate_references_trigger.sql
+  - supabase/migrations/20270507700000_conexiones_sin_fuga_de_existencia_y_acl_supabase_admin.sql
   - supabase/tests/database/bloqueo_servidor.test.sql
   - supabase/tests/database/estado_usuario.test.sql
   - supabase/tests/database/cortar_sesiones_suspendido.test.sql
@@ -133,6 +134,10 @@ volvía a nacer con ellos aunque `20270304100000` los hubiera quitado de las exi
 defecto no se tocan (cada migración da su `grant` explícito y RLS gobierna las filas) y `service_role` queda igual. El
 pgTAP `acl_por_defecto_authenticated` crea tablas nuevas y lo verifica. Reversión: `alter default privileges for role
 postgres in schema public grant truncate, references, trigger on tables to authenticated;`.
+`20270507700000` extiende el mismo retiro a los privilegios por defecto de `supabase_admin` (tablas creadas desde Studio o por
+extensiones) en `public` y `dominio`, pero solo si el rol que migra es miembro de `supabase_admin` (patrón de
+`20261013130000`); si no lo es, avisa con `raise notice` y los deja como estaban, por lo que local y producción pueden
+diferir. Reversión: el mismo `alter default privileges for role supabase_admin ... grant truncate, references, trigger ...`.
 
 **MSF-130 (interés por WhatsApp)** sumó una RPC (hoy interna, solo `service_role`, MSF-657; la tienda no la llama):
 `publico.registrar_interes_whatsapp(host text, producto_id uuid)` fue ejecutable por `anon` y `authenticated`; **desde `20270507150100` (MSF-657) solo la ejecuta `service_role`** (no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Vive en el esquema **`publico`** (no en `public`), así que **no** entra en la lista de RPC de `public`

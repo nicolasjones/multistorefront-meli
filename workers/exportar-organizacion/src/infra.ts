@@ -15,10 +15,11 @@ function evento(ejecucion: string, etapa: string, estado: string, mensaje?: stri
 }
 
 // Topes de Postgres (MSF-871): sin ellos una conexión o consulta trabada deja al worker colgado hasta el timeout de Kestra.
-// Configurables por entorno (milisegundos, entero entre 1 y 2147483647); un valor ausente, inválido o fuera de rango usa el default seguro.
+// Configurables por entorno (milisegundos, solo dígitos decimales, entre 1 y 2147483647); un valor ausente, inválido o fuera de rango usa el default seguro.
 const topeMs = (valor: string | undefined, porDefecto: number): number => {
+  if (valor === undefined || !/^[0-9]+$/.test(valor)) return porDefecto;
   const n = Number(valor);
-  return Number.isInteger(n) && n >= 1 && n <= 2_147_483_647 ? n : porDefecto;
+  return n >= 1 && n <= 2_147_483_647 ? n : porDefecto;
 };
 
 export function crearPuertos(env: Record<string, string | undefined>): { puertos: Puertos; cerrar: () => Promise<void> } {

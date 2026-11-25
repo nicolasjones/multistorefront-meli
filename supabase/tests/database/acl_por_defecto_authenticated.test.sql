@@ -1,8 +1,9 @@
 -- MSF-670: una tabla NUEVA creada por `postgres` en `public` no le da a `authenticated` TRUNCATE, REFERENCES ni TRIGGER
--- (privilegios por defecto, migración 20270507600000), ni nada a `anon`; los DML por defecto no se tocan.
+-- (privilegios por defecto, migración 20270507600000; los de `supabase_admin`, 20270507700000, si quien migra es miembro),
+-- ni nada a `anon`; los DML por defecto no se tocan.
 begin;
 
-select plan(9);
+select plan(10);
 
 create table public.zz_tabla_acl_defecto (id int);
 create table dominio.zz_tabla_acl_defecto (id int);
@@ -16,17 +17,16 @@ select ok(not has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto'
 select ok(not has_table_privilege('anon', 'public.zz_tabla_acl_defecto', 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'),
   'tabla nueva en public: anon sin ningún privilegio');
 
--- Los DML por defecto no se tocaron: si el entorno los otorga por defecto (Supabase), siguen; si no, esta aserción no aplica.
-select ok(
-  not exists (select 1 from pg_default_acl d
-              where d.defaclrole = 'postgres'::regrole and d.defaclnamespace = 'public'::regnamespace and d.defaclobjtype = 'r'
-                and exists (select 1 from aclexplode(d.defaclacl) a
-                            where a.grantee = 'authenticated'::regrole and a.privilege_type in ('INSERT', 'SELECT', 'UPDATE', 'DELETE'))
-                and not (has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', 'SELECT')
-                         and has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', 'INSERT')
-                         and has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', 'UPDATE')
-                         and has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', 'DELETE'))),
-  'los DML otorgados por defecto a authenticated en public siguen otorgándose');
+-- Los DML por defecto no se tocaron: una tabla nueva recibe exactamente los SELECT/INSERT/UPDATE/DELETE que el default de postgres
+-- otorga a authenticated (en Supabase son los cuatro; si el entorno no otorga ninguno, ambos lados están vacíos).
+select is(
+  (select coalesce(array_agg(p order by p), '{}') from unnest(array['DELETE', 'INSERT', 'SELECT', 'UPDATE']) p
+    where has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto', p)),
+  (select coalesce(array_agg(distinct a.privilege_type order by a.privilege_type), '{}')
+     from pg_default_acl d, aclexplode(d.defaclacl) a
+    where d.defaclrole = 'postgres'::regrole and d.defaclnamespace = 'public'::regnamespace and d.defaclobjtype = 'r'
+      and a.grantee = 'authenticated'::regrole and a.privilege_type in ('DELETE', 'INSERT', 'SELECT', 'UPDATE')),
+  'los DML otorgados por defecto a authenticated en public siguen otorgándose a las tablas nuevas');
 
 select is(
   (select count(*)::int from pg_default_acl d, aclexplode(d.defaclacl) a
@@ -48,6 +48,18 @@ select ok(has_table_privilege('authenticated', 'public.zz_tabla_acl_explicita', 
   and has_table_privilege('authenticated', 'public.zz_tabla_acl_explicita', 'DELETE')
   and not has_table_privilege('authenticated', 'public.zz_tabla_acl_explicita', 'TRUNCATE,REFERENCES,TRIGGER'),
   'el grant explícito de una migración conserva select/insert/update/delete sin TRUNCATE/REFERENCES/TRIGGER');
+
+-- Tablas creadas por supabase_admin (Studio, extensiones): mismo endurecimiento (migración 20270507700000), pero esa migración
+-- solo puede alterar los privilegios de ese rol si quien migra es miembro suyo; si no, se omite (como en 20261013130000).
+select case
+  when exists (select 1 from pg_roles where rolname = 'supabase_admin') and pg_has_role(current_user, 'supabase_admin', 'member') then
+    is((select count(*)::int from pg_default_acl d, aclexplode(d.defaclacl) a
+         where d.defaclrole = (select oid from pg_roles where rolname = 'supabase_admin')
+           and d.defaclnamespace in ('public'::regnamespace, 'dominio'::regnamespace) and d.defaclobjtype = 'r'
+           and a.grantee = 'authenticated'::regrole and a.privilege_type in ('TRUNCATE', 'REFERENCES', 'TRIGGER')),
+       0, 'pg_default_acl de supabase_admin no otorga TRUNCATE/REFERENCES/TRIGGER a authenticated en public ni dominio')
+  else skip(1, 'el rol que migra no es miembro de supabase_admin: sus privilegios por defecto no se tocan')
+end;
 
 select * from finish();
 rollback;

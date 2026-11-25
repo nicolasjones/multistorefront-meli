@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { escaparCopy, ocultarClave } from './copy-clave.mjs';
+import { escaparCopy, ocultarClave, validarLargoClave } from './copy-clave.mjs';
 import { argumentValue, requireEnvironment, redactError } from '../../scripts/operaciones.mjs';
 
 const container = argumentValue(process.argv.slice(2), '--db-container', process.env.SUPABASE_DB_CONTAINER);
@@ -7,6 +7,7 @@ const providerCode = requireEnvironment('IA_PROVEEDOR_CODIGO');
 const credentialName = requireEnvironment('IA_PROVEEDOR_CREDENCIAL');
 const providerKey = requireEnvironment('IA_PROVEEDOR_CLAVE');
 if (!/^[a-z0-9-]+$/.test(providerCode)) throw new Error('IA_PROVEEDOR_CODIGO debe coincidir con ^[a-z0-9-]+$.');
+validarLargoClave(providerKey);
 if (credentialName.length > 120) throw new Error('IA_PROVEEDOR_CREDENCIAL no puede superar 120 caracteres.');
 
 async function locateContainer() {
