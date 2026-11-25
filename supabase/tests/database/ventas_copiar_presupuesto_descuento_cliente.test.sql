@@ -233,8 +233,8 @@ select is(pg_temp.res('k_dos'), '400.00|20.00|-|false|x1|400.00',
   'org 2: descuento 20 % (400) y promoción 400 empatan: gana el descuento (la promoción tiene que ser estrictamente menor)');
 select is(pg_temp.res('k_dos'), pg_temp.res('o_dos'), 'org 2: la copia coincide con el original');
 -- La organización 2 no puede copiar un presupuesto de la organización 1 ni lo ve.
-select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('o_c2_p1')), 'P0002', null,
-  'aislamiento: otra organización no copia el presupuesto (P0002), así que su descuento de cliente no se filtra');
+select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('o_c2_p1')), 'PT404', null,
+  'aislamiento: otra organización no copia el presupuesto (PT404), así que su descuento de cliente no se filtra');
 -- Un usuario de consulta no copia (permiso sin cambios).
 select pg_temp.como('f9000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('o_c2_p1')), '42501', null, 'consulta no copia presupuestos (42501)');

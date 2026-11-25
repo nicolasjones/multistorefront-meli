@@ -530,7 +530,7 @@ margen_pct          = margen / vendido               -- null si vendido ≤ 0
 - Al cambiar la empresa activa con el diálogo abierto, se cierra sin guardar y se muestra el aviso «Cambiaste
   de empresa: cerramos el formulario sin guardar…». Nunca guarda datos bajo la empresa anterior.
 - Los mensajes de validación y de error de la base se traducen en `apps/web/src/lib/costosAdicionales.ts`
-  (`42501`, `23505`, `23514`, `P0002`), sin mostrar el texto técnico.
+  (`42501`, `23505`, `23514`, `P0002` o `PT404`), sin mostrar el texto técnico.
 
 ### Frontend de Ventas reales
 

@@ -89,10 +89,10 @@ select throws_ok(
   '22023', 'No se puede fusionar un cliente consigo mismo', 'mismo cliente en ambos lados');
 select throws_ok(
   $$select fusionar_clientes('c1000000-0000-0000-0000-000000000001', 'c9000000-0000-0000-0000-000000000009')$$,
-  'P0002', 'Alguno de los clientes no existe', 'cliente inexistente');
+  'PT404', 'Alguno de los clientes no existe', 'cliente inexistente');
 select throws_ok(
   $$select fusionar_clientes('c1000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001')$$,
-  'P0002', 'Alguno de los clientes no existe', 'cliente de otra organización');
+  'PT404', 'Alguno de los clientes no existe', 'cliente de otra organización');
 select throws_ok(
   $$select fusionar_clientes(null, 'c1000000-0000-0000-0000-000000000001')$$,
   '22023', 'Elegí los dos clientes a fusionar', 'falta uno de los clientes');

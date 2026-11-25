@@ -470,7 +470,7 @@ select is(
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, pg_temp.exec_id()),
-  'P0002', null, 'otra persona de la organización (aunque administre) no obtiene la exportación ajena'
+  'PT404', null, 'otra persona de la organización (aunque administre) no obtiene la exportación ajena'
 );
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
 select throws_ok(
@@ -480,7 +480,7 @@ select throws_ok(
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($f$select * from public.archivo_exportacion_comprobantes(%L)$f$, pg_temp.exec_id()),
-  'P0002', null, 'otra organización no ve la exportación'
+  'PT404', null, 'otra organización no ve la exportación'
 );
 
 -- ============================================================================

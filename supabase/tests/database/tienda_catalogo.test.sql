@@ -299,7 +299,7 @@ select throws_ok(
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.listar_catalogo_tienda('e1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no lista la tienda ajena'
+  'PT404', null, 'otra organización no lista la tienda ajena'
 );
 select throws_ok(
   $$select public.guardar_catalogo_tienda('e1000000-0000-0000-0000-000000000001', '[]'::jsonb, '[]'::jsonb)$$,

@@ -198,7 +198,7 @@ Orden dentro de la transacción de `fusionar_clientes`:
 
 1. **Permiso**: `42501` «Solo el Administrador puede fusionar clientes».
 2. **Validaciones**: `22023` «Elegí los dos clientes a fusionar», `22023` «No se puede fusionar un cliente
-   consigo mismo», `P0002` «Alguno de los clientes no existe» (inexistente o de otra organización),
+   consigo mismo», `PT404` «Alguno de los clientes no existe» (inexistente o de otra organización),
    `22023` «Alguno de los clientes ya está archivado (¿la fusión ya se hizo?)».
 3. **Bloqueo**: `select … where c.id in (…) order by c.id for update` sobre las dos filas: bloquea en
    **orden por id**, así dos fusiones cruzadas no se traban.
@@ -226,7 +226,7 @@ Frontend (`apps/web/src/components/clientes/DialogoFusionarClientes.tsx` y `apps
 - `vistaPreviaFusion(conservar, descartar)` y `fusionarClientes(conservar, descartar, cuentaWebDe)`
   llaman las RPC; `hayCuentaWebParaResolver(filas)` decide si hay que resolver la cuenta web (los dos con
   cuentas activas) y `mensajeDeFusion(error)` muestra el mensaje de la base tal cual (`42501`, `22023`,
-  `P0002`) sin identificadores técnicos.
+  `PT404`) sin identificadores técnicos.
 - El diálogo muestra «3 compras y 5 compras: la ficha que se conserva quedará con 8 compras.», deja elegir
   la ficha a conservar y, cuando hace falta, la cuenta web que se mantiene (obligatorio para poder
   confirmar).

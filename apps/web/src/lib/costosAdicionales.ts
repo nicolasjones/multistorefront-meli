@@ -84,7 +84,8 @@ export function mensajeDeErrorCosto(error: { code?: string } | null | undefined,
     case '42501': return 'Tu rol no puede editar los costos adicionales de esta empresa.'
     case '23505': return `Ya hay un costo con ese nombre${empresaNombre ? ` en ${empresaNombre}` : ' en esa empresa'}.`
     case '23514': return MENSAJE_VALOR_INVALIDO
-    case 'P0002': return 'Este costo ya no existe. Actualizá la lista.'
+    case 'P0002':
+    case 'PT404': return 'Este costo ya no existe. Actualizá la lista.'
     default: return 'No pudimos guardar el costo. Intentá de nuevo.'
   }
 }

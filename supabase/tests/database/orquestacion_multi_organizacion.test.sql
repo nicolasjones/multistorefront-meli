@@ -375,7 +375,7 @@ select ok(
 
 select throws_ok(
   $$select public.actualizar_credencial_conexion('00000000-0000-0000-0000-000000000000', 'nueva-credencial')$$,
-  'P0002',
+  'PT404',
   null,
   'actualizar_credencial_conexion rechaza una conexión que no existe'
 );
