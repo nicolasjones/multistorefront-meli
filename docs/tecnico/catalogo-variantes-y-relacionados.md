@@ -76,7 +76,7 @@ erDiagram
   (`stock_leido`); si el stock actual ya es otro, la RPC responde `40001` y hay que recargar la ficha (no pisa lo que otra
   persona movió). Sin edición en Stock se rechaza cualquier valor de stock (`42501`), aunque coincida con el actual. La RPC
   toma los bloqueos en el mismo orden que `registrar_movimiento_stock` (primero `existencias`, después `productos`).
-- `guardar_relacionados(p_producto, p_relacionados uuid[])`: reemplazo idempotente; `P0002`, `22023`, `42501`; evento
+- `guardar_relacionados(p_producto, p_relacionados uuid[])`: reemplazo idempotente; `22023`, `42501` y «no existe» (ver [errores de negocio](../errores-negocio-postgrest.md)); evento
   `producto.relacionados_editados` solo ante cambio real.
 - `registrar_movimiento_stock` pasa de 8 a **9 parámetros** (`p_variante uuid default null`): **BREAKING** de firma, los
   llamadores existentes siguen válidos. Con variantes es obligatoria (`22023`); sin variantes debe ser nula.

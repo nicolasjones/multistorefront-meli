@@ -12,7 +12,7 @@ El panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Su
 
 - **Tablas/vistas:** se leen con la sesión del usuario; la **RLS** decide qué filas ve.
 - **RPC:** funciones `public.*` con `security invoker` (heredan RLS) o `security definer` justificadas; `revoke` de `public, anon` y `grant execute` a `authenticated`.
-- **Errores:** códigos Postgres (`P0001`, `P0002`, `22023`, `23505`, `40001`) que la UI traduce a mensajes.
+- **Errores:** códigos Postgres (`P0001`, `P0002`, `22023`, `23505`, `40001`) que la UI traduce a mensajes, más los `PT4xx` de los errores de negocio (ver [errores de negocio](../errores-negocio-postgrest.md)).
 - **Actividad:** las acciones importantes registran un evento en `registro_actividad` en la misma transacción.
 
 > **Paginación en el servidor, carga infinita en la pantalla.** Las RPC y las vistas siguen paginando (`p_pagina`,
@@ -77,7 +77,7 @@ El panel usa **PostgREST** (tablas/vistas) y **RPC** de Postgres a través de Su
 
 ### Service técnico (MSF-182)
 
-Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `40001` conflicto, `55000` anulada/cerrada, `P0002` inexistente.
+Fuente: `supabase/migrations/20261020*` (rama `epic/MSF-182-…`, aún sin merge a `main`). Las mutaciones de reparaciones son `security definer` con `search_path = ''` (la tabla no admite escritura directa); las de catálogos, `security invoker`. Todas: `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `55000` anulada/cerrada. El conflicto de edición y el «no existe» no llevan el mismo código en todas las funciones: ver [errores de negocio](../errores-negocio-postgrest.md).
 
 ### Stock único y alertas (MSF-231)
 
@@ -235,7 +235,7 @@ Fuente: `supabase/migrations/20261018190001`–`20261018190700` (rama `epic/MSF-
 | RPC | Devuelve / hace | Seguridad |
 |---|---|---|
 | `public.crear_proveedor(p_razon_social, p_cuit, p_persona_contacto, p_correo, p_telefono, p_direccion, p_observaciones)` | Alta con CUIT validado; devuelve la fila | `security invoker` (RLS); exige `edicion` en `proveedores`; `23505` CUIT repetido, `22023`/`23514` dato inválido |
-| `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista por `updated_at`; devuelve la fila | `security invoker`; `40001` conflicto, `P0002` inexistente/ajeno, `42501` sin permiso |
+| `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista por `updated_at`; devuelve la fila | `security invoker`; `42501` sin permiso; conflicto de edición e inexistente/ajeno: ver [errores de negocio](../errores-negocio-postgrest.md) |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva; idempotente | `security invoker`; no existe borrado |
 | `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Filas con `numero`, `empresas` y `total_filas`; busca por razón social (sin mayúsculas ni tildes) o CUIT con/sin guiones; 25 por página, tope 200 | `security invoker` (RLS); `22023` estado inválido |
 | `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Lotes del listado filtrado para exportar (keyset); registra `proveedores.exportados` | `security definer`; exige la acción `exportar` en `proveedores` (`42501`); `54000` supera 50000 filas; `40001` cursor inexistente o ajeno; `22023` estado inválido |
@@ -264,7 +264,7 @@ los parámetros nuevos son opcionales y van al final):
 | RPC | Parámetros nuevos | Seguridad |
 |---|---|---|
 | `public.crear_producto(…, p_codigo_barras text, p_disponibilidad_manual text)` | `p_disponibilidad_manual` (11.º, default `null`): `a_pedido` \| `stock_entrante`; otro valor se rechaza con `22023` | `security invoker` (RLS); exige `edicion` en `productos`; el costo exige `edicion` en `rentabilidad`; `revoke` a `public, anon`; `grant` a `authenticated` |
-| `public.actualizar_producto(…, p_codigo_barras text, p_cambiar_codigo_barras boolean, p_disponibilidad_manual text, p_cambiar_disponibilidad boolean)` | `p_disponibilidad_manual` (15.º, default `null`) y `p_cambiar_disponibilidad` (16.º, default `false`): la disponibilidad solo cambia con `p_cambiar_disponibilidad = true`; `null` quita la elección y vuelve a la derivada | `security invoker`; exige `edicion` en `productos`; `40001` conflicto por `updated_at`, `P0002` inexistente/ajeno, `42501` sin permiso |
+| `public.actualizar_producto(…, p_codigo_barras text, p_cambiar_codigo_barras boolean, p_disponibilidad_manual text, p_cambiar_disponibilidad boolean)` | `p_disponibilidad_manual` (15.º, default `null`) y `p_cambiar_disponibilidad` (16.º, default `false`): la disponibilidad solo cambia con `p_cambiar_disponibilidad = true`; `null` quita la elección y vuelve a la derivada | `security invoker`; exige `edicion` en `productos`; `42501` sin permiso; conflicto por `updated_at` e inexistente/ajeno: ver [errores de negocio](../errores-negocio-postgrest.md) |
 
 La vista `public.v_productos_listado` suma `disponibilidad` y `codigo_barras` **al final** de su contrato
 (`create or replace`, `security_invoker = true`, sin costo, sin `anon`).

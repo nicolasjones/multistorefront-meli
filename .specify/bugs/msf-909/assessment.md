@@ -85,7 +85,7 @@ Confianza: alta (medido arriba sobre el board real y sobre el contrato de la API
 - **El board es un sistema externo**: la herramienta escribe en el tracker real. Por eso simula por defecto, y la aplicación es explícita (`--aplicar`) y reversible (`dueDate: null`).
 - **La fecha en el pasado**: los gates que ya vencieron quedan con fecha pasada (el tracker los muestra vencidos). Es lo que el reporte pide; el board ya tenía ítems así (MSF-520, `dueDate` 2026-10-22, sigue abierto) sin que el flujo se descontrolara.
 - **La fecha depende del reloj del board**: `statusSince` y el feed los escribe el tracker, no el script, así que la fecha no depende de la máquina que corre la herramienta.
-- **Zona horaria**: el tracker guarda instantes en UTC; la fecha se calcula en `America/Argentina` (la del board).
+- **Zona horaria**: el tracker guarda instantes en UTC; la fecha se calcula en `America/Argentina/Buenos_Aires` (la del board).
 - **Lo que NO se arregla acá**: el orquestador sigue creando gates nuevos sin `dueDate`. La herramienta es un barrido idempotente y se puede volver a correr; elPrevention en la creación vive en el flujo del orquestador (otro repo), y queda anotado como seguimiento en la documentación, no como tarea de esta historia.
 
 ## Open Questions

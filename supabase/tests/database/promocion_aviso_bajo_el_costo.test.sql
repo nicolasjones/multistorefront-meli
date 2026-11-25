@@ -186,7 +186,7 @@ insert into r values
   ('otra_org', public.guardar_promocion_precio(null, 'e9000000-0000-0000-0000-000000000003', 'b9000000-0000-0000-0000-000000000001', 800, now(), now() + interval '2 days'));
 select throws_ok(
   $$select public.guardar_promocion_precio(null, 'e9000000-0000-0000-0000-000000000001', 'a9000000-0000-0000-0000-000000000001', 1, now(), now() + interval '2 days')$$,
-  'P0002', null, 'una tienda de otra organización no existe (P0002): el aviso no filtra el costo ajeno');
+  'PT404', null, 'una tienda de otra organización no existe (PT404): el aviso no filtra el costo ajeno');
 reset role;
 select is((select j ->> 'aviso_costo_codigo' from r where clave = 'otra_org'), 'promocion_bajo_el_costo',
   'organización 2: avisa con SU costo (900), no con el de la organización 1');

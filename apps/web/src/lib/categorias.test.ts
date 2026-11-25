@@ -239,6 +239,9 @@ describe('acceso a datos', () => {
     const cliente = { schema: () => ({ from: () => mala }), from: () => mala }
     await expect(leerCategorias(cliente as never)).rejects.toMatchObject({ code: '42501' })
   })
+  it.each(['P0002', 'PT404'])('mensajeErrorCategoria muestra el texto de la base ante «no existe» %s', (code) => {
+    expect(mensajeErrorCategoria({ code, message: 'La categoría no existe' }, 'x')).toBe('La categoría no existe')
+  })
   it('mensajeErrorCategoria muestra el texto de la base solo para errores esperados', () => {
     expect(mensajeErrorCategoria({ code: '23505', message: 'Ya existe una categoría con ese nombre en ese nivel' }, 'x')).toBe('Ya existe una categoría con ese nombre en ese nivel')
     expect(mensajeErrorCategoria({ code: '57014', message: 'canceling statement' }, 'No pudimos guardar')).toBe('No pudimos guardar')

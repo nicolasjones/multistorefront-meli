@@ -150,11 +150,11 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_relacionados('a1000000-0000-0000-0000-000000000001', array['b2000000-0000-0000-0000-000000000001']::uuid[])$$,
-  'P0002', null, 'rechaza un relacionado de otra organización'
+  'PT404', null, 'rechaza un relacionado de otra organización'
 );
 select throws_ok(
   $$select public.guardar_relacionados('b2000000-0000-0000-0000-000000000001', '{}'::uuid[])$$,
-  'P0002', null, 'rechaza un producto de otra organización'
+  'PT404', null, 'rechaza un producto de otra organización'
 );
 select throws_ok(
   $$insert into dominio.producto_relacionados (producto_id, relacionado_id, organizacion_id, orden)

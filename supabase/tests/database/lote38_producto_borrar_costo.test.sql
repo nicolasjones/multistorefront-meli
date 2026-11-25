@@ -58,7 +58,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.actualizar_producto('a1000000-0000-0000-0000-000000000001', '2026-01-01 10:00:00+00', 'X', null, 'X', '{}', 'ARS', 1, null,
       null, null, false, null, false, null, false, true)$$,
-  'P0002', 'El producto no existe', 'otra organización no alcanza el producto');
+  'PT404', 'El producto no existe', 'otra organización no alcanza el producto');
 
 reset role;
 select is((select costo from dominio.producto_costos where producto_id = 'a1000000-0000-0000-0000-000000000001'), 20::numeric,

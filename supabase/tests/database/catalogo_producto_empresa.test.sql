@@ -1,7 +1,7 @@
 -- F-CAT-07 (MSF-276, épica MSF-160): empresas que venden el producto. Cubre SC-003 / FR-009…FR-014:
 -- aislamiento entre organizaciones, FK compuesta que impide cruzar organizaciones, permisos por rol
 -- (Administrador edita, Consulta solo lee, anon nada), RPC `definir_empresas_producto` atómica e
--- idempotente (22023 empresa ajena, P0002 producto inexistente), evento `producto.empresas_actualizadas`
+-- idempotente (22023 empresa ajena, PT404 producto inexistente), evento `producto.empresas_actualizadas`
 -- solo ante cambios reales y sin precios, y la columna `empresa_ids` de `v_productos_listado`.
 -- `rls_en_toda_tabla` (global) recorre `public` + `dominio`: acá se verifica además la tabla propia.
 -- El fixture corre como postgres (RLS no aplica) y las verificaciones como "authenticated".
@@ -165,11 +165,11 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.definir_empresas_producto('a9000000-0000-0000-0000-000000000009', array['e1000000-0000-0000-0000-000000000001']::uuid[])$$,
-  'P0002', null, 'un producto inexistente se rechaza'
+  'PT404', null, 'un producto inexistente se rechaza'
 );
 select throws_ok(
   $$select public.definir_empresas_producto('b2000000-0000-0000-0000-000000000001', array['e1000000-0000-0000-0000-000000000001']::uuid[])$$,
-  'P0002', null, 'un producto de otra organización se ve como inexistente'
+  'PT404', null, 'un producto de otra organización se ve como inexistente'
 );
 select throws_ok(
   $$insert into dominio.producto_empresa (producto_id, empresa_id, organizacion_id) values

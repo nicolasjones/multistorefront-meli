@@ -41,6 +41,11 @@ describe('edicionMasiva (F-CAT-12)', () => {
     expect(productosN(1)).toBe('1 producto')
   })
 
+  it.each(['P0002', 'PT404'])('traduce el «no existe» %s', (code) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(mensajeErrorEdicionMasiva({ code, message: 'x' })).toMatch(/ya no existe/)
+  })
+
   it('traduce cada código de la base a un mensaje claro y nunca muestra el detalle técnico', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(mensajeErrorEdicionMasiva({ code: '42501', message: 'x' })).toMatch(/No tenés permiso/)

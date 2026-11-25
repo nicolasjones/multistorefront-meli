@@ -160,8 +160,8 @@ Cuatro precisiones:
 
 - El step del workflow quedó en el job `chequeos` (la CI de la base ya separó ahí las
   suites de Node puro), no en `application`.
-- La zona del cálculo es `America/Argentina/Buenos_Aires` (la que ya usa el repo), no
-  `America/Argentina` como dice el assessment: ese nombre no es una zona IANA válida y
+- La zona del cálculo es `America/Argentina/Buenos_Aires` (la que ya usa el repo). El
+  assessment decía `America/Argentina` y se corrigió: ese nombre no es una zona IANA válida y
   `Intl.DateTimeFormat` lo rechaza. La fecha calculada es la misma.
 - La lectura del board es **doble** (por etiqueta y por tipo) y los archivados no se
   leen: el assessment preveía una lectura por tipo con `includeArchived=true`, pero esa

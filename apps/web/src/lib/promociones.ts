@@ -223,8 +223,10 @@ export function mensajeErrorPromocion(error: unknown, porDefecto: string): strin
     case '23P01':
       return 'Ya hay otra promoción de este producto en esta empresa que se solapa con esas fechas. Cambiá las fechas o anulá la otra.'
     case '40001':
+    case 'PT412':
       return 'Otra persona modificó esta promoción. Recargá la lista y probá de nuevo.'
     case 'P0002':
+    case 'PT404':
       return 'La empresa, el producto o la promoción ya no existe.'
     case '22003':
       return 'El precio es demasiado grande.'

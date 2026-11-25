@@ -184,6 +184,12 @@ describe('promociones · acceso a la base', () => {
 })
 
 describe('promociones · mensajes de error', () => {
+  it.each(['40001', 'PT412'])('traduce el conflicto de edición %s', (code) => {
+    expect(mensajeErrorPromocion({ code }, 'x')).toMatch(/Otra persona/)
+  })
+  it.each(['P0002', 'PT404'])('traduce «no existe» %s', (code) => {
+    expect(mensajeErrorPromocion({ code }, 'x')).toBe('La empresa, el producto o la promoción ya no existe.')
+  })
   it('traduce solape, conflicto y permiso', () => {
     expect(mensajeErrorPromocion({ code: '23P01' }, 'x')).toMatch(/se solapa/)
     expect(mensajeErrorPromocion({ code: '40001' }, 'x')).toMatch(/Otra persona/)

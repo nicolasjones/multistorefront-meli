@@ -87,7 +87,7 @@ type Props = {
   onCancelar?: () => void
   // Solo lectura (FR-011): ficha visible, sin acción de guardar.
   soloLectura?: boolean
-  // Ante un conflicto de edición concurrente (40001) se ofrece recargar el producto.
+  // Ante un conflicto de edición concurrente (`PT412`, antes `40001`) se ofrece recargar el producto.
   onRecargar?: () => void
 }
 

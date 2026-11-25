@@ -40,7 +40,7 @@ export function mensajeErrorEdicionMasiva(error: unknown): string {
   console.error('No pudimos aplicar el cambio a los productos.', error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para editar productos. Puede que tu rol haya cambiado: recargá la página.'
-  if (code === 'P0002') return 'Alguno de los productos o la categoría ya no existe. Recargá la lista e intentá de nuevo; no se cambió ningún producto.'
+  if (code === 'P0002' || code === 'PT404') return 'Alguno de los productos o la categoría ya no existe. Recargá la lista e intentá de nuevo; no se cambió ningún producto.'
   if (code === '22023') return 'Algún dato no es válido. No se cambió ningún producto.'
   return 'No pudimos aplicar el cambio. No se cambió ningún producto: intentá de nuevo.'
 }
