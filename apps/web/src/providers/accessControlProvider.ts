@@ -1,5 +1,5 @@
 import type { AccessControlProvider } from '@refinedev/core'
-import { checkIsSuperadmin, checkOrganizacionActiva } from '../lib/superadmin'
+import { checkIsSuperadmin, checkOrganizacionActiva, obtenerUsuarioActual } from '../lib/superadmin'
 import { checkFeatureHabilitada } from '../lib/features'
 import { supabaseClient } from '../lib/supabase'
 import { RECURSOS_DEPENDIENTES_DE_ORGANIZACION } from '../lib/recursosDependientesDeOrganizacion'
@@ -39,12 +39,12 @@ export const accessControlProvider: AccessControlProvider = {
       resource === 'servidores' ||
       resource === 'ia'
     ) {
-      const { data } = await supabaseClient.auth.getUser()
-      if (!data?.user) {
+      const usuario = await obtenerUsuarioActual()
+      if (!usuario) {
         return { can: false }
       }
 
-      return { can: await checkIsSuperadmin(data.user.id) }
+      return { can: await checkIsSuperadmin(usuario.id) }
     }
 
     // F-ROL-01 (FR-005): recursos que son una sección de la matriz de
@@ -53,13 +53,13 @@ export const accessControlProvider: AccessControlProvider = {
     // camino de abajo (opera la organización activa como administrador).
     const seccion = SECCION_POR_RECURSO[resource ?? '']
     if (seccion) {
-      const { data } = await supabaseClient.auth.getUser()
-      if (!data?.user) {
+      const usuario = await obtenerUsuarioActual()
+      if (!usuario) {
         return { can: false }
       }
-      if (!(await checkIsSuperadmin(data.user.id))) {
+      if (!(await checkIsSuperadmin(usuario.id))) {
         try {
-          const nivel = nivelDe(await obtenerPermisosActualesCacheado(data.user.id), seccion)
+          const nivel = nivelDe(await obtenerPermisosActualesCacheado(usuario.id), seccion)
           if (!nivelPermiteAccionRefine(nivel, action)) {
             return { can: false }
           }
@@ -73,7 +73,7 @@ export const accessControlProvider: AccessControlProvider = {
             const { data: membresia } = await supabaseClient
               .from('usuarios_organizacion')
               .select('rol_id')
-              .eq('user_id', data.user.id)
+              .eq('user_id', usuario.id)
               .eq('estado', 'activo')
               .maybeSingle()
             if (membresia?.rol_id !== 'administrador') {
@@ -94,18 +94,18 @@ export const accessControlProvider: AccessControlProvider = {
     }
 
     if ((RECURSOS_DEPENDIENTES_DE_ORGANIZACION as readonly string[]).includes(resource ?? '')) {
-      const { data } = await supabaseClient.auth.getUser()
-      if (!data?.user) {
+      const usuario = await obtenerUsuarioActual()
+      if (!usuario) {
         return { can: false }
       }
 
-      const esSuperadmin = await checkIsSuperadmin(data.user.id)
+      const esSuperadmin = await checkIsSuperadmin(usuario.id)
       if (!esSuperadmin) {
         if (resource === 'usuarios' || resource === 'conexiones' || resource === 'empresas') {
           const { data: membresia } = await supabaseClient
             .from('usuarios_organizacion')
             .select('rol_id')
-            .eq('user_id', data.user.id)
+            .eq('user_id', usuario.id)
             .eq('estado', 'activo')
             .maybeSingle()
           return { can: membresia?.rol_id === 'administrador' }
@@ -113,7 +113,7 @@ export const accessControlProvider: AccessControlProvider = {
         return { can: true }
       }
 
-      const organizacionActiva = await checkOrganizacionActiva(data.user.id)
+      const organizacionActiva = await checkOrganizacionActiva(usuario.id)
       return { can: organizacionActiva !== null }
     }
 

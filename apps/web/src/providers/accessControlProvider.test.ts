@@ -14,6 +14,7 @@ vi.mock('../lib/supabase', () => ({
 }))
 vi.mock('../lib/superadmin', () => ({
   checkIsSuperadmin: mocks.checkIsSuperadmin,
+  obtenerUsuarioActual: async () => (await mocks.getUser())?.data?.user ?? null,
   checkOrganizacionActiva: mocks.checkOrganizacionActiva,
 }))
 vi.mock('../lib/features', () => ({ checkFeatureHabilitada: vi.fn() }))
