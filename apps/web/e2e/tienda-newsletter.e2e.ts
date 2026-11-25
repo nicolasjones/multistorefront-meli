@@ -221,6 +221,8 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
     expect(destinatarios, 'el pendiente de la campaña se omite y la baja se atribuye a ella').toEqual([{ estado: 'omitido', baja_en: expect.any(String) }])
 
     // Quien se dio de baja puede volver a pedir la suscripción: queda pendiente de nueva confirmación (no recibe nada hasta confirmar).
+    // Los tests anteriores ya gastaron el cupo de 5 por hora del visitante (suscribir y cada confirmación cuentan): se parte de cero.
+    await borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
     await suscribirseDesdeElPie(page, correo)
     await expect.poll(async () => (await suscriptorDe(correo))?.estado, { message: 'la nueva suscripción vuelve a pendiente' }).toBe('pendiente')
   })
