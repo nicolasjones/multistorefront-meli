@@ -1,5 +1,7 @@
 # Contrato: productos relacionados (F-CAT-18)
 
+> Nota: las RPC migradas (ver `docs/errores-negocio-postgrest.md`) responden `PT404` (no existe) y `PT412` (conflicto de edición) en lugar de `P0002`/`40001`; el contrato original se conserva como histórico.
+
 Tabla en `dominio`; RPC y vista en `public` (Principio VII).
 
 ## `guardar_relacionados(p_producto, p_relacionados)`

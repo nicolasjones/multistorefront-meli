@@ -21,8 +21,10 @@ const TIENDA = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-80
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 const origen = `http://${TIENDA.host}:${puerto}`
 
-// Datos únicos por corrida: la marca va en el correo y permite limpiar sin tocar a nadie más.
-const MARCA = `e2e-nl-${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`
+// Datos únicos por intento: la marca va en el correo y permite limpiar sin tocar a nadie más. Se genera en `beforeAll` (no al cargar el
+// módulo): con `retries: 1` el reintento de un grupo serial vuelve a correr `beforeAll`, así que no reusa los correos de la primera pasada.
+let MARCA = ''
+const marcaNueva = () => `e2e-nl-${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`
 const correoDe = (nombre: string) => `${nombre}-${MARCA}@example.com`
 
 const sha256 = (texto: string) => createHash('sha256').update(texto).digest('hex')
@@ -111,6 +113,7 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
   let campanaId: string | null = null
 
   test.beforeAll(async () => {
+    MARCA = marcaNueva()
     banderaPrevia = await fijarBanderaPlataforma('newsletter', true)
     test.skip(banderaPrevia === null, 'La base no tiene la bandera `newsletter`.')
     configuracionPrevia = await leer<{ activo: boolean }>(`newsletter_configuracion?select=activo&empresa_id=eq.${TIENDA.empresa}`, 'dominio')
@@ -121,24 +124,39 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
       UPSERT_FUSIONAR,
     )
     // El límite por visitante (5 por hora, compartido con contacto y WhatsApp) se cuenta por tienda: se parte de cero para que los
-    // pedidos de otros specs de la corrida no dejen sin cupo a este (como `tienda-analitica`).
+    // pedidos de otros specs de la corrida no dejen sin cupo a este (como `tienda-analitica`). No se puede acotar al correo de la
+    // corrida: la fila guarda solo un hash del visitante (calculado en el servidor a partir de la conexión), no el correo, y el cupo
+    // es del visitante: borrar solo las filas del origen `newsletter` dejaría gastado el cupo que dejaron otros orígenes.
     await borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
   })
 
-  // Limpieza en `afterAll`: se borran las filas de esta corrida y la bandera y el interruptor vuelven a su valor previo aunque falle un test.
+  // Limpieza en `afterAll`: se borran las filas de esta corrida y la bandera y el interruptor vuelven a su valor previo aunque falle un
+  // test o un paso de la limpieza. Cada paso va en su propio try/catch para que uno que falla no saltee a los demás; la bandera se
+  // restaura siempre en último lugar y, si algún paso falló, se informa al final.
   test.afterAll(async () => {
     if (banderaPrevia === null) return
-    try {
-      if (campanaId) await borrar(`campanas_correo?id=eq.${campanaId}`, 'dominio')
-      await borrar(`newsletter_suscriptores?empresa_id=eq.${TIENDA.empresa}&correo=like.*-${MARCA}@example.com`, 'dominio')
-      await borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
-      if (configuracionPrevia !== null) {
-        if (configuracionPrevia.length === 0) await borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
-        else await rest('newsletter_configuracion?on_conflict=empresa_id', [{ empresa_id: TIENDA.empresa, organizacion_id: TIENDA.organizacion, activo: configuracionPrevia[0].activo }], 'dominio', UPSERT_FUSIONAR)
+    const fallos: unknown[] = []
+    const paso = async (accion: () => Promise<unknown>) => {
+      try {
+        await accion()
+      } catch (error) {
+        fallos.push(error)
       }
-    } finally {
-      await fijarBanderaPlataforma('newsletter', banderaPrevia)
     }
+    if (campanaId) await paso(() => borrar(`campanas_correo?id=eq.${campanaId}`, 'dominio'))
+    await paso(() => borrar(`newsletter_suscriptores?empresa_id=eq.${TIENDA.empresa}&correo=like.*-${MARCA}@example.com`, 'dominio'))
+    // Mismo motivo que en `beforeAll`: no se puede acotar a esta corrida; se deja el cupo en cero para los specs que siguen.
+    await paso(() => borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio'))
+    if (configuracionPrevia !== null) {
+      const previa = configuracionPrevia
+      await paso(() =>
+        previa.length === 0
+          ? borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
+          : rest('newsletter_configuracion?on_conflict=empresa_id', [{ empresa_id: TIENDA.empresa, organizacion_id: TIENDA.organizacion, activo: previa[0].activo }], 'dominio', UPSERT_FUSIONAR),
+      )
+    }
+    await paso(() => fijarBanderaPlataforma('newsletter', banderaPrevia))
+    if (fallos.length > 0) throw new AggregateError(fallos, 'La limpieza del E2E de newsletter falló en algún paso')
   })
 
   test('suscribirse desde el pie deja un registro pendiente y el enlace del correo lo confirma', async ({ page }) => {
@@ -222,11 +240,17 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
 
     // Quien se dio de baja puede volver a pedir la suscripción: queda pendiente de nueva confirmación (no recibe nada hasta confirmar).
     // Los tests anteriores ya gastaron el cupo de 5 por hora del visitante (suscribir y cada confirmación cuentan): se parte de cero.
+    // Se borra todo el limitador de la tienda seed porque la fila guarda un hash del visitante, no el correo (ver `beforeAll`).
     await borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
     await suscribirseDesdeElPie(page, correo)
     await expect.poll(async () => (await suscriptorDe(correo))?.estado, { message: 'la nueva suscripción vuelve a pendiente' }).toBe('pendiente')
   })
 
+  // OJO: la emulación de `emularFuncionDeBaja` NO es paridad total con `supabase/functions/baja-correo-masivo/handler.ts`: no devuelve
+  // 405 ni 400, no hace `trim` ni valida el largo (≤ 128) ni la forma del token, y su CORS es parcial (otros encabezados y sin
+  // `Max-Age`). Por eso este test no prueba la validación de la función: `no-es-un-token` lo rechaza el CLIENTE
+  // (`darDeBajaNewsletter`, `FORMA_TOKEN_NEWSLETTER`) antes de llamarla, y lo que se afirma es justo eso (no hay pedido a la función).
+  // El rechazo del servidor lo cubre `supabase/functions/baja-correo-masivo/handler.test.ts`.
   test('un enlace de baja con forma inválida no llama a la función y muestra «Enlace inválido»', async ({ page }) => {
     const recibidos = await emularFuncionDeBaja(page)
     await page.goto(`${origen}/newsletter/baja/no-es-un-token`)

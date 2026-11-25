@@ -1,5 +1,7 @@
 # Contratos · Precios masivos y promociones (MSF-363)
 
+> Nota: las RPC migradas (ver `docs/errores-negocio-postgrest.md`) responden `PT404` (no existe) y `PT412` (conflicto de edición) en lugar de `P0002`/`40001`; el contrato original se conserva como histórico.
+
 Todo nuevo y aditivo: **no hay BREAKING**. RPC en `public` (**`security definer`** con `set search_path = ''` y validación de permisos adentro; `revoke … from public, anon`, `grant execute … to authenticated`). La vista `promociones_precio_estado` es `security_invoker`. Permisos de promociones por tienda (`private.nivel_productos_en_empresa`). Los nombres finales de parámetros se fijan en la migración; esta es la firma de revisión.
 
 ## F-PRE-10
