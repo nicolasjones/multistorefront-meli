@@ -16,6 +16,8 @@ const download = vi.hoisted(() => vi.fn())
 const createSignedUrl = vi.hoisted(() => vi.fn())
 const storageFrom = vi.hoisted(() => vi.fn(() => ({ upload, remove, download, createSignedUrl })))
 
+const optimizar = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/optimizarImagen', () => ({ optimizarImagen: optimizar }))
 vi.mock('../../lib/supabase', () => ({
   supabaseClient: { auth, from, storage: { from: storageFrom } },
 }))
@@ -38,6 +40,7 @@ function renderPage() {
 describe('PerfilPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    optimizar.mockImplementation(async (archivo: File) => archivo)
     auth.getUser.mockResolvedValue({ data: { user: { id: 'user-1', email: 'persona@example.com' } }, error: null })
     maybeSingle.mockResolvedValue({ data: { nombre: 'Ada', apellido: 'Lovelace', foto_path: null }, error: null })
     limit.mockResolvedValue({ data: [], error: null })
@@ -145,6 +148,46 @@ describe('PerfilPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quitar foto' }))
     expect(await screen.findByRole('status')).toHaveTextContent('Tu foto de perfil fue eliminada.')
     expect(remove).toHaveBeenCalledWith(['user-1/avatar'])
+  })
+
+  it('optimiza la foto a 512 px y sube el archivo optimizado con su tipo', async () => {
+    const webp = new File(['optimizada'], 'perfil.webp', { type: 'image/webp' })
+    optimizar.mockResolvedValue(webp)
+    renderPage()
+    const archivo = new File(['imagen'], 'perfil.jpg', { type: 'image/jpeg' })
+    fireEvent.change(await screen.findByLabelText('Cargar o reemplazar foto'), { target: { files: [archivo] } })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Tu foto de perfil fue actualizada.')
+    expect(optimizar).toHaveBeenCalledWith(archivo, 512)
+    expect(upload).toHaveBeenCalledWith('user-1/avatar', webp, { upsert: true, contentType: 'image/webp' })
+  })
+
+  it('valida el tope de 2 MiB sobre la foto ya optimizada y el de 15 MB sobre el origen', async () => {
+    const grande = new File(['x'], 'g.webp', { type: 'image/webp' })
+    Object.defineProperty(grande, 'size', { value: 2 * 1024 * 1024 + 1 })
+    optimizar.mockResolvedValue(grande)
+    renderPage()
+    const entrada = await screen.findByLabelText('Cargar o reemplazar foto')
+    fireEvent.change(entrada, { target: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('La foto no puede superar 2 MiB aun optimizada.')
+
+    const origen = new File(['x'], 'o.jpg', { type: 'image/jpeg' })
+    Object.defineProperty(origen, 'size', { value: 15 * 1024 * 1024 + 1 })
+    fireEvent.change(entrada, { target: { files: [origen] } })
+    expect(await screen.findByRole('alert')).toHaveTextContent('La foto no puede superar 15 MB.')
+    expect(upload).not.toHaveBeenCalled()
+  })
+
+  it('bloquea el botón mientras se optimiza y no sube nada hasta terminar', async () => {
+    let terminar: (f: File) => void = () => undefined
+    optimizar.mockReturnValue(new Promise<File>((resolver) => { terminar = resolver }))
+    renderPage()
+    const archivo = new File(['x'], 'a.jpg', { type: 'image/jpeg' })
+    fireEvent.change(await screen.findByLabelText('Cargar o reemplazar foto'), { target: { files: [archivo] } })
+    expect(await screen.findByText('Actualizando foto...')).toBeInTheDocument()
+    expect(upload).not.toHaveBeenCalled()
+    terminar(archivo)
+    expect(await screen.findByRole('status')).toHaveTextContent('Tu foto de perfil fue actualizada.')
   })
 
   it('conserva la foto anterior si falla la persistencia del perfil tras cargar una nueva', async () => {

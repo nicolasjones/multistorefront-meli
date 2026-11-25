@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { optimizarImagen } from './optimizarImagen'
 import { guardarBorrador, obtenerBorrador, rutasSinReferencia } from './tiendaBorrador'
 import { ESTILOS_HEROE, ESTILO_HEROE_POR_DEFECTO, type EstiloHeroe } from '../tema/temaTienda'
 
@@ -77,6 +78,12 @@ export const REGLAS_IMAGEN: Readonly<Record<ClaveImagen, ReglasImagen>> = {
     medidas: '390×300',
   },
 }
+
+// Los banners se optimizan en el navegador (WebP) antes de validar su tope: el origen admite hasta 15 MB.
+// El logo NO se optimiza: es PNG o SVG, el bucket y quienes lo leen (PDF de comprobantes, imagen para redes)
+// esperan ese formato, y recodificarlo a WebP los rompería. No existe subida de favicon.
+const MAX_BYTES_ORIGEN_BANNER = 15 * 1024 * 1024
+export const LADO_MAXIMO_BANNER_PX: Readonly<Partial<Record<ClaveImagen, number>>> = { banner: 1920, bannerMovil: 1200 }
 
 export const tiposAceptados = (clave: ClaveImagen) => Object.keys(REGLAS_IMAGEN[clave].tipos).join(',')
 
@@ -183,6 +190,26 @@ export async function validarImagen(clave: ClaveImagen, archivo: File): Promise<
     }
   }
   return null
+}
+
+// Valida y, para los banners, optimiza antes de validar el tope. Devuelve el archivo a usar o el motivo del rechazo.
+export async function prepararImagenTienda(clave: ClaveImagen, archivo: File): Promise<{ archivo: File } | { error: string }> {
+  const lado = LADO_MAXIMO_BANNER_PX[clave]
+  if (lado === undefined) {
+    const motivo = await validarImagen(clave, archivo)
+    return motivo ? { error: motivo } : { archivo }
+  }
+  const reglas = REGLAS_IMAGEN[clave]
+  if (!(archivo.type in reglas.tipos)) return { error: `«${archivo.name}» no es un formato admitido. Usá ${reglas.formatos}.` }
+  if (archivo.size > MAX_BYTES_ORIGEN_BANNER) return { error: `«${archivo.name}» supera el máximo de 15 MB.` }
+  let optimizado: File
+  try {
+    optimizado = await optimizarImagen(archivo, lado)
+  } catch {
+    return { error: `«${archivo.name}» tiene demasiados píxeles: usá una imagen de menor resolución.` }
+  }
+  if (optimizado.size > reglas.maxBytes) return { error: `«${archivo.name}» sigue superando ${reglas.maxEtiqueta} aun optimizada: usá una imagen más chica.` }
+  return { archivo: optimizado }
 }
 
 export function rutaArchivo(organizacionId: string, empresaId: string, clave: ClaveImagen, archivo: File): string {

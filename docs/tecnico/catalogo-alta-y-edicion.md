@@ -10,6 +10,9 @@ sources:
   - supabase/migrations/20261017120600_catalogo_cambiar_estado.sql
   - apps/web/src/lib/productoImagenes.ts
   - apps/web/src/lib/optimizarImagen.ts
+  - apps/web/src/pages/cuenta/perfil.tsx
+  - apps/web/src/pages/organizacion/edit.tsx
+  - apps/web/src/lib/tiendaIdentidad.ts
   - apps/web/src/components/productos/FormularioProducto.tsx
   - apps/web/src/components/productos/DialogoProducto.tsx
   - apps/web/src/pages/productos/create.tsx
@@ -86,7 +89,23 @@ Antes de decodificar se lee el encabezado (PNG, JPEG, WebP) y se rechaza lo que 
 demasiados píxeles»), para que una imagen muy comprimida pero enorme no tumbe la pestaña; si el encabezado no se puede
 leer se sigue con la degradación segura. Mientras se optimiza se ve «Optimizando imágenes…», se deshabilitan «Agregar
 imágenes» y «Quitar» y el formulario no guarda hasta que termina; el resultado se aplica sobre el estado actual (el
-tope de 4 se recalcula al aplicarlo). Las imágenes ya subidas no se recomprimen; la importación por planilla/ZIP y los demás buckets quedan fuera.
+tope de 4 se recalcula al aplicarlo). Las imágenes ya subidas no se recomprimen y la importación por planilla/ZIP queda fuera. Otras subidas: ver «Optimización en otras subidas» más abajo.
+
+### Optimización en otras subidas
+
+`optimizarImagen(archivo, ladoMaximo = 1600)` acepta el lado largo según el uso y solo toca JPG, PNG y WebP (SVG, ICO y
+cualquier otro tipo se devuelven sin cambios). Cada subida se revisó contra su contrato (bucket, tipos, tope, ruta);
+en todas se optimiza primero y el tope existente se valida sobre el resultado, con degradación segura y control bloqueado
+mientras se optimiza:
+
+| Subida | Decisión | Parámetros y motivo |
+|---|---|---|
+| Producto | Optimiza (sin cambios) | 1600 px, WebP; tope 2 MB sobre el resultado |
+| Foto de perfil (`fotos-perfil`) | Optimiza | 512 px, WebP; origen 15 MB; tope 2 MiB sobre el resultado. Ruta fija sin extensión y bucket con jpeg/png/webp: el tipo de salida no rompe nada |
+| Logo de la organización (`logos-organizacion`) | Optimiza | 1024 px, WebP; origen 15 MB; tope 1 MB sobre el resultado. El bucket admite webp y la extensión de la ruta sale del tipo de salida |
+| Banner y banner móvil de la tienda (`tienda-identidad`) | Optimiza | 1920 px y 1200 px, WebP; origen 15 MB; tope 3 MB sobre el resultado. Las medidas 1440×440 y 390×300 son sugeridas, no exactas, y la ruta toma la extensión del tipo (`webp` ya admitido) |
+| Logo de la tienda (`tienda-identidad`) | NO se optimiza | Admite solo PNG o SVG y lo leen el PDF de comprobantes (`workers/comprobantes-pdf`, que no decodifica WebP) y la imagen para redes (`og:image`); recodificarlo a WebP los rompería, y mantener PNG sin cambiar el contrato no ahorra de forma garantizada. Ya tiene tope de 1 MB |
+| Favicon | No existe subida | La web no sube favicon; si se agrega, no se redimensiona (tamaños exactos) ni se convierte (ICO/SVG) |
 
 ## Actividad
 

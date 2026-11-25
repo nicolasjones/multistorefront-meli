@@ -79,7 +79,12 @@ export function dimensionesOptimizadas(ancho: number, alto: number, lado = LADO_
   return { ancho: Math.max(1, Math.round(ancho * escala)), alto: Math.max(1, Math.round(alto * escala)) }
 }
 
-export async function optimizarImagen(archivo: File): Promise<File> {
+// Solo se tocan JPG, PNG y WebP: un SVG, un ICO o cualquier otro tipo se devuelve sin cambios.
+const TIPOS_OPTIMIZABLES: readonly string[] = ['image/jpeg', 'image/png', 'image/webp']
+
+// `ladoMaximo` es el lado largo final según el uso (por defecto 1600, el de las fotos de producto).
+export async function optimizarImagen(archivo: File, ladoMaximo = LADO_MAXIMO_PX): Promise<File> {
+  if (!TIPOS_OPTIMIZABLES.includes(archivo.type)) return archivo
   if (typeof createImageBitmap !== 'function') return archivo
   try {
     const dimensiones = dimensionesDeEncabezado(new Uint8Array(await archivo.slice(0, BYTES_ENCABEZADO).arrayBuffer()))
@@ -91,7 +96,7 @@ export async function optimizarImagen(archivo: File): Promise<File> {
   let bitmap: ImageBitmap | null = null
   try {
     bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' })
-    const { ancho, alto } = dimensionesOptimizadas(bitmap.width, bitmap.height)
+    const { ancho, alto } = dimensionesOptimizadas(bitmap.width, bitmap.height, ladoMaximo)
     const lienzo = crearLienzo(ancho, alto)
     const contexto = lienzo?.getContext('2d') as { drawImage: (...args: unknown[]) => void } | null | undefined
     if (!lienzo || !contexto) return archivo

@@ -132,6 +132,8 @@ function FormularioIdentidad({
   const [campos, setCampos] = useState<Campos>(camposDe(inicial))
   const [imagenes, setImagenes] = useState<Imagenes>(imagenesDe(inicial))
   const [guardando, setGuardando] = useState(false)
+  // Imágenes en optimización: mientras haya alguna no se guarda ni se descarta (el guardado la dejaría afuera).
+  const [optimizando, setOptimizando] = useState(false)
   const [errorGuardar, setErrorGuardar] = useState<string | null>(null)
   const [exito, setExito] = useState(false)
   const enCurso = useRef(false)
@@ -162,6 +164,12 @@ function FormularioIdentidad({
     setExito(false)
     setErrorGuardar(null)
   }
+  // Forma funcional: tras optimizar se parte del estado ACTUAL, no del capturado antes de esperar.
+  const elegirImagen = (clave: ClaveImagen, archivo: File) => {
+    setImagenes((actual) => ({ ...actual, [clave]: { ruta: actual[clave].ruta, archivo } }))
+    setExito(false)
+    setErrorGuardar(null)
+  }
   const cambiarImagen = (clave: ClaveImagen, estado: EstadoImagen) => {
     setImagenes((actual) => ({ ...actual, [clave]: estado }))
     setExito(false)
@@ -176,7 +184,7 @@ function FormularioIdentidad({
   }
 
   const guardar = useCallback(async () => {
-    if (enCurso.current) return
+    if (enCurso.current || optimizando) return
     if (!COLORES.every(({ clave }) => esColorValido(campos[clave]))) {
       setErrorGuardar('Revisá los colores marcados: usá el formato #RRGGBB.')
       return
@@ -246,13 +254,13 @@ function FormularioIdentidad({
       enCurso.current = false
       setGuardando(false)
     }
-  }, [campos, imagenes, guardado, empresaId, organizacionId])
+  }, [campos, imagenes, guardado, empresaId, organizacionId, optimizando])
 
   return (
     <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 360px' }, alignItems: 'start' }}>
       <Stack spacing={2} sx={{ minWidth: 0 }}>
         <Tarjeta titulo="Logo">
-          <ImagenTienda clave="logo" urlLocal={urlLocalLogo} empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => cambiarImagen('logo', { ruta: imagenes.logo.ruta, archivo })} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
+          <ImagenTienda clave="logo" urlLocal={urlLocalLogo} empresaNombre={empresaNombre} estado={imagenes.logo} onElegir={(archivo) => elegirImagen('logo', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('logo', { ruta: null, archivo: null })} />
         </Tarjeta>
         <Tarjeta titulo="Colores">
           <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' } }}>
@@ -282,8 +290,8 @@ function FormularioIdentidad({
         </Tarjeta>
         <Tarjeta titulo="Banner e imágenes principales">
           <Stack spacing={2.5}>
-            <ImagenTienda clave="banner" urlLocal={urlLocalBanner} empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => cambiarImagen('banner', { ruta: imagenes.banner.ruta, archivo })} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
-            <ImagenTienda clave="bannerMovil" empresaNombre={empresaNombre} estado={imagenes.bannerMovil} onElegir={(archivo) => cambiarImagen('bannerMovil', { ruta: imagenes.bannerMovil.ruta, archivo })} onQuitar={() => cambiarImagen('bannerMovil', { ruta: null, archivo: null })} />
+            <ImagenTienda clave="banner" urlLocal={urlLocalBanner} empresaNombre={empresaNombre} estado={imagenes.banner} onElegir={(archivo) => elegirImagen('banner', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('banner', { ruta: null, archivo: null })} />
+            <ImagenTienda clave="bannerMovil" empresaNombre={empresaNombre} estado={imagenes.bannerMovil} onElegir={(archivo) => elegirImagen('bannerMovil', archivo)} onOptimizando={setOptimizando} onQuitar={() => cambiarImagen('bannerMovil', { ruta: null, archivo: null })} />
           </Stack>
         </Tarjeta>
       </Stack>
@@ -298,8 +306,8 @@ function FormularioIdentidad({
             {errorGuardar ? <Alert severity="error" role="alert">{errorGuardar}</Alert> : null}
             {exito && !hayCambios ? <Alert severity="success" role="status">Cambios guardados en el borrador. Publicalos desde Dominio y publicación.</Alert> : null}
             <Stack direction="row" spacing={1} justifyContent="flex-end">
-              <Button color="inherit" size="small" onClick={descartar} disabled={!hayCambios || guardando}>Descartar</Button>
-              <Button variant="contained" size="small" onClick={() => void guardar()} disabled={!hayCambios || guardando}>
+              <Button color="inherit" size="small" onClick={descartar} disabled={!hayCambios || guardando || optimizando}>Descartar</Button>
+              <Button variant="contained" size="small" onClick={() => void guardar()} disabled={!hayCambios || guardando || optimizando}>
                 {guardando ? 'Guardando…' : 'Guardar'}
               </Button>
             </Stack>

@@ -150,8 +150,24 @@ describe('Identidad visual · archivos (FR-021, FR-025, FR-026)', () => {
   it('un archivo demasiado grande se rechaza con el máximo y no cambia nada', async () => {
     await abrir()
     elegir('banner', archivo('b.png', 'image/png', 'x'.repeat(3 * 1024 * 1024 + 1)))
-    expect(await screen.findByText(/supera el máximo de 3 MB\. Se conserva la imagen actual\./)).toBeInTheDocument()
+    expect(await screen.findByText(/sigue superando 3 MB aun optimizada: usá una imagen más chica\. Se conserva la imagen actual\./)).toBeInTheDocument()
     expect(screen.queryByText('Hay cambios sin guardar.')).not.toBeInTheDocument()
+  })
+
+  it('mientras se optimiza un banner no se puede guardar ni descartar, y al terminar queda elegido', async () => {
+    let terminar: (b: unknown) => void = () => undefined
+    vi.stubGlobal('createImageBitmap', vi.fn().mockReturnValue(new Promise((resolver) => { terminar = resolver })))
+    try {
+      await abrir()
+      fireEvent.change(screen.getByLabelText('Acento'), { target: { value: '#112233' } })
+      elegir('banner', archivo('b.png', 'image/png'))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeDisabled())
+      expect(screen.getByRole('button', { name: 'Descartar' })).toBeDisabled()
+      terminar({ width: 100, height: 100, close: () => undefined })
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Guardar' })).toBeEnabled())
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('un SVG con script o eventos se rechaza (SC-005)', async () => {

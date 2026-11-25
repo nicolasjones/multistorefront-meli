@@ -43,7 +43,7 @@ En la pestaña **Identidad visual** hay cuatro bloques y, a la derecha, una **Vi
 ### Logo
 
 1. En el bloque **Logo** hacé clic en **Subir** (o **Reemplazar**, si ya hay uno).
-2. Elegí un archivo **PNG o SVG** de hasta 1 MB. Usá un logo con **colores que se vean sobre fondo blanco**: en el pie de la tienda se muestra con sus colores sobre un recuadro blanco redondeado (sirve con fondo transparente o sólido). Un logo blanco o muy claro no se vería en el pie. Se usa en el encabezado, el pie y las redes.
+2. Elegí un archivo **PNG o SVG** de hasta 1 MB (el logo no se recomprime: se sube tal cual). Usá un logo con **colores que se vean sobre fondo blanco**: en el pie de la tienda se muestra con sus colores sobre un recuadro blanco redondeado (sirve con fondo transparente o sólido). Un logo blanco o muy claro no se vería en el pie. Se usa en el encabezado, el pie y las redes.
 3. Con **Quitar** sacás el logo actual. Si la tienda no tiene logo, el encabezado y el pie muestran el nombre de la empresa en texto.
 
 ### Colores
@@ -60,8 +60,8 @@ En **Tipografía** elegís una letra para los **Títulos** y otra para el **Text
 
 ### Banner e imágenes principales
 
-- **Banner principal**: PNG, JPG o WebP, hasta 3 MB. Medidas sugeridas: 1440×440 píxeles.
-- **Banner móvil**: la versión para celulares. PNG, JPG o WebP, hasta 3 MB. Medidas sugeridas: 390×300 píxeles.
+- **Banner principal**: PNG, JPG o WebP, hasta 15 MB; se optimiza solo (WebP, lado largo de 1920 px) y el resultado no puede superar 3 MB. Medidas sugeridas: 1440×440 píxeles.
+- **Banner móvil**: la versión para celulares. PNG, JPG o WebP, hasta 15 MB; se optimiza solo (WebP, lado largo de 1200 px) y el resultado no puede superar 3 MB. Medidas sugeridas: 390×300 píxeles.
 
 ### Guardar
 
