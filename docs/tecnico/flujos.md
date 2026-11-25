@@ -599,7 +599,8 @@ stateDiagram-v2
   reabierta --> cerrada: cerrar_caja de nuevo (rehace el resumen)
   note right of cerrada
     Toda escritura sobre los cobros de ese día se rechaza
-    con 55000: el disparador cobros_comprobante_caja_cerrada.
+    con 55000: el disparador cobros_comprobante_caja_cerrada
+    (disparador de la épica MSF-193; todavía no está en el árbol principal).
   end note
 ```
 

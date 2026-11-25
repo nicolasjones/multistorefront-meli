@@ -185,11 +185,19 @@ describe('iniciar-sesion-oauth', () => {
   // conexión usa la clave anon con el JWT del usuario (RLS decide) y sólo el cliente admin usa la service-role.
   it('index.ts lee la conexión con anon + JWT del usuario, nunca con la service-role', () => {
     const fuente = readFileSync(new URL('./index.ts', import.meta.url), 'utf8')
-    const lectura = fuente.slice(fuente.indexOf('leerConexion:'), fuente.indexOf('config:'))
+    // Cada ancla debe existir (indexOf -1 haría que slice devuelva texto equivocado sin fallar).
+    const bloque = (desde: string, hasta: string) => {
+      const i = fuente.indexOf(desde)
+      assert.ok(i >= 0, `index.ts: falta el ancla «${desde}»`)
+      const j = fuente.indexOf(hasta, i + 1)
+      assert.ok(j > i, `index.ts: falta el ancla «${hasta}» después de «${desde}»`)
+      return fuente.slice(i, j)
+    }
+    const lectura = bloque('leerConexion:', 'config:')
     assert.match(lectura, /SUPABASE_ANON_KEY/)
     assert.match(lectura, /Authorization: `Bearer \$\{jwt\}`/)
     assert.doesNotMatch(lectura, /SERVICE_ROLE/)
-    const admin = fuente.slice(fuente.indexOf('crearAdmin:'), fuente.indexOf('leerConexion:'))
+    const admin = bloque('crearAdmin:', 'leerConexion:')
     assert.match(admin, /SUPABASE_SERVICE_ROLE_KEY/)
   })
 })
