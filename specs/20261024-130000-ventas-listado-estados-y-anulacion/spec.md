@@ -281,7 +281,7 @@ Prototipos: `VentasComprobantes.dc.html`, `VentasComprobante.dc.html`, `VentasPr
 | Columna final sin título (botón «Imprimir» por fila) | **FUERA DE ALCANCE** — impresión: MSF-213 |
 | Campo «Buscar por cliente o número» | FR-002, FR-005 |
 | Filtros Operador / Estado / Pago / Envío (chips «Filtro: valor») y opción «Todos» | FR-003, FR-005 |
-| Estado: opciones Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto | FR-003, FR-023 |
+| Estado: opciones Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto, Borrador, Anulada | FR-003, FR-023 |
 | Estado: opción «Entregado» | **FUERA DE ALCANCE** — MSF-135 (*Decisiones abiertas* 4) |
 | Botón «Limpiar filtros» | FR-005 |
 | Botón «Exportar» | FR-006, FR-010 |
