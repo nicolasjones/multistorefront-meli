@@ -174,7 +174,7 @@
     },
     {
       "id": "embedded-analytics-runtime",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "title": "Analítica embebida de Superset reproducible al recrear contenedores",
       "paths": [
         "infra/superset/compose.yaml",
@@ -182,6 +182,7 @@
         "infra/superset/configurar_embebido.py",
         "infra/superset/Dockerfile",
         "supabase/functions/emitir-acceso-reporte/index.ts",
+        "supabase/functions/emitir-acceso-reporte/handler.ts",
         "scripts/verificar-superset-embebido.mjs"
       ]
     },
@@ -268,13 +269,22 @@
     },
     {
       "id": "document-rag-mechanism",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "title": "Búsqueda documental genérica con IA (RAG)",
       "paths": [
         "supabase/migrations/20261005000000_rag_busqueda_documental.sql",
         "supabase/tests/database/rag_busqueda_documental.test.sql",
         "supabase/functions/indexar-documento/index.ts",
+        "supabase/functions/indexar-documento/handler.ts",
+        "supabase/functions/indexar-documento/consultas.ts",
+        "supabase/functions/indexar-documento/fragmentos.ts",
+        "supabase/functions/indexar-documento/reglas.ts",
         "supabase/functions/preguntar-documentos/index.ts",
+        "supabase/functions/preguntar-documentos/contexto.ts",
+        "supabase/functions/_shared/ia/",
+        "supabase/functions/_shared/fetch-ia.ts",
+        "supabase/functions/_shared/acceso-ia.ts",
+        "supabase/functions/_shared/limite-memoria.ts",
         "supabase/functions/_shared/embeddings.ts",
         "apps/web/src/pages/ia/documentos.tsx"
       ]

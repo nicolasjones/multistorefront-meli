@@ -532,7 +532,7 @@ Sin grant a `authenticated`: `private.caja_cerrada`, `private.candado_caja`, `pr
 `private.hoy_caja`, `private.bloquear_cobro_caja_cerrada`, `private.exigir_admin_descuento_cliente` y
 `private.registrar_actividad_cliente_descuento`.
 
-El **disparador** `cobros_comprobante_caja_cerrada` (disparador de la épica MSF-193; todavía no está en el árbol principal) (`before insert or update` sobre
+El **disparador** `cobros_comprobante_caja_cerrada` (disparador de la épica MSF-193; todavía no está en el árbol principal; `before insert or update` sobre
 `dominio.cobros_comprobante`) bloquea toda escritura de los cobros de un día cerrado con `55000`
 («La caja de ese día está cerrada; reabrila para registrar o modificar cobros»), venga de la RPC que
 venga: `registrar_cobro`, la conciliación y los contrarreembolsos.

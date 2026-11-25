@@ -3026,7 +3026,7 @@ cada una y consolidada en
 | `dominio.cierres_caja_detalle` | **nueva** | Resumen del cierre por forma de pago y cuenta de cobro (`cuenta_cobro_id` nula para el efectivo). FK compuestas contra el cierre, la forma de pago y la cuenta. RLS de solo lectura; sin escritura directa. |
 | `dominio.clientes` | **alterada** | Gana `descuento numeric(5,2)` (porcentaje 0..100, `null` = sin descuento) con `check (descuento is null or (descuento >= 0 and descuento <= 100))` y `grant update` acotado a la columna. |
 | `dominio.comprobantes_venta_lineas` | **alterada** | Gana `descuento_pct numeric(5,2) not null default 0` con `check (descuento_pct >= 0 and descuento_pct <= 100)`: el descuento que se aplicó a esa línea (0 si el precio es manual). |
-| `dominio.cobros_comprobante` | existente | Sin cambio de columnas ni de políticas (MSF-195): recibe el disparador `cobros_comprobante_caja_cerrada`, que bloquea la escritura de los cobros de un día cerrado. |
+| `dominio.cobros_comprobante` | existente | Sin cambio de columnas ni de políticas (MSF-195): recibe el disparador `cobros_comprobante_caja_cerrada` (disparador de la épica MSF-193; todavía no está en el árbol principal), que bloquea la escritura de los cobros de un día cerrado. |
 | `dominio.comprobantes_venta` | existente | Sin cambio: la venta de mostrador reutiliza la factura `borrador` y el total los calcula la base. |
 | `dominio.productos` | existente | Sin cambio: de ahí sale el EAN-13 (`codigo_barras`, índice único `productos_org_codigo_barras_uidx`) que resuelve la venta de mostrador. |
 | `dominio.formas_pago`, `dominio.cuentas_cobro` | existentes | Sin cambio: son los catálogos que el cierre resume. |
