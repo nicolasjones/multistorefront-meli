@@ -2054,27 +2054,27 @@
     },
     "docs/producto/organizacion-y-empresas.md": {
       "title": "Tu organización y tus empresas",
-      "pageHash": "6f0318c25a65a49d8d6cb4c6d29bf3f076a2485777c987b76e6071f3ae6b99a9",
-      "sourceHash": "4da76688cd62f82dd8748763017a5416fe3b1cbb524ab9462268bb874f6cdd74",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "687480a4c76fcae276d99c9dae9cc53b6c3e5a54f4c2b265cdcad853aad9b6a6",
+      "sourceHash": "1d818656ee2701e0ae3841322e37d3736b38633291767704d3270338d288c244",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "apps/web/src/pages/empresas",
         "apps/web/src/pages/organizacion",
         "apps/web/src/components/empresas/CampoDominioEmpresa.tsx"
       ],
       "owner": "producto",
-      "commit": "07a6ae4a"
+      "commit": "2cec5c74e"
     },
     "docs/producto/perfil-propio.md": {
       "title": "Tu perfil: nombre, foto, contraseña y correo",
-      "pageHash": "4e837309273fdd31c8c90047bfdbddf17f86f2150d9572b7b26c00d76dc0f42b",
-      "sourceHash": "f0c6f0dc695138809dfb98e107c7cd477aee776344622a86a7b7d3aba6c5038d",
-      "sourceAt": "07a6ae4a",
+      "pageHash": "8c02e0dccfc5db10bb09fa8031527f7f9851b1a147267ce6695a3e61b94dee7a",
+      "sourceHash": "b1310516f8ac05c9db03512b51f5f07749db683211f731cc47d97f0d7f5f83af",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "apps/web/src/pages/cuenta"
       ],
       "owner": "producto",
-      "commit": "07a6ae4a"
+      "commit": "2cec5c74e"
     },
     "docs/producto/precios-dolar.md": {
       "title": "Cargar la cotización del dólar",
@@ -2367,12 +2367,12 @@
     },
     "docs/producto/tienda-dominio-e-identidad.md": {
       "title": "Identidad, textos y dirección de la tienda",
-      "pageHash": "c0b0417d2186ba35492f194f4922f32781ba16e986a4bc15df50afcb08235fca",
+      "pageHash": "28e455ac1ab0bccc46e9378c2c7fac5f1571d951ba7f3e9212af16d4f096d170",
       "sourceHash": "",
       "sourceAt": null,
       "sources": [],
       "owner": "producto",
-      "commit": "2a78d610"
+      "commit": "2cec5c74e"
     },
     "docs/producto/tienda-dominio-y-publicacion.md": {
       "title": "Dominio, publicación y versiones de la tienda",
@@ -3586,9 +3586,9 @@
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
-      "pageHash": "0ee508824135c40bcfc3eeb37c6909510998d8734c732bfc1306cb042e0497fc",
-      "sourceHash": "bab24ef8954910e6c06b56f21e83d862693be17e3eb571d23a67d9683d37626b",
-      "sourceAt": "e55825f7",
+      "pageHash": "37ad9368806df5a0f3a86d9ff2f44a22f6799be00abdc80c277dc5f858f3e971",
+      "sourceHash": "394db47898f752b9faa74a0911a02a1c3b58ea95ad7111ae861cdc9280fe8e96",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "specs/20261014-140000-administracion-de-usuarios-y-organizacion",
         "supabase/migrations/20261014160000_organizacion_datos_y_configuracion.sql",
@@ -3602,7 +3602,7 @@
         "apps/web/src/pages/usuarios/list.test.tsx"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7"
+      "commit": "2cec5c74e"
     },
     "docs/tecnico/adr.md": {
       "title": "Decisiones de arquitectura (ADR)",
@@ -3741,9 +3741,9 @@
     },
     "docs/tecnico/catalogo-alta-y-edicion.md": {
       "title": "Catálogo: alta y edición (MSF-456), construcción interna",
-      "pageHash": "04c46e12f354a0ff86637780102269ee11bac68f136749fd75180ab308be7169",
-      "sourceHash": "d9c15c2fb5c19d88a516334dbbd5a16a7507668f7662329dc9b9d988c030f707",
-      "sourceAt": "bf709ac16",
+      "pageHash": "57b179e52e8856c60cd1011de29c30ad121d22d80747d9c0d48f6f8d55ee8463",
+      "sourceHash": "83b8cc13e56cff01de17275dd199b347c55bfde59eaaa80cc57be5c4df0175b8",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "specs/20261017-120000-catalogo-alta-y-edicion",
         "supabase/migrations/20261017120100_catalogo_productos_y_costos.sql",
@@ -3754,13 +3754,16 @@
         "supabase/migrations/20261017120600_catalogo_cambiar_estado.sql",
         "apps/web/src/lib/productoImagenes.ts",
         "apps/web/src/lib/optimizarImagen.ts",
+        "apps/web/src/pages/cuenta/perfil.tsx",
+        "apps/web/src/pages/organizacion/edit.tsx",
+        "apps/web/src/lib/tiendaIdentidad.ts",
         "apps/web/src/components/productos/FormularioProducto.tsx",
         "apps/web/src/components/productos/DialogoProducto.tsx",
         "apps/web/src/pages/productos/create.tsx",
         "apps/web/src/pages/productos/edit.tsx"
       ],
       "owner": "tecnico",
-      "commit": "bf709ac16"
+      "commit": "2cec5c74e"
     },
     "docs/tecnico/catalogo-compatibilidad-y-planillas.md": {
       "title": "Catálogo: compatibilidad y planillas — filtro, importación y exportación (MSF-202)",
@@ -4598,9 +4601,9 @@
     },
     "docs/tecnico/perfil-y-permisos.md": {
       "title": "Perfil y permisos avanzados (MSF-148)",
-      "pageHash": "fe8421a0bcab80ff6079265c46cba5fea83addc1ad0d13ec1948b4b36f5a615d",
-      "sourceHash": "992ed0568080b6bae5f7b6646b6247ca7281edffe9cb7fe0ad4d9845f06f16dc",
-      "sourceAt": "e55825f7e",
+      "pageHash": "3267acbe024c53261a886af733a776c62ade9d16365c2f53492377fef09d3c01",
+      "sourceHash": "9cada90886ae5f74039199589337e13888b50eb5424c436019c7381f81afa53f",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "specs/20261016-130000-perfil-y-permisos-avanzados",
         "apps/web/src/pages/cuenta/perfil.tsx",
@@ -4618,7 +4621,7 @@
         "scripts/verificar-salida-correo.mjs"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7e"
+      "commit": "2cec5c74e"
     },
     "docs/tecnico/permisos-por-empresa.md": {
       "title": "Permisos por empresa: construcción interna (MSF-121)",
@@ -5464,9 +5467,9 @@
     },
     "docs/tecnico/tienda-dominio-e-identidad.md": {
       "title": "Tienda online: dominio, identidad y catálogo visible (MSF-147)",
-      "pageHash": "9bf4438cc75f583553863bb7f4ebdc1aba601b5d149371e1126ea7959f20a44b",
-      "sourceHash": "7219fe5f91cbf7e7c955d7ec25c6bc57c449fd3a7e812a8d054d1c4e5daf5fbe",
-      "sourceAt": "4a4fbf166",
+      "pageHash": "579ad6598323590d0c3b7a59824b677e12ee91dcb1243e057dd01546c8fa0639",
+      "sourceHash": "c8f92e5bcdba1288f0d614fc6dff7facc07d57992cf0b0c59c1220ea3cc47d54",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "apps/web/src/main.tsx",
         "apps/web/src/lib/tienda.ts",
@@ -5497,7 +5500,7 @@
         "supabase/migrations/20270303400000_tienda_categorias_imagen.sql"
       ],
       "owner": "tecnico",
-      "commit": "4a4fbf166"
+      "commit": "2cec5c74e"
     },
     "docs/tecnico/tienda-dominio-y-publicacion.md": {
       "title": "Tienda online: dominio, publicación y versiones (MSF-133)",
@@ -6152,9 +6155,9 @@
     },
     "docs/tiendas-online.md": {
       "title": "Tiendas online: dominio e identidad",
-      "pageHash": "040d2fa1a13dcb1ba88ae494ea151b52b35b15e0ae9af92917e1a65777f5bfa9",
-      "sourceHash": "ee4fa6a92ee8385187f14da74e6143ef124d5bd7f314b40adca40a4669401761",
-      "sourceAt": "0a889b887",
+      "pageHash": "30228a93cadd942c7b882fdaf9efcff7351feec477ef391f690d3967a242a6d7",
+      "sourceHash": "76e688f1979804c043d118d3c6e52da9f6820a704ba42e556dd5b13fd0d93d61",
+      "sourceAt": "2cec5c74e",
       "sources": [
         "specs/20261022-084830-tienda-dominio-e-identidad",
         "specs/20261023-120000-tienda-catalogo-y-ficha",
@@ -6166,7 +6169,7 @@
         "apps/web/e2e"
       ],
       "owner": "tecnico",
-      "commit": "0a889b887"
+      "commit": "2cec5c74e"
     },
     "docs/usuarios-y-empresas.md": {
       "title": "Usuarios y empresas (F-ROL-07)",
