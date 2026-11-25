@@ -211,8 +211,10 @@ export function mensajeErrorLista(error: unknown, porDefecto: string): string {
     case '22003':
       return MENSAJE_AJUSTE
     case '40001':
+    case 'PT412':
       return 'Otra persona modificó esta lista. Recargá la pantalla y probá de nuevo.'
     case 'P0002':
+    case 'PT404':
       return 'La lista o el cliente ya no existe.'
     case '23503':
     case '22023':

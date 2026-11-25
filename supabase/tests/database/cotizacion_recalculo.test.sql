@@ -72,7 +72,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select is(private.a_pesos(20, 'USD', '11111111-1111-1111-1111-111111111111'), 20000::numeric, 'a_pesos sin aplicada: usa la cotización inicial');
 select is(private.a_pesos(1000, 'ARS', '11111111-1111-1111-1111-111111111111'), 1000::numeric, 'a_pesos: los pesos no se convierten');
-select throws_ok($$select public.previsualizar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'sin pendiente no hay vista previa');
+select throws_ok($$select public.previsualizar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'sin pendiente no hay vista previa');
 select throws_ok($$select public.confirmar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'sin pendiente no se confirma');
 
 -- ============================================================================
@@ -162,7 +162,7 @@ update dominio.cotizacion_pendiente
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
 select throws_ok($$select public.confirmar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'una pendiente vencida no se confirma');
-select throws_ok($$select public.previsualizar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'una pendiente vencida no tiene vista previa');
+select throws_ok($$select public.previsualizar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'una pendiente vencida no tiene vista previa');
 
 select lives_ok($$select public.cargar_cotizacion(1300)$$, 'cargar 1300');
 select lives_ok($$select public.descartar_cotizacion()$$, 'Cancelar descarta la pendiente');
@@ -229,7 +229,7 @@ select throws_ok($$select public.descartar_cotizacion()$$, '42501', null, 'ningu
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 
-select throws_ok($$select public.previsualizar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'org 2: no ve la pendiente de la org 1');
+select throws_ok($$select public.previsualizar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'org 2: no ve la pendiente de la org 1');
 select lives_ok($$select public.cargar_cotizacion(505)$$, 'org 2: cargar 505 (justo +1 % sobre 500)');
 select is((select (public.previsualizar_cotizacion() ->> 'recalcula')::boolean), true, 'justo 1 % recalcula');
 select is((select jsonb_array_length(public.previsualizar_cotizacion() -> 'muestra')), 1, 'org 2: la muestra solo trae sus productos');

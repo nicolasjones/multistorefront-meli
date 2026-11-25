@@ -3,6 +3,7 @@
 // código de barras (EAN-13), la regla de la primera variante y el bloqueo optimista; `v_producto_variantes` es el
 // contrato de lectura (sin precio: la variante hereda el del producto). Acá solo se arman filas, payload y mensajes.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 export type FilaVariante = {
   // Clave local estable de la fila (el id real no existe hasta guardar).
@@ -164,9 +165,9 @@ export function erroresPorFila(error: unknown, filas: readonly FilaVariante[]): 
 export function mensajeErrorVariantes(error: unknown): string {
   console.error('No pudimos guardar las variantes.', error)
   const e = error as ErrorRpc
-  if (e?.code === '40001') return e.message?.includes('stock') ? e.message : 'El producto fue modificado por otra persona. Recargá la página para ver los cambios.'
+  if (esCodigoDeConflicto(e?.code)) return e?.message?.includes('stock') ? e.message : 'El producto fue modificado por otra persona. Recargá la página para ver los cambios.'
   if (e?.code === '42501') return 'No tenés permiso para editar las variantes o su stock. Puede que tu rol haya cambiado: recargá la página.'
-  if (e?.code === 'P0002') return 'El producto ya no existe.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'El producto ya no existe.'
   if ((e?.code === '23505' || e?.code === '22023') && e.message) return e.message
   return 'No pudimos guardar las variantes. Probá de nuevo.'
 }

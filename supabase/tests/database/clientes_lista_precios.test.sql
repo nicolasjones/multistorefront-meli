@@ -165,13 +165,13 @@ select throws_ok(
   '22023', null, 'un cliente archivado no se asigna');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'una lista de otra organización da P0002');
+  'PT404', null, 'una lista de otra organización da PT404');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c2000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'un cliente de otra organización da P0002');
+  'PT404', null, 'un cliente de otra organización da PT404');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', '99999999-9999-9999-9999-999999999999')$$,
-  'P0002', null, 'una lista inexistente da P0002');
+  'PT404', null, 'una lista inexistente da PT404');
 
 -- ============================================================================
 -- Permisos (CA-CLI-21-11) y aislamiento
@@ -188,7 +188,7 @@ select throws_ok(
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.asignar_lista_precios_cliente('c1000000-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no asigna sobre clientes ajenos');
+  'PT404', null, 'otra organización no asigna sobre clientes ajenos');
 
 reset role;
 set local role anon;

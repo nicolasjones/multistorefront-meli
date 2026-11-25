@@ -3,6 +3,7 @@
 // 20270221100008) revalidan todo. Acá: la planilla CSV (plantilla y lectura, sobre `migracionCsv`), la
 // validación previa al viaje y las llamadas a las RPC con sus mensajes de error.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 import { generarCsv, type CsvLeido } from './migracionCsv'
 
 export const MAXIMO_FILAS_PLANILLA = 5000
@@ -121,7 +122,7 @@ export const MENSAJE_CONFLICTO = 'Un producto cambió desde la vista previa. No 
 const MENSAJE_GENERICO = 'No pudimos completar la operación. Probá de nuevo en unos minutos.'
 
 export function esConflicto(error: ErrorRpc): boolean {
-  return error?.code === '40001'
+  return esCodigoDeConflicto(error?.code)
 }
 
 // La base ya trae el texto en castellano en 42501, 22023, 54000 y 55000; el resto es genérico.
