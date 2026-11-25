@@ -54,13 +54,13 @@ Menú **Ventas → Comprobantes**. Muestra facturas y notas de crédito. Los pre
 
 - **Tienda**: por defecto se ven todas. Si elegís una tienda en la barra superior, se filtra por esa tienda. También podés elegirla con los botones de arriba de la lista.
 - **Buscar por cliente o número**: escribí parte del nombre o del número.
-- **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos».
+- **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos». El desplegable Estado incluye también Borrador y Anulada, para encontrar facturas abandonadas o dadas de baja. La captura siguiente es anterior y no los muestra: se rehace con `pnpm docs:capturas 20-ventas` cuando haya stack local con el dataset demo.
 - **Limpiar filtros**: aparece cuando hay algún filtro puesto y los saca todos.
 - Arriba de la tabla se ve cuántos comprobantes cumplen el filtro. La lista carga de a 12: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie.
 
-![Desplegable Estado abierto con las opciones Todos, Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto](img/ventas-listado-estados-y-anulacion/02-filtro-estado.png)
+![Desplegable Estado abierto (captura anterior a las opciones Borrador y Anulada)](img/ventas-listado-estados-y-anulacion/02-filtro-estado.png)
 
-*El desplegable «Estado» ofrece Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando e Incompleto. Para ver borradores o anuladas, buscalas por número o cliente.*
+*El desplegable «Estado» ofrece además Borrador y Anulada, que esta captura anterior todavía no muestra.*
 
 ![Listado filtrado por la búsqueda Ezequiel con los botones de tienda y el buscador señalados](img/ventas-listado-estados-y-anulacion/03-tienda-y-busqueda.png)
 

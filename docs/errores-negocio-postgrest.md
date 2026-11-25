@@ -131,6 +131,6 @@ la siguiente hasta juntar 20 elegibles (tope: 10 páginas de 50), corta si la pe
 tipeando, avisa «Hay más resultados: refiná la búsqueda» si se agota el tope con páginas pendientes y, si una página
 falla, muestra «No pudimos cargar los comprobantes.» con «Reintentar». Sin cambios en la base.
 
-Pendiente: el pedido de ofrecer **Borrador** y **Anulada** en el filtro Estado de Comprobantes y mostrar el estado de
-despacho en el listado cambia lo visible, y el prototipo (`VentasComprobantes.dc.html`) manda la UI: primero hay que
-actualizar el prototipo y su inventario.
+Hecho: el filtro Estado de Comprobantes ofrece **Borrador** y **Anulada**, tanto en la pantalla como en el prototipo
+(`VentasComprobantes.dc.html`) y su inventario. Pendiente: mostrar el estado de despacho en el listado, que cambia lo
+visible y exige actualizar primero el prototipo.

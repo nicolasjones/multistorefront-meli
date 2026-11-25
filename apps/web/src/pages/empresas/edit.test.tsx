@@ -414,10 +414,11 @@ describe('EmpresaEdit', () => {
     it('si el update lanza error de Supabase o una excepción de red, informa y ofrece reintentar', async () => {
       const destino = vi.fn()
       registrarDestinoActividad(destino)
-      mocks.escritura.mockResolvedValueOnce({ data: null, error: new Error('permiso denegado') })
+      mocks.escritura.mockResolvedValueOnce({ data: null, error: Object.assign(new Error('permiso denegado'), { code: '42501' }) })
       abrir()
       fireEvent.click(await screen.findByRole('button', { name: 'Pausar tienda' }))
-      expect(await screen.findByText('permiso denegado')).toBeInTheDocument()
+      expect(await screen.findByText(/No tenés permiso para esta acción/)).toBeInTheDocument()
+      expect(screen.queryByText('permiso denegado')).not.toBeInTheDocument()
 
       mocks.escritura.mockRejectedValueOnce('corte de red')
       fireEvent.click(screen.getByRole('button', { name: /reintentar/i }))
