@@ -64,7 +64,7 @@ agregarles el comentario.
 Para listarlas (y ver cuáles son destructivas):
 
 ```bash
-node scripts/inventariar-migraciones-sin-reversion.mjs        # tabla; --json para máquinas; --dir <carpeta>
+node scripts/inventariar-migraciones-sin-reversion.mjs        # (o pnpm db:inventariar:sin-reversion) tabla; --json para máquinas; --dir <carpeta>
 ```
 
 Medición sobre `origin/dokploy` al 2026-11-25: 28 de 812 migraciones sin reversión documentada, **0 destructivas**
