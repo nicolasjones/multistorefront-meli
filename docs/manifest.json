@@ -2238,9 +2238,9 @@
     },
     "docs/producto/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (MSF-232)",
-      "pageHash": "1e796cf5c2e69a0ead1e146ea92f1548bdbd400c3b35d5fe4ee4b8136a3c481e",
-      "sourceHash": "9294857c6d01680ebe1e3e341943ee23aaa52b00ab217d5b26393baeae59de06",
-      "sourceAt": "13a71003a",
+      "pageHash": "346fd544e7440075182e313dc2c54b42bfe28893092d4f433a040f7d07dde2d0",
+      "sourceHash": "0cb0a92d971bc9d9c7bebb7a5fd8905217796467c324965f3931477c75d1a481",
+      "sourceAt": "eef6fc0df",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "design/pantallas/ServicioReparacion.dc.html",
@@ -2262,7 +2262,7 @@
         "supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql"
       ],
       "owner": "producto",
-      "commit": "13a71003a"
+      "commit": "eef6fc0df"
     },
     "docs/producto/service-listado-items-impresion.md": {
       "title": "Service técnico: registrar y seguir las reparaciones",
@@ -5161,9 +5161,9 @@
     },
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
-      "pageHash": "237fc54f73af281861798928106e99ac4f5bc9d102c30e8c15d51eadf99ca0c2",
-      "sourceHash": "7f2f4a54eb5cd4fbb4100eb32a2d84a8c59875fbbc36c2aadd32b3653b51f4bb",
-      "sourceAt": "13a71003a",
+      "pageHash": "77ed7459f5a7dfe99c39404cb2b3b180bb387b6c38593d3e8abb05032d449c8d",
+      "sourceHash": "2246678aa66551b22e18b5e0eaa4aaa687de5a069a9ab1bf07278bead4f7ed02",
+      "sourceAt": "eef6fc0df",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
         "supabase/migrations/20270201200128_comprobantes_origen.sql",
@@ -5196,7 +5196,7 @@
         "apps/web/e2e/service-cobro-avisos.e2e.ts"
       ],
       "owner": "tecnico",
-      "commit": "13a71003a"
+      "commit": "eef6fc0df"
     },
     "docs/tecnico/service-listado-items-impresion.md": {
       "title": "Service técnico: listado, ítems e impresión (MSF-199)",
