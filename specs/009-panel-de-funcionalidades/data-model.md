@@ -112,9 +112,9 @@ Ver contratos completos en `contracts/gestion-funcionalidades.md`.
 | `tiene_feature_publica(p_feature_id text) returns boolean` | cualquier autenticado | wrapper delgado sobre `private.tiene_feature` — evita que el frontend duplique la resolución de "organización efectiva" (membresía directa vs. superadmin con organización activa) |
 
 Las tres primeras rechazan (`errcode = '42501'`) a quien no sea
-superadmin, antes de tocar ninguna fila (FR-010). `habilitar_feature` y
-`deshabilitar_feature` validan que `p_feature_id` y `p_organizacion_id`
-existan, rechazando (`errcode = 'P0002'`) si no.
+superadmin, antes de tocar ninguna fila (FR-010). `habilitar_feature` valida que `p_feature_id` y
+`p_organizacion_id` existan, rechazando (`errcode = 'PT404'`, antes `P0002`) si no; `deshabilitar_feature` es
+idempotente y no valida la existencia.
 
 ## RLS
 
