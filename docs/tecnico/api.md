@@ -182,7 +182,7 @@ stock](service-repuestos-y-stock.md).
 
 | RPC | Devuelve / hace | Seguridad |
 |---|---|---|
-| `public.depositos_para_repuesto(p_producto_id uuid)` | `jsonb` con los depósitos **activos** y, por cada uno, `cantidad`, `reservado` y `disponible`; el por defecto primero | `security definer`; exige `service_tecnico` en `lectura`/`edicion` (**no** Stock); `42501` sin permiso, `P0002` producto inexistente o ajeno |
+| `public.depositos_para_repuesto(p_producto_id uuid)` | `jsonb` con los depósitos **activos** y, por cada uno, `cantidad`, `reservado` y `disponible`; el por defecto primero | `security definer`; exige `service_tecnico` en `lectura`/`edicion` (**no** Stock); `42501` sin permiso, `PT404` (antes `P0002`) producto inexistente o ajeno |
 | `public.agregar_item_reparacion(p_reparacion_id, p_tipo, p_descripcion, p_producto_id, p_cantidad, p_precio, p_deposito_id uuid default null, p_dejar_pendiente boolean default false)` | Inserta el ítem, **descuenta del depósito elegido** y recalcula totales **en la misma transacción**; con `p_dejar_pendiente` y sin stock carga el ítem `pendiente` sin movimiento | `security definer`; exige `edicion`; `23514` «No hay stock suficiente» (sin ítem, movimiento ni cambio de totales), `22023` con campo en `hint` (por ejemplo `deposito_id`), `42501`, `P0002`, `55000`; **reemplaza** las firmas de 6 y 7 parámetros |
 | `public.quitar_item_reparacion(p_item_id)` | Si el ítem estaba `descontado`, **devuelve** las unidades al depósito original, lo borra y recalcula totales en la misma transacción | `security definer`; mismas reglas que agregar; `P0002` si el ítem ya no existe (idempotencia) |
 | `public.anular_reparacion(p_id uuid, p_motivo text, p_consumidos uuid[] default '{}')` | Anula con motivo y **devuelve** al depósito cada repuesto `descontado` no consumido (`devuelto`); los consumidos quedan `consumido` | `security definer`; exige `edicion`; `22023` hint `consumidos` si un id no es un repuesto `descontado` de esa reparación; **reemplaza** la firma de 2 parámetros |
@@ -238,7 +238,7 @@ Fuente: `supabase/migrations/20261018190001`–`20261018190700` (rama `epic/MSF-
 | `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista por `updated_at`; devuelve la fila | `security invoker`; `42501` sin permiso; conflicto de edición e inexistente/ajeno: ver [errores de negocio](../errores-negocio-postgrest.md) |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva; idempotente | `security invoker`; no existe borrado |
 | `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Filas con `numero`, `empresas` y `total_filas`; busca por razón social (sin mayúsculas ni tildes) o CUIT con/sin guiones; 25 por página, tope 200 | `security invoker` (RLS); `22023` estado inválido |
-| `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Lotes del listado filtrado para exportar (keyset); registra `proveedores.exportados` | `security definer`; exige la acción `exportar` en `proveedores` (`42501`); `54000` supera 50000 filas; `40001` cursor inexistente o ajeno; `22023` estado inválido |
+| `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Lotes del listado filtrado para exportar (keyset); registra `proveedores.exportados` | `security definer`; exige la acción `exportar` en `proveedores` (`42501`); `54000` supera 50000 filas; `PT412` (antes `40001`) cursor inexistente o ajeno; `22023` estado inválido |
 | `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` | Productos del proveedor (nombre, código del proveedor, estado) y `total_filas`; 10 por página, tope 100 | `security invoker`; exige `proveedores` y `productos`; `42501` si falta alguno |
 
 Además, `crear_producto` y `actualizar_producto` suman `p_proveedor_id` y `p_codigo_proveedor`
@@ -362,7 +362,7 @@ Fuente: `supabase/migrations/20261130100000_rentabilidad_umbral.sql` y
   `public.guardar_umbral_margen_bajo(p_umbral numeric, p_updated_at timestamptz default null) returns timestamptz`
   son `security invoker` con `set search_path = ''`, `revoke … from public, anon` y `grant execute … to
   authenticated`. Exigen `rentabilidad` ≥ lectura (leer) o edición (guardar); errores `42501` (sin permiso),
-  `23514` (fuera de rango: 0 < umbral ≤ 1, hasta 2 decimales en %) y `40001` (conflicto de edición). Guardar
+  `23514` (fuera de rango: 0 < umbral ≤ 1, hasta 2 decimales en %) y `PT412` (conflicto de edición, antes `40001`). Guardar
   el mismo valor es idempotente y no emite evento.
 - `public.rentabilidad_conteo_margen()` es `security definer` (excepción justificada: las vistas de
   `analitica` están cerradas a `authenticated`); valida organización y sección adentro y devuelve
@@ -894,7 +894,7 @@ completos, datos y prueba: [Auditoría avanzada y soporte](auditoria-y-soporte.m
 |---|---|---|
 | `public.obtener_detalle_actividad(p_id uuid)` | Evento con `valor_anterior`, `valor_nuevo` y `sensible`. | `security invoker`; `authenticated`; 0 filas sin permiso; `anon` no ejecuta |
 | `public.exportar_actividad(p_desde, p_hasta, p_empresa, p_actor, p_tipo, p_texto, p_corte, p_desplazamiento, p_limite)` | Todo el filtro por lotes con corte estable; tope de 50.000 filas. | `security definer` con `search_path = ''`, lectura acotada a la organización y nivel `edicion` + acción `exportar`; `42501` sin permiso |
-| `public.entrar_a_organizacion(org_id uuid, p_motivo text)` | **BREAKING**: reemplaza la versión de un argumento; exige motivo (≤ 500) y fija vencimiento a 4 h. | `security definer`; `42501` sin superadmin, `22023` sin motivo, `P0002` si la organización no existe |
+| `public.entrar_a_organizacion(org_id uuid, p_motivo text)` | **BREAKING**: reemplaza la versión de un argumento; exige motivo (≤ 500) y fija vencimiento a 4 h. | `security definer`; `42501` sin superadmin, `22023` sin motivo, `PT404` (antes `P0002`) si la organización no existe |
 | `public.salir_de_organizacion()` | Cierra el acceso y registra `soporte.salida` o `soporte.vencido`. | `security definer`; `42501` sin superadmin |
 | `private.registrar_cambio_actividad(...)` / `private.insertar_cambio_actividad(...)` | Alta de eventos con antes/después; los tipos sensibles exigen ambos valores. | Solo internas; `22023` sin valores o > 8 KB; no las ejecutan `authenticated` ni `anon` |
 | `private.depurar_registro_actividad(p_hasta)` | Retención de 24 meses, idempotente y con evento `sistema.depurada`. | Solo `workers_orquestacion` y `kestra_orquestacion` |

@@ -47,7 +47,7 @@ limitado a una tienda. La matriz editable de roles es de MSF-125 y no se adminis
    membresías (Administrador) de la organización activa. **Reemplazo atómico** de las filas de
    `public.usuarios_empresas` del usuario (`[{"empresa_id": uuid, "rol_id": text}]`); si algo falla no
    cambia nada. Errores: `42501` sin permiso o empresa de otra organización; `22023` formato, rol
-   (`administrador`/`miembro` no valen por empresa), empresa repetida o destino Administrador; `P0002`
+   (`administrador`/`miembro` no valen por empresa), empresa repetida o destino Administrador; `PT404` (antes `P0002`)
    usuario fuera de la organización. Si el usuario no tiene empresa activa válida, la primera (por
    nombre) queda como activa. Quitar todas devuelve al usuario a su rol de organización. Registra
    `usuario.empresas_asignadas` (`docs/actividad.md`).

@@ -255,7 +255,7 @@ En la ficha de un producto, cualquier visitante ve «4,5 de 5 · 12 opiniones» 
 ### Moderación (US1)
 
 - **RF-OPI-13**: `public.listar_opiniones(estado, empresa_id, desde_creada, desde_id, limite)` (solo Administrador) devuelve por tandas las opiniones de la organización (o de una tienda) con tienda, nombre completo del cliente, producto, puntuación, texto, estado, motivo y `actualizada_en`, más los **contadores** Pendientes / Aceptadas / Rechazadas del mismo ámbito.
-- **RF-OPI-14**: `public.moderar_opinion(id, decision, motivo, actualizada_en_esperada)` (solo Administrador): `aceptar` o `rechazar`; idempotente (repetir la misma decisión responde `ok` sin duplicar el evento); bloqueo optimista (`40001` / `conflicto`); registra `opinion.aceptada` u `opinion.rechazada` en Actividad con producto y puntuación, **sin el texto**. Con la bandera apagada solo se permite `rechazar`.
+- **RF-OPI-14**: `public.moderar_opinion(id, decision, motivo, actualizada_en_esperada)` (solo Administrador): `aceptar` o `rechazar`; idempotente (repetir la misma decisión responde `ok` sin duplicar el evento); bloqueo optimista (`PT412`, antes `40001` / `conflicto`); registra `opinion.aceptada` u `opinion.rechazada` en Actividad con producto y puntuación, **sin el texto**. Con la bandera apagada solo se permite `rechazar`.
 - **RF-OPI-15**: Pantalla **Opiniones** del panel, según el prototipo: título, aviso «Las opiniones nuevas quedan pendientes hasta que las aceptes o rechazes. Solo las aceptadas se muestran en la tienda.», filtro de tienda, tres contadores, filtros Pendientes / Aceptadas / Rechazadas / Todas (por defecto Pendientes), lista con tienda, nombre, fecha, estado, «N sobre 5», texto y «Sobre: producto», y botones **Aceptar** / **Rechazar** (cada uno oculto cuando ya es el estado actual). Carga infinita con «Cargar más».
 
 ### Seguridad y datos (transversal)
@@ -303,7 +303,7 @@ Las pruebas de base de datos corren en el job `database` del CI (`pnpm test:db`,
 | RF-OPI-9, 10 | pgTAP `opiniones_lectura.test.sql`: lista blanca **por claves**, solo aceptadas, promedio/cantidad, cursor, producto oculto, aislamiento entre tiendas, `anon` puede leer y no escribir |
 | RF-OPI-11 | Vitest `FormularioOpinion.test.tsx`, `MisOpiniones.test.tsx` (estados vacío, carga, error con reintento, axe a 320/768/1440 px, estrellas con teclado) |
 | RF-OPI-12 | pgTAP `opiniones_bandera.test.sql` (apagada: `sin_acceso`, sin cambios en la tabla) y Vitest de paridad de la ficha |
-| RF-OPI-13, 14 | pgTAP `opiniones_moderacion.test.sql`: solo Administrador (`42501`), contadores, `40001`/`conflicto`, idempotencia, evento de Actividad sin texto, apagada solo rechaza |
+| RF-OPI-13, 14 | pgTAP `opiniones_moderacion.test.sql`: solo Administrador (`42501`), contadores, `PT412`/`conflicto`, idempotencia, evento de Actividad sin texto, apagada solo rechaza |
 | RF-OPI-15 | Vitest `pages/opiniones/list.test.tsx` (contadores, filtros, botones según estado, diálogo de motivo, carga infinita, axe) |
 | RF-OPI-16 | pgTAP `privilegios_anon_endurecidos` y `opiniones_privilegios.test.sql` (`has_function_privilege` por rol de cada RPC) |
 | RF-OPI-17 | pgTAP `opiniones_limites.test.sql` (11.ª llamada en el minuto → `limite`; «sin-ip» compartido; inválidas también cuentan) |
@@ -384,7 +384,7 @@ sequenceDiagram
     A->>P: pulsa Aceptar o Rechazar, con motivo opcional (RF-OPI-15, D5)
     P->>R: moderar_opinion(id, decision, motivo, actualizada_en_esperada) (RF-OPI-14)
     alt la fila cambio desde que se abrio la pantalla
-        R-->>P: conflicto 40001, la opinion cambio, recarga (US1 caso 4)
+        R-->>P: conflicto PT412, la opinion cambio, recarga (US1 caso 4)
     else la fila sigue igual
         R->>D: actualiza el estado y limpia motivo y moderacion (RF-OPI-14)
         R->>X: opinion.aceptada u opinion.rechazada, sin el texto (RF-OPI-14, D13)
@@ -449,7 +449,7 @@ Estrellas en el catálogo, distribución por estrellas y datos `schema.org` (SEO
 | 1 | Respuesta del comercio | — | **FUERA DE ALCANCE**: el ticket lo pedía, la decisión solo cubre moderar |
 | 1 | Moderación automática | — | **FUERA DE ALCANCE** |
 | 2 | Filtro de empresa y de estado | RF-OPI-13, RF-OPI-15, CA-OPI-11 | La empresa activa manda (ver matriz) |
-| 2 | `moderar_opinion` con `actualizada_en` | RF-OPI-14, US1 caso 4 | Bloqueo optimista: `conflicto` / `40001` |
+| 2 | `moderar_opinion` con `actualizada_en` | RF-OPI-14, US1 caso 4 | Bloqueo optimista: `conflicto` / `PT412` |
 | 2 | Evento en Actividad | RF-OPI-14, D13 | `opinion.aceptada` / `opinion.rechazada`, sin el texto |
 | 2 | Aviso flotante «Opinión aceptada: ya se muestra en la tienda» | RF-OPI-15 | Texto literal del prototipo |
 | 2 | Aceptar con la bandera apagada | RF-OPI-14, D11 | `55000`; solo se puede rechazar |

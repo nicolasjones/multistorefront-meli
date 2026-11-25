@@ -38,7 +38,7 @@ public.entrar_a_organizacion(org_id uuid, p_motivo text): void   // reemplaza a 
 public.salir_de_organizacion(): void                              // firma igual; registra soporte.salida o soporte.vencido
 ```
 
-Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, está en blanco o supera 500, `P0002` si la organización no existe. Ambas RPC: `revoke … from public, anon` / `grant … to authenticated`.
+Errores: `42501` si no es superadmin (o es `anon`), `22023` si el motivo falta, está en blanco o supera 500, `PT404` (antes `P0002`) si la organización no existe. Ambas RPC: `revoke … from public, anon` / `grant … to authenticated`.
 
 ## Cómo se aplica la vigencia
 

@@ -145,7 +145,7 @@ authenticated`, salvo las de service-role. `search_path = ''`.
 | `exportar_clientes(..., p_con_cuenta_web default false)` | Mismo contrato de exportación | `security definer`; exige `exportar`; respeta el filtro «Con cuenta web» y el alcance por tienda. |
 
 Errores usados: `42501` sin edición/alcance o sin permiso de exportación; `P0002` cliente/empresa
-inexistente; `22023` estado, correo, dominio o habilitación inválidos; `23505` unicidad. La UI traduce a
+inexistente (`PT404`, antes `P0002`, cuando `cambiar_estado_cuenta_cliente` no encuentra la cuenta); `22023` estado, correo, dominio o habilitación inválidos; `23505` unicidad. La UI traduce a
 mensajes controlados; el texto de Postgres no se muestra.
 
 ### Actividad

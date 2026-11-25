@@ -114,7 +114,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.asignar_empresas_usuario('a2000000-0000-0000-0000-000000000001', '[]'::jsonb)$$,
-  'P0002', null, 'un usuario de otra organización no se toca'
+  'PT404', null, 'un usuario de otra organización no se toca'
 );
 reset role;
 select is(
@@ -139,7 +139,7 @@ set local role authenticated;
 select is((select count(*)::int from public.listar_empresas_usuarios()), 0, 'otra organización no ve estas asignaciones');
 select throws_ok(
   $$select public.asignar_empresas_usuario('a1000000-0000-0000-0000-000000000002', '[]'::jsonb)$$,
-  'P0002', null, 'otra organización no asigna a usuarios ajenos'
+  'PT404', null, 'otra organización no asigna a usuarios ajenos'
 );
 reset role;
 

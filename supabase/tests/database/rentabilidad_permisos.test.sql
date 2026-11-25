@@ -127,7 +127,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.rentabilidad_config), 0, 'otra organización no ve el umbral de la primera');
 select throws_ok(
   $$select public.guardar_umbral_margen_bajo(0.2, now())$$,
-  '40001', null, 'sin fila previa, mandar un updated_at es un conflicto'
+  'PT412', null, 'sin fila previa, mandar un updated_at es un conflicto'
 );
 reset role;
 
@@ -154,7 +154,7 @@ insert into t_ts select 'v2', public.guardar_umbral_margen_bajo(0.13, (select va
 select isnt((select val from t_ts where clave = 'v2'), (select val from t_ts where clave = 'v1'), 'un cambio real avanza updated_at');
 select throws_ok(
   $$select public.guardar_umbral_margen_bajo(0.14, (select val from t_ts where clave = 'v1'))$$,
-  '40001', null, 'guardar con un updated_at viejo se rechaza'
+  'PT412', null, 'guardar con un updated_at viejo se rechaza'
 );
 select is(public.leer_umbral_margen_bajo(), 0.13, 'el rechazo no cambió el valor');
 reset role;

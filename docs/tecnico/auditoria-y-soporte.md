@@ -199,7 +199,7 @@ La retención de **24 meses** es una **decisión confirmada** (Nicolás, 2026-11
   ejecuta Kestra cada 15 minutos) leen la tabla para distinguir salida de vencimiento. El flow `cierre-accesos-soporte` corre de a una ejecución por vez (`concurrency` límite 1, `CANCEL`) y, si falla, avisa por el mismo subflow `aviso-fallo-flujo`.
 - Contrato **BREAKING**: `public.entrar_a_organizacion(org_id uuid, p_motivo text)` reemplaza a la versión
   de un argumento; sin motivo (o en blanco o > 500) devuelve `22023`, sin ser superadmin `42501`, y si la
-  organización no existe `P0002`. `public.salir_de_organizacion()` conserva la firma.
+  organización no existe `PT404` (antes `P0002`). `public.salir_de_organizacion()` conserva la firma.
 - Cada ingreso, salida y vencimiento queda en `superadmin_entradas` (`accion` `entrada` / `salida`, con
   `motivo` en la entrada) y como evento `soporte.ingreso`, `soporte.salida` o `soporte.vencido` en el
   historial de la organización visitada, con la persona de soporte como actor. Todo en la misma

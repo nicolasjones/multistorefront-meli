@@ -59,7 +59,7 @@ vencimiento del reclamo quedan fuera del `grant select` por columna. El token en
 | `listar_destinatarios_correo_masivo`, `resumen_destinatarios_correo_masivo` | `public`, invoker, `authenticated` | Exigen **edición** en `clientes` (`42501` con lectura). Filtro común: `private.clientes_para_correo_masivo`. Resumen: `elegibles` / `sin_correo` / `no_aceptan`. |
 | `crear_campana_correo(p_clave, …)` | `public`, definer | Idempotente por clave; rechaza sin elegibles (`22023`, hint `sin_destinatarios`); actividad `campana_correo.crear`. |
 | `solicitar_prueba_correo_masivo` | `public`, definer | Máx. 5 por hora y persona; no cuenta contra el cupo. |
-| `listar_campanas_correo`, `detalle_campana_correo` | `public`, definer | Acceso `lectura`/`edicion`; devuelve totales y `baja`; nunca hashes; otra organización → `P0002`; página ≤ 100. |
+| `listar_campanas_correo`, `detalle_campana_correo` | `public`, definer | Acceso `lectura`/`edicion`; devuelve totales y `baja`; nunca hashes; otra organización → `PT404` (antes `P0002`) en `detalle_campana_correo`; página ≤ 100. |
 | `dar_de_baja_correo_masivo(p_token_hash)` | `public`, solo `service_role` | Apaga `acepta_correo_masivo`, pasa a `omitido` los pendientes, actividad `campana_correo.baja` solo la primera vez. Vive en `public` porque supabase-js solo llama esquemas expuestos. |
 | `private.reclamar_lote_correo_masivo`, `private.cerrar_envio_correo_masivo` | `private`, `kestra_orquestacion` | Ver flow. |
 

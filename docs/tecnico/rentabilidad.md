@@ -265,7 +265,7 @@ estado      = negativo si margen_pct < 0
 | RPC / función | Seguridad | Quién | Errores |
 |---|---|---|---|
 | `public.leer_umbral_margen_bajo()` | `security invoker` | `rentabilidad` ≥ lectura | `42501` sin la sección |
-| `public.guardar_umbral_margen_bajo(p_umbral, p_updated_at)` | `security invoker` | `rentabilidad` = `edicion` | `42501` sin permiso, `23514` fuera de rango, `40001` conflicto |
+| `public.guardar_umbral_margen_bajo(p_umbral, p_updated_at)` | `security invoker` | `rentabilidad` = `edicion` | `42501` sin permiso, `23514` fuera de rango, `PT412` conflicto (antes `40001`) |
 | `public.rentabilidad_conteo_margen()` | `security definer` (justificado) | `rentabilidad` ≥ lectura | `42501` sin la sección |
 | `public.resolver_organizacion_reporte(p_reporte_id)` | `security definer` | token de un reporte asignado | `null` → 403 en la Edge Function |
 | `emitir-acceso-reporte` | Edge Function | usuario autenticado | 403 sin token, 503 si Superset no responde |
@@ -275,7 +275,7 @@ estado      = negativo si margen_pct < 0
   `con_margen_bajo`, `con_margen_negativo` y `productos_con_margen` (el último distingue el estado vacío de
   «cero bajos»).
 - `guardar_umbral_margen_bajo` es idempotente: guardar el mismo valor devuelve el `updated_at` vigente sin
-  evento. El bloqueo optimista compara `p_updated_at` con la fila y falla con `40001` si otra persona la
+  evento. El bloqueo optimista compara `p_updated_at` con la fila y falla con `PT412` (antes `40001`) si otra persona la
   cambió.
 - El evento `rentabilidad.umbral_actualizado` lo escribe el trigger
   `20261130100100_rentabilidad_umbral_actividad.sql` con `private.insertar_actividad`; guarda actor y

@@ -93,7 +93,7 @@ set local role authenticated;
 
 select throws_ok(
   $$select public.vincular_identificador_externo('00000000-0000-0000-0000-000000000000', 'sistema-prueba', 'ext-001')$$,
-  'P0002',
+  'PT404',
   null,
   'vincular_identificador_externo rechaza un cliente que no existe'
 );

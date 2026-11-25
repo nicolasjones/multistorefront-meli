@@ -96,7 +96,7 @@ Los colores salen de la paleta `supersetColors` de Superset; los estados usan la
 - Por organización, en `dominio.rentabilidad_config` (fracción: `0,10` = 10 %). Sin fila rige **10 %**.
 - Lo cambia **solo quien tiene `edicion` en `rentabilidad`** (hoy el Administrador) desde el diálogo
   «Umbral de margen bajo» del Resumen: `guardar_umbral_margen_bajo` valida `0 < umbral ≤ 1` con hasta 2
-  decimales en %, usa bloqueo optimista por `updated_at` (`40001` si otra persona lo cambió) y deja el evento
+  decimales en %, usa bloqueo optimista por `updated_at` (`PT412`, antes `40001`, si otra persona lo cambió) y deja el evento
   `rentabilidad.umbral_actualizado` en Actividad.
 - Al guardar se recargan el tablero y el aviso.
 

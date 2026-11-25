@@ -1,7 +1,7 @@
 -- MSF-467 · Opiniones de productos, Fase 2 «Moderación» (T007). RF-OPI-13, RF-OPI-14, CA-OPI-7, CA-OPI-8, CA-OPI-9, CA-OPI-11, D10, D13.
 --   * Solo el Administrador lista y modera (otro rol, otra organización y anon: 42501 / sin execute).
 --   * Contadores del ámbito de la tienda, filtros de estado, cursor (creada_en, id) con desempate, nombre completo del cliente.
---   * Moderar: aceptar / rechazar con motivo, idempotencia sin evento duplicado, bloqueo optimista (40001), evento de Actividad sin texto.
+--   * Moderar: aceptar / rechazar con motivo, idempotencia sin evento duplicado, bloqueo optimista (PT412), evento de Actividad sin texto.
 --   * Con la bandera apagada solo se permite rechazar (aceptar -> 55000, también sobre una opinión ya aceptada: D11).
 --   * Decisión nula inválida; motivo sin saltos de línea, enlaces ni marcas ocultas; repetir «rechazar» no cambia el motivo.
 begin;
@@ -149,7 +149,7 @@ reset role;
 select is((select motivo_rechazo from dominio.opiniones_producto where id = '01000000-0000-0000-0000-000000000005'), null, 'aceptar limpia el motivo');
 select pg_temp.como('f4000000-0000-0000-0000-000000000003');
 -- Bloqueo optimista (CA-OPI-7)
-select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'aceptar', null, '2027-03-01 00:00+00')$$, '40001', 'conflicto', 'fecha vieja: conflicto');
+select throws_ok($$select public.moderar_opinion('01000000-0000-0000-0000-000000000004', 'aceptar', null, '2027-03-01 00:00+00')$$, 'PT412', 'conflicto', 'fecha vieja: conflicto');
 reset role;
 select is((select estado from dominio.opiniones_producto where id = '01000000-0000-0000-0000-000000000004'), 'pendiente', 'el conflicto no pisa la fila');
 select pg_temp.como('f4000000-0000-0000-0000-000000000003');

@@ -107,7 +107,7 @@ export async function listarCuentasWebDeCliente(clienteId: string): Promise<Cuen
 function mensajeDeErrorCuentaWeb(error: unknown): string {
   const codigo = (error as { code?: unknown } | null)?.code
   if (codigo === '42501') return 'No tenés permiso para gestionar cuentas web de esta tienda.'
-  if (codigo === 'P0002') return 'El cliente o la cuenta ya no existen.'
+  if (codigo === 'P0002' || codigo === 'PT404') return 'El cliente o la cuenta ya no existen.'
   if (codigo === '22023') return 'Los datos de la cuenta web no son válidos.'
   return 'No pudimos completar la operación.'
 }
