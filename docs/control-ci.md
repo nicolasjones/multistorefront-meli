@@ -195,6 +195,13 @@ archivo` sin pasos de código.
   suite muerta por señal se informa como «murió por SIGKILL», no como un exit genérico. `test:ci:scripts` (y `docs:wiki:check`) necesitan un `.git` real: no corren en un worktree montado sin gitdir. Un timeout inválido (no numérico, ≤ 0 o > 86400 s) termina con exit 2 y un mensaje claro. Cada suite corre en su propio grupo de procesos (`detached` = setsid; se guarda `pid > 1` antes de `kill(-pid)` porque `kill(-0)`/`kill(-1)` alcanzarían al propio runner o a todos los procesos) y al vencer el timeout se mata el grupo entero (shell, pnpm, node y nietos); un Ctrl-C o SIGTERM al runner no llega al grupo de la suite en curso (sigue hasta su timeout). La suite `ia:sincronizar-edge-functions` requiere un checkout git (usa `git`); el job
   `application` ya hace checkout completo. Ver «Decisiones pendientes del lote 26».
 
+### Acceso por ítem de menú (MSF-688, lote 58)
+
+`can()` de Refine corre por ítem de menú y acción; `lib/superadmin.ts` comparte una promesa por usuario (TTL corto, igual que
+los permisos por sección) para el usuario de Auth y para el resultado de superadmin, y la descarta con cualquier evento de
+`onAuthStateChange`. Regla: un error de la consulta a `superadmins` o a Auth deniega (nunca concede superadmin) y no se cachea,
+así un fallo transitorio no queda fijado. La organización activa no se cachea: cambia al entrar o salir de soporte.
+
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)
 
 - **`Validate` en `push` a `dokploy` (MSF-685).** Hoy no corre (`push: branches: [main, staging]`); la documentación lo afirmaba y
@@ -204,6 +211,7 @@ archivo` sin pasos de código.
   (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
   si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
   la API de rulesets). **Resuelto en el lote 36:** decisión de Nicolás = no encenderlo en cada push; corrida diaria (ver abajo, MSF-685).
+- **Suites baratas en `chequeos` (MSF-679, lote 58).** Paso `pnpm test:ci:suites-baratas`, que corre con `scripts/correr-suites.mjs` (todas, falla al final con resumen) las suites que existían y no entraban a ningún workflow: edge sin red ni base (`chat-ia-limites`, `protocolo`, `cotizacion-sugerida`, `enviar-resumen-semanal`, `recalcular-alertas-inicio`, `consultar-estado-reparacion`, `verificar-dominio-tienda`, `indexar-documento`, `compartido-ia`, `preguntar-documentos`), los validadores de flows de Kestra, `test:monitoreo`, `test:der`, el manifiesto e importaciones de docs y las de Python (`test:e2e:cobertura:epicas`, `test:superset:config`). Regla: una suite entra al CI solo si es determinista y no necesita servicios, docker ni credenciales; toda suite `test:*` nueva que cumpla eso se suma a ese script, no queda suelta. Quedan fuera, con motivo: `test:db` (Supabase local), los `*:e2e` y `test:acceso:e2e` (stack vivo), `test:superset:embebido` y `test:superset:aislamiento-tokens` (Superset y credenciales), `test:ia:aprovisionamiento` (docker) y `test:web`/`test:e2e` (ya corren con vitest y playwright en sus propios jobs).
 - **Tests que el CI sigue sin correr (MSF-679).** `test:ci:scripts` suma los de workers (`discover`, `scan`, `idempotency`,
   `audit`), el contrato estático de Kestra (`test:kestra:runtime`), el despachador programado y la frontera de outbox: son Node
   puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
@@ -223,7 +231,7 @@ archivo` sin pasos de código.
 - **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
   `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
   o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
-  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: queda como ítem aparte.
+  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: se atendió en el lote 58 (abajo).
 
 ## Cambios de CI de la auditoría MSF-647 (lote 36)
 
