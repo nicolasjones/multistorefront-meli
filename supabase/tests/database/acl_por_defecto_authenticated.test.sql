@@ -90,20 +90,20 @@ select ok(not has_function_privilege('anon', 'private.endurecer_acl_por_defecto(
   and not has_function_privilege('authenticated', 'private.endurecer_acl_por_defecto(name, text[], name)', 'EXECUTE')
   and not has_function_privilege('service_role', 'private.endurecer_acl_por_defecto(name, text[], name)', 'EXECUTE'),
   'la función no es ejecutable por anon, authenticated ni service_role');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['otro'])$$, '22023', null, 'la función rechaza esquema no admitido');
-select throws_ok($$select private.endurecer_acl_por_defecto('authenticator', array['public'])$$, '22023', null, 'la función rechaza rol authenticator no admitido');
-select throws_ok($$select private.endurecer_acl_por_defecto('service_role', array['public'])$$, '22023', null, 'la función rechaza rol service_role no admitido');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public'], 'anon')$$, '22023', null, 'la función rechaza destinatario anon no admitido');
-select throws_ok($$select private.endurecer_acl_por_defecto(null, array['public'])$$, '22023', null, 'la función rechaza rol NULL');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public'], null)$$, '22023', null, 'la función rechaza destinatario NULL');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', null)$$, '22023', null, 'la función rechaza esquemas NULL');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array[]::text[])$$, '22023', null, 'la función rechaza esquemas vacío');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public', null])$$, '22023', null, 'la función rechaza elemento NULL en esquemas');
-select throws_ok($$select private.endurecer_acl_por_defecto('POSTGRES', array['public'])$$, '22023', null, 'la función rechaza rol en mayúsculas');
-select throws_ok($$select private.endurecer_acl_por_defecto('"postgres"', array['public'])$$, '22023', null, 'la función rechaza rol entrecomillado');
-select throws_ok($$select private.endurecer_acl_por_defecto(' postgres', array['public'])$$, '22023', null, 'la función rechaza rol con espacio');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['PUBLIC'])$$, '22023', null, 'la función rechaza esquema en mayúsculas');
-select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array[' public'])$$, '22023', null, 'la función rechaza esquema con espacio');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['otro'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza esquema no admitido');
+select throws_ok($$select private.endurecer_acl_por_defecto('authenticator', array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza rol authenticator no admitido');
+select throws_ok($$select private.endurecer_acl_por_defecto('service_role', array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza rol service_role no admitido');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public'], 'anon')$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza destinatario anon no admitido');
+select throws_ok($$select private.endurecer_acl_por_defecto(null, array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquemas y destinatario son obligatorios y no pueden ser NULL ni vacíos', 'la función rechaza rol NULL');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public'], null)$$, '22023', 'endurecer_acl_por_defecto: rol, esquemas y destinatario son obligatorios y no pueden ser NULL ni vacíos', 'la función rechaza destinatario NULL');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', null)$$, '22023', 'endurecer_acl_por_defecto: rol, esquemas y destinatario son obligatorios y no pueden ser NULL ni vacíos', 'la función rechaza esquemas NULL');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array[]::text[])$$, '22023', 'endurecer_acl_por_defecto: rol, esquemas y destinatario son obligatorios y no pueden ser NULL ni vacíos', 'la función rechaza esquemas vacío');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['public', null])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza elemento NULL en esquemas');
+select throws_ok($$select private.endurecer_acl_por_defecto('POSTGRES', array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza rol en mayúsculas');
+select throws_ok($$select private.endurecer_acl_por_defecto('"postgres"', array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza rol entrecomillado');
+select throws_ok($$select private.endurecer_acl_por_defecto(' postgres', array['public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza rol con espacio');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['PUBLIC'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza esquema en mayúsculas');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array[' public'])$$, '22023', 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido', 'la función rechaza esquema con espacio');
 
 select * from finish();
 rollback;
