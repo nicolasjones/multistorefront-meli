@@ -237,7 +237,8 @@ Fuente: `supabase/migrations/20261018190001`–`20261018190700` (rama `epic/MSF-
 | `public.crear_proveedor(p_razon_social, p_cuit, p_persona_contacto, p_correo, p_telefono, p_direccion, p_observaciones)` | Alta con CUIT validado; devuelve la fila | `security invoker` (RLS); exige `edicion` en `proveedores`; `23505` CUIT repetido, `22023`/`23514` dato inválido |
 | `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista por `updated_at`; devuelve la fila | `security invoker`; `40001` conflicto, `P0002` inexistente/ajeno, `42501` sin permiso |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva; idempotente | `security invoker`; no existe borrado |
-| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano)` | Filas con `total_filas`; busca por razón social (sin mayúsculas ni tildes) o CUIT con/sin guiones; 25 por página, tope 200 | `security invoker` (RLS); `22023` estado inválido |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Filas con `numero`, `empresas` y `total_filas`; busca por razón social (sin mayúsculas ni tildes) o CUIT con/sin guiones; 25 por página, tope 200 | `security invoker` (RLS); `22023` estado inválido |
+| `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Lotes del listado filtrado para exportar (keyset); registra `proveedores.exportados` | `security definer`; exige la acción `exportar` en `proveedores` (`42501`); `54000` supera 50000 filas; `40001` cursor inexistente o ajeno; `22023` estado inválido |
 | `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` | Productos del proveedor (nombre, código del proveedor, estado) y `total_filas`; 10 por página, tope 100 | `security invoker`; exige `proveedores` y `productos`; `42501` si falta alguno |
 
 Además, `crear_producto` y `actualizar_producto` suman `p_proveedor_id` y `p_codigo_proveedor`

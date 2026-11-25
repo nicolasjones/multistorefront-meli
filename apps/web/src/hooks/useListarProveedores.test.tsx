@@ -12,7 +12,7 @@ import { useListarProveedores, type FiltrosProveedores } from './useListarProvee
 
 const base: FiltrosProveedores = { texto: '', estado: 'activos', pagina: 1, tamano: 25 }
 const fila = (n: number, total = 2) => ({
-  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], total_filas: total,
+  id: `p-${n}`, numero: n, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], total_filas: total,
 })
 
 describe('useListarProveedores', () => {

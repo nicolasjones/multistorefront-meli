@@ -196,14 +196,14 @@ Inventario determinista con `pnpm prototipo:inventario` sobre `Proveedores.dc.ht
 | Columna `Correo` | En alcance | US2-1, FR-011 |
 | Columna `Teléfono` | En alcance | US2-1, FR-011 |
 | Columna de acciones (vacía) con `Ver ficha` | En alcance | US2-1/6, FR-011 |
-| Columna `N.º` | Fuera de alcance: ningún requisito pide numeración correlativa de proveedores; seguimiento (FR-020) | — |
+| Columna `N.º` | Entregado como seguimiento MSF-527 (T029/FR-020): correlativo por organización asignado por la base (docs/proveedores.md § «N.º correlativo»); antes: fuera de alcance | MSF-527 |
 | Columna `Compra para` y campo `Compra para` | Entregado como seguimiento MSF-524 (T029/FR-020): dato informativo por tienda, chips en el diálogo y el listado, dato en la ficha (docs/proveedores.md § «Compra para»); antes: fuera de alcance (Decisiones 3) | MSF-524 |
 | Filtro `Tienda` del listado | Entregado en MSF-524 (filtra por «Compra para» en el servidor) | MSF-524 |
 | Columna `Último ingreso` | Fuera de alcance: depende del ingreso de mercadería (MSF-219); seguimiento | — |
 | Campo de búsqueda `Buscar por razón social o CUIT` | En alcance | US2-2, FR-010, FR-011 |
 | Botón `Nuevo proveedor` | En alcance | US2-6, FR-011 |
 | Botones `Importar`, `Descargar plantilla CSV`, `Importar 14 proveedores` y diálogo «Importar proveedores» | Fuera de alcance: importación de datos es MSF-142 / MSF-445 | — |
-| Botón `Exportar` | Fuera de alcance: no lo pide el documento (MSF-445); seguimiento | — |
+| Botón `Exportar` | Entregado como seguimiento MSF-526 (T029/FR-020): descarga el listado filtrado con la acción `exportar` (docs/proveedores.md § «Exportar»); antes: fuera de alcance | MSF-526 |
 | Botón `Ingresar mercadería` | Fuera de alcance: es de MSF-219 | — |
 | Diálogo Nuevo/Editar proveedor: campos `Razón social`, `CUIT`, `Persona de contacto`, `Correo`, `Teléfono`, `Dirección`, `Observaciones` y botones `Cancelar`, `Guardar proveedor` | En alcance | F-PRV-01 US1-1…5, FR-007 |
 | Diálogo: campos `Condición de pago`, `Moneda`, `Plazo de entrega`, `Compra mínima` | Fuera de alcance: condiciones de compra, ningún requisito las pide (Decisiones 3) | — |

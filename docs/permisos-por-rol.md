@@ -146,6 +146,7 @@ relaciones por empresa) usan este contrato:
   `productos` en `edicion`, `stock` en `lectura`/`edicion` o `proveedores` en `lectura`/`edicion`; así el Operador
   ve los proveedores por la vista aunque no lea la tabla. La ficha
   llama `productos_de_proveedor`, que exige `proveedores` y `productos`. Detalle en `docs/proveedores.md`.
+- **Exportar proveedores (MSF-526):** `exportar_proveedores` exige la acción `exportar` en `proveedores`, que a su vez pide al menos `lectura` en la sección: con la matriz inicial, quien además tiene la acción (Administrador, Administración) la ejerce; un rol sin acceso a Proveedores no exporta aunque tenga la acción.
 - **`dominio.proveedores_contactos` (F-PRV-08, MSF-449):** lectura con `nivel_seccion('proveedores')` en `lectura`/`edicion`;
   escritura solo por `agregar_contacto_proveedor` y `marcar_contacto_principal` (exigen `edicion`, `42501` si no); sin
   `DELETE` directo; `anon` sin acceso. Detalle en `docs/proveedores.md`.

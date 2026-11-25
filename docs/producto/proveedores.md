@@ -35,6 +35,7 @@ En el menú **Contactos → Proveedores**.
 
 | Columna | Qué muestra |
 |---|---|
+| **N.º** | Número correlativo del proveedor dentro de tu organización: lo asigna el sistema al crearlo y no cambia |
 | **Razón social** | Nombre legal del proveedor |
 | **CUIT** | Con el formato XX-XXXXXXXX-X |
 | **Compra para** | Las tiendas para las que se le compra a ese proveedor |
@@ -51,6 +52,8 @@ Para encontrar uno:
 ![Listado de Proveedores con el filtro Tienda resaltado y Mundo JC elegido](img/proveedores/02-filtro-tienda.png)
 
 *El filtro **Tienda** (1) deja solo los proveedores a los que se les compra para esa tienda.*
+
+**Exportar** (arriba a la derecha) aparece si tu rol puede exportar Proveedores: descarga un archivo Excel con **todos** los proveedores que coinciden con la búsqueda, el estado y la tienda elegidos, no solo los que ya ves en pantalla. Pide confirmación, muestra el avance y se puede cancelar. Cada exportación queda registrada en la actividad.
 
 El listado carga de a 25 proveedores: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie. Si no hay coincidencias dice «Sin resultados».
 

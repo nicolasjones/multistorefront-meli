@@ -180,6 +180,7 @@ sin eso se muestra igual, legible (`stock.ajuste_manual` → «Stock ajuste manu
   `registrar_actividad_proveedor` los registran en la misma transacción, solo con sesión y ante cambios reales
   (`updated_at` avanzó; repetir un estado o guardar sin cambios no duplica); detalle «Creó|Editó|Desactivó|Reactivó
   el proveedor <razón social>», sin CUIT ni identificadores. Lo cubre el pgTAP `proveedores`. Ver `docs/proveedores.md`.
+- `proveedores.exportados` (MSF-526): `exportar_proveedores` lo registra en cada llamada que devuelve filas; el primer lote declara el total y los filtros (estado, tienda, «con texto»: nunca el texto buscado) y los lotes con cursor dejan «Continuó la exportación». Lo cubre el pgTAP `proveedores_numero_y_exportar`.
 - `proveedor.contacto_agregado|contacto_principal_cambiado` (F-PRV-08): las RPC `agregar_contacto_proveedor` y
   `marcar_contacto_principal` los registran en la misma transacción por `private.registrar_actividad_contacto_proveedor`;
   detalle con la razón social y el nombre del contacto, **sin correo ni teléfono**. Lo cubre el pgTAP
