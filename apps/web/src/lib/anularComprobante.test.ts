@@ -25,6 +25,9 @@ describe('mensajeDeAnulacion', () => {
     expect(esConflictoDeAnulacion({ code: '42501' })).toBe(false)
     expect(esConflictoDeAnulacion(null)).toBe(false)
     expect(mensajeDeAnulacion({ code: '40001' })).toBe(MENSAJE_CONFLICTO_ANULAR)
+    // Mismo comportamiento con el código que la base responde como 412 (migración 20270507340000).
+    expect(esConflictoDeAnulacion({ code: 'PT412' })).toBe(true)
+    expect(mensajeDeAnulacion({ code: 'PT412' })).toBe(MENSAJE_CONFLICTO_ANULAR)
   })
 
   it('traduce los mensajes en castellano de la RPC con un texto FIJO (nunca el message del servidor)', () => {
@@ -55,6 +58,7 @@ describe('mensajeDeAnulacion', () => {
 
   it('traduce comprobante inexistente y cae al mensaje genérico en el resto', () => {
     expect(mensajeDeAnulacion({ code: 'P0002' })).toMatch(/no existe/)
+    expect(mensajeDeAnulacion({ code: 'PT404' })).toMatch(/no existe/)
     expect(mensajeDeAnulacion(new Error('red'))).toBe(MENSAJE_ERROR_ANULAR)
   })
 })

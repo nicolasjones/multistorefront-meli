@@ -111,7 +111,7 @@ select is((select count(*)::int from public.cobros_de_comprobante('f1000000-0000
 
 -- Otra organización no lee los cobros ajenos.
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
-select throws_ok($$select * from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')$$, 'P0002', 'El comprobante no existe', 'otra organización no ve los cobros');
+select throws_ok($$select * from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')$$, 'PT404', 'El comprobante no existe', 'otra organización no ve los cobros');
 
 reset role;
 select is(has_function_privilege('anon', 'public.cobros_de_comprobante(uuid)', 'execute'), false, 'anon no ejecuta cobros_de_comprobante');

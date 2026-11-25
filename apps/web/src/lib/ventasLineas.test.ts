@@ -1,4 +1,4 @@
-import { MENSAJE_DATO_INVALIDO_COMPROBANTE, mensajeDeErrorComprobante } from './ventas'
+import { MENSAJE_CONFLICTO_COMPROBANTE, MENSAJE_DATO_INVALIDO_COMPROBANTE, esComprobanteInexistente, esConflictoDeEdicion, mensajeDeErrorComprobante } from './ventas'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
@@ -262,6 +262,27 @@ describe('ventasLineas · línea que la lista lleva a cero', () => {
     mensajeDeErrorComprobante({ code: '22023', message: 'detalle interno', details: 'fila 3', hint: 'secreto' }, 'No pudimos guardar.')
     expect(spy).toHaveBeenCalledWith('No pudimos guardar.', '22023')
     expect(JSON.stringify(spy.mock.calls)).not.toContain('detalle interno')
+    spy.mockRestore()
+  })
+})
+
+describe('ventas · códigos de la base que PostgREST contesta como 4xx (20270507340000)', () => {
+  it('el conflicto de edición se reconoce con el código viejo (40001) y con el nuevo (PT412)', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    for (const code of ['40001', 'PT412']) {
+      expect(esConflictoDeEdicion({ code })).toBe(true)
+      expect(mensajeDeErrorComprobante({ code }, 'x')).toBe(MENSAJE_CONFLICTO_COMPROBANTE)
+    }
+    expect(esConflictoDeEdicion({ code: 'PT409' })).toBe(false)
+    spy.mockRestore()
+  })
+
+  it('el comprobante inexistente se reconoce con P0002 y con PT404', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    for (const code of ['P0002', 'PT404']) {
+      expect(esComprobanteInexistente({ code })).toBe(true)
+      expect(mensajeDeErrorComprobante({ code }, 'x')).toMatch(/no existe/)
+    }
     spy.mockRestore()
   })
 })

@@ -304,11 +304,11 @@ select is(
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select * from public.saldo_comprobante('f1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no ve el saldo de la factura ajena'
+  'PT404', null, 'otra organización no ve el saldo de la factura ajena'
 );
 select throws_ok(
   $$select * from public.cobros_de_comprobante('f1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no ve los cobros de la factura ajena'
+  'PT404', null, 'otra organización no ve los cobros de la factura ajena'
 );
 reset role;
 
@@ -316,7 +316,7 @@ reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select throws_ok(
   $$select * from public.saldo_comprobante('f1000000-0000-0000-0000-000000000002')$$,
-  'P0002', null, 'una factura de otra tienda de la misma organización tampoco se ve'
+  'PT404', null, 'una factura de otra tienda de la misma organización tampoco se ve'
 );
 reset role;
 
@@ -1162,7 +1162,7 @@ reset role;
 select pg_temp.como('d1000000-0000-0000-0000-000000000003');
 select throws_ok(
   $$select * from public.saldo_comprobante('f1000000-0000-0000-0000-000000000020')$$,
-  'P0002', null, 'quien no accede a la tienda de la factura no ve su saldo ni sus notas');
+  'PT404', null, 'quien no accede a la tienda de la factura no ve su saldo ni sus notas');
 reset role;
 
 -- El tope de «registrar cobro» es el saldo NETO.

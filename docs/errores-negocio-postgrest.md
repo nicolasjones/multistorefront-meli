@@ -9,6 +9,9 @@ sources:
   - supabase/migrations/20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql
   - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
   - supabase/migrations/20270507310000_aceptar_presupuesto_responde_4xx.sql
+  - supabase/migrations/20270507340000_comprobantes_responden_4xx.sql
+  - apps/web/src/lib/estadosComprobante.ts
+  - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
 ---
 
@@ -96,6 +99,29 @@ y `mensajeDeAceptarPresupuesto` los tratan igual), porque la migración y el des
 con `55000`: `confirmar_comprobante`, `cambiar_estado_despacho` y el resto; los respaldos (`55006`) los consume Kestra por
 código y no una pantalla, así que no se tocan. Cada ola nueva repite el patrón: migración con la definición vigente, pgTAP que
 afirma código y mensaje, y el mapeo del cliente en el mismo cambio.
+
+## Tercera ola: comprobantes de venta (MSF-654 y MSF-655, parciales)
+
+La familia elegida es la de comprobantes de venta, porque es donde la persona ve el error y donde ya había un único camino de
+mensajes en el cliente: `guardar_comprobante`, `guardar_lineas_comprobante`, `confirmar_comprobante`, `anular_comprobante`,
+`cambiar_estado_comprobante`, `obtener_comprobante`, `historial_comprobante`, `transiciones_permitidas_comprobante`,
+`saldo_comprobante` y `cobros_de_comprobante`. Cada una se redefine con `create or replace` a partir de su definición vigente y
+cambia solo el código; mensajes, grants y `security definer` quedan igual.
+
+Convención ampliada:
+
+- **«No existe»** usa `PT404` (HTTP 404), como `obtener_reparacion` y `aceptar_presupuesto`.
+- **Conflicto de edición** (bloqueo optimista por `updated_at`) usa `PT412` (HTTP 412). Se eligió un código propio y no `PT409` porque
+  el cliente trata `PT409` como «el estado no admite la acción» (con otro texto: «recargá para ver cómo está») y mezclar los dos
+  mostraría un mensaje equivocado ante un conflicto de edición.
+- **El cliente acepta el código viejo y el nuevo** (`esCodigoDeConflicto` y el mapeo de cada módulo), porque migración y despliegue
+  de la web no son simultáneos. Cuando todas las pantallas lean solo el código nuevo se puede retirar el viejo.
+
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (despacho, productos,
+cobros, Service, catálogo, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
+`confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
+(`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
+`publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

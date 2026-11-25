@@ -386,7 +386,7 @@ select is(
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, %L)$$,
     (select id from comps where clave = 'minorista'), now() - interval '1 day'),
-  '40001', null, 'una versión vieja del comprobante da conflicto de edición'
+  'PT412', null, 'una versión vieja del comprobante da conflicto de edición'
 );
 
 -- Producto «A pedido»: la línea lo copia.
@@ -443,7 +443,7 @@ select is((select count(*)::int from dominio.comprobantes_venta_lineas), 0, 'la 
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, %L)$$,
     (select id from comps where clave = 'minorista'), now()),
-  'P0002', null, 'la organización dos no puede editar un comprobante de la uno'
+  'PT404', null, 'la organización dos no puede editar un comprobante de la uno'
 );
 
 reset role;

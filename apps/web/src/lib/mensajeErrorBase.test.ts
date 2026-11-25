@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mensajeDeErrorBase } from './mensajeErrorBase'
+import { esCodigoDeConflicto, mensajeDeErrorBase } from './mensajeErrorBase'
 
 describe('mensajeDeErrorBase', () => {
   beforeEach(() => { vi.spyOn(console, 'error').mockImplementation(() => {}) })
@@ -19,6 +19,14 @@ describe('mensajeDeErrorBase', () => {
     expect(mensajeDeErrorBase({ code: 'PT404' }, 'x')).toBe(mensajeDeErrorBase({ code: 'P0002' }, 'x'))
     expect(mensajeDeErrorBase({ code: 'PT409' }, 'x')).toBe(mensajeDeErrorBase({ code: '55000' }, 'x'))
     expect(mensajeDeErrorBase({ code: 'PT409' }, 'x')).not.toBe('x')
+  })
+
+  it('traduce PT412 (conflicto de edición, HTTP 412) como 40001 y reconoce los dos códigos', () => {
+    expect(mensajeDeErrorBase({ code: 'PT412' }, 'x')).toBe(mensajeDeErrorBase({ code: '40001' }, 'x'))
+    expect(mensajeDeErrorBase({ code: 'PT412' }, 'x')).not.toBe('x')
+    expect(esCodigoDeConflicto('40001')).toBe(true)
+    expect(esCodigoDeConflicto('PT412')).toBe(true)
+    expect(esCodigoDeConflicto('PT409')).toBe(false)
   })
 
   it('traduce los errores de negocio 55000, 55006 y 54000 sin tratarlos como falla', () => {

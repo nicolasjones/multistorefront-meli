@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 import { aLineas, type LineaComprobante } from './ventasLineas'
 
 // Comprobantes de venta (F-VTA-05, MSF-159). El alta, la edición de la cabecera y la lectura pasan por RPC
@@ -144,11 +145,12 @@ export const MENSAJE_CONFLICTO_COMPROBANTE =
   'Otra persona modificó este comprobante mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
 export function esConflictoDeEdicion(error: unknown): boolean {
-  return (error as ErrorDeBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorDeBase)?.code)
 }
 
 export function esComprobanteInexistente(error: unknown): boolean {
-  return (error as ErrorDeBase)?.code === 'P0002'
+  const codigo = (error as ErrorDeBase)?.code
+  return codigo === 'P0002' || codigo === 'PT404'
 }
 
 // El comprobante existe pero es de una tienda a la que la persona no tiene acceso (`obtener_comprobante`, 42501). La base ya
@@ -181,7 +183,7 @@ export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): s
   // Se registra solo el código: el objeto de error completo trae mensaje, detalle y pista del servidor.
   console.error(porDefecto, e?.code ?? 'sin código')
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
-  if (e?.code === '40001') return MENSAJE_CONFLICTO_COMPROBANTE
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_COMPROBANTE
   if (e?.code === '55000' || e?.code === 'PT409') return MENSAJE_CERRADO
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario (el mismo que

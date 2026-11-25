@@ -188,7 +188,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.clientes where id = 'c5000000-0000-0000-0000-000000000002'), 0, 'otra organización no ve el cliente');
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, now())$$, (select id from comps where clave = 'minorista5')),
-  'P0002', null, 'otra organización no opera el comprobante');
+  'PT404', null, 'otra organización no opera el comprobante');
 
 -- anon
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');

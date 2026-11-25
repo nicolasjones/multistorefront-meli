@@ -570,7 +570,7 @@ select throws_ok($$select * from private.precio_linea_venta('b1000000-0000-0000-
 -- otra organización
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, now())$$, pg_temp.id_de('e1')),
-  'P0002', null, 'otra organización no opera un comprobante ajeno');
+  'PT404', null, 'otra organización no opera un comprobante ajeno');
 reset role;
 update public.permisos_rol set nivel = 'lectura'
  where organizacion_id = '11111111-1111-1111-1111-111111111111' and rol_id = 'mostrador' and seccion = 'productos';

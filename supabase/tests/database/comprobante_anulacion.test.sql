@@ -194,7 +194,7 @@ select throws_ok(format($$select public.anular_comprobante(%L, null, pg_temp.upd
 select throws_ok(format($$select public.anular_comprobante(%L, %L, pg_temp.upd('D'))$$, pg_temp.id_de('D'), repeat('x', 301)),
   '22023', null, 'el motivo no supera los 300 caracteres');
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', '2000-01-01')$$, pg_temp.id_de('D')),
-  '40001', null, 'una fecha de edición vieja es un conflicto (bloqueo optimista)');
+  'PT412', null, 'una fecha de edición vieja es un conflicto (bloqueo optimista)');
 select is(pg_temp.est('D'), 'confirmada', 'sin motivo o con conflicto nada cambia');
 
 -- ============================================================================
@@ -333,7 +333,7 @@ select is((select anulado_en is null from dominio.comprobantes_venta where id = 
 
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', now())$$, pg_temp.id_de('E')),
-  'P0002', null, 'otra organización no ve el comprobante');
+  'PT404', null, 'otra organización no ve el comprobante');
 reset role;
 set local role anon;
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', now())$$, pg_temp.id_de('E')),

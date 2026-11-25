@@ -206,10 +206,10 @@ select is((select estado from public.cambiar_estado_comprobante(pg_temp.id_f(2),
 -- Depósito (ventas en lectura): Aceptado → Armando → Incompleto → Armando.
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select is(public.transiciones_permitidas_comprobante(pg_temp.id_f(1)), array['armando'], 'Depósito, desde Aceptado, solo puede ir a Armando');
--- Bloqueo optimista: con la fecha vieja, 40001 y no cambia.
+-- Bloqueo optimista: con la fecha vieja, PT412 y no cambia.
 select throws_ok(
   format($$select public.cambiar_estado_comprobante(%L, 'armando', '2000-01-01')$$, pg_temp.id_f(1)),
-  '40001', null, 'bloqueo optimista: con una fecha vieja se rechaza'
+  'PT412', null, 'bloqueo optimista: con una fecha vieja se rechaza'
 );
 select is(pg_temp.est(1), 'aceptado', 'el conflicto no cambió el estado');
 select is(
@@ -309,10 +309,10 @@ select throws_ok(
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.cambiar_estado_comprobante(%L, 'aceptado', now())$$, pg_temp.id_f(2)),
-  'P0002', null, 'otra organización no ve el comprobante'
+  'PT404', null, 'otra organización no ve el comprobante'
 );
-select throws_ok(format($$select public.historial_comprobante(%L)$$, pg_temp.id_f(1)), 'P0002', null, 'otra organización no lee el historial');
-select throws_ok(format($$select public.transiciones_permitidas_comprobante(%L)$$, pg_temp.id_f(1)), 'P0002', null, 'otra organización no lee las transiciones');
+select throws_ok(format($$select public.historial_comprobante(%L)$$, pg_temp.id_f(1)), 'PT404', null, 'otra organización no lee el historial');
+select throws_ok(format($$select public.transiciones_permitidas_comprobante(%L)$$, pg_temp.id_f(1)), 'PT404', null, 'otra organización no lee las transiciones');
 select is((select count(*)::int from dominio.transiciones_estado_comprobante where organizacion_id <> '22222222-2222-2222-2222-222222222222'), 0, 'otra organización no lee la matriz ajena');
 reset role;
 set local role anon;

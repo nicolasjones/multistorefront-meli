@@ -209,7 +209,7 @@ select is(pg_temp.disp('b1000000-0000-0000-0000-000000000001', (select principal
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('borrador')), '42501', null, 'consulta (solo lectura) no confirma');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
-select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('borrador')), 'P0002', null, 'otra organización no ve el comprobante');
+select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('borrador')), 'PT404', null, 'otra organización no ve el comprobante');
 reset role;
 set local role anon;
 select throws_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_de('borrador')), '42501', null, 'anon no ejecuta la RPC');
