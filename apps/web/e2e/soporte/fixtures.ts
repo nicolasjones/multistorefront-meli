@@ -93,9 +93,11 @@ export async function leer<T>(ruta: string, esquema = 'public'): Promise<T[]> {
 }
 
 /** DELETE por la API REST (`ruta` lleva el filtro). Si falla avisa con `console.warn` y sigue: es limpieza. */
-export async function borrar(ruta: string, esquema = 'public') {
+export async function borrar(ruta: string, esquema = 'public'): Promise<boolean> {
   const r = await fetch(`${url}/rest/v1/${ruta}`, { signal: AbortSignal.timeout(TOPE_FETCH_MS), method: 'DELETE', headers: cabeceras({ 'content-profile': esquemaDe(ruta, esquema) }) })
   if (!r.ok) console.warn(`limpieza E2E: DELETE ${ruta} → ${r.status}`)
+  // No lanza (muchos specs limpian con `borrar` y un fallo no debe romperlos); devuelve si salió bien para quien quiera registrarlo.
+  return r.ok
 }
 
 /**
