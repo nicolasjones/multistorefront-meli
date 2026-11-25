@@ -36,6 +36,8 @@ export type ResultadoAvisoWhatsapp = {
 export const MENSAJE_AVISO_ENCOLADO = 'Aviso enviado al cliente'
 export const MENSAJE_AVISO_WHATSAPP_ENCOLADO = 'Aviso por WhatsApp enviado al cliente'
 export const MENSAJE_CLIENTE_SIN_CORREO = 'El cliente no tiene correo'
+// Nota neutra cuando el aviso lo disparó el estado (la persona no tildó la casilla) y no hay correo a quién mandarlo.
+export const MENSAJE_AVISO_AUTOMATICO_SIN_CORREO = 'No se avisó al cliente: no tiene correo cargado'
 export const MENSAJE_CLIENTE_SIN_CONSENTIMIENTO =
   'El cliente no acepta avisos por WhatsApp: pedile que lo acepte en su ficha.'
 export const MENSAJE_CLIENTE_SIN_TELEFONO = 'El cliente no tiene un teléfono válido para WhatsApp'

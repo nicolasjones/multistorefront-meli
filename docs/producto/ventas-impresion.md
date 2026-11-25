@@ -1,6 +1,11 @@
 ---
 owner: producto
-sources: []
+sources:
+  - apps/web/src/components/ventas/ImprimirComprobanteDialog.tsx
+  - apps/web/src/components/ventas/DocumentosComprobante.tsx
+  - apps/web/src/lib/ventasImpresion.ts
+  - apps/web/src/lib/ventasImpresiones.ts
+  - apps/web/src/lib/ventasPresupuestoCorreo.ts
 ---
 
 # Imprimir facturas, remitos y presupuestos

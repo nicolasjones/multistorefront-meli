@@ -95,7 +95,7 @@ export function ActividadList() {
 
   return (
     <Box>
-      <EncabezadoPagina titulo="Actividad" descripcion="Historial básico: cambios de productos, movimientos de stock, importaciones y configuración de tiendas." accion={<BotonExportarActividad filtros={filtrosEfectivos} />} contexto={<ContextoOrganizacionActiva />} />
+      <EncabezadoPagina titulo="Actividad" descripcion="Historial de lo que pasa en tu organización: productos, stock, importaciones, ventas, cobros, service, usuarios y configuración de tiendas." accion={<BotonExportarActividad filtros={filtrosEfectivos} />} contexto={<ContextoOrganizacionActiva />} />
       <ContenedorSeccion>
         <Stack
           component="form"

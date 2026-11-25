@@ -16,7 +16,7 @@ import { tokens } from '../../tema/tokens'
 const ANCHO_MAX_NOMBRE = { xs: 120, sm: 'none' } as const
 
 type Identity = { id: string; email?: string }
-type PerfilIdentidad = { nombre: string | null; apellido: string | null }
+type PerfilIdentidad = { nombre: string | null; apellido: string | null; foto_path: string | null }
 
 // Menú compacto de cuenta (contracts/navegacion-panel.md, sección Cuenta):
 // une Perfil, Cambiar contraseña y Cerrar sesión en un solo control, en vez del
@@ -38,22 +38,26 @@ export function MenuCuenta() {
       return () => { activa = false }
     }
     // Misma organización solo puede leer su propia fila; RLS impide perfiles ajenos.
+    // La foto se firma solo si hay foto_path: sin foto, firmar daría 400 NoSuchKey en consola/red.
     const cargarNombreCompleto = async () => {
       try {
         const { data } = await supabaseClient
           .from('perfiles_usuario')
-          .select('nombre, apellido')
+          .select('nombre, apellido, foto_path')
           .eq('user_id', identity.id)
           .maybeSingle<PerfilIdentidad>()
         if (activa) setNombreCompleto(data?.nombre && data?.apellido ? `${data.nombre} ${data.apellido}` : null)
+        if (!data?.foto_path) {
+          if (activa) setFotoUrl(null)
+          return
+        }
+        const firmada = await supabaseClient.storage.from('fotos-perfil').createSignedUrl(data.foto_path, 60)
+        if (activa) setFotoUrl(firmada.data?.signedUrl ?? null)
       } catch {
-        if (activa) setNombreCompleto(null)
+        if (activa) { setNombreCompleto(null); setFotoUrl(null) }
       }
     }
     void cargarNombreCompleto()
-    supabaseClient.storage.from('fotos-perfil').createSignedUrl(`${identity.id}/avatar`, 60)
-      .then(({ data }) => { if (activa) setFotoUrl(data?.signedUrl ?? null) })
-      .catch(() => { if (activa) setFotoUrl(null) })
     return () => { activa = false }
   }, [identity?.id])
 

@@ -17,7 +17,7 @@ import {
 type Props = { abierto: boolean; estado?: EstadoReparacion | null; onCerrar: () => void; onGuardado: () => void }
 
 // Diálogo «Nuevo estado» del prototipo (FR-008): Nombre, Qué significa y «Avisar al cliente al pasar a este
-// estado». El indicador solo se guarda: esta épica no envía avisos (FR-006). Con `estado` es la edición del mismo
+// estado». El indicador se guarda y, al cambiar una reparación a ese estado, avisa sin tocar la casilla «Avisar al cliente» (salvo los estados que cierran). Con `estado` es la edición del mismo
 // formulario, con bloqueo optimista por updated_at.
 export function EstadoFormDialog({ abierto, estado = null, onCerrar, onGuardado }: Props) {
   const [formulario, setFormulario] = useState<FormularioEstado>(FORMULARIO_ESTADO_VACIO)

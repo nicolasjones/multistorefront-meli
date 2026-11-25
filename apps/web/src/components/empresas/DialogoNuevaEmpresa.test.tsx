@@ -32,7 +32,7 @@ describe('DialogoNuevaEmpresa', () => {
 
     expect(screen.getByRole('dialog', { name: 'Nueva empresa' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Ej.: Tienda Oeste')).toBeInTheDocument()
-    expect(screen.getByText('Precios, tienda web y reglas de Mercado Libre se copian como punto de partida.')).toBeInTheDocument()
+    expect(screen.getByText('Por ahora no se copia ninguna configuración: la empresa nueva se crea sin configurar.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument()
     expect(screen.getByLabelText(/Nombre/)).toHaveFocus()
     expect(screen.getByRole('option', { name: 'Mundo JC' })).toBeInTheDocument()
