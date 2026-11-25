@@ -16,7 +16,7 @@ vi.mock('./supabase', () => ({
 
 import { checkIsSuperadmin, invalidarCacheAcceso, obtenerUsuarioActual } from './superadmin'
 
-describe('cache de acceso (MSF-688)', () => {
+describe('cache de acceso', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     invalidarCacheAcceso()
