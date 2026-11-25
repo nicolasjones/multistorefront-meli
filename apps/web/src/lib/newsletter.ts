@@ -2,6 +2,7 @@
 // límites (los mismos que aplica la base) y textos del panel.
 import { ASUNTO_MAXIMO, MENSAJE_MAXIMO } from './correoMasivo'
 import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
+
 export { ASUNTO_MAXIMO, MENSAJE_MAXIMO }
 export const NOMBRE_INTERNO_MAXIMO = 100
 

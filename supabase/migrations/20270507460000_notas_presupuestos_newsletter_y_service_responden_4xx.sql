@@ -37,8 +37,8 @@
 -- vuelve a `P0002`, `PT412` a `40001` y `PT409` a `55000`, solo en las líneas que esta migración cambia) y restaurar los cinco
 -- comentarios previos. Definiciones vigentes anteriores (la última migración que cada función define; antes de copiar un cuerpo hay
 -- que comprobar que ningún barrido posterior lo reescribió, como el de `public.clientes` a `dominio.clientes`):
---   emitir_nota_credito y facturar_presupuesto: 20270507450000; confirmar_cotizacion: 20270213100004;
---   detalle_anulacion_nota_credito: 20261212120600; borrar_datos_suscriptor_newsletter y dar_de_baja_suscriptor_newsletter:
+--   emitir_nota_credito y facturar_presupuesto: 20270507450000; confirmar_cotizacion: 20270218500200;
+--   detalle_anulacion_nota_credito: 20270201200129; borrar_datos_suscriptor_newsletter y dar_de_baja_suscriptor_newsletter:
 --   20270420000000; detalle_newsletter, descartar_newsletter y guardar_newsletter: 20270420000100; cancelar_envio_newsletter y
 --   enviar_newsletter: 20270420000400; actualizar_reparacion: 20261020110400; anular_reparacion: 20270201200111;
 --   cambiar_estado_reparacion: 20261020120100; registrar_entrega_reparacion: 20261020120200; generar_comprobante_reparacion:
