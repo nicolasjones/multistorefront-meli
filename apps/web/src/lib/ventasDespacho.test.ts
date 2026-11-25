@@ -93,5 +93,7 @@ describe('llamadas a la base', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_despacho', { p_id: 'c1', p_estado: 'armando', p_responsable_id: 'u1', p_actualizado_en: 'v1' })
     mocks.rpc.mockResolvedValue({ error: { code: '40001' } })
     await expect(cambiarEstadoDespacho({ id: 'c1', estado: 'armando', responsableId: 'u1', actualizadoEn: 'v0' })).rejects.toMatchObject({ code: '40001' })
+    mocks.rpc.mockResolvedValue({ error: { code: 'PT412' } })
+    await expect(cambiarEstadoDespacho({ id: 'c1', estado: 'armando', responsableId: 'u1', actualizadoEn: 'v0' })).rejects.toMatchObject({ code: 'PT412' })
   })
 })

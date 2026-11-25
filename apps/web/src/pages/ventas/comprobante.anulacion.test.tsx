@@ -254,6 +254,8 @@ describe('Diálogo Anular (FR-042)', () => {
     expect(mensajeDeAnulacion({ code: '40001', message: 'Alguien modificó este comprobante' })).toMatch(/Otra persona modificó/)
     expect(mensajeDeAnulacion({ code: '42501', message: 'permission denied for function anular_comprobante' })).toBe(MENSAJE_ERROR_ANULAR)
     expect(mensajeDeAnulacion({ code: 'P0002' })).toMatch(/no existe o no pertenece/)
+    expect(mensajeDeAnulacion({ code: 'PT412', message: 'Alguien modificó este comprobante' })).toMatch(/Otra persona modificó/)
+    expect(mensajeDeAnulacion({ code: 'PT404' })).toMatch(/no existe o no pertenece/)
   })
 })
 

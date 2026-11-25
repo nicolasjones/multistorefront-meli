@@ -437,7 +437,7 @@ organización y actor salen de la sesión y el nivel de `ventas` se evalúa en l
 | `listar_presupuestos(...)` | Listado paginado con búsqueda, filtros, `vencido` derivado y `puede_editar`. |
 
 Errores: `42501` permiso · `22023` validación (`hint` = campo) · `PT404` inexistente · `55000` documento
-cerrado · `PT412` conflicto (la guarda `precios_cambiaron` conserva `40001`; `copiar_presupuesto` y `facturar_presupuesto` siguen con `P0002`) · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
+cerrado · `PT412` conflicto (la guarda `precios_cambiaron` conserva `40001`; `copiar_presupuesto` y `facturar_presupuesto` siguen con `P0002`) · `P0001` con `hint = 'stock'` por faltante al confirmar. Regla: las RPC de esta sección responden `PT404` y `PT412`, salvo `copiar_presupuesto`, `facturar_presupuesto` y la guarda `precios_cambiaron` (siguen con `P0002`/`40001`); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
 ### Ventas listado, estados y anulación (MSF-177)
 
@@ -466,9 +466,10 @@ del comprobante**.
 `private.datos_exportacion_comprobantes` / `private.filas_exportacion_comprobantes` tampoco (las dos
 últimas, solo para `workers_orquestacion`).
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
-estado no válido · `40001` conflicto de edición (`anular_comprobante` usa `PT404` y `PT412`: ver [errores de negocio](../errores-negocio-postgrest.md)) · `P0001` con `hint = 'tope'` (excede lo acreditable) y
-`P0001` con `hint = 'stock'`. Contrato completo:
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `PT404` inexistente o ajeno · `55000`
+estado no válido · `PT412` conflicto de edición · `P0001` con `hint = 'tope'` (excede lo acreditable) y
+`P0001` con `hint = 'stock'`. Regla: las RPC de esta sección responden `PT404` y `PT412`, salvo las que siguen con `P0002`/`40001`
+(`emitir_nota_credito`, `detalle_anulacion_nota_credito`, `archivo_exportacion_comprobantes` y las demás no migradas); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#rpc).
 
 ### Ventas cobros y conciliación (MSF-195)
@@ -505,9 +506,10 @@ Sin grant a `authenticated`: `private.registrar_cobro_interno` (único camino al
 > llamador en producción**: abrir el contrarreembolso al entregar era de MSF-135 y quedó **fuera de alcance** de
 > esa épica (el aviso de contrarreembolso del prototipo no se implementó). Hoy solo lo invoca el *seed* local.
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno · `55000`
-estado no válido (factura anulada, borrador) · `40001` conflicto de edición (`registrar_cobro` y `revertir_cobro` usan `PT404`; qué funciones migraron: [errores de negocio](../errores-negocio-postgrest.md)) · `P0001` tope de importe
-(con `hint = 'importe'`). Contrato completo:
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `PT404` inexistente o ajeno · `55000`
+estado no válido (factura anulada, borrador) · `PT412` conflicto de edición · `P0001` tope de importe
+(con `hint = 'importe'`). Regla: las RPC de cobros (incluidas `saldo_comprobante`, `cobros_de_comprobante`, `registrar_cobro`, `revertir_cobro`) y las de formas de pago
+y cuentas de cobro responden `PT404` y `PT412`, salvo `conciliar_pago`, los contrarreembolsos y las demás no migradas, que siguen con `P0002`/`40001`; ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
 
 ### Ventas mejoras (MSF-193)
@@ -569,7 +571,7 @@ Sin grant a `authenticated`: `private.descontar_reservas_entrega`, `private.etiq
 
 Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato
 inválido · `55000` transición no permitida o factura sin estado de despacho · `PT404` comprobante inexistente ·
-`PT412` conflicto de edición. Contrato completo:
+`PT412` conflicto de edición. Regla: todas las RPC de esta sección responden `PT404` y `PT412`; ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
 
 ### Ventas avisos de faltantes (MSF-161)
