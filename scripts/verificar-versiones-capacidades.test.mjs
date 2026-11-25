@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { verifyVersionBumps } from './verificar-versiones-capacidades.mjs';
@@ -33,7 +33,7 @@ test('permite publicar el catálogo por primera vez', () => {
 const RAIZ = new URL('../', import.meta.url);
 const ENTRADA = /^supabase\/functions\/[^/_][^/]*\/index\.ts$/;
 // from './x.ts' | import './x.ts' (efecto lateral) | import('./x.ts') (dinámico) | export ... from './x.ts'
-const IMPORT_RELATIVO = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.{1,2}\/[^'"]+)['"]/g;
+const IMPORT_RELATIVO = /(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)['"](\.{1,2}\/[^'"]+)['"]/g;
 
 const cubierto = (capacidad, archivo) =>
   capacidad.paths.some((ruta) => (ruta.endsWith('/') ? archivo.startsWith(ruta) : archivo === ruta));
@@ -81,4 +81,12 @@ test('detecta imports estáticos, dinámicos y de efectos laterales no cubiertos
     'demo: supabase/functions/f/b.ts (importado por supabase/functions/f/index.ts)',
     'demo: supabase/functions/_shared/c.ts (importado por supabase/functions/f/index.ts)',
   ]);
+});
+
+// Un path mal escrito (p. ej. una migración con otra versión) no falla ningún guard y la capacidad deja de copiar ese archivo.
+test('todo path del catálogo real existe en el repo (archivo o directorio)', () => {
+  const catalogo = JSON.parse(leerDelRepo('template-capabilities.json'));
+  const inexistentes = catalogo.capabilities.flatMap((capacidad) =>
+    capacidad.paths.filter((ruta) => !existsSync(new URL(ruta, RAIZ))).map((ruta) => `${capacidad.id}: ${ruta}`));
+  assert.deepEqual(inexistentes, []);
 });
