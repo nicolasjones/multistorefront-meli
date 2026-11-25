@@ -43,7 +43,7 @@ sistema impide repetir un SKU y todo queda en Actividad (sin mostrar costo ni pr
   `PRD-XXXXXXXX`.
 - **Edición** (`/productos/:id/edit`): se corrigen nombre, descripción, SKU, «Compatible con», moneda y precio. Si
   otra persona guardó antes, se avisa del conflicto y no se pisa su cambio.
-- **Fotos:** hasta 4 por producto, JPG, PNG o WebP de hasta 2 MB; la primera es la principal. Se suben al guardar.
+- **Fotos:** hasta 4 por producto, JPG, PNG o WebP de hasta 15 MB; se optimizan solas al elegirlas (WebP, lado largo de hasta 1600 px, típicamente mucho más livianas) y el resultado debe pesar hasta 2 MB; la primera es la principal. Se suben al guardar.
 - **Estado:** Activar/Desactivar desde la fila de la grilla `/productos` (nombre, SKU y estado) o desde la ficha.
   Un producto inactivo conserva datos e imágenes y se muestra con la etiqueta «Inactivo». No hay borrado.
 - Avisos «Faltan datos obligatorios» y diálogo «Descartar cambios» en alta y edición.
@@ -65,7 +65,7 @@ No aplica: los productos son del catálogo de la organización, no de una empres
 - **Dos usuarios de la misma organización:** un **Administrador** y un **Operador** (ver
   [Permisos por rol](../permisos-por-rol.md)); opcionalmente un usuario de **Consulta** (solo lectura) y una
   segunda organización para comprobar el aislamiento.
-- Tres archivos de prueba: dos imágenes válidas (JPG/PNG/WebP ≤ 2 MB), una de más de 2 MB y un PDF; más de 4
+- Tres archivos de prueba: dos imágenes válidas (JPG/PNG/WebP ≤ 15 MB), una de más de 15 MB y un PDF; más de 4
   imágenes válidas para el tope.
 
 ### Pasos
@@ -81,7 +81,7 @@ No aplica: los productos son del catálogo de la organización, no de una empres
 5. Escribí algo en el formulario de alta y pulsá Cancelar: aparece «Descartar cambios».
 6. Abrí `/productos/:id/edit` de «Joystick Pro», cambiá nombre y precio y guardá: los cambios persisten. Guardar
    sin cambios no genera evento.
-7. En la ficha intentá sumar una imagen de más de 2 MB, un PDF y una quinta imagen válida: cada una se rechaza con
+7. En la ficha intentá sumar una imagen de más de 15 MB, un PDF y una quinta imagen válida: cada una se rechaza con
    mensaje claro. Quitá la imagen principal: la siguiente pasa a ser la principal.
 8. Con dos pestañas abiertas sobre el mismo producto, guardá en una y luego en la otra: la segunda avisa del
    conflicto, conserva lo escrito y ofrece recargar.

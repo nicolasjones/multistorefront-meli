@@ -8,7 +8,7 @@ import {
   MAX_IMAGENES,
   TIPOS_ACEPTADOS,
   ordenFinal,
-  validarArchivo,
+  prepararImagen,
 } from '../../lib/productoImagenes'
 
 type Props = {
@@ -37,8 +37,8 @@ function useVistasPrevias(archivos: readonly File[]): Map<File, string> {
   return vistas
 }
 
-// Imágenes del producto (F-CAT-05, FR-012): hasta 4, JPG/PNG/WebP de 2 MB; la primera
-// es la principal. Los archivos se suben al guardar el producto (lo hace la página);
+// Imágenes del producto (F-CAT-05, FR-012): hasta 4, JPG/PNG/WebP de hasta 15 MB que se
+// optimizan solas (WebP, 1600 px, tope de 2 MB sobre el resultado); la primera es la principal. Los archivos se suben al guardar el producto (lo hace la página);
 // acá solo se elige y se valida. La base y el bucket validan igual.
 export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura = false, deshabilitado = false }: Props) {
   const [errores, setErrores] = useState<string[]>([])
@@ -47,18 +47,18 @@ export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura =
   const orden = ordenFinal(existentes, cambios)
   const bloqueado = soloLectura || deshabilitado
 
-  const agregar = (event: ChangeEvent<HTMLInputElement>) => {
+  const agregar = async (event: ChangeEvent<HTMLInputElement>) => {
     const elegidos = Array.from(event.target.files ?? [])
     event.target.value = ''
     const rechazos: string[] = []
     const aceptados: File[] = []
     let cantidad = orden.length
     for (const archivo of elegidos) {
-      const rechazo = validarArchivo(archivo, cantidad)
-      if (rechazo) {
-        rechazos.push(rechazo)
+      const resultado = await prepararImagen(archivo, cantidad)
+      if ('error' in resultado) {
+        rechazos.push(resultado.error)
       } else {
-        aceptados.push(archivo)
+        aceptados.push(resultado.archivo)
         cantidad += 1
       }
     }

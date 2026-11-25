@@ -135,7 +135,7 @@ productos_updated_at_real`, `drop function private.registrar_actividad_producto_
 - **Storage**: bucket privado `productos-imagenes` (plataforma; patrón de `logos-organizacion`), 2 MB, solo
   `image/jpeg|png|webp` (sin SVG). Políticas sobre `storage.objects`: lectura con acceso a Productos de la organización;
   alta solo con `edicion` y sobre un producto de la propia organización; baja con `edicion`. Sin política UPDATE.
-- **Pantalla**: `ImagenesProducto` dentro de `FormularioProducto` (alta y edición). Valida en el cliente (tipo, 2 MB, 4 como
+- **Pantalla**: `ImagenesProducto` dentro de `FormularioProducto` (alta y edición). Optimiza en el cliente (WebP, 1600 px; origen hasta 15 MB) y valida (tipo, 2 MB sobre el archivo optimizado, 4 como
   máximo) con mensajes claros; los archivos se **suben al guardar** el producto. Si una imagen falla el producto queda
   guardado y se ofrece «Reintentar subida»; si falla el registro de la fila se borra el archivo recién subido. Quitar
   borra primero la fila y después el archivo (si el archivo no se borra, se avisa). Con solo lectura se ven las imágenes

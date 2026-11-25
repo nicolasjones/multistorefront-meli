@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES } from '../../lib/productoImagenes'
 import { ImagenesProducto } from './ImagenesProducto'
@@ -30,23 +30,31 @@ const elegir = (...archivos: File[]) => fireEvent.change(screen.getByTestId('ent
 describe('ImagenesProducto', () => {
   it('explica los límites y marca la primera como principal', () => {
     render(<Montado />)
-    expect(screen.getByText('Hasta 4 imágenes JPG, PNG o WebP de hasta 2 MB. La primera es la principal.')).toBeInTheDocument()
+    expect(screen.getByText('Hasta 4 imágenes JPG, PNG o WebP de hasta 15 MB; se optimizan automáticamente. La primera es la principal.')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Imagen 1 (principal)' })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Imagen 2' })).toBeInTheDocument()
   })
 
-  it('rechaza formato y tamaño con mensajes claros y no las agrega', () => {
+  it('rechaza formato y tamaño con mensajes claros y no las agrega', async () => {
     render(<Montado />)
-    elegir(archivo('a.gif', 'image/gif'), archivo('grande.png', 'image/png', 3 * 1024 * 1024))
-    expect(screen.getByText('«a.gif» no es JPG, PNG ni WebP.')).toBeInTheDocument()
-    expect(screen.getByText('«grande.png» pesa más de 2 MB.')).toBeInTheDocument()
+    elegir(archivo('a.gif', 'image/gif'), archivo('grande.png', 'image/png', 16 * 1024 * 1024))
+    expect(await screen.findByText('«a.gif» no es JPG, PNG ni WebP.')).toBeInTheDocument()
+    expect(screen.getByText('«grande.png» pesa más de 15 MB.')).toBeInTheDocument()
     expect(screen.getByTestId('resumen')).toHaveTextContent('0/0')
   })
 
-  it('no deja pasar de 4 y deshabilita agregar', () => {
+  it('acepta una foto de 12 MB de origen: si el resultado sigue pasando de 2 MB, da un error claro', async () => {
+    render(<Montado />)
+    elegir(archivo('enorme.png', 'image/png', 12 * 1024 * 1024))
+    // Sin soporte de decodificación (jsdom) se conserva el original, que supera 2 MB.
+    expect(await screen.findByText('«enorme.png» sigue pesando más de 2 MB aun optimizada: usá una imagen más chica.')).toBeInTheDocument()
+    expect(screen.getByTestId('resumen')).toHaveTextContent('0/0')
+  })
+
+  it('no deja pasar de 4 y deshabilita agregar', async () => {
     render(<Montado />)
     elegir(archivo('c.png'), archivo('d.png'), archivo('e.png'))
-    expect(screen.getByText(/Ya hay 4 imágenes: quitá alguna para agregar «e.png»/)).toBeInTheDocument()
+    expect(await screen.findByText(/Ya hay 4 imágenes: quitá alguna para agregar «e.png»/)).toBeInTheDocument()
     expect(screen.getByTestId('resumen')).toHaveTextContent('2/0')
     expect(screen.getByRole('button', { name: 'Agregar imágenes' })).toBeDisabled()
   })
@@ -58,9 +66,10 @@ describe('ImagenesProducto', () => {
     expect(screen.getByRole('img', { name: 'Imagen 1 (principal)' })).toHaveAttribute('src', 'https://firmada/b')
   })
 
-  it('quitar una nueva la descarta sin tocar las guardadas', () => {
+  it('quitar una nueva la descarta sin tocar las guardadas', async () => {
     render(<Montado existentes={[]} />)
     elegir(archivo('n.png'))
+    await waitFor(() => expect(screen.getByTestId('resumen')).toHaveTextContent('1/0'))
     expect(screen.getByRole('img', { name: 'Imagen 1 (principal), se sube al guardar' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 1' }))
     expect(screen.getByTestId('resumen')).toHaveTextContent('0/0')
