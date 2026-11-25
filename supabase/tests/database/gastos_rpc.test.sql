@@ -85,11 +85,11 @@ select throws_ok($$select public.guardar_gasto(null, 'e1000000-0000-0000-0000-00
   '22023', 'El importe en pesos es demasiado grande: revisá el importe', 'USD que desborda los pesos: 22023 claro, no 22003');
 select throws_ok($$select public.guardar_gasto(null, 'e1000000-0000-0000-0000-000000000001', '2026-03-05', 'Alquiler', 'fijo', repeat('x', 201), 5, 'ARS', false, null)$$, '22023', null, 'detalle de más de 200');
 select throws_ok($$select public.guardar_gasto(null, 'e1000000-0000-0000-0000-000000000003', '2026-03-05', 'Alquiler', 'fijo', null, 5, 'ARS', false, null)$$, '22023', null, 'empresa inactiva');
-select throws_ok($$select public.guardar_gasto(null, 'e2000000-0000-0000-0000-000000000001', '2026-03-05', 'Alquiler', 'fijo', null, 5, 'ARS', false, null)$$, 'P0002', null, 'empresa de otra organización');
+select throws_ok($$select public.guardar_gasto(null, 'e2000000-0000-0000-0000-000000000001', '2026-03-05', 'Alquiler', 'fijo', null, 5, 'ARS', false, null)$$, 'PT404', null, 'empresa de otra organización');
 
 -- Edición con bloqueo optimista (CA-GAS-5) y recálculo de cotización al cambiar la fecha.
 select throws_ok(format($$select public.guardar_gasto(%L, 'e1000000-0000-0000-0000-000000000001', '2026-03-06', 'Servicios', 'fijo', 'Internet', 40000, 'ARS', false, '2020-01-01')$$, (select id from ids where clave = 'g1')),
-  '40001', null, 'edición con versión vieja: 40001');
+  'PT412', null, 'edición con versión vieja: PT412');
 select public.guardar_gasto((select id from ids where clave = 'g1'), 'e1000000-0000-0000-0000-000000000001', '2026-03-06', 'Servicios', 'fijo', 'Internet', 40000, 'ARS', false,
   (select updated_at from dominio.gastos where id = (select id from ids where clave = 'g1')));
 select is((select importe from dominio.gastos where id = (select id from ids where clave = 'g1')), 40000.00, 'la edición se guarda');
@@ -165,7 +165,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.anular_gasto(%L, '  ', %L)$$, (select id from ids where clave = 'g3'), (select updated_at from dominio.gastos where id = (select id from ids where clave = 'g3'))),
   '22023', null, 'sin motivo se rechaza');
 select throws_ok(format($$select public.anular_gasto(%L, 'Cargado por error', '2020-01-01')$$, (select id from ids where clave = 'g3')),
-  '40001', null, 'anular con versión vieja: 40001');
+  'PT412', null, 'anular con versión vieja: PT412');
 select public.anular_gasto((select id from ids where clave = 'g3'), 'Cargado por error', (select updated_at from dominio.gastos where id = (select id from ids where clave = 'g3')));
 select is((select count(*)::int from dominio.gastos where anulado_en is not null and motivo_anulacion = 'Cargado por error'), 1, 'queda anulado con motivo');
 select lives_ok(format($$select public.anular_gasto(%L, 'otra vez', now())$$, (select id from ids where clave = 'g3')), 'anular de nuevo no falla');

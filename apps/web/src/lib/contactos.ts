@@ -2,6 +2,7 @@
 // en las migraciones 20270201100000…100500; acá se espejan los tipos y se traducen los errores. La
 // autoridad es la base: RLS decide qué contactos se ven y las RPC validan permisos, duplicados y consentimiento.
 import { supabaseClient } from './supabase'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 export const TAMANO_PAGINA_CONTACTOS = 25
 export const TEXTO_SIN_PERMISO_EDICION = 'Necesitás permiso de edición'
@@ -65,7 +66,7 @@ function aError(error: ErrorPostgrest): ErrorContacto {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function esConflicto(error: unknown): boolean {
-  return error instanceof ErrorContacto && error.codigo === '40001'
+  return error instanceof ErrorContacto && esCodigoDeConflicto(error.codigo)
 }
 
 /** Id del contacto existente cuando el alta o la edición chocó con un duplicado. */
@@ -79,7 +80,7 @@ export function contactoExistenteDe(error: unknown): string | null {
 // Mensaje para la persona: nunca el texto crudo de la base (puede traer detalles técnicos).
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   if (error instanceof ErrorContacto) {
-    if (error.codigo === '40001') return 'Otra persona modificó este contacto mientras lo editabas. Recargalo para ver sus cambios.'
+    if (esCodigoDeConflicto(error.codigo)) return 'Otra persona modificó este contacto mientras lo editabas. Recargalo para ver sus cambios.'
     if (error.codigo === '42501') return 'No tenés permiso para cambiar este contacto.'
     if (error.codigo === '23505') return 'Ya existe un contacto con ese correo o teléfono en esta empresa.'
     if (error.codigo === '22023') {

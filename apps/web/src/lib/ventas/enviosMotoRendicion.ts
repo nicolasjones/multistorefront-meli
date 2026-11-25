@@ -4,6 +4,7 @@
 // Contrato: specs/20261024-130000-ventas-motos/contracts/ventas-motos.md
 import { supabaseClient } from '../supabase'
 import { claveMensajero, codigoDeError, type EnvioMoto } from './enviosMoto'
+import { esCodigoDeConflicto, esCodigoDeEstado } from '../mensajeErrorBase'
 
 // Lo que devuelve `public.rendir_envios_moto`.
 export type ResultadoRendicion = {
@@ -69,9 +70,9 @@ export function mensajeDeErrorRendicion(error: unknown, porDefecto: string): str
     if (e.message && !/Tu rol no puede|sesión con organización/.test(e.message)) return e.message
     return 'Solo el Administrador puede rendir entregas. Puede que tu rol haya cambiado: recargá la página.'
   }
-  if (e?.code === '40001') return 'Otra persona modificó estos envíos mientras los rendías. Recargá para ver el estado actual.'
+  if (esCodigoDeConflicto(e?.code)) return 'Otra persona modificó estos envíos mientras los rendías. Recargá para ver el estado actual.'
   // Factura anulada o en borrador: la base lo explica en castellano.
-  if (e?.code === '55000' && e.message) return e.message
+  if (e && esCodigoDeEstado(e.code) && e.message) return e.message
   // Los mensajes de validación de la base (mezcla de mensajeros, envío sin enviar, id ajeno) están en castellano.
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto

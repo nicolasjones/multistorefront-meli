@@ -146,8 +146,11 @@ export const FECHA_MINIMA_GASTO = '2000-01-01'
 
 const MENSAJES: Record<string, string> = {
   '42501': 'Tu rol no puede cargar ni anular gastos de esa tienda.',
+  // `PT404`/`PT412` son los códigos que PostgREST traduce a 404/412 (docs/errores-negocio-postgrest.md): se aceptan junto con los históricos.
   P0002: 'El gasto o la tienda ya no existen. Recargá la lista.',
+  PT404: 'El gasto o la tienda ya no existen. Recargá la lista.',
   '40001': 'Otra persona cambió este gasto mientras lo editabas. Recargá la lista y probá de nuevo.',
+  PT412: 'Otra persona cambió este gasto mientras lo editabas. Recargá la lista y probá de nuevo.',
 }
 
 // Mensajes de validación (22023) de las RPC que sí se muestran tal cual: lista blanca. Cualquier otro texto del servidor (un
