@@ -118,8 +118,8 @@ describe('CuentaCobroDialog', () => {
     }))
   })
 
-  it('ante un conflicto de edición explica qué pasó y ofrece Recargar', async () => {
-    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'x' } })
+  it.each(['40001', 'PT412'])('ante un conflicto de edición explica qué pasó y ofrece Recargar (%s)', async (code) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'x' } })
     const { onRecargar, onGuardado } = abrir({ cuenta: CUENTA })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cuenta' }))
     expect(await screen.findByText(/Otra persona modificó esta cuenta/)).toBeInTheDocument()

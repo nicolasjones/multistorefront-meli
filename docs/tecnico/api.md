@@ -404,7 +404,7 @@ Fuente: `supabase/migrations/20261020100000_formas_pago.sql`, `20261022120000_fo
 `revoke … from public, anon` y `grant execute … to authenticated`; la organización sale de la sesión y
 la escritura exige Administrador en la RLS y en el cuerpo de cada RPC. `private.cbu_valido` y los
 disparadores de normalización son `security definer` sin grant. Errores: `42501` permiso · `22023`/
-`23514` validación · `P0002` inexistente · `40001` conflicto · `23505` nombre repetido.
+`23514` validación · `23505` nombre repetido. Regla: las RPC de formas de pago y cuentas de cobro (`actualizar_forma_pago`, `cambiar_estado_forma_pago`, `actualizar_cuenta_cobro`, `cambiar_estado_cuenta_cobro`) responden `PT404` (inexistente) y `PT412` (conflicto de edición); las de formas de envío y transportes (`actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`) y las demás siguen con `P0002`/`40001`; ver [errores de negocio](../errores-negocio-postgrest.md).
 
 | RPC | Contrato |
 |---|---|
