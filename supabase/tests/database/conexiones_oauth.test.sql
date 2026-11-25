@@ -237,9 +237,9 @@ set local role authenticated;
 
 select throws_ok(
   format($$select public.confirmar_conexion_oauth('%s', 'nango-conn-y')$$, (select val from t_ids where key = 'conexion_x_google')),
-  '42501',
-  null,
-  'el administrador de Y no puede confirmar una conexión de X'
+  'PT404',
+  format('La conexión %s no existe', (select val from t_ids where key = 'conexion_x_google')),
+  'el administrador de Y no puede confirmar una conexión de X: responde como si no existiera'
 );
 
 reset role;
