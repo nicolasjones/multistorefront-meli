@@ -10,7 +10,7 @@
 ## Summary
 
 El síntoma ya no se reproduce: el barrido detecta los gates que esperan decisión,
-les pone la fecha de vencimiento del contrato (24 h desde `statusSince` en
+les pone la fecha de vencimiento del contrato (24 h desde la etiqueta de gate, con fallback a `statusSince`, en
 `America/Argentina/Buenos_Aires`) y una segunda simulación da **0** gates sin fecha.
 La regla queda fijada por tests y la documentación explica cómo aplicarla y revertirla.
 
@@ -105,7 +105,7 @@ Simulación: no se escribió nada. Repetí con --aplicar para poner la fecha.
   contenga): se fechan igual, pero una lectura por etiqueta truncada por debajo del tope
   no se detectaría para ellos. Riesgo bajo y aceptado por decisión del CTO (herramienta
   interna de bajo riesgo); queda documentado en `docs/tecnico/gates-vitalidad.md`.
-- El ancla de la fecha (`statusSince` vs. cuándo el watchdog marca vencido) se acepta tal
+- El ancla de la fecha (`statusSince` vs. cuándo el watchdog marca vencido; corregido después en MSF-997) se acepta tal
   cual por decisión del CTO y quedó trazada como seguimiento real **MSF-997**.
 
 ## Recommendation

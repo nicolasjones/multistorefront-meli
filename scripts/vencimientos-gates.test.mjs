@@ -12,6 +12,9 @@ import {
   lineaAplicado,
   lineaResumen,
   seleccionarGates,
+  leerActividad,
+  PAGINAS_FEED,
+  ultimaEtiquetaGate,
 } from './vencimientos-gates.mjs'
 
 const ETIQUETAS = new Map([
@@ -48,7 +51,7 @@ const item = (extra) => ({
  */
 function crearStub(
   items,
-  { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null, etiquetasMeta = null } = {},
+  { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null, etiquetasMeta = null, feeds = null, feedFalla = false } = {},
 ) {
   const llamadas = []
   const meta = {
@@ -80,6 +83,18 @@ function crearStub(
         status: 200,
         json: async () => (recortado ? lote.slice(0, recortado) : lote),
       }
+    }
+    if (/^\/issues\/\d+\/feed$/.test(pathname)) {
+      const id = Number(pathname.split('/')[2])
+      if (feedFalla) return { ok: false, status: 500, text: async () => 'boom' }
+      const feed = feeds?.[id] ?? []
+      // `feed` es una lista de entradas o, para paginar, una lista de páginas `{items, nextCursor}`.
+      if (feed.length && feed[0].items) {
+        const cursor = params.get('cursor')
+        const n = cursor ? JSON.parse(cursor).pagina : 0
+        return { ok: true, status: 200, json: async () => feed[n] }
+      }
+      return { ok: true, status: 200, json: async () => ({ items: feed }) }
     }
     if (pathname.startsWith('/issues/')) {
       const id = Number(pathname.split('/').pop())
@@ -156,6 +171,120 @@ test('el plan usa desde cuándo espera el ítem y, si falta, cuándo se creó', 
       ['MSF-2', '2026-11-17'],
     ],
   )
+})
+
+const marca = (nombre, createdAt, extra = {}) => ({
+  kind: 'activity',
+  action: 'label_add',
+  payload: { to: { value: nombre } },
+  createdAt,
+  ...extra,
+})
+
+test('la última etiqueta de gate es la entrada label_add más nueva de una etiqueta de gate', () => {
+  assert.equal(ultimaEtiquetaGate([]), null)
+  assert.equal(ultimaEtiquetaGate(undefined), null)
+  assert.equal(
+    ultimaEtiquetaGate([
+      marca('gate', '2026-11-18T10:00:00.000Z'),
+      marca('decision', '2026-11-20T10:00:00.000Z'),
+      marca('flagged', '2026-11-25T10:00:00.000Z'), // no es de gate
+      { kind: 'activity', action: 'label_remove', payload: { from: { value: 'gate' } }, createdAt: '2026-11-26T10:00:00.000Z' },
+      { kind: 'comment', createdAt: '2026-11-27T10:00:00.000Z' },
+      marca('escala-humano', 'no-es-fecha'),
+    ]),
+    '2026-11-20T10:00:00.000Z',
+  )
+})
+
+test('el plan ancla en cuando el ítem recibió la etiqueta de gate, no en statusSince (MSF-909)', async () => {
+  const plan = await calcularPlan(
+    [item({ id: 1, identifier: 'MSF-1' }), item({ id: 2, identifier: 'MSF-2' })],
+    async () => ({ statusSince: '2026-11-14T18:52:03.189Z' }),
+    async (id) => (id === 1 ? [marca('escala-humano', '2026-11-18T12:00:00.000Z')] : []),
+  )
+  assert.deepEqual(
+    plan.map((p) => [p.identifier, p.dueDate]),
+    [
+      ['MSF-1', '2026-11-19'], // etiqueta el 18 -> vence el 19 (statusSince daba el 15)
+      ['MSF-2', '2026-11-15'], // sin entrada en el historial: cae a statusSince
+    ],
+  )
+})
+
+test('una etiqueta de gate quitada después de agregarla ya no cuenta; si se vuelve a poner, vale la nueva', () => {
+  const baja = (nombre, createdAt) => ({ kind: 'activity', action: 'label_remove', payload: { from: { value: nombre } }, createdAt })
+  assert.equal(
+    ultimaEtiquetaGate([marca('gate', '2026-11-18T10:00:00.000Z'), baja('gate', '2026-11-19T10:00:00.000Z')]),
+    null,
+  )
+  assert.equal(
+    ultimaEtiquetaGate([
+      marca('gate', '2026-11-18T10:00:00.000Z'),
+      baja('gate', '2026-11-19T10:00:00.000Z'),
+      marca('gate', '2026-11-20T10:00:00.000Z'),
+    ]),
+    '2026-11-20T10:00:00.000Z',
+  )
+  // Quitar una etiqueta no afecta a otra de gate que sigue puesta.
+  assert.equal(
+    ultimaEtiquetaGate([
+      marca('decision', '2026-11-17T10:00:00.000Z'),
+      marca('gate', '2026-11-18T10:00:00.000Z'),
+      baja('gate', '2026-11-19T10:00:00.000Z'),
+    ]),
+    '2026-11-17T10:00:00.000Z',
+  )
+})
+
+test('sólo cuentan las entradas label_add: otra acción con la misma forma de payload se ignora', () => {
+  assert.equal(
+    ultimaEtiquetaGate([{ kind: 'activity', action: 'field', payload: { to: { value: 'gate' } }, createdAt: '2026-11-20T10:00:00.000Z' }]),
+    null,
+  )
+})
+
+test('ejecutar lee el feed del gate', async () => {
+  const gate = item({ id: 1, identifier: 'MSF-1', statusSince: '2026-11-14T18:52:03.189Z' })
+  const { fetchStub, llamadas } = crearStub([gate], { feeds: { 1: [marca('gate', '2026-11-18T12:00:00.000Z')] } })
+  const { plan } = await ejecutar({ fetchImpl: fetchStub, proyecto: 'MSF' })
+  assert.equal(plan[0].dueDate, '2026-11-19')
+  assert.ok(llamadas.some((l) => l.url.includes('/issues/1/feed')))
+})
+
+test('el feed se pagina por cursor encadenado: la etiqueta más nueva puede estar en la 2.ª página', async () => {
+  const gate = item({ id: 1, identifier: 'MSF-1' })
+  const paginas = [
+    { items: [marca('gate', '2026-11-16T12:00:00.000Z')], nextCursor: { pagina: 1 } },
+    { items: [marca('decision', '2026-11-20T12:00:00.000Z')], nextCursor: null },
+  ]
+  const { fetchStub, llamadas } = crearStub([gate], { feeds: { 1: paginas } })
+  const { plan } = await ejecutar({ fetchImpl: fetchStub, proyecto: 'MSF' })
+  assert.equal(plan[0].dueDate, '2026-11-21')
+  const pedidos = llamadas.filter((l) => l.url.includes('/issues/1/feed'))
+  assert.equal(pedidos.length, 2)
+  assert.ok(!pedidos[0].url.includes('cursor='))
+  assert.equal(JSON.parse(new URL(pedidos[1].url).searchParams.get('cursor')).pagina, 1)
+})
+
+test('un error del feed corta el barrido antes de escribir nada', async () => {
+  const gate = item({ id: 1, identifier: 'MSF-1' })
+  const { fetchStub, llamadas } = crearStub([gate], { feedFalla: true })
+  await assert.rejects(() => ejecutar({ fetchImpl: fetchStub, proyecto: 'MSF', aplicar: true }), /feed\?limit=100: 500/)
+  assert.equal(llamadas.filter((l) => l.init.method === 'PATCH').length, 0)
+})
+
+test('si el feed supera el tope de páginas avisa con el identificador y sigue con lo leído', async () => {
+  const api = { get: async () => ({ items: [marca('gate', '2026-11-18T12:00:00.000Z')], nextCursor: { x: 1 } }) }
+  const avisos = []
+  const items = await leerActividad(api, { id: 7, identifier: 'MSF-7' }, (m) => avisos.push(m))
+  assert.equal(items.length, PAGINAS_FEED)
+  assert.equal(avisos.length, 1)
+  assert.match(avisos[0], /MSF-7/)
+  // Con menos páginas que el tope no avisa.
+  const corto = { get: async () => ({ items: [], nextCursor: null }) }
+  await leerActividad(corto, { id: 8, identifier: 'MSF-8' }, (m) => avisos.push(m))
+  assert.equal(avisos.length, 1)
 })
 
 test('el PATCH manda sólo la fecha: mandar etiquetas las reemplazaría', async () => {

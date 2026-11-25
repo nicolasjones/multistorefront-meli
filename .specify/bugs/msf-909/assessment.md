@@ -55,7 +55,7 @@ Confianza: alta (medido arriba sobre el board real y sobre el contrato de la API
 
 **Preferred**: una herramienta del repo que rellene la fecha de vencimiento de los gates que esperan decisión, con la regla del contrato (24 h) aplicada **por ítem** — la fecha en que la decisión venció o vence — más el test que fija esa regla y la documentación de cómo aplicarla y revertirla. La herramienta es idempotente (no toca lo que ya tiene fecha), simula por defecto y sólo escribe con `--aplicar`.
 
-**Fecha que se pone (el punto que hay que dejar escrito)**: `dueDate` = **la fecha en que vence el gate**, es decir `statusSince` (desde cuándo el ítem espera en su columna) **+ 24 h** del contrato de vitalidad, expresada como fecha en `America/Argentina`. Con la granularidad del tracker (fecha, no hora) un gate abierto hoy vence mañana. Para los gates que ya vencieron, la fecha queda en el pasado: eso es lo que **hace visible que están vencidos**, que es justamente lo que el reporte pide («ni forma de saber que la decisión está vencida»), y coincide con lo que el watchdog ya dice por comentario. No se usa «hoy + 1» como fecha de compromiso: esa re-arma el reloj y dejaría el board diciendo «vence mañana» de ítems que el watchdog ya marca vencidos (además, no distinguiría un ítem de 1 día de otro de 40).
+**Fecha que se pone (el punto que hay que dejar escrito)**: `dueDate` = **la fecha en que vence el gate**, es decir **24 h** desde la última vez que el ítem recibió una etiqueta de gate (feed del ítem; con fallback a `statusSince`, desde cuándo espera en su columna; MSF-997 corrigió el ancla original, que era sólo `statusSince`) del contrato de vitalidad, expresada como fecha en `America/Argentina/Buenos_Aires`. Con la granularidad del tracker (fecha, no hora) un gate abierto hoy vence mañana. Para los gates que ya vencieron, la fecha queda en el pasado: eso es lo que **hace visible que están vencidos**, que es justamente lo que el reporte pide («ni forma de saber que la decisión está vencida»), y coincide con el momento en que el watchdog empieza a contar el gate (la etiqueta), no con `statusSince`, que puede diferir días. No se usa «hoy + 1» como fecha de compromiso: esa re-arma el reloj y dejaría el board diciendo «vence mañana» de ítems que el watchdog ya marca vencidos (además, no distinguiría un ítem de 1 día de otro de 40).
 
 **Alternativas descartadas**:
 - *Una migración o un cambio en la app*: el `dueDate` es un campo del tracker, no de la base de este producto; no hay esquema ni pantalla que tocar.
@@ -76,7 +76,7 @@ Confianza: alta (medido arriba sobre el board real y sobre el contrato de la API
 - La regla del gate: entra lo que tiene `gate`/`decision`/`escala-humano`; no entra lo demás.
 - La regla de la espera: no entra lo que ya está en una columna terminal (`stateType = completed`) ni lo archivado.
 - Idempotencia: un ítem que ya tiene `dueDate` no se toca (ni se vuelve a escribir).
-- La fecha: `statusSince + 24 h` en `America/Argentina`, con el borde de medianoche; si falta `statusSince`, se usa `createdAt`.
+- La fecha: 24 h desde la última etiqueta de gate (fallback `statusSince`) en `America/Argentina/Buenos_Aires`, con el borde de medianoche; si falta `statusSince`, se usa `createdAt`.
 - La escritura: `PATCH /issues/{id}` con **sólo** `dueDate` (mandar `labelIds` reemplazaría las etiquetas del ítem: es un error que hay que hacer imposible).
 - La simulación no escribe; la aplicación escribe una vez por ítem y falla explícito si el board rechaza.
 
@@ -84,7 +84,7 @@ Confianza: alta (medido arriba sobre el board real y sobre el contrato de la API
 
 - **El board es un sistema externo**: la herramienta escribe en el tracker real. Por eso simula por defecto, y la aplicación es explícita (`--aplicar`) y reversible (`dueDate: null`).
 - **La fecha en el pasado**: los gates que ya vencieron quedan con fecha pasada (el tracker los muestra vencidos). Es lo que el reporte pide; el board ya tenía ítems así (MSF-520, `dueDate` 2026-10-22, sigue abierto) sin que el flujo se descontrolara.
-- **La fecha depende del reloj del board**: `statusSince` lo escribe el tracker, no el script, así que la fecha no depende de la máquina que corre la herramienta.
+- **La fecha depende del reloj del board**: `statusSince` y el feed los escribe el tracker, no el script, así que la fecha no depende de la máquina que corre la herramienta.
 - **Zona horaria**: el tracker guarda instantes en UTC; la fecha se calcula en `America/Argentina` (la del board).
 - **Lo que NO se arregla acá**: el orquestador sigue creando gates nuevos sin `dueDate`. La herramienta es un barrido idempotente y se puede volver a correr; elPrevention en la creación vive en el flujo del orquestador (otro repo), y queda anotado como seguimiento en la documentación, no como tarea de esta historia.
 
