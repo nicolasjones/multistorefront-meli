@@ -3545,9 +3545,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "82199094c37ae6cd41c52b1aaa1d32c5d1b2770c750f5b842a72bfc2cbcc2b2a",
-      "sourceHash": "4e1d1b10b0db140f4ea2c70826650e51a1bdd06b4441dd757411d9c1090720a0",
-      "sourceAt": "a2da28c33",
+      "pageHash": "2c18f2d093d9d9d62d07240a96deca638cc5266608bc2d0a8535aff1b539b482",
+      "sourceHash": "b45cdccff0201377f9a5a1a288ae02298e139a8bdb11752f29cb18aa72079798",
+      "sourceAt": "e1e4c9e48",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations/20261012140100_usuarios_organizacion_estado.sql",
@@ -3582,7 +3582,7 @@
         "scripts/verificar-hook-bloqueo.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "a2da28c33"
+      "commit": "e1e4c9e48"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
