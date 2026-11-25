@@ -1,5 +1,7 @@
 # Contrato: precio promocional en ventas (interno + RPC existentes)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 **Spec**: [../spec.md](../spec.md) · **Plan**: [../plan.md](../plan.md). Ninguna RPC nueva de `public`: se cambia el comportamiento de cuatro existentes (misma firma) y se agregan funciones `private`.
 
 ## `private.precio_linea_venta` (nueva)

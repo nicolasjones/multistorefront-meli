@@ -1,5 +1,7 @@
 # Contratos · Service cobro y avisos (MSF-232)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 Todas las RPC: esquema `public`, `security definer`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` en su migración. La organización y el actor salen de la sesión, nunca de un argumento. Errores: `42501` permiso, `22023` dato inválido, `P0002` no existe o no accesible, `55000` situación no válida; mensaje en castellano. Todo es **nuevo y aditivo**: no cambia la firma de nada existente (`BREAKING`: ninguno).
 
 ## F-SVC-13 · Cobro

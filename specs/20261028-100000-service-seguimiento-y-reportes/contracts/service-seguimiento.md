@@ -1,5 +1,7 @@
 # Contratos · Service seguimiento y reportes (MSF-124)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 Todas las RPC viven en `public`, llevan `revoke execute … from public, anon` y `grant execute … to authenticated` (salvo las marcadas «solo service_role»). Errores: validación `22023` con el campo en `hint`; sin permiso `42501`; situación no permitida `55000`; inexistente o tienda inaccesible `P0002`. **BREAKING: ninguno** — no se cambia la firma de ninguna función existente (`crear_reparacion`, `obtener_reparacion`, `listar_reparaciones` y `resolver_organizacion_reporte` quedan como están).
 
 ## F-SVC-20 · Adjuntos

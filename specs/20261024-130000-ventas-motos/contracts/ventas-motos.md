@@ -1,5 +1,7 @@
 # Contratos · Ventas motos (MSF-145)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 Todas las RPC: esquema `public`, `security definer`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` en su migración. La organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento. Lectura: `ventas` en `lectura` o `edicion` en la empresa. Registro/edición/marcar Enviado: `ventas` en `edicion` **y** rol efectivo `operador` o `administrador` en la empresa (o superadmin). Rendición: solo `administrador` (o superadmin). Errores: `42501` (permiso; también para un envío o comprobante inexistente o ajeno, para no revelar su existencia: el permiso se comprueba antes de cualquier bloqueo), `22023` (dato inválido), `23505` (duplicado), `40001` (conflicto), `55000` (envío rendido o de una factura anulada, de solo lectura; también rendir con la factura en borrador y abono), con mensaje en castellano. Todo lo de abajo es **nuevo** (no cambia ninguna firma existente).
 
 ## F-VTA-24

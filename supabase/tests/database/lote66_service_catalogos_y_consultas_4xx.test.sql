@@ -46,7 +46,6 @@ end $$;
 create temp table datos as
   select
     (select id from dominio.modelos_equipo where organizacion_id = '11111111-1111-1111-1111-111111111111' and equipo = 'Nintendo Switch' and modelo = 'Estándar') as modelo_uno,
-    (select id from dominio.modelos_equipo where organizacion_id = '22222222-2222-2222-2222-222222222222' limit 1) as modelo_dos,
     (select id from dominio.estados_reparacion where organizacion_id = '11111111-1111-1111-1111-111111111111' order by orden limit 1) as estado_uno;
 grant select on datos to public;
 create temp table reps (clave text primary key, id uuid);
