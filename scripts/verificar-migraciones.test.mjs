@@ -6,7 +6,8 @@ import path from 'node:path';
 import test from 'node:test';
 
 const script = path.resolve('scripts/verificar-migraciones.mjs');
-const SQL = 'select 1;\n';
+// Las migraciones NUEVAS deben traer su reversión (MSF-900): el fixture por omisión ya la incluye.
+const SQL = '-- Reversión: select 0;\nselect 1;\n';
 
 // Repo git temporal: `origin/dokploy` con las versiones `enBase` y el árbol con `nuevas` agregadas.
 function conRepo(enBase, nuevas, callback) {
@@ -383,4 +384,86 @@ test('una base normal (con barra o sin ella) no se rechaza por el guion', () => 
     assert.equal(correr(dir, ['--base', 'origin/dokploy']).status, 0);
     assert.equal(correr(dir, [], { GITHUB_BASE_REF: 'dokploy' }).status, 0);
   });
+});
+
+// --- MSF-900: reversión obligatoria en las migraciones NUEVAS ---
+const conNueva = (contenido, extra, callback) => conRepo(['20270101000000'], [], (dir) => {
+  writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_nueva.sql'), contenido);
+  extra?.(dir);
+  spawnSync('git', ['add', '.'], { cwd: dir });
+  callback(dir);
+});
+
+test('reversión: migración nueva sin marcador es error en un PR y nombra el archivo y cómo corregirlo', () => {
+  conNueva('select 1;\n', null, (dir) => {
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /20270201000000_nueva\.sql no documenta su reversión/);
+    assert.match(r.stderr, /-- Reversión: drop function/);
+    assert.match(r.stderr, /restaurar desde el backup de <motivo>/);
+  });
+});
+
+test('reversión: migración nueva con «Reversión: pasos» pasa', () => {
+  conNueva('-- Reversión: drop table t;\ncreate table if not exists t(id int);\n', null, (dir) => {
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 0, r.stderr);
+  });
+});
+
+test('reversión: «restaurar desde el backup de <motivo>» se acepta', () => {
+  conNueva('-- Reversión: restaurar desde el backup de la tabla t\ndelete from t where false;\n', null, (dir) => {
+    assert.equal(correr(dir, [], { GITHUB_BASE_REF: 'dokploy' }).status, 0);
+  });
+});
+
+test('reversión: «Reversión: ninguna» y «sin reversión» no valen', () => {
+  for (const marca of ['-- Reversión: ninguna', '-- sin reversión', '-- Reversión:']) {
+    conNueva(`${marca}\nselect 1;\n`, null, (dir) => {
+      const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+      assert.equal(r.status, 1, marca);
+      assert.match(r.stderr, /no documenta su reversión/);
+    });
+  }
+});
+
+test('reversión: fuera de un PR y contra la base de integración es sólo aviso', () => {
+  conNueva('select 1;\n', null, (dir) => {
+    const r = correr(dir);
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stderr, /aviso: .*no documenta su reversión/);
+  });
+});
+
+test('reversión: con --estricto es error', () => {
+  conNueva('select 1;\n', null, (dir) => {
+    assert.equal(correr(dir, ['--estricto']).status, 1);
+  });
+});
+
+test('reversión: --solo-idempotencia no la evalúa', () => {
+  conNueva('select 1;\n', null, (dir) => {
+    assert.equal(correr(dir, ['--solo-idempotencia'], { GITHUB_BASE_REF: 'dokploy' }).status, 0);
+  });
+});
+
+test('reversión: una migración histórica sin marcador que la rama no tocó no cuenta', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'verif-migr-'));
+  const git = (...a) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' });
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 't@t');
+    git('config', 'user.name', 't');
+    mkdirSync(path.join(dir, 'supabase/migrations'), { recursive: true });
+    writeFileSync(path.join(dir, 'supabase/migrations/20270101000000_historica.sql'), 'select 1;\n');
+    git('add', '.');
+    git('commit', '-qm', 'base');
+    git('update-ref', 'refs/remotes/origin/dokploy', 'HEAD');
+    writeFileSync(path.join(dir, 'supabase/migrations/20270201000000_nueva.sql'), '-- Reversión: drop table t;\nselect 2;\n');
+    git('add', '.');
+    const r = correr(dir, [], { GITHUB_BASE_REF: 'dokploy' });
+    assert.equal(r.status, 0, r.stderr);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
