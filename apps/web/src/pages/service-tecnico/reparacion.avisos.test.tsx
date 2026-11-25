@@ -199,7 +199,7 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     expect(document.getElementById(id as string)).toHaveTextContent('Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).')
   })
 
-  it('con la casilla tildada, un estado que cierra abre la entrega sin avisar y la casilla vuelve a «según el estado»', async () => {
+  it('con la casilla tildada, un estado que cierra abre la entrega sin avisar y la decisión de la casilla se conserva', async () => {
     mocks.listarEstados.mockResolvedValue([
       ESTADO('s-1', 'Recibido', 1),
       { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
@@ -213,8 +213,29 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     expect(await screen.findByLabelText(/Fecha de entrega/)).toBeInTheDocument()
     expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
     expect(mocks.cambiarEstadoReparacion).not.toHaveBeenCalled()
+    // La decisión explícita se conserva mientras el diálogo está abierto.
+    expect(casilla).toBeChecked()
+  })
+
+  it('destildar, elegir un estado que cierra y cancelar la entrega conserva la decisión: el siguiente cambio no avisa', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    fireEvent.click(casilla)
     expect(casilla).not.toBeChecked()
-    expect(screen.getByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
+    await elegirEstado('Entregado')
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
   })
 
   it('con la casilla tildada cambia primero el estado y después pide el aviso', async () => {

@@ -309,8 +309,8 @@ export function ServicioReparacion() {
     setErrorEstado(null)
     avisosCliente.descartarAvisoInformativo()
     if (elegido.cierra) {
-      // Los estados que cierran pasan por la entrega y no avisan: la decisión de la casilla no aplica y vuelve a «según el estado».
-      setAvisarAlCambiar(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
+      // Los estados que cierran pasan por la entrega y no avisan. La decisión de la casilla se conserva (si se cancela el
+      // diálogo no hubo cambio de estado); si la entrega se confirma la reparación queda cerrada y la casilla desaparece.
       setEstadoAEntregar(elegido)
       return
     }
