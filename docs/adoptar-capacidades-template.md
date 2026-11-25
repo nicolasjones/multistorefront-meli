@@ -19,6 +19,9 @@ que publica el template. Cada producto derivado conserva su propio
   obsoleta en el catálogo y mantener su historial.
 - Si cambia una ruta cubierta, incrementar la versión de esa capacidad. El CI
   ejecuta `pnpm template:capabilities:check` para exigirlo.
+- Las rutas deben ser las que un derivado necesita para que la capacidad funcione: todo import relativo de las Edge Functions
+  listadas y toda migración que ellas llamen. La prueba `pnpm test:template:adoption` falla si una ruta del catálogo no existe
+  o si un import relativo queda sin cubrir; una ruta omitida no exige subir la versión y el derivado no la recibe.
 - Un producto nuevo recibe el manifiesto vigente y ajusta `product` al nombre
   propio antes de empezar su dominio.
 - Tras validar una adopción en el producto, actualizar su versión en el
