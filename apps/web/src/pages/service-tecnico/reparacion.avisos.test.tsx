@@ -152,6 +152,43 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
   })
 
+  it('aviso automático sin correo conocido: nota neutra, sin la alerta de error «El cliente no tiene correo»', async () => {
+    mocks.clienteTieneCorreo.mockResolvedValue(null)
+    mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'sin_correo', aviso_id: null })
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    await elegirEstado('Reparado')
+    expect(await screen.findByText('No se avisó al cliente: no tiene correo cargado')).toBeInTheDocument()
+    expect(screen.queryByText('El cliente no tiene correo')).not.toBeInTheDocument()
+  })
+
+  it('aviso pedido a mano (casilla tildada) sin correo: mantiene el error visible', async () => {
+    mocks.clienteTieneCorreo.mockResolvedValue(null)
+    mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'sin_correo', aviso_id: null })
+    abrirDetalle()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Avisar al cliente' }))
+    await elegirEstado('Reparado')
+    expect(await screen.findByText('El cliente no tiene correo')).toBeInTheDocument()
+    expect(screen.queryByText('No se avisó al cliente: no tiene correo cargado')).not.toBeInTheDocument()
+  })
+
+  it('la casilla no queda indeterminada y un texto dice qué estados avisan solos (no los que cierran)', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    expect(casilla).not.toBePartiallyChecked()
+    expect(await screen.findByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
+    fireEvent.click(casilla)
+    expect(screen.getByText('Se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+    fireEvent.click(casilla)
+    expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+  })
+
   it('con la casilla tildada cambia primero el estado y después pide el aviso', async () => {
     abrirDetalle()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Avisar al cliente' }))

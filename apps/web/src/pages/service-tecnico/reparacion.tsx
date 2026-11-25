@@ -94,7 +94,8 @@ const AgregarRepuestoDialog = lazy(() =>
 
 // «Avisar al cliente» al cambiar de estado: sin tocar la casilla (null) se avisa solo si el estado DESTINO tiene
 // marcado «Avisa al cliente» (estados_reparacion.avisa_cliente); la persona puede tildarla o destildarla para
-// decidir ella (true / false). Tras cada cambio de estado vuelve a «según el estado».
+// decidir ella (true / false). Como el estado destino se conoce recién al elegirlo, la casilla se ve marcada solo
+// con decisión explícita y un texto debajo dice qué estados avisan solos. Tras cada cambio vuelve a «según el estado».
 const AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO: boolean | null = null
 
 type TonoEtiqueta = Parameters<typeof EtiquetaEstado>[0]['variante']
@@ -252,6 +253,8 @@ export function ServicioReparacion() {
     if (avisoCobro) setExito(avisoCobro)
   }, [avisoCobro])
   const estadoActual = estados.find((estado) => estado.id === reparacion?.estado_id)
+  // Estados a los que, sin tocar la casilla, se avisa solo (los que cierran pasan por la entrega y no avisan).
+  const nombresEstadosQueAvisan = estados.filter((estado) => estado.activo && estado.avisa_cliente && !estado.cierra).map((estado) => estado.nombre)
   const estadosElegibles = estados.filter((estado) => estado.activo || estado.id === reparacion?.estado_id)
 
   const equipos = useMemo(() => {
@@ -303,6 +306,7 @@ export function ServicioReparacion() {
     const elegido = estados.find((estado) => estado.id === estadoId)
     if (!elegido) return
     setErrorEstado(null)
+    avisosCliente.descartarAvisoInformativo()
     if (elegido.cierra) {
       setEstadoAEntregar(elegido)
       return
@@ -316,9 +320,11 @@ export function ServicioReparacion() {
       return
     }
     // El aviso va DESPUÉS del cambio y nunca lo revierte (FR-025): si falla, el estado queda y se informa el error.
+    // Si la persona no tocó la casilla el aviso es automático (lo marca el estado): sin correo es una nota, no un error.
+    const automatico = avisarAlCambiar === null
     const avisar = avisarAlCambiar ?? elegido.avisa_cliente
     setAvisarAlCambiar(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
-    if (avisar && puedeAvisar) await avisosCliente.avisar()
+    if (avisar && puedeAvisar) await avisosCliente.avisar(undefined, { automatico })
     setCambiandoEstado(false)
   }
 
@@ -477,6 +483,7 @@ export function ServicioReparacion() {
               <CardContent>
                 <Stack spacing={2}>
                   {errorEstado ? <Alert severity="error">{errorEstado}</Alert> : null}
+                  {avisosCliente.avisoInformativo ? <Alert severity="info">{avisosCliente.avisoInformativo}</Alert> : null}
                   {avisosCliente.errorAvisar && avisosCliente.errorAvisar !== MENSAJE_CLIENTE_SIN_CORREO ? (
                     <Alert severity="error">{avisosCliente.errorAvisar}</Alert>
                   ) : null}
@@ -508,13 +515,23 @@ export function ServicioReparacion() {
                       control={
                         <Checkbox
                           checked={avisarAlCambiar === true && !clienteSinCorreo}
-                          indeterminate={avisarAlCambiar === null && !clienteSinCorreo}
                           onChange={(evento) => setAvisarAlCambiar(evento.target.checked)}
                           disabled={!puedeCambiarEstado || clienteSinCorreo}
                         />
                       }
                       label="Avisar al cliente"
                     />
+                  ) : null}
+                  {puedeEditar && !cerrada && !clienteSinCorreo ? (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: '-8px !important' }}>
+                      {avisarAlCambiar === true
+                        ? 'Se avisará al cliente al cambiar el estado.'
+                        : avisarAlCambiar === false
+                          ? 'No se avisará al cliente al cambiar el estado.'
+                          : nombresEstadosQueAvisan.length > 0
+                            ? `Si no la tocás, se avisa solo al pasar a: ${nombresEstadosQueAvisan.join(', ')}.`
+                            : 'Si no la tocás, no se avisa: ningún estado tiene «Avisa al cliente».'}
+                    </Typography>
                   ) : null}
                   <Box>
                     <Typography component="h3" variant="t3" sx={{ mb: 1 }}>Historial de estados</Typography>

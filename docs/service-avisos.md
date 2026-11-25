@@ -19,7 +19,7 @@ F-SVC-14 (MSF-424) · épica MSF-232 · spec `specs/20261028-100000-service-cobr
 Cuando una reparación cambia de estado, el taller puede **avisar por correo al cliente**. El aviso nunca bloquea ni
 revierte el cambio de estado: la pantalla primero cambia el estado y **después** pide el aviso; si el aviso falla, el
 estado queda cambiado y se informa el error. El detalle de la reparación (`/service-tecnico/reparaciones/:id`) tiene
-la casilla **«Avisar al cliente»** junto al selector de estado (destildada por defecto), el botón **«Avisar al
+la casilla **«Avisar al cliente»** junto al selector de estado (se avisa según el estado destino: si el estado tiene «Avisa al cliente» se avisa sin tocarla; se puede tildar o destildar; los estados que cierran no avisan), el botón **«Avisar al
 cliente»** del encabezado (avisa el estado actual sin cambiarlo) y la sección **«Avisos al cliente»** con el
 historial (Pendiente / Enviado / Fallido) y **«Reenviar»**.
 

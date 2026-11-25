@@ -56,8 +56,8 @@ empresa). `service_tecnico` es una sección a nivel organización.
 - **Listado de reparaciones** con filtros, ítems e impresión: MSF-199. Aquí la pestaña Reparaciones solo ofrece
   «Nueva reparación».
 - **Avisos al cliente:** los indicadores «Avisa al cliente» y «Cierra la reparación» se guardan y se muestran. Al
-  cambiar una reparación a un estado con «Avisa al cliente», la casilla «Avisar al cliente» queda marcada por defecto
-  (se puede destildar).
+  cambiar una reparación a un estado con «Avisa al cliente», se avisa al cliente sin tocar la casilla
+  «Avisar al cliente» (se puede tildar o destildar). Los estados que cierran la reparación (entrega) no avisan.
 - **Matriz de permisos editable:** enero (MSF-121 / F-ROL-02).
 - Migración de reparaciones históricas del panel actual y apagado del panel (31/12): no se especifican aquí
   (TODO dueño: Nicolás, decisión de negocio).
