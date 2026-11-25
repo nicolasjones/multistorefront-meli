@@ -48,7 +48,7 @@ depósito. Cada cuenta se habilita por empresa («Disponible en»). Spec:
 
 ## RPC (`public`, `security invoker`, `grant … to authenticated`, `revoke … from public, anon`)
 
-- `crear_cuenta_cobro(...)`, `actualizar_cuenta_cobro(p_id, p_actualizado_en, ...)` (bloqueo optimista: `40001`
+- `crear_cuenta_cobro(...)`, `actualizar_cuenta_cobro(p_id, p_actualizado_en, ...)` (bloqueo optimista: `PT412`, antes `40001`
   si otra persona modificó la cuenta; un cambio solo de empresas también avanza `updated_at`) y
   `cambiar_estado_cuenta_cobro(p_id, p_activa)` (idempotente).
 - `listar_cuentas_cobro(p_empresa_id, p_estado, p_pagina, p_tamano)`: pagina y filtra en el servidor

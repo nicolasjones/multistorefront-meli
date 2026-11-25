@@ -3,7 +3,7 @@
 -- (siembra por organización y matriz por rol), FR-022 (transición permitida/negada por rol, idempotencia, bloqueo
 -- optimista, evento), FR-025 (historial y aislamiento) y FR-026 (Cobrado/Deuda solo por la función `private`).
 -- `rls_en_toda_tabla` / `aislamiento_organizaciones` recorren la tabla nueva sin tocarla. La concurrencia real (dos
--- sesiones) no cabe en una transacción de pgTAP: se prueba el bloqueo optimista (fecha vieja = 40001) y que la RPC
+-- sesiones) no cabe en una transacción de pgTAP: se prueba el bloqueo optimista (fecha vieja = PT412) y que la RPC
 -- toma la fila `for update` (la segunda ve lo que dejó la primera: idempotencia).
 begin;
 

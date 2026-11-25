@@ -207,7 +207,7 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `PT404` no existe (HTTP 404; antes `P0002`, que
 el cliente sigue aceptando) · `55000` documento cerrado · `PT412` conflicto de edición (HTTP 412; antes `40001`, que el cliente sigue
-aceptando; la guarda `precios_cambiaron` de `confirmar_comprobante` conserva `40001`) · `P0001` con `hint = 'stock'` sin stock suficiente al confirmar (otro P0001 es un error interno; el front no lo toma por faltante) (el mensaje nombra producto y
+aceptando; la guarda `precios_cambiaron` de `confirmar_comprobante` conserva `40001`; `copiar_presupuesto` y `facturar_presupuesto` siguen con `P0002`; qué funciones usan cada código: [errores de negocio](errores-negocio-postgrest.md)) · `P0001` con `hint = 'stock'` sin stock suficiente al confirmar (otro P0001 es un error interno; el front no lo toma por faltante) (el mensaje nombra producto y
 depósito). `apps/web/src/lib/ventas.ts` los traduce a mensajes en castellano.
 
 ## Confirmación y stock (F-VTA-07)

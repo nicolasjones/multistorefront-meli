@@ -196,8 +196,8 @@ describe('RegistrarFaltantesDialog (F-VTA-18, FR-047)', () => {
     expect(onCerrar).not.toHaveBeenCalled()
   })
 
-  it('si otro cambió el comprobante avisa el conflicto, recarga y deja el diálogo abierto', async () => {
-    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'Alguien modificó el comprobante' } })
+  it.each(['40001', 'PT412'])('si otro cambió el comprobante avisa el conflicto, recarga y deja el diálogo abierto (%s)', async (code) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'Alguien modificó el comprobante' } })
     const { onRegistrado, onCerrar, onConflicto } = abrir()
     fireEvent.change(cantidadDeLaLinea(1), { target: { value: '1' } })
     fireEvent.click(screen.getByRole('button', { name: 'Registrar faltantes' }))

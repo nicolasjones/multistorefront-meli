@@ -13,7 +13,7 @@
 --     entregada.
 --   · Transporte inactivo, de otra tienda o de otra organización: se rechaza.
 --   · Permiso: la acción `despachar` o Ventas en `edicion`, resueltos en la empresa del comprobante.
---   · Bloqueo optimista (`40001`), idempotencia y guía de más de 100 caracteres.
+--   · Bloqueo optimista (`PT412`), idempotencia y guía de más de 100 caracteres.
 --   · La fecha que no viene es el día de Argentina (`private.hoy_argentina`), no el del servidor en UTC.
 --   · Presupuesto, borrador y factura ya entregada: se rechazan sin cambios.
 --   · Aislamiento por organización y por empresa.
@@ -555,7 +555,7 @@ select is(
 select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e1000000-0000-0000-0000-000000000001', 'AR555', '2026-12-14', '2026-01-01T00:00:00Z'::timestamptz)$$,
     pg_temp.id_de('f1')),
-  '40001', null, 'un updated_at viejo da conflicto de edición');
+  'PT412', null, 'un updated_at viejo da conflicto de edición');
 
 select throws_ok(
   $$select pg_temp.guardar('f1', 'e1000000-0000-0000-0000-000000000001', repeat('X', 101), '2026-12-14')$$,
@@ -584,7 +584,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e2000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
-  'P0002', null, 'otra organización no registra el envío de esta factura');
+  'PT404', null, 'otra organización no registra el envío de esta factura');
 
 -- ============================================================================
 -- FR-022 · Al entregar, la forma de envío que exige transporte y guía se respeta
@@ -893,7 +893,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   pg_temp.sql_entregar('f10', 'f1000000-0000-0000-0000-000000000002'),
-  'P0002', null, 'otra organización no entrega esta factura');
+  'PT404', null, 'otra organización no entrega esta factura');
 
 -- El Depósito sí la entrega.
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
@@ -997,14 +997,14 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   pg_temp.sql_leer('f1'),
-  'P0002', null, 'otra organización no lee el envío de esta factura');
+  'PT404', null, 'otra organización no lee el envío de esta factura');
 
 -- Un comprobante que no existe no tiene envío.
 select pg_temp.como('f1000000-0000-0000-0000-000000000004');
 
 select throws_ok(
   $$select public.obtener_envio_comprobante('00000000-0000-0000-0000-000000000000')$$,
-  'P0002', null, 'un comprobante que no existe no tiene envío');
+  'PT404', null, 'un comprobante que no existe no tiene envío');
 
 -- ============================================================================
 -- `anon` sin acceso

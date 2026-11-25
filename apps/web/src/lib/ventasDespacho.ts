@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Estado del despacho de una factura (F-VTA-15, MSF-152, FR-003…FR-011). La autoridad es la base:
@@ -178,9 +179,9 @@ function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
 export function mensajeDeErrorDespacho(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_DESPACHO, e?.code ?? 'sin código')
-  if (e?.code === '40001') return MENSAJE_CONFLICTO_DESPACHO
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_DESPACHO
   if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
-  if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_DESPACHO
 }
 
@@ -216,7 +217,7 @@ export async function listarResponsablesDespacho(
   return (Array.isArray(data) ? data : []) as ResponsableDespacho[]
 }
 
-// Avanza el despacho. `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// Avanza el despacho. `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export async function cambiarEstadoDespacho(datos: {
   id: string
   estado: EstadoDespacho

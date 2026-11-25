@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('./supabase', () => ({ supabaseClient: { rpc: mocks.rpc } }))
 
 import {
+  esConflictoDeFaltantes,
   avisarFaltantesVenta,
   estadoStockHoy,
   avisoFallido,
@@ -165,6 +166,8 @@ describe('ventasFaltantes · registro de faltantes (FR-047)', () => {
 describe('ventasFaltantes · mensajes de error', () => {
   it('traduce el conflicto de edición, el permiso y el estado', () => {
     expect(mensajeDeErrorFaltantes({ code: '40001' }, MENSAJE_ERROR_REGISTRAR)).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeErrorFaltantes({ code: 'PT412' }, MENSAJE_ERROR_REGISTRAR)).toBe(MENSAJE_CONFLICTO)
+    expect(esConflictoDeFaltantes({ code: 'PT412' })).toBe(true)
     expect(mensajeDeErrorFaltantes({ code: '42501' }, MENSAJE_ERROR_REGISTRAR)).toBe(MENSAJE_SIN_PERMISO)
     expect(mensajeDeErrorFaltantes({ code: '55000' }, MENSAJE_ERROR_REGISTRAR)).toBe(MENSAJE_FUERA_DE_ESTADO)
   })

@@ -125,6 +125,7 @@ describe('errores del cobro', () => {
   it('traduce cada código de la base a un mensaje en castellano', () => {
     expect(mensajeDeErrorCobro({ code: '42501' }, 'x')).toContain('No tenés permiso para registrar cobros')
     expect(mensajeDeErrorCobro({ code: 'P0002' }, 'x')).toBe('Ese comprobante no existe o no pertenece a tu organización.')
+    expect(mensajeDeErrorCobro({ code: 'PT404' }, 'x')).toBe('Ese comprobante no existe o no pertenece a tu organización.')
     expect(mensajeDeErrorCobro({ code: 'P0001' }, 'x')).toBe('El importe supera el saldo pendiente de la factura.')
     expect(mensajeDeErrorCobro({ code: '55000' }, 'x')).toBe('Esta factura no admite cobros: está en borrador o anulada.')
     expect(mensajeDeErrorCobro({ code: '22023', message: 'Cuenta inactiva' }, 'x')).toBe('Cuenta inactiva')
@@ -216,6 +217,7 @@ describe('revertir un cobro', () => {
 
   it('traduce los códigos de la base sin filtrar mensajes técnicos', () => {
     expect(mensajeDeErrorReversion({ code: '42501', message: 'x' }, 'por defecto')).toMatch(/Solo el administrador/)
+    expect(mensajeDeErrorReversion({ code: 'PT404' }, 'por defecto')).toMatch(/ya no existe/)
     expect(mensajeDeErrorReversion({ code: '55000', message: 'El cobro ya fue revertido' }, 'por defecto')).toBe('El cobro ya fue revertido')
     expect(mensajeDeErrorReversion({ code: 'XX000', message: 'relation x' }, 'por defecto')).toBe('por defecto')
   })

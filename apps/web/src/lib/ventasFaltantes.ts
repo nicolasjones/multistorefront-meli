@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 import { ESTADOS_STOCK, type EstadoStock } from './stock'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
@@ -184,10 +185,10 @@ const PREFIJOS_MENSAJE_DE_LA_RPC = [
 type ErrorDeBase = { code?: string; message?: string } | null
 
 /**
- * El bloqueo optimista devolvió `40001`: otra persona cambió el comprobante mientras el diálogo estaba abierto.
+ * El bloqueo optimista devolvió `PT412` (antes `40001`): otra persona cambió el comprobante mientras el diálogo estaba abierto.
  * La pantalla tiene que releerlo para que el reintento no vuelva a fallar con el `updated_at` vencido.
  */
-export const esConflictoDeFaltantes = (error: unknown): boolean => (error as ErrorDeBase)?.code === '40001'
+export const esConflictoDeFaltantes = (error: unknown): boolean => esCodigoDeConflicto((error as ErrorDeBase)?.code)
 
 function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
   const mensaje = error?.message
@@ -198,8 +199,8 @@ function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
 export function mensajeDeErrorFaltantes(error: unknown, porDefecto: string): string {
   const e = error as ErrorDeBase
   console.error(porDefecto, e?.code ?? 'sin código')
-  if (e?.code === '40001') return MENSAJE_CONFLICTO
-  if (e?.code === 'P0002') return MENSAJE_COMPROBANTE_INEXISTENTE
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO
+  if (e?.code === 'P0002' || e?.code === 'PT404') return MENSAJE_COMPROBANTE_INEXISTENTE
   if (e?.code === '55000') return MENSAJE_FUERA_DE_ESTADO
   if (e?.code === '42501') return MENSAJE_SIN_PERMISO
   if (e?.code === '22023' && esMensajeDeLaRpc(e)) return e.message
@@ -249,7 +250,7 @@ export async function listarFaltantes({
 
 /**
  * Registra los faltantes de una factura y la deja Incompleto (FR-041).
- * `actualizadoEn` es el `updated_at` leído al abrir el comprobante (bloqueo optimista, 40001 ante conflicto).
+ * `actualizadoEn` es el `updated_at` leído al abrir el comprobante (bloqueo optimista, PT412 ante conflicto, antes 40001).
  */
 export async function registrarFaltantes({
   comprobanteId,

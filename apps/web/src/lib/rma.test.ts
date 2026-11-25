@@ -57,6 +57,7 @@ describe('mensajes', () => {
     expect(mensajeDeRma({ code: '22023', message: 'No podés devolver más de lo vendido.' })).toBe('No podés devolver más de lo vendido.')
     expect(mensajeDeRma({ code: '22023', message: 'invalid input' })).toBe(MENSAJE_ERROR_RMA)
     expect(mensajeDeRma({ code: 'P0002' })).toMatch(/factura no existe/)
+    expect(mensajeDeRma({ code: 'PT404' })).toMatch(/factura no existe/)
   })
 
   it('mensajeDeCambioEstadoRma cubre conflicto, permiso, inexistente y genérico', () => {

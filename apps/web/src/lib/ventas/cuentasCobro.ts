@@ -2,6 +2,7 @@
 // 20261020120000_cuentas_cobro.sql … 20261020120300_cuentas_cobro_actividad.sql; acá se espejan solo para
 // validar en el formulario antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
+import { esCodigoDeConflicto } from '../mensajeErrorBase'
 import { normalizarCuit, validarCuit } from '../cuit'
 import { normalizarCbu, validarCbu } from './cbu'
 
@@ -152,7 +153,7 @@ export function aParametrosCrear(formulario: FormularioCuentaCobro): ParametrosC
   }
 }
 
-// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export type ParametrosActualizarCuentaCobro = ParametrosCrearCuentaCobro & { p_id: string; p_actualizado_en: string }
 
 export function aParametrosActualizar(
@@ -165,7 +166,7 @@ export function aParametrosActualizar(
 type ErrorBase = { code?: string; message?: string } | null
 
 export function esConflicto(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
@@ -174,8 +175,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   const code = (error as ErrorBase)?.code
   console.error(porDefecto, code ?? 'sin código')
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'La cuenta de cobro ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'La cuenta de cobro ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'Solo un Administrador puede hacer esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (code === '22023' || code === '23514') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
   return porDefecto

@@ -200,14 +200,14 @@ describe('Detalle · «Registrar faltantes» (F-VTA-18, FR-047)', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
-  it('si otro cambió el comprobante lo recarga y el reintento usa el comprobante vigente', async () => {
-    // La primera llamada choca (40001); la segunda, con el comprobante recargado, se registra.
+  it.each(['40001', 'PT412'])('si otro cambió el comprobante lo recarga y el reintento usa el comprobante vigente (%s)', async (code) => {
+    // La primera llamada choca (PT412 o el 40001 histórico); la segunda, con el comprobante recargado, se registra.
     let intentos = 0
     mocks.rpc.mockImplementation(async (fn: string) => {
       if (fn !== 'registrar_faltantes_despacho') return { data: null, error: null }
       intentos += 1
       return intentos === 1
-        ? { data: null, error: { code: '40001', message: 'Alguien modificó el comprobante' } }
+        ? { data: null, error: { code, message: 'Alguien modificó el comprobante' } }
         : { data: null, error: null }
     })
     // La recarga devuelve el comprobante con el `updated_at` vigente: el reintento ya no usa el token vencido.

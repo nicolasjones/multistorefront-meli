@@ -251,6 +251,8 @@ describe('Validación de la guía', () => {
 describe('Mensajes de error', () => {
   it('el conflicto de concurrencia avisa que hay que recargar', () => {
     expect(mensajeDeErrorEnvio({ code: '40001' })).toBe(MENSAJE_CONFLICTO_ENVIO)
+    expect(mensajeDeErrorEnvio({ code: 'PT412' })).toBe(MENSAJE_CONFLICTO_ENVIO)
+    expect(mensajeDeErrorEnvio({ code: 'PT404' })).toMatch(/no existe/)
   })
 
   it('muestra el mensaje en castellano de la RPC cuando es de los conocidos', () => {

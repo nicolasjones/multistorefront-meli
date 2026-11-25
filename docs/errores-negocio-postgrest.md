@@ -10,6 +10,7 @@ sources:
   - supabase/migrations/20270507180500_obtener_reparacion_responde_404.sql
   - supabase/migrations/20270507310000_aceptar_presupuesto_responde_4xx.sql
   - supabase/migrations/20270507340000_comprobantes_responden_4xx.sql
+  - supabase/migrations/20270507350000_despacho_y_cobros_responden_4xx.sql
   - apps/web/src/lib/estadosComprobante.ts
   - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
@@ -117,8 +118,18 @@ Convención ampliada:
 - **El cliente acepta el código viejo y el nuevo** (`esCodigoDeConflicto` y el mapeo de cada módulo), porque migración y despliegue
   de la web no son simultáneos. Cuando todas las pantallas lean solo el código nuevo se puede retirar el viejo.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (despacho, productos,
-cobros, Service, catálogo, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
+## Cuarta ola: despacho, envíos y cobros (MSF-654 y MSF-655, parciales)
+
+Misma regla (`P0002` a `PT404`, `40001` a `PT412`, mensaje intacto) para `cambiar_estado_despacho`, `registrar_faltantes_despacho`,
+`guardar_envio_comprobante`, `obtener_despacho_comprobante`, `obtener_envio_comprobante`, `listar_responsables_despacho`,
+`registrar_cobro`, `revertir_cobro`, `actualizar_forma_pago`, `actualizar_cuenta_cobro`, `cambiar_estado_forma_pago` y
+`cambiar_estado_cuenta_cobro`. Ninguna es llamable por `anon` ni la consume Kestra, un worker o una Edge Function; el cliente
+acepta los dos códigos. Antes de copiar un cuerpo hay que comprobar que ningún barrido posterior lo reescribió en la base
+(`20270418000401` cambió `public.clientes` por `dominio.clientes`): ya falló una vez en CI por eso.
+
+Familias hechas: comprobantes de venta, despacho y cobros. Queda para próximas olas (los tickets siguen abiertos): el resto de
+las funciones con `P0002` y `40001` (productos, Service, catálogo, envíos de moto, transportes, formas de envío, contrarreembolsos,
+pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
 `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.

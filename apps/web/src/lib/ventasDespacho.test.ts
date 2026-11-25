@@ -60,6 +60,8 @@ describe('mensajeDeErrorDespacho', () => {
 
   it('conflicto, mensajes de la RPC, inexistente y genérico', () => {
     expect(mensajeDeErrorDespacho({ code: '40001' })).toBe(MENSAJE_CONFLICTO_DESPACHO)
+    expect(mensajeDeErrorDespacho({ code: 'PT412' })).toBe(MENSAJE_CONFLICTO_DESPACHO)
+    expect(mensajeDeErrorDespacho({ code: 'PT404' })).toMatch(/no existe/)
     expect(mensajeDeErrorDespacho({ code: '22023', message: 'Elegí quién arma el pedido.' })).toBe('Elegí quién arma el pedido.')
     expect(mensajeDeErrorDespacho({ code: '42501', message: 'permission denied for table x' })).toBe(MENSAJE_ERROR_DESPACHO)
     expect(mensajeDeErrorDespacho({ code: 'P0002' })).toMatch(/no existe/)
@@ -91,5 +93,7 @@ describe('llamadas a la base', () => {
     expect(mocks.rpc).toHaveBeenCalledWith('cambiar_estado_despacho', { p_id: 'c1', p_estado: 'armando', p_responsable_id: 'u1', p_actualizado_en: 'v1' })
     mocks.rpc.mockResolvedValue({ error: { code: '40001' } })
     await expect(cambiarEstadoDespacho({ id: 'c1', estado: 'armando', responsableId: 'u1', actualizadoEn: 'v0' })).rejects.toMatchObject({ code: '40001' })
+    mocks.rpc.mockResolvedValue({ error: { code: 'PT412' } })
+    await expect(cambiarEstadoDespacho({ id: 'c1', estado: 'armando', responsableId: 'u1', actualizadoEn: 'v0' })).rejects.toMatchObject({ code: 'PT412' })
   })
 })

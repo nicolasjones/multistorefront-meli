@@ -67,6 +67,8 @@ describe('errores de las formas de pago', () => {
 
   it('traduce los códigos de la base', () => {
     expect(mensajeDeError({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeError({ code: 'PT412' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeError({ code: 'PT404' }, 'x')).toContain('La forma de pago ya no existe')
     expect(mensajeDeError({ code: '23505' }, 'x')).toBe(MENSAJE_NOMBRE_REPETIDO)
     expect(mensajeDeError({ code: 'P0002' }, 'x')).toContain('La forma de pago ya no existe')
     expect(mensajeDeError({ code: '42501' }, 'x')).toContain('No tenés permiso')
@@ -82,6 +84,7 @@ describe('errores de las formas de pago', () => {
 
   it('reconoce el conflicto por su código', () => {
     expect(esConflicto({ code: '40001' })).toBe(true)
+    expect(esConflicto({ code: 'PT412' })).toBe(true)
     expect(esConflicto({})).toBe(false)
   })
 })

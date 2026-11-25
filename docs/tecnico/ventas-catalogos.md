@@ -88,7 +88,7 @@ renumeraron al reconstruir la épica sobre `main`; los nombres de archivo son la
 - La **organización sale de la sesión** (`private.organizacion_id()`); el llamador no la fija.
 - **Nombre único**: `(empresa_id, lower(nombre))` en pago y envío; `(organizacion_id,
   lower(btrim(nombre)))` en transportes (incluye inactivos).
-- **`updated_at`** avanza solo ante un cambio real y sostiene el bloqueo optimista (`40001`). Un cambio
+- **`updated_at`** avanza solo ante un cambio real y sostiene el bloqueo optimista (`PT412` en formas de pago y cuentas de cobro; `40001` en formas de envío y transportes: ver [errores de negocio](../errores-negocio-postgrest.md)). Un cambio
   solo de empresas habilitadas también lo avanza.
 - **No hay DELETE** de catálogos: se desactivan. La única tabla con política y grant DELETE es
   `transportes_empresas` (su RPC reemplaza el conjunto); `cuentas_cobro_empresas` también se reemplaza,
@@ -114,7 +114,7 @@ acciones; la autoridad es la base. La sección `ventas` se resuelve por la empre
 
 Todas en `public`, `security invoker` salvo los ayudantes indicados, `search_path = ''` y grants
 explícitos. Errores: `42501` permiso · `22023`/`23514` validación (`hint` no usado en estas RPC) ·
-`P0002` no existe · `40001` conflicto · `23505` nombre repetido.
+`PT404` no existe · `PT412` conflicto de edición (en las RPC de formas de pago y cuentas de cobro; las demás de catálogos siguen con `P0002`/`40001`: ver [errores de negocio](../errores-negocio-postgrest.md)) · `23505` nombre repetido.
 
 | RPC | Contrato |
 |---|---|

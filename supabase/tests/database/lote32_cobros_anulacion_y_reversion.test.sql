@@ -133,7 +133,7 @@ select throws_ok(
 -- MSF-667: revertir_cobro, permisos y validaciones
 -- ============================================================================
 select throws_ok(format($$select public.revertir_cobro(%L, 'Cobro mal cargado')$$, 'c0b00000-0000-0000-0000-000000000001'),
-  'P0002', 'El cobro no existe', 'el administrador de OTRA organización no revierte un cobro ajeno (responde como si no existiera)');
+  'PT404', 'El cobro no existe', 'el administrador de OTRA organización no revierte un cobro ajeno (responde como si no existiera)');
 select pg_temp.como('d1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.revertir_cobro(%L, 'Cobro mal cargado')$$, 'c0b00000-0000-0000-0000-000000000001'),
   '42501', 'Solo el administrador puede revertir un cobro', 'Mostrador (aunque cobre) no revierte');
@@ -158,7 +158,7 @@ select throws_ok(format($$select public.revertir_cobro(%L, null)$$, 'c0b00000-00
 select throws_ok(format($$select public.revertir_cobro(%L, %L)$$, 'c0b00000-0000-0000-0000-000000000001', repeat('x', 301)),
   '22023', 'El motivo de la reversión no puede superar los 300 caracteres', 'el motivo no supera 300');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, '00000000-0000-0000-0000-0000000000ff'),
-  'P0002', 'El cobro no existe', 'un cobro inexistente');
+  'PT404', 'El cobro no existe', 'un cobro inexistente');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, 'c0b00000-0000-0000-0000-000000000003'),
   '55000', 'El cobro está conciliado: revertí primero la conciliación', 'un cobro conciliado no se revierte');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, 'c0b00000-0000-0000-0000-000000000004'),

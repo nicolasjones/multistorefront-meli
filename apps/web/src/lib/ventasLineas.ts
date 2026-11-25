@@ -188,7 +188,7 @@ export function aLineas(dato: unknown): LineaComprobante[] {
 }
 
 // Reemplaza todas las líneas del comprobante. Quien llama relee el comprobante después (los precios, la escala y
-// los totales los calcula la base). `actualizadoEn` es el bloqueo optimista: un cambio ajeno da 40001.
+// los totales los calcula la base). `actualizadoEn` es el bloqueo optimista: un cambio ajeno da PT412 (antes 40001).
 export async function guardarLineasComprobante(comprobanteId: string, entradas: readonly EntradaLinea[], actualizadoEn: string): Promise<void> {
   const { error } = await supabaseClient.rpc('guardar_lineas_comprobante', {
     p_id: comprobanteId,

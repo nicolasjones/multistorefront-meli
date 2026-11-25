@@ -2,6 +2,9 @@
 
 Todas las RPC: esquema `public`, `security definer`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` explícito en su migración. La organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento. Las de escritura exigen `private.puede_accion('ventas','despachar')` (o, en `guardar_envio_comprobante`, `edicion` de Ventas en la empresa) y que el comprobante sea una `factura` `confirmada`; las de lectura, `ventas` en `lectura`/`edicion` y empresa accesible. Errores: `42501` (permiso), `22023` (dato inválido), `P0002` (no existe), `55000` (transición no permitida), `40001` (conflicto de `p_actualizado_en`), con mensaje en castellano. Nombres y firmas de objetos de MSF-159 (`confirmar_comprobante`, `comprobantes_venta_lineas`) se re-verifican contra `main` al implementar.
 
+
+> Nota: las RPC migradas (ver `docs/errores-negocio-postgrest.md`) responden `PT404` (no existe) y `PT412` (conflicto de edición) en lugar de `P0002`/`40001`; el contrato original se conserva como histórico.
+
 ## F-VTA-15 · Armado, control y entrega
 
 ```ts

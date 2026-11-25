@@ -2,6 +2,9 @@
 
 Todas las RPC: esquema `public`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` en su migración (las de lectura `security invoker` —salvo `historial_comprobante`, `security definer` porque `registro_actividad` exige la sección `actividad`; valida organización y `ventas` ≥ `lectura` en la empresa del comprobante—; las de escritura `security definer`). La organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento. Las de escritura exigen la acción indicada y, en F-VTA-10, `ventas` ≥ `lectura` en la empresa del comprobante: la matriz de transiciones por rol es la autoridad (Depósito tiene `ventas` en lectura y debe poder armar). Errores: `42501` (permiso), `22023` (dato inválido), `55000` (estado no válido), `P0001`/`40001` (conflicto o tope), con mensaje en castellano. Los tipos exactos de retorno de totales se verifican contra `main` al implementar.
 
+
+> Nota: las RPC migradas (ver `docs/errores-negocio-postgrest.md`) responden `PT404` (no existe) y `PT412` (conflicto de edición) en lugar de `P0002`/`40001`; el contrato original se conserva como histórico.
+
 ## F-VTA-10 · Estados
 
 - `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz) returns dominio.comprobantes_venta` — valida la transición en `dominio.transiciones_estado_comprobante` para el rol del actor en la empresa del comprobante; idempotente; rechaza `borrador`, `anulada`, presupuestos, `cobrado` y `deuda`.

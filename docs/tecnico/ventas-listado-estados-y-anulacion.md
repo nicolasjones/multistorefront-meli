@@ -133,7 +133,7 @@ la empresa del comprobante** (`private.nivel_ventas_en_empresa`).
 
 | RPC | Qué hace | Seguridad |
 |---|---|---|
-| `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Cambia el estado de una factura si la transición existe para el **rol del actor en la empresa del comprobante**. Idempotente (mismo estado = devuelve el actual, sin evento). Rechaza `borrador`/`anulada` (`55000`), presupuestos y estados inválidos (`22023`) y `cobrado`/`deuda` (`42501`). Bloqueo optimista por `updated_at` (`40001`) y fila `for update`. Registra `comprobante.estado_cambiado`. | `security definer` |
+| `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Cambia el estado de una factura si la transición existe para el **rol del actor en la empresa del comprobante**. Idempotente (mismo estado = devuelve el actual, sin evento). Rechaza `borrador`/`anulada` (`55000`), presupuestos y estados inválidos (`22023`) y `cobrado`/`deuda` (`42501`). Bloqueo optimista por `updated_at` (`PT412`; antes `40001`) y fila `for update`. Registra `comprobante.estado_cambiado`. | `security definer` |
 | `transiciones_permitidas_comprobante(p_id uuid)` | `text[]` con los estados a los que el rol de la sesión puede pasar hoy. **Informativa**: la autoridad es `cambiar_estado_comprobante`. | `security definer` |
 | `historial_comprobante(p_id uuid)` | `table (cuando timestamptz, accion text, quien text, empresa_id uuid, empresa text)`: los eventos del comprobante, más recientes primero. | `security definer` |
 | `private.marcar_estado_cobro_comprobante(p_id uuid, p_estado text)` | Pasa a `cobrado`/`deuda` con actor `sistema`. **Sin `grant` a `authenticated`**: es el punto de entrada de MSF-195 (F-VTA-12), que ya lo dispara con `private.registrar_cobro_interno`. | `security definer`, sin grant |
@@ -182,8 +182,8 @@ Reglas del listado:
 | `private.devolver_stock_nota_credito(p_nota_id uuid)` | Entrada al depósito de origen (solo «Devolución de productos»). Sin grant. | `security definer` |
 | `private.signo_comprobante(p_tipo text)` / `private.comprobante_cuenta_como_facturado(p_tipo text, p_estado text)` | **BREAKING interno**: la nota emitida cuenta como facturado **con signo negativo** en las sumas (la segunda ahora devuelve verdadero para `nota_credito`). | `immutable`, sin grant |
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno ·
-`55000` estado no válido · `40001` conflicto de edición · `P0001` con `hint = 'tope'` (excede lo acreditable) y
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno (`PT404` en las RPC de comprobantes desde `20270507340000`) ·
+`55000` estado no válido · `40001` conflicto de edición (`PT412` en anular y cambiar estado) · `P0001` con `hint = 'tope'` (excede lo acreditable) y
 `P0001` con `hint = 'stock'` (falta stock). Los mensajes de las RPC están en castellano.
 
 ## Reglas de negocio
@@ -328,7 +328,7 @@ Alcance: migraciones `20261212*`, worker, flow de Kestra y bucket. Resultado: **
 |---|---|
 | RPC de `public` | Las 11 RPC nuevas llevan `revoke … from public, anon` y `grant execute … to authenticated` explícitos. |
 | `security definer` | Todas con `set search_path = ''`; los ayudantes de `private` no se otorgan a `authenticated`, salvo los usados como política o desde RPC `invoker`. |
-| Concurrencia de stock | Factura y existencias `for update` en anulación, nota y reversión; bloqueo optimista por `updated_at` (`40001`); `pg_advisory_xact_lock` por usuario en la exportación. |
+| Concurrencia de stock | Factura y existencias `for update` en anulación, nota y reversión; bloqueo optimista por `updated_at` (`PT412` en anular y cambiar estado; ver [errores de negocio](../errores-negocio-postgrest.md)); `pg_advisory_xact_lock` por usuario en la exportación. |
 | Bucket | `exportaciones-ventas` privado, solo `text/csv`, tope 100 MB; lectura limitada a `<org>/<usuario>/…` del propio usuario con `exportar`. |
 | Worker / secretos | La `SUPABASE_SERVICE_ROLE_KEY` solo existe en el servidor; nunca llega al navegador ni a Git. |
 | Pendiente menor | `private.comprobante_cuenta_como_facturado` y `private.matriz_acciones_iniciales` son puras (`immutable`) y no tienen `revoke` explícito. Sin impacto: no exponen datos ni están en un esquema expuesto. |

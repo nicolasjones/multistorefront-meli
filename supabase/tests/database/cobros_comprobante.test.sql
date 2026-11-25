@@ -817,7 +817,7 @@ select throws_ok(
       'f1000000-0000-0000-0000-000000000001', 100,
       'b2000000-0000-0000-0000-00000000000e', null,
       null)$$,
-  'P0002', null, 'otra organización no puede cobrar una factura ajena'
+  'PT404', null, 'otra organización no puede cobrar una factura ajena'
 );
 reset role;
 

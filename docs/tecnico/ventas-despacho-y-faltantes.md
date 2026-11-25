@@ -107,7 +107,7 @@ stateDiagram-v2
   confirmar. No es ejecutable por `authenticated`.
 - **Transiciones (FR-003):** `cambiar_estado_despacho` solo admite las del diagrama. Un presupuesto, un borrador o una
   factura anulada se rechazan (`22023` / `55000`). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
-  sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (`40001`) y toma la fila
+  sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (`PT412`) y toma la fila
   `for update`, así dos cambios simultáneos no se pisan.
 - `entregado` es **terminal**. Una factura entregada **no se anula**: `anular_comprobante` responde `55000` («La factura ya fue entregada: corregí con nota de crédito o RMA», `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`). Ver [listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
 
@@ -176,7 +176,7 @@ Reglas de `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envi
 | Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
 | Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
 | Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (`42501`) |
-| Bloqueo optimista | `p_actualizado_en` desactualizado → `40001` |
+| Bloqueo optimista | `p_actualizado_en` desactualizado → `PT412` |
 | Idempotencia | Guardar lo mismo no escribe otra vez ni rompe el bloqueo de quien lo está mirando |
 | Guía | Texto de hasta 100 caracteres; en blanco = sin guía (`22023`) |
 | Fecha de envío | Si no viene, se toma la de hoy: el día de **Argentina** (`private.hoy_argentina()`), no el del servidor |
@@ -222,7 +222,7 @@ entera sin aplicar (todo o nada).
   - **Un faltante por línea**: si la línea ya tiene un faltante abierto, se **actualiza** con la cantidad nueva (no se
     duplica).
   - **Permiso:** la acción `despachar` de Ventas en la **empresa del comprobante**.
-  - **Bloqueo optimista** por `p_actualizado_en` (`40001`) y fila `for update`.
+  - **Bloqueo optimista** por `p_actualizado_en` (`PT412`) y fila `for update`.
   - Registra la actividad `despacho.faltante_registrado` con las líneas y las cantidades.
 - **Cierre (FR-042):** el disparador `comprobantes_venta_resolver_faltantes` pasa a `resuelto` los faltantes
   **abiertos** de la factura cuando `estado_despacho` va de `incompleto` a `armando`, y deja `resuelto_en`. Va en un
@@ -287,7 +287,7 @@ Ayudas internas (`private`, sin grant): `descontar_reservas_entrega(uuid)`, `eti
 `puede_despachar_en_empresa(uuid, uuid)`, `puede_leer_faltantes_empresa(uuid)` y `nivel_ventas_en_empresa(uuid)`.
 
 Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido
-· `55000` transición no permitida o factura sin estado de despacho · `P0002` comprobante inexistente · `40001`
+· `55000` transición no permitida o factura sin estado de despacho · `PT404` comprobante inexistente · `PT412`
 conflicto de edición. Los mensajes llegan en castellano y la pantalla los muestra tal cual (los técnicos se traducen a
 un texto claro).
 
@@ -315,7 +315,7 @@ Librerías: `apps/web/src/lib/ventasDespacho.ts` (estados, etiquetas, ayudas, pr
   tienda bajo otra.
 - **Doble clic:** la acción de avance y el guardado de envío quedan deshabilitados mientras la petición está en
   vuelo.
-- **Conflicto `40001`:** la tarjeta suelta lo elegido, vuelve a leer el despacho y pide elegir de nuevo al
+- **Conflicto `PT412`:** la tarjeta suelta lo elegido, vuelve a leer el despacho y pide elegir de nuevo al
   responsable; el diálogo de faltantes avisa el conflicto y **recarga el comprobante** para que el reintento mande el
   `updated_at` vigente.
 - **Solo lectura:** sin la acción `despachar` se ve el estado y los responsables, pero no hay acciones de avance
@@ -324,7 +324,7 @@ Librerías: `apps/web/src/lib/ventasDespacho.ts` (estados, etiquetas, ayudas, pr
   despacho.» y no ofrece acciones.
 - **`p_actualizado_en` se manda como texto** (el `updated_at` que devuelve la RPC, con sus microsegundos), igual que
   en `guardar_comprobante`: si se manda un `Date` de JavaScript se pierden los microsegundos y la base responde
-  siempre `40001`.
+  siempre `PT412`.
 
 ## Permisos
 
@@ -358,7 +358,7 @@ Cada transición queda en `public.registro_actividad`:
     según la forma de envío y `sin_armar` cuando no resuelve) y FR-008 (la acción `despachar` sembrada para
     Administrador y Depósito).
   - `supabase/tests/database/despacho_estados.test.sql` — SC-001: estado inicial, transiciones, roles, excepción del
-    Administrador, `40001`, `lectura` sin `despachar`, `anon`, otra organización; el permiso resuelto en la empresa del
+    Administrador, `PT412`, `lectura` sin `despachar`, `anon`, otra organización; el permiso resuelto en la empresa del
     comprobante; la lectura con `obtener_despacho_comprobante`; y los permisos de ejecución (las RPC son de
     `authenticated` y las ayudas de `private` no las ejecuta nadie del navegador).
   - `supabase/tests/database/despacho_entrega.test.sql` — SC-002: reservas «A pedido» descontadas, todo o nada,
@@ -381,7 +381,7 @@ Cada transición queda en `public.registro_actividad`:
     ese recorrido.
 - **Vitest** (`pnpm --filter @platform/web test`):
   - `apps/web/src/components/ventas/ResponsablesDespacho.test.tsx` — SC-003: carga, selectores, acciones por estado,
-    errores del servidor (incluidos `40001` y `P0002`), `lectura`, doble clic, cambio de empresa.
+    errores del servidor (incluidos `PT412` y `PT404`), `lectura`, doble clic, cambio de empresa.
   - `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` — integración en el comprobante y cierre con aviso.
   - `apps/web/src/lib/ventasEnvio.test.ts` — rótulos por tipo, transportes elegibles, lectura del envío por la RPC,
     lectura del transporte cargado por id, parámetros del guardado, límite de la guía y mensajes de error.
@@ -401,7 +401,7 @@ Cada transición queda en `public.registro_actividad`:
     validaciones, un doble clic registra **una sola vez**, los errores de la base traducidos, el rol en `lectura` y el
     cierre con aviso al cambiar de empresa.
   - `apps/web/src/pages/ventas/comprobante.faltantes.test.tsx` — FR-047 en la página real: elegir «Incompleto» abre el
-    diálogo, el conflicto `40001` recarga el comprobante y cambiar de tienda con el diálogo abierto cierra el detalle
+    diálogo, el conflicto `PT412` recarga el comprobante y cambiar de tienda con el diálogo abierto cierra el detalle
     con aviso sin registrar nada.
   - `apps/web/src/components/navegacion/destinosPanel.permisos.test.ts` — las entradas de menú «Despacho» y
     «Faltantes» y su sección.

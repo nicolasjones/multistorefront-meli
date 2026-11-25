@@ -217,7 +217,7 @@ export async function revertirCobro(cobroId: string, motivo: string): Promise<st
 export function mensajeDeErrorReversion(error: unknown, porDefecto: string): string {
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'Solo el administrador puede revertir un cobro. Puede que tu rol haya cambiado: recargá la página.'
-  if (e?.code === 'P0002') return 'Ese cobro ya no existe o no pertenece a tu organización. Recargá la lista.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese cobro ya no existe o no pertenece a tu organización. Recargá la lista.'
   // 22023 (dato inválido) y 55000 (estado no válido: ya revertido, conciliado, contrarreembolso, factura anulada) ya vienen en castellano.
   if ((e?.code === '22023' || e?.code === '55000') && e.message) return e.message
   return porDefecto
