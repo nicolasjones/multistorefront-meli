@@ -111,7 +111,7 @@ select results_eq(
   'la vista previa cuenta las cuentas web activas y totales');
 select throws_ok(
   $$select * from vista_previa_fusion_clientes('c1000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000001')$$,
-  'P0002', 'Alguno de los clientes no existe', 'la vista previa rechaza clientes de otra organización');
+  'PT404', 'Alguno de los clientes no existe', 'la vista previa rechaza clientes de otra organización');
 select is(
   (select count(*)::int from dominio.comprobantes_venta where cliente_id = 'c1000000-0000-0000-0000-000000000002'),
   5, 'la vista previa no escribe nada');

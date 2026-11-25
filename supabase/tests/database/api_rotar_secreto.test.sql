@@ -177,7 +177,7 @@ select is(
 select set_config('request.jwt.claims',
   json_build_object('sub', 'f5000000-0000-0000-0000-000000000003', 'role', 'authenticated')::text, true);
 set local role authenticated;
-select throws_ok($$select public.rotar_secreto_suscripcion_api('d5000000-0000-0000-0000-000000000001')$$, 'P0002', 'La suscripción no existe',
+select throws_ok($$select public.rotar_secreto_suscripcion_api('d5000000-0000-0000-0000-000000000001')$$, 'PT404', 'La suscripción no existe',
   'el Administrador de otra organización no la ve ni la rota');
 reset role;
 

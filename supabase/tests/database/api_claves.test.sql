@@ -320,7 +320,7 @@ select throws_ok(
 
 select throws_ok(
   $$select public.revocar_clave_api((select id from claves where clave = 'principal'))$$,
-  'P0002',
+  'PT404',
   null,
   'el administrador de otra organización no puede revocar la clave'
 );

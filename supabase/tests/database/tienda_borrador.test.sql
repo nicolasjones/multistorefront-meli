@@ -144,7 +144,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_borrador_tienda('e2000000-0000-0000-0000-000000000001', 'identidad', pg_temp.ident('#C8102E'))$$,
-  'P0002', null, 'no se guarda el borrador de una empresa de otra organización'
+  'PT404', null, 'no se guarda el borrador de una empresa de otra organización'
 );
 select lives_ok(
   $$select public.guardar_borrador_tienda('e1000000-0000-0000-0000-000000000001', 'contenido',
@@ -220,11 +220,11 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   $$select public.obtener_borrador_tienda('e1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no lee el borrador de esta empresa'
+  'PT404', null, 'otra organización no lee el borrador de esta empresa'
 );
 select throws_ok(
   $$select public.publicar_tienda('e1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no publica la tienda de esta empresa'
+  'PT404', null, 'otra organización no publica la tienda de esta empresa'
 );
 select is((select count(*)::int from dominio.tienda_borrador), 0, 'RLS: otra organización no ve ningún borrador');
 

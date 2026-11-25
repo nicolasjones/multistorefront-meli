@@ -165,7 +165,7 @@ select is(
 
 select throws_ok(
   $$select public.restaurar_version_tienda('e1000000-0000-0000-0000-000000000001', 99)$$,
-  'P0002', null, 'una versión inexistente no se restaura'
+  'PT404', null, 'una versión inexistente no se restaura'
 );
 select throws_ok(
   $$select public.restaurar_version_tienda('e1000000-0000-0000-0000-000000000001', 4)$$,
@@ -181,11 +181,11 @@ select throws_ok(
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.listar_versiones_tienda('e1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'otra organización no lista las versiones de esta empresa'
+  'PT404', null, 'otra organización no lista las versiones de esta empresa'
 );
 select throws_ok(
   $$select public.restaurar_version_tienda('e1000000-0000-0000-0000-000000000001', 2)$$,
-  'P0002', null, 'otra organización no restaura versiones de esta empresa'
+  'PT404', null, 'otra organización no restaura versiones de esta empresa'
 );
 select is((select count(*)::int from dominio.tienda_versiones), 0, 'RLS: otra organización no ve ninguna versión');
 

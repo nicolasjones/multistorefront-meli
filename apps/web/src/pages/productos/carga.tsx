@@ -108,7 +108,7 @@ export function ProductoCarga() {
       } catch (fallo) {
         if (!activo) return
         // Una importación que no existe (id viejo o de otra organización en la URL) no se reintenta: se limpia la URL.
-        if ((fallo as { code?: string } | null)?.code === 'P0002') {
+        if (['P0002', 'PT404'].includes((fallo as { code?: string } | null)?.code ?? '')) {
           fijarImportacion(null)
           setError('No encontramos esa importación. Puede ser de otra organización o haber sido eliminada.')
           return

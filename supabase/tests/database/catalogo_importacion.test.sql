@@ -280,7 +280,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000011');
 
 select throws_ok(
   format($f$ select public.obtener_importacion_productos('%s'::uuid) $f$, (select r ->> 'importacion_id' from pg_temp.sol1)),
-  'P0002', null, 'el Administrador de otra organización no ve la importación'
+  'PT404', null, 'el Administrador de otra organización no ve la importación'
 );
 select is(
   (select count(*)::int from dominio.importaciones_productos), 0,

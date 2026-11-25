@@ -80,7 +80,7 @@ export function mensajeDeErrorImpresion(error: unknown): string {
   console.error(MENSAJE_ERROR_IMPRESION, error)
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para imprimir en esta tienda. Puede que tu rol haya cambiado: recargá la página.'
-  if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   if ((e?.code === '22023' || (e?.code === 'P0001' && e.hint === 'sin_conexion')) && e.message) return e.message
   return MENSAJE_ERROR_IMPRESION
 }
