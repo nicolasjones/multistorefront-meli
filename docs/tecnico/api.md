@@ -514,9 +514,9 @@ estado no válido (factura anulada, borrador) · `P0001` tope de importe
 ### Ventas mejoras (MSF-193)
 
 Fuente: `supabase/migrations/20270201200102`–`20270201200103` (F-VTA-32),
-`20270202200400` (F-VTA-31, solo en `dokploy`) y `20270202201100`–`20270202201102` (F-VTA-33, las RPC del
-cierre de caja, solo en `epic/MSF-193-ventas-mejoras`, no están en `dokploy`); las de F-VTA-32 están en las dos
-ramas; todas aún sin merge a `main`. Todas en `public`, con
+`20270202200400` (F-VTA-31, solo en `dokploy`) y `20270202201100`–`20270202201102` (F-VTA-33, cierre de caja: la
+tabla, sus RPC y el bloqueo de cobros; solo en `epic/MSF-193-ventas-mejoras`, no están en `dokploy`); las de F-VTA-32
+están en las dos ramas; todas aún sin merge a `main`. Todas en `public`, con
 `set search_path = ''`, `revoke execute … from public, anon` y `grant execute … to authenticated`; la
 organización y el actor salen de la sesión.
 
