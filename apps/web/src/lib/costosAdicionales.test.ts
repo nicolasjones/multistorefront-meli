@@ -98,6 +98,7 @@ describe('mensajes de error de costos adicionales', () => {
     expect(mensajeDeErrorCosto({ code: '42501' })).toBe('Tu rol no puede editar los costos adicionales de esta empresa.')
     expect(mensajeDeErrorCosto({ code: '23514' })).toBe(MENSAJE_VALOR_INVALIDO)
     expect(mensajeDeErrorCosto({ code: 'P0002' })).toBe('Este costo ya no existe. Actualizá la lista.')
+    expect(mensajeDeErrorCosto({ code: 'PT404' })).toBe('Este costo ya no existe. Actualizá la lista.')
   })
 
   it('el nombre repetido nombra la empresa cuando se conoce', () => {

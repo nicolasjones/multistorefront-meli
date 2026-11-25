@@ -12,7 +12,7 @@ guardar_costo_adicional(p_id uuid | null, p_empresa_id uuid, p_nombre text, p_ti
 dar_baja_costo_adicional(p_id uuid): void // idempotente
 ```
 
-Errores: `42501` sin permiso o empresa no accesible, `23514` dato inválido (nombre vacío o > 80, tipo, valor negativo, porcentaje > 100, > 4 decimales), `23505` nombre repetido entre costos activos de la empresa, `P0002` el costo no existe (o ya fue dado de baja al editar). Un costo no cambia de empresa al editarse. La baja es `activo = false`.
+Errores: `42501` sin permiso o empresa no accesible, `23514` dato inválido (nombre vacío o > 80, tipo, valor negativo, porcentaje > 100, > 4 decimales), `23505` nombre repetido entre costos activos de la empresa, `PT404` (antes `P0002`) el costo no existe (o ya fue dado de baja al editar). Un costo no cambia de empresa al editarse. La baja es `activo = false`.
 
 Exigen `edicion` en `rentabilidad` (la lista, `lectura`) y empresa accesible; `revoke … from public, anon`, `grant execute … to authenticated`. `public.confirmar_comprobante(p_id uuid)` conserva su firma (F-REN-09).
 
