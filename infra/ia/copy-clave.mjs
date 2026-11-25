@@ -11,3 +11,12 @@ export function ocultarClave(mensaje, clave) {
     .filter((forma) => forma.length > 0)
     .reduce((texto, forma) => texto.replaceAll(forma, '[clave omitida]'), mensaje);
 }
+
+// Una clave muy corta haría que `ocultarClave` redacte fragmentos comunes del mensaje (con 'a' ocultaría todas las 'a').
+// Se rechaza antes de usarla; el mensaje NUNCA incluye la clave ni su longitud exacta.
+export const LARGO_MINIMO_CLAVE = 8;
+export function validarLargoClave(clave) {
+  if (clave.length < LARGO_MINIMO_CLAVE) {
+    throw new Error(`IA_PROVEEDOR_CLAVE es demasiado corta: debe tener al menos ${LARGO_MINIMO_CLAVE} caracteres.`);
+  }
+}

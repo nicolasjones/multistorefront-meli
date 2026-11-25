@@ -48,10 +48,11 @@ for (const ruta of workers) {
   test(`${ruta}: topeMs acepta solo enteros entre 1 y 2147483647`, () => {
     const { fn } = extraerTopeMs(ruta);
     const D = 777;
-    for (const invalido of [undefined, '', '0', '-5', 'abc', '1.5', 'NaN', '1e21', '99999999999999999999', '2147483648']) {
+    for (const invalido of [undefined, '', '0', '-5', 'abc', '1.5', 'NaN', '1e21', '99999999999999999999', '2147483648', '1e3', '0x10', ' 5 ', '+5', '5.0', '5 ', '٣']) {
       assert.equal(fn(invalido, D), D, `${ruta}: ${String(invalido)} debe caer al default`);
     }
     assert.equal(fn('1', D), 1);
+    assert.equal(fn('5', D), 5);
     assert.equal(fn('2147483647', D), 2147483647);
     assert.equal(fn('300000', D), 300000);
   });

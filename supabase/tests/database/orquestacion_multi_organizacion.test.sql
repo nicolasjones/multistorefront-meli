@@ -396,9 +396,9 @@ set local role authenticated;
 
 select throws_ok(
   format($$select public.actualizar_credencial_conexion('%s', 'otra-credencial')$$, (select val from t_ids where key = 'conexion_x')),
-  '42501',
-  null,
-  'el administrador de Y no puede rotar la credencial de una conexión de X'
+  'PT404',
+  format('La conexión %s no existe', (select val from t_ids where key = 'conexion_x')),
+  'el administrador de Y no puede rotar la credencial de una conexión de X: responde como si no existiera'
 );
 
 reset role;

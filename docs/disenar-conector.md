@@ -74,3 +74,10 @@ Un chequeo periódico de tipo canario contra un sistema externo es una opción
 futura, no una capacidad habilitada por este template. Solo se especifica si
 hay una cuenta de prueba dedicada, un caso de negocio para detectarlo antes de
 la próxima ejecución y una política clara para sus secretos, costo y alertas.
+
+## Topes de Postgres de un worker
+
+Todo worker con pool de Postgres lleva topes de consulta, conexión e inactividad, ajustables por variable de entorno
+(`WORKER_PG_STATEMENT_TIMEOUT_MS`, `WORKER_PG_CONNECT_TIMEOUT_MS`, `WORKER_PG_IDLE_TIMEOUT_MS`). Cada una acepta solo una cadena de
+dígitos decimales entre 1 y 2147483647; cualquier otro valor (`1e3`, `0x10`, ` 5 `, `+5`, `5.0`, vacío o fuera de rango) usa el default.
+El detalle y los defaults están en `workers/CONTRATO.md`.
