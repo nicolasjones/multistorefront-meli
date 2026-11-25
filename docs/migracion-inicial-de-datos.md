@@ -145,7 +145,7 @@ y las pantallas de informe. Resultado:
 | `anon` | Ninguna RPC de migración es ejecutable por `anon`: cada una hace `revoke execute … from public, anon` y `grant execute … to authenticated` (grep sobre las 4 migraciones). Las tablas nuevas nacen sin privilegios para `anon` (`revoke all`). Los tests pgTAP comprueban `has_function_privilege('anon', …) = false`. |
 | Rol | Toda RPC valida `private.puede_escribir()` (Administrador) y la organización de la sesión (`private.organizacion_id()`); un rol de consulta recibe `42501` (pgTAP). |
 | RLS | `migracion_cargas` / `migracion_filas`: `select` del Administrador de su organización, sin grants de escritura. `dominio.archivo_ingresos_mercaderia`: solo `select`. |
-| Aislamiento | El informe filtra la carga y cada tabla destino por la organización de la sesión; otra organización recibe `P0002` y no mezcla destinos aunque repita el identificador externo (pgTAP `migracion_conciliacion` y `migracion_ensayo`). |
+| Aislamiento | El informe filtra la carga y cada tabla destino por la organización de la sesión; otra organización recibe `PT404` (antes `P0002`) y no mezcla destinos aunque repita el identificador externo (pgTAP `migracion_conciliacion` y `migracion_ensayo`). |
 | Service-role | Ninguna pantalla ni librería de migración la usa: el único hallazgo de `grep -i service.role` en `apps/web/src/lib/migracion.ts` es el comentario que dice que **no** se usa. El navegador viaja con la sesión del Administrador. |
 | Entrada del usuario | Las RPC reciben JSON y validan cada fila (largos, formatos, número de fila entero); el informe no devuelve datos de la fila, solo número y motivo; `mensajeDeErrorMigracion` no vuelca el error crudo (PII). |
 | Hallazgos abiertos | Ninguno. |

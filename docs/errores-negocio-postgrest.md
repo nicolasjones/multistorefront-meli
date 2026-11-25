@@ -19,6 +19,8 @@ sources:
   - supabase/migrations/20270507450000_gastos_rma_contactos_consultas_y_notas_responden_4xx.sql
   - supabase/migrations/20270507470000_listas_precios_variantes_y_precios_masivos_responden_4xx.sql
   - supabase/migrations/20270507480000_tienda_api_documentos_presupuestos_correo_y_fusion_responden_404.sql
+  - supabase/migrations/20270507490000_catalogo_presupuestos_conexiones_reportes_responden_404.sql
+  - supabase/migrations/20270507500000_migracion_organizaciones_y_otras_responden_4xx.sql
   - apps/web/src/lib/ventasDespacho.ts
   - apps/web/src/lib/ventasEnvio.ts
   - apps/web/src/lib/ventasFaltantes.ts
@@ -38,6 +40,11 @@ sources:
   - apps/web/src/lib/ventasImpresion.ts
   - apps/web/src/lib/ventasPresupuestoCorreo.ts
   - apps/web/src/lib/clientes.ts
+  - apps/web/src/lib/migracion.ts
+  - apps/web/src/lib/cuentasCliente.ts
+  - apps/web/src/lib/rentabilidad.ts
+  - apps/web/src/lib/exportarProveedores.ts
+  - apps/web/src/lib/opiniones.ts
 ---
 
 # Errores de negocio de las RPC y su respuesta HTTP
@@ -193,7 +200,7 @@ cliente (`avisar_cliente_reparacion`, `avisos_de_reparacion`, `obtener_enlace_co
 (`esCodigoDeConflicto` y el mapeo de cada módulo de Service).
 
 Funciones migradas por ola (las olas 1 a 8 usan `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
-bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; las olas 10 y 11 combinan las tres conversiones según la función; la ola 12 convierte `P0002` y `40001` y las olas 13 y 14 solo `P0002`):
+bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; las olas 10 y 11 combinan las tres conversiones según la función; la ola 12 convierte `P0002` y `40001`, las olas 13 y 14 solo `P0002` y la ola 15 `P0002` y `40001`):
 
 | Ola | Migración | Funciones |
 |---|---|---|
@@ -211,12 +218,13 @@ bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`
 | 12 | `20270507470000` | `archivar_lista_precios` (`PT404` y `PT412`), `restaurar_lista_precios` (`PT404` y `PT412`), `guardar_lista_precios` (`PT404` y `PT412`), `asignar_lista_precios_cliente` (solo `PT404`), `guardar_variantes_producto` (`PT404` y `PT412`, el `40001` de stock con `detail` no cambia), `mover_productos_categoria` (solo `PT404`, la categoría), `previsualizar_cotizacion` (solo `PT404`), `aplicar_actualizacion_precios` (solo `PT412`) |
 | 13 | `20270507480000` | `guardar_borrador_tienda`, `obtener_borrador_tienda`, `descartar_borrador_tienda`, `publicar_tienda`, `listar_versiones_tienda`, `restaurar_version_tienda` (la empresa y la versión), `vista_previa_tienda`, `rutas_tienda_sin_referencia`, `revocar_clave_api`, `rotar_clave_api`, `actualizar_suscripcion_api`, `eliminar_suscripcion_api`, `rotar_secreto_suscripcion_api`, `listar_documentos_comprobante`, `obtener_documento_comprobante`, `ultimas_impresiones_comprobante`, `solicitar_documento_comprobante`, `enviar_presupuesto_correo`, `listar_envios_correo_presupuesto`, `obtener_importacion_productos`, `vista_previa_fusion_clientes` (todas solo `PT404`) |
 | 14 | `20270507490000` | `listar_catalogo_tienda`, `copiar_presupuesto`, `fusionar_clientes`, `registrar_impresion`, `guardar_costo_adicional`, `dar_baja_costo_adicional`, `archivo_exportacion_comprobantes`, `crear_conexion`, `actualizar_credencial_conexion`, `iniciar_conexion_oauth`, `confirmar_conexion_oauth` (la de dos argumentos), `actualizar_integracion_oauth`, `establecer_roles_default_reporte`, `asignar_reporte`, `habilitar_feature` (todas solo `PT404`) |
+| 15 | `20270507500000` | `cerrar_carga_migracion`, `aplicar_lote_archivo_ingresos`, `aplicar_lote_clientes`, `aplicar_lote_proveedores`, `aplicar_lote_vinculos_proveedor_producto`, `informe_conciliacion_migracion`, `vincular_identificador_externo`, `aprovisionar_servidor_organizacion`, `entrar_a_organizacion` (la de dos argumentos), `cambiar_estado_cuenta_cliente`, `depositos_para_repuesto`, `guardar_empresas_de_cliente`, `asignar_empresas_usuario`, `detalle_campana_correo` (todas solo `PT404`), `guardar_umbral_margen_bajo`, `exportar_proveedores`, `moderar_opinion` (solo `PT412`; el `55000` de bandera apagada no cambia) |
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los `comment on function` previos (los de la última migración anterior que los fijó, no los de la migración de la ola). Las migraciones ya aplicadas no se editan.
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service y de newsletter con auxiliares de `private`: ítems y adjuntos de reparaciones, el flujo de avisos y consulta pública `regenerar_enlace_consulta` y `obtener_enlace_consulta`, y el `P0002` «La tienda no existe» del newsletter, que lanza `private.exigir_admin_newsletter`), `confirmar_comprobante` (contrato propio por hint `precios_cambiaron`), `detalle_campana_correo`, el `P0002` de producto inexistente de las operaciones masivas de productos (lo lanza un auxiliar de `private`), el `40001` con `detail` de stock de las variantes, la conciliación de pagos (las funciones públicas delegan en `private.aplicar_conciliacion`), el resto de los `P0002` de `public` (las cargas de migración y lotes de importación y `vincular_identificador_externo`; los proveedores efectivos de un cliente y la elección de proveedor por capacidad, con contrato propio por prefijo de mensaje; `marcar_conexion_oauth_invalida`, que solo ejecuta `service_role`; `aprovisionar_servidor_organizacion` y `entrar_a_organizacion`; `guardar_catalogo_tienda` y `guardar_tienda_identidad`, que no ejecuta `authenticated` y solo las llama `publicar_tienda`; y `reintentar_entrega_api`, cuyo `P0002` mezcla «no existe» y «no está agotada»), las que consume una Edge Function por código (invitaciones, cuentas web de clientes y verificación de dominio de la tienda), los `55000` de bandera apagada, los topes `54000` (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service y de newsletter con auxiliares de `private`: ítems y adjuntos de reparaciones, el flujo de avisos y consulta pública `regenerar_enlace_consulta` y `obtener_enlace_consulta`, y el `P0002` «La tienda no existe» del newsletter, que lanza `private.exigir_admin_newsletter`), `confirmar_comprobante` (contrato propio por hint `precios_cambiaron`), el `P0002` de producto inexistente de las operaciones masivas de productos (lo lanza un auxiliar de `private`), el `40001` con `detail` de stock de las variantes, la conciliación de pagos (las funciones públicas delegan en `private.aplicar_conciliacion`), el resto de los `P0002` de `public` (los proveedores efectivos de un cliente y la elección de proveedor por capacidad, con contrato propio por prefijo de mensaje; `marcar_conexion_oauth_invalida`, que solo ejecuta `service_role`; `guardar_catalogo_tienda` y `guardar_tienda_identidad`, que no ejecuta `authenticated` y solo las llama `publicar_tienda`; `reintentar_entrega_api`, cuyo `P0002` mezcla «no existe» y «no está agotada»), las que consume una Edge Function por código (invitaciones, cuentas web de clientes y verificación de dominio de la tienda), `iniciar_verificacion_restauracion` (su `P0002` y su `55006` los consume Kestra), los `55000` de bandera apagada, los topes `54000` (`aplicar_lote_clientes`, `exportar_clientes`, el resto de los lotes de importación y `exportar_proveedores`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
 
 ## Novena ola: estado o regla de negocio que impide la acción, `55000` a `PT409` (MSF-599)
 
@@ -323,6 +331,24 @@ Efecto en el cliente: los mapeos de costos adicionales, impresión de comprobant
 código viejo y el nuevo (`P0002` o `PT404`); las pantallas de conexiones, integraciones, reportes y funcionalidades usan el mensaje genérico
 por código, que ya cubre `PT404`; test `lib/errores4xxCatalogoPresupuestosConexionesReportes.test.ts` y pgTAP
 `lote77_catalogo_presupuestos_conexiones_y_reportes_4xx.test.sql`.
+
+## Decimoquinta ola: migración de datos, organizaciones y otras áreas (MSF-599)
+
+Aplica `P0002` a `PT404` y `40001` a `PT412` a las funciones de las cargas de migración y los lotes de importación, la vinculación de
+identificadores externos, el aprovisionamiento de servidores y el acceso de soporte a organizaciones, además de otras áreas
+sueltas que las olas 13 y 14 habían dejado por tamaño del lote (cuentas web, depósitos de repuestos, tiendas de un cliente, umbral de
+margen, exportación de proveedores, moderación de opiniones, asignaciones de empresas y campañas de correo). Qué código emite cada función
+está en la tabla de arriba (fila 15); mensaje, firma, `security definer` o `invoker`, `search_path` y grants no cambian. Ninguna es llamable
+por `anon` ni la consume Kestra, un worker o una Edge Function (el script de datos de demostración llama a algunas, sin leer el código de
+error). Cada función parte de su definición vigente y solo cambia el errcode; tres comentarios que nombraban el código viejo se actualizan.
+
+Se dejaron con el código anterior a propósito: las invitaciones y las cuentas web que consume una Edge Function, los respaldos que consume
+Kestra, el flujo de avisos al cliente, la bandera apagada (también en `moderar_opinion`) y los contratos propios; el detalle está en «Queda
+para próximas olas» y en el encabezado de la migración.
+
+Efecto en el cliente: los mapeos de cargas de migración, cuentas web, ítems de reparaciones, umbral de margen, exportación de proveedores,
+opiniones y detalle de campañas aceptan el código viejo y el nuevo (`P0002` o `PT404`, `esCodigoDeConflicto`); test
+`lib/errores4xxMigracionOrganizacionesYOtras.test.ts` y pgTAP `lote78_migracion_organizaciones_y_otras_4xx.test.sql`.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

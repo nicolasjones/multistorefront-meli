@@ -16,7 +16,7 @@ del cliente sobre la tabla.
      identificador_externo) ya está vinculado al mismo cliente, no hace
      nada y no falla (FR-004). Si ya está vinculado a otro cliente, falla
      sin modificar el vínculo original (FR-002, FR-010).
-   - **Falla si**: el cliente no existe (`P0002`); quien llama no tiene
+   - **Falla si**: el cliente no existe (`PT404`, antes `P0002`); quien llama no tiene
      permiso sobre esa organización (`42501`); el identificador ya
      pertenece a otro cliente (`23505`); `sistema` o
      `identificador_externo` están vacíos o son solo espacios (FR-011).

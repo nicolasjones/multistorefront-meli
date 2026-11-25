@@ -106,7 +106,7 @@ select throws_ok(
   $$select public.guardar_empresas_de_cliente(
       '00000000-0000-0000-0000-000000000000',
       array['a1000000-0000-0000-0000-000000000001']::uuid[])$$,
-  'P0002', null,
+  'PT404', null,
   'el cliente tiene que existir y ser de tu organización'
 );
 
@@ -158,7 +158,7 @@ select throws_ok(
   $$select public.guardar_empresas_de_cliente(
       'c5000000-0000-0000-0000-000000000001',
       array['a2000000-0000-0000-0000-000000000001']::uuid[])$$,
-  'P0002', null,
+  'PT404', null,
   'no puede tocar las tiendas de un cliente de otra organización'
 );
 

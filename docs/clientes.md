@@ -133,7 +133,7 @@ organización y se habilita en N tiendas.**
 - **Escritura:** **solo** por la RPC `public.guardar_empresas_de_cliente(p_cliente_id uuid,
   p_empresa_ids uuid[])` (security definer, `search_path` vacío). Exige
   `private.nivel_seccion('clientes') = 'edicion'` (error `42501`), valida que el cliente sea de la
-  organización (`P0002`) y que todas las empresas sean de la organización (`42501`), normaliza
+  organización (`PT404`, antes `P0002`) y que todas las empresas sean de la organización (`42501`), normaliza
   (sin nulos ni repetidos) y **reemplaza** el conjunto completo (borra e inserta en la misma
   transacción); devuelve cuántas tiendas quedaron. La tabla no concede `insert`/`delete` a
   `authenticated`: hay un solo camino de escritura, auditable. `anon` no ejecuta la RPC ni lee la

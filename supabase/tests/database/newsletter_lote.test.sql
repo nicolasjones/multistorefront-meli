@@ -166,7 +166,7 @@ select set_config('request.jwt.claims', json_build_object('sub', 'd1000000-0000-
 set local role authenticated;
 select is((public.listar_campanas_correo(null, 1, 25) ->> 'total')::int, 1, 'RF-NL-20: el historial de clientes no muestra newsletters');
 select is((select bool_or(d ->> 'nombre' = 'Cliente Uno') from jsonb_array_elements(public.detalle_campana_correo('ca000000-0000-0000-0000-000000000001', 1, 50) -> 'destinatarios') d), true, 'el detalle de una campaña de clientes sigue uniendo con dominio.clientes');
-select throws_ok($$select public.detalle_campana_correo('ca000000-0000-0000-0000-000000000002', 1, 50)$$, 'P0002', null, 'RF-NL-20: ni su detalle');
+select throws_ok($$select public.detalle_campana_correo('ca000000-0000-0000-0000-000000000002', 1, 50)$$, 'PT404', null, 'RF-NL-20: ni su detalle');
 reset role;
 
 select * from finish();

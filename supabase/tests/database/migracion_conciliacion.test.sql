@@ -197,11 +197,11 @@ select throws_ok(
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.informe_conciliacion_migracion((select (v #>> '{}')::uuid from t_res where k = 'c1'))$$,
-  'P0002', null, 'el Administrador de otra organización no encuentra la carga'
+  'PT404', null, 'el Administrador de otra organización no encuentra la carga'
 );
 select throws_ok(
   $$select public.informe_conciliacion_migracion('00000000-0000-0000-0000-000000000000')$$,
-  'P0002', null, 'una carga inexistente no se encuentra'
+  'PT404', null, 'una carga inexistente no se encuentra'
 );
 
 -- La otra organización, con el MISMO identificador externo, no mezcla destinos.
@@ -222,7 +222,7 @@ select is(
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.informe_conciliacion_migracion((select (v #>> '{}')::uuid from t_res where k = 'd1'))$$,
-  'P0002', null, 'la organización Uno no ve el informe de la organización Dos'
+  'PT404', null, 'la organización Uno no ve el informe de la organización Dos'
 );
 
 reset role;

@@ -236,7 +236,7 @@ export function mensajeDeErrorMigracion(error: unknown, porDefecto: string): str
     ? String((error as { code?: unknown }).code ?? '')
     : ''
   if (codigo === '42501') return 'Solo un administrador puede importar datos.'
-  if (codigo === 'P0002') return 'La carga ya no existe en tu organización.'
+  if (codigo === 'P0002' || codigo === 'PT404') return 'La carga ya no existe en tu organización.'
   if (codigo === '54000') return 'El lote supera el máximo de 500 filas.'
   // Solo el código: el error crudo de PostgREST puede traer datos de la fila (PII).
   console.error(porDefecto, codigo || 'sin código')

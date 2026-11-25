@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 // Rentabilidad (épica MSF-120, spec `rentabilidad-margen`). La autoridad es la base (migraciones
 // 20261130100000 `leer_umbral_margen_bajo` / `guardar_umbral_margen_bajo` y 20261130110100
@@ -78,10 +79,11 @@ export const rotuloMargenBajo = (umbral: number) => `Con margen bajo (< ${umbral
 
 // Mensaje claro según el código de la base; nunca el texto técnico.
 export function mensajeDeErrorRentabilidad(error: { code?: string } | null | undefined): string {
+  // `40001` (histórico) y `PT412` (HTTP 412, desde 20270507500000): el cliente acepta los dos.
+  if (esCodigoDeConflicto(error?.code)) return MENSAJE_CONFLICTO_UMBRAL
   switch (error?.code) {
     case '42501': return 'Tu rol no puede cambiar el umbral de margen bajo.'
     case '23514': return MENSAJE_UMBRAL_INVALIDO
-    case '40001': return MENSAJE_CONFLICTO_UMBRAL
     default: return 'No pudimos guardar el umbral. Intentá de nuevo.'
   }
 }

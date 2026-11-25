@@ -3,6 +3,7 @@
 // necesario para la pantalla (la autoridad es la base: solo el Administrador lista y modera).
 import { supabaseClient } from './supabase'
 import { esEstadoOpinion, type EstadoOpinion } from './estadoOpinion'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 export type FiltroEstadoOpinion = EstadoOpinion | 'todas'
 
@@ -166,7 +167,7 @@ export const MENSAJE_CONFLICTO_OPINION = 'La opinión cambió mientras la miraba
 export const MENSAJE_SIN_PERMISO_OPINIONES = 'Solo un Administrador puede moderar opiniones. Puede que tu rol haya cambiado: recargá la página.'
 
 export function esConflictoOpinion(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 export function esSinPermisoOpiniones(error: unknown): boolean {
@@ -176,7 +177,7 @@ export function esSinPermisoOpiniones(error: unknown): boolean {
 export function mensajeDeErrorOpiniones(error: unknown, porDefecto: string): string {
   const code = (error as ErrorBase)?.code
   console.error(porDefecto, code ?? 'sin código')
-  if (code === '40001') return MENSAJE_CONFLICTO_OPINION
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO_OPINION
   if (code === '42501') return MENSAJE_SIN_PERMISO_OPINIONES
   if (code === '55000') return 'Las opiniones están desactivadas en este entorno: por ahora solo se pueden rechazar.'
   if (code === '22023') {

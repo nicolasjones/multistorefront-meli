@@ -110,7 +110,7 @@ export function mensajeDeErrorItem(error: unknown, porDefecto: string): string {
   if (e?.code === '42501') return 'No tenés permiso para modificar los ítems. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '55000') return MENSAJE_SOLO_LECTURA
   if (e?.code === '23514') return MENSAJE_SIN_STOCK
-  if (e?.code === 'P0002') return 'La reparación o el ítem ya no existe. Recargá la página.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'La reparación o el ítem ya no existe. Recargá la página.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto

@@ -175,7 +175,7 @@ select is(
 );
 select throws_ok(
   $$select public.detalle_campana_correo('ca000000-0000-0000-0000-000000000003', 1, 50)$$,
-  'P0002', null,
+  'PT404', null,
   'el detalle de una campaña de otra organización no existe'
 );
 

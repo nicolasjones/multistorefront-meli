@@ -131,7 +131,7 @@ Reglas de aplicación (migraciones `20261201100000`…`20261201120000`):
 Todas son `public.*`, `security definer`, `set search_path = ''`, validan Administrador
 (`private.puede_escribir()`) y toman la organización de `private.organizacion_id()`. Llevan
 `revoke execute … from public, anon` y `grant execute … to authenticated`. El lote máximo es **500
-filas** (`54000` si se supera); una carga inexistente o de otra organización responde `P0002`; un rol
+filas** (`54000` si se supera); una carga inexistente o de otra organización responde `PT404` (antes `P0002`; ver [errores de negocio](../errores-negocio-postgrest.md)); un rol
 sin permiso, `42501`; datos inválidos, `22023`.
 
 | RPC | Firma | Qué hace |
@@ -239,7 +239,7 @@ archivo (alcance acotado documentado en la migración).
 | Escribir el archivo o las cargas | Solo las RPC de migración; no hay grants de escritura para `authenticated`. |
 | `anon` | Sin ejecución de RPC y sin privilegios sobre las tablas nuevas. |
 
-- La organización sale siempre de la sesión, nunca de un parámetro. Otra organización recibe `P0002`
+- La organización sale siempre de la sesión, nunca de un parámetro. Otra organización recibe `PT404` (antes `P0002`)
   y no ve datos aunque repita el identificador externo.
 - El navegador usa la sesión del Administrador: **no se usa service-role** en ninguna pantalla ni
   librería de migración.

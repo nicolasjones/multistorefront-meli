@@ -116,7 +116,7 @@ select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.aplicar_lote_archivo_ingresos((select (v #>> '{}')::uuid from t_res where k = 'carga'), 1,
      '[{"fila":2,"id_externo":"ING-1","fecha":"2026-03-15","producto":"X","cantidad":"1"}]'::jsonb)$$,
-  'P0002', null, 'el Administrador de otra organización no encuentra la carga'
+  'PT404', null, 'el Administrador de otra organización no encuentra la carga'
 );
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');

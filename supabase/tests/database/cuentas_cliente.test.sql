@@ -289,8 +289,8 @@ select lives_ok(
 
 select throws_ok(
   $$select public.cambiar_estado_cuenta_cliente('c5000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000002', 'suspendida')$$,
-  'P0002', null,
-  'cambiar estado sin cuenta en esa tienda => P0002'
+  'PT404', null,
+  'cambiar estado sin cuenta en esa tienda => PT404'
 );
 
 -- ============================================================================

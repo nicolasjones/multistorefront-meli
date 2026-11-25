@@ -1,6 +1,6 @@
 # Contratos: Service técnico · Service repuestos y stock (MSF-217)
 
-Todas las RPC viven en `public`, son `security definer` con `search_path = ''`, llevan `revoke execute … from public, anon` y `grant execute … to authenticated`. La organización sale de la sesión. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `P0002` no existe / tienda inaccesible, `55000` reparación entregada o anulada, `23514` «No hay stock suficiente».
+Todas las RPC viven en `public`, son `security definer` con `search_path = ''`, llevan `revoke execute … from public, anon` y `grant execute … to authenticated`. La organización sale de la sesión. Errores: `22023` validación (campo en `hint`), `42501` sin permiso, `P0002` no existe / tienda inaccesible (`PT404` en `depositos_para_repuesto` desde la ola 15 de `docs/errores-negocio-postgrest.md`), `55000` reparación entregada o anulada, `23514` «No hay stock suficiente».
 
 ## F-SVC-10 · Descuento por depósito
 

@@ -3,6 +3,7 @@ import { hoyEnOrganizacion } from './periodosRanking'
 import { supabaseClient } from './supabase'
 import { formatearCuit } from './cuit'
 import type { EstadoProveedores } from '../hooks/useListarProveedores'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 // Exportación del listado de proveedores a .xlsx (MSF-526). Los lotes salen de
 // `public.exportar_proveedores` (security definer: la base exige la acción «exportar» y acota a la
@@ -63,7 +64,7 @@ async function pedirLote(filtros: FiltrosExportacionProveedores, despuesDe: stri
     const { code } = error as { code?: string }
     if (code === '54000') throw new ErrorExportacion('Son demasiados proveedores para un solo archivo. Afiná la búsqueda e intentá de nuevo.', code)
     if (code === '42501') throw new ErrorExportacion('No tenés permiso para exportar proveedores.', code)
-    if (code === '40001') throw new ErrorExportacion('Los proveedores cambiaron mientras se exportaba. Intentá de nuevo.', code)
+    if (esCodigoDeConflicto(code)) throw new ErrorExportacion('Los proveedores cambiaron mientras se exportaba. Intentá de nuevo.', code)
     console.error('exportar_proveedores falló', error)
     throw new ErrorExportacion('No pudimos exportar los proveedores. Intentá de nuevo.', code)
   }

@@ -127,7 +127,7 @@ select results_eq(
 );
 select throws_ok(
   $$select * from public.exportar_proveedores(null, 'activos', null, 'b2000000-0000-0000-0000-0000000000b1')$$,
-  '40001', null, 'un cursor de otra organización se rechaza (no trunca en silencio)'
+  'PT412', null, 'un cursor de otra organización se rechaza (no trunca en silencio)'
 );
 select throws_ok($$select * from public.exportar_proveedores(null, 'otro')$$, '22023', null, 'un estado desconocido se rechaza');
 

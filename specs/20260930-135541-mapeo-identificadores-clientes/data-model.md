@@ -71,7 +71,7 @@ un índice adicional.
 ### `public.vincular_identificador_externo(p_cliente_id uuid, p_sistema text, p_identificador_externo text) returns public.clientes_identificadores_externos`
 
 - Resuelve `v_organizacion_id` desde `clientes` por `p_cliente_id`; si no
-  existe el cliente, `raise exception ... using errcode = 'P0002'`.
+  existe el cliente, `raise exception ... using errcode = 'PT404'` (HTTP 404; antes `P0002`, ola 15 de `docs/errores-negocio-postgrest.md`).
 - Verifica `private.es_administrador_de(v_organizacion_id)`; si no, `raise
   exception ... using errcode = '42501'`.
 - `insert ... on conflict (sistema, identificador_externo) do nothing`, y si

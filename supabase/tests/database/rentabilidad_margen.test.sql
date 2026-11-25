@@ -253,11 +253,11 @@ insert into t_ts select 'cambio', public.guardar_umbral_margen_bajo(0.20, (selec
 select is(public.leer_umbral_margen_bajo(), 0.20, 'segundo cambio con el updated_at leído');
 select throws_ok(
   $$select public.guardar_umbral_margen_bajo(0.25, (select val from t_ts where clave = 'alta'))$$,
-  '40001', null, 'bloqueo optimista: un updated_at viejo se rechaza'
+  'PT412', null, 'bloqueo optimista: un updated_at viejo se rechaza'
 );
 select throws_ok(
   $$select public.guardar_umbral_margen_bajo(0.25, null)$$,
-  '40001', null, 'con fila existente, sin updated_at y valor distinto se rechaza'
+  'PT412', null, 'con fila existente, sin updated_at y valor distinto se rechaza'
 );
 reset role;
 select is(

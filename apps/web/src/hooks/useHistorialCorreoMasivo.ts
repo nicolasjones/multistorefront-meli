@@ -64,8 +64,9 @@ export function useDetalleCampanaCorreo({ campanaId, pagina, tamano }: { campana
       respuesta = { data: null, error: {} }
     }
     if (peticion !== ultimaPeticion.current) return
-    setNoExiste(respuesta.error?.code === 'P0002')
-    setHayError(Boolean(respuesta.error && respuesta.error.code !== 'P0002') || (!respuesta.error && !respuesta.data))
+    const faltante = respuesta.error?.code === 'P0002' || respuesta.error?.code === 'PT404'
+    setNoExiste(faltante)
+    setHayError(Boolean(respuesta.error && !faltante) || (!respuesta.error && !respuesta.data))
     setDatos(respuesta.error ? null : respuesta.data)
     setCargando(false)
     setRespondidaPara(contexto)

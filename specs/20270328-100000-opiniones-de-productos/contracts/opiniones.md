@@ -1,6 +1,6 @@
 # Contratos: Opiniones de productos (MSF-467)
 
-Todas las RPC devuelven `jsonb` con `estado` salvo las del panel, que usan los mismos errores de Postgres que las de listas de precios (`42501`, `40001`, `55000`). `security definer`, `set search_path = ''`; el `exception when others` registra solo `sqlstate`. **Ninguna RPC de la tienda recibe `cliente_id`, `cuenta_id`, `empresa_id` ni `organizacion_id`**: todo sale de la sesión y del host (`private.cuenta_de_tienda(host)`).
+Todas las RPC devuelven `jsonb` con `estado` salvo las del panel, que usan los mismos errores de Postgres que las de listas de precios (`42501`, `40001` o `PT412` en `moderar_opinion` desde la ola 15 de `docs/errores-negocio-postgrest.md`, `55000`). `security definer`, `set search_path = ''`; el `exception when others` registra solo `sqlstate`. **Ninguna RPC de la tienda recibe `cliente_id`, `cuenta_id`, `empresa_id` ni `organizacion_id`**: todo sale de la sesión y del host (`private.cuenta_de_tienda(host)`).
 
 Orden de verificaciones en la tienda: **bandera `tienda_opiniones` → cuenta → límite por visitante → validar entradas → trabajar**.
 
@@ -26,7 +26,7 @@ Orden de verificaciones en la tienda: **bandera `tienda_opiniones` → cuenta �
 | RPC | Roles | Entrada | Salida |
 |---|---|---|---|
 | `public.listar_opiniones(estado, empresa_id, desde_creada, desde_id, limite)` | `authenticated` (solo Administrador; otro → `42501`) | `estado` ∈ `pendiente\|aceptada\|rechazada\|todas`; `empresa_id` null = todas las tiendas; cursor `(creada_en, id)` y `limite` 1–50 (20) | `{contadores:{pendientes, aceptadas, rechazadas}, filas:[{id, empresa_id, empresa_nombre, cliente_id, cliente_nombre, producto_id, producto_nombre, puntuacion, comentario, estado, motivo_rechazo, creada_en, actualizada_en}], siguiente}`; los contadores son del ámbito de `empresa_id`, no del filtro de estado |
-| `public.moderar_opinion(id, decision, motivo, actualizada_en_esperada)` | `authenticated` (solo Administrador) | `decision` ∈ `aceptar\|rechazar`; `motivo` ≤ 200 (solo al rechazar) | `{estado:"ok", opinion:{id, estado}}` · `conflicto` (la fila cambió: `40001`) · `no_encontrada` · `55000` si la bandera está apagada y la decisión es `aceptar` |
+| `public.moderar_opinion(id, decision, motivo, actualizada_en_esperada)` | `authenticated` (solo Administrador) | `decision` ∈ `aceptar\|rechazar`; `motivo` ≤ 200 (solo al rechazar) | `{estado:"ok", opinion:{id, estado}}` · `conflicto` (la fila cambió: `PT412`, antes `40001`) · `no_encontrada` · `55000` si la bandera está apagada y la decisión es `aceptar` |
 
 - Repetir la misma decisión sobre una opinión ya en ese estado responde `ok` **sin** volver a registrar el evento.
 - Eventos de **Actividad** (`private.registrar_actividad`): `opinion.aceptada` y `opinion.rechazada`; detalle «Opinión de N estrellas sobre «producto» aceptada/rechazada» (≤ 500, **sin el comentario ni el motivo**).

@@ -259,7 +259,7 @@ select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.aplicar_lote_clientes((select (v #>> '{}')::uuid from t_res where k = 'carga3'), 2,
     '[{"fila":2,"id_externo":"X-2","nombre":"Carga ajena","condicion_iva":"Exento"}]'::jsonb)$$,
-  'P0002', 'La carga no existe en tu organización', 'otra organización no aplica lotes sobre una carga ajena'
+  'PT404', 'La carga no existe en tu organización', 'otra organización no aplica lotes sobre una carga ajena'
 );
 
 -- Un organizacion_id ajeno dentro de la fila se ignora: el cliente nace en la organización de quien importa.

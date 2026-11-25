@@ -135,7 +135,7 @@ set local role authenticated;
 
 select throws_ok(
   $$select public.aprovisionar_servidor_organizacion('00000000-0000-0000-0000-000000000000', 'host.example.com', 'deploy', 'clave-ssh')$$,
-  'P0002',
+  'PT404',
   null,
   'aprovisionar_servidor_organizacion rechaza una organización que no existe'
 );

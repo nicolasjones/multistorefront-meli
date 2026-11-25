@@ -2,12 +2,12 @@
 -- impresiones y exportación de comprobantes, costos adicionales, conexiones (incluidas las de OAuth), integraciones, reportes y
 -- funcionalidades por organización contestan `PT404` (HTTP 404) cuando el dato no existe (antes `P0002`, HTTP 500), con el mismo
 -- mensaje de negocio de siempre. Cada afirmación comprueba código y mensaje; hay al menos una por función migrada. Se comprueba
--- también lo que NO cambia: `aprovisionar_servidor_organizacion` y `proveedores_efectivos_de_cliente` siguen con `P0002`, y los
+-- también lo que NO cambia: `proveedores_efectivos_de_cliente` sigue con `P0002` (`aprovisionar_servidor_organizacion` pasó a `PT404` en la ola 15, lote78), y los
 -- comentarios de los costos adicionales nombran el código nuevo.
 -- Fixture como postgres; verificaciones como «authenticated» con request.jwt.claims, igual que PostgREST.
 begin;
 
-select plan(23);
+select plan(22);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno');
@@ -79,8 +79,6 @@ select throws_ok($$select public.habilitar_feature('feature-que-no-existe', '999
 -- ============================================================================
 -- Lo que NO cambia
 -- ============================================================================
-select throws_ok($$select public.aprovisionar_servidor_organizacion('00000000-0000-0000-0000-000000000000', 'host.example.com', 'deploy', 'clave-ssh')$$,
-  'P0002', null, 'aprovisionar_servidor_organizacion sigue con P0002 (fuera de esta ola)');
 select throws_ok($$select * from public.proveedores_efectivos_de_cliente('99999999-9999-9999-9999-999999999999')$$,
   'P0002', null, 'proveedores_efectivos_de_cliente sigue con P0002 (contrato propio del spec)');
 

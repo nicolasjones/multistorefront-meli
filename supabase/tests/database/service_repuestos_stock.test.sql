@@ -152,7 +152,7 @@ select is(
   0, 'un producto sin existencias en el depósito muestra disponible 0');
 select throws_ok(
   $$select public.depositos_para_repuesto('b2000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'un producto de otra organización es P0002');
+  'PT404', null, 'un producto de otra organización es PT404');
 
 -- ============================================================================
 -- Descuento al agregar (FR-002, FR-007)
@@ -326,7 +326,7 @@ select is(
   1, 'la otra organización ve solo sus depósitos');
 select throws_ok(
   $$select public.depositos_para_repuesto('b1000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'la otra organización no consulta productos ajenos');
+  'PT404', null, 'la otra organización no consulta productos ajenos');
 select throws_ok(
   $$select public.agregar_item_reparacion((select id from reps where clave = 'r1'), 'repuesto', '', 'b2000000-0000-0000-0000-000000000001', 1, 10)$$,
   'P0002', null, 'la otra organización no agrega ítems a una reparación ajena');
