@@ -92,4 +92,58 @@ describe('cache de acceso', () => {
       vi.useRealTimers()
     }
   })
+
+  it('un usuario con error a la vez se deniega', async () => {
+    mocks.getUser.mockResolvedValueOnce({ data: { user: { id: 'u1' } }, error: { message: 'x' } })
+    expect(await obtenerUsuarioActual()).toBeNull()
+  })
+
+  describe('cableado de onAuthStateChange', () => {
+    // El callback se registra una sola vez por carga del módulo: se captura tras el reset del beforeEach.
+    async function callbackDeSesion(): Promise<() => void> {
+      vi.resetModules()
+      const modulo = await import('./superadmin')
+      mocks.getUser.mockResolvedValue({ data: { user: { id: 'u1' } }, error: null })
+      await modulo.obtenerUsuarioActual()
+      const llamada = mocks.onAuthStateChange.mock.calls.at(-1)
+      expect(llamada).toBeDefined()
+      return llamada![0] as () => void
+    }
+
+    it('el cambio de sesión descarta usuario y superadmin cacheados (logout de A, login de B)', async () => {
+      vi.resetModules()
+      const modulo = await import('./superadmin')
+      mocks.getUser.mockResolvedValueOnce({ data: { user: { id: 'A' } }, error: null })
+      mocks.maybeSingle.mockResolvedValueOnce({ data: { user_id: 'A' }, error: null })
+      expect(await modulo.obtenerUsuarioActual()).toEqual({ id: 'A' })
+      expect(await modulo.checkIsSuperadmin('A')).toBe(true)
+      const alCambiarSesion = mocks.onAuthStateChange.mock.calls.at(-1)![0] as () => void
+
+      alCambiarSesion()
+
+      mocks.getUser.mockResolvedValueOnce({ data: { user: { id: 'B' } }, error: null })
+      mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+      expect(await modulo.obtenerUsuarioActual()).toEqual({ id: 'B' })
+      expect(await modulo.checkIsSuperadmin('A')).toBe(false)
+      expect(mocks.getUser).toHaveBeenCalledTimes(2)
+      expect(mocks.maybeSingle).toHaveBeenCalledTimes(2)
+    })
+
+    it('se registra una sola vez aunque haya muchas evaluaciones', async () => {
+      await callbackDeSesion()
+      expect(mocks.onAuthStateChange).toHaveBeenCalledTimes(1)
+    })
+
+    it('una consulta en vuelo no repuebla el cache tras invalidar', async () => {
+      let resolver: (v: unknown) => void = () => undefined
+      mocks.maybeSingle.mockReturnValueOnce(new Promise((r) => { resolver = r }))
+      const enVuelo = checkIsSuperadmin('u1')
+      invalidarCacheAcceso()
+      resolver({ data: { user_id: 'u1' }, error: null })
+      await enVuelo
+      mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+      expect(await checkIsSuperadmin('u1')).toBe(false)
+      expect(mocks.maybeSingle).toHaveBeenCalledTimes(2)
+    })
+  })
 })

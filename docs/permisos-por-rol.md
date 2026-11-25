@@ -242,6 +242,7 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
   Ver `docs/ventas-listado-estados.md`.
 - `accessControlProvider` comparte una sola consulta de permisos por usuario (promesa en vuelo + TTL de 5 s,
   `obtenerPermisosActualesCacheado`); F-ROL-02 debe llamar `invalidarCachePermisos()` al editar la matriz.
+  El usuario de Auth y el resultado de superadmin (`lib/superadmin.ts`) se cachean igual, hasta 5 s y hasta el próximo cambio de sesión: una revocación se ve en la UI con ese retraso, y RLS decide en el servidor.
 - El rol `miembro` del template queda en solo lectura donde el prototipo da lectura, y sin acceso
   a las secciones reservadas a Administrador/Administración (nunca gana acceso que no tenía).
 - Los valores iniciales de las acciones (`eliminar`, `exportar`, `ver_costos`, `editar_precio`, `anular`,

@@ -24,7 +24,7 @@ async function consultarEsSuperadmin(userId: string): Promise<boolean> {
 // usuario a Auth y consultaba `superadmins`. Se comparte una promesa por usuario (TTL corto, como
 // `obtenerPermisosActualesCacheado`) y se descarta al cambiar la sesión. Los fallos no se cachean.
 const TTL_ACCESO_MS = 5000
-type EntradaCache<T> = { clave: string; expira: number; promesa: Promise<T> }
+type EntradaCache<T> = { clave?: string; expira: number; promesa: Promise<T> }
 let cacheUsuario: EntradaCache<{ id: string } | null> | null = null
 let cacheSuperadmin: EntradaCache<boolean> | null = null
 let escuchandoSesion = false
@@ -53,7 +53,7 @@ export function obtenerUsuarioActual(): Promise<{ id: string } | null> {
     .getUser()
     .then(({ data, error }) => (error || !data?.user ? null : { id: data.user.id }))
     .catch(() => null)
-  const entrada = { clave: '', expira: ahora + TTL_ACCESO_MS, promesa }
+  const entrada = { expira: ahora + TTL_ACCESO_MS, promesa }
   cacheUsuario = entrada
   void promesa.then((usuario) => {
     if (usuario === null && cacheUsuario === entrada) {

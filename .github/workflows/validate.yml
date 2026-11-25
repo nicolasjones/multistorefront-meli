@@ -163,15 +163,14 @@ jobs:
       - name: test:vencimientos:gates
         run: pnpm test:vencimientos:gates
       # Tests de scripts/tooling, edge, kestra y superset que corren en Node puro, sin base ni red (MSF-679,
-      # lo seguro): antes no corrían en ningún workflow. Incluye el gate de egress de workers (MSF-684) y el
-      # validador de migraciones aditivas sobre todas las migraciones. Corre todas las suites y falla al final
-      # con un resumen. ~1,5 min. Los pesados o rotos quedan documentados
-      # en docs/control-ci.md («Decisiones pendientes del lote 26»).
+      # lo seguro). Incluye el gate de egress de workers (MSF-684) y el validador de migraciones aditivas sobre
+      # todas las migraciones. Corre todas las suites y falla al final con un resumen. Las que quedan fuera
+      # están en docs/control-ci.md («Qué tests corre el CI y cuáles deja fuera»).
       - name: test:ci:scripts
         run: pnpm test:ci:scripts
-      # Resto de las suites de Node/Python puro que existían y no corrían en ningún workflow (MSF-679): edge
-      # sin red ni base, validadores de flows de Kestra, monitoreo, DER y manifiesto de docs. Corre todas y falla
-      # al final con un resumen. Las que exigen stack, docker o credenciales quedan fuera (docs/control-ci.md).
+      # Resto de las suites de Node/Python puro, sin servicios ni credenciales (MSF-679): edge, validadores de
+      # flows de Kestra, monitoreo, DER, docs y cobertura de e2e. Corre todas y falla al final con un resumen.
+      # Las que exigen stack, docker o credenciales quedan fuera (docs/control-ci.md).
       - name: test:ci:suites-baratas
         run: pnpm test:ci:suites-baratas
       # Script de la bandera tienda_pedidos (MSF-176): se niega a operar fuera de dev; Node puro, sin base.

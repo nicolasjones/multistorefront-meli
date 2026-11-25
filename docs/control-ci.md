@@ -200,7 +200,7 @@ archivo` sin pasos de código.
 `can()` de Refine corre por ítem de menú y acción; `lib/superadmin.ts` comparte una promesa por usuario (TTL corto, igual que
 los permisos por sección) para el usuario de Auth y para el resultado de superadmin, y la descarta con cualquier evento de
 `onAuthStateChange`. Regla: un error de la consulta a `superadmins` o a Auth deniega (nunca concede superadmin) y no se cachea,
-así un fallo transitorio no queda fijado. La organización activa no se cachea: cambia al entrar o salir de soporte.
+así un fallo transitorio no queda fijado. La organización activa no se cachea: cambia al entrar o salir de soporte. Un `false` también se cachea el mismo TTL: quien acaba de ser promovido a superadmin ve denegado hasta que vence o cambia la sesión; la revocación se ve igual con ese retraso en la UI, y RLS decide en el servidor.
 
 ### Decisiones pendientes del lote 26 (no se tocaron a propósito)
 
@@ -211,18 +211,29 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   (ya existe, costo nulo en el camino del PR). Se recomienda (b) más la cola de merge (`merge_group`, ya soportado por el workflow)
   si se quiere validar el resultado integrado (no verificado si el repo tiene merge queue o ruleset activos: no se pudo consultar
   la API de rulesets). **Resuelto en el lote 36:** decisión de Nicolás = no encenderlo en cada push; corrida diaria (ver abajo, MSF-685).
-- **Suites baratas en `chequeos` (MSF-679, lote 58).** Paso `pnpm test:ci:suites-baratas`, que corre con `scripts/correr-suites.mjs` (todas, falla al final con resumen) las suites que existían y no entraban a ningún workflow: edge sin red ni base (`chat-ia-limites`, `protocolo`, `cotizacion-sugerida`, `enviar-resumen-semanal`, `recalcular-alertas-inicio`, `consultar-estado-reparacion`, `verificar-dominio-tienda`, `indexar-documento`, `compartido-ia`, `preguntar-documentos`), los validadores de flows de Kestra, `test:monitoreo`, `test:der`, el manifiesto e importaciones de docs y las de Python (`test:e2e:cobertura:epicas`, `test:superset:config`). Regla: una suite entra al CI solo si es determinista y no necesita servicios, docker ni credenciales; toda suite `test:*` nueva que cumpla eso se suma a ese script, no queda suelta. Quedan fuera, con motivo: `test:db` (Supabase local), los `*:e2e` y `test:acceso:e2e` (stack vivo), `test:superset:embebido` y `test:superset:aislamiento-tokens` (Superset y credenciales), `test:ia:aprovisionamiento` (docker) y `test:web`/`test:e2e` (ya corren con vitest y playwright en sus propios jobs).
-- **Tests que el CI sigue sin correr (MSF-679).** `test:ci:scripts` suma los de workers (`discover`, `scan`, `idempotency`,
-  `audit`), el contrato estático de Kestra (`test:kestra:runtime`), el despachador programado y la frontera de outbox: son Node
-  puro, sin red ni base. `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
+- **Qué tests corre el CI y cuáles deja fuera (MSF-679).** Los de Node y Python puros que no necesitan base, red ni credenciales
+  corren en el job `chequeos` por dos caminos. `test:ci:scripts` suma tooling, workers (`discover`, `scan`, `idempotency`, `audit`), el
+  contrato estático de Kestra (`test:kestra:runtime`), el despachador programado y la frontera de outbox. `test:ci:suites-baratas` suma
+  el resto: edge sin red ni base, validadores de flows de Kestra, monitoreo, DER, manifiesto e importaciones de docs, cobertura y
+  videos de e2e, y las suites de Python. Regla: una suite `test:*` entra al CI si es determinista y no necesita servicios, docker ni
+  credenciales, y se suma a uno de esos dos scripts en vez de quedar suelta; sin esa regla las suites nuevas se acumulan sin que
+  nadie las corra. Ambos runners ejecutan todas las suites y fallan al final con un resumen; cada suite tiene su timeout
+  (600 s por defecto) y el job su `timeout-minutes`, que manda: varias suites colgadas a la vez pueden agotar el job antes de que cada una venza.
+  `test:outbox:frontera` fallaba por un falso positivo: la palabra «webhook» dentro de un `comment on ... is '...'`.
   El guard ahora recorre el SQL de una pasada (literales `'...'`, identificadores, dollar-quoting, comentarios `--` y
   `/* */` anidables): descarta comentarios, evalúa todo lo demás (incluido SQL dinámico y `do $$`) e ignora únicamente el
   literal de una sentencia que empieza con `comment on ... is`. Un literal o comentario sin cerrar falla cerrado. El recorrido es lineal (un archivo adversarial con cientos de miles de literales no cuelga el job) y no guarda estado entre llamadas. Un
   regex sobre texto crudo no sirve: un comentario o un literal puede simular el inicio de un `comment on` y esconder una
-  llamada saliente real. Quedan fuera a propósito: `template:capabilities:check`
-  (compara contra `origin/main`, que el job no garantiza), `test:ia:aprovisionamiento` (usa `docker`, que no hay en el job),
-  `test:superset:embebido` y `test:superset:aislamiento-tokens` (exigen un Superset y credenciales vivas), los `test:*:e2e`,
-  `test:db`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e` y demás de runtime que necesitan stack.
+  llamada saliente real.
+  Quedan fuera a propósito, cada grupo por su motivo:
+  - `template:capabilities:check` compara contra `origin/main`, que el job no garantiza.
+  - `test:ia:aprovisionamiento` usa `docker`, que no hay en el job.
+  - `test:superset:embebido` y `test:superset:aislamiento-tokens` exigen un Superset y credenciales vivas.
+  - `test:db`, `test:acceso:e2e`, `test:auth:hook-bloqueo:e2e`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e`,
+    `test:kestra:reintentos:e2e` y `test:kestra:conexion-trabada:e2e` necesitan Supabase o Kestra levantados.
+  - `test:web` y `test:e2e` ya corren con vitest y playwright en sus propios jobs; `test:e2e:headed`, `:report`, `:trace`,
+    `:codegen` y `:storage` son herramientas interactivas de depuración local, no verifican nada.
+  - `test:afectados` es un selector que corre otros tests según el diff, no una suite propia.
 - **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
   tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
   habilitar «Allow GitHub Actions to create and approve pull requests» en Settings → Actions, o pasar `token:` de un PAT/GitHub App
@@ -231,7 +242,7 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
 - **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
   `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
   o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
-  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: se atendió en el lote 58 (abajo).
+  ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: se atendió en la sección «Acceso por ítem de menú (MSF-688, lote 58)».
 
 ## Cambios de CI de la auditoría MSF-647 (lote 36)
 
