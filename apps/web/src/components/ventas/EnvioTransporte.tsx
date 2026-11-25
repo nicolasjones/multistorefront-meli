@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { esCodigoDeConflicto } from '../../lib/mensajeErrorBase'
 import { Alert, Box, Button, Card, CardContent, CardHeader, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
 import {
@@ -310,7 +311,7 @@ export function EnvioTransporte({
       setErrorAccion(mensajeDeErrorEnvio(falla))
       // Conflicto de concurrencia: el `updated_at` que se mandó quedó viejo. Sin releer, el reintento fallaría
       // otra vez por el mismo motivo, así que se vuelve a leer el envío.
-      if ((falla as { code?: string } | null)?.code === '40001') {
+      if (esCodigoDeConflicto((falla as { code?: string } | null)?.code)) {
         await cargar()
       }
     } finally {

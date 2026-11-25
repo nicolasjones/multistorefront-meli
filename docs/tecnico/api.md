@@ -428,7 +428,7 @@ organización y actor salen de la sesión y el nivel de `ventas` se evalúa en l
 
 | RPC | Contrato |
 |---|---|
-| `crear_comprobante(...)` / `guardar_comprobante(...)` | Alta y edición de cabecera con numeración correlativa y bloqueo optimista (`40001`). |
+| `crear_comprobante(...)` / `guardar_comprobante(...)` | Alta y edición de cabecera con numeración correlativa y bloqueo optimista (`PT412`, HTTP 412; antes `40001`). |
 | `obtener_comprobante(id)` | Cabecera, cliente, operador, líneas con depósito/stock/reservado, totales y `puede_editar_precio`. |
 | `guardar_lineas_comprobante(id, lineas, actualizado_en)` | Reemplazo transaccional de líneas; precio y escala con `private.precio_para`; `precio_manual` exige `editar_precio`. |
 | `disponible_para_venta(producto, deposito)` | Existencias del depósito − reservado; `null` si producto o depósito no son de la organización. |
@@ -436,8 +436,8 @@ organización y actor salen de la sesión y el nivel de `ventas` se evalúa en l
 | `aceptar_presupuesto(id)` / `copiar_presupuesto(id)` | `pendiente` → `aceptado` y copia con número nuevo; no tocan stock. |
 | `listar_presupuestos(...)` | Listado paginado con búsqueda, filtros, `vencido` derivado y `puede_editar`. |
 
-Errores: `42501` permiso · `22023` validación (`hint` = campo) · `P0002` inexistente · `55000` documento
-cerrado · `40001` conflicto · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
+Errores: `42501` permiso · `22023` validación (`hint` = campo) · `PT404` inexistente (antes `P0002`) · `55000` documento
+cerrado · `PT412` conflicto (antes `40001`; la guarda `precios_cambiaron` conserva `40001`) · `P0001` con `hint = 'stock'` por faltante al confirmar. Contrato completo:
 [Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
 ### Ventas listado, estados y anulación (MSF-177)
 

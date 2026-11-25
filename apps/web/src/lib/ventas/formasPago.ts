@@ -2,6 +2,7 @@
 // y las RPC viven en las migraciones 20261020100000_formas_pago.sql y 20261020100100_formas_pago_rpc.sql;
 // acá se espejan para validar antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
+import { esCodigoDeConflicto } from '../mensajeErrorBase'
 
 export const TIPOS_FORMA_PAGO = ['efectivo', 'transferencia', 'contrarreembolso', 'tarjeta', 'otro'] as const
 export type TipoFormaPago = (typeof TIPOS_FORMA_PAGO)[number]
@@ -119,7 +120,7 @@ export function validarFormaPago(formulario: FormularioFormaPago, { alta }: { al
 type ErrorBase = { code?: string } | null
 
 export function esConflicto(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, índices o columnas: al usuario va
@@ -127,8 +128,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, (error as ErrorBase)?.code ?? 'sin código')
   const code = (error as ErrorBase)?.code
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'La forma de pago ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'La forma de pago ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // Único (empresa, nombre) es la única restricción 23505 de la tabla.
   if (code === '23505') return MENSAJE_NOMBRE_REPETIDO

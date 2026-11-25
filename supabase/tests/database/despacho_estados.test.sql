@@ -172,7 +172,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('f1'), '2026-01-01T00:00:00Z'),
-  '40001', null, 'un updated_at viejo da conflicto de edición');
+  'PT412', null, 'un updated_at viejo da conflicto de edición');
 
 -- ============================================================================
 -- FR-004 / FR-005 / FR-006 · Quién puede armar, controlar y entregar
@@ -356,14 +356,14 @@ select throws_ok(
 -- Aislamiento: la tienda de otra organización no existe para esta sesión.
 select throws_ok(
   $$select public.listar_responsables_despacho('a2000000-0000-0000-0000-000000000001', 'armar')$$,
-  'P0002', null, 'no se listan responsables de una tienda de otra organización');
+  'PT404', null, 'no se listan responsables de una tienda de otra organización');
 
 -- Y al revés: la otra organización no ve los responsables de esta tienda.
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   $$select public.listar_responsables_despacho('a1000000-0000-0000-0000-000000000001', 'armar')$$,
-  'P0002', null, 'otra organización no ve los responsables de esta tienda');
+  'PT404', null, 'otra organización no ve los responsables de esta tienda');
 
 -- Quien no accede a la tienda no ve la lista.
 select pg_temp.como('f1000000-0000-0000-0000-000000000007');
@@ -537,7 +537,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   format($$select public.obtener_despacho_comprobante(%L)$$, pg_temp.id_de('f1')),
-  'P0002', null, 'otra organización no lee el despacho de esta factura');
+  'PT404', null, 'otra organización no lee el despacho de esta factura');
 
 -- ============================================================================
 -- FR-009 / FR-008 · Quién puede ejecutar las funciones del despacho

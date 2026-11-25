@@ -207,8 +207,8 @@ se evalúa **en la empresa del comprobante** (no solo en la activa).
 | `listar_presupuestos(p_busqueda, p_estado, p_empresa_id, p_pagina, p_tamano, p_origen)` | **F-VTA-08.** Lectura paginada (tope 200 por página): id, número, empresa, fecha, cliente, operador, válido hasta, estado (con `vencido` derivado), total, `puede_editar` y `filas` (total del filtro). Solo tiendas con `ventas` en `lectura` o `edicion`; una tienda ajena devuelve cero filas. `p_estado` ∈ pendiente · aceptado · vencido · convertido (otro valor: `22023`). `p_origen` (MSF-942, por defecto `null` = todos) ∈ `panel` · `tienda` (según el vínculo `dominio.presupuestos_tienda`; otro valor: `22023`): filtra antes de contar y paginar, así `filas` y las tandas son del canal elegido. |
 | `obtener_comprobante(p_id)` | Cabecera + cliente + operador + líneas (con depósito, stock y reservado) + totales + `puede_editar_precio`; exige `lectura` o `edicion`. |
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` no existe · `55000` documento
-cerrado · `40001` conflicto de edición · `P0001` con `hint = 'stock'` sin stock suficiente al confirmar
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `PT404` no existe (antes `P0002`) · `55000` documento
+cerrado · `PT412` conflicto de edición (antes `40001`; la guarda `precios_cambiaron` conserva `40001`) · `P0001` con `hint = 'stock'` sin stock suficiente al confirmar
 (otro P0001 es un error interno; el front no lo toma por faltante). El mensaje nombra producto y depósito.
 `apps/web/src/lib/ventas.ts` los traduce a mensajes en castellano.
 

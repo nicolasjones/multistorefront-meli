@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { esCodigoDeConflicto } from '../../lib/mensajeErrorBase'
 import { Alert, Box, Button, Card, CardContent, CardHeader, Chip, MenuItem, Stack, TextField, Typography } from '@mui/material'
 import { EtiquetaEstado } from '../base/EtiquetaEstado'
 import { EstadoCargaPagina, EstadoError, EstadoExito } from '../estados/EstadosPagina'
@@ -162,7 +163,7 @@ export function ResponsablesDespacho({ comprobanteId, empresaId, operador, empre
       // Conflicto de concurrencia: el `updated_at` que se mandó quedó viejo. Sin releer, el reintento fallaría
       // otra vez por el mismo motivo, así que se suelta lo elegido y se vuelve a leer el despacho (el aviso
       // dice «Recargamos los datos»).
-      if ((falla as { code?: string } | null)?.code === '40001') {
+      if (esCodigoDeConflicto((falla as { code?: string } | null)?.code)) {
         setElegido('')
         await cargar()
       }

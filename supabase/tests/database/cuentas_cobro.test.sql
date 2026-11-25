@@ -169,7 +169,7 @@ select throws_ok(
       (select id from dominio.cuentas_cobro where nombre = 'Banco Uno ···7370'),
       '2000-01-01 00:00:00+00', 'Banco Uno ···7370', 'Comercial Uno SRL', '30701234568', 'Banco Uno', null,
       '0170099220000067797370', 'cuenta_corriente', 'ARS', 5, true, null, '{}')$$,
-  '40001', null, 'un updated_at viejo se rechaza (conflicto de edición) sin pisar nada'
+  'PT412', null, 'un updated_at viejo se rechaza (conflicto de edición) sin pisar nada'
 );
 
 -- Guarda el updated_at previo en una variable de transacción (sin tablas auxiliares).
@@ -332,7 +332,7 @@ select is(
 );
 select throws_ok(
   $$select public.cambiar_estado_cuenta_cobro('00000000-0000-0000-0000-000000000000', false)$$,
-  'P0002', null, 'una cuenta que no existe (o es de otra organización) se informa sin revelar nada'
+  'PT404', null, 'una cuenta que no existe (o es de otra organización) se informa sin revelar nada'
 );
 
 -- ============================================================================

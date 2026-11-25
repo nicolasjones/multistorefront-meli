@@ -3,7 +3,7 @@
 -- (bloqueo optimista) = `PT412` (412). Los rechazos de estado (`55000`) no cambian en este lote.
 begin;
 
-select plan(14);
+select plan(15);
 
 insert into organizaciones (id, nombre) values
   ('11111111-1111-1111-1111-111111111111', 'Organización Uno'),
@@ -60,6 +60,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.guardar_comprobante('f1000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-01', null, null, null, '2000-01-01T00:00:00Z')$$, 'PT412', 'Otra persona modificó este comprobante. Recargalo para ver los cambios', 'guardar_comprobante: una versión vieja es un conflicto (412)');
 select throws_ok($$select public.guardar_lineas_comprobante('f1000000-0000-0000-0000-000000000001', '[]'::jsonb, '2000-01-01T00:00:00Z')$$, 'PT412', 'Otra persona modificó este comprobante. Recargalo para ver los cambios', 'guardar_lineas_comprobante: una versión vieja es un conflicto (412)');
 select throws_ok($$select public.anular_comprobante('f1000000-0000-0000-0000-000000000002', 'Error de carga', '2000-01-01T00:00:00Z')$$, 'PT412', 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar', 'anular_comprobante: una versión vieja es un conflicto (412)');
+select throws_ok($$select public.cambiar_estado_comprobante('f1000000-0000-0000-0000-000000000002', 'aceptado', '2000-01-01T00:00:00Z')$$, 'PT412', 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar', 'cambiar_estado_comprobante: una versión vieja es un conflicto (412)');
 
 -- El estado que no admite la acción sigue con su código (fuera de este lote).
 select throws_ok($$select public.guardar_comprobante('f1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-01', null, null, null, now())$$, '55000', 'El comprobante ya está cerrado y no se puede modificar', 'una factura confirmada sigue respondiendo 55000');

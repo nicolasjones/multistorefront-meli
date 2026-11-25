@@ -555,7 +555,7 @@ select is(
 select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e1000000-0000-0000-0000-000000000001', 'AR555', '2026-12-14', '2026-01-01T00:00:00Z'::timestamptz)$$,
     pg_temp.id_de('f1')),
-  '40001', null, 'un updated_at viejo da conflicto de edición');
+  'PT412', null, 'un updated_at viejo da conflicto de edición');
 
 select throws_ok(
   $$select pg_temp.guardar('f1', 'e1000000-0000-0000-0000-000000000001', repeat('X', 101), '2026-12-14')$$,
@@ -584,7 +584,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, 'e2000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
-  'P0002', null, 'otra organización no registra el envío de esta factura');
+  'PT404', null, 'otra organización no registra el envío de esta factura');
 
 -- ============================================================================
 -- FR-022 · Al entregar, la forma de envío que exige transporte y guía se respeta
@@ -1004,7 +1004,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000004');
 
 select throws_ok(
   $$select public.obtener_envio_comprobante('00000000-0000-0000-0000-000000000000')$$,
-  'P0002', null, 'un comprobante que no existe no tiene envío');
+  'PT404', null, 'un comprobante que no existe no tiene envío');
 
 -- ============================================================================
 -- `anon` sin acceso

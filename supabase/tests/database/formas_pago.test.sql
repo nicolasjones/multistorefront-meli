@@ -176,7 +176,7 @@ select is(
   'Efectivo', 'y la edición aplica solo a la empresa elegida');
 select throws_ok(
   $$select public.actualizar_forma_pago('b1000000-0000-0000-0000-00000000000a', current_setting('prueba.leido')::timestamptz, 'Otro nombre', 'efectivo', false, false, 'cobrado', 3, true)$$,
-  '40001', null, 'editar con una versión vieja es un conflicto');
+  'PT412', null, 'editar con una versión vieja es un conflicto');
 
 -- ============================================================================
 -- Estado idempotente

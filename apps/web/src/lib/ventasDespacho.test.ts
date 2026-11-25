@@ -60,6 +60,8 @@ describe('mensajeDeErrorDespacho', () => {
 
   it('conflicto, mensajes de la RPC, inexistente y genérico', () => {
     expect(mensajeDeErrorDespacho({ code: '40001' })).toBe(MENSAJE_CONFLICTO_DESPACHO)
+    expect(mensajeDeErrorDespacho({ code: 'PT412' })).toBe(MENSAJE_CONFLICTO_DESPACHO)
+    expect(mensajeDeErrorDespacho({ code: 'PT404' })).toMatch(/no existe/)
     expect(mensajeDeErrorDespacho({ code: '22023', message: 'Elegí quién arma el pedido.' })).toBe('Elegí quién arma el pedido.')
     expect(mensajeDeErrorDespacho({ code: '42501', message: 'permission denied for table x' })).toBe(MENSAJE_ERROR_DESPACHO)
     expect(mensajeDeErrorDespacho({ code: 'P0002' })).toMatch(/no existe/)

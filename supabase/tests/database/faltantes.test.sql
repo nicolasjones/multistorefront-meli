@@ -353,7 +353,7 @@ select throws_ok(
 select throws_ok(
   format($$select public.registrar_faltantes_despacho(%L, %L::jsonb, %L::timestamptz)$$,
     pg_temp.id_de('f2'), '[{"linea_orden": 1, "cantidad": 1}]', '2026-01-01T00:00:00Z'),
-  '40001', null, 'un updated_at viejo da conflicto de edición');
+  'PT412', null, 'un updated_at viejo da conflicto de edición');
 
 -- Ninguna de esas validaciones dejó un faltante ni movió la factura.
 select is(
@@ -432,7 +432,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.registrar_faltantes_despacho(%L, %L::jsonb, %L::timestamptz)$$,
     pg_temp.id_de('f4'), '[{"linea_orden": 1, "cantidad": 1}]', pg_temp.actualizado('f4')),
-  'P0002', null, 'otra organización no registra faltantes de esta factura');
+  'PT404', null, 'otra organización no registra faltantes de esta factura');
 
 -- ============================================================================
 -- FR-040 · Aislamiento: otra organización no ve los faltantes

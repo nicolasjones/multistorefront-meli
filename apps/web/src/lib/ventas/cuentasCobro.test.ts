@@ -118,6 +118,8 @@ describe('mensajeDeError', () => {
 
   it('traduce los códigos de la base a castellano sin filtrar el mensaje crudo', () => {
     expect(esConflicto({ code: '40001' })).toBe(true)
+    expect(esConflicto({ code: 'PT412' })).toBe(true)
+    expect(mensajeDeError({ code: 'PT404' }, 'x')).toContain('ya no existe')
     expect(mensajeDeError({ code: '40001' }, 'x')).toContain('Otra persona modificó')
     expect(mensajeDeError({ code: '42501', message: 'new row violates row-level security policy' }, 'x')).toContain('Administrador')
     expect(mensajeDeError({ code: 'P0002' }, 'x')).toContain('ya no existe')
