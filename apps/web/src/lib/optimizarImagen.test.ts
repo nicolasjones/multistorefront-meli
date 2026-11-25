@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { dimensionesOptimizadas, optimizarImagen } from './optimizarImagen'
+import { prepararImagen } from './productoImagenes'
+import { ImagenDemasiadoGrandeError, dimensionesOptimizadas, optimizarImagen } from './optimizarImagen'
 
 const archivo = (nombre: string, tipo: string, tamano: number) => {
   const f = new File(['x'], nombre, { type: tipo })
@@ -92,5 +93,45 @@ describe('optimizarImagen', () => {
     vi.stubGlobal('document', undefined)
     const original = archivo('a.jpg', 'image/jpeg', 50_000)
     expect(await optimizarImagen(original)).toBe(original)
+  })
+
+  describe('guarda de píxeles por encabezado', () => {
+    const conBytes = (bytes: number[], tipo: string) => new File([new Uint8Array(bytes)], 'x', { type: tipo })
+    const u32 = (n: number) => [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]
+    const png = (ancho: number, alto: number) => conBytes([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, ...u32(ancho), ...u32(alto)], 'image/png')
+    const webpVp8x = (ancho: number, alto: number) => {
+      const a = ancho - 1, h = alto - 1
+      return conBytes([...'RIFF'].map((c) => c.charCodeAt(0)).concat([0, 0, 0, 0], [...'WEBPVP8X'].map((c) => c.charCodeAt(0)), [10, 0, 0, 0, 0, 0, 0, 0], [a & 255, (a >> 8) & 255, (a >> 16) & 255, h & 255, (h >> 8) & 255, (h >> 16) & 255]), 'image/webp')
+    }
+    const jpeg = (ancho: number, alto: number) => conBytes([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xc0, 0, 11, 8, (alto >> 8) & 255, alto & 255, (ancho >> 8) & 255, ancho & 255, 1, 0, 0], 'image/jpeg')
+
+    it.each([
+      ['PNG', png(30000, 30000)],
+      ['WebP VP8X', webpVp8x(20000, 20000)],
+      ['JPEG', jpeg(20000, 20000)],
+    ])('rechaza %s de más de 100 megapíxeles antes de decodificar', async (_nombre, enorme) => {
+      const sim = simular({ ancho: 10, alto: 10, bytesSalida: 1 })
+      await expect(optimizarImagen(enorme)).rejects.toBeInstanceOf(ImagenDemasiadoGrandeError)
+      expect(sim.crear).not.toHaveBeenCalled()
+    })
+
+    it('prepararImagen la rechaza con un error claro de validación', async () => {
+      simular({ ancho: 10, alto: 10, bytesSalida: 1 })
+      const enorme = png(30000, 30000)
+      Object.defineProperty(enorme, 'name', { value: 'enorme.png' })
+      expect(await prepararImagen(enorme, 0)).toEqual({ error: '«enorme.png» tiene demasiados píxeles: usá una imagen de menor resolución.' })
+    })
+
+    it('deja pasar una imagen de tamaño normal', async () => {
+      const sim = simular({ ancho: 4000, alto: 3000, bytesSalida: 10 })
+      await optimizarImagen(png(4000, 3000))
+      expect(sim.crear).toHaveBeenCalled()
+    })
+
+    it('si el encabezado no se puede leer sigue con la degradación segura', async () => {
+      simular({ ancho: 10, alto: 10, bytesSalida: 1 })
+      const original = archivo('a.png', 'image/png', 50_000)
+      await expect(optimizarImagen(original)).resolves.toBeDefined()
+    })
   })
 })

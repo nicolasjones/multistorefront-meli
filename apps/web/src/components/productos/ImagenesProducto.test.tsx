@@ -1,8 +1,18 @@
 import { useState } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { type CambiosImagenes, type ImagenExistente, SIN_CAMBIOS_IMAGENES } from '../../lib/productoImagenes'
 import { ImagenesProducto } from './ImagenesProducto'
+
+const optimizar = vi.hoisted(() => vi.fn())
+vi.mock('../../lib/optimizarImagen', () => ({ optimizarImagen: optimizar, ImagenDemasiadoGrandeError: class extends Error {} }))
+
+// Promesa diferida para controlar cuándo termina cada optimización.
+function diferida<T>() {
+  let resolver!: (valor: T) => void
+  const promesa = new Promise<T>((resolve) => { resolver = resolve })
+  return { promesa, resolver }
+}
 
 const EXISTENTES: ImagenExistente[] = [
   { id: 'i-1', posicion: 1, ruta: 'o/p/a.png', url: 'https://firmada/a' },
@@ -28,6 +38,8 @@ function Montado({ existentes = EXISTENTES, soloLectura = false }: { existentes?
 const elegir = (...archivos: File[]) => fireEvent.change(screen.getByTestId('entrada-imagenes'), { target: { files: archivos } })
 
 describe('ImagenesProducto', () => {
+  beforeEach(() => optimizar.mockReset().mockImplementation(async (f: File) => f))
+
   it('explica los límites y marca la primera como principal', () => {
     render(<Montado />)
     expect(screen.getByText('Hasta 4 imágenes JPG, PNG o WebP de hasta 15 MB; se optimizan automáticamente. La primera es la principal.')).toBeInTheDocument()
@@ -85,5 +97,46 @@ describe('ImagenesProducto', () => {
   it('sin imágenes en solo lectura lo dice', () => {
     render(<Montado existentes={[]} soloLectura />)
     expect(screen.getByText('Este producto no tiene imágenes.')).toBeInTheDocument()
+  })
+
+  describe('con la optimización en curso', () => {
+    it('deshabilita Agregar y Quitar y avisa; la eliminación previa no se pisa', async () => {
+      const d = diferida<File>()
+      optimizar.mockReset().mockReturnValue(d.promesa)
+      render(<Montado />)
+      fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 2' }))
+      expect(screen.getByTestId('resumen')).toHaveTextContent('0/1')
+      elegir(archivo('n.png'))
+      expect(await screen.findByText('Optimizando imágenes…')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Agregar imágenes' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Quitar imagen 1' })).toBeDisabled()
+      await act(async () => d.resolver(archivo('n.webp', 'image/webp')))
+      await waitFor(() => expect(screen.getByTestId('resumen')).toHaveTextContent('1/1'))
+      expect(screen.queryByText('Optimizando imágenes…')).not.toBeInTheDocument()
+    })
+
+    it('dos selecciones seguidas no pierden fotos y respetan el tope de 4 con el estado actual', async () => {
+      const d1 = diferida<File>()
+      const d2 = diferida<File>()
+      const d3 = diferida<File>()
+      optimizar.mockReset().mockReturnValueOnce(d1.promesa).mockReturnValueOnce(d2.promesa).mockReturnValueOnce(d3.promesa)
+      render(<Montado />)
+      elegir(archivo('a.png'))
+      elegir(archivo('b.png'), archivo('c.png'))
+      await act(async () => { d1.resolver(archivo('a.webp', 'image/webp')) })
+      await act(async () => { d2.resolver(archivo('b.webp', 'image/webp')) })
+      await act(async () => { d3.resolver(archivo('c.webp', 'image/webp')) })
+      // 2 existentes + máximo 2 nuevas: nunca más de 4 en total.
+      await waitFor(() => expect(screen.getByTestId('resumen')).toHaveTextContent('2/0'))
+      expect(screen.getAllByRole('img')).toHaveLength(4)
+    })
+
+    it('en un lote con un archivo rechazado en el medio agrega los demás e informa el error', async () => {
+      optimizar.mockReset().mockImplementation(async (f: File) => f)
+      render(<Montado existentes={[]} />)
+      elegir(archivo('a.png'), archivo('b.gif', 'image/gif'), archivo('c.png'))
+      expect(await screen.findByText('«b.gif» no es JPG, PNG ni WebP.')).toBeInTheDocument()
+      await waitFor(() => expect(screen.getByTestId('resumen')).toHaveTextContent('2/0'))
+    })
   })
 })

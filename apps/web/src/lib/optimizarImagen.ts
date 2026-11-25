@@ -5,6 +5,46 @@
 export const LADO_MAXIMO_PX = 1600
 export const CALIDAD_WEBP = 0.82
 
+// Guarda contra bombas de descompresión: una imagen muy comprimida pero con dimensiones enormes
+// puede tumbar la pestaña al decodificar. Se leen las dimensiones del encabezado (sin decodificar).
+const MAX_PIXELES = 100_000_000
+const BYTES_ENCABEZADO = 256 * 1024
+
+export class ImagenDemasiadoGrandeError extends Error {
+  constructor() {
+    super('La imagen tiene demasiados píxeles.')
+    this.name = 'ImagenDemasiadoGrandeError'
+  }
+}
+
+// Dimensiones declaradas en el encabezado de PNG, WebP o JPEG; null si no se pueden leer.
+function dimensionesDeEncabezado(b: Uint8Array): { ancho: number; alto: number } | null {
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength)
+  const texto = (desde: number, n: number) => String.fromCharCode(...b.slice(desde, desde + n))
+  if (b.length >= 24 && b[0] === 0x89 && texto(1, 3) === 'PNG') return { ancho: v.getUint32(16), alto: v.getUint32(20) }
+  if (b.length >= 30 && texto(0, 4) === 'RIFF' && texto(8, 4) === 'WEBP') {
+    const forma = texto(12, 4)
+    if (forma === 'VP8X') return { ancho: 1 + (b[24] | (b[25] << 8) | (b[26] << 16)), alto: 1 + (b[27] | (b[28] << 8) | (b[29] << 16)) }
+    if (forma === 'VP8L' && b[20] === 0x2f) {
+      const bits = v.getUint32(21, true)
+      return { ancho: 1 + (bits & 0x3fff), alto: 1 + ((bits >> 14) & 0x3fff) }
+    }
+    if (forma === 'VP8 ') return { ancho: v.getUint16(26, true) & 0x3fff, alto: v.getUint16(28, true) & 0x3fff }
+    return null
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2
+    while (i + 9 < b.length) {
+      if (b[i] !== 0xff) return null
+      const marcador = b[i + 1]
+      if (marcador === 0xff) { i += 1; continue }
+      if (marcador >= 0xc0 && marcador <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marcador)) return { alto: v.getUint16(i + 5), ancho: v.getUint16(i + 7) }
+      i += 2 + v.getUint16(i + 2)
+    }
+  }
+  return null
+}
+
 type Lienzo = { getContext: (tipo: '2d') => unknown; convertirABlob: () => Promise<Blob | null> }
 
 function crearLienzo(ancho: number, alto: number): Lienzo | null {
@@ -37,6 +77,13 @@ export function dimensionesOptimizadas(ancho: number, alto: number, lado = LADO_
 
 export async function optimizarImagen(archivo: File): Promise<File> {
   if (typeof createImageBitmap !== 'function') return archivo
+  try {
+    const dimensiones = dimensionesDeEncabezado(new Uint8Array(await archivo.slice(0, BYTES_ENCABEZADO).arrayBuffer()))
+    if (dimensiones && dimensiones.ancho * dimensiones.alto > MAX_PIXELES) throw new ImagenDemasiadoGrandeError()
+  } catch (error) {
+    if (error instanceof ImagenDemasiadoGrandeError) throw error
+    // Encabezado ilegible: se sigue con la degradación segura.
+  }
   let bitmap: ImageBitmap | null = null
   try {
     bitmap = await createImageBitmap(archivo, { imageOrientation: 'from-image' })

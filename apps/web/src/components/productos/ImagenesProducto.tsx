@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useRef, useState } from 'react'
+import { type ChangeEvent, type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react'
 import { Alert, Box, Button, Chip, FormHelperText, IconButton, Stack, Typography } from '@mui/material'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import {
@@ -14,7 +14,10 @@ import {
 type Props = {
   existentes: readonly ImagenExistente[]
   cambios: CambiosImagenes
-  onCambiar: (cambios: CambiosImagenes) => void
+  // Acepta la forma funcional: tras optimizar se aplica sobre el estado ACTUAL, no sobre uno capturado antes de esperar.
+  onCambiar: Dispatch<SetStateAction<CambiosImagenes>>
+  // Avisa al formulario si hay optimizaciones en curso (para no guardar sin esas fotos).
+  onOptimizando?: (optimizando: boolean) => void
   // Solo lectura (FR-011): se ven las imágenes, sin agregar ni quitar.
   soloLectura?: boolean
   deshabilitado?: boolean
@@ -38,42 +41,64 @@ function useVistasPrevias(archivos: readonly File[]): Map<File, string> {
 }
 
 // Imágenes del producto (F-CAT-05, FR-012): hasta 4, JPG/PNG/WebP de hasta 15 MB que se
-// optimizan solas (WebP, 1600 px, tope de 2 MB sobre el resultado); la primera es la principal. Los archivos se suben al guardar el producto (lo hace la página);
-// acá solo se elige y se valida. La base y el bucket validan igual.
-export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura = false, deshabilitado = false }: Props) {
+// optimizan solas (WebP, 1600 px; el tope de 2 MB se valida sobre el resultado). La primera
+// es la principal. Los archivos se suben al guardar el producto (lo hace la página);
+// acá solo se elige, se optimiza y se valida. La base y el bucket validan igual.
+export function ImagenesProducto({ existentes, cambios, onCambiar, onOptimizando, soloLectura = false, deshabilitado = false }: Props) {
   const [errores, setErrores] = useState<string[]>([])
+  const [optimizando, setOptimizando] = useState(0)
   const entrada = useRef<HTMLInputElement | null>(null)
   const vistas = useVistasPrevias(cambios.nuevas)
   const orden = ordenFinal(existentes, cambios)
+  // Último estado visto, para leer valores actuales tras esperar la optimización.
+  const ultimo = useRef({ existentes, cambios })
+  useEffect(() => {
+    ultimo.current = { existentes, cambios }
+  })
+  const ocupado = optimizando > 0
   const bloqueado = soloLectura || deshabilitado
+
+  useEffect(() => {
+    onOptimizando?.(ocupado)
+  }, [ocupado, onOptimizando])
 
   const agregar = async (event: ChangeEvent<HTMLInputElement>) => {
     const elegidos = Array.from(event.target.files ?? [])
     event.target.value = ''
+    if (elegidos.length === 0) return
     const rechazos: string[] = []
     const aceptados: File[] = []
-    let cantidad = orden.length
-    for (const archivo of elegidos) {
-      const resultado = await prepararImagen(archivo, cantidad)
-      if ('error' in resultado) {
-        rechazos.push(resultado.error)
-      } else {
-        aceptados.push(resultado.archivo)
-        cantidad += 1
+    setOptimizando((cuenta) => cuenta + 1)
+    try {
+      for (const archivo of elegidos) {
+        const actual = ultimo.current
+        const cantidad = ordenFinal(actual.existentes, actual.cambios).length + aceptados.length
+        const resultado = await prepararImagen(archivo, cantidad)
+        if ('error' in resultado) {
+          rechazos.push(resultado.error)
+        } else {
+          aceptados.push(resultado.archivo)
+        }
       }
+    } finally {
+      setOptimizando((cuenta) => cuenta - 1)
     }
     setErrores(rechazos)
     if (aceptados.length > 0) {
-      onCambiar({ ...cambios, nuevas: [...cambios.nuevas, ...aceptados] })
+      // Forma funcional: el tope de 4 se vuelve a calcular con las nuevas ya presentes en este momento.
+      onCambiar((previos) => {
+        const libres = MAX_IMAGENES - ordenFinal(ultimo.current.existentes, previos).length
+        return { ...previos, nuevas: [...previos.nuevas, ...aceptados.slice(0, Math.max(0, libres))] }
+      })
     }
   }
 
   const quitar = (elemento: (typeof orden)[number]) => {
     setErrores([])
     if (elemento.tipo === 'nueva') {
-      onCambiar({ ...cambios, nuevas: cambios.nuevas.filter((archivo) => archivo !== elemento.archivo) })
+      onCambiar((previos) => ({ ...previos, nuevas: previos.nuevas.filter((archivo) => archivo !== elemento.archivo) }))
     } else {
-      onCambiar({ ...cambios, eliminadas: [...cambios.eliminadas, elemento.imagen.id] })
+      onCambiar((previos) => ({ ...previos, eliminadas: [...previos.eliminadas, elemento.imagen.id] }))
     }
   }
 
@@ -83,6 +108,9 @@ export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura =
         Imágenes
       </Typography>
       <FormHelperText id="imagenes-ayuda">{AYUDA_IMAGENES}</FormHelperText>
+      <Typography variant="body2" color="text.secondary" role="status" aria-live="polite" sx={{ mt: ocupado ? 1 : 0 }}>
+        {ocupado ? 'Optimizando imágenes…' : ''}
+      </Typography>
       {errores.length > 0 ? (
         <Alert severity="warning" sx={{ mt: 1 }}>
           <Stack component="ul" sx={{ m: 0, pl: 2 }}>
@@ -112,6 +140,7 @@ export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura =
                 {bloqueado ? null : (
                   <IconButton
                     size="small"
+                    disabled={ocupado}
                     aria-label={`Quitar imagen ${indice + 1}`}
                     onClick={() => quitar(elemento)}
                     sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'background.paper', '&:hover': { bgcolor: 'background.paper' } }}
@@ -136,7 +165,7 @@ export function ImagenesProducto({ existentes, cambios, onCambiar, soloLectura =
             aria-label="Elegir imágenes"
             data-testid="entrada-imagenes"
           />
-          <Button variant="outlined" onClick={() => entrada.current?.click()} disabled={orden.length >= MAX_IMAGENES} aria-describedby="imagenes-ayuda">
+          <Button variant="outlined" onClick={() => entrada.current?.click()} disabled={orden.length >= MAX_IMAGENES || ocupado} aria-describedby="imagenes-ayuda">
             Agregar imágenes
           </Button>
         </Box>

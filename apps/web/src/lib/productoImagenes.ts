@@ -57,7 +57,13 @@ function validarArchivo(archivo: File, cantidadActual: number): string | null {
 export async function prepararImagen(archivo: File, cantidadActual: number): Promise<{ archivo: File } | { error: string }> {
   const rechazo = validarArchivo(archivo, cantidadActual)
   if (rechazo) return { error: rechazo }
-  const optimizado = await optimizarImagen(archivo)
+  let optimizado: File
+  try {
+    optimizado = await optimizarImagen(archivo)
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError') return { error: `«${archivo.name}» tiene demasiados píxeles: usá una imagen de menor resolución.` }
+    throw error
+  }
   if (optimizado.size > MAX_BYTES_IMAGEN) {
     return { error: `«${archivo.name}» sigue pesando más de 2 MB aun optimizada: usá una imagen más chica.` }
   }

@@ -226,7 +226,7 @@ Para agregar una subcategoría directamente, usá el ícono «Agregar subcategor
 | **El código de barras debe tener 13 dígitos** | Corregí el número o escanealo de nuevo. |
 | **Un importe es demasiado grande** | Revisá el precio y el costo. |
 | **Otra persona modificó este producto mientras lo editabas** | No se guardó nada tuyo. Hacé clic en **Recargar producto** para ver los cambios de la otra persona y volvé a cargar los tuyos. |
-| **«…» pesa más de 15 MB**, **«…» sigue pesando más de 2 MB aun optimizada** o **Ya hay 4 imágenes** | Usá una foto más chica o quitá una de las que ya están. |
+| **«…» pesa más de 15 MB**, **«…» tiene demasiados píxeles**, **«…» sigue pesando más de 2 MB aun optimizada** o **Ya hay 4 imágenes** | Usá una foto más chica o quitá una de las que ya están. |
 | **No pudimos subir las imágenes** | El producto quedó guardado. Usá **Reintentar subida**. |
 | **No pudimos guardar las empresas / la categoría / el IVA / los precios por escala** | El producto se guardó pero ese dato no. Usá el botón **Reintentar** que aparece junto al aviso. |
 | **No tenés permiso para esta acción** | Tu rol no puede hacerlo. Pedile al Administrador que revise tus permisos. |

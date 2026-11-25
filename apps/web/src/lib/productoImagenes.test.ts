@@ -11,7 +11,7 @@ import {
 } from './productoImagenes'
 
 const optimizar = vi.hoisted(() => vi.fn())
-vi.mock('./optimizarImagen', () => ({ optimizarImagen: optimizar }))
+vi.mock('./optimizarImagen', async (original) => ({ ...(await original<typeof import('./optimizarImagen')>()), optimizarImagen: optimizar }))
 
 const archivo = (nombre: string, tipo: string, tamano = 10) => {
   const f = new File(['x'], nombre, { type: tipo })

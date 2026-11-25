@@ -82,7 +82,11 @@ original (degradación segura). Primero se optimiza y después se valida: el ori
 navegador, pero el límite contra el bucket sigue siendo **2 MB sobre el archivo optimizado** (el bucket no cambia);
 si aun optimizado pasa de 2 MB se rechaza con mensaje claro. Una foto de celular de 2–5 MB queda típicamente en un
 peso mucho menor. No cambian las rutas (`<organizacion_id>/<producto_id>/<uuid>.<ext>`) ni las posiciones 1–4.
-Las imágenes ya subidas no se recomprimen; la importación por planilla/ZIP y los demás buckets quedan fuera.
+Antes de decodificar se lee el encabezado (PNG, JPEG, WebP) y se rechaza lo que pase de 100 megapíxeles («tiene
+demasiados píxeles»), para que una imagen muy comprimida pero enorme no tumbe la pestaña; si el encabezado no se puede
+leer se sigue con la degradación segura. Mientras se optimiza se ve «Optimizando imágenes…», se deshabilitan «Agregar
+imágenes» y «Quitar» y el formulario no guarda hasta que termina; el resultado se aplica sobre el estado actual (el
+tope de 4 se recalcula al aplicarlo). Las imágenes ya subidas no se recomprimen; la importación por planilla/ZIP y los demás buckets quedan fuera.
 
 ## Actividad
 
