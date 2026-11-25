@@ -205,7 +205,7 @@ select throws_ok(format($$select public.vincular_nota_credito_rma(%L, 'devolucio
 select throws_ok(format($$select public.vincular_nota_credito_rma(%L, 'devolucion_importe', '[{"importe_sin_iva": 99999999}]'::jsonb, 'Devolución')$$, pg_temp.rma_id('RMA-0001')),
   'P0001', null, 'la nota no excede lo acreditable de la factura');
 select throws_ok($$select public.vincular_nota_credito_rma('00000000-0000-0000-0000-000000000000', 'devolucion_importe', '[{"importe_sin_iva": 100}]'::jsonb, 'Devolución')$$,
-  'P0002', null, 'un RMA inexistente se rechaza');
+  'PT404', null, 'un RMA inexistente se rechaza');
 select is(pg_temp.notas(), 0, 'los rechazos no dejaron notas');
 select is(pg_temp.estado('RMA-0001'), 'abierto', 'los rechazos no cerraron el RMA');
 
@@ -247,7 +247,7 @@ select is(pg_temp.notas(), 2, 'ya van dos notas');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 
 select throws_ok($$select public.reingresar_stock_rma('00000000-0000-0000-0000-000000000000')$$,
-  'P0002', null, 'un RMA inexistente se rechaza');
+  'PT404', null, 'un RMA inexistente se rechaza');
 select throws_ok(format($$select public.reingresar_stock_rma(%L, %L)$$, pg_temp.rma_id('RMA-0002'), '00000000-0000-0000-0000-0000000000aa'),
   '22023', null, 'un depósito inexistente se rechaza');
 select is(pg_temp.entradas('RMA-0002'), 0, 'el rechazo no dejó movimientos');
@@ -281,9 +281,9 @@ select is(pg_temp.negativos(), 0, 'ningún depósito quedó con stock negativo')
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.vincular_nota_credito_rma(%L, 'devolucion_productos')$$, pg_temp.rma_id('RMA-0002')),
-  '55000', null, 'un RMA con reingreso no admite nota de crédito');
+  'PT409', null, 'un RMA con reingreso no admite nota de crédito');
 select throws_ok(format($$select public.reingresar_stock_rma(%L)$$, pg_temp.rma_id('RMA-0001')),
-  '55000', null, 'un RMA con nota no admite reingreso');
+  'PT409', null, 'un RMA con nota no admite reingreso');
 select is(pg_temp.notas(), 2, 'la exclusión no emitió notas');
 select is(pg_temp.entradas('RMA-0001'), 0, 'la exclusión no movió stock');
 
@@ -306,9 +306,9 @@ select is((select count(*)::int from public.listar_rma()), 5, 'el listado sigue 
 
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.vincular_nota_credito_rma(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'x')$$, pg_temp.rma_id('RMA-0005')),
-  'P0002', null, 'otra organización no vincula notas a un RMA ajeno');
+  'PT404', null, 'otra organización no vincula notas a un RMA ajeno');
 select throws_ok(format($$select public.reingresar_stock_rma(%L)$$, pg_temp.rma_id('RMA-0005')),
-  'P0002', null, 'otra organización no reingresa stock de un RMA ajeno');
+  'PT404', null, 'otra organización no reingresa stock de un RMA ajeno');
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select is(pg_temp.estado('RMA-0005'), 'abierto', 'otra organización no alteró el RMA');
 select is(pg_temp.negativos(), 0, 'al final ningún depósito quedó con stock negativo');

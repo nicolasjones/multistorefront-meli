@@ -2,6 +2,7 @@
 // las migraciones 20261205100000…100300; acá se espejan los valores y se traducen sus errores.
 // La autoridad es la base: RLS decide qué consultas ve cada persona y `actualizar_consulta` valida.
 import { supabaseClient } from './supabase'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 export const ESTADOS_CONSULTA = ['nueva', 'en_curso', 'resuelta'] as const
 export type EstadoConsulta = (typeof ESTADOS_CONSULTA)[number]
@@ -162,13 +163,13 @@ function aError(error: ErrorPostgrest): ErrorConsulta {
 }
 
 export function esConflicto(error: unknown): boolean {
-  return error instanceof ErrorConsulta && error.codigo === '40001'
+  return error instanceof ErrorConsulta && esCodigoDeConflicto(error.codigo)
 }
 
 // Mensaje para la persona: nunca el texto crudo de la base (puede traer detalles técnicos).
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   if (error instanceof ErrorConsulta) {
-    if (error.codigo === '40001') return 'Otra persona modificó esta consulta mientras la editabas. Recargala para ver sus cambios.'
+    if (esCodigoDeConflicto(error.codigo)) return 'Otra persona modificó esta consulta mientras la editabas. Recargala para ver sus cambios.'
     if (error.codigo === '42501') return 'No tenés permiso para editar esta consulta.'
     if (error.codigo === '22023') return 'Revisá los datos: el responsable o el estado elegido ya no son válidos.'
   }

@@ -286,7 +286,7 @@ select ok(
 );
 select throws_ok(
   $$select public.actualizar_consulta((select id from consulta_a), 'resuelta', null, null, (select updated_at from consulta_a))$$,
-  '40001', null, 'con el sello viejo y un cambio real: conflicto de edición'
+  'PT412', null, 'con el sello viejo y un cambio real: conflicto de edición'
 );
 select lives_ok(
   $$select public.actualizar_consulta((select id from consulta_a), 'en_curso', 'f1000000-0000-0000-0000-000000000002', 'Llamar mañana', (select updated_at from consulta_a))$$,

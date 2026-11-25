@@ -238,7 +238,7 @@ select is(
 );
 select throws_ok(
   format($$select public.rendir_envios_moto(array[%L]::uuid[])$$, pg_temp.e(3)),
-  '55000', null, 'rendir el envío de una factura anulada se rechaza (55000)'
+  'PT409', null, 'rendir el envío de una factura anulada se rechaza (PT409)'
 );
 select throws_like(
   format($$select public.rendir_envios_moto(array[%L]::uuid[])$$, pg_temp.e(3)),
@@ -247,7 +247,7 @@ select throws_like(
 -- En lote es todo o nada: el envío bueno de al lado tampoco se rinde. (Mensajeros distintos: la regla de anulada va primero.)
 select throws_ok(
   format($$select public.rendir_envios_moto(array[%L, %L]::uuid[])$$, pg_temp.e(3), pg_temp.e(13)),
-  '55000', null, 'un lote con un envío de factura anulada se rechaza entero'
+  'PT409', null, 'un lote con un envío de factura anulada se rechaza entero'
 );
 reset role;
 select is(
@@ -385,7 +385,7 @@ select is(
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.rendir_envios_moto(array[%L]::uuid[])$$, pg_temp.e(9)),
-  '55000', null, 'rendir el envío de una factura en borrador con abono se rechaza (55000)'
+  'PT409', null, 'rendir el envío de una factura en borrador con abono se rechaza (PT409)'
 );
 select throws_like(
   format($$select public.rendir_envios_moto(array[%L]::uuid[])$$, pg_temp.e(9)),
@@ -570,7 +570,7 @@ select ok(
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select alike(
   pg_temp.mensaje(format($$select public.rendir_envios_moto(array[%L, %L]::uuid[])$$, pg_temp.e(9), pg_temp.e(15))),
-  '55000:%0001-00000009, 0001-00000015%borrador%'::text, 'el mensaje de borradores lista todas las facturas en borrador');
+  'PT409:%0001-00000009, 0001-00000015%borrador%'::text, 'el mensaje de borradores lista todas las facturas en borrador');
 reset role;
 
 -- Los rechazos pasan antes de cualquier lock sobre las facturas: el Operador sin permiso no deja filas bloqueadas (no hay

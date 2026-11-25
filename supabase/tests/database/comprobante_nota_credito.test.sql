@@ -199,9 +199,9 @@ select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_prod
     jsonb_build_array(jsonb_build_object('linea_id', pg_temp.linea('P', 'b1000000-0000-0000-0000-000000000002', (select principal from datos)), 'cantidad', 0))::text),
   '22023', null, 'la cantidad devuelta es de al menos 1');
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('borrador')),
-  '55000', null, 'una factura en borrador no admite notas');
+  'PT409', null, 'una factura en borrador no admite notas');
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('R')),
-  '55000', null, 'una factura anulada no admite notas');
+  'PT409', null, 'una factura anulada no admite notas');
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('presupuesto')),
   '22023', null, 'un presupuesto no admite notas');
 select is((select count(*)::int from dominio.comprobantes_venta where tipo = 'nota_credito'), 0, 'los rechazos no dejaron notas ni consumieron numeración');

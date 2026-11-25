@@ -238,7 +238,7 @@ select lives_ok(
 );
 select throws_ok(
   $$select public.actualizar_contacto((select id from t_ana), 'Ana Otra Vez', 'ana@example.com', '+54 9 11 5555-1234', (select updated_at from t_ana))$$,
-  '40001', null, 'el sello viejo es un conflicto de edición'
+  'PT412', null, 'el sello viejo es un conflicto de edición'
 );
 
 -- ============================================================================
@@ -289,7 +289,7 @@ select throws_ok(
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(
   $$select public.anonimizar_contacto((select id from t_ana), now() - interval '1 day')$$,
-  '40001', null, 'anonimizar con sello viejo es un conflicto'
+  'PT412', null, 'anonimizar con sello viejo es un conflicto'
 );
 select lives_ok(
   $$select public.anonimizar_contacto((select id from t_ana), (select updated_at from dominio.contactos where id = (select id from t_ana)))$$,

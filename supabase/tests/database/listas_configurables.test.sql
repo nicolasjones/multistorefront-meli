@@ -99,7 +99,7 @@ select is(
 );
 select throws_ok(
   $$select public.cambiar_estado_estado_consulta('00000000-0000-0000-0000-000000000000', false)$$,
-  'P0002', null, 'cambiar un estado inexistente se rechaza'
+  'PT404', null, 'cambiar un estado inexistente se rechaza'
 );
 
 -- ============================================================================
@@ -128,7 +128,7 @@ select is((select count(*)::int from dominio.estados_consulta), 0, 'la Dos no ve
 select is((select nombre from public.crear_estado_consulta('Nueva')), 'Nueva', 'el mismo nombre se puede usar en otra organización');
 select throws_ok(
   $$select public.renombrar_estado_consulta((select id from dominio.estados_consulta where organizacion_id = '11111111-1111-1111-1111-111111111111'), 'X')$$,
-  'P0002', null, 'la Dos no renombra un estado de la Uno'
+  'PT404', null, 'la Dos no renombra un estado de la Uno'
 );
 
 -- ============================================================================

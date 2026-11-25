@@ -135,7 +135,7 @@ select is(
 );
 select throws_ok(
   $$select public.guardar_correo_avisos_consultas('a1000000-0000-0000-0000-00000000000a', 'otro@san.example', null)$$,
-  '40001', null, 'conflicto de edición: el sello no coincide'
+  'PT412', null, 'conflicto de edición: el sello no coincide'
 );
 select is(
   public.guardar_correo_avisos_consultas('a1000000-0000-0000-0000-00000000000a', 'avisos@san.example', null),

@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { mensajeDeErrorComprobante } from './ventas'
+import { esCodigoDeEstado } from './mensajeErrorBase'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Presupuestos (F-VTA-08, MSF-331). Aceptar, copiar y listar pasan por RPC (`aceptar_presupuesto`,
@@ -170,7 +171,7 @@ const PRODUCTO_INACTIVO_FACTURAR = /^El producto «[^»\n]{1,200}» ya no está 
 export function mensajeDeFacturarPresupuesto(error: unknown, porDefecto: string): string {
   const e = error as { code?: string; message?: unknown } | null
   const mensaje = typeof e?.message === 'string' ? e.message : ''
-  const esDeNegocio = e?.code === '55000' || e?.code === '22023' || e?.code === '42501'
+  const esDeNegocio = esCodigoDeEstado(e?.code) || e?.code === '22023' || e?.code === '42501'
   if (esDeNegocio) {
     const conocido = MENSAJES_FACTURAR_DE_LA_RPC.find((m) => mensaje === m)
     if (conocido) {

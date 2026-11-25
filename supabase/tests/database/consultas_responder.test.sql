@@ -109,7 +109,7 @@ select lives_ok(
 select throws_ok(
   $$select public.actualizar_consulta('c1000000-0000-0000-0000-000000000001', 'resuelta', 'f1000000-0000-0000-0000-000000000002',
       'Nota vigente', (select updated_at from sellos where id = 'c1000000-0000-0000-0000-000000000001'))$$,
-  '40001', null, 'con el sello viejo y un cambio real hay conflicto'
+  'PT412', null, 'con el sello viejo y un cambio real hay conflicto'
 );
 
 -- Una resuelta con responsable ajeno: el panel manda el estado y el responsable actuales → sin cambios.

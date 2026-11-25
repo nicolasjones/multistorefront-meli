@@ -14,7 +14,7 @@ export function validarNombreItem(texto: string): string | null {
 }
 
 // Códigos de las RPC (contracts/avisos-y-listas.md): 42501 sin permiso, 23514 vacío,
-// 23505 repetido, P0002 inexistente.
+// 23505 repetido, P0002 o PT404 inexistente.
 export function mensajeDeErrorLista(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
@@ -24,7 +24,7 @@ export function mensajeDeErrorLista(error: unknown, porDefecto: string): string 
   if (code === '23514' && mensaje.includes('de sistema')) return mensaje
   if (code === '23514') return 'El nombre no puede estar vacío.'
   if (code === '23505') return 'Ya existe un estado con ese nombre.'
-  if (code === 'P0002') return 'El estado ya no existe. Recargá la lista.'
+  if (code === 'P0002' || code === 'PT404') return 'El estado ya no existe. Recargá la lista.'
   return porDefecto
 }
 

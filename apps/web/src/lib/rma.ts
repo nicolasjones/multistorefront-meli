@@ -1,6 +1,7 @@
 import { supabaseClient } from './supabase'
 import { definicionEstadoRma } from './estadoRma'
 import { definicionForma, type FormaRma } from './formasRma'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 
 // Devoluciones (RMA) por ítem (F-VTA-28, MSF-288, FR-002, FR-005, FR-006). `registrar_rma` y `listar_rma` (migraciones
 // 20270113100100 y 20270113100200) son la autoridad: validan permiso, estado del comprobante y cantidades. Acá solo se
@@ -108,7 +109,7 @@ function esMensajeDeLaRpc(error: ErrorDeBase): error is { message: string } {
 export function mensajeDeRma(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_RMA, error)
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023' || e?.code === 'P0001') && esMensajeDeLaRpc(e)) return e.message
+  if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023' || e?.code === 'P0001') && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa factura no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_RMA
 }
@@ -147,9 +148,9 @@ export const MENSAJE_ESTADO_RMA_CAMBIADO = (numero: string, estado: string) =>
 export function mensajeDeCambioEstadoRma(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_CAMBIO_ESTADO_RMA, error)
-  if (e?.code === '40001') return MENSAJE_CONFLICTO_ESTADO_RMA
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_ESTADO_RMA
   if (e?.code === '42501' && typeof e.message === 'string' && e.message.startsWith('Tu rol no puede')) return e.message
-  if (e?.code === 'P0002') return 'Esa devolución ya no existe. Actualizamos el listado.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa devolución ya no existe. Actualizamos el listado.'
   return MENSAJE_ERROR_CAMBIO_ESTADO_RMA
 }
 
@@ -193,10 +194,10 @@ export function mensajeDeResolucionRma(error: unknown): string {
   console.error(MENSAJE_ERROR_RESOLVER_RMA, error)
   const mensaje = e?.message
   if (
-    (e?.code === '42501' || e?.code === '55000' || e?.code === '22023' || e?.code === 'P0001') &&
+    (e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023' || e?.code === 'P0001') &&
     typeof mensaje === 'string' && PREFIJOS_MENSAJE_RESOLUCION.some((prefijo) => mensaje.startsWith(prefijo))
   ) return mensaje
-  if (e?.code === 'P0002') return 'Esa devolución ya no existe. Actualizamos el listado.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa devolución ya no existe. Actualizamos el listado.'
   return MENSAJE_ERROR_RESOLVER_RMA
 }
 
