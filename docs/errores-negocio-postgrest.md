@@ -160,6 +160,8 @@ bloqueo optimista solo emiten `PT404`):
 | 5 | `20270507360000` | `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (solo conflicto) |
 | 6 | `20270507410000` | `actualizar_producto`, `cambiar_estado_producto` (solo `PT404`), `definir_empresas_producto` (solo `PT404`), `asignar_categoria_producto` (solo `PT404`), `guardar_relacionados` (solo `PT404`), `guardar_categoria` (solo `PT404`), `eliminar_categoria` (solo `PT404`), `reordenar_categorias` (solo `PT404`), `actualizar_proveedor`, `cambiar_estado_proveedor` (solo `PT404`), `guardar_promocion_precio`, `anular_promocion_precio` |
 
+**Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412` solo cambian el `errcode`) y restaurar los comentarios desde las migraciones citadas en la tabla. Las migraciones ya aplicadas no se editan.
+
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
 Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (alícuotas y escalas de precio, contactos y empresas de proveedores,

@@ -231,8 +231,10 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   - `test:superset:embebido` y `test:superset:aislamiento-tokens` exigen un Superset y credenciales vivas.
   - `test:db`, `test:acceso:e2e`, `test:auth:hook-bloqueo:e2e`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e`,
     `test:kestra:reintentos:e2e` y `test:kestra:conexion-trabada:e2e` necesitan Supabase o Kestra levantados.
-  - `test:web` y `test:e2e` ya corren con vitest y playwright en sus propios jobs; `test:e2e:headed`, `:report`, `:trace`,
-    `:codegen` y `:storage` son herramientas interactivas de depuración local, no verifican nada; `test:e2e:ui` abre la interfaz
+  - `test:web` y `test:e2e` ya corren con vitest y playwright en sus propios jobs; `test:e2e:headed` (corre con navegador visible),
+    `:report` (abre el reporte HTML y queda esperando), `:trace` (abre el visor de trazas), `:codegen` (graba acciones en un navegador
+    abierto) y `:storage` (graba el estado de sesión en `auth.json`) son herramientas interactivas de depuración local: necesitan
+    una persona frente a la pantalla y no verifican nada; `test:e2e:ui` abre la interfaz
     interactiva de Playwright, `test:e2e:record` graba video y traza para revisar a mano y `test:e2e:evidencia` corre con navegador visible
     para capturar evidencia: ninguna de las tres está en los scripts del CI.
   - `test:afectados` es un selector que corre otros tests según el diff, no una suite propia.

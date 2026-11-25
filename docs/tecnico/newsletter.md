@@ -441,7 +441,7 @@ de baja son públicas: **«Empresa activa: no aplica»** (las resuelve el domini
 | **Columna «Aperturas»** | No se construyó (la tabla de campañas muestra enviados/fallidos/omitidos/bajas). | Decisión D9 de la spec: no hay pixel de rastreo. |
 | **`private.cerrar_envio_correo_masivo`** | No se redefinió. | No hacía falta: cierra por id de destinatario o de prueba. |
 | **Archivo de prueba nuevo** | `newsletter_lote.test.sql` en lugar de extender `correo_masivo_lote.test.sql`. | Este sigue verde sin cambios: es la paridad con las campañas de clientes. |
-| **axe en un solo ancho** | Se corrió sobre la pantalla en un tamaño (jsdom no cambia de ancho ni calcula contraste); 320/768/1440 px quedan para el E2E. | Seguimiento MSF-961 (y MSF-978 para el E2E). |
+| **axe en un solo ancho** | Se corrió sobre la pantalla en un tamaño (jsdom no cambia de ancho ni calcula contraste); 320/768/1440 px los cubre el E2E `tienda-newsletter-a11y`. | Seguimiento MSF-961. |
 | **`confirmar_newsletter` con `limite`** | Devuelve `{ resultado: 'limite', espera_segundos }` cuando el visitante superó el cupo por hora. | Único agregado al contrato de la spec; la página lo muestra como «Probá de nuevo en unos minutos». |
 
 ## Guía de prueba técnica
