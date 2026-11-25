@@ -28,12 +28,18 @@
 // job `application` en rojo por «REUSADA»/«MODIFICADA» de migraciones que ese PR no había
 // tocado (13 PRs abiertos). Si la base renumeró algo que la rama heredó, el guard AVISA
 // (no falla) y pide actualizar la rama.
+//   5. REVERSIÓN (MSF-900): toda migración AGREGADA por la rama (versión que la base no tiene) trae en el propio archivo un
+//      comentario `-- Reversión: <pasos>` (criterio de `tieneReversion`: no vale «ninguna», «sin reversión» ni vacío). Una
+//      migración sin reversión posible declara `-- Reversión: restaurar desde el backup de <motivo>`. Las históricas que la rama
+//      no tocó quedan fuera (inmutables; inventario en docs/control-ci.md). Es ERROR como el orden de versión (`ordenEstricto`);
+//      si no, AVISO. No corre con `--solo-idempotencia` ni sin base.
 //
 // Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
 // Sale con código 1 si hay un problema y con 2 si `--base` o `GITHUB_BASE_REF` empiezan con `-`, o si `--base` no trae valor (ausente o vacío).
 
 import { spawnSync } from 'node:child_process';
 import { revisarDdl } from './guard-migraciones-ddl.mjs';
+import { tieneReversion } from './migraciones-reversion.mjs';
 
 const args = process.argv.slice(2);
 const valorDe = (flag, def) => {
@@ -232,6 +238,15 @@ const revisar = (archivo) => {
   }
 };
 for (const f of nuevos) revisar(f);
+
+// --- Reversión documentada (MSF-900): sólo archivos NUEVOS de la rama ---
+if (existeBase && !soloIdempotencia) {
+  for (const f of nuevos) {
+    if (tieneReversion(git(['show', `:${f}`]).stdout || '')) continue;
+    const texto = `${f} no documenta su reversión: agregá en el propio archivo un comentario con los pasos para deshacerla, p. ej. \`-- Reversión: drop function public.mi_funcion();\`; si no hay reversión posible, \`-- Reversión: restaurar desde el backup de <motivo>\` («Reversión: ninguna» o «sin reversión» no valen)`;
+    (ordenEstricto ? problemas : avisos).push(texto);
+  }
+}
 
 for (const a of avisos) console.warn(`aviso: ${a}`);
 if (problemas.length) {
