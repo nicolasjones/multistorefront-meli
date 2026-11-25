@@ -53,7 +53,7 @@ Una factura **entregada no se anula** (`anular_comprobante` responde `55000`: se
   la pantalla recarga el comprobante tras confirmar.
 - **Transiciones (FR-003):** `cambiar_estado_despacho` solo acepta las del flujo. Un presupuesto, un borrador o una
   factura anulada se rechazan (`22023`/`55000`). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
-  sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (`PT412`) y toma la fila
+  sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (conflicto de edición) y toma la fila
   `for update`, así dos cambios simultáneos no se pisan.
 
 ## Responsables (FR-004, FR-005, FR-006)
@@ -125,7 +125,7 @@ factura (`dominio`), no en una tabla nueva:
 | Factura viva (no borrador, pendiente ni anulada) no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
 | Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
 | Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (no en la empresa activa) (`42501`) |
-| Bloqueo optimista | `p_actualizado_en` desactualizado → `PT412` |
+| Bloqueo optimista | `p_actualizado_en` desactualizado → conflicto de edición |
 | Idempotencia | Guardar lo mismo no escribe otra vez ni rompe el bloqueo de quien lo está mirando |
 | Guía | Texto de hasta 100 caracteres; en blanco = sin guía (`22023`) |
 | Fecha de envío | Si no viene, se toma la de hoy: el día de **Argentina** (`private.hoy_argentina()`), no el del servidor (que corre en UTC y entre las 21:00 y las 23:59 de Argentina ya es el día siguiente) |
@@ -165,7 +165,7 @@ entera sin aplicar (todo o nada): la factura no queda entregada ni con reservas 
 
 **Cómo se manda `p_actualizado_en`**: como **texto** (el `updated_at` que devuelve la RPC, con sus microsegundos),
 igual que en `guardar_comprobante` y `cambiar_estado_despacho`. Si se manda un `Date` de JavaScript se pierden los
-microsegundos y la base responde siempre `PT412` (conflicto).
+microsegundos y la base responde siempre con el conflicto de edición.
 
 ### Dónde se carga (FR-023)
 
@@ -189,8 +189,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20270112140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
-`55000` transición no permitida o factura sin estado de despacho · `PT404` comprobante inexistente · `PT412`
-conflicto de edición. Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
+`55000` transición no permitida o factura sin estado de despacho · comprobante inexistente · conflicto de edición (códigos `PT4xx`; ver [errores de negocio](errores-negocio-postgrest.md)). Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
 traducen a un texto claro).
 
 ## Pantalla (FR-010, FR-012, FR-023)
@@ -204,7 +203,7 @@ tarjeta **Responsables**:
 - Acción de avance según el estado («Empezar a armar», «Reanudar el armado», «Controlar», «Entregar»), deshabilitada
   mientras no hay responsable o mientras la petición está en vuelo (el doble clic no manda dos veces).
 - Carga, error con «Reintentar» y éxito con los componentes del kit.
-- Si otra persona modificó el comprobante mientras lo mirabas (conflicto `PT412`), la tarjeta suelta lo elegido, vuelve
+- Si otra persona modificó el comprobante mientras lo mirabas (conflicto de edición), la tarjeta suelta lo elegido, vuelve
   a leer el despacho y pide elegir de nuevo al responsable: el reintento manda el `updated_at` nuevo y no falla otra
   vez por lo mismo.
 - Si la factura todavía no tiene estado de despacho (una factura confirmada antes de esta migración), la tarjeta avisa
@@ -314,7 +313,7 @@ Reversión (migración posterior): `drop function public.listar_despacho(text, t
   cinco estados, que solo las facturas tengan estado de despacho, el índice y `anon` sin acceso; FR-002: estado inicial
   según la forma de envío y `sin_armar` cuando no resuelve; FR-008: la acción `despachar` sembrada para
   Administrador y Depósito), `supabase/tests/database/despacho_estados.test.sql` (SC-001: estado inicial,
-  transiciones, roles, Administrador, `PT412`, `lectura` sin `despachar`, `anon`, otra organización; el permiso
+  transiciones, roles, Administrador, conflicto de edición, `lectura` sin `despachar`, `anon`, otra organización; el permiso
   `despachar` resuelto en la empresa del comprobante; la lectura del despacho con `obtener_despacho_comprobante`
   —con Ventas en lectura se ve el estado y los responsables y sin `despachar` no se puede avanzar—; y los permisos de
   ejecución: las RPC son de `authenticated`, `anon` no las ejecuta y las ayudas de `private` no las ejecuta nadie
@@ -322,14 +321,13 @@ Reversión (migración posterior): `drop function public.listar_despacho(text, t
   (SC-002: reservas «A pedido», todo o nada, reintento idempotente, stock normal intacto, presupuesto rechazado)
   (`pnpm test:db`).
 - Vitest: `apps/web/src/components/ventas/ResponsablesDespacho.test.tsx` (SC-003: carga, selectores, acciones por
-  estado, errores del servidor —incluidos el conflicto de concurrencia `PT412` y el comprobante inexistente
-  `PT404`—, `lectura`, doble clic, cambio de empresa) y
+  estado, errores del servidor —incluidos el conflicto de concurrencia y el comprobante inexistente—, `lectura`, doble clic, cambio de empresa) y
   `apps/web/src/pages/ventas/comprobante.despacho.test.tsx` (integración en el comprobante y cierre con aviso)
   (`pnpm --filter @platform/web test ResponsablesDespacho comprobante.despacho`).
 - pgTAP de F-VTA-16: `supabase/tests/database/envio_transporte.test.sql` (verifica **FR-020** —columnas, FK
   compuesta a `dominio.transportes` y límite de 100 caracteres de la guía— y **FR-021** —transporte inactivo, de
   otra tienda o de otra organización rechazados; permiso `despachar` o Ventas en `edicion` en la empresa del
-  comprobante; bloqueo optimista `PT412`; idempotencia; presupuesto, borrador y factura entregada rechazados;
+  comprobante; bloqueo optimista; idempotencia; presupuesto, borrador y factura entregada rechazados;
   aislamiento por organización y por empresa; `anon` sin acceso; la fecha de envío que no viene es el día de
   Argentina—; y **FR-022** —el disparador de entrega: sin
   transporte ni guía no se entrega y el error dice qué falta, con transporte pero sin guía tampoco, con la guía pero
@@ -340,7 +338,7 @@ Reversión (migración posterior): `drop function public.listar_despacho(text, t
   organización no toca la factura y ni una escritura directa entrega sin envío—; y la **lectura**: con
   `obtener_envio_comprobante` se lee el envío de una factura de la tienda propia y NO el de otra tienda de la misma
   organización —la RLS de la tabla resuelve las secciones contra la empresa activa—, otra organización no lo lee, un
-  comprobante inexistente da `PT404` y `anon` no ejecuta la RPC; y el **aislamiento de la tabla**: las tres
+  comprobante inexistente da error y `anon` no ejecuta la RPC; y el **aislamiento de la tabla**: las tres
   columnas del envío no tienen privilegio de lectura para `authenticated` (leerlas directo de la tabla falla con
   `42501`), las demás columnas de la factura sí se leen, y ninguna columna quedó sin conceder).
 - Vitest de F-VTA-16: `apps/web/src/lib/ventasEnvio.test.ts` (los rótulos por tipo de forma de envío, los
@@ -354,7 +352,7 @@ Reversión (migración posterior): `drop function public.listar_despacho(text, t
   forma de envío, el transporte que ya no se usa en la tienda, el aviso de qué falta —los dos, el transporte o la
   guía—, el guardado con el bloqueo optimista, la guía de más de 100 caracteres (que no se guarda y deja fuera el
   aviso de éxito de un guardado anterior),
-  el doble clic, los errores de la base —incluidos el conflicto `PT412`—, el rol en `lectura`, la factura entregada (sin
+  el doble clic, los errores de la base —incluido el conflicto de edición—, el rol en `lectura`, la factura entregada (sin
   «Guardar envío» y con los campos deshabilitados) y el cambio de empresa activa con la respuesta vieja que no
   pisa la nueva) (`pnpm --filter @platform/web test EnvioTransporte`).
 - Vitest de página de F-VTA-16: `apps/web/src/pages/ventas/comprobante.envio.test.tsx` (la compuerta del bloque: en

@@ -58,12 +58,11 @@ factura sigue como estaba).
   duplica).
 - **Permiso**: la acción `despachar` de Ventas en la **empresa del comprobante** (no en la empresa activa), la misma
   regla de `cambiar_estado_despacho`.
-- **Bloqueo optimista** por `p_actualizado_en` (`PT412`) y fila `for update`: dos registros simultáneos no se pisan.
+- **Bloqueo optimista** por `p_actualizado_en` (conflicto de edición) y fila `for update`: dos registros simultáneos no se pisan.
 - Registra la actividad `despacho.faltante_registrado` con las líneas y las cantidades.
 
 Errores: `42501` sin sesión/organización o sin permiso · `22023` dato inválido (cantidad, línea repetida, lista
-vacía) · `PT404` comprobante inexistente · `55000` la factura no está en Armando ni en Incompleto · `PT412` conflicto
-de `p_actualizado_en`.
+vacía) · comprobante inexistente · `55000` la factura no está en Armando ni en Incompleto · conflicto de edición de `p_actualizado_en` (códigos `PT4xx` para «no existe» y conflicto; ver [errores de negocio](errores-negocio-postgrest.md)).
 
 ## Cierre del faltante (FR-042 · *Decisiones abiertas* 3)
 
@@ -115,7 +114,7 @@ pide, línea por línea, **cuántas unidades faltaron**; valida la cantidad cont
 actualiza (no se duplica el faltante). **Si cambia la empresa activa con el diálogo abierto, se cierra con aviso**:
 nunca se guarda un faltante de una tienda bajo otra.
 
-Si otra persona cambia el comprobante mientras el diálogo está abierto, la base responde `PT412` (bloqueo optimista) y
+Si otra persona cambia el comprobante mientras el diálogo está abierto, la base responde con el conflicto de edición (bloqueo optimista) y
 el diálogo avisa el conflicto **y recarga el comprobante**: el reintento usa el `updated_at` vigente y no vuelve a
 chocar con el mismo token vencido. El diálogo sigue abierto con las cantidades cargadas para reintentar.
 
@@ -157,7 +156,7 @@ fecha de registro y el stock de hoy).
   `lectura` no puede registrar faltantes y cierre con aviso al cambiar de empresa) y
   `apps/web/src/pages/ventas/comprobante.faltantes.test.tsx` (FR-047 en la página real: elegir «Incompleto» abre el
   diálogo, registrar manda línea y cantidad a `registrar_faltantes_despacho` y avisa, el error de la base deja el
-  diálogo abierto, el conflicto `PT412` recarga el comprobante y el reintento manda el `updated_at` vigente, y cambiar
+  diálogo abierto, el conflicto de edición recarga el comprobante y el reintento manda el `updated_at` vigente, y cambiar
   de tienda con el diálogo abierto cierra el detalle con aviso sin registrar nada)
   (`pnpm --filter @platform/web test faltantes RegistrarFaltantesDialog`).
 

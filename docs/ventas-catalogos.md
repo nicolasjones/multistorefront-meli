@@ -37,7 +37,7 @@ Son entidades de negocio del producto, no mecanismos de plataforma; ninguna vive
 | `dominio.transportes` + `dominio.transportes_empresas` | organización, usada por empresa | F-VTA-04 (MSF-251) | `20261020130000`, `…130100` |
 
 Reglas comunes: la organización sale de la sesión (sin grant de columna), nombre único (por empresa o por
-organización según el catálogo), `updated_at` para bloqueo optimista (`PT412`; ver [errores de negocio](errores-negocio-postgrest.md)), **sin DELETE** (se desactiva).
+organización según el catálogo), `updated_at` para bloqueo optimista (código `PT4xx`; ver [errores de negocio](errores-negocio-postgrest.md)), **sin DELETE** (se desactiva).
 
 ## Permisos
 

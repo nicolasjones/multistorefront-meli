@@ -136,8 +136,20 @@ Misma regla para `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actual
 envoltorios que delegan en funciones de `private`, donde se lanzan los errores. Las `cambiar_estado_*` solo emiten `PT404`: no
 usan bloqueo optimista.
 
-Familias hechas: comprobantes de venta, despacho y cobros, y catálogos de envío con contrarreembolsos y envíos en moto. Queda para
-próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (productos, proveedores, categorías,
+Funciones migradas por ola (cada migración usa `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
+bloqueo optimista solo emiten `PT404`):
+
+| Ola | Migración | Funciones |
+|---|---|---|
+| 1 | `20270507180500` | `obtener_reparacion` |
+| 2 | `20270507310000` | `aceptar_presupuesto` (con `PT409` para el estado que no admite aceptar) |
+| 3 | `20270507340000` | `guardar_comprobante`, `guardar_lineas_comprobante`, `confirmar_comprobante` (solo `PT404`), `anular_comprobante`, `cambiar_estado_comprobante`, `obtener_comprobante`, `historial_comprobante`, `transiciones_permitidas_comprobante`, `saldo_comprobante`, `cobros_de_comprobante` |
+| 4 | `20270507350000` | `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `obtener_despacho_comprobante`, `obtener_envio_comprobante`, `listar_responsables_despacho`, `registrar_cobro`, `revertir_cobro`, `actualizar_forma_pago`, `actualizar_cuenta_cobro`, `cambiar_estado_forma_pago`, `cambiar_estado_cuenta_cobro` |
+| 5 | `20270507360000` | `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (solo conflicto) |
+
+La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
+
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (productos, proveedores, categorías,
 promociones, Service, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema

@@ -1,4 +1,4 @@
--- Lote 59 (MSF-654 y MSF-655, tercera familia de la convención de códigos de negocio mapeados a 4xx): las RPC de formas
+-- Lote 59 (MSF-654 y MSF-655, quinta ola de la convención de códigos de negocio mapeados a 4xx; ver docs/errores-negocio-postgrest.md): las RPC de formas
 -- de envío, transportes, contrarreembolsos y envíos en moto de Ventas dejan de contestar HTTP 500 cuando el dato no existe
 -- (`P0002`) o lo editó otra persona (`40001`). Misma regla que 20270507340000 y 20270507350000: «no existe / no es de tu
 -- organización» pasa a `PT404` (HTTP 404) y el conflicto de edición (bloqueo optimista por `updated_at`) a `PT412`
@@ -12,8 +12,12 @@
 -- workers o Edge Functions: solo la web. Quedan fuera `conciliar_pago` y `revertir_conciliacion_pago` (son envoltorios que
 -- delegan en funciones de `private`, donde se lanzan los errores), `55000` y los demás códigos.
 --
+-- Además actualiza los `comment on function` de actualizar_forma_pago, actualizar_cuenta_cobro, actualizar_forma_envio,
+-- actualizar_transporte y actualizar_envio_moto, que nombraban `40001` como código del conflicto de edición (las dos primeras
+-- se migraron en 20270507350000 y su comentario no se tocó entonces).
+--
 -- Migración aditiva (create or replace). Reversión: volver a aplicar la definición vigente indicada sobre cada función
--- (en el cuerpo, `errcode = 'PT404'` vuelve a `'P0002'` y `errcode = 'PT412'` a `'40001'`). El cliente acepta los dos códigos.
+-- y sus comentarios anteriores (en el cuerpo, `errcode = 'PT404'` vuelve a `'P0002'` y `errcode = 'PT412'` a `'40001'`). El cliente acepta los dos códigos.
 
 -- actualizar_forma_envio: definición vigente en 20261022120200_formas_envio_rpc.sql
 create or replace function public.actualizar_forma_envio(
@@ -505,3 +509,15 @@ begin
   return v_e;
 end;
 $$;
+
+-- Los comentarios de las funciones que nombraban el código viejo del conflicto de edición pasan a `PT412`.
+comment on function public.actualizar_forma_pago(uuid, timestamptz, text, text, boolean, boolean, text, integer, boolean) is
+  'F-VTA-01: edita una forma de pago con bloqueo optimista por updated_at (PT412 ante conflicto). Solo Administrador; la edición aplica solo a la empresa de la fila.';
+comment on function public.actualizar_forma_envio(uuid, timestamptz, text, text, boolean, numeric, text, integer, boolean) is
+  'F-VTA-01: edita una forma de envío con bloqueo optimista por updated_at (PT412 ante conflicto). Solo Administrador; la edición aplica solo a la empresa de la fila.';
+comment on function public.actualizar_cuenta_cobro(uuid, timestamptz, text, text, text, text, text, text, text, text, integer, boolean, text, uuid[]) is
+  'F-VTA-03: edita una cuenta de cobro y su habilitación por empresa con bloqueo optimista por updated_at (PT412 ante conflicto); solo Administrador.';
+comment on function public.actualizar_transporte(uuid, timestamptz, text, text, text, text, text, text, text, text, text, boolean, numeric, integer, integer, boolean, uuid[]) is
+  'F-VTA-04: edita un transporte y sus empresas con bloqueo optimista por updated_at (PT412 ante conflicto); solo Administrador.';
+comment on function public.actualizar_envio_moto(uuid, text, text, numeric, numeric, boolean, timestamptz) is
+  'Edita mensajero, guía, costo, abono y Enviado de un envío en moto (F-VTA-24, FR-005): bloqueo optimista por updated_at (PT412), rechaza un envío rendido o de una factura anulada (55000) y nunca escribe rendido ni rendido_en. Exige ventas en edición y rol operador o administrador en la empresa del comprobante. Deja el evento envio_moto.actualizado.';

@@ -110,7 +110,7 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   nombres de la tienda, la factura y el transporte **no** vienen (salen de los `join` del listado),
   así que el envoltorio del navegador no los inventa.
 - **Bloqueo optimista**: `p_actualizado_en` es la versión leída en pantalla; si el contrarreembolso
-  cambió en el meantime, la RPC responde `PT412` (antes `40001`; si el contrarreembolso no existe, `PT404`).
+  cambió en el meantime, la RPC responde con el conflicto de edición (ver [errores de negocio](errores-negocio-postgrest.md)).
 - **El cobro del comprobante** lo registra `private.registrar_cobro_interno` (F-VTA-12) con origen
   `contrarreembolso`: es la única vía a Cobrado/Deuda, así que la factura pasa a Cobrado si el saldo
   llega a 0. La forma de pago es la de la factura y, si no tiene, la forma «Contrarreembolso» de la

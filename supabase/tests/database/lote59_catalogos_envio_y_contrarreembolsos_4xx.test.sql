@@ -47,7 +47,9 @@ select throws_ok($$select public.cambiar_estado_forma_envio('b1000000-0000-0000-
 -- Conflicto de edición: PT412
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.actualizar_forma_envio('b1000000-0000-0000-0000-00000000000a', '2000-01-01T00:00:00Z', 'Otro nombre', 'retiro_local', false, 0, 'sin_armar', 3, true)$$, 'PT412', 'La forma de envío fue modificada por otra persona', 'actualizar_forma_envio: una versión vieja es un conflicto (412)');
-select throws_ok($$select public.marcar_contrarreembolso_cobrado('ffffffff-0000-0000-0000-000000000000', null)$$, 'PT404', 'El contrarreembolso no existe', 'marcar_contrarreembolso_cobrado: sin versión y sin fila sigue siendo 404');
+-- Una forma de otra organización no existe para quien la edita (la RLS la oculta).
+select pg_temp.como('d2000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.actualizar_forma_envio('b1000000-0000-0000-0000-00000000000a', now(), 'Otro nombre', 'retiro_local', false, 0, 'sin_armar', 3, true)$$, 'PT404', 'La forma de envío no existe', 'actualizar_forma_envio: otra organización recibe 404');
 
 select * from finish();
 rollback;
