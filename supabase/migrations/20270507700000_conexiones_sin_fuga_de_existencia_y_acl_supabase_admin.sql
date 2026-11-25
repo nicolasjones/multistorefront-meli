@@ -6,7 +6,7 @@
 --     `for role supabase_admin in schema public|dominio`, con el patrón de 20261013130000: SOLO si el rol existe y quien migra
 --     es miembro suyo (si no, `alter default privileges for role` falla por falta de permiso). Si no puede, la migración sigue
 --     con un aviso (`raise notice`) y el entorno queda como estaba; en local y en producción puede diferir. El `revoke` vive en
---     `private.endurecer_acl_por_defecto(rol, esquemas, destinatario)` (idempotente, sin acceso para anon/authenticated/public), que
+--     `private.endurecer_acl_por_defecto(rol, esquemas, destinatario)` (idempotente, sin acceso para anon/authenticated/service_role/public), que
 --     la migración invoca para `postgres` (re-aplicando lo de 20270507600000) y `supabase_admin`, y que el pgTAP llama tal cual. Reaplicable:
 --     revocar un privilegio por defecto inexistente no falla ni cambia nada. No toca tablas existentes ni `service_role`.
 --
@@ -45,9 +45,12 @@ declare
   v_privilegios text := 'truncate, references, trigger';
   v_esquema text;
 begin
-  -- Solo los roles, esquemas y destinatario esperados: nada de SQL con identificadores arbitrarios.
+  -- Solo los roles, esquemas y destinatario esperados (comparación exacta, sin normalizar), y nunca NULL ni vacío.
+  if p_rol is null or p_grantee is null or p_esquemas is null or cardinality(p_esquemas) is not distinct from 0 then
+    raise exception 'endurecer_acl_por_defecto: rol, esquemas y destinatario son obligatorios y no pueden ser NULL ni vacíos' using errcode = '22023';
+  end if;
   if p_rol not in ('postgres', 'supabase_admin') or p_grantee <> 'authenticated'
-     or exists (select 1 from unnest(p_esquemas) e where e not in ('public', 'dominio')) then
+     or exists (select 1 from unnest(p_esquemas) e where e is null or e not in ('public', 'dominio')) then
     raise exception 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido' using errcode = '22023';
   end if;
 
@@ -65,9 +68,9 @@ end;
 $$;
 
 comment on function private.endurecer_acl_por_defecto(name, text[], name) is
-  'Quita TRUNCATE, REFERENCES y TRIGGER (y MAINTAIN en PG 17+) de los privilegios por defecto de tablas nuevas de un rol en public/dominio para authenticated. Idempotente; solo postgres/supabase_admin. Uso interno de migraciones.';
+  'Quita TRUNCATE, REFERENCES y TRIGGER (y MAINTAIN en PG 17+) de los privilegios por defecto de tablas nuevas de un rol en public/dominio para authenticated. Idempotente; solo postgres/supabase_admin; rechaza con 22023 NULL, vacíos y valores no admitidos. Uso interno de migraciones. Limitación conocida: en PG16+ `alter default privileges for role` exige poder hacer SET ROLE al rol, y una membresía sin opción SET pasaría pg_has_role(..., member) y fallaría; no aplica a PG15, la versión del proyecto.';
 
-revoke all on function private.endurecer_acl_por_defecto(name, text[], name) from public, anon, authenticated;
+revoke all on function private.endurecer_acl_por_defecto(name, text[], name) from public, anon, authenticated, service_role;
 
 do $$
 begin

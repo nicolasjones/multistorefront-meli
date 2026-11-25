@@ -135,10 +135,10 @@ defecto no se tocan (cada migración da su `grant` explícito y RLS gobierna las
 pgTAP `acl_por_defecto_authenticated` crea tablas nuevas y lo verifica. Reversión: `alter default privileges for role
 postgres in schema public grant truncate, references, trigger on tables to authenticated;`.
 `20270507700000` crea `private.endurecer_acl_por_defecto(rol, esquemas, destinatario)` (idempotente, ejecutable solo por quien migra; no
-por `anon`, `authenticated` ni `public`), que contiene ese `revoke`, y la aplica a `postgres` (re-aplicando lo anterior) y a `supabase_admin`
+por `anon`, `authenticated`, `service_role` ni `public`; rechaza con 22023 NULL, vacíos y valores no admitidos), que contiene ese `revoke`, y la aplica a `postgres` (re-aplicando lo anterior) y a `supabase_admin`
 (tablas creadas desde Studio o por extensiones) en `public` y `dominio`, esto último solo si el rol que migra es miembro de `supabase_admin`
 (patrón de `20261013130000`); si no lo es, avisa con `raise notice` y los deja como estaban, por lo que local y producción pueden
-diferir. El pgTAP llama a esa misma función sobre un default de Supabase simulado. Reversión: `drop function
+diferir. El pgTAP llama a esa misma función sobre un default de Supabase simulado. Limitación conocida: en PG16+ `alter default privileges for role` exige poder hacer SET ROLE al rol, y una membresía sin opción SET pasaría la comprobación de membresía y fallaría; no aplica a PG15, la versión del proyecto. Reversión: `drop function
 private.endurecer_acl_por_defecto(name, text[], name);` más los `alter default privileges for role postgres|supabase_admin in schema public
 grant truncate, references, trigger on tables to authenticated;`.
 
