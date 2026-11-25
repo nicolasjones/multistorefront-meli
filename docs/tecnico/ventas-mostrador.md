@@ -27,9 +27,10 @@ Las otras dos historias de la épica están en
 [Cierre de caja (técnico)](ventas-cierre-caja.md) (F-VTA-33 / MSF-349).
 
 !!! note "Estado"
-    Implementado en las ramas `epic/MSF-193-ventas-mejoras` (rama de la épica) y `dokploy`
-    (rama de integración), **pendiente de merge a `main`**. La historia llegó por la rama
-    `feat/story-MSF-329` (PR #637, merge `aafba45e`). Migración: `20270202200400_mostrador_buscar_producto.sql`.
+    Implementado en la rama `dokploy` (rama de integración), **pendiente de merge a `main`**. La migración
+    `20270202200400_mostrador_buscar_producto.sql` está solo en `dokploy`; la rama de la épica
+    `epic/MSF-193-ventas-mejoras` no la tiene. La historia llegó por la rama `feat/story-MSF-329`
+    (PR #637, merge `aafba45e`).
     Alcance de entrega: `refine` y `supabase`. Sin `kestra`, `superset` ni `workers`.
 
 !!! warning "Banda de versiones de las migraciones"
