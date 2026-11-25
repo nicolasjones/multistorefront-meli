@@ -81,7 +81,7 @@ export function PanelSuscripciones() {
       setRotando(null)
       if (errorRpc?.code === '42501') {
         setError('Solo un administrador puede rotar el secreto de una suscripción.')
-      } else if (errorRpc?.code === 'P0002') {
+      } else if (errorRpc?.code === 'P0002' || errorRpc?.code === 'PT404') {
         setError('La suscripción ya no existe: actualizamos la lista.')
         recargar()
       } else {

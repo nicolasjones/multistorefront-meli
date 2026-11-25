@@ -295,13 +295,13 @@ select throws_ok(
 -- Otra organización.
 select throws_ok(
   $$ select public.solicitar_documento_comprobante('b0000000-0000-0000-0000-000000000006', 'factura') $$,
-  'P0002', null, 'un comprobante de otra organización no existe para el operador'
+  'PT404', null, 'un comprobante de otra organización no existe para el operador'
 );
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.comprobante_documentos), 0, 'la otra organización no ve los pedidos de la Uno (RLS)');
 select throws_ok(
   format($$ select public.obtener_documento_comprobante(%L) $$, pg_temp.id_doc('f1')),
-  'P0002', null, 'la otra organización no consulta un documento ajeno'
+  'PT404', null, 'la otra organización no consulta un documento ajeno'
 );
 select throws_ok(
   $$ select public.solicitar_documento_comprobante('b0000000-0000-0000-0000-000000000006', 'factura') $$,

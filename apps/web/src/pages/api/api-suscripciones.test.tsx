@@ -148,8 +148,8 @@ describe('pantalla API · suscripciones, entregas y llamadas', () => {
     expect(await screen.findByText('Solo un administrador puede rotar el secreto de una suscripción.')).toBeInTheDocument()
   })
 
-  it('si la suscripción ya no existe, avisa y recarga la lista', async () => {
-    mocks.rpcResultado = { data: null, error: { code: 'P0002', message: 'no existe' } as { message: string } }
+  it.each(['P0002', 'PT404'])('si la suscripción ya no existe (%s), avisa y recarga la lista', async (code) => {
+    mocks.rpcResultado = { data: null, error: { code, message: 'no existe' } as { message: string } }
     abrir()
     fireEvent.click(await screen.findByRole('button', { name: 'Rotar secreto de https://ejemplo.com/aviso' }))
     fireEvent.click(within(await screen.findByRole('dialog', { name: 'Rotar secreto' })).getByRole('button', { name: 'Rotar' }))

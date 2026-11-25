@@ -164,14 +164,14 @@ describe('ProductoCarga', () => {
     expect(screen.queryByText('Elegir CSV')).toBeNull()
   })
 
-  it('un id de importación inválido en la URL se ignora y una inexistente (P0002) limpia la URL', async () => {
+  it.each(['P0002', 'PT404'])('un id de importación inválido en la URL se ignora y una inexistente (%s) limpia la URL', async (code) => {
     abrir('/productos/carga?importacion=no-es-un-uuid')
     expect(await screen.findByText('Elegir CSV')).toBeTruthy()
     expect(mocks.rpc.mock.calls.some(([nombre]) => nombre === 'obtener_importacion_productos')).toBe(false)
 
     mocks.rpc.mockImplementation(async (nombre: string) => {
       if (nombre === 'importacion_productos_habilitada') return { data: true, error: null }
-      return { data: null, error: { code: 'P0002', message: 'La importación no existe' } }
+      return { data: null, error: { code, message: 'La importación no existe' } }
     })
     abrir(`/productos/carga?importacion=${IMPORTACION}`)
     expect(await screen.findByText(/No encontramos esa importación/)).toBeTruthy()

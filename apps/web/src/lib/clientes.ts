@@ -269,7 +269,7 @@ export async function fusionarClientes(conservarId: string, descartarId: string,
 
 // Las validaciones de la RPC (permiso, mismo cliente, archivado, cuenta web sin resolver…) ya vienen en
 // castellano y sin identificadores: se muestran tal cual. Cualquier otro error va genérico.
-const CODIGOS_DE_VALIDACION = ['42501', '22023', 'P0002']
+const CODIGOS_DE_VALIDACION = ['42501', '22023', 'P0002', 'PT404']
 export function mensajeDeFusion(error: unknown): string {
   if (typeof error === 'object' && error !== null) {
     const { code, message } = error as { code?: unknown; message?: unknown }

@@ -18,6 +18,7 @@ sources:
   - supabase/migrations/20270507440000_comprobantes_despacho_y_cobros_estado_responden_409.sql
   - supabase/migrations/20270507450000_gastos_rma_contactos_consultas_y_notas_responden_4xx.sql
   - supabase/migrations/20270507470000_listas_precios_variantes_y_precios_masivos_responden_4xx.sql
+  - supabase/migrations/20270507480000_tienda_api_documentos_presupuestos_correo_y_fusion_responden_404.sql
   - apps/web/src/lib/ventasDespacho.ts
   - apps/web/src/lib/ventasEnvio.ts
   - apps/web/src/lib/ventasFaltantes.ts
@@ -34,6 +35,9 @@ sources:
   - apps/web/src/lib/listasPrecios.ts
   - apps/web/src/lib/productos-variantes.ts
   - apps/web/src/lib/preciosMasivos.ts
+  - apps/web/src/lib/ventasImpresion.ts
+  - apps/web/src/lib/ventasPresupuestoCorreo.ts
+  - apps/web/src/lib/clientes.ts
 ---
 
 # Errores de negocio de las RPC y su respuesta HTTP
@@ -189,7 +193,7 @@ cliente (`avisar_cliente_reparacion`, `avisos_de_reparacion`, `obtener_enlace_co
 (`esCodigoDeConflicto` y el mapeo de cada módulo de Service).
 
 Funciones migradas por ola (las olas 1 a 8 usan `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
-bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; las olas 10 y 11 combinan las tres conversiones según la función; la ola 12 convierte `P0002` y `40001`):
+bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; las olas 10 y 11 combinan las tres conversiones según la función; la ola 12 convierte `P0002` y `40001` y la 13 solo `P0002`):
 
 | Ola | Migración | Funciones |
 |---|---|---|
@@ -205,12 +209,13 @@ bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`
 | 10 | `20270507450000` | `guardar_gasto` (`PT404` y `PT412`), `anular_gasto` (`PT404` y `PT412`), `cambiar_estado_rma` (`PT404` y `PT412`), `registrar_rma` (`PT404` y `PT409`), `reingresar_stock_rma` (`PT404` y `PT409`), `vincular_nota_credito_rma` (`PT404` y `PT409`), `rendir_envios_moto` (solo `PT409`), `emitir_nota_credito` (solo `PT409`), `facturar_presupuesto` (solo `PT409`), `actualizar_contacto` (solo `PT412`), `anonimizar_contacto` (solo `PT412`), `actualizar_consulta` (solo `PT412`), `guardar_correo_avisos_consultas` (solo `PT412`), `cambiar_estado_estado_consulta` (solo `PT404`), `renombrar_estado_consulta` (solo `PT404`) |
 | 11 | `20270507460000` | `emitir_nota_credito` (solo `PT404`), `facturar_presupuesto` (solo `PT404`), `confirmar_cotizacion` (solo `PT404`), `detalle_anulacion_nota_credito` (solo `PT404`), `borrar_datos_suscriptor_newsletter` (solo `PT404`), `dar_de_baja_suscriptor_newsletter` (solo `PT404`), `detalle_newsletter` (solo `PT404`), `cancelar_envio_newsletter` (`PT404` y `PT409`), `descartar_newsletter` (`PT404` y `PT409`), `enviar_newsletter` (`PT404`, `PT409` y `PT412`), `guardar_newsletter` (`PT404`, `PT409` y `PT412`), `actualizar_reparacion` (`PT404`, `PT409` y `PT412`), `anular_reparacion` (`PT404` y `PT409`), `cambiar_estado_reparacion` (`PT404` y `PT409`), `registrar_entrega_reparacion` (`PT404` y `PT409`), `generar_comprobante_reparacion` (`PT404` y `PT409`), `reingresar_por_garantia` (`PT404` y `PT409`) |
 | 12 | `20270507470000` | `archivar_lista_precios` (`PT404` y `PT412`), `restaurar_lista_precios` (`PT404` y `PT412`), `guardar_lista_precios` (`PT404` y `PT412`), `asignar_lista_precios_cliente` (solo `PT404`), `guardar_variantes_producto` (`PT404` y `PT412`, el `40001` de stock con `detail` no cambia), `mover_productos_categoria` (solo `PT404`, la categoría), `previsualizar_cotizacion` (solo `PT404`), `aplicar_actualizacion_precios` (solo `PT412`) |
+| 13 | `20270507480000` | `guardar_borrador_tienda`, `obtener_borrador_tienda`, `descartar_borrador_tienda`, `publicar_tienda`, `listar_versiones_tienda`, `restaurar_version_tienda` (la empresa y la versión), `vista_previa_tienda`, `rutas_tienda_sin_referencia`, `revocar_clave_api`, `rotar_clave_api`, `actualizar_suscripcion_api`, `eliminar_suscripcion_api`, `rotar_secreto_suscripcion_api`, `listar_documentos_comprobante`, `obtener_documento_comprobante`, `ultimas_impresiones_comprobante`, `solicitar_documento_comprobante`, `enviar_presupuesto_correo`, `listar_envios_correo_presupuesto`, `obtener_importacion_productos`, `vista_previa_fusion_clientes` (todas solo `PT404`) |
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los `comment on function` previos (los de la última migración anterior que los fijó, no los de la migración de la ola). Las migraciones ya aplicadas no se editan.
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service y de newsletter con auxiliares de `private`: ítems y adjuntos de reparaciones, el flujo de avisos y consulta pública `regenerar_enlace_consulta` y `obtener_enlace_consulta`, y el `P0002` «La tienda no existe» del newsletter, que lanza `private.exigir_admin_newsletter`), `confirmar_comprobante` (contrato propio por hint `precios_cambiaron`), `detalle_campana_correo`, el `P0002` de producto inexistente de las operaciones masivas de productos (lo lanza un auxiliar de `private`), el `40001` con `detail` de stock de las variantes, la conciliación de pagos (las funciones públicas delegan en `private.aplicar_conciliacion`), el resto de los `P0002` de `public` (tienda, claves y suscripciones de API, invitaciones, integraciones, importaciones, documentos de comprobantes, clientes y presupuestos por correo), los `55000` de bandera apagada, los topes `54000` (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service y de newsletter con auxiliares de `private`: ítems y adjuntos de reparaciones, el flujo de avisos y consulta pública `regenerar_enlace_consulta` y `obtener_enlace_consulta`, y el `P0002` «La tienda no existe» del newsletter, que lanza `private.exigir_admin_newsletter`), `confirmar_comprobante` (contrato propio por hint `precios_cambiaron`), `detalle_campana_correo`, el `P0002` de producto inexistente de las operaciones masivas de productos (lo lanza un auxiliar de `private`), el `40001` con `detail` de stock de las variantes, la conciliación de pagos (las funciones públicas delegan en `private.aplicar_conciliacion`), el resto de los `P0002` de `public` (catálogo e identidad de la tienda, integraciones y conexiones OAuth, cargas de migración y lotes de importación, exportación de comprobantes, clientes y proveedores efectivos, `copiar_presupuesto`, costos adicionales, reportes y organizaciones, `fusionar_clientes`, `registrar_impresion`, y `reintentar_entrega_api`, cuyo `P0002` mezcla «no existe» y «no está agotada»), las que consume una Edge Function por código (invitaciones, cuentas web de clientes y verificación de dominio de la tienda), los `55000` de bandera apagada, los topes `54000` (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
 
 ## Novena ola: estado o regla de negocio que impide la acción, `55000` a `PT409` (MSF-599)
 
@@ -283,6 +288,22 @@ en un auxiliar de `private`).
 Efecto en el cliente: los mapeos de listas de precios, variantes y precios masivos aceptan el código viejo y el nuevo
 (`esCodigoDeConflicto`, `P0002` o `PT404`); test `lib/errores4xxListasVariantesPrecios.test.ts` y pgTAP
 `lote75_listas_precios_variantes_y_precios_masivos_4xx.test.sql`.
+
+## Decimotercera ola: tienda, claves de API, documentos, presupuestos por correo, importación y fusión de clientes (MSF-599)
+
+Aplica `P0002` a `PT404` a las funciones de la tienda online (borrador, publicación y versiones), de claves y suscripciones de API, de
+documentos e impresiones de comprobantes, de presupuestos por correo, la consulta de una importación de productos y la vista previa de la
+fusión de clientes. Qué función cambia está en la tabla de arriba (fila 13); mensaje, firma, `security definer`, `search_path` y grants no
+cambian. Ninguna es llamable por `anon` ni la consume Kestra, un worker o una Edge Function. Cada función parte de su definición vigente y
+solo cambia el errcode; un comentario que nombraba el código viejo se actualiza.
+
+Se dejaron con el código anterior a propósito: la bandera apagada y el contrato por `detail` de la verificación de dominio, las funciones
+que consume una Edge Function por código (invitaciones, cuentas web de clientes), `reintentar_entrega_api` (su `P0002` mezcla «no existe» y
+«no está agotada») y el resto de las áreas, por tamaño del lote.
+
+Efecto en el cliente: los mapeos de impresión de comprobantes, presupuesto por correo, fusión de clientes, suscripciones de API y seguimiento
+de la importación aceptan el código viejo y el nuevo (`P0002` o `PT404`); test `lib/errores4xxTiendaApiDocumentosCorreoFusion.test.ts` y pgTAP
+`lote76_tienda_api_documentos_correo_y_fusion_4xx.test.sql`.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

@@ -156,7 +156,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.solicitar_documento_comprobante('b0000000-0000-0000-0000-000000000008', 'presupuesto') $$,
-  'P0002', null, 'el presupuesto de otra organización no existe para esta sesión'
+  'PT404', null, 'el presupuesto de otra organización no existe para esta sesión'
 );
 
 select is(
@@ -248,7 +248,7 @@ select throws_ok(
 );
 select throws_ok(
   $$ select public.enviar_presupuesto_correo('b0000000-0000-0000-0000-000000000008') $$,
-  'P0002', null, 'el presupuesto de otra organización no existe para esta sesión'
+  'PT404', null, 'el presupuesto de otra organización no existe para esta sesión'
 );
 reset role;
 select is(
@@ -395,7 +395,7 @@ select is(
 );
 select throws_ok(
   $$ select public.listar_envios_correo_presupuesto('b0000000-0000-0000-0000-000000000001') $$,
-  'P0002', null, 'la otra organización no lista envíos ajenos'
+  'PT404', null, 'la otra organización no lista envíos ajenos'
 );
 select throws_ok(
   $$ select public.enviar_presupuesto_correo('b0000000-0000-0000-0000-000000000008') $$,

@@ -291,7 +291,7 @@ select is(
 );
 select throws_ok(
   $$ select public.ultimas_impresiones_comprobante('b0000000-0000-0000-0000-000000000006') $$,
-  'P0002', null, 'el comprobante de otra organización no existe para esta sesión'
+  'PT404', null, 'el comprobante de otra organización no existe para esta sesión'
 );
 select throws_ok(
   $$ select public.ultimas_impresiones_comprobante('b0000000-0000-0000-0000-000000000005') $$,

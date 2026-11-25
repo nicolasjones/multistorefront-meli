@@ -242,7 +242,7 @@ select throws_ok(
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.guardar_borrador_tienda('e1000000-0000-0000-0000-000000000001', 'identidad', pg_temp.ident('claro', 'false'))$$,
-  'P0002', null, 'otra organización no guarda el estilo de esta tienda'
+  'PT404', null, 'otra organización no guarda el estilo de esta tienda'
 );
 reset role;
 
