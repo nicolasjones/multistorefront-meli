@@ -220,7 +220,7 @@ select throws_ok(
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.obtener_comprobante((select id from comps where clave = 'fac1'))$$,
-  'P0002', null, 'otra organización no ve el comprobante (no existe para ella)');
+  'PT404', null, 'otra organización no ve el comprobante (no existe para ella)');
 select throws_ok(
   $$select public.crear_comprobante('factura', 'a1000000-0000-0000-0000-000000000001',
       'c6000000-0000-0000-0000-000000000001', 'mostrador')$$,
@@ -288,12 +288,12 @@ select is(
   jsonb_array_length(public.obtener_comprobante((select id from comps where clave = 'fac1')) -> 'lineas'),
   0, 'sin F-VTA-06 las líneas van vacías');
 
--- Conflicto: quien guarda con un `updated_at` viejo recibe 40001.
+-- Conflicto: quien guarda con un `updated_at` viejo recibe PT412.
 select throws_ok(
   $$select public.guardar_comprobante((select id from comps where clave = 'fac2'),
       'c5000000-0000-0000-0000-000000000001', 'mostrador', '2026-10-24', null, null, null,
       '2000-01-01T00:00:00Z')$$,
-  '40001', null, 'un updated_at viejo es un conflicto de edición');
+  'PT412', null, 'un updated_at viejo es un conflicto de edición');
 
 -- La validez anterior a la fecha se rechaza.
 select throws_ok(

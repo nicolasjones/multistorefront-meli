@@ -135,7 +135,7 @@ export function mensajeDeErrorCobro(error: unknown, porDefecto: string): string 
   if (e?.code === '42501') {
     return 'No tenés permiso para registrar cobros en esta tienda. Puede que tu rol haya cambiado: recargá la página.'
   }
-  if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   if (e?.code === 'P0001') return 'El importe supera el saldo pendiente de la factura.'
   if (e?.code === '55000') return 'Esta factura no admite cobros: está en borrador o anulada.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.

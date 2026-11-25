@@ -97,6 +97,9 @@ describe('errores al cambiar el estado', () => {
     expect(esConflictoDeEstado({ code: '22023' })).toBe(false)
     expect(esConflictoDeEstado(null)).toBe(false)
     expect(mensajeDeCambioEstado({ code: '40001', message: 'could not serialize' })).toBe(MENSAJE_CONFLICTO_ESTADO)
+    // Con el código que la base responde como 412 (migración 20270507340000) el comportamiento es el mismo.
+    expect(esConflictoDeEstado({ code: 'PT412' })).toBe(true)
+    expect(mensajeDeCambioEstado({ code: 'PT412' })).toBe(MENSAJE_CONFLICTO_ESTADO)
   })
 
   it.each([
@@ -119,6 +122,7 @@ describe('errores al cambiar el estado', () => {
 
   it('comprobante inexistente y errores desconocidos', () => {
     expect(mensajeDeCambioEstado({ code: 'P0002' })).toBe('Ese comprobante no existe o no pertenece a tu organización.')
+    expect(mensajeDeCambioEstado({ code: 'PT404' })).toBe('Ese comprobante no existe o no pertenece a tu organización.')
     expect(mensajeDeCambioEstado(new Error('red caída'))).toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
     expect(mensajeDeCambioEstado(null)).toBe(MENSAJE_ERROR_CAMBIO_ESTADO)
   })

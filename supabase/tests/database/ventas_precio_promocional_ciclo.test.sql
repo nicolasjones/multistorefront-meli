@@ -510,7 +510,7 @@ insert into dominio.promociones_precio (id, organizacion_id, empresa_id, product
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select is(pg_temp.conf('o2'), pg_temp.msg_c(), 'Org dos: una promoción nueva de su empresa rechaza su confirmación');
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select is(pg_temp.conf('o2') like '%P0002%' or pg_temp.conf('o2') like 'P0002|%', true, 'Org uno: no confirma (ni ve) el comprobante de la organización dos (P0002)');
+select is(pg_temp.conf('o2') like 'PT404|%', true, 'Org uno: no confirma (ni ve) el comprobante de la organización dos (PT404)');
 select is(pg_temp.stock_de(1), 47, 'el stock de la organización uno no se movió (50 − 2 de S1 − 1 de S9)');
 
 -- ============================================================================

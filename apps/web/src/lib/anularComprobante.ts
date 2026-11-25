@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 // Anulación de la factura (F-VTA-11, MSF-377, FR-040…FR-042). La autoridad es la base: `anular_comprobante` valida el
 // permiso `anular` en la tienda del comprobante, exige el motivo, rechaza lo cobrado o con nota de crédito, revierte
@@ -15,7 +16,7 @@ export const MENSAJE_CONFLICTO_ANULAR =
 
 type ErrorDeBase = { code?: string; message?: string; hint?: string } | null
 
-export const esConflictoDeAnulacion = (error: unknown): boolean => (error as ErrorDeBase)?.code === '40001'
+export const esConflictoDeAnulacion = (error: unknown): boolean => esCodigoDeConflicto((error as ErrorDeBase)?.code)
 
 // Valida el motivo antes de llamar: devuelve el mensaje a mostrar o null si está bien.
 export function validarMotivoAnulacion(motivo: string): string | null {
@@ -55,12 +56,12 @@ function textoDeLaRpc(error: ErrorDeBase): string | undefined {
 export function mensajeDeAnulacion(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_ANULAR, error)
-  if (e?.code === '40001') return MENSAJE_CONFLICTO_ANULAR
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_ANULAR
   if (e?.code === '42501' || e?.code === '55000' || e?.code === '22023') {
     const texto = textoDeLaRpc(e)
     if (texto) return texto
   }
-  if (e?.code === 'P0002') return 'Ese comprobante no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_ANULAR
 }
 

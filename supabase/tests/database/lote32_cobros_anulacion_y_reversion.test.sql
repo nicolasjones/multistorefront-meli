@@ -127,7 +127,7 @@ select is(pg_temp.est('f1000000-0000-0000-0000-000000000009'), 'anulada', 'qued�
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.anular_comprobante(%L, 'x', pg_temp.upd(%L))$$, 'f1000000-0000-0000-0000-000000000006', 'f1000000-0000-0000-0000-000000000006'),
-  'P0002', 'El comprobante no existe', 'otra organización no anula la factura ajena');
+  'PT404', 'El comprobante no existe', 'otra organización no anula la factura ajena');
 
 -- ============================================================================
 -- MSF-667: revertir_cobro, permisos y validaciones
