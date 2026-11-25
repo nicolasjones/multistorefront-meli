@@ -83,7 +83,7 @@ desactiva más tarde, el cobro ya registrado se conserva).
   cobros, las **notas de crédito** emitidas sobre la factura y lo que falta (`total − cobrado − notas de crédito`,
   mínimo 0, a 2 decimales; no hay saldo a favor). Cuentan las notas que cuelgan de la factura, del mismo cliente y
   que no están en `borrador` ni `anulada` (`private.comprobante_cuenta_como_facturado`). `security invoker` (manda la RLS de `dominio`) y además filtra por
-  organización y empresa accesible: otra organización recibe `PT404` (HTTP 404; antes `P0002`) («El comprobante no existe»),
+  organización y empresa accesible: otra organización recibe el error «El comprobante no existe» (código `PT4xx`, ver [errores de negocio](errores-negocio-postgrest.md)),
   nunca datos ajenos. Sin `ventas` devuelve `42501`.
 - `public.cobros_de_comprobante(p_comprobante_id uuid)`: la lista de cobros de la factura (fecha,
   forma de pago con su **nombre y su tipo**, cuenta de cobro con su **nombre, banco y titular**,

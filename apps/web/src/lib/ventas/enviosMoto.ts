@@ -3,6 +3,7 @@
 // validar en el diálogo antes de viajar y para traducir los errores (la autoridad es la base).
 // Contrato de las RPC: specs/20261024-130000-ventas-motos/contracts/ventas-motos.md
 import { supabaseClient } from '../supabase'
+import { esCodigoDeConflicto } from '../mensajeErrorBase'
 
 // Mismos límites que los CHECK de dominio.envios_moto: mantener alineados.
 export const MENSAJERO_MAXIMO = 100
@@ -86,19 +87,19 @@ export const MENSAJE_CONFLICTO =
 export function mensajeDeErrorEnvioMoto(error: unknown, porDefecto: string): string {
   console.error(porDefecto, codigoDeError(error))
   const e = error as ErrorBase
-  if (e?.code === '40001') return MENSAJE_CONFLICTO
+  if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO
   if (e?.code === '42501') {
     return 'Tu rol no puede registrar ni editar envíos en moto en esta tienda. Puede que tu rol haya cambiado: recargá la página.'
   }
   // El mensaje de la base distingue «ya rendido» de «factura anulada»; sin mensaje, el de solo lectura.
   if (e?.code === '55000') return e.message || 'El envío ya está rendido: es de solo lectura y no se puede modificar.'
   if (e?.code === '23505') return 'Ese comprobante ya tiene un envío en moto registrado.'
-  if (e?.code === 'P0002') return 'Ese envío no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese envío no existe o no pertenece a tu organización.'
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
 }
 
-export const esConflicto = (error: unknown): boolean => (error as ErrorBase)?.code === '40001'
+export const esConflicto = (error: unknown): boolean => esCodigoDeConflicto((error as ErrorBase)?.code)
 
 // Mensajero sin espacios sobrantes (la base lo normaliza igual al escribir).
 export function normalizarMensajero(valor: string): string {

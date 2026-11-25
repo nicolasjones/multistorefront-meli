@@ -181,8 +181,8 @@ describe('EnvioMotoDialog · editar', () => {
     expect(args).not.toHaveProperty('p_rendido')
   })
 
-  it('ante un conflicto ofrece «Recargar»', async () => {
-    mocks.rpc.mockImplementation(rpcPorDefecto({ actualizar_envio_moto: { data: null, error: { code: '40001', message: 'x' } } }))
+  it.each(['40001', 'PT412'])('ante un conflicto ofrece «Recargar» (%s)', async (code) => {
+    mocks.rpc.mockImplementation(rpcPorDefecto({ actualizar_envio_moto: { data: null, error: { code, message: 'x' } } }))
     const onRecargar = vi.fn()
     abrirAlta({ envio, onRecargar })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))

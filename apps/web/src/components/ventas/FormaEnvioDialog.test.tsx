@@ -158,8 +158,8 @@ describe('FormaEnvioDialog', () => {
     }))
   })
 
-  it('un conflicto de edición ofrece «Recargar» y no cierra el diálogo', async () => {
-    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'modificada' } })
+  it.each(['40001', 'PT412'])('un conflicto de edición ofrece «Recargar» y no cierra el diálogo (%s)', async (code) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'modificada' } })
     const { onGuardado, onRecargar } = abrir({ forma: FORMA })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText(/Otra persona modificó esta forma de envío/)).toBeInTheDocument()

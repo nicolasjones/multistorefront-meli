@@ -98,6 +98,8 @@ describe('errores del envío en moto', () => {
 
   it('traduce cada código a castellano', () => {
     expect(mensajeDeErrorEnvioMoto({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeErrorEnvioMoto({ code: 'PT412' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeErrorEnvioMoto({ code: 'PT404' }, 'x')).toBe('Ese envío no existe o no pertenece a tu organización.')
     expect(mensajeDeErrorEnvioMoto({ code: '42501' }, 'x')).toContain('Tu rol no puede registrar ni editar envíos en moto')
     expect(mensajeDeErrorEnvioMoto({ code: '23505' }, 'x')).toBe('Ese comprobante ya tiene un envío en moto registrado.')
     expect(mensajeDeErrorEnvioMoto({ code: 'P0002' }, 'x')).toBe('Ese envío no existe o no pertenece a tu organización.')
@@ -121,6 +123,7 @@ describe('errores del envío en moto', () => {
 
   it('reconoce el conflicto de edición por su código', () => {
     expect(esConflicto({ code: '40001' })).toBe(true)
+    expect(esConflicto({ code: 'PT412' })).toBe(true)
     expect(esConflicto({ code: '23505' })).toBe(false)
     expect(esConflicto(null)).toBe(false)
   })

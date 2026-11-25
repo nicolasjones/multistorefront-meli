@@ -46,7 +46,7 @@ sources:
 | RPC | Qué hace |
 |---|---|
 | `registrar_envio_moto` | Alta del envío de un comprobante elegible. |
-| `actualizar_envio_moto` | Edición con bloqueo optimista (`40001`); un envío rendido o de una factura anulada es de solo lectura (`55000`). |
+| `actualizar_envio_moto` | Edición con bloqueo optimista; un envío rendido o de una factura anulada es de solo lectura (`55000`). |
 | `comprobantes_para_envio_moto` | Facturas emitidas elegibles sin envío (búsqueda por número o cliente, máx. 50). |
 | `listar_envios_moto` | Listado más reciente primero, con `puede_editar`, `puede_rendir` y `bloqueado_motivo` por fila (factura anulada, o borrador con abono). |
 | `rendir_envios_moto` | Lote todo o nada, idempotente, solo enviados y no rendidos, **un solo mensajero**, tope de 500 ids. **Registra el cobro en el libro** (ver Rendición) y rechaza las facturas anuladas. Devuelve cantidad, mensajero, total del abono, total del costo, neto, `total_cobrado` y `sin_cobro`. |
@@ -84,7 +84,7 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 
 ## Errores
 
-`42501` sin permiso, **también** cuando el envío, la factura o la tienda no existe o no es de tu organización (registrar, editar y rendir comprueban el permiso antes de cualquier bloqueo y devuelven el mismo error exista o no, para no revelar la existencia entre tiendas ni organizaciones); `P0002` ya no se devuelve en esas RPC; `22023` dato inválido (mensajeros mezclados en una rendición, guía de más de 100 caracteres, importes fuera de rango, borrador en el registro, sin forma de pago para el cobro); `23505` el comprobante ya tiene envío; `40001` otra persona lo modificó; `55000` el envío ya está rendido, su factura fue anulada o (al rendir con abono) está en borrador.
+`42501` sin permiso, **también** cuando el envío, la factura o la tienda no existe o no es de tu organización (registrar, editar y rendir comprueban el permiso antes de cualquier bloqueo y devuelven el mismo error exista o no, para no revelar la existencia entre tiendas ni organizaciones); `22023` dato inválido (mensajeros mezclados en una rendición, guía de más de 100 caracteres, importes fuera de rango, borrador en el registro, sin forma de pago para el cobro); `23505` el comprobante ya tiene envío; el conflicto de edición (otra persona lo modificó) usa un código `PT4xx` (ver [errores de negocio](../errores-negocio-postgrest.md)); `55000` el envío ya está rendido, su factura fue anulada o (al rendir con abono) está en borrador.
 
 ## Pruebas
 

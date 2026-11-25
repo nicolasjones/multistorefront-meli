@@ -196,7 +196,7 @@ select is(
   'Retiro en local', 'y la edición aplica solo a la empresa elegida');
 select throws_ok(
   $$select public.actualizar_forma_envio('b1000000-0000-0000-0000-00000000000a', current_setting('prueba.leido')::timestamptz, 'Otro nombre', 'retiro_local', false, 0, 'listo_para_despachar', 3, true)$$,
-  '40001', null, 'editar con una versión vieja es un conflicto');
+  'PT412', null, 'editar con una versión vieja es un conflicto');
 
 -- ============================================================================
 -- Estado idempotente

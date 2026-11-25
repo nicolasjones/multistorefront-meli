@@ -18,6 +18,8 @@ describe('mensajes de error', () => {
 
   it('traduce por código y deja pasar solo el mensaje de validación 22023', () => {
     expect(mensajeDeErrorContrarreembolso({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeErrorContrarreembolso({ code: 'PT412' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeErrorContrarreembolso({ code: 'PT404' }, 'x')).toMatch(/no existe/)
     expect(mensajeDeErrorContrarreembolso({ code: '42501', message: 'policy' }, 'x')).toMatch(/Tu rol no puede cobrar/)
     expect(mensajeDeErrorContrarreembolso({ code: '55000' }, 'x')).toMatch(/anulada/)
     expect(mensajeDeErrorContrarreembolso({ code: 'P0002' }, 'x')).toMatch(/no existe/)

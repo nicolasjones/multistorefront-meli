@@ -27,7 +27,8 @@ stateDiagram-v2
   Cobrado --> [*]
 ```
 
-Estados: Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto.
+Estados del flujo: Pendiente, Aceptado, Cobrado, En proceso, Deuda, Armando, Incompleto. Además, una factura nace en **Borrador** (hasta
+confirmarla) y puede quedar **Anulada**: no son pasos del flujo, pero el listado los muestra y permite filtrarlos.
 Los comprobantes son internos; no hay emisión fiscal en el MVP.
 
 **Cobrado** y **Deuda** no los cambia una persona: los dispara el cobro registrado sobre la factura

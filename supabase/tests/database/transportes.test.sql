@@ -187,7 +187,7 @@ select ok(
 
 select throws_ok(
   $$select pg_temp.act('Otra', array['a1000000-0000-0000-0000-0000000000a1']::uuid[], '2000-01-01'::timestamptz)$$,
-  '40001', null,
+  'PT412', null,
   'un updated_at viejo es un conflicto y no pisa nada'
 );
 
@@ -326,7 +326,7 @@ select is(
 
 select throws_ok(
   $$select pg_temp.act('Cruzada', array[]::uuid[])$$,
-  'P0002', null,
+  'PT404', null,
   'editar un transporte de otra organización responde que no existe'
 );
 

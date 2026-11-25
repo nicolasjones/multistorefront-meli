@@ -5,7 +5,7 @@
 -- entre organizaciones y por empresa); `registrar_envio_moto` (alta válida, mensajero normalizado, cero
 -- válido, un envío por comprobante, presupuesto / forma de envío distinta de moto / anulada / sin forma
 -- de envío / empresa ajena / mensajero vacío / importes negativos o con más de dos decimales);
--- `actualizar_envio_moto` (edición, conflicto 40001, envío rendido de solo lectura 55000, `rendido` y
+-- `actualizar_envio_moto` (edición, conflicto PT412, envío rendido de solo lectura 55000, `rendido` y
 -- `rendido_en` intactos); `comprobantes_para_envio_moto` (solo elegibles); `listar_envios_moto`; los
 -- permisos (Operador y Administrador escriben; Mostrador, Consulta, sin `ventas` y `anon` no, 42501) y
 -- los eventos `envio_moto.registrado` / `envio_moto.actualizado` en `public.registro_actividad`.
@@ -414,13 +414,13 @@ select throws_ok(
       'Juan Perez', null, 150.50, 1000, true,
       (select updated_at - interval '1 second' from dominio.envios_moto
         where comprobante_id = 'f1000000-0000-0000-0000-000000000001'))$$,
-  '40001', null, 'una versión vieja del envío da conflicto 40001'
+  'PT412', null, 'una versión vieja del envío da conflicto PT412'
 );
 select throws_ok(
   $$select public.actualizar_envio_moto(
       (select id from dominio.envios_moto where comprobante_id = 'f1000000-0000-0000-0000-000000000001'),
       'Juan Perez', null, 150.50, 1000, true, null)$$,
-  '40001', null, 'sin versión leída también da conflicto 40001'
+  'PT412', null, 'sin versión leída también da conflicto PT412'
 );
 
 -- Validaciones.

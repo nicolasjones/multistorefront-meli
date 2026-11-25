@@ -88,7 +88,7 @@ renumeraron al reconstruir la épica sobre `main`; los nombres de archivo son la
 - La **organización sale de la sesión** (`private.organizacion_id()`); el llamador no la fija.
 - **Nombre único**: `(empresa_id, lower(nombre))` en pago y envío; `(organizacion_id,
   lower(btrim(nombre)))` en transportes (incluye inactivos).
-- **`updated_at`** avanza solo ante un cambio real y sostiene el bloqueo optimista (`PT412` en formas de pago y cuentas de cobro; `40001` en formas de envío y transportes: ver [errores de negocio](../errores-negocio-postgrest.md)). Un cambio
+- **`updated_at`** avanza solo ante un cambio real y sostiene el bloqueo optimista (código `PT4xx`; ver [errores de negocio](../errores-negocio-postgrest.md)). Un cambio
   solo de empresas habilitadas también lo avanza.
 - **No hay DELETE** de catálogos: se desactivan. La única tabla con política y grant DELETE es
   `transportes_empresas` (su RPC reemplaza el conjunto); `cuentas_cobro_empresas` también se reemplaza,
@@ -114,7 +114,7 @@ acciones; la autoridad es la base. La sección `ventas` se resuelve por la empre
 
 Todas en `public`, `security invoker` salvo los ayudantes indicados, `search_path = ''` y grants
 explícitos. Errores: `42501` permiso · `22023`/`23514` validación (`hint` no usado en estas RPC) ·
-`PT404` no existe · `PT412` conflicto de edición (en las RPC de formas de pago y cuentas de cobro; las demás de catálogos siguen con `P0002`/`40001`: ver [errores de negocio](../errores-negocio-postgrest.md)) · `23505` nombre repetido.
+`23505` nombre repetido. Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx`; ver [errores de negocio](../errores-negocio-postgrest.md).
 
 | RPC | Contrato |
 |---|---|
@@ -122,7 +122,7 @@ explícitos. Errores: `42501` permiso · `22023`/`23514` validación (`hint` no 
 | `actualizar_forma_pago(p_id, p_actualizado_en, …)` | Edición por fila con bloqueo optimista; la empresa no se cambia. |
 | `cambiar_estado_forma_pago(p_id, p_activo)` | Activa/desactiva sin tocar datos; idempotente. |
 | `crear_forma_envio(p_empresa_ids, p_nombre, p_tipo, p_exige_transporte_guia, p_costo_defecto, p_estado_despacho_inicial, p_orden, p_activo)` | Ídem para envío; costo nulo o `0 ≤ costo < 10.000.000.000`. |
-| `actualizar_forma_envio(p_id, p_actualizado_en, …)` / `cambiar_estado_forma_envio(p_id, p_activo)` | Edición con conflicto `40001` y estado idempotente. |
+| `actualizar_forma_envio(p_id, p_actualizado_en, …)` / `cambiar_estado_forma_envio(p_id, p_activo)` | Edición con bloqueo optimista y estado idempotente. |
 | `crear_cuenta_cobro(p_nombre, p_titular, p_cuit, p_banco, p_alias, p_cbu, p_tipo, p_moneda, p_orden, p_activa, p_notas, p_empresa_ids)` | Alta con CBU/CUIT obligatorios y validados; habilitación por empresa en la misma transacción. |
 | `actualizar_cuenta_cobro(p_id, p_actualizado_en, …)` | Edición con bloqueo optimista; la habilitación por empresa se reemplaza en la misma transacción. |
 | `cambiar_estado_cuenta_cobro(p_id, p_activa)` | «No usar»/reactivar idempotente; conserva datos e historial. |

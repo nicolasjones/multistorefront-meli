@@ -11,6 +11,7 @@ sources:
   - supabase/migrations/20270507310000_aceptar_presupuesto_responde_4xx.sql
   - supabase/migrations/20270507340000_comprobantes_responden_4xx.sql
   - supabase/migrations/20270507350000_despacho_y_cobros_responden_4xx.sql
+  - supabase/migrations/20270507360000_catalogos_envio_y_contrarreembolsos_responden_4xx.sql
   - apps/web/src/lib/estadosComprobante.ts
   - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
@@ -127,9 +128,29 @@ Misma regla (`P0002` a `PT404`, `40001` a `PT412`, mensaje intacto) para `cambia
 acepta los dos códigos. Antes de copiar un cuerpo hay que comprobar que ningún barrido posterior lo reescribió en la base
 (`20270418000401` cambió `public.clientes` por `dominio.clientes`): ya falló una vez en CI por eso.
 
-Familias hechas: comprobantes de venta, despacho y cobros. Queda para próximas olas (los tickets siguen abiertos): el resto de
-las funciones con `P0002` y `40001` (productos, Service, catálogo, envíos de moto, transportes, formas de envío, contrarreembolsos,
-pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
+## Quinta ola: formas de envío, transportes, contrarreembolsos y envíos en moto (MSF-654 y MSF-655, parciales)
+
+Misma regla para `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`,
+`marcar_contrarreembolso_cobrado` y `actualizar_envio_moto` (esta última solo tenía el conflicto de edición). Ninguna es llamable por
+`anon` ni la consume Kestra, un worker o una Edge Function. `conciliar_pago` y `revertir_conciliacion_pago` quedan afuera: son
+envoltorios que delegan en funciones de `private`, donde se lanzan los errores. Las `cambiar_estado_*` solo emiten `PT404`: no
+usan bloqueo optimista.
+
+Funciones migradas por ola (cada migración usa `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
+bloqueo optimista solo emiten `PT404`):
+
+| Ola | Migración | Funciones |
+|---|---|---|
+| 1 | `20270507180500` | `obtener_reparacion` |
+| 2 | `20270507310000` | `aceptar_presupuesto` (con `PT409` para el estado que no admite aceptar) |
+| 3 | `20270507340000` | `guardar_comprobante`, `guardar_lineas_comprobante`, `confirmar_comprobante` (solo `PT404`), `anular_comprobante`, `cambiar_estado_comprobante`, `obtener_comprobante`, `historial_comprobante`, `transiciones_permitidas_comprobante`, `saldo_comprobante`, `cobros_de_comprobante` |
+| 4 | `20270507350000` | `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `obtener_despacho_comprobante`, `obtener_envio_comprobante`, `listar_responsables_despacho`, `registrar_cobro`, `revertir_cobro`, `actualizar_forma_pago`, `actualizar_cuenta_cobro`, `cambiar_estado_forma_pago`, `cambiar_estado_cuenta_cobro` |
+| 5 | `20270507360000` | `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (solo conflicto) |
+
+La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
+
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (productos, proveedores, categorías,
+promociones, Service, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
 `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.

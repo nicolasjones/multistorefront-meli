@@ -156,8 +156,8 @@ describe('TransporteDialog', () => {
     }))
   })
 
-  it('ante un conflicto de edición avisa y ofrece Recargar', async () => {
-    mocks.rpc.mockResolvedValue({ data: null, error: { code: '40001', message: 'x' } })
+  it.each(['40001', 'PT412'])('ante un conflicto de edición avisa y ofrece Recargar (%s)', async (code) => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code, message: 'x' } })
     const { onRecargar } = abrir({ transporte: TRANSPORTE })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar empresa' }))
     expect(await screen.findByText(/Otra persona modificó esta empresa/)).toBeInTheDocument()

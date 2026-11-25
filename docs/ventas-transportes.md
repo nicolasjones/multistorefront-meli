@@ -32,7 +32,7 @@ La guía general de la épica es `docs/ventas-catalogos.md`; esta nota documenta
 
 ## RPC (`public`, `security invoker`, `grant execute … to authenticated`)
 
-- `crear_transporte(...)`, `actualizar_transporte(...)` (bloqueo optimista por `updated_at`, `40001` ante conflicto; un cambio solo de empresas también avanza `updated_at`) y `cambiar_estado_transporte(id, activa)` (idempotente).
+- `crear_transporte(...)`, `actualizar_transporte(...)` (bloqueo optimista por `updated_at`, conflicto de edición con código `PT4xx`, ver [errores de negocio](errores-negocio-postgrest.md); un cambio solo de empresas también avanza `updated_at`) y `cambiar_estado_transporte(id, activa)` (idempotente).
 - `listar_transportes(p_empresa_id, p_pagina, p_tamano)`: paginado, con las empresas de cada fila, filtro por tienda y los totales `total_filas` (N) y `total_organizacion` (M) para «N de M empresas de transporte». Los totales viajan en cada fila: una página fuera de rango devuelve 0 filas sin totales y el cliente vuelve a la página 1.
 
 ## Pantalla
