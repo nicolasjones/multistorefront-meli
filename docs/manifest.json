@@ -1073,9 +1073,9 @@
     },
     "docs/errores-negocio-postgrest.md": {
       "title": "Errores de negocio de las RPC y su respuesta HTTP",
-      "pageHash": "4adabf91fc83428262869abf4d8e59c4263a2b0396352b88ac860ada1b899955",
+      "pageHash": "65aea5294ee4fe530442b37caf6158deb6ee58350f9d302f8aee8ab374bdebff",
       "sourceHash": "7c1ee1ade8d456bdaa52940b91d5182c490b630605df3620593b7516f4b92143",
-      "sourceAt": "46f833ec2",
+      "sourceAt": "a2da28c33",
       "sources": [
         "apps/web/src/lib/mensajeErrorBase.ts",
         "apps/web/src/lib/ventasPresupuestos.ts",
@@ -1123,7 +1123,7 @@
         "apps/web/src/lib/opiniones.ts"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "a2da28c33"
     },
     "docs/exportacion-total.md": {
       "title": "Exportar todos los datos (F-OPS-06, MSF-396)",
@@ -1510,9 +1510,9 @@
     },
     "docs/operar-sistema.md": {
       "title": "Operar el sistema",
-      "pageHash": "cc2080e32e2ce0c1269eab11a5b0d81671c7d70c49b9a9de6e266332c32b39ab",
-      "sourceHash": "412194bfb540b588afa73142791fe0c6052f7048e3f4a0504226b5cfd2af2e86",
-      "sourceAt": "6776fb4d",
+      "pageHash": "a6764039dee4cc860e42c98a19c086a85d8b2ba10b8d1a90e130c9b444e9f40c",
+      "sourceHash": "31e0df5a32111021600515d398cef095ff8bf82fed9432fc8aca0ce1466edb55",
+      "sourceAt": "d20aac43e",
       "sources": [
         "infra/kestra/flows/alertas.yml",
         "infra/kestra/flows/limpieza-evidencia.yml",
@@ -1527,7 +1527,7 @@
         "package.json"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "d20aac43e"
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
@@ -3545,9 +3545,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "67f5900d156114e260d6ca37d675bac5c4132ba12a5b0427304625cf4dd979ce",
-      "sourceHash": "251e54e35100643136b1acea8622a4bbcafdaea7d848842631b7d03d097be5e5",
-      "sourceAt": "f6d79ffda",
+      "pageHash": "82199094c37ae6cd41c52b1aaa1d32c5d1b2770c750f5b842a72bfc2cbcc2b2a",
+      "sourceHash": "4e1d1b10b0db140f4ea2c70826650e51a1bdd06b4441dd757411d9c1090720a0",
+      "sourceAt": "a2da28c33",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations/20261012140100_usuarios_organizacion_estado.sql",
@@ -3560,6 +3560,7 @@
         "supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql",
         "supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql",
         "supabase/migrations/20270507600000_acl_por_defecto_authenticated_sin_truncate_references_trigger.sql",
+        "supabase/migrations/20270507700000_conexiones_sin_fuga_de_existencia_y_acl_supabase_admin.sql",
         "supabase/tests/database/bloqueo_servidor.test.sql",
         "supabase/tests/database/estado_usuario.test.sql",
         "supabase/tests/database/cortar_sesiones_suspendido.test.sql",
@@ -3581,7 +3582,7 @@
         "scripts/verificar-hook-bloqueo.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "f6d79ffda"
+      "commit": "a2da28c33"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
