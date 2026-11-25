@@ -220,4 +220,11 @@ positivo; un valor ausente o inválido usa el default):
 | `WORKER_PG_CONNECT_TIMEOUT_MS` | `10000` (10 s) | `connectionTimeoutMillis`: falla si no se logra conectar a tiempo. |
 | `WORKER_PG_IDLE_TIMEOUT_MS` | `30000` (30 s) | `idleTimeoutMillis`: cierra la conexión inactiva (se reabre en la próxima consulta). |
 
+Cada variable acepta enteros entre 1 y 2147483647; cualquier otro valor (vacío, 0, negativo, texto, decimal,
+notación científica o fuera de rango) usa el default.
+
+Advertencia de poolador: `statement_timeout` viaja como parámetro de arranque de la conexión. Si los workers apuntan a
+PgBouncer (u otro poolador) sin `ignore_startup_parameters = statement_timeout` en su configuración, puede rechazar la
+conexión: verificarlo al desplegar y, si hace falta, agregar el parámetro al poolador.
+
 Una falla por estos topes es técnica y se reintenta según la tabla de códigos de salida.

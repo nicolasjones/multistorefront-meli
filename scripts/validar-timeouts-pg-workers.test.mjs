@@ -30,3 +30,29 @@ for (const ruta of workers) {
     }
   });
 }
+
+// Comportamiento: se evalúa el mismo `topeMs` que lleva cada infra.ts (sin tipos), idéntico en los 5 workers.
+const extraerTopeMs = (ruta) => {
+  const bloque = readFileSync(ruta, 'utf8').match(/const topeMs = [\s\S]*?\n\};/)?.[0];
+  assert.ok(bloque, `${ruta}: falta topeMs`);
+  const js = bloque.replace('(valor: string | undefined, porDefecto: number): number =>', '(valor, porDefecto) =>');
+  return { js, fn: new Function(`${js}\nreturn topeMs;`)() };
+};
+
+test('topeMs es idéntico en todos los workers', () => {
+  const cuerpos = new Set(workers.map((ruta) => extraerTopeMs(ruta).js));
+  assert.equal(cuerpos.size, 1);
+});
+
+for (const ruta of workers) {
+  test(`${ruta}: topeMs acepta solo enteros entre 1 y 2147483647`, () => {
+    const { fn } = extraerTopeMs(ruta);
+    const D = 777;
+    for (const invalido of [undefined, '', '0', '-5', 'abc', '1.5', 'NaN', '1e21', '99999999999999999999', '2147483648']) {
+      assert.equal(fn(invalido, D), D, `${ruta}: ${String(invalido)} debe caer al default`);
+    }
+    assert.equal(fn('1', D), 1);
+    assert.equal(fn('2147483647', D), 2147483647);
+    assert.equal(fn('300000', D), 300000);
+  });
+}

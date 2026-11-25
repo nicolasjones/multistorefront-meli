@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { escaparCopy, ocultarClave } from './copy-clave.mjs';
 import { argumentValue, requireEnvironment, redactError } from '../../scripts/operaciones.mjs';
 
 const container = argumentValue(process.argv.slice(2), '--db-container', process.env.SUPABASE_DB_CONTAINER);
@@ -22,8 +23,7 @@ async function locateContainer() {
   return matches[0];
 }
 
-// Formato texto de COPY: se escapan la barra invertida y los saltos para que la clave llegue idéntica y ninguna línea sea `\\.`.
-const copyData = providerKey.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
+const copyData = escaparCopy(providerKey);
 
 const sql = `\\set proveedor_codigo \`printf %s "$IA_PROVEEDOR_CODIGO"\`
 \\set credencial_nombre \`printf %s "$IA_PROVEEDOR_CREDENCIAL"\`
@@ -67,5 +67,5 @@ try {
   // texto SQL, en argumentos ni en variables de entorno del contenedor) y no se imprime ni se registra.
   console.log(`Credencial '${credentialName}' del proveedor '${providerCode}' aprovisionada en Vault.`);
 } catch (error) {
-  throw new Error(redactError(error).replaceAll(providerKey, '[clave omitida]'));
+  throw new Error(ocultarClave(redactError(error), providerKey));
 }
