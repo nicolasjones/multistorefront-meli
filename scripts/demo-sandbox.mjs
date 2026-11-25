@@ -24,7 +24,7 @@ const PASSWORD = "Demo-Local1!";
 const ORG = "Demo MSF";
 const EMPRESA = "Tienda Demo";
 
-if (!LOCAL) { console.error(`❌ ${URL} no es un Supabase local (${HOST}). Se aborta por seguridad.`); process.exit(1); }
+if (!LOCAL) { console.error(`❌ ${BASE} no es un Supabase local (${HOST}). Se aborta por seguridad.`); process.exit(1); }
 if (dry) {
   console.log(`# Demo MSF (dry-run)\n- Supabase: ${BASE}\n- Organización: ${ORG}\n- Empresa: ${EMPRESA}\n- Usuario: ${EMAIL} / ${PASSWORD}\n- 3 clientes, 3 productos y stock inicial 10\n- No se ejecutó nada.`);
   process.exit(0);

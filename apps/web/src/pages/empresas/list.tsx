@@ -169,10 +169,6 @@ export function EmpresaList() {
               </Stack>
             )}
           />
-          <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={2} sx={{ mt: 2 }}>
-            <Typography color="text.secondary">Nueva empresa</Typography>
-            <Button size="small" onClick={() => { setCreada(false); setDialogoAbierto(true) }} aria-label="Crear nueva empresa">Crear</Button>
-          </Stack>
           </>
         )}
       </ContenedorSeccion>
