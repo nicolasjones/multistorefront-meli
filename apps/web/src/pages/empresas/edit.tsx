@@ -13,6 +13,7 @@ import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
 import { ContextoOrganizacionActiva } from '../../components/pagina/ContextoOrganizacionActiva'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
 import { normalizarCuit, validarCuit } from '../../lib/cuit'
+import { mensajeDeErrorBase } from '../../lib/mensajeErrorBase'
 import { avisoFormatoWhatsapp } from '../../lib/whatsapp'
 import { PestanasEmpresa } from './PestanasEmpresa'
 import { CorreoAvisosConsultas } from './CorreoAvisosConsultas'
@@ -80,6 +81,11 @@ function validar(formulario: Formulario): Errores {
 // directa sin ese nivel ve la pantalla en solo lectura. La RLS es la autoridad: desde 20270507240000 la política
 // `empresas_update` exige `nivel_seccion('empresas') = 'edicion'` y rechaza igual cualquier guardado. Idioma y
 // moneda son constantes del producto; el dominio se administra desde Tiendas online.
+// El hook lanza dos clases de error: los propios, con texto pensado para la persona (sin `code`), y los de Supabase
+// (con `code`), cuyo `message` puede nombrar políticas o restricciones: esos se mapean por código.
+const mensajeDeExcepcion = (excepcion: unknown, porDefecto: string): string =>
+  excepcion instanceof Error && !('code' in excepcion) ? excepcion.message : mensajeDeErrorBase(excepcion, porDefecto)
+
 export function EmpresaEdit() {
   const { id } = useParams()
   const { puedeEditar, isLoading: verificandoPermiso } = usePuedeEditarEmpresas()
@@ -165,7 +171,7 @@ export function EmpresaEdit() {
         console.warn('No se pudo guardar la empresa anterior', excepcion)
         return
       }
-      setErrorGuardado(excepcion instanceof Error ? excepcion.message : 'No pudimos guardar los cambios.')
+      setErrorGuardado(mensajeDeExcepcion(excepcion, 'No pudimos guardar los cambios.'))
       setGuardando(false)
       return
     }
@@ -188,7 +194,7 @@ export function EmpresaEdit() {
         console.warn('No se pudo cambiar el estado de la empresa anterior', excepcion)
         return
       }
-      setErrorEstado(excepcion instanceof Error ? excepcion.message : 'No pudimos cambiar el estado de la tienda.')
+      setErrorEstado(mensajeDeExcepcion(excepcion, 'No pudimos cambiar el estado de la tienda.'))
       setCambiandoEstado(false)
       return
     }

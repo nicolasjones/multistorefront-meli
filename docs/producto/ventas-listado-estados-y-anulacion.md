@@ -54,7 +54,7 @@ Menú **Ventas → Comprobantes**. Muestra facturas y notas de crédito. Los pre
 
 - **Tienda**: por defecto se ven todas. Si elegís una tienda en la barra superior, se filtra por esa tienda. También podés elegirla con los botones de arriba de la lista.
 - **Buscar por cliente o número**: escribí parte del nombre o del número.
-- **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos».
+- **Operador**, **Estado**, **Pago** y **Envío**: cada uno es un desplegable con la opción «Todos». El desplegable Estado incluye también Borrador y Anulada, para encontrar facturas abandonadas o dadas de baja. La captura siguiente es anterior y no los muestra: se rehace con `pnpm docs:capturas 20-ventas` cuando haya stack local con el dataset demo.
 - **Limpiar filtros**: aparece cuando hay algún filtro puesto y los saca todos.
 - Arriba de la tabla se ve cuántos comprobantes cumplen el filtro. La lista carga de a 12: cuando llegás al final se siguen cargando solos, o apretá **Cargar más** al pie.
 

@@ -166,13 +166,13 @@ describe('EmpresaList', () => {
     expect(screen.getAllByText('Pausada')).toHaveLength(1)
   })
 
-  it('ofrece «Nueva empresa» y la fila «Crear» a quien puede escribir (F-EMP-03)', async () => {
+  it('ofrece «Nueva empresa» una sola vez, sin la fila «Crear» duplicada, a quien puede escribir (F-EMP-03)', async () => {
     mocks.resultado.mockResolvedValue({ data: [empresa(1, 'San Javucho')], error: null })
     render(<MemoryRouter><EmpresaList /></MemoryRouter>)
 
     await screen.findByText('San Javucho')
     expect(screen.getByRole('button', { name: 'Nueva empresa' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Crear nueva empresa' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Crear nueva empresa' })).not.toBeInTheDocument()
   })
 
   it('un rol con Empresas en edición pero sin permiso de alta ve la lista y no «Nueva empresa»', async () => {

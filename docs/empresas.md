@@ -69,7 +69,7 @@ Políticas (migración `20261013120000`):
 
 - `/empresas` (listado): una fila (o tarjeta en pantallas angostas) por empresa con nombre, tienda
   web, Mercado Libre, precio, moneda y productos visibles; lo que aún no alimenta ninguna épica
-  muestra «Sin configurar». Botón «Nueva empresa» y fila final «Crear» solo con permiso de escritura.
+  muestra «Sin configurar». Botón «Nueva empresa» (uno solo, sin fila «Crear» al pie) solo con permiso de escritura.
 - `/empresas/edit/:id` (General): nombre, dominio solo lectura, idioma «Español (Argentina)» y
   moneda «ARS» fijos, WhatsApp, correo, Instagram, dirección opcional, razón social y CUIT (11 dígitos, opcionales; se imprimen en la
   factura y el remito, ver `docs/ventas-impresion.md`). Validación (nombre
