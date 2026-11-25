@@ -13,7 +13,7 @@
 --     entregada.
 --   · Transporte inactivo, de otra tienda o de otra organización: se rechaza.
 --   · Permiso: la acción `despachar` o Ventas en `edicion`, resueltos en la empresa del comprobante.
---   · Bloqueo optimista (`40001`), idempotencia y guía de más de 100 caracteres.
+--   · Bloqueo optimista (`PT412`), idempotencia y guía de más de 100 caracteres.
 --   · La fecha que no viene es el día de Argentina (`private.hoy_argentina`), no el del servidor en UTC.
 --   · Presupuesto, borrador y factura ya entregada: se rechazan sin cambios.
 --   · Aislamiento por organización y por empresa.

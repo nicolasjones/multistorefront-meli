@@ -114,7 +114,7 @@ acciones; la autoridad es la base. La sección `ventas` se resuelve por la empre
 
 Todas en `public`, `security invoker` salvo los ayudantes indicados, `search_path = ''` y grants
 explícitos. Errores: `42501` permiso · `22023`/`23514` validación (`hint` no usado en estas RPC) ·
-`P0002` no existe · `40001` conflicto · `23505` nombre repetido.
+`PT404` no existe · `PT412` conflicto de edición (en las RPC de formas de pago y cuentas de cobro; las demás de catálogos siguen con `P0002`/`40001`: ver [errores de negocio](../errores-negocio-postgrest.md)) · `23505` nombre repetido.
 
 | RPC | Contrato |
 |---|---|

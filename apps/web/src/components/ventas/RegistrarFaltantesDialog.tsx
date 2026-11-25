@@ -20,7 +20,7 @@ type Props = {
   onCerrar: () => void
   // La base registró los faltantes: la pantalla relee el comprobante (queda Incompleto).
   onRegistrado: () => void
-  // Otra persona cambió el comprobante (`40001`): la pantalla lo relee para que el reintento no repita el conflicto.
+  // Otra persona cambió el comprobante (`PT412`, antes `40001`): la pantalla lo relee para que el reintento no repita el conflicto.
   onConflicto: () => void
   // La empresa activa cambió con el diálogo abierto: se cierra con aviso.
   onCambioEmpresa?: () => void

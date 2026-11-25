@@ -437,9 +437,9 @@ describe('Guardar el envío (FR-021, FR-023)', () => {
     expect(onCambio).not.toHaveBeenCalled()
   })
 
-  it('un conflicto de concurrencia avisa que hay que recargar y vuelve a leer el envío', async () => {
+  it.each(['40001', 'PT412'])('un conflicto de concurrencia (%s) avisa que hay que recargar y vuelve a leer el envío', async (code) => {
     mocks.guardarEnvioComprobante.mockRejectedValue({
-      code: '40001',
+      code,
       message: 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar',
     })
     renderBloque()

@@ -201,7 +201,7 @@ describe('Detalle · «Registrar faltantes» (F-VTA-18, FR-047)', () => {
   })
 
   it('si otro cambió el comprobante lo recarga y el reintento usa el comprobante vigente', async () => {
-    // La primera llamada choca (40001); la segunda, con el comprobante recargado, se registra.
+    // La primera llamada choca (PT412, antes 40001); la segunda, con el comprobante recargado, se registra.
     let intentos = 0
     mocks.rpc.mockImplementation(async (fn: string) => {
       if (fn !== 'registrar_faltantes_despacho') return { data: null, error: null }

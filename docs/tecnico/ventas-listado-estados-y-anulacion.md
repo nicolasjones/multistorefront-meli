@@ -328,7 +328,7 @@ Alcance: migraciones `20261212*`, worker, flow de Kestra y bucket. Resultado: **
 |---|---|
 | RPC de `public` | Las 11 RPC nuevas llevan `revoke … from public, anon` y `grant execute … to authenticated` explícitos. |
 | `security definer` | Todas con `set search_path = ''`; los ayudantes de `private` no se otorgan a `authenticated`, salvo los usados como política o desde RPC `invoker`. |
-| Concurrencia de stock | Factura y existencias `for update` en anulación, nota y reversión; bloqueo optimista por `updated_at` (`40001`); `pg_advisory_xact_lock` por usuario en la exportación. |
+| Concurrencia de stock | Factura y existencias `for update` en anulación, nota y reversión; bloqueo optimista por `updated_at` (`PT412` en anular y cambiar estado; ver [errores de negocio](../errores-negocio-postgrest.md)); `pg_advisory_xact_lock` por usuario en la exportación. |
 | Bucket | `exportaciones-ventas` privado, solo `text/csv`, tope 100 MB; lectura limitada a `<org>/<usuario>/…` del propio usuario con `exportar`. |
 | Worker / secretos | La `SUPABASE_SERVICE_ROLE_KEY` solo existe en el servidor; nunca llega al navegador ni a Git. |
 | Pendiente menor | `private.comprobante_cuenta_como_facturado` y `private.matriz_acciones_iniciales` son puras (`immutable`) y no tienen `revoke` explícito. Sin impacto: no exponen datos ni están en un esquema expuesto. |

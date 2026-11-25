@@ -217,7 +217,7 @@ export async function listarResponsablesDespacho(
   return (Array.isArray(data) ? data : []) as ResponsableDespacho[]
 }
 
-// Avanza el despacho. `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// Avanza el despacho. `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export async function cambiarEstadoDespacho(datos: {
   id: string
   estado: EstadoDespacho

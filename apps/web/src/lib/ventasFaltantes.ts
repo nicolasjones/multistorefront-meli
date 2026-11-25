@@ -185,7 +185,7 @@ const PREFIJOS_MENSAJE_DE_LA_RPC = [
 type ErrorDeBase = { code?: string; message?: string } | null
 
 /**
- * El bloqueo optimista devolvió `40001`: otra persona cambió el comprobante mientras el diálogo estaba abierto.
+ * El bloqueo optimista devolvió `PT412` (antes `40001`): otra persona cambió el comprobante mientras el diálogo estaba abierto.
  * La pantalla tiene que releerlo para que el reintento no vuelva a fallar con el `updated_at` vencido.
  */
 export const esConflictoDeFaltantes = (error: unknown): boolean => esCodigoDeConflicto((error as ErrorDeBase)?.code)
@@ -250,7 +250,7 @@ export async function listarFaltantes({
 
 /**
  * Registra los faltantes de una factura y la deja Incompleto (FR-041).
- * `actualizadoEn` es el `updated_at` leído al abrir el comprobante (bloqueo optimista, 40001 ante conflicto).
+ * `actualizadoEn` es el `updated_at` leído al abrir el comprobante (bloqueo optimista, PT412 ante conflicto, antes 40001).
  */
 export async function registrarFaltantes({
   comprobanteId,

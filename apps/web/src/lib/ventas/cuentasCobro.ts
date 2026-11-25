@@ -153,7 +153,7 @@ export function aParametrosCrear(formulario: FormularioCuentaCobro): ParametrosC
   }
 }
 
-// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export type ParametrosActualizarCuentaCobro = ParametrosCrearCuentaCobro & { p_id: string; p_actualizado_en: string }
 
 export function aParametrosActualizar(

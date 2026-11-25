@@ -112,7 +112,7 @@ export const esConflictoDeEstado = (error: unknown): boolean => esCodigoDeConfli
 
 // Solo los mensajes que levanta nuestra RPC llegan en castellano y se muestran tal cual. Un 42501/55000/22023 de
 // PostgREST (p. ej. «permission denied for function …») también trae `message`, así que se filtra por el prefijo
-// conocido para no exponer detalle técnico en inglés; el conflicto de edición (40001) pide recargar.
+// conocido para no exponer detalle técnico en inglés; el conflicto de edición (`PT412`, antes 40001) pide recargar.
 const PREFIJOS_MENSAJE_DE_LA_RPC = [
   'Necesitás una sesión con organización para cambiar el estado',
   'Tu rol ',

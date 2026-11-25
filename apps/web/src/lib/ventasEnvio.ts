@@ -162,7 +162,7 @@ export async function obtenerEnvioComprobante(comprobanteId: string): Promise<Da
   }
 }
 
-// Guarda el envío (FR-021). `actualizadoEn` es el `updated_at` leído al abrir (bloqueo optimista, `40001`).
+// Guarda el envío (FR-021). `actualizadoEn` es el `updated_at` leído al abrir (bloqueo optimista, `PT412`, antes `40001`).
 export type GuardarEnvio = {
   id: string
   transporteId: string | null

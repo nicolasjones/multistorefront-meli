@@ -4,7 +4,7 @@
 -- líneas quedan descontadas; todo o nada si una falla; el reintento no descuenta dos veces; las líneas de stock
 -- normal no se vuelven a tocar; un presupuesto no entra al despacho.
 --
--- La máquina de estados completa (roles de Armó/Controló/Entregó, excepción del Administrador, conflicto 40001,
+-- La máquina de estados completa (roles de Armó/Controló/Entregó, excepción del Administrador, conflicto PT412,
 -- permisos por rol, `anon` y aislamiento entre organizaciones) es de T006 (`despacho_estados.test.sql`).
 begin;
 

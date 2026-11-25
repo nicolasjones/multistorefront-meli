@@ -207,9 +207,9 @@ describe('Errores (FR-010, kit del panel)', () => {
     expect(onCambio).not.toHaveBeenCalled()
   })
 
-  it('un conflicto de concurrencia relee el despacho y suelta lo elegido para que se pueda reintentar', async () => {
+  it.each(['40001', 'PT412'])('un conflicto de concurrencia (%s) relee el despacho y suelta lo elegido para que se pueda reintentar', async (code) => {
     mocks.cambiarEstadoDespacho.mockRejectedValueOnce({
-      code: '40001',
+      code,
       message: 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar',
     })
     // La primera lectura trae el `updated_at` viejo; la relectura, el nuevo.

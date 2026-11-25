@@ -173,7 +173,7 @@ export async function crearFormaPago(formulario: FormularioFormaPago): Promise<F
   return (data ?? []) as FormaPago[]
 }
 
-// `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export async function actualizarFormaPago(
   formulario: FormularioFormaPago,
   datos: { id: string; actualizadoEn: string },
