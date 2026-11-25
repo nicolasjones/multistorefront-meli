@@ -144,7 +144,7 @@ Migración `20270201200104_stock_movimientos_origen_service.sql` (el ajuste a St
 
 Todas son `security definer` con `search_path = ''`, `revoke execute … from public, anon` y
 `grant execute … to authenticated`. La organización y el actor salen de la sesión, nunca del llamador. Errores:
-`22023` con el campo afectado en `hint`, `42501` sin permiso, `P0002` inexistente o de otra organización (`PT404` en `depositos_para_repuesto`, ver [errores de negocio](errores-negocio-postgrest.md)), `55000`
+`22023` con el campo afectado en `hint`, `42501` sin permiso, `P0002` inexistente o de otra organización (`PT404` en `depositos_para_repuesto`, ver [errores de negocio](../errores-negocio-postgrest.md)), `55000`
 reparación entregada/anulada o cerrada, `23514` «No hay stock suficiente».
 
 | RPC | Qué hace |

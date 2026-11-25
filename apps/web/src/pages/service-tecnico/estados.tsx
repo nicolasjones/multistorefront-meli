@@ -22,8 +22,8 @@ import { EstadoFormDialog } from '../../components/service/EstadoFormDialog'
 import { ConfirmarDesactivarDialog } from '../../components/service/ConfirmarDesactivarDialog'
 import { usoDeEstados } from '../../lib/reparaciones'
 
-// Service técnico · Estados de reparación (F-SVC-01, FR-008). «Avisa al cliente» y «Cierra la reparación» solo se
-// guardan y se muestran: esta épica no envía ningún aviso (FR-006). La autoridad de acceso es RLS.
+// Service técnico · Estados de reparación (F-SVC-01, FR-008). «Avisa al cliente» y «Cierra la reparación» se
+// guardan y se muestran acá; al cambiar el estado de una reparación, un estado con «Avisa al cliente» avisa sin tocar la casilla «Avisar al cliente» (la persona puede tildarla o destildarla; los que cierran no avisan). La autoridad de acceso es RLS.
 export function ServicioEstados() {
   const { nivel } = useNivelSeccion('service_tecnico')
   const puedeEditar = nivel === 'edicion'

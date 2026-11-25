@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -131,6 +131,161 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     await elegirEstado('Reparado')
     await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
     expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+  })
+
+  it('si el estado destino tiene «Avisa al cliente», avisa sin tocar la casilla', async () => {
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.avisarClienteDeReparacion).toHaveBeenCalledWith('r-1', undefined))
+  })
+
+  it('si el estado destino tiene «Avisa al cliente», destildar la casilla evita el aviso', async () => {
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    fireEvent.click(casilla)
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+  })
+
+  it('aviso automático sin correo conocido: nota neutra, sin la alerta de error «El cliente no tiene correo»', async () => {
+    mocks.clienteTieneCorreo.mockResolvedValue(null)
+    mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'sin_correo', aviso_id: null })
+    mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true }])
+    abrirDetalle()
+    await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    await elegirEstado('Reparado')
+    expect(await screen.findByText('No se avisó al cliente: no tiene correo cargado')).toBeInTheDocument()
+    expect(screen.queryByText('El cliente no tiene correo')).not.toBeInTheDocument()
+  })
+
+  it('aviso pedido a mano (casilla tildada) sin correo: mantiene el error visible', async () => {
+    mocks.clienteTieneCorreo.mockResolvedValue(null)
+    mocks.avisarClienteDeReparacion.mockResolvedValue({ resultado: 'sin_correo', aviso_id: null })
+    abrirDetalle()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Avisar al cliente' }))
+    await elegirEstado('Reparado')
+    expect(await screen.findByText('El cliente no tiene correo')).toBeInTheDocument()
+    expect(screen.queryByText('No se avisó al cliente: no tiene correo cargado')).not.toBeInTheDocument()
+  })
+
+  it('la casilla no queda indeterminada y un texto dice qué estados avisan solos (no los que cierran)', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    expect(casilla).not.toBePartiallyChecked()
+    expect(await screen.findByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
+    fireEvent.click(casilla)
+    expect(screen.getByText('Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).')).toBeInTheDocument()
+    fireEvent.click(casilla)
+    expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+  })
+
+  it('el texto de efecto queda asociado a la casilla con aria-describedby y su nombre accesible no cambia', async () => {
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    const id = casilla.getAttribute('aria-describedby')
+    expect(id).toBeTruthy()
+    expect(document.getElementById(id as string)).toHaveTextContent(/Si no la tocás|ningún estado/)
+    fireEvent.click(casilla)
+    expect(document.getElementById(id as string)).toHaveTextContent('Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).')
+  })
+
+  it('con la casilla tildada, un estado que cierra abre la entrega sin avisar y la decisión de la casilla se conserva', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    expect(casilla).toBeChecked()
+    await elegirEstado('Entregado')
+    expect(await screen.findByLabelText(/Fecha de entrega/)).toBeInTheDocument()
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+    expect(mocks.cambiarEstadoReparacion).not.toHaveBeenCalled()
+    // La decisión explícita se conserva mientras el diálogo está abierto.
+    expect(casilla).toBeChecked()
+  })
+
+  it('destildar, elegir un estado que cierra y cancelar la entrega conserva la decisión: el siguiente cambio no avisa', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    fireEvent.click(casilla)
+    expect(casilla).not.toBeChecked()
+    await elegirEstado('Entregado')
+    const dialogo = await screen.findByRole('dialog')
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+    await elegirEstado('Reparado')
+    await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-1', 's-2'))
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+  })
+
+  describe('al cambiar de reparación (:id) la decisión de la casilla no se filtra a la siguiente', () => {
+    const IrAOtra = () => {
+      const navegar = useNavigate()
+      return <button type="button" onClick={() => navegar('/service-tecnico/reparaciones/r-2')}>Ir a la otra reparación</button>
+    }
+    const abrirConNavegacion = () =>
+      render(
+        <MemoryRouter initialEntries={['/service-tecnico/reparaciones/r-1']}>
+          <IrAOtra />
+          <Routes>
+            <Route path="/service-tecnico/reparaciones/:id" element={<ServicioReparacion />} />
+          </Routes>
+        </MemoryRouter>,
+      )
+    const prepararDos = (avisaDestino: boolean) => {
+      mocks.listarEstados.mockResolvedValue([ESTADO('s-1', 'Recibido', 1), { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: avisaDestino }])
+      mocks.obtenerReparacion.mockImplementation(async (id: string) =>
+        id === 'r-2' ? { ...REPARACION, id: 'r-2', numero: 2, codigo: 'R-0002' } : REPARACION)
+    }
+
+    it('tildada en A, en B vuelve a «según el estado» y un estado sin aviso no avisa', async () => {
+      prepararDos(false)
+      abrirConNavegacion()
+      fireEvent.click(await screen.findByRole('checkbox', { name: 'Avisar al cliente' }))
+      expect(screen.getByRole('checkbox', { name: 'Avisar al cliente' })).toBeChecked()
+      fireEvent.click(screen.getByRole('button', { name: 'Ir a la otra reparación' }))
+      await screen.findByText(/R-0002/)
+      expect(await screen.findByRole('checkbox', { name: 'Avisar al cliente' })).not.toBeChecked()
+      expect(screen.getByText('Si no la tocás, no se avisa: ningún estado tiene «Avisa al cliente».')).toBeInTheDocument()
+      await elegirEstado('Reparado')
+      await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-2', 's-2'))
+      expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+    })
+
+    it('destildada en A, en B un estado con aviso sí avisa', async () => {
+      prepararDos(true)
+      abrirConNavegacion()
+      const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+      fireEvent.click(casilla)
+      fireEvent.click(casilla)
+      expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: 'Ir a la otra reparación' }))
+      await screen.findByText(/R-0002/)
+      expect(await screen.findByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
+      await elegirEstado('Reparado')
+      await waitFor(() => expect(mocks.cambiarEstadoReparacion).toHaveBeenCalledWith('r-2', 's-2'))
+      await waitFor(() => expect(mocks.avisarClienteDeReparacion).toHaveBeenCalledWith('r-2', undefined))
+    })
   })
 
   it('con la casilla tildada cambia primero el estado y después pide el aviso', async () => {

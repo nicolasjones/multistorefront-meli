@@ -1,6 +1,13 @@
 ---
 owner: producto
-sources: []
+sources:
+  - workers/importar-productos/src
+  - apps/web/src/pages/productos/carga.tsx
+  - apps/web/src/components/productos/FiltrosListado.tsx
+  - apps/web/src/components/productos/DialogoExportarProductos.tsx
+  - apps/web/src/lib/importacion-productos.ts
+  - apps/web/src/lib/exportarProductos.ts
+  - apps/web/src/hooks/useCompatibles.ts
 ---
 
 # Productos: filtrar por compatible, importar y exportar planillas

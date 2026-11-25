@@ -47,7 +47,7 @@ export const ayudaAdministracion: AyudaPorDestino = {
   actividad: {
     titulo: 'Actividad',
     resumen:
-      'Historial básico de lo que pasó en tu organización: cambios de productos, movimientos de stock, importaciones y configuración de tiendas. Podés buscar y filtrar por período, usuario y tipo, ver el detalle de cada evento y, si tenés permiso de edición y de exportar, exportar la lista.',
+      'Historial de lo que pasó en tu organización: productos, stock, importaciones, ventas, cobros, service, usuarios y configuración de tiendas. Podés buscar y filtrar por período, usuario y tipo, ver el detalle de cada evento y, si tenés permiso de edición y de exportar, exportar la lista.',
     pasos: [
       'Escribí en «Buscar en la actividad» para encontrar un evento.',
       'Filtrá por período, usuario o tipo.',

@@ -253,7 +253,7 @@ Avisos que te puede mostrar la pantalla:
 - **Editar** y el interruptor **Activo** sirven para renombrar o desactivar.
 - La columna **Cierra la reparación** indica qué estados dan por terminado el trabajo y piden los datos de entrega.
 
-Por ahora el sistema no envía avisos al cliente al cambiar de estado: la marca «Avisa al cliente» solo queda registrada.
+Al cambiar de estado, se avisa al cliente sin tocar la casilla «Avisar al cliente» si el estado nuevo tiene «Avisa al cliente» (no los estados que cierran); podés tildarla o destildarla para decidir vos.
 
 ## Si algo no sale
 
