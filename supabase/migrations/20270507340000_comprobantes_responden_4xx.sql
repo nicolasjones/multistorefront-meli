@@ -65,9 +65,9 @@ begin
 
   -- El cliente debe ser de la organización; solo se exige que no esté archivado si cambió.
   if p_cliente_id is null
-     or not exists (select 1 from public.clientes c where c.id = p_cliente_id and c.organizacion_id = v_org)
+     or not exists (select 1 from dominio.clientes c where c.id = p_cliente_id and c.organizacion_id = v_org)
      or (p_cliente_id is distinct from v_actual.cliente_id and exists (
-       select 1 from public.clientes c where c.id = p_cliente_id and c.archivado_en is not null
+       select 1 from dominio.clientes c where c.id = p_cliente_id and c.archivado_en is not null
      )) then
     raise exception 'Elegí un cliente o Consumidor final' using errcode = '22023', hint = 'cliente_id';
   end if;
@@ -541,7 +541,7 @@ begin
 
   -- F-VTA-32 (MSF-340): el descuento sale de la ficha del cliente en el servidor, nunca del payload.
   select cl.tipo, coalesce(cl.descuento, 0) into v_tipo_cliente, v_descuento
-    from public.clientes cl
+    from dominio.clientes cl
    where cl.id = v_c.cliente_id and cl.organizacion_id = v_org;
   select d.id into v_defecto
     from dominio.depositos d
@@ -802,7 +802,7 @@ begin
   )
   into v_resultado
   from dominio.empresas e
-  join public.clientes cl on cl.id = v_c.cliente_id and cl.organizacion_id = v_org
+  join dominio.clientes cl on cl.id = v_c.cliente_id and cl.organizacion_id = v_org
   left join public.perfiles_usuario p on p.user_id = v_c.operador_id
   where e.id = v_c.empresa_id;
 
