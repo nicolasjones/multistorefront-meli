@@ -24,8 +24,12 @@ export type ConexionOauth = {
 }
 
 export type Deps = {
-  /** Valida el JWT con la service-role (solo para eso). */
-  validarJwt: (jwt: string) => Promise<boolean>
+  /**
+   * Cliente de la service-role, solo para validar el JWT. Se crea después de los chequeos de
+   * método y antes de mirar el `Authorization`, como siempre: con el entorno mal configurado
+   * un pedido sin credenciales falla (500) en vez de dar 403.
+   */
+  crearAdmin: () => { validarJwt: (jwt: string) => Promise<boolean> }
   /**
    * Lee la conexión COMO el usuario que llama (nunca la service-role): si RLS de
    * `conexiones_oauth` no deja ver la fila devuelve null. El error de la consulta no se
@@ -53,12 +57,14 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     return jsonResponse({ error: 'Método no soportado, usar POST.' }, 400)
   }
 
+  const admin = deps.crearAdmin()
+
   const jwt = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
   if (!jwt) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
 
-  if (!(await deps.validarJwt(jwt))) {
+  if (!(await admin.validarJwt(jwt))) {
     return jsonResponse({ error: 'No autorizado' }, 403)
   }
 

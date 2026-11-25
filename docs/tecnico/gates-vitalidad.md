@@ -30,8 +30,9 @@ no la tienen:
   espera nada.
 - **Qué fecha se pone:** la **fecha en que vence el gate**, es decir las **24 h del
   contrato** contadas desde que el ítem recibió por última vez una etiqueta de gate
-  (entrada `label_add` del feed del ítem, que es cuando el watchdog empieza a contarlo;
-  si el historial no la tiene, cae a `statusSince` y, si falta, a `createdAt`), expresadas como fecha en `America/Argentina/Buenos_Aires`. El
+  (entrada `label_add` del feed del ítem, que es cuando el watchdog empieza a contarlo; una
+  etiqueta quitada después (`label_remove`) no cuenta; si el feed supera el tope de páginas
+  el barrido avisa con el ítem; si el historial no la tiene, cae a `statusSince` y, si falta, a `createdAt`), expresadas como fecha en `America/Argentina/Buenos_Aires`. El
   tracker guarda fecha y no hora, así que el plazo se redondea al día: un gate abierto hoy vence
   mañana.
 - **Qué no se toca:** los ítems que ya tienen `dueDate` (la corrida es idempotente) y

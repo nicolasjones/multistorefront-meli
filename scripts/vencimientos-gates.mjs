@@ -5,7 +5,7 @@
 // vencimiento no está escrito en el ítem: el board guarda la fecha de vencimiento
 // (`dueDate`) y los gates la tenían vacía. Esta herramienta le pone a cada gate que
 // espera decisión la fecha en que esa decisión vence (24 h desde que el ítem recibió por
-// última vez una etiqueta de gate, que es cuando el watchdog empieza a contarlo; sin esa
+// última vez una etiqueta de gate que sigue puesta, que es cuando el watchdog empieza a contarlo; sin esa
 // entrada en el historial, desde que entró a su columna), para que el tablero muestre el
 // plazo y se pueda ver qué
 // decisión está vencida.
@@ -89,20 +89,38 @@ export function seleccionarGates(items, { etiquetas, columnas }) {
 }
 
 /**
- * Instante en que el ítem recibió por última vez una etiqueta de gate: es cuando el
- * watchdog lo empieza a contar como esperando una decisión. Entradas del feed del ítem
- * (`kind: activity`, `action: label_add`, `payload.to.value` = nombre de la etiqueta).
+ * Instante en que el ítem recibió por última vez una etiqueta de gate que sigue puesta: es
+ * cuando el watchdog lo empieza a contar como esperando una decisión. Entradas del feed del
+ * ítem (`kind: activity`): `label_add` con `payload.to.value` = nombre de la etiqueta. Una
+ * etiqueta que se quitó después de agregarla (`label_remove`, `payload.from.value`) ya no
+ * cuenta; si el ítem la recibió de nuevo, vale la entrada más nueva.
  * @param {object[]} feed actividad del ítem, en cualquier orden
  * @returns {string|null} instante ISO, o null si el historial no tiene esa entrada
  */
 export function ultimaEtiquetaGate(feed) {
-  let ultimo = null
+  const instanteDe = (it) => {
+    const t = new Date(it.createdAt)
+    return Number.isNaN(t.getTime()) ? null : t
+  }
+  const agregada = new Map() // etiqueta -> instante más nuevo en que se agregó
+  const quitada = new Map() // etiqueta -> instante más nuevo en que se quitó
   for (const it of feed ?? []) {
-    if (it?.kind !== 'activity' || it.action !== 'label_add') continue
-    if (!ETIQUETAS_GATE.includes(it.payload?.to?.value)) continue
-    const instante = new Date(it.createdAt)
-    if (Number.isNaN(instante.getTime())) continue
-    if (!ultimo || instante > ultimo) ultimo = instante
+    if (it?.kind !== 'activity') continue
+    const esAlta = it.action === 'label_add'
+    const esBaja = it.action === 'label_remove'
+    if (!esAlta && !esBaja) continue
+    const nombre = esAlta ? it.payload?.to?.value : it.payload?.from?.value
+    if (!ETIQUETAS_GATE.includes(nombre)) continue
+    const t = instanteDe(it)
+    if (!t) continue
+    const mapa = esAlta ? agregada : quitada
+    if (!mapa.has(nombre) || t > mapa.get(nombre)) mapa.set(nombre, t)
+  }
+  let ultimo = null
+  for (const [nombre, t] of agregada) {
+    const baja = quitada.get(nombre)
+    if (baja && baja >= t) continue // se quitó después de agregarla
+    if (!ultimo || t > ultimo) ultimo = t
   }
   return ultimo ? ultimo.toISOString() : null
 }
@@ -113,13 +131,13 @@ export function ultimaEtiquetaGate(feed) {
  * historial (o sin lector de historial) cae a `statusSince` y, si falta, a `createdAt`.
  * @param {object[]} candidatos
  * @param {(id:number)=>Promise<object>} detalle detalle del ítem (`statusSince`)
- * @param {(id:number)=>Promise<object[]>} [actividad] feed de actividad del ítem
+ * @param {(id:number, item:object)=>Promise<object[]>} [actividad] feed de actividad del ítem
  */
 export async function calcularPlan(candidatos, detalle, actividad) {
   const plan = []
   for (const item of candidatos) {
     const info = await detalle(item.id)
-    const marcado = actividad ? ultimaEtiquetaGate(await actividad(item.id)) : null
+    const marcado = actividad ? ultimaEtiquetaGate(await actividad(item.id, item)) : null
     const desde = marcado ?? info.statusSince ?? info.createdAt
     plan.push({
       id: item.id,
@@ -255,19 +273,31 @@ async function leerBoard(api, { proyecto, meta }) {
 }
 
 /** Tope de páginas del feed por ítem (100 entradas por página). */
-const PAGINAS_FEED = 20
+export const PAGINAS_FEED = 20
 
-/** Feed de actividad de un ítem, paginado por cursor (viene del más nuevo al más viejo). */
-async function leerActividad(api, id) {
+/**
+ * Feed de actividad de un ítem, paginado por cursor (viene del más nuevo al más viejo).
+ * Un error de la API se propaga (el barrido corta antes de escribir). Si el feed supera el
+ * tope de páginas se avisa con el identificador del ítem y se sigue con lo leído: el plan
+ * puede caer a `statusSince`.
+ * @param {{get: (ruta:string)=>Promise<object>}} api
+ * @param {{id:number, identifier?:string}} item
+ * @param {(mensaje:string)=>void} avisar
+ */
+export async function leerActividad(api, item, avisar = console.warn) {
   const items = []
   let cursor = null
   for (let i = 0; i < PAGINAS_FEED; i++) {
     const q = `?limit=100${cursor ? `&cursor=${encodeURIComponent(JSON.stringify(cursor))}` : ''}`
-    const pagina = await api.get(`/issues/${id}/feed${q}`)
+    const pagina = await api.get(`/issues/${item.id}/feed${q}`)
     items.push(...(pagina?.items ?? []))
     cursor = pagina?.nextCursor
-    if (!cursor) break
+    if (!cursor) return items
   }
+  avisar(
+    `Aviso: el feed de ${item.identifier ?? item.id} supera ${PAGINAS_FEED} páginas; ` +
+      `se usa lo leído y, si falta la etiqueta de gate, statusSince.`,
+  )
   return items
 }
 
@@ -301,7 +331,7 @@ export async function ejecutar({
   const plan = await calcularPlan(
     candidatos,
     (id) => api.get(`/issues/${id}`),
-    (id) => leerActividad(api, id),
+    (_id, item) => leerActividad(api, item),
   )
   if (aplicar) {
     for (const p of plan) {

@@ -2,11 +2,13 @@
 // función (CORS, método, autenticación, validación del cuerpo, RLS, sesión de Nango nueva y de
 // reconexión, fallos de Nango). Corre con `node --test` (`pnpm test:edge:iniciar-sesion-oauth`).
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { manejar, type ConexionOauth, type Deps } from './handler.ts'
 
 type Opciones = {
   jwtValido?: boolean
+  entornoRoto?: boolean
   conexion?: ConexionOauth | null
   nango?: { ok: boolean; cuerpo?: unknown } | 'caido' | 'json-roto'
 }
@@ -18,11 +20,17 @@ const CONEXION_NUEVA: ConexionOauth = {
 }
 
 function montar(opciones: Opciones = {}) {
-  const registro = { jwts: [] as string[], lecturas: [] as [string, string][], pedidos: [] as { url: string; init: RequestInit }[], config: 0 }
+  const registro = { jwts: [] as string[], lecturas: [] as [string, string][], pedidos: [] as { url: string; init: RequestInit }[], config: 0, admins: 0 }
   const deps: Deps = {
-    validarJwt: async (jwt) => {
-      registro.jwts.push(jwt)
-      return opciones.jwtValido ?? true
+    crearAdmin: () => {
+      registro.admins++
+      if (opciones.entornoRoto) throw new Error('supabaseUrl is required.')
+      return {
+        validarJwt: async (jwt) => {
+          registro.jwts.push(jwt)
+          return opciones.jwtValido ?? true
+        },
+      }
     },
     leerConexion: async (jwt, id) => {
       registro.lecturas.push([jwt, id])
@@ -77,6 +85,18 @@ describe('iniciar-sesion-oauth', () => {
       assert.deepEqual(await r.json(), { error: 'No autorizado' })
       assert.deepEqual(registro.jwts, [])
     }
+  })
+
+  it('con el entorno mal configurado un pedido sin Authorization falla (500) en vez de dar 403', async () => {
+    const { deps } = montar({ entornoRoto: true })
+    await assert.rejects(() => manejar(pedir({ conexion_id: 'c1' }, { auth: null }), deps), /supabaseUrl/)
+  })
+
+  it('el cliente admin no se crea para OPTIONS ni para un método que no es POST', async () => {
+    const { deps, registro } = montar({ entornoRoto: true })
+    await manejar(new Request('https://f.test/', { method: 'OPTIONS' }), deps)
+    await manejar(pedir(null, { metodo: 'GET' }), deps)
+    assert.equal(registro.admins, 0)
   })
 
   it('un JWT inválido da 403 y no lee la conexión', async () => {
@@ -159,5 +179,17 @@ describe('iniciar-sesion-oauth', () => {
       assert.equal(r.status, 503)
       assert.deepEqual(await r.json(), { error: 'conexion_oauth_no_disponible' })
     }
+  })
+
+  // Contrato del cableado real (index.ts corre en Deno y no se puede importar acá): la lectura de la
+  // conexión usa la clave anon con el JWT del usuario (RLS decide) y sólo el cliente admin usa la service-role.
+  it('index.ts lee la conexión con anon + JWT del usuario, nunca con la service-role', () => {
+    const fuente = readFileSync(new URL('./index.ts', import.meta.url), 'utf8')
+    const lectura = fuente.slice(fuente.indexOf('leerConexion:'), fuente.indexOf('config:'))
+    assert.match(lectura, /SUPABASE_ANON_KEY/)
+    assert.match(lectura, /Authorization: `Bearer \$\{jwt\}`/)
+    assert.doesNotMatch(lectura, /SERVICE_ROLE/)
+    const admin = fuente.slice(fuente.indexOf('crearAdmin:'), fuente.indexOf('leerConexion:'))
+    assert.match(admin, /SUPABASE_SERVICE_ROLE_KEY/)
   })
 })

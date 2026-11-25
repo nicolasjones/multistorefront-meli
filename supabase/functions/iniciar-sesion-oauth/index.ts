@@ -9,10 +9,14 @@ import { manejar, type Deps } from './handler.ts'
 Deno.serve((req) => {
   const deps: Deps = {
     // Solo para validar el JWT (service-role).
-    validarJwt: async (jwt) => {
+    crearAdmin: () => {
       const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
-      const { data, error } = await admin.auth.getUser(jwt)
-      return !error && !!data?.user
+      return {
+        validarJwt: async (jwt) => {
+          const { data, error } = await admin.auth.getUser(jwt)
+          return !error && !!data?.user
+        },
+      }
     },
     leerConexion: async (jwt, conexionId) => {
       const asUser = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
