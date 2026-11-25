@@ -712,9 +712,9 @@
     },
     "docs/control-ci.md": {
       "title": "Control de concurrencia del CI",
-      "pageHash": "63ecd026d15e289fd5be483bf6d69b8f9987c2ad70091a52aeb6af9927e54195",
+      "pageHash": "7f7424512f6f823c247c0e895e74aa82671bf3895f7d6e397b3d8f8ff4aa5ba8",
       "sourceHash": "c492ad7094a299f098c9e10280c071e43ac3b579be4cf1f76a0a914d55c62516",
-      "sourceAt": "5800b0d79",
+      "sourceAt": "af0142a09",
       "sources": [
         "infra/runner",
         "scripts/ci-lane.mjs",
@@ -726,7 +726,7 @@
         ".github/workflows/validate.yml"
       ],
       "owner": "plataforma",
-      "commit": "5800b0d79"
+      "commit": "af0142a09"
     },
     "docs/copias-y-restauracion.md": {
       "title": "Copias de seguridad y restauración (F-OPS-01)",
@@ -928,11 +928,13 @@
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
-      "pageHash": "4d34f138cf018f3b1793c895958c8c9751586a1997d2ca523081eeb82c83dfb3",
-      "sourceHash": "8c0a61514b17f72f46572f001ed60d9ea9efeb85be34efa7007f63cf9be5dd3b",
-      "sourceAt": "ef93aab68",
+      "pageHash": "7e0a25f5da878c5015e5d4225f608789a49236663c1422673d17c11cf547e8c7",
+      "sourceHash": "3f38690a91de25783de1d52ddadd2e8e646f44f2552991c0ab583006c3f9b7ca",
+      "sourceAt": "af0142a09",
       "sources": [
         "scripts/verificar-documentacion-cambios.mjs",
+        "scripts/verificar-documentacion-cambios.test.mjs",
+        "scripts/docs-correspondencia.mjs",
         "scripts/docs-check.mjs",
         "scripts/docs-drift.mjs",
         "scripts/docs-enlaces.mjs",
@@ -943,7 +945,7 @@
         "apps/web/playwright.capturas.config.ts"
       ],
       "owner": "tecnico",
-      "commit": "ef93aab68"
+      "commit": "af0142a09"
     },
     "docs/documentador-manual-de-usuario.md": {
       "title": "Documentador: `docs/producto/` como manual de usuario (MSF-630)",
