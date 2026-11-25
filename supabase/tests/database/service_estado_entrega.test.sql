@@ -314,7 +314,7 @@ select ok(
   'consulta (lectura) lee el historial por la RPC');
 select throws_ok(
   $$select * from public.historial_reparacion((select id from reps where clave = 'otra'))$$,
-  'P0002', null, 'no lee el historial de una tienda inaccesible');
+  'PT404', null, 'no lee el historial de una tienda inaccesible');
 select throws_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r3'), (select reparacion from datos))$$,
   '42501', null, 'lectura no cambia el estado');
@@ -358,7 +358,7 @@ select is(
   (select count(*) from dominio.reparacion_historial), 0::bigint, 'otra organización no lee el historial ajeno');
 select throws_ok(
   $$select * from public.historial_reparacion((select id from reps where clave = 'r3'))$$,
-  'P0002', null, 'otra organización no lee el historial por la RPC');
+  'PT404', null, 'otra organización no lee el historial por la RPC');
 select throws_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r3'), (select estado_dos from datos))$$,
   'P0002', null, 'otra organización no cambia el estado de una reparación ajena');

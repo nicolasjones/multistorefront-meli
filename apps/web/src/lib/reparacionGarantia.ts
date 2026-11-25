@@ -47,7 +47,7 @@ export function mensajeDeErrorGarantia(error: unknown, porDefecto: string): stri
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para reingresar por garantía: puede que tu rol no tenga edición en Service técnico o que no tengas acceso a la tienda. Recargá la página.'
   if (e?.code === '55000') return 'Solo se puede reingresar por garantía una reparación entregada y no anulada.'
-  if (e?.code === 'P0002') return 'Esa reparación ya no existe o no tenés acceso a su tienda. Volvé al listado.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa reparación ya no existe o no tenés acceso a su tienda. Volvé al listado.'
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
 }

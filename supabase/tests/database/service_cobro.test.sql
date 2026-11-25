@@ -186,7 +186,7 @@ select throws_ok(
   'P0002', null, 'la organización dos no genera el comprobante de una reparación de la uno');
 select throws_ok(
   format($$select public.comprobante_de_reparacion(%L)$$, (select id from reps where clave = 'r1')),
-  'P0002', null, 'la organización dos no consulta el comprobante de una reparación de la uno');
+  'PT404', null, 'la organización dos no consulta el comprobante de una reparación de la uno');
 
 reset role;
 select is((select count(*)::int from dominio.comprobantes_venta where origen_tipo is not null), 0,

@@ -50,7 +50,7 @@ Errores (mensajes en castellano, los muestra la app tal cual):
 | Código | Cuándo | Mensaje |
 |--------|--------|---------|
 | `42501` | falta `service_tecnico` en `edicion` o `ventas` en `edicion` en la tienda | «Tu rol no puede generar el comprobante de una reparación» / «Tu rol no puede crear comprobantes en la tienda de esta reparación» |
-| `P0002` | la reparación no existe o su tienda no es accesible | «La reparación no existe» |
+| `P0002` | la reparación no existe o su tienda no es accesible (solo `generar_comprobante_reparacion`; `comprobante_de_reparacion` ya responde con el código de [errores de negocio](errores-negocio-postgrest.md)) | «La reparación no existe» |
 | `55000` | la reparación está anulada | «La reparación está anulada: no se puede generar su comprobante» |
 | `22023` | sin ítems, tienda desactivada o cliente archivado | «La reparación no tiene ítems: cargá mano de obra o repuestos para generar el comprobante», etc. |
 

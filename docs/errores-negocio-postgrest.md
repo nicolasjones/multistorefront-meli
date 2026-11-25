@@ -14,6 +14,7 @@ sources:
   - supabase/migrations/20270507360000_catalogos_envio_y_contrarreembolsos_responden_4xx.sql
   - supabase/migrations/20270507410000_productos_proveedores_categorias_y_promociones_responden_4xx.sql
   - supabase/migrations/20270507420000_alicuotas_escalas_precios_y_proveedores_responden_4xx.sql
+  - supabase/migrations/20270507430000_service_catalogos_historial_y_consultas_responden_4xx.sql
   - apps/web/src/lib/estadosComprobante.ts
   - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
@@ -154,9 +155,22 @@ función están en la tabla de abajo; el cliente acepta los dos (`esCodigoDeConf
 Misma regla (`P0002` a `PT404`, `40001` a `PT412`, mensaje intacto) para `guardar_regla_precio_empresa`, `previsualizar_precios_empresa`,
 `guardar_precios_escala`, `asignar_alicuota_producto`, `guardar_alicuota_categoria`, `fijar_precio_propio`, `quitar_precio_propio`,
 `guardar_empresas_de_proveedor`, `agregar_contacto_proveedor` y `marcar_contacto_principal`. Ninguna es llamable por `anon` ni la consume
-Kestra, un worker o una Edge Function (el script de datos de demostración llama a tres, sin leer el código de error) y los auxiliares de
+Kestra, un worker o una Edge Function (el script de datos de demostración llama a cuatro, sin leer el código de error) y los auxiliares de
 `private` que usan no lanzan `P0002` ni `40001`. Solo `guardar_regla_precio_empresa` tiene bloqueo optimista; las demás solo emiten `PT404`.
 El cliente acepta los dos códigos (`esCodigoDeConflicto` y el mapeo de cada módulo).
+
+## Octava ola: Service técnico, catálogos, historial y consultas (MSF-654 y MSF-655, parciales)
+
+Misma regla (`P0002` a `PT404`, `40001` a `PT412`, mensaje intacto) para `actualizar_modelo_equipo`, `cambiar_estado_modelo_equipo`,
+`actualizar_estado_reparacion`, `cambiar_estado_estado_reparacion`, `mover_estado_reparacion`, `historial_reparacion`,
+`listar_adjuntos_reparacion`, `comprobante_de_reparacion` y `obtener_vinculos_garantia`. Ninguna es llamable por `anon` ni la consume
+Kestra, un worker o una Edge Function (el script de datos de demostración llama a cuatro, sin leer el código de error). Solo
+`actualizar_modelo_equipo` y `actualizar_estado_reparacion` tienen bloqueo optimista; las demás solo emiten `PT404`. Quedan afuera
+`agregar_item_reparacion`, `quitar_item_reparacion`, `registrar_adjunto_reparacion` y `quitar_adjunto_reparacion` (validan con auxiliares de
+`private` que siguen con `P0002` y `55000`), `actualizar_reparacion`, `cambiar_estado_reparacion`, `registrar_entrega_reparacion`,
+`anular_reparacion`, `generar_comprobante_reparacion` y `reingresar_por_garantia` (emiten también `55000`) y las del flujo de avisos al
+cliente (`avisar_cliente_reparacion`, `avisos_de_reparacion`, `obtener_enlace_consulta`). El cliente acepta los dos códigos
+(`esCodigoDeConflicto` y el mapeo de cada módulo de Service).
 
 Funciones migradas por ola (cada migración usa `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
 bloqueo optimista solo emiten `PT404`):
@@ -170,12 +184,13 @@ bloqueo optimista solo emiten `PT404`):
 | 5 | `20270507360000` | `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (solo conflicto) |
 | 6 | `20270507410000` | `actualizar_producto`, `cambiar_estado_producto` (solo `PT404`), `definir_empresas_producto` (solo `PT404`), `asignar_categoria_producto` (solo `PT404`), `guardar_relacionados` (solo `PT404`), `guardar_categoria` (solo `PT404`), `eliminar_categoria` (solo `PT404`), `reordenar_categorias` (solo `PT404`), `actualizar_proveedor`, `cambiar_estado_proveedor` (solo `PT404`), `guardar_promocion_precio`, `anular_promocion_precio` |
 | 7 | `20270507420000` | `guardar_regla_precio_empresa` (`PT404` y `PT412`), `previsualizar_precios_empresa` (solo `PT404`), `guardar_precios_escala` (solo `PT404`), `asignar_alicuota_producto` (solo `PT404`), `guardar_alicuota_categoria` (solo `PT404`), `fijar_precio_propio` (solo `PT404`), `quitar_precio_propio` (solo `PT404`), `guardar_empresas_de_proveedor` (solo `PT404`), `agregar_contacto_proveedor` (solo `PT404`), `marcar_contacto_principal` (solo `PT404`) |
+| 8 | `20270507430000` | `actualizar_modelo_equipo` (`PT404` y `PT412`), `cambiar_estado_modelo_equipo` (solo `PT404`), `actualizar_estado_reparacion` (`PT404` y `PT412`), `cambiar_estado_estado_reparacion` (solo `PT404`), `mover_estado_reparacion` (solo `PT404`), `historial_reparacion` (solo `PT404`), `listar_adjuntos_reparacion` (solo `PT404`), `comprobante_de_reparacion` (solo `PT404`), `obtener_vinculos_garantia` (solo `PT404`) |
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412` solo cambian el `errcode`) y restaurar los comentarios desde las migraciones citadas en la tabla. Las migraciones ya aplicadas no se editan.
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (Service, contactos de clientes y consultas, gastos,
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service con `55000` o auxiliares de `private`, contactos de clientes y consultas, gastos,
 listas de precios, newsletter, RMA, variantes y operaciones masivas de productos, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema

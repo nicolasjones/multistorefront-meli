@@ -175,7 +175,7 @@ completarse: la llaman las dos RPC de aviso, no Kestra.
 | Código | Cuándo | Mensaje (castellano, la app los muestra tal cual) |
 |---|---|---|
 | `42501` | falta `service_tecnico` en `edicion` (o `ventas` en `edicion` para generar) | «Tu rol no puede generar el comprobante de una reparación» / «Tu rol no puede crear comprobantes en la tienda de esta reparación» / «Tu rol no puede avisar a los clientes de las reparaciones» |
-| `P0002` | la reparación no existe o su tienda no es accesible | «La reparación no existe» |
+| `P0002` | la reparación no existe o su tienda no es accesible (no rige para `comprobante_de_reparacion`: ver [errores de negocio](../errores-negocio-postgrest.md)) | «La reparación no existe» |
 | `55000` | la reparación está anulada | «La reparación está anulada: no se puede generar su comprobante» / «La reparación está anulada: no se puede avisar al cliente» |
 | `22023` | sin ítems, tienda desactivada, cliente archivado o estado inexistente | «La reparación no tiene ítems: cargá mano de obra o repuestos para generar el comprobante» / «La tienda de la reparación está desactivada» / «El cliente de la reparación está archivado: restauralo para generar el comprobante» |
 | `P0001` (hint `sin_conexion`) | la organización no tiene habilitada la conexión de envíos | la app lo traduce a «El envío de avisos todavía no está habilitado para tu organización…» |

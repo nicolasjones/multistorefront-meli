@@ -104,3 +104,10 @@ describe('reparacionGarantia · errores (FR-022)', () => {
     expect(mensajeDeErrorGarantia({ code: 'XX000' }, 'por defecto')).toBe('por defecto')
   })
 })
+
+describe('mensajeDeErrorGarantia: reparación inexistente con código viejo y nuevo', () => {
+  it.each(['P0002', 'PT404'])('el código %s se traduce', (code) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(mensajeDeErrorGarantia({ code }, 'por defecto')).toMatch(/no existe/)
+  })
+})
