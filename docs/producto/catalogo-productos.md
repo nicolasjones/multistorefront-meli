@@ -126,7 +126,7 @@ Cuando elegís «A pedido» o «Stock entrante en breve» en un producto, esa el
 
 *Pasos 4 a 7: precios por escala, disponibilidad, categoría e IVA.*
 
-8. En **Imágenes** hacé clic en **Agregar imágenes**: hasta 4 fotos JPG, PNG o WebP de hasta 2 MB cada una. La primera es la principal. Las fotos se suben al guardar.
+8. En **Imágenes** hacé clic en **Agregar imágenes**: hasta 4 fotos JPG, PNG o WebP de hasta 15 MB cada una; se optimizan solas (se achican y pasan a WebP, típicamente a un peso mucho menor) y no hace falta reducirlas antes. La primera es la principal. Las fotos se suben al guardar.
 9. En **Empresas que lo venden**, activá el interruptor de cada tienda donde querés vender el producto. Debajo se lee en qué tiendas va a estar visible («Visible en San Javucho y Mundo JC»). Si no activás ninguna, el producto no aparece en ninguna tienda online.
 10. Hacé clic en **Crear producto**. Vas a ver «Producto creado» y la opción **Cargar otro producto**.
 
@@ -226,7 +226,7 @@ Para agregar una subcategoría directamente, usá el ícono «Agregar subcategor
 | **El código de barras debe tener 13 dígitos** | Corregí el número o escanealo de nuevo. |
 | **Un importe es demasiado grande** | Revisá el precio y el costo. |
 | **Otra persona modificó este producto mientras lo editabas** | No se guardó nada tuyo. Hacé clic en **Recargar producto** para ver los cambios de la otra persona y volvé a cargar los tuyos. |
-| **«…» pesa más de 2 MB** o **Ya hay 4 imágenes** | Usá una foto más liviana o quitá una de las que ya están. |
+| **«…» pesa más de 15 MB**, **«…» tiene demasiados píxeles**, **«…» sigue pesando más de 2 MB aun optimizada** o **Ya hay 4 imágenes** | Usá una foto más chica o quitá una de las que ya están. |
 | **No pudimos subir las imágenes** | El producto quedó guardado. Usá **Reintentar subida**. |
 | **No pudimos guardar las empresas / la categoría / el IVA / los precios por escala** | El producto se guardó pero ese dato no. Usá el botón **Reintentar** que aparece junto al aviso. |
 | **No tenés permiso para esta acción** | Tu rol no puede hacerlo. Pedile al Administrador que revise tus permisos. |

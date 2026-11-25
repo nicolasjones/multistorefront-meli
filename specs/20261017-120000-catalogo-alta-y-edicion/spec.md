@@ -96,11 +96,11 @@ Como persona con permiso de edición, quiero corregir los datos de un producto.
 
 Como persona con permiso de edición, quiero subir las fotos de un producto, en el alta y en la edición.
 
-**Independent Test**: subir 4 imágenes válidas, intentar una quinta, una de 3 MB y un PDF; ver que solo las válidas quedan y la primera es la principal.
+**Independent Test**: subir 4 imágenes válidas, intentar una quinta, una de más de 15 MB (o una que aun optimizada pase de 2 MB) y un PDF; ver que solo las válidas quedan y la primera es la principal.
 
 **Acceptance Scenarios**:
-1. **Given** un producto, **When** se suben imágenes JPG, PNG o WebP de hasta 2 MB, **Then** quedan asociadas, con hasta **4** por producto; la primera es la principal.
-2. **Given** una quinta imagen, un archivo de otro tipo o de más de 2 MB, **Then** se rechaza con mensaje claro (en pantalla y en el servidor).
+1. **Given** un producto, **When** se eligen imágenes JPG, PNG o WebP de hasta 15 MB, **Then** se optimizan en el navegador (WebP, 1600 px) y, si el resultado pesa hasta 2 MB, quedan asociadas, con hasta **4** por producto; la primera es la principal.
+2. **Given** una quinta imagen, un archivo de otro tipo, de más de 15 MB o que aun optimizado pase de 2 MB, **Then** se rechaza con mensaje claro (en pantalla y en el servidor).
 3. **Given** una imagen, **When** se elimina, **Then** desaparece y, si era la principal, la siguiente pasa a serlo.
 4. **Given** el alta aún sin guardar, **When** se eligen imágenes, **Then** se suben al guardar el producto (si falla alguna, el producto queda creado y se avisa cuál reintentar).
 5. **Given** otra organización o un usuario de solo lectura, **Then** no puede ver, subir ni borrar imágenes ajenas (RLS de la tabla y de Storage).
@@ -139,7 +139,7 @@ Como persona con permiso de edición, quiero desactivar un producto sin perderlo
 - **FR-009** (F-CAT-04): Edición de nombre, descripción, SKU, «Compatible con», moneda, precio y (con acceso) costo, con «Descartar cambios» y aviso de conflicto de edición concurrente.
 - **FR-010** (F-CAT-04): La edición registra `producto.editado` solo ante cambios reales, sin datos de costo, en la misma transacción.
 - **FR-011** (F-CAT-04): Ruta `/productos/:id/edit` con guard de sección; el usuario de solo lectura ve la ficha sin poder guardar.
-- **FR-012** (F-CAT-05): Hasta 4 imágenes por producto, JPG/PNG/WebP, 2 MB como máximo, la primera es la principal; se valida en pantalla y en servidor (bucket y tabla).
+- **FR-012** (F-CAT-05): Hasta 4 imágenes por producto, JPG/PNG/WebP; en pantalla se aceptan de hasta 15 MB y se optimizan (WebP, 1600 px) antes de subir; 2 MB como máximo sobre el archivo optimizado (límite del bucket); la primera es la principal; se valida en pantalla y en servidor (bucket y tabla).
 - **FR-013** (F-CAT-05): `dominio.producto_imagenes` y bucket privado `productos-imagenes` con RLS/políticas por organización y sección.
 - **FR-014** (F-CAT-05): Subir y eliminar imágenes registra `producto.imagen_agregada` / `producto.imagen_eliminada` en Actividad.
 - **FR-015** (F-CAT-06): Activar/desactivar un producto sin perder datos ni imágenes, desde la ficha y desde la grilla mínima, solo con permiso de edición.

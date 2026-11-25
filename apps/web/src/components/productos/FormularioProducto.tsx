@@ -118,6 +118,8 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
   const [errorSku, setErrorSku] = useState<string | null>(null)
   const [errorCodigoBarras, setErrorCodigoBarras] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  // Mientras se optimizan imágenes recién elegidas no se guarda: el guardado las dejaría afuera.
+  const [optimizandoImagenes, setOptimizandoImagenes] = useState(false)
   const [conflicto, setConflicto] = useState(false)
   const [confirmandoDescarte, setConfirmandoDescarte] = useState(false)
   // El estado asíncrono llega tarde a un segundo clic inmediato: el ref lo frena.
@@ -169,7 +171,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
 
   const enviar = async (event: FormEvent) => {
     event.preventDefault()
-    if (enVuelo.current) {
+    if (enVuelo.current || optimizandoImagenes) {
       return
     }
     setErrorServidor(null)
@@ -412,6 +414,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
           existentes={imagenesExistentes}
           cambios={imagenes}
           onCambiar={setImagenes}
+          onOptimizando={setOptimizandoImagenes}
           soloLectura={soloLectura}
           deshabilitado={guardando}
         />
@@ -449,7 +452,7 @@ export function FormularioProducto({ inicial, imagenesExistentes = [], empresasI
         <Stack direction="row" spacing={1} justifyContent="flex-end">
           <Button onClick={cancelar} disabled={guardando}>{soloLectura ? 'Volver' : 'Cancelar'}</Button>
           {soloLectura ? null : (
-            <Button type="submit" variant="contained" disabled={guardando}>
+            <Button type="submit" variant="contained" disabled={guardando || optimizandoImagenes}>
               {guardando ? 'Guardando…' : etiquetaGuardar}
             </Button>
           )}

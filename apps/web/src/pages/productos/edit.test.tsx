@@ -455,6 +455,7 @@ describe('ProductoEdit', () => {
     await screen.findByRole('img', { name: 'Imagen 1 (principal)' })
     fireEvent.click(screen.getByRole('button', { name: 'Quitar imagen 1' }))
     fireEvent.change(screen.getByTestId('entrada-imagenes'), { target: { files: [new File(['x'], 'nueva.webp', { type: 'image/webp' })] } })
+    await screen.findByRole('img', { name: /se sube al guardar/ })
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     expect(await screen.findByText('Producto guardado')).toBeInTheDocument()
     expect(mocks.insertarImagen).toHaveBeenCalledWith(expect.objectContaining({ producto_id: 'p-1', organizacion_id: 'org-1', posicion: 1 }))

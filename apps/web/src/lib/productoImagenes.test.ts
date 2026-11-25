@@ -1,13 +1,17 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   MAX_BYTES_IMAGEN,
+  MAX_BYTES_ORIGEN_IMAGEN,
   type ImagenExistente,
   aplicarCambiosImagenes,
   ordenFinal,
   posicionesLibres,
+  prepararImagen,
   rutaImagen,
-  validarArchivo,
 } from './productoImagenes'
+
+const optimizar = vi.hoisted(() => vi.fn())
+vi.mock('./optimizarImagen', async (original) => ({ ...(await original<typeof import('./optimizarImagen')>()), optimizarImagen: optimizar }))
 
 const archivo = (nombre: string, tipo: string, tamano = 10) => {
   const f = new File(['x'], nombre, { type: tipo })
@@ -17,25 +21,43 @@ const archivo = (nombre: string, tipo: string, tamano = 10) => {
 
 const existente = (id: string, posicion: number): ImagenExistente => ({ id, posicion, ruta: `o/p/${id}.png`, url: null })
 
-describe('validarArchivo', () => {
-  it('acepta JPG, PNG y WebP dentro del tope', () => {
+describe('prepararImagen', () => {
+  beforeEach(() => optimizar.mockReset().mockImplementation(async (f: File) => f))
+
+  it('acepta JPG, PNG y WebP dentro del tope', async () => {
     for (const tipo of ['image/jpeg', 'image/png', 'image/webp']) {
-      expect(validarArchivo(archivo('a', tipo), 0)).toBeNull()
+      expect(await prepararImagen(archivo('a', tipo), 0)).toHaveProperty('archivo')
     }
   })
 
-  it('rechaza otros formatos (GIF, SVG) con un mensaje claro', () => {
-    expect(validarArchivo(archivo('a.gif', 'image/gif'), 0)).toBe('«a.gif» no es JPG, PNG ni WebP.')
-    expect(validarArchivo(archivo('a.svg', 'image/svg+xml'), 0)).toContain('no es JPG, PNG ni WebP')
+  it('rechaza otros formatos (GIF, SVG) con un mensaje claro y sin optimizar', async () => {
+    expect(await prepararImagen(archivo('a.gif', 'image/gif'), 0)).toEqual({ error: '«a.gif» no es JPG, PNG ni WebP.' })
+    expect(await prepararImagen(archivo('a.svg', 'image/svg+xml'), 0)).toHaveProperty('error', expect.stringContaining('no es JPG, PNG ni WebP'))
+    expect(optimizar).not.toHaveBeenCalled()
   })
 
-  it('rechaza más de 2 MB pero admite exactamente 2 MB', () => {
-    expect(validarArchivo(archivo('a.png', 'image/png', MAX_BYTES_IMAGEN), 0)).toBeNull()
-    expect(validarArchivo(archivo('a.png', 'image/png', MAX_BYTES_IMAGEN + 1), 0)).toBe('«a.png» pesa más de 2 MB.')
+  it('rechaza de origen más de 15 MB pero admite exactamente 15 MB', async () => {
+    optimizar.mockResolvedValue(archivo('a.webp', 'image/webp', 100))
+    expect(await prepararImagen(archivo('a.png', 'image/png', MAX_BYTES_ORIGEN_IMAGEN), 0)).toHaveProperty('archivo')
+    expect(await prepararImagen(archivo('a.png', 'image/png', MAX_BYTES_ORIGEN_IMAGEN + 1), 0)).toEqual({ error: '«a.png» pesa más de 15 MB.' })
   })
 
-  it('rechaza la quinta imagen', () => {
-    expect(validarArchivo(archivo('a.png', 'image/png'), 4)).toContain('Ya hay 4 imágenes')
+  it('acepta un origen de 12 MB si el optimizado entra en 2 MB y entrega el optimizado', async () => {
+    const optimizado = archivo('foto.webp', 'image/webp', 200 * 1024)
+    optimizar.mockResolvedValue(optimizado)
+    const resultado = await prepararImagen(archivo('foto.jpg', 'image/jpeg', 12 * 1024 * 1024), 0)
+    expect(resultado).toEqual({ archivo: optimizado })
+  })
+
+  it('si el optimizado sigue pasando de 2 MB, da un error claro', async () => {
+    optimizar.mockResolvedValue(archivo('foto.webp', 'image/webp', MAX_BYTES_IMAGEN + 1))
+    expect(await prepararImagen(archivo('foto.jpg', 'image/jpeg', 12 * 1024 * 1024), 0)).toEqual({
+      error: '«foto.jpg» sigue pesando más de 2 MB aun optimizada: usá una imagen más chica.',
+    })
+  })
+
+  it('rechaza la quinta imagen', async () => {
+    expect(await prepararImagen(archivo('a.png', 'image/png'), 4)).toHaveProperty('error', expect.stringContaining('Ya hay 4 imágenes'))
   })
 })
 

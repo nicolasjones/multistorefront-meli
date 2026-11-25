@@ -9,6 +9,7 @@ sources:
   - supabase/migrations/20261017120500_catalogo_producto_imagenes.sql
   - supabase/migrations/20261017120600_catalogo_cambiar_estado.sql
   - apps/web/src/lib/productoImagenes.ts
+  - apps/web/src/lib/optimizarImagen.ts
   - apps/web/src/components/productos/FormularioProducto.tsx
   - apps/web/src/components/productos/DialogoProducto.tsx
   - apps/web/src/pages/productos/create.tsx
@@ -72,6 +73,20 @@ Bucket privado `productos-imagenes` (2 MB; `image/jpeg|png|webp`), ruta `<organi
 Políticas en `storage.objects` por `edicion`/`lectura` en `productos`. El tope de 4 lo impone el disparador
 `producto_imagenes_tope` (`23514`). El cliente sube al guardar y usa URLs firmadas de 5 minutos
 (`apps/web/src/lib/productoImagenes.ts`, `components/productos/ImagenesProducto.tsx`).
+
+**Optimización al subir** (`apps/web/src/lib/optimizarImagen.ts`): al elegir cada archivo el navegador lo decodifica
+(`createImageBitmap` con `imageOrientation: 'from-image'`, respeta EXIF), lo achica a un lado largo máximo de 1600 px
+(nunca agranda) y lo recodifica a WebP con calidad 0,82 (conserva transparencia); el `File` resultante se llama
+`<base>.webp`. Si no queda más chico que el original, o el entorno no puede decodificar/codificar, se conserva el
+original (degradación segura). Primero se optimiza y después se valida: el origen admite hasta **15 MB** en el
+navegador, pero el límite contra el bucket sigue siendo **2 MB sobre el archivo optimizado** (el bucket no cambia);
+si aun optimizado pasa de 2 MB se rechaza con mensaje claro. Una foto de celular de 2–5 MB queda típicamente en un
+peso mucho menor. No cambian las rutas (`<organizacion_id>/<producto_id>/<uuid>.<ext>`) ni las posiciones 1–4.
+Antes de decodificar se lee el encabezado (PNG, JPEG, WebP) y se rechaza lo que pase de 100 megapíxeles («tiene
+demasiados píxeles»), para que una imagen muy comprimida pero enorme no tumbe la pestaña; si el encabezado no se puede
+leer se sigue con la degradación segura. Mientras se optimiza se ve «Optimizando imágenes…», se deshabilitan «Agregar
+imágenes» y «Quitar» y el formulario no guarda hasta que termina; el resultado se aplica sobre el estado actual (el
+tope de 4 se recalcula al aplicarlo). Las imágenes ya subidas no se recomprimen; la importación por planilla/ZIP y los demás buckets quedan fuera.
 
 ## Actividad
 

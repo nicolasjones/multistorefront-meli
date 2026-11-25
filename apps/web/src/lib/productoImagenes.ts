@@ -1,13 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { optimizarImagen } from './optimizarImagen'
 
 // Imágenes del producto (F-CAT-05, FR-012). La base y el bucket repiten estas reglas
 // (tope de 4, JPG/PNG/WebP, 2 MB, prefijo por organización): acá solo se avisa antes.
+// Antes de validar el tope de 2 MB cada imagen se optimiza en el navegador (WebP, 1600 px): por eso
+// el origen admite hasta 15 MB y el límite del bucket se aplica al archivo ya optimizado.
 // El tipo se toma de `file.type` (lo declara el navegador): no se validan los bytes del archivo.
 export const BUCKET_IMAGENES = 'productos-imagenes'
 export const MAX_IMAGENES = 4
 export const MAX_BYTES_IMAGEN = 2 * 1024 * 1024
+export const MAX_BYTES_ORIGEN_IMAGEN = 15 * 1024 * 1024
 export const SEGUNDOS_URL_FIRMADA = 300
-export const AYUDA_IMAGENES = 'Hasta 4 imágenes JPG, PNG o WebP de hasta 2 MB. La primera es la principal.'
+export const AYUDA_IMAGENES = 'Hasta 4 imágenes JPG, PNG o WebP de hasta 15 MB; se optimizan automáticamente. La primera es la principal.'
 
 const EXTENSION_POR_TIPO: Readonly<Record<string, string>> = {
   'image/jpeg': 'jpg',
@@ -34,19 +38,36 @@ export const SIN_CAMBIOS_IMAGENES: CambiosImagenes = { nuevas: [], eliminadas: [
 
 export const hayCambiosImagenes = (cambios: CambiosImagenes) => cambios.nuevas.length > 0 || cambios.eliminadas.length > 0
 
-// Mensaje de rechazo del archivo, o null si se puede agregar. `cantidadActual` cuenta
-// las imágenes que quedarían (existentes no quitadas + nuevas ya elegidas).
-export function validarArchivo(archivo: File, cantidadActual: number): string | null {
+// Mensaje de rechazo del archivo antes de optimizarlo, o null si se puede procesar. `cantidadActual`
+// cuenta las imágenes que quedarían (existentes no quitadas + nuevas ya elegidas).
+function validarArchivo(archivo: File, cantidadActual: number): string | null {
   if (!(archivo.type in EXTENSION_POR_TIPO)) {
     return `«${archivo.name}» no es JPG, PNG ni WebP.`
   }
-  if (archivo.size > MAX_BYTES_IMAGEN) {
-    return `«${archivo.name}» pesa más de 2 MB.`
+  if (archivo.size > MAX_BYTES_ORIGEN_IMAGEN) {
+    return `«${archivo.name}» pesa más de 15 MB.`
   }
   if (cantidadActual >= MAX_IMAGENES) {
     return `Ya hay ${MAX_IMAGENES} imágenes: quitá alguna para agregar «${archivo.name}».`
   }
   return null
+}
+
+// Valida, optimiza y vuelve a validar el tope del bucket sobre el archivo optimizado.
+export async function prepararImagen(archivo: File, cantidadActual: number): Promise<{ archivo: File } | { error: string }> {
+  const rechazo = validarArchivo(archivo, cantidadActual)
+  if (rechazo) return { error: rechazo }
+  let optimizado: File
+  try {
+    optimizado = await optimizarImagen(archivo)
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === 'ImagenDemasiadoGrandeError') return { error: `«${archivo.name}» tiene demasiados píxeles: usá una imagen de menor resolución.` }
+    throw error
+  }
+  if (optimizado.size > MAX_BYTES_IMAGEN) {
+    return { error: `«${archivo.name}» sigue pesando más de 2 MB aun optimizada: usá una imagen más chica.` }
+  }
+  return { archivo: optimizado }
 }
 
 // Posiciones libres (1..4) en orden ascendente, para asignar a las nuevas.
