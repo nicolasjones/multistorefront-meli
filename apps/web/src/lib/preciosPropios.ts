@@ -74,7 +74,7 @@ export function validarPrecioPropio(texto: string): { importe: number } | { erro
 export function mensajeErrorPrecioPropio(error: unknown, porDefecto = 'No pudimos guardar el precio propio. Probá de nuevo.'): string {
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'Tu rol no puede editar los precios propios. Puede que haya cambiado: recargá la página.'
-  if (code === 'P0002') return 'El producto o la empresa ya no existe. Recargá la página.'
+  if (code === 'P0002' || code === 'PT404') return 'El producto o la empresa ya no existe. Recargá la página.'
   if (code === '22023' || code === '23514') return 'Revisá el precio propio: mayor que cero, con hasta 2 decimales.'
   if (code === '22003') return 'El precio propio es demasiado grande.'
   return porDefecto

@@ -134,7 +134,7 @@ $ 38.998,30 (con la regla vigente al centavo; el ejemplo original, al peso enter
 | RPC | Devuelve | Seguridad y reglas |
 |---|---|---|
 | `fijar_cotizacion_inicial(p_valor numeric)` | `dominio.cotizacion_inicial` | `security invoker`. Exige `empresas` = edición. Valida `> 0` y hasta 4 decimales. `upsert` por organización. |
-| `guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at, p_mostrar_con_iva)` | `dominio.precios_empresa` | `security invoker`. Exige `empresas` = edición. `p_mostrar_con_iva` nulo = sin cambio (en el primer guardado de una empresa sin regla, nulo = «Sin IVA»). **Bloqueo optimista** por `updated_at`: el llamador manda el que leyó; si la fila cambió, `40001`. Idempotente: pedir lo ya guardado devuelve la fila sin conflicto, sin tocar `updated_at` ni generar evento. |
+| `guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at, p_mostrar_con_iva)` | `dominio.precios_empresa` | `security invoker`. Exige `empresas` = edición. `p_mostrar_con_iva` nulo = sin cambio (en el primer guardado de una empresa sin regla, nulo = «Sin IVA»). **Bloqueo optimista** por `updated_at`: el llamador manda el que leyó; si la fila cambió, conflicto de edición (código en [errores de negocio](../errores-negocio-postgrest.md)). Idempotente: pedir lo ya guardado devuelve la fila sin conflicto, sin tocar `updated_at` ni generar evento. |
 | `previsualizar_precios_empresa(p_empresa, p_base, p_ajuste_pct, p_muestra default 6)` | tabla `{ producto_id, nombre, sku, moneda, central_ars, neto_ars, final_ars }` | `security invoker`, `stable`. Exige `empresas` ≥ lectura. Muestra de productos **activos** de la organización (los primeros por nombre), con tope de 20. La muestra se recorta **antes** de resolver el IVA. |
 | `guardar_alicuota_categoria(p_categoria, p_alicuota)` | `uuid` | `security invoker`. Exige `categorias` = edición. Idempotente. |
 | `asignar_alicuota_producto(p_producto, p_alicuota)` | `uuid` | `security invoker`. Exige `productos` = edición. `p_alicuota` nulo = el producto **hereda** la de su categoría. Idempotente. |
@@ -142,8 +142,8 @@ $ 38.998,30 (con la regla vigente al centavo; el ejemplo original, al peso enter
 
 Códigos de error que devuelve la base y la UI traduce: `42501` (sin permiso), `23514` (valor inválido:
 ajuste ≤ −100 %, más de 3 decimales, alícuota inactiva, precio negativo, cotización ≤ 0), `22003` (fuera de
-rango), `P0002` (producto, categoría, alícuota o empresa inexistente o ajena), `40001` (conflicto de
-edición) y `22023` (escala inexistente).
+rango), «no existe» (producto, categoría, alícuota o empresa inexistente o ajena), conflicto de
+edición (los dos últimos con el código que indica [errores de negocio](../errores-negocio-postgrest.md)) y `22023` (escala inexistente).
 
 Las vistas `productos_precio_costo`, `precios_empresa_neto` y `precios_empresa_final` son `security_invoker`
 y heredan la RLS de las tablas base.
@@ -152,9 +152,9 @@ y heredan la RLS de las tablas base.
 
 `private.tocar_precios_empresa` (trigger `BEFORE UPDATE`) hace que `updated_at` avance **solo ante un
 cambio real** de `(base, ajuste_pct, redondeo_pesos, mostrar_con_iva)`. Eso permite que la RPC compare el
-`updated_at` que envía el cliente con el de la fila: si no coinciden, devuelve `40001` y la UI pide
-recargar. Si la empresa todavía no tiene regla y el cliente manda un `updated_at`, también es conflicto
-(`40001`): la regla la creó otra persona.
+`updated_at` que envía el cliente con el de la fila: si no coinciden, devuelve el conflicto de edición y la UI pide
+recargar. Si la empresa todavía no tiene regla y el cliente manda un `updated_at`, también es conflicto:
+la regla la creó otra persona (código en [errores de negocio](../errores-negocio-postgrest.md)).
 
 ## IVA por categoría y por producto
 

@@ -95,7 +95,7 @@ export async function asignarAlicuotaProducto(
 export function mensajeErrorIva(error: unknown, porDefecto: string): string {
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'Tu rol no puede cambiar el IVA. Puede que haya cambiado: recargá la página.'
-  if (code === 'P0002') return 'La alícuota, la categoría o el producto ya no existen. Recargá la página.'
+  if (code === 'P0002' || code === 'PT404') return 'La alícuota, la categoría o el producto ya no existen. Recargá la página.'
   if (code === '23514') return 'Esa alícuota no está activa. Elegí otra.'
   return porDefecto
 }

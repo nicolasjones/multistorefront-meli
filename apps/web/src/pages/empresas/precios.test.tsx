@@ -217,12 +217,12 @@ describe('EmpresaPrecios', () => {
     expect(screen.getByText('Corregí el ajuste')).toBeInTheDocument()
   })
 
-  it('un conflicto de edición avisa con claridad y ofrece recargar', async () => {
+  it.each(['40001', 'PT412'])('un conflicto de edición (%s) avisa con claridad y ofrece recargar', async (codigo) => {
     mocks.regla.mockResolvedValue(conRegla('central', 0))
     mocks.rpc.mockImplementation((nombre: string, args: { p_empresa: string; p_base: string; p_ajuste_pct: number }) =>
       nombre === 'previsualizar_precios_empresa'
         ? Promise.resolve({ data: filasPara(args), error: null })
-        : Promise.resolve({ data: null, error: { code: '40001', message: 'raw' } }),
+        : Promise.resolve({ data: null, error: { code: codigo, message: 'raw' } }),
     )
     vi.spyOn(console, 'error').mockImplementation(() => {})
     abrir()

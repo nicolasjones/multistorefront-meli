@@ -1,6 +1,7 @@
 import { formatearImporte } from './formatoImporte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { parsearImporte } from './productos'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 // Precio y costo en pesos o dólares (F-PRE-01, FR-001…FR-006). La autoridad es la base
 // (migraciones 20261022120000…120300: `private.a_pesos`, vista `productos_precio_costo`);
@@ -259,9 +260,9 @@ export function mensajeErrorRegla(error: unknown): string {
   console.error('No pudimos guardar los precios de la empresa.', error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'Solo el Administrador puede editar los precios de la empresa. Puede que tu rol haya cambiado: recargá la página.'
-  if (code === '40001') return 'Otra persona modificó los precios de esta empresa. Recargá para ver los cambios y volvé a intentar.'
+  if (esCodigoDeConflicto(code)) return 'Otra persona modificó los precios de esta empresa. Recargá para ver los cambios y volvé a intentar.'
   if (code === '23514') return 'Revisá el ajuste: tiene que ser mayor a −100 %, con hasta 3 decimales.'
   if (code === '22003') return 'El ajuste es demasiado grande. Revisá el valor.'
-  if (code === 'P0002') return 'La empresa ya no existe en tu organización.'
+  if (code === 'P0002' || code === 'PT404') return 'La empresa ya no existe en tu organización.'
   return 'No pudimos guardar los precios de la empresa. Probá de nuevo.'
 }

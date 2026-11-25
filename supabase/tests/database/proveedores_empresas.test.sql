@@ -118,7 +118,7 @@ select throws_ok(
 select throws_ok(
   $$select public.guardar_empresas_de_proveedor(
       'b2000000-0000-0000-0000-0000000000b1', array['a1000000-0000-0000-0000-0000000000a1']::uuid[])$$,
-  'P0002', null,
+  'PT404', null,
   'no acepta un proveedor de otra organización'
 );
 

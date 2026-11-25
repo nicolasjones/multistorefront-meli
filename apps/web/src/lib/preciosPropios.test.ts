@@ -30,6 +30,7 @@ describe('mensajes de error del precio propio', () => {
   it('traduce los códigos de la base a texto de negocio', () => {
     expect(mensajeErrorPrecioPropio({ code: '42501' })).toContain('no puede editar')
     expect(mensajeErrorPrecioPropio({ code: 'P0002' })).toContain('ya no existe')
+    expect(mensajeErrorPrecioPropio({ code: 'PT404' })).toContain('ya no existe')
     expect(mensajeErrorPrecioPropio({ code: '22023' })).toContain('mayor que cero')
     expect(mensajeErrorPrecioPropio({ code: '23514' })).toContain('mayor que cero')
     expect(mensajeErrorPrecioPropio({ code: '22003' })).toContain('demasiado grande')
