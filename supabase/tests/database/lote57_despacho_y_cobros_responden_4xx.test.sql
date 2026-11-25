@@ -68,7 +68,7 @@ select throws_ok($$select public.cambiar_estado_cuenta_cobro('e1000000-0000-0000
 -- Conflicto de edición: PT412 con el mensaje de siempre
 -- ============================================================================
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.guardar_envio_comprobante('f1000000-0000-0000-0000-000000000001', null, null, null, '2000-01-01T00:00:00Z')$$, 'PT412', 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar', 'guardar_envio_comprobante: una versión vieja es un conflicto (412)');
+select throws_ok($$select public.guardar_envio_comprobante('f1000000-0000-0000-0000-000000000001', null, 'AR555', null, '2000-01-01T00:00:00Z')$$, 'PT412', 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar', 'guardar_envio_comprobante: una versión vieja es un conflicto (412)');
 select throws_ok($$select public.actualizar_forma_pago('b1000000-0000-0000-0000-00000000000a', '2000-01-01T00:00:00Z', 'Otro', 'efectivo', false, false, 'cobrado', 3, true)$$, 'PT412', 'La forma de pago fue modificada por otra persona', 'actualizar_forma_pago: una versión vieja es un conflicto (412)');
 select throws_ok($$select public.actualizar_cuenta_cobro('e1000000-0000-0000-0000-00000000000a', '2000-01-01T00:00:00Z', 'Banco', 'Titular', '30701234568', 'Banco', null, '0170099220000067797370', 'cuenta_corriente', 'ARS', 5, true, null, '{}')$$, 'PT412', 'La cuenta de cobro fue modificada por otra persona', 'actualizar_cuenta_cobro: una versión vieja es un conflicto (412)');
 

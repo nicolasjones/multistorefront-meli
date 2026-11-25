@@ -893,7 +893,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   pg_temp.sql_entregar('f10', 'f1000000-0000-0000-0000-000000000002'),
-  'P0002', null, 'otra organización no entrega esta factura');
+  'PT404', null, 'otra organización no entrega esta factura');
 
 -- El Depósito sí la entrega.
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
@@ -997,7 +997,7 @@ select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 
 select throws_ok(
   pg_temp.sql_leer('f1'),
-  'P0002', null, 'otra organización no lee el envío de esta factura');
+  'PT404', null, 'otra organización no lee el envío de esta factura');
 
 -- Un comprobante que no existe no tiene envío.
 select pg_temp.como('f1000000-0000-0000-0000-000000000004');
