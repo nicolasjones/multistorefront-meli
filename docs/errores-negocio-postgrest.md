@@ -216,7 +216,7 @@ Se dejaron con `55000` a propósito:
   masivos. Es una falla de configuración del entorno y no una regla de negocio de la persona, así que un 5xx es legítimo.
 - **Contrato propio por `detail`**: la verificación de dominio de la tienda (`demasiado_pronto`, `verificacion_obsoleta`).
 - **Lanzados por un auxiliar de `private`**: `private.registrar_cobro_interno` (lo usan `registrar_cobro` y
-  `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, «La factura no está en un estado operativo: no admite cobros», borrador o anulada, sigue llegando `55000`; la caja cerrada la rechaza un disparador, también con `55000`),
+  `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, «La factura no está en un estado operativo: no admite cobros», borrador o anulada, sigue llegando `55000`),
   `private.marcar_estado_cobro_comprobante`, `private.abrir_contrarreembolso` y `private.aplicar_conciliacion`.
 - **Funciones no migradas todavía**: `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto`, Service, RMA, newsletter.
 

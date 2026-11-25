@@ -539,7 +539,7 @@ venga: `registrar_cobro`, la conciliación y los contrarreembolsos.
 
 Errores: `42501` permiso (no Administrador, no `ventas` en edición, empresa ajena) · `22023` dato
 inválido (`hint` = `codigo_barras`, `descuento`, `lineas`, `producto_id`) · `P0002` inexistente o ajeno ·
-`55000` estado no válido (caja cerrada, comprobante cerrado). Contrato completo:
+error de negocio de estado (ver `docs/errores-negocio-postgrest.md`). Contrato completo:
 [Venta de mostrador (técnico)](ventas-mostrador.md),
 [Precios especiales por cliente (técnico)](ventas-precios-especiales.md) y
 [Cierre de caja (técnico)](ventas-cierre-caja.md#rpc).
