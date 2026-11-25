@@ -2,6 +2,7 @@
 owner: plataforma
 sources:
   - supabase/functions/chat-ia-responder/guardas.ts
+  - supabase/functions/chat-ia-responder/handler.ts
   - supabase/functions/preguntar-documentos/index.ts
   - supabase/functions/indexar-documento/handler.ts
   - supabase/functions/indexar-documento/consultas.ts
@@ -53,6 +54,16 @@ Qué se corrigió de los hallazgos MSF-727 a MSF-732 y MSF-711, qué ya estaba r
   columnas con nombre de secreto se quitan (`sanitizarDato`) y el resultado viaja marcado como dato no confiable.
 - Ya estaba resuelto antes del lote: tope de 50 filas (`limites.ts`) y creación de la propuesta por RPC
   (`proponer_accion_chat_ia`, MSF-724).
+- **Handler con dependencias inyectadas.** La lógica vive en `handler.ts` (`manejar(req, deps)`) y `index.ts` solo
+  cablea: el cliente admin (única aparición de la service-role: validar el JWT y resolver política y credencial), el
+  cliente del usuario (anon + su JWT, con el que van la lectura, la cuota, la conversación y la propuesta de acciones),
+  `prepararInvocacion`, el `fetch` con tope de espera, el reloj, el tope por hora y el prompt de sistema. Se separó así
+  porque el ciclo de cada proveedor comparte el estado de la conversación y solo se puede probar con los dos
+  adaptadores simulados. Regla: `handler.ts` no lee entorno, no crea clientes y no importa nada de `npm:` (corre con
+  `node --test`); cualquier dependencia nueva entra por `Deps`. `handler.test.ts` fija el comportamiento (método,
+  autenticación, validación, funcionalidad, cuota, política, conversación, los dos ciclos del proveedor con texto,
+  herramientas, propuestas, errores y timeouts) y un test de contrato de `index.ts` comprueba qué cliente se usa
+  para qué.
 
 ## `indexar-documento` (MSF-728)
 
@@ -190,12 +201,11 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 | `feature_id` único o nombres por vista/RPC en `fuentes_mcp` / `acciones_mcp`; wrapper SQL por acción que inyecte la organización desde la credencial; vencimiento dentro de `iniciar_ejecucion_mcp` (MSF-729) | Migración y decisión de modelo | Wrapper `private.ejecutar_accion_mcp(p_credencial_id, p_rpc, p_parametros)` que resuelva la organización por la credencial y llame a la RPC registrada; mover el vencimiento (hoy en TypeScript) a SQL |
 | `invitar-miembro` recorre todos los usuarios de Auth (MSF-732) | Necesita una RPC sobre `auth.users` | `private.usuario_auth_por_correo(p_correo)` (`security definer`, solo `service_role`) con un índice por `lower(email)` |
 | Pedidos de `recuperar-clave-cliente` descartados en silencio (MSF-731) | Decisión de diseño | Contar por IP/host además de correo y responder siempre igual; no se puede evitar que 3 pedidos bloqueen 10 minutos al cliente sin un límite por IP |
-| `chat-ia-responder` sigue sin `handler.ts` (MSF-732) | Alcance del lote | Ya separó `guardas.ts` y `limites.ts` con pruebas; falta extraer el handler con dependencias inyectadas como se hizo con `indexar-documento` y `iniciar-sesion-oauth` (el ciclo con el proveedor y las herramientas comparten estado de la conversación: se extrae con pruebas de los dos adaptadores, no a ciegas) |
 | `Access-Control-Allow-Origin: *` en las funciones llamadas desde el navegador | Son llamadas por el panel | Restringir al origen del panel (`APP_URL`) cuando se decida el esquema de orígenes por ambiente |
 | Un `NANGO_SECRET_KEY` con forma de UUID real en `.env.example` | Hay que confirmar si es un valor de uso real | Rotarlo si alguna vez se usó y poner un placeholder no válido |
 
 ## Verificación
 
-`pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`,
+`pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`, `pnpm test:edge:chat-ia-responder`,
 `pnpm test:edge:enviar-correo-proveedor`, `pnpm test:edge:crear-organizacion`, `pnpm test:edge:emitir-acceso-reporte`, `pnpm test:edge:iniciar-sesion-oauth`,
 `pnpm test:kestra:correo-masivo`, `pnpm --filter @platform/mcp-server test` y `pnpm --filter @platform/ia test`.
