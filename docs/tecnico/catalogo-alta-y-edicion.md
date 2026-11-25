@@ -60,7 +60,7 @@ DER general en [Datos](datos.md). Se ubican en `dominio` por ser negocio del pro
 | RPC | Migración | Reglas |
 |---|---|---|
 | `crear_producto` | `20261017120200` | `edicion` en `productos`; costo exige `edicion` en `rentabilidad` (si no, `42501`); precio > 0, 2 decimales; no recibe stock. |
-| `actualizar_producto` | `20261017120400` | Bloqueo optimista con `p_actualizado_en` (`40001` si cambió, `P0002` si no existe); `p_costo` nulo no toca el costo. |
+| `actualizar_producto` | `20261017120400` | Bloqueo optimista con `p_actualizado_en` (conflicto de edición si cambió, «no existe» si no existe; códigos en [errores de negocio](../errores-negocio-postgrest.md)); `p_costo` nulo no toca el costo. |
 | `cambiar_estado_producto` | `20261017120600` | Solo escribe `activo`; idempotente. |
 
 SKU único (`20261017120300`): índice `dominio.productos_org_sku_uidx` sobre `(organizacion_id, lower(btrim(sku)))`

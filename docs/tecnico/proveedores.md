@@ -136,7 +136,7 @@ La organización sale de la sesión, nunca del llamador.
 | RPC | Contrato |
 |---|---|
 | `public.crear_proveedor(p_razon_social, p_cuit, p_persona_contacto, p_correo, p_telefono, p_direccion, p_observaciones)` | Exige `edicion` en `proveedores`; delega normalización y unicidad en la tabla; devuelve la fila creada. |
-| `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | **Bloqueo optimista** por `updated_at`: si la fila cambió, `40001` y no se pisa nada; `P0002` si no existe o es de otra organización. |
+| `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | **Bloqueo optimista** por `updated_at`: si la fila cambió, se rechaza como conflicto de edición y no se pisa nada; «no existe» si no existe o es de otra organización (códigos en [errores de negocio](../errores-negocio-postgrest.md)). |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva sin tocar los datos; **idempotente** (mismo estado = no-op). No hay borrado. |
 | `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Búsqueda y paginación en servidor. `p_estado` = `activos` (default), `inactivos` o `todos`; 25 por página, tope 200; devuelve `numero`, `empresas` y `total_filas`. |
 | `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Exportación por lotes con los filtros del listado. `security definer`: exige la acción `exportar` en Proveedores y acota a la organización de la sesión; keyset por razón social e `id`; tope de 50000 filas (`54000`); cursor ajeno o inexistente `40001`; registra `proveedores.exportados`. |
@@ -211,9 +211,9 @@ reversión restaura esas dos funciones.
 | Código | Caso | Mensaje |
 |---|---|---|
 | `23505` | CUIT repetido (incluye desactivados) | «Ya existe un proveedor con ese CUIT en tu organización (también si está desactivado).» |
-| `40001` | Edición simultánea del mismo proveedor | Conflicto: recargar y no se guardó nada. |
+| Conflicto de edición | Edición simultánea del mismo proveedor | Conflicto: recargar y no se guardó nada. |
 | `42501` | Sin `edicion` o sin `lectura` | «No tenés permiso para esta acción…». |
-| `P0002` | Proveedor inexistente o de otra organización | «El proveedor ya no existe o no pertenece a tu organización.» |
+| No existe | Proveedor inexistente o de otra organización | «El proveedor ya no existe o no pertenece a tu organización.» |
 | `22023` / `23514` | Dato inválido (CUIT, correo, largo) | Revisar el formulario. |
 
 ## Contactos y evolución del costo (MSF-445)

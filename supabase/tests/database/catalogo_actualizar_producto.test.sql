@@ -58,7 +58,7 @@ select isnt(
 select throws_ok(
   $$select public.actualizar_producto('a1000000-0000-0000-0000-000000000001', '2026-01-01 10:00:00+00',
       'Pisado', null, 'JOY-2', '{}', 'ARS', 99.5, null)$$,
-  '40001', null, 'conflicto: updated_at desactualizado se rechaza'
+  'PT412', null, 'conflicto: updated_at desactualizado se rechaza'
 );
 select is((select nombre from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001'), 'Joystick Pro', 'el conflicto no pisó nada');
 
@@ -111,11 +111,11 @@ select is(
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
--- Producto inexistente: P0002.
+-- Producto inexistente: PT404.
 select throws_ok(
   $$select public.actualizar_producto('a1999999-0000-0000-0000-000000000999', now(),
       'X', null, 'X-1', '{}', 'ARS', 1, null)$$,
-  'P0002', null, 'producto inexistente: P0002'
+  'PT404', null, 'producto inexistente: PT404'
 );
 
 -- Doble edición en la misma transacción (now() constante): la 2.ª avanza updated_at y deja evento.
@@ -150,7 +150,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.actualizar_producto('a1000000-0000-0000-0000-0000000000ff', now(), 'X', null, null, '{}', 'USD', 10, null)$$,
-  'P0002', null, 'producto inexistente: rechazado'
+  'PT404', null, 'producto inexistente: rechazado'
 );
 reset role;
 
@@ -184,7 +184,7 @@ reset role;
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.actualizar_producto('a1000000-0000-0000-0000-000000000002', now(), 'Intruso', null, null, '{}', 'USD', 1, null)$$,
-  'P0002', null, 'otra organización: no ve ni edita productos ajenos'
+  'PT404', null, 'otra organización: no ve ni edita productos ajenos'
 );
 reset role;
 select is((select nombre from dominio.productos where sku = 'CAB-1'), 'Cable HDMI', 'el producto ajeno quedó intacto');

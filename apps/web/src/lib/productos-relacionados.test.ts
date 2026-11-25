@@ -113,6 +113,12 @@ describe('productos-relacionados', () => {
     })
   })
 
+  it.each(['P0002', 'PT404'])('traduce el «no existe» %s', (code) => {
+    const silenciar = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(mensajeErrorRelacionados({ code })).toMatch(/ya no existe/)
+    silenciar.mockRestore()
+  })
+
   it('traduce los errores de la base a mensajes en castellano', () => {
     const silenciar = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(mensajeErrorRelacionados({ code: '42501' })).toMatch(/permiso/)

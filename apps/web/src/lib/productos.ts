@@ -3,6 +3,8 @@
 // 20261017120200_catalogo_crear_producto.sql; acá se espejan solo para validar
 // en el formulario antes de viajar (la autoridad es la base).
 
+import { esCodigoDeConflicto } from './mensajeErrorBase'
+
 export type Moneda = 'USD' | 'ARS'
 
 export const MONEDAS: ReadonlyArray<{ valor: Moneda; etiqueta: string }> = [
@@ -245,7 +247,7 @@ export const MENSAJE_CONFLICTO =
   'Otra persona modificó este producto mientras lo editabas. Recargá para ver sus cambios; no se guardó nada tuyo.'
 
 export function esConflicto(error: unknown): boolean {
-  return (error as { code?: string } | null)?.code === '40001'
+  return esCodigoDeConflicto((error as { code?: string } | null)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o
@@ -253,8 +255,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as { code?: string } | null)?.code
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'El producto ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'El producto ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // F-CAT-03: el índice único de SKU (alta o edición, también ante carreras).
   if (esSkuRepetido(error)) return MENSAJE_SKU_REPETIDO

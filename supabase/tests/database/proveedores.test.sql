@@ -181,7 +181,7 @@ select throws_ok(
   $$select public.actualizar_proveedor(
       (select id from dominio.proveedores where cuit = '20123456786'),
       '2020-01-01 00:00:00+00', 'Pisado', '20123456786')$$,
-  '40001', null, 'un updated_at viejo es conflicto de edición'
+  'PT412', null, 'un updated_at viejo es conflicto de edición'
 );
 select is(
   (select razon_social from dominio.proveedores where cuit = '20123456786'),
@@ -303,7 +303,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.proveedores), 0, 'otra organización: no ve filas ajenas');
 select throws_ok(
   $$select public.cambiar_estado_proveedor('00000000-0000-0000-0000-00000000dead', false)$$,
-  'P0002', null, 'otra organización: un proveedor inexistente o ajeno no existe para ella'
+  'PT404', null, 'otra organización: un proveedor inexistente o ajeno no existe para ella'
 );
 select lives_ok(
   $$select public.crear_proveedor('Proveedor Uno (otra org)', '20123456786')$$,

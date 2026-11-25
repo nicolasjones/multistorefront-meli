@@ -286,7 +286,7 @@ reset role;
 select pg_temp.como('f5000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.guardar_promocion_precio(null, 'e5000000-0000-0000-0000-000000000003', 'b5000000-0000-0000-0000-000000000001', 5000, now(), now() + interval '2 days')$$,
-  'P0002', null, 'una tienda de otra organización no existe para el administrador (P0002): el aviso no filtra precios ajenos');
+  'PT404', null, 'una tienda de otra organización no existe para el administrador (PT404): el aviso no filtra precios ajenos');
 select throws_ok(
   $$select private.promocion_con_aviso('{}'::jsonb, 'e5000000-0000-0000-0000-000000000001', 'a5000000-0000-0000-0000-000000000001', 1)$$,
   '42501', null, 'authenticated no ejecuta private.promocion_con_aviso');

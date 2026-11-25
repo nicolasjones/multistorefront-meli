@@ -12,6 +12,8 @@ import {
   parsearImporte,
   separarCompatibles,
   validarProducto,
+  esConflicto,
+  MENSAJE_CONFLICTO,
 } from './productos'
 
 const valido = { ...FORMULARIO_PRODUCTO_VACIO, nombre: 'Joystick Pro', precio_lista: '49,90' }
@@ -219,5 +221,21 @@ describe('disponibilidad del producto (F-CAT-17)', () => {
     const inicial = aFormulario(producto, null)
     expect(inicial.disponibilidad_manual).toBe('a_pedido')
     expect(hayCambios({ ...inicial, disponibilidad_manual: '' }, inicial)).toBe(true)
+  })
+})
+
+describe('productos · códigos de «no existe» y conflicto de edición (código viejo y nuevo)', () => {
+  it.each(['40001', 'PT412'])('reconoce %s como conflicto de edición', (code) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(esConflicto({ code })).toBe(true)
+    expect(mensajeDeError({ code }, 'Base')).toBe(MENSAJE_CONFLICTO)
+  })
+  it.each(['P0002', 'PT404'])('traduce %s a «el producto ya no existe»', (code) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(mensajeDeError({ code }, 'Base')).toBe('El producto ya no existe o no pertenece a tu organización.')
+  })
+  it('no toma otros códigos por conflicto', () => {
+    expect(esConflicto({ code: '23505' })).toBe(false)
+    expect(esConflicto(null)).toBe(false)
   })
 })

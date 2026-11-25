@@ -145,7 +145,7 @@ select throws_ok(
   $$select public.guardar_categoria(
       'a9000000-0000-0000-0000-000000000009',
       'Fundas', (select id from dominio.categorias where nombre = 'Joysticks' and padre_id is null), '{}'::uuid[])$$,
-  'P0002', null, 'editar una categoría inexistente devuelve P0002 (sin crear nada)'
+  'PT404', null, 'editar una categoría inexistente devuelve PT404 (sin crear nada)'
 );
 select lives_ok(
   $$select public.guardar_categoria(null, 'Fundas', null, '{}'::uuid[])$$,
@@ -370,7 +370,7 @@ select is(
 select throws_ok(
   $$select public.guardar_categoria(
       current_setting('test.cat_uno')::uuid, 'Fundas', null, '{}'::uuid[])$$,
-  'P0002', null, 'la categoría de otra organización se ve como inexistente'
+  'PT404', null, 'la categoría de otra organización se ve como inexistente'
 );
 select lives_ok(
   $$select public.guardar_categoria(null, 'Solo Dos', null, '{}'::uuid[])$$,
@@ -436,12 +436,12 @@ select is(
 select throws_ok(
   $$select public.asignar_categoria_producto('a1000000-0000-0000-0000-000000000001',
       current_setting('test.cat_dos')::uuid)$$,
-  'P0002', null, 'asignar una categoría de otra organización se rechaza'
+  'PT404', null, 'asignar una categoría de otra organización se rechaza'
 );
 select throws_ok(
   $$select public.asignar_categoria_producto('b2000000-0000-0000-0000-000000000001',
       (select id from dominio.categorias where nombre = 'Joysticks' and padre_id is null))$$,
-  'P0002', null, 'asignar a un producto de otra organización se rechaza'
+  'PT404', null, 'asignar a un producto de otra organización se rechaza'
 );
 
 select pg_temp.como('c1000000-0000-0000-0000-000000000003');
@@ -529,7 +529,7 @@ select is(
 );
 select throws_ok(
   $$select public.eliminar_categoria('a9000000-0000-0000-0000-000000000009')$$,
-  'P0002', null, 'eliminar una categoría inexistente devuelve P0002'
+  'PT404', null, 'eliminar una categoría inexistente devuelve PT404'
 );
 
 select * from finish();

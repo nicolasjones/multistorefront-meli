@@ -280,11 +280,11 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_promocion_precio(null, 'e2000000-0000-0000-0000-000000000003', 'a1000000-0000-0000-0000-000000000001', 10, now() + interval '20 days', now() + interval '21 days', null)$$,
-  'P0002', null, 'empresa de otra organización: P0002'
+  'PT404', null, 'empresa de otra organización: PT404'
 );
 select throws_ok(
   $$select public.guardar_promocion_precio(null, 'e1000000-0000-0000-0000-000000000001', 'b2000000-0000-0000-0000-000000000001', 10, now() + interval '20 days', now() + interval '21 days', null)$$,
-  'P0002', null, 'producto de otra organización: P0002'
+  'PT404', null, 'producto de otra organización: PT404'
 );
 
 -- Edición con bloqueo optimista.
@@ -303,7 +303,7 @@ select is(
 select throws_ok(
   $$select public.guardar_promocion_precio('c1000000-0000-0000-0000-00000000000a', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 860,
       now() + interval '1 day', now() + interval '3 days', (select actualizado from guardadas where clave = 'pA'))$$,
-  '40001', 'La promoción fue modificada por otra persona', 'editar con un updated_at viejo: 40001'
+  'PT412', 'La promoción fue modificada por otra persona', 'editar con un updated_at viejo: PT412'
 );
 select throws_ok(
   $$select public.guardar_promocion_precio('c1000000-0000-0000-0000-00000000000c', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 950,
@@ -350,7 +350,7 @@ select lives_ok(
 );
 select throws_ok(
   $$select public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000a', now() - interval '1 year')$$,
-  '40001', null, 'anular con un updated_at viejo: 40001'
+  'PT412', null, 'anular con un updated_at viejo: PT412'
 );
 select throws_ok(
   $$select public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000c', null)$$,
@@ -358,7 +358,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.anular_promocion_precio('c1000000-0000-0000-0000-0000000000ff', null)$$,
-  'P0002', null, 'promoción inexistente: P0002'
+  'PT404', null, 'promoción inexistente: PT404'
 );
 
 -- Eventos de actividad (como postgres: la actividad se lee con otra sección).
@@ -444,12 +444,12 @@ select is((select count(*)::int from public.promociones_precio_estado), 0, 'la o
 select is((select count(*)::int from dominio.promociones_precio), 0, 'ni en la tabla (RLS)');
 select throws_ok(
   $$select public.anular_promocion_precio('c1000000-0000-0000-0000-00000000000a', null)$$,
-  'P0002', null, 'no puede anular una promoción ajena'
+  'PT404', null, 'no puede anular una promoción ajena'
 );
 select throws_ok(
   $$select public.guardar_promocion_precio('c1000000-0000-0000-0000-00000000000a', 'e2000000-0000-0000-0000-000000000003', 'b2000000-0000-0000-0000-000000000001', 1,
       now() + interval '1 day', now() + interval '3 days', null)$$,
-  'P0002', null, 'no puede editar una promoción ajena'
+  'PT404', null, 'no puede editar una promoción ajena'
 );
 select is(
   (select count(*)::int from private.precios_promocion_sesion('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 100)),

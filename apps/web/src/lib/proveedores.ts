@@ -4,6 +4,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabaseClient } from './supabase'
 import { normalizarCuit, validarCuit } from './cuit'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 
 // Fila de dominio.proveedores tal como la lee la ficha.
 export type Proveedor = {
@@ -109,7 +110,7 @@ export function aParametrosCrear(formulario: FormularioProveedor): ParametrosCre
   }
 }
 
-// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, `PT412` ante conflicto, antes `40001`).
 export type ParametrosActualizarProveedor = ParametrosCrearProveedor & { p_id: string; p_actualizado_en: string }
 
 export function aParametrosActualizar(
@@ -138,7 +139,7 @@ export function esCuitRepetido(error: unknown): boolean {
 }
 
 export function esConflicto(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
@@ -146,8 +147,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, error)
   const code = (error as ErrorBase)?.code
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'El proveedor ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'El proveedor ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (esCuitRepetido(error)) return MENSAJE_CUIT_REPETIDO
   if (code === '22023' || code === '23514') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'

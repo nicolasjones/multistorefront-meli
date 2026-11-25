@@ -111,7 +111,7 @@ select is((select activo from dominio.productos where id = 'a1000000-0000-0000-0
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.cambiar_estado_producto('a1000000-0000-0000-0000-000000000001', false)$$,
-  'P0002', null, 'otra organización: no ve ni cambia productos ajenos'
+  'PT404', null, 'otra organización: no ve ni cambia productos ajenos'
 );
 reset role;
 select is((select activo from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001'), true, 'el producto ajeno quedó intacto');

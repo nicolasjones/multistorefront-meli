@@ -125,7 +125,7 @@ export function mensajeErrorRelacionados(error: unknown): string {
   console.error('No pudimos guardar los productos relacionados.', error)
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'No tenés permiso para editar los relacionados. Puede que tu rol haya cambiado: recargá la página.'
-  if (code === 'P0002') return 'Alguno de los productos ya no existe. Quitalo de la lista e intentá de nuevo.'
+  if (code === 'P0002' || code === 'PT404') return 'Alguno de los productos ya no existe. Quitalo de la lista e intentá de nuevo.'
   if (code === '22023') return 'La lista de relacionados no es válida: un producto no puede relacionarse consigo mismo ni repetirse.'
   return 'No pudimos guardar los productos relacionados. Probá de nuevo.'
 }

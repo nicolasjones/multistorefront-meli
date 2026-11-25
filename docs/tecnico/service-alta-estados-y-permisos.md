@@ -70,8 +70,7 @@ Cuatro tablas en `dominio` (Principio VII); roles y actividad siguen en `public`
 ## API (RPC de `public`)
 
 Todas con `revoke … from public, anon` y `grant execute … to authenticated`. Errores: `22023` validación (campo en
-`hint`), `42501` sin permiso, `40001` conflicto de edición, `55000` reparación anulada o cerrada, `P0002`
-inexistente, `23505` duplicado. `obtener_reparacion` responde `PT404` (HTTP 404) cuando la reparación no existe, es de otra organización o de una tienda no accesible, todas con la misma respuesta, y `42501` (403) sin la sección `service_tecnico` (`20270507180500_obtener_reparacion_responde_404.sql`; la pantalla trata `P0002` y `PT404` igual en `lib/reparaciones.ts`).
+`hint`), `42501` sin permiso, `55000` reparación anulada o cerrada, `23505` duplicado. El conflicto de edición y el «no existe» no llevan el mismo código en todas las funciones: ver [errores de negocio](../errores-negocio-postgrest.md). `obtener_reparacion` responde `PT404` (HTTP 404) cuando la reparación no existe, es de otra organización o de una tienda no accesible, todas con la misma respuesta, y `42501` (403) sin la sección `service_tecnico` (`20270507180500_obtener_reparacion_responde_404.sql`; la pantalla trata `P0002` y `PT404` igual en `lib/reparaciones.ts`).
 
 | RPC | Seguridad | Para qué |
 |---|---|---|

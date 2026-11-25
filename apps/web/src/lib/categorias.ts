@@ -283,6 +283,6 @@ export async function asignarCategoriaProducto(cliente: Pick<SupabaseClient, 'rp
 export function mensajeErrorCategoria(error: unknown, porDefecto: string): string {
   const mensaje = typeof error === 'object' && error !== null && 'message' in error ? String((error as { message: unknown }).message) : ''
   const codigo = typeof error === 'object' && error !== null && 'code' in error ? String((error as { code: unknown }).code) : ''
-  if (codigo === '23505' || codigo === '23514' || codigo === '22023' || codigo === 'P0002' || codigo === '42501') return mensaje || porDefecto
+  if (codigo === '23505' || codigo === '23514' || codigo === '22023' || codigo === 'P0002' || codigo === 'PT404' || codigo === '42501') return mensaje || porDefecto
   return porDefecto
 }

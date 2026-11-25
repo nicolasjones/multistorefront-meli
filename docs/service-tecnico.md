@@ -131,7 +131,7 @@ En ambas pantallas, con `edicion`, el botón «Editar» de cada fila abre el mis
 Todas son `security definer` (la tabla no admite escritura directa), fijan la organización desde la sesión, exigen
 `edicion` en `service_tecnico` (salvo las de lectura, que aceptan `lectura`) y llevan `revoke … from public, anon` +
 `grant execute … to authenticated`. Los errores de validación usan `22023` y llevan el campo afectado en `hint`;
-sin permiso `42501`; conflicto `40001`; anulada `55000`; inexistente `P0002`.
+sin permiso `42501`; anulada `55000`. El conflicto de edición y el «no existe» no llevan el mismo código en todas las funciones (por ejemplo `obtener_reparacion`): ver [errores de negocio](errores-negocio-postgrest.md).
 
 | RPC | Qué hace |
 |-----|----------|

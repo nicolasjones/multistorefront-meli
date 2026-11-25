@@ -152,8 +152,7 @@ con el conteo **directo** por categoría; el árbol suma las subcategorías en e
 
 ### RPC `public.definir_empresas_producto(p_producto_id uuid, p_empresa_ids uuid[])`
 
-- `security invoker` (rige RLS): exige `edicion` en `productos` (`42501`). Producto inexistente o de otra organización:
-  `P0002`. Empresa inexistente, ajena o valor nulo en la lista: `22023`, sin cambios parciales.
+- `security invoker` (rige RLS): exige `edicion` en `productos` (`42501`). Producto inexistente o de otra organización: «no existe» (código en [errores de negocio](../errores-negocio-postgrest.md)). Empresa inexistente, ajena o valor nulo en la lista: `22023`, sin cambios parciales.
 - Atómica e idempotente: calcula el delta, inserta lo que falta y borra lo que sobra en una transacción. Toma
   `pg_advisory_xact_lock` por producto para serializar dos guardados simultáneos. Devuelve cuántas empresas quedan.
 - `revoke ... public, anon` + `grant execute ... authenticated`.
@@ -197,10 +196,10 @@ Todas son `security invoker`, atómicas, toman el mismo candado asesor por organ
 
 | RPC | Contrato |
 |---|---|
-| `public.guardar_categoria(p_id uuid, p_nombre text, p_padre_id uuid, p_empresa_ids uuid[])` | Alta si `p_id` es nulo; edición si no. Devuelve el id. Nombre vacío o > 100 y empresas inválidas: `22023`; padre/categoría inexistente: `P0002`; nombre repetido en el nivel: `23505`; viola los dos niveles: `23514`. Reemplaza la visibilidad en la misma transacción. |
+| `public.guardar_categoria(p_id uuid, p_nombre text, p_padre_id uuid, p_empresa_ids uuid[])` | Alta si `p_id` es nulo; edición si no. Devuelve el id. Nombre vacío o > 100 y empresas inválidas: `22023`; padre/categoría inexistente («no existe», ver [errores de negocio](../errores-negocio-postgrest.md)); nombre repetido en el nivel: `23505`; viola los dos niveles: `23514`. Reemplaza la visibilidad en la misma transacción. |
 | `public.reordenar_categorias(p_orden jsonb)` | Recibe `[{id, padre_id, posicion}]`, valida que no haya ids repetidos ni valores inválidos y persiste padre/posición en una sola sentencia. Valida los dos niveles sobre el resultado. Devuelve cuántas filas cambiaron. |
 | `public.eliminar_categoria(p_id uuid)` | Sube las subcategorías a raíz, deja los productos sin categoría (`on delete set null (categoria_id)`) y borra la categoría. Devuelve `{productos, subcategorias}`. Si una subcategoría choca de nombre con una raíz, rechaza con `23505` y no borra nada. |
-| `public.asignar_categoria_producto(p_producto_id uuid, p_categoria_id uuid)` | Asigna o quita (`null`) la categoría. Exige `edicion` en `productos`; `P0002` si el producto o la categoría no existen o son de otra organización. Idempotente: el mismo valor no escribe ni deja evento. |
+| `public.asignar_categoria_producto(p_producto_id uuid, p_categoria_id uuid)` | Asigna o quita (`null`) la categoría. Exige `edicion` en `productos`; «no existe» (ver [errores de negocio](../errores-negocio-postgrest.md)) si el producto o la categoría no existen o son de otra organización. Idempotente: el mismo valor no escribe ni deja evento. |
 
 ### Datos y UI
 
