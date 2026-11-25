@@ -66,16 +66,16 @@ select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-0000
 select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000003', 1, 'aaaaaaaa-0000-0000-0000-000000000003')$$, '22023', null, 'RF-NL-17: sin suscriptores confirmados responde 22023');
 select is((select count(*)::int from dominio.campanas_correo where tipo = 'newsletter'), 0, 'sin destinatarios no se crea nada');
 select is((select enviada_en from dominio.newsletters where id = 'b1000000-0000-0000-0000-000000000003'), null, 'el newsletter sigue como borrador');
-select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 7, 'aaaaaaaa-0000-0000-0000-000000000001')$$, '40001', null, 'una versión vieja responde 40001');
+select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 7, 'aaaaaaaa-0000-0000-0000-000000000001')$$, 'PT412', null, 'una versión vieja responde PT412');
 select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 1, null)$$, '22023', null, 'la clave es obligatoria');
-select throws_ok($$select public.enviar_newsletter('99999999-9999-9999-9999-999999999999', 1, 'aaaaaaaa-0000-0000-0000-000000000009')$$, 'P0002', null, 'un newsletter inexistente = P0002');
+select throws_ok($$select public.enviar_newsletter('99999999-9999-9999-9999-999999999999', 1, 'aaaaaaaa-0000-0000-0000-000000000009')$$, 'PT404', null, 'un newsletter inexistente = PT404');
 
 insert into res select 'envio', public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 1, 'aaaaaaaa-0000-0000-0000-000000000001');
 select is((select j ->> 'destinatarios' from res where clave = 'envio'), '3', 'CA-NL-10: «Enviar a N» con N = confirmados de esa tienda');
 insert into res select 'repetido', public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 1, 'aaaaaaaa-0000-0000-0000-000000000001');
 select is((select j from res where clave = 'repetido'), (select j from res where clave = 'envio'), 'RF-NL-17: el doble clic (misma clave) devuelve la misma campaña');
 select is((select count(*)::int from dominio.campanas_correo where tipo = 'newsletter'), 1, 'una sola campaña');
-select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 2, 'aaaaaaaa-0000-0000-0000-000000000099')$$, '55000', null, 'otra clave sobre un envío cerrado = 55000');
+select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000001', 2, 'aaaaaaaa-0000-0000-0000-000000000099')$$, 'PT409', null, 'otra clave sobre un envío cerrado = PT409');
 select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000004', 1, 'aaaaaaaa-0000-0000-0000-000000000001')$$, '22023', null, 'una clave usada por otro newsletter se rechaza');
 
 reset role;
@@ -91,7 +91,7 @@ select is((select count(*)::int from public.registro_actividad where tipo = 'new
 
 -- Edición de lo enviado (CA-NL-12).
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.guardar_newsletter('b1000000-0000-0000-0000-000000000001', 2, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', false, false)$$, '55000', null, 'CA-NL-12: un newsletter enviado no se edita');
+select throws_ok($$select public.guardar_newsletter('b1000000-0000-0000-0000-000000000001', 2, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', false, false)$$, 'PT409', null, 'CA-NL-12: un newsletter enviado no se edita');
 
 -- Listado: borrador y enviando, con totales.
 insert into res select 'lista', public.listar_newsletters(null, null, 1, 25);
@@ -109,7 +109,7 @@ reset role;
 update dominio.campana_correo_destinatarios set estado = 'enviado', enviado_en = now() where suscriptor_id = '51000000-0000-0000-0000-000000000001';
 update dominio.campana_correo_destinatarios set reclamado_hasta = now() + interval '10 minutes' where suscriptor_id = '51000000-0000-0000-0000-000000000002';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000004')$$, '55000', null, 'no se cancela un borrador');
+select throws_ok($$select public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000004')$$, 'PT409', null, 'no se cancela un borrador');
 insert into res select 'cancel', public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000001');
 select is((select j ->> 'cancelados' from res where clave = 'cancel'), '1', 'RF-NL-18: solo se omite lo pendiente sin reclamo vigente');
 select is(public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000001') ->> 'cancelados', '0', 'cancelar dos veces es idempotente');
@@ -127,8 +127,8 @@ select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-0000
 select throws_ok($$select public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000001')$$, '42501', null, 'CA-NL-7: el lector no cancela');
 select is((public.listar_newsletters(null, null, 1, 25) ->> 'total')::int, 2, 'el lector ve solo los de su tienda');
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000004', 1, 'aaaaaaaa-0000-0000-0000-000000000006')$$, 'P0002', null, 'CA-NL-8: otra organización no envía');
-select throws_ok($$select public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'CA-NL-8: otra organización no cancela');
+select throws_ok($$select public.enviar_newsletter('b1000000-0000-0000-0000-000000000004', 1, 'aaaaaaaa-0000-0000-0000-000000000006')$$, 'PT404', null, 'CA-NL-8: otra organización no envía');
+select throws_ok($$select public.cancelar_envio_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'CA-NL-8: otra organización no cancela');
 select is((public.listar_newsletters(null, null, 1, 25) ->> 'total')::int, 0, 'CA-NL-8: otra organización no ve envíos ajenos');
 reset role;
 select is(has_function_privilege('anon', 'public.enviar_newsletter(uuid,integer,uuid)', 'execute'), false, 'anon no envía');

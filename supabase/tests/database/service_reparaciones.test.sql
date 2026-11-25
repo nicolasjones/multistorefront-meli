@@ -258,7 +258,7 @@ select is(
 select throws_ok(
   $$select public.actualizar_reparacion((select id from reps where clave = 'r3'), timestamptz '2000-01-01',
       'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos))$$,
-  '40001', null, 'una edición con un updated_at viejo es un conflicto');
+  'PT412', null, 'una edición con un updated_at viejo es un conflicto');
 
 select lives_ok(
   $$select public.actualizar_reparacion(
@@ -331,7 +331,7 @@ select throws_ok(
       (select id from reps where clave = 'r2'),
       (public.obtener_reparacion((select id from reps where clave = 'r2'))->>'updated_at')::timestamptz,
       'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos))$$,
-  '55000', null, 'una reparación anulada no se edita');
+  'PT409', null, 'una reparación anulada no se edita');
 
 -- ============================================================================
 -- Operador (edición sin ver_costos), una sola tienda
@@ -431,7 +431,7 @@ select throws_ok(
   'PT404', 'La reparación no existe', 'obtener una reparación ajena no revela que existe (MSF-638: 404)');
 select throws_ok(
   $$select public.actualizar_reparacion((select id from reps where clave = 'r1'), now(), 'c6000000-0000-0000-0000-000000000001', (select modelo_dos from datos))$$,
-  'P0002', null, 'editar una reparación ajena no encuentra nada');
+  'PT404', null, 'editar una reparación ajena no encuentra nada');
 select throws_ok(
   $$select public.crear_reparacion('a2000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000001', (select modelo_dos from datos))$$,
   '22023', null, 'la Dos no usa clientes de la Uno');

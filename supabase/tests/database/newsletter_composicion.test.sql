@@ -86,7 +86,7 @@ select is((select mensaje from dominio.newsletters where id = (select (valor ->>
 
 insert into ids select 'n1b', public.guardar_newsletter((select (valor ->> 'id')::uuid from ids where clave = 'n1'), 1, 'e1000000-0000-0000-0000-000000000001', 'Marzo', 'Novedades 2', 'Hola', true, true);
 select is((select valor ->> 'version' from ids where clave = 'n1b'), '2', 'actualizar sube la versión');
-select throws_ok(format($$select public.guardar_newsletter(%L, 1, 'e1000000-0000-0000-0000-000000000001', 'Marzo', 'Pisa', 'Hola', true, true)$$, (select valor ->> 'id' from ids where clave = 'n1')), '40001', null, 'RF-NL-14: una versión vieja responde 40001');
+select throws_ok(format($$select public.guardar_newsletter(%L, 1, 'e1000000-0000-0000-0000-000000000001', 'Marzo', 'Pisa', 'Hola', true, true)$$, (select valor ->> 'id' from ids where clave = 'n1')), 'PT412', null, 'RF-NL-14: una versión vieja responde PT412');
 select is((select asunto from dominio.newsletters where id = (select (valor ->> 'id')::uuid from ids where clave = 'n1')), 'Novedades 2', 'el borrador no se pisó');
 select throws_ok($$select public.guardar_newsletter(null, null, 'e1000000-0000-0000-0000-000000000001', '  ', 'A', 'B', true, true)$$, '22023', null, 'el nombre interno es obligatorio');
 select throws_ok($$select public.guardar_newsletter(null, null, 'e1000000-0000-0000-0000-000000000001', repeat('x', 101), 'A', 'B', true, true)$$, '22023', null, 'el nombre admite hasta 100');
@@ -94,14 +94,14 @@ select throws_ok(format($$select public.guardar_newsletter(null, null, 'e1000000
 select throws_ok(format($$select public.guardar_newsletter(null, null, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', %L, true, true)$$, repeat('x', 10001)), '22023', null, 'el mensaje admite hasta 10000');
 select throws_ok($$select public.guardar_newsletter(null, null, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', null, true)$$, '22023', null, 'las secciones son obligatorias');
 select throws_ok($$select public.guardar_newsletter(null, null, 'e2000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, 'P0002', null, 'CA-NL-8: la tienda de otra organización no existe');
-select throws_ok(format($$select public.guardar_newsletter(%L, 2, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, gen_random_uuid()), 'P0002', null, 'un borrador inexistente = P0002');
+select throws_ok(format($$select public.guardar_newsletter(%L, 2, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, gen_random_uuid()), 'PT404', null, 'un borrador inexistente = PT404');
 select is((select count(*)::int from public.registro_actividad where tipo = 'newsletter.guardar'), 2, 'RF-NL-24: cada guardado registra un evento');
 select is((select count(*)::int from public.registro_actividad where tipo like 'newsletter.%' and (detalle ilike '%Novedades%' or detalle ilike '%script%')), 0, 'los eventos no llevan asunto ni texto');
 
 -- Detalle
 select is(public.detalle_newsletter((select (valor ->> 'id')::uuid from ids where clave = 'n1')) ->> 'estado', 'borrador', 'detalle: estado borrador');
 select is(public.detalle_newsletter((select (valor ->> 'id')::uuid from ids where clave = 'n1')) ->> 'tienda', 'Tienda A', 'detalle: nombre de la tienda');
-select throws_ok(format($$select public.detalle_newsletter(%L)$$, gen_random_uuid()), 'P0002', null, 'detalle: inexistente = P0002');
+select throws_ok(format($$select public.detalle_newsletter(%L)$$, gen_random_uuid()), 'PT404', null, 'detalle: inexistente = PT404');
 
 -- Un enviado no se edita ni se descarta (CA-NL-12): se simula el envío como postgres.
 reset role;
@@ -110,10 +110,10 @@ values ('c1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-1111111
 insert into dominio.newsletters (id, organizacion_id, empresa_id, nombre_interno, asunto, mensaje, campana_id, enviada_en, contenido_enviado)
 values ('b1000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'Enviado', 'Enviado', 'Hola', 'c1000000-0000-0000-0000-000000000001', now(), '{}');
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
-select throws_ok($$select public.guardar_newsletter('b1000000-0000-0000-0000-000000000001', 1, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, '55000', null, 'CA-NL-12: un newsletter enviado no se edita');
-select throws_ok($$select public.descartar_newsletter('b1000000-0000-0000-0000-000000000001')$$, '55000', null, 'un newsletter enviado no se descarta');
+select throws_ok($$select public.guardar_newsletter('b1000000-0000-0000-0000-000000000001', 1, 'e1000000-0000-0000-0000-000000000001', 'N', 'A', 'B', true, true)$$, 'PT409', null, 'CA-NL-12: un newsletter enviado no se edita');
+select throws_ok($$select public.descartar_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'PT409', null, 'un newsletter enviado no se descarta');
 select is(public.descartar_newsletter((select (valor ->> 'id')::uuid from ids where clave = 'n1')), '{"ok":true}'::jsonb, 'descartar un borrador');
-select throws_ok(format($$select public.detalle_newsletter(%L)$$, (select valor ->> 'id' from ids where clave = 'n1')), 'P0002', null, 'el borrador descartado ya no existe');
+select throws_ok(format($$select public.detalle_newsletter(%L)$$, (select valor ->> 'id' from ids where clave = 'n1')), 'PT404', null, 'el borrador descartado ya no existe');
 
 -- ---- Vista previa y foto ----
 reset role;
@@ -185,8 +185,8 @@ select is((select count(*)::int from dominio.newsletters), 1, 'el lector ve solo
 
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from dominio.newsletters), 0, 'CA-NL-8: otra organización no ve newsletters ajenos');
-select throws_ok($$select public.detalle_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'CA-NL-8: ni su detalle');
-select throws_ok($$select public.descartar_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'CA-NL-8: ni lo descarta');
+select throws_ok($$select public.detalle_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'CA-NL-8: ni su detalle');
+select throws_ok($$select public.descartar_newsletter('b1000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'CA-NL-8: ni lo descarta');
 
 reset role;
 select is(has_function_privilege('anon', 'public.guardar_newsletter(uuid,integer,uuid,text,text,text,boolean,boolean)', 'execute'), false, 'anon no guarda');

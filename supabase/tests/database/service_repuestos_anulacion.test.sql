@@ -150,7 +150,7 @@ select ok(
   'la reparación queda anulada');
 select throws_ok(
   $$select public.anular_reparacion((select id from reps where clave = 'r1'), 'Otra vez')$$,
-  '55000', null, 'una anulada no se re-anula');
+  'PT409', null, 'una anulada no se re-anula');
 select is((select cantidad from dominio.existencias where producto_id = 'b1000000-0000-0000-0000-000000000001'), 6,
   'el intento de re-anular no devuelve de nuevo');
 
@@ -183,7 +183,7 @@ select throws_ok($$select public.anular_reparacion((select id from reps where cl
   '42501', null, 'consulta (lectura) no anula');
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.anular_reparacion((select id from reps where clave = 'r4'), 'x')$$,
-  'P0002', null, 'otra organización no ve la reparación');
+  'PT404', null, 'otra organización no ve la reparación');
 reset role;
 set local role anon;
 select throws_ok($$select public.anular_reparacion(gen_random_uuid(), 'x')$$,

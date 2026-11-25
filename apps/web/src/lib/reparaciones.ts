@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import { parsearImporte } from './serviceTecnico'
 
 // Reparaciones de Service técnico (F-SVC-02 y F-SVC-03). Todas las escrituras y la lectura de una reparación pasan
@@ -212,7 +212,7 @@ export function mensajeDeErrorReparacion(error: unknown, porDefecto: string): st
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_REPARACION
-  if (e?.code === '55000') return MENSAJE_ANULADA
+  if (esCodigoDeEstado(e?.code)) return MENSAJE_ANULADA
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa reparación ya no existe. Volvé al listado.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message

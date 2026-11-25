@@ -152,16 +152,16 @@ select is((select count(*)::int from dominio.comprobantes_venta where tipo = 'fa
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('P')), 'PT409', 'Aceptá el presupuesto antes de facturarlo', 'un presupuesto pendiente no se factura');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('V')), 'PT409', 'El presupuesto está vencido y no se puede facturar', 'un presupuesto vencido no se factura');
-select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('F')), 'P0002', null, 'una factura no es un presupuesto');
-select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('X')), 'P0002', null, 'un presupuesto de otra organización no existe');
+select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('F')), 'PT404', null, 'una factura no es un presupuesto');
+select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('X')), 'PT404', null, 'un presupuesto de otra organización no existe');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('D')), '42501', null, 'sin acceso a la tienda del presupuesto no se factura');
 select throws_ok($$select public.facturar_presupuesto(null)$$, '22023', null, 'sin presupuesto elegido falla con dato inválido');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('S')), '22023', 'El presupuesto no tiene líneas para facturar', 'un presupuesto sin líneas no se factura');
-select throws_ok($$select public.facturar_presupuesto('99999999-9999-9999-9999-999999999999')$$, 'P0002', null, 'un presupuesto inexistente no se factura');
+select throws_ok($$select public.facturar_presupuesto('99999999-9999-9999-9999-999999999999')$$, 'PT404', null, 'un presupuesto inexistente no se factura');
 select pg_temp.como('f1000000-0000-0000-0000-000000000003');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('A')), '42501', null, 'con lectura no se factura');
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
-select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('A')), 'P0002', null, 'la otra organización no ve el presupuesto');
+select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('A')), 'PT404', null, 'la otra organización no ve el presupuesto');
 
 reset role;
 update dominio.productos set activo = false where id = 'b1000000-0000-0000-0000-000000000002';

@@ -1,6 +1,7 @@
 // Newsletter de la tienda (MSF-468): tipos del contrato (`specs/20270328-100000-newsletter-de-la-tienda/contracts/newsletter.md`),
 // límites (los mismos que aplica la base) y textos del panel.
 import { ASUNTO_MAXIMO, MENSAJE_MAXIMO } from './correoMasivo'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 
 export { ASUNTO_MAXIMO, MENSAJE_MAXIMO }
 export const NOMBRE_INTERNO_MAXIMO = 100
@@ -89,8 +90,8 @@ type ErrorRpc = { message?: string; code?: string; hint?: string } | null | unde
 
 // Mensaje para quien opera; nunca el detalle técnico de la base.
 export function textoErrorNewsletter(error: ErrorRpc): string {
-  if (error?.code === '40001') return 'El borrador cambió desde otra pestaña. Recargá para ver la última versión.'
-  if (error?.code === '55000') return 'El newsletter no está habilitado o este envío ya salió.'
+  if (esCodigoDeConflicto(error?.code)) return 'El borrador cambió desde otra pestaña. Recargá para ver la última versión.'
+  if (esCodigoDeEstado(error?.code)) return 'El newsletter no está habilitado o este envío ya salió.'
   if (error?.code === '42501') return 'Tu rol no puede hacer esta acción.'
   if (error?.hint === 'sin_destinatarios') return 'Todavía no hay suscriptores confirmados.'
   if (error?.hint === 'tienda_apagada') return 'Activá el newsletter de la tienda antes de enviar.'

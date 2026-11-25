@@ -186,7 +186,7 @@ select throws_ok(
   '22023', null, 'un estado que cierra no se elige por el cambio de estado: va por la entrega');
 select throws_ok(
   $$select public.cambiar_estado_reparacion(gen_random_uuid(), (select diagnostico from datos))$$,
-  'P0002', null, 'una reparación inexistente se rechaza');
+  'PT404', null, 'una reparación inexistente se rechaza');
 reset role;
 update dominio.estados_reparacion set activo = false where id = (select reparacion from datos);
 select pg_temp.como('e1000000-0000-0000-0000-000000000001');
@@ -240,10 +240,10 @@ select is(
   3, 'la entrega no genera además reparacion.estado_cambiado');
 select throws_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r1'), (select diagnostico from datos))$$,
-  '55000', null, 'una reparación entregada no admite más cambios de estado');
+  'PT409', null, 'una reparación entregada no admite más cambios de estado');
 select throws_ok(
   $$select public.registrar_entrega_reparacion((select id from reps where clave = 'r1'), (select cierra_dos from datos), current_date, 'Otro')$$,
-  '55000', null, 'una reparación entregada no se entrega dos veces');
+  'PT409', null, 'una reparación entregada no se entrega dos veces');
 
 -- ============================================================================
 -- Anulación: motivo obligatorio, irreversible, solo lectura
@@ -270,19 +270,19 @@ select is(
   1, 'se registra reparacion.anulada');
 select throws_ok(
   $$select public.anular_reparacion((select id from reps where clave = 'r2'), 'Otra vez')$$,
-  '55000', null, 'la anulación no se repite ni se revierte');
+  'PT409', null, 'la anulación no se repite ni se revierte');
 select throws_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r2'), (select diagnostico from datos))$$,
-  '55000', null, 'una anulada no admite cambio de estado');
+  'PT409', null, 'una anulada no admite cambio de estado');
 select throws_ok(
   $$select public.registrar_entrega_reparacion((select id from reps where clave = 'r2'), (select cierra_uno from datos), current_date, 'Juan')$$,
-  '55000', null, 'una anulada no admite entrega');
+  'PT409', null, 'una anulada no admite entrega');
 select throws_ok(
   $$select public.actualizar_reparacion(
       (select id from reps where clave = 'r2'),
       (public.obtener_reparacion((select id from reps where clave = 'r2'))->>'updated_at')::timestamptz,
       'c5000000-0000-0000-0000-000000000001', (select modelo_uno from datos), '', null, '', '', null, null, null, null, null)$$,
-  '55000', null, 'una anulada es de solo lectura (no se edita)');
+  'PT409', null, 'una anulada es de solo lectura (no se edita)');
 
 -- ============================================================================
 -- Permisos por nivel
@@ -361,13 +361,13 @@ select throws_ok(
   'PT404', null, 'otra organización no lee el historial por la RPC');
 select throws_ok(
   $$select public.cambiar_estado_reparacion((select id from reps where clave = 'r3'), (select estado_dos from datos))$$,
-  'P0002', null, 'otra organización no cambia el estado de una reparación ajena');
+  'PT404', null, 'otra organización no cambia el estado de una reparación ajena');
 select throws_ok(
   $$select public.registrar_entrega_reparacion((select id from reps where clave = 'r3'), (select estado_dos from datos), current_date, 'x')$$,
-  'P0002', null, 'otra organización no registra la entrega de una reparación ajena');
+  'PT404', null, 'otra organización no registra la entrega de una reparación ajena');
 select throws_ok(
   $$select public.anular_reparacion((select id from reps where clave = 'r3'), 'x')$$,
-  'P0002', null, 'otra organización no anula una reparación ajena');
+  'PT404', null, 'otra organización no anula una reparación ajena');
 
 select * from finish();
 rollback;

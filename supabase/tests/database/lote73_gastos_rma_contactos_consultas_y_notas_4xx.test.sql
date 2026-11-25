@@ -122,7 +122,7 @@ select throws_ok($$select public.emitir_nota_credito('f1000000-0000-0000-0000-00
 select throws_ok($$select public.emitir_nota_credito('f1000000-0000-0000-0000-000000000002', 'devolucion_importe', '[{"importe_sin_iva": 100}]'::jsonb, 'Ajuste')$$,
   'PT409', 'La factura está anulada: no admite notas de crédito', 'emitir_nota_credito: una factura anulada no admite notas (409)');
 select throws_ok($$select public.emitir_nota_credito('ffffffff-0000-0000-0000-000000000000', 'devolucion_importe', '[{"importe_sin_iva": 100}]'::jsonb, 'Ajuste')$$,
-  'P0002', 'La factura no existe', 'emitir_nota_credito: una factura inexistente sigue con P0002 (fuera de esta ola)');
+  'PT404', 'La factura no existe', 'emitir_nota_credito: una factura inexistente responde 404');
 
 select throws_ok($$select public.rendir_envios_moto(array['e3000000-0000-0000-0000-000000000001']::uuid[])$$,
   'PT409', 'La factura 0001-00000002 fue anulada: su envío en moto no se puede rendir, no se rindió ninguno', 'rendir_envios_moto: el envío de una factura anulada no se rinde (409)');
@@ -136,7 +136,7 @@ select throws_ok($$select public.facturar_presupuesto('f1000000-0000-0000-0000-0
 select throws_ok($$select public.facturar_presupuesto('f1000000-0000-0000-0000-0000000000a2')$$,
   'PT409', 'El presupuesto está vencido y no se puede facturar', 'facturar_presupuesto: un presupuesto vencido no se factura (409)');
 select throws_ok($$select public.facturar_presupuesto('ffffffff-0000-0000-0000-000000000000')$$,
-  'P0002', 'El presupuesto no existe', 'facturar_presupuesto: un presupuesto inexistente sigue con P0002 (fuera de esta ola)');
+  'PT404', 'El presupuesto no existe', 'facturar_presupuesto: un presupuesto inexistente responde 404');
 
 -- ============================================================================
 -- Contactos y consultas

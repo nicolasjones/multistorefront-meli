@@ -419,9 +419,9 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('Q')),
-  'P0002', null, 'otra organización no ve la factura');
+  'PT404', null, 'otra organización no ve la factura');
 select throws_ok(format($$select public.detalle_anulacion_nota_credito(%L)$$, pg_temp.id_de('Q')),
-  'P0002', null, 'otra organización tampoco ve el detalle de anulación y notas');
+  'PT404', null, 'otra organización tampoco ve el detalle de anulación y notas');
 reset role;
 set local role anon;
 select throws_ok(format($$select public.emitir_nota_credito(%L, 'devolucion_importe', '[{"importe_sin_iva": 1}]'::jsonb, 'Ajuste')$$, pg_temp.id_de('Q')),

@@ -185,7 +185,7 @@ cliente (`avisar_cliente_reparacion`, `avisos_de_reparacion`, `obtener_enlace_co
 (`esCodigoDeConflicto` y el mapeo de cada módulo de Service).
 
 Funciones migradas por ola (las olas 1 a 8 usan `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
-bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; la ola 10 combina las tres conversiones según la función):
+bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`; las olas 10 y 11 combinan las tres conversiones según la función):
 
 | Ola | Migración | Funciones |
 |---|---|---|
@@ -199,15 +199,13 @@ bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`
 | 8 | `20270507430000` | `actualizar_modelo_equipo` (`PT404` y `PT412`), `cambiar_estado_modelo_equipo` (solo `PT404`), `actualizar_estado_reparacion` (`PT404` y `PT412`), `cambiar_estado_estado_reparacion` (solo `PT404`), `mover_estado_reparacion` (solo `PT404`), `historial_reparacion` (solo `PT404`), `listar_adjuntos_reparacion` (solo `PT404`), `comprobante_de_reparacion` (solo `PT404`), `obtener_vinculos_garantia` (solo `PT404`) |
 | 9 | `20270507440000` | `PT409` (antes `55000`): `confirmar_comprobante`, `anular_comprobante`, `cambiar_estado_comprobante`, `guardar_comprobante`, `guardar_lineas_comprobante`, `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `registrar_cobro`, `revertir_cobro`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (29 rechazos: 1 + 5 + 2 + 1 + 1 + 3 + 3 + 3 + 2 + 5 + 1 + 2, en el orden de la lista) |
 | 10 | `20270507450000` | `guardar_gasto` (`PT404` y `PT412`), `anular_gasto` (`PT404` y `PT412`), `cambiar_estado_rma` (`PT404` y `PT412`), `registrar_rma` (`PT404` y `PT409`), `reingresar_stock_rma` (`PT404` y `PT409`), `vincular_nota_credito_rma` (`PT404` y `PT409`), `rendir_envios_moto` (solo `PT409`), `emitir_nota_credito` (solo `PT409`), `facturar_presupuesto` (solo `PT409`), `actualizar_contacto` (solo `PT412`), `anonimizar_contacto` (solo `PT412`), `actualizar_consulta` (solo `PT412`), `guardar_correo_avisos_consultas` (solo `PT412`), `cambiar_estado_estado_consulta` (solo `PT404`), `renombrar_estado_consulta` (solo `PT404`) |
+| 11 | `20270507460000` | `emitir_nota_credito` (solo `PT404`), `facturar_presupuesto` (solo `PT404`), `confirmar_cotizacion` (solo `PT404`), `detalle_anulacion_nota_credito` (solo `PT404`), `borrar_datos_suscriptor_newsletter` (solo `PT404`), `dar_de_baja_suscriptor_newsletter` (solo `PT404`), `detalle_newsletter` (solo `PT404`), `cancelar_envio_newsletter` (`PT404` y `PT409`), `descartar_newsletter` (`PT404` y `PT409`), `enviar_newsletter` (`PT404`, `PT409` y `PT412`), `guardar_newsletter` (`PT404`, `PT409` y `PT412`), `actualizar_reparacion` (`PT404`, `PT409` y `PT412`), `anular_reparacion` (`PT404` y `PT409`), `cambiar_estado_reparacion` (`PT404` y `PT409`), `registrar_entrega_reparacion` (`PT404` y `PT409`), `generar_comprobante_reparacion` (`PT404` y `PT409`), `reingresar_por_garantia` (`PT404` y `PT409`) |
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los `comment on function` previos (los de la última migración anterior que los fijó, no los de la migración de la ola). Las migraciones ya aplicadas no se editan.
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service con `55000` o auxiliares de `private`, y del flujo de avisos y consulta pública `regenerar_enlace_consulta`, `avisos_de_reparacion` y `obtener_enlace_consulta`, que siguen con `P0002`; listas de precios, newsletter, variantes y operaciones masivas de productos, conciliación de pagos, etc.), los `P0002` de `emitir_nota_credito` y `facturar_presupuesto` (la ola 10 solo convirtió sus `55000`), los `55000` de las demás funciones (Service, newsletter, auxiliares de `private`; los de bandera apagada se quedan, y el de «figura como facturado pero no encontramos su factura» de `facturar_presupuesto`, que es una inconsistencia de datos), el `40001` con hint `precios_cambiaron` de
-`confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
-(`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
-`publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service y de newsletter con auxiliares de `private`: ítems y adjuntos de reparaciones, el flujo de avisos y consulta pública `regenerar_enlace_consulta` y `obtener_enlace_consulta`, y el `P0002` «La tienda no existe» del newsletter, que lanza `private.exigir_admin_newsletter`), `confirmar_comprobante` (contrato propio por hint `precios_cambiaron`), `previsualizar_cotizacion`, `detalle_campana_correo`, los `55000` de bandera apagada, los topes `54000` (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
 
 ## Novena ola: estado o regla de negocio que impide la acción, `55000` a `PT409` (MSF-599)
 
@@ -225,7 +223,7 @@ Se dejaron con `55000` a propósito:
 - **Lanzados por un auxiliar de `private`**: `private.registrar_cobro_interno` (lo usan `registrar_cobro` y
   `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, «La factura no está en un estado operativo: no admite cobros», borrador o anulada, sigue llegando `55000`),
   `private.marcar_estado_cobro_comprobante`, `private.abrir_contrarreembolso` y `private.aplicar_conciliacion`.
-- **Funciones no migradas todavía**: Service, newsletter (los `55000` de `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto` y RMA se convirtieron en la décima ola).
+- **Funciones no migradas todavía**: Service, newsletter (los `55000` de `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto` y RMA se convirtieron en la décima ola; los de estado de newsletter y Service, en la undécima).
 
 Efecto en el cliente: `lib/mensajeErrorBase.ts` exporta `esCodigoDeEstado` (`55000` o `PT409`) y lo usan los mapeos de comprobantes,
 confirmación, anulación, estados, despacho, envío, faltantes, cobros, envíos en moto y contrarreembolsos; muestran lo mismo con los dos
@@ -247,6 +245,23 @@ Lo que conserva el código anterior (bandera apagada, auxiliares de `private`, d
 Efecto en el cliente: los mapeos de gastos, devoluciones, notas de crédito, rendición de motos, facturación de presupuestos, consultas, contactos,
 correo de avisos y estados de consulta aceptan el código viejo y el nuevo (`esCodigoDeConflicto`, `esCodigoDeEstado`, `P0002` o `PT404`); test
 `lib/errores4xxGastosRmaContactosConsultas.test.ts` y pgTAP `lote73_gastos_rma_contactos_consultas_y_notas_4xx.test.sql`.
+
+## Undécima ola: notas de crédito, presupuestos, cotización, newsletter y Service (MSF-599)
+
+Aplica las tres conversiones (no existe, conflicto de edición y estado que no admite la acción) a las funciones de notas de crédito,
+facturación de presupuestos, confirmación de la cotización del dólar, newsletter y Service técnico (reparaciones). Qué código emite cada
+función está en la tabla de arriba (fila 11); mensaje, firma, `security definer`, `search_path` y grants no cambian. Ninguna es llamable
+por `anon` ni la consume Kestra, un worker o una Edge Function. Cada función parte de su definición vigente y solo cambia el errcode;
+cinco comentarios que nombraban el código viejo se actualizan.
+
+Se dejaron con el código anterior a propósito: la bandera apagada del newsletter, el `P0002` «La tienda no existe» del newsletter (lo lanza
+un auxiliar de `private` antes del cuerpo, por eso `guardar_newsletter_configuracion`, `solicitar_prueba_newsletter` y `vista_previa_newsletter`
+no se tocan), los ítems y adjuntos de reparaciones (validan con auxiliares de `private`), el flujo de avisos al cliente (lo consume
+Kestra y la consulta pública) y el hint `precios_cambiaron`.
+
+Efecto en el cliente: los mapeos de notas de crédito, cotización, newsletter, reparaciones, garantía y comprobante de reparación aceptan el
+código viejo y el nuevo (`esCodigoDeConflicto`, `esCodigoDeEstado`, `P0002` o `PT404`); test `lib/errores4xxNotasNewsletterService.test.ts` y
+pgTAP `lote74_notas_presupuestos_newsletter_y_service_4xx.test.sql`.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 
