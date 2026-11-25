@@ -387,14 +387,17 @@ describe('ProductoCreate', () => {
     expect(screen.queryByRole('button', { name: 'Crear producto' })).not.toBeInTheDocument()
   })
 
-  const elegir = (...archivos: File[]) =>
+  // La imagen se optimiza (asíncrono) antes de aparecer en la lista: se espera a que estén todas.
+  const elegir = async (...archivos: File[]) => {
     fireEvent.change(screen.getByTestId('entrada-imagenes'), { target: { files: archivos } })
+    await waitFor(() => expect(screen.getAllByRole('img', { name: /se sube al guardar/ })).toHaveLength(archivos.length))
+  }
   const png = (nombre: string) => new File(['x'], nombre, { type: 'image/png' })
 
   it('sube las imágenes elegidas al crear, con la ruta de su organización y producto', async () => {
     abrir()
     completar()
-    elegir(png('frente.png'), png('lado.png'))
+    await elegir(png('frente.png'), png('lado.png'))
     expect(screen.getByRole('img', { name: 'Imagen 1 (principal), se sube al guardar' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
@@ -409,7 +412,7 @@ describe('ProductoCreate', () => {
     mocks.subir.mockResolvedValueOnce({ error: { message: 'boom' } })
     abrir()
     completar()
-    elegir(png('frente.png'))
+    await elegir(png('frente.png'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
     expect(screen.getByText(/hubo problemas con las imágenes/)).toBeInTheDocument()
@@ -425,7 +428,7 @@ describe('ProductoCreate', () => {
     mocks.insertarImagen.mockResolvedValueOnce({ error: { code: '42501', message: 'rls' } })
     abrir()
     completar()
-    elegir(png('frente.png'))
+    await elegir(png('frente.png'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Tu rol no puede modificar las imágenes de este producto.')).toBeInTheDocument()
     expect(mocks.quitarArchivo).toHaveBeenCalledWith([mocks.subir.mock.calls[0][0]])
@@ -436,7 +439,7 @@ describe('ProductoCreate', () => {
     mocks.subir.mockResolvedValueOnce({ error: null }).mockResolvedValueOnce({ error: { message: 'boom' } })
     abrir()
     completar()
-    elegir(png('frente.png'), png('lado.png'))
+    await elegir(png('frente.png'), png('lado.png'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('No pudimos subir «lado.png».')).toBeInTheDocument()
     expect(mocks.insertarImagen).toHaveBeenCalledTimes(1)
@@ -452,7 +455,7 @@ describe('ProductoCreate', () => {
     mocks.subir.mockRejectedValueOnce(new Error('red caída'))
     abrir()
     completar()
-    elegir(png('frente.png'))
+    await elegir(png('frente.png'))
     fireEvent.click(screen.getByRole('button', { name: 'Crear producto' }))
     expect(await screen.findByText('Producto creado')).toBeInTheDocument()
     expect(screen.getByText('No pudimos subir «frente.png».')).toBeInTheDocument()

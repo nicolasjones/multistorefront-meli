@@ -37,6 +37,7 @@ describe('prepararImagen', () => {
   })
 
   it('rechaza de origen más de 15 MB pero admite exactamente 15 MB', async () => {
+    optimizar.mockResolvedValue(archivo('a.webp', 'image/webp', 100))
     expect(await prepararImagen(archivo('a.png', 'image/png', MAX_BYTES_ORIGEN_IMAGEN), 0)).toHaveProperty('archivo')
     expect(await prepararImagen(archivo('a.png', 'image/png', MAX_BYTES_ORIGEN_IMAGEN + 1), 0)).toEqual({ error: '«a.png» pesa más de 15 MB.' })
   })
