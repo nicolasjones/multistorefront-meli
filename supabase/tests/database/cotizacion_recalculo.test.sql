@@ -73,7 +73,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select is(private.a_pesos(20, 'USD', '11111111-1111-1111-1111-111111111111'), 20000::numeric, 'a_pesos sin aplicada: usa la cotización inicial');
 select is(private.a_pesos(1000, 'ARS', '11111111-1111-1111-1111-111111111111'), 1000::numeric, 'a_pesos: los pesos no se convierten');
 select throws_ok($$select public.previsualizar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'sin pendiente no hay vista previa');
-select throws_ok($$select public.confirmar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'sin pendiente no se confirma');
+select throws_ok($$select public.confirmar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'sin pendiente no se confirma');
 
 -- ============================================================================
 -- Vista previa (FR-009): por empresa, muestra hoy/nuevo, sin escribir
@@ -107,7 +107,7 @@ select is((select precios_recalculados from dominio.cotizaciones), 0, 'confirmar
 select is((select count(*)::int from dominio.cotizacion_aplicada), 0, 'confirmar 1005: no se toca la cotización aplicada');
 select is(private.a_pesos(20, 'USD', '11111111-1111-1111-1111-111111111111'), 20000::numeric, 'confirmar 1005: los precios no cambian');
 select is((select count(*)::int from dominio.cotizacion_pendiente), 0, 'confirmar borra la pendiente');
-select throws_ok($$select public.confirmar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'doble clic: la segunda confirmación no se aplica');
+select throws_ok($$select public.confirmar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'doble clic: la segunda confirmación no se aplica');
 select is((select count(*)::int from dominio.cotizaciones), 1, 'doble clic: no duplica el historial');
 select is((select (public.estado_cotizacion() -> 'vigente' ->> 'valor')::numeric), 1005::numeric, 'la cotización registrada pasa a ser la vigente');
 
@@ -161,7 +161,7 @@ update dominio.cotizacion_pendiente
   where organizacion_id = '11111111-1111-1111-1111-111111111111';
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
-select throws_ok($$select public.confirmar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'una pendiente vencida no se confirma');
+select throws_ok($$select public.confirmar_cotizacion()$$, 'PT404', 'sin_cotizacion_pendiente', 'una pendiente vencida no se confirma');
 select throws_ok($$select public.previsualizar_cotizacion()$$, 'P0002', 'sin_cotizacion_pendiente', 'una pendiente vencida no tiene vista previa');
 
 select lives_ok($$select public.cargar_cotizacion(1300)$$, 'cargar 1300');

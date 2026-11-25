@@ -1,4 +1,5 @@
 import { supabaseClient } from './supabase'
+import { esCodigoDeEstado } from './mensajeErrorBase'
 
 // Cobro de la reparación mediante un comprobante de Ventas (F-SVC-13, MSF-418, FR-001, FR-004, FR-009). La autoridad es
 // la base: `generar_comprobante_reparacion` valida permisos en Service y en Ventas, es idempotente y rechaza lo que
@@ -49,7 +50,7 @@ export function mensajeDeGenerarComprobante(error: unknown): string {
   const e = error as ErrorDeBase
   if (esMensajeDeLaRpc(e)) return e?.message as string
   if (e?.code === '42501') return MENSAJE_SIN_PERMISO_GENERAR
-  if (e?.code === '55000') return MENSAJE_REPARACION_ANULADA
+  if (esCodigoDeEstado(e?.code)) return MENSAJE_REPARACION_ANULADA
   if (e?.code === 'P0002' || e?.code === 'PT404') return MENSAJE_REPARACION_INEXISTENTE
   return MENSAJE_ERROR_GENERAR
 }

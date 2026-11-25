@@ -156,16 +156,16 @@ select throws_ok(
   '22023', null, 'una reparación sin ítems no genera comprobante');
 select throws_ok(
   format($$select public.generar_comprobante_reparacion(%L)$$, (select id from reps where clave = 'anulada')),
-  '55000', null, 'una reparación anulada no genera comprobante');
+  'PT409', null, 'una reparación anulada no genera comprobante');
 select throws_ok(
   format($$select public.generar_comprobante_reparacion(%L)$$, (select id from reps where clave = 'archivado')),
   '22023', null, 'un cliente archivado no permite generar el comprobante');
 select throws_ok(
   format($$select public.generar_comprobante_reparacion(%L)$$, (select id from reps where clave = 'otra_tienda')),
-  'P0002', null, 'una reparación de una tienda no accesible se rechaza');
+  'PT404', null, 'una reparación de una tienda no accesible se rechaza');
 select throws_ok(
   $$select public.generar_comprobante_reparacion('00000000-0000-0000-0000-000000000000')$$,
-  'P0002', null, 'una reparación inexistente se rechaza');
+  'PT404', null, 'una reparación inexistente se rechaza');
 
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
 select throws_ok(
@@ -183,7 +183,7 @@ select throws_ok(
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.generar_comprobante_reparacion(%L)$$, (select id from reps where clave = 'r1')),
-  'P0002', null, 'la organización dos no genera el comprobante de una reparación de la uno');
+  'PT404', null, 'la organización dos no genera el comprobante de una reparación de la uno');
 select throws_ok(
   format($$select public.comprobante_de_reparacion(%L)$$, (select id from reps where clave = 'r1')),
   'PT404', null, 'la organización dos no consulta el comprobante de una reparación de la uno');

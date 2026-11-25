@@ -80,14 +80,14 @@ select is(public.dar_de_baja_suscriptor_newsletter('a1000000-0000-0000-0000-0000
 select is(public.dar_de_baja_suscriptor_newsletter('a1000000-0000-0000-0000-000000000002'), '{"ok":true}'::jsonb, 'baja manual de un pendiente');
 select is((select count(*)::int from public.registro_actividad where tipo = 'newsletter.baja_manual'), 2, 'RF-NL-24: un evento por baja efectiva (la repetida no suma)');
 select is((select count(*)::int from public.registro_actividad where tipo like 'newsletter.%' and (detalle ilike '%@ejemplo.com%' or valor_nuevo::text ilike '%@%')), 0, 'RF-NL-24: ningún evento lleva correos');
-select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('a2000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'CA-NL-8: un suscriptor de otra organización no existe');
-select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('99999999-9999-9999-9999-999999999999')$$, 'P0002', null, 'un suscriptor inexistente = P0002');
+select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('a2000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'CA-NL-8: un suscriptor de otra organización no existe');
+select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('99999999-9999-9999-9999-999999999999')$$, 'PT404', null, 'un suscriptor inexistente = PT404');
 
 -- Borrar datos.
 select is(public.borrar_datos_suscriptor_newsletter('a1000000-0000-0000-0000-000000000004'), '{"ok":true}'::jsonb, 'borrar datos');
 select is((select count(*)::int from dominio.newsletter_suscriptores where id = 'a1000000-0000-0000-0000-000000000004'), 0, 'la fila se elimina');
-select throws_ok($$select public.borrar_datos_suscriptor_newsletter('a1000000-0000-0000-0000-000000000004')$$, 'P0002', null, 'borrar dos veces = P0002');
-select throws_ok($$select public.borrar_datos_suscriptor_newsletter('a2000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'CA-NL-8: no borra datos de otra organización');
+select throws_ok($$select public.borrar_datos_suscriptor_newsletter('a1000000-0000-0000-0000-000000000004')$$, 'PT404', null, 'borrar dos veces = PT404');
+select throws_ok($$select public.borrar_datos_suscriptor_newsletter('a2000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'CA-NL-8: no borra datos de otra organización');
 select is((select count(*)::int from public.registro_actividad where tipo = 'newsletter.datos_borrados'), 1, 'RF-NL-24: evento de borrado sin correo');
 
 -- Persona con solo lectura (consulta, tienda A): ve, no escribe (CA-NL-7).
@@ -118,7 +118,7 @@ select is((select count(*)::int from dominio.newsletter_suscriptores), 0, 'sin a
 -- Administrador de otra organización.
 select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((public.listar_suscriptores_newsletter(null, null, null, 1, 25) ->> 'total')::int, 1, 'CA-NL-8: el administrador de otra organización solo ve lo suyo');
-select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('a1000000-0000-0000-0000-000000000003')$$, 'P0002', null, 'CA-NL-8: ni toca suscriptores ajenos');
+select throws_ok($$select public.dar_de_baja_suscriptor_newsletter('a1000000-0000-0000-0000-000000000003')$$, 'PT404', null, 'CA-NL-8: ni toca suscriptores ajenos');
 
 -- anon no ejecuta las RPC del panel.
 reset role;

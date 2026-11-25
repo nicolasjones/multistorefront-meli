@@ -211,7 +211,7 @@ export function mensajeDeNotaCredito(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_NOTA, error)
   if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023' || esTopeDeNota(error)) && esMensajeDeLaRpc(e)) return e.message
-  if (e?.code === 'P0002') return 'Esa factura no existe o no pertenece a tu organización.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa factura no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_NOTA
 }
 

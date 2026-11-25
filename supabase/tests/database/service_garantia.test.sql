@@ -119,11 +119,11 @@ select public.anular_reparacion((select id from rg where clave = 'anulada'), 'Du
 
 -- No entregada o anulada: rechazada (55000, FR-024).
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Falla')$$, (select id from rg where clave = 'abierta')),
-  '55000', null, 'una reparación no entregada no se reingresa');
+  'PT409', null, 'una reparación no entregada no se reingresa');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Falla')$$, (select id from rg where clave = 'anulada')),
-  '55000', null, 'una reparación anulada no se reingresa');
+  'PT409', null, 'una reparación anulada no se reingresa');
 select throws_ok($$select public.reingresar_por_garantia(gen_random_uuid(), 'Falla')$$,
-  'P0002', null, 'un origen inexistente es P0002');
+  'PT404', null, 'un origen inexistente es PT404');
 
 -- Validaciones (22023 con hint).
 select throws_ok(format($$select public.reingresar_por_garantia(%L, '   ')$$, (select id from rg where clave = 'entregada')),
@@ -233,7 +233,7 @@ select pg_temp.como('e1000000-0000-0000-0000-000000000002');
 select lives_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'entregada')),
   'el operador reingresa en su tienda');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'tienda_b')),
-  'P0002', null, 'el operador no reingresa desde una tienda sin acceso (responde como una reparación inexistente)');
+  'PT404', null, 'el operador no reingresa desde una tienda sin acceso (responde como una reparación inexistente)');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'tienda_b')),
   'PT404', null, 'el operador no ve vínculos de una tienda sin acceso');
 
@@ -252,7 +252,7 @@ select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select
 -- Otra organización.
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Otra org')$$, (select id from rg where clave = 'entregada')),
-  'P0002', null, 'otra organización no reingresa');
+  'PT404', null, 'otra organización no reingresa');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'entregada')),
   'PT404', null, 'otra organización no ve vínculos');
 

@@ -278,7 +278,8 @@ export const requiereRevisarDeNuevo = (error: { code?: string; hint?: string | n
 // Mensaje claro para el usuario al confirmar o descartar; nunca el texto técnico de la base.
 export function mensajeDeErrorConfirmacion(error: { code?: string; hint?: string | null } | null | undefined): string {
   switch (error?.code) {
-    case 'P0002': return MENSAJE_COTIZACION_VENCIDA
+    case 'P0002':
+    case 'PT404': return MENSAJE_COTIZACION_VENCIDA
     case '42501': return 'Tu rol no puede confirmar la cotización del dólar.'
     // 22023 también es «falta empresa»: solo la variación inusual lleva este hint.
     case '22023':
