@@ -916,15 +916,15 @@
     },
     "docs/disenar-conector.md": {
       "title": "Diseñar un conector de integración",
-      "pageHash": "d652137773a1c1e337d434754771103ba0e5c6ea54160d50d1fc7d43bd5d6c20",
-      "sourceHash": "c68c4238ac23564e44e8b8955ee7ca3d9e852b380b6fdb3b937b118629048091",
-      "sourceAt": "e55825f7",
+      "pageHash": "3f92f0b3b06ec68592c02262b85fdf9d0d099533b3730ac28a6e303b23ba36a5",
+      "sourceHash": "5b0f8a084e50705a992bcb50c38314f8606d0bba48cded3134545984748e7494",
+      "sourceAt": "e55825f7e",
       "sources": [
         "workers/README.md",
         "workers/CONTRATO.md"
       ],
       "owner": "plataforma",
-      "commit": "e55825f7"
+      "commit": "e55825f7e"
     },
     "docs/documentacion-cambios.md": {
       "title": "Documentación obligatoria de cambios",
