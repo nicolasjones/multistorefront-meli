@@ -49,3 +49,10 @@ describe('llamadas a la base', () => {
     await expect(obtenerComprobanteDeReparacion('r1').catch(() => 'x')).resolves.toBe('x')
   })
 })
+
+describe('reparación inexistente: código viejo y nuevo', () => {
+  it.each(['P0002', 'PT404'])('el código %s se traduce al cargar y al generar el comprobante', (code) => {
+    expect(mensajeDeCargarComprobante({ code })).toBe(MENSAJE_REPARACION_INEXISTENTE)
+    expect(mensajeDeGenerarComprobante({ code })).toBe(MENSAJE_REPARACION_INEXISTENTE)
+  })
+})

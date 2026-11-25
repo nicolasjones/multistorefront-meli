@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('./supabase', () => ({ supabaseClient: {} }))
 
@@ -71,5 +71,19 @@ describe('mensajeDeErrorService', () => {
     expect(esModeloRepetido({ code: '23505', message: 'estados_reparacion_org_nombre_key' })).toBe(false)
     expect(esEstadoRepetido({ code: '23505', message: 'estados_reparacion_org_nombre_key' })).toBe(true)
     expect(esEstadoRepetido({ code: '42501', message: 'estados_reparacion_org_nombre_key' })).toBe(false)
+  })
+})
+
+describe('mensajeDeErrorService: código viejo y nuevo de las RPC de Service', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  it.each(['40001', 'PT412'])('el conflicto de edición %s pide recargar', (code) => {
+    expect(mensajeDeErrorService({ code }, 'x')).toBe(MENSAJE_CONFLICTO)
+  })
+
+  it.each(['P0002', 'PT404'])('el registro inexistente %s se explica', (code) => {
+    expect(mensajeDeErrorService({ code }, 'x')).toContain('ya no existe')
   })
 })

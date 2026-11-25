@@ -304,7 +304,7 @@ select throws_ok(format($$select public.registrar_adjunto_reparacion(%L, %L, 'o.
   (select id from reps where clave = 'otra_tienda'), pg_temp.ruta('11111111-1111-1111-1111-111111111111', (select id from reps where clave = 'otra_tienda'), 2)),
   'P0002', null, 'tienda inaccesible: se trata como inexistente');
 select throws_ok(format($$select public.listar_adjuntos_reparacion(%L)$$, (select id from reps where clave = 'otra_tienda')),
-  'P0002', null, 'tienda inaccesible: no se lista');
+  'PT404', null, 'tienda inaccesible: no se lista');
 select throws_ok(format($$select public.quitar_adjunto_reparacion(%L)$$, (select id from adj where clave = 'tiendaB')),
   'P0002', null, 'tienda inaccesible: no se quita');
 select is((select count(*)::int from dominio.reparacion_adjuntos where reparacion_id = (select id from reps where clave = 'otra_tienda')), 0,
@@ -343,7 +343,7 @@ select throws_ok(format($$select public.listar_adjuntos_reparacion(%L)$$, (selec
 -- Otra organización.
 select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.listar_adjuntos_reparacion(%L)$$, (select id from reps where clave = 'r2')),
-  'P0002', null, 'otra organización no lista');
+  'PT404', null, 'otra organización no lista');
 select throws_ok(format($$select public.quitar_adjunto_reparacion(%L)$$, (select id from adj where clave = 'anu')),
   'P0002', null, 'otra organización no quita');
 select is((select count(*)::int from dominio.reparacion_adjuntos), 0, 'otra organización no ve filas');

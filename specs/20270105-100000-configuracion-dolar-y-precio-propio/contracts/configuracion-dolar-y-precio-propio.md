@@ -1,5 +1,7 @@
 # Contratos: Configuración dólar y precio propio (MSF-352)
 
+> Nota: las RPC migradas responden `PT404`/`PT412` según [docs/errores-negocio-postgrest.md](../../../docs/errores-negocio-postgrest.md); este contrato conserva los códigos originales.
+
 Todas viven en `public`, con `revoke execute … from public, anon` y `grant execute … to authenticated`. Permisos: `private.nivel_seccion('cotizacion_dolar')` (F-PRE-06) y `private.nivel_seccion('productos')` (F-PRE-08).
 
 ## F-PRE-06

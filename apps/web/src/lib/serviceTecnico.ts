@@ -2,6 +2,7 @@
 // migraciones 20261020100100…20261020100500; acá se espejan solo para validar el formulario antes de viajar
 // (la autoridad es la base) y para traducir los errores a mensajes claros.
 import { formatearImporte } from './formatoImporte'
+import { esCodigoDeConflicto } from './mensajeErrorBase'
 import { supabaseClient } from './supabase'
 
 export type ModeloEquipo = {
@@ -108,9 +109,9 @@ export function mensajeDeErrorService(error: unknown, porDefecto: string): strin
   console.error(porDefecto, error)
   const code = (error as ErrorDeBase)?.code
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
-  if (code === '40001') return MENSAJE_CONFLICTO
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
   if (code === '22023') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'
-  if (code === 'P0002') return 'Ese registro ya no existe. Recargá la página.'
+  if (code === 'P0002' || code === 'PT404') return 'Ese registro ya no existe. Recargá la página.'
   if (esModeloRepetido(error)) return MENSAJE_MODELO_REPETIDO
   if (esEstadoRepetido(error)) return MENSAJE_ESTADO_REPETIDO
   if (code === '23505') return 'Ya existe un registro igual.'
@@ -154,7 +155,7 @@ export async function crearModelo(formulario: FormularioModelo): Promise<void> {
   lanzarSiHayError(error)
 }
 
-// Edición con bloqueo optimista: viaja el updated_at que leyó la pantalla; si cambió, la base responde 40001.
+// Edición con bloqueo optimista: viaja el updated_at que leyó la pantalla; si cambió, la base responde conflicto (`40001` o `PT412`).
 export async function actualizarModelo(modelo: ModeloEquipo, formulario: FormularioModelo): Promise<void> {
   const { error } = await supabaseClient.rpc('actualizar_modelo_equipo', {
     p_id: modelo.id,

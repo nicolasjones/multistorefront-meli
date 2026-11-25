@@ -50,13 +50,13 @@ export function mensajeDeGenerarComprobante(error: unknown): string {
   if (esMensajeDeLaRpc(e)) return e?.message as string
   if (e?.code === '42501') return MENSAJE_SIN_PERMISO_GENERAR
   if (e?.code === '55000') return MENSAJE_REPARACION_ANULADA
-  if (e?.code === 'P0002') return MENSAJE_REPARACION_INEXISTENTE
+  if (e?.code === 'P0002' || e?.code === 'PT404') return MENSAJE_REPARACION_INEXISTENTE
   return MENSAJE_ERROR_GENERAR
 }
 
 export function mensajeDeCargarComprobante(error: unknown): string {
   const e = error as ErrorDeBase
-  if (e?.code === 'P0002') return MENSAJE_REPARACION_INEXISTENTE
+  if (e?.code === 'P0002' || e?.code === 'PT404') return MENSAJE_REPARACION_INEXISTENTE
   if (e?.code === '42501') return 'Tu rol no puede ver el comprobante de esta reparación.'
   return MENSAJE_ERROR_CARGAR_COMPROBANTE
 }

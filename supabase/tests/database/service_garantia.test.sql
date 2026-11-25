@@ -222,7 +222,7 @@ select is(public.obtener_vinculos_garantia((select id from rg where clave = 'ent
   'cada reingreso informa su estado');
 select is(public.obtener_vinculos_garantia((select id from rg where clave = 'abierta')),
   '{"origen": null, "reingresos": []}'::jsonb, 'sin vínculos devuelve origen nulo y lista vacía');
-select throws_ok($$select public.obtener_vinculos_garantia(gen_random_uuid())$$, 'P0002', null, 'vínculos de una reparación inexistente es P0002');
+select throws_ok($$select public.obtener_vinculos_garantia(gen_random_uuid())$$, 'PT404', null, 'vínculos de una reparación inexistente es PT404');
 
 -- ============================================================================
 -- Permisos y aislamiento
@@ -235,7 +235,7 @@ select lives_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Operador')$$, (select id from rg where clave = 'tienda_b')),
   'P0002', null, 'el operador no reingresa desde una tienda sin acceso (responde como una reparación inexistente)');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'tienda_b')),
-  'P0002', null, 'el operador no ve vínculos de una tienda sin acceso');
+  'PT404', null, 'el operador no ve vínculos de una tienda sin acceso');
 
 -- Consulta (lectura): ve los vínculos, no reingresa.
 select pg_temp.como('e1000000-0000-0000-0000-000000000003');
@@ -254,7 +254,7 @@ select pg_temp.como('e2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.reingresar_por_garantia(%L, 'Otra org')$$, (select id from rg where clave = 'entregada')),
   'P0002', null, 'otra organización no reingresa');
 select throws_ok(format($$select public.obtener_vinculos_garantia(%L)$$, (select id from rg where clave = 'entregada')),
-  'P0002', null, 'otra organización no ve vínculos');
+  'PT404', null, 'otra organización no ve vínculos');
 
 -- anon.
 reset role;

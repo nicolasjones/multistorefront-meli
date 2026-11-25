@@ -115,10 +115,10 @@ organización y por relleno de las existentes. No pisa lo que la organización y
 | RPC | Qué hace |
 |-----|----------|
 | `crear_modelo_equipo(equipo, modelo, mano_obra_base)` | Alta. Duplicado → `23505`. |
-| `actualizar_modelo_equipo(id, actualizado_en, equipo, modelo, mano_obra_base)` | Edición con bloqueo optimista (`40001` si cambió). |
+| `actualizar_modelo_equipo(id, actualizado_en, equipo, modelo, mano_obra_base)` | Edición con bloqueo optimista (conflicto de edición si cambió; código en [errores de negocio](errores-negocio-postgrest.md)). |
 | `cambiar_estado_modelo_equipo(id, activo)` | Activa/desactiva; idempotente. |
 | `crear_estado_reparacion(nombre, descripcion, avisa_cliente)` | Alta al final del orden (serializada por organización). |
-| `actualizar_estado_reparacion(id, actualizado_en, nombre, descripcion, avisa_cliente)` | Edición con bloqueo optimista. |
+| `actualizar_estado_reparacion(id, actualizado_en, nombre, descripcion, avisa_cliente)` | Edición con bloqueo optimista (mismo código de conflicto). |
 | `mover_estado_reparacion(id, 'subir' \| 'bajar')` | Intercambia `orden` con el vecino en una sola sentencia; en un extremo no hace nada. |
 | `cambiar_estado_estado_reparacion(id, activo)` | Activa/desactiva; idempotente. |
 
@@ -131,7 +131,7 @@ En ambas pantallas, con `edicion`, el botón «Editar» de cada fila abre el mis
 Todas son `security definer` (la tabla no admite escritura directa), fijan la organización desde la sesión, exigen
 `edicion` en `service_tecnico` (salvo las de lectura, que aceptan `lectura`) y llevan `revoke … from public, anon` +
 `grant execute … to authenticated`. Los errores de validación usan `22023` y llevan el campo afectado en `hint`;
-sin permiso `42501`; anulada `55000`. El conflicto de edición y el «no existe» no llevan el mismo código en todas las funciones (por ejemplo `obtener_reparacion`): ver [errores de negocio](errores-negocio-postgrest.md).
+sin permiso `42501`; anulada `55000`. El conflicto de edición y el «no existe» no llevan el mismo código en todas las funciones (por ejemplo `obtener_reparacion`, `historial_reparacion` y los catálogos de modelos y estados): ver [errores de negocio](errores-negocio-postgrest.md).
 
 | RPC | Qué hace |
 |-----|----------|

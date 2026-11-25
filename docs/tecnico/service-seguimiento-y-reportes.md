@@ -77,7 +77,7 @@ erDiagram
 | Bucket `reparacion-adjuntos` (privado, 5 MB, jpeg/png/webp) y políticas de `storage.objects` | plataforma | `20270219140200`, `20270219140600` | `select` lectura/edición; `insert`/`delete` edición; sin `update` |
 | `registrar_adjunto_reparacion`, `quitar_adjunto_reparacion`, `listar_adjuntos_reparacion` | `public` | `20270219140300`, `…0400`, `…0500` | `authenticated`; máximo 20 por reparación bajo `for update`; anulada → `55000`; el registro compara tipo y tamaño con los metadatos (`mimetype`, `size`) que Storage guardó del objeto |
 | `reparaciones.reparacion_origen_id` | `dominio` | `20270219150100` | FK compuesta, `check (origen <> id)`, sin escritura directa |
-| `reingresar_por_garantia`, `obtener_vinculos_garantia` | `public` | `20270219150200`, `…0300` | `authenticated`; origen entregado y no anulado (`55000`); origen inexistente, de otra organización o de tienda inaccesible → `P0002` (antes `42501`) |
+| `reingresar_por_garantia`, `obtener_vinculos_garantia` | `public` | `20270219150200`, `…0300` | `authenticated`; origen entregado y no anulado (`55000`); origen inexistente, de otra organización o de tienda inaccesible (antes `42501`; `reingresar_por_garantia` responde `P0002` y `obtener_vinculos_garantia` el código de [errores de negocio](../errores-negocio-postgrest.md)) |
 | `reparacion_enlaces_consulta` | `dominio` | `20270219160100` | RLS sin políticas ni grants |
 | `obtener_enlace_consulta` | `public` | `20270219160200` | `authenticated`, exige `edicion`; idempotente; reparación inexistente o de tienda inaccesible → `P0002` (antes `42501`) |
 | `consultas_publicas_intentos`, `registrar_consulta_publica` | `public` | `20270219160300` | RLS sin políticas; función solo `service_role` |

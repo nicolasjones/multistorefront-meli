@@ -345,3 +345,18 @@ describe('Estado, entrega y anulación (F-SVC-03)', () => {
     expect(errorDeCampoDe({ code: '42501' }, ['motivo'] as const)).toBeNull()
   })
 })
+
+describe('conflicto y reparación inexistente: código viejo y nuevo', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  })
+
+  it.each(['40001', 'PT412'])('el conflicto de edición %s se reconoce y se traduce', (code) => {
+    expect(esConflictoDeEdicion({ code })).toBe(true)
+    expect(mensajeDeErrorReparacion({ code }, 'x')).toBe(MENSAJE_CONFLICTO_REPARACION)
+  })
+
+  it.each(['P0002', 'PT404'])('la reparación inexistente %s se traduce', (code) => {
+    expect(mensajeDeErrorReparacion({ code }, 'x')).toContain('ya no existe')
+  })
+})

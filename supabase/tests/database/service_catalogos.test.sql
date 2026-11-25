@@ -215,7 +215,7 @@ select throws_ok(
   $$select public.actualizar_modelo_equipo(
       (select id from dominio.modelos_equipo where modelo = '2 Pro'),
       '2000-01-01'::timestamptz, 'Nintendo Switch', '2 Pro', 1)$$,
-  '40001', null, 'bloqueo optimista: un updated_at viejo se rechaza'
+  'PT412', null, 'bloqueo optimista: un updated_at viejo se rechaza'
 );
 select is(
   (select mano_obra_base from dominio.modelos_equipo where modelo = '2 Pro'),
@@ -224,7 +224,7 @@ select is(
 select throws_ok(
   $$select public.actualizar_modelo_equipo(
       (select modelo_id from ajenos), now(), 'X', 'X', 1)$$,
-  'P0002', null, 'no alcanza un modelo de otra organización'
+  'PT404', null, 'no alcanza un modelo de otra organización'
 );
 
 select lives_ok(
@@ -334,7 +334,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.mover_estado_reparacion((select estado_id from ajenos), 'subir')$$,
-  'P0002', null, 'no mueve un estado de otra organización'
+  'PT404', null, 'no mueve un estado de otra organización'
 );
 select is(
   (select count(*) from public.registro_actividad where tipo = 'estado.reordenado')::int,
@@ -356,7 +356,7 @@ select throws_ok(
   $$select public.actualizar_estado_reparacion(
       (select id from dominio.estados_reparacion where nombre = 'Presupuesto aceptado'),
       '2000-01-01'::timestamptz, 'Otro', '', false)$$,
-  '40001', null, 'bloqueo optimista: un updated_at viejo se rechaza'
+  'PT412', null, 'bloqueo optimista: un updated_at viejo se rechaza'
 );
 select lives_ok(
   $$select public.cambiar_estado_estado_reparacion((select id from dominio.estados_reparacion where nombre = 'Presupuesto aceptado'), false)$$,

@@ -81,7 +81,7 @@ export function mensajeDeErrorAdjunto(error: unknown, porDefecto: string): strin
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'No tenés permiso para modificar las fotos. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === '55000') return 'La reparación está anulada: las fotos son de solo lectura.'
-  if (e?.code === 'P0002') return 'Esa reparación o esa foto ya no existe. Recargá la página.'
+  if (e?.code === 'P0002' || e?.code === 'PT404') return 'Esa reparación o esa foto ya no existe. Recargá la página.'
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
 }

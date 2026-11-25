@@ -14,7 +14,7 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-import { EDAD_MINIMA_HUERFANO_MS, limpiarHuerfanos, quitarAdjunto, subirAdjunto } from './reparacionAdjuntos'
+import { EDAD_MINIMA_HUERFANO_MS, limpiarHuerfanos, mensajeDeErrorAdjunto, quitarAdjunto, subirAdjunto } from './reparacionAdjuntos'
 
 const ORG = '11111111-1111-4111-8111-111111111111'
 const REP = '22222222-2222-4222-8222-222222222222'
@@ -110,5 +110,12 @@ describe('adjuntos de reparación: objetos sin fila (huérfanos)', () => {
     expect(((await promesa) as unknown as { code?: string }).code).toBe('55000')
     expect(mocks.remove).toHaveBeenCalledTimes(1)
     expect(String(mocks.remove.mock.calls[0][0][0])).toMatch(new RegExp(`^${ORG}/${REP}/[0-9a-f-]{36}\\.png$`))
+  })
+})
+
+describe('mensajeDeErrorAdjunto: inexistente con código viejo y nuevo', () => {
+  it.each(['P0002', 'PT404'])('el código %s se traduce', (code) => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    expect(mensajeDeErrorAdjunto({ code }, 'x')).toContain('ya no existe')
   })
 })
