@@ -627,7 +627,20 @@ describe('ciclo OpenAI', () => {
 describe('cableado de index.ts', () => {
   // index.ts corre en Deno y no se puede importar acá: se fija por texto qué cliente se usa para qué.
   const fuente = readFileSync(new URL('./index.ts', import.meta.url), 'utf8')
-  const bloque = (desde: string, hasta: string) => fuente.slice(fuente.indexOf(desde), fuente.indexOf(hasta))
+  // Falla con un mensaje claro si falta un ancla (slice con índice -1 devolvería texto equivocado sin avisar).
+  const bloque = (desde: string, hasta: string) => {
+    const i = fuente.indexOf(desde)
+    assert.ok(i >= 0, `index.ts: falta el ancla «${desde}»`)
+    const j = fuente.indexOf(hasta, i + 1)
+    assert.ok(j > i, `index.ts: falta el ancla «${hasta}» después de «${desde}»`)
+    return fuente.slice(i, j)
+  }
+  // Bloque `deps` completo; cada propiedad se busca por regex dentro de él, sin depender del orden.
+  const deps = (() => {
+    const m = /const deps: Deps = \{([\s\S]*?)\n  \}\n/.exec(fuente)
+    assert.ok(m, 'index.ts: falta el bloque `const deps: Deps = { ... }`')
+    return m[1]
+  })()
 
   it('la service-role solo aparece en el cliente admin; el cliente del usuario usa anon + el JWT', () => {
     assert.equal((fuente.match(/SERVICE_ROLE/g) ?? []).length, 1)
@@ -642,6 +655,14 @@ describe('cableado de index.ts', () => {
     assert.match(fuente, /limiteHora: \(\) => Deno\.env\.get\('CHAT_IA_LIMITE_HORA'\)/)
     assert.match(fuente, /const SYSTEM_PROMPT = Deno\.env\.get\('CHAT_COMPANION_SYSTEM_PROMPT'\)/)
     assert.match(fuente, /fetchProveedor: \(limiteSegundos\) => fetchConTimeout\(limiteSegundos\)/)
+  })
+
+  it('deps pasa el prepararInvocacion real, el reloj real y el prompt configurable, y se delega en manejar', () => {
+    assert.match(deps, /^\s+prepararInvocacion,\s*$/m)
+    assert.match(deps, /^\s+ahora: \(\) => Date\.now\(\),\s*$/m)
+    assert.match(deps, /^\s+systemPrompt: SYSTEM_PROMPT,\s*$/m)
+    assert.match(fuente, /^import \{ prepararInvocacion \} from '\.\.\/_shared\/ia\/index\.ts'$/m)
+    assert.match(fuente, /^\s+return manejar\(req, deps\)\s*$/m)
   })
 
   it('handler.ts no lee entorno ni crea clientes, y las acciones solo se proponen por RPC del usuario', () => {
