@@ -128,10 +128,39 @@ describe('optimizarImagen', () => {
       expect(sim.crear).toHaveBeenCalled()
     })
 
-    it('si el encabezado no se puede leer sigue con la degradación segura', async () => {
-      simular({ ancho: 10, alto: 10, bytesSalida: 1 })
-      const original = archivo('a.png', 'image/png', 50_000)
-      await expect(optimizarImagen(original)).resolves.toBeDefined()
+    const ascii = (t: string) => [...t].map((c) => c.charCodeAt(0))
+    const riff = (forma: string, resto: number[]) => conBytes([...ascii('RIFF'), 0, 0, 0, 0, ...ascii('WEBP'), ...ascii(forma), 0, 0, 0, 0, ...resto, 0, 0, 0, 0, 0, 0, 0, 0], 'image/webp')
+    const webpVp8l = (ancho: number, alto: number) => {
+      const bits = (ancho - 1) | ((alto - 1) << 14)
+      return riff('VP8L', [0x2f, bits & 255, (bits >> 8) & 255, (bits >> 16) & 255, (bits >>> 24) & 255])
+    }
+    const webpVp8 = (ancho: number, alto: number) => riff('VP8 ', [0, 0, 0, 0x9d, 0x01, 0x2a, ancho & 255, ancho >> 8, alto & 255, alto >> 8])
+    const sof = (marcador: number, ancho: number, alto: number) => [0xff, marcador, 0, 11, 8, alto >> 8, alto & 255, ancho >> 8, ancho & 255, 1, 0, 0, 0]
+
+    it.each([
+      ['WebP VP8L', webpVp8l(12000, 12000), webpVp8l(9000, 9000)],
+      ['WebP VP8 lossy', webpVp8(12000, 12000), webpVp8(9000, 9000)],
+      ['JPEG progresivo (SOF2)', conBytes([0xff, 0xd8, ...sof(0xc2, 12000, 12000)], 'image/jpeg'), conBytes([0xff, 0xd8, ...sof(0xc2, 9000, 9000)], 'image/jpeg')],
+      ['JPEG con marcadores sin longitud antes del SOF', conBytes([0xff, 0xd8, 0xff, 0xd0, 0xff, 0x01, 0xff, 0xd1, ...sof(0xc0, 12000, 12000)], 'image/jpeg'), conBytes([0xff, 0xd8, 0xff, 0xd0, 0xff, 0x01, 0xff, 0xd1, ...sof(0xc0, 9000, 9000)], 'image/jpeg')],
+    ])('%s: sobre el límite se rechaza y bajo el límite pasa', async (_nombre, sobre, bajo) => {
+      const sim = simular({ ancho: 10, alto: 10, bytesSalida: 1 })
+      await expect(optimizarImagen(sobre)).rejects.toBeInstanceOf(ImagenDemasiadoGrandeError)
+      expect(sim.crear).not.toHaveBeenCalled()
+      await optimizarImagen(bajo)
+      expect(sim.crear).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+      ['PNG de menos de 24 bytes', conBytes([0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52, 0xff, 0xff], 'image/png')],
+      ['WebP de menos de 30 bytes', conBytes([...ascii('RIFF'), 0, 0, 0, 0, ...ascii('WEBPVP8X'), 0, 0, 0, 0, 0xff, 0xff], 'image/webp')],
+      ['JPEG cortado antes del SOF', conBytes([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0, 0, 0, 0, 0, 0], 'image/jpeg')],
+      ['JPEG con basura donde debería ir un marcador', conBytes([0xff, 0xd8, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 'image/jpeg')],
+      ['archivo vacío', conBytes([], 'image/png')],
+    ])('encabezado ilegible (%s): sigue con la degradación segura, sin error y sin rechazar', async (_nombre, truncado) => {
+      const sim = simular({ ancho: 10, alto: 10, bytesSalida: 1_000_000 })
+      // El resultado simulado no es más chico que el original: se conserva el original.
+      await expect(optimizarImagen(truncado)).resolves.toBe(truncado)
+      expect(sim.crear).toHaveBeenCalledTimes(1)
     })
   })
 })

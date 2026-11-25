@@ -96,7 +96,7 @@ Como persona con permiso de edición, quiero corregir los datos de un producto.
 
 Como persona con permiso de edición, quiero subir las fotos de un producto, en el alta y en la edición.
 
-**Independent Test**: subir 4 imágenes válidas, intentar una quinta, una de 3 MB y un PDF; ver que solo las válidas quedan y la primera es la principal.
+**Independent Test**: subir 4 imágenes válidas, intentar una quinta, una de más de 15 MB (o una que aun optimizada pase de 2 MB) y un PDF; ver que solo las válidas quedan y la primera es la principal.
 
 **Acceptance Scenarios**:
 1. **Given** un producto, **When** se eligen imágenes JPG, PNG o WebP de hasta 15 MB, **Then** se optimizan en el navegador (WebP, 1600 px) y, si el resultado pesa hasta 2 MB, quedan asociadas, con hasta **4** por producto; la primera es la principal.

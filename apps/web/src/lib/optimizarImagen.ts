@@ -33,13 +33,17 @@ function dimensionesDeEncabezado(b: Uint8Array): { ancho: number; alto: number }
     return null
   }
   if (b[0] === 0xff && b[1] === 0xd8) {
+    // Solo se leen los primeros BYTES_ENCABEZADO: un JPEG con más de 256 KB de metadatos (APPn) antes del
+    // SOF no se detecta acá y cae en la degradación segura (solo afecta a quien sube ese archivo).
     let i = 2
     while (i + 9 < b.length) {
       if (b[i] !== 0xff) return null
       const marcador = b[i + 1]
       if (marcador === 0xff) { i += 1; continue }
       if (marcador >= 0xc0 && marcador <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marcador)) return { alto: v.getUint16(i + 5), ancho: v.getUint16(i + 7) }
-      i += 2 + v.getUint16(i + 2)
+      // Marcadores sin longitud (TEM, RSTn, SOI, EOI): se avanza solo los 2 bytes del marcador.
+      if (marcador === 0x01 || (marcador >= 0xd0 && marcador <= 0xd9)) { i += 2; continue }
+      i += 2 + Math.max(2, v.getUint16(i + 2))
     }
   }
   return null
