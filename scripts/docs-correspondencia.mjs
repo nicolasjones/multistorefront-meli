@@ -4,18 +4,18 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-export const RUTAS_CODIGO = /^(apps|workers|supabase|infra|scripts|packages|\.github)\//;
+const RUTAS_CODIGO = /^(apps|workers|supabase|infra|scripts|packages|\.github)\//;
 // Fuera de la correspondencia: tests, fixtures/snapshots, lockfiles y migraciones (las cubre verificar-migraciones).
 const TRIVIAL = /(\.(test|spec)\.[cm]?[jt]sx?$|(^|\/)(__tests__|__snapshots__|tests?|e2e|fixtures)\/|\.snap$|(^|\/)(pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^supabase\/migrations\/)/;
 // Un `sources:` que apunta a más de este número de rutas es demasiado amplio para exigir su doc.
-export const MAX_FUENTES_POR_DOC = 40;
+const MAX_FUENTES_POR_DOC = 40;
 
 // Fuentes que abarcan un área entera (`infra`, `.github/workflows`): no identifican un doc concreto.
 const esFuenteAmplia = (fuente) => fuente.split('/').length < 2 || fuente === '.github/workflows';
 
-export const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ruta);
+const esArchivoRelevante = (ruta) => RUTAS_CODIGO.test(ruta) && !TRIVIAL.test(ruta);
 
-export function fuentesDeDoc(texto) {
+function fuentesDeDoc(texto) {
   const m = texto.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return [];
   const fuentes = [];
