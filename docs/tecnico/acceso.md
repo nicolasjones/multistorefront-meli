@@ -11,12 +11,15 @@ sources:
   - supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql
   - supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql
   - supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql
+  - supabase/migrations/20270507600000_acl_por_defecto_authenticated_sin_truncate_references_trigger.sql
   - supabase/tests/database/bloqueo_servidor.test.sql
   - supabase/tests/database/estado_usuario.test.sql
   - supabase/tests/database/cortar_sesiones_suspendido.test.sql
   - supabase/tests/database/rls_en_toda_tabla.test.sql
   - supabase/tests/database/aislamiento_organizaciones.test.sql
   - supabase/tests/database/privilegios_anon_endurecidos.test.sql
+  - supabase/tests/database/acl_por_defecto_authenticated.test.sql
+  - supabase/tests/database/lote42_superficie_global_seguridad.test.sql
   - supabase/config.toml
   - apps/web/src/providers/authProvider.ts
   - apps/web/src/pages/login.tsx
@@ -120,6 +123,16 @@ funciones, tablas y secuencias que nazcan después en `public`.
 Regla para el equipo: **toda RPC nueva lleva `grant execute ... to authenticated` explícito**, y toda función
 nueva en `public` nace con `revoke execute ... from public, anon` (ver `CLAUDE.md`). El test pgTAP
 `estado_usuario` falla si `anon` ejecuta algo fuera de las RPC de acceso.
+
+**Garantías globales (MSF-669 / MSF-670).** El pgTAP `lote42_superficie_global_seguridad` ya cubre en toda la base que
+(1) toda función `security definer` de `public`, `private`, `publico`, `dominio` y `analitica` fija `search_path = ''` y
+(2) `anon` solo ejecuta en `publico` una lista cerrada de RPC de la tienda pública: una función nueva abierta a `anon`
+rompe ese test. Además `20270507600000` retira de los privilegios por defecto de `postgres` en `public` (y `dominio`, si
+existieran) `TRUNCATE`, `REFERENCES` y `TRIGGER` (y `MAINTAIN` en PG 17+) para `authenticated`: antes cada tabla nueva
+volvía a nacer con ellos aunque `20270304100000` los hubiera quitado de las existentes. SELECT/INSERT/UPDATE/DELETE por
+defecto no se tocan (cada migración da su `grant` explícito y RLS gobierna las filas) y `service_role` queda igual. El
+pgTAP `acl_por_defecto_authenticated` crea tablas nuevas y lo verifica. Reversión: `alter default privileges for role
+postgres in schema public grant truncate, references, trigger on tables to authenticated;`.
 
 **MSF-130 (interés por WhatsApp)** sumó una RPC (hoy interna, solo `service_role`, MSF-657; la tienda no la llama):
 `publico.registrar_interes_whatsapp(host text, producto_id uuid)` fue ejecutable por `anon` y `authenticated`; **desde `20270507150100` (MSF-657) solo la ejecuta `service_role`** (no tenía cuota ni idempotencia y la tienda usa `registrar_consulta_whatsapp`). Vive en el esquema **`publico`** (no en `public`), así que **no** entra en la lista de RPC de `public`

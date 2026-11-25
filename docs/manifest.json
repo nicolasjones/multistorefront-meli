@@ -11,9 +11,9 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "c97a495188dbcc1336c083fbe51d60f03c72ebbd7d2437a12650f3109170710c",
+      "pageHash": "66f4bb83eef57a595f239d118921eef62d1e5adef9ab9a86e0b609faba549c92",
       "sourceHash": "360c5bf6492da259941dd32b98348ee0015c0d46bb38adbb1808c64ef7a2d374",
-      "sourceAt": "e55825f7",
+      "sourceAt": "f6d79ffda",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "apps/web/src/pages/login.tsx",
@@ -31,7 +31,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "producto",
-      "commit": "e55825f7"
+      "commit": "f6d79ffda"
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
@@ -56,7 +56,7 @@
     "docs/actividad.md": {
       "title": "Actividad e historial (F-AUD-01)",
       "pageHash": "dfab3a28408328987a55bac4447bdb3d28445ed4df1660d699f5f94804208965",
-      "sourceHash": "561094ef18bfe0c9d70152ced2afae2b3b1ae7023ad1e7d580c872eb5491642b",
+      "sourceHash": "6970c48c6c70b0572943f8c69eea12f2e6ffe80f440ad976e26c196b894c53b1",
       "sourceAt": "656cd661d",
       "sources": [
         "specs/20261016-120000-actividad-y-ambientes",
@@ -1510,9 +1510,9 @@
     },
     "docs/operar-sistema.md": {
       "title": "Operar el sistema",
-      "pageHash": "cc2080e32e2ce0c1269eab11a5b0d81671c7d70c49b9a9de6e266332c32b39ab",
-      "sourceHash": "412194bfb540b588afa73142791fe0c6052f7048e3f4a0504226b5cfd2af2e86",
-      "sourceAt": "6776fb4d",
+      "pageHash": "a6764039dee4cc860e42c98a19c086a85d8b2ba10b8d1a90e130c9b444e9f40c",
+      "sourceHash": "2d48bc28efb07dd4f3b9c58eab24e7dfb2148cc983483cc7a376ac7227e13f31",
+      "sourceAt": "6776fb4d3",
       "sources": [
         "infra/kestra/flows/alertas.yml",
         "infra/kestra/flows/limpieza-evidencia.yml",
@@ -1527,7 +1527,7 @@
         "package.json"
       ],
       "owner": "operacion",
-      "commit": "6776fb4d"
+      "commit": "6776fb4d3"
     },
     "docs/operar-superset.md": {
       "title": "Operar Superset local",
@@ -1781,7 +1781,7 @@
     "docs/producto/catalogo-compatibilidad-y-planillas.md": {
       "title": "Productos: filtrar por compatible, importar y exportar planillas",
       "pageHash": "2477a44479f2cec0208fb52ee3a0023f858ab4af2803bb242f9dd720fa0f31b5",
-      "sourceHash": "523e004ae7ba25ea120420f59176d8746d7f037c66e6b97ccc614ccf600a42f1",
+      "sourceHash": "599f7505f3d0e76ad4b53fdad85642f534aa21ff85388466c16d7a361b29f4fb",
       "sourceAt": "0c49705a0",
       "sources": [
         "workers/importar-productos/src",
@@ -3016,7 +3016,7 @@
     "docs/service-avisos.md": {
       "title": "Service técnico · Avisos al cliente por cambio de estado",
       "pageHash": "e283c24b1a052dfff50cc7cb66084292685dca766e36eef2f026f440972251b2",
-      "sourceHash": "0c6de98d891062bb83878140a1827227f7a998c93d92016938cc0278827ce8d3",
+      "sourceHash": "3ab73b2a001588c045c9c7eccb591e24e64a6b227d46476ae495f326bd4aaf6c",
       "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
@@ -3665,9 +3665,9 @@
     },
     "docs/tecnico/acceso.md": {
       "title": "Acceso y organización: modelo, contratos y operación (MSF-119)",
-      "pageHash": "7836808ed4d807c74a71309c67813f6e27eb3a46a95cda7d4c81af1f79ed9aa3",
-      "sourceHash": "41f2c2175112f0b4fbe0263122c6d16b8219d5e5ed965f00eb5ba3e77b306a48",
-      "sourceAt": "e55825f7",
+      "pageHash": "67f5900d156114e260d6ca37d675bac5c4132ba12a5b0427304625cf4dd979ce",
+      "sourceHash": "251e54e35100643136b1acea8622a4bbcafdaea7d848842631b7d03d097be5e5",
+      "sourceAt": "f6d79ffda",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "supabase/migrations/20261012140100_usuarios_organizacion_estado.sql",
@@ -3679,12 +3679,15 @@
         "supabase/migrations/20261014100000_bloqueo_acceso_en_servidor.sql",
         "supabase/migrations/20270201200101_cortar_sesiones_miembro_removido.sql",
         "supabase/migrations/20270304100000_endurecer_privilegios_anon_y_plataforma_ia.sql",
+        "supabase/migrations/20270507600000_acl_por_defecto_authenticated_sin_truncate_references_trigger.sql",
         "supabase/tests/database/bloqueo_servidor.test.sql",
         "supabase/tests/database/estado_usuario.test.sql",
         "supabase/tests/database/cortar_sesiones_suspendido.test.sql",
         "supabase/tests/database/rls_en_toda_tabla.test.sql",
         "supabase/tests/database/aislamiento_organizaciones.test.sql",
         "supabase/tests/database/privilegios_anon_endurecidos.test.sql",
+        "supabase/tests/database/acl_por_defecto_authenticated.test.sql",
+        "supabase/tests/database/lote42_superficie_global_seguridad.test.sql",
         "supabase/config.toml",
         "apps/web/src/providers/authProvider.ts",
         "apps/web/src/pages/login.tsx",
@@ -3698,7 +3701,7 @@
         "scripts/verificar-hook-bloqueo.e2e.mjs"
       ],
       "owner": "tecnico",
-      "commit": "e55825f7"
+      "commit": "f6d79ffda"
     },
     "docs/tecnico/administracion-organizacion.md": {
       "title": "Administración de usuarios y organización: técnico (MSF-132)",
@@ -5159,7 +5162,7 @@
     "docs/tecnico/service-cobro-y-avisos.md": {
       "title": "Service técnico: cobro, avisos y ficha del cliente (técnico, MSF-232)",
       "pageHash": "237fc54f73af281861798928106e99ac4f5bc9d102c30e8c15d51eadf99ca0c2",
-      "sourceHash": "06a7a4351378dee9147a6c237e6e7c86629192516b22f479e7f209e167997703",
+      "sourceHash": "7f2f4a54eb5cd4fbb4100eb32a2d84a8c59875fbbc36c2aadd32b3653b51f4bb",
       "sourceAt": "13a71003a",
       "sources": [
         "specs/20261028-100000-service-cobro-y-avisos",
@@ -6378,7 +6381,7 @@
     "docs/ventas-despacho.md": {
       "title": "Ventas · Despacho: armado, control y entrega (F-VTA-15, F-VTA-16, F-VTA-17)",
       "pageHash": "e283a560e8ef65821704ecbfa0a33bd6218490b0174a11dda68e1b3198be0864",
-      "sourceHash": "ee9079effcd46917c503e561efe46f8ee7e9397f40c20fd17baad240a5f88e23",
+      "sourceHash": "417af46804ced26e36e6bfb82b229d5e09c5f05db248806ebd54a75218d8d319",
       "sourceAt": "722df3204",
       "sources": [
         "specs/20261024-130000-ventas-despacho-y-faltantes",

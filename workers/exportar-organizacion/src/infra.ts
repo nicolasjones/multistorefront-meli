@@ -14,8 +14,20 @@ function evento(ejecucion: string, etapa: string, estado: string, mensaje?: stri
   console.log(JSON.stringify(linea));
 }
 
+// Topes de Postgres (MSF-871): sin ellos una conexión o consulta trabada deja al worker colgado hasta el timeout de Kestra.
+// Configurables por entorno (milisegundos, entero entre 1 y 2147483647); un valor ausente, inválido o fuera de rango usa el default seguro.
+const topeMs = (valor: string | undefined, porDefecto: number): number => {
+  const n = Number(valor);
+  return Number.isInteger(n) && n >= 1 && n <= 2_147_483_647 ? n : porDefecto;
+};
+
 export function crearPuertos(env: Record<string, string | undefined>): { puertos: Puertos; cerrar: () => Promise<void> } {
-  const pool = new pg.Pool({ max: 1 });
+  const pool = new pg.Pool({
+    max: 1,
+    statement_timeout: topeMs(env.WORKER_PG_STATEMENT_TIMEOUT_MS, 300_000),
+    connectionTimeoutMillis: topeMs(env.WORKER_PG_CONNECT_TIMEOUT_MS, 10_000),
+    idleTimeoutMillis: topeMs(env.WORKER_PG_IDLE_TIMEOUT_MS, 30_000),
+  });
   const baseUrl = (env.SUPABASE_URL ?? '').replace(/\/+$/, '');
   const clave = env.SUPABASE_SERVICE_ROLE_KEY ?? '';
   const ejecucionLog = env.EJECUCION_ID ?? env.KESTRA_EJECUCION_ID ?? 'desconocida';
