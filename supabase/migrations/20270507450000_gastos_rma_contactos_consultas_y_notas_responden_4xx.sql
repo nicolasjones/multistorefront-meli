@@ -29,7 +29,7 @@
 --
 -- Migración aditiva (create or replace). Reversión: volver a aplicar, en una migración nueva, la definición vigente indicada
 -- sobre cada función (en el cuerpo, `PT404` vuelve a `P0002`, `PT412` a `40001` y `PT409` a `55000`) y restaurar los comentarios
--- de guardar_gasto y anular_gasto (20270349000100), actualizar_consulta (20261205100200), guardar_correo_avisos_consultas
+-- de guardar_gasto y anular_gasto (20270349000100), actualizar_consulta (comentario en 20261205100200; cuerpo vigente en 20261205100500), guardar_correo_avisos_consultas
 -- (20261205200000), actualizar_contacto (20270201100200), anonimizar_contacto (20270201100500) y rendir_envios_moto
 -- (20270228110100). Las migraciones ya aplicadas no se editan.
 

@@ -241,9 +241,8 @@ gastos, devoluciones (RMA), contactos de clientes, consultas y sus estados, y co
 Edge Function (el script de datos de demostración llama a dos, sin leer el código de error). Cada función parte de su definición vigente
 y la migración conserva el texto de los comentarios salvo el código que mencionan.
 
-Se dejaron con el código anterior a propósito: los de bandera apagada, los auxiliares de `private` (por ejemplo el cobro interno que usa la
-rendición de motos), el rechazo de datos inconsistentes de `facturar_presupuesto` y el `40001` con hint `precios_cambiaron`, que lanza el
-auxiliar de la guarda de precios. `emitir_nota_credito` y `facturar_presupuesto` conservan además su «no existe» hasta una ola próxima.
+Lo que conserva el código anterior (bandera apagada, auxiliares de `private`, datos inconsistentes, hint `precios_cambiaron`, «no existe» de
+`emitir_nota_credito` y `facturar_presupuesto`) está en la fila 10 de la tabla y en «Queda para próximas olas».
 
 Efecto en el cliente: los mapeos de gastos, devoluciones, notas de crédito, rendición de motos, facturación de presupuestos, consultas, contactos,
 correo de avisos y estados de consulta aceptan el código viejo y el nuevo (`esCodigoDeConflicto`, `esCodigoDeEstado`, `P0002` o `PT404`); test
