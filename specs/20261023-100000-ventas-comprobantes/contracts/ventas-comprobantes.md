@@ -1,5 +1,7 @@
 # Contratos · Ventas comprobantes (MSF-159)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 Todas las RPC: esquema `public`, `security definer`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` en su migración. La organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento. Cada una exige `ventas` en `edicion` en la empresa del comprobante, salvo las de lectura (`lectura`). Los errores usan `42501` (permiso), `22023` (dato inválido), `P0001`/`40001` (conflicto o stock), con mensaje en castellano.
 
 ## F-VTA-05

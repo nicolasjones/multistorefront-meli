@@ -1,5 +1,7 @@
 # Contratos · Ventas cobros y conciliación (MSF-195)
 
+> Nota: Las RPC migradas responden `PT404`/`PT412` en lugar de `P0002`/`40001` según `docs/errores-negocio-postgrest.md` (el cliente acepta ambos códigos); el contrato original se conserva como histórico y lo que sigue con `P0002`/`40001` está en «Queda para próximas olas» de esa página.
+
 Todas las RPC: esquema `public`, `set search_path = ''`, `revoke execute ... from public, anon` y `grant execute ... to authenticated` en su migración (las de lectura `security invoker`; las de escritura `security definer`). La organización y el actor salen de la sesión (`private.organizacion_id()`, `auth.uid()`), nunca de un argumento. Las de escritura exigen `ventas` en `edicion` en la empresa del comprobante más la acción indicada. Errores: `42501` (permiso), `22023` (dato inválido), `55000` (estado no válido), `P0001`/`40001` (conflicto o tope), con mensaje en castellano. Los tipos exactos de totales se verifican contra `main` al implementar. Todo es **nuevo**: no cambia la firma de nada existente (sin `BREAKING`).
 
 ## F-VTA-12 · Cobros por comprobante

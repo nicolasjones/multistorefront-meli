@@ -21,8 +21,9 @@ const TIENDA = { host: 'mundojc.localhost', organizacion: '0f5eed00-0000-4000-80
 const puerto = new URL(process.env.E2E_BASE_URL ?? `http://localhost:${Number(process.env.WEB_PORT) || 4300}`).port
 const origen = `http://${TIENDA.host}:${puerto}`
 
-// Datos únicos por intento: la marca va en el correo y permite limpiar sin tocar a nadie más. Se genera en `beforeAll` (no al cargar el
-// módulo): con `retries: 1` el reintento de un grupo serial vuelve a correr `beforeAll`, así que no reusa los correos de la primera pasada.
+// Datos únicos por intento: la marca va en el correo y permite limpiar sin tocar a nadie más. Se genera en `beforeAll` y no al cargar el
+// módulo para que cada ejecución del `beforeAll` (incluido el reintento del grupo serial) tenga correos propios y la limpieza solo
+// alcance los de esa ejecución.
 let MARCA = ''
 const marcaNueva = () => `e2e-nl-${Date.now().toString(36)}-${randomBytes(3).toString('hex')}`
 const correoDe = (nombre: string) => `${nombre}-${MARCA}@example.com`
@@ -135,7 +136,12 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
   // restaura siempre en último lugar y, si algún paso falló, se informa al final.
   test.afterAll(async () => {
     if (banderaPrevia === null) return
+    const bandera = banderaPrevia
     const fallos: unknown[] = []
+    // `borrar` no lanza ante un error HTTP (solo avisa por consola): acá se convierte en fallo para que entre en el `AggregateError`.
+    const borrarOFalla = async (ruta: string, esquema: string) => {
+      if (!(await borrar(ruta, esquema))) throw new Error(`DELETE ${ruta} falló`)
+    }
     const paso = async (accion: () => Promise<unknown>) => {
       try {
         await accion()
@@ -143,19 +149,19 @@ test.describe('Tienda · newsletter: suscripción, confirmación y baja', () => 
         fallos.push(error)
       }
     }
-    if (campanaId) await paso(() => borrar(`campanas_correo?id=eq.${campanaId}`, 'dominio'))
-    await paso(() => borrar(`newsletter_suscriptores?empresa_id=eq.${TIENDA.empresa}&correo=like.*-${MARCA}@example.com`, 'dominio'))
+    if (campanaId) await paso(() => borrarOFalla(`campanas_correo?id=eq.${campanaId}`, 'dominio'))
+    await paso(() => borrarOFalla(`newsletter_suscriptores?empresa_id=eq.${TIENDA.empresa}&correo=like.*-${MARCA}@example.com`, 'dominio'))
     // Mismo motivo que en `beforeAll`: no se puede acotar a esta corrida; se deja el cupo en cero para los specs que siguen.
-    await paso(() => borrar(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio'))
+    await paso(() => borrarOFalla(`tienda_envios?empresa_id=eq.${TIENDA.empresa}`, 'dominio'))
     if (configuracionPrevia !== null) {
       const previa = configuracionPrevia
       await paso(() =>
         previa.length === 0
-          ? borrar(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
+          ? borrarOFalla(`newsletter_configuracion?empresa_id=eq.${TIENDA.empresa}`, 'dominio')
           : rest('newsletter_configuracion?on_conflict=empresa_id', [{ empresa_id: TIENDA.empresa, organizacion_id: TIENDA.organizacion, activo: previa[0].activo }], 'dominio', UPSERT_FUSIONAR),
       )
     }
-    await paso(() => fijarBanderaPlataforma('newsletter', banderaPrevia))
+    await paso(() => fijarBanderaPlataforma('newsletter', bandera))
     if (fallos.length > 0) throw new AggregateError(fallos, 'La limpieza del E2E de newsletter falló en algún paso')
   })
 
