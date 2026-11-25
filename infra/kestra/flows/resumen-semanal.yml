@@ -59,3 +59,5 @@ triggers:
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "*/15 * * * *"
     timezone: America/Argentina/Buenos_Aires
+    # Sondeo frecuente e idempotente: tras una caída de Kestra no se reproducen las corridas perdidas (la siguiente retoma lo pendiente).
+    recoverMissedSchedules: NONE

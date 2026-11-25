@@ -129,3 +129,5 @@ triggers:
   - id: cada_minuto
     type: io.kestra.plugin.core.trigger.Schedule
     cron: "* * * * *"
+    # Sondeo frecuente e idempotente: tras una caída de Kestra no se reproducen las corridas perdidas (la siguiente retoma lo pendiente).
+    recoverMissedSchedules: NONE
