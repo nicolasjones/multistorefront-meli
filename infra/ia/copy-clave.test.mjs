@@ -59,5 +59,12 @@ test('el script rechaza una clave corta antes de tocar Docker y sin eco de la cl
     // La clave vacía ya la rechaza `requireEnvironment` (variable ausente); las demás, la validación de largo.
     const esperado = corta === '' ? 'Falta la variable de entorno requerida IA_PROVEEDOR_CLAVE.' : MENSAJE_CORTA;
     assert.ok(r.stderr.includes(esperado), `clave de ${corta.length} caracteres: ${r.stderr}`);
+    if (corta.length >= 2 && !esperado.includes(corta)) {
+      assert.ok(!r.stderr.includes(corta) && !r.stdout.includes(corta), `eco de la clave de ${corta.length} caracteres`);
+    } else {
+      // '' y 'a' son subcadenas triviales del mensaje: se compara la línea de error exacta.
+      const linea = r.stderr.split('\n').find((l) => l.startsWith('Error: '));
+      assert.equal(linea, `Error: ${esperado}`);
+    }
   }
 });

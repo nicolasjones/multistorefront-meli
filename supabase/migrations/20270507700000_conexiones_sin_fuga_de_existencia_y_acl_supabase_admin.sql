@@ -5,7 +5,9 @@
 --     REFERENCES y TRIGGER (y MAINTAIN en PG 17+) para `authenticated`. Se extiende el mismo `revoke` a
 --     `for role supabase_admin in schema public|dominio`, con el patrón de 20261013130000: SOLO si el rol existe y quien migra
 --     es miembro suyo (si no, `alter default privileges for role` falla por falta de permiso). Si no puede, la migración sigue
---     con un aviso (`raise notice`) y el entorno queda como estaba; en local y en producción puede diferir. Reaplicable:
+--     con un aviso (`raise notice`) y el entorno queda como estaba; en local y en producción puede diferir. El `revoke` vive en
+--     `private.endurecer_acl_por_defecto(rol, esquemas, destinatario)` (idempotente, sin acceso para anon/authenticated/public), que
+--     la migración invoca para `postgres` (re-aplicando lo de 20270507600000) y `supabase_admin`, y que el pgTAP llama tal cual. Reaplicable:
 --     revocar un privilegio por defecto inexistente no falla ni cambia nada. No toca tablas existentes ni `service_role`.
 --
 -- (2) `actualizar_credencial_conexion(uuid, text)` y `confirmar_conexion_oauth(uuid, text)` (public) buscaban la conexión
@@ -23,28 +25,57 @@
 -- `grep -ln "function public.actualizar_credencial_conexion\|function public.confirmar_conexion_oauth" supabase/migrations/*.sql`):
 -- `create or replace function public.actualizar_credencial_conexion(...)` y `public.confirmar_conexion_oauth(uuid, text)`
 -- copiando su cuerpo, cuyo lookup es `where c.id = p_conexion_id` / `where id = p_conexion_id` sin filtro de organización.
--- Para (1), volver a otorgar lo quitado, solo si quien migra es miembro de supabase_admin:
+-- Para (1), eliminar la función y volver a otorgar lo quitado (lo de supabase_admin solo si quien migra es miembro):
+--   drop function private.endurecer_acl_por_defecto(name, text[], name);
 --   alter default privileges for role supabase_admin in schema public grant truncate, references, trigger on tables to authenticated;
+--   alter default privileges for role postgres in schema public grant truncate, references, trigger on tables to authenticated;
 -- (las tablas ya creadas no cambian ni con esta migración ni con su reversión).
 
--- (1) Privilegios por defecto de supabase_admin.
-do $$
+-- (1) Privilegios por defecto: función reutilizable (la usa también el pgTAP) y aplicación a postgres y supabase_admin.
+create or replace function private.endurecer_acl_por_defecto(
+  p_rol name,
+  p_esquemas text[],
+  p_grantee name default 'authenticated'
+)
+returns void
+language plpgsql
+set search_path = ''
+as $$
 declare
   v_privilegios text := 'truncate, references, trigger';
   v_esquema text;
 begin
+  -- Solo los roles, esquemas y destinatario esperados: nada de SQL con identificadores arbitrarios.
+  if p_rol not in ('postgres', 'supabase_admin') or p_grantee <> 'authenticated'
+     or exists (select 1 from unnest(p_esquemas) e where e not in ('public', 'dominio')) then
+    raise exception 'endurecer_acl_por_defecto: rol, esquema o destinatario no admitido' using errcode = '22023';
+  end if;
+
   if current_setting('server_version_num')::int >= 170000 then
     v_privilegios := v_privilegios || ', maintain';
   end if;
 
+  foreach v_esquema in array p_esquemas loop
+    if exists (select 1 from pg_catalog.pg_namespace where nspname = v_esquema) then
+      execute format('alter default privileges for role %I in schema %I revoke %s on tables from %I',
+        p_rol, v_esquema, v_privilegios, p_grantee);
+    end if;
+  end loop;
+end;
+$$;
+
+comment on function private.endurecer_acl_por_defecto(name, text[], name) is
+  'Quita TRUNCATE, REFERENCES y TRIGGER (y MAINTAIN en PG 17+) de los privilegios por defecto de tablas nuevas de un rol en public/dominio para authenticated. Idempotente; solo postgres/supabase_admin. Uso interno de migraciones.';
+
+revoke all on function private.endurecer_acl_por_defecto(name, text[], name) from public, anon, authenticated;
+
+do $$
+begin
+  perform private.endurecer_acl_por_defecto('postgres', array['public', 'dominio']);
+
   if exists (select 1 from pg_roles where rolname = 'supabase_admin')
      and pg_has_role(current_user, 'supabase_admin', 'member') then
-    foreach v_esquema in array array['public', 'dominio'] loop
-      if exists (select 1 from pg_namespace where nspname = v_esquema) then
-        execute format('alter default privileges for role supabase_admin in schema %I revoke %s on tables from authenticated',
-          v_esquema, v_privilegios);
-      end if;
-    end loop;
+    perform private.endurecer_acl_por_defecto('supabase_admin', array['public', 'dominio']);
   else
     raise notice 'Se omiten los privilegios por defecto de supabase_admin (no existe o el rol que migra no es miembro); local y producción pueden diferir.';
   end if;

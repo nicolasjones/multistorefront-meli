@@ -3,7 +3,7 @@
 -- ni nada a `anon`; los DML por defecto no se tocan.
 begin;
 
-select plan(12);
+select plan(15);
 
 create table public.zz_tabla_acl_defecto (id int);
 create table dominio.zz_tabla_acl_defecto (id int);
@@ -16,14 +16,6 @@ select ok(not has_table_privilege('authenticated', 'public.zz_tabla_acl_defecto'
   'tabla nueva en public: authenticated sin TRIGGER');
 select ok(not has_table_privilege('anon', 'public.zz_tabla_acl_defecto', 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER'),
   'tabla nueva en public: anon sin ningún privilegio');
-
--- Sin sobre-revocar: si el entorno otorga algo por defecto a authenticated (Supabase otorga todo), siguen los cuatro DML.
-select ok(
-  (select count(*) filter (where a.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')) in (0, 4) and count(*) = count(*) filter (where a.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE'))
-     from pg_default_acl d, aclexplode(d.defaclacl) a
-    where d.defaclrole = 'postgres'::regrole and d.defaclnamespace = 'public'::regnamespace and d.defaclobjtype = 'r'
-      and a.grantee = 'authenticated'::regrole),
-  'el default de postgres en public otorga a authenticated los cuatro DML o nada: la migración no revoca de más');
 
 select is(
   (select count(*)::int from pg_default_acl d, aclexplode(d.defaclacl) a
@@ -58,27 +50,47 @@ select case
   else skip(1, 'el rol que migra no es miembro de supabase_admin: sus privilegios por defecto no se tocan')
 end;
 
--- Los DML por defecto no se tocaron (al final: modifica el default de postgres dentro de la transacción). El escenario se arma acá, sin depender del entorno: se simula el default de Supabase
--- (todo para authenticated), se aplica la MISMA sentencia que la migración 20270507600000 y se mira una tabla nueva.
+-- Escenario armado acá (no depende del entorno): se simula el default de Supabase (todo para authenticated), se llama a la
+-- MISMA función que usa la migración 20270507700000 y se mira una tabla nueva. Va al final porque modifica el default de postgres
+-- dentro de la transacción. Si la función revocara de más (select, all) o no existiera, estas aserciones fallan.
+select has_function('private', 'endurecer_acl_por_defecto', array['name', 'text[]', 'name'], 'existe private.endurecer_acl_por_defecto');
 alter default privileges for role postgres in schema public grant all on tables to authenticated;
-do $$
-declare
-  v_privilegios text := 'truncate, references, trigger';
-begin
-  if current_setting('server_version_num')::int >= 170000 then
-    v_privilegios := v_privilegios || ', maintain';
-  end if;
-  execute format('alter default privileges for role postgres in schema public revoke %s on tables from authenticated', v_privilegios);
-end $$;
+select private.endurecer_acl_por_defecto('postgres', array['public']);
 create table public.zz_tabla_acl_simulada (id int);
 select ok(has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'SELECT')
   and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'INSERT')
   and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'UPDATE')
   and has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'DELETE'),
-  'con el default de Supabase y el revoke de la migración, una tabla nueva conserva select/insert/update/delete');
+  'con el default de Supabase y la función real, una tabla nueva conserva select/insert/update/delete');
 select ok(not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'TRUNCATE')
   and not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'REFERENCES')
   and not has_table_privilege('authenticated', 'public.zz_tabla_acl_simulada', 'TRIGGER'),
-  'con el default de Supabase y el revoke de la migración, una tabla nueva no recibe truncate/references/trigger');
+  'con el default de Supabase y la función real, una tabla nueva no recibe truncate/references/trigger');
+
+-- supabase_admin: no se pueden crear tablas con ese rol aquí; se mira su default. Solo si existe y quien corre es miembro.
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'supabase_admin') and pg_has_role(current_user, 'supabase_admin', 'member') then
+    alter default privileges for role supabase_admin in schema public grant all on tables to authenticated;
+    perform private.endurecer_acl_por_defecto('supabase_admin', array['public']);
+  end if;
+end $$;
+select case
+  when exists (select 1 from pg_roles where rolname = 'supabase_admin') and pg_has_role(current_user, 'supabase_admin', 'member') then
+    is((select array_agg(a.privilege_type order by a.privilege_type)
+          from pg_default_acl d, aclexplode(d.defaclacl) a
+         where d.defaclrole = (select oid from pg_roles where rolname = 'supabase_admin')
+           and d.defaclnamespace = 'public'::regnamespace and d.defaclobjtype = 'r' and a.grantee = 'authenticated'::regrole),
+       array['DELETE', 'INSERT', 'SELECT', 'UPDATE'],
+       'supabase_admin con default de Supabase y la función real: authenticated conserva solo select/insert/update/delete')
+  else skip(1, 'supabase_admin no existe o el rol que corre no es miembro')
+end;
+
+select ok(not has_function_privilege('anon', 'private.endurecer_acl_por_defecto(name, text[], name)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'private.endurecer_acl_por_defecto(name, text[], name)', 'EXECUTE'),
+  'la función no es ejecutable por anon ni authenticated');
+select throws_ok($$select private.endurecer_acl_por_defecto('postgres', array['otro'])$$, '22023', null,
+  'la función rechaza esquemas no esperados');
+
 select * from finish();
 rollback;
