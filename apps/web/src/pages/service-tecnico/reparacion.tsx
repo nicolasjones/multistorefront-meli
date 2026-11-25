@@ -1,4 +1,4 @@
-import { type FormEvent, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { type FormEvent, Suspense, lazy, useCallback, useId, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link as RouterLink, useLocation, useNavigate, useParams } from 'react-router'
 import {
   Alert,
@@ -136,6 +136,7 @@ export function ServicioReparacion() {
   const [errorEstado, setErrorEstado] = useState<string | null>(null)
   const [errorHistorial, setErrorHistorial] = useState<string | null>(null)
   const [cambiandoEstado, setCambiandoEstado] = useState(false)
+  const idEfectoAviso = useId()
   const [avisarAlCambiar, setAvisarAlCambiar] = useState<boolean | null>(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
   const [estadoAEntregar, setEstadoAEntregar] = useState<EstadoReparacion | null>(null)
   const [anularAbierto, setAnularAbierto] = useState(false)
@@ -308,6 +309,8 @@ export function ServicioReparacion() {
     setErrorEstado(null)
     avisosCliente.descartarAvisoInformativo()
     if (elegido.cierra) {
+      // Los estados que cierran pasan por la entrega y no avisan: la decisión de la casilla no aplica y vuelve a «según el estado».
+      setAvisarAlCambiar(AVISAR_AL_CAMBIAR_ESTADO_POR_DEFECTO)
       setEstadoAEntregar(elegido)
       return
     }
@@ -515,6 +518,7 @@ export function ServicioReparacion() {
                       control={
                         <Checkbox
                           checked={avisarAlCambiar === true && !clienteSinCorreo}
+                          slotProps={{ input: { 'aria-describedby': idEfectoAviso } }}
                           onChange={(evento) => setAvisarAlCambiar(evento.target.checked)}
                           disabled={!puedeCambiarEstado || clienteSinCorreo}
                         />
@@ -523,9 +527,9 @@ export function ServicioReparacion() {
                     />
                   ) : null}
                   {puedeEditar && !cerrada && !clienteSinCorreo ? (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: '-8px !important' }}>
+                    <Typography id={idEfectoAviso} variant="caption" color="text.secondary" sx={{ mt: '-8px !important' }}>
                       {avisarAlCambiar === true
-                        ? 'Se avisará al cliente al cambiar el estado.'
+                        ? 'Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).'
                         : avisarAlCambiar === false
                           ? 'No se avisará al cliente al cambiar el estado.'
                           : nombresEstadosQueAvisan.length > 0

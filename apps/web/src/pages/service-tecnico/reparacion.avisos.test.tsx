@@ -184,9 +184,37 @@ describe('Service técnico · Avisos al cliente por cambio de estado (F-SVC-14)'
     expect(casilla).not.toBePartiallyChecked()
     expect(await screen.findByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
     fireEvent.click(casilla)
-    expect(screen.getByText('Se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+    expect(screen.getByText('Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).')).toBeInTheDocument()
     fireEvent.click(casilla)
     expect(screen.getByText('No se avisará al cliente al cambiar el estado.')).toBeInTheDocument()
+  })
+
+  it('el texto de efecto queda asociado a la casilla con aria-describedby y su nombre accesible no cambia', async () => {
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    const id = casilla.getAttribute('aria-describedby')
+    expect(id).toBeTruthy()
+    expect(document.getElementById(id as string)).toHaveTextContent(/Si no la tocás|ningún estado/)
+    fireEvent.click(casilla)
+    expect(document.getElementById(id as string)).toHaveTextContent('Se avisará al cliente al cambiar el estado (salvo al pasar a un estado que cierra la reparación).')
+  })
+
+  it('con la casilla tildada, un estado que cierra abre la entrega sin avisar y la casilla vuelve a «según el estado»', async () => {
+    mocks.listarEstados.mockResolvedValue([
+      ESTADO('s-1', 'Recibido', 1),
+      { ...ESTADO('s-2', 'Reparado', 2), avisa_cliente: true },
+      { ...ESTADO('s-3', 'Entregado', 3), avisa_cliente: true, cierra: true },
+    ])
+    abrirDetalle()
+    const casilla = await screen.findByRole('checkbox', { name: 'Avisar al cliente' })
+    fireEvent.click(casilla)
+    expect(casilla).toBeChecked()
+    await elegirEstado('Entregado')
+    expect(await screen.findByLabelText(/Fecha de entrega/)).toBeInTheDocument()
+    expect(mocks.avisarClienteDeReparacion).not.toHaveBeenCalled()
+    expect(mocks.cambiarEstadoReparacion).not.toHaveBeenCalled()
+    expect(casilla).not.toBeChecked()
+    expect(screen.getByText('Si no la tocás, se avisa solo al pasar a: Reparado.')).toBeInTheDocument()
   })
 
   it('con la casilla tildada cambia primero el estado y después pide el aviso', async () => {

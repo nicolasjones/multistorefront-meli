@@ -343,7 +343,7 @@ Por arriba de todo eso, la cobertura de la historia está en **pgTAP** (`service
 |---|---|
 | Factura o presupuesto, y alícuota del IVA | **Provisorio**: factura en `borrador`; alícuota del producto para repuestos vinculados y alícuota general vigente para mano de obra y repuestos libres. A confirmar con el cliente (*Decisiones abiertas* 1). |
 | Texto del correo (asunto y cuerpo) | **Provisorio**: «Tu reparación R-000N: <estado> · <tienda>» y un cuerpo con saludo, tienda, número, equipo, estado y su descripción (*Decisiones abiertas* 3). |
-| Casilla «Avisar al cliente» según el estado destino | **Resuelto** (*Decisiones abiertas* 4): se pre-marca con «Avisa al cliente» del estado y se puede cambiar. |
+| Casilla «Avisar al cliente» según el estado destino | **Resuelto** (*Decisiones abiertas* 4): sin tocar la casilla se avisa si el estado tiene «Avisa al cliente» y no cierra; tildarla o destildarla es decisión explícita. |
 | Nombre de la primera pestaña de la ficha («Datos») | **Provisorio** (*Decisiones abiertas* 5): el prototipo no dibuja pestañas. |
 | Quién puede generar el comprobante | **Provisorio** (*Decisiones abiertas* 7): `service_tecnico` en edición **y** `ventas` en edición en la tienda. |
 | Ítems que cambian después de generar el comprobante | El comprobante es una foto; **no** se resincroniza. Se corrige en Ventas mientras esté en borrador. |
