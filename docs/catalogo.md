@@ -211,9 +211,9 @@ Spec: `specs/20261022-120000-precios-e-iva/`. Aditivo; el neto de cada empresa s
   `unique (id, organizacion_id)`). RLS por organización; lectura con `empresas` ≥ `lectura`; escritura con `empresas` = `edicion`;
   sin DELETE; `anon` sin privilegios. **Sin fila, la empresa es «Igual al central».**
 - `public.guardar_regla_precio_empresa(p_empresa, p_base, p_ajuste_pct, p_updated_at)` (`security invoker`): valida base y ajuste,
-  bloqueo optimista por `updated_at` (`40001`; `null` si la empresa aún no tenía regla), idempotente (repetir lo ya guardado no da
+  bloqueo optimista por `updated_at` (conflicto de edición; `null` si la empresa aún no tenía regla; código en [errores de negocio](errores-negocio-postgrest.md)), idempotente (repetir lo ya guardado no da
   conflicto ni evento). Con «Igual al central» el ajuste se guarda en 0. Errores: `42501` sin permiso, `23514` inválido, `22003`
-  fuera de rango, `P0002` empresa inexistente en la organización.
+  fuera de rango, empresa inexistente en la organización («no existe», ver [errores de negocio](errores-negocio-postgrest.md)).
 - Cálculo (`private.aplicar_regla_precio`, única fórmula): `neto = central` o `round(central × (1 + ajuste/100) / 10) × 10`
   («Al $ 10 más cercano», mitad hacia arriba). `private.precio_neto_empresa(producto, empresa)` lo aplica a un producto; es el único
   punto de extensión para el «precio propio por empresa» (MSF-352); aún sin consumidor, conserva el `grant` a `authenticated` porque pgTAP

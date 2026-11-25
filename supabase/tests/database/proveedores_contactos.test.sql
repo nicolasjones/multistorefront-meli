@@ -114,7 +114,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.agregar_contacto_proveedor('f2000000-0000-0000-0000-000000000001', 'Intruso')$$,
-  'P0002', 'El proveedor no existe', 'no agrega contactos a un proveedor de otra organización'
+  'PT404', 'El proveedor no existe', 'no agrega contactos a un proveedor de otra organización'
 );
 
 -- Sin DELETE ni escritura directa
@@ -179,7 +179,7 @@ select is(
 );
 select throws_ok(
   format('select public.marcar_contacto_principal(%L)', (select id from ids where clave = 'ana')),
-  'P0002', 'El contacto no existe', 'otra organización no marca contactos ajenos'
+  'PT404', 'El contacto no existe', 'otra organización no marca contactos ajenos'
 );
 
 -- anon: sin ejecución ni acceso

@@ -165,9 +165,11 @@ describe('regla de precio por empresa (F-PRE-07)', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     expect(mensajeErrorRegla({ code: '42501', message: 'new row violates row-level security policy' })).toMatch(/Solo el Administrador/)
     expect(mensajeErrorRegla({ code: '40001' })).toMatch(/Otra persona modificó/)
+    expect(mensajeErrorRegla({ code: 'PT412' })).toMatch(/Otra persona modificó/)
     expect(mensajeErrorRegla({ code: '23514' })).toMatch(/mayor a −100 %/)
     expect(mensajeErrorRegla({ code: '22003' })).toMatch(/demasiado grande/)
     expect(mensajeErrorRegla({ code: 'P0002' })).toMatch(/ya no existe/)
+    expect(mensajeErrorRegla({ code: 'PT404' })).toMatch(/ya no existe/)
     expect(mensajeErrorRegla(new Error('boom'))).toBe('No pudimos guardar los precios de la empresa. Probá de nuevo.')
   })
 

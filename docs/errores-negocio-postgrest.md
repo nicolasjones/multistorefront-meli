@@ -13,6 +13,7 @@ sources:
   - supabase/migrations/20270507350000_despacho_y_cobros_responden_4xx.sql
   - supabase/migrations/20270507360000_catalogos_envio_y_contrarreembolsos_responden_4xx.sql
   - supabase/migrations/20270507410000_productos_proveedores_categorias_y_promociones_responden_4xx.sql
+  - supabase/migrations/20270507420000_alicuotas_escalas_precios_y_proveedores_responden_4xx.sql
   - apps/web/src/lib/estadosComprobante.ts
   - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
@@ -148,6 +149,15 @@ un contrato propio) y las operaciones masivas (`mover_productos_categoria`, `cam
 `definir_empresas_productos`), que validan los ids con un auxiliar de `private` y siguen con `P0002`. Los códigos que emite cada
 función están en la tabla de abajo; el cliente acepta los dos (`esCodigoDeConflicto` y el mapeo de cada módulo).
 
+## Séptima ola: alícuotas, escalas y precios propios, y empresas y contactos de proveedores (MSF-654 y MSF-655, parciales)
+
+Misma regla (`P0002` a `PT404`, `40001` a `PT412`, mensaje intacto) para `guardar_regla_precio_empresa`, `previsualizar_precios_empresa`,
+`guardar_precios_escala`, `asignar_alicuota_producto`, `guardar_alicuota_categoria`, `fijar_precio_propio`, `quitar_precio_propio`,
+`guardar_empresas_de_proveedor`, `agregar_contacto_proveedor` y `marcar_contacto_principal`. Ninguna es llamable por `anon` ni la consume
+Kestra, un worker o una Edge Function (el script de datos de demostración llama a tres, sin leer el código de error) y los auxiliares de
+`private` que usan no lanzan `P0002` ni `40001`. Solo `guardar_regla_precio_empresa` tiene bloqueo optimista; las demás solo emiten `PT404`.
+El cliente acepta los dos códigos (`esCodigoDeConflicto` y el mapeo de cada módulo).
+
 Funciones migradas por ola (cada migración usa `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
 bloqueo optimista solo emiten `PT404`):
 
@@ -159,11 +169,12 @@ bloqueo optimista solo emiten `PT404`):
 | 4 | `20270507350000` | `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `obtener_despacho_comprobante`, `obtener_envio_comprobante`, `listar_responsables_despacho`, `registrar_cobro`, `revertir_cobro`, `actualizar_forma_pago`, `actualizar_cuenta_cobro`, `cambiar_estado_forma_pago`, `cambiar_estado_cuenta_cobro` |
 | 5 | `20270507360000` | `actualizar_forma_envio`, `cambiar_estado_forma_envio`, `actualizar_transporte`, `cambiar_estado_transporte`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (solo conflicto) |
 | 6 | `20270507410000` | `actualizar_producto`, `cambiar_estado_producto` (solo `PT404`), `definir_empresas_producto` (solo `PT404`), `asignar_categoria_producto` (solo `PT404`), `guardar_relacionados` (solo `PT404`), `guardar_categoria` (solo `PT404`), `eliminar_categoria` (solo `PT404`), `reordenar_categorias` (solo `PT404`), `actualizar_proveedor`, `cambiar_estado_proveedor` (solo `PT404`), `guardar_promocion_precio`, `anular_promocion_precio` |
+| 7 | `20270507420000` | `guardar_regla_precio_empresa` (`PT404` y `PT412`), `previsualizar_precios_empresa` (solo `PT404`), `guardar_precios_escala` (solo `PT404`), `asignar_alicuota_producto` (solo `PT404`), `guardar_alicuota_categoria` (solo `PT404`), `fijar_precio_propio` (solo `PT404`), `quitar_precio_propio` (solo `PT404`), `guardar_empresas_de_proveedor` (solo `PT404`), `agregar_contacto_proveedor` (solo `PT404`), `marcar_contacto_principal` (solo `PT404`) |
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
-Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (alícuotas y escalas de precio, contactos y empresas de proveedores,
-variantes y operaciones masivas de productos, Service, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
+Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (Service, contactos de clientes y consultas, gastos,
+listas de precios, newsletter, RMA, variantes y operaciones masivas de productos, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
 `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.

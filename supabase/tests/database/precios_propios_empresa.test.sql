@@ -200,9 +200,9 @@ select is(
 );
 
 -- Producto o empresa ajenos.
-select throws_ok($$select public.fijar_precio_propio('a2000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', 'ARS', 10)$$, 'P0002', null, 'producto ajeno rechazado');
-select throws_ok($$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000003', 'ARS', 10)$$, 'P0002', null, 'empresa ajena rechazada');
-select throws_ok($$select public.quitar_precio_propio('a2000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001')$$, 'P0002', null, 'quitar sobre producto ajeno rechazado');
+select throws_ok($$select public.fijar_precio_propio('a2000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001', 'ARS', 10)$$, 'PT404', null, 'producto ajeno rechazado');
+select throws_ok($$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000003', 'ARS', 10)$$, 'PT404', null, 'empresa ajena rechazada');
+select throws_ok($$select public.quitar_precio_propio('a2000000-0000-0000-0000-000000000003', 'e1000000-0000-0000-0000-000000000001')$$, 'PT404', null, 'quitar sobre producto ajeno rechazado');
 
 -- ============================================================================
 -- USD según el alcance de la cotización (FR-015)
@@ -349,7 +349,7 @@ select is(
 select is((select count(*)::int from dominio.precios_propios_empresa), 0, 'otra organización no lee la tabla de la primera');
 select throws_ok(
   $$select public.fijar_precio_propio('a1000000-0000-0000-0000-000000000001', 'e1000000-0000-0000-0000-000000000001', 'ARS', 1)$$,
-  'P0002', null, 'otra organización no fija sobre un producto ajeno'
+  'PT404', null, 'otra organización no fija sobre un producto ajeno'
 );
 select lives_ok(
   $$select public.fijar_precio_propio('a2000000-0000-0000-0000-000000000003', 'e2000000-0000-0000-0000-000000000003', 'ARS', 450)$$,

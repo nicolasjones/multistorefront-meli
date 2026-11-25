@@ -104,7 +104,7 @@ export async function guardarPreciosEscala(
 export function mensajeErrorEscalas(error: unknown, porDefecto = 'No pudimos guardar los precios por escala. Probá de nuevo.'): string {
   const code = (error as { code?: string } | null)?.code
   if (code === '42501') return 'Tu rol no puede editar los precios por escala. Puede que haya cambiado: recargá la página.'
-  if (code === 'P0002') return 'El producto ya no existe. Recargá la página.'
+  if (code === 'P0002' || code === 'PT404') return 'El producto ya no existe. Recargá la página.'
   if (code === '23514') return 'Revisá los precios por escala: cero o más, con hasta 2 decimales.'
   if (code === '22003') return 'Un precio por escala es demasiado grande. Revisá los valores.'
   return porDefecto

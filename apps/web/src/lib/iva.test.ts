@@ -77,6 +77,8 @@ describe('formatearAlicuota', () => {
 describe('mensajeErrorIva', () => {
   it('mapea los códigos conocidos sin filtrar el texto de Postgres', () => {
     expect(mensajeErrorIva({ code: '23514', message: 'detalle interno' }, 'x')).toBe('Esa alícuota no está activa. Elegí otra.')
+    expect(mensajeErrorIva({ code: 'P0002' }, 'x')).toContain('ya no existen')
+    expect(mensajeErrorIva({ code: 'PT404' }, 'x')).toContain('ya no existen')
     expect(mensajeErrorIva({ code: '42501' }, 'x')).toContain('Tu rol no puede cambiar el IVA')
     expect(mensajeErrorIva({ code: '99999' }, 'por defecto')).toBe('por defecto')
   })

@@ -17,6 +17,7 @@ import {
   parsearAjuste,
   validarAjuste,
 } from '../../lib/precios'
+import { esCodigoDeConflicto } from '../../lib/mensajeErrorBase'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EncabezadoPagina } from '../../components/pagina/EncabezadoPagina'
 import { ContenedorSeccion } from '../../components/pagina/ContenedorSeccion'
@@ -139,7 +140,7 @@ export function EmpresaPrecios() {
         console.warn('No se pudieron guardar los precios de la empresa anterior', excepcion)
         return
       }
-      const conflicto = (excepcion as { code?: string } | null)?.code === '40001'
+      const conflicto = esCodigoDeConflicto((excepcion as { code?: string } | null)?.code)
       setEstadoAccion({ empresaId, guardando: false, exito: false, error: mensajeErrorRegla(excepcion), conflicto, intento: true })
     }
   }

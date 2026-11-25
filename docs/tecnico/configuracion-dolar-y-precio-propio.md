@@ -69,7 +69,7 @@ Contrato completo: `specs/20270105-100000-configuracion-dolar-y-precio-propio/co
 - `guardar_configuracion_cotizacion(redondeo, umbral, confirmacion, aviso)`: edición; no cambia el alcance; `42501` sin permiso, `22023` valor fuera de rango; idempotente; evento `cotizacion.configuracion_guardada`.
 - `previsualizar_cambio_alcance(alcance)` (solo lee) y `cambiar_alcance_cotizacion(alcance, confirmado)` (una transacción; `confirmado = false` da `22023`).
 - `previsualizar_cotizacion`, `confirmar_cotizacion`, `descartar_cotizacion`, `cotizacion_del_dia` reciben `p_empresa uuid default null` (obligatorio solo con alcance `empresa`, si no `22023`): compatibles hacia atrás.
-- `fijar_precio_propio(producto, empresa, moneda, importe)`, `quitar_precio_propio(producto, empresa)` y `leer_precios_propios(producto)`: sección `productos`; errores `42501`, `P0002` (ajeno), `22023`, `22003`/`23514`. Eventos `producto.precio_propio_fijado` y `producto.precio_propio_quitado`, sin importes.
+- `fijar_precio_propio(producto, empresa, moneda, importe)`, `quitar_precio_propio(producto, empresa)` y `leer_precios_propios(producto)`: sección `productos`; errores `42501`, producto o empresa ajenos («no existe», ver [errores de negocio](../errores-negocio-postgrest.md)), `22023`, `22003`/`23514`. Eventos `producto.precio_propio_fijado` y `producto.precio_propio_quitado`, sin importes.
 
 ## Reglas de cálculo
 

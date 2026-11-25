@@ -179,7 +179,7 @@ select is(
 
 select throws_ok(
   $$select * from public.previsualizar_precios_empresa('e2000000-0000-0000-0000-000000000003', 'central', 0)$$,
-  'P0002', null, 'una empresa de otra organización no existe para este administrador'
+  'PT404', null, 'una empresa de otra organización no existe para este administrador'
 );
 select throws_ok(
   $$select * from public.previsualizar_precios_empresa('e1000000-0000-0000-0000-000000000001', 'otra', 0)$$,

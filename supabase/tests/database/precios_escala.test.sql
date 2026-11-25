@@ -192,7 +192,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_precios_escala('a2000000-0000-0000-0000-000000000003', 100, null, null)$$,
-  'P0002', null, 'no guarda escalas de un producto de otra organización'
+  'PT404', null, 'no guarda escalas de un producto de otra organización'
 );
 
 -- Idempotencia: guardar lo mismo no toca la fila.
@@ -297,7 +297,7 @@ select is(
 );
 select throws_ok(
   $$select public.guardar_precios_escala('a1000000-0000-0000-0000-000000000001', 1, 1, 1)$$,
-  'P0002', null, 'org 2 no guarda escalas de un producto de la org 1'
+  'PT404', null, 'org 2 no guarda escalas de un producto de la org 1'
 );
 select is(
   (select count(*)::int from private.precio_para('a1000000-0000-0000-0000-000000000001', 'e2000000-0000-0000-0000-000000000003', 'x5')),

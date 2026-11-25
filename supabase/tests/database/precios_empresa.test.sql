@@ -149,7 +149,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select * from public.previsualizar_precios_empresa('e2000000-0000-0000-0000-000000000003', 'central', 0)$$,
-  'P0002', null, 'vista previa: empresa de otra organización rechazada'
+  'PT404', null, 'vista previa: empresa de otra organización rechazada'
 );
 
 -- ============================================================================
@@ -182,7 +182,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e2000000-0000-0000-0000-000000000003', 'central', 0, null)$$,
-  'P0002', null, 'empresa de otra organización: rechazada'
+  'PT404', null, 'empresa de otra organización: rechazada'
 );
 select is(
   (select count(*)::int from dominio.precios_empresa where empresa_id = 'e1000000-0000-0000-0000-000000000004'),
@@ -204,15 +204,15 @@ select lives_ok(
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 10,
       current_setting('prueba.ts_viejo')::timestamptz)$$,
-  '40001', null, 'edición con updated_at viejo: conflicto'
+  'PT412', null, 'edición con updated_at viejo: conflicto'
 );
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 10, null)$$,
-  '40001', null, 'regla existente sin updated_at: conflicto'
+  'PT412', null, 'regla existente sin updated_at: conflicto'
 );
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e1000000-0000-0000-0000-000000000004', 'central_ajuste', 3, now())$$,
-  '40001', null, 'empresa sin regla pero con updated_at: conflicto'
+  'PT412', null, 'empresa sin regla pero con updated_at: conflicto'
 );
 select is(
   (select ajuste_pct from dominio.precios_empresa where empresa_id = 'e1000000-0000-0000-0000-000000000001'),
@@ -312,7 +312,7 @@ select is(
 );
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e1000000-0000-0000-0000-000000000001', 'central_ajuste', 1, null)$$,
-  'P0002', null, 'org 2 no edita la regla de una empresa de la org 1'
+  'PT404', null, 'org 2 no edita la regla de una empresa de la org 1'
 );
 select throws_ok(
   $$insert into dominio.precios_empresa (empresa_id, organizacion_id, base, ajuste_pct)

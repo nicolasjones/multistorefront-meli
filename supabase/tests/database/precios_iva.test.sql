@@ -171,7 +171,7 @@ select is(
 );
 select throws_ok(
   $$select public.guardar_regla_precio_empresa('e1000000-0000-0000-0000-000000000001', 'central', 0, null, false)$$,
-  '40001', null, 'cambiar el interruptor sin updated_at vigente: conflicto de edición'
+  'PT412', null, 'cambiar el interruptor sin updated_at vigente: conflicto de edición'
 );
 
 -- IVA propio manda sobre el de la categoría (US3-2): 29.186 × 1,105 = 32.250,53 (al centavo, MSF-720).
@@ -262,17 +262,17 @@ select lives_ok(
 -- Errores: ajeno, inexistente.
 select throws_ok(
   $$select public.asignar_alicuota_producto('a2000000-0000-0000-0000-000000000004', null)$$,
-  'P0002', null, 'no asigna IVA a un producto de otra organización'
+  'PT404', null, 'no asigna IVA a un producto de otra organización'
 );
 select throws_ok(
   $$select public.guardar_alicuota_categoria('c2000000-0000-0000-0000-000000000003',
       (select id from dominio.alicuotas_iva where organizacion_id = '11111111-1111-1111-1111-111111111111' and nombre = '21 %'))$$,
-  'P0002', null, 'no asigna IVA a una categoría de otra organización'
+  'PT404', null, 'no asigna IVA a una categoría de otra organización'
 );
 select throws_ok(
   $$select public.guardar_alicuota_categoria('c1000000-0000-0000-0000-000000000001',
       (select id from dominio.alicuotas_iva where organizacion_id = '22222222-2222-2222-2222-222222222222' and nombre = '21 %'))$$,
-  'P0002', null, 'no usa una alícuota de otra organización'
+  'PT404', null, 'no usa una alícuota de otra organización'
 );
 reset role;
 

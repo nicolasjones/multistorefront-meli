@@ -142,6 +142,7 @@ describe('mensajeErrorEscalas', () => {
     expect(mensajeErrorEscalas({ code: '23514' })).toMatch(/cero o más/)
     expect(mensajeErrorEscalas({ code: '22003' })).toMatch(/demasiado grande/)
     expect(mensajeErrorEscalas({ code: 'P0002' })).toMatch(/ya no existe/)
+    expect(mensajeErrorEscalas({ code: 'PT404' })).toMatch(/ya no existe/)
     expect(mensajeErrorEscalas(new Error('boom'))).toMatch(/No pudimos guardar/)
   })
 })

@@ -276,8 +276,8 @@ Frontend (`apps/web/src/components/clientes/DialogoFusionarClientes.tsx` y `apps
 | RPC | Qué hace | Seguridad |
 |---|---|---|
 | `public.listar_contactos_proveedor(p_proveedor_id uuid) returns table (id, nombre, rol, correo, telefono, principal)` | Contactos del proveedor, **principal primero** (`order by principal desc, lower(nombre), id`) | `security definer`, `stable`; exige `proveedores` en `lectura`/`edicion`; `42501` «Tu rol no puede ver los contactos del proveedor» |
-| `public.agregar_contacto_proveedor(p_proveedor_id uuid, p_nombre text, p_rol text default null, p_correo text default null, p_telefono text default null, p_principal boolean default false) returns uuid` | Alta de un contacto; opcionalmente como principal | Exige `proveedores` en `edicion` (`42501`); `22023` «El nombre del contacto es obligatorio» y «El correo no tiene un formato válido»; `P0002` «El proveedor no existe» |
-| `public.marcar_contacto_principal(p_contacto_id uuid) returns void` | Deja al contacto como **único** principal y copia sus datos a la ficha | Exige `proveedores` en `edicion` (`42501`); `P0002` «El contacto no existe» |
+| `public.agregar_contacto_proveedor(p_proveedor_id uuid, p_nombre text, p_rol text default null, p_correo text default null, p_telefono text default null, p_principal boolean default false) returns uuid` | Alta de un contacto; opcionalmente como principal | Exige `proveedores` en `edicion` (`42501`); `22023` «El nombre del contacto es obligatorio» y «El correo no tiene un formato válido»; «El proveedor no existe» (código en [errores de negocio](../errores-negocio-postgrest.md)) |
+| `public.marcar_contacto_principal(p_contacto_id uuid) returns void` | Deja al contacto como **único** principal y copia sus datos a la ficha | Exige `proveedores` en `edicion` (`42501`); «El contacto no existe» (código en [errores de negocio](../errores-negocio-postgrest.md)) |
 
 - **Concurrencia**: `agregar_contacto_proveedor` y `marcar_contacto_principal` bloquean antes la fila del
   proveedor (`select … from dominio.proveedores … for update`): dos altas simultáneas como principal se
