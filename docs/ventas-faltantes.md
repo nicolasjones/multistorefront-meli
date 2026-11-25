@@ -62,7 +62,7 @@ factura sigue como estaba).
 - Registra la actividad `despacho.faltante_registrado` con las líneas y las cantidades.
 
 Errores: `42501` sin sesión/organización o sin permiso · `22023` dato inválido (cantidad, línea repetida, lista
-vacía) · comprobante inexistente · `55000` la factura no está en Armando ni en Incompleto · conflicto de edición de `p_actualizado_en` (códigos `PT4xx` para «no existe» y conflicto; ver [errores de negocio](errores-negocio-postgrest.md)).
+vacía) · comprobante inexistente · error de negocio si la factura no está en Armando ni en Incompleto · conflicto de edición de `p_actualizado_en` (códigos `PT4xx` para «no existe» y conflicto; ver [errores de negocio](errores-negocio-postgrest.md)).
 
 ## Cierre del faltante (FR-042 · *Decisiones abiertas* 3)
 

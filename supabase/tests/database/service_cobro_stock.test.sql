@@ -153,7 +153,7 @@ select lives_ok(format($$select public.confirmar_comprobante(%L)$$, pg_temp.id_d
   'reintentar la confirmación es idempotente');
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, %L)$$, pg_temp.id_de('c2'), pg_temp.upd('c2')),
-  '55000', null, 'una vez confirmado, el comprobante de Service ya no se edita');
+  'PT409', null, 'una vez confirmado, el comprobante de Service ya no se edita');
 
 -- ============================================================================
 -- Anular: solo se devuelve la línea de catálogo

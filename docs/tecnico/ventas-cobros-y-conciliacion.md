@@ -171,11 +171,11 @@ el saldo se recalcula con el bloqueo de fila sobre el comprobante.
 
 | RPC | Qué hace | Seguridad |
 |---|---|---|
-| `revertir_cobro(p_cobro_id uuid, p_motivo text)` → `uuid` | Agrega un **contra-asiento** al libro (importe negativo, `origen = 'reversion'`, `revierte_cobro_id`, `motivo_reversion`) y devuelve su id. Motivo obligatorio (≤ 300, `22023`). No revierte: un contra-asiento, un cobro ya revertido (índice único `cobros_comprobante_revierte_uq`), un cobro conciliado ni el de un contrarreembolso; tampoco sobre una factura borrador o anulada (`55000`). Con saldo neto > 0 y la factura en Cobrado, pasa a Deuda; con saldo 0, Cobrado. Deja `comprobante.cobro_revertido` en la Actividad. | `security definer`; solo administrador activo **o superadmin con organización activa** (`private.puede_escribir()`, `42501` si no) |
+| `revertir_cobro(p_cobro_id uuid, p_motivo text)` → `uuid` | Agrega un **contra-asiento** al libro (importe negativo, `origen = 'reversion'`, `revierte_cobro_id`, `motivo_reversion`) y devuelve su id. Motivo obligatorio (≤ 300, `22023`). No revierte: un contra-asiento, un cobro ya revertido (índice único `cobros_comprobante_revierte_uq`), un cobro conciliado ni el de un contrarreembolso; tampoco sobre una factura borrador o anulada (errores de negocio: ver [errores de negocio](../errores-negocio-postgrest.md)). Con saldo neto > 0 y la factura en Cobrado, pasa a Deuda; con saldo 0, Cobrado. Deja `comprobante.cobro_revertido` en la Actividad. | `security definer`; solo administrador activo **o superadmin con organización activa** (`private.puede_escribir()`, `42501` si no) |
 
 `private.aplicar_conciliacion` rechaza (`55000`) conciliar un contra-asiento o un cobro ya revertido, y `private.validar_cobro_comprobante` no revalida la forma de pago ni la cuenta del contra-asiento. La FK `(revierte_cobro_id, organizacion_id)` tiene índice propio (`20270507190600`). Todo en `20270507180100_revertir_cobro.sql`. **Aún no hay pantalla** que la llame (ninguna parte de `apps/web/src` usa `revertir_cobro`). Detalle en [cobros por comprobante](../cobros-por-comprobante.md).
 
-Además, `anular_comprobante` rechaza (`55000`) la factura **entregada** y la que tiene **cobros registrados** (cobrado neto > 0; `20270507180000`): con el cobro revertido sí se puede anular.
+Además, `anular_comprobante` rechaza (error de negocio) la factura **entregada** y la que tiene **cobros registrados** (cobrado neto > 0; `20270507180000`): con el cobro revertido sí se puede anular.
 
 ### F-VTA-14 · Contrarreembolsos
 
@@ -188,7 +188,7 @@ Además, `anular_comprobante` rechaza (`55000`) la factura **entregada** y la qu
 | `private.abrir_contrarreembolso(p_comprobante_id uuid, p_transporte_id uuid, p_guia text)` → `uuid` | Punto de entrada que usará la guía de despacho de F-VTA-16 (MSF-135). Solo si el transporte tiene `cobra_contrarreembolso`; idempotente por (comprobante, guía); importe = saldo; evento `contrarreembolso.abierto`. | `security definer`, **sin grant** |
 | `private.puede_cobrar_contrarreembolso_en_empresa(p_empresa_id uuid)` | Permiso por empresa (la del contrarreembolso). | `security definer`, sin grant |
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000`
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000` o `PT409`
 estado no válido · `P0001` tope de importe. Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx` en las RPC migradas; ver [errores de negocio](../errores-negocio-postgrest.md). Todos los mensajes están en
 castellano.
 
@@ -197,7 +197,7 @@ castellano.
 ### Cobros (F-VTA-12)
 
 - **Documento**: solo **facturas confirmadas no anuladas**. Un borrador, un presupuesto o una nota de
-  crédito no admiten cobros (`55000` / `22023`).
+  crédito no admiten cobros (error de negocio o dato inválido: ver [errores de negocio](../errores-negocio-postgrest.md)).
 - **Importe**: mayor a 0, con dos decimales como máximo, nunca mayor al saldo pendiente (`22023` /
   `P0001`) y nunca mayor al tope de la columna (`999999999999.99`), para que la base no devuelva un
   error técnico (`22003`) que la pantalla no sabe explicar.
@@ -242,7 +242,7 @@ castellano.
 - **Apertura**: la organización y la empresa salen del **comprobante**, no de un argumento; si la sesión
   trae organización, tiene que ser la del comprobante (`42501`). Un transporte sin
   `cobra_contrarreembolso` no genera nada. Una factura en borrador o anulada no abre
-  contrarreembolso (`55000`).
+  contrarreembolso (error de negocio, ver [errores de negocio](../errores-negocio-postgrest.md)).
 - **Idempotencia**: la misma guía devuelve el contrarreembolso ya abierto, sin duplicar ni dejar un
   evento nuevo.
 - **Cobro**: `marcar_contrarreembolso_cobrado` registra el cobro con `origen = 'contrarreembolso'` por
@@ -255,7 +255,7 @@ castellano.
   neto 0 el importe se deja como está y marcarlo cobrado falla con el mensaje de tope. Límite conocido: si se anula
   una nota después de que la factura pasó a «Cobrado», no vuelve a «Deuda».
 - **Comprobante anulado**: el contrarreembolso queda visible y pendiente, pero **no cobrable**
-  (`55000`, FR-044).
+  (error de negocio, FR-044).
 
 ### Permisos: las tres acciones de Ventas
 

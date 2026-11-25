@@ -133,7 +133,7 @@ la empresa del comprobante** (`private.nivel_ventas_en_empresa`).
 
 | RPC | Qué hace | Seguridad |
 |---|---|---|
-| `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Cambia el estado de una factura si la transición existe para el **rol del actor en la empresa del comprobante**. Idempotente (mismo estado = devuelve el actual, sin evento). Rechaza `borrador`/`anulada` (`55000`), presupuestos y estados inválidos (`22023`) y `cobrado`/`deuda` (`42501`). Bloqueo optimista por `updated_at` (ver [errores de negocio](../errores-negocio-postgrest.md)) y fila `for update`. Registra `comprobante.estado_cambiado`. | `security definer` |
+| `cambiar_estado_comprobante(p_id uuid, p_estado text, p_actualizado_en timestamptz)` | Cambia el estado de una factura si la transición existe para el **rol del actor en la empresa del comprobante**. Idempotente (mismo estado = devuelve el actual, sin evento). Rechaza `borrador`/`anulada` (error de negocio, ver [errores de negocio](../errores-negocio-postgrest.md)), presupuestos y estados inválidos (`22023`) y `cobrado`/`deuda` (`42501`). Bloqueo optimista por `updated_at` (ver [errores de negocio](../errores-negocio-postgrest.md)) y fila `for update`. Registra `comprobante.estado_cambiado`. | `security definer` |
 | `transiciones_permitidas_comprobante(p_id uuid)` | `text[]` con los estados a los que el rol de la sesión puede pasar hoy. **Informativa**: la autoridad es `cambiar_estado_comprobante`. | `security definer` |
 | `historial_comprobante(p_id uuid)` | `table (cuando timestamptz, accion text, quien text, empresa_id uuid, empresa text)`: los eventos del comprobante, más recientes primero. | `security definer` |
 | `private.marcar_estado_cobro_comprobante(p_id uuid, p_estado text)` | Pasa a `cobrado`/`deuda` con actor `sistema`. **Sin `grant` a `authenticated`**: es el punto de entrada de MSF-195 (F-VTA-12), que ya lo dispara con `private.registrar_cobro_interno`. | `security definer`, sin grant |
@@ -183,7 +183,7 @@ Reglas del listado:
 | `private.signo_comprobante(p_tipo text)` / `private.comprobante_cuenta_como_facturado(p_tipo text, p_estado text)` | **BREAKING interno**: la nota emitida cuenta como facturado **con signo negativo** en las sumas (la segunda ahora devuelve verdadero para `nota_credito`). | `immutable`, sin grant |
 
 Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) ·
-`55000` estado no válido · «no existe» y conflicto de edición con códigos `PT4xx` en las RPC migradas y `P0002`/`40001` en el resto (ver [errores de negocio](../errores-negocio-postgrest.md)) · `P0001` con `hint = 'tope'` (excede lo acreditable) y
+estado no válido, «no existe» y conflicto de edición (el código de cada función está en [errores de negocio](../errores-negocio-postgrest.md), fuente única) · `P0001` con `hint = 'tope'` (excede lo acreditable) y
 `P0001` con `hint = 'stock'` (falta stock). Los mensajes de las RPC están en castellano.
 
 ## Reglas de negocio
@@ -193,8 +193,8 @@ Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) ·
 - Solo una **`factura` confirmada** y no anulada, en cualquier estado operativo **salvo Cobrado**. Un
   borrador no se anula (no movió nada), y un presupuesto o una nota de crédito tampoco.
 - **Motivo obligatorio** (≤ 300 caracteres).
-- Con una **nota de crédito emitida** o **ya cobrada** se rechaza (`55000`): se corrige con nota de crédito.
-- Desde `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql` se rechaza (`55000`) también una factura **ya
+- Con una **nota de crédito emitida** o **ya cobrada** se rechaza (error de negocio, ver [errores de negocio](../errores-negocio-postgrest.md)): se corrige con nota de crédito.
+- Desde `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql` se rechaza (error de negocio) también una factura **ya
   entregada** (`estado_despacho = 'entregado'`: «La factura ya fue entregada: corregí con nota de crédito o RMA») y una con **cobros
   registrados** (cobrado neto de reversiones mayor que 0, medido con `private.saldo_comprobante`: «La factura tiene cobros registrados:
   revertí el cobro o corregila con una nota de crédito»). Una vez revertido el cobro (neto 0) la factura se puede anular. El orden de
@@ -203,7 +203,7 @@ Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) ·
   mira estado operativo, no cobrada, sin notas y permiso): la pantalla puede ofrecer «Anular» y la base responder con ese mensaje.
 - El diálogo de anulación (`apps/web/src/lib/anularComprobante.ts`, `mensajeDeAnulacion`) solo muestra tal cual los mensajes de la RPC
   cuyo prefijo está en `PREFIJOS_MENSAJE_DE_LA_RPC`; las dos guardas nuevas **no están en esa lista**, así que hoy la pantalla muestra el
-  genérico «No pudimos anular la factura. No se devolvió nada: probá de nuevo.» (el `55000` no se pierde en la base, solo en el texto).
+  genérico «No pudimos anular la factura. No se devolvió nada: probá de nuevo.» (el error de negocio no se pierde en la base, solo en el texto).
   Es una brecha de la capa web, pendiente.
 - **Idempotente**: una factura ya anulada devuelve el comprobante sin tocar el stock ni duplicar el evento.
 - **Todo o nada**: la reversión corre en la misma transacción; si algo falla, no queda ningún movimiento

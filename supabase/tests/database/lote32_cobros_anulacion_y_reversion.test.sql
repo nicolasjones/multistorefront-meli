@@ -106,7 +106,7 @@ select is(has_function_privilege('authenticated', 'private.validar_cobro_comprob
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd(%L))$$, 'f1000000-0000-0000-0000-000000000005', 'f1000000-0000-0000-0000-000000000005'),
-  '55000', 'La factura ya fue entregada: corregí con nota de crédito o RMA', 'una factura entregada no se anula');
+  'PT409', 'La factura ya fue entregada: corregí con nota de crédito o RMA', 'una factura entregada no se anula');
 select is(pg_temp.est('f1000000-0000-0000-0000-000000000005'), 'confirmada', 'la entregada sigue confirmada');
 
 -- ============================================================================
@@ -114,7 +114,7 @@ select is(pg_temp.est('f1000000-0000-0000-0000-000000000005'), 'confirmada', 'la
 -- ============================================================================
 select throws_ok(
   format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd(%L))$$, 'f1000000-0000-0000-0000-000000000006', 'f1000000-0000-0000-0000-000000000006'),
-  '55000', 'La factura tiene cobros registrados: revertí el cobro o corregila con una nota de crédito', 'con un cobro parcial no se anula');
+  'PT409', 'La factura tiene cobros registrados: revertí el cobro o corregila con una nota de crédito', 'con un cobro parcial no se anula');
 select is(pg_temp.est('f1000000-0000-0000-0000-000000000006'), 'deuda', 'la factura con cobro parcial sigue en deuda');
 
 -- Control: sin cobros ni entrega se anula
@@ -160,11 +160,11 @@ select throws_ok(format($$select public.revertir_cobro(%L, %L)$$, 'c0b00000-0000
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, '00000000-0000-0000-0000-0000000000ff'),
   'PT404', 'El cobro no existe', 'un cobro inexistente');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, 'c0b00000-0000-0000-0000-000000000003'),
-  '55000', 'El cobro está conciliado: revertí primero la conciliación', 'un cobro conciliado no se revierte');
+  'PT409', 'El cobro está conciliado: revertí primero la conciliación', 'un cobro conciliado no se revierte');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, 'c0b00000-0000-0000-0000-000000000004'),
-  '55000', 'El cobro de un contrarreembolso se corrige desde el contrarreembolso', 'el cobro de un contrarreembolso no se revierte');
+  'PT409', 'El cobro de un contrarreembolso se corrige desde el contrarreembolso', 'el cobro de un contrarreembolso no se revierte');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, 'c0b00000-0000-0000-0000-000000000005'),
-  '55000', 'La factura no está en un estado operativo: no admite revertir cobros', 'sobre una factura anulada no se revierte');
+  'PT409', 'La factura no está en un estado operativo: no admite revertir cobros', 'sobre una factura anulada no se revierte');
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 
@@ -189,9 +189,9 @@ select is((select count(*)::int from public.registro_actividad where tipo = 'com
 
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.revertir_cobro(%L, 'otra vez')$$, 'c0b00000-0000-0000-0000-000000000002'),
-  '55000', 'El cobro ya fue revertido', 'un cobro se revierte una sola vez');
+  'PT409', 'El cobro ya fue revertido', 'un cobro se revierte una sola vez');
 select throws_ok(format($$select public.revertir_cobro(%L, 'm')$$, (select id from rev1)),
-  '55000', 'Un contra-asiento no se revierte', 'el contra-asiento no se revierte');
+  'PT409', 'Un contra-asiento no se revierte', 'el contra-asiento no se revierte');
 
 -- Se puede cobrar de nuevo: el saldo reabierto vuelve a Cobrado
 select lives_ok(format($$select public.registrar_cobro(%L, 600, %L, null, null)$$, 'f1000000-0000-0000-0000-000000000001', 'b1000000-0000-0000-0000-00000000000a'),

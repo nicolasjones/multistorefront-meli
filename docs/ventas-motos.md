@@ -23,8 +23,8 @@ sources:
 - Solo se registran **facturas emitidas** (no presupuestos, ni borradores ni anuladas) cuya forma de envío es de tipo `moto` y de la misma empresa. El comprobante y su forma de envío no cambian.
 - Sin migración de histórico: la tabla nace vacía.
 - Migraciones: `20270222200100_envios_moto` (tabla y RLS), `20270222200200_envios_moto_rpc` (registro, edición, elegibles y listado), `20270222300100_rendir_envios_moto` (rendición y resumen), `20270222300200_exportacion_total_envios_moto` (la tabla entra en la exportación total de la organización) y `20270223100000_envios_moto_lectura_por_empresa` (RLS por tienda y `puedo_registrar_envios_moto`), y las decisiones del 2026-11-12: `20270228110000_envios_moto_factura_anulada_y_borrador` (anulada bloquea, borrador no elegible), `20270228110100_rendir_envios_moto_registra_cobro` (columna `cobro_id` y rendir cobra) y `20270228110200_notas_credito_ajustan_abono_envios_moto` (la nota de crédito baja el abono pendiente).
-- Una factura que se **anula después** de registrar su envío (decisión del 2026-11-12): el envío no se borra ni se modifica pero queda **bloqueado**: editarlo falla con `55000` («La factura X fue anulada: el envío en moto ya no se puede editar»), rendirlo también (aborta todo el lote) y la pantalla lo muestra con la etiqueta «Factura anulada» y el motivo. No cuenta en la tarjeta «Motos sin rendir». Un envío ya rendido no cambia.
-- **Borrador no elegible** (decisión del 2026-11-12): el selector no ofrece borradores y registrar sobre uno falla con `22023` («confirmala antes de registrar»). Los envíos que ya estaban cargados sobre un borrador siguen ahí; rendirlos con abono mayor que 0 exige confirmar la factura (`55000`).
+- Una factura que se **anula después** de registrar su envío (decisión del 2026-11-12): el envío no se borra ni se modifica pero queda **bloqueado**: editarlo falla con un error de negocio (ver [errores de negocio](./errores-negocio-postgrest.md); «La factura X fue anulada: el envío en moto ya no se puede editar»), rendirlo también (aborta todo el lote) y la pantalla lo muestra con la etiqueta «Factura anulada» y el motivo. No cuenta en la tarjeta «Motos sin rendir». Un envío ya rendido no cambia.
+- **Borrador no elegible** (decisión del 2026-11-12): el selector no ofrece borradores y registrar sobre uno falla con `22023` («confirmala antes de registrar»). Los envíos que ya estaban cargados sobre un borrador siguen ahí; rendirlos con abono mayor que 0 exige confirmar la factura (error de negocio).
 
 ## Permisos
 
@@ -38,7 +38,7 @@ sources:
 | RPC | Qué hace |
 |---|---|
 | `registrar_envio_moto` | Alta del envío de un comprobante elegible. |
-| `actualizar_envio_moto` | Edición con bloqueo optimista; un envío rendido o de una factura anulada es de solo lectura (`55000`). |
+| `actualizar_envio_moto` | Edición con bloqueo optimista; un envío rendido o de una factura anulada es de solo lectura (error de negocio: ver [errores de negocio](./errores-negocio-postgrest.md)). |
 | `comprobantes_para_envio_moto` | Facturas emitidas elegibles sin envío (búsqueda por número o cliente, máx. 50). |
 | `listar_envios_moto` | Listado más reciente primero, con `puede_editar`, `puede_rendir` y `bloqueado_motivo` por fila (factura anulada, o borrador con abono). |
 | `rendir_envios_moto` | Lote todo o nada, idempotente, solo enviados y no rendidos, **un solo mensajero**, tope de 500 ids. **Registra el cobro en el libro** (ver Rendición) y rechaza las facturas anuladas. Devuelve cantidad, mensajero, total del abono, total del costo, neto, `total_cobrado` y `sin_cobro`. |
@@ -57,9 +57,9 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 - Origen `contrarreembolso` (es el cobro que hace y rinde la mensajería; el `check` del libro no cambia), sin cuenta de cobro. Forma de pago: la de la factura; si no tiene, la forma activa «Contrarreembolso» de la tienda; sin ninguna de las dos, la rendición falla (`22023`) y no rinde ninguno.
 - El envío guarda el `cobro_id` (trazabilidad). La rendición es todo o nada: si un cobro falla no se rinde ninguno.
 - Una factura que **ya está en estado Cobrado** (p. ej. pagada en mostrador, antes del libro de cobros) no recibe cobro: el envío se rinde, cuenta en `sin_cobro` y el estado queda intacto (con una forma que genera deuda, el cobro la haría retroceder a Deuda).
-- Un envío sobre una **factura en borrador con abono** aparece con `puede_rendir = false` y el motivo «Confirmá la factura antes de rendir» (sigue editable; con abono 0 sigue rendible); rendirlo igual falla con `55000`.
+- Un envío sobre una **factura en borrador con abono** aparece con `puede_rendir = false` y el motivo «Confirmá la factura antes de rendir» (sigue editable; con abono 0 sigue rendible); rendirlo igual falla con un error de negocio.
 - Si la forma de pago del cobro genera deuda (la de la factura o la «Contrarreembolso» de la tienda) y queda saldo, la factura puede pasar a **Deuda**, igual que con un contrarreembolso.
-- Un superadmin con organización activa pero sin membresía no puede rendir con abono: se le avisa antes de empezar con un `42501` claro («tenés que ser miembro de la organización…»). Las facturas en borrador con abono se listan todas en el `55000`.
+- Un superadmin con organización activa pero sin membresía no puede rendir con abono: se le avisa antes de empezar con un `42501` claro («tenés que ser miembro de la organización…»). Las facturas en borrador con abono se listan todas en el mensaje del error de negocio.
 - **Revertir una rendición exige un contra-asiento**: el libro de cobros no se borra ni se edita, así que deshacer una rendición tendría que registrar un asiento de signo contrario (hoy no existe ese camino) y el estado de la factura no retrocede solo; `cobro_id` es la única traza de qué envío originó cada cobro.
 - **Nota de crédito posterior**: el disparador de notas (`20270228110200`, mismo patrón que los contrarreembolsos de `20270227150000`) baja el `abono` de los envíos **sin rendir** hasta el saldo neto (puede quedar en 0), con `skip locked` y el evento `envio_moto.abono_ajustado`. No toca los envíos ya rendidos. Si se anula la nota el abono no vuelve a subir.
 - La pantalla avisa «cobro registrado» con el monto y el diálogo de lote lo explica.
@@ -76,7 +76,7 @@ El **total de la rendición es la suma del abono**; el costo se muestra aparte y
 
 ## Errores
 
-`42501` sin permiso, **también** cuando el envío, la factura o la tienda no existe o no es de tu organización (registrar, editar y rendir comprueban el permiso antes de cualquier bloqueo y devuelven el mismo error exista o no, para no revelar la existencia entre tiendas ni organizaciones); `22023` dato inválido (mensajeros mezclados en una rendición, guía de más de 100 caracteres, importes fuera de rango, borrador en el registro, sin forma de pago para el cobro); `23505` el comprobante ya tiene envío; el conflicto de edición (otra persona lo modificó) usa un código `PT4xx` (ver [errores de negocio](errores-negocio-postgrest.md)); `55000` el envío ya está rendido, su factura fue anulada o (al rendir con abono) está en borrador.
+`42501` sin permiso, **también** cuando el envío, la factura o la tienda no existe o no es de tu organización (registrar, editar y rendir comprueban el permiso antes de cualquier bloqueo y devuelven el mismo error exista o no, para no revelar la existencia entre tiendas ni organizaciones); `22023` dato inválido (mensajeros mezclados en una rendición, guía de más de 100 caracteres, importes fuera de rango, borrador en el registro, sin forma de pago para el cobro); `23505` el comprobante ya tiene envío; el conflicto de edición (otra persona lo modificó) y los errores de estado (el envío ya está rendido, su factura fue anulada o, al rendir con abono, está en borrador) usan códigos de error de negocio; el código de cada función está en [errores de negocio](errores-negocio-postgrest.md).
 
 ## Pruebas
 

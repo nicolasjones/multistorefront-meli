@@ -546,7 +546,7 @@ describe('Lo que la base acepta (FR-021, FR-023)', () => {
   })
 
   it('una factura que todavía no entró al despacho no ofrece «Guardar envío»', async () => {
-    // La base rechaza el envío de una factura sin estado de despacho (`55000`): el bloque lo avisa y no lo ofrece.
+    // La base rechaza el envío de una factura sin estado de despacho (error de negocio): el bloque lo avisa y no lo ofrece.
     mocks.obtenerDespachoComprobante.mockResolvedValue({ ...DESPACHO, estado_despacho: null })
     renderBloque()
     await screen.findByRole('combobox', { name: /^Transporte \/ expreso/ })

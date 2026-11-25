@@ -92,7 +92,7 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
 - Toma el comprobante **con bloqueo de fila**: serializa dos aperturas de la misma guía y serializa
   contra el registro de cobros (que bloquea el mismo comprobante), así que el importe nunca se
   calcula con un saldo viejo.
-- Una factura en borrador o anulada no abre contrarreembolso (`55000`).
+- Una factura en borrador o anulada no abre contrarreembolso (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)).
 
 ## Marcar el contrarreembolso como cobrado (FR-041…FR-044)
 
@@ -115,9 +115,9 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
   `contrarreembolso`: es la única vía a Cobrado/Deuda, así que la factura pasa a Cobrado si el saldo
   llega a 0. La forma de pago es la de la factura y, si no tiene, la forma «Contrarreembolso» de la
   tienda.
-- **Ese cobro no se revierte con `revertir_cobro`**: la RPC responde `55000` «El cobro de un contrarreembolso se corrige desde el contrarreembolso» (`20270507180100_revertir_cobro.sql`; ver [cobros-por-comprobante.md](./cobros-por-comprobante.md)).
+- **Ese cobro no se revierte con `revertir_cobro`**: la RPC la rechaza con un error de negocio (ver [errores de negocio](./errores-negocio-postgrest.md)) «El cobro de un contrarreembolso se corrige desde el contrarreembolso» (`20270507180100_revertir_cobro.sql`; ver [cobros-por-comprobante.md](./cobros-por-comprobante.md)).
 - **Un comprobante anulado no se cobra** (FR-044): el contrarreembolso queda visible y pendiente,
-  pero no cobrable, con un mensaje claro (`55000`).
+  pero no cobrable, con un mensaje claro (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)).
 - Deja el evento `contrarreembolso.cobrado` en la misma transacción, con el actor, la tienda y la
   guía. Ningún evento lleva datos bancarios completos.
 

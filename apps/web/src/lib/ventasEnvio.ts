@@ -6,7 +6,7 @@
 // del bloque y los envoltorios de lectura y de guardado.
 
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import { listarFormasEnvio, type TipoFormaEnvio } from './ventas/formasEnvio'
 import { listarTransportes, type Transporte, type TipoTransporte } from './ventas/transportes'
 
@@ -238,7 +238,7 @@ export function mensajeDeErrorEnvio(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_ENVIO, e?.code ?? 'sin código')
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_ENVIO
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
+  if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_ENVIO
 }

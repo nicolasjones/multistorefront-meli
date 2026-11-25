@@ -976,14 +976,14 @@ select throws_ok(
       'f1000000-0000-0000-0000-000000000003', 100,
       'b1000000-0000-0000-0000-00000000000a', null,
       null)$$,
-  '55000', null, 'una factura en borrador no admite cobros'
+  'PT409', null, 'una factura en borrador no admite cobros'
 );
 select throws_ok(
   $$select public.registrar_cobro(
       'f1000000-0000-0000-0000-000000000005', 100,
       'b1000000-0000-0000-0000-00000000000a', null,
       null)$$,
-  '55000', null, 'una factura anulada no admite cobros'
+  'PT409', null, 'una factura anulada no admite cobros'
 );
 select is(
   (select count(*)::int from dominio.cobros_comprobante where comprobante_id = 'f1000000-0000-0000-0000-000000000001'),

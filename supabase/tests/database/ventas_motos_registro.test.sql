@@ -5,7 +5,7 @@
 -- entre organizaciones y por empresa); `registrar_envio_moto` (alta válida, mensajero normalizado, cero
 -- válido, un envío por comprobante, presupuesto / forma de envío distinta de moto / anulada / sin forma
 -- de envío / empresa ajena / mensajero vacío / importes negativos o con más de dos decimales);
--- `actualizar_envio_moto` (edición, conflicto PT412, envío rendido de solo lectura 55000, `rendido` y
+-- `actualizar_envio_moto` (edición, conflicto PT412, envío rendido de solo lectura PT409, `rendido` y
 -- `rendido_en` intactos); `comprobantes_para_envio_moto` (solo elegibles); `listar_envios_moto`; los
 -- permisos (Operador y Administrador escriben; Mostrador, Consulta, sin `ventas` y `anon` no, 42501) y
 -- los eventos `envio_moto.registrado` / `envio_moto.actualizado` en `public.registro_actividad`.
@@ -541,7 +541,7 @@ select throws_ok(
 );
 reset role;
 
--- Un envío rendido es de solo lectura (55000). La rendición la hace otra RPC (F-VTA-25); acá se deja el
+-- Un envío rendido es de solo lectura (PT409). La rendición la hace otra RPC (F-VTA-25); acá se deja el
 -- estado como lo dejaría ella, desde el fixture.
 update dominio.envios_moto
    set enviado = true, rendido = true, rendido_en = now()
@@ -553,7 +553,7 @@ select throws_ok(
       (select id from dominio.envios_moto where comprobante_id = 'f1000000-0000-0000-0000-000000000002'),
       'Nuevo', null, 9, 9, true,
       (select updated_at from dominio.envios_moto where comprobante_id = 'f1000000-0000-0000-0000-000000000002'))$$,
-  '55000', null, 'un envío rendido no se edita (solo lectura)'
+  'PT409', null, 'un envío rendido no se edita (solo lectura)'
 );
 reset role;
 select ok(

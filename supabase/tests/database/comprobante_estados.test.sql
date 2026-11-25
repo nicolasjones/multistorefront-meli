@@ -271,11 +271,11 @@ select throws_ok(
 
 select throws_ok(
   format($$select public.cambiar_estado_comprobante(%L, 'aceptado', %L)$$, pg_temp.id_f(3), pg_temp.upd(3)),
-  '55000', null, 'un borrador no admite cambios de estado'
+  'PT409', null, 'un borrador no admite cambios de estado'
 );
 select throws_ok(
   format($$select public.cambiar_estado_comprobante(%L, 'aceptado', %L)$$, pg_temp.id_f(4), pg_temp.upd(4)),
-  '55000', null, 'una factura anulada no admite cambios de estado'
+  'PT409', null, 'una factura anulada no admite cambios de estado'
 );
 select throws_ok(
   format($$select public.cambiar_estado_comprobante(%L, 'aceptado', %L)$$, pg_temp.id_f(5), pg_temp.upd(5)),

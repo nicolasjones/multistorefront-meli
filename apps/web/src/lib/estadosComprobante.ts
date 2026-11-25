@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Estados del comprobante y de cobro (F-VTA-10, MSF-365, FR-023). Único catálogo de etiquetas, tonos y textos de
@@ -110,7 +110,7 @@ type ErrorDeBase = { code?: string; message?: string } | null
 
 export const esConflictoDeEstado = (error: unknown): boolean => esCodigoDeConflicto((error as ErrorDeBase)?.code)
 
-// Solo los mensajes que levanta nuestra RPC llegan en castellano y se muestran tal cual. Un 42501/55000/22023 de
+// Solo los mensajes que levanta nuestra RPC llegan en castellano y se muestran tal cual. Un 42501/55000/PT409/22023 de
 // PostgREST (p. ej. «permission denied for function …») también trae `message`, así que se filtra por el prefijo
 // conocido para no exponer detalle técnico en inglés; el conflicto de edición (`PT412`, antes 40001) pide recargar.
 const PREFIJOS_MENSAJE_DE_LA_RPC = [
@@ -132,7 +132,7 @@ export function mensajeDeCambioEstado(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_CAMBIO_ESTADO, error)
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_ESTADO
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
+  if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_CAMBIO_ESTADO
 }

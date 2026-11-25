@@ -4,7 +4,7 @@
 // base en crudo (la autoridad es el servidor: la base vuelve a validar todo).
 // Contrato de las RPC: specs/20261024-150000-ventas-cobros-y-conciliacion/contracts/ventas-cobros-y-conciliacion.md
 import { supabaseClient } from '../supabase'
-import { esCodigoDeConflicto } from '../mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from '../mensajeErrorBase'
 
 // Los dos estados del libro de contrarreembolsos (`dominio.contrarreembolsos.estado`).
 export type EstadoContrarreembolso = 'pendiente' | 'cobrado'
@@ -95,7 +95,7 @@ export function mensajeDeErrorContrarreembolso(error: unknown, porDefecto: strin
   if (e?.code === '42501') {
     return 'Tu rol no puede cobrar contrarreembolsos en esta tienda. Puede que tu rol haya cambiado: recargá la página.'
   }
-  if (e?.code === '55000') return 'La factura está anulada: el contrarreembolso no se puede cobrar.'
+  if (esCodigoDeEstado(e?.code)) return 'La factura está anulada: el contrarreembolso no se puede cobrar.'
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese contrarreembolso no existe o no pertenece a tu organización.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message

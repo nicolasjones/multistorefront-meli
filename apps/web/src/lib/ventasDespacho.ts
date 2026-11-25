@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
 // Estado del despacho de una factura (F-VTA-15, MSF-152, FR-003…FR-011). La autoridad es la base:
@@ -180,7 +180,7 @@ export function mensajeDeErrorDespacho(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_DESPACHO, e?.code ?? 'sin código')
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_DESPACHO
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
+  if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023') && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_DESPACHO
 }

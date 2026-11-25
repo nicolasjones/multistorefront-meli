@@ -109,7 +109,7 @@ ese pago llegó a la cuenta.
 - Como el saldo, las alertas y la cuenta corriente suman `importe`, descuentan lo revertido solos. Pagos netea el cobro revertido y su
   contra-asiento (no cuentan como «por conciliar») y los rotula «Revertido» / «Reversión» (`20270507180800`; detalle en
   [pagos-conciliacion.md](pagos-conciliacion.md)).
-- `public.anular_comprobante` rechaza (`55000`) una factura **entregada** y una con **cobros registrados** (cobrado neto > 0): con el
+- `public.anular_comprobante` rechaza (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)) una factura **entregada** y una con **cobros registrados** (cobrado neto > 0): con el
   cobro revertido (neto 0) se puede anular (`20270507180000`).
 - El **saldo** de un comprobante es `round(max(total − cobrado − notas de crédito, 0), 2)` y es único: lo calcula
   `private.saldo_comprobante` (`20270227140000`). Detalle y reglas en [cobros-por-comprobante.md](cobros-por-comprobante.md).

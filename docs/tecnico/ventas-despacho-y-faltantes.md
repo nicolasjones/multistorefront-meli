@@ -106,10 +106,10 @@ stateDiagram-v2
   `confirmar_comprobante` ni `updated_at`. Como corre después del `RETURNING`, la pantalla recarga el comprobante tras
   confirmar. No es ejecutable por `authenticated`.
 - **Transiciones (FR-003):** `cambiar_estado_despacho` solo admite las del diagrama. Un presupuesto, un borrador o una
-  factura anulada se rechazan (`22023` / `55000`). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
+  factura anulada se rechazan (dato inválido o error de negocio: ver [errores de negocio](../errores-negocio-postgrest.md)). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
   sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (conflicto de edición) y toma la fila
   `for update`, así dos cambios simultáneos no se pisan.
-- `entregado` es **terminal**. Una factura entregada **no se anula**: `anular_comprobante` responde `55000` («La factura ya fue entregada: corregí con nota de crédito o RMA», `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`). Ver [listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
+- `entregado` es **terminal**. Una factura entregada **no se anula**: `anular_comprobante` la rechaza con un error de negocio (ver [errores de negocio](../errores-negocio-postgrest.md); «La factura ya fue entregada: corregí con nota de crédito o RMA», `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`). Ver [listado, estados y anulación](ventas-listado-estados-y-anulacion.md).
 
 ### Responsables (FR-004, FR-005, FR-006, FR-009)
 
@@ -173,7 +173,7 @@ Reglas de `guardar_envio_comprobante(p_id, p_transporte_id, p_guia, p_fecha_envi
 
 | Regla | Qué pasa |
 |---|---|
-| Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
+| Factura confirmada no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (dato inválido o error de negocio: ver [errores de negocio](../errores-negocio-postgrest.md)) |
 | Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
 | Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (`42501`) |
 | Bloqueo optimista | `p_actualizado_en` desactualizado → conflicto de edición |
@@ -287,7 +287,7 @@ Ayudas internas (`private`, sin grant): `descontar_reservas_entrega(uuid)`, `eti
 `puede_despachar_en_empresa(uuid, uuid)`, `puede_leer_faltantes_empresa(uuid)` y `nivel_ventas_en_empresa(uuid)`.
 
 Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido
-· `55000` transición no permitida o factura sin estado de despacho · comprobante inexistente · conflicto de edición (códigos `PT4xx`; ver [errores de negocio](../errores-negocio-postgrest.md)). Los mensajes llegan en castellano y la pantalla los muestra tal cual (los técnicos se traducen a
+· transición no permitida o factura sin estado de despacho, comprobante inexistente y conflicto de edición (códigos de error de negocio; ver [errores de negocio](../errores-negocio-postgrest.md)). Los mensajes llegan en castellano y la pantalla los muestra tal cual (los técnicos se traducen a
 un texto claro).
 
 ## Pantalla y rutas
