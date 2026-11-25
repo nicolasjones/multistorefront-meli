@@ -19,8 +19,9 @@
 --     (`creado_en`) y, ante empate, por `id`. El orden es estable y no depende del listado.
 --
 -- Exportación (MSF-526): `public.exportar_proveedores` es security definer, exige
--- `private.puede_accion('proveedores', 'exportar')` (la misma acción que Clientes: por defecto
--- Administrador, Operador y Administración), acota a la organización de la sesión (nunca a un
+-- `private.puede_accion('proveedores', 'exportar')` (la misma acción que Clientes; exige además
+-- al menos lectura en Proveedores, así que con la matriz inicial exportan Administrador y Administración:
+-- el Operador tiene la acción pero «ninguno» en la sección), acota a la organización de la sesión (nunca a un
 -- parámetro) y pagina por keyset `(lower(razon_social), id)`. Tope de 50000 filas por exportación
 -- (54000 al superarlo, en cada llamada). Registra la actividad `proveedores.exportados` en cada
 -- llamada que devuelve filas (el primer lote declara el total; los siguientes, su continuación), así
@@ -90,6 +91,7 @@ $$;
 
 revoke execute on function private.asignar_numero_proveedor() from public, anon, authenticated;
 
+drop trigger if exists proveedores_asignar_numero on dominio.proveedores;
 create trigger proveedores_asignar_numero
   before insert on dominio.proveedores
   for each row execute function private.asignar_numero_proveedor();

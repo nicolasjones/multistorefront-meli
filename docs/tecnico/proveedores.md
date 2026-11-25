@@ -140,9 +140,9 @@ La organización sale de la sesión, nunca del llamador.
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva sin tocar los datos; **idempotente** (mismo estado = no-op). No hay borrado. |
 | `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Búsqueda y paginación en servidor. `p_estado` = `activos` (default), `inactivos` o `todos`; 25 por página, tope 200; devuelve `numero`, `empresas` y `total_filas`. |
 | `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Exportación por lotes con los filtros del listado. `security definer`: exige la acción `exportar` en Proveedores y acota a la organización de la sesión; keyset por razón social e `id`; tope de 50000 filas (`54000`); cursor ajeno o inexistente `40001`; registra `proveedores.exportados`. |
+| `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` | Productos del proveedor (`nombre`, `codigo_proveedor`, `activo`), ordenados por nombre; 10 por página, tope 100; exige `proveedores` **y** `productos`; `42501` si falta alguno. |
 
 `dominio.proveedores.numero` (MSF-527) es el correlativo por organización: lo asigna `proveedores_asignar_numero` con un lock advisory por organización, no es editable por la API y los ya cargados se numeraron por orden de alta (`creado_en`, `id`).
-| `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` | Productos del proveedor (`nombre`, `codigo_proveedor`, `activo`), ordenados por nombre; 10 por página, tope 100; exige `proveedores` **y** `productos`; `42501` si falta alguno. |
 
 `listar_proveedores` busca por razón social parcial sin mayúsculas ni tildes (`translate(lower(...),
 'áéíóúü', 'aeiouu')` + índice GIN `proveedores_razon_social_trgm_idx`) o por CUIT con o sin guiones
