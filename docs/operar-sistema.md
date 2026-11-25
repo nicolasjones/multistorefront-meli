@@ -51,6 +51,12 @@ Reintentos, ejecuciones y conexiones trabadas: [adoptar-ciclo-ejecuciones.md](ad
 Diseño de conectores: [disenar-conector.md](disenar-conector.md). Credenciales OAuth:
 [adoptar-conexiones-oauth.md](adoptar-conexiones-oauth.md).
 
+**Corridas perdidas tras una caída (MSF-871).** Los sondeos que corren cada 15 minutos o menos (reclamos de
+outbox, avisos, monitoreos, despachadores) llevan `recoverMissedSchedules: NONE`: al volver Kestra no se
+reproducen las corridas perdidas una por una (serían decenas de ejecuciones simultáneas) y la siguiente corrida
+retoma lo pendiente. Los flows diarios, semanales y mensuales (respaldos, depuraciones, resumen semanal,
+verificación de restauración) no lo fijan a propósito: ante una caída recuperan la corrida perdida.
+
 ## Superset
 
 Analítica embebida; los dashboards se exportan a YAML y se commitean. Operación local:
@@ -60,6 +66,9 @@ Analítica embebida; los dashboards se exportan a YAML y se commitean. Operació
 
 Procesos aislados en `workers/` (contrato en `workers/CONTRATO.md`). Imágenes blindadas y
 sus listas de salida permitida: [adoptar-blindaje-imagenes-workers.md](adoptar-blindaje-imagenes-workers.md).
+El pool de Postgres de cada worker tiene topes configurables por entorno (`WORKER_PG_STATEMENT_TIMEOUT_MS`,
+`WORKER_PG_CONNECT_TIMEOUT_MS`, `WORKER_PG_IDLE_TIMEOUT_MS`; defaults 5 min, 10 s y 30 s): ver «Topes de
+Postgres» en `workers/CONTRATO.md`.
 
 ## Purgas, retenciones y alertas programadas
 

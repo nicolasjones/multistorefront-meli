@@ -207,3 +207,17 @@ Usa el protocolo de procesos masivos de arriba: `total` = cantidad de conjuntos 
 (cierra `con_errores`), cancelación revisada entre lotes sin ZIP parcial, y código 78 (ejecución cerrada, configuración o
 tope de 200 MB) como `fallido` con motivo sanitizado. La subida es idempotente (misma ruta, `upsert`), así que el flow
 puede reintentar. Detalle en `docs/exportacion-total.md`.
+
+## Topes de Postgres (MSF-871)
+
+Cada worker abre un único pool (`max: 1`) con tres topes, para que una conexión o consulta trabada no deje al
+contenedor colgado hasta el timeout de Kestra. Se ajustan por variable de entorno del contenedor (milisegundos, entero
+positivo; un valor ausente o inválido usa el default):
+
+| Variable | Default | Efecto |
+|---|---|---|
+| `WORKER_PG_STATEMENT_TIMEOUT_MS` | `300000` (5 min) | `statement_timeout`: el servidor cancela la consulta que lo supere. |
+| `WORKER_PG_CONNECT_TIMEOUT_MS` | `10000` (10 s) | `connectionTimeoutMillis`: falla si no se logra conectar a tiempo. |
+| `WORKER_PG_IDLE_TIMEOUT_MS` | `30000` (30 s) | `idleTimeoutMillis`: cierra la conexión inactiva (se reabre en la próxima consulta). |
+
+Una falla por estos topes es técnica y se reintenta según la tabla de códigos de salida.

@@ -20,7 +20,7 @@ template usa hoy — ningún checkout sin `.env` cambia de comportamiento
 | `KESTRA_PORT` | `8082` | `infra/kestra/compose.yaml` |
 | `SUPERSET_PORT` | `8088` | `infra/superset/compose.yaml` (mapeo host — el bind interno de gunicorn y el healthcheck siguen en `8088` dentro del contenedor, no cambian), `supabase/functions/.env.example` (`SUPERSET_PUBLIC_URL` default) |
 | `PLAYWRIGHT_PORT` | `3103` | `infra/playwright/compose.yaml`, `infra/playwright/compose.vps.yaml` |
-| `KESTRA_ALERTAS_WEBHOOK_URL` *(ya existía)* | `http://host.docker.internal:8099/alertas` | `infra/kestra/compose.yaml`, `.env.example` — deja de tener el puerto `8099` como número aislado repetido; sigue siendo una URL completa overrideable como hoy |
+| `KESTRA_ALERTAS_WEBHOOK_URL` *(ya existía)* | `http://host.docker.internal:8098/alertas` | `infra/kestra/compose.yaml`, `.env.example` — deja de tener el puerto `8098` como número aislado repetido; sigue siendo una URL completa overrideable como hoy |
 | `NANGO_PORT` *(spec `20260930-153545-conexiones-oauth-nango`)* | `3003` | `infra/nango/compose.yaml` (mapeo host y defaults de `NANGO_SERVER_URL`/`NANGO_PUBLIC_SERVER_URL`), `.env.example` |
 
 ## Filas marcadas "solo excepción"

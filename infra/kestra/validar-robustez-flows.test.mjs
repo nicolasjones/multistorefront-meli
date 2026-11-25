@@ -227,3 +227,17 @@ test('todo flow que despacha un worker rechaza tags mutables antes del pull (MSF
   assert.equal(ok(`ghcr.io/o/r-worker-x:${'b'.repeat(40)}`), true);
   assert.equal(ok('local/worker-x:latest'), true);
 });
+
+test('los sondeos de alta frecuencia no reproducen corridas perdidas tras una caída (recoverMissedSchedules: NONE)', () => {
+  // Los respaldos, depuraciones y resúmenes diarios/semanales/mensuales SÍ recuperan la corrida perdida (default de Kestra).
+  const sondeos = [];
+  for (const f of flows) {
+    const bloques = f.texto.split(/^  - id: /m).slice(1).filter((b) => /type: io\.kestra\.plugin\.core\.trigger\.Schedule/.test(b));
+    for (const b of bloques) {
+      const cron = b.match(/^\s+cron: "([^"]+)"/m)?.[1];
+      if (cron && minutosEntreCorridas(cron) <= 15) sondeos.push({ f, b });
+    }
+  }
+  assert.ok(sondeos.length >= 20, `solo ${sondeos.length}`);
+  for (const { f, b } of sondeos) assert.match(b, /^\s+recoverMissedSchedules: NONE$/m, `${f.id}: falta recoverMissedSchedules: NONE`);
+});
