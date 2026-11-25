@@ -12,6 +12,7 @@ import {
   lineaAplicado,
   lineaResumen,
   seleccionarGates,
+  ultimaEtiquetaGate,
 } from './vencimientos-gates.mjs'
 
 const ETIQUETAS = new Map([
@@ -48,7 +49,7 @@ const item = (extra) => ({
  */
 function crearStub(
   items,
-  { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null, etiquetasMeta = null } = {},
+  { topeTipo = null, topeEtiqueta = null, fallaPatchEn = null, etiquetasMeta = null, feeds = null } = {},
 ) {
   const llamadas = []
   const meta = {
@@ -80,6 +81,10 @@ function crearStub(
         status: 200,
         json: async () => (recortado ? lote.slice(0, recortado) : lote),
       }
+    }
+    if (/^\/issues\/\d+\/feed$/.test(pathname)) {
+      const id = Number(pathname.split('/')[2])
+      return { ok: true, status: 200, json: async () => ({ items: feeds?.[id] ?? [] }) }
     }
     if (pathname.startsWith('/issues/')) {
       const id = Number(pathname.split('/').pop())
@@ -156,6 +161,56 @@ test('el plan usa desde cuándo espera el ítem y, si falta, cuándo se creó', 
       ['MSF-2', '2026-11-17'],
     ],
   )
+})
+
+const marca = (nombre, createdAt, extra = {}) => ({
+  kind: 'activity',
+  action: 'label_add',
+  payload: { to: { value: nombre } },
+  createdAt,
+  ...extra,
+})
+
+test('la última etiqueta de gate es la entrada label_add más nueva de una etiqueta de gate', () => {
+  assert.equal(ultimaEtiquetaGate([]), null)
+  assert.equal(ultimaEtiquetaGate(undefined), null)
+  assert.equal(
+    ultimaEtiquetaGate([
+      marca('gate', '2026-11-18T10:00:00.000Z'),
+      marca('decision', '2026-11-20T10:00:00.000Z'),
+      marca('flagged', '2026-11-25T10:00:00.000Z'), // no es de gate
+      { kind: 'activity', action: 'label_remove', payload: { from: { value: 'gate' } }, createdAt: '2026-11-26T10:00:00.000Z' },
+      { kind: 'comment', createdAt: '2026-11-27T10:00:00.000Z' },
+      marca('escala-humano', 'no-es-fecha'),
+    ]),
+    '2026-11-20T10:00:00.000Z',
+  )
+})
+
+test('el plan ancla en cuando el ítem recibió la etiqueta de gate, no en statusSince (MSF-909)', async () => {
+  const plan = await calcularPlan(
+    [item({ id: 1, identifier: 'MSF-1' }), item({ id: 2, identifier: 'MSF-2' })],
+    async () => ({ statusSince: '2026-11-14T18:52:03.189Z' }),
+    async (id) => (id === 1 ? [marca('escala-humano', '2026-11-18T12:00:00.000Z')] : []),
+  )
+  assert.deepEqual(
+    plan.map((p) => [p.identifier, p.dueDate]),
+    [
+      ['MSF-1', '2026-11-19'], // etiqueta el 18 -> vence el 19 (statusSince daba el 15)
+      ['MSF-2', '2026-11-15'], // sin entrada en el historial: cae a statusSince
+    ],
+  )
+})
+
+test('ejecutar lee el feed del gate y pagina por cursor', async () => {
+  const gate = item({ id: 1, identifier: 'MSF-1', statusSince: '2026-11-14T18:52:03.189Z' })
+  const feeds = {
+    1: [marca('gate', '2026-11-18T12:00:00.000Z')],
+  }
+  const { fetchStub, llamadas } = crearStub([gate], { feeds })
+  const { plan } = await ejecutar({ fetchImpl: fetchStub, proyecto: 'MSF' })
+  assert.equal(plan[0].dueDate, '2026-11-19')
+  assert.ok(llamadas.some((l) => l.url.includes('/issues/1/feed')))
 })
 
 test('el PATCH manda sólo la fecha: mandar etiquetas las reemplazaría', async () => {

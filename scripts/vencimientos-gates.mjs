@@ -4,8 +4,10 @@
 // El contrato de vitalidad le da al gate humano un vencimiento de 24 h, pero ese
 // vencimiento no está escrito en el ítem: el board guarda la fecha de vencimiento
 // (`dueDate`) y los gates la tenían vacía. Esta herramienta le pone a cada gate que
-// espera decisión la fecha en que esa decisión vence (24 h desde que el ítem entró a la
-// columna en la que espera), para que el tablero muestre el plazo y se pueda ver qué
+// espera decisión la fecha en que esa decisión vence (24 h desde que el ítem recibió por
+// última vez una etiqueta de gate, que es cuando el watchdog empieza a contarlo; sin esa
+// entrada en el historial, desde que entró a su columna), para que el tablero muestre el
+// plazo y se pueda ver qué
 // decisión está vencida.
 //
 // Uso:
@@ -48,7 +50,7 @@ export function esProyectoValido(proyecto) {
 
 /**
  * Fecha de vencimiento del gate: el plazo del contrato (24 h) contado desde que el
- * ítem empezó a esperar en su columna. El tracker guarda fecha y no hora, así que el
+ * ítem empezó a esperar la decisión. El tracker guarda fecha y no hora, así que el
  * plazo se redondea al día.
  * @param {string} desde instante ISO en que el ítem empezó a esperar
  * @param {number} horas plazo en horas
@@ -87,15 +89,38 @@ export function seleccionarGates(items, { etiquetas, columnas }) {
 }
 
 /**
- * Plan de cambios: un ítem por gate, con la fecha que le corresponde.
+ * Instante en que el ítem recibió por última vez una etiqueta de gate: es cuando el
+ * watchdog lo empieza a contar como esperando una decisión. Entradas del feed del ítem
+ * (`kind: activity`, `action: label_add`, `payload.to.value` = nombre de la etiqueta).
+ * @param {object[]} feed actividad del ítem, en cualquier orden
+ * @returns {string|null} instante ISO, o null si el historial no tiene esa entrada
+ */
+export function ultimaEtiquetaGate(feed) {
+  let ultimo = null
+  for (const it of feed ?? []) {
+    if (it?.kind !== 'activity' || it.action !== 'label_add') continue
+    if (!ETIQUETAS_GATE.includes(it.payload?.to?.value)) continue
+    const instante = new Date(it.createdAt)
+    if (Number.isNaN(instante.getTime())) continue
+    if (!ultimo || instante > ultimo) ultimo = instante
+  }
+  return ultimo ? ultimo.toISOString() : null
+}
+
+/**
+ * Plan de cambios: un ítem por gate, con la fecha que le corresponde. El plazo se cuenta
+ * desde la última vez que el ítem recibió una etiqueta de gate; sin esa entrada en el
+ * historial (o sin lector de historial) cae a `statusSince` y, si falta, a `createdAt`.
  * @param {object[]} candidatos
  * @param {(id:number)=>Promise<object>} detalle detalle del ítem (`statusSince`)
+ * @param {(id:number)=>Promise<object[]>} [actividad] feed de actividad del ítem
  */
-export async function calcularPlan(candidatos, detalle) {
+export async function calcularPlan(candidatos, detalle, actividad) {
   const plan = []
   for (const item of candidatos) {
     const info = await detalle(item.id)
-    const desde = info.statusSince ?? info.createdAt
+    const marcado = actividad ? ultimaEtiquetaGate(await actividad(item.id)) : null
+    const desde = marcado ?? info.statusSince ?? info.createdAt
     plan.push({
       id: item.id,
       identifier: item.identifier,
@@ -229,6 +254,23 @@ async function leerBoard(api, { proyecto, meta }) {
   return { gates, porTipo, leidos }
 }
 
+/** Tope de páginas del feed por ítem (100 entradas por página). */
+const PAGINAS_FEED = 20
+
+/** Feed de actividad de un ítem, paginado por cursor (viene del más nuevo al más viejo). */
+async function leerActividad(api, id) {
+  const items = []
+  let cursor = null
+  for (let i = 0; i < PAGINAS_FEED; i++) {
+    const q = `?limit=100${cursor ? `&cursor=${encodeURIComponent(JSON.stringify(cursor))}` : ''}`
+    const pagina = await api.get(`/issues/${id}/feed${q}`)
+    items.push(...(pagina?.items ?? []))
+    cursor = pagina?.nextCursor
+    if (!cursor) break
+  }
+  return items
+}
+
 /**
  * Corre el barrido sobre el board.
  * @param {{fetchImpl?: typeof fetch, proyecto?: string, aplicar?: boolean,
@@ -256,7 +298,11 @@ export async function ejecutar({
   // entregaron (columna terminal) no esperan y no se fechan.
   const esperando = gatesDelBoard.filter((item) => esperaDecision(item, columnas))
   const candidatos = seleccionarGates(esperando, { etiquetas, columnas })
-  const plan = await calcularPlan(candidatos, (id) => api.get(`/issues/${id}`))
+  const plan = await calcularPlan(
+    candidatos,
+    (id) => api.get(`/issues/${id}`),
+    (id) => leerActividad(api, id),
+  )
   if (aplicar) {
     for (const p of plan) {
       await api.patch(`/issues/${p.id}`, { dueDate: p.dueDate })

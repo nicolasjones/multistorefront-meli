@@ -190,12 +190,12 @@ override de organización que une el criterio histórico (sufijo `organizacion_i
 | `feature_id` único o nombres por vista/RPC en `fuentes_mcp` / `acciones_mcp`; wrapper SQL por acción que inyecte la organización desde la credencial; vencimiento dentro de `iniciar_ejecucion_mcp` (MSF-729) | Migración y decisión de modelo | Wrapper `private.ejecutar_accion_mcp(p_credencial_id, p_rpc, p_parametros)` que resuelva la organización por la credencial y llame a la RPC registrada; mover el vencimiento (hoy en TypeScript) a SQL |
 | `invitar-miembro` recorre todos los usuarios de Auth (MSF-732) | Necesita una RPC sobre `auth.users` | `private.usuario_auth_por_correo(p_correo)` (`security definer`, solo `service_role`) con un índice por `lower(email)` |
 | Pedidos de `recuperar-clave-cliente` descartados en silencio (MSF-731) | Decisión de diseño | Contar por IP/host además de correo y responder siempre igual; no se puede evitar que 3 pedidos bloqueen 10 minutos al cliente sin un límite por IP |
-| `iniciar-sesion-oauth` y `chat-ia-responder` siguen sin `handler.ts` completo (MSF-732) | Alcance del lote | `chat-ia-responder` ya separó `guardas.ts` con pruebas; falta extraer el handler con dependencias inyectadas como se hizo con `indexar-documento` |
+| `chat-ia-responder` sigue sin `handler.ts` (MSF-732) | Alcance del lote | Ya separó `guardas.ts` y `limites.ts` con pruebas; falta extraer el handler con dependencias inyectadas como se hizo con `indexar-documento` y `iniciar-sesion-oauth` (el ciclo con el proveedor y las herramientas comparten estado de la conversación: se extrae con pruebas de los dos adaptadores, no a ciegas) |
 | `Access-Control-Allow-Origin: *` en las funciones llamadas desde el navegador | Son llamadas por el panel | Restringir al origen del panel (`APP_URL`) cuando se decida el esquema de orígenes por ambiente |
 | Un `NANGO_SECRET_KEY` con forma de UUID real en `.env.example` | Hay que confirmar si es un valor de uso real | Rotarlo si alguna vez se usó y poner un placeholder no válido |
 
 ## Verificación
 
 `pnpm test:edge:indexar-documento`, `pnpm test:edge:compartido-ia`, `pnpm test:edge:chat-ia-limites`,
-`pnpm test:edge:enviar-correo-proveedor`, `pnpm test:edge:crear-organizacion`, `pnpm test:edge:emitir-acceso-reporte`,
+`pnpm test:edge:enviar-correo-proveedor`, `pnpm test:edge:crear-organizacion`, `pnpm test:edge:emitir-acceso-reporte`, `pnpm test:edge:iniciar-sesion-oauth`,
 `pnpm test:kestra:correo-masivo`, `pnpm --filter @platform/mcp-server test` y `pnpm --filter @platform/ia test`.

@@ -11,7 +11,7 @@
 El board del tracker no tenía escrito el plazo de los gates: los ítems con
 `gate`/`decision`/`escala-humano` esperaban decisión con `dueDate` vacío. Se agregó
 `scripts/vencimientos-gates.mjs`, un barrido idempotente que les pone la fecha de
-vencimiento del contrato de vitalidad (24 h desde que el ítem empezó a esperar, en
+vencimiento del contrato de vitalidad (24 h desde que el ítem recibió la etiqueta de gate; sin esa entrada, desde `statusSince`; en
 `America/Argentina/Buenos_Aires`), con simulación por defecto y escritura sólo
 con `--aplicar`.
 No se decidió el contenido de ningún gate: sólo la fecha.
@@ -51,7 +51,7 @@ SHA `c68634bcf`):
 Hallazgos que **no** se tocaron en esta ronda, por decisión del CTO (herramienta interna
 de bajo riesgo; los Baja pasan a merge sin escalada):
 
-- El ancla de la fecha (`statusSince` vs. cuándo el watchdog marca vencido): aceptado
+- El ancla de la fecha (`statusSince` vs. cuándo el watchdog marca vencido; corregido después en MSF-997): aceptado
   tal cual y trazado como seguimiento real **MSF-997**.
 - Los gates sin tipo no se contrastan: es correcto —no hay lectura por tipo con la que
   contrastarlos— y no los deja fuera del barrido (se fechan igual).
@@ -62,7 +62,7 @@ de bajo riesgo; los Baja pasan a merge sin escalada):
 
 | File | Change | Notes |
 |------|--------|-------|
-| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula `statusSince + 24 h` en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. Lee el board por etiqueta de gate **y** por tipo de ítem y los contrasta (`contrastarBoard`): si las dos lecturas no ven los mismos gates, si una lectura llega al tope de 500 ítems (la API no pagina) o si las dos lecturas vienen vacías, el barrido corta con error antes de escribir. Anota cada ítem aplicado apenas lo escribe; el formato de esa línea y el del resumen viven en `lineaAplicado` y `lineaResumen`. |
+| `scripts/vencimientos-gates.mjs` | added | Selecciona gates sin fecha que esperan decisión, calcula 24 h desde la última etiqueta de gate del feed del ítem (fallback `statusSince`) en `America/Argentina/Buenos_Aires` y, con `--aplicar`, hace `PATCH /issues/{id}` con **sólo** `dueDate`. Lee el board por etiqueta de gate **y** por tipo de ítem y los contrasta (`contrastarBoard`): si las dos lecturas no ven los mismos gates, si una lectura llega al tope de 500 ítems (la API no pagina) o si las dos lecturas vienen vacías, el barrido corta con error antes de escribir. Anota cada ítem aplicado apenas lo escribe; el formato de esa línea y el del resumen viven en `lineaAplicado` y `lineaResumen`. |
 | `scripts/vencimientos-gates.test.mjs` | added | Fija la regla: qué es un gate, qué es esperar, el cálculo con borde de medianoche, idempotencia, PATCH sólo con `dueDate`, simulación sin escritura, topes de lectura, contraste entre las dos lecturas, lectura vacía, proyecto sin etiquetas de gate, registro de lo aplicado ante un fallo parcial y formato de la salida. |
 | `package.json` | modified | Nuevo `test:vencimientos:gates`, encadenado en `pnpm test`. |
 | `.github/workflows/validate.yml` | modified | El job `chequeos` corre `test:vencimientos:gates` (Node puro, sin base ni red). |
@@ -114,7 +114,7 @@ igual y sólo consumían el tope de la lectura.
 
 ## Tests Added or Updated
 
-- `scripts/vencimientos-gates.test.mjs::la fecha de vencimiento es el plazo del contrato contado desde que el ítem espera` — `statusSince + 24 h` en la zona del board, bordes de medianoche y fecha inválida.
+- `scripts/vencimientos-gates.test.mjs::la fecha de vencimiento es el plazo del contrato contado desde que el ítem espera` — `statusSince + 24 h` (el fallback) en la zona del board, bordes de medianoche y fecha inválida.
 - `…::un ítem es gate si lleva gate, decision o escala-humano` — la etiqueta `espera-dependencia` no es gate.
 - `…::un ítem espera decisión mientras no está archivado ni en una columna terminal` — columnas `completed` y archivados quedan fuera.
 - `…::se seleccionan los gates sin fecha que esperan decisión` — idempotencia (`dueDate` ya puesto no se toca).

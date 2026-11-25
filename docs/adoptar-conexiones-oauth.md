@@ -6,6 +6,7 @@ sources:
   - infra/nango/compose.estricto.yaml
   - supabase/migrations/20260930160000_conexiones_oauth.sql
   - supabase/functions/iniciar-sesion-oauth/index.ts
+  - supabase/functions/iniciar-sesion-oauth/handler.ts
   - apps/web/src/pages/conexiones-oauth/list.tsx
   - apps/web/src/pages/integraciones-oauth/administrar.tsx
   - apps/web/src/providers/nango/index.ts
