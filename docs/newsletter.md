@@ -54,7 +54,7 @@ lista y otro consentimiento. Guía para quien usa el panel: [Newsletter](product
 | Kestra | `infra/kestra/flows/newsletter-confirmaciones.yml` (cada minuto; variable `NEWSLETTER_CONFIRMACION_LOTE`, 20) |
 | Front público | `FormularioSuscripcion` en el pie (`PieCategorias`), `lib/tiendaNewsletter.ts`, `hooks/useNewsletterTienda.ts`, ruta `/newsletter/confirmar/:token` (`rutas/newsletter.confirmar.tsx`) |
 | Exportación total | las dos tablas entran a `private.conjuntos_exportacion_total()`; `confirmacion_hash` queda fuera del volcado |
-| Pruebas | pgTAP `newsletter_suscripcion`, `newsletter_bandera`, `newsletter_aislamiento`, extensiones de `tienda_contacto`, `tienda_capacidades` y `exportacion_total`; `test:kestra:newsletter-confirmaciones`; Vitest del formulario, la página de confirmación y `lib/tiendaNewsletter` |
+| Pruebas | pgTAP `newsletter_suscripcion`, `newsletter_bandera`, `newsletter_aislamiento`, extensiones de `tienda_contacto`, `tienda_capacidades` y `exportacion_total`; `test:kestra:newsletter-confirmaciones`; Vitest del formulario, la página de confirmación y `lib/tiendaNewsletter`; E2E `e2e/tienda-newsletter.e2e.ts` del recorrido de la persona suscriptora (ver «Pendientes») |
 
 ## Flujo y decisiones (spec D1, D2, D4)
 
@@ -143,12 +143,13 @@ como «Probá de nuevo en unos minutos». Es el único agregado al contrato de l
 ## Pendientes que requieren a Nicolás o a un entorno real
 
 1. **Publicar el flow `correo-masivo` actualizado en Kestra** (`node infra/kestra/desplegar-flow.mjs --source infra/kestra/flows/correo-masivo.yml --namespace producto.clientes --flow-id correo-masivo --kestra-url …`) y, **antes de encender la bandera**, el flow `newsletter-confirmaciones` (ya mergeado en la Fase 2). Sin el flow nuevo, un newsletter se enviaría con la plantilla de clientes.
-2. **SMTP real**: nada de esta entrega envía correo real en CI. Hay que probar en dev, con la bandera encendida y una tienda de prueba, una suscripción, la confirmación, una prueba y un envío a un suscriptor propio (T034) y mirar cómo llega (entregabilidad, enlace de baja).
-3. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: **verificado: `MailSend` de Kestra NO admite encabezados propios** (ver «Seguimientos de seguridad y entregabilidad»). Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen. Queda decidir el camino (propuesta abajo) con un SMTP real.
-4. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
-5. **Cupo compartido** entre clientes y newsletter (D14): decidir si se separan. La **alerta del tope global de confirmaciones** (MSF-971) ya existe; el CAPTCHA o el cupo por visitante siguen como propuesta.
-6. **CAPTCHA** solo si hay abuso real: la alerta del tope es el disparador (ver propuesta).
-7. **Rate limit en el borde de la baja** (MSF-980): **no se resuelve en el repo** (propuesta abajo): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
+2. **E2E del recorrido** (`apps/web/e2e/tienda-newsletter.e2e.ts`, job `e2e-tienda`): cubre suscribirse desde el pie, el registro `pendiente` con su consentimiento, un enlace desconocido, la confirmación, el enlace vencido, la baja por el enlace y la nueva suscripción posterior. El token del correo lo genera el flow de Kestra y la base solo guarda su SHA-256, así que el test guarda el hash de un token propio por la REST con la service-role (solo desde Node) en lugar de leer un correo. El stack del CI no corre funciones Edge: el test intercepta el pedido a `baja-correo-masivo` y reproduce lo que hace la función (SHA-256 y RPC `dar_de_baja_correo_masivo`), por lo que la Edge Function desplegada no queda probada. Quedan fuera: componer, previsualizar y enviar desde el panel, y todo lo que dependa de Kestra o del SMTP.
+3. **SMTP real**: nada de esta entrega envía correo real en CI. Hay que probar en dev, con la bandera encendida y una tienda de prueba, una suscripción, la confirmación, una prueba y un envío a un suscriptor propio (T034) y mirar cómo llega (entregabilidad, enlace de baja).
+4. **`List-Unsubscribe` / `List-Unsubscribe-Post` (D3, MSF-962)**: **verificado: `MailSend` de Kestra NO admite encabezados propios** (ver «Seguimientos de seguridad y entregabilidad»). Sin ellos la baja depende del enlace del cuerpo; los clientes de correo grandes lo piden para remitentes de volumen. Queda decidir el camino (propuesta abajo) con un SMTP real.
+5. **Imágenes en el correo**: requieren decidir entre un bucket público de miniaturas o una URL firmada de larga vida (hoy `imagen_url` es nulo).
+6. **Cupo compartido** entre clientes y newsletter (D14): decidir si se separan. La **alerta del tope global de confirmaciones** (MSF-971) ya existe; el CAPTCHA o el cupo por visitante siguen como propuesta.
+7. **CAPTCHA** solo si hay abuso real: la alerta del tope es el disparador (ver propuesta).
+8. **Rate limit en el borde de la baja** (MSF-980): **no se resuelve en el repo** (propuesta abajo): la Edge Function `baja-correo-masivo` es anónima y no limita por visitante; los tokens son de 244 bits y la respuesta es uniforme, así que el riesgo es de disponibilidad.
 
 ## Verificación técnica (T011)
 

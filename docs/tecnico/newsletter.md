@@ -50,7 +50,7 @@ Resumen para quien usa el panel: [Newsletter de la tienda](../producto/newslette
 | Front | `apps/web/src/pages/clientes/newsletter/` (`index.tsx`, `DialogoNuevaCampana.tsx`, `VistaPreviaNewsletter.tsx`, `index.test.tsx`), `apps/web/src/lib/newsletter.ts`, `apps/web/src/lib/tiendaNewsletter.ts`, `apps/web/src/hooks/useNewsletterTienda.ts`, `apps/web/src/pages/tienda-publica/newsletter/FormularioSuscripcion.tsx`, `apps/web/src/pages/tienda-publica/rutas/newsletter.confirmar.tsx` y `newsletter.baja.tsx`; ruta lazy `/clientes/newsletter` en `apps/web/src/App.tsx`; entrada de menú en `apps/web/src/components/navegacion/destinosPanel.ts`. |
 | Flows | `infra/kestra/flows/newsletter-confirmaciones.yml` (nuevo) y `infra/kestra/flows/correo-masivo.yml` (extendido con la plantilla del newsletter). |
 | Pruebas | pgTAP: `newsletter_suscripcion`, `newsletter_bandera`, `newsletter_aislamiento`, `newsletter_baja`, `newsletter_gestion`, `newsletter_composicion`, `newsletter_envio`, `newsletter_lote`, `newsletter_correo_llaves`, `newsletter_alerta_tope` y extensiones de `tienda_contacto`, `tienda_capacidades`, `exportacion_total` y `correo_masivo_*`. Vitest: `pages/clientes/newsletter/index.test.tsx`, `lib/newsletter.test.ts`, `lib/tiendaNewsletter.test.ts`, `lib/tiendaNewsletterBaja.test.ts`, `FormularioSuscripcion.test.tsx`, `newsletter.confirmar.test.tsx`, `newsletter.baja.test.tsx`. Kestra: `newsletter-confirmaciones.test.mjs`, `correo-masivo.test.mjs`. Edge: `baja-correo-masivo` sin cambios de contrato. |
-| E2E | **No existe**: `apps/web/e2e/tienda-newsletter.e2e.ts` no se escribió (T032, seguimiento MSF-978). |
+| E2E | `apps/web/e2e/tienda-newsletter.e2e.ts` (job `e2e-tienda`): suscripción desde el pie, confirmación por enlace, enlace vencido y baja. Quedan fuera componer y enviar (necesitan sesión del panel y el SMTP de Kestra; T034, MSF-978). |
 | Prototipo | `design/pantallas/Newsletter.dc.html` e `design/pantallas/Newsletter.inventory.json`. |
 
 ## Dependencias y reutilización
@@ -543,7 +543,7 @@ rótulos por tarea.
 | `[MSF-468:T020]` | Foto del contenido: hasta 6 destacados y 6 promociones, bandera de promociones, precio público, tope de 5 pruebas por hora. | pgTAP `newsletter_composicion.test.sql` | Hecho (sin imágenes). |
 | `[MSF-468:T025]` | Envío: solo confirmados, `sin_destinatarios`, idempotencia por clave, cancelar, totales y estados. | pgTAP `newsletter_envio.test.sql` | Hecho. |
 | `[MSF-468:T026]` | Lote: re-verificación del suscriptor, cupo compartido, cancelado no reenvía, paridad con las campañas de clientes. | pgTAP `newsletter_lote.test.sql` | Hecho. |
-| `[MSF-468:T032]` | Recorrido completo: suscribir, confirmar, componer, previsualizar, enviar a un suscriptor de prueba y darse de baja. | E2E `apps/web/e2e/tienda-newsletter.e2e.ts` | **No existe** (MSF-978). |
+| `[MSF-468:T032]` | Recorrido completo: suscribir, confirmar, componer, previsualizar, enviar a un suscriptor de prueba y darse de baja. | E2E `apps/web/e2e/tienda-newsletter.e2e.ts` | **Parcial**: cubre suscribir, confirmar y darse de baja; componer, previsualizar y enviar quedan sin E2E (MSF-978). |
 | `[MSF-468:T033]` | Revisión de seguridad de las RPC `publico`, la baja, los flows y los secretos de SMTP. | Informe del PR con `authz-security` y `crypto-secrets` | **Pendiente**. |
 | `[MSF-468:T034]` | Encendido en dev con los flows publicados y SMTP real: suscripción, confirmación, prueba y envío. | Consulta SQL y capturas en la nota de cierre | **Pendiente** (acción de Nicolás). |
 
@@ -553,7 +553,7 @@ rótulos por tarea.
 |---|---|---|
 | Publicar en Kestra el flow `correo-masivo` actualizado y el `newsletter-confirmaciones` antes de encender la bandera | Operaciones / Plataforma | T034; sin el flow nuevo, un newsletter saldría con la plantilla de clientes. |
 | Encender la bandera en dev y verificar el recorrido completo con SMTP real (suscripción, confirmación, prueba, envío y baja) | Nicolás / Documentador | T034: **no hay video ni capturas** de esta función. |
-| E2E del recorrido (`apps/web/e2e/tienda-newsletter.e2e.ts`) | QA / Playwright | T032; seguimiento MSF-978. |
+| E2E de componer, previsualizar y enviar desde el panel (el de la persona suscriptora ya existe en `apps/web/e2e/tienda-newsletter.e2e.ts`) | QA / Playwright | T032; seguimiento MSF-978. |
 | axe a 320/768/1440 px del formulario, del diálogo y de la pantalla | QA | T009 y T021; seguimiento MSF-961. |
 | Revisión de seguridad de la épica (`authz-security`, `crypto-secrets`) | Quien revisa el PR | T033: **sin informe**. |
 | `List-Unsubscribe` / `List-Unsubscribe-Post` | Operaciones | MSF-962: verificado, `MailSend` de Kestra no admite encabezados propios (plugin de correo 1.6.9: sin propiedad de encabezados). Falta elegir el camino (relay SMTP o script) y probarlo con SMTP real; ver `docs/newsletter.md`. |
