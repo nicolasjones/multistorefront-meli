@@ -140,7 +140,7 @@ select is(
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.mover_productos_categoria(array['a1000000-0000-0000-0000-000000000001']::uuid[], 'c2000000-0000-0000-0000-000000000001')$$,
-  'P0002', null, 'una categoría de otra organización se rechaza'
+  'PT404', null, 'una categoría de otra organización se rechaza'
 );
 select throws_ok(
   $$select public.mover_productos_categoria('{}'::uuid[], 'c1000000-0000-0000-0000-000000000001')$$,
@@ -352,7 +352,7 @@ select throws_ok(
 );
 select throws_ok(
   $$select public.mover_productos_categoria(array['a1000000-0000-0000-0000-000000000001']::uuid[], gen_random_uuid())$$,
-  'P0002', null, 'categoría inexistente: P0002'
+  'PT404', null, 'categoría inexistente: PT404'
 );
 
 -- Productos de otra organización en cada RPC (desde la otra organización).

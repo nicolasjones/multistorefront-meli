@@ -102,7 +102,7 @@ select is((select count(*)::int from registro_actividad where tipo = 'producto.v
 select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000002', now() - interval '1 day', '[]'::jsonb)$$,
-  '40001', null, 'un producto cambiado por otra persona devuelve 40001');
+  'PT412', null, 'un producto cambiado por otra persona devuelve PT412');
 
 -- Errores de validación
 select throws_ok(
@@ -130,7 +130,7 @@ select throws_ok(
   '22023', 'Enviá todas las variantes del producto: las que no uses se desactivan, no se borran', 'las variantes existentes no se borran');
 select throws_ok(
   $$select public.guardar_variantes_producto('b2000000-0000-0000-0000-000000000001', now(), '[]'::jsonb)$$,
-  'P0002', null, 'un producto de otra organización no existe');
+  'PT404', null, 'un producto de otra organización no existe');
 
 -- Control de stock (revisión independiente de MSF-229)
 -- Un rol que edita Productos pero NO Stock: ningún valor de stock se acepta, ni el que coincide con el actual (si no, probando valores se
@@ -213,7 +213,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.v_producto_variantes), 0, 'otra organización no ve variantes ajenas');
 select throws_ok(
   $$select public.guardar_variantes_producto('a1000000-0000-0000-0000-000000000001', now(), '[]'::jsonb)$$,
-  'P0002', null, 'otra organización no guarda variantes de un producto ajeno');
+  'PT404', null, 'otra organización no guarda variantes de un producto ajeno');
 
 -- FR-009: sin precio propio; Precios se resuelve por producto_id
 reset role;

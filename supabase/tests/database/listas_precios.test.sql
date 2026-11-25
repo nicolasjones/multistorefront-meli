@@ -129,7 +129,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select public.guardar_lista_precios(%L, 'Revendedores', 'Para revendedores', -25, %L)$$,
          (select id from t_ids where clave = 'rev'), '2000-01-01 00:00:00+00'),
-  '40001', null, 'una edición con un updated_at viejo se rechaza');
+  'PT412', null, 'una edición con un updated_at viejo se rechaza');
 select lives_ok(
   format($$select public.guardar_lista_precios(%L, 'Revendedores', 'Para revendedores', -25, %L)$$,
          (select id from t_ids where clave = 'rev'), pg_temp.actualizado((select id from t_ids where clave = 'rev'))),
@@ -150,7 +150,7 @@ select throws_ok(
   '23505', null, 'renombrar a un nombre existente se rechaza');
 select throws_ok(
   $$select public.guardar_lista_precios('99999999-9999-9999-9999-999999999999', 'X', null, 1, now())$$,
-  'P0002', null, 'editar una lista inexistente da P0002');
+  'PT404', null, 'editar una lista inexistente da P0002');
 
 -- ============================================================================
 -- Archivar y restaurar (RF-PRE-14-3, CA-PRE-14-4)
@@ -158,7 +158,7 @@ select throws_ok(
 
 select throws_ok(
   format($$select public.archivar_lista_precios(%L, %L)$$, (select id from t_ids where clave = 'rev'), '2000-01-01 00:00:00+00'),
-  '40001', null, 'archivar con un updated_at viejo se rechaza');
+  'PT412', null, 'archivar con un updated_at viejo se rechaza');
 select lives_ok(
   format($$select public.archivar_lista_precios(%L, %L)$$, (select id from t_ids where clave = 'rev'), pg_temp.actualizado((select id from t_ids where clave = 'rev'))),
   'una lista sin clientes se archiva');
@@ -207,10 +207,10 @@ select is((select count(*)::int from public.listas_precios_resumen), 0, 'otra or
 select is((select count(*)::int from dominio.listas_precios), 0, 'ni la tabla');
 select throws_ok(
   format($$select public.archivar_lista_precios(%L, null)$$, (select id from t_ids where clave = 'rev')),
-  'P0002', null, 'no archiva una lista ajena');
+  'PT404', null, 'no archiva una lista ajena');
 select throws_ok(
   format($$select public.guardar_lista_precios(%L, 'Robada', null, 1, now())$$, (select id from t_ids where clave = 'rev')),
-  'P0002', null, 'no edita una lista ajena');
+  'PT404', null, 'no edita una lista ajena');
 select lives_ok($$select public.guardar_lista_precios(null, 'Revendedores', null, -30, null)$$, 'el mismo nombre en otra organización es válido');
 
 -- ============================================================================

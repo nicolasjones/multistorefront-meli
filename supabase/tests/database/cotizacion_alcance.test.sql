@@ -136,7 +136,7 @@ select throws_ok($$select public.cargar_cotizacion(1100)$$, '22023', 'Elegí la 
 select throws_ok($$select public.cargar_cotizacion(1100, 'e2000000-0000-0000-0000-000000000001')$$, 'P0002', 'La empresa no existe en tu organización', 'una empresa de otra organización se rechaza');
 select lives_ok($$select public.cargar_cotizacion(1100, 'e1000000-0000-0000-0000-000000000001')$$, 'cargar 1100 para Mundo JC');
 select throws_ok($$select public.previsualizar_cotizacion()$$, '22023', 'Elegí la empresa de la cotización', 'la vista previa exige empresa');
-select throws_ok($$select public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000002')$$, 'P0002', 'sin_cotizacion_pendiente', 'Tienda Dos no tiene pendiente');
+select throws_ok($$select public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000002')$$, 'PT404', 'sin_cotizacion_pendiente', 'Tienda Dos no tiene pendiente');
 select is((select (public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') ->> 'recalcula')::boolean), true, 'vista previa de Mundo JC: recalcula');
 select is((select jsonb_array_length(public.previsualizar_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'empresas')), 1, 'la vista previa se acota a la empresa');
 select is((select (public.estado_cotizacion('e1000000-0000-0000-0000-000000000001') -> 'pendiente' ->> 'valor')::numeric), 1100::numeric, 'el estado de Mundo JC ve su pendiente');

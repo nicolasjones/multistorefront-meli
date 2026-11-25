@@ -326,7 +326,7 @@ select throws_ok(
       '{"cambia":"precio_lista","alcance":"todos","porcentaje":50}'::jsonb
       || jsonb_build_object('versiones', pg_temp.versiones((select vista from vista_conflicto))),
       '20000000-0000-4000-8000-000000000005')$$,
-  '40001', null, 'un producto cambió desde la vista previa: conflicto 40001'
+  'PT412', 'Un producto fue modificado por otra persona; repetí la vista previa', 'un producto cambió desde la vista previa: conflicto PT412'
 );
 select is(
   (select precio_lista from dominio.productos where id = 'a1000000-0000-0000-0000-000000000001'),
