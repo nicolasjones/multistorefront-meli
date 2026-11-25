@@ -34,7 +34,9 @@ insert into dominio.proveedores (id, organizacion_id, razon_social, cuit) values
   ('c1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'Proveedor Ejemplo SA', '20123456786');
 
 insert into dominio.categorias (id, organizacion_id, nombre) values
-  ('c2000000-0000-0000-0000-00000000000a', '22222222-2222-2222-2222-222222222222', 'Fundas');
+  ('c1000000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'Fundas');
+
+update public.banderas_plataforma set activa = true where clave = 'promociones_precio';
 
 insert into dominio.promociones_precio (id, organizacion_id, empresa_id, producto_id, precio_promocional, desde, hasta) values
   ('d1000000-0000-0000-0000-00000000000a', '11111111-1111-1111-1111-111111111111', 'e1000000-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000001', 800, now() + interval '1 day', now() + interval '3 days');
@@ -78,7 +80,7 @@ select pg_temp.como('d2000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.cambiar_estado_producto('a1000000-0000-0000-0000-000000000001', false)$$, 'PT404', 'El producto no existe', 'cambiar_estado_producto: otra organización recibe 404');
 select throws_ok($$select public.cambiar_estado_proveedor('c1000000-0000-0000-0000-00000000000a', false)$$, 'PT404', 'El proveedor no existe', 'cambiar_estado_proveedor: otra organización recibe 404');
 select throws_ok($$select public.anular_promocion_precio('d1000000-0000-0000-0000-00000000000a')$$, 'PT404', 'La promoción no existe', 'anular_promocion_precio: otra organización recibe 404');
-select throws_ok($$select public.eliminar_categoria('c2000000-0000-0000-0000-00000000000a')$$, 'PT404', 'La categoría no existe', 'eliminar_categoria: otra organización recibe 404');
+select throws_ok($$select public.eliminar_categoria('c1000000-0000-0000-0000-00000000000b')$$, 'PT404', 'La categoría no existe', 'eliminar_categoria: otra organización recibe 404');
 
 select * from finish();
 rollback;
