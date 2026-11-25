@@ -29,7 +29,7 @@ ninguna fila.
 
 **Comportamiento**:
 1. Si no existe `p_feature_id` en `features`, o `p_organizacion_id` en
-   `organizaciones`, `raise exception` (`errcode = 'P0002'`).
+   `organizaciones`, `raise exception` (`errcode = 'PT404'`, antes `P0002`).
 2. `insert into public.organizaciones_features (feature_id,
    organizacion_id, habilitado_por) values (...) on conflict (feature_id,
    organizacion_id) do nothing`.
