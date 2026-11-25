@@ -35,7 +35,7 @@ Productos y solo la ve el Administrador. No tiene ítem de menú.
    «Cancelar» descarta la vista previa y las imágenes temporales sin escribir en la base.
    **Seguimiento en la URL.** La importación en curso se guarda en `?importacion=<id>`: al salir de la pantalla y
    volver, o al recargar, se rehidrata con `obtener_importacion_productos` y se ve su estado. Un id inválido se
-   ignora; uno inexistente (P0002) limpia la URL y avisa.
+   ignora; uno inexistente (PT404) limpia la URL y avisa.
 4. **Aplicación.** El flow `producto.catalogo.importar-productos` (Kestra) reclama la capacidad
    `importar-productos` y lanza `workers/importar-productos`, que aplica fila por fila (mismas reglas
    que el alta/edición, SKU único, actividad registrada) y adjunta las imágenes. Una fila aplicada con imágenes
