@@ -86,6 +86,12 @@ test('detecta imports estáticos, dinámicos y de efectos laterales no cubiertos
 // Un path mal escrito (p. ej. una migración con otra versión) no falla ningún guard y la capacidad deja de copiar ese archivo.
 test('todo path del catálogo real existe en el repo (archivo o directorio)', () => {
   const catalogo = JSON.parse(leerDelRepo('template-capabilities.json'));
+  // Las rutas son relativas a la raíz del repo: sin `..`, sin barra inicial y sin esquema (`file:`, `http:`), para que
+  // `new URL(ruta, RAIZ)` nunca resuelva fuera del repo.
+  const fueraDeLaRaiz = (ruta) => ruta.split('/').includes('..') || ruta.startsWith('/') || /^[a-z][a-z0-9+.-]*:/i.test(ruta);
+  const invalidas = catalogo.capabilities.flatMap((capacidad) =>
+    capacidad.paths.filter(fueraDeLaRaiz).map((ruta) => `${capacidad.id}: ${ruta}`));
+  assert.deepEqual(invalidas, []);
   const inexistentes = catalogo.capabilities.flatMap((capacidad) =>
     capacidad.paths.filter((ruta) => !existsSync(new URL(ruta, RAIZ))).map((ruta) => `${capacidad.id}: ${ruta}`));
   assert.deepEqual(inexistentes, []);
