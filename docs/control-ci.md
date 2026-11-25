@@ -244,8 +244,9 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   a `release-please-action` (secret nuevo); revisar el secret `SUPABASE_DB_URL` del Environment `staging` y su puerto (según el
   ítem, el destino rechazaba conexiones) y agregar una alerta cuando falle el job `staging`.
 - **`docs:check` elude fácil (MSF-688).** `verificar-documentacion-cambios.mjs` da por documentado cualquier cambio en
-  `docs/`/`specs/`. Propuesta: mapear rutas de código a documentos concretos (p. ej. `.github/workflows/**` → `docs/control-ci.md`
-  o `docs/deployment.md`). No se aplica sin acordar el mapa: bloquearía PRs en vuelo. El `accessControlProvider` (llamadas de red por
+  `docs/`/`specs/`. Se atendió en el lote 88 (MSF-869) con una verificación adicional en modo aviso que usa el `sources:` de cada doc
+  como mapa ruta de código → doc (ver «Correspondencia código-doc» en `docs/documentacion-cambios.md`); no bloquea PRs en vuelo.
+  Activarla como error: `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1`. El `accessControlProvider` (llamadas de red por
   ítem de menú, `lib/superadmin.ts`) es código de la app, no de CI: se atendió en la sección «Acceso por ítem de menú (MSF-688, lote 58)».
 
 ## Cambios de CI de la auditoría MSF-647 (lote 36)

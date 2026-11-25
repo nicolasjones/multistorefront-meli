@@ -2,6 +2,8 @@
 owner: tecnico
 sources:
   - scripts/verificar-documentacion-cambios.mjs
+  - scripts/verificar-documentacion-cambios.test.mjs
+  - scripts/docs-correspondencia.mjs
   - scripts/docs-check.mjs
   - scripts/docs-drift.mjs
   - scripts/docs-enlaces.mjs
@@ -31,6 +33,32 @@ puede indicar otra base con `DOCUMENTATION_CHECK_BASE`. En `validate.yml` corre 
 La documentación debe registrar la decisión, el contrato afectado, los riesgos,
 la validación ejecutada y cualquier limitación pendiente. Los archivos generados
 (por ejemplo `docs/schema.html`) no reemplazan la documentación fuente.
+
+## Correspondencia código-doc (MSF-869, modo aviso)
+
+La regla de arriba se satisface con **cualquier** doc, aunque no tenga relación con el cambio (se elude tocando uno
+cualquiera: MSF-688). Por eso `verificar-documentacion-cambios.mjs` hace una segunda verificación, por correspondencia,
+que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada `docs/**/*.md` (el mismo que consumen
+`docs-manifest.mjs` y `docs-drift.mjs`; no hay otro mapa que mantener). La lógica pura está en
+`scripts/docs-correspondencia.mjs`.
+
+- Para cada archivo cambiado de `apps|workers|supabase|infra|scripts|packages|.github` que figure en el `sources:` de uno o más
+  docs (por ruta exacta o dentro de una carpeta listada), esos docs deberían cambiar también. Si ninguno de ellos cambió, el
+  archivo se reporta.
+- **No generan aviso:** archivos que no están en ningún `sources:`; tests (`*.test.*`, `*.spec.*`, `tests/`, `e2e/`, `fixtures/`),
+  snapshots, lockfiles y `supabase/migrations/` (las cubre `verificar-migraciones`); fuentes que abarcan un área entera
+  (`infra`, `.github/workflows`, una raíz de un solo segmento), porque no identifican un doc concreto; y docs con más de 40 fuentes.
+- **Modo aviso (por defecto):** emite una anotación `::warning file=<doc>::` por doc (agrupa sus archivos) y una lista legible
+  por doc en la salida, y **sale con 0**: no cambia ningún resultado de CI. El control heredado (código relevante sin ningún doc
+  → exit 1) queda idéntico.
+- **Modo estricto:** `DOCUMENTACION_CORRESPONDENCIA_ESTRICTA=1 node scripts/verificar-documentacion-cambios.mjs` (o el flag
+  `--estricto`) convierte los avisos en `::error` y sale con 1. Para activarlo en el CI, definir esa variable en el job `chequeos`
+  de `validate.yml`; conviene hacerlo solo cuando la tasa de ruido sea aceptable para el equipo.
+- **Tasa de ruido medida (2026-11-25)**, contra los 30 últimos PRs mergeados a `dokploy` (diff `padre1...padre2` de cada merge de
+  primer padre): 7 de 30 PRs (23 %) habrían tenido avisos; de 124 archivos relevantes cambiados, 53 (43 %) tenían doc
+  correspondiente sin tocar. Dos PRs grandes concentran la mayoría (25 y 5 avisos en `infra/kestra` y workers); el resto trae 3 a
+  7. Sin el afinado de fuentes amplias eran 57 archivos y los avisos caían en el runbook `supabase-caido` (que declara `infra`
+  y `.github/workflows` enteros). Por eso conviene mantener el modo aviso hasta revisar qué avisos son legítimos.
 
 ## Dueños (`owner`) y fuentes (`sources`) de cada página
 
