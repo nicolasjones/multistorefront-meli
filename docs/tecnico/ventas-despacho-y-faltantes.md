@@ -287,7 +287,7 @@ Ayudas internas (`private`, sin grant): `descontar_reservas_entrega(uuid)`, `eti
 `puede_despachar_en_empresa(uuid, uuid)`, `puede_leer_faltantes_empresa(uuid)` y `nivel_ventas_en_empresa(uuid)`.
 
 Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido
-· `55000` transición no permitida o factura sin estado de despacho · comprobante inexistente · conflicto de edición (códigos `PT4xx`; ver [errores de negocio](../errores-negocio-postgrest.md)). Los mensajes llegan en castellano y la pantalla los muestra tal cual (los técnicos se traducen a
+· transición no permitida o factura sin estado de despacho, comprobante inexistente y conflicto de edición (códigos de error de negocio; ver [errores de negocio](../errores-negocio-postgrest.md)). Los mensajes llegan en castellano y la pantalla los muestra tal cual (los técnicos se traducen a
 un texto claro).
 
 ## Pantalla y rutas

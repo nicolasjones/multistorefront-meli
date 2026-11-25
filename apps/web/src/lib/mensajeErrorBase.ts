@@ -17,7 +17,7 @@ const MENSAJES_POR_CODIGO: Readonly<Record<string, string>> = {
 // `40001` es el código histórico del conflicto de edición; `PT412` (HTTP 412) el que usan las RPC de comprobantes desde
 // 20270507340000. El cliente acepta los dos porque la migración y el despliegue de la web no son simultáneos.
 // `55000` es el código histórico de «el estado o la regla de negocio no admite la acción»; `PT409` (HTTP 409) el que usan las
-// RPC migradas desde 20270507310000 y 20270507440000. El cliente acepta los dos mientras migración y despliegue no son simultáneos.
+// RPC migradas desde 20270507310000, 20270507340000 y 20270507440000. El cliente acepta los dos mientras migración y despliegue no son simultáneos.
 export const esCodigoDeEstado = (codigo: unknown): boolean => codigo === '55000' || codigo === 'PT409'
 
 export const esCodigoDeConflicto = (codigo: unknown): boolean => codigo === '40001' || codigo === 'PT412'

@@ -92,7 +92,7 @@ historia no exista, se simula desde las pruebas. Vive en `private` **sin `grant`
 - Toma el comprobante **con bloqueo de fila**: serializa dos aperturas de la misma guía y serializa
   contra el registro de cobros (que bloquea el mismo comprobante), así que el importe nunca se
   calcula con un saldo viejo.
-- Una factura en borrador o anulada no abre contrarreembolso (`55000`).
+- Una factura en borrador o anulada no abre contrarreembolso (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)).
 
 ## Marcar el contrarreembolso como cobrado (FR-041…FR-044)
 

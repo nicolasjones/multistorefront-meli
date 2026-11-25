@@ -242,7 +242,7 @@ castellano.
 - **Apertura**: la organización y la empresa salen del **comprobante**, no de un argumento; si la sesión
   trae organización, tiene que ser la del comprobante (`42501`). Un transporte sin
   `cobra_contrarreembolso` no genera nada. Una factura en borrador o anulada no abre
-  contrarreembolso (`55000`).
+  contrarreembolso (error de negocio, ver [errores de negocio](../errores-negocio-postgrest.md)).
 - **Idempotencia**: la misma guía devuelve el contrarreembolso ya abierto, sin duplicar ni dejar un
   evento nuevo.
 - **Cobro**: `marcar_contrarreembolso_cobrado` registra el cobro con `origen = 'contrarreembolso'` por

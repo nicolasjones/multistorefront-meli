@@ -569,7 +569,7 @@ Sin grant a `authenticated`: `private.descontar_reservas_entrega`, `private.etiq
 `private.puede_leer_faltantes_empresa`.
 
 Errores: `42501` sin sesión u organización, sin `despachar` o responsable no elegible · `22023` estado o dato
-inválido · `55000` transición no permitida o factura sin estado de despacho. Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx` (algunas funciones conservan los históricos); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
+inválido · transición no permitida o factura sin estado de despacho (error de negocio). Qué código emite cada función está en [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · despacho y faltantes (técnico)](ventas-despacho-y-faltantes.md#rpc).
 
 ### Ventas avisos de faltantes (MSF-161)

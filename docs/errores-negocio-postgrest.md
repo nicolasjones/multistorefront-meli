@@ -190,7 +190,7 @@ bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`
 | 6 | `20270507410000` | `actualizar_producto`, `cambiar_estado_producto` (solo `PT404`), `definir_empresas_producto` (solo `PT404`), `asignar_categoria_producto` (solo `PT404`), `guardar_relacionados` (solo `PT404`), `guardar_categoria` (solo `PT404`), `eliminar_categoria` (solo `PT404`), `reordenar_categorias` (solo `PT404`), `actualizar_proveedor`, `cambiar_estado_proveedor` (solo `PT404`), `guardar_promocion_precio`, `anular_promocion_precio` |
 | 7 | `20270507420000` | `guardar_regla_precio_empresa` (`PT404` y `PT412`), `previsualizar_precios_empresa` (solo `PT404`), `guardar_precios_escala` (solo `PT404`), `asignar_alicuota_producto` (solo `PT404`), `guardar_alicuota_categoria` (solo `PT404`), `fijar_precio_propio` (solo `PT404`), `quitar_precio_propio` (solo `PT404`), `guardar_empresas_de_proveedor` (solo `PT404`), `agregar_contacto_proveedor` (solo `PT404`), `marcar_contacto_principal` (solo `PT404`) |
 | 8 | `20270507430000` | `actualizar_modelo_equipo` (`PT404` y `PT412`), `cambiar_estado_modelo_equipo` (solo `PT404`), `actualizar_estado_reparacion` (`PT404` y `PT412`), `cambiar_estado_estado_reparacion` (solo `PT404`), `mover_estado_reparacion` (solo `PT404`), `historial_reparacion` (solo `PT404`), `listar_adjuntos_reparacion` (solo `PT404`), `comprobante_de_reparacion` (solo `PT404`), `obtener_vinculos_garantia` (solo `PT404`) |
-| 9 | `20270507440000` | `PT409` (antes `55000`): `confirmar_comprobante`, `anular_comprobante`, `cambiar_estado_comprobante`, `guardar_comprobante`, `guardar_lineas_comprobante`, `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `registrar_cobro`, `revertir_cobro`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (29 rechazos) |
+| 9 | `20270507440000` | `PT409` (antes `55000`): `confirmar_comprobante`, `anular_comprobante`, `cambiar_estado_comprobante`, `guardar_comprobante`, `guardar_lineas_comprobante`, `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `registrar_cobro`, `revertir_cobro`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (29 rechazos: 1 + 5 + 2 + 1 + 1 + 3 + 3 + 3 + 2 + 5 + 1 + 2, en el orden de la lista) |
 
 **Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los `comment on function` previos (los de la última migración anterior que los fijó, no los de la migración de la ola). Las migraciones ya aplicadas no se editan.
 
@@ -204,7 +204,7 @@ listas de precios, newsletter, RMA, variantes y operaciones masivas de productos
 
 ## Novena ola: estado o regla de negocio que impide la acción, `55000` a `PT409` (MSF-599)
 
-Primera ola que convierte los `55000` de funciones ya migradas en las olas 3 y 4 (comprobantes, despacho, cobros, contrarreembolsos
+Convierte en bloque los `55000` de estado de negocio de funciones ya migradas en las olas 3, 4 y 5 (comprobantes, despacho, cobros, contrarreembolsos
 y envíos en moto). Solo cambia el errcode de los rechazos «el estado o la regla de negocio no admite la acción» (factura cerrada,
 borrador, anulada, ya entregada, con cobros, cobro ya revertido o conciliado, transición de despacho inválida, envío rendido…) a
 `PT409` (HTTP 409); mensaje, firma, `security definer` y grants no cambian. Funciones: ver la fila 9 de la tabla (29 rechazos). Ninguna es
@@ -216,7 +216,7 @@ Se dejaron con `55000` a propósito:
   masivos. Es una falla de configuración del entorno y no una regla de negocio de la persona, así que un 5xx es legítimo.
 - **Contrato propio por `detail`**: la verificación de dominio de la tienda (`demasiado_pronto`, `verificacion_obsoleta`).
 - **Lanzados por un auxiliar de `private`**: `private.registrar_cobro_interno` (lo usan `registrar_cobro` y
-  `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, por ejemplo la caja cerrada, sigue llegando `55000`),
+  `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, «La factura no está en un estado operativo: no admite cobros», borrador o anulada, sigue llegando `55000`; la caja cerrada la rechaza un disparador, también con `55000`),
   `private.marcar_estado_cobro_comprobante`, `private.abrir_contrarreembolso` y `private.aplicar_conciliacion`.
 - **Funciones no migradas todavía**: `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto`, Service, RMA, newsletter.
 

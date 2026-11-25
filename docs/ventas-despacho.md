@@ -189,7 +189,7 @@ cliente retira en el local, y la **empresa activa** manda: al cambiarla se suelt
 | `obtener_envio_comprobante(p_id)` | Lee el transporte, la guía, la fecha de envío y el `updated_at` (el bloqueo optimista del guardado). Exige Ventas en `lectura` o `edicion` en la **empresa del comprobante** (`42501`): el envío de una factura de otra tienda no se lee, aunque la RLS de la tabla lo permita (ésta resuelve las secciones contra la empresa activa). Es la **única** lectura del envío: las columnas `transporte_id`, `guia` y `fecha_envio` no tienen privilegio de lectura para `authenticated` (`20270112140500_envio_aislamiento.sql`). |
 
 Errores: `42501` sin sesión/organización, sin `despachar` o responsable no elegible · `22023` estado o dato inválido ·
-`55000` transición no permitida o factura sin estado de despacho · comprobante inexistente · conflicto de edición (códigos `PT4xx`; ver [errores de negocio](errores-negocio-postgrest.md)). Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
+transición no permitida o factura sin estado de despacho, comprobante inexistente y conflicto de edición (códigos de error de negocio; ver [errores de negocio](errores-negocio-postgrest.md)). Los mensajes de la RPC llegan en castellano y la tarjeta los muestra tal cual (los técnicos se
 traducen a un texto claro).
 
 ## Pantalla (FR-010, FR-012, FR-023)
