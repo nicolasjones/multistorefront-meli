@@ -23,7 +23,8 @@ MSF-367). Permisos: `docs/permisos-por-rol.md`; eventos: `docs/actividad.md`; ca
 
 El prototipo muestra y esta épica **no** entrega: condiciones de compra, «Compra para», «Enviar correo a proveedor»,
 importar/exportar proveedores, N.º correlativo, Último ingreso y Costo en la ficha (MSF-219/MSF-179), código de
-barras y varios proveedores por producto. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
+barras y varios proveedores por producto. Entregados después como seguimientos: «Compra para» (MSF-524), el
+importador (F-MIG-02), el N.º correlativo (MSF-527) y «Exportar» (MSF-526), descritos más abajo. «Desactivar» reemplaza a «Eliminar» del prototipo. Cada punto tiene su
 seguimiento en el tracker (T029): condiciones de compra MSF-523, «Compra para» MSF-524, «Enviar correo» MSF-525,
 importar/exportar MSF-526, N.º correlativo MSF-527, Último ingreso y Costo MSF-528, código de barras MSF-529 y
 varios proveedores por producto MSF-530.
@@ -95,7 +96,8 @@ tiene privilegios. El llamador no fija `organizacion_id` (sale de la sesión), `
 | `public.actualizar_proveedor(p_id, p_actualizado_en, ...)` | Edición con **bloqueo optimista** por `updated_at`: si cambió, error `40001` y no se pisa nada. |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva/reactiva; idempotente. |
 | `public.guardar_empresas_de_proveedor(p_proveedor_id, p_empresa_ids)` | «Compra para» (MSF-524): reemplaza atómicamente las tiendas del proveedor; `security definer`, exige `edicion` en Proveedores, valida proveedor y tiendas de la organización, normaliza repetidos y devuelve cuántas quedaron. `anon` sin ejecución. |
-| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Listado paginado (F-PRV-02): razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `empresas` (jsonb `[{id, nombre}]`, «Compra para») y `total_filas`; `p_empresa_id` (opcional) deja los proveedores que compran para esa tienda **y los que no tienen ninguna tienda asignada** (transversales; se muestran en el filtro de cualquier tienda de la organización). Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
+| `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Exportación del listado por lotes (MSF-526): `security definer`, exige la acción `exportar` en Proveedores (`private.puede_accion`), acota a la organización de la sesión, mismos filtros que el listado, keyset `(lower(razon_social), id)`, lote máximo de 1000 y tope de 50000 filas por exportación (`54000`); un cursor inexistente o ajeno da `40001`. Cada llamada con filas registra `proveedores.exportados`. `anon` sin ejecución. |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Listado paginado (F-PRV-02), con el `numero` de cada proveedor: razón social parcial sin mayúsculas ni tildes, o CUIT con/sin guiones (solo si el texto es numérico); `p_estado` = `activos` (por defecto) / `inactivos` / `todos`; orden por razón social e `id`; 25 por página, tope 200; devuelve `empresas` (jsonb `[{id, nombre}]`, «Compra para») y `total_filas`; `p_empresa_id` (opcional) deja los proveedores que compran para esa tienda **y los que no tienen ninguna tienda asignada** (transversales; se muestran en el filtro de cualquier tienda de la organización). Sin `lectura`/`edicion` la RLS no entrega filas. Índices GIN `pg_trgm` en `dominio`. |
 
 Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edición), `42501` (sin permiso),
 `P0002` (no existe o es de otra organización), `22023` (dato inválido).
@@ -103,7 +105,7 @@ Errores que reconoce la app: `23505` (CUIT repetido), `40001` (conflicto de edic
 ## Pantallas
 
 - Listado `/proveedores` (`apps/web/src/pages/proveedores/list.tsx`, hook `useListarProveedores`): tabla
-  Razón social, CUIT (con guiones), Correo y Teléfono; buscador «Buscar por razón social o CUIT» (con espera
+  N.º, Razón social, CUIT (con guiones), Correo y Teléfono; buscador «Buscar por razón social o CUIT» (con espera
   de 300 ms, búsqueda en el servidor); filtro Estado (Activos / Inactivos / Todos; los inactivos llevan la
   etiqueta «Inactivo»); filtro Tienda que **sigue la empresa activa** de la barra superior
   (`useFiltroPorEmpresaActiva`, US5 de `specs/20261018-170000-empresas-accesibles-y-filtro/`): arranca en ella,
@@ -188,15 +190,33 @@ panel actual (nullable, único por organización) y concilia la carga: reimporta
 Los vínculos con productos se cargan con `/migracion/importar/vinculos_proveedor_producto`.
 Detalle y reglas en [migracion-datos.md](migracion-datos.md).
 
+## N.º correlativo (MSF-527)
+
+`dominio.proveedores.numero` es un entero por organización (1, 2, 3…), único (`proveedores_org_numero_uq`). Lo asigna el
+disparador `proveedores_asignar_numero` al insertar, con un lock advisory por organización: dos altas simultáneas no
+repiten número y también rige para las altas sin sesión (importador, migración). No se edita (`authenticated` no tiene
+grant de la columna) y, como no se borran proveedores, un número no se reutiliza. Los proveedores que ya existían al
+aplicar la migración se numeraron una sola vez, por organización, en orden de alta (`creado_en`) y, ante empate, por `id`.
+El listado lo muestra en la columna «N.º».
+
+## Exportar (MSF-526)
+
+El listado suma «Exportar» (componente `ExportarProveedores`) para quien tiene la acción `exportar` en Proveedores
+(`usePuedeAccion('proveedores', 'exportar')`; la base lo vuelve a exigir). Descarga un `.xlsx` con todo lo que coincide con la
+búsqueda, el estado y la tienda del listado (no solo lo cargado), con las columnas N.º, Razón social, CUIT, Compra para,
+Correo, Teléfono y Estado; las celdas que empiezan con `= + - @` se neutralizan como en la exportación de clientes. Se pide por
+lotes a `exportar_proveedores` con confirmación, progreso y cancelación.
+
 ## Actividad
 
 `proveedor.creado|editado|desactivado|reactivado` en `public.registro_actividad` (ver `docs/actividad.md`).
+`proveedores.exportados` registra cada exportación (primer lote: total y filtros, sin el texto buscado; lotes siguientes: su continuación).
 
 ## Reversión
 
 Migraciones aditivas. Para volver atrás, en una migración **posterior** (no en el mismo PR; exportar antes los
-datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
-`private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, y la tabla
+datos): quitar los disparadores de actividad y `proveedores_normalizar`, las tres RPC, `public.exportar_proveedores`, `public.listar_proveedores` y sus dos índices (`proveedores_razon_social_trgm_idx`, `proveedores_cuit_trgm_idx`), las funciones
+`private.registrar_actividad_proveedor*`, `private.normalizar_proveedor` y `private.cuit_valido`, el disparador `proveedores_asignar_numero` con su índice y la columna `numero`, y la tabla
 `dominio.proveedores`. El encabezado de cada migración lista los pasos exactos.
 
 ## Listados con carga infinita

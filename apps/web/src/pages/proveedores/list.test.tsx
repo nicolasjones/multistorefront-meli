@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   useListarProveedores: vi.fn(),
   useNivelSeccion: vi.fn(),
   usePuedeEscribir: vi.fn(),
+  usePuedeAccion: vi.fn(),
   refetch: vi.fn(),
   useEmpresasAccesibles: vi.fn(),
 }))
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../hooks/useListarProveedores', () => ({ useListarProveedores: mocks.useListarProveedores }))
 vi.mock('../../hooks/useEmpresasAccesibles', () => ({ useEmpresasAccesibles: mocks.useEmpresasAccesibles }))
 vi.mock('../../hooks/useNivelSeccion', () => ({ useNivelSeccion: mocks.useNivelSeccion }))
+vi.mock('../../hooks/usePuedeAccion', () => ({ usePuedeAccion: mocks.usePuedeAccion }))
 vi.mock('../../hooks/usePuedeEscribir', () => ({ usePuedeEscribir: mocks.usePuedeEscribir }))
 vi.mock('../../components/pagina/ContextoOrganizacionActiva', () => ({ ContextoOrganizacionActiva: () => null }))
 vi.mock('../../components/proveedores/ProveedorFormDialog', () => ({
@@ -29,7 +31,7 @@ import type { ProveedorListado } from '../../hooks/useListarProveedores'
 import { ProveedorList } from './list'
 
 const proveedor = (n: number, extra: Partial<ProveedorListado> = {}): ProveedorListado => ({
-  id: `p-${n}`, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], ...extra,
+  id: `p-${n}`, numero: n, razon_social: `Proveedor ${n}`, cuit: '20123456786', correo: null, telefono: null, activo: true, empresas: [], ...extra,
 })
 
 const respuesta = (proveedores: ProveedorListado[], extra: Record<string, unknown> = {}) => ({
@@ -45,6 +47,7 @@ describe('ProveedorList', () => {
     vi.clearAllMocks()
     mocks.useNivelSeccion.mockReturnValue({ nivel: 'edicion', isLoading: false })
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: true, isLoading: false })
+    mocks.usePuedeAccion.mockReturnValue({ puede: false, isLoading: false })
     mocks.useEmpresasAccesibles.mockReturnValue({
       empresas: [{ id: 'e-1', nombre: 'San Javucho', esActiva: false }, { id: 'e-2', nombre: 'Mundo JC', esActiva: false }],
       empresaActivaId: null, isLoading: false, isError: false,
@@ -63,6 +66,24 @@ describe('ProveedorList', () => {
     mocks.usePuedeEscribir.mockReturnValue({ puedeEscribir: false, isLoading: false })
     abrir()
     expect(screen.queryByRole('link', { name: 'Importar' })).not.toBeInTheDocument()
+  })
+
+  it('«Exportar» solo lo ve quien tiene la acción «exportar» de Proveedores', () => {
+    const { unmount } = abrir()
+    expect(screen.queryByRole('button', { name: 'Exportar' })).not.toBeInTheDocument()
+    unmount()
+    mocks.usePuedeAccion.mockReturnValue({ puede: true, isLoading: false })
+    abrir()
+    expect(mocks.usePuedeAccion).toHaveBeenCalledWith('proveedores', 'exportar')
+    expect(screen.getByRole('button', { name: 'Exportar' })).toBeInTheDocument()
+  })
+
+  it('muestra el número correlativo de cada proveedor en la columna N.º', () => {
+    abrir()
+    expect(screen.getByRole('columnheader', { name: 'N.º' })).toBeInTheDocument()
+    const filas = screen.getAllByRole('row').slice(1)
+    expect(filas[0]).toHaveTextContent(/^1Proveedor 1/)
+    expect(filas[1]).toHaveTextContent(/^2Proveedor 2/)
   })
 
   it('muestra las columnas Razón social, CUIT, Compra para, Correo y Teléfono con el CUIT con guiones y «Ver ficha»', () => {

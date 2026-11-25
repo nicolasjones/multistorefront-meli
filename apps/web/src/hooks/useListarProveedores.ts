@@ -7,6 +7,8 @@ export type EstadoProveedores = 'activos' | 'inactivos' | 'todos'
 // Fila del listado: lo que devuelve `public.listar_proveedores` (F-PRV-02, FR-010).
 export type ProveedorListado = {
   id: string
+  // Número correlativo dentro de la organización (MSF-527): lo asigna la base.
+  numero: number
   razon_social: string
   cuit: string
   correo: string | null

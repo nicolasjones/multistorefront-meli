@@ -4,10 +4,12 @@ import { Box, Button, Chip, LinearProgress, Stack, TextField, ToggleButton, Togg
 import { useFiltroPorEmpresaActiva } from '../../hooks/useFiltroPorEmpresaActiva'
 import { useListadoAcumulado } from '../../hooks/useListadoAcumulado'
 import { useNivelSeccion } from '../../hooks/useNivelSeccion'
+import { usePuedeAccion } from '../../hooks/usePuedeAccion'
 import { usePuedeEscribir } from '../../hooks/usePuedeEscribir'
 import { useListarProveedores, type EstadoProveedores, type ProveedorListado } from '../../hooks/useListarProveedores'
 import { formatearCuit } from '../../lib/cuit'
 import { EnviarCorreoProveedorDialog } from '../../components/proveedores/EnviarCorreoProveedorDialog'
+import { ExportarProveedores } from '../../components/proveedores/ExportarProveedores'
 import { ProveedorFormDialog } from '../../components/proveedores/ProveedorFormDialog'
 import { EstadoCargaPagina, EstadoError, EstadoExito, EstadoVacio } from '../../components/estados/EstadosPagina'
 import { EtiquetaEstado } from '../../components/base/EtiquetaEstado'
@@ -26,6 +28,7 @@ const TAMANO_PAGINA = 25
 const ALTO_BARRA_CARGA = 2
 
 const columnas: ColumnaAdaptable<ProveedorListado>[] = [
+  { clave: 'numero', encabezado: 'N.º', render: (proveedor) => proveedor.numero },
   {
     clave: 'razon_social', encabezado: 'Razón social',
     render: (proveedor) => (
@@ -57,6 +60,8 @@ export function ProveedorList() {
   const puedeEditar = nivel === 'edicion'
   // «Importar» (F-MIG-02) es de migración de datos: solo Administrador; las RPC y RLS vuelven a exigirlo.
   const puedeMigrar = usePuedeEscribir().puedeEscribir === true
+  // «Exportar» (MSF-526) exige la acción «exportar» de la sección; `exportar_proveedores` vuelve a exigirla.
+  const puedeExportar = usePuedeAccion('proveedores', 'exportar').puede === true
   const [texto, setTexto] = useState('')
   const [textoAplicado, setTextoAplicado] = useState('')
   const [estado, setEstado] = useState<EstadoProveedores>('activos')
@@ -100,9 +105,10 @@ export function ProveedorList() {
       <EncabezadoPagina
         titulo="Proveedores"
         descripcion="A quién le comprás."
-        accion={puedeMigrar || puedeEditar ? (
+        accion={puedeMigrar || puedeExportar || puedeEditar ? (
           <Stack direction="row" spacing={1}>
             {puedeMigrar ? <Button component={RouterLink} to="/migracion/importar/proveedores" variant="outlined">Importar</Button> : null}
+            {puedeExportar ? <ExportarProveedores filtros={{ texto: textoAplicado, estado, empresaId }} total={total} /> : null}
             {puedeEditar ? <Button variant="contained" onClick={() => setCreando(true)}>Nuevo proveedor</Button> : null}
           </Stack>
         ) : undefined}

@@ -62,6 +62,7 @@ Migraciones, en orden:
 | `20261018190500_proveedores_basico.sql` | Vista `public.proveedores_basico`. |
 | `20261018190600_productos_proveedor_rpc.sql` | Reemplazo de `crear_producto` y `actualizar_producto` con proveedor y código. |
 | `20261018190700_productos_de_proveedor.sql` | `productos_de_proveedor` para la ficha. |
+| `20270507400000_proveedores_numero_y_exportar.sql` | Columna `numero` con backfill y disparador (MSF-527), `listar_proveedores` con `numero` y `exportar_proveedores` (MSF-526). |
 
 ```mermaid
 erDiagram
@@ -137,7 +138,10 @@ La organización sale de la sesión, nunca del llamador.
 | `public.crear_proveedor(p_razon_social, p_cuit, p_persona_contacto, p_correo, p_telefono, p_direccion, p_observaciones)` | Exige `edicion` en `proveedores`; delega normalización y unicidad en la tabla; devuelve la fila creada. |
 | `public.actualizar_proveedor(p_id, p_actualizado_en, …)` | **Bloqueo optimista** por `updated_at`: si la fila cambió, `40001` y no se pisa nada; `P0002` si no existe o es de otra organización. |
 | `public.cambiar_estado_proveedor(p_id, p_activo)` | Desactiva o reactiva sin tocar los datos; **idempotente** (mismo estado = no-op). No hay borrado. |
-| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano)` | Búsqueda y paginación en servidor. `p_estado` = `activos` (default), `inactivos` o `todos`; 25 por página, tope 200; devuelve `total_filas`. |
+| `public.listar_proveedores(p_busqueda, p_estado, p_pagina, p_tamano, p_empresa_id)` | Búsqueda y paginación en servidor. `p_estado` = `activos` (default), `inactivos` o `todos`; 25 por página, tope 200; devuelve `numero`, `empresas` y `total_filas`. |
+| `public.exportar_proveedores(p_texto, p_estado, p_empresa_id, p_despues_de, p_limite)` | Exportación por lotes con los filtros del listado. `security definer`: exige la acción `exportar` en Proveedores y acota a la organización de la sesión; keyset por razón social e `id`; tope de 50000 filas (`54000`); cursor ajeno o inexistente `40001`; registra `proveedores.exportados`. |
+
+`dominio.proveedores.numero` (MSF-527) es el correlativo por organización: lo asigna `proveedores_asignar_numero` con un lock advisory por organización, no es editable por la API y los ya cargados se numeraron por orden de alta (`creado_en`, `id`).
 | `public.productos_de_proveedor(p_proveedor_id, p_pagina, p_tamano)` | Productos del proveedor (`nombre`, `codigo_proveedor`, `activo`), ordenados por nombre; 10 por página, tope 100; exige `proveedores` **y** `productos`; `42501` si falta alguno. |
 
 `listar_proveedores` busca por razón social parcial sin mayúsculas ni tildes (`translate(lower(...),
@@ -259,7 +263,8 @@ antes los datos):
 3. `drop view public.proveedores_basico;`
 4. Quitar de `dominio.productos` el disparador `productos_proveedor_valido`, la función
    `private.validar_proveedor_producto` y las columnas `proveedor_id` y `codigo_proveedor`.
-5. `drop function public.listar_proveedores(...)` y los índices GIN
+5. `drop function public.exportar_proveedores(...)`, el disparador `proveedores_asignar_numero`, su función, el índice
+   `proveedores_org_numero_uq` y la columna `numero`; luego `drop function public.listar_proveedores(...)` y los índices GIN
    `proveedores_razon_social_trgm_idx` y `proveedores_cuit_trgm_idx`.
 6. Quitar los disparadores y funciones de actividad, `private.normalizar_proveedor`,
    `private.cuit_valido`, las tres RPC de proveedor y la tabla `dominio.proveedores`.

@@ -171,6 +171,7 @@ export const ETIQUETA_TIPO_ACTIVIDAD: Readonly<Record<string, string>> = {
   'proveedor.desactivado': 'Proveedor desactivado',
   'proveedor.editado': 'Proveedor editado',
   'proveedor.reactivado': 'Proveedor reactivado',
+  'proveedores.exportados': 'Proveedores exportados',
   'recalculo.aplicado': 'Recálculo aplicado',
   'recalculo.omitido': 'Recálculo omitido',
   'rentabilidad.costo_baja': 'Costo de rentabilidad dado de baja',
