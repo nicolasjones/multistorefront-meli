@@ -32,7 +32,7 @@
 
 - [x] T006 [F-EMP-03][US1] Hook `useCrearEmpresa` (RPC, mapeo de error de nombre repetido, refresco de `useEmpresas`) (FR-001, FR-002)
 - [x] T007 [F-EMP-03][US1] `DialogoNuevaEmpresa`: Nombre (placeholder «Ej.: Tienda Oeste»), selector «Copiar configuración de» con ayuda, estado sin origen, Cancelar y «Crear empresa», error de nombre repetido en el campo, error de servidor con reintento, envío deshabilitado mientras guarda, foco y accesibilidad, 320/768/1440 px (FR-006, FR-007, FR-008)
-- [x] T008 [F-EMP-03][US1] `pages/empresas/list.tsx`: botón «Nueva empresa», solo con permiso de escritura; confirmación «Empresa creada como borrador» con el patrón compartido de éxito; sin tocar menú ni rutas (FR-006, FR-007)
+- [x] T008 [F-EMP-03][US1] `pages/empresas/list.tsx`: botón «Nueva empresa» y fila final «Nueva empresa» con «Crear», solo con permiso de escritura; confirmación «Empresa creada como borrador» con el patrón compartido de éxito; sin tocar menú ni rutas (FR-006, FR-007)
 - [x] T009 [P] [F-EMP-03][US1] Vitest del diálogo y el hook: validación de nombre, nombre repetido, sin origen, doble envío, error de servidor, éxito, textos del prototipo (SC-001, SC-002)
 - [x] T010 [P] [F-EMP-03][US1] Vitest del listado: botón y fila visibles solo con escritura; miembro no los ve; la nueva empresa aparece en el listado y en el selector de empresa (SC-001, SC-003)
 - [x] T011 [F-EMP-03][US1] E2E «crear empresa copiando de otra» (SC-001) — si aún no hay suite Playwright de la app (MSF-499), cerrar con `[x]` + `Desvío:` y deuda trazada en MSF-499, nunca `[ ]`

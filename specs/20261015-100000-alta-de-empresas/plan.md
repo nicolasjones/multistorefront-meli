@@ -43,7 +43,7 @@ Migración `supabase/migrations/<ts>_alta_de_empresas.sql` (aditiva):
 
 ## Diseño de frontend
 
-- `pages/empresas/list.tsx`: botón «Nueva empresa» en el encabezado, visible solo con `usePuedeEscribir()`. Abren `DialogoNuevaEmpresa`.
+- `pages/empresas/list.tsx`: botón «Nueva empresa» en el encabezado y fila final «Nueva empresa» con «Crear», visibles solo con `usePuedeEscribir()`. Abren `DialogoNuevaEmpresa`.
 - `components/empresas/DialogoNuevaEmpresa.tsx` (nombre a confirmar con la convención del repo): campo Nombre, selector «Copiar configuración de» alimentado por `useEmpresas` (todas, cualquier cantidad; deshabilitado con mensaje si no hay), Cancelar / «Crear empresa»; deshabilita el envío mientras guarda; foco gestionado; errores en campo; error de servidor con reintento.
 - `hooks/useCrearEmpresa.ts`: llama `supabaseClient.rpc('crear_empresa', …)`, mapea el error de nombre repetido, refresca `useEmpresas` y emite la confirmación «Empresa creada como borrador» con el patrón compartido de éxito.
 - Sin cambios en `destinosPanel.ts` ni en `App.tsx` (rutas y menú existentes).
