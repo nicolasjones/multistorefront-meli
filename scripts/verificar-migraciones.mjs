@@ -31,7 +31,7 @@
 //   5. REVERSIÓN (MSF-900): toda migración AGREGADA por la rama (versión que la base no tiene) trae en el propio archivo un
 //      comentario `-- Reversión: <pasos>` (criterio de `tieneReversion`: no vale «ninguna», «sin reversión» ni vacío). Una
 //      migración sin reversión posible declara `-- Reversión: restaurar desde el backup de <motivo>`. Las históricas que la rama
-//      no tocó quedan fuera (inmutables; inventario en docs/control-ci.md). Es ERROR como el orden de versión (`ordenEstricto`);
+//      no tocó quedan fuera (inmutables; inventario en docs/verificar-migraciones.md). Es ERROR como el orden de versión (`ordenEstricto`);
 //      si no, AVISO. No corre con `--solo-idempotencia` ni sin base.
 //
 // Uso:  node scripts/verificar-migraciones.mjs [--base origin/dokploy] [--solo-idempotencia] [--estricto]
