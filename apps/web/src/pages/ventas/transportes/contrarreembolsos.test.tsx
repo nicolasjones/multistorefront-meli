@@ -165,6 +165,7 @@ describe('envoltorios de los contrarreembolsos (FR-045)', () => {
 
   it('los códigos de la base se traducen a castellano sin filtrar el detalle crudo', () => {
     expect(mensajeDeErrorContrarreembolso({ code: '40001' }, 'x')).toContain('Otra persona modificó')
+    expect(mensajeDeErrorContrarreembolso({ code: 'PT412' }, 'x')).toContain('Otra persona modificó')
     expect(mensajeDeErrorContrarreembolso({ code: '42501' }, 'x')).toContain('no puede cobrar')
     expect(mensajeDeErrorContrarreembolso({ code: '55000' }, 'x')).toContain('anulada')
     expect(mensajeDeErrorContrarreembolso({ code: 'P0002' }, 'x')).toContain('no pertenece a tu organización')

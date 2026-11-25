@@ -2,6 +2,7 @@
 // y las RPC viven en las migraciones 20261020110000_formas_envio.sql y 20261020110100_formas_envio_rpc.sql;
 // acá se espejan para validar antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
+import { esCodigoDeConflicto } from '../mensajeErrorBase'
 import { formatearImporte } from '../formatoImporte'
 
 export const TIPOS_FORMA_ENVIO = ['retiro_local', 'correo', 'expreso', 'moto', 'terminal'] as const
@@ -143,7 +144,7 @@ export function formatearCosto(costo: number | null): string {
 type ErrorBase = { code?: string } | null
 
 export function esConflicto(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, índices o columnas: al usuario va
@@ -151,8 +152,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, (error as ErrorBase)?.code ?? 'sin código')
   const code = (error as ErrorBase)?.code
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'La forma de envío ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'La forma de envío ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   // Único (empresa, nombre) es la única restricción 23505 de la tabla.
   if (code === '23505') return MENSAJE_NOMBRE_REPETIDO
@@ -197,7 +198,7 @@ export async function crearFormaEnvio(formulario: FormularioFormaEnvio): Promise
   return (data ?? []) as FormaEnvio[]
 }
 
-// `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `actualizadoEn` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export async function actualizarFormaEnvio(
   formulario: FormularioFormaEnvio,
   datos: { id: string; actualizadoEn: string },

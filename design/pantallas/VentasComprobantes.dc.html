@@ -129,7 +129,7 @@ const R = [
 ["0003-00001241","Factura B","05/10","Cellmax SRL","Javier","Cobrado","Transferencia o depósito bancario","Moto",151200],
 ["0003-00001240","Factura B","03/10","Consumidor final","Emilse","Entregado","Efectivo","Retiro en local",18600]];
 TPUSH(R);
-const TONE = {"Pendiente":"n","Aceptado":"o","Cobrado":"ok","En proceso":"i","Armando":"p","Incompleto":"w","Deuda":"e","Entregado":"ok","Borrador":"n","Anulada":"e"};
+const TONE = {"Pendiente":"n","Aceptado":"o","Cobrado":"ok","En proceso":"i","Armando":"p","Incompleto":"w","Deuda":"e","Entregado":"ok","Borrador":"n","Anulada":"o"};
 const FILT = {"Operador":["Todos","Javier","Emilse","Administrador"],"Estado":["Todos","Pendiente","Aceptado","Cobrado","En proceso","Deuda","Armando","Incompleto","Entregado","Borrador","Anulada"],"Pago":["Todos","Efectivo","Transferencia o depósito bancario","Tarjeta","Mercado Pago","Contrarreembolso","Cuenta corriente"],"Envío":["Todos","Retiro en local","Moto","Expreso","Correo"]};
 const KEY = {"Operador":4,"Estado":5,"Pago":6,"Envío":7};
 class Component extends DCLogic {

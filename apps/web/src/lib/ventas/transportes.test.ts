@@ -169,6 +169,8 @@ describe('errores de transportes', () => {
 
   it('traduce cada código a castellano', () => {
     expect(mensajeDeError({ code: '40001' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeError({ code: 'PT412' }, 'x')).toBe(MENSAJE_CONFLICTO)
+    expect(mensajeDeError({ code: 'PT404' }, 'x')).toContain('ya no existe')
     expect(mensajeDeError({ code: 'P0002' }, 'x')).toContain('ya no existe')
     expect(mensajeDeError({ code: '42501' }, 'x')).toContain('Solo un Administrador')
     expect(mensajeDeError({ code: '23505', message: 'transportes_organizacion_nombre_uq' }, 'x')).toBe(MENSAJE_NOMBRE_REPETIDO)
@@ -179,6 +181,7 @@ describe('errores de transportes', () => {
     expect(mensajeDeError({ code: '23505', message: 'otra_uq' }, 'No pudimos guardar')).toBe('No pudimos guardar')
     expect(console.error).toHaveBeenCalledWith('No pudimos guardar', '23505')
     expect(esConflicto({ code: '40001' })).toBe(true)
+    expect(esConflicto({ code: 'PT412' })).toBe(true)
   })
 
   it('el tipo de transporte se muestra con su etiqueta', () => {

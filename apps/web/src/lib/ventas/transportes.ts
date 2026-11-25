@@ -2,6 +2,7 @@
 // RPC viven en las migraciones 20261020130000_transportes.sql y 20261020130100_transportes_rpc.sql;
 // acá se espejan solo para validar en el formulario antes de viajar (la autoridad es la base).
 import { supabaseClient } from '../supabase'
+import { esCodigoDeConflicto } from '../mensajeErrorBase'
 import { normalizarCuit, validarCuit } from '../cuit'
 
 export type TipoTransporte = 'expreso' | 'correo' | 'moto_propia'
@@ -200,7 +201,7 @@ export function aParametrosCrear(formulario: FormularioTransporte): ParametrosCr
   }
 }
 
-// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, 40001 ante conflicto).
+// `p_actualizado_en` es el updated_at leído al abrir (bloqueo optimista, PT412 ante conflicto, antes 40001).
 export type ParametrosActualizarTransporte = ParametrosCrearTransporte & { p_id: string; p_actualizado_en: string }
 
 export function aParametrosActualizar(
@@ -223,7 +224,7 @@ export function esNombreRepetido(error: unknown): boolean {
 }
 
 export function esConflicto(error: unknown): boolean {
-  return (error as ErrorBase)?.code === '40001'
+  return esCodigoDeConflicto((error as ErrorBase)?.code)
 }
 
 // El mensaje crudo de Postgres/PostgREST puede nombrar políticas, restricciones o columnas:
@@ -231,8 +232,8 @@ export function esConflicto(error: unknown): boolean {
 export function mensajeDeError(error: unknown, porDefecto: string): string {
   console.error(porDefecto, (error as ErrorBase)?.code ?? 'sin código')
   const code = (error as ErrorBase)?.code
-  if (code === '40001') return MENSAJE_CONFLICTO
-  if (code === 'P0002') return 'La empresa de transporte ya no existe o no pertenece a tu organización.'
+  if (esCodigoDeConflicto(code)) return MENSAJE_CONFLICTO
+  if (code === 'P0002' || code === 'PT404') return 'La empresa de transporte ya no existe o no pertenece a tu organización.'
   if (code === '42501') return 'No tenés permiso para esta acción. Solo un Administrador puede editar transportes: recargá la página.'
   if (esNombreRepetido(error)) return MENSAJE_NOMBRE_REPETIDO
   if (code === '22023' || code === '23514') return 'Algún dato no es válido. Revisá el formulario e intentá de nuevo.'

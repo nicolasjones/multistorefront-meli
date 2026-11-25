@@ -188,8 +188,8 @@ Además, `anular_comprobante` rechaza (`55000`) la factura **entregada** y la qu
 | `private.abrir_contrarreembolso(p_comprobante_id uuid, p_transporte_id uuid, p_guia text)` → `uuid` | Punto de entrada que usará la guía de despacho de F-VTA-16 (MSF-135). Solo si el transporte tiene `cobra_contrarreembolso`; idempotente por (comprobante, guía); importe = saldo; evento `contrarreembolso.abierto`. | `security definer`, **sin grant** |
 | `private.puede_cobrar_contrarreembolso_en_empresa(p_empresa_id uuid)` | Permiso por empresa (la del contrarreembolso). | `security definer`, sin grant |
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `P0002` inexistente o ajeno (`PT404` en las RPC de cobros, formas de pago y cuentas de cobro ya migradas) · `55000`
-estado no válido · `40001` conflicto de edición (`PT412` en las ya migradas) · `P0001` tope de importe. Todos los mensajes están en
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `PT404` inexistente o ajeno · `55000`
+estado no válido · `PT412` conflicto de edición · `P0001` tope de importe. Regla: las RPC de cobros y contrarreembolsos (`registrar_cobro`, `revertir_cobro`, `saldo_comprobante`, `cobros_de_comprobante`, `marcar_contrarreembolso_cobrado`) responden `PT404` y `PT412`; `conciliar_pago`, `revertir_conciliacion_pago` y las demás no migradas siguen con `P0002`/`40001` (ver [errores de negocio](../errores-negocio-postgrest.md)). Todos los mensajes están en
 castellano.
 
 ## Reglas de negocio

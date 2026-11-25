@@ -437,7 +437,7 @@ select throws_ok(
       (select id from dominio.contrarreembolsos
         where comprobante_id = 'f1000000-0000-0000-0000-000000000001'),
       '2020-01-01 00:00:00+00'::timestamptz)$$,
-  '40001', null, 'una versión vieja se rechaza: otra persona lo modificó'
+  'PT412', null, 'una versión vieja se rechaza: otra persona lo modificó'
 );
 reset role;
 
@@ -616,7 +616,7 @@ select throws_ok(
         where comprobante_id = 'f1000000-0000-0000-0000-000000000001'),
       (select actualizado_en from dominio.contrarreembolsos
         where comprobante_id = 'f1000000-0000-0000-0000-000000000001'))$$,
-  'P0002', null, 'otra organización no cobra un contrarreembolso ajeno'
+  'PT404', null, 'otra organización no cobra un contrarreembolso ajeno'
 );
 reset role;
 

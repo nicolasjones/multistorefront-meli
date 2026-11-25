@@ -46,7 +46,7 @@ sources:
 | RPC | Qué hace |
 |---|---|
 | `registrar_envio_moto` | Alta del envío de un comprobante elegible. |
-| `actualizar_envio_moto` | Edición con bloqueo optimista (`40001`); un envío rendido o de una factura anulada es de solo lectura (`55000`). |
+| `actualizar_envio_moto` | Edición con bloqueo optimista (`PT412`, antes `40001`); un envío rendido o de una factura anulada es de solo lectura (`55000`). |
 | `comprobantes_para_envio_moto` | Facturas emitidas elegibles sin envío (búsqueda por número o cliente, máx. 50). |
 | `listar_envios_moto` | Listado más reciente primero, con `puede_editar`, `puede_rendir` y `bloqueado_motivo` por fila (factura anulada, o borrador con abono). |
 | `rendir_envios_moto` | Lote todo o nada, idempotente, solo enviados y no rendidos, **un solo mensajero**, tope de 500 ids. **Registra el cobro en el libro** (ver Rendición) y rechaza las facturas anuladas. Devuelve cantidad, mensajero, total del abono, total del costo, neto, `total_cobrado` y `sin_cobro`. |

@@ -232,7 +232,9 @@ así un fallo transitorio no queda fijado. La organización activa no se cachea:
   - `test:db`, `test:acceso:e2e`, `test:auth:hook-bloqueo:e2e`, `test:kestra:secretos:e2e`, `test:kestra:evidencia:e2e`,
     `test:kestra:reintentos:e2e` y `test:kestra:conexion-trabada:e2e` necesitan Supabase o Kestra levantados.
   - `test:web` y `test:e2e` ya corren con vitest y playwright en sus propios jobs; `test:e2e:headed`, `:report`, `:trace`,
-    `:codegen` y `:storage` son herramientas interactivas de depuración local, no verifican nada.
+    `:codegen` y `:storage` son herramientas interactivas de depuración local, no verifican nada; `test:e2e:ui` abre la interfaz
+    interactiva de Playwright, `test:e2e:record` graba video y traza para revisar a mano y `test:e2e:evidencia` corre con navegador visible
+    para capturar evidencia: ninguna de las tres está en los scripts del CI.
   - `test:afectados` es un selector que corre otros tests según el diff, no una suite propia.
 - **`release-please` y migraciones a staging cloud (MSF-680).** Ramas `main`, credenciales y flujo de promoción STG/PRD: no se
   tocan acá. Propuesta (no verificado: el diagnóstico sale del texto del ítem, no se revisaron los logs ni los ajustes del repo):
