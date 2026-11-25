@@ -1,6 +1,6 @@
 -- Lote 56 (MSF-654, MSF-655): las RPC de comprobantes de venta contestan con códigos que PostgREST traduce a 4xx y no
 -- cambian el mensaje de negocio. «No existe / de otra organización» = `PT404` (404); «otra persona lo modificó»
--- (bloqueo optimista) = `PT412` (412). Los rechazos de estado (`55000`) no cambian en este lote.
+-- (bloqueo optimista) = `PT412` (412). Los rechazos de estado pasaron a `PT409` en el lote 67.
 begin;
 
 select plan(15);
@@ -63,7 +63,7 @@ select throws_ok($$select public.anular_comprobante('f1000000-0000-0000-0000-000
 select throws_ok($$select public.cambiar_estado_comprobante('f1000000-0000-0000-0000-000000000002', 'aceptado', '2000-01-01T00:00:00Z')$$, 'PT412', 'Alguien modificó este comprobante mientras lo mirabas: recargalo y volvé a intentar', 'cambiar_estado_comprobante: una versión vieja es un conflicto (412)');
 
 -- El estado que no admite la acción sigue con su código (fuera de este lote).
-select throws_ok($$select public.guardar_comprobante('f1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-01', null, null, null, now())$$, '55000', 'El comprobante ya está cerrado y no se puede modificar', 'una factura confirmada sigue respondiendo 55000');
+select throws_ok($$select public.guardar_comprobante('f1000000-0000-0000-0000-000000000002', 'c1000000-0000-0000-0000-000000000001', 'mostrador', '2026-12-01', null, null, null, now())$$, 'PT409', 'El comprobante ya está cerrado y no se puede modificar', 'una factura confirmada responde PT409 (estado que no admite la acción)');
 
 select * from finish();
 rollback;
