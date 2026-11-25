@@ -376,7 +376,7 @@ select is(
 select throws_ok(
   format($$select public.registrar_faltantes_despacho(%L, %L::jsonb, %L::timestamptz)$$,
     pg_temp.id_de('f3'), '[{"linea_orden": 1, "cantidad": 1}]', pg_temp.actualizado('f3')),
-  '55000', null, 'una factura que no está en Armando no registra faltantes');
+  'PT409', null, 'una factura que no está en Armando no registra faltantes');
 
 -- ============================================================================
 -- FR-041 · Todo o nada: una línea mala deshace el registro entero

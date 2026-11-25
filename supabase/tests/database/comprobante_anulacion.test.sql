@@ -262,19 +262,19 @@ select lives_ok(
   'se emite una nota de crédito sobre B'
 );
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd('B'))$$, pg_temp.id_de('B')),
-  '55000', null, 'una factura con nota de crédito no se anula (se corrige con otra nota)');
+  'PT409', null, 'una factura con nota de crédito no se anula (se corrige con otra nota)');
 select is(pg_temp.est('B'), 'confirmada', 'B sigue confirmada');
 
 reset role;
 update dominio.comprobantes_venta set estado = 'cobrado' where id = pg_temp.id_de('C');
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd('C'))$$, pg_temp.id_de('C')),
-  '55000', null, 'una factura cobrada no se anula (se corrige con nota de crédito)');
+  'PT409', null, 'una factura cobrada no se anula (se corrige con nota de crédito)');
 select is(pg_temp.est('C'), 'cobrado', 'C sigue cobrada');
 select is(pg_temp.disp('b1000000-0000-0000-0000-000000000002', (select principal from datos)), '1/0', 'los bloqueos no devolvieron stock');
 
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd('borrador'))$$, pg_temp.id_de('borrador')),
-  '55000', null, 'un borrador no se anula');
+  'PT409', null, 'un borrador no se anula');
 select throws_ok(format($$select public.anular_comprobante(%L, 'Error de carga', pg_temp.upd('presupuesto'))$$, pg_temp.id_de('presupuesto')),
   '22023', null, 'un presupuesto no se anula');
 select throws_ok(

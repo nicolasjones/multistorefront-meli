@@ -156,7 +156,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'entregado', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
-  '55000', null, 'Sin armar no pasa directo a Entregado');
+  'PT409', null, 'Sin armar no pasa directo a Entregado');
 
 select is(
   (select estado_despacho from dominio.comprobantes_venta where id = pg_temp.id_de('f1')),
@@ -256,7 +256,7 @@ select ok(
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('f1'), pg_temp.actualizado('f1')),
-  '55000', null, 'una factura entregada no vuelve a armarse');
+  'PT409', null, 'una factura entregada no vuelve a armarse');
 
 -- ============================================================================
 -- FR-005 · El Administrador puede armar y controlar el mismo pedido
@@ -638,7 +638,7 @@ select is(
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
-  '55000', null, 'una factura Anulada no se despacha');
+  'PT409', null, 'una factura Anulada no se despacha');
 
 select is(
   (select estado_despacho from public.cambiar_estado_despacho(
@@ -653,12 +653,12 @@ select is(
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('fc'), pg_temp.actualizado('fc')),
-  '55000', null, 'un borrador no se despacha (MSF-598)');
+  'PT409', null, 'un borrador no se despacha (MSF-598)');
 
 select throws_ok(
   format($$select public.cambiar_estado_despacho(%L, 'armando', 'f1000000-0000-0000-0000-000000000002', %L::timestamptz)$$,
     pg_temp.id_de('fd'), pg_temp.actualizado('fd')),
-  '55000', null, 'una factura Pendiente no se despacha (MSF-598)');
+  'PT409', null, 'una factura Pendiente no se despacha (MSF-598)');
 
 -- Faltantes sobre una factura Cobrada en Armando: ya no choca con «solo confirmadas».
 select lives_ok(
@@ -676,7 +676,7 @@ from (values ('f8', 'Deuda'), ('fa', 'Aceptado'), ('fb', 'En proceso')) as t(c, 
 select throws_ok(
   format($$select public.registrar_faltantes_despacho(%L, '[{"linea_orden": 1, "cantidad": 1}]'::jsonb, %L::timestamptz)$$,
     pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
-  '55000', null, 'una factura Anulada no registra faltantes (MSF-598)');
+  'PT409', null, 'una factura Anulada no registra faltantes (MSF-598)');
 
 select lives_ok(
   format($$select public.guardar_envio_comprobante(%L, null, %L, null, %L::timestamptz)$$,
@@ -687,7 +687,7 @@ from (values ('f7', 'Cobrado'), ('f8', 'Deuda'), ('fa', 'Aceptado'), ('fb', 'En 
 select throws_ok(
   format($$select public.guardar_envio_comprobante(%L, null, 'X', null, %L::timestamptz)$$,
     pg_temp.id_de('f9'), pg_temp.actualizado('f9')),
-  '55000', null, 'una factura Anulada no registra envío (MSF-598)');
+  'PT409', null, 'una factura Anulada no registra envío (MSF-598)');
 
 -- ============================================================================
 -- `anon` sin acceso

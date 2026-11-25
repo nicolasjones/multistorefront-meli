@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 
 // Anulación de la factura (F-VTA-11, MSF-377, FR-040…FR-042). La autoridad es la base: `anular_comprobante` valida el
 // permiso `anular` en la tienda del comprobante, exige el motivo, rechaza lo cobrado o con nota de crédito, revierte
@@ -57,7 +57,7 @@ export function mensajeDeAnulacion(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_ANULAR, error)
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_ANULAR
-  if (e?.code === '42501' || e?.code === '55000' || e?.code === '22023') {
+  if (e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023') {
     const texto = textoDeLaRpc(e)
     if (texto) return texto
   }

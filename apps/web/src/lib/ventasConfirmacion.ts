@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { MENSAJE_CERRADO, mensajeDeErrorComprobante, type Comprobante } from './ventas'
+import { esCodigoDeEstado } from './mensajeErrorBase'
 import { MENSAJE_LISTA_CAMBIO_COBRO, MENSAJE_PRECIOS_CAMBIARON_COBRO, hayFaltante, type LineaComprobante } from './ventasLineas'
 
 // Confirmación de la factura (F-VTA-07, MSF-317). La autoridad es la base: `confirmar_comprobante` descuenta el
@@ -56,7 +57,7 @@ export function mensajeDeConfirmacion(error: unknown): string {
     console.error('Confirmación rechazada por falta de stock.', error)
     return `${e.message}. No se descontó nada: elegí otro depósito o bajá la cantidad.`
   }
-  if (e?.code === '55000') return MENSAJE_CERRADO
+  if (esCodigoDeEstado(e?.code)) return MENSAJE_CERRADO
   return mensajeDeErrorComprobante(error, MENSAJE_ERROR_CONFIRMAR)
 }
 

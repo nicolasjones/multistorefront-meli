@@ -1,6 +1,6 @@
 import { supabaseClient } from './supabase'
 import { hoyEnArgentina } from './reparaciones'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import { aLineas, type LineaComprobante } from './ventasLineas'
 
 // Comprobantes de venta (F-VTA-05, MSF-159). El alta, la edición de la cabecera y la lectura pasan por RPC
@@ -184,7 +184,7 @@ export function mensajeDeErrorComprobante(error: unknown, porDefecto: string): s
   console.error(porDefecto, e?.code ?? 'sin código')
   if (e?.code === '42501') return 'No tenés permiso para esta acción. Puede que tu rol haya cambiado: recargá la página.'
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO_COMPROBANTE
-  if (e?.code === '55000' || e?.code === 'PT409') return MENSAJE_CERRADO
+  if (esCodigoDeEstado(e?.code)) return MENSAJE_CERRADO
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   // Una validación con campo (`hint` de `CAMPOS`) es el canal que la base arma para el usuario (el mismo que
   // `errorDeCampo`) y las del catálogo `VALIDACIONES_CONOCIDAS` también; cualquier otro 22023 muestra un texto fijo.

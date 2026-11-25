@@ -31,7 +31,7 @@ sources:
 - Solo se registran **facturas emitidas** (no presupuestos, ni borradores ni anuladas) cuya forma de envío es de tipo `moto` y de la misma empresa. El comprobante y su forma de envío no cambian.
 - Sin migración de histórico: la tabla nace vacía.
 - Migraciones: `20270222200100_envios_moto` (tabla y RLS), `20270222200200_envios_moto_rpc` (registro, edición, elegibles y listado), `20270222300100_rendir_envios_moto` (rendición y resumen), `20270222300200_exportacion_total_envios_moto` (la tabla entra en la exportación total de la organización) y `20270223100000_envios_moto_lectura_por_empresa` (RLS por tienda y `puedo_registrar_envios_moto`), y las decisiones del 2026-11-12: `20270228110000_envios_moto_factura_anulada_y_borrador` (anulada bloquea, borrador no elegible), `20270228110100_rendir_envios_moto_registra_cobro` (columna `cobro_id` y rendir cobra) y `20270228110200_notas_credito_ajustan_abono_envios_moto` (la nota de crédito baja el abono pendiente).
-- Una factura que se **anula después** de registrar su envío (decisión del 2026-11-12): el envío no se borra ni se modifica pero queda **bloqueado**: editarlo falla con `55000` («La factura X fue anulada: el envío en moto ya no se puede editar»), rendirlo también (aborta todo el lote) y la pantalla lo muestra con la etiqueta «Factura anulada» y el motivo. No cuenta en la tarjeta «Motos sin rendir». Un envío ya rendido no cambia.
+- Una factura que se **anula después** de registrar su envío (decisión del 2026-11-12): el envío no se borra ni se modifica pero queda **bloqueado**: editarlo falla con un error de negocio (ver [errores de negocio](../errores-negocio-postgrest.md); «La factura X fue anulada: el envío en moto ya no se puede editar»), rendirlo también (aborta todo el lote) y la pantalla lo muestra con la etiqueta «Factura anulada» y el motivo. No cuenta en la tarjeta «Motos sin rendir». Un envío ya rendido no cambia.
 - **Borrador no elegible** (decisión del 2026-11-12): el selector no ofrece borradores y registrar sobre uno falla con `22023` («confirmala antes de registrar»). Los envíos que ya estaban cargados sobre un borrador siguen ahí; rendirlos con abono mayor que 0 exige confirmar la factura (`55000`).
 
 ## Permisos
@@ -46,7 +46,7 @@ sources:
 | RPC | Qué hace |
 |---|---|
 | `registrar_envio_moto` | Alta del envío de un comprobante elegible. |
-| `actualizar_envio_moto` | Edición con bloqueo optimista; un envío rendido o de una factura anulada es de solo lectura (`55000`). |
+| `actualizar_envio_moto` | Edición con bloqueo optimista; un envío rendido o de una factura anulada es de solo lectura (error de negocio: ver [errores de negocio](../errores-negocio-postgrest.md)). |
 | `comprobantes_para_envio_moto` | Facturas emitidas elegibles sin envío (búsqueda por número o cliente, máx. 50). |
 | `listar_envios_moto` | Listado más reciente primero, con `puede_editar`, `puede_rendir` y `bloqueado_motivo` por fila (factura anulada, o borrador con abono). |
 | `rendir_envios_moto` | Lote todo o nada, idempotente, solo enviados y no rendidos, **un solo mensajero**, tope de 500 ids. **Registra el cobro en el libro** (ver Rendición) y rechaza las facturas anuladas. Devuelve cantidad, mensajero, total del abono, total del costo, neto, `total_cobrado` y `sin_cobro`. |

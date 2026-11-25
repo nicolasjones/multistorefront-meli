@@ -538,11 +538,11 @@ select throws_ok(
 
 select throws_ok(
   $$select pg_temp.guardar('f4', 'e1000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14')$$,
-  '55000', null, 'una factura sin confirmar no registra envío');
+  'PT409', null, 'una factura sin confirmar no registra envío');
 
 select throws_ok(
   $$select pg_temp.guardar('f6', 'e1000000-0000-0000-0000-000000000001', 'AR999', '2026-12-14')$$,
-  '55000', null, 'una factura ya entregada no cambia su envío');
+  'PT409', null, 'una factura ya entregada no cambia su envío');
 
 select is(
   (pg_temp.envio('f4') ->> 'transporte_id'),

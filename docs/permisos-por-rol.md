@@ -235,7 +235,7 @@ iniciales son los de la spec (*Decisiones abiertas* 1: roles a confirmar con el 
 - **Acciones de ventas de la épica MSF-177**: `exportar` (Administrador, Operador, Administración) habilita la exportación
   del listado de comprobantes; `anular` y `emitir_nota_credito` (solo sección `ventas`: Administrador y Administración)
   se verifican en `anular_comprobante` y `emitir_nota_credito` (`42501` si no), no solo en la UI.
-  `anular_comprobante` además rechaza (55000) anular una factura ya entregada o con cobros registrados
+  `anular_comprobante` además rechaza (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)) anular una factura ya entregada o con cobros registrados
   (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`); el permiso `anular` no cambió.
   `public.revertir_cobro` (reversión con contra-asiento, `20270507180100_revertir_cobro.sql`) no usa una acción de la matriz: exige
   Administrador de la organización (`42501` a los demás roles). Ver [Cobros por comprobante](cobros-por-comprobante.md).

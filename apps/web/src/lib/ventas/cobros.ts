@@ -6,6 +6,7 @@ import { supabaseClient } from '../supabase'
 import { formatearImporteHistorial } from '../formatoHistorial'
 import { etiquetaCuentaCobro } from './cuentasCobro'
 import type { Comprobante } from '../ventas'
+import { esCodigoDeEstado } from '../mensajeErrorBase'
 
 // Fila del listado: lo que devuelve `public.cobros_de_comprobante`.
 export type Cobro = {
@@ -137,7 +138,7 @@ export function mensajeDeErrorCobro(error: unknown, porDefecto: string): string 
   }
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese comprobante no existe o no pertenece a tu organización.'
   if (e?.code === 'P0001') return 'El importe supera el saldo pendiente de la factura.'
-  if (e?.code === '55000') return 'Esta factura no admite cobros: está en borrador o anulada.'
+  if (esCodigoDeEstado(e?.code)) return 'Esta factura no admite cobros: está en borrador o anulada.'
   // Los mensajes de validación de la base ya están en castellano y no nombran tablas ni columnas.
   if (e?.code === '22023' && e.message) return e.message
   return porDefecto
@@ -218,8 +219,8 @@ export function mensajeDeErrorReversion(error: unknown, porDefecto: string): str
   const e = error as ErrorDeBase
   if (e?.code === '42501') return 'Solo el administrador puede revertir un cobro. Puede que tu rol haya cambiado: recargá la página.'
   if (e?.code === 'P0002' || e?.code === 'PT404') return 'Ese cobro ya no existe o no pertenece a tu organización. Recargá la lista.'
-  // 22023 (dato inválido) y 55000 (estado no válido: ya revertido, conciliado, contrarreembolso, factura anulada) ya vienen en castellano.
-  if ((e?.code === '22023' || e?.code === '55000') && e.message) return e.message
+  // 22023 (dato inválido) y 55000/PT409 (estado no válido: ya revertido, conciliado, contrarreembolso, factura anulada) ya vienen en castellano.
+  if ((e?.code === '22023' || esCodigoDeEstado(e?.code)) && e?.message) return e.message
   return porDefecto
 }
 

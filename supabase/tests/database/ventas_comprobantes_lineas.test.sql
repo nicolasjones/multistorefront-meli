@@ -467,7 +467,7 @@ select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, %L)$$,
     (select id from comps where clave = 'mayorista'),
     (select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = 'mayorista'))),
-  '55000', null, 'una factura confirmada no admite cambios de líneas'
+  'PT409', null, 'una factura confirmada no admite cambios de líneas'
 );
 
 -- ============================================================================

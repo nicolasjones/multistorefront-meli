@@ -144,7 +144,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(
   format($$select public.guardar_comprobante(%L, 'c5000000-0000-0000-0000-000000000001', 'mostrador', '2026-10-24', null, null, null, now())$$,
     (select id from comps where clave = 'C')),
-  '55000', null, 'un presupuesto aceptado no se modifica'
+  'PT409', null, 'un presupuesto aceptado no se modifica'
 );
 select is((public.obtener_comprobante((select id from comps where clave = 'C')) ->> 'editable')::boolean,
   false, 'un presupuesto aceptado no figura como editable');

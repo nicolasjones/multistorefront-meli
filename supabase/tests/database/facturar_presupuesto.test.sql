@@ -261,7 +261,7 @@ select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.aceptar_presupuesto(%L)$$, pg_temp.id_de('A')), 'PT409', null, 'un presupuesto convertido no se acepta (HTTP 409)');
 select throws_ok(
   format($$select public.guardar_lineas_comprobante(%L, '[]'::jsonb, now())$$, pg_temp.id_de('A')),
-  '55000', null, 'un presupuesto convertido no se modifica');
+  'PT409', null, 'un presupuesto convertido no se modifica');
 select lives_ok(format($$select public.copiar_presupuesto(%L)$$, pg_temp.id_de('A')), 'un presupuesto convertido se puede copiar (renovar)');
 
 -- La factura convertida se edita como cualquier borrador (se recalcula al guardar) y se confirma por el flujo normal

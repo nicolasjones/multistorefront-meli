@@ -453,7 +453,7 @@ select throws_ok(
         where comprobante_id = 'f1000000-0000-0000-0000-000000000003'),
       (select actualizado_en from dominio.contrarreembolsos
         where comprobante_id = 'f1000000-0000-0000-0000-000000000003'))$$,
-  '55000', null, 'un contrarreembolso de una factura anulada no se cobra'
+  'PT409', null, 'un contrarreembolso de una factura anulada no se cobra'
 );
 reset role;
 

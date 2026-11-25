@@ -1,5 +1,5 @@
 import { supabaseClient } from './supabase'
-import { esCodigoDeConflicto } from './mensajeErrorBase'
+import { esCodigoDeConflicto, esCodigoDeEstado } from './mensajeErrorBase'
 import { ESTADOS_STOCK, type EstadoStock } from './stock'
 import type { VarianteEtiqueta } from '../components/base/EtiquetaEstado'
 
@@ -201,7 +201,7 @@ export function mensajeDeErrorFaltantes(error: unknown, porDefecto: string): str
   console.error(porDefecto, e?.code ?? 'sin código')
   if (esCodigoDeConflicto(e?.code)) return MENSAJE_CONFLICTO
   if (e?.code === 'P0002' || e?.code === 'PT404') return MENSAJE_COMPROBANTE_INEXISTENTE
-  if (e?.code === '55000') return MENSAJE_FUERA_DE_ESTADO
+  if (esCodigoDeEstado(e?.code)) return MENSAJE_FUERA_DE_ESTADO
   if (e?.code === '42501') return MENSAJE_SIN_PERMISO
   if (e?.code === '22023' && esMensajeDeLaRpc(e)) return e.message
   return porDefecto

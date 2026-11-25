@@ -437,7 +437,7 @@ organización y actor salen de la sesión y el nivel de `ventas` se evalúa en l
 | `aceptar_presupuesto(id)` / `copiar_presupuesto(id)` | `pendiente` → `aceptado` y copia con número nuevo; no tocan stock. |
 | `listar_presupuestos(...)` | Listado paginado con búsqueda, filtros, `vencido` derivado y `puede_editar`. |
 
-Errores: `42501` permiso · `22023` validación (`hint` = campo) · `55000` documento
+Errores: `42501` permiso · `22023` validación (`hint` = campo) · `55000` o `PT409` documento
 cerrado · `P0001` con `hint = 'stock'` por faltante al confirmar. Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx` (algunas funciones conservan los históricos); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · comprobantes (técnico)](ventas-comprobantes.md#rpc).
 ### Ventas listado, estados y anulación (MSF-177)
@@ -467,7 +467,7 @@ del comprobante**.
 `private.datos_exportacion_comprobantes` / `private.filas_exportacion_comprobantes` tampoco (las dos
 últimas, solo para `workers_orquestacion`).
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000`
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000` o `PT409`
 estado no válido · `P0001` con `hint = 'tope'` (excede lo acreditable) y
 `P0001` con `hint = 'stock'`. Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx` (algunas funciones conservan los históricos); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · listado, estados y anulación (técnico)](ventas-listado-estados-y-anulacion.md#rpc).
@@ -506,7 +506,7 @@ Sin grant a `authenticated`: `private.registrar_cobro_interno` (único camino al
 > llamador en producción**: abrir el contrarreembolso al entregar era de MSF-135 y quedó **fuera de alcance** de
 > esa épica (el aviso de contrarreembolso del prototipo no se implementó). Hoy solo lo invoca el *seed* local.
 
-Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000`
+Errores: `42501` permiso · `22023` dato inválido (`hint` = campo) · `55000` o `PT409`
 estado no válido (factura anulada, borrador) · `P0001` tope de importe
 (con `hint = 'importe'`). Los errores de «no existe» y de conflicto de edición usan códigos `PT4xx` (algunas funciones conservan los históricos); ver [errores de negocio](../errores-negocio-postgrest.md). Contrato completo:
 [Ventas · cobros y conciliación (técnico)](ventas-cobros-y-conciliacion.md#rpc).
@@ -555,7 +555,7 @@ del comprobante**, no en la empresa activa.
 |---|---|---|
 | `obtener_despacho_comprobante(p_id uuid)` | Estado de despacho, ids y nombres de Armó/Controló/Entregó, `entregado_en`, `updated_at` y `puede_despachar`. | `42501` sin ver Ventas en la tienda |
 | `listar_responsables_despacho(p_empresa_id uuid, p_funcion text)` | Usuarios activos elegibles para `armar`/`controlar`/`entregar` (nombre, rol, `user_id`); `p_funcion` inválida → `22023`. | `42501` sin ver Ventas |
-| `cambiar_estado_despacho(p_id uuid, p_estado text, p_responsable_id uuid, p_actualizado_en timestamptz)` | Avanza la máquina del despacho, descuenta las reservas «A pedido» al entregar (todo o nada) y registra la actividad `despacho.estado_cambiado`. Idempotente ante el estado ya alcanzado. | `42501` sin `despachar` o responsable no elegible · `22023` estado o dato inválido · `55000` transición no permitida |
+| `cambiar_estado_despacho(p_id uuid, p_estado text, p_responsable_id uuid, p_actualizado_en timestamptz)` | Avanza la máquina del despacho, descuenta las reservas «A pedido» al entregar (todo o nada) y registra la actividad `despacho.estado_cambiado`. Idempotente ante el estado ya alcanzado. | `42501` sin `despachar` o responsable no elegible · `22023` estado o dato inválido · `55000` o `PT409` transición no permitida |
 | `guardar_envio_comprobante(p_id uuid, p_transporte_id uuid, p_guia text, p_fecha_envio date, p_actualizado_en timestamptz)` | Guarda transporte, guía y fecha de envío de una factura confirmada no entregada; el transporte tiene que estar activo y usarse en la empresa del comprobante; registra `despacho.envio_guardado`. | `42501` sin `despachar` ni `ventas` en edición · `22023` transporte no válido o guía de más de 100 caracteres · `55000` no es factura confirmada o ya entregada |
 | `obtener_envio_comprobante(p_id uuid)` | Transporte, guía, fecha de envío y `updated_at`. Es la **única** lectura del envío: las tres columnas no tienen privilegio de lectura para `authenticated`. | `42501` sin Ventas en la empresa del comprobante |
 | `registrar_faltantes_despacho(p_id uuid, p_faltantes jsonb, p_actualizado_en timestamptz)` | Registra los faltantes de una factura en `armando` o `incompleto` (cantidad entre 1 y lo pedido por línea, un faltante abierto por línea) y la deja en `incompleto`, todo o nada; registra `despacho.faltante_registrado`. | `42501` sin `despachar` · `22023` cantidad o línea inválida · `55000` la factura no está en Armando ni en Incompleto |

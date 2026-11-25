@@ -210,7 +210,7 @@ select pg_temp.como('d1000000-0000-0000-0000-000000000012');
 select throws_ok(
   format($$select public.actualizar_envio_moto(%L, 'Ana', null, 10, 300, true, %L)$$,
     pg_temp.e(3), (select updated_at from dominio.envios_moto where id = pg_temp.e(3))),
-  '55000', null, 'editar el envío de una factura anulada se rechaza (55000)'
+  'PT409', null, 'editar el envío de una factura anulada se rechaza (PT409)'
 );
 select throws_like(
   format($$select public.actualizar_envio_moto(%L, 'Ana', null, 10, 300, true, %L)$$,

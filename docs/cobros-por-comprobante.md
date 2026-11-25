@@ -181,7 +181,7 @@ public.registrar_cobro(p_comprobante_id uuid, p_importe numeric, p_forma_pago_id
 
 | Regla | Qué pasa |
 |---|---|
-| Documento | Solo **facturas confirmadas no anuladas**: un borrador, un presupuesto o una nota de crédito no admiten cobros (`55000` / `22023`). |
+| Documento | Solo **facturas confirmadas no anuladas**: un borrador, un presupuesto o una nota de crédito no admiten cobros (error de negocio o de dato inválido: ver [errores de negocio](./errores-negocio-postgrest.md)). |
 | Permiso | Exige la acción **`registrar_cobro`** de Ventas en la **empresa del comprobante** (`42501`). Se resuelve con el rol del usuario en esa empresa, no con la suma de sus roles: quien no puede cobrar en la tienda A no lo hereda por ser Operador en la B. |
 | Forma de pago | Obligatoria y **de la misma empresa**; una forma desactivada no admite cobros (`22023`). |
 | Cuenta de cobro | La **exige** la forma de pago cuando está configurada así; tiene que estar **activa** (una marcada «No usar» se rechaza) y **habilitada para la empresa** del comprobante (`22023`). |
@@ -353,13 +353,13 @@ persona modificó este comprobante».
   Mostrador); **motivo obligatorio** (hasta 300, `22023`). Quién y cuándo quedan en `registrado_por`/`registrado_en` y en la
   Actividad (`comprobante.cobro_revertido`: «Revirtió el cobro de ARS … de la factura …: motivo»). Un cobro se revierte **una sola
   vez** (índice único) y no se revierte un contra-asiento, un cobro **conciliado** (primero se revierte la conciliación), el cobro
-  de un **contrarreembolso** (se corrige desde el contrarreembolso) ni el de una factura borrador o anulada (`55000`).
+  de un **contrarreembolso** (se corrige desde el contrarreembolso) ni el de una factura borrador o anulada (errores de negocio: ver [errores de negocio](./errores-negocio-postgrest.md)).
 - **Estado**: si el saldo neto vuelve a ser mayor que 0 y la factura estaba en «Cobrado», pasa a «Deuda» (transición `cobrado → deuda`
   del actor sistema); con saldo 0 sigue la regla vigente (saldo 0 ⇒ Cobrado). Se puede volver a cobrar normalmente.
 - **Conciliación**: el contra-asiento no se concilia ni deja conciliar el cobro revertido (`aplicar_conciliacion` responde `55000`).
   El validador del libro no revalida la forma de pago ni la cuenta del contra-asiento (pudieron desactivarse después). La pantalla
   Pagos lista el cobro original y su contra-asiento (importe negativo) y el saldo es el neto.
-- **`anular_comprobante`** (desde `20270507180000`) rechaza (`55000`): una factura **entregada** (`estado_despacho = 'entregado'`,
+- **`anular_comprobante`** (desde `20270507180000`) rechaza (error de negocio, ver [errores de negocio](./errores-negocio-postgrest.md)): una factura **entregada** (`estado_despacho = 'entregado'`,
   MSF-661: «La factura ya fue entregada: corregí con nota de crédito o RMA») y una con **cobros registrados** (MSF-600: cobrado neto
   mayor que 0; «revertí el cobro o corregila con una nota de crédito»). Con el cobro revertido (neto 0) se puede anular.
 - **MSF-660 (ya estaba)**: `saldo = total_con_iva − notas de crédito emitidas − cobros` (mínimo 0, sin estado nuevo, sin recalcular

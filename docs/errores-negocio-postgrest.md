@@ -15,6 +15,11 @@ sources:
   - supabase/migrations/20270507410000_productos_proveedores_categorias_y_promociones_responden_4xx.sql
   - supabase/migrations/20270507420000_alicuotas_escalas_precios_y_proveedores_responden_4xx.sql
   - supabase/migrations/20270507430000_service_catalogos_historial_y_consultas_responden_4xx.sql
+  - supabase/migrations/20270507440000_comprobantes_despacho_y_cobros_estado_responden_409.sql
+  - apps/web/src/lib/ventasDespacho.ts
+  - apps/web/src/lib/ventasEnvio.ts
+  - apps/web/src/lib/ventasFaltantes.ts
+  - apps/web/src/lib/ventas/cobros.ts
   - apps/web/src/lib/estadosComprobante.ts
   - apps/web/src/lib/anularComprobante.ts
   - apps/web/src/lib/ventas.ts
@@ -83,7 +88,7 @@ todas las pantallas ya traducen estos códigos en su módulo de `apps/web/src/li
 ## MSF-600: anular una factura con cobros parciales
 
 **Resuelto en el lote 32.** Con la decisión de negocio tomada (MSF-667: contra-asiento auditado), `anular_comprobante` rechaza
-una factura con cobros registrados (`55000`, «revertí el cobro o corregila con una nota de crédito») y la persona sale con
+una factura con cobros registrados (error de negocio, «revertí el cobro o corregila con una nota de crédito») y la persona sale con
 `revertir_cobro` (solo administrador activo o superadmin con organización activa: `private.puede_escribir()`). También rechaza la factura ya entregada (MSF-661). Detalle en
 `docs/cobros-por-comprobante.md`.
 
@@ -100,8 +105,8 @@ PostgREST instalado y el resto de las olas (propuesta de arriba).
 (HTTP 404) cuando no existe o es de otra organización (mismo código y mensaje: sin oráculo). Se eligió esta función porque
 es el caso del hallazgo y tiene una sola definición vigente, así que el cambio es un `create or replace` aditivo sin tocar
 grants. Regla: el cliente tiene que aceptar el código viejo **y** el nuevo (`mensajeDeErrorBase`, `mensajeDeErrorComprobante`
-y `mensajeDeAceptarPresupuesto` los tratan igual), porque la migración y el despliegue de la web no son simultáneos. Siguen
-con `55000`: `confirmar_comprobante`, `cambiar_estado_despacho` y el resto; los respaldos (`55006`) los consume Kestra por
+y `mensajeDeAceptarPresupuesto` los tratan igual), porque la migración y el despliegue de la web no son simultáneos. Las demás
+funciones se migraron en olas posteriores (ver la tabla de abajo); los respaldos (`55006`) los consume Kestra por
 código y no una pantalla, así que no se tocan. Cada ola nueva repite el patrón: migración con la definición vigente, pgTAP que
 afirma código y mensaje, y el mapeo del cliente en el mismo cambio.
 
@@ -172,8 +177,8 @@ Kestra, un worker o una Edge Function (el script de datos de demostración llama
 cliente (`avisar_cliente_reparacion`, `avisos_de_reparacion`, `obtener_enlace_consulta`). El cliente acepta los dos códigos
 (`esCodigoDeConflicto` y el mapeo de cada módulo de Service).
 
-Funciones migradas por ola (cada migración usa `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
-bloqueo optimista solo emiten `PT404`):
+Funciones migradas por ola (las olas 1 a 8 usan `PT404` para «no existe» y `PT412` para conflicto de edición; las que no tienen
+bloqueo optimista solo emiten `PT404`; la ola 9 solo convierte `55000` a `PT409`):
 
 | Ola | Migración | Funciones |
 |---|---|---|
@@ -185,16 +190,40 @@ bloqueo optimista solo emiten `PT404`):
 | 6 | `20270507410000` | `actualizar_producto`, `cambiar_estado_producto` (solo `PT404`), `definir_empresas_producto` (solo `PT404`), `asignar_categoria_producto` (solo `PT404`), `guardar_relacionados` (solo `PT404`), `guardar_categoria` (solo `PT404`), `eliminar_categoria` (solo `PT404`), `reordenar_categorias` (solo `PT404`), `actualizar_proveedor`, `cambiar_estado_proveedor` (solo `PT404`), `guardar_promocion_precio`, `anular_promocion_precio` |
 | 7 | `20270507420000` | `guardar_regla_precio_empresa` (`PT404` y `PT412`), `previsualizar_precios_empresa` (solo `PT404`), `guardar_precios_escala` (solo `PT404`), `asignar_alicuota_producto` (solo `PT404`), `guardar_alicuota_categoria` (solo `PT404`), `fijar_precio_propio` (solo `PT404`), `quitar_precio_propio` (solo `PT404`), `guardar_empresas_de_proveedor` (solo `PT404`), `agregar_contacto_proveedor` (solo `PT404`), `marcar_contacto_principal` (solo `PT404`) |
 | 8 | `20270507430000` | `actualizar_modelo_equipo` (`PT404` y `PT412`), `cambiar_estado_modelo_equipo` (solo `PT404`), `actualizar_estado_reparacion` (`PT404` y `PT412`), `cambiar_estado_estado_reparacion` (solo `PT404`), `mover_estado_reparacion` (solo `PT404`), `historial_reparacion` (solo `PT404`), `listar_adjuntos_reparacion` (solo `PT404`), `comprobante_de_reparacion` (solo `PT404`), `obtener_vinculos_garantia` (solo `PT404`) |
+| 9 | `20270507440000` | `PT409` (antes `55000`): `confirmar_comprobante`, `anular_comprobante`, `cambiar_estado_comprobante`, `guardar_comprobante`, `guardar_lineas_comprobante`, `cambiar_estado_despacho`, `registrar_faltantes_despacho`, `guardar_envio_comprobante`, `registrar_cobro`, `revertir_cobro`, `marcar_contrarreembolso_cobrado`, `actualizar_envio_moto` (29 rechazos) |
 
-**Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412` solo cambian el `errcode`) y restaurar los comentarios desde las migraciones citadas en la tabla. Las migraciones ya aplicadas no se editan.
+**Cómo revertir una ola:** volver a aplicar, en una migración nueva, la definición vigente anterior de cada función (la última migración previa que la redefine; los códigos `PT404`/`PT412`/`PT409` solo cambian el `errcode`) y restaurar los comentarios desde las migraciones citadas en la tabla. Las migraciones ya aplicadas no se editan.
 
 La documentación técnica de producto y API no enumera qué función emite cada código: remite a esta página.
 
 Queda para próximas olas (los tickets siguen abiertos): el resto de las funciones con `P0002` y `40001` (el resto de Service con `55000` o auxiliares de `private`, contactos de clientes y consultas, gastos,
-listas de precios, newsletter, RMA, variantes y operaciones masivas de productos, conciliación de pagos, etc.), los `55000` de estas mismas funciones, el `40001` con hint `precios_cambiaron` de
+listas de precios, newsletter, RMA, variantes y operaciones masivas de productos, conciliación de pagos, etc.), los `55000` de las demás funciones (Service, RMA, newsletter, `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto`, auxiliares de `private`; los de bandera apagada se quedan), el `40001` con hint `precios_cambiaron` de
 `confirmar_comprobante` y `facturar_presupuesto` (contrato propio por hint y detail), los topes `54000`
 (`aplicar_lote_clientes`, `exportar_clientes`), los respaldos `55006` (los consume Kestra por código) y las funciones del esquema
 `publico` llamables por `anon`. Sigue sin verificarse contra un PostgREST real con JWT que `PT412` se traduzca a 412.
+
+## Novena ola: estado o regla de negocio que impide la acción, `55000` a `PT409` (MSF-599)
+
+Primera ola que convierte los `55000` de funciones ya migradas en las olas 3 y 4 (comprobantes, despacho, cobros, contrarreembolsos
+y envíos en moto). Solo cambia el errcode de los rechazos «el estado o la regla de negocio no admite la acción» (factura cerrada,
+borrador, anulada, ya entregada, con cobros, cobro ya revertido o conciliado, transición de despacho inválida, envío rendido…) a
+`PT409` (HTTP 409); mensaje, firma, `security definer` y grants no cambian. Funciones: ver la fila 9 de la tabla (29 rechazos). Ninguna es
+llamable por `anon` ni la consume Kestra, un worker o una Edge Function.
+
+Se dejaron con `55000` a propósito:
+
+- **Bandera apagada («desactivada en este entorno»)**: `guardar_promocion_precio`, listas de precios, newsletter, opiniones y precios
+  masivos. Es una falla de configuración del entorno y no una regla de negocio de la persona, así que un 5xx es legítimo.
+- **Contrato propio por `detail`**: la verificación de dominio de la tienda (`demasiado_pronto`, `verificacion_obsoleta`).
+- **Lanzados por un auxiliar de `private`**: `private.registrar_cobro_interno` (lo usan `registrar_cobro` y
+  `marcar_contrarreembolso_cobrado`: ante un rechazo de ese auxiliar, por ejemplo la caja cerrada, sigue llegando `55000`),
+  `private.marcar_estado_cobro_comprobante`, `private.abrir_contrarreembolso` y `private.aplicar_conciliacion`.
+- **Funciones no migradas todavía**: `rendir_envios_moto`, `emitir_nota_credito`, `facturar_presupuesto`, Service, RMA, newsletter.
+
+Efecto en el cliente: `lib/mensajeErrorBase.ts` exporta `esCodigoDeEstado` (`55000` o `PT409`) y lo usan los mapeos de comprobantes,
+confirmación, anulación, estados, despacho, envío, faltantes, cobros, envíos en moto y contrarreembolsos; muestran lo mismo con los dos
+códigos (test `lib/ventasErrorDeEstado.test.ts`). Ningún consumidor reintenta ni alerta por 5xx para estos errores: el cambio es solo que
+el servidor deja de contarlos como falla.
 
 ## MSF-721: «Nueva devolución» no encontraba la factura
 

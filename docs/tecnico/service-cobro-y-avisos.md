@@ -198,7 +198,7 @@ solo la RPC.
 - **Comprobante**: la reparación se toma `for update`, así dos personas que pulsan a la vez se serializan; la segunda
   ve el comprobante de la primera y recibe `{ creado: false }`. El **índice único parcial** por origen vigente es el
   respaldo en la base: si dos transacciones se escapan al bloqueo, la segunda recibe `unique_violation` y devuelve el
-  comprobante existente en lugar de crear otro. Con el comprobante **anulado** se puede generar uno nuevo. La anulación de la factura (`public.anular_comprobante`) rechaza con `55000` una factura ya entregada o con cobros netos mayores a cero (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`): en ese caso se revierte el cobro o se corrige con una nota de crédito.
+  comprobante existente en lugar de crear otro. Con el comprobante **anulado** se puede generar uno nuevo. La anulación de la factura (`public.anular_comprobante`) rechaza con un error de negocio (ver [errores de negocio](../errores-negocio-postgrest.md)) una factura ya entregada o con cobros netos mayores a cero (`20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`): en ese caso se revierte el cobro o se corrige con una nota de crédito.
 - **Aviso**: `reparacion_avisos_pendiente_uq` garantiza **un solo aviso pendiente por reparación y estado**: el doble
   clic es un solo aviso. «Reenviar» es la misma RPC con el `estado_id` del aviso original y crea un aviso **nuevo**
   con el correo actual del cliente.

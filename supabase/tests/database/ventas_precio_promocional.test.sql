@@ -4,7 +4,7 @@
 --   · la tabla de 10 ejemplos de precedencia («gana el más bajo, sin acumular») con una aserción por fila y los
 --     bordes (promoción igual o mayor al normal, cantidad que cruza la escala, descuento 5 % y 15 %, precio propio);
 --   · snapshot: `precio_unitario`, `precio_referencia` y `promocion_id`; inmutable al cambiar, anular o vencer la
---     promoción tras confirmar; la factura cerrada rechaza el guardado (55000);
+--     promoción tras confirmar; la factura cerrada rechaza el guardado (PT409);
 --   · vigencia `[desde, hasta)` con `p_ahora`, incluida la medianoche de Buenos Aires; el reloj del servidor es
 --     `clock_timestamp()` y no el `now()` de la transacción;
 --   · tienda A vs tienda B, aislamiento por organización (incluida una fila inconsistente forzada) y la baja de una
@@ -647,7 +647,7 @@ delete from dominio.comprobantes_venta_lineas where comprobante_id = pg_temp.id_
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
 select throws_ok(format($$select public.guardar_lineas_comprobante(%L, %L::jsonb, %L)$$, pg_temp.id_de('fact1'),
     jsonb_build_array(pg_temp.l(1, 1))::text, pg_temp.upd('fact1')),
-  '55000', null, 'la factura confirmada sigue rechazando el guardado de líneas');
+  'PT409', null, 'la factura confirmada sigue rechazando el guardado de líneas');
 -- Con la promoción vencida, un borrador nuevo ya cobra el precio normal
 select pg_temp.crear('post', 'factura', 'a1000000-0000-0000-0000-000000000001', 'c5000000-0000-0000-0000-000000000002');
 select is(pg_temp.guardar_res('post', jsonb_build_array(pg_temp.l(1, 1))), '1000.00|-|0.00|x1|false', 'con la promoción vencida un borrador nuevo cobra 1000');

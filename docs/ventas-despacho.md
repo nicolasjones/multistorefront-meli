@@ -44,7 +44,7 @@ listo_para_despachar --> entregado   Entregar
 entregado es terminal
 ```
 
-Una factura **entregada no se anula** (`anular_comprobante` responde `55000`: se corrige con nota de crédito o RMA; `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`).
+Una factura **entregada no se anula** (`anular_comprobante` la rechaza con un error de negocio (ver [errores de negocio](./errores-negocio-postgrest.md)): se corrige con nota de crédito o RMA; `20270507180000_anular_comprobante_rechaza_entregada_y_con_cobros.sql`).
 
 - **Inicial (FR-002):** al pasar una factura a `confirmada`, el disparador
   `comprobantes_venta_estado_despacho_inicial` (`AFTER UPDATE OF estado`) fija el `estado_despacho_inicial` de su
@@ -52,7 +52,7 @@ Una factura **entregada no se anula** (`anular_comprobante` responde `55000`: se
   ya hay estado no lo pisa), no toca `confirmar_comprobante` ni `updated_at`. Como corre después del `RETURNING`,
   la pantalla recarga el comprobante tras confirmar.
 - **Transiciones (FR-003):** `cambiar_estado_despacho` solo acepta las del flujo. Un presupuesto, un borrador o una
-  factura anulada se rechazan (`22023`/`55000`). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
+  factura anulada se rechazan (dato inválido o error de negocio: ver [errores de negocio](./errores-negocio-postgrest.md)). Es **idempotente**: pedir el estado que ya tiene devuelve la fila
   sin tocar responsables ni stock. Usa **bloqueo optimista** por `p_actualizado_en` (conflicto de edición) y toma la fila
   `for update`, así dos cambios simultáneos no se pisan.
 
@@ -122,7 +122,7 @@ factura (`dominio`), no en una tabla nueva:
 
 | Regla | Qué pasa |
 |-------|----------|
-| Factura viva (no borrador, pendiente ni anulada) no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (`22023` / `55000`) |
+| Factura viva (no borrador, pendiente ni anulada) no entregada | Un presupuesto, un borrador o una factura ya entregada no registran envío (dato inválido o error de negocio: ver [errores de negocio](./errores-negocio-postgrest.md)) |
 | Transporte activo y de la tienda | Inactivo, de otra organización o de otra tienda → se rechaza (`22023`) |
 | Permiso | La acción `despachar` **o** Ventas en `edicion`, resueltos en la **empresa del comprobante** (no en la empresa activa) (`42501`) |
 | Bloqueo optimista | `p_actualizado_en` desactualizado → conflicto de edición |
@@ -241,12 +241,12 @@ En la misma factura, antes de la tarjeta **Responsables**, aparece el bloque **E
   el selector no queda en blanco ni hace creer que la factura no tiene transporte (se lee por id, porque el catálogo
   de la tienda ya no lo trae).
 - En una factura **entregada** el bloque es de solo lectura y avisa «Esta factura ya fue entregada: no se puede
-  cambiar el envío.»: la base rechaza siempre cualquier cambio de envío (`55000`), así que no se ofrece la acción
+  cambiar el envío.»: la base rechaza siempre cualquier cambio de envío (error de negocio), así que no se ofrece la acción
   ni se dejan los campos editables.
 - El bloque **espera al estado del despacho** antes de ofrecer el envío (lo lee `obtener_despacho_comprobante`):
   mientras no se sabe si la factura ya fue entregada, queda en carga y no ofrece «Guardar envío». Si la factura
   **todavía no entró al despacho**, avisa «Esta factura todavía no entró al despacho.» y tampoco lo ofrece (la base
-  rechaza ese envío con `55000`). Si la lectura falla, el bloque se ve igual y la base vuelve a validar al guardar.
+  rechaza ese envío con un error de negocio). Si la lectura falla, el bloque se ve igual y la base vuelve a validar al guardar.
 - Si la forma de envío **exige** transporte y guía y falta alguno, el bloque avisa **qué falta** («Falta la guía: con
   esta forma de envío la factura no se puede entregar.»). La base lo exige al entregar (FR-022); el aviso adelanta
   el problema.

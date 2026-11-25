@@ -311,12 +311,12 @@ select throws_ok(
   $$select public.guardar_comprobante((select id from comps where clave = 'fac2'),
       'c5000000-0000-0000-0000-000000000001', 'mostrador', '2026-10-24', null, null, null,
       (select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = 'fac2')))$$,
-  '55000', null, 'una factura confirmada no se edita');
+  'PT409', null, 'una factura confirmada no se edita');
 select throws_ok(
   $$select public.guardar_comprobante((select id from comps where clave = 'pre1'),
       (select consumidor_uno from datos), 'mostrador', '2026-10-24', null, null, null,
       (select updated_at from dominio.comprobantes_venta where id = (select id from comps where clave = 'pre1')))$$,
-  '55000', null, 'un presupuesto aceptado no se edita');
+  'PT409', null, 'un presupuesto aceptado no se edita');
 select is(
   (public.obtener_comprobante((select id from comps where clave = 'fac2')) ->> 'editable')::boolean,
   false, 'obtener marca como no editable el documento cerrado');
