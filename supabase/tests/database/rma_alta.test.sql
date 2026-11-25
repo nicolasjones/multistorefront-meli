@@ -174,7 +174,7 @@ select throws_ok(
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(
   format($$select pg_temp.alta('P', %L, 1, 'cambio_directo')$$, pg_temp.linea('P', 'b1000000-0000-0000-0000-000000000002', (select principal from datos))),
-  'P0002', null, 'otra organización no ve la factura: no existe para ella');
+  'PT404', null, 'otra organización no ve la factura: no existe para ella');
 select is(pg_temp.total_rma(), 0, 'sin permiso no se creó ningún RMA');
 
 -- ============================================================================
@@ -203,16 +203,16 @@ select throws_ok(
   '22023', null, 'una línea con identificador inválido se rechaza');
 select throws_ok(
   format($$select pg_temp.alta('borrador', %L, 1, 'cambio_directo')$$, pg_temp.linea('borrador', 'b1000000-0000-0000-0000-000000000002', (select principal from datos))),
-  '55000', null, 'una factura en borrador no admite RMA');
+  'PT409', null, 'una factura en borrador no admite RMA');
 select throws_ok(
   format($$select pg_temp.alta('R', %L, 1, 'cambio_directo')$$, pg_temp.linea('R', 'b1000000-0000-0000-0000-000000000002', (select principal from datos))),
-  '55000', null, 'una factura anulada no admite RMA');
+  'PT409', null, 'una factura anulada no admite RMA');
 select throws_ok(
   format($$select public.registrar_rma(%L, '[{"linea_id": "c0000000-0000-0000-0000-000000000000", "cantidad": 1}]'::jsonb, 'cambio_directo', 'Falla')$$, pg_temp.id_de('presupuesto')),
   '22023', null, 'un presupuesto no admite RMA');
 select throws_ok(
   $$select public.registrar_rma('c0000000-0000-0000-0000-00000000dead', '[{"linea_id": "c0000000-0000-0000-0000-000000000000", "cantidad": 1}]'::jsonb, 'cambio_directo', 'Falla')$$,
-  'P0002', null, 'un comprobante inexistente se rechaza');
+  'PT404', null, 'un comprobante inexistente se rechaza');
 select is(pg_temp.total_rma(), 0, 'ninguna validación fallida dejó rastro');
 
 -- ============================================================================

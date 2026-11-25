@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../lib/supabase'
+import { esCodigoDeConflicto } from '../lib/mensajeErrorBase'
 
 // Correo para avisos de consultas (F-CON-03, FR-009/FR-010, épica MSF-122). La escritura va
 // siempre por `public.guardar_correo_avisos_consultas`: la dirección de avisos no se toca con un
@@ -29,7 +30,7 @@ function codigoDeError(error: unknown): string | null {
 
 export function mensajeDeErrorCorreoAvisos(error: unknown): string {
   const codigo = codigoDeError(error)
-  if (codigo === '40001') return ERROR_CONFLICTO
+  if (esCodigoDeConflicto(codigo)) return ERROR_CONFLICTO
   if (codigo === '42501') return ERROR_PERMISO
   if (codigo === '22023') return ERROR_FORMATO
   return ERROR_POR_DEFECTO
@@ -104,7 +105,7 @@ export function useCorreoAvisosConsultas(empresaId: string | undefined) {
         setHayError(false)
         return { ok: true, correoAvisos: pCorreo }
       } catch (error) {
-        const conflicto = codigoDeError(error) === '40001'
+        const conflicto = esCodigoDeConflicto(codigoDeError(error))
         // Con un conflicto, la próxima vez hace falta el sello vigente para poder guardar.
         if (conflicto) void cargar()
         return { ok: false, mensaje: mensajeDeErrorCorreoAvisos(error), conflicto }

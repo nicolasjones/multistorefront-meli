@@ -150,8 +150,8 @@ reset role;
 select is((select count(*)::int from dominio.comprobantes_venta where tipo = 'factura' and origen_presupuesto_id is not null), 0, 'ningún intento negativo dejó una factura');
 
 select pg_temp.como('f1000000-0000-0000-0000-000000000002');
-select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('P')), '55000', 'Aceptá el presupuesto antes de facturarlo', 'un presupuesto pendiente no se factura');
-select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('V')), '55000', 'El presupuesto está vencido y no se puede facturar', 'un presupuesto vencido no se factura');
+select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('P')), 'PT409', 'Aceptá el presupuesto antes de facturarlo', 'un presupuesto pendiente no se factura');
+select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('V')), 'PT409', 'El presupuesto está vencido y no se puede facturar', 'un presupuesto vencido no se factura');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('F')), 'P0002', null, 'una factura no es un presupuesto');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('X')), 'P0002', null, 'un presupuesto de otra organización no existe');
 select throws_ok(format($$select public.facturar_presupuesto(%L)$$, pg_temp.id_de('D')), '42501', null, 'sin acceso a la tienda del presupuesto no se factura');

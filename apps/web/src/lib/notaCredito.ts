@@ -1,5 +1,6 @@
 import { supabaseClient } from './supabase'
 import { parsearPrecioLinea } from './ventasLineas'
+import { esCodigoDeEstado } from './mensajeErrorBase'
 
 // Nota de crédito (F-VTA-11, MSF-377, FR-043…FR-046). La autoridad es la base: `emitir_nota_credito` valida el
 // permiso `emitir_nota_credito` en la tienda de la factura, el tope acreditable y devuelve la mercadería al depósito
@@ -209,7 +210,7 @@ export const esTopeDeNota = (error: unknown): boolean => (error as ErrorDeBase)?
 export function mensajeDeNotaCredito(error: unknown): string {
   const e = error as ErrorDeBase
   console.error(MENSAJE_ERROR_NOTA, error)
-  if ((e?.code === '42501' || e?.code === '55000' || e?.code === '22023' || esTopeDeNota(error)) && esMensajeDeLaRpc(e)) return e.message
+  if ((e?.code === '42501' || esCodigoDeEstado(e?.code) || e?.code === '22023' || esTopeDeNota(error)) && esMensajeDeLaRpc(e)) return e.message
   if (e?.code === 'P0002') return 'Esa factura no existe o no pertenece a tu organización.'
   return MENSAJE_ERROR_NOTA
 }

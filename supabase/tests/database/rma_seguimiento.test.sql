@@ -200,12 +200,12 @@ select is((select estado from public.cambiar_estado_rma(pg_temp.rma_id('RMA-0001
 select is(pg_temp.eventos('rma.estado_cambiado'), 2, 'el reintento no duplica eventos');
 
 select throws_ok(format($$select public.cambiar_estado_rma(%L, 'en_gestion', '2000-01-01T00:00:00Z')$$, pg_temp.rma_id('RMA-0002')),
-  '40001', null, 'un sello vencido es un conflicto');
+  'PT412', null, 'un sello vencido es un conflicto');
 select throws_ok(format($$select public.cambiar_estado_rma(%L, 'en_gestion', null)$$, pg_temp.rma_id('RMA-0002')),
-  '40001', null, 'sin sello es un conflicto');
+  'PT412', null, 'sin sello es un conflicto');
 select is(pg_temp.estado('RMA-0002'), 'abierto', 'el conflicto no cambió el estado');
 select throws_ok($$select public.cambiar_estado_rma('00000000-0000-0000-0000-000000000000', 'en_gestion', now())$$,
-  'P0002', null, 'un RMA inexistente se rechaza');
+  'PT404', null, 'un RMA inexistente se rechaza');
 select ok((select actualizado_en from public.cambiar_estado_rma(pg_temp.rma_id('RMA-0003'), 'en_gestion', pg_temp.sello('RMA-0003')))
   > '2026-01-01', 'el cambio renueva el sello de bloqueo');
 
@@ -234,7 +234,7 @@ select is(pg_temp.estado('RMA-0004'), 'abierto', 'el rechazo por permiso no camb
 
 select pg_temp.como('f2000000-0000-0000-0000-000000000001');
 select throws_ok(format($$select public.cambiar_estado_rma(%L, 'en_gestion', %L)$$, pg_temp.rma_id('RMA-0004'), pg_temp.sello('RMA-0004')),
-  'P0002', null, 'otra organización no ve ni cambia el RMA');
+  'PT404', null, 'otra organización no ve ni cambia el RMA');
 -- Se lee con la sesión de la organización dueña: bajo la otra, la RLS oculta la fila y el estado sería NULL.
 select pg_temp.como('f1000000-0000-0000-0000-000000000001');
 select is(pg_temp.estado('RMA-0004'), 'abierto', 'otra organización no alteró el estado');
