@@ -956,9 +956,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "1be3a3ee6ad4949e840667cdefcbe1cbb239374a379bf0df11c55f56d576629d",
-      "sourceHash": "2f58adbf8b8a9a2a027b99be4c9b92c6e61c648539f2595efec690a141e9b30d",
-      "sourceAt": "2838b473",
+      "pageHash": "73c8d3fca64070e4f6be3ccc9ec8bc289f1acf9d96bedaa62fbf06b0855fd705",
+      "sourceHash": "7e4308e60c3e4678c840f48b9d12673db7d9b111d177722e070db10b39d63bc9",
+      "sourceAt": "2838b4734",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -972,7 +972,7 @@
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "2838b473"
+      "commit": "2838b4734"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -1146,9 +1146,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "6ac9612a1567c0a20819b51ddd03f04d98371c35fa7a13af00e35ab57ec2c66d",
-      "sourceHash": "af6a14b66c9a0be29c6d0543b2eb434b40cf548403de81f60e7a3511f1965bf6",
-      "sourceAt": "3fcfd1399",
+      "pageHash": "16d9bca992f2186c4be9b11e1a2e0848824a54158fd5c47663cbb81e0ace29cd",
+      "sourceHash": "a1572a9456c44bdf58e43b29f6861ba92a273e7d1a719f9a6034c0d2d4465b1d",
+      "sourceAt": "da44f30b1",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1157,6 +1157,7 @@
         "supabase/functions/indexar-documento/handler.ts",
         "supabase/functions/indexar-documento/consultas.ts",
         "supabase/migrations/20270507200100_borrar_fragmentos_si_dueno.sql",
+        "supabase/migrations/20270507800000_endurecer_rag_mcp_y_chat_columnas.sql",
         "supabase/functions/enviar-correo-proveedor/handler.ts",
         "supabase/functions/_shared/embeddings.ts",
         "supabase/functions/_shared/fetch-ia.ts",
@@ -1169,7 +1170,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "3fcfd1399"
+      "commit": "da44f30b1"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",

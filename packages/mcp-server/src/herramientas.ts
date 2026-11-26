@@ -32,10 +32,6 @@ function permitidosDesdeFilas(filas: unknown[]): string[] {
   return primera && typeof primera === 'object' ? Object.keys(primera) : []
 }
 
-// Minutos tras los cuales una ejecución `en_curso` se considera abandonada (proceso reiniciado o fallo al
-// finalizarla): sin vencimiento, el índice único parcial bloquearía esa acción para la credencial para siempre.
-const EJECUCION_VENCE_MIN = Number(process.env.MCP_EJECUCION_VENCE_MIN ?? 10)
-
 // Nombre de herramienta válido para MCP (letras, números, `_`, `-`, `.`).
 function segmento(texto: string): string {
   return texto.replace(/[^A-Za-z0-9_.-]/g, '_')
@@ -132,13 +128,7 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
         // firma tipada — supabase-js resuelve los parámetros nombrados
         // contra esa firma, igual que PostgREST (research.md R4, no hay
         // forma genérica de invocar una firma arbitraria por SQL dinámico).
-        // Libera el candado de una ejecución abandonada (proceso reiniciado o `finalizar_ejecucion_mcp` fallido).
-        const vencidaAntesDe = new Date(Date.now() - EJECUCION_VENCE_MIN * 60_000).toISOString()
-        const { error: vencerError } = await admin.from('ejecuciones_mcp')
-          .update({ estado: 'fallida', motivo_error: 'vencida', finalizada_en: new Date().toISOString() })
-          .eq('credencial_id', credencialId).eq('feature_id', accion.feature_id).eq('estado', 'en_curso').lt('iniciada_en', vencidaAntesDe)
-        if (vencerError) console.error('mcp: no se pudo vencer la ejecución abandonada', vencerError.message)
-
+        // El vencimiento de ejecuciones `en_curso` abandonadas (10 minutos) vive dentro de iniciar_ejecucion_mcp (SQL).
         const { data: ejecucionId, error: inicioError } = await admin.rpc('iniciar_ejecucion_mcp', {
           p_credencial_id: credencialId, p_feature_id: accion.feature_id,
         })
@@ -172,7 +162,7 @@ export async function registrarHerramientas(server: McpServer, conexion: Conexio
           p_estado: error ? 'fallida' : 'completada',
           p_motivo_error: error?.message ?? null,
         })
-        // Si no se puede cerrar, la fila queda `en_curso` hasta vencer (EJECUCION_VENCE_MIN): se deja rastro.
+        // Si no se puede cerrar, la fila queda `en_curso` hasta que iniciar_ejecucion_mcp la venza: se deja rastro.
         if (finalizarError) console.error('mcp: no se pudo finalizar la ejecución', ejecucionId, finalizarError.message)
 
         if (error) {
