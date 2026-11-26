@@ -246,7 +246,7 @@
     },
     {
       "id": "chat-companion-mechanism",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "title": "Chat companion con acceso a funcionalidades registradas",
       "paths": [
         "supabase/migrations/20261005000000_chat_companion_mechanism.sql",
@@ -275,7 +275,7 @@
     },
     {
       "id": "document-rag-mechanism",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "title": "Búsqueda documental genérica con IA (RAG)",
       "paths": [
         "supabase/migrations/20261005000001_rag_busqueda_documental.sql",

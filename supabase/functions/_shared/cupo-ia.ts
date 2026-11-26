@@ -10,6 +10,8 @@ export const LIMITE_CUPO_POR_HORA = 30
 export const LIMITE_CUPO_MAXIMO = 1000
 export const FUNCIONALIDAD_CHAT = 'chat-ia'
 export const FUNCIONALIDAD_DOCUMENTOS = 'busqueda-documental'
+// No es de IA: `enviar-correo-proveedor` reutiliza el mismo contador atómico (lote 91, MSF-731) con su propia clave de funcionalidad.
+export const FUNCIONALIDAD_CORREO_PROVEEDOR = 'correo-proveedor'
 
 // Bordes de MAX_ERROR_LOG (300), MAX_ANTES_DE_TACHAR (2000), UUID sin guiones {32,} y CORREO {1,64}@{1,255} fijados por tests de tabla
 // (cupo-ia.test.ts) con n-1 / n / n+1; no hay constantes equivalentes entre ellas.
@@ -39,9 +41,9 @@ export type RechazoCupo = { status: number; error: string; retryAfter?: number }
 type Rpc = (nombre: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>
 
 // Tope configurable por ENV de cada función; un valor ausente, inválido o mayor que LIMITE_CUPO_MAXIMO vuelve al predeterminado.
-export function limiteDeCupo(valor: string | undefined): number {
+export function limiteDeCupo(valor: string | undefined, porDefecto: number = LIMITE_CUPO_POR_HORA): number {
   const n = Number(valor)
-  return Number.isInteger(n) && n > 0 && n <= LIMITE_CUPO_MAXIMO ? n : LIMITE_CUPO_POR_HORA
+  return Number.isInteger(n) && n > 0 && n <= LIMITE_CUPO_MAXIMO ? n : porDefecto
 }
 
 // Retry-After en segundos enteros. La SQL devuelve entre 1 y 3600 (hasta la próxima hora en punto UTC); acá: un valor finito mayor que 0 se

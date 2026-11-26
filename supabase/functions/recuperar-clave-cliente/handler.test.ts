@@ -20,14 +20,14 @@ function montar(opciones: Opciones = {}) {
     admin: {
       rpc: async (nombre, args) => {
         llamadas.rpc.push([nombre, args])
-        if (opciones.rpcError) return { data: null, error: { message: 'boom' } }
+        if (opciones.rpcError) return { data: null, error: { message: 'fallo en postgres://u:clave-secreta@db/x' } }
         return { data: opciones.cuenta ? [opciones.cuenta] : [], error: null }
       },
     },
     enSegundoPlano: (tarea) => { pendientes.push(tarea) },
     enviarClave: async (email, redirectTo) => {
       llamadas.claves.push({ email, redirectTo })
-      return { data: {}, error: opciones.enviarError ? { message: 'smtp' } : null }
+      return { data: {}, error: opciones.enviarError ? { message: 'smtp rechazó a cli@example.com con clave-secreta' } : null }
     },
   }
   return { deps, llamadas, terminar: () => Promise.all(pendientes) }
@@ -81,6 +81,32 @@ describe('recuperar-clave-cliente', () => {
       assert.equal(res.status, 200)
       assert.deepEqual(await res.json(), { ok: true })
     }
+  })
+
+  it('los fallos y el límite alcanzado quedan en el log sin mensajes crudos, correos ni URLs', async () => {
+    const original = console.error
+    const lineas: string[] = []
+    console.error = (...args: unknown[]) => { lineas.push(args.map(String).join(' ')) }
+    try {
+      for (const opciones of [{ rpcError: true }, { cuenta: { correo: 'log-envio@example.com', dominio: 'mundojc.ejemplo.com' }, enviarError: true }]) {
+        const { deps, terminar } = montar(opciones)
+        await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'log-envio@example.com' }), deps)
+        await terminar()
+      }
+      const { deps, terminar } = montar({ cuenta: { correo: 'tope@example.com', dominio: 'mundojc.ejemplo.com' } })
+      deps.ahora = () => 5_000_000
+      for (let i = 0; i < 4; i++) {
+        await manejar(pedido({ host: 'mundojc.ejemplo.com', correo: 'tope@example.com' }), deps)
+        await terminar()
+      }
+    } finally {
+      console.error = original
+    }
+    assert.deepEqual(lineas, [
+      'recuperar-clave-cliente: no se pudo procesar el pedido Error',
+      'recuperar-clave-cliente: no se pudo procesar el pedido Error',
+      'recuperar-clave-cliente: límite por correo alcanzado, no se reenvía',
+    ])
   })
 
   it('responde sin esperar la consulta ni el envío (tiempo parejo, con o sin cuenta)', async () => {

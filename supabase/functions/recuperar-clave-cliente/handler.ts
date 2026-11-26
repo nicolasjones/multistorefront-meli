@@ -6,6 +6,8 @@
 // Sin esto se podrían enumerar los correos con cuenta web en una tienda. Tampoco debe filtrarse por tiempo: la
 // consulta y el envío corren en segundo plano (`enSegundoPlano`), así que se responde al instante en ambos casos.
 
+import { textoDeError } from '../_shared/log-seguro.ts'
+
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' }
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
@@ -27,7 +29,11 @@ export type Deps = {
 }
 
 // Límite simple por correo+tienda (mejor esfuerzo, por instancia): evita usar la función para inundar de correos a
-// un cliente conocido. Lo que exceda se descarta en silencio, con la misma respuesta (no filtra nada).
+// un cliente conocido. Lo que exceda se descarta con la MISMA respuesta (no filtra nada) y queda una línea en el log.
+// Límite conocido (MSF-731, decisión consciente: NO se cambia el comportamiento): quien conoce el correo de un cliente puede
+// gastar los 3 pedidos y el cuarto pedido legítimo se descarta hasta 10 minutos. Contar también por IP no lo evita (el
+// atacante usa otra IP y la IP de un anónimo detrás del proxy viene de una cabecera falsificable), y subir o quitar el tope por
+// correo reabriría la inundación de correos a un cliente. El cliente puede volver a pedirlo pasada la ventana; ver docs/acceso-ingreso.md.
 const VENTANA_MS = 10 * 60 * 1000
 const MAXIMO_POR_VENTANA = 3
 const MAXIMO_CLAVES = 5000
@@ -89,7 +95,8 @@ export async function manejar(req: Request, { protocolo, admin, enviarClave, enS
         if (envioError) throw new Error(envioError.message)
       }
     } catch (cause) {
-      console.error('recuperar-clave-cliente: no se pudo procesar el pedido', cause instanceof Error ? cause.message : cause)
+      // Solo nombre y código: el error del cliente de Auth o de la base puede traer URLs, correos o claves.
+      console.error('recuperar-clave-cliente: no se pudo procesar el pedido', textoDeError(cause))
     }
   }
   enSegundoPlano(procesar())

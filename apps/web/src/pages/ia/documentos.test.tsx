@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   updateDocumento: vi.fn(),
   updateVersion: vi.fn(),
   errorUpdateDocumento: null as { message: string } | null,
+  errorUpdateVersion: null as { message: string } | null,
+  lanzarUpdateVersion: false,
   deleteDocumento: vi.fn(),
   insertVersion: vi.fn(),
   errorDocumentos: null as { message: string } | null,
@@ -70,7 +72,8 @@ function crearCadena(tabla: string) {
       }
       if (operacion.tipo === 'update') {
         mocks.updateVersion(operacion.datos)
-        return { error: null }
+        if (mocks.lanzarUpdateVersion) throw new Error('red caída')
+        return { error: mocks.errorUpdateVersion }
       }
       return { data: mocks.versiones, error: null }
     }
@@ -115,6 +118,8 @@ describe('IaDocumentos', () => {
     mocks.errorInvokeHttp = null
     mocks.identidad = { id: 'user-1' }
     mocks.errorUpdateDocumento = null
+    mocks.errorUpdateVersion = null
+    mocks.lanzarUpdateVersion = false
     mocks.useContextoPanel.mockReturnValue({
       contexto: { organizacion_id: 'org-1', es_superadmin: false, organizacion_nombre: 'Org', rol_efectivo: 'administrador', puede_escribir: true, puede_copiar_identificador_tecnico: false },
       isLoading: false,
@@ -284,6 +289,29 @@ describe('IaDocumentos', () => {
     fireEvent.change(input, { target: { files: [archivo('contrato.pdf', 'pdf', 'application/pdf')] } })
 
     await waitFor(() => expect(mocks.updateVersion).toHaveBeenCalledWith({ estado: 'fallida' }))
+    expect(mocks.invoke).not.toHaveBeenCalled()
+    expect(await screen.findByText('No pudimos actualizar el nombre del documento: RLS')).toBeTruthy()
+    // La versión quedó registrada: no se borra el documento ni el archivo.
+    expect(mocks.deleteDocumento).not.toHaveBeenCalled()
+    expect(mocks.remove).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['la marca devuelve un error', () => { mocks.errorUpdateVersion = { message: 'RLS' } }],
+    ['la marca lanza una excepción', () => { mocks.lanzarUpdateVersion = true }],
+  ])('si falla el nombre y además %s, avisa que la versión quedó sin procesar y no indexa', async (_caso, preparar) => {
+    mocks.documentos = [documento]
+    mocks.errorUpdateDocumento = { message: 'RLS' }
+    preparar()
+    const { container } = render(<IaDocumentos />)
+    await screen.findByText('contrato.txt')
+    const input = container.querySelector('input[type="file"]')
+    if (!input) throw new Error('No se encontró el selector de archivos.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Actualizar (sube una nueva versión)' }))
+    fireEvent.change(input, { target: { files: [archivo('contrato.pdf', 'pdf', 'application/pdf')] } })
+
+    expect(await screen.findByText(/No pudimos actualizar el nombre del documento: RLS La versión quedó sin procesar: reintentala desde el historial\./)).toBeTruthy()
     expect(mocks.invoke).not.toHaveBeenCalled()
   })
 
