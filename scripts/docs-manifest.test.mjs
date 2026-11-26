@@ -117,7 +117,7 @@ for (const [relleno, cola] of [[' ', '\u2028'], ['\t', '\u2029'], ['\u00a0', '\u
       const r = spawnSync('node', [script], { cwd: dir, encoding: 'utf8' });
       const ms = performance.now() - t0;
       assert.equal(r.status, 0, r.stderr + r.stdout);
-      assert.ok(ms < 1500, `${ms} ms`);
+      assert.ok(ms < 5000, `${ms} ms`); // ver la nota sobre topes en docs-correspondencia.test.mjs
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

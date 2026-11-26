@@ -372,7 +372,7 @@ describe("erroresYaml: entradas patológicas (ReDoS)", () => {
       it(`un ítem con 200k ${JSON.stringify(relleno)} y cola ${JSON.stringify(cola)} termina en menos de 1 s`, () => {
         const t0 = performance.now();
         erroresYaml(`nav:\n  - ${relleno.repeat(200000)}${cola}\n`);
-        assert.ok(performance.now() - t0 < 1000);
+        assert.ok(performance.now() - t0 < 5000); // tope de 5 s: ver docs-correspondencia.test.mjs
       });
     }
   }

@@ -109,6 +109,8 @@ describe('escape de anotaciones', () => {
   });
 });
 
+// Topes de 5 s (no 1 s): una sola muestra en un host cargado (CI compartido) puede superar 1 s sin que haya un problema, mientras que una regex
+// cuadrática con 200 000 caracteres tarda decenas de segundos. El barrido (docs-regex-barrido.test.mjs) usa topes de 1 s con mínimo de 3 mediciones.
 describe('entradas patológicas (ReDoS)', () => {
   const N = 200000;
   const lee = async (nombre, texto) => {
@@ -129,7 +131,7 @@ describe('entradas patológicas (ReDoS)', () => {
         ['array', `---\nsources: [${caracter.repeat(N)}]\n---\n`],
       ]) {
         const { ms } = await lee(`redos-${nombre}-${forma}`, texto);
-        assert.ok(ms < 1000, `${nombre}/${forma}: ${ms} ms`);
+        assert.ok(ms < 5000, `${nombre}/${forma}: ${ms} ms`);
       }
     });
   }
@@ -142,7 +144,7 @@ describe('entradas patológicas (ReDoS)', () => {
   it('las rutas larguísimas no cuelgan el cálculo de relevancia', () => {
     const t0 = performance.now();
     archivosSinDocCorrespondiente([`scripts/${'.test'.repeat(N / 5)}`, `scripts/${'/'.repeat(N)}`], [doc('docs/a.md', ['scripts/sub'])]);
-    assert.ok(performance.now() - t0 < 1000);
+    assert.ok(performance.now() - t0 < 5000);
   });
 
   // Hueco anterior: las colas vacías o `x` no ejercitaban el caso lento (U+2028/U+2029/U+0085 tras blancos).
@@ -157,7 +159,7 @@ describe('entradas patológicas (ReDoS)', () => {
           ['clave', `---\nsources${relleno.repeat(N)}${cola}:\n---\n`],
         ]) {
           const { ms } = await lee(`redos-u-${forma}`, texto);
-          assert.ok(ms < 1000, `${forma}: ${ms} ms`);
+          assert.ok(ms < 5000, `${forma}: ${ms} ms`);
         }
       });
     }
