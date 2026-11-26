@@ -11,9 +11,9 @@
     },
     "docs/acceso-ingreso.md": {
       "title": "Acceso: ingreso, recuperación y sesión (MSF-119)",
-      "pageHash": "66f4bb83eef57a595f239d118921eef62d1e5adef9ab9a86e0b609faba549c92",
+      "pageHash": "67e19480414ae23735bafe23b6697230e59c8b2f1612fb69486c5968d801b2fe",
       "sourceHash": "360c5bf6492da259941dd32b98348ee0015c0d46bb38adbb1808c64ef7a2d374",
-      "sourceAt": "f6d79ffda",
+      "sourceAt": "e7a004bc1",
       "sources": [
         "specs/20261012-140000-acceso-y-organizacion",
         "apps/web/src/pages/login.tsx",
@@ -31,7 +31,7 @@
         "scripts/e2e-acceso.e2e.mjs"
       ],
       "owner": "producto",
-      "commit": "f6d79ffda"
+      "commit": "e7a004bc1"
     },
     "docs/acceso-soporte.md": {
       "title": "Acceso de soporte auditado (F-OPS-04)",
@@ -962,9 +962,9 @@
     },
     "docs/documentos-ia.md": {
       "title": "Documentos IA (búsqueda documental)",
-      "pageHash": "64f74b699e74b1011c3155f99063d46022e4b13312019513cf0363a5b59d6555",
-      "sourceHash": "888f48756f5af496048eefcc1a449629d96f9d4472cf7880ec6fb9e772b6faab",
-      "sourceAt": "c6d0dee53",
+      "pageHash": "d57b275bcb33d8b1ce2573d8ddc9d3a0488c3245497c8d8bc237a705e1feda48",
+      "sourceHash": "292d8de11c5eb4abc1ff0e09676b19afe5d29cf5e8491fc736a355b80be8f160",
+      "sourceAt": "e7a004bc1",
       "sources": [
         "specs/20261005-document-rag-mechanism",
         "apps/web/src/lib/documentosIa.ts",
@@ -980,7 +980,7 @@
         "supabase/functions/indexar-documento/consultas.ts"
       ],
       "owner": "tecnico",
-      "commit": "c6d0dee53"
+      "commit": "e7a004bc1"
     },
     "docs/dolar-y-recalculo.md": {
       "title": "Dólar y recálculo (épica MSF-116 · spec `20261023-120000-dolar-y-recalculo`)",
@@ -1154,9 +1154,9 @@
     },
     "docs/funciones-edge-endurecimiento.md": {
       "title": "Funciones edge de IA y correo: endurecimiento (auditoría MSF-647, lote 25)",
-      "pageHash": "567c8f0db8e08b0c8e7ef711693de6639aa56e642e7b980c77d71fe71eed24a1",
-      "sourceHash": "c68a17d245525ce329c2cd3afedeaf877a13a59607f569ed7d6c678f276ced4f",
-      "sourceAt": "cb23ca764",
+      "pageHash": "01abeb624039f4feee0f77f53f1285a15e1cc9fd5b2e749c202bb6d4c66d1902",
+      "sourceHash": "d1d0b0997b56bf870a0a18ad1a7dae585425bd4441c78f16754de78f71b81587",
+      "sourceAt": "e7a004bc1",
       "sources": [
         "supabase/functions/chat-ia-responder/guardas.ts",
         "supabase/functions/chat-ia-responder/handler.ts",
@@ -1173,6 +1173,9 @@
         "supabase/functions/_shared/cupo-ia.ts",
         "supabase/functions/_shared/log-seguro.ts",
         "supabase/migrations/20270507900000_cupo_persistente_de_ia_por_usuario_y_hora.sql",
+        "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
+        "supabase/functions/enviar-correo-proveedor/index.ts",
+        "supabase/functions/recuperar-clave-cliente/handler.ts",
         "packages/ia/src/proveedores/index.ts",
         "supabase/functions/_shared/token.ts",
         "supabase/functions/crear-organizacion/handler.ts",
@@ -1182,7 +1185,7 @@
         "infra/kestra/flows/correo-masivo.yml"
       ],
       "owner": "plataforma",
-      "commit": "cb23ca764"
+      "commit": "e7a004bc1"
     },
     "docs/gastos.md": {
       "title": "Gastos de la empresa y margen después de costos fijos",
@@ -2738,9 +2741,9 @@
     },
     "docs/proveedores.md": {
       "title": "Proveedores",
-      "pageHash": "496b1dd0e0c0db98488534eb82f3e249c90a16ab4e83a53c0b606e6598228b69",
-      "sourceHash": "f7721649e5d526234c48eaefd6d97a2c1377896b8d30949c03cbefbb2fd017ee",
-      "sourceAt": "46f833ec2",
+      "pageHash": "a2fe294538d8c501ad3cb3dd9c5783e87298c03aa04128379e148de8bc714a40",
+      "sourceHash": "c767327c0db6073780d83d53139b521fa1f646c7925b31942df7743340f7467a",
+      "sourceAt": "e7a004bc1",
       "sources": [
         "specs/20261018-170000-empresas-accesibles-y-filtro",
         "specs/20261018-190000-proveedores-y-productos",
@@ -2749,10 +2752,13 @@
         "apps/web/src/pages/proveedores/list.tsx",
         "apps/web/src/pages/proveedores/show.tsx",
         "supabase/migrations/20261018190001_proveedores_tabla.sql",
-        "supabase/migrations/20261018190100_proveedores_rpc.sql"
+        "supabase/migrations/20261018190100_proveedores_rpc.sql",
+        "supabase/migrations/20270508000000_registro_de_envios_de_correo_a_proveedores.sql",
+        "supabase/functions/enviar-correo-proveedor/handler.ts",
+        "supabase/functions/enviar-correo-proveedor/index.ts"
       ],
       "owner": "tecnico",
-      "commit": "46f833ec2"
+      "commit": "e7a004bc1"
     },
     "docs/pruebas.md": {
       "title": "Pruebas: qué corre según el cambio (determinista)",

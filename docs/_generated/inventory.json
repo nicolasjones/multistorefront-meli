@@ -421,6 +421,7 @@
     "organizaciones_features",
     "private.clientes_exportaciones_entregas",
     "private.clientes_exportaciones_ventana",
+    "private.correo_proveedor_envios",
     "private.exportaciones_actividad",
     "private.ia_cupo_uso",
     "programacion_ejecucion",
