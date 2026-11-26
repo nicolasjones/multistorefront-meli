@@ -22,9 +22,10 @@ import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
+import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
 import {
   ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
-  limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada, type ResultadoHerramienta,
+  resolverLlamadas, validarEntrada, type ResultadoHerramienta,
 } from './guardas.ts'
 
 type Resultado = PromiseLike<{ data: any; error: any }>
@@ -53,11 +54,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-function jsonResponse(body: unknown, status: number) {
+function jsonResponse(body: unknown, status: number, extra: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json', ...extra },
   })
+}
+
+// Falla del proveedor: el tiempo agotado se informa como 504 (la política de `limiteSegundos` se cumple de verdad); el resto, 502.
+// Ninguno de los dos filtra el detalle del proveedor.
+function falloDeProveedor(error: unknown): { mensaje: string; status: number } {
+  if (esTimeoutDeProveedor(error)) return { mensaje: 'El proveedor de IA tardó demasiado en responder, probá de nuevo.', status: 504 }
+  return { mensaje: 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.', status: 502 }
 }
 
 const CONSUMIDOR_CODIGO = 'chat-ia-leer'
@@ -145,23 +153,21 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // con el RLS del propio usuario.
   const asUser = deps.crearCliente(jwt)
 
-  // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia`
-  // (con su propio JWT, no con service-role) y el usuario no puede haber superado su cuota por hora. La cuota es de
-  // MEJOR ESFUERZO: se cuenta sobre `mensajes_chat_ia` y el usuario conserva DELETE sobre sus mensajes, así que borrar
-  // los reinicia (pendiente: tabla de uso sin DELETE para el usuario, docs/funciones-edge-endurecimiento.md).
+  // Antes de gastar crédito del proveedor: la organización del usuario debe tener la funcionalidad `chat-ia` (con su propio JWT,
+  // no con service-role), la conversación indicada debe existir y ser del usuario, y recién entonces se consume un uso del cupo
+  // persistente por hora (`consumir_cupo_ia`): una petición inválida no gasta cupo.
   const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
   if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureChat.error.message)
   const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
   if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
 
-  const hace1h = new Date(deps.ahora() - 60 * 60 * 1000).toISOString()
-  const { count: recientes, error: cuotaError } = await asUser
-    .from('mensajes_chat_ia')
-    .select('id', { count: 'exact', head: true })
-    .eq('origen', 'usuario')
-    .gte('creado_en', hace1h)
-  const sinCuota = rechazoPorCuota(recientes, cuotaError, limiteConfigurado(deps.limiteHora()))
-  if (sinCuota) return jsonResponse({ error: sinCuota.error }, sinCuota.status)
+  // Una conversación inexistente o ajena (la RLS no devuelve la fila) se rechaza antes de consumir cupo y de llamar al proveedor.
+  let conversacionId = body.conversacion_id
+  if (conversacionId) {
+    const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
+    if (existenteError) return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
+    if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
+  }
 
   // Gobernanza real, vía las funciones ya existentes de governed-ai-core
   // (private.resolver_politica_ia / obtener_clave_perfil_ia) — otorgadas
@@ -178,16 +184,15 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     )
   }
 
-  // Conversación: crea una nueva si no vino conversacion_id, o reusa la
-  // existente (la RLS de conversaciones_chat_ia ya exige que sea del
-  // propio usuario — una conversacion_id ajena simplemente no matchea).
-  let conversacionId = body.conversacion_id
-  if (conversacionId) {
-    // Una conversación inexistente o ajena (la RLS no devuelve la fila) se rechaza antes de llamar al proveedor.
-    const { data: existente, error: existenteError } = await asUser.from('conversaciones_chat_ia').select('id').eq('id', conversacionId).maybeSingle()
-    if (existenteError) return jsonResponse({ error: 'No se pudo verificar la conversación.' }, 503)
-    if (!existente) return jsonResponse({ error: 'La conversación no existe.' }, 404)
-  } else {
+  // Cupo persistente: 30 consultas por usuario y hora (configurable con CHAT_IA_LIMITE_HORA). Se consume después de resolver la
+  // política (una configuración faltante no gasta cupo) y antes de crear nada o llamar al proveedor. Agotado: 429 con Retry-After.
+  const sinCupo = await rechazoPorCupo(admin, callerData.user.id, FUNCIONALIDAD_CHAT, limiteDeCupo(deps.limiteHora()), {
+    agotado: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.',
+  })
+  if (sinCupo) return jsonResponse({ error: sinCupo.error }, sinCupo.status, sinCupo.retryAfter ? { 'Retry-After': String(sinCupo.retryAfter) } : {})
+
+  // Conversación nueva si no vino conversacion_id (si vino, ya se verificó arriba).
+  if (!conversacionId) {
     const { data: nueva, error: nuevaError } = await asUser
       .from('conversaciones_chat_ia')
       .insert({ usuario_id: callerData.user.id })
@@ -361,7 +366,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       respuesta = await llamar()
     } catch (error) {
       console.error('chat-ia-responder: fallo al invocar proveedor', error)
-      return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+      const fallo = falloDeProveedor(error)
+      return await responderError(fallo.mensaje, fallo.status)
     }
 
     // Un único ciclo de tool-calling (alcance de este mecanismo). Si el modelo pide varias herramientas en el mismo
@@ -384,7 +390,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
           respuesta = await llamar()
         } catch (error) {
           console.error('chat-ia-responder: fallo al invocar proveedor', error)
-          return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+          const fallo = falloDeProveedor(error)
+          return await responderError(fallo.mensaje, fallo.status)
         }
       }
     }
@@ -422,7 +429,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       respuesta = await llamar()
     } catch (error) {
       console.error('chat-ia-responder: fallo al invocar proveedor', error)
-      return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+      const fallo = falloDeProveedor(error)
+      return await responderError(fallo.mensaje, fallo.status)
     }
 
     let mensajeRespuesta = respuesta.choices[0]?.message
@@ -454,7 +462,8 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         respuesta = await llamar()
       } catch (error) {
         console.error('chat-ia-responder: fallo al invocar proveedor', error)
-        return await responderError('No pude obtener una respuesta del proveedor de IA, probá de nuevo.', 502)
+        const fallo = falloDeProveedor(error)
+        return await responderError(fallo.mensaje, fallo.status)
       }
       mensajeRespuesta = respuesta.choices[0]?.message
     }

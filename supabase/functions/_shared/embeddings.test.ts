@@ -32,8 +32,13 @@ describe('generarEmbeddings', () => {
 
   it('manda una señal de timeout en cada request y corta un proveedor colgado', async () => {
     const f = falso({ colgar: true })
-    await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn: f.fetchFn, timeoutMs: 20 }), { name: 'TimeoutError' })
+    await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn: f.fetchFn, timeoutMs: 20 }), { message: 'EMBEDDING_PROVEEDOR_IA_TIMEOUT' })
     assert.equal(f.senales.length, 1)
+  })
+
+  it('el tiempo agotado leyendo el cuerpo también es EMBEDDING_PROVEEDOR_IA_TIMEOUT y no filtra detalle del proveedor', async () => {
+    const fetchFn: FetchEmbeddings = () => Promise.resolve({ ok: true, status: 200, json: async () => { throw new DOMException('detalle-interno', 'TimeoutError') } })
+    await assert.rejects(generarEmbeddings(['a'], 'k', { fetchFn }), (e: Error) => e.message === 'EMBEDDING_PROVEEDOR_IA_TIMEOUT' && !/detalle-interno/.test(e.message))
   })
 
   it('falla si el proveedor responde con error o con otra cantidad de vectores', async () => {

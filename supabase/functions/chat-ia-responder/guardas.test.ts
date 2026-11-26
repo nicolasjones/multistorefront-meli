@@ -1,7 +1,7 @@
 // `node --test supabase/functions/chat-ia-responder/guardas.test.ts` (pnpm test:edge:chat-ia-limites).
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, columnasParaSelect, describirPropuesta, excedeLimite, filtrosSeguros, guardarMensaje, limiteConfigurado, rechazoPorCuota, resolverLlamadas, validarEntrada } from './guardas.ts'
+import { ErrorPersistencia, MAX_HERRAMIENTAS_POR_TURNO, MENSAJE_MAX, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje, resolverLlamadas, validarEntrada } from './guardas.ts'
 
 describe('validarEntrada', () => {
   it('acepta un mensaje normal con o sin conversación', () => {
@@ -15,18 +15,6 @@ describe('validarEntrada', () => {
     assert.equal(validarEntrada({ mensaje: 'x'.repeat(MENSAJE_MAX + 1) }).ok, false)
     assert.equal(validarEntrada({ mensaje: 'x', conversacion_id: 'no-uuid' }).ok, false)
     assert.equal(validarEntrada({ mensaje: 'x', conversacion_id: 5 }).ok, false)
-  })
-})
-
-describe('límite por usuario', () => {
-  it('corta al llegar al tope y respeta el valor configurado', () => {
-    assert.equal(excedeLimite(59), false)
-    assert.equal(excedeLimite(60), true)
-    assert.equal(excedeLimite(3, 3), true)
-    assert.equal(limiteConfigurado('10'), 10)
-    assert.equal(limiteConfigurado('abc'), 60)
-    assert.equal(limiteConfigurado(undefined), 60)
-    assert.equal(limiteConfigurado('-1'), 60)
   })
 })
 
@@ -93,15 +81,6 @@ describe('resolverLlamadas', () => {
     const r = await resolverLlamadas(llamadas, async (n) => { ejecutadas++; return lectura(n) })
     assert.equal(ejecutadas, MAX_HERRAMIENTAS_POR_TURNO)
     if (r.tipo === 'resultados') assert.equal(r.resultados.length, llamadas.length)
-  })
-})
-
-describe('rechazoPorCuota', () => {
-  it('deja pasar bajo el tope, corta con 429 al alcanzarlo y con 503 si no se pudo contar', () => {
-    assert.equal(rechazoPorCuota(5, null, 60), null)
-    assert.equal(rechazoPorCuota(null, null, 60), null)
-    assert.equal(rechazoPorCuota(60, null, 60)?.status, 429)
-    assert.equal(rechazoPorCuota(0, { message: 'x' }, 60)?.status, 503)
   })
 })
 

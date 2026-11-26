@@ -20,14 +20,22 @@ export async function generarEmbeddings(
   const resultado: number[][] = []
   for (let i = 0; i < textos.length; i += tamano) {
     const lote = textos.slice(i, i + tamano)
-    const respuesta = await fetchFn('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'text-embedding-3-small', input: lote }),
-      signal: AbortSignal.timeout(timeoutMs),
-    })
-    if (!respuesta.ok) throw new Error(`EMBEDDING_PROVEEDOR_IA_FALLO_${respuesta.status}`)
-    const cuerpo = await respuesta.json() as { data?: Array<{ embedding: number[] }> }
+    let cuerpo: { data?: Array<{ embedding: number[] }> }
+    try {
+      const respuesta = await fetchFn('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'text-embedding-3-small', input: lote }),
+        signal: AbortSignal.timeout(timeoutMs),
+      })
+      if (!respuesta.ok) throw new Error(`EMBEDDING_PROVEEDOR_IA_FALLO_${respuesta.status}`)
+      cuerpo = await respuesta.json() as { data?: Array<{ embedding: number[] }> }
+    } catch (error) {
+      // Tiempo agotado (también leyendo el cuerpo): error de negocio sin detalle del proveedor.
+      const nombre = error && typeof error === 'object' ? (error as { name?: unknown }).name : undefined
+      if (nombre === 'TimeoutError' || nombre === 'AbortError') throw new Error('EMBEDDING_PROVEEDOR_IA_TIMEOUT')
+      throw error
+    }
     if (!Array.isArray(cuerpo.data) || cuerpo.data.length !== lote.length) throw new Error('EMBEDDING_PROVEEDOR_IA_RESPUESTA_INVALIDA')
     resultado.push(...cuerpo.data.map((item) => item.embedding))
   }

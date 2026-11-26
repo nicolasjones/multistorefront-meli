@@ -11,13 +11,14 @@ const CONV = '11111111-1111-4111-8111-111111111111'
 const AHORA = Date.UTC(2027, 0, 1, 12, 0, 0)
 const SIN_RESPUESTA = 'No encontré información relevante para responder eso.'
 const ERROR_PROVEEDOR = 'No pude obtener una respuesta del proveedor de IA, probá de nuevo.'
+const ERROR_TIMEOUT = 'El proveedor de IA tardó demasiado en responder, probá de nuevo.'
 
 type Op = [string, ...unknown[]]
 type Opciones = {
   jwtValido?: boolean
   entornoRoto?: boolean
   feature?: { data: unknown; error: unknown }
-  conteo?: { count: number | null; error: unknown }
+  cupo?: { data: unknown; error: unknown }
   politica?: { data: unknown; error: unknown }
   credencial?: { data: unknown; error: unknown }
   adaptador?: string
@@ -52,7 +53,6 @@ function montar(o: Opciones = {}) {
       if (fila.estado === 'fallida') return { error: o.insertFallida ?? null }
       return { error: (fila.origen === 'usuario' ? o.insertUsuario : o.insertChat) ?? null }
     }
-    if (tabla === 'mensajes_chat_ia') return { count: (o.conteo ?? { count: 0, error: null }).count, error: (o.conteo ?? { count: 0, error: null }).error }
     if (tabla === 'conversaciones_chat_ia') return o.existente ?? { data: { id: CONV }, error: null }
     if (tabla === 'fuentes_chat_ia') return o.fuente === undefined ? { data: { feature_id: 'inventario' }, error: null } : (o.fuente ?? { data: null, error: null })
     return o.filas ?? { data: [{ sku: 'A', token: 'secreto-fila' }], error: null }
@@ -75,6 +75,7 @@ function montar(o: Opciones = {}) {
         rpc: async (nombre: string, args: Record<string, unknown>) => {
           r.rpcAdmin.push([nombre, args])
           if (nombre === 'resolver_politica_ia') return o.politica ?? { data: [politicaBase], error: null }
+          if (nombre === 'consumir_cupo_ia') return o.cupo ?? { data: [{ se_consumio: true, usos_actuales: 1, segundos_hasta_reinicio: 1800 }], error: null }
           return o.credencial ?? { data: [{ clave: 'clave-proveedor-secreta', adaptador: o.adaptador ?? 'anthropic', proveedor_codigo: o.adaptador === 'openai' ? 'openai' : 'anthropic', modelo_id: 'modelo-x' }], error: null }
         },
       }
@@ -243,32 +244,60 @@ describe('funcionalidad, cuota y política (antes de gastar crédito)', () => {
     assert.doesNotMatch(JSON.stringify(json), /detalle-interno-db/)
   })
 
-  it('cuenta solo mensajes de usuario de la última hora', async () => {
-    const { r } = await llamar({ respuestas: [textoAnthropic('ok')] })
-    const q = r.consultas.find((c) => c.tabla === 'mensajes_chat_ia' && c.ops[0][0] === 'select')!
-    assert.deepEqual(q.ops, [
-      ['select', 'id', { count: 'exact', head: true }],
-      ['eq', 'origen', 'usuario'],
-      ['gte', 'creado_en', new Date(AHORA - 3600_000).toISOString()],
-    ])
+  it('consume un uso del cupo persistente del usuario para chat-ia (30 por hora por defecto) con el cliente admin', async () => {
+    const { r, res } = await llamar({ respuestas: [textoAnthropic('ok')] })
+    assert.equal(res.status, 200)
+    assert.deepEqual(r.rpcAdmin.filter(([n]) => n === 'consumir_cupo_ia'), [['consumir_cupo_ia', { p_usuario: 'u1', p_funcionalidad: 'chat-ia', p_limite: 30 }]])
+    assert.equal(r.consultas.some((c) => c.tabla === 'mensajes_chat_ia' && c.ops[0][0] === 'select'), false, 'ya no se cuenta sobre mensajes_chat_ia (el usuario puede borrarlos)')
   })
 
-  it('alcanzar el tope por hora responde 429 y respeta CHAT_IA_LIMITE_HORA', async () => {
-    const a = await llamar({ conteo: { count: 60, error: null } })
-    assert.equal(a.res.status, 429)
-    assert.deepEqual(a.json, { error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' })
-    const b = await llamar({ conteo: { count: 3, error: null }, limiteHora: '3' })
-    assert.equal(b.res.status, 429)
-    const c = await llamar({ conteo: { count: 59, error: null }, respuestas: [textoAnthropic('ok')] })
-    assert.equal(c.res.status, 200)
-    assert.equal(a.r.pedidos.length + b.r.pedidos.length, 0)
+  it('el tope sale de CHAT_IA_LIMITE_HORA y un valor inválido vuelve a 30', async () => {
+    const a = await llamar({ limiteHora: '3', respuestas: [textoAnthropic('ok')] })
+    assert.equal((a.r.rpcAdmin.find(([n]) => n === 'consumir_cupo_ia')![1] as { p_limite: number }).p_limite, 3)
+    const b = await llamar({ limiteHora: 'abc', respuestas: [textoAnthropic('ok')] })
+    assert.equal((b.r.rpcAdmin.find(([n]) => n === 'consumir_cupo_ia')![1] as { p_limite: number }).p_limite, 30)
   })
 
-  it('un error al contar la cuota responde 503 sin dejar pasar', async () => {
-    const { res, r } = await llamar({ conteo: { count: null, error: { message: 'x' } } })
-    assert.equal(res.status, 503)
+  it('cupo agotado: 429 con Retry-After y mensaje claro, sin crear conversación, sin guardar nada y sin llamar al proveedor', async () => {
+    const { res, r, json } = await llamar({ cupo: { data: [{ se_consumio: false, usos_actuales: 30, segundos_hasta_reinicio: 1234 }], error: null } })
+    assert.equal(res.status, 429)
+    assert.equal(res.headers.get('Retry-After'), '1234')
+    assert.deepEqual(json, { error: 'Superaste el límite de mensajes por hora. Probá de nuevo más tarde.' })
     assert.equal(r.pedidos.length, 0)
-    assert.deepEqual(r.rpcAdmin, [])
+    assert.equal(r.inserts.length, 0)
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'consumir_cupo_ia'])
+  })
+
+  it('un error al consumir el cupo responde 503 sin dejar pasar ni llamar al proveedor', async () => {
+    for (const cupo of [{ data: null, error: { message: 'detalle-interno-db' } }, { data: [], error: null }]) {
+      const { res, r, json } = await llamar({ cupo })
+      assert.equal(res.status, 503)
+      assert.deepEqual(json, { error: 'No se pudo verificar tu cuota de uso.' })
+      assert.equal(res.headers.get('Retry-After'), null)
+      assert.equal(r.pedidos.length, 0)
+      assert.equal(r.inserts.length, 0)
+    }
+  })
+
+  it('el cupo se consume DESPUÉS de los chequeos de funcionalidad, conversación y política (una petición inválida no gasta cupo)', async () => {
+    const sinFeature = await llamar({ feature: { data: false, error: null } })
+    const sinConv = await llamar({ existente: { data: null, error: null } }, { mensaje: 'hola', conversacion_id: CONV })
+    const sinPolitica = await llamar({ politica: { data: [], error: null } })
+    const mensajeLargo = await llamar({}, { mensaje: 'x'.repeat(4001) })
+    const sinMensaje = await llamar({}, {})
+    for (const { r } of [sinFeature, sinConv, sinPolitica, mensajeLargo, sinMensaje]) {
+      assert.equal(r.rpcAdmin.some(([n]) => n === 'consumir_cupo_ia'), false)
+      assert.equal(r.pedidos.length, 0)
+    }
+  })
+
+  it('el mensaje de más de 4000 caracteres se rechaza con 400 antes de la funcionalidad, el cupo y el proveedor; 4000 pasa', async () => {
+    const largo = await llamar({}, { mensaje: 'x'.repeat(4001) })
+    assert.equal(largo.res.status, 400)
+    assert.deepEqual(largo.json, { error: 'El mensaje admite hasta 4000 caracteres.' })
+    assert.deepEqual(largo.r.rpcUsuario, [])
+    const justo = await llamar({ respuestas: [textoAnthropic('ok')] }, { mensaje: 'x'.repeat(4000) })
+    assert.equal(justo.res.status, 200)
   })
 
   it('sin política aprobada (error o vacía) responde 503 y no resuelve credencial', async () => {
@@ -309,6 +338,7 @@ describe('conversación y mensaje del usuario', () => {
     assert.equal(res.status, 404)
     assert.deepEqual(json, { error: 'La conversación no existe.' })
     assert.equal(r.pedidos.length, 0)
+    assert.deepEqual(r.rpcAdmin, [])
     assert.equal(mensajesGuardados(r).length, 0)
   })
 
@@ -346,7 +376,7 @@ describe('preparación de la invocación y credencial', () => {
     assert.deepEqual(json, { conversacion_id: CONV, error: 'LIMITE_INTENTOS_IA' })
     assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: 'LIMITE_INTENTOS_IA', estado: 'fallida' })
     assert.equal(r.pedidos.length, 0)
-    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia'])
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'consumir_cupo_ia'])
   })
 
   it('un error no estándar de prepararInvocacion se informa como ENTRADA_IA_INVALIDA', async () => {
@@ -363,7 +393,7 @@ describe('preparación de la invocación y credencial', () => {
       assert.equal(res.status, 500)
       assert.deepEqual(json, { conversacion_id: CONV, error: 'No se pudo resolver la credencial del proveedor de IA.' })
       assert.doesNotMatch(JSON.stringify(json), /detalle-secreto/)
-      assert.deepEqual(r.rpcAdmin[1], ['obtener_clave_perfil_ia', { p_perfil_id: 'perfil-1' }])
+      assert.deepEqual(r.rpcAdmin[2], ['obtener_clave_perfil_ia', { p_perfil_id: 'perfil-1' }])
     }
   })
 
@@ -450,7 +480,7 @@ describe('ciclo Anthropic', () => {
     assert.equal(args.p_rpc, 'ajustar_stock')
     assert.deepEqual(args.p_parametros, { sku: 'A' })
     assert.match(String(args.p_descripcion), /^Acción: ajustar_stock\nParámetros: {"sku":"A"}\nDescripción del asistente \(no verificada\): Ajustar$/)
-    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'obtener_clave_perfil_ia'])
+    assert.deepEqual(r.rpcAdmin.map(([n]) => n), ['resolver_politica_ia', 'consumir_cupo_ia', 'obtener_clave_perfil_ia'])
     assert.deepEqual(mensajesGuardados(r), [{ conversacion_id: CONV, origen: 'usuario', contenido: 'hola' }])
   })
 
@@ -560,14 +590,25 @@ describe('ciclo Anthropic', () => {
     assert.equal(json?.respuesta, 'pienso')
   })
 
-  it('un error HTTP, de red o timeout del proveedor responde 502 con mensaje fijo, guarda fallida y no filtra la clave ni el detalle', async () => {
-    const fallos: unknown[] = [{ ok: false, status: 500 }, new Error('ECONNRESET clave-proveedor-secreta'), new DOMException('The operation was aborted due to timeout', 'TimeoutError')]
+  it('un error HTTP o de red del proveedor responde 502 con mensaje fijo, guarda fallida y no filtra la clave ni el detalle', async () => {
+    const fallos: unknown[] = [{ ok: false, status: 500 }, new Error('ECONNRESET clave-proveedor-secreta')]
     for (const fallo of fallos) {
       const { res, json, r } = await llamar({ respuestas: [fallo] })
       assert.equal(res.status, 502)
       assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
       assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: ERROR_PROVEEDOR, estado: 'fallida' })
       assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta|ECONNRESET/)
+    }
+  })
+
+  it('un timeout del proveedor (primera o segunda llamada) responde 504 con mensaje claro, guarda fallida y no filtra detalle', async () => {
+    const timeout = () => new DOMException('The operation was aborted due to timeout clave-proveedor-secreta', 'TimeoutError')
+    for (const respuestas of [[timeout()], [new Error('INVOCACION_PROVEEDOR_IA_TIMEOUT')], [usoAnthropic({ id: 't1', name: 'leer', input: { vista: 'v' } }), timeout()]]) {
+      const { res, json, r } = await llamar({ respuestas })
+      assert.equal(res.status, 504)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_TIMEOUT })
+      assert.deepEqual(mensajesGuardados(r).at(-1), { conversacion_id: CONV, origen: 'chat', contenido: ERROR_TIMEOUT, estado: 'fallida' })
+      assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta/)
     }
   })
 
@@ -655,13 +696,22 @@ describe('ciclo OpenAI', () => {
     assert.equal(mensajesGuardados(r).at(-1)?.contenido, 'Esa acción no está disponible para tu organización.')
   })
 
-  it('errores del proveedor (HTTP, red, timeout) responden 502 fijo sin filtrar secretos', async () => {
-    for (const fallo of [{ ok: false, status: 401 }, new Error('boom clave-proveedor-secreta'), new DOMException('timeout', 'TimeoutError')]) {
+  it('errores del proveedor (HTTP, red) responden 502 fijo sin filtrar secretos', async () => {
+    for (const fallo of [{ ok: false, status: 401 }, new Error('boom clave-proveedor-secreta')]) {
       const { res, json, r } = await llamar({ adaptador: 'openai', respuestas: [fallo] })
       assert.equal(res.status, 502)
       assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_PROVEEDOR })
       assert.equal(mensajesGuardados(r).at(-1)?.estado, 'fallida')
       assert.doesNotMatch(JSON.stringify(json), /clave-proveedor-secreta/)
+    }
+  })
+
+  it('un timeout del proveedor responde 504 en la primera y en la segunda llamada', async () => {
+    const timeout = () => new DOMException('timeout', 'TimeoutError')
+    for (const respuestas of [[timeout()], [usoOpenAI({ id: 'c1', name: 'leer', arguments: '{"vista":"v"}' }), timeout()]]) {
+      const { res, json } = await llamar({ adaptador: 'openai', respuestas })
+      assert.equal(res.status, 504)
+      assert.deepEqual(json, { conversacion_id: CONV, error: ERROR_TIMEOUT })
     }
   })
 
