@@ -7,10 +7,12 @@
 // Los terminadores van EN EL MEDIO: al final de una línea `trim()` los elimina y el caso lento no se ejercita.
 // Defensa contra scripts con efectos: CLASIFICACIÓN EXPLÍCITA. Todo `scripts/docs-*.mjs` que no sea test (más
 // `verificar-documentacion-cambios.mjs`) debe estar en IMPORTABLES o en NO_IMPORTAR; si no está en ninguna, el test falla con un
-// mensaje accionable y ese archivo NO se importa. El test solo importa los de IMPORTABLES, y por lo tanto los EJECUTA al
-// importarse, como cualquier otro código del PR que corre en la CI (job en `pull_request`, sin secretos). No hay detección
-// automática de efectos ni de `export`: un script nuevo, con cualquier sintaxis de export o ninguna, exige una decisión humana en un
-// cambio revisado, y añadirle un efecto a uno de IMPORTABLES es un cambio de código que se revisa como cualquier otro.
+// mensaje accionable y ese archivo NO se importa. El test solo hace `import()` DIRECTO de los IMPORTABLES (y por lo tanto los
+// EJECUTA al importarse, como cualquier otro código del PR que corre en la CI: job en `pull_request`, sin secretos) y comprueba que
+// los imports relativos estáticos de cada IMPORTABLE apunten a otros IMPORTABLES; los `import()` dinámicos y los módulos de
+// node/paquetes no se comprueban (se cubren por revisión humana). No hay detección automática de efectos ni de `export`: un script
+// nuevo exige una decisión humana en un cambio revisado, y añadirle un efecto a uno de IMPORTABLES es un cambio de código que se
+// revisa como cualquier otro.
 // Convención: un `docs-*.mjs` en IMPORTABLES no debe tener efectos al importarse (protegé su main con un guard `import.meta.url`).
 // Los de NO_IMPORTAR (corren al importarse o no exportan nada) nunca se importan; sus regex literales se miden igual por texto.
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -151,12 +153,32 @@ function extraer() {
 }
 const regex = extraer();
 
+// Los IMPORTABLES importan otros archivos: sus imports relativos ESTÁTICOS deben apuntar a archivos de IMPORTABLES. Los `import()`
+// dinámicos y los módulos de node/paquetes no se comprueban (se cubren por revisión humana). Las dos regex son lineales (sin
+// cuantificadores anidados ni alternancia) y se miden abajo con una entrada hostil.
+const IMPORT_DESDE = /\bfrom\s*['"](\.[^'"\n]*)['"]/g;
+const IMPORT_SIMPLE = /\bimport\s*['"](\.[^'"\n]*)['"]/g;
+function importsRelativosFueraDeLista(archivo, texto) {
+  const problemas = [];
+  for (const m of [...texto.matchAll(IMPORT_DESDE), ...texto.matchAll(IMPORT_SIMPLE)]) {
+    const destino = path.resolve(aqui, m[1]);
+    if (path.dirname(destino) !== aqui || !IMPORTABLES.includes(path.basename(destino))) {
+      problemas.push(`${archivo} importa ${m[1]}, que no es un archivo de IMPORTABLES: agregalo a IMPORTABLES tras revisar que no tiene efectos al importarse, o quitá el import`);
+    }
+  }
+  return problemas;
+}
+
 // Importables: SOLO los de la lista blanca. Los no clasificados se informan como problemas, sin importarse.
 const importables = [];
 const problemas = [];
 for (const archivo of ARCHIVOS) {
   const decision = clasificar(archivo);
-  if (decision === 'importar') importables.push(archivo); else if (decision) problemas.push(...decision);
+  if (decision === 'importar') {
+    // No se importa un IMPORTABLE cuyos imports relativos salen de la lista: se informa antes de ejecutar nada de lo que importa.
+    const fuera = importsRelativosFueraDeLista(archivo, readFileSync(path.join(aqui, archivo), 'utf8'));
+    if (fuera.length) problemas.push(...fuera); else importables.push(archivo);
+  } else if (decision) problemas.push(...decision);
 }
 const EXPORTADAS = [];
 for (const archivo of importables) {
@@ -209,6 +231,30 @@ describe('clasificación de scripts', () => {
   });
 });
 
+describe('imports relativos de los IMPORTABLES', () => {
+  it('cada import relativo estático de un IMPORTABLE apunta a un IMPORTABLE (un IMPORTABLE que sale de la lista no se importa)', () => {
+    assert.deepEqual(problemas, []);
+  });
+
+  it('detecta imports fuera de la lista y de otro directorio; ignora paquetes, node: y dinámicos', () => {
+    assert.equal(importsRelativosFueraDeLista('docs-yaml.mjs', "import './lib/zzz.mjs';\n").length, 1);
+    assert.equal(importsRelativosFueraDeLista('docs-yaml.mjs', 'export * from "./docs-zzz.mjs";\n').length, 1);
+    assert.equal(importsRelativosFueraDeLista('docs-yaml.mjs', "import {\n a,\n} from '../scripts/lib/otro.mjs';\n").length, 1);
+    assert.deepEqual(importsRelativosFueraDeLista('docs-yaml.mjs', "import fs from 'node:fs';\nimport x from 'paquete';\nimport { a } from './docs-lineas.mjs';\nconst m = await import('./docs-zzz.mjs');\n"), []);
+  });
+
+  it('las regex de imports son lineales con entradas hostiles', () => {
+    for (const bloque of [' ', '\t', '.', "'", '"', 'from', 'import', "from'.", "import'."]) {
+      const entrada = bloque.repeat(100000);
+      for (const texto of [entrada, `from${entrada}`, `import${entrada}x`, `from '.${entrada}`, `import '.${entrada}\n`]) {
+        const t0 = performance.now();
+        void [...texto.matchAll(IMPORT_DESDE), ...texto.matchAll(IMPORT_SIMPLE)];
+        assert.ok(performance.now() - t0 < TOPE_MS, `${JSON.stringify(bloque)}`);
+      }
+    }
+  });
+});
+
 describe(`barrido de regex (100 000 caracteres hostiles, tope 1 s, vigilancia ${STUCK_MS} ms)`, { concurrency: CONCURRENCIA }, () => {
   for (const r of regex) {
     const etiqueta = `${r.archivo}:${r.linea} /${r.fuente}/${r.banderas}`;
@@ -226,14 +272,23 @@ describe('barrido de funciones exportadas (docs-*.mjs importables)', { concurren
 describe('barrido de funciones con archivos (terminadores en el medio)', () => {
   const dirs = [];
   after(() => { for (const d of dirs) rmSync(d, { recursive: true, force: true }); });
+  // Mismo criterio que los workers: si la primera medición supera el tope se repite hasta 3 veces y vale el mínimo. El ruido de un
+  // host cargado no se repite; una regex cuadrática sigue lenta en las tres corridas.
+  const minimoDe3 = (fn) => {
+    let ms = Infinity;
+    for (let intento = 0; intento < 3 && ms > TOPE_MS; intento += 1) {
+      const t0 = performance.now();
+      fn();
+      ms = Math.min(ms, performance.now() - t0);
+    }
+    return ms;
+  };
   const mapa = (texto) => {
     const d = mkdtempSync(path.join(tmpdir(), 'barrido-'));
     dirs.push(d);
     mkdirSync(path.join(d, 'docs'));
     writeFileSync(path.join(d, 'docs/a.md'), texto);
-    const t0 = performance.now();
-    leerMapaDocs(d);
-    return performance.now() - t0;
+    return minimoDe3(() => leerMapaDocs(d));
   };
   const casos = [];
   for (const c of [' ', '\t', '\u00a0', '#', ':', '-', '"']) for (const term of ['\r', '\u2028', '\u2029', '\u0085']) casos.push([c, term]);
@@ -259,14 +314,9 @@ describe('barrido de funciones con archivos (terminadores en el medio)', () => {
     it(`nav y YAML con ${JSON.stringify(c)} y ${JSON.stringify(term)} en el medio`, () => {
       const b = c.repeat(N);
       for (const yml of [`nav:\n  - ${b}x${term}y\n`, `nav:\n  -${b}${term}x: a.md\n`, `nav:\n  - Etiqueta${b}: ${b}${term}.md\n`, `exclude_docs:\n  ${b}${term}x\n`]) {
-        const t0 = performance.now();
-        paginasNav(yml);
-        erroresYaml(yml);
-        assert.ok(performance.now() - t0 < TOPE_MS);
+        assert.ok(minimoDe3(() => { paginasNav(yml); erroresYaml(yml); }) < TOPE_MS);
       }
-      const t0 = performance.now();
-      erroresFrontMatter(`---\nowner: x\nsources:\n  - ${b}${term}y\n---\n`, 'docs/a.md');
-      assert.ok(performance.now() - t0 < TOPE_MS);
+      assert.ok(minimoDe3(() => erroresFrontMatter(`---\nowner: x\nsources:\n  - ${b}${term}y\n---\n`, 'docs/a.md')) < TOPE_MS);
     });
   }
 });

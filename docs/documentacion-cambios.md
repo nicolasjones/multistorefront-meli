@@ -100,14 +100,20 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
     `docs-lineas`, `docs-yaml`: exportan funciones puras) o en `NO_IMPORTAR` (`docs-drift`, `docs-inventario`, `docs-manifest`,
     `verificar-documentacion-cambios`: corren al importarse o no exportan nada). Si un archivo no está en ninguna de las dos, el
     test falla con un mensaje accionable («agregalo a IMPORTABLES si exporta funciones puras sin efectos al importarse, o a
-    NO_IMPORTAR si corre al importarse o no exporta») y ese archivo no se importa. El test **no importa nada fuera de
-    `IMPORTABLES`**, así que un script nuevo (con cualquier sintaxis de export, o ninguna) exige una decisión humana en un cambio
-    revisado. Para los de `NO_IMPORTAR` sigue valiendo el barrido de sus regex literales, por texto.
+    NO_IMPORTAR si corre al importarse o no exporta») y ese archivo no se importa. El test **no importa directamente nada fuera de
+    `IMPORTABLES`**, y comprueba que los imports relativos estáticos (`import … from './x.mjs'`, `import './x.mjs'`,
+    `export … from './x.mjs'`) de cada `IMPORTABLE` apunten a archivos de `IMPORTABLES`; un `IMPORTABLE` que importe algo fuera de la
+    lista (otro archivo o otra carpeta) hace fallar el test y no se importa. **Los `import()` dinámicos y los módulos de
+    node/paquetes no se comprueban**: se cubren por revisión humana. Un script nuevo (con cualquier sintaxis de export, o ninguna)
+    exige una decisión humana en un cambio revisado. Para los de `NO_IMPORTAR` sigue valiendo el barrido de sus regex literales,
+    por texto.
   - **Los scripts de `IMPORTABLES` sí se ejecutan al importarse**, igual que cualquier otro código del PR que corre en la CI (el
     job corre en `pull_request`, sin secretos y sin `pull_request_target`), así que añadirles un efecto es un cambio de código que
     se revisa como cualquier otro. No hay detección automática de efectos ni de `export`: un análisis estático de «este script tiene
     efectos» no es defendible y se descartó. Convención: **un `docs-*.mjs` en `IMPORTABLES` no debe tener efectos al importarse**
     (proteger su main con un guard `import.meta.url`).
+  - Los tests con archivos temporales (`leerMapaDocs`, `paginasNav`, `erroresYaml`, `erroresFrontMatter`) repiten la medición hasta 3
+    veces y valen el mínimo, igual que los workers: el ruido de un host cargado no se repite, una regex cuadrática sí.
   - Mutaciones comprobadas: `^(\d+)+$`, `^(a|aa)+$` y `x?`×28 + `x`×28 hacen fallar el test por tiempo, como literal y las dos
     primeras también como función; `new RegExp('^\\s*-\\s*(.+)$')` en una función exportada y un script nuevo no
     clasificado (con `export{x}`, `export*from`, `export<TAB>function`, BOM o sin export) lo hace fallar sin importarse; volver a cada regex vieja corregida también. Un ítem vacío se descarta
