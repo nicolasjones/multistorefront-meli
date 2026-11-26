@@ -36,6 +36,7 @@ describe('limpiarParaLog', () => {
     assert.equal(limpiarParaLog('ab😀cd', 3), 'ab')
     assert.equal(limpiarParaLog('ab\udbffcd', 3), 'ab')
     assert.equal(limpiarParaLog('ab\ud800cd', 3), 'ab')
+    assert.equal(limpiarParaLog('ab\ud7ffcd', 3), 'ab\ud7ff')
     assert.equal(limpiarParaLog('ab\udc00cd', 3), 'ab\udc00')
     assert.equal(limpiarParaLog('ab😀cd', 4), 'ab😀')
     assert.equal(limpiarParaLog('aaaaaaaaa😀', 10), 'aaaaaaaaa')
@@ -97,6 +98,15 @@ describe('textoDeError: bordes numéricos (n-1, n, n+1)', () => {
     for (const largo of [1, 63, 64]) assert.equal(textoDeError(Object.assign(new Error('x'), { name: 'N'.repeat(largo) })), 'N'.repeat(largo), `largo ${largo}`)
     for (const largo of [65, 66]) assert.equal(textoDeError(Object.assign(new Error('x'), { name: 'N'.repeat(largo) })), 'Error', `largo ${largo}`)
     assert.equal(textoDeError(Object.assign(new Error('x'), { name: '' })), 'Error')
+  })
+})
+
+describe('textoDeError: clases de caracteres de los códigos propios', () => {
+  const validos = ['IA', 'ABC_IA', 'A1B2_IA', '9_IA', 'IA_X9', 'A_IA_B', 'PERSISTENCIA_CHAT_FALLIDA', 'INVOCACION_PROVEEDOR_IA_FALLO_500']
+  const invalidos = ['abc_IA', 'A-B_IA', 'A B_IA', 'A.B_IA', 'IA_x', 'IA-X', 'IA.X', 'IA X', '_IA', 'IA_', 'ia', 'PERSISTENCIA_CHAT_FALLIDAX', 'XPERSISTENCIA_CHAT_FALLIDA', 'ÁB_IA']
+  it('un carácter permitido de cada clase se imprime y uno no permitido se omite', () => {
+    for (const codigo of validos) assert.equal(textoDeError(new Error(codigo)), `Error ${codigo}`, codigo)
+    for (const codigo of invalidos) assert.equal(textoDeError(new Error(codigo)), 'Error', codigo)
   })
 })
 
@@ -390,6 +400,13 @@ describe('bordes de las constantes de log-seguro (tabla)', () => {
     { nombre: 'esquema de 30', entrada: `${rep('a', 30)}://x`, esperado: '[url]' },
     { nombre: 'esquema de 31', entrada: `${rep('a', 31)}://x`, esperado: '[url]' },
     { nombre: 'esquema de 32', entrada: `${rep('a', 32)}://x`, esperado: 'a[url]' },
+    // Esquema con dígitos y con + . -: la clase de caracteres del esquema.
+    { nombre: 'esquema con dígito (s3)', entrada: 's3://x', esperado: '[url]' },
+    { nombre: 'esquema con dígito y letras (pg0)', entrada: 'pg0://x', esperado: '[url]' },
+    { nombre: 'esquema con + (git+ssh)', entrada: 'git+ssh://x', esperado: '[url]' },
+    { nombre: 'esquema con punto', entrada: 'a.b://x', esperado: '[url]' },
+    { nombre: 'esquema con guion', entrada: 'a-b://x', esperado: '[url]' },
+    { nombre: 'esquema que empieza con dígito no es esquema', entrada: '9a://x', esperado: '9[url]' },
     // Clave sk-: 9 no, 10 sí, 11 sí.
     { nombre: 'sk- con 9', entrada: `sk-${rep('A', 9)}`, esperado: `sk-${rep('A', 9)}` },
     { nombre: 'sk- con 10', entrada: `sk-${rep('A', 10)}`, esperado: '[clave]' },
@@ -403,6 +420,10 @@ describe('bordes de las constantes de log-seguro (tabla)', () => {
     { nombre: '5 comillas', entrada: `token${rep('"', 5)}:v`, esperado: `token${rep('"', 5)}:v` },
     { nombre: '15 espacios', entrada: `token${rep(' ', 15)}=v`, esperado: `token${rep(' ', 15)}= [oculto]` },
     { nombre: '16 espacios', entrada: `token${rep(' ', 16)}=v`, esperado: `token${rep(' ', 16)}= [oculto]` },
+    // El campo sensible oculta TODO lo que sigue, también tras saltos de línea (la función exportada fija su contrato; los llamadores ya aplanan).
+    { nombre: 'salto de línea después del campo', entrada: 'token=abc\nresto SECRETO', esperado: 'token= [oculto]' },
+    { nombre: 'CRLF después del campo', entrada: 'token=abc\r\nresto SECRETO\r\nmás', esperado: 'token= [oculto]' },
+    { nombre: 'salto de línea antes del campo se conserva', entrada: 'antes\ntoken=abc\ndespués', esperado: 'antes\ntoken= [oculto]' },
     { nombre: '17 espacios', entrada: `token${rep(' ', 17)}=v`, esperado: `token${rep(' ', 17)}=v` },
   ]
   for (const { nombre, entrada, esperado } of filas) {

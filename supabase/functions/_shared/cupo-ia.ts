@@ -25,8 +25,10 @@ const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
 // precede al recorte, un uuid completo nunca queda cortado por él y no hace falta descartar nada al final (hacerlo borraría texto legítimo, p. ej. `commit deadbeef`).
 function describirError(error: unknown, usuarioId: string): string {
   // Cada lectura es segura: un error hostil (getter que lanza, Proxy) no puede lanzar desde el `catch` que llama a esta función.
-  // El 300 de `limpiarParaLog(error, 300)` está fijado por test del lado de 299; un valor MAYOR (301…) es equivalente: el recorte final a MAX_ERROR_LOG (300) da el mismo resultado.
-  const e = error && typeof error === 'object' ? error : { message: limpiarParaLog(error, 300) }
+  // Un error que no es objeto (un string lanzado o devuelto) sigue el MISMO orden que el resto: primero un recorte con margen holgado
+  // (MAX_ANTES_DE_TACHAR), luego la redacción y el tachado, y recién al final el recorte a MAX_ERROR_LOG. Recortar a 300 antes de redactar
+  // dejaría a la vista el prefijo de un secreto que cruza el límite.
+  const e = error && typeof error === 'object' ? error : { message: limpiarParaLog(error, MAX_ANTES_DE_TACHAR) }
   const partes = [leerCampo(e, 'name'), leerCampo(e, 'code'), leerCampo(e, 'message')].filter((p): p is string => typeof p === 'string' && p !== '')
   let texto = redactarCredenciales(limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR))
   if (usuarioId) texto = texto.replace(new RegExp(usuarioId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[usuario]')
@@ -72,6 +74,8 @@ export async function rechazoPorCupo(
   try {
     const fila = Array.isArray(data) ? data[0] : data
     // Sin respuesta interpretable no se gasta crédito: falla cerrado (503), igual que la verificación de funcionalidad.
+    // Observación: quitar la guarda `!fila` es equivalente en el resultado (con `fila` nula el `typeof` lanza, lo caza el `catch` de abajo y también da 503);
+    // solo cambia el texto del log.
     if (error || !fila || typeof fila.se_consumio !== 'boolean') {
       console.error('[cupo-ia] no se pudo consumir el cupo', { funcionalidad, error: error ? describirError(error, usuarioId) : 'respuesta no interpretable' })
       return noVerificable

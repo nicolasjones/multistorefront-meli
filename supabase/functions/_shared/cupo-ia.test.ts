@@ -280,6 +280,21 @@ describe('bordes de las constantes de describirError (tabla)', () => {
     { nombre: 'dominio de 254', mensaje: `u@${rep('z', 254)}`, esperado: '[correo]' },
     { nombre: 'dominio de 255', mensaje: `u@${rep('z', 255)}`, esperado: '[correo]' },
     { nombre: 'dominio de 256', mensaje: `u@${rep('z', 256)}`, esperado: '[correo]z' },
+    // Correo: mínimos de la parte local y del dominio (1 y 1).
+    { nombre: 'sin parte local', mensaje: '@d.com', esperado: '@d.com' },
+    { nombre: 'sin dominio', mensaje: 'u@', esperado: 'u@' },
+    { nombre: 'dominio mínimo de 1', mensaje: 'u@x', esperado: '[correo]' },
+    // UUID con guiones: ceros en cada grupo, longitudes de los grupos de 8 y de 12 y negativos de 7 y de 11.
+    { nombre: 'uuid todo ceros', mensaje: '00000000-0000-0000-0000-000000000000', esperado: '[uuid]' },
+    { nombre: 'uuid con ceros solo en el grupo 1', mensaje: '00000000-1111-1111-1111-111111111111', esperado: '[uuid]' },
+    { nombre: 'uuid con ceros solo en el grupo 2', mensaje: '11111111-0000-1111-1111-111111111111', esperado: '[uuid]' },
+    { nombre: 'uuid con ceros solo en el grupo 3', mensaje: '11111111-1111-0000-1111-111111111111', esperado: '[uuid]' },
+    { nombre: 'uuid con ceros solo en el grupo 4', mensaje: '11111111-1111-1111-0000-111111111111', esperado: '[uuid]' },
+    { nombre: 'uuid con ceros solo en el grupo 5', mensaje: '11111111-1111-1111-1111-000000000000', esperado: '[uuid]' },
+    { nombre: 'uuid entre letras (8 exactos y 12 exactos)', mensaje: 'a12345678-1234-1234-1234-123456789012b', esperado: 'a[uuid]b' },
+    { nombre: 'uuid exacto sin nada alrededor', mensaje: '12345678-1234-1234-1234-123456789012', esperado: '[uuid]' },
+    { nombre: 'grupo 1 de 7 no es uuid', mensaje: '1234567-1234-1234-1234-123456789012', esperado: '1234567-1234-1234-1234-123456789012' },
+    { nombre: 'grupo 5 de 11 no es uuid', mensaje: '12345678-1234-1234-1234-12345678901', esperado: '12345678-1234-1234-1234-12345678901' },
   ]
   for (const { nombre, mensaje, esperado } of filas) {
     it(`describirError: ${nombre}`, async () => {
@@ -288,6 +303,24 @@ describe('bordes de las constantes de describirError (tabla)', () => {
       assert.equal((logs[0][1] as { error: string }).error, esperado)
     })
   }
+
+  it('un error que es un string sigue el mismo orden (recorte con margen, redacción, recorte final): un secreto que cruza el 300 no deja prefijo', async () => {
+    const log = async (error: string) => {
+      logs.length = 0
+      await rechazoPorCupo(admin({ data: null, error }), 'usuario-x', 'chat-ia', 30, textos)
+      return (logs[0][1] as { error: string }).error
+    }
+    const clave = `${'z'.repeat(288)}sk-${'A'.repeat(10)}`
+    const salida = await log(clave)
+    assert.equal(salida, `${'z'.repeat(288)}[clave]`)
+    for (let i = 0; i + 6 <= `sk-${'A'.repeat(10)}`.length; i++) assert.equal(salida.includes(`sk-${'A'.repeat(10)}`.slice(i, i + 6)), false)
+    // La URL larga que sigue a un texto: con el largo total de 299, 300, 301 y 2000 siempre sale '[url] fin-visible'.
+    for (const total of [299, 300, 301, 2000]) {
+      const mensaje = `https://${'a'.repeat(total - 8 - 12)}${' fin-visible'}`
+      assert.equal(mensaje.length, total)
+      assert.equal(await log(mensaje), '[url] fin-visible', `total ${total}`)
+    }
+  })
 
   it('un error que no es objeto se acota a 300 (299/300/301)', async () => {
     for (const [largo, esperado] of [[299, 299], [300, 300], [301, 300]] as const) {
