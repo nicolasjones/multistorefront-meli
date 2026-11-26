@@ -472,6 +472,56 @@ describe('indexar-documento', () => {
     assert.ok(errores.some((e) => String(e[0]).includes('no se pudo soltar el candado')))
   })
 
+  it('los logs de indexar-documento dejan solo nombre y código: un fallo de fetch con una clave no la filtra', async () => {
+    const casos: Array<[string, (m: ReturnType<typeof montar>) => void, number, string]> = [
+      ['fallo de embeddings', (m) => { m.deps.embeddings = async () => { throw new TypeError('fetch failed: https://api.x/y?apikey=SECRETO', { cause: new Error('Bearer SECRETO') }) } }, 502, 'TypeError'],
+      ['entrada rechazada por la política de IA', (m) => { m.deps.validarEntrada = () => { throw new Error('POLITICA_IA_INACTIVA') } }, 200, 'Error POLITICA_IA_INACTIVA'],
+      ['no se pudo soltar el candado, vence solo en 10 minutos', (m) => { m.deps.embeddings = async () => { throw new Error('caído') }; m.deps.soltar = async () => { throw new Error('soltar: 42501 clave sk-abcdefghijSECRETO') } }, 502, 'Error'],
+      ['error inesperado', (m) => { m.deps.activar = async () => { throw new RangeError('boom SECRETO') } }, 500, 'RangeError'],
+    ]
+    for (const [prefijo, preparar, , esperado] of casos) {
+      const m = montar({})
+      preparar(m)
+      const errores: unknown[][] = []
+      const original = console.error
+      console.error = (...a: unknown[]) => { errores.push(a) }
+      try { await pedir(m.deps) } finally { console.error = original }
+      const log = errores.find((e) => String(e[0]).includes(prefijo))
+      assert.ok(log, `falta el log «${prefijo}»`)
+      assert.equal(log[1], esperado)
+      assert.doesNotMatch(JSON.stringify(errores), /SECRETO|api\.x|sk-abc/)
+    }
+  })
+
+  it('cada log de error de indexar-documento deja solo nombre y código (lectura del contexto y los tres borrados de fragmentos)', async () => {
+    const espiar = async (m: ReturnType<typeof montar>) => {
+      const errores: unknown[][] = []
+      const original = console.error
+      console.error = (...a: unknown[]) => { errores.push(a) }
+      try { await pedir(m.deps) } finally { console.error = original }
+      return errores
+    }
+    const secreto = () => new Error('falló con Bearer SECRETO https://x.y/?apikey=SECRETO')
+    const a = montar({ version: { subida_por: 'otro' } })
+    a.deps.contexto = async () => { throw secreto() }
+    const b = montar({ embeddingsFalla: true })
+    b.deps.borrarFragmentos = async () => { throw secreto() }
+    const c = montar({ texto: '   ' })
+    c.deps.borrarFragmentos = async () => { throw secreto() }
+    const d = montar({ activarInvalida: true })
+    let llamadas = 0
+    const borrar = d.deps.borrarFragmentos
+    d.deps.borrarFragmentos = async (...args) => { if (++llamadas >= 2) throw secreto(); return borrar(...args) }
+    const casos: Array<[string, ReturnType<typeof montar>]> = [['no se pudo leer el contexto', a], ['no se pudieron borrar los fragmentos', b], ['no se pudieron borrar los fragmentos', c], ['no se pudieron borrar los fragmentos', d]]
+    for (const [prefijo, m] of casos) {
+      const errores = await espiar(m)
+      const log = errores.find((e) => String(e[0]).includes(prefijo))
+      assert.ok(log, `falta el log «${prefijo}»`)
+      assert.equal(log[1], 'Error')
+      assert.doesNotMatch(JSON.stringify(errores), /SECRETO|x\.y/)
+    }
+  })
+
   it('no lee el contexto si quien invoca subió la versión; si la lectura lanza y no subió, 503', async () => {
     const subio = montar()
     let lecturas = 0

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { esTimeoutDeProveedor, limiteDeCupo, limpiarParaLog, rechazoPorCupo } from './cupo-ia.ts'
+import { esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from './cupo-ia.ts'
+import { limpiarParaLog } from './log-seguro.ts'
 
 const textos = { agotado: 'agotado' }
 let logs: unknown[][]
@@ -127,18 +128,45 @@ describe('rechazoPorCupo: log de servidor', () => {
     assert.ok(largo.length <= 300 && largo.length > 250, `longitud ${largo.length}`)
   })
 
-  it('un uuid que cae justo en el límite de 300 caracteres no deja ningún fragmento', async () => {
-    for (let relleno = 250; relleno <= 300; relleno++) {
-      const log = await logDe(`${'z'.repeat(relleno)} ${usuario} ${otroUuid}`)
-      for (const w of [...ventanas(usuario), ...ventanas(otroUuid)]) assert.equal(log.toLowerCase().includes(w), false, `relleno ${relleno}: queda «${w}»`)
-      assert.ok(log.length <= 300)
+  it('con el recorte a 300 no queda ninguna ventana de 6 hex de ningún uuid, en 12 formatos y rellenos de 230 a 310', async () => {
+    const formatos: Array<(u: string) => string> = [
+      (u) => u, (u) => u.toUpperCase(), (u) => u.replaceAll('-', ''), (u) => u.replaceAll('-', '').toUpperCase(), (u) => `Key (usuario_id)=(${u})`,
+      (u) => `"${u}"`, (u) => `'${u}'`, (u) => `id=${u};`, (u) => `abc${u.replaceAll('-', '')}def`, (u) => `${u} ${u}`, (u) => `[${u}]`, (u) => `x${u}x`,
+    ]
+    for (const formato of formatos) {
+      for (let relleno = 230; relleno <= 310; relleno++) {
+        const log = await logDe(`${'z'.repeat(relleno)} ${formato(usuario)} ${formato(otroUuid)}`)
+        for (const w of [...ventanas(usuario), ...ventanas(otroUuid), ...ventanas(usuario.replaceAll('-', '')), ...ventanas(otroUuid.replaceAll('-', ''))]) {
+          assert.equal(log.toLowerCase().includes(w), false, `relleno ${relleno}: queda «${w}»`)
+        }
+        assert.ok(log.length <= 300)
+      }
     }
   })
 
-  it('descarta el resto de un uuid cortado al final del detalle (racha de 8 o más hex y guiones)', async () => {
-    const log = await logDe(`detalle ${usuario.slice(0, 22)}`)
-    assert.equal(/[0-9a-f-]{8,}$/i.test(log), false, log)
-    assert.match(log, /detalle$/)
+
+  it('no destruye texto legítimo: hashes cortos, números y revisiones salen intactos', async () => {
+    for (const texto of ['commit deadbeef', '0xdeadbeef', 'error 12345678', 'codigo 20240101', 'rev decade-faded', 'fallo en fedcba98']) {
+      assert.equal(await logDe(texto), `23503 ${texto}`)
+    }
+  })
+
+
+  it('uuid sin guiones pegado a letras hexadecimales de ambos lados: no queda ningún fragmento', async () => {
+    const sin = usuario.replaceAll('-', '')
+    for (const m of [`abc${sin}def`, `abc${sin}`, `${sin}def`, `fedcba${sin}abcdef012`, `abc${otroUuid.replaceAll('-', '')}def`]) {
+      const log = await logDe(m)
+      for (const w of [...ventanas(sin), ...ventanas(otroUuid.replaceAll('-', ''))]) assert.equal(log.toLowerCase().includes(w), false, `queda «${w}» en: ${log}`)
+      assert.match(log, /\[uuid\]/)
+    }
+  })
+
+  it('redacta credenciales y URLs del mensaje de la RPC (JWT, Bearer, x-api-key, apikey, sk-, URL con usuario y clave)', async () => {
+    const secretos = ['eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firmaSECRETA123', 'Bearer abcSECRETO', 'Authorization: Bearer xSECRETO', 'x-api-key: kSECRETO', '?apikey=kSECRETO&x=1', 'sk-abcdefghijSECRETO0123', 'https://user:passSECRETO@host.example/ruta']
+    for (const secreto of secretos) {
+      const log = await logDe(`fallo de red ${secreto} fin`)
+      assert.doesNotMatch(log, /SECRETO|firmaSECRETA|host\.example/, log)
+    }
   })
 
   it('con un id de usuario vacío no se tacha «todo» (la regex vacía coincidiría en cada posición)', async () => {
@@ -169,17 +197,6 @@ describe('rechazoPorCupo: log de servidor', () => {
     await rechazoPorCupo(admin({ data: [{ se_consumio: true }], error: null }), usuario, 'f', 1, textos)
     await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null }), usuario, 'f', 1, textos)
     assert.deepEqual(logs, [])
-  })
-})
-
-describe('limpiarParaLog', () => {
-  it('una sola línea, acotado a max, y tolera valores no string', () => {
-    assert.equal(limpiarParaLog('linea\n[cupo-ia] FAKE', 100), 'linea [cupo-ia] FAKE')
-    assert.equal(limpiarParaLog('a\r\nb\u2028c\u2029d\u0000e\u001ff\u007fg', 100), 'a b c d e f g')
-    assert.equal(limpiarParaLog('x'.repeat(200), 64).length, 64)
-    assert.equal(limpiarParaLog('abcdef', 3), 'abc')
-    assert.equal(limpiarParaLog(undefined, 10), 'undefined')
-    assert.equal(limpiarParaLog({ toString() { throw new Error('x') } }, 40), '[no representable]')
   })
 })
 

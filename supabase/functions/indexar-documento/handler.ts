@@ -11,6 +11,7 @@
 // Errores: los permanentes (documento sin texto, demasiado grande, permiso 42501 al activar) dejan la versión `fallida`;
 // los transitorios (proveedor, storage, base) sueltan la reclamación y dejan la versión `procesando`: no hay reintento
 // automático ni barrido, el reintento es manual (botón «Reintentar» de la pantalla de Documentos IA).
+import { textoDeError } from '../_shared/log-seguro.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
 import { MAX_FRAGMENTOS, fragmentarTexto, nuevoReclamo, reclamoVigente } from './reglas.ts'
 
@@ -84,7 +85,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // El contexto (rol) solo hace falta si NO es quien subió la versión; un fallo al leerlo cuenta como «sin contexto».
   let contexto: Awaited<ReturnType<Deps['contexto']>> = null
   if (!esQuienSubio) {
-    try { contexto = await deps.contexto(jwt) } catch (error) { console.error('indexar-documento: no se pudo leer el contexto', error instanceof Error ? error.message : error) }
+    try { contexto = await deps.contexto(jwt) } catch (error) { console.error('indexar-documento: no se pudo leer el contexto', textoDeError(error)) }
   }
   // Falla cerrado: si no se puede resolver el rol (error del RPC de contexto) y no es quien subió, no se puede decidir
   // el permiso de administrador → 503 (no es un «no» definitivo), sin tocar nada.
@@ -102,7 +103,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // Soltar el candado nunca debe lanzar; si falla, el candado queda vigente hasta que venza (10 min): se deja rastro.
   const soltarSeguro = async () => {
     try { await deps.soltar(jwt, versionId, reclamo) } catch (error) {
-      console.error('indexar-documento: no se pudo soltar el candado, vence solo en 10 minutos', error instanceof Error ? error.message : error)
+      console.error('indexar-documento: no se pudo soltar el candado, vence solo en 10 minutos', textoDeError(error))
     }
   }
   const yaActiva = async () => (await deps.estado(jwt, versionId)) === 'activa'
@@ -126,7 +127,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       if ((await propiedad()) !== 'dueno') return false
       return await deps.borrarFragmentos(jwt, versionId, reclamo)
     } catch (error) {
-      console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error)
+      console.error('indexar-documento: no se pudieron borrar los fragmentos', textoDeError(error))
       return false
     }
   }
@@ -141,7 +142,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     if (dueno === 'ajena') return ocupada()
     if (await deps.marcarFallida(jwt, versionId, motivo, reclamo)) {
       // Ya `fallida`: sus fragmentos no sirven. Mejor esfuerzo; si falla queda rastro en el log.
-      try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
+      try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', textoDeError(error)) }
       return null
     }
     if (await yaActiva()) return respuestaIdempotente()
@@ -179,7 +180,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       deps.validarEntrada(politica, fragmentos[0])
     } catch (error) {
       // El código interno (p. ej. POLITICA_IA_INACTIVA) va al log; al usuario y a `motivo_error` solo un texto fijo.
-      console.error('indexar-documento: entrada rechazada por la política de IA', error instanceof Error ? error.message : error)
+      console.error('indexar-documento: entrada rechazada por la política de IA', textoDeError(error))
       return await fallar(MOTIVO_ENTRADA_INVALIDA)
     }
 
@@ -187,7 +188,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       embeddings = await deps.embeddings(fragmentos, credencial.clave)
     } catch (error) {
-      console.error('indexar-documento: fallo de embeddings', error instanceof Error ? error.message : error)
+      console.error('indexar-documento: fallo de embeddings', textoDeError(error))
       return await reintentable('No pude generar los embeddings de este documento, probá de nuevo.', 502)
     }
 
@@ -215,7 +216,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         if (actual.estado === 'activa') return respuestaIdempotente()
         // Solo se borra si la versión sigue siendo nuestra o ya no está en juego (no `activa`, no retomada por otra).
         if (!(actual.estado === 'procesando' && actual.motivo_error !== reclamo)) {
-          try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', error instanceof Error ? error.message : error) }
+          try { await deps.borrarFragmentos(jwt, versionId, reclamo) } catch (error) { console.error('indexar-documento: no se pudieron borrar los fragmentos', textoDeError(error)) }
         }
         await soltarSeguro()
         return respuesta({ error: 'Esta versión ya no se puede procesar.', codigo: 'no_procesable' }, 409)
@@ -232,7 +233,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     }
     return respuesta({ version_id: versionId, fragmentos: filas.length }, 200)
   } catch (error) {
-    console.error('indexar-documento: error inesperado', error instanceof Error ? error.message : error)
+    console.error('indexar-documento: error inesperado', textoDeError(error))
     return await reintentable('No se pudo indexar el documento, probá de nuevo.', 500)
   }
 }

@@ -4,6 +4,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { prepararInvocacion, sanitizarDato, type ContratoConsumidor } from '../_shared/ia/index.ts'
 import { generarEmbeddings } from '../_shared/embeddings.ts'
+import { registrarErrorDeBase } from '../_shared/log-seguro.ts'
 import { manejar, type Deps, type VersionDoc } from './handler.ts'
 import { consultaMarcarFallida, consultaReclamar, consultaSoltar, llamarBorrarFragmentosSiDueno, llamarInsertarFragmentosSiDueno } from './consultas.ts'
 import { escrituraFragmentos, type ClienteFragmentos } from './fragmentos.ts'
@@ -93,7 +94,7 @@ Deno.serve((req) => {
     // Solo mientras sigue `procesando`: una versión ya activa (o reemplazada) nunca se pisa a `fallida`.
     marcarFallida: async (jwt, id, motivo, reclamo) => {
       const { data, error } = await consultaMarcarFallida(comoUsuario(jwt), id, motivo, reclamo)
-      if (error) console.error('indexar-documento: no se pudo marcar la versión fallida', error.code ?? '', error.message)
+      if (error) registrarErrorDeBase('indexar-documento: no se pudo marcar la versión fallida', error)
       return !error && (data?.length ?? 0) === 1
     },
     estado: async (jwt, id) => (await comoUsuario(jwt).from('versiones_documento').select('estado').eq('id', id).maybeSingle()).data?.estado ?? null,

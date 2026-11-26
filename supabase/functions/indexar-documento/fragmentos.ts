@@ -1,6 +1,8 @@
 // Escritura de fragmentos con el cliente de SERVICIO (sin imports de Deno ni de Supabase: se prueba con `node --test`).
 // Solo se llama después de la autorización del handler (funcionalidad, RLS sobre la versión, permiso y reclamo propio) y
 // acota SIEMPRE por la versión y la organización que el usuario ve por RLS (MSF-651).
+import { limpiarParaLog } from '../_shared/log-seguro.ts'
+
 export type FilaFragmento = { version_id: string; organizacion_id: string; texto: string; embedding: string; orden: number }
 
 // Lo mínimo que se necesita del cliente de servicio (index.ts lo arma sobre supabase-js, sin `any`).
@@ -20,7 +22,7 @@ export function escrituraFragmentos(servicio: ClienteFragmentos, versionDelUsuar
       const version = await versionDelUsuario(jwt, versionId)
       if (!version) return false
       const { data, error } = await servicio.borrar(versionId, version.organizacion_id, reclamo)
-      if (error) console.error('indexar-documento: no se pudieron borrar los fragmentos', (error as { code?: string }).code ?? '')
+      if (error) console.error('indexar-documento: no se pudieron borrar los fragmentos', limpiarParaLog((error as { code?: string }).code ?? '', 64))
       return !error && data === true
     },
     insertarFragmentos: async (jwt: string, filas: FilaFragmento[], reclamo: string): Promise<boolean> => {
@@ -32,7 +34,7 @@ export function escrituraFragmentos(servicio: ClienteFragmentos, versionDelUsuar
         const lote = filas.slice(i, i + loteInsercion).map(({ texto, embedding, orden }) => ({ texto, embedding, orden }))
         // Cada lote re-verifica en SQL que la versión sigue en manos de este reclamo (otra invocación pudo retomarla o activarla).
         const { data, error } = await servicio.insertar(versionId, version.organizacion_id, reclamo, lote)
-        if (error) console.error('indexar-documento: no se pudieron insertar los fragmentos', (error as { code?: string }).code ?? '')
+        if (error) console.error('indexar-documento: no se pudieron insertar los fragmentos', limpiarParaLog((error as { code?: string }).code ?? '', 64))
         if (error || data !== true) return false
       }
       return true

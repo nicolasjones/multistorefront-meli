@@ -2,6 +2,8 @@
 // para probarla con `node --test` (cupo-ia.test.ts). Lo consume `public.consumir_cupo_ia` (solo service_role) con el cliente admin:
 // el contador vive en la base (`private.ia_cupo_uso`), no en el isolate ni en tablas que el usuario pueda borrar.
 // Se llama DESPUÉS de verificar funcionalidad y conversación y ANTES de llamar al proveedor; un error al consumir NO deja pasar (503).
+import { limpiarParaLog, redactarCredenciales } from './log-seguro.ts'
+
 export const LIMITE_CUPO_POR_HORA = 30
 // Máximo razonable por hora configurable con ENV (igual que el tope de `private.consumir_cupo_ia`): un valor mayor, no entero o no
 // positivo vuelve a 30. Sin cota, un valor enorme equivale a cupo abierto y uno que no entra en `int` rompe la RPC (22003).
@@ -9,34 +11,22 @@ export const LIMITE_CUPO_MAXIMO = 1000
 export const FUNCIONALIDAD_CHAT = 'chat-ia'
 export const FUNCIONALIDAD_DOCUMENTOS = 'busqueda-documental'
 
-// Saneo de cualquier dato variable antes de escribirlo en el log del servidor (anti «log forging»): convierte a texto, reemplaza saltos de
-// línea, caracteres de control (incluido NUL), U+2028 y U+2029 por un espacio (una sola línea) y acota a `max` caracteres. Regex lineal
-// (un cuantificador simple sobre una clase).
-export function limpiarParaLog(valor: unknown, max: number): string {
-  let texto: string
-  try { texto = typeof valor === 'string' ? valor : String(valor) } catch { texto = '[no representable]' }
-  return texto.replace(/[\r\n\u0000-\u001f\u007f\u2028\u2029]+/g, ' ').slice(0, max)
-}
-
 const MAX_ERROR_LOG = 300
 // Antes de tachar se acota a un tamaño holgado, para que el trabajo sea lineal aunque el detalle sea enorme (el recorte final es a 300).
 const MAX_ANTES_DE_TACHAR = 2000
 const UUID_GENERICO = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi
-// El mismo uuid sin guiones (32 hexadecimales seguidos).
-const UUID_SIN_GUIONES = /[0-9a-f]{32}/gi
+// El mismo uuid sin guiones: una racha de 32 o más hexadecimales (también pegada a letras hexadecimales de ambos lados).
+const UUID_SIN_GUIONES = /[0-9a-f]{32,}/gi
 const CORREO = /[^\s@]{1,64}@[^\s@]{1,255}/g
-// Resto de un uuid cortado por el recorte: una racha final de 8 o más caracteres hexadecimales o guiones. Se aplica sobre texto de <= 300.
-const UUID_PARCIAL_FINAL = /[0-9a-f-]{8,}$/i
-
-// Descripción segura de un error para el log del servidor: nombre, código y mensaje en UNA línea, con el id del usuario, cualquier otro uuid
-// y los correos tachados ANTES de acotar a 300 caracteres (y sin dejar al final un fragmento de uuid cortado por el recorte).
+// Descripción segura de un error de la RPC (mensaje de Postgres/PostgREST) para el log del servidor: nombre, código y mensaje en UNA línea, con
+// credenciales y URLs redactadas (segunda defensa), el id del usuario, cualquier otro uuid y los correos tachados ANTES de acotar a 300 caracteres: como el tachado
+// precede al recorte, un uuid completo nunca queda cortado por él y no hace falta descartar nada al final (hacerlo borraría texto legítimo, p. ej. `commit deadbeef`).
 function describirError(error: unknown, usuarioId: string): string {
   const e = (error && typeof error === 'object' ? error : { message: String(error) }) as { name?: unknown; code?: unknown; message?: unknown }
   const partes = [e.name, e.code, e.message].filter((p): p is string => typeof p === 'string' && p !== '')
-  let texto = limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR)
+  let texto = redactarCredenciales(limpiarParaLog(partes.join(' '), MAX_ANTES_DE_TACHAR))
   if (usuarioId) texto = texto.replace(new RegExp(usuarioId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '[usuario]')
-  texto = texto.replace(UUID_GENERICO, '[uuid]').replace(UUID_SIN_GUIONES, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG)
-  return texto.replace(UUID_PARCIAL_FINAL, '').trim()
+  return texto.replace(UUID_GENERICO, '[uuid]').replace(UUID_SIN_GUIONES, '[uuid]').replace(CORREO, '[correo]').slice(0, MAX_ERROR_LOG).trim()
 }
 
 export type RechazoCupo = { status: number; error: string; retryAfter?: number }

@@ -262,6 +262,7 @@
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/acceso-ia.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/_shared/log-seguro.ts",
         "supabase/tests/database/lote90_cupo_persistente_de_ia.test.sql",
         "scripts/sincronizar-ia-edge-functions.mjs",
         "scripts/sincronizar-ia-edge-functions.test.mjs",
@@ -298,6 +299,7 @@
         "supabase/functions/_shared/fetch-ia.ts",
         "supabase/functions/_shared/acceso-ia.ts",
         "supabase/functions/_shared/cupo-ia.ts",
+        "supabase/functions/_shared/log-seguro.ts",
         "supabase/functions/_shared/embeddings.ts",
         "apps/web/src/pages/ia/documentos.tsx"
       ]

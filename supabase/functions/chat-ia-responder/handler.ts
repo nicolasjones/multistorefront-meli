@@ -22,7 +22,8 @@ import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
-import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, limpiarParaLog, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { limpiarParaLog, mensajeParaLog, textoDeError } from '../_shared/log-seguro.ts'
 import {
   ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
   resolverLlamadas, validarEntrada, type ResultadoHerramienta,
@@ -75,10 +76,9 @@ const CONSUMIDOR_CODIGO = 'chat-ia-leer'
 const CODIGOS_DE_CONFIGURACION = new Set(['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA'])
 
 // Log de servidor para los rechazos 400/500/501 de configuración (ya no dejan un mensaje `fallida`): prefijo estable y solo el motivo,
-// nunca la clave, el contenido del mensaje ni datos del usuario.
-const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${limpiarParaLog(motivo, 120)}`)
-// Descripción de un error para el log: una sola línea y acotada (el detalle del proveedor puede traer saltos de línea o ser enorme).
-const textoDeError = (error: unknown) => limpiarParaLog(error instanceof Error ? error.message : error, 300)
+// nunca la clave, el contenido del mensaje ni datos del usuario. El `motivo` es un texto fijo más piezas que ya llegan saneadas y acotadas
+// a 64 caracteres con `limpiarParaLog` (adaptador, código de política), por eso no necesita un tope propio.
+const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${motivo}`)
 
 const CONTRATO: ContratoConsumidor = {
   codigo: CONSUMIDOR_CODIGO,
@@ -167,7 +167,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // no con service-role), la conversación indicada debe existir y ser del usuario, y recién entonces se consume un uso del cupo
   // persistente por hora (`consumir_cupo_ia`): una petición inválida no gasta cupo.
   const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
-  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', limpiarParaLog(featureChat.error.message, 300))
+  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', mensajeParaLog(featureChat.error.message, 300))
   const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
   if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
 

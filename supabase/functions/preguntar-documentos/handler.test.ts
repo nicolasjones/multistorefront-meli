@@ -320,6 +320,9 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
   it('los rechazos del cliente o de estado no dejan log de servidor: 403, 400, 429 y 503 de política', async () => {
     const casos: Array<[number, () => Promise<unknown>]> = [
       [403, () => llamar({ jwtValido: false })],
+      [403, () => llamar({}, { pregunta: 'hola' }, pedir({ pregunta: 'hola' }, { auth: null }))],
+      [400, () => llamar({}, undefined, pedir(undefined, { metodo: 'GET' }))],
+      ...['ENTRADA_IA_FUERA_DE_ESQUEMA', 'ORGANIZACION_IA_NO_AUTORIZADA', 'ENTRADA_IA_INVALIDA', 'LIMITE_INTENTOS_IA'].map((c): [number, () => Promise<unknown>] => [400, () => llamar({ prepararError: new Error(c) })]),
       [400, () => llamar({}, { pregunta: '' })],
       [400, () => llamar({}, { pregunta: 'x'.repeat(2001) })],
       [400, () => llamar({}, 'no es json')],
@@ -333,6 +336,16 @@ describe('funcionalidad y límite por usuario (antes de gastar crédito)', () =>
       assert.equal(res.status, estado)
       assert.deepEqual(errores, [], `estado ${estado}`)
     }
+  })
+
+  it('el log de la verificación de funcionalidad sale en una línea, acotado y con credenciales redactadas', async () => {
+    const { res } = await llamar({ feature: { data: null, error: { message: `boom\nFAKE Bearer SECRETO eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1In0.firmaSECRETA ${'z'.repeat(500)}` } } })
+    assert.equal(res.status, 503)
+    assert.equal(errores.length, 1)
+    const texto = String(errores[1 - 1][1])
+    assert.equal(/[\r\n]/.test(texto), false)
+    assert.doesNotMatch(texto, /SECRETO|firmaSECRETA/)
+    assert.ok(texto.length <= 300)
   })
 
   it('el usuario del cupo sale del JWT validado, aunque el cuerpo traiga otro usuario_id o user_id', async () => {

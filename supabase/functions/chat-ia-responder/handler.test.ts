@@ -503,10 +503,25 @@ describe('preparación de la invocación y credencial', () => {
     assert.ok(linea.length - '[chat-ia-responder] configuración de la plataforma: adaptador_no_soportado:'.length <= 64)
   })
 
+  it('un fallo de red del proveedor con una clave en la URL o en la cause deja solo el nombre del error en el log', async () => {
+    const error = new TypeError('fetch failed: https://api.x/y?apikey=SECRETO', { cause: new Error('Bearer SECRETO') })
+    const { res } = await llamar({ respuestas: [error] })
+    assert.equal(res.status, 502)
+    assert.deepEqual(errores, [['chat-ia-responder: fallo al invocar proveedor', 'TypeError']])
+    assert.doesNotMatch(JSON.stringify(errores), /SECRETO|api\.x/)
+  })
+
+  it('el error inesperado deja solo nombre y código, no el mensaje', async () => {
+    const { res } = await llamar({ respuestas: [{ stop_reason: 'end_turn' }] })
+    assert.equal(res.status, 500)
+    assert.deepEqual(errores, [['chat-ia-responder: error inesperado', 'TypeError']])
+  })
+
   it('los demás logs con datos variables también salen en una línea y acotados (verificación de funcionalidad y fallo del proveedor)', async () => {
-    const a = await llamar({ feature: { data: null, error: { message: `boom\n[chat-ia-responder] FAKE${'z'.repeat(500)}` } } })
+    const a = await llamar({ feature: { data: null, error: { message: `boom\n[chat-ia-responder] FAKE Bearer SECRETO${'z'.repeat(500)}` } } })
     assert.equal(a.res.status, 503)
     assert.equal(/[\r\n]/.test(String(errores[0][1])), false)
+    assert.doesNotMatch(String(errores[0][1]), /SECRETO/)
     assert.ok(String(errores[0][1]).length <= 300)
     errores.length = 0
     await llamar({ respuestas: [new Error(`caída\n[chat-ia-responder] FAKE${'z'.repeat(500)}`)] })
@@ -519,6 +534,8 @@ describe('preparación de la invocación y credencial', () => {
     const casos: Array<[number, () => Promise<unknown>]> = [
       [403, () => llamar({ jwtValido: false })],
       [403, () => llamar({}, { mensaje: 'hola' }, pedir({ mensaje: 'hola' }, { auth: null }))],
+      [400, () => llamar({}, undefined, pedir(undefined, { metodo: 'GET' }))],
+      [503, () => llamar({ existente: { data: null, error: { message: 'detalle-interno' } } }, { mensaje: 'hola', conversacion_id: CONV })],
       [400, () => llamar({}, { mensaje: '' })],
       [400, () => llamar({}, { mensaje: 'x'.repeat(4001) })],
       [400, () => llamar({}, { mensaje: 'hola', conversacion_id: 'no-uuid' })],
