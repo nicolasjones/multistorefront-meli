@@ -22,7 +22,7 @@ import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { sanitizarDato, marcarContenidoNoConfiable } from '../_shared/ia/sanitizar.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
-import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { FUNCIONALIDAD_CHAT, esTimeoutDeProveedor, limiteDeCupo, limpiarParaLog, rechazoPorCupo } from '../_shared/cupo-ia.ts'
 import {
   ErrorPersistencia, MAX_TOKENS_RESPUESTA, columnasParaSelect, describirPropuesta, filtrosSeguros, guardarMensaje,
   resolverLlamadas, validarEntrada, type ResultadoHerramienta,
@@ -76,7 +76,9 @@ const CODIGOS_DE_CONFIGURACION = new Set(['POLITICA_IA_INACTIVA', 'LIMITE_INTENT
 
 // Log de servidor para los rechazos 400/500/501 de configuración (ya no dejan un mensaje `fallida`): prefijo estable y solo el motivo,
 // nunca la clave, el contenido del mensaje ni datos del usuario.
-const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${motivo}`)
+const registrarConfiguracion = (motivo: string) => console.error(`[chat-ia-responder] configuración de la plataforma: ${limpiarParaLog(motivo, 120)}`)
+// Descripción de un error para el log: una sola línea y acotada (el detalle del proveedor puede traer saltos de línea o ser enorme).
+const textoDeError = (error: unknown) => limpiarParaLog(error instanceof Error ? error.message : error, 300)
 
 const CONTRATO: ContratoConsumidor = {
   codigo: CONSUMIDOR_CODIGO,
@@ -165,7 +167,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // no con service-role), la conversación indicada debe existir y ser del usuario, y recién entonces se consume un uso del cupo
   // persistente por hora (`consumir_cupo_ia`): una petición inválida no gasta cupo.
   const featureChat = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'chat-ia' })
-  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', featureChat.error.message)
+  if (featureChat.error) console.error('chat-ia-responder: no se pudo verificar la funcionalidad', limpiarParaLog(featureChat.error.message, 300))
   const sinChat = rechazoPorFuncionalidad(featureChat, { noHabilitada: 'El Chat IA no está habilitado para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad del chat.' })
   if (sinChat) return jsonResponse({ error: sinChat.error }, sinChat.status)
 
@@ -226,7 +228,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     )
   } catch (error) {
     const codigo = error instanceof Error ? error.message : 'ENTRADA_IA_INVALIDA'
-    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${codigo}`)
+    if (CODIGOS_DE_CONFIGURACION.has(codigo)) registrarConfiguracion(`politica_invalida:${limpiarParaLog(codigo, 64)}`)
     return rechazoDeConfiguracion(codigo, 400)
   }
 
@@ -242,7 +244,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // error claro en vez de armar un cuerpo de request con el formato
   // equivocado (nunca asumir un formato no verificado).
   if (credencial.adaptador !== 'anthropic' && credencial.adaptador !== 'openai') {
-    registrarConfiguracion(`adaptador_no_soportado:${String(credencial.adaptador)}`)
+    registrarConfiguracion(`adaptador_no_soportado:${limpiarParaLog(credencial.adaptador, 64)}`)
     return rechazoDeConfiguracion(`El chat todavía no soporta el adaptador "${credencial.adaptador}" — solo Anthropic y OpenAI por ahora.`, 501)
   }
 
@@ -386,7 +388,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       respuesta = await llamar()
     } catch (error) {
-      console.error('chat-ia-responder: fallo al invocar proveedor', error)
+      console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
       const fallo = falloDeProveedor(error)
       return await responderError(fallo.mensaje, fallo.status)
     }
@@ -410,7 +412,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
         try {
           respuesta = await llamar()
         } catch (error) {
-          console.error('chat-ia-responder: fallo al invocar proveedor', error)
+          console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
           const fallo = falloDeProveedor(error)
           return await responderError(fallo.mensaje, fallo.status)
         }
@@ -449,7 +451,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
     try {
       respuesta = await llamar()
     } catch (error) {
-      console.error('chat-ia-responder: fallo al invocar proveedor', error)
+      console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
       const fallo = falloDeProveedor(error)
       return await responderError(fallo.mensaje, fallo.status)
     }
@@ -482,7 +484,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
       try {
         respuesta = await llamar()
       } catch (error) {
-        console.error('chat-ia-responder: fallo al invocar proveedor', error)
+        console.error('chat-ia-responder: fallo al invocar proveedor', textoDeError(error))
         const fallo = falloDeProveedor(error)
         return await responderError(fallo.mensaje, fallo.status)
       }
@@ -499,7 +501,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   } catch (error) {
     // Un insert rechazado (RLS, conversación ajena, caída) ya no se ignora: se responde 500 en vez de «ok» sin historial.
     if (error instanceof ErrorPersistencia) return jsonResponse({ conversacion_id: conversacionId, error: 'No se pudo guardar la respuesta del chat.' }, 500)
-    console.error('chat-ia-responder: error inesperado', error instanceof Error ? error.message : error)
+    console.error('chat-ia-responder: error inesperado', textoDeError(error))
     return jsonResponse({ error: 'No se pudo procesar el mensaje.' }, 500)
   }
 }

@@ -16,7 +16,7 @@ import type { ContratoConsumidor, PerfilModelo } from '../_shared/ia/types.ts'
 import type { prepararInvocacion } from '../_shared/ia/ejecutar.ts'
 import { invocarProveedorIa, type FetchInvocacion } from '../_shared/ia/proveedores/index.ts'
 import { rechazoPorFuncionalidad } from '../_shared/acceso-ia.ts'
-import { FUNCIONALIDAD_DOCUMENTOS, esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from '../_shared/cupo-ia.ts'
+import { FUNCIONALIDAD_DOCUMENTOS, esTimeoutDeProveedor, limiteDeCupo, limpiarParaLog, rechazoPorCupo } from '../_shared/cupo-ia.ts'
 import { armarContexto } from './contexto.ts'
 
 type Resultado = PromiseLike<{ data: any; error: any }>
@@ -98,7 +98,7 @@ export async function manejar(req: Request, deps: Deps): Promise<Response> {
   // Antes de gastar crédito (embedding y generación): la organización del usuario debe tener la funcionalidad
   // `busqueda-documental` (verificada con su propio JWT); el cupo persistente por hora se consume justo antes de llamar al proveedor.
   const featureDocs = await asUser.rpc('tiene_feature_publica', { p_feature_id: 'busqueda-documental' })
-  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', featureDocs.error.message)
+  if (featureDocs.error) console.error('preguntar-documentos: no se pudo verificar la funcionalidad', limpiarParaLog(featureDocs.error.message, 300))
   const sinDocs = rechazoPorFuncionalidad(featureDocs, { noHabilitada: 'La búsqueda documental no está habilitada para tu organización.', noVerificable: 'No se pudo verificar la funcionalidad de búsqueda documental.' })
   if (sinDocs) return jsonResponse({ error: sinDocs.error }, sinDocs.status)
 

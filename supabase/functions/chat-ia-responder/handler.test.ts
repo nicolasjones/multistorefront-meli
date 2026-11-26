@@ -492,6 +492,29 @@ describe('preparación de la invocación y credencial', () => {
     assert.doesNotMatch(JSON.stringify(errores), /clave-proveedor-secreta|detalle-secreto|mensaje-privado-xyz|u1/)
   })
 
+  it('el log de configuración es de una línea y acota el adaptador a 64 caracteres (sin saneo, un adaptador hostil falsificaría el log)', async () => {
+    const adaptador = `x\n[chat-ia-responder] FAKE\r\u2028\u0000${'A'.repeat(200)}`
+    const { res } = await llamar({ adaptador })
+    assert.equal(res.status, 501)
+    assert.equal(errores.length, 1)
+    const linea = String(errores[0][0])
+    assert.equal(/[\r\n\u0000-\u001f\u007f\u2028\u2029]/.test(linea), false)
+    assert.match(linea, /^\[chat-ia-responder\] configuración de la plataforma: adaptador_no_soportado:x \[chat-ia-responder\] FAKE/)
+    assert.ok(linea.length - '[chat-ia-responder] configuración de la plataforma: adaptador_no_soportado:'.length <= 64)
+  })
+
+  it('los demás logs con datos variables también salen en una línea y acotados (verificación de funcionalidad y fallo del proveedor)', async () => {
+    const a = await llamar({ feature: { data: null, error: { message: `boom\n[chat-ia-responder] FAKE${'z'.repeat(500)}` } } })
+    assert.equal(a.res.status, 503)
+    assert.equal(/[\r\n]/.test(String(errores[0][1])), false)
+    assert.ok(String(errores[0][1]).length <= 300)
+    errores.length = 0
+    await llamar({ respuestas: [new Error(`caída\n[chat-ia-responder] FAKE${'z'.repeat(500)}`)] })
+    assert.equal(errores.length, 1)
+    assert.equal(/[\r\n]/.test(String(errores[0][1])), false)
+    assert.ok(String(errores[0][1]).length <= 300)
+  })
+
   it('prepararInvocacion: solo los códigos de política/perfil mal configurados dejan log; los errores del cliente no', async () => {
     for (const codigo of ['POLITICA_IA_INACTIVA', 'LIMITE_INTENTOS_IA_INVALIDO', 'LIMITE_TIEMPO_IA_INVALIDO', 'LIMITE_INTENTOS_IA']) {
       errores.length = 0

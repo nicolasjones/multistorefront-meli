@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, it } from 'node:test'
-import { esTimeoutDeProveedor, limiteDeCupo, rechazoPorCupo } from './cupo-ia.ts'
+import { esTimeoutDeProveedor, limiteDeCupo, limpiarParaLog, rechazoPorCupo } from './cupo-ia.ts'
 
 const textos = { agotado: 'agotado' }
 let logs: unknown[][]
@@ -82,10 +82,83 @@ describe('rechazoPorCupo: log de servidor', () => {
     assert.match(JSON.stringify(logs), /\[usuario\]/)
   })
 
+  const otroUuid = 'a1b2c3d4-e5f6-4789-8abc-def012345678'
+  const ventanas = (uuid: string) => Array.from({ length: uuid.length - 5 }, (_, i) => uuid.slice(i, i + 6).toLowerCase())
+  const logDe = async (message: string, code = '23503') => {
+    logs.length = 0
+    await rechazoPorCupo(admin({ data: null, error: { code, message } }), usuario, 'chat-ia', 30, textos)
+    return String((logs[0][1] as { error: string }).error)
+  }
+
+  it('no deja ningún fragmento del uuid del usuario ni de otros uuids, en los formatos reales del detalle de Postgres', async () => {
+    const mensajes = [
+      `insert or update on table "ia_cupo_uso" violates foreign key constraint. Key (usuario_id)=(${usuario}) is not present in table "users".`,
+      `valor "${usuario}" inválido`,
+      `${usuario} y otra vez ${usuario}`,
+      `Key (usuario_id)=(${usuario.toUpperCase()}) is not present`,
+      `usuario ${usuario} organizacion ${otroUuid} fila ${otroUuid.toUpperCase()} correo persona.prueba+1@example.com otro x@y.zz`,
+    ]
+    for (const m of mensajes) {
+      const log = await logDe(m)
+      for (const w of [...ventanas(usuario), ...ventanas(otroUuid)]) assert.equal(log.toLowerCase().includes(w), false, `queda «${w}» en: ${log}`)
+      assert.equal(log.includes('@'), false, log)
+    }
+    const mayusculas = await logDe(mensajes[3])
+    assert.match(mayusculas, /\[usuario\]/, 'el uuid del usuario en mayúsculas se tacha como [usuario]')
+    assert.doesNotMatch(mayusculas, /\[uuid\]/)
+    const l = await logDe(mensajes[4])
+    assert.match(l, /\[usuario\]/)
+    assert.match(l, /\[uuid\]/)
+    assert.match(l, /\[correo\]/)
+  })
+
+  it('un uuid que cae justo en el límite de 300 caracteres no deja ningún fragmento', async () => {
+    for (let relleno = 250; relleno <= 300; relleno++) {
+      const log = await logDe(`${'z'.repeat(relleno)} ${usuario} ${otroUuid}`)
+      for (const w of [...ventanas(usuario), ...ventanas(otroUuid)]) assert.equal(log.toLowerCase().includes(w), false, `relleno ${relleno}: queda «${w}»`)
+      assert.ok(log.length <= 300)
+    }
+  })
+
+  it('descarta el resto de un uuid cortado al final del detalle (racha de 8 o más hex y guiones)', async () => {
+    const log = await logDe(`detalle ${usuario.slice(0, 22)}`)
+    assert.equal(/[0-9a-f-]{8,}$/i.test(log), false, log)
+    assert.match(log, /detalle$/)
+  })
+
+  it('el log es de UNA línea: sin saltos, controles, NUL ni separadores Unicode, y acotado', async () => {
+    const log = await logDe('linea\n[cupo-ia] FAKE\r\n[otra] FAKE\u2028x\u2029y\u0000z\u0007w\u007fq')
+    assert.equal(/[\r\n\u0000-\u001f\u007f\u2028\u2029]/.test(log), false)
+    assert.match(log, /linea \[cupo-ia\] FAKE/)
+    assert.equal(logs.length, 1)
+    assert.ok((await logDe('x'.repeat(5000))).length <= 300)
+  })
+
+  it('regex lineales: 200k caracteres hostiles se procesan en menos de 300 ms', async () => {
+    const hostiles = ['a'.repeat(200_000), `${'a'.repeat(100_000)}@${'b'.repeat(100_000)}`, '1-'.repeat(100_000), `${'f'.repeat(199_999)}!`, `${usuario}-`.repeat(5_500), '@'.repeat(200_000)]
+    for (const h of hostiles) {
+      const t0 = performance.now()
+      await logDe(h)
+      limpiarParaLog(h, 64)
+      assert.ok(performance.now() - t0 < 300, `tardó ${performance.now() - t0} ms`)
+    }
+  })
+
   it('no registra nada cuando se consume o se agota el cupo (no son fallos)', async () => {
     await rechazoPorCupo(admin({ data: [{ se_consumio: true }], error: null }), usuario, 'f', 1, textos)
     await rechazoPorCupo(admin({ data: [{ se_consumio: false, segundos_hasta_reinicio: 5 }], error: null }), usuario, 'f', 1, textos)
     assert.deepEqual(logs, [])
+  })
+})
+
+describe('limpiarParaLog', () => {
+  it('una sola línea, acotado a max, y tolera valores no string', () => {
+    assert.equal(limpiarParaLog('linea\n[cupo-ia] FAKE', 100), 'linea [cupo-ia] FAKE')
+    assert.equal(limpiarParaLog('a\r\nb\u2028c\u2029d\u0000e\u001ff\u007fg', 100), 'a b c d e f g')
+    assert.equal(limpiarParaLog('x'.repeat(200), 64).length, 64)
+    assert.equal(limpiarParaLog('abcdef', 3), 'abc')
+    assert.equal(limpiarParaLog(undefined, 10), 'undefined')
+    assert.equal(limpiarParaLog({ toString() { throw new Error('x') } }, 40), '[no representable]')
   })
 })
 
