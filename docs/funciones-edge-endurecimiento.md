@@ -346,19 +346,21 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   al final; el `max` se normaliza igual en `limpiarParaLog` y `mensajeParaLog`: entero finito >= 0, los decimales se truncan y cualquier otro
   valor usa 300; adaptador y códigos a 64, mensajes a 300); (3) los mensajes que DEVUELVE la base (verificación de funcionalidad, error al
   marcar la versión fallida, búsqueda, creación de la conversación, error de la RPC de cupo) pasan además por `redactarCredenciales`, SIEMPRE
-  antes del recorte final: URL de cualquier esquema (`https://`, `postgres://`…), JWT, `Bearer`, `sk-…`, `Authorization` con su esquema
-  (`Basic`, `Digest`, `Token`) y campos sensibles (`apikey`, `api_key`, `secret`, `token`, `password`, `passwd`), también con el nombre
-  embebido en uno más largo (`sb-access-token`) y con comillas JSON. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese tope) y acota los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, nombre de campo a 40); no se afirma que cada regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante (máximo 13 ms). La redacción cubre esos formatos y **no es exhaustiva** (no cubre
-  `AIza…`, `xoxb-…`, `ghp_…` ni base64 sin prefijo): los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
+  antes del recorte final: URL de cualquier esquema (`https://`, `postgres://`…), JWT (segmentos de hasta 2000 caracteres), `Bearer`, `sk-…`
+  (que ocultan solo el token) y campos sensibles (`password`, `passwd`, `secret`, `token`, `apikey`, `api_key`, `api-key`, `authorization`,
+  `credential`, `cookie`, también con el nombre embebido en uno más largo como `sb-access-token` y con comillas o barras invertidas de JSON
+  como `\"api_key\":`): **a partir de la primera aparición de un campo sensible seguido de `:` o `=` se oculta TODO el resto del mensaje**
+  (`campo: [oculto]`), porque no se intenta adivinar dónde termina un valor con espacios, comillas o JSON escapado; se pierde contexto a
+  propósito. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese
+  tope) y los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, nombre de campo a 40); no se afirma que cada
+  regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante
+  (máximo 13 ms). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo,
+  y los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
   antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
   (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
   borraría texto legítimo como `commit deadbeef`); (5) los helpers de `log-seguro.ts` y los `catch` de `embeddings.ts` y `packages/ia` leen los
   campos de un error sin lanzar (getters o `Proxy` hostiles), porque se usan dentro de bloques `catch`.
-  **Logs del chat y de preguntar-documentos** (cada uno con su prueba): chat: funcionalidad no verificable, `[chat-ia-responder] configuración de
-  la plataforma` (política, credencial, adaptador), fallo del proveedor (1.ª y 2.ª llamada en Anthropic y en OpenAI), error inesperado, no se
-  pudo crear la conversación, no se pudo guardar el mensaje del usuario y la respuesta; preguntar-documentos: funcionalidad no verificable,
-  credencial, proveedor no soportado, fallo del embedding, fallo del proveedor y búsqueda. Los rechazos del cliente o de estado (403, 400, 404, 429,
-  503 de política) no dejan log.
+  **Logs del chat y de preguntar-documentos:** cada rama y si deja log están en la tabla «Ramas de los handlers y logs» al final de esta sección.
   **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
   `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
   producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
@@ -391,6 +393,30 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   purga de evidencia) y ni `chat-ia-responder` ni `preguntar-documentos` escriben en ella. Guarda estados por ejecución, no un contador atómico por usuario y hora,
   y no cubre las peticiones rechazadas antes de invocar. `ia_cupo_uso` guarda solo los
   contadores de la hora y se purga. Tampoco `ia_consulta_registro` sirve: esa migración (`20270224110100_ia_consulta_registro.sql`) y su test registran las cuatro fuentes de consulta del asistente (insertan en `features`, `eventos_features`, `fuentes_chat_ia`, `fuentes_mcp`, `capacidades_chat_ia` y `capacidades_mcp`), no crean ninguna tabla de uso.
+
+**Ramas de los handlers y logs** (verificada recorriendo ambos handlers; cada fila «sí» tiene una prueba que fija el contenido del log):
+
+| Handler | Rama | Estado | ¿Log de servidor? |
+|---|---|---|---|
+| ambos | método distinto de POST; cuerpo no JSON; cuerpo inválido (mensaje o pregunta vacíos o largos, `conversacion_id` inválido) | 400 | no |
+| ambos | sin Authorization, o JWT inválido | 403 | no |
+| ambos | verificación de la funcionalidad falla | 503 | sí (mensaje de la base redactado) |
+| ambos | la organización no tiene la funcionalidad | 403 | no |
+| chat | verificación de la conversación falla | 503 | sí (código y mensaje redactado) |
+| chat | la conversación no existe o no es del usuario | 404 | no |
+| ambos | política sin configurar | 503 | no |
+| chat | `prepararInvocacion` rechaza | 400 | solo si el código es de política o perfil mal configurados (`politica_invalida:<código>`); los errores del cliente (esquema, organización) no |
+| preguntar | `prepararInvocacion` rechaza | 400 | no |
+| ambos | credencial no disponible | 500 | sí (`credencial_no_disponible`) |
+| ambos | adaptador o proveedor no soportado | 501 | sí (`adaptador_no_soportado:<nombre>` o `proveedor_no_soportado:<nombre>`) |
+| ambos | cupo agotado | 429 | no |
+| ambos | no se pudo consumir el cupo | 503 | sí (`[cupo-ia]`) |
+| chat | no se pudo crear la conversación, guardar el mensaje o guardar la respuesta | 500 | sí |
+| chat | fallo del proveedor (1.ª y 2.ª llamada, Anthropic y OpenAI) | 502 o 504 | sí (nombre y código) |
+| preguntar | fallo del embedding o del proveedor de generación | 502 o 504 | sí (nombre y código) |
+| preguntar | falla la búsqueda en la base | 500 | sí (código y mensaje redactado) |
+| chat | error inesperado | 500 | sí (nombre y código) |
+| ambos | respuesta correcta | 200 | no |
 
 **Orden de despliegue:** aplicar la migración ANTES de desplegar `chat-ia-responder` y `preguntar-documentos`. Si una función sale primero,
 `public.consumir_cupo_ia` no existe y toda consulta responde 503 (falla cerrado: no se gasta crédito, pero el chat y la búsqueda
