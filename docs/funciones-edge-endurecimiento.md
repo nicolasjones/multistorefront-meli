@@ -354,7 +354,7 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   propósito. `redactarCredenciales` acota su entrada a 4000 caracteres antes de cualquier regex (la salida no pasa de unas pocas veces ese
   tope) y los cuantificadores de los patrones (segmentos del JWT a 2000, esquema de URL a 30, nombre de campo a 40); no se afirma que cada
   regex sea lineal (el JWT no lo es) sino que el tiempo está acotado por construcción, medido con 200k caracteres hostiles por variante
-  (máximo 13 ms). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo,
+  (decenas de milisegundos, aun en frío). La redacción **no es exhaustiva**: no cubre `AIza…`, `xoxb-…`, `ghp_…`, `Cookie:` sin nombre de campo ni base64 sin prefijo, tampoco nombres como `pwd=`, `pass=`, `passphrase:`, `private_key=`, `access_key=` o `session=`, una frase sin separador (`password is x`) ni un `)` entre el nombre y el `=` (`Key (token)=(x)`),
   y los errores de red o del proveedor no imprimen mensaje; (4) en `[cupo-ia]` se tachan,
   antes de acotar a 300, el uuid del usuario (sin distinguir mayúsculas), cualquier otro uuid, con o sin guiones (`[uuid]`), y los correos
   (`[correo]`). Como el tachado precede al recorte, un uuid completo nunca queda cortado por él y no se descarta nada al final (hacerlo
