@@ -330,7 +330,14 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   llamada al proveedor (crear la conversación, guardar el mensaje). Preguntas: JWT, cuerpo, funcionalidad, política, credencial, proveedor
   soportado (501) y cupo, justo antes del embedding. Una petición inválida o una configuración que falta no gasta cupo, y un 429 no crea
   conversaciones ni mensajes. Cambio de contrato: los rechazos 400/500/501 del chat ya no guardan un mensaje `fallida` ni crean conversación
-  (el cuerpo incluye `conversacion_id` solo si el cliente la había enviado).
+  (el cuerpo incluye `conversacion_id` solo si el cliente la había enviado). En su lugar dejan un **log de servidor** con prefijo
+  `[chat-ia-responder] configuración de la plataforma:` y el motivo (`credencial_no_disponible`, `adaptador_no_soportado:<adaptador>` o
+  `politica_invalida:<código>`), sin la clave, el contenido del mensaje ni datos del usuario; un error de entrada del cliente (esquema,
+  organización) no se registra. Un fallo del cupo deja el log `[cupo-ia]` con la funcionalidad y el error, sin el id del usuario.
+  **Costo de ese orden:** un usuario sin cupo paga `prepararInvocacion` y `obtener_clave_perfil_ia` (una lectura que descifra la clave del
+  proveedor) en CADA petición antes de recibir el 429. Es solo lectura y no llama al proveedor, y los 500/501 solo ocurren con la
+  plataforma mal configurada. Se descartó un cupo previo «suave» antes de esas lecturas porque rompería la regla de que un 400/500/501 no
+  gasta cupo.
 - **Qué cuenta como un uso.** (a) El uso se consume ANTES de llamar al proveedor y **no se reintegra**: un error, un timeout (504) o un 502 del
   proveedor ya gastaron ese uso. (b) Una unidad de cupo es **una petición HTTP**: el chat puede hacer hasta 2 llamadas al proveedor (la
   consulta y el ciclo de la herramienta `leer`) por un solo uso. (c) El cupo es **por usuario y por funcionalidad, no por organización**: una
