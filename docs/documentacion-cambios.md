@@ -90,7 +90,7 @@ que **reutiliza el mapa que ya existe**: el `sources:` del front matter de cada 
   así que van a la batería completa (probado con `x?`×28 + `x`×28). La clasificación es conservadora: un `+` dentro de una clase
   `[+]` también cuenta como cuantificador, lo que solo manda esa regex a la batería completa. Se imprime la tabla de máximos: el
   máximo observado fue ~0,9 s en un host cargado con 4 workers en paralelo (233 ms en serie) y el tope es 1 s. El test completo
-  tarda ~65 s.
+  tarda entre ~60 y ~80 s según la carga del host.
   - **Qué cubre y qué no:** `docs-drift.mjs` no tiene regex (de él solo se cubre la enumeración). `docs-drift.mjs`,
     `docs-inventario.mjs`, `docs-manifest.mjs` y `verificar-documentacion-cambios.mjs` no exportan nada y corren al importarse:
     no se importan (lista `NO_IMPORTAR` del test) y se miden solo por sus regex literales; el manifest además tiene su test de
