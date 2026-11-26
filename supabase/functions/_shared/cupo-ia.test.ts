@@ -141,6 +141,12 @@ describe('rechazoPorCupo: log de servidor', () => {
     assert.match(log, /detalle$/)
   })
 
+  it('con un id de usuario vacío no se tacha «todo» (la regex vacía coincidiría en cada posición)', async () => {
+    logs.length = 0
+    await rechazoPorCupo(admin({ data: null, error: { code: 'XX000', message: 'fallo de base' } }), '', 'chat-ia', 30, textos)
+    assert.equal((logs[0][1] as { error: string }).error, 'XX000 fallo de base')
+  })
+
   it('el log es de UNA línea: sin saltos, controles, NUL ni separadores Unicode, y acotado', async () => {
     const log = await logDe('linea\n[cupo-ia] FAKE\r\n[otra] FAKE\u2028x\u2029y\u0000z\u0007w\u007fq')
     assert.equal(/[\r\n\u0000-\u001f\u007f\u2028\u2029]/.test(log), false)
