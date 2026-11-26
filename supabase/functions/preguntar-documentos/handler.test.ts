@@ -3,6 +3,7 @@
 // citas y timeout). Corre con `node --test` (`pnpm test:edge:preguntar-documentos`).
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { runInNewContext } from 'node:vm'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 import { manejar, type Deps } from './handler.ts'
 import { crearLimitador, enteroPositivo } from '../_shared/limite-memoria.ts'
@@ -460,14 +461,16 @@ describe('cableado de index.ts', () => {
   })
 
   it('comportamiento: el manejador de index.ts comparte el mismo limitador entre requests', async () => {
-    // Se evalúa index.ts sin sus imports (`Deno.serve`, clientes y manejar simulados) y se invoca el callback dos veces.
+    // Se evalúa index.ts sin sus imports (`Deno.serve`, clientes y manejar simulados; `node:vm`) y se invoca el callback dos veces.
     const codigo = fuente.replace(/^import .*$/gm, '').replace(/const deps: Deps =/, 'const deps =').replace(/\)!/g, ')')
     const depsVistas: Array<{ limitador: { consumir(c: string): boolean } }> = []
     let callback: ((req: Request) => unknown) | undefined
     const Deno = { env: { get: (k: string) => (k === 'PREGUNTAR_DOCUMENTOS_LIMITE_HORA' ? '1' : 'x') }, serve: (cb: typeof callback) => { callback = cb } }
     const manejarSimulado = (_req: Request, deps: (typeof depsVistas)[number]) => { depsVistas.push(deps); return new Response('ok') }
-    new Function('Deno', 'createClient', 'prepararInvocacion', 'generarEmbedding', 'fetchConTimeout', 'crearLimitador', 'enteroPositivo', 'manejar', codigo)(
-      Deno, () => ({}), () => ({}), async () => [], () => async () => ({}), crearLimitador, enteroPositivo, manejarSimulado)
+    runInNewContext(codigo, {
+      Deno, createClient: () => ({}), prepararInvocacion: () => ({}), generarEmbedding: async () => [], fetchConTimeout: () => async () => ({}),
+      crearLimitador, enteroPositivo, manejar: manejarSimulado,
+    })
     assert.ok(callback)
     await callback(pedir({}))
     await callback(pedir({}))
