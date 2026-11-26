@@ -506,6 +506,18 @@ describe('un secreto que cruza el recorte PREVIO no deja su prefijo aunque una r
       }
     })
   }
+  it('barrido: ningún largo de 1180 a 1210 (mensajeParaLog, tope 300) ni de 3980 a 4010 (redactarCredenciales) deja un fragmento de 6 o más caracteres del secreto', () => {
+    const secretosBarrido = [`sk-${'Abcdef1234'.repeat(3)}`, 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firmaSECRETA1234567890', 'persona.prueba@example.com', '12345678-1234-4234-8234-123456789012']
+    for (const secreto of secretosBarrido) {
+      for (const [desde, hasta, f] of [[1180, 1210, (m: string) => mensajeParaLog(m, 300)], [3980, 4010, (m: string) => redactarCredenciales(m)]] as Array<[number, number, (m: string) => string]>) {
+        for (let L = desde; L <= hasta; L++) {
+          const salida = f(`http://h/${'a'.repeat(L - 9)} ${secreto}`)
+          for (const w of ventanas(secreto)) assert.equal(salida.includes(w), false, `L=${L}: queda «${w}» en ${salida}`)
+        }
+      }
+    }
+  })
+
   it('el texto que NO se corta queda igual que antes (mensaje corto, 1199/1200 caracteres para tope 300)', () => {
     assert.equal(mensajeParaLog('fallo simple', 300), 'fallo simple')
     assert.equal(mensajeParaLog(`http://${'a'.repeat(1199 - 7 - 1 - 4)} sk-A`, 300), '[url] sk-A')

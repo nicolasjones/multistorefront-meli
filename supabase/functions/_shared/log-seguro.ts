@@ -4,7 +4,8 @@
 // nombre y un código corto; (3) los mensajes de la base se redactan además con `redactarCredenciales` como segunda defensa (nunca es
 // exhaustiva: la defensa principal es no imprimir lo que no hace falta).
 
-// Equivalente declarado: extender el rango `\u0000-\u001f` hasta `\u0020` (el espacio) no cambia nada, porque el espacio se reemplaza por un espacio.
+// Equivalentes declarados: (1) extender el rango `\u0000-\u001f` hasta `\u0020` (el espacio) no cambia nada, porque el espacio se reemplaza por un espacio;
+// (2) `\r\n` ya está dentro de `\u0000-\u001f` y se lista aparte por claridad (redundancia intencional): quitarlo no cambia el resultado.
 const CONTROL = /[\r\n\u0000-\u001f\u007f\u2028\u2029]+/g
 
 const MAX_POR_DEFECTO = 300

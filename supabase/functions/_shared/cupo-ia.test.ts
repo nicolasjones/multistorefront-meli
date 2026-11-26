@@ -328,6 +328,22 @@ describe('bordes de las constantes de describirError (tabla)', () => {
     assert.equal((logs[0][1] as { error: string }).error, '[url]')
   })
 
+  it('barrido: con el recorte previo en 2000, ningún largo de 1980 a 2010 deja un fragmento de 6 o más caracteres del secreto (string y objeto)', async () => {
+    const secretos = [`sk-${'Abcdef1234'.repeat(3)}`, 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c3VhcmlvIn0.firmaSECRETA1234567890', 'persona.prueba@example.com', '12345678-1234-4234-8234-123456789012']
+    const ventanas = (secreto: string) => Array.from({ length: secreto.length - 5 }, (_, i) => secreto.slice(i, i + 6))
+    for (const secreto of secretos) {
+      for (let L = 1980; L <= 2010; L++) {
+        const mensaje = `http://h/${'a'.repeat(L - 9)} ${secreto}`
+        for (const error of [mensaje, { message: mensaje }]) {
+          logs.length = 0
+          await rechazoPorCupo(admin({ data: null, error }), 'usuario-x', 'chat-ia', 30, textos)
+          const salida = (logs[0][1] as { error: string }).error
+          for (const w of ventanas(secreto)) assert.equal(salida.includes(w), false, `L=${L}: queda «${w}» en ${salida}`)
+        }
+      }
+    }
+  })
+
   it('un texto largo SIN blancos (3000 caracteres): pierde los últimos 64 del tramo previo y sale a 300', async () => {
     logs.length = 0
     await rechazoPorCupo(admin({ data: null, error: { message: 'z'.repeat(3000) } }), 'usuario-x', 'chat-ia', 30, textos)

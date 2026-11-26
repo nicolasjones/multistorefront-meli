@@ -345,8 +345,7 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   `limpiarParaLog` (recorta antes de limpiar; una sola línea: saltos, controles, NUL y U+2028/U+2029 por un espacio; sin par sustituto partido
   al final; el `max` se normaliza igual en `limpiarParaLog` y `mensajeParaLog`: entero finito >= 0, los decimales se truncan y cualquier otro
   valor usa 300; adaptador y códigos a 64, mensajes a 300); (3) los mensajes que DEVUELVE la base (verificación de funcionalidad, error al
-  marcar la versión fallida, búsqueda, creación de la conversación, error de la RPC de cupo) pasan además por `redactarCredenciales`, SIEMPRE
-  antes del recorte final: URL de cualquier esquema (`https://`, `postgres://`…), JWT (segmentos de hasta 2000 caracteres), `Bearer`, `sk-…`
+  marcar la versión fallida, búsqueda, creación de la conversación, error de la RPC de cupo) pasan además por `redactarCredenciales` (recorta con margen sin token parcial → redacta → recorte final): URL de cualquier esquema (`https://`, `postgres://`…), JWT (segmentos de hasta 2000 caracteres), `Bearer`, `sk-…`
   (que ocultan solo el token) y campos sensibles (`password`, `passwd`, `secret`, `token`, `apikey`, `api_key`, `api-key`, `authorization`,
   `credential`, `cookie`, también con el nombre embebido en uno más largo como `sb-access-token` y con comillas o barras invertidas de JSON
   como `\"api_key\":`): **a partir de la primera aparición de un campo sensible seguido de `:` o `=` se oculta TODO el resto del mensaje**
@@ -361,12 +360,17 @@ y OpenAI del chat y en la generación de `preguntar-documentos`, y `AbortSignal.
   borraría texto legítimo como `commit deadbeef`); (5) los helpers de `log-seguro.ts` y los `catch` de `embeddings.ts` y `packages/ia` leen los
   campos de un error sin lanzar (getters o `Proxy` hostiles), porque se usan dentro de bloques `catch`.
   **Logs del chat y de preguntar-documentos:** cada rama y si deja log están en la tabla «Ramas de los handlers y logs» al final de esta sección.
-  **Orden de recorte y redacción por rama** (siempre se redacta ANTES del recorte final): `limpiarParaLog` recorta a `max*4`, aplana y recorta
-  a `max`; `mensajeParaLog` = recorte a `max*4`, redacción y recorte a `max`; `redactarCredenciales` acota su entrada a 4000 y redacta;
-  `describirError` (RPC de cupo) = recorte a 2000, redacción, tachado del usuario, de uuids y de correos, y recorte final a 300, tanto para un objeto
-  de error como para un string; `registrarErrorDeBase` = `code` a 64 sin redacción (es un código corto de la base) y el mensaje por
-  `mensajeParaLog(…, 300)`; los demás logs de adaptador y proveedor (64) pasan solo por `limpiarParaLog` porque son valores de configuración de la
-  plataforma, no datos del usuario; `textoDeError` no imprime texto libre.
+  **Orden de recorte y redacción por rama.** El recorte PREVIO a una redacción descarta el último token parcial
+  (`recortarSinTokenParcial`): si el texto excede el tope, se corta y se retrocede hasta el último blanco, salvo que el carácter siguiente al corte
+  sea un blanco (el último token está completo); si el tramo no tiene ningún blanco se descartan sus últimos 64 caracteres. Así un secreto cortado
+  a la mitad por el margen, que los patrones ya no reconocen, no deja su prefijo cuando una redacción posterior (una URL larga, por ejemplo)
+  acorta el texto. El recorte FINAL nunca lo aplica. Por helper: `limpiarParaLog` (recorte final: `slice(max*4)`, aplanar y `slice(max)`, sin descarte
+  de token; sin cambios); `mensajeParaLog` = recorte previo a `max*4` sin token parcial, aplanado, redacción y recorte final a `max`;
+  `redactarCredenciales` = recorte previo a 4000 sin token parcial y redacción; `describirError` (RPC de cupo, objeto de error o string) = recorte
+  previo a 2000 sin token parcial, aplanado, redacción, tachado del usuario, de uuids y de correos, y recorte final a 300; `registrarErrorDeBase` =
+  `code` a 64 sin redacción (código corto de la base) y el mensaje por `mensajeParaLog(…, 300)`; los logs de adaptador y proveedor (64) pasan solo por
+  `limpiarParaLog` porque son valores de configuración de la plataforma; `textoDeError` no imprime texto libre. Un texto largo sin blancos (por
+  ejemplo 3000 caracteres) pierde los últimos 64 del tramo previo y sale igual a 300.
   **Alcance de la regla:** vale para `chat-ia-responder`, `preguntar-documentos`, `indexar-documento` (handler, `fragmentos.ts`, `index.ts`) y
   `_shared/cupo-ia.ts`. Quedan fuera, por no tener datos variables, `_shared/token.ts` (`console.warn` con un texto fijo) y, por no correr en
   producción, `_shared/verificacion/smtp-real.deno.ts` (script manual de verificación). Las demás funciones fuera de IA siguen imprimiendo
